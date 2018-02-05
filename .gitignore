@@ -1,0 +1,6 @@
+.*
+*.pyc
+*.orig
+*.local
+build*
+CMakeLists.txt.user
