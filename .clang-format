@@ -1,0 +1,2 @@
+BasedOnStyle: google
+DerivePointerAlignment: false
