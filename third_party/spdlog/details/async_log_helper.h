@@ -52,6 +52,7 @@ class async_log_helper
         std::string txt;
         async_msg_type msg_type;
         size_t msg_id;
+        bool rotate_only;
 
         async_msg() = default;
         ~async_msg() = default;
@@ -64,14 +65,16 @@ async_msg(async_msg&& other) SPDLOG_NOEXCEPT:
                     thread_id(other.thread_id),
                     txt(std::move(other.txt)),
                     msg_type(std::move(other.msg_type)),
-                    msg_id(other.msg_id)
+                    msg_id(other.msg_id),
+                    rotate_only(other.rotate_only)
         {}
 
         async_msg(async_msg_type m_type):
             level(level::info),
             thread_id(0),
             msg_type(m_type),
-            msg_id(0)
+            msg_id(0),
+            rotate_only(false)
         {}
 
         async_msg& operator=(async_msg&& other) SPDLOG_NOEXCEPT
@@ -83,6 +86,7 @@ async_msg(async_msg&& other) SPDLOG_NOEXCEPT:
             txt = std::move(other.txt);
             msg_type = other.msg_type;
             msg_id = other.msg_id;
+            rotate_only = other.rotate_only;
             return *this;
         }
 
@@ -97,7 +101,8 @@ async_msg(async_msg&& other) SPDLOG_NOEXCEPT:
             thread_id(m.thread_id),
             txt(m.raw.data(), m.raw.size()),
             msg_type(async_msg_type::log),
-            msg_id(m.msg_id)
+            msg_id(m.msg_id),
+            rotate_only(m.rotate_only)
         {
 #ifndef SPDLOG_NO_NAME
             logger_name = *m.logger_name;
@@ -114,6 +119,7 @@ async_msg(async_msg&& other) SPDLOG_NOEXCEPT:
             msg.thread_id = thread_id;
             msg.raw << txt;
             msg.msg_id = msg_id;
+            msg.rotate_only = rotate_only;
         }
     };
 
@@ -218,7 +224,9 @@ inline spdlog::details::async_log_helper::async_log_helper(
     _flush_interval_ms(flush_interval_ms),
     _worker_teardown_cb(worker_teardown_cb),
     _worker_thread(&async_log_helper::worker_loop, this)
-{}
+{
+    pthread_setname_np(_worker_thread.native_handle(), "spd_logger");
+}
 
 // Send to the worker thread termination message(level=off)
 // and wait for it to finish gracefully

@@ -82,8 +82,8 @@ public:
     virtual void set_error_handler(log_err_handler);
     virtual log_err_handler error_handler();
 
-protected:
     virtual void _sink_it(details::log_msg&);
+protected:
     virtual void _set_pattern(const std::string&, pattern_time_type);
     virtual void _set_formatter(formatter_ptr);
 

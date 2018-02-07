@@ -98,10 +98,16 @@ public:
 protected:
     void _sink_it(const details::log_msg& msg) override
     {
+        if (msg.rotate_only)
+        {
+            _rotate(false);
+            _current_size = 0;
+            return;
+        }
         _current_size += msg.formatted.size();
         if (_current_size > _max_size)
         {
-            _rotate();
+            _rotate(true);
             _current_size = msg.formatted.size();
         }
         _file_helper.write(msg);
@@ -119,7 +125,7 @@ private:
     // log.1.txt -> log.2.txt
     // log.2.txt -> log.3.txt
     // log.3.txt -> delete
-    void _rotate()
+    void _rotate(bool truncate)
     {
         using details::os::filename_to_str;
         _file_helper.close();
@@ -140,7 +146,7 @@ private:
                 throw spdlog_ex("rotating_file_sink: failed renaming " + filename_to_str(src) + " to " + filename_to_str(target), errno);
             }
         }
-        _file_helper.reopen(true);
+        _file_helper.reopen(truncate);
     }
     filename_t _base_filename;
     std::size_t _max_size;
