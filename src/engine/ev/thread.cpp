@@ -8,13 +8,13 @@ namespace engine {
 namespace ev {
 namespace {
 
-const size_t kDefaultFuncQueueSize = 64;
+const size_t kInitFuncQueueCapacity = 64;
 
 }  // namespace
 
 Thread::Thread(const std::string& thread_name)
     : func_ptr_(nullptr),
-      func_queue_(kDefaultFuncQueueSize),
+      func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
       running_(false) {

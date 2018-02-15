@@ -3,7 +3,7 @@
 #include <chrono>
 #include <memory>
 
-#include "thread_control.h"
+#include "thread_control.hpp"
 
 namespace engine {
 namespace ev {

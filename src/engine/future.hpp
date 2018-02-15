@@ -46,8 +46,7 @@ class Future {
  private:
   friend class Promise<CurrentTask, T>;
 
-  explicit Future(
-      std::shared_ptr<impl::FutureState<CurrentTask, T>> state);
+  explicit Future(std::shared_ptr<impl::FutureState<CurrentTask, T>> state);
 
   void CheckValid() const;
 
@@ -104,8 +103,7 @@ class Future<CurrentTask, void> {
  private:
   friend class Promise<CurrentTask, void>;
 
-  explicit Future(
-      std::shared_ptr<impl::FutureState<CurrentTask, void>> state);
+  explicit Future(std::shared_ptr<impl::FutureState<CurrentTask, void>> state);
 
   void CheckValid() const;
 

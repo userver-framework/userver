@@ -19,9 +19,9 @@ template <typename Task>
 class Pool {
  public:
   using CallType =
-      typename boost::coroutines::symmetric_coroutine<Task>::call_type;
+      typename boost::coroutines::symmetric_coroutine<Task*>::call_type;
   using YieldType =
-      typename boost::coroutines::symmetric_coroutine<Task>::yield_type;
+      typename boost::coroutines::symmetric_coroutine<Task*>::yield_type;
   using Executor = std::function<void(YieldType&)>;
 
   Pool(PoolConfig config, Executor executor);

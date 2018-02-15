@@ -78,7 +78,7 @@ void CondVar<CurrentTask>::Wait(std::unique_lock<std::mutex>& lock) {
 template <typename CurrentTask>
 template <typename Predicate>
 void CondVar<CurrentTask>::Wait(std::unique_lock<std::mutex>& lock,
-                                      Predicate predicate) {
+                                Predicate predicate) {
   if (predicate()) {
     return;
   }
@@ -150,8 +150,8 @@ void CondVar<CurrentTask>::NotifyAll() {
 }
 
 template <typename CurrentTask>
-CondVar<CurrentTask>::UniqueNotifier::UniqueNotifier(
-    CondVar& cond_var, NotifierList::iterator it)
+CondVar<CurrentTask>::UniqueNotifier::UniqueNotifier(CondVar& cond_var,
+                                                     NotifierList::iterator it)
     : cond_var_(cond_var), it_(it) {}
 
 template <typename CurrentTask>
