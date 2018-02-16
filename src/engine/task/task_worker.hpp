@@ -12,7 +12,7 @@ class TaskWorker : public ev::ImplInEvLoop<TaskWorkerImpl> {
  public:
   TaskWorker(const ev::ThreadControl& thread_control, int id,
              TaskProcessor& task_processor);
-  ~TaskWorker();
+  virtual ~TaskWorker();
 
   void RunTaskAsync(Task* task);
 };

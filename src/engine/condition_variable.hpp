@@ -7,13 +7,14 @@
 #include <mutex>
 
 #include <engine/ev/timer.hpp>
+#include <engine/task/task.hpp>
 
 #include "notifier.hpp"
 
 namespace engine {
 
-template <typename CurrentTask>
-class CondVar {
+class ConditionVariable {
+ public:
   void Wait(std::unique_lock<std::mutex>& lock);
 
   template <typename Predicate>
@@ -46,13 +47,13 @@ class CondVar {
 
   class UniqueNotifier {
    public:
-    UniqueNotifier(CondVar& cond_var, NotifierList::iterator it);
+    UniqueNotifier(ConditionVariable& cond_var, NotifierList::iterator it);
     ~UniqueNotifier();
 
     void Notify();
 
    private:
-    CondVar& cond_var_;
+    ConditionVariable& cond_var_;
     NotifierList::iterator it_;
   };
 
@@ -69,16 +70,14 @@ class CondVar {
   NotifierList notifiers_;
 };
 
-template <typename CurrentTask>
-void CondVar<CurrentTask>::Wait(std::unique_lock<std::mutex>& lock) {
+void ConditionVariable::Wait(std::unique_lock<std::mutex>& lock) {
   auto notifier = SaveNotifier();
   DoWait(lock);
 }
 
-template <typename CurrentTask>
 template <typename Predicate>
-void CondVar<CurrentTask>::Wait(std::unique_lock<std::mutex>& lock,
-                                Predicate predicate) {
+void ConditionVariable::Wait(std::unique_lock<std::mutex>& lock,
+                             Predicate predicate) {
   if (predicate()) {
     return;
   }
@@ -89,9 +88,8 @@ void CondVar<CurrentTask>::Wait(std::unique_lock<std::mutex>& lock,
   }
 }
 
-template <typename CurrentTask>
 template <typename Rep, typename Period>
-std::cv_status CondVar<CurrentTask>::WaitFor(
+std::cv_status ConditionVariable::WaitFor(
     std::unique_lock<std::mutex>& lock,
     const std::chrono::duration<Rep, Period>& timeout) {
   if (timeout <= decltype(timeout)::zero()) {
@@ -101,9 +99,8 @@ std::cv_status CondVar<CurrentTask>::WaitFor(
   return DoWaitFor(lock, timeout, [] { return true; });
 }
 
-template <typename CurrentTask>
 template <typename Rep, typename Period, typename Predicate>
-bool CondVar<CurrentTask>::WaitFor(
+bool ConditionVariable::WaitFor(
     std::unique_lock<std::mutex>& lock,
     const std::chrono::duration<Rep, Period>& timeout, Predicate predicate) {
   if (predicate()) {
@@ -116,77 +113,64 @@ bool CondVar<CurrentTask>::WaitFor(
          std::cv_status::no_timeout;
 }
 
-template <typename CurrentTask>
 template <typename Clock, typename Duration>
-std::cv_status CondVar<CurrentTask>::WaitUntil(
+std::cv_status ConditionVariable::WaitUntil(
     std::unique_lock<std::mutex>& lock,
     const std::chrono::time_point<Clock, Duration>& until) {
   return WaitFor(lock, until - Clock::now());
 }
 
-template <typename CurrentTask>
 template <typename Clock, typename Duration, typename Predicate>
-bool CondVar<CurrentTask>::WaitUntil(
+bool ConditionVariable::WaitUntil(
     std::unique_lock<std::mutex>& lock,
     const std::chrono::time_point<Clock, Duration>& until,
     Predicate predicate) {
   return WaitFor(lock, until - Clock::now(), std::move(predicate));
 }
 
-template <typename CurrentTask>
-void CondVar<CurrentTask>::NotifyOne() {
+void ConditionVariable::NotifyOne() {
   std::lock_guard<std::mutex> lock(notifiers_mutex_);
   if (!notifiers_.empty()) {
     notifiers_.front()->Notify();
   }
 }
 
-template <typename CurrentTask>
-void CondVar<CurrentTask>::NotifyAll() {
+void ConditionVariable::NotifyAll() {
   std::lock_guard<std::mutex> lock(notifiers_mutex_);
   for (auto* notifier : notifiers_) {
     notifier->Notify();
   }
 }
 
-template <typename CurrentTask>
-CondVar<CurrentTask>::UniqueNotifier::UniqueNotifier(CondVar& cond_var,
-                                                     NotifierList::iterator it)
+ConditionVariable::UniqueNotifier::UniqueNotifier(ConditionVariable& cond_var,
+                                                  NotifierList::iterator it)
     : cond_var_(cond_var), it_(it) {}
 
-template <typename CurrentTask>
-CondVar<CurrentTask>::UniqueNotifier::~UniqueNotifier() {
+ConditionVariable::UniqueNotifier::~UniqueNotifier() {
   std::lock_guard<std::mutex> lock(cond_var_.notifiers_mutex_);
   cond_var_.notifiers_.erase(it_);
 }
 
-template <typename CurrentTask>
-void CondVar<CurrentTask>::UniqueNotifier::Notify() {
-  (*it_)->Notify();
-}
+void ConditionVariable::UniqueNotifier::Notify() { (*it_)->Notify(); }
 
-template <typename CurrentTask>
-typename CondVar<CurrentTask>::UniqueNotifier
-CondVar<CurrentTask>::SaveNotifier() {
+ConditionVariable::UniqueNotifier ConditionVariable::SaveNotifier() {
   auto& notifier = CurrentTask::GetNotifier();
   NotifierList::iterator it;
   {
     std::lock_guard<std::mutex> lock(notifiers_mutex_);
-    it = notifiers_.emplace_back(&notifier);
+    it = notifiers_.emplace(notifiers_.end(), &notifier);
   }
   return UniqueNotifier(*this, it);
 }
 
-template <typename CurrentTask>
-void CondVar<CurrentTask>::DoWait(std::unique_lock<std::mutex>& lock) {
+void ConditionVariable::DoWait(std::unique_lock<std::mutex>& lock) {
   lock.unlock();
   CurrentTask::Wait();
   lock.lock();
 }
 
-template <typename CurrentTask>
 template <typename Rep, typename Period, typename Predicate>
-std::cv_status CondVar<CurrentTask>::DoWaitFor(
+std::cv_status ConditionVariable::DoWaitFor(
     std::unique_lock<std::mutex>& lock,
     const std::chrono::duration<Rep, Period>& timeout, Predicate predicate) {
   bool has_timed_out = false;
