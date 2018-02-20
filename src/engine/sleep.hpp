@@ -10,11 +10,9 @@
 namespace engine {
 
 template <typename Rep, typename Period>
-void Sleep(std::chrono::duration<Rep, Period> duration) {
-  auto notifier = CurrentTask::GetNotifier();
-  ev::Timer<CurrentTask> timer([notifier = std::move(
-                                    notifier)]() mutable { notifier.Notify(); },
-                               duration);
+void Sleep(const std::chrono::duration<Rep, Period>& duration) {
+  auto& notifier = CurrentTask::GetNotifier();
+  ev::Timer<CurrentTask> timer([&notifier] { notifier.Notify(); }, duration);
   CurrentTask::Wait();
 }
 

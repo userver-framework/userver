@@ -45,7 +45,7 @@ std::string ParseString(const Json::Value& obj, const std::string& name,
 template <typename T>
 inline boost::optional<std::vector<T>> ParseOptionalArray(
     const Json::Value& obj, const std::string& name,
-    const std::string& full_path, const VariableMap& config_vars) {
+    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   const auto& value = obj[name];
   if (!value.isArray()) {
     return {};
@@ -57,7 +57,7 @@ inline boost::optional<std::vector<T>> ParseOptionalArray(
   for (decltype(size) i = 0; i < size; ++i) {
     parsed_array.emplace_back(T::ParseFromJson(
         value[i], full_path + '.' + name + '[' + std::to_string(i) + ']',
-        config_vars));
+        config_vars_ptr));
   }
   return std::move(parsed_array);
 }
@@ -66,9 +66,9 @@ template <typename T>
 inline std::vector<T> ParseArray(const Json::Value& obj,
                                  const std::string& name,
                                  const std::string& full_path,
-                                 const VariableMap& config_vars) {
+                                 const VariableMapPtr& config_vars_ptr) {
   auto parsed_optional =
-      ParseOptionalArray<T>(obj, name, full_path, config_vars);
+      ParseOptionalArray<T>(obj, name, full_path, config_vars_ptr);
   if (!parsed_optional) {
     throw ParseError(full_path, name, "array");
   }

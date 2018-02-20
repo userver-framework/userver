@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include <json/value.h>
@@ -19,5 +20,7 @@ class VariableMap {
  private:
   Json::Value json_;
 };
+
+using VariableMapPtr = std::shared_ptr<VariableMap>;
 
 }  // namespace json_config

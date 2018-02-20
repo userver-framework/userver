@@ -27,7 +27,7 @@ template <typename ParserImpl>
 auto AdaptImpl(ParserImpl parser_impl) {
   return [parser_impl = std::move(parser_impl)](
       const Json::Value& obj, const std::string& name,
-      const std::string& full_path, const VariableMap&) {
+      const std::string& full_path, const VariableMapPtr&) {
     return parser_impl(obj, name, full_path);
   };
 }
@@ -35,8 +35,9 @@ auto AdaptImpl(ParserImpl parser_impl) {
 }  // namespace
 
 int ParseInt(const Json::Value& obj, const std::string& name,
-             const std::string& full_path, const VariableMap& config_vars) {
-  auto optional = ParseOptionalInt(obj, name, full_path, config_vars);
+             const std::string& full_path,
+             const VariableMapPtr& config_vars_ptr) {
+  auto optional = ParseOptionalInt(obj, name, full_path, config_vars_ptr);
   if (!optional) {
     throw ParseError(full_path, name, "int");
   }
@@ -44,8 +45,9 @@ int ParseInt(const Json::Value& obj, const std::string& name,
 }
 
 bool ParseBool(const Json::Value& obj, const std::string& name,
-               const std::string& full_path, const VariableMap& config_vars) {
-  auto optional = ParseOptionalBool(obj, name, full_path, config_vars);
+               const std::string& full_path,
+               const VariableMapPtr& config_vars_ptr) {
+  auto optional = ParseOptionalBool(obj, name, full_path, config_vars_ptr);
   if (!optional) {
     throw ParseError(full_path, name, "bool");
   }
@@ -54,8 +56,8 @@ bool ParseBool(const Json::Value& obj, const std::string& name,
 
 uint64_t ParseUint64(const Json::Value& obj, const std::string& name,
                      const std::string& full_path,
-                     const VariableMap& config_vars) {
-  auto optional = ParseOptionalUint64(obj, name, full_path, config_vars);
+                     const VariableMapPtr& config_vars_ptr) {
+  auto optional = ParseOptionalUint64(obj, name, full_path, config_vars_ptr);
   if (!optional) {
     throw ParseError(full_path, name, "uint64");
   }
@@ -64,8 +66,8 @@ uint64_t ParseUint64(const Json::Value& obj, const std::string& name,
 
 std::string ParseString(const Json::Value& obj, const std::string& name,
                         const std::string& full_path,
-                        const VariableMap& config_vars) {
-  auto optional = ParseOptionalString(obj, name, full_path, config_vars);
+                        const VariableMapPtr& config_vars_ptr) {
+  auto optional = ParseOptionalString(obj, name, full_path, config_vars_ptr);
   if (!optional) {
     throw ParseError(full_path, name, "string");
   }
@@ -75,31 +77,30 @@ std::string ParseString(const Json::Value& obj, const std::string& name,
 boost::optional<int> ParseOptionalInt(const Json::Value& obj,
                                       const std::string& name,
                                       const std::string& full_path,
-                                      const VariableMap& config_vars) {
-  return ParseValue(obj, name, full_path, config_vars,
+                                      const VariableMapPtr& config_vars_ptr) {
+  return ParseValue(obj, name, full_path, config_vars_ptr,
                     AdaptImpl(&impl::ParseInt), &ParseOptionalInt);
 }
 
 boost::optional<bool> ParseOptionalBool(const Json::Value& obj,
                                         const std::string& name,
                                         const std::string& full_path,
-                                        const VariableMap& config_vars) {
-  return ParseValue(obj, name, full_path, config_vars,
+                                        const VariableMapPtr& config_vars_ptr) {
+  return ParseValue(obj, name, full_path, config_vars_ptr,
                     AdaptImpl(&impl::ParseBool), &ParseOptionalBool);
 }
 
-boost::optional<uint64_t> ParseOptionalUint64(const Json::Value& obj,
-                                              const std::string& name,
-                                              const std::string& full_path,
-                                              const VariableMap& config_vars) {
-  return ParseValue(obj, name, full_path, config_vars,
+boost::optional<uint64_t> ParseOptionalUint64(
+    const Json::Value& obj, const std::string& name,
+    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+  return ParseValue(obj, name, full_path, config_vars_ptr,
                     AdaptImpl(&impl::ParseUint64), &ParseOptionalUint64);
 }
 
 boost::optional<std::string> ParseOptionalString(
     const Json::Value& obj, const std::string& name,
-    const std::string& full_path, const VariableMap& config_vars) {
-  return ParseValue(obj, name, full_path, config_vars,
+    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+  return ParseValue(obj, name, full_path, config_vars_ptr,
                     AdaptImpl(&impl::ParseString), &ParseOptionalString);
 }
 

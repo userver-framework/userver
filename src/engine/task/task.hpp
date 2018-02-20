@@ -78,6 +78,10 @@ class CurrentTask {
     return GetCurrentTask()->GetSchedulerThread();
   }
 
+  static TaskProcessor& GetTaskProcessor() {
+    return GetCurrentTask()->GetTaskProcessor();
+  }
+
   static void Wait() { return GetCurrentTask()->Wait(); }
 
   static Notifier& GetNotifier() { return GetCurrentTask()->GetNotifier(); }

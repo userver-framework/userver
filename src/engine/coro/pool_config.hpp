@@ -13,9 +13,9 @@ struct PoolConfig {
   size_t initial_size = 1000;
   size_t max_size = 10000;
 
-  static PoolConfig ParseFromJson(const Json::Value& json,
-                                  const std::string& full_path,
-                                  const json_config::VariableMap& config_vars);
+  static PoolConfig ParseFromJson(
+      const Json::Value& json, const std::string& full_path,
+      const json_config::VariableMapPtr& config_vars_ptr);
 };
 
 }  // namespace coro

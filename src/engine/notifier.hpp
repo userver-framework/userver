@@ -9,7 +9,7 @@ class Notifier {
  public:
   using NotifyCb = std::function<void()>;
 
-  Notifier(NotifyCb notify_cb)
+  explicit Notifier(NotifyCb notify_cb)
       : notify_cb_(std::move(notify_cb)), is_enabled_(true) {}
   virtual ~Notifier() { Disable(); }
 

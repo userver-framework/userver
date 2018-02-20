@@ -19,7 +19,7 @@ struct TaskProcessorConfig {
 
   static TaskProcessorConfig ParseFromJson(
       const Json::Value& json, const std::string& full_path,
-      const json_config::VariableMap& config_vars);
+      const json_config::VariableMapPtr& config_vars_ptr);
 };
 
 }  // namespace engine

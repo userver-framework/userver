@@ -40,6 +40,11 @@ class TaskProcessor {
       ++task_processor_.async_task_counter_;
     }
 
+    RefCounter(const RefCounter&) = delete;
+    RefCounter(RefCounter&&) = delete;
+    RefCounter& operator=(const RefCounter&) = delete;
+    RefCounter& operator=(RefCounter&&) = delete;
+
     virtual ~RefCounter() { --task_processor_.async_task_counter_; }
 
    private:
@@ -47,8 +52,6 @@ class TaskProcessor {
   };
 
  private:
-  friend class RefCounter;
-
   bool EnqueueTask(Task* task, bool can_fail = false);
   void TryRunTask();
 

@@ -92,10 +92,6 @@ template <typename Rep, typename Period>
 std::cv_status ConditionVariable::WaitFor(
     std::unique_lock<std::mutex>& lock,
     const std::chrono::duration<Rep, Period>& timeout) {
-  if (timeout <= decltype(timeout)::zero()) {
-    return std::cv_status::timeout;
-  }
-
   return DoWaitFor(lock, timeout, [] { return true; });
 }
 
@@ -105,9 +101,6 @@ bool ConditionVariable::WaitFor(
     const std::chrono::duration<Rep, Period>& timeout, Predicate predicate) {
   if (predicate()) {
     return true;
-  }
-  if (timeout <= decltype(timeout)::zero()) {
-    return false;
   }
   return DoWaitFor(lock, timeout, std::move(predicate)) ==
          std::cv_status::no_timeout;
@@ -173,6 +166,10 @@ template <typename Rep, typename Period, typename Predicate>
 std::cv_status ConditionVariable::DoWaitFor(
     std::unique_lock<std::mutex>& lock,
     const std::chrono::duration<Rep, Period>& timeout, Predicate predicate) {
+  if (timeout <= std::chrono::duration<Rep, Period>::zero()) {
+    return std::cv_status::timeout;
+  }
+
   bool has_timed_out = false;
 
   auto notifier = SaveNotifier();
