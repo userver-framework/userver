@@ -1,6 +1,6 @@
-#include "logger.hpp"
+#include "log.hpp"
 
-namespace logger {
+namespace logging {
 
 LoggerPtr& Log() {
   static LoggerPtr logger = DefaultLogger();
@@ -12,4 +12,4 @@ LoggerPtr DefaultLogger() {
   return logger;
 }
 
-}  // namespace logger
+}  // namespace logging

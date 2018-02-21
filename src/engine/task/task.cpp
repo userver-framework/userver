@@ -3,7 +3,7 @@
 #include <cassert>
 
 #include <engine/coro/pool.hpp>
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 #include "task_processor.hpp"
 

@@ -4,7 +4,7 @@
 
 #include "thread_control.hpp"
 
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 namespace engine {
 namespace ev {

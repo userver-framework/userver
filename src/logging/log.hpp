@@ -1,8 +1,10 @@
 #pragma once
 
+#include <memory>
+
 #include <spdlog/spdlog.h>
 
-namespace logger {
+namespace logging {
 
 using Logger = spdlog::logger;
 using LoggerPtr = std::shared_ptr<Logger>;
@@ -44,18 +46,18 @@ class LogHelper {
   spdlog::details::log_msg log_msg_;
 };
 
-}  // namespace logger
+}  // namespace logging
 
-#define LOG(lvl)                                                              \
-  for (bool _need_log = logger::Log()->should_log(                            \
-           static_cast<spdlog::level::level_enum>(lvl));                      \
-       _need_log; _need_log = false)                                          \
-  logger::LogHelper(lvl) << "module=" << __func__ << " ( " << __FILE__ << "," \
-                         << __LINE__ << " ) \ttext="
+#define LOG(lvl)                                                          \
+  for (bool _need_log = ::logging::Log()->should_log(                     \
+           static_cast<spdlog::level::level_enum>(lvl));                  \
+       _need_log; _need_log = false)                                      \
+  ::logging::LogHelper(lvl) << "module=" << __func__ << " ( " << __FILE__ \
+                            << "," << __LINE__ << " ) \ttext="
 
-#define LOG_TRACE() LOG(logger::Level::kTrace)
-#define LOG_DEBUG() LOG(logger::Level::kDebug)
-#define LOG_INFO() LOG(logger::Level::kInfo)
-#define LOG_WARNING() LOG(logger::Level::kWarning)
-#define LOG_ERROR() LOG(logger::Level::kError)
-#define LOG_CRITICAL() LOG(logger::Level::kCritical)
+#define LOG_TRACE() LOG(::logging::Level::kTrace)
+#define LOG_DEBUG() LOG(::logging::Level::kDebug)
+#define LOG_INFO() LOG(::logging::Level::kInfo)
+#define LOG_WARNING() LOG(::logging::Level::kWarning)
+#define LOG_ERROR() LOG(::logging::Level::kError)
+#define LOG_CRITICAL() LOG(::logging::Level::kCritical)

@@ -7,7 +7,7 @@
 #include <json/json.h>
 #include <boost/optional.hpp>
 
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 #include "parse.hpp"
 #include "variable_map.hpp"

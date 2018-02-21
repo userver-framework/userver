@@ -2,7 +2,7 @@
 
 #include "timer.hpp"
 
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 namespace engine {
 namespace ev {

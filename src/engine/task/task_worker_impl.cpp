@@ -4,7 +4,7 @@
 
 #include <ev.h>
 
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 #include "task.hpp"
 #include "task_processor.hpp"

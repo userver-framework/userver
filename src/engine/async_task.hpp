@@ -6,7 +6,7 @@
 
 #include <engine/task/task.hpp>
 #include <engine/task/task_processor.hpp>
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 #include "call_wrapper.hpp"
 #include "future.hpp"

@@ -3,7 +3,7 @@
 #include <cstdint>
 
 #include <engine/async.hpp>
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 namespace components {
 

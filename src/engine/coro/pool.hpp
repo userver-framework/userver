@@ -7,7 +7,7 @@
 #include <boost/coroutine/symmetric_coroutine.hpp>
 #include <boost/lockfree/stack.hpp>
 
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 #include "pool_config.hpp"
 #include "pool_stats.hpp"

@@ -3,7 +3,7 @@
 #include <cassert>
 #include <mutex>
 
-#include <logger/logger.hpp>
+#include <logging/log.hpp>
 
 namespace engine {
 namespace {
