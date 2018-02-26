@@ -2,6 +2,9 @@
 
 namespace components {
 
+ComponentContext::ComponentContext(TaskProcessorMap task_processor_map)
+    : task_processor_map_(std::move(task_processor_map)) {}
+
 void ComponentContext::AddComponent(
     std::string name, std::unique_ptr<ComponentBase>&& component) {
   components_.emplace(std::move(name), std::move(component));
@@ -25,6 +28,15 @@ ComponentBase* ComponentContext::DoFindComponent(
     const std::string& name) const {
   const auto it = components_.find(name);
   if (it == components_.cend()) {
+    return nullptr;
+  }
+  return it->second.get();
+}
+
+engine::TaskProcessor* ComponentContext::GetTaskProcessor(
+    const std::string& name) const {
+  auto it = task_processor_map_.find(name);
+  if (it == task_processor_map_.cend()) {
     return nullptr;
   }
   return it->second.get();

@@ -14,8 +14,7 @@ class Secdist : public ComponentBase {
  public:
   static constexpr const char* kName = "secdist";
 
-  Secdist(const ComponentConfig& config,
-          const ComponentContext& component_context);
+  Secdist(const ComponentConfig&, const ComponentContext&);
 
   const storages::secdist::SecdistConfig& Get() const;
 
