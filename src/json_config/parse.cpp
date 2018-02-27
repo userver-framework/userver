@@ -22,6 +22,7 @@ boost::optional<int> ParseIntImpl(const Json::Value& obj,
   if (kind == ValueKind::kOptional && value.isNull()) {
     return {};
   }
+  CheckIsObject(obj, full_path);
   if (!value.isInt()) {
     throw ParseError(full_path, name, "int");
   }
@@ -36,6 +37,7 @@ boost::optional<bool> ParseBoolImpl(const Json::Value& obj,
   if (kind == ValueKind::kOptional && value.isNull()) {
     return {};
   }
+  CheckIsObject(obj, full_path);
   if (!value.isBool()) {
     throw ParseError(full_path, name, "bool");
   }
@@ -50,6 +52,7 @@ boost::optional<uint64_t> ParseUint64Impl(const Json::Value& obj,
   if (kind == ValueKind::kOptional && value.isNull()) {
     return {};
   }
+  CheckIsObject(obj, full_path);
   if (!value.isUInt64()) {
     throw ParseError(full_path, name, "uint64");
   }
@@ -64,6 +67,7 @@ boost::optional<std::string> ParseStringImpl(const Json::Value& obj,
   if (kind == ValueKind::kOptional && value.isNull()) {
     return {};
   }
+  CheckIsObject(obj, full_path);
   if (!value.isString()) {
     throw ParseError(full_path, name, "string");
   }
@@ -71,6 +75,10 @@ boost::optional<std::string> ParseStringImpl(const Json::Value& obj,
 }
 
 }  // namespace
+
+void CheckIsObject(const Json::Value& obj, const std::string& full_path) {
+  if (!obj.isObject()) throw ParseError({}, full_path, "object");
+}
 
 int ParseInt(const Json::Value& obj, const std::string& name,
              const std::string& full_path) {

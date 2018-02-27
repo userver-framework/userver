@@ -16,6 +16,10 @@ class ComponentConfig {
 
   const std::string& Name() const;
 
+  const Json::Value& Json() const;
+  const std::string& FullPath() const;
+  const json_config::VariableMapPtr& ConfigVarsPtr() const;
+
   int ParseInt(const std::string& name) const;
   int ParseInt(const std::string& name, int dflt) const;
   bool ParseBool(const std::string& name) const;

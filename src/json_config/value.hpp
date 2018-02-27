@@ -21,6 +21,8 @@ std::string GetFallbackName(const std::string& str);
 
 }  // namespace impl
 
+void CheckIsObject(const Json::Value& obj, const std::string& full_path);
+
 boost::optional<int> ParseOptionalInt(const Json::Value& obj,
                                       const std::string& name,
                                       const std::string& full_path,

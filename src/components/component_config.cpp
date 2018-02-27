@@ -11,14 +11,16 @@ ComponentConfig::ComponentConfig(Json::Value json, std::string full_path,
     : json_(std::move(json)),
       full_path_(std::move(full_path)),
       config_vars_ptr_(std::move(config_vars_ptr)) {
-  if (!json_.isObject()) {
-    throw std::runtime_error("component config '" + full_path_ +
-                             "' not found or is not an Object");
-  }
   name_ = json_config::ParseString(json_, "name", full_path_, config_vars_ptr_);
 }
 
 const std::string& ComponentConfig::Name() const { return name_; }
+
+const Json::Value& ComponentConfig::Json() const { return json_; }
+const std::string& ComponentConfig::FullPath() const { return full_path_; }
+const json_config::VariableMapPtr& ComponentConfig::ConfigVarsPtr() const {
+  return config_vars_ptr_;
+}
 
 int ComponentConfig::ParseInt(const std::string& name) const {
   return json_config::ParseInt(json_, name, full_path_, config_vars_ptr_);

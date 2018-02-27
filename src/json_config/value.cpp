@@ -34,6 +34,10 @@ auto AdaptImpl(ParserImpl parser_impl) {
 
 }  // namespace
 
+void CheckIsObject(const Json::Value& obj, const std::string& full_path) {
+  impl::CheckIsObject(obj, full_path);
+}
+
 int ParseInt(const Json::Value& obj, const std::string& name,
              const std::string& full_path,
              const VariableMapPtr& config_vars_ptr) {

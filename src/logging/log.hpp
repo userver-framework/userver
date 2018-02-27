@@ -2,25 +2,14 @@
 
 #include <memory>
 
-#include <spdlog/spdlog.h>
+#include <spdlog/common.h>
+
+#include "level.hpp"
+#include "logger.hpp"
 
 namespace logging {
 
-using Logger = spdlog::logger;
-using LoggerPtr = std::shared_ptr<Logger>;
-
-enum class Level {
-  kTrace = spdlog::level::trace,
-  kDebug = spdlog::level::debug,
-  kInfo = spdlog::level::info,
-  kWarning = spdlog::level::warn,
-  kError = spdlog::level::err,
-  kCritical = spdlog::level::critical
-};
-
 LoggerPtr& Log();
-
-LoggerPtr DefaultLogger();
 
 class LogHelper {
  public:
