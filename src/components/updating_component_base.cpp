@@ -35,20 +35,28 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
     return;
   }
 
+  // Force first update
+  engine::Async([this] { DoPeriodicUpdate(); }).Get();
+
   update_task_future_ = engine::Async([this] {
     while (is_running_) {
+      std::uniform_int_distribution<decltype(update_jitter_)::rep>
+          jitter_distribution(-update_jitter_.count(), update_jitter_.count());
+      decltype(update_jitter_) jitter(jitter_distribution(jitter_generator_));
+
+      {
+        std::unique_lock<std::mutex> lock(is_running_mutex_);
+        if (is_running_cv_.WaitFor(lock, update_interval_ + jitter,
+                                   [this] { return !is_running_; })) {
+          break;
+        }
+      }
+
       try {
         DoPeriodicUpdate();
       } catch (const std::exception& ex) {
         LOG_WARNING() << "Cannot update " << name_ << ": " << ex.what();
       }
-      std::uniform_int_distribution<decltype(update_jitter_)::rep>
-          jitter_distribution(-update_jitter_.count(), update_jitter_.count());
-      decltype(update_jitter_) jitter(jitter_distribution(jitter_generator_));
-
-      std::unique_lock<std::mutex> lock(is_running_mutex_);
-      is_running_cv_.WaitFor(lock, update_interval_ + jitter,
-                             [this] { return !is_running_; });
     }
   });
 }

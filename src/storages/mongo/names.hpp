@@ -74,6 +74,7 @@ namespace Config {
 static const std::string kCollection = kDb + ".config";
 
 static const std::string kId = "_id";
+static const std::string kUpdated = "updated";
 }  // namespace Config
 
 namespace Orders {

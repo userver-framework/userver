@@ -19,13 +19,15 @@ class CachingComponentBase : public UpdatingComponentBase {
  public:
   CachingComponentBase(const ComponentConfig& config, const std::string& name);
 
-  void WaitCacheFill() const;
-
   std::shared_ptr<T> Get() const;
 
  protected:
   void Set(std::shared_ptr<T> value_ptr);
   void Set(T&& value);
+
+  template <typename... Args>
+  void Emplace(Args&&... args);
+
   void Clear();
 
  private:
@@ -38,12 +40,6 @@ template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const std::string& name)
     : UpdatingComponentBase(config, name) {}
-
-template <typename T>
-void CachingComponentBase<T>::WaitCacheFill() const {
-  std::unique_lock<std::mutex> lock(cache_fill_mutex_);
-  cache_fill_cv_.Wait(lock, [this] { return !!Get(); });
-}
 
 template <typename T>
 std::shared_ptr<T> CachingComponentBase<T>::Get() const {
@@ -61,7 +57,13 @@ void CachingComponentBase<T>::Set(std::shared_ptr<T> value_ptr) {
 
 template <typename T>
 void CachingComponentBase<T>::Set(T&& value) {
-  Set(std::make_shared<T>(std::move(value)));
+  Emplace(std::move(value));
+}
+
+template <typename T>
+template <typename... Args>
+void CachingComponentBase<T>::Emplace(Args&&... args) {
+  Set(std::make_shared<T>(std::forward<Args>(args)...));
 }
 
 template <typename T>
