@@ -70,7 +70,7 @@ inline std::vector<T> ParseArray(const Json::Value& obj,
                                  const std::string& full_path,
                                  const VariableMapPtr& config_vars_ptr) {
   auto parsed_optional =
-      ParseOptionalArray<T>(obj, name, full_path, config_vars_ptr);
+      impl::ParseOptionalArray<T>(obj, name, full_path, config_vars_ptr);
   if (!parsed_optional) {
     throw ParseError(full_path, name, "array");
   }

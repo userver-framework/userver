@@ -23,11 +23,11 @@ class FutureState {
 
   template <typename Rep, typename Period>
   std::future_status WaitFor(
-      const std::chrono::duration<Rep, Period>& duration) const;
+      const std::chrono::duration<Rep, Period>& duration);
 
   template <typename Clock, typename Duration>
   std::future_status WaitUntil(
-      const std::chrono::time_point<Clock, Duration>& until) const;
+      const std::chrono::time_point<Clock, Duration>& until);
 
   void EnsureUnique();
 
@@ -55,11 +55,11 @@ class FutureState<void> {
 
   template <typename Rep, typename Period>
   std::future_status WaitFor(
-      const std::chrono::duration<Rep, Period>& duration) const;
+      const std::chrono::duration<Rep, Period>& duration);
 
   template <typename Clock, typename Duration>
   std::future_status WaitUntil(
-      const std::chrono::time_point<Clock, Duration>& until) const;
+      const std::chrono::time_point<Clock, Duration>& until);
 
   void EnsureUnique();
 
@@ -103,7 +103,7 @@ void FutureState<T>::Wait() {
 template <typename T>
 template <typename Rep, typename Period>
 std::future_status FutureState<T>::WaitFor(
-    const std::chrono::duration<Rep, Period>& duration) const {
+    const std::chrono::duration<Rep, Period>& duration) {
   std::unique_lock<std::mutex> lock(mutex_);
   return result_cv_.WaitFor(lock, duration, [this] { return IsReady(); })
              ? std::future_status::ready
@@ -113,7 +113,7 @@ std::future_status FutureState<T>::WaitFor(
 template <typename T>
 template <typename Clock, typename Duration>
 std::future_status FutureState<T>::WaitUntil(
-    const std::chrono::time_point<Clock, Duration>& until) const {
+    const std::chrono::time_point<Clock, Duration>& until) {
   std::unique_lock<std::mutex> lock(mutex_);
   return result_cv_.WaitUntil(lock, until, [this] { return IsReady(); })
              ? std::future_status::ready
@@ -182,7 +182,7 @@ void FutureState<void>::Wait() {
 
 template <typename Rep, typename Period>
 std::future_status FutureState<void>::WaitFor(
-    const std::chrono::duration<Rep, Period>& duration) const {
+    const std::chrono::duration<Rep, Period>& duration) {
   std::unique_lock<std::mutex> lock(mutex_);
   return result_cv_.WaitFor(lock, duration, [this] { return IsReady(); })
              ? std::future_status::ready
@@ -191,7 +191,7 @@ std::future_status FutureState<void>::WaitFor(
 
 template <typename Clock, typename Duration>
 std::future_status FutureState<void>::WaitUntil(
-    const std::chrono::time_point<Clock, Duration>& until) const {
+    const std::chrono::time_point<Clock, Duration>& until) {
   std::unique_lock<std::mutex> lock(mutex_);
   return result_cv_.WaitUntil(lock, until, [this] { return IsReady(); })
              ? std::future_status::ready
