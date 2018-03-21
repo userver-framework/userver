@@ -7,6 +7,7 @@ file(GLOB_RECURSE SOURCES *.cpp *.hpp)
 
 find_package(JsonCpp REQUIRED)
 find_package(LibEv REQUIRED)
+find_package(HttpParser REQUIRED)
 
 add_library(${PROJECT} STATIC ${SOURCES})
 set_target_properties(${PROJECT} PROPERTIES LINKER_LANGUAGE CXX)

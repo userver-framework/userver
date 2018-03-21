@@ -1,0 +1,102 @@
+#include "http_request.hpp"
+
+namespace server {
+namespace http {
+
+HttpRequest::HttpRequest(const HttpRequestImpl& impl) : impl_(impl) {}
+
+request::ResponseBase& HttpRequest::GetResponse() const {
+  return impl_.GetResponse();
+}
+
+HttpResponse& HttpRequest::GetHttpResponse() const {
+  return impl_.GetHttpResponse();
+}
+
+const http_method& HttpRequest::GetMethod() const { return impl_.GetMethod(); }
+
+std::string HttpRequest::GetMethodStr() const { return impl_.GetMethodStr(); }
+
+int HttpRequest::GetHttpMajor() const { return impl_.GetHttpMajor(); }
+
+int HttpRequest::GetHttpMinor() const { return impl_.GetHttpMinor(); }
+
+const std::string& HttpRequest::GetUrl() const { return impl_.GetUrl(); }
+
+const std::string& HttpRequest::GetRequestPath() const {
+  return impl_.GetRequestPath();
+}
+
+const std::string& HttpRequest::GetPathSuffix() const {
+  return impl_.GetPathSuffix();
+}
+
+std::chrono::duration<double> HttpRequest::GetRequestTime() const {
+  return impl_.GetRequestTime();
+}
+
+std::chrono::duration<double> HttpRequest::GetResponseTime() const {
+  return impl_.GetResponseTime();
+}
+
+const std::string& HttpRequest::GetHost() const { return impl_.GetHost(); }
+
+const std::string& HttpRequest::GetArg(const std::string& arg_name) const {
+  return impl_.GetArg(arg_name);
+}
+
+const std::vector<std::string>& HttpRequest::GetArgVector(
+    const std::string& arg_name) const {
+  return impl_.GetArgVector(arg_name);
+}
+
+bool HttpRequest::HasArg(const std::string& arg_name) const {
+  return impl_.HasArg(arg_name);
+}
+
+size_t HttpRequest::ArgCount() const { return impl_.ArgCount(); }
+
+std::vector<std::string> HttpRequest::ArgNames() const {
+  return impl_.ArgNames();
+}
+
+const std::string& HttpRequest::GetHeader(
+    const std::string& header_name) const {
+  return impl_.GetHeader(header_name);
+}
+
+bool HttpRequest::HasHeader(const std::string& header_name) const {
+  return impl_.HasHeader(header_name);
+}
+
+size_t HttpRequest::HeaderCount() const { return impl_.HeaderCount(); }
+
+std::vector<std::string> HttpRequest::HeaderNames() const {
+  return impl_.HeaderNames();
+}
+
+const std::string& HttpRequest::GetCookie(
+    const std::string& cookie_name) const {
+  return impl_.GetCookie(cookie_name);
+}
+
+bool HttpRequest::HasCookie(const std::string& cookie_name) const {
+  return impl_.HasCookie(cookie_name);
+}
+
+size_t HttpRequest::CookieCount() const { return impl_.CookieCount(); }
+
+std::vector<std::string> HttpRequest::CookieNames() const {
+  return impl_.CookieNames();
+}
+
+const std::string& HttpRequest::RequestBody() const {
+  return impl_.RequestBody();
+}
+
+void HttpRequest::SetResponseStatus(HttpStatus status) const {
+  return impl_.SetResponseStatus(status);
+}
+
+}  // namespace http
+}  // namespace server

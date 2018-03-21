@@ -53,11 +53,13 @@ class Task {
 
   static void CoroFunc(YieldType& yield);
 
+ protected:
+  void SetState(State state) { state_ = state; }
+
  private:
   friend class TaskProcessor;
 
   void WakeUp();
-  void SetState(State state) { state_ = state; }
 
   State state_;
 

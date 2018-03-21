@@ -53,7 +53,7 @@ class ThreadControl {
   }
 
   void RunInEvLoopAsync(std::function<void()>&& func) {
-    thread_.RunInEvLoopAsync(std::forward<std::function<void()>>(func));
+    thread_.RunInEvLoopAsync(std::move(func));
   }
 
   Thread& EvThread() const { return thread_; }
