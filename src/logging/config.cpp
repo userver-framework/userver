@@ -7,12 +7,12 @@
 namespace logging {
 namespace {
 
-Config::QueueOveflowBehavior OverflowBehaviorFromString(
+LoggerConfig::QueueOveflowBehavior OverflowBehaviorFromString(
     const std::string& overflow_behavior_name) {
   if (overflow_behavior_name == "discard")
-    return Config::QueueOveflowBehavior::kDiscard;
+    return LoggerConfig::QueueOveflowBehavior::kDiscard;
   if (overflow_behavior_name == "block")
-    return Config::QueueOveflowBehavior::kBlock;
+    return LoggerConfig::QueueOveflowBehavior::kBlock;
   throw std::runtime_error("Unknown queue overflow behavior '" +
                            overflow_behavior_name +
                            "' (must be one of 'block', 'discard')");
@@ -43,13 +43,6 @@ LoggerConfig LoggerConfig::ParseFromJson(
   if (optional_flush_level_str)
     config.flush_level = LevelFromString(*optional_flush_level_str);
 
-  return config;
-}
-
-Config Config::ParseFromJson(
-    const Json::Value& json, const std::string& full_path,
-    const json_config::VariableMapPtr& config_vars_ptr) {
-  Config config;
   auto optional_message_queue_size = json_config::ParseOptionalUint64(
       json, "message_queue_size", full_path, config_vars_ptr);
   if (optional_message_queue_size)
@@ -63,21 +56,6 @@ Config Config::ParseFromJson(
   if (optional_overflow_behavior)
     config.queue_overflow_behavior =
         OverflowBehaviorFromString(*optional_overflow_behavior);
-
-  auto loggers = json["loggers"];
-  auto loggers_full_path = full_path + ".loggers";
-  json_config::CheckIsObject(json["loggers"], loggers_full_path);
-  for (auto it = loggers.begin(); it != loggers.end(); ++it) {
-    auto logger_name = it.key().asString();
-    auto logger_full_path = loggers_full_path + '.' + logger_name;
-    auto insertion_result = config.logger_configs.emplace(
-        std::move(logger_name),
-        LoggerConfig::ParseFromJson(*it, logger_full_path, config_vars_ptr));
-    if (!insertion_result.second) {
-      throw std::runtime_error("duplicate logger config '" +
-                               insertion_result.first->first + '\'');
-    }
-  }
 
   return config;
 }

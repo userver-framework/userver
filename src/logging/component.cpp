@@ -3,8 +3,12 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <spdlog/async_logger.h>
 #include <spdlog/common.h>
 #include <spdlog/details/log_msg.h>
+#include <spdlog/sinks/file_sinks.h>
+
+#include <json_config/value.hpp>
 
 #include "config.hpp"
 #include "log.hpp"
@@ -18,32 +22,44 @@ std::chrono::seconds kDefaultFlushInterval{2};
 }  // namespace
 
 Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
-  auto logging_config = logging::Config::ParseFromJson(
-      config.Json(), config.FullPath(), config.ConfigVarsPtr());
+  auto loggers = config.Json()["loggers"];
+  auto loggers_full_path = config.FullPath() + ".loggers";
+  json_config::CheckIsObject(loggers, loggers_full_path);
 
-  auto overflow_policy = spdlog::async_overflow_policy::discard_log_msg;
-  if (logging_config.queue_overflow_behavior ==
-      logging::Config::QueueOveflowBehavior::kBlock) {
-    overflow_policy = spdlog::async_overflow_policy::block_retry;
-  }
-  spdlog::set_async_mode(logging_config.message_queue_size, overflow_policy,
-                         nullptr, kDefaultFlushInterval);
+  for (auto it = loggers.begin(); it != loggers.end(); ++it) {
+    auto logger_name = it.key().asString();
+    auto logger_full_path = loggers_full_path + '.' + logger_name;
 
-  for (auto& item : logging_config.logger_configs) {
-    auto& name = item.first;
-    const auto& logger_config = item.second;
+    auto logger_config = logging::LoggerConfig::ParseFromJson(
+        *it, logger_full_path, config.ConfigVarsPtr());
 
-    auto logger = logging::MakeFileLogger(name, logger_config.file_path);
+    auto overflow_policy = spdlog::async_overflow_policy::discard_log_msg;
+    if (logger_config.queue_overflow_behavior ==
+        logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
+      overflow_policy = spdlog::async_overflow_policy::block_retry;
+    }
+
+    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+        logger_config.file_path, /*max_size=*/-1,
+        /*max_files=*/0);
+    auto logger = std::make_shared<spdlog::async_logger>(
+        logger_name, std::move(file_sink), logger_config.message_queue_size,
+        overflow_policy, nullptr, kDefaultFlushInterval);
     logger->set_level(
         static_cast<spdlog::level::level_enum>(logger_config.level));
     logger->set_pattern(logger_config.pattern);
     logger->flush_on(
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
 
-    if (name == "default") {
+    if (logger_name == "default") {
       logging::Log() = std::move(logger);
     } else {
-      loggers_.emplace(std::move(name), std::move(logger));
+      auto insertion_result =
+          loggers_.emplace(std::move(logger_name), std::move(logger));
+      if (!insertion_result.second) {
+        throw std::runtime_error("duplicate logger '" +
+                                 insertion_result.first->first + '\'');
+      }
     }
   }
 }
