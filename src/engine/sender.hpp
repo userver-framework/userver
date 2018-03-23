@@ -27,7 +27,7 @@ class Sender : public ev::ThreadControl {
 
   bool Stopped() const { return stopped_; }
   size_t DataQueueSize() const;
-  bool IsNoWaitingData() const;
+  bool HasWaitingData() const;
 
  private:
   struct Elem {

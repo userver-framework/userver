@@ -47,7 +47,7 @@ void Sender::Stop() {
     }
   }
 
-  assert(IsNoWaitingData());
+  assert(!HasWaitingData());
   if (on_complete_) on_complete_();
 }
 
@@ -78,9 +78,9 @@ size_t Sender::DataQueueSize() const {
   return data_queue_.size();
 }
 
-bool Sender::IsNoWaitingData() const {
+bool Sender::HasWaitingData() const {
   std::lock_guard<std::mutex> lock(data_queue_mutex_);
-  return data_queue_.empty();
+  return !data_queue_.empty();
 }
 
 inline const std::string& Sender::CurrentData(std::lock_guard<std::mutex>&) {

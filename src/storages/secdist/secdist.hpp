@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -30,7 +31,7 @@ class UnknownRedisClientName : public SecdistError {
 struct RedisSettings {
   struct HostPort {
     std::string host;
-    int port = 0;
+    uint16_t port = 0;
   };
 
   struct CommandControl {

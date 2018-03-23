@@ -61,8 +61,8 @@ void EventTask::StartEventTask(TaskProcessor& task_processor) {
     {
       std::lock_guard<std::mutex> lock(stop_mutex_);
       is_event_task_finished_ = true;
+      event_task_finished_cv_.NotifyAll();
     }
-    event_task_finished_cv_.NotifyAll();
   });
 }
 

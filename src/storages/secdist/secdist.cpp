@@ -3,7 +3,6 @@
 #include <cerrno>
 #include <fstream>
 #include <sstream>
-#include <system_error>
 
 #include <json/reader.h>
 #include <json_config/value.hpp>
@@ -138,13 +137,14 @@ void SecdistConfig::LoadRedisSettings(const Json::Value& doc) {
       CheckIsObject(sentinel, "sentinels");
       RedisSettings::HostPort host_port;
       host_port.host = GetString(sentinel, "host");
-      host_port.port = GetInt(sentinel, "port", kDefaultSentinelPort);
       if (host_port.host.empty()) {
         throw InvalidSecdistJson("Empty redis sentinel host");
       }
-      if (host_port.port <= 0 || host_port.port >= 65536) {
+      int port = GetInt(sentinel, "port", kDefaultSentinelPort);
+      if (port <= 0 || port >= 65536) {
         throw InvalidSecdistJson("Invalid redis sentinel port");
       }
+      host_port.port = port;
       settings.sentinels.push_back(std::move(host_port));
     }
 
