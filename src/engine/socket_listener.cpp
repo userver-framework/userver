@@ -15,7 +15,7 @@ SocketListener::SocketListener(const ev::ThreadControl& thread_control,
                                OnStopFunc&& on_stop_func)
     : SocketListener(thread_control, task_processor, fd, mode,
                      std::move(listen_func), std::move(on_stop_func),
-                     kDeferStart) {
+                     DeferStart{}) {
   Start();
 }
 

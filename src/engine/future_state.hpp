@@ -163,19 +163,19 @@ void FutureState<T>::SetException(std::exception_ptr ex) {
   result_cv_.NotifyAll();
 }
 
-FutureState<void>::FutureState()
+inline FutureState<void>::FutureState()
     : is_ready_(false), is_retrieved_(ATOMIC_FLAG_INIT) {}
 
-bool FutureState<void>::IsReady() const { return is_ready_; }
+inline bool FutureState<void>::IsReady() const { return is_ready_; }
 
-void FutureState<void>::Get() {
+inline void FutureState<void>::Get() {
   Wait();
   if (exception_ptr_) {
     std::rethrow_exception(exception_ptr_);
   }
 }
 
-void FutureState<void>::Wait() {
+inline void FutureState<void>::Wait() {
   std::unique_lock<std::mutex> lock(mutex_);
   result_cv_.Wait(lock, [this] { return IsReady(); });
 }
@@ -198,13 +198,13 @@ std::future_status FutureState<void>::WaitUntil(
              : std::future_status::timeout;
 }
 
-void FutureState<void>::EnsureUnique() {
+inline void FutureState<void>::EnsureUnique() {
   if (is_retrieved_.test_and_set()) {
     throw std::future_error(std::future_errc::future_already_retrieved);
   }
 }
 
-void FutureState<void>::SetValue() {
+inline void FutureState<void>::SetValue() {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (is_ready_.exchange(true)) {
@@ -214,7 +214,7 @@ void FutureState<void>::SetValue() {
   result_cv_.NotifyAll();
 }
 
-void FutureState<void>::SetException(std::exception_ptr ex) {
+inline void FutureState<void>::SetException(std::exception_ptr ex) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (is_ready_.exchange(true)) {

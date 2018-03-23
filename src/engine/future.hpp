@@ -202,15 +202,15 @@ void Promise<T>::SetException(std::exception_ptr ex) {
   state_->SetException(ex);
 }
 
-bool Future<void>::IsValid() const { return !!state_; }
+inline bool Future<void>::IsValid() const { return !!state_; }
 
-void Future<void>::Get() {
+inline void Future<void>::Get() {
   CheckValid();
   state_->Get();
   state_.reset();
 }
 
-void Future<void>::Wait() const {
+inline void Future<void>::Wait() const {
   CheckValid();
   state_->Wait();
 }
@@ -229,33 +229,33 @@ std::future_status Future<void>::WaitUntil(
   return state_->WaitUntil(until);
 }
 
-Future<void>::Future(std::shared_ptr<impl::FutureState<void>> state)
+inline Future<void>::Future(std::shared_ptr<impl::FutureState<void>> state)
     : state_(std::move(state)) {
   CheckValid();
   state_->EnsureUnique();
 }
 
-void Future<void>::CheckValid() const {
+inline void Future<void>::CheckValid() const {
   if (!state_) {
     throw std::future_error(std::future_errc::no_state);
   }
 }
 
-Promise<void>::Promise()
+inline Promise<void>::Promise()
     : state_(std::make_shared<impl::FutureState<void>>()) {}
 
-Promise<void>::~Promise() {
+inline Promise<void>::~Promise() {
   if (state_ && !state_->IsReady()) {
     state_->SetException(std::make_exception_ptr(
         std::future_error(std::future_errc::broken_promise)));
   }
 }
 
-Future<void> Promise<void>::GetFuture() { return Future<void>(state_); }
+inline Future<void> Promise<void>::GetFuture() { return Future<void>(state_); }
 
-void Promise<void>::SetValue() { state_->SetValue(); }
+inline void Promise<void>::SetValue() { state_->SetValue(); }
 
-void Promise<void>::SetException(std::exception_ptr ex) {
+inline void Promise<void>::SetException(std::exception_ptr ex) {
   state_->SetException(ex);
 }
 

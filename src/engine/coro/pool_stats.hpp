@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <utility>
 
 namespace engine {
 namespace coro {
@@ -10,16 +11,18 @@ struct PoolStats {
   size_t total_coroutines = 0;
 };
 
-PoolStats& operator+=(PoolStats& lhs, const PoolStats& rhs) {
+inline PoolStats& operator+=(PoolStats& lhs, const PoolStats& rhs) {
   lhs.active_coroutines += rhs.active_coroutines;
   lhs.total_coroutines += rhs.total_coroutines;
   return lhs;
 }
 
-PoolStats operator+(const PoolStats& lhs, const PoolStats& rhs) {
-  PoolStats sum = lhs;
-  sum += rhs;
-  return sum;
+inline PoolStats operator+(PoolStats&& lhs, const PoolStats& rhs) {
+  return std::move(lhs += rhs);
+}
+
+inline PoolStats operator+(const PoolStats& lhs, const PoolStats& rhs) {
+  return PoolStats(lhs) + rhs;
 }
 
 }  // namespace coro

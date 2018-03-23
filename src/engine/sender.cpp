@@ -17,7 +17,7 @@ Sender::Sender(const ev::ThreadControl& thread_control,
       socket_listener_(thread_control, task_processor, fd,
                        SocketListener::ListenMode::kWrite,
                        [this](int fd) { return SendData(fd); },
-                       [this]() { Stop(); }, SocketListener::kDeferStart) {}
+                       [this]() { Stop(); }, SocketListener::DeferStart{}) {}
 
 Sender::~Sender() { Stop(); }
 

@@ -70,7 +70,7 @@ class ConditionVariable {
   NotifierList notifiers_;
 };
 
-void ConditionVariable::Wait(std::unique_lock<std::mutex>& lock) {
+inline void ConditionVariable::Wait(std::unique_lock<std::mutex>& lock) {
   auto notifier = SaveNotifier();
   DoWait(lock);
 }
@@ -121,32 +121,32 @@ bool ConditionVariable::WaitUntil(
   return WaitFor(lock, until - Clock::now(), std::move(predicate));
 }
 
-void ConditionVariable::NotifyOne() {
+inline void ConditionVariable::NotifyOne() {
   std::lock_guard<std::mutex> lock(notifiers_mutex_);
   if (!notifiers_.empty()) {
     notifiers_.front()->Notify();
   }
 }
 
-void ConditionVariable::NotifyAll() {
+inline void ConditionVariable::NotifyAll() {
   std::lock_guard<std::mutex> lock(notifiers_mutex_);
   for (auto* notifier : notifiers_) {
     notifier->Notify();
   }
 }
 
-ConditionVariable::UniqueNotifier::UniqueNotifier(ConditionVariable& cond_var,
-                                                  NotifierList::iterator it)
+inline ConditionVariable::UniqueNotifier::UniqueNotifier(
+    ConditionVariable& cond_var, NotifierList::iterator it)
     : cond_var_(cond_var), it_(it) {}
 
-ConditionVariable::UniqueNotifier::~UniqueNotifier() {
+inline ConditionVariable::UniqueNotifier::~UniqueNotifier() {
   std::lock_guard<std::mutex> lock(cond_var_.notifiers_mutex_);
   cond_var_.notifiers_.erase(it_);
 }
 
-void ConditionVariable::UniqueNotifier::Notify() { (*it_)->Notify(); }
+inline void ConditionVariable::UniqueNotifier::Notify() { (*it_)->Notify(); }
 
-ConditionVariable::UniqueNotifier ConditionVariable::SaveNotifier() {
+inline ConditionVariable::UniqueNotifier ConditionVariable::SaveNotifier() {
   auto& notifier = CurrentTask::GetNotifier();
   NotifierList::iterator it;
   {
@@ -156,7 +156,7 @@ ConditionVariable::UniqueNotifier ConditionVariable::SaveNotifier() {
   return UniqueNotifier(*this, it);
 }
 
-void ConditionVariable::DoWait(std::unique_lock<std::mutex>& lock) {
+inline void ConditionVariable::DoWait(std::unique_lock<std::mutex>& lock) {
   lock.unlock();
   CurrentTask::Wait();
   lock.lock();

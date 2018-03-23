@@ -95,7 +95,7 @@ AsyncTask<void>::AsyncTask(TaskProcessor& task_processor,
   task_processor.AddTask(this);
 }
 
-void AsyncTask<void>::Run() noexcept {
+inline void AsyncTask<void>::Run() noexcept {
   try {
     assert(call_wrapper_ptr_ && "AsyncTask ran more than once");
     auto call_wrapper_ptr = std::move(call_wrapper_ptr_);
@@ -106,6 +106,6 @@ void AsyncTask<void>::Run() noexcept {
   }
 }
 
-void AsyncTask<void>::OnComplete() noexcept { delete this; }
+inline void AsyncTask<void>::OnComplete() noexcept { delete this; }
 
 }  // namespace engine

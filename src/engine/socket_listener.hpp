@@ -19,7 +19,6 @@ class SocketListener {
   enum class ListenMode { kRead, kWrite };
 
   struct DeferStart {};
-  static constexpr DeferStart kDeferStart{};
 
   using ListenFunc = std::function<Result(int fd)>;
   using OnStopFunc = std::function<void()>;
