@@ -28,7 +28,7 @@ std::string ReadFile(const std::string& path) {
 
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
-    : CachingComponentBase(config, name) {
+    : CachingComponentBase(config, kName) {
   auto mongo_component = context.FindComponent<Mongo>("mongo-taxi");
   if (!mongo_component) {
     throw std::runtime_error("Taxi config requires mongo-taxi component");

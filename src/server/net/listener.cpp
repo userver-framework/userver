@@ -23,6 +23,8 @@ Listener::Listener(const ListenerConfig& config,
 }
 
 Listener::~Listener() {
+  if (!impl_) return;
+
   std::packaged_task<void()> task([this] {
     LOG_TRACE() << "Destroying listener";
     impl_.reset();

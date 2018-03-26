@@ -20,9 +20,8 @@ class Redis : public ComponentBase {
  public:
   Redis(const ComponentConfig& config,
         const ComponentContext& component_context);
-  virtual ~Redis();
 
-  static constexpr const char* const name = "redis";
+  static constexpr const char* const kName = "redis";
 
   std::shared_ptr<storages::redis::Sentinel> Client(const std::string& name) {
     return clients_.at(name);

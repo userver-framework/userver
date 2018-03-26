@@ -2,12 +2,12 @@
 
 #include <atomic>
 #include <chrono>
+#include <future>
 #include <mutex>
 #include <random>
 #include <string>
 
 #include <engine/condition_variable.hpp>
-#include <engine/future.hpp>
 
 #include "component_base.hpp"
 #include "component_config.hpp"
@@ -47,7 +47,7 @@ class UpdatingComponentBase : public ComponentBase {
   std::atomic<bool> is_running_;
 
   std::default_random_engine jitter_generator_;
-  engine::Future<void> update_task_future_;
+  std::future<void> update_task_future_;
 };
 
 }  // namespace components

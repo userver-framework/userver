@@ -1,5 +1,7 @@
 #include "component_context.hpp"
 
+#include <logging/log.hpp>
+
 namespace components {
 
 ComponentContext::ComponentContext(
@@ -8,13 +10,21 @@ ComponentContext::ComponentContext(
     : task_processor_map_(std::move(task_processor_map)),
       server_monitor_(std::move(server_monitor)) {}
 
-void ComponentContext::AddComponent(
-    std::string name, std::unique_ptr<ComponentBase>&& component) {
-  components_.emplace(std::move(name), std::move(component));
+ComponentContext::~ComponentContext() {
+  LOG_TRACE() << "Stopping components";
+  for (auto it = component_names_.rbegin(); it != component_names_.rend();
+       ++it) {
+    LOG_INFO() << "Stopping component " << *it;
+    components_.erase(*it);
+    LOG_INFO() << "Stopped component " << *it;
+  }
+  LOG_TRACE() << "Stopped all components";
 }
 
-void ComponentContext::RemoveComponent(const std::string& name) {
-  components_.erase(name);
+void ComponentContext::AddComponent(
+    std::string name, std::unique_ptr<ComponentBase>&& component) {
+  components_.emplace(name, std::move(component));
+  component_names_.push_back(std::move(name));
 }
 
 size_t ComponentContext::ComponentCount() const { return components_.size(); }

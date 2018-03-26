@@ -44,7 +44,7 @@ class Pool : public std::enable_shared_from_this<Pool> {
   void Release(ConnectionPtr::pointer client);
 
   class Impl;
-  const std::unique_ptr<Impl> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 using PoolPtr = std::shared_ptr<Pool>;

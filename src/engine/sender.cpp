@@ -24,9 +24,12 @@ Sender::~Sender() { Stop(); }
 void Sender::Start() { socket_listener_.Start(); }
 
 void Sender::Stop() {
+  OnCompleteFunc on_complete_once;
   {
     std::lock_guard<std::mutex> lock(data_queue_mutex_);
     stopped_ = true;
+    on_complete_once = std::move(on_complete_);
+    on_complete_ = {};
   }
 
   for (;;) {
@@ -48,7 +51,7 @@ void Sender::Stop() {
   }
 
   assert(!HasWaitingData());
-  if (on_complete_) on_complete_();
+  if (on_complete_once) on_complete_once();
 }
 
 void Sender::SendData(std::string data,

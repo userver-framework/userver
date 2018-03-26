@@ -42,7 +42,7 @@ class LogHelper {
            static_cast<spdlog::level::level_enum>(lvl));                   \
        _need_log; _need_log = false)                                       \
   (::logging::LogHelper(lvl) << "module=" << __func__ << " ( " << __FILE__ \
-                             << "," << __LINE__ << " ) \ttext=")
+                             << ':' << __LINE__ << " ) \ttext=")
 
 #define LOG_TRACE() LOG(::logging::Level::kTrace)
 #define LOG_DEBUG() LOG(::logging::Level::kDebug)

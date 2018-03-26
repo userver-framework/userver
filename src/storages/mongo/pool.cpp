@@ -38,9 +38,14 @@ class Pool::Impl {
 };
 
 Pool::Pool(const std::string& uri, engine::TaskProcessor& task_processor,
-           int so_timeout_ms, size_t min_size, size_t max_size)
-    : impl_(std::make_unique<Impl>(uri, task_processor, so_timeout_ms, min_size,
-                                   max_size)) {}
+           int so_timeout_ms, size_t min_size, size_t max_size) {
+  // Have to check here, otherwise assertion will fail
+  if (!max_size || min_size > max_size) {
+    throw InvalidConfig("invalid pool sizes");
+  }
+  impl_ = std::make_unique<Impl>(uri, task_processor, so_timeout_ms, min_size,
+                                 max_size);
+}
 
 Pool::~Pool() = default;
 
@@ -59,12 +64,9 @@ CollectionWrapper Pool::GetCollection(const std::string& collection_name) {
 
 Pool::Impl::Impl(const std::string& uri, engine::TaskProcessor& task_processor,
                  int so_timeout_ms, size_t min_size, size_t max_size)
-    : task_processor_(task_processor) {
+    : task_processor_(task_processor), queue_(max_size) {
   if (so_timeout_ms <= 0) {
     throw InvalidConfig("invalid so_timeout");
-  }
-  if (!max_size || min_size > max_size) {
-    throw InvalidConfig("invalid pool sizes");
   }
 
   so_timeout_sec_ = so_timeout_ms / 1000.0;
@@ -76,8 +78,7 @@ Pool::Impl::Impl(const std::string& uri, engine::TaskProcessor& task_processor,
     throw InvalidConfig("bad uri: specify exactly one server");
 
   try {
-    queue_.reserve(max_size);
-    LOG_INFO() << "creating" << min_size << " mongo connections";
+    LOG_INFO() << "Creating " << min_size << " mongo connections";
     for (size_t i = 0; i < min_size; ++i) Push(Create());
   } catch (const std::exception&) {
     Clear();

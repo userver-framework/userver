@@ -90,7 +90,7 @@ const std::string& CollectionWrapper::GetCollectionName() const {
   return Execute<::mongo::BSONObj>(
       [&query, fields](::mongo::DBClientConnection& conn,
                        const std::string& collection_name) {
-        return conn.findOne(query, collection_name, fields, 0);
+        return conn.findOne(collection_name, query, fields, 0);
       });
 }
 
@@ -218,7 +218,7 @@ CursorWrapper CollectionWrapper::Find(
 size_t CollectionWrapper::Count(const ::mongo::Query& query) const {
   return Execute<size_t>([&query](::mongo::DBClientConnection& conn,
                                   const std::string& collection_name) {
-    return conn.count(query, collection_name, 0, 0, 0);
+    return conn.count(collection_name, query, 0, 0, 0);
   });
 }
 

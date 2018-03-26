@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <engine/task/task_processor.hpp>
 #include <server/request/monitor.hpp>
@@ -20,10 +21,10 @@ class ComponentContext {
 
   ComponentContext(TaskProcessorMap,
                    std::unique_ptr<server::request::Monitor>&& server_monitor);
+  ~ComponentContext();
 
   void AddComponent(std::string name,
                     std::unique_ptr<ComponentBase>&& component);
-  void RemoveComponent(const std::string& name);
 
   template <typename T>
   T* FindComponent(const std::string& name) const {
@@ -45,6 +46,7 @@ class ComponentContext {
   ComponentBase* DoFindComponent(const std::string& name) const;
 
   ComponentMap components_;
+  std::vector<std::string> component_names_;
   TaskProcessorMap task_processor_map_;
   std::unique_ptr<server::request::Monitor> server_monitor_;
 };

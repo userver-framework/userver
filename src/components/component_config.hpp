@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 #include <json/value.h>
 
@@ -41,5 +42,8 @@ class ComponentConfig {
 
   std::string name_;
 };
+
+using ComponentConfigMap =
+    std::unordered_map<std::string, const ComponentConfig&>;
 
 }  // namespace components

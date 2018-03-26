@@ -48,6 +48,7 @@ template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
     : config_(std::move(config)),
       executor_(std::move(executor)),
+      coroutines_(config.max_size),
       active_coroutines_num_(0),
       total_coroutines_num_(0) {
   for (auto i = config_.initial_size; i > 0; --i) {

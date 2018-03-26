@@ -38,7 +38,7 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
   // Force first update
   engine::Async([this] { DoPeriodicUpdate(); }).Get();
 
-  update_task_future_ = engine::Async([this] {
+  std::packaged_task<void()> task([this] {
     while (is_running_) {
       std::uniform_int_distribution<decltype(update_jitter_)::rep>
           jitter_distribution(-update_jitter_.count(), update_jitter_.count());
@@ -59,17 +59,19 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
       }
     }
   });
+  update_task_future_ = task.get_future();
+  engine::Async(std::move(task));
 }
 
 void UpdatingComponentBase::StopPeriodicUpdates() {
   {
     std::lock_guard<std::mutex> lock(is_running_mutex_);
-    if (!is_running_.exchange(false) || !update_task_future_.IsValid()) {
+    if (!is_running_.exchange(false) || !update_task_future_.valid()) {
       return;
     }
   }
   is_running_cv_.NotifyAll();
-  update_task_future_.Get();
+  update_task_future_.get();
 }
 
 void UpdatingComponentBase::DoPeriodicUpdate() {

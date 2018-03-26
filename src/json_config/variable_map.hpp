@@ -17,6 +17,8 @@ class VariableMap {
   bool IsDefined(const std::string& name) const;
   const Json::Value& GetVariable(const std::string& name) const;
 
+  static VariableMap ParseFromFile(const std::string& path);
+
  private:
   Json::Value json_;
 };

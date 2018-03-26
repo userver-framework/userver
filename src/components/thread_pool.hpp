@@ -8,10 +8,9 @@
 
 namespace components {
 
-class ThreadPoolComponent : public ComponentBase {
+class ThreadPool : public ComponentBase {
  public:
-  ThreadPoolComponent(const ComponentConfig& config,
-                      const ComponentContext& context, const std::string& name);
+  ThreadPool(const ComponentConfig& config, const ComponentContext& context);
 
   engine::ev::ThreadPool& Get();
 

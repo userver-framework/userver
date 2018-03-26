@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <components/thread_pool_component.hpp>
+#include <components/thread_pool.hpp>
 #include <json_config/value.hpp>
 #include <logging/logger.hpp>
 #include <storages/redis/sentinel.hpp>
@@ -31,7 +31,7 @@ Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context) {
   std::string thread_pool_name = config.ParseString("thread_pool");
   auto thread_pool_component =
-      component_context.FindComponent<ThreadPoolComponent>(thread_pool_name);
+      component_context.FindComponent<ThreadPool>(thread_pool_name);
   if (!thread_pool_component) {
     throw std::runtime_error("thread pool component '" + thread_pool_name +
                              "' not found");
@@ -40,8 +40,7 @@ Redis::Redis(const ComponentConfig& config,
   std::string sentinel_thread_pool_name =
       config.ParseString("sentinel_thread_pool");
   auto sentinel_thread_pool_component =
-      component_context.FindComponent<ThreadPoolComponent>(
-          sentinel_thread_pool_name);
+      component_context.FindComponent<ThreadPool>(sentinel_thread_pool_name);
   if (!sentinel_thread_pool_component) {
     throw std::runtime_error("sentinel thread pool component '" +
                              sentinel_thread_pool_name + "' not found");
@@ -83,9 +82,5 @@ Redis::Redis(const ComponentConfig& config,
       LOG_WARNING() << "skip redis client for " << redis_group.db;
   }
 }
-
-Redis::~Redis() {}
-
-constexpr const char* const Redis::name;
 
 }  // namespace components

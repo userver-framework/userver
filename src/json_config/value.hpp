@@ -87,7 +87,7 @@ auto ParseValue(const Json::Value& obj, const std::string& name,
   const auto& value = obj[name];
   if (impl::IsSubstitution(value)) {
     auto var_name = impl::GetSubstitutionVarName(value);
-    if (config_vars_ptr->IsDefined(var_name)) {
+    if (config_vars_ptr && config_vars_ptr->IsDefined(var_name)) {
       const auto& res = parse_config_var(config_vars_ptr->Json(), var_name,
                                          "<config_vars_ptr>", config_vars_ptr);
       if (res) return res;

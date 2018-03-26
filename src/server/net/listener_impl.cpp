@@ -12,9 +12,9 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
-#include <system_error>
 
 #include <logging/log.hpp>
+#include <utils/check_syscall.hpp>
 
 namespace server {
 namespace net {
@@ -23,30 +23,24 @@ namespace {
 
 static const size_t kConnectionsToCloseQueueCapacity = 64;
 
-int CheckSyscall(int ret, const std::string& context) {
-  if (ret == -1) {
-    throw std::system_error(errno, std::generic_category(),
-                            "Error while " + context);
-  }
-  return ret;
-}
-
 int CreateSocket(uint16_t port, int backlog) {
-  int fd = CheckSyscall(socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0),
-                        "creating socket");
+  int fd = utils::CheckSyscall(socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0),
+                               "creating socket");
 
   const int reuse = 1;
-  CheckSyscall(setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)),
-               "setting SO_REUSEPORT");
+  utils::CheckSyscall(
+      setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)),
+      "setting SO_REUSEPORT");
 
   sockaddr_in6 addr;
   memset(&addr, 0, sizeof(addr));
   addr.sin6_family = AF_INET6;
   addr.sin6_port = htons(port);
   addr.sin6_addr = in6addr_any;
-  CheckSyscall(bind(fd, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)),
-               "binding a socket");
-  CheckSyscall(listen(fd, backlog), "listening on a socket");
+  utils::CheckSyscall(
+      bind(fd, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)),
+      "binding a socket");
+  utils::CheckSyscall(listen(fd, backlog), "listening on a socket");
   return fd;
 }
 
@@ -149,12 +143,13 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
   sockaddr_in6 addr;
   memset(&addr, 0, sizeof(addr));
   socklen_t addrlen = sizeof(addr);
-  int fd = CheckSyscall(accept4(listen_fd, reinterpret_cast<sockaddr*>(&addr),
-                                &addrlen, SOCK_NONBLOCK),
-                        "accepting connection");
+  int fd =
+      utils::CheckSyscall(accept4(listen_fd, reinterpret_cast<sockaddr*>(&addr),
+                                  &addrlen, SOCK_NONBLOCK),
+                          "accepting connection");
 
   const int nodelay = 1;
-  CheckSyscall(
+  utils::CheckSyscall(
       setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)),
       "setting TCPNODELAY");
 

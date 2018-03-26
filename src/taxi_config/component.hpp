@@ -12,7 +12,7 @@ namespace components {
 
 class TaxiConfig : public CachingComponentBase<taxi_config::TaxiConfig> {
  public:
-  static constexpr const char* name = "taxi-config";
+  static constexpr const char* kName = "taxi-config";
 
   TaxiConfig(const ComponentConfig&, const ComponentContext&);
   ~TaxiConfig();
