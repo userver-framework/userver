@@ -1,10 +1,11 @@
 #include "handler_base.hpp"
 
-namespace components {
+namespace server {
 namespace handlers {
 
-HandlerBase::HandlerBase(const ComponentConfig& config,
-                         const ComponentContext& /*component_context*/) {
+HandlerBase::HandlerBase(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& /*component_context*/) {
   config_ = HandlerConfig::ParseFromJson(config.Json(), config.FullPath(),
                                          config.ConfigVarsPtr());
 }
@@ -12,4 +13,4 @@ HandlerBase::HandlerBase(const ComponentConfig& config,
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
 }  // namespace handlers
-}  // namespace components
+}  // namespace server

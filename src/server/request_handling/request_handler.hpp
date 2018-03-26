@@ -5,7 +5,7 @@
 #include <components/component_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <logging/logger.hpp>
-#include <server/components/handlers/handler_base.hpp>
+#include <server/handlers/handler_base.hpp>
 #include <server/request/request_base.hpp>
 
 #include "request_task.hpp"
@@ -18,11 +18,11 @@ class RequestHandler {
   struct HandlerInfo {
     HandlerInfo() = default;
     HandlerInfo(engine::TaskProcessor& task_processor,
-                const components::handlers::HandlerBase& handler)
+                const handlers::HandlerBase& handler)
         : task_processor(&task_processor), handler(&handler) {}
 
     engine::TaskProcessor* task_processor = nullptr;
-    const components::handlers::HandlerBase* handler = nullptr;
+    const handlers::HandlerBase* handler = nullptr;
     size_t matched_path_length = 0;
   };
 

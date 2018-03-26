@@ -8,13 +8,13 @@
 #include <components/component_context.hpp>
 #include <server/request/request_base.hpp>
 
-namespace components {
+namespace server {
 namespace handlers {
 
-class HandlerBase : public ComponentBase {
+class HandlerBase : public components::ComponentBase {
  public:
-  HandlerBase(const ComponentConfig& config,
-              const ComponentContext& component_context);
+  HandlerBase(const components::ComponentConfig& config,
+              const components::ComponentContext& component_context);
   virtual ~HandlerBase() {}
 
   virtual void HandleRequest(const server::request::RequestBase& request,
@@ -29,4 +29,4 @@ class HandlerBase : public ComponentBase {
 };
 
 }  // namespace handlers
-}  // namespace components
+}  // namespace server

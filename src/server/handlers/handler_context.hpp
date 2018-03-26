@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace components {
+namespace server {
 namespace handlers {
 
 class HandlerData {
@@ -29,4 +29,4 @@ class HandlerContext {
 };
 
 }  // namespace handlers
-}  // namespace components
+}  // namespace server

@@ -15,7 +15,7 @@ RequestHandler::RequestHandler(
     const boost::optional<std::string>& logger_access_tskv_component)
     : component_context_(component_context) {
   for (const auto& component : component_context) {
-    if (auto handler = dynamic_cast<const components::handlers::HandlerBase*>(
+    if (auto handler = dynamic_cast<const handlers::HandlerBase*>(
             component.second.get())) {
       engine::TaskProcessor* task_processor =
           component_context.GetTaskProcessor(

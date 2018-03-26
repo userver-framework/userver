@@ -6,7 +6,7 @@ namespace server {
 namespace request_handling {
 
 RequestTask::RequestTask(engine::TaskProcessor* task_processor,
-                         const components::handlers::HandlerBase* handler,
+                         const handlers::HandlerBase* handler,
                          std::unique_ptr<request::RequestBase>&& request,
                          NotifyCb&& notify_cb)
     : engine::Task(task_processor),
@@ -17,7 +17,7 @@ RequestTask::RequestTask(engine::TaskProcessor* task_processor,
 void RequestTask::Run() noexcept {
   assert(handler_ != nullptr);
   request_->SetTaskStartTime();
-  components::handlers::HandlerContext context;
+  handlers::HandlerContext context;
   handler_->HandleRequest(*request_, context);
   request_->SetResponseNotifyTime();
   request_->GetResponse().SetReady();

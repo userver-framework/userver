@@ -6,7 +6,7 @@
 
 #include <json_config/variable_map.hpp>
 
-namespace components {
+namespace server {
 namespace handlers {
 
 struct HandlerConfig {
@@ -19,4 +19,4 @@ struct HandlerConfig {
 };
 
 }  // namespace handlers
-}  // namespace components
+}  // namespace server

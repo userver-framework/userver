@@ -2,7 +2,7 @@
 
 #include <json_config/value.hpp>
 
-namespace components {
+namespace server {
 namespace handlers {
 
 HandlerConfig HandlerConfig::ParseFromJson(
@@ -17,4 +17,4 @@ HandlerConfig HandlerConfig::ParseFromJson(
 }
 
 }  // namespace handlers
-}  // namespace components
+}  // namespace server
