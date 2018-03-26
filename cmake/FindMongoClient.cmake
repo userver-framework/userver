@@ -14,9 +14,7 @@ set(MONGOCLIENT_LIBRARIES
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-  MongoClient DEFAULT_MSG MONGOCLIENT_LIBRARIES MONGOCLIENT_INCLUDE_DIR)
+  MongoClient
+  "Cannot find development files for the mongoclient library. Please install libyandex-mongo-legacy-cxx-driver-dev."
+  MONGOCLIENT_LIBRARIES MONGOCLIENT_INCLUDE_DIR)
 mark_as_advanced(MONGOCLIENT_LIBRARIES MONGOCLIENT_INCLUDE_DIR)
-
-if(NOT MONGOCLIENT_FOUND)
-	message(FATAL_ERROR "Cannot find development files for the mongoclient library. Please install libyandex-mongo-legacy-cxx-driver-dev.")
-endif()
