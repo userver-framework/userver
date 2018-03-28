@@ -11,6 +11,16 @@
 
 namespace engine {
 
+namespace {
+class CurrentTaskHolder {
+ public:
+  explicit CurrentTaskHolder(Task* task) {
+    CurrentTask::SetCurrentTask(task);
+  }
+  ~CurrentTaskHolder() { CurrentTask::SetCurrentTask(nullptr); }
+};
+}  // namespace
+
 TaskWorkerImpl::TaskWorkerImpl(const ev::ThreadControl& thread_control, int id,
                                TaskProcessor& task_processor)
     : ev::ThreadControl(thread_control),
@@ -38,9 +48,11 @@ void TaskWorkerImpl::TaskWatcher(struct ev_loop*, ev_async* w, int) {
 void TaskWorkerImpl::TaskWatcherImpl() {
   assert(task_);
 
-  CurrentTask::SetCurrentTask(task_);
-  Task::State state = task_->RunTask();
-  CurrentTask::SetCurrentTask(nullptr);
+  Task::State state;
+  {
+    CurrentTaskHolder current_task(task_);
+    state = task_->RunTask();
+  }
 
   if (state == Task::State::kWaiting) task_->Sleep();
   task_ = nullptr;

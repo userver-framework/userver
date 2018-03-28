@@ -81,7 +81,9 @@ thread_local Task* current_task = nullptr;
 }  // namespace
 
 Task* CurrentTask::GetCurrentTask() {
-  assert(current_task != nullptr);
+  if (current_task == nullptr)
+    throw std::logic_error(
+        "CurrentTask::GetCurrentTask() called outside coroutine");
   return current_task;
 }
 
