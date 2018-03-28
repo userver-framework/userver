@@ -80,7 +80,7 @@ ComponentList&& ComponentList::Append(Args&&... args) && {
   return std::move(Append<Component>(std::forward<Args>(args)...));
 }
 
-void ComponentList::AddAll(
+inline void ComponentList::AddAll(
     ServerImpl& server_impl,
     const components::ComponentConfigMap& config_map) const {
   for (const auto& adder : adders_) {

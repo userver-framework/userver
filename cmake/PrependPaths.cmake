@@ -1,0 +1,7 @@
+function(PREPEND_PATHS var prefix)
+  set(buf "")
+  foreach(basename ${ARGN})
+    list(APPEND buf "${prefix}/${basename}")
+  endforeach(basename)
+  set(${var} "${buf}" PARENT_SCOPE)
+endfunction(PREPEND_PATHS)

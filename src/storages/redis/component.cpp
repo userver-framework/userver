@@ -46,7 +46,7 @@ Redis::Redis(const ComponentConfig& config,
                              sentinel_thread_pool_name + "' not found");
   }
 
-  auto secdist_component = component_context.FindComponent<Secdist>("secdist");
+  auto secdist_component = component_context.FindComponent<Secdist>();
   if (!secdist_component) {
     throw std::runtime_error("secdist component not found");
   }

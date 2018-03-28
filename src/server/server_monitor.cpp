@@ -14,7 +14,8 @@ ServerMonitor::ServerMonitor(const ServerImpl& server_impl)
 
 std::string ServerMonitor::GetJsonData(
     const request::RequestBase& request) const {
-  const auto& http_request = dynamic_cast<const http::HttpRequest&>(request);
+  const http::HttpRequest http_request(
+      dynamic_cast<const http::HttpRequestImpl&>(request));
   const bool is_full = http_request.GetArg("full") == "1";
 
   Json::Value json_data(Json::objectValue);

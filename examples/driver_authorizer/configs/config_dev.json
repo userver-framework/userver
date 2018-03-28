@@ -1,0 +1,126 @@
+{
+  "config_vars": "config_vars.development.json",
+  "server": {
+    "listener": {
+      "connection": {
+        "task_processor": "main-task-processor",
+        "in_buf_size": 4096,
+        "requests_queue_size_threshold": 100
+      },
+      "port": 1180,
+      "monitor_port": 1188
+    },
+    "logger_access": "access",
+    "logger_access_tskv": "access-tskv",
+    "coro_pool": {
+      "initial_size": 500,
+      "max_size": 5000
+    },
+    "schedulers": [
+      {
+        "name": "main-scheduler",
+        "threads": 1,
+        "thread_name": "scheduler"
+      }
+    ],
+    "task_processors": [
+      {
+        "name": "main-task-processor",
+        "worker_threads": "$main_worker_threads",
+        "worker_threads#fallback": 3,
+        "thread_name": "Main worker thread",
+        "scheduler": "main-scheduler"
+      },
+      {
+        "name": "second-task-processor",
+        "worker_threads": 1,
+        "thread_name": "second-worker",
+        "scheduler": "main-scheduler"
+      },
+      {
+        "name": "mongo-task-processor",
+        "worker_threads": 5,
+        "thread_name": "Mongo worker thread",
+        "scheduler": "main-scheduler"
+      }
+    ],
+    "default_task_processor": "main-task-processor",
+    "components": [
+      {
+        "name": "logging",
+        "loggers": {
+          "default": {
+            "file_path": "server.log",
+            "level": "$logger_level",
+            "level#fallback": "info",
+            "flush_on": "$logger_level",
+            "flush_on#fallback": "info",
+            "overflow_behavior": "block"
+          },
+          "access": {
+            "file_path": "access.log",
+            "pattern": "[%Y-%m-%d %H:%M:%S.%f %z] %v"
+          },
+          "access-tskv": {
+            "file_path": "access_tskv.log",
+            "pattern": "tskv\ttskv_format=taxi_driver_authorizer\ttimestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%z%v"
+          }
+        }
+      },
+      {
+        "name": "io-thread-pool",
+        "thread_name": "i/o thread",
+        "threads": "$io_threads",
+        "threads#fallback": 5
+      },
+      {
+        "name": "redis-sentinel-thread-pool",
+        "thread_name": "Redis sentinel thread",
+        "threads": 1
+      },
+      {
+        "name": "redis-thread-pool",
+        "thread_name": "Redis thread",
+        "threads": "$redis_threads",
+        "threads#fallback": 3
+      },
+      {
+        "name": "secdist",
+        "config": "secdist_dev.json"
+      },
+      {
+        "name": "redis",
+        "thread_pool": "redis-thread-pool",
+        "sentinel_thread_pool": "redis-sentinel-thread-pool",
+        "task_processor": "main-task-processor",
+        "groups": [
+          {
+            "db": "taximeter-base",
+            "config_name": "test"
+          }
+        ]
+      },
+      {
+        "name": "mongo-taxi",
+        "task_processor": "mongo-task-processor",
+        "dbalias": "taxi"
+      },
+      {
+        "name": "taxi-config",
+        "update_interval_ms": 5000,
+        "full_update_interval_ms": 60000,
+        "fallback_path": "taxi_config_fallback.development.json"
+      },
+      {
+        "name": "handler-ping",
+        "path": "/ping",
+        "task_processor": "second-task-processor"
+      },
+      {
+        "name": "handler-driver-session",
+        "path": "/driver_session",
+        "task_processor": "main-task-processor"
+      }
+    ]
+  }
+}

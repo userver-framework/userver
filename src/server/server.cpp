@@ -1,6 +1,7 @@
 #include "server.hpp"
 
 #include <signal.h>
+#include <unistd.h>
 
 #include <cstring>
 #include <initializer_list>
@@ -82,6 +83,8 @@ class SignalCatcher {
   sigset_t old_sigset_;
 };
 
+bool IsDaemon() { return getppid() == 1; }
+
 }  // namespace
 
 void Run(const std::string& config_path, const ComponentList& component_list,
@@ -105,6 +108,11 @@ void Run(const std::string& config_path, const ComponentList& component_list,
     if (signum == SIGINT || signum == SIGTERM || signum == SIGQUIT) {
       break;
     } else if (signum == SIGHUP) {
+      if (!IsDaemon()) {
+        // This is a real HUP
+        break;
+      }
+
       LOG_INFO() << "Got reload request";
       ServerConfig new_config;
       try {
@@ -114,7 +122,9 @@ void Run(const std::string& config_path, const ComponentList& component_list,
                     << ex.what();
         continue;
       }
-      if (new_config.json == server_ptr->GetConfig().json) {
+      if (new_config.json == server_ptr->GetConfig().json &&
+          new_config.config_vars_ptr->Json() ==
+              server_ptr->GetConfig().config_vars_ptr->Json()) {
         LOG_INFO() << "Config unchanged, ignoring request";
         continue;
       }
@@ -131,6 +141,7 @@ void Run(const std::string& config_path, const ComponentList& component_list,
       LOG_INFO() << "Server reloaded";
     } else if (signum == SIGUSR1) {
       server_ptr->OnLogRotate();
+      LOG_INFO() << "Log rotated";
     } else {
       LOG_WARNING() << "Got unexpected signal: " << signum << " ("
                     << strsignal(signum) << ')';

@@ -1,0 +1,34 @@
+Source: yandex-taxi-userver
+Section: yandex
+Priority: optional
+Maintainer: Dmitry Zhukov <dzhuk@yandex-team.ru>
+Build-Depends:
+	debhelper (>= 9),
+	dh-systemd (>= 1.5),
+	yandex-dh-environment,
+	yandex-dh-nginx,
+	libhttp-parser-dev,
+	libjsoncpp-dev,
+	libhiredis-dev (>= 0.13),
+	libev-dev,
+	libboost-coroutine-dev,
+	libboost-program-options-dev,
+	libboost-system-dev,
+	libboost-thread-dev,
+	libboost-regex-dev,
+	libyandex-taxi-jemalloc-dev,
+	libyandex-mongo-legacy-cxx-driver-dev
+Standards-Version: 3.9.7
+Vcs-Git: https://github.yandex-team.ru/taxi/userver.git
+Vcs-Browser: https://github.yandex-team.ru/taxi/userver
+
+Package: yandex-taxi-driver-authorizer
+Architecture: any
+Depends: ${misc:Depends},	${shlibs:Depends}
+Recommends: yandex-taxi-config
+Description: Yandex.Taxi driver authorization server
+
+Package: yandex-taxi-driver-authorizer-nginx-conf
+Architecture: all
+Depends: nginx-full, ${misc:Depends}
+Description: nginx config for Yandex.Taxi driver authorization server

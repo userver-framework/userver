@@ -77,6 +77,10 @@ void Logging::OnLogRotate() {
   rotate_msg.level = spdlog::level::off;  // covers all log levels
   rotate_msg.rotate_only = true;
 
+  auto default_logger = logging::Log();
+  rotate_msg.logger_name = &default_logger->name();
+  default_logger->_sink_it(rotate_msg);
+  
   for (auto& item : loggers_) {
     const auto& name = item.first;
     auto& logger = item.second;

@@ -1,0 +1,792 @@
+{
+    "mongo_settings": {
+        "taxi": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3017/dbtaxi"
+        },
+        "stats": {
+            "uri": "mongodb://mobile:Iegh5Peesh@localhost:3019/dbstats"
+        },
+        "logs": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3019/dblogs"
+        },
+        "noncritical": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3018/dbprocessing"
+        },
+        "orderhistory": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3018/dborderhistory"
+        },
+        "celery": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3017/kombu_default"
+        },
+        "corp": {
+            "uri": "mongodb://mobile:wohF4odeid@localhost:3017/dbcorp"
+        },
+        "stq": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3019/dbstq"
+        },
+        "paf": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3018/dbpaf"
+        },
+        "referral": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3018/dbreferral"
+        },
+        "archive": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3021/dbarchive"
+        },
+        "pinstats": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3019/dbpinstats"
+        },
+        "localizations": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3017/localizations"
+        },
+        "tracks": {
+            "uri": "mongodb://mobile:ieg3leeY@localhost:3020/tracks"
+        },
+        "parks": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3024/dbparks"
+        },
+        "drivers": {
+            "uri": "mongodb://mobile:SeiXae4cu@localhost:3024/dbdrivers"
+        },
+        "cars": {
+            "uri": "mongodb://mobile:SeiXae4cu@localhost:3024/dbcars"
+        },
+        "companion": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3025/dbcompanion"
+        },
+        "billing": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3023/dbbilling"
+        },
+        "notify": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3020/dbnotify"
+        },
+        "smsconsent": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3022/dbsmsconsent"
+        },
+        "subvention_reasons": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3026/dbsubvention_reasons"
+        },
+        "gprstimings": {
+            "uri": "mongodb://mobile:ieg3leeY@localhost:3020/gprstimings"
+        },
+        "antifraud": {
+            "uri": "mongodb://mobile:ieg3leeY@localhost:3020/dbantifraud"
+        },
+        "user_communication": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3018/dbuser_communication"
+        },
+        "misc": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3018/dbmisc"
+        },
+        "qc": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3028/qc"
+        },
+        "users": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3027/dbusers"
+        },
+        "promo": {
+            "uri": "mongodb://mobile:vj,bkmybr@localhost:3025/dbpromo"
+        }
+    },
+    "redis_settings": {
+        "taxi-chat": {
+            "shards":[
+                {
+                    "name": "redis_6379"
+                },
+                {
+                    "name": "redis_6380"
+                },
+                {
+                    "name": "redis_6381"
+                },
+                {
+                    "name": "redis_6382"
+                },
+                {
+                    "name": "redis_6383"
+                },
+                {
+                    "name": "redis_6384"
+                },
+                {
+                    "name": "redis_6385"
+                },
+                {
+                    "name": "redis_6386"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taxi-redis-chat01e.taxi.dev.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taxi-dev"
+        },
+        "taxi-geo": {
+            "shards": [
+                {
+                    "name": "redis_6379"
+                },
+                {
+                    "name": "redis_6380"
+                },
+                {
+                    "name": "redis_6381"
+                },
+                {
+                    "name": "redis_6382"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taxi-redis01h.taxi.dev.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taxi-dev"
+        },
+        "taxi-user": {
+            "shards": [
+                {
+                    "name": "redis_6383"
+                },
+                {
+                    "name": "redis_6384"
+                },
+                {
+                    "name": "redis_6385"
+                },
+                {
+                    "name": "redis_6386"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taxi-redis01h.taxi.dev.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taxi-dev"
+        },
+        "taxi-tmp": {
+            "shards": [
+                {
+                    "name": "redis_6387"
+                },
+                {
+                    "name": "redis_6388"
+                },
+                {
+                    "name": "redis_6389"
+                },
+                {
+                    "name": "redis_6390"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taxi-redis01h.taxi.dev.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taxi-dev"
+        },
+        "taxi-tmp-small": {
+            "shards": [
+                {
+                    "name": "redis_6391"
+                },
+                {
+                    "name": "redis_6392"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taxi-redis01h.taxi.dev.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taxi-dev"
+        },
+        "taximeter-base": {
+            "shards": [
+                {
+                    "name": "redis_6379"
+                },
+                {
+                    "name": "redis_6380"
+                },
+                {
+                    "name": "redis_6381"
+                },
+                {
+                    "name": "redis_6382"
+                },
+                {
+                    "name": "redis_6383"
+                },
+                {
+                    "name": "redis_6384"
+                },
+                {
+                    "name": "redis_6385"
+                },
+                {
+                    "name": "redis_6386"
+                },
+                {
+                    "name": "redis_6387"
+                },
+                {
+                    "name": "redis_6388"
+                },
+                {
+                    "name": "redis_6389"
+                },
+                {
+                    "name": "redis_6390"
+                },
+                {
+                    "name": "redis_6391"
+                },
+                {
+                    "name": "redis_6392"
+                },
+                {
+                    "name": "redis_6393"
+                },
+                {
+                    "name": "redis_6394"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taximeter-base-redis01i.taxi.tst.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taximeter-dev",
+            "command_control": {
+                "timeout_single_ms": 500,
+                "timeout_all_ms": 2000,
+                "max_retries": 4
+            }
+        },
+        "taximeter-hour": {
+            "shards": [
+                {
+                    "name": "redis_6379"
+                },
+                {
+                    "name": "redis_6380"
+                },
+                {
+                    "name": "redis_6381"
+                },
+                {
+                    "name": "redis_6382"
+                },
+                {
+                    "name": "redis_6383"
+                },
+                {
+                    "name": "redis_6384"
+                },
+                {
+                    "name": "redis_6385"
+                },
+                {
+                    "name": "redis_6386"
+                },
+                {
+                    "name": "redis_6387"
+                },
+                {
+                    "name": "redis_6388"
+                },
+                {
+                    "name": "redis_6389"
+                },
+                {
+                    "name": "redis_6390"
+                },
+                {
+                    "name": "redis_6391"
+                },
+                {
+                    "name": "redis_6392"
+                },
+                {
+                    "name": "redis_6393"
+                },
+                {
+                    "name": "redis_6394"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taximeter-hour-redis01i.taxi.tst.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taximeter-dev",
+            "command_control": {
+                "timeout_single_ms": 500,
+                "timeout_all_ms": 2000,
+                "max_retries": 4
+            }
+        },
+        "taximeter-temp": {
+            "shards": [
+                {
+                    "name": "redis_6379"
+                },
+                {
+                    "name": "redis_6380"
+                },
+                {
+                    "name": "redis_6381"
+                },
+                {
+                    "name": "redis_6382"
+                },
+                {
+                    "name": "redis_6383"
+                },
+                {
+                    "name": "redis_6384"
+                },
+                {
+                    "name": "redis_6385"
+                },
+                {
+                    "name": "redis_6386"
+                },
+                {
+                    "name": "redis_6387"
+                },
+                {
+                    "name": "redis_6388"
+                },
+                {
+                    "name": "redis_6389"
+                },
+                {
+                    "name": "redis_6390"
+                },
+                {
+                    "name": "redis_6391"
+                },
+                {
+                    "name": "redis_6392"
+                },
+                {
+                    "name": "redis_6393"
+                },
+                {
+                    "name": "redis_6394"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taximeter-temp-redis01i.taxi.tst.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taximeter-dev",
+            "command_control": {
+                "timeout_single_ms": 500,
+                "timeout_all_ms": 2000,
+                "max_retries": 4
+            }
+        },
+        "taxi-surge": {
+            "shards": [
+                {
+                    "name": "redis_6379"
+                },
+                {
+                    "name": "redis_6380"
+                },
+                {
+                    "name": "redis_6381"
+                },
+                {
+                    "name": "redis_6382"
+                },
+                {
+                    "name": "redis_6383"
+                },
+                {
+                    "name": "redis_6384"
+                },
+                {
+                    "name": "redis_6385"
+                },
+                {
+                    "name": "redis_6386"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taximeter-surge-redis01i.taxi.tst.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "taximeter-dev",
+            "command_control": {
+                "timeout_single_ms": 500,
+                "timeout_all_ms": 2000,
+                "max_retries": 4
+            }
+        },
+        "test": {
+            "shards": [
+                {
+                    "name": "redis_6379"
+                },
+                {
+                    "name": "redis_6380"
+                },
+                {
+                    "name": "redis_6381"
+                },
+                {
+                    "name": "redis_6382"
+                },
+                {
+                    "name": "redis_6383"
+                },
+                {
+                    "name": "redis_6384"
+                },
+                {
+                    "name": "redis_6385"
+                },
+                {
+                    "name": "redis_6386"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "taxi-tracker-redis01i.taxi.tst.yandex.net",
+                    "port": 26379
+                },
+                {
+                    "host": "taxi-tracker-redis01h.taxi.tst.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "",
+            "command_control": {
+                "timeout_single_ms": 500,
+                "timeout_all_ms": 1000,
+                "max_retries": 2
+            }
+        },
+        "load_test": {
+            "shards": [
+                {
+                    "name": "redis_6379"
+                },
+                {
+                    "name": "redis_6380"
+                },
+                {
+                    "name": "redis_6381"
+                },
+                {
+                    "name": "redis_6382"
+                }
+            ],
+            "sentinels": [
+                {
+                    "host": "target074i.load.yandex.net",
+                    "port": 26379
+                },
+                {
+                    "host": "target075i.load.yandex.net",
+                    "port": 26379
+                },
+                {
+                    "host": "target076i.load.yandex.net",
+                    "port": 26379
+                }
+            ],
+            "password": "admin",
+            "command_control": {
+                "timeout_single_ms": 100,
+                "timeout_all_ms": 300,
+                "max_retries": 3
+            }
+        }
+    },
+    "postgresql_settings": {
+        "composite_tables_count": 2,
+        "databases": {
+            "orders": [
+                {
+                    "shard_number": 0,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard0 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard0_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard0_ro_local sslmode=require"
+                    ]
+                },
+                {
+                    "shard_number": 1,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard1 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard1_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard1_ro_local sslmode=require"
+                    ]
+                },
+                {
+                    "shard_number": 2,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard2 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard2_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard2_ro_local sslmode=require"
+                    ]
+                },
+                {
+                    "shard_number": 3,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard3 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard3_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=TVPVo59792qmDUvBxnq3xrzm2PEbAVqm dbname=taximeter_dev_db_orders_shard3_ro_local sslmode=require"
+                    ]
+                }
+            ],
+            "payments": [
+                {
+                    "shard_number": 0,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=D8SeU3JfJIg7XHvUCx2SNguqfmAsq9gi dbname=taximeter_dev_db_payments_shard0 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=D8SeU3JfJIg7XHvUCx2SNguqfmAsq9gi dbname=taximeter_dev_db_payments_shard0_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=D8SeU3JfJIg7XHvUCx2SNguqfmAsq9gi dbname=taximeter_dev_db_payments_shard0_ro_local sslmode=require"
+                    ]
+                },
+                {
+                    "shard_number": 1,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=KhjAB4AoD1Lec4B7QV55B9y5AvEJ1L5i dbname=taximeter_dev_db_payments_shard1 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=KhjAB4AoD1Lec4B7QV55B9y5AvEJ1L5i dbname=taximeter_dev_db_payments_shard1_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=KhjAB4AoD1Lec4B7QV55B9y5AvEJ1L5i dbname=taximeter_dev_db_payments_shard1_ro_local sslmode=require"
+                    ]
+                },
+                {
+                    "shard_number": 2,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=cAxqS2xooiYKR6VYAcsxRYLCFQdqf73A dbname=taximeter_dev_db_payments_shard2 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=cAxqS2xooiYKR6VYAcsxRYLCFQdqf73A dbname=taximeter_dev_db_payments_shard2_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=cAxqS2xooiYKR6VYAcsxRYLCFQdqf73A dbname=taximeter_dev_db_payments_shard2_ro_local sslmode=require"
+                    ]
+                },
+                {
+                    "shard_number": 3,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=oCyhh9KoAajSwa639j3RHfHBobxJ1cdC dbname=taximeter_dev_db_payments_shard3 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=oCyhh9KoAajSwa639j3RHfHBobxJ1cdC dbname=taximeter_dev_db_payments_shard3_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=oCyhh9KoAajSwa639j3RHfHBobxJ1cdC dbname=taximeter_dev_db_payments_shard3_ro_local sslmode=require"
+                    ]
+                }
+            ],
+            "misc": [
+                {
+                    "shard_number": 0,
+                    "master": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=GPHu0bVmHqg8iWuJzI1arBExT3HSbiLg dbname=taximeter_dev_db_misc_shard0 sslmode=require",
+                    "sync_slave": "host=pgaas.mail.yandex.net port=12000 user=taximeter password=GPHu0bVmHqg8iWuJzI1arBExT3HSbiLg dbname=taximeter_dev_db_misc_shard0_ro_sync sslmode=require",
+                    "slaves": [
+                        "host=pgaas.mail.yandex.net port=12000 user=taximeter password=GPHu0bVmHqg8iWuJzI1arBExT3HSbiLg dbname=taximeter_dev_db_misc_shard0_ro_local sslmode=require"
+                    ]
+                }
+            ]
+        }
+    },
+    "settings_override": {
+        "GITHUB_USER": "teamcity",
+        "GITHUB_TOKEN": "fbfd58cbaca48e516a7372c9d3639319afd57dcd",
+        "OAUTH_TOKEN_FOR_STAFF": "07cd2191c2534d29863f21919b3d6af9",
+        "STARTRACK_API_TOKEN": "AQAD-qJSJq-ZAAAGJMiVSjrucURLjlt9-Yp-bb0",
+        "ZENDESK_JWT_PROFILES": {
+            "yataxi": {
+                "oauth_client_id": "1efc87845b61455d8f644d9b044b5208",
+                "jwt_secret": "t3gw6cKMpbRmlPVS5UCRJigp45qajSGEzmatwrh40U3ba3gW",
+                "redirect_url": "https://yataxi1461234887.zendesk.com/access/jwt?jwt={jwt}",
+                "oauth_client_secret": "b2497728bd0c4d04985249d7d399fb7a"
+            }
+        },
+        "ZENDESK_API_PROFILES": {
+            "yataxi": {
+                "url": "https://yataxi1467575150.zendesk.com",
+                "password": "rDXZE5rUpJQiIS8i8ocNvqoOoo0gR8CRMBWZOpn1",
+                "user": "lenastille@yandex-team.ru/token"
+             }
+        },
+        "COOKIE_KEY": "ZKv]5pyiqPEfphpNjqBGp)NFqmKrHUw2W8i-OUzgkeSveZZLby",
+        "ANTIFRAUD_PROTECTOR_API_KEY": "100500",
+        "ROUTE_SHARING_KEY": "JgF1*%N_W+yt6)L0zH4c(|.93Tp5qa8I",
+        "BILLINGS": {
+            "donate": {
+                "billing_payments_service_id": 137,
+                "billing_api_key": "taxi_donate_275ca7a85e3e80a74e470f22a88279f6"
+            },
+            "corp": {
+                "billing_payments_service_id": 135,
+                "billing_api_key": "taxi_corp_adfb605b109d525fceca9590b0c7d7e9"
+            },
+            "card": {
+                "billing_payments_service_id": 124,
+                "billing_api_key": "taxifee_8c7078d6b3334e03c1b4005b02da30f4"
+            }
+        },
+        "BURGER_KING_API_URL": "http://localhost:9999/burger-king-external",
+        "BURGER_KING_API_LOGIN": "ya.taxi.bk.test",
+        "BURGER_KING_API_PASSWORD": "678",
+        "BURGER_KING_API_GROUP_UID": "D7541BE2-118D-4B42-BD5F-3165CFEED829",
+        "BURGER_KING_API_CERTIFICATE_PATH": "",
+        "MDS_TOKEN": "dGF4aToyZDg3N2ZlN2I2Yjk5MzVjODlkOTFhYmE0YjFhYzdjMQ==",
+        "ML_MDS_S3": {
+            "access_key_id": "NS661N7Ac4oVkT2xiMkD",
+            "secret_key": "n3vcmG2vEoU5SQuodemPnjEwpsR/7ptt29ArwWZD"
+        },
+        "YT_CONFIG": {
+          "hahn": {
+            "token": "",
+            "prefix": "//home/taxi/",
+            "pickling": {
+              "enable_tmpfs_archive": false
+            },
+            "proxy": {
+              "url": "hahn.yt.yandex.net"
+            },
+            "api_version": "v3"
+          },
+          "hahn-dwh": {
+              "token": "",
+              "api_version": "v3",
+              "proxy": {
+                  "url": "hahn.yt.yandex.net"
+              },
+              "prefix": "//home/taxi-dwh/public/backend/",
+              "pickling": {
+                  "enable_tmpfs_archive": false
+              }
+          },
+          "marx": {
+            "prefix": "//home/taxi/",
+            "proxy": {
+              "url": "marx.yt.yandex.net"
+            },
+            "token": ""
+          },
+          "locke": {
+            "token": "",
+            "prefix": "//home/taxi/",
+            "proxy": {
+              "url": "locke.yt.yandex.net"
+            },
+            "api_version": "v3"
+          },
+          "zeno": {
+            "token": "",
+            "prefix": "//home/taxi/",
+            "proxy": {
+              "url": "zeno.yt.yandex.net"
+            },
+            "api_version": "v3"
+          },
+          "seneca-man": {
+            "token": "",
+            "prefix": "//home/taxi/",
+            "proxy": {
+              "url": "seneca-man.yt.yandex.net"
+            },
+            "api_version": "v3"
+          },
+          "seneca-myt": {
+            "token": "",
+            "prefix": "//home/taxi/",
+            "proxy": {
+              "url": "seneca-myt.yt.yandex.net"
+            },
+            "api_version": "v3"
+          },
+          "seneca-sas": {
+            "token": "",
+            "prefix": "//home/taxi/",
+            "proxy": {
+              "url": "seneca-sas.yt.yandex.net"
+            },
+            "api_version": "v3"
+          },
+          "freud": {
+            "token": "",
+            "prefix": "//home/taxi/",
+            "proxy": {
+              "url": "freud.yt.yandex.net"
+            },
+            "api_version": "v3"
+          },
+          "banach": {
+            "token": "",
+            "prefix": "//home/taxi/",
+            "pickling": {
+              "enable_tmpfs_archive": false
+            },
+            "proxy": {
+              "url": "banach.yt.yandex.net"
+            },
+            "api_version": "v3"
+          }
+        },
+        "RFID_LABELS": {
+            "login": "web",
+            "password": "web",
+            "token": "DD FF B9 18 69 B6 5E 94 47 FF DF 2F 7C 2B C1 F6 FC D2 A1 6F 7E D6 8E 2F 67 8D 34 AA D4 2D DD 0E"
+        },
+        "COMPANION_VOX_IMPLANT_COM_TOKEN": "companion_vox_implant_com_token",
+        "COMPANION_MDS_TOKEN": "c2FuZGJveC10bXA6YjUyZDVkZjk0ZDA0NTU2MTRiZDZmOWI3NDA3Mzk0OWI=",
+        "COMPANION_GET_IMAGE_TOKEN": "companion_get_image_token",
+        "XIVA_SENDING_TOKEN": "884a9cc3ae6ba8661a7fc29bc285dfc6b6f46d4d",
+        "XIVA_SUBSCRIPTION_TOKEN": "4be579b4d7cf9b0caeeaca4d0db9c62ed23183ae",
+        "COUPON": {
+            "promo_sms_auth_key": "auth_key_1"
+        },
+        "GPS_STORAGE_SETTINGS":{
+          "tvm_client_secret": "",
+          "private_key_path": "",
+          "tvm_login":"",
+          "tvm_client_id":"2000085",
+          "mds_bucket":"yataxi-tracker-dev",
+          "mds_service_id":"1237"
+        },
+        "COMPANION_STORAGE_SETTINGS":{
+            "tvm_client_secret": "",
+            "private_key_path": "",
+            "tvm_login":"",
+            "tvm_client_id":"2000215",
+            "mds_bucket":"taxi-companion-docs-testing",
+            "mds_service_id":"1935"
+        },
+        "BIOMETRY_STORAGE_SETTINGS":{
+            "tvm_client_secret": "",
+            "private_key_path": "",
+            "tvm_login":"",
+            "tvm_client_id":"2000350",
+            "mds_bucket":"taxi-driver-photo",
+            "mds_service_id":"2031"
+        },
+        "ARCHIVE_API_TOKEN": "archive_api_token",
+        "VIA_TOKEN": "01234567-89ab-cdef-0123-456789abcdef",
+        "ORDER_HISTORY_TOKEN": "test_token",
+        "AUTO_RU_API_TOKEN": "test_token",
+        "TVM_SERVICES": {
+            "xiva-proxy": {"id": 12, "secret": "xiva_secret"},
+            "crm": {"id": 11, "secret": "crm_secret"}
+        }
+    }
+}

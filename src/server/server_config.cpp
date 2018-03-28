@@ -41,6 +41,7 @@ ServerConfig ServerConfig::ParseFromJson(
     json_config::VariableMapPtr config_vars_ptr) {
   ServerConfig config;
   config.json = std::move(json);
+  config.config_vars_ptr = config_vars_ptr;
 
   const auto& value = config.json[name];
 

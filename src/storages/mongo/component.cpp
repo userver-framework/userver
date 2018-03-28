@@ -50,7 +50,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) {
   std::string connection_string;
   if (!dbalias.empty()) {
     try {
-      auto* secdist = context.FindComponent<Secdist>("secdist");
+      auto* secdist = context.FindComponent<Secdist>();
       if (!secdist)
         throw std::runtime_error("Mongo requires secdist component");
       connection_string = secdist->Get().GetMongoConnectionString(dbalias);

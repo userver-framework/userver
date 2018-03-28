@@ -1,0 +1,9 @@
+/var/log/yandex/taxi-driver-authorizer/*.log {
+	daily
+	missingok
+	rotate 7
+	compress
+	postrotate
+		systemctl --signal=USR1 kill yandex-taxi-driver-authorizer ||:
+	endscript
+}

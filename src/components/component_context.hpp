@@ -27,6 +27,11 @@ class ComponentContext {
                     std::unique_ptr<ComponentBase>&& component);
 
   template <typename T>
+  T* FindComponent() const {
+    return FindComponent<T>(T::kName);
+  }
+
+  template <typename T>
   T* FindComponent(const std::string& name) const {
     return dynamic_cast<T*>(DoFindComponent(name));
   }

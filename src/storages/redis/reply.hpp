@@ -28,7 +28,7 @@ class ReplyData {
   ReplyData(redisReply* reply);
   ~ReplyData() {}
 
-  operator bool() const;
+  explicit operator bool() const;
 
   Type GetType() const;
   const std::string& GetTypeString() const;
@@ -70,7 +70,8 @@ class Reply {
   int status;
   std::chrono::duration<double> time{0};
 
-  operator bool() const { return status == REDIS_OK; }
+  explicit operator bool() const { return IsOk(); }
+  bool IsOk() const { return status == REDIS_OK; }
   const std::string& StatusString() const;
 };
 

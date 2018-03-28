@@ -2,5 +2,5 @@
 *.pyc
 *.orig
 *.local
-build*
+build/*
 CMakeLists.txt.user

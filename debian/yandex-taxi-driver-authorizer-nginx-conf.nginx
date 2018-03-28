@@ -1,0 +1,18 @@
+upstream taxi_driver_authorizer {
+	server 127.0.0.1:1180;
+	keepalive 600;
+}
+
+
+server {
+	server_name driver-authorizer.taxi.yandex.net;
+	server_name driver-authorizer.taxi.tst.yandex.net;
+	server_name driver-authorizer.taxi.dev.yandex.net;
+	include listen;
+
+	location / {
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_pass http://taxi_driver_authorizer;
+	}
+}

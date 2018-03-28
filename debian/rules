@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh $@ --with=environment,nginx,systemd --parallel
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem=cmake -- -DCMAKE_BUILD_TYPE=Release
+
+override_dh_installinit:
+	dh_installinit --no-start --no-restart-on-upgrade
+
+override_dh_systemd_start:
+	dh_systemd_start --no-start --no-restart-on-upgrade
+
+override_dh_installdeb:
+	dh_installdeb
+	rm -f $(CURDIR)/debian/*/DEBIAN/conffiles
+
+.PHONY: override_dh_auto_configure override_dh_installinit \
+	override_dh_systemd_start override_dh_installdeb

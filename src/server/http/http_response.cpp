@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include <build_config.hpp>
+
 #include "http_request_impl.hpp"
 
 namespace {
@@ -12,7 +14,7 @@ const std::string kCrlf = "\r\n";
 const std::string kHeaderContentEncoding = "Content-Encoding";
 const std::string kHeaderContentType = "Content-Type";
 const std::string kResponseHttpVersion = "HTTP/1.1";
-const std::string kServerName = "Server: taxi_async_server/0.0.0";
+const std::string kServerName = "Server: taxi_userver/" USERVER_VERSION;
 
 void CheckHeaderName(const std::string& name) {
   static auto init = []() {

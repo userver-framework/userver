@@ -31,8 +31,7 @@ RequestHandler::RequestHandler(
   }
 
   auto* logging_component =
-      component_context.FindComponent<components::Logging>(
-          components::Logging::kName);
+      component_context.FindComponent<components::Logging>();
 
   if (logger_access_component && !logger_access_component->empty()) {
     if (logging_component) {

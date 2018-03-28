@@ -19,6 +19,10 @@ namespace {
 
 std::string ReadFile(const std::string& path) {
   std::ifstream ifs(path);
+  if (!ifs) {
+    throw std::runtime_error("Error opening '" + path + '\'');
+  }
+
   std::ostringstream buffer;
   buffer << ifs.rdbuf();
   return buffer.str();
@@ -63,14 +67,22 @@ void TaxiConfig::Update(UpdateType type,
   }
 
   taxi_config::DocsMap mongo_docs;
-  mongo_docs.Parse(ReadFile(fallback_path_));
+  try {
+    mongo_docs.Parse(ReadFile(fallback_path_));
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
+                             ex.what());
+  }
 
   std::chrono::system_clock::time_point seen_doc_update_time;
   auto cursor = collection.Find(::mongo::Query());
   while (cursor.More()) {
     const auto& doc = cursor.NextSafe();
-    seen_doc_update_time = std::max(seen_doc_update_time,
-                                    sm::ToTimePoint(doc[config_db::kUpdated]));
+    const auto& updated_field = doc[config_db::kUpdated];
+    if (updated_field.ok()) {
+      seen_doc_update_time =
+          std::max(seen_doc_update_time, sm::ToTimePoint(updated_field));
+    }
     mongo_docs.Set(sm::ToString(doc[config_db::kId]), doc.getOwned());
   }
 

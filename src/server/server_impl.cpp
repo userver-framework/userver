@@ -108,8 +108,7 @@ engine::coro::PoolStats ServerImpl::GetCoroutineStats() const {
 
 void ServerImpl::OnLogRotate() {
   auto* logger_component =
-      component_context_->FindComponent<components::Logging>(
-          components::Logging::kName);
+      component_context_->FindComponent<components::Logging>();
   if (logger_component) logger_component->OnLogRotate();
 }
 

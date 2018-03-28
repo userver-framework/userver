@@ -4,13 +4,13 @@ namespace storages {
 namespace mongo {
 
 BadType::BadType(const ::mongo::BSONElement& item, const char* context)
-    : MongoError(
-          std::string("item '") + item.fieldName() + "' " +
-          (item.ok()
-               ? (std::string("has type ") + ::mongo::typeName(item.type()) +
-                  " (" + std::to_string(item.type()) + "), which is unsuitable")
-               : "was not set") +
-          " for " + context) {}
+    : MongoError(std::string("item ") +
+                 (item.ok()
+                      ? (std::string("'") + item.fieldName() + "' has type " +
+                         ::mongo::typeName(item.type()) + " (" +
+                         std::to_string(item.type()) + "), which is unsuitable")
+                      : "was not set") +
+                 " for " + context) {}
 
 bool OneOf(const ::mongo::BSONElement& item, utils::Flags<ElementKind> kinds) {
   if (!item.ok()) return !!(kinds & ElementKind::kMissing);

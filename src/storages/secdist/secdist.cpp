@@ -167,13 +167,14 @@ void SecdistConfig::LoadRedisSettings(const Json::Value& doc) {
       if (settings.command_control.max_retries < 0) {
         throw InvalidSecdistJson("max_retries < 0");
       }
+    }
 
-      auto insertion_result =
-          redis_settings_.emplace(std::move(client_name), std::move(settings));
-      if (!insertion_result.second) {
-        throw InvalidSecdistJson("Duplicate redis client_name: '" +
-                                 insertion_result.first->first + '\'');
-      }
+    LOG_DEBUG() << "Added client '" << client_name << '\'';
+    auto insertion_result =
+        redis_settings_.emplace(std::move(client_name), std::move(settings));
+    if (!insertion_result.second) {
+      throw InvalidSecdistJson("Duplicate redis client_name: '" +
+                               insertion_result.first->first + '\'');
     }
   }
 }

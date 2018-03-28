@@ -1,0 +1,8 @@
+{
+  "logger_level": "debug",
+  "io_threads": 2,
+  "redis_threads": 2,
+  "main_worker_threads": 2,
+  "mongo_worker_threads": 2,
+  "taxi_config_fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.unstable.json"
+}

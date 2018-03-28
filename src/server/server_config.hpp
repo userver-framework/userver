@@ -27,6 +27,7 @@ struct ServerConfig {
   std::string default_task_processor;
 
   Json::Value json;  // the owner
+  json_config::VariableMapPtr config_vars_ptr;
 
   static ServerConfig ParseFromJson(
       Json::Value json, const std::string& name,
