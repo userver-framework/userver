@@ -14,9 +14,7 @@ namespace engine {
 namespace {
 class CurrentTaskHolder {
  public:
-  explicit CurrentTaskHolder(Task* task) {
-    CurrentTask::SetCurrentTask(task);
-  }
+  explicit CurrentTaskHolder(Task* task) { CurrentTask::SetCurrentTask(task); }
   ~CurrentTaskHolder() { CurrentTask::SetCurrentTask(nullptr); }
 };
 }  // namespace
