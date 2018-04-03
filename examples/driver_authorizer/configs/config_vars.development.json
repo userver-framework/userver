@@ -3,5 +3,6 @@
   "io_threads": 2,
   "redis_threads": 3,
   "logger_level": "debug",
-  "taxi_config_fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.development.json"
+  "taxi_config_fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.development.json",
+  "session_ttl_update_enabled": false
 }

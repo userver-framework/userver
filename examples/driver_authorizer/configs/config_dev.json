@@ -119,7 +119,9 @@
       {
         "name": "handler-driver-session",
         "path": "/driver_session",
-        "task_processor": "main-task-processor"
+        "task_processor": "main-task-processor",
+        "session_ttl_update_enabled": "$session_ttl_update_enabled",
+        "session_ttl_update_enabled#fallback": false
       }
     ]
   }

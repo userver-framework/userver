@@ -1,3 +1,9 @@
+yandex-taxi-userver (0.1.1) unstable; urgency=medium
+
+  * disable writes to redis in /driver_session
+
+ -- Dmitry Zhukov <dzhuk@yandex-team.ru>  Tue, 03 Apr 2018 19:26:31 +0300
+
 yandex-taxi-userver (0.1.0) unstable; urgency=medium
 
   * Initial release.

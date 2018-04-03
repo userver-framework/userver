@@ -4,5 +4,6 @@
   "redis_threads": 2,
   "main_worker_threads": 2,
   "mongo_worker_threads": 2,
-  "taxi_config_fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.testing.json"
+  "taxi_config_fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.testing.json",
+  "session_ttl_update_enabled": false
 }
