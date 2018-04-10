@@ -3,8 +3,8 @@
 set -e
 
 if [ "$1" = "purge" ]; then
-	if dpkg-statoverride --list /var/log/yandex/taxi/driver-authorizer >/dev/null 2>&1; then
-		dpkg-statoverride --remove /var/log/yandex/taxi/driver-authorizer
+	if dpkg-statoverride --list /var/log/yandex/taxi-driver-authorizer >/dev/null 2>&1; then
+		dpkg-statoverride --remove /var/log/yandex/taxi-driver-authorizer
 	fi
 fi
 
