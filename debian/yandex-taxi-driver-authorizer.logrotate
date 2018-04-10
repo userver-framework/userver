@@ -1,9 +1,10 @@
 /var/log/yandex/taxi-driver-authorizer/*.log {
-	daily
-	missingok
-	rotate 7
-	compress
-	postrotate
-		systemctl --signal=USR1 kill yandex-taxi-driver-authorizer ||:
-	endscript
+    daily
+    maxsize 200G
+    missingok
+    rotate 2
+    compress
+    postrotate
+        systemctl --signal=USR1 kill yandex-taxi-driver-authorizer ||:
+    endscript
 }

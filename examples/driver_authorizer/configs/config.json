@@ -47,17 +47,17 @@
         "name": "logging",
         "loggers": {
           "default": {
-            "file_path": "/var/log/yandex/taxi/driver-authorizer/server.log",
+            "file_path": "/var/log/yandex/taxi-driver-authorizer/server.log",
             "level": "$logger_level",
             "level#fallback": "info",
             "overflow_behavior": "block"
           },
           "access": {
-            "file_path": "/var/log/yandex/taxi/driver-authorizer/access.log",
+            "file_path": "/var/log/yandex/taxi-driver-authorizer/access.log",
             "pattern": "[%Y-%m-%d %H:%M:%S.%f %z] %v"
           },
           "access-tskv": {
-            "file_path": "/var/log/yandex/taxi/driver-authorizer/access_tskv.log",
+            "file_path": "/var/log/yandex/taxi-driver-authorizer/access_tskv.log",
             "pattern": "tskv\ttskv_format=taxi_driver_authorizer\ttimestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%z%v"
           }
         }
