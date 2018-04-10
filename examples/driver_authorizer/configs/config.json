@@ -12,8 +12,8 @@
       "monitor_port": "$server_monitor_port",
       "monitor_port#fallback": 1188
     },
-    "logger_access": "access",
-    "logger_access_tskv": "access-tskv",
+    "logger_access": "",
+    "logger_access_tskv": "",
     "coro_pool": {
       "initial_size": 5000,
       "max_size": 50000
