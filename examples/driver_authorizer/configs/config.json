@@ -12,8 +12,8 @@
       "monitor_port": "$server_monitor_port",
       "monitor_port#fallback": 1188
     },
-    "logger_access": "access",
-    "logger_access_tskv": "access-tskv",
+    "logger_access": "",
+    "logger_access_tskv": "",
     "coro_pool": {
       "initial_size": 5000,
       "max_size": 50000
@@ -47,17 +47,17 @@
         "name": "logging",
         "loggers": {
           "default": {
-            "file_path": "/var/log/yandex/taxi/driver-authorizer/server.log",
+            "file_path": "/var/log/yandex/taxi-driver-authorizer/server.log",
             "level": "$logger_level",
             "level#fallback": "info",
             "overflow_behavior": "block"
           },
           "access": {
-            "file_path": "/var/log/yandex/taxi/driver-authorizer/access.log",
+            "file_path": "/var/log/yandex/taxi-driver-authorizer/access.log",
             "pattern": "[%Y-%m-%d %H:%M:%S.%f %z] %v"
           },
           "access-tskv": {
-            "file_path": "/var/log/yandex/taxi/driver-authorizer/access_tskv.log",
+            "file_path": "/var/log/yandex/taxi-driver-authorizer/access_tskv.log",
             "pattern": "tskv\ttskv_format=taxi_driver_authorizer\ttimestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%z%v"
           }
         }
