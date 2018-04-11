@@ -1,3 +1,10 @@
+yandex-taxi-userver (0.1.2) unstable; urgency=medium
+
+  * Nikita Borisov | feat driver_authorizer: switch off access logs
+  * Nikita Borisov | bug debian: fix logrotate config
+
+ -- Dmitry Zhukov <dzhuk@yandex-team.ru>  Wed, 11 Apr 2018 12:54:18 +0300
+
 yandex-taxi-userver (0.1.1) unstable; urgency=medium
 
   * disable writes to redis in /driver_session
