@@ -47,6 +47,8 @@ class Thread {
   void RunInEvLoopSync(const std::function<void()>& func);
   void RunInEvLoopAsync(std::function<void()>&& func);
 
+  bool IsInEvThread() const;
+
  private:
   template <typename Func>
   void SafeEvCall(const Func& func);
@@ -56,7 +58,6 @@ class Thread {
   void StopEventLoop();
   void UpdateEvLoop();
   void RunEvLoop();
-  bool CheckThread() const;
 
   static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int);
   void UpdateLoopWatcherImpl();

@@ -23,20 +23,21 @@ SocketListener::SocketListener(const ev::ThreadControl& thread_control,
                                TaskProcessor& task_processor, int fd,
                                ListenMode mode, ListenFunc&& listen_func,
                                OnStopFunc&& on_stop_func, DeferStart)
-    : fd_(fd),
+    : task_processor_(task_processor),
+      fd_(fd),
       mode_(mode),
       listen_func_(std::move(listen_func)),
       on_stop_func_(std::move(on_stop_func)),
       watcher_listen_(thread_control, this),
       watcher_resume_listen_(thread_control, this) {
   assert(listen_func_);
-  StartListenTask(task_processor);
   InitWatchers();
 }
 
 SocketListener::~SocketListener() { Stop(); }
 
 void SocketListener::Start() {
+  StartListenTask(task_processor_);
   watcher_resume_listen_.Start();
   if (mode_ == ListenMode::kRead) watcher_listen_.Start();
 }
@@ -50,9 +51,16 @@ void SocketListener::Notify() {
 }
 
 void SocketListener::Stop() {
+  watcher_resume_listen_.Stop();
+  watcher_listen_.Stop();
   StopAsync();
   std::unique_lock<std::mutex> lock(stop_mutex_);
   listen_finished_cv_.Wait(lock, [this]() { return is_listen_finished_; });
+}
+
+bool SocketListener::IsRunning() const {
+  std::lock_guard<std::mutex> lock(listen_cv_mutex_);
+  return is_running_;
 }
 
 void SocketListener::StopAsync() {
@@ -85,7 +93,7 @@ void SocketListener::WatcherListen(struct ev_loop*, ev_io* w, int) {
 }
 
 void SocketListener::WatcherListenImpl() {
-  watcher_listen_.StopFromEvLoop();
+  watcher_listen_.Stop();
 
   Notify();
 }
@@ -96,15 +104,13 @@ void SocketListener::WatcherResumeListen(struct ev_loop*, ev_async* w, int) {
   socket_listener->WatcherResumeListenImpl();
 }
 
-void SocketListener::WatcherResumeListenImpl() {
-  if (is_running_) watcher_listen_.StartFromEvLoop();
-}
+void SocketListener::WatcherResumeListenImpl() { watcher_listen_.Start(); }
 
 void SocketListener::StartListenTask(TaskProcessor& task_processor) {
   is_running_ = true;
   is_listen_finished_ = false;
   Async(task_processor, [this]() {
-    while (is_running_) {
+    for (;;) {
       {
         std::unique_lock<std::mutex> lock(listen_cv_mutex_);
         listen_cv_.Wait(lock,

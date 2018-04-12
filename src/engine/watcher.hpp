@@ -30,17 +30,13 @@ class Watcher : public ev::ThreadControl {
       ev_tstamp after, ev_tstamp repeat);
 
   void Start();
-  void StartFromEvLoop();
   void Stop();
-  void StopFromEvLoop();
 
   template <typename T = EvType>
   typename std::enable_if<std::is_same<T, ev_timer>::value, void>::type Again();
 
   template <typename T = EvType>
   typename std::enable_if<std::is_same<T, ev_async>::value, void>::type Send();
-
-  bool IsRunning() const;
 
  private:
   void StartImpl();
@@ -58,52 +54,35 @@ class Watcher : public ev::ThreadControl {
   void CallInEvLoop();
 
   EvType w_;
-  bool is_running_ = false;
+  bool is_running_;
 };
 
 template <typename EvType>
 template <typename Obj>
 Watcher<EvType>::Watcher(const ev::ThreadControl& thread_control, Obj* data)
-    : ev::ThreadControl(thread_control) {
+    : ev::ThreadControl(thread_control), is_running_(false) {
   w_.data = static_cast<void*>(data);
 }
 
 template <typename EvType>
 Watcher<EvType>::~Watcher() {
-  if (is_running_) Stop();
+  Stop();
 }
 
 template <typename EvType>
 void Watcher<EvType>::Start() {
-  is_running_ = true;
   CallInEvLoop<&Watcher::StartImpl>();
 }
 
 template <typename EvType>
-void Watcher<EvType>::StartFromEvLoop() {
-  if (is_running_) return;
-  is_running_ = true;
-  StartImpl();
-}
-
-template <typename EvType>
 void Watcher<EvType>::Stop() {
-  is_running_ = false;
   CallInEvLoop<&Watcher::StopImpl>();
-}
-
-template <typename EvType>
-void Watcher<EvType>::StopFromEvLoop() {
-  if (!is_running_) return;
-  is_running_ = false;
-  StopImpl();
 }
 
 template <typename EvType>
 template <typename T>
 typename std::enable_if<std::is_same<T, ev_timer>::value, void>::type
 Watcher<EvType>::Again() {
-  is_running_ = true;
   CallInEvLoop<&Watcher::AgainImpl>();
 }
 
@@ -115,13 +94,13 @@ Watcher<EvType>::Send() {
 }
 
 template <typename EvType>
-bool Watcher<EvType>::IsRunning() const {
-  return is_running_;
-}
-
-template <typename EvType>
 template <void (Watcher<EvType>::*func)()>
 void Watcher<EvType>::CallInEvLoop() {
+  if (IsInEvThread()) {
+    (this->*func)();
+    return;
+  }
+
   auto promise = std::make_shared<Promise<void>>();
   auto future = promise->GetFuture();
   RunInEvLoopAsync([this, promise]() {

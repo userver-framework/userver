@@ -35,7 +35,7 @@ class SocketListener {
   void Start();
   void Notify();
   void Stop();
-  bool IsRunning() const { return is_running_; }
+  bool IsRunning() const;
   int Fd() const { return fd_; }
 
  private:
@@ -47,6 +47,7 @@ class SocketListener {
   void WatcherResumeListenImpl();
   void StartListenTask(TaskProcessor& task_processor);
 
+  TaskProcessor& task_processor_;
   int fd_;
   ListenMode mode_;
   ListenFunc listen_func_;
@@ -55,13 +56,14 @@ class SocketListener {
   Watcher<ev_io> watcher_listen_;
   Watcher<ev_async> watcher_resume_listen_;
 
-  std::mutex listen_cv_mutex_;
+  mutable std::mutex listen_cv_mutex_;
   ConditionVariable listen_cv_;
+  bool is_running_ = false;
+  bool is_notified_ = false;
+
   std::mutex stop_mutex_;
   ConditionVariable listen_finished_cv_;
   bool is_listen_finished_ = true;
-  bool is_notified_ = false;
-  bool is_running_ = false;
 };
 
 }  // namespace engine
