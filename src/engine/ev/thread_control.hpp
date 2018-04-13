@@ -56,6 +56,8 @@ class ThreadControl {
     thread_.RunInEvLoopAsync(std::move(func));
   }
 
+  bool IsInEvThread() const { return thread_.IsInEvThread(); }
+
   Thread& EvThread() const { return thread_; }
 
  private:

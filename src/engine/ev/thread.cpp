@@ -91,7 +91,7 @@ void Thread::IdleStop(ev_idle& w) {
 }
 
 void Thread::RunInEvLoopSync(const std::function<void()>& func) {
-  if (CheckThread()) {
+  if (IsInEvThread()) {
     func();
     return;
   }
@@ -104,7 +104,7 @@ void Thread::RunInEvLoopSync(const std::function<void()>& func) {
 }
 
 void Thread::RunInEvLoopAsync(std::function<void()>&& func) {
-  if (CheckThread()) {
+  if (IsInEvThread()) {
     func();
     return;
   }
@@ -114,9 +114,13 @@ void Thread::RunInEvLoopAsync(std::function<void()>&& func) {
   ev_async_send(loop_, &watch_update_);
 }
 
+bool Thread::IsInEvThread() const {
+  return (std::this_thread::get_id() == thread_.get_id());
+}
+
 template <typename Func>
 void Thread::SafeEvCall(const Func& func) {
-  if (CheckThread()) {
+  if (IsInEvThread()) {
     func();
     return;
   }
@@ -163,17 +167,13 @@ void Thread::StopEventLoop() {
 }
 
 void Thread::UpdateEvLoop() {
-  if (CheckThread()) return;
+  if (IsInEvThread()) return;
   assert(!func_promise_);
   auto func_promise = std::make_unique<std::promise<void>>();
   auto func_future = func_promise->get_future();
   func_promise_ = std::move(func_promise);
   ev_async_send(loop_, &watch_update_);
   func_future.get();
-}
-
-bool Thread::CheckThread() const {
-  return (std::this_thread::get_id() == thread_.get_id());
 }
 
 void Thread::RunEvLoop() {

@@ -1,3 +1,11 @@
+yandex-taxi-userver (0.1.3) unstable; urgency=medium
+
+  * Andrey Bugaevskiy | feat driver_authorizer: remove core file size limit (#33)
+  * Dmitriy Zhukov | bug engine: fix races in Watcher (#32)
+  * Dmitriy Zhukov | feat build: add release script (#31)
+
+ -- Andrey Bugaevskiy <bugaevskiy@yandex-team.ru>  Fri, 13 Apr 2018 19:17:35 +0300
+
 yandex-taxi-userver (0.1.2) unstable; urgency=medium
 
   * Nikita Borisov | feat driver_authorizer: switch off access logs
