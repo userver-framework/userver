@@ -11,6 +11,7 @@ Group=www-data
 ExecStart=/usr/bin/yandex-taxi-driver-authorizer --config /etc/yandex/taxi/driver-authorizer/config.json --init-log /var/log/yandex/taxi-driver-authorizer/server.log
 ExecReload=/bin/kill -HUP $MAINPID
 LimitNOFILE=65535
+LimitCORE=infinity
 
 [Install]
 WantedBy=multi-user.target
