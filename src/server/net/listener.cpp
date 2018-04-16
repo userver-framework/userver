@@ -13,7 +13,7 @@ Listener::Listener(const ListenerConfig& config,
                    request_handling::RequestHandler& request_handler,
                    engine::ev::ThreadControl& thread_control) {
   std::packaged_task<decltype(impl_)()> task(
-      [this, &config, &task_processor, &request_handler, &thread_control] {
+      [&config, &task_processor, &request_handler, &thread_control] {
         return std::make_unique<ListenerImpl>(thread_control, config,
                                               task_processor, request_handler);
       });

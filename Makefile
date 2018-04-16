@@ -4,6 +4,8 @@
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
 CMAKE_DIR = $(CURDIR)
+export CC = clang-5.0
+export CXX = clang++-5.0
 
 KERNEL := $(shell uname -s)
 ifeq ($(KERNEL),Linux)

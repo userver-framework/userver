@@ -1,5 +1,8 @@
 cmake_minimum_required (VERSION 3.5)
 
+message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
+message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
+
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
@@ -54,6 +57,7 @@ if (CLANG)
   add_compile_options ("-Wno-absolute-value")
   add_compile_options ("-Wno-mismatched-tags")
   add_compile_options ("-Wno-missing-braces") #-Wmissing-braces is buggy in some versions on clang
+  add_compile_options ("-Wno-braced-scalar-init")
 endif ()
 
 # build type specific
