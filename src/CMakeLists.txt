@@ -38,6 +38,7 @@ target_link_libraries(${PROJECT}
     ${HTTP_PARSER_LIBRARIES}
     ${LIBEV_LIBRARIES}
     ${MONGOCLIENT_LIBRARIES}
+    ${CLANG_LIBRARIES}
 )
 
 target_include_directories(${PROJECT} PUBLIC ${USERVER_PUBLIC_INCLUDE_DIR})
