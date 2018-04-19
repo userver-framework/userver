@@ -37,6 +37,8 @@ macro(add_compile_options_if_supported)
   endforeach()
 endmacro()
 
+find_package(Boost REQUIRED COMPONENTS coroutine)
+
 # all and extra do not enable theirs
 add_compile_options_if_supported ("-Wdisabled-optimization" "-Winvalid-pch")
 add_compile_options_if_supported ("-Wlogical-op" "-Wuseless-cast" "-Wformat=2")
@@ -50,6 +52,12 @@ if (NOT CLANG) # bug in clang https://llvm.org/bugs/show_bug.cgi?id=24979
     "-Wuseless-cast")
 endif()
 if (CLANG)
+  message (STATUS "boost: ${Boost_VERSION}")
+  if (${Boost_VERSION} STREQUAL "105800" AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    message (WARNING "Boost 1.58 is known to fail to compile under clang-5.0 with debug enabled (\"ordered comparison between pointer and zero ('int' and 'void *')\"), forcing -DNDEBUG.")
+    add_definitions("-DNDEBUG")
+  endif ()
+
   add_compile_options ("-Wno-old-style-cast")
   add_compile_options ("-Wno-undefined-var-template")
   add_compile_options ("-Wno-unused-private-field")
