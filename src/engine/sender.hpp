@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <deque>
 #include <functional>
 #include <mutex>
@@ -44,11 +45,10 @@ class Sender : public ev::ThreadControl {
 
   mutable std::mutex data_queue_mutex_;
   std::deque<Elem> data_queue_;
-  size_t current_data_pos_ = 0;
+  size_t current_data_pos_;
 
-  bool stopped_ = false;
-
-  OnCompleteFunc on_complete_;
+  std::atomic<bool> stopped_;
+  const OnCompleteFunc on_complete_;
 
   SocketListener socket_listener_;
 };

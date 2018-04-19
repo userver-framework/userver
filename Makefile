@@ -65,3 +65,4 @@ smart-clang-format:
 .PHONY: clean
 clean:
 	@rm -rf $(BUILD_DIR)
+	@rm -rf $(BUILD_CHECK_DIR)
