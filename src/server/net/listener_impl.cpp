@@ -47,19 +47,19 @@ int CreateSocket(uint16_t port, int backlog) {
 }  // namespace
 
 ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
-                           const ListenerConfig& config,
                            engine::TaskProcessor& task_processor,
-                           request_handling::RequestHandler& request_handler)
+                           std::shared_ptr<EndpointInfo> endpoint_info)
     : engine::ev::ThreadControl(thread_control),
-      config_(config),
       task_processor_(task_processor),
-      request_handler_(request_handler),
+      endpoint_info_(std::move(endpoint_info)),
       is_closing_(false),
       connections_to_close_(kConnectionsToCloseQueueCapacity),
       close_connections_task_(task_processor_, [this] { CloseConnections(); }),
       past_processed_requests_count_(0) {
-  int request_fd = CreateSocket(config_.port, config_.backlog);
-  int monitor_fd = CreateSocket(config_.monitor_port, config_.backlog);
+  int request_fd = CreateSocket(endpoint_info_->listener_config.port,
+                                endpoint_info_->listener_config.backlog);
+  int monitor_fd = CreateSocket(endpoint_info_->listener_config.monitor_port,
+                                endpoint_info_->listener_config.backlog);
 
   request_socket_listener_ = std::make_unique<engine::SocketListener>(
       *this, task_processor_, request_fd,
@@ -103,6 +103,7 @@ ListenerImpl::~ListenerImpl() {
 
     LOG_TRACE() << "Destroying connection for fd " << fd;
     connection_ptr.reset();
+    --endpoint_info_->connection_count;
     LOG_TRACE() << "Destroyed connection for fd " << fd;
   }
 
@@ -148,6 +149,18 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
                                   &addrlen, SOCK_NONBLOCK),
                           "accepting connection");
 
+  auto new_connection_count = ++endpoint_info_->connection_count;
+  if (new_connection_count > endpoint_info_->listener_config.max_connections) {
+    LOG_WARNING() << "Reached connection limit, dropping connection #"
+                  << new_connection_count << '/'
+                  << endpoint_info_->listener_config.max_connections;
+    utils::CheckSyscall(close(fd), "closing connection");
+    --endpoint_info_->connection_count;
+    return;
+  }
+  LOG_DEBUG() << "Accepted connection #" << new_connection_count << '/'
+              << endpoint_info_->listener_config.max_connections;
+
   const int nodelay = 1;
   utils::CheckSyscall(
       setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)),
@@ -155,7 +168,8 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
 
   LOG_TRACE() << "Creating connection for fd " << fd;
   auto connection_ptr = std::make_unique<Connection>(
-      *this, fd, config_.connection_config, type, request_handler_, addr,
+      *this, fd, endpoint_info_->listener_config.connection_config, type,
+      endpoint_info_->request_handler, addr,
       [this](int fd) { EnqueueConnectionClose(fd); });
   LOG_TRACE() << "Registering connection for fd " << fd;
   auto connection_handle = [this, fd, &connection_ptr] {
@@ -184,6 +198,7 @@ void ListenerImpl::CloseConnections() {
       if (it != connections_.end()) {
         connection_ptr = std::move(it->second);
         connections_.erase(it);
+        --endpoint_info_->connection_count;
       }
     }
     if (!connection_ptr) {

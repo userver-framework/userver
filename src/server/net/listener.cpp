@@ -8,15 +8,15 @@
 namespace server {
 namespace net {
 
-Listener::Listener(const ListenerConfig& config,
+Listener::Listener(std::shared_ptr<EndpointInfo> endpoint_info,
                    engine::TaskProcessor& task_processor,
-                   request_handling::RequestHandler& request_handler,
                    engine::ev::ThreadControl& thread_control) {
-  std::packaged_task<decltype(impl_)()> task(
-      [&config, &task_processor, &request_handler, &thread_control] {
-        return std::make_unique<ListenerImpl>(thread_control, config,
-                                              task_processor, request_handler);
-      });
+  std::packaged_task<decltype(impl_)()> task([
+    endpoint_info = std::move(endpoint_info), &task_processor, &thread_control
+  ] {
+    return std::make_unique<ListenerImpl>(thread_control, task_processor,
+                                          std::move(endpoint_info));
+  });
   auto future = task.get_future();
   engine::Async(task_processor, std::move(task));
   impl_ = future.get();

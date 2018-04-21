@@ -47,6 +47,11 @@ ListenerConfig ListenerConfig::ParseFromJson(
     throw std::runtime_error("Invalid backlog value in " + full_path);
   }
 
+  auto optional_max_connections = json_config::ParseOptionalUint64(
+      json, "max_connections", full_path, config_vars_ptr);
+  if (optional_max_connections)
+    config.max_connections = *optional_max_connections;
+
   return config;
 }
 

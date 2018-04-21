@@ -16,6 +16,7 @@ struct ListenerConfig {
   uint16_t port = 80;
   uint16_t monitor_port = 1188;
   int backlog = 1024;  // truncated to net.core.somaxconn
+  size_t max_connections = 32768;
 
   static ListenerConfig ParseFromJson(
       const Json::Value& json, const std::string& full_path,
