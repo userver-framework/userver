@@ -4,6 +4,11 @@
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
 CMAKE_DIR = $(CURDIR)
+export CC = clang-5.0
+export CXX = clang++-5.0
+SCAN_BUILD = scan-build-5.0
+SCAN_BUILD_OPTS = -o $(PWD)/static-analyzer-report/
+BUILD_CHECK_DIR ?= build-check
 
 KERNEL := $(shell uname -s)
 ifeq ($(KERNEL),Linux)
@@ -25,7 +30,7 @@ cmake: $(BUILD_DIR)/Makefile
 $(BUILD_DIR)/Makefile:
 	@mkdir -p $(BUILD_DIR)
 	@cd $(BUILD_DIR) && \
-      cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) $(CMAKE_OPTS) $(CMAKE_DIR)
+      cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $(CMAKE_OPTS) $(CMAKE_DIR)
 
 .PHONY: init
 init: cmake
@@ -35,6 +40,15 @@ build: build-all
 
 build-%: init
 	$(MAKE) -j$(NPROCS) -C $(BUILD_DIR) $(patsubst build-%,%,$@)
+
+.PHONY: clang-static-analyzer
+clang-static-analyzer:
+	mkdir -p $(BUILD_CHECK_DIR)
+	cd $(BUILD_CHECK_DIR) && $(SCAN_BUILD) $(SCAN_BUILD_OPTS) cmake .. && $(SCAN_BUILD) $(SCAN_BUILD_OPTS) $(MAKE) -j$(NPROCS)
+
+.PHONY: cppcheck
+cppcheck: $(BUILD_DIR)/Makefile
+	cd $(BUILD_DIR) && $(MAKE) -j$(NPROCS) cppcheck
 
 .PHONY: test
 test: build
@@ -51,3 +65,4 @@ smart-clang-format:
 .PHONY: clean
 clean:
 	@rm -rf $(BUILD_DIR)
+	@rm -rf $(BUILD_CHECK_DIR)

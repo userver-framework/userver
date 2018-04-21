@@ -238,21 +238,21 @@ void Thread::BreakLoopWatcherImpl() {
   ev_break(loop_, EVBREAK_ALL);
 }
 
-void Thread::Release(struct ev_loop* loop) {
+void Thread::Release(struct ev_loop* loop) noexcept {
   Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   assert(ev_thread != nullptr);
   ev_thread->ReleaseImpl();
 }
 
-void Thread::ReleaseImpl() { lock_.unlock(); }
+void Thread::ReleaseImpl() noexcept { lock_.unlock(); }
 
-void Thread::Acquire(struct ev_loop* loop) {
+void Thread::Acquire(struct ev_loop* loop) noexcept {
   Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   assert(ev_thread != nullptr);
   ev_thread->AcquireImpl();
 }
 
-void Thread::AcquireImpl() { lock_.lock(); }
+void Thread::AcquireImpl() noexcept { lock_.lock(); }
 
 }  // namespace ev
 }  // namespace engine

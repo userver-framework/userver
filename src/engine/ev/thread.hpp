@@ -64,10 +64,10 @@ class Thread {
   static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int);
   void BreakLoopWatcherImpl();
 
-  static void Release(struct ev_loop* loop);
-  static void Acquire(struct ev_loop* loop);
-  void ReleaseImpl();
-  void AcquireImpl();
+  static void Release(struct ev_loop* loop) noexcept;
+  static void Acquire(struct ev_loop* loop) noexcept;
+  void ReleaseImpl() noexcept;
+  void AcquireImpl() noexcept;
 
   const std::function<void()>* func_ptr_;
   std::unique_ptr<std::promise<void>> func_promise_;

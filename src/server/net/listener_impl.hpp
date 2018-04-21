@@ -11,10 +11,9 @@
 #include <engine/event_task.hpp>
 #include <engine/socket_listener.hpp>
 #include <engine/task/task_processor.hpp>
-#include <server/request_handling/request_handler.hpp>
 
 #include "connection.hpp"
-#include "listener_config.hpp"
+#include "endpoint_info.hpp"
 #include "stats.hpp"
 
 namespace server {
@@ -23,9 +22,8 @@ namespace net {
 class ListenerImpl : public engine::ev::ThreadControl {
  public:
   ListenerImpl(engine::ev::ThreadControl& thread_control,
-               const ListenerConfig& config,
                engine::TaskProcessor& task_processor,
-               request_handling::RequestHandler& request_handler);
+               std::shared_ptr<EndpointInfo> endpoint_info);
   ~ListenerImpl();
 
   Stats GetStats() const;
@@ -38,9 +36,8 @@ class ListenerImpl : public engine::ev::ThreadControl {
   void EnqueueConnectionClose(int fd);
   void CloseConnections();
 
-  const ListenerConfig& config_;
   engine::TaskProcessor& task_processor_;
-  request_handling::RequestHandler& request_handler_;
+  std::shared_ptr<EndpointInfo> endpoint_info_;
 
   bool is_closing_;
 

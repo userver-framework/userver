@@ -18,6 +18,7 @@ target_link_libraries(${PROJECT}
   yandex-taxi-userver
   ${JSONCPP_LIBRARIES}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}
+  ${CLANG_LIBRARIES}
 )
 
 target_include_directories(${PROJECT} PRIVATE

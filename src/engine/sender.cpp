@@ -13,6 +13,8 @@ Sender::Sender(const ev::ThreadControl& thread_control,
                TaskProcessor& task_processor, int fd,
                OnCompleteFunc&& on_complete)
     : ev::ThreadControl(thread_control),
+      current_data_pos_(0),
+      stopped_{false},
       on_complete_(std::move(on_complete)),
       socket_listener_(thread_control, task_processor, fd,
                        SocketListener::ListenMode::kWrite,
@@ -24,13 +26,7 @@ Sender::~Sender() { Stop(); }
 void Sender::Start() { socket_listener_.Start(); }
 
 void Sender::Stop() {
-  OnCompleteFunc on_complete_once;
-  {
-    std::lock_guard<std::mutex> lock(data_queue_mutex_);
-    stopped_ = true;
-    on_complete_once = std::move(on_complete_);
-    on_complete_ = {};
-  }
+  bool call_on_complete = !stopped_.exchange(true);
 
   for (;;) {
     std::function<void(size_t)> finish_cb;
@@ -51,7 +47,7 @@ void Sender::Stop() {
   }
 
   assert(!HasWaitingData());
-  if (on_complete_once) on_complete_once();
+  if (call_on_complete && on_complete_) on_complete_();
 }
 
 void Sender::SendData(std::string data,

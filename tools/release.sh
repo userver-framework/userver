@@ -8,7 +8,7 @@ PROJECT_ARCH=`dpkg-architecture | grep DEB_BUILD_ARCH= | sed -e 's/.*=//'`
 [[ -z "$DEBFULLNAME" ]] && { echo "DEBFULLNAME variable is not set"; exit 1; }
 [[ -z "$DEBEMAIL" ]] && { echo "DEBEMAIL variable is not set"; exit 1; }
 
-BUILD_NUMBER="${BUILD_NUMBER:-`head debian/changelog -n1 | awk -F'[ .()]' '{ print $3 "." $4 "." (strtonum($5) + 1) }'`}"
+BUILD_NUMBER="${BUILD_NUMBER:-`head debian/changelog -n1 | gawk -F'[ .()]' '{ print $3 "." $4 "." (strtonum($5) + 1) }'`}"
 SOURCE_PACKAGE_NAME="${SOURCE_PACKAGE_NAME:-yandex-taxi-userver}"
 
 echo "BUILD_NUMBER=$BUILD_NUMBER"
@@ -53,6 +53,8 @@ fi
 
 make clean
 export DEB_BUILD_OPTIONS="parallel=$(nproc) $DEB_BUILD_OPTIONS"
+export CC=clang-5.0
+export CXX=clang++-5.0
 debuild
 
 cd ..

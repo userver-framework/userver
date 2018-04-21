@@ -38,7 +38,9 @@ namespace server {
 namespace http {
 
 HttpRequestImpl::HttpRequestImpl()
-    : response_(std::make_unique<HttpResponse>(*this)) {}
+    : http_major_(0),
+      http_minor_(0),
+      response_(std::make_unique<HttpResponse>(*this)) {}
 
 HttpRequestImpl::~HttpRequestImpl() {}
 

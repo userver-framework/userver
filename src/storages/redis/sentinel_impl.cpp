@@ -95,7 +95,7 @@ SentinelImpl::SentinelImpl(const engine::ev::ThreadControl& thread_control,
       track_slaves_(track_slaves),
       key_shard_(std::move(key_shard)) {
   assert(loop_ != nullptr);
-  auto init_shards = [&shards, &ready_callback, this](
+  auto init_shards = [&shards, &ready_callback](
                          std::vector<std::shared_ptr<Shard>>& shard_objects,
                          bool master) {
     size_t i = 0;

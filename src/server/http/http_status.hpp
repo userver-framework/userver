@@ -66,7 +66,7 @@ namespace http {
   XX(508, kLoopDetected, "Loop Detected")                                    \
   XX(510, kNotExtended, "Not Extended")                                      \
   XX(511, kNetworkAuthenticationRequired, "Network Authentication Required") \
-/* end of HTTP_STATUS_MAP */
+  /* end of HTTP_STATUS_MAP */
 
 enum class HttpStatus {
 #define XX(num, name, string) name = num,

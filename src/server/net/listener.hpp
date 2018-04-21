@@ -6,7 +6,7 @@
 #include <engine/task/task_processor.hpp>
 #include <server/request_handling/request_handler.hpp>
 
-#include "listener_config.hpp"
+#include "endpoint_info.hpp"
 #include "listener_impl.hpp"
 #include "stats.hpp"
 
@@ -15,8 +15,8 @@ namespace net {
 
 class Listener {
  public:
-  Listener(const ListenerConfig& config, engine::TaskProcessor& task_processor,
-           request_handling::RequestHandler& request_handler,
+  Listener(std::shared_ptr<EndpointInfo> endpoint_info,
+           engine::TaskProcessor& task_processor,
            engine::ev::ThreadControl& thread_control);
   ~Listener();
 

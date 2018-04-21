@@ -26,7 +26,7 @@ class HttpRequestImpl : public request::RequestBase {
   int GetHttpMajor() const { return http_major_; }
   int GetHttpMinor() const { return http_minor_; }
   const std::string& GetUrl() const { return url_; }
-  const std::string& GetRequestPath() const { return request_path_; }
+  const std::string& GetRequestPath() const override { return request_path_; }
   const std::string& GetPathSuffix() const { return path_suffix_; }
   std::chrono::duration<double> GetRequestTime() const;
   std::chrono::duration<double> GetResponseTime() const;

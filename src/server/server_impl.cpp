@@ -56,6 +56,9 @@ ServerImpl::ServerImpl(ServerConfig config, const ComponentList& component_list)
   request_handler_ = std::make_unique<request_handling::RequestHandler>(
       *component_context_, config_.logger_access, config_.logger_access_tskv);
 
+  endpoint_info_ =
+      std::make_shared<net::EndpointInfo>(config_.listener, *request_handler_);
+
   auto* io_thread_pool_component =
       component_context_->FindComponent<components::ThreadPool>(
           impl::kIoThreadPoolName);
@@ -65,8 +68,8 @@ ServerImpl::ServerImpl(ServerConfig config, const ComponentList& component_list)
   }
   auto& io_thread_pool = io_thread_pool_component->Get();
   for (size_t i = 0; i < io_thread_pool.size(); ++i) {
-    listeners_.emplace_back(config_.listener, *default_task_processor_,
-                            *request_handler_, io_thread_pool.NextThread());
+    listeners_.emplace_back(endpoint_info_, *default_task_processor_,
+                            io_thread_pool.NextThread());
   }
 
   LOG_INFO() << "Started server";

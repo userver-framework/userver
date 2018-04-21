@@ -13,6 +13,7 @@
 #include <components/component_context.hpp>
 #include <engine/coro/pool_stats.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
 #include <server/request_handling/request_handler.hpp>
@@ -60,6 +61,7 @@ class ServerImpl {
   std::unique_ptr<components::ComponentContext> component_context_;
   engine::TaskProcessor* default_task_processor_;
   std::unique_ptr<request_handling::RequestHandler> request_handler_;
+  std::shared_ptr<net::EndpointInfo> endpoint_info_;
   std::vector<net::Listener> listeners_;
 };
 

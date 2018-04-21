@@ -5,7 +5,7 @@
 namespace storages {
 namespace mongo {
 
-inline std::string CompoundKey(std::string key) { return std::move(key); }
+inline std::string CompoundKey(std::string key) { return key; }
 
 template <typename... Strings>
 std::string CompoundKey(std::string head, Strings&&... tail) {
