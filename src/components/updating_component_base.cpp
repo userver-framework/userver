@@ -71,7 +71,11 @@ void UpdatingComponentBase::StopPeriodicUpdates() {
     }
   }
   is_running_cv_.NotifyAll();
-  update_task_future_.get();
+  try {
+    update_task_future_.get();
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "exception in update task: " << ex.what();
+  }
 }
 
 void UpdatingComponentBase::DoPeriodicUpdate() {

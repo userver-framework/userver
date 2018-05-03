@@ -57,7 +57,7 @@ class ServerImpl {
   const ServerConfig config_;
 
   std::unique_ptr<engine::TaskProcessor::CoroPool> coro_pool_;
-  std::unordered_map<std::string, engine::ev::ThreadPool> schedulers_;
+  std::unordered_map<std::string, engine::ev::ThreadPool> event_thread_pools_;
   std::unique_ptr<components::ComponentContext> component_context_;
   engine::TaskProcessor* default_task_processor_;
   std::unique_ptr<request_handling::RequestHandler> request_handler_;

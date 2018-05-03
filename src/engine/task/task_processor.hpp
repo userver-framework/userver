@@ -22,7 +22,7 @@ class TaskProcessor {
   using CoroPool = coro::Pool<Task>;
 
   TaskProcessor(const TaskProcessorConfig& config, CoroPool& coro_pool,
-                ev::ThreadPool& scheduler);
+                ev::ThreadPool& event_thread_pool);
   ~TaskProcessor();
 
   bool AddTask(Task* task, bool can_fail = false);
@@ -30,7 +30,7 @@ class TaskProcessor {
   Task* NextTask(int worker_id);
 
   CoroPool& GetCoroPool() { return coro_pool_; }
-  ev::ThreadPool& Scheduler() { return scheduler_; }
+  ev::ThreadPool& EventThreadPool() { return event_thread_pool_; }
   const std::string& Name() const { return config_.name; }
 
   class RefCounter {
@@ -58,7 +58,7 @@ class TaskProcessor {
   const TaskProcessorConfig& config_;
 
   CoroPool& coro_pool_;
-  ev::ThreadPool& scheduler_;
+  ev::ThreadPool& event_thread_pool_;
 
   std::shared_timed_mutex task_queue_mutex_;
   std::atomic<size_t> task_queue_size_;

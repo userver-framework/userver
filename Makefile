@@ -41,6 +41,10 @@ build: build-all
 build-%: init
 	$(MAKE) -j$(NPROCS) -C $(BUILD_DIR) $(patsubst build-%,%,$@)
 
+.PHONY: deb
+deb:
+	DEB_BUILD_OPTIONS="parallel=$(NPROCS)" debuild -e CC=$(CC) -e CXX=$(CXX)
+
 .PHONY: clang-static-analyzer
 clang-static-analyzer:
 	mkdir -p $(BUILD_CHECK_DIR)

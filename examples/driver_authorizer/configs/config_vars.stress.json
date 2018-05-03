@@ -1,7 +1,7 @@
 {
   "logger_level": "info",
   "redis_taximeter_base": "taxi-tmp",
-  "io_threads": 2,
+  "event_threads": 3,
   "redis_threads": 8,
   "main_worker_threads": 16,
   "mongo_worker_threads": 2,

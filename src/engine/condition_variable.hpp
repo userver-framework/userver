@@ -1,15 +1,14 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <list>
-#include <memory>
 #include <mutex>
 
-#include <engine/ev/timer.hpp>
 #include <engine/task/task.hpp>
 
-#include "notifier.hpp"
+#include "timer_event.hpp"
 
 namespace engine {
 
@@ -43,21 +42,24 @@ class ConditionVariable {
   void NotifyAll();
 
  private:
-  using NotifierList = std::list<Notifier*>;
+  using WakeUpCbList = std::list<const Task::WakeUpCb*>;
 
-  class UniqueNotifier {
+  class WaitListItemDescriptor {
    public:
-    UniqueNotifier(ConditionVariable& cond_var, NotifierList::iterator it);
-    ~UniqueNotifier();
+    WaitListItemDescriptor(ConditionVariable& cond_var,
+                           WakeUpCbList::iterator it);
+    ~WaitListItemDescriptor();
 
-    void Notify();
+    void Notify() const;
 
    private:
     ConditionVariable& cond_var_;
-    NotifierList::iterator it_;
+    WakeUpCbList::iterator it_;
   };
 
-  UniqueNotifier SaveNotifier();
+  class CvTimer;
+
+  WaitListItemDescriptor AddCurrentTaskToWaitList();
 
   void DoWait(std::unique_lock<std::mutex>& lock);
 
@@ -66,13 +68,43 @@ class ConditionVariable {
                            const std::chrono::duration<Rep, Period>& timeout,
                            Predicate predicate);
 
-  std::mutex notifiers_mutex_;
-  NotifierList notifiers_;
+  std::mutex wait_list_mutex_;
+  WakeUpCbList wait_list_;
 };
 
+namespace impl {
+
+class UnlockScope {
+ public:
+  UnlockScope(std::unique_lock<std::mutex>& lock) : lock_(lock) {
+    lock_.unlock();
+  }
+
+  ~UnlockScope() { lock_.lock(); }
+
+ private:
+  std::unique_lock<std::mutex>& lock_;
+};
+
+class LockScope {
+ public:
+  LockScope(std::unique_lock<std::mutex>& lock) : lock_(lock) { lock_.lock(); }
+
+  ~LockScope() { lock_.unlock(); }
+
+ private:
+  std::unique_lock<std::mutex>& lock_;
+};
+
+}  // namespace impl
+
 inline void ConditionVariable::Wait(std::unique_lock<std::mutex>& lock) {
-  auto notifier = SaveNotifier();
-  DoWait(lock);
+  impl::UnlockScope unlock_scope(lock);
+  auto wake_up_cb = AddCurrentTaskToWaitList();
+  {
+    impl::LockScope lock_scope(lock);
+    DoWait(lock);
+  }
 }
 
 template <typename Predicate>
@@ -82,9 +114,13 @@ void ConditionVariable::Wait(std::unique_lock<std::mutex>& lock,
     return;
   }
 
-  auto notifier = SaveNotifier();
-  while (!predicate()) {
-    DoWait(lock);
+  impl::UnlockScope unlock_scope(lock);
+  auto wake_up_cb = AddCurrentTaskToWaitList();
+  {
+    impl::LockScope lock_scope(lock);
+    while (!predicate()) {
+      DoWait(lock);
+    }
   }
 }
 
@@ -122,68 +158,104 @@ bool ConditionVariable::WaitUntil(
 }
 
 inline void ConditionVariable::NotifyOne() {
-  std::lock_guard<std::mutex> lock(notifiers_mutex_);
-  if (!notifiers_.empty()) {
-    notifiers_.front()->Notify();
+  std::lock_guard<std::mutex> lock(wait_list_mutex_);
+  if (!wait_list_.empty()) {
+    (*wait_list_.front())();
   }
 }
 
 inline void ConditionVariable::NotifyAll() {
-  std::lock_guard<std::mutex> lock(notifiers_mutex_);
-  for (auto* notifier : notifiers_) {
-    notifier->Notify();
+  std::lock_guard<std::mutex> lock(wait_list_mutex_);
+  for (auto* wake_up_cb : wait_list_) {
+    (*wake_up_cb)();
   }
 }
 
-inline ConditionVariable::UniqueNotifier::UniqueNotifier(
-    ConditionVariable& cond_var, NotifierList::iterator it)
+inline ConditionVariable::WaitListItemDescriptor::WaitListItemDescriptor(
+    ConditionVariable& cond_var, WakeUpCbList::iterator it)
     : cond_var_(cond_var), it_(it) {}
 
-inline ConditionVariable::UniqueNotifier::~UniqueNotifier() {
-  std::lock_guard<std::mutex> lock(cond_var_.notifiers_mutex_);
-  cond_var_.notifiers_.erase(it_);
+inline ConditionVariable::WaitListItemDescriptor::~WaitListItemDescriptor() {
+  std::lock_guard<std::mutex> lock(cond_var_.wait_list_mutex_);
+  cond_var_.wait_list_.erase(it_);
 }
 
-inline void ConditionVariable::UniqueNotifier::Notify() { (*it_)->Notify(); }
+inline void ConditionVariable::WaitListItemDescriptor::Notify() const {
+  (**it_)();
+}
 
-inline ConditionVariable::UniqueNotifier ConditionVariable::SaveNotifier() {
-  auto& notifier = CurrentTask::GetNotifier();
-  NotifierList::iterator it;
+inline ConditionVariable::WaitListItemDescriptor
+ConditionVariable::AddCurrentTaskToWaitList() {
+  const auto& wake_up_cb = current_task::GetWakeUpCb();
+  WakeUpCbList::iterator it;
   {
-    std::lock_guard<std::mutex> lock(notifiers_mutex_);
-    it = notifiers_.emplace(notifiers_.end(), &notifier);
+    std::lock_guard<std::mutex> lock(wait_list_mutex_);
+    it = wait_list_.emplace(wait_list_.end(), &wake_up_cb);
   }
-  return UniqueNotifier(*this, it);
+  return WaitListItemDescriptor(*this, it);
+}
+
+class ConditionVariable::CvTimer {
+ public:
+  struct TimeoutState {
+    std::mutex mutex;
+    bool has_timed_out{false};
+  };
+
+  template <typename Rep, typename Period>
+  CvTimer(ConditionVariable& cv,
+          const std::chrono::duration<Rep, Period>& timeout)
+      : waiting_item_(cv.AddCurrentTaskToWaitList()),
+        state_(std::make_shared<TimeoutState>()),
+        timer_([ state = state_, this ] { OnTimerCb(*state); }, timeout) {}
+
+  ~CvTimer() {
+    std::lock_guard<std::mutex> lock(state_->mutex);
+    // prevents access to destroyed CvTimer
+    state_->has_timed_out = true;
+  }
+
+  bool HasTimedOut() const { return state_->has_timed_out; }
+
+ private:
+  void OnTimerCb(TimeoutState& state) const;
+
+  WaitListItemDescriptor waiting_item_;
+  std::shared_ptr<TimeoutState> state_;
+  impl::TimerEvent timer_;
+};
+
+inline void ConditionVariable::CvTimer::OnTimerCb(TimeoutState& state) const {
+  std::lock_guard<std::mutex> lock(state.mutex);
+  // prevents access to destroyed CvTimer's this
+  if (state.has_timed_out) return;
+  state.has_timed_out = true;
+  waiting_item_.Notify();
 }
 
 inline void ConditionVariable::DoWait(std::unique_lock<std::mutex>& lock) {
-  lock.unlock();
-  CurrentTask::Wait();
-  lock.lock();
+  impl::UnlockScope unlock_scope(lock);
+  current_task::Wait();
 }
 
 template <typename Rep, typename Period, typename Predicate>
 std::cv_status ConditionVariable::DoWaitFor(
     std::unique_lock<std::mutex>& lock,
     const std::chrono::duration<Rep, Period>& timeout, Predicate predicate) {
+  impl::UnlockScope unlock_scope(lock);
   if (timeout <= std::chrono::duration<Rep, Period>::zero()) {
     return std::cv_status::timeout;
   }
 
-  bool has_timed_out = false;
+  CvTimer timer(*this, timeout);
 
-  auto notifier = SaveNotifier();
-  ev::Timer<CurrentTask> timeout_timer(
-      [&notifier, &has_timed_out] {
-        has_timed_out = true;
-        notifier.Notify();
-      },
-      timeout);
-
-  while (!has_timed_out) {
-    DoWait(lock);
-    if (predicate()) {
-      return std::cv_status::no_timeout;
+  {
+    impl::LockScope lock_scope(lock);
+    while (!timer.HasTimedOut()) {
+      DoWait(lock);
+      if (predicate()) {
+        return std::cv_status::no_timeout;
+      }
     }
   }
   return std::cv_status::timeout;

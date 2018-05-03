@@ -4,7 +4,7 @@
 #include <cassert>
 #include <sstream>
 
-#include <logging/logger.hpp>
+#include <logging/log.hpp>
 
 namespace server {
 namespace http {

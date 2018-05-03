@@ -1,6 +1,6 @@
 #include "http_handler_base.hpp"
 
-#include <logging/logger.hpp>
+#include <logging/log.hpp>
 
 namespace server {
 namespace handlers {

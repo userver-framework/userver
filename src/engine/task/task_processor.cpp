@@ -13,10 +13,11 @@ const size_t kInitTaskQueueCapacity = 64;
 }  // namespace
 
 TaskProcessor::TaskProcessor(const TaskProcessorConfig& config,
-                             CoroPool& coro_pool, ev::ThreadPool& scheduler)
+                             CoroPool& coro_pool,
+                             ev::ThreadPool& event_thread_pool)
     : config_(config),
       coro_pool_(coro_pool),
-      scheduler_(scheduler),
+      event_thread_pool_(event_thread_pool),
       task_queue_size_(0),
       task_queue_(kInitTaskQueueCapacity),
       workers_stack_(config.worker_threads),

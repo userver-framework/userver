@@ -15,7 +15,7 @@
 
 #include <engine/async_task.hpp>
 #include <engine/ev/thread_control.hpp>
-#include <logging/logger.hpp>
+#include <logging/log.hpp>
 
 #include "redis.hpp"
 #include "sentinel_impl.hpp"

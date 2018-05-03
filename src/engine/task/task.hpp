@@ -1,16 +1,15 @@
 #pragma once
 
-#include <ev.h>
 #include <atomic>
 #include <cassert>
 #include <chrono>
 #include <functional>
 #include <memory>
 
+#include <ev.h>
 #include <boost/coroutine/symmetric_coroutine.hpp>
 
 #include <engine/ev/thread_control.hpp>
-#include <engine/notifier.hpp>
 
 namespace engine {
 
@@ -26,6 +25,7 @@ class Task {
       typename boost::coroutines::symmetric_coroutine<Task*>::call_type;
   using YieldType =
       typename boost::coroutines::symmetric_coroutine<Task*>::yield_type;
+  using WakeUpCb = std::function<void()>;
 
   enum class State { kQueued, kRunning, kWaiting, kComplete, kCanceled };
 
@@ -42,11 +42,11 @@ class Task {
 
   State RunTask();
   void Wait();
-  Notifier& GetNotifier() { return wait_notifier_; }
+  const WakeUpCb& GetWakeUpCb() const { return wake_up_cb_; }
   void Sleep();
 
   TaskProcessor& GetTaskProcessor() { return *task_processor_; }
-  ev::ThreadControl& GetSchedulerThread();
+  ev::ThreadControl& GetEventThread();
 
   void SetYield(YieldType* yield) { yield_ = yield; }
   void SetYieldResult(YieldState state) { yield_state_ = state; }
@@ -64,7 +64,7 @@ class Task {
   State state_;
 
   TaskProcessor* task_processor_;
-  Notifier wait_notifier_;
+  const WakeUpCb wake_up_cb_;
   std::atomic<int> wait_state_;
   // (wait_state_ & 1): Sleep() called
   // (wait_state_ & 2): WakeUp() called
@@ -74,22 +74,24 @@ class Task {
   YieldState yield_state_;
 };
 
-class CurrentTask {
- public:
-  static ev::ThreadControl& GetSchedulerThread() {
-    return GetCurrentTask()->GetSchedulerThread();
-  }
+namespace current_task {
 
-  static TaskProcessor& GetTaskProcessor() {
-    return GetCurrentTask()->GetTaskProcessor();
-  }
+void SetCurrentTask(Task* task);
+Task* GetCurrentTask();
 
-  static void Wait() { return GetCurrentTask()->Wait(); }
+inline ev::ThreadControl& GetEventThread() {
+  return GetCurrentTask()->GetEventThread();
+}
 
-  static Notifier& GetNotifier() { return GetCurrentTask()->GetNotifier(); }
+inline TaskProcessor& GetTaskProcessor() {
+  return GetCurrentTask()->GetTaskProcessor();
+}
 
-  static Task* GetCurrentTask();
-  static void SetCurrentTask(Task* task);
-};
+inline void Wait() { return GetCurrentTask()->Wait(); }
 
+inline const Task::WakeUpCb& GetWakeUpCb() {
+  return GetCurrentTask()->GetWakeUpCb();
+}
+
+}  // namespace current_task
 }  // namespace engine

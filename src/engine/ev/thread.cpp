@@ -2,8 +2,6 @@
 
 #include <logging/log.hpp>
 
-#include "timer.hpp"
-
 namespace engine {
 namespace ev {
 namespace {
