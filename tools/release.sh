@@ -53,9 +53,7 @@ fi
 
 make clean
 export DEB_BUILD_OPTIONS="parallel=$(nproc) $DEB_BUILD_OPTIONS"
-export CC=clang-5.0
-export CXX=clang++-5.0
-debuild
+debuild -e CC=clang-5.0 -e CXX=clang++-5.0
 
 cd ..
 dupload --nomail --to=yandex-taxi-xenial $SOURCE_PACKAGE_NAME\_$BUILD_NUMBER\_$PROJECT_ARCH.changes
