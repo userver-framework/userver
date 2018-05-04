@@ -53,8 +53,8 @@ ServerConfig ServerConfig::ParseFromJson(
       value, "logger_access", name, config_vars_ptr);
   config.logger_access_tskv = json_config::ParseOptionalString(
       value, "logger_access_tskv", name, config_vars_ptr);
-  config.schedulers = json_config::ParseArray<SchedulerConfig>(
-      value, "schedulers", name, config_vars_ptr);
+  config.event_thread_pools = json_config::ParseArray<EventThreadPoolConfig>(
+      value, "event_thread_pools", name, config_vars_ptr);
   config.components = json_config::ParseArray<components::ComponentConfig>(
       value, "components", name, config_vars_ptr);
   config.task_processors = json_config::ParseArray<engine::TaskProcessorConfig>(

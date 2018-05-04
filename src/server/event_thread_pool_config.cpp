@@ -1,13 +1,13 @@
-#include "scheduler_config.hpp"
+#include "event_thread_pool_config.hpp"
 
 #include <json_config/value.hpp>
 
 namespace server {
 
-SchedulerConfig SchedulerConfig::ParseFromJson(
+EventThreadPoolConfig EventThreadPoolConfig::ParseFromJson(
     const Json::Value& json, const std::string& full_path,
     const json_config::VariableMapPtr& config_vars_ptr) {
-  SchedulerConfig config;
+  EventThreadPoolConfig config;
   config.name =
       json_config::ParseString(json, "name", full_path, config_vars_ptr);
 

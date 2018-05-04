@@ -28,8 +28,8 @@ SocketListener::SocketListener(const ev::ThreadControl& thread_control,
       mode_(mode),
       listen_func_(std::move(listen_func)),
       on_stop_func_(std::move(on_stop_func)),
-      watcher_listen_(thread_control, this),
-      watcher_resume_listen_(thread_control, this) {
+      watcher_listen_resume_state_(std::make_shared<WatcherListenState>()),
+      watcher_listen_(thread_control, this) {
   assert(listen_func_);
   InitWatchers();
 }
@@ -38,7 +38,7 @@ SocketListener::~SocketListener() { Stop(); }
 
 void SocketListener::Start() {
   StartListenTask(task_processor_);
-  watcher_resume_listen_.Start();
+  SetWatcherListenIsEnabled(true);
   if (mode_ == ListenMode::kRead) watcher_listen_.Start();
 }
 
@@ -51,7 +51,7 @@ void SocketListener::Notify() {
 }
 
 void SocketListener::Stop() {
-  watcher_resume_listen_.Stop();
+  SetWatcherListenIsEnabled(false);
   watcher_listen_.Stop();
   StopAsync();
   std::unique_lock<std::mutex> lock(stop_mutex_);
@@ -83,7 +83,6 @@ void SocketListener::InitWatchers() {
       break;
   }
   watcher_listen_.Init(WatcherListen, fd_, ev_mode);
-  watcher_resume_listen_.Init(WatcherResumeListen);
 }
 
 void SocketListener::WatcherListen(struct ev_loop*, ev_io* w, int) {
@@ -98,13 +97,14 @@ void SocketListener::WatcherListenImpl() {
   Notify();
 }
 
-void SocketListener::WatcherResumeListen(struct ev_loop*, ev_async* w, int) {
-  auto socket_listener = static_cast<SocketListener*>(w->data);
-  assert(socket_listener != nullptr);
-  socket_listener->WatcherResumeListenImpl();
+void SocketListener::WatcherListenResume() {
+  watcher_listen_.RunInEvLoopAsync(
+      [ state = watcher_listen_resume_state_, this ]() {
+        std::lock_guard<std::mutex> lock(state->mutex);
+        if (!state->is_enabled) return;
+        watcher_listen_.Start();
+      });
 }
-
-void SocketListener::WatcherResumeListenImpl() { watcher_listen_.Start(); }
 
 void SocketListener::StartListenTask(TaskProcessor& task_processor) {
   is_running_ = true;
@@ -129,8 +129,14 @@ void SocketListener::StartListenTask(TaskProcessor& task_processor) {
       }
       if (res != Result::kError &&
           (mode_ == ListenMode::kRead ||
-           (mode_ == ListenMode::kWrite && res == Result::kAgain)))
-        watcher_resume_listen_.Send();
+           (mode_ == ListenMode::kWrite && res == Result::kAgain))) {
+        try {
+          WatcherListenResume();
+        } catch (const std::exception& ex) {
+          LOG_ERROR() << "can't resume watcher_listen: " << ex.what();
+          StopAsync();
+        }
+      }
     }
 
     {
@@ -144,6 +150,11 @@ void SocketListener::StartListenTask(TaskProcessor& task_processor) {
       }
     }
   });
+}
+
+void SocketListener::SetWatcherListenIsEnabled(bool is_enabled) {
+  std::lock_guard<std::mutex> lock(watcher_listen_resume_state_->mutex);
+  watcher_listen_resume_state_->is_enabled = is_enabled;
 }
 
 }  // namespace engine

@@ -7,7 +7,6 @@
 #include <string>
 
 #include <engine/ev/thread_control.hpp>
-#include <engine/ev/timer.hpp>
 
 #include "socket_listener.hpp"
 

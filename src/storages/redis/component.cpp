@@ -4,7 +4,7 @@
 
 #include <components/thread_pool.hpp>
 #include <json_config/value.hpp>
-#include <logging/logger.hpp>
+#include <logging/log.hpp>
 #include <storages/redis/sentinel.hpp>
 #include <storages/secdist/component.hpp>
 #include <storages/secdist/secdist.hpp>

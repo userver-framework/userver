@@ -39,13 +39,18 @@ class SocketListener {
   int Fd() const { return fd_; }
 
  private:
+  struct WatcherListenState {
+    std::mutex mutex;
+    bool is_enabled = false;
+  };
+
   void StopAsync();
   void InitWatchers();
   static void WatcherListen(struct ev_loop*, ev_io* w, int);
   void WatcherListenImpl();
-  static void WatcherResumeListen(struct ev_loop*, ev_async* w, int);
-  void WatcherResumeListenImpl();
+  void WatcherListenResume();
   void StartListenTask(TaskProcessor& task_processor);
+  void SetWatcherListenIsEnabled(bool is_enabled);
 
   TaskProcessor& task_processor_;
   int fd_;
@@ -53,8 +58,8 @@ class SocketListener {
   ListenFunc listen_func_;
   OnStopFunc on_stop_func_;
 
+  std::shared_ptr<WatcherListenState> watcher_listen_resume_state_;
   Watcher<ev_io> watcher_listen_;
-  Watcher<ev_async> watcher_resume_listen_;
 
   mutable std::mutex listen_cv_mutex_;
   ConditionVariable listen_cv_;

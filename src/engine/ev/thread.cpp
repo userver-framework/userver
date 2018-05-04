@@ -1,8 +1,8 @@
 #include "thread.hpp"
 
-#include <logging/log.hpp>
+#include <stdexcept>
 
-#include "timer.hpp"
+#include <logging/log.hpp>
 
 namespace engine {
 namespace ev {
@@ -110,7 +110,10 @@ void Thread::RunInEvLoopAsync(std::function<void()>&& func) {
   }
 
   auto func_ptr = std::make_unique<std::function<void()>>(std::move(func));
-  func_queue_.push(func_ptr.release());
+  if (!func_queue_.push(func_ptr.release())) {
+    LOG_ERROR() << "can't push func to queue";
+    throw std::runtime_error("can't push func to queue");
+  }
   ev_async_send(loop_, &watch_update_);
 }
 

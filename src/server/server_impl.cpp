@@ -10,7 +10,6 @@
 #include <logging/log.hpp>
 
 #include "component_list.hpp"
-#include "server_component_list.hpp"
 #include "server_monitor.hpp"
 
 namespace server {
@@ -22,18 +21,20 @@ ServerImpl::ServerImpl(ServerConfig config, const ComponentList& component_list)
   coro_pool_ = std::make_unique<engine::TaskProcessor::CoroPool>(
       config_.coro_pool, &engine::Task::CoroFunc);
 
-  for (const auto& scheduler_config : config_.schedulers) {
-    schedulers_.emplace(
-        std::piecewise_construct, std::tie(scheduler_config.name),
-        std::tie(scheduler_config.threads, scheduler_config.thread_name));
+  for (const auto& event_thread_pool_config : config_.event_thread_pools) {
+    event_thread_pools_.emplace(std::piecewise_construct,
+                                std::tie(event_thread_pool_config.name),
+                                std::tie(event_thread_pool_config.threads,
+                                         event_thread_pool_config.thread_name));
   }
 
   components::ComponentContext::TaskProcessorMap task_processors;
   for (const auto& processor_config : config_.task_processors) {
-    task_processors.emplace(processor_config.name,
-                            std::make_unique<engine::TaskProcessor>(
-                                processor_config, *coro_pool_,
-                                schedulers_.at(processor_config.scheduler)));
+    task_processors.emplace(
+        processor_config.name,
+        std::make_unique<engine::TaskProcessor>(
+            processor_config, *coro_pool_,
+            event_thread_pools_.at(processor_config.event_thread_pool)));
   }
   const auto default_task_processor_it =
       task_processors.find(config_.default_task_processor);
@@ -50,7 +51,6 @@ ServerImpl::ServerImpl(ServerConfig config, const ComponentList& component_list)
   for (const auto& component_config : config_.components) {
     component_config_map.emplace(component_config.Name(), component_config);
   }
-  impl::kServerComponentList.AddAll(*this, component_config_map);
   component_list.AddAll(*this, component_config_map);
 
   request_handler_ = std::make_unique<request_handling::RequestHandler>(
@@ -59,17 +59,12 @@ ServerImpl::ServerImpl(ServerConfig config, const ComponentList& component_list)
   endpoint_info_ =
       std::make_shared<net::EndpointInfo>(config_.listener, *request_handler_);
 
-  auto* io_thread_pool_component =
-      component_context_->FindComponent<components::ThreadPool>(
-          impl::kIoThreadPoolName);
-  if (!io_thread_pool_component) {
-    throw std::runtime_error("Cannot start server: missing " +
-                             impl::kIoThreadPoolName + " component");
-  }
-  auto& io_thread_pool = io_thread_pool_component->Get();
-  for (size_t i = 0; i < io_thread_pool.size(); ++i) {
+  auto& event_thread_pool = default_task_processor_->EventThreadPool();
+  auto event_thread_controls =
+      event_thread_pool.NextThreads(event_thread_pool.size());
+  for (auto& event_thread_control : event_thread_controls) {
     listeners_.emplace_back(endpoint_info_, *default_task_processor_,
-                            io_thread_pool.NextThread());
+                            *event_thread_control);
   }
 
   LOG_INFO() << "Started server";
@@ -86,9 +81,9 @@ ServerImpl::~ServerImpl() {
   LOG_TRACE() << "Stopping component context";
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
-  LOG_TRACE() << "Stopping schedulers";
-  schedulers_.clear();
-  LOG_TRACE() << "Stopped schedulers";
+  LOG_TRACE() << "Stopping event_thread_pools";
+  event_thread_pools_.clear();
+  LOG_TRACE() << "Stopped event_thread_pools";
   LOG_TRACE() << "Stopping coroutines pool";
   coro_pool_.reset();
   LOG_TRACE() << "Stopped coroutines pool";

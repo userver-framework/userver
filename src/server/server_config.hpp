@@ -12,7 +12,7 @@
 #include <json_config/variable_map.hpp>
 #include <server/net/listener.hpp>
 
-#include "scheduler_config.hpp"
+#include "event_thread_pool_config.hpp"
 
 namespace server {
 
@@ -21,7 +21,7 @@ struct ServerConfig {
   engine::coro::PoolConfig coro_pool;
   boost::optional<std::string> logger_access;
   boost::optional<std::string> logger_access_tskv;
-  std::vector<SchedulerConfig> schedulers;
+  std::vector<EventThreadPoolConfig> event_thread_pools;
   std::vector<components::ComponentConfig> components;
   std::vector<engine::TaskProcessorConfig> task_processors;
   std::string default_task_processor;

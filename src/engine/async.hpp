@@ -21,7 +21,7 @@ auto Async(TaskProcessor& task_processor, Function&& f, Args&&... args) {
 
 template <typename Function, typename... Args>
 auto Async(Function&& f, Args&&... args) {
-  return Async(CurrentTask::GetTaskProcessor(), std::forward<Function>(f),
+  return Async(current_task::GetTaskProcessor(), std::forward<Function>(f),
                std::forward<Args>(args)...);
 }
 

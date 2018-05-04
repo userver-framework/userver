@@ -8,13 +8,13 @@
 
 namespace server {
 
-struct SchedulerConfig {
+struct EventThreadPoolConfig {
   std::string name;
 
   size_t threads = 2;
   std::string thread_name;
 
-  static SchedulerConfig ParseFromJson(
+  static EventThreadPoolConfig ParseFromJson(
       const Json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr);
 };

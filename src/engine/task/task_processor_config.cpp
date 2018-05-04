@@ -14,8 +14,8 @@ TaskProcessorConfig TaskProcessorConfig::ParseFromJson(
                                                    full_path, config_vars_ptr);
   config.thread_name =
       json_config::ParseString(json, "thread_name", full_path, config_vars_ptr);
-  config.scheduler =
-      json_config::ParseString(json, "scheduler", full_path, config_vars_ptr);
+  config.event_thread_pool = json_config::ParseString(
+      json, "event_thread_pool", full_path, config_vars_ptr);
 
   auto optional_task_queue_size_threshold = json_config::ParseOptionalUint64(
       json, "task_queue_size_threshold", full_path, config_vars_ptr);

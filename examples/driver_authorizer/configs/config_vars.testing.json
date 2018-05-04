@@ -1,6 +1,6 @@
 {
   "logger_level": "debug",
-  "io_threads": 2,
+  "event_threads": 2,
   "redis_threads": 2,
   "main_worker_threads": 2,
   "mongo_worker_threads": 2,

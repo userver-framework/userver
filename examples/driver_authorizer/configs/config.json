@@ -15,14 +15,17 @@
     "logger_access": "",
     "logger_access_tskv": "",
     "coro_pool": {
-      "initial_size": 5000,
-      "max_size": 50000
+      "initial_size": "$coro_pool_initial_size",
+      "initial_size#fallback": 5000,
+      "max_size": "$coro_pool_max_size",
+      "max_size#fallback": 50000
     },
-    "schedulers": [
+    "event_thread_pools": [
       {
-        "name": "main-scheduler",
-        "threads": 1,
-        "thread_name": "scheduler"
+        "name": "event-thread-pool",
+        "thread_name": "event",
+        "threads": "$event_threads",
+        "threads#fallback": 2
       }
     ],
     "task_processors": [
@@ -30,15 +33,15 @@
         "name": "main-task-processor",
         "worker_threads": "$main_worker_threads",
         "worker_threads#fallback": 8,
-        "thread_name": "Main worker thread",
-        "scheduler": "main-scheduler"
+        "thread_name": "main-worker",
+        "event_thread_pool": "event-thread-pool"
       },
       {
         "name": "mongo-task-processor",
         "worker_threads": "$mongo_worker_threads",
         "worker_threads#fallback": 5,
-        "thread_name": "Mongo worker thread",
-        "scheduler": "main-scheduler"
+        "thread_name": "mongo-worker",
+        "event_thread_pool": "event-thread-pool"
       }
     ],
     "default_task_processor": "main-task-processor",
@@ -63,19 +66,13 @@
         }
       },
       {
-        "name": "io-thread-pool",
-        "thread_name": "i/o thread",
-        "threads": "$io_threads",
-        "threads#fallback": 2
-      },
-      {
         "name": "redis-sentinel-thread-pool",
-        "thread_name": "sentinels",
+        "thread_name": "redis-sentinels",
         "threads": 1
       },
       {
         "name": "redis-thread-pool",
-        "thread_name": "Redis thread",
+        "thread_name": "redis-client",
         "threads": "$redis_threads",
         "threads#fallback": 4
       },

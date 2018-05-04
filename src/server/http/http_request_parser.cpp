@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include <logging/logger.hpp>
+#include <logging/log.hpp>
 #include <server/request/request_base.hpp>
 
 namespace server {

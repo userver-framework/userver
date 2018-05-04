@@ -4,7 +4,7 @@
 
 #include <boost/crc.hpp>
 
-#include <logging/logger.hpp>
+#include <logging/log.hpp>
 
 #include "reply.hpp"
 

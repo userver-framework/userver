@@ -1,6 +1,6 @@
 {
   "main_worker_threads": 4,
-  "io_threads": 2,
+  "event_threads": 2,
   "redis_threads": 3,
   "logger_level": "debug",
   "taxi_config_fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.development.json",

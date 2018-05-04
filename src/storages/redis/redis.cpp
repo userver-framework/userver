@@ -7,7 +7,7 @@
 #include <hiredis/hiredis.h>
 #include <boost/circular_buffer.hpp>
 
-#include <logging/logger.hpp>
+#include <logging/log.hpp>
 
 namespace storages {
 namespace redis {

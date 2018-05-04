@@ -12,7 +12,7 @@ namespace engine {
 Task::Task(TaskProcessor* task_processor)
     : state_(State::kWaiting),
       task_processor_(task_processor),
-      wait_notifier_([this]() { WakeUp(); }),
+      wake_up_cb_([this]() { WakeUp(); }),
       wait_state_(0),
       coro_(nullptr),
       yield_(nullptr),
@@ -54,8 +54,8 @@ void Task::Sleep() {
   if (wait_state_.fetch_or(1) == 2) task_processor_->AddTask(this);
 }
 
-ev::ThreadControl& Task::GetSchedulerThread() {
-  return GetTaskProcessor().Scheduler().NextThread();
+ev::ThreadControl& Task::GetEventThread() {
+  return GetTaskProcessor().EventThreadPool().NextThread();
 }
 
 void Task::CoroFunc(YieldType& yield) {
@@ -74,19 +74,21 @@ void Task::WakeUp() {
   if (wait_state_.fetch_or(2) == 1) task_processor_->AddTask(this);
 }
 
+namespace current_task {
 namespace {
 
-thread_local Task* current_task = nullptr;
+thread_local Task* current_task_ptr = nullptr;
 
 }  // namespace
 
-Task* CurrentTask::GetCurrentTask() {
-  if (current_task == nullptr)
+Task* GetCurrentTask() {
+  if (current_task_ptr == nullptr)
     throw std::logic_error(
-        "CurrentTask::GetCurrentTask() called outside coroutine");
-  return current_task;
+        "current_task::GetCurrentTask() called outside coroutine");
+  return current_task_ptr;
 }
 
-void CurrentTask::SetCurrentTask(Task* task) { current_task = task; }
+void SetCurrentTask(Task* task) { current_task_ptr = task; }
 
+}  // namespace current_task
 }  // namespace engine
