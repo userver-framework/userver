@@ -1,3 +1,11 @@
+yandex-taxi-userver (0.1.5) unstable; urgency=medium
+
+  * Dmitriy Zhukov | feat server: speed up AcceptConnection (#43)
+  * Dmitriy Zhukov | feat engine: add new engine::Timer (#40)
+  * Vasily Kulikov | bug build: debuild with clang (#42)
+
+ -- Dmitry Zhukov <dzhuk@yandex-team.ru>  Fri, 04 May 2018 20:34:51 +0300
+
 yandex-taxi-userver (0.1.4) unstable; urgency=medium
 
   * Andrey Bugaevskiy | feat server: limit open connections count (#41)
