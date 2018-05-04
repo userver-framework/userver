@@ -32,6 +32,7 @@ class ListenerImpl : public engine::ev::ThreadControl {
 
  private:
   void AcceptConnection(int listen_fd, Connection::Type type);
+  void SetupConnection(int fd, Connection::Type type, const sockaddr_in6& addr);
 
   void EnqueueConnectionClose(int fd);
   void CloseConnections();
@@ -43,9 +44,11 @@ class ListenerImpl : public engine::ev::ThreadControl {
 
   mutable std::mutex connections_mutex_;
   std::unordered_map<int, std::unique_ptr<Connection>> connections_;
+
   boost::lockfree::queue<int> connections_to_close_;
   engine::EventTask close_connections_task_;
   std::atomic<size_t> past_processed_requests_count_;
+  std::atomic<size_t> pending_setup_connection_count_;
 
   std::unique_ptr<engine::SocketListener> request_socket_listener_;
   std::unique_ptr<engine::SocketListener> monitor_socket_listener_;

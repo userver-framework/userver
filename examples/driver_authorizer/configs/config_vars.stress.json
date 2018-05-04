@@ -1,10 +1,12 @@
 {
   "logger_level": "info",
-  "redis_taximeter_base": "taxi-tmp",
+  "redis_taximeter_base": "taxi-load",
   "event_threads": 3,
   "redis_threads": 8,
   "main_worker_threads": 16,
   "mongo_worker_threads": 2,
+  "coro_pool_initial_size": 25000,
+  "coro_pool_max_size": 50000,
   "taxi_config_fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.stress.json",
   "session_ttl_update_enabled": false
 }

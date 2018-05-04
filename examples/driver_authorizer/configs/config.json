@@ -15,8 +15,10 @@
     "logger_access": "",
     "logger_access_tskv": "",
     "coro_pool": {
-      "initial_size": 5000,
-      "max_size": 50000
+      "initial_size": "$coro_pool_initial_size",
+      "initial_size#fallback": 5000,
+      "max_size": "$coro_pool_max_size",
+      "max_size#fallback": 50000
     },
     "event_thread_pools": [
       {

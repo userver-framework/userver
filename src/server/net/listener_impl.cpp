@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <engine/async.hpp>
+#include <engine/sleep.hpp>
 #include <logging/log.hpp>
 #include <utils/check_syscall.hpp>
 
@@ -55,7 +57,8 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
       is_closing_(false),
       connections_to_close_(kConnectionsToCloseQueueCapacity),
       close_connections_task_(task_processor_, [this] { CloseConnections(); }),
-      past_processed_requests_count_(0) {
+      past_processed_requests_count_(0),
+      pending_setup_connection_count_(0) {
   int request_fd = CreateSocket(endpoint_info_->listener_config.port,
                                 endpoint_info_->listener_config.backlog);
   int monitor_fd = CreateSocket(endpoint_info_->listener_config.monitor_port,
@@ -65,7 +68,11 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
       *this, task_processor_, request_fd,
       engine::SocketListener::ListenMode::kRead,
       [this](int fd) {
-        AcceptConnection(fd, Connection::Type::kRequest);
+        try {
+          AcceptConnection(fd, Connection::Type::kRequest);
+        } catch (const std::exception& ex) {
+          LOG_ERROR() << "can't accept connection: " << ex.what();
+        }
         return engine::SocketListener::Result::kOk;
       },
       nullptr);
@@ -86,6 +93,10 @@ ListenerImpl::~ListenerImpl() {
 
   LOG_TRACE() << "Closing request fd " << request_socket_listener_->Fd();
   request_socket_listener_->Stop();
+
+  while (pending_setup_connection_count_ > 0)
+    engine::Sleep(std::chrono::milliseconds(10));
+
   close(request_socket_listener_->Fd());
   LOG_TRACE() << "Closed request fd " << request_socket_listener_->Fd();
   LOG_TRACE() << "Closing monitor fd " << monitor_socket_listener_->Fd();
@@ -160,7 +171,20 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
   }
   LOG_DEBUG() << "Accepted connection #" << new_connection_count << '/'
               << endpoint_info_->listener_config.max_connections;
+  ++pending_setup_connection_count_;
 
+  engine::Async([this, fd, type, addr]() {
+    try {
+      SetupConnection(fd, type, addr);
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "can't setup connection: " << ex.what();
+    }
+    --pending_setup_connection_count_;
+  });
+}
+
+void ListenerImpl::SetupConnection(int fd, Connection::Type type,
+                                   const sockaddr_in6& addr) {
   const int nodelay = 1;
   utils::CheckSyscall(
       setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)),
