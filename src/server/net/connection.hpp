@@ -72,7 +72,7 @@ class Connection {
 
   BeforeCloseCb before_close_cb_;
 
-  std::unique_ptr<engine::EventTask> response_event_notifier_;
+  std::shared_ptr<engine::EventTask> response_event_task_;
   http::HttpRequestParser http_request_parser_;
 
   std::atomic<bool> is_closing_;

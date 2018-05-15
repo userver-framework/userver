@@ -49,6 +49,7 @@ class ListenerImpl : public engine::ev::ThreadControl {
   engine::EventTask close_connections_task_;
   std::atomic<size_t> past_processed_requests_count_;
   std::atomic<size_t> pending_setup_connection_count_;
+  std::atomic<size_t> pending_close_connection_count_;
 
   std::unique_ptr<engine::SocketListener> request_socket_listener_;
   std::unique_ptr<engine::SocketListener> monitor_socket_listener_;
