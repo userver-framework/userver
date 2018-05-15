@@ -1,3 +1,10 @@
+yandex-taxi-userver (0.1.6) unstable; urgency=medium
+
+  * Andrey Bugaevskiy | feat net: parallelize connection close (#45)
+  * Andrey Bugaevskiy | bug debian: remove nginx restart from postinst (#44)
+
+ -- Andrey Bugaevskiy <bugaevskiy@yandex-team.ru>  Wed, 16 May 2018 01:19:45 +0300
+
 yandex-taxi-userver (0.1.5) unstable; urgency=medium
 
   * Dmitriy Zhukov | feat server: speed up AcceptConnection (#43)
