@@ -50,7 +50,7 @@ Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
                              config.task_processor + '\'');
   }
 
-  response_event_notifier_ = std::make_unique<engine::EventTask>(
+  response_event_task_ = std::make_shared<engine::EventTask>(
       *task_processor_ptr, [this] { SendResponses(); });
   response_sender_ = std::make_unique<engine::Sender>(
       thread_control, *task_processor_ptr, fd, [this] { CloseIfFinished(); });
@@ -96,7 +96,7 @@ Connection::~Connection() {
   response_sender_->Stop();
   LOG_TRACE() << "Stopped response sender for fd " << Fd();
 
-  response_event_notifier_->Notify();
+  response_event_task_->Notify();
 
   LOG_TRACE() << "Stopping socket listener for fd " << Fd();
   socket_listener_->Stop();
@@ -114,7 +114,7 @@ Connection::~Connection() {
   assert(IsRequestTasksEmpty());
 
   LOG_TRACE() << "Stopping response event notifier for fd " << Fd();
-  response_event_notifier_->Stop();
+  response_event_task_->Stop();
   LOG_TRACE() << "Stopped response event notifier for fd " << Fd();
 
   LOG_DEBUG() << "Closed connection from " << remote_host_ << " ("
@@ -198,7 +198,7 @@ void Connection::NewRequest(
     std::unique_ptr<request::RequestBase>&& request_ptr) {
   auto is_monitor = (type_ == Type::kMonitor);
   auto request_task = request_handler_.PrepareRequestTask(
-      std::move(request_ptr), [this] { response_event_notifier_->Notify(); },
+      std::move(request_ptr), [task = response_event_task_] { task->Notify(); },
       is_monitor);
 
   auto* task_ptr = request_task.get();
@@ -234,7 +234,7 @@ void Connection::SendResponses() {
                           [this, &response, &request](size_t bytes_sent) {
                             request.SetFinishSendResponseTime();
                             response.SetSent(bytes_sent);
-                            response_event_notifier_->Notify();
+                            response_event_task_->Notify();
                           });
   }
 

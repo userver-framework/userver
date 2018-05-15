@@ -26,28 +26,29 @@ Sender::~Sender() { Stop(); }
 void Sender::Start() { socket_listener_.Start(); }
 
 void Sender::Stop() {
-  bool call_on_complete = !stopped_.exchange(true);
+  if (!stopped_.exchange(true)) {
+    socket_listener_.Stop();
+    for (;;) {
+      std::function<void(size_t)> finish_cb;
+      size_t pos;
+      {
+        std::lock_guard<std::mutex> lock(data_queue_mutex_);
+        if (data_queue_.empty()) break;
+        finish_cb = std::move(data_queue_.front().finish_cb);
+        pos = current_data_pos_;
+        data_queue_.pop_front();
+        current_data_pos_ = 0;
+      }
+      try {
+        finish_cb(pos);
+      } catch (const std::exception& ex) {
+        LOG_ERROR() << "exception in finish_cb: " << ex.what();
+      }
+    }
 
-  for (;;) {
-    std::function<void(size_t)> finish_cb;
-    size_t pos;
-    {
-      std::lock_guard<std::mutex> lock(data_queue_mutex_);
-      if (data_queue_.empty()) break;
-      finish_cb = std::move(data_queue_.front().finish_cb);
-      pos = current_data_pos_;
-      data_queue_.pop_front();
-      current_data_pos_ = 0;
-    }
-    try {
-      finish_cb(pos);
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "exception in finish_cb: " << ex.what();
-    }
+    assert(!HasWaitingData());
+    if (on_complete_) on_complete_();
   }
-
-  assert(!HasWaitingData());
-  if (call_on_complete && on_complete_) on_complete_();
 }
 
 void Sender::SendData(std::string data,

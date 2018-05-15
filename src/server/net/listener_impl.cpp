@@ -58,7 +58,8 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
       connections_to_close_(kConnectionsToCloseQueueCapacity),
       close_connections_task_(task_processor_, [this] { CloseConnections(); }),
       past_processed_requests_count_(0),
-      pending_setup_connection_count_(0) {
+      pending_setup_connection_count_(0),
+      pending_close_connection_count_(0) {
   int request_fd = CreateSocket(endpoint_info_->listener_config.port,
                                 endpoint_info_->listener_config.backlog);
   int monitor_fd = CreateSocket(endpoint_info_->listener_config.monitor_port,
@@ -94,7 +95,8 @@ ListenerImpl::~ListenerImpl() {
   LOG_TRACE() << "Closing request fd " << request_socket_listener_->Fd();
   request_socket_listener_->Stop();
 
-  while (pending_setup_connection_count_ > 0)
+  while (pending_setup_connection_count_ > 0 ||
+         pending_close_connection_count_ > 0)
     engine::Sleep(std::chrono::milliseconds(10));
 
   close(request_socket_listener_->Fd());
@@ -222,7 +224,6 @@ void ListenerImpl::CloseConnections() {
       if (it != connections_.end()) {
         connection_ptr = std::move(it->second);
         connections_.erase(it);
-        --endpoint_info_->connection_count;
       }
     }
     if (!connection_ptr) {
@@ -233,9 +234,16 @@ void ListenerImpl::CloseConnections() {
       past_processed_requests_count_ += connection_ptr->ProcessedRequestCount();
     }
 
-    LOG_TRACE() << "Destroying connection for fd " << fd;
-    connection_ptr.reset();
-    LOG_TRACE() << "Destroyed connection for fd " << fd;
+    ++pending_close_connection_count_;
+    engine::Async(
+        [this, fd](std::unique_ptr<Connection>&& connection_ptr) {
+          LOG_TRACE() << "Destroying connection for fd " << fd;
+          connection_ptr.reset();
+          LOG_TRACE() << "Destroyed connection for fd " << fd;
+          --endpoint_info_->connection_count;
+          --pending_close_connection_count_;
+        },
+        std::move(connection_ptr));
   }
 }
 
