@@ -48,6 +48,8 @@ class ListenerImpl : public engine::ev::ThreadControl {
   boost::lockfree::queue<int> connections_to_close_;
   engine::EventTask close_connections_task_;
   std::atomic<size_t> past_processed_requests_count_;
+  std::atomic<size_t> opened_connection_count_;
+  std::atomic<size_t> closed_connection_count_;
   std::atomic<size_t> pending_setup_connection_count_;
   std::atomic<size_t> pending_close_connection_count_;
 

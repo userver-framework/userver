@@ -1,4 +1,3 @@
-usr/bin/yandex-taxi-driver-authorizer
 etc/yandex/taxi/driver-authorizer/config.json
 etc/yandex/taxi/driver-authorizer/config_vars.production.json
 etc/yandex/taxi/driver-authorizer/config_vars.stress.json
@@ -10,3 +9,5 @@ etc/yandex/taxi/driver-authorizer/taxi_config_fallback.stress.json
 etc/yandex/taxi/driver-authorizer/taxi_config_fallback.testing.json
 etc/yandex/taxi/driver-authorizer/taxi_config_fallback.unstable.json
 etc/yandex/taxi/driver-authorizer/taxi_config_fallback.development.json
+usr/bin/yandex-taxi-driver-authorizer
+usr/bin/taxi-driver-authorizer-stats.py

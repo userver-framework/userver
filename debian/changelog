@@ -1,3 +1,9 @@
+yandex-taxi-userver (0.1.7) unstable; urgency=medium
+
+  * Andrey Bugaevskiy | feat server: add opened/closed connection counters to monitor (#47)
+
+ -- Andrey Bugaevskiy <bugaevskiy@yandex-team.ru>  Tue, 22 May 2018 14:16:18 +0300
+
 yandex-taxi-userver (0.1.6) unstable; urgency=medium
 
   * Andrey Bugaevskiy | feat net: parallelize connection close (#45)

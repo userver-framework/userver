@@ -42,6 +42,12 @@ add_custom_command(OUTPUT ${DEV_CONFIGS_DEST}
   DEPENDS ${DEV_CONFIGS_SRC}
 )
 
+include(GenerateStatsScript)
+generate_stats_script(${PROJECT}
+  driver-authorizer
+  driver-authorizer.taxi.yandex.net
+  taxi-driver-authorizer-stats)
+
 include(GNUInstallDirs)
 install(TARGETS ${PROJECT}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
