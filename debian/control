@@ -24,7 +24,7 @@ Vcs-Browser: https://github.yandex-team.ru/taxi/userver
 
 Package: yandex-taxi-driver-authorizer
 Architecture: any
-Depends: ${misc:Depends},	${shlibs:Depends}
+Depends: python-requests, ${misc:Depends}, ${shlibs:Depends}
 Recommends: yandex-taxi-config
 Description: Yandex.Taxi driver authorization server
 

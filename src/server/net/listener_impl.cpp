@@ -58,6 +58,8 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
       connections_to_close_(kConnectionsToCloseQueueCapacity),
       close_connections_task_(task_processor_, [this] { CloseConnections(); }),
       past_processed_requests_count_(0),
+      opened_connection_count_(0),
+      closed_connection_count_(0),
       pending_setup_connection_count_(0),
       pending_close_connection_count_(0) {
   int request_fd = CreateSocket(endpoint_info_->listener_config.port,
@@ -126,7 +128,8 @@ ListenerImpl::~ListenerImpl() {
 
 Stats ListenerImpl::GetStats() const {
   Stats stats;
-  stats.total_processed_requests = past_processed_requests_count_;
+  size_t active_connections = 0;
+  size_t total_processed_requests = past_processed_requests_count_;
   {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     for (const auto& item : connections_) {
@@ -134,18 +137,20 @@ Stats ListenerImpl::GetStats() const {
       if (connection_ptr->GetType() == Connection::Type::kMonitor) {
         continue;
       }
-      ++stats.total_connections;
-      stats.total_processed_requests += connection_ptr->ProcessedRequestCount();
-      stats.total_active_requests += connection_ptr->ActiveRequestCount();
-      stats.total_parsing_requests += connection_ptr->ParsingRequestCount();
-      stats.conn_active_requests.push_back(
-          connection_ptr->ActiveRequestCount());
-      stats.conn_pending_responses.push_back(
-          connection_ptr->PendingResponseCount());
+      ++active_connections;
+      total_processed_requests += connection_ptr->ProcessedRequestCount();
+      stats.active_requests.Add(connection_ptr->ActiveRequestCount());
+      stats.parsing_requests.Add(connection_ptr->ParsingRequestCount());
+      stats.pending_responses.Add(connection_ptr->PendingResponseCount());
+      stats.conn_processed_requests.Add(
+          connection_ptr->ProcessedRequestCount());
     }
   }
-  stats.max_listener_connections = stats.total_connections;
-  stats.listener_connections.push_back(stats.total_connections);
+  stats.active_connections.Add(active_connections);
+  stats.listener_processed_requests.Add(total_processed_requests);
+  // NOTE: Order ensures closed <= opened
+  stats.total_closed_connections.Add(closed_connection_count_);
+  stats.total_opened_connections.Add(opened_connection_count_);
   return stats;
 }
 
@@ -163,13 +168,18 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
                           "accepting connection");
 
   auto new_connection_count = ++endpoint_info_->connection_count;
-  if (new_connection_count > endpoint_info_->listener_config.max_connections) {
-    LOG_WARNING() << "Reached connection limit, dropping connection #"
-                  << new_connection_count << '/'
-                  << endpoint_info_->listener_config.max_connections;
-    utils::CheckSyscall(close(fd), "closing connection");
-    --endpoint_info_->connection_count;
-    return;
+  if (type != Connection::Type::kMonitor) {
+    ++opened_connection_count_;
+    if (new_connection_count >
+        endpoint_info_->listener_config.max_connections) {
+      LOG_WARNING() << "Reached connection limit, dropping connection #"
+                    << new_connection_count << '/'
+                    << endpoint_info_->listener_config.max_connections;
+      utils::CheckSyscall(close(fd), "closing connection");
+      --endpoint_info_->connection_count;
+      ++closed_connection_count_;
+      return;
+    }
   }
   LOG_DEBUG() << "Accepted connection #" << new_connection_count << '/'
               << endpoint_info_->listener_config.max_connections;
@@ -237,10 +247,14 @@ void ListenerImpl::CloseConnections() {
     ++pending_close_connection_count_;
     engine::Async(
         [this, fd](std::unique_ptr<Connection>&& connection_ptr) {
+          auto type = connection_ptr->GetType();
           LOG_TRACE() << "Destroying connection for fd " << fd;
           connection_ptr.reset();
           LOG_TRACE() << "Destroyed connection for fd " << fd;
           --endpoint_info_->connection_count;
+          if (type != Connection::Type::kMonitor) {
+            ++closed_connection_count_;
+          }
           --pending_close_connection_count_;
         },
         std::move(connection_ptr));
