@@ -1,3 +1,9 @@
+yandex-taxi-userver (0.1.8) unstable; urgency=medium
+
+  * Dmitriy Zhukov | feat server: log request and response (#46)
+
+ -- Dmitry Zhukov <dzhuk@yandex-team.ru>  Fri, 01 Jun 2018 20:28:32 +0300
+
 yandex-taxi-userver (0.1.7) unstable; urgency=medium
 
   * Andrey Bugaevskiy | feat server: add opened/closed connection counters to monitor (#47)
