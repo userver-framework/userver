@@ -26,6 +26,8 @@ class ResponseBase {
   }
   std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
 
+  const std::string& GetData() const { return data_; }
+
   virtual void SendResponse(engine::Sender& sender,
                             std::function<void(size_t)>&& fini_cb) = 0;
 

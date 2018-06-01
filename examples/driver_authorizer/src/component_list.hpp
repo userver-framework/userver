@@ -8,8 +8,10 @@
 #include <storages/redis/component.hpp>
 #include <storages/secdist/component.hpp>
 #include <taxi_config/component.hpp>
+#include <taxi_config/need_log_request_checker_component.hpp>
 
 #include "handlers/driver_session.hpp"
+#include "taxi_config/taxi_config.hpp"
 
 namespace driver_authorizer {
 
@@ -21,7 +23,8 @@ const auto kComponentList =
         .Append<components::ThreadPool>("redis-sentinel-thread-pool")
         .Append<components::Redis>()
         .Append<components::Mongo>("mongo-taxi")
-        .Append<components::TaxiConfig>()
+        .Append<components::TaxiConfig<TaxiConfig>>()
+        .Append<components::NeedLogRequestChecker<TaxiConfig>>()
         .Append<handlers::DriverSession>()
         .Append<server::handlers::Ping>();
 

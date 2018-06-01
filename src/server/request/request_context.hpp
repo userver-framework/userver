@@ -2,15 +2,17 @@
 
 #include <memory>
 
-namespace server {
-namespace handlers {
+#include <logging/log_extra.hpp>
 
-class HandlerData {
+namespace server {
+namespace request {
+
+class RequestData {
  public:
-  virtual ~HandlerData() {}
+  virtual ~RequestData() {}
 };
 
-class HandlerContext {
+class RequestContext {
  public:
   template <typename Data, typename... Args>
   void EmplaceData(Args&&... args) {
@@ -24,9 +26,12 @@ class HandlerContext {
 
   void ClearData() { data_.reset(); }
 
+  logging::LogExtra& GetLogExtra() { return log_extra_; }
+
  private:
-  std::unique_ptr<HandlerData> data_;
+  std::unique_ptr<RequestData> data_;
+  logging::LogExtra log_extra_;
 };
 
-}  // namespace handlers
+}  // namespace request
 }  // namespace server

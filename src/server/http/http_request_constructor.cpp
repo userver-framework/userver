@@ -221,8 +221,14 @@ void HttpRequestConstructor::ParseArgs(const char* data, size_t size) {
 
 void HttpRequestConstructor::AddHeader() {
   assert(header_field_flag_);
-  request_->headers_.emplace(std::move(header_field_),
-                             std::move(header_value_));
+  auto it = request_->headers_.find(header_field_);
+  if (it == request_->headers_.end()) {
+    request_->headers_.emplace(std::move(header_field_),
+                               std::move(header_value_));
+  } else {
+    it->second += ',';
+    it->second += header_value_;
+  }
   header_field_.clear();
   header_value_.clear();
 }

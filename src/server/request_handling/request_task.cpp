@@ -17,7 +17,7 @@ RequestTask::RequestTask(engine::TaskProcessor* task_processor,
 void RequestTask::Run() noexcept {
   assert(handler_ != nullptr);
   request_->SetTaskStartTime();
-  handlers::HandlerContext context;
+  request::RequestContext context;
   handler_->HandleRequest(*request_, context);
   request_->SetResponseNotifyTime();
   request_->GetResponse().SetReady();

@@ -18,6 +18,14 @@ namespace http {
 
 class HttpRequestImpl : public request::RequestBase {
  public:
+  using HeadersMap =
+      std::unordered_map<std::string, std::string, utils::StrIcaseHash,
+                         utils::StrIcaseCmp>;
+  using CookiesMap = HeadersMap;
+
+  using HeadersMapKeys = decltype(HeadersMap() | boost::adaptors::map_keys);
+  using CookiesMapKeys = decltype(CookiesMap() | boost::adaptors::map_keys);
+
   HttpRequestImpl();
   virtual ~HttpRequestImpl();
 
@@ -43,12 +51,12 @@ class HttpRequestImpl : public request::RequestBase {
   const std::string& GetHeader(const std::string& header_name) const;
   bool HasHeader(const std::string& header_name) const;
   size_t HeaderCount() const;
-  std::vector<std::string> HeaderNames() const;
+  HeadersMapKeys GetHeaderNames() const;
 
   const std::string& GetCookie(const std::string& cookie_name) const;
   bool HasCookie(const std::string& cookie_name) const;
   size_t CookieCount() const;
-  std::vector<std::string> CookieNames() const;
+  CookiesMapKeys GetCookieNames() const;
 
   const std::string& RequestBody() const { return request_body_; }
   void SetResponseStatus(HttpStatus status) const {
@@ -87,12 +95,8 @@ class HttpRequestImpl : public request::RequestBase {
   std::string request_body_;
   std::string path_suffix_;
   std::unordered_map<std::string, std::vector<std::string>> request_args_;
-  std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                     utils::StrIcaseCmp>
-      headers_;
-  std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                     utils::StrIcaseCmp>
-      cookies_;
+  HeadersMap headers_;
+  CookiesMap cookies_;
 
   std::unique_ptr<HttpResponse> response_;
 };

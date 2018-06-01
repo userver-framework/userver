@@ -38,6 +38,7 @@ class Sender : public ev::ThreadControl {
     std::function<void(size_t)> finish_cb;
   };
 
+  void DoStop();
   const std::string& CurrentData(std::lock_guard<std::mutex>& lock);
   Result SendCurrentData(std::lock_guard<std::mutex>& lock, int fd);
   Result SendData(int fd);

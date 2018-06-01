@@ -15,6 +15,10 @@ enum class Level {
   kCritical = spdlog::level::critical
 };
 
+inline spdlog::level::level_enum ToSpdlogLevel(Level level) {
+  return static_cast<spdlog::level::level_enum>(level);
+}
+
 Level LevelFromString(const std::string&);
 
 }  // namespace logging
