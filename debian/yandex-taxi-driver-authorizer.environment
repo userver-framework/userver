@@ -1,1 +1,2 @@
-etc/yandex/taxi/driver-authorizer/config_vars.*.json   etc/yandex/taxi/driver-authorizer/config_vars.json
+etc/yandex/taxi/driver-authorizer/config_vars.*.json            etc/yandex/taxi/driver-authorizer/config_vars.json
+etc/yandex/taxi/driver-authorizer/taxi_config_fallback.*.json   etc/yandex/taxi/driver-authorizer/taxi_config_fallback.json

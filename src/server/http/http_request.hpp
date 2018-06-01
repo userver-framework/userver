@@ -14,6 +14,9 @@ namespace http {
 
 class HttpRequest {
  public:
+  using HeadersMapKeys = HttpRequestImpl::HeadersMapKeys;
+  using CookiesMapKeys = HttpRequestImpl::CookiesMapKeys;
+
   explicit HttpRequest(const HttpRequestImpl& impl);
   ~HttpRequest() = default;
 
@@ -42,12 +45,12 @@ class HttpRequest {
   const std::string& GetHeader(const std::string& header_name) const;
   bool HasHeader(const std::string& header_name) const;
   size_t HeaderCount() const;
-  std::vector<std::string> HeaderNames() const;
+  HeadersMapKeys GetHeaderNames() const;
 
   const std::string& GetCookie(const std::string& cookie_name) const;
   bool HasCookie(const std::string& cookie_name) const;
   size_t CookieCount() const;
-  std::vector<std::string> CookieNames() const;
+  CookiesMapKeys GetCookieNames() const;
 
   const std::string& RequestBody() const;
   void SetResponseStatus(HttpStatus status) const;

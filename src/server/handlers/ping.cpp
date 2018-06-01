@@ -14,8 +14,8 @@ const std::string& Ping::HandlerName() const {
 }
 
 std::string Ping::HandleRequestThrow(
-    const server::http::HttpRequest& /*request*/,
-    HandlerContext& /*context*/) const {
+    const http::HttpRequest& /*request*/,
+    request::RequestContext& /*context*/) const {
   return {};
 }
 

@@ -97,11 +97,8 @@ bool HttpRequestImpl::HasHeader(const std::string& header_name) const {
 
 size_t HttpRequestImpl::HeaderCount() const { return headers_.size(); }
 
-std::vector<std::string> HttpRequestImpl::HeaderNames() const {
-  std::vector<std::string> res;
-  res.reserve(headers_.size());
-  for (const auto& header : headers_) res.push_back(header.first);
-  return res;
+HttpRequestImpl::HeadersMapKeys HttpRequestImpl::GetHeaderNames() const {
+  return headers_ | boost::adaptors::map_keys;
 }
 
 const std::string& HttpRequestImpl::GetCookie(
@@ -117,11 +114,8 @@ bool HttpRequestImpl::HasCookie(const std::string& cookie_name) const {
 
 size_t HttpRequestImpl::CookieCount() const { return cookies_.size(); }
 
-std::vector<std::string> HttpRequestImpl::CookieNames() const {
-  std::vector<std::string> res;
-  res.reserve(cookies_.size());
-  for (const auto& cookie : cookies_) res.push_back(cookie.first);
-  return res;
+HttpRequestImpl::CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
+  return cookies_ | boost::adaptors::map_keys;
 }
 
 void HttpRequestImpl::SetMatchedPathLength(size_t length) {

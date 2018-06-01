@@ -139,15 +139,15 @@ void SocketListener::StartListenTask(TaskProcessor& task_processor) {
       }
     }
 
+    try {
+      if (on_stop_func_) on_stop_func_();
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "exception in on_stop_func: " << ex.what();
+    }
     {
       std::lock_guard<std::mutex> lock(stop_mutex_);
       is_listen_finished_ = true;
       listen_finished_cv_.NotifyAll();
-      try {
-        if (on_stop_func_) on_stop_func_();
-      } catch (const std::exception& ex) {
-        LOG_ERROR() << "exception in on_stop_func: " << ex.what();
-      }
     }
   });
 }

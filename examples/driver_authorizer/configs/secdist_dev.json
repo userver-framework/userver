@@ -118,7 +118,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taxi-redis-chat01e.taxi.dev.yandex.net",
+                    "host": "chat-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -141,7 +141,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taxi-redis01h.taxi.dev.yandex.net",
+                    "host": "taxi-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -164,7 +164,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taxi-redis01h.taxi.dev.yandex.net",
+                    "host": "taxi-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -187,7 +187,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taxi-redis01h.taxi.dev.yandex.net",
+                    "host": "taxi-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -204,7 +204,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taxi-redis01h.taxi.dev.yandex.net",
+                    "host": "taxi-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -263,7 +263,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taximeter-base-redis01i.taxi.tst.yandex.net",
+                    "host": "taximeter-base-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -327,7 +327,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taximeter-hour-redis01i.taxi.tst.yandex.net",
+                    "host": "taximeter-hour-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -391,7 +391,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taximeter-temp-redis01i.taxi.tst.yandex.net",
+                    "host": "taximeter-temp-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -431,7 +431,7 @@
             ],
             "sentinels": [
                 {
-                    "host": "taximeter-surge-redis01i.taxi.tst.yandex.net",
+                    "host": "surge-redis-myt-01.taxi.dev.yandex.net",
                     "port": 26379
                 }
             ],
@@ -440,50 +440,6 @@
                 "timeout_single_ms": 500,
                 "timeout_all_ms": 2000,
                 "max_retries": 4
-            }
-        },
-        "test": {
-            "shards": [
-                {
-                    "name": "redis_6379"
-                },
-                {
-                    "name": "redis_6380"
-                },
-                {
-                    "name": "redis_6381"
-                },
-                {
-                    "name": "redis_6382"
-                },
-                {
-                    "name": "redis_6383"
-                },
-                {
-                    "name": "redis_6384"
-                },
-                {
-                    "name": "redis_6385"
-                },
-                {
-                    "name": "redis_6386"
-                }
-            ],
-            "sentinels": [
-                {
-                    "host": "taxi-tracker-redis01i.taxi.tst.yandex.net",
-                    "port": 26379
-                },
-                {
-                    "host": "taxi-tracker-redis01h.taxi.tst.yandex.net",
-                    "port": 26379
-                }
-            ],
-            "password": "",
-            "command_control": {
-                "timeout_single_ms": 500,
-                "timeout_all_ms": 1000,
-                "max_retries": 2
             }
         },
         "load_test": {

@@ -25,10 +25,11 @@ void ThrowUnmetRequirement(const std::string& what) {
 
 DriverSession::DriverSession(const components::ComponentConfig& config,
                              const components::ComponentContext& context)
-    : HttpHandlerBase(config, context),
+    : server::handlers::HttpHandlerBase(config, context),
       is_session_ttl_update_enabled_(
           config.ParseBool("session_ttl_update_enabled", true)),
-      taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
+      taxi_config_component_(
+          context.FindComponent<components::TaxiConfig<TaxiConfig>>()) {
   if (!taxi_config_component_) ThrowUnmetRequirement("taxi config");
   auto* redis_component = context.FindComponent<components::Redis>();
   if (!redis_component) ThrowUnmetRequirement("redis");
@@ -45,7 +46,7 @@ const std::string& DriverSession::HandlerName() const {
 
 std::string DriverSession::HandleRequestThrow(
     const server::http::HttpRequest& request,
-    server::handlers::HandlerContext&) const {
+    server::request::RequestContext&) const {
   auto db = request.GetArg("db");
   auto session = request.GetArg("session");
 

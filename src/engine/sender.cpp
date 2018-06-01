@@ -19,36 +19,15 @@ Sender::Sender(const ev::ThreadControl& thread_control,
       socket_listener_(thread_control, task_processor, fd,
                        SocketListener::ListenMode::kWrite,
                        [this](int fd) { return SendData(fd); },
-                       [this]() { Stop(); }, SocketListener::DeferStart{}) {}
+                       [this]() { DoStop(); }, SocketListener::DeferStart{}) {}
 
 Sender::~Sender() { Stop(); }
 
 void Sender::Start() { socket_listener_.Start(); }
 
 void Sender::Stop() {
-  if (!stopped_.exchange(true)) {
-    socket_listener_.Stop();
-    for (;;) {
-      std::function<void(size_t)> finish_cb;
-      size_t pos;
-      {
-        std::lock_guard<std::mutex> lock(data_queue_mutex_);
-        if (data_queue_.empty()) break;
-        finish_cb = std::move(data_queue_.front().finish_cb);
-        pos = current_data_pos_;
-        data_queue_.pop_front();
-        current_data_pos_ = 0;
-      }
-      try {
-        finish_cb(pos);
-      } catch (const std::exception& ex) {
-        LOG_ERROR() << "exception in finish_cb: " << ex.what();
-      }
-    }
-
-    assert(!HasWaitingData());
-    if (on_complete_) on_complete_();
-  }
+  socket_listener_.Stop();
+  DoStop();
 }
 
 void Sender::SendData(std::string data,
@@ -81,6 +60,31 @@ size_t Sender::DataQueueSize() const {
 bool Sender::HasWaitingData() const {
   std::lock_guard<std::mutex> lock(data_queue_mutex_);
   return !data_queue_.empty();
+}
+
+void Sender::DoStop() {
+  if (stopped_.exchange(true)) return;
+
+  for (;;) {
+    std::function<void(size_t)> finish_cb;
+    size_t pos;
+    {
+      std::lock_guard<std::mutex> lock(data_queue_mutex_);
+      if (data_queue_.empty()) break;
+      finish_cb = std::move(data_queue_.front().finish_cb);
+      pos = current_data_pos_;
+      data_queue_.pop_front();
+      current_data_pos_ = 0;
+    }
+    try {
+      finish_cb(pos);
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "exception in finish_cb: " << ex.what();
+    }
+  }
+
+  assert(!HasWaitingData());
+  if (on_complete_) on_complete_();
 }
 
 inline const std::string& Sender::CurrentData(std::lock_guard<std::mutex>&) {

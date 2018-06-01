@@ -1,4 +1,4 @@
-#include "component.hpp"
+#include "component_impl.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -9,9 +9,6 @@
 #include <storages/mongo/component.hpp>
 #include <storages/mongo/mongo.hpp>
 #include <storages/mongo/names.hpp>
-
-#include "config.hpp"
-#include "value.hpp"
 
 namespace components {
 
@@ -30,30 +27,27 @@ std::string ReadFile(const std::string& path) {
 
 }  // namespace
 
-TaxiConfig::TaxiConfig(const ComponentConfig& config,
-                       const ComponentContext& context)
-    : CachingComponentBase(config, kName) {
+TaxiConfigImpl::TaxiConfigImpl(const ComponentConfig& config,
+                               const ComponentContext& context,
+                               EmplaceDocsCb emplace_docs_cb)
+    : emplace_docs_cb_(std::move(emplace_docs_cb)) {
   auto mongo_component = context.FindComponent<Mongo>("mongo-taxi");
   if (!mongo_component) {
     throw std::runtime_error("Taxi config requires mongo-taxi component");
   }
   mongo_taxi_ = mongo_component->GetPool();
   fallback_path_ = config.ParseString("fallback_path");
-
-  StartPeriodicUpdates();
 }
 
-TaxiConfig::~TaxiConfig() { StopPeriodicUpdates(); }
-
-void TaxiConfig::Update(UpdateType type,
-                        const std::chrono::system_clock::time_point&,
-                        const std::chrono::system_clock::time_point&) {
+void TaxiConfigImpl::Update(UpdatingComponentBase::UpdateType type,
+                            const std::chrono::system_clock::time_point&,
+                            const std::chrono::system_clock::time_point&) {
   namespace sm = storages::mongo;
   namespace config_db = sm::db::Taxi::Config;
 
   auto collection = mongo_taxi_->GetCollection(config_db::kCollection);
 
-  if (type == UpdateType::kIncremental) {
+  if (type == UpdatingComponentBase::UpdateType::kIncremental) {
     auto query = MONGO_QUERY(config_db::kUpdated
                              << BSON("$gt" << sm::Date(seen_doc_update_time_)))
                      .readPref(mongo::ReadPreference_SecondaryPreferred,
@@ -86,7 +80,7 @@ void TaxiConfig::Update(UpdateType type,
     mongo_docs.Set(sm::ToString(doc[config_db::kId]), doc.getOwned());
   }
 
-  Emplace(mongo_docs);
+  emplace_docs_cb_(std::move(mongo_docs));
   seen_doc_update_time_ = seen_doc_update_time;
 }
 

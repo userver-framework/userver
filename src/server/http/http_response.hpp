@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <boost/range/adaptor/map.hpp>
+
 #include <engine/sender.hpp>
 #include <server/request/response_base.hpp>
 #include <utils/str_icase.hpp>
@@ -17,6 +19,12 @@ class HttpRequestImpl;
 
 class HttpResponse : public request::ResponseBase {
  public:
+  using HeadersMap =
+      std::unordered_map<std::string, std::string, utils::StrIcaseHash,
+                         utils::StrIcaseCmp>;
+
+  using HeadersMapKeys = decltype(HeadersMap() | boost::adaptors::map_keys);
+
   explicit HttpResponse(const HttpRequestImpl& request);
   virtual ~HttpResponse();
 
@@ -24,6 +32,7 @@ class HttpResponse : public request::ResponseBase {
   void SetContentType(std::string type);
   void SetContentEncoding(std::string encoding);
   void SetStatus(HttpStatus status);
+  void ClearHeaders();
 
   HttpStatus GetStatus() const { return status_; }
 
@@ -38,14 +47,15 @@ class HttpResponse : public request::ResponseBase {
     SetStatus(HttpStatus::kNotFound);
   }
 
+  HeadersMapKeys GetHeaderNames() const;
+  const std::string& GetHeader(const std::string& header_name) const;
+
  private:
   std::string StatusString() const;
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;
-  std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                     utils::StrIcaseCmp>
-      headers_;
+  HeadersMap headers_;
 };
 
 }  // namespace http

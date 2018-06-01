@@ -13,8 +13,9 @@ class Ping : public HttpHandlerBase {
   static constexpr const char* const kName = "handler-ping";
 
   const std::string& HandlerName() const override;
-  std::string HandleRequestThrow(const server::http::HttpRequest& request,
-                                 HandlerContext& context) const override;
+  std::string HandleRequestThrow(
+      const http::HttpRequest& request,
+      request::RequestContext& context) const override;
 };
 
 }  // namespace handlers

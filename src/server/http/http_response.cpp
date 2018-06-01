@@ -82,6 +82,8 @@ void HttpResponse::SetContentEncoding(std::string encoding) {
 
 void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
 
+void HttpResponse::ClearHeaders() { headers_.clear(); }
+
 void HttpResponse::SendResponse(engine::Sender& sender,
                                 std::function<void(size_t)>&& finish_cb) {
   bool is_head_request = request_.GetMethod() == HTTP_HEAD;
@@ -102,6 +104,15 @@ void HttpResponse::SendResponse(engine::Sender& sender,
   os << "Content-Length: " << data_.size() << kCrlf << kCrlf;
   if (!is_head_request) os << data_;
   sender.SendData(os.str(), std::move(finish_cb));
+}
+
+HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
+  return headers_ | boost::adaptors::map_keys;
+}
+
+const std::string& HttpResponse::GetHeader(
+    const std::string& header_name) const {
+  return headers_.at(header_name);
 }
 
 }  // namespace http

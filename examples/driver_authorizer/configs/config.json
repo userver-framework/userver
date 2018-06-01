@@ -100,10 +100,12 @@
       },
       {
         "name": "taxi-config",
-        "interval_ms": 5000,
-        "clean_interval_ms": 60000,
-        "fallback_path": "$taxi_config_fallback_path",
-        "fallback_path#fallback": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.production.json"
+        "update_interval_ms": 5000,
+        "full_update_interval_ms": 60000,
+        "fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.json"
+      },
+      {
+        "name": "need-log-request-checker"
       },
       {
         "name": "handler-ping",

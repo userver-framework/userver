@@ -1,0 +1,123 @@
+#pragma once
+
+#include <string>
+
+namespace utils {
+namespace encoding {
+
+const char kTskvKeyValueSeparator = '=';
+const char kTskvPairsSeparator = '\t';
+
+enum class EncodeTskvMode { Key, Value };
+
+template <typename T>
+struct TypeNeedsEncodeTskv
+    : std::integral_constant<bool, std::is_same<T, char>::value ||
+                                       !std::is_arithmetic<T>::value> {};
+
+template <typename T>
+class EncodeTskvPutCharDefault {
+ public:
+  void operator()(T& to, char ch) const { to << ch; }
+};
+
+template <>
+class EncodeTskvPutCharDefault<std::string> {
+ public:
+  void operator()(std::string& to, char ch) const { to.push_back(ch); }
+};
+
+// https://wiki.yandex-team.ru/statbox/LogRequirements/#tskvformat
+template <typename T, typename Char,
+          typename EncodeTskvPutChar = EncodeTskvPutCharDefault<T>>
+typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
+    T& to, Char ch, EncodeTskvMode mode,
+    const EncodeTskvPutChar& put_char = EncodeTskvPutChar()) {
+  switch (ch) {
+    case '\t':
+      put_char(to, '\\');
+      put_char(to, 't');
+      break;
+    case '\r':
+      put_char(to, '\\');
+      put_char(to, 'r');
+      break;
+    case '\n':
+      put_char(to, '\\');
+      put_char(to, 'n');
+      break;
+    case '\0':
+      put_char(to, '\\');
+      put_char(to, '0');
+      break;
+    case '\\':
+    case '"':
+      put_char(to, '\\');
+      put_char(to, ch);
+      break;
+    case '=':
+      if (mode == EncodeTskvMode::Key) put_char(to, '\\');
+      put_char(to, ch);
+      break;
+    case 'A':
+    case 'B':
+    case 'C':
+    case 'D':
+    case 'E':
+    case 'F':
+    case 'G':
+    case 'H':
+    case 'I':
+    case 'J':
+    case 'K':
+    case 'L':
+    case 'M':
+    case 'N':
+    case 'O':
+    case 'P':
+    case 'Q':
+    case 'R':
+    case 'S':
+    case 'T':
+    case 'U':
+    case 'V':
+    case 'W':
+    case 'X':
+    case 'Y':
+    case 'Z':
+      if (mode == EncodeTskvMode::Key) {
+        put_char(to, ch | 0x20);  // ch - 'A' + 'a'
+        break;
+      }
+    default:
+      put_char(to, ch);
+  }
+}
+
+template <typename T, typename EncodeTskvPutChar = EncodeTskvPutCharDefault<T>>
+void EncodeTskv(T& to, const std::string& str, EncodeTskvMode mode,
+                const EncodeTskvPutChar& put_char = EncodeTskvPutChar()) {
+  EncodeTskv(to, str.cbegin(), str.cend(), mode, put_char);
+}
+
+template <typename T, typename EncodeTskvPutChar = EncodeTskvPutCharDefault<T>>
+void EncodeTskv(T& to, const char* str, EncodeTskvMode mode,
+                const EncodeTskvPutChar& put_char = EncodeTskvPutChar()) {
+  for (const auto* ptr = str; *ptr; ++ptr) EncodeTskv(to, *ptr, mode, put_char);
+}
+
+template <typename T, typename EncodeTskvPutChar = EncodeTskvPutCharDefault<T>,
+          typename It>
+void EncodeTskv(T& to, It first, It last, EncodeTskvMode mode,
+                const EncodeTskvPutChar& put_char = EncodeTskvPutChar()) {
+  for (auto it = first; it != last; ++it) EncodeTskv(to, *it, mode, put_char);
+}
+
+template <typename T, typename EncodeTskvPutChar = EncodeTskvPutCharDefault<T>>
+void EncodeTskv(T& to, const char* str, size_t size, EncodeTskvMode mode,
+                const EncodeTskvPutChar& put_char = EncodeTskvPutChar()) {
+  EncodeTskv(to, str, str + size, mode, put_char);
+}
+
+}  // namespace encoding
+}  // namespace utils
