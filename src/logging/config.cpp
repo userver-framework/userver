@@ -21,7 +21,7 @@ LoggerConfig::QueueOveflowBehavior OverflowBehaviorFromString(
 }  // namespace
 
 const std::string LoggerConfig::kDefaultPattern =
-    "tskv\ttimestamp=%Y-%m-%d %H:%M:%S.%f\ttimezone=%z\tlevel=%l\t%v";
+    "tskv\ttimestamp=%Y-%m-%dT%H:%M:%S.%f\ttimezone=%z\tlevel=%l\t%v";
 
 LoggerConfig LoggerConfig::ParseFromJson(
     const Json::Value& json, const std::string& full_path,
