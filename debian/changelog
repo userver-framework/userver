@@ -1,3 +1,9 @@
+yandex-taxi-userver (0.1.9) unstable; urgency=medium
+
+  * Dmitriy Zhukov | feat server: limit logs by 75G, fix time format in server.log (#48)
+
+ -- Dmitry Zhukov <dzhuk@yandex-team.ru>  Wed, 13 Jun 2018 18:53:42 +0300
+
 yandex-taxi-userver (0.1.8) unstable; urgency=medium
 
   * Dmitriy Zhukov | feat server: log request and response (#46)
