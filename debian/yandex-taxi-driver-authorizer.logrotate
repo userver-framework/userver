@@ -1,6 +1,6 @@
 /var/log/yandex/taxi-driver-authorizer/*.log {
     daily
-    maxsize 200G
+    maxsize 75G
     missingok
     rotate 2
     compress
