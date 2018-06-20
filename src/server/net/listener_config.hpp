@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <json/value.h>
+#include <boost/optional.hpp>
 
 #include <json_config/variable_map.hpp>
 
@@ -14,7 +15,7 @@ namespace net {
 struct ListenerConfig {
   ConnectionConfig connection_config;
   uint16_t port = 80;
-  uint16_t monitor_port = 1188;
+  boost::optional<uint16_t> monitor_port;
   int backlog = 1024;  // truncated to net.core.somaxconn
   size_t max_connections = 32768;
 

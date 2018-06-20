@@ -91,7 +91,7 @@ void Run(const std::string& config_path, const ComponentList& component_list,
          const std::string& init_log_path) {
   ServerLogScope server_log_scope{init_log_path};
 
-  LOG_INFO() << "Parsing configs";
+  LOG_INFO() << "Parsing configs from '" << config_path << '\'';
   auto config = ServerConfig::ParseFromFile(config_path);
   LOG_INFO() << "Parsed configs";
 

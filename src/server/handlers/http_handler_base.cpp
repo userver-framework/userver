@@ -36,7 +36,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     noexcept {
   try {
     const http::HttpRequest http_request(
-        dynamic_cast<const server::http::HttpRequestImpl&>(request));
+        dynamic_cast<const http::HttpRequestImpl&>(request));
     auto& response = http_request.GetHttpResponse();
 
     const std::string& link = utils::generators::GenerateUuid();
@@ -98,7 +98,7 @@ void HttpHandlerBase::OnRequestComplete(const request::RequestBase& request,
     noexcept {
   try {
     const http::HttpRequest http_request(
-        dynamic_cast<const server::http::HttpRequestImpl&>(request));
+        dynamic_cast<const http::HttpRequestImpl&>(request));
     try {
       OnRequestCompleteThrow(http_request, context);
     } catch (const std::exception& ex) {

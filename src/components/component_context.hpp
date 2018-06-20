@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <engine/task/task_processor.hpp>
-#include <server/request/monitor.hpp>
 
 #include "component_base.hpp"
 
@@ -19,8 +18,7 @@ class ComponentContext {
   using TaskProcessorMap =
       std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
 
-  ComponentContext(TaskProcessorMap,
-                   std::unique_ptr<server::request::Monitor>&& server_monitor);
+  explicit ComponentContext(TaskProcessorMap);
   ~ComponentContext();
 
   void AddComponent(std::string name,
@@ -41,10 +39,6 @@ class ComponentContext {
   ComponentMap::const_iterator begin() const;
   ComponentMap::const_iterator end() const;
 
-  const server::request::Monitor& GetServerMonitor() const {
-    return *server_monitor_;
-  }
-
   engine::TaskProcessor* GetTaskProcessor(const std::string& name) const;
 
  private:
@@ -53,7 +47,6 @@ class ComponentContext {
   ComponentMap components_;
   std::vector<std::string> component_names_;
   TaskProcessorMap task_processor_map_;
-  std::unique_ptr<server::request::Monitor> server_monitor_;
 };
 
 }  // namespace components

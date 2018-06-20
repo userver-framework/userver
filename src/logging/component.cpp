@@ -81,9 +81,9 @@ void Logging::OnLogRotate() {
   rotate_msg.logger_name = &default_logger->name();
   default_logger->_sink_it(rotate_msg);
 
-  for (auto& item : loggers_) {
+  for (const auto& item : loggers_) {
     const auto& name = item.first;
-    auto& logger = item.second;
+    const auto& logger = item.second;
 
     rotate_msg.logger_name = &name;
     logger->_sink_it(rotate_msg);

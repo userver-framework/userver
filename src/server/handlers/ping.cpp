@@ -8,7 +8,7 @@ Ping::Ping(const components::ComponentConfig& config,
     : HttpHandlerBase(config, component_context) {}
 
 const std::string& Ping::HandlerName() const {
-  static const std::string kHandlerPingName = Ping::kName;
+  static const std::string kHandlerPingName = kName;
 
   return kHandlerPingName;
 }

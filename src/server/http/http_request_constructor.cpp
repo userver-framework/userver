@@ -6,6 +6,8 @@
 
 #include <logging/log.hpp>
 
+#include "http_status.hpp"
+
 namespace server {
 namespace http {
 
@@ -20,10 +22,11 @@ inline void Strip(const char*& begin, const char*& end) {
 
 }  // namespace
 
-HttpRequestConstructor::HttpRequestConstructor()
-    : request_(std::make_unique<HttpRequestImpl>()) {}
-
-HttpRequestConstructor::~HttpRequestConstructor() {}
+HttpRequestConstructor::HttpRequestConstructor(
+    Config config, const HttpRequestHandler& request_handler)
+    : config_(config),
+      request_handler_(request_handler),
+      request_(std::make_unique<HttpRequestImpl>()) {}
 
 void HttpRequestConstructor::SetMethod(http_method method) {
   request_->method_ = method;
@@ -37,12 +40,55 @@ void HttpRequestConstructor::SetHttpMinor(unsigned short http_minor) {
   request_->http_minor_ = http_minor;
 }
 
-void HttpRequestConstructor::SetParseArgsFromBody(bool parse_args_from_body) {
-  parse_args_from_body_ = parse_args_from_body;
+void HttpRequestConstructor::AppendUrl(const char* data, size_t size) {
+  // using common limits in checks
+  AccountUrlSize(size);
+  AccountRequestSize(size);
+
+  request_->url_.append(data, size);
 }
 
-void HttpRequestConstructor::AppendUrl(const char* data, size_t size) {
-  request_->url_.append(data, size);
+void HttpRequestConstructor::ParseUrl() {
+  LOG_TRACE() << "parse path from '" << request_->url_ << '\'';
+  if (http_parser_parse_url(request_->url_.data(), request_->url_.size(),
+                            request_->method_ == HTTP_CONNECT, &parsed_url_)) {
+    SetStatus(Status::kParseUrlError);
+    throw std::runtime_error("error in http_parser_parse_url()");
+  }
+
+  if (parsed_url_.field_set & (1 << http_parser_url_fields::UF_PATH)) {
+    const auto& str_info =
+        parsed_url_.field_data[http_parser_url_fields::UF_PATH];
+    request_->request_path_ = request_->url_.substr(str_info.off, str_info.len);
+    LOG_TRACE() << "path='" << request_->request_path_ << '\'';
+  } else {
+    SetStatus(Status::kParseUrlError);
+    throw std::runtime_error("can't parse path");
+  }
+
+  HttpRequestHandler::HandlerInfo handler_info;
+  if (request_handler_.GetHandlerInfo(request_->GetRequestPath(), handler_info))
+    request_->SetMatchedPathLength(handler_info.matched_path_length);
+
+  if (handler_info.handler) {
+    const auto& handler_config = handler_info.handler->GetConfig();
+    if (handler_config.max_url_size)
+      config_.max_url_size = *handler_config.max_url_size;
+    if (handler_config.max_request_size)
+      config_.max_request_size = *handler_config.max_request_size;
+    if (handler_config.max_headers_size)
+      config_.max_headers_size = *handler_config.max_headers_size;
+    if (handler_config.parse_args_from_body)
+      config_.parse_args_from_body = *handler_config.parse_args_from_body;
+  } else {
+    SetStatus(Status::kHandlerNotFound);
+  }
+
+  // recheck sizes using per-handler limits
+  AccountUrlSize(0);
+  AccountRequestSize(0);
+
+  url_parsed_ = true;
 }
 
 void HttpRequestConstructor::AppendHeaderField(const char* data, size_t size) {
@@ -51,24 +97,33 @@ void HttpRequestConstructor::AppendHeaderField(const char* data, size_t size) {
     header_value_flag_ = false;
   }
   header_field_flag_ = true;
+
+  AccountHeadersSize(size);
+  AccountRequestSize(size);
+
   header_field_.append(data, size);
 }
 
 void HttpRequestConstructor::AppendHeaderValue(const char* data, size_t size) {
   assert(header_field_flag_);
   header_value_flag_ = true;
+
+  AccountHeadersSize(size);
+  AccountRequestSize(size);
+
   header_value_.append(data, size);
 }
 
 void HttpRequestConstructor::AppendBody(const char* data, size_t size) {
+  AccountRequestSize(size);
   request_->request_body_.append(data, size);
 }
 
 namespace {
 
-template <typename Array, typename PrintElem>
-std::ostringstream& PrintArray(std::ostringstream& os, const std::string& name,
-                               const Array& array, PrintElem print_elem) {
+template <typename Array, typename DumpElem>
+std::ostringstream& DumpArray(std::ostringstream& os, const std::string& name,
+                              const Array& array, DumpElem dump_elem) {
   bool first = true;
   os << name << ":[";
   for (const auto& elem : array) {
@@ -76,7 +131,7 @@ std::ostringstream& PrintArray(std::ostringstream& os, const std::string& name,
       first = false;
     else
       os << ", ";
-    print_elem(elem);
+    dump_elem(elem);
   }
   os << ']';
   return os;
@@ -85,81 +140,49 @@ std::ostringstream& PrintArray(std::ostringstream& os, const std::string& name,
 }  // namespace
 
 std::unique_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
-  http_parser_url url;
-
   LOG_TRACE() << "method=" << request_->GetMethodStr();
-  LOG_TRACE() << "parse path from '" << request_->url_ << "'";
-  if (http_parser_parse_url(request_->url_.data(), request_->url_.size(),
-                            request_->method_ == HTTP_CONNECT, &url)) {
-    LOG_DEBUG() << "can't parse url";
-    return nullptr;
-  }
 
-  if (url.field_set & (1 << http_parser_url_fields::UF_PATH)) {
-    const auto& str_info = url.field_data[http_parser_url_fields::UF_PATH];
-    request_->request_path_ = request_->url_.substr(str_info.off, str_info.len);
-    LOG_TRACE() << "path='" << request_->request_path_ << "'";
-  } else {
-    LOG_DEBUG() << "can't parse path";
-    return nullptr;
+  FinalizeImpl();
+
+  CheckStatus();
+
+  return std::move(request_);
+}
+
+void HttpRequestConstructor::FinalizeImpl() {
+  if (status_ != Status::kOk) return;
+
+  if (!url_parsed_) {
+    SetStatus(Status::kBadRequest);
+    return;
   }
 
   try {
-    ParseArgs(url);
-    if (parse_args_from_body_)
+    ParseArgs(parsed_url_);
+    if (config_.parse_args_from_body)
       ParseArgs(request_->request_body_.data(), request_->request_body_.size());
   } catch (const std::exception& ex) {
-    LOG_DEBUG() << "can't parse args: " << ex.what();
-    return nullptr;
+    LOG_WARNING() << "can't parse args: " << ex.what();
+    SetStatus(Status::kParseArgsError);
+    return;
   }
 
   assert(std::all_of(request_->request_args_.begin(),
                      request_->request_args_.end(),
                      [](const auto& arg) { return !arg.second.empty(); }));
 
-  auto print_request_args = [this]() {
-    std::ostringstream os;
-    PrintArray(
-        os, "request_args", request_->request_args_,
-        [&os](const std::pair<std::string, std::vector<std::string>>& arg) {
-          os << "{\"arg_name\":\"" << arg.first << "\", ";
-          PrintArray(
-              os, "\"arg_values\"", arg.second,
-              [&os](const std::string& value) { os << "\"" << value << "\""; });
-        });
-    return os.str();
-  };
-  LOG_TRACE() << print_request_args();
-
-  auto print_headers = [this]() {
-    std::ostringstream os;
-    PrintArray(os, "headers", request_->headers_,
-               [&os](const std::pair<std::string, std::string>& header) {
-                 os << "{\"header_name\":\"" << header.first
-                    << "\", \"header_value\":\"" << header.second << "\"}";
-               });
-    return os.str();
-  };
-  LOG_TRACE() << print_headers();
+  LOG_TRACE() << DumpRequestArgs();
+  LOG_TRACE() << DumpHeaders();
 
   try {
     ParseCookies();
   } catch (const std::exception& ex) {
-    LOG_DEBUG() << "can't parse cookies: " << ex.what();
-    return nullptr;
+    LOG_WARNING() << "can't parse cookies: " << ex.what();
+    SetStatus(Status::kParseCookiesError);
+    return;
   }
-  auto print_cookies = [this]() {
-    std::ostringstream os;
-    PrintArray(os, "cookies", request_->cookies_,
-               [&os](const std::pair<std::string, std::string>& cookie) {
-                 os << "{\"cookie_name\":\"" << cookie.first
-                    << "\", \"cookie_value\":\"" << cookie.second << "\"}";
-               });
-    return os.str();
-  };
-  LOG_TRACE() << print_cookies();
 
-  return std::move(request_);
+  LOG_TRACE() << DumpCookies();
 }
 
 std::string HttpRequestConstructor::UrlDecode(const char* data,
@@ -272,6 +295,104 @@ void HttpRequestConstructor::ParseCookies() {
       key_end = ptr;
       continue;
     }
+  }
+}
+
+void HttpRequestConstructor::SetStatus(HttpRequestConstructor::Status status) {
+  status_ = status;
+}
+
+void HttpRequestConstructor::AccountRequestSize(size_t size) {
+  request_size_ += size;
+  if (request_size_ > config_.max_request_size) {
+    SetStatus(Status::kRequestTooLarge);
+    throw std::runtime_error("request is too large");
+  }
+}
+
+void HttpRequestConstructor::AccountUrlSize(size_t size) {
+  url_size_ += size;
+  if (url_size_ > config_.max_url_size) {
+    SetStatus(Status::kUriTooLong);
+    throw std::runtime_error("url is too long");
+  }
+}
+
+void HttpRequestConstructor::AccountHeadersSize(size_t size) {
+  headers_size_ += size;
+  if (headers_size_ > config_.max_headers_size) {
+    SetStatus(Status::kHeadersTooLarge);
+    throw std::runtime_error("headers too large");
+  }
+}
+
+std::string HttpRequestConstructor::DumpRequestArgs() const {
+  std::ostringstream os;
+  DumpArray(os, "request_args", request_->request_args_,
+            [&os](const std::pair<std::string, std::vector<std::string>>& arg) {
+              os << "{\"arg_name\":\"" << arg.first << "\", ";
+              DumpArray(os, "\"arg_values\"", arg.second,
+                        [&os](const std::string& value) {
+                          os << "\"" << value << "\"";
+                        });
+            });
+  return os.str();
+}
+
+std::string HttpRequestConstructor::DumpHeaders() const {
+  std::ostringstream os;
+  DumpArray(os, "headers", request_->headers_,
+            [&os](const std::pair<std::string, std::string>& header) {
+              os << "{\"header_name\":\"" << header.first
+                 << "\", \"header_value\":\"" << header.second << "\"}";
+            });
+  return os.str();
+}
+
+std::string HttpRequestConstructor::DumpCookies() const {
+  std::ostringstream os;
+  DumpArray(os, "cookies", request_->cookies_,
+            [&os](const std::pair<std::string, std::string>& cookie) {
+              os << "{\"cookie_name\":\"" << cookie.first
+                 << "\", \"cookie_value\":\"" << cookie.second << "\"}";
+            });
+  return os.str();
+}
+
+void HttpRequestConstructor::CheckStatus() const {
+  switch (status_) {
+    case Status::kOk:
+      request_->SetResponseStatus(HttpStatus::kOk);
+      break;
+    case Status::kBadRequest:
+      request_->SetResponseStatus(HttpStatus::kBadRequest);
+      request_->GetHttpResponse().SetData("bad request");
+      break;
+    case Status::kUriTooLong:
+      request_->SetResponseStatus(HttpStatus::kUriTooLong);
+      break;
+    case Status::kParseUrlError:
+      request_->SetResponseStatus(HttpStatus::kBadRequest);
+      request_->GetHttpResponse().SetData("invalid url");
+      break;
+    case Status::kHandlerNotFound:
+      request_->SetResponseStatus(HttpStatus::kNotFound);
+      break;
+    case Status::kHeadersTooLarge:
+      request_->SetResponseStatus(HttpStatus::kRequestHeaderFieldsTooLarge);
+      break;
+    case Status::kRequestTooLarge:
+      request_->SetResponseStatus(HttpStatus::kPayloadTooLarge);
+      request_->GetHttpResponse().SetData("too large request");
+      break;
+    case Status::kParseArgsError:
+      request_->SetResponseStatus(HttpStatus::kBadRequest);
+      request_->GetHttpResponse().SetData("invalid args");
+      break;
+    case Status::kParseCookiesError:
+      request_->SetResponseStatus(HttpStatus::kBadRequest);
+      request_->GetHttpResponse().SetData("invalid cookies");
+      break;
   }
 }
 

@@ -2,18 +2,17 @@
 
 #include <string>
 
-#include <server/request/monitor.hpp>
-#include <server/request/request_base.hpp>
+#include <server/http/http_request.hpp>
 
 namespace server {
 
 class ServerImpl;
 
-class ServerMonitor : public request::Monitor {
+class ServerMonitor {
  public:
   explicit ServerMonitor(const ServerImpl& server_impl);
 
-  std::string GetJsonData(const request::RequestBase&) const override;
+  std::string GetJsonData(const http::HttpRequest&) const;
 
  private:
   const ServerImpl& server_impl_;

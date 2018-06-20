@@ -15,6 +15,9 @@
 
 #include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
+#include <server/http/http_request_handler.hpp>
+#include <server/http/http_request_parser.hpp>
+#include <server/request/request_config.hpp>
 
 namespace server {
 namespace net {
@@ -24,30 +27,63 @@ namespace {
 // used for remote address/hostname buffer size
 const size_t kMaxRemoteIdLength = std::max(INET6_ADDRSTRLEN, NI_MAXHOST);
 
+std::unique_ptr<request::RequestParser> GetRequestParser(
+    const request::RequestConfig& config, Connection::Type type,
+    std::function<void(std::unique_ptr<request::RequestBase>&&)> on_new_request,
+    const RequestHandlers& request_handlers) {
+  if (type == Connection::Type::kMonitor ||
+      config.GetType() == request::RequestConfig::Type::kHttp) {
+    auto request_parser = std::make_unique<http::HttpRequestParser>(
+        (type == Connection::Type::kMonitor
+             ? request_handlers.GetMonitorRequestHandler()
+             : request_handlers.GetHttpRequestHandler()),
+        config, std::move(on_new_request));
+    return request_parser;
+  }
+  throw std::runtime_error(
+      "unknown request type: " +
+      request::RequestConfig::TypeToString(config.GetType()));
+}
+
+const request::RequestHandlerBase& GetRequestHandler(
+    const request::RequestConfig& config, Connection::Type type,
+    const RequestHandlers& request_handlers) {
+  if (type == Connection::Type::kMonitor)
+    return request_handlers.GetMonitorRequestHandler();
+  if (config.GetType() == request::RequestConfig::Type::kHttp)
+    return request_handlers.GetHttpRequestHandler();
+  throw std::runtime_error(
+      "unknown request type: " +
+      request::RequestConfig::TypeToString(config.GetType()));
+}
+
 }  // namespace
 
 Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
                        const ConnectionConfig& config, Type type,
-                       request_handling::RequestHandler& request_handler,
+                       const RequestHandlers& request_handlers,
                        const sockaddr_in6& sin6, BeforeCloseCb before_close_cb)
     : config_(config),
       type_(type),
-      request_handler_(request_handler),
+      request_handler_(
+          GetRequestHandler(*config_.request, type, request_handlers)),
       request_tasks_sent_idx_(0),
       is_request_tasks_full_(false),
       before_close_cb_(std::move(before_close_cb)),
-      http_request_parser_(
+      request_parser_(GetRequestParser(
+          *config_.request, type,
           [this](std::unique_ptr<request::RequestBase>&& request_ptr) {
             NewRequest(std::move(request_ptr));
-          }),
+          },
+          request_handlers)),
       is_closing_(false),
       processed_requests_count_(0) {
   auto* task_processor_ptr =
       request_handler_.GetComponentContext().GetTaskProcessor(
-          config.task_processor);
+          config_.task_processor);
   if (!task_processor_ptr) {
     throw std::runtime_error("Cannot find task processor '" +
-                             config.task_processor + '\'');
+                             config_.task_processor + '\'');
   }
 
   response_event_task_ = std::make_shared<engine::EventTask>(
@@ -146,7 +182,7 @@ size_t Connection::ProcessedRequestCount() const {
 size_t Connection::ActiveRequestCount() const { return request_tasks_.size(); }
 
 size_t Connection::ParsingRequestCount() const {
-  return http_request_parser_.ParsingRequestCount();
+  return request_parser_->ParsingRequestCount();
 }
 
 size_t Connection::PendingResponseCount() const {
@@ -177,7 +213,7 @@ engine::SocketListener::Result Connection::ReadData(int fd) {
                 << error.message();
     return engine::SocketListener::Result::kError;
   }
-  if (bytes_read == 0 || !http_request_parser_.Parse(buf.data(), bytes_read) ||
+  if (bytes_read == 0 || !request_parser_->Parse(buf.data(), bytes_read) ||
       response_sender_->Stopped()) {
     return engine::SocketListener::Result::kError;
   }
@@ -196,10 +232,9 @@ engine::SocketListener::Result Connection::ReadData(int fd) {
 
 void Connection::NewRequest(
     std::unique_ptr<request::RequestBase>&& request_ptr) {
-  auto is_monitor = (type_ == Type::kMonitor);
   auto request_task = request_handler_.PrepareRequestTask(
-      std::move(request_ptr), [task = response_event_task_] { task->Notify(); },
-      is_monitor);
+      std::move(request_ptr),
+      [task = response_event_task_] { task->Notify(); });
 
   auto* task_ptr = request_task.get();
   assert(task_ptr);
@@ -207,13 +242,13 @@ void Connection::NewRequest(
     std::lock_guard<std::mutex> lock(request_tasks_mutex_);
     request_tasks_.push_back(std::move(request_task));
   }
-  request_handler_.ProcessRequest(*task_ptr, is_monitor);
+  request_handler_.ProcessRequest(*task_ptr);
 }
 
 void Connection::SendResponses() {
   LOG_TRACE() << "Sending responses for fd " << Fd();
   for (;;) {
-    request_handling::RequestTask* task_ptr = nullptr;
+    request::RequestTask* task_ptr = nullptr;
     {
       std::lock_guard<std::mutex> lock(request_tasks_mutex_);
       if (request_tasks_sent_idx_ < request_tasks_.size() &&
@@ -239,7 +274,7 @@ void Connection::SendResponses() {
   }
 
   for (;;) {
-    std::unique_ptr<request_handling::RequestTask> request_task_ptr;
+    std::unique_ptr<request::RequestTask> request_task_ptr;
     {
       std::lock_guard<std::mutex> lock(request_tasks_mutex_);
       LOG_TRACE() << "Fd " << Fd() << " has " << request_tasks_.size()

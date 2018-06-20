@@ -4,16 +4,15 @@
 
 #include <components/component_context.hpp>
 #include <engine/task/task_processor.hpp>
-#include <logging/logger.hpp>
 #include <server/handlers/handler_base.hpp>
 #include <server/request/request_base.hpp>
-
-#include "request_task.hpp"
+#include <server/request/request_handler_base.hpp>
+#include <server/request/request_task.hpp>
 
 namespace server {
-namespace request_handling {
+namespace http {
 
-class RequestHandler {
+class HttpRequestHandler : public request::RequestHandlerBase {
  public:
   struct HandlerInfo {
     HandlerInfo() = default;
@@ -26,32 +25,23 @@ class RequestHandler {
     size_t matched_path_length = 0;
   };
 
-  RequestHandler(
+  HttpRequestHandler(
       const components::ComponentContext& component_context,
       const boost::optional<std::string>& logger_access_component,
-      const boost::optional<std::string>& logger_access_tskv_component);
+      const boost::optional<std::string>& logger_access_tskv_component,
+      bool is_monitor);
 
-  std::unique_ptr<RequestTask> PrepareRequestTask(
+  std::unique_ptr<request::RequestTask> PrepareRequestTask(
       std::unique_ptr<request::RequestBase>&& request,
-      std::function<void()>&& notify_func, bool monitor);
-  void ProcessRequest(RequestTask& task, bool monitor);
-  const components::ComponentContext& GetComponentContext() const {
-    return component_context_;
-  }
+      std::function<void()>&& notify_func) const override;
+  void ProcessRequest(request::RequestTask& task) const override;
 
-  const logging::LoggerPtr& LoggerAccess() const { return logger_access_; }
-  const logging::LoggerPtr& LoggerAccessTskv() const {
-    return logger_access_tskv_;
-  }
-
- private:
   bool GetHandlerInfo(const std::string& path, HandlerInfo& handler_info) const;
 
-  const components::ComponentContext& component_context_;
-  logging::LoggerPtr logger_access_;
-  logging::LoggerPtr logger_access_tskv_;
+ private:
   std::unordered_map<std::string, HandlerInfo> handler_infos_;
+  bool is_monitor_;
 };
 
-}  // namespace request_handling
+}  // namespace http
 }  // namespace server

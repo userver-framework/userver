@@ -8,6 +8,7 @@
 #include <engine/task/task.hpp>
 #include <logging/component.hpp>
 #include <logging/log.hpp>
+#include <server/handlers/server_monitor.hpp>
 
 #include "component_list.hpp"
 #include "server_monitor.hpp"
@@ -45,7 +46,7 @@ ServerImpl::ServerImpl(ServerConfig config, const ComponentList& component_list)
   default_task_processor_ = default_task_processor_it->second.get();
   auto monitor = std::make_unique<ServerMonitor>(*this);
   component_context_ = std::make_unique<components::ComponentContext>(
-      std::move(task_processors), std::move(monitor));
+      std::move(task_processors));
 
   components::ComponentConfigMap component_config_map;
   for (const auto& component_config : config_.components) {
@@ -53,11 +54,17 @@ ServerImpl::ServerImpl(ServerConfig config, const ComponentList& component_list)
   }
   component_list.AddAll(*this, component_config_map);
 
-  request_handler_ = std::make_unique<request_handling::RequestHandler>(
-      *component_context_, config_.logger_access, config_.logger_access_tskv);
+  auto server_monitor_component =
+      component_context_->FindComponent<handlers::ServerMonitor>();
+  if (server_monitor_component) {
+    server_monitor_ = std::make_unique<ServerMonitor>(*this);
+    server_monitor_component->SetMonitorPtr(server_monitor_.get());
+  }
+
+  request_handlers_ = CreateRequestHandlers();
 
   endpoint_info_ =
-      std::make_shared<net::EndpointInfo>(config_.listener, *request_handler_);
+      std::make_shared<net::EndpointInfo>(config_.listener, *request_handlers_);
 
   auto& event_thread_pool = default_task_processor_->EventThreadPool();
   auto event_thread_controls =
@@ -75,12 +82,17 @@ ServerImpl::~ServerImpl() {
   LOG_TRACE() << "Stopping listeners";
   listeners_.clear();
   LOG_TRACE() << "Stopped listeners";
-  LOG_TRACE() << "Stopping request handler";
-  request_handler_.reset();
-  LOG_TRACE() << "Stopped request handler";
+  LOG_TRACE() << "Stopping request handlers";
+  request_handlers_.reset();
+  LOG_TRACE() << "Stopped request handlers";
   LOG_TRACE() << "Stopping component context";
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
+  if (server_monitor_) {
+    LOG_INFO() << "Stopping server monitor";
+    server_monitor_.reset();
+    LOG_INFO() << "Stopped server monitor";
+  }
   LOG_TRACE() << "Stopping event_thread_pools";
   event_thread_pools_.clear();
   LOG_TRACE() << "Stopped event_thread_pools";
@@ -138,6 +150,29 @@ void ServerImpl::AddComponentImpl(
                              ex.what());
   }
   LOG_INFO() << "Started component " << name;
+}
+
+std::unique_ptr<RequestHandlers> ServerImpl::CreateRequestHandlers() const {
+  auto request_handlers = std::make_unique<RequestHandlers>();
+  try {
+    request_handlers->SetHttpRequestHandler(
+        std::make_unique<const http::HttpRequestHandler>(
+            *component_context_, config_.logger_access,
+            config_.logger_access_tskv, false));
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "can't create HttpRequestHandler: " << ex.what();
+    throw;
+  }
+  try {
+    request_handlers->SetMonitorRequestHandler(
+        std::make_unique<const http::HttpRequestHandler>(
+            *component_context_, config_.logger_access,
+            config_.logger_access_tskv, true));
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "can't create MonitorRequestHandler: " << ex.what();
+    throw;
+  }
+  return request_handlers;
 }
 
 }  // namespace server

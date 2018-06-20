@@ -16,9 +16,10 @@
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
-#include <server/request_handling/request_handler.hpp>
+#include <server/request_handlers/request_handlers.hpp>
 
 #include "server_config.hpp"
+#include "server_monitor.hpp"
 
 namespace server {
 
@@ -54,13 +55,16 @@ class ServerImpl {
           const components::ComponentContext&)>
           factory);
 
+  std::unique_ptr<RequestHandlers> CreateRequestHandlers() const;
+
   const ServerConfig config_;
 
   std::unique_ptr<engine::TaskProcessor::CoroPool> coro_pool_;
   std::unordered_map<std::string, engine::ev::ThreadPool> event_thread_pools_;
   std::unique_ptr<components::ComponentContext> component_context_;
+  std::unique_ptr<ServerMonitor> server_monitor_;
   engine::TaskProcessor* default_task_processor_;
-  std::unique_ptr<request_handling::RequestHandler> request_handler_;
+  std::unique_ptr<RequestHandlers> request_handlers_;
   std::shared_ptr<net::EndpointInfo> endpoint_info_;
   std::vector<net::Listener> listeners_;
 };
