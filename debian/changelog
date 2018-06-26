@@ -1,3 +1,10 @@
+yandex-taxi-userver (0.1.10) unstable; urgency=medium
+
+  * Andrey Bugaevskiy | feat redis: bump hiredis version (#50)
+  * Dmitriy Zhukov | feat server: handler for server monitor, limits for http requests (#27)
+
+ -- Andrey Bugaevskiy <bugaevskiy@yandex-team.ru>  Tue, 26 Jun 2018 21:05:20 +0300
+
 yandex-taxi-userver (0.1.9) unstable; urgency=medium
 
   * Dmitriy Zhukov | feat server: limit logs by 75G, fix time format in server.log (#48)
