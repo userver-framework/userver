@@ -14,10 +14,11 @@
 #include <engine/event_task.hpp>
 #include <engine/sender.hpp>
 #include <engine/socket_listener.hpp>
-#include <server/http/http_request_parser.hpp>
 #include <server/request/request_base.hpp>
-#include <server/request_handling/request_handler.hpp>
-#include <server/request_handling/request_task.hpp>
+#include <server/request/request_handler_base.hpp>
+#include <server/request/request_parser.hpp>
+#include <server/request/request_task.hpp>
+#include <server/request_handlers/request_handlers.hpp>
 
 #include "connection_config.hpp"
 
@@ -32,8 +33,8 @@ class Connection {
 
   Connection(engine::ev::ThreadControl& thread_control, int fd,
              const ConnectionConfig& config, Type type,
-             request_handling::RequestHandler& request_handler,
-             const sockaddr_in6& sin6, BeforeCloseCb before_close_cb);
+             const RequestHandlers& request_handlers, const sockaddr_in6& sin6,
+             BeforeCloseCb before_close_cb);
   ~Connection();
 
   void Start();
@@ -61,10 +62,10 @@ class Connection {
 
   const ConnectionConfig& config_;
   Type type_;
-  request_handling::RequestHandler& request_handler_;
+  const request::RequestHandlerBase& request_handler_;
 
   mutable std::mutex request_tasks_mutex_;
-  std::deque<std::unique_ptr<request_handling::RequestTask>> request_tasks_;
+  std::deque<std::unique_ptr<request::RequestTask>> request_tasks_;
   size_t request_tasks_sent_idx_;
   engine::ConditionVariable request_tasks_empty_cv_;
   bool is_request_tasks_full_;
@@ -73,7 +74,7 @@ class Connection {
   BeforeCloseCb before_close_cb_;
 
   std::shared_ptr<engine::EventTask> response_event_task_;
-  http::HttpRequestParser http_request_parser_;
+  std::unique_ptr<request::RequestParser> request_parser_;
 
   std::atomic<bool> is_closing_;
 

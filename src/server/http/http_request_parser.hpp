@@ -6,6 +6,7 @@
 
 #include <http_parser.h>
 
+#include <server/request/request_config.hpp>
 #include <server/request/request_parser.hpp>
 
 #include "http_request_constructor.hpp"
@@ -18,8 +19,9 @@ class HttpRequestParser : public request::RequestParser {
   using OnNewRequestCb =
       std::function<void(std::unique_ptr<request::RequestBase>&&)>;
 
-  explicit HttpRequestParser(OnNewRequestCb&& on_new_request_cb);
-  virtual ~HttpRequestParser();
+  HttpRequestParser(const HttpRequestHandler& request_handler,
+                    const request::RequestConfig& request_config,
+                    OnNewRequestCb&& on_new_request_cb);
 
   virtual bool Parse(const char* data, size_t size) override;
 
@@ -42,11 +44,17 @@ class HttpRequestParser : public request::RequestParser {
   int OnBodyImpl(http_parser* p, const char* data, size_t size);
   int OnMessageCompleteImpl(http_parser* p);
 
-  bool UpdateRequestSize(size_t size);
+  void CreateRequestConstructor();
 
-  size_t max_request_size_ = 65536;
+  bool CheckUrlComplete(http_parser* p);
 
-  size_t request_size_ = 0;
+  bool FinalizeRequest();
+  bool FinalizeRequestImpl();
+
+  const HttpRequestHandler& request_handler_;
+  HttpRequestConstructor::Config request_constructor_config_;
+
+  bool url_complete_ = false;
 
   OnNewRequestCb on_new_request_cb_;
 

@@ -9,7 +9,7 @@ Build-Depends:
 	yandex-dh-nginx,
 	libhttp-parser-dev,
 	libjsoncpp-dev,
-	libhiredis-dev (>= 0.13),
+	libhiredis-dev (>= 0.13.3-2.4),
 	libev-dev,
 	libboost-coroutine-dev,
 	libboost-program-options-dev,

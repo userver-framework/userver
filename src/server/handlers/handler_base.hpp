@@ -24,6 +24,8 @@ class HandlerBase : public components::ComponentBase {
                                  request::RequestContext& context) const
       noexcept = 0;
 
+  virtual bool IsMonitor() const { return false; }
+
   const HandlerConfig& GetConfig() const;
 
  private:

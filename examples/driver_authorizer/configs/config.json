@@ -108,6 +108,11 @@
         "name": "need-log-request-checker"
       },
       {
+        "name": "handler-server-monitor",
+        "path": "/*",
+        "task_processor": "main-task-processor"
+      },
+      {
         "name": "handler-ping",
         "path": "/ping",
         "task_processor": "main-task-processor"
@@ -117,7 +122,8 @@
         "path": "/driver_session",
         "task_processor": "main-task-processor",
         "session_ttl_update_enabled": "$session_ttl_update_enabled",
-        "session_ttl_update_enabled#fallback": false
+        "session_ttl_update_enabled#fallback": false,
+        "parse_args_from_body": true
       }
     ]
   }

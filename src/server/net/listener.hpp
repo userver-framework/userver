@@ -4,7 +4,6 @@
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/task/task_processor.hpp>
-#include <server/request_handling/request_handler.hpp>
 
 #include "endpoint_info.hpp"
 #include "listener_impl.hpp"

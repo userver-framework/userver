@@ -3,11 +3,11 @@
 #include <server/request/response_base.hpp>
 
 namespace server {
-namespace request_handling {
+namespace request {
 
 RequestTask::RequestTask(engine::TaskProcessor* task_processor,
                          const handlers::HandlerBase* handler,
-                         std::unique_ptr<request::RequestBase>&& request,
+                         std::unique_ptr<RequestBase>&& request,
                          NotifyCb&& notify_cb)
     : engine::Task(task_processor),
       handler_(handler),
@@ -44,5 +44,5 @@ void RequestTask::SetComplete() {
   if (notify_cb) notify_cb();
 }
 
-}  // namespace request_handling
+}  // namespace request
 }  // namespace server

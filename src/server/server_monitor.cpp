@@ -37,12 +37,9 @@ namespace server {
 ServerMonitor::ServerMonitor(const ServerImpl& server_impl)
     : server_impl_(server_impl) {}
 
-std::string ServerMonitor::GetJsonData(
-    const request::RequestBase& request) const {
-  const http::HttpRequest http_request(
-      dynamic_cast<const http::HttpRequestImpl&>(request));
+std::string ServerMonitor::GetJsonData(const http::HttpRequest& request) const {
   const auto verbosity =
-      http_request.GetArg("full") == "1" ? Verbosity::Full : Verbosity::Terse;
+      request.GetArg("full") == "1" ? Verbosity::Full : Verbosity::Terse;
 
   Json::Value json_data(Json::objectValue);
   if (verbosity == Verbosity::Full) {

@@ -4,11 +4,8 @@
 
 namespace components {
 
-ComponentContext::ComponentContext(
-    TaskProcessorMap task_processor_map,
-    std::unique_ptr<server::request::Monitor>&& server_monitor)
-    : task_processor_map_(std::move(task_processor_map)),
-      server_monitor_(std::move(server_monitor)) {}
+ComponentContext::ComponentContext(TaskProcessorMap task_processor_map)
+    : task_processor_map_(std::move(task_processor_map)) {}
 
 ComponentContext::~ComponentContext() {
   LOG_TRACE() << "Stopping components";

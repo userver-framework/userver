@@ -4,6 +4,7 @@
 #include <logging/component.hpp>
 #include <server/component_list.hpp>
 #include <server/handlers/ping.hpp>
+#include <server/handlers/server_monitor.hpp>
 #include <storages/mongo/component.hpp>
 #include <storages/redis/component.hpp>
 #include <storages/secdist/component.hpp>
@@ -26,6 +27,7 @@ const auto kComponentList =
         .Append<components::TaxiConfig<TaxiConfig>>()
         .Append<components::NeedLogRequestChecker<TaxiConfig>>()
         .Append<handlers::DriverSession>()
+        .Append<server::handlers::ServerMonitor>()
         .Append<server::handlers::Ping>();
 
 }  // namespace driver_authorizer

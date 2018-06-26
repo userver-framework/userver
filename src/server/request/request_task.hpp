@@ -5,10 +5,11 @@
 
 #include <engine/task/task.hpp>
 #include <server/handlers/handler_base.hpp>
-#include <server/request/request_base.hpp>
+
+#include "request_base.hpp"
 
 namespace server {
-namespace request_handling {
+namespace request {
 
 class RequestTask : public engine::Task {
  public:
@@ -16,8 +17,7 @@ class RequestTask : public engine::Task {
 
   RequestTask(engine::TaskProcessor* task_processor,
               const handlers::HandlerBase* handler,
-              std::unique_ptr<request::RequestBase>&& request,
-              NotifyCb&& notify_cb);
+              std::unique_ptr<RequestBase>&& request, NotifyCb&& notify_cb);
   virtual ~RequestTask() {}
 
   virtual void Run() noexcept override;
@@ -26,14 +26,14 @@ class RequestTask : public engine::Task {
 
   void SetComplete();
 
-  request::RequestBase& GetRequest() const { return *request_; }
+  RequestBase& GetRequest() const { return *request_; }
   const handlers::HandlerBase* GetHandler() const { return handler_; }
 
  private:
   const handlers::HandlerBase* handler_;
-  std::unique_ptr<request::RequestBase> request_;
+  std::unique_ptr<RequestBase> request_;
   NotifyCb notify_cb_;
 };
 
-}  // namespace request_handling
+}  // namespace request
 }  // namespace server

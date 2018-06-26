@@ -19,6 +19,9 @@ ConnectionConfig ConnectionConfig::ParseFromJson(
       json, "requests_queue_size_threshold", full_path, config_vars_ptr);
   if (optional_queue_size_threshold)
     config.requests_queue_size_threshold = *optional_queue_size_threshold;
+  config.request = std::make_unique<request::RequestConfig>(
+      request::RequestConfig::ParseFromJson(
+          json["request"], full_path + ".request", config_vars_ptr));
   return config;
 }
 
