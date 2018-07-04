@@ -106,6 +106,7 @@ Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
                             "Cannot get remote address string");
   }
   remote_address_ = remote_address_cstr;
+  remote_port_ = sin6.sin6_port;
 
   buf.fill('\0');
   auto gai_error =
@@ -123,7 +124,7 @@ Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
   }
 
   LOG_DEBUG() << "Incoming connection from " << remote_host_ << " ("
-              << remote_address_ << ')';
+              << remote_address_ << ") port " << remote_port_;
 }
 
 Connection::~Connection() {
@@ -154,7 +155,7 @@ Connection::~Connection() {
   LOG_TRACE() << "Stopped response event notifier for fd " << Fd();
 
   LOG_DEBUG() << "Closed connection from " << remote_host_ << " ("
-              << remote_address_ << "), fd " << Fd();
+              << remote_address_ << "), port " << remote_port_ << ", fd " << Fd();
 }
 
 void Connection::Start() {

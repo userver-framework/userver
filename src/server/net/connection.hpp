@@ -80,6 +80,7 @@ class Connection {
 
   std::string remote_address_;
   std::string remote_host_;
+  uint16_t remote_port_;
 
   size_t processed_requests_count_;
 
