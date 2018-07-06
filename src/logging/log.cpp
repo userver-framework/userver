@@ -45,7 +45,7 @@ void LogHelper::AppendLogExtra() {
   for (const auto& item : items) {
     log_msg_.raw << utils::encoding::kTskvPairsSeparator;
     utils::encoding::EncodeTskv(log_msg_.raw, item.first,
-                                utils::encoding::EncodeTskvMode::Key);
+                                utils::encoding::EncodeTskvMode::kKey);
     log_msg_.raw << utils::encoding::kTskvKeyValueSeparator;
     boost::apply_visitor(visitor, item.second.GetValue());
   }

@@ -8,7 +8,7 @@ namespace encoding {
 const char kTskvKeyValueSeparator = '=';
 const char kTskvPairsSeparator = '\t';
 
-enum class EncodeTskvMode { Key, Value };
+enum class EncodeTskvMode { kKey, kValue };
 
 template <typename T>
 struct TypeNeedsEncodeTskv
@@ -56,7 +56,7 @@ typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
       put_char(to, ch);
       break;
     case '=':
-      if (mode == EncodeTskvMode::Key) put_char(to, '\\');
+      if (mode == EncodeTskvMode::kKey) put_char(to, '\\');
       put_char(to, ch);
       break;
     case 'A':
@@ -85,7 +85,7 @@ typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
     case 'X':
     case 'Y':
     case 'Z':
-      if (mode == EncodeTskvMode::Key) {
+      if (mode == EncodeTskvMode::kKey) {
         put_char(to, ch | 0x20);  // ch - 'A' + 'a'
         break;
       }

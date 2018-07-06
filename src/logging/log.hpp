@@ -44,7 +44,7 @@ class LogHelper {
                                  LogHelper&>::type
   operator<<(LogHelper& lh, const T& value) {
     utils::encoding::EncodeTskv(lh.log_msg_.raw, value,
-                                utils::encoding::EncodeTskvMode::Value);
+                                utils::encoding::EncodeTskvMode::kValue);
     return lh;
   }
 

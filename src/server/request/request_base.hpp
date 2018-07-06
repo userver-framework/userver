@@ -21,7 +21,6 @@ class RequestBase {
 
   virtual void WriteAccessLogs(const logging::LoggerPtr& logger_access,
                                const logging::LoggerPtr& logger_access_tskv,
-                               const std::string& remote_host,
                                const std::string& remote_address) const = 0;
 
   virtual const std::string& GetRequestPath() const = 0;

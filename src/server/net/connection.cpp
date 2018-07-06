@@ -24,8 +24,8 @@ namespace net {
 
 namespace {
 
-// used for remote address/hostname buffer size
-const size_t kMaxRemoteIdLength = std::max(INET6_ADDRSTRLEN, NI_MAXHOST);
+// used for remote address buffer size
+const size_t kMaxRemoteIdLength = INET6_ADDRSTRLEN;
 
 std::unique_ptr<request::RequestParser> GetRequestParser(
     const request::RequestConfig& config, Connection::Type type,
@@ -106,25 +106,10 @@ Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
                             "Cannot get remote address string");
   }
   remote_address_ = remote_address_cstr;
-  remote_port_ = sin6.sin6_port;
+  remote_port_ = ntohs(sin6.sin6_port);
 
-  buf.fill('\0');
-  auto gai_error =
-      getnameinfo(reinterpret_cast<const sockaddr*>(&sin6), sizeof(sin6),
-                  buf.data(), buf.size(), nullptr, 0, 0);
-  if (gai_error) {
-    if (gai_error == EAI_NONAME) {
-      remote_host_ = remote_address_;
-    } else {
-      LOG_WARNING() << "Cannot get remote hostname: "
-                    << gai_strerror(gai_error);
-    }
-  } else {
-    remote_host_ = buf.data();
-  }
-
-  LOG_DEBUG() << "Incoming connection from " << remote_host_ << " ("
-              << remote_address_ << ") port " << remote_port_;
+  LOG_DEBUG() << "Incoming connection from " << remote_address_ << ", port "
+              << remote_port_ << ", fd " << Fd();
 }
 
 Connection::~Connection() {
@@ -154,8 +139,8 @@ Connection::~Connection() {
   response_event_task_->Stop();
   LOG_TRACE() << "Stopped response event notifier for fd " << Fd();
 
-  LOG_DEBUG() << "Closed connection from " << remote_host_ << " ("
-              << remote_address_ << "), port " << remote_port_ << ", fd " << Fd();
+  LOG_DEBUG() << "Closed connection from " << remote_address_ << ", port "
+              << remote_port_ << ", fd " << Fd();
 }
 
 void Connection::Start() {
@@ -173,8 +158,6 @@ int Connection::Fd() const { return socket_listener_->Fd(); }
 Connection::Type Connection::GetType() const { return type_; }
 
 const std::string& Connection::RemoteAddress() const { return remote_address_; }
-
-const std::string& Connection::RemoteHost() const { return remote_host_; }
 
 size_t Connection::ProcessedRequestCount() const {
   return processed_requests_count_;
@@ -296,7 +279,7 @@ void Connection::SendResponses() {
     if (request_task_ptr) {
       request_task_ptr->GetRequest().WriteAccessLogs(
           request_handler_.LoggerAccess(), request_handler_.LoggerAccessTskv(),
-          remote_host_, remote_address_);
+          remote_address_);
       request_task_ptr.reset();
     } else {
       break;

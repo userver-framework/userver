@@ -43,7 +43,6 @@ class Connection {
   Type GetType() const;
 
   const std::string& RemoteAddress() const;
-  const std::string& RemoteHost() const;
 
   size_t ProcessedRequestCount() const;
   size_t ActiveRequestCount() const;
@@ -79,7 +78,6 @@ class Connection {
   std::atomic<bool> is_closing_;
 
   std::string remote_address_;
-  std::string remote_host_;
   uint16_t remote_port_;
 
   size_t processed_requests_count_;

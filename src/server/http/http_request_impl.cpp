@@ -2,6 +2,7 @@
 
 #include <engine/task/task.hpp>
 #include <logging/logger.hpp>
+#include <utils/encoding/tskv.hpp>
 
 namespace {
 
@@ -27,6 +28,30 @@ std::string EscapeLogString(const std::string& str,
     }
   }
   return res;
+}
+
+std::string EscapeForAccessLog(const std::string& str) {
+  static auto prepare_need_escape = []() {
+    std::vector<uint8_t> res(256, 0);
+    for (int i = 0; i < 32; i++) res[i] = 1;
+    for (int i = 127; i < 256; i++) res[i] = 1;
+    res[static_cast<uint8_t>('\\')] = 1;
+    res[static_cast<uint8_t>('"')] = 1;
+    return res;
+  };
+
+  static const std::vector<uint8_t> kNeedEscape = prepare_need_escape();
+
+  if (str.empty()) return "-";
+  return EscapeLogString(str, kNeedEscape);
+}
+
+std::string EscapeForAccessTskvLog(const std::string& str) {
+  if (str.empty()) return "-";
+
+  std::string encoded_str;
+  EncodeTskv(encoded_str, str, utils::encoding::EncodeTskvMode::kValue);
+  return encoded_str;
 }
 
 const std::string kEmptyString{};
@@ -125,60 +150,30 @@ void HttpRequestImpl::SetMatchedPathLength(size_t length) {
 void HttpRequestImpl::WriteAccessLogs(
     const logging::LoggerPtr& logger_access,
     const logging::LoggerPtr& logger_access_tskv,
-    const std::string& remote_host, const std::string& remote_address) const {
-  WriteAccessLog(logger_access, remote_host, remote_address);
-  WriteAccessTskvLog(logger_access_tskv, remote_host, remote_address);
+    const std::string& remote_address) const {
+  WriteAccessLog(logger_access, remote_address);
+  WriteAccessTskvLog(logger_access_tskv, remote_address);
 }
 
 void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
-                                     const std::string& remote_host,
                                      const std::string& remote_address) const {
   if (!logger_access) return;
-  static const auto check_str = [](const std::string& str) -> std::string {
-    static auto prepare_need_escape = []() {
-      std::vector<uint8_t> res(256, 0);
-      for (int i = 0; i < 32; i++) res[i] = 1;
-      for (int i = 127; i < 256; i++) res[i] = 1;
-      res[static_cast<uint8_t>('\\')] = 1;
-      res[static_cast<uint8_t>('"')] = 1;
-      return res;
-    };
-
-    static const std::vector<uint8_t> kNeedEscape = prepare_need_escape();
-
-    if (str.empty()) return "-";
-    return EscapeLogString(str, kNeedEscape);
-  };
 
   logger_access->info(
       "{} {} \"{} {} HTTP/{}.{}\" {} \"{}\" \"{}\" \"{}\" {:0.6f} - {} {:0.6f}",
-      remote_host, remote_address, GetMethodStr(), GetUrl(), GetHttpMajor(),
-      GetHttpMinor(), static_cast<int>(response_->GetStatus()),
-      check_str(GetHeader("Referer")), check_str(GetHeader("User-Agent")),
-      check_str(GetHeader("Cookie")), GetRequestTime().count(),
+      EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
+      EscapeForAccessLog(GetMethodStr()), EscapeForAccessLog(GetUrl()),
+      GetHttpMajor(), GetHttpMinor(), static_cast<int>(response_->GetStatus()),
+      EscapeForAccessLog(GetHeader("Referer")),
+      EscapeForAccessLog(GetHeader("User-Agent")),
+      EscapeForAccessLog(GetHeader("Cookie")), GetRequestTime().count(),
       GetResponse().BytesSent(), GetResponseTime().count());
 }
 
 void HttpRequestImpl::WriteAccessTskvLog(
     const logging::LoggerPtr& logger_access_tskv,
-    const std::string& remote_host, const std::string& remote_address) const {
+    const std::string& remote_address) const {
   if (!logger_access_tskv) return;
-  static const auto check_str = [](const std::string& str) -> std::string {
-    static auto prepare_need_escape = []() {
-      std::vector<uint8_t> res(256, 0);
-      for (int i = 0; i < 32; i++) res[i] = 1;
-      res[127] = 1;
-      res[static_cast<uint8_t>('\\')] = 1;
-      res[static_cast<uint8_t>('\'')] = 1;
-      res[static_cast<uint8_t>('=')] = 1;
-      return res;
-    };
-
-    static const std::vector<uint8_t> kNeedEscape = prepare_need_escape();
-
-    if (str.empty()) return "-";
-    return EscapeLogString(str, kNeedEscape);
-  };
 
   logger_access_tskv->info(
       "\tstatus={}"
@@ -199,12 +194,17 @@ void HttpRequestImpl::WriteAccessTskvLog(
       "\tupstream_response_time={:0.3f}"
       "\trequest_body={}",
       static_cast<int>(response_->GetStatus()), GetHttpMajor(), GetHttpMinor(),
-      GetMethodStr(), check_str(GetUrl()), check_str(GetHeader("Referer")),
-      check_str(GetHeader("Cookie")), check_str(GetHeader("User-Agent")),
-      remote_host, remote_address, check_str(GetHeader("X-Forwarded-For")),
-      check_str(GetHeader("X-Real-IP")), check_str(GetHeader("X-YaRequestId")),
-      remote_host, remote_address, GetRequestTime().count(),
-      GetResponseTime().count(), check_str(RequestBody()));
+      EscapeForAccessTskvLog(GetMethodStr()), EscapeForAccessTskvLog(GetUrl()),
+      EscapeForAccessTskvLog(GetHeader("Referer")),
+      EscapeForAccessTskvLog(GetHeader("Cookie")),
+      EscapeForAccessTskvLog(GetHeader("User-Agent")),
+      EscapeForAccessTskvLog(GetHost()), EscapeForAccessTskvLog(remote_address),
+      EscapeForAccessTskvLog(GetHeader("X-Forwarded-For")),
+      EscapeForAccessTskvLog(GetHeader("X-Real-IP")),
+      EscapeForAccessTskvLog(GetHeader("X-YaRequestId")),
+      EscapeForAccessTskvLog(GetHost()), EscapeForAccessTskvLog(remote_address),
+      GetRequestTime().count(), GetResponseTime().count(),
+      EscapeForAccessTskvLog(RequestBody()));
 }
 
 }  // namespace http
