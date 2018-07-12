@@ -12,8 +12,7 @@ namespace server {
 namespace net {
 
 struct ConnectionConfig {
-  std::string task_processor;
-  size_t in_buffer_size = 4 * 1024;
+  size_t in_buffer_size = 32 * 1024;
   size_t requests_queue_size_threshold = 100;
   std::unique_ptr<request::RequestConfig> request;
 

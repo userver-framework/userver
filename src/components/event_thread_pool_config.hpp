@@ -6,7 +6,7 @@
 
 #include <json_config/variable_map.hpp>
 
-namespace server {
+namespace components {
 
 struct EventThreadPoolConfig {
   std::string name;
@@ -19,4 +19,4 @@ struct EventThreadPoolConfig {
       const json_config::VariableMapPtr& config_vars_ptr);
 };
 
-}  // namespace server
+}  // namespace components

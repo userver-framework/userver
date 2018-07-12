@@ -9,9 +9,6 @@ ConnectionConfig ConnectionConfig::ParseFromJson(
     const Json::Value& json, const std::string& full_path,
     const json_config::VariableMapPtr& config_vars_ptr) {
   ConnectionConfig config;
-  config.task_processor = json_config::ParseString(json, "task_processor",
-                                                   full_path, config_vars_ptr);
-
   auto optional_in_buffer_size = json_config::ParseOptionalUint64(
       json, "in_buffer_size", full_path, config_vars_ptr);
   if (optional_in_buffer_size) config.in_buffer_size = *optional_in_buffer_size;

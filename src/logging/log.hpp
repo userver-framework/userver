@@ -78,3 +78,5 @@ class LogHelper {
 #define LOG_WARNING() LOG(::logging::Level::kWarning)
 #define LOG_ERROR() LOG(::logging::Level::kError)
 #define LOG_CRITICAL() LOG(::logging::Level::kCritical)
+
+#define LOG_FLUSH() ::logging::Log()->flush()

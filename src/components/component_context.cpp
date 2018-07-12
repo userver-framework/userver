@@ -4,24 +4,32 @@
 
 namespace components {
 
-ComponentContext::ComponentContext(TaskProcessorMap task_processor_map)
-    : task_processor_map_(std::move(task_processor_map)) {}
-
-ComponentContext::~ComponentContext() {
-  LOG_TRACE() << "Stopping components";
-  for (auto it = component_names_.rbegin(); it != component_names_.rend();
-       ++it) {
-    LOG_INFO() << "Stopping component " << *it;
-    components_.erase(*it);
-    LOG_INFO() << "Stopped component " << *it;
-  }
-  LOG_TRACE() << "Stopped all components";
-}
+ComponentContext::ComponentContext(const Manager& manager,
+                                   TaskProcessorMap task_processor_map)
+    : manager_(manager), task_processor_map_(std::move(task_processor_map)) {}
 
 void ComponentContext::AddComponent(
     std::string name, std::unique_ptr<ComponentBase>&& component) {
   components_.emplace(name, std::move(component));
   component_names_.push_back(std::move(name));
+}
+
+void ComponentContext::ClearComponents() {
+  LOG_TRACE() << "Stopping components";
+  for (auto it = component_names_.rbegin(); it != component_names_.rend();
+       ++it) {
+    LOG_INFO() << "Stopping component " << *it;
+    try {
+      components_.erase(*it);
+    } catch (const std::exception& ex) {
+      LOG_CRITICAL() << "Exception while stopping component " << *it << ": "
+                     << ex.what();
+      LOG_FLUSH();
+      abort();
+    }
+    LOG_INFO() << "Stopped component " << *it;
+  }
+  LOG_TRACE() << "Stopped all components";
 }
 
 size_t ComponentContext::ComponentCount() const { return components_.size(); }
@@ -33,6 +41,8 @@ ComponentContext::ComponentMap::const_iterator ComponentContext::begin() const {
 ComponentContext::ComponentMap::const_iterator ComponentContext::end() const {
   return components_.cend();
 }
+
+const Manager& ComponentContext::GetManager() const { return manager_; }
 
 ComponentBase* ComponentContext::DoFindComponent(
     const std::string& name) const {

@@ -53,6 +53,9 @@ ListenerConfig ListenerConfig::ParseFromJson(
   if (optional_max_connections)
     config.max_connections = *optional_max_connections;
 
+  config.shards = json_config::ParseOptionalUint64(json, "shards", full_path,
+                                                   config_vars_ptr);
+
   return config;
 }
 

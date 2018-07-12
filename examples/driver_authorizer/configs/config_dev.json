@@ -1,17 +1,6 @@
 {
   "config_vars": "config_vars.development.json",
-  "server": {
-    "listener": {
-      "connection": {
-        "task_processor": "main-task-processor",
-        "in_buf_size": 4096,
-        "requests_queue_size_threshold": 100
-      },
-      "port": 1180,
-      "monitor_port": 1188
-    },
-    "logger_access": "access",
-    "logger_access_tskv": "access-tskv",
+  "components_manager": {
     "coro_pool": {
       "initial_size": 500,
       "max_size": 5000
@@ -67,6 +56,20 @@
             "pattern": "tskv\ttskv_format=taxi_driver_authorizer\ttimestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%z%v"
           }
         }
+      },
+      {
+        "name": "server",
+        "listener": {
+          "connection": {
+            "in_buffer_size": 32768,
+            "requests_queue_size_threshold": 100
+          },
+          "port": 1180,
+          "monitor_port": 1188
+        },
+        "logger_access": "access",
+        "logger_access_tskv": "access-tskv",
+        "task_processor": "main-task-processor"
       },
       {
         "name": "redis-sentinel-thread-pool",

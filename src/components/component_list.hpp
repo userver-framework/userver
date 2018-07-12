@@ -4,11 +4,10 @@
 #include <string>
 #include <vector>
 
-#include <components/component_config.hpp>
+#include "component_config.hpp"
+#include "manager.hpp"
 
-#include "server_impl.hpp"
-
-namespace server {
+namespace components {
 
 namespace impl {
 
@@ -16,7 +15,7 @@ class ComponentAdderBase {
  public:
   virtual ~ComponentAdderBase() {}
 
-  virtual void operator()(ServerImpl&,
+  virtual void operator()(Manager&,
                           const components::ComponentConfigMap&) const = 0;
 };
 
@@ -33,7 +32,7 @@ class ComponentList {
   template <typename Component, typename... Args>
   ComponentList&& Append(Args&&...) &&;
 
-  void AddAll(ServerImpl&, const components::ComponentConfigMap&) const;
+  void AddAll(Manager&, const components::ComponentConfigMap&) const;
 
  private:
   std::vector<std::unique_ptr<impl::ComponentAdderBase>> adders_;
@@ -44,7 +43,7 @@ namespace impl {
 template <typename Component>
 class DefaultComponentAdder : public ComponentAdderBase {
  public:
-  void operator()(ServerImpl&,
+  void operator()(Manager&,
                   const components::ComponentConfigMap&) const override;
 };
 
@@ -53,7 +52,7 @@ class CustomNameComponentAdder : public ComponentAdderBase {
  public:
   CustomNameComponentAdder(std::string name);
 
-  void operator()(ServerImpl&,
+  void operator()(Manager&,
                   const components::ComponentConfigMap&) const override;
 
  private:
@@ -81,10 +80,9 @@ ComponentList&& ComponentList::Append(Args&&... args) && {
 }
 
 inline void ComponentList::AddAll(
-    ServerImpl& server_impl,
-    const components::ComponentConfigMap& config_map) const {
+    Manager& manager, const components::ComponentConfigMap& config_map) const {
   for (const auto& adder : adders_) {
-    (*adder)(server_impl, config_map);
+    (*adder)(manager, config_map);
   }
 }
 
@@ -92,9 +90,8 @@ namespace impl {
 
 template <typename Component>
 void DefaultComponentAdder<Component>::operator()(
-    ServerImpl& server_impl,
-    const components::ComponentConfigMap& config_map) const {
-  server_impl.AddComponent<Component>(config_map, Component::kName);
+    Manager& manager, const components::ComponentConfigMap& config_map) const {
+  manager.AddComponent<Component>(config_map, Component::kName);
 }
 
 template <typename Component>
@@ -103,10 +100,9 @@ CustomNameComponentAdder<Component>::CustomNameComponentAdder(std::string name)
 
 template <typename Component>
 void CustomNameComponentAdder<Component>::operator()(
-    ServerImpl& server_impl,
-    const components::ComponentConfigMap& config_map) const {
-  server_impl.AddComponent<Component>(config_map, name_);
+    Manager& manager, const components::ComponentConfigMap& config_map) const {
+  manager.AddComponent<Component>(config_map, name_);
 }
 
 }  // namespace impl
-}  // namespace server
+}  // namespace components

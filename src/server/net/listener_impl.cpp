@@ -205,7 +205,8 @@ void ListenerImpl::SetupConnection(int fd, Connection::Type type,
 
   LOG_TRACE() << "Creating connection for fd " << fd;
   auto connection_ptr = std::make_unique<Connection>(
-      *this, fd, endpoint_info_->listener_config.connection_config, type,
+      *this, task_processor_, fd,
+      endpoint_info_->listener_config.connection_config, type,
       endpoint_info_->request_handlers, addr,
       [this](int fd) { EnqueueConnectionClose(fd); });
   LOG_TRACE() << "Registering connection for fd " << fd;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server/server_monitor.hpp>
+#include <components/manager.hpp>
 
 #include "http_handler_base.hpp"
 
@@ -12,9 +12,7 @@ class ServerMonitor : public HttpHandlerBase {
   ServerMonitor(const components::ComponentConfig& config,
                 const components::ComponentContext& component_context);
 
-  static constexpr const char* const kName = "handler-server-monitor";
-
-  void SetMonitorPtr(const server::ServerMonitor* monitor);
+  static constexpr const char* kName = "handler-server-monitor";
 
   virtual const std::string& HandlerName() const override;
   virtual std::string HandleRequestThrow(
@@ -24,7 +22,7 @@ class ServerMonitor : public HttpHandlerBase {
   bool IsMonitor() const override { return true; }
 
  private:
-  const server::ServerMonitor* monitor_;
+  const components::Manager& components_manager_;
 };
 
 }  // namespace handlers

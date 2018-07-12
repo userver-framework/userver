@@ -1,153 +1,150 @@
 #include "server.hpp"
 
-#include <signal.h>
-#include <unistd.h>
-
-#include <cstring>
-#include <initializer_list>
 #include <stdexcept>
 
-#include <logging/config.hpp>
+#include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
-#include <logging/logger.hpp>
-#include <utils/check_syscall.hpp>
-
-#include "server_config.hpp"
-#include "server_impl.hpp"
-
-namespace server {
 
 namespace {
 
-class ServerLogScope {
- public:
-  explicit ServerLogScope(const std::string& init_log_path) {
-    old_default_logger_ = logging::Log();
-    if (!init_log_path.empty()) {
-      logging::Log() = logging::MakeFileLogger("default", init_log_path);
+const char* PER_LISTENER_DESC = "per-listener";
+const char* PER_CONNECTION_DESC = "per-connection";
+
+using Verbosity = components::MonitorVerbosity;
+
+Json::Value SerializeAggregated(const server::net::Stats::AggregatedStat& agg,
+                                Verbosity verbosity, const char* items_desc) {
+  Json::Value json_agg(Json::objectValue);
+  json_agg["total"] = Json::UInt64{agg.Total()};
+  json_agg["max"] = Json::UInt64{agg.Max()};
+  if (verbosity == Verbosity::kFull) {
+    Json::Value json_items(Json::arrayValue);
+    for (auto item : agg.Items()) {
+      json_items[json_items.size()] = Json::UInt64{item};
     }
+    json_agg[items_desc] = std::move(json_items);
   }
-
-  ~ServerLogScope() noexcept(false) {
-    logging::Log() = std::move(old_default_logger_);
-  }
-
- private:
-  logging::LoggerPtr old_default_logger_;
-};
-
-class IgnoreSigpipeScope {
- public:
-  IgnoreSigpipeScope() {
-    struct sigaction action;
-    memset(&action, 0, sizeof(action));
-    action.sa_handler = SIG_IGN;
-    utils::CheckSyscall(sigaction(SIGPIPE, &action, &old_action_),
-                        "setting ignore handler for SIGPIPE");
-  }
-
-  ~IgnoreSigpipeScope() noexcept(false) {
-    utils::CheckSyscall(sigaction(SIGPIPE, &old_action_, nullptr),
-                        "restoring SIGPIPE handler");
-  }
-
- private:
-  struct sigaction old_action_;
-};
-
-class SignalCatcher {
- public:
-  SignalCatcher(std::initializer_list<int> signals) {
-    utils::CheckSyscall(sigemptyset(&sigset_), "initializing signal set");
-    for (int signum : signals) {
-      utils::CheckSyscall(sigaddset(&sigset_, signum), "adding signal to set");
-    }
-    utils::CheckSyscall(pthread_sigmask(SIG_BLOCK, &sigset_, &old_sigset_),
-                        "blocking signals");
-  }
-
-  ~SignalCatcher() noexcept(false) {
-    utils::CheckSyscall(pthread_sigmask(SIG_SETMASK, &old_sigset_, nullptr),
-                        "restoring signal mask");
-  }
-
-  int Catch() {
-    int signum = -1;
-    utils::CheckSyscall(sigwait(&sigset_, &signum), "waiting for signal");
-    assert(signum != -1);
-    return signum;
-  }
-
- private:
-  sigset_t sigset_;
-  sigset_t old_sigset_;
-};
-
-bool IsDaemon() { return getppid() == 1; }
+  return json_agg;
+}
 
 }  // namespace
 
-void Run(const std::string& config_path, const ComponentList& component_list,
-         const std::string& init_log_path) {
-  ServerLogScope server_log_scope{init_log_path};
+namespace server {
 
-  LOG_INFO() << "Parsing configs from '" << config_path << '\'';
-  auto config = ServerConfig::ParseFromFile(config_path);
-  LOG_INFO() << "Parsed configs";
+Server::Server(ServerConfig config,
+               const components::ComponentContext& component_context)
+    : config_(std::move(config)), is_destroying_(false) {
+  LOG_INFO() << "Starting server";
 
-  LOG_DEBUG() << "Masking signals";
-  SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1, SIGHUP};
-  IgnoreSigpipeScope ignore_sigpipe_scope;
-  LOG_DEBUG() << "Masked signals";
-
-  auto server_ptr =
-      std::make_unique<ServerImpl>(std::move(config), component_list);
-
-  for (;;) {
-    auto signum = signal_catcher.Catch();
-    if (signum == SIGINT || signum == SIGTERM || signum == SIGQUIT) {
-      break;
-    } else if (signum == SIGHUP) {
-      if (!IsDaemon()) {
-        // This is a real HUP
-        break;
-      }
-
-      LOG_INFO() << "Got reload request";
-      ServerConfig new_config;
-      try {
-        new_config = ServerConfig::ParseFromFile(config_path);
-      } catch (const std::exception& ex) {
-        LOG_ERROR() << "Reload failed, cannot update server config: "
-                    << ex.what();
-        continue;
-      }
-      if (new_config.json == server_ptr->GetConfig().json &&
-          new_config.config_vars_ptr->Json() ==
-              server_ptr->GetConfig().config_vars_ptr->Json()) {
-        LOG_INFO() << "Config unchanged, ignoring request";
-        continue;
-      }
-      std::unique_ptr<ServerImpl> new_server_ptr;
-      try {
-        new_server_ptr =
-            std::make_unique<ServerImpl>(std::move(new_config), component_list);
-      } catch (const std::exception& ex) {
-        LOG_ERROR() << "Reload failed: " << ex.what();
-        continue;
-      }
-      LOG_INFO() << "New server started, shutting down the old one";
-      server_ptr = std::move(new_server_ptr);
-      LOG_INFO() << "Server reloaded";
-    } else if (signum == SIGUSR1) {
-      server_ptr->OnLogRotate();
-      LOG_INFO() << "Log rotated";
-    } else {
-      LOG_WARNING() << "Got unexpected signal: " << signum << " ("
-                    << strsignal(signum) << ')';
-      assert(!"unexpected signal");
-    }
+  engine::TaskProcessor* task_processor =
+      component_context.GetTaskProcessor(config_.task_processor);
+  if (!task_processor) {
+    throw std::runtime_error("can't find task_processor '" +
+                             config_.task_processor + "' for server");
   }
+
+  request_handlers_ = CreateRequestHandlers(component_context);
+
+  endpoint_info_ =
+      std::make_shared<net::EndpointInfo>(config_.listener, *request_handlers_);
+
+  auto& event_thread_pool = task_processor->EventThreadPool();
+  size_t listener_shards = config_.listener.shards ? *config_.listener.shards
+                                                   : event_thread_pool.size();
+  auto event_thread_controls = event_thread_pool.NextThreads(listener_shards);
+  for (auto* event_thread_control : event_thread_controls) {
+    listeners_.emplace_back(endpoint_info_, *task_processor,
+                            *event_thread_control);
+  }
+
+  LOG_INFO() << "Started server";
+}
+
+Server::~Server() {
+  {
+    std::unique_lock<std::shared_timed_mutex> lock(stat_mutex_);
+    is_destroying_ = true;
+  }
+  LOG_INFO() << "Stopping server";
+  LOG_TRACE() << "Stopping listeners";
+  listeners_.clear();
+  LOG_TRACE() << "Stopped listeners";
+  LOG_TRACE() << "Stopping request handlers";
+  request_handlers_.reset();
+  LOG_TRACE() << "Stopped request handlers";
+  LOG_INFO() << "Stopped server";
+}
+
+const ServerConfig& Server::GetConfig() const { return config_; }
+
+Json::Value Server::GetMonitorData(
+    components::MonitorVerbosity verbosity) const {
+  Json::Value json_data(Json::objectValue);
+
+  auto server_stats = GetServerStats();
+  {
+    Json::Value json_conn_stats(Json::objectValue);
+    json_conn_stats["active"] = SerializeAggregated(
+        server_stats.active_connections, verbosity, PER_LISTENER_DESC);
+    json_conn_stats["opened"] = SerializeAggregated(
+        server_stats.total_opened_connections, verbosity, PER_LISTENER_DESC);
+    json_conn_stats["closed"] = SerializeAggregated(
+        server_stats.total_closed_connections, verbosity, PER_LISTENER_DESC);
+
+    json_data["connections"] = std::move(json_conn_stats);
+  }
+  {
+    Json::Value json_request_stats(Json::objectValue);
+    json_request_stats["active"] = SerializeAggregated(
+        server_stats.active_requests, verbosity, PER_CONNECTION_DESC);
+    json_request_stats["parsing"] = SerializeAggregated(
+        server_stats.parsing_requests, verbosity, PER_CONNECTION_DESC);
+    json_request_stats["pending-response"] = SerializeAggregated(
+        server_stats.pending_responses, verbosity, PER_CONNECTION_DESC);
+    json_request_stats["conn-processed"] = SerializeAggregated(
+        server_stats.conn_processed_requests, verbosity, PER_CONNECTION_DESC);
+    json_request_stats["listener-processed"] = SerializeAggregated(
+        server_stats.listener_processed_requests, verbosity, PER_LISTENER_DESC);
+
+    json_data["requests"] = std::move(json_request_stats);
+  }
+
+  return json_data;
+}
+
+net::Stats Server::GetServerStats() const {
+  net::Stats summary;
+
+  std::shared_lock<std::shared_timed_mutex> lock(stat_mutex_);
+  if (is_destroying_) return summary;
+  for (const auto& listener : listeners_) {
+    summary += listener.GetStats();
+  }
+  return summary;
+}
+
+std::unique_ptr<RequestHandlers> Server::CreateRequestHandlers(
+    const components::ComponentContext& component_context) const {
+  auto request_handlers = std::make_unique<RequestHandlers>();
+  try {
+    request_handlers->SetHttpRequestHandler(
+        std::make_unique<const http::HttpRequestHandler>(
+            component_context, config_.logger_access,
+            config_.logger_access_tskv, false));
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "can't create HttpRequestHandler: " << ex.what();
+    throw;
+  }
+  try {
+    request_handlers->SetMonitorRequestHandler(
+        std::make_unique<const http::HttpRequestHandler>(
+            component_context, config_.logger_access,
+            config_.logger_access_tskv, true));
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "can't create MonitorRequestHandler: " << ex.what();
+    throw;
+  }
+  return request_handlers;
 }
 
 }  // namespace server

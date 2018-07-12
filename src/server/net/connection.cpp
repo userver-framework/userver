@@ -13,7 +13,6 @@
 #include <system_error>
 #include <vector>
 
-#include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_request_handler.hpp>
 #include <server/http/http_request_parser.hpp>
@@ -59,11 +58,13 @@ const request::RequestHandlerBase& GetRequestHandler(
 
 }  // namespace
 
-Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
+Connection::Connection(engine::ev::ThreadControl& thread_control,
+                       engine::TaskProcessor& task_processor, int fd,
                        const ConnectionConfig& config, Type type,
                        const RequestHandlers& request_handlers,
                        const sockaddr_in6& sin6, BeforeCloseCb before_close_cb)
-    : config_(config),
+    : task_processor_(task_processor),
+      config_(config),
       type_(type),
       request_handler_(
           GetRequestHandler(*config_.request, type, request_handlers)),
@@ -78,20 +79,12 @@ Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
           request_handlers)),
       is_closing_(false),
       processed_requests_count_(0) {
-  auto* task_processor_ptr =
-      request_handler_.GetComponentContext().GetTaskProcessor(
-          config_.task_processor);
-  if (!task_processor_ptr) {
-    throw std::runtime_error("Cannot find task processor '" +
-                             config_.task_processor + '\'');
-  }
-
   response_event_task_ = std::make_shared<engine::EventTask>(
-      *task_processor_ptr, [this] { SendResponses(); });
+      task_processor_, [this] { SendResponses(); });
   response_sender_ = std::make_unique<engine::Sender>(
-      thread_control, *task_processor_ptr, fd, [this] { CloseIfFinished(); });
+      thread_control, task_processor_, fd, [this] { CloseIfFinished(); });
   socket_listener_ = std::make_unique<engine::SocketListener>(
-      thread_control, *task_processor_ptr, fd,
+      thread_control, task_processor_, fd,
       engine::SocketListener::ListenMode::kRead,
       [this](int fd) { return ReadData(fd); }, [this] { CloseIfFinished(); },
       engine::SocketListener::DeferStart{});

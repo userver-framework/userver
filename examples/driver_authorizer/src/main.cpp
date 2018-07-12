@@ -4,7 +4,7 @@
 
 #include <boost/program_options.hpp>
 
-#include <server/server.hpp>
+#include <components/run.hpp>
 
 #include "component_list.hpp"
 
@@ -37,7 +37,8 @@ int main(int argc, char** argv) {
   if (vm.count("init-log")) init_log_path = vm["init-log"].as<std::string>();
 
   try {
-    server::Run(config_path, driver_authorizer::kComponentList, init_log_path);
+    components::Run(config_path, driver_authorizer::kComponentList,
+                    init_log_path);
   } catch (const std::exception& ex) {
     std::cerr << "Server failed: " << ex.what() << '\n';
     return 1;

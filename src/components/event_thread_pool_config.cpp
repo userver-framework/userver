@@ -2,7 +2,7 @@
 
 #include <json_config/value.hpp>
 
-namespace server {
+namespace components {
 
 EventThreadPoolConfig EventThreadPoolConfig::ParseFromJson(
     const Json::Value& json, const std::string& full_path,
@@ -22,4 +22,4 @@ EventThreadPoolConfig EventThreadPoolConfig::ParseFromJson(
   return config;
 }
 
-}  // namespace server
+}  // namespace components
