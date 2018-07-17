@@ -4,7 +4,7 @@
 #include <atomic>
 #include <functional>
 
-#include <boost/coroutine/symmetric_coroutine.hpp>
+#include <boost/coroutine/asymmetric_coroutine.hpp>
 #include <boost/lockfree/stack.hpp>
 
 #include <logging/log.hpp>
@@ -18,27 +18,27 @@ namespace coro {
 template <typename Task>
 class Pool {
  public:
-  using CallType =
-      typename boost::coroutines::symmetric_coroutine<Task*>::call_type;
-  using YieldType =
-      typename boost::coroutines::symmetric_coroutine<Task*>::yield_type;
-  using Executor = std::function<void(YieldType&)>;
+  using Coroutine =
+      typename boost::coroutines::asymmetric_coroutine<Task*>::push_type;
+  using TaskPipe =
+      typename boost::coroutines::asymmetric_coroutine<Task*>::pull_type;
+  using Executor = std::function<void(TaskPipe&)>;
 
   Pool(PoolConfig config, Executor executor);
   ~Pool();
 
-  CallType* GetCoroutine();
-  void PutCoroutine(CallType* coroutine);
+  Coroutine* GetCoroutine();
+  void PutCoroutine(Coroutine* coroutine);
   PoolStats GetStats() const;
 
  private:
-  CallType* CreateCoroutine(bool quiet = false);
-  void DestroyCoroutine(CallType* coroutine) noexcept;
+  Coroutine* CreateCoroutine(bool quiet = false);
+  void DestroyCoroutine(Coroutine* coroutine) noexcept;
 
   const PoolConfig config_;
   const Executor executor_;
 
-  boost::lockfree::stack<CallType*, boost::lockfree::fixed_sized<true>>
+  boost::lockfree::stack<Coroutine*, boost::lockfree::fixed_sized<true>>
       coroutines_;
   std::atomic<size_t> active_coroutines_num_;
   std::atomic<size_t> total_coroutines_num_;
@@ -58,15 +58,15 @@ Pool<Task>::Pool(PoolConfig config, Executor executor)
 
 template <typename Task>
 Pool<Task>::~Pool() {
-  CallType* coroutine = nullptr;
+  Coroutine* coroutine = nullptr;
   while (coroutines_.pop(coroutine)) {
     DestroyCoroutine(coroutine);
   }
 }
 
 template <typename Task>
-typename Pool<Task>::CallType* Pool<Task>::GetCoroutine() {
-  CallType* coroutine = nullptr;
+typename Pool<Task>::Coroutine* Pool<Task>::GetCoroutine() {
+  Coroutine* coroutine = nullptr;
   if (!coroutines_.pop(coroutine)) {
     coroutine = CreateCoroutine();
   }
@@ -75,7 +75,7 @@ typename Pool<Task>::CallType* Pool<Task>::GetCoroutine() {
 }
 
 template <typename Task>
-void Pool<Task>::PutCoroutine(CallType* coroutine) {
+void Pool<Task>::PutCoroutine(Coroutine* coroutine) {
   --active_coroutines_num_;
   if (!coroutines_.bounded_push(coroutine)) {
     DestroyCoroutine(coroutine);
@@ -92,9 +92,9 @@ PoolStats Pool<Task>::GetStats() const {
 }
 
 template <typename Task>
-typename Pool<Task>::CallType* Pool<Task>::CreateCoroutine(bool quiet) {
+typename Pool<Task>::Coroutine* Pool<Task>::CreateCoroutine(bool quiet) {
   auto new_total = total_coroutines_num_++;
-  auto* coroutine = new CallType(executor_);
+  auto* coroutine = new Coroutine(executor_);
   if (!quiet) {
     LOG_DEBUG() << "Created a coroutine #" << new_total << '/'
                 << config_.max_size;
@@ -103,7 +103,7 @@ typename Pool<Task>::CallType* Pool<Task>::CreateCoroutine(bool quiet) {
 }
 
 template <typename Task>
-void Pool<Task>::DestroyCoroutine(CallType* coroutine) noexcept {
+void Pool<Task>::DestroyCoroutine(Coroutine* coroutine) noexcept {
   delete coroutine;
   --total_coroutines_num_;
 }

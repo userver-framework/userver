@@ -15,8 +15,8 @@ Task::Task(TaskProcessor* task_processor)
       wake_up_cb_([this]() { WakeUp(); }),
       wait_state_(0),
       coro_(nullptr),
-      yield_(nullptr),
-      yield_state_(YieldState::kTaskWaiting) {}
+      task_pipe_(nullptr),
+      yield_reason_(YieldReason::kTaskPending) {}
 
 Task::~Task() {
   if (coro_) {
@@ -32,9 +32,8 @@ Task::State Task::RunTask() {
 
   wait_state_ = 0;
   (*coro_)(this);
-  YieldState res = yield_state_;
 
-  if (res == YieldState::kTaskComplete) {
+  if (yield_reason_ == YieldReason::kTaskComplete) {
     task_processor_->GetCoroPool().PutCoroutine(coro_);
     coro_ = nullptr;
     OnComplete();
@@ -44,8 +43,9 @@ Task::State Task::RunTask() {
 }
 
 void Task::Wait() {
-  assert(yield_);
-  Task* task = (*yield_)().get();
+  assert(task_pipe_);
+  yield_reason_ = YieldReason::kTaskWaiting;
+  Task* task = (*task_pipe_)().get();
   static_cast<void>(task);
   assert(task == this);
 }
@@ -58,15 +58,13 @@ ev::ThreadControl& Task::GetEventThread() {
   return GetTaskProcessor().EventThreadPool().NextThread();
 }
 
-void Task::CoroFunc(YieldType& yield) {
-  Task* task = yield.get();
-  for (;;) {
+void Task::CoroFunc(TaskPipe& task_pipe) {
+  for (Task* task : task_pipe) {
     assert(task != nullptr);
-    task->SetYield(&yield);
+    task->SetTaskPipe(&task_pipe);
     task->Run();
-    task->SetYield(nullptr);
-    task->SetYieldResult(YieldState::kTaskComplete);
-    task = yield().get();
+    task->SetTaskPipe(nullptr);
+    task->SetYieldReason(YieldReason::kTaskComplete);
   }
 }
 
