@@ -1,3 +1,13 @@
+yandex-taxi-userver (0.1.11) unstable; urgency=medium
+
+  * Andrey Bugaevskiy | feat engine: use asymmetric coroutines (#56)
+  * Andrey Bugaevskiy | feat engine: single event thread loop (#55)
+  * Dmitriy Zhukov | feat components: split http server and components manager (#49)
+  * Dmitriy Zhukov | feat server: remove useless getnameinfo() (#53)
+  * Vasily Kulikov | feat server: add remote port to log (#52)
+
+ -- Andrey Bugaevskiy <bugaevskiy@yandex-team.ru>  Tue, 17 Jul 2018 19:33:10 +0300
+
 yandex-taxi-userver (0.1.10) unstable; urgency=medium
 
   * Andrey Bugaevskiy | feat redis: bump hiredis version (#50)
