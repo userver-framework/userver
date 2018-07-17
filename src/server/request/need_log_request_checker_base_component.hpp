@@ -8,7 +8,7 @@ class NeedLogRequestCheckerBase : public ComponentBase {
  public:
   virtual ~NeedLogRequestCheckerBase() {}
 
-  static constexpr const char* const kName = "need-log-request-checker";
+  static constexpr const char* kName = "need-log-request-checker";
 
   virtual bool NeedLogRequest() const = 0;
   virtual bool NeedLogRequestHeaders() const = 0;

@@ -44,7 +44,7 @@ class LogHelper {
                                  LogHelper&>::type
   operator<<(LogHelper& lh, const T& value) {
     utils::encoding::EncodeTskv(lh.log_msg_.raw, value,
-                                utils::encoding::EncodeTskvMode::Value);
+                                utils::encoding::EncodeTskvMode::kValue);
     return lh;
   }
 
@@ -78,3 +78,5 @@ class LogHelper {
 #define LOG_WARNING() LOG(::logging::Level::kWarning)
 #define LOG_ERROR() LOG(::logging::Level::kError)
 #define LOG_CRITICAL() LOG(::logging::Level::kCritical)
+
+#define LOG_FLUSH() ::logging::Log()->flush()

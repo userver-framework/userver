@@ -10,7 +10,7 @@ class Ping : public HttpHandlerBase {
   Ping(const components::ComponentConfig& config,
        const components::ComponentContext& component_context);
 
-  static constexpr const char* const kName = "handler-ping";
+  static constexpr const char* kName = "handler-ping";
 
   const std::string& HandlerName() const override;
   std::string HandleRequestThrow(

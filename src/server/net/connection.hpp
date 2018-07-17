@@ -14,6 +14,7 @@
 #include <engine/event_task.hpp>
 #include <engine/sender.hpp>
 #include <engine/socket_listener.hpp>
+#include <engine/task/task_processor.hpp>
 #include <server/request/request_base.hpp>
 #include <server/request/request_handler_base.hpp>
 #include <server/request/request_parser.hpp>
@@ -31,7 +32,8 @@ class Connection {
 
   enum class Type { kRequest, kMonitor };
 
-  Connection(engine::ev::ThreadControl& thread_control, int fd,
+  Connection(engine::ev::ThreadControl& thread_control,
+             engine::TaskProcessor& task_processor, int fd,
              const ConnectionConfig& config, Type type,
              const RequestHandlers& request_handlers, const sockaddr_in6& sin6,
              BeforeCloseCb before_close_cb);
@@ -43,7 +45,6 @@ class Connection {
   Type GetType() const;
 
   const std::string& RemoteAddress() const;
-  const std::string& RemoteHost() const;
 
   size_t ProcessedRequestCount() const;
   size_t ActiveRequestCount() const;
@@ -60,6 +61,7 @@ class Connection {
   void SendResponses();
   void CloseIfFinished();
 
+  engine::TaskProcessor& task_processor_;
   const ConnectionConfig& config_;
   Type type_;
   const request::RequestHandlerBase& request_handler_;
@@ -79,7 +81,7 @@ class Connection {
   std::atomic<bool> is_closing_;
 
   std::string remote_address_;
-  std::string remote_host_;
+  uint16_t remote_port_;
 
   size_t processed_requests_count_;
 

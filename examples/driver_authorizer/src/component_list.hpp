@@ -1,8 +1,9 @@
 #pragma once
 
+#include <components/component_list.hpp>
 #include <components/thread_pool.hpp>
 #include <logging/component.hpp>
-#include <server/component_list.hpp>
+#include <server/component.hpp>
 #include <server/handlers/ping.hpp>
 #include <server/handlers/server_monitor.hpp>
 #include <storages/mongo/component.hpp>
@@ -17,7 +18,7 @@
 namespace driver_authorizer {
 
 const auto kComponentList =
-    server::ComponentList()
+    components::ComponentList()
         .Append<components::Logging>()
         .Append<components::Secdist>()
         .Append<components::ThreadPool>("redis-thread-pool")
@@ -27,7 +28,8 @@ const auto kComponentList =
         .Append<components::TaxiConfig<TaxiConfig>>()
         .Append<components::NeedLogRequestChecker<TaxiConfig>>()
         .Append<handlers::DriverSession>()
+        .Append<server::handlers::Ping>()
         .Append<server::handlers::ServerMonitor>()
-        .Append<server::handlers::Ping>();
+        .Append<components::Server>();
 
 }  // namespace driver_authorizer

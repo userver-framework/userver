@@ -11,6 +11,8 @@
 
 namespace components {
 
+class Manager;
+
 class ComponentContext {
  public:
   using ComponentMap =
@@ -18,11 +20,12 @@ class ComponentContext {
   using TaskProcessorMap =
       std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
 
-  explicit ComponentContext(TaskProcessorMap);
-  ~ComponentContext();
+  ComponentContext(const Manager& manager, TaskProcessorMap);
 
   void AddComponent(std::string name,
                     std::unique_ptr<ComponentBase>&& component);
+
+  void ClearComponents();
 
   template <typename T>
   T* FindComponent() const {
@@ -41,9 +44,12 @@ class ComponentContext {
 
   engine::TaskProcessor* GetTaskProcessor(const std::string& name) const;
 
+  const Manager& GetManager() const;
+
  private:
   ComponentBase* DoFindComponent(const std::string& name) const;
 
+  const Manager& manager_;
   ComponentMap components_;
   std::vector<std::string> component_names_;
   TaskProcessorMap task_processor_map_;

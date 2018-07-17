@@ -7,7 +7,7 @@
 #include <memory>
 
 #include <ev.h>
-#include <boost/coroutine/symmetric_coroutine.hpp>
+#include <boost/coroutine/asymmetric_coroutine.hpp>
 
 #include <engine/ev/thread_control.hpp>
 
@@ -21,15 +21,15 @@ class Task {
   explicit Task(TaskProcessor* task_processor);
   virtual ~Task();
 
-  using CallType =
-      typename boost::coroutines::symmetric_coroutine<Task*>::call_type;
-  using YieldType =
-      typename boost::coroutines::symmetric_coroutine<Task*>::yield_type;
+  using Coroutine =
+      typename boost::coroutines::asymmetric_coroutine<Task*>::push_type;
+  using TaskPipe =
+      typename boost::coroutines::asymmetric_coroutine<Task*>::pull_type;
   using WakeUpCb = std::function<void()>;
 
   enum class State { kQueued, kRunning, kWaiting, kComplete, kCanceled };
 
-  enum class YieldState { kTaskWaiting, kTaskComplete };
+  enum class YieldReason { kTaskPending, kTaskWaiting, kTaskComplete };
 
   State GetState() const { return state_; }
   bool Finished() const {
@@ -48,10 +48,10 @@ class Task {
   TaskProcessor& GetTaskProcessor() { return *task_processor_; }
   ev::ThreadControl& GetEventThread();
 
-  void SetYield(YieldType* yield) { yield_ = yield; }
-  void SetYieldResult(YieldState state) { yield_state_ = state; }
+  void SetTaskPipe(TaskPipe* task_pipe) { task_pipe_ = task_pipe; }
+  void SetYieldReason(YieldReason reason) { yield_reason_ = reason; }
 
-  static void CoroFunc(YieldType& yield);
+  static void CoroFunc(TaskPipe& task_pipe);
 
  protected:
   void SetState(State state) { state_ = state; }
@@ -69,9 +69,9 @@ class Task {
   // (wait_state_ & 1): Sleep() called
   // (wait_state_ & 2): WakeUp() called
 
-  CallType* coro_;
-  YieldType* yield_;
-  YieldState yield_state_;
+  Coroutine* coro_;
+  TaskPipe* task_pipe_;
+  YieldReason yield_reason_;
 };
 
 namespace current_task {

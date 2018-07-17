@@ -6,17 +6,16 @@
 
 #include <json_config/variable_map.hpp>
 
-namespace server {
+namespace engine {
+namespace ev {
 
-struct EventThreadPoolConfig {
-  std::string name;
-
+struct ThreadPoolConfig {
   size_t threads = 2;
-  std::string thread_name;
 
-  static EventThreadPoolConfig ParseFromJson(
+  static ThreadPoolConfig ParseFromJson(
       const Json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr);
 };
 
-}  // namespace server
+}  // namespace ev
+}  // namespace engine

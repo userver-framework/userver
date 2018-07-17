@@ -17,8 +17,9 @@ Thread::Thread(const std::string& thread_name)
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
-      running_(false) {
-  Run(thread_name);
+      is_running_(false) {
+  Start();
+  SetThreadName(thread_name);
 }
 
 Thread::~Thread() {
@@ -27,6 +28,10 @@ Thread::~Thread() {
 }
 
 void Thread::SetThreadName(const std::string& name) {
+  assert(thread_.joinable());
+  if (name.empty()) {
+    throw std::logic_error("Cannot set empty thread name");
+  }
   pthread_setname_np(thread_.native_handle(), name.substr(0, 15).c_str());
 }
 
@@ -135,31 +140,22 @@ void Thread::SafeEvCall(const Func& func) {
   ev_async_send(loop_, &watch_update_);
 }
 
-void Thread::Run(const std::string& thread_name) {
+void Thread::Start() {
   loop_ = ev_loop_new(EVFLAG_AUTO);
   assert(loop_);
   ev_set_userdata(loop_, this);
+  ev_set_loop_release_cb(loop_, Release, Acquire);
 
-  std::promise<void> thread_ready;
-  running_ = true;
-  thread_ = std::thread([this, &thread_ready]() {
-    watch_update_.data = this;
-    ev_async_init(&watch_update_, UpdateLoopWatcher);
-    ev_set_priority(&watch_update_, 1);
-    ev_async_start(loop_, &watch_update_);
+  ev_async_init(&watch_update_, UpdateLoopWatcher);
+  ev_set_priority(&watch_update_, 1);
+  ev_async_start(loop_, &watch_update_);
 
-    watch_break_.data = this;
-    ev_async_init(&watch_break_, BreakLoopWatcher);
-    ev_set_priority(&watch_break_, EV_MAXPRI);
-    ev_async_start(loop_, &watch_break_);
+  ev_async_init(&watch_break_, BreakLoopWatcher);
+  ev_set_priority(&watch_break_, EV_MAXPRI);
+  ev_async_start(loop_, &watch_break_);
 
-    ev_set_loop_release_cb(loop_, Release, Acquire);
-
-    thread_ready.set_value();
-    RunEvLoop();
-  });
-  thread_ready.get_future().get();
-  if (!thread_name.empty()) SetThreadName(thread_name);
+  is_running_ = true;
+  thread_ = std::thread([this] { RunEvLoop(); });
 }
 
 void Thread::StopEventLoop() {
@@ -180,7 +176,7 @@ void Thread::UpdateEvLoop() {
 }
 
 void Thread::RunEvLoop() {
-  while (running_) {
+  while (is_running_) {
     AcquireImpl();
     ev_run(loop_, EVRUN_ONCE);
     ReleaseImpl();
@@ -190,8 +186,8 @@ void Thread::RunEvLoop() {
   ev_async_stop(loop_, &watch_break_);
 }
 
-void Thread::UpdateLoopWatcher(struct ev_loop*, ev_async* w, int) {
-  Thread* ev_thread = static_cast<Thread*>(w->data);
+void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) {
+  Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   assert(ev_thread != nullptr);
   ev_thread->UpdateLoopWatcherImpl();
 }
@@ -229,16 +225,22 @@ void Thread::UpdateLoopWatcherImpl() {
   }
 }
 
-void Thread::BreakLoopWatcher(struct ev_loop*, ev_async* w, int) {
-  Thread* ev_thread = static_cast<Thread*>(w->data);
+void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) {
+  Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   assert(ev_thread != nullptr);
   ev_thread->BreakLoopWatcherImpl();
 }
 
 void Thread::BreakLoopWatcherImpl() {
-  running_ = false;
+  is_running_ = false;
   UpdateLoopWatcherImpl();
   ev_break(loop_, EVBREAK_ALL);
+}
+
+void Thread::Acquire(struct ev_loop* loop) noexcept {
+  Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
+  assert(ev_thread != nullptr);
+  ev_thread->AcquireImpl();
 }
 
 void Thread::Release(struct ev_loop* loop) noexcept {
@@ -247,15 +249,8 @@ void Thread::Release(struct ev_loop* loop) noexcept {
   ev_thread->ReleaseImpl();
 }
 
-void Thread::ReleaseImpl() noexcept { lock_.unlock(); }
-
-void Thread::Acquire(struct ev_loop* loop) noexcept {
-  Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
-  assert(ev_thread != nullptr);
-  ev_thread->AcquireImpl();
-}
-
 void Thread::AcquireImpl() noexcept { lock_.lock(); }
+void Thread::ReleaseImpl() noexcept { lock_.unlock(); }
 
 }  // namespace ev
 }  // namespace engine

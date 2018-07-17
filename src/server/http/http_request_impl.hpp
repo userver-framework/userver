@@ -71,15 +71,12 @@ class HttpRequestImpl : public request::RequestBase {
   virtual void WriteAccessLogs(
       const logging::LoggerPtr& logger_access,
       const logging::LoggerPtr& logger_access_tskv,
-      const std::string& remote_host,
       const std::string& remote_address) const override;
 
   void WriteAccessLog(const logging::LoggerPtr& logger_access,
-                      const std::string& remote_host,
                       const std::string& remote_address) const;
 
   void WriteAccessTskvLog(const logging::LoggerPtr& logger_access_tskv,
-                          const std::string& remote_host,
                           const std::string& remote_address) const;
 
   virtual void SetMatchedPathLength(size_t length) override;

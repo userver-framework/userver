@@ -4,7 +4,6 @@
 
 #include <logging/component.hpp>
 
-#include "monitor.hpp"
 #include "response_base.hpp"
 
 namespace server {

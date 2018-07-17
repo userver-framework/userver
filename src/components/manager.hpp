@@ -2,37 +2,36 @@
 
 #include <functional>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
 
-#include <components/component_base.hpp>
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
+#include <json/value.h>
+
 #include <engine/coro/pool_stats.hpp>
 #include <engine/ev/thread_pool.hpp>
-#include <server/net/endpoint_info.hpp>
-#include <server/net/listener.hpp>
-#include <server/net/stats.hpp>
-#include <server/request_handlers/request_handlers.hpp>
 
-#include "server_config.hpp"
-#include "server_monitor.hpp"
+#include "component_base.hpp"
+#include "component_config.hpp"
+#include "component_context.hpp"
+#include "manager_config.hpp"
 
-namespace server {
+namespace components {
 
 class ComponentList;
 
-class ServerImpl {
- public:
-  ServerImpl(ServerConfig config, const ComponentList& component_list);
-  ~ServerImpl();
+enum class MonitorVerbosity { kTerse, kFull };
 
-  const ServerConfig& GetConfig() const;
-  net::Stats GetNetworkStats() const;
+class Manager {
+ public:
+  Manager(ManagerConfig config, const ComponentList& component_list);
+  ~Manager();
+
+  const ManagerConfig& GetConfig() const;
   engine::coro::PoolStats GetCoroutineStats() const;
+  Json::Value GetMonitorData(MonitorVerbosity verbosity) const;
 
   template <typename Component>
   std::enable_if_t<std::is_base_of<components::ComponentBase, Component>::value>
@@ -54,19 +53,18 @@ class ServerImpl {
           const components::ComponentConfig&,
           const components::ComponentContext&)>
           factory);
+  void ClearComponents();
 
-  std::unique_ptr<RequestHandlers> CreateRequestHandlers() const;
-
-  const ServerConfig config_;
+  const ManagerConfig config_;
 
   std::unique_ptr<engine::TaskProcessor::CoroPool> coro_pool_;
-  std::unordered_map<std::string, engine::ev::ThreadPool> event_thread_pools_;
+  std::unique_ptr<engine::ev::ThreadPool> event_thread_pool_;
+
+  mutable std::shared_timed_mutex context_mutex_;
   std::unique_ptr<components::ComponentContext> component_context_;
-  std::unique_ptr<ServerMonitor> server_monitor_;
+  bool components_cleared_;
+
   engine::TaskProcessor* default_task_processor_;
-  std::unique_ptr<RequestHandlers> request_handlers_;
-  std::shared_ptr<net::EndpointInfo> endpoint_info_;
-  std::vector<net::Listener> listeners_;
 };
 
-}  // namespace server
+}  // namespace components

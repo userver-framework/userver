@@ -13,7 +13,6 @@
 #include <system_error>
 #include <vector>
 
-#include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_request_handler.hpp>
 #include <server/http/http_request_parser.hpp>
@@ -24,8 +23,8 @@ namespace net {
 
 namespace {
 
-// used for remote address/hostname buffer size
-const size_t kMaxRemoteIdLength = std::max(INET6_ADDRSTRLEN, NI_MAXHOST);
+// used for remote address buffer size
+const size_t kMaxRemoteIdLength = INET6_ADDRSTRLEN;
 
 std::unique_ptr<request::RequestParser> GetRequestParser(
     const request::RequestConfig& config, Connection::Type type,
@@ -59,11 +58,13 @@ const request::RequestHandlerBase& GetRequestHandler(
 
 }  // namespace
 
-Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
+Connection::Connection(engine::ev::ThreadControl& thread_control,
+                       engine::TaskProcessor& task_processor, int fd,
                        const ConnectionConfig& config, Type type,
                        const RequestHandlers& request_handlers,
                        const sockaddr_in6& sin6, BeforeCloseCb before_close_cb)
-    : config_(config),
+    : task_processor_(task_processor),
+      config_(config),
       type_(type),
       request_handler_(
           GetRequestHandler(*config_.request, type, request_handlers)),
@@ -78,20 +79,12 @@ Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
           request_handlers)),
       is_closing_(false),
       processed_requests_count_(0) {
-  auto* task_processor_ptr =
-      request_handler_.GetComponentContext().GetTaskProcessor(
-          config_.task_processor);
-  if (!task_processor_ptr) {
-    throw std::runtime_error("Cannot find task processor '" +
-                             config_.task_processor + '\'');
-  }
-
   response_event_task_ = std::make_shared<engine::EventTask>(
-      *task_processor_ptr, [this] { SendResponses(); });
+      task_processor_, [this] { SendResponses(); });
   response_sender_ = std::make_unique<engine::Sender>(
-      thread_control, *task_processor_ptr, fd, [this] { CloseIfFinished(); });
+      thread_control, task_processor_, fd, [this] { CloseIfFinished(); });
   socket_listener_ = std::make_unique<engine::SocketListener>(
-      thread_control, *task_processor_ptr, fd,
+      thread_control, task_processor_, fd,
       engine::SocketListener::ListenMode::kRead,
       [this](int fd) { return ReadData(fd); }, [this] { CloseIfFinished(); },
       engine::SocketListener::DeferStart{});
@@ -106,24 +99,10 @@ Connection::Connection(engine::ev::ThreadControl& thread_control, int fd,
                             "Cannot get remote address string");
   }
   remote_address_ = remote_address_cstr;
+  remote_port_ = ntohs(sin6.sin6_port);
 
-  buf.fill('\0');
-  auto gai_error =
-      getnameinfo(reinterpret_cast<const sockaddr*>(&sin6), sizeof(sin6),
-                  buf.data(), buf.size(), nullptr, 0, 0);
-  if (gai_error) {
-    if (gai_error == EAI_NONAME) {
-      remote_host_ = remote_address_;
-    } else {
-      LOG_WARNING() << "Cannot get remote hostname: "
-                    << gai_strerror(gai_error);
-    }
-  } else {
-    remote_host_ = buf.data();
-  }
-
-  LOG_DEBUG() << "Incoming connection from " << remote_host_ << " ("
-              << remote_address_ << ')';
+  LOG_DEBUG() << "Incoming connection from " << remote_address_ << ", port "
+              << remote_port_ << ", fd " << Fd();
 }
 
 Connection::~Connection() {
@@ -153,8 +132,8 @@ Connection::~Connection() {
   response_event_task_->Stop();
   LOG_TRACE() << "Stopped response event notifier for fd " << Fd();
 
-  LOG_DEBUG() << "Closed connection from " << remote_host_ << " ("
-              << remote_address_ << "), fd " << Fd();
+  LOG_DEBUG() << "Closed connection from " << remote_address_ << ", port "
+              << remote_port_ << ", fd " << Fd();
 }
 
 void Connection::Start() {
@@ -172,8 +151,6 @@ int Connection::Fd() const { return socket_listener_->Fd(); }
 Connection::Type Connection::GetType() const { return type_; }
 
 const std::string& Connection::RemoteAddress() const { return remote_address_; }
-
-const std::string& Connection::RemoteHost() const { return remote_host_; }
 
 size_t Connection::ProcessedRequestCount() const {
   return processed_requests_count_;
@@ -295,7 +272,7 @@ void Connection::SendResponses() {
     if (request_task_ptr) {
       request_task_ptr->GetRequest().WriteAccessLogs(
           request_handler_.LoggerAccess(), request_handler_.LoggerAccessTskv(),
-          remote_host_, remote_address_);
+          remote_address_);
       request_task_ptr.reset();
     } else {
       break;
