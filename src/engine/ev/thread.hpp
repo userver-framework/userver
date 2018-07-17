@@ -53,7 +53,7 @@ class Thread {
   template <typename Func>
   void SafeEvCall(const Func& func);
 
-  void Run(const std::string& thread_name);
+  void Start();
 
   void StopEventLoop();
   void UpdateEvLoop();
@@ -64,10 +64,10 @@ class Thread {
   static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int);
   void BreakLoopWatcherImpl();
 
-  static void Release(struct ev_loop* loop) noexcept;
   static void Acquire(struct ev_loop* loop) noexcept;
-  void ReleaseImpl() noexcept;
+  static void Release(struct ev_loop* loop) noexcept;
   void AcquireImpl() noexcept;
+  void ReleaseImpl() noexcept;
 
   const std::function<void()>* func_ptr_;
   std::unique_ptr<std::promise<void>> func_promise_;
@@ -80,7 +80,7 @@ class Thread {
   std::unique_lock<std::mutex> lock_;
   ev_async watch_update_;
   ev_async watch_break_;
-  bool running_;
+  bool is_running_;
 };
 
 }  // namespace ev

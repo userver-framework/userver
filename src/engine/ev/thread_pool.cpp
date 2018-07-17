@@ -15,15 +15,12 @@ ThreadPool::ThreadPool(size_t thread_count, const std::string& thread_name) {
   info_ = std::make_unique<ThreadPoolInfo>(*this);
 }
 
-ThreadPool::~ThreadPool() = default;
-
-ThreadPool::ThreadPoolInfo::ThreadPoolInfo(ThreadPool& thread_pool) {
+ThreadPool::ThreadPoolInfo::ThreadPoolInfo(ThreadPool& thread_pool)
+    : counter_(0) {
   thread_controls_.reserve(thread_pool.size());
   for (const auto& thread : thread_pool.threads_)
     thread_controls_.emplace_back(*thread);
 }
-
-ThreadPool::ThreadPoolInfo::~ThreadPoolInfo() {}
 
 ThreadControl& ThreadPool::ThreadPoolInfo::NextThread() {
   assert(!thread_controls_.empty());

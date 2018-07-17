@@ -58,7 +58,7 @@ class Manager {
   const ManagerConfig config_;
 
   std::unique_ptr<engine::TaskProcessor::CoroPool> coro_pool_;
-  std::unordered_map<std::string, engine::ev::ThreadPool> event_thread_pools_;
+  std::unique_ptr<engine::ev::ThreadPool> event_thread_pool_;
 
   mutable std::shared_timed_mutex context_mutex_;
   std::unique_ptr<components::ComponentContext> component_context_;

@@ -13,7 +13,6 @@ namespace ev {
 class ThreadPool {
  public:
   ThreadPool(size_t thread_count, const std::string& thread_name);
-  ~ThreadPool();
 
   inline size_t size() const { return threads_.size(); }
 
@@ -27,14 +26,13 @@ class ThreadPool {
   class ThreadPoolInfo {
    public:
     explicit ThreadPoolInfo(ThreadPool& thread_pool);
-    ~ThreadPoolInfo();
 
     ThreadControl& NextThread();
     std::vector<ThreadControl*> NextThreads(size_t count);
 
    private:
     std::vector<ThreadControl> thread_controls_;
-    std::atomic<size_t> counter_{0};
+    std::atomic<size_t> counter_;
   };
 
   std::vector<std::unique_ptr<Thread>> threads_;

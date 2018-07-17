@@ -6,17 +6,17 @@
 #include <json/value.h>
 
 #include <engine/coro/pool_config.hpp>
+#include <engine/ev/thread_pool_config.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <json_config/variable_map.hpp>
 
 #include "component_config.hpp"
-#include "event_thread_pool_config.hpp"
 
 namespace components {
 
 struct ManagerConfig {
   engine::coro::PoolConfig coro_pool;
-  std::vector<EventThreadPoolConfig> event_thread_pools;
+  engine::ev::ThreadPoolConfig event_thread_pool;
   std::vector<components::ComponentConfig> components;
   std::vector<engine::TaskProcessorConfig> task_processors;
   std::string default_task_processor;

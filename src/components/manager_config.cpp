@@ -46,8 +46,8 @@ ManagerConfig ManagerConfig::ParseFromJson(
 
   config.coro_pool = engine::coro::PoolConfig::ParseFromJson(
       value["coro_pool"], name + ".coro_pool", config_vars_ptr);
-  config.event_thread_pools = json_config::ParseArray<EventThreadPoolConfig>(
-      value, "event_thread_pools", name, config_vars_ptr);
+  config.event_thread_pool = engine::ev::ThreadPoolConfig::ParseFromJson(
+      value["event_thread_pool"], name + ".event_thread_pool", config_vars_ptr);
   config.components = json_config::ParseArray<components::ComponentConfig>(
       value, "components", name, config_vars_ptr);
   config.task_processors = json_config::ParseArray<engine::TaskProcessorConfig>(

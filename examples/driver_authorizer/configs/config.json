@@ -7,28 +7,22 @@
       "max_size": "$coro_pool_max_size",
       "max_size#fallback": 50000
     },
-    "event_thread_pools": [
-      {
-        "name": "event-thread-pool",
-        "thread_name": "event",
-        "threads": "$event_threads",
-        "threads#fallback": 2
-      }
-    ],
+    "event_thread_pool": {
+      "threads": "$event_threads",
+      "threads#fallback": 2
+    },
     "task_processors": [
       {
         "name": "main-task-processor",
         "worker_threads": "$main_worker_threads",
         "worker_threads#fallback": 8,
-        "thread_name": "main-worker",
-        "event_thread_pool": "event-thread-pool"
+        "thread_name": "main-worker"
       },
       {
         "name": "mongo-task-processor",
         "worker_threads": "$mongo_worker_threads",
         "worker_threads#fallback": 5,
-        "thread_name": "mongo-worker",
-        "event_thread_pool": "event-thread-pool"
+        "thread_name": "mongo-worker"
       }
     ],
     "default_task_processor": "main-task-processor",

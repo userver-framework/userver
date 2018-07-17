@@ -13,6 +13,7 @@
 
 namespace {
 
+const std::string kEventLoopThreadName = "event-loop";
 const std::string kEngineMonitorDataName = "engine";
 
 }  // namespace
@@ -28,20 +29,15 @@ Manager::Manager(ManagerConfig config, const ComponentList& component_list)
   coro_pool_ = std::make_unique<engine::TaskProcessor::CoroPool>(
       config_.coro_pool, &engine::Task::CoroFunc);
 
-  for (const auto& event_thread_pool_config : config_.event_thread_pools) {
-    event_thread_pools_.emplace(std::piecewise_construct,
-                                std::tie(event_thread_pool_config.name),
-                                std::tie(event_thread_pool_config.threads,
-                                         event_thread_pool_config.thread_name));
-  }
+  event_thread_pool_ = std::make_unique<engine::ev::ThreadPool>(
+      config_.event_thread_pool.threads, kEventLoopThreadName);
 
   components::ComponentContext::TaskProcessorMap task_processors;
   for (const auto& processor_config : config_.task_processors) {
     task_processors.emplace(
         processor_config.name,
-        std::make_unique<engine::TaskProcessor>(
-            processor_config, *coro_pool_,
-            event_thread_pools_.at(processor_config.event_thread_pool)));
+        std::make_unique<engine::TaskProcessor>(processor_config, *coro_pool_,
+                                                *event_thread_pool_));
   }
   const auto default_task_processor_it =
       task_processors.find(config_.default_task_processor);
@@ -73,9 +69,9 @@ Manager::~Manager() {
   ClearComponents();
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
-  LOG_TRACE() << "Stopping event_thread_pools";
-  event_thread_pools_.clear();
-  LOG_TRACE() << "Stopped event_thread_pools";
+  LOG_TRACE() << "Stopping event loops thread pool";
+  event_thread_pool_.reset();
+  LOG_TRACE() << "Stopped event loops thread pool";
   LOG_TRACE() << "Stopping coroutines pool";
   coro_pool_.reset();
   LOG_TRACE() << "Stopped coroutines pool";
