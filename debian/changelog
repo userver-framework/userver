@@ -1,3 +1,9 @@
+yandex-taxi-userver (0.1.12) unstable; urgency=medium
+
+  * Andrey Bugaevskiy | bug server: prevent fd leaks during socket setup (#57)
+
+ -- Andrey Bugaevskiy <bugaevskiy@yandex-team.ru>  Wed, 18 Jul 2018 19:35:57 +0300
+
 yandex-taxi-userver (0.1.11) unstable; urgency=medium
 
   * Andrey Bugaevskiy | feat engine: use asymmetric coroutines (#56)
