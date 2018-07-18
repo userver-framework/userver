@@ -12,6 +12,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
@@ -25,14 +26,43 @@ namespace {
 
 static const size_t kConnectionsToCloseQueueCapacity = 64;
 
-int CreateSocket(uint16_t port, int backlog) {
-  int fd = utils::CheckSyscall(socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0),
-                               "creating socket");
+class FdHolder {
+ public:
+  explicit FdHolder(int fd) : fd_(fd) {}
 
+  ~FdHolder() {
+    if (fd_ == -1) return;
+
+    if (::close(fd_) == -1) {
+      std::error_code ec(errno, std::system_category());
+      LOG_WARNING() << "Cannot close fd " << fd_ << ": " << ec.message();
+    }
+  }
+
+  FdHolder(const FdHolder&) = delete;
+  FdHolder(FdHolder&&) = delete;
+  FdHolder& operator=(const FdHolder&) = delete;
+  FdHolder& operator=(FdHolder&&) = delete;
+
+  int Get() const { return fd_; }
+
+  int Release() noexcept {
+    int fd = -1;
+    std::swap(fd, fd_);
+    return fd;
+  }
+
+ private:
+  int fd_;
+};
+
+int CreateSocket(uint16_t port, int backlog) {
+  FdHolder fd_holder(utils::CheckSyscall(
+      socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0), "creating socket"));
   const int reuse = 1;
-  utils::CheckSyscall(
-      setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)),
-      "setting SO_REUSEPORT");
+  utils::CheckSyscall(setsockopt(fd_holder.Get(), SOL_SOCKET, SO_REUSEPORT,
+                                 &reuse, sizeof(reuse)),
+                      "setting SO_REUSEPORT");
 
   sockaddr_in6 addr;
   memset(&addr, 0, sizeof(addr));
@@ -40,10 +70,12 @@ int CreateSocket(uint16_t port, int backlog) {
   addr.sin6_port = htons(port);
   addr.sin6_addr = in6addr_any;
   utils::CheckSyscall(
-      bind(fd, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)),
+      bind(fd_holder.Get(), reinterpret_cast<const sockaddr*>(&addr),
+           sizeof(addr)),
       "binding a socket");
-  utils::CheckSyscall(listen(fd, backlog), "listening on a socket");
-  return fd;
+  utils::CheckSyscall(listen(fd_holder.Get(), backlog),
+                      "listening on a socket");
+  return fd_holder.Release();
 }
 
 }  // namespace
