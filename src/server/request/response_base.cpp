@@ -11,9 +11,13 @@ void ResponseBase::SetReady() {
 }
 
 void ResponseBase::SetSent(size_t bytes_sent) {
-  sent_time_ = std::chrono::steady_clock::now();
   bytes_sent_ = bytes_sent;
   is_sent_ = true;
+}
+
+void ResponseBase::SetSentTime(
+    std::chrono::steady_clock::time_point sent_time) {
+  sent_time_ = sent_time;
 }
 
 }  // namespace request

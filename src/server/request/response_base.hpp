@@ -16,7 +16,8 @@ class ResponseBase {
 
   void SetData(std::string data);
   void SetReady();
-  void SetSent(size_t bytes_sent);
+  virtual void SetSent(size_t bytes_sent);
+  void SetSentTime(std::chrono::steady_clock::time_point sent_time);
 
   bool IsReady() const { return is_ready_; }
   bool IsSent() const { return is_sent_; }
@@ -29,7 +30,8 @@ class ResponseBase {
   const std::string& GetData() const { return data_; }
 
   virtual void SendResponse(engine::Sender& sender,
-                            std::function<void(size_t)>&& fini_cb) = 0;
+                            std::function<void(size_t)> fini_cb,
+                            bool need_send) = 0;
 
   virtual void SetStatusServiceUnavailable() = 0;
   virtual void SetStatusOk() = 0;

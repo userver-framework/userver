@@ -78,7 +78,8 @@ Connection::Connection(engine::ev::ThreadControl& thread_control,
           },
           request_handlers)),
       is_closing_(false),
-      processed_requests_count_(0) {
+      processed_requests_count_(0),
+      socket_listener_stopped_{false} {
   response_event_task_ = std::make_shared<engine::EventTask>(
       task_processor_, [this] { SendResponses(); });
   response_sender_ = std::make_unique<engine::Sender>(
@@ -86,7 +87,14 @@ Connection::Connection(engine::ev::ThreadControl& thread_control,
   socket_listener_ = std::make_unique<engine::SocketListener>(
       thread_control, task_processor_, fd,
       engine::SocketListener::ListenMode::kRead,
-      [this](int fd) { return ReadData(fd); }, [this] { CloseIfFinished(); },
+      [this](int fd) { return ReadData(fd); },
+      [this] {
+        socket_listener_stop_time_ = std::chrono::steady_clock::now();
+        socket_listener_stopped_ = true;  // Sequentially-consistent ordering is
+                                          // important here for
+                                          // socket_listener_stop_time_
+        CloseIfFinished();
+      },
       engine::SocketListener::DeferStart{});
 
   std::array<char, kMaxRemoteIdLength> buf;
@@ -180,7 +188,7 @@ bool Connection::IsRequestTasksEmpty() const {
 engine::SocketListener::Result Connection::ReadData(int fd) {
   std::vector<char> buf(config_.in_buffer_size);
   int bytes_read = recv(fd, buf.data(), buf.size(), 0);
-  LOG_TRACE() << "Received " << bytes_read << " from fd " << Fd();
+  LOG_TRACE() << "Received " << bytes_read << " byte(s) from fd " << Fd();
   if (bytes_read < 0) {
     if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
       return engine::SocketListener::Result::kAgain;
@@ -242,12 +250,16 @@ void Connection::SendResponses() {
     auto& response = request.GetResponse();
     assert(!response.IsSent());
     request.SetStartSendResponseTime();
-    response.SendResponse(*response_sender_,
-                          [this, &response, &request](size_t bytes_sent) {
-                            request.SetFinishSendResponseTime();
-                            response.SetSent(bytes_sent);
-                            response_event_task_->Notify();
-                          });
+    response.SendResponse(
+        *response_sender_,
+        [this, &response, &request](size_t bytes_sent) {
+          request.SetFinishSendResponseTime();
+          response.SetSentTime(bytes_sent ? std::chrono::steady_clock::now()
+                                          : socket_listener_stop_time_);
+          response.SetSent(bytes_sent);
+          response_event_task_->Notify();
+        },
+        !socket_listener_stopped_);
   }
 
   for (;;) {

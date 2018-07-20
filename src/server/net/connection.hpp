@@ -87,6 +87,8 @@ class Connection {
 
   std::unique_ptr<engine::Sender> response_sender_;
   std::unique_ptr<engine::SocketListener> socket_listener_;
+  std::atomic<bool> socket_listener_stopped_;
+  std::chrono::steady_clock::time_point socket_listener_stop_time_;
 };
 
 }  // namespace net

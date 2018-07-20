@@ -1,3 +1,10 @@
+yandex-taxi-userver (0.1.13) unstable; urgency=medium
+
+  * Dmitriy Zhukov | feat tools: fix BUILD_NUMBER calculation in release script (#58)
+  * Dmitriy Zhukov | feat server: add code 499 for access log (#54)
+
+ -- Dmitry Zhukov <dzhuk@yandex-team.ru>  Fri, 20 Jul 2018 19:04:45 +0300
+
 yandex-taxi-userver (0.1.12) unstable; urgency=medium
 
   * Andrey Bugaevskiy | bug server: prevent fd leaks during socket setup (#57)

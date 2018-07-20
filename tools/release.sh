@@ -8,16 +8,16 @@ PROJECT_ARCH=`dpkg-architecture | grep DEB_BUILD_ARCH= | sed -e 's/.*=//'`
 [[ -z "$DEBFULLNAME" ]] && { echo "DEBFULLNAME variable is not set"; exit 1; }
 [[ -z "$DEBEMAIL" ]] && { echo "DEBEMAIL variable is not set"; exit 1; }
 
+git fetch origin
+git checkout master && git pull origin master
+git checkout develop && git pull origin develop
+git fetch origin --tags
+
 BUILD_NUMBER="${BUILD_NUMBER:-`head debian/changelog -n1 | gawk -F'[ .()]' '{ print $3 "." $4 "." (strtonum($5) + 1) }'`}"
 SOURCE_PACKAGE_NAME="${SOURCE_PACKAGE_NAME:-yandex-taxi-userver}"
 
 echo "BUILD_NUMBER=$BUILD_NUMBER"
 echo "SOURCE_PACKAGE_NAME=$SOURCE_PACKAGE_NAME"
-
-git fetch origin
-git checkout master && git pull origin master
-git checkout develop && git pull origin develop
-git fetch origin --tags
 
 git checkout -b release/$BUILD_NUMBER develop
 

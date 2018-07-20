@@ -28,6 +28,8 @@ class HttpResponse : public request::ResponseBase {
   explicit HttpResponse(const HttpRequestImpl& request);
   virtual ~HttpResponse();
 
+  virtual void SetSent(size_t bytes_sent) override;
+
   void SetHeader(std::string name, std::string value);
   void SetContentType(std::string type);
   void SetContentEncoding(std::string encoding);
@@ -37,7 +39,8 @@ class HttpResponse : public request::ResponseBase {
   HttpStatus GetStatus() const { return status_; }
 
   virtual void SendResponse(engine::Sender& sender,
-                            std::function<void(size_t)>&& finish_cb) override;
+                            std::function<void(size_t)> finish_cb,
+                            bool need_send) override;
 
   virtual void SetStatusServiceUnavailable() override {
     SetStatus(HttpStatus::kServiceUnavailable);
