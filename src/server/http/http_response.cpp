@@ -66,6 +66,11 @@ HttpResponse::HttpResponse(const HttpRequestImpl& request)
 
 HttpResponse::~HttpResponse() {}
 
+void HttpResponse::SetSent(size_t bytes_sent) {
+  if (!bytes_sent) SetStatus(HttpStatus::kClientClosedRequest);
+  request::ResponseBase::SetSent(bytes_sent);
+}
+
 void HttpResponse::SetHeader(std::string name, std::string value) {
   CheckHeaderName(name);
   CheckHeaderValue(value);
@@ -85,7 +90,12 @@ void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
 void HttpResponse::ClearHeaders() { headers_.clear(); }
 
 void HttpResponse::SendResponse(engine::Sender& sender,
-                                std::function<void(size_t)>&& finish_cb) {
+                                std::function<void(size_t)> finish_cb,
+                                bool need_send) {
+  if (!need_send) {
+    finish_cb(0);
+    return;
+  }
   bool is_head_request = request_.GetMethod() == HTTP_HEAD;
   std::ostringstream os;
   os << kResponseHttpVersion << " " << static_cast<int>(status_) << " "

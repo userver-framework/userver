@@ -55,6 +55,7 @@ namespace http {
   XX(429, kTooManyRequests, "Too Many Requests")                             \
   XX(431, kRequestHeaderFieldsTooLarge, "Request Header Fields Too Large")   \
   XX(451, kUnavailableForLegalReasons, "Unavailable For Legal Reasons")      \
+  XX(499, kClientClosedRequest, "Client Closed Request")                     \
   XX(500, kInternalServerError, "Internal Server Error")                     \
   XX(501, kNotImplemented, "Not Implemented")                                \
   XX(502, kBadGateway, "Bad Gateway")                                        \
