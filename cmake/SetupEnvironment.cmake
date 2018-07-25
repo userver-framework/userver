@@ -116,14 +116,3 @@ enable_testing ()
 
 set (CMAKE_INSTALL_DO_STRIP "NO")
 set (CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
-
-# get current version from changelog
-execute_process(COMMAND dpkg-parsechangelog
-    -l ${CMAKE_SOURCE_DIR}/debian/changelog
-    --show-field Version
-  OUTPUT_VARIABLE DEBVERSION
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-if (NOT DEBVERSION)
-  set(DEBVERSION 0.0.0)
-endif()

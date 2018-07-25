@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(PROJECT yandex-taxi-driver-authorizer)
-project(${PROJECT} VERSION ${DEBVERSION})
+project(${PROJECT} VERSION ${PROJECT_VERSION_STRING})
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
