@@ -27,6 +27,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 endif()
 
 include(SetupEnvironment)
+include(GetVersion)
 include(CppCheck)
 
 add_subdirectory(src)

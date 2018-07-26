@@ -1,3 +1,11 @@
+yandex-taxi-userver (0.1.14) unstable; urgency=low
+
+  Release ticket https://st.yandex-team.ru/TAXIREL-2609
+
+  * Andrey Bugaevskiy | bug cmake: fix build failure with complex debian versions (#60)
+
+ -- buildfarm <buildfarm@yandex-team.ru>  Thu, 26 Jul 2018 15:54:07 +0300
+
 yandex-taxi-userver (0.1.13) unstable; urgency=medium
 
   * Dmitriy Zhukov | feat tools: fix BUILD_NUMBER calculation in release script (#58)
