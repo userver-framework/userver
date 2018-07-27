@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "check_syscall.hpp"
+#include <utils/strerror.hpp>
 
 namespace utils {
 
@@ -12,13 +13,13 @@ IgnoreSignalScope::IgnoreSignalScope(int signal) : signal_(signal) {
   action.sa_handler = SIG_IGN;
   utils::CheckSyscall(
       sigaction(signal_, &action, &old_action_),
-      std::string("setting ignore handler for ") + strsignal(signal_));
+      "setting ignore handler for " + utils::strsignal(signal_));
 }
 
 IgnoreSignalScope::~IgnoreSignalScope() noexcept(false) {
   utils::CheckSyscall(
       sigaction(signal_, &old_action_, nullptr),
-      std::string("restoring ") + strsignal(signal_) + " handler");
+      "restoring " + utils::strsignal(signal_) + " handler");
 }
 
 }  // namespace utils

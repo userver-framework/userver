@@ -9,6 +9,7 @@
 #include <logging/logger.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/signal_catcher.hpp>
+#include <utils/strerror.hpp>
 
 #include "manager.hpp"
 #include "manager_config.hpp"
@@ -99,7 +100,7 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
       LOG_INFO() << "Log rotated";
     } else {
       LOG_WARNING() << "Got unexpected signal: " << signum << " ("
-                    << strsignal(signum) << ')';
+                    << utils::strsignal(signum) << ')';
       assert(!"unexpected signal");
     }
   }
