@@ -1,19 +1,18 @@
 #pragma once
 
-#include <memory>
+#include <atomic>
+#include <condition_variable>
 #include <shared_mutex>
-#include <unordered_set>
+#include <thread>
 #include <vector>
 
 #include <boost/lockfree/queue.hpp>
-#include <boost/lockfree/stack.hpp>
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_pool.hpp>
 
 #include "task.hpp"
 #include "task_processor_config.hpp"
-#include "task_worker.hpp"
 
 namespace engine {
 
@@ -26,8 +25,6 @@ class TaskProcessor {
   ~TaskProcessor();
 
   bool AddTask(Task* task, bool can_fail = false);
-
-  Task* NextTask(int worker_id);
 
   CoroPool& GetCoroPool() { return coro_pool_; }
   ev::ThreadPool& EventThreadPool() { return event_thread_pool_; }
@@ -45,29 +42,32 @@ class TaskProcessor {
     RefCounter& operator=(const RefCounter&) = delete;
     RefCounter& operator=(RefCounter&&) = delete;
 
-    virtual ~RefCounter() { --task_processor_.async_task_counter_; }
+    ~RefCounter() { --task_processor_.async_task_counter_; }
 
    private:
     TaskProcessor& task_processor_;
   };
 
  private:
-  bool EnqueueTask(Task* task, bool can_fail = false);
-  void TryRunTask();
+  bool EnqueueTask(Task* task, bool can_fail);
+
+  void ProcessTasks() noexcept;
 
   const TaskProcessorConfig& config_;
 
   CoroPool& coro_pool_;
   ev::ThreadPool& event_thread_pool_;
 
-  std::shared_timed_mutex task_queue_mutex_;
-  std::atomic<size_t> task_queue_size_;
-  boost::lockfree::queue<Task*> task_queue_;
-  std::unique_ptr<ev::ThreadPool> worker_thread_pool_;
-  std::vector<std::unique_ptr<TaskWorker>> workers_;
-  boost::lockfree::stack<int, boost::lockfree::fixed_sized<true>>
-      workers_stack_;
+  std::atomic<bool> is_running_;
 
+  // Shared lock is acquired for insertions into task_queue_.
+  // Used for double checking/pausing workers on queue exhaustion.
+  std::shared_timed_mutex task_queue_mutex_;
+  std::condition_variable_any task_available_cv_;
+  boost::lockfree::queue<Task*> task_queue_;
+  std::atomic<size_t> task_queue_size_;
+
+  std::vector<std::thread> workers_;
   std::atomic<size_t> async_task_counter_;
 };
 

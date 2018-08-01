@@ -25,7 +25,6 @@ class Thread {
     return loop_;
   }
 
-  void SetThreadName(const std::string& name);
   void AsyncStartUnsafe(ev_async& w);
   void AsyncStart(ev_async& w);
   void AsyncStopUnsafe(ev_async& w);

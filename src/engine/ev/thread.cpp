@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include <logging/log.hpp>
+#include <utils/thread_name.hpp>
 
 namespace engine {
 namespace ev {
@@ -19,20 +20,12 @@ Thread::Thread(const std::string& thread_name)
       lock_(loop_mutex_, std::defer_lock),
       is_running_(false) {
   Start();
-  SetThreadName(thread_name);
+  utils::SetThreadName(thread_, thread_name);
 }
 
 Thread::~Thread() {
   StopEventLoop();
   assert(loop_ == nullptr);
-}
-
-void Thread::SetThreadName(const std::string& name) {
-  assert(thread_.joinable());
-  if (name.empty()) {
-    throw std::logic_error("Cannot set empty thread name");
-  }
-  pthread_setname_np(thread_.native_handle(), name.substr(0, 15).c_str());
 }
 
 void Thread::AsyncStartUnsafe(ev_async& w) { ev_async_start(GetEvLoop(), &w); }
