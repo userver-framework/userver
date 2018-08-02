@@ -18,12 +18,7 @@ Task::Task(TaskProcessor* task_processor)
       task_pipe_(nullptr),
       yield_reason_(YieldReason::kTaskPending) {}
 
-Task::~Task() {
-  if (coro_) {
-    task_processor_->GetCoroPool().PutCoroutine(coro_);
-    coro_ = nullptr;
-  }
-}
+Task::~Task() {}
 
 void Task::Fail() noexcept { LOG_ERROR() << "unexpected task Fail"; }
 
@@ -34,7 +29,7 @@ Task::State Task::RunTask() {
   (*coro_)(this);
 
   if (yield_reason_ == YieldReason::kTaskComplete) {
-    task_processor_->GetCoroPool().PutCoroutine(coro_);
+    task_processor_->GetCoroPool().PutCoroutine(std::move(coro_));
     coro_ = nullptr;
     OnComplete();
     return State::kComplete;

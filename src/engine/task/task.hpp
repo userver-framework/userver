@@ -9,11 +9,11 @@
 #include <ev.h>
 #include <boost/coroutine/asymmetric_coroutine.hpp>
 
+#include <engine/coro/pool.hpp>
 #include <engine/ev/thread_control.hpp>
 
 namespace engine {
 
-class TaskWorkerImpl;
 class TaskProcessor;
 
 class Task {
@@ -21,10 +21,8 @@ class Task {
   explicit Task(TaskProcessor* task_processor);
   virtual ~Task();
 
-  using Coroutine =
-      typename boost::coroutines::asymmetric_coroutine<Task*>::push_type;
-  using TaskPipe =
-      typename boost::coroutines::asymmetric_coroutine<Task*>::pull_type;
+  using CoroutinePtr = coro::Pool<Task>::CoroutinePtr;
+  using TaskPipe = coro::Pool<Task>::TaskPipe;
   using WakeUpCb = std::function<void()>;
 
   enum class State { kQueued, kRunning, kWaiting, kComplete, kCanceled };
@@ -69,7 +67,7 @@ class Task {
   // (wait_state_ & 1): Sleep() called
   // (wait_state_ & 2): WakeUp() called
 
-  Coroutine* coro_;
+  CoroutinePtr coro_;
   TaskPipe* task_pipe_;
   YieldReason yield_reason_;
 };

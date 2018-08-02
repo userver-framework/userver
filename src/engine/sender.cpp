@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 
 #include <logging/log.hpp>
+#include <utils/strerror.hpp>
 
 namespace engine {
 
@@ -100,7 +101,7 @@ Sender::Result Sender::SendCurrentData(std::lock_guard<std::mutex>& lock,
            CurrentData(lock).size() - current_data_pos_, MSG_NOSIGNAL);
   if (res < 0) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) return Result::kAgain;
-    LOG_WARNING() << "error in send: " << strerror(errno);
+    LOG_WARNING() << "error in send: " << utils::strerror(errno);
     return Result::kError;
   }
   current_data_pos_ += res;

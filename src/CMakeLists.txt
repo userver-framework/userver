@@ -44,6 +44,7 @@ target_link_libraries(${PROJECT}
 target_include_directories(${PROJECT} PUBLIC ${USERVER_PUBLIC_INCLUDE_DIR})
 # FIXME: change to PRIVATE once we have interface
 target_include_directories(${PROJECT} PUBLIC
+  ${USERVER_PUBLIC_INCLUDE_DIR}/yandex/taxi/userver/
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${USERVER_THIRD_PARTY_DIRS}
