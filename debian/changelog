@@ -1,3 +1,12 @@
+yandex-taxi-userver (0.1.15) unstable; urgency=low
+
+  Release ticket https://st.yandex-team.ru/TAXIREL-2644
+
+  * Andrey Bugaevskiy | feat engine: simplify task processor (#61)
+  * Vasily Kulikov | bug common: fix strerror/strsignal MT-unsafe usage (#62)
+
+ -- buildfarm <buildfarm@yandex-team.ru>  Thu, 02 Aug 2018 14:16:54 +0300
+
 yandex-taxi-userver (0.1.14) unstable; urgency=low
 
   Release ticket https://st.yandex-team.ru/TAXIREL-2609
