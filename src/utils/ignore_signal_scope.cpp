@@ -2,8 +2,8 @@
 
 #include <cstring>
 
-#include "check_syscall.hpp"
 #include <utils/strerror.hpp>
+#include "check_syscall.hpp"
 
 namespace utils {
 
@@ -17,9 +17,8 @@ IgnoreSignalScope::IgnoreSignalScope(int signal) : signal_(signal) {
 }
 
 IgnoreSignalScope::~IgnoreSignalScope() noexcept(false) {
-  utils::CheckSyscall(
-      sigaction(signal_, &old_action_, nullptr),
-      "restoring " + utils::strsignal(signal_) + " handler");
+  utils::CheckSyscall(sigaction(signal_, &old_action_, nullptr),
+                      "restoring " + utils::strsignal(signal_) + " handler");
 }
 
 }  // namespace utils
