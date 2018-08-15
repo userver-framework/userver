@@ -17,17 +17,18 @@ Sender::Sender(const ev::ThreadControl& thread_control,
       current_data_pos_(0),
       stopped_{false},
       on_complete_(std::move(on_complete)),
-      socket_listener_(thread_control, task_processor, fd,
-                       SocketListener::ListenMode::kWrite,
-                       [this](int fd) { return SendData(fd); },
-                       [this]() { DoStop(); }, SocketListener::DeferStart{}) {}
+      socket_listener_(std::make_shared<SocketListener>(
+          thread_control, task_processor, fd,
+          SocketListener::ListenMode::kWrite,
+          [this](int fd) { return SendData(fd); }, [this]() { DoStop(); },
+          SocketListener::DeferStart{})) {}
 
 Sender::~Sender() { Stop(); }
 
-void Sender::Start() { socket_listener_.Start(); }
+void Sender::Start() { socket_listener_->Start(); }
 
 void Sender::Stop() {
-  socket_listener_.Stop();
+  socket_listener_->Stop();
   DoStop();
 }
 
@@ -36,14 +37,14 @@ void Sender::SendData(std::string data,
   assert(finish_cb);
   bool inserted = false;
   {
-    std::lock_guard<std::mutex> lock(data_queue_mutex_);
+    std::lock_guard<Mutex> lock(data_queue_mutex_);
     if (!stopped_) {
       data_queue_.emplace_back(std::move(data), std::move(finish_cb));
       inserted = true;
     }
   }
   if (inserted) {
-    socket_listener_.Notify();
+    socket_listener_->Notify();
   } else {
     try {
       finish_cb(0);
@@ -54,12 +55,12 @@ void Sender::SendData(std::string data,
 }
 
 size_t Sender::DataQueueSize() const {
-  std::lock_guard<std::mutex> lock(data_queue_mutex_);
+  std::lock_guard<Mutex> lock(data_queue_mutex_);
   return data_queue_.size();
 }
 
 bool Sender::HasWaitingData() const {
-  std::lock_guard<std::mutex> lock(data_queue_mutex_);
+  std::lock_guard<Mutex> lock(data_queue_mutex_);
   return !data_queue_.empty();
 }
 
@@ -70,7 +71,7 @@ void Sender::DoStop() {
     std::function<void(size_t)> finish_cb;
     size_t pos;
     {
-      std::lock_guard<std::mutex> lock(data_queue_mutex_);
+      std::lock_guard<Mutex> lock(data_queue_mutex_);
       if (data_queue_.empty()) break;
       finish_cb = std::move(data_queue_.front().finish_cb);
       pos = current_data_pos_;
@@ -88,13 +89,12 @@ void Sender::DoStop() {
   if (on_complete_) on_complete_();
 }
 
-inline const std::string& Sender::CurrentData(std::lock_guard<std::mutex>&) {
+inline const std::string& Sender::CurrentData(std::lock_guard<Mutex>&) {
   assert(!data_queue_.empty());
   return data_queue_.front().data;
 }
 
-Sender::Result Sender::SendCurrentData(std::lock_guard<std::mutex>& lock,
-                                       int fd) {
+Sender::Result Sender::SendCurrentData(std::lock_guard<Mutex>& lock, int fd) {
   if (data_queue_.empty()) return Result::kOk;
   ssize_t res =
       send(fd, CurrentData(lock).data() + current_data_pos_,
@@ -119,7 +119,7 @@ Sender::Result Sender::SendData(int fd) {
 
     res = Result::kOk;
     {
-      std::lock_guard<std::mutex> lock(data_queue_mutex_);
+      std::lock_guard<Mutex> lock(data_queue_mutex_);
       if (data_queue_.empty()) break;
       res = SendCurrentData(lock, fd);
       if (res != Result::kOk) break;

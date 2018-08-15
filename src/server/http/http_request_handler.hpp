@@ -31,7 +31,7 @@ class HttpRequestHandler : public request::RequestHandlerBase {
       const boost::optional<std::string>& logger_access_tskv_component,
       bool is_monitor);
 
-  std::unique_ptr<request::RequestTask> PrepareRequestTask(
+  std::shared_ptr<request::RequestTask> PrepareRequestTask(
       std::unique_ptr<request::RequestBase>&& request,
       std::function<void()>&& notify_func) const override;
   void ProcessRequest(request::RequestTask& task) const override;

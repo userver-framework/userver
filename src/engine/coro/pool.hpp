@@ -101,7 +101,7 @@ PoolStats Pool<Task>::GetStats() const {
 
 template <typename Task>
 typename Pool<Task>::Coroutine* Pool<Task>::CreateCoroutine(bool quiet) {
-  auto new_total = total_coroutines_num_++;
+  auto new_total = ++total_coroutines_num_;
   auto* coroutine = new Coroutine(executor_);
   if (!quiet) {
     LOG_DEBUG() << "Created a coroutine #" << new_total << '/'

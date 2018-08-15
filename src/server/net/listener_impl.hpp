@@ -2,13 +2,13 @@
 
 #include <atomic>
 #include <memory>
-#include <mutex>
 #include <unordered_map>
 
 #include <boost/lockfree/queue.hpp>
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/event_task.hpp>
+#include <engine/mutex.hpp>
 #include <engine/socket_listener.hpp>
 #include <engine/task/task_processor.hpp>
 
@@ -42,7 +42,7 @@ class ListenerImpl : public engine::ev::ThreadControl {
 
   bool is_closing_;
 
-  mutable std::mutex connections_mutex_;
+  mutable engine::Mutex connections_mutex_;
   std::unordered_map<int, std::unique_ptr<Connection>> connections_;
 
   boost::lockfree::queue<int> connections_to_close_;
@@ -53,8 +53,8 @@ class ListenerImpl : public engine::ev::ThreadControl {
   std::atomic<size_t> pending_setup_connection_count_;
   std::atomic<size_t> pending_close_connection_count_;
 
-  std::unique_ptr<engine::SocketListener> request_socket_listener_;
-  std::unique_ptr<engine::SocketListener> monitor_socket_listener_;
+  std::shared_ptr<engine::SocketListener> request_socket_listener_;
+  std::shared_ptr<engine::SocketListener> monitor_socket_listener_;
 };
 
 }  // namespace net

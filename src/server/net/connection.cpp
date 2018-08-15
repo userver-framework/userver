@@ -84,7 +84,7 @@ Connection::Connection(engine::ev::ThreadControl& thread_control,
       task_processor_, [this] { SendResponses(); });
   response_sender_ = std::make_unique<engine::Sender>(
       thread_control, task_processor_, fd, [this] { CloseIfFinished(); });
-  socket_listener_ = std::make_unique<engine::SocketListener>(
+  socket_listener_ = std::make_shared<engine::SocketListener>(
       thread_control, task_processor_, fd,
       engine::SocketListener::ListenMode::kRead,
       [this](int fd) { return ReadData(fd); },
@@ -129,7 +129,7 @@ Connection::~Connection() {
   LOG_TRACE() << "Waiting for request tasks queue to become empty for fd "
               << Fd();
   {
-    std::unique_lock<std::mutex> lock(request_tasks_mutex_);
+    std::unique_lock<engine::Mutex> lock(request_tasks_mutex_);
     request_tasks_empty_cv_.Wait(lock,
                                  [this] { return request_tasks_.empty(); });
   }
@@ -181,7 +181,7 @@ bool Connection::CanClose() const {
 }
 
 bool Connection::IsRequestTasksEmpty() const {
-  std::lock_guard<std::mutex> lock(request_tasks_mutex_);
+  std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
   return request_tasks_.empty();
 }
 
@@ -203,7 +203,7 @@ engine::SocketListener::Result Connection::ReadData(int fd) {
     return engine::SocketListener::Result::kError;
   }
 
-  std::unique_lock<std::mutex> lock(request_tasks_mutex_);
+  std::unique_lock<engine::Mutex> lock(request_tasks_mutex_);
   request_tasks_full_cv_.Wait(lock, [this] {
     if (request_tasks_.size() >= config_.requests_queue_size_threshold) {
       LOG_TRACE() << "Receiving from fd " << Fd()
@@ -221,13 +221,11 @@ void Connection::NewRequest(
       std::move(request_ptr),
       [task = response_event_task_] { task->Notify(); });
 
-  auto* task_ptr = request_task.get();
-  assert(task_ptr);
   {
-    std::lock_guard<std::mutex> lock(request_tasks_mutex_);
-    request_tasks_.push_back(std::move(request_task));
+    std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
+    request_tasks_.push_back(request_task);
   }
-  request_handler_.ProcessRequest(*task_ptr);
+  request_handler_.ProcessRequest(*request_task);
 }
 
 void Connection::SendResponses() {
@@ -235,7 +233,7 @@ void Connection::SendResponses() {
   for (;;) {
     request::RequestTask* task_ptr = nullptr;
     {
-      std::lock_guard<std::mutex> lock(request_tasks_mutex_);
+      std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
       if (request_tasks_sent_idx_ < request_tasks_.size() &&
           request_tasks_[request_tasks_sent_idx_]
               ->GetRequest()
@@ -263,12 +261,12 @@ void Connection::SendResponses() {
   }
 
   for (;;) {
-    std::unique_ptr<request::RequestTask> request_task_ptr;
+    std::shared_ptr<request::RequestTask> request_task_ptr;
     {
-      std::lock_guard<std::mutex> lock(request_tasks_mutex_);
+      std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
       LOG_TRACE() << "Fd " << Fd() << " has " << request_tasks_.size()
                   << " request tasks";
-      if (!request_tasks_.empty() && request_tasks_.front()->Finished() &&
+      if (!request_tasks_.empty() && request_tasks_.front()->IsComplete() &&
           request_tasks_.front()->GetRequest().GetResponse().IsSent()) {
         assert(request_tasks_sent_idx_);
         --request_tasks_sent_idx_;
@@ -292,7 +290,7 @@ void Connection::SendResponses() {
   }
 
   {
-    std::lock_guard<std::mutex> lock(request_tasks_mutex_);
+    std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
     if (request_tasks_.empty()) {
       request_tasks_empty_cv_.NotifyAll();
     }
@@ -306,7 +304,7 @@ void Connection::CloseIfFinished() {
     is_closing_ = true;
   }
   if (is_closing_) {
-    std::lock_guard<std::mutex> lock(request_tasks_mutex_);
+    std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
     if (request_tasks_.empty() && before_close_cb_) {
       before_close_cb_(Fd());
       before_close_cb_ = {};

@@ -101,9 +101,10 @@ void Watcher<EvType>::CallInEvLoop() {
     return;
   }
 
+  // TODO: use WrappedCall
   auto promise = std::make_shared<Promise<void>>();
   auto future = promise->GetFuture();
-  RunInEvLoopAsync([this, promise]() {
+  RunInEvLoopAsync([ this, promise = std::move(promise) ] {
     (this->*func)();
     promise->SetValue();
   });

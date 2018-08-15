@@ -31,8 +31,6 @@ class CachingComponentBase : public UpdatingComponentBase {
   void Clear();
 
  private:
-  mutable std::mutex cache_fill_mutex_;
-  engine::ConditionVariable cache_fill_cv_;
   std::shared_ptr<T> cache_;
 };
 
@@ -48,11 +46,7 @@ std::shared_ptr<T> CachingComponentBase<T>::Get() const {
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::shared_ptr<T> value_ptr) {
-  auto old_cache = std::atomic_exchange(&cache_, std::move(value_ptr));
-  if (!old_cache) {
-    std::lock_guard<std::mutex> lock(cache_fill_mutex_);
-    cache_fill_cv_.NotifyAll();
-  }
+  std::atomic_store(&cache_, std::move(value_ptr));
 }
 
 template <typename T>

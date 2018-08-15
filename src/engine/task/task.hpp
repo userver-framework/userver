@@ -1,95 +1,98 @@
 #pragma once
 
-#include <atomic>
-#include <cassert>
 #include <chrono>
-#include <functional>
-#include <memory>
 
-#include <ev.h>
-#include <boost/coroutine/asymmetric_coroutine.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_control.hpp>
+#include <engine/wait_helpers.hpp>
 
 namespace engine {
+namespace impl {
+class TaskContext;
+class TaskContextHolder;
+}  // namespace impl
 
 class TaskProcessor;
 
 class Task {
  public:
-  explicit Task(TaskProcessor* task_processor);
-  virtual ~Task();
-
   using CoroutinePtr = coro::Pool<Task>::CoroutinePtr;
   using TaskPipe = coro::Pool<Task>::TaskPipe;
-  using WakeUpCb = std::function<void()>;
 
-  enum class State { kQueued, kRunning, kWaiting, kComplete, kCanceled };
+  enum class Importance { kNormal, kCritical };
 
-  enum class YieldReason { kTaskPending, kTaskWaiting, kTaskComplete };
+  enum class State {
+    kInvalid,    // unusable
+    kNew,        // just created, not registered with task processor
+    kQueued,     // awaits dispatch
+    kRunning,    // executing user code
+    kWaiting,    // waiting for blocking call to complete
+    kCancelled,  // exited user code because of external request
+    kCompleted,  // exited user code with return or throw
+  };
 
-  State GetState() const { return state_; }
-  bool Finished() const {
-    return state_ == State::kComplete || state_ == State::kCanceled;
-  }
+  enum class CancellationReason {
+    kNone,
+    kUserRequest,
+    kOverload,
+    kAbandoned,
+    kShutdown,
+  };
 
-  virtual void Run() noexcept = 0;
-  virtual void Fail() noexcept;
-  virtual void OnComplete() noexcept = 0;
+  Task();
+  virtual ~Task();
 
-  State RunTask();
-  void Wait();
-  const WakeUpCb& GetWakeUpCb() const { return wake_up_cb_; }
-  void Sleep();
+  Task(Task&&) noexcept;
+  Task& operator=(Task&&) noexcept;
 
-  TaskProcessor& GetTaskProcessor() { return *task_processor_; }
-  ev::ThreadControl& GetEventThread();
+  bool IsValid() const;
+  explicit operator bool() const { return IsValid(); }
 
-  void SetTaskPipe(TaskPipe* task_pipe) { task_pipe_ = task_pipe; }
-  void SetYieldReason(YieldReason reason) { yield_reason_ = reason; }
+  State GetState() const;
+  bool IsFinished() const;
 
-  static void CoroFunc(TaskPipe& task_pipe);
+  void Wait() const;
+
+  template <typename Rep, typename Period>
+  void WaitFor(const std::chrono::duration<Rep, Period>&) const;
+
+  template <typename Clock, typename Duration>
+  void WaitUntil(const std::chrono::time_point<Clock, Duration>&) const;
+
+  void Detach() &&;
+  void RequestCancel();
+  CancellationReason GetCancellationReason() const;
 
  protected:
-  void SetState(State state) { state_ = state; }
+  Task(impl::TaskContextHolder&&);
 
  private:
-  friend class TaskProcessor;
+  void DoWaitUntil(Deadline) const;
 
-  void WakeUp();
-
-  State state_;
-
-  TaskProcessor* task_processor_;
-  const WakeUpCb wake_up_cb_;
-  std::atomic<int> wait_state_;
-  // (wait_state_ & 1): Sleep() called
-  // (wait_state_ & 2): WakeUp() called
-
-  CoroutinePtr coro_;
-  TaskPipe* task_pipe_;
-  YieldReason yield_reason_;
+  boost::intrusive_ptr<impl::TaskContext> context_;
 };
 
 namespace current_task {
 
-void SetCurrentTask(Task* task);
-Task* GetCurrentTask();
+void CancellationPoint();
 
-inline ev::ThreadControl& GetEventThread() {
-  return GetCurrentTask()->GetEventThread();
-}
+TaskProcessor& GetTaskProcessor();
 
-inline TaskProcessor& GetTaskProcessor() {
-  return GetCurrentTask()->GetTaskProcessor();
-}
-
-inline void Wait() { return GetCurrentTask()->Wait(); }
-
-inline const Task::WakeUpCb& GetWakeUpCb() {
-  return GetCurrentTask()->GetWakeUpCb();
-}
+ev::ThreadControl& GetEventThread();
 
 }  // namespace current_task
+
+template <typename Rep, typename Period>
+void Task::WaitFor(const std::chrono::duration<Rep, Period>& duration) const {
+  DoWaitUntil(MakeDeadline(duration));
+}
+
+template <typename Clock, typename Duration>
+void Task::WaitUntil(
+    const std::chrono::time_point<Clock, Duration>& until) const {
+  DoWaitUntil(MakeDeadline(until));
+}
+
 }  // namespace engine

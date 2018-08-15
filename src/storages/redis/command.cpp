@@ -1,6 +1,6 @@
 #include "command.hpp"
 
-#include <engine/async_task.hpp>
+#include <engine/async.hpp>
 
 namespace storages {
 namespace redis {
@@ -13,8 +13,9 @@ CommandPtr PrepareCommand(CmdArgs&& args, Callback&& callback,
   if (callback) {
     res->callback = [&task_processor,
                      callback = std::move(callback) ](ReplyPtr reply) mutable {
-      new engine::AsyncTask<void>(task_processor, engine::Promise<void>(),
-                                  std::move(callback), std::move(reply));
+      engine::CriticalAsync(task_processor, std::move(callback),
+                            std::move(reply))
+          .Detach();
     };
   }
   res->control = command_control;

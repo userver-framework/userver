@@ -1,18 +1,21 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <mutex>
 
 #include <ev.h>
 
+#include <engine/async_task.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/ev/thread_control.hpp>
+#include <engine/mutex.hpp>
 
 #include "watcher.hpp"
 
 namespace engine {
 
-class SocketListener {
+class SocketListener : public std::enable_shared_from_this<SocketListener> {
  public:
   enum class Result { kOk, kAgain, kError };
 
@@ -61,14 +64,12 @@ class SocketListener {
   std::shared_ptr<WatcherListenState> watcher_listen_resume_state_;
   Watcher<ev_io> watcher_listen_;
 
-  mutable std::mutex listen_cv_mutex_;
+  mutable Mutex listen_cv_mutex_;
   ConditionVariable listen_cv_;
   bool is_running_ = false;
   bool is_notified_ = false;
 
-  std::mutex stop_mutex_;
-  ConditionVariable listen_finished_cv_;
-  bool is_listen_finished_ = true;
+  AsyncTask<void> listen_task_;
 };
 
 }  // namespace engine

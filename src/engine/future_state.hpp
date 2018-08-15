@@ -4,10 +4,11 @@
 #include <chrono>
 #include <exception>
 #include <future>
-#include <memory>
 #include <mutex>
 
-#include "condition_variable.hpp"
+#include "condition_variable_any.hpp"
+#include "result_store.hpp"
+#include "wait_helpers.hpp"
 
 namespace engine {
 namespace impl {
@@ -15,8 +16,6 @@ namespace impl {
 template <typename T>
 class FutureState {
  public:
-  FutureState();
-
   bool IsReady() const;
   T Get();
   void Wait();
@@ -29,26 +28,23 @@ class FutureState {
   std::future_status WaitUntil(
       const std::chrono::time_point<Clock, Duration>& until);
 
-  void EnsureUnique();
+  void EnsureNotRetrieved();
 
   void SetValue(const T& value);
   void SetValue(T&& value);
-  void SetException(std::exception_ptr ex);
+  void SetException(std::exception_ptr&& ex);
 
  private:
-  mutable std::mutex mutex_;
-  std::unique_ptr<T> value_;
-  std::exception_ptr exception_ptr_;
-  ConditionVariable result_cv_;
-  std::atomic<bool> is_ready_;
-  std::atomic_flag is_retrieved_;
+  std::mutex mutex_;
+  ConditionVariableAny<std::mutex> result_cv_;
+  std::atomic<bool> is_ready_{false};
+  std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
+  ResultStore<T> result_store_;
 };
 
 template <>
 class FutureState<void> {
  public:
-  FutureState();
-
   bool IsReady() const;
   void Get();
   void Wait();
@@ -61,22 +57,18 @@ class FutureState<void> {
   std::future_status WaitUntil(
       const std::chrono::time_point<Clock, Duration>& until);
 
-  void EnsureUnique();
+  void EnsureNotRetrieved();
 
   void SetValue();
-  void SetException(std::exception_ptr ex);
+  void SetException(std::exception_ptr&& ex);
 
  private:
-  mutable std::mutex mutex_;
-  std::exception_ptr exception_ptr_;
-  ConditionVariable result_cv_;
-  std::atomic<bool> is_ready_;
-  std::atomic_flag is_retrieved_;
+  std::mutex mutex_;
+  ConditionVariableAny<std::mutex> result_cv_;
+  std::atomic<bool> is_ready_{false};
+  std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
+  ResultStore<void> result_store_;
 };
-
-template <typename T>
-FutureState<T>::FutureState()
-    : is_ready_(false), is_retrieved_(ATOMIC_FLAG_INIT) {}
 
 template <typename T>
 bool FutureState<T>::IsReady() const {
@@ -86,12 +78,7 @@ bool FutureState<T>::IsReady() const {
 template <typename T>
 T FutureState<T>::Get() {
   Wait();
-  if (exception_ptr_) {
-    std::rethrow_exception(exception_ptr_);
-  }
-  auto result = std::move(*value_);
-  value_.reset();
-  return result;
+  return result_store_.Get();
 }
 
 template <typename T>
@@ -105,7 +92,8 @@ template <typename Rep, typename Period>
 std::future_status FutureState<T>::WaitFor(
     const std::chrono::duration<Rep, Period>& duration) {
   std::unique_lock<std::mutex> lock(mutex_);
-  return result_cv_.WaitFor(lock, duration, [this] { return IsReady(); })
+  return result_cv_.WaitUntil(lock, MakeDeadline(duration),
+                              [this] { return IsReady(); })
              ? std::future_status::ready
              : std::future_status::timeout;
 }
@@ -115,13 +103,14 @@ template <typename Clock, typename Duration>
 std::future_status FutureState<T>::WaitUntil(
     const std::chrono::time_point<Clock, Duration>& until) {
   std::unique_lock<std::mutex> lock(mutex_);
-  return result_cv_.WaitUntil(lock, until, [this] { return IsReady(); })
+  return result_cv_.WaitUntil(lock, MakeDeadline(until),
+                              [this] { return IsReady(); })
              ? std::future_status::ready
              : std::future_status::timeout;
 }
 
 template <typename T>
-void FutureState<T>::EnsureUnique() {
+void FutureState<T>::EnsureNotRetrieved() {
   if (is_retrieved_.test_and_set()) {
     throw std::future_error(std::future_errc::future_already_retrieved);
   }
@@ -134,7 +123,7 @@ void FutureState<T>::SetValue(const T& value) {
     if (is_ready_.exchange(true)) {
       throw std::future_error(std::future_errc::promise_already_satisfied);
     }
-    value_ = std::make_unique<T>(value);
+    result_store_.SetValue(value);
   }
   result_cv_.NotifyAll();
 }
@@ -146,33 +135,28 @@ void FutureState<T>::SetValue(T&& value) {
     if (is_ready_.exchange(true)) {
       throw std::future_error(std::future_errc::promise_already_satisfied);
     }
-    value_ = std::make_unique<T>(std::move(value));
+    result_store_.SetValue(std::move(value));
   }
   result_cv_.NotifyAll();
 }
 
 template <typename T>
-void FutureState<T>::SetException(std::exception_ptr ex) {
+void FutureState<T>::SetException(std::exception_ptr&& ex) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (is_ready_.exchange(true)) {
       throw std::future_error(std::future_errc::promise_already_satisfied);
     }
-    exception_ptr_ = ex;
+    result_store_.SetException(std::move(ex));
   }
   result_cv_.NotifyAll();
 }
-
-inline FutureState<void>::FutureState()
-    : is_ready_(false), is_retrieved_(ATOMIC_FLAG_INIT) {}
 
 inline bool FutureState<void>::IsReady() const { return is_ready_; }
 
 inline void FutureState<void>::Get() {
   Wait();
-  if (exception_ptr_) {
-    std::rethrow_exception(exception_ptr_);
-  }
+  result_store_.Get();
 }
 
 inline void FutureState<void>::Wait() {
@@ -184,7 +168,8 @@ template <typename Rep, typename Period>
 std::future_status FutureState<void>::WaitFor(
     const std::chrono::duration<Rep, Period>& duration) {
   std::unique_lock<std::mutex> lock(mutex_);
-  return result_cv_.WaitFor(lock, duration, [this] { return IsReady(); })
+  return result_cv_.WaitUntil(lock, MakeDeadline(duration),
+                              [this] { return IsReady(); })
              ? std::future_status::ready
              : std::future_status::timeout;
 }
@@ -193,12 +178,13 @@ template <typename Clock, typename Duration>
 std::future_status FutureState<void>::WaitUntil(
     const std::chrono::time_point<Clock, Duration>& until) {
   std::unique_lock<std::mutex> lock(mutex_);
-  return result_cv_.WaitUntil(lock, until, [this] { return IsReady(); })
+  return result_cv_.WaitUntil(lock, MakeDeadline(until),
+                              [this] { return IsReady(); })
              ? std::future_status::ready
              : std::future_status::timeout;
 }
 
-inline void FutureState<void>::EnsureUnique() {
+inline void FutureState<void>::EnsureNotRetrieved() {
   if (is_retrieved_.test_and_set()) {
     throw std::future_error(std::future_errc::future_already_retrieved);
   }
@@ -210,17 +196,18 @@ inline void FutureState<void>::SetValue() {
     if (is_ready_.exchange(true)) {
       throw std::future_error(std::future_errc::promise_already_satisfied);
     }
+    result_store_.SetValue();
   }
   result_cv_.NotifyAll();
 }
 
-inline void FutureState<void>::SetException(std::exception_ptr ex) {
+inline void FutureState<void>::SetException(std::exception_ptr&& ex) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (is_ready_.exchange(true)) {
       throw std::future_error(std::future_errc::promise_already_satisfied);
     }
-    exception_ptr_ = ex;
+    result_store_.SetException(std::move(ex));
   }
   result_cv_.NotifyAll();
 }

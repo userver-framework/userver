@@ -44,7 +44,7 @@ void SocketListener::Start() {
 
 void SocketListener::Notify() {
   {
-    std::lock_guard<std::mutex> lock(listen_cv_mutex_);
+    std::lock_guard<Mutex> lock(listen_cv_mutex_);
     is_notified_ = true;
   }
   listen_cv_.NotifyAll();
@@ -54,18 +54,17 @@ void SocketListener::Stop() {
   SetWatcherListenIsEnabled(false);
   watcher_listen_.Stop();
   StopAsync();
-  std::unique_lock<std::mutex> lock(stop_mutex_);
-  listen_finished_cv_.Wait(lock, [this]() { return is_listen_finished_; });
+  listen_task_.Wait();
 }
 
 bool SocketListener::IsRunning() const {
-  std::lock_guard<std::mutex> lock(listen_cv_mutex_);
+  std::lock_guard<Mutex> lock(listen_cv_mutex_);
   return is_running_;
 }
 
 void SocketListener::StopAsync() {
   {
-    std::lock_guard<std::mutex> lock(listen_cv_mutex_);
+    std::lock_guard<Mutex> lock(listen_cv_mutex_);
     if (!is_running_) return;
     is_running_ = false;
   }
@@ -94,7 +93,9 @@ void SocketListener::WatcherListen(struct ev_loop*, ev_io* w, int) {
 void SocketListener::WatcherListenImpl() {
   watcher_listen_.Stop();
 
-  Notify();
+  engine::CriticalAsync(task_processor_,
+                        [self = shared_from_this()] { self->Notify(); })
+      .Detach();
 }
 
 void SocketListener::WatcherListenResume() {
@@ -108,11 +109,10 @@ void SocketListener::WatcherListenResume() {
 
 void SocketListener::StartListenTask(TaskProcessor& task_processor) {
   is_running_ = true;
-  is_listen_finished_ = false;
-  Async(task_processor, [this]() {
+  listen_task_ = CriticalAsync(task_processor, [this]() {
     for (;;) {
       {
-        std::unique_lock<std::mutex> lock(listen_cv_mutex_);
+        std::unique_lock<Mutex> lock(listen_cv_mutex_);
         listen_cv_.Wait(lock,
                         [this]() { return !is_running_ || is_notified_; });
         if (!is_running_) break;
@@ -143,11 +143,6 @@ void SocketListener::StartListenTask(TaskProcessor& task_processor) {
       if (on_stop_func_) on_stop_func_();
     } catch (const std::exception& ex) {
       LOG_ERROR() << "exception in on_stop_func: " << ex.what();
-    }
-    {
-      std::lock_guard<std::mutex> lock(stop_mutex_);
-      is_listen_finished_ = true;
-      listen_finished_cv_.NotifyAll();
     }
   });
 }

@@ -36,7 +36,7 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
   }
 
   // Force first update
-  engine::Async([this] { DoPeriodicUpdate(); }).Get();
+  engine::CriticalAsync([this] { DoPeriodicUpdate(); }).Get();
 
   std::packaged_task<void()> task([this] {
     while (is_running_) {
@@ -45,7 +45,7 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
       decltype(update_jitter_) jitter(jitter_distribution(jitter_generator_));
 
       {
-        std::unique_lock<std::mutex> lock(is_running_mutex_);
+        std::unique_lock<engine::Mutex> lock(is_running_mutex_);
         if (is_running_cv_.WaitFor(lock, update_interval_ + jitter,
                                    [this] { return !is_running_; })) {
           break;
@@ -59,20 +59,19 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
       }
     }
   });
-  update_task_future_ = task.get_future();
-  engine::Async(std::move(task));
+  update_task_ = engine::CriticalAsync(std::move(task));
 }
 
 void UpdatingComponentBase::StopPeriodicUpdates() {
   {
-    std::lock_guard<std::mutex> lock(is_running_mutex_);
-    if (!is_running_.exchange(false) || !update_task_future_.valid()) {
+    std::lock_guard<engine::Mutex> lock(is_running_mutex_);
+    if (!is_running_.exchange(false) || !update_task_) {
       return;
     }
   }
   is_running_cv_.NotifyAll();
   try {
-    update_task_future_.get();
+    update_task_.Get();
   } catch (const std::exception& ex) {
     LOG_ERROR() << "exception in update task: " << ex.what();
   }

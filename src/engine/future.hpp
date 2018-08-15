@@ -9,6 +9,12 @@
 
 namespace engine {
 
+// Convenience classes for asynchronous data/event transfer
+// from external world (ev loops) to coroutines.
+//
+// Future can only be used in coroutines.
+// Promise should not be used from coroutines (use Async instead).
+
 template <typename T>
 class Promise;
 
@@ -23,6 +29,7 @@ class Future {
   Future& operator=(Future&&) noexcept = default;
 
   bool IsValid() const;
+  explicit operator bool() const { return IsValid(); }
 
   T Get();
   void Wait() const;
@@ -67,42 +74,6 @@ class Promise {
 };
 
 template <>
-class Promise<void>;
-
-template <>
-class Future<void> {
- public:
-  Future() = default;
-
-  Future(const Future&) = delete;
-  Future(Future&&) noexcept = default;
-  Future& operator=(const Future&) = delete;
-  Future& operator=(Future&&) noexcept = default;
-
-  bool IsValid() const;
-
-  void Get();
-  void Wait() const;
-
-  template <typename Rep, typename Period>
-  std::future_status WaitFor(
-      const std::chrono::duration<Rep, Period>& duration) const;
-
-  template <typename Clock, typename Duration>
-  std::future_status WaitUntil(
-      const std::chrono::time_point<Clock, Duration>& until) const;
-
- private:
-  friend class Promise<void>;
-
-  explicit Future(std::shared_ptr<impl::FutureState<void>> state);
-
-  void CheckValid() const;
-
-  std::shared_ptr<impl::FutureState<void>> state_;
-};
-
-template <>
 class Promise<void> {
  public:
   Promise();
@@ -135,6 +106,13 @@ T Future<T>::Get() {
   return result;
 }
 
+template <>
+inline void Future<void>::Get() {
+  CheckValid();
+  state_->Get();
+  state_.reset();
+}
+
 template <typename T>
 void Future<T>::Wait() const {
   CheckValid();
@@ -161,7 +139,7 @@ template <typename T>
 Future<T>::Future(std::shared_ptr<impl::FutureState<T>> state)
     : state_(std::move(state)) {
   CheckValid();
-  state_->EnsureUnique();
+  state_->EnsureNotRetrieved();
 }
 
 template <typename T>
@@ -199,46 +177,7 @@ void Promise<T>::SetValue(T&& value) {
 
 template <typename T>
 void Promise<T>::SetException(std::exception_ptr ex) {
-  state_->SetException(ex);
-}
-
-inline bool Future<void>::IsValid() const { return !!state_; }
-
-inline void Future<void>::Get() {
-  CheckValid();
-  state_->Get();
-  state_.reset();
-}
-
-inline void Future<void>::Wait() const {
-  CheckValid();
-  state_->Wait();
-}
-
-template <typename Rep, typename Period>
-std::future_status Future<void>::WaitFor(
-    const std::chrono::duration<Rep, Period>& duration) const {
-  CheckValid();
-  return state_->WaitFor(duration);
-}
-
-template <typename Clock, typename Duration>
-std::future_status Future<void>::WaitUntil(
-    const std::chrono::time_point<Clock, Duration>& until) const {
-  CheckValid();
-  return state_->WaitUntil(until);
-}
-
-inline Future<void>::Future(std::shared_ptr<impl::FutureState<void>> state)
-    : state_(std::move(state)) {
-  CheckValid();
-  state_->EnsureUnique();
-}
-
-inline void Future<void>::CheckValid() const {
-  if (!state_) {
-    throw std::future_error(std::future_errc::no_state);
-  }
+  state_->SetException(std::move(ex));
 }
 
 inline Promise<void>::Promise()
@@ -253,10 +192,13 @@ inline Promise<void>::~Promise() {
 
 inline Future<void> Promise<void>::GetFuture() { return Future<void>(state_); }
 
-inline void Promise<void>::SetValue() { state_->SetValue(); }
+inline void Promise<void>::SetValue() {
+  assert(!state_->IsReady());
+  state_->SetValue();
+}
 
 inline void Promise<void>::SetException(std::exception_ptr ex) {
-  state_->SetException(ex);
+  state_->SetException(std::move(ex));
 }
 
 }  // namespace engine

@@ -1,7 +1,5 @@
 #include "listener.hpp"
 
-#include <future>
-
 #include <engine/async.hpp>
 #include <logging/log.hpp>
 

@@ -2,12 +2,12 @@
 
 #include <atomic>
 #include <chrono>
-#include <future>
-#include <mutex>
 #include <random>
 #include <string>
 
+#include <engine/async_task.hpp>
 #include <engine/condition_variable.hpp>
+#include <engine/mutex.hpp>
 
 #include "component_base.hpp"
 #include "component_config.hpp"
@@ -42,12 +42,12 @@ class UpdatingComponentBase : public ComponentBase {
   std::chrono::system_clock::time_point last_update_;
   std::chrono::steady_clock::time_point last_full_update_;
 
-  std::mutex is_running_mutex_;
+  engine::Mutex is_running_mutex_;
   engine::ConditionVariable is_running_cv_;
   std::atomic<bool> is_running_;
 
   std::default_random_engine jitter_generator_;
-  std::future<void> update_task_future_;
+  engine::AsyncTask<void> update_task_;
 };
 
 }  // namespace components
