@@ -168,8 +168,9 @@ void Manager::AddComponentImpl(
   try {
     future.get();
   } catch (const std::exception& ex) {
-    throw std::runtime_error("Cannot start component " + name + ": " +
-                             ex.what());
+    std::string message = "Cannot start component " + name + ": " + ex.what();
+    LOG_ERROR() << message;
+    throw std::runtime_error(message);
   }
   LOG_INFO() << "Started component " << name;
 }

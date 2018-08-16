@@ -64,7 +64,7 @@ clang-format:
 
 .PHONY: smart-clang-format
 smart-clang-format:
-	@tools/smart-lang-format.sh
+	@tools/smart-clang-format.sh
 
 .PHONY: clean
 clean:
