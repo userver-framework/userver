@@ -1,3 +1,12 @@
+yandex-taxi-userver (0.1.16) unstable; urgency=low
+
+  Release ticket https://st.yandex-team.ru/TAXIREL-2730
+
+  * Andrey Bugaevskiy | feat engine: add cancel support & refactor (#64)
+  * Andrey Bugaevskiy | cc utils: clang-format (#63)
+
+ -- buildfarm <buildfarm@yandex-team.ru>  Thu, 16 Aug 2018 13:33:24 +0300
+
 yandex-taxi-userver (0.1.15) unstable; urgency=low
 
   Release ticket https://st.yandex-team.ru/TAXIREL-2644
