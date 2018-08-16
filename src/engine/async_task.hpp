@@ -1,110 +1,48 @@
 #pragma once
 
 #include <cassert>
-#include <exception>
 #include <memory>
+#include <stdexcept>
 
 #include <engine/task/task.hpp>
+#include <engine/task/task_impl.hpp>
 #include <engine/task/task_processor.hpp>
-
-#include "call_wrapper.hpp"
-#include "future.hpp"
+#include <engine/wrapped_call.hpp>
 
 namespace engine {
+
+class TaskCancelledException : public std::exception {
+ public:
+  TaskCancelledException(Task::CancellationReason reason) : reason_(reason) {}
+
+  Task::CancellationReason Reason() const { return reason_; }
+
+ private:
+  const Task::CancellationReason reason_;
+};
 
 template <typename T>
 class AsyncTask : public Task {
  public:
-  template <typename Function, typename... Args>
-  AsyncTask(TaskProcessor& task_processor, Promise<T>&& promise, Function&& f,
-            Args&&... args);
+  AsyncTask() = default;
+  AsyncTask(TaskProcessor& task_processor, Importance importance,
+            std::shared_ptr<impl::WrappedCall<T>>&& wrapped_call_ptr)
+      : Task(impl::TaskContextHolder::MakeContext(
+            task_processor, importance,
+            [wrapped_call_ptr] { wrapped_call_ptr->Perform(); })),
+        wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
 
-  AsyncTask(const AsyncTask&) = delete;
-  AsyncTask(AsyncTask&&) = delete;
-  AsyncTask& operator=(const AsyncTask&) = delete;
-  AsyncTask& operator=(AsyncTask&&) = delete;
-
-  void Run() noexcept override;
-  void OnComplete() noexcept override;
+  T Get() {
+    assert(wrapped_call_ptr_);
+    Wait();
+    if (GetState() == State::kCancelled) {
+      throw TaskCancelledException(GetCancellationReason());
+    }
+    return wrapped_call_ptr_->Retrieve();
+  }
 
  private:
-  TaskProcessor::RefCounter ref_counter_;
-  Promise<T> promise_;
-  std::unique_ptr<impl::CallWrapperBase<T>> call_wrapper_ptr_;
+  std::shared_ptr<impl::WrappedCall<T>> wrapped_call_ptr_;
 };
-
-template <>
-class AsyncTask<void> : public Task {
- public:
-  template <typename Function, typename... Args>
-  AsyncTask(TaskProcessor& task_processor, Promise<void>&& promise,
-            Function&& f, Args&&... args);
-
-  AsyncTask(const AsyncTask&) = delete;
-  AsyncTask(AsyncTask&&) = delete;
-  AsyncTask& operator=(const AsyncTask&) = delete;
-  AsyncTask& operator=(AsyncTask&&) = delete;
-
-  void Run() noexcept override;
-  void OnComplete() noexcept override;
-
- private:
-  TaskProcessor::RefCounter ref_counter_;
-  Promise<void> promise_;
-  std::unique_ptr<impl::CallWrapperBase<void>> call_wrapper_ptr_;
-};
-
-template <typename T>
-template <typename Function, typename... Args>
-AsyncTask<T>::AsyncTask(TaskProcessor& task_processor, Promise<T>&& promise,
-                        Function&& f, Args&&... args)
-    : Task(&task_processor),
-      ref_counter_(task_processor),
-      promise_(std::move(promise)),
-      call_wrapper_ptr_(new impl::CallWrapper<Function, Args...>(
-          std::forward<Function>(f), std::forward<Args>(args)...)) {
-  task_processor.AddTask(this);
-}
-
-template <typename T>
-void AsyncTask<T>::Run() noexcept {
-  try {
-    assert(call_wrapper_ptr_ && "AsyncTask ran more than once");
-    auto call_wrapper_ptr = std::move(call_wrapper_ptr_);
-    promise_.SetValue(call_wrapper_ptr->Call());
-  } catch (const std::exception& ex) {
-    promise_.SetException(std::current_exception());
-  }
-}
-
-template <typename T>
-void AsyncTask<T>::OnComplete() noexcept {
-  delete this;
-}
-
-template <typename Function, typename... Args>
-AsyncTask<void>::AsyncTask(TaskProcessor& task_processor,
-                           Promise<void>&& promise, Function&& f,
-                           Args&&... args)
-    : Task(&task_processor),
-      ref_counter_(task_processor),
-      promise_(std::move(promise)),
-      call_wrapper_ptr_(new impl::CallWrapper<Function, Args...>(
-          std::forward<Function>(f), std::forward<Args>(args)...)) {
-  task_processor.AddTask(this);
-}
-
-inline void AsyncTask<void>::Run() noexcept {
-  try {
-    assert(call_wrapper_ptr_ && "AsyncTask ran more than once");
-    auto call_wrapper_ptr = std::move(call_wrapper_ptr_);
-    call_wrapper_ptr->Call();
-    promise_.SetValue();
-  } catch (const std::exception& ex) {
-    promise_.SetException(std::current_exception());
-  }
-}
-
-inline void AsyncTask<void>::OnComplete() noexcept { delete this; }
 
 }  // namespace engine

@@ -31,6 +31,7 @@ class BadType : public MongoError {
 };
 
 enum class ElementKind {
+  kNone = 0,
   kMissing = 1 << 0,
   kNull = 1 << 1,
   kBool = 1 << 2,

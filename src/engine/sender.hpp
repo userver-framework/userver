@@ -3,10 +3,10 @@
 #include <atomic>
 #include <deque>
 #include <functional>
-#include <mutex>
 #include <string>
 
 #include <engine/ev/thread_control.hpp>
+#include <engine/mutex.hpp>
 
 #include "socket_listener.hpp"
 
@@ -39,18 +39,18 @@ class Sender : public ev::ThreadControl {
   };
 
   void DoStop();
-  const std::string& CurrentData(std::lock_guard<std::mutex>& lock);
-  Result SendCurrentData(std::lock_guard<std::mutex>& lock, int fd);
+  const std::string& CurrentData(std::lock_guard<Mutex>& lock);
+  Result SendCurrentData(std::lock_guard<Mutex>& lock, int fd);
   Result SendData(int fd);
 
-  mutable std::mutex data_queue_mutex_;
+  mutable Mutex data_queue_mutex_;
   std::deque<Elem> data_queue_;
   size_t current_data_pos_;
 
   std::atomic<bool> stopped_;
   const OnCompleteFunc on_complete_;
 
-  SocketListener socket_listener_;
+  std::shared_ptr<SocketListener> socket_listener_;
 };
 
 }  // namespace engine

@@ -21,7 +21,7 @@ class RequestHandlerBase {
       const boost::optional<std::string>& logger_access_tskv_component);
   virtual ~RequestHandlerBase() {}
 
-  virtual std::unique_ptr<RequestTask> PrepareRequestTask(
+  virtual std::shared_ptr<RequestTask> PrepareRequestTask(
       std::unique_ptr<RequestBase>&& request,
       std::function<void()>&& notify_func) const = 0;
   virtual void ProcessRequest(RequestTask& task) const = 0;

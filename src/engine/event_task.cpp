@@ -17,14 +17,12 @@ EventTask::~EventTask() { Stop(); }
 
 void EventTask::Stop() {
   StopAsync();
-  std::unique_lock<std::mutex> lock(stop_mutex_);
-  event_task_finished_cv_.Wait(lock,
-                               [this]() { return is_event_task_finished_; });
+  task_.Wait();
 }
 
 void EventTask::StopAsync() {
   {
-    std::lock_guard<std::mutex> lock(event_cv_mutex_);
+    std::lock_guard<Mutex> lock(event_cv_mutex_);
     if (!is_running_) return;
     is_running_ = false;
   }
@@ -33,7 +31,7 @@ void EventTask::StopAsync() {
 
 void EventTask::Notify() {
   {
-    std::lock_guard<std::mutex> lock(event_cv_mutex_);
+    std::lock_guard<Mutex> lock(event_cv_mutex_);
     is_notified_ = true;
   }
   event_cv_.NotifyAll();
@@ -41,11 +39,10 @@ void EventTask::Notify() {
 
 void EventTask::StartEventTask(TaskProcessor& task_processor) {
   is_running_ = true;
-  is_event_task_finished_ = false;
-  Async(task_processor, [this]() {
+  task_ = CriticalAsync(task_processor, [this]() {
     while (is_running_) {
       {
-        std::unique_lock<std::mutex> lock(event_cv_mutex_);
+        std::unique_lock<Mutex> lock(event_cv_mutex_);
         event_cv_.Wait(lock, [this]() { return !is_running_ || is_notified_; });
         if (!is_running_) break;
         assert(is_notified_);
@@ -56,12 +53,6 @@ void EventTask::StartEventTask(TaskProcessor& task_processor) {
       } catch (const std::exception& ex) {
         LOG_ERROR() << "exception in event_func: " << ex.what();
       }
-    }
-
-    {
-      std::lock_guard<std::mutex> lock(stop_mutex_);
-      is_event_task_finished_ = true;
-      event_task_finished_cv_.NotifyAll();
     }
   });
 }

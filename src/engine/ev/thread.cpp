@@ -199,7 +199,7 @@ void Thread::UpdateLoopWatcherImpl() {
     func_promise_.reset();
     try {
       if (ex_ptr)
-        func_promise->set_exception(ex_ptr);
+        func_promise->set_exception(std::move(ex_ptr));
       else
         func_promise->set_value();
     } catch (const std::exception& ex) {

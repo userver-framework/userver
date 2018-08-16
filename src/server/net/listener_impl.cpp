@@ -96,7 +96,7 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
       pending_close_connection_count_(0) {
   int request_fd = CreateSocket(endpoint_info_->listener_config.port,
                                 endpoint_info_->listener_config.backlog);
-  request_socket_listener_ = std::make_unique<engine::SocketListener>(
+  request_socket_listener_ = std::make_shared<engine::SocketListener>(
       *this, task_processor_, request_fd,
       engine::SocketListener::ListenMode::kRead,
       [this](int fd) {
@@ -112,7 +112,7 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
   if (endpoint_info_->listener_config.monitor_port) {
     int monitor_fd = CreateSocket(*endpoint_info_->listener_config.monitor_port,
                                   endpoint_info_->listener_config.backlog);
-    monitor_socket_listener_ = std::make_unique<engine::SocketListener>(
+    monitor_socket_listener_ = std::make_shared<engine::SocketListener>(
         *this, task_processor_, monitor_fd,
         engine::SocketListener::ListenMode::kRead,
         [this](int fd) {
@@ -144,7 +144,7 @@ ListenerImpl::~ListenerImpl() {
     LOG_TRACE() << "Closed monitor fd " << monitor_socket_listener_->Fd();
   }
 
-  std::lock_guard<std::mutex> lock(connections_mutex_);
+  std::lock_guard<engine::Mutex> lock(connections_mutex_);
   for (auto& item : connections_) {
     int fd = item.first;
     auto& connection_ptr = item.second;
@@ -166,7 +166,7 @@ Stats ListenerImpl::GetStats() const {
   size_t active_connections = 0;
   size_t total_processed_requests = past_processed_requests_count_;
   {
-    std::lock_guard<std::mutex> lock(connections_mutex_);
+    std::lock_guard<engine::Mutex> lock(connections_mutex_);
     for (const auto& item : connections_) {
       const auto& connection_ptr = item.second;
       if (connection_ptr->GetType() == Connection::Type::kMonitor) continue;
@@ -218,14 +218,15 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
               << endpoint_info_->listener_config.max_connections;
   ++pending_setup_connection_count_;
 
-  engine::Async([this, fd, type, addr]() {
+  engine::CriticalAsync([this, fd, type, addr]() {
     try {
       SetupConnection(fd, type, addr);
     } catch (const std::exception& ex) {
       LOG_ERROR() << "can't setup connection: " << ex.what();
     }
     --pending_setup_connection_count_;
-  });
+  })
+      .Detach();
 }
 
 void ListenerImpl::SetupConnection(int fd, Connection::Type type,
@@ -243,7 +244,7 @@ void ListenerImpl::SetupConnection(int fd, Connection::Type type,
       [this](int fd) { EnqueueConnectionClose(fd); });
   LOG_TRACE() << "Registering connection for fd " << fd;
   auto connection_handle = [this, fd, &connection_ptr] {
-    std::lock_guard<std::mutex> lock(connections_mutex_);
+    std::lock_guard<engine::Mutex> lock(connections_mutex_);
     auto insertion_result = connections_.emplace(fd, std::move(connection_ptr));
     assert(insertion_result.second);
     return insertion_result.first->second.get();
@@ -263,7 +264,7 @@ void ListenerImpl::CloseConnections() {
   while (connections_to_close_.pop(fd)) {
     std::unique_ptr<Connection> connection_ptr;
     {
-      std::lock_guard<std::mutex> lock(connections_mutex_);
+      std::lock_guard<engine::Mutex> lock(connections_mutex_);
       auto it = connections_.find(fd);
       if (it != connections_.end()) {
         connection_ptr = std::move(it->second);
@@ -278,7 +279,7 @@ void ListenerImpl::CloseConnections() {
       past_processed_requests_count_ += connection_ptr->ProcessedRequestCount();
 
     ++pending_close_connection_count_;
-    engine::Async(
+    engine::CriticalAsync(
         [this, fd](std::unique_ptr<Connection>&& connection_ptr) {
           auto type = connection_ptr->GetType();
           LOG_TRACE() << "Destroying connection for fd " << fd;
@@ -288,7 +289,8 @@ void ListenerImpl::CloseConnections() {
           if (type != Connection::Type::kMonitor) ++closed_connection_count_;
           --pending_close_connection_count_;
         },
-        std::move(connection_ptr));
+        std::move(connection_ptr))
+        .Detach();
   }
 }
 

@@ -6,12 +6,12 @@
 #include <deque>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <string>
 
 #include <engine/condition_variable.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/event_task.hpp>
+#include <engine/mutex.hpp>
 #include <engine/sender.hpp>
 #include <engine/socket_listener.hpp>
 #include <engine/task/task_processor.hpp>
@@ -66,8 +66,8 @@ class Connection {
   Type type_;
   const request::RequestHandlerBase& request_handler_;
 
-  mutable std::mutex request_tasks_mutex_;
-  std::deque<std::unique_ptr<request::RequestTask>> request_tasks_;
+  mutable engine::Mutex request_tasks_mutex_;
+  std::deque<std::shared_ptr<request::RequestTask>> request_tasks_;
   size_t request_tasks_sent_idx_;
   engine::ConditionVariable request_tasks_empty_cv_;
   bool is_request_tasks_full_;
@@ -86,7 +86,7 @@ class Connection {
   size_t processed_requests_count_;
 
   std::unique_ptr<engine::Sender> response_sender_;
-  std::unique_ptr<engine::SocketListener> socket_listener_;
+  std::shared_ptr<engine::SocketListener> socket_listener_;
   std::atomic<bool> socket_listener_stopped_;
   std::chrono::steady_clock::time_point socket_listener_stop_time_;
 };

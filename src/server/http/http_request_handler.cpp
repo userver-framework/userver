@@ -36,14 +36,15 @@ HttpRequestHandler::HttpRequestHandler(
   }
 }
 
-std::unique_ptr<request::RequestTask> HttpRequestHandler::PrepareRequestTask(
+std::shared_ptr<request::RequestTask> HttpRequestHandler::PrepareRequestTask(
     std::unique_ptr<request::RequestBase>&& request,
     std::function<void()>&& notify_func) const {
   auto& http_request = dynamic_cast<HttpRequestImpl&>(*request);
   HandlerInfo handler_info;
   if (GetHandlerInfo(http_request.GetRequestPath(), handler_info))
     http_request.SetMatchedPathLength(handler_info.matched_path_length);
-  auto task = std::make_unique<request::RequestTask>(
+  // assert(handler_info.task_processor); -- false if handler not found
+  auto task = std::make_shared<request::RequestTask>(
       handler_info.task_processor, handler_info.handler, std::move(request),
       std::move(notify_func));
   task->GetRequest().SetTaskCreateTime();
@@ -55,16 +56,13 @@ void HttpRequestHandler::ProcessRequest(request::RequestTask& task) const {
   auto& response = request.GetHttpResponse();
 
   if (response.GetStatus() == HttpStatus::kOk) {
-    assert(task.GetHandler());
-    if (!task.GetTaskProcessor().AddTask(&task, !is_monitor_))
-      LOG_WARNING() << "failed to add task";
-    return;
+    task.Start(!is_monitor_);
+  } else {
+    task.SetComplete();
+    request.SetResponseNotifyTime();
+    request.SetCompleteNotifyTime();
+    response.SetReady();
   }
-
-  request.SetResponseNotifyTime();
-  request.SetCompleteNotifyTime();
-  response.SetReady();
-  task.SetComplete();
 }
 
 bool HttpRequestHandler::GetHandlerInfo(

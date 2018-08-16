@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include <engine/async.hpp>
-#include <engine/task/task.hpp>
+#include <engine/task/task_context.hpp>
 #include <logging/component.hpp>
 #include <logging/log.hpp>
 
@@ -27,7 +27,7 @@ Manager::Manager(ManagerConfig config, const ComponentList& component_list)
   LOG_INFO() << "Starting components manager";
 
   coro_pool_ = std::make_unique<engine::TaskProcessor::CoroPool>(
-      config_.coro_pool, &engine::Task::CoroFunc);
+      config_.coro_pool, &engine::impl::TaskContext::CoroFunc);
 
   event_thread_pool_ = std::make_unique<engine::ev::ThreadPool>(
       config_.event_thread_pool.threads, kEventLoopThreadName);
@@ -164,7 +164,7 @@ void Manager::AddComponentImpl(
     LOG_TRACE() << "Added component " << name;
   });
   auto future = task.get_future();
-  engine::Async(*default_task_processor_, std::move(task));
+  engine::CriticalAsync(*default_task_processor_, std::move(task)).Detach();
   try {
     future.get();
   } catch (const std::exception& ex) {
@@ -182,7 +182,7 @@ void Manager::ClearComponents() {
   std::packaged_task<void()> task(
       [this] { component_context_->ClearComponents(); });
   auto future = task.get_future();
-  engine::Async(*default_task_processor_, std::move(task));
+  engine::CriticalAsync(*default_task_processor_, std::move(task)).Detach();
   try {
     future.get();
   } catch (const std::exception& ex) {

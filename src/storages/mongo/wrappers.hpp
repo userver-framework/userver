@@ -21,10 +21,9 @@ class QueryError : public MongoError {
 };
 
 enum class UpdateFlags {
-  kUpsert = 1,
-  kMulti = 2,
-
-  kDefault = 0
+  kNone = 0,
+  kUpsert = (1 << 0),
+  kMulti = (1 << 1),
 };
 
 ::mongo::BSONObj BuildFields(std::initializer_list<std::string> fields);

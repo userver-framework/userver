@@ -1,4 +1,4 @@
-#include "timer_event.hpp"
+#include "timer.hpp"
 
 #include <cassert>
 #include <mutex>
@@ -6,12 +6,11 @@
 #include <logging/log.hpp>
 
 namespace engine {
-namespace impl {
+namespace ev {
 
-class TimerEvent::TimerImpl
-    : public std::enable_shared_from_this<TimerEvent::TimerImpl> {
+class Timer::TimerImpl : public std::enable_shared_from_this<Timer::TimerImpl> {
  public:
-  TimerImpl(ev::ThreadControl& thread_control, Func on_timer_func,
+  TimerImpl(ThreadControl& thread_control, Func on_timer_func,
             double first_call_after, double repeat_every);
 
   void Start();
@@ -22,7 +21,7 @@ class TimerEvent::TimerImpl
   void DoOnTimer();
   void Init();
 
-  ev::ThreadControl thread_control_;
+  ThreadControl thread_control_;
   Func on_timer_func_;
 
   std::mutex mutex_;
@@ -33,9 +32,8 @@ class TimerEvent::TimerImpl
   ev_timer timer_;
 };
 
-TimerEvent::TimerImpl::TimerImpl(ev::ThreadControl& thread_control,
-                                 Func on_timer_func, double first_call_after,
-                                 double repeat_every)
+Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
+                            double first_call_after, double repeat_every)
     : thread_control_(thread_control),
       on_timer_func_(std::move(on_timer_func)),
       on_timer_enabled_(false),
@@ -44,7 +42,7 @@ TimerEvent::TimerImpl::TimerImpl(ev::ThreadControl& thread_control,
   Init();
 }
 
-void TimerEvent::TimerImpl::Start() {
+void Timer::TimerImpl::Start() {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (on_timer_enabled_) return;
@@ -55,13 +53,13 @@ void TimerEvent::TimerImpl::Start() {
   }
 }
 
-void TimerEvent::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) {
+void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) {
   TimerImpl* ev_timer = static_cast<TimerImpl*>(w->data);
   assert(ev_timer != nullptr);
   ev_timer->DoOnTimer();
 }
 
-void TimerEvent::TimerImpl::DoOnTimer() {
+void Timer::TimerImpl::DoOnTimer() {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!on_timer_enabled_) return;
@@ -74,7 +72,7 @@ void TimerEvent::TimerImpl::DoOnTimer() {
   }
 }
 
-void TimerEvent::TimerImpl::Init() {
+void Timer::TimerImpl::Init() {
   if (first_call_after_ < 0.0) first_call_after_ = 0.0;
   timer_.data = this;
   ev_timer_init(&timer_, OnTimer, first_call_after_, repeat_every_);
@@ -82,7 +80,7 @@ void TimerEvent::TimerImpl::Init() {
               << " repeat_every_=" << repeat_every_;
 }
 
-void TimerEvent::TimerImpl::Stop() {
+void Timer::TimerImpl::Stop() {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!on_timer_enabled_) return;
@@ -93,23 +91,25 @@ void TimerEvent::TimerImpl::Stop() {
   }
 }
 
-TimerEvent::TimerEvent(ev::ThreadControl& thread_control, Func on_timer_func,
-                       double first_call_after, double repeat_every,
-                       StartMode start_mode)
+Timer::Timer() = default;
+
+Timer::Timer(ThreadControl& thread_control, Func on_timer_func,
+             double first_call_after, double repeat_every, StartMode start_mode)
     : impl_(std::make_shared<TimerImpl>(thread_control,
                                         std::move(on_timer_func),
                                         first_call_after, repeat_every)) {
   if (start_mode == StartMode::kStartNow) Start();
 }
 
-TimerEvent::~TimerEvent() {
-  Stop();
-  impl_.reset();
+Timer::~Timer() {
+  if (impl_) Stop();
 }
 
-void TimerEvent::Start() { impl_->Start(); }
+bool Timer::IsValid() const { return !!impl_; }
 
-void TimerEvent::Stop() { impl_->Stop(); }
+void Timer::Start() { impl_->Start(); }
 
-}  // namespace impl
+void Timer::Stop() { impl_->Stop(); }
+
+}  // namespace ev
 }  // namespace engine

@@ -30,18 +30,20 @@ CursorWrapper::CursorWrapper(Pool::ConnectionPtr&& conn,
 
 bool CursorWrapper::More() const {
   if (!cursor_) throw QueryError("query returned a null cursor");
-  return engine::Async(task_processor_, [this]() { return cursor_->more(); })
+  return engine::CriticalAsync(task_processor_,
+                               [this]() { return cursor_->more(); })
       .Get();
 }
 
 ::mongo::BSONObj CursorWrapper::Next() const {
-  return engine::Async(task_processor_, [this]() { return cursor_->next(); })
+  return engine::CriticalAsync(task_processor_,
+                               [this]() { return cursor_->next(); })
       .Get();
 }
 
 ::mongo::BSONObj CursorWrapper::NextSafe() const {
-  return engine::Async(task_processor_,
-                       [this]() { return cursor_->nextSafe(); })
+  return engine::CriticalAsync(task_processor_,
+                               [this]() { return cursor_->nextSafe(); })
       .Get();
 }
 
@@ -54,23 +56,25 @@ BulkOperationBuilder::BulkOperationBuilder(
 
 ::mongo::BulkUpdateBuilder BulkOperationBuilder::Find(
     const ::mongo::BSONObj& selector) {
-  return engine::Async(task_processor_,
-                       [this, &selector]() { return impl_.find(selector); })
+  return engine::CriticalAsync(
+             task_processor_,
+             [this, &selector]() { return impl_.find(selector); })
       .Get();
 }
 
 void BulkOperationBuilder::Insert(const ::mongo::BSONObj& doc) {
-  return engine::Async(task_processor_,
-                       [this, &doc]() { return impl_.insert(doc); })
+  return engine::CriticalAsync(task_processor_,
+                               [this, &doc]() { return impl_.insert(doc); })
       .Get();
 }
 
 void BulkOperationBuilder::Execute(const ::mongo::WriteConcern* write_concern,
                                    ::mongo::WriteResult* write_result) {
-  return engine::Async(task_processor_,
-                       [this, &write_concern, &write_result]() {
-                         return impl_.execute(write_concern, write_result);
-                       })
+  return engine::CriticalAsync(task_processor_,
+                               [this, &write_concern, &write_result]() {
+                                 return impl_.execute(write_concern,
+                                                      write_result);
+                               })
       .Get();
 }
 
@@ -118,23 +122,23 @@ CursorWrapper CollectionWrapper::Find(const ::mongo::Query& query,
                                       int limit) const {
   auto conn = pool_->Acquire();
   try {
-    auto cursor =
-        engine::Async(task_processor_,
+    auto cursor = engine::CriticalAsync(
+                      task_processor_,
                       [this, &conn, &query, &limit, &fields, &options]() {
                         return conn->query(collection_name_, query, limit, 0,
                                            fields, options);
                       })
-            .Get();
+                      .Get();
     return CursorWrapper(std::move(conn), cursor.release(), task_processor_);
   } catch (const ::mongo::SocketException&) {
     // HACK(nikslim): code to to force client to reconnect
-    auto cursor =
-        engine::Async(task_processor_,
+    auto cursor = engine::CriticalAsync(
+                      task_processor_,
                       [this, &conn, &query, &limit, &fields, &options]() {
                         return conn->query(collection_name_, query, limit, 0,
                                            fields, options);
                       })
-            .Get();
+                      .Get();
     return CursorWrapper(std::move(conn), cursor.release(), task_processor_);
   }
 }
@@ -164,33 +168,33 @@ CursorWrapper CollectionWrapper::Find(
     const ::mongo::BSONObj& fields, ::mongo::WriteConcern* wc) const {
   auto conn = pool_->Acquire();
   try {
-    return engine::Async(task_processor_,
-                         [this, &conn, &query, &update, &upsert, &return_new,
-                          &sort, &fields, &wc]() {
-                           return conn->findAndModify(
-                               collection_name_, query, update, upsert,
-                               return_new, sort, fields, wc);
-                         })
+    return engine::CriticalAsync(task_processor_,
+                                 [this, &conn, &query, &update, &upsert,
+                                  &return_new, &sort, &fields, &wc]() {
+                                   return conn->findAndModify(
+                                       collection_name_, query, update, upsert,
+                                       return_new, sort, fields, wc);
+                                 })
         .Get();
   } catch (const ::mongo::SocketException&) {
     // HACK(nikslim): code to to force client to reconnect
-    return engine::Async(task_processor_,
-                         [this, &conn, &query, &update, &upsert, &return_new,
-                          &sort, &fields, &wc]() {
-                           return conn->findAndModify(
-                               collection_name_, query, update, upsert,
-                               return_new, sort, fields, wc);
-                         })
+    return engine::CriticalAsync(task_processor_,
+                                 [this, &conn, &query, &update, &upsert,
+                                  &return_new, &sort, &fields, &wc]() {
+                                   return conn->findAndModify(
+                                       collection_name_, query, update, upsert,
+                                       return_new, sort, fields, wc);
+                                 })
         .Get();
   } catch (const ::mongo::OperationException& exc) {
     if (upsert && IsDuplicateKeyError(exc.obj())) {
-      return engine::Async(task_processor_,
-                           [this, &conn, &query, &update, &upsert, &return_new,
-                            &sort, &fields, &wc]() {
-                             return conn->findAndModify(
-                                 collection_name_, query, update, upsert,
-                                 return_new, sort, fields, wc);
-                           })
+      return engine::CriticalAsync(task_processor_,
+                                   [this, &conn, &query, &update, &upsert,
+                                    &return_new, &sort, &fields, &wc]() {
+                                     return conn->findAndModify(
+                                         collection_name_, query, update,
+                                         upsert, return_new, sort, fields, wc);
+                                   })
           .Get();
     } else
       throw;
@@ -269,9 +273,9 @@ template <typename Ret, typename Function, typename... Args>
 Ret CollectionWrapper::Execute(Function&& function, const Args&... args) const {
   auto conn = pool_->Acquire();
   try {
-    return engine::Async(task_processor_, std::forward<Function>(function),
-                         std::ref(*conn), std::cref(collection_name_),
-                         std::cref(args)...)
+    return engine::CriticalAsync(
+               task_processor_, std::forward<Function>(function),
+               std::ref(*conn), std::cref(collection_name_), std::cref(args)...)
         .Get();
   } catch (const ::mongo::SocketException&) {
     /* HACK(nikslim): code to to force client to reconnect:
@@ -299,9 +303,9 @@ Ret CollectionWrapper::Execute(Function&& function, const Args&... args) const {
               }
             }
      */
-    return engine::Async(task_processor_, std::forward<Function>(function),
-                         std::ref(*conn), std::cref(collection_name_),
-                         std::cref(args)...)
+    return engine::CriticalAsync(
+               task_processor_, std::forward<Function>(function),
+               std::ref(*conn), std::cref(collection_name_), std::cref(args)...)
         .Get();
   }
 }

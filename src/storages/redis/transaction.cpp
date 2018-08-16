@@ -1,6 +1,6 @@
 #include "transaction.hpp"
 
-#include <engine/async_task.hpp>
+#include <engine/async.hpp>
 
 namespace storages {
 namespace redis {
@@ -1046,9 +1046,9 @@ void Transaction::Exec(Callback&& callback,
       [ this, callback = std::move(callback) ](ReplyPtr reply) mutable {
         if (reply->data.IsStatus()) return;
         if (callback) {
-          new engine::AsyncTask<void>(sentinel_->task_processor_,
-                                      engine::Promise<void>(),
-                                      std::move(callback), std::move(reply));
+          engine::CriticalAsync(sentinel_->task_processor_, std::move(callback),
+                                std::move(reply))
+              .Detach();
         }
       },
       sentinel_->GetCommandControl(command_control));

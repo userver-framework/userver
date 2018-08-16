@@ -1,9 +1,10 @@
 #pragma once
 
 #include <functional>
-#include <mutex>
 
+#include <engine/async_task.hpp>
 #include <engine/condition_variable.hpp>
+#include <engine/mutex.hpp>
 #include <engine/task/task_processor.hpp>
 
 namespace engine {
@@ -24,12 +25,10 @@ class EventTask {
   void StartEventTask(TaskProcessor& task_processor);
 
   EventFunc event_func_;
+  AsyncTask<void> task_;
 
-  std::mutex event_cv_mutex_;
+  Mutex event_cv_mutex_;
   ConditionVariable event_cv_;
-  std::mutex stop_mutex_;
-  ConditionVariable event_task_finished_cv_;
-  bool is_event_task_finished_ = true;
   bool is_notified_ = false;
   bool is_running_ = false;
 };
