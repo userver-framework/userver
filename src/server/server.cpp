@@ -34,7 +34,7 @@ namespace server {
 Server::Server(ServerConfig config,
                const components::ComponentContext& component_context)
     : config_(std::move(config)), is_destroying_(false) {
-  LOG_INFO() << "Starting server";
+  LOG_INFO() << "Creating server";
 
   engine::TaskProcessor* task_processor =
       component_context.GetTaskProcessor(config_.task_processor);
@@ -57,7 +57,7 @@ Server::Server(ServerConfig config,
                             *event_thread_control);
   }
 
-  LOG_INFO() << "Started server";
+  LOG_INFO() << "Server is created";
 }
 
 Server::~Server() {
@@ -112,6 +112,23 @@ Json::Value Server::GetMonitorData(
   return json_data;
 }
 
+bool Server::AddHandler(const handlers::HandlerBase& handler,
+                        const components::ComponentContext& component_context) {
+  return (handler.IsMonitor() ? request_handlers_->GetMonitorRequestHandler()
+                              : request_handlers_->GetHttpRequestHandler())
+      .AddHandler(handler, component_context);
+}
+
+void Server::Start() {
+  LOG_INFO() << "Starting server";
+  request_handlers_->GetMonitorRequestHandler().DisableAddHandler();
+  request_handlers_->GetHttpRequestHandler().DisableAddHandler();
+  for (auto& listener : listeners_) {
+    listener.Start();
+  }
+  LOG_INFO() << "Server is started";
+}
+
 net::Stats Server::GetServerStats() const {
   net::Stats summary;
 
@@ -128,7 +145,7 @@ std::unique_ptr<RequestHandlers> Server::CreateRequestHandlers(
   auto request_handlers = std::make_unique<RequestHandlers>();
   try {
     request_handlers->SetHttpRequestHandler(
-        std::make_unique<const http::HttpRequestHandler>(
+        std::make_unique<http::HttpRequestHandler>(
             component_context, config_.logger_access,
             config_.logger_access_tskv, false));
   } catch (const std::exception& ex) {
@@ -137,7 +154,7 @@ std::unique_ptr<RequestHandlers> Server::CreateRequestHandlers(
   }
   try {
     request_handlers->SetMonitorRequestHandler(
-        std::make_unique<const http::HttpRequestHandler>(
+        std::make_unique<http::HttpRequestHandler>(
             component_context, config_.logger_access,
             config_.logger_access_tskv, true));
   } catch (const std::exception& ex) {

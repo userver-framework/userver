@@ -32,6 +32,12 @@ void ComponentContext::ClearComponents() {
   LOG_TRACE() << "Stopped all components";
 }
 
+void ComponentContext::OnAllComponentsLoaded() {
+  for (auto& component_item : components_) {
+    component_item.second->OnAllComponentsLoaded();
+  }
+}
+
 size_t ComponentContext::ComponentCount() const { return components_.size(); }
 
 ComponentContext::ComponentMap::const_iterator ComponentContext::begin() const {

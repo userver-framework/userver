@@ -19,8 +19,6 @@ class ServerMonitor : public HttpHandlerBase {
       const http::HttpRequest& request,
       request::RequestContext&) const override;
 
-  bool IsMonitor() const override { return true; }
-
  private:
   const components::Manager& components_manager_;
 };

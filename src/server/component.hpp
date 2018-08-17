@@ -17,8 +17,12 @@ class Server : public MonitorableComponentBase {
   Server(const components::ComponentConfig& component_config,
          const components::ComponentContext& component_context);
 
+  void OnAllComponentsLoaded() override;
+
   const server::Server& GetServer() const;
 
+  bool AddHandler(const server::handlers::HandlerBase& handler,
+                  const components::ComponentContext& component_context);
   Json::Value GetMonitorData(MonitorVerbosity verbosity) const override;
 
  private:

@@ -3,6 +3,7 @@
 #include <boost/optional.hpp>
 
 #include <components/component_context.hpp>
+#include <engine/mutex.hpp>
 #include <engine/task/task_processor.hpp>
 #include <server/handlers/handler_base.hpp>
 #include <server/request/request_base.hpp>
@@ -36,10 +37,20 @@ class HttpRequestHandler : public request::RequestHandlerBase {
       std::function<void()>&& notify_func) const override;
   void ProcessRequest(request::RequestTask& task) const override;
 
+  void DisableAddHandler();
+  __attribute__((warn_unused_result)) bool AddHandler(
+      const handlers::HandlerBase& handler,
+      const components::ComponentContext& component_context);
   bool GetHandlerInfo(const std::string& path, HandlerInfo& handler_info) const;
 
  private:
+  // handler_infos_mutex_ is used for pushing handlers into handler_infos_
+  // before server start. After start handler_infos_ is read only and
+  // synchronization is not needed.
+  engine::Mutex handler_infos_mutex_;
   std::unordered_map<std::string, HandlerInfo> handler_infos_;
+
+  std::atomic<bool> add_handler_disabled_;
   bool is_monitor_;
 };
 

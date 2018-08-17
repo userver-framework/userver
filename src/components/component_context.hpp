@@ -27,6 +27,8 @@ class ComponentContext {
 
   void ClearComponents();
 
+  void OnAllComponentsLoaded();
+
   template <typename T>
   T* FindComponent() const {
     return FindComponent<T>(T::kName);

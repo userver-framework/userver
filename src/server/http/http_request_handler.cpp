@@ -17,24 +17,8 @@ HttpRequestHandler::HttpRequestHandler(
     bool is_monitor)
     : request::RequestHandlerBase(component_context, logger_access_component,
                                   logger_access_tskv_component),
-      is_monitor_(is_monitor) {
-  for (const auto& component : component_context) {
-    if (auto handler = dynamic_cast<const handlers::HandlerBase*>(
-            component.second.get())) {
-      if (is_monitor_ != handler->IsMonitor()) continue;
-      engine::TaskProcessor* task_processor =
-          component_context.GetTaskProcessor(
-              handler->GetConfig().task_processor);
-      if (task_processor == nullptr) {
-        throw std::runtime_error("can't find task_processor with name '" +
-                                 handler->GetConfig().task_processor + '\'');
-      }
-      handler_infos_.emplace(std::piecewise_construct,
-                             std::tie(handler->GetConfig().path),
-                             std::tie(*task_processor, *handler));
-    }
-  }
-}
+      add_handler_disabled_(false),
+      is_monitor_(is_monitor) {}
 
 std::shared_ptr<request::RequestTask> HttpRequestHandler::PrepareRequestTask(
     std::unique_ptr<request::RequestBase>&& request,
@@ -65,9 +49,43 @@ void HttpRequestHandler::ProcessRequest(request::RequestTask& task) const {
   }
 }
 
+void HttpRequestHandler::DisableAddHandler() { add_handler_disabled_ = true; }
+
+bool HttpRequestHandler::AddHandler(
+    const handlers::HandlerBase& handler,
+    const components::ComponentContext& component_context) {
+  if (add_handler_disabled_) {
+    LOG_ERROR() << "handler adding disabled";
+    return false;
+  }
+  std::lock_guard<engine::Mutex> lock(handler_infos_mutex_);
+  if (is_monitor_ != handler.IsMonitor()) {
+    LOG_ERROR() << "adding " << (handler.IsMonitor() ? "" : "non-")
+                << "monitor handler to " << (is_monitor_ ? "" : "non-")
+                << "monitor HttpRequestHandler";
+    return false;
+  }
+  engine::TaskProcessor* task_processor =
+      component_context.GetTaskProcessor(handler.GetConfig().task_processor);
+  if (task_processor == nullptr) {
+    LOG_ERROR() << "can't find task_processor with name '"
+                << handler.GetConfig().task_processor << '\'';
+    return false;
+  }
+  return handler_infos_
+      .emplace(std::piecewise_construct, std::tie(handler.GetConfig().path),
+               std::tie(*task_processor, handler))
+      .second;
+}
+
 bool HttpRequestHandler::GetHandlerInfo(
     const std::string& path,
     HttpRequestHandler::HandlerInfo& handler_info) const {
+  if (!add_handler_disabled_) {
+    LOG_ERROR()
+        << "handler adding must be disabled before GetHandlerInfo() call";
+    return false;
+  }
   auto it = handler_infos_.find(path);
   if (it == handler_infos_.end()) {
     std::string path_prefix = path;

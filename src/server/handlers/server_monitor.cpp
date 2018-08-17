@@ -8,7 +8,7 @@ namespace handlers {
 ServerMonitor::ServerMonitor(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context)
-    : HttpHandlerBase(config, component_context),
+    : HttpHandlerBase(config, component_context, /*is_monitor = */ true),
       components_manager_(component_context.GetManager()) {}
 
 const std::string& ServerMonitor::HandlerName() const {

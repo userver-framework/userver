@@ -47,6 +47,7 @@ class Manager {
   void OnLogRotate();
 
  private:
+  void AddComponents(const ComponentList& component_list);
   void AddComponentImpl(
       const components::ComponentConfigMap& config_map, const std::string& name,
       std::function<std::unique_ptr<components::ComponentBase>(

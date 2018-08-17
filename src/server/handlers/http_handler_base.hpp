@@ -15,7 +15,8 @@ namespace handlers {
 class HttpHandlerBase : public HandlerBase {
  public:
   HttpHandlerBase(const components::ComponentConfig& config,
-                  const components::ComponentContext& component_context);
+                  const components::ComponentContext& component_context,
+                  bool is_monitor = false);
 
   virtual void HandleRequest(const request::RequestBase& request,
                              request::RequestContext& context) const

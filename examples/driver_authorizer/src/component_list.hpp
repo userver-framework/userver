@@ -27,9 +27,9 @@ const auto kComponentList =
         .Append<components::Mongo>("mongo-taxi")
         .Append<components::TaxiConfig<TaxiConfig>>()
         .Append<components::NeedLogRequestChecker<TaxiConfig>>()
+        .Append<components::Server>()
         .Append<handlers::DriverSession>()
         .Append<server::handlers::Ping>()
-        .Append<server::handlers::ServerMonitor>()
-        .Append<components::Server>();
+        .Append<server::handlers::ServerMonitor>();
 
 }  // namespace driver_authorizer

@@ -25,8 +25,8 @@ std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
 
 HttpHandlerBase::HttpHandlerBase(
     const components::ComponentConfig& config,
-    const components::ComponentContext& component_context)
-    : HandlerBase(config, component_context),
+    const components::ComponentContext& component_context, bool is_monitor)
+    : HandlerBase(config, component_context, is_monitor),
       need_log_request_checker_(
           component_context
               .FindComponent<components::NeedLogRequestCheckerBase>()) {}

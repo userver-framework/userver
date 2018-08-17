@@ -12,7 +12,14 @@ Server::Server(const components::ComponentConfig& component_config,
                                               component_config.ConfigVarsPtr()),
           component_context)) {}
 
+void Server::OnAllComponentsLoaded() { server_->Start(); }
+
 const server::Server& Server::GetServer() const { return *server_; }
+
+bool Server::AddHandler(const server::handlers::HandlerBase& handler,
+                        const components::ComponentContext& component_context) {
+  return server_->AddHandler(handler, component_context);
+}
 
 Json::Value Server::GetMonitorData(MonitorVerbosity verbosity) const {
   return server_->GetMonitorData(verbosity);

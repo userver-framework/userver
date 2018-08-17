@@ -9,6 +9,7 @@
 
 #include <components/component_context.hpp>
 #include <components/manager.hpp>
+#include <server/handlers/handler_base.hpp>
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
@@ -26,6 +27,10 @@ class Server {
 
   const ServerConfig& GetConfig() const;
   Json::Value GetMonitorData(components::MonitorVerbosity verbosity) const;
+  bool AddHandler(const handlers::HandlerBase& handler,
+                  const components::ComponentContext& component_context);
+
+  void Start();
 
  private:
   net::Stats GetServerStats() const;

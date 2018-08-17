@@ -14,7 +14,8 @@ namespace handlers {
 class HandlerBase : public components::ComponentBase {
  public:
   HandlerBase(const components::ComponentConfig& config,
-              const components::ComponentContext& component_context);
+              const components::ComponentContext& component_context,
+              bool is_monitor = false);
   virtual ~HandlerBase() {}
 
   virtual void HandleRequest(const request::RequestBase& request,
@@ -24,12 +25,13 @@ class HandlerBase : public components::ComponentBase {
                                  request::RequestContext& context) const
       noexcept = 0;
 
-  virtual bool IsMonitor() const { return false; }
+  bool IsMonitor() const { return is_monitor_; }
 
   const HandlerConfig& GetConfig() const;
 
  private:
   HandlerConfig config_;
+  bool is_monitor_;
 };
 
 }  // namespace handlers
