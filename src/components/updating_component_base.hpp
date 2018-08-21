@@ -23,6 +23,8 @@ class UpdatingComponentBase : public ComponentBase {
  protected:
   UpdatingComponentBase(const ComponentConfig& config, std::string name);
 
+  ~UpdatingComponentBase();
+
   void StartPeriodicUpdates();
   void StopPeriodicUpdates();
 

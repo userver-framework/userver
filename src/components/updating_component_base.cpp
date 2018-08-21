@@ -30,6 +30,18 @@ UpdatingComponentBase::UpdatingComponentBase(const ComponentConfig& config,
       is_running_(false),
       jitter_generator_(std::random_device()()) {}
 
+UpdatingComponentBase::~UpdatingComponentBase() {
+  if (is_running_.load()) {
+    LOG_ERROR()
+        << "UpdatingComponentBase is being destroyed while periodic update "
+           "task is still running. "
+           "Derived class has to call StopPeriodicUpdates() in destructor. "
+        << "Component name '" << name_ << "'";
+    // Don't crash in production
+    assert(false && "StopPeriodicUpdates() is not called");
+  }
+}
+
 void UpdatingComponentBase::StartPeriodicUpdates() {
   if (is_running_.exchange(true)) {
     return;
