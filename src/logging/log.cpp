@@ -1,5 +1,7 @@
 #include "log.hpp"
 
+#include <boost/lexical_cast.hpp>
+
 namespace logging {
 namespace {
 
@@ -61,6 +63,11 @@ void LogHelper::LogModule(const char* path, int line, const char* func) {
                << " ( ";
   *this << path;
   log_msg_.raw << kPathLineSeparator << line << " ) ";
+}
+
+LogHelper& operator<<(LogHelper& lh, std::thread::id id) {
+  lh << boost::lexical_cast<std::string>(id);
+  return lh;
 }
 
 }  // namespace logging

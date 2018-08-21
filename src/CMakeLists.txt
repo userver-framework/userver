@@ -12,6 +12,11 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
+file(GLOB_RECURSE TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
+list (REMOVE_ITEM SOURCES ${TEST_SOURCES})
+
+
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -23,6 +28,9 @@ find_package(HttpParser REQUIRED)
 find_package(JsonCpp REQUIRED)
 find_package(LibEv REQUIRED)
 find_package(MongoClient REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(ExternalProjectGTest)
+find_package(CurlYandex REQUIRED)
 
 add_library(${PROJECT} STATIC ${SOURCES})
 set_target_properties(${PROJECT} PROPERTIES LINKER_LANGUAGE CXX)
@@ -32,6 +40,8 @@ target_link_libraries(${PROJECT}
     ${CMAKE_THREAD_LIBS_INIT}
     ${JEMALLOC_LIBRARIES}
   PRIVATE
+    ${LIBCURL_YANDEX_LIBRARIES}
+    ${ZLIB_LIBRARIES}
     ${Boost_COROUTINE_LIBRARY}
     ${JSONCPP_LIBRARIES}
     ${HIREDIS_LIBRARIES}
@@ -49,6 +59,23 @@ target_include_directories(${PROJECT} PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
   ${USERVER_THIRD_PARTY_DIRS}
   ${JSONCPP_INCLUDE_DIR}
+  ${LIBCURL_YANDEX_INCLUDE_DIR}
   ${LIBEV_INCLUDE_DIR}
   ${MONGOCLIENT_INCLUDE_DIR}
 )
+
+
+message("gtest: ${GTEST_LIBRARIES}")
+add_executable (${PROJECT}_unittest ${TEST_SOURCES})
+add_dependencies (${PROJECT}_unittest ${PROJECT} gtest libgmock)
+target_link_libraries (${PROJECT}_unittest
+    ${GTEST_LIBRARIES}
+    ${PROJECT}
+)
+
+target_include_directories (${PROJECT}_unittest
+    PRIVATE ${GTEST_INCLUDE_DIRS}
+    PRIVATE ${GMOCK_INCLUDE_DIRS}
+)
+
+add_google_tests(${PROJECT}_unittest)

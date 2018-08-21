@@ -64,6 +64,14 @@ class LogHelper {
   LogExtra extra_;
 };
 
+inline LogHelper& operator<<(LogHelper& lh, std::error_code ec) {
+  lh << ec.category().name() << ":" << ec.value() << " (" << ec.message()
+     << ")";
+  return lh;
+}
+
+LogHelper& operator<<(LogHelper& lh, std::thread::id id);
+
 }  // namespace logging
 
 #define LOG(lvl)                                                        \

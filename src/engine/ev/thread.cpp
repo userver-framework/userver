@@ -1,5 +1,6 @@
 #include "thread.hpp"
 
+#include <logging/log.hpp>
 #include <stdexcept>
 
 #include <logging/log.hpp>
@@ -186,6 +187,9 @@ void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) {
 }
 
 void Thread::UpdateLoopWatcherImpl() {
+  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() func_promise_="
+              << (func_promise_ ? 1 : 0)
+              << " func_queue_.empty()=" << func_queue_.empty();
   if (func_promise_) {
     assert(func_ptr_);
     std::exception_ptr ex_ptr;
@@ -206,9 +210,11 @@ void Thread::UpdateLoopWatcherImpl() {
       LOG_ERROR() << "can't set value or exception: " << ex.what();
     }
   }
+  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() (2)";
 
   std::function<void()>* pfunc;
   while (func_queue_.pop(pfunc)) {
+    LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() (loop)";
     std::unique_ptr<std::function<void()>> func(pfunc);
     try {
       (*func)();
@@ -216,6 +222,7 @@ void Thread::UpdateLoopWatcherImpl() {
       LOG_WARNING() << "exception in async thread func: " << ex.what();
     }
   }
+  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() (3)";
 }
 
 void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) {

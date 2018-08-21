@@ -19,6 +19,8 @@
 namespace server {
 namespace net {
 
+int CreateIpv6Socket(uint16_t port, int backlog);
+
 class ListenerImpl : public engine::ev::ThreadControl {
  public:
   ListenerImpl(engine::ev::ThreadControl& thread_control,

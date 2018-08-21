@@ -16,6 +16,9 @@ Build-Depends:
 	libboost-system-dev,
 	libboost-thread-dev,
 	libboost-regex-dev,
+	libkrb5-dev,
+	libgcrypt11-dev,
+	libyandex-taxi-curl4-openssl-dev,
 	libyandex-taxi-jemalloc-dev,
 	libyandex-mongo-legacy-cxx-driver-dev
 Standards-Version: 3.9.7

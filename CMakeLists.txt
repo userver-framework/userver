@@ -27,9 +27,12 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 endif()
 
 include(SetupEnvironment)
+include(AddGoogleTests)
 include(GetVersion)
 include(CppCheck)
 
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(tools/httpclient)
+add_subdirectory(tools/engine)
 add_subdirectory(examples)

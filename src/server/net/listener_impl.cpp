@@ -26,6 +26,8 @@ namespace {
 
 static const size_t kConnectionsToCloseQueueCapacity = 64;
 
+}  // namespace
+
 class FdHolder {
  public:
   explicit FdHolder(int fd) : fd_(fd) {}
@@ -80,7 +82,9 @@ int CreateSocket(uint16_t port, int backlog) {
   return fd_holder.Release();
 }
 
-}  // namespace
+int CreateIpv6Socket(uint16_t port, int backlog) {
+  return CreateSocket(port, backlog);
+}
 
 ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
                            engine::TaskProcessor& task_processor,

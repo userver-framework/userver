@@ -29,6 +29,7 @@ class Watcher : public ev::ThreadControl {
   typename std::enable_if<std::is_same<T, ev_timer>::value, void>::type Set(
       ev_tstamp after, ev_tstamp repeat);
 
+  /* Synchronously start/stop ev_xxx.  Can be used from coroutines only */
   void Start();
   void Stop();
 
