@@ -22,6 +22,7 @@ target_link_libraries(${PROJECT}
 )
 
 target_include_directories(${PROJECT} PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/
   ${JSONCPP_INCLUDE_DIR}
 )
 

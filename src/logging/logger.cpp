@@ -1,4 +1,4 @@
-#include "logger.hpp"
+#include <yandex/taxi/userver/logging/logger.hpp>
 
 #include <memory>
 
@@ -7,7 +7,7 @@
 #include <spdlog/logger.h>
 #include <spdlog/sinks/file_sinks.h>
 
-#include "config.hpp"
+#include <yandex/taxi/userver/logging/config.hpp>
 
 namespace logging {
 

@@ -1,4 +1,4 @@
-#include "secdist.hpp"
+#include <yandex/taxi/userver/storages/secdist/secdist.hpp>
 
 #include <cerrno>
 #include <fstream>

@@ -1,4 +1,4 @@
-#include "log.hpp"
+#include <yandex/taxi/userver/logging/log.hpp>
 
 #include <boost/lexical_cast.hpp>
 

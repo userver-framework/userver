@@ -1,4 +1,4 @@
-#include "thread_pool.hpp"
+#include <yandex/taxi/userver/components/thread_pool.hpp>
 
 #include <json_config/value.hpp>
 

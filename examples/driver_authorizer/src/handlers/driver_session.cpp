@@ -5,10 +5,10 @@
 #include <json/value.h>
 #include <json/writer.h>
 
-#include <logging/log.hpp>
-#include <server/http/http_status.hpp>
-#include <storages/redis/component.hpp>
-#include <storages/redis/reply.hpp>
+#include <yandex/taxi/userver/logging/log.hpp>
+#include <yandex/taxi/userver/server/http/http_status.hpp>
+#include <yandex/taxi/userver/storages/redis/component.hpp>
+#include <yandex/taxi/userver/storages/redis/reply.hpp>
 
 namespace driver_authorizer {
 namespace handlers {
@@ -29,7 +29,7 @@ DriverSession::DriverSession(const components::ComponentConfig& config,
       is_session_ttl_update_enabled_(
           config.ParseBool("session_ttl_update_enabled", true)),
       taxi_config_component_(
-          context.FindComponent<components::TaxiConfig<TaxiConfig>>()) {
+          context.FindComponent<components::TaxiConfig>()) {
   if (!taxi_config_component_) ThrowUnmetRequirement("taxi config");
   auto* redis_component = context.FindComponent<components::Redis>();
   if (!redis_component) ThrowUnmetRequirement("redis");
@@ -60,7 +60,7 @@ std::string DriverSession::HandleRequestThrow(
 
   if (is_session_ttl_update_enabled_) {
     const std::chrono::seconds session_ttl{
-        taxi_config_component_->Get()->driver_session_expire_seconds};
+        taxi_config_component_->Get()->Get<driver_authorizer::TaxiConfig>().driver_session_expire_seconds};
     LOG_TRACE() << "Updating session key '" << session_key << "' TTL to "
                 << session_ttl.count() << " seconds";
     if (session_ttl > decltype(session_ttl)::zero()) {

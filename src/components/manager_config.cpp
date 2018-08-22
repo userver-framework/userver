@@ -1,4 +1,4 @@
-#include "manager_config.hpp"
+#include <yandex/taxi/userver/components/manager_config.hpp>
 
 #include <fstream>
 
@@ -6,9 +6,12 @@
 
 #include <json_config/value.hpp>
 
+//#include "event_thread_pool_config.hpp"
+
 namespace components {
 
 namespace {
+
 
 template <typename T>
 ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {

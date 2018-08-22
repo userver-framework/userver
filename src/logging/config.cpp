@@ -1,4 +1,4 @@
-#include "config.hpp"
+#include <yandex/taxi/userver/logging/config.hpp>
 
 #include <stdexcept>
 

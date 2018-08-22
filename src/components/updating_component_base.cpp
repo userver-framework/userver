@@ -1,4 +1,4 @@
-#include "updating_component_base.hpp"
+#include <components/updating_component_base.hpp>
 
 #include <cstdint>
 

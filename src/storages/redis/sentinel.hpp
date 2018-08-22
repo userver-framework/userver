@@ -9,7 +9,7 @@
 
 #include <engine/ev/impl_in_ev_loop.hpp>
 #include <engine/ev/thread_pool.hpp>
-#include <storages/secdist/secdist.hpp>
+#include <yandex/taxi/userver/storages/secdist/secdist.hpp>
 
 #include "base.hpp"
 #include "key_shard.hpp"

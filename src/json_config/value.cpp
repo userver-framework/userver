@@ -1,4 +1,4 @@
-#include "value.hpp"
+#include <json_config/value.hpp>
 
 namespace json_config {
 namespace impl {

@@ -5,7 +5,7 @@
 
 #include <json/value.h>
 
-#include <json_config/variable_map.hpp>
+#include <yandex/taxi/userver/json_config/variable_map.hpp>
 #include <server/request/request_config.hpp>
 
 namespace server {

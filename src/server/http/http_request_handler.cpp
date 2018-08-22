@@ -4,8 +4,9 @@
 
 #include <logging/logger.hpp>
 
-#include "http_request.hpp"
-#include "http_response.hpp"
+#include <server/http/http_request.hpp>
+#include <server/http/http_request_impl.hpp>
+#include <server/http/http_response.hpp>
 
 namespace server {
 namespace http {

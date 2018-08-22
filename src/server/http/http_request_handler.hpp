@@ -2,6 +2,7 @@
 
 #include <boost/optional.hpp>
 
+#include <yandex/taxi/userver/components/component_context.hpp>
 #include <components/component_context.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/task_processor.hpp>

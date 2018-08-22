@@ -1,12 +1,13 @@
 #pragma once
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <server/handlers/http_handler_base.hpp>
-#include <storages/redis/sentinel.hpp>
-#include <taxi_config/component.hpp>
+#include <yandex/taxi/userver/components/component_config.hpp>
+#include <yandex/taxi/userver/components/component_context.hpp>
+#include <yandex/taxi/userver/server/handlers/http_handler_base.hpp>
+#include <yandex/taxi/userver/storages/redis/sentinel.hpp>
+#include <yandex/taxi/userver/taxi_config/component.hpp>
 
-#include "../taxi_config/taxi_config.hpp"
+#include <taxi_config/taxi_config.hpp>
+
 
 namespace driver_authorizer {
 namespace handlers {
@@ -27,7 +28,7 @@ class DriverSession : public server::handlers::HttpHandlerBase {
   const bool is_session_ttl_update_enabled_;
 
   std::shared_ptr<storages::redis::Sentinel> redis_ptr_;
-  const components::TaxiConfig<TaxiConfig>* taxi_config_component_;
+  const components::TaxiConfig* taxi_config_component_;
 };
 
 }  // namespace handlers

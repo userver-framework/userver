@@ -1,15 +1,21 @@
-#include "manager.hpp"
+#include <yandex/taxi/userver/components/manager.hpp>
 
 #include <future>
 #include <stdexcept>
 
 #include <engine/async.hpp>
+#include <engine/task/task.hpp>
+#include <yandex/taxi/userver/logging/component.hpp>
+#include <yandex/taxi/userver/logging/log.hpp>
 #include <engine/task/task_context.hpp>
 #include <logging/component.hpp>
 #include <logging/log.hpp>
 
-#include "component_list.hpp"
-#include "monitorable_component_base.hpp"
+#include <engine/task/task_processor.hpp>
+
+#include <yandex/taxi/userver/components/component_list.hpp>
+#include <yandex/taxi/userver/components/monitorable_component_base.hpp>
+//#include "event_thread_pool_config.hpp"
 
 namespace {
 

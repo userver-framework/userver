@@ -4,9 +4,9 @@
 #include <string>
 #include <unordered_map>
 
-#include <components/component_base.hpp>
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
+#include <yandex/taxi/userver/components/component_base.hpp>
+#include <yandex/taxi/userver/components/component_config.hpp>
+#include <yandex/taxi/userver/components/component_context.hpp>
 
 namespace storages {
 namespace redis {

@@ -1,6 +1,6 @@
-#include "component.hpp"
+#include <server/component.hpp>
 
-#include "server_config.hpp"
+#include <server/server_config.hpp>
 
 namespace components {
 

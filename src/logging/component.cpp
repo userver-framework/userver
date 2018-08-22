@@ -1,4 +1,4 @@
-#include "component.hpp"
+#include <yandex/taxi/userver/logging/component.hpp>
 
 #include <chrono>
 #include <stdexcept>
@@ -10,9 +10,9 @@
 
 #include <json_config/value.hpp>
 
-#include "config.hpp"
-#include "log.hpp"
-#include "logger.hpp"
+#include <yandex/taxi/userver/logging/config.hpp>
+#include <yandex/taxi/userver/logging/log.hpp>
+#include <yandex/taxi/userver/logging/logger.hpp>
 
 namespace components {
 namespace {

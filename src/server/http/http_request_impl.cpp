@@ -122,7 +122,7 @@ bool HttpRequestImpl::HasHeader(const std::string& header_name) const {
 
 size_t HttpRequestImpl::HeaderCount() const { return headers_.size(); }
 
-HttpRequestImpl::HeadersMapKeys HttpRequestImpl::GetHeaderNames() const {
+HeadersMapKeys HttpRequestImpl::GetHeaderNames() const {
   return headers_ | boost::adaptors::map_keys;
 }
 
@@ -139,7 +139,7 @@ bool HttpRequestImpl::HasCookie(const std::string& cookie_name) const {
 
 size_t HttpRequestImpl::CookieCount() const { return cookies_.size(); }
 
-HttpRequestImpl::CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
+CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
   return cookies_ | boost::adaptors::map_keys;
 }
 

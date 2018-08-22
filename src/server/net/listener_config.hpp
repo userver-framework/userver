@@ -5,7 +5,7 @@
 #include <json/value.h>
 #include <boost/optional.hpp>
 
-#include <json_config/variable_map.hpp>
+#include <yandex/taxi/userver/json_config/variable_map.hpp>
 
 #include "connection_config.hpp"
 

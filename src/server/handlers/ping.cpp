@@ -1,4 +1,4 @@
-#include "ping.hpp"
+#include <server/handlers/ping.hpp>
 
 namespace server {
 namespace handlers {

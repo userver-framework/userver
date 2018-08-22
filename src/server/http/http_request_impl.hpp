@@ -9,23 +9,15 @@
 #include <http_parser.h>
 
 #include <server/request/request_base.hpp>
-#include <utils/str_icase.hpp>
+#include <server/http/http_types.hpp>
 
-#include "http_response.hpp"
+#include <server/http/http_response.hpp>
 
 namespace server {
 namespace http {
 
 class HttpRequestImpl : public request::RequestBase {
  public:
-  using HeadersMap =
-      std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                         utils::StrIcaseCmp>;
-  using CookiesMap = HeadersMap;
-
-  using HeadersMapKeys = decltype(HeadersMap() | boost::adaptors::map_keys);
-  using CookiesMapKeys = decltype(CookiesMap() | boost::adaptors::map_keys);
-
   HttpRequestImpl();
   virtual ~HttpRequestImpl();
 

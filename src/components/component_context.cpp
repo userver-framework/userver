@@ -1,6 +1,8 @@
-#include "component_context.hpp"
+#include <yandex/taxi/userver/components/component_context.hpp>
 
-#include <logging/log.hpp>
+#include <engine/task/task_processor.hpp>
+
+#include <yandex/taxi/userver/logging/log.hpp>
 
 namespace components {
 
