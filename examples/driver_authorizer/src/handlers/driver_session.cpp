@@ -28,8 +28,7 @@ DriverSession::DriverSession(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       is_session_ttl_update_enabled_(
           config.ParseBool("session_ttl_update_enabled", true)),
-      taxi_config_component_(
-          context.FindComponent<components::TaxiConfig>()) {
+      taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
   if (!taxi_config_component_) ThrowUnmetRequirement("taxi config");
   auto* redis_component = context.FindComponent<components::Redis>();
   if (!redis_component) ThrowUnmetRequirement("redis");
@@ -60,7 +59,9 @@ std::string DriverSession::HandleRequestThrow(
 
   if (is_session_ttl_update_enabled_) {
     const std::chrono::seconds session_ttl{
-        taxi_config_component_->Get()->Get<driver_authorizer::TaxiConfig>().driver_session_expire_seconds};
+        taxi_config_component_->Get()
+            ->Get<driver_authorizer::TaxiConfig>()
+            .driver_session_expire_seconds};
     LOG_TRACE() << "Updating session key '" << session_key << "' TTL to "
                 << session_ttl.count() << " seconds";
     if (session_ttl > decltype(session_ttl)::zero()) {

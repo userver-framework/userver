@@ -28,5 +28,4 @@ class Server {
   std::unique_ptr<ServerImpl> pimpl;
 };
 
-
 }  // namespace server

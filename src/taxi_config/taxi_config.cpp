@@ -17,9 +17,8 @@ Config::Config(Config&&) = default;
 
 Config::~Config() = default;
 
-Config::Config(const DocsMap& docs_map)
-{
-   for (const auto& extra_config : ExtraConfigFactories()) {
+Config::Config(const DocsMap& docs_map) {
+  for (const auto& extra_config : ExtraConfigFactories()) {
     extra_configs_[extra_config.first] = extra_config.second(docs_map);
   }
 }
@@ -38,6 +37,4 @@ const boost::any& Config::Get(const std::type_index& type) const {
   }
 }
 
-
-}
-
+}  // namespace taxi_config

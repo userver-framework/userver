@@ -2,10 +2,10 @@
 
 #include <vector>
 
-#include <yandex/taxi/userver/components/thread_pool.hpp>
 #include <json_config/value.hpp>
 #include <logging/log.hpp>
 #include <storages/redis/sentinel.hpp>
+#include <yandex/taxi/userver/components/thread_pool.hpp>
 #include <yandex/taxi/userver/storages/secdist/component.hpp>
 #include <yandex/taxi/userver/storages/secdist/secdist.hpp>
 

@@ -47,13 +47,11 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     context.GetLogExtra().Extend(kLink, link,
                                  logging::LogExtra::ExtendType::kFrozen);
 
-    bool log_request = http_server_settings_
-                           ? http_server_settings_->NeedLogRequest()
-                           : false;
+    bool log_request =
+        http_server_settings_ ? http_server_settings_->NeedLogRequest() : false;
     bool log_request_headers =
-        http_server_settings_
-            ? http_server_settings_->NeedLogRequestHeaders()
-            : false;
+        http_server_settings_ ? http_server_settings_->NeedLogRequestHeaders()
+                              : false;
 
     if (log_request) {
       logging::LogExtra log_extra(context.GetLogExtra());

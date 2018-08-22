@@ -6,8 +6,8 @@
 
 #include <http_parser.h>
 
-#include <yandex/taxi/userver/server/http/http_types.hpp>
 #include <yandex/taxi/userver/server/http/http_response.hpp>
+#include <yandex/taxi/userver/server/http/http_types.hpp>
 
 namespace server {
 namespace http {

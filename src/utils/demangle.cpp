@@ -9,7 +9,6 @@
 
 #include <stdlib.h>
 
-
 namespace utils {
 
 std::string GetTypeName(const std::type_index& type) {
@@ -21,6 +20,6 @@ std::string GetTypeName(const std::type_index& type) {
 #else
   return type.name();
 #endif
-}   
-
 }
+
+}  // namespace utils

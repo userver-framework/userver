@@ -4,12 +4,12 @@
 
 #include <cstring>
 
-#include <yandex/taxi/userver/logging/config.hpp>
-#include <yandex/taxi/userver/logging/log.hpp>
-#include <yandex/taxi/userver/logging/logger.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
+#include <yandex/taxi/userver/logging/config.hpp>
+#include <yandex/taxi/userver/logging/log.hpp>
+#include <yandex/taxi/userver/logging/logger.hpp>
 
 #include <yandex/taxi/userver/components/manager.hpp>
 #include <yandex/taxi/userver/components/manager_config.hpp>

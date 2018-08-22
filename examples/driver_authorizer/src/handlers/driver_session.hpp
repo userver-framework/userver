@@ -8,7 +8,6 @@
 
 #include <taxi_config/taxi_config.hpp>
 
-
 namespace driver_authorizer {
 namespace handlers {
 

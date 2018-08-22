@@ -9,7 +9,6 @@
 
 #include "logger.hpp"
 
-
 namespace components {
 
 class Logging : public ComponentBase {

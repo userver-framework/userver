@@ -21,11 +21,10 @@ class ConfigModule {
 };
 
 class Config {
-public:
+ public:
   Config(const DocsMap& docs_map);
 
   Config(Config&&);
-
 
   ~Config();
 
@@ -61,4 +60,4 @@ template <typename T>
 std::type_index ConfigModule<T>::type_ =
     Config::Register<T>(&ConfigModule<T>::Factory);
 
-}
+}  // namespace taxi_config

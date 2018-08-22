@@ -5,8 +5,8 @@
 #include <json/value.h>
 #include <boost/optional.hpp>
 
-#include <yandex/taxi/userver/json_config/variable_map.hpp>
 #include <server/net/listener_config.hpp>
+#include <yandex/taxi/userver/json_config/variable_map.hpp>
 
 namespace server {
 

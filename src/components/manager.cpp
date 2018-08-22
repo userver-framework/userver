@@ -5,11 +5,11 @@
 
 #include <engine/async.hpp>
 #include <engine/task/task.hpp>
-#include <yandex/taxi/userver/logging/component.hpp>
-#include <yandex/taxi/userver/logging/log.hpp>
 #include <engine/task/task_context.hpp>
 #include <logging/component.hpp>
 #include <logging/log.hpp>
+#include <yandex/taxi/userver/logging/component.hpp>
+#include <yandex/taxi/userver/logging/log.hpp>
 
 #include <engine/task/task_processor.hpp>
 

@@ -38,9 +38,9 @@ Json::Value SerializeAggregated(const server::net::Stats::AggregatedStat& agg,
 namespace server {
 
 class ServerImpl {
-public:
+ public:
   ServerImpl(ServerConfig config,
-               const components::ComponentContext& component_context);
+             const components::ComponentContext& component_context);
   ~ServerImpl();
 
   net::Stats GetServerStats() const;
@@ -58,7 +58,7 @@ public:
 };
 
 ServerImpl::ServerImpl(ServerConfig config,
-               const components::ComponentContext& component_context)
+                       const components::ComponentContext& component_context)
     : config_(std::move(config)), is_destroying_(false) {
   LOG_INFO() << "Creating server";
 
@@ -103,9 +103,8 @@ ServerImpl::~ServerImpl() {
 
 Server::Server(ServerConfig config,
                const components::ComponentContext& component_context)
-  : pimpl(std::make_unique<ServerImpl>(std::move(config), component_context))
-{
-}
+    : pimpl(
+          std::make_unique<ServerImpl>(std::move(config), component_context)) {}
 
 Server::~Server() = default;
 
@@ -148,8 +147,9 @@ Json::Value Server::GetMonitorData(
 
 bool Server::AddHandler(const handlers::HandlerBase& handler,
                         const components::ComponentContext& component_context) {
-  return (handler.IsMonitor() ? pimpl->request_handlers_->GetMonitorRequestHandler()
-                              : pimpl->request_handlers_->GetHttpRequestHandler())
+  return (handler.IsMonitor()
+              ? pimpl->request_handlers_->GetMonitorRequestHandler()
+              : pimpl->request_handlers_->GetHttpRequestHandler())
       .AddHandler(handler, component_context);
 }
 

@@ -12,7 +12,6 @@ namespace components {
 
 namespace {
 
-
 template <typename T>
 ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
   static const std::string kConfigVarsField = "config_vars";

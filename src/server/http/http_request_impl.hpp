@@ -8,8 +8,8 @@
 
 #include <http_parser.h>
 
-#include <server/request/request_base.hpp>
 #include <server/http/http_types.hpp>
+#include <server/request/request_base.hpp>
 
 #include <server/http/http_response.hpp>
 

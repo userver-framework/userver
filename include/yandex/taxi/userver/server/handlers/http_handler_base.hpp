@@ -2,12 +2,11 @@
 
 #include <string>
 
+#include <yandex/taxi/userver/server/handlers/handler_base.hpp>
 #include <yandex/taxi/userver/server/http/http_request.hpp>
 #include <yandex/taxi/userver/server/http/http_response.hpp>
-#include <yandex/taxi/userver/server/request/request_base.hpp>
-#include <yandex/taxi/userver/server/handlers/handler_base.hpp>
 #include <yandex/taxi/userver/server/request/http_server_settings_base_component.hpp>
-
+#include <yandex/taxi/userver/server/request/request_base.hpp>
 
 namespace server {
 namespace handlers {

@@ -1,10 +1,9 @@
 #include <yandex/taxi/userver/taxi_config/component.hpp>
 
-
 namespace components {
 
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
-                               const ComponentContext& context)
+                       const ComponentContext& context)
     : CachingComponentBase<taxi_config::Config>(config, kName),
       impl_(config, context, [this](taxi_config::DocsMap&& mongo_docs) {
         this->Emplace(std::move(mongo_docs));
@@ -12,9 +11,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
   this->StartPeriodicUpdates();
 }
 
-TaxiConfig::~TaxiConfig() {
-  this->StopPeriodicUpdates();
-}
+TaxiConfig::~TaxiConfig() { this->StopPeriodicUpdates(); }
 
 void TaxiConfig::Update(
     UpdatingComponentBase::UpdateType type,
@@ -23,4 +20,4 @@ void TaxiConfig::Update(
   impl_.Update(type, last_update, now);
 }
 
-}
+}  // namespace components

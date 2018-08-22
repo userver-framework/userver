@@ -32,7 +32,7 @@ const auto kComponentList =
         .Append<components::Redis>()
         .Append<components::Mongo>("mongo-taxi")
         .Append<components::TaxiConfig>()
-	.Append<components::HttpServerSettings>()
+        .Append<components::HttpServerSettings>()
         .Append<components::Server>()
         .Append<handlers::DriverSession>()
         .Append<server::handlers::Ping>()

@@ -2,7 +2,6 @@
 
 #include <boost/optional.hpp>
 
-#include <yandex/taxi/userver/components/component_context.hpp>
 #include <components/component_context.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/task_processor.hpp>
@@ -10,6 +9,7 @@
 #include <server/request/request_base.hpp>
 #include <server/request/request_handler_base.hpp>
 #include <server/request/request_task.hpp>
+#include <yandex/taxi/userver/components/component_context.hpp>
 
 namespace server {
 namespace http {
