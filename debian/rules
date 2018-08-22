@@ -3,6 +3,9 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+export CC=clang-6.0
+export CXX=clang++-6.0
+
 %:
 	dh $@ --with=environment,nginx,systemd --parallel
 

@@ -4,8 +4,8 @@
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
 CMAKE_DIR = $(CURDIR)
-export CC = clang-5.0
-export CXX = clang++-5.0
+export CC = clang-6.0
+export CXX = clang++-6.0
 SCAN_BUILD = scan-build-5.0
 SCAN_BUILD_OPTS = -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
@@ -43,7 +43,7 @@ build-%: init
 
 .PHONY: deb
 deb:
-	DEB_BUILD_OPTIONS="parallel=$(NPROCS)" debuild -e CC=$(CC) -e CXX=$(CXX)
+	DEB_BUILD_OPTIONS="parallel=$(NPROCS)" debuild -b
 
 .PHONY: clang-static-analyzer
 clang-static-analyzer:

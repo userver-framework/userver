@@ -5,6 +5,7 @@ Maintainer: Dmitry Zhukov <dzhuk@yandex-team.ru>
 Build-Depends:
 	debhelper (>= 9),
 	dh-systemd (>= 1.5),
+	clang-6.0,
 	yandex-dh-environment,
 	yandex-dh-nginx,
 	libhttp-parser-dev,
