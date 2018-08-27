@@ -1,4 +1,5 @@
-#include <taxi_config/taxi_config.hpp>
+#include <yandex/taxi/userver/taxi_config/taxi_config.hpp>
+
 #include <yandex/taxi/userver/utils/demangle.hpp>
 
 namespace taxi_config {

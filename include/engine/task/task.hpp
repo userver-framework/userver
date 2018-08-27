@@ -4,11 +4,12 @@
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/coro/pool.hpp>
-#include <engine/ev/thread_control.hpp>
-#include <engine/wait_helpers.hpp>
+#include <engine/deadline.hpp>
 
 namespace engine {
+namespace ev {
+class ThreadControl;
+}
 namespace impl {
 class TaskContext;
 class TaskContextHolder;
@@ -18,9 +19,6 @@ class TaskProcessor;
 
 class Task {
  public:
-  using CoroutinePtr = coro::Pool<Task>::CoroutinePtr;
-  using TaskPipe = coro::Pool<Task>::TaskPipe;
-
   enum class Importance { kNormal, kCritical };
 
   enum class State {

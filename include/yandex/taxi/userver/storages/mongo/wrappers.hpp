@@ -7,11 +7,14 @@
 #include <mongo/bson/bson.h>
 #include <mongo/client/dbclient.h>
 
-#include <engine/task/task_processor.hpp>
 #include <yandex/taxi/userver/utils/flags.hpp>
 
 #include "mongo.hpp"
 #include "pool.hpp"
+
+namespace engine {
+class TaskProcessor;
+}  // namespace engine
 
 namespace storages {
 namespace mongo {

@@ -4,10 +4,9 @@
 #include <memory>
 #include <tuple>
 
-#include "result_store.hpp"
+#include <utils/result_store.hpp>
 
-namespace engine {
-namespace impl {
+namespace utils {
 
 template <typename Function, typename... Args>
 auto WrapCall(Function&& f, Args&&... args);
@@ -40,7 +39,7 @@ void WrappedCall<T>::Perform() {
 
 template <typename T>
 T WrappedCall<T>::Retrieve() {
-  return result_.Get();
+  return result_.Retrieve();
 }
 
 template <typename T>
@@ -53,6 +52,8 @@ inline void WrappedCall<void>::DoPerform() {
   Call();
   result_.SetValue();
 }
+
+namespace impl {
 
 template <typename Function, typename... Args>
 class WrappedCallImpl final
@@ -76,11 +77,12 @@ class WrappedCallImpl final
   decltype(std::make_tuple(std::declval<Args>()...)) args_;
 };
 
+}  // namespace impl
+
 template <typename Function, typename... Args>
 auto WrapCall(Function&& f, Args&&... args) {
-  return std::make_shared<WrappedCallImpl<Function, Args...>>(
+  return std::make_shared<impl::WrappedCallImpl<Function, Args...>>(
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace utils

@@ -1,6 +1,6 @@
 #include <yandex/taxi/userver/components/thread_pool.hpp>
 
-#include <json_config/value.hpp>
+#include <yandex/taxi/userver/json_config/value.hpp>
 
 namespace components {
 

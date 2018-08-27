@@ -13,3 +13,7 @@ target_link_libraries (${PROJECT}
     ${Boost_PROGRAM_OPTIONS_LIBRARIES}
     ${JEMALLOC_LIBRARIES})
 
+target_include_directories (${PROJECT} PRIVATE
+    $<TARGET_PROPERTY:yandex-taxi-userver,INCLUDE_DIRECTORIES>
+)
+

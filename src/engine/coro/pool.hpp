@@ -8,7 +8,7 @@
 #include <boost/coroutine/asymmetric_coroutine.hpp>
 #include <boost/lockfree/stack.hpp>
 
-#include <yandex/taxi/userver/logging/log.hpp>
+#include <logging/log.hpp>
 
 #include "pool_config.hpp"
 #include "pool_stats.hpp"

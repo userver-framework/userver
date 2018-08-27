@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <json_config/value.hpp>
+#include <yandex/taxi/userver/json_config/value.hpp>
 
 namespace server {
 namespace request {

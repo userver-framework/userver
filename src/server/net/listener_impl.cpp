@@ -139,7 +139,7 @@ ListenerImpl::~ListenerImpl() {
 
   while (pending_setup_connection_count_ > 0 ||
          pending_close_connection_count_ > 0)
-    engine::Sleep(std::chrono::milliseconds(10));
+    engine::SleepFor(std::chrono::milliseconds(10));
 
   close(request_socket_listener_->Fd());
   LOG_TRACE() << "Closed request fd " << request_socket_listener_->Fd();

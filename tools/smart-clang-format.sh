@@ -2,7 +2,7 @@
 
 # params
 CLANG_FORMAT_VERSION=5.0
-SOURCE_REGEXP="(^|\./)(src|include|tests|examples)/.+\.[ch]pp"
+SOURCE_REGEXP="(^|\./)(src|include|tests|examples|tools)/.+\.[ch]pp"
 
 # check clang-format
 CLANG_FORMAT=clang-format-$CLANG_FORMAT_VERSION

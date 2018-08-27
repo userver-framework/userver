@@ -7,12 +7,10 @@
 
 #include <engine/async.hpp>
 #include <logging/log.hpp>
-#include <redis/reply.hpp>
-#include <server/http/http_status.hpp>
-#include <storages/redis/component.hpp>
-#include <yandex/taxi/userver/logging/log.hpp>
 #include <yandex/taxi/userver/server/http/http_status.hpp>
 #include <yandex/taxi/userver/storages/redis/component.hpp>
+
+#include <redis/reply.hpp>
 
 namespace driver_authorizer {
 namespace handlers {

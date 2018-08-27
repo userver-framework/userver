@@ -1,10 +1,10 @@
-#include "sleep.hpp"
+#include <engine/sleep.hpp>
 
 #include "task/task_context.hpp"
 
 namespace engine {
 
-void Sleep(Deadline deadline) {
+void SleepUntil(Deadline deadline) {
   auto context = current_task::GetCurrentTaskContext();
 
   impl::TaskContext::SleepParams new_sleep_params;
@@ -12,6 +12,6 @@ void Sleep(Deadline deadline) {
   context->Sleep(std::move(new_sleep_params));
 }
 
-void Yield() { Sleep(Deadline::clock::now()); }
+void Yield() { SleepUntil(Deadline::clock::now()); }
 
 }  // namespace engine

@@ -1,4 +1,4 @@
-#include <server/handlers/ping.hpp>
+#include <yandex/taxi/userver/server/handlers/ping.hpp>
 
 namespace server {
 namespace handlers {

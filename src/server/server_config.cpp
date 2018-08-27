@@ -1,6 +1,6 @@
-#include <server/server_config.hpp>
+#include <yandex/taxi/userver/server/server_config.hpp>
 
-#include <json_config/value.hpp>
+#include <yandex/taxi/userver/json_config/value.hpp>
 
 namespace server {
 

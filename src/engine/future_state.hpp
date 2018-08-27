@@ -6,9 +6,10 @@
 #include <future>
 #include <mutex>
 
+#include <engine/deadline.hpp>
+#include <utils/result_store.hpp>
+
 #include "condition_variable_any.hpp"
-#include "result_store.hpp"
-#include "wait_helpers.hpp"
 
 namespace engine {
 namespace impl {
@@ -39,7 +40,7 @@ class FutureState {
   ConditionVariableAny<std::mutex> result_cv_;
   std::atomic<bool> is_ready_{false};
   std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
-  ResultStore<T> result_store_;
+  utils::ResultStore<T> result_store_;
 };
 
 template <>
@@ -67,7 +68,7 @@ class FutureState<void> {
   ConditionVariableAny<std::mutex> result_cv_;
   std::atomic<bool> is_ready_{false};
   std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
-  ResultStore<void> result_store_;
+  utils::ResultStore<void> result_store_;
 };
 
 template <typename T>
@@ -78,7 +79,7 @@ bool FutureState<T>::IsReady() const {
 template <typename T>
 T FutureState<T>::Get() {
   Wait();
-  return result_store_.Get();
+  return result_store_.Retrieve();
 }
 
 template <typename T>
@@ -156,7 +157,7 @@ inline bool FutureState<void>::IsReady() const { return is_ready_; }
 
 inline void FutureState<void>::Get() {
   Wait();
-  result_store_.Get();
+  result_store_.Retrieve();
 }
 
 inline void FutureState<void>::Wait() {

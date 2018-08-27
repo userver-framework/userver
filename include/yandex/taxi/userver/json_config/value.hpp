@@ -7,7 +7,7 @@
 #include <json/json.h>
 #include <boost/optional.hpp>
 
-#include <yandex/taxi/userver/logging/log.hpp>
+#include <logging/log.hpp>
 
 #include "parse.hpp"
 #include "variable_map.hpp"

@@ -1,19 +1,21 @@
-#include "mutex.hpp"
+#include <engine/mutex.hpp>
 
 #include <cassert>
 
 #include "task/task_context.hpp"
+#include "wait_list.hpp"
 
 namespace engine {
 
-Mutex::Mutex() : lock_waiters_(std::make_shared<WaitList>()), owner_(nullptr) {}
+Mutex::Mutex()
+    : lock_waiters_(std::make_shared<impl::WaitList>()), owner_(nullptr) {}
 
 Mutex::~Mutex() { assert(!owner_); }
 
 void Mutex::lock() {
   impl::TaskContext* const current = current_task::GetCurrentTaskContext();
   assert(current);
-  WaitList::Lock lock(*lock_waiters_);
+  impl::WaitList::Lock lock(*lock_waiters_);
   while (owner_) {
     assert(owner_ != current);
     impl::TaskContext::SleepParams sleep_params;
@@ -29,7 +31,7 @@ void Mutex::lock() {
 }
 
 void Mutex::unlock() {
-  WaitList::Lock lock(*lock_waiters_);
+  impl::WaitList::Lock lock(*lock_waiters_);
   assert(owner_ == current_task::GetCurrentTaskContext());
   owner_ = nullptr;
   lock_waiters_->WakeupOne(lock);

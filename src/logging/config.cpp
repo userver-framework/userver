@@ -1,8 +1,8 @@
-#include <yandex/taxi/userver/logging/config.hpp>
+#include "config.hpp"
 
 #include <stdexcept>
 
-#include <json_config/value.hpp>
+#include <yandex/taxi/userver/json_config/value.hpp>
 
 namespace logging {
 namespace {

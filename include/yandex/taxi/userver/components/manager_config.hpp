@@ -5,10 +5,11 @@
 
 #include <json/value.h>
 
+#include <yandex/taxi/userver/json_config/variable_map.hpp>
+
 #include <engine/coro/pool_config.hpp>
 #include <engine/ev/thread_pool_config.hpp>
 #include <engine/task/task_processor_config.hpp>
-#include <yandex/taxi/userver/json_config/variable_map.hpp>
 
 #include "component_config.hpp"
 

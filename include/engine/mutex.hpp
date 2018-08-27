@@ -3,12 +3,11 @@
 #include <memory>
 #include <mutex>  // for std locks
 
-#include <engine/wait_list.hpp>
-
 namespace engine {
 namespace impl {
 
 class TaskContext;
+class WaitList;
 
 }  // namespace impl
 
@@ -28,7 +27,7 @@ class Mutex {
   // TODO: try_lock, try_lock_for, try_lock_until
 
  private:
-  std::shared_ptr<WaitList> lock_waiters_;
+  std::shared_ptr<impl::WaitList> lock_waiters_;
   impl::TaskContext* owner_;
 };
 

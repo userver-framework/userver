@@ -4,8 +4,8 @@
 #include <condition_variable>
 #include <memory>
 
+#include <engine/deadline.hpp>
 #include <engine/mutex.hpp>
-#include <engine/wait_helpers.hpp>
 
 namespace engine {
 

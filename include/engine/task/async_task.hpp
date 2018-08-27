@@ -5,11 +5,12 @@
 #include <stdexcept>
 
 #include <engine/task/task.hpp>
-#include <engine/task/task_impl.hpp>
-#include <engine/task/task_processor.hpp>
-#include <engine/wrapped_call.hpp>
+#include <engine/task/task_context_holder.hpp>
+#include <utils/wrapped_call.hpp>
 
 namespace engine {
+
+class TaskProcessor;
 
 class TaskCancelledException : public std::exception {
  public:
@@ -26,7 +27,7 @@ class AsyncTask : public Task {
  public:
   AsyncTask() = default;
   AsyncTask(TaskProcessor& task_processor, Importance importance,
-            std::shared_ptr<impl::WrappedCall<T>>&& wrapped_call_ptr)
+            std::shared_ptr<utils::WrappedCall<T>>&& wrapped_call_ptr)
       : Task(impl::TaskContextHolder::MakeContext(
             task_processor, importance,
             [wrapped_call_ptr] { wrapped_call_ptr->Perform(); })),
@@ -42,7 +43,7 @@ class AsyncTask : public Task {
   }
 
  private:
-  std::shared_ptr<impl::WrappedCall<T>> wrapped_call_ptr_;
+  std::shared_ptr<utils::WrappedCall<T>> wrapped_call_ptr_;
 };
 
 }  // namespace engine

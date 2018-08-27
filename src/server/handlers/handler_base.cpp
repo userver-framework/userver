@@ -1,6 +1,6 @@
-#include <server/handlers/handler_base.hpp>
+#include <yandex/taxi/userver/server/handlers/handler_base.hpp>
 
-#include <server/component.hpp>
+#include <yandex/taxi/userver/server/component.hpp>
 
 namespace server {
 namespace handlers {

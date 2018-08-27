@@ -69,10 +69,10 @@
       {
         "name": "redis",
         "thread_pools": {
-	  "sentinel_thread_pool_size": 1,
-	  "redis_thread_pool_size": "$redis_threads",
-	  "redis_thread_pool_size#fallback": 8
-	},
+          "sentinel_thread_pool_size": 1,
+          "redis_thread_pool_size": "$redis_threads",
+          "redis_thread_pool_size#fallback": 8
+        },
         "groups": [
           {
             "db": "taximeter-base",

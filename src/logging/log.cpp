@@ -1,4 +1,6 @@
-#include <yandex/taxi/userver/logging/log.hpp>
+#include <logging/log.hpp>
+
+#include <atomic>
 
 #include <boost/lexical_cast.hpp>
 
@@ -20,22 +22,33 @@ class LogExtraValueVisitor : public boost::static_visitor<void> {
   LogHelper& lh_;
 };
 
+LoggerPtr* DefaultLoggerInternal() {
+  static LoggerPtr default_logger = MakeStderrLogger("default");
+  return &default_logger;
+}
+
 }  // namespace
 
-LoggerPtr& Log() {
-  static LoggerPtr logger = MakeStderrLogger("default");
-  return logger;
+LoggerPtr DefaultLogger() {
+  return std::atomic_load_explicit(DefaultLoggerInternal(),
+                                   std::memory_order_acquire);
+}
+
+LoggerPtr SetDefaultLogger(LoggerPtr logger) {
+  return std::atomic_exchange_explicit(
+      DefaultLoggerInternal(), std::move(logger), std::memory_order_acq_rel);
 }
 
 LogHelper::LogHelper(Level level, const char* path, int line, const char* func)
-    : log_msg_(&Log()->name(), static_cast<spdlog::level::level_enum>(level)) {
+    : log_msg_(&DefaultLogger()->name(),
+               static_cast<spdlog::level::level_enum>(level)) {
   LogModule(path, line, func);
   LogTextKey();
 }
 
 void LogHelper::DoLog() {
   AppendLogExtra();
-  Log()->_sink_it(log_msg_);
+  DefaultLogger()->_sink_it(log_msg_);
 }
 
 void LogHelper::AppendLogExtra() {

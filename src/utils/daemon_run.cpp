@@ -4,7 +4,7 @@
 
 #include <boost/program_options.hpp>
 
-#include <components/run.hpp>
+#include <yandex/taxi/userver/components/run.hpp>
 
 namespace utils {
 

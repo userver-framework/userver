@@ -5,7 +5,6 @@
 #include <yandex/taxi/userver/components/component_config.hpp>
 #include <yandex/taxi/userver/components/component_context.hpp>
 #include <yandex/taxi/userver/components/monitorable_component_base.hpp>
-
 #include <yandex/taxi/userver/server/server.hpp>
 
 namespace components {

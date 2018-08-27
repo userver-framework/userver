@@ -6,11 +6,14 @@
 
 #include <boost/range/adaptor/map.hpp>
 
-#include <engine/sender.hpp>
 #include <yandex/taxi/userver/server/request/response_base.hpp>
 #include <yandex/taxi/userver/utils/str_icase.hpp>
 
 #include "http_status.hpp"
+
+namespace engine {
+class Sender;
+}  // namespace engine
 
 namespace server {
 namespace http {

@@ -1,6 +1,6 @@
-#include <server/component.hpp>
+#include <yandex/taxi/userver/server/component.hpp>
 
-#include <server/server_config.hpp>
+#include <yandex/taxi/userver/server/server_config.hpp>
 
 namespace components {
 

@@ -14,7 +14,6 @@
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_pool.hpp>
-
 #include "task_processor_config.hpp"
 
 namespace engine {

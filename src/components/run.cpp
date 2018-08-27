@@ -1,19 +1,18 @@
-#include <components/run.hpp>
+#include <yandex/taxi/userver/components/run.hpp>
 
 #include <unistd.h>
 
 #include <cstring>
 
+#include <logging/log.hpp>
+#include <logging/logger.hpp>
+#include <yandex/taxi/userver/components/manager.hpp>
+#include <yandex/taxi/userver/components/manager_config.hpp>
+
+#include <logging/config.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
-#include <yandex/taxi/userver/logging/config.hpp>
-#include <yandex/taxi/userver/logging/log.hpp>
-#include <yandex/taxi/userver/logging/logger.hpp>
-
-#include <yandex/taxi/userver/components/manager.hpp>
-#include <yandex/taxi/userver/components/manager_config.hpp>
-//#include "event_thread_pool_config.hpp"
 
 namespace components {
 
@@ -22,14 +21,16 @@ namespace {
 class LogScope {
  public:
   explicit LogScope(const std::string& init_log_path) {
-    old_default_logger_ = logging::Log();
     if (!init_log_path.empty()) {
-      logging::Log() = logging::MakeFileLogger("default", init_log_path);
+      old_default_logger_ = logging::SetDefaultLogger(
+          logging::MakeFileLogger("default", init_log_path));
     }
   }
 
   ~LogScope() noexcept(false) {
-    logging::Log() = std::move(old_default_logger_);
+    if (old_default_logger_) {
+      logging::SetDefaultLogger(std::move(old_default_logger_));
+    }
   }
 
  private:

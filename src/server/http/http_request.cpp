@@ -1,4 +1,5 @@
-#include <server/http/http_request.hpp>
+#include <yandex/taxi/userver/server/http/http_request.hpp>
+
 #include "http_request_impl.hpp"
 
 namespace server {

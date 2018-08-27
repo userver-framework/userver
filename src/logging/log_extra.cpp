@@ -1,8 +1,8 @@
-#include <yandex/taxi/userver/logging/log_extra.hpp>
+#include <logging/log_extra.hpp>
 
 #include <stdexcept>
 
-#include <yandex/taxi/userver/logging/log.hpp>
+#include <logging/log.hpp>
 
 namespace logging {
 

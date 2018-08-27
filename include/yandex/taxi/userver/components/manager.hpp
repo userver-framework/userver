@@ -12,13 +12,12 @@
 
 #include <engine/coro/pool_stats.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <engine/task/task_processor.hpp>
 
 #include "component_base.hpp"
 #include "component_config.hpp"
 #include "component_context.hpp"
 #include "manager_config.hpp"
-
-#include <engine/task/task_processor.hpp>
 
 namespace components {
 

@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/logging/component.hpp>
+#include <logging/component.hpp>
 
 #include <chrono>
 #include <stdexcept>
@@ -8,11 +8,11 @@
 #include <spdlog/details/log_msg.h>
 #include <spdlog/sinks/file_sinks.h>
 
-#include <json_config/value.hpp>
+#include <logging/log.hpp>
+#include <logging/logger.hpp>
+#include <yandex/taxi/userver/json_config/value.hpp>
 
-#include <yandex/taxi/userver/logging/config.hpp>
-#include <yandex/taxi/userver/logging/log.hpp>
-#include <yandex/taxi/userver/logging/logger.hpp>
+#include "config.hpp"
 
 namespace components {
 namespace {
@@ -52,7 +52,7 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
 
     if (logger_name == "default") {
-      logging::Log() = std::move(logger);
+      logging::SetDefaultLogger(std::move(logger));
     } else {
       auto insertion_result =
           loggers_.emplace(std::move(logger_name), std::move(logger));
@@ -77,7 +77,8 @@ void Logging::OnLogRotate() {
   rotate_msg.level = spdlog::level::off;  // covers all log levels
   rotate_msg.rotate_only = true;
 
-  auto default_logger = logging::Log();
+  // this must be a copy
+  auto default_logger = logging::DefaultLogger();
   rotate_msg.logger_name = &default_logger->name();
   default_logger->_sink_it(rotate_msg);
 

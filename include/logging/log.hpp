@@ -1,11 +1,13 @@
 #pragma once
 
+/// @file logging/log.hpp
+/// @brief Logging helpers
+
 #include <memory>
 
 #include <spdlog/common.h>
 
-#include <utils/encoding/hex.hpp>
-#include <utils/encoding/tskv.hpp>
+#include <yandex/taxi/userver/utils/encoding/hex.hpp>
 #include <yandex/taxi/userver/utils/encoding/tskv.hpp>
 
 #include "level.hpp"
@@ -14,10 +16,20 @@
 
 namespace logging {
 
-LoggerPtr& Log();
+/// Returns default logger
+LoggerPtr DefaultLogger();
 
+/// Atomically replaces default logger and returns the old one
+LoggerPtr SetDefaultLogger(LoggerPtr);
+
+/// Stream-like tskv-formatted log message builder
 class LogHelper {
  public:
+  /// @brief Constructs LogHelper
+  /// @param level message log level
+  /// @param path path of the source file that generated the message
+  /// @param line line of the source file that generated the message
+  /// @param func name of the function that generated the message
   LogHelper(Level level, const char* path, int line, const char* func);
   ~LogHelper() noexcept(false) { DoLog(); }
 
@@ -86,10 +98,13 @@ LogHelper& operator<<(LogHelper& lh, std::thread::id id);
 
 }  // namespace logging
 
-#define LOG(lvl)                                                        \
-  for (bool _need_log =                                                 \
-           ::logging::Log()->should_log(::logging::ToSpdlogLevel(lvl)); \
-       _need_log; _need_log = false)                                    \
+/// @brief Builds a stream and evaluates a message for the default logger
+/// if lvl matches the verbosity, otherwise the message is not evaluated
+/// @hideinitializer
+#define LOG(lvl)                                                \
+  for (bool _need_log = ::logging::DefaultLogger()->should_log( \
+           ::logging::impl::ToSpdlogLevel(lvl));                \
+       _need_log; _need_log = false)                            \
   ::logging::LogHelper(lvl, FILENAME, __LINE__, __func__)
 
 #define LOG_TRACE() LOG(::logging::Level::kTrace)
@@ -99,4 +114,5 @@ LogHelper& operator<<(LogHelper& lh, std::thread::id id);
 #define LOG_ERROR() LOG(::logging::Level::kError)
 #define LOG_CRITICAL() LOG(::logging::Level::kCritical)
 
-#define LOG_FLUSH() ::logging::Log()->flush()
+/// Forces flush of default logger message queue
+#define LOG_FLUSH() ::logging::DefaultLogger()->flush()

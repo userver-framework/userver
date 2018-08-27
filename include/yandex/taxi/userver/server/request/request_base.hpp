@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include <yandex/taxi/userver/logging/logger.hpp>
+#include <logging/logger.hpp>
 
 #include "response_base.hpp"
 

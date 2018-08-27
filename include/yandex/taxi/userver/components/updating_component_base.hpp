@@ -5,9 +5,9 @@
 #include <random>
 #include <string>
 
-#include <engine/async_task.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
+#include <engine/task/async_task.hpp>
 
 #include "component_base.hpp"
 #include "component_config.hpp"

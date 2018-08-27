@@ -4,9 +4,7 @@
 
 #include <json/reader.h>
 
-#include <json_config/value.hpp>
-
-//#include "event_thread_pool_config.hpp"
+#include <yandex/taxi/userver/json_config/value.hpp>
 
 namespace components {
 

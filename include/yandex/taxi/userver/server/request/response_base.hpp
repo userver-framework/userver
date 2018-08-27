@@ -1,10 +1,13 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
 #include <string>
 #include <unordered_map>
 
-#include <engine/sender.hpp>
+namespace engine {
+class Sender;
+}  // namespace engine
 
 namespace server {
 namespace request {

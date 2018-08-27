@@ -3,6 +3,7 @@
 # NOTE: use Makefile.local for customization
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
+DOCS_DIR ?= docs
 CMAKE_DIR = $(CURDIR)
 export CC = clang-6.0
 export CXX = clang++-6.0
@@ -66,7 +67,12 @@ clang-format:
 smart-clang-format:
 	@tools/smart-clang-format.sh
 
+.PHONY: docs
+docs:
+	@(cat doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -
+
 .PHONY: clean
 clean:
 	@rm -rf $(BUILD_DIR)
 	@rm -rf $(BUILD_CHECK_DIR)
+	@rm -rf $(DOCS_DIR)

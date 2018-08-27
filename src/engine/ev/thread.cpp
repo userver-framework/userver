@@ -1,6 +1,5 @@
 #include "thread.hpp"
 
-#include <logging/log.hpp>
 #include <stdexcept>
 
 #include <logging/log.hpp>

@@ -6,8 +6,9 @@
 
 #include <mongo/client/dbclientinterface.h>
 
-#include <storages/mongo/component.hpp>
-#include <storages/mongo/mongo.hpp>
+#include <yandex/taxi/userver/storages/mongo/component.hpp>
+#include <yandex/taxi/userver/storages/mongo/mongo.hpp>
+
 #include <taxi_config/mongo/names.hpp>
 
 namespace components {

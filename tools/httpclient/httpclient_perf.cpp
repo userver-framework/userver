@@ -1,12 +1,13 @@
 #include <openssl/err.h>
-#include <boost/program_options.hpp>
+
 #include <fstream>
-#include <clients/http/client.hpp>
 #include <iostream>
 #include <list>
 
-#include <engine/async.hpp>
+#include <boost/program_options.hpp>
 
+#include <clients/http/client.hpp>
+#include <engine/async.hpp>
 
 namespace http = clients::http;
 
@@ -42,17 +43,35 @@ Config ParseConfig(int argc, char* argv[]) {
   Config config;
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "produce help message")(
-      "log-level", po::value(&config.log_level)->default_value(config.log_level), "log level (trace, debug, info, warning, error)")(
-      "log-file", po::value(&config.logfile)->default_value(config.logfile), "log filename (empty for synchronous stderr)")(
-      "url-file,f", po::value(&config.url_file)->default_value(config.url_file), "input file")(
-      "count,c", po::value(&config.count)->default_value(config.count), "request count")(
-      "coroutines", po::value(&config.coroutines)->default_value(config.coroutines), "client coroutine count")(
-      "worker-threads", po::value(&config.worker_threads)->default_value(config.worker_threads), "worker thread count")(
-      "io-threads", po::value(&config.io_threads)->default_value(config.io_threads), "io thread count")(
-      "timeout,t", po::value(&config.timeout_ms)->default_value(config.timeout_ms), "request timeout in ms")(
-      "pipeline", po::value(&config.pipeline_length)->default_value(config.pipeline_length), "HTTP pipeline length (0 for disable)")(
-      "http-version,h", po::value<std::string>(), "http version, possible values: 1.0, 1.1, 2.0-prior")(
-      "max-host-connections", po::value(&config.max_host_connections)->default_value(config.max_host_connections),
+      "log-level",
+      po::value(&config.log_level)->default_value(config.log_level),
+      "log level (trace, debug, info, warning, error)")(
+      "log-file", po::value(&config.logfile)->default_value(config.logfile),
+      "log filename (empty for synchronous stderr)")(
+      "url-file,f", po::value(&config.url_file)->default_value(config.url_file),
+      "input file")("count,c",
+                    po::value(&config.count)->default_value(config.count),
+                    "request count")(
+      "coroutines",
+      po::value(&config.coroutines)->default_value(config.coroutines),
+      "client coroutine count")(
+      "worker-threads",
+      po::value(&config.worker_threads)->default_value(config.worker_threads),
+      "worker thread count")(
+      "io-threads",
+      po::value(&config.io_threads)->default_value(config.io_threads),
+      "io thread count")(
+      "timeout,t",
+      po::value(&config.timeout_ms)->default_value(config.timeout_ms),
+      "request timeout in ms")(
+      "pipeline",
+      po::value(&config.pipeline_length)->default_value(config.pipeline_length),
+      "HTTP pipeline length (0 for disable)")(
+      "http-version,h", po::value<std::string>(),
+      "http version, possible values: 1.0, 1.1, 2.0-prior")(
+      "max-host-connections",
+      po::value(&config.max_host_connections)
+          ->default_value(config.max_host_connections),
       "maximum HTTP connection number to a single host");
 
   po::variables_map vm;
@@ -72,9 +91,12 @@ Config ParseConfig(int argc, char* argv[]) {
     config.max_host_connections = vm["max-host-connections"].as<size_t>();
   if (vm.count("http-version")) {
     auto value = vm["http-version"].as<std::string>();
-    if (value == "1.0") config.http_version = curl::easy::http_version_1_0;
-    else if (value == "1.1") config.http_version = curl::easy::http_version_1_1;
-    else if (value == "2.0-prior") config.http_version = curl::easy::http_version_2_0_prior_knowledge;
+    if (value == "1.0")
+      config.http_version = curl::easy::http_version_1_0;
+    else if (value == "1.1")
+      config.http_version = curl::easy::http_version_1_1;
+    else if (value == "2.0-prior")
+      config.http_version = curl::easy::http_version_2_0_prior_knowledge;
     else {
       std::cerr << "--http-version value is unknown" << std::endl;
       exit(1);
@@ -102,8 +124,7 @@ std::vector<std::string> ReadUrls(const Config& config) {
   std::string line;
   while (std::getline(infile, line)) urls.emplace_back(std::move(line));
 
-  if (urls.empty())
-    throw std::runtime_error("No URL in URL file!");
+  if (urls.empty()) throw std::runtime_error("No URL in URL file!");
 
   return urls;
 }
@@ -116,8 +137,7 @@ std::shared_ptr<http::Request> CreateRequest(http::Client& http_client,
       ->timeout(config.timeout_ms)
       ->retry()
       ->verify(false)
-      ->http_version(config.http_version)
-      ;
+      ->http_version(config.http_version);
 }
 
 void Worker(WorkerContext& context) {
@@ -140,16 +160,20 @@ void Worker(WorkerContext& context) {
       context.response_len += response->body().size();
       LOG_DEBUG() << "Got response body_size=" << response->body().size();
       auto ts3 = std::chrono::system_clock::now();
-      LOG_INFO() << "timings create=" << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count() << "us "
-	         << "response=" <<       std::chrono::duration_cast<std::chrono::microseconds>(ts3 - ts2).count() << "us";
-    }
-    catch (const std::exception &e)
-    {
-	    LOG_ERROR() << "Exception: " << e.what();
-    }
-    catch (...)
-    {
-	    LOG_ERROR() << "Non-std::exception exception";
+      LOG_INFO() << "timings create="
+                 << std::chrono::duration_cast<std::chrono::microseconds>(ts2 -
+                                                                          ts1)
+                        .count()
+                 << "us "
+                 << "response="
+                 << std::chrono::duration_cast<std::chrono::microseconds>(ts3 -
+                                                                          ts2)
+                        .count()
+                 << "us";
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception: " << e.what();
+    } catch (...) {
+      LOG_ERROR() << "Non-std::exception exception";
     }
   }
   LOG_INFO() << "Worker stopped";
@@ -157,8 +181,7 @@ void Worker(WorkerContext& context) {
 
 }  // namespace
 
-void DoWork(const Config& config, const std::vector<std::string>& urls)
-{
+void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
   engine::ev::Thread io_thread("io_thread");
@@ -171,27 +194,30 @@ void DoWork(const Config& config, const std::vector<std::string>& urls)
   if (config.max_host_connections > 0)
     http_client->SetMaxHostConnections(config.max_host_connections);
 
-  WorkerContext worker_context{{0}, 2000, 0, std::ref(*http_client), config, urls};
+  WorkerContext worker_context{{0},    2000, 0, std::ref(*http_client),
+                               config, urls};
 
   std::vector<engine::AsyncTask<void>> tasks;
   tasks.resize(config.coroutines);
   auto tp1 = std::chrono::system_clock::now();
   LOG_WARNING() << "Creating workers...";
-  for (size_t i = 0; i < config.coroutines; ++i)
-  {
+  for (size_t i = 0; i < config.coroutines; ++i) {
     tasks[i] = engine::Async(tp, &Worker, std::ref(worker_context));
   }
   LOG_WARNING() << "All workers are started " << std::this_thread::get_id();
 
-  for (auto& task: tasks)
-    task.Get();
+  for (auto& task : tasks) task.Get();
 
   auto tp2 = std::chrono::system_clock::now();
-  auto rps = config.count * 1000 / (std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count() + 1);
+  auto rps = config.count * 1000 /
+             (std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1)
+                  .count() +
+              1);
 
   std::cerr << std::endl;
-  LOG_WARNING() << "counter = " << worker_context.counter.load() << " sum response body size = " << worker_context.response_len
-	  << " average RPS = " << rps;
+  LOG_WARNING() << "counter = " << worker_context.counter.load()
+                << " sum response body size = " << worker_context.response_len
+                << " average RPS = " << rps;
   http_client.reset();
 }
 
@@ -199,17 +225,22 @@ int main(int argc, char* argv[]) {
   const Config& config = ParseConfig(argc, argv);
 
   if (!config.logfile.empty())
-    logging::Log() = logging::MakeFileLogger("default", config.logfile);
-  logging::Log()->set_level(static_cast<spdlog::level::level_enum>(logging::LevelFromString(config.log_level)));
-  LOG_WARNING() << "Starting using requests=" << config.count << " coroutines=" << config.coroutines << " timeout=" << config.timeout_ms << "ms";
-  LOG_WARNING() << "pipeline length =" << config.pipeline_length << " max_host_connections=" << config.max_host_connections;
+    logging::SetDefaultLogger(
+        logging::MakeFileLogger("default", config.logfile));
+  logging::DefaultLogger()->set_level(static_cast<spdlog::level::level_enum>(
+      logging::LevelFromString(config.log_level)));
+  LOG_WARNING() << "Starting using requests=" << config.count
+                << " coroutines=" << config.coroutines
+                << " timeout=" << config.timeout_ms << "ms";
+  LOG_WARNING() << "pipeline length =" << config.pipeline_length
+                << " max_host_connections=" << config.max_host_connections;
 
   const std::vector<std::string>& urls = ReadUrls(config);
-  
+
   engine::coro::PoolConfig pool_config;
   engine::ev::ThreadPool thread_pool(1, "thread_pool");
-  engine::TaskProcessor::CoroPool coro_pool(pool_config,
-		  &engine::impl::TaskContext::CoroFunc);
+  engine::TaskProcessor::CoroPool coro_pool(
+      pool_config, &engine::impl::TaskContext::CoroFunc);
   engine::TaskProcessorConfig tp_config;
   tp_config.worker_threads = config.worker_threads;
   tp_config.thread_name = "task_processor";

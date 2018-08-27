@@ -2,15 +2,14 @@
 
 #include <vector>
 
-#include <json_config/value.hpp>
 #include <logging/log.hpp>
-#include <redis/sentinel.hpp>
-#include <redis/thread_pools.hpp>
-#include <storages/secdist/component.hpp>
-#include <storages/secdist/secdist.hpp>
 #include <yandex/taxi/userver/components/thread_pool.hpp>
+#include <yandex/taxi/userver/json_config/value.hpp>
 #include <yandex/taxi/userver/storages/secdist/component.hpp>
 #include <yandex/taxi/userver/storages/secdist/secdist.hpp>
+
+#include <redis/sentinel.hpp>
+#include <redis/thread_pools.hpp>
 
 namespace components {
 

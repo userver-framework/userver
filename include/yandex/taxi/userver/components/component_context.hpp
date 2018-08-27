@@ -9,7 +9,7 @@
 
 namespace engine {
 class TaskProcessor;
-}
+}  // namespace engine
 
 namespace components {
 

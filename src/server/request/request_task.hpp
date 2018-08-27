@@ -4,15 +4,13 @@
 #include <functional>
 #include <memory>
 
-#include <engine/async_task.hpp>
-#include <server/handlers/handler_base.hpp>
+#include <engine/task/async_task.hpp>
+#include <yandex/taxi/userver/server/handlers/handler_base.hpp>
+#include <yandex/taxi/userver/server/request/request_base.hpp>
 
-#include <server/request/request_base.hpp>
+#include <engine/task/task_processor.hpp>
 
 namespace server {
-
-class TaskProcessor;
-
 namespace request {
 
 class RequestTask {

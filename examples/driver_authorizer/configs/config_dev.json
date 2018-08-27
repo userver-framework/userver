@@ -36,8 +36,8 @@
             "file_path": "server.log",
             "level": "$logger_level",
             "level#fallback": "info",
-            "flush_on": "$logger_level",
-            "flush_on#fallback": "info",
+            "flush_level": "$logger_level",
+            "flush_level#fallback": "info",
             "overflow_behavior": "block"
           },
           "access": {
@@ -71,9 +71,9 @@
       {
         "name": "redis",
         "thread_pools": {
-	  "sentinel_thread_pool_size": 1,
-	  "redis_thread_pool_size": 8
-	},
+          "sentinel_thread_pool_size": 1,
+          "redis_thread_pool_size": 8
+        },
         "groups": [
           {
             "db": "taximeter-base",

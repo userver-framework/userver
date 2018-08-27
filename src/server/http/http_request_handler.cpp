@@ -3,10 +3,10 @@
 #include <stdexcept>
 
 #include <logging/logger.hpp>
+#include <yandex/taxi/userver/server/http/http_request.hpp>
+#include <yandex/taxi/userver/server/http/http_response.hpp>
 
-#include <server/http/http_request.hpp>
-#include <server/http/http_request_impl.hpp>
-#include <server/http/http_response.hpp>
+#include "http_request_impl.hpp"
 
 namespace server {
 namespace http {

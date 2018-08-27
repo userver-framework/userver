@@ -5,13 +5,12 @@
 
 #include <boost/optional.hpp>
 
-namespace engine {
-namespace impl {
+namespace utils {
 
 template <typename T>
 class ResultStore {
  public:
-  T Get();
+  T Retrieve();
 
   void SetValue(const T&);
   void SetValue(T&&);
@@ -26,7 +25,7 @@ class ResultStore {
 template <>
 class ResultStore<void> {
  public:
-  void Get();
+  void Retrieve();
 
   void SetValue();
   void SetException(std::exception_ptr&&);
@@ -37,10 +36,10 @@ class ResultStore<void> {
 };
 
 template <typename T>
-T ResultStore<T>::Get() {
+T ResultStore<T>::Retrieve() {
   if (value_) return std::move(*value_);
   if (exception_) std::rethrow_exception(exception_);
-  throw std::runtime_error("result store is not ready");
+  throw std::logic_error("result store is not ready");
 }
 
 template <typename T>
@@ -58,10 +57,10 @@ void ResultStore<T>::SetException(std::exception_ptr&& exception) {
   exception_ = std::move(exception);
 }
 
-inline void ResultStore<void>::Get() {
+inline void ResultStore<void>::Retrieve() {
   if (has_value_) return;
   if (exception_) std::rethrow_exception(exception_);
-  throw std::runtime_error("result store is not ready");
+  throw std::logic_error("result store is not ready");
 }
 
 inline void ResultStore<void>::SetValue() { has_value_ = true; }
@@ -70,5 +69,4 @@ inline void ResultStore<void>::SetException(std::exception_ptr&& exception) {
   exception_ = std::move(exception);
 }
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace utils

@@ -5,9 +5,8 @@
 
 #include <json/value.h>
 
+#include <logging/level.hpp>
 #include <yandex/taxi/userver/json_config/variable_map.hpp>
-
-#include "level.hpp"
 
 namespace logging {
 

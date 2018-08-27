@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file logging/log_extra.hpp
+/// @brief @copybrief logging::LogExtra
+
 #include <initializer_list>
 #include <unordered_map>
 #include <utility>
@@ -10,6 +13,7 @@ namespace logging {
 
 class LogHelper;
 
+/// Extra tskv fields storage
 class LogExtra {
  public:
   using Value = boost::variant<std::string, unsigned, int64_t, uint64_t, int,
@@ -17,20 +21,38 @@ class LogExtra {
   using Key = std::string;
   using Pair = std::pair<Key, Value>;
 
-  enum class ExtendType { kNormal, kFrozen };
+  /// Specifies replacement policy for newly added values
+  enum class ExtendType {
+    kNormal,  ///< Added value can be replaced
+    kFrozen,  ///< Attempts to replace this value will be ignored
+  };
 
   LogExtra() = default;
+
+  /// Constructs LogExtra containing an initial batch of key-value pairs
   LogExtra(std::initializer_list<Pair> initial,
            ExtendType extend_type = ExtendType::kNormal);
 
+  /// Adds a single key-value pair
   void Extend(std::string key, Value value,
               ExtendType extend_type = ExtendType::kNormal);
+
+  /// Adds a single key-value pair
   void Extend(Pair extra, ExtendType extend_type = ExtendType::kNormal);
+
+  /// Adds a batch of key-value pairs
   void Extend(std::initializer_list<Pair> extra,
               ExtendType extend_type = ExtendType::kNormal);
+
+  /// @brief Merges contents of other LogExtra with existing key-value pairs
+  /// preserving freeze states
   void Extend(const LogExtra& extra);
+
+  /// @brief Merges contents of other LogExtra with existing key-value pairs
+  /// preserving freeze states
   void Extend(LogExtra&& extra);
 
+  /// @brief Adds a range of key-value pairs
   template <typename Iterator>
   void ExtendRange(Iterator first, Iterator last,
                    ExtendType extend_type = ExtendType::kNormal) {
@@ -38,12 +60,8 @@ class LogExtra {
     for (Iterator it = first; it != last; ++it) Extend(*it, extend_type);
   }
 
-  template <typename T>
-  const T& Get(const std::string& key) const;
-
-  template <typename T>
-  const T& Get(const std::string& key, const T& default_value) const;
-
+  /// @brief Marks specified value as frozen, all attempts to overwrite it will
+  /// be silently ignored.
   void SetFrozen(const std::string& key);
 
   friend class LogHelper;
@@ -77,28 +95,5 @@ class LogExtra {
 
   Map extra_;
 };
-
-template <typename T>
-const T& LogExtra::Get(const std::string& key) const {
-  try {
-    const ProtectedValue& protected_value = extra_.at(key);
-    return boost::get<T>(protected_value.GetValue());
-  } catch (const std::exception& ex) {
-    throw std::runtime_error("can't get LogExtra value for key '" + key +
-                             "': " + ex.what());
-  }
-}
-
-template <typename T>
-const T& LogExtra::Get(const std::string& key, const T& default_value) const {
-  auto it = extra_.find(key);
-  if (it == extra_.end()) return default_value;
-  try {
-    return boost::get<T>(it->second.GetValue());
-  } catch (const std::exception& ex) {
-    throw std::runtime_error("can't get LogExtra value for key '" + key +
-                             "': " + ex.what());
-  }
-}
 
 }  // namespace logging

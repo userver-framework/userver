@@ -1,10 +1,12 @@
 #pragma once
 
-#include <engine/async_task.hpp>
-#include <engine/task/task_processor.hpp>
-#include <engine/wrapped_call.hpp>
+#include <engine/task/async_task.hpp>
+#include <utils/wrapped_call.hpp>
 
 namespace engine {
+
+class TaskProcessor;
+
 namespace impl {
 
 template <typename Function, typename... Args>
@@ -47,7 +49,7 @@ template <typename Function, typename... Args>
 auto MakeAsync(TaskProcessor& task_processor, Task::Importance importance,
                Function&& f, Args&&... args) {
   auto wrapped_call_ptr =
-      impl::WrapCall(std::forward<Function>(f), std::forward<Args>(args)...);
+      utils::WrapCall(std::forward<Function>(f), std::forward<Args>(args)...);
   using ResultType = decltype(wrapped_call_ptr->Retrieve());
   return AsyncTask<ResultType>(task_processor, importance,
                                std::move(wrapped_call_ptr));

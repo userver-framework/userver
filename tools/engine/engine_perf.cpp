@@ -1,13 +1,13 @@
-#include <boost/program_options.hpp>
+#include <atomic>
 #include <fstream>
 #include <iostream>
 #include <list>
-#include <atomic>
+
+#include <boost/program_options.hpp>
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
-
 
 namespace {
 
@@ -36,15 +36,19 @@ Config ParseConfig(int argc, char* argv[]) {
   Config config;
   po::options_description desc("Allowed options");
   desc.add_options()("help,h", "produce help message")(
-      "log-level", po::value(&config.log_level), "log level (trace, debug, info, warning, error)")(
-      "log-file", po::value(&config.logfile), "log filename (empty for synchronous stderr)")(
+      "log-level", po::value(&config.log_level),
+      "log level (trace, debug, info, warning, error)")(
+      "log-file", po::value(&config.logfile),
+      "log filename (empty for synchronous stderr)")(
       "count,c", po::value<size_t>(), "request count")(
-      "coroutines", po::value<size_t>(&config.coroutines), "client coroutine count")(
-      "worker-threads", po::value<size_t>(&config.worker_threads), "worker thread count")(
+      "coroutines", po::value<size_t>(&config.coroutines),
+      "client coroutine count")("worker-threads",
+                                po::value<size_t>(&config.worker_threads),
+                                "worker thread count")(
       "io-threads", po::value<size_t>(&config.io_threads), "io thread count")(
       "cycle", po::value<size_t>(&config.cycle), "cycle iterations")(
-      "memory,m", po::value<size_t>(&config.memory), "memory used in each coro")
-      ;
+      "memory,m", po::value<size_t>(&config.memory),
+      "memory used in each coro");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -67,13 +71,12 @@ void Worker(WorkerContext& context) {
 
   size_t size = context.config.memory / sizeof(int);
   std::vector<int> arr(size);
-  for (int i=0; i<count; i++) {
-
+  for (int i = 0; i < count; i++) {
     /* some work */
     long x = 56;
-    for (size_t j=0; j<cycle; j++) {
-	    x = ((x << 2) ^ (x ^ 0x87654))% (size +i) + 0x345f;
-	    arr[x % size] = x + i;
+    for (size_t j = 0; j < cycle; j++) {
+      x = ((x << 2) ^ (x ^ 0x87654)) % (size + i) + 0x345f;
+      arr[x % size] = x + i;
     }
 
     engine::Yield();
@@ -83,8 +86,7 @@ void Worker(WorkerContext& context) {
 
 }  // namespace
 
-void DoWork(const Config& config)
-{
+void DoWork(const Config& config) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
   engine::ev::Thread io_thread("io_thread");
@@ -97,34 +99,39 @@ void DoWork(const Config& config)
   tasks.resize(config.coroutines);
   auto tp1 = std::chrono::system_clock::now();
   LOG_WARNING() << "Creating workers...";
-  for (size_t i = 0; i < config.coroutines; ++i)
-  {
+  for (size_t i = 0; i < config.coroutines; ++i) {
     tasks[i] = engine::Async(tp, &Worker, std::ref(worker_context));
   }
   LOG_WARNING() << "All workers are started " << std::this_thread::get_id();
 
-  for (auto& task: tasks)
-    task.Get();
+  for (auto& task : tasks) task.Get();
   auto tp2 = std::chrono::system_clock::now();
-  auto rps = config.count * 1000 / (std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count() + 1);
+  auto rps = config.count * 1000 /
+             (std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1)
+                  .count() +
+              1);
 
   std::cerr << std::endl;
-  LOG_WARNING() << "counter = " << worker_context.counter.load() << " sum response body size = " << worker_context.response_len
-	  << " average RPS = " << rps;
+  LOG_WARNING() << "counter = " << worker_context.counter.load()
+                << " sum response body size = " << worker_context.response_len
+                << " average RPS = " << rps;
 }
 
 int main(int argc, char* argv[]) {
   const Config& config = ParseConfig(argc, argv);
 
   if (!config.logfile.empty())
-    logging::Log() = logging::MakeFileLogger("default", config.logfile);
-  logging::Log()->set_level(static_cast<spdlog::level::level_enum>(logging::LevelFromString(config.log_level)));
-  LOG_WARNING() << "Starting using requests=" << config.count << " coroutines=" << config.coroutines;
+    logging::SetDefaultLogger(
+        logging::MakeFileLogger("default", config.logfile));
+  logging::DefaultLogger()->set_level(static_cast<spdlog::level::level_enum>(
+      logging::LevelFromString(config.log_level)));
+  LOG_WARNING() << "Starting using requests=" << config.count
+                << " coroutines=" << config.coroutines;
 
   engine::coro::PoolConfig pool_config;
   engine::ev::ThreadPool thread_pool(1, "thread_pool");
-  engine::TaskProcessor::CoroPool coro_pool(pool_config,
-		  &engine::impl::TaskContext::CoroFunc);
+  engine::TaskProcessor::CoroPool coro_pool(
+      pool_config, &engine::impl::TaskContext::CoroFunc);
   engine::TaskProcessorConfig tp_config;
   tp_config.worker_threads = config.worker_threads;
   tp_config.thread_name = "task_processor";
@@ -151,4 +158,3 @@ int main(int argc, char* argv[]) {
   }
   LOG_WARNING() << "Exit";
 }
-

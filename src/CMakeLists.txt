@@ -52,14 +52,15 @@ target_link_libraries(${PROJECT}
     ${CLANG_LIBRARIES}
 )
 
-target_include_directories(${PROJECT} PUBLIC ${USERVER_PUBLIC_INCLUDE_DIR})
-# FIXME: change to PRIVATE once we have interface!
 target_include_directories(${PROJECT} PUBLIC
-  ${USERVER_PUBLIC_INCLUDE_DIR}/yandex/taxi/userver/
+  ${USERVER_PUBLIC_INCLUDE_DIR}
+  ${USERVER_THIRD_PARTY_DIRS} # FIXME move to private in TAXIBACKEND-15802
+  ${JSONCPP_INCLUDE_DIR}
+)
+# FIXME: change to PRIVATE once we have interface
+target_include_directories(${PROJECT} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${USERVER_THIRD_PARTY_DIRS}
-  ${JSONCPP_INCLUDE_DIR}
   ${LIBCURL_YANDEX_INCLUDE_DIR}
   ${LIBEV_INCLUDE_DIR}
   ${MONGOCLIENT_INCLUDE_DIR}
@@ -67,16 +68,14 @@ target_include_directories(${PROJECT} PUBLIC
 
 
 message("gtest: ${GTEST_LIBRARIES}")
-add_executable (${PROJECT}_unittest ${TEST_SOURCES})
-add_dependencies (${PROJECT}_unittest ${PROJECT} gtest libgmock)
-target_link_libraries (${PROJECT}_unittest
-    ${GTEST_LIBRARIES}
-    ${PROJECT}
+add_executable(${PROJECT}_unittest ${TEST_SOURCES})
+target_link_libraries(${PROJECT}_unittest
+  ${PROJECT}
+  ${GTEST_LIBRARIES}
+  ${GMOCK_LIBRARIES}
 )
-
-target_include_directories (${PROJECT}_unittest
-    PRIVATE ${GTEST_INCLUDE_DIRS}
-    PRIVATE ${GMOCK_INCLUDE_DIRS}
+target_include_directories(${PROJECT}_unittest PRIVATE
+  $<TARGET_PROPERTY:${PROJECT},INCLUDE_DIRECTORIES>
 )
 
 add_google_tests(${PROJECT}_unittest)

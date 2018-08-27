@@ -1,6 +1,6 @@
-#include <server/handlers/handler_config.hpp>
+#include <yandex/taxi/userver/server/handlers/handler_config.hpp>
 
-#include <json_config/value.hpp>
+#include <yandex/taxi/userver/json_config/value.hpp>
 
 namespace server {
 namespace handlers {

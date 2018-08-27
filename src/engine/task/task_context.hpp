@@ -7,15 +7,16 @@
 #include <ev.h>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
+#include <engine/deadline.hpp>
+#include <engine/task/task.hpp>
+#include <engine/task/task_context_holder.hpp>
+#include <yandex/taxi/userver/utils/flags.hpp>
+
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_control.hpp>
-#include <engine/task/cxxabi_eh_globals.hpp>
-#include <engine/task/task.hpp>
-#include <engine/task/task_impl.hpp>
-#include <engine/task/task_processor.hpp>
-#include <engine/wait_helpers.hpp>
 #include <engine/wait_list.hpp>
-#include <utils/flags.hpp>
+#include "cxxabi_eh_globals.hpp"
+#include "task_processor.hpp"
 
 namespace engine {
 namespace impl {

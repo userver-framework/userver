@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <yandex/taxi/userver/logging/log_extra.hpp>
+#include <logging/log_extra.hpp>
 
 namespace server {
 namespace request {

@@ -1,4 +1,4 @@
-#include <components/updating_component_base.hpp>
+#include <yandex/taxi/userver/components/updating_component_base.hpp>
 
 #include <cstdint>
 
@@ -50,7 +50,7 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
   // Force first update
   engine::CriticalAsync([this] { DoPeriodicUpdate(); }).Get();
 
-  std::packaged_task<void()> task([this] {
+  auto task = [this] {
     while (is_running_) {
       std::uniform_int_distribution<decltype(update_jitter_)::rep>
           jitter_distribution(-update_jitter_.count(), update_jitter_.count());
@@ -70,7 +70,7 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
         LOG_WARNING() << "Cannot update " << name_ << ": " << ex.what();
       }
     }
-  });
+  };
   update_task_ = engine::CriticalAsync(std::move(task));
 }
 

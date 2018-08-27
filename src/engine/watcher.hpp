@@ -2,8 +2,8 @@
 
 #include <ev.h>
 
-#include <engine/ev/thread_control.hpp>
-#include <engine/future.hpp>
+#include "ev/thread_control.hpp"
+#include "future.hpp"
 
 namespace engine {
 
