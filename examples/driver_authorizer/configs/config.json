@@ -102,7 +102,7 @@
         "fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.json"
       },
       {
-        "name": "need-log-request-checker"
+        "name": "http-server-settings"
       },
       {
         "name": "handler-server-monitor",

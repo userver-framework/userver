@@ -103,7 +103,7 @@
         "fallback_path": "taxi_config_fallback.development.json"
       },
       {
-        "name": "need-log-request-checker"
+        "name": "http-server-settings"
       },
       {
         "name": "handler-server-monitor",
