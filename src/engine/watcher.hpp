@@ -104,12 +104,12 @@ void Watcher<EvType>::CallInEvLoop() {
 
   // TODO: use WrappedCall
   auto promise = std::make_shared<Promise<void>>();
-  auto future = promise->GetFuture();
+  auto future = promise->get_future();
   RunInEvLoopAsync([ this, promise = std::move(promise) ] {
     (this->*func)();
-    promise->SetValue();
+    promise->set_value();
   });
-  future.Get();
+  future.get();
 }
 
 }  // namespace engine

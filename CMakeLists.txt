@@ -31,6 +31,22 @@ include(AddGoogleTests)
 include(GetVersion)
 include(CppCheck)
 
+add_definitions(-DUSERVER)
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp/CMakeLists.txt)
+    message(FATAL_ERROR "Directory backend-common-cpp/ doesn't contain CMakeLists.txt. Git submodule not updated?")
+endif()
+add_subdirectory(backend-common-cpp)
+# For logger
+target_include_directories(
+    yandex-taxi-backend-common-cpp
+    PRIVATE
+    src/
+    third_party/
+    PUBLIC
+    include/yandex/taxi/userver/
+    include/
+)
+
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(tools/httpclient)

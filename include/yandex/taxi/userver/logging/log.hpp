@@ -4,6 +4,8 @@
 
 #include <spdlog/common.h>
 
+#include <utils/encoding/hex.hpp>
+#include <utils/encoding/tskv.hpp>
 #include <yandex/taxi/userver/utils/encoding/tskv.hpp>
 
 #include "level.hpp"
@@ -28,6 +30,16 @@ class LogHelper {
   template <typename T>
   friend LogHelper& operator<<(LogHelper& lh, const std::atomic<T>& value) {
     return lh << value.load();
+  }
+
+  friend LogHelper& operator<<(LogHelper& lh, const void* value) {
+    lh.log_msg_.raw << reinterpret_cast<unsigned long long>(value);
+    return lh;
+  }
+
+  friend LogHelper& operator<<(LogHelper& lh, void* value) {
+    lh.log_msg_.raw << reinterpret_cast<unsigned long long>(value);
+    return lh;
   }
 
   template <typename T>

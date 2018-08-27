@@ -367,9 +367,9 @@ void Request::RequestImpl::on_completed(
 
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)";
   if (err) {
-    holder->promise_.SetException(PrepareException(err));
+    holder->promise_.set_exception(PrepareException(err));
   } else {
-    holder->promise_.SetValue(holder->response_move());
+    holder->promise_.set_value(holder->response_move());
   }
   LOG_DEBUG() << "Request::RequestImpl::on_completed(3)";
 }
@@ -482,7 +482,7 @@ Request::RequestImpl::async_perform() {
     perform_request(std::bind(&Request::RequestImpl::on_retry,
                               shared_from_this(), std::placeholders::_1));
 
-  return promise_.GetFuture();
+  return promise_.get_future();
 }
 
 void Request::RequestImpl::perform_request(curl::easy::handler_type handler) {

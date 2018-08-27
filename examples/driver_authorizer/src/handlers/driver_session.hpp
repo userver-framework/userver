@@ -1,9 +1,9 @@
 #pragma once
 
+#include <redis/sentinel.hpp>
 #include <yandex/taxi/userver/components/component_config.hpp>
 #include <yandex/taxi/userver/components/component_context.hpp>
 #include <yandex/taxi/userver/server/handlers/http_handler_base.hpp>
-#include <yandex/taxi/userver/storages/redis/sentinel.hpp>
 #include <yandex/taxi/userver/taxi_config/component.hpp>
 
 #include <taxi_config/taxi_config.hpp>
@@ -26,7 +26,7 @@ class DriverSession : public server::handlers::HttpHandlerBase {
  private:
   const bool is_session_ttl_update_enabled_;
 
-  std::shared_ptr<storages::redis::Sentinel> redis_ptr_;
+  std::shared_ptr<redis::Sentinel> redis_ptr_;
   const components::TaxiConfig* taxi_config_component_;
 };
 

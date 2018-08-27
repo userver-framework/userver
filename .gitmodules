@@ -1,0 +1,3 @@
+[submodule "backend-common-cpp"]
+	path = backend-common-cpp
+	url = https://github.yandex-team.ru/taxi/backend-common-cpp.git

@@ -83,7 +83,7 @@ const std::string& SecdistConfig::GetMongoConnectionString(
   return it->second;
 }
 
-const RedisSettings& SecdistConfig::GetRedisSettings(
+const ::secdist::RedisSettings& SecdistConfig::GetRedisSettings(
     const std::string& client_name) const {
   auto it = redis_settings_.find(client_name);
   if (it == redis_settings_.end()) {
@@ -121,7 +121,7 @@ void SecdistConfig::LoadRedisSettings(const Json::Value& doc) {
     const auto& client_settings = *it;
     CheckIsObject(client_settings, "client_settings");
 
-    RedisSettings settings;
+    ::secdist::RedisSettings settings;
     settings.password = GetString(client_settings, "password");
 
     const auto& shards = client_settings["shards"];
@@ -135,7 +135,7 @@ void SecdistConfig::LoadRedisSettings(const Json::Value& doc) {
     CheckIsArray(sentinels, "sentinels");
     for (const auto& sentinel : sentinels) {
       CheckIsObject(sentinel, "sentinels");
-      RedisSettings::HostPort host_port;
+      ::secdist::RedisSettings::HostPort host_port;
       host_port.host = GetString(sentinel, "host");
       if (host_port.host.empty()) {
         throw InvalidSecdistJson("Empty redis sentinel host");

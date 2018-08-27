@@ -8,11 +8,10 @@
 #include <yandex/taxi/userver/components/component_config.hpp>
 #include <yandex/taxi/userver/components/component_context.hpp>
 
-namespace storages {
 namespace redis {
 class Sentinel;
+class ThreadPools;
 }  // namespace redis
-}  // namespace storages
 
 namespace components {
 
@@ -21,15 +20,17 @@ class Redis : public ComponentBase {
   Redis(const ComponentConfig& config,
         const ComponentContext& component_context);
 
+  ~Redis();
+
   static constexpr const char* kName = "redis";
 
-  std::shared_ptr<storages::redis::Sentinel> Client(const std::string& name) {
+  std::shared_ptr<redis::Sentinel> Client(const std::string& name) {
     return clients_.at(name);
   }
 
  private:
-  std::unordered_map<std::string, std::shared_ptr<storages::redis::Sentinel>>
-      clients_;
+  std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> clients_;
+  std::shared_ptr<redis::ThreadPools> thread_pools_;
 };
 
 }  // namespace components

@@ -27,8 +27,6 @@ const auto kComponentList =
     components::ComponentList()
         .Append<components::Logging>()
         .Append<components::Secdist>()
-        .Append<components::ThreadPool>("redis-thread-pool")
-        .Append<components::ThreadPool>("redis-sentinel-thread-pool")
         .Append<components::Redis>()
         .Append<components::Mongo>("mongo-taxi")
         .Append<components::TaxiConfig>()

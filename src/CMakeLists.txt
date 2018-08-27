@@ -39,6 +39,7 @@ target_link_libraries(${PROJECT}
   PUBLIC
     ${CMAKE_THREAD_LIBS_INIT}
     ${JEMALLOC_LIBRARIES}
+    yandex-taxi-backend-common-cpp
   PRIVATE
     ${LIBCURL_YANDEX_LIBRARIES}
     ${ZLIB_LIBRARIES}

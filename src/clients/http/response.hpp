@@ -107,10 +107,10 @@ class ResponseFuture {
 
   void Detach() { future_ = {}; }
 
-  std::future_status Wait() const { return future_.WaitUntil(deadline_); }
+  std::future_status Wait() const { return future_.wait_until(deadline_); }
 
   std::shared_ptr<Response> Get() {
-    if (Wait() == std::future_status::ready) return future_.Get();
+    if (Wait() == std::future_status::ready) return future_.get();
     throw TimeoutException("Future timeout");
   }
 
