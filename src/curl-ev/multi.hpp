@@ -87,6 +87,8 @@ class CURLASIO_API multi {
                          native::CURLMOPT_MAX_PIPELINE_LENGTH, size_t);
   IMPLEMENT_CURL_MOPTION(set_max_host_connections,
                          native::CURLMOPT_MAX_HOST_CONNECTIONS, size_t);
+  IMPLEMENT_CURL_MOPTION(set_max_connections, native::CURLMOPT_MAXCONNECTS,
+                         long);
 
  private:
   typedef std::shared_ptr<socket_info> socket_info_ptr;

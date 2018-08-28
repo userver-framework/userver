@@ -66,6 +66,19 @@ void Client::SetMaxHostConnections(size_t max_host_connections) {
   }
 }
 
+void Client::SetConnectionPoolSize(size_t connection_pool_size) {
+  const size_t pool_size = connection_pool_size / multis_.size();
+  if (pool_size * multis_.size() != connection_pool_size) {
+    LOG_WARNING()
+        << "SetConnectionPoolSize() rounded pool size for each multi ("
+        << connection_pool_size << "/" << multis_.size() << " rounded to "
+        << pool_size << ")";
+  }
+  for (auto& multi : multis_) {
+    multi->set_max_connections(pool_size);
+  }
+}
+
 void Client::PushIdleEasy(std::shared_ptr<curl::easy> easy) {
   std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
   idle_easy_queue_.push(std::move(easy));

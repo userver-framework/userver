@@ -26,6 +26,7 @@ class Client : public std::enable_shared_from_this<Client> {
 
   void SetMaxPipelineLength(size_t max_pipeline_length);
   void SetMaxHostConnections(size_t max_host_connections);
+  void SetConnectionPoolSize(size_t connection_pool_size);
 
   void PushIdleEasy(std::shared_ptr<curl::easy> easy);
 

@@ -5,6 +5,7 @@
 #include <mutex>
 
 #include <engine/condition_variable.hpp>
+#include <utils/async_event_channel.hpp>
 
 #include "component_config.hpp"
 #include "updating_component_base.hpp"
@@ -15,7 +16,9 @@ namespace components {
 // then call UpdatingComponentBase::StartPeriodicUpdates after setup
 // and UpdatingComponentBase::StopPeriodicUpdates before teardown
 template <typename T>
-class CachingComponentBase : public UpdatingComponentBase {
+class CachingComponentBase
+    : public UpdatingComponentBase,
+      public utils::AsyncEventChannel<const std::shared_ptr<T>&> {
  public:
   CachingComponentBase(const ComponentConfig& config, const std::string& name);
 
@@ -47,6 +50,7 @@ std::shared_ptr<T> CachingComponentBase<T>::Get() const {
 template <typename T>
 void CachingComponentBase<T>::Set(std::shared_ptr<T> value_ptr) {
   std::atomic_store(&cache_, std::move(value_ptr));
+  this->SendEvent(Get());
 }
 
 template <typename T>

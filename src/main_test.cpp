@@ -2,7 +2,7 @@
 #include <engine/async.hpp>
 #include <engine/task/task_context.hpp>
 
-void TestInCoro(std::function<void()> user_cb) {
+void TestInCoro(std::function<void()> user_cb, size_t worker_threads) {
   engine::ev::Thread thread("test_thread");
   engine::ev::ThreadControl thread_control(thread);
 
@@ -11,6 +11,7 @@ void TestInCoro(std::function<void()> user_cb) {
   engine::TaskProcessor::CoroPool coro_pool(
       pool_config, &engine::impl::TaskContext::CoroFunc);
   engine::TaskProcessorConfig tp_config;
+  tp_config.worker_threads = worker_threads;
   tp_config.thread_name = "task_processor";
   engine::TaskProcessor task_processor(tp_config, coro_pool, thread_pool);
 
