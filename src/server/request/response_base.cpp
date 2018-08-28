@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/server/request/response_base.hpp>
+#include <server/request/response_base.hpp>
 
 namespace server {
 namespace request {

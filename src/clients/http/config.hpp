@@ -1,6 +1,6 @@
 #pragma once
 
-#include <yandex/taxi/userver/taxi_config/value.hpp>
+#include <taxi_config/value.hpp>
 
 namespace clients {
 namespace http {

@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <yandex/taxi/userver/json_config/value.hpp>
+#include <json_config/value.hpp>
 
 namespace server {
 namespace net {

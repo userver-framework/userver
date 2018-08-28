@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/storages/mongo/wrappers.hpp>
+#include <storages/mongo/wrappers.hpp>
 
 #include <functional>
 

@@ -7,8 +7,8 @@
 
 #include <engine/async.hpp>
 #include <logging/log.hpp>
-#include <yandex/taxi/userver/server/http/http_status.hpp>
-#include <yandex/taxi/userver/storages/redis/component.hpp>
+#include <server/http/http_status.hpp>
+#include <storages/redis/component.hpp>
 
 #include <redis/reply.hpp>
 

@@ -4,21 +4,21 @@
 
 #include <boost/program_options.hpp>
 
+#include <components/component_list.hpp>
+#include <components/thread_pool.hpp>
 #include <logging/component.hpp>
-#include <yandex/taxi/userver/components/component_list.hpp>
-#include <yandex/taxi/userver/components/thread_pool.hpp>
-#include <yandex/taxi/userver/server/component.hpp>
-#include <yandex/taxi/userver/server/handlers/ping.hpp>
-#include <yandex/taxi/userver/server/handlers/server_monitor.hpp>
-#include <yandex/taxi/userver/storages/mongo/component.hpp>
-#include <yandex/taxi/userver/storages/redis/component.hpp>
-#include <yandex/taxi/userver/storages/secdist/component.hpp>
-#include <yandex/taxi/userver/taxi_config/component.hpp>
-#include <yandex/taxi/userver/taxi_config/http_server_settings_component.hpp>
+#include <server/component.hpp>
+#include <server/handlers/ping.hpp>
+#include <server/handlers/server_monitor.hpp>
+#include <storages/mongo/component.hpp>
+#include <storages/redis/component.hpp>
+#include <storages/secdist/component.hpp>
+#include <taxi_config/component.hpp>
+#include <taxi_config/http_server_settings_component.hpp>
 
 #include <utils/daemon_run.hpp>
 #include "handlers/driver_session.hpp"
-#include "taxi_config/taxi_config.hpp"
+#include "taxi_config.hpp"
 
 namespace driver_authorizer {
 

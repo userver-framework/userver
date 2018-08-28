@@ -7,8 +7,8 @@
 
 #include <spdlog/common.h>
 
-#include <yandex/taxi/userver/utils/encoding/hex.hpp>
-#include <yandex/taxi/userver/utils/encoding/tskv.hpp>
+#include <utils/encoding/hex.hpp>
+#include <utils/encoding/tskv.hpp>
 
 #include "level.hpp"
 #include "log_extra.hpp"

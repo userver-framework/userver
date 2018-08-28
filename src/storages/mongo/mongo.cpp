@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/storages/mongo/mongo.hpp>
+#include <storages/mongo/mongo.hpp>
 
 namespace storages {
 namespace mongo {

@@ -43,7 +43,6 @@ target_include_directories(
     src/
     third_party/
     PUBLIC
-    include/yandex/taxi/userver/
     include/
 )
 

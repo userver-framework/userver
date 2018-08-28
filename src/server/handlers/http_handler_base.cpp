@@ -1,10 +1,10 @@
-#include <yandex/taxi/userver/server/handlers/http_handler_base.hpp>
+#include <server/handlers/http_handler_base.hpp>
 
 #include <json/writer.h>
 
 #include <logging/log.hpp>
-#include <yandex/taxi/userver/server/request/http_server_settings_base_component.hpp>
-#include <yandex/taxi/userver/utils/uuid4.hpp>
+#include <server/request/http_server_settings_base_component.hpp>
+#include <utils/uuid4.hpp>
 
 #include <server/http/http_request_impl.hpp>
 

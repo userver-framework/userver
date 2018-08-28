@@ -1,9 +1,9 @@
-#include <yandex/taxi/userver/server/server.hpp>
+#include <server/server.hpp>
 
 #include <stdexcept>
 
 #include <logging/log.hpp>
-#include <yandex/taxi/userver/server/server_config.hpp>
+#include <server/server_config.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <server/net/endpoint_info.hpp>

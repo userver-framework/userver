@@ -1,10 +1,10 @@
-#include <yandex/taxi/userver/components/manager_config.hpp>
+#include <components/manager_config.hpp>
 
 #include <fstream>
 
 #include <json/reader.h>
 
-#include <yandex/taxi/userver/json_config/value.hpp>
+#include <json_config/value.hpp>
 
 namespace components {
 

@@ -1,6 +1,6 @@
 #include "task_processor_config.hpp"
 
-#include <yandex/taxi/userver/json_config/value.hpp>
+#include <json_config/value.hpp>
 
 namespace engine {
 

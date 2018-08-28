@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/json_config/parse.hpp>
+#include <json_config/parse.hpp>
 
 namespace json_config {
 

@@ -2,10 +2,10 @@
 
 #include <boost/optional.hpp>
 
+#include <components/component_context.hpp>
 #include <engine/mutex.hpp>
-#include <yandex/taxi/userver/components/component_context.hpp>
-#include <yandex/taxi/userver/server/handlers/handler_base.hpp>
-#include <yandex/taxi/userver/server/request/request_base.hpp>
+#include <server/handlers/handler_base.hpp>
+#include <server/request/request_base.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <server/request/request_handler_base.hpp>

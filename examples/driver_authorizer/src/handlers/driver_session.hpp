@@ -1,12 +1,12 @@
 #pragma once
 
+#include <components/component_config.hpp>
+#include <components/component_context.hpp>
 #include <redis/sentinel.hpp>
-#include <yandex/taxi/userver/components/component_config.hpp>
-#include <yandex/taxi/userver/components/component_context.hpp>
-#include <yandex/taxi/userver/server/handlers/http_handler_base.hpp>
-#include <yandex/taxi/userver/taxi_config/component.hpp>
+#include <server/handlers/http_handler_base.hpp>
+#include <taxi_config/component.hpp>
 
-#include <taxi_config/taxi_config.hpp>
+#include <taxi_config.hpp>
 
 namespace driver_authorizer {
 namespace handlers {

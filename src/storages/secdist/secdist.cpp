@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/storages/secdist/secdist.hpp>
+#include <storages/secdist/secdist.hpp>
 
 #include <cerrno>
 #include <fstream>
@@ -6,7 +6,7 @@
 
 #include <json/reader.h>
 
-#include <yandex/taxi/userver/json_config/value.hpp>
+#include <json_config/value.hpp>
 
 namespace storages {
 namespace secdist {

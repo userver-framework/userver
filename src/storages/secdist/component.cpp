@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/storages/secdist/component.hpp>
+#include <storages/secdist/component.hpp>
 
 #include <logging/log.hpp>
 

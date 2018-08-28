@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/server/handlers/server_monitor.hpp>
+#include <server/handlers/server_monitor.hpp>
 
 #include <json/writer.h>
 

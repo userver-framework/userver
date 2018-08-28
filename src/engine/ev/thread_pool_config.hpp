@@ -4,7 +4,7 @@
 
 #include <json/value.h>
 
-#include <yandex/taxi/userver/json_config/variable_map.hpp>
+#include <json_config/variable_map.hpp>
 
 namespace engine {
 namespace ev {

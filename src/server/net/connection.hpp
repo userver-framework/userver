@@ -10,7 +10,7 @@
 
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
-#include <yandex/taxi/userver/server/request/request_base.hpp>
+#include <server/request/request_base.hpp>
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/event_task.hpp>

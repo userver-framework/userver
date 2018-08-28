@@ -1,11 +1,11 @@
-#include <yandex/taxi/userver/storages/mongo/component.hpp>
+#include <storages/mongo/component.hpp>
 
 #include <stdexcept>
 
 #include <mongo/client/init.h>
 
 #include <logging/log.hpp>
-#include <yandex/taxi/userver/storages/secdist/component.hpp>
+#include <storages/secdist/component.hpp>
 
 namespace components {
 

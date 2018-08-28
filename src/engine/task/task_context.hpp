@@ -10,7 +10,7 @@
 #include <engine/deadline.hpp>
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
-#include <yandex/taxi/userver/utils/flags.hpp>
+#include <utils/flags.hpp>
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_control.hpp>

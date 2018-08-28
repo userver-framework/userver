@@ -6,9 +6,9 @@
 #include <string>
 #include <unordered_map>
 
-#include <yandex/taxi/userver/components/component_base.hpp>
-#include <yandex/taxi/userver/components/component_config.hpp>
-#include <yandex/taxi/userver/components/component_context.hpp>
+#include <components/component_base.hpp>
+#include <components/component_config.hpp>
+#include <components/component_context.hpp>
 
 #include "logger.hpp"
 

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <yandex/taxi/userver/json_config/json_config.hpp>
+#include <json_config/json_config.hpp>
 
 namespace server {
 namespace request {

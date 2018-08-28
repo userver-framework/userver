@@ -1,10 +1,10 @@
-#include <yandex/taxi/userver/utils/uuid4.hpp>
+#include <utils/uuid4.hpp>
 
 #include <boost/lockfree/stack.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid.hpp>
 
-#include <yandex/taxi/userver/utils/encoding/hex.hpp>
+#include <utils/encoding/hex.hpp>
 
 namespace utils {
 namespace generators {

@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/components/component_context.hpp>
+#include <components/component_context.hpp>
 
 #include <logging/log.hpp>
 

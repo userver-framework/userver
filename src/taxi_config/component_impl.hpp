@@ -4,12 +4,11 @@
 #include <functional>
 #include <string>
 
-#include <yandex/taxi/userver/components/component_config.hpp>
-#include <yandex/taxi/userver/components/component_context.hpp>
-#include <yandex/taxi/userver/components/updating_component_base.hpp>
-#include <yandex/taxi/userver/storages/mongo/pool.hpp>
-
-#include <yandex/taxi/userver/taxi_config/value.hpp>
+#include <components/component_config.hpp>
+#include <components/component_context.hpp>
+#include <components/updating_component_base.hpp>
+#include <storages/mongo/pool.hpp>
+#include <taxi_config/value.hpp>
 
 namespace components {
 

@@ -1,4 +1,4 @@
-#include <yandex/taxi/userver/taxi_config/component.hpp>
+#include <taxi_config/component.hpp>
 
 namespace components {
 

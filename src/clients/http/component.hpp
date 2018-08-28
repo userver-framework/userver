@@ -1,10 +1,10 @@
 #pragma once
 
-#include <yandex/taxi/userver/components/component_base.hpp>
-#include <yandex/taxi/userver/taxi_config/component.hpp>
-
+#include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <taxi_config/component.hpp>
+
 #include <utils/async_event_channel.hpp>
 
 namespace clients {

@@ -8,9 +8,9 @@
 #include <spdlog/details/log_msg.h>
 #include <spdlog/sinks/file_sinks.h>
 
+#include <json_config/value.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
-#include <yandex/taxi/userver/json_config/value.hpp>
 
 #include "config.hpp"
 

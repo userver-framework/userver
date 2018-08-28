@@ -1,6 +1,6 @@
 #pragma once
 
-#include <yandex/taxi/userver/components/component_list.hpp>
+#include <components/component_list.hpp>
 
 namespace utils {
 

@@ -1,13 +1,13 @@
-#include <yandex/taxi/userver/components/run.hpp>
+#include <components/run.hpp>
 
 #include <unistd.h>
 
 #include <cstring>
 
+#include <components/manager.hpp>
+#include <components/manager_config.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
-#include <yandex/taxi/userver/components/manager.hpp>
-#include <yandex/taxi/userver/components/manager_config.hpp>
 
 #include <logging/config.hpp>
 #include <utils/ignore_signal_scope.hpp>
