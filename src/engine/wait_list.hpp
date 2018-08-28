@@ -7,8 +7,8 @@
 
 namespace engine {
 namespace impl {
+
 class TaskContext;
-}  // namespace impl
 
 class WaitList {
  public:
@@ -42,4 +42,5 @@ class WaitList {
   std::deque<boost::intrusive_ptr<impl::TaskContext>> waiting_contexts_;
 };
 
+}  // namespace impl
 }  // namespace engine

@@ -1,4 +1,4 @@
-#include "pool.hpp"
+#include <storages/mongo/pool.hpp>
 
 #include <atomic>
 
@@ -6,7 +6,7 @@
 
 #include <logging/log.hpp>
 
-#include "wrappers.hpp"
+#include <storages/mongo/wrappers.hpp>
 
 namespace storages {
 namespace mongo {

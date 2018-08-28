@@ -1,18 +1,18 @@
-#include "run.hpp"
+#include <components/run.hpp>
 
 #include <unistd.h>
 
 #include <cstring>
 
-#include <logging/config.hpp>
+#include <components/manager.hpp>
+#include <components/manager_config.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
+
+#include <logging/config.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
-
-#include "manager.hpp"
-#include "manager_config.hpp"
 
 namespace components {
 
@@ -21,14 +21,16 @@ namespace {
 class LogScope {
  public:
   explicit LogScope(const std::string& init_log_path) {
-    old_default_logger_ = logging::Log();
     if (!init_log_path.empty()) {
-      logging::Log() = logging::MakeFileLogger("default", init_log_path);
+      old_default_logger_ = logging::SetDefaultLogger(
+          logging::MakeFileLogger("default", init_log_path));
     }
   }
 
   ~LogScope() noexcept(false) {
-    logging::Log() = std::move(old_default_logger_);
+    if (old_default_logger_) {
+      logging::SetDefaultLogger(std::move(old_default_logger_));
+    }
   }
 
  private:

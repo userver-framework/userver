@@ -31,15 +31,15 @@ class Future {
   bool IsValid() const;
   explicit operator bool() const { return IsValid(); }
 
-  T Get();
-  void Wait() const;
+  T get();
+  void wait() const;
 
   template <typename Rep, typename Period>
-  std::future_status WaitFor(
+  std::future_status wait_for(
       const std::chrono::duration<Rep, Period>& duration) const;
 
   template <typename Clock, typename Duration>
-  std::future_status WaitUntil(
+  std::future_status wait_until(
       const std::chrono::time_point<Clock, Duration>& until) const;
 
  private:
@@ -63,11 +63,11 @@ class Promise {
   Promise& operator=(const Promise&) = delete;
   Promise& operator=(Promise&&) noexcept = default;
 
-  Future<T> GetFuture();
+  Future<T> get_future();
 
-  void SetValue(const T&);
-  void SetValue(T&&);
-  void SetException(std::exception_ptr ex);
+  void set_value(const T&);
+  void set_value(T&&);
+  void set_exception(std::exception_ptr ex);
 
  private:
   std::shared_ptr<impl::FutureState<T>> state_;
@@ -84,10 +84,10 @@ class Promise<void> {
   Promise& operator=(const Promise&) = delete;
   Promise& operator=(Promise&&) noexcept = default;
 
-  Future<void> GetFuture();
+  Future<void> get_future();
 
-  void SetValue();
-  void SetException(std::exception_ptr ex);
+  void set_value();
+  void set_exception(std::exception_ptr ex);
 
  private:
   std::shared_ptr<impl::FutureState<void>> state_;
@@ -99,7 +99,7 @@ bool Future<T>::IsValid() const {
 }
 
 template <typename T>
-T Future<T>::Get() {
+T Future<T>::get() {
   CheckValid();
   auto result = state_->Get();
   state_.reset();
@@ -107,21 +107,21 @@ T Future<T>::Get() {
 }
 
 template <>
-inline void Future<void>::Get() {
+inline void Future<void>::get() {
   CheckValid();
   state_->Get();
   state_.reset();
 }
 
 template <typename T>
-void Future<T>::Wait() const {
+void Future<T>::wait() const {
   CheckValid();
   state_->Wait();
 }
 
 template <typename T>
 template <typename Rep, typename Period>
-std::future_status Future<T>::WaitFor(
+std::future_status Future<T>::wait_for(
     const std::chrono::duration<Rep, Period>& duration) const {
   CheckValid();
   return state_->WaitFor(duration);
@@ -129,7 +129,7 @@ std::future_status Future<T>::WaitFor(
 
 template <typename T>
 template <typename Clock, typename Duration>
-std::future_status Future<T>::WaitUntil(
+std::future_status Future<T>::wait_until(
     const std::chrono::time_point<Clock, Duration>& until) const {
   CheckValid();
   return state_->WaitUntil(until);
@@ -161,22 +161,22 @@ Promise<T>::~Promise() {
 }
 
 template <typename T>
-Future<T> Promise<T>::GetFuture() {
+Future<T> Promise<T>::get_future() {
   return Future<T>(state_);
 }
 
 template <typename T>
-void Promise<T>::SetValue(const T& value) {
+void Promise<T>::set_value(const T& value) {
   state_->SetValue(value);
 }
 
 template <typename T>
-void Promise<T>::SetValue(T&& value) {
+void Promise<T>::set_value(T&& value) {
   state_->SetValue(std::move(value));
 }
 
 template <typename T>
-void Promise<T>::SetException(std::exception_ptr ex) {
+void Promise<T>::set_exception(std::exception_ptr ex) {
   state_->SetException(std::move(ex));
 }
 
@@ -190,14 +190,14 @@ inline Promise<void>::~Promise() {
   }
 }
 
-inline Future<void> Promise<void>::GetFuture() { return Future<void>(state_); }
+inline Future<void> Promise<void>::get_future() { return Future<void>(state_); }
 
-inline void Promise<void>::SetValue() {
+inline void Promise<void>::set_value() {
   assert(!state_->IsReady());
   state_->SetValue();
 }
 
-inline void Promise<void>::SetException(std::exception_ptr ex) {
+inline void Promise<void>::set_exception(std::exception_ptr ex) {
   state_->SetException(std::move(ex));
 }
 

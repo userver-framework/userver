@@ -6,8 +6,7 @@
 #include <json/value.h>
 
 #include <json_config/variable_map.hpp>
-
-#include "level.hpp"
+#include <logging/level.hpp>
 
 namespace logging {
 

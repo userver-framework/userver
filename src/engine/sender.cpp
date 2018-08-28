@@ -1,9 +1,9 @@
 #include "sender.hpp"
 
+#include <sys/socket.h>
+
 #include <cassert>
 #include <cerrno>
-
-#include <sys/socket.h>
 
 #include <logging/log.hpp>
 #include <utils/strerror.hpp>
@@ -100,8 +100,10 @@ Sender::Result Sender::SendCurrentData(std::lock_guard<Mutex>& lock, int fd) {
       send(fd, CurrentData(lock).data() + current_data_pos_,
            CurrentData(lock).size() - current_data_pos_, MSG_NOSIGNAL);
   if (res < 0) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) return Result::kAgain;
-    LOG_WARNING() << "error in send: " << utils::strerror(errno);
+    auto send_errno = errno;
+    if (send_errno == EAGAIN || send_errno == EWOULDBLOCK)
+      return Result::kAgain;
+    LOG_WARNING() << "error in send: " << utils::strerror(send_errno);
     return Result::kError;
   }
   current_data_pos_ += res;

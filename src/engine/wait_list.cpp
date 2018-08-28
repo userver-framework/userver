@@ -8,6 +8,7 @@
 #include "task/task_context.hpp"
 
 namespace engine {
+namespace impl {
 
 void WaitList::Append(Lock& lock,
                       boost::intrusive_ptr<impl::TaskContext> context) {
@@ -53,4 +54,5 @@ void WaitList::Remove(Lock& lock,
          waiting_contexts_.end());
 }
 
+}  // namespace impl
 }  // namespace engine

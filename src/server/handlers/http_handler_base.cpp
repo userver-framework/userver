@@ -1,7 +1,12 @@
-#include "http_handler_base.hpp"
+#include <server/handlers/http_handler_base.hpp>
+
+#include <json/writer.h>
 
 #include <logging/log.hpp>
+#include <server/request/http_server_settings_base_component.hpp>
 #include <utils/uuid4.hpp>
+
+#include <server/http/http_request_impl.hpp>
 
 namespace server {
 namespace handlers {
@@ -25,11 +30,11 @@ std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
 
 HttpHandlerBase::HttpHandlerBase(
     const components::ComponentConfig& config,
-    const components::ComponentContext& component_context)
-    : HandlerBase(config, component_context),
-      need_log_request_checker_(
+    const components::ComponentContext& component_context, bool is_monitor)
+    : HandlerBase(config, component_context, is_monitor),
+      http_server_settings_(
           component_context
-              .FindComponent<components::NeedLogRequestCheckerBase>()) {}
+              .FindComponent<components::HttpServerSettingsBase>()) {}
 
 void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                     request::RequestContext& context) const
@@ -43,13 +48,11 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     context.GetLogExtra().Extend(kLink, link,
                                  logging::LogExtra::ExtendType::kFrozen);
 
-    bool log_request = need_log_request_checker_
-                           ? need_log_request_checker_->NeedLogRequest()
-                           : false;
+    bool log_request =
+        http_server_settings_ ? http_server_settings_->NeedLogRequest() : false;
     bool log_request_headers =
-        need_log_request_checker_
-            ? need_log_request_checker_->NeedLogRequestHeaders()
-            : false;
+        http_server_settings_ ? http_server_settings_->NeedLogRequestHeaders()
+                              : false;
 
     if (log_request) {
       logging::LogExtra log_extra(context.GetLogExtra());

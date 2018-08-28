@@ -5,8 +5,7 @@
 #include <sstream>
 
 #include <logging/log.hpp>
-
-#include "http_status.hpp"
+#include <server/http/http_status.hpp>
 
 namespace server {
 namespace http {

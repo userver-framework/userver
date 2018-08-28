@@ -26,6 +26,8 @@ namespace {
 
 static const size_t kConnectionsToCloseQueueCapacity = 64;
 
+}  // namespace
+
 class FdHolder {
  public:
   explicit FdHolder(int fd) : fd_(fd) {}
@@ -57,12 +59,13 @@ class FdHolder {
 };
 
 int CreateSocket(uint16_t port, int backlog) {
-  FdHolder fd_holder(utils::CheckSyscall(
-      socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0), "creating socket"));
+  FdHolder fd_holder(
+      utils::CheckSyscall(socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0),
+                          "creating socket, port=", port));
   const int reuse = 1;
   utils::CheckSyscall(setsockopt(fd_holder.Get(), SOL_SOCKET, SO_REUSEPORT,
                                  &reuse, sizeof(reuse)),
-                      "setting SO_REUSEPORT");
+                      "setting SO_REUSEPORT, port=", port);
 
   sockaddr_in6 addr;
   memset(&addr, 0, sizeof(addr));
@@ -72,13 +75,16 @@ int CreateSocket(uint16_t port, int backlog) {
   utils::CheckSyscall(
       bind(fd_holder.Get(), reinterpret_cast<const sockaddr*>(&addr),
            sizeof(addr)),
-      "binding a socket");
+      "binding a socket, port=", port);
   utils::CheckSyscall(listen(fd_holder.Get(), backlog),
-                      "listening on a socket");
+                      "listening on a socket, port=", port,
+                      ", backlog=", backlog);
   return fd_holder.Release();
 }
 
-}  // namespace
+int CreateIpv6Socket(uint16_t port, int backlog) {
+  return CreateSocket(port, backlog);
+}
 
 ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
                            engine::TaskProcessor& task_processor,
@@ -133,7 +139,7 @@ ListenerImpl::~ListenerImpl() {
 
   while (pending_setup_connection_count_ > 0 ||
          pending_close_connection_count_ > 0)
-    engine::Sleep(std::chrono::milliseconds(10));
+    engine::SleepFor(std::chrono::milliseconds(10));
 
   close(request_socket_listener_->Fd());
   LOG_TRACE() << "Closed request fd " << request_socket_listener_->Fd();

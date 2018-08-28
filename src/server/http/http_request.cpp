@@ -1,4 +1,6 @@
-#include "http_request.hpp"
+#include <server/http/http_request.hpp>
+
+#include "http_request_impl.hpp"
 
 namespace server {
 namespace http {
@@ -71,7 +73,7 @@ bool HttpRequest::HasHeader(const std::string& header_name) const {
 
 size_t HttpRequest::HeaderCount() const { return impl_.HeaderCount(); }
 
-HttpRequest::HeadersMapKeys HttpRequest::GetHeaderNames() const {
+HeadersMapKeys HttpRequest::GetHeaderNames() const {
   return impl_.GetHeaderNames();
 }
 
@@ -86,7 +88,7 @@ bool HttpRequest::HasCookie(const std::string& cookie_name) const {
 
 size_t HttpRequest::CookieCount() const { return impl_.CookieCount(); }
 
-HttpRequest::CookiesMapKeys HttpRequest::GetCookieNames() const {
+CookiesMapKeys HttpRequest::GetCookieNames() const {
   return impl_.GetCookieNames();
 }
 

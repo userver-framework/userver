@@ -4,44 +4,38 @@
 
 #include <boost/program_options.hpp>
 
-#include <components/run.hpp>
+#include <components/component_list.hpp>
+#include <components/thread_pool.hpp>
+#include <logging/component.hpp>
+#include <server/component.hpp>
+#include <server/handlers/ping.hpp>
+#include <server/handlers/server_monitor.hpp>
+#include <storages/mongo/component.hpp>
+#include <storages/redis/component.hpp>
+#include <storages/secdist/component.hpp>
+#include <taxi_config/component.hpp>
+#include <taxi_config/http_server_settings_component.hpp>
 
-#include "component_list.hpp"
+#include <utils/daemon_run.hpp>
+#include "handlers/driver_session.hpp"
+#include "taxi_config.hpp"
+
+namespace driver_authorizer {
+
+const auto kComponentList = components::ComponentList()
+                                .Append<components::Logging>()
+                                .Append<components::Secdist>()
+                                .Append<components::Redis>()
+                                .Append<components::Mongo>("mongo-taxi")
+                                .Append<components::TaxiConfig>()
+                                .Append<components::HttpServerSettings>()
+                                .Append<components::Server>()
+                                .Append<handlers::DriverSession>()
+                                .Append<server::handlers::Ping>()
+                                .Append<server::handlers::ServerMonitor>();
+
+}  // namespace driver_authorizer
 
 int main(int argc, char** argv) {
-  namespace po = boost::program_options;
-
-  po::variables_map vm;
-  po::options_description desc("Allowed options");
-
-  desc.add_options()("help,h", "produce this help message")(
-      "config,c", po::value<std::string>()->default_value("config_dev.json"),
-      "path to server config")("init-log,l", po::value<std::string>(),
-                               "path to initialization log");
-
-  try {
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-  } catch (const std::exception& ex) {
-    std::cerr << ex.what() << '\n';
-    return 1;
-  }
-
-  if (vm.count("help")) {
-    std::cerr << desc << '\n';
-    return 0;
-  }
-
-  auto config_path = vm["config"].as<std::string>();
-  std::string init_log_path;
-  if (vm.count("init-log")) init_log_path = vm["init-log"].as<std::string>();
-
-  try {
-    components::Run(config_path, driver_authorizer::kComponentList,
-                    init_log_path);
-  } catch (const std::exception& ex) {
-    std::cerr << "Server failed: " << ex.what() << '\n';
-    return 1;
-  }
-  return 0;
+  return utils::DaemonMain(argc, argv, driver_authorizer::kComponentList);
 }

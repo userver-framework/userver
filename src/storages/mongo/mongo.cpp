@@ -1,4 +1,4 @@
-#include "mongo.hpp"
+#include <storages/mongo/mongo.hpp>
 
 namespace storages {
 namespace mongo {

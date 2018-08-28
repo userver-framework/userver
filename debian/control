@@ -5,6 +5,7 @@ Maintainer: Dmitry Zhukov <dzhuk@yandex-team.ru>
 Build-Depends:
 	debhelper (>= 9),
 	dh-systemd (>= 1.5),
+	clang-6.0,
 	yandex-dh-environment,
 	yandex-dh-nginx,
 	libhttp-parser-dev,
@@ -16,6 +17,9 @@ Build-Depends:
 	libboost-system-dev,
 	libboost-thread-dev,
 	libboost-regex-dev,
+	libkrb5-dev,
+	libgcrypt11-dev,
+	libyandex-taxi-curl4-openssl-dev,
 	libyandex-taxi-jemalloc-dev,
 	libyandex-mongo-legacy-cxx-driver-dev
 Standards-Version: 3.9.7

@@ -2,10 +2,11 @@
 
 #include <functional>
 
-#include <engine/async_task.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
-#include <engine/task/task_processor.hpp>
+#include <engine/task/async_task.hpp>
+
+#include "task/task_processor.hpp"
 
 namespace engine {
 

@@ -24,9 +24,15 @@ class Listener {
   Listener& operator=(const Listener&) = delete;
   Listener& operator=(Listener&&) = default;
 
+  void Start();
+
   Stats GetStats() const;
 
  private:
+  engine::ev::ThreadControl thread_control_;
+  engine::TaskProcessor& task_processor_;
+  std::shared_ptr<EndpointInfo> endpoint_info_;
+
   std::unique_ptr<ListenerImpl> impl_;
 };
 

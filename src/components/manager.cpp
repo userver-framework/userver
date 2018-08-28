@@ -1,20 +1,29 @@
-#include "manager.hpp"
+#include <components/manager.hpp>
 
 #include <future>
 #include <stdexcept>
 
+#include <components/component_list.hpp>
+#include <components/monitorable_component_base.hpp>
 #include <engine/async.hpp>
-#include <engine/task/task_context.hpp>
 #include <logging/component.hpp>
 #include <logging/log.hpp>
 
-#include "component_list.hpp"
-#include "monitorable_component_base.hpp"
+#include <engine/task/task_context.hpp>
+#include <engine/task/task_processor.hpp>
 
 namespace {
 
 const std::string kEventLoopThreadName = "event-loop";
 const std::string kEngineMonitorDataName = "engine";
+
+template <typename Func>
+auto RunInCoro(engine::TaskProcessor& task_processor, const Func& func) {
+  std::packaged_task<void()> task([&func] { func(); });
+  auto future = task.get_future();
+  engine::CriticalAsync(task_processor, std::move(task)).Detach();
+  return future.get();
+}
 
 }  // namespace
 
@@ -49,16 +58,8 @@ Manager::Manager(ManagerConfig config, const ComponentList& component_list)
   component_context_ = std::make_unique<components::ComponentContext>(
       *this, std::move(task_processors));
 
-  components::ComponentConfigMap component_config_map;
-  for (const auto& component_config : config_.components) {
-    component_config_map.emplace(component_config.Name(), component_config);
-  }
-  try {
-    component_list.AddAll(*this, component_config_map);
-  } catch (const std::exception& ex) {
-    ClearComponents();
-    throw;
-  }
+  RunInCoro(*default_task_processor_,
+            [this, &component_list]() { AddComponents(component_list); });
 
   LOG_INFO() << "Started components manager";
 }
@@ -66,7 +67,7 @@ Manager::Manager(ManagerConfig config, const ComponentList& component_list)
 Manager::~Manager() {
   LOG_INFO() << "Stopping components manager";
   LOG_TRACE() << "Stopping component context";
-  ClearComponents();
+  RunInCoro(*default_task_processor_, [this]() { ClearComponents(); });
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
   LOG_TRACE() << "Stopping event loops thread pool";
@@ -144,6 +145,21 @@ void Manager::OnLogRotate() {
   if (logger_component) logger_component->OnLogRotate();
 }
 
+void Manager::AddComponents(const ComponentList& component_list) {
+  components::ComponentConfigMap component_config_map;
+  for (const auto& component_config : config_.components) {
+    component_config_map.emplace(component_config.Name(), component_config);
+  }
+  try {
+    component_list.AddAll(*this, component_config_map);
+  } catch (const std::exception& ex) {
+    ClearComponents();
+    throw;
+  }
+  LOG_INFO() << "All components loaded";
+  component_context_->OnAllComponentsLoaded();
+}
+
 void Manager::AddComponentImpl(
     const components::ComponentConfigMap& config_map, const std::string& name,
     std::function<std::unique_ptr<components::ComponentBase>(
@@ -157,19 +173,15 @@ void Manager::AddComponentImpl(
                              ": missing config");
   }
 
-  std::packaged_task<void()> task([this, &name, &factory, config_it] {
+  try {
     LOG_TRACE() << "Adding component " << name;
     component_context_->AddComponent(
         name, factory(config_it->second, *component_context_));
     LOG_TRACE() << "Added component " << name;
-  });
-  auto future = task.get_future();
-  engine::CriticalAsync(*default_task_processor_, std::move(task)).Detach();
-  try {
-    future.get();
   } catch (const std::exception& ex) {
-    throw std::runtime_error("Cannot start component " + name + ": " +
-                             ex.what());
+    std::string message = "Cannot start component " + name + ": " + ex.what();
+    LOG_ERROR() << message;
+    throw std::runtime_error(message);
   }
   LOG_INFO() << "Started component " << name;
 }
@@ -179,12 +191,8 @@ void Manager::ClearComponents() {
     std::unique_lock<std::shared_timed_mutex> lock(context_mutex_);
     components_cleared_ = true;
   }
-  std::packaged_task<void()> task(
-      [this] { component_context_->ClearComponents(); });
-  auto future = task.get_future();
-  engine::CriticalAsync(*default_task_processor_, std::move(task)).Detach();
   try {
-    future.get();
+    component_context_->ClearComponents();
   } catch (const std::exception& ex) {
     LOG_ERROR() << "error in clear components: " << ex.what();
   }

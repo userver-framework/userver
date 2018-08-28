@@ -1,6 +1,8 @@
-#include "component_context.hpp"
+#include <components/component_context.hpp>
 
 #include <logging/log.hpp>
+
+#include <engine/task/task_processor.hpp>
 
 namespace components {
 
@@ -30,6 +32,12 @@ void ComponentContext::ClearComponents() {
     LOG_INFO() << "Stopped component " << *it;
   }
   LOG_TRACE() << "Stopped all components";
+}
+
+void ComponentContext::OnAllComponentsLoaded() {
+  for (auto& component_item : components_) {
+    component_item.second->OnAllComponentsLoaded();
+  }
 }
 
 size_t ComponentContext::ComponentCount() const { return components_.size(); }

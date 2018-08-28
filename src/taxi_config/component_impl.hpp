@@ -8,8 +8,7 @@
 #include <components/component_context.hpp>
 #include <components/updating_component_base.hpp>
 #include <storages/mongo/pool.hpp>
-
-#include "value.hpp"
+#include <taxi_config/value.hpp>
 
 namespace components {
 

@@ -3,7 +3,8 @@
 #include <condition_variable>
 #include <memory>
 
-#include <engine/wait_helpers.hpp>
+#include <engine/deadline.hpp>
+
 #include "task/task_context.hpp"
 #include "wait_list.hpp"
 

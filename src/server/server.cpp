@@ -1,9 +1,15 @@
-#include "server.hpp"
+#include <server/server.hpp>
 
 #include <stdexcept>
 
-#include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
+#include <server/server_config.hpp>
+
+#include <engine/task/task_processor.hpp>
+#include <server/net/endpoint_info.hpp>
+#include <server/net/listener.hpp>
+#include <server/net/stats.hpp>
+#include <server/request_handlers/request_handlers.hpp>
 
 namespace {
 
@@ -31,10 +37,30 @@ Json::Value SerializeAggregated(const server::net::Stats::AggregatedStat& agg,
 
 namespace server {
 
-Server::Server(ServerConfig config,
-               const components::ComponentContext& component_context)
+class ServerImpl {
+ public:
+  ServerImpl(ServerConfig config,
+             const components::ComponentContext& component_context);
+  ~ServerImpl();
+
+  net::Stats GetServerStats() const;
+  std::unique_ptr<RequestHandlers> CreateRequestHandlers(
+      const components::ComponentContext& component_context) const;
+
+  const ServerConfig config_;
+
+  std::unique_ptr<RequestHandlers> request_handlers_;
+  std::shared_ptr<net::EndpointInfo> endpoint_info_;
+
+  mutable std::shared_timed_mutex stat_mutex_;
+  std::vector<net::Listener> listeners_;
+  bool is_destroying_;
+};
+
+ServerImpl::ServerImpl(ServerConfig config,
+                       const components::ComponentContext& component_context)
     : config_(std::move(config)), is_destroying_(false) {
-  LOG_INFO() << "Starting server";
+  LOG_INFO() << "Creating server";
 
   engine::TaskProcessor* task_processor =
       component_context.GetTaskProcessor(config_.task_processor);
@@ -57,10 +83,10 @@ Server::Server(ServerConfig config,
                             *event_thread_control);
   }
 
-  LOG_INFO() << "Started server";
+  LOG_INFO() << "Server is created";
 }
 
-Server::~Server() {
+ServerImpl::~ServerImpl() {
   {
     std::unique_lock<std::shared_timed_mutex> lock(stat_mutex_);
     is_destroying_ = true;
@@ -75,13 +101,20 @@ Server::~Server() {
   LOG_INFO() << "Stopped server";
 }
 
-const ServerConfig& Server::GetConfig() const { return config_; }
+Server::Server(ServerConfig config,
+               const components::ComponentContext& component_context)
+    : pimpl(
+          std::make_unique<ServerImpl>(std::move(config), component_context)) {}
+
+Server::~Server() = default;
+
+const ServerConfig& Server::GetConfig() const { return pimpl->config_; }
 
 Json::Value Server::GetMonitorData(
     components::MonitorVerbosity verbosity) const {
   Json::Value json_data(Json::objectValue);
 
-  auto server_stats = GetServerStats();
+  auto server_stats = pimpl->GetServerStats();
   {
     Json::Value json_conn_stats(Json::objectValue);
     json_conn_stats["active"] = SerializeAggregated(
@@ -112,7 +145,25 @@ Json::Value Server::GetMonitorData(
   return json_data;
 }
 
-net::Stats Server::GetServerStats() const {
+bool Server::AddHandler(const handlers::HandlerBase& handler,
+                        const components::ComponentContext& component_context) {
+  return (handler.IsMonitor()
+              ? pimpl->request_handlers_->GetMonitorRequestHandler()
+              : pimpl->request_handlers_->GetHttpRequestHandler())
+      .AddHandler(handler, component_context);
+}
+
+void Server::Start() {
+  LOG_INFO() << "Starting server";
+  pimpl->request_handlers_->GetMonitorRequestHandler().DisableAddHandler();
+  pimpl->request_handlers_->GetHttpRequestHandler().DisableAddHandler();
+  for (auto& listener : pimpl->listeners_) {
+    listener.Start();
+  }
+  LOG_INFO() << "Server is started";
+}
+
+net::Stats ServerImpl::GetServerStats() const {
   net::Stats summary;
 
   std::shared_lock<std::shared_timed_mutex> lock(stat_mutex_);
@@ -123,12 +174,12 @@ net::Stats Server::GetServerStats() const {
   return summary;
 }
 
-std::unique_ptr<RequestHandlers> Server::CreateRequestHandlers(
+std::unique_ptr<RequestHandlers> ServerImpl::CreateRequestHandlers(
     const components::ComponentContext& component_context) const {
   auto request_handlers = std::make_unique<RequestHandlers>();
   try {
     request_handlers->SetHttpRequestHandler(
-        std::make_unique<const http::HttpRequestHandler>(
+        std::make_unique<http::HttpRequestHandler>(
             component_context, config_.logger_access,
             config_.logger_access_tskv, false));
   } catch (const std::exception& ex) {
@@ -137,7 +188,7 @@ std::unique_ptr<RequestHandlers> Server::CreateRequestHandlers(
   }
   try {
     request_handlers->SetMonitorRequestHandler(
-        std::make_unique<const http::HttpRequestHandler>(
+        std::make_unique<http::HttpRequestHandler>(
             component_context, config_.logger_access,
             config_.logger_access_tskv, true));
   } catch (const std::exception& ex) {

@@ -3,8 +3,7 @@
 #include <stdexcept>
 
 #include <logging/component.hpp>
-
-#include "response_base.hpp"
+#include <server/request/response_base.hpp>
 
 namespace server {
 namespace request {

@@ -1,4 +1,4 @@
-#include "parse.hpp"
+#include <json_config/parse.hpp>
 
 namespace json_config {
 

@@ -1,4 +1,4 @@
-#include "server_config.hpp"
+#include <server/server_config.hpp>
 
 #include <json_config/value.hpp>
 

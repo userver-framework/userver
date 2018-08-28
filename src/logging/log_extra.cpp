@@ -1,8 +1,8 @@
-#include "log_extra.hpp"
+#include <logging/log_extra.hpp>
 
 #include <stdexcept>
 
-#include "log.hpp"
+#include <logging/log.hpp>
 
 namespace logging {
 

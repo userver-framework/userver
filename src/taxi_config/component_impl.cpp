@@ -8,7 +8,8 @@
 
 #include <storages/mongo/component.hpp>
 #include <storages/mongo/mongo.hpp>
-#include <storages/mongo/names.hpp>
+
+#include <taxi_config/mongo/names.hpp>
 
 namespace components {
 
@@ -43,7 +44,7 @@ void TaxiConfigImpl::Update(UpdatingComponentBase::UpdateType type,
                             const std::chrono::system_clock::time_point&,
                             const std::chrono::system_clock::time_point&) {
   namespace sm = storages::mongo;
-  namespace config_db = sm::db::Taxi::Config;
+  namespace config_db = mongo::db::taxi::config;
 
   auto collection = mongo_taxi_->GetCollection(config_db::kCollection);
 

@@ -1,3 +1,39 @@
+yandex-taxi-userver (0.1.17) unstable; urgency=low
+
+  Release ticket https://st.yandex-team.ru/TAXIREL-2800
+
+  * Andrey Bugaevskiy | refactor all: drop yandex/taxi/userver from include paths (#82)
+  * Vasily Kulikov | feat: add http client component (#74)
+  * Vasily Kulikov | fix: build fix for -Wdate-time (#83)
+  * Andrey Bugaevskiy | feat common: engine public interface (#69)
+  * Vasily Kulikov | feat: use backend-common-cpp as a submodule for redis driver (#65)
+  * Vasily Kulikov | bug driver-authorizer: fix start (#80)
+  * Vasily Kulikov | bug storages: add lost files (#76)
+  * Vasily Kulikov | cc: clang-format (#75)
+  * Vasily Kulikov | feat: remove global mongo/names.hpp (#72)
+  * Vasily Kulikov | feat: compile using clang-6.0 (#73)
+  * Vasily Kulikov | feat server: split into src/ and include/ (part 1) (#59)
+  * Vasily Kulikov | feat engine: add http client (#29)
+  * Vasily Kulikov | feat components: ensure updating component task is stopped (#70)
+  * Vasily Kulikov | feat: move common main() to utils (#71)
+  * Dmitriy Zhukov |  feat server: components add themselves to Server  (#67)
+  * Dmitriy Zhukov | feat components: add 'Cannot start component' log message (#66)
+  * Vasily Kulikov | bug: build fix for userver (#13) | backend-common-cpp
+  * Andrey Bugaevskiy | bug logging: fix loglevel typedef for userver (#12) | backend-common-cpp
+  * Vasily Kulikov | bug: port changes from backend-cpp (#11) | backend-common-cpp
+  * Vasily Kulikov | bug: add lost file for backend-cpp (#10) | backend-common-cpp
+  * Vasily Kulikov | bug: build fix after merge for backend-cpp (#9) | backend-common-cpp
+  * Vasily Kulikov | bug: build fix after secdist changes (#8) | backend-common-cpp
+  * Dmitriy Zhukov | feat redis: try to fix RedisImpl lifetime (#7) | backend-common-cpp
+  * Vasily Kulikov | feat: integration with userver (#6) | backend-common-cpp
+  * Vasily Kulikov | feat: rm file with business logic (#5) | backend-common-cpp
+  * Vasily Kulikov | bug: build fix on clang (#4) | backend-common-cpp
+  * Vasily Kulikov | feat: rm business logic of redis (#3) | backend-common-cpp
+  * Vasily Kulikov | cc: move some code from backend-cpp (#1) | backend-common-cpp
+  * Vasily Kulikov | Initial commit | backend-common-cpp
+
+ -- buildfarm <buildfarm@yandex-team.ru>  Tue, 28 Aug 2018 20:37:22 +0300
+
 yandex-taxi-userver (0.1.16) unstable; urgency=low
 
   Release ticket https://st.yandex-team.ru/TAXIREL-2730

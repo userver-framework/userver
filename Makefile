@@ -3,9 +3,10 @@
 # NOTE: use Makefile.local for customization
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
+DOCS_DIR ?= docs
 CMAKE_DIR = $(CURDIR)
-export CC = clang-5.0
-export CXX = clang++-5.0
+export CC = clang-6.0
+export CXX = clang++-6.0
 SCAN_BUILD = scan-build-5.0
 SCAN_BUILD_OPTS = -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
@@ -43,7 +44,7 @@ build-%: init
 
 .PHONY: deb
 deb:
-	DEB_BUILD_OPTIONS="parallel=$(NPROCS)" debuild -e CC=$(CC) -e CXX=$(CXX)
+	DEB_BUILD_OPTIONS="parallel=$(NPROCS)" debuild -b
 
 .PHONY: clang-static-analyzer
 clang-static-analyzer:
@@ -64,9 +65,14 @@ clang-format:
 
 .PHONY: smart-clang-format
 smart-clang-format:
-	@tools/smart-lang-format.sh
+	@tools/smart-clang-format.sh
+
+.PHONY: docs
+docs:
+	@(cat doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -
 
 .PHONY: clean
 clean:
 	@rm -rf $(BUILD_DIR)
 	@rm -rf $(BUILD_CHECK_DIR)
+	@rm -rf $(DOCS_DIR)

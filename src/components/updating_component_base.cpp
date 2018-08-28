@@ -1,4 +1,4 @@
-#include "updating_component_base.hpp"
+#include <components/updating_component_base.hpp>
 
 #include <cstdint>
 
@@ -30,6 +30,18 @@ UpdatingComponentBase::UpdatingComponentBase(const ComponentConfig& config,
       is_running_(false),
       jitter_generator_(std::random_device()()) {}
 
+UpdatingComponentBase::~UpdatingComponentBase() {
+  if (is_running_.load()) {
+    LOG_ERROR()
+        << "UpdatingComponentBase is being destroyed while periodic update "
+           "task is still running. "
+           "Derived class has to call StopPeriodicUpdates() in destructor. "
+        << "Component name '" << name_ << "'";
+    // Don't crash in production
+    assert(false && "StopPeriodicUpdates() is not called");
+  }
+}
+
 void UpdatingComponentBase::StartPeriodicUpdates() {
   if (is_running_.exchange(true)) {
     return;
@@ -38,7 +50,7 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
   // Force first update
   engine::CriticalAsync([this] { DoPeriodicUpdate(); }).Get();
 
-  std::packaged_task<void()> task([this] {
+  auto task = [this] {
     while (is_running_) {
       std::uniform_int_distribution<decltype(update_jitter_)::rep>
           jitter_distribution(-update_jitter_.count(), update_jitter_.count());
@@ -58,7 +70,7 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
         LOG_WARNING() << "Cannot update " << name_ << ": " << ex.what();
       }
     }
-  });
+  };
   update_task_ = engine::CriticalAsync(std::move(task));
 }
 

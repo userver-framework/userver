@@ -183,6 +183,7 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
   assert(state_ == Task::State::kRunning);
 
   // don't sleep if we're going to cancel anyway
+  // XXX: uncaught_exception
   if (IsCancelRequested() && SetCancellable(false)) {
     throw CoroUnwinder{};
   }

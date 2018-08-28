@@ -1,4 +1,4 @@
-#include "component.hpp"
+#include <storages/mongo/component.hpp>
 
 #include <stdexcept>
 

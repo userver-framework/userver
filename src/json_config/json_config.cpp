@@ -1,6 +1,6 @@
-#include "json_config.hpp"
+#include <json_config/json_config.hpp>
 
-#include "value.hpp"
+#include <json_config/value.hpp>
 
 namespace json_config {
 

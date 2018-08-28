@@ -2,8 +2,8 @@
 
 #include <ev.h>
 
-#include <engine/ev/thread_control.hpp>
-#include <engine/future.hpp>
+#include "ev/thread_control.hpp"
+#include "future.hpp"
 
 namespace engine {
 
@@ -29,6 +29,7 @@ class Watcher : public ev::ThreadControl {
   typename std::enable_if<std::is_same<T, ev_timer>::value, void>::type Set(
       ev_tstamp after, ev_tstamp repeat);
 
+  /* Synchronously start/stop ev_xxx.  Can be used from coroutines only */
   void Start();
   void Stop();
 
@@ -103,12 +104,12 @@ void Watcher<EvType>::CallInEvLoop() {
 
   // TODO: use WrappedCall
   auto promise = std::make_shared<Promise<void>>();
-  auto future = promise->GetFuture();
+  auto future = promise->get_future();
   RunInEvLoopAsync([ this, promise = std::move(promise) ] {
     (this->*func)();
-    promise->SetValue();
+    promise->set_value();
   });
-  future.Get();
+  future.get();
 }
 
 }  // namespace engine

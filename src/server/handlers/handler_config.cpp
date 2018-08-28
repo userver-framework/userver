@@ -1,4 +1,4 @@
-#include "handler_config.hpp"
+#include <server/handlers/handler_config.hpp>
 
 #include <json_config/value.hpp>
 

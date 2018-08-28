@@ -63,25 +63,16 @@
         "task_processor": "main-task-processor"
       },
       {
-        "name": "redis-sentinel-thread-pool",
-        "thread_name": "redis-sentinels",
-        "threads": 1
-      },
-      {
-        "name": "redis-thread-pool",
-        "thread_name": "redis-client",
-        "threads": "$redis_threads",
-        "threads#fallback": 4
-      },
-      {
         "name": "secdist",
         "config": "/etc/yandex/taxi-secdist/taxi.json"
       },
       {
         "name": "redis",
-        "thread_pool": "redis-thread-pool",
-        "sentinel_thread_pool": "redis-sentinel-thread-pool",
-        "task_processor": "main-task-processor",
+        "thread_pools": {
+          "sentinel_thread_pool_size": 1,
+          "redis_thread_pool_size": "$redis_threads",
+          "redis_thread_pool_size#fallback": 8
+        },
         "groups": [
           {
             "db": "taximeter-base",
@@ -102,7 +93,7 @@
         "fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.json"
       },
       {
-        "name": "need-log-request-checker"
+        "name": "http-server-settings"
       },
       {
         "name": "handler-server-monitor",

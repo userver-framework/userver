@@ -1,4 +1,4 @@
-#include "manager_config.hpp"
+#include <components/manager_config.hpp>
 
 #include <fstream>
 

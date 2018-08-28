@@ -1,8 +1,8 @@
 #include "socket_listener.hpp"
 
-#include <cassert>
-
 #include <sys/socket.h>
+
+#include <cassert>
 
 #include <engine/async.hpp>
 #include <logging/log.hpp>
