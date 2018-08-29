@@ -48,6 +48,8 @@ generate_stats_script(${PROJECT}
   driver-authorizer.taxi.yandex.net
   taxi-driver-authorizer-stats)
 
+testsuite_userver_project(${PROJECT})
+
 include(GNUInstallDirs)
 install(TARGETS ${PROJECT}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

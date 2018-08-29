@@ -30,6 +30,9 @@ include(SetupEnvironment)
 include(AddGoogleTests)
 include(GetVersion)
 include(CppCheck)
+include(TestsuiteSupport)
+
+add_subdirectory(testsuite)
 
 add_definitions(-DUSERVER)
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp/CMakeLists.txt)

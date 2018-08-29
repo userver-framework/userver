@@ -1,3 +1,6 @@
 [submodule "backend-common-cpp"]
 	path = backend-common-cpp
 	url = https://github.yandex-team.ru/taxi/backend-common-cpp.git
+[submodule "submodules/testsuite"]
+	path = submodules/testsuite
+	url = git@github.yandex-team.ru:taxi/testsuite.git
