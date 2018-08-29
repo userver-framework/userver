@@ -6,6 +6,8 @@
 
 #include <logging/log.hpp>
 #include <storages/secdist/component.hpp>
+#include <storages/secdist/exceptions.hpp>
+#include "mongo_secdist.hpp"
 
 namespace components {
 
@@ -53,7 +55,9 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) {
       auto* secdist = context.FindComponent<Secdist>();
       if (!secdist)
         throw std::runtime_error("Mongo requires secdist component");
-      connection_string = secdist->Get().GetMongoConnectionString(dbalias);
+      connection_string = secdist->Get()
+                              .Get<storages::mongo::secdist::MongoSettings>()
+                              .GetConnectionString(dbalias);
     } catch (const storages::secdist::SecdistError& ex) {
       LOG_ERROR() << "Failed to load mongo config for dbalias " << dbalias
                   << ": " << ex.what();

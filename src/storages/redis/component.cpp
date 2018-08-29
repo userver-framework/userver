@@ -2,14 +2,15 @@
 
 #include <vector>
 
-#include <components/thread_pool.hpp>
 #include <json_config/value.hpp>
 #include <logging/log.hpp>
-#include <storages/secdist/component.hpp>
-#include <storages/secdist/secdist.hpp>
-
 #include <redis/sentinel.hpp>
 #include <redis/thread_pools.hpp>
+#include <storages/secdist/component.hpp>
+#include <storages/secdist/exceptions.hpp>
+#include <storages/secdist/secdist.hpp>
+
+#include "redis_secdist.hpp"
 
 namespace components {
 
@@ -69,11 +70,13 @@ Redis::Redis(const ComponentConfig& config,
       config.Json(), "groups", config.FullPath(), config.ConfigVarsPtr());
   for (const RedisGroup& redis_group : redis_groups) {
     std::shared_ptr<redis::Sentinel> client;
-    secdist::RedisSettings settings;
+    ::secdist::RedisSettings settings;
     const auto& shard_group_name = redis_group.config_name;
 
     try {
-      settings = secdist_component->Get().GetRedisSettings(shard_group_name);
+      settings = secdist_component->Get()
+                     .Get<storages::secdist::RedisMapSettings>()
+                     .GetSettings(redis_group.config_name);
     } catch (const storages::secdist::SecdistError& ex) {
       LOG_ERROR() << "Failed to load redis config (db=" << redis_group.db
                   << " config_name=" << redis_group.config_name

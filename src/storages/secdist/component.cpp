@@ -2,6 +2,8 @@
 
 #include <logging/log.hpp>
 
+#include "exceptions.hpp"
+
 namespace components {
 
 Secdist::Secdist(const ComponentConfig& config, const ComponentContext&) {
