@@ -81,60 +81,16 @@ Manager::~Manager() {
 
 const ManagerConfig& Manager::GetConfig() const { return config_; }
 
-engine::coro::PoolStats Manager::GetCoroutineStats() const {
-  return coro_pool_->GetStats();
+const engine::TaskProcessor::CoroPool& Manager::GetCoroPool() const {
+  return *coro_pool_;
 }
 
-Json::Value Manager::GetMonitorData(MonitorVerbosity verbosity) const {
-  Json::Value monitor_data(Json::objectValue);
-  Json::Value engine_data(Json::objectValue);
-
-  if (verbosity == MonitorVerbosity::kFull) {
-    Json::Value json_task_processors(Json::arrayValue);
-    for (const auto& task_processor : config_.task_processors) {
-      Json::Value json_task_processor(Json::objectValue);
-      json_task_processor["name"] = task_processor.name;
-      json_task_processor["worker-threads"] =
-          Json::UInt64{task_processor.worker_threads};
-      json_task_processors[json_task_processors.size()] =
-          std::move(json_task_processor);
-    }
-    engine_data["task-processors"] = std::move(json_task_processors);
-  }
-
-  auto coro_stats = coro_pool_->GetStats();
-  {
-    Json::Value json_coro_pool(Json::objectValue);
-
-    Json::Value json_coro_stats(Json::objectValue);
-    json_coro_stats["active"] = Json::UInt64{coro_stats.active_coroutines};
-    json_coro_stats["total"] = Json::UInt64{coro_stats.total_coroutines};
-    json_coro_pool["coroutines"] = std::move(json_coro_stats);
-
-    engine_data["coro-pool"] = std::move(json_coro_pool);
-  }
-  monitor_data[kEngineMonitorDataName] = std::move(engine_data);
-
-  {
-    std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
-    if (!components_cleared_) {
-      for (const auto& component_item : *component_context_) {
-        if (const auto* monitorable_component =
-                dynamic_cast<MonitorableComponentBase*>(
-                    component_item.second.get())) {
-          if (component_item.first == kEngineMonitorDataName) {
-            LOG_WARNING() << "skip monitor data from component named "
-                          << component_item.first;
-            continue;
-          }
-          monitor_data[component_item.first] =
-              monitorable_component->GetMonitorData(verbosity);
-        }
-      }
-    }
-  }
-
-  return monitor_data;
+LockedMonitorableComponentSet Manager::GetMonitorableComponentSet() const {
+  std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
+  if (components_cleared_)
+    return LockedMonitorableComponentSet({}, std::move(lock));
+  return LockedMonitorableComponentSet(monitorable_components_,
+                                       std::move(lock));
 }
 
 void Manager::OnLogRotate() {
@@ -175,8 +131,13 @@ void Manager::AddComponentImpl(
 
   try {
     LOG_TRACE() << "Adding component " << name;
-    component_context_->AddComponent(
-        name, factory(config_it->second, *component_context_));
+    auto component = factory(config_it->second, *component_context_);
+
+    if (const auto* monitorable_component =
+            dynamic_cast<MonitorableComponentBase*>(component.get())) {
+      monitorable_components_[name] = monitorable_component;
+    }
+    component_context_->AddComponent(name, std::move(component));
     LOG_TRACE() << "Added component " << name;
   } catch (const std::exception& ex) {
     std::string message = "Cannot start component " + name + ": " + ex.what();

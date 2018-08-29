@@ -22,8 +22,26 @@
 namespace components {
 
 class ComponentList;
+class MonitorableComponentBase;
 
 enum class MonitorVerbosity { kTerse, kFull };
+
+class LockedMonitorableComponentSet {
+ public:
+  LockedMonitorableComponentSet(
+      std::unordered_map<std::string, const MonitorableComponentBase*>
+          components,
+      std::shared_lock<std::shared_timed_mutex>&& lock)
+      : components_(std::move(components)), lock_(std::move(lock)) {}
+
+  auto begin() { return components_.begin(); }
+  auto end() { return components_.end(); }
+
+ private:
+  const std::unordered_map<std::string, const MonitorableComponentBase*>
+      components_;
+  std::shared_lock<std::shared_timed_mutex> lock_;
+};
 
 class Manager {
  public:
@@ -31,8 +49,9 @@ class Manager {
   ~Manager();
 
   const ManagerConfig& GetConfig() const;
-  engine::coro::PoolStats GetCoroutineStats() const;
+  const engine::TaskProcessor::CoroPool& GetCoroPool() const;
   Json::Value GetMonitorData(MonitorVerbosity verbosity) const;
+  LockedMonitorableComponentSet GetMonitorableComponentSet() const;
 
   template <typename Component>
   std::enable_if_t<std::is_base_of<components::ComponentBase, Component>::value>
@@ -64,6 +83,8 @@ class Manager {
 
   mutable std::shared_timed_mutex context_mutex_;
   std::unique_ptr<components::ComponentContext> component_context_;
+  std::unordered_map<std::string, const MonitorableComponentBase*>
+      monitorable_components_;
   bool components_cleared_;
 
   engine::TaskProcessor* default_task_processor_;
