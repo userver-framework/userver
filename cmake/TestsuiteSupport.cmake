@@ -77,7 +77,7 @@ function(testsuite_userver_project PROJECT)
   add_dependencies(testsuite-configs ${PROJECT}-testsuite-configs)
 
   set_property(TARGET testsuite-configs APPEND PROPERTY TESTSUITE_PYTEST_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR}/testsuite/tests)
+    ${CMAKE_CURRENT_SOURCE_DIR}/testsuite)
 
 endfunction()
 

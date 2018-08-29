@@ -3,6 +3,7 @@ import os
 import pytest
 
 from taxi_tests import db as taxi_tests_db
+from taxi_tests.daemons import service_daemon
 
 
 class Settings:
@@ -75,5 +76,6 @@ def settings(build_dir, pytestconfig):
         # TODO: port is hardcoded in mongo startup script
         mongo_connections[connection_name] = 'mongodb://localhost:27117/'
     settings.MONGO_CONNECTIONS = mongo_connections
+    settings.userver = service_daemon.ServiceSettings()
 
     return settings

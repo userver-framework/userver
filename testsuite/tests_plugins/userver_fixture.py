@@ -9,7 +9,7 @@ from taxi_tests.daemons import service_daemon
 from tests_plugins import userver_main
 
 
-class DaemonSettings(service_daemon.ServiceDaemonSettings):
+class DaemonSettings(service_daemon.ServiceSettings):
     pass
 
 
