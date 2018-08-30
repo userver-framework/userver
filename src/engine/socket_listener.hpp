@@ -21,18 +21,12 @@ class SocketListener : public std::enable_shared_from_this<SocketListener> {
 
   enum class ListenMode { kRead, kWrite };
 
-  struct DeferStart {};
-
   using ListenFunc = std::function<Result(int fd)>;
   using OnStopFunc = std::function<void()>;
 
   SocketListener(const ev::ThreadControl& thread_control,
                  TaskProcessor& task_processor, int fd, ListenMode mode,
                  ListenFunc&& listen_func, OnStopFunc&& on_stop_func);
-  SocketListener(const ev::ThreadControl& thread_control,
-                 TaskProcessor& task_processor, int fd, ListenMode mode,
-                 ListenFunc&& listen_func, OnStopFunc&& on_stop_func,
-                 DeferStart);
   ~SocketListener();
 
   void Start();

@@ -94,8 +94,7 @@ Connection::Connection(engine::ev::ThreadControl& thread_control,
                                           // important here for
                                           // socket_listener_stop_time_
         CloseIfFinished();
-      },
-      engine::SocketListener::DeferStart{});
+      });
 
   std::array<char, kMaxRemoteIdLength> buf;
 

@@ -20,8 +20,7 @@ Sender::Sender(const ev::ThreadControl& thread_control,
       socket_listener_(std::make_shared<SocketListener>(
           thread_control, task_processor, fd,
           SocketListener::ListenMode::kWrite,
-          [this](int fd) { return SendData(fd); }, [this]() { DoStop(); },
-          SocketListener::DeferStart{})) {}
+          [this](int fd) { return SendData(fd); }, [this]() { DoStop(); })) {}
 
 Sender::~Sender() { Stop(); }
 

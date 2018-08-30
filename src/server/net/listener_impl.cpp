@@ -114,6 +114,7 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
         return engine::SocketListener::Result::kOk;
       },
       nullptr);
+  request_socket_listener_->Start();
 
   if (endpoint_info_->listener_config.monitor_port) {
     int monitor_fd = CreateSocket(*endpoint_info_->listener_config.monitor_port,
@@ -126,6 +127,7 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
           return engine::SocketListener::Result::kOk;
         },
         nullptr);
+    monitor_socket_listener_->Start();
   }
 }
 

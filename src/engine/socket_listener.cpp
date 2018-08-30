@@ -13,16 +13,6 @@ SocketListener::SocketListener(const ev::ThreadControl& thread_control,
                                TaskProcessor& task_processor, int fd,
                                ListenMode mode, ListenFunc&& listen_func,
                                OnStopFunc&& on_stop_func)
-    : SocketListener(thread_control, task_processor, fd, mode,
-                     std::move(listen_func), std::move(on_stop_func),
-                     DeferStart{}) {
-  Start();
-}
-
-SocketListener::SocketListener(const ev::ThreadControl& thread_control,
-                               TaskProcessor& task_processor, int fd,
-                               ListenMode mode, ListenFunc&& listen_func,
-                               OnStopFunc&& on_stop_func, DeferStart)
     : task_processor_(task_processor),
       fd_(fd),
       mode_(mode),
