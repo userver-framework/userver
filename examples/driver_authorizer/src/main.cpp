@@ -10,6 +10,7 @@
 #include <server/component.hpp>
 #include <server/handlers/ping.hpp>
 #include <server/handlers/server_monitor.hpp>
+#include <server/handlers/tests_control.hpp>
 #include <storages/mongo/component.hpp>
 #include <storages/redis/component.hpp>
 #include <storages/secdist/component.hpp>
@@ -27,9 +28,10 @@ const auto kComponentList = components::ComponentList()
                                 .Append<components::Secdist>()
                                 .Append<components::Redis>()
                                 .Append<components::Mongo>("mongo-taxi")
+                                .Append<components::Server>()
+                                .Append<server::handlers::TestsControl>()
                                 .Append<components::TaxiConfig>()
                                 .Append<components::HttpServerSettings>()
-                                .Append<components::Server>()
                                 .Append<handlers::DriverSession>()
                                 .Append<server::handlers::Ping>()
                                 .Append<server::handlers::ServerMonitor>();

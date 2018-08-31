@@ -101,6 +101,12 @@
         "task_processor": "main-task-processor"
       },
       {
+        "name": "tests-control",
+        "path": "/tests/control",
+        "enabled": false,
+        "task_processor": "main-task-processor"
+      },
+      {
         "name": "handler-ping",
         "path": "/ping",
         "task_processor": "main-task-processor"

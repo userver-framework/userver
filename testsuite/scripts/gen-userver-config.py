@@ -45,6 +45,8 @@ def main():
     for component in userver_config['components_manager']['components']:
         if component['name'] in COMPONENTS_TO_SKIP:
             continue
+        if component['name'] == 'tests-control':
+            component['enabled'] = True
         components.append(component)
     components.append({
         'name': 'logging',

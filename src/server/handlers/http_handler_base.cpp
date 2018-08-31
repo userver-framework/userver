@@ -6,6 +6,7 @@
 #include <server/request/http_server_settings_base_component.hpp>
 #include <utils/uuid4.hpp>
 
+#include <server/http/http_error.hpp>
 #include <server/http/http_request_impl.hpp>
 
 namespace server {
@@ -70,6 +71,13 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
 
     try {
       response.SetData(HandleRequestThrow(http_request, context));
+    } catch (const http::HttpException& ex) {
+      LOG_ERROR() << "http exception in '" << HandlerName()
+                  << "' handler in handle_request: code="
+                  << HttpStatusString(ex.GetStatus()) << ", msg=" << ex.what()
+                  << ", body=" << ex.GetExternalErrorBody();
+      response.SetStatus(ex.GetStatus());
+      response.SetData(ex.GetExternalErrorBody());
     } catch (const std::exception& ex) {
       LOG_ERROR() << "exception in '" << HandlerName()
                   << "' handler in handle_request: " << ex.what();

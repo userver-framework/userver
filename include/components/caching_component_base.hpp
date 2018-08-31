@@ -5,6 +5,7 @@
 #include <mutex>
 
 #include <engine/condition_variable.hpp>
+#include <server/cache_invalidator_holder.hpp>
 #include <utils/async_event_channel.hpp>
 
 #include "component_config.hpp"
@@ -20,7 +21,8 @@ class CachingComponentBase
     : public UpdatingComponentBase,
       public utils::AsyncEventChannel<const std::shared_ptr<T>&> {
  public:
-  CachingComponentBase(const ComponentConfig& config, const std::string& name);
+  CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
+                       const std::string& name);
 
   std::shared_ptr<T> Get() const;
 
@@ -35,12 +37,15 @@ class CachingComponentBase
 
  private:
   std::shared_ptr<T> cache_;
+  server::CacheInvalidatorHolder cache_invalidator_holder_;
 };
 
 template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
+                                              const ComponentContext& context,
                                               const std::string& name)
-    : UpdatingComponentBase(config, name) {}
+    : UpdatingComponentBase(config, name),
+      cache_invalidator_holder_(*this, context) {}
 
 template <typename T>
 std::shared_ptr<T> CachingComponentBase<T>::Get() const {

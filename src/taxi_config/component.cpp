@@ -4,7 +4,7 @@ namespace components {
 
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
-    : CachingComponentBase<taxi_config::Config>(config, kName),
+    : CachingComponentBase<taxi_config::Config>(config, context, kName),
       impl_(config, context, [this](taxi_config::DocsMap&& mongo_docs) {
         this->Emplace(std::move(mongo_docs));
       }) {

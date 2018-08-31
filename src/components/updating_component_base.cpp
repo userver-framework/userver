@@ -19,6 +19,11 @@ uint64_t GetDefaultJitterMs(const std::chrono::milliseconds& interval) {
 
 const std::string& UpdatingComponentBase::Name() const { return name_; }
 
+void UpdatingComponentBase::UpdateFull() {
+  Update(UpdateType::kFull, std::chrono::system_clock::time_point(),
+         std::chrono::system_clock::now());
+}
+
 UpdatingComponentBase::UpdatingComponentBase(const ComponentConfig& config,
                                              std::string name)
     : name_(std::move(name)),
@@ -67,7 +72,7 @@ void UpdatingComponentBase::StartPeriodicUpdates() {
       try {
         DoPeriodicUpdate();
       } catch (const std::exception& ex) {
-        LOG_WARNING() << "Cannot update " << name_ << ": " << ex.what();
+        LOG_ERROR() << "Cannot update " << name_ << ": " << ex.what();
       }
     }
   };

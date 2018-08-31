@@ -1,5 +1,6 @@
 #include <server/handlers/handler_base.hpp>
 
+#include <json_config/value.hpp>
 #include <server/component.hpp>
 
 namespace server {
@@ -14,8 +15,15 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
   auto server_component = component_context.FindComponent<components::Server>();
   if (!server_component)
     throw std::runtime_error("can't find server component");
-  if (!server_component->AddHandler(*this, component_context))
-    throw std::runtime_error("can't add handler to server");
+
+  is_enabled_ =
+      json_config::ParseOptionalBool(config.Json(), "enabled",
+                                     config.FullPath(), config.ConfigVarsPtr())
+          .value_or(true);
+  if (IsEnabled()) {
+    if (!server_component->AddHandler(*this, component_context))
+      throw std::runtime_error("can't add handler to server");
+  }
 }
 
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }

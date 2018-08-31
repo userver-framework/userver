@@ -20,6 +20,8 @@ class UpdatingComponentBase : public ComponentBase {
 
   const std::string& Name() const;
 
+  void UpdateFull();
+
  protected:
   UpdatingComponentBase(const ComponentConfig& config, std::string name);
 

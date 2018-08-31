@@ -25,6 +25,8 @@ class HttpHandlerBase : public HandlerBase {
       noexcept override;
 
   virtual const std::string& HandlerName() const = 0;
+
+ protected:
   virtual std::string HandleRequestThrow(
       const http::HttpRequest& request,
       request::RequestContext& context) const = 0;

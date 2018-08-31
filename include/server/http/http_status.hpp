@@ -87,7 +87,7 @@ inline std::string HttpStatusString(HttpStatus status) {
 
 #undef XX
   }
-  return "Unknown status";
+  return "Unknown status (" + std::to_string(static_cast<int>(status)) + ")";
 }
 
 #undef HTTP_STATUS_MAP

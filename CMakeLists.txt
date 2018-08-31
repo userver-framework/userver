@@ -35,6 +35,7 @@ include(TestsuiteSupport)
 add_subdirectory(testsuite)
 
 add_definitions(-DUSERVER)
+add_definitions(-DMOCK_NOW)
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp/CMakeLists.txt)
     message(FATAL_ERROR "Directory backend-common-cpp/ doesn't contain CMakeLists.txt. Git submodule not updated?")
 endif()

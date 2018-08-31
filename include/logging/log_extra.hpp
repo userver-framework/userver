@@ -52,6 +52,9 @@ class LogExtra {
   /// preserving freeze states
   void Extend(LogExtra&& extra);
 
+  /// @brief Creates a LogExtra with current thread's stacktrace
+  static LogExtra Stacktrace();
+
   /// @brief Adds a range of key-value pairs
   template <typename Iterator>
   void ExtendRange(Iterator first, Iterator last,

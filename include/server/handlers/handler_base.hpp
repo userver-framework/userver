@@ -29,9 +29,12 @@ class HandlerBase : public components::ComponentBase {
 
   const HandlerConfig& GetConfig() const;
 
+  bool IsEnabled() const { return is_enabled_; }
+
  private:
   HandlerConfig config_;
   bool is_monitor_;
+  bool is_enabled_;
 };
 
 }  // namespace handlers

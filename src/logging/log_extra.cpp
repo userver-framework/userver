@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include <boost/stacktrace.hpp>
 #include <logging/log.hpp>
 
 namespace logging {
@@ -40,6 +41,12 @@ void LogExtra::Extend(LogExtra&& extra) {
       Extend(pair.first, std::move(pair.second));
     extra.extra_.clear();
   }
+}
+
+LogExtra LogExtra::Stacktrace() {
+  LogExtra ret;
+  ret.Extend("stacktrace", to_string(boost::stacktrace::stacktrace{}));
+  return ret;
 }
 
 void LogExtra::SetFrozen(const std::string& key) {
