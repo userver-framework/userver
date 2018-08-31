@@ -8,7 +8,7 @@
 
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
-#include <engine/task/async_task.hpp>
+#include <engine/task/task_with_result.hpp>
 
 #include "ev/thread_control.hpp"
 #include "watcher.hpp"
@@ -63,7 +63,7 @@ class SocketListener : public std::enable_shared_from_this<SocketListener> {
   bool is_running_ = false;
   bool is_notified_ = false;
 
-  AsyncTask<void> listen_task_;
+  TaskWithResult<void> listen_task_;
 };
 
 }  // namespace engine

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file engine/mutex.hpp
+/// @brief @copybrief engine::Mutex
+
 #include <memory>
 #include <mutex>  // for std locks
 
@@ -11,6 +14,7 @@ class WaitList;
 
 }  // namespace impl
 
+/// std::mutex replacement for asynchronous tasks
 class Mutex {
  public:
   Mutex();
@@ -21,7 +25,10 @@ class Mutex {
   Mutex& operator=(const Mutex&) = delete;
   Mutex& operator=(Mutex&&) = delete;
 
+  /// Suspends execution until the mutex lock is acquired
   void lock();
+
+  /// Releases mutex lock
   void unlock();
 
   // TODO: try_lock, try_lock_for, try_lock_until

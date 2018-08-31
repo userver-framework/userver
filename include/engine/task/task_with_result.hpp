@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file engine/task/task_with_result.hpp
+/// @brief @copybrief engine::TaskWithResult
+
 #include <cassert>
 #include <memory>
 #include <stdexcept>
@@ -12,6 +15,7 @@ namespace engine {
 
 class TaskProcessor;
 
+/// Cancelled TaskWithResult access exception
 class TaskCancelledException : public std::exception {
  public:
   TaskCancelledException(Task::CancellationReason reason) : reason_(reason) {}
@@ -22,17 +26,31 @@ class TaskCancelledException : public std::exception {
   const Task::CancellationReason reason_;
 };
 
+/// Asynchronous task with result
 template <typename T>
-class AsyncTask : public Task {
+class TaskWithResult : public Task {
  public:
-  AsyncTask() = default;
-  AsyncTask(TaskProcessor& task_processor, Importance importance,
-            std::shared_ptr<utils::WrappedCall<T>>&& wrapped_call_ptr)
+  /// @brief Default constructor
+  ///
+  /// Creates an invalid task.
+  TaskWithResult() = default;
+
+  /// @brief Constructor
+  /// @param task_processor task processor used for execution of this task
+  /// @param importance specifies whether this task can be auto-cancelled
+  ///   in case of task processor overload
+  /// @param wrapped_call_ptr task body
+  /// @see Async()
+  TaskWithResult(TaskProcessor& task_processor, Importance importance,
+                 std::shared_ptr<utils::WrappedCall<T>>&& wrapped_call_ptr)
       : Task(impl::TaskContextHolder::MakeContext(
             task_processor, importance,
             [wrapped_call_ptr] { wrapped_call_ptr->Perform(); })),
         wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
 
+  /// @brief Returns (or rethrows) the result of task invocation
+  /// @throws TaskCancelledException
+  ///   if no result is available becase the task was cancelled
   T Get() {
     assert(wrapped_call_ptr_);
     Wait();

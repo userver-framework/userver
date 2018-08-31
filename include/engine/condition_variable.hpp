@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file engine/condition_variable.hpp
+/// @brief @copybrief engine::ConditionVariable
+
 #include <chrono>
 #include <condition_variable>
 #include <memory>
@@ -9,6 +12,7 @@
 
 namespace engine {
 
+/// std::condition_variable replacement for asynchronous tasks
 class ConditionVariable {
  public:
   ConditionVariable();
@@ -19,31 +23,50 @@ class ConditionVariable {
   ConditionVariable& operator=(const ConditionVariable&) = delete;
   ConditionVariable& operator=(ConditionVariable&&) noexcept;
 
+  /// Suspends execution until notified
   void Wait(std::unique_lock<Mutex>& lock);
 
+  /// @brief Suspends execution until the predicate is `true` when notification
+  /// is received
   template <typename Predicate>
   void Wait(std::unique_lock<Mutex>& lock, Predicate predicate);
 
+  /// @brief Suspends execution until notified or after the specified timeout
+  /// @returns `std::cv_status::no_timeout` if variable was notified
+  /// @returns `std::cv_status::timeout` if `timeout` has expired
   template <typename Rep, typename Period>
   std::cv_status WaitFor(std::unique_lock<Mutex>& lock,
                          const std::chrono::duration<Rep, Period>& timeout);
 
+  /// @brief Suspends execution until the predicate is `true` when notified
+  /// or until the timeout is expired
+  /// @returns the value of the predicate
   template <typename Rep, typename Period, typename Predicate>
   bool WaitFor(std::unique_lock<Mutex>& lock,
                const std::chrono::duration<Rep, Period>& timeout,
                Predicate predicate);
 
+  /// @brief Suspends execution until notified or the specified time point is
+  /// reached
+  /// @returns `std::cv_status::no_timeout` if variable was notified
+  /// @returns `std::cv_status::timeout` if `until` time point was reached
   template <typename Clock, typename Duration>
   std::cv_status WaitUntil(
       std::unique_lock<Mutex>& lock,
       const std::chrono::time_point<Clock, Duration>& until);
 
+  /// @brief Suspends execution until the predicate is `true` when notified
+  /// or until the time point is reached
+  /// @returns the value of the predicate
   template <typename Clock, typename Duration, typename Predicate>
   bool WaitUntil(std::unique_lock<Mutex>& lock,
                  const std::chrono::time_point<Clock, Duration>& until,
                  Predicate predicate);
 
+  /// Notifies one of the waiting tasks
   void NotifyOne();
+
+  /// Notifies all waiting tasks
   void NotifyAll();
 
  private:

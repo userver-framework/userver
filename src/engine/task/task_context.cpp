@@ -1,6 +1,7 @@
 #include "task_context.hpp"
 
 #include <cassert>
+#include <exception>
 
 #include <boost/core/ignore_unused.hpp>
 
@@ -149,7 +150,7 @@ void TaskContext::DoStep() {
       break;
 
     case YieldReason::kTaskWaiting:
-      SetState(Task::State::kWaiting);
+      SetState(Task::State::kSuspended);
       {
         auto prev_sleep_state =
             sleep_state_.FetchOr(SleepStateFlags::kSleeping);
@@ -183,10 +184,7 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
   assert(state_ == Task::State::kRunning);
 
   // don't sleep if we're going to cancel anyway
-  // XXX: uncaught_exception
-  if (IsCancelRequested() && SetCancellable(false)) {
-    throw CoroUnwinder{};
-  }
+  if (IsCancelRequested()) Unwind();
 
   sleep_params_ = std::move(sleep_params);
   ev::Timer deadline_timer;
@@ -224,9 +222,7 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
   // reset state again in case timer has fired during wakeup
   sleep_state_ = SleepStateFlags::kNone;
 
-  if (IsCancelRequested() && SetCancellable(false)) {
-    throw CoroUnwinder{};
-  }
+  if (IsCancelRequested()) Unwind();
 }
 
 void TaskContext::Wakeup(WakeupSource source) {
@@ -265,17 +261,17 @@ void TaskContext::SetState(Task::State new_state) {
   // CAS optimization
   switch (new_state) {
     case Task::State::kQueued:
-      old_state = Task::State::kWaiting;
+      old_state = Task::State::kSuspended;
       break;
     case Task::State::kRunning:
       old_state = Task::State::kQueued;
       break;
-    case Task::State::kWaiting:
+    case Task::State::kSuspended:
     case Task::State::kCompleted:
       old_state = Task::State::kRunning;
       break;
     case Task::State::kCancelled:
-      old_state = Task::State::kWaiting;
+      old_state = Task::State::kSuspended;
       break;
     case Task::State::kInvalid:
     case Task::State::kNew:
@@ -304,6 +300,15 @@ void TaskContext::Schedule() {
   SetState(Task::State::kQueued);
   task_processor_.Schedule(this);
   // NOTE: may be executed at this point
+}
+
+void TaskContext::Unwind() {
+  assert(current_task::GetCurrentTaskContext() == this);
+  assert(state_ == Task::State::kRunning);
+
+  if (!std::uncaught_exception() && SetCancellable(false)) {
+    throw CoroUnwinder{};
+  }
 }
 
 }  // namespace impl

@@ -4,7 +4,7 @@
 
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
-#include <engine/task/async_task.hpp>
+#include <engine/task/task_with_result.hpp>
 
 #include "task/task_processor.hpp"
 
@@ -26,7 +26,7 @@ class EventTask {
   void StartEventTask(TaskProcessor& task_processor);
 
   EventFunc event_func_;
-  AsyncTask<void> task_;
+  TaskWithResult<void> task_;
 
   Mutex event_cv_mutex_;
   ConditionVariable event_cv_;

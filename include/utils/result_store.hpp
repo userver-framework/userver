@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/result_store.hpp
+/// @brief @copybrief utils::ResultStore
+
 #include <exception>
 #include <stdexcept>
 
@@ -7,13 +10,22 @@
 
 namespace utils {
 
+/// Simple value/exception store
 template <typename T>
 class ResultStore {
  public:
+  /// @brief Retrieves the stored value or rethrows the stored exception
+  /// @throws std::logic_error if no value/exception stored
+  /// @note Can be called at most once.
   T Retrieve();
 
+  /// Stores a value
   void SetValue(const T&);
+
+  /// Stores a value
   void SetValue(T&&);
+
+  /// Stores an exception
   void SetException(std::exception_ptr&&);
 
  private:
@@ -22,12 +34,18 @@ class ResultStore {
   std::exception_ptr exception_;
 };
 
+/// Simple void value/exception store
 template <>
 class ResultStore<void> {
  public:
+  /// @brief Checks value availability or rethrows the stored exception
+  /// @throws std::logic_error if no value/exception stored
   void Retrieve();
 
+  /// Marks the value as available
   void SetValue();
+
+  /// Stores an exception
   void SetException(std::exception_ptr&&);
 
  private:

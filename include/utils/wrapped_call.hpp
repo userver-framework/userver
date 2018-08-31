@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/wrapped_call.hpp
+/// @brief @copybrief utils::WrappedCall
+
 #include <exception>
 #include <memory>
 #include <tuple>
@@ -8,13 +11,18 @@
 
 namespace utils {
 
+/// Wraps a function invocation into a WrappedCall holder
 template <typename Function, typename... Args>
 auto WrapCall(Function&& f, Args&&... args);
 
+/// std::packaged_task replacement with noncopyable types support
 template <typename T>
 class WrappedCall {
  public:
+  /// Invokes the wrapped function call
   void Perform();
+
+  /// Returns (or rethrows) the result of wrapped call invocation
   T Retrieve();
 
  protected:

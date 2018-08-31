@@ -7,7 +7,7 @@
 
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
-#include <engine/task/async_task.hpp>
+#include <engine/task/task_with_result.hpp>
 
 #include "component_base.hpp"
 #include "component_config.hpp"
@@ -51,7 +51,7 @@ class UpdatingComponentBase : public ComponentBase {
   std::atomic<bool> is_running_;
 
   std::default_random_engine jitter_generator_;
-  engine::AsyncTask<void> update_task_;
+  engine::TaskWithResult<void> update_task_;
 };
 
 }  // namespace components

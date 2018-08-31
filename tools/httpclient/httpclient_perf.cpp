@@ -197,7 +197,7 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
   WorkerContext worker_context{{0},    2000, 0, std::ref(*http_client),
                                config, urls};
 
-  std::vector<engine::AsyncTask<void>> tasks;
+  std::vector<engine::TaskWithResult<void>> tasks;
   tasks.resize(config.coroutines);
   auto tp1 = std::chrono::system_clock::now();
   LOG_WARNING() << "Creating workers...";

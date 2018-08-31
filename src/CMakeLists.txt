@@ -54,8 +54,8 @@ target_link_libraries(${PROJECT}
 
 target_include_directories(${PROJECT} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}
-  ${USERVER_THIRD_PARTY_DIRS} # FIXME move to private in TAXIBACKEND-15802
-  ${JSONCPP_INCLUDE_DIR}
+  ${USERVER_THIRD_PARTY_DIRS} # FIXME move to private in TAXICOMMON-32
+  ${JSONCPP_INCLUDE_DIR} # FIXME move to private in TAXICOMMON-15
 )
 # FIXME: change to PRIVATE once we have interface
 target_include_directories(${PROJECT} PUBLIC

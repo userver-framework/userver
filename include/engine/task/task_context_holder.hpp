@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file engine/task/task_context_holder.hpp
+/// @brief engine::Task implementation hiding helpers
+
 #include <functional>
 
 #include <boost/intrusive_ptr.hpp>

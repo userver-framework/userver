@@ -4,7 +4,7 @@
 #include <functional>
 #include <memory>
 
-#include <engine/task/async_task.hpp>
+#include <engine/task/task_with_result.hpp>
 #include <server/handlers/handler_base.hpp>
 #include <server/request/request_base.hpp>
 
@@ -35,7 +35,7 @@ class RequestTask {
   std::unique_ptr<RequestBase> request_;
   NotifyCb notify_cb_;
   std::atomic<bool> is_complete_;
-  engine::AsyncTask<void> async_task_;
+  engine::TaskWithResult<void> async_task_;
 };
 
 }  // namespace request

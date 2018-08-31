@@ -117,6 +117,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   void SetState(Task::State);
 
   void Schedule();
+  void Unwind();
 
   const uint64_t magic_;
   TaskProcessor& task_processor_;
