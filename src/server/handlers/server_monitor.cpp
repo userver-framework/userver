@@ -1,12 +1,33 @@
 #include <server/handlers/server_monitor.hpp>
 
+#include <list>
+
 #include <json/writer.h>
+#include <boost/algorithm/string.hpp>
 
 #include <components/monitorable_component_base.hpp>
 
 namespace {
 const std::string kEngineMonitorDataName = "engine";
+
+void SetSubField(Json::Value& object, std::list<std::string> fields,
+                 Json::Value value) {
+  if (fields.empty()) {
+    object = std::move(value);
+  } else {
+    const auto field = std::move(fields.front());
+    fields.pop_front();
+    SetSubField(object[field], std::move(fields), std::move(value));
+  }
 }
+
+void SetSubField(Json::Value& object, const std::string& path,
+                 Json::Value value) {
+  std::list<std::string> fields;
+  boost::split(fields, path, boost::is_any_of("."));
+  SetSubField(object, std::move(fields), std::move(value));
+}
+}  // namespace
 
 namespace server {
 namespace handlers {
@@ -64,9 +85,11 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
 
   Json::Value monitor_data;
 
-  for (const auto& component :
-       components_manager_.GetMonitorableComponentSet()) {
-    monitor_data[component.first] = component.second->GetMonitorData(verbosity);
+  for (const auto& it : components_manager_.GetMonitorableComponentSet()) {
+    const auto& component = it.second;
+
+    SetSubField(monitor_data, component->GetMetricsPath(),
+                component->GetMonitorData(verbosity));
   }
 
   monitor_data[kEngineMonitorDataName] = GetEngineStats(verbosity);

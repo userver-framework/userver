@@ -13,6 +13,7 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
 file(GLOB_RECURSE TEST_SOURCES
+  ${CMAKE_SOURCE_DIR}/backend-common-cpp/*percentile_test.cpp # TODO: enable all tests
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
 list (REMOVE_ITEM SOURCES ${TEST_SOURCES})
 

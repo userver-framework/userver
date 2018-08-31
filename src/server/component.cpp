@@ -6,7 +6,8 @@ namespace components {
 
 Server::Server(const components::ComponentConfig& component_config,
                const components::ComponentContext& component_context)
-    : server_(std::make_unique<server::Server>(
+    : MonitorableComponentBase(component_config, component_context),
+      server_(std::make_unique<server::Server>(
           server::ServerConfig::ParseFromJson(component_config.Json(),
                                               component_config.FullPath(),
                                               component_config.ConfigVarsPtr()),

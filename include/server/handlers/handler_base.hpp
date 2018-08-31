@@ -2,16 +2,16 @@
 
 #include "handler_config.hpp"
 
-#include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/monitorable_component_base.hpp>
 #include <server/request/request_base.hpp>
 #include <server/request/request_context.hpp>
 
 namespace server {
 namespace handlers {
 
-class HandlerBase : public components::ComponentBase {
+class HandlerBase : public components::MonitorableComponentBase {
  public:
   HandlerBase(const components::ComponentConfig& config,
               const components::ComponentContext& component_context,

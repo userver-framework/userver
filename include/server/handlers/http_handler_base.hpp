@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include <components/manager.hpp>
 #include <server/handlers/handler_base.hpp>
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
@@ -17,12 +18,19 @@ class HttpHandlerBase : public HandlerBase {
                   const components::ComponentContext& component_context,
                   bool is_monitor = false);
 
+  ~HttpHandlerBase();
+
   virtual void HandleRequest(const request::RequestBase& request,
                              request::RequestContext& context) const
       noexcept override;
   virtual void OnRequestComplete(const request::RequestBase& request,
                                  request::RequestContext& context) const
       noexcept override;
+
+  Json::Value GetMonitorData(
+      components::MonitorVerbosity verbosity) const override;
+
+  std::string GetMetricsPath() const override;
 
   virtual const std::string& HandlerName() const = 0;
 
@@ -35,7 +43,14 @@ class HttpHandlerBase : public HandlerBase {
       request::RequestContext& /*context*/) const {}
 
  private:
+  class Statistics;
+
+  static Json::Value StatisticsToJson(const Statistics& stats);
+
+ private:
   const components::HttpServerSettingsBase* http_server_settings_;
+
+  std::unique_ptr<Statistics> statistics_;
 };
 
 }  // namespace handlers

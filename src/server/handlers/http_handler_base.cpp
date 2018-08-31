@@ -3,7 +3,9 @@
 #include <json/writer.h>
 
 #include <logging/log.hpp>
+#include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/request/http_server_settings_base_component.hpp>
+#include <utils/statistics/percentile_json.hpp>
 #include <utils/uuid4.hpp>
 
 #include <server/http/http_error.hpp>
@@ -29,13 +31,37 @@ std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
 
 }  // namespace
 
+Json::Value HttpHandlerBase::StatisticsToJson(
+    const HttpHandlerBase::Statistics& stats) {
+  Json::Value result;
+  Json::Value total;
+
+  Json::Value reply_codes;
+  size_t sum = 0;
+  for (auto it : stats.GetReplyCodes()) {
+    reply_codes[std::to_string(it.first)] =
+        static_cast<Json::UInt64>(it.second);
+    sum += it.second;
+  }
+  total["reply-codes"] = std::move(reply_codes);
+
+  total["timings"]["1min"] =
+      utils::statistics::PercentileToJson(stats.GetTimings());
+
+  result["total"] = std::move(total);
+  return result;
+}
+
 HttpHandlerBase::HttpHandlerBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context, bool is_monitor)
     : HandlerBase(config, component_context, is_monitor),
       http_server_settings_(
           component_context
-              .FindComponent<components::HttpServerSettingsBase>()) {}
+              .FindComponent<components::HttpServerSettingsBase>()),
+      statistics_(std::make_unique<Statistics>()) {}
+
+HttpHandlerBase::~HttpHandlerBase() = default;
 
 void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                     request::RequestContext& context) const
@@ -44,6 +70,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     const http::HttpRequest http_request(
         dynamic_cast<const http::HttpRequestImpl&>(request));
     auto& response = http_request.GetHttpResponse();
+    const auto start_time = std::chrono::system_clock::now();
 
     const std::string& link = utils::generators::GenerateUuid();
     context.GetLogExtra().Extend(kLink, link,
@@ -99,6 +126,11 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       LOG_INFO() << "finish handling " << http_request.GetUrl()
                  << std::move(log_extra);
     }
+
+    const auto finish_time = std::chrono::system_clock::now();
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        finish_time - start_time);
+    statistics_->Account(static_cast<int>(response.GetStatus()), ms.count());
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex.what();
   }
@@ -119,6 +151,16 @@ void HttpHandlerBase::OnRequestComplete(const request::RequestBase& request,
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to complete request: " << ex.what();
   }
+}
+
+Json::Value HttpHandlerBase::GetMonitorData(
+    components::MonitorVerbosity /*verbosity*/) const {
+  return StatisticsToJson(*statistics_);
+}
+
+std::string HttpHandlerBase::GetMetricsPath() const {
+  // TODO: s/bad symbols/_/g
+  return "http-handlers." + GetConfig().path;
 }
 
 }  // namespace handlers
