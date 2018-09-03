@@ -6,6 +6,8 @@
   * Драйверы для СУБД: Redis, MongoDB
 
 ## Использование
+[Документация API](https://github.yandex-team.ru/pages/taxi/userver/)
+
 **TBA**
 
 ## Разработка
