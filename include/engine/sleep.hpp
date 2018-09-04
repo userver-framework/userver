@@ -21,13 +21,13 @@ void SleepUntil(Deadline);
 /// Suspends execution for a specified amount of time
 template <typename Rep, typename Period>
 void SleepFor(const std::chrono::duration<Rep, Period>& duration) {
-  SleepUntil(MakeDeadline(duration));
+  SleepUntil(Deadline::FromDuration(duration));
 }
 
-/// Suspends execution until the specified deadline is reached
+/// Suspends execution until the specified time point is reached
 template <typename Clock, typename Duration>
-void SleepUntil(const std::chrono::time_point<Clock, Duration>& deadline) {
-  SleepUntil(MakeDeadline(deadline));
+void SleepUntil(const std::chrono::time_point<Clock, Duration>& time_point) {
+  SleepUntil(Deadline::FromTimePoint(time_point));
 }
 
 }  // namespace engine

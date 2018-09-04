@@ -29,7 +29,7 @@ class ConditionVariable {
   /// @brief Suspends execution until the predicate is `true` when notification
   /// is received
   template <typename Predicate>
-  void Wait(std::unique_lock<Mutex>& lock, Predicate predicate);
+  void Wait(std::unique_lock<Mutex>& lock, Predicate&& predicate);
 
   /// @brief Suspends execution until notified or after the specified timeout
   /// @returns `std::cv_status::no_timeout` if variable was notified
@@ -44,7 +44,7 @@ class ConditionVariable {
   template <typename Rep, typename Period, typename Predicate>
   bool WaitFor(std::unique_lock<Mutex>& lock,
                const std::chrono::duration<Rep, Period>& timeout,
-               Predicate predicate);
+               Predicate&& predicate);
 
   /// @brief Suspends execution until notified or the specified time point is
   /// reached
@@ -61,7 +61,7 @@ class ConditionVariable {
   template <typename Clock, typename Duration, typename Predicate>
   bool WaitUntil(std::unique_lock<Mutex>& lock,
                  const std::chrono::time_point<Clock, Duration>& until,
-                 Predicate predicate);
+                 Predicate&& predicate);
 
   /// Notifies one of the waiting tasks
   void NotifyOne();
@@ -76,6 +76,10 @@ class ConditionVariable {
 
   std::cv_status DoWaitUntil(std::unique_lock<Mutex>& lock, Deadline deadline);
 
+  template <typename Predicate>
+  bool DoWaitUntil(std::unique_lock<Mutex>& lock, Deadline deadline,
+                   Predicate&& predicate);
+
   std::unique_ptr<Impl> impl_;
 };
 
@@ -85,7 +89,7 @@ inline void ConditionVariable::Wait(std::unique_lock<Mutex>& lock) {
 
 template <typename Predicate>
 void ConditionVariable::Wait(std::unique_lock<Mutex>& lock,
-                             Predicate predicate) {
+                             Predicate&& predicate) {
   while (!predicate()) {
     DoWait(lock);
   }
@@ -95,29 +99,36 @@ template <typename Rep, typename Period>
 std::cv_status ConditionVariable::WaitFor(
     std::unique_lock<Mutex>& lock,
     const std::chrono::duration<Rep, Period>& timeout) {
-  return WaitUntil(lock, MakeDeadline(timeout));
+  return DoWaitUntil(lock, Deadline::FromDuration(timeout));
 }
 
 template <typename Rep, typename Period, typename Predicate>
 bool ConditionVariable::WaitFor(
     std::unique_lock<Mutex>& lock,
-    const std::chrono::duration<Rep, Period>& timeout, Predicate predicate) {
-  return WaitUntil(lock, MakeDeadline(timeout), std::move(predicate));
+    const std::chrono::duration<Rep, Period>& timeout, Predicate&& predicate) {
+  return DoWaitUntil(lock, Deadline::FromDuration(timeout),
+                     std::move(predicate));
 }
 
 template <typename Clock, typename Duration>
 std::cv_status ConditionVariable::WaitUntil(
     std::unique_lock<Mutex>& lock,
     const std::chrono::time_point<Clock, Duration>& until) {
-  return DoWaitUntil(lock, MakeDeadline(until));
+  return DoWaitUntil(lock, Deadline::FromTimePoint(until));
 }
 
 template <typename Clock, typename Duration, typename Predicate>
 bool ConditionVariable::WaitUntil(
     std::unique_lock<Mutex>& lock,
     const std::chrono::time_point<Clock, Duration>& until,
-    Predicate predicate) {
-  const auto deadline = MakeDeadline(until);
+    Predicate&& predicate) {
+  return DoWaitUntil(lock, Deadline::FromTimePoint(until),
+                     std::move(predicate));
+}
+
+template <typename Predicate>
+bool ConditionVariable::DoWaitUntil(std::unique_lock<Mutex>& lock,
+                                    Deadline deadline, Predicate&& predicate) {
   bool predicate_result = predicate();
   auto status = std::cv_status::no_timeout;
   while (!predicate_result && status == std::cv_status::no_timeout) {

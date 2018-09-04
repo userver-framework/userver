@@ -12,6 +12,8 @@ void SleepUntil(Deadline deadline) {
   context->Sleep(std::move(new_sleep_params));
 }
 
-void Yield() { SleepUntil(Deadline::clock::now()); }
+void Yield() {
+  SleepUntil(Deadline::FromTimePoint(Deadline::TimePoint::clock::now()));
+}
 
 }  // namespace engine

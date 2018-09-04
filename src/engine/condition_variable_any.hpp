@@ -24,12 +24,12 @@ class ConditionVariableAny {
   void Wait(std::unique_lock<MutexType>&);
 
   template <typename Predicate>
-  void Wait(std::unique_lock<MutexType>&, Predicate);
+  void Wait(std::unique_lock<MutexType>&, Predicate&&);
 
   std::cv_status WaitUntil(std::unique_lock<MutexType>&, Deadline);
 
   template <typename Predicate>
-  bool WaitUntil(std::unique_lock<MutexType>&, Deadline, Predicate);
+  bool WaitUntil(std::unique_lock<MutexType>&, Deadline, Predicate&&);
 
   void NotifyOne();
   void NotifyAll();
@@ -50,7 +50,7 @@ void ConditionVariableAny<MutexType>::Wait(std::unique_lock<MutexType>& lock) {
 template <typename MutexType>
 template <typename Predicate>
 void ConditionVariableAny<MutexType>::Wait(std::unique_lock<MutexType>& lock,
-                                           Predicate predicate) {
+                                           Predicate&& predicate) {
   while (!predicate()) {
     Wait(lock);
   }
@@ -59,7 +59,7 @@ void ConditionVariableAny<MutexType>::Wait(std::unique_lock<MutexType>& lock,
 template <typename MutexType>
 std::cv_status ConditionVariableAny<MutexType>::WaitUntil(
     std::unique_lock<MutexType>& lock, Deadline deadline) {
-  if (deadline != Deadline{} && deadline < Deadline::clock::now()) {
+  if (deadline.IsReached()) {
     return std::cv_status::timeout;
   }
 
@@ -87,7 +87,8 @@ std::cv_status ConditionVariableAny<MutexType>::WaitUntil(
 template <typename MutexType>
 template <typename Predicate>
 bool ConditionVariableAny<MutexType>::WaitUntil(
-    std::unique_lock<MutexType>& lock, Deadline deadline, Predicate predicate) {
+    std::unique_lock<MutexType>& lock, Deadline deadline,
+    Predicate&& predicate) {
   bool predicate_result = predicate();
   auto status = std::cv_status::no_timeout;
   while (!predicate_result && status == std::cv_status::no_timeout) {

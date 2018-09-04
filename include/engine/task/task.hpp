@@ -126,13 +126,13 @@ ev::ThreadControl& GetEventThread();
 
 template <typename Rep, typename Period>
 void Task::WaitFor(const std::chrono::duration<Rep, Period>& duration) const {
-  DoWaitUntil(MakeDeadline(duration));
+  DoWaitUntil(Deadline::FromDuration(duration));
 }
 
 template <typename Clock, typename Duration>
 void Task::WaitUntil(
     const std::chrono::time_point<Clock, Duration>& until) const {
-  DoWaitUntil(MakeDeadline(until));
+  DoWaitUntil(Deadline::FromTimePoint(until));
 }
 
 }  // namespace engine

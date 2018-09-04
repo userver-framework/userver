@@ -188,8 +188,8 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
 
   sleep_params_ = std::move(sleep_params);
   ev::Timer deadline_timer;
-  if (sleep_params_.deadline != Deadline{}) {
-    auto time_left = sleep_params_.deadline - Deadline::clock::now();
+  if (sleep_params_.deadline.IsReachable()) {
+    const auto time_left = sleep_params_.deadline.TimeLeft();
     if (time_left.count() > 0) {
       boost::intrusive_ptr<TaskContext> ctx(this);
       deadline_timer = ev::Timer(
