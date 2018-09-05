@@ -57,7 +57,10 @@ std::string DriverSession::HandleRequestThrow(
   }
 
   const auto session_key = "DriverSession:" + db + ':' + session;
-  auto session_request = redis_ptr_->Get(session_key);
+  const auto driver_session_cc = taxi_config_component_->Get()
+                                     ->Get<driver_authorizer::TaxiConfig>()
+                                     .driver_session_cc;
+  auto session_request = redis_ptr_->Get(session_key, driver_session_cc);
 
   if (is_session_ttl_update_enabled_) {
     const std::chrono::seconds session_ttl{

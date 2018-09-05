@@ -65,7 +65,7 @@ MongoCast(const ::mongo::BSONElement& elem) {
 template <class T>
 typename std::enable_if_t<meta::is_duration<T>::value, T> MongoCast(
     const ::mongo::BSONElement& elem) {
-  return T(MongoCast<T::rep>(elem));
+  return T(MongoCast<typename T::rep>(elem));
 }
 
 template <class T>
