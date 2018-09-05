@@ -1,3 +1,13 @@
+yandex-taxi-userver (0.1.19) unstable; urgency=low
+
+  Release ticket https://st.yandex-team.ru/TAXIREL-2848
+
+  * Denis Protivenskii | feat driv_auth: get session from the nearest redis (#95)
+  * Andrey Bugaevskiy | refactor engine: make Deadline a full class (#94)
+  * Andrey Bugaevskiy | feat readme: add api docs link (#96)
+
+ -- buildfarm <buildfarm@yandex-team.ru>  Wed, 05 Sep 2018 16:34:26 +0300
+
 yandex-taxi-userver (0.1.18) unstable; urgency=low
 
   Release ticket https://st.yandex-team.ru/TAXIREL-2834
