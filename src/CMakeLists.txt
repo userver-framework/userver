@@ -13,7 +13,7 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
 file(GLOB_RECURSE TEST_SOURCES
-  ${CMAKE_SOURCE_DIR}/backend-common-cpp/*percentile_test.cpp # TODO: enable all tests
+  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*percentile_test.cpp # TODO: enable all tests
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
 list (REMOVE_ITEM SOURCES ${TEST_SOURCES})
 
@@ -52,6 +52,10 @@ target_link_libraries(${PROJECT}
     ${MONGOCLIENT_LIBRARIES}
     ${CLANG_LIBRARIES}
 )
+
+
+set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 
 target_include_directories(${PROJECT} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}

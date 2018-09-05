@@ -1,5 +1,10 @@
 cmake_minimum_required (VERSION 3.5)
 
+if (TAXI_SETUP_ENVIRONMENT_INCLUDED)
+    return()
+endif()
+set(TAXI_SETUP_ENVIRONMENT_INCLUDED 1)
+
 message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
@@ -12,9 +17,35 @@ add_compile_options ("-fexceptions" "-g")
 add_compile_options ("-frtti" "-ftemplate-depth-128")
 add_compile_options ("-fPIC")
 add_definitions ("-DPIC")
+add_definitions(-DUSERVER)
+add_definitions(-DMOCK_NOW)
 
 # warnings
 add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
+
+
+
+option(USE_CCACHE "Use ccache for build" ON)
+if (USE_CCACHE)
+  find_program(CCACHE_FOUND ccache)
+  if (CCACHE_FOUND)
+    message(STATUS "ccache found and enabled")
+    set(CMAKE_C_COMPILER_LAUNCHER ccache)
+    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
+  else ()
+    message(WARNING "ccache enabled, but not found")
+  endif()
+else ()
+  message (STATUS "ccache disabled")
+endif ()
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(MACOS found)
+endif()
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(CLANG found)
+endif()
 
 include(CheckCXXCompilerFlag)
 macro(add_compile_options_if_supported)

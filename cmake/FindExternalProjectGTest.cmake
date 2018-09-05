@@ -1,5 +1,9 @@
 include(ExternalProject)
 
+if (TARGET gtest)
+    return()
+endif()
+
 ExternalProject_Add(
         gtest
         GIT_REPOSITORY https://github.yandex-team.ru/taxi/googletest.git
