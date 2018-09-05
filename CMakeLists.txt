@@ -7,9 +7,7 @@ include(AddGoogleTests)
 include(GetVersion)
 include(CppCheck)
 include(CheckSubmodule)
-include(TestsuiteSupport)
 
-add_subdirectory(testsuite)
 
 check_submodule(${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp CMakeLists.txt)
 add_subdirectory(backend-common-cpp)
@@ -29,7 +27,9 @@ add_subdirectory(tools/httpclient)
 add_subdirectory(tools/engine)
 
 
-option(ENABLE_USERVER_EXAMPLES "Enables examples build" ON)
-if (ENABLE_USERVER_EXAMPLES)
+option(BUILD_USERVER_AS_SUBMODULE "Disables build of examples and testsuite" OFF) # TODO: remove
+if (NOT BUILD_USERVER_AS_SUBMODULE)
+    include(TestsuiteSupport)
+    add_subdirectory(testsuite)
     add_subdirectory(examples)
 endif()
