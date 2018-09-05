@@ -2,8 +2,8 @@ import os
 
 import pytest
 
-from taxi_tests import db as taxi_tests_db
 from taxi_tests.daemons import service_daemon
+from taxi_tests.utils import yaml_util
 
 
 class Settings:
@@ -70,7 +70,7 @@ def settings(build_dir, pytestconfig):
 
     mongo_connections = {}
     # TODO: It might be a good idea to use connections required by service
-    db_settings = taxi_tests_db.load_yaml(settings.DB_SETTINGS_YAML_PATH)
+    db_settings = yaml_util.load_file(settings.DB_SETTINGS_YAML_PATH)
     for alias, collection_info in db_settings.items():
         connection_name = collection_info['settings']['connection']
         # TODO: port is hardcoded in mongo startup script
