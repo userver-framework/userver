@@ -1,4 +1,7 @@
 #include <gtest/gtest.h>
+
+#include <boost/program_options.hpp>
+
 #include <engine/async.hpp>
 #include <engine/task/task_context.hpp>
 
@@ -36,8 +39,52 @@ void TestInCoro(std::function<void()> user_cb, size_t worker_threads) {
   EXPECT_EQ(true, done.load());
 }
 
+namespace testing {
+namespace internal {
+// from gtest.cc
+extern bool g_help_flag;
+}  // namespace internal
+}  // namespace testing
+
+namespace {
+
+struct Config {
+  logging::Level log_level = logging::Level::kNone;
+};
+
+Config ParseTaxiConfig(int argc, char** argv) {
+  namespace po = boost::program_options;
+
+  po::options_description desc("Allowed options");
+  desc.add_options()("log-level,l",
+                     po::value<std::string>()->default_value("none"),
+                     "logging level");
+
+  if (testing::internal::g_help_flag) {
+    std::cout << desc << std::endl;
+    return {};
+  }
+
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
+
+  Config config;
+  if (vm.count("log-level"))
+    config.log_level =
+        logging::LevelFromString(vm["log-level"].as<std::string>());
+
+  return config;
+}
+
+}  // namespace
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
+  const Config& config = ParseTaxiConfig(argc, argv);
+
+  logging::DefaultLogger()->set_level(
+      static_cast<spdlog::level::level_enum>(config.log_level));
   return RUN_ALL_TESTS();
 }

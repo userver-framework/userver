@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <spdlog/common.h>
+#include <boost/system/error_code.hpp>
 
 #include <utils/encoding/hex.hpp>
 #include <utils/encoding/tskv.hpp>
@@ -51,6 +52,11 @@ class LogHelper {
 
   friend LogHelper& operator<<(LogHelper& lh, void* value) {
     lh.log_msg_.raw << reinterpret_cast<unsigned long long>(value);
+    return lh;
+  }
+
+  friend LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
+    lh.log_msg_.raw << ec.category().name() << ':' << ec.value();
     return lh;
   }
 

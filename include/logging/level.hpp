@@ -16,7 +16,8 @@ enum class Level {
   kInfo = spdlog::level::info,
   kWarning = spdlog::level::warn,
   kError = spdlog::level::err,
-  kCritical = spdlog::level::critical
+  kCritical = spdlog::level::critical,
+  kNone = spdlog::level::off
 };
 
 /// Converts lowercase level name to a corresponding Level

@@ -13,7 +13,7 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
 file(GLOB_RECURSE TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*percentile_test.cpp # TODO: enable all tests
+  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
 list (REMOVE_ITEM SOURCES ${TEST_SOURCES})
 
@@ -22,7 +22,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS coroutine)
+find_package(Boost REQUIRED COMPONENTS coroutine program_options)
 find_package(Jemalloc REQUIRED)
 find_package(Hiredis REQUIRED)
 find_package(HttpParser REQUIRED)
@@ -53,7 +53,6 @@ target_link_libraries(${PROJECT}
     ${CLANG_LIBRARIES}
 )
 
-
 set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 
@@ -75,12 +74,14 @@ target_include_directories(${PROJECT} PUBLIC
 message("gtest: ${GTEST_LIBRARIES}")
 add_executable(${PROJECT}_unittest ${TEST_SOURCES})
 target_link_libraries(${PROJECT}_unittest
+  atomic
+  -Wl,--start-group
   ${PROJECT}
+  yandex-taxi-backend-common-cpp
+  -Wl,--end-group
   ${GTEST_LIBRARIES}
   ${GMOCK_LIBRARIES}
-)
-target_include_directories(${PROJECT}_unittest PRIVATE
-  $<TARGET_PROPERTY:${PROJECT},INCLUDE_DIRECTORIES>
+  ${Boost_PROGRAM_OPTIONS_LIBRARIES}
 )
 
 add_google_tests(${PROJECT}_unittest)

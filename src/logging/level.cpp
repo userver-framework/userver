@@ -13,7 +13,7 @@ Level LevelFromString(const std::string& level_name) {
       {"trace", Level::kTrace}, {"debug", Level::kDebug},
       {"info", Level::kInfo},   {"warning", Level::kWarning},
       {"error", Level::kError}, {"critical", Level::kCritical},
-  };
+      {"none", Level::kNone}};
 
   auto it = kLevelMap.find(level_name);
   if (it == kLevelMap.end()) {
