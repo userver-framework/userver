@@ -2,9 +2,11 @@
 
 #include <main_test.hpp>
 #include "io_watcher.hpp"
+#include "logging/log.hpp"
 
 TEST(IoWatcher, DevNull) {
   TestInCoro([]() {
+    LOG_DEBUG() << "Opening /dev/null";
     engine::ev::Thread thread("test_thread");
     engine::ev::ThreadControl thread_control(thread);
 

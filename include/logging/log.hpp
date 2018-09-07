@@ -89,6 +89,7 @@ class LogHelper {
   void AppendLogExtra();
   void LogTextKey();
   void LogModule(const char* path, int line, const char* func);
+  void LogTaskIdAndCoroutineId();
 
   spdlog::details::log_msg log_msg_;
   LogExtra extra_;

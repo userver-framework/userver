@@ -25,6 +25,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
  public:
   using CoroutinePtr = coro::Pool<TaskContext>::CoroutinePtr;
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
+  using CoroId = uint64_t;
 
   enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
   enum class WakeupSource {
@@ -104,6 +105,8 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
 
   // C++ ABI support, not to be used by anyone
   EhGlobals* GetEhGlobals() { return &eh_globals_; }
+
+  CoroId GetCoroId() const { return reinterpret_cast<CoroId>(coro_.get()); }
 
  private:
   static constexpr uint64_t kMagic = 0x6b73615453755459ull;  // "YTuSTask"

@@ -4,6 +4,8 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include "engine/task/task_context.hpp"
+
 namespace logging {
 namespace {
 
@@ -43,7 +45,9 @@ LogHelper::LogHelper(Level level, const char* path, int line, const char* func)
     : log_msg_(&DefaultLogger()->name(),
                static_cast<spdlog::level::level_enum>(level)) {
   LogModule(path, line, func);
-  LogTextKey();
+  LogTaskIdAndCoroutineId();
+  LogTextKey();  // This member outputs only a key without value
+                 // This call must be the last in constructor
 }
 
 void LogHelper::DoLog() {
@@ -76,6 +80,16 @@ void LogHelper::LogModule(const char* path, int line, const char* func) {
                << " ( ";
   *this << path;
   log_msg_.raw << kPathLineSeparator << line << " ) ";
+}
+
+void LogHelper::LogTaskIdAndCoroutineId() {
+  auto task = engine::current_task::GetCurrentTaskContextUnchecked();
+  uint64_t task_id = task ? reinterpret_cast<uint64_t>(task) : 0;
+  uint64_t coro_id = task ? task->GetCoroId() : 0;
+  log_msg_.raw << utils::encoding::kTskvPairsSeparator << "task_id"
+               << utils::encoding::kTskvKeyValueSeparator << task_id
+               << utils::encoding::kTskvPairsSeparator << "coro_id"
+               << utils::encoding::kTskvKeyValueSeparator << coro_id;
 }
 
 LogHelper& operator<<(LogHelper& lh, std::thread::id id) {
