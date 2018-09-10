@@ -17,12 +17,6 @@
         "worker_threads": "$main_worker_threads",
         "worker_threads#fallback": 8,
         "thread_name": "main-worker"
-      },
-      {
-        "name": "mongo-task-processor",
-        "worker_threads": "$mongo_worker_threads",
-        "worker_threads#fallback": 5,
-        "thread_name": "mongo-worker"
       }
     ],
     "default_task_processor": "main-task-processor",
@@ -83,7 +77,7 @@
       },
       {
         "name": "mongo-taxi",
-        "task_processor": "mongo-task-processor",
+        "threads": "$mongo_worker_threads",
         "dbalias": "taxi"
       },
       {

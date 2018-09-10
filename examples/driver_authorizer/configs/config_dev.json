@@ -20,11 +20,6 @@
         "name": "second-task-processor",
         "worker_threads": 1,
         "thread_name": "second-worker"
-      },
-      {
-        "name": "mongo-task-processor",
-        "worker_threads": 5,
-        "thread_name": "mongo-worker"
       }
     ],
     "default_task_processor": "main-task-processor",
@@ -83,7 +78,6 @@
       },
       {
         "name": "mongo-taxi",
-        "task_processor": "mongo-task-processor",
         "dbalias": "taxi"
       },
       {

@@ -49,7 +49,8 @@ class Manager {
   ~Manager();
 
   const ManagerConfig& GetConfig() const;
-  const engine::TaskProcessor::CoroPool& GetCoroPool() const;
+  engine::TaskProcessor::CoroPool& GetCoroPool() const;
+  engine::ev::ThreadPool& GetEventThreadPool() const;
   Json::Value GetMonitorData(MonitorVerbosity verbosity) const;
   LockedMonitorableComponentSet GetMonitorableComponentSet() const;
 

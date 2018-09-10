@@ -7,7 +7,9 @@
 
 #include <mongo/client/dbclient.h>
 
-#include <engine/task/task_processor.hpp>
+namespace engine {
+class TaskProcessor;
+}  // namespace engine
 
 namespace storages {
 namespace mongo {

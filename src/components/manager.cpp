@@ -81,8 +81,12 @@ Manager::~Manager() {
 
 const ManagerConfig& Manager::GetConfig() const { return config_; }
 
-const engine::TaskProcessor::CoroPool& Manager::GetCoroPool() const {
+engine::TaskProcessor::CoroPool& Manager::GetCoroPool() const {
   return *coro_pool_;
+}
+
+engine::ev::ThreadPool& Manager::GetEventThreadPool() const {
+  return *event_thread_pool_;
 }
 
 LockedMonitorableComponentSet Manager::GetMonitorableComponentSet() const {

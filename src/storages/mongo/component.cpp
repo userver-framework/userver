@@ -4,8 +4,12 @@
 
 #include <mongo/client/init.h>
 
+#include <components/manager.hpp>
 #include <logging/log.hpp>
 #include <storages/secdist/component.hpp>
+
+#include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_config.hpp>
 #include <storages/secdist/exceptions.hpp>
 #include "mongo_secdist.hpp"
 
@@ -44,6 +48,8 @@ class MongoClientKeeper {
   mongo::Status status_;
 };
 
+const std::string kThreadName = "mongo-worker";
+
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) {
@@ -78,17 +84,20 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) {
   static MongoClientKeeper mongo_client_keeper;
   mongo_client_keeper.Check();
 
-  auto task_processor_name = config.ParseString("task_processor");
-  auto* task_processor = context.GetTaskProcessor(task_processor_name);
-  if (!task_processor) {
-    throw std::runtime_error("Cannot find task processor with name '" +
-                             task_processor_name + '\'');
-  }
+  const auto threads_num = config.ParseUint64("threads", kDefaultThreadsNum);
+  engine::TaskProcessorConfig task_processor_config;
+  task_processor_config.thread_name = kThreadName;
+  task_processor_config.worker_threads = threads_num;
+  task_processor_ = std::make_unique<engine::TaskProcessor>(
+      std::move(task_processor_config), context.GetManager().GetCoroPool(),
+      context.GetManager().GetEventThreadPool());
 
   pool_ = std::make_shared<storages::mongo::Pool>(
-      connection_string, *task_processor, so_timeout_ms, min_pool_size,
+      connection_string, *task_processor_, so_timeout_ms, min_pool_size,
       max_pool_size);
 }
+
+Mongo::~Mongo() = default;
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 

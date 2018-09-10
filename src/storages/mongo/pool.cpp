@@ -5,8 +5,9 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <logging/log.hpp>
-
 #include <storages/mongo/wrappers.hpp>
+
+#include <engine/task/task_processor.hpp>
 
 namespace storages {
 namespace mongo {
