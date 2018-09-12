@@ -31,6 +31,7 @@ find_package(LibEv REQUIRED)
 find_package(MongoClient REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest)
+find_package(ExternalProjectGBench)
 find_package(CurlYandex REQUIRED)
 
 add_library(${PROJECT} STATIC ${SOURCES})

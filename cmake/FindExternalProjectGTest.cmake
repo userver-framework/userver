@@ -6,7 +6,7 @@ endif()
 
 ExternalProject_Add(
         gtest
-        GIT_REPOSITORY https://github.yandex-team.ru/taxi/googletest.git
+        GIT_REPOSITORY https://github.yandex-team.ru/taxi-external/googletest.git
         GIT_TAG release-1.8.0
         TIMEOUT 10
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
@@ -45,7 +45,7 @@ set( GTEST_MAIN_LIBRARY ${binary_dir}/googletest/${CMAKE_FIND_LIBRARY_PREFIXES}g
 # Add gmock
 ExternalProject_Add(
         gmock
-        GIT_REPOSITORY https://github.yandex-team.ru/taxi/googletest.git
+        GIT_REPOSITORY https://github.yandex-team.ru/taxi-external/googletest.git
         GIT_TAG release-1.8.0
         TIMEOUT 10
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
