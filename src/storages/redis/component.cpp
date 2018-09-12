@@ -10,6 +10,7 @@
 #include <storages/secdist/exceptions.hpp>
 #include <storages/secdist/secdist.hpp>
 
+#include "redis_config.hpp"
 #include "redis_secdist.hpp"
 
 namespace components {
@@ -52,7 +53,10 @@ struct RedisPools {
 };
 
 Redis::Redis(const ComponentConfig& config,
-             const ComponentContext& component_context) {
+             const ComponentContext& component_context)
+    : config_{component_context.FindComponent<TaxiConfig>()} {
+  if (!config_)
+    throw std::runtime_error("Redis component requires taxi config");
   auto secdist_component = component_context.FindComponent<Secdist>();
   if (!secdist_component) {
     throw std::runtime_error("secdist component not found");
@@ -91,8 +95,30 @@ Redis::Redis(const ComponentConfig& config,
     else
       LOG_WARNING() << "skip redis client for " << redis_group.db;
   }
+
+  config_subscription_ = config_->AddListener(this, &Redis::OnConfigUpdate);
+  OnConfigUpdate(config_->Get());
 }
 
-Redis::~Redis() = default;
+Redis::~Redis() {
+  try {
+    config_subscription_.Unsubscribe();
+  } catch (std::exception const& e) {
+    LOG_ERROR() << "exception while destroying Redis component: " << e.what();
+  } catch (...) {
+    LOG_ERROR() << "non-standard exception while destroying Redis component";
+  }
+}
+
+void Redis::OnConfigUpdate(const TaxiConfigPtr& cfg) {
+  auto cc = std::make_shared<redis::CommandControl>(
+      cfg->Get<storages::redis::Config>().default_command_control);
+
+  LOG_INFO() << "update default command control";
+  for (auto& it : clients_) {
+    auto& client = it.second;
+    client->SetConfigDefaultCommandControl(cc);
+  }
+}
 
 }  // namespace components

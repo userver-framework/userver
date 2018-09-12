@@ -1,5 +1,6 @@
 {
   "DRIVER_SESSION_EXPIRE_SECONDS": 3600,
+  "REDIS_DEFAULT_COMMAND_CONTROL": {},
   "REDIS_CHECK_SESSION_CONTROL_COMMAND_2": {
     "timeout_single_ms": 500, "timeout_all_ms": 1000, "max_retries": 3
   },
