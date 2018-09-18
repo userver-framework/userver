@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <main_test.hpp>
+#include <utest/utest.hpp>
 #include "timer_watcher.hpp"
 
 TEST(TimerWatcher, SingleShot) {

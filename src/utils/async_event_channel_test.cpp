@@ -1,7 +1,6 @@
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 #include <engine/sleep.hpp>
-#include <main_test.hpp>
 #include <utils/async_event_channel.hpp>
 
 TEST(AsyncEventChannel, Ctr) { utils::AsyncEventChannel<int> channel; }

@@ -12,10 +12,15 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
-file(GLOB_RECURSE TEST_SOURCES
+file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
-list (REMOVE_ITEM SOURCES ${TEST_SOURCES})
+
+file(GLOB_RECURSE LIBUTEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.hpp)
+
+list (REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${LIBUTEST_SOURCES})
 
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
@@ -74,17 +79,33 @@ target_include_directories(${PROJECT} PUBLIC
 )
 
 
+
+add_library(utest STATIC ${LIBUTEST_SOURCES})
+set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
+
+target_link_libraries(utest
+  PRIVATE
+    Boost::program_options
+  PUBLIC
+    -Wl,--start-group
+        ${PROJECT}
+        yandex-taxi-backend-common-cpp
+    -Wl,--end-group
+    libgtest
+    libgmock
+)
+
+target_include_directories(utest PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing
+)
+
+
+
 message("gtest: ${GTEST_LIBRARIES}")
-add_executable(${PROJECT}_unittest ${TEST_SOURCES})
+add_executable(${PROJECT}_unittest ${UNIT_TEST_SOURCES})
 target_link_libraries(${PROJECT}_unittest
   atomic
-  -Wl,--start-group
-  ${PROJECT}
-  yandex-taxi-backend-common-cpp
-  -Wl,--end-group
-  ${GTEST_LIBRARIES}
-  ${GMOCK_LIBRARIES}
-  ${Boost_PROGRAM_OPTIONS_LIBRARIES}
+  utest
 )
 
 add_google_tests(${PROJECT}_unittest)

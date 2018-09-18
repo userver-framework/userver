@@ -1,10 +1,9 @@
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
 
-#include <main_test.hpp>
 #include <utils/thread_name.hpp>
 
 TEST(ThreadName, Set) {
