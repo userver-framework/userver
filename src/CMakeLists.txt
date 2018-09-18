@@ -32,6 +32,7 @@ find_package(MongoClient REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest)
 find_package(ExternalProjectGBench)
+find_package(ExternalProjectOpenTracing)
 find_package(CurlYandex REQUIRED)
 
 add_library(${PROJECT} STATIC ${SOURCES})
@@ -42,6 +43,7 @@ target_link_libraries(${PROJECT}
     ${CMAKE_THREAD_LIBS_INIT}
     ${JEMALLOC_LIBRARIES}
     yandex-taxi-backend-common-cpp
+    libopentracing
   PRIVATE
     ${LIBCURL_YANDEX_LIBRARIES}
     ${ZLIB_LIBRARIES}

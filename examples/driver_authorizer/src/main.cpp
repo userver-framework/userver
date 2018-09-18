@@ -6,6 +6,7 @@
 
 #include <components/component_list.hpp>
 #include <components/thread_pool.hpp>
+#include <components/tracer.hpp>
 #include <logging/component.hpp>
 #include <server/component.hpp>
 #include <server/handlers/ping.hpp>
@@ -25,6 +26,7 @@ namespace driver_authorizer {
 
 const auto kComponentList = components::ComponentList()
                                 .Append<components::Logging>()
+                                .Append<components::Tracer>()
                                 .Append<components::Server>()
                                 .Append<server::handlers::TestsControl>()
                                 .Append<components::Secdist>()

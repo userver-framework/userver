@@ -10,6 +10,7 @@
 
 #include <server/http/http_error.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <tracing/tracing.hpp>
 
 namespace server {
 namespace handlers {
@@ -81,6 +82,9 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     bool log_request_headers =
         http_server_settings_ ? http_server_settings_->NeedLogRequestHeaders()
                               : false;
+
+    tracing::Span span =
+        tracing::Tracer::GetTracer()->CreateSpanWithoutParent("http_request");
 
     if (log_request) {
       logging::LogExtra log_extra(context.GetLogExtra());

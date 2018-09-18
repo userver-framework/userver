@@ -87,6 +87,10 @@
         "fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.json"
       },
       {
+        "name": "tracer",
+        "tracer": "noop"
+      },
+      {
         "name": "http-server-settings"
       },
       {

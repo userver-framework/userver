@@ -87,6 +87,10 @@
         "fallback_path": "taxi_config_fallback.development.json"
       },
       {
+        "name": "tracer",
+        "tracer": "noop"
+      },
+      {
         "name": "http-server-settings"
       },
       {
