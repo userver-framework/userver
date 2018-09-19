@@ -5,6 +5,10 @@
 #include <boost/lexical_cast.hpp>
 
 #include "engine/task/task_context.hpp"
+#include "log_config.hpp"
+#include "log_streambuf.hpp"
+#include "log_workaround.hpp"
+#include "tskv_stream.hpp"
 
 namespace logging {
 namespace {
@@ -42,17 +46,23 @@ LoggerPtr SetDefaultLogger(LoggerPtr logger) {
 }
 
 LogHelper::LogHelper(Level level, const char* path, int line, const char* func)
-    : log_msg_(&DefaultLogger()->name(),
-               static_cast<spdlog::level::level_enum>(level)) {
+    : buffer_{std::make_unique<MessageBuffer>(level)},
+      verbatim_stream_(buffer_.get()),
+      tskv_buffer_{std::make_unique<TskvBuffer>(buffer_->msg.raw)},
+      tskv_stream_(tskv_buffer_.get()) {
   LogModule(path, line, func);
   LogTaskIdAndCoroutineId();
   LogTextKey();  // This member outputs only a key without value
                  // This call must be the last in constructor
 }
 
+LogHelper::~LogHelper() noexcept(false) { DoLog(); }
+
 void LogHelper::DoLog() {
   AppendLogExtra();
-  DefaultLogger()->_sink_it(log_msg_);
+  verbatim_stream_.flush();
+  std::static_pointer_cast<LoggerWorkaroud>(DefaultLogger())
+      ->sink_it_(buffer_->msg);
 }
 
 void LogHelper::AppendLogExtra() {
@@ -62,39 +72,41 @@ void LogHelper::AppendLogExtra() {
   LogExtraValueVisitor visitor(*this);
 
   for (const auto& item : items) {
-    log_msg_.raw << utils::encoding::kTskvPairsSeparator;
-    utils::encoding::EncodeTskv(log_msg_.raw, item.first,
+    verbatim_stream_ << utils::encoding::kTskvPairsSeparator;
+    utils::encoding::EncodeTskv(verbatim_stream_, item.first,
                                 utils::encoding::EncodeTskvMode::kKey);
-    log_msg_.raw << utils::encoding::kTskvKeyValueSeparator;
+    verbatim_stream_ << utils::encoding::kTskvKeyValueSeparator;
     boost::apply_visitor(visitor, item.second.GetValue());
   }
 }
 
 void LogHelper::LogTextKey() {
-  log_msg_.raw << utils::encoding::kTskvPairsSeparator << "text"
-               << utils::encoding::kTskvKeyValueSeparator;
+  verbatim_stream_ << utils::encoding::kTskvPairsSeparator << "text"
+                   << utils::encoding::kTskvKeyValueSeparator;
 }
 
 void LogHelper::LogModule(const char* path, int line, const char* func) {
-  log_msg_.raw << "module" << utils::encoding::kTskvKeyValueSeparator << func
-               << " ( ";
-  *this << path;
-  log_msg_.raw << kPathLineSeparator << line << " ) ";
+  verbatim_stream_ << "module" << utils::encoding::kTskvKeyValueSeparator
+                   << func << " ( ";
+  verbatim_stream_ << path;
+  verbatim_stream_ << kPathLineSeparator << line << " ) ";
 }
 
 void LogHelper::LogTaskIdAndCoroutineId() {
   auto task = engine::current_task::GetCurrentTaskContextUnchecked();
   uint64_t task_id = task ? reinterpret_cast<uint64_t>(task) : 0;
   uint64_t coro_id = task ? task->GetCoroId() : 0;
-  log_msg_.raw << utils::encoding::kTskvPairsSeparator << "task_id"
-               << utils::encoding::kTskvKeyValueSeparator << task_id
-               << utils::encoding::kTskvPairsSeparator << "coro_id"
-               << utils::encoding::kTskvKeyValueSeparator << coro_id;
+  verbatim_stream_ << utils::encoding::kTskvPairsSeparator << "task_id"
+                   << utils::encoding::kTskvKeyValueSeparator << task_id
+                   << utils::encoding::kTskvPairsSeparator << "coro_id"
+                   << utils::encoding::kTskvKeyValueSeparator << coro_id;
 }
 
 LogHelper& operator<<(LogHelper& lh, std::thread::id id) {
   lh << boost::lexical_cast<std::string>(id);
   return lh;
 }
+
+void LogFlush() { DefaultLogger()->flush(); }
 
 }  // namespace logging

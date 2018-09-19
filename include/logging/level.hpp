@@ -5,29 +5,22 @@
 
 #include <string>
 
-#include <spdlog/common.h>
-
 namespace logging {
 
 /// Log levels
 enum class Level {
-  kTrace = spdlog::level::trace,
-  kDebug = spdlog::level::debug,
-  kInfo = spdlog::level::info,
-  kWarning = spdlog::level::warn,
-  kError = spdlog::level::err,
-  kCritical = spdlog::level::critical,
-  kNone = spdlog::level::off
+  kTrace = 0,
+  kDebug = 1,
+  kInfo = 2,
+  kWarning = 3,
+  kError = 4,
+  kCritical = 5,
+  kNone = 6
 };
 
 /// Converts lowercase level name to a corresponding Level
 Level LevelFromString(const std::string&);
 
-namespace impl {
+bool ShouldLog(Level level);
 
-inline spdlog::level::level_enum ToSpdlogLevel(Level level) {
-  return static_cast<spdlog::level::level_enum>(level);
-}
-
-}  // namespace impl
 }  // namespace logging

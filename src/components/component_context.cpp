@@ -26,7 +26,7 @@ void ComponentContext::ClearComponents() {
     } catch (const std::exception& ex) {
       LOG_CRITICAL() << "Exception while stopping component " << *it << ": "
                      << ex.what();
-      LOG_FLUSH();
+      logging::LogFlush();
       abort();
     }
     LOG_INFO() << "Stopped component " << *it;

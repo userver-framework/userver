@@ -8,11 +8,14 @@ file (GLOB_RECURSE SOURCES *.cpp)
 find_package(Boost REQUIRED COMPONENTS program_options)
 
 add_executable (${PROJECT} ${SOURCES})
-target_link_libraries (${PROJECT} 
+target_link_libraries (${PROJECT}
     yandex-taxi-userver
     ${Boost_PROGRAM_OPTIONS_LIBRARIES}
     ${JEMALLOC_LIBRARIES})
 
-target_include_directories (${PROJECT} PRIVATE
+# Include directories marked SYSTEM so that includes from external projects
+# do not generate warnings treated as errors
+target_include_directories (${PROJECT} SYSTEM PRIVATE
     $<TARGET_PROPERTY:yandex-taxi-userver,INCLUDE_DIRECTORIES>
 )
+

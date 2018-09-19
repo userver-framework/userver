@@ -22,6 +22,11 @@ file(GLOB_RECURSE LIBUTEST_SOURCES
 
 list (REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${LIBUTEST_SOURCES})
 
+file(GLOB_RECURSE BENCH_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*_benchmark.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp)
+list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
+
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -66,8 +71,10 @@ set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 
 target_include_directories(${PROJECT} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}
-  ${USERVER_THIRD_PARTY_DIRS} # FIXME move to private in TAXICOMMON-32
   ${JSONCPP_INCLUDE_DIR} # FIXME move to private in TAXICOMMON-15
+)
+target_include_directories(${PROJECT} SYSTEM PRIVATE
+  ${SPDLOG_INCLUDE_DIRS}
 )
 # FIXME: change to PRIVATE once we have interface
 target_include_directories(${PROJECT} PUBLIC
@@ -99,13 +106,36 @@ target_include_directories(utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing
 )
 
+target_include_directories(utest SYSTEM PRIVATE
+  ${SPDLOG_INCLUDE_DIRS}
+)
 
 
 message("gtest: ${GTEST_LIBRARIES}")
 add_executable(${PROJECT}_unittest ${UNIT_TEST_SOURCES})
+target_include_directories (${PROJECT}_unittest SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${PROJECT},INCLUDE_DIRECTORIES>
+)
 target_link_libraries(${PROJECT}_unittest
   atomic
   utest
 )
 
 add_google_tests(${PROJECT}_unittest)
+
+add_executable(${PROJECT}_benchmark ${BENCH_SOURCES})
+target_include_directories (${PROJECT}_benchmark SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${PROJECT},INCLUDE_DIRECTORIES>
+)
+target_include_directories(${PROJECT}_benchmark SYSTEM PRIVATE
+  ${GBENCH_INCLUDE_DIRS}
+)
+
+target_link_libraries(${PROJECT}_benchmark
+  atomic
+  -Wl,--start-group
+  ${PROJECT}
+  yandex-taxi-backend-common-cpp
+  -Wl,--end-group
+  ${GBENCH_LIBRARIES}
+)

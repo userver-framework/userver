@@ -22,6 +22,12 @@ class EncodeTskvPutCharDefault {
 };
 
 template <>
+class EncodeTskvPutCharDefault<std::ostream> {
+ public:
+  void operator()(std::ostream& to, char ch) const { to.put(ch); }
+};
+
+template <>
 class EncodeTskvPutCharDefault<std::string> {
  public:
   void operator()(std::string& to, char ch) const { to.push_back(ch); }

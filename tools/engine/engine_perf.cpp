@@ -8,6 +8,7 @@
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
+#include <logging/log_config.hpp>
 
 namespace {
 

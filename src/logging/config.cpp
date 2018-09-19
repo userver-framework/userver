@@ -57,6 +57,11 @@ LoggerConfig LoggerConfig::ParseFromJson(
     config.queue_overflow_behavior =
         OverflowBehaviorFromString(*optional_overflow_behavior);
 
+  auto optional_thread_pool_size = json_config::ParseOptionalUint64(
+      json, "thread_pool_size", full_path, config_vars_ptr);
+  if (optional_thread_pool_size)
+    config.thread_pool_size = *optional_thread_pool_size;
+
   return config;
 }
 

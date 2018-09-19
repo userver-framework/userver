@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <fcntl.h>
 #include <utest/utest.hpp>
 #include "io_watcher.hpp"
 #include "logging/log.hpp"

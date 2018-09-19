@@ -11,14 +11,19 @@ include(CheckSubmodule)
 
 check_submodule(${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp CMakeLists.txt)
 add_subdirectory(backend-common-cpp)
+
 # For logger
+find_package(ExternalProjectSpdlog)
 target_include_directories(
     yandex-taxi-backend-common-cpp
     PRIVATE
     src/
     PUBLIC
-    third_party/
     include/
+)
+target_include_directories(
+    yandex-taxi-backend-common-cpp SYSTEM PRIVATE
+    ${SPDLOG_INCLUDE_DIRS}
 )
 
 add_subdirectory(src)

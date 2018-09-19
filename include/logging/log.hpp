@@ -4,8 +4,8 @@
 /// @brief Logging helpers
 
 #include <memory>
+#include <thread>
 
-#include <spdlog/common.h>
 #include <boost/system/error_code.hpp>
 
 #include <utils/encoding/hex.hpp>
@@ -23,6 +23,10 @@ LoggerPtr DefaultLogger();
 /// Atomically replaces default logger and returns the old one
 LoggerPtr SetDefaultLogger(LoggerPtr);
 
+// Forward declaration for message buffer implementation
+class MessageBuffer;
+class TskvBuffer;
+
 /// Stream-like tskv-formatted log message builder
 class LogHelper {
  public:
@@ -32,7 +36,7 @@ class LogHelper {
   /// @param line line of the source file that generated the message
   /// @param func name of the function that generated the message
   LogHelper(Level level, const char* path, int line, const char* func);
-  ~LogHelper() noexcept(false) { DoLog(); }
+  ~LogHelper() noexcept(false);
 
   template <typename T>
   friend LogHelper&& operator<<(LogHelper&& lh, const T& value) {
@@ -46,17 +50,17 @@ class LogHelper {
   }
 
   friend LogHelper& operator<<(LogHelper& lh, const void* value) {
-    lh.log_msg_.raw << reinterpret_cast<unsigned long long>(value);
+    lh.verbatim_stream_ << reinterpret_cast<unsigned long long>(value);
     return lh;
   }
 
   friend LogHelper& operator<<(LogHelper& lh, void* value) {
-    lh.log_msg_.raw << reinterpret_cast<unsigned long long>(value);
+    lh.verbatim_stream_ << reinterpret_cast<unsigned long long>(value);
     return lh;
   }
 
   friend LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
-    lh.log_msg_.raw << ec.category().name() << ':' << ec.value();
+    lh.verbatim_stream_ << ec.category().name() << ':' << ec.value();
     return lh;
   }
 
@@ -65,7 +69,7 @@ class LogHelper {
       typename std::enable_if<!utils::encoding::TypeNeedsEncodeTskv<T>::value,
                               LogHelper&>::type
       operator<<(LogHelper& lh, const T& value) {
-    lh.log_msg_.raw << value;
+    lh.verbatim_stream_ << value;
     return lh;
   }
 
@@ -73,8 +77,7 @@ class LogHelper {
   friend typename std::enable_if<utils::encoding::TypeNeedsEncodeTskv<T>::value,
                                  LogHelper&>::type
   operator<<(LogHelper& lh, const T& value) {
-    utils::encoding::EncodeTskv(lh.log_msg_.raw, value,
-                                utils::encoding::EncodeTskvMode::kValue);
+    lh.tskv_stream_ << value;
     return lh;
   }
 
@@ -91,7 +94,10 @@ class LogHelper {
   void LogModule(const char* path, int line, const char* func);
   void LogTaskIdAndCoroutineId();
 
-  spdlog::details::log_msg log_msg_;
+  std::unique_ptr<MessageBuffer> buffer_;
+  std::ostream verbatim_stream_;
+  std::unique_ptr<TskvBuffer> tskv_buffer_;
+  std::ostream tskv_stream_;
   LogExtra extra_;
 };
 
@@ -103,15 +109,16 @@ inline LogHelper& operator<<(LogHelper& lh, std::error_code ec) {
 
 LogHelper& operator<<(LogHelper& lh, std::thread::id id);
 
+/// Forces flush of default logger message queue
+void LogFlush();
+
 }  // namespace logging
 
 /// @brief Builds a stream and evaluates a message for the default logger
 /// if lvl matches the verbosity, otherwise the message is not evaluated
 /// @hideinitializer
-#define LOG(lvl)                                                \
-  for (bool _need_log = ::logging::DefaultLogger()->should_log( \
-           ::logging::impl::ToSpdlogLevel(lvl));                \
-       _need_log; _need_log = false)                            \
+#define LOG(lvl)                                                      \
+  for (bool _need_log = ShouldLog(lvl); _need_log; _need_log = false) \
   ::logging::LogHelper(lvl, FILENAME, __LINE__, __func__)
 
 #define LOG_TRACE() LOG(::logging::Level::kTrace)
@@ -120,6 +127,3 @@ LogHelper& operator<<(LogHelper& lh, std::thread::id id);
 #define LOG_WARNING() LOG(::logging::Level::kWarning)
 #define LOG_ERROR() LOG(::logging::Level::kError)
 #define LOG_CRITICAL() LOG(::logging::Level::kCritical)
-
-/// Forces flush of default logger message queue
-#define LOG_FLUSH() ::logging::DefaultLogger()->flush()

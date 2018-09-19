@@ -3,14 +3,16 @@
 #include <chrono>
 #include <stdexcept>
 
-#include <spdlog/async_logger.h>
-#include <spdlog/common.h>
-#include <spdlog/details/log_msg.h>
-#include <spdlog/sinks/file_sinks.h>
+// this header must be included before any spdlog headers
+// to override spdlog's level names
+#include <logging/log_config.hpp>
+
+#include <spdlog/async.h>
 
 #include <json_config/value.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
+#include <logging/reopening_file_sink.hpp>
 
 #include "config.hpp"
 
@@ -33,23 +35,25 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
     auto logger_config = logging::LoggerConfig::ParseFromJson(
         *it, logger_full_path, config.ConfigVarsPtr());
 
-    auto overflow_policy = spdlog::async_overflow_policy::discard_log_msg;
+    auto overflow_policy = spdlog::async_overflow_policy::overrun_oldest;
     if (logger_config.queue_overflow_behavior ==
         logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
-      overflow_policy = spdlog::async_overflow_policy::block_retry;
+      overflow_policy = spdlog::async_overflow_policy::block;
     }
 
-    auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-        logger_config.file_path, /*max_size=*/-1,
-        /*max_files=*/0);
+    auto file_sink =
+        std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
+    spdlog::init_thread_pool(logger_config.message_queue_size,
+                             logger_config.thread_pool_size);
     auto logger = std::make_shared<spdlog::async_logger>(
-        logger_name, std::move(file_sink), logger_config.message_queue_size,
-        overflow_policy, nullptr, kDefaultFlushInterval);
+        logger_name, std::move(file_sink), spdlog::thread_pool(),
+        overflow_policy);
     logger->set_level(
         static_cast<spdlog::level::level_enum>(logger_config.level));
     logger->set_pattern(logger_config.pattern);
     logger->flush_on(
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
+    spdlog::flush_every(kDefaultFlushInterval);
 
     if (logger_name == "default") {
       logging::SetDefaultLogger(std::move(logger));
@@ -73,21 +77,14 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
 }
 
 void Logging::OnLogRotate() {
-  spdlog::details::log_msg rotate_msg;
-  rotate_msg.level = spdlog::level::off;  // covers all log levels
-  rotate_msg.rotate_only = true;
-
-  // this must be a copy
-  auto default_logger = logging::DefaultLogger();
-  rotate_msg.logger_name = &default_logger->name();
-  default_logger->_sink_it(rotate_msg);
-
   for (const auto& item : loggers_) {
-    const auto& name = item.first;
-    const auto& logger = item.second;
-
-    rotate_msg.logger_name = &name;
-    logger->_sink_it(rotate_msg);
+    auto& sinks = item.second->sinks();
+    for (auto s : sinks) {
+      auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
+      if (reop)
+        // TODO Handle exceptions here
+        reop->Reopen(true);
+    }
   }
 }
 

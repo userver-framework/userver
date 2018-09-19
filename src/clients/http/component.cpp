@@ -26,7 +26,7 @@ clients::http::Client& HttpClient::GetHttpClient() {
   if (!http_client_) {
     LOG_ERROR() << "Asking for http client after components::HttpClient "
                    "destructor is called.";
-    LOG_FLUSH();
+    logging::LogFlush();
     abort();
   }
   return *http_client_;

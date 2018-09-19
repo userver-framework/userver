@@ -10,7 +10,7 @@ ExternalProject_Add(
         GIT_TAG v1.4.0
         TIMEOUT 10
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
-        CMAKE_ARGS -DBENCHMARK_ENABLE_GTEST_TESTS=OFF -DBENCHMARK_ENABLE_TESTING=OFF
+        CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DBENCHMARK_ENABLE_GTEST_TESTS=OFF -DBENCHMARK_ENABLE_TESTING=OFF
         # Disable install step
         INSTALL_COMMAND ""
         # Disable update command, since we use predefined stable version
@@ -22,7 +22,7 @@ ExternalProject_Add(
 
 ExternalProject_Get_Property(gbench source_dir binary_dir)
 
-set (GBENCH_INCLUDE_DIRS ${source_dir}/inlcude)
+set (GBENCH_INCLUDE_DIRS ${source_dir}/include)
 file (MAKE_DIRECTORY ${GBENCH_INCLUDE_DIRS})
 
 add_library(libbenchmark IMPORTED STATIC GLOBAL)

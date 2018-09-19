@@ -3,9 +3,15 @@
 /// @file logging/logger.hpp
 /// @brief Logger definitions and helpers
 
+#include <memory>
 #include <string>
 
-#include <spdlog/spdlog.h>
+// Forwards for spdlog
+namespace spdlog {
+
+class logger;
+
+}  // namespace spdlog
 
 namespace logging {
 
