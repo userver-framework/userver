@@ -1,3 +1,27 @@
+yandex-taxi-userver (0.1.20) unstable; urgency=low
+
+  Release ticket https://st.yandex-team.ru/TAXIREL-2939
+
+  * Antony Polukhin | feat userver: make a separate target for userver based tests (#112)
+  * Vasily Kulikov | feat: add basic opentracing support (#113)
+  * Sergei Fedorov | feat: add Google Benchmark library (#110)
+  * Sergei Fedorov |  feat common: add default CommandControl for Redis (#107)
+  * Vasily Kulikov | feat: add PeriodicTask (#105)
+  * Andrey Bugaevskiy | feat mongo: use local task processor in component (#99)
+  * Sergei Fedorov | feat common: log task_id and coro_id (#104)
+  * Vasily Kulikov | feat: add unittests from backend-common-cpp (#103)
+  * Antony Polukhin | feat userver: option for disabling testsuite run (#101)
+  * Andrey Bugaevskiy | bug testsuite: fix daemon startup timeout (#102)
+  * Antony Polukhin | feat userver: move common setup to SetupEnvironment and add some twea… (#97)
+  * Vasily Kulikov | bug redis: kill unusable redis instance (#16) | backend-common-cpp
+  * Vasily Kulikov | fix redis: ignore READONLY error (#23) | backend-common-cpp
+  * Vasily Kulikov | bug redis: fix AUTH/READONLY/PING error handling (#21) | backend-common-cpp
+  * Andrey Bugaevskiy | bug daemons: fix _service_wait for self-serving daemons (#12) | submodules/testsuite
+  * Victor Makarov | py3 basic compatibility (#11) | submodules/testsuite
+  * Victor Makarov | Add gitignore file (#10) | submodules/testsuite
+
+ -- buildfarm <buildfarm@yandex-team.ru>  Wed, 19 Sep 2018 12:25:32 +0300
+
 yandex-taxi-userver (0.1.19) unstable; urgency=low
 
   Release ticket https://st.yandex-team.ru/TAXIREL-2848
