@@ -15,10 +15,10 @@ namespace net {
 struct ListenerConfig {
   ConnectionConfig connection_config;
   uint16_t port = 80;
-  boost::optional<uint16_t> monitor_port;
   int backlog = 1024;  // truncated to net.core.somaxconn
   size_t max_connections = 32768;
   boost::optional<size_t> shards;
+  std::string task_processor;
 
   static ListenerConfig ParseFromJson(
       const formats::json::Value& json, const std::string& full_path,

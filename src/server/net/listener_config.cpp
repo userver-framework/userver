@@ -30,16 +30,6 @@ ListenerConfig ListenerConfig::ParseFromJson(
       json_config::ParseOptionalInt(json, "port", full_path, config_vars_ptr);
   if (optional_port)
     config.port = CheckPort(*optional_port, full_path + ".port");
-  auto optional_monitor_port = json_config::ParseOptionalInt(
-      json, "monitor_port", full_path, config_vars_ptr);
-  if (optional_monitor_port) {
-    config.monitor_port =
-        CheckPort(*optional_monitor_port, full_path + ".monitor_port");
-    if (config.port == *config.monitor_port) {
-      throw std::runtime_error(
-          "Same port used for requests and monitoring in " + full_path);
-    }
-  }
 
   auto optional_backlog = json_config::ParseOptionalInt(
       json, "backlog", full_path, config_vars_ptr);
@@ -55,7 +45,8 @@ ListenerConfig ListenerConfig::ParseFromJson(
 
   config.shards = json_config::ParseOptionalUint64(json, "shards", full_path,
                                                    config_vars_ptr);
-
+  config.task_processor = json_config::ParseString(json, "task_processor",
+                                                   full_path, config_vars_ptr);
   return config;
 }
 

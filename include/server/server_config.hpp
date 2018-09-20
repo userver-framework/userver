@@ -13,9 +13,9 @@ namespace server {
 
 struct ServerConfig {
   net::ListenerConfig listener;
+  net::ListenerConfig monitor_listener;
   boost::optional<std::string> logger_access;
   boost::optional<std::string> logger_access_tskv;
-  std::string task_processor;
 
   json_config::VariableMapPtr config_vars_ptr;
 

@@ -26,57 +26,25 @@ namespace {
 // used for remote address buffer size
 const size_t kMaxRemoteIdLength = INET6_ADDRSTRLEN;
 
-std::unique_ptr<request::RequestParser> GetRequestParser(
-    const request::RequestConfig& config, Connection::Type type,
-    std::function<void(std::unique_ptr<request::RequestBase>&&)> on_new_request,
-    const RequestHandlers& request_handlers) {
-  if (type == Connection::Type::kMonitor ||
-      config.GetType() == request::RequestConfig::Type::kHttp) {
-    auto request_parser = std::make_unique<http::HttpRequestParser>(
-        (type == Connection::Type::kMonitor
-             ? request_handlers.GetMonitorRequestHandler()
-             : request_handlers.GetHttpRequestHandler()),
-        config, std::move(on_new_request));
-    return request_parser;
-  }
-  throw std::runtime_error(
-      "unknown request type: " +
-      request::RequestConfig::TypeToString(config.GetType()));
-}
-
-const request::RequestHandlerBase& GetRequestHandler(
-    const request::RequestConfig& config, Connection::Type type,
-    const RequestHandlers& request_handlers) {
-  if (type == Connection::Type::kMonitor)
-    return request_handlers.GetMonitorRequestHandler();
-  if (config.GetType() == request::RequestConfig::Type::kHttp)
-    return request_handlers.GetHttpRequestHandler();
-  throw std::runtime_error(
-      "unknown request type: " +
-      request::RequestConfig::TypeToString(config.GetType()));
-}
-
 }  // namespace
 
 Connection::Connection(engine::ev::ThreadControl& thread_control,
                        engine::TaskProcessor& task_processor, int fd,
                        const ConnectionConfig& config, Type type,
-                       const RequestHandlers& request_handlers,
+                       const http::HttpRequestHandler& request_handler,
                        const sockaddr_in6& sin6, BeforeCloseCb before_close_cb)
     : task_processor_(task_processor),
       config_(config),
       type_(type),
-      request_handler_(
-          GetRequestHandler(*config_.request, type, request_handlers)),
+      request_handler_(request_handler),
       request_tasks_sent_idx_(0),
       is_request_tasks_full_(false),
       before_close_cb_(std::move(before_close_cb)),
-      request_parser_(GetRequestParser(
-          *config_.request, type,
+      request_parser_(std::make_unique<http::HttpRequestParser>(
+          request_handler, *config_.request,
           [this](std::unique_ptr<request::RequestBase>&& request_ptr) {
             NewRequest(std::move(request_ptr));
-          },
-          request_handlers)),
+          })),
       is_closing_(false),
       processed_requests_count_(0),
       socket_listener_stopped_{false} {

@@ -17,6 +17,12 @@
         "worker_threads": "$main_worker_threads",
         "worker_threads#fallback": 8,
         "thread_name": "main-worker"
+      },
+      {
+        "name": "monitor-task-processor",
+        "worker_threads": "$monitor_worker_threads",
+        "worker_threads#fallback": 3,
+        "thread_name": "monitor-worker"
       }
     ],
     "default_task_processor": "main-task-processor",
@@ -49,12 +55,19 @@
           },
           "port": "$server_port",
           "port#fallback": 1180,
-          "monitor_port": "$server_monitor_port",
-          "monitor_port#fallback": 1188
+          "task_processor": "main-task-processor"
+        },
+        "listener-monitor": {
+          "connection": {
+            "in_buffer_size": 32768,
+            "requests_queue_size_threshold": 100
+          },
+          "port": "$monitor_server_port",
+          "port#fallback": 1188,
+          "task_processor": "monitor-task-processor"
         },
         "logger_access": "",
-        "logger_access_tskv": "",
-        "task_processor": "main-task-processor"
+        "logger_access_tskv": ""
       },
       {
         "name": "secdist",
@@ -96,7 +109,7 @@
       {
         "name": "handler-server-monitor",
         "path": "/*",
-        "task_processor": "main-task-processor"
+        "task_processor": "monitor-task-processor"
       },
       {
         "name": "tests-control",

@@ -56,7 +56,6 @@ class ListenerImpl : public engine::ev::ThreadControl {
   std::atomic<size_t> pending_close_connection_count_;
 
   std::shared_ptr<engine::SocketListener> request_socket_listener_;
-  std::shared_ptr<engine::SocketListener> monitor_socket_listener_;
 };
 
 }  // namespace net

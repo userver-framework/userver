@@ -107,7 +107,7 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
       engine::SocketListener::ListenMode::kRead,
       [this](int fd) {
         try {
-          AcceptConnection(fd, Connection::Type::kRequest);
+          AcceptConnection(fd, endpoint_info_->connection_type);
         } catch (const std::exception& ex) {
           LOG_ERROR() << "can't accept connection: " << ex.what();
         }
@@ -115,20 +115,6 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
       },
       nullptr);
   request_socket_listener_->Start();
-
-  if (endpoint_info_->listener_config.monitor_port) {
-    int monitor_fd = CreateSocket(*endpoint_info_->listener_config.monitor_port,
-                                  endpoint_info_->listener_config.backlog);
-    monitor_socket_listener_ = std::make_shared<engine::SocketListener>(
-        *this, task_processor_, monitor_fd,
-        engine::SocketListener::ListenMode::kRead,
-        [this](int fd) {
-          AcceptConnection(fd, Connection::Type::kMonitor);
-          return engine::SocketListener::Result::kOk;
-        },
-        nullptr);
-    monitor_socket_listener_->Start();
-  }
 }
 
 ListenerImpl::~ListenerImpl() {
@@ -145,19 +131,11 @@ ListenerImpl::~ListenerImpl() {
 
   close(request_socket_listener_->Fd());
   LOG_TRACE() << "Closed request fd " << request_socket_listener_->Fd();
-  if (monitor_socket_listener_) {
-    LOG_TRACE() << "Closing monitor fd " << monitor_socket_listener_->Fd();
-    monitor_socket_listener_->Stop();
-    close(monitor_socket_listener_->Fd());
-    LOG_TRACE() << "Closed monitor fd " << monitor_socket_listener_->Fd();
-  }
 
   std::lock_guard<engine::Mutex> lock(connections_mutex_);
   for (auto& item : connections_) {
     int fd = item.first;
     auto& connection_ptr = item.second;
-    if (connection_ptr->GetType() != Connection::Type::kMonitor)
-      past_processed_requests_count_ += connection_ptr->ProcessedRequestCount();
 
     LOG_TRACE() << "Destroying connection for fd " << fd;
     connection_ptr.reset();
@@ -177,7 +155,6 @@ Stats ListenerImpl::GetStats() const {
     std::lock_guard<engine::Mutex> lock(connections_mutex_);
     for (const auto& item : connections_) {
       const auto& connection_ptr = item.second;
-      if (connection_ptr->GetType() == Connection::Type::kMonitor) continue;
       ++active_connections;
       total_processed_requests += connection_ptr->ProcessedRequestCount();
       stats.active_requests.Add(connection_ptr->ActiveRequestCount());
@@ -209,19 +186,17 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
                           "accepting connection");
 
   auto new_connection_count = ++endpoint_info_->connection_count;
-  if (type != Connection::Type::kMonitor) {
-    ++opened_connection_count_;
-    if (new_connection_count >
-        endpoint_info_->listener_config.max_connections) {
-      LOG_WARNING() << "Reached connection limit, dropping connection #"
-                    << new_connection_count << '/'
-                    << endpoint_info_->listener_config.max_connections;
-      utils::CheckSyscall(close(fd), "closing connection");
-      --endpoint_info_->connection_count;
-      ++closed_connection_count_;
-      return;
-    }
+  ++opened_connection_count_;
+  if (new_connection_count > endpoint_info_->listener_config.max_connections) {
+    LOG_WARNING() << "Reached connection limit, dropping connection #"
+                  << new_connection_count << '/'
+                  << endpoint_info_->listener_config.max_connections;
+    utils::CheckSyscall(close(fd), "closing connection");
+    --endpoint_info_->connection_count;
+    ++closed_connection_count_;
+    return;
   }
+
   LOG_DEBUG() << "Accepted connection #" << new_connection_count << '/'
               << endpoint_info_->listener_config.max_connections;
   ++pending_setup_connection_count_;
@@ -248,7 +223,7 @@ void ListenerImpl::SetupConnection(int fd, Connection::Type type,
   auto connection_ptr = std::make_unique<Connection>(
       *this, task_processor_, fd,
       endpoint_info_->listener_config.connection_config, type,
-      endpoint_info_->request_handlers, addr,
+      endpoint_info_->request_handler, addr,
       [this](int fd) { EnqueueConnectionClose(fd); });
   LOG_TRACE() << "Registering connection for fd " << fd;
   auto connection_handle = [this, fd, &connection_ptr] {

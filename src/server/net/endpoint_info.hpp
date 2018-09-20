@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include <server/request_handlers/request_handlers.hpp>
+#include <server/net/connection.hpp>
 
 #include "listener_config.hpp"
 
@@ -10,10 +10,11 @@ namespace server {
 namespace net {
 
 struct EndpointInfo {
-  EndpointInfo(const ListenerConfig&, RequestHandlers&);
+  EndpointInfo(const ListenerConfig&, http::HttpRequestHandler&);
 
   const ListenerConfig& listener_config;
-  RequestHandlers& request_handlers;
+  http::HttpRequestHandler& request_handler;
+  Connection::Type connection_type;
 
   std::atomic<size_t> connection_count;
 };

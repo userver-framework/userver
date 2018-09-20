@@ -6,10 +6,10 @@
 #include <server/server_config.hpp>
 
 #include <engine/task/task_processor.hpp>
+#include <server/http/http_request_handler.hpp>
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
-#include <server/request_handlers/request_handlers.hpp>
 
 namespace {
 
@@ -45,46 +45,88 @@ class ServerImpl {
   ~ServerImpl();
 
   net::Stats GetServerStats() const;
-  std::unique_ptr<RequestHandlers> CreateRequestHandlers(
-      const components::ComponentContext& component_context) const;
 
   const ServerConfig config_;
 
-  std::unique_ptr<RequestHandlers> request_handlers_;
-  std::shared_ptr<net::EndpointInfo> endpoint_info_;
+  struct PortInfo {
+    std::unique_ptr<http::HttpRequestHandler> request_handler_;
+    std::shared_ptr<net::EndpointInfo> endpoint_info_;
+    std::vector<net::Listener> listeners_;
+
+    void Start();
+
+    void Stop();
+  };
+
+  static void InitPortInfo(
+      PortInfo& info, const ServerConfig& config,
+      const net::ListenerConfig& listener_config,
+      const components::ComponentContext& component_context, bool is_monitor);
+
+  PortInfo main_port_info_, monitor_port_info_;
 
   mutable std::shared_timed_mutex stat_mutex_;
-  std::vector<net::Listener> listeners_;
   bool is_destroying_;
 };
+
+void ServerImpl::PortInfo::Stop() {
+  LOG_TRACE() << "Stopping listeners";
+  listeners_.clear();
+  LOG_TRACE() << "Stopped listeners";
+
+  LOG_TRACE() << "Stopping request handlers";
+  request_handler_.reset();
+  LOG_TRACE() << "Stopped request handlers";
+}
+
+void ServerImpl::PortInfo::Start() {
+  request_handler_->DisableAddHandler();
+  for (auto& listener : listeners_) {
+    listener.Start();
+  }
+}
 
 ServerImpl::ServerImpl(ServerConfig config,
                        const components::ComponentContext& component_context)
     : config_(std::move(config)), is_destroying_(false) {
   LOG_INFO() << "Creating server";
 
-  engine::TaskProcessor* task_processor =
-      component_context.GetTaskProcessor(config_.task_processor);
-  if (!task_processor) {
-    throw std::runtime_error("can't find task_processor '" +
-                             config_.task_processor + "' for server");
-  }
-
-  request_handlers_ = CreateRequestHandlers(component_context);
-
-  endpoint_info_ =
-      std::make_shared<net::EndpointInfo>(config_.listener, *request_handlers_);
-
-  auto& event_thread_pool = task_processor->EventThreadPool();
-  size_t listener_shards = config_.listener.shards ? *config_.listener.shards
-                                                   : event_thread_pool.size();
-  auto event_thread_controls = event_thread_pool.NextThreads(listener_shards);
-  for (auto* event_thread_control : event_thread_controls) {
-    listeners_.emplace_back(endpoint_info_, *task_processor,
-                            *event_thread_control);
-  }
+  InitPortInfo(main_port_info_, config, config_.listener, component_context,
+               false);
+  InitPortInfo(monitor_port_info_, config, config_.monitor_listener,
+               component_context, true);
 
   LOG_INFO() << "Server is created";
+}
+
+void ServerImpl::InitPortInfo(
+    PortInfo& info, const ServerConfig& config,
+    const net::ListenerConfig& listener_config,
+    const components::ComponentContext& component_context, bool is_monitor) {
+  LOG_INFO() << "Creating listener" << (is_monitor ? " (monitor)" : "");
+
+  engine::TaskProcessor* task_processor =
+      component_context.GetTaskProcessor(listener_config.task_processor);
+  if (!task_processor) {
+    throw std::runtime_error("can't find task_processor '" +
+                             listener_config.task_processor + "' for server");
+  }
+
+  info.request_handler_ = std::make_unique<http::HttpRequestHandler>(
+      component_context, config.logger_access, config.logger_access_tskv,
+      is_monitor);
+
+  info.endpoint_info_ = std::make_shared<net::EndpointInfo>(
+      listener_config, *info.request_handler_);
+
+  auto& event_thread_pool = task_processor->EventThreadPool();
+  size_t listener_shards = listener_config.shards ? *listener_config.shards
+                                                  : event_thread_pool.size();
+  auto event_thread_controls = event_thread_pool.NextThreads(listener_shards);
+  for (auto* event_thread_control : event_thread_controls) {
+    info.listeners_.emplace_back(info.endpoint_info_, *task_processor,
+                                 *event_thread_control);
+  }
 }
 
 ServerImpl::~ServerImpl() {
@@ -93,12 +135,9 @@ ServerImpl::~ServerImpl() {
     is_destroying_ = true;
   }
   LOG_INFO() << "Stopping server";
-  LOG_TRACE() << "Stopping listeners";
-  listeners_.clear();
-  LOG_TRACE() << "Stopped listeners";
-  LOG_TRACE() << "Stopping request handlers";
-  request_handlers_.reset();
-  LOG_TRACE() << "Stopped request handlers";
+
+  main_port_info_.Stop();
+  monitor_port_info_.Stop();
   LOG_INFO() << "Stopped server";
 }
 
@@ -149,19 +188,15 @@ formats::json::Value Server::GetMonitorData(
 
 bool Server::AddHandler(const handlers::HandlerBase& handler,
                         const components::ComponentContext& component_context) {
-  return (handler.IsMonitor()
-              ? pimpl->request_handlers_->GetMonitorRequestHandler()
-              : pimpl->request_handlers_->GetHttpRequestHandler())
-      .AddHandler(handler, component_context);
+  return (handler.IsMonitor() ? pimpl->monitor_port_info_.request_handler_
+                              : pimpl->main_port_info_.request_handler_)
+      ->AddHandler(handler, component_context);
 }
 
 void Server::Start() {
   LOG_INFO() << "Starting server";
-  pimpl->request_handlers_->GetMonitorRequestHandler().DisableAddHandler();
-  pimpl->request_handlers_->GetHttpRequestHandler().DisableAddHandler();
-  for (auto& listener : pimpl->listeners_) {
-    listener.Start();
-  }
+  pimpl->main_port_info_.Start();
+  pimpl->monitor_port_info_.Start();
   LOG_INFO() << "Server is started";
 }
 
@@ -170,34 +205,11 @@ net::Stats ServerImpl::GetServerStats() const {
 
   std::shared_lock<std::shared_timed_mutex> lock(stat_mutex_);
   if (is_destroying_) return summary;
-  for (const auto& listener : listeners_) {
+  for (const auto& listener : main_port_info_.listeners_) {
     summary += listener.GetStats();
   }
-  return summary;
-}
 
-std::unique_ptr<RequestHandlers> ServerImpl::CreateRequestHandlers(
-    const components::ComponentContext& component_context) const {
-  auto request_handlers = std::make_unique<RequestHandlers>();
-  try {
-    request_handlers->SetHttpRequestHandler(
-        std::make_unique<http::HttpRequestHandler>(
-            component_context, config_.logger_access,
-            config_.logger_access_tskv, false));
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << "can't create HttpRequestHandler: " << ex.what();
-    throw;
-  }
-  try {
-    request_handlers->SetMonitorRequestHandler(
-        std::make_unique<http::HttpRequestHandler>(
-            component_context, config_.logger_access,
-            config_.logger_access_tskv, true));
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << "can't create MonitorRequestHandler: " << ex.what();
-    throw;
-  }
-  return request_handlers;
+  return summary;
 }
 
 }  // namespace server

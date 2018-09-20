@@ -18,6 +18,8 @@ def flatten_json(prefix, obj):
             result.update(values)
         elif isinstance(value, numbers.Number):
             result[prefixed_key] = value
+        elif isinstance(value, str):
+            result[prefixed_key] = value
     return result
 
 

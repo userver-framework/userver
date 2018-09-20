@@ -17,10 +17,10 @@
 #include <engine/sender.hpp>
 #include <engine/socket_listener.hpp>
 #include <engine/task/task_processor.hpp>
+#include <server/http/http_request_handler.hpp>
 #include <server/request/request_handler_base.hpp>
 #include <server/request/request_parser.hpp>
 #include <server/request/request_task.hpp>
-#include <server/request_handlers/request_handlers.hpp>
 
 #include "connection_config.hpp"
 
@@ -36,8 +36,8 @@ class Connection {
   Connection(engine::ev::ThreadControl& thread_control,
              engine::TaskProcessor& task_processor, int fd,
              const ConnectionConfig& config, Type type,
-             const RequestHandlers& request_handlers, const sockaddr_in6& sin6,
-             BeforeCloseCb before_close_cb);
+             const http::HttpRequestHandler& request_handler,
+             const sockaddr_in6& sin6, BeforeCloseCb before_close_cb);
   ~Connection();
 
   void Start();

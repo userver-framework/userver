@@ -10,12 +10,14 @@ ServerConfig ServerConfig::ParseFromJson(
   ServerConfig config;
   config.listener = net::ListenerConfig::ParseFromJson(
       json["listener"], full_path + ".listener", config_vars_ptr);
+  config.monitor_listener = net::ListenerConfig::ParseFromJson(
+      json["listener-monitor"], full_path + ".listener-monitor",
+      config_vars_ptr);
+
   config.logger_access = json_config::ParseOptionalString(
       json, "logger_access", full_path, config_vars_ptr);
   config.logger_access_tskv = json_config::ParseOptionalString(
       json, "logger_access_tskv", full_path, config_vars_ptr);
-  config.task_processor = json_config::ParseString(json, "task_processor",
-                                                   full_path, config_vars_ptr);
   return config;
 }
 
