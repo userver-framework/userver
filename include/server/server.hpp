@@ -1,6 +1,6 @@
 #pragma once
 
-#include <json/value.h>
+#include <formats/json/value.hpp>
 
 #include <components/component_context.hpp>
 #include <components/manager.hpp>
@@ -18,7 +18,8 @@ class Server {
   ~Server();
 
   const ServerConfig& GetConfig() const;
-  Json::Value GetMonitorData(components::MonitorVerbosity verbosity) const;
+  formats::json::Value GetMonitorData(
+      components::MonitorVerbosity verbosity) const;
   bool AddHandler(const handlers::HandlerBase& handler,
                   const components::ComponentContext& component_context);
 

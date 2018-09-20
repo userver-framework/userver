@@ -1,7 +1,7 @@
 #include "http_handler_json_base.hpp"
 
-#include <json/reader.h>
-#include <json/writer.h>
+#include <formats/json/exception.hpp>
+#include <formats/json/serialize.hpp>
 
 #include <server/http/http_error.hpp>
 
@@ -15,19 +15,17 @@ HttpHandlerJsonBase::HttpHandlerJsonBase(
 
 std::string HttpHandlerJsonBase::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext& context) const {
-  Json::Reader reader;
-  Json::Value request_json;
-
-  if (!reader.parse(request.RequestBody(), request_json)) {
-    throw http::BadRequest(
-        "Invalid JSON body",
-        "Invalid JSON body: " + reader.getFormattedErrorMessages());
+  formats::json::Value request_json;
+  try {
+    request_json = formats::json::FromString(request.RequestBody());
+  } catch (const formats::json::JsonException& e) {
+    throw http::BadRequest("Invalid JSON body",
+                           std::string("Invalid JSON body: ") + e.what());
   }
 
-  Json::Value response_json =
+  formats::json::Value response_json =
       HandleRequestJsonThrow(request, request_json, context);
-  Json::FastWriter writer;
-  return writer.write(response_json);
+  return formats::json::ToString(response_json);
 }
 
 }  // namespace handlers

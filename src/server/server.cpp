@@ -18,15 +18,16 @@ const char* PER_CONNECTION_DESC = "per-connection";
 
 using Verbosity = components::MonitorVerbosity;
 
-Json::Value SerializeAggregated(const server::net::Stats::AggregatedStat& agg,
-                                Verbosity verbosity, const char* items_desc) {
-  Json::Value json_agg(Json::objectValue);
-  json_agg["total"] = Json::UInt64{agg.Total()};
-  json_agg["max"] = Json::UInt64{agg.Max()};
+formats::json::ValueBuilder SerializeAggregated(
+    const server::net::Stats::AggregatedStat& agg, Verbosity verbosity,
+    const char* items_desc) {
+  formats::json::ValueBuilder json_agg(formats::json::Type::kObject);
+  json_agg["total"] = agg.Total();
+  json_agg["max"] = agg.Max();
   if (verbosity == Verbosity::kFull) {
-    Json::Value json_items(Json::arrayValue);
+    formats::json::ValueBuilder json_items(formats::json::Type::kArray);
     for (auto item : agg.Items()) {
-      json_items[json_items.size()] = Json::UInt64{item};
+      json_items.PushBack(item);
     }
     json_agg[items_desc] = std::move(json_items);
   }
@@ -110,13 +111,13 @@ Server::~Server() = default;
 
 const ServerConfig& Server::GetConfig() const { return pimpl->config_; }
 
-Json::Value Server::GetMonitorData(
+formats::json::Value Server::GetMonitorData(
     components::MonitorVerbosity verbosity) const {
-  Json::Value json_data(Json::objectValue);
+  formats::json::ValueBuilder json_data(formats::json::Type::kObject);
 
   auto server_stats = pimpl->GetServerStats();
   {
-    Json::Value json_conn_stats(Json::objectValue);
+    formats::json::ValueBuilder json_conn_stats(formats::json::Type::kObject);
     json_conn_stats["active"] = SerializeAggregated(
         server_stats.active_connections, verbosity, PER_LISTENER_DESC);
     json_conn_stats["opened"] = SerializeAggregated(
@@ -127,7 +128,8 @@ Json::Value Server::GetMonitorData(
     json_data["connections"] = std::move(json_conn_stats);
   }
   {
-    Json::Value json_request_stats(Json::objectValue);
+    formats::json::ValueBuilder json_request_stats(
+        formats::json::Type::kObject);
     json_request_stats["active"] = SerializeAggregated(
         server_stats.active_requests, verbosity, PER_CONNECTION_DESC);
     json_request_stats["parsing"] = SerializeAggregated(
@@ -142,7 +144,7 @@ Json::Value Server::GetMonitorData(
     json_data["requests"] = std::move(json_request_stats);
   }
 
-  return json_data;
+  return json_data.ExtractValue();
 }
 
 bool Server::AddHandler(const handlers::HandlerBase& handler,

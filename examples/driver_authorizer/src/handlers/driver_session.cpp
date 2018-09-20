@@ -2,8 +2,7 @@
 
 #include <stdexcept>
 
-#include <json/value.h>
-#include <json/writer.h>
+#include <formats/json.hpp>
 
 #include <engine/async.hpp>
 #include <logging/log.hpp>
@@ -137,10 +136,10 @@ std::string DriverSession::HandleRequestThrow(
     return "authorization failed";
   }
 
-  Json::Value response_json(Json::objectValue);
+  formats::json::ValueBuilder response_json(formats::json::Type::kObject);
   response_json["uuid"] = std::move(driver_id);
 
-  return Json::FastWriter().write(response_json);
+  return formats::json::ToString(response_json.ExtractValue());
 }
 
 }  // namespace handlers

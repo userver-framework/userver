@@ -22,7 +22,7 @@ bool Server::AddHandler(const server::handlers::HandlerBase& handler,
   return server_->AddHandler(handler, component_context);
 }
 
-Json::Value Server::GetMonitorData(MonitorVerbosity verbosity) const {
+formats::json::Value Server::GetMonitorData(MonitorVerbosity verbosity) const {
   return server_->GetMonitorData(verbosity);
 }
 

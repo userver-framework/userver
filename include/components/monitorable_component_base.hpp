@@ -1,6 +1,6 @@
 #pragma once
 
-#include <json/value.h>
+#include <formats/json/value.hpp>
 
 #include "component_base.hpp"
 #include "manager.hpp"
@@ -15,7 +15,8 @@ class MonitorableComponentBase : public ComponentBase {
 
   virtual ~MonitorableComponentBase() {}
 
-  virtual Json::Value GetMonitorData(MonitorVerbosity verbosity) const = 0;
+  virtual formats::json::Value GetMonitorData(
+      MonitorVerbosity verbosity) const = 0;
 
   virtual std::string GetMetricsPath() const { return default_metrics_path_; }
 

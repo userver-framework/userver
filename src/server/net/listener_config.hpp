@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include <json/value.h>
 #include <boost/optional.hpp>
+#include <formats/json/value.hpp>
 
 #include <json_config/variable_map.hpp>
 
@@ -21,7 +21,7 @@ struct ListenerConfig {
   boost::optional<size_t> shards;
 
   static ListenerConfig ParseFromJson(
-      const Json::Value& json, const std::string& full_path,
+      const formats::json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr);
 };
 

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <json/value.h>
+#include <formats/json/value.hpp>
 
 #include <json_config/variable_map.hpp>
 
@@ -13,7 +13,7 @@ struct ThreadPoolConfig {
   size_t threads = 2;
 
   static ThreadPoolConfig ParseFromJson(
-      const Json::Value& json, const std::string& full_path,
+      const formats::json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr);
 };
 

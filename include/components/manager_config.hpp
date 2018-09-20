@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include <json/value.h>
+#include <formats/json/value.hpp>
 
 #include <json_config/variable_map.hpp>
 
@@ -22,11 +22,11 @@ struct ManagerConfig {
   std::vector<engine::TaskProcessorConfig> task_processors;
   std::string default_task_processor;
 
-  Json::Value json;  // the owner
+  formats::json::Value json;  // the owner
   json_config::VariableMapPtr config_vars_ptr;
 
   static ManagerConfig ParseFromJson(
-      Json::Value json, const std::string& name,
+      formats::json::Value json, const std::string& name,
       json_config::VariableMapPtr config_vars_ptr);
 
   static ManagerConfig ParseFromString(const std::string&);

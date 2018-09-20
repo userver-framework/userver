@@ -1,6 +1,7 @@
 #include <server/handlers/http_handler_base.hpp>
 
-#include <json/writer.h>
+#include <formats/json/serialize.hpp>
+#include <formats/json/value_builder.hpp>
 
 #include <logging/log.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
@@ -21,27 +22,24 @@ const std::string kXYaRequestId = "X-YaRequestId";
 
 template <typename HeadersHolder>
 std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
-  Json::Value json_headers(Json::objectValue);
+  formats::json::ValueBuilder json_headers(formats::json::Type::kObject);
   for (const auto& header_name : headers_holder.GetHeaderNames()) {
     json_headers[header_name] = headers_holder.GetHeader(header_name);
   }
-  Json::FastWriter json_writer;
-  json_writer.omitEndingLineFeed();
-  return json_writer.write(json_headers);
+  return formats::json::ToString(json_headers.ExtractValue());
 }
 
 }  // namespace
 
-Json::Value HttpHandlerBase::StatisticsToJson(
+formats::json::Value HttpHandlerBase::StatisticsToJson(
     const HttpHandlerBase::Statistics& stats) {
-  Json::Value result;
-  Json::Value total;
+  formats::json::ValueBuilder result;
+  formats::json::ValueBuilder total;
 
-  Json::Value reply_codes;
+  formats::json::ValueBuilder reply_codes;
   size_t sum = 0;
   for (auto it : stats.GetReplyCodes()) {
-    reply_codes[std::to_string(it.first)] =
-        static_cast<Json::UInt64>(it.second);
+    reply_codes[std::to_string(it.first)] = it.second;
     sum += it.second;
   }
   total["reply-codes"] = std::move(reply_codes);
@@ -50,7 +48,7 @@ Json::Value HttpHandlerBase::StatisticsToJson(
       utils::statistics::PercentileToJson(stats.GetTimings());
 
   result["total"] = std::move(total);
-  return result;
+  return result.ExtractValue();
 }
 
 HttpHandlerBase::HttpHandlerBase(
@@ -157,7 +155,7 @@ void HttpHandlerBase::OnRequestComplete(const request::RequestBase& request,
   }
 }
 
-Json::Value HttpHandlerBase::GetMonitorData(
+formats::json::Value HttpHandlerBase::GetMonitorData(
     components::MonitorVerbosity /*verbosity*/) const {
   return StatisticsToJson(*statistics_);
 }

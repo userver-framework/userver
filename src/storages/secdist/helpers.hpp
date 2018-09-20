@@ -2,22 +2,22 @@
 
 #include <string>
 
-namespace Json {
-class Value;
-}
+#include <formats/json/value.hpp>
 
 namespace storages {
 namespace secdist {
 
 void ThrowInvalidSecdistType(const std::string& name, const std::string& type);
 
-std::string GetString(const Json::Value& parent_val, const std::string& name);
+std::string GetString(const formats::json::Value& parent_val,
+                      const std::string& name);
 
-int GetInt(const Json::Value& parent_val, const std::string& name, int dflt);
+int GetInt(const formats::json::Value& parent_val, const std::string& name,
+           int dflt);
 
-void CheckIsObject(const Json::Value& val, const std::string& name);
+void CheckIsObject(const formats::json::Value& val, const std::string& name);
 
-void CheckIsArray(const Json::Value& val, const std::string& name);
+void CheckIsArray(const formats::json::Value& val, const std::string& name);
 
 }  // namespace secdist
 }  // namespace storages

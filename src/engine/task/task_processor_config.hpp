@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include <json/json.h>
+#include <formats/json.hpp>
 
 #include <json_config/variable_map.hpp>
 
@@ -17,7 +17,7 @@ struct TaskProcessorConfig {
   size_t task_queue_size_threshold = 1000000;
 
   static TaskProcessorConfig ParseFromJson(
-      const Json::Value& json, const std::string& full_path,
+      const formats::json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr);
 };
 

@@ -17,8 +17,9 @@ class TestsControl : public HttpHandlerJsonBase {
   static constexpr const char* kName = "tests-control";
 
   const std::string& HandlerName() const override;
-  Json::Value HandleRequestJsonThrow(
-      const http::HttpRequest& request, const Json::Value& request_body,
+  formats::json::Value HandleRequestJsonThrow(
+      const http::HttpRequest& request,
+      const formats::json::Value& request_body,
       request::RequestContext& context) const override;
 
   void RegisterCacheInvalidator(components::UpdatingComponentBase& owner,

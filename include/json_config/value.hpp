@@ -4,8 +4,8 @@
 #include <string>
 #include <type_traits>
 
-#include <json/json.h>
 #include <boost/optional.hpp>
+#include <formats/json.hpp>
 
 #include <logging/log.hpp>
 
@@ -15,53 +15,54 @@
 namespace json_config {
 namespace impl {
 
-bool IsSubstitution(const Json::Value& value);
-std::string GetSubstitutionVarName(const Json::Value& value);
+bool IsSubstitution(const formats::json::Value& value);
+std::string GetSubstitutionVarName(const formats::json::Value& value);
 std::string GetFallbackName(const std::string& str);
 
 }  // namespace impl
 
-void CheckIsObject(const Json::Value& obj, const std::string& full_path);
+void CheckIsObject(const formats::json::Value& obj,
+                   const std::string& full_path);
 
-boost::optional<int> ParseOptionalInt(const Json::Value& obj,
+boost::optional<int> ParseOptionalInt(const formats::json::Value& obj,
                                       const std::string& name,
                                       const std::string& full_path,
                                       const VariableMapPtr& config_vars_ptr);
-boost::optional<bool> ParseOptionalBool(const Json::Value& obj,
+boost::optional<bool> ParseOptionalBool(const formats::json::Value& obj,
                                         const std::string& name,
                                         const std::string& full_path,
                                         const VariableMapPtr& config_vars_ptr);
 boost::optional<uint64_t> ParseOptionalUint64(
-    const Json::Value& obj, const std::string& name,
+    const formats::json::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr);
 boost::optional<std::string> ParseOptionalString(
-    const Json::Value& obj, const std::string& name,
+    const formats::json::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr);
 
-int ParseInt(const Json::Value& obj, const std::string& name,
+int ParseInt(const formats::json::Value& obj, const std::string& name,
              const std::string& full_path,
              const VariableMapPtr& config_vars_ptr);
-bool ParseBool(const Json::Value& obj, const std::string& name,
+bool ParseBool(const formats::json::Value& obj, const std::string& name,
                const std::string& full_path,
                const VariableMapPtr& config_vars_ptr);
-uint64_t ParseUint64(const Json::Value& obj, const std::string& name,
+uint64_t ParseUint64(const formats::json::Value& obj, const std::string& name,
                      const std::string& full_path,
                      const VariableMapPtr& config_vars_ptr);
-std::string ParseString(const Json::Value& obj, const std::string& name,
-                        const std::string& full_path,
+std::string ParseString(const formats::json::Value& obj,
+                        const std::string& name, const std::string& full_path,
                         const VariableMapPtr& config_vars_ptr);
 
 template <typename T>
 boost::optional<std::vector<T>> ParseOptionalArray(
-    const Json::Value& obj, const std::string& name,
+    const formats::json::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr, &impl::ParseArray<T>,
                     &ParseOptionalArray<T>);
 }
 
 template <typename T>
-std::vector<T> ParseArray(const Json::Value& obj, const std::string& name,
-                          const std::string& full_path,
+std::vector<T> ParseArray(const formats::json::Value& obj,
+                          const std::string& name, const std::string& full_path,
                           const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalArray<T>(obj, name, full_path, config_vars_ptr);
   if (!optional) {
@@ -71,7 +72,7 @@ std::vector<T> ParseArray(const Json::Value& obj, const std::string& name,
 }
 
 template <typename ElemParser, typename ConfigVarParser>
-auto ParseValue(const Json::Value& obj, const std::string& name,
+auto ParseValue(const formats::json::Value& obj, const std::string& name,
                 const std::string& full_path,
                 const VariableMapPtr& config_vars_ptr, ElemParser parse_elem,
                 ConfigVarParser parse_config_var)

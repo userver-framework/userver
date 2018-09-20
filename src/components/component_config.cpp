@@ -2,7 +2,8 @@
 
 namespace components {
 
-ComponentConfig::ComponentConfig(Json::Value json, std::string full_path,
+ComponentConfig::ComponentConfig(formats::json::Value json,
+                                 std::string full_path,
                                  json_config::VariableMapPtr config_vars_ptr)
     : json_config::JsonConfig(std::move(json), std::move(full_path),
                               std::move(config_vars_ptr)) {
@@ -12,7 +13,7 @@ ComponentConfig::ComponentConfig(Json::Value json, std::string full_path,
 const std::string& ComponentConfig::Name() const { return name_; }
 
 ComponentConfig ComponentConfig::ParseFromJson(
-    const Json::Value& json, const std::string& full_path,
+    const formats::json::Value& json, const std::string& full_path,
     const json_config::VariableMapPtr& config_vars_ptr) {
   return {json, full_path, config_vars_ptr};
 }

@@ -6,7 +6,7 @@ namespace engine {
 namespace ev {
 
 ThreadPoolConfig ThreadPoolConfig::ParseFromJson(
-    const Json::Value& json, const std::string& full_path,
+    const formats::json::Value& json, const std::string& full_path,
     const json_config::VariableMapPtr& config_vars_ptr) {
   ThreadPoolConfig config;
 

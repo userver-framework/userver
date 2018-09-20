@@ -29,7 +29,7 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
   json_config::CheckIsObject(loggers, loggers_full_path);
 
   for (auto it = loggers.begin(); it != loggers.end(); ++it) {
-    auto logger_name = it.key().asString();
+    auto logger_name = it.GetName();
     auto logger_full_path = loggers_full_path + '.' + logger_name;
 
     auto logger_config = logging::LoggerConfig::ParseFromJson(

@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <string>
 
-#include <json/value.h>
 #include <boost/optional.hpp>
+#include <formats/json/value.hpp>
 
 #include "variable_map.hpp"
 
@@ -12,10 +12,10 @@ namespace json_config {
 
 class JsonConfig {
  public:
-  JsonConfig(Json::Value json, std::string full_path,
+  JsonConfig(formats::json::Value json, std::string full_path,
              VariableMapPtr config_vars_ptr);
 
-  const Json::Value& Json() const;
+  const formats::json::Value& Json() const;
   const std::string& FullPath() const;
   const VariableMapPtr& ConfigVarsPtr() const;
 
@@ -35,7 +35,7 @@ class JsonConfig {
       const std::string& name) const;
 
  private:
-  Json::Value json_;
+  formats::json::Value json_;
   std::string full_path_;
   VariableMapPtr config_vars_ptr_;
 };

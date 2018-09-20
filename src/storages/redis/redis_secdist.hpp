@@ -7,16 +7,14 @@
 
 #include <redis/secdist_redis.hpp>
 
-namespace Json {
-class Value;
-}  // namespace Json
+#include <formats/json/value.hpp>
 
 namespace storages {
 namespace secdist {
 
 class RedisMapSettings {
  public:
-  explicit RedisMapSettings(const Json::Value& doc);
+  explicit RedisMapSettings(const formats::json::Value& doc);
 
   const ::secdist::RedisSettings& GetSettings(
       const std::string& client_name) const;

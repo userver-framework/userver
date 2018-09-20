@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <json/value.h>
+#include <formats/json/value.hpp>
 
 #include <json_config/json_config.hpp>
 #include <json_config/variable_map.hpp>
@@ -13,13 +13,13 @@ namespace components {
 
 class ComponentConfig : public json_config::JsonConfig {
  public:
-  ComponentConfig(Json::Value json, std::string full_path,
+  ComponentConfig(formats::json::Value json, std::string full_path,
                   json_config::VariableMapPtr config_vars_ptr);
 
   const std::string& Name() const;
 
   static ComponentConfig ParseFromJson(
-      const Json::Value& json, const std::string& full_path,
+      const formats::json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr);
 
  private:

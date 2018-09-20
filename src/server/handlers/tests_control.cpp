@@ -19,20 +19,20 @@ const std::string& TestsControl::HandlerName() const {
   return kTestsControlName;
 }
 
-Json::Value TestsControl::HandleRequestJsonThrow(
-    const http::HttpRequest& request, const Json::Value& request_body,
+formats::json::Value TestsControl::HandleRequestJsonThrow(
+    const http::HttpRequest& request, const formats::json::Value& request_body,
     request::RequestContext& context) const {
   if (request.GetMethod() != http_method::HTTP_POST) throw http::BadRequest();
 
   bool invalidate_caches = false;
-  const Json::Value& value = request_body["invalidate_caches"];
+  const formats::json::Value& value = request_body["invalidate_caches"];
   if (value.isBool()) {
     invalidate_caches = value.asBool();
   }
 
   std::time_t now = 0;
-  if (request_body.isMember("now")) {
-    const Json::Value& value = request_body["now"];
+  if (request_body.HasMember("now")) {
+    const formats::json::Value& value = request_body["now"];
     if (value.isString()) {
       now =
           std::chrono::duration_cast<std::chrono::seconds>(
@@ -57,7 +57,7 @@ Json::Value TestsControl::HandleRequestJsonThrow(
     }
   }
 
-  return Json::Value();
+  return formats::json::Value();
 }
 
 void TestsControl::RegisterCacheInvalidator(

@@ -11,7 +11,7 @@
 
 #include <boost/any.hpp>
 
-#include <json/value.h>
+#include <formats/json/value.hpp>
 #include <redis/secdist_redis.hpp>
 
 namespace storages {
@@ -25,7 +25,9 @@ template <typename T>
 class SecdistModule {
  public:
   static const T& Get(const SecdistConfig& config);
-  static boost::any Factory(const Json::Value& data) { return T(data); }
+  static boost::any Factory(const formats::json::Value& data) {
+    return T(data);
+  }
 
  private:
   static std::size_t index_;
@@ -40,7 +42,7 @@ class SecdistConfig {
 
   template <typename T>
   static std::size_t Register(
-      std::function<boost::any(const Json::Value&)>&& factory) {
+      std::function<boost::any(const formats::json::Value&)>&& factory) {
     return Register(std::move(factory));
   }
 
@@ -50,10 +52,10 @@ class SecdistConfig {
   }
 
  private:
-  void Init(const Json::Value& doc);
+  void Init(const formats::json::Value& doc);
 
   static std::size_t Register(
-      std::function<boost::any(const Json::Value&)>&& factory);
+      std::function<boost::any(const formats::json::Value&)>&& factory);
   const boost::any& Get(const std::type_index& type,
                         const std::size_t index) const;
 

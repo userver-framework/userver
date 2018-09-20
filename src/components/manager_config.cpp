@@ -2,7 +2,8 @@
 
 #include <fstream>
 
-#include <json/reader.h>
+#include <formats/json/exception.hpp>
+#include <formats/json/serialize.hpp>
 
 #include <json_config/value.hpp>
 
@@ -10,16 +11,24 @@ namespace components {
 
 namespace {
 
+formats::json::Value Parse(std::istream& is) {
+  return formats::json::FromStream(is);
+}
+formats::json::Value Parse(const std::string& str) {
+  return formats::json::FromString(str);
+}
+
 template <typename T>
 ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
   static const std::string kConfigVarsField = "config_vars";
   static const std::string kManagerConfigField = "components_manager";
 
-  Json::Reader reader;
-  Json::Value config_json;
-  if (!reader.parse(source, config_json)) {
+  formats::json::Value config_json;
+  try {
+    config_json = Parse(source);
+  } catch (const formats::json::JsonException& e) {
     throw std::runtime_error("Cannot parse config from '" + source_desc +
-                             "': " + reader.getFormattedErrorMessages());
+                             "': " + e.what());
   }
 
   auto config_vars_path = json_config::ParseOptionalString(
@@ -36,7 +45,7 @@ ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
 }  // namespace
 
 ManagerConfig ManagerConfig::ParseFromJson(
-    Json::Value json, const std::string& name,
+    formats::json::Value json, const std::string& name,
     json_config::VariableMapPtr config_vars_ptr) {
   ManagerConfig config;
   config.json = std::move(json);

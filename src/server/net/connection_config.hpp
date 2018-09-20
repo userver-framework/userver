@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include <json/value.h>
+#include <formats/json/value.hpp>
 
 #include <json_config/variable_map.hpp>
 #include <server/request/request_config.hpp>
@@ -17,7 +17,7 @@ struct ConnectionConfig {
   std::unique_ptr<request::RequestConfig> request;
 
   static ConnectionConfig ParseFromJson(
-      const Json::Value& json, const std::string& full_path,
+      const formats::json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr);
 };
 

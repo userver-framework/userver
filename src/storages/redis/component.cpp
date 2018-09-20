@@ -21,7 +21,7 @@ struct RedisGroup {
   std::string sharding_strategy;
 
   static RedisGroup ParseFromJson(
-      const Json::Value& json, const std::string& full_path,
+      const formats::json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr) {
     RedisGroup config;
     config.db =
@@ -41,7 +41,7 @@ struct RedisPools {
   int redis_thread_pool_size;
 
   static RedisPools ParseFromJson(
-      const Json::Value& json, const std::string& full_path,
+      const formats::json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr) {
     RedisPools pools;
     pools.sentinel_thread_pool_size = json_config::ParseInt(

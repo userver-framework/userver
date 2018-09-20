@@ -18,7 +18,8 @@ class ServerMonitor : public HttpHandlerBase {
       const http::HttpRequest& request,
       request::RequestContext&) const override;
 
-  Json::Value GetEngineStats(components::MonitorVerbosity verbosity) const;
+  formats::json::Value GetEngineStats(
+      components::MonitorVerbosity verbosity) const;
 
  private:
   const components::Manager& components_manager_;

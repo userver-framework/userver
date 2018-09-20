@@ -22,7 +22,8 @@ class Server : public MonitorableComponentBase {
 
   bool AddHandler(const server::handlers::HandlerBase& handler,
                   const components::ComponentContext& component_context);
-  Json::Value GetMonitorData(MonitorVerbosity verbosity) const override;
+  formats::json::Value GetMonitorData(
+      MonitorVerbosity verbosity) const override;
 
  private:
   std::unique_ptr<server::Server> server_;

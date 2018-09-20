@@ -14,8 +14,9 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
       const http::HttpRequest& request,
       request::RequestContext& context) const override final;
 
-  virtual Json::Value HandleRequestJsonThrow(
-      const http::HttpRequest& request, const Json::Value& request_json,
+  virtual formats::json::Value HandleRequestJsonThrow(
+      const http::HttpRequest& request,
+      const formats::json::Value& request_json,
       request::RequestContext& context) const = 0;
 };
 

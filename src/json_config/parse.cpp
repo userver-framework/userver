@@ -14,7 +14,7 @@ namespace {
 
 enum class ValueKind { kOptional, kRequired };
 
-boost::optional<int> ParseIntImpl(const Json::Value& obj,
+boost::optional<int> ParseIntImpl(const formats::json::Value& obj,
                                   const std::string& name,
                                   const std::string& full_path,
                                   ValueKind kind) {
@@ -29,7 +29,7 @@ boost::optional<int> ParseIntImpl(const Json::Value& obj,
   return value.asInt();
 }
 
-boost::optional<bool> ParseBoolImpl(const Json::Value& obj,
+boost::optional<bool> ParseBoolImpl(const formats::json::Value& obj,
                                     const std::string& name,
                                     const std::string& full_path,
                                     ValueKind kind) {
@@ -44,7 +44,7 @@ boost::optional<bool> ParseBoolImpl(const Json::Value& obj,
   return value.asBool();
 }
 
-boost::optional<uint64_t> ParseUint64Impl(const Json::Value& obj,
+boost::optional<uint64_t> ParseUint64Impl(const formats::json::Value& obj,
                                           const std::string& name,
                                           const std::string& full_path,
                                           ValueKind kind) {
@@ -59,7 +59,7 @@ boost::optional<uint64_t> ParseUint64Impl(const Json::Value& obj,
   return value.asUInt64();
 }
 
-boost::optional<std::string> ParseStringImpl(const Json::Value& obj,
+boost::optional<std::string> ParseStringImpl(const formats::json::Value& obj,
                                              const std::string& name,
                                              const std::string& full_path,
                                              ValueKind kind) {
@@ -76,52 +76,53 @@ boost::optional<std::string> ParseStringImpl(const Json::Value& obj,
 
 }  // namespace
 
-void CheckIsObject(const Json::Value& obj, const std::string& full_path) {
+void CheckIsObject(const formats::json::Value& obj,
+                   const std::string& full_path) {
   if (!obj.isObject()) throw ParseError({}, full_path, "object");
 }
 
-int ParseInt(const Json::Value& obj, const std::string& name,
+int ParseInt(const formats::json::Value& obj, const std::string& name,
              const std::string& full_path) {
   return *ParseIntImpl(obj, name, full_path, ValueKind::kRequired);
 }
 
-bool ParseBool(const Json::Value& obj, const std::string& name,
+bool ParseBool(const formats::json::Value& obj, const std::string& name,
                const std::string& full_path) {
   return *ParseBoolImpl(obj, name, full_path, ValueKind::kRequired);
 }
 
-uint64_t ParseUint64(const Json::Value& obj, const std::string& name,
+uint64_t ParseUint64(const formats::json::Value& obj, const std::string& name,
                      const std::string& full_path) {
   return *ParseUint64Impl(obj, name, full_path, ValueKind::kRequired);
 }
 
-std::string ParseString(const Json::Value& obj, const std::string& name,
-                        const std::string& full_path) {
+std::string ParseString(const formats::json::Value& obj,
+                        const std::string& name, const std::string& full_path) {
   return std::move(
       *ParseStringImpl(obj, name, full_path, ValueKind::kRequired));
 }
 
-boost::optional<int> ParseOptionalInt(const Json::Value& obj,
+boost::optional<int> ParseOptionalInt(const formats::json::Value& obj,
                                       const std::string& name,
                                       const std::string& full_path) {
   return ParseIntImpl(obj, name, full_path, ValueKind::kOptional);
 }
 
-boost::optional<bool> ParseOptionalBool(const Json::Value& obj,
+boost::optional<bool> ParseOptionalBool(const formats::json::Value& obj,
                                         const std::string& name,
                                         const std::string& full_path) {
   return ParseBoolImpl(obj, name, full_path, ValueKind::kOptional);
 }
 
-boost::optional<uint64_t> ParseOptionalUint64(const Json::Value& obj,
+boost::optional<uint64_t> ParseOptionalUint64(const formats::json::Value& obj,
                                               const std::string& name,
                                               const std::string& full_path) {
   return ParseUint64Impl(obj, name, full_path, ValueKind::kOptional);
 }
 
-boost::optional<std::string> ParseOptionalString(const Json::Value& obj,
-                                                 const std::string& name,
-                                                 const std::string& full_path) {
+boost::optional<std::string> ParseOptionalString(
+    const formats::json::Value& obj, const std::string& name,
+    const std::string& full_path) {
   return ParseStringImpl(obj, name, full_path, ValueKind::kOptional);
 }
 

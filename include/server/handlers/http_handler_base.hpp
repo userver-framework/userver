@@ -27,7 +27,7 @@ class HttpHandlerBase : public HandlerBase {
                                  request::RequestContext& context) const
       noexcept override;
 
-  Json::Value GetMonitorData(
+  formats::json::Value GetMonitorData(
       components::MonitorVerbosity verbosity) const override;
 
   std::string GetMetricsPath() const override;
@@ -45,7 +45,7 @@ class HttpHandlerBase : public HandlerBase {
  private:
   class Statistics;
 
-  static Json::Value StatisticsToJson(const Statistics& stats);
+  static formats::json::Value StatisticsToJson(const Statistics& stats);
 
  private:
   const components::HttpServerSettingsBase* http_server_settings_;

@@ -4,13 +4,13 @@
 
 namespace json_config {
 
-JsonConfig::JsonConfig(Json::Value json, std::string full_path,
+JsonConfig::JsonConfig(formats::json::Value json, std::string full_path,
                        VariableMapPtr config_vars_ptr)
     : json_(std::move(json)),
       full_path_(std::move(full_path)),
       config_vars_ptr_(std::move(config_vars_ptr)) {}
 
-const Json::Value& JsonConfig::Json() const { return json_; }
+const formats::json::Value& JsonConfig::Json() const { return json_; }
 const std::string& JsonConfig::FullPath() const { return full_path_; }
 const json_config::VariableMapPtr& JsonConfig::ConfigVarsPtr() const {
   return config_vars_ptr_;

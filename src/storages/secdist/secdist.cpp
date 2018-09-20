@@ -4,7 +4,8 @@
 #include <fstream>
 #include <sstream>
 
-#include <json/reader.h>
+#include <formats/json/exception.hpp>
+#include <formats/json/serialize.hpp>
 #include <json_config/value.hpp>
 #include <utils/demangle.hpp>
 #include "exceptions.hpp"
@@ -16,9 +17,10 @@ namespace secdist {
 
 namespace {
 
-std::vector<std::function<boost::any(const Json::Value&)>>&
+std::vector<std::function<boost::any(const formats::json::Value&)>>&
 GetConfigFactories() {
-  static std::vector<std::function<boost::any(const Json::Value&)>> factories;
+  static std::vector<std::function<boost::any(const formats::json::Value&)>>
+      factories;
   return factories;
 }
 
@@ -28,31 +30,25 @@ SecdistConfig::SecdistConfig() = default;
 
 SecdistConfig::SecdistConfig(const std::string& path) {
   std::ifstream json_stream(path);
-
-  if (!json_stream) {
-    std::error_code ec(errno, std::system_category());
-    throw InvalidSecdistJson("Cannot load secdist config: " + ec.message());
-  }
-
-  Json::Reader reader;
-  Json::Value doc;
-
-  if (!reader.parse(json_stream, doc)) {
-    throw InvalidSecdistJson("Cannot load secdist config: " +
-                             reader.getFormattedErrorMessages());
+  formats::json::Value doc;
+  try {
+    doc = formats::json::FromStream(json_stream);
+  } catch (const formats::json::JsonException& e) {
+    throw InvalidSecdistJson(std::string("Cannot load secdist config: ") +
+                             e.what());
   }
 
   Init(doc);
 }
 
-void SecdistConfig::Init(const Json::Value& doc) {
+void SecdistConfig::Init(const formats::json::Value& doc) {
   for (const auto& config_factory : GetConfigFactories()) {
     configs_.emplace_back(config_factory(doc));
   }
 }
 
 std::size_t SecdistConfig::Register(
-    std::function<boost::any(const Json::Value&)>&& factory) {
+    std::function<boost::any(const formats::json::Value&)>&& factory) {
   auto& config_factories = GetConfigFactories();
   config_factories.emplace_back(std::move(factory));
   return config_factories.size() - 1;

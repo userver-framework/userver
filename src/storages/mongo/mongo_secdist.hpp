@@ -3,9 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace Json {
-class Value;
-}  // namespace Json
+#include <formats/json/value.hpp>
 
 namespace storages {
 namespace mongo {
@@ -13,7 +11,7 @@ namespace secdist {
 
 class MongoSettings {
  public:
-  explicit MongoSettings(const Json::Value& doc);
+  explicit MongoSettings(const formats::json::Value& doc);
 
   const std::string& GetConnectionString(const std::string& dbalias) const;
 

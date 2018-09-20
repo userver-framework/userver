@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <json/json.h>
+#include <formats/json.hpp>
 
 #include <json_config/variable_map.hpp>
 
@@ -14,7 +14,7 @@ struct PoolConfig {
   size_t max_size = 10000;
 
   static PoolConfig ParseFromJson(
-      const Json::Value& json, const std::string& full_path,
+      const formats::json::Value& json, const std::string& full_path,
       const json_config::VariableMapPtr& config_vars_ptr);
 };
 

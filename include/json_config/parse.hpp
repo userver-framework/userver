@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
-#include <json/json.h>
 #include <boost/optional.hpp>
+#include <formats/json.hpp>
 
 #include "variable_map.hpp"
 
@@ -20,33 +20,34 @@ class ParseError : public std::runtime_error {
 
 namespace impl {
 
-void CheckIsObject(const Json::Value& obj, const std::string& full_path);
+void CheckIsObject(const formats::json::Value& obj,
+                   const std::string& full_path);
 
-boost::optional<int> ParseOptionalInt(const Json::Value& obj,
+boost::optional<int> ParseOptionalInt(const formats::json::Value& obj,
                                       const std::string& name,
                                       const std::string& full_path);
-boost::optional<bool> ParseOptionalBool(const Json::Value& obj,
+boost::optional<bool> ParseOptionalBool(const formats::json::Value& obj,
                                         const std::string& name,
                                         const std::string& full_path);
-boost::optional<uint64_t> ParseOptionalUint64(const Json::Value& obj,
+boost::optional<uint64_t> ParseOptionalUint64(const formats::json::Value& obj,
                                               const std::string& name,
                                               const std::string& full_path);
-boost::optional<std::string> ParseOptionalString(const Json::Value& obj,
-                                                 const std::string& name,
-                                                 const std::string& full_path);
+boost::optional<std::string> ParseOptionalString(
+    const formats::json::Value& obj, const std::string& name,
+    const std::string& full_path);
 
-int ParseInt(const Json::Value& obj, const std::string& name,
+int ParseInt(const formats::json::Value& obj, const std::string& name,
              const std::string& full_path);
-bool ParseBool(const Json::Value& obj, const std::string& name,
+bool ParseBool(const formats::json::Value& obj, const std::string& name,
                const std::string& full_path);
-uint64_t ParseUint64(const Json::Value& obj, const std::string& name,
+uint64_t ParseUint64(const formats::json::Value& obj, const std::string& name,
                      const std::string& full_path);
-std::string ParseString(const Json::Value& obj, const std::string& name,
-                        const std::string& full_path);
+std::string ParseString(const formats::json::Value& obj,
+                        const std::string& name, const std::string& full_path);
 
 template <typename T>
 inline boost::optional<std::vector<T>> ParseOptionalArray(
-    const Json::Value& obj, const std::string& name,
+    const formats::json::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   const auto& value = obj[name];
   if (!value.isArray()) {
@@ -54,7 +55,7 @@ inline boost::optional<std::vector<T>> ParseOptionalArray(
   }
 
   std::vector<T> parsed_array;
-  auto size = value.size();
+  auto size = value.GetSize();
   parsed_array.reserve(size);
   for (decltype(size) i = 0; i < size; ++i) {
     parsed_array.emplace_back(T::ParseFromJson(
@@ -65,7 +66,7 @@ inline boost::optional<std::vector<T>> ParseOptionalArray(
 }
 
 template <typename T>
-inline std::vector<T> ParseArray(const Json::Value& obj,
+inline std::vector<T> ParseArray(const formats::json::Value& obj,
                                  const std::string& name,
                                  const std::string& full_path,
                                  const VariableMapPtr& config_vars_ptr) {

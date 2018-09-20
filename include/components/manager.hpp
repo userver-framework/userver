@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <json/value.h>
+#include <formats/json/value.hpp>
 
 #include <engine/coro/pool_stats.hpp>
 #include <engine/ev/thread_pool.hpp>
@@ -51,7 +51,7 @@ class Manager {
   const ManagerConfig& GetConfig() const;
   engine::TaskProcessor::CoroPool& GetCoroPool() const;
   engine::ev::ThreadPool& GetEventThreadPool() const;
-  Json::Value GetMonitorData(MonitorVerbosity verbosity) const;
+  formats::json::Value GetMonitorData(MonitorVerbosity verbosity) const;
   LockedMonitorableComponentSet GetMonitorableComponentSet() const;
 
   template <typename Component>

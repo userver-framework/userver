@@ -5,7 +5,7 @@
 namespace server {
 
 ServerConfig ServerConfig::ParseFromJson(
-    const Json::Value& json, const std::string& full_path,
+    const formats::json::Value& json, const std::string& full_path,
     const json_config::VariableMapPtr& config_vars_ptr) {
   ServerConfig config;
   config.listener = net::ListenerConfig::ParseFromJson(

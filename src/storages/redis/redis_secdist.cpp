@@ -1,7 +1,5 @@
 #include "redis_secdist.hpp"
 
-#include <json/value.h>
-
 #include <logging/log.hpp>
 #include <storages/secdist/exceptions.hpp>
 #include <storages/secdist/helpers.hpp>
@@ -19,14 +17,14 @@ const ::secdist::RedisSettings& RedisMapSettings::GetSettings(
   return it->second;
 }
 
-RedisMapSettings::RedisMapSettings(const Json::Value& doc) {
+RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
   static const int kDefaultSentinelPort = 26379;
 
   const auto& redis_settings = doc["redis_settings"];
   CheckIsObject(redis_settings, "redis_settings");
 
   for (auto it = redis_settings.begin(); it != redis_settings.end(); ++it) {
-    auto client_name = it.key().asString();
+    auto client_name = it.GetName();
     const auto& client_settings = *it;
     CheckIsObject(client_settings, "client_settings");
 
