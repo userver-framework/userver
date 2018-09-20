@@ -6,7 +6,7 @@ ExternalProject_Add(
         GIT_TAG v1.5.0
         TIMEOUT 10
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
-	#CMAKE_ARGS -DBENCHMARK_ENABLE_GTEST_TESTS=OFF -DBENCHMARK_ENABLE_TESTING=OFF
+        CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DBUILD_DYNAMIC_LOADING=OFF
         # Disable install step
         INSTALL_COMMAND ""
         # Disable update command, since we use predefined stable version
