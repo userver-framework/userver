@@ -28,8 +28,9 @@ target_include_directories(
 
 add_subdirectory(src)
 add_subdirectory(tests)
-add_subdirectory(tools/httpclient)
 add_subdirectory(tools/engine)
+add_subdirectory(tools/httpclient)
+add_subdirectory(tools/redisclient)
 
 
 option(BUILD_USERVER_AS_SUBMODULE "Disables build of examples and testsuite" OFF) # TODO: remove

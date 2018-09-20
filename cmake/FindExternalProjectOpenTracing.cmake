@@ -29,7 +29,7 @@ file(MAKE_DIRECTORY "${OPENTRACING_3RD_PARTY_INCLUDE_DIR}")
 
 
 add_library(libopentracing IMPORTED STATIC GLOBAL)
-add_dependencies(libopentracing gbench)
+add_dependencies(libopentracing opentracing)
 set_target_properties(libopentracing PROPERTIES
         "IMPORTED_LOCATION" "${binary_dir}/output/libopentracing.a"
 	"IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"

@@ -61,6 +61,8 @@ class TaskProcessor {
   ev::ThreadPool& EventThreadPool() { return event_thread_pool_; }
   const std::string& Name() const { return config_.name; }
 
+  size_t GetTaskCounter() const { return async_task_counter_; }
+
  private:
   void ProcessTasks() noexcept;
 
