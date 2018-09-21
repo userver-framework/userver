@@ -15,6 +15,17 @@ namespace {
 const auto kSlowRatio = 5;
 }  // namespace
 
+TEST(PeriodicTask, Noop) {
+  TestInCoro([] { utils::PeriodicTask task; });
+}
+
+TEST(PeriodicTask, StopWithoutStart) {
+  TestInCoro([] {
+    utils::PeriodicTask task;
+    task.Stop();
+  });
+}
+
 TEST(PeriodicTask, StartStop) {
   TestInCoro([] {
     utils::PeriodicTask task("task", std::chrono::milliseconds(100), [] {});

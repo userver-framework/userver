@@ -49,7 +49,7 @@ class PeriodicTask {
    * exits the object is destroyed and using X's 'this' in callback is UB.
    */
   ~PeriodicTask() {
-    assert(task_.IsFinished());
+    assert(!task_.IsValid());
     Stop();
   }
 
