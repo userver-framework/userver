@@ -39,17 +39,17 @@ Value Value::operator[](uint32_t index) const {
 }
 
 Value::const_iterator Value::begin() const {
-  CheckIterable();
+  CheckObjectOrArray();
   return {root_, GetNative().begin(), path_};
 }
 
 Value::const_iterator Value::end() const {
-  CheckIterable();
+  CheckObjectOrArray();
   return {root_, GetNative().end(), path_};
 }
 
 uint32_t Value::GetSize() const {
-  CheckArray();
+  CheckObjectOrArray();
   return GetNative().size();
 }
 
@@ -143,12 +143,6 @@ Json::Value& Value::GetNative() {
   return *value_ptr_;
 }
 
-void Value::CheckArray() const {
-  if (!isArray()) {
-    throw TypeMismatchException(GetNative(), Json::arrayValue, GetPath());
-  }
-}
-
 void Value::CheckArrayOrNull() const {
   if (!isArray() && !isNull()) {
     throw TypeMismatchException(GetNative(), Json::arrayValue, GetPath());
@@ -161,7 +155,7 @@ void Value::CheckObjectOrNull() const {
   }
 }
 
-void Value::CheckIterable() const {
+void Value::CheckObjectOrArray() const {
   if (!isObject() && !isArray()) {
     throw TypeMismatchException(GetNative(), Json::objectValue, GetPath());
   }

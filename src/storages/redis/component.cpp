@@ -2,16 +2,118 @@
 
 #include <vector>
 
+#include <formats/json/value_builder.hpp>
 #include <json_config/value.hpp>
 #include <logging/log.hpp>
+#include <redis/reply.hpp>
 #include <redis/sentinel.hpp>
 #include <redis/thread_pools.hpp>
 #include <storages/secdist/component.hpp>
 #include <storages/secdist/exceptions.hpp>
 #include <storages/secdist/secdist.hpp>
+#include <utils/statistics.hpp>
+#include <utils/statistics/percentile_json.hpp>
 
 #include "redis_config.hpp"
 #include "redis_secdist.hpp"
+
+namespace {
+
+formats::json::ValueBuilder InstanceStatisticsToJson(
+    const redis::InstanceStatistics& stats, bool real_instance) {
+  formats::json::ValueBuilder result(formats::json::Type::kObject),
+      errors(formats::json::Type::kObject),
+      states(formats::json::Type::kObject);
+
+  result["request-sizes"]["1min"] =
+      utils::statistics::PercentileToJson(stats.request_size_percentile);
+  result["reply-sizes"]["1min"] =
+      utils::statistics::PercentileToJson(stats.reply_size_percentile);
+  result["timings"]["1min"] =
+      utils::statistics::PercentileToJson(stats.timings_percentile);
+
+  result["reconnects"] = stats.reconnects;
+
+  for (size_t i = 0; i <= redis::REDIS_ERR_MAX; ++i)
+    errors[redis::Reply::StatusToString(i)] = stats.error_count[i];
+  result["errors"] = errors;
+
+  if (real_instance) {
+    result["last_ping_ms"] = stats.last_ping_ms;
+
+    for (size_t i = 0;
+         i <= static_cast<int>(redis::Redis::State::kDisconnectError); ++i) {
+      auto state = static_cast<redis::Redis::State>(i);
+      states[redis::Redis::StateToString(state)] = stats.state == state ? 1 : 0;
+    }
+    result["state"] = states;
+
+    long long session_time_ms =
+        stats.state == redis::Redis::State::kConnected
+            ? (redis::MillisecondsSinceEpoch() - stats.session_start_time)
+                  .count()
+            : 0;
+    result["session-time-ms"] = session_time_ms;
+  }
+
+  return result;
+}
+
+formats::json::ValueBuilder ShardStatisticsToJson(
+    const redis::ShardStatistics& shard_stats) {
+  formats::json::ValueBuilder result(formats::json::Type::kObject),
+      insts(formats::json::Type::kObject);
+  for (const auto& it2 : shard_stats.instances) {
+    const auto& inst_name = it2.first;
+    const auto& inst_stats = it2.second;
+    insts[inst_name] = InstanceStatisticsToJson(inst_stats, true);
+  }
+  result["instances"] = insts;
+  result["instances_count"] = insts.GetSize();
+
+  result["shard-total"] =
+      InstanceStatisticsToJson(shard_stats.GetShardTotalStatistics(), false);
+
+  result["is_ready"] = shard_stats.is_ready ? 1 : 0;
+
+  long long not_ready =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - shard_stats.last_ready_time)
+          .count();
+  result["not_ready_ms"] = shard_stats.is_ready ? 0 : not_ready;
+  return result;
+}
+
+formats::json::ValueBuilder RedisStatisticsToJson(
+    const std::shared_ptr<redis::Sentinel>& redis) {
+  formats::json::ValueBuilder result(formats::json::Type::kObject),
+      masters(formats::json::Type::kObject),
+      slaves(formats::json::Type::kObject);
+  auto stats = redis->GetStatistics();
+
+  for (const auto& it : stats.masters) {
+    const auto& shard_name = it.first;
+    const auto& shard_stats = it.second;
+    masters[shard_name] = ShardStatisticsToJson(shard_stats);
+  }
+  result["masters"] = masters;
+  for (const auto& it : stats.slaves) {
+    const auto& shard_name = it.first;
+    const auto& shard_stats = it.second;
+    slaves[shard_name] = ShardStatisticsToJson(shard_stats);
+  }
+  result["slaves"] = slaves;
+  result["sentinels"] = ShardStatisticsToJson(stats.sentinel);
+
+  result["shard-group-total"] =
+      InstanceStatisticsToJson(stats.GetShardGroupTotalStatistics(), false);
+
+  result["errors"] = formats::json::Type::kObject;
+  result["errors"]["redis_not_ready"] = stats.internal.redis_not_ready.load();
+  return result;
+}
+
+}  // namespace
 
 namespace components {
 
@@ -54,7 +156,8 @@ struct RedisPools {
 
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
-    : config_{component_context.FindComponent<TaxiConfig>()} {
+    : MonitorableComponentBase(config, component_context),
+      config_{component_context.FindComponent<TaxiConfig>()} {
   if (!config_)
     throw std::runtime_error("Redis component requires taxi config");
   auto secdist_component = component_context.FindComponent<Secdist>();
@@ -108,6 +211,17 @@ Redis::~Redis() {
   } catch (...) {
     LOG_ERROR() << "non-standard exception while destroying Redis component";
   }
+}
+
+formats::json::Value Redis::GetMonitorData(MonitorVerbosity) const {
+  formats::json::ValueBuilder json(formats::json::Type::kObject);
+
+  for (const auto& client : clients_) {
+    const auto& name = client.first;
+    const auto& redis = client.second;
+    json[name] = RedisStatisticsToJson(redis);
+  }
+  return json.ExtractValue();
 }
 
 void Redis::OnConfigUpdate(const TaxiConfigPtr& cfg) {

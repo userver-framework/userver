@@ -19,8 +19,13 @@ ValueBuilder::ValueBuilder(ValueBuilder&& other) { *this = std::move(other); }
 ValueBuilder::ValueBuilder(const char* str)
     : value_(std::make_shared<Json::Value>(std::string(str))) {}
 
-ValueBuilder::ValueBuilder(size_t t)
+ValueBuilder::ValueBuilder(uint64_t t)
     : value_(std::make_shared<Json::Value>(Json::UInt64(t))) {}
+
+ValueBuilder::ValueBuilder(int64_t t)
+    : value_(std::make_shared<Json::Value>(Json::Int64(t))) {}
+
+ValueBuilder::ValueBuilder(long long t) : ValueBuilder(int64_t(t)) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   Copy(other);
@@ -68,14 +73,16 @@ ValueBuilder ValueBuilder::operator[](uint32_t index) {
 }
 
 ValueBuilder::iterator ValueBuilder::begin() {
-  value_.CheckIterable();
+  value_.CheckObjectOrArray();
   return {value_.root_, value_.GetNative().begin(), value_.path_};
 }
 
 ValueBuilder::iterator ValueBuilder::end() {
-  value_.CheckIterable();
+  value_.CheckObjectOrArray();
   return {value_.root_, value_.GetNative().end(), value_.path_};
 }
+
+uint32_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 
 void ValueBuilder::Resize(uint32_t size) {
   value_.CheckArrayOrNull();

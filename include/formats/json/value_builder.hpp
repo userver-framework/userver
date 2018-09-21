@@ -37,7 +37,9 @@ class ValueBuilder {
                nullptr)
       : value_(std::make_shared<Json::Value>(std::move(t))) {}
   ValueBuilder(const char* str);
-  ValueBuilder(size_t t);
+  ValueBuilder(uint64_t t);
+  ValueBuilder(int64_t t);
+  ValueBuilder(long long t);
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
@@ -49,6 +51,10 @@ class ValueBuilder {
 
   iterator begin();
   iterator end();
+
+  /// @brief Returns array size or object members count.
+  /// @throw `TypeMismatchException` if not array or object value.
+  uint32_t GetSize() const;
 
   /// @brief Resize the array value or convert null value
   /// into an array of requested size.

@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <limits>
+
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
@@ -129,6 +131,13 @@ TEST_F(JsonMemberModify, ObjectIteratorModify) {
   }
 }
 
+TEST_F(JsonMemberModify, MemberCount) { EXPECT_EQ(builder_.GetSize(), 5); }
+
+TEST_F(JsonMemberModify, NonArrayThrowGetSize) {
+  formats::json::ValueBuilder bld;
+  EXPECT_THROW(bld.GetSize(), formats::json::TypeMismatchException);
+}
+
 TEST_F(JsonMemberModify, ArrayIteratorRead) {
   builder_ = formats::json::ValueBuilder();
   const auto size = 10;
@@ -142,6 +151,7 @@ TEST_F(JsonMemberModify, ArrayIteratorRead) {
   for (auto i = 0; i < size; ++i, ++it) {
     EXPECT_EQ(it->asInt(), i);
   }
+  EXPECT_EQ(builder_.GetSize(), size);
 }
 
 TEST_F(JsonMemberModify, ArrayIteratorModify) {
@@ -169,10 +179,11 @@ TEST_F(JsonMemberModify, ArrayIteratorModify) {
       EXPECT_EQ(it->asInt(), i + offset);
     }
   }
+  EXPECT_EQ(builder_.GetSize(), size);
 }
 
 TEST_F(JsonMemberModify, CreateSpecificType) {
-  formats::json::ValueBuilder js_obj(formats::json::Type::kObject);
+  formats::json::ValueBuilder js_obj(formats::json::Type::kNull);
   EXPECT_THROW(GetValue(js_obj).GetSize(),
                formats::json::TypeMismatchException);
 
@@ -207,4 +218,32 @@ TEST_F(JsonMemberModify, CheckSubobjectChange) {
   EXPECT_EQ(GetBuiltValue()["key4"]["sub"].asInt(), -1);
   EXPECT_TRUE(GetValue(v)["key3"].HasMember("sub"));
   EXPECT_EQ(GetValue(v)["key3"]["sub"].asInt(), -1);
+}
+
+TEST_F(JsonMemberModify, TypeCheckMinMax) {
+  formats::json::ValueBuilder bld;
+  bld["int8_t"] = std::numeric_limits<int8_t>::min();
+  bld["uint8_t"] = std::numeric_limits<uint8_t>::max();
+  bld["int16_t"] = std::numeric_limits<int16_t>::min();
+  bld["uint16_t"] = std::numeric_limits<uint16_t>::max();
+  bld["int32_t"] = std::numeric_limits<int32_t>::min();
+  bld["uint32_t"] = std::numeric_limits<uint32_t>::max();
+  bld["int64_t"] = std::numeric_limits<int64_t>::min();
+  bld["uint64_t"] = std::numeric_limits<uint64_t>::max();
+  bld["size_t"] = std::numeric_limits<size_t>::max();
+  bld["long"] = std::numeric_limits<long>::min();
+  bld["long long"] = std::numeric_limits<long long>::min();
+
+  auto v = GetValue(bld);
+  EXPECT_EQ(v["int8_t"].asInt(), std::numeric_limits<int8_t>::min());
+  EXPECT_EQ(v["uint8_t"].asUInt(), std::numeric_limits<uint8_t>::max());
+  EXPECT_EQ(v["int16_t"].asInt(), std::numeric_limits<int16_t>::min());
+  EXPECT_EQ(v["uint16_t"].asUInt(), std::numeric_limits<uint16_t>::max());
+  EXPECT_EQ(v["int32_t"].asInt(), std::numeric_limits<int32_t>::min());
+  EXPECT_EQ(v["uint32_t"].asUInt(), std::numeric_limits<uint32_t>::max());
+  EXPECT_EQ(v["int64_t"].asInt64(), std::numeric_limits<int64_t>::min());
+  EXPECT_EQ(v["uint64_t"].asUInt64(), std::numeric_limits<uint64_t>::max());
+  EXPECT_EQ(v["size_t"].asUInt64(), std::numeric_limits<size_t>::max());
+  EXPECT_EQ(v["long"].asInt64(), std::numeric_limits<long>::min());
+  EXPECT_EQ(v["long long"].asInt64(), std::numeric_limits<long long>::min());
 }

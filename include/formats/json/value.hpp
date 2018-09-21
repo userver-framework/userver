@@ -38,8 +38,8 @@ class Value {
   const_iterator begin() const;
   const_iterator end() const;
 
-  /// @brief Returns size of array value.
-  /// @throw `TypeMismatchException` if not array value.
+  /// @brief Returns array size or object members count.
+  /// @throw `TypeMismatchException` if not array or object value.
   uint32_t GetSize() const;
 
   bool operator==(const Value& other) const;
@@ -94,10 +94,9 @@ class Value {
   const Json::Value& GetNative() const;
   Json::Value& GetNative();
 
-  void CheckArray() const;
   void CheckArrayOrNull() const;
   void CheckObjectOrNull() const;
-  void CheckIterable() const;
+  void CheckObjectOrArray() const;
   void CheckOutOfBounds(uint32_t index) const;
 
  private:

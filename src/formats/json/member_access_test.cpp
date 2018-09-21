@@ -179,6 +179,8 @@ TEST_F(JsonMemberAccess, MemberPathsByIterator) {
   EXPECT_EQ((++arr_it)->GetPath(), "key4.[2]");
 }
 
+TEST_F(JsonMemberAccess, MemberCount) { EXPECT_EQ(js_doc_.GetSize(), 6); }
+
 TEST_F(JsonMemberAccess, HasMember) {
   EXPECT_TRUE(js_doc_.HasMember("key1"));
   EXPECT_FALSE(js_doc_.HasMember("keyX"));
@@ -192,11 +194,6 @@ TEST_F(JsonMemberAccess, CopyMoveSubobject) {
   // check pointer equality of native objects
   EXPECT_EQ(formats::json::detail::GetPtr(v),
             formats::json::detail::GetPtr(js_doc_["key3"]));
-}
-
-TEST_F(JsonMemberAccess, ConstArrayPushBackException) {
-  EXPECT_THROW(js_doc_["key4"][js_doc_["key4"].GetSize()],
-               formats::json::OutOfBoundsException);
 }
 
 TEST_F(JsonMemberAccess, IteratorOnNullThrows) {
