@@ -25,3 +25,8 @@ ExternalProject_Get_Property(spdlog source_dir binary_dir)
 set (SPDLOG_INCLUDE_DIRS ${source_dir}/include)
 file (MAKE_DIRECTORY ${SPDLOG_INCLUDE_DIRS})
 
+add_library(spdlog_lib INTERFACE IMPORTED GLOBAL)
+add_dependencies(spdlog_lib spdlog)
+set_target_properties(spdlog_lib PROPERTIES
+        "INTERFACE_INCLUDE_DIRECTORIES" "${SPDLOG_INCLUDE_DIRS}"
+)

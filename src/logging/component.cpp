@@ -5,7 +5,7 @@
 
 // this header must be included before any spdlog headers
 // to override spdlog's level names
-#include <logging/log_config.hpp>
+#include <logging/spdlog.hpp>
 
 #include <spdlog/async.h>
 
@@ -83,7 +83,7 @@ void Logging::OnLogRotate() {
       auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
       if (reop)
         // TODO Handle exceptions here
-        reop->Reopen(true);
+        reop->Reopen(/* truncate = */ false);
     }
   }
 }

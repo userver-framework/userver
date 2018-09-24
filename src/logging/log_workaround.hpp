@@ -1,6 +1,6 @@
 #pragma once
 
-#include "log_config.hpp"
+#include <logging/spdlog.hpp>
 
 namespace logging {
 

@@ -20,4 +20,11 @@ std::streamsize TskvBuffer::xsputn(const char_type* s, std::streamsize n) {
   return n;
 }
 
+TskvBuffer::int_type TskvBuffer::overflow(int_type c) {
+  if (c != traits_type::eof()) {
+    utils::encoding::EncodeTskv(buffer_, static_cast<char>(c), mode_);
+  }
+  return c;
+}
+
 }  // namespace logging

@@ -61,6 +61,7 @@ target_link_libraries(${PROJECT}
     jsoncpp_lib # FIXME move to private in TAXICOMMON-15
     libopentracing
   PRIVATE
+    spdlog_lib
     ${LIBCURL_YANDEX_LIBRARIES}
     ${ZLIB_LIBRARIES}
     Boost::coroutine
@@ -86,7 +87,6 @@ target_include_directories(${PROJECT} SYSTEM PUBLIC
 )
 
 target_include_directories(${PROJECT} SYSTEM PRIVATE
-  ${SPDLOG_INCLUDE_DIRS}
   ${BSON_STATIC_INCLUDE_DIRS}
   ${MONGOC_STATIC_INCLUDE_DIRS}
 )
@@ -103,8 +103,6 @@ add_library(utest STATIC ${LIBUTEST_SOURCES})
 set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(utest
-  PRIVATE
-    Boost::program_options
   PUBLIC
     -Wl,--start-group
         ${PROJECT}
@@ -112,15 +110,15 @@ target_link_libraries(utest
     -Wl,--end-group
     libgtest
     libgmock
+  PRIVATE
+    Boost::program_options
+    spdlog_lib
 )
 
 target_include_directories(utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing
 )
 
-target_include_directories(utest SYSTEM PRIVATE
-  ${SPDLOG_INCLUDE_DIRS}
-)
 
 
 message("gtest: ${GTEST_LIBRARIES}")

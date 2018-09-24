@@ -1,17 +1,17 @@
 #pragma once
 
+#include <mutex>
+#include <string>
+
 // this header must be included before any spdlog headers
 // to override spdlog's level names
-#include <logging/log_config.hpp>
+#include <logging/spdlog.hpp>
 
 #include <spdlog/details/file_helper.h>
 #include <spdlog/details/null_mutex.h>
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
-
-#include <mutex>
-#include <string>
 
 namespace logging {
 

@@ -1,9 +1,10 @@
 #include "http_request_impl.hpp"
 
 #include <engine/task/task.hpp>
-#include <logging/log_config.hpp>
 #include <logging/logger.hpp>
 #include <utils/encoding/tskv.hpp>
+
+#include <logging/spdlog.hpp>
 
 namespace {
 

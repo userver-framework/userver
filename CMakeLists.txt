@@ -15,16 +15,14 @@ add_subdirectory(backend-common-cpp)
 # For logger
 find_package(ExternalProjectSpdlog)
 target_include_directories(
-    yandex-taxi-backend-common-cpp
-    PRIVATE
-    src/
-    PUBLIC
+  yandex-taxi-backend-common-cpp
+  PUBLIC
     include/
-)
-target_include_directories(
-    yandex-taxi-backend-common-cpp SYSTEM PRIVATE
+  PRIVATE
+    src/
     ${SPDLOG_INCLUDE_DIRS}
 )
+add_dependencies(yandex-taxi-backend-common-cpp spdlog_lib)
 
 add_subdirectory(src)
 add_subdirectory(tests)

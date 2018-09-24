@@ -5,7 +5,7 @@
 #include <logging/level.hpp>
 #include <utils/encoding/tskv.hpp>
 
-#include "log_config.hpp"
+#include <logging/spdlog.hpp>
 
 namespace logging {
 
@@ -20,6 +20,7 @@ class TskvBuffer : public std::streambuf {
 
  protected:
   std::streamsize xsputn(const char_type* s, std::streamsize n) override;
+  int_type overflow(int_type c) override;
 
  private:
   fmt::memory_buffer& buffer_;

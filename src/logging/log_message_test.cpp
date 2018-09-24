@@ -1,13 +1,15 @@
 #include <gtest/gtest.h>
 
-#include <logging/log.hpp>
+#include <memory>
+#include <sstream>
 
-#include "log_config.hpp"
+// this header must be included before any spdlog headers
+// to override spdlog's level names
+#include <logging/spdlog.hpp>
 
 #include <spdlog/sinks/ostream_sink.h>
 
-#include <memory>
-#include <sstream>
+#include <logging/log.hpp>
 
 class LoggingTest : public ::testing::Test {
  protected:

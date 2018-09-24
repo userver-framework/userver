@@ -4,8 +4,8 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "engine/task/task_context.hpp"
-#include "log_config.hpp"
+#include <engine/task/task_context.hpp>
+#include <logging/spdlog.hpp>
 #include "log_streambuf.hpp"
 #include "log_workaround.hpp"
 #include "tskv_stream.hpp"
@@ -100,11 +100,6 @@ void LogHelper::LogTaskIdAndCoroutineId() {
                    << utils::encoding::kTskvKeyValueSeparator << task_id
                    << utils::encoding::kTskvPairsSeparator << "coro_id"
                    << utils::encoding::kTskvKeyValueSeparator << coro_id;
-}
-
-LogHelper& operator<<(LogHelper& lh, std::thread::id id) {
-  lh << boost::lexical_cast<std::string>(id);
-  return lh;
 }
 
 void LogFlush() { DefaultLogger()->flush(); }

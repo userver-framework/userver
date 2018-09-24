@@ -3,9 +3,9 @@
 #include <boost/program_options.hpp>
 
 #include <engine/async.hpp>
-#include <engine/task/task_context.hpp>
 
-#include <logging/log_config.hpp>
+#include <engine/task/task_context.hpp>
+#include <logging/spdlog.hpp>
 
 void TestInCoro(std::function<void()> user_cb, size_t worker_threads) {
   engine::ev::Thread thread("test_thread");

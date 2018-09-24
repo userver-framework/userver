@@ -7,7 +7,9 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/map.hpp>
 
-#include <logging/log_config.hpp>
+#include <utils/str_icase.hpp>
+
+#include <logging/spdlog.hpp>
 
 namespace logging {
 
@@ -39,11 +41,12 @@ bool ShouldLog(Level level) {
 }
 
 Level LevelFromString(const std::string& level_name) {
-  static const std::unordered_map<std::string, Level> kLevelMap = {
-      {"trace", Level::kTrace}, {"debug", Level::kDebug},
-      {"info", Level::kInfo},   {"warning", Level::kWarning},
-      {"error", Level::kError}, {"critical", Level::kCritical},
-      {"none", Level::kNone}};
+  static const std::unordered_map<std::string, Level, utils::StrIcaseHash,
+                                  utils::StrIcaseCmp>
+      kLevelMap = {{"trace", Level::kTrace}, {"debug", Level::kDebug},
+                   {"info", Level::kInfo},   {"warning", Level::kWarning},
+                   {"error", Level::kError}, {"critical", Level::kCritical},
+                   {"none", Level::kNone}};
 
   auto it = kLevelMap.find(level_name);
   if (it == kLevelMap.end()) {

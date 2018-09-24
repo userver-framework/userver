@@ -6,7 +6,7 @@
 #include <engine/async.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
-#include <logging/log_config.hpp>
+#include <logging/spdlog.hpp>
 #include <redis/reply.hpp>
 #include <redis/sentinel.hpp>
 

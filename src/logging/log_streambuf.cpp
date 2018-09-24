@@ -13,4 +13,9 @@ std::streamsize MessageBuffer::xsputn(const char_type* s, std::streamsize n) {
   return n;
 }
 
+MessageBuffer::int_type MessageBuffer::overflow(int_type c) {
+  if (c != traits_type::eof()) msg.raw.push_back(c);
+  return c;
+}
+
 }  // namespace logging

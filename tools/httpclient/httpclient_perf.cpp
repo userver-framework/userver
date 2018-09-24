@@ -8,7 +8,8 @@
 
 #include <clients/http/client.hpp>
 #include <engine/async.hpp>
-#include <logging/log_config.hpp>
+
+#include <logging/spdlog.hpp>
 
 namespace http = clients::http;
 

@@ -1,10 +1,14 @@
 #include <benchmark/benchmark.h>
-#include <logging/log_config.hpp>
+
+// this header must be included before any spdlog headers
+// to override spdlog's level names
+#include <logging/spdlog.hpp>
 
 #include <spdlog/sinks/null_sink.h>
+
 #include <logging/log.hpp>
 
-#include "utils/gbench_auxilary.hpp"
+#include <utils/gbench_auxilary.hpp>
 
 class LogHelperBenchmark : public benchmark::Fixture {
  public:

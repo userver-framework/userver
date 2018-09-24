@@ -4,7 +4,7 @@
 
 // this header must be included before any spdlog headers
 // to override spdlog's level names
-#include <logging/log_config.hpp>
+#include <logging/spdlog.hpp>
 
 #include <spdlog/formatter.h>
 #include <spdlog/sinks/rotating_file_sink.h>

@@ -3,8 +3,8 @@
 /// @file logging/log.hpp
 /// @brief Logging helpers
 
+#include <iostream>
 #include <memory>
-#include <thread>
 
 #include <boost/system/error_code.hpp>
 
@@ -106,8 +106,6 @@ inline LogHelper& operator<<(LogHelper& lh, std::error_code ec) {
      << ")";
   return lh;
 }
-
-LogHelper& operator<<(LogHelper& lh, std::thread::id id);
 
 /// Forces flush of default logger message queue
 void LogFlush();
