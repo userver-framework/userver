@@ -1,11 +1,11 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
 
-#include <mongo/client/dbclient.h>
+#include <storages/mongo/collection.hpp>
+#include <storages/mongo/mongo.hpp>
 
 namespace engine {
 class TaskProcessor;
@@ -14,39 +14,33 @@ class TaskProcessor;
 namespace storages {
 namespace mongo {
 
-constexpr bool kAutoReconnect = true;
+namespace impl {
+class PoolImpl;
+}  // namespace impl
+
 constexpr size_t kCriticalPoolSize = 1000;
 
-class PoolError : public std::runtime_error {
-  using std::runtime_error::runtime_error;
+class PoolError : public MongoError {
+  using MongoError::MongoError;
 };
 
 class InvalidConfig : public PoolError {
   using PoolError::PoolError;
 };
 
-class CollectionWrapper;
-
-class Pool : public std::enable_shared_from_this<Pool> {
+class Pool {
  public:
   Pool(const std::string& uri, engine::TaskProcessor& task_processor,
-       int so_timeout_ms, size_t min_size, size_t max_size);
+       int conn_timeout_ms, int so_timeout_ms, size_t min_size,
+       size_t max_size);
   ~Pool();
 
-  CollectionWrapper GetCollection(const std::string& collection_name);
-
-  using ConnectionPtr =
-      std::unique_ptr<::mongo::DBClientConnection,
-                      std::function<void(::mongo::DBClientConnection*)>>;
+  Collection GetCollection(std::string collection_name);
+  Collection GetCollection(std::string database_name,
+                           std::string collection_name);
 
  private:
-  friend class CollectionWrapper;
-
-  ConnectionPtr Acquire();
-  void Release(ConnectionPtr::pointer client);
-
-  class Impl;
-  std::unique_ptr<Impl> impl_;
+  std::shared_ptr<impl::PoolImpl> impl_;
 };
 
 using PoolPtr = std::shared_ptr<Pool>;

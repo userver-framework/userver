@@ -56,7 +56,7 @@ static const std::string kDb = "dbtaxi";
 static const std::string kDbProcessing = "dbprocessing";
 
 namespace Static {
-static const std::string kCollection = kDb + ".static";
+static const std::string kCollection = "static";
 
 static const std::string kId = "_id";
 
@@ -71,14 +71,14 @@ static const std::string kUnpaidOrderIds = "x";
 }  // namespace Orderlocks
 
 namespace Config {
-static const std::string kCollection = kDb + ".config";
+static const std::string kCollection = "config";
 
 static const std::string kId = "_id";
 static const std::string kUpdated = "updated";
 }  // namespace Config
 
 namespace Orders {
-static const std::string kCollection = kDb + ".orders";
+static const std::string kCollection = "orders";
 
 static const std::string kId = "_id";
 static const std::string kType = "_type";
@@ -413,13 +413,13 @@ static const std::string kSent = "sent";
 }  // namespace Orders
 
 namespace FeedbackChoices {
-static const std::string kCollection = kDb + ".feedback_choices";
+static const std::string kCollection = "feedback_choices";
 
 static const std::string kId = "_id";
 }  // namespace FeedbackChoices
 
 namespace Users {
-static const std::string kCollection = kDb + ".users";
+static const std::string kCollection = "users";
 
 static const std::string kId = "_id";
 static const std::string kYandexUid = "yandex_uid";
@@ -458,20 +458,20 @@ static const std::string kUpdated = "updated";
 }  // namespace UserEmails
 
 namespace UserDevices {
-static const std::string kCollection = kDb + ".user_devices";
+static const std::string kCollection = "user_devices";
 static const std::string kBlockedTill = "blocked_till";
 static const std::string kId = "_id";
 }  // namespace UserDevices
 
 namespace UserSettings {
-static const std::string kCollection = kDb + ".user_settings";
+static const std::string kCollection = "user_settings";
 
 static const std::string kPhoneId = "phone_id";
 static const std::string kSettings = "settings";
 }  // namespace UserSettings
 
 namespace Cities {
-static const std::string kCollection = kDb + ".cities";
+static const std::string kCollection = "cities";
 
 static const std::string kId = "_id";
 static const std::string kRequirements = "requirements";
@@ -495,23 +495,23 @@ static const std::string kDisabled = "disabled";
 }  // namespace Cities
 
 namespace Countries {
-static const std::string kCollection = kDb + ".countries";
+static const std::string kCollection = "countries";
 
 static const std::string kId = "_id";
 }  // namespace Countries
 
 namespace FullscreenBanners {
-static const std::string kCollection = kDb + ".fullscreen_banners";
+static const std::string kCollection = "fullscreen_banners";
 
 }  // namespace FullscreenBanners
 
 namespace Promotions {
-static const std::string kCollection = kDb + ".promotions";
+static const std::string kCollection = "promotions";
 
 }  // namespace Promotions
 
 namespace Geoareas {
-static const std::string kCollection = kDb + ".geoareas";
+static const std::string kCollection = "geoareas";
 
 static const std::string kCoordinates = "coordinates";
 static const std::string kGeometry = "geometry";
@@ -523,7 +523,7 @@ static const std::string kType = "t";
 }  // namespace Geoareas
 
 namespace Tariffs {
-static const std::string kCollection = kDb + ".tariffs";
+static const std::string kCollection = "tariffs";
 
 static const std::string kActivationZone = "activation_zone";
 static const std::string kCategories = "categories";
@@ -575,7 +575,7 @@ static const std::string kWaitingPriceType = "waiting_price_type";
 }  // namespace Tariffs
 
 namespace TariffSettings {
-static const std::string kCollection = kDb + ".tariff_settings";
+static const std::string kCollection = "tariff_settings";
 
 static const std::string kId = "_id";
 static const std::string kZoneName = "hz";
@@ -660,12 +660,12 @@ static const std::string kDestinations = "dsts";
 }  // namespace TariffSettings
 
 namespace Images {
-static const std::string kCollection = kDb + ".images";
+static const std::string kCollection = "images";
 
 }  // namespace Images
 
 namespace Parks {
-static const std::string kCollection = kDb + ".parks";
+static const std::string kCollection = "parks";
 
 static const std::string kId = "_id";
 static const std::string kContracts = "account.contracts";
@@ -693,7 +693,7 @@ static const std::string kCoupon = "coupon";
 }  // namespace Parks
 
 namespace Drivers {
-static const std::string kCollection = kDb + ".drivers";
+static const std::string kCollection = "drivers";
 
 static const std::string kId = "_id";
 static const std::string kCar = "car";
@@ -718,7 +718,7 @@ static const std::string kRawModel = "raw_model";
 }  // namespace Drivers
 
 namespace UniqueDrivers {
-static const std::string kCollection = kDb + ".unique_drivers";
+static const std::string kCollection = "unique_drivers";
 
 static const std::string kId = "_id";
 static const std::string kLicenses = "licenses";
@@ -743,13 +743,13 @@ static const std::string kUpdated = "u";
 }  // namespace UniqueDriverZoneStats
 
 namespace DriverPositions {
-static const std::string kCollection = kDb + ".driver_positions";
+static const std::string kCollection = "driver_positions";
 static const std::string kId = "_id";
 static const std::string kLastKnownZone = "last_known_zone";
 }  // namespace DriverPositions
 
 namespace Cards {
-static const std::string kCollection = kDb + ".cards";
+static const std::string kCollection = "cards";
 
 static const std::string kCreated = "created";
 static const std::string kUpdated = "updated";
@@ -792,7 +792,7 @@ static const std::string kEnd = "e";
 }  // namespace PersonalSubventions
 
 namespace PromocodeSeries {
-static const std::string kCollection = kDb + ".promocode_series";
+static const std::string kCollection = "promocode_series";
 
 static const std::string kId = "_id";
 static const std::string kIsUnique = "is_unique";
@@ -820,7 +820,7 @@ static const std::string kUserLimitFull = "_race.user_limit";
 }  // namespace PromocodeSeries
 
 namespace PromocodeReferrals {
-static const std::string kCollection = kDb + ".promocode_referrals";
+static const std::string kCollection = "promocode_referrals";
 
 static const std::string kId = "_id";
 static const std::string kCreatorPhoneId = "creator_phone_id";
@@ -842,7 +842,7 @@ static const std::string kIdFull = "promocodes._id";
 }  // namespace PromocodeReferrals
 
 namespace Promocodes {
-static const std::string kCollection = kDb + ".promocodes";
+static const std::string kCollection = "promocodes";
 
 static const std::string kId = "_id";
 static const std::string kCode = "code";
@@ -858,7 +858,7 @@ static const std::string kCreated = "created";
 }  // namespace Promocodes
 
 namespace PromocodeUsages {
-static const std::string kCollection = kDb + ".promocode_usages";
+static const std::string kCollection = "promocode_usages";
 
 static const std::string kId = "_id";
 static const std::string kSeriesId = "series_id";
@@ -868,7 +868,7 @@ static const std::string kValue = "value";
 }  // namespace PromocodeUsages
 
 namespace SubventionRules {
-static const std::string kCollection = kDb + ".subvention_rules";
+static const std::string kCollection = "subvention_rules";
 static const std::string kId = "_id";
 static const std::string kTariffZone = "tariffzone";
 static const std::string kClass = "class";
@@ -901,7 +901,7 @@ static const std::string kUpdated = "updated";
 }  // namespace SubventionRules
 
 namespace SurgePriceZone {
-static const std::string kCollection = kDb + ".surge_price_areas";
+static const std::string kCollection = "surge_price_areas";
 
 static const std::string kId = "_id";
 static const std::string kGeo = "g";
@@ -964,7 +964,7 @@ static const std::string kSurchargeEnabled = "surcharge_enabled";
 }  // namespace SurgePriceZone
 
 namespace Autoincrement {
-static const std::string kCollection = kDb + ".autoincrement";
+static const std::string kCollection = "autoincrement";
 
 static const std::string kId = "_id";
 static const std::string kCurrent = "current";
@@ -972,7 +972,7 @@ static const std::string kReferralPromocodes = "referral_promocodes";
 }  // namespace Autoincrement
 
 namespace AntispamCounter {
-static const std::string kCollection = kDb + ".antispam_counters";
+static const std::string kCollection = "antispam_counters";
 
 static const std::string kId = "_id";
 static const std::string kIgnoreTag = "ignore_tag";
@@ -981,7 +981,7 @@ static const std::string kAttemptTimestamps = "attempt_timestamps";
 }  // namespace AntispamCounter
 
 namespace CouponFraud {
-static const std::string kCollection = kDb + ".coupon_frauders";
+static const std::string kCollection = "coupon_frauders";
 
 static const std::string kId = "_id";
 static const std::string kCreated = "created";
@@ -989,7 +989,7 @@ static const std::string kCoupons = "coupons";
 }  // namespace CouponFraud
 
 namespace RfidLabels {
-static const std::string kCollection = kDb + ".rfid_labels";
+static const std::string kCollection = "rfid_labels";
 
 static const std::string kId = "_id";  // carnumber - номер машины.
 static const std::string kTagbarcode = "tagbarcode";
@@ -1005,14 +1005,14 @@ static const std::string kUpdated = "updated";
 }  // namespace RfidLabels
 
 namespace DistLock {
-static const std::string kCollection = kDb + ".distlock";
+static const std::string kCollection = "distlock";
 static const std::string kId = "_id";
 const std::string kLockedTill = "t";
 const std::string kOwner = "o";
 }  // namespace DistLock
 
 namespace CronTasks {
-static const std::string kCollection = kDb + ".cron_tasks";
+static const std::string kCollection = "cron_tasks";
 static const std::string kId = "_id";
 static const std::string kName = "name";
 static const std::string kHostname = "hostname";
@@ -1024,7 +1024,7 @@ static const std::string kStatus = "status";
 }  // namespace CronTasks
 
 namespace VipUsers {
-static const std::string kCollection = kDb + ".vip_users";
+static const std::string kCollection = "vip_users";
 static const std::string kId = "_id";
 }  // namespace VipUsers
 
@@ -1034,7 +1034,7 @@ namespace Users {
 static const std::string kDb = "dbusers";
 
 namespace UserPhones {
-static const std::string kCollection = kDb + ".user_phones";
+static const std::string kCollection = "user_phones";
 
 static const std::string kId = "_id";
 static const std::string kPhone = "phone";
@@ -1071,7 +1071,7 @@ namespace PinStats {
 static const std::string kDb = "dbpinstats";
 
 namespace PinStats {
-static const std::string kCollection = kDb + ".pin_stats";
+static const std::string kCollection = "pin_stats";
 
 static const std::string kAntisurge = "antisurge";
 static const std::string kCreated = "created";
@@ -1112,7 +1112,7 @@ static const std::string kSurcharge = "surcharge";
 }  // namespace PinStats
 
 namespace SurgePins {
-static const std::string kCollection = kDb + ".surge_pins";
+static const std::string kCollection = "surge_pins";
 
 static const std::string kUserId = "_id";
 static const std::string kCreated = "c";
@@ -1135,7 +1135,7 @@ static const std::string kState = "state";
 }  // namespace Lookup
 
 namespace OrderProc {
-static const std::string kCollection = kDb + ".order_proc";
+static const std::string kCollection = "order_proc";
 
 static const std::string kAliases = "aliases";
 static const std::string kId = "_id";
@@ -1364,7 +1364,7 @@ static const std::string kOrders = "o";
 }  // namespace Paf
 
 namespace RouteSharingKeys {
-static const std::string kCollection = kDb + ".route_sharing_keys";
+static const std::string kCollection = "route_sharing_keys";
 
 static const std::string kId = "_id";
 static const std::string kKey = "k";
@@ -1377,7 +1377,7 @@ namespace Antifraud {
 static const std::string kDb{"dbantifraud"};
 
 namespace DriverDatamarts {
-static const std::string kCollection{kDb + ".driver_datamarts"};
+static const std::string kCollection{"driver_datamarts"};
 static const std::string kId{"_id"};
 static const std::string kLicense{"license"};
 static const std::string kWindow{"window"};
@@ -1386,7 +1386,7 @@ static const std::string kYtUpdate{"yt_update"};
 }  // namespace DriverDatamarts
 
 namespace PersonalSubventionRules {
-static const std::string kCollection{kDb + ".personal_subvention_rules"};
+static const std::string kCollection{"personal_subvention_rules"};
 static const std::string kId{"_id"};
 static const std::string kSrc{"src"};
 static const std::string kEnabled{"enabled"};
@@ -1395,7 +1395,7 @@ static const std::string kDescription{"description"};
 }  // namespace PersonalSubventionRules
 
 namespace PersonalSubventionFrauders {
-static const std::string kCollection{kDb + ".personal_subvention_frauders"};
+static const std::string kCollection{"personal_subvention_frauders"};
 static const std::string kId{"_id"};
 static const std::string kLicense{"license"};
 static const std::string kFound{"found"};
@@ -1405,7 +1405,7 @@ static const std::string kRuleApply{"rule_apply"};
 }  // namespace PersonalSubventionFrauders
 
 namespace SubventionRules {
-static const std::string kCollection{kDb + ".subvention_rules"};
+static const std::string kCollection{"subvention_rules"};
 static const std::string kId{"_id"};
 static const std::string kSrc{"src"};
 static const std::string kEnabled{"enabled"};
@@ -1417,7 +1417,7 @@ static const std::string kCreated{"created"};
 }  // namespace SubventionRules
 
 namespace SubventionFrauders {
-static const std::string kCollection{kDb + ".subvention_frauders"};
+static const std::string kCollection{"subvention_frauders"};
 static const std::string kId{"_id"};
 static const std::string kOrderId{"order_id"};
 static const std::string kLicense{"license"};
@@ -1429,7 +1429,7 @@ static const std::string kConfidence{"confidence"};
 }  // namespace SubventionFrauders
 
 namespace CityInfo {
-static const std::string kCollection{kDb + ".city_info"};
+static const std::string kCollection{"city_info"};
 static const std::string kId{"_id"};
 static const std::string kCity{"city"};
 static const std::string kNumFirstRides{"num_first_rides"};
@@ -1441,13 +1441,13 @@ static const std::string kUpdated{"updated"};
 }  // namespace CityInfo
 
 namespace EntityList {
-static const std::string kCollection{kDb + ".entity_list"};
+static const std::string kCollection{"entity_list"};
 static const std::string kId{"_id"};
 static const std::string kType{"type"};
 }  // namespace EntityList
 
 namespace EntityItem {
-static const std::string kCollection{kDb + ".entity_item"};
+static const std::string kCollection{"entity_item"};
 static const std::string kId{"_id"};
 static const std::string kListId{"list_id"};
 static const std::string kValue{"value"};
@@ -1461,11 +1461,11 @@ namespace Logs {
 static const std::string kDb = "dblogs";
 
 namespace Servers {
-static const std::string kCollection = kDb + ".servers";
+static const std::string kCollection = "servers";
 }  // namespace Servers
 
 namespace Responses {
-static const std::string kCollection = kDb + ".servers_response";
+static const std::string kCollection = "servers_response";
 }  // namespace Responses
 
 }  // namespace Logs
@@ -1475,7 +1475,7 @@ namespace GprsTimings {
 static const std::string kDb = "gprstimings";
 
 namespace Geofences {
-static const std::string kCollection = kDb + ".geofences";
+static const std::string kCollection = "geofences";
 
 static const std::string kId = "_id";
 static const std::string kZones = "zones";
@@ -1486,7 +1486,7 @@ static const std::string kMessage = "message";
 }  // namespace Geofences
 
 namespace Eta {
-static const std::string kCollection = kDb + ".eta";
+static const std::string kCollection = "eta";
 
 static const std::string kOrderId = "_id";
 static const std::string kTimeLeft = "time_left";
@@ -1495,7 +1495,7 @@ static const std::string kErrorTime = "et";
 }  // namespace Eta
 
 namespace PickupGroups {
-static const std::string kCollection = kDb + ".pickup_groups";
+static const std::string kCollection = "pickup_groups";
 
 static const std::string kId = "_id";
 static const std::string kName = "name";
@@ -1526,7 +1526,7 @@ namespace UserCommunication {
 static const std::string kDb{"dbuser_communication"};
 
 namespace UserChatMessages {
-static const std::string kCollection{kDb + ".user_chat_messages"};
+static const std::string kCollection{"user_chat_messages"};
 
 static const std::string kVisible{"visible"};
 static const std::string kOpen{"open"};

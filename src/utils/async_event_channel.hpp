@@ -1,8 +1,7 @@
 #pragma once
 
 #include <algorithm>
-
-#include <boost/thread/shared_mutex.hpp>
+#include <shared_mutex>
 
 #include <engine/async.hpp>
 #include <logging/log.hpp>
@@ -67,7 +66,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
   using Function = std::function<void(Args... args)>;
 
   AsyncEventSubscriberScope AddListener(FunctionId id, Function func) {
-    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    std::lock_guard<std::shared_timed_mutex> lock(mutex_);
 
     auto it = FindListener(id);
     if (it != listeners_.end()) throw std::runtime_error("already subscribed");
@@ -91,7 +90,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
   }
 
   void SendEvent(const Args&... args) const {
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    std::shared_lock<std::shared_timed_mutex> lock(mutex_);
     for (const Listener& listener : listeners_) {
       engine::Async(listener.second, args...).Detach();
     }
@@ -99,7 +98,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
 
  private:
   bool RemoveListener(FunctionId id) override {
-    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    std::lock_guard<std::shared_timed_mutex> lock(mutex_);
 
     auto it = FindListener(id);
     if (it == listeners_.end()) {
@@ -122,7 +121,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
         [id](const Listener& listener) { return listener.first == id; });
   }
 
-  mutable boost::shared_mutex mutex_;
+  mutable std::shared_timed_mutex mutex_;
   std::vector<Listener> listeners_;
 };
 

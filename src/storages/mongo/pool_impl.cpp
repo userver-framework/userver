@@ -1,0 +1,129 @@
+#include "pool_impl.hpp"
+
+#include <bson.h>
+#include <mongoc.h>
+
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/document/value.hpp>
+#include <mongocxx/exception/operation_exception.hpp>
+#include <mongocxx/instance.hpp>
+
+#include <logging/log.hpp>
+#include <storages/mongo/pool.hpp>
+
+#include "logger.hpp"
+
+namespace storages {
+namespace mongo {
+namespace impl {
+namespace {
+
+mongocxx::uri MakeUriWithTimeouts(const std::string& uri, int conn_timeout_ms,
+                                  int so_timeout_ms) {
+  // mongocxx doesn't provide options setters for uri
+  bson_error_t parse_error;
+  std::unique_ptr<mongoc_uri_t, decltype(&mongoc_uri_destroy)> parsed_uri(
+      mongoc_uri_new_with_error(uri.c_str(), &parse_error),
+      &mongoc_uri_destroy);
+  if (!parsed_uri) {
+    throw InvalidConfig(std::string("bad uri: ") + parse_error.message);
+  }
+  mongoc_uri_set_option_as_int32(parsed_uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
+                                 conn_timeout_ms);
+  mongoc_uri_set_option_as_int32(parsed_uri.get(), MONGOC_URI_SOCKETTIMEOUTMS,
+                                 so_timeout_ms);
+  return mongocxx::uri(mongoc_uri_get_string(parsed_uri.get()));
+}
+
+}  // namespace
+
+PoolImpl::PoolImpl(engine::TaskProcessor& task_processor,
+                   const std::string& uri, int conn_timeout_ms,
+                   int so_timeout_ms, size_t min_size, size_t max_size)
+    : task_processor_(task_processor), queue_(max_size) {
+  if (conn_timeout_ms <= 0) {
+    throw InvalidConfig("invalid conn_timeout");
+  }
+  if (so_timeout_ms <= 0) {
+    throw InvalidConfig("invalid so_timeout");
+  }
+
+  // global mongocxx initializer
+  static const mongocxx::instance kDriverInit(std::make_unique<impl::Logger>());
+
+  uri_ = MakeUriWithTimeouts(uri, conn_timeout_ms, so_timeout_ms);
+  if (uri_.hosts().size() != 1) {
+    throw InvalidConfig("bad uri: specify exactly one server");
+  }
+  default_database_name_ = uri_.database();
+
+  try {
+    LOG_INFO() << "Creating " << min_size << " mongo connections";
+    for (size_t i = 0; i < min_size; ++i) Push(Create());
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "Mongo pool pre-population failed: " << ex.what();
+    Clear();
+    throw;
+  }
+}
+
+PoolImpl::~PoolImpl() { Clear(); }
+
+PoolImpl::ConnectionPtr PoolImpl::Acquire() {
+  return {Pop(), [this](Connection* connection) { Push(connection); }};
+}
+
+void PoolImpl::Push(Connection* connection) {
+  assert(connection);
+  if (queue_.push(connection)) return;
+  delete connection;
+  --size_;
+}
+
+PoolImpl::Connection* PoolImpl::Pop() {
+  Connection* connection = nullptr;
+  if (queue_.pop(connection)) return connection;
+  return Create();
+}
+
+const std::string& PoolImpl::GetDefaultDatabaseName() const {
+  return default_database_name_;
+}
+
+engine::TaskProcessor& PoolImpl::GetTaskProcessor() { return task_processor_; }
+
+PoolImpl::Connection* PoolImpl::Create() {
+  namespace bbb = bsoncxx::builder::basic;
+
+  // "admin" is an internal mongodb database and always exists/accessible
+  static const std::string kPingDatabase = "admin";
+  static const auto kPingCommand = bbb::make_document(bbb::kvp("ping", 1));
+
+  if (size_ > kCriticalPoolSize)
+    throw PoolError("Mongo pool reached critical size: " +
+                    std::to_string(size_));
+
+  LOG_INFO() << "Creating mongo connection, current pool size: "
+             << size_.load();
+
+  auto connection = std::make_unique<Connection>(uri_);
+
+  try {
+    // force connection
+    connection->database(kPingDatabase).run_command(kPingCommand.view());
+  } catch (const mongocxx::operation_exception& ex) {
+    throw PoolError(std::string("Connection to mongo failed: ") + ex.what());
+  }
+
+  ++size_;
+  return connection.release();
+}
+
+void PoolImpl::Clear() {
+  Connection* connection = nullptr;
+  while (queue_.pop(connection)) delete connection;
+}
+
+}  // namespace impl
+}  // namespace mongo
+}  // namespace storages

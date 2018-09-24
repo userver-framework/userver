@@ -1,6 +1,3 @@
-find_package(MongoClient REQUIRED)
-find_package(JsonCpp REQUIRED)
-
 find_program(CPPCHECK cppcheck)
 if(CPPCHECK)
   exec_program(${CPPCHECK} ARGS --version OUTPUT_VARIABLE CPPCHECK_OUTPUT)
@@ -37,8 +34,6 @@ else()
           --quiet
           --force
           -I ${USERVER_THIRD_PARTY_DIRS}
-          -I ${MONGOCLIENT_INCLUDE_DIR}
-          -I ${JSONCPP_INCLUDE_DIR}
           ${ALL_SOURCE_FILES}
   )
 endif()

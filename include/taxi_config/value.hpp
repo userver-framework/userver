@@ -5,25 +5,23 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <mongo/bson/bson.h>
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/optional.hpp>
 
 #include <json_config/value.hpp>
 #include <storages/mongo/mongo.hpp>
-#include <storages/mongo/wrappers.hpp>
 #include <utils/meta.hpp>
 
 namespace taxi_config {
 
 class DocsMap {
  public:
-  mongo::BSONElement Get(const std::string& name) const;
-  void Set(std::string name, mongo::BSONObj);
+  storages::mongo::DocumentElement Get(const std::string& name) const;
+  void Set(std::string name, storages::mongo::DocumentValue);
   void Parse(const std::string& json);
 
  private:
-  std::unordered_map<std::string, mongo::BSONObj> docs_;
+  std::unordered_map<std::string, storages::mongo::DocumentValue> docs_;
 };
 
 namespace impl {
@@ -36,53 +34,41 @@ static constexpr bool IsSpecialized =
 
 template <typename T>
 typename std::enable_if_t<!IsSpecialized<T>, T> MongoCast(
-    const ::mongo::BSONElement& elem);
+    const storages::mongo::DocumentElement& elem);
 
 template <class T>
 typename std::enable_if_t<std::is_floating_point<T>::value, T> MongoCast(
-    const ::mongo::BSONElement& elem) {
+    const storages::mongo::DocumentElement& elem) {
   return static_cast<T>(storages::mongo::ToDouble(elem));
 }
 
 template <class T>
-typename std::enable_if_t<std::is_integral<T>::value &&
-                              std::is_signed<T>::value &&
-                              !meta::is_bool<T>::value,
-                          T>
-MongoCast(const ::mongo::BSONElement& elem) {
-  return boost::numeric_cast<T>(storages::mongo::ToInt(elem));
-}
-
-template <class T>
-typename std::enable_if_t<std::is_integral<T>::value &&
-                              std::is_unsigned<T>::value &&
-                              !meta::is_bool<T>::value,
-                          T>
-MongoCast(const ::mongo::BSONElement& elem) {
-  return boost::numeric_cast<T>(storages::mongo::ToUint(elem));
+typename std::enable_if_t<
+    std::is_integral<T>::value && !meta::is_bool<T>::value, T>
+MongoCast(const storages::mongo::DocumentElement& elem) {
+  return boost::numeric_cast<T>(storages::mongo::ToInt64(elem));
 }
 
 template <class T>
 typename std::enable_if_t<meta::is_duration<T>::value, T> MongoCast(
-    const ::mongo::BSONElement& elem) {
+    const storages::mongo::DocumentElement& elem) {
   return T(MongoCast<typename T::rep>(elem));
 }
 
 template <class T>
 typename std::enable_if_t<meta::is_map<T>::value, T> MongoCast(
-    const ::mongo::BSONElement& elem) {
+    const storages::mongo::DocumentElement& elem) {
   T response;
   const auto& obj = storages::mongo::ToDocument(elem);
-  for (auto i = obj.begin(); i.more(); ++i) {
-    const auto& e = *i;
-    response.emplace(e.fieldName(), MongoCast<typename T::mapped_type>(e));
+  for (const auto& elem : obj) {
+    response.emplace(elem.key(), MongoCast<typename T::mapped_type>(elem));
   }
   return response;
 }
 
 template <class T>
 typename std::enable_if_t<meta::is_vector<T>::value, T> MongoCast(
-    const ::mongo::BSONElement& elem) {
+    const storages::mongo::DocumentElement& elem) {
   T response;
   for (const auto& subitem : storages::mongo::ToArray(elem))
     response.emplace_back(MongoCast<typename T::value_type>(subitem));

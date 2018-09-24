@@ -2,8 +2,6 @@
 
 #include <stdexcept>
 
-#include <mongo/client/init.h>
-
 #include <components/manager.hpp>
 #include <logging/log.hpp>
 #include <storages/secdist/component.hpp>
@@ -16,37 +14,6 @@
 namespace components {
 
 namespace {
-
-class MongoClientKeeper {
- public:
-  MongoClientKeeper() : status_(mongo::ErrorCodes::OK, {}) {
-    mongo::client::Options options;
-    options.setIPv6Enabled(true);
-    status_ = mongo::client::initialize(options);
-  }
-
-  ~MongoClientKeeper() {
-    const auto status = mongo::client::shutdown();
-    if (!status.isOK()) {
-      LOG_ERROR() << "Error during mongo lib shutdown: " << status.toString();
-    }
-  }
-
-  MongoClientKeeper(const MongoClientKeeper&) = delete;
-  MongoClientKeeper(MongoClientKeeper&&) = delete;
-  MongoClientKeeper& operator=(const MongoClientKeeper&) = delete;
-  MongoClientKeeper& operator=(MongoClientKeeper&&) = delete;
-
-  void Check() const {
-    if (!status_.isOK()) {
-      throw std::runtime_error("Failed to initialize mongo lib: " +
-                               status_.toString());
-    }
-  }
-
- private:
-  mongo::Status status_;
-};
 
 const std::string kThreadName = "mongo-worker";
 
@@ -73,16 +40,14 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) {
     connection_string = config.ParseString("dbconnection");
   }
 
+  const auto conn_timeout_ms =
+      config.ParseInt("conn_timeout_ms", kDefaultConnTimeoutMs);
   const auto so_timeout_ms =
       config.ParseInt("so_timeout_ms", kDefaultSoTimeoutMs);
   const auto min_pool_size =
       config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
   const auto max_pool_size =
       config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
-
-  // legacy driver
-  static MongoClientKeeper mongo_client_keeper;
-  mongo_client_keeper.Check();
 
   const auto threads_num = config.ParseUint64("threads", kDefaultThreadsNum);
   engine::TaskProcessorConfig task_processor_config;
@@ -93,8 +58,8 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) {
       context.GetManager().GetEventThreadPool());
 
   pool_ = std::make_shared<storages::mongo::Pool>(
-      connection_string, *task_processor_, so_timeout_ms, min_pool_size,
-      max_pool_size);
+      connection_string, *task_processor_, conn_timeout_ms, so_timeout_ms,
+      min_pool_size, max_pool_size);
 }
 
 Mongo::~Mongo() = default;

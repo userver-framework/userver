@@ -2,7 +2,11 @@
 
 #include <type_traits>
 
-#include <mongo/db/json.h>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/exception/exception.hpp>
+#include <bsoncxx/json.hpp>
+#include <bsoncxx/types/value.hpp>
+
 #include <logging/logger.hpp>
 #include <redis/base.hpp>
 
@@ -10,13 +14,14 @@ namespace taxi_config {
 namespace impl {
 
 template <>
-std::string MongoCast<std::string>(const ::mongo::BSONElement& elem) {
+std::string MongoCast<std::string>(
+    const storages::mongo::DocumentElement& elem) {
   return storages::mongo::ToString(elem);
 }
 
 template <>
 std::unordered_set<std::string> MongoCast<std::unordered_set<std::string>>(
-    const ::mongo::BSONElement& elem) {
+    const storages::mongo::DocumentElement& elem) {
   std::unordered_set<std::string> response;
   for (const auto& subitem : storages::mongo::ToArray(elem)) {
     response.emplace(storages::mongo::ToString(subitem));
@@ -25,13 +30,13 @@ std::unordered_set<std::string> MongoCast<std::unordered_set<std::string>>(
 }
 
 template <>
-bool MongoCast<bool>(const ::mongo::BSONElement& elem) {
+bool MongoCast<bool>(const storages::mongo::DocumentElement& elem) {
   return storages::mongo::ToBool(elem);
 }
 
 template <>
 redis::CommandControl::Strategy MongoCast<redis::CommandControl::Strategy>(
-    const ::mongo::BSONElement& elem) {
+    const storages::mongo::DocumentElement& elem) {
   auto strategy = MongoCast<std::string>(elem);
   if (strategy == "every_dc") {
     return redis::CommandControl::Strategy::kEveryDc;
@@ -50,13 +55,11 @@ redis::CommandControl::Strategy MongoCast<redis::CommandControl::Strategy>(
 
 template <>
 redis::CommandControl MongoCast<redis::CommandControl>(
-    const ::mongo::BSONElement& elem) {
+    const storages::mongo::DocumentElement& elem) {
   redis::CommandControl response;
 
-  const auto& obj = storages::mongo::ToDocument(elem);
-  for (auto i = obj.begin(); i.more(); ++i) {
-    const auto& e = *i;
-    const std::string& name = e.fieldName();
+  for (const auto& e : storages::mongo::ToDocument(elem)) {
+    const auto& name = e.key().to_string();
     if (name == "timeout_all_ms") {
       response.timeout_all = MongoCast<std::chrono::milliseconds>(e);
     } else if (name == "timeout_single_ms") {
@@ -85,45 +88,57 @@ redis::CommandControl MongoCast<redis::CommandControl>(
 
 }  // namespace impl
 
-mongo::BSONElement DocsMap::Get(const std::string& name) const {
+storages::mongo::DocumentElement DocsMap::Get(const std::string& name) const {
   const auto& mongo_it = docs_.find(name);
   if (mongo_it == docs_.end())
     throw std::runtime_error("Can't find doc for " + name);
 
   const auto& doc = mongo_it->second;
-  if (!doc.hasElement("v"))
+  auto view = doc.view();
+  if (view.find("v") == view.end())
     throw std::runtime_error("Mongo config have no element 'v' for " + name);
 
-  auto element = doc["v"];
-  if (!element.ok())
-    throw std::runtime_error("Mongo element is not ok for " + name);
+  auto element = view["v"];
+  if (!element)
+    throw std::runtime_error("Mongo element is not valid for " + name);
 
   return element;
 }
 
-void DocsMap::Set(std::string name, mongo::BSONObj obj) {
-  docs_[std::move(name)] = std::move(obj);
+void DocsMap::Set(std::string name, storages::mongo::DocumentValue obj) {
+  auto it = docs_.find(name);
+  if (it != docs_.end()) {
+    it->second = std::move(obj);
+  } else {
+    docs_.emplace(std::move(name), std::move(obj));
+  }
 }
 
 void DocsMap::Parse(const std::string& json) {
-  const mongo::BSONObj bson = mongo::fromjson(json);
+  namespace bbb = bsoncxx::builder::basic;
 
-  if (!bson.isValid())
-    throw std::runtime_error("DocsMap::Parse failed: invalid BSON");
+  auto bson = [&json] {
+    try {
+      return bsoncxx::from_json(json);
+    } catch (const bsoncxx::exception& ex) {
+      throw std::runtime_error(std::string("DocsMap::Parse failed: ") +
+                               ex.what());
+    }
+  }();
 
-  if (bson.isEmpty())
+  auto view = bson.view();
+  if (view.empty())
     throw std::runtime_error("DocsMap::Parse failed: BSON is empty");
 
-  std::vector<mongo::BSONElement> elements;
-  bson.elems(elements);
+  std::vector<storages::mongo::DocumentElement> elements(view.begin(),
+                                                         view.end());
 
   if (elements.empty())
     throw std::runtime_error("DocsMap::Parse failed: elements are empty");
 
   for (auto const& element : elements) {
-    mongo::BSONObjBuilder builder;
-    builder.appendAs(element, "v");
-    Set(element.fieldName(), builder.obj());
+    Set(element.key().to_string(),
+        bbb::make_document(bbb::kvp("v", element.get_value())));
   }
 }
 

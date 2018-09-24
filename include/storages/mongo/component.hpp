@@ -16,6 +16,7 @@ namespace components {
 
 class Mongo : public ComponentBase {
  public:
+  static constexpr int kDefaultConnTimeoutMs = 5 * 1000;
   static constexpr int kDefaultSoTimeoutMs = 30 * 1000;
   static constexpr size_t kDefaultMinPoolSize = 32;
   static constexpr size_t kDefaultMaxPoolSize = 256;

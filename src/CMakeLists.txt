@@ -34,11 +34,14 @@ find_package(Threads REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS coroutine program_options)
 find_package(Jemalloc REQUIRED)
-find_package(Hiredis REQUIRED)
+find_package(Hiredis 0.13.3 REQUIRED)
 find_package(HttpParser REQUIRED)
-find_package(JsonCpp REQUIRED)
+find_package(jsoncpp REQUIRED)
 find_package(LibEv REQUIRED)
-find_package(MongoClient REQUIRED)
+find_package(libbson-static-1.0 1.12.0 REQUIRED)
+find_package(libmongoc-static-1.0 1.12.0 REQUIRED)
+find_package(libbsoncxx-static 3.3.1 REQUIRED)
+find_package(libmongocxx-static 3.3.1 REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest)
 find_package(ExternalProjectGBench)
@@ -52,18 +55,21 @@ target_link_libraries(${PROJECT}
   PUBLIC
     ${CMAKE_THREAD_LIBS_INIT}
     ${JEMALLOC_LIBRARIES}
+    ${LIBBSONCXX_STATIC_LIBRARIES}
+    ${LIBMONGOCXX_STATIC_LIBRARIES}
     yandex-taxi-backend-common-cpp
+    jsoncpp_lib # FIXME move to private in TAXICOMMON-15
     libopentracing
   PRIVATE
     ${LIBCURL_YANDEX_LIBRARIES}
     ${ZLIB_LIBRARIES}
-    ${Boost_COROUTINE_LIBRARY}
-    ${JSONCPP_LIBRARIES}
+    Boost::coroutine
     ${HIREDIS_LIBRARIES}
     ${HTTP_PARSER_LIBRARIES}
     ${LIBEV_LIBRARIES}
-    ${MONGOCLIENT_LIBRARIES}
     ${CLANG_LIBRARIES}
+    ${BSON_STATIC_LIBRARIES}
+    ${MONGOC_STATIC_LIBRARIES}
 )
 
 set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
@@ -71,21 +77,27 @@ set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../third_party)
 
 target_include_directories(${PROJECT} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}
-  ${JSONCPP_INCLUDE_DIR} # FIXME move to private in TAXICOMMON-15
 )
+
+# include them as system to suppress errors
+target_include_directories(${PROJECT} SYSTEM PUBLIC
+  ${LIBBSONCXX_STATIC_INCLUDE_DIRS}
+  ${LIBMONGOCXX_STATIC_INCLUDE_DIRS}
+)
+
 target_include_directories(${PROJECT} SYSTEM PRIVATE
   ${SPDLOG_INCLUDE_DIRS}
+  ${BSON_STATIC_INCLUDE_DIRS}
+  ${MONGOC_STATIC_INCLUDE_DIRS}
 )
+
 # FIXME: change to PRIVATE once we have interface
 target_include_directories(${PROJECT} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${LIBCURL_YANDEX_INCLUDE_DIR}
   ${LIBEV_INCLUDE_DIR}
-  ${MONGOCLIENT_INCLUDE_DIR}
 )
-
-
 
 add_library(utest STATIC ${LIBUTEST_SOURCES})
 set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
@@ -119,6 +131,7 @@ target_include_directories (${PROJECT}_unittest SYSTEM PRIVATE
 target_link_libraries(${PROJECT}_unittest
   atomic
   utest
+  Boost::program_options
 )
 
 add_google_tests(${PROJECT}_unittest)

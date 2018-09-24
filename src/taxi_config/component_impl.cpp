@@ -4,7 +4,10 @@
 #include <sstream>
 #include <stdexcept>
 
-#include <mongo/client/dbclientinterface.h>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/types.hpp>
+#include <mongocxx/options/find.hpp>
+#include <mongocxx/read_preference.hpp>
 
 #include <storages/mongo/component.hpp>
 #include <storages/mongo/mongo.hpp>
@@ -43,17 +46,26 @@ TaxiConfigImpl::TaxiConfigImpl(const ComponentConfig& config,
 void TaxiConfigImpl::Update(UpdatingComponentBase::UpdateType type,
                             const std::chrono::system_clock::time_point&,
                             const std::chrono::system_clock::time_point&) {
+  namespace bbb = bsoncxx::builder::basic;
   namespace sm = storages::mongo;
   namespace config_db = mongo::db::taxi::config;
 
   auto collection = mongo_taxi_->GetCollection(config_db::kCollection);
 
   if (type == UpdatingComponentBase::UpdateType::kIncremental) {
-    auto query = MONGO_QUERY(config_db::kUpdated
-                             << BSON("$gt" << sm::Date(seen_doc_update_time_)))
-                     .readPref(mongo::ReadPreference_SecondaryPreferred,
-                               sm::kEmptyArray);
-    if (collection.FindOne(query, {config_db::kUpdated}).isEmpty()) {
+    auto query = bbb::make_document(
+        bbb::kvp(config_db::kUpdated, [this](bbb::sub_document subdoc) {
+          subdoc.append(
+              bbb::kvp("$gt", bsoncxx::types::b_date(seen_doc_update_time_)));
+        }));
+    mongocxx::read_preference read_pref;
+    read_pref.mode(mongocxx::read_preference::read_mode::k_secondary_preferred);
+    mongocxx::options::find options;
+    options.read_preference(std::move(read_pref));
+    if (!collection
+             .FindOne(std::move(query), {config_db::kUpdated},
+                      std::move(options))
+             .Get()) {
       return;
     }
     LOG_DEBUG() << "Updating dirty config";
@@ -70,15 +82,13 @@ void TaxiConfigImpl::Update(UpdatingComponentBase::UpdateType type,
   }
 
   std::chrono::system_clock::time_point seen_doc_update_time;
-  auto cursor = collection.Find(::mongo::Query());
-  while (cursor.More()) {
-    const auto& doc = cursor.NextSafe();
+  for (const auto& doc : collection.Find(sm::kEmptyObject).Get()) {
     const auto& updated_field = doc[config_db::kUpdated];
-    if (updated_field.ok()) {
+    if (updated_field) {
       seen_doc_update_time =
           std::max(seen_doc_update_time, sm::ToTimePoint(updated_field));
     }
-    mongo_docs.Set(sm::ToString(doc[config_db::kId]), doc.getOwned());
+    mongo_docs.Set(sm::ToString(doc[config_db::kId]), sm::DocumentValue(doc));
   }
 
   emplace_docs_cb_(std::move(mongo_docs));
