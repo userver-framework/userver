@@ -51,7 +51,12 @@ void TimerWatcher::CallTimeoutCb(std::error_code ec) {
 void TimerWatcher::Cancel() {
   LOG_TRACE() << "TimerWatcher::Cancel() (1) watcher="
               << reinterpret_cast<long>(this);
-  if (cb_) {
+  bool need_call_cb = false;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (cb_) need_call_cb = true;
+  }
+  if (need_call_cb) {
     LOG_TRACE() << "TimerWatcher::Cancel() (2) watcher="
                 << reinterpret_cast<long>(this);
     ev_timer_.Stop();
