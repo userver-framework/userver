@@ -8,6 +8,7 @@ include(GetVersion)
 include(CppCheck)
 include(CheckSubmodule)
 
+set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
 check_submodule(${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp CMakeLists.txt)
 add_subdirectory(backend-common-cpp)
@@ -30,6 +31,10 @@ add_subdirectory(tools/engine)
 add_subdirectory(tools/httpclient)
 add_subdirectory(tools/redisclient)
 
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Enable testing")
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Enable parse tools")
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Enable contrib stuff in library")
+add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/yaml-cpp)
 
 option(BUILD_USERVER_AS_SUBMODULE "Disables build of examples and testsuite" OFF) # TODO: remove
 if (NOT BUILD_USERVER_AS_SUBMODULE)
