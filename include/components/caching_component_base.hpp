@@ -8,22 +8,26 @@
 #include <server/cache_invalidator_holder.hpp>
 #include <utils/async_event_channel.hpp>
 
+#include "cache_config.hpp"
+#include "cache_update_trait.hpp"
+#include "component_base.hpp"
 #include "component_config.hpp"
-#include "updating_component_base.hpp"
 
 namespace components {
 
-// You need to override UpdatingComponentBase::Update
-// then call UpdatingComponentBase::StartPeriodicUpdates after setup
-// and UpdatingComponentBase::StopPeriodicUpdates before teardown
+// You need to override CacheUpdateTrait::Update
+// then call CacheUpdateTrait::StartPeriodicUpdates after setup
+// and CacheUpdateTrait::StopPeriodicUpdates before teardown
 template <typename T>
 class CachingComponentBase
-    : public UpdatingComponentBase,
-      public utils::AsyncEventChannel<const std::shared_ptr<T>&> {
+    : public ComponentBase,
+      public utils::AsyncEventChannel<const std::shared_ptr<T>&>,
+      protected CacheUpdateTrait {
  public:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
                        const std::string& name);
 
+  const std::string& Name() const;
   std::shared_ptr<T> Get() const;
 
  protected:
@@ -38,14 +42,21 @@ class CachingComponentBase
  private:
   std::shared_ptr<T> cache_;
   server::CacheInvalidatorHolder cache_invalidator_holder_;
+  const std::string name_;
 };
 
 template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context,
                                               const std::string& name)
-    : UpdatingComponentBase(config, name),
-      cache_invalidator_holder_(*this, context) {}
+    : CacheUpdateTrait(CacheConfig(config), name),
+      cache_invalidator_holder_(*this, context),
+      name_(name) {}
+
+template <typename T>
+const std::string& CachingComponentBase<T>::Name() const {
+  return name_;
+}
 
 template <typename T>
 std::shared_ptr<T> CachingComponentBase<T>::Get() const {

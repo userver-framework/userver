@@ -24,11 +24,15 @@ void PeriodicTask::Start(std::string name, Settings settings,
 
 void PeriodicTask::DoStart() {
   LOG_INFO() << "Starting PeriodicTask with name=" << name_;
-  task_ = engine::Async(std::mem_fn(&PeriodicTask::Run), this);
+  if (settings_.Get()->flags & Flags::kCritical) {
+    task_ = engine::CriticalAsync(std::mem_fn(&PeriodicTask::Run), this);
+  } else {
+    task_ = engine::Async(std::mem_fn(&PeriodicTask::Run), this);
+  }
 }
 
 void PeriodicTask::Stop() {
-  if (task_.IsValid()) {
+  if (IsRunning()) {
     LOG_INFO() << "Stopping PeriodicTask with name=" << name_;
     task_.RequestCancel();
     task_.Wait();
@@ -36,6 +40,8 @@ void PeriodicTask::Stop() {
     task_ = engine::TaskWithResult<void>();
   }
 }
+
+bool PeriodicTask::IsRunning() const { return task_.IsValid(); }
 
 void PeriodicTask::SetSettings(Settings settings) {
   settings_.Set(std::move(settings));
@@ -76,8 +82,7 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
     std::chrono::milliseconds period) {
   if (!(settings_.Get()->flags & Flags::kChaotic)) return period;
 
-  const auto distribution = (period / 4);  // +/- 25%
-
+  const auto distribution = settings_.Get()->distribution;
   const auto ms = std::uniform_int_distribution<int64_t>(
       (period - distribution).count(), (period + distribution).count())(rand_);
   return std::chrono::milliseconds(ms);

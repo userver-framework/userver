@@ -3,10 +3,10 @@
 #include <chrono>
 #include <memory>
 
+#include <components/cache_update_trait.hpp>
 #include <components/caching_component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
-#include <components/updating_component_base.hpp>
 #include <taxi_config/config.hpp>
 
 namespace components {
@@ -21,7 +21,7 @@ class TaxiConfig : public CachingComponentBase<taxi_config::Config> {
   ~TaxiConfig();
 
  private:
-  void Update(UpdatingComponentBase::UpdateType type,
+  void Update(CacheUpdateTrait::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now) override;
 

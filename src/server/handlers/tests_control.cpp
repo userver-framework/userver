@@ -60,14 +60,14 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   return formats::json::Value();
 }
 
-void TestsControl::RegisterCacheInvalidator(
-    components::UpdatingComponentBase& owner, std::function<void()>&& handler) {
+void TestsControl::RegisterCacheInvalidator(components::CacheUpdateTrait& owner,
+                                            std::function<void()>&& handler) {
   std::lock_guard<std::mutex> lock(mutex_);
   cache_invalidators_.emplace_back(&owner, std::move(handler));
 }
 
 void TestsControl::UnregisterCacheInvalidator(
-    components::UpdatingComponentBase& owner) {
+    components::CacheUpdateTrait& owner) {
   std::lock_guard<std::mutex> lock(mutex_);
   for (auto it = cache_invalidators_.begin(); it != cache_invalidators_.end();
        ++it) {

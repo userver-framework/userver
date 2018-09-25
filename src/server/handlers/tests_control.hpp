@@ -3,7 +3,7 @@
 #include <mutex>
 #include <vector>
 
-#include <components/updating_component_base.hpp>
+#include <components/cache_update_trait.hpp>
 #include "http_handler_json_base.hpp"
 
 namespace server {
@@ -22,17 +22,17 @@ class TestsControl : public HttpHandlerJsonBase {
       const formats::json::Value& request_body,
       request::RequestContext& context) const override;
 
-  void RegisterCacheInvalidator(components::UpdatingComponentBase& owner,
+  void RegisterCacheInvalidator(components::CacheUpdateTrait& owner,
                                 std::function<void()>&& handler);
 
-  void UnregisterCacheInvalidator(components::UpdatingComponentBase& owner);
+  void UnregisterCacheInvalidator(components::CacheUpdateTrait& owner);
 
  private:
   struct Invalidator {
-    components::UpdatingComponentBase* owner;
+    components::CacheUpdateTrait* owner;
     std::function<void()> handler;
 
-    Invalidator(components::UpdatingComponentBase* owner,
+    Invalidator(components::CacheUpdateTrait* owner,
                 std::function<void()>&& handler)
         : owner(owner), handler(std::move(handler)) {}
   };

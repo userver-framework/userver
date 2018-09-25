@@ -3,7 +3,7 @@
 namespace server {
 
 CacheInvalidatorHolder::CacheInvalidatorHolder(
-    components::UpdatingComponentBase& cache,
+    components::CacheUpdateTrait& cache,
     const components::ComponentContext& context)
     : tests_control_{context.FindComponent<handlers::TestsControl>()},
       cache_(cache) {
@@ -11,8 +11,7 @@ CacheInvalidatorHolder::CacheInvalidatorHolder(
     throw std::runtime_error{
         "CacheInvalidatorHolder requires handlers::TestsControl"};
   tests_control_->RegisterCacheInvalidator(
-      cache_,
-      std::bind(&components::UpdatingComponentBase::UpdateFull, &cache));
+      cache_, std::bind(&components::CacheUpdateTrait::UpdateFull, &cache));
 }
 
 CacheInvalidatorHolder::~CacheInvalidatorHolder() {

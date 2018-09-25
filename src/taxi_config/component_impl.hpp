@@ -4,9 +4,9 @@
 #include <functional>
 #include <string>
 
+#include <components/cache_update_trait.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
-#include <components/updating_component_base.hpp>
 #include <storages/mongo/pool.hpp>
 #include <taxi_config/value.hpp>
 
@@ -19,7 +19,7 @@ class TaxiConfigImpl {
   TaxiConfigImpl(const ComponentConfig&, const ComponentContext&,
                  EmplaceDocsCb emplace_docs_cb);
 
-  void Update(UpdatingComponentBase::UpdateType type,
+  void Update(CacheUpdateTrait::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now);
 

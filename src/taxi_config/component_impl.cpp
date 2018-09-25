@@ -43,7 +43,7 @@ TaxiConfigImpl::TaxiConfigImpl(const ComponentConfig& config,
   fallback_path_ = config.ParseString("fallback_path");
 }
 
-void TaxiConfigImpl::Update(UpdatingComponentBase::UpdateType type,
+void TaxiConfigImpl::Update(CacheUpdateTrait::UpdateType type,
                             const std::chrono::system_clock::time_point&,
                             const std::chrono::system_clock::time_point&) {
   namespace bbb = bsoncxx::builder::basic;
@@ -52,7 +52,7 @@ void TaxiConfigImpl::Update(UpdatingComponentBase::UpdateType type,
 
   auto collection = mongo_taxi_->GetCollection(config_db::kCollection);
 
-  if (type == UpdatingComponentBase::UpdateType::kIncremental) {
+  if (type == CacheUpdateTrait::UpdateType::kIncremental) {
     auto query = bbb::make_document(
         bbb::kvp(config_db::kUpdated, [this](bbb::sub_document subdoc) {
           subdoc.append(

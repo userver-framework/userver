@@ -17,7 +17,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
 TaxiConfig::~TaxiConfig() { this->StopPeriodicUpdates(); }
 
 void TaxiConfig::Update(
-    UpdatingComponentBase::UpdateType type,
+    CacheUpdateTrait::UpdateType type,
     const std::chrono::system_clock::time_point& last_update,
     const std::chrono::system_clock::time_point& now) {
   impl_->Update(type, last_update, now);

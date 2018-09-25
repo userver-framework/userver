@@ -19,15 +19,35 @@ class PeriodicTask {
     kNow = 1 << 0,
     /// Account function call time as a part of wait period
     kStrong = 1 << 1,
-    /// Randomize wait period +-25%
-    kChaotic = 1 << 2
+    /// Randomize wait period (+-25% by default)
+    kChaotic = 1 << 2,
+    /// Use `engine::Task::Importance::kCritical` flag
+    /// @note Although this periodic task cannot be canceled due to
+    /// system overload, it's canceled upon calling `Stop`.
+    /// Subtasks that may be spawned in the callback
+    /// are not critical by default and may be canceled as usual.
+    kCritical = 1 << 4,
   };
 
   struct Settings {
+    static constexpr uint8_t kDistributionPercent = 25;
+
     Settings(std::chrono::milliseconds period, utils::Flags<Flags> flags = {})
-        : period(period), flags(flags) {}
+        : Settings(period, kDistributionPercent, flags) {}
+    Settings(std::chrono::milliseconds period,
+             std::chrono::milliseconds distribution,
+             utils::Flags<Flags> flags = {})
+        : period(period), distribution(distribution), flags(flags) {
+      assert(distribution <= period);
+    }
+    Settings(std::chrono::milliseconds period, uint8_t distribution_percent,
+             utils::Flags<Flags> flags = {})
+        : Settings(period, period * distribution_percent / 100, flags) {
+      assert(distribution_percent <= 100);
+    }
 
     std::chrono::milliseconds period;
+    std::chrono::milliseconds distribution;
     /// Used instead of period, if set.
     boost::optional<std::chrono::milliseconds> exception_period;
     utils::Flags<Flags> flags;
@@ -49,11 +69,12 @@ class PeriodicTask {
    * exits the object is destroyed and using X's 'this' in callback is UB.
    */
   ~PeriodicTask() {
-    assert(!task_.IsValid());
+    assert(!IsRunning());
     Stop();
   }
 
   void Stop();
+  bool IsRunning() const;
 
   void SetSettings(Settings settings);
 
