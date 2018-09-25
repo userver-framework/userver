@@ -1,5 +1,8 @@
-#include "wrapper.hpp"
-#include "client.hpp"
+#include <clients/http/wrapper.hpp>
+
+#include <clients/http/client.hpp>
+#include <clients/http/response_future.hpp>
+#include <curl-ev/easy.hpp>
 
 namespace clients {
 namespace http {

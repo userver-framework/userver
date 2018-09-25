@@ -6,7 +6,7 @@
         C++ wrapper for libcurl's string list interface
 */
 
-#include "string_list.hpp"
+#include <curl-ev/string_list.hpp>
 
 using namespace curl;
 

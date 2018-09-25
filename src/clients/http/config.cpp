@@ -1,4 +1,4 @@
-#include "config.hpp"
+#include <clients/http/config.hpp>
 
 namespace clients {
 namespace http {

@@ -13,16 +13,20 @@
 #include <memory>
 #include <set>
 
-#include <engine/ev/watcher/async_watcher.hpp>
-#include <engine/ev/watcher/timer_watcher.hpp>
 #include "config.hpp"
 #include "error_code.hpp"
 #include "initialization.hpp"
 #include "native.hpp"
-#include "socket_info.hpp"
 
-#include <engine/ev/thread.hpp>
-#include <engine/task/task_processor.hpp>
+namespace engine {
+namespace ev {
+
+class ThreadControl;
+class AsyncWatcher;
+class TimerWatcher;
+
+}  // namespace ev
+}  // namespace engine
 
 #define IMPLEMENT_CURL_MOPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)           \
   inline void FUNCTION_NAME(bool enabled) {                                  \
@@ -60,6 +64,8 @@
 
 namespace curl {
 class easy;
+class socket_type;
+class socket_info;
 
 class CURLASIO_API multi {
  public:
@@ -76,8 +82,6 @@ class CURLASIO_API multi {
   void socket_register(std::shared_ptr<socket_info> si);
   void socket_cleanup(native::curl_socket_t s);
 
-  bool empty() const { return easy_handles_.empty() && still_running_ == 0; }
-
   engine::ev::ThreadControl& GetThreadControl() { return thread_control_; }
 
   enum pipelining_mode_t { pipe_nothing, pipe_http1, pipe_multiplex };
@@ -90,9 +94,9 @@ class CURLASIO_API multi {
   IMPLEMENT_CURL_MOPTION(set_max_connections, native::CURLMOPT_MAXCONNECTS,
                          long);
 
- private:
-  typedef std::shared_ptr<socket_info> socket_info_ptr;
+  using socket_info_ptr = std::shared_ptr<socket_info>;
 
+ private:
   void add_handle(native::CURL* native_easy);
   void remove_handle(native::CURL* native_easy);
 
@@ -122,25 +126,15 @@ class CURLASIO_API multi {
   void handle_timeout(const std::error_code& err);
   void handle_async();
 
-  typedef EvSocket socket_type;
-  typedef std::map<socket_type::native_handle_type, socket_info_ptr>
-      socket_map_type;
-  socket_map_type sockets_;
   socket_info_ptr get_socket_from_native(native::curl_socket_t native_socket);
 
   static int socket(native::CURL* native_easy, native::curl_socket_t s,
                     int what, void* userp, void* socketp);
   static int timer(native::CURLM* native_multi, long timeout_ms, void* userp);
 
-  typedef std::set<easy*> easy_set_type;
-
-  engine::ev::ThreadControl& thread_control_;
-  initialization::ptr initref_;
+  class Impl;
+  std::unique_ptr<Impl> pimpl_;
   native::CURLM* handle_;
-  engine::ev::AsyncWatcher timer_zero_watcher_;
-
-  easy_set_type easy_handles_;
-  engine::ev::TimerWatcher timer_;
-  int still_running_;
+  engine::ev::ThreadControl& thread_control_;
 };
 }  // namespace curl

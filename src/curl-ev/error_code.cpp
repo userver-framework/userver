@@ -7,7 +7,7 @@
    error_code class
 */
 
-#include "error_code.hpp"
+#include <curl-ev/error_code.hpp>
 
 using namespace curl;
 

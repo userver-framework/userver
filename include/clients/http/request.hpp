@@ -2,9 +2,10 @@
 
 #include <memory>
 
-#include "error.hpp"
-#include "response.hpp"
-#include "wrapper.hpp"
+#include <clients/http/error.hpp>
+#include <clients/http/response.hpp>
+#include <clients/http/response_future.hpp>
+#include <clients/http/wrapper.hpp>
 
 namespace curl {
 class multi;

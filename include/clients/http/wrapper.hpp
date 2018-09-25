@@ -1,6 +1,10 @@
 #pragma once
 
-#include <curl-ev/easy.hpp>
+#include <memory>
+
+namespace curl {
+class easy;
+}  // namespace curl
 
 namespace clients {
 namespace http {

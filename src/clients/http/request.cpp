@@ -1,4 +1,4 @@
-#include "request.hpp"
+#include <clients/http/request.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -12,8 +12,10 @@
 
 #include <engine/ev/watcher/timer_watcher.hpp>
 
-#include "error.hpp"
-#include "form.hpp"
+#include <clients/http/error.hpp>
+#include <clients/http/form.hpp>
+#include <clients/http/response_future.hpp>
+#include <curl-ev/easy.hpp>
 
 namespace clients {
 namespace http {

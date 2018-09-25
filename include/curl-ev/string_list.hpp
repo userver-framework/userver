@@ -10,8 +10,6 @@
 
 #include <string>
 
-//#include <boost/noncopyable.hpp>
-
 #include "config.hpp"
 #include "initialization.hpp"
 #include "native.hpp"

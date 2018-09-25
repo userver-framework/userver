@@ -5,11 +5,13 @@
 #include <list>
 
 #include <boost/program_options.hpp>
+#include <logging/spdlog.hpp>
 
 #include <clients/http/client.hpp>
 #include <engine/async.hpp>
-
-#include <logging/spdlog.hpp>
+#include <engine/task/task_context.hpp>
+#include <engine/task/task_processor.hpp>
+#include <logging/log.hpp>
 
 namespace http = clients::http;
 
@@ -190,6 +192,7 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
   engine::ev::ThreadControl thread_control(io_thread);
   auto& tp = engine::current_task::GetTaskProcessor();
   auto http_client = http::Client::Create(config.io_threads);
+  LOG_INFO() << "Client created";
 
   if (config.pipeline_length > 1)
     http_client->SetMaxPipelineLength(config.pipeline_length);

@@ -5,15 +5,12 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 
 #include "error.hpp"
 #include "wrapper.hpp"
 
-#include <engine/future.hpp>
-
-namespace curl {
-class easy;
-}  // namespace curl
+#include <curl-ev/easy.hpp>
 
 namespace clients {
 namespace http {
@@ -73,51 +70,6 @@ class Response {
   Headers headers_;
   std::ostringstream response_stream_;
   std::shared_ptr<EasyWrapper> easy_;
-};
-
-class ResponseFuture {
- public:
-  ResponseFuture(engine::Future<std::shared_ptr<Response>> future,
-                 std::chrono::milliseconds total_timeout,
-                 std::shared_ptr<EasyWrapper> easy)
-      : future_(std::move(future)),
-        deadline_(std::chrono::system_clock::now() + total_timeout),
-        easy_(std::move(easy)) {}
-
-  ResponseFuture(ResponseFuture&& future)
-      : future_(std::move(future.future_)),
-        deadline_(future.deadline_),
-        easy_(std::move(future.easy_)) {}
-
-  ResponseFuture(const ResponseFuture&) = delete;
-
-  ~ResponseFuture() {
-    if (future_.IsValid()) {
-      // TODO: log it?
-      easy_->Easy().cancel();
-    }
-  }
-
-  void operator=(const ResponseFuture&) = delete;
-
-  void Cancel() {
-    easy_->Easy().cancel();
-    Detach();
-  }
-
-  void Detach() { future_ = {}; }
-
-  std::future_status Wait() const { return future_.wait_until(deadline_); }
-
-  std::shared_ptr<Response> Get() {
-    if (Wait() == std::future_status::ready) return future_.get();
-    throw TimeoutException("Future timeout");
-  }
-
- private:
-  engine::Future<std::shared_ptr<Response>> future_;
-  const std::chrono::system_clock::time_point deadline_;
-  const std::shared_ptr<EasyWrapper> easy_;
 };
 
 }  // namespace http

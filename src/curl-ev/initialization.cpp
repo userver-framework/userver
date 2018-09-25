@@ -10,8 +10,8 @@
 #include <mutex>
 #include <string>
 
-#include "initialization.hpp"
-#include "native.hpp"
+#include <curl-ev/initialization.hpp>
+#include <curl-ev/native.hpp>
 
 using namespace curl;
 

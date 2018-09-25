@@ -42,7 +42,12 @@ class EvSocket : public engine::ev::IoWatcher {
   int native_handle() { return GetFd(); }
   using native_handle_type = int;
 };
-using socket_type = EvSocket;
+
+// For forward declaration
+class socket_type : public EvSocket {
+ public:
+  using EvSocket::EvSocket;
+};
 
 class easy;
 

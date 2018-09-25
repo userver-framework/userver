@@ -6,8 +6,8 @@
         C++ wrapper for libcurl's share interface
 */
 
-#include "share.hpp"
-#include "error_code.hpp"
+#include <curl-ev/error_code.hpp>
+#include <curl-ev/share.hpp>
 
 using namespace curl;
 

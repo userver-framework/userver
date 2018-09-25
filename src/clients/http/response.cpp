@@ -1,4 +1,5 @@
-#include "response.hpp"
+#include <clients/http/response.hpp>
+#include <clients/http/response_future.hpp>
 
 namespace clients {
 namespace http {

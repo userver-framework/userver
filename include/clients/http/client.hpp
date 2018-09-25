@@ -3,9 +3,18 @@
 #include <mutex>
 #include <queue>
 
-#include <curl-ev/multi.hpp>
-
 #include "request.hpp"
+
+namespace curl {
+class multi;
+}  // namespace curl
+
+namespace engine {
+namespace ev {
+
+class ThreadPool;
+}  // namespace ev
+}  // namespace engine
 
 namespace clients {
 namespace http {
@@ -32,7 +41,7 @@ class Client : public std::enable_shared_from_this<Client> {
 
  private:
   std::vector<std::shared_ptr<curl::multi>> multis_;
-  engine::ev::ThreadPool thread_pool_;
+  std::unique_ptr<engine::ev::ThreadPool> thread_pool_;
 
   std::mutex idle_easy_queue_mutex_;
   std::queue<std::shared_ptr<curl::easy>> idle_easy_queue_;

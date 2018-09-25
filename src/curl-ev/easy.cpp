@@ -8,12 +8,13 @@
 
 #include <utility>
 
-#include "easy.hpp"
-#include "error_code.hpp"
-#include "form.hpp"
-#include "multi.hpp"
-#include "share.hpp"
-#include "string_list.hpp"
+#include <curl-ev/easy.hpp>
+#include <curl-ev/error_code.hpp>
+#include <curl-ev/form.hpp>
+#include <curl-ev/multi.hpp>
+#include <curl-ev/share.hpp>
+#include <curl-ev/socket_info.hpp>
+#include <curl-ev/string_list.hpp>
 
 #include <engine/async.hpp>
 #include <server/net/listener_impl.hpp>

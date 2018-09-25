@@ -15,14 +15,19 @@
 #include <string>
 #include <vector>
 
-#include <engine/condition_variable.hpp>
-#include <engine/ev/thread_control.hpp>
-#include <engine/task/task_processor.hpp>
 #include "config.hpp"
 #include "error_code.hpp"
 #include "form.hpp"
 #include "initialization.hpp"
 #include "local_timings.hpp"
+
+namespace engine {
+namespace ev {
+
+class ThreadControl;
+
+}  // namespace ev
+}  // namespace engine
 
 #define IMPLEMENT_CURL_OPTION(FUNCTION_NAME, OPTION_NAME, OPTION_TYPE)         \
   inline void FUNCTION_NAME(OPTION_TYPE arg) {                                 \

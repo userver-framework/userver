@@ -11,27 +11,56 @@
 
 #include <boost/core/ignore_unused.hpp>
 
-#include "easy.hpp"
-#include "error_code.hpp"
-#include "multi.hpp"
+#include <curl-ev/easy.hpp>
+#include <curl-ev/error_code.hpp>
+#include <curl-ev/multi.hpp>
+#include <curl-ev/socket_info.hpp>
 
+#include <engine/ev/thread.hpp>
+#include <engine/ev/watcher/async_watcher.hpp>
+#include <engine/ev/watcher/timer_watcher.hpp>
+#include <engine/task/task_processor.hpp>
 #include <utils/openssl_lock.hpp>
 
 namespace curl {
 
-multi::multi(engine::ev::ThreadControl& thread_control)
-    : thread_control_(thread_control),
-      timer_zero_watcher_(thread_control,
-                          std::bind(&multi::handle_async, this)),
+using easy_set_type = std::set<easy*>;
+
+typedef std::map<socket_type::native_handle_type, multi::socket_info_ptr>
+    socket_map_type;
+
+class multi::Impl {
+ public:
+  Impl(engine::ev::ThreadControl& thread_control, multi& object);
+
+  // typedef EvSocket socket_type;
+  socket_map_type sockets_;
+  socket_info_ptr get_socket_from_native(native::curl_socket_t native_socket);
+
+  initialization::ptr initref_;
+  engine::ev::AsyncWatcher timer_zero_watcher_;
+
+  easy_set_type easy_handles_;
+  engine::ev::TimerWatcher timer_;
+  int still_running_;
+};
+
+multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
+    : timer_zero_watcher_(thread_control,
+                          std::bind(&multi::handle_async, &object)),
       timer_(thread_control),
       still_running_(0) {
-  LOG_TRACE() << "multi::multi";
-
   utils::OpensslLock::Init();
 
   initref_ = initialization::ensure_initialization();
-  handle_ = native::curl_multi_init();
+}
 
+multi::multi(engine::ev::ThreadControl& thread_control)
+    : pimpl_(std::make_unique<Impl>(thread_control, *this)),
+      thread_control_(thread_control) {
+  LOG_TRACE() << "multi::multi";
+
+  handle_ = native::curl_multi_init();
   if (!handle_) {
     throw std::bad_alloc();
   }
@@ -42,12 +71,12 @@ multi::multi(engine::ev::ThreadControl& thread_control)
   set_timer_function(&multi::timer);
   set_timer_data(this);
 
-  timer_zero_watcher_.Start();
+  pimpl_->timer_zero_watcher_.Start();
 }
 
 multi::~multi() {
-  while (!easy_handles_.empty()) {
-    easy_set_type::iterator it = easy_handles_.begin();
+  while (!pimpl_->easy_handles_.empty()) {
+    easy_set_type::iterator it = pimpl_->easy_handles_.begin();
     easy* easy_handle = *it;
     easy_handle->cancel();
   }
@@ -59,32 +88,32 @@ multi::~multi() {
 }
 
 void multi::add(easy* easy_handle) {
-  easy_handles_.insert(easy_handle);
+  pimpl_->easy_handles_.insert(easy_handle);
   add_handle(easy_handle->native_handle());
 }
 
 void multi::remove(easy* easy_handle) {
-  easy_set_type::iterator it = easy_handles_.find(easy_handle);
+  easy_set_type::iterator it = pimpl_->easy_handles_.find(easy_handle);
 
-  if (it != easy_handles_.end()) {
-    easy_handles_.erase(it);
+  if (it != pimpl_->easy_handles_.end()) {
+    pimpl_->easy_handles_.erase(it);
     remove_handle(easy_handle->native_handle());
   }
 }
 
 void multi::socket_register(std::shared_ptr<socket_info> si) {
   socket_type::native_handle_type fd = si->socket->native_handle();
-  sockets_.insert(socket_map_type::value_type(fd, std::move(si)));
+  pimpl_->sockets_.insert(socket_map_type::value_type(fd, std::move(si)));
 }
 
 void multi::socket_cleanup(native::curl_socket_t s) {
-  socket_map_type::iterator it = sockets_.find(s);
+  socket_map_type::iterator it = pimpl_->sockets_.find(s);
 
-  if (it != sockets_.end()) {
+  if (it != pimpl_->sockets_.end()) {
     socket_info_ptr p = it->second;
     monitor_socket(p, CURL_POLL_NONE);
     p->socket.reset();
-    sockets_.erase(it);
+    pimpl_->sockets_.erase(it);
   }
 }
 
@@ -105,11 +134,11 @@ void multi::assign(native::curl_socket_t sockfd, void* user_data) {
 
 void multi::socket_action(native::curl_socket_t s, int event_bitmask) {
   std::error_code ec(native::curl_multi_socket_action(handle_, s, event_bitmask,
-                                                      &still_running_));
+                                                      &pimpl_->still_running_));
   throw_error(ec, "socket_action");
 
   if (!still_running()) {
-    timer_.Cancel();
+    pimpl_->timer_.Cancel();
   }
 }
 
@@ -192,7 +221,7 @@ void multi::process_messages() {
   }
 }
 
-bool multi::still_running() { return (still_running_ > 0); }
+bool multi::still_running() { return (pimpl_->still_running_ > 0); }
 
 void multi::start_read_op(socket_info_ptr si) {
   LOG_TRACE() << "start_read_op si=" << reinterpret_cast<long>(si.get());
@@ -277,9 +306,9 @@ void multi::handle_timeout(const std::error_code& err) {
 
 multi::socket_info_ptr multi::get_socket_from_native(
     native::curl_socket_t native_socket) {
-  socket_map_type::iterator it = sockets_.find(native_socket);
+  socket_map_type::iterator it = pimpl_->sockets_.find(native_socket);
 
-  if (it != sockets_.end()) {
+  if (it != pimpl_->sockets_.end()) {
     return it->second;
   } else {
     return socket_info_ptr();
@@ -335,16 +364,18 @@ int multi::timer(native::CURLM*, long timeout_ms, void* userp) {
   boost::ignore_unused(self);
   boost::ignore_unused(timeout_ms);
 
+  const auto& pimpl = self->pimpl_;
+
   LOG_TRACE() << "mult::timer (1)";
-  self->timer_.Cancel();
+  pimpl->timer_.Cancel();
   LOG_TRACE() << "mult::timer (2)";
 
   if (timeout_ms > 0) {
-    self->timer_.SingleshotAsync(
+    pimpl->timer_.SingleshotAsync(
         std::chrono::milliseconds(timeout_ms),
         std::bind(&multi::handle_timeout, self, std::placeholders::_1));
   } else if (timeout_ms == 0) {
-    self->timer_zero_watcher_.Send();
+    pimpl->timer_zero_watcher_.Send();
   }
   LOG_TRACE() << "mult::timer (3)";
 
@@ -352,7 +383,7 @@ int multi::timer(native::CURLM*, long timeout_ms, void* userp) {
 }
 
 void multi::handle_async() {
-  timer_zero_watcher_.Start();
+  pimpl_->timer_zero_watcher_.Start();
   LOG_TRACE() << "multi::handle_async()";
   handle_timeout(std::error_code());
 }

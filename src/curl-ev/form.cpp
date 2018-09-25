@@ -8,9 +8,9 @@
 
 #include <boost/asio.hpp>
 
-#include "error_code.hpp"
-#include "form.hpp"
-#include "native.hpp"
+#include <curl-ev/error_code.hpp>
+#include <curl-ev/form.hpp>
+#include <curl-ev/native.hpp>
 
 using namespace curl;
 

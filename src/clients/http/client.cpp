@@ -1,4 +1,7 @@
-#include "client.hpp"
+#include <clients/http/client.hpp>
+#include <curl-ev/multi.hpp>
+#include <engine/ev/thread_pool.hpp>
+#include <logging/log.hpp>
 
 #include <cstdlib>
 
@@ -11,8 +14,10 @@ std::shared_ptr<Client> Client::Create(size_t io_threads) {
   return std::make_shared<Client>(io_threads);
 }
 
-Client::Client(size_t io_threads) : thread_pool_(io_threads, "curl") {
-  for (auto thread_control_ptr : thread_pool_.NextThreads(io_threads)) {
+Client::Client(size_t io_threads)
+    : thread_pool_(
+          std::make_unique<engine::ev::ThreadPool>(io_threads, "curl")) {
+  for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
     multis_.push_back(std::make_shared<curl::multi>(*thread_control_ptr));
   }
 }

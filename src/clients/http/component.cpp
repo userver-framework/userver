@@ -1,7 +1,7 @@
-#include "component.hpp"
+#include <clients/http/component.hpp>
 
 #include <clients/http/client.hpp>
-#include "config.hpp"
+#include <clients/http/config.hpp>
 
 namespace components {
 
