@@ -2,7 +2,10 @@
 
 #include <components/cache_update_trait.hpp>
 #include <components/component_context.hpp>
-#include <server/handlers/tests_control.hpp>
+
+namespace components {
+class CacheInvalidator;
+}  // namespace components
 
 namespace server {
 
@@ -14,7 +17,7 @@ class CacheInvalidatorHolder {
   ~CacheInvalidatorHolder();
 
  private:
-  server::handlers::TestsControl* tests_control_;
+  components::CacheInvalidator* cache_invalidator_;
   components::CacheUpdateTrait& cache_;
 };
 

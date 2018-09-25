@@ -18,8 +18,10 @@ class Server {
   ~Server();
 
   const ServerConfig& GetConfig() const;
+
   formats::json::Value GetMonitorData(
-      components::MonitorVerbosity verbosity) const;
+      utils::statistics::Verbosity verbosity) const;
+
   bool AddHandler(const handlers::HandlerBase& handler,
                   const components::ComponentContext& component_context);
 

@@ -6,29 +6,10 @@
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
 
-#include <components/monitorable_component_base.hpp>
+#include <components/component_base.hpp>
 
 namespace {
 const std::string kEngineMonitorDataName = "engine";
-
-void SetSubField(formats::json::ValueBuilder& object,
-                 std::list<std::string> fields, formats::json::Value value) {
-  if (fields.empty()) {
-    object = std::move(value);
-  } else {
-    const auto field = std::move(fields.front());
-    fields.pop_front();
-    auto subobj = object[field];
-    SetSubField(subobj, std::move(fields), std::move(value));
-  }
-}
-
-void SetSubField(formats::json::ValueBuilder& object, const std::string& path,
-                 formats::json::Value value) {
-  std::list<std::string> fields;
-  boost::split(fields, path, boost::is_any_of("."));
-  SetSubField(object, std::move(fields), std::move(value));
-}
 }  // namespace
 
 namespace server {
@@ -38,7 +19,10 @@ ServerMonitor::ServerMonitor(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context)
     : HttpHandlerBase(config, component_context, /*is_monitor = */ true),
-      components_manager_(component_context.GetManager()) {}
+      components_manager_(component_context.GetManager()),
+      statistics_storage_(
+          component_context
+              .FindComponentRequired<components::StatisticsStorage>()) {}
 
 const std::string& ServerMonitor::HandlerName() const {
   static const std::string kHandlerName = kName;
@@ -46,12 +30,12 @@ const std::string& ServerMonitor::HandlerName() const {
 }
 
 formats::json::Value ServerMonitor::GetEngineStats(
-    components::MonitorVerbosity verbosity) const {
+    utils::statistics::Verbosity verbosity) const {
   formats::json::ValueBuilder engine_data(formats::json::Type::kObject);
 
   const auto& config = components_manager_.GetConfig();
 
-  if (verbosity == components::MonitorVerbosity::kFull) {
+  if (verbosity == utils::statistics::Verbosity::kFull) {
     formats::json::ValueBuilder json_task_processors(
         formats::json::Type::kArray);
     for (const auto& task_processor : config.task_processors) {
@@ -81,18 +65,13 @@ formats::json::Value ServerMonitor::GetEngineStats(
 
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
-  using Verbosity = components::MonitorVerbosity;
+  using Verbosity = utils::statistics::Verbosity;
   const auto verbosity =
       request.GetArg("full") == "1" ? Verbosity::kFull : Verbosity::kTerse;
+  const auto prefix = request.GetArg("prefix");
 
-  formats::json::ValueBuilder monitor_data;
-
-  for (const auto& it : components_manager_.GetMonitorableComponentSet()) {
-    const auto& component = it.second;
-
-    SetSubField(monitor_data, component->GetMetricsPath(),
-                component->GetMonitorData(verbosity));
-  }
+  formats::json::ValueBuilder monitor_data =
+      statistics_storage_->GetStorage().GetAsJson(prefix, verbosity);
 
   monitor_data[kEngineMonitorDataName] = GetEngineStats(verbosity);
   return formats::json::ToString(monitor_data.ExtractValue());

@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cassert>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include <utils/demangle.hpp>
 #include "component_base.hpp"
 
 namespace engine {
@@ -39,6 +41,22 @@ class ComponentContext {
   template <typename T>
   T* FindComponent(const std::string& name) const {
     return dynamic_cast<T*>(DoFindComponent(name));
+  }
+
+  template <typename T>
+  T* FindComponentRequired(const std::string& name) const {
+    T* ptr = FindComponent<T>(name);
+    assert(ptr != nullptr);
+    if (!ptr) {
+      throw std::runtime_error("Cannot find component of type " +
+                               utils::GetTypeName(typeid(T)) + " name=" + name);
+    }
+    return ptr;
+  }
+
+  template <typename T>
+  T* FindComponentRequired() const {
+    return FindComponentRequired<T>(T::kName);
   }
 
   size_t ComponentCount() const;

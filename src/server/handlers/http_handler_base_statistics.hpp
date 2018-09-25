@@ -1,8 +1,11 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <unordered_map>
+#include <vector>
 
+#include <server/handlers/http_handler_base.hpp>
 #include <utils/statistics.hpp>
 #include <utils/statistics/percentile.hpp>
 #include <utils/statistics/recentperiod.hpp>
@@ -57,6 +60,22 @@ class HttpHandlerBase::Statistics {
                                   utils::datetime::SteadyClock>
       timings_;
   ReplyCodesStatistics reply_codes_;
+};
+
+class HttpHandlerBase::HandlerStatistics {
+ public:
+  Statistics& GetStatisticByMethod(::http_method method);
+
+  Statistics& GetTotalStatistics();
+
+  void Account(http_method method, unsigned int code,
+               std::chrono::milliseconds ms);
+
+  const std::vector<http_method>& GetAllowedMethods() const;
+
+ private:
+  Statistics stats_;
+  std::array<Statistics, 5> stats_by_method_;
 };
 
 }  // namespace handlers

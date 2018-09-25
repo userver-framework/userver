@@ -16,6 +16,8 @@ class Ping : public HttpHandlerBase {
   std::string HandleRequestThrow(
       const http::HttpRequest& request,
       request::RequestContext& context) const override;
+
+  bool IsMethodStatisticIncluded() const override { return true; }
 };
 
 }  // namespace handlers

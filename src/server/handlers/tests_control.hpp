@@ -6,6 +6,10 @@
 #include <components/cache_update_trait.hpp>
 #include "http_handler_json_base.hpp"
 
+namespace components {
+class CacheInvalidator;
+}  // namespace components
+
 namespace server {
 namespace handlers {
 
@@ -22,22 +26,8 @@ class TestsControl : public HttpHandlerJsonBase {
       const formats::json::Value& request_body,
       request::RequestContext& context) const override;
 
-  void RegisterCacheInvalidator(components::CacheUpdateTrait& owner,
-                                std::function<void()>&& handler);
-
-  void UnregisterCacheInvalidator(components::CacheUpdateTrait& owner);
-
  private:
-  struct Invalidator {
-    components::CacheUpdateTrait* owner;
-    std::function<void()> handler;
-
-    Invalidator(components::CacheUpdateTrait* owner,
-                std::function<void()>&& handler)
-        : owner(owner), handler(std::move(handler)) {}
-  };
-
-  std::vector<Invalidator> cache_invalidators_;
+  components::CacheInvalidator* cache_invalidator_;
   mutable std::mutex mutex_;
 };
 

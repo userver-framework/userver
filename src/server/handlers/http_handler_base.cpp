@@ -3,9 +3,11 @@
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
 
+#include <components/statistics_storage.hpp>
 #include <logging/log.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/request/http_server_settings_base_component.hpp>
+#include <utils/graphite.hpp>
 #include <utils/statistics/percentile_json.hpp>
 #include <utils/uuid4.hpp>
 
@@ -31,7 +33,7 @@ std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
 
 }  // namespace
 
-formats::json::Value HttpHandlerBase::StatisticsToJson(
+formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
     const HttpHandlerBase::Statistics& stats) {
   formats::json::ValueBuilder result;
   formats::json::ValueBuilder total;
@@ -48,7 +50,7 @@ formats::json::Value HttpHandlerBase::StatisticsToJson(
       utils::statistics::PercentileToJson(stats.GetTimings());
 
   result["total"] = std::move(total);
-  return result.ExtractValue();
+  return result;
 }
 
 HttpHandlerBase::HttpHandlerBase(
@@ -57,10 +59,19 @@ HttpHandlerBase::HttpHandlerBase(
     : HandlerBase(config, component_context, is_monitor),
       http_server_settings_(
           component_context
-              .FindComponent<components::HttpServerSettingsBase>()),
-      statistics_(std::make_unique<Statistics>()) {}
+              .FindComponentRequired<components::HttpServerSettingsBase>()),
+      statistics_(std::make_unique<HandlerStatistics>()) {
+  statistics_storage_ =
+      component_context.FindComponentRequired<components::StatisticsStorage>();
 
-HttpHandlerBase::~HttpHandlerBase() = default;
+  const auto graphite_path =
+      "http.by-path." + utils::graphite::EscapeName(GetConfig().path);
+  statistics_holder_ = statistics_storage_->GetStorage().RegisterExtender(
+      graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
+                               std::placeholders::_1));
+}
+
+HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
 void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                     request::RequestContext& context) const
@@ -132,7 +143,8 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     const auto finish_time = std::chrono::system_clock::now();
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         finish_time - start_time);
-    statistics_->Account(static_cast<int>(response.GetStatus()), ms.count());
+    statistics_->Account(http_request.GetMethod(),
+                         static_cast<int>(response.GetStatus()), ms);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex.what();
   }
@@ -155,14 +167,20 @@ void HttpHandlerBase::OnRequestComplete(const request::RequestBase& request,
   }
 }
 
-formats::json::Value HttpHandlerBase::GetMonitorData(
-    components::MonitorVerbosity /*verbosity*/) const {
-  return StatisticsToJson(*statistics_);
-}
+formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
+    const utils::statistics::StatisticsRequest& /*request*/) {
+  formats::json::ValueBuilder result;
+  result["all-methods"] = StatisticsToJson(statistics_->GetTotalStatistics());
 
-std::string HttpHandlerBase::GetMetricsPath() const {
-  // TODO: s/bad symbols/_/g
-  return "http-handlers." + GetConfig().path;
+  if (IsMethodStatisticIncluded()) {
+    formats::json::ValueBuilder by_method;
+    for (auto method : statistics_->GetAllowedMethods()) {
+      by_method[http_method_str(method)] =
+          StatisticsToJson(statistics_->GetStatisticByMethod(method));
+    }
+    result["by-method"] = std::move(by_method);
+  }
+  return result;
 }
 
 }  // namespace handlers

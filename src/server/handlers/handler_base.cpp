@@ -9,8 +9,7 @@ namespace handlers {
 HandlerBase::HandlerBase(const components::ComponentConfig& config,
                          const components::ComponentContext& component_context,
                          bool is_monitor)
-    : MonitorableComponentBase(config, component_context),
-      config_(HandlerConfig::ParseFromJson(config.Json(), config.FullPath(),
+    : config_(HandlerConfig::ParseFromJson(config.Json(), config.FullPath(),
                                            config.ConfigVarsPtr())),
       is_monitor_(is_monitor) {
   auto server_component = component_context.FindComponent<components::Server>();

@@ -1,10 +1,10 @@
 #include "tests_control.hpp"
 
+#include <components/cache_invalidator.hpp>
 #include <logging/log.hpp>
+#include <server/http/http_error.hpp>
 #include <utils/datetime.hpp>
 #include <utils/mock_now.hpp>
-
-#include <server/http/http_error.hpp>
 
 namespace server {
 namespace handlers {
@@ -12,7 +12,10 @@ namespace handlers {
 TestsControl::TestsControl(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context)
-    : HttpHandlerJsonBase(config, component_context) {}
+    : HttpHandlerJsonBase(config, component_context),
+      cache_invalidator_(
+          component_context
+              .FindComponentRequired<components::CacheInvalidator>()) {}
 
 const std::string& TestsControl::HandlerName() const {
   static const std::string kTestsControlName = kName;
@@ -52,30 +55,10 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     utils::datetime::MockNowUnset();
 
   if (invalidate_caches) {
-    for (auto& invalidator : cache_invalidators_) {
-      invalidator.handler();
-    }
+    cache_invalidator_->InvalidateCaches();
   }
 
   return formats::json::Value();
-}
-
-void TestsControl::RegisterCacheInvalidator(components::CacheUpdateTrait& owner,
-                                            std::function<void()>&& handler) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  cache_invalidators_.emplace_back(&owner, std::move(handler));
-}
-
-void TestsControl::UnregisterCacheInvalidator(
-    components::CacheUpdateTrait& owner) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  for (auto it = cache_invalidators_.begin(); it != cache_invalidators_.end();
-       ++it) {
-    if (it->owner == &owner) {
-      cache_invalidators_.erase(it);
-      return;
-    }
-  }
 }
 
 }  // namespace handlers

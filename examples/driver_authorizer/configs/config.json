@@ -94,10 +94,16 @@
         "dbalias": "taxi"
       },
       {
+        "name": "statistics-storage"
+      },
+      {
         "name": "taxi-config",
         "update_interval_ms": 5000,
         "full_update_interval_ms": 60000,
         "fallback_path": "/etc/yandex/taxi/driver-authorizer/taxi_config_fallback.json"
+      },
+      {
+        "name": "cache-invalidator"
       },
       {
         "name": "tracer",

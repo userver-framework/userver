@@ -2,19 +2,23 @@
 
 #include <memory>
 
+#include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
-#include <components/monitorable_component_base.hpp>
 #include <server/server.hpp>
 
 namespace components {
 
-class Server : public MonitorableComponentBase {
+class StatisticsStorage;
+
+class Server : public ComponentBase {
  public:
   static constexpr const char* kName = "server";
 
   Server(const components::ComponentConfig& component_config,
          const components::ComponentContext& component_context);
+
+  ~Server();
 
   void OnAllComponentsLoaded() override;
 
@@ -22,11 +26,15 @@ class Server : public MonitorableComponentBase {
 
   bool AddHandler(const server::handlers::HandlerBase& handler,
                   const components::ComponentContext& component_context);
-  formats::json::Value GetMonitorData(
-      MonitorVerbosity verbosity) const override;
+
+ private:
+  formats::json::Value ExtendStatistics(
+      const utils::statistics::StatisticsRequest& /*request*/);
 
  private:
   std::unique_ptr<server::Server> server_;
+  StatisticsStorage* statistics_storage_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace components

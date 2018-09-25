@@ -4,7 +4,6 @@
 #include <stdexcept>
 
 #include <components/component_list.hpp>
-#include <components/monitorable_component_base.hpp>
 #include <engine/async.hpp>
 #include <logging/component.hpp>
 #include <logging/log.hpp>
@@ -89,14 +88,6 @@ engine::ev::ThreadPool& Manager::GetEventThreadPool() const {
   return *event_thread_pool_;
 }
 
-LockedMonitorableComponentSet Manager::GetMonitorableComponentSet() const {
-  std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
-  if (components_cleared_)
-    return LockedMonitorableComponentSet({}, std::move(lock));
-  return LockedMonitorableComponentSet(monitorable_components_,
-                                       std::move(lock));
-}
-
 void Manager::OnLogRotate() {
   std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
   if (components_cleared_) return;
@@ -136,11 +127,6 @@ void Manager::AddComponentImpl(
   try {
     LOG_TRACE() << "Adding component " << name;
     auto component = factory(config_it->second, *component_context_);
-
-    if (const auto* monitorable_component =
-            dynamic_cast<MonitorableComponentBase*>(component.get())) {
-      monitorable_components_[name] = monitorable_component;
-    }
     component_context_->AddComponent(name, std::move(component));
     LOG_TRACE() << "Added component " << name;
   } catch (const std::exception& ex) {

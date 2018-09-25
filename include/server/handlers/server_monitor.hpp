@@ -1,6 +1,7 @@
 #pragma once
 
 #include <components/manager.hpp>
+#include <components/statistics_storage.hpp>
 #include <server/handlers/http_handler_base.hpp>
 
 namespace server {
@@ -19,10 +20,11 @@ class ServerMonitor : public HttpHandlerBase {
       request::RequestContext&) const override;
 
   formats::json::Value GetEngineStats(
-      components::MonitorVerbosity verbosity) const;
+      utils::statistics::Verbosity verbosity) const;
 
  private:
   const components::Manager& components_manager_;
+  components::StatisticsStorage* statistics_storage_;
 };
 
 }  // namespace handlers

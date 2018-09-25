@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <components/statistics_storage.hpp>
 #include <formats/json/value_builder.hpp>
 #include <json_config/value.hpp>
 #include <logging/log.hpp>
@@ -18,6 +19,8 @@
 #include "redis_secdist.hpp"
 
 namespace {
+
+const auto kStatisticsName = "redis";
 
 formats::json::ValueBuilder InstanceStatisticsToJson(
     const redis::InstanceStatistics& stats, bool real_instance) {
@@ -156,8 +159,22 @@ struct RedisPools {
 
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
-    : MonitorableComponentBase(config, component_context),
-      config_{component_context.FindComponent<TaxiConfig>()} {
+    : config_{component_context.FindComponent<TaxiConfig>()} {
+  Connect(config, component_context);
+
+  config_subscription_ = config_->AddListener(this, &Redis::OnConfigUpdate);
+  OnConfigUpdate(config_->Get());
+
+  statistics_storage_ =
+      component_context.FindComponentRequired<components::StatisticsStorage>();
+
+  statistics_holder_ = statistics_storage_->GetStorage().RegisterExtender(
+      kStatisticsName,
+      std::bind(&Redis::ExtendStatistics, this, std::placeholders::_1));
+}
+
+void Redis::Connect(const ComponentConfig& config,
+                    const ComponentContext& component_context) {
   if (!config_)
     throw std::runtime_error("Redis component requires taxi config");
   auto secdist_component = component_context.FindComponent<Secdist>();
@@ -198,13 +215,11 @@ Redis::Redis(const ComponentConfig& config,
     else
       LOG_WARNING() << "skip redis client for " << redis_group.db;
   }
-
-  config_subscription_ = config_->AddListener(this, &Redis::OnConfigUpdate);
-  OnConfigUpdate(config_->Get());
 }
 
 Redis::~Redis() {
   try {
+    statistics_holder_.Unregister();
     config_subscription_.Unsubscribe();
   } catch (std::exception const& e) {
     LOG_ERROR() << "exception while destroying Redis component: " << e.what();
@@ -213,7 +228,8 @@ Redis::~Redis() {
   }
 }
 
-formats::json::Value Redis::GetMonitorData(MonitorVerbosity) const {
+formats::json::Value Redis::ExtendStatistics(
+    const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder json(formats::json::Type::kObject);
 
   for (const auto& client : clients_) {

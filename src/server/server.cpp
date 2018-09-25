@@ -16,7 +16,7 @@ namespace {
 const char* PER_LISTENER_DESC = "per-listener";
 const char* PER_CONNECTION_DESC = "per-connection";
 
-using Verbosity = components::MonitorVerbosity;
+using Verbosity = utils::statistics::Verbosity;
 
 formats::json::ValueBuilder SerializeAggregated(
     const server::net::Stats::AggregatedStat& agg, Verbosity verbosity,
@@ -151,7 +151,7 @@ Server::~Server() = default;
 const ServerConfig& Server::GetConfig() const { return pimpl->config_; }
 
 formats::json::Value Server::GetMonitorData(
-    components::MonitorVerbosity verbosity) const {
+    utils::statistics::Verbosity verbosity) const {
   formats::json::ValueBuilder json_data(formats::json::Type::kObject);
 
   auto server_stats = pimpl->GetServerStats();

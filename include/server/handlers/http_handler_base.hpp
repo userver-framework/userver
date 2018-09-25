@@ -9,6 +9,10 @@
 #include <server/request/http_server_settings_base_component.hpp>
 #include <server/request/request_base.hpp>
 
+namespace components {
+class StatisticsStorage;
+}  // namespace components
+
 namespace server {
 namespace handlers {
 
@@ -27,11 +31,6 @@ class HttpHandlerBase : public HandlerBase {
                                  request::RequestContext& context) const
       noexcept override;
 
-  formats::json::Value GetMonitorData(
-      components::MonitorVerbosity verbosity) const override;
-
-  std::string GetMetricsPath() const override;
-
   virtual const std::string& HandlerName() const = 0;
 
  protected:
@@ -42,15 +41,25 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& /*request*/,
       request::RequestContext& /*context*/) const {}
 
+  /* Override it to show per HTTP-method statistics besides statistics for all
+   * methods */
+  virtual bool IsMethodStatisticIncluded() const { return false; }
+
  private:
   class Statistics;
+  class HandlerStatistics;
 
-  static formats::json::Value StatisticsToJson(const Statistics& stats);
+  static formats::json::ValueBuilder StatisticsToJson(const Statistics& stats);
+
+  formats::json::ValueBuilder ExtendStatistics(
+      const utils::statistics::StatisticsRequest&);
 
  private:
   const components::HttpServerSettingsBase* http_server_settings_;
+  components::StatisticsStorage* statistics_storage_;
+  utils::statistics::Entry statistics_holder_;
 
-  std::unique_ptr<Statistics> statistics_;
+  std::unique_ptr<HandlerStatistics> statistics_;
 };
 
 }  // namespace handlers

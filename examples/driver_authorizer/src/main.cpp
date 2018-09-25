@@ -4,7 +4,9 @@
 
 #include <boost/program_options.hpp>
 
+#include <components/cache_invalidator.hpp>
 #include <components/component_list.hpp>
+#include <components/statistics_storage.hpp>
 #include <components/thread_pool.hpp>
 #include <components/tracer.hpp>
 #include <logging/component.hpp>
@@ -27,14 +29,16 @@ namespace driver_authorizer {
 const auto kComponentList = components::ComponentList()
                                 .Append<components::Logging>()
                                 .Append<components::Tracer>()
-                                .Append<components::Server>()
-                                .Append<server::handlers::TestsControl>()
                                 .Append<components::Secdist>()
+                                .Append<components::StatisticsStorage>()
+                                .Append<components::Server>()
+                                .Append<components::CacheInvalidator>()
                                 .Append<components::Mongo>("mongo-taxi")
                                 .Append<components::TaxiConfig>()
                                 .Append<components::Redis>()
                                 .Append<components::HttpServerSettings>()
                                 .Append<handlers::DriverSession>()
+                                .Append<server::handlers::TestsControl>()
                                 .Append<server::handlers::Ping>()
                                 .Append<server::handlers::ServerMonitor>();
 

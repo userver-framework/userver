@@ -6,7 +6,7 @@
 
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
-#include <components/monitorable_component_base.hpp>
+#include <utils/statistics/storage.hpp>
 
 #include <taxi_config/component.hpp>
 
@@ -17,7 +17,9 @@ class ThreadPools;
 
 namespace components {
 
-class Redis : public MonitorableComponentBase {
+class StatisticsStorage;
+
+class Redis : public ComponentBase {
  public:
   Redis(const ComponentConfig& config,
         const ComponentContext& component_context);
@@ -29,18 +31,25 @@ class Redis : public MonitorableComponentBase {
   std::shared_ptr<redis::Sentinel> Client(const std::string& name) {
     return clients_.at(name);
   }
-  formats::json::Value GetMonitorData(
-      MonitorVerbosity verbosity) const override;
 
  private:
   using TaxiConfigPtr = std::shared_ptr<taxi_config::Config>;
   void OnConfigUpdate(const TaxiConfigPtr& cfg);
+
+  void Connect(const ComponentConfig& config,
+               const ComponentContext& component_context);
+
+  formats::json::Value ExtendStatistics(
+      const utils::statistics::StatisticsRequest& /*request*/);
 
   std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> clients_;
   std::shared_ptr<redis::ThreadPools> thread_pools_;
 
   TaxiConfig* const config_;
   utils::AsyncEventSubscriberScope config_subscription_;
+
+  components::StatisticsStorage* statistics_storage_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace components
