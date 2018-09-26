@@ -51,8 +51,8 @@ class Storage {
   formats::json::ValueBuilder GetAsJson(const std::string& prefix,
                                         const StatisticsRequest& request) const;
 
-  __attribute__((warn_unused_result))
-  Entry RegisterExtender(std::string prefix, ExtenderFunc func);
+  __attribute__((warn_unused_result)) Entry RegisterExtender(std::string prefix,
+                                                             ExtenderFunc func);
 
   void UnregisterExtender(StorageIterator iterator);
 

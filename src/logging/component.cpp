@@ -77,14 +77,22 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
 }
 
 void Logging::OnLogRotate() {
-  for (const auto& item : loggers_) {
-    auto& sinks = item.second->sinks();
+  auto reopen_all = [](auto& sinks) {
     for (auto s : sinks) {
       auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
-      if (reop)
+      if (reop) {
         // TODO Handle exceptions here
         reop->Reopen(/* truncate = */ false);
+      }
     }
+  };
+
+  // this must be a copy
+  auto default_logger = logging::DefaultLogger();
+  reopen_all(default_logger->sinks());
+
+  for (const auto& item : loggers_) {
+    reopen_all(item.second->sinks());
   }
 }
 
