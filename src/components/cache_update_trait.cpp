@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <engine/async.hpp>
 #include <logging/log.hpp>
 
 namespace components {
@@ -13,10 +14,10 @@ void CacheUpdateTrait::UpdateFull() {
 
 CacheUpdateTrait::CacheUpdateTrait(CacheConfig&& config,
                                    const std::string& name)
-    : config_(std::move(config)), name_(name) {}
+    : config_(std::move(config)), name_(name), is_running_(false) {}
 
 CacheUpdateTrait::~CacheUpdateTrait() {
-  if (update_task_.IsRunning()) {
+  if (is_running_.load()) {
     LOG_ERROR()
         << "CacheUpdateTrait is being destroyed while periodic update "
            "task is still running. "
@@ -28,22 +29,26 @@ CacheUpdateTrait::~CacheUpdateTrait() {
 }
 
 void CacheUpdateTrait::StartPeriodicUpdates() {
-  if (update_task_.IsRunning()) {
-    LOG_WARNING() << "Calling StartPeriodicUpdates() again. Periodic task will "
-                     "be restarted. "
-                  << "Component name '" << name_ << "'";
+  if (is_running_.exchange(true)) {
+    return;
   }
 
-  update_task_.Start(
-      name_ + "-update-task",
-      {config_.update_interval_,
-       config_.update_jitter_,
-       {utils::PeriodicTask::Flags::kNow, utils::PeriodicTask::Flags::kChaotic,
-        utils::PeriodicTask::Flags::kCritical}},
-      [this] { DoPeriodicUpdate(); });
+  // Force first update and wait for it to finish
+  engine::CriticalAsync([this] { DoPeriodicUpdate(); }).Get();
+
+  update_task_.Start(name_ + "-update-task",
+                     {config_.update_interval_,
+                      config_.update_jitter_,
+                      {utils::PeriodicTask::Flags::kChaotic,
+                       utils::PeriodicTask::Flags::kCritical}},
+                     [this] { DoPeriodicUpdate(); });
 }
 
 void CacheUpdateTrait::StopPeriodicUpdates() {
+  if (!is_running_.exchange(false)) {
+    return;
+  }
+
   try {
     update_task_.Stop();
   } catch (const std::exception& ex) {

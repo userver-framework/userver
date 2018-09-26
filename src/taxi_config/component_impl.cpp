@@ -66,6 +66,7 @@ void TaxiConfigImpl::Update(CacheUpdateTrait::UpdateType type,
              .FindOne(std::move(query), {config_db::kUpdated},
                       std::move(options))
              .Get()) {
+      LOG_DEBUG() << "No changes in incremental config update";
       return;
     }
     LOG_DEBUG() << "Updating dirty config";

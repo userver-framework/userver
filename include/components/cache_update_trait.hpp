@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <string>
 
@@ -31,6 +32,7 @@ class CacheUpdateTrait {
 
   CacheConfig config_;
   const std::string name_;
+  std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
 
   std::chrono::system_clock::time_point last_update_;
