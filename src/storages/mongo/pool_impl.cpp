@@ -40,7 +40,7 @@ mongocxx::uri MakeUriWithTimeouts(const std::string& uri, int conn_timeout_ms,
 PoolImpl::PoolImpl(engine::TaskProcessor& task_processor,
                    const std::string& uri, int conn_timeout_ms,
                    int so_timeout_ms, size_t min_size, size_t max_size)
-    : task_processor_(task_processor), queue_(max_size) {
+    : task_processor_(task_processor), queue_(max_size), size_(0) {
   if (conn_timeout_ms <= 0) {
     throw InvalidConfig("invalid conn_timeout");
   }
