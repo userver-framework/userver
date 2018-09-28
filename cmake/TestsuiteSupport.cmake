@@ -10,9 +10,7 @@ set(TESTSUITE_GEN_FASTCGI
   ${TESTSUITE_PYTHON} ${CMAKE_SOURCE_DIR}/testsuite/scripts/genfastcgi.py)
 set(TESTSUITE_DB_SETTINGS_YAML ${CMAKE_SOURCE_DIR}/db_settings.yaml)
 
-define_property(TARGET PROPERTY TESTSUITE_PYTEST_DIRS
-  BRIEF_DOCS "List of testsuite py.test directories"
-  FULL_DOCS "List of testsuite py.test directories")
+unset(TESTSUITE_PYTEST_DIRS CACHE)
 
 function(testsuite_generate_userver_descriptor NAME BINARY CONFIG)
   configure_file(
@@ -76,8 +74,8 @@ function(testsuite_userver_project PROJECT)
     ${PROJECT_SECDIST_PATH})
   add_dependencies(testsuite-configs ${PROJECT}-testsuite-configs)
 
-  set_property(TARGET testsuite-configs APPEND PROPERTY TESTSUITE_PYTEST_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR}/testsuite)
+  set(TESTSUITE_PYTEST_DIRS ${TESTSUITE_PYTEST_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/testsuite
+    CACHE STRING "Directories with all necessary tests." FORCE)
 
 endfunction()
 

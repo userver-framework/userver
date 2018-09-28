@@ -4,7 +4,7 @@ add_test(
   -vv -x
   --junitxml=${CMAKE_BINARY_DIR}/test-results/junit-testsuite.xml
   -p no:name_of_plugin -p no:pytest-teamcity
-  $<JOIN:$<TARGET_PROPERTY:testsuite-configs,TESTSUITE_PYTEST_DIRS>," ">
+  ${TESTSUITE_PYTEST_DIRS}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 set_tests_properties(testsuite PROPERTIES TIMEOUT 2500)

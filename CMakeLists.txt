@@ -39,6 +39,7 @@ add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/yaml-cpp)
 option(BUILD_USERVER_AS_SUBMODULE "Disables build of examples and testsuite" OFF) # TODO: remove
 if (NOT BUILD_USERVER_AS_SUBMODULE)
     include(TestsuiteSupport)
-    add_subdirectory(testsuite)
     add_subdirectory(examples)
+    # This should go last to have all testsuite dirs to be collected before
+    add_subdirectory(testsuite)
 endif()
