@@ -33,15 +33,20 @@ void CacheUpdateTrait::StartPeriodicUpdates() {
     return;
   }
 
-  // Force first update and wait for it to finish
-  engine::CriticalAsync([this] { DoPeriodicUpdate(); }).Get();
+  try {
+    // Force first update, do it synchronously
+    DoPeriodicUpdate();
 
-  update_task_.Start(name_ + "-update-task",
-                     {config_.update_interval_,
-                      config_.update_jitter_,
-                      {utils::PeriodicTask::Flags::kChaotic,
-                       utils::PeriodicTask::Flags::kCritical}},
-                     [this] { DoPeriodicUpdate(); });
+    update_task_.Start(name_ + "-update-task",
+                       {config_.update_interval_,
+                        config_.update_jitter_,
+                        {utils::PeriodicTask::Flags::kChaotic,
+                         utils::PeriodicTask::Flags::kCritical}},
+                       [this] { DoPeriodicUpdate(); });
+  } catch (...) {
+    is_running_ = false;  // update_task_ is not started, don't check it in dtr
+    throw;
+  }
 }
 
 void CacheUpdateTrait::StopPeriodicUpdates() {
