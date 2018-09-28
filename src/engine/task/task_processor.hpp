@@ -66,7 +66,7 @@ class TaskProcessor {
  private:
   void ProcessTasks() noexcept;
 
-  const TaskProcessorConfig& config_;
+  const TaskProcessorConfig config_;
 
   CoroPool& coro_pool_;
   ev::ThreadPool& event_thread_pool_;
