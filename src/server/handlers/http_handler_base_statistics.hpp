@@ -53,7 +53,7 @@ class HttpHandlerBase::Statistics {
 
   using Percentile = utils::statistics::Percentile<2048, unsigned int, 120>;
 
-  Percentile GetTimings() const { return timings_.GetCurrentCounter(); }
+  Percentile GetTimings() const { return timings_.GetStatsForPeriod(); }
 
  private:
   utils::statistics::RecentPeriod<Percentile, Percentile,
