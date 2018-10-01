@@ -313,3 +313,5 @@ void TaskContext::Unwind() {
 
 }  // namespace impl
 }  // namespace engine
+
+#include "cxxabi_eh_globals.inc"
