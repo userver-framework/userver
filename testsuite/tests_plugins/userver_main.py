@@ -25,14 +25,14 @@ class Settings:
         'port': 9999
     }
 
-    REDIS_PORT = 16379
-
     MONGO_CONNECTIONS = {}
     STQ_COLLECTIONS = {}
 
-    POSTGRESQL_CONNECTION = (
-        'host=/tmp/testsuite-postgresql user=testsuite dbname=taximeter'
-    )
+    POSTGRESQL_CONNECTIONS = {
+        'taximeter': (
+            'host=/tmp/testsuite-postgresql user=testsuite dbname=taximeter'
+        ),
+    }
 
 
 def pytest_addoption(parser):
