@@ -8,7 +8,7 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/request/http_server_settings_base_component.hpp>
 #include <utils/graphite.hpp>
-#include <utils/statistics/percentile_json.hpp>
+#include <utils/statistics/percentile_format_json.hpp>
 #include <utils/uuid4.hpp>
 
 #include <server/http/http_error.hpp>

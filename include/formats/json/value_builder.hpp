@@ -18,7 +18,6 @@ class ValueBuilder {
 
  public:
   ValueBuilder() noexcept = default;
-  ValueBuilder(Json::Value&& val);
   ValueBuilder(Type type);
 
   ValueBuilder(const ValueBuilder& other);

@@ -5,10 +5,6 @@
 namespace formats {
 namespace json {
 
-ValueBuilder::ValueBuilder(Json::Value&& val) {
-  value_.GetNative() = std::move(val);
-}
-
 ValueBuilder::ValueBuilder(Type type)
     : value_(std::make_shared<Json::Value>(ToNativeType(type))) {}
 

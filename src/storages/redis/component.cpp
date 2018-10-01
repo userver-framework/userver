@@ -13,7 +13,7 @@
 #include <storages/secdist/exceptions.hpp>
 #include <storages/secdist/secdist.hpp>
 #include <utils/statistics.hpp>
-#include <utils/statistics/percentile_json.hpp>
+#include <utils/statistics/percentile_format_json.hpp>
 
 #include "redis_config.hpp"
 #include "redis_secdist.hpp"
