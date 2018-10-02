@@ -4,7 +4,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(SetupEnvironment)
 include(AddGoogleTests)
-include(GetVersion)
 include(CppCheck)
 include(CheckSubmodule)
 
@@ -35,11 +34,3 @@ set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Enable testing")
 set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Enable parse tools")
 set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Enable contrib stuff in library")
 add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/yaml-cpp)
-
-option(BUILD_USERVER_AS_SUBMODULE "Disables build of examples and testsuite" OFF) # TODO: remove
-if (NOT BUILD_USERVER_AS_SUBMODULE)
-    include(TestsuiteSupport)
-    add_subdirectory(examples)
-    # This should go last to have all testsuite dirs to be collected before
-    add_subdirectory(testsuite)
-endif()

@@ -1,8 +1,0 @@
-{
-  "logger_level": "debug",
-  "event_threads": 2,
-  "redis_threads": 2,
-  "main_worker_threads": 2,
-  "mongo_worker_threads": 2,
-  "session_ttl_update_enabled": false
-}

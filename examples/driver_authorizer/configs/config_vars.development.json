@@ -1,7 +1,0 @@
-{
-  "main_worker_threads": 4,
-  "event_threads": 2,
-  "redis_threads": 3,
-  "logger_level": "debug",
-  "session_ttl_update_enabled": false
-}
