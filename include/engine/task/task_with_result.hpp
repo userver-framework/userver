@@ -18,12 +18,16 @@ class TaskProcessor;
 /// Cancelled TaskWithResult access exception
 class TaskCancelledException : public std::exception {
  public:
-  TaskCancelledException(Task::CancellationReason reason) : reason_(reason) {}
+  TaskCancelledException(Task::CancellationReason reason)
+      : reason_(reason), msg_("Task cancelled, reason=" + ToString(reason)) {}
 
   Task::CancellationReason Reason() const { return reason_; }
 
+  const char* what() const noexcept override { return msg_.c_str(); }
+
  private:
   const Task::CancellationReason reason_;
+  std::string msg_;
 };
 
 /// Asynchronous task with result

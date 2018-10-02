@@ -86,6 +86,27 @@ void Task::DoWaitUntil(Deadline deadline) const {
   context_->WaitUntil(std::move(deadline));
 }
 
+std::string ToString(Task::CancellationReason reason) {
+  static const std::string kNone = "Not cancelled";
+  static const std::string kUserRequest = "User request";
+  static const std::string kOverload = "Task processor overload";
+  static const std::string kAbandoned = "Task destruction before finish";
+  static const std::string kShutdown = "Task processor shutdown";
+  switch (reason) {
+    case Task::CancellationReason::kNone:
+      return kNone;
+    case Task::CancellationReason::kUserRequest:
+      return kUserRequest;
+    case Task::CancellationReason::kOverload:
+      return kOverload;
+    case Task::CancellationReason::kAbandoned:
+      return kAbandoned;
+    case Task::CancellationReason::kShutdown:
+      return kShutdown;
+  }
+  return "unknown(" + std::to_string(static_cast<int>(reason)) + ')';
+}
+
 namespace current_task {
 
 void CancellationPoint() {

@@ -4,6 +4,7 @@
 /// @brief @copybrief engine::Task
 
 #include <chrono>
+#include <string>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
@@ -108,6 +109,9 @@ class Task {
 
   boost::intrusive_ptr<impl::TaskContext> context_;
 };
+
+/// Returns a string representation of a cancellation reason
+std::string ToString(Task::CancellationReason reason);
 
 namespace current_task {
 
