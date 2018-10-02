@@ -8,9 +8,13 @@ namespace json {
 ValueBuilder::ValueBuilder(Type type)
     : value_(std::make_shared<Json::Value>(ToNativeType(type))) {}
 
-ValueBuilder::ValueBuilder(const ValueBuilder& other) { Copy(other); }
+ValueBuilder::ValueBuilder(const ValueBuilder& other) {
+  Copy(value_.GetNative(), other);
+}
 
-ValueBuilder::ValueBuilder(ValueBuilder&& other) { *this = std::move(other); }
+ValueBuilder::ValueBuilder(ValueBuilder&& other) {
+  Move(value_.GetNative(), std::move(other));
+}
 
 ValueBuilder::ValueBuilder(const char* str)
     : value_(std::make_shared<Json::Value>(std::string(str))) {}
@@ -24,16 +28,12 @@ ValueBuilder::ValueBuilder(int64_t t)
 ValueBuilder::ValueBuilder(long long t) : ValueBuilder(int64_t(t)) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
-  Copy(other);
+  Copy(value_.GetNative(), other);
   return *this;
 }
 
 ValueBuilder& ValueBuilder::operator=(ValueBuilder&& other) {
-  if (other.value_.IsRoot()) {
-    value_.GetNative() = std::move(other.value_.GetNative());
-  } else {
-    Copy(other);
-  }
+  Move(value_.GetNative(), std::move(other));
   return *this;
 }
 
@@ -87,8 +87,7 @@ void ValueBuilder::Resize(uint32_t size) {
 
 void ValueBuilder::PushBack(ValueBuilder&& bld) {
   value_.CheckArrayOrNull();
-  value_.GetNative()[static_cast<int>(value_.GetSize())] =
-      std::move(bld.value_.GetNative());
+  Move(value_.GetNative()[static_cast<int>(value_.GetSize())], std::move(bld));
 }
 
 formats::json::Value ValueBuilder::ExtractValue() {
@@ -120,8 +119,16 @@ const Json::Value& ValueBuilder::Get() const { return value_.Get(); }
 
 std::string ValueBuilder::GetPath() const { return value_.GetPath(); }
 
-void ValueBuilder::Copy(const ValueBuilder& other) {
-  value_.GetNative() = other.value_.GetNative();
+void ValueBuilder::Copy(Json::Value& to, const ValueBuilder& from) {
+  to = from.value_.GetNative();
+}
+
+void ValueBuilder::Move(Json::Value& to, ValueBuilder&& from) {
+  if (from.value_.IsRoot()) {
+    to = std::move(from.value_.GetNative());
+  } else {
+    Copy(to, from);
+  }
 }
 
 }  // namespace json

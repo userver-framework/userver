@@ -99,6 +99,13 @@ TEST_F(JsonMemberModify, ArrayPushBack) {
   }
 }
 
+TEST_F(JsonMemberModify, PushBackFromExisting) {
+  builder_["key4"].PushBack(builder_["key1"]);
+  EXPECT_EQ(GetBuiltValue()["key4"].GetSize(), 4);
+  EXPECT_EQ(GetBuiltValue()["key4"][3].asInt(), 1);
+  EXPECT_EQ(GetBuiltValue()["key1"].asInt(), 1);
+}
+
 TEST_F(JsonMemberModify, PushBackWrongTypeThrows) {
   EXPECT_THROW(builder_["key1"].PushBack(1),
                formats::json::TypeMismatchException);

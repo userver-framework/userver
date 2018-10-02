@@ -84,7 +84,8 @@ class ValueBuilder {
   const Json::Value& Get() const;
   std::string GetPath() const;
 
-  void Copy(const ValueBuilder& other);
+  void Copy(Json::Value& to, const ValueBuilder& from);
+  void Move(Json::Value& to, ValueBuilder&& from);
 
  private:
   formats::json::Value value_;
