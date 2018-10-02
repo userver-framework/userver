@@ -7,6 +7,7 @@
 
 #include <boost/coroutine/asymmetric_coroutine.hpp>
 #include <boost/coroutine/attributes.hpp>
+#include <boost/coroutine/protected_stack_allocator.hpp>
 #include <boost/lockfree/stack.hpp>
 
 #include <logging/log.hpp>
@@ -18,7 +19,7 @@ namespace engine {
 namespace coro {
 
 // FIXME: determine proper stack size (TAXICOMMON-138)
-static constexpr size_t kStackSize = 128 * 1024ull;
+static constexpr size_t kStackSize = 256 * 1024ull;
 
 template <typename Task>
 class Pool {
@@ -108,7 +109,8 @@ PoolStats Pool<Task>::GetStats() const {
 template <typename Task>
 typename Pool<Task>::Coroutine* Pool<Task>::CreateCoroutine(bool quiet) {
   auto new_total = ++total_coroutines_num_;
-  auto* coroutine = new Coroutine(executor_, attributes_);
+  auto* coroutine = new Coroutine(
+      executor_, attributes_, boost::coroutines::protected_stack_allocator());
   if (!quiet) {
     LOG_DEBUG() << "Created a coroutine #" << new_total << '/'
                 << config_.max_size;
