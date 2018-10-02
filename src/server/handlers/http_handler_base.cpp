@@ -9,17 +9,16 @@
 #include <server/request/http_server_settings_base_component.hpp>
 #include <utils/graphite.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
-#include <utils/uuid4.hpp>
 
 #include <server/http/http_error.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <tracing/span.hpp>
 #include <tracing/tracing.hpp>
 
 namespace server {
 namespace handlers {
 namespace {
 
-const std::string kLink = "link";
 const std::string kXYaRequestId = "X-YaRequestId";
 
 template <typename HeadersHolder>
@@ -82,62 +81,59 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     auto& response = http_request.GetHttpResponse();
     const auto start_time = std::chrono::system_clock::now();
 
-    const std::string& link = utils::generators::GenerateUuid();
-    context.GetLogExtra().Extend(kLink, link,
-                                 logging::LogExtra::ExtendType::kFrozen);
-
     bool log_request =
         http_server_settings_ ? http_server_settings_->NeedLogRequest() : false;
     bool log_request_headers =
         http_server_settings_ ? http_server_settings_->NeedLogRequestHeaders()
                               : false;
 
-    tracing::Span span =
-        tracing::Tracer::GetTracer()->CreateSpanWithoutParent("http_request");
+    auto& span = context.GetSpan();
+
+    const auto& parent_link = http_request.GetHeader(kXYaRequestId);
+    if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
+
+    span.AddTag("request_url", http_request.GetUrl());
 
     if (log_request) {
-      logging::LogExtra log_extra(context.GetLogExtra());
+      logging::LogExtra log_extra;
 
-      const auto& parent_link = http_request.GetHeader(kXYaRequestId);
-      if (!parent_link.empty()) log_extra.Extend("parent_link", parent_link);
-
-      log_extra.Extend("request_url", http_request.GetUrl());
       if (log_request_headers) {
         log_extra.Extend("request_headers", GetHeadersLogString(http_request));
       }
       log_extra.Extend("request_body", http_request.RequestBody());
-      LOG_INFO() << "start handling" << std::move(log_extra);
+      TRACE_INFO(span) << "start handling" << std::move(log_extra);
     }
 
     try {
       response.SetData(HandleRequestThrow(http_request, context));
     } catch (const http::HttpException& ex) {
-      LOG_ERROR() << "http exception in '" << HandlerName()
-                  << "' handler in handle_request: code="
-                  << HttpStatusString(ex.GetStatus()) << ", msg=" << ex.what()
-                  << ", body=" << ex.GetExternalErrorBody();
+      TRACE_ERROR(span) << "http exception in '" << HandlerName()
+                        << "' handler in handle_request: code="
+                        << HttpStatusString(ex.GetStatus())
+                        << ", msg=" << ex.what()
+                        << ", body=" << ex.GetExternalErrorBody();
       response.SetStatus(ex.GetStatus());
       response.SetData(ex.GetExternalErrorBody());
     } catch (const std::exception& ex) {
-      LOG_ERROR() << "exception in '" << HandlerName()
-                  << "' handler in handle_request: " << ex.what();
+      TRACE_ERROR(span) << "exception in '" << HandlerName()
+                        << "' handler in handle_request: " << ex.what();
       response.SetStatus(server::http::HttpStatus::kInternalServerError);
       response.SetData({});
       response.ClearHeaders();
     }
 
-    response.SetHeader(kXYaRequestId, link);
+    response.SetHeader(kXYaRequestId, span.GetLink());
+    span.AddTag("response_code", static_cast<int>(response.GetStatus()));
 
     if (log_request) {
-      logging::LogExtra log_extra(context.GetLogExtra());
-      log_extra.Extend("response_code", static_cast<int>(response.GetStatus()));
+      logging::LogExtra log_extra;
 
       if (log_request_headers) {
         log_extra.Extend("response_headers", GetHeadersLogString(response));
       }
       log_extra.Extend("response_data", response.GetData());
-      LOG_INFO() << "finish handling " << http_request.GetUrl()
-                 << std::move(log_extra);
+      TRACE_INFO(span) << "finish handling " << http_request.GetUrl()
+                       << log_extra;
     }
 
     const auto finish_time = std::chrono::system_clock::now();

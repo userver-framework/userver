@@ -21,7 +21,8 @@ class TaxiConfigImpl {
 
   void Update(CacheUpdateTrait::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
-              const std::chrono::system_clock::time_point& now);
+              const std::chrono::system_clock::time_point& now,
+              tracing::Span&& span);
 
  private:
   const EmplaceDocsCb emplace_docs_cb_;

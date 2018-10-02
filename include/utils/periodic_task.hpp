@@ -3,6 +3,7 @@
 #include <random>
 
 #include <engine/task/task_with_result.hpp>
+#include <tracing/span.hpp>
 #include <utils/flags.hpp>
 #include <utils/swappingsmart.hpp>
 
@@ -53,15 +54,15 @@ class PeriodicTask {
     utils::Flags<Flags> flags;
   };
 
+  using Callback = std::function<void(tracing::Span)>;
+
   PeriodicTask() = default;
   PeriodicTask(PeriodicTask&&) = delete;
   PeriodicTask(const PeriodicTask&) = delete;
 
-  PeriodicTask(std::string name, Settings settings,
-               std::function<void()> callback);
+  PeriodicTask(std::string name, Settings settings, Callback callback);
 
-  void Start(std::string name, Settings settings,
-             std::function<void()> callback);
+  void Start(std::string name, Settings settings, Callback callback);
 
   /* A user has to stop it *before* the callback becomes invalid.
    * E.g. if your class X stores PeriodicTask and the callback is class' X
@@ -86,7 +87,7 @@ class PeriodicTask {
 
  private:
   std::string name_;
-  std::function<void()> callback_;
+  Callback callback_;
   engine::TaskWithResult<void> task_;
   utils::SwappingSmart<Settings> settings_;
   std::minstd_rand rand_;  // default seed is OK

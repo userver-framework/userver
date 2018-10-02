@@ -28,7 +28,8 @@ TEST(PeriodicTask, StopWithoutStart) {
 
 TEST(PeriodicTask, StartStop) {
   TestInCoro([] {
-    utils::PeriodicTask task("task", std::chrono::milliseconds(100), [] {});
+    utils::PeriodicTask task("task", std::chrono::milliseconds(100),
+                             [](tracing::Span&&) {});
 
     task.Stop();
   });
@@ -42,11 +43,11 @@ struct SimpleTaskData {
   long sleep_ms = 0;
   bool throw_exception = false;
 
-  std::function<void()> GetTaskFunction() {
-    return std::bind(&SimpleTaskData::Run, this);
+  auto GetTaskFunction() {
+    return std::bind(&SimpleTaskData::Run, this, std::placeholders::_1);
   }
 
-  void Run() {
+  void Run(tracing::Span&&) {
     engine::SleepFor(std::chrono::milliseconds(sleep_ms));
     std::unique_lock<engine::Mutex> lock(mutex);
     c++;

@@ -4,6 +4,7 @@
 
 #include <opentracing/noop.h>
 #include <opentracing/tracer.h>
+#include <utils/uuid4.hpp>
 
 namespace tracing {
 
@@ -32,13 +33,16 @@ std::shared_ptr<Tracer> Tracer::GetTracer() {
 
 Span Tracer::CreateSpanWithoutParent(const std::string& name) {
   auto ot_span = tracer_->StartSpan(name);
-  return Span(std::move(ot_span), shared_from_this());
+  auto span = Span(std::move(ot_span), shared_from_this(), name);
+
+  span.SetLink(utils::generators::GenerateUuid());
+  return span;
 }
 
-Span Tracer::CreateSpan(const std::string& name, Span& parent) {
+Span Tracer::CreateSpan(const std::string& name, const Span& parent) {
   auto ot_span = tracer_->StartSpan(
-      name, {opentracing::ChildOf(&parent.GetOtSpan().context())});
-  return Span(std::move(ot_span), shared_from_this());
+      name, {opentracing::ChildOf(&parent.GetOpentracingSpan().context())});
+  return Span(std::move(ot_span), shared_from_this(), name);
 }
 
 }  // namespace tracing

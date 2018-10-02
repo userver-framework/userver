@@ -21,7 +21,7 @@ class Tracer : public std::enable_shared_from_this<Tracer> {
 
   Span CreateSpanWithoutParent(const std::string& name);
 
-  Span CreateSpan(const std::string& name, Span& parent);
+  Span CreateSpan(const std::string& name, const Span& parent);
 
  private:
   const std::shared_ptr<opentracing::Tracer> tracer_;

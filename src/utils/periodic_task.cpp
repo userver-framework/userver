@@ -3,18 +3,19 @@
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <logging/log.hpp>
+#include <tracing/tracer.hpp>
 
 namespace utils {
 
 PeriodicTask::PeriodicTask(std::string name, Settings settings,
-                           std::function<void()> callback)
+                           Callback callback)
     : name_(std::move(name)), callback_(std::move(callback)) {
   settings_.Set(std::move(settings));
   DoStart();
 }
 
 void PeriodicTask::Start(std::string name, Settings settings,
-                         std::function<void()> callback) {
+                         Callback callback) {
   Stop();
   name_ = std::move(name);
   settings_.Set(std::move(settings));
@@ -62,7 +63,8 @@ void PeriodicTask::Run() {
     settings.reset();
 
     try {
-      callback_();
+      auto span = tracing::Tracer::GetTracer()->CreateSpanWithoutParent(name_);
+      callback_(std::move(span));
     } catch (const std::exception& e) {
       LOG_ERROR() << "Exception in PeriodicTask with name=" << name_ << ":"
                   << e.what();

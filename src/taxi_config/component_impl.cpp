@@ -45,7 +45,8 @@ TaxiConfigImpl::TaxiConfigImpl(const ComponentConfig& config,
 
 void TaxiConfigImpl::Update(CacheUpdateTrait::UpdateType type,
                             const std::chrono::system_clock::time_point&,
-                            const std::chrono::system_clock::time_point&) {
+                            const std::chrono::system_clock::time_point&,
+                            tracing::Span&& span) {
   namespace bbb = bsoncxx::builder::basic;
   namespace sm = storages::mongo;
   namespace config_db = mongo::db::taxi::config;
@@ -69,9 +70,9 @@ void TaxiConfigImpl::Update(CacheUpdateTrait::UpdateType type,
       LOG_DEBUG() << "No changes in incremental config update";
       return;
     }
-    LOG_DEBUG() << "Updating dirty config";
+    TRACE_DEBUG(span) << "Updating dirty config";
   } else {
-    LOG_DEBUG() << "Full config update";
+    TRACE_DEBUG(span) << "Full config update";
   }
 
   taxi_config::DocsMap mongo_docs;

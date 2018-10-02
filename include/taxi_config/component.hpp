@@ -23,7 +23,8 @@ class TaxiConfig : public CachingComponentBase<taxi_config::Config> {
  private:
   void Update(CacheUpdateTrait::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
-              const std::chrono::system_clock::time_point& now) override;
+              const std::chrono::system_clock::time_point& now,
+              tracing::Span&& span) override;
 
   std::unique_ptr<TaxiConfigImpl> impl_;
 };

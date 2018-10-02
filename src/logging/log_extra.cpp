@@ -56,6 +56,13 @@ void LogExtra::SetFrozen(const std::string& key) {
   it->second.SetFrozen();
 }
 
+const LogExtra::Value& LogExtra::GetValue(const std::string& key) const {
+  static const LogExtra::Value kEmpty = "";
+  auto it = extra_.find(key);
+  if (it == extra_.end()) return kEmpty;
+  return it->second.GetValue();
+}
+
 void LogExtra::Extend(std::string key, ProtectedValue protected_value,
                       ExtendType extend_type) {
   extra_[std::move(key)] =

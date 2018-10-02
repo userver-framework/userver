@@ -9,6 +9,10 @@
 
 #include <boost/variant.hpp>
 
+namespace tracing {
+class Span;
+}
+
 namespace logging {
 
 class LogHelper;
@@ -68,8 +72,11 @@ class LogExtra {
   void SetFrozen(const std::string& key);
 
   friend class LogHelper;
+  friend class tracing::Span;
 
  private:
+  const Value& GetValue(const std::string& key) const;
+
   class ProtectedValue {
    public:
     ProtectedValue() = default;

@@ -14,7 +14,7 @@ class CacheUpdateTrait {
  public:
   enum class UpdateType { kFull, kIncremental };
 
-  void UpdateFull();
+  void UpdateFull(tracing::Span&& span);
 
  protected:
   CacheUpdateTrait(CacheConfig&& config, const std::string& name);
@@ -26,9 +26,10 @@ class CacheUpdateTrait {
  private:
   virtual void Update(UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,
-                      const std::chrono::system_clock::time_point& now) = 0;
+                      const std::chrono::system_clock::time_point& now,
+                      tracing::Span&& span) = 0;
 
-  void DoPeriodicUpdate();
+  void DoPeriodicUpdate(tracing::Span&& span);
 
   CacheConfig config_;
   const std::string name_;

@@ -19,8 +19,8 @@ TaxiConfig::~TaxiConfig() { this->StopPeriodicUpdates(); }
 void TaxiConfig::Update(
     CacheUpdateTrait::UpdateType type,
     const std::chrono::system_clock::time_point& last_update,
-    const std::chrono::system_clock::time_point& now) {
-  impl_->Update(type, last_update, now);
+    const std::chrono::system_clock::time_point& now, tracing::Span&& span) {
+  impl_->Update(type, last_update, now, std::move(span));
 }
 
 }  // namespace components

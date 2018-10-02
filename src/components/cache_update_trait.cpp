@@ -4,12 +4,13 @@
 
 #include <engine/async.hpp>
 #include <logging/log.hpp>
+#include <tracing/tracer.hpp>
 
 namespace components {
 
-void CacheUpdateTrait::UpdateFull() {
+void CacheUpdateTrait::UpdateFull(tracing::Span&& span) {
   Update(UpdateType::kFull, std::chrono::system_clock::time_point(),
-         std::chrono::system_clock::now());
+         std::chrono::system_clock::now(), std::move(span));
 }
 
 CacheUpdateTrait::CacheUpdateTrait(CacheConfig&& config,
@@ -35,14 +36,16 @@ void CacheUpdateTrait::StartPeriodicUpdates() {
 
   try {
     // Force first update, do it synchronously
-    DoPeriodicUpdate();
+    DoPeriodicUpdate(
+        tracing::Tracer::GetTracer()->CreateSpanWithoutParent("first_update"));
 
-    update_task_.Start(name_ + "-update-task",
-                       {config_.update_interval_,
-                        config_.update_jitter_,
-                        {utils::PeriodicTask::Flags::kChaotic,
-                         utils::PeriodicTask::Flags::kCritical}},
-                       [this] { DoPeriodicUpdate(); });
+    update_task_.Start(
+        name_ + "-update-task",
+        {config_.update_interval_,
+         config_.update_jitter_,
+         {utils::PeriodicTask::Flags::kChaotic,
+          utils::PeriodicTask::Flags::kCritical}},
+        [this](tracing::Span&& span) { DoPeriodicUpdate(std::move(span)); });
   } catch (...) {
     is_running_ = false;  // update_task_ is not started, don't check it in dtr
     throw;
@@ -62,15 +65,17 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
   }
 }
 
-void CacheUpdateTrait::DoPeriodicUpdate() {
+void CacheUpdateTrait::DoPeriodicUpdate(tracing::Span&& span) {
   const auto steady_now = std::chrono::steady_clock::now();
   auto update_type = UpdateType::kFull;
   if (last_full_update_ + config_.full_update_interval_ > steady_now) {
     update_type = UpdateType::kIncremental;
   }
 
+  TRACE_INFO(span) << "Updating cache name=" << name_;
+
   const auto system_now = std::chrono::system_clock::now();
-  Update(update_type, last_update_, system_now);
+  Update(update_type, last_update_, system_now, std::move(span));
 
   last_update_ = system_now;
   if (update_type == UpdateType::kFull) {

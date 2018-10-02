@@ -15,20 +15,21 @@ class CacheInvalidator : public components::ComponentBase {
   CacheInvalidator(const components::ComponentConfig& component_config,
                    const components::ComponentContext& component_context);
 
+  using Callback = utils::PeriodicTask::Callback;
+
   void RegisterCacheInvalidator(components::CacheUpdateTrait& owner,
-                                std::function<void()>&& handler);
+                                Callback&& handler);
 
   void UnregisterCacheInvalidator(components::CacheUpdateTrait& owner);
 
-  void InvalidateCaches();
+  void InvalidateCaches(tracing::Span& span);
 
  private:
   struct Invalidator {
     components::CacheUpdateTrait* owner;
-    std::function<void()> handler;
+    Callback handler;
 
-    Invalidator(components::CacheUpdateTrait* owner,
-                std::function<void()>&& handler)
+    Invalidator(components::CacheUpdateTrait* owner, Callback&& handler)
         : owner(owner), handler(std::move(handler)) {}
   };
 

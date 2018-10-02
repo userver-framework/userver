@@ -42,7 +42,8 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
               utils::datetime::Stringtime(value.asString()).time_since_epoch())
               .count();
     } else {
-      LOG_ERROR() << "now argument must be a string" << context.GetLogExtra();
+      TRACE_ERROR(context.GetSpan())
+          << "now argument must be a string" << context.GetLogExtra();
       throw http::BadRequest();
     }
   }
@@ -54,9 +55,8 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   else
     utils::datetime::MockNowUnset();
 
-  if (invalidate_caches) {
-    cache_invalidator_->InvalidateCaches();
-  }
+  if (invalidate_caches)
+    cache_invalidator_->InvalidateCaches(context.GetSpan());
 
   return formats::json::Value();
 }

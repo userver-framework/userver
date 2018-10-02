@@ -11,7 +11,9 @@ CacheInvalidatorHolder::CacheInvalidatorHolder(
           components::CacheInvalidator>()},
       cache_(cache) {
   cache_invalidator_->RegisterCacheInvalidator(
-      cache_, std::bind(&components::CacheUpdateTrait::UpdateFull, &cache));
+      cache_, [cache = &cache_](tracing::Span && span) {
+        cache->UpdateFull(std::move(span));
+      });
 }
 
 CacheInvalidatorHolder::~CacheInvalidatorHolder() {
