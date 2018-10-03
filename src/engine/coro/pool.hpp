@@ -57,7 +57,7 @@ template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
     : config_(std::move(config)),
       executor_(std::move(executor)),
-      attributes_(kStackSize),
+      attributes_(kStackSize, boost::coroutines::no_stack_unwind),
       coroutines_(config.max_size),
       idle_coroutines_num_(0),
       total_coroutines_num_(0) {

@@ -137,16 +137,13 @@ void TaskContext::DoStep() {
   }
 
   switch (yield_reason_) {
+    case YieldReason::kTaskCancelled:
     case YieldReason::kTaskComplete:
       task_processor_.GetCoroPool().PutCoroutine(std::move(coro_));
       coro_.reset();
-      SetState(Task::State::kCompleted);
-      break;
-
-    case YieldReason::kTaskCancelled:
-      // unwound coroutine cannot be reused
-      coro_.reset();
-      SetState(Task::State::kCancelled);
+      SetState(yield_reason_ == YieldReason::kTaskComplete
+                   ? Task::State::kCompleted
+                   : Task::State::kCancelled);
       break;
 
     case YieldReason::kTaskWaiting:
