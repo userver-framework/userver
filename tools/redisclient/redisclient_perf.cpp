@@ -91,8 +91,8 @@ void SetupLogger(const std::string& log_level) {
       logging::LevelFromString(log_level)));
 }
 
-void Work(std::shared_ptr<redis::Sentinel>& sentinel) {
-  auto response = sentinel->Get("123").Get();
+void Work(std::shared_ptr<redis::Sentinel>& sentinel, size_t i) {
+  auto response = sentinel->Get("key" + std::to_string(i)).Get();
   boost::ignore_unused(response);
 }
 
@@ -130,7 +130,7 @@ void Fire(engine::TaskProcessor& task_processor,
 
   const auto per_ms = per_second / 1000.0;
   for (size_t i = 0;; ++i) {
-    engine::Async(task_processor, Work, std::ref(sentinel)).Detach();
+    engine::Async(task_processor, Work, std::ref(sentinel), i).Detach();
 
     /* Burn CPU */
     while (true) {
