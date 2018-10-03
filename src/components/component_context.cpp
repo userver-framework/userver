@@ -1,10 +1,16 @@
 #include <components/component_context.hpp>
 
-#include <logging/log.hpp>
-
 #include <engine/task/task_processor.hpp>
+#include <logging/log.hpp>
+#include <tracing/tracer.hpp>
 
 namespace components {
+
+namespace {
+const std::string kStopComponentRootName = "all_components_stop";
+const std::string kStopComponentName = "component_stop";
+const std::string kComponentName = "component_name";
+}  // namespace
 
 ComponentContext::ComponentContext(const Manager& manager,
                                    TaskProcessorMap task_processor_map)
@@ -17,21 +23,26 @@ void ComponentContext::AddComponent(
 }
 
 void ComponentContext::ClearComponents() {
-  LOG_TRACE() << "Stopping components";
+  auto root_span = tracing::Tracer::GetTracer()->CreateSpanWithoutParent(
+      kStopComponentRootName);
+  TRACE_TRACE(root_span) << "Stopping components";
   for (auto it = component_names_.rbegin(); it != component_names_.rend();
        ++it) {
-    LOG_INFO() << "Stopping component " << *it;
+    auto span = root_span.CreateChild(kStopComponentName);
+    span.AddTag(kComponentName, *it);
+
+    TRACE_INFO(span) << "Stopping component";
     try {
       components_.erase(*it);
     } catch (const std::exception& ex) {
-      LOG_CRITICAL() << "Exception while stopping component " << *it << ": "
-                     << ex.what();
+      TRACE_CRITICAL(span) << "Exception while stopping component: "
+                           << ex.what();
       logging::LogFlush();
       abort();
     }
-    LOG_INFO() << "Stopped component " << *it;
+    TRACE_INFO(span) << "Stopped component";
   }
-  LOG_TRACE() << "Stopped all components";
+  TRACE_TRACE(root_span) << "Stopped all components";
 }
 
 void ComponentContext::OnAllComponentsLoaded() {
