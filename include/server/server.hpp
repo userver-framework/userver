@@ -27,6 +27,8 @@ class Server {
 
   void Start();
 
+  void Stop();
+
  private:
   std::unique_ptr<ServerImpl> pimpl;
 };

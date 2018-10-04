@@ -22,6 +22,8 @@ class Server : public ComponentBase {
 
   void OnAllComponentsLoaded() override;
 
+  void OnAllComponentsAreStopping() override;
+
   const server::Server& GetServer() const;
 
   bool AddHandler(const server::handlers::HandlerBase& handler,

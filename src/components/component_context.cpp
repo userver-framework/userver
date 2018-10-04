@@ -8,6 +8,7 @@ namespace components {
 
 namespace {
 const std::string kStopComponentRootName = "all_components_stop";
+const std::string kStoppingComponent = "component_stopping";
 const std::string kStopComponentName = "component_stop";
 const std::string kComponentName = "component_name";
 }  // namespace
@@ -25,7 +26,10 @@ void ComponentContext::AddComponent(
 void ComponentContext::ClearComponents() {
   auto root_span = tracing::Tracer::GetTracer()->CreateSpanWithoutParent(
       kStopComponentRootName);
+  TRACE_TRACE(root_span) << "Sending stopping notification to all components";
+  OnAllComponentsAreStopping(root_span);
   TRACE_TRACE(root_span) << "Stopping components";
+
   for (auto it = component_names_.rbegin(); it != component_names_.rend();
        ++it) {
     auto span = root_span.CreateChild(kStopComponentName);
@@ -43,6 +47,20 @@ void ComponentContext::ClearComponents() {
     TRACE_INFO(span) << "Stopped component";
   }
   TRACE_TRACE(root_span) << "Stopped all components";
+}
+
+void ComponentContext::OnAllComponentsAreStopping(tracing::Span& parent_span) {
+  for (auto& component_item : components_) {
+    try {
+      auto span = parent_span.CreateChild(kStoppingComponent);
+      component_item.second->OnAllComponentsAreStopping();
+    } catch (const std::exception& e) {
+      const auto& name = component_item.first;
+      TRACE_ERROR(parent_span)
+          << "Exception while sendind stop notification to component " + name +
+                 ": " + e.what();
+    }
+  }
 }
 
 void ComponentContext::OnAllComponentsLoaded() {

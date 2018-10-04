@@ -58,6 +58,8 @@ class ServerImpl {
     void Stop();
   };
 
+  void Stop();
+
   static void InitPortInfo(
       PortInfo& info, const ServerConfig& config,
       const net::ListenerConfig& listener_config,
@@ -66,7 +68,7 @@ class ServerImpl {
   PortInfo main_port_info_, monitor_port_info_;
 
   mutable std::shared_timed_mutex stat_mutex_;
-  bool is_destroying_;
+  bool is_stopping_;
 };
 
 void ServerImpl::PortInfo::Stop() {
@@ -88,7 +90,7 @@ void ServerImpl::PortInfo::Start() {
 
 ServerImpl::ServerImpl(ServerConfig config,
                        const components::ComponentContext& component_context)
-    : config_(std::move(config)), is_destroying_(false) {
+    : config_(std::move(config)), is_stopping_(false) {
   LOG_INFO() << "Creating server";
 
   InitPortInfo(main_port_info_, config, config_.listener, component_context,
@@ -97,6 +99,21 @@ ServerImpl::ServerImpl(ServerConfig config,
                component_context, true);
 
   LOG_INFO() << "Server is created";
+}
+
+ServerImpl::~ServerImpl() { Stop(); }
+
+void ServerImpl::Stop() {
+  {
+    std::unique_lock<std::shared_timed_mutex> lock(stat_mutex_);
+    if (is_stopping_) return;
+    is_stopping_ = true;
+  }
+
+  LOG_INFO() << "Stopping server";
+  main_port_info_.Stop();
+  monitor_port_info_.Stop();
+  LOG_INFO() << "Stopped server";
 }
 
 void ServerImpl::InitPortInfo(
@@ -127,18 +144,6 @@ void ServerImpl::InitPortInfo(
     info.listeners_.emplace_back(info.endpoint_info_, *task_processor,
                                  *event_thread_control);
   }
-}
-
-ServerImpl::~ServerImpl() {
-  {
-    std::unique_lock<std::shared_timed_mutex> lock(stat_mutex_);
-    is_destroying_ = true;
-  }
-  LOG_INFO() << "Stopping server";
-
-  main_port_info_.Stop();
-  monitor_port_info_.Stop();
-  LOG_INFO() << "Stopped server";
 }
 
 Server::Server(ServerConfig config,
@@ -200,11 +205,13 @@ void Server::Start() {
   LOG_INFO() << "Server is started";
 }
 
+void Server::Stop() { pimpl->Stop(); }
+
 net::Stats ServerImpl::GetServerStats() const {
   net::Stats summary;
 
   std::shared_lock<std::shared_timed_mutex> lock(stat_mutex_);
-  if (is_destroying_) return summary;
+  if (is_stopping_) return summary;
   for (const auto& listener : main_port_info_.listeners_) {
     summary += listener.GetStats();
   }

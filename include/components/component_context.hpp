@@ -13,6 +13,10 @@ namespace engine {
 class TaskProcessor;
 }  // namespace engine
 
+namespace tracing {
+class Span;
+}
+
 namespace components {
 
 class Manager;
@@ -32,6 +36,8 @@ class ComponentContext {
   void ClearComponents();
 
   void OnAllComponentsLoaded();
+
+  void OnAllComponentsAreStopping(tracing::Span&);
 
   template <typename T>
   T* FindComponent() const {

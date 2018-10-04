@@ -27,6 +27,15 @@ Server::~Server() { statistics_holder_.Unregister(); }
 
 void Server::OnAllComponentsLoaded() { server_->Start(); }
 
+void Server::OnAllComponentsAreStopping() {
+  /* components::Server has to stop all Listeners before unloading components
+   * as handlers have no ability to call smth like RemoveHandler() from
+   * server::Server. Without such server stop before unloading a new request may
+   * use a handler while the handler is destroying.
+   */
+  server_->Stop();
+}
+
 const server::Server& Server::GetServer() const { return *server_; }
 
 bool Server::AddHandler(const server::handlers::HandlerBase& handler,

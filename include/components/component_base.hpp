@@ -7,6 +7,8 @@ class ComponentBase {
   virtual ~ComponentBase() {}
 
   virtual void OnAllComponentsLoaded() {}
+
+  virtual void OnAllComponentsAreStopping() {}
 };
 
 }  // namespace components
