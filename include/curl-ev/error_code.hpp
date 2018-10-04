@@ -1,4 +1,4 @@
-/**
+/** @file curl-ev/error_code.hpp
         curl-ev: wrapper for integrating libcurl with libev applications
         Copyright (c) 2013 Oliver Kuckertz <oliver.kuckertz@mologie.de>
         See COPYING for license information.

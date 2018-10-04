@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/mongo/mongo.hpp
+/// @brief Common MongoDB types and helpers
+
 #include <chrono>
 #include <cstdint>
 #include <stdexcept>
@@ -21,43 +24,50 @@
 namespace storages {
 namespace mongo {
 
+// Required for namespace-scoped entities documentation
+/// @namespace storages::mongo
+/// @brief MongoDB client namespace
+
 using DocumentValue = bsoncxx::document::value;
 using DocumentElement = bsoncxx::document::element;
 using ArrayValue = bsoncxx::array::value;
 using ArrayElement = bsoncxx::array::element;
 
-static const DocumentValue kEmptyObject(bsoncxx::document::view{});
-static const ArrayValue kEmptyArray(bsoncxx::array::view{});
+/// Empty object instance
+static const DocumentValue kEmptyObject{bsoncxx::document::view{}};
+/// Empty array instance
+static const ArrayValue kEmptyArray{bsoncxx::array::view{}};
 
-enum class SortOrder { kDescending = -1, kAscending = 1 };
-
+/// Base class for mongo-related errors
 class MongoError : public std::runtime_error {
   using std::runtime_error::runtime_error;
 };
 
+/// Represents type conversion failures
 class BadType : public MongoError {
  public:
   BadType(const DocumentElement& item, const char* context);
   BadType(const ArrayElement& item, const char* context);
 };
 
-class QueryError : public MongoError {
-  using MongoError::MongoError;
-};
-
+/// Recognized BSON type classes
 enum class ElementKind {
   kNone = 0,
-  kMissing = 1 << 0,
-  kNull = 1 << 1,
-  kBool = 1 << 2,
-  kNumber = 1 << 3,
-  kString = 1 << 4,
-  kTimestamp = 1 << 5,
-  kArray = 1 << 6,
-  kDocument = 1 << 7,
-  kOid = 1 << 8,
+  kMissing = 1 << 0,    ///< Nonexisting element
+  kNull = 1 << 1,       ///< Null
+  kBool = 1 << 2,       ///< Boolean
+  kNumber = 1 << 3,     ///< Double, 32- and 64-bit integers
+  kString = 1 << 4,     ///< String, binary data
+  kTimestamp = 1 << 5,  ///< Date
+  kArray = 1 << 6,      ///< Array
+  kDocument = 1 << 7,   ///< Object
+  kOid = 1 << 8,        ///< ObjectId
 };
 
+/// @name DocumentElement conversion
+/// @{
+
+/// Checks whether an element falls into one of the kinds
 bool IsOneOf(const DocumentElement&, utils::Flags<ElementKind>);
 
 double ToDouble(const DocumentElement&);
@@ -70,6 +80,12 @@ bsoncxx::array::view ToArray(const DocumentElement&);
 bsoncxx::document::view ToDocument(const DocumentElement&);
 std::vector<std::string> ToStringArray(const DocumentElement&);
 
+/// @}
+
+/// @name ArrayElement conversion
+/// @{
+
+/// Checks whether an element falls into one of the kinds
 bool IsOneOf(const ArrayElement&, utils::Flags<ElementKind>);
 
 double ToDouble(const ArrayElement&);
@@ -81,6 +97,53 @@ bool ToBool(const ArrayElement&);
 bsoncxx::array::view ToArray(const ArrayElement&);
 bsoncxx::document::view ToDocument(const ArrayElement&);
 std::vector<std::string> ToStringArray(const ArrayElement&);
+
+/// @}
+
+/// @name DocumentElement conversion
+/// @{
+
+/// Checks whether an element falls into one of the kinds
+bool IsOneOf(const DocumentElement&, utils::Flags<ElementKind>);
+
+double ToDouble(const DocumentElement&);
+int64_t ToInt64(const DocumentElement&);
+std::chrono::system_clock::time_point ToTimePoint(const DocumentElement&);
+bsoncxx::oid ToOid(const DocumentElement&);
+std::string ToString(const DocumentElement&);
+bool ToBool(const DocumentElement&);
+bsoncxx::array::view ToArray(const DocumentElement&);
+bsoncxx::document::view ToDocument(const DocumentElement&);
+std::vector<std::string> ToStringArray(const DocumentElement&);
+
+template <typename T>
+boost::optional<T> ToOptional(const DocumentElement& item);
+
+/// @}
+
+/// @name ArrayElement conversion
+/// @{
+
+/// Checks whether an element falls into one of the kinds
+bool IsOneOf(const ArrayElement&, utils::Flags<ElementKind>);
+
+double ToDouble(const ArrayElement&);
+int64_t ToInt64(const ArrayElement&);
+std::chrono::system_clock::time_point ToTimePoint(const ArrayElement&);
+bsoncxx::oid ToOid(const ArrayElement&);
+std::string ToString(const ArrayElement&);
+bool ToBool(const ArrayElement&);
+bsoncxx::array::view ToArray(const ArrayElement&);
+bsoncxx::document::view ToDocument(const ArrayElement&);
+std::vector<std::string> ToStringArray(const ArrayElement&);
+
+template <typename T>
+boost::optional<T> ToOptional(const ArrayElement& item);
+
+/// @}
+
+/// Builds an "$or" composition of documents
+DocumentValue Or(const std::vector<bsoncxx::document::view_or_value>& docs);
 
 namespace impl {
 
@@ -116,8 +179,6 @@ boost::optional<T> ToOptional(const ArrayElement& item) {
   }
   return impl::ConversionTraits<T>::Convert(item);
 }
-
-DocumentValue Or(const std::vector<bsoncxx::document::view_or_value>& docs);
 
 }  // namespace mongo
 }  // namespace storages

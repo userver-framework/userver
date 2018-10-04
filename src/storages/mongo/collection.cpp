@@ -218,7 +218,7 @@ engine::TaskWithResult<bool> Collection::ReplaceOne(
     auto conn = impl->GetPool().Acquire();
     auto result = impl->GetCollection(conn).replace_one(
         query.view(), replacement.view(), options);
-    return result && (result->modified_count() || result->matched_count());
+    return result && result->matched_count();
   });
 }
 
@@ -232,7 +232,7 @@ engine::TaskWithResult<bool> Collection::UpdateOne(
     auto conn = impl->GetPool().Acquire();
     auto result = impl->GetCollection(conn).update_one(query.view(),
                                                        update.view(), options);
-    return result && (result->modified_count() || result->matched_count());
+    return result && result->matched_count();
   });
 }
 
@@ -249,9 +249,7 @@ engine::TaskWithResult<size_t> Collection::UpdateMany(
             auto conn = impl->GetPool().Acquire();
             auto result = impl->GetCollection(conn).update_many(
                 query.view(), update.view(), options);
-            return result ? std::max(result->modified_count(),
-                                     result->matched_count())
-                          : 0;
+            return result ? result->matched_count() : 0;
           });
 }
 
