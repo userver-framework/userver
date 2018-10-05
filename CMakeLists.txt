@@ -25,7 +25,6 @@ target_include_directories(
 add_dependencies(yandex-taxi-backend-common-cpp spdlog_lib)
 
 add_subdirectory(src)
-add_subdirectory(tests)
 add_subdirectory(tools/engine)
 add_subdirectory(tools/httpclient)
 add_subdirectory(tools/redisclient)

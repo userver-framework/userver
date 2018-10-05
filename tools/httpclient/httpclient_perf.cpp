@@ -1,4 +1,5 @@
 #include <openssl/err.h>
+#include <signal.h>
 
 #include <fstream>
 #include <iostream>
@@ -9,8 +10,7 @@
 
 #include <clients/http/client.hpp>
 #include <engine/async.hpp>
-#include <engine/task/task_context.hpp>
-#include <engine/task/task_processor.hpp>
+#include <engine/standalone.hpp>
 #include <logging/log.hpp>
 
 namespace http = clients::http;
@@ -188,8 +188,6 @@ void Worker(WorkerContext& context) {
 void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
-  engine::ev::Thread io_thread("io_thread");
-  engine::ev::ThreadControl thread_control(io_thread);
   auto& tp = engine::current_task::GetTaskProcessor();
   auto http_client = http::Client::Create(config.io_threads);
   LOG_INFO() << "Client created";
@@ -230,10 +228,8 @@ int main(int argc, char* argv[]) {
   const Config& config = ParseConfig(argc, argv);
 
   if (!config.logfile.empty())
-    logging::SetDefaultLogger(
-        logging::MakeFileLogger("default", config.logfile));
-  logging::DefaultLogger()->set_level(static_cast<spdlog::level::level_enum>(
-      logging::LevelFromString(config.log_level)));
+    logging::SetDefaultLogger(logging::MakeFileLogger(
+        "default", config.logfile, logging::LevelFromString(config.log_level)));
   LOG_WARNING() << "Starting using requests=" << config.count
                 << " coroutines=" << config.coroutines
                 << " timeout=" << config.timeout_ms << "ms";
@@ -242,14 +238,10 @@ int main(int argc, char* argv[]) {
 
   const std::vector<std::string>& urls = ReadUrls(config);
 
-  engine::coro::PoolConfig pool_config;
-  engine::ev::ThreadPool thread_pool(1, "thread_pool");
-  engine::TaskProcessor::CoroPool coro_pool(
-      pool_config, &engine::impl::TaskContext::CoroFunc);
-  engine::TaskProcessorConfig tp_config;
-  tp_config.worker_threads = config.worker_threads;
-  tp_config.thread_name = "task_processor";
-  engine::TaskProcessor task_processor(tp_config, coro_pool, thread_pool);
+  auto task_processor_holder =
+      engine::impl::TaskProcessorHolder::MakeTaskProcessor(
+          config.worker_threads, "task_processor",
+          engine::impl::MakeTaskProcessorPools());
 
   signal(SIGPIPE, SIG_IGN);
 
@@ -265,7 +257,7 @@ int main(int argc, char* argv[]) {
     cv.notify_all();
   };
 
-  engine::Async(task_processor, std::move(cb)).Detach();
+  engine::Async(*task_processor_holder, std::move(cb)).Detach();
   auto timeout = std::chrono::seconds(1000);
   {
     std::unique_lock<std::mutex> lock(mutex);

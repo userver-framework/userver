@@ -1,24 +1,21 @@
 #include <gtest/gtest.h>
 
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+
 #include <boost/program_options.hpp>
 
 #include <engine/async.hpp>
-
-#include <engine/task/task_context.hpp>
-#include <logging/spdlog.hpp>
+#include <engine/standalone.hpp>
+#include <logging/log.hpp>
 
 void TestInCoro(std::function<void()> user_cb, size_t worker_threads) {
-  engine::ev::Thread thread("test_thread");
-  engine::ev::ThreadControl thread_control(thread);
-
-  engine::coro::PoolConfig pool_config;
-  engine::ev::ThreadPool thread_pool(1, "pool");
-  engine::TaskProcessor::CoroPool coro_pool(
-      pool_config, &engine::impl::TaskContext::CoroFunc);
-  engine::TaskProcessorConfig tp_config;
-  tp_config.worker_threads = worker_threads;
-  tp_config.thread_name = "task_processor";
-  engine::TaskProcessor task_processor(tp_config, coro_pool, thread_pool);
+  auto task_processor_holder =
+      engine::impl::TaskProcessorHolder::MakeTaskProcessor(
+          worker_threads, "task_processor",
+          engine::impl::MakeTaskProcessorPools());
 
   std::mutex mutex;
   std::condition_variable cv;
@@ -31,7 +28,7 @@ void TestInCoro(std::function<void()> user_cb, size_t worker_threads) {
     done = true;
     cv.notify_all();
   };
-  engine::Async(task_processor, std::move(cb)).Detach();
+  engine::Async(*task_processor_holder, std::move(cb)).Detach();
 
   auto timeout = std::chrono::seconds(10);
   {
@@ -86,7 +83,6 @@ int main(int argc, char** argv) {
 
   const Config& config = ParseTaxiConfig(argc, argv);
 
-  logging::DefaultLogger()->set_level(
-      static_cast<spdlog::level::level_enum>(config.log_level));
+  logging::SetDefaultLoggerLevel(config.log_level);
   return RUN_ALL_TESTS();
 }

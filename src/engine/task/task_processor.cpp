@@ -17,24 +17,21 @@ const size_t kInitTaskQueueCapacity = 64;
 
 }  // namespace
 
-TaskProcessor::TaskProcessor(const TaskProcessorConfig& config,
-                             CoroPool& coro_pool,
-                             ev::ThreadPool& event_thread_pool)
-    : config_(config),
-      coro_pool_(coro_pool),
-      event_thread_pool_(event_thread_pool),
+TaskProcessor::TaskProcessor(TaskProcessorConfig config,
+                             std::shared_ptr<impl::TaskProcessorPools> pools)
+    : config_(std::move(config)),
+      pools_(std::move(pools)),
       is_running_(true),
       is_shutting_down_(false),
       task_queue_(kInitTaskQueueCapacity),
-      task_queue_size_(0),
-      async_task_counter_(0) {
+      task_queue_size_(0) {
   LOG_TRACE() << "creating task_processor " << Name() << " "
-              << "worker_threads=" << config.worker_threads
-              << " thread_name=" << config.thread_name;
-  workers_.reserve(config.worker_threads);
-  for (auto i = config.worker_threads; i > 0; --i) {
+              << "worker_threads=" << config_.worker_threads
+              << " thread_name=" << config_.thread_name;
+  workers_.reserve(config_.worker_threads);
+  for (auto i = config_.worker_threads; i > 0; --i) {
     workers_.emplace_back([this] { ProcessTasks(); });
-    utils::SetThreadName(workers_.back(), config.thread_name);
+    utils::SetThreadName(workers_.back(), config_.thread_name);
   }
 }
 
@@ -45,8 +42,7 @@ TaskProcessor::~TaskProcessor() {
   }
 
   // Some tasks may be bound but not scheduled yet
-  while (async_task_counter_ > 0)
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  task_counter_.WaitForExhaustion(std::chrono::milliseconds(10));
 
   {
     std::shared_lock<std::shared_timed_mutex> lock(task_queue_mutex_);

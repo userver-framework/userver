@@ -1,15 +1,19 @@
+#include "signal.h"
+
 #include <atomic>
+#include <condition_variable>
 #include <fstream>
 #include <iostream>
 #include <list>
+#include <mutex>
+#include <thread>
 
 #include <boost/program_options.hpp>
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
-
-#include <engine/task/task_context.hpp>
-#include <logging/spdlog.hpp>
+#include <engine/standalone.hpp>
+#include <logging/log.hpp>
 
 namespace {
 
@@ -91,8 +95,6 @@ void Worker(WorkerContext& context) {
 void DoWork(const Config& config) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
-  engine::ev::Thread io_thread("io_thread");
-  engine::ev::ThreadControl thread_control(io_thread);
   auto& tp = engine::current_task::GetTaskProcessor();
 
   WorkerContext worker_context{{0}, 2000, 0, config};
@@ -123,21 +125,15 @@ int main(int argc, char* argv[]) {
   const Config& config = ParseConfig(argc, argv);
 
   if (!config.logfile.empty())
-    logging::SetDefaultLogger(
-        logging::MakeFileLogger("default", config.logfile));
-  logging::DefaultLogger()->set_level(static_cast<spdlog::level::level_enum>(
-      logging::LevelFromString(config.log_level)));
+    logging::SetDefaultLogger(logging::MakeFileLogger(
+        "default", config.logfile, logging::LevelFromString(config.log_level)));
   LOG_WARNING() << "Starting using requests=" << config.count
                 << " coroutines=" << config.coroutines;
 
-  engine::coro::PoolConfig pool_config;
-  engine::ev::ThreadPool thread_pool(1, "thread_pool");
-  engine::TaskProcessor::CoroPool coro_pool(
-      pool_config, &engine::impl::TaskContext::CoroFunc);
-  engine::TaskProcessorConfig tp_config;
-  tp_config.worker_threads = config.worker_threads;
-  tp_config.thread_name = "task_processor";
-  engine::TaskProcessor task_processor(tp_config, coro_pool, thread_pool);
+  auto task_processor_holder =
+      engine::impl::TaskProcessorHolder::MakeTaskProcessor(
+          config.worker_threads, "task_processor",
+          engine::impl::MakeTaskProcessorPools());
 
   signal(SIGPIPE, SIG_IGN);
 
@@ -152,7 +148,7 @@ int main(int argc, char* argv[]) {
     done = true;
     cv.notify_all();
   };
-  engine::Async(task_processor, std::move(cb)).Detach();
+  engine::Async(*task_processor_holder, std::move(cb)).Detach();
   auto timeout = std::chrono::seconds(1000);
   {
     std::unique_lock<std::mutex> lock(mutex);

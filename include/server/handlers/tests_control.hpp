@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <components/cache_update_trait.hpp>
-#include "http_handler_json_base.hpp"
+#include <server/handlers/http_handler_json_base.hpp>
 
 namespace components {
 class CacheInvalidator;

@@ -1,4 +1,4 @@
-#include "tests_control.hpp"
+#include <server/handlers/tests_control.hpp>
 
 #include <components/cache_invalidator.hpp>
 #include <logging/log.hpp>

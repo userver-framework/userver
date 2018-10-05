@@ -2,10 +2,10 @@
 
 #include <unistd.h>
 
+#include <cassert>
 #include <cstring>
 
 #include <components/manager.hpp>
-#include <components/manager_config.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
 
@@ -13,6 +13,7 @@
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
+#include "manager_config.hpp"
 
 namespace components {
 
@@ -46,7 +47,8 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
   LogScope log_scope{init_log_path};
 
   LOG_INFO() << "Parsing configs";
-  auto config = ManagerConfig::ParseFromFile(config_path);
+  auto config = std::make_unique<ManagerConfig>(
+      ManagerConfig::ParseFromFile(config_path));
   LOG_INFO() << "Parsed configs";
 
   LOG_DEBUG() << "Masking signals";
@@ -71,17 +73,18 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
       }
 
       LOG_INFO() << "Got reload request";
-      ManagerConfig new_config;
+      std::unique_ptr<ManagerConfig> new_config;
       try {
-        new_config = ManagerConfig::ParseFromFile(config_path);
+        new_config = std::make_unique<ManagerConfig>(
+            ManagerConfig::ParseFromFile(config_path));
       } catch (const std::exception& ex) {
         LOG_ERROR()
             << "Reload failed, cannot update components manager config: "
             << ex.what();
         continue;
       }
-      if (new_config.json == manager_ptr->GetConfig().json &&
-          new_config.config_vars_ptr->Json() ==
+      if (new_config->json == manager_ptr->GetConfig().json &&
+          new_config->config_vars_ptr->Json() ==
               manager_ptr->GetConfig().config_vars_ptr->Json()) {
         LOG_INFO() << "Config unchanged, ignoring request";
         continue;

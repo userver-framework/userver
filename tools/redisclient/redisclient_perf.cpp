@@ -4,11 +4,12 @@
 #include <boost/program_options.hpp>
 
 #include <engine/async.hpp>
-#include <engine/task/task_context.hpp>
-#include <engine/task/task_processor.hpp>
-#include <logging/spdlog.hpp>
+#include <engine/standalone.hpp>
+#include <logging/log.hpp>
 #include <redis/reply.hpp>
 #include <redis/sentinel.hpp>
+
+#include <engine/task/task_processor.hpp>
 
 struct Config {
   std::string log_level = "error";
@@ -87,8 +88,7 @@ std::vector<secdist::RedisSettings::HostPort> ParseHostPortPairs(
 }
 
 void SetupLogger(const std::string& log_level) {
-  logging::DefaultLogger()->set_level(static_cast<spdlog::level::level_enum>(
-      logging::LevelFromString(log_level)));
+  logging::SetDefaultLoggerLevel(logging::LevelFromString(log_level));
 }
 
 void Work(std::shared_ptr<redis::Sentinel>& sentinel, size_t i) {
@@ -97,8 +97,7 @@ void Work(std::shared_ptr<redis::Sentinel>& sentinel, size_t i) {
 }
 
 void WaitForStop(engine::TaskProcessor& tp) {
-  while (tp.GetTaskCounter() > 0)
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  tp.GetTaskCounter().WaitForExhaustion(std::chrono::milliseconds(100));
 }
 
 void PrintStats(std::shared_ptr<redis::Sentinel> sentinel) {
@@ -154,14 +153,12 @@ void Fire(engine::TaskProcessor& task_processor,
 }
 
 void Run(const Config& config) {
-  engine::coro::PoolConfig pool_config;
-  engine::ev::ThreadPool thread_pool(config.ev_threads, "thread_pool");
-  engine::TaskProcessor::CoroPool coro_pool(
-      pool_config, &engine::impl::TaskContext::CoroFunc);
-  engine::TaskProcessorConfig tp_config;
-  tp_config.worker_threads = config.worker_threads;
-  tp_config.thread_name = "task_processor";
-  engine::TaskProcessor task_processor(tp_config, coro_pool, thread_pool);
+  engine::impl::TaskProcessorPoolsConfig tp_config;
+  tp_config.ev_threads_num = config.ev_threads;
+  auto task_processor_holder =
+      engine::impl::TaskProcessorHolder::MakeTaskProcessor(
+          config.worker_threads, "task_processor",
+          engine::impl::MakeTaskProcessorPools(tp_config));
 
   auto redis_thread_pools = std::make_shared<redis::ThreadPools>(
       config.redis_threads, config.sentinel_threads);
@@ -174,11 +171,11 @@ void Run(const Config& config) {
       redis_thread_pools, settings, "shard_group_name", "client_name",
       redis::KeyShardFactory("KeyShardCrc32"));
 
-  Fire(task_processor, sentinel, config.requests_per_second,
+  Fire(*task_processor_holder, sentinel, config.requests_per_second,
        std::chrono::milliseconds(config.ms), std::chrono::milliseconds(1000));
 
   LOG_INFO() << "Waiting for responses...";
-  WaitForStop(task_processor);
+  WaitForStop(*task_processor_holder);
   PrintStats(sentinel);
 
   LOG_INFO() << "Finished";

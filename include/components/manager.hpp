@@ -10,28 +10,36 @@
 
 #include <formats/json/value.hpp>
 
-#include <engine/coro/pool_stats.hpp>
-#include <engine/ev/thread_pool.hpp>
-#include <engine/task/task_processor.hpp>
 #include <utils/statistics/storage.hpp>
 
 #include "component_base.hpp"
 #include "component_config.hpp"
 #include "component_context.hpp"
-#include "manager_config.hpp"
+
+namespace engine {
+namespace impl {
+class TaskProcessorPools;
+}  // namespace impl
+
+class TaskProcessor;
+
+}  // namespace engine
 
 namespace components {
 
 class ComponentList;
 
+class ManagerConfig;
+
 class Manager {
  public:
-  Manager(ManagerConfig config, const ComponentList& component_list);
+  Manager(std::unique_ptr<ManagerConfig>&& config,
+          const ComponentList& component_list);
   ~Manager();
 
   const ManagerConfig& GetConfig() const;
-  engine::TaskProcessor::CoroPool& GetCoroPool() const;
-  engine::ev::ThreadPool& GetEventThreadPool() const;
+  const std::shared_ptr<engine::impl::TaskProcessorPools>&
+  GetTaskProcessorPools() const;
   formats::json::Value GetMonitorData(
       utils::statistics::Verbosity verbosity) const;
 
@@ -58,10 +66,8 @@ class Manager {
           factory);
   void ClearComponents();
 
-  const ManagerConfig config_;
-
-  std::unique_ptr<engine::TaskProcessor::CoroPool> coro_pool_;
-  std::unique_ptr<engine::ev::ThreadPool> event_thread_pool_;
+  std::unique_ptr<const ManagerConfig> config_;
+  std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools_;
 
   mutable std::shared_timed_mutex context_mutex_;
   std::unique_ptr<components::ComponentContext> component_context_;

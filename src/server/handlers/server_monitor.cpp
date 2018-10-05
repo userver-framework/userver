@@ -3,10 +3,12 @@
 #include <list>
 
 #include <boost/algorithm/string.hpp>
-#include <formats/json/serialize.hpp>
-#include <formats/json/value_builder.hpp>
 
 #include <components/component_base.hpp>
+#include <components/manager_config.hpp>
+#include <engine/task/task_processor_pools.hpp>
+#include <formats/json/serialize.hpp>
+#include <formats/json/value_builder.hpp>
 
 namespace {
 const std::string kEngineMonitorDataName = "engine";
@@ -48,7 +50,8 @@ formats::json::Value ServerMonitor::GetEngineStats(
     engine_data["task-processors"] = std::move(json_task_processors);
   }
 
-  auto coro_stats = components_manager_.GetCoroPool().GetStats();
+  auto coro_stats =
+      components_manager_.GetTaskProcessorPools()->GetCoroPool().GetStats();
   {
     formats::json::ValueBuilder json_coro_pool(formats::json::Type::kObject);
 

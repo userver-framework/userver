@@ -16,9 +16,12 @@
 #include <engine/ev/thread_control.hpp>
 #include <engine/wait_list.hpp>
 #include "cxxabi_eh_globals.hpp"
-#include "task_processor.hpp"
+#include "task_counter.hpp"
 
 namespace engine {
+
+class TaskProcessor;
+
 namespace impl {
 
 class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
@@ -124,7 +127,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
 
   const uint64_t magic_;
   TaskProcessor& task_processor_;
-  const TaskProcessor::CountedRef ref_;
+  const TaskCounter::Token task_counter_token_;
   const bool is_critical_;
   EhGlobals eh_globals_;
   Payload payload_;

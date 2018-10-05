@@ -23,6 +23,9 @@ LoggerPtr DefaultLogger();
 /// Atomically replaces default logger and returns the old one
 LoggerPtr SetDefaultLogger(LoggerPtr);
 
+/// Sets new log level for default logger
+void SetDefaultLoggerLevel(Level);
+
 // Forward declaration for message buffer implementation
 class MessageBuffer;
 class TskvBuffer;

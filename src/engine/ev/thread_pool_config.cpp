@@ -14,6 +14,11 @@ ThreadPoolConfig ThreadPoolConfig::ParseFromJson(
       json, "threads", full_path, config_vars_ptr);
   if (optional_threads) config.threads = *optional_threads;
 
+  auto optional_thread_name = json_config::ParseOptionalString(
+      json, "thread_name", full_path, config_vars_ptr);
+  if (optional_thread_name)
+    config.thread_name = std::move(*optional_thread_name);
+
   return config;
 }
 

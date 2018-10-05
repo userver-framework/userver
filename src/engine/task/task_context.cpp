@@ -7,6 +7,7 @@
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/timer.hpp>
+#include "task_processor.hpp"
 
 namespace engine {
 namespace current_task {
@@ -71,7 +72,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Payload payload)
     : magic_(kMagic),
       task_processor_(task_processor),
-      ref_(task_processor_),
+      task_counter_token_(task_processor_.GetTaskCounter()),
       is_critical_(importance == Task::Importance::kCritical),
       payload_(std::move(payload)),
       state_(Task::State::kNew),

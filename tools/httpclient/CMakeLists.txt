@@ -9,7 +9,7 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 
 add_executable (${PROJECT} ${SOURCES})
 target_link_libraries (${PROJECT}
-    yandex-taxi-userver
+    yandex-taxi-userver+standalone_engine
     ${Boost_PROGRAM_OPTIONS_LIBRARIES}
     ${JEMALLOC_LIBRARIES})
 
@@ -18,4 +18,3 @@ target_link_libraries (${PROJECT}
 target_include_directories (${PROJECT} SYSTEM PRIVATE
     $<TARGET_PROPERTY:yandex-taxi-userver,INCLUDE_DIRECTORIES>
 )
-

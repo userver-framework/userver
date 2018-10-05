@@ -1,4 +1,4 @@
-#include "http_handler_json_base.hpp"
+#include <server/handlers/http_handler_json_base.hpp>
 
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>

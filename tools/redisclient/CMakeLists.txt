@@ -10,13 +10,14 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 add_executable (${PROJECT} ${SOURCES})
 target_link_libraries (${PROJECT}
     -Wl,--start-group
-    yandex-taxi-userver
+    yandex-taxi-userver+standalone_engine
     yandex-taxi-backend-common-cpp
     -Wl,--end-group
     Boost::program_options
-    )
+)
 
-# FIXME: delete after spdlog uses target
-target_include_directories(${PROJECT} SYSTEM PRIVATE
-  ${SPDLOG_INCLUDE_DIRS}
+# Include directories marked SYSTEM so that includes from external projects
+# do not generate warnings treated as errors
+target_include_directories (${PROJECT} SYSTEM PRIVATE
+    $<TARGET_PROPERTY:yandex-taxi-userver,INCLUDE_DIRECTORIES>
 )

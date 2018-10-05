@@ -74,6 +74,10 @@ target_link_libraries(${PROJECT}
 )
 
 set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+set(
+  USERVER_STANDALONE_ENGINE_INCLUDE_DIR
+  ${CMAKE_CURRENT_SOURCE_DIR}/../standalone_engine_include
+)
 
 target_include_directories(${PROJECT} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}
@@ -90,12 +94,18 @@ target_include_directories(${PROJECT} SYSTEM PRIVATE
   ${MONGOC_STATIC_INCLUDE_DIRS}
 )
 
-# FIXME: change to PRIVATE once we have interface
-target_include_directories(${PROJECT} PUBLIC
+target_include_directories(${PROJECT} PRIVATE
+  ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${LIBCURL_YANDEX_INCLUDE_DIR}
   ${LIBEV_INCLUDE_DIR}
+)
+
+add_library(${PROJECT}+standalone_engine INTERFACE)
+target_link_libraries(${PROJECT}+standalone_engine INTERFACE ${PROJECT})
+target_include_directories(${PROJECT}+standalone_engine INTERFACE
+  ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
 )
 
 add_library(utest STATIC ${LIBUTEST_SOURCES})
@@ -104,14 +114,13 @@ set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(utest
   PUBLIC
     -Wl,--start-group
-        ${PROJECT}
+        ${PROJECT}+standalone_engine
         yandex-taxi-backend-common-cpp
     -Wl,--end-group
     libgtest
     libgmock
   PRIVATE
     Boost::program_options
-    spdlog_lib
 )
 
 target_include_directories(utest PUBLIC

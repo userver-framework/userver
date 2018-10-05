@@ -8,12 +8,12 @@
 #include <logging/component.hpp>
 #include <logging/log.hpp>
 
-#include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_pools.hpp>
+#include "manager_config.hpp"
 
 namespace {
 
-const std::string kEventLoopThreadName = "event-loop";
 const std::string kEngineMonitorDataName = "engine";
 
 template <typename Func>
@@ -28,27 +28,24 @@ auto RunInCoro(engine::TaskProcessor& task_processor, const Func& func) {
 
 namespace components {
 
-Manager::Manager(ManagerConfig config, const ComponentList& component_list)
+Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
+                 const ComponentList& component_list)
     : config_(std::move(config)),
       components_cleared_(false),
       default_task_processor_(nullptr) {
   LOG_INFO() << "Starting components manager";
 
-  coro_pool_ = std::make_unique<engine::TaskProcessor::CoroPool>(
-      config_.coro_pool, &engine::impl::TaskContext::CoroFunc);
-
-  event_thread_pool_ = std::make_unique<engine::ev::ThreadPool>(
-      config_.event_thread_pool.threads, kEventLoopThreadName);
+  task_processor_pools_ = std::make_shared<engine::impl::TaskProcessorPools>(
+      config_->coro_pool, config_->event_thread_pool);
 
   components::ComponentContext::TaskProcessorMap task_processors;
-  for (const auto& processor_config : config_.task_processors) {
-    task_processors.emplace(
-        processor_config.name,
-        std::make_unique<engine::TaskProcessor>(processor_config, *coro_pool_,
-                                                *event_thread_pool_));
+  for (const auto& processor_config : config_->task_processors) {
+    task_processors.emplace(processor_config.name,
+                            std::make_unique<engine::TaskProcessor>(
+                                processor_config, task_processor_pools_));
   }
   const auto default_task_processor_it =
-      task_processors.find(config_.default_task_processor);
+      task_processors.find(config_->default_task_processor);
   if (default_task_processor_it == task_processors.end()) {
     throw std::runtime_error(
         "Cannot start components manager: missing default task processor");
@@ -69,23 +66,18 @@ Manager::~Manager() {
   RunInCoro(*default_task_processor_, [this]() { ClearComponents(); });
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
-  LOG_TRACE() << "Stopping event loops thread pool";
-  event_thread_pool_.reset();
-  LOG_TRACE() << "Stopped event loops thread pool";
-  LOG_TRACE() << "Stopping coroutines pool";
-  coro_pool_.reset();
-  LOG_TRACE() << "Stopped coroutines pool";
+  LOG_TRACE() << "Stopping task processor pools";
+  assert(task_processor_pools_.use_count() == 1);
+  task_processor_pools_.reset();
+  LOG_TRACE() << "Stopped task processor_pools";
   LOG_INFO() << "Stopped components manager";
 }
 
-const ManagerConfig& Manager::GetConfig() const { return config_; }
+const ManagerConfig& Manager::GetConfig() const { return *config_; }
 
-engine::TaskProcessor::CoroPool& Manager::GetCoroPool() const {
-  return *coro_pool_;
-}
-
-engine::ev::ThreadPool& Manager::GetEventThreadPool() const {
-  return *event_thread_pool_;
+const std::shared_ptr<engine::impl::TaskProcessorPools>&
+Manager::GetTaskProcessorPools() const {
+  return task_processor_pools_;
 }
 
 void Manager::OnLogRotate() {
@@ -98,7 +90,7 @@ void Manager::OnLogRotate() {
 
 void Manager::AddComponents(const ComponentList& component_list) {
   components::ComponentConfigMap component_config_map;
-  for (const auto& component_config : config_.components) {
+  for (const auto& component_config : config_->components) {
     component_config_map.emplace(component_config.Name(), component_config);
   }
   try {

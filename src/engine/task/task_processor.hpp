@@ -3,6 +3,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
@@ -12,9 +13,9 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/coro/pool.hpp>
-#include <engine/ev/thread_pool.hpp>
+#include "task_counter.hpp"
 #include "task_processor_config.hpp"
+#include "task_processor_pools.hpp"
 
 namespace engine {
 namespace impl {
@@ -31,45 +32,25 @@ struct TaskContextPtrHash {
 
 class TaskProcessor {
  public:
-  using CoroPool = coro::Pool<impl::TaskContext>;
+  using CoroPool = impl::TaskProcessorPools::CoroPool;
 
-  class CountedRef {
-   public:
-    explicit CountedRef(TaskProcessor& task_processor)
-        : task_processor_(task_processor) {
-      ++task_processor_.async_task_counter_;
-    }
-    ~CountedRef() { --task_processor_.async_task_counter_; }
-
-    CountedRef(const CountedRef&) = delete;
-    CountedRef(CountedRef&&) = delete;
-    CountedRef& operator=(const CountedRef&) = delete;
-    CountedRef& operator=(CountedRef&&) = delete;
-
-   private:
-    TaskProcessor& task_processor_;
-  };
-
-  TaskProcessor(const TaskProcessorConfig& config, CoroPool& coro_pool,
-                ev::ThreadPool& event_thread_pool);
+  TaskProcessor(TaskProcessorConfig, std::shared_ptr<impl::TaskProcessorPools>);
   ~TaskProcessor();
 
   void Schedule(impl::TaskContext*);
   void Adopt(boost::intrusive_ptr<impl::TaskContext>&&);
 
-  CoroPool& GetCoroPool() { return coro_pool_; }
-  ev::ThreadPool& EventThreadPool() { return event_thread_pool_; }
+  CoroPool& GetCoroPool() { return pools_->GetCoroPool(); }
+  ev::ThreadPool& EventThreadPool() { return pools_->EventThreadPool(); }
   const std::string& Name() const { return config_.name; }
 
-  size_t GetTaskCounter() const { return async_task_counter_; }
+  impl::TaskCounter& GetTaskCounter() { return task_counter_; }
 
  private:
   void ProcessTasks() noexcept;
 
   const TaskProcessorConfig config_;
-
-  CoroPool& coro_pool_;
-  ev::ThreadPool& event_thread_pool_;
+  std::shared_ptr<impl::TaskProcessorPools> pools_;
 
   std::atomic<bool> is_running_;
   std::atomic<bool> is_shutting_down_;
@@ -87,7 +68,7 @@ class TaskProcessor {
   std::atomic<size_t> task_queue_size_;
 
   std::vector<std::thread> workers_;
-  std::atomic<size_t> async_task_counter_;
+  impl::TaskCounter task_counter_;
 };
 
 }  // namespace engine

@@ -8,11 +8,11 @@
 namespace engine {
 namespace ev {
 
-ThreadPool::ThreadPool(size_t thread_count, const std::string& thread_name) {
-  threads_.reserve(thread_count);
-  for (size_t i = 0; i < thread_count; i++)
+ThreadPool::ThreadPool(ThreadPoolConfig config) {
+  threads_.reserve(config.threads);
+  for (size_t i = 0; i < config.threads; i++)
     threads_.emplace_back(
-        std::make_unique<Thread>(thread_name + '_' + std::to_string(i)));
+        std::make_unique<Thread>(config.thread_name + '_' + std::to_string(i)));
   info_ = std::make_unique<ThreadPoolInfo>(*this);
 }
 

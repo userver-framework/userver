@@ -9,14 +9,22 @@
 
 namespace clients {
 namespace http {
+namespace {
+
+const std::string kIoThreadName = "curl";
+
+}  // namespace
 
 std::shared_ptr<Client> Client::Create(size_t io_threads) {
   return std::make_shared<Client>(io_threads);
 }
 
-Client::Client(size_t io_threads)
-    : thread_pool_(
-          std::make_unique<engine::ev::ThreadPool>(io_threads, "curl")) {
+Client::Client(size_t io_threads) {
+  engine::ev::ThreadPoolConfig ev_config;
+  ev_config.threads = io_threads;
+  ev_config.thread_name = kIoThreadName;
+  thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
+
   for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
     multis_.push_back(std::make_shared<curl::multi>(*thread_control_ptr));
   }

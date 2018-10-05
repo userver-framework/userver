@@ -3,15 +3,13 @@
 #include <string>
 #include <vector>
 
+#include <components/component_config.hpp>
 #include <formats/json/value.hpp>
-
 #include <json_config/variable_map.hpp>
 
 #include <engine/coro/pool_config.hpp>
 #include <engine/ev/thread_pool_config.hpp>
 #include <engine/task/task_processor_config.hpp>
-
-#include "component_config.hpp"
 
 namespace components {
 

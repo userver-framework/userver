@@ -16,12 +16,13 @@ namespace logging {
 
 namespace {
 
-LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink) {
+LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink,
+                           spdlog::level::level_enum level) {
   auto logger = std::make_shared<spdlog::logger>(name, sink);
   logger->set_formatter(std::make_unique<spdlog::pattern_formatter>(
       LoggerConfig::kDefaultPattern));
-  logger->set_level(spdlog::level::level_enum::info);
-  logger->flush_on(spdlog::level::level_enum::info);
+  logger->set_level(level);
+  logger->flush_on(level);
   return logger;
 }
 
@@ -32,15 +33,19 @@ spdlog::sink_ptr MakeStderrSink() {
 
 }  // namespace
 
-LoggerPtr MakeStderrLogger(const std::string& name) {
-  return MakeSimpleLogger(name, MakeStderrSink());
+LoggerPtr MakeStderrLogger(const std::string& name, Level level) {
+  return MakeSimpleLogger(name, MakeStderrSink(),
+                          static_cast<spdlog::level::level_enum>(level));
 }
 
-LoggerPtr MakeFileLogger(const std::string& name, const std::string& path) {
+LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
+                         Level level) {
   return MakeSimpleLogger(
-      name, std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-                path, /*max_size=*/-1,
-                /*max_files=*/0));
+      name,
+      std::make_shared<spdlog::sinks::rotating_file_sink_mt>(path,
+                                                             /*max_size=*/-1,
+                                                             /*max_files=*/0),
+      static_cast<spdlog::level::level_enum>(level));
 }
 
 }  // namespace logging

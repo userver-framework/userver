@@ -45,6 +45,10 @@ LoggerPtr SetDefaultLogger(LoggerPtr logger) {
       DefaultLoggerInternal(), std::move(logger), std::memory_order_acq_rel);
 }
 
+void SetDefaultLoggerLevel(Level level) {
+  DefaultLogger()->set_level(static_cast<spdlog::level::level_enum>(level));
+}
+
 LogHelper::LogHelper(Level level, const char* path, int line, const char* func)
     : buffer_{std::make_unique<MessageBuffer>(level)},
       verbatim_stream_(buffer_.get()),

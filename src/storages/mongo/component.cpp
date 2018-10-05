@@ -54,8 +54,8 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) {
   task_processor_config.thread_name = kThreadName;
   task_processor_config.worker_threads = threads_num;
   task_processor_ = std::make_unique<engine::TaskProcessor>(
-      std::move(task_processor_config), context.GetManager().GetCoroPool(),
-      context.GetManager().GetEventThreadPool());
+      std::move(task_processor_config),
+      context.GetManager().GetTaskProcessorPools());
 
   pool_ = std::make_shared<storages::mongo::Pool>(
       connection_string, *task_processor_, conn_timeout_ms, so_timeout_ms,

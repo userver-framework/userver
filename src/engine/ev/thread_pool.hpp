@@ -6,13 +6,14 @@
 #include <vector>
 
 #include "thread_control.hpp"
+#include "thread_pool_config.hpp"
 
 namespace engine {
 namespace ev {
 
 class ThreadPool {
  public:
-  ThreadPool(size_t thread_count, const std::string& thread_name);
+  ThreadPool(ThreadPoolConfig config);
 
   inline size_t size() const { return threads_.size(); }
 
