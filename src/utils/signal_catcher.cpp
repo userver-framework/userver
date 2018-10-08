@@ -1,4 +1,4 @@
-#include "signal_catcher.hpp"
+#include <utils/signal_catcher.hpp>
 
 #include <cassert>
 
