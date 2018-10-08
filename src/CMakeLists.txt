@@ -1,7 +1,6 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 
-set(PROJECT yandex-taxi-userver)
-project(${PROJECT} VERSION ${PROJECT_VERSION_STRING})
+project(yandex-taxi-userver)
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/build_config.hpp.in
@@ -48,10 +47,10 @@ find_package(ExternalProjectGBench)
 find_package(ExternalProjectOpenTracing)
 find_package(CurlYandex REQUIRED)
 
-add_library(${PROJECT} STATIC ${SOURCES})
-set_target_properties(${PROJECT} PROPERTIES LINKER_LANGUAGE CXX)
+add_library(${PROJECT_NAME} STATIC ${SOURCES})
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(${PROJECT}
+target_link_libraries(${PROJECT_NAME}
   PUBLIC
     ${CMAKE_THREAD_LIBS_INIT}
     ${JEMALLOC_LIBRARIES}
@@ -79,22 +78,22 @@ set(
   ${CMAKE_CURRENT_SOURCE_DIR}/../standalone_engine_include
 )
 
-target_include_directories(${PROJECT} PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}
 )
 
 # include them as system to suppress errors
-target_include_directories(${PROJECT} SYSTEM PUBLIC
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   ${LIBBSONCXX_STATIC_INCLUDE_DIRS}
   ${LIBMONGOCXX_STATIC_INCLUDE_DIRS}
 )
 
-target_include_directories(${PROJECT} SYSTEM PRIVATE
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${BSON_STATIC_INCLUDE_DIRS}
   ${MONGOC_STATIC_INCLUDE_DIRS}
 )
 
-target_include_directories(${PROJECT} PRIVATE
+target_include_directories(${PROJECT_NAME} PRIVATE
   ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -102,9 +101,9 @@ target_include_directories(${PROJECT} PRIVATE
   ${LIBEV_INCLUDE_DIR}
 )
 
-add_library(${PROJECT}+standalone_engine INTERFACE)
-target_link_libraries(${PROJECT}+standalone_engine INTERFACE ${PROJECT})
-target_include_directories(${PROJECT}+standalone_engine INTERFACE
+add_library(${PROJECT_NAME}+standalone_engine INTERFACE)
+target_link_libraries(${PROJECT_NAME}+standalone_engine INTERFACE ${PROJECT_NAME})
+target_include_directories(${PROJECT_NAME}+standalone_engine INTERFACE
   ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
 )
 
@@ -114,7 +113,7 @@ set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(utest
   PUBLIC
     -Wl,--start-group
-        ${PROJECT}+standalone_engine
+        ${PROJECT_NAME}+standalone_engine
         yandex-taxi-backend-common-cpp
     -Wl,--end-group
     libgtest
@@ -127,33 +126,31 @@ target_include_directories(utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing
 )
 
-
-
 message("gtest: ${GTEST_LIBRARIES}")
-add_executable(${PROJECT}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT}_unittest SYSTEM PRIVATE
-    $<TARGET_PROPERTY:${PROJECT},INCLUDE_DIRECTORIES>
+add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
-target_link_libraries(${PROJECT}_unittest
+target_link_libraries(${PROJECT_NAME}_unittest
   atomic
   utest
   Boost::program_options
 )
 
-add_google_tests(${PROJECT}_unittest)
+add_google_tests(${PROJECT_NAME}_unittest)
 
-add_executable(${PROJECT}_benchmark ${BENCH_SOURCES})
-target_include_directories (${PROJECT}_benchmark SYSTEM PRIVATE
-    $<TARGET_PROPERTY:${PROJECT},INCLUDE_DIRECTORIES>
+add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
-target_include_directories(${PROJECT}_benchmark SYSTEM PRIVATE
+target_include_directories(${PROJECT_NAME}_benchmark SYSTEM PRIVATE
   ${GBENCH_INCLUDE_DIRS}
 )
 
-target_link_libraries(${PROJECT}_benchmark
+target_link_libraries(${PROJECT_NAME}_benchmark
   atomic
   -Wl,--start-group
-  ${PROJECT}
+  ${PROJECT_NAME}
   yandex-taxi-backend-common-cpp
   -Wl,--end-group
   ${GBENCH_LIBRARIES}

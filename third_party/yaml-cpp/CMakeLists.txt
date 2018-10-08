@@ -1,41 +1,16 @@
 ###
 ### CMake settings
 ###
-## Due to Mac OSX we need to keep compatibility with CMake 2.6
-# see http://www.cmake.org/Wiki/CMake_Policies
-cmake_minimum_required(VERSION 2.6)
-# see http://www.cmake.org/cmake/help/cmake-2-8-docs.html#policy:CMP0012
-if(POLICY CMP0012)
-	cmake_policy(SET CMP0012 OLD)
-endif()
-# see http://www.cmake.org/cmake/help/cmake-2-8-docs.html#policy:CMP0015
-if(POLICY CMP0015)
-	cmake_policy(SET CMP0015 OLD)
-endif()
-# see https://cmake.org/cmake/help/latest/policy/CMP0042.html
-if(POLICY CMP0042)
-	# Enable MACOSX_RPATH by default.
-	cmake_policy(SET CMP0042 NEW)
-endif()
-if (POLICY CMP0048)
-	cmake_policy(SET CMP0048 OLD)
-endif (POLICY CMP0048)
+cmake_minimum_required(VERSION 3.8)
 
 include(CheckCXXCompilerFlag)
-
 
 ###
 ### Project settings
 ###
-project(YAML_CPP)
-
-set(YAML_CPP_VERSION_MAJOR "0")
-set(YAML_CPP_VERSION_MINOR "6")
-set(YAML_CPP_VERSION_PATCH "2")
-set(YAML_CPP_VERSION "${YAML_CPP_VERSION_MAJOR}.${YAML_CPP_VERSION_MINOR}.${YAML_CPP_VERSION_PATCH}")
+project(YAML_CPP VERSION 0.6.2)
 
 enable_testing()
-
 
 ###
 ### Project options
@@ -118,12 +93,6 @@ if(VERBOSE)
 	message(STATUS "contrib_public_headers: ${contrib_public_headers}")
 	message(STATUS "contrib_private_headers: ${contrib_private_headers}")
 endif()
-
-if (CMAKE_VERSION VERSION_LESS 2.8.12)
-    include_directories(${YAML_CPP_SOURCE_DIR}/src)
-    include_directories(${YAML_CPP_SOURCE_DIR}/include)
-endif()
-
 
 ###
 ### General compilation settings

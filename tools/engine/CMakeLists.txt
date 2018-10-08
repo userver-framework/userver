@@ -1,14 +1,13 @@
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.8)
 
-set (PROJECT engine_perf)
-project (${PROJECT} VERSION ${PROJECT_VERSION_STRING})
+project (engine_perf)
 
 file (GLOB_RECURSE SOURCES *.cpp)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 
-add_executable (${PROJECT} ${SOURCES})
-target_link_libraries (${PROJECT}
+add_executable (${PROJECT_NAME} ${SOURCES})
+target_link_libraries (${PROJECT_NAME}
     yandex-taxi-userver+standalone_engine
     ${Boost_PROGRAM_OPTIONS_LIBRARIES}
     ${JEMALLOC_LIBRARIES})
