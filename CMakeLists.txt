@@ -6,6 +6,7 @@ include(SetupEnvironment)
 include(AddGoogleTests)
 include(CppCheck)
 include(CheckSubmodule)
+include(CompileFbSchema)
 
 set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
@@ -18,6 +19,8 @@ target_include_directories(
   yandex-taxi-backend-common-cpp
   PUBLIC
     include/
+    # TODO: flatbuffers should have public include in their CMakeLists.txt
+    backend-common-cpp/third_party/flatbuffers/include/
   PRIVATE
     src/
     ${SPDLOG_INCLUDE_DIRS}
