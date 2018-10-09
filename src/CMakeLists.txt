@@ -93,12 +93,16 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${MONGOC_STATIC_INCLUDE_DIRS}
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-  ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_BINARY_DIR}
-  ${LIBCURL_YANDEX_INCLUDE_DIR}
-  ${LIBEV_INCLUDE_DIR}
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    # Curl include dirs is a public property because curl-ev/easy.hpp
+    # uses native curl from the following include:
+    ${LIBCURL_YANDEX_INCLUDE_DIR}
+  PRIVATE
+    ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${LIBEV_INCLUDE_DIR}
 )
 
 add_library(${PROJECT_NAME}+standalone_engine INTERFACE)
