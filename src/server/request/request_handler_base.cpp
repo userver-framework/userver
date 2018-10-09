@@ -25,6 +25,8 @@ RequestHandlerBase::RequestHandlerBase(
           "can't find logger_access component with name '" +
           *logger_access_component + '\'');
     }
+  } else {
+    LOG_INFO() << "Access log component is empty";
   }
 
   if (logger_access_tskv_component && !logger_access_tskv_component->empty()) {
@@ -36,6 +38,8 @@ RequestHandlerBase::RequestHandlerBase(
           "can't find logger_access_tskv component with name '" +
           *logger_access_tskv_component + '\'');
     }
+  } else {
+    LOG_INFO() << "Access_tskv log component is empty";
   }
 }
 

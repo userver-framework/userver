@@ -31,6 +31,7 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
   for (auto it = loggers.begin(); it != loggers.end(); ++it) {
     auto logger_name = it.GetName();
     auto logger_full_path = loggers_full_path + '.' + logger_name;
+    bool is_default_logger = logger_name == "default";
 
     auto logger_config = logging::LoggerConfig::ParseFromJson(
         *it, logger_full_path, config.ConfigVarsPtr());
@@ -43,11 +44,18 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
 
     auto file_sink =
         std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
-    spdlog::init_thread_pool(logger_config.message_queue_size,
-                             logger_config.thread_pool_size);
+    std::shared_ptr<spdlog::details::thread_pool> tp;
+    if (is_default_logger) {
+      spdlog::init_thread_pool(logger_config.message_queue_size,
+                               logger_config.thread_pool_size);
+      tp = spdlog::thread_pool();
+    } else {
+      tp = std::make_shared<spdlog::details::thread_pool>(
+          logger_config.message_queue_size, logger_config.thread_pool_size);
+      thread_pools_.push_back(tp);
+    }
     auto logger = std::make_shared<spdlog::async_logger>(
-        logger_name, std::move(file_sink), spdlog::thread_pool(),
-        overflow_policy);
+        logger_name, std::move(file_sink), tp, overflow_policy);
     logger->set_level(
         static_cast<spdlog::level::level_enum>(logger_config.level));
     logger->set_pattern(logger_config.pattern);
@@ -55,7 +63,7 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
     spdlog::flush_every(kDefaultFlushInterval);
 
-    if (logger_name == "default") {
+    if (is_default_logger) {
       logging::SetDefaultLogger(std::move(logger));
     } else {
       auto insertion_result =

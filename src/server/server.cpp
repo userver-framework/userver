@@ -93,9 +93,9 @@ ServerImpl::ServerImpl(ServerConfig config,
     : config_(std::move(config)), is_stopping_(false) {
   LOG_INFO() << "Creating server";
 
-  InitPortInfo(main_port_info_, config, config_.listener, component_context,
+  InitPortInfo(main_port_info_, config_, config_.listener, component_context,
                false);
-  InitPortInfo(monitor_port_info_, config, config_.monitor_listener,
+  InitPortInfo(monitor_port_info_, config_, config_.monitor_listener,
                component_context, true);
 
   LOG_INFO() << "Server is created";

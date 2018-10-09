@@ -13,12 +13,21 @@ namespace spdlog {
 
 class logger;
 
+namespace details {
+
+class thread_pool;
+
+}  // namespace details
+
 }  // namespace spdlog
 
 namespace logging {
 
 using Logger = spdlog::logger;
 using LoggerPtr = std::shared_ptr<Logger>;
+
+using ThreadPool = spdlog::details::thread_pool;
+using ThreadPoolPtr = std::shared_ptr<ThreadPool>;
 
 /// @brief Creates synchronous stderr logger with default tskv pattern
 /// @param name logger name, for internal use, must be unique

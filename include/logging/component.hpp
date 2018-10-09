@@ -72,6 +72,7 @@ class Logging : public ComponentBase {
   void OnLogRotate();
 
  private:
+  std::vector<logging::ThreadPoolPtr> thread_pools_;
   std::unordered_map<std::string, logging::LoggerPtr> loggers_;
 };
 
