@@ -64,18 +64,18 @@ class HttpHandlerBase::Statistics {
 
 class HttpHandlerBase::HandlerStatistics {
  public:
-  Statistics& GetStatisticByMethod(::http_method method);
+  Statistics& GetStatisticByMethod(http::HttpMethod method);
 
   Statistics& GetTotalStatistics();
 
-  void Account(http_method method, unsigned int code,
+  void Account(http::HttpMethod method, unsigned int code,
                std::chrono::milliseconds ms);
 
-  const std::vector<http_method>& GetAllowedMethods() const;
+  const std::vector<http::HttpMethod>& GetAllowedMethods() const;
 
  private:
   Statistics stats_;
-  std::array<Statistics, 5> stats_by_method_;
+  std::array<Statistics, 6> stats_by_method_;
 };
 
 }  // namespace handlers

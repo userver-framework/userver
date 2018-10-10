@@ -6,8 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <http_parser.h>
-
+#include <server/http/http_method.hpp>
 #include <server/http/http_response.hpp>
 #include <server/http/http_types.hpp>
 #include <server/request/request_base.hpp>
@@ -20,8 +19,8 @@ class HttpRequestImpl : public request::RequestBase {
   HttpRequestImpl();
   virtual ~HttpRequestImpl();
 
-  const http_method& GetMethod() const { return method_; }
-  std::string GetMethodStr() const { return http_method_str(method_); }
+  const HttpMethod& GetMethod() const { return method_; }
+  const std::string& GetMethodStr() const { return ToString(method_); }
   int GetHttpMajor() const { return http_major_; }
   int GetHttpMinor() const { return http_minor_; }
   const std::string& GetUrl() const { return url_; }
@@ -75,7 +74,7 @@ class HttpRequestImpl : public request::RequestBase {
   friend class HttpRequestConstructor;
 
  private:
-  http_method method_;
+  HttpMethod method_;
   unsigned short http_major_;
   unsigned short http_minor_;
   std::string url_;

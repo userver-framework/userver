@@ -25,7 +25,7 @@ const std::string& TestsControl::HandlerName() const {
 formats::json::Value TestsControl::HandleRequestJsonThrow(
     const http::HttpRequest& request, const formats::json::Value& request_body,
     request::RequestContext& context) const {
-  if (request.GetMethod() != http_method::HTTP_POST) throw http::BadRequest();
+  if (request.GetMethod() != http::HttpMethod::kPost) throw http::BadRequest();
 
   bool invalidate_caches = false;
   const formats::json::Value& value = request_body["invalidate_caches"];

@@ -38,9 +38,9 @@ void Server::OnAllComponentsAreStopping() {
 
 const server::Server& Server::GetServer() const { return *server_; }
 
-bool Server::AddHandler(const server::handlers::HandlerBase& handler,
-                        const components::ComponentContext& component_context) {
-  return server_->AddHandler(handler, component_context);
+void Server::AddHandler(const server::handlers::HandlerBase& handler,
+                        engine::TaskProcessor& task_processor) {
+  server_->AddHandler(handler, task_processor);
 }
 
 formats::json::Value Server::ExtendStatistics(

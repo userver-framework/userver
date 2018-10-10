@@ -96,7 +96,7 @@ void HttpResponse::SendResponse(engine::Sender& sender,
     finish_cb(0);
     return;
   }
-  bool is_head_request = request_.GetMethod() == HTTP_HEAD;
+  bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
   std::ostringstream os;
   os << kResponseHttpVersion << " " << static_cast<int>(status_) << " "
      << HttpStatusString(status_) << kCrlf;

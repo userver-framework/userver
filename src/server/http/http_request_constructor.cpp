@@ -22,12 +22,12 @@ inline void Strip(const char*& begin, const char*& end) {
 }  // namespace
 
 HttpRequestConstructor::HttpRequestConstructor(
-    Config config, const HttpRequestHandler& request_handler)
+    Config config, const HandlerInfoIndex& handler_info_index)
     : config_(config),
-      request_handler_(request_handler),
+      handler_info_index_(handler_info_index),
       request_(std::make_unique<HttpRequestImpl>()) {}
 
-void HttpRequestConstructor::SetMethod(http_method method) {
+void HttpRequestConstructor::SetMethod(HttpMethod method) {
   request_->method_ = method;
 }
 
@@ -50,7 +50,8 @@ void HttpRequestConstructor::AppendUrl(const char* data, size_t size) {
 void HttpRequestConstructor::ParseUrl() {
   LOG_TRACE() << "parse path from '" << request_->url_ << '\'';
   if (http_parser_parse_url(request_->url_.data(), request_->url_.size(),
-                            request_->method_ == HTTP_CONNECT, &parsed_url_)) {
+                            request_->method_ == HttpMethod::kConnect,
+                            &parsed_url_)) {
     SetStatus(Status::kParseUrlError);
     throw std::runtime_error("error in http_parser_parse_url()");
   }
@@ -65,8 +66,9 @@ void HttpRequestConstructor::ParseUrl() {
     throw std::runtime_error("can't parse path");
   }
 
-  HttpRequestHandler::HandlerInfo handler_info;
-  if (request_handler_.GetHandlerInfo(request_->GetRequestPath(), handler_info))
+  HandlerInfo handler_info;
+  if (handler_info_index_.GetHandlerInfo(request_->GetRequestPath(),
+                                         handler_info))
     request_->SetMatchedPathLength(handler_info.matched_path_length);
 
   if (handler_info.handler) {

@@ -4,9 +4,10 @@
 
 #include <http_parser.h>
 
+#include <server/http/http_method.hpp>
 #include <server/request/request_constructor.hpp>
 
-#include "http_request_handler.hpp"
+#include "handler_info_index.hpp"
 #include "http_request_impl.hpp"
 
 namespace server {
@@ -34,9 +35,9 @@ class HttpRequestConstructor : public request::RequestConstructor {
   };
 
   HttpRequestConstructor(Config config,
-                         const HttpRequestHandler& request_handler);
+                         const HandlerInfoIndex& handler_info_index);
 
-  void SetMethod(http_method method);
+  void SetMethod(HttpMethod method);
   void SetHttpMajor(unsigned short http_major);
   void SetHttpMinor(unsigned short http_minor);
 
@@ -68,7 +69,7 @@ class HttpRequestConstructor : public request::RequestConstructor {
   void CheckStatus() const;
 
   Config config_;
-  const HttpRequestHandler& request_handler_;
+  const HandlerInfoIndex& handler_info_index_;
 
   http_parser_url parsed_url_;
   std::string header_field_;

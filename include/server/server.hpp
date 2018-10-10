@@ -6,6 +6,10 @@
 #include <components/manager.hpp>
 #include <server/handlers/handler_base.hpp>
 
+namespace engine {
+class TaskProcessor;
+}  // namespace engine
+
 namespace server {
 
 class ServerImpl;
@@ -22,8 +26,8 @@ class Server {
   formats::json::Value GetMonitorData(
       utils::statistics::Verbosity verbosity) const;
 
-  bool AddHandler(const handlers::HandlerBase& handler,
-                  const components::ComponentContext& component_context);
+  void AddHandler(const handlers::HandlerBase& handler,
+                  engine::TaskProcessor& task_processor);
 
   void Start();
 

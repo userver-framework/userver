@@ -65,7 +65,8 @@ namespace server {
 namespace http {
 
 HttpRequestImpl::HttpRequestImpl()
-    : http_major_(0),
+    : method_(HttpMethod::kUnknown),
+      http_major_(0),
       http_minor_(0),
       response_(std::make_unique<HttpResponse>(*this)) {}
 

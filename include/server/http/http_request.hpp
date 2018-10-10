@@ -4,8 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <http_parser.h>
-
+#include <server/http/http_method.hpp>
 #include <server/http/http_response.hpp>
 #include <server/http/http_types.hpp>
 
@@ -22,8 +21,8 @@ class HttpRequest {
   request::ResponseBase& GetResponse() const;
   HttpResponse& GetHttpResponse() const;
 
-  const http_method& GetMethod() const;
-  std::string GetMethodStr() const;
+  const HttpMethod& GetMethod() const;
+  const std::string& GetMethodStr() const;
   int GetHttpMajor() const;
   int GetHttpMinor() const;
   const std::string& GetUrl() const;

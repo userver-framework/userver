@@ -171,7 +171,7 @@ formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
   if (IsMethodStatisticIncluded()) {
     formats::json::ValueBuilder by_method;
     for (auto method : statistics_->GetAllowedMethods()) {
-      by_method[http_method_str(method)] =
+      by_method[ToString(method)] =
           StatisticsToJson(statistics_->GetStatisticByMethod(method));
     }
     result["by-method"] = std::move(by_method);

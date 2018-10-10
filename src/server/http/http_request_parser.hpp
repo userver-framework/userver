@@ -19,7 +19,7 @@ class HttpRequestParser : public request::RequestParser {
   using OnNewRequestCb =
       std::function<void(std::unique_ptr<request::RequestBase>&&)>;
 
-  HttpRequestParser(const HttpRequestHandler& request_handler,
+  HttpRequestParser(const HandlerInfoIndex& handler_info_index,
                     const request::RequestConfig& request_config,
                     OnNewRequestCb&& on_new_request_cb);
 
@@ -51,7 +51,7 @@ class HttpRequestParser : public request::RequestParser {
   bool FinalizeRequest();
   bool FinalizeRequestImpl();
 
-  const HttpRequestHandler& request_handler_;
+  const HandlerInfoIndex& handler_info_index_;
   HttpRequestConstructor::Config request_constructor_config_;
 
   bool url_complete_ = false;

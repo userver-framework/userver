@@ -15,9 +15,11 @@ HttpResponse& HttpRequest::GetHttpResponse() const {
   return impl_.GetHttpResponse();
 }
 
-const http_method& HttpRequest::GetMethod() const { return impl_.GetMethod(); }
+const HttpMethod& HttpRequest::GetMethod() const { return impl_.GetMethod(); }
 
-std::string HttpRequest::GetMethodStr() const { return impl_.GetMethodStr(); }
+const std::string& HttpRequest::GetMethodStr() const {
+  return impl_.GetMethodStr();
+}
 
 int HttpRequest::GetHttpMajor() const { return impl_.GetHttpMajor(); }
 

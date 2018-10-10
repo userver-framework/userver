@@ -191,11 +191,11 @@ formats::json::Value Server::GetMonitorData(
   return json_data.ExtractValue();
 }
 
-bool Server::AddHandler(const handlers::HandlerBase& handler,
-                        const components::ComponentContext& component_context) {
-  return (handler.IsMonitor() ? pimpl->monitor_port_info_.request_handler_
-                              : pimpl->main_port_info_.request_handler_)
-      ->AddHandler(handler, component_context);
+void Server::AddHandler(const handlers::HandlerBase& handler,
+                        engine::TaskProcessor& task_processor) {
+  (handler.IsMonitor() ? pimpl->monitor_port_info_.request_handler_
+                       : pimpl->main_port_info_.request_handler_)
+      ->AddHandler(handler, task_processor);
 }
 
 void Server::Start() {

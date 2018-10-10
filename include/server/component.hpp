@@ -7,6 +7,10 @@
 #include <components/component_context.hpp>
 #include <server/server.hpp>
 
+namespace engine {
+class TaskProcessor;
+}  // namespace engine
+
 namespace components {
 
 class StatisticsStorage;
@@ -26,8 +30,8 @@ class Server : public ComponentBase {
 
   const server::Server& GetServer() const;
 
-  bool AddHandler(const server::handlers::HandlerBase& handler,
-                  const components::ComponentContext& component_context);
+  void AddHandler(const server::handlers::HandlerBase& handler,
+                  engine::TaskProcessor& task_processor);
 
  private:
   formats::json::Value ExtendStatistics(

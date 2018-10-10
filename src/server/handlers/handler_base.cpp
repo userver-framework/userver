@@ -21,8 +21,18 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
                                      config.FullPath(), config.ConfigVarsPtr())
           .value_or(true);
   if (IsEnabled()) {
-    if (!server_component->AddHandler(*this, component_context))
-      throw std::runtime_error("can't add handler to server");
+    engine::TaskProcessor* task_processor =
+        component_context.GetTaskProcessor(config_.task_processor);
+    if (task_processor == nullptr) {
+      throw std::runtime_error("can't find task_processor with name '" +
+                               config_.task_processor + '\'');
+    }
+    try {
+      server_component->AddHandler(*this, *task_processor);
+    } catch (const std::exception& ex) {
+      throw std::runtime_error(std::string("can't add handler to server: ") +
+                               ex.what());
+    }
   }
 }
 

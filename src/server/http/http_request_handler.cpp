@@ -52,61 +52,37 @@ void HttpRequestHandler::ProcessRequest(request::RequestTask& task) const {
 
 void HttpRequestHandler::DisableAddHandler() { add_handler_disabled_ = true; }
 
-bool HttpRequestHandler::AddHandler(
-    const handlers::HandlerBase& handler,
-    const components::ComponentContext& component_context) {
+void HttpRequestHandler::AddHandler(const handlers::HandlerBase& handler,
+                                    engine::TaskProcessor& task_processor) {
   if (add_handler_disabled_) {
-    LOG_ERROR() << "handler adding disabled";
-    return false;
+    throw std::runtime_error("handler adding disabled");
+  }
+  if (is_monitor_ != handler.IsMonitor()) {
+    throw std::runtime_error(
+        std::string("adding ") + (handler.IsMonitor() ? "" : "non-") +
+        "monitor handler to " + (is_monitor_ ? "" : "non-") +
+        "monitor HttpRequestHandler");
   }
   std::lock_guard<engine::Mutex> lock(handler_infos_mutex_);
-  if (is_monitor_ != handler.IsMonitor()) {
-    LOG_ERROR() << "adding " << (handler.IsMonitor() ? "" : "non-")
-                << "monitor handler to " << (is_monitor_ ? "" : "non-")
-                << "monitor HttpRequestHandler";
-    return false;
-  }
-  engine::TaskProcessor* task_processor =
-      component_context.GetTaskProcessor(handler.GetConfig().task_processor);
-  if (task_processor == nullptr) {
-    LOG_ERROR() << "can't find task_processor with name '"
-                << handler.GetConfig().task_processor << '\'';
-    return false;
-  }
-  return handler_infos_
-      .emplace(std::piecewise_construct, std::tie(handler.GetConfig().path),
-               std::tie(*task_processor, handler))
-      .second;
+  handler_info_index_.AddHandler(handler, task_processor);
 }
 
-bool HttpRequestHandler::GetHandlerInfo(
-    const std::string& path,
-    HttpRequestHandler::HandlerInfo& handler_info) const {
+bool HttpRequestHandler::GetHandlerInfo(const std::string& path,
+                                        HandlerInfo& handler_info) const {
   if (!add_handler_disabled_) {
     LOG_ERROR()
         << "handler adding must be disabled before GetHandlerInfo() call";
     return false;
   }
-  auto it = handler_infos_.find(path);
-  if (it == handler_infos_.end()) {
-    std::string path_prefix = path;
-    for (size_t pos = path_prefix.rfind('/'); pos != std::string::npos;
-         pos = path_prefix.rfind('/')) {
-      path_prefix.resize(pos + 1);
-      path_prefix += '*';
-      it = handler_infos_.find(path_prefix);
-      if (it != handler_infos_.end()) {
-        handler_info = it->second;
-        handler_info.matched_path_length = pos + 1;
-        return true;
-      }
-      path_prefix.resize(pos);  // remove trailing "/*"
-    }
-    return false;
+  return handler_info_index_.GetHandlerInfo(path, handler_info);
+}
+
+const HandlerInfoIndex& HttpRequestHandler::GetHandlerInfoIndex() const {
+  if (!add_handler_disabled_) {
+    throw std::runtime_error(
+        "handler adding must be disabled before GetHandlerInfoIndex() call");
   }
-  handler_info = it->second;
-  handler_info.matched_path_length = path.size();
-  return true;
+  return handler_info_index_;
 }
 
 }  // namespace http

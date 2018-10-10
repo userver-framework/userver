@@ -41,7 +41,7 @@ Connection::Connection(engine::ev::ThreadControl& thread_control,
       is_request_tasks_full_(false),
       before_close_cb_(std::move(before_close_cb)),
       request_parser_(std::make_unique<http::HttpRequestParser>(
-          request_handler, *config_.request,
+          request_handler.GetHandlerInfoIndex(), *config_.request,
           [this](std::unique_ptr<request::RequestBase>&& request_ptr) {
             NewRequest(std::move(request_ptr));
           })),

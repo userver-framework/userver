@@ -3,10 +3,36 @@
 #include <cassert>
 
 #include <logging/log.hpp>
+#include <server/http/http_method.hpp>
 #include <server/request/request_base.hpp>
 
 namespace server {
 namespace http {
+
+namespace {
+
+HttpMethod ConvertHttpMethod(http_method method) {
+  switch (method) {
+    case HTTP_DELETE:
+      return HttpMethod::kDelete;
+    case HTTP_GET:
+      return HttpMethod::kGet;
+    case HTTP_HEAD:
+      return HttpMethod::kHead;
+    case HTTP_POST:
+      return HttpMethod::kPost;
+    case HTTP_PUT:
+      return HttpMethod::kPut;
+    case HTTP_CONNECT:
+      return HttpMethod::kConnect;
+    case HTTP_PATCH:
+      return HttpMethod::kPatch;
+    default:
+      return HttpMethod::kUnknown;
+  }
+}
+
+}  // namespace
 
 const http_parser_settings HttpRequestParser::parser_settings = {
     /*.on_message_begin = */ HttpRequestParser::OnMessageBegin,
@@ -19,10 +45,10 @@ const http_parser_settings HttpRequestParser::parser_settings = {
     /*.on_message_complete = */ HttpRequestParser::OnMessageComplete};
 
 HttpRequestParser::HttpRequestParser(
-    const HttpRequestHandler& request_handler,
+    const HandlerInfoIndex& handler_info_index,
     const request::RequestConfig& request_config,
     OnNewRequestCb&& on_new_request_cb)
-    : request_handler_(request_handler),
+    : handler_info_index_(handler_info_index),
       on_new_request_cb_(std::move(on_new_request_cb)) {
   http_parser_init(&parser_, HTTP_REQUEST);
   parser_.data = this;
@@ -118,17 +144,18 @@ int HttpRequestParser::OnBody(http_parser* p, const char* data, size_t size) {
   return http_request_parser->OnBodyImpl(p, data, size);
 }
 
-int HttpRequestParser::OnMessageBeginImpl(http_parser* p) {
-  LOG_TRACE() << "message begin (method="
-              << http_method_str(static_cast<http_method>(p->method)) << ')';
+int HttpRequestParser::OnMessageBeginImpl(http_parser*) {
+  LOG_TRACE() << "message begin";
   CreateRequestConstructor();
-  request_constructor_->SetMethod(static_cast<http_method>(p->method));
   return 0;
 }
 
-int HttpRequestParser::OnUrlImpl(http_parser*, const char* data, size_t size) {
+int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
+                                 size_t size) {
   assert(request_constructor_);
   LOG_TRACE() << "url: '" << std::string(data, size) << '\'';
+  request_constructor_->SetMethod(
+      ConvertHttpMethod(static_cast<http_method>(p->method)));
   try {
     request_constructor_->AppendUrl(data, size);
   } catch (const std::exception& ex) {
@@ -208,13 +235,15 @@ int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
 void HttpRequestParser::CreateRequestConstructor() {
   ++parsing_request_count_;
   request_constructor_ = std::make_unique<HttpRequestConstructor>(
-      request_constructor_config_, request_handler_);
+      request_constructor_config_, handler_info_index_);
   url_complete_ = false;
 }
 
 bool HttpRequestParser::CheckUrlComplete(http_parser* p) {
   if (url_complete_) return true;
   url_complete_ = true;
+  request_constructor_->SetMethod(
+      ConvertHttpMethod(static_cast<http_method>(p->method)));
   request_constructor_->SetHttpMajor(p->http_major);
   request_constructor_->SetHttpMinor(p->http_minor);
   try {
