@@ -3,7 +3,8 @@
 #include <atomic>
 
 #include <opentracing/noop.h>
-#include <opentracing/tracer.h>
+
+#include <tracing/noop.hpp>
 #include <utils/uuid4.hpp>
 
 namespace tracing {
@@ -11,8 +12,7 @@ namespace tracing {
 namespace {
 
 TracerPtr& GlobalTracer() {
-  static TracerPtr tracer =
-      std::make_shared<Tracer>(opentracing::MakeNoopTracer());
+  static TracerPtr tracer = tracing::MakeNoopTracer();
   return tracer;
 }
 

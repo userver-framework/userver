@@ -7,4 +7,6 @@ namespace tracing {
 
 opentracing::Value ToOpentracingValue(logging::LogExtra::Value);
 
+logging::LogExtra::Value FromOpentracingValue(opentracing::Value);
+
 }  // namespace tracing

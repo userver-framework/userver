@@ -6,15 +6,19 @@ ExternalProject_Add(
         GIT_TAG v1.5.0
         TIMEOUT 10
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
-        CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DBUILD_DYNAMIC_LOADING=OFF
+        CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
+                -DBUILD_DYNAMIC_LOADING=OFF
+                -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
+                -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
+                -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
         # Disable install step
         INSTALL_COMMAND ""
         # Disable update command, since we use predefined stable version
         UPDATE_COMMAND ""
         # Wrap download, configure and build steps in a script to log output
         LOG_DOWNLOAD ON
-        LOG_CONFIGURE ON
-        LOG_BUILD ON)
+        LOG_CONFIGURE OFF
+        LOG_BUILD OFF)
 
 ExternalProject_Get_Property(opentracing source_dir binary_dir)
 

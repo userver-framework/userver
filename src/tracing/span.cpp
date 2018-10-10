@@ -98,6 +98,7 @@ logging::LogExtra& Span::GetInheritableLogExtra() {
 
 void Span::LogTo(logging::LogHelper& log_helper) const {
   log_helper << pimpl_->log_extra_inheritable << pimpl_->log_extra_local;
+  pimpl_->tracer->LogSpanContextTo(*pimpl_->span, log_helper);
 }
 
 }  // namespace tracing

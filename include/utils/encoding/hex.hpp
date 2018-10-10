@@ -28,5 +28,9 @@ inline std::string ToHex(const void* data, size_t len) {
   return ToHex(chars, chars + len);
 }
 
+inline std::string ToHexString(uint64_t value) {
+  return ToHex(&value, sizeof(value));
+}
+
 }  // namespace encoding
 }  // namespace utils

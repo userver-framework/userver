@@ -70,6 +70,7 @@ inline LogHelper& operator<<(LogHelper& lh, const tracing::Span& span) {
   span.LogTo(lh);
   return lh;
 }
+
 }  // namespace logging
 
 #define TRACE_TRACE(span) LOG_TRACE() << span
