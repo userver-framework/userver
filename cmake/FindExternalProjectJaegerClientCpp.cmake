@@ -11,6 +11,7 @@ ExternalProject_Add(
                 -DJAEGERTRACING_PLUGIN=OFF
                 -DBUILD_SHARED_LIBS=OFF
                 -DBUILD_TESTING=OFF
+                -DHUNTER_ENABLED=OFF
                 -DJAEGERTRACING_WITH_YAML_CPP=OFF
                 -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
                 -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}

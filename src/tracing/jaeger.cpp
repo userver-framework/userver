@@ -1,9 +1,13 @@
 #include <tracing/jaeger.hpp>
 
+#include <tracing/noop.hpp>
+
+#if 0
 #include <jaegertracing/Tracer.h>
 #include <jaegertracing/propagation/HeadersConfig.h>
 #include <jaegertracing/reporters/Reporter.h>
 #include <jaegertracing/samplers/ConstSampler.h>
+#endif
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
@@ -23,15 +27,18 @@ const std::string kSamplerNamePrefix = "sampler.";
 
 namespace logging {
 
+#if 0
 inline LogHelper& operator<<(LogHelper& lh, const jaegertracing::Span& span) {
   tracing::Tracer::GetTracer()->LogSpanContextTo(span, lh);
   return lh;
 }
+#endif
 
 }  // namespace logging
 
 namespace tracing {
 
+#if 0
 using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
 class LogReporter : public jaegertracing::reporters::Reporter {
@@ -111,6 +118,11 @@ tracing::TracerPtr MakeJaegerLogTracer() {
   auto jaeger_tracer = jaegertracing::Tracer::make(
       service_name, sampler, reporter, logger, metrics, headers, options);
   return std::make_shared<tracing::JaegerTracer>(jaeger_tracer);
+}
+#endif
+
+tracing::TracerPtr MakeJaegerLogTracer() {
+  return MakeNoopTracer();
 }
 
 }  // namespace tracing
