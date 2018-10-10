@@ -284,12 +284,14 @@ if(MSVC)
 	endif()
 endif()
 
+if (FALSE)
 install(TARGETS yaml-cpp EXPORT yaml-cpp-targets ${_INSTALL_DESTINATIONS})
 install(
 	DIRECTORY ${header_directory}
 	DESTINATION ${INCLUDE_INSTALL_DIR}
 	FILES_MATCHING PATTERN "*.h"
 )
+endif()
 
 export(
     TARGETS yaml-cpp
@@ -315,6 +317,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-config.cmake.in
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/yaml-cpp-config-version.cmake.in
 	"${PROJECT_BINARY_DIR}/yaml-cpp-config-version.cmake" @ONLY)
 
+if (FALSE)
 install(FILES
 	"${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/yaml-cpp-config.cmake"
 	"${PROJECT_BINARY_DIR}/yaml-cpp-config-version.cmake"
@@ -325,6 +328,8 @@ if(UNIX)
 	set(PC_FILE ${CMAKE_BINARY_DIR}/yaml-cpp.pc)
 	configure_file("yaml-cpp.pc.cmake" ${PC_FILE} @ONLY)
 	install(FILES ${PC_FILE} DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
+endif()
+
 endif()
 
 
