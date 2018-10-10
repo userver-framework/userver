@@ -55,11 +55,18 @@ class HttpHandlerBase::Statistics {
 
   Percentile GetTimings() const { return timings_.GetStatsForPeriod(); }
 
+  size_t GetInFlight() const { return in_flight_; }
+
+  void IncrementInFlight() { in_flight_++; }
+
+  void DecrementInFlight() { in_flight_--; }
+
  private:
   utils::statistics::RecentPeriod<Percentile, Percentile,
                                   utils::datetime::SteadyClock>
       timings_;
   ReplyCodesStatistics reply_codes_;
+  std::atomic<size_t> in_flight_{0};
 };
 
 class HttpHandlerBase::HandlerStatistics {
@@ -73,9 +80,23 @@ class HttpHandlerBase::HandlerStatistics {
 
   const std::vector<http::HttpMethod>& GetAllowedMethods() const;
 
+  bool IsOkMethod(http::HttpMethod method) const;
+
  private:
   Statistics stats_;
   std::array<Statistics, 6> stats_by_method_;
+};
+
+class HttpHandlerBase::HttpHandlerStatisticsScope {
+ public:
+  HttpHandlerStatisticsScope(HttpHandlerBase::HandlerStatistics& stats,
+                             http::HttpMethod method);
+
+  void Account(unsigned int code, std::chrono::milliseconds ms);
+
+ private:
+  HttpHandlerBase::HandlerStatistics& stats_;
+  const http::HttpMethod method_;
 };
 
 }  // namespace handlers

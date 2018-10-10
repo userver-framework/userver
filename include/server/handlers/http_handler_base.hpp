@@ -48,6 +48,7 @@ class HttpHandlerBase : public HandlerBase {
  private:
   class Statistics;
   class HandlerStatistics;
+  class HttpHandlerStatisticsScope;
 
   static formats::json::ValueBuilder StatisticsToJson(const Statistics& stats);
 

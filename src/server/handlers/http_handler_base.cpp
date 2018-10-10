@@ -44,6 +44,7 @@ formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
     sum += it.second;
   }
   total["reply-codes"] = std::move(reply_codes);
+  total["in-flight"] = stats.GetInFlight();
 
   total["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.GetTimings());
@@ -104,6 +105,9 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       TRACE_INFO(span) << "start handling" << std::move(log_extra);
     }
 
+    HttpHandlerStatisticsScope stats_scope(*statistics_,
+                                           http_request.GetMethod());
+
     try {
       response.SetData(HandleRequestThrow(http_request, context));
     } catch (const http::HttpException& ex) {
@@ -139,8 +143,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     const auto finish_time = std::chrono::system_clock::now();
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         finish_time - start_time);
-    statistics_->Account(http_request.GetMethod(),
-                         static_cast<int>(response.GetStatus()), ms);
+    stats_scope.Account(static_cast<int>(response.GetStatus()), ms);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex.what();
   }
