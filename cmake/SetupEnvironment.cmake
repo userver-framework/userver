@@ -101,38 +101,6 @@ if (CLANG)
   add_compile_options ("-Wno-braced-scalar-init")
 endif()
 
-SET(SANITIZE_ENUM "mem, addr, thread, ub")
-set(SANITIZE "" CACHE STRING "Clang sanitizer, possible values: ${SANITIZE_ENUM}")
-if (NOT CLANG AND SANITIZE)
-  message(FATAL_ERROR "-DSANITIZE can be set only when complied using clang.  Please set CC=clang-5.0 CXX=clang++-5.0 or smth.")
-endif()
-if(SANITIZE STREQUAL "")
-  # no sanitizer
-elseif(SANITIZE STREQUAL "ub")
-  # https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
-  add_compile_options("-fsanitize=undefined")
-  set(CLANG_LIBRARIES "-fsanitize=undefined")
-elseif(SANITIZE STREQUAL "addr")
-  # http://releases.llvm.org/5.0.0/tools/clang/docs/AddressSanitizer.html
-  add_compile_options("-fsanitize=address")
-  add_compile_options("-fno-omit-frame-pointer")
-  add_compile_options("-g")
-  set(CLANG_LIBRARIES "-g -fsanitize=address")
-elseif(SANITIZE STREQUAL "thread")
-  # http://releases.llvm.org/5.0.0/tools/clang/docs/ThreadSanitizer.html
-  add_compile_options("-fsanitize=thread")
-  add_compile_options("-g")
-  set(CLANG_LIBRARIES "-g -fsanitize=thread")
-elseif(SANITIZE STREQUAL "mem")
-  # https://clang.llvm.org/docs/MemorySanitizer.html
-  add_compile_options("-fsanitize=memory")
-  add_compile_options("-fno-omit-frame-pointer")
-  add_compile_options("-g")
-  set(CLANG_LIBRARIES "-g -fsanitize=memory")
-else()
-  message(FATAL_ERROR "-DSANITIZE has invalid value (${SANITIZE}), possible values: ${SANITIZE_ENUM}")
-endif()
-
 # build type specific
 if (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test")
   add_compile_options ("-O0")

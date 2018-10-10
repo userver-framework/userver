@@ -58,6 +58,7 @@ target_link_libraries(${PROJECT_NAME}
     ${JEMALLOC_LIBRARIES}
     ${LIBBSONCXX_STATIC_LIBRARIES}
     ${LIBMONGOCXX_STATIC_LIBRARIES}
+    sanitize-target
     yandex-taxi-backend-common-cpp
     jsoncpp_lib # FIXME move to private in TAXICOMMON-15
     libopentracing
@@ -70,7 +71,6 @@ target_link_libraries(${PROJECT_NAME}
     ${HIREDIS_LIBRARIES}
     ${HTTP_PARSER_LIBRARIES}
     ${LIBEV_LIBRARIES}
-    ${CLANG_LIBRARIES}
     ${BSON_STATIC_LIBRARIES}
     ${MONGOC_STATIC_LIBRARIES}
 )

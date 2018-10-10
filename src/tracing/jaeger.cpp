@@ -121,8 +121,6 @@ tracing::TracerPtr MakeJaegerLogTracer() {
 }
 #endif
 
-tracing::TracerPtr MakeJaegerLogTracer() {
-  return MakeNoopTracer();
-}
+tracing::TracerPtr MakeJaegerLogTracer() { return MakeNoopTracer(); }
 
 }  // namespace tracing

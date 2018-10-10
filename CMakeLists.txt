@@ -7,6 +7,7 @@ include(AddGoogleTests)
 include(CppCheck)
 include(CheckSubmodule)
 include(CompileFbSchema)
+include(Sanitizers)
 
 set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
