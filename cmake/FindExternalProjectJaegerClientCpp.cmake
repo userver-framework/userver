@@ -1,11 +1,12 @@
 include(ExternalProject)
-find_package(ExternalProjectThrift)
+
+string(REPLACE ";" "|" CMAKE_PREFIX_PATH_ALT_SEP "${CMAKE_PREFIX_PATH};${CMAKE_CURRENT_SOURCE_DIR}/../third_party/nlohmann_json")
 
 ExternalProject_Add(
         jaeger-client-cpp
         GIT_REPOSITORY git@github.yandex-team.ru:taxi-external/jaeger-client-cpp.git
-        GIT_TAG v0.4.2-taxi1
-        DEPENDS libthrift libopentracing
+        GIT_TAG v0.4.2-taxi2
+        DEPENDS thrift opentracing
         TIMEOUT 10
         CMAKE_ARGS -DJAEGERTRACING_BUILD_EXAMPLES=OFF
                 -DJAEGERTRACING_PLUGIN=OFF
@@ -16,6 +17,9 @@ ExternalProject_Add(
                 -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
                 -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
                 -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
+                -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH_ALT_SEP}
+                -DTHRIFT_HOME=${thrift_DESTDIR}
+        LIST_SEPARATOR |
         # Disable install step
         INSTALL_COMMAND ""
         # Disable update command, since we use predefined stable version
@@ -23,7 +27,7 @@ ExternalProject_Add(
         # Wrap download, configure and build steps in a script to log output
         LOG_DOWNLOAD ON
         LOG_CONFIGURE OFF
-        LOG_BUILD OFF)
+        LOG_BUILD ON)
 
 ExternalProject_Get_Property(jaeger-client-cpp source_dir binary_dir)
 
@@ -40,5 +44,5 @@ add_dependencies(libjaegertracing jaeger-client-cpp)
 set_target_properties(libjaegertracing PROPERTIES
         "IMPORTED_LOCATION" "${binary_dir}/libjaegertracing.a"
         "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT};libopentracing"
-        "INTERFACE_INCLUDE_DIRECTORIES" "${JAEGERTRACING_BINARY_INCLUDE_DIR};${JAEGERTRACING_INCLUDE_DIR};${THRIFT_INCLUDE_DIR};${THRIFT_BINARY_INCLUDE_DIR}"
+        "INTERFACE_INCLUDE_DIRECTORIES" "${JAEGERTRACING_BINARY_INCLUDE_DIR};${JAEGERTRACING_INCLUDE_DIR};${THRIFT_INCLUDE_DIR}"
 )

@@ -1,5 +1,7 @@
 include(ExternalProject)
 
+set(thrift_DESTDIR "${CMAKE_CURRENT_BINARY_DIR}/lib/thrift_install")
+
 ExternalProject_Add(
 	thrift
         GIT_REPOSITORY git@github.yandex-team.ru:taxi-external/thrift.git
@@ -12,31 +14,18 @@ ExternalProject_Add(
                 -DWITH_PYTHON=OFF
                 -DWITH_HASKELL=OFF
                 -DWITH_SHARED_LIB=OFF
+                -DWITH_QT4=OFF
+                -DWITH_QT5=OFF
                 -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
                 -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
                 -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
-        INSTALL_COMMAND ""
+        INSTALL_COMMAND make DESTDIR=${thrift_DESTDIR} install
         UPDATE_COMMAND ""
         # Wrap download, configure and build steps in a script to log output
         LOG_DOWNLOAD ON
         LOG_CONFIGURE OFF
-        LOG_BUILD OFF)
+        LOG_BUILD ON)
 
-ExternalProject_Get_Property(thrift source_dir binary_dir)
-
-# INTERFACE_INCLUDE_DIRECTORIES will be created at build step,
-# but Cmake doesn't support non-existing directories for INTERFACE_INCLUDE_DIRECTORIES
-set(THRIFT_BINARY_INCLUDE_DIR "${binary_dir}/")
-set(THRIFT_INCLUDE_DIR "${source_dir}/lib/cpp/src")
-file(MAKE_DIRECTORY "${THRIFT_BINARY_INCLUDE_DIR}")
-file(MAKE_DIRECTORY "${THRIFT_INCLUDE_DIR}")
-
-
-add_library(libthrift IMPORTED STATIC GLOBAL)
-add_dependencies(libthrift thrift)
-set_target_properties(libthrift PROPERTIES
-        "IMPORTED_LOCATION" "${binary_dir}/thrift.a"
-        "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
-        "INTERFACE_INCLUDE_DIRECTORIES" "${THRIFT_BINARY_INCLUDE_DIR};${THRIFT_INCLUDE_DIR}"
-        )
-
+set(THRIFT_INCLUDE_DIR ${thrift_DESTDIR}/usr/local/include)
+file(MAKE_DIRECTORY ${THRIFT_INCLUDE_DIR})
+list(APPEND CMAKE_PREFIX_PATH "${thrift_DESTDIR}/usr/local")

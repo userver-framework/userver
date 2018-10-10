@@ -44,9 +44,9 @@ find_package(libmongocxx-static 3.3.1 REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
+find_package(ExternalProjectThrift REQUIRED)
 find_package(ExternalProjectOpenTracing REQUIRED)
-# TODO: fix in TAXICOMMON-149
-# find_package(ExternalProjectJaegerClientCpp REQUIRED)
+find_package(ExternalProjectJaegerClientCpp REQUIRED)
 find_package(CurlYandex REQUIRED)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -62,7 +62,7 @@ target_link_libraries(${PROJECT_NAME}
     yandex-taxi-backend-common-cpp
     jsoncpp_lib # FIXME move to private in TAXICOMMON-15
     libopentracing
-    # libjaegertracing
+    libjaegertracing
   PRIVATE
     spdlog_lib
     ${LIBCURL_YANDEX_LIBRARIES}
