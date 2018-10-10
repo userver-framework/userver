@@ -37,10 +37,6 @@ find_package(Hiredis 0.13.3 REQUIRED)
 find_package(HttpParser REQUIRED)
 find_package(jsoncpp REQUIRED)
 find_package(LibEv REQUIRED)
-find_package(libbson-static-1.0 1.12.0 REQUIRED)
-find_package(libmongoc-static-1.0 1.12.0 REQUIRED)
-find_package(libbsoncxx-static 3.3.1 REQUIRED)
-find_package(libmongocxx-static 3.3.1 REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
@@ -48,6 +44,15 @@ find_package(ExternalProjectThrift REQUIRED)
 find_package(ExternalProjectOpenTracing REQUIRED)
 find_package(ExternalProjectJaegerClientCpp REQUIRED)
 find_package(CurlYandex REQUIRED)
+
+find_package_required_version(libbson-static-1.0
+    "libyandex-taxi-mongo-c-driver-dev" 1.12.0)
+find_package_required_version(libmongoc-static-1.0
+    "libyandex-taxi-mongo-c-driver-dev" 1.12.0)
+find_package_required_version(libbsoncxx-static
+    "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
+find_package_required_version(libmongocxx-static
+    "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
