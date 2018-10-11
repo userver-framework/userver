@@ -27,6 +27,10 @@ else()
   message(FATAL_ERROR "-DSANITIZE has invalid value (${SANITIZE}), possible values: ${SANITIZE_ENUM}")
 endif()
 
+if(DEFINED SANITIZE_BLACKLIST AND (NOT SANITIZE_BLACKLIST STREQUAL ""))
+  set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize-blacklist=${SANITIZE_BLACKLIST})
+endif()
+
 add_library(sanitize-target INTERFACE)
 
 target_compile_definitions(sanitize-target INTERFACE

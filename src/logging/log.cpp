@@ -65,8 +65,7 @@ LogHelper::~LogHelper() noexcept(false) { DoLog(); }
 void LogHelper::DoLog() {
   AppendLogExtra();
   verbatim_stream_.flush();
-  std::static_pointer_cast<LoggerWorkaroud>(DefaultLogger())
-      ->sink_it_(buffer_->msg);
+  static_cast<LoggerWorkaroud*>(DefaultLogger().get())->sink_it_(buffer_->msg);
 }
 
 void LogHelper::AppendLogExtra() {
