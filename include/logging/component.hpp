@@ -10,6 +10,8 @@
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 
+#include <utils/periodic_task.hpp>
+
 #include "logger.hpp"
 
 namespace components {
@@ -61,6 +63,7 @@ class Logging : public ComponentBase {
 
   /// Component constructor
   Logging(const ComponentConfig&, const ComponentContext&);
+  ~Logging();
 
   /// @brief Returns a logger by its name
   /// @param name Name of the logger
@@ -72,8 +75,14 @@ class Logging : public ComponentBase {
   void OnLogRotate();
 
  private:
+  auto GetTaskFunction() {
+    return std::bind(&Logging::FlushLogs, this, std::placeholders::_1);
+  }
+  void FlushLogs(tracing::Span&&);
+
   std::vector<logging::ThreadPoolPtr> thread_pools_;
   std::unordered_map<std::string, logging::LoggerPtr> loggers_;
+  utils::PeriodicTask flush_task_;
 };
 
 }  // namespace components

@@ -61,7 +61,6 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
     logger->set_pattern(logger_config.pattern);
     logger->flush_on(
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
-    spdlog::flush_every(kDefaultFlushInterval);
 
     if (is_default_logger) {
       logging::SetDefaultLogger(std::move(logger));
@@ -74,7 +73,14 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
       }
     }
   }
+  flush_task_.Start("log_flusher",
+                    utils::PeriodicTask::Settings(
+                        std::chrono::duration_cast<std::chrono::milliseconds>(
+                            kDefaultFlushInterval)),
+                    GetTaskFunction());
 }
+
+Logging::~Logging() { flush_task_.Stop(); }
 
 logging::LoggerPtr Logging::GetLogger(const std::string& name) {
   auto it = loggers_.find(name);
@@ -101,6 +107,13 @@ void Logging::OnLogRotate() {
 
   for (const auto& item : loggers_) {
     reopen_all(item.second->sinks());
+  }
+}
+
+void Logging::FlushLogs(tracing::Span&&) {
+  logging::DefaultLogger()->flush();
+  for (auto& item : loggers_) {
+    item.second->flush();
   }
 }
 
