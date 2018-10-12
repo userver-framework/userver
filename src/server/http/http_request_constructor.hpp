@@ -49,10 +49,11 @@ class HttpRequestConstructor : public request::RequestConstructor {
 
   virtual std::unique_ptr<request::RequestBase> Finalize() override;
 
+  static std::string UrlDecode(const char* data, const char* data_end);
+
  private:
   void FinalizeImpl();
 
-  static std::string UrlDecode(const char* data, const char* data_end);
   void ParseArgs(const http_parser_url& url);
   void ParseArgs(const char* data, size_t size);
   void AddHeader();

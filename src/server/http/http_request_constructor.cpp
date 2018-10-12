@@ -188,6 +188,11 @@ void HttpRequestConstructor::FinalizeImpl() {
 
 std::string HttpRequestConstructor::UrlDecode(const char* data,
                                               const char* data_end) {
+  // Fast path: no %, just id
+  if (!memchr(data, '%', data_end - data)) {
+    return std::string(data, data_end);
+  }
+
   std::string res;
   for (const char* ptr = data; ptr < data_end; ++ptr) {
     if (*ptr == '%') {
