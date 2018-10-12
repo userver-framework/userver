@@ -7,6 +7,7 @@
 #include <engine/condition_variable.hpp>
 #include <server/cache_invalidator_holder.hpp>
 #include <utils/async_event_channel.hpp>
+#include <utils/swappingsmart.hpp>
 
 #include "cache_config.hpp"
 #include "cache_update_trait.hpp"
@@ -40,7 +41,7 @@ class CachingComponentBase
   void Clear();
 
  private:
-  std::shared_ptr<T> cache_;
+  utils::SwappingSmart<T> cache_;
   server::CacheInvalidatorHolder cache_invalidator_holder_;
   const std::string name_;
 };
@@ -60,12 +61,12 @@ const std::string& CachingComponentBase<T>::Name() const {
 
 template <typename T>
 std::shared_ptr<T> CachingComponentBase<T>::Get() const {
-  return std::atomic_load(&cache_);
+  return cache_.Get();
 }
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::shared_ptr<T> value_ptr) {
-  std::atomic_store(&cache_, std::move(value_ptr));
+  cache_.Set(value_ptr);
   this->SendEvent(Get());
 }
 
@@ -82,7 +83,7 @@ void CachingComponentBase<T>::Emplace(Args&&... args) {
 
 template <typename T>
 void CachingComponentBase<T>::Clear() {
-  std::atomic_store(&cache_, {});
+  cache_.Clear();
 }
 
 }  // namespace components

@@ -6,6 +6,7 @@
 
 #include <engine/task/task_context.hpp>
 #include <logging/spdlog.hpp>
+#include <utils/swappingsmart.hpp>
 #include "log_streambuf.hpp"
 #include "log_workaround.hpp"
 #include "tskv_stream.hpp"
@@ -28,21 +29,27 @@ class LogExtraValueVisitor : public boost::static_visitor<void> {
   LogHelper& lh_;
 };
 
-LoggerPtr* DefaultLoggerInternal() {
-  static LoggerPtr default_logger = MakeStderrLogger("default");
-  return &default_logger;
+auto& DefaultLoggerInternal() {
+  static utils::SwappingSmart<Logger> default_logger_ptr(
+      MakeStderrLogger("default"));
+  return default_logger_ptr;
 }
 
 }  // namespace
 
-LoggerPtr DefaultLogger() {
-  return std::atomic_load_explicit(DefaultLoggerInternal(),
-                                   std::memory_order_acquire);
-}
+LoggerPtr DefaultLogger() { return DefaultLoggerInternal().Get(); }
 
 LoggerPtr SetDefaultLogger(LoggerPtr logger) {
-  return std::atomic_exchange_explicit(
-      DefaultLoggerInternal(), std::move(logger), std::memory_order_acq_rel);
+  // FIXME: we have to do atomic exchange() and return the old value.
+  // SetDefaultLogger() is called only at startup, so mutex is OK here.
+  // Better solution in https://st.yandex-team.ru/TAXICOMMON-234
+  static std::mutex mutex;
+  std::unique_lock<std::mutex> lock(mutex);
+
+  auto& default_logger = DefaultLoggerInternal();
+  auto old = default_logger.Get();
+  default_logger.Set(logger);
+  return old;
 }
 
 void SetDefaultLoggerLevel(Level level) {
