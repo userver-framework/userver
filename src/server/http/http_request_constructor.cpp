@@ -28,7 +28,8 @@ HttpRequestConstructor::HttpRequestConstructor(
       request_(std::make_unique<HttpRequestImpl>()) {}
 
 void HttpRequestConstructor::SetMethod(HttpMethod method) {
-  request_->method_ = method;
+  request_->orig_method_ = method;
+  request_->method_ = (method == HttpMethod::kHead ? HttpMethod::kGet : method);
 }
 
 void HttpRequestConstructor::SetHttpMajor(unsigned short http_major) {
@@ -66,10 +67,9 @@ void HttpRequestConstructor::ParseUrl() {
     throw std::runtime_error("can't parse path");
   }
 
-  HandlerInfo handler_info;
-  if (handler_info_index_.GetHandlerInfo(request_->GetRequestPath(),
-                                         handler_info))
-    request_->SetMatchedPathLength(handler_info.matched_path_length);
+  auto handler_info = handler_info_index_.GetHandlerInfo(
+      request_->GetMethod(), request_->GetRequestPath());
+  request_->SetMatchedPathLength(handler_info.matched_path_length);
 
   if (handler_info.handler) {
     const auto& handler_config = handler_info.handler->GetConfig();
@@ -141,7 +141,8 @@ std::ostringstream& DumpArray(std::ostringstream& os, const std::string& name,
 }  // namespace
 
 std::unique_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
-  LOG_TRACE() << "method=" << request_->GetMethodStr();
+  LOG_TRACE() << "method=" << request_->GetMethodStr()
+              << " orig_method=" << request_->GetOrigMethodStr();
 
   FinalizeImpl();
 

@@ -13,6 +13,8 @@ HandlerConfig HandlerConfig::ParseFromJson(
       json_config::ParseString(json, "path", full_path, config_vars_ptr);
   config.task_processor = json_config::ParseString(json, "task_processor",
                                                    full_path, config_vars_ptr);
+  config.method = json_config::ParseOptionalString(json, "method", full_path,
+                                                   config_vars_ptr);
   config.max_url_size = json_config::ParseOptionalUint64(
       json, "max_url_size", full_path, config_vars_ptr);
   config.max_request_size = json_config::ParseOptionalUint64(

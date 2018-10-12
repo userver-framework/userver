@@ -1,31 +1,13 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 
-#include <boost/core/ignore_unused.hpp>
-
 namespace server {
 namespace handlers {
 
 HttpHandlerBase::Statistics&
 HttpHandlerBase::HandlerStatistics::GetStatisticByMethod(
     http::HttpMethod method) {
-  /* HACK: C++14 doesn't think array::size() is constexpr in this context :-( */
-  constexpr auto size = std::tuple_size<decltype(stats_by_method_)>::value;
-
-  static_assert(static_cast<size_t>(http::HttpMethod::kDelete) < size,
-                "size is too low");
-  static_assert(static_cast<size_t>(http::HttpMethod::kGet) < size,
-                "size is too low");
-  static_assert(static_cast<size_t>(http::HttpMethod::kHead) < size,
-                "size is too low");
-  static_assert(static_cast<size_t>(http::HttpMethod::kPost) < size,
-                "size is too low");
-  static_assert(static_cast<size_t>(http::HttpMethod::kPut) < size,
-                "size is too low");
-  static_assert(static_cast<size_t>(http::HttpMethod::kPatch) < size,
-                "size is too low");
-
   size_t index = static_cast<size_t>(method);
-  assert(index < size);
+  assert(index < stats_by_method_.size());
 
   return stats_by_method_[index];
 }
@@ -33,15 +15,6 @@ HttpHandlerBase::HandlerStatistics::GetStatisticByMethod(
 HttpHandlerBase::Statistics&
 HttpHandlerBase::HandlerStatistics::GetTotalStatistics() {
   return stats_;
-}
-
-const std::vector<http::HttpMethod>&
-HttpHandlerBase::HandlerStatistics::GetAllowedMethods() const {
-  static std::vector<http::HttpMethod> methods{
-      http::HttpMethod::kDelete, http::HttpMethod::kGet,
-      http::HttpMethod::kHead,   http::HttpMethod::kPost,
-      http::HttpMethod::kPut,    http::HttpMethod::kPatch};
-  return methods;
 }
 
 bool HttpHandlerBase::HandlerStatistics::IsOkMethod(

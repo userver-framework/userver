@@ -66,6 +66,7 @@ namespace http {
 
 HttpRequestImpl::HttpRequestImpl()
     : method_(HttpMethod::kUnknown),
+      orig_method_(HttpMethod::kUnknown),
       http_major_(0),
       http_minor_(0),
       response_(std::make_unique<HttpResponse>(*this)) {}
@@ -165,7 +166,7 @@ void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
   logger_access->info(
       "{} {} \"{} {} HTTP/{}.{}\" {} \"{}\" \"{}\" \"{}\" {:0.6f} - {} {:0.6f}",
       EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
-      EscapeForAccessLog(GetMethodStr()), EscapeForAccessLog(GetUrl()),
+      EscapeForAccessLog(GetOrigMethodStr()), EscapeForAccessLog(GetUrl()),
       GetHttpMajor(), GetHttpMinor(), static_cast<int>(response_->GetStatus()),
       EscapeForAccessLog(GetHeader("Referer")),
       EscapeForAccessLog(GetHeader("User-Agent")),
@@ -197,7 +198,8 @@ void HttpRequestImpl::WriteAccessTskvLog(
       "\tupstream_response_time={:0.3f}"
       "\trequest_body={}",
       static_cast<int>(response_->GetStatus()), GetHttpMajor(), GetHttpMinor(),
-      EscapeForAccessTskvLog(GetMethodStr()), EscapeForAccessTskvLog(GetUrl()),
+      EscapeForAccessTskvLog(GetOrigMethodStr()),
+      EscapeForAccessTskvLog(GetUrl()),
       EscapeForAccessTskvLog(GetHeader("Referer")),
       EscapeForAccessTskvLog(GetHeader("Cookie")),
       EscapeForAccessTskvLog(GetHeader("User-Agent")),

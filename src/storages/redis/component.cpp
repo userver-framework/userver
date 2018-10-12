@@ -1,5 +1,6 @@
 #include <storages/redis/component.hpp>
 
+#include <stdexcept>
 #include <vector>
 
 #include <components/statistics_storage.hpp>
@@ -171,6 +172,13 @@ Redis::Redis(const ComponentConfig& config,
   statistics_holder_ = statistics_storage_->GetStorage().RegisterExtender(
       kStatisticsName,
       std::bind(&Redis::ExtendStatistics, this, std::placeholders::_1));
+}
+
+std::shared_ptr<redis::Sentinel> Redis::Client(const std::string& name) const {
+  auto it = clients_.find(name);
+  if (it == clients_.end())
+    throw std::runtime_error(name + " redis client not found");
+  return it->second;
 }
 
 void Redis::Connect(const ComponentConfig& config,

@@ -33,6 +33,8 @@ class HttpHandlerBase : public HandlerBase {
 
   virtual const std::string& HandlerName() const = 0;
 
+  const std::vector<http::HttpMethod>& GetAllowedMethods() const;
+
  protected:
   virtual std::string HandleRequestThrow(
       const http::HttpRequest& request,
@@ -57,6 +59,7 @@ class HttpHandlerBase : public HandlerBase {
 
  private:
   const components::HttpServerSettingsBase* http_server_settings_;
+  const std::vector<http::HttpMethod> allowed_methods_;
   components::StatisticsStorage* statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 

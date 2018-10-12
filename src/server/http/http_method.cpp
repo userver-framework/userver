@@ -1,9 +1,44 @@
 #include <server/http/http_method.hpp>
 
+#include <map>
+
 #include <http_parser.h>
 
 namespace server {
 namespace http {
+
+namespace {
+
+std::map<HttpMethod, std::string> InitHttpMethodNames() {
+  std::map<HttpMethod, std::string> names;
+  for (auto method : {HttpMethod::kDelete, HttpMethod::kGet, HttpMethod::kHead,
+                      HttpMethod::kPost, HttpMethod::kPut, HttpMethod::kPatch,
+                      HttpMethod::kConnect}) {
+    names[method] = ToString(method);
+  }
+  return names;
+}
+
+std::map<std::string, HttpMethod> InitHttpMethodsMap() {
+  static const auto names = InitHttpMethodNames();
+  std::map<std::string, HttpMethod> methods_map;
+  for (const auto& elem : names) {
+    methods_map[elem.second] = elem.first;
+  }
+  return methods_map;
+}
+
+}  // namespace
+
+HttpMethod HttpMethodFromString(const std::string& method_str) {
+  static const auto methods_map = InitHttpMethodsMap();
+  try {
+    return methods_map.at(method_str);
+  } catch (std::exception& ex) {
+    throw std::runtime_error("can't parse HttpMethod from string '" +
+                             method_str + '\'');
+  }
+}
 
 const std::string& ToString(HttpMethod method) {
   static const std::string kDelete = http_method_str(HTTP_DELETE);

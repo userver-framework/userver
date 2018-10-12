@@ -17,6 +17,7 @@ enum class HttpMethod {
 };
 
 const std::string& ToString(HttpMethod method);
+HttpMethod HttpMethodFromString(const std::string& method_str);
 
 }  // namespace http
 }  // namespace server

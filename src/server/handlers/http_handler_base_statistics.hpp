@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <server/handlers/http_handler_base.hpp>
+#include <server/http/handler_methods.hpp>
 #include <utils/statistics.hpp>
 #include <utils/statistics/percentile.hpp>
 #include <utils/statistics/recentperiod.hpp>
@@ -78,13 +79,11 @@ class HttpHandlerBase::HandlerStatistics {
   void Account(http::HttpMethod method, unsigned int code,
                std::chrono::milliseconds ms);
 
-  const std::vector<http::HttpMethod>& GetAllowedMethods() const;
-
   bool IsOkMethod(http::HttpMethod method) const;
 
  private:
   Statistics stats_;
-  std::array<Statistics, 6> stats_by_method_;
+  std::array<Statistics, http::kHandlerMethodsMax + 1> stats_by_method_;
 };
 
 class HttpHandlerBase::HttpHandlerStatisticsScope {

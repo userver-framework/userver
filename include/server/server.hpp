@@ -4,7 +4,7 @@
 
 #include <components/component_context.hpp>
 #include <components/manager.hpp>
-#include <server/handlers/handler_base.hpp>
+#include <server/handlers/http_handler_base.hpp>
 
 namespace engine {
 class TaskProcessor;
@@ -26,7 +26,7 @@ class Server {
   formats::json::Value GetMonitorData(
       utils::statistics::Verbosity verbosity) const;
 
-  void AddHandler(const handlers::HandlerBase& handler,
+  void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
 
   void Start();

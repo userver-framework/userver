@@ -30,7 +30,7 @@ class Server : public ComponentBase {
 
   const server::Server& GetServer() const;
 
-  void AddHandler(const server::handlers::HandlerBase& handler,
+  void AddHandler(const server::handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
 
  private:

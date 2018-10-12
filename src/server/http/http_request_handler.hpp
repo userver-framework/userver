@@ -29,9 +29,9 @@ class HttpRequestHandler : public request::RequestHandlerBase {
   void ProcessRequest(request::RequestTask& task) const override;
 
   void DisableAddHandler();
-  void AddHandler(const handlers::HandlerBase& handler,
+  void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
-  bool GetHandlerInfo(const std::string& path, HandlerInfo& handler_info) const;
+  HandlerInfo GetHandlerInfo(HttpMethod method, const std::string& path) const;
   const HandlerInfoIndex& GetHandlerInfoIndex() const;
 
  private:

@@ -25,9 +25,9 @@ std::shared_ptr<request::RequestTask> HttpRequestHandler::PrepareRequestTask(
     std::unique_ptr<request::RequestBase>&& request,
     std::function<void()>&& notify_func) const {
   auto& http_request = dynamic_cast<HttpRequestImpl&>(*request);
-  HandlerInfo handler_info;
-  if (GetHandlerInfo(http_request.GetRequestPath(), handler_info))
-    http_request.SetMatchedPathLength(handler_info.matched_path_length);
+  auto handler_info =
+      GetHandlerInfo(http_request.GetMethod(), http_request.GetRequestPath());
+  http_request.SetMatchedPathLength(handler_info.matched_path_length);
   // assert(handler_info.task_processor); -- false if handler not found
   auto task = std::make_shared<request::RequestTask>(
       handler_info.task_processor, handler_info.handler, std::move(request),
@@ -52,7 +52,7 @@ void HttpRequestHandler::ProcessRequest(request::RequestTask& task) const {
 
 void HttpRequestHandler::DisableAddHandler() { add_handler_disabled_ = true; }
 
-void HttpRequestHandler::AddHandler(const handlers::HandlerBase& handler,
+void HttpRequestHandler::AddHandler(const handlers::HttpHandlerBase& handler,
                                     engine::TaskProcessor& task_processor) {
   if (add_handler_disabled_) {
     throw std::runtime_error("handler adding disabled");
@@ -67,14 +67,13 @@ void HttpRequestHandler::AddHandler(const handlers::HandlerBase& handler,
   handler_info_index_.AddHandler(handler, task_processor);
 }
 
-bool HttpRequestHandler::GetHandlerInfo(const std::string& path,
-                                        HandlerInfo& handler_info) const {
+HandlerInfo HttpRequestHandler::GetHandlerInfo(HttpMethod method,
+                                               const std::string& path) const {
   if (!add_handler_disabled_) {
-    LOG_ERROR()
-        << "handler adding must be disabled before GetHandlerInfo() call";
-    return false;
+    throw std::runtime_error(
+        "handler adding must be disabled before GetHandlerInfo() call");
   }
-  return handler_info_index_.GetHandlerInfo(path, handler_info);
+  return handler_info_index_.GetHandlerInfo(method, path);
 }
 
 const HandlerInfoIndex& HttpRequestHandler::GetHandlerInfoIndex() const {

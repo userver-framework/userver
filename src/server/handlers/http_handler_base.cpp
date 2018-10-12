@@ -1,19 +1,21 @@
 #include <server/handlers/http_handler_base.hpp>
 
-#include <formats/json/serialize.hpp>
-#include <formats/json/value_builder.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 #include <components/statistics_storage.hpp>
+#include <formats/json/serialize.hpp>
+#include <formats/json/value_builder.hpp>
 #include <logging/log.hpp>
+#include <server/component.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
-#include <server/request/http_server_settings_base_component.hpp>
-#include <utils/graphite.hpp>
-#include <utils/statistics/percentile_format_json.hpp>
-
 #include <server/http/http_error.hpp>
+#include <server/http/http_method.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <server/request/http_server_settings_base_component.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tracing.hpp>
+#include <utils/graphite.hpp>
+#include <utils/statistics/percentile_format_json.hpp>
 
 namespace server {
 namespace handlers {
@@ -28,6 +30,29 @@ std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
     json_headers[header_name] = headers_holder.GetHeader(header_name);
   }
   return formats::json::ToString(json_headers.ExtractValue());
+}
+
+std::vector<http::HttpMethod> InitAllowedMethods(const HandlerConfig& config) {
+  std::vector<http::HttpMethod> allowed_methods;
+  auto& method_list = config.method;
+
+  if (method_list) {
+    std::vector<std::string> methods;
+    boost::split(methods, *method_list, [](char c) { return c == ','; });
+    for (const auto& method_str : methods) {
+      auto method = http::HttpMethodFromString(method_str);
+      if (!http::IsHandlerMethod(method)) {
+        throw std::runtime_error(method_str +
+                                 " is not supported in method list");
+      }
+      allowed_methods.push_back(method);
+    }
+  } else {
+    for (auto method : http::kHandlerMethods) {
+      allowed_methods.push_back(method);
+    }
+  }
+  return allowed_methods;
 }
 
 }  // namespace
@@ -60,15 +85,40 @@ HttpHandlerBase::HttpHandlerBase(
       http_server_settings_(
           component_context
               .FindComponentRequired<components::HttpServerSettingsBase>()),
+      allowed_methods_(InitAllowedMethods(GetConfig())),
       statistics_(std::make_unique<HandlerStatistics>()) {
+  if (allowed_methods_.empty()) {
+    LOG_WARNING() << "empty allowed methods list in " << config.Name();
+  }
+
   statistics_storage_ =
       component_context.FindComponentRequired<components::StatisticsStorage>();
 
-  const auto graphite_path =
-      "http.by-path." + utils::graphite::EscapeName(GetConfig().path);
+  const auto graphite_path = "http.by-path." +
+                             utils::graphite::EscapeName(GetConfig().path) +
+                             ".by-handler." + config.Name();
   statistics_holder_ = statistics_storage_->GetStorage().RegisterExtender(
       graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
                                std::placeholders::_1));
+  if (IsEnabled()) {
+    auto server_component =
+        component_context.FindComponent<components::Server>();
+    if (!server_component)
+      throw std::runtime_error("can't find server component");
+
+    engine::TaskProcessor* task_processor =
+        component_context.GetTaskProcessor(GetConfig().task_processor);
+    if (task_processor == nullptr) {
+      throw std::runtime_error("can't find task_processor with name '" +
+                               GetConfig().task_processor + '\'');
+    }
+    try {
+      server_component->AddHandler(*this, *task_processor);
+    } catch (const std::exception& ex) {
+      throw std::runtime_error(std::string("can't add handler to server: ") +
+                               ex.what());
+    }
+  }
 }
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
@@ -166,6 +216,11 @@ void HttpHandlerBase::OnRequestComplete(const request::RequestBase& request,
   }
 }
 
+const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()
+    const {
+  return allowed_methods_;
+}
+
 formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder result;
@@ -173,7 +228,7 @@ formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
 
   if (IsMethodStatisticIncluded()) {
     formats::json::ValueBuilder by_method;
-    for (auto method : statistics_->GetAllowedMethods()) {
+    for (auto method : GetAllowedMethods()) {
       by_method[ToString(method)] =
           StatisticsToJson(statistics_->GetStatisticByMethod(method));
     }

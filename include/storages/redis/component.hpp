@@ -28,9 +28,7 @@ class Redis : public ComponentBase {
 
   static constexpr const char* kName = "redis";
 
-  std::shared_ptr<redis::Sentinel> Client(const std::string& name) {
-    return clients_.at(name);
-  }
+  std::shared_ptr<redis::Sentinel> Client(const std::string& name) const;
 
  private:
   using TaxiConfigPtr = std::shared_ptr<taxi_config::Config>;

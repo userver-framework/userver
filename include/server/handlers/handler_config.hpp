@@ -13,6 +13,7 @@ namespace handlers {
 struct HandlerConfig {
   std::string path;
   std::string task_processor;
+  boost::optional<std::string> method;
   boost::optional<size_t> max_url_size;
   boost::optional<size_t> max_request_size;
   boost::optional<size_t> max_headers_size;
