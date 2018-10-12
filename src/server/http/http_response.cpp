@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include <time_zone.h>
+
 #include <build_config.hpp>
 #include <engine/sender.hpp>
 #include "http_request_impl.hpp"
@@ -101,11 +103,12 @@ void HttpResponse::SendResponse(engine::Sender& sender,
   os << kResponseHttpVersion << " " << static_cast<int>(status_) << " "
      << HttpStatusString(status_) << kCrlf;
   os << kServerName << kCrlf;
-  time_t time_t_time =
-      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-  struct tm tm;
-  gmtime_r(&time_t_time, &tm);
-  os << "Date: " << std::put_time(&tm, "%a, %d %b %Y %H:%M:%S %Z") << kCrlf;
+  static const auto format_string = "%a, %d %b %Y %H:%M:%S %Z";
+  static const auto tz = cctz::utc_time_zone();
+  const auto& time_str =
+      cctz::format(format_string, std::chrono::system_clock::now(), tz);
+
+  os << "Date: " << time_str << kCrlf;
   if (headers_.find(kHeaderContentType) == headers_.end())
     os << kHeaderContentType << ": " << kContentTypeTextHtml << kCrlf;
   for (const auto& header : headers_)
