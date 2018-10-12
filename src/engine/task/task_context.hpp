@@ -51,6 +51,8 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
 
   TaskContext(TaskProcessor&, Task::Importance, Payload);
 
+  ~TaskContext();
+
   TaskContext(const TaskContext&) = delete;
   TaskContext(TaskContext&&) = delete;
   TaskContext& operator=(const TaskContext&) = delete;

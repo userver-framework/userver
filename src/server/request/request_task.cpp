@@ -16,6 +16,10 @@ RequestTask::RequestTask(engine::TaskProcessor* task_processor,
       notify_cb_(std::move(notify_cb)),
       is_complete_(false) {}
 
+void RequestTask::WaitForTaskStop() {
+  if (async_task_.IsValid()) async_task_.Wait();
+}
+
 void RequestTask::Start(bool can_fail) {
   if (async_task_.IsFinished()) return;
 

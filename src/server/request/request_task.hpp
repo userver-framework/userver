@@ -23,6 +23,8 @@ class RequestTask {
 
   bool IsComplete() const { return is_complete_; }
 
+  void WaitForTaskStop();
+
   void Start(bool can_fail);
   void SetComplete();
 

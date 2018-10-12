@@ -247,6 +247,9 @@ void Connection::SendResponses() {
       }
     }
     if (request_task_ptr) {
+      // We've received a notification from task, but it might not finished yet.
+      request_task_ptr->WaitForTaskStop();
+
       request_task_ptr->GetRequest().WriteAccessLogs(
           request_handler_.LoggerAccess(), request_handler_.LoggerAccessTskv(),
           remote_address_);

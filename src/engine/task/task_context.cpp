@@ -39,6 +39,10 @@ impl::TaskContext* GetCurrentTaskContextUnchecked() {
 namespace impl {
 namespace {
 
+std::string GetTaskIdString(const impl::TaskContext* task) {
+  return std::to_string(reinterpret_cast<uint64_t>(task));
+}
+
 // we don't use native boost.coroutine stack unwinding mechanisms for cancel
 // as they don't allow us to yield from unwind
 // e.g. to serialize nested tasks destruction
@@ -85,6 +89,13 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       task_pipe_(nullptr),
       yield_reason_(YieldReason::kNone) {
   assert(payload_);
+  LOG_TRACE() << "task with task_id="
+              << GetTaskIdString(current_task::GetCurrentTaskContextUnchecked())
+              << " created task with task_id=" << GetTaskIdString(this);
+}
+
+TaskContext::~TaskContext() {
+  LOG_TRACE() << "Task with task_id=" << GetTaskIdString(this) << " stopped";
 }
 
 bool TaskContext::IsCritical() const {
@@ -168,6 +179,10 @@ void TaskContext::DoStep() {
 void TaskContext::RequestCancel(Task::CancellationReason reason) {
   auto expected = Task::CancellationReason::kNone;
   if (cancellation_reason_.compare_exchange_strong(expected, reason)) {
+    LOG_TRACE() << "task with task_id="
+                << GetTaskIdString(
+                       current_task::GetCurrentTaskContextUnchecked())
+                << " cancelled task with task_id=" << GetTaskIdString(this);
     cancellation_reason_ = reason;
     Wakeup(WakeupSource::kCancelRequest);
   }
