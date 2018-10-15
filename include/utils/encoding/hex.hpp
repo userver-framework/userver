@@ -13,11 +13,12 @@ inline char ToHexChar(int num) {
 template <typename It>
 std::string ToHex(It first, It last) {
   static_assert(sizeof(*first) == 1, "can only convert chars");
-  std::string result;
-  result.reserve(std::distance(first, last) * 2);
+  std::string result(std::distance(first, last) * 2, 'x');
+  auto it = result.begin();
   while (first != last) {
-    result.push_back(ToHexChar((*first >> 4) & 0xf));
-    result.push_back(ToHexChar(*first & 0xf));
+    const auto value = *first;
+    *it++ = ToHexChar((value >> 4) & 0xf);
+    *it++ = ToHexChar(value & 0xf);
     ++first;
   }
   return result;

@@ -35,11 +35,6 @@ static_assert(static_cast<spdlog::level::level_enum>(Level::kNone) ==
                   spdlog::level::off,
               "kNone enumerator value doesn't match spdlog's off");
 
-bool ShouldLog(Level level) {
-  return DefaultLogger()->should_log(
-      static_cast<spdlog::level::level_enum>(level));
-}
-
 Level LevelFromString(const std::string& level_name) {
   static const std::unordered_map<std::string, Level, utils::StrIcaseHash,
                                   utils::StrIcaseCmp>

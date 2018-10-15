@@ -3,6 +3,8 @@
 /// @file logging/level.hpp
 /// @brief Log levels
 
+#include <array>
+#include <atomic>
 #include <string>
 
 namespace logging {
@@ -18,9 +20,18 @@ enum class Level {
   kNone = 6
 };
 
+static const auto kLevelMax = static_cast<int>(Level::kNone);
+
 /// Converts lowercase level name to a corresponding Level
 Level LevelFromString(const std::string&);
 
-bool ShouldLog(Level level);
+inline auto& GetShouldLogCache() {
+  static std::array<std::atomic<bool>, kLevelMax + 1> values;
+  return values;
+}
+
+inline bool ShouldLog(Level level) {
+  return GetShouldLogCache()[static_cast<size_t>(level)];
+}
 
 }  // namespace logging

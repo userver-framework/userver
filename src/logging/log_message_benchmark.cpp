@@ -65,6 +65,17 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogChar)
     ->Range(8, 8 << 10)
     ->Complexity();
 
+BENCHMARK_DEFINE_F(LogHelperBenchmark, LogCheck)(benchmark::State& state) {
+  std::string msg(state.range(0), '*');
+  for (auto _ : state) {
+    LOG_TRACE() << msg.c_str();
+  }
+}
+BENCHMARK_REGISTER_F(LogHelperBenchmark, LogCheck)
+    ->RangeMultiplier(2)
+    ->Range(8, 8 << 10)
+    ->Complexity();
+
 struct StreamedStruct {
   int64_t intVal;
   std::string stringVal;

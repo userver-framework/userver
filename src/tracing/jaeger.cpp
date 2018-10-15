@@ -60,7 +60,7 @@ class LogReporter : public jaegertracing::reporters::Reporter {
       result.Extend(key, tracing::FromOpentracingValue(tag.value()));
     }
 
-    LOG_INFO() << result << span;
+    LOG_INFO() << std::move(result) << span;
   }
 
   void close() noexcept override {}
