@@ -3,6 +3,7 @@
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
 
+#include <server/http/content_type.hpp>
 #include <server/http/http_error.hpp>
 
 namespace server {
@@ -23,9 +24,22 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
                            std::string("Invalid JSON body: ") + e.what());
   }
 
-  formats::json::Value response_json =
-      HandleRequestJsonThrow(request, request_json, context);
-  return formats::json::ToString(response_json);
+  auto& response = request.GetHttpResponse();
+  response.SetContentType(http::content_type::kApplicationJson);
+
+  try {
+    auto response_json = HandleRequestJsonThrow(request, request_json, context);
+    return formats::json::ToString(response_json);
+  } catch (const http::HttpException& ex) {
+    formats::json::ValueBuilder response_json(formats::json::Type::kObject);
+
+    const auto& error = ex.GetExternalErrorBody();
+    if (!error.empty()) response_json["error"] = error;
+
+    throw http::HttpException(
+        ex.GetStatus(), ex.what(),
+        formats::json::ToString(response_json.ExtractValue()));
+  }
 }
 
 }  // namespace handlers

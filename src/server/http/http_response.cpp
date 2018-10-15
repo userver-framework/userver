@@ -7,11 +7,12 @@
 
 #include <build_config.hpp>
 #include <engine/sender.hpp>
+#include <server/http/content_type.hpp>
+
 #include "http_request_impl.hpp"
 
 namespace {
 
-const std::string kContentTypeTextHtml = "text/html";
 const std::string kCrlf = "\r\n";
 const std::string kHeaderContentEncoding = "Content-Encoding";
 const std::string kHeaderContentType = "Content-Type";
@@ -110,7 +111,7 @@ void HttpResponse::SendResponse(engine::Sender& sender,
 
   os << "Date: " << time_str << kCrlf;
   if (headers_.find(kHeaderContentType) == headers_.end())
-    os << kHeaderContentType << ": " << kContentTypeTextHtml << kCrlf;
+    os << kHeaderContentType << ": " << content_type::kTextHtml << kCrlf;
   for (const auto& header : headers_)
     os << header.first << ": " << header.second << kCrlf;
   os << "Connection: keep-alive" << kCrlf;
