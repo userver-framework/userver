@@ -1,6 +1,7 @@
 #include "watcher.hpp"
 
 namespace engine {
+namespace ev {
 
 template <>
 void Watcher<ev_async>::Init(void (*cb)(struct ev_loop*, ev_async*, int)) {
@@ -99,4 +100,5 @@ void Watcher<ev_idle>::StopImpl() {
   ev_idle_stop(GetEvLoop(), &w_);
 }
 
+}  // namespace ev
 }  // namespace engine

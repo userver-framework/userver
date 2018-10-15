@@ -5,7 +5,7 @@
 namespace engine {
 namespace ev {
 
-TimerWatcher::TimerWatcher(engine::ev::ThreadControl& thread_control)
+TimerWatcher::TimerWatcher(ThreadControl& thread_control)
     : ev_timer_(thread_control, this) {}
 
 TimerWatcher::~TimerWatcher() { Cancel(); }

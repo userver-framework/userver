@@ -5,8 +5,7 @@
 namespace engine {
 namespace ev {
 
-AsyncWatcher::AsyncWatcher(engine::ev::ThreadControl& thread_control,
-                           Callback cb)
+AsyncWatcher::AsyncWatcher(ThreadControl& thread_control, Callback cb)
     : ev_async_(thread_control, this), cb_(std::move(cb)) {
   ev_async_.Init(&AsyncWatcher::OnEvent);
 }

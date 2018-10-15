@@ -10,8 +10,8 @@
 #include <engine/mutex.hpp>
 #include <engine/task/task_with_result.hpp>
 
-#include "ev/thread_control.hpp"
-#include "watcher.hpp"
+#include <engine/ev/thread_control.hpp>
+#include <engine/ev/watcher.hpp>
 
 namespace engine {
 
@@ -56,7 +56,7 @@ class SocketListener : public std::enable_shared_from_this<SocketListener> {
   OnStopFunc on_stop_func_;
 
   std::shared_ptr<WatcherListenState> watcher_listen_resume_state_;
-  Watcher<ev_io> watcher_listen_;
+  ev::Watcher<ev_io> watcher_listen_;
 
   mutable Mutex listen_cv_mutex_;
   ConditionVariable listen_cv_;

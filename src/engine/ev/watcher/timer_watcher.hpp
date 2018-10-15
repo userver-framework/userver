@@ -1,15 +1,15 @@
 #pragma once
 
 #include <engine/ev/thread_control.hpp>
+#include <engine/ev/watcher.hpp>
 #include <engine/task/task_processor.hpp>
-#include <engine/watcher.hpp>
 
 namespace engine {
 namespace ev {
 
 class TimerWatcher {
  public:
-  explicit TimerWatcher(engine::ev::ThreadControl& thread_control);
+  explicit TimerWatcher(ThreadControl& thread_control);
 
   TimerWatcher(const TimerWatcher&) = delete;
   ~TimerWatcher();
@@ -24,7 +24,7 @@ class TimerWatcher {
   void CallTimeoutCb(std::error_code ec);
 
  private:
-  engine::Watcher<ev_timer> ev_timer_;
+  Watcher<ev_timer> ev_timer_;
   Callback cb_;
   std::mutex mutex_;
 };

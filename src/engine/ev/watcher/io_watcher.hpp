@@ -1,8 +1,8 @@
 #pragma once
 
 #include <engine/ev/thread_control.hpp>
+#include <engine/ev/watcher.hpp>
 #include <engine/task/task_processor.hpp>
-#include <engine/watcher.hpp>
 
 namespace engine {
 namespace ev {
@@ -10,7 +10,7 @@ namespace ev {
 /* Async fd watcher that calls callbacks in IO thread */
 class IoWatcher {
  public:
-  explicit IoWatcher(engine::ev::ThreadControl& thread_control);
+  explicit IoWatcher(ThreadControl& thread_control);
   IoWatcher(const IoWatcher&) = delete;
   ~IoWatcher();
 
@@ -44,11 +44,11 @@ class IoWatcher {
   void CallReadCb(std::error_code ec);
   void CallWriteCb(std::error_code ec);
 
-  void CancelSingle(engine::Watcher<ev_io>& watcher, Callback& cb);
+  void CancelSingle(Watcher<ev_io>& watcher, Callback& cb);
 
  private:
   int fd_;
-  engine::Watcher<ev_io> watcher_read_, watcher_write_;
+  Watcher<ev_io> watcher_read_, watcher_write_;
 
   std::mutex mutex_;  // guards cb_*
   Callback cb_read_, cb_write_;

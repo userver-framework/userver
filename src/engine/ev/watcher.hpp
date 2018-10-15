@@ -2,16 +2,17 @@
 
 #include <ev.h>
 
-#include "ev/thread_control.hpp"
-#include "future.hpp"
+#include <engine/future.hpp>
+#include "thread_control.hpp"
 
 namespace engine {
+namespace ev {
 
 template <typename EvType>
-class Watcher : public ev::ThreadControl {
+class Watcher : public ThreadControl {
  public:
   template <typename Obj>
-  Watcher(const ev::ThreadControl& thread_control, Obj* data);
+  Watcher(const ThreadControl& thread_control, Obj* data);
   virtual ~Watcher();
 
   void Init(void (*cb)(struct ev_loop*, ev_async*, int));
@@ -60,8 +61,8 @@ class Watcher : public ev::ThreadControl {
 
 template <typename EvType>
 template <typename Obj>
-Watcher<EvType>::Watcher(const ev::ThreadControl& thread_control, Obj* data)
-    : ev::ThreadControl(thread_control), is_running_(false) {
+Watcher<EvType>::Watcher(const ThreadControl& thread_control, Obj* data)
+    : ThreadControl(thread_control), is_running_(false) {
   w_.data = static_cast<void*>(data);
 }
 
@@ -112,4 +113,5 @@ void Watcher<EvType>::CallInEvLoop() {
   future.get();
 }
 
+}  // namespace ev
 }  // namespace engine

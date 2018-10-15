@@ -5,7 +5,7 @@
 namespace engine {
 namespace ev {
 
-IoWatcher::IoWatcher(engine::ev::ThreadControl& thread_control)
+IoWatcher::IoWatcher(ThreadControl& thread_control)
     : fd_(-1),
       watcher_read_(thread_control, this),
       watcher_write_(thread_control, this) {}
@@ -100,7 +100,7 @@ void IoWatcher::Cancel() {
   LOG_TRACE() << "IoWatcher::Cancel (3)";
 }
 
-void IoWatcher::CancelSingle(engine::Watcher<ev_io>& watcher, Callback& cb) {
+void IoWatcher::CancelSingle(Watcher<ev_io>& watcher, Callback& cb) {
   Callback cb_local;
   {
     std::lock_guard<std::mutex> lock(mutex_);
