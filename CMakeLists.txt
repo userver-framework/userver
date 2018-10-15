@@ -33,6 +33,7 @@ add_subdirectory(src)
 add_subdirectory(tools/engine)
 add_subdirectory(tools/httpclient)
 add_subdirectory(tools/redisclient)
+add_subdirectory(tools/netcat)
 
 set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Enable testing")
 set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Enable parse tools")

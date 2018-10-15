@@ -18,6 +18,7 @@ class IoWatcher {
    */
   void SetFd(int fd);
 
+  bool HasFd() const;
   int GetFd() const;
 
   /* Return current fd without calling close(2) on it; after the call IoWatcher
@@ -30,13 +31,12 @@ class IoWatcher {
   void WriteAsync(Callback cb);
 
   void Cancel();
+  void CloseFd();
 
  private:
   void Start();
   void Stop();
   void Loop();
-
-  void CloseFd();
 
   static void OnEventRead(struct ev_loop* loop, ev_io* io, int events);
   static void OnEventWrite(struct ev_loop* loop, ev_io* io, int events);

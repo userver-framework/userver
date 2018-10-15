@@ -22,6 +22,7 @@ void IoWatcher::SetFd(int fd) {
   fd_ = fd;
 }
 
+bool IoWatcher::HasFd() const { return fd_ != -1; }
 int IoWatcher::GetFd() const { return fd_; }
 
 int IoWatcher::Release() { return std::exchange(fd_, -1); }

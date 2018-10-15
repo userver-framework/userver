@@ -9,5 +9,5 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 add_executable (${PROJECT_NAME} ${SOURCES})
 target_link_libraries (${PROJECT_NAME}
     yandex-taxi-userver+standalone_engine
-    ${Boost_PROGRAM_OPTIONS_LIBRARIES}
-    ${JEMALLOC_LIBRARIES})
+    Boost::program_options
+)

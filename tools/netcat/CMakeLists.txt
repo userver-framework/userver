@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.8)
 
-project (httpclient_perf)
+project (netcat)
 
 file (GLOB_RECURSE SOURCES *.cpp)
 
