@@ -49,7 +49,7 @@ INSTANTIATE_TEST_CASE_P(
     PrintMethodsDataTestName);
 
 TEST_P(HttpRequestParser, Methods) {
-  TestInCoro([this]() {
+  RunInCoro([this]() {
     server::http::HandlerInfoIndex handler_info_index;
     server::request::RequestConfig request_config({}, "<test_config>", {});
     const auto& param = GetParam();

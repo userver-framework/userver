@@ -16,18 +16,18 @@ const auto kSlowRatio = 5;
 }  // namespace
 
 TEST(PeriodicTask, Noop) {
-  TestInCoro([] { utils::PeriodicTask task; });
+  RunInCoro([] { utils::PeriodicTask task; });
 }
 
 TEST(PeriodicTask, StopWithoutStart) {
-  TestInCoro([] {
+  RunInCoro([] {
     utils::PeriodicTask task;
     task.Stop();
   });
 }
 
 TEST(PeriodicTask, StartStop) {
-  TestInCoro([] {
+  RunInCoro([] {
     utils::PeriodicTask task("task", std::chrono::milliseconds(100),
                              [](tracing::Span&&) {});
 
@@ -68,7 +68,7 @@ struct SimpleTaskData {
 }  // namespace
 
 TEST(PeriodicTask, SingleRun) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     utils::PeriodicTask task("task", std::chrono::milliseconds(10),
@@ -80,7 +80,7 @@ TEST(PeriodicTask, SingleRun) {
 }
 
 TEST(PeriodicTask, MultipleRun) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     auto period = std::chrono::milliseconds(3);
@@ -94,7 +94,7 @@ TEST(PeriodicTask, MultipleRun) {
 }
 
 TEST(PeriodicTask, Period) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     auto period = std::chrono::milliseconds(3);
@@ -114,7 +114,7 @@ TEST(PeriodicTask, Period) {
 }
 
 TEST(PeriodicTask, Slow) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     simple.sleep_ms = 10;
@@ -136,7 +136,7 @@ TEST(PeriodicTask, Slow) {
 }
 
 TEST(PeriodicTask, Strong) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     simple.sleep_ms = 30;
@@ -160,7 +160,7 @@ TEST(PeriodicTask, Strong) {
 }
 
 TEST(PeriodicTask, Now) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     auto period = std::chrono::milliseconds(10);
@@ -177,7 +177,7 @@ TEST(PeriodicTask, Now) {
 }
 
 TEST(PeriodicTask, NotNow) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     auto period = std::chrono::milliseconds(50);
@@ -191,7 +191,7 @@ TEST(PeriodicTask, NotNow) {
 }
 
 TEST(PeriodicTask, ExceptionPeriod) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
     simple.throw_exception = true;
 
@@ -209,7 +209,7 @@ TEST(PeriodicTask, ExceptionPeriod) {
 }
 
 TEST(PeriodicTask, SetSettings) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     auto period1 = std::chrono::milliseconds(50);
@@ -231,7 +231,7 @@ TEST(PeriodicTask, SetSettings) {
 }
 
 TEST(PeriodicTask, StopStop) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     auto period = std::chrono::milliseconds(5);
@@ -244,7 +244,7 @@ TEST(PeriodicTask, StopStop) {
 }
 
 TEST(PeriodicTask, StopDefault) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     utils::PeriodicTask task;
@@ -253,7 +253,7 @@ TEST(PeriodicTask, StopDefault) {
 }
 
 TEST(PeriodicTask, Restart) {
-  TestInCoro([] {
+  RunInCoro([] {
     SimpleTaskData simple;
 
     auto period = std::chrono::milliseconds(10);

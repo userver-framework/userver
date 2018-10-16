@@ -17,13 +17,15 @@ file(GLOB_RECURSE UNIT_TEST_SOURCES
 
 file(GLOB_RECURSE LIBUTEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.hpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.hpp
+)
 
-list (REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${LIBUTEST_SOURCES})
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${LIBUTEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*_benchmark.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
+)
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
 
@@ -160,10 +162,11 @@ target_include_directories(${PROJECT_NAME}_benchmark SYSTEM PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME}_benchmark
-  atomic
-  -Wl,--start-group
-  ${PROJECT_NAME}
-  yandex-taxi-backend-common-cpp
-  -Wl,--end-group
-  ${GBENCH_LIBRARIES}
+  PUBLIC
+    atomic
+    -Wl,--start-group
+        ${PROJECT_NAME}+standalone_engine
+        yandex-taxi-backend-common-cpp
+    -Wl,--end-group
+    ${GBENCH_LIBRARIES}
 )

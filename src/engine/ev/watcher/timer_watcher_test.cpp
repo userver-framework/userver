@@ -4,7 +4,7 @@
 #include "timer_watcher.hpp"
 
 TEST(TimerWatcher, SingleShot) {
-  TestInCoro([]() {
+  RunInCoro([]() {
     engine::ev::Thread thread("test_thread");
     engine::ev::ThreadControl thread_control(thread);
 
@@ -35,7 +35,7 @@ TEST(TimerWatcher, SingleShot) {
 }
 
 TEST(TimerWatcher, Cancel) {
-  TestInCoro([]() {
+  RunInCoro([]() {
     engine::ev::Thread thread("test_thread");
     engine::ev::ThreadControl thread_control(thread);
 
@@ -67,7 +67,7 @@ TEST(TimerWatcher, Cancel) {
 }
 
 TEST(TimerWatcher, CancelAfterExpire) {
-  TestInCoro([]() {
+  RunInCoro([]() {
     engine::ev::Thread thread("test_thread");
     engine::ev::ThreadControl thread_control(thread);
 
@@ -105,7 +105,7 @@ TEST(TimerWatcher, CancelAfterExpire) {
 }
 
 TEST(TimerWatcher, CreateAndCancel) {
-  TestInCoro([]() {
+  RunInCoro([]() {
     engine::ev::Thread thread("test_thread");
     engine::ev::ThreadControl thread_control(thread);
 

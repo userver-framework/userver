@@ -6,7 +6,7 @@
 #include "logging/log.hpp"
 
 TEST(IoWatcher, DevNull) {
-  TestInCoro([]() {
+  RunInCoro([]() {
     LOG_DEBUG() << "Opening /dev/null";
     engine::ev::Thread thread("test_thread");
     engine::ev::ThreadControl thread_control(thread);

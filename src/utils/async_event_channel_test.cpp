@@ -16,7 +16,7 @@ class Subscriber {
 };
 
 TEST(AsyncEventChannel, Publish) {
-  TestInCoro([]() {
+  RunInCoro([]() {
     utils::AsyncEventChannel<int> channel;
 
     int value{0};
@@ -35,7 +35,7 @@ TEST(AsyncEventChannel, Publish) {
 }
 
 TEST(AsyncEventChannel, Unsubscribe) {
-  TestInCoro([]() {
+  RunInCoro([]() {
     utils::AsyncEventChannel<int> channel;
 
     int value{0};
@@ -55,7 +55,7 @@ TEST(AsyncEventChannel, Unsubscribe) {
 }
 
 TEST(AsyncEventChannel, PublishTwoSubscribers) {
-  TestInCoro([]() {
+  RunInCoro([]() {
     utils::AsyncEventChannel<int> channel;
 
     int value1{0}, value2{0};
