@@ -34,8 +34,12 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
   } catch (const http::HttpException& ex) {
     formats::json::ValueBuilder response_json(formats::json::Type::kObject);
 
-    const auto& error = ex.GetExternalErrorBody();
-    if (!error.empty()) response_json["error"] = error;
+    auto status = ex.GetStatus();
+    response_json["code"] = static_cast<int>(status);
+    response_json["error"] = HttpStatusString(status);
+
+    const auto& error_message = ex.GetExternalErrorBody();
+    if (!error_message.empty()) response_json["message"] = error_message;
 
     throw http::HttpException(
         ex.GetStatus(), ex.what(),
