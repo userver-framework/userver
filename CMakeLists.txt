@@ -15,12 +15,19 @@ set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 check_submodule(${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp CMakeLists.txt)
 add_subdirectory(backend-common-cpp)
 
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Enable testing")
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Enable parse tools")
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Enable contrib stuff in library")
+set(YAML_CPP_SOURCE_DIR ${USERVER_THIRD_PARTY_DIRS}/yaml-cpp)
+add_subdirectory(${YAML_CPP_SOURCE_DIR})
+
 # For logger
 find_package(ExternalProjectSpdlog)
 target_include_directories(
   yandex-taxi-backend-common-cpp
   PUBLIC
     include/
+    ${YAML_CPP_SOURCE_DIR}/include
     # TODO: flatbuffers should have public include in their CMakeLists.txt
     backend-common-cpp/third_party/flatbuffers/include/
   PRIVATE
@@ -34,8 +41,3 @@ add_subdirectory(tools/engine)
 add_subdirectory(tools/httpclient)
 add_subdirectory(tools/redisclient)
 add_subdirectory(tools/netcat)
-
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Enable testing")
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Enable parse tools")
-set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Enable contrib stuff in library")
-add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/yaml-cpp)

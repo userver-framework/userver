@@ -3,9 +3,9 @@
 #include <cstdint>
 
 #include <boost/optional.hpp>
-#include <formats/json/value.hpp>
+#include <formats/yaml.hpp>
 
-#include <json_config/variable_map.hpp>
+#include <yaml_config/variable_map.hpp>
 
 #include "connection_config.hpp"
 
@@ -20,9 +20,9 @@ struct ListenerConfig {
   boost::optional<size_t> shards;
   std::string task_processor;
 
-  static ListenerConfig ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr);
+  static ListenerConfig ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 
 }  // namespace net

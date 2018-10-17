@@ -3,10 +3,10 @@
 #include <memory>
 #include <string>
 
-#include <formats/json/value.hpp>
+#include <formats/yaml.hpp>
 
-#include <json_config/variable_map.hpp>
 #include <server/request/request_config.hpp>
+#include <yaml_config/variable_map.hpp>
 
 namespace server {
 namespace net {
@@ -16,9 +16,9 @@ struct ConnectionConfig {
   size_t requests_queue_size_threshold = 100;
   std::unique_ptr<request::RequestConfig> request;
 
-  static ConnectionConfig ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr);
+  static ConnectionConfig ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 
 }  // namespace net

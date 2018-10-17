@@ -4,8 +4,8 @@
 #include <vector>
 
 #include <components/component_config.hpp>
-#include <formats/json/value.hpp>
-#include <json_config/variable_map.hpp>
+#include <formats/yaml.hpp>
+#include <yaml_config/variable_map.hpp>
 
 #include <engine/coro/pool_config.hpp>
 #include <engine/ev/thread_pool_config.hpp>
@@ -20,12 +20,12 @@ struct ManagerConfig {
   std::vector<engine::TaskProcessorConfig> task_processors;
   std::string default_task_processor;
 
-  formats::json::Value json;  // the owner
-  json_config::VariableMapPtr config_vars_ptr;
+  formats::yaml::Node yaml;  // the owner
+  yaml_config::VariableMapPtr config_vars_ptr;
 
-  static ManagerConfig ParseFromJson(
-      formats::json::Value json, const std::string& name,
-      json_config::VariableMapPtr config_vars_ptr);
+  static ManagerConfig ParseFromYaml(
+      formats::yaml::Node yaml, const std::string& name,
+      yaml_config::VariableMapPtr config_vars_ptr);
 
   static ManagerConfig ParseFromString(const std::string&);
   static ManagerConfig ParseFromFile(const std::string& path);

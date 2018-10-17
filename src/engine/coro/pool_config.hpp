@@ -2,9 +2,9 @@
 
 #include <string>
 
-#include <formats/json.hpp>
+#include <formats/yaml.hpp>
 
-#include <json_config/variable_map.hpp>
+#include <yaml_config/variable_map.hpp>
 
 namespace engine {
 namespace coro {
@@ -13,9 +13,9 @@ struct PoolConfig {
   size_t initial_size = 1000;
   size_t max_size = 10000;
 
-  static PoolConfig ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr);
+  static PoolConfig ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 
 }  // namespace coro

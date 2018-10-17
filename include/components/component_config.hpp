@@ -4,23 +4,23 @@
 #include <string>
 #include <unordered_map>
 
-#include <formats/json/value.hpp>
+#include <formats/yaml.hpp>
 
-#include <json_config/json_config.hpp>
-#include <json_config/variable_map.hpp>
+#include <yaml_config/variable_map.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 namespace components {
 
-class ComponentConfig : public json_config::JsonConfig {
+class ComponentConfig : public yaml_config::YamlConfig {
  public:
-  ComponentConfig(formats::json::Value json, std::string full_path,
-                  json_config::VariableMapPtr config_vars_ptr);
+  ComponentConfig(formats::yaml::Node yaml, std::string full_path,
+                  yaml_config::VariableMapPtr config_vars_ptr);
 
   const std::string& Name() const;
 
-  static ComponentConfig ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr);
+  static ComponentConfig ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
 
  private:
   std::string name_;

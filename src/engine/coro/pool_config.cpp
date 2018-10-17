@@ -1,18 +1,18 @@
 #include "pool_config.hpp"
 
-#include <json_config/value.hpp>
+#include <yaml_config/value.hpp>
 
 namespace engine {
 namespace coro {
 
-PoolConfig PoolConfig::ParseFromJson(
-    const formats::json::Value& json, const std::string& full_path,
-    const json_config::VariableMapPtr& config_vars_ptr) {
+PoolConfig PoolConfig::ParseFromYaml(
+    const formats::yaml::Node& yaml, const std::string& full_path,
+    const yaml_config::VariableMapPtr& config_vars_ptr) {
   PoolConfig config;
-  config.initial_size = json_config::ParseUint64(json, "initial_size",
+  config.initial_size = yaml_config::ParseUint64(yaml, "initial_size",
                                                  full_path, config_vars_ptr);
   config.max_size =
-      json_config::ParseUint64(json, "max_size", full_path, config_vars_ptr);
+      yaml_config::ParseUint64(yaml, "max_size", full_path, config_vars_ptr);
   return config;
 }
 

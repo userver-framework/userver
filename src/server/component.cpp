@@ -12,7 +12,7 @@ const auto kStatisticsName = "server";
 Server::Server(const components::ComponentConfig& component_config,
                const components::ComponentContext& component_context)
     : server_(std::make_unique<server::Server>(
-          server::ServerConfig::ParseFromJson(component_config.Json(),
+          server::ServerConfig::ParseFromYaml(component_config.Yaml(),
                                               component_config.FullPath(),
                                               component_config.ConfigVarsPtr()),
           component_context)),

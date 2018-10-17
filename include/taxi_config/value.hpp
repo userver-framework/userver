@@ -8,9 +8,9 @@
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/optional.hpp>
 
-#include <json_config/value.hpp>
 #include <storages/mongo/mongo.hpp>
 #include <utils/meta.hpp>
+#include <yaml_config/value.hpp>
 
 namespace taxi_config {
 

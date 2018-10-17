@@ -6,11 +6,11 @@
 
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
-#include <json_config/value.hpp>
 #include <utils/demangle.hpp>
+#include <yaml_config/value.hpp>
 #include "exceptions.hpp"
 
-#include <json_config/value.hpp>
+#include <yaml_config/value.hpp>
 
 namespace storages {
 namespace secdist {

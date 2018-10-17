@@ -2,66 +2,56 @@
 
 #include <fstream>
 
-#include <formats/json/exception.hpp>
-#include <formats/json/serialize.hpp>
-
-#include <json_config/value.hpp>
+#include <yaml_config/value.hpp>
 
 namespace components {
 
 namespace {
-
-formats::json::Value Parse(std::istream& is) {
-  return formats::json::FromStream(is);
-}
-formats::json::Value Parse(const std::string& str) {
-  return formats::json::FromString(str);
-}
 
 template <typename T>
 ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
   static const std::string kConfigVarsField = "config_vars";
   static const std::string kManagerConfigField = "components_manager";
 
-  formats::json::Value config_json;
+  formats::yaml::Node config_yaml;
   try {
-    config_json = Parse(source);
-  } catch (const formats::json::JsonException& e) {
+    config_yaml = formats::yaml::Load(source);
+  } catch (const formats::yaml::Exception& e) {
     throw std::runtime_error("Cannot parse config from '" + source_desc +
                              "': " + e.what());
   }
 
-  auto config_vars_path = json_config::ParseOptionalString(
-      config_json, kConfigVarsField, kConfigVarsField, {});
-  json_config::VariableMapPtr config_vars_ptr;
+  auto config_vars_path = yaml_config::ParseOptionalString(
+      config_yaml, kConfigVarsField, kConfigVarsField, {});
+  yaml_config::VariableMapPtr config_vars_ptr;
   if (config_vars_path) {
-    config_vars_ptr = std::make_shared<json_config::VariableMap>(
-        json_config::VariableMap::ParseFromFile(*config_vars_path));
+    config_vars_ptr = std::make_shared<yaml_config::VariableMap>(
+        yaml_config::VariableMap::ParseFromFile(*config_vars_path));
   }
-  return ManagerConfig::ParseFromJson(
-      std::move(config_json), kManagerConfigField, std::move(config_vars_ptr));
+  return ManagerConfig::ParseFromYaml(
+      std::move(config_yaml), kManagerConfigField, std::move(config_vars_ptr));
 }
 
 }  // namespace
 
-ManagerConfig ManagerConfig::ParseFromJson(
-    formats::json::Value json, const std::string& name,
-    json_config::VariableMapPtr config_vars_ptr) {
+ManagerConfig ManagerConfig::ParseFromYaml(
+    formats::yaml::Node yaml, const std::string& name,
+    yaml_config::VariableMapPtr config_vars_ptr) {
   ManagerConfig config;
-  config.json = std::move(json);
+  config.yaml = std::move(yaml);
   config.config_vars_ptr = config_vars_ptr;
 
-  const auto& value = config.json[name];
+  const auto& value = config.yaml[name];
 
-  config.coro_pool = engine::coro::PoolConfig::ParseFromJson(
+  config.coro_pool = engine::coro::PoolConfig::ParseFromYaml(
       value["coro_pool"], name + ".coro_pool", config_vars_ptr);
-  config.event_thread_pool = engine::ev::ThreadPoolConfig::ParseFromJson(
+  config.event_thread_pool = engine::ev::ThreadPoolConfig::ParseFromYaml(
       value["event_thread_pool"], name + ".event_thread_pool", config_vars_ptr);
-  config.components = json_config::ParseArray<components::ComponentConfig>(
+  config.components = yaml_config::ParseArray<components::ComponentConfig>(
       value, "components", name, config_vars_ptr);
-  config.task_processors = json_config::ParseArray<engine::TaskProcessorConfig>(
+  config.task_processors = yaml_config::ParseArray<engine::TaskProcessorConfig>(
       value, "task_processors", name, config_vars_ptr);
-  config.default_task_processor = json_config::ParseString(
+  config.default_task_processor = yaml_config::ParseString(
       value, "default_task_processor", name, config_vars_ptr);
   return config;
 }

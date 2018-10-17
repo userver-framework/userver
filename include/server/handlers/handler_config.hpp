@@ -3,9 +3,9 @@
 #include <string>
 
 #include <boost/optional.hpp>
-#include <formats/json/value.hpp>
+#include <formats/yaml.hpp>
 
-#include <json_config/variable_map.hpp>
+#include <yaml_config/variable_map.hpp>
 
 namespace server {
 namespace handlers {
@@ -19,9 +19,9 @@ struct HandlerConfig {
   boost::optional<size_t> max_headers_size;
   boost::optional<bool> parse_args_from_body;
 
-  static HandlerConfig ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr);
+  static HandlerConfig ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 
 }  // namespace handlers

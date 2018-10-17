@@ -5,7 +5,6 @@
 
 #include <components/statistics_storage.hpp>
 #include <formats/json/value_builder.hpp>
-#include <json_config/value.hpp>
 #include <logging/log.hpp>
 #include <redis/reply.hpp>
 #include <redis/sentinel.hpp>
@@ -15,6 +14,7 @@
 #include <storages/secdist/secdist.hpp>
 #include <utils/statistics.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
+#include <yaml_config/value.hpp>
 
 #include "redis_config.hpp"
 #include "redis_secdist.hpp"
@@ -126,16 +126,16 @@ struct RedisGroup {
   std::string config_name;
   std::string sharding_strategy;
 
-  static RedisGroup ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr) {
+  static RedisGroup ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr) {
     RedisGroup config;
     config.db =
-        json_config::ParseString(json, "db", full_path, config_vars_ptr);
-    config.config_name = json_config::ParseString(json, "config_name",
+        yaml_config::ParseString(yaml, "db", full_path, config_vars_ptr);
+    config.config_name = yaml_config::ParseString(yaml, "config_name",
                                                   full_path, config_vars_ptr);
     config.sharding_strategy =
-        json_config::ParseOptionalString(json, "sharding_strategy", full_path,
+        yaml_config::ParseOptionalString(yaml, "sharding_strategy", full_path,
                                          config_vars_ptr)
             .value_or("");
     return config;
@@ -146,14 +146,14 @@ struct RedisPools {
   int sentinel_thread_pool_size;
   int redis_thread_pool_size;
 
-  static RedisPools ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr) {
+  static RedisPools ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr) {
     RedisPools pools;
-    pools.sentinel_thread_pool_size = json_config::ParseInt(
-        json, "sentinel_thread_pool_size", full_path, config_vars_ptr);
-    pools.redis_thread_pool_size = json_config::ParseInt(
-        json, "redis_thread_pool_size", full_path, config_vars_ptr);
+    pools.sentinel_thread_pool_size = yaml_config::ParseInt(
+        yaml, "sentinel_thread_pool_size", full_path, config_vars_ptr);
+    pools.redis_thread_pool_size = yaml_config::ParseInt(
+        yaml, "redis_thread_pool_size", full_path, config_vars_ptr);
     return pools;
   }
 };
@@ -190,16 +190,16 @@ void Redis::Connect(const ComponentConfig& config,
     throw std::runtime_error("secdist component not found");
   }
 
-  const RedisPools& redis_pools = RedisPools::ParseFromJson(
-      config.Json()["thread_pools"], config.FullPath() + ".thread_pools",
+  const RedisPools& redis_pools = RedisPools::ParseFromYaml(
+      config.Yaml()["thread_pools"], config.FullPath() + ".thread_pools",
       config.ConfigVarsPtr());
 
   thread_pools_ = std::make_shared<redis::ThreadPools>(
       redis_pools.sentinel_thread_pool_size,
       redis_pools.redis_thread_pool_size);
 
-  std::vector<RedisGroup> redis_groups = json_config::ParseArray<RedisGroup>(
-      config.Json(), "groups", config.FullPath(), config.ConfigVarsPtr());
+  std::vector<RedisGroup> redis_groups = yaml_config::ParseArray<RedisGroup>(
+      config.Yaml(), "groups", config.FullPath(), config.ConfigVarsPtr());
   for (const RedisGroup& redis_group : redis_groups) {
     std::shared_ptr<redis::Sentinel> client;
     ::secdist::RedisSettings settings;

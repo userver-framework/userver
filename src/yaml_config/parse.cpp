@@ -1,6 +1,6 @@
-#include <json_config/parse.hpp>
+#include <yaml_config/parse.hpp>
 
-namespace json_config {
+namespace yaml_config {
 
 ParseError::ParseError(const std::string& full_path, const std::string& name,
                        const std::string& type)
@@ -14,117 +14,120 @@ namespace {
 
 enum class ValueKind { kOptional, kRequired };
 
-boost::optional<int> ParseIntImpl(const formats::json::Value& obj,
+boost::optional<int> ParseIntImpl(const formats::yaml::Node& obj,
                                   const std::string& name,
                                   const std::string& full_path,
                                   ValueKind kind) {
   const auto& value = obj[name];
-  if (kind == ValueKind::kOptional && value.isNull()) {
+  if (kind == ValueKind::kOptional && !value) {
     return {};
   }
-  CheckIsObject(obj, full_path);
-  if (!value.isInt()) {
+  CheckIsMap(obj, full_path);
+  try {
+    return value.as<int>();
+  } catch (formats::yaml::Exception&) {
     throw ParseError(full_path, name, "int");
   }
-  return value.asInt();
 }
 
-boost::optional<bool> ParseBoolImpl(const formats::json::Value& obj,
+boost::optional<bool> ParseBoolImpl(const formats::yaml::Node& obj,
                                     const std::string& name,
                                     const std::string& full_path,
                                     ValueKind kind) {
   const auto& value = obj[name];
-  if (kind == ValueKind::kOptional && value.isNull()) {
+  if (kind == ValueKind::kOptional && !value) {
     return {};
   }
-  CheckIsObject(obj, full_path);
-  if (!value.isBool()) {
+  CheckIsMap(obj, full_path);
+  try {
+    return value.as<bool>();
+  } catch (formats::yaml::Exception&) {
     throw ParseError(full_path, name, "bool");
   }
-  return value.asBool();
 }
 
-boost::optional<uint64_t> ParseUint64Impl(const formats::json::Value& obj,
+boost::optional<uint64_t> ParseUint64Impl(const formats::yaml::Node& obj,
                                           const std::string& name,
                                           const std::string& full_path,
                                           ValueKind kind) {
   const auto& value = obj[name];
-  if (kind == ValueKind::kOptional && value.isNull()) {
+  if (kind == ValueKind::kOptional && !value) {
     return {};
   }
-  CheckIsObject(obj, full_path);
-  if (!value.isUInt64()) {
+  CheckIsMap(obj, full_path);
+  try {
+    return value.as<uint64_t>();
+  } catch (formats::yaml::Exception&) {
     throw ParseError(full_path, name, "uint64");
   }
-  return value.asUInt64();
 }
 
-boost::optional<std::string> ParseStringImpl(const formats::json::Value& obj,
+boost::optional<std::string> ParseStringImpl(const formats::yaml::Node& obj,
                                              const std::string& name,
                                              const std::string& full_path,
                                              ValueKind kind) {
   const auto& value = obj[name];
-  if (kind == ValueKind::kOptional && value.isNull()) {
+  if (kind == ValueKind::kOptional && !value) {
     return {};
   }
-  CheckIsObject(obj, full_path);
-  if (!value.isString()) {
+  CheckIsMap(obj, full_path);
+  try {
+    return value.as<std::string>();
+  } catch (formats::yaml::Exception&) {
     throw ParseError(full_path, name, "string");
   }
-  return value.asString();
 }
 
 }  // namespace
 
-void CheckIsObject(const formats::json::Value& obj,
-                   const std::string& full_path) {
-  if (!obj.isObject()) throw ParseError({}, full_path, "object");
+void CheckIsMap(const formats::yaml::Node& obj, const std::string& full_path) {
+  if (!obj.IsMap()) throw ParseError({}, full_path, "map");
 }
 
-int ParseInt(const formats::json::Value& obj, const std::string& name,
+int ParseInt(const formats::yaml::Node& obj, const std::string& name,
              const std::string& full_path) {
   return *ParseIntImpl(obj, name, full_path, ValueKind::kRequired);
 }
 
-bool ParseBool(const formats::json::Value& obj, const std::string& name,
+bool ParseBool(const formats::yaml::Node& obj, const std::string& name,
                const std::string& full_path) {
   return *ParseBoolImpl(obj, name, full_path, ValueKind::kRequired);
 }
 
-uint64_t ParseUint64(const formats::json::Value& obj, const std::string& name,
+uint64_t ParseUint64(const formats::yaml::Node& obj, const std::string& name,
                      const std::string& full_path) {
   return *ParseUint64Impl(obj, name, full_path, ValueKind::kRequired);
 }
 
-std::string ParseString(const formats::json::Value& obj,
-                        const std::string& name, const std::string& full_path) {
+std::string ParseString(const formats::yaml::Node& obj, const std::string& name,
+                        const std::string& full_path) {
   return std::move(
       *ParseStringImpl(obj, name, full_path, ValueKind::kRequired));
 }
 
-boost::optional<int> ParseOptionalInt(const formats::json::Value& obj,
+boost::optional<int> ParseOptionalInt(const formats::yaml::Node& obj,
                                       const std::string& name,
                                       const std::string& full_path) {
   return ParseIntImpl(obj, name, full_path, ValueKind::kOptional);
 }
 
-boost::optional<bool> ParseOptionalBool(const formats::json::Value& obj,
+boost::optional<bool> ParseOptionalBool(const formats::yaml::Node& obj,
                                         const std::string& name,
                                         const std::string& full_path) {
   return ParseBoolImpl(obj, name, full_path, ValueKind::kOptional);
 }
 
-boost::optional<uint64_t> ParseOptionalUint64(const formats::json::Value& obj,
+boost::optional<uint64_t> ParseOptionalUint64(const formats::yaml::Node& obj,
                                               const std::string& name,
                                               const std::string& full_path) {
   return ParseUint64Impl(obj, name, full_path, ValueKind::kOptional);
 }
 
-boost::optional<std::string> ParseOptionalString(
-    const formats::json::Value& obj, const std::string& name,
-    const std::string& full_path) {
+boost::optional<std::string> ParseOptionalString(const formats::yaml::Node& obj,
+                                                 const std::string& name,
+                                                 const std::string& full_path) {
   return ParseStringImpl(obj, name, full_path, ValueKind::kOptional);
 }
 
 }  // namespace impl
-}  // namespace json_config
+}  // namespace yaml_config

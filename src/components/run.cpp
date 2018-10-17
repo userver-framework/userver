@@ -83,9 +83,9 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
             << ex.what();
         continue;
       }
-      if (new_config->json == manager_ptr->GetConfig().json &&
-          new_config->config_vars_ptr->Json() ==
-              manager_ptr->GetConfig().config_vars_ptr->Json()) {
+      if (new_config->yaml == manager_ptr->GetConfig().yaml &&
+          new_config->config_vars_ptr->Yaml() ==
+              manager_ptr->GetConfig().config_vars_ptr->Yaml()) {
         LOG_INFO() << "Config unchanged, ignoring request";
         continue;
       }

@@ -9,10 +9,10 @@
 
 #include <spdlog/async.h>
 
-#include <json_config/value.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
 #include <logging/reopening_file_sink.hpp>
+#include <yaml_config/value.hpp>
 
 #include "config.hpp"
 
@@ -24,17 +24,17 @@ std::chrono::seconds kDefaultFlushInterval{2};
 }  // namespace
 
 Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
-  auto loggers = config.Json()["loggers"];
+  auto loggers = config.Yaml()["loggers"];
   auto loggers_full_path = config.FullPath() + ".loggers";
-  json_config::CheckIsObject(loggers, loggers_full_path);
+  yaml_config::CheckIsMap(loggers, loggers_full_path);
 
   for (auto it = loggers.begin(); it != loggers.end(); ++it) {
-    auto logger_name = it.GetName();
+    auto logger_name = it->first.as<std::string>();
     auto logger_full_path = loggers_full_path + '.' + logger_name;
     bool is_default_logger = logger_name == "default";
 
-    auto logger_config = logging::LoggerConfig::ParseFromJson(
-        *it, logger_full_path, config.ConfigVarsPtr());
+    auto logger_config = logging::LoggerConfig::ParseFromYaml(
+        it->second, logger_full_path, config.ConfigVarsPtr());
 
     auto overflow_policy = spdlog::async_overflow_policy::overrun_oldest;
     if (logger_config.queue_overflow_behavior ==

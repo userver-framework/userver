@@ -68,6 +68,7 @@ target_link_libraries(${PROJECT_NAME}
     sanitize-target
     yandex-taxi-backend-common-cpp
     jsoncpp_lib # FIXME move to private in TAXICOMMON-15
+    yaml-cpp
     libopentracing
     libjaegertracing
   PRIVATE

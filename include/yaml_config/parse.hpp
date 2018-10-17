@@ -6,11 +6,11 @@
 #include <vector>
 
 #include <boost/optional.hpp>
-#include <formats/json.hpp>
+#include <formats/yaml.hpp>
 
 #include "variable_map.hpp"
 
-namespace json_config {
+namespace yaml_config {
 
 class ParseError : public std::runtime_error {
  public:
@@ -20,45 +20,44 @@ class ParseError : public std::runtime_error {
 
 namespace impl {
 
-void CheckIsObject(const formats::json::Value& obj,
-                   const std::string& full_path);
+void CheckIsMap(const formats::yaml::Node& obj, const std::string& full_path);
 
-boost::optional<int> ParseOptionalInt(const formats::json::Value& obj,
+boost::optional<int> ParseOptionalInt(const formats::yaml::Node& obj,
                                       const std::string& name,
                                       const std::string& full_path);
-boost::optional<bool> ParseOptionalBool(const formats::json::Value& obj,
+boost::optional<bool> ParseOptionalBool(const formats::yaml::Node& obj,
                                         const std::string& name,
                                         const std::string& full_path);
-boost::optional<uint64_t> ParseOptionalUint64(const formats::json::Value& obj,
+boost::optional<uint64_t> ParseOptionalUint64(const formats::yaml::Node& obj,
                                               const std::string& name,
                                               const std::string& full_path);
-boost::optional<std::string> ParseOptionalString(
-    const formats::json::Value& obj, const std::string& name,
-    const std::string& full_path);
+boost::optional<std::string> ParseOptionalString(const formats::yaml::Node& obj,
+                                                 const std::string& name,
+                                                 const std::string& full_path);
 
-int ParseInt(const formats::json::Value& obj, const std::string& name,
+int ParseInt(const formats::yaml::Node& obj, const std::string& name,
              const std::string& full_path);
-bool ParseBool(const formats::json::Value& obj, const std::string& name,
+bool ParseBool(const formats::yaml::Node& obj, const std::string& name,
                const std::string& full_path);
-uint64_t ParseUint64(const formats::json::Value& obj, const std::string& name,
+uint64_t ParseUint64(const formats::yaml::Node& obj, const std::string& name,
                      const std::string& full_path);
-std::string ParseString(const formats::json::Value& obj,
-                        const std::string& name, const std::string& full_path);
+std::string ParseString(const formats::yaml::Node& obj, const std::string& name,
+                        const std::string& full_path);
 
 template <typename T>
 inline boost::optional<std::vector<T>> ParseOptionalArray(
-    const formats::json::Value& obj, const std::string& name,
+    const formats::yaml::Node& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   const auto& value = obj[name];
-  if (!value.isArray()) {
+  if (!value.IsSequence()) {
     return {};
   }
 
   std::vector<T> parsed_array;
-  auto size = value.GetSize();
+  auto size = value.size();
   parsed_array.reserve(size);
   for (decltype(size) i = 0; i < size; ++i) {
-    parsed_array.emplace_back(T::ParseFromJson(
+    parsed_array.emplace_back(T::ParseFromYaml(
         value[i], full_path + '.' + name + '[' + std::to_string(i) + ']',
         config_vars_ptr));
   }
@@ -66,7 +65,7 @@ inline boost::optional<std::vector<T>> ParseOptionalArray(
 }
 
 template <typename T>
-inline std::vector<T> ParseArray(const formats::json::Value& obj,
+inline std::vector<T> ParseArray(const formats::yaml::Node& obj,
                                  const std::string& name,
                                  const std::string& full_path,
                                  const VariableMapPtr& config_vars_ptr) {
@@ -79,4 +78,4 @@ inline std::vector<T> ParseArray(const formats::json::Value& obj,
 }
 
 }  // namespace impl
-}  // namespace json_config
+}  // namespace yaml_config

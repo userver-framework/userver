@@ -4,18 +4,18 @@
 #include <string>
 
 #include <boost/optional.hpp>
-#include <formats/json/value.hpp>
+#include <formats/yaml.hpp>
 
 #include "variable_map.hpp"
 
-namespace json_config {
+namespace yaml_config {
 
-class JsonConfig {
+class YamlConfig {
  public:
-  JsonConfig(formats::json::Value json, std::string full_path,
+  YamlConfig(formats::yaml::Node yaml, std::string full_path,
              VariableMapPtr config_vars_ptr);
 
-  const formats::json::Value& Json() const;
+  const formats::yaml::Node& Yaml() const;
   const std::string& FullPath() const;
   const VariableMapPtr& ConfigVarsPtr() const;
 
@@ -35,9 +35,9 @@ class JsonConfig {
       const std::string& name) const;
 
  private:
-  formats::json::Value json_;
+  formats::yaml::Node yaml_;
   std::string full_path_;
   VariableMapPtr config_vars_ptr_;
 };
 
-}  // namespace json_config
+}  // namespace yaml_config

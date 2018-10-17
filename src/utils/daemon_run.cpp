@@ -14,7 +14,7 @@ int DaemonMain(int argc, char** argv,
 
   po::variables_map vm;
   po::options_description desc("Allowed options");
-  std::string config_path = "config_dev.json";
+  std::string config_path = "config_dev.yaml";
   std::string init_log_path;
 
   // clang-format off

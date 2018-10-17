@@ -3,10 +3,10 @@
 #include <string>
 #include <unordered_map>
 
-#include <formats/json/value.hpp>
+#include <formats/yaml.hpp>
 
-#include <json_config/variable_map.hpp>
 #include <logging/level.hpp>
+#include <yaml_config/variable_map.hpp>
 
 namespace logging {
 
@@ -28,9 +28,9 @@ struct LoggerConfig {
 
   size_t thread_pool_size = kDefaultThreadPoolSize;
 
-  static LoggerConfig ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr);
+  static LoggerConfig ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 
 }  // namespace logging

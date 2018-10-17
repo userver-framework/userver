@@ -2,23 +2,23 @@
 
 #include <string>
 
-#include <json_config/json_config.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 namespace server {
 namespace request {
 
-class RequestConfig : public json_config::JsonConfig {
+class RequestConfig : public yaml_config::YamlConfig {
  public:
   enum class Type { kHttp };
 
-  RequestConfig(formats::json::Value json, std::string full_path,
-                json_config::VariableMapPtr config_vars_ptr);
+  RequestConfig(formats::yaml::Node yaml, std::string full_path,
+                yaml_config::VariableMapPtr config_vars_ptr);
 
   const Type& GetType() const;
 
-  static RequestConfig ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr);
+  static RequestConfig ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
 
   static const std::string& TypeToString(Type type);
 

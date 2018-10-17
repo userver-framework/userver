@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <json_config/value.hpp>
+#include <yaml_config/value.hpp>
 
 namespace server {
 namespace request {
@@ -17,18 +17,18 @@ RequestConfig::Type StringToType(const std::string& str) {
 
 }  // namespace
 
-RequestConfig::RequestConfig(formats::json::Value json, std::string full_path,
-                             json_config::VariableMapPtr config_vars_ptr)
-    : json_config::JsonConfig(std::move(json), std::move(full_path),
+RequestConfig::RequestConfig(formats::yaml::Node yaml, std::string full_path,
+                             yaml_config::VariableMapPtr config_vars_ptr)
+    : yaml_config::YamlConfig(std::move(yaml), std::move(full_path),
                               std::move(config_vars_ptr)) {}
 
 const RequestConfig::Type& RequestConfig::GetType() const { return type_; }
 
-RequestConfig RequestConfig::ParseFromJson(
-    const formats::json::Value& json, const std::string& full_path,
-    const json_config::VariableMapPtr& config_vars_ptr) {
-  RequestConfig config(json, full_path, config_vars_ptr);
-  auto type = json_config::ParseOptionalString(json, "type", full_path,
+RequestConfig RequestConfig::ParseFromYaml(
+    const formats::yaml::Node& yaml, const std::string& full_path,
+    const yaml_config::VariableMapPtr& config_vars_ptr) {
+  RequestConfig config(yaml, full_path, config_vars_ptr);
+  auto type = yaml_config::ParseOptionalString(yaml, "type", full_path,
                                                config_vars_ptr);
   if (type) config.type_ = StringToType(*type);
   return config;

@@ -3,9 +3,9 @@
 #include <string>
 
 #include <boost/optional.hpp>
-#include <formats/json/value.hpp>
+#include <formats/yaml.hpp>
 
-#include <json_config/variable_map.hpp>
+#include <yaml_config/variable_map.hpp>
 
 #include <server/net/listener_config.hpp>
 
@@ -17,11 +17,11 @@ struct ServerConfig {
   boost::optional<std::string> logger_access;
   boost::optional<std::string> logger_access_tskv;
 
-  json_config::VariableMapPtr config_vars_ptr;
+  yaml_config::VariableMapPtr config_vars_ptr;
 
-  static ServerConfig ParseFromJson(
-      const formats::json::Value& json, const std::string& full_path,
-      const json_config::VariableMapPtr& config_vars_ptr);
+  static ServerConfig ParseFromYaml(
+      const formats::yaml::Node& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 
 }  // namespace server

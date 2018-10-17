@@ -1,22 +1,22 @@
 #include "task_processor_config.hpp"
 
-#include <json_config/value.hpp>
+#include <yaml_config/value.hpp>
 
 namespace engine {
 
-TaskProcessorConfig TaskProcessorConfig::ParseFromJson(
-    const formats::json::Value& json, const std::string& full_path,
-    const json_config::VariableMapPtr& config_vars_ptr) {
+TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
+    const formats::yaml::Node& yaml, const std::string& full_path,
+    const yaml_config::VariableMapPtr& config_vars_ptr) {
   TaskProcessorConfig config;
   config.name =
-      json_config::ParseString(json, "name", full_path, config_vars_ptr);
-  config.worker_threads = json_config::ParseUint64(json, "worker_threads",
+      yaml_config::ParseString(yaml, "name", full_path, config_vars_ptr);
+  config.worker_threads = yaml_config::ParseUint64(yaml, "worker_threads",
                                                    full_path, config_vars_ptr);
   config.thread_name =
-      json_config::ParseString(json, "thread_name", full_path, config_vars_ptr);
+      yaml_config::ParseString(yaml, "thread_name", full_path, config_vars_ptr);
 
-  auto optional_task_queue_size_threshold = json_config::ParseOptionalUint64(
-      json, "task_queue_size_threshold", full_path, config_vars_ptr);
+  auto optional_task_queue_size_threshold = yaml_config::ParseOptionalUint64(
+      yaml, "task_queue_size_threshold", full_path, config_vars_ptr);
   if (optional_task_queue_size_threshold)
     config.task_queue_size_threshold = *optional_task_queue_size_threshold;
 
