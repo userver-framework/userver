@@ -9,6 +9,7 @@
 
 #include <engine/deadline.hpp>
 #include <engine/mutex.hpp>
+#include <engine/task/task.hpp>
 
 namespace engine {
 
@@ -90,7 +91,11 @@ inline void ConditionVariable::Wait(std::unique_lock<Mutex>& lock) {
 template <typename Predicate>
 void ConditionVariable::Wait(std::unique_lock<Mutex>& lock,
                              Predicate&& predicate) {
+  if (predicate()) return;
+
+  DoWait(lock);
   while (!predicate()) {
+    current_task::AccountSpuriousWakeup();
     DoWait(lock);
   }
 }
@@ -134,6 +139,8 @@ bool ConditionVariable::DoWaitUntil(std::unique_lock<Mutex>& lock,
   while (!predicate_result && status == std::cv_status::no_timeout) {
     status = DoWaitUntil(lock, deadline);
     predicate_result = predicate();
+    if (!predicate_result && status == std::cv_status::no_timeout)
+      current_task::AccountSpuriousWakeup();
   }
   return predicate_result;
 }

@@ -34,7 +34,6 @@ class RequestHandlerBase {
   }
 
  private:
-  const components::ComponentContext& component_context_;
   logging::LoggerPtr logger_access_;
   logging::LoggerPtr logger_access_tskv_;
 };

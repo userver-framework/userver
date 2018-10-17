@@ -99,4 +99,13 @@ engine::TaskProcessor* ComponentContext::GetTaskProcessor(
   return it->second.get();
 }
 
+ComponentContext::TaskProcessorPtrMap ComponentContext::GetTaskProcessorsMap()
+    const {
+  TaskProcessorPtrMap result;
+  for (const auto& it : task_processor_map_)
+    result.emplace(it.first, it.second.get());
+
+  return result;
+}
+
 }  // namespace components

@@ -185,6 +185,7 @@ void TaskContext::RequestCancel(Task::CancellationReason reason) {
                 << " cancelled task with task_id=" << GetTaskIdString(this);
     cancellation_reason_ = reason;
     Wakeup(WakeupSource::kCancelRequest);
+    task_processor_.GetTaskCounter().AccountTaskCancel();
   }
 }
 

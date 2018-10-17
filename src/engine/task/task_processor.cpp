@@ -103,7 +103,11 @@ void TaskProcessor::ProcessTasks() noexcept {
     boost::intrusive_ptr<impl::TaskContext> context(
         [this] {
           impl::TaskContext* buf = nullptr;
-          if (!task_queue_.pop(buf)) {
+          if (task_queue_.pop(buf)) {
+            GetTaskCounter().AccountTaskSwitchFast();
+          } else {
+            GetTaskCounter().AccountTaskSwitchSlow();
+
             std::unique_lock<std::shared_timed_mutex> lock(task_queue_mutex_);
             task_available_cv_.wait(lock, [this, &buf] {
               if (task_queue_.pop(buf)) return true;

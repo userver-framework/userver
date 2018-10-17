@@ -27,6 +27,8 @@ class ComponentContext {
       std::unordered_map<std::string, std::unique_ptr<ComponentBase>>;
   using TaskProcessorMap =
       std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
+  using TaskProcessorPtrMap =
+      std::unordered_map<std::string, engine::TaskProcessor*>;
 
   ComponentContext(const Manager& manager, TaskProcessorMap);
 
@@ -71,6 +73,8 @@ class ComponentContext {
   ComponentMap::const_iterator end() const;
 
   engine::TaskProcessor* GetTaskProcessor(const std::string& name) const;
+
+  TaskProcessorPtrMap GetTaskProcessorsMap() const;
 
   const Manager& GetManager() const;
 

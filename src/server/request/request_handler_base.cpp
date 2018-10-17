@@ -11,8 +11,7 @@ namespace request {
 RequestHandlerBase::RequestHandlerBase(
     const components::ComponentContext& component_context,
     const boost::optional<std::string>& logger_access_component,
-    const boost::optional<std::string>& logger_access_tskv_component)
-    : component_context_(component_context) {
+    const boost::optional<std::string>& logger_access_tskv_component) {
   auto* logging_component =
       component_context.FindComponent<components::Logging>(
           components::Logging::kName);
@@ -41,11 +40,6 @@ RequestHandlerBase::RequestHandlerBase(
   } else {
     LOG_INFO() << "Access_tskv log component is empty";
   }
-}
-
-const components::ComponentContext& RequestHandlerBase::GetComponentContext()
-    const {
-  return component_context_;
 }
 
 }  // namespace request

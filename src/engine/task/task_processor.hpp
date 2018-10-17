@@ -46,6 +46,12 @@ class TaskProcessor {
 
   impl::TaskCounter& GetTaskCounter() { return task_counter_; }
 
+  const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
+
+  size_t GetTaskQueueSize() const { return task_queue_size_; }
+
+  size_t GetWorkerCount() const { return workers_.size(); }
+
  private:
   void ProcessTasks() noexcept;
 

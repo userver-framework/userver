@@ -124,5 +124,9 @@ ev::ThreadControl& GetEventThread() {
   return GetTaskProcessor().EventThreadPool().NextThread();
 }
 
+void AccountSpuriousWakeup() {
+  return GetTaskProcessor().GetTaskCounter().AccountSpuriousWakeup();
+}
+
 }  // namespace current_task
 }  // namespace engine

@@ -14,6 +14,7 @@ class TaskCounter {
    public:
     explicit Token(TaskCounter& counter) : counter_(counter) {
       ++counter_.value_;
+      ++counter_.tasks_created_;
     }
     ~Token() { --counter_.value_; }
 
@@ -26,7 +27,6 @@ class TaskCounter {
     TaskCounter& counter_;
   };
 
-  TaskCounter() : value_(0) {}
   ~TaskCounter() { assert(!value_); }
 
   template <typename Rep, typename Period>
@@ -37,8 +37,33 @@ class TaskCounter {
     }
   }
 
+  size_t GetCurrentValue() const { return value_; }
+
+  size_t GetCreatedTasks() const { return tasks_created_; }
+
+  size_t GetCancelledTasks() const { return tasks_cancelled_; }
+
+  size_t GetTaskSwitchFast() const { return tasks_switch_fast_; }
+
+  size_t GetTaskSwitchSlow() const { return tasks_switch_slow_; }
+
+  size_t GetSpuriousWakeups() const { return spurious_wakeups_; }
+
+  void AccountTaskCancel() { tasks_cancelled_++; }
+
+  void AccountTaskSwitchFast() { tasks_switch_fast_++; }
+
+  void AccountTaskSwitchSlow() { tasks_switch_slow_++; }
+
+  void AccountSpuriousWakeup() { spurious_wakeups_++; }
+
  private:
-  std::atomic<size_t> value_;
+  std::atomic<size_t> value_{0};
+  std::atomic<size_t> tasks_created_{0};
+  std::atomic<size_t> tasks_cancelled_{0};
+  std::atomic<size_t> tasks_switch_fast_{0};
+  std::atomic<size_t> tasks_switch_slow_{0};
+  std::atomic<size_t> spurious_wakeups_{0};
 };
 
 }  // namespace impl

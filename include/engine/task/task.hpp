@@ -126,6 +126,8 @@ TaskProcessor& GetTaskProcessor();
 ev::ThreadControl& GetEventThread();
 /// @endcond
 
+void AccountSpuriousWakeup();
+
 }  // namespace current_task
 
 template <typename Rep, typename Period>
