@@ -47,7 +47,7 @@ ManagerConfig ManagerConfig::ParseFromYaml(
       value["coro_pool"], name + ".coro_pool", config_vars_ptr);
   config.event_thread_pool = engine::ev::ThreadPoolConfig::ParseFromYaml(
       value["event_thread_pool"], name + ".event_thread_pool", config_vars_ptr);
-  config.components = yaml_config::ParseArray<components::ComponentConfig>(
+  config.components = yaml_config::ParseMapAsArray<components::ComponentConfig>(
       value, "components", name, config_vars_ptr);
   config.task_processors = yaml_config::ParseArray<engine::TaskProcessorConfig>(
       value, "task_processors", name, config_vars_ptr);

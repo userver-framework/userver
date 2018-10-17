@@ -70,6 +70,27 @@ std::vector<T> ParseArray(const formats::yaml::Node& obj,
   return std::move(*optional);
 }
 
+template <typename T>
+boost::optional<std::vector<T>> ParseOptionalMapAsArray(
+    const formats::yaml::Node& obj, const std::string& name,
+    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+  return ParseValue(obj, name, full_path, config_vars_ptr,
+                    &impl::ParseMapAsArray<T>, &ParseOptionalMapAsArray<T>);
+}
+
+template <typename T>
+std::vector<T> ParseMapAsArray(const formats::yaml::Node& obj,
+                               const std::string& name,
+                               const std::string& full_path,
+                               const VariableMapPtr& config_vars_ptr) {
+  auto optional =
+      ParseOptionalMapAsArray<T>(obj, name, full_path, config_vars_ptr);
+  if (!optional) {
+    throw ParseError(full_path, name, "map");
+  }
+  return std::move(*optional);
+}
+
 template <typename ElemParser, typename ConfigVarParser>
 auto ParseValue(const formats::yaml::Node& obj, const std::string& name,
                 const std::string& full_path,

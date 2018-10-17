@@ -17,6 +17,7 @@ class ComponentConfig : public yaml_config::YamlConfig {
                   yaml_config::VariableMapPtr config_vars_ptr);
 
   const std::string& Name() const;
+  void SetName(const std::string& name);
 
   static ComponentConfig ParseFromYaml(
       const formats::yaml::Node& yaml, const std::string& full_path,

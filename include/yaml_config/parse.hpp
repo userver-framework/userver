@@ -77,5 +77,39 @@ inline std::vector<T> ParseArray(const formats::yaml::Node& obj,
   return std::move(*parsed_optional);
 }
 
+template <typename T>
+inline boost::optional<std::vector<T>> ParseOptionalMapAsArray(
+    const formats::yaml::Node& obj, const std::string& name,
+    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+  const auto& value = obj[name];
+  if (!value.IsMap()) {
+    return {};
+  }
+
+  std::vector<T> parsed_array;
+  parsed_array.reserve(value.size());
+  for (auto it = value.begin(); it != value.end(); ++it) {
+    const auto elem_name = it->first.as<std::string>();
+    auto parsed = T::ParseFromYaml(
+        it->second, full_path + '.' + name + '.' + elem_name, config_vars_ptr);
+    parsed.SetName(elem_name);
+    parsed_array.emplace_back(std::move(parsed));
+  }
+  return std::move(parsed_array);
+}
+
+template <typename T>
+inline std::vector<T> ParseMapAsArray(const formats::yaml::Node& obj,
+                                      const std::string& name,
+                                      const std::string& full_path,
+                                      const VariableMapPtr& config_vars_ptr) {
+  auto parsed_optional =
+      impl::ParseOptionalMapAsArray<T>(obj, name, full_path, config_vars_ptr);
+  if (!parsed_optional) {
+    throw ParseError(full_path, name, "map");
+  }
+  return std::move(*parsed_optional);
+}
+
 }  // namespace impl
 }  // namespace yaml_config
