@@ -24,10 +24,9 @@ if (HTTP_PARSER_INCLUDE_DIR AND EXISTS "${HTTP_PARSER_INCLUDE_DIR}/http_parser.h
     unset(HTTP_PARSER_H)
 endif()
 
-# uncomment after updating libhttp-parser-dev  on build agents
-#if (DEFINED Http_Parser_FIND_VERSION AND HTTP_PARSER_VERSION_STRING VERSION_LESS Http_Parser_FIND_VERSION)
-#    message(FATAL_ERROR "Version of libhttp-parser-dev is less than required (${HTTP_PARSER_VERSION_STRING} < ${Http_Parser_FIND_VERSION})")
-#endif()
+if (DEFINED Http_Parser_FIND_VERSION AND HTTP_PARSER_VERSION_STRING VERSION_LESS Http_Parser_FIND_VERSION)
+    message(FATAL_ERROR "Version of libhttp-parser-dev is less than required (${HTTP_PARSER_VERSION_STRING} < ${Http_Parser_FIND_VERSION})")
+endif()
 
 # Handle the QUIETLY and REQUIRED arguments and set HTTP_PARSER_FOUND
 # to TRUE if all listed variables are TRUE

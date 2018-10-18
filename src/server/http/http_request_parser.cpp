@@ -42,13 +42,9 @@ const http_parser_settings HttpRequestParser::parser_settings = {
     /*.on_header_value = */ HttpRequestParser::OnHeaderValue,
     /*.on_headers_complete = */ HttpRequestParser::OnHeadersComplete,
     /*.on_body = */ HttpRequestParser::OnBody,
-#if HTTP_PARSER_VERSION_MAJOR == 2 && HTTP_PARSER_VERSION_MINOR < 8
-    /*.on_message_complete = */ HttpRequestParser::OnMessageComplete};
-#else
     /*.on_message_complete = */ HttpRequestParser::OnMessageComplete,
     /*.on_chunk_header = */ nullptr,
     /*.on_chunk_complete = */ nullptr};
-#endif
 
 HttpRequestParser::HttpRequestParser(
     const HandlerInfoIndex& handler_info_index,
