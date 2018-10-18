@@ -6,7 +6,7 @@ namespace server {
 namespace http {
 
 /* Status Codes */
-#define HTTP_STATUS_MAP(XX)                                                  \
+#define HTTP_STATUS_MAP_STRING(XX)                                           \
   XX(100, kContinue, "Continue")                                             \
   XX(101, kSwitchingProtocols, "Switching Protocols")                        \
   XX(102, kProcessing, "Processing")                                         \
@@ -67,12 +67,12 @@ namespace http {
   XX(508, kLoopDetected, "Loop Detected")                                    \
   XX(510, kNotExtended, "Not Extended")                                      \
   XX(511, kNetworkAuthenticationRequired, "Network Authentication Required") \
-  /* end of HTTP_STATUS_MAP */
+  /* end of HTTP_STATUS_MAP_STRING */
 
 enum class HttpStatus {
 #define XX(num, name, string) name = num,
 
-  HTTP_STATUS_MAP(XX)
+  HTTP_STATUS_MAP_STRING(XX)
 
 #undef XX
 };
@@ -83,14 +83,14 @@ inline std::string HttpStatusString(HttpStatus status) {
   case HttpStatus::name:      \
     return string;
 
-    HTTP_STATUS_MAP(XX)
+    HTTP_STATUS_MAP_STRING(XX)
 
 #undef XX
   }
   return "Unknown status (" + std::to_string(static_cast<int>(status)) + ")";
 }
 
-#undef HTTP_STATUS_MAP
+#undef HTTP_STATUS_MAP_STRING
 
 }  // namespace http
 }  // namespace server

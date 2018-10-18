@@ -36,7 +36,6 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS coroutine program_options)
 find_package(Jemalloc REQUIRED)
 find_package(Hiredis 0.13.3 REQUIRED)
-find_package(HttpParser REQUIRED)
 find_package(jsoncpp REQUIRED)
 find_package(LibEv REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -47,6 +46,8 @@ find_package(ExternalProjectOpenTracing REQUIRED)
 find_package(ExternalProjectJaegerClientCpp REQUIRED)
 find_package(CurlYandex REQUIRED)
 
+find_package_required_version(Http_Parser
+    "libhttp-parser-dev (>=2.8)" 2.8)
 find_package_required_version(libbson-static-1.0
     "libyandex-taxi-mongo-c-driver-dev" 1.12.0)
 find_package_required_version(libmongoc-static-1.0
