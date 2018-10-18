@@ -45,6 +45,7 @@ find_package(ExternalProjectThrift REQUIRED)
 find_package(ExternalProjectOpenTracing REQUIRED)
 find_package(ExternalProjectJaegerClientCpp REQUIRED)
 find_package(CurlYandex REQUIRED)
+find_package(YamlCpp REQUIRED)
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev (>=2.8)" 2.8)
