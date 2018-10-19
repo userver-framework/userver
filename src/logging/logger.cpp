@@ -6,8 +6,9 @@
 // to override spdlog's level names
 #include <logging/spdlog.hpp>
 
+#include <logging/reopening_file_sink.hpp>
+
 #include <spdlog/formatter.h>
-#include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
 #include "config.hpp"
@@ -40,12 +41,9 @@ LoggerPtr MakeStderrLogger(const std::string& name, Level level) {
 
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
                          Level level) {
-  return MakeSimpleLogger(
-      name,
-      std::make_shared<spdlog::sinks::rotating_file_sink_mt>(path,
-                                                             /*max_size=*/-1,
-                                                             /*max_files=*/0),
-      static_cast<spdlog::level::level_enum>(level));
+  return MakeSimpleLogger(name,
+                          std::make_shared<logging::ReopeningFileSinkMT>(path),
+                          static_cast<spdlog::level::level_enum>(level));
 }
 
 }  // namespace logging

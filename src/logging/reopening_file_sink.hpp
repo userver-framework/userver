@@ -25,6 +25,7 @@ class ReopeningFileSink : public spdlog::sinks::base_sink<Mutex> {
     file_helper_.open(filename_);
   }
   void Reopen(bool truncate) { file_helper_.reopen(truncate); }
+  void Close() { file_helper_.close(); }
 
  protected:
   void sink_it_(const spdlog::details::log_msg& msg) override {

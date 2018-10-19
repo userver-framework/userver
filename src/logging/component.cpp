@@ -63,7 +63,17 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
 
     if (is_default_logger) {
-      logging::SetDefaultLogger(std::move(logger));
+      auto old_default_logger = logging::SetDefaultLogger(std::move(logger));
+      if (old_default_logger) {
+        // Close file sinks
+        for (auto s : old_default_logger->sinks()) {
+          auto reop =
+              std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
+          if (reop) {
+            reop->Close();
+          }
+        }
+      }
     } else {
       auto insertion_result =
           loggers_.emplace(std::move(logger_name), std::move(logger));
