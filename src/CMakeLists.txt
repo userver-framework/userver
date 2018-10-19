@@ -36,7 +36,6 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS coroutine program_options)
 find_package(Jemalloc REQUIRED)
 find_package(Hiredis 0.13.3 REQUIRED)
-find_package(jsoncpp REQUIRED)
 find_package(LibEv REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
@@ -69,7 +68,6 @@ target_link_libraries(${PROJECT_NAME}
     ${LIBMONGOCXX_STATIC_LIBRARIES}
     sanitize-target
     yandex-taxi-backend-common-cpp
-    jsoncpp_lib # FIXME move to private in TAXICOMMON-15
     yaml-cpp
     libopentracing
     libjaegertracing

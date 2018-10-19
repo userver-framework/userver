@@ -24,6 +24,19 @@ add_definitions(-DMOCK_NOW)
 # warnings
 add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
 
+option(LTO "Use -flto=thin for link time optimizations" ON)
+message(STATUS "LTO: ${LTO}")
+if(LTO)
+  # ar from binutils fails to link -flto=thin with the following message:
+  # ../../src/libyandex-taxi-userver.a: error adding symbols: Archive has no index; run ranlib to add one
+  set(CMAKE_AR llvm-ar-6.0)
+  set(CMAKE_RANLIB llvm-ranlib-6.0)
+
+  set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
+  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
+  add_compile_options ("$<$<CONFIG:RELEASE>:-flto=thin>")
+endif(LTO)
+
 
 
 option(USE_CCACHE "Use ccache for build" ON)

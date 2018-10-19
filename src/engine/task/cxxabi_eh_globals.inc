@@ -13,9 +13,12 @@ abi::__cxa_eh_globals* GetGlobals() throw() {
   return reinterpret_cast<abi::__cxa_eh_globals*>(globals);
 }
 
+__attribute__((section("cxa")))
 extern "C" abi::__cxa_eh_globals* __cxa_get_globals() throw() {
   return GetGlobals();
 }
+
+__attribute__((section("cxa")))
 extern "C" abi::__cxa_eh_globals* __cxa_get_globals_fast() throw() {
   return GetGlobals();
 }
