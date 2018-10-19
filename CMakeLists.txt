@@ -24,7 +24,6 @@ target_include_directories(
   yandex-taxi-backend-common-cpp
   PUBLIC
     include/
-    ${YAML_CPP_SOURCE_DIR}/include
     # TODO: flatbuffers should have public include in their CMakeLists.txt
     backend-common-cpp/third_party/flatbuffers/include/
   PRIVATE
