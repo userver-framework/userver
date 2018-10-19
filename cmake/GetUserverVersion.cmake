@@ -1,0 +1,19 @@
+string(TIMESTAMP USERVER_BUILD_TIME %Y%m%d%H%M%S UTC)
+
+set(USERVER_HASH "unknown")
+
+find_package(Git)
+
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE USERVER_HASH
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+else()
+  message(STATUS "GIT not found")
+endif()
+
+set(USERVER_VERSION "${USERVER_BUILD_TIME}.${USERVER_HASH}")
