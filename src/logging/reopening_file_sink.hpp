@@ -24,7 +24,10 @@ class ReopeningFileSink : public spdlog::sinks::base_sink<Mutex> {
   ReopeningFileSink(filename_t filename) : filename_{std::move(filename)} {
     file_helper_.open(filename_);
   }
-  void Reopen(bool truncate) { file_helper_.reopen(truncate); }
+  void Reopen(bool truncate) {
+    std::lock_guard<Mutex> lock(this->mutex_);
+    file_helper_.reopen(truncate);
+  }
   void Close() { file_helper_.close(); }
 
  protected:
