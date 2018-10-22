@@ -12,6 +12,8 @@ class TaskProcessor;
 
 namespace server {
 
+class RequestsView;
+
 class ServerImpl;
 class ServerConfig;
 
@@ -32,6 +34,8 @@ class Server {
   void Start();
 
   void Stop();
+
+  RequestsView& GetRequestsView();
 
  private:
   std::unique_ptr<ServerImpl> pimpl;

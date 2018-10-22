@@ -22,7 +22,7 @@ class RequestHandlerBase {
   virtual ~RequestHandlerBase() {}
 
   virtual std::shared_ptr<RequestTask> PrepareRequestTask(
-      std::unique_ptr<RequestBase>&& request,
+      std::shared_ptr<RequestBase>&& request,
       std::function<void()>&& notify_func) const = 0;
   virtual void ProcessRequest(RequestTask& task) const = 0;
 

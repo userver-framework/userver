@@ -23,8 +23,12 @@ class HttpRequestHandler : public request::RequestHandlerBase {
       const boost::optional<std::string>& logger_access_tskv_component,
       bool is_monitor);
 
+  using NewRequestHook =
+      std::function<void(std::shared_ptr<request::RequestBase>)>;
+  void SetNewRequestHook(NewRequestHook hook);
+
   std::shared_ptr<request::RequestTask> PrepareRequestTask(
-      std::unique_ptr<request::RequestBase>&& request,
+      std::shared_ptr<request::RequestBase>&& request,
       std::function<void()>&& notify_func) const override;
   void ProcessRequest(request::RequestTask& task) const override;
 
@@ -43,6 +47,7 @@ class HttpRequestHandler : public request::RequestHandlerBase {
 
   std::atomic<bool> add_handler_disabled_;
   bool is_monitor_;
+  NewRequestHook new_request_hook_;
 };
 
 }  // namespace http

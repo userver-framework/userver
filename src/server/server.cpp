@@ -2,14 +2,15 @@
 
 #include <stdexcept>
 
-#include <logging/log.hpp>
-#include <server/server_config.hpp>
-
 #include <engine/task/task_processor.hpp>
+#include <logging/log.hpp>
 #include <server/http/http_request_handler.hpp>
+#include <server/http/http_request_impl.hpp>
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
+#include <server/requests_view.hpp>
+#include <server/server_config.hpp>
 
 namespace {
 
@@ -48,6 +49,8 @@ class ServerImpl {
 
   const ServerConfig config_;
 
+  std::unique_ptr<RequestsView> requests_view_;
+
   struct PortInfo {
     std::unique_ptr<http::HttpRequestHandler> request_handler_;
     std::shared_ptr<net::EndpointInfo> endpoint_info_;
@@ -60,10 +63,10 @@ class ServerImpl {
 
   void Stop();
 
-  static void InitPortInfo(
-      PortInfo& info, const ServerConfig& config,
-      const net::ListenerConfig& listener_config,
-      const components::ComponentContext& component_context, bool is_monitor);
+  void InitPortInfo(PortInfo& info, const ServerConfig& config,
+                    const net::ListenerConfig& listener_config,
+                    const components::ComponentContext& component_context,
+                    bool is_monitor);
 
   PortInfo main_port_info_, monitor_port_info_;
 
@@ -90,7 +93,9 @@ void ServerImpl::PortInfo::Start() {
 
 ServerImpl::ServerImpl(ServerConfig config,
                        const components::ComponentContext& component_context)
-    : config_(std::move(config)), is_stopping_(false) {
+    : config_(std::move(config)),
+      requests_view_(std::make_unique<RequestsView>()),
+      is_stopping_(false) {
   LOG_INFO() << "Creating server";
 
   InitPortInfo(main_port_info_, config_, config_.listener, component_context,
@@ -132,6 +137,13 @@ void ServerImpl::InitPortInfo(
   info.request_handler_ = std::make_unique<http::HttpRequestHandler>(
       component_context, config.logger_access, config.logger_access_tskv,
       is_monitor);
+
+  auto queue = requests_view_->GetQueue();
+  requests_view_->StartBackgroudWorker();
+  auto hook = [queue](std::shared_ptr<request::RequestBase> request) {
+    queue->enqueue(std::move(request));
+  };
+  info.request_handler_->SetNewRequestHook(std::move(hook));
 
   info.endpoint_info_ = std::make_shared<net::EndpointInfo>(
       listener_config, *info.request_handler_);
@@ -206,6 +218,8 @@ void Server::Start() {
 }
 
 void Server::Stop() { pimpl->Stop(); }
+
+RequestsView& Server::GetRequestsView() { return *pimpl->requests_view_; }
 
 net::Stats ServerImpl::GetServerStats() const {
   net::Stats summary;

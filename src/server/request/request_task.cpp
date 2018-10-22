@@ -8,7 +8,7 @@ namespace request {
 
 RequestTask::RequestTask(engine::TaskProcessor* task_processor,
                          const handlers::HandlerBase* handler,
-                         std::unique_ptr<RequestBase>&& request,
+                         std::shared_ptr<RequestBase>&& request,
                          NotifyCb&& notify_cb)
     : task_processor_(task_processor),
       handler_(handler),

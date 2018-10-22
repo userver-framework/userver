@@ -102,6 +102,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${BSON_STATIC_INCLUDE_DIRS}
   ${MONGOC_STATIC_INCLUDE_DIRS}
+  ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
 )
 
 target_include_directories(${PROJECT_NAME}

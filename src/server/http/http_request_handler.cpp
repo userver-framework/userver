@@ -22,9 +22,11 @@ HttpRequestHandler::HttpRequestHandler(
       is_monitor_(is_monitor) {}
 
 std::shared_ptr<request::RequestTask> HttpRequestHandler::PrepareRequestTask(
-    std::unique_ptr<request::RequestBase>&& request,
+    std::shared_ptr<request::RequestBase>&& request,
     std::function<void()>&& notify_func) const {
-  auto& http_request = dynamic_cast<HttpRequestImpl&>(*request);
+  auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
+  if (new_request_hook_) new_request_hook_(request);
+
   auto handler_info =
       GetHandlerInfo(http_request.GetMethod(), http_request.GetRequestPath());
   http_request.SetMatchedPathLength(handler_info.matched_path_length);
@@ -82,6 +84,10 @@ const HandlerInfoIndex& HttpRequestHandler::GetHandlerInfoIndex() const {
         "handler adding must be disabled before GetHandlerInfoIndex() call");
   }
   return handler_info_index_;
+}
+
+void HttpRequestHandler::SetNewRequestHook(NewRequestHook hook) {
+  new_request_hook_ = std::move(hook);
 }
 
 }  // namespace http

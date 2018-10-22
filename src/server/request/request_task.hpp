@@ -19,7 +19,7 @@ class RequestTask {
 
   RequestTask(engine::TaskProcessor* task_processor,
               const handlers::HandlerBase* handler,
-              std::unique_ptr<RequestBase>&& request, NotifyCb&& notify_cb);
+              std::shared_ptr<RequestBase>&& request, NotifyCb&& notify_cb);
 
   bool IsComplete() const { return is_complete_; }
 
@@ -34,7 +34,7 @@ class RequestTask {
  private:
   engine::TaskProcessor* task_processor_;
   const handlers::HandlerBase* handler_;
-  std::unique_ptr<RequestBase> request_;
+  std::shared_ptr<RequestBase> request_;
   NotifyCb notify_cb_;
   std::atomic<bool> is_complete_;
   engine::TaskWithResult<void> async_task_;

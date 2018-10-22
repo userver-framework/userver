@@ -38,6 +38,8 @@ void Server::OnAllComponentsAreStopping() {
 
 const server::Server& Server::GetServer() const { return *server_; }
 
+server::Server& Server::GetServer() { return *server_; }
+
 void Server::AddHandler(const server::handlers::HttpHandlerBase& handler,
                         engine::TaskProcessor& task_processor) {
   server_->AddHandler(handler, task_processor);

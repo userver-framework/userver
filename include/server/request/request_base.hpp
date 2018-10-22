@@ -34,7 +34,6 @@ class RequestBase {
 
   virtual void SetMatchedPathLength(size_t length) = 0;
 
- protected:
   std::chrono::steady_clock::time_point StartTime() const {
     return start_time_;
   }
