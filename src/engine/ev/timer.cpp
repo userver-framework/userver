@@ -24,9 +24,6 @@ class Timer::TimerImpl : public std::enable_shared_from_this<Timer::TimerImpl> {
   ThreadControl thread_control_;
   Func on_timer_func_;
 
-  std::mutex mutex_;
-  bool on_timer_enabled_;
-
   double first_call_after_;
   double repeat_every_;
   ev_timer timer_;
@@ -36,21 +33,15 @@ Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
                             double first_call_after, double repeat_every)
     : thread_control_(thread_control),
       on_timer_func_(std::move(on_timer_func)),
-      on_timer_enabled_(false),
       first_call_after_(first_call_after),
       repeat_every_(repeat_every) {
   Init();
 }
 
 void Timer::TimerImpl::Start() {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (on_timer_enabled_) return;
-    on_timer_enabled_ = true;
-    thread_control_.RunInEvLoopAsync([ self = shared_from_this(), this ]() {
-      thread_control_.TimerStartUnsafe(timer_);
-    });
-  }
+  thread_control_.RunInEvLoopAsync([ self = shared_from_this(), this ]() {
+    thread_control_.TimerStartUnsafe(timer_);
+  });
 }
 
 void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) {
@@ -60,11 +51,6 @@ void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) {
 }
 
 void Timer::TimerImpl::DoOnTimer() {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!on_timer_enabled_) return;
-  }
-
   try {
     on_timer_func_();  // called in event loop
   } catch (const std::exception& ex) {
@@ -81,14 +67,9 @@ void Timer::TimerImpl::Init() {
 }
 
 void Timer::TimerImpl::Stop() {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (!on_timer_enabled_) return;
-    on_timer_enabled_ = false;
-    thread_control_.RunInEvLoopAsync([ self = shared_from_this(), this ]() {
-      thread_control_.TimerStopUnsafe(timer_);
-    });
-  }
+  thread_control_.RunInEvLoopAsync([ self = shared_from_this(), this ]() {
+    thread_control_.TimerStopUnsafe(timer_);
+  });
 }
 
 Timer::Timer() = default;

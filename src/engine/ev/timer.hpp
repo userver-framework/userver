@@ -9,6 +9,7 @@
 namespace engine {
 namespace ev {
 
+// Timer is not thread-safe, IOW you cannot call Start() and Stop() in parallel.
 class Timer {
  public:
   // calls on_timer_func() in event loop
