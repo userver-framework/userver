@@ -1,10 +1,10 @@
 #pragma once
 
-#include <mutex>
 #include <vector>
 
 #include <components/cache_update_trait.hpp>
 #include <components/component_context.hpp>
+#include <engine/mutex.hpp>
 
 namespace components {
 
@@ -33,7 +33,7 @@ class CacheInvalidator : public components::ComponentBase {
         : owner(owner), handler(std::move(handler)) {}
   };
 
-  std::mutex mutex_;
+  engine::Mutex mutex_;
   std::vector<Invalidator> cache_invalidators_;
 };
 

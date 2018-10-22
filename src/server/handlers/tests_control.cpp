@@ -48,7 +48,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     }
   }
 
-  std::lock_guard<std::mutex> guard(mutex_);
+  std::lock_guard<engine::Mutex> guard(mutex_);
 
   if (now)
     utils::datetime::MockNowSet(std::chrono::system_clock::from_time_t(now));

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <mutex>
 #include <vector>
 
 #include <components/cache_update_trait.hpp>
+#include <engine/mutex.hpp>
 #include <server/handlers/http_handler_json_base.hpp>
 
 namespace components {
@@ -28,7 +28,7 @@ class TestsControl : public HttpHandlerJsonBase {
 
  private:
   components::CacheInvalidator* cache_invalidator_;
-  mutable std::mutex mutex_;
+  mutable engine::Mutex mutex_;
 };
 
 }  // namespace handlers
