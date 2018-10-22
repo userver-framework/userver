@@ -71,6 +71,7 @@ void RequestsView::GarbageCollect() {
 }
 
 void RequestsView::HandleQueue() {
+  std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
   for (;;) {
     const auto count =
         queue_->try_dequeue_bulk(job_requests.begin(), job_requests.size());
