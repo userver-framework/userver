@@ -83,25 +83,52 @@ Manager::GetTaskProcessorPools() const {
 void Manager::OnLogRotate() {
   std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
   if (components_cleared_) return;
-  auto* logger_component =
+  auto& logger_component =
       component_context_->FindComponent<components::Logging>();
-  if (logger_component) logger_component->OnLogRotate();
+  logger_component.OnLogRotate();
 }
 
 void Manager::AddComponents(const ComponentList& component_list) {
   components::ComponentConfigMap component_config_map;
+
+  std::set<std::string> loading_component_names;
   for (const auto& component_config : config_->components) {
-    component_config_map.emplace(component_config.Name(), component_config);
+    const auto name = component_config.Name();
+    loading_component_names.insert(name);
+    component_config_map.emplace(name, component_config);
   }
+
+  component_context_->SetLoadingComponentNames(loading_component_names);
+
+  std::vector<engine::TaskWithResult<void>> tasks;
   try {
-    component_list.AddAll(*this, component_config_map);
+    for (const auto& adder : component_list) {
+      tasks.push_back(engine::CriticalAsync([&]() {
+        try {
+          (*adder)(*this, component_config_map);
+        } catch (...) {
+          component_context_->CancelComponentsLoad();
+          throw;
+        }
+      }));
+    }
+
+    for (auto& task : tasks) task.Get();
   } catch (const std::exception& ex) {
+    component_context_->CancelComponentsLoad();
+
+    /* Wait for all tasks to exit, but don't .Get() them - we've already caught
+     * an exception, ignore the rest */
+    for (auto& task : tasks) {
+      task.Wait();
+    }
+
     ClearComponents();
     throw;
   }
   LOG_INFO() << "All components loaded";
   component_context_->OnAllComponentsLoaded();
-}
+}  // namespace components
 
 void Manager::AddComponentImpl(
     const components::ComponentConfigMap& config_map, const std::string& name,
@@ -118,11 +145,13 @@ void Manager::AddComponentImpl(
 
   try {
     LOG_TRACE() << "Adding component " << name;
+    component_context_->BeforeAddComponent(name);
     auto component = factory(config_it->second, *component_context_);
     component_context_->AddComponent(name, std::move(component));
     LOG_TRACE() << "Added component " << name;
   } catch (const std::exception& ex) {
     std::string message = "Cannot start component " + name + ": " + ex.what();
+    component_context_->RemoveComponentDependencies(name);
     LOG_ERROR() << message;
     throw std::runtime_error(message);
   }

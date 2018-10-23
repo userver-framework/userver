@@ -1,10 +1,13 @@
 #include <components/tracer.hpp>
+#include <logging/component.hpp>
 #include <tracing/noop.hpp>
 #include <tracing/tracer.hpp>
 
 namespace components {
 
-Tracer::Tracer(const ComponentConfig& config, const ComponentContext&) {
+Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
+  context.FindComponent<Logging>();
+
   tracing::TracerPtr tracer;
 
   auto tracer_type = config.ParseString("tracer");

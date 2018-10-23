@@ -19,7 +19,7 @@ namespace components {
 
 class StatisticsStorage;
 
-class Redis : public ComponentBase {
+class Redis : public LoggableComponentBase {
  public:
   Redis(const ComponentConfig& config,
         const ComponentContext& component_context);
@@ -43,10 +43,10 @@ class Redis : public ComponentBase {
   std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> clients_;
   std::shared_ptr<redis::ThreadPools> thread_pools_;
 
-  TaxiConfig* const config_;
+  TaxiConfig& config_;
   utils::AsyncEventSubscriberScope config_subscription_;
 
-  components::StatisticsStorage* statistics_storage_;
+  components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 };
 

@@ -58,9 +58,9 @@ class HttpHandlerBase : public HandlerBase {
       const utils::statistics::StatisticsRequest&);
 
  private:
-  const components::HttpServerSettingsBase* http_server_settings_;
+  const components::HttpServerSettingsBase& http_server_settings_;
   const std::vector<http::HttpMethod> allowed_methods_;
-  components::StatisticsStorage* statistics_storage_;
+  components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 
   std::unique_ptr<HandlerStatistics> statistics_;

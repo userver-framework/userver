@@ -21,7 +21,7 @@ namespace components {
 // and CacheUpdateTrait::StopPeriodicUpdates before teardown
 template <typename T>
 class CachingComponentBase
-    : public ComponentBase,
+    : public LoggableComponentBase,
       public utils::AsyncEventChannel<const std::shared_ptr<T>&>,
       protected CacheUpdateTrait {
  public:
@@ -50,7 +50,8 @@ template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context,
                                               const std::string& name)
-    : CacheUpdateTrait(CacheConfig(config), name),
+    : LoggableComponentBase(config, context),
+      CacheUpdateTrait(CacheConfig(config), name),
       cache_invalidator_holder_(*this, context),
       name_(name) {}
 

@@ -4,8 +4,10 @@
 
 namespace components {
 
-class HttpServerSettingsBase : public ComponentBase {
+class HttpServerSettingsBase : public LoggableComponentBase {
  public:
+  using LoggableComponentBase::LoggableComponentBase;
+
   virtual ~HttpServerSettingsBase() = default;
 
   static constexpr const char* kName = "http-server-settings";

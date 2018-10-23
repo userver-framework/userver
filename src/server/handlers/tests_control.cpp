@@ -14,8 +14,7 @@ TestsControl::TestsControl(
     const components::ComponentContext& component_context)
     : HttpHandlerJsonBase(config, component_context),
       cache_invalidator_(
-          component_context
-              .FindComponentRequired<components::CacheInvalidator>()) {}
+          component_context.FindComponent<components::CacheInvalidator>()) {}
 
 const std::string& TestsControl::HandlerName() const {
   static const std::string kTestsControlName = kName;
@@ -55,8 +54,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   else
     utils::datetime::MockNowUnset();
 
-  if (invalidate_caches)
-    cache_invalidator_->InvalidateCaches(context.GetSpan());
+  if (invalidate_caches) cache_invalidator_.InvalidateCaches(context.GetSpan());
 
   return formats::json::Value();
 }

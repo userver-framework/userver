@@ -19,16 +19,15 @@ const std::string kThreadName = "mongo-worker";
 
 }  // namespace
 
-Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) {
+Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
+    : LoggableComponentBase(config, context) {
   auto dbalias = config.ParseString("dbalias", {});
 
   std::string connection_string;
   if (!dbalias.empty()) {
     try {
-      auto* secdist = context.FindComponent<Secdist>();
-      if (!secdist)
-        throw std::runtime_error("Mongo requires secdist component");
-      connection_string = secdist->Get()
+      auto& secdist = context.FindComponent<Secdist>();
+      connection_string = secdist.Get()
                               .Get<storages::mongo::secdist::MongoSettings>()
                               .GetConnectionString(dbalias);
     } catch (const storages::secdist::SecdistError& ex) {

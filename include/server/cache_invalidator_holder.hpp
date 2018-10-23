@@ -17,7 +17,7 @@ class CacheInvalidatorHolder {
   ~CacheInvalidatorHolder();
 
  private:
-  components::CacheInvalidator* cache_invalidator_;
+  components::CacheInvalidator& cache_invalidator_;
   components::CacheUpdateTrait& cache_;
 };
 

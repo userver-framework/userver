@@ -27,7 +27,7 @@ class TestsControl : public HttpHandlerJsonBase {
       request::RequestContext& context) const override;
 
  private:
-  components::CacheInvalidator* cache_invalidator_;
+  components::CacheInvalidator& cache_invalidator_;
   mutable engine::Mutex mutex_;
 };
 

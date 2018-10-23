@@ -24,8 +24,7 @@ ServerMonitor::ServerMonitor(
     : HttpHandlerBase(config, component_context, /*is_monitor = */ true),
       components_manager_(component_context.GetManager()),
       statistics_storage_(
-          component_context
-              .FindComponentRequired<components::StatisticsStorage>()),
+          component_context.FindComponent<components::StatisticsStorage>()),
       task_processor_map_(component_context.GetTaskProcessorsMap()) {}
 
 const std::string& ServerMonitor::HandlerName() const {
@@ -99,7 +98,7 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
   const auto prefix = request.GetArg("prefix");
 
   formats::json::ValueBuilder monitor_data =
-      statistics_storage_->GetStorage().GetAsJson(prefix, verbosity);
+      statistics_storage_.GetStorage().GetAsJson(prefix, verbosity);
 
   monitor_data[kEngineMonitorDataName] = GetEngineStats(verbosity);
   return formats::json::ToString(monitor_data.ExtractValue());

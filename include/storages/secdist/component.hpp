@@ -10,7 +10,7 @@
 
 namespace components {
 
-class Secdist : public ComponentBase {
+class Secdist : public LoggableComponentBase {
  public:
   static constexpr const char* kName = "secdist";
 

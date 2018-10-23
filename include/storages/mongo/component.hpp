@@ -53,7 +53,7 @@ namespace components {
 
 // clang-format on
 
-class Mongo : public ComponentBase {
+class Mongo : public LoggableComponentBase {
  public:
   /// Default connection timeout
   static constexpr int kDefaultConnTimeoutMs = 5 * 1000;

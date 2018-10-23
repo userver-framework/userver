@@ -28,7 +28,7 @@ class HttpClient {
 
  private:
   std::unique_ptr<clients::http::Client> http_client_;
-  components::TaxiConfig* taxi_config_component_;
+  components::TaxiConfig& taxi_config_component_;
   utils::AsyncEventSubscriberScope subscriber_scope_;
 };
 

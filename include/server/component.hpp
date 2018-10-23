@@ -15,7 +15,7 @@ namespace components {
 
 class StatisticsStorage;
 
-class Server : public ComponentBase {
+class Server : public LoggableComponentBase {
  public:
   static constexpr const char* kName = "server";
 
@@ -41,7 +41,7 @@ class Server : public ComponentBase {
 
  private:
   std::unique_ptr<server::Server> server_;
-  StatisticsStorage* statistics_storage_;
+  StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 };
 

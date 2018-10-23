@@ -9,13 +9,13 @@ HttpClient::HttpClient(const ComponentConfig& /*component_config*/,
                        const ComponentContext& context)
 
     : taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
-  auto config = taxi_config_component_->Get();
+  auto config = taxi_config_component_.Get();
   const auto& http_config = config->Get<clients::http::Config>();
   size_t threads = http_config.threads;
 
   http_client_ = std::make_unique<clients::http::Client>(threads);
   subscriber_scope_ =
-      taxi_config_component_->AddListener(this, &HttpClient::OnConfigUpdate);
+      taxi_config_component_.AddListener(this, &HttpClient::OnConfigUpdate);
 
   OnConfigUpdate(config);
 }

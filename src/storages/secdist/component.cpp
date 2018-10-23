@@ -6,7 +6,8 @@
 
 namespace components {
 
-Secdist::Secdist(const ComponentConfig& config, const ComponentContext&) {
+Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
+    : LoggableComponentBase(config, context) {
   auto config_path = config.ParseString("config");
 
   try {

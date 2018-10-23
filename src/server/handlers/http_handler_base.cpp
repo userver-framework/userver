@@ -84,27 +84,24 @@ HttpHandlerBase::HttpHandlerBase(
     : HandlerBase(config, component_context, is_monitor),
       http_server_settings_(
           component_context
-              .FindComponentRequired<components::HttpServerSettingsBase>()),
+              .FindComponent<components::HttpServerSettingsBase>()),
       allowed_methods_(InitAllowedMethods(GetConfig())),
+      statistics_storage_(
+          component_context.FindComponent<components::StatisticsStorage>()),
       statistics_(std::make_unique<HandlerStatistics>()) {
   if (allowed_methods_.empty()) {
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
 
-  statistics_storage_ =
-      component_context.FindComponentRequired<components::StatisticsStorage>();
-
   const auto graphite_path = "http.by-path." +
                              utils::graphite::EscapeName(GetConfig().path) +
                              ".by-handler." + config.Name();
-  statistics_holder_ = statistics_storage_->GetStorage().RegisterExtender(
+  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
                                std::placeholders::_1));
   if (IsEnabled()) {
-    auto server_component =
+    auto& server_component =
         component_context.FindComponent<components::Server>();
-    if (!server_component)
-      throw std::runtime_error("can't find server component");
 
     engine::TaskProcessor* task_processor =
         component_context.GetTaskProcessor(GetConfig().task_processor);
@@ -113,7 +110,7 @@ HttpHandlerBase::HttpHandlerBase(
                                GetConfig().task_processor + '\'');
     }
     try {
-      server_component->AddHandler(*this, *task_processor);
+      server_component.AddHandler(*this, *task_processor);
     } catch (const std::exception& ex) {
       throw std::runtime_error(std::string("can't add handler to server: ") +
                                ex.what());
@@ -132,11 +129,8 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     auto& response = http_request.GetHttpResponse();
     const auto start_time = std::chrono::system_clock::now();
 
-    bool log_request =
-        http_server_settings_ ? http_server_settings_->NeedLogRequest() : false;
-    bool log_request_headers =
-        http_server_settings_ ? http_server_settings_->NeedLogRequestHeaders()
-                              : false;
+    bool log_request = http_server_settings_.NeedLogRequest();
+    bool log_request_headers = http_server_settings_.NeedLogRequestHeaders();
 
     auto& span = context.GetSpan();
 

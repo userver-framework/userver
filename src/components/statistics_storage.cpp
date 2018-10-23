@@ -2,8 +2,9 @@
 
 namespace components {
 
-StatisticsStorage::StatisticsStorage(const ComponentConfig&,
-                                     const components::ComponentContext&) {}
+StatisticsStorage::StatisticsStorage(
+    const ComponentConfig& config, const components::ComponentContext& context)
+    : LoggableComponentBase(config, context) {}
 
 StatisticsStorage::~StatisticsStorage() = default;
 

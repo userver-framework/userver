@@ -10,9 +10,10 @@ namespace components {
 
 class HttpServerSettings : public HttpServerSettingsBase {
  public:
-  HttpServerSettings(const components::ComponentConfig&,
+  HttpServerSettings(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-      : taxi_config_component_(
+      : HttpServerSettingsBase(config, context),
+        taxi_config_component_(
             context.FindComponent<components::TaxiConfig>()) {}
   virtual ~HttpServerSettings() = default;
 
@@ -20,16 +21,16 @@ class HttpServerSettings : public HttpServerSettingsBase {
   bool NeedLogRequestHeaders() const override;
 
  private:
-  const components::TaxiConfig* taxi_config_component_ = nullptr;
+  const components::TaxiConfig& taxi_config_component_;
 };
 
 bool HttpServerSettings::NeedLogRequest() const {
-  auto taxi_config = taxi_config_component_->Get();
+  auto taxi_config = taxi_config_component_.Get();
   return taxi_config->Get<server::HttpServerSettingsConfig>().need_log_request;
 }
 
 bool HttpServerSettings::NeedLogRequestHeaders() const {
-  auto taxi_config = taxi_config_component_->Get();
+  auto taxi_config = taxi_config_component_.Get();
   return taxi_config->Get<server::HttpServerSettingsConfig>()
       .need_log_request_headers;
 }

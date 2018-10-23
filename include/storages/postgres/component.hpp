@@ -18,7 +18,7 @@ namespace components {
 ///
 // clang-format on
 
-class Postgres : public ComponentBase {
+class Postgres : public LoggableComponentBase {
  public:
   /// Component constructor
   Postgres(const ComponentConfig&, const ComponentContext&);

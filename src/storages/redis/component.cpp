@@ -160,16 +160,16 @@ struct RedisPools {
 
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
-    : config_{component_context.FindComponent<TaxiConfig>()} {
+    : LoggableComponentBase(config, component_context),
+      config_(component_context.FindComponent<TaxiConfig>()),
+      statistics_storage_(
+          component_context.FindComponent<components::StatisticsStorage>()) {
   Connect(config, component_context);
 
-  config_subscription_ = config_->AddListener(this, &Redis::OnConfigUpdate);
-  OnConfigUpdate(config_->Get());
+  config_subscription_ = config_.AddListener(this, &Redis::OnConfigUpdate);
+  OnConfigUpdate(config_.Get());
 
-  statistics_storage_ =
-      component_context.FindComponentRequired<components::StatisticsStorage>();
-
-  statistics_holder_ = statistics_storage_->GetStorage().RegisterExtender(
+  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       kStatisticsName,
       std::bind(&Redis::ExtendStatistics, this, std::placeholders::_1));
 }
@@ -183,12 +183,7 @@ std::shared_ptr<redis::Sentinel> Redis::Client(const std::string& name) const {
 
 void Redis::Connect(const ComponentConfig& config,
                     const ComponentContext& component_context) {
-  if (!config_)
-    throw std::runtime_error("Redis component requires taxi config");
-  auto secdist_component = component_context.FindComponent<Secdist>();
-  if (!secdist_component) {
-    throw std::runtime_error("secdist component not found");
-  }
+  auto& secdist_component = component_context.FindComponent<Secdist>();
 
   const RedisPools& redis_pools = RedisPools::ParseFromYaml(
       config.Yaml()["thread_pools"], config.FullPath() + ".thread_pools",
@@ -206,7 +201,7 @@ void Redis::Connect(const ComponentConfig& config,
     const auto& shard_group_name = redis_group.config_name;
 
     try {
-      settings = secdist_component->Get()
+      settings = secdist_component.Get()
                      .Get<storages::secdist::RedisMapSettings>()
                      .GetSettings(redis_group.config_name);
     } catch (const storages::secdist::SecdistError& ex) {

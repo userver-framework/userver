@@ -11,14 +11,15 @@ const auto kStatisticsName = "server";
 
 Server::Server(const components::ComponentConfig& component_config,
                const components::ComponentContext& component_context)
-    : server_(std::make_unique<server::Server>(
+    : LoggableComponentBase(component_config, component_context),
+      server_(std::make_unique<server::Server>(
           server::ServerConfig::ParseFromYaml(component_config.Yaml(),
                                               component_config.FullPath(),
                                               component_config.ConfigVarsPtr()),
           component_context)),
       statistics_storage_(
-          component_context.FindComponentRequired<StatisticsStorage>()) {
-  statistics_holder_ = statistics_storage_->GetStorage().RegisterExtender(
+          component_context.FindComponent<StatisticsStorage>()) {
+  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       kStatisticsName,
       std::bind(&Server::ExtendStatistics, this, std::placeholders::_1));
 }

@@ -35,11 +35,8 @@ TaxiConfigImpl::TaxiConfigImpl(const ComponentConfig& config,
                                const ComponentContext& context,
                                EmplaceDocsCb emplace_docs_cb)
     : emplace_docs_cb_(std::move(emplace_docs_cb)) {
-  auto mongo_component = context.FindComponent<Mongo>("mongo-taxi");
-  if (!mongo_component) {
-    throw std::runtime_error("Taxi config requires mongo-taxi component");
-  }
-  mongo_taxi_ = mongo_component->GetPool();
+  auto& mongo_component = context.FindComponent<Mongo>("mongo-taxi");
+  mongo_taxi_ = mongo_component.GetPool();
   fallback_path_ = config.ParseString("fallback_path");
 }
 

@@ -34,7 +34,10 @@ class ComponentList {
   template <typename Component, typename... Args>
   ComponentList&& Append(Args&&...) &&;
 
-  void AddAll(Manager&, const components::ComponentConfigMap&) const;
+  using Adders = std::vector<std::unique_ptr<impl::ComponentAdderBase>>;
+
+  Adders::const_iterator begin() const { return adders_.begin(); }
+  Adders::const_iterator end() const { return adders_.end(); }
 
  private:
   std::vector<std::unique_ptr<impl::ComponentAdderBase>> adders_;
@@ -79,13 +82,6 @@ ComponentList& ComponentList::Append(std::string name) & {
 template <typename Component, typename... Args>
 ComponentList&& ComponentList::Append(Args&&... args) && {
   return std::move(Append<Component>(std::forward<Args>(args)...));
-}
-
-inline void ComponentList::AddAll(
-    Manager& manager, const components::ComponentConfigMap& config_map) const {
-  for (const auto& adder : adders_) {
-    (*adder)(manager, config_map);
-  }
 }
 
 namespace impl {
