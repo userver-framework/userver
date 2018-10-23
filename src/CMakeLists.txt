@@ -41,8 +41,6 @@ find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
 find_package(ExternalProjectThrift REQUIRED)
-find_package(ExternalProjectOpenTracing REQUIRED)
-find_package(ExternalProjectJaegerClientCpp REQUIRED)
 find_package(CurlYandex REQUIRED)
 find_package(YamlCpp REQUIRED)
 
@@ -69,8 +67,6 @@ target_link_libraries(${PROJECT_NAME}
     sanitize-target
     yandex-taxi-backend-common-cpp
     yaml-cpp
-    libopentracing
-    libjaegertracing
   PRIVATE
     spdlog_lib
     ${LIBCURL_YANDEX_LIBRARIES}

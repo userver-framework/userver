@@ -1,0 +1,55 @@
+#pragma once
+
+#include <string>
+
+#include <boost/optional.hpp>
+
+#include <tracing/tracer.hpp>
+
+namespace tracing {
+
+class Span::Impl {
+ public:
+  Impl(TracerPtr tracer, const std::string& name, const Span::Impl* parent,
+       ReferenceType reference_type);
+
+  Impl(Impl&&) = default;
+
+  ~Impl();
+
+  TimeStorage& GetTimeStorage() {
+    if (!time_storage_) time_storage_.emplace(name_);
+    return time_storage_.get();
+  }
+
+  void LogTo(logging::LogHelper& log_helper) const &;
+
+  void LogTo(logging::LogHelper& log_helper) &&;
+
+  const std::string& GetTraceId() const;
+  const std::string& GetSpanId() const;
+  const std::string& GetParentId() const;
+
+  ReferenceType GetReferenceType() const { return reference_type_; }
+
+ private:
+  std::shared_ptr<Tracer> tracer;
+  logging::LogExtra log_extra_inheritable;
+
+  const std::string name_;
+
+  boost::optional<logging::LogExtra> log_extra_local;
+  boost::optional<TimeStorage> time_storage_;
+
+  const std::chrono::system_clock::time_point start_system_time_;
+  const std::chrono::steady_clock::time_point start_steady_time_;
+
+  const std::string trace_id_;
+  const std::string span_id_;
+  const std::string parent_id_;
+  const ReferenceType reference_type_;
+
+  friend class Span;
+};
+
+}  // namespace tracing

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <opentracing/span.h>
-
 #include <logging/log.hpp>
 #include <logging/log_extra.hpp>
 #include <tracing/tracer_fwd.hpp>
@@ -11,8 +9,8 @@ namespace tracing {
 
 class Span final {
  public:
-  explicit Span(std::unique_ptr<opentracing::Span>, TracerPtr tracer,
-                const std::string& name);
+  explicit Span(TracerPtr tracer, const std::string& name, const Span* parent,
+                ReferenceType reference_type);
 
   // TODO: remove in C++17 (for guaranteed copy elision)
   Span(Span&& other) noexcept;
@@ -26,6 +24,8 @@ class Span final {
    * parallel, create a child span and use the child in a separate thread.
    */
   Span CreateChild(const std::string& name) const;
+
+  Span CreateFollower(const std::string& name) const;
 
   ScopeTime CreateScopeTime();
 
@@ -48,28 +48,29 @@ class Span final {
 
   std::string GetLink() const;
 
-  void LogTo(logging::LogHelper& log_helper) const;
-
-  opentracing::Span& GetOpentracingSpan();
-
-  const opentracing::Span& GetOpentracingSpan() const;
-
   /** A hack function that returns internals, it might be deleted in future
    * versions. Don't use it! */
   logging::LogExtra& GetInheritableLogExtra();
 
- private:
+  const std::string& GetTraceId() const;
+  const std::string& GetSpanId() const;
+  const std::string& GetParentId() const;
+
+  void LogTo(logging::LogHelper& log_helper) const &;
+
   class Impl;
+
+ private:
   std::unique_ptr<Impl> pimpl_;
 };
 
 }  // namespace tracing
 
 namespace logging {
-inline LogHelper& operator<<(LogHelper& lh, const tracing::Span& span) {
-  span.LogTo(lh);
-  return lh;
-}
+
+LogHelper& operator<<(LogHelper& lh, const tracing::Span& span);
+
+LogHelper& operator<<(LogHelper& lh, const tracing::Span::Impl& span_impl);
 
 }  // namespace logging
 

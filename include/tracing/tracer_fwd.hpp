@@ -4,6 +4,8 @@
 
 namespace tracing {
 
+enum class ReferenceType { kChild, kReference };
+
 class Tracer;
 using TracerPtr = std::shared_ptr<Tracer>;
 

@@ -2,6 +2,7 @@
 
 #include <atomic>
 
+#include <boost/container/small_vector.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <engine/task/task_context.hpp>
@@ -87,11 +88,11 @@ void LogHelper::DoLog() {
 
 void LogHelper::AppendLogExtra() {
   const auto& items = extra_.extra_;
-  if (items.empty()) return;
+  if (items->empty()) return;
 
   LogExtraValueVisitor visitor(*this);
 
-  for (const auto& item : items) {
+  for (const auto& item : *items) {
     verbatim_stream_ << utils::encoding::kTskvPairsSeparator;
     utils::encoding::EncodeTskv(verbatim_stream_, item.first,
                                 utils::encoding::EncodeTskvMode::kKey);

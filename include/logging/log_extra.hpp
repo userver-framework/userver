@@ -4,10 +4,12 @@
 /// @brief @copybrief logging::LogExtra
 
 #include <initializer_list>
-#include <unordered_map>
 #include <utility>
 
+#include <boost/container/container_fwd.hpp>
 #include <boost/variant.hpp>
+
+#include <utils/fast_pimpl.hpp>
 
 namespace tracing {
 class Span;
@@ -31,7 +33,17 @@ class LogExtra {
     kFrozen,  ///< Attempts to replace this value will be ignored
   };
 
-  LogExtra() = default;
+  LogExtra();
+
+  LogExtra(const LogExtra&);
+
+  LogExtra(LogExtra&&);
+
+  ~LogExtra();
+
+  LogExtra& operator=(LogExtra&&);
+
+  LogExtra& operator=(const LogExtra&);
 
   /// Constructs LogExtra containing an initial batch of key-value pairs
   LogExtra(std::initializer_list<Pair> initial,
@@ -96,14 +108,19 @@ class LogExtra {
     bool frozen_ = false;
   };
 
-  using Map = std::unordered_map<Key, ProtectedValue>;
+  static constexpr auto kSmallVectorSize = 24;
+  using MapItem = std::pair<Key, ProtectedValue>;
+  using Map = boost::container::small_vector<MapItem, kSmallVectorSize>;
 
   void Extend(std::string key, ProtectedValue protected_value,
               ExtendType extend_type = ExtendType::kNormal);
-  void Extend(Map::value_type extra,
-              ExtendType extend_type = ExtendType::kNormal);
+  void Extend(MapItem extra, ExtendType extend_type = ExtendType::kNormal);
 
-  Map extra_;
+  std::pair<Key, ProtectedValue>* Find(const Key&);
+
+  const std::pair<Key, ProtectedValue>* Find(const Key&) const;
+
+  utils::FastPimpl<Map, 1944, 8, true> extra_;
 };
 
 }  // namespace logging
