@@ -23,6 +23,7 @@ struct Config {
   size_t worker_threads = 1;
   size_t buffer_size = 32 * 1024;
   uint16_t port = 3333;
+  bool listen = false;
 };
 
 Config ParseConfig(int argc, char** argv) {
@@ -43,7 +44,8 @@ Config ParseConfig(int argc, char** argv) {
       po::value(&config.buffer_size)->default_value(config.buffer_size),
       "buffer size")("port,p",
                      po::value(&config.port)->default_value(config.port),
-                     "port to listen to");
+                     "port to listen to")(
+      "listen,l", po::bool_switch(&config.listen), "listen mode");
 
   po::variables_map vm;
   try {
@@ -82,23 +84,32 @@ int main(int argc, char** argv) {
       *task_processor_holder,
       [&] {
         try {
-          struct sockaddr_in6 sa;
-          memset(&sa, 0, sizeof(sa));
-          sa.sin6_family = AF_INET6;
-          sa.sin6_addr = in6addr_any;
-          sa.sin6_port = htons(config.port);
+          engine::io::AddrStorage addr_storage;
+          auto* sa = addr_storage.As<struct sockaddr_in6>();
+          sa->sin6_family = AF_INET6;
+          sa->sin6_port = htons(config.port);
+          sa->sin6_addr = in6addr_loopback;
+          engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
-          auto listsock = engine::io::Listen(engine::io::Addr(
-              engine::io::AddrDomain::kInet6, SOCK_STREAM, 0, &sa));
-
-          auto worksock = listsock.Accept({});
+          engine::io::Socket worksock;
           std::vector<char> buf(config.buffer_size);
-          while (auto len = worksock.Recv(buf.data(), buf.size(), {})) {
-            std::cout << std::string(buf.data(), len);
-            worksock.Send(buf.data(), len, {});
+          if (config.listen) {
+            LOG_INFO() << "Listening on " << addr;
+            auto listsock = engine::io::Listen(addr);
+            worksock = listsock.Accept({});
+            LOG_INFO() << "Connection from " << worksock.Getpeername();
+            listsock.Close();
+            while (auto len = worksock.RecvSome(buf.data(), buf.size(), {})) {
+              std::cout.write(buf.data(), len);
+            }
+          } else {
+            LOG_INFO() << "Connecting to " << addr;
+            worksock = engine::io::Connect(addr, {});
+            while (std::cin.read(buf.data(), buf.size())) {
+              worksock.SendAll(buf.data(), std::cin.gcount(), {});
+            }
           }
           worksock.Close();
-          listsock.Close();
         } catch (const std::exception&) {
           ex = std::current_exception();
         }

@@ -29,6 +29,11 @@ void Watcher<ev_io>::Init(void (*cb)(struct ev_loop*, ev_io*, int), int fd,
 }
 
 template <>
+void Watcher<ev_io>::Init(void (*cb)(struct ev_loop*, ev_io*, int)) {
+  ev_init(&w_, cb);
+}
+
+template <>
 template <>
 void Watcher<ev_io>::Set(int fd, int events) {
   ev_io_set(&w_, fd, events);

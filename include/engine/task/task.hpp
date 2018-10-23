@@ -124,9 +124,10 @@ TaskProcessor& GetTaskProcessor();
 /// @cond
 /// Returns ev thread handle, internal use only
 ev::ThreadControl& GetEventThread();
-/// @endcond
 
+/// Updates spurious wakeup statistics, internal use only
 void AccountSpuriousWakeup();
+/// @endcond
 
 }  // namespace current_task
 

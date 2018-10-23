@@ -1,8 +1,10 @@
 #include <engine/io/socket.hpp>
 
 #include <fcntl.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
+#include <cassert>
 #include <cerrno>
 #include <string>
 #include <system_error>
@@ -10,6 +12,8 @@
 #include <engine/task/task.hpp>
 #include <logging/log.hpp>
 
+#include <build_config.hpp>
+#include <engine/io/error.hpp>
 #include <engine/task/task_context.hpp>
 #include <utils/check_syscall.hpp>
 
@@ -17,144 +21,117 @@ namespace engine {
 namespace io {
 namespace {
 
-int SetNonblock(int fd) {
-  int oldflags = utils::CheckSyscall(::fcntl(fd, F_GETFL),
-                                     "getting file status flags, fd=", fd);
-  if (!(oldflags & O_NONBLOCK)) {
-    utils::CheckSyscall(::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK),
-                        "setting file status flags, fd=", fd);
-  }
-  return fd;
+// MAC_COMPAT
+Socket MakeSocket(const Addr& addr) {
+  return Socket(utils::CheckSyscall(::socket(addr.Family(),
+#ifdef SOCK_NONBLOCK
+                                             addr.Type() | SOCK_NONBLOCK,
+#else
+                                             addr.Type(),
+#endif
+                                             addr.Protocol()),
+                                    "creating socket, addr=", addr));
 }
 
-enum class IoMode { Some, All };
-
-template <typename IoFunc, typename WaitFunc>
-size_t PerformIo(IoFunc io_func, int fd, void* buf, size_t size, IoMode io_mode,
-                 WaitFunc wait_func, const char* desc) {
-  auto* const begin = static_cast<char*>(buf);
-  auto* const end = begin + size;
-
-  auto* pos = begin;
-
-  while (pos < end) {
-    auto chunk_size = io_func(fd, pos, end - pos);
-
-    if (chunk_size > 0) {
-      pos += chunk_size;
-    } else if (!chunk_size) {
-      break;
-    } else if (errno == EINTR) {
-      continue;
-    } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
-      if (pos != begin && io_mode == IoMode::Some) {
-        break;
-      }
-      wait_func();
-      if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
-          impl::TaskContext::WakeupSource::kDeadlineTimer) {
-        throw SocketTimeout(/*bytes_transferred =*/pos - begin);
-      }
-    } else {
-      const auto err_value = errno;
-      std::system_error ex(
-          err_value, std::system_category(),
-          std::string("Error during ") + desc + ", fd=" + std::to_string(fd));
-      LOG_ERROR() << ex.what();
-      if (pos != begin) {
-        break;
-      }
-      throw ex;
-    }
+template <typename... Context>
+Addr& MemoizeAddr(Addr& addr, decltype(&::getpeername) getter,
+                  const Socket& socket, const Context&... context) {
+  if (addr.Domain() == AddrDomain::kInvalid) {
+    AddrStorage buf;
+    auto len = buf.Size();
+    utils::CheckSyscall(getter(socket.Fd(), buf.Data(), &len),
+                        utils::impl::ToString(context...));
+    assert(len <= buf.Size());
+    addr = Addr(buf, 0, 0);
   }
-  return pos - begin;
+  return addr;
 }
 
 }  // namespace
 
-SocketError::SocketError() : std::runtime_error("generic socket error") {}
+ConnectTimeout::ConnectTimeout()
+    : IoError("connection establishment timed out") {}
 
-SocketTimeout::SocketTimeout() : SocketTimeout(0) {}
+Socket::Socket(int fd) : fd_control_(impl::FdControl::Adopt(fd)) {}
 
-SocketTimeout::SocketTimeout(size_t bytes_transferred)
-    : SocketError("socket timed out"), bytes_transferred_(bytes_transferred) {}
-
-Socket::Socket()
-    : io_watcher_(current_task::GetEventThread()),
-      read_waiters_(std::make_shared<impl::WaitList>()),
-      write_waiters_(std::make_shared<impl::WaitList>()) {}
-
-Socket::Socket(int fd) : Socket() {
-  SetNonblock(fd);
-  io_watcher_.SetFd(fd);
-}
-
-Socket::Socket(Socket&& other) noexcept : Socket() { *this = std::move(other); }
-
-Socket& Socket::operator=(Socket&& rhs) noexcept {
-  io_watcher_.SetFd(std::move(rhs).Release());
-  return *this;
-}
-
-bool Socket::IsValid() const { return io_watcher_.HasFd(); }
+bool Socket::IsOpen() const { return !!fd_control_; }
 
 void Socket::WaitReadable(Deadline deadline) {
-  impl::WaitList::Lock lock(*read_waiters_);
-  auto caller_ctx = current_task::GetCurrentTaskContext();
-  impl::TaskContext::SleepParams sleep_params;
-  sleep_params.deadline = std::move(deadline);
-  sleep_params.wait_list = read_waiters_;
-  sleep_params.exec_after_asleep = [this, &lock, caller_ctx] {
-    read_waiters_->Append(lock, caller_ctx);
-    lock.Release();
-  };
-  io_watcher_.ReadAsync([waiters = read_waiters_](std::error_code) {
-    impl::WaitList::Lock lock(*waiters);
-    waiters->WakeupOne(lock);
-  });
-  caller_ctx->Sleep(std::move(sleep_params));
+  assert(IsOpen());
+  fd_control_->Read().Wait(std::move(deadline));
 }
 
 void Socket::WaitWriteable(Deadline deadline) {
-  impl::WaitList::Lock lock(*write_waiters_);
-  auto caller_ctx = current_task::GetCurrentTaskContext();
-  impl::TaskContext::SleepParams sleep_params;
-  sleep_params.deadline = std::move(deadline);
-  sleep_params.wait_list = write_waiters_;
-  sleep_params.exec_after_asleep = [this, &lock, caller_ctx] {
-    write_waiters_->Append(lock, caller_ctx);
-    lock.Release();
+  assert(IsOpen());
+  fd_control_->Write().Wait(std::move(deadline));
+}
+
+size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
+  if (!IsOpen()) {
+    throw IoError("Attempt to Recv from closed socket");
+  }
+  auto& dir = fd_control_->Read();
+  impl::Direction::Lock lock(dir);
+  return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kPartial,
+                       std::move(deadline), "Recv from ", peername_);
+}
+
+size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
+  if (!IsOpen()) {
+    throw IoError("Attempt to RecvAll from closed socket");
+  }
+  auto& dir = fd_control_->Read();
+  impl::Direction::Lock lock(dir);
+  return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kWhole,
+                       std::move(deadline), "RecvAll from ", peername_);
+}
+
+size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
+  if (!IsOpen()) {
+    throw IoError("Attempt to Send to closed socket");
+  }
+  auto& dir = fd_control_->Write();
+  impl::Direction::Lock lock(dir);
+
+// MAC_COMPAT
+#ifdef MSG_NOSIGNAL
+  static const auto send_func = [](int fd, const void* buf, size_t len) {
+    return ::send(fd, buf, len, MSG_NOSIGNAL);
   };
-  io_watcher_.WriteAsync([waiters = write_waiters_](std::error_code) {
-    impl::WaitList::Lock lock(*waiters);
-    waiters->WakeupOne(lock);
-  });
-  caller_ctx->Sleep(std::move(sleep_params));
-}
+#else
+  static const auto send_func = &::write;
+#endif
 
-size_t Socket::Recv(void* buf, size_t size, Deadline deadline) {
-  std::lock_guard<Mutex> lock(read_mutex_);
-  return PerformIo(&::read, io_watcher_.GetFd(), buf, size, IoMode::Some,
-                   [this, deadline] { WaitReadable(deadline); }, "Recv");
-}
-
-size_t Socket::RecvAll(void* buf, size_t size, Deadline deadline) {
-  std::lock_guard<Mutex> lock(read_mutex_);
-  return PerformIo(&::read, io_watcher_.GetFd(), buf, size, IoMode::All,
-                   [this, deadline] { WaitReadable(deadline); }, "RecvAll");
-}
-
-size_t Socket::Send(void* buf, size_t size, Deadline deadline) {
-  std::lock_guard<Mutex> lock(write_mutex_);
-  return PerformIo(&::write, io_watcher_.GetFd(), buf, size, IoMode::All,
-                   [this, deadline] { WaitWriteable(deadline); }, "Send");
+  return dir.PerformIo(lock, send_func, const_cast<void*>(buf), len,
+                       impl::TransferMode::kWhole, std::move(deadline),
+                       "Send to ", peername_);
 }
 
 Socket Socket::Accept(Deadline deadline) {
-  std::lock_guard<Mutex> lock(read_mutex_);
+  if (!IsOpen()) {
+    throw IoError("Attempt to Accept from closed socket");
+  }
+  current_task::CancellationPoint();
+
+  auto& dir = fd_control_->Read();
+  impl::Direction::Lock lock(dir);
   for (;;) {
-    int fd = ::accept(io_watcher_.GetFd(), nullptr, nullptr);
-    if (fd != -1) return Socket(fd);
+    AddrStorage buf;
+    auto len = buf.Size();
+
+// MAC_COMPAT
+#ifdef HAVE_ACCEPT4
+    int fd = ::accept4(dir.Fd(), buf.Data(), &len, SOCK_NONBLOCK);
+#else
+    int fd = ::accept(dir.Fd(), buf.Data(), &len);
+#endif
+
+    assert(len <= buf.Size());
+    if (fd != -1) {
+      auto peersock = Socket(fd);
+      peersock.peername_ = Addr(buf, 0, 0);
+      return peersock;
+    }
 
     switch (errno) {
       case EAGAIN:
@@ -163,8 +140,8 @@ Socket Socket::Accept(Deadline deadline) {
 #endif
         WaitReadable(deadline);
         if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
-            impl::TaskContext::WakeupSource::kDeadlineTimer) {
-          throw SocketTimeout();
+            engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
+          throw ConnectTimeout();
         }
         break;
 
@@ -188,31 +165,93 @@ Socket Socket::Accept(Deadline deadline) {
   }
 }
 
-void Socket::Close() {
-  io_watcher_.Cancel();
-  io_watcher_.CloseFd();
+void Socket::Close() { fd_control_.reset(); }
+
+int Socket::Fd() const { return fd_control_ ? fd_control_->Fd() : -1; }
+
+const Addr& Socket::Getpeername() {
+  assert(IsOpen());
+  return MemoizeAddr(peername_, &::getpeername, *this,
+                     "getting peer name, fd=", Fd());
 }
 
-int Socket::GetFd() const { return io_watcher_.GetFd(); }
+const Addr& Socket::Getsockname() {
+  assert(IsOpen());
+  return MemoizeAddr(sockname_, &::getsockname, *this,
+                     "getting socket name, fd=", Fd());
+}
 
-int Socket::Release() && noexcept { return io_watcher_.Release(); }
+int Socket::Release() && noexcept {
+  assert(IsOpen());
+  return fd_control_.release()->Fd();
+}
+
+Socket Connect(Addr addr, Deadline deadline) {
+  current_task::CancellationPoint();
+
+  auto socket = MakeSocket(addr);
+
+  int err_value = ::connect(socket.Fd(), addr.Sockaddr(), addr.Addrlen());
+  if (!err_value) {
+    return socket;
+  }
+  err_value = errno;
+  if (err_value == EINPROGRESS) {
+    socket.WaitWriteable(deadline);
+    if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
+        engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
+      throw ConnectTimeout();
+    }
+    err_value = socket.GetOption(SOL_SOCKET, SO_ERROR);
+  }
+
+  if (err_value) {
+    throw std::system_error(
+        err_value, std::system_category(),
+        utils::impl::ToString("Error while establishing connection, fd=",
+                              socket.Fd(), ", addr=", addr));
+  }
+  return socket;
+}
 
 Socket Listen(Addr addr, int backlog) {
-  Socket socket(
-      utils::CheckSyscall(::socket(addr.Family(), addr.Type(), addr.Protocol()),
-                          "creating socket, addr=", addr));
+  current_task::CancellationPoint();
 
-  const int reuse_port_flag = 1;
-  utils::CheckSyscall(::setsockopt(socket.GetFd(), SOL_SOCKET, SO_REUSEPORT,
-                                   &reuse_port_flag, sizeof(reuse_port_flag)),
-                      "setting SO_REUSEPORT, fd=", socket.GetFd());
+  auto socket = MakeSocket(addr);
 
-  utils::CheckSyscall(::bind(socket.GetFd(), addr.Sockaddr(), addr.Addrlen()),
+  socket.SetOption(SOL_SOCKET, SO_REUSEADDR, 1);
+
+// MAC_COMPAT
+#ifdef SO_REUSEPORT
+  socket.SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
+#else
+  LOG_ERROR() << "SO_REUSEPORT is not defined, you may experience problems "
+                 "with multithreaded listeners";
+#endif
+
+  utils::CheckSyscall(::bind(socket.Fd(), addr.Sockaddr(), addr.Addrlen()),
                       "binding a socket, addr=", addr);
-  utils::CheckSyscall(::listen(socket.GetFd(), backlog),
+  utils::CheckSyscall(::listen(socket.Fd(), backlog),
                       "listening on a socket, addr=", addr,
                       ", backlog=", backlog);
   return socket;
+}
+
+int Socket::GetOption(int layer, int optname) const {
+  int value = -1;
+  socklen_t value_len = sizeof(value);
+  utils::CheckSyscall(::getsockopt(Fd(), layer, optname, &value, &value_len),
+                      "getting socket option ", layer, ',', optname, "on fd ",
+                      Fd());
+  assert(value_len == sizeof(value));
+  return value;
+}
+
+void Socket::SetOption(int layer, int optname, int optval) {
+  utils::CheckSyscall(
+      ::setsockopt(Fd(), layer, optname, &optval, sizeof(optval)),
+      "setting socket option ", layer, ',', optname, " to ", optval, " on fd ",
+      Fd());
 }
 
 }  // namespace io

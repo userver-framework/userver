@@ -1,6 +1,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <exception>
 #include <mutex>
 
 #include <engine/async.hpp>
@@ -15,9 +16,14 @@ void RunInCoro(std::function<void()> user_cb, size_t worker_threads) {
   std::mutex mutex;
   std::condition_variable cv;
   std::atomic_bool done{false};
+  std::exception_ptr ex;
 
-  auto cb = [&user_cb, &mutex, &done, &cv]() {
-    user_cb();
+  auto cb = [&user_cb, &mutex, &done, &cv, &ex]() {
+    try {
+      user_cb();
+    } catch (const std::exception&) {
+      ex = std::current_exception();
+    }
 
     std::lock_guard<std::mutex> lock(mutex);
     done = true;
@@ -27,4 +33,5 @@ void RunInCoro(std::function<void()> user_cb, size_t worker_threads) {
 
   std::unique_lock<std::mutex> lock(mutex);
   cv.wait(lock, [&done]() { return done.load(); });
+  if (ex) std::rethrow_exception(ex);
 }

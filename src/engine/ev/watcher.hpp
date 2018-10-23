@@ -16,6 +16,7 @@ class Watcher : public ThreadControl {
   virtual ~Watcher();
 
   void Init(void (*cb)(struct ev_loop*, ev_async*, int));
+  void Init(void (*cb)(struct ev_loop*, ev_io*, int));
   void Init(void (*cb)(struct ev_loop*, ev_io*, int), int fd,
             int events);  // TODO: use utils::Flags for events
   void Init(void (*cb)(struct ev_loop*, ev_timer*, int), ev_tstamp after,
@@ -33,6 +34,10 @@ class Watcher : public ThreadControl {
   /* Synchronously start/stop ev_xxx.  Can be used from coroutines only */
   void Start();
   void Stop();
+
+  /* Asynchronously start ev_xxx. Must not block. */
+  void StartAsync();
+  // no StopAsync(), you really might want to wait
 
   template <typename T = EvType>
   typename std::enable_if<std::is_same<T, ev_timer>::value, void>::type Again();
@@ -68,7 +73,7 @@ Watcher<EvType>::Watcher(const ThreadControl& thread_control, Obj* data)
 
 template <typename EvType>
 Watcher<EvType>::~Watcher() {
-  Stop();
+  if (is_running_) Stop();
 }
 
 template <typename EvType>
@@ -79,6 +84,11 @@ void Watcher<EvType>::Start() {
 template <typename EvType>
 void Watcher<EvType>::Stop() {
   CallInEvLoop<&Watcher::StopImpl>();
+}
+
+template <typename EvType>
+void Watcher<EvType>::StartAsync() {
+  RunInEvLoopAsync([this] { StartImpl(); });
 }
 
 template <typename EvType>

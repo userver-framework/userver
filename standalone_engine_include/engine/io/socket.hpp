@@ -1,72 +1,65 @@
 #pragma once
 
-#include <memory>
-
 #include <engine/deadline.hpp>
-#include <engine/mutex.hpp>
+#include <engine/io/addr.hpp>
+#include <engine/io/error.hpp>
 
-#include <engine/ev/watcher/io_watcher.hpp>
-#include <engine/wait_list.hpp>
-#include "addr.hpp"
+#include <engine/io/fd_control.hpp>
 
 namespace engine {
 namespace io {
 
-class SocketError : public std::runtime_error {
+namespace impl {
+class FdControl;
+}  // namespace impl
+
+class ConnectTimeout : public IoError {
  public:
-  SocketError();
-  using std::runtime_error::runtime_error;
+  ConnectTimeout();
 };
 
-class SocketTimeout : public SocketError {
- public:
-  SocketTimeout();
-  explicit SocketTimeout(size_t bytes_transferred);
-
-  size_t BytesTransferred() const;
-
- private:
-  size_t bytes_transferred_;
-};
-
+// I/O methods (Wait*, Recv*, Send*, Accept) and const methods are coro-safe,
+// all others are NOT coro-safe.
+// You may call Close with pending I/O though, but this is not recommended
+// in general (with active I/O it can cause loosely predictable effects).
 class Socket {
  public:
-  Socket();
+  Socket() = default;
 
   // fd will be silently forced to nonblocking mode
   explicit Socket(int fd);
 
-  Socket(const Socket&) = delete;
-  Socket(Socket&&) noexcept;
-
-  Socket& operator=(const Socket&) = delete;
-  Socket& operator=(Socket&&) noexcept;
-
-  explicit operator bool() const { return IsValid(); }
-  bool IsValid() const;
+  explicit operator bool() const { return IsOpen(); }
+  bool IsOpen() const;
 
   void WaitReadable(Deadline);
   void WaitWriteable(Deadline);
 
-  size_t Recv(void* buf, size_t size, Deadline deadline);
-  size_t RecvAll(void* buf, size_t size, Deadline deadline);
-  size_t Send(void* buf, size_t size, Deadline deadline);
+  size_t RecvSome(void* buf, size_t len, Deadline deadline);
+  size_t RecvAll(void* buf, size_t len, Deadline deadline);
+  size_t SendAll(const void* buf, size_t len, Deadline deadline);
 
   Socket Accept(Deadline);
 
-  int GetFd() const;
+  int Fd() const;
+  const Addr& Getpeername();
+  const Addr& Getsockname();
+
   __attribute__((warn_unused_result)) int Release() && noexcept;
 
   void Close();
 
+  int GetOption(int layer, int optname) const;
+  void SetOption(int layer, int optname, int optval);
+
  private:
-  ev::IoWatcher io_watcher_;
-  Mutex read_mutex_;
-  std::shared_ptr<impl::WaitList> read_waiters_;
-  Mutex write_mutex_;
-  std::shared_ptr<impl::WaitList> write_waiters_;
+  impl::FdControlHolder fd_control_;
+  Addr peername_;
+  Addr sockname_;
 };
 
+// Creates stream sockets
+Socket Connect(Addr addr, Deadline deadline);
 Socket Listen(Addr addr, int backlog = SOMAXCONN);
 
 }  // namespace io

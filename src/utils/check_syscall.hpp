@@ -8,29 +8,22 @@
 namespace utils {
 namespace impl {
 
-inline void Dump(std::ostringstream&) {}
-
-template <typename Arg, typename... Args>
-void Dump(std::ostringstream& os, Arg&& arg, Args&&... args) {
-  os << std::forward<Arg>(arg);
-  Dump(os, std::forward<Args>(args)...);
-}
-
 template <typename... Args>
-std::string ToString(Args&&... args) {
+std::string ToString(const Args&... args) {
   std::ostringstream os;
-  Dump(os, std::forward<Args>(args)...);
+  (os << ... << args);
   return os.str();
 }
 
 }  // namespace impl
 
 template <typename... Context>
-inline int CheckSyscall(int ret, Context&&... context) {
+inline int CheckSyscall(int ret, const Context&... context) {
   if (ret == -1) {
-    throw std::system_error(
-        errno, std::generic_category(),
-        "Error while " + impl::ToString(std::forward<Context>(context)...));
+    // avoid losing errno due to message generation
+    const auto err_value = errno;
+    throw std::system_error(err_value, std::generic_category(),
+                            "Error while " + impl::ToString(context...));
   }
   return ret;
 }
