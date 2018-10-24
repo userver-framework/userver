@@ -162,7 +162,8 @@ void ComponentContext::AddDependency(const std::string& name) const {
       component_dependencies_[current_component];
 
   if (current_component_dependency.count(name) == 0) {
-    LOG_INFO() << "Resolving dependency " << current_component << " -> " << name;
+    LOG_INFO() << "Resolving dependency " << current_component << " -> "
+               << name;
 
     current_component_dependency.insert(name);
     CheckForDependencyLoop(name, lock);
