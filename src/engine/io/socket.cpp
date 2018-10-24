@@ -183,7 +183,9 @@ const Addr& Socket::Getsockname() {
 
 int Socket::Release() && noexcept {
   assert(IsOpen());
-  return fd_control_.release()->Fd();
+  const int fd = fd_control_->Fd();
+  fd_control_.release()->Invalidate();
+  return fd;
 }
 
 Socket Connect(Addr addr, Deadline deadline) {

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <arpa/inet.h>
 #include <unistd.h>
 
 #include <cerrno>
@@ -22,6 +23,33 @@ uint16_t GetPort(const io::Addr& addr) {
   auto* sa = addr.As<struct sockaddr_in6>();
   return sa ? sa->sin6_port : 0;
 }
+
+struct Listener {
+  Listener() : port(0) {
+    io::AddrStorage addr_storage;
+    auto* sa = addr_storage.As<struct sockaddr_in6>();
+    sa->sin6_family = AF_INET6;
+    sa->sin6_addr = in6addr_loopback;
+
+    int attempts = 100;
+    while (attempts--) {
+      sa->sin6_port = port = htons(1024 + (rand() % (65536 - 1024)));
+      addr = io::Addr(addr_storage, SOCK_STREAM, 0);
+
+      try {
+        socket = io::Listen(addr);
+        return;
+      } catch (const std::system_error& ex) {
+        // retry
+      }
+    }
+    throw std::runtime_error("Could not find a port to listen");
+  };
+
+  uint16_t port;
+  io::Addr addr;
+  io::Socket socket;
+};
 
 }  // namespace
 
@@ -46,38 +74,21 @@ TEST(Socket, ConnectFail) {
 
 TEST(Socket, ListenConnect) {
   RunInCoro([] {
-    uint16_t port = 0;
-    io::Addr listen_addr;
-    auto listen_sock = [&] {
-      io::AddrStorage addr_storage;
-      auto* sa = addr_storage.As<struct sockaddr_in6>();
-      sa->sin6_family = AF_INET6;
-      sa->sin6_addr = in6addr_loopback;
+    Listener listener;
 
-      int attempts = 100;
-      while (attempts--) {
-        sa->sin6_port = port = 1024 + (rand() % (65536 - 1024));
-        listen_addr = io::Addr(addr_storage, SOCK_STREAM, 0);
+    EXPECT_EQ(listener.port, GetPort(listener.socket.Getsockname()));
+    EXPECT_EQ("::1", listener.socket.Getsockname().RemoteAddress());
 
-        try {
-          return io::Listen(listen_addr);
-        } catch (const std::system_error&) {
-          // retry
-        }
-      }
-      throw std::runtime_error("Could not find a port to listen");
-    }();
+    const int old_reuseaddr =
+        listener.socket.GetOption(SOL_SOCKET, SO_REUSEADDR);
+    listener.socket.SetOption(SOL_SOCKET, SO_REUSEADDR, !old_reuseaddr);
+    EXPECT_EQ(!old_reuseaddr,
+              listener.socket.GetOption(SOL_SOCKET, SO_REUSEADDR));
+    listener.socket.SetOption(SOL_SOCKET, SO_REUSEADDR, old_reuseaddr);
+    EXPECT_EQ(old_reuseaddr,
+              listener.socket.GetOption(SOL_SOCKET, SO_REUSEADDR));
 
-    EXPECT_EQ(port, GetPort(listen_sock.Getsockname()));
-    EXPECT_EQ("::1", listen_sock.Getsockname().RemoteAddress());
-
-    const int old_reuseaddr = listen_sock.GetOption(SOL_SOCKET, SO_REUSEADDR);
-    listen_sock.SetOption(SOL_SOCKET, SO_REUSEADDR, !old_reuseaddr);
-    EXPECT_EQ(!old_reuseaddr, listen_sock.GetOption(SOL_SOCKET, SO_REUSEADDR));
-    listen_sock.SetOption(SOL_SOCKET, SO_REUSEADDR, old_reuseaddr);
-    EXPECT_EQ(old_reuseaddr, listen_sock.GetOption(SOL_SOCKET, SO_REUSEADDR));
-
-    EXPECT_THROW(listen_sock.Accept(
+    EXPECT_THROW(listener.socket.Accept(
                      Deadline::FromDuration(std::chrono::milliseconds(10))),
                  io::ConnectTimeout);
 
@@ -87,10 +98,10 @@ TEST(Socket, ListenConnect) {
 
     uint16_t first_client_port = 0;
     uint16_t second_client_port = 0;
-    auto listener = engine::Async([&] {
-      auto first_client = listen_sock.Accept({});
+    auto listen_task = engine::Async([&] {
+      auto first_client = listener.socket.Accept({});
       EXPECT_TRUE(first_client.IsOpen());
-      auto second_client = listen_sock.Accept({});
+      auto second_client = listener.socket.Accept({});
       EXPECT_TRUE(second_client.IsOpen());
 
       EXPECT_EQ("::1", first_client.Getsockname().RemoteAddress());
@@ -105,8 +116,8 @@ TEST(Socket, ListenConnect) {
         are_ports_filled = true;
         ports_cv.NotifyOne();
       }
-      EXPECT_EQ(port, GetPort(first_client.Getsockname()));
-      EXPECT_EQ(port, GetPort(second_client.Getsockname()));
+      EXPECT_EQ(listener.port, GetPort(first_client.Getsockname()));
+      EXPECT_EQ(listener.port, GetPort(second_client.Getsockname()));
 
       char c = 0;
       second_client.RecvSome(&c, 1, {});
@@ -115,9 +126,9 @@ TEST(Socket, ListenConnect) {
       EXPECT_EQ('1', c);
     });
 
-    auto first_client = io::Connect(listen_addr, {});
+    auto first_client = io::Connect(listener.addr, {});
     EXPECT_TRUE(first_client.IsOpen());
-    auto second_client = io::Connect(listen_addr, {});
+    auto second_client = io::Connect(listener.addr, {});
     EXPECT_TRUE(second_client.IsOpen());
 
     {
@@ -126,12 +137,28 @@ TEST(Socket, ListenConnect) {
     }
 
     EXPECT_EQ(first_client_port, GetPort(first_client.Getsockname()));
-    EXPECT_EQ(port, GetPort(first_client.Getpeername()));
+    EXPECT_EQ(listener.port, GetPort(first_client.Getpeername()));
     EXPECT_EQ(second_client_port, GetPort(second_client.Getsockname()));
-    EXPECT_EQ(port, GetPort(second_client.Getpeername()));
+    EXPECT_EQ(listener.port, GetPort(second_client.Getpeername()));
 
     first_client.SendAll("1", 1, {});
     second_client.SendAll("2", 1, {});
-    listener.Get();
+    listen_task.Get();
+  });
+}
+
+TEST(Socket, Invalidate) {
+  RunInCoro([] {
+    Listener listener;
+
+    auto client = io::Connect(listener.addr, {});
+    const int old_fd = client.Fd();
+
+    int fd = -1;
+    while (fd != old_fd) {
+      EXPECT_EQ(0, ::close(std::move(client).Release()));
+      ASSERT_NO_THROW(client = io::Connect(listener.addr, {}));
+      fd = client.Fd();
+    }
   });
 }
