@@ -147,7 +147,7 @@ TEST(Socket, ListenConnect) {
   });
 }
 
-TEST(Socket, Invalidate) {
+TEST(Socket, ReleaseReuse) {
   RunInCoro([] {
     Listener listener;
 
@@ -160,5 +160,14 @@ TEST(Socket, Invalidate) {
       ASSERT_NO_THROW(client = io::Connect(listener.addr, {}));
       fd = client.Fd();
     }
+  });
+}
+
+TEST(Socket, Closed) {
+  RunInCoro([] {
+    io::Socket closed_socket;
+    EXPECT_FALSE(closed_socket.IsOpen());
+    EXPECT_EQ(io::Socket::kInvalidFd, closed_socket.Fd());
+    EXPECT_EQ(io::Socket::kInvalidFd, std::move(closed_socket).Release());
   });
 }

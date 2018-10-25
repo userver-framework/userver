@@ -24,6 +24,9 @@ class ConnectTimeout : public IoError {
 // in general (with active I/O it can cause loosely predictable effects).
 class Socket {
  public:
+  // returned from closed socket
+  static constexpr int kInvalidFd = -1;
+
   Socket() = default;
 
   // fd will be silently forced to nonblocking mode

@@ -167,7 +167,7 @@ Socket Socket::Accept(Deadline deadline) {
 
 void Socket::Close() { fd_control_.reset(); }
 
-int Socket::Fd() const { return fd_control_ ? fd_control_->Fd() : -1; }
+int Socket::Fd() const { return fd_control_ ? fd_control_->Fd() : kInvalidFd; }
 
 const Addr& Socket::Getpeername() {
   assert(IsOpen());
@@ -182,9 +182,8 @@ const Addr& Socket::Getsockname() {
 }
 
 int Socket::Release() && noexcept {
-  assert(IsOpen());
-  const int fd = fd_control_->Fd();
-  fd_control_.release()->Invalidate();
+  const int fd = Fd();
+  if (IsOpen()) fd_control_.release()->Invalidate();
   return fd;
 }
 
@@ -240,6 +239,7 @@ Socket Listen(Addr addr, int backlog) {
 }
 
 int Socket::GetOption(int layer, int optname) const {
+  assert(IsOpen());
   int value = -1;
   socklen_t value_len = sizeof(value);
   utils::CheckSyscall(::getsockopt(Fd(), layer, optname, &value, &value_len),
@@ -250,6 +250,7 @@ int Socket::GetOption(int layer, int optname) const {
 }
 
 void Socket::SetOption(int layer, int optname, int optval) {
+  assert(IsOpen());
   utils::CheckSyscall(
       ::setsockopt(Fd(), layer, optname, &optval, sizeof(optval)),
       "setting socket option ", layer, ',', optname, " to ", optval, " on fd ",
