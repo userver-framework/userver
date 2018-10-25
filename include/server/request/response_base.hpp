@@ -18,6 +18,9 @@ class ResponseBase {
   virtual ~ResponseBase() {}
 
   void SetData(std::string data);
+  const std::string& GetData() const { return data_; }
+
+  // TODO: server internals. remove from public interface
   void SetReady();
   virtual void SetSent(size_t bytes_sent);
   void SetSentTime(std::chrono::steady_clock::time_point sent_time);
@@ -29,8 +32,6 @@ class ResponseBase {
     return ready_time_;
   }
   std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
-
-  const std::string& GetData() const { return data_; }
 
   virtual void SendResponse(engine::Sender& sender,
                             std::function<void(size_t)> fini_cb,

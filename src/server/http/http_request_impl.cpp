@@ -69,6 +69,7 @@ HttpRequestImpl::HttpRequestImpl()
       orig_method_(HttpMethod::kUnknown),
       http_major_(0),
       http_minor_(0),
+      is_final_{false},
       response_(std::make_unique<HttpResponse>(*this)) {}
 
 HttpRequestImpl::~HttpRequestImpl() {}

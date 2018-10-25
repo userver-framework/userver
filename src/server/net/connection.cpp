@@ -46,6 +46,7 @@ Connection::Connection(engine::ev::ThreadControl& thread_control,
             NewRequest(std::move(request_ptr));
           })),
       is_closing_(false),
+      skip_new_requests_(false),
       processed_requests_count_(0),
       socket_listener_stopped_{false} {
   response_event_task_ = std::make_shared<engine::EventTask>(
@@ -143,8 +144,8 @@ size_t Connection::PendingResponseCount() const {
 
 bool Connection::CanClose() const {
   return response_sender_->Stopped() ||
-         (!socket_listener_->IsRunning() && IsRequestTasksEmpty() &&
-          !response_sender_->HasWaitingData());
+         ((skip_new_requests_ || !socket_listener_->IsRunning()) &&
+          IsRequestTasksEmpty() && !response_sender_->HasWaitingData());
 }
 
 bool Connection::IsRequestTasksEmpty() const {
@@ -184,6 +185,8 @@ engine::SocketListener::Result Connection::ReadData(int fd) {
 
 void Connection::NewRequest(
     std::unique_ptr<request::RequestBase>&& request_ptr) {
+  if (skip_new_requests_) return;
+  bool request_is_final = request_ptr->IsFinal();
   auto request_task = request_handler_.PrepareRequestTask(
       std::move(request_ptr),
       [task = response_event_task_] { task->Notify(); });
@@ -193,6 +196,7 @@ void Connection::NewRequest(
     request_tasks_.push_back(request_task);
   }
   request_handler_.ProcessRequest(*request_task);
+  if (request_is_final) skip_new_requests_ = true;
 }
 
 void Connection::SendResponses() {

@@ -47,6 +47,8 @@ class HttpRequestConstructor : public request::RequestConstructor {
   void AppendHeaderValue(const char* data, size_t size);
   void AppendBody(const char* data, size_t size);
 
+  void SetIsFinal(bool is_final);
+
   virtual std::unique_ptr<request::RequestBase> Finalize() override;
 
   static std::string UrlDecode(const char* data, const char* data_end);

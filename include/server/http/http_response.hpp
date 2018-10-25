@@ -31,8 +31,6 @@ class HttpResponse : public request::ResponseBase {
   explicit HttpResponse(const HttpRequestImpl& request);
   virtual ~HttpResponse();
 
-  virtual void SetSent(size_t bytes_sent) override;
-
   void SetHeader(std::string name, std::string value);
   void SetContentType(std::string type);
   void SetContentEncoding(std::string encoding);
@@ -40,6 +38,12 @@ class HttpResponse : public request::ResponseBase {
   void ClearHeaders();
 
   HttpStatus GetStatus() const { return status_; }
+
+  HeadersMapKeys GetHeaderNames() const;
+  const std::string& GetHeader(const std::string& header_name) const;
+
+  // TODO: server internals. remove from public interface
+  virtual void SetSent(size_t bytes_sent) override;
 
   virtual void SendResponse(engine::Sender& sender,
                             std::function<void(size_t)> finish_cb,
@@ -53,12 +57,7 @@ class HttpResponse : public request::ResponseBase {
     SetStatus(HttpStatus::kNotFound);
   }
 
-  HeadersMapKeys GetHeaderNames() const;
-  const std::string& GetHeader(const std::string& header_name) const;
-
  private:
-  std::string StatusString() const;
-
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;
   HeadersMap headers_;

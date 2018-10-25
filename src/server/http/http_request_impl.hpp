@@ -55,6 +55,8 @@ class HttpRequestImpl : public request::RequestBase {
     response_->SetStatus(status);
   }
 
+  bool IsFinal() const override { return is_final_; }
+
   virtual request::ResponseBase& GetResponse() const override {
     return *response_;
   }
@@ -88,6 +90,7 @@ class HttpRequestImpl : public request::RequestBase {
   std::unordered_map<std::string, std::vector<std::string>> request_args_;
   HeadersMap headers_;
   CookiesMap cookies_;
+  bool is_final_;
 
   std::unique_ptr<HttpResponse> response_;
 };

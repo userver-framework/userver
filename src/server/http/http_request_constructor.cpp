@@ -120,6 +120,10 @@ void HttpRequestConstructor::AppendBody(const char* data, size_t size) {
   request_->request_body_.append(data, size);
 }
 
+void HttpRequestConstructor::SetIsFinal(bool is_final) {
+  request_->is_final_ = is_final;
+}
+
 namespace {
 
 template <typename Array, typename DumpElem>

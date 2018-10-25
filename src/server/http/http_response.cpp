@@ -16,8 +16,12 @@ namespace {
 const std::string kCrlf = "\r\n";
 const std::string kHeaderContentEncoding = "Content-Encoding";
 const std::string kHeaderContentType = "Content-Type";
-const std::string kResponseHttpVersion = "HTTP/1.1";
+const std::string kHeaderConnection = "Connection";
+const std::string kResponseHttpVersionPrefix = "HTTP/";
 const std::string kServerName = "Server: taxi_userver/" USERVER_VERSION;
+
+const std::string kClose = "close";
+const std::string kKeepAlive = "keep-alive";
 
 void CheckHeaderName(const std::string& name) {
   static auto init = []() {
@@ -69,11 +73,6 @@ HttpResponse::HttpResponse(const HttpRequestImpl& request)
 
 HttpResponse::~HttpResponse() {}
 
-void HttpResponse::SetSent(size_t bytes_sent) {
-  if (!bytes_sent) SetStatus(HttpStatus::kClientClosedRequest);
-  request::ResponseBase::SetSent(bytes_sent);
-}
-
 void HttpResponse::SetHeader(std::string name, std::string value) {
   CheckHeaderName(name);
   CheckHeaderValue(value);
@@ -92,6 +91,20 @@ void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
 
 void HttpResponse::ClearHeaders() { headers_.clear(); }
 
+HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
+  return headers_ | boost::adaptors::map_keys;
+}
+
+const std::string& HttpResponse::GetHeader(
+    const std::string& header_name) const {
+  return headers_.at(header_name);
+}
+
+void HttpResponse::SetSent(size_t bytes_sent) {
+  if (!bytes_sent) SetStatus(HttpStatus::kClientClosedRequest);
+  request::ResponseBase::SetSent(bytes_sent);
+}
+
 void HttpResponse::SendResponse(engine::Sender& sender,
                                 std::function<void(size_t)> finish_cb,
                                 bool need_send) {
@@ -101,7 +114,8 @@ void HttpResponse::SendResponse(engine::Sender& sender,
   }
   bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
   std::ostringstream os;
-  os << kResponseHttpVersion << " " << static_cast<int>(status_) << " "
+  os << kResponseHttpVersionPrefix << request_.GetHttpMajor() << '.'
+     << request_.GetHttpMinor() << ' ' << static_cast<int>(status_) << ' '
      << HttpStatusString(status_) << kCrlf;
   os << kServerName << kCrlf;
   static const auto format_string = "%a, %d %b %Y %H:%M:%S %Z";
@@ -114,19 +128,12 @@ void HttpResponse::SendResponse(engine::Sender& sender,
     os << kHeaderContentType << ": " << content_type::kTextHtml << kCrlf;
   for (const auto& header : headers_)
     os << header.first << ": " << header.second << kCrlf;
-  os << "Connection: keep-alive" << kCrlf;
+  if (headers_.find(kHeaderConnection) == headers_.end())
+    os << kHeaderConnection << ": "
+       << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
   os << "Content-Length: " << data_.size() << kCrlf << kCrlf;
   if (!is_head_request) os << data_;
   sender.SendData(os.str(), std::move(finish_cb));
-}
-
-HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
-  return headers_ | boost::adaptors::map_keys;
-}
-
-const std::string& HttpResponse::GetHeader(
-    const std::string& header_name) const {
-  return headers_.at(header_name);
 }
 
 }  // namespace http

@@ -80,6 +80,7 @@ class Connection {
   std::unique_ptr<request::RequestParser> request_parser_;
 
   std::atomic<bool> is_closing_;
+  std::atomic<bool> skip_new_requests_;
 
   std::string remote_address_;
   uint16_t remote_port_;

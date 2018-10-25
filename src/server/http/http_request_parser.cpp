@@ -228,6 +228,7 @@ int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
     LOG_WARNING() << "upgrade detected";
     return -1;  // error
   }
+  request_constructor_->SetIsFinal(!http_should_keep_alive(p));
   if (!CheckUrlComplete(p)) return -1;
   LOG_TRACE() << "message complete";
   if (!FinalizeRequest()) return -1;

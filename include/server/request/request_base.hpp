@@ -17,6 +17,8 @@ class RequestBase {
   RequestBase();
   virtual ~RequestBase();
 
+  virtual bool IsFinal() const = 0;
+
   virtual ResponseBase& GetResponse() const = 0;
 
   virtual void WriteAccessLogs(const logging::LoggerPtr& logger_access,
