@@ -55,27 +55,6 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
       settings.sentinels.push_back(std::move(host_port));
     }
 
-    const auto& command_control = client_settings["command_control"];
-    if (command_control.isObject()) {
-      settings.command_control.timeout_single = std::chrono::milliseconds(
-          GetInt(command_control, "timeout_single_ms",
-                 settings.command_control.timeout_single.count()));
-      if (settings.command_control.timeout_single.count() < 0) {
-        throw InvalidSecdistJson("timeout_single_ms < 0");
-      }
-      settings.command_control.timeout_all = std::chrono::milliseconds(
-          GetInt(command_control, "timeout_all_ms",
-                 settings.command_control.timeout_all.count()));
-      if (settings.command_control.timeout_all.count() < 0) {
-        throw InvalidSecdistJson("timeout_all < 0");
-      }
-      settings.command_control.max_retries = GetInt(
-          command_control, "max_retries", settings.command_control.max_retries);
-      if (settings.command_control.max_retries < 0) {
-        throw InvalidSecdistJson("max_retries < 0");
-      }
-    }
-
     LOG_DEBUG() << "Added client '" << client_name << '\'';
     auto insertion_result =
         redis_settings_.emplace(std::move(client_name), std::move(settings));

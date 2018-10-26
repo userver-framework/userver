@@ -12,7 +12,6 @@
 #include <boost/any.hpp>
 
 #include <formats/json/value.hpp>
-#include <redis/secdist_redis.hpp>
 
 namespace storages {
 namespace secdist {
