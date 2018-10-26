@@ -65,8 +65,8 @@ class CurrentTaskScope {
 template <typename Func>
 void CallOnce(Func& func) {
   if (func) {
-    func();
-    func = {};
+    auto func_to_destroy = std::move(func);
+    func_to_destroy();
   }
 }
 

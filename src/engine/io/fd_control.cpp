@@ -116,7 +116,7 @@ FdControl& FdControl::Get(int fd) {
   // practice. Because of this, `fd` should not exceed RLIMIT_NOFILE.
   if (fd >= nofile_limit) {
     throw std::runtime_error(utils::impl::ToString(
-        "File descriptor number ", fd, " is too high, max=", nofile_limit));
+        "File descriptor number ", fd, " is too high, max=", nofile_limit - 1));
   }
   return storage[fd];
 }

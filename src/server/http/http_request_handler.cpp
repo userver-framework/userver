@@ -45,10 +45,10 @@ void HttpRequestHandler::ProcessRequest(request::RequestTask& task) const {
   if (response.GetStatus() == HttpStatus::kOk) {
     task.Start(!is_monitor_);
   } else {
-    task.SetComplete();
     request.SetResponseNotifyTime();
     request.SetCompleteNotifyTime();
     response.SetReady();
+    task.SetComplete();
   }
 }
 

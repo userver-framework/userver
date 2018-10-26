@@ -6,7 +6,9 @@
 #include <unordered_map>
 
 namespace engine {
-class Sender;
+namespace io {
+class Socket;
+}  // namespace io
 }  // namespace engine
 
 namespace server {
@@ -22,8 +24,8 @@ class ResponseBase {
 
   // TODO: server internals. remove from public interface
   void SetReady();
-  virtual void SetSent(size_t bytes_sent);
-  void SetSentTime(std::chrono::steady_clock::time_point sent_time);
+  virtual void SetSendFailed(
+      std::chrono::steady_clock::time_point failure_time);
 
   bool IsReady() const { return is_ready_; }
   bool IsSent() const { return is_sent_; }
@@ -33,15 +35,16 @@ class ResponseBase {
   }
   std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
 
-  virtual void SendResponse(engine::Sender& sender,
-                            std::function<void(size_t)> fini_cb,
-                            bool need_send) = 0;
+  virtual void SendResponse(engine::io::Socket& socket) = 0;
 
   virtual void SetStatusServiceUnavailable() = 0;
   virtual void SetStatusOk() = 0;
   virtual void SetStatusNotFound() = 0;
 
  protected:
+  void SetSent(size_t bytes_sent);
+  void SetSentTime(std::chrono::steady_clock::time_point sent_time);
+
   std::string data_;
   std::chrono::steady_clock::time_point ready_time_;
   std::chrono::steady_clock::time_point sent_time_;

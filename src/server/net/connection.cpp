@@ -1,10 +1,5 @@
 #include "connection.hpp"
 
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -13,6 +8,9 @@
 #include <system_error>
 #include <vector>
 
+#include <boost/lexical_cast.hpp>
+
+#include <engine/async.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_request_handler.hpp>
 #include <server/http/http_request_parser.hpp>
@@ -21,112 +19,75 @@
 namespace server {
 namespace net {
 
-namespace {
-
-// used for remote address buffer size
-const size_t kMaxRemoteIdLength = INET6_ADDRSTRLEN;
-
-}  // namespace
-
-Connection::Connection(engine::ev::ThreadControl& thread_control,
-                       engine::TaskProcessor& task_processor, int fd,
-                       const ConnectionConfig& config, Type type,
+Connection::Connection(engine::TaskProcessor& task_processor,
+                       const ConnectionConfig& config,
+                       engine::io::Socket peer_socket, Type type,
                        const http::HttpRequestHandler& request_handler,
-                       const sockaddr_in6& sin6, BeforeCloseCb before_close_cb)
+                       BeforeCloseCb before_close_cb)
     : task_processor_(task_processor),
       config_(config),
+      peer_socket_(std::move(peer_socket)),
       type_(type),
       request_handler_(request_handler),
+      remote_address_(peer_socket_.Getpeername().RemoteAddress()),
       request_tasks_sent_idx_(0),
       is_request_tasks_full_(false),
       before_close_cb_(std::move(before_close_cb)),
+      pending_response_count_(0),
+      response_event_task_(task_processor_, [this] { SendResponses(); }),
       request_parser_(std::make_unique<http::HttpRequestParser>(
           request_handler.GetHandlerInfoIndex(), *config_.request,
           [this](std::unique_ptr<request::RequestBase>&& request_ptr) {
             NewRequest(std::move(request_ptr));
           })),
       is_closing_(false),
-      skip_new_requests_(false),
       processed_requests_count_(0),
-      socket_listener_stopped_{false} {
-  response_event_task_ = std::make_shared<engine::EventTask>(
-      task_processor_, [this] { SendResponses(); });
-  response_sender_ = std::make_unique<engine::Sender>(
-      thread_control, task_processor_, fd, [this] { CloseIfFinished(); });
-  socket_listener_ = std::make_shared<engine::SocketListener>(
-      thread_control, task_processor_, fd,
-      engine::SocketListener::ListenMode::kRead,
-      [this](int fd) { return ReadData(fd); },
-      [this] {
-        socket_listener_stop_time_ = std::chrono::steady_clock::now();
-        socket_listener_stopped_ = true;  // Sequentially-consistent ordering is
-                                          // important here for
-                                          // socket_listener_stop_time_
-        CloseIfFinished();
-      });
-
-  std::array<char, kMaxRemoteIdLength> buf;
-
-  buf.fill('\0');
-  auto* remote_address_cstr =
-      inet_ntop(AF_INET6, &sin6.sin6_addr, buf.data(), buf.size());
-  if (!remote_address_cstr) {
-    throw std::system_error(errno, std::generic_category(),
-                            "Cannot get remote address string");
-  }
-  remote_address_ = remote_address_cstr;
-  remote_port_ = ntohs(sin6.sin6_port);
-
-  LOG_DEBUG() << "Incoming connection from " << remote_address_ << ", port "
-              << remote_port_ << ", fd " << Fd();
+      is_accepting_requests_(true),
+      is_socket_listener_stopped_(false) {
+  LOG_DEBUG() << "Incoming connection from " << peer_socket_.Getpeername()
+              << ", fd " << Fd();
 }
 
 Connection::~Connection() {
   is_closing_ = true;
-  LOG_TRACE() << "Stopping response sender for fd " << Fd();
-  response_sender_->Stop();
-  LOG_TRACE() << "Stopped response sender for fd " << Fd();
 
-  response_event_task_->Notify();
+  const int fd = Fd();  // will be invalidated on close
 
-  LOG_TRACE() << "Stopping socket listener for fd " << Fd();
-  socket_listener_->Stop();
-  LOG_TRACE() << "Stopped socket listener for fd " << Fd();
+  LOG_TRACE() << "Stopping socket listener for fd " << fd;
+  socket_listener_ = {};
+  LOG_TRACE() << "Stopped socket listener for fd " << fd;
 
-  close(Fd());
+  peer_socket_.Close();
+  response_event_task_.Notify();
   LOG_TRACE() << "Waiting for request tasks queue to become empty for fd "
-              << Fd();
+              << fd;
   {
     std::unique_lock<engine::Mutex> lock(request_tasks_mutex_);
     request_tasks_empty_cv_.Wait(lock,
                                  [this] { return request_tasks_.empty(); });
   }
-  LOG_TRACE() << "RequestBase tasks queue became empty for fd " << Fd();
+  LOG_TRACE() << "RequestBase tasks queue became empty for fd " << fd;
   assert(IsRequestTasksEmpty());
 
-  LOG_TRACE() << "Stopping response event notifier for fd " << Fd();
-  response_event_task_->Stop();
-  LOG_TRACE() << "Stopped response event notifier for fd " << Fd();
+  LOG_TRACE() << "Stopping response event notifier for fd " << fd;
+  response_event_task_.Stop();
+  LOG_TRACE() << "Stopped response event notifier for fd " << fd;
 
-  LOG_DEBUG() << "Closed connection from " << remote_address_ << ", port "
-              << remote_port_ << ", fd " << Fd();
+  LOG_DEBUG() << "Closed connection for fd " << fd;
 }
 
 void Connection::Start() {
-  LOG_TRACE() << "Starting response sender for fd " << Fd();
-  response_sender_->Start();
-  LOG_TRACE() << "Started response sender for fd " << Fd();
-
   LOG_TRACE() << "Starting socket listener for fd " << Fd();
-  socket_listener_->Start();
+  // XXX: Connection is destroyed asynchronously, block the callback
+  std::lock_guard<engine::Mutex> lock(close_cb_mutex_);
+  socket_listener_ =
+      engine::CriticalAsync(task_processor_, [this] { ListenForRequests(); });
   LOG_TRACE() << "Started socket listener for fd " << Fd();
 }
 
-int Connection::Fd() const { return socket_listener_->Fd(); }
+int Connection::Fd() const { return peer_socket_.Fd(); }
 
 Connection::Type Connection::GetType() const { return type_; }
-
-const std::string& Connection::RemoteAddress() const { return remote_address_; }
 
 size_t Connection::ProcessedRequestCount() const {
   return processed_requests_count_;
@@ -139,13 +100,11 @@ size_t Connection::ParsingRequestCount() const {
 }
 
 size_t Connection::PendingResponseCount() const {
-  return response_sender_->DataQueueSize();
+  return pending_response_count_;
 }
 
 bool Connection::CanClose() const {
-  return response_sender_->Stopped() ||
-         ((skip_new_requests_ || !socket_listener_->IsRunning()) &&
-          IsRequestTasksEmpty() && !response_sender_->HasWaitingData());
+  return is_socket_listener_stopped_ && IsRequestTasksEmpty();
 }
 
 bool Connection::IsRequestTasksEmpty() const {
@@ -153,50 +112,60 @@ bool Connection::IsRequestTasksEmpty() const {
   return request_tasks_.empty();
 }
 
-engine::SocketListener::Result Connection::ReadData(int fd) {
-  std::vector<char> buf(config_.in_buffer_size);
-  int bytes_read = recv(fd, buf.data(), buf.size(), 0);
-  LOG_TRACE() << "Received " << bytes_read << " byte(s) from fd " << Fd();
-  if (bytes_read < 0) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
-      return engine::SocketListener::Result::kAgain;
-    }
-    std::error_code error(errno, std::generic_category());
-    LOG_ERROR() << "Cannot receive data from fd " << Fd() << ": "
-                << error.message();
-    return engine::SocketListener::Result::kError;
-  }
-  if (bytes_read == 0 || !request_parser_->Parse(buf.data(), bytes_read) ||
-      response_sender_->Stopped()) {
-    return engine::SocketListener::Result::kError;
-  }
+void Connection::ListenForRequests() {
+  try {
+    std::vector<char> buf(config_.in_buffer_size);
+    while (is_accepting_requests_) {
+      auto bytes_read = peer_socket_.RecvSome(buf.data(), buf.size(), {});
+      if (!bytes_read) {
+        LOG_TRACE() << "Peer " << peer_socket_.Getpeername() << " on fd "
+                    << Fd() << "closed connection";
+        break;
+      }
+      LOG_TRACE() << "Received " << bytes_read << " byte(s) from "
+                  << peer_socket_.Getpeername() << " on fd " << Fd();
 
-  std::unique_lock<engine::Mutex> lock(request_tasks_mutex_);
-  request_tasks_full_cv_.Wait(lock, [this] {
-    if (request_tasks_.size() >= config_.requests_queue_size_threshold) {
-      LOG_TRACE() << "Receiving from fd " << Fd()
-                  << " paused due to queue overfill";
-      return false;
+      if (!request_parser_->Parse(buf.data(), bytes_read)) {
+        LOG_DEBUG() << "Malformed request from " << peer_socket_.Getpeername()
+                    << " on fd " << Fd();
+        break;
+      }
+
+      std::unique_lock<engine::Mutex> lock(request_tasks_mutex_);
+      request_tasks_full_cv_.Wait(lock, [this] {
+        if (request_tasks_.size() >= config_.requests_queue_size_threshold) {
+          LOG_TRACE() << "Receiving from fd " << Fd()
+                      << " paused due to queue overfill";
+          return false;
+        }
+        return true;
+      });
     }
-    return true;
-  });
-  return engine::SocketListener::Result::kOk;
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "Error while receiving from peer "
+                << peer_socket_.Getpeername() << " on fd " << Fd() << ": "
+                << ex.what();
+  }
+  is_socket_listener_stopped_ = true;
+  CloseIfFinished();
 }
 
 void Connection::NewRequest(
     std::unique_ptr<request::RequestBase>&& request_ptr) {
-  if (skip_new_requests_) return;
-  bool request_is_final = request_ptr->IsFinal();
-  auto request_task = request_handler_.PrepareRequestTask(
-      std::move(request_ptr),
-      [task = response_event_task_] { task->Notify(); });
+  if (request_ptr->IsFinal()) {
+    is_accepting_requests_ = false;
+  }
+  auto request_task =
+      request_handler_.PrepareRequestTask(std::move(request_ptr), [this] {
+        ++pending_response_count_;
+        response_event_task_.Notify();
+      });
 
   {
     std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
     request_tasks_.push_back(request_task);
   }
   request_handler_.ProcessRequest(*request_task);
-  if (request_is_final) skip_new_requests_ = true;
 }
 
 void Connection::SendResponses() {
@@ -219,16 +188,20 @@ void Connection::SendResponses() {
     auto& response = request.GetResponse();
     assert(!response.IsSent());
     request.SetStartSendResponseTime();
-    response.SendResponse(
-        *response_sender_,
-        [this, &response, &request](size_t bytes_sent) {
-          request.SetFinishSendResponseTime();
-          response.SetSentTime(bytes_sent ? std::chrono::steady_clock::now()
-                                          : socket_listener_stop_time_);
-          response.SetSent(bytes_sent);
-          response_event_task_->Notify();
-        },
-        !socket_listener_stopped_);
+    if (peer_socket_) {
+      try {
+        response.SendResponse(peer_socket_);
+      } catch (const std::exception& ex) {
+        LOG_ERROR() << "Error sending data: " << ex.what();
+
+        send_failure_time_ = std::chrono::steady_clock::now();
+        response.SetSendFailed(send_failure_time_);
+      }
+    } else {
+      response.SetSendFailed(send_failure_time_);
+    }
+    request.SetFinishSendResponseTime();
+    --pending_response_count_;
   }
 
   for (;;) {
@@ -278,7 +251,8 @@ void Connection::CloseIfFinished() {
     is_closing_ = true;
   }
   if (is_closing_) {
-    std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
+    std::lock_guard<engine::Mutex> lock_cb(close_cb_mutex_);
+    std::lock_guard<engine::Mutex> lock_tasks_queue(request_tasks_mutex_);
     if (request_tasks_.empty() && before_close_cb_) {
       before_close_cb_(Fd());
       before_close_cb_ = {};

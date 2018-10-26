@@ -10,7 +10,6 @@
 
 #include <engine/ev/thread.hpp>
 #include <engine/ev/watcher/io_watcher.hpp>
-#include <engine/socket_listener.hpp>
 #include <logging/logger.hpp>
 #include <utils/strerror.hpp>
 

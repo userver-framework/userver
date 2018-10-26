@@ -6,7 +6,7 @@
 #include <time_zone.h>
 
 #include <build_config.hpp>
-#include <engine/sender.hpp>
+#include <engine/io/socket.hpp>
 #include <server/http/content_type.hpp>
 
 #include "http_request_impl.hpp"
@@ -73,6 +73,12 @@ HttpResponse::HttpResponse(const HttpRequestImpl& request)
 
 HttpResponse::~HttpResponse() {}
 
+void HttpResponse::SetSendFailed(
+    std::chrono::steady_clock::time_point failure_time) {
+  SetStatus(HttpStatus::kClientClosedRequest);
+  request::ResponseBase::SetSendFailed(failure_time);
+}
+
 void HttpResponse::SetHeader(std::string name, std::string value) {
   CheckHeaderName(name);
   CheckHeaderValue(value);
@@ -100,18 +106,7 @@ const std::string& HttpResponse::GetHeader(
   return headers_.at(header_name);
 }
 
-void HttpResponse::SetSent(size_t bytes_sent) {
-  if (!bytes_sent) SetStatus(HttpStatus::kClientClosedRequest);
-  request::ResponseBase::SetSent(bytes_sent);
-}
-
-void HttpResponse::SendResponse(engine::Sender& sender,
-                                std::function<void(size_t)> finish_cb,
-                                bool need_send) {
-  if (!need_send) {
-    finish_cb(0);
-    return;
-  }
+void HttpResponse::SendResponse(engine::io::Socket& socket) {
   bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
   std::ostringstream os;
   os << kResponseHttpVersionPrefix << request_.GetHttpMajor() << '.'
@@ -133,7 +128,12 @@ void HttpResponse::SendResponse(engine::Sender& sender,
        << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
   os << "Content-Length: " << data_.size() << kCrlf << kCrlf;
   if (!is_head_request) os << data_;
-  sender.SendData(os.str(), std::move(finish_cb));
+
+  const auto response_data = os.str();
+  auto sent_bytes =
+      socket.SendAll(response_data.data(), response_data.size(), {});
+  SetSentTime(std::chrono::steady_clock::now());
+  SetSent(sent_bytes);
 }
 
 }  // namespace http

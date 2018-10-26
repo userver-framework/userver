@@ -39,8 +39,7 @@ Addr& MemoizeAddr(Addr& addr, decltype(&::getpeername) getter,
   if (addr.Domain() == AddrDomain::kInvalid) {
     AddrStorage buf;
     auto len = buf.Size();
-    utils::CheckSyscall(getter(socket.Fd(), buf.Data(), &len),
-                        utils::impl::ToString(context...));
+    utils::CheckSyscall(getter(socket.Fd(), buf.Data(), &len), context...);
     assert(len <= buf.Size());
     addr = Addr(buf, 0, 0);
   }
@@ -243,7 +242,7 @@ int Socket::GetOption(int layer, int optname) const {
   int value = -1;
   socklen_t value_len = sizeof(value);
   utils::CheckSyscall(::getsockopt(Fd(), layer, optname, &value, &value_len),
-                      "getting socket option ", layer, ',', optname, "on fd ",
+                      "getting socket option ", layer, ',', optname, " on fd ",
                       Fd());
   assert(value_len == sizeof(value));
   return value;

@@ -148,13 +148,11 @@ void ServerImpl::InitPortInfo(
   info.endpoint_info_ = std::make_shared<net::EndpointInfo>(
       listener_config, *info.request_handler_);
 
-  auto& event_thread_pool = task_processor->EventThreadPool();
+  const auto& event_thread_pool = task_processor->EventThreadPool();
   size_t listener_shards = listener_config.shards ? *listener_config.shards
                                                   : event_thread_pool.size();
-  auto event_thread_controls = event_thread_pool.NextThreads(listener_shards);
-  for (auto* event_thread_control : event_thread_controls) {
-    info.listeners_.emplace_back(info.endpoint_info_, *task_processor,
-                                 *event_thread_control);
+  while (listener_shards--) {
+    info.listeners_.emplace_back(info.endpoint_info_, *task_processor);
   }
 }
 

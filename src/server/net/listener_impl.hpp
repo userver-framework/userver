@@ -6,11 +6,11 @@
 
 #include <boost/lockfree/queue.hpp>
 
-#include <engine/ev/thread_control.hpp>
 #include <engine/event_task.hpp>
+#include <engine/io/socket.hpp>
 #include <engine/mutex.hpp>
-#include <engine/socket_listener.hpp>
 #include <engine/task/task_processor.hpp>
+#include <engine/task/task_with_result.hpp>
 
 #include "connection.hpp"
 #include "endpoint_info.hpp"
@@ -19,12 +19,9 @@
 namespace server {
 namespace net {
 
-int CreateIpv6Socket(uint16_t port, int backlog);
-
-class ListenerImpl : public engine::ev::ThreadControl {
+class ListenerImpl {
  public:
-  ListenerImpl(engine::ev::ThreadControl& thread_control,
-               engine::TaskProcessor& task_processor,
+  ListenerImpl(engine::TaskProcessor& task_processor,
                std::shared_ptr<EndpointInfo> endpoint_info);
   ~ListenerImpl();
 
@@ -33,8 +30,8 @@ class ListenerImpl : public engine::ev::ThreadControl {
   engine::TaskProcessor& GetTaskProcessor() const;
 
  private:
-  void AcceptConnection(int listen_fd, Connection::Type type);
-  void SetupConnection(int fd, Connection::Type type, const sockaddr_in6& addr);
+  void AcceptConnection(engine::io::Socket& request_socket, Connection::Type);
+  void SetupConnection(engine::io::Socket peer_socket, Connection::Type);
 
   void EnqueueConnectionClose(int fd);
   void CloseConnections();
@@ -52,10 +49,9 @@ class ListenerImpl : public engine::ev::ThreadControl {
   std::atomic<size_t> past_processed_requests_count_;
   std::atomic<size_t> opened_connection_count_;
   std::atomic<size_t> closed_connection_count_;
-  std::atomic<size_t> pending_setup_connection_count_;
   std::atomic<size_t> pending_close_connection_count_;
 
-  std::shared_ptr<engine::SocketListener> request_socket_listener_;
+  engine::TaskWithResult<void> socket_listener_task_;
 };
 
 }  // namespace net

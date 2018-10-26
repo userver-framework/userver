@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include <engine/ev/thread_control.hpp>
 #include <engine/task/task_processor.hpp>
 
 #include "endpoint_info.hpp"
@@ -15,8 +14,7 @@ namespace net {
 class Listener {
  public:
   Listener(std::shared_ptr<EndpointInfo> endpoint_info,
-           engine::TaskProcessor& task_processor,
-           engine::ev::ThreadControl& thread_control);
+           engine::TaskProcessor& task_processor);
   ~Listener();
 
   Listener(const Listener&) = delete;
@@ -29,7 +27,6 @@ class Listener {
   Stats GetStats() const;
 
  private:
-  engine::ev::ThreadControl thread_control_;
   engine::TaskProcessor& task_processor_;
   std::shared_ptr<EndpointInfo> endpoint_info_;
 

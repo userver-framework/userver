@@ -10,6 +10,12 @@ void ResponseBase::SetReady() {
   is_ready_ = true;
 }
 
+void ResponseBase::SetSendFailed(
+    std::chrono::steady_clock::time_point failure_time) {
+  SetSentTime(failure_time);
+  SetSent(0);
+}
+
 void ResponseBase::SetSent(size_t bytes_sent) {
   bytes_sent_ = bytes_sent;
   is_sent_ = true;

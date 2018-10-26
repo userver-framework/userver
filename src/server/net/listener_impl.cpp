@@ -15,9 +15,9 @@
 #include <system_error>
 
 #include <engine/async.hpp>
+#include <engine/io/socket.hpp>
 #include <engine/sleep.hpp>
 #include <logging/log.hpp>
-#include <utils/check_syscall.hpp>
 
 namespace server {
 namespace net {
@@ -28,69 +28,20 @@ static const size_t kConnectionsToCloseQueueCapacity = 64;
 
 }  // namespace
 
-class FdHolder {
- public:
-  explicit FdHolder(int fd) : fd_(fd) {}
+engine::io::Socket CreateSocket(uint16_t port, int backlog) {
+  engine::io::AddrStorage addr_storage;
+  auto* sa = addr_storage.As<struct sockaddr_in6>();
+  sa->sin6_family = AF_INET6;
+  sa->sin6_port = htons(port);
+  sa->sin6_addr = in6addr_any;
 
-  ~FdHolder() {
-    if (fd_ == -1) return;
-
-    if (::close(fd_) == -1) {
-      std::error_code ec(errno, std::system_category());
-      LOG_WARNING() << "Cannot close fd " << fd_ << ": " << ec.message();
-    }
-  }
-
-  FdHolder(const FdHolder&) = delete;
-  FdHolder(FdHolder&&) = delete;
-  FdHolder& operator=(const FdHolder&) = delete;
-  FdHolder& operator=(FdHolder&&) = delete;
-
-  int Get() const { return fd_; }
-
-  int Release() noexcept {
-    int fd = -1;
-    std::swap(fd, fd_);
-    return fd;
-  }
-
- private:
-  int fd_;
-};
-
-int CreateSocket(uint16_t port, int backlog) {
-  FdHolder fd_holder(
-      utils::CheckSyscall(socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0),
-                          "creating socket, port=", port));
-  const int reuse = 1;
-  utils::CheckSyscall(setsockopt(fd_holder.Get(), SOL_SOCKET, SO_REUSEPORT,
-                                 &reuse, sizeof(reuse)),
-                      "setting SO_REUSEPORT, port=", port);
-
-  sockaddr_in6 addr;
-  memset(&addr, 0, sizeof(addr));
-  addr.sin6_family = AF_INET6;
-  addr.sin6_port = htons(port);
-  addr.sin6_addr = in6addr_any;
-  utils::CheckSyscall(
-      bind(fd_holder.Get(), reinterpret_cast<const sockaddr*>(&addr),
-           sizeof(addr)),
-      "binding a socket, port=", port);
-  utils::CheckSyscall(listen(fd_holder.Get(), backlog),
-                      "listening on a socket, port=", port,
-                      ", backlog=", backlog);
-  return fd_holder.Release();
+  return engine::io::Listen(engine::io::Addr(addr_storage, SOCK_STREAM, 0),
+                            backlog);
 }
 
-int CreateIpv6Socket(uint16_t port, int backlog) {
-  return CreateSocket(port, backlog);
-}
-
-ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
-                           engine::TaskProcessor& task_processor,
+ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
                            std::shared_ptr<EndpointInfo> endpoint_info)
-    : engine::ev::ThreadControl(thread_control),
-      task_processor_(task_processor),
+    : task_processor_(task_processor),
       endpoint_info_(std::move(endpoint_info)),
       is_closing_(false),
       connections_to_close_(kConnectionsToCloseQueueCapacity),
@@ -98,39 +49,34 @@ ListenerImpl::ListenerImpl(engine::ev::ThreadControl& thread_control,
       past_processed_requests_count_(0),
       opened_connection_count_(0),
       closed_connection_count_(0),
-      pending_setup_connection_count_(0),
-      pending_close_connection_count_(0) {
-  int request_fd = CreateSocket(endpoint_info_->listener_config.port,
-                                endpoint_info_->listener_config.backlog);
-  request_socket_listener_ = std::make_shared<engine::SocketListener>(
-      *this, task_processor_, request_fd,
-      engine::SocketListener::ListenMode::kRead,
-      [this](int fd) {
-        try {
-          AcceptConnection(fd, endpoint_info_->connection_type);
-        } catch (const std::exception& ex) {
-          LOG_ERROR() << "can't accept connection: " << ex.what();
-        }
-        return engine::SocketListener::Result::kOk;
-      },
-      nullptr);
-  request_socket_listener_->Start();
-}
+      pending_close_connection_count_(0),
+      socket_listener_task_(engine::CriticalAsync(
+          task_processor_,
+          [this](engine::io::Socket&& request_socket) {
+            while (true) {
+              try {
+                AcceptConnection(request_socket,
+                                 endpoint_info_->connection_type);
+              } catch (const std::exception& ex) {
+                LOG_ERROR() << "can't accept connection: " << ex.what();
+              }
+            }
+          },
+          CreateSocket(endpoint_info_->listener_config.port,
+                       endpoint_info_->listener_config.backlog))) {}
 
 ListenerImpl::~ListenerImpl() {
   LOG_TRACE() << "Stopping connection close task";
   close_connections_task_.Stop();
   LOG_TRACE() << "Stopped connection close task";
 
-  LOG_TRACE() << "Closing request fd " << request_socket_listener_->Fd();
-  request_socket_listener_->Stop();
+  LOG_TRACE() << "Stopping socket listener task";
+  socket_listener_task_ = {};
+  LOG_TRACE() << "Stopped socket listener task";
 
-  while (pending_setup_connection_count_ > 0 ||
-         pending_close_connection_count_ > 0)
+  LOG_TRACE() << "Waiting for pending connections closures";
+  while (pending_close_connection_count_ > 0)
     engine::SleepFor(std::chrono::milliseconds(10));
-
-  close(request_socket_listener_->Fd());
-  LOG_TRACE() << "Closed request fd " << request_socket_listener_->Fd();
 
   std::lock_guard<engine::Mutex> lock(connections_mutex_);
   for (auto& item : connections_) {
@@ -176,14 +122,9 @@ engine::TaskProcessor& ListenerImpl::GetTaskProcessor() const {
   return task_processor_;
 }
 
-void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
-  sockaddr_in6 addr;
-  memset(&addr, 0, sizeof(addr));
-  socklen_t addrlen = sizeof(addr);
-  int fd =
-      utils::CheckSyscall(accept4(listen_fd, reinterpret_cast<sockaddr*>(&addr),
-                                  &addrlen, SOCK_NONBLOCK),
-                          "accepting connection");
+void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket,
+                                    Connection::Type type) {
+  auto peer_socket = request_socket.Accept({});
 
   auto new_connection_count = ++endpoint_info_->connection_count;
   ++opened_connection_count_;
@@ -191,7 +132,7 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
     LOG_WARNING() << "Reached connection limit, dropping connection #"
                   << new_connection_count << '/'
                   << endpoint_info_->listener_config.max_connections;
-    utils::CheckSyscall(close(fd), "closing connection");
+    peer_socket.Close();
     --endpoint_info_->connection_count;
     ++closed_connection_count_;
     return;
@@ -199,31 +140,19 @@ void ListenerImpl::AcceptConnection(int listen_fd, Connection::Type type) {
 
   LOG_DEBUG() << "Accepted connection #" << new_connection_count << '/'
               << endpoint_info_->listener_config.max_connections;
-  ++pending_setup_connection_count_;
-
-  engine::CriticalAsync([this, fd, type, addr]() {
-    try {
-      SetupConnection(fd, type, addr);
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "can't setup connection: " << ex.what();
-    }
-    --pending_setup_connection_count_;
-  })
-      .Detach();
+  SetupConnection(std::move(peer_socket), type);
 }
 
-void ListenerImpl::SetupConnection(int fd, Connection::Type type,
-                                   const sockaddr_in6& addr) {
-  const int nodelay = 1;
-  utils::CheckSyscall(
-      setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)),
-      "setting TCPNODELAY");
+void ListenerImpl::SetupConnection(engine::io::Socket peer_socket,
+                                   Connection::Type type) {
+  const auto fd = peer_socket.Fd();
+
+  peer_socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
 
   LOG_TRACE() << "Creating connection for fd " << fd;
   auto connection_ptr = std::make_unique<Connection>(
-      *this, task_processor_, fd,
-      endpoint_info_->listener_config.connection_config, type,
-      endpoint_info_->request_handler, addr,
+      task_processor_, endpoint_info_->listener_config.connection_config,
+      std::move(peer_socket), type, endpoint_info_->request_handler,
       [this](int fd) { EnqueueConnectionClose(fd); });
   LOG_TRACE() << "Registering connection for fd " << fd;
   auto connection_handle = [this, fd, &connection_ptr] {

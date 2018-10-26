@@ -106,6 +106,7 @@ class Task {
 
  private:
   void DoWaitUntil(Deadline) const;
+  void Terminate() noexcept;
 
   boost::intrusive_ptr<impl::TaskContext> context_;
 };
