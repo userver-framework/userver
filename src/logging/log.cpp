@@ -36,15 +36,19 @@ auto& DefaultLoggerInternal() {
   return default_logger_ptr;
 }
 
-}  // namespace
-
-LoggerPtr DefaultLogger() { return DefaultLoggerInternal().Get(); }
-
-namespace {
 bool LoggerShouldLog(LoggerPtr logger, Level level) {
   return logger->should_log(static_cast<spdlog::level::level_enum>(level));
 }
+
+void UpdateLogLevelCache() {
+  const auto& logger = DefaultLogger();
+  for (int i = 0; i < kLevelMax + 1; i++)
+    GetShouldLogCache()[i] = LoggerShouldLog(logger, static_cast<Level>(i));
+}
+
 }  // namespace
+
+LoggerPtr DefaultLogger() { return DefaultLoggerInternal().Get(); }
 
 LoggerPtr SetDefaultLogger(LoggerPtr logger) {
   // FIXME: we have to do atomic exchange() and return the old value.
@@ -56,15 +60,14 @@ LoggerPtr SetDefaultLogger(LoggerPtr logger) {
   auto& default_logger = DefaultLoggerInternal();
   auto old = default_logger.Get();
   default_logger.Set(logger);
-
-  for (int i = 0; i < kLevelMax + 1; i++)
-    GetShouldLogCache()[i] = LoggerShouldLog(logger, static_cast<Level>(i));
+  UpdateLogLevelCache();
 
   return old;
 }
 
 void SetDefaultLoggerLevel(Level level) {
   DefaultLogger()->set_level(static_cast<spdlog::level::level_enum>(level));
+  UpdateLogLevelCache();
 }
 
 LogHelper::LogHelper(Level level, const char* path, int line, const char* func)
