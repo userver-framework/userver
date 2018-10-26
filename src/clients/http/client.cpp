@@ -92,9 +92,10 @@ void Client::SetConnectionPoolSize(size_t connection_pool_size) {
   }
 }
 
-void Client::PushIdleEasy(std::shared_ptr<curl::easy> easy) {
-  std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
-  idle_easy_queue_.push(std::move(easy));
+void Client::PushIdleEasy(std::shared_ptr<curl::easy> /*easy*/) {
+  // FIXME: https://st.yandex-team.ru/TAXICOMMON-282
+  //  std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
+  //  idle_easy_queue_.push(std::move(easy));
 }
 
 }  // namespace http
