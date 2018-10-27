@@ -37,8 +37,12 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
 
 TaskProcessor::~TaskProcessor() {
   is_shutting_down_ = true;
-  for (auto& context : detached_contexts_) {
-    context->RequestCancel(Task::CancellationReason::kShutdown);
+
+  {
+    std::lock_guard<std::mutex> lock(detached_contexts_mutex_);
+    for (auto& context : detached_contexts_) {
+      context->RequestCancel(Task::CancellationReason::kShutdown);
+    }
   }
 
   // Some tasks may be bound but not scheduled yet
