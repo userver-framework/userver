@@ -163,7 +163,7 @@ TEST(PeriodicTask, Now) {
   RunInCoro([] {
     SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(10);
+    auto period = std::chrono::milliseconds(50);
 
     utils::PeriodicTask task(
         "task",
