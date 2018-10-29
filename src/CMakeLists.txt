@@ -43,7 +43,6 @@ find_package(LibEv REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
-find_package(ExternalProjectThrift REQUIRED)
 find_package(CurlYandex REQUIRED)
 find_package(YamlCpp REQUIRED)
 
