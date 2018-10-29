@@ -1,29 +1,28 @@
 #pragma once
 
+#include <memory>
+
+#include <storages/postgres/cluster_host_type.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/transaction.hpp>
 
 namespace storages {
 namespace postgres {
 
-enum class ClusterHostType {
-  /// Connect to cluster's master. Only this connection may be
-  /// used for read-write transactions.
-  kMaster = 0x01,
-  /// Connect to cluster's sync slave. May fallback to master. Can be used only
-  /// for read only transactions.
-  kSyncSlave = 0x02,
-  /// Connect to one of cluster's slaves. May fallback to sync
-  /// slave.  Can be used only for read only transactions.
-  kSlave = 0x04,
-  /// Any available
-  kAny = kMaster | kSyncSlave | kSlave
-};
+namespace detail {
+
+class ClusterImpl;
+using ClusterImplPtr = std::unique_ptr<ClusterImpl>;
+
+}  // namespace detail
 
 /// @brief Interface for executing queries on a cluster of PostgreSQL servers
 
 class Cluster {
  public:
+  explicit Cluster(detail::ClusterImplPtr&& impl);
+  ~Cluster();
+
   //@{
   /** @name Transaction start */
   /// Start a transaction in any available connection depending on transaction
@@ -72,6 +71,8 @@ class Cluster {
                     const std::string& statement, Args... args);
   //@}
   //@}
+ private:
+  detail::ClusterImplPtr pimpl_;
 };
 
 template <typename... Args>

@@ -1,0 +1,181 @@
+#pragma once
+
+#include <boost/endian/arithmetic.hpp>
+#include <storages/postgres/io/traits.hpp>
+#include <storages/postgres/io/type_mapping.hpp>
+
+namespace storages {
+namespace postgres {
+namespace io {
+
+namespace detail {
+
+template <std::size_t Size>
+struct IntegralType;
+
+template <>
+struct IntegralType<2> {
+  using type = Smallint;
+};
+
+template <>
+struct IntegralType<4> {
+  using type = Integer;
+};
+
+template <>
+struct IntegralType<8> {
+  using type = Bigint;
+};
+
+template <std::size_t Size>
+struct IntegralBySizeParser {
+  using IntType = typename IntegralType<Size>::type;
+  constexpr static std::size_t size = Size;
+
+  static IntType ParseBuffer(const FieldBuffer& buf) {
+    const IntType* p = reinterpret_cast<const IntType*>(buf.buffer);
+    return boost::endian::big_to_native(*p);
+  }
+};
+
+template <typename T>
+struct IntegralBinaryParser {
+  T& value;
+  explicit IntegralBinaryParser(T& val) : value{val} {}
+  void operator()(const FieldBuffer& buf) {
+    switch (buf.length) {
+      case 2:
+        value = IntegralBySizeParser<2>::ParseBuffer(buf);
+        break;
+      case 4:
+        value = IntegralBySizeParser<4>::ParseBuffer(buf);
+        break;
+      case 8:
+        value = IntegralBySizeParser<8>::ParseBuffer(buf);
+        break;
+      default:
+        // TODO Throw logic(?) exception here
+        break;
+    }
+  }
+};
+
+template <typename T>
+struct IntegralBinaryFormatter {
+  static constexpr std::size_t size = sizeof(T);
+  T value;
+
+  explicit IntegralBinaryFormatter(T val) : value{val} {}
+  template <typename Buffer>
+  void operator()(Buffer& buf) const {
+    buf.reserve(buf.size() + size);
+    auto tmp = boost::endian::native_to_big(value);
+    const char* p = reinterpret_cast<char const*>(&tmp);
+    const char* e = p + size;
+    std::copy(p, e, std::back_inserter(buf));
+  }
+};
+
+}  // namespace detail
+
+//@{
+/** @name 2 byte integer */
+template <>
+struct BufferParser<Smallint, DataFormat::kBinaryDataFormat>
+    : detail::IntegralBinaryParser<Smallint> {
+  explicit BufferParser(Smallint& val) : IntegralBinaryParser(val) {}
+};
+
+template <>
+struct BufferFormatter<Smallint, DataFormat::kBinaryDataFormat>
+    : detail::IntegralBinaryFormatter<Smallint> {
+  explicit BufferFormatter(Smallint val) : IntegralBinaryFormatter(val) {}
+};
+//@}
+
+//@{
+/** @name 4 byte integer */
+template <>
+struct BufferParser<Integer, DataFormat::kBinaryDataFormat>
+    : detail::IntegralBinaryParser<Integer> {
+  explicit BufferParser(Integer& val) : IntegralBinaryParser(val) {}
+};
+
+template <>
+struct BufferFormatter<Integer, DataFormat::kBinaryDataFormat>
+    : detail::IntegralBinaryFormatter<Integer> {
+  explicit BufferFormatter(Integer val) : IntegralBinaryFormatter(val) {}
+};
+//@}
+
+//@{
+/** @name 8 byte integer */
+template <>
+struct BufferParser<Bigint, DataFormat::kBinaryDataFormat>
+    : detail::IntegralBinaryParser<Bigint> {
+  explicit BufferParser(Bigint& val) : IntegralBinaryParser(val) {}
+};
+
+template <>
+struct BufferFormatter<Bigint, DataFormat::kBinaryDataFormat>
+    : detail::IntegralBinaryFormatter<Bigint> {
+  explicit BufferFormatter(Bigint val) : IntegralBinaryFormatter(val) {}
+};
+//@}
+
+//@{
+/** @name boolean */
+template <>
+struct BufferParser<bool, DataFormat::kBinaryDataFormat> {
+  bool& value;
+  explicit BufferParser(bool& val) : value{val} {}
+  void operator()(const FieldBuffer& buf) {
+    // TODO Throw exception if size of buffer is not 1
+    value = *buf.buffer != 0;
+  }
+};
+
+template <>
+struct BufferParser<bool, DataFormat::kTextDataFormat> {
+  bool& value;
+  explicit BufferParser(bool& val) : value{val} {}
+  void operator()(const FieldBuffer& buf);
+};
+
+template <>
+struct BufferFormatter<bool, DataFormat::kBinaryDataFormat> {
+  bool value;
+  explicit BufferFormatter(bool val) : value(val) {}
+  template <typename Buffer>
+  void operator()(Buffer& buf) const {
+    buf.push_back(value ? 1 : 0);
+  }
+};
+
+template <>
+struct BufferFormatter<bool, DataFormat::kTextDataFormat> {
+  bool value;
+  explicit BufferFormatter(bool val) : value(val) {}
+  template <typename Buffer>
+  void operator()(Buffer& buf) const {
+    buf.push_back(value ? 't' : 'f');
+  }
+};
+//@}
+
+//@{
+/** @name C++ to PostgreSQL mapping for integral types */
+template <>
+struct CppToPg<Smallint> : detail::CppToPgPredefined<PredefinedOids::kInt2> {};
+template <>
+struct CppToPg<Integer> : detail::CppToPgPredefined<PredefinedOids::kInt4> {};
+template <>
+struct CppToPg<Bigint> : detail::CppToPgPredefined<PredefinedOids::kInt8> {};
+template <>
+struct CppToPg<bool> : detail::CppToPgPredefined<PredefinedOids::kBoolean> {};
+//@}
+
+}  // namespace io
+}  // namespace postgres
+}  // namespace storages

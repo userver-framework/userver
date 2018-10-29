@@ -41,6 +41,7 @@ find_package(Jemalloc REQUIRED)
 find_package(Hiredis 0.13.3 REQUIRED)
 find_package(LibEv REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(PostgreSQL REQUIRED) # TODO Make libpq optional
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
 find_package(CurlYandex REQUIRED)
@@ -79,6 +80,7 @@ target_link_libraries(${PROJECT_NAME}
     ${LIBEV_LIBRARIES}
     ${BSON_STATIC_LIBRARIES}
     ${MONGOC_STATIC_LIBRARIES}
+    ${PostgreSQL_LIBRARIES} # TODO Make libpq optional
 )
 
 set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
@@ -101,6 +103,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${BSON_STATIC_INCLUDE_DIRS}
   ${MONGOC_STATIC_INCLUDE_DIRS}
   ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
+  ${PostgreSQL_INCLUDE_DIRS} # TODO Make libpq optional
 )
 
 target_include_directories(${PROJECT_NAME}

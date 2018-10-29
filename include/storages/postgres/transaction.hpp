@@ -1,7 +1,11 @@
 #pragma once
 
+#include <storages/postgres/detail/query_parameters.hpp>
+#include <storages/postgres/options.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 #include <storages/postgres/result_set.hpp>
+
+#include <memory>
 #include <string>
 
 namespace storages {
@@ -30,6 +34,12 @@ namespace postgres {
 
 class Transaction {
  public:
+  explicit Transaction(detail::ConnectionPtr&& impl,
+                       const TransactionOptions& = TransactionOptions{});
+
+  Transaction(Transaction&&) noexcept;
+  Transaction& operator=(Transaction&&);
+
   Transaction(const Transaction&) = delete;
   Transaction& operator=(const Transaction&) = delete;
 
@@ -45,7 +55,11 @@ class Transaction {
   /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
   /// InvalidParameterType
   template <typename... Args>
-  ResultSet Execute(const std::string& statement, Args... args);
+  ResultSet Execute(const std::string& statement, Args... args) {
+    detail::QueryParameters params;
+    params.Write(args...);
+    return DoExecute(statement, params);
+  }
   //@}
 
   /// Commit the transaction
@@ -58,6 +72,13 @@ class Transaction {
   /// After Commit or Rollback is called, the transaction is not usable any
   /// more.
   void Rollback();
+
+ private:
+  ResultSet DoExecute(const std::string& statement,
+                      const detail::QueryParameters& params);
+
+ private:
+  detail::ConnectionPtr conn_;
 };
 
 }  // namespace postgres

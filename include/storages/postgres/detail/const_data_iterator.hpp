@@ -29,14 +29,14 @@ class ConstDataIterator : protected DataType {
  public:
   //@{
   /** @name Iterator dereferencing */
-  reference operator*() const { return static_cast<value_type>(*this); }
+  reference operator*() const { return static_cast<reference>(*this); }
   pointer operator->() const { return static_cast<pointer>(this); }
   //@}
 
   //@{
   /** @name Iterator validity */
   explicit operator bool() const { return Rebind().IsValid(); }
-  bool operator!() const { return !*this; }
+  bool operator!() const { return !Rebind().IsValid(); }
   //@}
 
   //@{

@@ -4,22 +4,28 @@
 #include <storages/postgres/result_set.hpp>
 #include <storages/postgres/transaction.hpp>
 
+#include <engine/task/task_processor.hpp>
+#include <storages/postgres/detail/query_parameters.hpp>
+
 #include <string>
 
 namespace storages {
 namespace postgres {
 
-class Connection;
-using ConnectionPtr = std::shared_ptr<Connection>;
+enum class ConnectionState {
+  kOffline,     //!< Not connected
+  kIdle,        //!< Connected, not in transaction
+  kTranIdle,    //!< In a valid transaction block, idle
+  kTranActive,  //!< In a transaction, processing a SQL statement
+  kTranError    //!< In a failed transaction block, idle
+};
 
+namespace detail {
 /// @brief PostreSQL connection class
 /// Handles connecting to Postgres, sending commands, processing command results
 /// and closing Postgres connection.
 /// Responsible for all asynchronous operations
 class Connection {
- public:
-  using ConnectionCallback = std::function<void(ConnectionPtr)>;
-
  public:
   Connection(const Connection&) = delete;
   Connection(Connection&&) = delete;
@@ -30,18 +36,19 @@ class Connection {
   /// Will suspend current coroutine
   ///
   /// @param conninfo Connection string, @see https://www.postgresql.org/docs/10/static/libpq-connect.html#LIBPQ-CONNSTRING
-  /// @todo Callbacks for connection closing/becoming idle
+  /// @param bg_task_processor task processor for blocking operations
   /// @throws ConnectionFailed
   // clang-format on
-  static ConnectionPtr Connect(const std::string& conninfo,
-                               ConnectionCallback on_idle = nullptr,
-                               ConnectionCallback on_close = nullptr);
+  static std::unique_ptr<Connection> Connect(
+      const std::string& conninfo, engine::TaskProcessor& bg_task_processor);
 
   /// Close the connection
   /// TODO When called from another thread/coroutine will wait for current
   /// transaction to finish.
   void Close();
 
+  /// Get current connection state
+  ConnectionState GetState() const;
   /// Check if the connection is active
   bool IsConnected() const;
   /// Check if the connection is currently idle (IsConnected &&
@@ -55,7 +62,7 @@ class Connection {
   /// Begin a transaction in Postgres
   /// Suspends coroutine for execution
   /// @throws AlreadyInTransaction
-  Transaction Begin(const TransactionOptions&);
+  void Begin(const TransactionOptions& options);
   /// Commit current transaction
   /// Suspends coroutine for execution
   /// @throws NotInTransaction
@@ -70,8 +77,31 @@ class Connection {
   /** @name Command sending interface */
   /// Cancel current operation
   void Cancel();
-  // TODO Define command sending interface
-  ResultSet Execute(const std::string& statement);
+  ResultSet Execute(const std::string& statement,
+                    const detail::QueryParameters& = {});
+  template <typename... T>
+  ResultSet Execute(const std::string& statement, const T&... args) {
+    detail::QueryParameters params;
+    params.Write(args...);
+    return Execute(statement, params);
+  }
+
+  //@{
+  /** @name Command sending interface for experimenting */
+  /// Separate method for experimenting with PostgreSQL protocol and parsing
+  /// Not visible to users of PostgreSQL driver
+  ResultSet ExperimentalExecute(
+      const std::string& statement,
+      io::DataFormat reply_format = io::DataFormat::kTextDataFormat,
+      const detail::QueryParameters& = {});
+  template <typename... T>
+  ResultSet ExperimentalExecute(const std::string& statement,
+                                io::DataFormat reply_format, const T&... args) {
+    detail::QueryParameters params;
+    params.Write(args...);
+    return ExperimentalExecute(statement, reply_format, params);
+  }
+  //@}
   //@}
  private:
   Connection();
@@ -80,5 +110,6 @@ class Connection {
   std::unique_ptr<Impl> pimpl_;
 };
 
+}  // namespace detail
 }  // namespace postgres
 }  // namespace storages
