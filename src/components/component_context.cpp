@@ -32,6 +32,13 @@ void ComponentContext::AddComponent(
     std::string name, std::unique_ptr<ComponentBase>&& component) {
   std::lock_guard<engine::Mutex> lock(component_mutex_);
 
+  auto it = task_to_component_map_.find(
+      engine::current_task::GetCurrentTaskContext());
+  if (it == task_to_component_map_.end() || it->second != name)
+    throw std::runtime_error("current task is not a task where component " +
+                             name + " was created");
+  task_to_component_map_.erase(it);
+
   components_.emplace(name, std::move(component));
   component_names_.push_back(std::move(name));
 
@@ -48,6 +55,7 @@ void ComponentContext::ClearComponents() {
   std::vector<engine::TaskWithResult<void>> unload_tasks;
   {
     std::lock_guard<engine::Mutex> lock(component_mutex_);
+    clear_components_started_ = true;
     for (const auto& name : component_names_)
       unload_tasks.emplace_back(engine::Async([&root_span, this, name]() {
         WaitAndUnloadComponent(root_span, name);
@@ -77,6 +85,7 @@ void ComponentContext::OnAllComponentsAreStopping(tracing::Span& parent_span) {
 
 void ComponentContext::OnAllComponentsLoaded() {
   std::lock_guard<engine::Mutex> lock(component_mutex_);
+  all_components_loaded_ = true;
   for (auto& component_item : components_) {
     component_item.second->OnAllComponentsLoaded();
   }
@@ -149,7 +158,8 @@ std::string ComponentContext::GetLoadingComponentName(
         engine::current_task::GetCurrentTaskContext());
   } catch (const std::exception&) {
     throw std::runtime_error(
-        "FindComponent() can be called only from a task of component load");
+        "until all components loaded FindComponent() can be called only from a "
+        "task of component load");
   }
 }
 
@@ -202,6 +212,19 @@ ComponentBase* ComponentContext::DoFindComponent(
   if (components_load_cancelled_)
     throw std::runtime_error("Components load cancelled");
   return component;
+}
+
+ComponentBase* ComponentContext::DoFindComponentIgnoreDependencies(
+    const std::string& name) const {
+  std::unique_lock<engine::Mutex> lock(component_mutex_);
+  if (!all_components_loaded_)
+    throw std::runtime_error(
+        "can't DoFindComponentIgnoreDependencies() during components loading");
+  if (clear_components_started_)
+    throw std::runtime_error(
+        "can't DoFindComponentIgnoreDependencies() after ClearComponents() "
+        "started");
+  return DoFindComponentNoWait(name, lock);
 }
 
 engine::TaskProcessor* ComponentContext::GetTaskProcessor(

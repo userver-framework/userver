@@ -2,6 +2,7 @@
 
 #include <future>
 #include <stdexcept>
+#include <type_traits>
 
 #include <components/component_list.hpp>
 #include <engine/async.hpp>
@@ -18,7 +19,8 @@ const std::string kEngineMonitorDataName = "engine";
 
 template <typename Func>
 auto RunInCoro(engine::TaskProcessor& task_processor, const Func& func) {
-  std::packaged_task<void()> task([&func] { func(); });
+  std::packaged_task<std::result_of_t<Func()>()> task(
+      [&func] { return func(); });
   auto future = task.get_future();
   engine::CriticalAsync(task_processor, std::move(task)).Detach();
   return future.get();
@@ -83,9 +85,7 @@ Manager::GetTaskProcessorPools() const {
 void Manager::OnLogRotate() {
   std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
   if (components_cleared_) return;
-  auto& logger_component =
-      component_context_->FindComponent<components::Logging>();
-  logger_component.OnLogRotate();
+  if (logger_component_) logger_component_->OnLogRotate();
 }
 
 void Manager::AddComponents(const ComponentList& component_list) {
@@ -128,6 +128,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
   }
   LOG_INFO() << "All components loaded";
   component_context_->OnAllComponentsLoaded();
+  logger_component_ = FindLoggerComponent();
 }  // namespace components
 
 void Manager::AddComponentImpl(
@@ -168,6 +169,13 @@ void Manager::ClearComponents() {
   } catch (const std::exception& ex) {
     LOG_ERROR() << "error in clear components: " << ex.what();
   }
+}
+
+components::Logging* Manager::FindLoggerComponent() const {
+  return RunInCoro(*default_task_processor_, [this]() {
+    return component_context_
+        ->FindComponentOptional<components::Logging, true>();
+  });
 }
 
 }  // namespace components

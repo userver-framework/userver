@@ -52,20 +52,34 @@ class ComponentContext {
 
   void OnAllComponentsAreStopping(tracing::Span&);
 
-  template <typename T>
+  template <typename T, bool ignore_dependencies = false>
   T& FindComponent() const {
-    return FindComponent<T>(T::kName);
+    return FindComponent<T, ignore_dependencies>(T::kName);
   }
 
-  template <typename T>
+  template <typename T, bool ignore_dependencies = false>
   T& FindComponent(const std::string& name) const {
-    T* ptr = dynamic_cast<T*>(DoFindComponent(name));
+    T* ptr = dynamic_cast<T*>(ignore_dependencies
+                                  ? DoFindComponentIgnoreDependencies(name)
+                                  : DoFindComponent(name));
     assert(ptr != nullptr);
     if (!ptr) {
       throw std::runtime_error("Cannot find component of type " +
                                utils::GetTypeName(typeid(T)) + " name=" + name);
     }
     return *ptr;
+  }
+
+  template <typename T, bool ignore_dependencies = false>
+  T* FindComponentOptional() const {
+    return FindComponentOptional<T, ignore_dependencies>(T::kName);
+  }
+
+  template <typename T, bool ignore_dependencies = false>
+  T* FindComponentOptional(const std::string& name) const {
+    return dynamic_cast<T*>(ignore_dependencies
+                                ? DoFindComponentIgnoreDependencies(name)
+                                : DoFindComponent(name));
   }
 
   size_t ComponentCount() const;
@@ -84,6 +98,8 @@ class ComponentContext {
 
  private:
   ComponentBase* DoFindComponent(const std::string& name) const;
+  ComponentBase* DoFindComponentIgnoreDependencies(
+      const std::string& name) const;
 
   ComponentBase* DoFindComponentNoWait(const std::string& name,
                                        std::unique_lock<engine::Mutex>&) const;
@@ -113,6 +129,8 @@ class ComponentContext {
       component_dependencies_;
   std::unordered_map<engine::impl::TaskContext*, std::string>
       task_to_component_map_;
+  bool all_components_loaded_{false};
+  bool clear_components_started_{false};
   bool components_load_cancelled_{false};
 };
 

@@ -4,9 +4,12 @@
 #include <exception>
 
 #include <boost/core/ignore_unused.hpp>
+#include <boost/stacktrace.hpp>
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/timer.hpp>
+#include <logging/log_extra.hpp>
+
 #include "task_processor.hpp"
 
 namespace engine {
@@ -24,9 +27,15 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 
 impl::TaskContext* GetCurrentTaskContext() {
   assert(current_task_context_ptr);
-  if (!current_task_context_ptr)
+  if (!current_task_context_ptr) {
+    LOG_ERROR()
+        << "current_task::GetCurrentTaskContext() called outside coroutine"
+        << logging::LogExtra::Stacktrace();
     throw std::logic_error(
-        "current_task::GetCurrentTaskContext() called outside coroutine");
+        "current_task::GetCurrentTaskContext() called outside coroutine. "
+        "stacktrace:\n" +
+        to_string(boost::stacktrace::stacktrace{}));
+  }
   return current_task_context_ptr;
 }
 

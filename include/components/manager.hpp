@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <formats/json/value.hpp>
-
+#include <logging/component.hpp>
 #include <utils/statistics/storage.hpp>
 
 #include "component_base.hpp"
@@ -65,6 +65,7 @@ class Manager {
           const components::ComponentContext&)>
           factory);
   void ClearComponents();
+  components::Logging* FindLoggerComponent() const;
 
   std::unique_ptr<const ManagerConfig> config_;
   std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools_;
@@ -74,6 +75,7 @@ class Manager {
   bool components_cleared_;
 
   engine::TaskProcessor* default_task_processor_;
+  components::Logging* logger_component_;
 };
 
 }  // namespace components
