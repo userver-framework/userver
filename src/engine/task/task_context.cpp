@@ -91,11 +91,13 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
   assert(payload_);
   LOG_TRACE() << "task with task_id="
               << GetTaskIdString(current_task::GetCurrentTaskContextUnchecked())
-              << " created task with task_id=" << GetTaskIdString(this);
+              << " created task with task_id=" << GetTaskIdString(this)
+              << logging::LogExtra::Stacktrace();
 }
 
 TaskContext::~TaskContext() {
-  LOG_TRACE() << "Task with task_id=" << GetTaskIdString(this) << " stopped";
+  LOG_TRACE() << "Task with task_id=" << GetTaskIdString(this) << " stopped"
+              << logging::LogExtra::Stacktrace();
 }
 
 bool TaskContext::IsCritical() const {
@@ -182,7 +184,8 @@ void TaskContext::RequestCancel(Task::CancellationReason reason) {
     LOG_TRACE() << "task with task_id="
                 << GetTaskIdString(
                        current_task::GetCurrentTaskContextUnchecked())
-                << " cancelled task with task_id=" << GetTaskIdString(this);
+                << " cancelled task with task_id=" << GetTaskIdString(this)
+                << logging::LogExtra::Stacktrace();
     cancellation_reason_ = reason;
     Wakeup(WakeupSource::kCancelRequest);
     task_processor_.GetTaskCounter().AccountTaskCancel();
@@ -226,8 +229,7 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
   if (wakeup_source_ != WakeupSource::kWaitList) {
     auto wait_list = sleep_params_.wait_list.lock();
     if (wait_list) {
-      WaitList::Lock lock(*wait_list);
-      wait_list->Remove(lock, this);
+      wait_list->Remove(this);
     }
   }
   CallOnce(sleep_params_.exec_before_awake);

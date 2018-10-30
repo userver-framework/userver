@@ -10,14 +10,14 @@
 namespace engine {
 namespace impl {
 
-void WaitList::Append(Lock& lock,
+void WaitList::Append(WaitListBase::Lock& lock,
                       boost::intrusive_ptr<impl::TaskContext> context) {
   assert(lock);
   boost::ignore_unused(lock);
   waiting_contexts_.push_back(std::move(context));
 }
 
-void WaitList::WakeupOne(Lock& lock) {
+void WaitList::WakeupOne(WaitListBase::Lock& lock) {
   assert(lock);
   boost::ignore_unused(lock);
   while (!waiting_contexts_.empty()) {
@@ -30,7 +30,7 @@ void WaitList::WakeupOne(Lock& lock) {
   }
 }
 
-void WaitList::WakeupAll(Lock& lock) {
+void WaitList::WakeupAll(WaitListBase::Lock& lock) {
   assert(lock);
   boost::ignore_unused(lock);
   for (auto& context : waiting_contexts_) {
@@ -41,10 +41,9 @@ void WaitList::WakeupAll(Lock& lock) {
   waiting_contexts_.clear();
 }
 
-void WaitList::Remove(Lock& lock,
-                      const boost::intrusive_ptr<impl::TaskContext>& context) {
-  assert(lock);
-  boost::ignore_unused(lock);
+void WaitList::Remove(const boost::intrusive_ptr<impl::TaskContext>& context) {
+  Lock lock(*this);
+
   auto it =
       std::find(waiting_contexts_.begin(), waiting_contexts_.end(), context);
   if (it == waiting_contexts_.end()) return;

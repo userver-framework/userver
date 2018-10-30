@@ -42,7 +42,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
     // no deadline by default
     Deadline deadline;
     // list to cleanup in case of cancel
-    std::weak_ptr<WaitList> wait_list;
+    std::weak_ptr<WaitListBase> wait_list;
     // called from the same thread after leaving coroutine
     Payload exec_after_asleep;
     // called from coroutine before leaving Sleep()
