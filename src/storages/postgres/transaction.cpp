@@ -34,6 +34,7 @@ Transaction& Transaction::operator=(Transaction&& rhs) = default;
 
 ResultSet Transaction::Execute(const std::string& statement) {
   if (!conn_) {
+    // TODO Log stacktrace
     throw NotInTransaction("Transaction handle is not valid");
   }
   return conn_->Execute(statement, kEmptyParams);
@@ -42,6 +43,7 @@ ResultSet Transaction::Execute(const std::string& statement) {
 ResultSet Transaction::DoExecute(const std::string& statement,
                                  const detail::QueryParameters& params) {
   if (!conn_) {
+    // TODO Log stacktrace
     throw NotInTransaction("Transaction handle is not valid");
   }
   return conn_->Execute(statement, params);
@@ -52,6 +54,7 @@ void Transaction::Commit() {
   if (conn) {
     conn->Commit();
   } else {
+    // TODO Log stacktrace
     throw NotInTransaction("Transaction handle is not valid");
   }
 }
@@ -61,6 +64,7 @@ void Transaction::Rollback() {
   if (conn) {
     conn->Rollback();
   } else {
+    // TODO Log stacktrace
     throw NotInTransaction("Transaction handle is not valid");
   }
 }

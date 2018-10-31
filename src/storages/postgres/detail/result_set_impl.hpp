@@ -33,6 +33,10 @@ class ResultSetImpl {
   ResultHandle handle_;
 };
 
+inline ResultSetImpl::ResultHandle MakeResultHandle(PGresult* pg_res) {
+  return {pg_res, &PQclear};
+}
+
 }  // namespace detail
 }  // namespace postgres
 }  // namespace storages
