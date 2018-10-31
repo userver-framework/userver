@@ -10,7 +10,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <boost/lockfree/queue.hpp>
+#include <moodycamel/blockingconcurrentqueue.h>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include "task_counter.hpp"
@@ -53,6 +53,8 @@ class TaskProcessor {
   size_t GetWorkerCount() const { return workers_.size(); }
 
  private:
+  impl::TaskContext* DequeueTask();
+
   void ProcessTasks() noexcept;
 
   const TaskProcessorConfig config_;
@@ -66,11 +68,7 @@ class TaskProcessor {
                      impl::TaskContextPtrHash>
       detached_contexts_;
 
-  // Shared lock is acquired for insertions into task_queue_.
-  // Used for double checking/pausing workers on queue exhaustion.
-  std::shared_timed_mutex task_queue_mutex_;
-  std::condition_variable_any task_available_cv_;
-  boost::lockfree::queue<impl::TaskContext*> task_queue_;
+  moodycamel::BlockingConcurrentQueue<impl::TaskContext*> task_queue_;
   std::atomic<size_t> task_queue_size_;
 
   std::vector<std::thread> workers_;

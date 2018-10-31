@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include <boost/core/ignore_unused.hpp>
+#include <boost/sync/support/std_chrono.hpp>
 
 #include <logging/log.hpp>
 #include <utils/thread_name.hpp>
@@ -11,11 +12,6 @@
 #include "task_context.hpp"
 
 namespace engine {
-namespace {
-
-const size_t kInitTaskQueueCapacity = 64;
-
-}  // namespace
 
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
@@ -23,7 +19,6 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
       pools_(std::move(pools)),
       is_running_(true),
       is_shutting_down_(false),
-      task_queue_(kInitTaskQueueCapacity),
       task_queue_size_(0) {
   LOG_TRACE() << "creating task_processor " << Name() << " "
               << "worker_threads=" << config_.worker_threads
@@ -48,11 +43,8 @@ TaskProcessor::~TaskProcessor() {
   // Some tasks may be bound but not scheduled yet
   task_counter_.WaitForExhaustion(std::chrono::milliseconds(10));
 
-  {
-    std::shared_lock<std::shared_timed_mutex> lock(task_queue_mutex_);
-    is_running_ = false;
-    task_available_cv_.notify_all();
-  }
+  is_running_ = false;
+
   for (auto& w : workers_) {
     w.join();
   }
@@ -75,12 +67,9 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
   // but oh well
   intrusive_ptr_add_ref(context);
   ++task_queue_size_;
-  {
-    std::shared_lock<std::shared_timed_mutex> lock(task_queue_mutex_);
-    task_queue_.push(context);
-    // NOTE: task may be executed at this point
-  }
-  task_available_cv_.notify_one();
+
+  task_queue_.enqueue(context);
+  // NOTE: task may be executed at this point
 }
 
 void TaskProcessor::Adopt(
@@ -101,27 +90,30 @@ void TaskProcessor::Adopt(
   boost::ignore_unused(result);
 }
 
+impl::TaskContext* TaskProcessor::DequeueTask() {
+  impl::TaskContext* buf = nullptr;
+
+  /* Current thread handles only a single TaskProcessor, so it's safe to store
+   * a token for the task processor in a thread-local variable.
+   */
+  thread_local moodycamel::ConsumerToken token(task_queue_);
+
+  /* 'timeout' is used for periodic polling of is_running_
+   * in case of TaskProcessor stop.
+   */
+  static const auto timeout = std::chrono::milliseconds(50);
+
+  while (!task_queue_.wait_dequeue_timed(token, buf, timeout) && is_running_) {
+    GetTaskCounter().AccountTaskSwitchSlow();
+  }
+  return buf;
+}
+
 void TaskProcessor::ProcessTasks() noexcept {
   while (true) {
     // wrapping instance referenced in EnqueueTask
-    boost::intrusive_ptr<impl::TaskContext> context(
-        [this] {
-          impl::TaskContext* buf = nullptr;
-          if (task_queue_.pop(buf)) {
-            GetTaskCounter().AccountTaskSwitchFast();
-          } else {
-            GetTaskCounter().AccountTaskSwitchSlow();
-
-            std::unique_lock<std::shared_timed_mutex> lock(task_queue_mutex_);
-            task_available_cv_.wait(lock, [this, &buf] {
-              if (task_queue_.pop(buf)) return true;
-              buf = nullptr;
-              return !is_running_.load();
-            });
-          }
-          return buf;
-        }(),
-        /* add_ref =*/false);
+    boost::intrusive_ptr<impl::TaskContext> context(DequeueTask(),
+                                                    /* add_ref =*/false);
     if (!context) break;
     --task_queue_size_;
 
