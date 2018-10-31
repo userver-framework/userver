@@ -41,7 +41,6 @@ find_package(Jemalloc REQUIRED)
 find_package(Hiredis 0.13.3 REQUIRED)
 find_package(LibEv REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(PostgreSQL REQUIRED) # TODO Make libpq optional
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
 find_package(CurlYandex REQUIRED)
@@ -57,6 +56,9 @@ find_package_required_version(libbsoncxx-static
     "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
 find_package_required_version(libmongocxx-static
     "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
+# TODO Make libpq optional
+find_package_required_version(PostgreSQL
+    "libpq-dev postgresql-server-dev-9.5" 9.5)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
