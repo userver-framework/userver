@@ -255,7 +255,14 @@ void RAIITransaction(pg::detail::ConnectionPtr conn) {
 
 }  // namespace
 
-class PostgreConnection : public PostgreSQLBase {};
+class PostgreConnection
+    : public PostgreSQLBase,
+      public ::testing::WithParamInterface<storages::postgres::DSNList> {
+  void ReadParam() override { dsn_list_ = GetParam(); }
+
+ protected:
+  storages::postgres::DSNList dsn_list_;
+};
 
 INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreConnection,
                         ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);

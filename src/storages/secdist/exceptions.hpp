@@ -21,5 +21,9 @@ class UnknownRedisClientName : public SecdistError {
   using SecdistError::SecdistError;
 };
 
+class UnknownPostgresDbAlias : public SecdistError {
+  using SecdistError::SecdistError;
+};
+
 }  // namespace secdist
 }  // namespace storages

@@ -2,6 +2,8 @@
 
 #include <iosfwd>
 
+#include <storages/postgres/dsn.hpp>
+
 namespace storages {
 namespace postgres {
 
@@ -21,6 +23,23 @@ enum class ClusterHostType {
 
 std::ostream& operator<<(std::ostream&, const ClusterHostType&);
 std::string ToString(const ClusterHostType& ht);
+
+/// @brief Cluster configuration description
+struct ClusterDescription {
+  /// Master replica DSN
+  std::string master_dsn_;
+
+  /// Sync slave replica DSN
+  std::string sync_slave_dsn_;
+
+  /// List of async slave replica DSNs
+  DSNList slave_dsns_;
+
+  ClusterDescription() = default;
+  explicit ClusterDescription(const std::string& multi_host_dsn);
+  ClusterDescription(const std::string& master_dsn,
+                     const std::string& sync_slave_dsn, DSNList slave_dsns);
+};
 
 }  // namespace postgres
 }  // namespace storages

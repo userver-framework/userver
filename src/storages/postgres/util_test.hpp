@@ -22,15 +22,13 @@ std::vector<storages::postgres::DSNList> GetDsnFromEnv();
 std::string DsnToString(
     const ::testing::TestParamInfo<storages::postgres::DSNList>& info);
 
-class PostgreSQLBase
-    : public ::testing::TestWithParam<storages::postgres::DSNList> {
+class PostgreSQLBase : public ::testing::Test {
  protected:
   void SetUp() override {
     // TODO Check env if logging is requested
     old_ = logging::SetDefaultLogger(MakeCerrLogger());
     logging::SetDefaultLoggerLevel(logging::Level::kTrace);
-    // Obtain a DSN from env here
-    dsn_list_ = GetParam();
+    ReadParam();
   }
 
   void TearDown() override {
@@ -40,6 +38,8 @@ class PostgreSQLBase
     }
   }
 
+  virtual void ReadParam() = 0;
+
   static logging::LoggerPtr MakeCerrLogger() {
     static logging::LoggerPtr cerr_logger = spdlog::stderr_logger_mt("cerr");
     return cerr_logger;
@@ -48,9 +48,6 @@ class PostgreSQLBase
   static engine::TaskProcessor& GetTaskProcessor();
 
   void CheckConnection(storages::postgres::detail::ConnectionPtr conn);
-
- protected:
-  storages::postgres::DSNList dsn_list_;
 
  private:
   logging::LoggerPtr old_;

@@ -9,8 +9,6 @@
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 
-#include <storages/postgres/detail/cluster_impl.hpp>
-
 namespace pg = storages::postgres;
 
 namespace {
@@ -27,24 +25,37 @@ void CheckTransaction(pg::Transaction trx) {
   EXPECT_THROW(trx.Rollback(), pg::NotInTransaction);
 }
 
-pg::Cluster CreateCluster(const pg::DSNList& dsn_list,
+pg::Cluster CreateCluster(const std::string& dsn,
                           engine::TaskProcessor& bg_task_processor,
                           size_t max_size) {
-  auto cluster_impl = std::make_unique<pg::detail::ClusterImpl>(
-      dsn_list, bg_task_processor, 0, max_size);
-  return pg::Cluster(std::move(cluster_impl));
+  return pg::Cluster(pg::ClusterDescription(dsn), bg_task_processor, 0,
+                     max_size);
 }
+
+const auto* dsn_list_env = std::getenv(kPostgresDsn);
+const auto dsn_list = dsn_list_env
+                          ? std::vector<std::string>{std::string(dsn_list_env)}
+                          : std::vector<std::string>();
 
 }  // namespace
 
-class PostgreCluster : public PostgreSQLBase {};
+class PostgreCluster : public PostgreSQLBase,
+                       public ::testing::WithParamInterface<std::string> {
+  void ReadParam() override { dsn_ = GetParam(); }
 
-INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreCluster,
-                        ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
+ protected:
+  std::string dsn_;
+};
+
+INSTANTIATE_TEST_CASE_P(
+    /*empty*/, PostgreCluster, ::testing::ValuesIn(dsn_list),
+    [](const ::testing::TestParamInfo<std::string>& info) {
+      return pg::MakeDsnNick(info.param);
+    });
 
 TEST_P(PostgreCluster, ClusterSyncSlaveRW) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_list_, GetTaskProcessor(), 1);
+    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
 
     EXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSyncSlave,
                                pg::TransactionOptions{
@@ -55,7 +66,7 @@ TEST_P(PostgreCluster, ClusterSyncSlaveRW) {
 
 TEST_P(PostgreCluster, ClusterAsyncSlaveRW) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_list_, GetTaskProcessor(), 1);
+    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
 
     EXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSlave,
                                pg::TransactionOptions{
@@ -66,7 +77,7 @@ TEST_P(PostgreCluster, ClusterAsyncSlaveRW) {
 
 TEST_P(PostgreCluster, ClusterEmptyPool) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_list_, GetTaskProcessor(), 0);
+    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 0);
 
     EXPECT_THROW(cluster.Begin({}), pg::PoolError);
   });
@@ -74,7 +85,7 @@ TEST_P(PostgreCluster, ClusterEmptyPool) {
 
 TEST_P(PostgreCluster, ClusterTransaction) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_list_, GetTaskProcessor(), 1);
+    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
 
     CheckTransaction(cluster.Begin({}));
   });

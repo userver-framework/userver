@@ -2,9 +2,13 @@
 
 #include <memory>
 
-#include <storages/postgres/cluster_host_type.hpp>
+#include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/transaction.hpp>
+
+namespace engine {
+class TaskProcessor;
+}  // namespace engine
 
 namespace storages {
 namespace postgres {
@@ -20,7 +24,19 @@ using ClusterImplPtr = std::unique_ptr<ClusterImpl>;
 
 class Cluster {
  public:
-  explicit Cluster(detail::ClusterImplPtr&& impl);
+  /// Cluster constructor
+  /// @param cluster_desc Cluster configuration description
+  /// @param bg_task_processor task processor for blocking connection operations
+  /// @param initial_idle_connection_pool_size initial (minimum) idle
+  /// connections count
+  /// @param max_connection_pool_size maximum connections count in the pool
+  /// @note When `max_connection_pool_size` is reached, and no idle connections
+  /// available, `PoolError` is thrown for every new connection
+  /// request
+  Cluster(const ClusterDescription& cluster_desc,
+          engine::TaskProcessor& bg_task_processor,
+          size_t initial_idle_connection_pool_size,
+          size_t max_connection_pool_size);
   ~Cluster();
 
   //@{

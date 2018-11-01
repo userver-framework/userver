@@ -29,7 +29,14 @@ void PoolTransaction(pg::ConnectionPool& pool) {
 
 }  // namespace
 
-class PostgrePool : public PostgreSQLBase {};
+class PostgrePool
+    : public PostgreSQLBase,
+      public ::testing::WithParamInterface<storages::postgres::DSNList> {
+  void ReadParam() override { dsn_list_ = GetParam(); }
+
+ protected:
+  storages::postgres::DSNList dsn_list_;
+};
 
 INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePool,
                         ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
