@@ -37,25 +37,30 @@ PostgresSettings::PostgresSettings(const formats::json::Value& doc) {
   const formats::json::Value& databases = postgresql_settings["databases"];
   storages::secdist::CheckIsObject(databases, "databases");
 
-  for (auto it = databases.begin(); it != databases.end(); ++it) {
-    const std::string& dbalias = it.GetName();
-    const formats::json::Value& cluster_array = *it;
+  for (auto db_it = databases.begin(); db_it != databases.end(); ++db_it) {
+    const std::string& dbalias = db_it.GetName();
+    const formats::json::Value& cluster_array = *db_it;
     storages::secdist::CheckIsArray(cluster_array, dbalias);
 
-    // TODO: read the whole array not just 0 element
-    storages::secdist::CheckIsObject(cluster_array[0], dbalias + "[0]");
-    cluster_descs_[dbalias] = ClusterDescriptionFromJson(cluster_array[0]);
+    for (auto shard_it = cluster_array.begin(); shard_it != cluster_array.end();
+         ++shard_it) {
+      storages::secdist::CheckIsObject(
+          *shard_it, dbalias + '[' + std::to_string(shard_it.GetIndex() + ']'));
+      const auto shard_num = (*shard_it)["shard_number"].asUInt64();
+      sharded_cluster_descs_[dbalias][shard_num] =
+          ClusterDescriptionFromJson(*shard_it);
+    }
   }
 }
 
-const ClusterDescription& PostgresSettings::GetClusterDescription(
+ShardedClusterDescription PostgresSettings::GetShardedClusterDescription(
     const std::string& dbalias) const {
-  auto it = cluster_descs_.find(dbalias);
+  auto it = sharded_cluster_descs_.find(dbalias);
 
-  if (it == cluster_descs_.end())
+  if (it == sharded_cluster_descs_.end()) {
     throw storages::secdist::UnknownPostgresDbAlias(
         "dbalias " + dbalias + " not found in secdist config");
-
+  }
   return it->second;
 }
 

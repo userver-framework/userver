@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iosfwd>
+#include <unordered_map>
 
 #include <storages/postgres/dsn.hpp>
 
@@ -40,6 +41,9 @@ struct ClusterDescription {
   ClusterDescription(const std::string& master_dsn,
                      const std::string& sync_slave_dsn, DSNList slave_dsns);
 };
+
+using ShardedClusterDescription =
+    std::unordered_map<size_t, ClusterDescription>;
 
 }  // namespace postgres
 }  // namespace storages

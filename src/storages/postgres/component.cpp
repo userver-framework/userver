@@ -28,13 +28,14 @@ Postgres::Postgres(const ComponentConfig& config,
   storages::postgres::ClusterDescription cluster_desc;
   if (dbalias.empty()) {
     const auto dsn_string = config.ParseString("dbconnection");
-    cluster_desc = storages::postgres::ClusterDescription(dsn_string);
+    shard_to_desc_[kDefaultShardNumber] =
+        storages::postgres::ClusterDescription(dsn_string);
   } else {
     try {
       auto& secdist = context.FindComponent<Secdist>();
-      cluster_desc = secdist.Get()
-                         .Get<storages::postgres::secdist::PostgresSettings>()
-                         .GetClusterDescription(dbalias);
+      shard_to_desc_ = secdist.Get()
+                           .Get<storages::postgres::secdist::PostgresSettings>()
+                           .GetShardedClusterDescription(dbalias);
     } catch (const storages::secdist::SecdistError& ex) {
       LOG_ERROR() << "Failed to load Postgres config for dbalias " << dbalias
                   << ": " << ex.what();
@@ -42,10 +43,8 @@ Postgres::Postgres(const ComponentConfig& config,
     }
   }
 
-  const auto min_pool_size =
-      config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
-  const auto max_pool_size =
-      config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
+  min_pool_size_ = config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
+  max_pool_size_ = config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
 
   const auto threads_num =
       config.ParseUint64("blocking_task_processor_threads");
@@ -55,13 +54,30 @@ Postgres::Postgres(const ComponentConfig& config,
   bg_task_processor_ = std::make_unique<engine::TaskProcessor>(
       std::move(task_processor_config),
       context.GetManager().GetTaskProcessorPools());
-
-  cluster_ = std::make_shared<storages::postgres::Cluster>(
-      cluster_desc, *bg_task_processor_, min_pool_size, max_pool_size);
 }
 
 Postgres::~Postgres() = default;
 
-storages::postgres::ClusterPtr Postgres::GetCluster() const { return cluster_; }
+storages::postgres::ClusterPtr Postgres::GetCluster() const {
+  return GetClusterForShard(kDefaultShardNumber);
+}
+
+storages::postgres::ClusterPtr Postgres::GetClusterForShard(
+    size_t shard) const {
+  std::lock_guard<engine::Mutex> lock(shard_cluster_mutex_);
+
+  auto& cluster = shard_to_cluster_[shard];
+  if (!cluster) {
+    auto it = shard_to_desc_.find(shard);
+    if (it == shard_to_desc_.end()) {
+      // TODO find better exception type
+      throw storages::secdist::UnknownPostgresDbAlias(
+          "Shard number " + std::to_string(shard) + " not found");
+    }
+    cluster = std::make_shared<storages::postgres::Cluster>(
+        it->second, *bg_task_processor_, min_pool_size_, max_pool_size_);
+  }
+  return cluster;
+}
 
 }  // namespace components

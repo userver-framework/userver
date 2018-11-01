@@ -15,11 +15,12 @@ class PostgresSettings {
  public:
   explicit PostgresSettings(const formats::json::Value& doc);
 
-  const ClusterDescription& GetClusterDescription(
+  ShardedClusterDescription GetShardedClusterDescription(
       const std::string& dbalias) const;
 
  private:
-  std::unordered_map<std::string, ClusterDescription> cluster_descs_;
+  std::unordered_map<std::string, ShardedClusterDescription>
+      sharded_cluster_descs_;
 };
 
 }  // namespace secdist
