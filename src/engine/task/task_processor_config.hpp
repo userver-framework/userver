@@ -14,7 +14,6 @@ struct TaskProcessorConfig {
 
   size_t worker_threads = 6;
   std::string thread_name;
-  size_t task_queue_size_threshold = 1000000;
 
   static TaskProcessorConfig ParseFromYaml(
       const formats::yaml::Node& yaml, const std::string& full_path,

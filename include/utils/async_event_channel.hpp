@@ -15,7 +15,7 @@ class AsyncEventChannelBase {
  protected:
   friend class AsyncEventSubscriberScope;
 
-  virtual bool RemoveListener(FunctionId id) = 0;
+  virtual bool RemoveListener(FunctionId id) noexcept = 0;
 };
 
 class AsyncEventSubscriberScope {
@@ -38,7 +38,7 @@ class AsyncEventSubscriberScope {
     return *this;
   }
 
-  void Unsubscribe() {
+  void Unsubscribe() noexcept {
     if (id_) {
       channel_->RemoveListener(id_);
       id_ = 0;
@@ -50,7 +50,8 @@ class AsyncEventSubscriberScope {
       LOG_ERROR() << "Event subscriber has't unregistered itself, you have "
                      "to store AsyncEventSubscriberScope and explicitly call "
                      "Unsubscribe() when subscription is not needed.";
-      assert(false);
+      assert(false &&
+             "Unsubscribe() is not called for AsyncEventSubscriberScope");
       channel_->RemoveListener(id_);
     }
   }
@@ -92,18 +93,18 @@ class AsyncEventChannel : public AsyncEventChannelBase {
   void SendEvent(const Args&... args) const {
     std::shared_lock<std::shared_timed_mutex> lock(mutex_);
     for (const Listener& listener : listeners_) {
-      engine::Async(listener.second, args...).Detach();
+      engine::CriticalAsync(listener.second, args...).Detach();
     }
   }
 
  private:
-  bool RemoveListener(FunctionId id) override {
+  bool RemoveListener(FunctionId id) noexcept override {
     std::lock_guard<std::shared_timed_mutex> lock(mutex_);
 
     auto it = FindListener(id);
     if (it == listeners_.end()) {
-      // TODO: stacktrace
       LOG_ERROR()
+          << logging::LogExtra::Stacktrace()
           << "Trying to unregister a subscriber which is not registered";
       assert(false);
       return false;

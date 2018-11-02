@@ -49,7 +49,7 @@ namespace impl {
 namespace {
 
 std::string GetTaskIdString(const impl::TaskContext* task) {
-  return std::to_string(reinterpret_cast<uint64_t>(task));
+  return std::to_string(task ? task->GetTaskId() : 0);
 }
 
 // we don't use native boost.coroutine stack unwinding mechanisms for cancel
@@ -93,6 +93,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_cancellable_(true),
       cancellation_reason_(Task::CancellationReason::kNone),
       finish_waiters_(std::make_shared<WaitList>()),
+      task_queue_wait_timepoint_(),
       sleep_state_(SleepStateFlags::kSleeping),
       wakeup_source_(WakeupSource::kNone),
       task_pipe_(nullptr),

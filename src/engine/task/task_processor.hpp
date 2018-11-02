@@ -30,6 +30,14 @@ struct TaskContextPtrHash {
 
 }  // namespace impl
 
+struct TaskProcessorSettings {
+  size_t wait_queue_length_limit{0};
+  std::chrono::microseconds wait_queue_time_limit{0};
+
+  enum class OverloadAction { kCancel, kIgnore };
+  OverloadAction overload_action{OverloadAction::kIgnore};
+};
+
 class TaskProcessor {
  public:
   using CoroPool = impl::TaskProcessorPools::CoroPool;
@@ -52,10 +60,22 @@ class TaskProcessor {
 
   size_t GetWorkerCount() const { return workers_.size(); }
 
+  void SetSettings(const TaskProcessorSettings& settings) {
+    max_task_queue_wait_time_ = settings.wait_queue_time_limit;
+    max_task_queue_wait_length_ = settings.wait_queue_length_limit;
+    overload_action_ = settings.overload_action;
+  }
+
  private:
   impl::TaskContext* DequeueTask();
 
   void ProcessTasks() noexcept;
+
+  void SetTaskQueueWaitTimepoint(impl::TaskContext* context);
+
+  void CheckWaitTime(impl::TaskContext& task);
+
+  void HandleOverload(impl::TaskContext& task);
 
   const TaskProcessorConfig config_;
   std::shared_ptr<impl::TaskProcessorPools> pools_;
@@ -70,6 +90,12 @@ class TaskProcessor {
 
   moodycamel::BlockingConcurrentQueue<impl::TaskContext*> task_queue_;
   std::atomic<size_t> task_queue_size_;
+
+  std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{};
+  std::atomic<size_t> max_task_queue_wait_length_{0};
+  TaskProcessorSettings::OverloadAction overload_action_{
+      TaskProcessorSettings::OverloadAction::kIgnore};
+  bool task_queue_wait_time_overloaded_{false};
 
   std::vector<std::thread> workers_;
   impl::TaskCounter task_counter_;

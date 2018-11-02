@@ -50,7 +50,7 @@ Entry::Entry(Entry&& other) noexcept
 
 Entry::~Entry() { assert(storage_ == nullptr); }
 
-void Entry::Unregister() {
+void Entry::Unregister() noexcept {
   if (storage_) {
     storage_->UnregisterExtender(iterator_);
     storage_ = nullptr;
@@ -88,7 +88,7 @@ Entry Storage::RegisterExtender(std::string prefix, ExtenderFunc func) {
   return Entry(*this, res);
 }
 
-void Storage::UnregisterExtender(StorageIterator iterator) {
+void Storage::UnregisterExtender(StorageIterator iterator) noexcept {
   std::lock_guard<std::shared_timed_mutex> lock(mutex_);
   extender_funcs_.erase(iterator);
 }

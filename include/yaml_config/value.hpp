@@ -116,7 +116,8 @@ auto ParseValue(const formats::yaml::Node& obj, const std::string& name,
                                          "<config_vars_ptr>", config_vars_ptr);
       if (res) return res;
     }
-    LOG_WARNING() << "undefined config variable '" << var_name << '\'';
+    LOG_INFO() << "using default value for config variable '" << var_name
+               << '\'';
     return ParseValue(obj, impl::GetFallbackName(name), full_path,
                       config_vars_ptr, parse_elem, parse_config_var);
   }

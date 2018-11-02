@@ -43,6 +43,10 @@ class TaskCounter {
 
   size_t GetCancelledTasks() const { return tasks_cancelled_; }
 
+  size_t GetCancelledTasksOverload() const { return tasks_cancelled_overload_; }
+
+  size_t GetTasksOverload() const { return tasks_overload_; }
+
   size_t GetTaskSwitchFast() const { return tasks_switch_fast_; }
 
   size_t GetTaskSwitchSlow() const { return tasks_switch_slow_; }
@@ -50,6 +54,10 @@ class TaskCounter {
   size_t GetSpuriousWakeups() const { return spurious_wakeups_; }
 
   void AccountTaskCancel() { tasks_cancelled_++; }
+
+  void AccountTaskCancelOverload() { tasks_cancelled_overload_++; }
+
+  void AccountTaskOverload() { tasks_overload_++; }
 
   void AccountTaskSwitchFast() { tasks_switch_fast_++; }
 
@@ -64,6 +72,8 @@ class TaskCounter {
   std::atomic<size_t> tasks_switch_fast_{0};
   std::atomic<size_t> tasks_switch_slow_{0};
   std::atomic<size_t> spurious_wakeups_{0};
+  std::atomic<size_t> tasks_cancelled_overload_{0};
+  std::atomic<size_t> tasks_overload_{0};
 };
 
 }  // namespace impl

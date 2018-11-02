@@ -57,9 +57,10 @@ void ComponentContext::ClearComponents() {
     std::lock_guard<engine::Mutex> lock(component_mutex_);
     clear_components_started_ = true;
     for (const auto& name : component_names_)
-      unload_tasks.emplace_back(engine::Async([&root_span, this, name]() {
-        WaitAndUnloadComponent(root_span, name);
-      }));
+      unload_tasks.emplace_back(
+          engine::CriticalAsync([&root_span, this, name]() {
+            WaitAndUnloadComponent(root_span, name);
+          }));
   }
 
   for (auto& task : unload_tasks) task.Get();

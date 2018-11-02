@@ -29,6 +29,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   using CoroutinePtr = coro::Pool<TaskContext>::CoroutinePtr;
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
   using CoroId = uint64_t;
+  using TaskId = uint64_t;
 
   enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
   enum class WakeupSource {
@@ -111,7 +112,17 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   // C++ ABI support, not to be used by anyone
   EhGlobals* GetEhGlobals() { return &eh_globals_; }
 
+  TaskId GetTaskId() const { return reinterpret_cast<uint64_t>(this); }
+
   CoroId GetCoroId() const { return reinterpret_cast<CoroId>(coro_.get()); }
+
+  std::chrono::steady_clock::time_point GetQueueWaitTimepoint() const {
+    return task_queue_wait_timepoint_;
+  }
+
+  void SetQueueWaitTimepoint(std::chrono::steady_clock::time_point tp) {
+    task_queue_wait_timepoint_ = tp;
+  }
 
  private:
   static constexpr uint64_t kMagic = 0x6b73615453755459ull;  // "YTuSTask"
@@ -139,6 +150,9 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   std::atomic<bool> is_cancellable_;
   std::atomic<Task::CancellationReason> cancellation_reason_;
   std::shared_ptr<WaitList> finish_waiters_;
+
+  // () if not defined
+  std::chrono::steady_clock::time_point task_queue_wait_timepoint_;
 
   SleepParams sleep_params_;
   utils::AtomicFlags<SleepStateFlags> sleep_state_;

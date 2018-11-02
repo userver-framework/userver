@@ -15,11 +15,6 @@ TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
   config.thread_name =
       yaml_config::ParseString(yaml, "thread_name", full_path, config_vars_ptr);
 
-  auto optional_task_queue_size_threshold = yaml_config::ParseOptionalUint64(
-      yaml, "task_queue_size_threshold", full_path, config_vars_ptr);
-  if (optional_task_queue_size_threshold)
-    config.task_queue_size_threshold = *optional_task_queue_size_threshold;
-
   return config;
 }
 

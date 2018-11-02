@@ -30,7 +30,7 @@ class Entry {
 
   Entry& operator=(Entry&& other);
 
-  void Unregister();
+  void Unregister() noexcept;
 
  private:
   explicit Entry(Storage& storage, StorageIterator iterator)
@@ -52,7 +52,7 @@ class Storage {
   __attribute__((warn_unused_result)) Entry RegisterExtender(std::string prefix,
                                                              ExtenderFunc func);
 
-  void UnregisterExtender(StorageIterator iterator);
+  void UnregisterExtender(StorageIterator iterator) noexcept;
 
  private:
   StorageData extender_funcs_;

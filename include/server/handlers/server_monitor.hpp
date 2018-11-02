@@ -23,9 +23,7 @@ class ServerMonitor : public HttpHandlerBase {
       utils::statistics::StatisticsRequest) const;
 
  private:
-  const components::Manager& components_manager_;
   components::StatisticsStorage& statistics_storage_;
-  components::ComponentContext::TaskProcessorPtrMap task_processor_map_;
 };
 
 }  // namespace handlers
