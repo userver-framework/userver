@@ -78,7 +78,8 @@ class WrappedCallImpl final
 
   template <size_t... Indices>
   decltype(auto) DoCall(std::index_sequence<Indices...>) {
-    return f_(std::get<Indices>(std::move(args_))...);
+    auto f = std::move(f_);
+    return f(std::get<Indices>(std::move(args_))...);
   }
 
   Function f_;

@@ -20,7 +20,7 @@ class ServerMonitor : public HttpHandlerBase {
       request::RequestContext&) const override;
 
   formats::json::Value GetEngineStats(
-      utils::statistics::Verbosity verbosity) const;
+      utils::statistics::StatisticsRequest) const;
 
  private:
   const components::Manager& components_manager_;

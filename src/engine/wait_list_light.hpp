@@ -35,8 +35,6 @@ class WaitListLight final : public WaitListBase {
 
   void Remove(const boost::intrusive_ptr<impl::TaskContext>&) override;
 
-  void Remove(impl::TaskContext&);
-
  private:
   std::atomic<impl::TaskContext*> waiting_;
 #ifndef NDEBUG

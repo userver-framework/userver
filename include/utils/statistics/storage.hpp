@@ -11,9 +11,7 @@
 namespace utils {
 namespace statistics {
 
-enum class Verbosity { kTerse, kFull };
-
-using StatisticsRequest = Verbosity;
+struct StatisticsRequest {};
 using ExtenderFunc =
     std::function<formats::json::ValueBuilder(const StatisticsRequest&)>;
 

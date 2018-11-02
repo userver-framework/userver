@@ -27,11 +27,7 @@ void SingleConsumerEvent::WaitForEvent() {
     sleep_params.exec_after_asleep = [this, &lock, current] {
       LOG_TRACE() << "exec_after_asleep()";
       lock_waiters_->Append(lock, current);
-      if (signaled_)
-        current->Wakeup(impl::TaskContext::WakeupSource::kWaitList);
-    };
-    sleep_params.exec_before_awake = [current, this]() {
-      lock_waiters_->Remove(*current);
+      if (signaled_) lock_waiters_->WakeupOne(lock);
     };
 
     current->Sleep(std::move(sleep_params));

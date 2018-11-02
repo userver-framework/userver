@@ -3,6 +3,7 @@
 #include <engine/async.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/sleep.hpp>
+#include <logging/log.hpp>
 
 #include <utest/utest.hpp>
 
@@ -63,9 +64,42 @@ TEST(SingleConsumerEvent, SendAndWait) {
   });
 }
 
+TEST(SingleConsumerEvent, SendAndWait2) {
+  RunInCoro([] {
+    engine::SingleConsumerEvent event;
+    auto task = engine::Async([&event]() {
+      event.WaitForEvent();
+      event.WaitForEvent();
+    });
+
+    event.Send();
+    engine::Yield();
+    event.Send();
+    engine::Yield();
+
+    EXPECT_TRUE(task.IsFinished());
+  });
+}
+
+TEST(SingleConsumerEvent, SendAndWait3) {
+  RunInCoro([] {
+    engine::SingleConsumerEvent event;
+    auto task = engine::Async([&event]() {
+      event.WaitForEvent();
+      event.WaitForEvent();
+      event.WaitForEvent();
+    });
+
+    event.Send();
+    engine::Yield();
+    event.Send();
+    engine::Yield();
+  });
+}
+
 TEST(SingleConsumerEvent, Multithread) {
   const auto threads = 2;
-  const auto count = 100000;
+  const auto count = 10000;
 
   RunInCoro(
       [count] {
@@ -80,11 +114,17 @@ TEST(SingleConsumerEvent, Multithread) {
         });
 
         engine::SleepFor(std::chrono::milliseconds(10));
-        for (size_t i = 0; i < count; i++) event.Send();
+        for (size_t i = 0; i < count; i++) {
+          event.Send();
+        }
         engine::SleepFor(std::chrono::milliseconds(10));
 
         EXPECT_GE(got.load(), 1);
         EXPECT_LE(got.load(), count);
+        LOG_INFO() << "waiting";
+        task.RequestCancel();
+        task.Wait();
+        LOG_INFO() << "waited";
       },
       threads);
 }

@@ -4,9 +4,6 @@
 #include <memory>
 #include <unordered_map>
 
-#include <boost/lockfree/queue.hpp>
-
-#include <engine/event_task.hpp>
 #include <engine/io/socket.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/task_processor.hpp>
@@ -30,28 +27,27 @@ class ListenerImpl {
   engine::TaskProcessor& GetTaskProcessor() const;
 
  private:
-  void AcceptConnection(engine::io::Socket& request_socket, Connection::Type);
-  void SetupConnection(engine::io::Socket peer_socket, Connection::Type);
+  void AcceptConnection(engine::io::Socket& request_socket);
 
-  void EnqueueConnectionClose(int fd);
+  void SetupConnection(engine::io::Socket peer_socket);
+
+  void AddConnection(const std::shared_ptr<Connection>&);
+
   void CloseConnections();
 
+ private:
   engine::TaskProcessor& task_processor_;
   std::shared_ptr<EndpointInfo> endpoint_info_;
 
   bool is_closing_;
 
-  mutable engine::Mutex connections_mutex_;
-  std::unordered_map<int, std::unique_ptr<Connection>> connections_;
-
-  boost::lockfree::queue<int> connections_to_close_;
-  engine::EventTask close_connections_task_;
-  std::atomic<size_t> past_processed_requests_count_;
-  std::atomic<size_t> opened_connection_count_;
-  std::atomic<size_t> closed_connection_count_;
-  std::atomic<size_t> pending_close_connection_count_;
+  std::shared_ptr<Stats> stats_;
 
   engine::TaskWithResult<void> socket_listener_task_;
+
+  // connections_ are added in socket_listener_task_ and removed
+  // in ~ListenerImpl(), no synchronization required
+  std::vector<std::weak_ptr<Connection>> connections_;
 };
 
 }  // namespace net

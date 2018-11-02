@@ -26,7 +26,7 @@ class Server {
   const ServerConfig& GetConfig() const;
 
   formats::json::Value GetMonitorData(
-      utils::statistics::Verbosity verbosity) const;
+      utils::statistics::StatisticsRequest) const;
 
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);

@@ -8,7 +8,6 @@
 #include <server/handlers/handler_base.hpp>
 #include <server/request/request_base.hpp>
 #include <server/request/request_handler_base.hpp>
-#include <server/request/request_task.hpp>
 
 #include "handler_info_index.hpp"
 
@@ -27,10 +26,9 @@ class HttpRequestHandler : public request::RequestHandlerBase {
       std::function<void(std::shared_ptr<request::RequestBase>)>;
   void SetNewRequestHook(NewRequestHook hook);
 
-  std::shared_ptr<request::RequestTask> PrepareRequestTask(
-      std::shared_ptr<request::RequestBase>&& request,
-      std::function<void()>&& notify_func) const override;
-  void ProcessRequest(request::RequestTask& task) const override;
+  engine::TaskWithResult<std::shared_ptr<request::RequestBase>>
+  StartRequestTask(
+      std::shared_ptr<request::RequestBase>&& request) const override;
 
   void DisableAddHandler();
   void AddHandler(const handlers::HttpHandlerBase& handler,

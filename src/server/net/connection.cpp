@@ -21,102 +21,83 @@ namespace net {
 
 Connection::Connection(engine::TaskProcessor& task_processor,
                        const ConnectionConfig& config,
-                       engine::io::Socket peer_socket, Type type,
+                       engine::io::Socket peer_socket,
                        const http::HttpRequestHandler& request_handler,
-                       BeforeCloseCb before_close_cb)
+                       std::shared_ptr<Stats> stats)
     : task_processor_(task_processor),
       config_(config),
       peer_socket_(std::move(peer_socket)),
-      type_(type),
       request_handler_(request_handler),
+      stats_(std::move(stats)),
       remote_address_(peer_socket_.Getpeername().RemoteAddress()),
-      request_tasks_sent_idx_(0),
-      is_request_tasks_full_(false),
-      before_close_cb_(std::move(before_close_cb)),
-      pending_response_count_(0),
-      response_event_task_(task_processor_, [this] { SendResponses(); }),
       request_parser_(std::make_unique<http::HttpRequestParser>(
           request_handler.GetHandlerInfoIndex(), *config_.request,
           [this](std::unique_ptr<request::RequestBase>&& request_ptr) {
             NewRequest(std::move(request_ptr));
-          })),
-      is_closing_(false),
-      processed_requests_count_(0),
+          },
+          stats_->parser_stats)),
       is_accepting_requests_(true),
-      is_socket_listener_stopped_(false) {
+      stop_sender_after_queue_is_empty_(false),
+      is_closing_(false) {
   LOG_DEBUG() << "Incoming connection from " << peer_socket_.Getpeername()
               << ", fd " << Fd();
+
+  ++stats_->active_connections;
+  ++stats_->connections_created;
 }
 
 Connection::~Connection() {
-  is_closing_ = true;
-
   const int fd = Fd();  // will be invalidated on close
 
+  // Socket listener can be simply cancelled
   LOG_TRACE() << "Stopping socket listener for fd " << fd;
+  assert(socket_listener_);
   socket_listener_ = {};
   LOG_TRACE() << "Stopped socket listener for fd " << fd;
 
-  peer_socket_.Close();
-  response_event_task_.Notify();
+  // SendResponses() has to wait for all responses and send them out
   LOG_TRACE() << "Waiting for request tasks queue to become empty for fd "
               << fd;
-  {
-    std::unique_lock<engine::Mutex> lock(request_tasks_mutex_);
-    request_tasks_empty_cv_.Wait(lock,
-                                 [this] { return request_tasks_.empty(); });
-  }
+  request_tasks_empty_event_.Send();
+  response_sender_task_.Wait();
+
+  peer_socket_.Close();
+
   LOG_TRACE() << "RequestBase tasks queue became empty for fd " << fd;
   assert(IsRequestTasksEmpty());
 
-  LOG_TRACE() << "Stopping response event notifier for fd " << fd;
-  response_event_task_.Stop();
-  LOG_TRACE() << "Stopped response event notifier for fd " << fd;
-
-  LOG_DEBUG() << "Closed connection for fd " << fd;
+  --stats_->active_connections;
+  ++stats_->connections_closed;
 }
 
 void Connection::Start() {
+  shared_this_ = shared_from_this();
+
   LOG_TRACE() << "Starting socket listener for fd " << Fd();
-  // XXX: Connection is destroyed asynchronously, block the callback
-  std::lock_guard<engine::Mutex> lock(close_cb_mutex_);
+
+  response_sender_task_ =
+      engine::CriticalAsync(task_processor_, [this] { SendResponses(); });
   socket_listener_ =
       engine::CriticalAsync(task_processor_, [this] { ListenForRequests(); });
   LOG_TRACE() << "Started socket listener for fd " << Fd();
 }
 
+void Connection::Stop() {
+  socket_listener_.RequestCancel();
+  StopResponseSenderTaskAsync();
+}
+
 int Connection::Fd() const { return peer_socket_.Fd(); }
 
-Connection::Type Connection::GetType() const { return type_; }
-
-size_t Connection::ProcessedRequestCount() const {
-  return processed_requests_count_;
-}
-
-size_t Connection::ActiveRequestCount() const { return request_tasks_.size(); }
-
-size_t Connection::ParsingRequestCount() const {
-  return request_parser_->ParsingRequestCount();
-}
-
-size_t Connection::PendingResponseCount() const {
-  return pending_response_count_;
-}
-
-bool Connection::CanClose() const {
-  return is_socket_listener_stopped_ && IsRequestTasksEmpty();
-}
-
 bool Connection::IsRequestTasksEmpty() const {
-  std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
-  return request_tasks_.empty();
+  return request_tasks_.size_approx() == 0;
 }
 
 void Connection::ListenForRequests() {
   try {
     std::vector<char> buf(config_.in_buffer_size);
     while (is_accepting_requests_) {
-      auto bytes_read = peer_socket_.RecvSome(buf.data(), buf.size(), {});
+      size_t bytes_read = peer_socket_.RecvSome(buf.data(), buf.size(), {});
       if (!bytes_read) {
         LOG_TRACE() << "Peer " << peer_socket_.Getpeername() << " on fd "
                     << Fd() << "closed connection";
@@ -131,60 +112,75 @@ void Connection::ListenForRequests() {
         break;
       }
 
-      std::unique_lock<engine::Mutex> lock(request_tasks_mutex_);
-      request_tasks_full_cv_.Wait(lock, [this] {
-        if (request_tasks_.size() >= config_.requests_queue_size_threshold) {
-          LOG_TRACE() << "Receiving from fd " << Fd()
-                      << " paused due to queue overfill";
-          return false;
-        }
-        return true;
-      });
+      while (request_tasks_.size_approx() >=
+             config_.requests_queue_size_threshold) {
+        LOG_TRACE() << "Receiving from fd " << Fd()
+                    << " paused due to queue overfill";
+        request_task_full_event_.WaitForEvent();
+      }
     }
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Error while receiving from peer "
                 << peer_socket_.Getpeername() << " on fd " << Fd() << ": "
                 << ex.what();
   }
-  is_socket_listener_stopped_ = true;
-  CloseIfFinished();
+
+  StopResponseSenderTaskAsync();
+
+  LOG_TRACE() << "Stopping ListenForRequests()";
+  CloseAsync();
 }
 
 void Connection::NewRequest(
     std::unique_ptr<request::RequestBase>&& request_ptr) {
+  if (!is_accepting_requests_) {
+    /* In case of recv() of >1 requests it is possible to get here
+     * after is_accepting_requests_ is set to true. Just ignore tail
+     * garbage.
+     */
+    return;
+  }
+
   if (request_ptr->IsFinal()) {
     is_accepting_requests_ = false;
   }
-  auto request_task =
-      request_handler_.PrepareRequestTask(std::move(request_ptr), [this] {
-        ++pending_response_count_;
-        response_event_task_.Notify();
-      });
 
-  {
-    std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
-    request_tasks_.push_back(request_task);
+  ++stats_->active_request_count;
+  request_tasks_.enqueue(
+      request_handler_.StartRequestTask(std::move(request_ptr)));
+
+  request_tasks_empty_event_.Send();
+}
+
+engine::TaskWithResult<std::shared_ptr<request::RequestBase>>
+Connection::DequeueRequestTask() {
+  engine::TaskWithResult<std::shared_ptr<request::RequestBase>> task;
+
+  while (true) {
+    if (request_tasks_.try_dequeue(task)) {
+      request_task_full_event_.Send();
+      break;
+    }
+
+    /* Queue is empty */
+
+    if (stop_sender_after_queue_is_empty_) break;
+
+    request_tasks_empty_event_.WaitForEvent();
   }
-  request_handler_.ProcessRequest(*request_task);
+
+  return task;
 }
 
 void Connection::SendResponses() {
   LOG_TRACE() << "Sending responses for fd " << Fd();
-  for (;;) {
-    request::RequestTask* task_ptr = nullptr;
-    {
-      std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
-      if (request_tasks_sent_idx_ < request_tasks_.size() &&
-          request_tasks_[request_tasks_sent_idx_]
-              ->GetRequest()
-              .GetResponse()
-              .IsReady()) {
-        task_ptr = request_tasks_[request_tasks_sent_idx_++].get();
-      }
-    }
-    if (!task_ptr) break;
 
-    auto& request = task_ptr->GetRequest();
+  while (true) {
+    auto task = DequeueRequestTask();
+    if (!task) break;
+
+    auto request_ptr = task.Get();
+    auto& request = *request_ptr;
     auto& response = request.GetResponse();
     assert(!response.IsSent());
     request.SetStartSendResponseTime();
@@ -201,63 +197,43 @@ void Connection::SendResponses() {
       response.SetSendFailed(send_failure_time_);
     }
     request.SetFinishSendResponseTime();
-    --pending_response_count_;
+    --stats_->active_request_count;
+    ++stats_->requests_processed_count;
+
+    request.WriteAccessLogs(request_handler_.LoggerAccess(),
+                            request_handler_.LoggerAccessTskv(),
+                            remote_address_);
   }
 
-  for (;;) {
-    std::shared_ptr<request::RequestTask> request_task_ptr;
-    {
-      std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
-      LOG_TRACE() << "Fd " << Fd() << " has " << request_tasks_.size()
-                  << " request tasks";
-      if (!request_tasks_.empty() && request_tasks_.front()->IsComplete() &&
-          request_tasks_.front()->GetRequest().GetResponse().IsSent()) {
-        assert(request_tasks_sent_idx_);
-        --request_tasks_sent_idx_;
-        request_task_ptr = std::move(request_tasks_.front());
-        request_tasks_.pop_front();
-        ++processed_requests_count_;
+  StopSocketListenersAsync();
 
-        if (request_tasks_.size() < config_.requests_queue_size_threshold) {
-          request_tasks_full_cv_.NotifyOne();
-        }
-      }
-    }
-    if (request_task_ptr) {
-      // We've received a notification from task, but it might not finished yet.
-      request_task_ptr->WaitForTaskStop();
+  LOG_TRACE() << "Stopping SendResponses()";
 
-      request_task_ptr->GetRequest().WriteAccessLogs(
-          request_handler_.LoggerAccess(), request_handler_.LoggerAccessTskv(),
-          remote_address_);
-      request_task_ptr.reset();
-    } else {
-      break;
-    }
-  }
-
-  {
-    std::lock_guard<engine::Mutex> lock(request_tasks_mutex_);
-    if (request_tasks_.empty()) {
-      request_tasks_empty_cv_.NotifyAll();
-    }
-  }
-
-  CloseIfFinished();
+  CloseAsync();
 }
 
-void Connection::CloseIfFinished() {
-  if (!is_closing_ && CanClose()) {
-    is_closing_ = true;
-  }
-  if (is_closing_) {
-    std::lock_guard<engine::Mutex> lock_cb(close_cb_mutex_);
-    std::lock_guard<engine::Mutex> lock_tasks_queue(request_tasks_mutex_);
-    if (request_tasks_.empty() && before_close_cb_) {
-      before_close_cb_(Fd());
-      before_close_cb_ = {};
-    }
-  }
+void Connection::StopSocketListenersAsync() {
+  is_accepting_requests_ = false;
+  request_task_full_event_.Send();
+}
+
+void Connection::StopResponseSenderTaskAsync() {
+  /* Stop SendResponses() after all handlers are finished */
+  stop_sender_after_queue_is_empty_ = true;
+  request_tasks_empty_event_.Send();
+}
+
+void Connection::CloseAsync() {
+  if (is_closing_.exchange(true)) return;
+
+  // We should delete this, but we cannot do ~Connection() as it waits for
+  // current task. So, create a mini-task for killing this.
+  engine::CriticalAsync(
+      [](std::shared_ptr<Connection> shared_this) { shared_this.reset(); },
+      std::move(shared_this_))
+      .Detach();
+
+  // 'this' might be deleted here
 }
 
 }  // namespace net

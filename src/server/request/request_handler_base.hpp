@@ -7,8 +7,8 @@
 #include <server/handlers/handler_base.hpp>
 #include <server/request/request_base.hpp>
 
+#include <engine/async.hpp>
 #include <engine/task/task_processor.hpp>
-#include "request_task.hpp"
 
 namespace server {
 namespace request {
@@ -21,10 +21,8 @@ class RequestHandlerBase {
       const boost::optional<std::string>& logger_access_tskv_component);
   virtual ~RequestHandlerBase() {}
 
-  virtual std::shared_ptr<RequestTask> PrepareRequestTask(
-      std::shared_ptr<RequestBase>&& request,
-      std::function<void()>&& notify_func) const = 0;
-  virtual void ProcessRequest(RequestTask& task) const = 0;
+  virtual engine::TaskWithResult<std::shared_ptr<RequestBase>> StartRequestTask(
+      std::shared_ptr<RequestBase>&& request) const = 0;
 
   const components::ComponentContext& GetComponentContext() const;
 

@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include <engine/async.hpp>
 #include <logging/logger.hpp>
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
@@ -21,34 +22,50 @@ HttpRequestHandler::HttpRequestHandler(
       add_handler_disabled_(false),
       is_monitor_(is_monitor) {}
 
-std::shared_ptr<request::RequestTask> HttpRequestHandler::PrepareRequestTask(
-    std::shared_ptr<request::RequestBase>&& request,
-    std::function<void()>&& notify_func) const {
+engine::TaskWithResult<std::shared_ptr<server::request::RequestBase>>
+HttpRequestHandler::StartRequestTask(
+    std::shared_ptr<request::RequestBase>&& request) const {
   auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
   if (new_request_hook_) new_request_hook_(request);
 
   auto handler_info =
       GetHandlerInfo(http_request.GetMethod(), http_request.GetRequestPath());
+  request->SetTaskCreateTime();
+
+  if (!handler_info.task_processor) {
+    // No handler found, response status is already set
+    // by HttpRequestConstructor::CheckStatus
+
+    return engine::Async([request = std::move(request)]() {
+      request->SetTaskStartTime();
+      request->SetResponseNotifyTime();
+      request->SetCompleteNotifyTime();
+      request->GetResponse().SetReady();
+      return request;
+    });
+  }
+
   http_request.SetMatchedPathLength(handler_info.matched_path_length);
-  // assert(handler_info.task_processor); -- false if handler not found
-  auto task = std::make_shared<request::RequestTask>(
-      handler_info.task_processor, handler_info.handler, std::move(request),
-      std::move(notify_func));
-  task->GetRequest().SetTaskCreateTime();
-  return task;
-}
 
-void HttpRequestHandler::ProcessRequest(request::RequestTask& task) const {
-  auto& request = dynamic_cast<HttpRequestImpl&>(task.GetRequest());
-  auto& response = request.GetHttpResponse();
+  auto payload = [
+    request = std::move(request), handler = std::move(handler_info.handler)
+  ] {
+    request->SetTaskStartTime();
 
-  if (response.GetStatus() == HttpStatus::kOk) {
-    task.Start(!is_monitor_);
+    request::RequestContext context;
+    handler->HandleRequest(*request, context);
+
+    request->SetResponseNotifyTime();
+    handler->OnRequestComplete(*request, context);
+    request->SetCompleteNotifyTime();
+    return request;
+  };
+
+  if (!is_monitor_) {
+    return engine::Async(*handler_info.task_processor, std::move(payload));
   } else {
-    request.SetResponseNotifyTime();
-    request.SetCompleteNotifyTime();
-    response.SetReady();
-    task.SetComplete();
+    return engine::CriticalAsync(*handler_info.task_processor,
+                                 std::move(payload));
   }
 }
 

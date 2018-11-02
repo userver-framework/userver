@@ -12,31 +12,6 @@
 #include <server/requests_view.hpp>
 #include <server/server_config.hpp>
 
-namespace {
-
-const char* PER_LISTENER_DESC = "per-listener";
-const char* PER_CONNECTION_DESC = "per-connection";
-
-using Verbosity = utils::statistics::Verbosity;
-
-formats::json::ValueBuilder SerializeAggregated(
-    const server::net::Stats::AggregatedStat& agg, Verbosity verbosity,
-    const char* items_desc) {
-  formats::json::ValueBuilder json_agg(formats::json::Type::kObject);
-  json_agg["total"] = agg.Total();
-  json_agg["max"] = agg.Max();
-  if (verbosity == Verbosity::kFull) {
-    formats::json::ValueBuilder json_items(formats::json::Type::kArray);
-    for (auto item : agg.Items()) {
-      json_items.PushBack(item);
-    }
-    json_agg[items_desc] = std::move(json_items);
-  }
-  return json_agg;
-}
-
-}  // namespace
-
 namespace server {
 
 class ServerImpl {
@@ -166,34 +141,26 @@ Server::~Server() = default;
 const ServerConfig& Server::GetConfig() const { return pimpl->config_; }
 
 formats::json::Value Server::GetMonitorData(
-    utils::statistics::Verbosity verbosity) const {
+    utils::statistics::StatisticsRequest) const {
   formats::json::ValueBuilder json_data(formats::json::Type::kObject);
 
   auto server_stats = pimpl->GetServerStats();
   {
     formats::json::ValueBuilder json_conn_stats(formats::json::Type::kObject);
-    json_conn_stats["active"] = SerializeAggregated(
-        server_stats.active_connections, verbosity, PER_LISTENER_DESC);
-    json_conn_stats["opened"] = SerializeAggregated(
-        server_stats.total_opened_connections, verbosity, PER_LISTENER_DESC);
-    json_conn_stats["closed"] = SerializeAggregated(
-        server_stats.total_closed_connections, verbosity, PER_LISTENER_DESC);
+    json_conn_stats["active"] = server_stats.active_connections.load();
+    json_conn_stats["opened"] = server_stats.connections_created.load();
+    json_conn_stats["closed"] = server_stats.connections_closed.load();
 
     json_data["connections"] = std::move(json_conn_stats);
   }
   {
     formats::json::ValueBuilder json_request_stats(
         formats::json::Type::kObject);
-    json_request_stats["active"] = SerializeAggregated(
-        server_stats.active_requests, verbosity, PER_CONNECTION_DESC);
-    json_request_stats["parsing"] = SerializeAggregated(
-        server_stats.parsing_requests, verbosity, PER_CONNECTION_DESC);
-    json_request_stats["pending-response"] = SerializeAggregated(
-        server_stats.pending_responses, verbosity, PER_CONNECTION_DESC);
-    json_request_stats["conn-processed"] = SerializeAggregated(
-        server_stats.conn_processed_requests, verbosity, PER_CONNECTION_DESC);
-    json_request_stats["listener-processed"] = SerializeAggregated(
-        server_stats.listener_processed_requests, verbosity, PER_LISTENER_DESC);
+    json_request_stats["active"] = server_stats.active_request_count.load();
+    json_request_stats["processed"] =
+        server_stats.requests_processed_count.load();
+    json_request_stats["parsing"] =
+        server_stats.parser_stats.parsing_request_count.load();
 
     json_data["requests"] = std::move(json_request_stats);
   }

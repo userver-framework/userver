@@ -6,6 +6,7 @@
 
 #include <http_parser.h>
 
+#include <server/net/stats.hpp>
 #include <server/request/request_config.hpp>
 #include <server/request/request_parser.hpp>
 
@@ -21,11 +22,10 @@ class HttpRequestParser : public request::RequestParser {
 
   HttpRequestParser(const HandlerInfoIndex& handler_info_index,
                     const request::RequestConfig& request_config,
-                    OnNewRequestCb&& on_new_request_cb);
+                    OnNewRequestCb&& on_new_request_cb,
+                    net::ParserStats& stats);
 
   virtual bool Parse(const char* data, size_t size) override;
-
-  virtual size_t ParsingRequestCount() const override;
 
  private:
   static int OnMessageBegin(http_parser* p);
@@ -62,7 +62,7 @@ class HttpRequestParser : public request::RequestParser {
   std::unique_ptr<HttpRequestConstructor> request_constructor_;
 
   static const http_parser_settings parser_settings;
-  std::atomic<size_t> parsing_request_count_{0};
+  net::ParserStats& stats_;
 };
 
 }  // namespace http

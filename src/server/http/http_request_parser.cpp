@@ -49,9 +49,10 @@ const http_parser_settings HttpRequestParser::parser_settings = {
 HttpRequestParser::HttpRequestParser(
     const HandlerInfoIndex& handler_info_index,
     const request::RequestConfig& request_config,
-    OnNewRequestCb&& on_new_request_cb)
+    OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats)
     : handler_info_index_(handler_info_index),
-      on_new_request_cb_(std::move(on_new_request_cb)) {
+      on_new_request_cb_(std::move(on_new_request_cb)),
+      stats_(stats) {
   http_parser_init(&parser_, HTTP_REQUEST);
   parser_.data = this;
 
@@ -89,10 +90,6 @@ bool HttpRequestParser::Parse(const char* data, size_t size) {
     return false;
   }
   return true;
-}
-
-size_t HttpRequestParser::ParsingRequestCount() const {
-  return parsing_request_count_;
 }
 
 int HttpRequestParser::OnMessageBegin(http_parser* p) {
@@ -236,7 +233,7 @@ int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
 }
 
 void HttpRequestParser::CreateRequestConstructor() {
-  ++parsing_request_count_;
+  ++stats_.parsing_request_count;
   request_constructor_ = std::make_unique<HttpRequestConstructor>(
       request_constructor_config_, handler_info_index_);
   url_complete_ = false;
@@ -260,7 +257,7 @@ bool HttpRequestParser::CheckUrlComplete(http_parser* p) {
 
 bool HttpRequestParser::FinalizeRequest() {
   bool res = FinalizeRequestImpl();
-  --parsing_request_count_;
+  --stats_.parsing_request_count;
   request_constructor_ = nullptr;
   return res;
 }

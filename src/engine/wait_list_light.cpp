@@ -32,37 +32,35 @@ void WaitListLight::PinToTask(impl::TaskContext& ctx) {
 
 void WaitListLight::Append(WaitListBase::Lock&,
                            boost::intrusive_ptr<impl::TaskContext> ctx) {
-  LOG_TRACE() << "Appending";
+  LOG_TRACE() << "Appending, use_count=" << ctx->use_count();
   assert(!waiting_);
   assert(owner_ == ctx.get());
-  waiting_ = ctx.get();
-  ctx.detach();
+
+  auto ptr = ctx.get();
+  intrusive_ptr_add_ref(ptr);
+  waiting_ = ptr;
 }
 
 void WaitListLight::WakeupOne(WaitListBase::Lock&) {
   LOG_TRACE() << "WakeupOne";
-  auto old = waiting_.load();
+  auto old = waiting_.exchange(nullptr);
   if (old) {
-    LOG_TRACE() << "Waking up!";
+    LOG_TRACE() << "Waking up! use_count=" << old->use_count();
     old->Wakeup(impl::TaskContext::WakeupSource::kWaitList);
+    intrusive_ptr_release(old);
   }
 }
 
 void WaitListLight::WakeupAll(WaitListBase::Lock& lock) { WakeupOne(lock); }
 
-void WaitListLight::Remove(impl::TaskContext& ctx) {
-  LOG_TRACE() << "remove (ref)";
-  auto old = waiting_.exchange(nullptr);
-  assert(old == &ctx);
-  boost::ignore_unused(old);
-  boost::intrusive_ptr<impl::TaskContext> old_ctx(&ctx, false);
-}
-
 void WaitListLight::Remove(const boost::intrusive_ptr<impl::TaskContext>& ctx) {
   LOG_TRACE() << "remove (cancel)";
-  assert(waiting_.load() == ctx.get());
+  auto old = waiting_.exchange(nullptr);
+
+  assert(!old || old == ctx.get());
   boost::ignore_unused(ctx);
-  boost::intrusive_ptr<impl::TaskContext> old_ctx(ctx.get(), false);
+
+  if (old) intrusive_ptr_release(old);
 }
 
 }  // namespace impl

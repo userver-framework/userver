@@ -3,6 +3,7 @@
 #include <utest/utest.hpp>
 
 #include <server/http/http_request.hpp>
+#include <server/net/stats.hpp>
 
 #include "http_request_parser.hpp"
 
@@ -54,6 +55,7 @@ TEST_P(HttpRequestParser, Methods) {
     server::request::RequestConfig request_config({}, "<test_config>", {});
     const auto& param = GetParam();
     bool parsed = false;
+    server::net::ParserStats stats;
     server::http::HttpRequestParser parser(
         handler_info_index, request_config,
         [&param,
@@ -64,7 +66,8 @@ TEST_P(HttpRequestParser, Methods) {
           const server::http::HttpRequest http_request(http_request_impl);
           EXPECT_EQ(http_request_impl.GetOrigMethod(), param.orig_method);
           EXPECT_EQ(http_request.GetMethod(), param.method);
-        });
+        },
+        stats);
 
     const std::string request =
         param.method_query + std::string(" / HTTP/1.1") + kCrlf + kCrlf;

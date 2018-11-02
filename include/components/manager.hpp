@@ -40,8 +40,6 @@ class Manager {
   const ManagerConfig& GetConfig() const;
   const std::shared_ptr<engine::impl::TaskProcessorPools>&
   GetTaskProcessorPools() const;
-  formats::json::Value GetMonitorData(
-      utils::statistics::Verbosity verbosity) const;
 
   template <typename Component>
   std::enable_if_t<std::is_base_of<components::ComponentBase, Component>::value>

@@ -48,6 +48,8 @@ TaskProcessor::~TaskProcessor() {
   for (auto& w : workers_) {
     w.join();
   }
+
+  assert(task_counter_.GetCurrentValue() == 0);
 }
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {

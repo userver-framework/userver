@@ -62,7 +62,7 @@ formats::json::ValueBuilder GetTaskProcessorStats(
 }
 
 formats::json::Value ServerMonitor::GetEngineStats(
-    utils::statistics::Verbosity) const {
+    utils::statistics::StatisticsRequest) const {
   formats::json::ValueBuilder engine_data(formats::json::Type::kObject);
 
   formats::json::ValueBuilder json_task_processors(
@@ -92,15 +92,13 @@ formats::json::Value ServerMonitor::GetEngineStats(
 
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
-  using Verbosity = utils::statistics::Verbosity;
-  const auto verbosity =
-      request.GetArg("full") == "1" ? Verbosity::kFull : Verbosity::kTerse;
   const auto prefix = request.GetArg("prefix");
 
+  auto statistics_request = utils::statistics::StatisticsRequest();
   formats::json::ValueBuilder monitor_data =
-      statistics_storage_.GetStorage().GetAsJson(prefix, verbosity);
+      statistics_storage_.GetStorage().GetAsJson(prefix, statistics_request);
 
-  monitor_data[kEngineMonitorDataName] = GetEngineStats(verbosity);
+  monitor_data[kEngineMonitorDataName] = GetEngineStats(statistics_request);
   return formats::json::ToString(monitor_data.ExtractValue());
 }  // namespace server
 
