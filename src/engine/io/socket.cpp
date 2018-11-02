@@ -182,7 +182,10 @@ const Addr& Socket::Getsockname() {
 
 int Socket::Release() && noexcept {
   const int fd = Fd();
-  if (IsOpen()) fd_control_.release()->Invalidate();
+  if (IsOpen()) {
+    fd_control_->Invalidate();
+    fd_control_.reset();
+  }
   return fd;
 }
 

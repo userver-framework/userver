@@ -26,19 +26,6 @@ int SetNonblock(int fd) {
   return fd;
 }
 
-int GetNofileLimit() {
-  static constexpr int kDefaultNofileLimit = 4 * 65536;  // ought to be enough
-
-  struct rlimit rlimit_nofile;
-  utils::CheckSyscall(::getrlimit(RLIMIT_NOFILE, &rlimit_nofile),
-                      "getting open files limits");
-
-  if (rlimit_nofile.rlim_max != RLIM_INFINITY) {
-    return rlimit_nofile.rlim_max;
-  }
-  return kDefaultNofileLimit;
-}
-
 }  // namespace
 
 Direction::Direction(Kind kind)
@@ -97,28 +84,14 @@ void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) {
 FdControl::FdControl()
     : read_(Direction::Kind::kRead), write_(Direction::Kind::kWrite) {}
 
+FdControl::~FdControl() { Close(); }
+
 FdControlHolder FdControl::Adopt(int fd) {
-  auto& fd_control = Get(fd);
-  assert(!fd_control.IsValid());
-
+  auto fd_control = std::make_shared<FdControl>();
   SetNonblock(fd);
-  fd_control.read_.Reset(fd);
-  fd_control.write_.Reset(fd);
-  return FdControlHolder(&fd_control);
-}
-
-FdControl& FdControl::Get(int fd) {
-  static const int nofile_limit = GetNofileLimit();
-  static const auto storage = std::make_unique<FdControl[]>(nofile_limit);
-
-  // man-pages clarify that open and socket return the lowest-numbered file
-  // descriptor not currently open for the process on success. This holds in
-  // practice. Because of this, `fd` should not exceed RLIMIT_NOFILE.
-  if (fd >= nofile_limit) {
-    throw std::runtime_error(utils::impl::ToString(
-        "File descriptor number ", fd, " is too high, max=", nofile_limit - 1));
-  }
-  return storage[fd];
+  fd_control->read_.Reset(fd);
+  fd_control->write_.Reset(fd);
+  return fd_control;
 }
 
 void FdControl::Close() {

@@ -79,20 +79,15 @@ class Direction {
   ev::Watcher<ev_io> watcher_;
 };
 
-struct CloseFdControl {
-  void operator()(FdControl*) const;
-};
-
-using FdControlHolder = std::unique_ptr<FdControl, CloseFdControl>;
+using FdControlHolder = std::shared_ptr<FdControl>;
 
 class FdControl {
  public:
   // fd will be silently forced to nonblocking mode
   static FdControlHolder Adopt(int fd);
 
-  static FdControl& Get(int fd);
-
   FdControl();
+  ~FdControl();
 
   explicit operator bool() const { return IsValid(); }
   bool IsValid() const { return read_.IsValid(); }
@@ -163,10 +158,6 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
     }
   }
   return pos - begin;
-}
-
-inline void CloseFdControl::operator()(FdControl* fd_control) const {
-  fd_control->Close();
 }
 
 }  // namespace impl
