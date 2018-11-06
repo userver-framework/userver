@@ -47,6 +47,7 @@ class Connection {
   /// transaction to finish.
   void Close();
 
+  bool IsReadOnly() const;
   /// Get current connection state
   ConnectionState GetState() const;
   /// Check if the connection is active

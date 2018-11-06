@@ -21,7 +21,9 @@ const int kErrBufferSize = 256;
 template <typename ExceptionType>
 void PGConnectionWrapper::CheckError(int pg_dispatch_result) {
   if (pg_dispatch_result == 0) {
-    throw ExceptionType(PQerrorMessage(conn_));
+    auto msg = PQerrorMessage(conn_);
+    LOG_ERROR() << "libpq error: " << msg;
+    throw ExceptionType(msg);
   }
 }
 
@@ -245,6 +247,40 @@ void PGConnectionWrapper::SendQuery(const std::string& statement,
         conn_, statement.c_str(), params.Size(), params.ParamTypesBuffer(),
         params.ParamBuffers(), params.ParamLengthsBuffer(),
         params.ParamFormatsBuffer(), static_cast<int>(reply_format)));
+  }
+}
+
+void PGConnectionWrapper::SendPrepare(const std::string& name,
+                                      const std::string& statement,
+                                      const QueryParameters& params) {
+  // TODO QuerySendError
+  if (params.Empty()) {
+    CheckError<QueryError>(
+        PQsendPrepare(conn_, name.c_str(), statement.c_str(), 0, nullptr));
+  } else {
+    CheckError<QueryError>(PQsendPrepare(conn_, name.c_str(), statement.c_str(),
+                                         params.Size(),
+                                         params.ParamTypesBuffer()));
+  }
+}
+
+void PGConnectionWrapper::SendDescribePrepared(const std::string& name) {
+  // TODO QuerySendError
+  CheckError<QueryError>(PQsendDescribePrepared(conn_, name.c_str()));
+}
+
+void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
+                                            const QueryParameters& params,
+                                            io::DataFormat reply_format) {
+  if (params.Empty()) {
+    CheckError<QueryError>(PQsendQueryPrepared(conn_, name.c_str(), 0, nullptr,
+                                               nullptr, nullptr,
+                                               static_cast<int>(reply_format)));
+  } else {
+    CheckError<QueryError>(PQsendQueryPrepared(
+        conn_, name.c_str(), params.Size(), params.ParamBuffers(),
+        params.ParamLengthsBuffer(), params.ParamFormatsBuffer(),
+        static_cast<int>(reply_format)));
   }
 }
 

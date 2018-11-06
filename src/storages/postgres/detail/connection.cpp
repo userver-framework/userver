@@ -1,5 +1,12 @@
 #include <storages/postgres/detail/connection.hpp>
 
+#include <unordered_map>
+
+#include <boost/core/ignore_unused.hpp>
+#include <boost/functional/hash.hpp>
+
+#include <postgresql/libpq-fe.h>
+
 #include <engine/io/socket.hpp>
 #include <logging/log.hpp>
 
@@ -7,10 +14,6 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 #include <storages/postgres/detail/result_set_impl.hpp>
 #include <storages/postgres/exceptions.hpp>
-
-#include <postgresql/libpq-fe.h>
-
-#include <boost/core/ignore_unused.hpp>
 
 namespace storages {
 namespace postgres {
@@ -21,10 +24,21 @@ namespace {
 // TODO Move the timeout constant to config
 const std::chrono::seconds kDefaultTimeout(2);
 
+std::size_t QueryHash(const std::string& statement,
+                      const QueryParameters& params) {
+  auto res = params.TypeHash();
+  boost::hash_combine(res, std::hash<std::string>()(statement));
+  return res;
+}
+
 }  // namespace
 
 struct Connection::Impl {
+  using PreparedStatements = std::unordered_map<std::size_t, ResultSet>;
+
   PGConnectionWrapper conn_wrapper_;
+  PreparedStatements prepared_;
+  bool read_only_ = true;
 
   Impl(engine::TaskProcessor& bg_task_processor)
       : conn_wrapper_{bg_task_processor} {}
@@ -39,6 +53,10 @@ struct Connection::Impl {
   // TODO Add tracing::Span
   void AsyncConnect(const std::string& conninfo) {
     conn_wrapper_.AsyncConnect(conninfo, kDefaultTimeout);
+    auto res = ExecuteCommand("show transaction_read_only");
+    if (res) {
+      res.Front().To(read_only_);
+    }
   }
 
   ConnectionState GetConnectionState() const {
@@ -48,7 +66,21 @@ struct Connection::Impl {
   // TODO Add tracing::Span
   ResultSet ExecuteCommand(const std::string& statement,
                            const detail::QueryParameters& params) {
-    conn_wrapper_.SendQuery(statement, params);
+    auto query_hash = QueryHash(statement, params);
+    std::string statement_name = "q" + std::to_string(query_hash);
+    if (prepared_.count(query_hash)) {
+      LOG_TRACE() << "Query " << statement << " is already prepared.";
+    } else {
+      LOG_TRACE() << "Query " << statement << " is not yet prepared";
+      conn_wrapper_.SendPrepare(statement_name, statement, params);
+      conn_wrapper_.WaitResult(kDefaultTimeout);
+      conn_wrapper_.SendDescribePrepared(statement_name);
+      auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
+      prepared_.insert(std::make_pair(query_hash, res));
+    }
+    // TODO Get field descriptions from the prepare result and use them to
+    // build text/binary format description
+    conn_wrapper_.SendPreparedQuery(statement_name, params);
     return conn_wrapper_.WaitResult(kDefaultTimeout);
   }
 
@@ -100,6 +132,8 @@ std::unique_ptr<Connection> Connection::Connect(
 Connection::Connection() {}
 
 Connection::~Connection() = default;
+
+bool Connection::IsReadOnly() const { return pimpl_->read_only_; }
 
 ConnectionState Connection::GetState() const {
   return pimpl_->GetConnectionState();

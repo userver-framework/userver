@@ -40,6 +40,8 @@ class QueryParameters {
     (Write(args), ...);
   }
 
+  std::size_t TypeHash() const;
+
  private:
   template <typename T>
   void WriteParamType(const T&) {

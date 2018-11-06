@@ -49,6 +49,18 @@ class PGConnectionWrapper {
                  io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
 
   // TODO Add tracing::Span
+  /// @brief Wrapper for PQsendPrepare
+  void SendPrepare(const std::string& name, const std::string& statement,
+                   const QueryParameters& params);
+  // TODO Add tracing::Span
+  /// @brief Wrapper for PQsendDescribePrepared
+  void SendDescribePrepared(const std::string& name);
+  // TODO Add tracing::Span
+  /// @brief Wrapper for PQsendQueryPrepared
+  void SendPreparedQuery(
+      const std::string& name, const QueryParameters& params,
+      io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
+  // TODO Add tracing::Span
   /// @brief Wait for query result
   /// Will return result or throw an exception
   ResultSet WaitResult(Duration timeout);
