@@ -94,6 +94,9 @@ void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
   auto connection_ptr = std::make_shared<Connection>(
       task_processor_, endpoint_info_->listener_config.connection_config,
       std::move(peer_socket), endpoint_info_->request_handler, stats_);
+  connection_ptr->SetCloseCb([endpoint_info = endpoint_info_]() {
+    --endpoint_info->connection_count;
+  });
 
   AddConnection(connection_ptr);
 

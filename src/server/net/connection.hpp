@@ -29,7 +29,7 @@ namespace net {
 
 class Connection : public std::enable_shared_from_this<Connection> {
  public:
-  using BeforeCloseCb = std::function<void(int)>;
+  using CloseCb = std::function<void()>;
 
   enum class Type { kRequest, kMonitor };
 
@@ -38,6 +38,8 @@ class Connection : public std::enable_shared_from_this<Connection> {
              const http::HttpRequestHandler& request_handler,
              std::shared_ptr<Stats> stats);
   ~Connection();
+
+  void SetCloseCb(CloseCb close_cb);
 
   void Start();
 
@@ -83,6 +85,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   std::atomic<bool> stop_sender_after_queue_is_empty_;
   std::atomic<bool> is_closing_;
   engine::TaskWithResult<void> socket_listener_;
+  CloseCb close_cb_;
 
   std::shared_ptr<Connection> shared_this_;
 };

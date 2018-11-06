@@ -68,6 +68,12 @@ Connection::~Connection() {
 
   --stats_->active_connections;
   ++stats_->connections_closed;
+
+  if (close_cb_) close_cb_();
+}
+
+void Connection::SetCloseCb(CloseCb close_cb) {
+  close_cb_ = std::move(close_cb);
 }
 
 void Connection::Start() {
