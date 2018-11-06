@@ -14,7 +14,8 @@
 
 namespace {
 
-const std::string kThreadSuffix = "-bg-worker";
+// TODO need different thread names for different components
+const std::string kThreadName = "pg-worker";
 
 }  // namespace
 
@@ -49,7 +50,7 @@ Postgres::Postgres(const ComponentConfig& config,
   const auto threads_num =
       config.ParseUint64("blocking_task_processor_threads");
   engine::TaskProcessorConfig task_processor_config;
-  task_processor_config.thread_name = config.Name() + kThreadSuffix;
+  task_processor_config.thread_name = kThreadName;
   task_processor_config.worker_threads = threads_num;
   bg_task_processor_ = std::make_unique<engine::TaskProcessor>(
       std::move(task_processor_config),
