@@ -28,6 +28,10 @@ class WaitListLight final : public WaitListBase {
   void PinToCurrentTask();
   void PinToTask(impl::TaskContext& ctx);
 
+  /* NOTE: there is a TOCTOU race between Wakeup*() and condition
+   * check+Append(), you have to recheck whether the condition is true just
+   * after Append() returns in exec_after_asleep.
+   */
   void Append(WaitListBase::Lock&,
               boost::intrusive_ptr<impl::TaskContext>) override;
   void WakeupOne(WaitListBase::Lock&) override;

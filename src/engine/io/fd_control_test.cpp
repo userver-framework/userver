@@ -81,15 +81,15 @@ TEST(FdControl, Wait) {
 
     auto read_control = FdControl::Adopt(pipe.In());
     auto& read_dir = read_control->Read();
-    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(10)));
+    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100)));
     EXPECT_TRUE(HasTimedOut());
 
     CheckedWrite(pipe.Out(), buf.data(), 1);
-    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(10)));
+    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100)));
     EXPECT_FALSE(HasTimedOut());
 
     EXPECT_EQ(::read(pipe.In(), buf.data(), buf.size()), 1);
-    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(10)));
+    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100)));
     EXPECT_TRUE(HasTimedOut());
   });
 }
@@ -121,52 +121,58 @@ TEST(FdControl, PartialTransfer) {
 }
 
 TEST(FdControl, WholeTransfer) {
-  RunInCoro([] {
-    Pipe pipe;
+  RunInCoro(
+      [] {
+        Pipe pipe;
 
-    auto read_control = FdControl::Adopt(pipe.In());
-    auto& read_dir = read_control->Read();
+        auto read_control = FdControl::Adopt(pipe.In());
+        auto& read_dir = read_control->Read();
 
-    std::array<char, 16> buf;
-    io::impl::Direction::Lock lock(read_dir);
-    try {
-      read_dir.PerformIo(
-          lock, &::read, buf.data(), buf.size(), io::impl::TransferMode::kWhole,
-          Deadline::FromDuration(std::chrono::milliseconds(10)), "reading");
-      FAIL() << "Did not time out";
-    } catch (const io::IoTimeout& ex) {
-      EXPECT_EQ(0, ex.BytesTransferred());
-    }
+        std::array<char, 16> buf;
+        io::impl::Direction::Lock lock(read_dir);
+        try {
+          read_dir.PerformIo(
+              lock, &::read, buf.data(), buf.size(),
+              io::impl::TransferMode::kWhole,
+              Deadline::FromDuration(std::chrono::milliseconds(10)), "reading");
+          FAIL() << "Did not time out";
+        } catch (const io::IoTimeout& ex) {
+          EXPECT_EQ(0, ex.BytesTransferred());
+        }
 
-    CheckedWrite(pipe.Out(), "test", 4);
-    try {
-      read_dir.PerformIo(
-          lock, &::read, buf.data(), buf.size(), io::impl::TransferMode::kWhole,
-          Deadline::FromDuration(std::chrono::milliseconds(10)), "reading");
-      FAIL() << "Did not time out";
-    } catch (const io::IoTimeout& ex) {
-      EXPECT_EQ(4, ex.BytesTransferred());
-    }
+        CheckedWrite(pipe.Out(), "test", 4);
+        try {
+          read_dir.PerformIo(
+              lock, &::read, buf.data(), buf.size(),
+              io::impl::TransferMode::kWhole,
+              Deadline::FromDuration(std::chrono::milliseconds(10)), "reading");
+          FAIL() << "Did not time out";
+        } catch (const io::IoTimeout& ex) {
+          EXPECT_EQ(4, ex.BytesTransferred());
+        }
 
-    CheckedWrite(pipe.Out(), "testtesttesttesttest", 20);
-    EXPECT_EQ(
-        buf.size(),
-        read_dir.PerformIo(
-            lock, &::read, buf.data(), buf.size(),
-            io::impl::TransferMode::kWhole,
-            Deadline::FromDuration(std::chrono::milliseconds(250)), "reading"));
+        CheckedWrite(pipe.Out(), "testtesttesttesttest", 20);
+        EXPECT_EQ(buf.size(),
+                  read_dir.PerformIo(
+                      lock, &::read, buf.data(), buf.size(),
+                      io::impl::TransferMode::kWhole,
+                      Deadline::FromDuration(std::chrono::milliseconds(250)),
+                      "reading"));
 
-    auto sender = engine::Async([fd = pipe.Out()] {
-      engine::SleepFor(std::chrono::milliseconds(10));
-      CheckedWrite(fd, "test", 4);
-      engine::SleepFor(std::chrono::milliseconds(100));
-      CheckedWrite(fd, "testtesttesttesttest", 20);
-    });
-    EXPECT_EQ(
-        buf.size(),
-        read_dir.PerformIo(
-            lock, &::read, buf.data(), buf.size(),
-            io::impl::TransferMode::kWhole,
-            Deadline::FromDuration(std::chrono::milliseconds(250)), "reading"));
-  });
+        auto sender = engine::Async([fd = pipe.Out()] {
+          engine::SleepFor(std::chrono::milliseconds(20));
+          CheckedWrite(fd, "test", 4);
+          engine::SleepFor(std::chrono::milliseconds(100));
+          CheckedWrite(fd, "testtesttesttesttest", 20);
+        });
+        size_t size;
+        EXPECT_NO_THROW(
+            size = read_dir.PerformIo(
+                lock, &::read, buf.data(), buf.size(),
+                io::impl::TransferMode::kWhole,
+                Deadline::FromDuration(std::chrono::milliseconds(250)),
+                "reading"));
+        EXPECT_EQ(buf.size(), size);
+      },
+      2);
 }

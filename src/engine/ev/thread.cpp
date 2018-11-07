@@ -209,7 +209,7 @@ void Thread::UpdateLoopWatcherImpl() {
       LOG_ERROR() << "can't set value or exception: " << ex.what();
     }
   }
-  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() (2)";
+  LOG_TRACE() << "func_promise set";
 
   std::function<void()>* pfunc;
   while (func_queue_.pop(pfunc)) {
@@ -221,7 +221,7 @@ void Thread::UpdateLoopWatcherImpl() {
       LOG_WARNING() << "exception in async thread func: " << ex.what();
     }
   }
-  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() (3)";
+  LOG_TRACE() << "exit";
 }
 
 void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) {

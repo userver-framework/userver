@@ -3,9 +3,15 @@
 #include <engine/async.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/sleep.hpp>
+#include <engine/task/task_context.hpp>
 #include <logging/log.hpp>
 
 #include <utest/utest.hpp>
+
+TEST(SingleConsumerEvent, WaitListLightLockfree) {
+  std::atomic<engine::impl::TaskContext*> wait_list_waiting;
+  EXPECT_TRUE(wait_list_waiting.is_lock_free());
+}
 
 TEST(SingleConsumerEvent, Ctr) { engine::SingleConsumerEvent event; }
 

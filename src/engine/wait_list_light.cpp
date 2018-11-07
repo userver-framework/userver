@@ -34,7 +34,7 @@ void WaitListLight::Append(WaitListBase::Lock&,
                            boost::intrusive_ptr<impl::TaskContext> ctx) {
   LOG_TRACE() << "Appending, use_count=" << ctx->use_count();
   assert(!waiting_);
-  assert(owner_ == ctx.get());
+  assert(!owner_ || owner_ == ctx.get());
 
   auto ptr = ctx.get();
   intrusive_ptr_add_ref(ptr);
