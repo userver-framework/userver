@@ -4,6 +4,7 @@
 /// @brief @copybrief components::Postgres
 
 #include <memory>
+#include <vector>
 
 #include <components/component_base.hpp>
 #include <components/component_config.hpp>
@@ -70,14 +71,16 @@ class Postgres : public LoggableComponentBase {
   /// Cluster accessor for specific shard number
   storages::postgres::ClusterPtr GetClusterForShard(size_t shard) const;
 
+  /// Get total shard count
+  size_t GetShardCount() const;
+
  private:
   size_t min_pool_size_ = 0;
   size_t max_pool_size_ = 0;
   std::unique_ptr<engine::TaskProcessor> bg_task_processor_;
   storages::postgres::ShardedClusterDescription shard_to_desc_;
-  mutable engine::Mutex shard_cluster_mutex_;
-  mutable std::unordered_map<size_t, storages::postgres::ClusterPtr>
-      shard_to_cluster_;
+  mutable engine::Mutex shards_mutex_;
+  mutable std::vector<storages::postgres::ClusterPtr> shards_;
 };
 
 }  // namespace components

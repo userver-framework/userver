@@ -42,13 +42,24 @@ PostgresSettings::PostgresSettings(const formats::json::Value& doc) {
     const formats::json::Value& cluster_array = *db_it;
     storages::secdist::CheckIsArray(cluster_array, dbalias);
 
+    auto& sharded_cluster_for_db = sharded_cluster_descs_[dbalias];
+    sharded_cluster_for_db.reserve(cluster_array.GetSize());
+
+    size_t shard_num_expect = 0;
     for (auto shard_it = cluster_array.begin(); shard_it != cluster_array.end();
          ++shard_it) {
       storages::secdist::CheckIsObject(
           *shard_it, dbalias + '[' + std::to_string(shard_it.GetIndex() + ']'));
+      // Legacy check, expect shard_num to be in order
       const auto shard_num = (*shard_it)["shard_number"].asUInt64();
-      sharded_cluster_descs_[dbalias][shard_num] =
-          ClusterDescriptionFromJson(*shard_it);
+      if (shard_num != shard_num_expect) {
+        throw storages::secdist::SecdistError(
+            "shard_number " + std::to_string(shard_num) +
+            " is out of order. Should equal to " +
+            std::to_string(shard_num_expect));
+      }
+      ++shard_num_expect;
+      sharded_cluster_for_db.push_back(ClusterDescriptionFromJson(*shard_it));
     }
   }
 }

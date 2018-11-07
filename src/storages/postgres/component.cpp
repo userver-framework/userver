@@ -10,6 +10,7 @@
 #include <storages/postgres/cluster.hpp>
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/dsn.hpp>
+#include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/postgres_secdist.hpp>
 
 namespace {
@@ -29,8 +30,8 @@ Postgres::Postgres(const ComponentConfig& config,
   storages::postgres::ClusterDescription cluster_desc;
   if (dbalias.empty()) {
     const auto dsn_string = config.ParseString("dbconnection");
-    shard_to_desc_[kDefaultShardNumber] =
-        storages::postgres::ClusterDescription(dsn_string);
+    shard_to_desc_.push_back(
+        storages::postgres::ClusterDescription(dsn_string));
   } else {
     try {
       auto& secdist = context.FindComponent<Secdist>();
@@ -43,6 +44,8 @@ Postgres::Postgres(const ComponentConfig& config,
       throw;
     }
   }
+
+  shards_.resize(shard_to_desc_.size());
 
   min_pool_size_ = config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
   max_pool_size_ = config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
@@ -65,20 +68,22 @@ storages::postgres::ClusterPtr Postgres::GetCluster() const {
 
 storages::postgres::ClusterPtr Postgres::GetClusterForShard(
     size_t shard) const {
-  std::lock_guard<engine::Mutex> lock(shard_cluster_mutex_);
+  if (shard >= GetShardCount()) {
+    throw storages::postgres::ClusterUnavailable(
+        "Shard number " + std::to_string(shard) + " is out of range");
+  }
 
-  auto& cluster = shard_to_cluster_[shard];
+  std::lock_guard<engine::Mutex> lock(shards_mutex_);
+
+  auto& cluster = shards_[shard];
   if (!cluster) {
-    auto it = shard_to_desc_.find(shard);
-    if (it == shard_to_desc_.end()) {
-      // TODO find better exception type
-      throw storages::secdist::UnknownPostgresDbAlias(
-          "Shard number " + std::to_string(shard) + " not found");
-    }
+    const auto& desc = shard_to_desc_[shard];
     cluster = std::make_shared<storages::postgres::Cluster>(
-        it->second, *bg_task_processor_, min_pool_size_, max_pool_size_);
+        desc, *bg_task_processor_, min_pool_size_, max_pool_size_);
   }
   return cluster;
 }
+
+size_t Postgres::GetShardCount() const { return shards_.size(); }
 
 }  // namespace components
