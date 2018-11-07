@@ -59,7 +59,7 @@ TEST_P(HttpRequestParser, Methods) {
     server::http::HttpRequestParser parser(
         handler_info_index, request_config,
         [&param,
-         &parsed](std::unique_ptr<server::request::RequestBase>&& request) {
+         &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
           parsed = true;
           const auto& http_request_impl =
               dynamic_cast<const server::http::HttpRequestImpl&>(*request);

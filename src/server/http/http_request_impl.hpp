@@ -75,6 +75,8 @@ class HttpRequestImpl : public request::RequestBase {
 
   virtual void SetMatchedPathLength(size_t length) override;
 
+  void MarkAsInternalServerError() const override;
+
   friend class HttpRequestConstructor;
 
  private:

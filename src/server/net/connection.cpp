@@ -32,7 +32,7 @@ Connection::Connection(engine::TaskProcessor& task_processor,
       remote_address_(peer_socket_.Getpeername().RemoteAddress()),
       request_parser_(std::make_unique<http::HttpRequestParser>(
           request_handler.GetHandlerInfoIndex(), *config_.request,
-          [this](std::unique_ptr<request::RequestBase>&& request_ptr) {
+          [this](std::shared_ptr<request::RequestBase>&& request_ptr) {
             NewRequest(std::move(request_ptr));
           },
           stats_->parser_stats)),
@@ -138,7 +138,7 @@ void Connection::ListenForRequests() {
 }
 
 void Connection::NewRequest(
-    std::unique_ptr<request::RequestBase>&& request_ptr) {
+    std::shared_ptr<request::RequestBase>&& request_ptr) {
   if (!is_accepting_requests_) {
     /* In case of recv() of >1 requests it is possible to get here
      * after is_accepting_requests_ is set to true. Just ignore tail
@@ -152,18 +152,17 @@ void Connection::NewRequest(
   }
 
   ++stats_->active_request_count;
-  request_tasks_.enqueue(
-      request_handler_.StartRequestTask(std::move(request_ptr)));
+  request_tasks_.enqueue(std::make_pair(
+      request_ptr, request_handler_.StartRequestTask(request_ptr)));
 
   request_tasks_empty_event_.Send();
 }
 
-engine::TaskWithResult<std::shared_ptr<request::RequestBase>>
-Connection::DequeueRequestTask() {
-  engine::TaskWithResult<std::shared_ptr<request::RequestBase>> task;
+Connection::QueueItem Connection::DequeueRequestTask() {
+  QueueItem item;
 
   while (true) {
-    if (request_tasks_.try_dequeue(task)) {
+    if (request_tasks_.try_dequeue(item)) {
       request_task_full_event_.Send();
       break;
     }
@@ -175,18 +174,28 @@ Connection::DequeueRequestTask() {
     request_tasks_empty_event_.WaitForEvent();
   }
 
-  return task;
+  return item;
+}
+
+void Connection::HandleQueueItem(QueueItem& item) {
+  try {
+    item.second.Get();
+  } catch (const std::exception& e) {
+    LOG_WARNING() << "Request failed with unhandled exception: " << e.what();
+
+    item.first->MarkAsInternalServerError();
+  }
 }
 
 void Connection::SendResponses() {
   LOG_TRACE() << "Sending responses for fd " << Fd();
 
   while (true) {
-    auto task = DequeueRequestTask();
-    if (!task) break;
+    auto item = DequeueRequestTask();
+    if (!item.second) break;
 
-    auto request_ptr = task.Get();
-    auto& request = *request_ptr;
+    HandleQueueItem(item);
+    auto& request = *item.first;
     auto& response = request.GetResponse();
     assert(!response.IsSent());
     request.SetStartSendResponseTime();

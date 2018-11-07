@@ -49,7 +49,7 @@ class HttpRequestConstructor : public request::RequestConstructor {
 
   void SetIsFinal(bool is_final);
 
-  virtual std::unique_ptr<request::RequestBase> Finalize() override;
+  virtual std::shared_ptr<request::RequestBase> Finalize() override;
 
   static std::string UrlDecode(const char* data, const char* data_end);
 

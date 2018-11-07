@@ -21,8 +21,8 @@ class RequestHandlerBase {
       const boost::optional<std::string>& logger_access_tskv_component);
   virtual ~RequestHandlerBase() {}
 
-  virtual engine::TaskWithResult<std::shared_ptr<RequestBase>> StartRequestTask(
-      std::shared_ptr<RequestBase>&& request) const = 0;
+  virtual engine::TaskWithResult<void> StartRequestTask(
+      std::shared_ptr<RequestBase> request) const = 0;
 
   const components::ComponentContext& GetComponentContext() const;
 

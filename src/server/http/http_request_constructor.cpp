@@ -144,7 +144,7 @@ std::ostringstream& DumpArray(std::ostringstream& os, const std::string& name,
 
 }  // namespace
 
-std::unique_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
+std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
   LOG_TRACE() << "method=" << request_->GetMethodStr()
               << " orig_method=" << request_->GetOrigMethodStr();
 

@@ -26,9 +26,8 @@ class HttpRequestHandler : public request::RequestHandlerBase {
       std::function<void(std::shared_ptr<request::RequestBase>)>;
   void SetNewRequestHook(NewRequestHook hook);
 
-  engine::TaskWithResult<std::shared_ptr<request::RequestBase>>
-  StartRequestTask(
-      std::shared_ptr<request::RequestBase>&& request) const override;
+  engine::TaskWithResult<void> StartRequestTask(
+      std::shared_ptr<request::RequestBase> request) const override;
 
   void DisableAddHandler();
   void AddHandler(const handlers::HttpHandlerBase& handler,

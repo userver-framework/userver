@@ -22,9 +22,8 @@ HttpRequestHandler::HttpRequestHandler(
       add_handler_disabled_(false),
       is_monitor_(is_monitor) {}
 
-engine::TaskWithResult<std::shared_ptr<server::request::RequestBase>>
-HttpRequestHandler::StartRequestTask(
-    std::shared_ptr<request::RequestBase>&& request) const {
+engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
+    std::shared_ptr<request::RequestBase> request) const {
   auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
   if (new_request_hook_) new_request_hook_(request);
 
@@ -41,7 +40,6 @@ HttpRequestHandler::StartRequestTask(
       request->SetResponseNotifyTime();
       request->SetCompleteNotifyTime();
       request->GetResponse().SetReady();
-      return request;
     });
   }
 
@@ -59,7 +57,6 @@ HttpRequestHandler::StartRequestTask(
     request->GetResponse().SetReady();
     handler->OnRequestComplete(*request, context);
     request->SetCompleteNotifyTime();
-    return request;
   };
 
   if (!is_monitor_) {

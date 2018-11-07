@@ -152,6 +152,12 @@ void HttpRequestImpl::SetMatchedPathLength(size_t length) {
   path_suffix_ = request_path_.substr(length);
 }
 
+void HttpRequestImpl::MarkAsInternalServerError() const {
+  response_->SetStatus(http::HttpStatus::kInternalServerError);
+  response_->SetData({});
+  response_->ClearHeaders();
+}
+
 void HttpRequestImpl::WriteAccessLogs(
     const logging::LoggerPtr& logger_access,
     const logging::LoggerPtr& logger_access_tskv,

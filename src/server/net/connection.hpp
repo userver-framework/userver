@@ -52,10 +52,15 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   void ListenForRequests();
 
-  void NewRequest(std::unique_ptr<request::RequestBase>&& request_ptr);
+  void NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr);
 
-  engine::TaskWithResult<std::shared_ptr<request::RequestBase>>
-  DequeueRequestTask();
+  using QueueItem = std::pair<std::shared_ptr<request::RequestBase>,
+                              engine::TaskWithResult<void>>;
+
+  QueueItem DequeueRequestTask();
+
+  void HandleQueueItem(QueueItem& item);
+
   void SendResponses();
 
   void StopSocketListenersAsync();
@@ -71,9 +76,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   const std::shared_ptr<Stats> stats_;
   const std::string remote_address_;
 
-  moodycamel::ConcurrentQueue<
-      engine::TaskWithResult<std::shared_ptr<request::RequestBase>>>
-      request_tasks_;
+  moodycamel::ConcurrentQueue<QueueItem> request_tasks_;
   engine::SingleConsumerEvent request_tasks_empty_event_,
       request_task_full_event_;
 

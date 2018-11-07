@@ -123,8 +123,9 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                     request::RequestContext& context) const
     noexcept {
   try {
-    const http::HttpRequest http_request(
-        dynamic_cast<const http::HttpRequestImpl&>(request));
+    const auto& http_request_impl =
+        dynamic_cast<const http::HttpRequestImpl&>(request);
+    const http::HttpRequest http_request(http_request_impl);
     auto& response = http_request.GetHttpResponse();
     const auto start_time = std::chrono::system_clock::now();
 
@@ -164,9 +165,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     } catch (const std::exception& ex) {
       TRACE_ERROR(span) << "exception in '" << HandlerName()
                         << "' handler in handle_request: " << ex.what();
-      response.SetStatus(server::http::HttpStatus::kInternalServerError);
-      response.SetData({});
-      response.ClearHeaders();
+      http_request_impl.MarkAsInternalServerError();
     }
 
     response.SetHeader(kXYaRequestId, span.GetLink());

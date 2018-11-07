@@ -18,7 +18,7 @@ namespace http {
 class HttpRequestParser : public request::RequestParser {
  public:
   using OnNewRequestCb =
-      std::function<void(std::unique_ptr<request::RequestBase>&&)>;
+      std::function<void(std::shared_ptr<request::RequestBase>&&)>;
 
   HttpRequestParser(const HandlerInfoIndex& handler_info_index,
                     const request::RequestConfig& request_config,

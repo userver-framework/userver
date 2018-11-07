@@ -40,6 +40,8 @@ class RequestBase {
     return start_time_;
   }
 
+  virtual void MarkAsInternalServerError() const = 0;
+
  private:
   std::chrono::steady_clock::time_point start_time_;
   std::chrono::steady_clock::time_point task_create_time_;

@@ -12,7 +12,7 @@ class RequestConstructor {
   RequestConstructor() = default;
   virtual ~RequestConstructor() {}
 
-  virtual std::unique_ptr<RequestBase> Finalize() = 0;
+  virtual std::shared_ptr<RequestBase> Finalize() = 0;
 };
 
 }  // namespace request
