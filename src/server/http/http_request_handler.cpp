@@ -56,6 +56,7 @@ HttpRequestHandler::StartRequestTask(
     handler->HandleRequest(*request, context);
 
     request->SetResponseNotifyTime();
+    request->GetResponse().SetReady();
     handler->OnRequestComplete(*request, context);
     request->SetCompleteNotifyTime();
     return request;
