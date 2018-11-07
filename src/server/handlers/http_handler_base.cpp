@@ -11,7 +11,6 @@
 #include <server/http/http_error.hpp>
 #include <server/http/http_method.hpp>
 #include <server/http/http_request_impl.hpp>
-#include <server/request/http_server_settings_base_component.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tracing.hpp>
 #include <utils/graphite.hpp>

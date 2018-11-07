@@ -31,6 +31,9 @@ class ComponentList {
   template <typename Component>
   ComponentList& Append(std::string name) &;
 
+  ComponentList& AppendComponentList(ComponentList&& other) &;
+  ComponentList&& AppendComponentList(ComponentList&& other) &&;
+
   template <typename Component, typename... Args>
   ComponentList&& Append(Args&&...) &&;
 

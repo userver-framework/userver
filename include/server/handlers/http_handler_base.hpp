@@ -6,8 +6,8 @@
 #include <server/handlers/handler_base.hpp>
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
-#include <server/request/http_server_settings_base_component.hpp>
 #include <server/request/request_base.hpp>
+#include <server_settings/http_server_settings_base_component.hpp>
 
 namespace components {
 class StatisticsStorage;
