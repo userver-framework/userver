@@ -2,6 +2,9 @@
 
 #include <type_traits>
 
+#include <storages/postgres/exceptions.hpp>
+#include <utils/demangle.hpp>
+
 namespace storages {
 namespace postgres {
 namespace io {
@@ -15,7 +18,8 @@ template <typename T>
 struct GetSetNull {
   inline static bool IsNull(const T&) { return false; }
   static void SetNull(T&) {
-    // TODO Throw an error here
+    // TODO Consider a static_assert here
+    throw TypeCannotBeNull(::utils::GetTypeName(std::type_index(typeid(T))));
   }
 };
 

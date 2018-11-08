@@ -1,6 +1,6 @@
 #include <storages/postgres/result_set.hpp>
 
-#include <storages/postgres/detail/result_set_impl.hpp>
+#include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/exceptions.hpp>
 
 #include <cassert>

@@ -12,8 +12,11 @@
 #include <storages/postgres/io/stream_text_parser.hpp>
 #include <storages/postgres/io/string_types.hpp>
 #include <storages/postgres/io/traits.hpp>
+#include <storages/postgres/postgres_fwd.hpp>
 
 #include <storages/postgres/detail/const_data_iterator.hpp>
+
+#include <utils/demangle.hpp>
 
 namespace storages {
 namespace postgres {
@@ -21,13 +24,6 @@ namespace postgres {
 class FieldDescription;
 class Row;
 class ResultSet;
-
-namespace detail {
-
-class ResultSetImpl;
-using ResultSetImplPtr = std::shared_ptr<const ResultSetImpl>;
-
-}  // namespace detail
 
 /// @brief Accessor to a single field in a result set's row
 class Field {
@@ -83,7 +79,7 @@ class Field {
  protected:
   friend class Row;
 
-  Field(detail::ResultSetImplPtr res, size_type row, size_type col)
+  Field(detail::ResultWrapperPtr res, size_type row, size_type col)
       : res_{res}, row_index_{row}, field_index_{col} {}
 
   template <typename T>
@@ -101,8 +97,7 @@ class Field {
   size_type ReadNullable(const io::FieldBuffer& fb, T& val,
                          std::false_type) const {
     if (fb.is_null) {
-      // TODO FieldIsNull error
-      throw QueryError("Field value is null");
+      throw FieldValueIsNull{field_index_};
     } else {
       Read(fb, val);
     }
@@ -111,6 +106,7 @@ class Field {
 
   template <typename T>
   void Read(const io::FieldBuffer& fb, T& val) const {
+    // TODO Static assert that the type has a parser at all
     if (fb.format == io::DataFormat::kTextDataFormat) {
       ReadText(fb, val,
                io::traits::HasParser<T, io::DataFormat::kTextDataFormat>{});
@@ -126,8 +122,8 @@ class Field {
   }
   template <typename T>
   void ReadText(io::FieldBuffer const&, T&, std::false_type) const {
-    // TODO LogicError
-    throw QueryError("Type doesn't have a text parser");
+    throw NoValueParser{::utils::GetTypeName(std::type_index(typeid(T))),
+                        io::DataFormat::kTextDataFormat};
   }
 
   template <typename T>
@@ -136,11 +132,11 @@ class Field {
   }
   template <typename T>
   void ReadBinary(io::FieldBuffer const&, T&, std::false_type) const {
-    // TODO LogicError
-    throw QueryError("Type doesn't have a binary parser");
+    throw NoValueParser{::utils::GetTypeName(std::type_index(typeid(T))),
+                        io::DataFormat::kBinaryDataFormat};
   }
 
-  detail::ResultSetImplPtr res_;
+  detail::ResultWrapperPtr res_;
   size_type row_index_;
   size_type field_index_;
 };
@@ -151,7 +147,7 @@ class ConstFieldIterator
   friend class ConstDataIterator;
   friend class Row;
 
-  ConstFieldIterator(detail::ResultSetImplPtr res, size_type row, size_type col)
+  ConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
       : ConstDataIterator(res, row, col) {}
   ConstFieldIterator& Advance(difference_type);
   int Compare(const ConstFieldIterator& rhs) const;
@@ -258,10 +254,10 @@ class Row {
  protected:
   friend class ResultSet;
 
-  Row(detail::ResultSetImplPtr res, size_type row)
+  Row(detail::ResultWrapperPtr res, size_type row)
       : res_{res}, row_index_{row} {}
 
-  detail::ResultSetImplPtr res_;
+  detail::ResultWrapperPtr res_;
   size_type row_index_;
 };
 
@@ -271,7 +267,7 @@ class ConstRowIterator
   friend class ResultSet;
   friend class ConstDataIterator;
 
-  ConstRowIterator(detail::ResultSetImplPtr res, size_type row)
+  ConstRowIterator(detail::ResultWrapperPtr res, size_type row)
       : ConstDataIterator(res, row) {}
   ConstRowIterator& Advance(difference_type);
   int Compare(const ConstRowIterator& rhs) const;
@@ -308,7 +304,7 @@ class ResultSet {
   //@}
 
  public:
-  ResultSet(detail::ResultSetImplPtr pimpl) : pimpl_{pimpl} {}
+  explicit ResultSet(detail::ResultWrapperPtr pimpl) : pimpl_{pimpl} {}
 
   /// Number of rows in the result set
   size_type Size() const;
@@ -358,7 +354,7 @@ class ResultSet {
   //@}
 
  private:
-  detail::ResultSetImplPtr pimpl_;
+  detail::ResultWrapperPtr pimpl_;
 };
 
 namespace detail {
@@ -418,8 +414,7 @@ struct RowDataExtractor
 template <typename... T>
 void Row::To(T&... val) const {
   if (sizeof...(T) > Size()) {
-    // TODO LogicError
-    throw QueryError("Invalid field count");
+    throw InvalidTupleSizeRequested(Size(), sizeof...(T));
   }
   detail::RowDataExtractor<T...>::ExtractValues(*this, val...);
 }
@@ -427,8 +422,7 @@ void Row::To(T&... val) const {
 template <typename... T>
 void Row::To(std::tuple<T...>& val) const {
   if (sizeof...(T) > Size()) {
-    // TODO LogicError
-    throw QueryError("Invalid field count");
+    throw InvalidTupleSizeRequested(Size(), sizeof...(T));
   }
   detail::RowDataExtractor<T...>::ExtractTuple(*this, val);
 }
@@ -436,8 +430,7 @@ void Row::To(std::tuple<T...>& val) const {
 template <typename... T>
 void Row::To(const std::initializer_list<std::string>& names, T&... val) const {
   if (sizeof...(T) != names.size()) {
-    // TODO LogicError
-    throw QueryError("Invalid field count");
+    throw FieldTupleMismatch(names.size(), sizeof...(T));
   }
   detail::RowDataExtractor<T...>::ExtractValues(*this, names, val...);
 }
@@ -446,8 +439,7 @@ template <typename... T>
 void Row::To(const std::initializer_list<std::string>& names,
              std::tuple<T...>& val) const {
   if (sizeof...(T) != names.size()) {
-    // TODO LogicError
-    throw QueryError("Invalid field count");
+    throw FieldTupleMismatch(names.size(), sizeof...(T));
   }
   detail::RowDataExtractor<T...>::ExtractTuple(*this, names, val);
 }
@@ -455,8 +447,7 @@ void Row::To(const std::initializer_list<std::string>& names,
 template <typename... T>
 void Row::To(const std::initializer_list<size_type>& indexes, T&... val) const {
   if (sizeof...(T) != indexes.size()) {
-    // TODO LogicError
-    throw QueryError("Invalid field count");
+    throw FieldTupleMismatch(indexes.size(), sizeof...(T));
   }
   detail::RowDataExtractor<T...>::ExtractValues(*this, indexes, val...);
 }
@@ -465,8 +456,7 @@ template <typename... T>
 void Row::To(const std::initializer_list<size_type>& indexes,
              std::tuple<T...>& val) const {
   if (sizeof...(T) != indexes.size()) {
-    // TODO LogicError
-    throw QueryError("Invalid field count");
+    throw FieldTupleMismatch(indexes.size(), sizeof...(T));
   }
   detail::RowDataExtractor<T...>::ExtractTuple(*this, indexes, val);
 }

@@ -1,10 +1,12 @@
 #pragma once
 
-#include <storages/postgres/io/traits.hpp>
+#include <iostream>
 
 #include <boost/iostreams/stream.hpp>
 
-#include <iostream>
+#include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/traits.hpp>
+#include <utils/demangle.hpp>
 
 namespace storages {
 namespace postgres {
@@ -40,7 +42,9 @@ struct StreamTextParser {
     if (is >> tmp) {
       std::swap(tmp, value);
     } else {
-      // TODO Throw parsing error
+      std::string b{buffer.buffer, buffer.length};
+      throw TextParseFailure{::utils::GetTypeName(std::type_index(typeid(T))),
+                             b};
     }
   }
 };

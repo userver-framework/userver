@@ -12,7 +12,7 @@
 
 #include <engine/async.hpp>
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
-#include <storages/postgres/detail/result_set_impl.hpp>
+#include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/exceptions.hpp>
 
 namespace storages {
@@ -53,6 +53,10 @@ struct Connection::Impl {
   // TODO Add tracing::Span
   void AsyncConnect(const std::string& conninfo) {
     conn_wrapper_.AsyncConnect(conninfo, kDefaultTimeout);
+    // We cannot handle exceptions here, so we let them got to the caller
+    // Turn off error messages localisation
+    ExecuteCommand("set lc_messages = 'C'");
+    // Detect if the connection is read only.
     auto res = ExecuteCommand("show transaction_read_only");
     if (res) {
       res.Front().To(read_only_);

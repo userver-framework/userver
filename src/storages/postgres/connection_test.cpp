@@ -7,6 +7,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/null.hpp>
 #include <storages/postgres/pool.hpp>
 
 namespace pg = storages::postgres;
@@ -174,31 +175,39 @@ void CheckResultset(pg::detail::ConnectionPtr conn) {
   }
 }
 
-void NumericFormat(pg::detail::ConnectionPtr conn) {
+void QueryErrors(pg::detail::ConnectionPtr conn) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
+  const std::string temp_table = R"~(
+      create temporary table pgtest(
+        id integer primary key,
+        nn_val integer not null,
+        check_val integer check(check_val > 0))
+      )~";
+  const std::string dependent_table = R"~(
+      create temporary table dependent(
+        id integer references pgtest(id) on delete restrict)
+      )~";
+  const std::string insert_pg_test =
+      "insert into pgtest(id, nn_val, check_val) values ($1, $2, $3)";
 
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select '3.14'::numeric",
-                                      pg::io::DataFormat::kTextDataFormat));
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select '3.14'::numeric",
-                                      pg::io::DataFormat::kBinaryDataFormat));
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select '3.14'::numeric(10)",
-                                      pg::io::DataFormat::kTextDataFormat));
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select '3.14'::numeric(10)",
-                                      pg::io::DataFormat::kBinaryDataFormat));
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select '3.14'::numeric(10, 5)",
-                                      pg::io::DataFormat::kTextDataFormat));
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select '3.14'::numeric(10, 5)",
-                                      pg::io::DataFormat::kBinaryDataFormat));
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select '0'::numeric(10, 5)",
-                                      pg::io::DataFormat::kBinaryDataFormat));
+  EXPECT_THROW(res = conn->Execute("elect"), pg::SyntaxError);
+  EXPECT_THROW(res = conn->Execute("select foo"), pg::AccessRuleViolation);
+  EXPECT_THROW(res = conn->Execute(""), pg::LogicError);
+
+  EXPECT_NO_THROW(conn->Execute(temp_table));
+  EXPECT_NO_THROW(conn->Execute(dependent_table));
+  EXPECT_THROW(conn->Execute(insert_pg_test, 1, pg::null<int>, pg::null<int>),
+               pg::NotNullViolation);
+  EXPECT_NO_THROW(conn->Execute(insert_pg_test, 1, 1, pg::null<int>));
+  EXPECT_THROW(conn->Execute(insert_pg_test, 1, 1, pg::null<int>),
+               pg::UniqueViolation);
+  EXPECT_THROW(conn->Execute(insert_pg_test, 2, 1, 0), pg::CheckViolation);
+  EXPECT_THROW(conn->Execute("insert into dependent values(3)"),
+               pg::ForeignKeyViolation);
+  EXPECT_NO_THROW(conn->Execute("insert into dependent values(1)"));
+  EXPECT_THROW(conn->Execute("delete from pgtest where id = 1"),
+               pg::ForeignKeyViolation);
 }
 
 void ManualTransaction(pg::detail::ConnectionPtr conn) {
@@ -317,14 +326,14 @@ TEST_P(PostgreConnection, CheckResultSet) {
   });
 }
 
-TEST_P(PostgreConnection, NumericFormat) {
+TEST_P(PostgreConnection, QueryErrors) {
   RunInCoro([this] {
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
                                                            GetTaskProcessor()))
         << "Connect to correct DSN";
-    NumericFormat(std::move(conn));
+    QueryErrors(std::move(conn));
   });
 }
 

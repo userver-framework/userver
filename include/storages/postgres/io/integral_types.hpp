@@ -1,6 +1,8 @@
 #pragma once
 
 #include <boost/endian/arithmetic.hpp>
+
+#include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
@@ -55,8 +57,7 @@ struct IntegralBinaryParser {
         value = IntegralBySizeParser<8>::ParseBuffer(buf);
         break;
       default:
-        // TODO Throw logic(?) exception here
-        break;
+        throw InvalidInputBufferSize{buf.length, "for an integral value type"};
     }
   }
 };
@@ -131,7 +132,9 @@ struct BufferParser<bool, DataFormat::kBinaryDataFormat> {
   bool& value;
   explicit BufferParser(bool& val) : value{val} {}
   void operator()(const FieldBuffer& buf) {
-    // TODO Throw exception if size of buffer is not 1
+    if (buf.length != 1) {
+      throw InvalidInputBufferSize{buf.length, "for boolean type"};
+    }
     value = *buf.buffer != 0;
   }
 };

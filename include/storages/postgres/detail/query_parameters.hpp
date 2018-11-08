@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <storages/postgres/io/nullable_traits.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
@@ -11,7 +13,7 @@
 
 #include <storages/postgres/io/stream_text_formatter.hpp>
 
-#include <vector>
+#include <storages/postgres/null.hpp>
 
 namespace storages {
 namespace postgres {

@@ -6,7 +6,7 @@
 #include <engine/async.hpp>
 #include <engine/io/socket.hpp>
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/detail/result_set_impl.hpp>
+#include <storages/postgres/detail/result_wrapper.hpp>
 
 namespace storages {
 namespace postgres {
@@ -15,7 +15,7 @@ namespace detail {
 class PGConnectionWrapper {
  public:
   using Duration = engine::Deadline::TimePoint::clock::duration;
-  using ResultHandle = detail::ResultSetImpl::ResultHandle;
+  using ResultHandle = detail::ResultWrapper::ResultHandle;
 
  public:
   PGConnectionWrapper(engine::TaskProcessor& tp) : bg_task_processor_{tp} {}
@@ -81,7 +81,7 @@ class PGConnectionWrapper {
   ResultSet MakeResult(ResultHandle&& handle);
 
   template <typename ExceptionType>
-  void CheckError(int pg_dispatch_result);
+  void CheckError(const std::string& cmd, int pg_dispatch_result);
 
  private:
   engine::TaskProcessor& bg_task_processor_;

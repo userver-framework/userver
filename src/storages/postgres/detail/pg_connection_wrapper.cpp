@@ -3,6 +3,7 @@
 #include <boost/core/ignore_unused.hpp>
 
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/message.hpp>
 
 #include <logging/log.hpp>
 #include <logging/log_extra.hpp>
@@ -19,11 +20,12 @@ const int kErrBufferSize = 256;
 }  // namespace
 
 template <typename ExceptionType>
-void PGConnectionWrapper::CheckError(int pg_dispatch_result) {
+void PGConnectionWrapper::CheckError(const std::string& cmd,
+                                     int pg_dispatch_result) {
   if (pg_dispatch_result == 0) {
     auto msg = PQerrorMessage(conn_);
-    LOG_ERROR() << "libpq error: " << msg;
-    throw ExceptionType(msg);
+    LOG_ERROR() << "libpq " << cmd << " error: " << msg;
+    throw ExceptionType(cmd + " execution error: " + msg);
   }
 }
 
@@ -104,26 +106,23 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
     // to allocate memory for the structure
     LOG_ERROR() << "libpq failed to allocate a PGconn structure"
                 << logging::LogExtra::Stacktrace();
-    // TODO throw appropriate exception
-    throw std::bad_alloc{};
+    throw ConnectionFailed{conninfo, "Failed to allocate PGconn structure"};
   }
   if (CONNECTION_BAD == PQstatus(conn_)) {
     Close().Get();
     LOG_DEBUG() << "Failed to start a PostgreSQL connection to " << conninfo;
-    // TODO Add connection info to the exception
-    throw ConnectionFailed{};
+    throw ConnectionFailed{conninfo, "Failed to start libpq connection"};
   }
   const auto socket = PQsocket(conn_);
   if (socket < 0) {
     LOG_ERROR() << "Invalid PostgreSQL socket " << socket
                 << " when connecting to " << conninfo;
-    // TODO Add connection info to the exception
-    throw ConnectionFailed{};
+    throw ConnectionFailed{conninfo, "Invalid socket handle"};
   }
   socket_ = engine::io::Socket(socket);
 }
 
-void PGConnectionWrapper::WaitConnectionFinish(const std::string& /*conninfo*/,
+void PGConnectionWrapper::WaitConnectionFinish(const std::string& conninfo,
                                                Duration poll_timeout) {
   auto poll_res = PGRES_POLLING_WRITING;
   while (poll_res != PGRES_POLLING_OK) {
@@ -138,8 +137,8 @@ void PGConnectionWrapper::WaitConnectionFinish(const std::string& /*conninfo*/,
         // This is an obsolete state, just ignore it
         break;
       case PGRES_POLLING_FAILED:
-        // TODO Add connection info to the exception. Log failure
-        throw ConnectionFailed{};
+        LOG_ERROR() << conninfo << " libpq polling failed";
+        throw ConnectionFailed{conninfo, "libpq connection polling failed"};
       default:
         assert(!"Unexpected enumeration value");
         break;
@@ -166,7 +165,7 @@ void PGConnectionWrapper::WaitSocketWriteable(Duration timeout) {
 void PGConnectionWrapper::Flush(Duration timeout) {
   while (const int flush_res = PQflush(conn_)) {
     if (flush_res < 0) {
-      throw QueryError(PQerrorMessage(conn_));
+      throw CommandError(PQerrorMessage(conn_));
     }
     WaitSocketWriteable(timeout);
   }
@@ -175,7 +174,7 @@ void PGConnectionWrapper::Flush(Duration timeout) {
 void PGConnectionWrapper::ConsumeInput(Duration timeout) {
   while (PQisBusy(conn_)) {
     WaitSocketReadable(timeout);
-    CheckError<QueryError>(PQconsumeInput(conn_));
+    CheckError<CommandError>("PQconsumeInput", PQconsumeInput(conn_));
   }
 }
 
@@ -196,10 +195,11 @@ ResultSet PGConnectionWrapper::WaitResult(Duration timeout) {
 }
 
 ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
-  auto status = PQresultStatus(handle.get());
+  auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(handle));
+  auto status = wrapper->GetStatus();
   switch (status) {
     case PGRES_EMPTY_QUERY:
-      throw QueryError{"Empty query"};
+      throw LogicError{"Empty query"};
     case PGRES_COMMAND_OK:
       LOG_DEBUG() << "Successful completion of a command returning no data";
       break;
@@ -207,80 +207,118 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
     case PGRES_COPY_OUT:
     case PGRES_COPY_BOTH:
       Close().Get();
+      LOG_ERROR() << "PostgreSQL COPY command invoked which is not implemented"
+                  << logging::LogExtra::Stacktrace();
       // TODO some logic error
-      throw QueryError{"Copy is not implemented"};
+      throw LogicError{"Copy is not implemented"};
     case PGRES_BAD_RESPONSE:
       Close().Get();
       throw ConnectionError{"Failed to parse server response"};
-    case PGRES_NONFATAL_ERROR:
-      LOG_DEBUG() << "Non-fatal error occurred";
+    case PGRES_NONFATAL_ERROR: {
+      Message msg{wrapper};
+      switch (msg.GetSeverity()) {
+        case Message::Severity::kDebug:
+          LOG_DEBUG() << "Postgres " << msg.GetSeverityString()
+                      << " message: " << msg.GetMessage() << msg.GetLogExtra();
+          break;
+        case Message::Severity::kLog:
+        case Message::Severity::kInfo:
+        case Message::Severity::kNotice:
+          LOG_INFO() << "Postgres " << msg.GetSeverityString()
+                     << " message: " << msg.GetMessage() << msg.GetLogExtra();
+          break;
+        case Message::Severity::kWarning:
+          LOG_WARNING() << "Postgres " << msg.GetSeverityString()
+                        << " message: " << msg.GetMessage()
+                        << msg.GetLogExtra();
+          break;
+        case Message::Severity::kError:
+        case Message::Severity::kFatal:
+        case Message::Severity::kPanic:
+          LOG_ERROR() << "Postgres " << msg.GetSeverityString()
+                      << " message (marked as non-fatal): " << msg.GetMessage()
+                      << msg.GetLogExtra();
+          break;
+      }
       break;
+    }
     case PGRES_FATAL_ERROR: {
-      // TODO Retrieve error information and throw an appropriate exception
-      auto msg = PQresultErrorMessage(handle.get());
-      LOG_ERROR() << "Fatal error occured " << msg;
-      throw QueryError{msg};
+      Message msg{wrapper};
+      if (!IsWhitelistedState(msg.GetSqlState())) {
+        LOG_ERROR() << "Fatal error occured: " << msg.GetMessage()
+                    << msg.GetLogExtra();
+      } else {
+        LOG_WARNING() << "Fatal error occured: " << msg.GetMessage()
+                      << msg.GetLogExtra();
+      }
+      msg.ThrowException();
+      break;
     }
     default:
       assert(!"Unexpected enumeration value");
       break;
   }
-  return ResultSet{std::make_shared<detail::ResultSetImpl>(std::move(handle))};
+  return ResultSet{wrapper};
 }
 
 void PGConnectionWrapper::SendQuery(const std::string& statement) {
-  // TODO QuerySendError
-  CheckError<QueryError>(PQsendQuery(conn_, statement.c_str()));
+  CheckError<CommandError>("PQsendQuery",
+                           PQsendQuery(conn_, statement.c_str()));
 }
 
 void PGConnectionWrapper::SendQuery(const std::string& statement,
                                     const QueryParameters& params,
                                     io::DataFormat reply_format) {
   if (params.Empty()) {
-    // TODO QuerySendError
-    CheckError<QueryError>(PQsendQueryParams(conn_, statement.c_str(), 0,
-                                             nullptr, nullptr, nullptr, nullptr,
-                                             static_cast<int>(reply_format)));
+    CheckError<CommandError>(
+        "PQsendQueryParams",
+        PQsendQueryParams(conn_, statement.c_str(), 0, nullptr, nullptr,
+                          nullptr, nullptr, static_cast<int>(reply_format)));
   } else {
-    // TODO QuerySendError
-    CheckError<QueryError>(PQsendQueryParams(
-        conn_, statement.c_str(), params.Size(), params.ParamTypesBuffer(),
-        params.ParamBuffers(), params.ParamLengthsBuffer(),
-        params.ParamFormatsBuffer(), static_cast<int>(reply_format)));
+    CheckError<CommandError>(
+        "PQsendQueryParams",
+        PQsendQueryParams(
+            conn_, statement.c_str(), params.Size(), params.ParamTypesBuffer(),
+            params.ParamBuffers(), params.ParamLengthsBuffer(),
+            params.ParamFormatsBuffer(), static_cast<int>(reply_format)));
   }
 }
 
 void PGConnectionWrapper::SendPrepare(const std::string& name,
                                       const std::string& statement,
                                       const QueryParameters& params) {
-  // TODO QuerySendError
   if (params.Empty()) {
-    CheckError<QueryError>(
+    CheckError<CommandError>(
+        "PQsendPrepare",
         PQsendPrepare(conn_, name.c_str(), statement.c_str(), 0, nullptr));
   } else {
-    CheckError<QueryError>(PQsendPrepare(conn_, name.c_str(), statement.c_str(),
-                                         params.Size(),
-                                         params.ParamTypesBuffer()));
+    CheckError<CommandError>(
+        "PQsendPrepare",
+        PQsendPrepare(conn_, name.c_str(), statement.c_str(), params.Size(),
+                      params.ParamTypesBuffer()));
   }
 }
 
 void PGConnectionWrapper::SendDescribePrepared(const std::string& name) {
-  // TODO QuerySendError
-  CheckError<QueryError>(PQsendDescribePrepared(conn_, name.c_str()));
+  CheckError<CommandError>("PQsendDescribePrepared",
+                           PQsendDescribePrepared(conn_, name.c_str()));
 }
 
 void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
                                             const QueryParameters& params,
                                             io::DataFormat reply_format) {
   if (params.Empty()) {
-    CheckError<QueryError>(PQsendQueryPrepared(conn_, name.c_str(), 0, nullptr,
-                                               nullptr, nullptr,
-                                               static_cast<int>(reply_format)));
+    CheckError<CommandError>(
+        "PQsendQueryPrepared",
+        PQsendQueryPrepared(conn_, name.c_str(), 0, nullptr, nullptr, nullptr,
+                            static_cast<int>(reply_format)));
   } else {
-    CheckError<QueryError>(PQsendQueryPrepared(
-        conn_, name.c_str(), params.Size(), params.ParamBuffers(),
-        params.ParamLengthsBuffer(), params.ParamFormatsBuffer(),
-        static_cast<int>(reply_format)));
+    CheckError<CommandError>(
+        "PQsendQueryPrepared",
+        PQsendQueryPrepared(conn_, name.c_str(), params.Size(),
+                            params.ParamBuffers(), params.ParamLengthsBuffer(),
+                            params.ParamFormatsBuffer(),
+                            static_cast<int>(reply_format)));
   }
 }
 

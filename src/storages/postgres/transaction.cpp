@@ -25,8 +25,15 @@ Transaction::Transaction(Transaction&&) noexcept = default;
 Transaction::~Transaction() {
   if (conn_ && conn_->IsInTransaction()) {
     LOG_ERROR() << "Transaction handle is destroyed without implicitly "
-                   "commiting or rolling back";
-    conn_->Rollback();
+                   "committing or rolling back"
+                << logging::LogExtra::Stacktrace();
+    try {
+      conn_->Rollback();
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception when rolling back an abandoned transaction in "
+                     "destructor: "
+                  << e.what();
+    }
   }
 }
 
@@ -34,7 +41,8 @@ Transaction& Transaction::operator=(Transaction&& rhs) = default;
 
 ResultSet Transaction::Execute(const std::string& statement) {
   if (!conn_) {
-    // TODO Log stacktrace
+    LOG_ERROR() << "Execute called after transaction finished"
+                << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
   return conn_->Execute(statement, kEmptyParams);
@@ -43,7 +51,8 @@ ResultSet Transaction::Execute(const std::string& statement) {
 ResultSet Transaction::DoExecute(const std::string& statement,
                                  const detail::QueryParameters& params) {
   if (!conn_) {
-    // TODO Log stacktrace
+    LOG_ERROR() << "Execute called after transaction finished"
+                << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
   return conn_->Execute(statement, params);
@@ -54,7 +63,8 @@ void Transaction::Commit() {
   if (conn) {
     conn->Commit();
   } else {
-    // TODO Log stacktrace
+    LOG_ERROR() << "Commit after transaction finished"
+                << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
 }
@@ -64,8 +74,8 @@ void Transaction::Rollback() {
   if (conn) {
     conn->Rollback();
   } else {
-    // TODO Log stacktrace
-    throw NotInTransaction("Transaction handle is not valid");
+    LOG_WARNING() << "Rollback after transaction finished"
+                  << logging::LogExtra::Stacktrace();
   }
 }
 

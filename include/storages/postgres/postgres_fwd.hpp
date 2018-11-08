@@ -15,6 +15,9 @@ namespace detail {
 class Connection;
 using ConnectionCallback = std::function<void(Connection*)>;
 using ConnectionPtr = std::unique_ptr<Connection, ConnectionCallback>;
+
+class ResultWrapper;
+using ResultWrapperPtr = std::shared_ptr<const ResultWrapper>;
 }  // namespace detail
 
 }  // namespace postgres
