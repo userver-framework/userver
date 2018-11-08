@@ -36,15 +36,15 @@ struct SizeGuard {
 
 class ConnectionPool::Impl {
  public:
-  Impl(const DSNList& dsn_list, engine::TaskProcessor& bg_task_processor,
+  Impl(const std::string& dsn, engine::TaskProcessor& bg_task_processor,
        size_t initial_size, size_t max_size)
-      : dsn_list_(dsn_list),
+      : dsn_(dsn),
         bg_task_processor_(bg_task_processor),
         max_size_(max_size),
         queue_(max_size),
         size_(0) {
-    if (dsn_list_.empty()) {
-      throw InvalidConfig("PostgreSQL DSN list is empty");
+    if (dsn_.empty()) {
+      throw InvalidConfig("PostgreSQL DSN is empty");
     }
 
     try {
@@ -97,8 +97,7 @@ class ConnectionPool::Impl {
     LOG_DEBUG() << "Creating PostgreSQL connection, current pool size: "
                 << sg.GetSize();
     std::unique_ptr<detail::Connection> connection =
-        detail::Connection::Connect(dsn_list_[sg.GetSize() % dsn_list_.size()],
-                                    bg_task_processor_);
+        detail::Connection::Connect(dsn_, bg_task_processor_);
 
     sg.Dismiss();
     return connection.release();
@@ -134,18 +133,17 @@ class ConnectionPool::Impl {
   }
 
  private:
-  DSNList dsn_list_;
+  std::string dsn_;
   engine::TaskProcessor& bg_task_processor_;
   size_t max_size_;
   boost::lockfree::queue<detail::Connection*> queue_;
   std::atomic<size_t> size_;
 };
 
-ConnectionPool::ConnectionPool(const DSNList& dsn_list,
+ConnectionPool::ConnectionPool(const std::string& dsn,
                                engine::TaskProcessor& bg_task_processor,
                                size_t min_size, size_t max_size) {
-  pimpl_ =
-      std::make_unique<Impl>(dsn_list, bg_task_processor, min_size, max_size);
+  pimpl_ = std::make_unique<Impl>(dsn, bg_task_processor, min_size, max_size);
 }
 
 ConnectionPool::~ConnectionPool() = default;

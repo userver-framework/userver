@@ -14,11 +14,11 @@ namespace postgres {
 class ConnectionPool {
  public:
   /// Pool constructor
-  /// @param dsn_list list of server names to connect to
+  /// @param dsn server name to connect to
   /// @param bg_task_processor task processor for blocking connection operations
   /// @param initial_size initial (minimum) idle connections count
   /// @param max_size maximum idle connections count
-  ConnectionPool(const DSNList& dsn_list,
+  ConnectionPool(const std::string& dsn,
                  engine::TaskProcessor& bg_task_processor, size_t initial_size,
                  size_t max_size);
   ~ConnectionPool();

@@ -10,7 +10,13 @@
 
 namespace pg = storages::postgres;
 
-std::vector<pg::DSNList> GetDsnFromEnv() {
+std::vector<std::string> GetDsnFromEnv() {
+  const auto* dsn_list_env = std::getenv(kPostgresDsn);
+  return dsn_list_env ? std::vector<std::string>{std::string(dsn_list_env)}
+                      : std::vector<std::string>();
+}
+
+std::vector<pg::DSNList> GetDsnListFromEnv() {
   auto* conn_list_env = std::getenv(kPostgresDsn);
   if (!conn_list_env) {
     return {};
@@ -26,7 +32,11 @@ std::vector<pg::DSNList> GetDsnFromEnv() {
   return dsns_list;
 }
 
-std::string DsnToString(const ::testing::TestParamInfo<pg::DSNList>& info) {
+std::string DsnToString(const ::testing::TestParamInfo<std::string>& info) {
+  return pg::MakeDsnNick(info.param);
+}
+
+std::string DsnListToString(const ::testing::TestParamInfo<pg::DSNList>& info) {
   if (info.param.empty()) {
     return {};
   }

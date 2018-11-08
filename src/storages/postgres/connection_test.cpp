@@ -274,7 +274,8 @@ class PostgreConnection
 };
 
 INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreConnection,
-                        ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
+                        ::testing::ValuesIn(GetDsnListFromEnv()),
+                        DsnListToString);
 
 TEST_P(PostgreConnection, Connect) {
   RunInCoro([this] {

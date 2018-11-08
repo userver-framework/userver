@@ -17,9 +17,11 @@
 
 constexpr static const char* kPostgresDsn = "POSTGRES_DSN_TEST";
 
-std::vector<storages::postgres::DSNList> GetDsnFromEnv();
+std::vector<std::string> GetDsnFromEnv();
+std::vector<storages::postgres::DSNList> GetDsnListFromEnv();
 
-std::string DsnToString(
+std::string DsnToString(const ::testing::TestParamInfo<std::string>& info);
+std::string DsnListToString(
     const ::testing::TestParamInfo<storages::postgres::DSNList>& info);
 
 class PostgreSQLBase : public ::testing::Test {

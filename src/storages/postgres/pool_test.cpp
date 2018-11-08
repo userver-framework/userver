@@ -29,13 +29,12 @@ void PoolTransaction(pg::ConnectionPool& pool) {
 
 }  // namespace
 
-class PostgrePool
-    : public PostgreSQLBase,
-      public ::testing::WithParamInterface<storages::postgres::DSNList> {
-  void ReadParam() override { dsn_list_ = GetParam(); }
+class PostgrePool : public PostgreSQLBase,
+                    public ::testing::WithParamInterface<std::string> {
+  void ReadParam() override { dsn_ = GetParam(); }
 
  protected:
-  storages::postgres::DSNList dsn_list_;
+  std::string dsn_;
 };
 
 INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePool,
@@ -43,7 +42,7 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePool,
 
 TEST_P(PostgrePool, ConnectionPool) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_list_, GetTaskProcessor(), 1, 10);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool.GetConnection())
@@ -54,7 +53,7 @@ TEST_P(PostgrePool, ConnectionPool) {
 
 TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_list_, GetTaskProcessor(), 0, 1);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 0, 1);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool.GetConnection())
@@ -65,7 +64,7 @@ TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
 
 TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_list_, GetTaskProcessor(), 1, 1);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool.GetConnection())
@@ -80,7 +79,7 @@ TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
 
 TEST_P(PostgrePool, PoolTransaction) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_list_, GetTaskProcessor(), 1, 10);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10);
     PoolTransaction(pool);
   });
 }

@@ -7,11 +7,17 @@ namespace storages {
 namespace postgres {
 namespace detail {
 
-ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
+ClusterImpl::ClusterImpl(ClusterTopology&& topology,
                          engine::TaskProcessor& bg_task_processor,
                          size_t initial_size, size_t max_size)
-    : bg_task_processor_(bg_task_processor) {
-  InitPools(cluster_desc, initial_size, max_size);
+    : topology_(std::move(topology)),
+      bg_task_processor_(bg_task_processor),
+      host_ind_(0) {
+  const auto& dsn_list = topology_.GetDsnList();
+  host_pools_.reserve(dsn_list.size());
+  for (auto&& dsn : dsn_list) {
+    host_pools_.emplace_back(dsn, bg_task_processor_, initial_size, max_size);
+  }
 }
 
 Transaction ClusterImpl::Begin(ClusterHostType ht,
@@ -29,48 +35,18 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
     }
   }
 
-  auto it_find = host_pools_.find(host_type);
-  if (it_find == host_pools_.end()) {
+  const auto& host_indices = topology_.GetHostsByType(host_type);
+  if (host_indices.empty()) {
     throw ClusterUnavailable("Pool for host type (passed: " + ToString(ht) +
                              ", picked: " + ToString(host_type) +
                              ") is not available");
   }
 
   LOG_DEBUG() << "Starting transaction on the host of " << host_type << " type";
-  return it_find->second.Begin(options);
-}
-
-void ClusterImpl::InitPools(const ClusterDescription& cluster_desc,
-                            size_t initial_size, size_t max_size) {
-  if (cluster_desc.master_dsn_.empty()) {
-    throw ClusterUnavailable("Master host is unavailable");
-  }
-  host_pools_.insert(std::make_pair(
-      ClusterHostType::kMaster,
-      ConnectionPool(DSNList{cluster_desc.master_dsn_}, bg_task_processor_,
-                     initial_size, max_size)));
-  LOG_INFO() << "Added " << ClusterHostType::kMaster << " host";
-
-  if (!cluster_desc.sync_slave_dsn_.empty()) {
-    host_pools_.insert(std::make_pair(
-        ClusterHostType::kSyncSlave,
-        ConnectionPool(DSNList{cluster_desc.sync_slave_dsn_},
-                       bg_task_processor_, initial_size, max_size)));
-    LOG_INFO() << "Added " << ClusterHostType::kSyncSlave << " host";
-  } else {
-    LOG_INFO() << "No " << ClusterHostType::kSyncSlave << " host added";
-  }
-
-  if (!cluster_desc.slave_dsns_.empty()) {
-    host_pools_.insert(std::make_pair(
-        ClusterHostType::kSlave,
-        ConnectionPool(cluster_desc.slave_dsns_, bg_task_processor_,
-                       initial_size, max_size)));
-    LOG_INFO() << "Added pool of " << ClusterHostType::kSlave << " hosts with "
-               << cluster_desc.slave_dsns_.size() << " DSN names";
-  } else {
-    LOG_INFO() << "No " << ClusterHostType::kSlave << " hosts added";
-  }
+  const auto ind =
+      host_indices[host_ind_.fetch_add(1, std::memory_order_relaxed) %
+                   host_indices.size()];
+  return host_pools_[ind].Begin(options);
 }
 
 }  // namespace detail

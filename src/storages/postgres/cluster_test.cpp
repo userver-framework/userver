@@ -32,11 +32,6 @@ pg::Cluster CreateCluster(const std::string& dsn,
                      max_size);
 }
 
-const auto* dsn_list_env = std::getenv(kPostgresDsn);
-const auto dsn_list = dsn_list_env
-                          ? std::vector<std::string>{std::string(dsn_list_env)}
-                          : std::vector<std::string>();
-
 }  // namespace
 
 class PostgreCluster : public PostgreSQLBase,
@@ -48,10 +43,8 @@ class PostgreCluster : public PostgreSQLBase,
 };
 
 INSTANTIATE_TEST_CASE_P(
-    /*empty*/, PostgreCluster, ::testing::ValuesIn(dsn_list),
-    [](const ::testing::TestParamInfo<std::string>& info) {
-      return pg::MakeDsnNick(info.param);
-    });
+    /*empty*/, PostgreCluster, ::testing::ValuesIn(GetDsnFromEnv()),
+    DsnToString);
 
 TEST_P(PostgreCluster, ClusterSyncSlaveRW) {
   RunInCoro([this] {
