@@ -241,7 +241,7 @@ void AutoTransaction(pg::detail::ConnectionPtr conn) {
     EXPECT_NO_THROW(trx.Commit());
 
     EXPECT_THROW(trx.Commit(), pg::NotInTransaction);
-    EXPECT_THROW(trx.Rollback(), pg::NotInTransaction);
+    EXPECT_NO_THROW(trx.Rollback());
   }
 }
 

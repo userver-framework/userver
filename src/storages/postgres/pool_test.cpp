@@ -24,7 +24,7 @@ void PoolTransaction(pg::ConnectionPool& pool) {
   // TODO Check idle connection count before and after commit
   EXPECT_NO_THROW(trx.Commit());
   EXPECT_THROW(trx.Commit(), pg::NotInTransaction);
-  EXPECT_THROW(trx.Rollback(), pg::NotInTransaction);
+  EXPECT_NO_THROW(trx.Rollback());
 }
 
 }  // namespace
