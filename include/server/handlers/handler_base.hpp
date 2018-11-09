@@ -18,11 +18,9 @@ class HandlerBase : public components::ComponentBase {
   virtual ~HandlerBase() {}
 
   virtual void HandleRequest(const request::RequestBase& request,
-                             request::RequestContext& context) const
-      noexcept = 0;
+                             request::RequestContext& context) const = 0;
   virtual void OnRequestComplete(const request::RequestBase& request,
-                                 request::RequestContext& context) const
-      noexcept = 0;
+                                 request::RequestContext& context) const = 0;
 
   bool IsMonitor() const { return is_monitor_; }
 

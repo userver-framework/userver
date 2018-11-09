@@ -333,6 +333,7 @@ void TaskContext::Unwind() {
   assert(state_ == Task::State::kRunning);
 
   if (!std::uncaught_exception() && SetCancellable(false)) {
+    LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
     throw CoroUnwinder{};
   }
 }

@@ -120,8 +120,7 @@ HttpHandlerBase::HttpHandlerBase(
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
 void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
-                                    request::RequestContext& context) const
-    noexcept {
+                                    request::RequestContext& context) const {
   try {
     const auto& http_request_impl =
         dynamic_cast<const http::HttpRequestImpl&>(request);
@@ -191,9 +190,9 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
   }
 }
 
-void HttpHandlerBase::OnRequestComplete(const request::RequestBase& request,
-                                        request::RequestContext& context) const
-    noexcept {
+void HttpHandlerBase::OnRequestComplete(
+    const request::RequestBase& request,
+    request::RequestContext& context) const {
   try {
     const http::HttpRequest http_request(
         dynamic_cast<const http::HttpRequestImpl&>(request));

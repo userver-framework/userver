@@ -25,11 +25,10 @@ class HttpHandlerBase : public HandlerBase {
   ~HttpHandlerBase();
 
   virtual void HandleRequest(const request::RequestBase& request,
-                             request::RequestContext& context) const
-      noexcept override;
-  virtual void OnRequestComplete(const request::RequestBase& request,
-                                 request::RequestContext& context) const
-      noexcept override;
+                             request::RequestContext& context) const override;
+  virtual void OnRequestComplete(
+      const request::RequestBase& request,
+      request::RequestContext& context) const override;
 
   virtual const std::string& HandlerName() const = 0;
 
