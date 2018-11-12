@@ -66,6 +66,8 @@ class TaskProcessor {
     overload_action_ = settings.overload_action;
   }
 
+  std::chrono::microseconds GetProfilerThreshold() const;
+
  private:
   impl::TaskContext* DequeueTask();
 

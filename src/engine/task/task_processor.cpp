@@ -112,6 +112,10 @@ void TaskProcessor::Adopt(
   boost::ignore_unused(result);
 }
 
+std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const {
+  return config_.profiler_threshold;
+}
+
 void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
   const auto max_wait_time = max_task_queue_wait_time_.load();
   if (max_wait_time.count() == 0) {

@@ -7,6 +7,7 @@
 #include <engine/task/task_processor_pools.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
+#include <utils/statistics/aggregate_values_format_json.hpp>
 
 #include <taxi_config/value.hpp>
 
@@ -70,6 +71,11 @@ formats::json::ValueBuilder ManagerControllerComponent::GetTaskProcessorStats(
   json_task_processor["context_switch"] = std::move(json_context_switch);
 
   json_task_processor["worker-threads"] = task_processor.GetWorkerCount();
+
+#ifdef USERVER_PROFILER
+  json_task_processor["profiler"] = utils::statistics::AggregatedValuesToJson(
+      counter.GetTaskExecutionTimings(), "-us");
+#endif  // USERVER_PROFILER
 
   return json_task_processor;
 }

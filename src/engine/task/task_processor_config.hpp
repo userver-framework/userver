@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 
@@ -14,6 +15,7 @@ struct TaskProcessorConfig {
 
   size_t worker_threads = 6;
   std::string thread_name;
+  std::chrono::microseconds profiler_threshold;
 
   static TaskProcessorConfig ParseFromYaml(
       const formats::yaml::Node& yaml, const std::string& full_path,

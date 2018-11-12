@@ -14,6 +14,15 @@ TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
                                                    full_path, config_vars_ptr);
   config.thread_name =
       yaml_config::ParseString(yaml, "thread_name", full_path, config_vars_ptr);
+#ifdef USERVER_PROFILER
+  const auto profiler_threshold_us =
+      yaml_config::ParseOptionalUint64(yaml, "profiler_threshold_us", full_path,
+                                       config_vars_ptr)
+          .value_or(500);
+#else   // USERVER_PROFILER
+  const auto profiler_threshold_us = 0;
+#endif  // USERVER_PROFILER
+  config.profiler_threshold = std::chrono::microseconds(profiler_threshold_us);
 
   return config;
 }

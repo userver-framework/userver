@@ -127,6 +127,13 @@ target_include_directories(${PROJECT_NAME}+standalone_engine INTERFACE
   ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
 )
 
+option(USERVER_PROFILER "Enable task execution profiler" OFF)
+message("engine profiler: ${USERVER_PROFILER}")
+if (USERVER_PROFILER)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSERVER_PROFILER=1)
+  target_compile_definitions(${PROJECT_NAME}+standalone_engine INTERFACE -DUSERVER_PROFILER=1)
+endif()
+
 add_library(utest STATIC ${LIBUTEST_SOURCES})
 set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
 

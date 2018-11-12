@@ -5,6 +5,8 @@
 #include <chrono>
 #include <thread>
 
+#include <utils/statistics.hpp>
+
 namespace engine {
 namespace impl {
 
@@ -65,6 +67,16 @@ class TaskCounter {
 
   void AccountSpuriousWakeup() { spurious_wakeups_++; }
 
+#ifdef USERVER_PROFILER
+  void AccountTaskExecution(std::chrono::microseconds us) {
+    task_processor_profiler_timings_.Add(us.count(), 1);
+  }
+
+  const auto& GetTaskExecutionTimings() const {
+    return task_processor_profiler_timings_;
+  }
+#endif  // USERVER_PROFILER
+
  private:
   std::atomic<size_t> value_{0};
   std::atomic<size_t> tasks_created_{0};
@@ -74,6 +86,10 @@ class TaskCounter {
   std::atomic<size_t> spurious_wakeups_{0};
   std::atomic<size_t> tasks_cancelled_overload_{0};
   std::atomic<size_t> tasks_overload_{0};
+
+#ifdef USERVER_PROFILER
+  statistics::AggregatedValues<25> task_processor_profiler_timings_;
+#endif
 };
 
 }  // namespace impl

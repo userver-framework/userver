@@ -230,7 +230,9 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
 
   yield_reason_ = YieldReason::kTaskWaiting;
   assert(task_pipe_);
+  ProfilerStopExecution();
   TaskContext* context = (*task_pipe_)().get();
+  ProfilerStartExecution();
   assert(context == this);
   boost::ignore_unused(context);
 
@@ -269,6 +271,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     context->yield_reason_ = YieldReason::kNone;
     context->task_pipe_ = &task_pipe;
 
+    context->ProfilerStartExecution();
     try {
       // it is important to destroy payload here as someone may want
       // to synchronize in its dtor (e.g. lambda closure)
@@ -277,6 +280,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     } catch (const CoroUnwinder&) {
       context->yield_reason_ = YieldReason::kTaskCancelled;
     }
+    context->ProfilerStopExecution();
 
     context->task_pipe_ = nullptr;
   }
@@ -337,6 +341,33 @@ void TaskContext::Unwind() {
     throw CoroUnwinder{};
   }
 }
+
+#ifdef USERVER_PROFILER
+void TaskContext::ProfilerStartExecution() {
+  execute_started_ = std::chrono::steady_clock::now();
+}
+
+void TaskContext::ProfilerStopExecution() {
+  auto now = std::chrono::steady_clock::now();
+  auto duration = now - execute_started_;
+  auto duration_us =
+      std::chrono::duration_cast<std::chrono::microseconds>(duration);
+  auto threshold_us = task_processor_.GetProfilerThreshold();
+
+  task_processor_.GetTaskCounter().AccountTaskExecution(duration_us);
+
+  if (duration_us >= threshold_us) {
+    LOG_ERROR() << "Profiler threshold reached, task was executing "
+                   "for too long without context switch ("
+                << duration_us.count() << "us >= " << threshold_us.count()
+                << "us)" << logging::LogExtra::Stacktrace();
+  }
+}
+#else  // USERVER_PROFILER
+void TaskContext::ProfilerStartExecution() {}
+
+void TaskContext::ProfilerStopExecution() {}
+#endif
 
 }  // namespace impl
 }  // namespace engine

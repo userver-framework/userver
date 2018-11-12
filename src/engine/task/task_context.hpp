@@ -138,6 +138,10 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   void Schedule();
   void Unwind();
 
+  void ProfilerStartExecution();
+
+  void ProfilerStopExecution();
+
   const uint64_t magic_;
   TaskProcessor& task_processor_;
   const TaskCounter::Token task_counter_token_;
@@ -153,6 +157,9 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
 
   // () if not defined
   std::chrono::steady_clock::time_point task_queue_wait_timepoint_;
+#ifdef USERVER_PROFILER
+  std::chrono::steady_clock::time_point execute_started_;
+#endif  // USERVER_PROFILER
 
   SleepParams sleep_params_;
   utils::AtomicFlags<SleepStateFlags> sleep_state_;
