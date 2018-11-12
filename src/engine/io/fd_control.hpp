@@ -3,11 +3,11 @@
 #include <atomic>
 #include <cassert>
 #include <cerrno>
-#include <memory>
 #include <system_error>
 
 #include <engine/deadline.hpp>
 #include <engine/io/error.hpp>
+#include <engine/io/fd_control_holder.hpp>
 #include <engine/mutex.hpp>
 #include <logging/log.hpp>
 
@@ -78,8 +78,6 @@ class Direction {
   std::shared_ptr<engine::impl::WaitList> waiters_;
   ev::Watcher<ev_io> watcher_;
 };
-
-using FdControlHolder = std::shared_ptr<FdControl>;
 
 class FdControl {
  public:

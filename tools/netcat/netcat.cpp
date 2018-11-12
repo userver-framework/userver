@@ -1,8 +1,10 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include <condition_variable>
 #include <cstdlib>
 #include <exception>
 #include <string>
