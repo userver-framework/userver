@@ -11,8 +11,11 @@ namespace postgres {
 /**
  * @page Postgres errors.
  *
+ * Base class for all PostgreSQL errors is Error which is derived from
+ * std::runtime_error. This is done to simplify exception handling.
+ *
  * There are two base types of errors: runtime (@see RuntimeError) and logic
- * (@see LogicError). Common ancestor for them is std::exception.
+ * (@see LogicError).
  *
  * Logic errors are a consequence of faulty logic within the program such as
  * violating logical preconditions or invariants and may be preventable by
@@ -114,20 +117,25 @@ namespace postgres {
 //@{
 /** @name Generic driver errors */
 
+/// @brief Base class for all exceptions that may be thrown by the driver.
+class Error : public std::runtime_error {
+  using runtime_error::runtime_error;
+};
+
 /// @brief Base Postgres logic error.
 /// Reports errors that are consequences of erroneous driver usage,
 /// such as invalid query syntax, absence of appropriate parsers, out of range
 /// errors etc.
 /// These can be avoided by fixing code.
-class LogicError : public std::logic_error {
-  using logic_error::logic_error;
+class LogicError : public Error {
+  using Error::Error;
 };
 
 /// @brief Base Postgres runtime error.
 /// Reports errors that are consequences of erroneous data, misconfiguration,
 /// network errors etc.
-class RuntimeError : public std::runtime_error {
-  using runtime_error::runtime_error;
+class RuntimeError : public Error {
+  using Error::Error;
 };
 
 /// @brief Error that was reported by PosgtreSQL server
