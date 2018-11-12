@@ -125,6 +125,8 @@ endif ()
 # pretty file name for logging
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFILENAME='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
+include(SetupLinker)
+
 enable_testing ()
 
 set (CMAKE_INSTALL_DO_STRIP "NO")
