@@ -201,16 +201,23 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
     case PGRES_EMPTY_QUERY:
       throw LogicError{"Empty query"};
     case PGRES_COMMAND_OK:
-      LOG_DEBUG() << "Successful completion of a command returning no data";
+      LOG_TRACE() << "Successful completion of a command returning no data";
       break;
+    case PGRES_TUPLES_OK:
+      LOG_TRACE() << "Successful completion of a command returning data";
+      break;
+    case PGRES_SINGLE_TUPLE:
+      Close().Get();
+      LOG_ERROR()
+          << "libpq was switched to SINGLE_ROW mode, this is not supported.";
+      throw NotImplemented{"Single row mode is not supported"};
     case PGRES_COPY_IN:
     case PGRES_COPY_OUT:
     case PGRES_COPY_BOTH:
       Close().Get();
       LOG_ERROR() << "PostgreSQL COPY command invoked which is not implemented"
                   << logging::LogExtra::Stacktrace();
-      // TODO some logic error
-      throw LogicError{"Copy is not implemented"};
+      throw NotImplemented{"Copy is not implemented"};
     case PGRES_BAD_RESPONSE:
       Close().Get();
       throw ConnectionError{"Failed to parse server response"};
@@ -254,9 +261,6 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
       msg.ThrowException();
       break;
     }
-    default:
-      assert(!"Unexpected enumeration value");
-      break;
   }
   return ResultSet{wrapper};
 }

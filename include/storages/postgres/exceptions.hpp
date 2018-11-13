@@ -635,6 +635,10 @@ class InvalidConfig : public RuntimeError {
   using RuntimeError::RuntimeError;
 };
 
+class NotImplemented : public LogicError {
+  using LogicError::LogicError;
+};
+
 //@}
 
 }  // namespace postgres
