@@ -18,31 +18,48 @@ const std::string kStopComponentName = "component_stop";
 const std::string kComponentName = "component_name";
 }  // namespace
 
-ComponentContext::ComponentContext(const Manager& manager,
-                                   TaskProcessorMap task_processor_map)
-    : manager_(manager), task_processor_map_(std::move(task_processor_map)) {}
-
-void ComponentContext::BeforeAddComponent(std::string name) {
-  std::lock_guard<engine::Mutex> lock(component_mutex_);
-  task_to_component_map_[engine::current_task::GetCurrentTaskContext()] =
-      std::move(name);
+ComponentContext::TaskToComponentMapScope::TaskToComponentMapScope(
+    ComponentContext& context, const std::string& component_name)
+    : context_(context) {
+  std::lock_guard<engine::Mutex> lock(context_.component_mutex_);
+  auto res = context_.task_to_component_map_.emplace(
+      engine::current_task::GetCurrentTaskContext(), component_name);
+  if (!res.second)
+    throw std::runtime_error(
+        "can't create multiple components in the same task simultaneously: "
+        "component " +
+        res.first->second + " is already registered for current task");
 }
 
-void ComponentContext::AddComponent(
-    std::string name, std::unique_ptr<ComponentBase>&& component) {
-  std::lock_guard<engine::Mutex> lock(component_mutex_);
-
-  auto it = task_to_component_map_.find(
+ComponentContext::TaskToComponentMapScope::~TaskToComponentMapScope() {
+  std::lock_guard<engine::Mutex> lock(context_.component_mutex_);
+  context_.task_to_component_map_.erase(
       engine::current_task::GetCurrentTaskContext());
-  if (it == task_to_component_map_.end() || it->second != name)
-    throw std::runtime_error("current task is not a task where component " +
-                             name + " was created");
-  task_to_component_map_.erase(it);
+}
 
-  components_.emplace(name, std::move(component));
-  component_names_.push_back(std::move(name));
+ComponentContext::ComponentContext(
+    const Manager& manager, TaskProcessorMap task_processor_map,
+    std::set<std::string> loading_component_names)
+    : manager_(manager),
+      task_processor_map_(std::move(task_processor_map)),
+      loading_component_names_(std::move(loading_component_names)) {}
+
+ComponentBase* ComponentContext::AddComponent(std::string name,
+                                              const ComponentFactory& factory) {
+  TaskToComponentMapScope task_to_component_map_scope(*this, name);
+
+  auto component = factory(*this);
+  auto pcomponent = component.get();
+  {
+    std::lock_guard<engine::Mutex> lock(component_mutex_);
+
+    auto res = components_.emplace(std::move(name), std::move(component));
+    if (!res.second)
+      throw std::runtime_error("duplicate component name: " + res.first->first);
+  }
 
   component_cv_.NotifyAll();
+  return pcomponent;
 }
 
 void ComponentContext::ClearComponents() {
@@ -55,12 +72,13 @@ void ComponentContext::ClearComponents() {
   std::vector<engine::TaskWithResult<void>> unload_tasks;
   {
     std::lock_guard<engine::Mutex> lock(component_mutex_);
-    clear_components_started_ = true;
-    for (const auto& name : component_names_)
+    for (const auto& component_item : components_) {
+      const auto& name = component_item.first;
       unload_tasks.emplace_back(
           engine::CriticalAsync([&root_span, this, name]() {
             WaitAndUnloadComponent(root_span, name);
           }));
+    }
   }
 
   for (auto& task : unload_tasks) task.Get();
@@ -86,7 +104,6 @@ void ComponentContext::OnAllComponentsAreStopping(tracing::Span& parent_span) {
 
 void ComponentContext::OnAllComponentsLoaded() {
   std::lock_guard<engine::Mutex> lock(component_mutex_);
-  all_components_loaded_ = true;
   for (auto& component_item : components_) {
     component_item.second->OnAllComponentsLoaded();
   }
@@ -159,8 +176,7 @@ std::string ComponentContext::GetLoadingComponentName(
         engine::current_task::GetCurrentTaskContext());
   } catch (const std::exception&) {
     throw std::runtime_error(
-        "until all components loaded FindComponent() can be called only from a "
-        "task of component load");
+        "FindComponent() can be called only from a task of component load");
   }
 }
 
@@ -215,19 +231,6 @@ ComponentBase* ComponentContext::DoFindComponent(
   return component;
 }
 
-ComponentBase* ComponentContext::DoFindComponentIgnoreDependencies(
-    const std::string& name) const {
-  std::unique_lock<engine::Mutex> lock(component_mutex_);
-  if (!all_components_loaded_)
-    throw std::runtime_error(
-        "can't DoFindComponentIgnoreDependencies() during components loading");
-  if (clear_components_started_)
-    throw std::runtime_error(
-        "can't DoFindComponentIgnoreDependencies() after ClearComponents() "
-        "started");
-  return DoFindComponentNoWait(name, lock);
-}
-
 engine::TaskProcessor* ComponentContext::GetTaskProcessor(
     const std::string& name) const {
   auto it = task_processor_map_.find(name);
@@ -244,11 +247,6 @@ ComponentContext::TaskProcessorPtrMap ComponentContext::GetTaskProcessorsMap()
     result.emplace(it.first, it.second.get());
 
   return result;
-}
-
-void ComponentContext::SetLoadingComponentNames(std::set<std::string> names) {
-  std::unique_lock<engine::Mutex> lock(component_mutex_);
-  loading_component_names_ = std::move(names);
 }
 
 bool ComponentContext::MayUnload(const std::string& name) const {

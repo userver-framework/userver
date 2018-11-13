@@ -15,10 +15,16 @@ namespace impl {
 
 class ComponentAdderBase {
  public:
+  explicit ComponentAdderBase(std::string name) : name_(std::move(name)) {}
   virtual ~ComponentAdderBase() {}
+
+  const std::string& GetComponentName() const { return name_; }
 
   virtual void operator()(Manager&,
                           const components::ComponentConfigMap&) const = 0;
+
+ private:
+  std::string name_;
 };
 
 }  // namespace impl
@@ -51,6 +57,7 @@ namespace impl {
 template <typename Component>
 class DefaultComponentAdder : public ComponentAdderBase {
  public:
+  DefaultComponentAdder();
   void operator()(Manager&,
                   const components::ComponentConfigMap&) const override;
 };
@@ -62,9 +69,6 @@ class CustomNameComponentAdder : public ComponentAdderBase {
 
   void operator()(Manager&,
                   const components::ComponentConfigMap&) const override;
-
- private:
-  std::string name_;
 };
 
 }  // namespace impl
@@ -90,19 +94,23 @@ ComponentList&& ComponentList::Append(Args&&... args) && {
 namespace impl {
 
 template <typename Component>
+DefaultComponentAdder<Component>::DefaultComponentAdder()
+    : ComponentAdderBase(Component::kName) {}
+
+template <typename Component>
 void DefaultComponentAdder<Component>::operator()(
     Manager& manager, const components::ComponentConfigMap& config_map) const {
-  manager.AddComponent<Component>(config_map, Component::kName);
+  manager.AddComponent<Component>(config_map, GetComponentName());
 }
 
 template <typename Component>
 CustomNameComponentAdder<Component>::CustomNameComponentAdder(std::string name)
-    : name_(std::move(name)) {}
+    : ComponentAdderBase(std::move(name)) {}
 
 template <typename Component>
 void CustomNameComponentAdder<Component>::operator()(
     Manager& manager, const components::ComponentConfigMap& config_map) const {
-  manager.AddComponent<Component>(config_map, name_);
+  manager.AddComponent<Component>(config_map, GetComponentName());
 }
 
 }  // namespace impl

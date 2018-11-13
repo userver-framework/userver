@@ -38,13 +38,15 @@ class ComponentContext {
       std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
   using TaskProcessorPtrMap =
       std::unordered_map<std::string, engine::TaskProcessor*>;
+  using ComponentFactory =
+      std::function<std::unique_ptr<components::ComponentBase>(
+          const components::ComponentContext&)>;
 
-  ComponentContext(const Manager& manager, TaskProcessorMap);
+  ComponentContext(const Manager& manager, TaskProcessorMap,
+                   std::set<std::string> loading_component_names);
 
-  void BeforeAddComponent(std::string name);
-
-  void AddComponent(std::string name,
-                    std::unique_ptr<ComponentBase>&& component);
+  ComponentBase* AddComponent(std::string name,
+                              const ComponentFactory& factory);
 
   void ClearComponents();
 
@@ -52,16 +54,14 @@ class ComponentContext {
 
   void OnAllComponentsAreStopping(tracing::Span&);
 
-  template <typename T, bool ignore_dependencies = false>
+  template <typename T>
   T& FindComponent() const {
-    return FindComponent<T, ignore_dependencies>(T::kName);
+    return FindComponent<T>(T::kName);
   }
 
-  template <typename T, bool ignore_dependencies = false>
+  template <typename T>
   T& FindComponent(const std::string& name) const {
-    T* ptr = dynamic_cast<T*>(ignore_dependencies
-                                  ? DoFindComponentIgnoreDependencies(name)
-                                  : DoFindComponent(name));
+    T* ptr = dynamic_cast<T*>(DoFindComponent(name));
     assert(ptr != nullptr);
     if (!ptr) {
       throw std::runtime_error("Cannot find component of type " +
@@ -70,16 +70,14 @@ class ComponentContext {
     return *ptr;
   }
 
-  template <typename T, bool ignore_dependencies = false>
+  template <typename T>
   T* FindComponentOptional() const {
-    return FindComponentOptional<T, ignore_dependencies>(T::kName);
+    return FindComponentOptional<T>(T::kName);
   }
 
-  template <typename T, bool ignore_dependencies = false>
+  template <typename T>
   T* FindComponentOptional(const std::string& name) const {
-    return dynamic_cast<T*>(ignore_dependencies
-                                ? DoFindComponentIgnoreDependencies(name)
-                                : DoFindComponent(name));
+    return dynamic_cast<T*>(DoFindComponent(name));
   }
 
   size_t ComponentCount() const;
@@ -92,14 +90,20 @@ class ComponentContext {
 
   void CancelComponentsLoad();
 
-  void SetLoadingComponentNames(std::set<std::string> names);
-
   void RemoveComponentDependencies(const std::string& name);
 
  private:
+  class TaskToComponentMapScope {
+   public:
+    TaskToComponentMapScope(ComponentContext& context,
+                            const std::string& component_name);
+    ~TaskToComponentMapScope();
+
+   private:
+    ComponentContext& context_;
+  };
+
   ComponentBase* DoFindComponent(const std::string& name) const;
-  ComponentBase* DoFindComponentIgnoreDependencies(
-      const std::string& name) const;
 
   ComponentBase* DoFindComponentNoWait(const std::string& name,
                                        std::unique_lock<engine::Mutex>&) const;
@@ -120,17 +124,14 @@ class ComponentContext {
   mutable engine::Mutex component_mutex_;
   mutable engine::ConditionVariable component_cv_;
   ComponentMap components_;
-  std::set<std::string> loading_component_names_;
-  std::vector<std::string> component_names_;
   TaskProcessorMap task_processor_map_;
+  std::set<std::string> loading_component_names_;
 
   // dependee -> dependency
   mutable std::unordered_map<std::string, std::set<std::string>>
       component_dependencies_;
   std::unordered_map<engine::impl::TaskContext*, std::string>
       task_to_component_map_;
-  bool all_components_loaded_{false};
-  bool clear_components_started_{false};
   bool components_load_cancelled_{false};
 };
 

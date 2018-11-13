@@ -55,6 +55,9 @@ class Manager {
   void OnLogRotate();
 
  private:
+  void CreateComponentContext(
+      components::ComponentContext::TaskProcessorMap&& task_processors,
+      const ComponentList& component_list);
   void AddComponents(const ComponentList& component_list);
   void AddComponentImpl(
       const components::ComponentConfigMap& config_map, const std::string& name,
@@ -63,7 +66,6 @@ class Manager {
           const components::ComponentContext&)>
           factory);
   void ClearComponents();
-  components::Logging* FindLoggerComponent() const;
 
   std::unique_ptr<const ManagerConfig> config_;
   std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools_;
@@ -73,7 +75,7 @@ class Manager {
   bool components_cleared_;
 
   engine::TaskProcessor* default_task_processor_;
-  components::Logging* logger_component_;
+  components::Logging* logging_component_;
 };
 
 }  // namespace components

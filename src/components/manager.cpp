@@ -6,7 +6,6 @@
 
 #include <components/component_list.hpp>
 #include <engine/async.hpp>
-#include <logging/component.hpp>
 #include <logging/log.hpp>
 
 #include <engine/task/task_processor.hpp>
@@ -18,7 +17,15 @@ namespace {
 const std::string kEngineMonitorDataName = "engine";
 
 template <typename Func>
-auto RunInCoro(engine::TaskProcessor& task_processor, const Func& func) {
+auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
+  if (auto* task_context =
+          engine::current_task::GetCurrentTaskContextUnchecked()) {
+    if (&task_processor == &task_context->GetTaskProcessor())
+      return func();
+    else
+      return engine::CriticalAsync(task_processor, std::forward<Func>(func))
+          .Get();
+  }
   std::packaged_task<std::result_of_t<Func()>()> task(
       [&func] { return func(); });
   auto future = task.get_future();
@@ -53,11 +60,7 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
         "Cannot start components manager: missing default task processor");
   }
   default_task_processor_ = default_task_processor_it->second.get();
-  component_context_ = std::make_unique<components::ComponentContext>(
-      *this, std::move(task_processors));
-
-  RunInCoro(*default_task_processor_,
-            [this, &component_list]() { AddComponents(component_list); });
+  CreateComponentContext(std::move(task_processors), component_list);
 
   LOG_INFO() << "Started components manager";
 }
@@ -85,20 +88,37 @@ Manager::GetTaskProcessorPools() const {
 void Manager::OnLogRotate() {
   std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
   if (components_cleared_) return;
-  if (logger_component_) logger_component_->OnLogRotate();
+  if (logging_component_) logging_component_->OnLogRotate();
+}
+
+void Manager::CreateComponentContext(
+    components::ComponentContext::TaskProcessorMap&& task_processors,
+    const ComponentList& component_list) {
+  std::set<std::string> loading_component_names;
+  for (const auto& adder : component_list) {
+    auto[it, inserted] =
+        loading_component_names.insert(adder->GetComponentName());
+    if (!inserted) {
+      std::string message =
+          "duplicate component name in component_list: " + *it;
+      LOG_ERROR() << message;
+      throw std::runtime_error(message);
+    }
+  }
+  component_context_ = std::make_unique<components::ComponentContext>(
+      *this, std::move(task_processors), std::move(loading_component_names));
+
+  RunInCoro(*default_task_processor_,
+            [this, &component_list]() { AddComponents(component_list); });
 }
 
 void Manager::AddComponents(const ComponentList& component_list) {
   components::ComponentConfigMap component_config_map;
 
-  std::set<std::string> loading_component_names;
   for (const auto& component_config : config_->components) {
     const auto name = component_config.Name();
-    loading_component_names.insert(name);
     component_config_map.emplace(name, component_config);
   }
-
-  component_context_->SetLoadingComponentNames(loading_component_names);
 
   std::vector<engine::TaskWithResult<void>> tasks;
   try {
@@ -128,7 +148,6 @@ void Manager::AddComponents(const ComponentList& component_list) {
   }
   LOG_INFO() << "All components loaded";
   component_context_->OnAllComponentsLoaded();
-  logger_component_ = FindLoggerComponent();
 }  // namespace components
 
 void Manager::AddComponentImpl(
@@ -146,9 +165,13 @@ void Manager::AddComponentImpl(
 
   try {
     LOG_TRACE() << "Adding component " << name;
-    component_context_->BeforeAddComponent(name);
-    auto component = factory(config_it->second, *component_context_);
-    component_context_->AddComponent(name, std::move(component));
+    auto* component = component_context_->AddComponent(name, [
+      &factory, &config = config_it->second
+    ](const components::ComponentContext& component_context) {
+      return factory(config, component_context);
+    });
+    if (auto* logging_component = dynamic_cast<components::Logging*>(component))
+      logging_component_ = logging_component;
     LOG_TRACE() << "Added component " << name;
   } catch (const std::exception& ex) {
     std::string message = "Cannot start component " + name + ": " + ex.what();
@@ -169,13 +192,6 @@ void Manager::ClearComponents() {
   } catch (const std::exception& ex) {
     LOG_ERROR() << "error in clear components: " << ex.what();
   }
-}
-
-components::Logging* Manager::FindLoggerComponent() const {
-  return RunInCoro(*default_task_processor_, [this]() {
-    return component_context_
-        ->FindComponentOptional<components::Logging, true>();
-  });
 }
 
 }  // namespace components
