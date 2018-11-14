@@ -144,11 +144,6 @@ void TaskContext::DoStep() {
   if (IsFinished()) return;
 
   if (!coro_) {
-    if (IsCancelRequested()) {
-      SetState(Task::State::kCancelled);
-      return;  // don't even start
-    }
-
     coro_ = task_processor_.GetCoroPool().GetCoroutine();
   }
 
@@ -272,14 +267,22 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     context->task_pipe_ = &task_pipe;
 
     context->ProfilerStartExecution();
-    try {
-      // it is important to destroy payload here as someone may want
-      // to synchronize in its dtor (e.g. lambda closure)
-      CallOnce(context->payload_);
-      context->yield_reason_ = YieldReason::kTaskComplete;
-    } catch (const CoroUnwinder&) {
+
+    // it is important to destroy payload here as someone may want
+    // to synchronize in its dtor (e.g. lambda closure)
+    if (context->IsCancelRequested()) {
+      context->SetCancellable(false);
+      context->payload_ = {};
       context->yield_reason_ = YieldReason::kTaskCancelled;
+    } else {
+      try {
+        CallOnce(context->payload_);
+        context->yield_reason_ = YieldReason::kTaskComplete;
+      } catch (const CoroUnwinder&) {
+        context->yield_reason_ = YieldReason::kTaskCancelled;
+      }
     }
+
     context->ProfilerStopExecution();
 
     context->task_pipe_ = nullptr;
