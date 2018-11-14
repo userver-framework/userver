@@ -1,0 +1,104 @@
+#include <cache/cache_statistics.hpp>
+#include <formats/json/value_builder.hpp>
+
+namespace cache {
+
+UpdateStatistics CombineStatistics(const UpdateStatistics& a,
+                                   const UpdateStatistics& b) {
+  UpdateStatistics result;
+  result.update_attempt_count = a.update_attempt_count + b.update_attempt_count;
+  result.update_no_changes_count =
+      a.update_no_changes_count + b.update_no_changes_count;
+  result.update_failures_count =
+      a.update_failures_count + b.update_failures_count;
+  result.documents_read_count = a.documents_read_count + b.documents_read_count;
+  result.documents_parse_failures =
+      a.documents_parse_failures + b.documents_parse_failures;
+
+  result.last_update_start_time = std::max(a.last_update_start_time.load(),
+                                           b.last_update_start_time.load());
+  result.last_successful_update_start_time =
+      std::max(a.last_successful_update_start_time.load(),
+               b.last_successful_update_start_time.load());
+  result.last_update_duration =
+      std::max(a.last_update_duration.load(), b.last_update_duration.load());
+
+  return result;
+}
+
+namespace {
+
+template <typename Duration>
+size_t TimeStampToMillisecondsFromNow(Duration duration) {
+  auto now = std::chrono::system_clock::now().time_since_epoch();
+  auto diff = now - duration;
+  return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+}
+
+}  // namespace
+
+formats::json::Value StatisticsToJson(const UpdateStatistics& stats) {
+  formats::json::ValueBuilder result(formats::json::Type::kObject);
+
+  formats::json::ValueBuilder update(formats::json::Type::kObject);
+  update["attempts_count"] = stats.update_attempt_count.load();
+  update["no_changes_count"] = stats.update_no_changes_count.load();
+  update["failures_count"] = stats.update_failures_count.load();
+  result["update"] = update.ExtractValue();
+
+  formats::json::ValueBuilder documents(formats::json::Type::kObject);
+  documents["read_count"] = stats.documents_read_count.load();
+  documents["parse_failures"] = stats.documents_parse_failures.load();
+  result["documents"] = documents.ExtractValue();
+
+  formats::json::ValueBuilder age(formats::json::Type::kObject);
+  age["time-from-last-update-start-ms"] =
+      TimeStampToMillisecondsFromNow(stats.last_update_start_time.load());
+  age["time-from-last-successful-start-ms"] = TimeStampToMillisecondsFromNow(
+      stats.last_successful_update_start_time.load());
+  age["last-update-duration-ms"] =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          stats.last_update_duration.load())
+          .count();
+  result["time"] = age.ExtractValue();
+
+  return result.ExtractValue();
+}
+
+UpdateStatisticsScope::UpdateStatisticsScope(
+    Statistics& stats, components::CacheUpdateTrait::UpdateType type)
+    : stats_(stats),
+      update_stats_(
+          type == components::CacheUpdateTrait::UpdateType::kIncremental
+              ? stats.incremental_update
+              : stats.full_update),
+      finished_(false),
+      update_start_time_(std::chrono::system_clock::now().time_since_epoch()) {
+  update_stats_.last_update_start_time = update_start_time_;
+  ++update_stats_.update_attempt_count;
+}
+
+UpdateStatisticsScope::~UpdateStatisticsScope() {
+  if (!finished_) ++update_stats_.update_failures_count;
+}
+
+UpdateStatistics* UpdateStatisticsScope::operator->() { return &update_stats_; }
+
+void UpdateStatisticsScope::Finish(size_t documents_count) {
+  const auto update_stop_time =
+      std::chrono::system_clock::now().time_since_epoch();
+  update_stats_.last_successful_update_start_time = update_start_time_;
+  update_stats_.last_update_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(update_stop_time -
+                                                            update_start_time_);
+  stats_.documents_current_count = documents_count;
+
+  finished_ = true;
+}
+
+void UpdateStatisticsScope::FinishNoChanges() {
+  update_stats_.update_no_changes_count++;
+  Finish(stats_.documents_current_count.load());
+}
+
+}  // namespace cache

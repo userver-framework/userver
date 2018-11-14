@@ -19,6 +19,7 @@ class DocsMap {
   storages::mongo::DocumentElement Get(const std::string& name) const;
   void Set(std::string name, storages::mongo::DocumentValue);
   void Parse(const std::string& json);
+  size_t Size() const;
 
  private:
   std::unordered_map<std::string, storages::mongo::DocumentValue> docs_;

@@ -142,4 +142,6 @@ void DocsMap::Parse(const std::string& json) {
   }
 }
 
+size_t DocsMap::Size() const { return docs_.size(); }
+
 }  // namespace taxi_config

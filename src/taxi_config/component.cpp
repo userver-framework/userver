@@ -8,9 +8,11 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
     : CachingComponentBase<taxi_config::Config>(config, context, kName),
       impl_{std::make_unique<TaxiConfigImpl>(
-          config, context, [this](taxi_config::DocsMap&& mongo_docs) {
+          config, context,
+          [this](taxi_config::DocsMap&& mongo_docs) {
             this->Emplace(std::move(mongo_docs));
-          })} {
+          },
+          GetStatistics())} {
   this->StartPeriodicUpdates();
 }
 

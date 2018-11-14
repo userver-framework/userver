@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 
+#include <cache/cache_statistics.hpp>
 #include <components/cache_update_trait.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
@@ -17,7 +18,7 @@ class TaxiConfigImpl {
   using EmplaceDocsCb = std::function<void(taxi_config::DocsMap&& mongo_docs)>;
 
   TaxiConfigImpl(const ComponentConfig&, const ComponentContext&,
-                 EmplaceDocsCb emplace_docs_cb);
+                 EmplaceDocsCb emplace_docs_cb, cache::Statistics& stats);
 
   void Update(CacheUpdateTrait::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
@@ -29,6 +30,7 @@ class TaxiConfigImpl {
   std::chrono::system_clock::time_point seen_doc_update_time_;
   storages::mongo::PoolPtr mongo_taxi_;
   std::string fallback_path_;
+  cache::Statistics& stats_;
 };
 
 }  // namespace components

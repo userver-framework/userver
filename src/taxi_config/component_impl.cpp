@@ -33,8 +33,9 @@ std::string ReadFile(const std::string& path) {
 
 TaxiConfigImpl::TaxiConfigImpl(const ComponentConfig& config,
                                const ComponentContext& context,
-                               EmplaceDocsCb emplace_docs_cb)
-    : emplace_docs_cb_(std::move(emplace_docs_cb)) {
+                               EmplaceDocsCb emplace_docs_cb,
+                               cache::Statistics& stats)
+    : emplace_docs_cb_(std::move(emplace_docs_cb)), stats_(stats) {
   auto& mongo_component = context.FindComponent<Mongo>("mongo-taxi");
   mongo_taxi_ = mongo_component.GetPool();
   fallback_path_ = config.ParseString("fallback_path");
@@ -49,6 +50,8 @@ void TaxiConfigImpl::Update(CacheUpdateTrait::UpdateType type,
   namespace config_db = mongo::db::taxi::config;
 
   auto collection = mongo_taxi_->GetCollection(config_db::kCollection);
+
+  cache::UpdateStatisticsScope stats(stats_, type);
 
   if (type == CacheUpdateTrait::UpdateType::kIncremental) {
     auto query = bbb::make_document(
@@ -65,6 +68,7 @@ void TaxiConfigImpl::Update(CacheUpdateTrait::UpdateType type,
                       std::move(options))
              .Get()) {
       LOG_DEBUG() << "No changes in incremental config update";
+      stats.FinishNoChanges();
       return;
     }
     TRACE_DEBUG(span) << "Updating dirty config";
@@ -82,14 +86,20 @@ void TaxiConfigImpl::Update(CacheUpdateTrait::UpdateType type,
 
   std::chrono::system_clock::time_point seen_doc_update_time;
   for (const auto& doc : collection.Find(sm::kEmptyObject).Get()) {
-    const auto& updated_field = doc[config_db::kUpdated];
-    if (updated_field) {
-      seen_doc_update_time =
-          std::max(seen_doc_update_time, sm::ToTimePoint(updated_field));
+    ++stats->documents_read_count;
+    try {
+      const auto& updated_field = doc[config_db::kUpdated];
+      if (updated_field) {
+        seen_doc_update_time =
+            std::max(seen_doc_update_time, sm::ToTimePoint(updated_field));
+      }
+      mongo_docs.Set(sm::ToString(doc[config_db::kId]), sm::DocumentValue(doc));
+    } catch (const std::exception& e) {
+      ++stats->documents_parse_failures;
     }
-    mongo_docs.Set(sm::ToString(doc[config_db::kId]), sm::DocumentValue(doc));
   }
 
+  stats.Finish(mongo_docs.Size());
   emplace_docs_cb_(std::move(mongo_docs));
   seen_doc_update_time_ = seen_doc_update_time;
 }
