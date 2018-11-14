@@ -87,6 +87,11 @@ class Connection {
     return Execute(statement, params);
   }
 
+  /// @brief Set session parameter
+  /// Parameters documentation
+  /// https://www.postgresql.org/docs/current/sql-set.html
+  void SetParameter(const std::string& param, const std::string& value);
+
   //@{
   /** @name Command sending interface for experimenting */
   /// Separate method for experimenting with PostgreSQL protocol and parsing

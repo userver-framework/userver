@@ -7,6 +7,8 @@
 #include <utility>
 
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/boost_multiprecision.hpp>
+#include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/io/floating_point_types.hpp>
 #include <storages/postgres/io/nullable_traits.hpp>
 #include <storages/postgres/io/stream_text_parser.hpp>
@@ -40,6 +42,9 @@ class Field {
   /// TODO Replace with string_view
   std::string Name() const;
   FieldDescription Description() const;
+
+  io::DataFormat GetDataFormat() const;
+  Oid GetTypeOid() const;
   //@}
 
   //@{
@@ -47,9 +52,11 @@ class Field {
   bool IsNull() const;
 
   template <typename T>
-  size_type To(T& val) const {
+  size_type To(T&& val) const {
+    using ValueType = typename std::decay<T>::type;
     auto fb = GetBuffer();
-    return ReadNullable(fb, val, io::traits::IsNullable<T>{});
+    return ReadNullable(fb, std::forward<T>(val),
+                        io::traits::IsNullable<ValueType>{});
   }
 
   template <typename T>
@@ -83,56 +90,68 @@ class Field {
       : res_{res}, row_index_{row}, field_index_{col} {}
 
   template <typename T>
-  size_type ReadNullable(const io::FieldBuffer& fb, T& val,
+  size_type ReadNullable(const io::FieldBuffer& fb, T&& val,
                          std::true_type) const {
-    using NullSetter = io::traits::GetSetNull<T>;
+    using ValueType = typename std::decay<T>::type;
+    using NullSetter = io::traits::GetSetNull<ValueType>;
     if (fb.is_null) {
       NullSetter::SetNull(val);
     } else {
-      Read(fb, val);
+      Read(fb, std::forward<T>(val));
     }
     return fb.length;
   }
   template <typename T>
-  size_type ReadNullable(const io::FieldBuffer& fb, T& val,
+  size_type ReadNullable(const io::FieldBuffer& fb, T&& val,
                          std::false_type) const {
     if (fb.is_null) {
       throw FieldValueIsNull{field_index_};
     } else {
-      Read(fb, val);
+      Read(fb, std::forward<T>(val));
     }
     return fb.length;
   }
 
   template <typename T>
-  void Read(const io::FieldBuffer& fb, T& val) const {
+  void Read(const io::FieldBuffer& fb, T&& val) const {
     // TODO Static assert that the type has a parser at all
+    using ValueType = typename std::decay<T>::type;
     if (fb.format == io::DataFormat::kTextDataFormat) {
-      ReadText(fb, val,
-               io::traits::HasParser<T, io::DataFormat::kTextDataFormat>{});
+      ReadText(
+          fb, std::forward<T>(val),
+          io::traits::HasParser<ValueType, io::DataFormat::kTextDataFormat>{});
     } else {
-      ReadBinary(fb, val,
-                 io::traits::HasParser<T, io::DataFormat::kBinaryDataFormat>{});
+      ReadBinary(fb, std::forward<T>(val),
+                 io::traits::HasParser<ValueType,
+                                       io::DataFormat::kBinaryDataFormat>{});
     }
   }
 
   template <typename T>
-  void ReadText(io::FieldBuffer const& fb, T& val, std::true_type) const {
-    io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, val);
+  void ReadText(io::FieldBuffer const& fb, T&& val, std::true_type) const {
+    using ValueType = typename std::decay<T>::type;
+    using Parser =
+        typename io::traits::IO<ValueType,
+                                io::DataFormat::kTextDataFormat>::ParserType;
+    Parser{std::forward<T>(val)}(fb);
   }
   template <typename T>
-  void ReadText(io::FieldBuffer const&, T&, std::false_type) const {
-    throw NoValueParser{::utils::GetTypeName(std::type_index(typeid(T))),
+  void ReadText(io::FieldBuffer const&, T&&, std::false_type) const {
+    throw NoValueParser{::utils::GetTypeName<T>(),
                         io::DataFormat::kTextDataFormat};
   }
 
   template <typename T>
-  void ReadBinary(io::FieldBuffer const& fb, T& val, std::true_type) const {
-    io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, val);
+  void ReadBinary(io::FieldBuffer const& fb, T&& val, std::true_type) const {
+    using ValueType = typename std::decay<T>::type;
+    using Parser =
+        typename io::traits::IO<ValueType,
+                                io::DataFormat::kBinaryDataFormat>::ParserType;
+    Parser{std::forward<T>(val)}(fb);
   }
   template <typename T>
-  void ReadBinary(io::FieldBuffer const&, T&, std::false_type) const {
-    throw NoValueParser{::utils::GetTypeName(std::type_index(typeid(T))),
+  void ReadBinary(io::FieldBuffer const&, T&&, std::false_type) const {
+    throw NoValueParser{::utils::GetTypeName<T>(),
                         io::DataFormat::kBinaryDataFormat};
   }
 
@@ -210,7 +229,7 @@ class Row {
   /** @name Bulk access to row's data */
   /// Read fields into variables in order of their appearance in the row
   template <typename... T>
-  void To(T&... val) const;
+  void To(T&&... val) const;
   template <typename... T>
   void To(std::tuple<T...>&) const;
 
@@ -223,7 +242,7 @@ class Row {
 
   /// Read fields into variables in order of their names in the first argument
   template <typename... T>
-  void To(const std::initializer_list<std::string>& names, T&... val) const;
+  void To(const std::initializer_list<std::string>& names, T&&... val) const;
   template <typename... T>
   void To(const std::initializer_list<std::string>& names,
           std::tuple<T...>& val) const;
@@ -237,7 +256,7 @@ class Row {
   /// Read fields into variables in order of their indexes in the first
   /// argument
   template <typename... T>
-  void To(const std::initializer_list<size_type>& indexes, T&... val) const;
+  void To(const std::initializer_list<size_type>& indexes, T&&... val) const;
   template <typename... T>
   void To(const std::initializer_list<size_type>& indexes,
           std::tuple<T...>& val) const;
@@ -371,8 +390,8 @@ struct RowDataExtractorBase;
 
 template <std::size_t... Indexes, typename... T>
 struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
-  static void ExtractValues(const Row& row, T&... val) {
-    ExpandVariadic(row[Indexes].To(val)...);
+  static void ExtractValues(const Row& row, T&&... val) {
+    ExpandVariadic(row[Indexes].To(std::forward<T>(val))...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>& val) {
     std::tuple<T...> tmp{row[Indexes].template As<T>()...};
@@ -381,8 +400,8 @@ struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
 
   static void ExtractValues(const Row& row,
                             const std::initializer_list<std::string>& names,
-                            T&... val) {
-    ExpandVariadic(row[*(names.begin() + Indexes)].To(val)...);
+                            T&&... val) {
+    ExpandVariadic(row[*(names.begin() + Indexes)].To(std::forward<T>(val))...);
   }
   static void ExtractTuple(const Row& row,
                            const std::initializer_list<std::string>& names,
@@ -393,8 +412,9 @@ struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
 
   static void ExtractValues(const Row& row,
                             const std::initializer_list<std::size_t>& indexes,
-                            T&... val) {
-    ExpandVariadic(row[*(indexes.begin() + Indexes)].To(val)...);
+                            T&&... val) {
+    ExpandVariadic(
+        row[*(indexes.begin() + Indexes)].To(std::forward<T>(val))...);
   }
   static void ExtractTuple(const Row& row,
                            const std::initializer_list<std::size_t>& indexes,
@@ -412,11 +432,11 @@ struct RowDataExtractor
 }  // namespace detail
 
 template <typename... T>
-void Row::To(T&... val) const {
+void Row::To(T&&... val) const {
   if (sizeof...(T) > Size()) {
     throw InvalidTupleSizeRequested(Size(), sizeof...(T));
   }
-  detail::RowDataExtractor<T...>::ExtractValues(*this, val...);
+  detail::RowDataExtractor<T...>::ExtractValues(*this, std::forward<T>(val)...);
 }
 
 template <typename... T>
@@ -428,11 +448,13 @@ void Row::To(std::tuple<T...>& val) const {
 }
 
 template <typename... T>
-void Row::To(const std::initializer_list<std::string>& names, T&... val) const {
+void Row::To(const std::initializer_list<std::string>& names,
+             T&&... val) const {
   if (sizeof...(T) != names.size()) {
     throw FieldTupleMismatch(names.size(), sizeof...(T));
   }
-  detail::RowDataExtractor<T...>::ExtractValues(*this, names, val...);
+  detail::RowDataExtractor<T...>::ExtractValues(*this, names,
+                                                std::forward<T>(val)...);
 }
 
 template <typename... T>
@@ -445,11 +467,13 @@ void Row::To(const std::initializer_list<std::string>& names,
 }
 
 template <typename... T>
-void Row::To(const std::initializer_list<size_type>& indexes, T&... val) const {
+void Row::To(const std::initializer_list<size_type>& indexes,
+             T&&... val) const {
   if (sizeof...(T) != indexes.size()) {
     throw FieldTupleMismatch(indexes.size(), sizeof...(T));
   }
-  detail::RowDataExtractor<T...>::ExtractValues(*this, indexes, val...);
+  detail::RowDataExtractor<T...>::ExtractValues(*this, indexes,
+                                                std::forward<T>(val)...);
 }
 
 template <typename... T>

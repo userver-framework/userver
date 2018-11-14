@@ -43,8 +43,7 @@ struct StreamTextParser {
       std::swap(tmp, value);
     } else {
       std::string b{buffer.buffer, buffer.length};
-      throw TextParseFailure{::utils::GetTypeName(std::type_index(typeid(T))),
-                             b};
+      throw TextParseFailure{::utils::GetTypeName<T>(), b};
     }
   }
 };

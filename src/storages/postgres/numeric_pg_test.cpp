@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <storages/postgres/io/boost_multiprecision.hpp>
-
 #include <boost/math/special_functions.hpp>
+
+#include <storages/postgres/io/boost_multiprecision.hpp>
+#include <storages/postgres/test_buffers.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;
@@ -19,21 +20,6 @@ static_assert((pg::io::traits::HasParser<
               "");
 
 }  // namespace static_test
-
-namespace storages {
-namespace postgres {
-namespace test {
-
-// TODO Move to a common io_test header
-using Buffer = std::vector<char>;
-
-io::FieldBuffer MakeFieldBuffer(const Buffer& buffer, io::DataFormat format) {
-  return {false, format, buffer.size(), buffer.data()};
-}
-
-}  // namespace test
-}  // namespace postgres
-}  // namespace storages
 
 TEST(PostgreIO, Numeric) {
   {

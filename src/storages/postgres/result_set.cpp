@@ -19,6 +19,12 @@ io::FieldBuffer Field::GetBuffer() const {
   return res_->GetFieldBuffer(row_index_, field_index_);
 }
 
+io::DataFormat Field::GetDataFormat() const {
+  return res_->GetFieldFormat(field_index_);
+}
+
+Oid Field::GetTypeOid() const { return res_->GetFieldTypeOid(field_index_); }
+
 //----------------------------------------------------------------------------
 // ConstFieldIterator implementation
 //----------------------------------------------------------------------------

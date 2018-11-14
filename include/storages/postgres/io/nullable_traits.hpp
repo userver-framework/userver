@@ -19,7 +19,7 @@ struct GetSetNull {
   inline static bool IsNull(const T&) { return false; }
   static void SetNull(T&) {
     // TODO Consider a static_assert here
-    throw TypeCannotBeNull(::utils::GetTypeName(std::type_index(typeid(T))));
+    throw TypeCannotBeNull(::utils::GetTypeName<T>());
   }
 };
 

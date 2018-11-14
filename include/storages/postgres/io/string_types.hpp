@@ -28,6 +28,7 @@ struct BufferFormatter<const char*, DataFormat::kTextDataFormat> {
   static void WriteN(Buffer& buf, const char* c, std::size_t n) {
     buf.reserve(buf.size() + n);
     std::copy(c, c + n, std::back_inserter(buf));
+    if (buf.empty() || buf.back() != '\0') buf.push_back('\0');
   }
 };
 //@}
@@ -59,6 +60,7 @@ struct BufferFormatter<std::string, DataFormat::kTextDataFormat> {
   void operator()(Buffer& buf) const {
     buf.reserve(buf.size() + value.size());
     std::copy(value.begin(), value.end(), std::back_inserter(buf));
+    if (buf.empty() || buf.back() != '\0') buf.push_back('\0');
   }
 };
 
@@ -81,6 +83,8 @@ struct BufferParser<std::string, DataFormat::kTextDataFormat> {
 template <>
 struct CppToPg<const char*> : detail::CppToPgPredefined<PredefinedOids::kText> {
 };
+template <>
+struct CppToPg<char*> : detail::CppToPgPredefined<PredefinedOids::kText> {};
 template <std::size_t N>
 struct CppToPg<char[N]> : detail::CppToPgPredefined<PredefinedOids::kText> {};
 template <>

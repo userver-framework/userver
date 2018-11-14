@@ -53,6 +53,10 @@ io::DataFormat ResultWrapper::GetFieldFormat(std::size_t col) const {
   return static_cast<io::DataFormat>(PQfformat(handle_.get(), col));
 }
 
+Oid ResultWrapper::GetFieldTypeOid(std::size_t col) const {
+  return PQftype(handle_.get(), col);
+}
+
 std::size_t ResultWrapper::GetFieldLength(std::size_t row,
                                           std::size_t col) const {
   return PQgetlength(handle_.get(), row, col);

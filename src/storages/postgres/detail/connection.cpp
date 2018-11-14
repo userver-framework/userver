@@ -23,6 +23,7 @@ namespace {
 
 // TODO Move the timeout constant to config
 const std::chrono::seconds kDefaultTimeout(2);
+const char* kEnvTzSetting = "TZ";
 
 std::size_t QueryHash(const std::string& statement,
                       const QueryParameters& params) {
@@ -42,7 +43,11 @@ struct Connection::Impl {
 
   Impl(engine::TaskProcessor& bg_task_processor)
       : conn_wrapper_{bg_task_processor} {}
-  ~Impl() { Close().Detach(); }
+  ~Impl() {
+    if (ConnectionState::kOffline != GetConnectionState()) {
+      Close().Detach();
+    }
+  }
 
   __attribute__((warn_unused_result)) engine::TaskWithResult<void> Close() {
     return conn_wrapper_.Close();
@@ -55,16 +60,47 @@ struct Connection::Impl {
     conn_wrapper_.AsyncConnect(conninfo, kDefaultTimeout);
     // We cannot handle exceptions here, so we let them got to the caller
     // Turn off error messages localisation
-    ExecuteCommand("set lc_messages = 'C'");
+    SetParameter("lc_messages", "C");
     // Detect if the connection is read only.
     auto res = ExecuteCommand("show transaction_read_only");
     if (res) {
       res.Front().To(read_only_);
     }
+    SetLocalTimezone();
+  }
+
+  /// @brief Set local timezone. If the timezone is invalid, catch the exception
+  /// and log error.
+  void SetLocalTimezone() {
+    // TODO Detect canonical name of local timezone via ICU (?)
+    // cctz doesn't provide means to detect canonical name of local timezone.
+    auto tz = std::getenv(kEnvTzSetting);
+    if (tz) {
+      try {
+        SetParameter("TimeZone", tz);
+      } catch (const DataException&) {
+        // No need to log the DataException message, it has been already logged
+        // by connection wrapper.
+        LOG_ERROR() << "Invalid value for time zone " << tz;
+      }  // Let all other exceptions be propagated to the caller
+    }
   }
 
   ConnectionState GetConnectionState() const {
     return conn_wrapper_.GetConnectionState();
+  }
+
+  void SetParameter(const std::string& param, const std::string& value) {
+    LOG_DEBUG() << "Set '" << param << "' = '" << value << "'";
+    ExecuteCommand("update pg_settings set setting = $1 where name = $2", value,
+                   param);
+  }
+
+  template <typename... T>
+  ResultSet ExecuteCommand(const std::string& statement, const T&... args) {
+    detail::QueryParameters params;
+    params.Write(args...);
+    return ExecuteCommand(statement, params);
   }
 
   // TODO Add tracing::Span
@@ -159,6 +195,11 @@ void Connection::Close() { pimpl_->Close().Get(); }
 ResultSet Connection::Execute(const std::string& statement,
                               const detail::QueryParameters& params) {
   return pimpl_->ExecuteCommand(statement, params);
+}
+
+void Connection::SetParameter(const std::string& param,
+                              const std::string& value) {
+  pimpl_->SetParameter(param, value);
 }
 
 ResultSet Connection::ExperimentalExecute(

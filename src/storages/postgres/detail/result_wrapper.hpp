@@ -32,6 +32,7 @@ class ResultWrapper {
   std::size_t IndexOfName(std::string const& name) const;
 
   io::DataFormat GetFieldFormat(std::size_t col) const;
+  Oid GetFieldTypeOid(std::size_t col) const;
   bool IsFieldNull(std::size_t row, std::size_t col) const;
   std::size_t GetFieldLength(std::size_t row, std::size_t col) const;
   io::FieldBuffer GetFieldBuffer(std::size_t row, std::size_t col) const;

@@ -6,6 +6,8 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
+#include <storages/postgres/io/boost_multiprecision.hpp>
+#include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/io/floating_point_types.hpp>
 #include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/optional.hpp>
