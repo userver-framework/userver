@@ -3,7 +3,6 @@
 /// @file storages/postgres/component.hpp
 /// @brief @copybrief components::Postgres
 
-#include <memory>
 #include <vector>
 
 #include <components/component_base.hpp>
@@ -32,20 +31,20 @@ namespace components {
 /// {
 ///   postgres-taxi:
 ///     dbalias: taxi
-///     blocking_task_processor_threads: 2
+///     blocking_task_processor: task-processor-name
 ///     min_pool_size: 16
 ///     max_pool_size: 100
 /// }
 /// ```
 /// You must specify either `dbalias` or `conn_info`.
-/// You must specify `blocking_task_processor_threads` as well.
+/// You must specify `blocking_task_processor` as well.
 ///
 /// ## Available options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// dbalias | name of the database in secdist config (if available) | --
 /// dbconnection | connection DSN string (used if no dbalias specified) | --
-/// blocking_task_processor_threads | size of thread pool for background blocking operations | --
+/// blocking_task_processor | name of task processor for background blocking operations | --
 /// min_pool_size | number of connections created initially | 16
 /// max_pool_size | limit of connections count | 100
 
@@ -77,7 +76,7 @@ class Postgres : public LoggableComponentBase {
  private:
   size_t min_pool_size_ = 0;
   size_t max_pool_size_ = 0;
-  std::unique_ptr<engine::TaskProcessor> bg_task_processor_;
+  engine::TaskProcessor* bg_task_processor_ = nullptr;
   storages::postgres::ShardedClusterDescription shard_to_desc_;
   mutable engine::Mutex shards_mutex_;
   mutable std::vector<storages::postgres::ClusterPtr> shards_;
