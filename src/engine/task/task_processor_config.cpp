@@ -8,8 +8,6 @@ TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
     const formats::yaml::Node& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
   TaskProcessorConfig config;
-  config.name =
-      yaml_config::ParseString(yaml, "name", full_path, config_vars_ptr);
   config.worker_threads = yaml_config::ParseUint64(yaml, "worker_threads",
                                                    full_path, config_vars_ptr);
   config.thread_name =
@@ -25,6 +23,10 @@ TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
   config.profiler_threshold = std::chrono::microseconds(profiler_threshold_us);
 
   return config;
+}
+
+void TaskProcessorConfig::SetName(const std::string& name) {
+  this->name = name;
 }
 
 }  // namespace engine

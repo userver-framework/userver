@@ -20,6 +20,7 @@ struct TaskProcessorConfig {
   static TaskProcessorConfig ParseFromYaml(
       const formats::yaml::Node& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);
+  void SetName(const std::string& name);
 };
 
 }  // namespace engine

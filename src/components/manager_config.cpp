@@ -49,8 +49,9 @@ ManagerConfig ManagerConfig::ParseFromYaml(
       value["event_thread_pool"], name + ".event_thread_pool", config_vars_ptr);
   config.components = yaml_config::ParseMapAsArray<components::ComponentConfig>(
       value, "components", name, config_vars_ptr);
-  config.task_processors = yaml_config::ParseArray<engine::TaskProcessorConfig>(
-      value, "task_processors", name, config_vars_ptr);
+  config.task_processors =
+      yaml_config::ParseMapAsArray<engine::TaskProcessorConfig>(
+          value, "task_processors", name, config_vars_ptr);
   config.default_task_processor = yaml_config::ParseString(
       value, "default_task_processor", name, config_vars_ptr);
   return config;
