@@ -17,6 +17,16 @@ using TimePoint = ClockType::time_point;
 
 TimePoint PostgresEpoch();
 
+struct TimeZoneID {
+  std::string id;
+  std::string canonical_id;
+};
+
+/// @brief Get local time zone ID and it's canonical counterpart.
+/// Apparently, the time zone won't change without a restart, so it's computed
+/// only once.
+const TimeZoneID& LocalTimezoneID();
+
 /**
  * @page PostrgeSQL timestamp support
  *

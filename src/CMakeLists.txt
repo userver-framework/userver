@@ -45,6 +45,9 @@ find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
 find_package(CurlYandex REQUIRED)
 find_package(YamlCpp REQUIRED)
+# For time zones in pg driver
+# TODO Make it optional
+find_package(ICU REQUIRED COMPONENTS uc i18n)
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev (>=2.8)" 2.8)
@@ -83,6 +86,7 @@ target_link_libraries(${PROJECT_NAME}
     ${BSON_STATIC_LIBRARIES}
     ${MONGOC_STATIC_LIBRARIES}
     ${PostgreSQL_LIBRARIES} # TODO Make libpq optional
+    ${ICU_LIBRARIES} # TODO Make optional together with libpq
 )
 
 set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
@@ -107,6 +111,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/boost-sync-event/include
   ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
   ${PostgreSQL_INCLUDE_DIRS} # TODO Make libpq optional
+  ${ICU_INCLUDE_DIRS} # TODO Make optional together with libpq
 )
 
 target_include_directories(${PROJECT_NAME}

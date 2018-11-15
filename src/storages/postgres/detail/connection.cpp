@@ -23,7 +23,6 @@ namespace {
 
 // TODO Move the timeout constant to config
 const std::chrono::seconds kDefaultTimeout(2);
-const char* kEnvTzSetting = "TZ";
 
 std::size_t QueryHash(const std::string& statement,
                       const QueryParameters& params) {
@@ -72,18 +71,17 @@ struct Connection::Impl {
   /// @brief Set local timezone. If the timezone is invalid, catch the exception
   /// and log error.
   void SetLocalTimezone() {
-    // TODO Detect canonical name of local timezone via ICU (?)
-    // cctz doesn't provide means to detect canonical name of local timezone.
-    auto tz = std::getenv(kEnvTzSetting);
-    if (tz) {
-      try {
-        SetParameter("TimeZone", tz);
-      } catch (const DataException&) {
-        // No need to log the DataException message, it has been already logged
-        // by connection wrapper.
-        LOG_ERROR() << "Invalid value for time zone " << tz;
-      }  // Let all other exceptions be propagated to the caller
-    }
+    const auto& tz = LocalTimezoneID();
+    LOG_TRACE() << "Try and set pg timezone id " << tz.id << " canonical id "
+                << tz.canonical_id;
+    const auto& tz_id = tz.canonical_id.empty() ? tz.id : tz.canonical_id;
+    try {
+      SetParameter("TimeZone", tz_id);
+    } catch (const DataException&) {
+      // No need to log the DataException message, it has been already logged
+      // by connection wrapper.
+      LOG_ERROR() << "Invalid value for time zone " << tz_id;
+    }  // Let all other exceptions be propagated to the caller
   }
 
   ConnectionState GetConnectionState() const {
