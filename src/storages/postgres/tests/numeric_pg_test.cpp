@@ -10,14 +10,10 @@ namespace io = pg::io;
 
 namespace static_test {
 
-static_assert((pg::io::traits::HasFormatter<
-                   pg::Numeric, pg::io::DataFormat::kTextDataFormat>::value ==
-               true),
-              "");
-static_assert((pg::io::traits::HasParser<
-                   pg::Numeric, pg::io::DataFormat::kTextDataFormat>::value ==
-               true),
-              "");
+using namespace io::traits;
+
+static_assert(kHasTextFormatter<pg::Numeric>, "");
+static_assert(kHasTextParser<pg::Numeric>, "");
 
 }  // namespace static_test
 

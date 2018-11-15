@@ -1,4 +1,4 @@
-#include <storages/postgres/util_test.hpp>
+#include <storages/postgres/tests/util_test.hpp>
 
 #include <postgresql/libpq-fe.h>
 
@@ -67,3 +67,7 @@ engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
           1, "close_pg_connection", engine::impl::MakeTaskProcessorPools());
   return *task_processor_holder;
 }
+
+INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreConnection,
+                        ::testing::ValuesIn(GetDsnListFromEnv()),
+                        DsnListToString);

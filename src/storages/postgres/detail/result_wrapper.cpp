@@ -45,6 +45,17 @@ std::size_t ResultWrapper::IndexOfName(const std::string& name) const {
   return n;
 }
 
+FieldDescription ResultWrapper::GetFieldDescription(std::size_t col) const {
+  return {col,
+          GetFieldTypeOid(col),
+          std::string{PQfname(handle_.get(), col)},
+          GetFieldFormat(col),
+          PQftable(handle_.get(), col),
+          PQftablecol(handle_.get(), col),
+          PQfsize(handle_.get(), col),
+          PQfmod(handle_.get(), col)};
+}
+
 bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const {
   return PQgetisnull(handle_.get(), row, col);
 }

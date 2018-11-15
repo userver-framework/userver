@@ -62,6 +62,36 @@ template <typename T, DataFormat Format>
 struct HasFormatter
     : utils::IsDeclComplete<typename IO<T, Format>::FormatterType> {};
 
+//@{
+/** @name Shortcut metafunctions, mostly for tests. */
+template <typename T>
+using HasTextParser = HasParser<T, DataFormat::kTextDataFormat>;
+template <typename T>
+using HasBinaryParser = HasParser<T, DataFormat::kBinaryDataFormat>;
+
+template <typename T>
+using HasTextFormatter = HasFormatter<T, DataFormat::kTextDataFormat>;
+template <typename T>
+using HasBinaryFormatter = HasFormatter<T, DataFormat::kBinaryDataFormat>;
+//@}
+
+//@{
+/** @name Shortcut metafunction result values */
+template <typename T, DataFormat F>
+constexpr bool kHasParser = HasParser<T, F>::value;
+template <typename T>
+constexpr bool kHasTextParser = HasTextParser<T>::value;
+template <typename T>
+constexpr bool kHasBinaryParser = HasBinaryParser<T>::value;
+
+template <typename T, DataFormat F>
+constexpr bool kHasFormatter = HasFormatter<T, F>::value;
+template <typename T>
+constexpr bool kHasTextFormatter = HasTextFormatter<T>::value;
+template <typename T>
+constexpr bool kHasBinaryFormatter = HasBinaryFormatter<T>::value;
+//@}
+
 /// Parser selector
 template <typename T>
 struct BestParser {

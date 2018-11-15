@@ -23,7 +23,43 @@
 namespace storages {
 namespace postgres {
 
-class FieldDescription;
+struct FieldDescription {
+  /// Index of the field in the result set
+  std::size_t index;
+  /// @brief The object ID of the field's data type.
+  Oid type_oid;
+  /// @brief The field name.
+  // TODO string_view
+  std::string name;
+  /// @brief Data format of the field (text/binary).
+  io::DataFormat data_format;
+  /// @brief If the field can be identified as a column of a specific table,
+  /// the object ID of the table; otherwise zero.
+  Oid table_oid;
+  /// @brief If the field can be identified as a column of a specific table,
+  /// the attribute number of the column; otherwise zero.
+  Integer table_column;
+  /// @brief The data type size (see pg_type.typlen). Note that negative
+  /// values denote variable-width types.
+  Integer type_size;
+  /// @brief The type modifier (see pg_attribute.atttypmod). The meaning of
+  /// the modifier is type-specific.
+  Integer type_modifier;
+};
+
+/// @brief A wrapper for PGresult to access field descriptions.
+class RowDescription {
+ public:
+  RowDescription(detail::ResultWrapperPtr res) : res_{res} {}
+  // TODO pass a container for connection-specific user types
+  bool CanBeReadInBinary(/* user_types */) const;
+  // TODO pass a container for connection-specific user types
+  io::DataFormat BestReplyFormat(/* user_types */) const;
+  // TODO interface for iterating field descriptions
+ private:
+  detail::ResultWrapperPtr res_;
+};
+
 class Row;
 class ResultSet;
 
@@ -193,6 +229,8 @@ class Row {
   //@}
  public:
   size_type RowIndex() const { return row_index_; }
+
+  RowDescription GetDescription() const { return {res_}; }
   //@{
   /** @name Field container interface */
   /// Number of fields
@@ -370,6 +408,7 @@ class ResultSet {
   /** @name ResultSet metadata access */
   // TODO ResultSet metadata access interface
   size_type FieldCount() const;
+  RowDescription GetRowDescription() const { return {pimpl_}; }
   //@}
 
  private:

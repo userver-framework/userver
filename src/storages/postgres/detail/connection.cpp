@@ -35,7 +35,7 @@ std::size_t QueryHash(const std::string& statement,
 }  // namespace
 
 struct Connection::Impl {
-  using PreparedStatements = std::unordered_map<std::size_t, ResultSet>;
+  using PreparedStatements = std::unordered_map<std::size_t, io::DataFormat>;
 
   PGConnectionWrapper conn_wrapper_;
   PreparedStatements prepared_;
@@ -116,11 +116,16 @@ struct Connection::Impl {
       conn_wrapper_.WaitResult(kDefaultTimeout);
       conn_wrapper_.SendDescribePrepared(statement_name);
       auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
-      prepared_.insert(std::make_pair(query_hash, res));
+      prepared_.insert(std::make_pair(
+          query_hash, res.GetRowDescription().BestReplyFormat()));
     }
     // TODO Get field descriptions from the prepare result and use them to
     // build text/binary format description
-    conn_wrapper_.SendPreparedQuery(statement_name, params);
+    auto fmt = prepared_[query_hash];
+    LOG_TRACE() << "Use "
+                << (fmt == io::DataFormat::kTextDataFormat ? "text" : "binary")
+                << " format for reply";
+    conn_wrapper_.SendPreparedQuery(statement_name, params, fmt);
     return conn_wrapper_.WaitResult(kDefaultTimeout);
   }
 

@@ -6,6 +6,9 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
+#include <storages/postgres/io/stream_text_formatter.hpp>
+#include <storages/postgres/io/stream_text_parser.hpp>
+
 namespace storages {
 namespace postgres {
 namespace io {
@@ -170,13 +173,17 @@ struct BufferFormatter<bool, DataFormat::kTextDataFormat> {
 //@{
 /** @name C++ to PostgreSQL mapping for integral types */
 template <>
-struct CppToPg<Smallint> : detail::CppToPgPredefined<PredefinedOids::kInt2> {};
+struct CppToPg<Smallint>
+    : detail::CppToPgPredefined<Smallint, PredefinedOids::kInt2> {};
 template <>
-struct CppToPg<Integer> : detail::CppToPgPredefined<PredefinedOids::kInt4> {};
+struct CppToPg<Integer>
+    : detail::CppToPgPredefined<Integer, PredefinedOids::kInt4> {};
 template <>
-struct CppToPg<Bigint> : detail::CppToPgPredefined<PredefinedOids::kInt8> {};
+struct CppToPg<Bigint>
+    : detail::CppToPgPredefined<Bigint, PredefinedOids::kInt8> {};
 template <>
-struct CppToPg<bool> : detail::CppToPgPredefined<PredefinedOids::kBoolean> {};
+struct CppToPg<bool>
+    : detail::CppToPgPredefined<bool, PredefinedOids::kBoolean> {};
 //@}
 
 }  // namespace io

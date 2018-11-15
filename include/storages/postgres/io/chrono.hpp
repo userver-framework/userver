@@ -126,12 +126,13 @@ struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
   void operator()(Buffer& buf) const {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S%Ez";
     auto str = cctz::format(format, value.value, value.tz);
-    buf.reserve(buf.size() + str.size());
+    buf.reserve(buf.size() + str.size() + 1);
     std::copy(str.begin(), str.end(), std::back_inserter(buf));
+    buf.push_back('\0');
   }
 };
 
-/// @brief Text formatter for timestamptz.
+/// @brief Binary formatter for timestamptz.
 /// PostgreSQL expects timestamptz in UTC when in binary format.
 template <typename TimePointType>
 struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
@@ -212,8 +213,9 @@ struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
     static const std::string format = "%Y-%m-%d %H:%M:%E*S";
     static const auto tz = cctz::local_time_zone();
     auto str = cctz::format(format, value, tz);
-    buf.reserve(buf.size() + str.size());
+    buf.reserve(buf.size() + str.size() + 1);
     std::copy(str.begin(), str.end(), std::back_inserter(buf));
+    buf.push_back('\0');
   }
 };
 
@@ -280,11 +282,13 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
 
 template <typename TimePointType>
 struct CppToPg<postgres::detail::TimestampTz<TimePointType>>
-    : detail::CppToPgPredefined<PredefinedOids::kTimestamptz> {};
+    : detail::CppToPgPredefined<postgres::detail::TimestampTz<TimePointType>,
+                                PredefinedOids::kTimestamptz> {};
 
 template <typename Duration>
 struct CppToPg<std::chrono::time_point<ClockType, Duration>>
-    : detail::CppToPgPredefined<PredefinedOids::kTimestamp> {};
+    : detail::CppToPgPredefined<std::chrono::time_point<ClockType, Duration>,
+                                PredefinedOids::kTimestamp> {};
 
 }  // namespace io
 }  // namespace postgres

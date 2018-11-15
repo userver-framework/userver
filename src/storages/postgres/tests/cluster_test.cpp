@@ -1,4 +1,4 @@
-#include <storages/postgres/util_test.hpp>
+#include <storages/postgres/tests/util_test.hpp>
 
 #include <gtest/gtest.h>
 

@@ -9,8 +9,30 @@ namespace storages {
 namespace postgres {
 
 //----------------------------------------------------------------------------
+// RowDescription implementation
+//----------------------------------------------------------------------------
+bool RowDescription::CanBeReadInBinary() const {
+  for (std::size_t i = 0; i < res_->FieldCount(); ++i) {
+    auto oid = res_->GetFieldTypeOid(i);
+    if (!io::HasBinaryParser(static_cast<io::PredefinedOids>(oid))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+io::DataFormat RowDescription::BestReplyFormat() const {
+  return CanBeReadInBinary() ? io::DataFormat::kBinaryDataFormat
+                             : io::DataFormat::kTextDataFormat;
+}
+
+//----------------------------------------------------------------------------
 // Field implementation
 //----------------------------------------------------------------------------
+FieldDescription Field::Description() const {
+  return res_->GetFieldDescription(field_index_);
+}
+
 bool Field::IsNull() const {
   return res_->IsFieldNull(row_index_, field_index_);
 }

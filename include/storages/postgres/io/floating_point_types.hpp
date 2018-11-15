@@ -103,9 +103,11 @@ struct BufferFormatter<double, DataFormat::kBinaryDataFormat>
 //@{
 /** @name C++ to PostgreSQL mapping for floating point types */
 template <>
-struct CppToPg<float> : detail::CppToPgPredefined<PredefinedOids::kFloat4> {};
+struct CppToPg<float>
+    : detail::CppToPgPredefined<float, PredefinedOids::kFloat4> {};
 template <>
-struct CppToPg<double> : detail::CppToPgPredefined<PredefinedOids::kFloat8> {};
+struct CppToPg<double>
+    : detail::CppToPgPredefined<double, PredefinedOids::kFloat8> {};
 //@}
 
 }  // namespace io

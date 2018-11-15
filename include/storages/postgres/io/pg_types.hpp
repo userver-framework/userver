@@ -131,3 +131,13 @@ enum class PredefinedOids {
 }  // namespace io
 }  // namespace postgres
 }  // namespace storages
+
+namespace std {
+
+template <>
+struct hash<storages::postgres::io::PredefinedOids> {
+  std::size_t operator()(storages::postgres::io::PredefinedOids value) const {
+    return static_cast<std::size_t>(value);
+  }
+};
+}  // namespace std

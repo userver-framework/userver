@@ -1,8 +1,6 @@
-#include <storages/postgres/util_test.hpp>
+#include <storages/postgres/tests/util_test.hpp>
 
 #include <gtest/gtest.h>
-
-#include <utest/utest.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/dsn.hpp>
@@ -37,7 +35,7 @@ static_assert((pg::io::traits::HasParser<
 
 namespace {
 
-void SelectOne(pg::detail::ConnectionPtr conn) {
+POSTGRE_TEST_P(SelectOne) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -63,7 +61,7 @@ void SelectOne(pg::detail::ConnectionPtr conn) {
   }
 }
 
-void SelectPlaceholder(pg::detail::ConnectionPtr conn) {
+POSTGRE_TEST_P(SelectPlaceholder) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -98,7 +96,7 @@ void SelectPlaceholder(pg::detail::ConnectionPtr conn) {
   }
 }
 
-void CheckResultset(pg::detail::ConnectionPtr conn) {
+POSTGRE_TEST_P(CheckResultset) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -178,7 +176,7 @@ void CheckResultset(pg::detail::ConnectionPtr conn) {
   }
 }
 
-void QueryErrors(pg::detail::ConnectionPtr conn) {
+POSTGRE_TEST_P(QueryErrors) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   const std::string temp_table = R"~(
@@ -213,7 +211,7 @@ void QueryErrors(pg::detail::ConnectionPtr conn) {
                pg::ForeignKeyViolation);
 }
 
-void ManualTransaction(pg::detail::ConnectionPtr conn) {
+POSTGRE_TEST_P(ManualTransaction) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   EXPECT_NO_THROW(conn->Execute("begin"))
@@ -224,7 +222,7 @@ void ManualTransaction(pg::detail::ConnectionPtr conn) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-void AutoTransaction(pg::detail::ConnectionPtr conn) {
+POSTGRE_TEST_P(AutoTransaction) {
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};
 
@@ -248,7 +246,7 @@ void AutoTransaction(pg::detail::ConnectionPtr conn) {
   }
 }
 
-void RAIITransaction(pg::detail::ConnectionPtr conn) {
+POSTGRE_TEST_P(RAIITransaction) {
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};
 
@@ -286,7 +284,7 @@ std::string FormatToUtc(
   }
 }
 
-void Timestamp(pg::detail::ConnectionPtr conn) {
+POSTGRE_TEST_P(Timestamp) {
   using time_point = std::chrono::system_clock::time_point;
   ASSERT_TRUE(conn.get());
   static const auto utc = cctz::utc_time_zone();
@@ -357,19 +355,6 @@ void Timestamp(pg::detail::ConnectionPtr conn) {
 
 }  // namespace
 
-class PostgreConnection
-    : public PostgreSQLBase,
-      public ::testing::WithParamInterface<storages::postgres::DSNList> {
-  void ReadParam() override { dsn_list_ = GetParam(); }
-
- protected:
-  storages::postgres::DSNList dsn_list_;
-};
-
-INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreConnection,
-                        ::testing::ValuesIn(GetDsnListFromEnv()),
-                        DsnListToString);
-
 TEST_P(PostgreConnection, Connect) {
   RunInCoro([this] {
     EXPECT_THROW(pg::detail::Connection::Connect("psql://", GetTaskProcessor()),
@@ -384,93 +369,5 @@ TEST_P(PostgreConnection, Connect) {
           << "Connect to correct DSN";
       CheckConnection(std::move(conn));
     }
-  });
-}
-
-TEST_P(PostgreConnection, Select1) {
-  RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
-                                                           GetTaskProcessor()))
-        << "Connect to correct DSN";
-    SelectOne(std::move(conn));
-  });
-}
-
-TEST_P(PostgreConnection, SelectPlaceholder) {
-  RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
-                                                           GetTaskProcessor()))
-        << "Connect to correct DSN";
-    SelectPlaceholder(std::move(conn));
-  });
-}
-
-TEST_P(PostgreConnection, CheckResultSet) {
-  RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
-                                                           GetTaskProcessor()))
-        << "Connect to correct DSN";
-    CheckResultset(std::move(conn));
-  });
-}
-
-TEST_P(PostgreConnection, QueryErrors) {
-  RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
-                                                           GetTaskProcessor()))
-        << "Connect to correct DSN";
-    QueryErrors(std::move(conn));
-  });
-}
-
-TEST_P(PostgreConnection, ManualTransaction) {
-  RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
-                                                           GetTaskProcessor()))
-        << "Connect to correct DSN";
-    ManualTransaction(std::move(conn));
-  });
-}
-
-TEST_P(PostgreConnection, AutoTransaction) {
-  RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
-                                                           GetTaskProcessor()))
-        << "Connect to correct DSN";
-    AutoTransaction(std::move(conn));
-  });
-}
-
-TEST_P(PostgreConnection, RAIITransaction) {
-  RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
-                                                           GetTaskProcessor()))
-        << "Connect to correct DSN";
-    RAIITransaction(std::move(conn));
-  });
-}
-
-TEST_P(PostgreConnection, Timestamp) {
-  RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn_list_[0],
-                                                           GetTaskProcessor()))
-        << "Connect to correct DSN";
-    Timestamp(std::move(conn));
   });
 }

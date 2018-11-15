@@ -43,7 +43,8 @@ struct BufferFormatter<ArbitraryPrecision<Precision>,
 
 template <std::size_t Precision>
 struct CppToPg<ArbitraryPrecision<Precision>>
-    : detail::CppToPgPredefined<PredefinedOids::kNumeric> {};
+    : detail::CppToPgPredefined<ArbitraryPrecision<Precision>,
+                                PredefinedOids::kNumeric> {};
 
 }  // namespace io
 }  // namespace postgres
