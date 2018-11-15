@@ -76,6 +76,7 @@ void CacheUpdateTrait::DoPeriodicUpdate(tracing::Span&& span) {
 
   const auto system_now = std::chrono::system_clock::now();
   Update(update_type, last_update_, system_now, std::move(span));
+  TRACE_INFO(span) << "Updated cache name=" << name_;
 
   last_update_ = system_now;
   if (update_type == UpdateType::kFull) {

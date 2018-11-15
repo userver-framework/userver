@@ -102,7 +102,7 @@ void MongoCache<MongoCacheTraits>::Update(
     CacheUpdateTrait::UpdateType type,
     const std::chrono::system_clock::time_point& last_update,
     const std::chrono::system_clock::time_point& /*now*/,
-    tracing::Span&& /*span*/) {
+    tracing::Span&& span) {
   namespace bbb = bsoncxx::builder::basic;
   namespace sm = storages::mongo;
 
@@ -123,6 +123,7 @@ void MongoCache<MongoCacheTraits>::Update(
   if (type == CacheUpdateTrait::UpdateType::kIncremental &&
       it == cursor.end()) {
     // Don't touch the cache at all
+    TRACE_INFO(span) << "No changes in cache " << MongoCacheTraits::kName;
     stats.FinishNoChanges();
     return;
   }
