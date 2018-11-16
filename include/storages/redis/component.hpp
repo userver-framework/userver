@@ -8,7 +8,7 @@
 #include <components/component_context.hpp>
 #include <utils/statistics/storage.hpp>
 
-#include <taxi_config/component.hpp>
+#include <taxi_config/storage/component.hpp>
 
 namespace redis {
 class Sentinel;

@@ -3,7 +3,7 @@
 #include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
-#include <taxi_config/component.hpp>
+#include <taxi_config/storage/component.hpp>
 
 #include <utils/async_event_channel.hpp>
 

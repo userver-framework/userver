@@ -2,7 +2,7 @@
 
 #include <server_settings/http_server_settings_base_component.hpp>
 #include <server_settings/http_server_settings_config.hpp>
-#include <taxi_config/component.hpp>
+#include <taxi_config/storage/component.hpp>
 #include <taxi_config/value.hpp>
 
 namespace components {

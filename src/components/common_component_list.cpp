@@ -7,7 +7,8 @@
 #include <logging/component.hpp>
 #include <storages/mongo/component.hpp>
 #include <storages/secdist/component.hpp>
-#include <taxi_config/component.hpp>
+#include <taxi_config/storage/component.hpp>
+#include <taxi_config/updater/mongo/component.hpp>
 
 namespace components {
 
@@ -20,7 +21,8 @@ ComponentList CommonComponentList() {
       .Append<components::CacheInvalidator>()
       .Append<components::StatisticsStorage>()
       .Append<components::Mongo>("mongo-taxi")
-      .Append<components::TaxiConfig>();
+      .Append<components::TaxiConfig>()
+      .Append<components::TaxiConfigMongoUpdater>();
 }
 
 }  // namespace components
