@@ -5,10 +5,11 @@
 
 namespace components {
 
-HttpClient::HttpClient(const ComponentConfig& /*component_config*/,
+HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
 
-    : taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
+    : LoggableComponentBase(component_config, context),
+      taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
   auto config = taxi_config_component_.Get();
   const auto& http_config = config->Get<clients::http::Config>();
   size_t threads = http_config.threads;

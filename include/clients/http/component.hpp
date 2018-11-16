@@ -15,7 +15,7 @@ class Client;
 
 namespace components {
 
-class HttpClient {
+class HttpClient : public LoggableComponentBase {
  public:
   HttpClient(const ComponentConfig&, const ComponentContext&);
 
