@@ -112,13 +112,13 @@ TimestampTz(const std::chrono::time_point<ClockType, Duration>& val,
 template <typename Duration>
 detail::TimestampTz<std::chrono::time_point<ClockType, Duration>> TimestampTz(
     std::chrono::time_point<ClockType, Duration>& val) {
-  return {val, cctz::utc_time_zone()};
+  return {val, cctz::local_time_zone()};
 }
 
 template <typename Duration>
 detail::TimestampTz<const std::chrono::time_point<ClockType, Duration>>
 TimestampTz(const std::chrono::time_point<ClockType, Duration>& val) {
-  return {val, cctz::utc_time_zone()};
+  return {val, cctz::local_time_zone()};
 }
 
 namespace io {
@@ -154,9 +154,7 @@ struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
 
   template <typename Buffer>
   void operator()(Buffer& buf) const {
-    // TODO More robust method for detecting local timezone offset. ICU?
-    static const auto tz = cctz::local_time_zone();
-    auto lookup = tz.lookup(value.value);
+    auto lookup = value.tz.lookup(value.value);
     auto val = value.value - std::chrono::seconds{lookup.offset};
     WriteBuffer<DataFormat::kBinaryDataFormat>(buf, val);
   }
@@ -199,9 +197,7 @@ struct BufferParser<
   explicit BufferParser(ValueType&& val) : value{std::move(val)} {}
 
   void operator()(const FieldBuffer& buffer) {
-    // TODO More robust method for detecting local timezone offset. ICU?
-    static const auto tz = cctz::local_time_zone();
-    auto lookup = tz.lookup(value.value);
+    auto lookup = value.tz.lookup(value.value);
     typename ValueType::TimePointType tmp;
     ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, tmp);
     value.value = tmp + std::chrono::seconds{lookup.offset};
@@ -221,7 +217,7 @@ struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
   template <typename Buffer>
   void operator()(Buffer& buf) const {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S";
-    static const auto tz = cctz::local_time_zone();
+    const auto tz = cctz::local_time_zone();
     auto str = cctz::format(format, value, tz);
     buf.reserve(buf.size() + str.size() + 1);
     std::copy(str.begin(), str.end(), std::back_inserter(buf));
@@ -260,7 +256,7 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
 
   void operator()(const FieldBuffer& buffer) {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S";
-    static const auto tz = cctz::local_time_zone();
+    const auto tz = cctz::local_time_zone();
     std::string timestr{buffer.buffer, buffer.length};
     ValueType tmp;
     if (cctz::parse(format, timestr, tz, &tmp)) {

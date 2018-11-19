@@ -59,7 +59,7 @@ struct Connection::Impl {
     conn_wrapper_.AsyncConnect(conninfo, kDefaultTimeout);
     // We cannot handle exceptions here, so we let them got to the caller
     // Turn off error messages localisation
-    SetParameter("lc_messages", "C");
+    SetParameter("lc_messages", "C", ParameterScope::kSession);
     // Detect if the connection is read only.
     auto res = ExecuteCommand("show transaction_read_only");
     if (res) {
@@ -76,7 +76,7 @@ struct Connection::Impl {
                 << tz.canonical_id;
     const auto& tz_id = tz.canonical_id.empty() ? tz.id : tz.canonical_id;
     try {
-      SetParameter("TimeZone", tz_id);
+      SetParameter("TimeZone", tz_id, ParameterScope::kSession);
     } catch (const DataException&) {
       // No need to log the DataException message, it has been already logged
       // by connection wrapper.
@@ -88,10 +88,17 @@ struct Connection::Impl {
     return conn_wrapper_.GetConnectionState();
   }
 
-  void SetParameter(const std::string& param, const std::string& value) {
-    LOG_DEBUG() << "Set '" << param << "' = '" << value << "'";
-    ExecuteCommand("update pg_settings set setting = $1 where name = $2", value,
-                   param);
+  void SetParameter(const std::string& param, const std::string& value,
+                    ParameterScope scope) {
+    bool is_transaction_scope = (scope == ParameterScope::kTransaction);
+    auto log_level = (is_transaction_scope ? ::logging::Level::kDebug
+                                           : ::logging::Level::kInfo);
+    // TODO Log user/host/database
+    LOG(log_level) << "Set '" << param << "' = '" << value << "' at "
+                   << (is_transaction_scope ? "transaction" : "session")
+                   << " scope";
+    ExecuteCommand("select set_config($1, $2, $3)", param, value,
+                   is_transaction_scope);
   }
 
   template <typename... T>
@@ -201,8 +208,8 @@ ResultSet Connection::Execute(const std::string& statement,
 }
 
 void Connection::SetParameter(const std::string& param,
-                              const std::string& value) {
-  pimpl_->SetParameter(param, value);
+                              const std::string& value, ParameterScope scope) {
+  pimpl_->SetParameter(param, value, scope);
 }
 
 ResultSet Connection::ExperimentalExecute(

@@ -27,6 +27,13 @@ namespace detail {
 /// Responsible for all asynchronous operations
 class Connection {
  public:
+  enum class ParameterScope {
+    kSession,     //!< Parameter is set for the duration of the whole session
+    kTransaction  //!< Parameter will be in effect until the transaction is
+                  //!< finished
+  };
+
+ public:
   Connection(const Connection&) = delete;
   Connection(Connection&&) = delete;
   ~Connection();
@@ -90,7 +97,8 @@ class Connection {
   /// @brief Set session parameter
   /// Parameters documentation
   /// https://www.postgresql.org/docs/current/sql-set.html
-  void SetParameter(const std::string& param, const std::string& value);
+  void SetParameter(const std::string& param, const std::string& value,
+                    ParameterScope scope);
 
   //@{
   /** @name Command sending interface for experimenting */

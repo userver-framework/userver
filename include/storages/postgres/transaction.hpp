@@ -60,6 +60,10 @@ class Transaction {
     params.Write(args...);
     return DoExecute(statement, params);
   }
+  /// Set a connection parameter
+  /// https://www.postgresql.org/docs/current/sql-set.html
+  /// The parameter is set for this transaction only
+  void SetParameter(const std::string& param_name, const std::string& value);
   //@}
 
   /// Commit the transaction

@@ -58,6 +58,17 @@ ResultSet Transaction::DoExecute(const std::string& statement,
   return conn_->Execute(statement, params);
 }
 
+void Transaction::SetParameter(const std::string& param_name,
+                               const std::string& value) {
+  if (!conn_) {
+    LOG_ERROR() << "Set parameter called after transaction finished"
+                << logging::LogExtra::Stacktrace();
+    throw NotInTransaction("Transaction handle is not valid");
+  }
+  conn_->SetParameter(param_name, value,
+                      detail::Connection::ParameterScope::kTransaction);
+}
+
 void Transaction::Commit() {
   auto conn = std::move(conn_);
   if (conn) {
