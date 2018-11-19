@@ -17,6 +17,8 @@ namespace components {
 
 class HttpClient : public LoggableComponentBase {
  public:
+  static constexpr auto kName = "http-client";
+
   HttpClient(const ComponentConfig&, const ComponentContext&);
 
   ~HttpClient();
@@ -27,7 +29,7 @@ class HttpClient : public LoggableComponentBase {
   void OnConfigUpdate(const std::shared_ptr<taxi_config::Config>& config);
 
  private:
-  std::unique_ptr<clients::http::Client> http_client_;
+  std::shared_ptr<clients::http::Client> http_client_;
   components::TaxiConfig& taxi_config_component_;
   utils::AsyncEventSubscriberScope subscriber_scope_;
 };
