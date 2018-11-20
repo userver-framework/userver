@@ -62,6 +62,8 @@ class RowDescription {
 
 class Row;
 class ResultSet;
+template <typename T>
+class TypedResultSet;
 
 /// @brief Accessor to a single field in a result set's row
 class Field {
@@ -339,6 +341,7 @@ class ConstRowIterator
 ///
 /// ## Usage synopsis
 /// ```
+/// auto trx = ...;
 /// auto res = trx.Execute("select a, b from table");
 /// for (auto row : res) {
 ///   // Process row data
@@ -411,6 +414,18 @@ class ResultSet {
   RowDescription GetRowDescription() const { return {pimpl_}; }
   //@}
 
+  //@{
+  /** @name Typed results */
+  /// @brief Get a wrapper for iterating over a set of typed results.
+  /// For more information see @ref psql_typed_results
+  template <typename T>
+  TypedResultSet<T> As() const;
+
+  /// @brief Extract data into a container.
+  /// For more information see @ref psql_typed_results
+  template <typename Container>
+  Container AsContainer() const;
+  //@}
  private:
   detail::ResultWrapperPtr pimpl_;
 };
