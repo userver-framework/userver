@@ -30,12 +30,6 @@ Connection::Connection(engine::TaskProcessor& task_processor,
       request_handler_(request_handler),
       stats_(std::move(stats)),
       remote_address_(peer_socket_.Getpeername().RemoteAddress()),
-      request_parser_(std::make_unique<http::HttpRequestParser>(
-          request_handler.GetHandlerInfoIndex(), *config_.request,
-          [this](std::shared_ptr<request::RequestBase>&& request_ptr) {
-            NewRequest(std::move(request_ptr));
-          },
-          stats_->parser_stats)),
       is_accepting_requests_(true),
       stop_sender_after_queue_is_empty_(false),
       is_closing_(false) {
@@ -58,7 +52,6 @@ Connection::~Connection() {
   // SendResponses() has to wait for all responses and send them out
   LOG_TRACE() << "Waiting for request tasks queue to become empty for fd "
               << fd;
-  request_tasks_empty_event_.Send();
   response_sender_task_.Wait();
 
   peer_socket_.Close();
@@ -81,26 +74,38 @@ void Connection::Start() {
 
   LOG_TRACE() << "Starting socket listener for fd " << Fd();
 
-  response_sender_task_ =
-      engine::CriticalAsync(task_processor_, [this] { SendResponses(); });
+  response_sender_task_ = engine::CriticalAsync(
+      task_processor_,
+      [this](Queue::Consumer consumer) { SendResponses(std::move(consumer)); },
+      request_tasks_->GetConsumer());
   socket_listener_ =
-      engine::CriticalAsync(task_processor_, [this] { ListenForRequests(); });
+      engine::CriticalAsync(task_processor_,
+                            [this](Queue::Producer producer) {
+                              ListenForRequests(std::move(producer));
+                            },
+                            request_tasks_->GetProducer());
   LOG_TRACE() << "Started socket listener for fd " << Fd();
 }
 
-void Connection::Stop() {
-  socket_listener_.RequestCancel();
-  StopResponseSenderTaskAsync();
-}
+void Connection::Stop() { socket_listener_.RequestCancel(); }
 
 int Connection::Fd() const { return peer_socket_.Fd(); }
 
 bool Connection::IsRequestTasksEmpty() const {
-  return request_tasks_.size_approx() == 0;
+  return request_tasks_->Size() == 0;
 }
 
-void Connection::ListenForRequests() {
+void Connection::ListenForRequests(Queue::Producer producer) {
+  request_tasks_->SetMaxLength(config_.requests_queue_size_threshold);
   try {
+    http::HttpRequestParser request_parser(
+        request_handler_.GetHandlerInfoIndex(), *config_.request,
+        [this, &producer](std::shared_ptr<request::RequestBase>&& request_ptr) {
+          if (!NewRequest(std::move(request_ptr), producer))
+            is_accepting_requests_ = false;
+        },
+        stats_->parser_stats);
+
     std::vector<char> buf(config_.in_buffer_size);
     while (is_accepting_requests_) {
       size_t bytes_read = peer_socket_.RecvSome(buf.data(), buf.size(), {});
@@ -112,17 +117,10 @@ void Connection::ListenForRequests() {
       LOG_TRACE() << "Received " << bytes_read << " byte(s) from "
                   << peer_socket_.Getpeername() << " on fd " << Fd();
 
-      if (!request_parser_->Parse(buf.data(), bytes_read)) {
+      if (!request_parser.Parse(buf.data(), bytes_read)) {
         LOG_DEBUG() << "Malformed request from " << peer_socket_.Getpeername()
                     << " on fd " << Fd();
         break;
-      }
-
-      while (request_tasks_.size_approx() >=
-             config_.requests_queue_size_threshold) {
-        LOG_TRACE() << "Receiving from fd " << Fd()
-                    << " paused due to queue overfill";
-        request_task_full_event_.WaitForEvent();
       }
     }
   } catch (const std::exception& ex) {
@@ -131,20 +129,18 @@ void Connection::ListenForRequests() {
                 << ex.what();
   }
 
-  StopResponseSenderTaskAsync();
-
   LOG_TRACE() << "Stopping ListenForRequests()";
   CloseAsync();
 }
 
-void Connection::NewRequest(
-    std::shared_ptr<request::RequestBase>&& request_ptr) {
+bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
+                            Queue::Producer& producer) {
   if (!is_accepting_requests_) {
     /* In case of recv() of >1 requests it is possible to get here
      * after is_accepting_requests_ is set to true. Just ignore tail
      * garbage.
      */
-    return;
+    return true;
   }
 
   if (request_ptr->IsFinal()) {
@@ -152,29 +148,8 @@ void Connection::NewRequest(
   }
 
   ++stats_->active_request_count;
-  request_tasks_.enqueue(std::make_pair(
-      request_ptr, request_handler_.StartRequestTask(request_ptr)));
-
-  request_tasks_empty_event_.Send();
-}
-
-Connection::QueueItem Connection::DequeueRequestTask() {
-  QueueItem item;
-
-  while (true) {
-    if (request_tasks_.try_dequeue(item)) {
-      request_task_full_event_.Send();
-      break;
-    }
-
-    /* Queue is empty */
-
-    if (stop_sender_after_queue_is_empty_) break;
-
-    request_tasks_empty_event_.WaitForEvent();
-  }
-
-  return item;
+  return producer.Push(new QueueItem(std::make_pair(
+      request_ptr, request_handler_.StartRequestTask(request_ptr))));
 }
 
 void Connection::HandleQueueItem(QueueItem& item) {
@@ -187,15 +162,15 @@ void Connection::HandleQueueItem(QueueItem& item) {
   }
 }
 
-void Connection::SendResponses() {
+void Connection::SendResponses(Queue::Consumer consumer) {
   LOG_TRACE() << "Sending responses for fd " << Fd();
 
   while (true) {
-    auto item = DequeueRequestTask();
-    if (!item.second) break;
+    std::unique_ptr<QueueItem> item;
+    if (!consumer.Pop(item)) break;
 
-    HandleQueueItem(item);
-    auto& request = *item.first;
+    HandleQueueItem(*item);
+    auto& request = *item->first;
     auto& response = request.GetResponse();
     assert(!response.IsSent());
     request.SetStartSendResponseTime();
@@ -220,22 +195,9 @@ void Connection::SendResponses() {
                             remote_address_);
   }
 
-  StopSocketListenersAsync();
-
   LOG_TRACE() << "Stopping SendResponses()";
 
   CloseAsync();
-}
-
-void Connection::StopSocketListenersAsync() {
-  is_accepting_requests_ = false;
-  request_task_full_event_.Send();
-}
-
-void Connection::StopResponseSenderTaskAsync() {
-  /* Stop SendResponses() after all handlers are finished */
-  stop_sender_after_queue_is_empty_ = true;
-  request_tasks_empty_event_.Send();
 }
 
 void Connection::CloseAsync() {
