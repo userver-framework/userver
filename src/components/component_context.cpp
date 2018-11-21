@@ -18,6 +18,9 @@ const std::string kStopComponentName = "component_stop";
 const std::string kComponentName = "component_name";
 }  // namespace
 
+ComponentsLoadCancelledException::ComponentsLoadCancelledException()
+    : std::runtime_error("Components load cancelled") {}
+
 ComponentContext::TaskToComponentMapScope::TaskToComponentMapScope(
     ComponentContext& context, const std::string& component_name)
     : context_(context) {
@@ -226,8 +229,7 @@ ComponentBase* ComponentContext::DoFindComponent(
     return component != nullptr;
   });
 
-  if (components_load_cancelled_)
-    throw std::runtime_error("Components load cancelled");
+  if (components_load_cancelled_) throw ComponentsLoadCancelledException();
   return component;
 }
 

@@ -15,10 +15,11 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   size_t threads = http_config.threads;
 
   http_client_ = std::make_unique<clients::http::Client>(threads);
-  subscriber_scope_ =
-      taxi_config_component_.AddListener(this, &HttpClient::OnConfigUpdate);
 
   OnConfigUpdate(config);
+
+  subscriber_scope_ =
+      taxi_config_component_.AddListener(this, &HttpClient::OnConfigUpdate);
 }
 
 HttpClient::~HttpClient() { subscriber_scope_.Unsubscribe(); }

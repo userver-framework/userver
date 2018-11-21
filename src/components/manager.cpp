@@ -121,6 +121,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
   }
 
   std::vector<engine::TaskWithResult<void>> tasks;
+  bool is_load_cancelled = false;
   try {
     for (const auto& adder : component_list) {
       tasks.push_back(engine::CriticalAsync([&]() {
@@ -133,7 +134,13 @@ void Manager::AddComponents(const ComponentList& component_list) {
       }));
     }
 
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+      try {
+        task.Get();
+      } catch (const ComponentsLoadCancelledException&) {
+        is_load_cancelled = true;
+      }
+    }
   } catch (const std::exception& ex) {
     component_context_->CancelComponentsLoad();
 
@@ -146,6 +153,14 @@ void Manager::AddComponents(const ComponentList& component_list) {
     ClearComponents();
     throw;
   }
+
+  if (is_load_cancelled) {
+    ClearComponents();
+    throw std::logic_error(
+        "Components load cancelled, but only ComponentsLoadCancelledExceptions "
+        "were caught");
+  }
+
   LOG_INFO() << "All components loaded";
   component_context_->OnAllComponentsLoaded();
 }  // namespace components
@@ -173,6 +188,9 @@ void Manager::AddComponentImpl(
     if (auto* logging_component = dynamic_cast<components::Logging*>(component))
       logging_component_ = logging_component;
     LOG_TRACE() << "Added component " << name;
+  } catch (const ComponentsLoadCancelledException&) {
+    component_context_->RemoveComponentDependencies(name);
+    throw;
   } catch (const std::exception& ex) {
     std::string message = "Cannot start component " + name + ": " + ex.what();
     component_context_->RemoveComponentDependencies(name);

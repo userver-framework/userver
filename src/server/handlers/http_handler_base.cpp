@@ -92,12 +92,6 @@ HttpHandlerBase::HttpHandlerBase(
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
 
-  const auto graphite_path = "http.by-path." +
-                             utils::graphite::EscapeName(GetConfig().path) +
-                             ".by-handler." + config.Name();
-  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
-      graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
-                               std::placeholders::_1));
   if (IsEnabled()) {
     auto& server_component =
         component_context.FindComponent<components::Server>();
@@ -114,6 +108,12 @@ HttpHandlerBase::HttpHandlerBase(
       throw std::runtime_error(std::string("can't add handler to server: ") +
                                ex.what());
     }
+    const auto graphite_path = "http.by-path." +
+                               utils::graphite::EscapeName(GetConfig().path) +
+                               ".by-handler." + config.Name();
+    statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
+        graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
+                                 std::placeholders::_1));
   }
 }
 

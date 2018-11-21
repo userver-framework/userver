@@ -4,6 +4,7 @@
 #include <cassert>
 #include <memory>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -24,11 +25,16 @@ class TaskContext;
 
 namespace tracing {
 class Span;
-}
+}  // namespace tracing
 
 namespace components {
 
 class Manager;
+
+class ComponentsLoadCancelledException : public std::runtime_error {
+ public:
+  ComponentsLoadCancelledException();
+};
 
 class ComponentContext {
  public:
