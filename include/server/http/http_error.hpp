@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "http_status.hpp"
+
 namespace server {
 namespace http {
 
