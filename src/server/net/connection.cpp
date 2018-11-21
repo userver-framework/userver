@@ -30,6 +30,7 @@ Connection::Connection(engine::TaskProcessor& task_processor,
       request_handler_(request_handler),
       stats_(std::move(stats)),
       remote_address_(peer_socket_.Getpeername().RemoteAddress()),
+      request_tasks_(Queue::Create()),
       is_accepting_requests_(true),
       stop_sender_after_queue_is_empty_(false),
       is_closing_(false) {

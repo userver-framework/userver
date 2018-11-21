@@ -10,7 +10,7 @@ namespace engine {
 template <typename T>
 class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
  public:
-  ~SpscQueue();
+  virtual ~SpscQueue();
 
   SpscQueue(const SpscQueue&) = delete;
 
@@ -72,7 +72,7 @@ class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
   /// Can be called only if Consumer is dead to release all queued items
   bool PopNoblockNoConsumer(T&);
 
- private:
+ protected:
   SpscQueue()
       :
 #ifndef NDEBUG
@@ -85,6 +85,7 @@ class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
         size_{0} {
   }
 
+ private:
   bool Push(T&&);
 
   bool Pop(T&);
@@ -115,7 +116,11 @@ std::shared_ptr<SpscQueue<T>> SpscQueue<T>::Create() {
                 "T has non-trivial destructor. Use "
                 "SpscQueue<std::unique_ptr<T>> instead of SpscQueue<T> or use "
                 "another T.");
-  return std::shared_ptr<SpscQueue<T>>(new SpscQueue());
+
+  struct X : SpscQueue<T> {
+    X() = default;
+  };
+  return std::make_shared<X>();
 }
 
 template <typename T>
@@ -216,11 +221,14 @@ void SpscQueue<T>::MarkProducerIsDead() {
  * for all non-pop'ed items in destructor.
  */
 template <typename T>
-class SpscQueue<std::unique_ptr<T>> : private SpscQueue<T*> {
+class SpscQueue<std::unique_ptr<T>> : public SpscQueue<T*> {
  public:
   static std::shared_ptr<SpscQueue<std::unique_ptr<T>>> Create() {
-    return std::shared_ptr<SpscQueue<std::unique_ptr<T>>>(
-        new SpscQueue<std::unique_ptr<T>>());
+    struct X : SpscQueue<std::unique_ptr<T>> {
+      X() = default;
+    };
+
+    return std::make_shared<X>();
   }
 
   ~SpscQueue() noexcept {
