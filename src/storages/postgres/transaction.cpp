@@ -15,10 +15,11 @@ const detail::QueryParameters kEmptyParams;
 }  // namespace
 
 Transaction::Transaction(detail::ConnectionPtr&& conn,
-                         const TransactionOptions& options)
+                         const TransactionOptions& options,
+                         detail::SteadyClock::time_point&& trx_start_time)
     : conn_{std::move(conn)} {
   if (conn_) {
-    conn_->Begin(options);
+    conn_->Begin(options, std::move(trx_start_time));
   }
 }
 Transaction::Transaction(Transaction&&) noexcept = default;

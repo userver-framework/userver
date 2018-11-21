@@ -31,11 +31,73 @@ std::size_t QueryHash(const std::string& statement,
   return res;
 }
 
+struct CountExecute {
+  CountExecute(Connection::Statistics& stats) : stats_(stats) {
+    ++stats_.execute_total;
+    exec_begin_time = SteadyClock::now();
+  }
+
+  ~CountExecute() {
+    if (!completed_) {
+      ++stats_.error_execute_total;
+    }
+    stats_.sum_query_duration += SteadyClock::now() - exec_begin_time;
+  }
+
+  void AccountResult(const ResultSet& res) {
+    if (res.FieldCount()) {
+      ++stats_.reply_total;
+      if (res.GetRowDescription().BestReplyFormat() ==
+          io::DataFormat::kBinaryDataFormat) {
+        ++stats_.bin_reply_total;
+      }
+    }
+    completed_ = true;
+  }
+
+ private:
+  Connection::Statistics& stats_;
+  bool completed_ = false;
+  SteadyClock::time_point exec_begin_time;
+};
+
+struct TrackTrxEnd {
+  TrackTrxEnd(Connection::Statistics& stats) : stats_(stats) {}
+  ~TrackTrxEnd() { stats_.trx_end_time = SteadyClock::now(); }
+
+ protected:
+  Connection::Statistics& stats_;
+};
+
+struct CountCommit : TrackTrxEnd {
+  CountCommit(Connection::Statistics& stats) : TrackTrxEnd(stats) {
+    ++stats_.commit_total;
+  }
+};
+
+struct CountRollback : TrackTrxEnd {
+  CountRollback(Connection::Statistics& stats) : TrackTrxEnd(stats) {
+    ++stats_.rollback_total;
+  }
+};
+
 }  // namespace
+
+Connection::Statistics::Statistics() noexcept
+    : trx_total(0),
+      commit_total(0),
+      rollback_total(0),
+      parse_total(0),
+      execute_total(0),
+      reply_total(0),
+      bin_reply_total(0),
+      error_execute_total(0),
+      sum_query_duration(0) {}
 
 struct Connection::Impl {
   using PreparedStatements = std::unordered_map<std::size_t, io::DataFormat>;
 
+  Connection::Statistics stats_;
   PGConnectionWrapper conn_wrapper_;
   PreparedStatements prepared_;
   bool read_only_ = true;
@@ -53,6 +115,12 @@ struct Connection::Impl {
   }
 
   void Cancel() { conn_wrapper_.Cancel().Get(); }
+
+  Connection::Statistics GetStatsAndReset() {
+    assert(!IsInTransaction() &&
+           "GetStatsAndReset should be called outside of transaction");
+    return std::exchange(stats_, Connection::Statistics{});
+  }
 
   // TODO Add tracing::Span
   void AsyncConnect(const std::string& conninfo) {
@@ -111,8 +179,10 @@ struct Connection::Impl {
   // TODO Add tracing::Span
   ResultSet ExecuteCommand(const std::string& statement,
                            const detail::QueryParameters& params) {
+    CountExecute count_execute(stats_);
     auto query_hash = QueryHash(statement, params);
     std::string statement_name = "q" + std::to_string(query_hash);
+
     if (prepared_.count(query_hash)) {
       LOG_TRACE() << "Query " << statement << " is already prepared.";
     } else {
@@ -123,6 +193,7 @@ struct Connection::Impl {
       auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
       prepared_.insert(std::make_pair(
           query_hash, res.GetRowDescription().BestReplyFormat()));
+      ++stats_.parse_total;
     }
     // TODO Get field descriptions from the prepare result and use them to
     // build text/binary format description
@@ -130,14 +201,21 @@ struct Connection::Impl {
     LOG_TRACE() << "Use "
                 << (fmt == io::DataFormat::kTextDataFormat ? "text" : "binary")
                 << " format for reply";
+
     conn_wrapper_.SendPreparedQuery(statement_name, params, fmt);
-    return conn_wrapper_.WaitResult(kDefaultTimeout);
+    auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
+    count_execute.AccountResult(res);
+    return res;
   }
 
   // TODO Add tracing::Span
   ResultSet ExecuteCommand(const std::string& statement) {
+    CountExecute count_execute(stats_);
     conn_wrapper_.SendQuery(statement);
-    return conn_wrapper_.WaitResult(kDefaultTimeout);
+
+    auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
+    count_execute.AccountResult(res);
+    return res;
   }
 
   /// A separate method from ExecuteCommand as the method will be transformed
@@ -150,22 +228,41 @@ struct Connection::Impl {
     return conn_wrapper_.WaitResult(kDefaultTimeout);
   }
 
-  void Begin(const TransactionOptions& options) {
-    if (GetConnectionState() > ConnectionState::kIdle)
+  void Begin(const TransactionOptions& options,
+             SteadyClock::time_point&& trx_start_time) {
+    if (IsInTransaction()) {
       throw AlreadyInTransaction();
+    }
+    stats_.trx_start_time = std::move(trx_start_time);
+    stats_.trx_begin_time = SteadyClock::now();
+    ++stats_.trx_total;
     ExecuteCommand(BeginStatement(options));
   }
 
   void Commit() {
-    if (GetConnectionState() < ConnectionState::kTranIdle)
+    if (!IsInTransaction()) {
       throw NotInTransaction();
+    }
+    CountCommit count_commit(stats_);
     ExecuteCommand("commit");
   }
 
   void Rollback() {
-    if (GetConnectionState() < ConnectionState::kTranIdle)
+    if (!IsInTransaction()) {
       throw NotInTransaction();
+    }
+    CountRollback count_rollback(stats_);
     ExecuteCommand("rollback");
+  }
+
+  bool IsConnected() const {
+    return GetConnectionState() > ConnectionState::kOffline;
+  }
+
+  bool IsIdle() const { return GetConnectionState() == ConnectionState::kIdle; }
+
+  bool IsInTransaction() const {
+    return GetConnectionState() > ConnectionState::kIdle;
   }
 };  // Connection::Impl
 
@@ -189,18 +286,17 @@ ConnectionState Connection::GetState() const {
   return pimpl_->GetConnectionState();
 }
 
-bool Connection::IsConnected() const {
-  return pimpl_->GetConnectionState() > ConnectionState::kOffline;
-}
-bool Connection::IsIdle() const {
-  return pimpl_->GetConnectionState() == ConnectionState::kIdle;
-}
+bool Connection::IsConnected() const { return pimpl_->IsConnected(); }
 
-bool Connection::IsInTransaction() const {
-  return pimpl_->GetConnectionState() > ConnectionState::kIdle;
-}
+bool Connection::IsIdle() const { return pimpl_->IsIdle(); }
+
+bool Connection::IsInTransaction() const { return pimpl_->IsInTransaction(); }
 
 void Connection::Close() { pimpl_->Close().Get(); }
+
+Connection::Statistics Connection::GetStatsAndReset() {
+  return pimpl_->GetStatsAndReset();
+}
 
 ResultSet Connection::Execute(const std::string& statement,
                               const detail::QueryParameters& params) {
@@ -218,8 +314,9 @@ ResultSet Connection::ExperimentalExecute(
   return pimpl_->ExperimentalExecute(statement, reply_format, params);
 }
 
-void Connection::Begin(const TransactionOptions& options) {
-  pimpl_->Begin(options);
+void Connection::Begin(const TransactionOptions& options,
+                       SteadyClock::time_point&& trx_start_time) {
+  pimpl_->Begin(options, std::move(trx_start_time));
 }
 
 void Connection::Commit() { pimpl_->Commit(); }

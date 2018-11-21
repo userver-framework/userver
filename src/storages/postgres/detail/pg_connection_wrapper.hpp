@@ -82,6 +82,8 @@ class PGConnectionWrapper {
 
   template <typename ExceptionType>
   void CheckError(const std::string& cmd, int pg_dispatch_result);
+  template <typename ExceptionType>
+  void CloseWithError(ExceptionType&& ex);
 
  private:
   engine::TaskProcessor& bg_task_processor_;

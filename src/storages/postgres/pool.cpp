@@ -6,6 +6,7 @@
 
 #include <logging/log.hpp>
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/exceptions.hpp>
 
 namespace storages {
@@ -68,6 +69,39 @@ class ConnectionPool::Impl {
 
   void Release(detail::Connection* connection) {
     assert(connection);
+
+    // Grab stats only if connection is not in transaction
+    if (!connection->IsInTransaction()) {
+      const auto conn_stats = connection->GetStatsAndReset();
+
+      stats_.trx_total += conn_stats.trx_total;
+      stats_.trx_commit_total += conn_stats.commit_total;
+      stats_.trx_rollback_total += conn_stats.rollback_total;
+      stats_.trx_parse_total += conn_stats.parse_total;
+      stats_.trx_execute_total += conn_stats.execute_total;
+      stats_.trx_reply_total += conn_stats.reply_total;
+      stats_.trx_bin_reply_total += conn_stats.bin_reply_total;
+      stats_.trx_error_execute_total += conn_stats.error_execute_total;
+
+      const auto trx_exec_duration =
+          conn_stats.trx_end_time - conn_stats.trx_start_time;
+      stats_.trx_exec_percentile.GetCurrentCounter().Account(
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              trx_exec_duration)
+              .count());
+      const auto trx_delay_duration =
+          conn_stats.trx_begin_time - conn_stats.trx_start_time;
+      stats_.trx_delay_percentile.GetCurrentCounter().Account(
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              trx_delay_duration)
+              .count());
+      stats_.trx_user_percentile.GetCurrentCounter().Account(
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              trx_exec_duration - trx_delay_duration -
+              conn_stats.sum_query_duration)
+              .count());
+    }
+
     if (connection->IsIdle()) {
       Push(connection);
       return;
@@ -80,9 +114,13 @@ class ConnectionPool::Impl {
     DeleteConnection(connection);
   }
 
+  const Statistics& GetStatistics() const { return stats_; }
+
   Transaction Begin(const TransactionOptions& options) {
+    auto trx_start_time = detail::SteadyClock::now();
     auto conn = Acquire();
-    return Transaction{std::move(conn), options};
+    assert(conn);
+    return Transaction{std::move(conn), options, std::move(trx_start_time)};
   }
 
  private:
@@ -90,15 +128,22 @@ class ConnectionPool::Impl {
     SizeGuard sg(size_);
 
     if (sg.GetSize() > max_size_) {
+      ++stats_.pool_error_exhaust_total;
       throw PoolError("PostgreSQL pool reached maximum size: " +
                       std::to_string(max_size_));
     }
 
     LOG_DEBUG() << "Creating PostgreSQL connection, current pool size: "
                 << sg.GetSize();
-    std::unique_ptr<detail::Connection> connection =
-        detail::Connection::Connect(dsn_, bg_task_processor_);
+    std::unique_ptr<detail::Connection> connection;
+    try {
+      connection = detail::Connection::Connect(dsn_, bg_task_processor_);
+    } catch (const Error&) {
+      ++stats_.conn_error_total;
+      throw;
+    }
 
+    ++stats_.conn_open_total;
     sg.Dismiss();
     return connection.release();
   }
@@ -130,9 +175,11 @@ class ConnectionPool::Impl {
   void DeleteConnection(detail::Connection* connection) {
     delete connection;
     --size_;
+    ++stats_.conn_drop_total;
   }
 
  private:
+  ConnectionPool::Statistics stats_;
   std::string dsn_;
   engine::TaskProcessor& bg_task_processor_;
   size_t max_size_;
@@ -154,6 +201,10 @@ ConnectionPool& ConnectionPool::operator=(ConnectionPool&&) = default;
 
 detail::ConnectionPtr ConnectionPool::GetConnection() {
   return pimpl_->Acquire();
+}
+
+const ConnectionPool::Statistics& ConnectionPool::GetStatistics() const {
+  return pimpl_->GetStatistics();
 }
 
 Transaction ConnectionPool::Begin(const TransactionOptions& options) {

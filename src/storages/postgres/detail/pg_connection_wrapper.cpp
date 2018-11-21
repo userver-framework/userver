@@ -70,6 +70,12 @@ engine::TaskWithResult<void> PGConnectionWrapper::Close() {
       });
 }
 
+template <typename ExceptionType>
+void PGConnectionWrapper::CloseWithError(ExceptionType&& ex) {
+  Close().Get();
+  throw std::move(ex);
+}
+
 engine::TaskWithResult<void> PGConnectionWrapper::Cancel() {
   if (ConnectionState::kOffline == GetConnectionState()) {
     // TODO avoid empty task
@@ -109,9 +115,9 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
     throw ConnectionFailed{conninfo, "Failed to allocate PGconn structure"};
   }
   if (CONNECTION_BAD == PQstatus(conn_)) {
-    Close().Get();
     LOG_DEBUG() << "Failed to start a PostgreSQL connection to " << conninfo;
-    throw ConnectionFailed{conninfo, "Failed to start libpq connection"};
+    CloseWithError(
+        ConnectionFailed{conninfo, "Failed to start libpq connection"});
   }
   const auto socket = PQsocket(conn_);
   if (socket < 0) {
@@ -207,20 +213,17 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
       LOG_TRACE() << "Successful completion of a command returning data";
       break;
     case PGRES_SINGLE_TUPLE:
-      Close().Get();
       LOG_ERROR()
           << "libpq was switched to SINGLE_ROW mode, this is not supported.";
-      throw NotImplemented{"Single row mode is not supported"};
+      CloseWithError(NotImplemented{"Single row mode is not supported"});
     case PGRES_COPY_IN:
     case PGRES_COPY_OUT:
     case PGRES_COPY_BOTH:
-      Close().Get();
       LOG_ERROR() << "PostgreSQL COPY command invoked which is not implemented"
                   << logging::LogExtra::Stacktrace();
-      throw NotImplemented{"Copy is not implemented"};
+      CloseWithError(NotImplemented{"Copy is not implemented"});
     case PGRES_BAD_RESPONSE:
-      Close().Get();
-      throw ConnectionError{"Failed to parse server response"};
+      CloseWithError(ConnectionError{"Failed to parse server response"});
     case PGRES_NONFATAL_ERROR: {
       Message msg{wrapper};
       switch (msg.GetSeverity()) {

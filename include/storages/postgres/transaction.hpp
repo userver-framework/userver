@@ -1,6 +1,7 @@
 #pragma once
 
 #include <storages/postgres/detail/query_parameters.hpp>
+#include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 #include <storages/postgres/result_set.hpp>
@@ -35,7 +36,9 @@ namespace postgres {
 class Transaction {
  public:
   explicit Transaction(detail::ConnectionPtr&& impl,
-                       const TransactionOptions& = TransactionOptions{});
+                       const TransactionOptions& = TransactionOptions{},
+                       detail::SteadyClock::time_point&& trx_start_time =
+                           detail::SteadyClock::now());
 
   Transaction(Transaction&&) noexcept;
   Transaction& operator=(Transaction&&);

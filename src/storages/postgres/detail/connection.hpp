@@ -1,13 +1,15 @@
 #pragma once
 
+#include <chrono>
+#include <string>
+
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/result_set.hpp>
 #include <storages/postgres/transaction.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <storages/postgres/detail/query_parameters.hpp>
-
-#include <string>
+#include <storages/postgres/detail/time_types.hpp>
 
 namespace storages {
 namespace postgres {
@@ -33,6 +35,42 @@ class Connection {
                   //!< finished
   };
 
+  /// @brief Statistics storage
+  /// @note Should be reset after every transaction execution
+  struct Statistics {
+    using SmallCounter = uint8_t;
+    using Counter = uint16_t;
+
+    /// Statistics constructor
+    Statistics() noexcept;
+
+    /// Number of transactions started
+    SmallCounter trx_total : 1;
+    /// Number of transactions committed
+    SmallCounter commit_total : 1;
+    /// Number of transactions rolled back
+    SmallCounter rollback_total : 1;
+    /// Number of parsed queries
+    Counter parse_total;
+    /// Number of query executions (calls to `Execute`)
+    Counter execute_total;
+    /// Total number of replies
+    Counter reply_total;
+    /// Number of replies in binary format
+    Counter bin_reply_total;
+    /// Error during query execution
+    Counter error_execute_total;
+
+    /// Transaction initiation time
+    SteadyClock::time_point trx_start_time;
+    /// Transaction begin statement time
+    SteadyClock::time_point trx_begin_time;
+    /// Transaction end time
+    SteadyClock::time_point trx_end_time;
+    /// Sum of all query durations
+    SteadyClock::duration sum_query_duration;
+  };
+
  public:
   Connection(const Connection&) = delete;
   Connection(Connection&&) = delete;
@@ -54,6 +92,10 @@ class Connection {
   /// transaction to finish.
   void Close();
 
+  /// Get currently accumulated statistics and reset counters
+  /// @note May only be called when connection is not in transaction
+  Statistics GetStatsAndReset();
+
   bool IsReadOnly() const;
   /// Get current connection state
   ConnectionState GetState() const;
@@ -66,11 +108,11 @@ class Connection {
   //@{
   /// Check if connection is currently in transaction
   bool IsInTransaction() const;
-  /** @name Transaction interface */
-  /// Begin a transaction in Postgres
+  /// Begin a transaction in Postgres with specific start time point
   /// Suspends coroutine for execution
   /// @throws AlreadyInTransaction
-  void Begin(const TransactionOptions& options);
+  void Begin(const TransactionOptions& options,
+             SteadyClock::time_point&& trx_start_time);
   /// Commit current transaction
   /// Suspends coroutine for execution
   /// @throws NotInTransaction
