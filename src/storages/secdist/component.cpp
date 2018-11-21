@@ -2,7 +2,7 @@
 
 #include <logging/log.hpp>
 
-#include "exceptions.hpp"
+#include <storages/secdist/exceptions.hpp>
 
 namespace components {
 

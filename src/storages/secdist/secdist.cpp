@@ -6,9 +6,9 @@
 
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
+#include <storages/secdist/exceptions.hpp>
 #include <utils/demangle.hpp>
 #include <yaml_config/value.hpp>
-#include "exceptions.hpp"
 
 #include <yaml_config/value.hpp>
 
