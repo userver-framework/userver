@@ -103,6 +103,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   ${LIBBSONCXX_STATIC_INCLUDE_DIRS}
   ${LIBMONGOCXX_STATIC_INCLUDE_DIRS}
+  # Used in PosgreSQL driver, TODO make it optional
+  ${USERVER_THIRD_PARTY_DIRS}/magic_get/include
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE

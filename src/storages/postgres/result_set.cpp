@@ -47,15 +47,29 @@ io::DataFormat Field::GetDataFormat() const {
 
 Oid Field::GetTypeOid() const { return res_->GetFieldTypeOid(field_index_); }
 
-//----------------------------------------------------------------------------
-// ConstFieldIterator implementation
-//----------------------------------------------------------------------------
-ConstFieldIterator& ConstFieldIterator::Advance(difference_type distance) {
-  if (*this) {
+bool Field::IsValid() const {
+  return res_ && row_index_ < res_->RowCount() &&
+         field_index_ <= res_->FieldCount();
+}
+
+int Field::Compare(const Field& rhs) const { return Distance(rhs); }
+
+std::ptrdiff_t Field::Distance(const Field& rhs) const {
+  // Invalid iterators are equal
+  if (!IsValid() && !rhs.IsValid()) return 0;
+  assert(res_ == rhs.res_ &&
+         "Cannot compare iterators in different result sets");
+  assert(row_index_ == rhs.row_index_ &&
+         "Cannot compare field iterators in different data rows");
+  return field_index_ - rhs.field_index_;
+}
+
+Field& Field::Advance(std::ptrdiff_t distance) {
+  if (IsValid()) {
     // movement is defined only for valid iterator
-    difference_type target = distance + field_index_;
+    std::ptrdiff_t target = distance + field_index_;
     if (target < 0 ||
-        target > static_cast<difference_type>(res_->FieldCount())) {
+        target > static_cast<std::ptrdiff_t>(res_->FieldCount())) {
       // Invalidate the iterator
       field_index_ = ResultSet::npos;
     } else {
@@ -77,26 +91,6 @@ ConstFieldIterator& ConstFieldIterator::Advance(difference_type distance) {
     }
   }
   return *this;
-}
-
-int ConstFieldIterator::Compare(const ConstFieldIterator& rhs) const {
-  return Distance(rhs);
-}
-
-ConstFieldIterator::difference_type ConstFieldIterator::Distance(
-    const ConstFieldIterator& rhs) const {
-  // Invalid iterators are equal
-  if (!*this && !rhs) return 0;
-  assert(res_ == rhs.res_ &&
-         "Cannot compare iterators in different result sets");
-  assert(row_index_ == rhs.row_index_ &&
-         "Cannot compare field iterators in different data rows");
-  return field_index_ - rhs.field_index_;
-}
-
-bool ConstFieldIterator::IsValid() const {
-  return res_ && row_index_ < res_->RowCount() &&
-         field_index_ <= res_->FieldCount();
 }
 
 //----------------------------------------------------------------------------
@@ -135,15 +129,23 @@ Row::reference Row::operator[](const std::string& name) const {
   if (idx == ResultSet::npos) throw FieldNameDoesntExist{name};
   return (*this)[idx];
 }
+bool Row::IsValid() const { return res_ && row_index_ <= res_->RowCount(); }
 
-//----------------------------------------------------------------------------
-// ConstRowIterator implementation
-//----------------------------------------------------------------------------
-ConstRowIterator& ConstRowIterator::Advance(difference_type distance) {
-  if (*this) {
+int Row::Compare(const Row& rhs) const { return Distance(rhs); }
+
+std::ptrdiff_t Row::Distance(const Row& rhs) const {
+  // Invalid iterators are equal
+  if (!IsValid() && !rhs.IsValid()) return 0;
+  assert(res_ == rhs.res_ &&
+         "Cannot compare iterators in different result sets");
+  return row_index_ - rhs.row_index_;
+}
+
+Row& Row::Advance(std::ptrdiff_t distance) {
+  if (IsValid()) {
     // movement is defined only for valid iterators
-    difference_type target = distance + row_index_;
-    if (target < 0 || target > static_cast<difference_type>(res_->RowCount())) {
+    std::ptrdiff_t target = distance + row_index_;
+    if (target < 0 || target > static_cast<std::ptrdiff_t>(res_->RowCount())) {
       row_index_ = ResultSet::npos;
     } else {
       row_index_ = target;
@@ -164,23 +166,6 @@ ConstRowIterator& ConstRowIterator::Advance(difference_type distance) {
     }
   }
   return *this;
-}
-
-int ConstRowIterator::Compare(const ConstRowIterator& rhs) const {
-  return Distance(rhs);
-}
-
-ConstRowIterator::difference_type ConstRowIterator::Distance(
-    const ConstRowIterator& rhs) const {
-  // Invalid iterators are equal
-  if (!*this && !rhs) return 0;
-  assert(res_ == rhs.res_ &&
-         "Cannot compare iterators in different result sets");
-  return row_index_ - rhs.row_index_;
-}
-
-bool ConstRowIterator::IsValid() const {
-  return res_ && row_index_ <= res_->RowCount();
 }
 
 //----------------------------------------------------------------------------

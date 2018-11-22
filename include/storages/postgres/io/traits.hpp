@@ -1,9 +1,10 @@
 #pragma once
 
+#include <type_traits>
+
 #include <storages/postgres/detail/is_decl_complete.hpp>
 #include <storages/postgres/io/pg_types.hpp>
-
-#include <type_traits>
+#include <utils/void_t.hpp>
 
 namespace storages {
 namespace postgres {
@@ -20,24 +21,24 @@ struct FieldBuffer {
 
 /// @brief Primary template for Postgre buffer parser.
 /// Specialisations should provide call operators that parse FieldBuffer.
-template <typename T, DataFormat, typename Enable = std::__void_t<>>
+template <typename T, DataFormat, typename Enable = ::utils::void_t<>>
 struct BufferParser;
 
 /// @brief Primary template for Postgre buffer formatter
 /// Specialisations should provide call operators that write to a buffer.
-template <typename T, DataFormat, typename Enable = std::__void_t<>>
+template <typename T, DataFormat, typename Enable = ::utils::void_t<>>
 struct BufferFormatter;
 
 namespace traits {
 
 /// Customisation point for parsers
-template <typename T, DataFormat F, typename Enable = std::__void_t<>>
+template <typename T, DataFormat F, typename Enable = ::utils::void_t<>>
 struct Input {
   using type = BufferParser<T, F>;
 };
 
 /// Customisation point for formatters
-template <typename T, DataFormat F, typename Enable = std::__void_t<>>
+template <typename T, DataFormat F, typename Enable = ::utils::void_t<>>
 struct Output {
   using type = BufferFormatter<T, F>;
 };

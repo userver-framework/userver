@@ -1,5 +1,6 @@
 #pragma once
 
+#include <storages/postgres/detail/typed_rows.hpp>
 #include <storages/postgres/result_set.hpp>
 
 namespace storages::postgres {
@@ -55,8 +56,7 @@ namespace storages::postgres {
 ///   std::cout << "a = " << a << "; b = " << b << "\n";
 /// }
 ///
-/// auto data = geric_result.AsContainer<my_row_type>();
-/// static_assert(std::is_same_v<decltype data, std::vector<my_row_type>>, "");
+/// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
 /// ```
 ///
 /// ## Aggregate classes.
@@ -80,8 +80,7 @@ namespace storages::postgres {
 ///   std::cout << "a = " << row.a << "; b = " << row.b << "\n";
 /// }
 ///
-/// auto data = geric_result.AsContainer<my_row_type>();
-/// static_assert(std::is_same_v<decltype data, std::vector<my_row_type>>, "");
+/// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
 /// ```
 ///
 /// ## Non-aggregate classes.
@@ -112,18 +111,75 @@ namespace storages::postgres {
 ///   std::cout << "a = " << row.GetA() << "; b = " << row.GetB() << "\n";
 /// }
 ///
-/// auto data = geric_result.AsContainer<my_row_type>();
-/// static_assert(std::is_same_v<decltype data, std::vector<my_row_type>>, "");
+/// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
 /// ```
 template <typename T>
 class TypedResultSet {
  public:
-  explicit TypedResultSet(detail::ResultWrapperPtr pimpl) : pimpl_{pimpl} {}
+  using size_type = ResultSet::size_type;
+  using difference_type = ResultSet::difference_type;
+  static constexpr size_type npos = ResultSet::npos;
+
   //@{
-  /** @name Container interface */
+  /** @name Row container concept */
+  using const_iterator = detail::ConstTypedRowIterator<T>;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+  using value_type = T;
+  using reference = const value_type;
+  using pointer = const_iterator;
   //@}
  private:
-  detail::ResultWrapperPtr pimpl_;
+  //@{
+  using UserData = detail::RowToUserData<T>;
+  //@}
+ public:
+  explicit TypedResultSet(ResultSet result) : result_{result} {}
+
+  /// Number of rows in the result set
+  size_type Size() const { return result_.Size(); }
+  bool IsEmpty() const { return Size() == 0; }
+  explicit operator bool() const { return !IsEmpty(); }
+  bool operator!() const { return IsEmpty(); }
+  //@{
+  /** @name Container interface */
+  //@{
+  /** @name Row container interface */
+  //@{
+  /** @name Forward iteration */
+  const_iterator cbegin() const { return const_iterator{result_.pimpl_, 0}; }
+  const_iterator begin() const { return cbegin(); }
+  const_iterator cend() const { return const_iterator{result_.pimpl_, Size()}; }
+  const_iterator end() const { return cend(); }
+  //@}
+  //@{
+  /** @name Reverse iteration */
+  const_reverse_iterator crbegin() const {
+    return const_reverse_iterator(const_iterator(result_.pimpl_, Size() - 1));
+  }
+  const_reverse_iterator rbegin() const { return crbegin(); }
+  const_reverse_iterator crend() const {
+    return const_reverse_iterator(const_iterator(result_.pimpl_, npos));
+  }
+  const_reverse_iterator rend() const { return crend(); }
+  //@}
+  //@{
+  /** @name Random access interface */
+  /// Access a row by index
+  /// Accessing a row beyond the result set size is undefined behaviour
+  reference operator[](size_type index) const {
+    return UserData::FromRow(result_[index]);
+  }
+  /// Range-checked access to a row by index
+  /// Accessing a row beyond the result set size will throw an exception
+  /// @throws RowIndexOutOfBounds
+  reference At(size_type index) const {
+    return UserData::FromRow(result_.At(index));
+  }
+  //@}
+  //@}
+ private:
+  ResultSet result_;
 };
 
 }  // namespace storages::postgres

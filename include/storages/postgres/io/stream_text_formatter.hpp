@@ -14,12 +14,13 @@ namespace traits {
 
 namespace detail {
 
-template <typename T, typename = std::__void_t<>>
+template <typename T, typename = ::utils::void_t<>>
 struct HasOutputOperator : std::false_type {};
 
 template <typename T>
-struct HasOutputOperator<T, std::__void_t<decltype(std::declval<std::ostream&>()
-                                                   << std::declval<T&>())>>
+struct HasOutputOperator<T,
+                         ::utils::void_t<decltype(std::declval<std::ostream&>()
+                                                  << std::declval<T&>())>>
     : std::true_type {};
 
 template <typename T>

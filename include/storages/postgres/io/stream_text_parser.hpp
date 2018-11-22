@@ -14,14 +14,13 @@ namespace io {
 namespace traits {
 
 namespace detail {
-template <typename T, typename = std::__void_t<>>
+template <typename T, typename = ::utils::void_t<>>
 struct HasInputOperator : std::false_type {};
 
 template <typename T>
-struct HasInputOperator<T,
-                        std::__void_t<decltype(std::declval<std::istream&>() >>
-                                               std::declval<T&>())>>
-    : std::true_type {};
+struct HasInputOperator<
+    T, ::utils::void_t<decltype(std::declval<std::istream&>() >>
+                                std::declval<T&>())>> : std::true_type {};
 
 template <typename T>
 using CustomTextParserDefined =

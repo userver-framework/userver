@@ -192,6 +192,13 @@ class Field {
     throw NoValueParser{::utils::GetTypeName<T>(),
                         io::DataFormat::kBinaryDataFormat};
   }
+  //@{
+  /** @name Iteration support */
+  bool IsValid() const;
+  int Compare(const Field& rhs) const;
+  std::ptrdiff_t Distance(const Field& rhs) const;
+  Field& Advance(std::ptrdiff_t);
+  //@}
 
   detail::ResultWrapperPtr res_;
   size_type row_index_;
@@ -201,15 +208,10 @@ class Field {
 /// @brief Iterator over fields in a result set's row
 class ConstFieldIterator
     : public detail::ConstDataIterator<ConstFieldIterator, Field> {
-  friend class ConstDataIterator;
   friend class Row;
 
   ConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
       : ConstDataIterator(res, row, col) {}
-  ConstFieldIterator& Advance(difference_type);
-  int Compare(const ConstFieldIterator& rhs) const;
-  difference_type Distance(const ConstFieldIterator& rhs) const;
-  bool IsValid() const;
 };
 
 /// Data row in a result set
@@ -279,6 +281,12 @@ class Row {
     To(res);
     return res;
   }
+  template <typename T>
+  T AsTuple() const {
+    T res;
+    To(res);
+    return res;
+  }
 
   /// Read fields into variables in order of their names in the first argument
   template <typename... T>
@@ -316,6 +324,14 @@ class Row {
   Row(detail::ResultWrapperPtr res, size_type row)
       : res_{res}, row_index_{row} {}
 
+  //@{
+  /** @name Iteration support */
+  bool IsValid() const;
+  int Compare(const Row& rhs) const;
+  std::ptrdiff_t Distance(const Row& rhs) const;
+  Row& Advance(std::ptrdiff_t);
+  //@}
+
   detail::ResultWrapperPtr res_;
   size_type row_index_;
 };
@@ -324,14 +340,9 @@ class Row {
 class ConstRowIterator
     : public detail::ConstDataIterator<ConstRowIterator, Row> {
   friend class ResultSet;
-  friend class ConstDataIterator;
 
   ConstRowIterator(detail::ResultWrapperPtr res, size_type row)
       : ConstDataIterator(res, row) {}
-  ConstRowIterator& Advance(difference_type);
-  int Compare(const ConstRowIterator& rhs) const;
-  difference_type Distance(const ConstRowIterator& rhs) const;
-  bool IsValid() const;
 };
 
 /// @brief PostgreSQL result set
@@ -374,7 +385,6 @@ class ResultSet {
 
   //@{
   /** @name Row container interface */
-  /// Number of rows in the result set
   //@{
   /** @name Forward iteration */
   const_iterator cbegin() const;
@@ -419,7 +429,9 @@ class ResultSet {
   /// @brief Get a wrapper for iterating over a set of typed results.
   /// For more information see @ref psql_typed_results
   template <typename T>
-  TypedResultSet<T> As() const;
+  TypedResultSet<T> As() const {
+    return TypedResultSet<T>{*this};
+  }
 
   /// @brief Extract data into a container.
   /// For more information see @ref psql_typed_results
@@ -427,15 +439,13 @@ class ResultSet {
   Container AsContainer() const;
   //@}
  private:
+  template <typename T>
+  friend class TypedResultSet;
+
   detail::ResultWrapperPtr pimpl_;
 };
 
 namespace detail {
-
-struct ExpandVariadic {
-  template <typename... U>
-  ExpandVariadic(U&&...) {}
-};
 
 //@{
 /** @name Sequental field extraction */
@@ -445,7 +455,7 @@ struct RowDataExtractorBase;
 template <std::size_t... Indexes, typename... T>
 struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
   static void ExtractValues(const Row& row, T&&... val) {
-    ExpandVariadic(row[Indexes].To(std::forward<T>(val))...);
+    (row[Indexes].To(std::forward<T>(val)), ...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>& val) {
     std::tuple<T...> tmp{row[Indexes].template As<T>()...};
@@ -455,7 +465,7 @@ struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
   static void ExtractValues(const Row& row,
                             const std::initializer_list<std::string>& names,
                             T&&... val) {
-    ExpandVariadic(row[*(names.begin() + Indexes)].To(std::forward<T>(val))...);
+    (row[*(names.begin() + Indexes)].To(std::forward<T>(val)), ...);
   }
   static void ExtractTuple(const Row& row,
                            const std::initializer_list<std::string>& names,
@@ -467,8 +477,7 @@ struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
   static void ExtractValues(const Row& row,
                             const std::initializer_list<std::size_t>& indexes,
                             T&&... val) {
-    ExpandVariadic(
-        row[*(indexes.begin() + Indexes)].To(std::forward<T>(val))...);
+    (row[*(indexes.begin() + Indexes)].To(std::forward<T>(val)), ...);
   }
   static void ExtractTuple(const Row& row,
                            const std::initializer_list<std::size_t>& indexes,
@@ -539,5 +548,53 @@ void Row::To(const std::initializer_list<size_type>& indexes,
   detail::RowDataExtractor<T...>::ExtractTuple(*this, indexes, val);
 }
 
+namespace detail {
+
+template <typename T, typename = ::utils::void_t<>>
+struct CanReserve : std::false_type {};
+
+template <typename T>
+struct CanReserve<T, ::utils::void_t<decltype(std::declval<T>().reserve(
+                         std::declval<std::size_t>()))>> : std::true_type {};
+
+template <typename T>
+constexpr bool kCanReserve = CanReserve<T>::value;
+
+template <typename T, typename = ::utils::void_t<>>
+struct CanPushBack : std::false_type {};
+
+template <typename T>
+struct CanPushBack<T, ::utils::void_t<decltype(std::declval<T>().push_back(
+                          std::declval<typename T::value_type>()))>>
+    : std::true_type {};
+
+template <typename T>
+constexpr bool kCanPushBack = CanPushBack<T>::value;
+
+template <typename T>
+auto Inserter(T& container) {
+  if constexpr (kCanPushBack<T>) {
+    return std::back_inserter(container);
+  } else {
+    return std::inserter(container, container.end());
+  }
+}
+
+}  // namespace detail
+
+template <typename Container>
+Container ResultSet::AsContainer() const {
+  using ValueType = typename Container::value_type;
+  Container c;
+  if constexpr (detail::kCanReserve<Container>) {
+    c.reserve(Size());
+  }
+  auto res = As<ValueType>();
+  std::copy(res.begin(), res.end(), detail::Inserter(c));
+  return c;
+}
+
 }  // namespace postgres
 }  // namespace storages
+
+#include <storages/postgres/typed_result_set.hpp>

@@ -6,20 +6,19 @@ namespace storages {
 namespace postgres {
 namespace detail {
 
-// clang-format off
-/// @brief Template for implementing ResultSet::ConstRowIterator and ResultSet::ConstFieldIterator
+/// @brief Template for implementing ResultSet::ConstRowIterator and
+/// ResultSet::ConstFieldIterator.
 ///
 /// FinalType must provide following public functions:
 /// Advance(int)
 /// Compare(...)
 /// Distance(...)
 /// Valid()
-// clang-format on
 template <typename FinalType, typename DataType>
 class ConstDataIterator : protected DataType {
  public:
   //@{
-  /** @iterator Concept */
+  /** @name Iterator concept */
   using value_type = DataType;
   using difference_type = std::ptrdiff_t;
   using reference = const value_type&;
@@ -35,8 +34,8 @@ class ConstDataIterator : protected DataType {
 
   //@{
   /** @name Iterator validity */
-  explicit operator bool() const { return Rebind().IsValid(); }
-  bool operator!() const { return !Rebind().IsValid(); }
+  explicit operator bool() const { return this->IsValid(); }
+  bool operator!() const { return !this->IsValid(); }
   //@}
 
   //@{
@@ -67,7 +66,7 @@ class ConstDataIterator : protected DataType {
     return res;
   }
   difference_type operator-(const FinalType& rhs) const {
-    return Rebind().Distance(rhs);
+    return this->Distance(rhs);
   }
 
   FinalType operator[](difference_type index) const { return *this + index; }
@@ -102,9 +101,10 @@ class ConstDataIterator : protected DataType {
   }
 
   FinalType& DoAdvance(difference_type distance) {
-    return Rebind().Advance(distance);
+    this->Advance(distance);
+    return Rebind();
   }
-  int DoCompare(const FinalType& lhs) const { return Rebind().Compare(lhs); }
+  int DoCompare(const FinalType& lhs) const { return this->Compare(lhs); }
 };
 
 }  // namespace detail
