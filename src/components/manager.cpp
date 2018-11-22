@@ -162,8 +162,13 @@ void Manager::AddComponents(const ComponentList& component_list) {
   }
 
   LOG_INFO() << "All components loaded";
-  component_context_->OnAllComponentsLoaded();
-}  // namespace components
+  try {
+    component_context_->OnAllComponentsLoaded();
+  } catch (const std::exception& ex) {
+    ClearComponents();
+    throw;
+  }
+}
 
 void Manager::AddComponentImpl(
     const components::ComponentConfigMap& config_map, const std::string& name,
@@ -188,7 +193,8 @@ void Manager::AddComponentImpl(
     if (auto* logging_component = dynamic_cast<components::Logging*>(component))
       logging_component_ = logging_component;
     LOG_TRACE() << "Added component " << name;
-  } catch (const ComponentsLoadCancelledException&) {
+  } catch (const ComponentsLoadCancelledException& ex) {
+    LOG_WARNING() << "Cannot start component " << name << ": " << ex.what();
     component_context_->RemoveComponentDependencies(name);
     throw;
   } catch (const std::exception& ex) {

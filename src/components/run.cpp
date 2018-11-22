@@ -57,8 +57,13 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
   utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
   LOG_DEBUG() << "Masked signals";
 
-  auto manager_ptr =
-      std::make_unique<Manager>(std::move(config), component_list);
+  std::unique_ptr<Manager> manager_ptr;
+  try {
+    manager_ptr = std::make_unique<Manager>(std::move(config), component_list);
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "Loading failed: " << ex.what();
+    throw;
+  }
 
   if (run_mode == RunMode::kOnce) return;
 

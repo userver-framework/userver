@@ -108,7 +108,14 @@ void ComponentContext::OnAllComponentsAreStopping(tracing::Span& parent_span) {
 void ComponentContext::OnAllComponentsLoaded() {
   std::lock_guard<engine::Mutex> lock(component_mutex_);
   for (auto& component_item : components_) {
-    component_item.second->OnAllComponentsLoaded();
+    try {
+      component_item.second->OnAllComponentsLoaded();
+    } catch (const std::exception& ex) {
+      std::string message = "OnAllComponentsLoaded() failed for component " +
+                            component_item.first + ": " + ex.what();
+      LOG_ERROR() << message;
+      throw std::runtime_error(message);
+    }
   }
 }
 
