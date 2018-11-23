@@ -126,8 +126,6 @@ struct Connection::Impl {
   void AsyncConnect(const std::string& conninfo) {
     conn_wrapper_.AsyncConnect(conninfo, kDefaultTimeout);
     // We cannot handle exceptions here, so we let them got to the caller
-    // Turn off error messages localisation
-    SetParameter("lc_messages", "C", ParameterScope::kSession);
     // Detect if the connection is read only.
     auto res = ExecuteCommand("show transaction_read_only");
     if (res) {
