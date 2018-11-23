@@ -114,7 +114,10 @@ class ConnectionPool::Impl {
     DeleteConnection(connection);
   }
 
-  const Statistics& GetStatistics() const { return stats_; }
+  const InstanceStatistics& GetStatistics() const {
+    stats_.conn_active_total = size_.load(std::memory_order_relaxed);
+    return stats_;
+  }
 
   Transaction Begin(const TransactionOptions& options) {
     auto trx_start_time = detail::SteadyClock::now();
@@ -142,6 +145,9 @@ class ConnectionPool::Impl {
       ++stats_.conn_error_total;
       throw;
     }
+
+    // Clean up the statistics and not account it
+    std::ignore = connection->GetStatsAndReset();
 
     ++stats_.conn_open_total;
     sg.Dismiss();
@@ -179,7 +185,7 @@ class ConnectionPool::Impl {
   }
 
  private:
-  ConnectionPool::Statistics stats_;
+  mutable InstanceStatistics stats_;
   std::string dsn_;
   engine::TaskProcessor& bg_task_processor_;
   size_t max_size_;
@@ -203,7 +209,7 @@ detail::ConnectionPtr ConnectionPool::GetConnection() {
   return pimpl_->Acquire();
 }
 
-const ConnectionPool::Statistics& ConnectionPool::GetStatistics() const {
+const InstanceStatistics& ConnectionPool::GetStatistics() const {
   return pimpl_->GetStatistics();
 }
 

@@ -8,7 +8,9 @@
 #include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/statistics_storage.hpp>
 #include <engine/mutex.hpp>
+#include <utils/statistics/storage.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
@@ -73,13 +75,22 @@ class Postgres : public LoggableComponentBase {
   /// Get total shard count
   size_t GetShardCount() const;
 
+  /// Reports statistics for PostgreSQL driver
+  formats::json::Value ExtendStatistics(
+      const utils::statistics::StatisticsRequest& /*request*/);
+
  private:
+  components::StatisticsStorage& statistics_storage_;
+  utils::statistics::Entry statistics_holder_;
+
   size_t min_pool_size_ = 0;
   size_t max_pool_size_ = 0;
   engine::TaskProcessor* bg_task_processor_ = nullptr;
   storages::postgres::ShardedClusterDescription shard_to_desc_;
   mutable engine::Mutex shards_mutex_;
   mutable std::vector<storages::postgres::ClusterPtr> shards_;
+  mutable engine::Mutex shards_ready_mutex_;
+  mutable std::vector<storages::postgres::Cluster*> shards_ready_;
 };
 
 }  // namespace components

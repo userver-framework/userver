@@ -1,4 +1,3 @@
-
 #include <storages/postgres/dsn.hpp>
 
 #include <storages/postgres/exceptions.hpp>
@@ -100,7 +99,7 @@ DSNList SplitByHost(const std::string& conninfo) {
   return res;
 }
 
-std::string MakeDsnNick(const std::string& conninfo) {
+std::string MakeDsnNick(const std::string& conninfo, bool escape) {
   auto opts = ParseDSNOptions(conninfo);
   std::map<std::string, std::string> opt_dict{{"host", "localhost"},
                                               {"port", kPostgreSQLDefaultPort}};
@@ -120,22 +119,29 @@ std::string MakeDsnNick(const std::string& conninfo) {
     }
     ++opt;
   }
-  std::ostringstream os;
-  for (auto const& key : {"host", "port", "dbname", "user"}) {
-    if (!opt_dict[key].empty()) {
-      if (!os.str().empty()) {
-        os << "_";
-      }
-      os << opt_dict[key];
+  std::string dsn_str;
+  std::array<const char*, 4> keys = {"user", "host", "port", "dbname"};
+  std::array<char, 3> delims = {'@', ':', '/'};
+  for (size_t i = 0; i < keys.size(); ++i) {
+    auto const& key = keys[i];
+    if (opt_dict[key].empty()) {
+      continue;
     }
+
+    if (i != 0) {
+      dsn_str += escape ? '_' : delims[i - 1];
+    }
+    dsn_str += opt_dict[key];
   }
-  auto dsn_str = os.str();
-  dsn_str.erase(std::remove_if(dsn_str.begin(), dsn_str.end(),
-                               [](char c) {
-                                 return !std::isalpha(c) && !std::isdigit(c) &&
-                                        c != '_';
-                               }),
-                dsn_str.end());
+
+  if (escape) {
+    dsn_str.erase(std::remove_if(dsn_str.begin(), dsn_str.end(),
+                                 [](char c) {
+                                   return !std::isalpha(c) &&
+                                          !std::isdigit(c) && c != '_';
+                                 }),
+                  dsn_str.end());
+  }
   return dsn_str;
 }
 

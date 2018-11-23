@@ -4,6 +4,7 @@
 
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/options.hpp>
+#include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
 
 namespace engine {
@@ -38,6 +39,9 @@ class Cluster {
           size_t initial_idle_connection_pool_size,
           size_t max_connection_pool_size);
   ~Cluster();
+
+  /// Get cluster statistics
+  ClusterStatistics GetStatistics() const;
 
   //@{
   /** @name Transaction start */

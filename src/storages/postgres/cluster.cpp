@@ -18,6 +18,10 @@ Cluster::Cluster(const ClusterDescription& cluster_desc,
 
 Cluster::~Cluster() = default;
 
+ClusterStatistics Cluster::GetStatistics() const {
+  return pimpl_->GetStatistics();
+}
+
 Transaction Cluster::Begin(const TransactionOptions& options) {
   return Begin(ClusterHostType::kAny, options);
 }

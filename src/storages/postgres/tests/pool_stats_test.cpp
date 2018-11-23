@@ -31,6 +31,7 @@ TEST_P(PostgrePoolStats, EmptyPool) {
     const auto& stats = pool.GetStatistics();
     EXPECT_EQ(stats.conn_open_total, 0);
     EXPECT_EQ(stats.conn_drop_total, 0);
+    EXPECT_EQ(stats.conn_active_total, 0);
     EXPECT_EQ(stats.trx_total, 0);
     EXPECT_EQ(stats.trx_commit_total, 0);
     EXPECT_EQ(stats.trx_rollback_total, 0);
@@ -59,6 +60,7 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
     const auto& stats = pool.GetStatistics();
     EXPECT_EQ(stats.conn_open_total, min_pool_size);
     EXPECT_EQ(stats.conn_drop_total, 0);
+    EXPECT_EQ(stats.conn_active_total, min_pool_size);
     EXPECT_EQ(stats.trx_total, 0);
     EXPECT_EQ(stats.trx_commit_total, 0);
     EXPECT_EQ(stats.trx_rollback_total, 0);
@@ -111,6 +113,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
     const auto& stats = pool.GetStatistics();
     EXPECT_GE(stats.conn_open_total, 1);
     EXPECT_EQ(stats.conn_drop_total, 0);
+    EXPECT_GE(stats.conn_active_total, 1);
     EXPECT_EQ(stats.trx_total, trx_count);
     EXPECT_EQ(stats.trx_commit_total, trx_count);
     EXPECT_EQ(stats.trx_rollback_total, 0);

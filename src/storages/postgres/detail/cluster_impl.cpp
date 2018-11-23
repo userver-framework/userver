@@ -20,6 +20,42 @@ ClusterImpl::ClusterImpl(ClusterTopology&& topology,
   }
 }
 
+ClusterStatistics ClusterImpl::GetStatistics() const {
+  ClusterStatistics cluster_stats;
+
+  // TODO make this all atomic down below when topology changes
+  const auto& dsn_list = topology_.GetDsnList();
+
+  const auto& master_indices =
+      topology_.GetHostsByType(ClusterHostType::kMaster);
+  if (!master_indices.empty()) {
+    auto idx = master_indices[0];
+    cluster_stats.master.dsn = MakeDsnNick(dsn_list[idx], false);
+    cluster_stats.master.stats = host_pools_[idx].GetStatistics();
+  }
+
+  const auto& sync_slave_indices =
+      topology_.GetHostsByType(ClusterHostType::kSyncSlave);
+  if (!sync_slave_indices.empty()) {
+    auto idx = sync_slave_indices[0];
+    cluster_stats.sync_slave.dsn = MakeDsnNick(dsn_list[idx], false);
+    cluster_stats.sync_slave.stats = host_pools_[idx].GetStatistics();
+  }
+
+  const auto& slaves_indices =
+      topology_.GetHostsByType(ClusterHostType::kSlave);
+  if (!slaves_indices.empty()) {
+    cluster_stats.slaves.reserve(slaves_indices.size());
+    for (auto&& idx : slaves_indices) {
+      InstanceStatsDescriptor slave_desc;
+      slave_desc.dsn = MakeDsnNick(dsn_list[idx], false);
+      slave_desc.stats = host_pools_[idx].GetStatistics();
+      cluster_stats.slaves.push_back(std::move(slave_desc));
+    }
+  }
+  return cluster_stats;
+}
+
 Transaction ClusterImpl::Begin(ClusterHostType ht,
                                const TransactionOptions& options) {
   auto host_type = ht;

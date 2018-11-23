@@ -7,6 +7,7 @@
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/pool.hpp>
+#include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
 
 #include <storages/postgres/detail/topology.hpp>
@@ -20,6 +21,8 @@ class ClusterImpl {
   ClusterImpl(ClusterTopology&& topology,
               engine::TaskProcessor& bg_task_processor, size_t initial_size,
               size_t max_size);
+
+  ClusterStatistics GetStatistics() const;
 
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options);
 

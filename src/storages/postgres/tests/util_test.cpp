@@ -33,14 +33,14 @@ std::vector<pg::DSNList> GetDsnListFromEnv() {
 }
 
 std::string DsnToString(const ::testing::TestParamInfo<std::string>& info) {
-  return pg::MakeDsnNick(info.param);
+  return pg::MakeDsnNick(info.param, true);
 }
 
 std::string DsnListToString(const ::testing::TestParamInfo<pg::DSNList>& info) {
   if (info.param.empty()) {
     return {};
   }
-  return pg::MakeDsnNick(info.param[0]);
+  return pg::MakeDsnNick(info.param[0], true);
 }
 
 void PostgreSQLBase::CheckConnection(pg::detail::ConnectionPtr conn) {

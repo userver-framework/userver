@@ -9,9 +9,9 @@ namespace postgres {
 using DSNList = std::vector<std::string>;
 DSNList SplitByHost(const std::string& conninfo);
 
-/// Create a string <host>_<port>_<dbname>_<user> of a single-host DSN
-/// For testing purposes
-std::string MakeDsnNick(const std::string& conninfo);
+/// Create a string <user>@<host>:<port>/<dbname> of a single-host DSN
+/// or escape all the punctuation with _ for test
+std::string MakeDsnNick(const std::string& conninfo, bool escape);
 
 }  // namespace postgres
 }  // namespace storages
