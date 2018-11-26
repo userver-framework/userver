@@ -1,8 +1,12 @@
 #include "task_context.hpp"
 
 #include <cassert>
+#include <cctype>
 #include <exception>
 
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/core/demangle.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/stacktrace.hpp>
 
@@ -77,6 +81,50 @@ void CallOnce(Func& func) {
     auto func_to_destroy = std::move(func);
     func_to_destroy();
   }
+}
+
+// Heuristic to detect calls from destructors.
+// It is not perfect as it is easily broken by destructor inlining, but it may
+// help in some cases.
+bool IsExecutingDestructor() {
+  static const std::string kMangledNamePrefix = "_Z";
+
+  for (const auto& frame : boost::stacktrace::stacktrace{}) {
+    auto func_name = frame.name();
+
+    if (boost::algorithm::starts_with(func_name, kMangledNamePrefix)) {
+      // XXX: Demangler in xenial doesn't know about decltype(auto),
+      // change it to auto. We may change some names, but they're not relevant.
+      boost::algorithm::replace_all(func_name, "Dc", "Da");
+      func_name = boost::core::demangle(func_name.c_str());
+    }
+
+    if (!boost::algorithm::starts_with(func_name, kMangledNamePrefix)) {
+      // Look for dtors (~Name)
+      for (auto pos = func_name.find('~');
+           pos != func_name.npos && pos + 1 < func_name.size();
+           pos = func_name.find('~', pos + 1)) {
+        // operator~()
+        if (func_name[pos + 1] == '(') continue;
+        // nested members (lambdas, classes etc.)
+        if (func_name.find(':', pos + 1) != func_name.npos) continue;
+
+        return true;
+      }
+    } else {
+      // For some mysterious reason name wasn't demangled, using safe mode.
+      // Look for "D*" pattern, where * is digit (actually 0, 1 or 2)
+      for (auto pos = func_name.find('D');
+           pos != func_name.npos && pos + 1 < func_name.size();
+           pos = func_name.find('D', pos + 1)) {
+        // definitely not mangled dtor token
+        if (!std::isdigit(func_name[pos + 1])) continue;
+
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 }  // namespace
@@ -339,7 +387,13 @@ void TaskContext::Unwind() {
   assert(current_task::GetCurrentTaskContext() == this);
   assert(state_ == Task::State::kRunning);
 
-  if (!std::uncaught_exception() && SetCancellable(false)) {
+  if (std::uncaught_exception()) return;
+  if (IsExecutingDestructor()) {
+    LOG_WARNING() << "Attempt to cancel a task while executing destructor"
+                  << logging::LogExtra::Stacktrace();
+    return;
+  }
+  if (SetCancellable(false)) {
     LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
     throw CoroUnwinder{};
   }
