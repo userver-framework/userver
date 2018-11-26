@@ -80,11 +80,7 @@ template <typename Element>
 std::string ToString(const Element& item) {
   if (IsOneOf(item, {ElementKind::kMissing, ElementKind::kNull})) return {};
   if (IsOneOf(item, ElementKind::kBool)) {
-    if (item.get_bool()) {
-      return "true";
-    } else {
-      return {};
-    }
+    return item.get_bool() ? "true" : "false";
   }
 
   auto type = item.type();

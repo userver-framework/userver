@@ -80,7 +80,7 @@ TEST(MongoConversion, Bool) {
     if (value) {
       EXPECT_EQ("true", sm::ToString(elem));
     } else {
-      EXPECT_TRUE(sm::ToString(elem).empty());
+      EXPECT_EQ("false", sm::ToString(elem));
     }
     EXPECT_EQ(value, sm::ToBool(elem));
     EXPECT_THROW(sm::ToArray(elem), sm::BadType);
@@ -342,7 +342,7 @@ TEST(MongoConversion, Array) {
   test_elem(doc.view()["a"][1], {"1", "2", "3"});
   test_elem(doc.view()["a"][2], {"", "test", std::to_string(-2.5), "1"});
   test_elem(doc.view()["ee"], {});
-  test_elem(doc.view()["e"], {"other", "4321", "", "true"});
+  test_elem(doc.view()["e"], {"other", "4321", "false", "true"});
 }
 
 TEST(MongoConversion, Document) {
