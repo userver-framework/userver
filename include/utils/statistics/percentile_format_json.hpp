@@ -14,6 +14,9 @@ formats::json::ValueBuilder PercentileToJson(
   for (const auto& percent : percents) {
     result["p" + std::to_string(percent)] = perc.GetPercentile(percent);
   }
+
+  result["p99_6"] = perc.GetPercentile(99.6);
+  result["p99_9"] = perc.GetPercentile(99.9);
   return result;
 }
 
