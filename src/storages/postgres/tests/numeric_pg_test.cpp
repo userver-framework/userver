@@ -3,6 +3,7 @@
 #include <boost/math/special_functions.hpp>
 
 #include <storages/postgres/io/boost_multiprecision.hpp>
+#include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/test_buffers.hpp>
 
 namespace pg = storages::postgres;
@@ -17,12 +18,16 @@ static_assert(kHasTextParser<pg::Numeric>, "");
 
 }  // namespace static_test
 
+namespace {
+
+const pg::UserTypes types;
+
 TEST(PostgreIO, Numeric) {
   {
     pg::Numeric src{"3.14"};
     pg::test::Buffer buffer;
     EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(buffer, src));
+        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, src));
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
     pg::Numeric tgt{0};
@@ -33,7 +38,7 @@ TEST(PostgreIO, Numeric) {
     pg::Numeric src = boost::math::sin_pi(pg::Numeric{1});
     pg::test::Buffer buffer;
     EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(buffer, src));
+        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, src));
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
     pg::Numeric tgt{0};
@@ -44,3 +49,5 @@ TEST(PostgreIO, Numeric) {
         << " is expected to be equal to number read from buffer " << tgt;
   }
 }
+
+}  // namespace

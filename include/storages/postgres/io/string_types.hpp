@@ -20,7 +20,7 @@ struct BufferFormatter<const char*, DataFormat::kTextDataFormat> {
   explicit BufferFormatter(const char* val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     auto sz = std::strlen(value);
     WriteN(buf, value, sz);
   }
@@ -40,7 +40,7 @@ struct BufferFormatter<const char*, DataFormat::kBinaryDataFormat> {
   explicit BufferFormatter(const char* val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     auto sz = std::strlen(value);
     WriteN(buf, value, sz);
   }
@@ -67,7 +67,7 @@ struct BufferFormatter<char[N], F> {
   explicit BufferFormatter(const char* val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     CharFormatter::WriteN(buf, value, N);
   }
 };
@@ -83,7 +83,7 @@ struct BufferFormatter<std::string, F> {
 
   explicit BufferFormatter(const std::string& val) : value{val} {}
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     CharFormatter::WriteN(buf, value.data(), value.size());
   }
 };
@@ -115,7 +115,7 @@ struct BufferFormatter<char, DataFormat::kBinaryDataFormat> {
 
   explicit BufferFormatter(char val) : value{val} {}
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     buf.push_back(value);
   }
 };
@@ -154,17 +154,13 @@ struct BufferParser<char, DataFormat::kTextDataFormat>
 //@{
 /** @name C++ to PostgreSQL mapping for string types */
 template <>
-struct CppToPg<const char*>
-    : detail::CppToPgPredefined<const char*, PredefinedOids::kText> {};
+struct CppToSystemPg<const char*> : PredefinedOid<PredefinedOids::kText> {};
 template <std::size_t N>
-struct CppToPg<char[N]>
-    : detail::CppToPgPredefined<char[N], PredefinedOids::kText> {};
+struct CppToSystemPg<char[N]> : PredefinedOid<PredefinedOids::kText> {};
 template <>
-struct CppToPg<std::string>
-    : detail::CppToPgPredefined<std::string, PredefinedOids::kText> {};
+struct CppToSystemPg<std::string> : PredefinedOid<PredefinedOids::kText> {};
 template <>
-struct CppToPg<char> : detail::CppToPgPredefined<char, PredefinedOids::kChar> {
-};
+struct CppToSystemPg<char> : PredefinedOid<PredefinedOids::kChar> {};
 //@}
 
 }  // namespace io

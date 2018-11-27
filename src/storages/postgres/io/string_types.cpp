@@ -13,6 +13,9 @@ struct PgToCpp<PredefinedOids::kBpchar, std::string>
 template <>
 struct PgToCpp<PredefinedOids::kVarchar, std::string>
     : detail::PgToCppPredefined<PredefinedOids::kVarchar, std::string> {};
+template <>
+struct PgToCpp<PredefinedOids::kName, std::string>
+    : detail::PgToCppPredefined<PredefinedOids::kName, std::string> {};
 //@}
 
 namespace {
@@ -20,7 +23,8 @@ namespace {
 const bool kReference = detail::ForceReference(
     PgToCpp<PredefinedOids::kChar, char>::init_,
     PgToCpp<PredefinedOids::kBpchar, std::string>::init_,
-    PgToCpp<PredefinedOids::kVarchar, std::string>::init_);
+    PgToCpp<PredefinedOids::kVarchar, std::string>::init_,
+    PgToCpp<PredefinedOids::kName, std::string>::init_);
 
 }  // namespace
 

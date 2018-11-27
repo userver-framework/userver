@@ -2,6 +2,7 @@
 
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/io/force_text.hpp>
+#include <storages/postgres/io/user_types.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;
@@ -27,19 +28,23 @@ static_assert(!kHasTextFormatter<__no_output_operator>,
 
 }  // namespace static_test
 
+namespace {
+
+const pg::UserTypes types;
+
 TEST(PostgreIO, OutputIntegral) {
   pg::detail::QueryParameters params;
   pg::Smallint s{42};
   pg::Integer i{42};
   pg::Bigint b{42};
 
-  params.Write(s);
-  params.Write(i);
-  params.Write(b);
+  params.Write(types, s);
+  params.Write(types, i);
+  params.Write(types, b);
 
   EXPECT_EQ(3, params.Size());
 
-  params.Write(s, i, b);
+  params.Write(types, s, i, b);
   EXPECT_EQ(6, params.Size());
 }
 
@@ -48,10 +53,10 @@ TEST(PostgreIO, OutputString) {
   const char* c_str = "foo";
   std::string str{"foo"};
 
-  params.Write("foo");
-  params.Write(pg::ForceTextFormat("foo"));
-  params.Write(c_str);
-  params.Write(str);
+  params.Write(types, "foo");
+  params.Write(types, pg::ForceTextFormat("foo"));
+  params.Write(types, c_str);
+  params.Write(types, str);
 
   EXPECT_EQ(4, params.Size());
 
@@ -70,8 +75,10 @@ TEST(PostgreIO, OutputString) {
 
 TEST(PostgreIO, OutputFloat) {
   pg::detail::QueryParameters params;
-  EXPECT_NO_THROW(params.Write(3.14f));
+  EXPECT_NO_THROW(params.Write(types, 3.14f));
   EXPECT_EQ(1, params.Size());
   EXPECT_EQ(static_cast<pg::Oid>(pg::io::PredefinedOids::kFloat4),
             params.ParamTypesBuffer()[0]);
 }
+
+}  // namespace

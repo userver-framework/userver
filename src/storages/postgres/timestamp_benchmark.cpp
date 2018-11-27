@@ -7,6 +7,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/io/force_text.hpp>
+#include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/test_buffers.hpp>
 
 #include <storages/postgres/util_benchmark.hpp>
@@ -17,6 +18,7 @@ namespace pg = storages::postgres;
 using namespace pg::bench;
 
 const std::string time_format = "%Y-%m-%d %H:%M:%E*s%Ez";
+const pg::UserTypes types;
 
 void CctzTimestampFormat(benchmark::State& state) {
   const auto utc = cctz::utc_time_zone();
@@ -43,7 +45,7 @@ void PgTimestampTextFormat(benchmark::State& state) {
   auto tp = std::chrono::system_clock::now();
   pg::test::Buffer buffer;
   for (auto _ : state) {
-    io::WriteBuffer<io::DataFormat::kTextDataFormat>(buffer, tp);
+    io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, tp);
     buffer.clear();
   }
 }
@@ -55,7 +57,7 @@ void PgTimestampBinaryFormat(benchmark::State& state) {
   auto tp = std::chrono::system_clock::now();
   pg::test::Buffer buffer;
   for (auto _ : state) {
-    io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(buffer, tp);
+    io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, tp);
     buffer.clear();
   }
 }
@@ -65,7 +67,7 @@ void PgTimestampTextParse(benchmark::State& state) {
   namespace io = pg::io;
   auto tp = std::chrono::system_clock::now();
   pg::test::Buffer buffer;
-  io::WriteBuffer<io::DataFormat::kTextDataFormat>(buffer, tp);
+  io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, tp);
   auto fp = pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
   for (auto _ : state) {
     io::ReadBuffer<io::DataFormat::kTextDataFormat>(fp, tp);
@@ -77,7 +79,7 @@ void PgTimestampBinaryParse(benchmark::State& state) {
   namespace io = pg::io;
   auto tp = std::chrono::system_clock::now();
   pg::test::Buffer buffer;
-  io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(buffer, tp);
+  io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, tp);
   auto fp =
       pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
   for (auto _ : state) {

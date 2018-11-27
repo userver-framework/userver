@@ -51,10 +51,8 @@ struct FieldDescription {
 class RowDescription {
  public:
   RowDescription(detail::ResultWrapperPtr res) : res_{res} {}
-  // TODO pass a container for connection-specific user types
-  bool CanBeReadInBinary(/* user_types */) const;
-  // TODO pass a container for connection-specific user types
-  io::DataFormat BestReplyFormat(/* user_types */) const;
+  bool CanBeReadInBinary(const UserTypes&) const;
+  io::DataFormat BestReplyFormat(const UserTypes&) const;
   // TODO interface for iterating field descriptions
  private:
   detail::ResultWrapperPtr res_;

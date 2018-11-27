@@ -64,10 +64,10 @@ struct FloatingPointBinaryFormatter {
   explicit FloatingPointBinaryFormatter(T val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes& types, Buffer& buf) const {
     using IntType = typename IntegralType<size>::type;
     IntegralBinaryFormatter<IntType>(reinterpret_cast<const IntType&>(value))(
-        buf);
+        types, buf);
   }
 };
 }  // namespace detail
@@ -103,11 +103,9 @@ struct BufferFormatter<double, DataFormat::kBinaryDataFormat>
 //@{
 /** @name C++ to PostgreSQL mapping for floating point types */
 template <>
-struct CppToPg<float>
-    : detail::CppToPgPredefined<float, PredefinedOids::kFloat4> {};
+struct CppToSystemPg<float> : PredefinedOid<PredefinedOids::kFloat4> {};
 template <>
-struct CppToPg<double>
-    : detail::CppToPgPredefined<double, PredefinedOids::kFloat8> {};
+struct CppToSystemPg<double> : PredefinedOid<PredefinedOids::kFloat8> {};
 //@}
 
 }  // namespace io

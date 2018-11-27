@@ -34,7 +34,7 @@ struct StreamTextFormatter {
   explicit StreamTextFormatter(const T& val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     using sink_type = boost::iostreams::back_insert_device<Buffer>;
     using stream_type = boost::iostreams::stream<sink_type>;
 

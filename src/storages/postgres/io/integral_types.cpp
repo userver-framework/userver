@@ -2,31 +2,33 @@
 
 #include <unordered_set>
 
+#include <storages/postgres/io/pg_type_parsers.hpp>
+
 namespace storages::postgres::io {
 
 //@{
 /** @name Register parsers for additional PG types mapped to integral types */
 template <>
-struct PgToCpp<PredefinedOids::kOid, Integer>
-    : detail::PgToCppPredefined<PredefinedOids::kOid, Integer> {};
+struct PgToCpp<PredefinedOids::kOid, Oid>
+    : detail::PgToCppPredefined<PredefinedOids::kOid, Oid> {};
 template <>
-struct PgToCpp<PredefinedOids::kTid, Integer>
-    : detail::PgToCppPredefined<PredefinedOids::kTid, Integer> {};
+struct PgToCpp<PredefinedOids::kTid, Oid>
+    : detail::PgToCppPredefined<PredefinedOids::kTid, Oid> {};
 template <>
-struct PgToCpp<PredefinedOids::kXid, Integer>
-    : detail::PgToCppPredefined<PredefinedOids::kXid, Integer> {};
+struct PgToCpp<PredefinedOids::kXid, Oid>
+    : detail::PgToCppPredefined<PredefinedOids::kXid, Oid> {};
 template <>
-struct PgToCpp<PredefinedOids::kCid, Integer>
-    : detail::PgToCppPredefined<PredefinedOids::kCid, Integer> {};
+struct PgToCpp<PredefinedOids::kCid, Oid>
+    : detail::PgToCppPredefined<PredefinedOids::kCid, Oid> {};
 //@}
 
 namespace {
 
-const bool kReference =
-    detail::ForceReference(PgToCpp<PredefinedOids::kOid, Integer>::init_,
-                           PgToCpp<PredefinedOids::kTid, Integer>::init_,
-                           PgToCpp<PredefinedOids::kXid, Integer>::init_,
-                           PgToCpp<PredefinedOids::kCid, Integer>::init_);
+const bool kReference = detail::ForceReference(
+    CppToPg<Oid>::init_, PgToCpp<PredefinedOids::kOid, Oid>::init_,
+    PgToCpp<PredefinedOids::kTid, Oid>::init_,
+    PgToCpp<PredefinedOids::kXid, Oid>::init_,
+    PgToCpp<PredefinedOids::kCid, Oid>::init_);
 
 bool IsTrueLiteral(const std::string& lit) {
   static const std::unordered_set<std::string> kTrueLiterals{

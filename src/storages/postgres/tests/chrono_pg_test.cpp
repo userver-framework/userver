@@ -2,6 +2,7 @@
 
 #include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/io/force_text.hpp>
+#include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/test_buffers.hpp>
 #include <storages/postgres/tests/util_test.hpp>
 
@@ -31,12 +32,14 @@ static_assert(
 
 namespace {
 
+const pg::UserTypes types;
+
 TEST(PostgreIO, Chrono) {
   {
     auto now = std::chrono::system_clock::now();
     pg::test::Buffer buffer;
     EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(buffer, now));
+        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, now));
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
     std::chrono::system_clock::time_point tgt;
@@ -48,7 +51,7 @@ TEST(PostgreIO, Chrono) {
     auto now = std::chrono::high_resolution_clock::now();
     pg::test::Buffer buffer;
     EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(buffer, now));
+        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, now));
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
     std::chrono::high_resolution_clock::time_point tgt;

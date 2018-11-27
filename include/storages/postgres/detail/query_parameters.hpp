@@ -32,47 +32,47 @@ class QueryParameters {
   const int* ParamFormatsBuffer() const { return param_formats.data(); }
 
   template <typename T>
-  void Write(const T& arg) {
-    static_assert(io::traits::HasPgMapping<T>::value,
+  void Write(const UserTypes& types, const T& arg) {
+    static_assert(io::traits::kIsMappedToPg<T>,
                   "Type doesn't have mapping to Postgres type");
-    WriteParamType(arg);
-    WriteNullable(arg, io::traits::IsNullable<T>{});
+    WriteParamType(types, arg);
+    WriteNullable(types, arg, io::traits::IsNullable<T>{});
   }
 
   template <typename... T>
-  void Write(const T&... args) {
-    (Write(args), ...);
+  void Write(const UserTypes& types, const T&... args) {
+    (Write(types, args), ...);
   }
 
   std::size_t TypeHash() const;
 
  private:
   template <typename T>
-  void WriteParamType(const T&) {
+  void WriteParamType(const UserTypes& types, const T&) {
     // C++ to pg oid mapping
-    param_types.push_back(io::CppToPg<T>::GetOid());
+    param_types.push_back(io::CppToPg<T>::GetOid(types));
   }
 
   template <typename T>
-  void WriteNullable(const T& arg, std::true_type) {
+  void WriteNullable(const UserTypes& types, const T& arg, std::true_type) {
     using NullDetector = io::traits::GetSetNull<T>;
     if (NullDetector::IsNull(arg)) {
       param_formats.push_back(0);
       param_lengths.push_back(0);
       param_buffers.push_back(nullptr);
     } else {
-      WriteNullable(arg, std::false_type{});
+      WriteNullable(types, arg, std::false_type{});
     }
   }
 
   template <typename T>
-  void WriteNullable(const T& arg, std::false_type) {
+  void WriteNullable(const UserTypes& types, const T& arg, std::false_type) {
     using FormatterTraits = io::traits::BestFormatter<T>;
 
     param_formats.push_back(FormatterTraits::value);
     parameters.push_back({});
     auto& buffer = parameters.back();
-    io::WriteBuffer<FormatterTraits::value>(buffer, arg);
+    io::WriteBuffer<FormatterTraits::value>(types, buffer, arg);
     param_lengths.push_back(buffer.size());
     param_buffers.push_back(buffer.data());
   }
@@ -83,7 +83,7 @@ class QueryParameters {
   using ParameterList = std::vector<BufferType>;
   using IntList = std::vector<int>;
 
-  ParameterList parameters;
+  ParameterList parameters;  // TODO Replace with a single buffer
   OidList param_types;
   std::vector<const char*> param_buffers;
   IntList param_lengths;

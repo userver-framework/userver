@@ -130,7 +130,7 @@ class Connection {
   template <typename... T>
   ResultSet Execute(const std::string& statement, const T&... args) {
     detail::QueryParameters params;
-    params.Write(args...);
+    params.Write(GetUserTypes(), args...);
     return Execute(statement, params);
   }
 
@@ -139,6 +139,9 @@ class Connection {
   /// https://www.postgresql.org/docs/current/sql-set.html
   void SetParameter(const std::string& param, const std::string& value,
                     ParameterScope scope);
+  /// @brief Reload user types after creating a type
+  void ReloadUserTypes();
+  const UserTypes& GetUserTypes() const;
 
   //@{
   /** @name Command sending interface for experimenting */
@@ -152,7 +155,7 @@ class Connection {
   ResultSet ExperimentalExecute(const std::string& statement,
                                 io::DataFormat reply_format, const T&... args) {
     detail::QueryParameters params;
-    params.Write(args...);
+    params.Write(GetUserTypes(), args...);
     return ExperimentalExecute(statement, reply_format, params);
   }
   //@}

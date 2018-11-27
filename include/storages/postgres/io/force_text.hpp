@@ -22,6 +22,17 @@ detail::ForceTextFormat<T> ForceTextFormat(const T& value) {
 
 namespace io {
 
+namespace traits {
+
+template <typename T>
+struct IsMappedToPg<postgres::detail::ForceTextFormat<T>> : IsMappedToPg<T> {};
+
+template <typename T>
+struct IsSpecialMapping<postgres::detail::ForceTextFormat<T>> : std::true_type {
+};
+
+}  // namespace traits
+
 template <typename T>
 struct BufferFormatter<
     postgres::detail::ForceTextFormat<T>, DataFormat::kTextDataFormat,
@@ -33,13 +44,15 @@ struct BufferFormatter<
   BufferFormatter(const ValueType& val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
-    WriteBuffer<DataFormat::kTextDataFormat>(buf, value.value);
+  void operator()(const UserTypes& types, Buffer& buf) const {
+    WriteBuffer<DataFormat::kTextDataFormat>(types, buf, value.value);
   }
 };
 
 template <typename T>
-struct CppToPg<postgres::detail::ForceTextFormat<T>> : CppToPg<T> {};
+struct CppToPg<postgres::detail::ForceTextFormat<T>,
+               typename std::enable_if<traits::kIsMappedToPg<T>>::type>
+    : CppToPg<T> {};
 
 }  // namespace io
 

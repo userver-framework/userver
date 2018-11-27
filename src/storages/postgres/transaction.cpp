@@ -91,5 +91,14 @@ void Transaction::Rollback() {
   }
 }
 
+const UserTypes& Transaction::GetConnectionUserTypes() const {
+  if (!conn_) {
+    LOG_ERROR() << "Get user types called after transaction finished"
+                << logging::LogExtra::Stacktrace();
+    throw NotInTransaction("Transaction handle is not valid");
+  }
+  return conn_->GetUserTypes();
+}
+
 }  // namespace postgres
 }  // namespace storages

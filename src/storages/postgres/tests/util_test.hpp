@@ -31,7 +31,7 @@ class PostgreSQLBase : public ::testing::Test {
   void SetUp() override {
     // TODO Check env if logging is requested
     old_ = logging::SetDefaultLogger(MakeCerrLogger());
-    logging::SetDefaultLoggerLevel(logging::Level::kTrace);
+    logging::SetDefaultLoggerLevel(logging::Level::kDebug);
     ReadParam();
   }
 

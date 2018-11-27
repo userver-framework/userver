@@ -60,7 +60,7 @@ class Transaction {
   template <typename... Args>
   ResultSet Execute(const std::string& statement, Args... args) {
     detail::QueryParameters params;
-    params.Write(args...);
+    params.Write(GetConnectionUserTypes(), args...);
     return DoExecute(statement, params);
   }
   /// Set a connection parameter
@@ -83,6 +83,7 @@ class Transaction {
  private:
   ResultSet DoExecute(const std::string& statement,
                       const detail::QueryParameters& params);
+  const UserTypes& GetConnectionUserTypes() const;
 
  private:
   detail::ConnectionPtr conn_;

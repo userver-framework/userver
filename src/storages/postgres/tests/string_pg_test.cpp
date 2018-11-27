@@ -13,24 +13,24 @@ static_assert(kHasBinaryFormatter<std::string>, "");
 static_assert(kHasTextParser<std::string>, "");
 static_assert(kHasBinaryParser<std::string>, "");
 
-static_assert(kHasPgMapping<std::string>, "");
+static_assert(kIsMappedToPg<std::string>, "");
 
 static_assert(kHasTextFormatter<const char*>, "");
 static_assert(kHasBinaryFormatter<const char*>, "");
 
-static_assert(kHasPgMapping<const char*>, "");
+static_assert(kIsMappedToPg<const char*>, "");
 
 static_assert(kHasTextFormatter<char[5]>, "");
 static_assert(kHasBinaryFormatter<char[5]>, "");
 
-static_assert(kHasPgMapping<char[5]>, "");
+static_assert(kIsMappedToPg<char[5]>, "");
 
 static_assert(kHasTextFormatter<char>, "");
 static_assert(kHasBinaryFormatter<char>, "");
 static_assert(kHasTextParser<char>, "");
 static_assert(kHasBinaryParser<char>, "");
 
-static_assert(kHasPgMapping<char>, "");
+static_assert(kIsMappedToPg<char>, "");
 
 }  // namespace static_test
 

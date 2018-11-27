@@ -14,6 +14,8 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/pg_type_parsers.hpp>
+#include <storages/postgres/io/user_types.hpp>
 
 namespace storages {
 namespace postgres {
@@ -44,11 +46,10 @@ struct CountExecute {
     stats_.sum_query_duration += SteadyClock::now() - exec_begin_time;
   }
 
-  void AccountResult(const ResultSet& res) {
+  void AccountResult(const ResultSet& res, io::DataFormat format) {
     if (res.FieldCount()) {
       ++stats_.reply_total;
-      if (res.GetRowDescription().BestReplyFormat() ==
-          io::DataFormat::kBinaryDataFormat) {
+      if (format == io::DataFormat::kBinaryDataFormat) {
         ++stats_.bin_reply_total;
       }
     }
@@ -81,6 +82,25 @@ struct CountRollback : TrackTrxEnd {
   }
 };
 
+const std::string kGetUserTypesSQL = R"~(
+select  t.oid,
+        n.nspname,
+        t.typname,
+        t.typlen,
+        t.typtype,
+        t.typcategory,
+        t.typdelim,
+        t.typrelid,
+        t.typelem,
+        t.typarray,
+        t.typbasetype,
+        t.typnotnull,
+        t.typtypmod,
+        t.typndims
+from pg_catalog.pg_type t
+  left join pg_catalog.pg_namespace n on n.oid = t.typnamespace
+where n.nspname not in ('pg_catalog', 'pg_toast', 'information_schema'))~";
+
 }  // namespace
 
 Connection::Statistics::Statistics() noexcept
@@ -100,6 +120,7 @@ struct Connection::Impl {
   Connection::Statistics stats_;
   PGConnectionWrapper conn_wrapper_;
   PreparedStatements prepared_;
+  UserTypes db_types_;
   bool read_only_ = true;
 
   Impl(engine::TaskProcessor& bg_task_processor)
@@ -127,11 +148,12 @@ struct Connection::Impl {
     conn_wrapper_.AsyncConnect(conninfo, kDefaultTimeout);
     // We cannot handle exceptions here, so we let them got to the caller
     // Detect if the connection is read only.
-    auto res = ExecuteCommand("show transaction_read_only");
+    auto res = ExecuteCommandNoPrepare("show transaction_read_only");
     if (res) {
       res.Front().To(read_only_);
     }
     SetLocalTimezone();
+    LoadUserTypes();
   }
 
   /// @brief Set local timezone. If the timezone is invalid, catch the exception
@@ -148,6 +170,20 @@ struct Connection::Impl {
       // by connection wrapper.
       LOG_ERROR() << "Invalid value for time zone " << tz_id;
     }  // Let all other exceptions be propagated to the caller
+  }
+
+  void LoadUserTypes() {
+    try {
+      auto res = ExecuteCommand(kGetUserTypesSQL).As<DBTypeDescription>();
+      db_types_.Reset();
+      for (auto desc : res) {
+        db_types_.AddType(std::move(desc));
+      }
+    } catch (const Error& e) {
+      LOG_ERROR() << "Error loading user datatypes: " << e.what();
+      // TODO Decide about rethrowing
+      throw;
+    }
   }
 
   ConnectionState GetConnectionState() const {
@@ -170,7 +206,7 @@ struct Connection::Impl {
   template <typename... T>
   ResultSet ExecuteCommand(const std::string& statement, const T&... args) {
     detail::QueryParameters params;
-    params.Write(args...);
+    params.Write(db_types_, args...);
     return ExecuteCommand(statement, params);
   }
 
@@ -190,7 +226,7 @@ struct Connection::Impl {
       conn_wrapper_.SendDescribePrepared(statement_name);
       auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
       prepared_.insert(std::make_pair(
-          query_hash, res.GetRowDescription().BestReplyFormat()));
+          query_hash, res.GetRowDescription().BestReplyFormat(db_types_)));
       ++stats_.parse_total;
     }
     // TODO Get field descriptions from the prepare result and use them to
@@ -202,17 +238,17 @@ struct Connection::Impl {
 
     conn_wrapper_.SendPreparedQuery(statement_name, params, fmt);
     auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
-    count_execute.AccountResult(res);
+    count_execute.AccountResult(res, fmt);
     return res;
   }
 
   // TODO Add tracing::Span
-  ResultSet ExecuteCommand(const std::string& statement) {
+  ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
     CountExecute count_execute(stats_);
     conn_wrapper_.SendQuery(statement);
 
     auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
-    count_execute.AccountResult(res);
+    count_execute.AccountResult(res, io::DataFormat::kTextDataFormat);
     return res;
   }
 
@@ -233,7 +269,7 @@ struct Connection::Impl {
     }
     stats_.trx_start_time = std::move(trx_start_time);
     ++stats_.trx_total;
-    ExecuteCommand(BeginStatement(options));
+    ExecuteCommandNoPrepare(BeginStatement(options));
   }
 
   void Commit() {
@@ -241,7 +277,7 @@ struct Connection::Impl {
       throw NotInTransaction();
     }
     CountCommit count_commit(stats_);
-    ExecuteCommand("commit");
+    ExecuteCommandNoPrepare("commit");
   }
 
   void Rollback() {
@@ -249,7 +285,7 @@ struct Connection::Impl {
       throw NotInTransaction();
     }
     CountRollback count_rollback(stats_);
-    ExecuteCommand("rollback");
+    ExecuteCommandNoPrepare("rollback");
   }
 
   bool IsConnected() const {
@@ -261,6 +297,8 @@ struct Connection::Impl {
   bool IsInTransaction() const {
     return GetConnectionState() > ConnectionState::kIdle;
   }
+
+  const UserTypes& GetUserTypes() const { return db_types_; }
 };  // Connection::Impl
 
 std::unique_ptr<Connection> Connection::Connect(
@@ -303,6 +341,11 @@ ResultSet Connection::Execute(const std::string& statement,
 void Connection::SetParameter(const std::string& param,
                               const std::string& value, ParameterScope scope) {
   pimpl_->SetParameter(param, value, scope);
+}
+
+void Connection::ReloadUserTypes() { pimpl_->LoadUserTypes(); }
+const UserTypes& Connection::GetUserTypes() const {
+  return pimpl_->GetUserTypes();
 }
 
 ResultSet Connection::ExperimentalExecute(

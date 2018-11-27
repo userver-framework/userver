@@ -4,8 +4,7 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 /// @brief Type to represent a null value
 template <typename T>
@@ -30,6 +29,11 @@ struct GetSetNull<Null<T>> {
   static void SetNull(T&) {}
 };
 
+template <typename T>
+struct IsMappedToPg<Null<T>> : IsMappedToPg<T> {};
+template <typename T>
+struct IsSpecialMapping<Null<T>> : std::true_type {};
+
 }  // namespace traits
 
 template <typename T>
@@ -40,10 +44,9 @@ struct BufferFormatter<Null<T>, DataFormat::kBinaryDataFormat> {
   explicit BufferFormatter(const Null<T>&) {}
 
   template <typename Buffer>
-  void operator()(Buffer&) const {}
+  void operator()(const UserTypes&, Buffer&) const {}
 };
 
 }  // namespace io
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

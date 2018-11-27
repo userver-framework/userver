@@ -72,12 +72,21 @@ struct IntegralBinaryFormatter {
 
   explicit IntegralBinaryFormatter(T val) : value{val} {}
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     buf.reserve(buf.size() + size);
     auto tmp = boost::endian::native_to_big(value);
     const char* p = reinterpret_cast<char const*>(&tmp);
     const char* e = p + size;
     std::copy(p, e, std::back_inserter(buf));
+  }
+
+  /// Write the value to char buffer, the buffer MUST be already resized
+  template <typename Iterator>
+  void operator()(Iterator buffer) const {
+    auto tmp = boost::endian::native_to_big(value);
+    const char* p = reinterpret_cast<char const*>(&tmp);
+    const char* e = p + size;
+    std::copy(p, e, buffer);
   }
 };
 
@@ -154,7 +163,7 @@ struct BufferFormatter<bool, DataFormat::kBinaryDataFormat> {
   bool value;
   explicit BufferFormatter(bool val) : value(val) {}
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     buf.push_back(value ? 1 : 0);
   }
 };
@@ -164,7 +173,7 @@ struct BufferFormatter<bool, DataFormat::kTextDataFormat> {
   bool value;
   explicit BufferFormatter(bool val) : value(val) {}
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     buf.push_back(value ? 't' : 'f');
   }
 };
@@ -173,17 +182,13 @@ struct BufferFormatter<bool, DataFormat::kTextDataFormat> {
 //@{
 /** @name C++ to PostgreSQL mapping for integral types */
 template <>
-struct CppToPg<Smallint>
-    : detail::CppToPgPredefined<Smallint, PredefinedOids::kInt2> {};
+struct CppToSystemPg<Smallint> : PredefinedOid<PredefinedOids::kInt2> {};
 template <>
-struct CppToPg<Integer>
-    : detail::CppToPgPredefined<Integer, PredefinedOids::kInt4> {};
+struct CppToSystemPg<Integer> : PredefinedOid<PredefinedOids::kInt4> {};
 template <>
-struct CppToPg<Bigint>
-    : detail::CppToPgPredefined<Bigint, PredefinedOids::kInt8> {};
+struct CppToSystemPg<Bigint> : PredefinedOid<PredefinedOids::kInt8> {};
 template <>
-struct CppToPg<bool>
-    : detail::CppToPgPredefined<bool, PredefinedOids::kBoolean> {};
+struct CppToSystemPg<bool> : PredefinedOid<PredefinedOids::kBoolean> {};
 //@}
 
 }  // namespace io

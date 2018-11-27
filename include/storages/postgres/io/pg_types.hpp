@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 /// PostgreSQL Oid type
 /// unsigned int is used to match the type used in libpq
@@ -20,6 +20,108 @@ using Bigint = std::int64_t;
 using Float4 = float;
 using Float8 = double;
 //@}
+
+/// @brief Identity for a PostgreSQL type name
+struct DBTypeName {
+  // TODO use string_view
+  const char* const schema = nullptr;
+  // TODO use string_view
+  const char* const name = nullptr;
+
+  bool Empty() const { return name == nullptr; }
+  std::size_t GetHash() const;
+};
+
+/// @brief Description of a PostgreSQL type.
+/// The structure is selected from the pg_catalog.pg_type table (not all, only
+/// appropriate fields).
+/// See https://www.postgresql.org/docs/10/catalog-pg-type.html
+struct DBTypeDescription {
+  enum class TypeClass : char {
+    kBase = 'b',
+    kComposite = 'c',
+    kDomain = 'd',
+    kEnum = 'e',
+    kPseudo = 'p',
+    kRange = 'r'
+  };
+  /// @brief PosgtreSQL type category.
+  /// See
+  /// https://www.postgresql.org/docs/10/catalog-pg-type.html#CATALOG-TYPCATEGORY-TABLE
+  enum class TypeCategory : char {
+    kInvalid = 0,  //!< Invalid type category
+    kArray = 'A',  //!< https://www.postgresql.org/docs/10/arrays.html
+    kBoolean =
+        'B',  //!< https://www.postgresql.org/docs/10/datatype-boolean.html
+    kComposite = 'C',  //!< https://www.postgresql.org/docs/10/rowtypes.html
+    kDatetime =
+        'D',  //!< https://www.postgresql.org/docs/10/datatype-datetime.html
+    kEnumeration =
+        'E',  //!< https://www.postgresql.org/docs/10/datatype-enum.html
+    kGeometric =
+        'G',  //!< https://www.postgresql.org/docs/10/datatype-geometric.html
+    kNetwork =
+        'I',  //!< https://www.postgresql.org/docs/10/datatype-net-types.html
+    kNumeric =
+        'N',  //!< https://www.postgresql.org/docs/10/datatype-numeric.html
+    kPseudotype =
+        'P',       //!< https://www.postgresql.org/docs/10/datatype-pseudo.html
+    kRange = 'R',  //!< https://www.postgresql.org/docs/10/rangetypes.html
+    kString =
+        'S',  //!< https://www.postgresql.org/docs/10/datatype-character.html
+    kTimespan =
+        'T',      //!< https://www.postgresql.org/docs/10/datatype-datetime.html
+    kUser = 'U',  //!< User types, created by fourth form of create type
+                  /// statement
+                  /// https://www.postgresql.org/docs/10/sql-createtype.html
+    kBitstring = 'V',  //!< https://www.postgresql.org/docs/10/datatype-bit.html
+    kUnknown = 'X'     //!< Unknown type category
+  };
+
+  /// pg_type.oid
+  Oid oid;
+  /// pg_namespace.nspname
+  std::string schema;
+  /// pg_type.typname
+  std::string name;
+  /// pg_type.typlen
+  Integer length;
+  /// pg_type.typtype
+  TypeClass type_class;
+  /// pg_type.typcategory
+  TypeCategory category;
+  /// pg_type.typdelim
+  char delim;
+  /// pg_type.typrelid
+  Oid relation_id;
+  /// pg_type.typelem
+  /// If not zero, this type is an array
+  Oid element_type;
+  /// pg_type.typarray
+  Oid array_type;
+  /// pg_type.typbasetype
+  /// Base type for domains
+  Oid base_type;
+  /// pg_type.typnotnull
+  /// Used only with domains
+  bool not_null;
+  // TODO rest of domain fields. or eliminate them if they are not needed
+
+  DBTypeName GetName() const { return {schema.c_str(), name.c_str()}; }
+  std::size_t GetNameHash() const;
+
+  struct NameHash {
+    std::size_t operator()(const DBTypeDescription& type) const {
+      return type.GetNameHash();
+    }
+  };
+  struct NamesEqual {
+    bool operator()(const DBTypeDescription& lhs,
+                    const DBTypeDescription& rhs) const {
+      return lhs.name == rhs.name && lhs.schema == rhs.schema;
+    }
+  };
+};
 
 namespace io {
 
@@ -128,9 +230,11 @@ enum class PredefinedOids {
   kAnyRange = 3831
 };
 
+template <PredefinedOids _Oid>
+using PredefinedOid = std::integral_constant<PredefinedOids, _Oid>;
+
 }  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres
 
 namespace std {
 
@@ -140,4 +244,12 @@ struct hash<storages::postgres::io::PredefinedOids> {
     return static_cast<std::size_t>(value);
   }
 };
+
+template <>
+struct hash<storages::postgres::DBTypeName> {
+  std::size_t operator()(const storages::postgres::DBTypeName& value) const {
+    return value.GetHash();
+  }
+};
+
 }  // namespace std

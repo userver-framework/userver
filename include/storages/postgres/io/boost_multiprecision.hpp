@@ -28,7 +28,7 @@ struct BufferFormatter<ArbitraryPrecision<Precision>,
   BufferFormatter(const Value& val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     using sink_type = boost::iostreams::back_insert_device<Buffer>;
     using stream_type = boost::iostreams::stream<sink_type>;
 
@@ -42,9 +42,8 @@ struct BufferFormatter<ArbitraryPrecision<Precision>,
 };
 
 template <std::size_t Precision>
-struct CppToPg<ArbitraryPrecision<Precision>>
-    : detail::CppToPgPredefined<ArbitraryPrecision<Precision>,
-                                PredefinedOids::kNumeric> {};
+struct CppToSystemPg<ArbitraryPrecision<Precision>>
+    : PredefinedOid<PredefinedOids::kNumeric> {};
 
 }  // namespace io
 }  // namespace postgres

@@ -6,8 +6,10 @@
 #include <storages/postgres/io/pg_types.hpp>
 #include <utils/void_t.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
+
+class UserTypes;
+
 namespace io {
 
 enum DataFormat { kTextDataFormat = 0, kBinaryDataFormat = 1 };
@@ -155,12 +157,44 @@ typename traits::IO<T, F>::FormatterType BufferWriter(const T& value) {
 }
 
 template <DataFormat F, typename T, typename Buffer>
-void WriteBuffer(Buffer& buffer, const T& value) {
+void WriteBuffer(const UserTypes& types, Buffer& buffer, const T& value) {
   static_assert((traits::HasFormatter<T, F>::value == true),
                 "Type doesn't have an appropriate formatter");
-  BufferWriter<F>(value)(buffer);
+  BufferWriter<F>(value)(types, buffer);
 }
 
+template <typename T, typename Buffer>
+void WriteBufferWithSize(const UserTypes& types, Buffer& buffer,
+                         const T& value) {
+  static_assert(
+      (traits::HasFormatter<T, DataFormat::kBinaryDataFormat>::value == true),
+      "Type doesn't have an appropriate formatter");
+  static constexpr auto size_len = sizeof(Integer);
+  buffer.resize(buffer.size() + size_len);
+  auto size_begin = buffer.end() - size_len;
+  auto size_before = buffer.size();
+  WriteBuffer<DataFormat::kBinaryDataFormat>(types, buffer, value);
+  Integer bytes = buffer.size() - size_before;
+  WriteBuffer<DataFormat::kBinaryDataFormat>(size_begin, bytes);
+}
+
+namespace detail {
+
+template <typename T>
+struct BufferParserBase {
+  using ValueType = T;
+  ValueType& value;
+  BufferParserBase(ValueType& v) : value{v} {}
+};
+
+template <typename T>
+struct BufferFormatterBase {
+  using ValueType = T;
+  const ValueType& value;
+  BufferFormatterBase(const ValueType& v) : value{v} {}
+};
+
+}  // namespace detail
+
 }  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

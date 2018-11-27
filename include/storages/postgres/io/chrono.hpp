@@ -133,7 +133,7 @@ struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
   explicit BufferFormatter(const ValueType& val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S%Ez";
     auto str = cctz::format(format, value.value, value.tz);
     buf.reserve(buf.size() + str.size() + 1);
@@ -153,10 +153,10 @@ struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
   explicit BufferFormatter(const ValueType& val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes& types, Buffer& buf) const {
     auto lookup = value.tz.lookup(value.value);
     auto val = value.value - std::chrono::seconds{lookup.offset};
-    WriteBuffer<DataFormat::kBinaryDataFormat>(buf, val);
+    WriteBuffer<DataFormat::kBinaryDataFormat>(types, buf, val);
   }
 };
 
@@ -215,7 +215,7 @@ struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
   explicit BufferFormatter(const ValueType& val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes&, Buffer& buf) const {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S";
     const auto tz = cctz::local_time_zone();
     auto str = cctz::format(format, value, tz);
@@ -236,12 +236,12 @@ struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
   explicit BufferFormatter(const ValueType& val) : value{val} {}
 
   template <typename Buffer>
-  void operator()(Buffer& buf) const {
+  void operator()(const UserTypes& types, Buffer& buf) const {
     static const ValueType pg_epoch = PostgresEpoch();
     auto tmp =
         std::chrono::duration_cast<std::chrono::microseconds>(value - pg_epoch)
             .count();
-    WriteBuffer<DataFormat::kBinaryDataFormat>(buf, tmp);
+    WriteBuffer<DataFormat::kBinaryDataFormat>(types, buf, tmp);
   }
 };
 
@@ -287,14 +287,12 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
 };
 
 template <typename TimePointType>
-struct CppToPg<postgres::detail::TimestampTz<TimePointType>>
-    : detail::CppToPgPredefined<postgres::detail::TimestampTz<TimePointType>,
-                                PredefinedOids::kTimestamptz> {};
+struct CppToSystemPg<postgres::detail::TimestampTz<TimePointType>>
+    : PredefinedOid<PredefinedOids::kTimestamptz> {};
 
 template <typename Duration>
-struct CppToPg<std::chrono::time_point<ClockType, Duration>>
-    : detail::CppToPgPredefined<std::chrono::time_point<ClockType, Duration>,
-                                PredefinedOids::kTimestamp> {};
+struct CppToSystemPg<std::chrono::time_point<ClockType, Duration>>
+    : PredefinedOid<PredefinedOids::kTimestamp> {};
 
 }  // namespace io
 }  // namespace postgres
