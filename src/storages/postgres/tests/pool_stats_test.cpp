@@ -29,25 +29,29 @@ TEST_P(PostgrePoolStats, EmptyPool) {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 0, 10);
 
     const auto& stats = pool.GetStatistics();
-    EXPECT_EQ(stats.conn_open_total, 0);
-    EXPECT_EQ(stats.conn_drop_total, 0);
-    EXPECT_EQ(stats.conn_active_total, 0);
-    EXPECT_EQ(stats.trx_total, 0);
-    EXPECT_EQ(stats.trx_commit_total, 0);
-    EXPECT_EQ(stats.trx_rollback_total, 0);
-    EXPECT_EQ(stats.trx_parse_total, 0);
-    EXPECT_EQ(stats.trx_execute_total, 0);
-    EXPECT_EQ(stats.trx_reply_total, 0);
-    EXPECT_EQ(stats.trx_bin_reply_total, 0);
-    EXPECT_EQ(stats.trx_error_execute_total, 0);
-    EXPECT_EQ(stats.conn_error_total, 0);
+    EXPECT_EQ(stats.connection.open_total, 0);
+    EXPECT_EQ(stats.connection.drop_total, 0);
+    EXPECT_EQ(stats.connection.active, 0);
+    EXPECT_EQ(stats.connection.used, 0);
+    EXPECT_EQ(stats.connection.maximum, 10);
+    EXPECT_EQ(stats.transaction.total, 0);
+    EXPECT_EQ(stats.transaction.commit_total, 0);
+    EXPECT_EQ(stats.transaction.rollback_total, 0);
+    EXPECT_EQ(stats.transaction.parse_total, 0);
+    EXPECT_EQ(stats.transaction.execute_total, 0);
+    EXPECT_EQ(stats.transaction.reply_total, 0);
+    EXPECT_EQ(stats.transaction.bin_reply_total, 0);
+    EXPECT_EQ(stats.transaction.error_execute_total, 0);
+    EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_error_exhaust_total, 0);
-    EXPECT_EQ(stats.trx_exec_percentile.GetCurrentCounter().GetPercentile(100),
-              0);
-    EXPECT_EQ(stats.trx_delay_percentile.GetCurrentCounter().GetPercentile(100),
-              0);
-    EXPECT_EQ(stats.trx_user_percentile.GetCurrentCounter().GetPercentile(100),
-              0);
+    EXPECT_EQ(
+        stats.transaction.total_percentile.GetCurrentCounter().GetPercentile(
+            100),
+        0);
+    EXPECT_EQ(
+        stats.transaction.busy_percentile.GetCurrentCounter().GetPercentile(
+            100),
+        0);
   });
 }
 
@@ -58,21 +62,25 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
 
     // We can't check all the counters as some of them are used for internal ops
     const auto& stats = pool.GetStatistics();
-    EXPECT_EQ(stats.conn_open_total, min_pool_size);
-    EXPECT_EQ(stats.conn_drop_total, 0);
-    EXPECT_EQ(stats.conn_active_total, min_pool_size);
-    EXPECT_EQ(stats.trx_total, 0);
-    EXPECT_EQ(stats.trx_commit_total, 0);
-    EXPECT_EQ(stats.trx_rollback_total, 0);
-    EXPECT_EQ(stats.trx_error_execute_total, 0);
-    EXPECT_EQ(stats.conn_error_total, 0);
+    EXPECT_EQ(stats.connection.open_total, min_pool_size);
+    EXPECT_EQ(stats.connection.drop_total, 0);
+    EXPECT_EQ(stats.connection.active, min_pool_size);
+    EXPECT_EQ(stats.connection.used, 0);
+    EXPECT_EQ(stats.connection.maximum, 10);
+    EXPECT_EQ(stats.transaction.total, 0);
+    EXPECT_EQ(stats.transaction.commit_total, 0);
+    EXPECT_EQ(stats.transaction.rollback_total, 0);
+    EXPECT_EQ(stats.transaction.error_execute_total, 0);
+    EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_error_exhaust_total, 0);
-    EXPECT_EQ(stats.trx_exec_percentile.GetCurrentCounter().GetPercentile(100),
-              0);
-    EXPECT_EQ(stats.trx_delay_percentile.GetCurrentCounter().GetPercentile(100),
-              0);
-    EXPECT_EQ(stats.trx_user_percentile.GetCurrentCounter().GetPercentile(100),
-              0);
+    EXPECT_EQ(
+        stats.transaction.total_percentile.GetCurrentCounter().GetPercentile(
+            100),
+        0);
+    EXPECT_EQ(
+        stats.transaction.busy_percentile.GetCurrentCounter().GetPercentile(
+            100),
+        0);
   });
 }
 
@@ -111,28 +119,42 @@ TEST_P(PostgrePoolStats, RunTransactions) {
     const auto query_exec_count = trx_count * (exec_count + /*begin-commit*/ 2);
     const auto duration_min = pg::detail::SteadyClock::duration::min();
     const auto& stats = pool.GetStatistics();
-    EXPECT_GE(stats.conn_open_total, 1);
-    EXPECT_EQ(stats.conn_drop_total, 0);
-    EXPECT_GE(stats.conn_active_total, 1);
-    EXPECT_EQ(stats.trx_total, trx_count);
-    EXPECT_EQ(stats.trx_commit_total, trx_count);
-    EXPECT_EQ(stats.trx_rollback_total, 0);
-    EXPECT_GE(stats.trx_parse_total, 1);
-    EXPECT_EQ(stats.trx_execute_total, query_exec_count);
-    EXPECT_EQ(stats.trx_reply_total, trx_count * exec_count);
-    EXPECT_EQ(stats.trx_bin_reply_total, trx_count * exec_count);
-    EXPECT_EQ(stats.trx_error_execute_total, 0);
-    EXPECT_EQ(stats.conn_error_total, 0);
+    EXPECT_GE(stats.connection.open_total, 1);
+    EXPECT_EQ(stats.connection.drop_total, 0);
+    EXPECT_GE(stats.connection.active, 1);
+    EXPECT_EQ(stats.connection.used, 0);
+    EXPECT_EQ(stats.connection.maximum, 10);
+    EXPECT_EQ(stats.transaction.total, trx_count);
+    EXPECT_EQ(stats.transaction.commit_total, trx_count);
+    EXPECT_EQ(stats.transaction.rollback_total, 0);
+    EXPECT_GE(stats.transaction.parse_total, 1);
+    EXPECT_EQ(stats.transaction.execute_total, query_exec_count);
+    EXPECT_EQ(stats.transaction.reply_total, trx_count * exec_count);
+    EXPECT_EQ(stats.transaction.bin_reply_total, trx_count * exec_count);
+    EXPECT_EQ(stats.transaction.error_execute_total, 0);
+    EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_error_exhaust_total, 0);
     EXPECT_EQ(
-        stats.trx_exec_percentile.GetStatsForPeriod(duration_min, true).Count(),
+        stats.transaction.total_percentile.GetStatsForPeriod(duration_min, true)
+            .Count(),
         trx_count);
-    EXPECT_EQ(stats.trx_delay_percentile.GetStatsForPeriod(duration_min, true)
-                  .Count(),
-              trx_count);
     EXPECT_EQ(
-        stats.trx_user_percentile.GetStatsForPeriod(duration_min, true).Count(),
+        stats.transaction.busy_percentile.GetStatsForPeriod(duration_min, true)
+            .Count(),
         trx_count);
+  });
+}
+
+TEST_P(PostgrePoolStats, ConnUsed) {
+  RunInCoro([this] {
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10);
+    pg::detail::ConnectionPtr conn;
+
+    EXPECT_NO_THROW(conn = pool.GetConnection())
+        << "Obtained connection from pool";
+
+    const auto& stats = pool.GetStatistics();
+    EXPECT_EQ(stats.connection.used, 1);
   });
 }
 

@@ -18,6 +18,7 @@ namespace postgres {
 
 namespace {
 
+const std::string kPostgreSQLDefaultHost = "localhost";
 const std::string kPostgreSQLDefaultPort = "5432";
 
 std::vector<std::string> SplitString(const char* str, char delim = ',') {
@@ -29,7 +30,7 @@ std::vector<std::string> SplitString(const char* str, char delim = ',') {
 using OptionsHandle =
     std::unique_ptr<PQconninfoOption, decltype(&PQconninfoFree)>;
 
-OptionsHandle ParseDSNOptions(const std::string& conninfo) {
+OptionsHandle MakeDSNOptions(const std::string& conninfo) {
   char* errmsg = nullptr;
   OptionsHandle opts{PQconninfoParse(conninfo.c_str(), &errmsg),
                      &PQconninfoFree};
@@ -42,34 +43,47 @@ OptionsHandle ParseDSNOptions(const std::string& conninfo) {
   return opts;
 }
 
-}  // namespace
-
-DSNList SplitByHost(const std::string& conninfo) {
+struct HostAndPort {
   using StringList = std::vector<std::string>;
-
-  auto opts = ParseDSNOptions(conninfo);
 
   StringList hosts;
   StringList ports;
-  std::ostringstream options;
+};
+
+HostAndPort ParseDSNOptions(
+    const std::string& conninfo,
+    std::function<void(PQconninfoOption*)> other_opt_builder =
+        [](PQconninfoOption*) {}) {
+  HostAndPort hap;
+  auto opts = MakeDSNOptions(conninfo);
 
   auto opt = opts.get();
-  // TODO Refactor out this cycle
   while (opt != nullptr && opt->keyword != nullptr) {
     if (opt->val) {
       if (::strcmp(opt->keyword, "host") == 0) {
-        hosts = SplitString(opt->val);
+        hap.hosts = SplitString(opt->val);
       } else if (::strcmp(opt->keyword, "port") == 0) {
-        ports = SplitString(opt->val);
+        hap.ports = SplitString(opt->val);
       } else {
-        options << " " << opt->keyword << "=" << opt->val;
+        other_opt_builder(opt);
       }
     }
     ++opt;
   }
+  return hap;
+}
 
+}  // namespace
+
+DSNList SplitByHost(const std::string& conninfo) {
+  std::ostringstream options;
+  const auto hap = ParseDSNOptions(conninfo, [&options](PQconninfoOption* opt) {
+    options << " " << opt->keyword << "=" << opt->val;
+  });
+
+  const auto& hosts = hap.hosts;
+  const auto& ports = hap.ports;
   DSNList res;
-
   if (hosts.empty()) {
     // default host, just return the options string
     if (ports.size() > 1)
@@ -100,25 +114,20 @@ DSNList SplitByHost(const std::string& conninfo) {
 }
 
 std::string MakeDsnNick(const std::string& conninfo, bool escape) {
-  auto opts = ParseDSNOptions(conninfo);
-  std::map<std::string, std::string> opt_dict{{"host", "localhost"},
+  std::map<std::string, std::string> opt_dict{{"host", kPostgreSQLDefaultHost},
                                               {"port", kPostgreSQLDefaultPort}};
-  auto opt = opts.get();
-  // TODO Refactor out this cycle
-  while (opt != nullptr && opt->keyword != nullptr) {
-    if (opt->val) {
-      if (::strcmp(opt->keyword, "host") == 0) {
-        auto hosts = SplitString(opt->val);
-        if (!hosts.empty()) opt_dict["host"] = hosts.front();
-      } else if (::strcmp(opt->keyword, "port") == 0) {
-        auto ports = SplitString(opt->val);
-        if (!ports.empty()) opt_dict["port"] = ports.front();
-      } else {
+
+  const auto hap =
+      ParseDSNOptions(conninfo, [&opt_dict](PQconninfoOption* opt) {
         opt_dict[opt->keyword] = opt->val;
-      }
-    }
-    ++opt;
-  }
+      });
+
+  const auto& hosts = hap.hosts;
+  if (!hosts.empty()) opt_dict["host"] = hosts.front();
+
+  const auto& ports = hap.ports;
+  if (!ports.empty()) opt_dict["port"] = ports.front();
+
   std::string dsn_str;
   std::array<const char*, 4> keys = {"user", "host", "port", "dbname"};
   std::array<char, 3> delims = {'@', ':', '/'};
@@ -143,6 +152,25 @@ std::string MakeDsnNick(const std::string& conninfo, bool escape) {
                   dsn_str.end());
   }
   return dsn_str;
+}
+
+std::string FirstHostAndPortFromDsn(const std::string& conninfo) {
+  const auto hap = ParseDSNOptions(conninfo);
+  const auto host =
+      hap.hosts.empty() ? kPostgreSQLDefaultHost : hap.hosts.front();
+  const auto port =
+      hap.ports.empty() ? kPostgreSQLDefaultPort : hap.ports.front();
+  return host + ':' + port;
+}
+
+std::string FirstDbNameFromDsn(const std::string& conninfo) {
+  std::string db_name;
+  ParseDSNOptions(conninfo, [&db_name](PQconninfoOption* opt) {
+    if (db_name.empty() && opt->keyword == std::string("dbname")) {
+      db_name = opt->val;
+    }
+  });
+  return db_name;
 }
 
 }  // namespace postgres

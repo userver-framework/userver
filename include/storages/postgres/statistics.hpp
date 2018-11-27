@@ -11,54 +11,70 @@
 namespace storages {
 namespace postgres {
 
-/// @brief Template instance statistics storage
+/// @brief Template transaction statistics storage
 template <typename Counter, typename Accumulator>
-struct InstanceStatisticsT {
-  /// Number of connections opened
-  Counter conn_open_total = 0;
-  /// Number of connections dropped
-  Counter conn_drop_total = 0;
-  /// Number of active connections
-  Counter conn_active_total = 0;
+struct TransactionStatistics {
   /// Number of transactions started
-  Counter trx_total = 0;
+  Counter total = 0;
   /// Number of transactions committed
-  Counter trx_commit_total = 0;
+  Counter commit_total = 0;
   /// Number of transactions rolled back
-  Counter trx_rollback_total = 0;
+  Counter rollback_total = 0;
   /// Number of parsed queries
-  Counter trx_parse_total = 0;
+  Counter parse_total = 0;
   /// Number of query executions
-  Counter trx_execute_total = 0;
+  Counter execute_total = 0;
   /// Total number of replies
-  Counter trx_reply_total = 0;
+  Counter reply_total = 0;
   /// Number of replies in binary format
-  Counter trx_bin_reply_total = 0;
+  Counter bin_reply_total = 0;
   /// Error during query execution
-  Counter trx_error_execute_total = 0;
-  /// Error during connection
-  Counter conn_error_total = 0;
-  /// Error caused by pool exhaustion
-  Counter pool_error_exhaust_total = 0;
+  Counter error_execute_total = 0;
 
   // TODO pick reasonable resolution for transaction
   // execution times
   /// Transaction overall execution time distribution
-  Accumulator trx_exec_percentile;
-  /// Transaction delay (caused by connection creation) time distribution
-  Accumulator trx_delay_percentile;
-  /// Transaction overhead (spent outside of queries) time distribution
-  Accumulator trx_user_percentile;
+  Accumulator total_percentile;
+  /// Transaction aggregated query execution time distribution
+  Accumulator busy_percentile;
+};
+
+/// @brief Template connection statistics storage
+template <typename Counter>
+struct ConnectionStatistics {
+  /// Number of connections opened
+  Counter open_total = 0;
+  /// Number of connections dropped
+  Counter drop_total = 0;
+  /// Number of active connections
+  Counter active = 0;
+  /// Number of connections in use
+  Counter used = 0;
+  /// Number of maximum allowed connections
+  Counter maximum = 0;
+  /// Error during connection
+  Counter error_total = 0;
+};
+
+/// @brief Template instance statistics storage
+template <typename Counter, typename Accumulator>
+struct InstanceStatisticsTemplate {
+  /// Connection statistics
+  ConnectionStatistics<Counter> connection;
+  /// Transaction statistics
+  TransactionStatistics<Counter, Accumulator> transaction;
+  /// Error caused by pool exhaustion
+  Counter pool_error_exhaust_total = 0;
 };
 
 using Percentile = ::utils::statistics::Percentile<2048>;
-using InstanceStatistics =
-    InstanceStatisticsT<::utils::statistics::RelaxedCounter<uint32_t>,
-                        ::utils::statistics::RecentPeriod<
-                            Percentile, Percentile, detail::SteadyClock>>;
+using InstanceStatistics = InstanceStatisticsTemplate<
+    ::utils::statistics::RelaxedCounter<uint32_t>,
+    ::utils::statistics::RecentPeriod<Percentile, Percentile,
+                                      detail::SteadyClock>>;
 
 using InstanceStatisticsNonatomicBase =
-    InstanceStatisticsT<uint32_t, Percentile>;
+    InstanceStatisticsTemplate<uint32_t, Percentile>;
 
 struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
   InstanceStatisticsNonatomic() = default;
@@ -71,23 +87,25 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
 
   template <typename Statistics>
   InstanceStatisticsNonatomic& operator=(const Statistics& stats) {
-    conn_open_total = stats.conn_open_total;
-    conn_drop_total = stats.conn_drop_total;
-    conn_active_total = stats.conn_active_total;
-    trx_total = stats.trx_total;
-    trx_commit_total = stats.trx_commit_total;
-    trx_rollback_total = stats.trx_rollback_total;
-    trx_parse_total = stats.trx_parse_total;
-    trx_execute_total = stats.trx_execute_total;
-    trx_reply_total = stats.trx_reply_total;
-    trx_bin_reply_total = stats.trx_bin_reply_total;
-    trx_error_execute_total = stats.trx_error_execute_total;
-    conn_error_total = stats.conn_error_total;
+    connection.open_total = stats.connection.open_total;
+    connection.drop_total = stats.connection.drop_total;
+    connection.active = stats.connection.active;
+    connection.used = stats.connection.used;
+    connection.maximum = stats.connection.maximum;
+    connection.error_total = stats.connection.error_total;
+    transaction.total = stats.transaction.total;
+    transaction.commit_total = stats.transaction.commit_total;
+    transaction.rollback_total = stats.transaction.rollback_total;
+    transaction.parse_total = stats.transaction.parse_total;
+    transaction.execute_total = stats.transaction.execute_total;
+    transaction.reply_total = stats.transaction.reply_total;
+    transaction.bin_reply_total = stats.transaction.bin_reply_total;
+    transaction.error_execute_total = stats.transaction.error_execute_total;
+    transaction.total_percentile.Add(
+        stats.transaction.total_percentile.GetStatsForPeriod());
+    transaction.busy_percentile.Add(
+        stats.transaction.busy_percentile.GetStatsForPeriod());
     pool_error_exhaust_total = stats.pool_error_exhaust_total;
-
-    trx_exec_percentile.Add(stats.trx_exec_percentile.GetStatsForPeriod());
-    trx_delay_percentile.Add(stats.trx_delay_percentile.GetStatsForPeriod());
-    trx_user_percentile.Add(stats.trx_user_percentile.GetStatsForPeriod());
     return *this;
   }
   InstanceStatisticsNonatomic& operator=(InstanceStatisticsNonatomic&&) =

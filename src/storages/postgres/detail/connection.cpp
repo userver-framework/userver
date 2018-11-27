@@ -232,7 +232,6 @@ struct Connection::Impl {
       throw AlreadyInTransaction();
     }
     stats_.trx_start_time = std::move(trx_start_time);
-    stats_.trx_begin_time = SteadyClock::now();
     ++stats_.trx_total;
     ExecuteCommand(BeginStatement(options));
   }

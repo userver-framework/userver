@@ -83,6 +83,7 @@ class Postgres : public LoggableComponentBase {
   components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 
+  std::string db_name_;
   size_t min_pool_size_ = 0;
   size_t max_pool_size_ = 0;
   engine::TaskProcessor* bg_task_processor_ = nullptr;

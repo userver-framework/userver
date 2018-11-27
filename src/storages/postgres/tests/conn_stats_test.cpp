@@ -37,7 +37,6 @@ TEST_P(PostgreStats, NoTransactions) {
     EXPECT_EQ(stats.rollback_total, 0);
     EXPECT_EQ(stats.error_execute_total, 0);
     EXPECT_EQ(stats.trx_start_time.time_since_epoch().count(), 0);
-    EXPECT_EQ(stats.trx_begin_time.time_since_epoch().count(), 0);
     EXPECT_EQ(stats.trx_end_time.time_since_epoch().count(), 0);
   });
 }
@@ -61,7 +60,6 @@ TEST_P(PostgreStats, StatsResetAfterGet) {
     EXPECT_EQ(stats.bin_reply_total, 0);
     EXPECT_EQ(stats.error_execute_total, 0);
     EXPECT_EQ(stats.trx_start_time.time_since_epoch().count(), 0);
-    EXPECT_EQ(stats.trx_begin_time.time_since_epoch().count(), 0);
     EXPECT_EQ(stats.trx_end_time.time_since_epoch().count(), 0);
     EXPECT_EQ(stats.sum_query_duration.count(), 0);
   });
@@ -86,7 +84,6 @@ TEST_P(PostgreStats, TransactionStartTime) {
     EXPECT_EQ(stats.bin_reply_total, 0);
     EXPECT_EQ(stats.error_execute_total, 0);
     EXPECT_EQ(stats.trx_start_time.time_since_epoch().count(), 0);
-    EXPECT_EQ(stats.trx_begin_time.time_since_epoch().count(), 0);
     EXPECT_EQ(stats.trx_end_time.time_since_epoch().count(), 0);
     EXPECT_EQ(stats.sum_query_duration.count(), 0);
   });
@@ -118,7 +115,6 @@ TEST_P(PostgreStats, TransactionExecuted) {
     EXPECT_EQ(stats.bin_reply_total, 1);
     EXPECT_EQ(stats.error_execute_total, 0);
     EXPECT_GT(stats.trx_start_time, time_start);
-    EXPECT_GT(stats.trx_begin_time, time_start);
     EXPECT_GT(stats.trx_end_time, time_start);
     EXPECT_GT(stats.sum_query_duration.count(), 0);
   });
@@ -150,7 +146,6 @@ TEST_P(PostgreStats, TransactionFailed) {
     EXPECT_EQ(stats.bin_reply_total, 0);
     EXPECT_EQ(stats.error_execute_total, 1);
     EXPECT_GT(stats.trx_start_time, time_start);
-    EXPECT_GT(stats.trx_begin_time, time_start);
     EXPECT_GT(stats.trx_end_time, time_start);
     EXPECT_GT(stats.sum_query_duration.count(), 0);
   });

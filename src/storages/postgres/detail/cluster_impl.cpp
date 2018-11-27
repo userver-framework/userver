@@ -30,7 +30,7 @@ ClusterStatistics ClusterImpl::GetStatistics() const {
       topology_.GetHostsByType(ClusterHostType::kMaster);
   if (!master_indices.empty()) {
     auto idx = master_indices[0];
-    cluster_stats.master.dsn = MakeDsnNick(dsn_list[idx], false);
+    cluster_stats.master.dsn = dsn_list[idx];
     cluster_stats.master.stats = host_pools_[idx].GetStatistics();
   }
 
@@ -38,7 +38,7 @@ ClusterStatistics ClusterImpl::GetStatistics() const {
       topology_.GetHostsByType(ClusterHostType::kSyncSlave);
   if (!sync_slave_indices.empty()) {
     auto idx = sync_slave_indices[0];
-    cluster_stats.sync_slave.dsn = MakeDsnNick(dsn_list[idx], false);
+    cluster_stats.sync_slave.dsn = dsn_list[idx];
     cluster_stats.sync_slave.stats = host_pools_[idx].GetStatistics();
   }
 
@@ -48,7 +48,7 @@ ClusterStatistics ClusterImpl::GetStatistics() const {
     cluster_stats.slaves.reserve(slaves_indices.size());
     for (auto&& idx : slaves_indices) {
       InstanceStatsDescriptor slave_desc;
-      slave_desc.dsn = MakeDsnNick(dsn_list[idx], false);
+      slave_desc.dsn = dsn_list[idx];
       slave_desc.stats = host_pools_[idx].GetStatistics();
       cluster_stats.slaves.push_back(std::move(slave_desc));
     }

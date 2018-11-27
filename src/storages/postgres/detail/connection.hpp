@@ -63,8 +63,6 @@ class Connection {
 
     /// Transaction initiation time
     SteadyClock::time_point trx_start_time;
-    /// Transaction begin statement time
-    SteadyClock::time_point trx_begin_time;
     /// Transaction end time
     SteadyClock::time_point trx_end_time;
     /// Sum of all query durations

@@ -21,57 +21,63 @@ namespace {
 constexpr auto kStatisticsName = "postgresql";
 
 formats::json::ValueBuilder InstanceStatisticsToJson(
-    const storages::postgres::InstanceStatsDescriptor& desc) {
-  if (desc.dsn.empty()) {
-    return {};
-  }
-
-  const auto& stats = desc.stats;
+    const storages::postgres::InstanceStatisticsNonatomic& stats) {
   formats::json::ValueBuilder instance(formats::json::Type::kObject);
-  instance["dsn"] = desc.dsn;
 
   auto conn = instance["connections"];
-  conn["opened"] = stats.conn_open_total;
-  conn["closed"] = stats.conn_drop_total;
-  conn["active"] = stats.conn_active_total;
+  conn["opened"] = stats.connection.open_total;
+  conn["closed"] = stats.connection.drop_total;
+  conn["active"] = stats.connection.active;
+  conn["busy"] = stats.connection.used;
+  conn["max"] = stats.connection.maximum;
 
   auto trx = instance["transactions"];
-  trx["total"] = stats.trx_total;
-  trx["committed"] = stats.trx_commit_total;
-  trx["rolled-back"] = stats.trx_rollback_total;
+  trx["total"] = stats.transaction.total;
+  trx["committed"] = stats.transaction.commit_total;
+  trx["rolled-back"] = stats.transaction.rollback_total;
 
   auto timing = trx["timings"];
-  timing["delay"]["1min"] =
-      utils::statistics::PercentileToJson(stats.trx_delay_percentile);
-  timing["wall"]["1min"] =
-      utils::statistics::PercentileToJson(stats.trx_exec_percentile);
-  timing["user"]["1min"] =
-      utils::statistics::PercentileToJson(stats.trx_user_percentile);
+  timing["full"]["1min"] =
+      utils::statistics::PercentileToJson(stats.transaction.total_percentile);
+  timing["busy"]["1min"] =
+      utils::statistics::PercentileToJson(stats.transaction.busy_percentile);
 
   auto query = instance["queries"];
-  query["parsed"] = stats.trx_parse_total;
-  query["executed"] = stats.trx_execute_total;
-  query["replies"] = stats.trx_reply_total;
-  query["binary-replies"] = stats.trx_bin_reply_total;
+  query["parsed"] = stats.transaction.parse_total;
+  query["executed"] = stats.transaction.execute_total;
+  query["replies"] = stats.transaction.reply_total;
+  query["binary-replies"] = stats.transaction.bin_reply_total;
 
   auto errors = instance["errors"];
-  errors["query-exec"] = stats.trx_error_execute_total;
-  errors["connection"] = stats.conn_error_total;
+  errors["query-exec"] = stats.transaction.error_execute_total;
+  errors["connection"] = stats.connection.error_total;
   errors["pool"] = stats.pool_error_exhaust_total;
 
   return instance;
 }
 
+void AddInstanceStatistics(
+    const storages::postgres::InstanceStatsDescriptor& desc,
+    formats::json::ValueBuilder& parent) {
+  if (desc.dsn.empty()) {
+    return;
+  }
+  const auto host_and_port =
+      storages::postgres::FirstHostAndPortFromDsn(desc.dsn);
+  parent[host_and_port] = InstanceStatisticsToJson(desc.stats);
+}
+
 formats::json::ValueBuilder ClusterStatisticsToJson(
     const storages::postgres::ClusterStatistics& stats) {
   formats::json::ValueBuilder cluster(formats::json::Type::kObject);
-  cluster["master"] = InstanceStatisticsToJson(stats.master);
-  cluster["sync_slave"] = InstanceStatisticsToJson(stats.sync_slave);
+  auto master = cluster["master"];
+  AddInstanceStatistics(stats.master, master);
+  auto sync_slave = cluster["sync_slave"];
+  AddInstanceStatistics(stats.sync_slave, sync_slave);
   auto slaves = cluster["slaves"];
   slaves = {formats::json::Type::kObject};
   for (auto i = 0u; i < stats.slaves.size(); ++i) {
-    const auto slave_name = "slave_" + std::to_string(i);
-    slaves[slave_name] = InstanceStatisticsToJson(stats.slaves[i]);
+    AddInstanceStatistics(stats.slaves[i], slaves);
   }
   return cluster;
 }
@@ -103,6 +109,7 @@ Postgres::Postgres(const ComponentConfig& config,
   storages::postgres::ClusterDescription cluster_desc;
   if (dbalias.empty()) {
     const auto dsn_string = config.ParseString("dbconnection");
+    db_name_ = storages::postgres::FirstDbNameFromDsn(dsn_string);
     shard_to_desc_.push_back(
         storages::postgres::ClusterDescription(dsn_string));
   } else {
@@ -111,6 +118,7 @@ Postgres::Postgres(const ComponentConfig& config,
       shard_to_desc_ = secdist.Get()
                            .Get<storages::postgres::secdist::PostgresSettings>()
                            .GetShardedClusterDescription(dbalias);
+      db_name_ = dbalias;
     } catch (const storages::secdist::SecdistError& ex) {
       LOG_ERROR() << "Failed to load Postgres config for dbalias " << dbalias
                   << ": " << ex.what();
@@ -175,7 +183,10 @@ formats::json::Value Postgres::ExtendStatistics(
     std::lock_guard<engine::Mutex> lk(shards_ready_mutex_);
     shards_ready = shards_ready_;
   }
-  return PostgresStatisticsToJson(shards_ready).ExtractValue();
+
+  formats::json::ValueBuilder result(formats::json::Type::kObject);
+  result[db_name_] = PostgresStatisticsToJson(shards_ready);
+  return result.ExtractValue();
 }
 
 }  // namespace components
