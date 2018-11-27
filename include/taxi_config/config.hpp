@@ -8,56 +8,69 @@
 
 namespace taxi_config {
 
-class Config;
+template <typename ConfigTag>
+class BaseConfig;
 
-template <typename T>
+template <typename ConfigTag, typename T>
 class ConfigModule {
  public:
-  static const T& Get(const Config& config);
+  static const T& Get(const BaseConfig<ConfigTag>& config);
   static boost::any Factory(const DocsMap& docs_map) { return T(docs_map); }
 
  private:
   static std::type_index type_;
 };
 
-class Config {
+template <typename ConfigTag>
+class BaseConfig {
  public:
-  Config(const DocsMap& docs_map);
+  BaseConfig(const DocsMap& docs_map);
 
-  Config(Config&&);
+  BaseConfig(BaseConfig&&) = default;
 
-  ~Config();
+  ~BaseConfig() = default;
 
   template <typename T>
   static std::type_index Register(
       std::function<boost::any(const DocsMap&)>&& factory) {
-    Register(typeid(T), std::move(factory));
+    DoRegister(typeid(T), std::move(factory));
     return typeid(T);
   }
 
   template <typename T>
   const T& Get() const {
-    return ConfigModule<T>::Get(*this);
+    return ConfigModule<ConfigTag, T>::Get(*this);
   }
 
+  static void DoRegister(const std::type_info& type,
+                         std::function<boost::any(const DocsMap&)>&& factory);
+
  private:
-  static void Register(const std::type_info& type,
-                       std::function<boost::any(const DocsMap&)>&& factory);
   const boost::any& Get(const std::type_index& type) const;
 
   std::unordered_map<std::type_index, boost::any> extra_configs_;
 
-  template <typename T>
+  template <typename U, typename T>
   friend class ConfigModule;
 };
 
-template <typename T>
-const T& ConfigModule<T>::Get(const Config& config) {
+struct FullConfigTag;
+struct BootstrapConfigTag;
+
+extern template class BaseConfig<FullConfigTag>;
+extern template class BaseConfig<BootstrapConfigTag>;
+
+using Config = BaseConfig<FullConfigTag>;
+using BootstrapConfig = BaseConfig<BootstrapConfigTag>;
+
+template <typename ConfigTag, typename T>
+const T& ConfigModule<ConfigTag, T>::Get(const BaseConfig<ConfigTag>& config) {
   return boost::any_cast<const T&>(config.Get(type_));
 }
 
-template <typename T>
-std::type_index ConfigModule<T>::type_ =
-    Config::Register<T>(&ConfigModule<T>::Factory);
+template <typename ConfigTag, typename T>
+std::type_index ConfigModule<ConfigTag, T>::type_ =
+    BaseConfig<ConfigTag>::template Register<T>(
+        &ConfigModule<ConfigTag, T>::Factory);
 
 }  // namespace taxi_config

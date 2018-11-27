@@ -8,6 +8,7 @@
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/optional.hpp>
 
+#include <engine/mutex.hpp>
 #include <storages/mongo/mongo.hpp>
 #include <utils/meta.hpp>
 #include <yaml_config/value.hpp>
@@ -18,11 +19,16 @@ class DocsMap {
  public:
   storages::mongo::DocumentElement Get(const std::string& name) const;
   void Set(std::string name, storages::mongo::DocumentValue);
-  void Parse(const std::string& json);
+  void Parse(const std::string& json, bool empty_ok);
   size_t Size() const;
+
+  auto GetMap() const { return docs_; }
+  void MergeFromOther(DocsMap&& other);
+  std::vector<std::string> GetRequestedNames() const;
 
  private:
   std::unordered_map<std::string, storages::mongo::DocumentValue> docs_;
+  mutable std::unordered_set<std::string> requested_names_;
 };
 
 namespace impl {

@@ -4,32 +4,32 @@
 
 namespace taxi_config {
 
-namespace {
+template <typename BaseConfigTag>
 std::unordered_map<std::type_index, std::function<boost::any(const DocsMap&)>>&
-ExtraConfigFactories() {
+ExtraBaseConfigFactories() {
   static std::unordered_map<std::type_index,
                             std::function<boost::any(const DocsMap&)>>
       factories;
   return factories;
 }
-}  // namespace
 
-Config::Config(Config&&) = default;
-
-Config::~Config() = default;
-
-Config::Config(const DocsMap& docs_map) {
-  for (const auto& extra_config : ExtraConfigFactories()) {
+template <typename ConfigTag>
+BaseConfig<ConfigTag>::BaseConfig(const DocsMap& docs_map) {
+  for (const auto& extra_config : ExtraBaseConfigFactories<ConfigTag>()) {
     extra_configs_[extra_config.first] = extra_config.second(docs_map);
   }
 }
 
-void Config::Register(const std::type_info& type,
-                      std::function<boost::any(const DocsMap&)>&& factory) {
-  ExtraConfigFactories()[type] = std::move(factory);
+template <typename ConfigTag>
+void BaseConfig<ConfigTag>::DoRegister(
+    const std::type_info& type,
+    std::function<boost::any(const DocsMap&)>&& factory) {
+  ExtraBaseConfigFactories<ConfigTag>()[type] = std::move(factory);
 }
 
-const boost::any& Config::Get(const std::type_index& type) const {
+template <typename ConfigTag>
+const boost::any& BaseConfig<ConfigTag>::Get(
+    const std::type_index& type) const {
   try {
     return extra_configs_.at(type);
   } catch (const std::out_of_range& ex) {
@@ -37,5 +37,8 @@ const boost::any& Config::Get(const std::type_index& type) const {
                             " is not registered as config");
   }
 }
+
+template class BaseConfig<FullConfigTag>;
+template class BaseConfig<BootstrapConfigTag>;
 
 }  // namespace taxi_config

@@ -25,20 +25,20 @@ class TaxiConfig : public LoggableComponentBase,
   /// Get config, may block if no config is available yet
   std::shared_ptr<taxi_config::Config> Get() const;
 
-#if 0
   /// Get config, always returns something without blocking
   /// (either up-to-date config or bootstrap config)
-  std::shared_ptr<taxi_config::Config> GetOrBootstrap() const;
-#endif
+  std::shared_ptr<taxi_config::BootstrapConfig> GetBootstrap() const;
 
   /// Set up-to-date config. Must be used by config updaters only
   /// (e.g. config client).
   void Set(std::shared_ptr<taxi_config::Config> value_ptr);
 
+  void SetLoadingFailed();
+
  private:
-#if 0
-  std::shared_ptr<taxi_config::Config> bootstrap_config_;
-#endif
+  std::shared_ptr<taxi_config::BootstrapConfig> bootstrap_config_;
+
+  bool config_load_cancelled_;
   mutable engine::ConditionVariable loaded_cv_;
   mutable engine::Mutex loaded_mutex_;
   utils::SwappingSmart<taxi_config::Config> cache_;

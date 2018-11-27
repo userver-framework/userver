@@ -61,17 +61,18 @@ class MongoCache
   ~MongoCache();
 
  private:
-  void Update(CacheUpdateTrait::UpdateType type,
+  void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now,
-              tracing::Span&& span) override;
+              tracing::Span&& span,
+              cache::UpdateStatisticsScope& stats_scope) override;
 
   storages::mongo::DocumentValue GetQuery(
-      CacheUpdateTrait::UpdateType type,
+      cache::UpdateType type,
       const std::chrono::system_clock::time_point& last_update);
 
   std::shared_ptr<typename MongoCacheTraits::DataType> GetData(
-      CacheUpdateTrait::UpdateType type);
+      cache::UpdateType type);
 
   storages::mongo::CollectionsPtr mongo_collections_;
   storages::mongo::Collection* mongo_collection_;
@@ -99,10 +100,10 @@ MongoCache<MongoCacheTraits>::~MongoCache() {
 
 template <class MongoCacheTraits>
 void MongoCache<MongoCacheTraits>::Update(
-    CacheUpdateTrait::UpdateType type,
+    cache::UpdateType type,
     const std::chrono::system_clock::time_point& last_update,
-    const std::chrono::system_clock::time_point& /*now*/,
-    tracing::Span&& span) {
+    const std::chrono::system_clock::time_point& /*now*/, tracing::Span&& span,
+    cache::UpdateStatisticsScope& stats_scope) {
   namespace bbb = bsoncxx::builder::basic;
   namespace sm = storages::mongo;
 
@@ -116,28 +117,25 @@ void MongoCache<MongoCacheTraits>::Update(
   mongocxx::options::find options;
   options.read_preference(std::move(read_pref));
 
-  cache::UpdateStatisticsScope stats(this->GetStatistics(), type);
-
   auto cursor = collection->Find(query).Get();
   auto it = cursor.begin();
-  if (type == CacheUpdateTrait::UpdateType::kIncremental &&
-      it == cursor.end()) {
+  if (type == cache::UpdateType::kIncremental && it == cursor.end()) {
     // Don't touch the cache at all
     TRACE_INFO(span) << "No changes in cache " << MongoCacheTraits::kName;
-    stats.FinishNoChanges();
+    stats_scope.FinishNoChanges();
     return;
   }
 
   auto new_cache = GetData(type);
   for (; it != cursor.end(); ++it) {
     const auto& doc = *it;
-    ++stats->documents_read_count;
+    ++stats_scope->documents_read_count;
 
     try {
       auto object = MongoCacheTraits::kDeserializeFunc(sm::DocumentValue(doc));
       auto key = (object.*MongoCacheTraits::kKeyField);
 
-      if (type == CacheUpdateTrait::UpdateType::kIncremental ||
+      if (type == cache::UpdateType::kIncremental ||
           new_cache->count(key) == 0) {
         (*new_cache)[key] = std::move(object);
       } else {
@@ -149,24 +147,24 @@ void MongoCache<MongoCacheTraits>::Update(
                   << MongoCacheTraits::kName
                   << ", _id=" << sm::ToString(doc["_id"])
                   << ", what(): " << e.what();
-      ++stats->documents_parse_failures;
+      ++stats_scope->documents_parse_failures;
 
       if (!MongoCacheTraits::kAreInvalidDocumentsSkipped) throw;
     }
   }
 
   this->Set(new_cache);
-  stats.Finish(new_cache->size());
+  stats_scope.Finish(new_cache->size());
 }
 
 template <class MongoCacheTraits>
 storages::mongo::DocumentValue MongoCache<MongoCacheTraits>::GetQuery(
-    CacheUpdateTrait::UpdateType type,
+    cache::UpdateType type,
     const std::chrono::system_clock::time_point& last_update) {
   namespace bbb = bsoncxx::builder::basic;
   namespace sm = storages::mongo;
 
-  if (type == CacheUpdateTrait::UpdateType::kFull) return sm::kEmptyObject;
+  if (type == cache::UpdateType::kFull) return sm::kEmptyObject;
 
   return bbb::make_document(
       bbb::kvp(std::string(MongoCacheTraits::kMongoUpdateFieldName),
@@ -178,8 +176,8 @@ storages::mongo::DocumentValue MongoCache<MongoCacheTraits>::GetQuery(
 
 template <class MongoCacheTraits>
 std::shared_ptr<typename MongoCacheTraits::DataType>
-MongoCache<MongoCacheTraits>::GetData(CacheUpdateTrait::UpdateType type) {
-  if (type == CacheUpdateTrait::UpdateType::kIncremental)
+MongoCache<MongoCacheTraits>::GetData(cache::UpdateType type) {
+  if (type == cache::UpdateType::kIncremental)
     return std::make_shared<typename MongoCacheTraits::DataType>(*this->Get());
   else
     return std::make_shared<typename MongoCacheTraits::DataType>();

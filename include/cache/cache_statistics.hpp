@@ -3,9 +3,8 @@
 #include <atomic>
 #include <chrono>
 
+#include <cache/update_type.hpp>
 #include <formats/json/value.hpp>
-// TODO: move out of components::
-#include <components/cache_update_trait.hpp>
 
 namespace cache {
 
@@ -63,8 +62,7 @@ struct Statistics {
 
 class UpdateStatisticsScope {
  public:
-  UpdateStatisticsScope(Statistics& stats,
-                        components::CacheUpdateTrait::UpdateType type);
+  UpdateStatisticsScope(Statistics& stats, cache::UpdateType type);
 
   ~UpdateStatisticsScope();
 

@@ -35,8 +35,6 @@ class CachingComponentBase
   const std::string& Name() const;
   std::shared_ptr<T> Get() const;
 
-  cache::Statistics& GetStatistics() { return statistics_; }
-
  protected:
   void Set(std::shared_ptr<T> value_ptr);
   void Set(T&& value);
@@ -50,7 +48,6 @@ class CachingComponentBase
       const utils::statistics::StatisticsRequest& /*request*/);
 
  private:
-  cache::Statistics statistics_;
   utils::statistics::Entry statistics_holder_;
   utils::SwappingSmart<T> cache_;
   server::CacheInvalidatorHolder cache_invalidator_holder_;

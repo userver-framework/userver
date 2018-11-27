@@ -1,69 +1,57 @@
 #include <taxi_config/updater/mongo/component.hpp>
 
-#include <fstream>
-#include <sstream>
 #include <stdexcept>
 
+#include <blocking/fs/read.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/types.hpp>
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/read_preference.hpp>
-
 #include <storages/mongo/component.hpp>
 #include <storages/mongo/mongo.hpp>
-
 #include <taxi_config/mongo/names.hpp>
 
 namespace components {
-
-namespace {
-
-std::string ReadFile(const std::string& path) {
-  std::ifstream ifs(path);
-  if (!ifs) {
-    throw std::runtime_error("Error opening '" + path + '\'');
-  }
-
-  std::ostringstream buffer;
-  buffer << ifs.rdbuf();
-  return buffer.str();
-}
-
-}  // namespace
 
 TaxiConfigMongoUpdater::TaxiConfigMongoUpdater(const ComponentConfig& config,
                                                const ComponentContext& context)
     : CachingComponentBase(config, context, kName),
       taxi_config_(context.FindComponent<TaxiConfig>()) {
-  auto& mongo_component = context.FindComponent<Mongo>("mongo-taxi");
-  mongo_taxi_ = mongo_component.GetPool();
-
-  auto fallback_config_contents = ReadFile(config.ParseString("fallback_path"));
   try {
-    fallback_config_.Parse(fallback_config_contents);
-  } catch (const std::exception& ex) {
-    throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
-                             ex.what());
-  }
+    auto& mongo_component = context.FindComponent<Mongo>("mongo-taxi");
+    mongo_taxi_ = mongo_component.GetPool();
 
-  StartPeriodicUpdates();
+    auto fallback_config_contents =
+        blocking::fs::ReadFileContents(config.ParseString("fallback_path"));
+    try {
+      fallback_config_.Parse(fallback_config_contents, false);
+    } catch (const std::exception& ex) {
+      throw std::runtime_error(
+          std::string("Cannot load fallback taxi config: ") + ex.what());
+    }
+
+    StartPeriodicUpdates();
+  } catch (...) {
+    LOG_DEBUG() << "mongo updater init failed";
+    taxi_config_.SetLoadingFailed();
+    StopPeriodicUpdates();
+    throw;
+  }
 }
 
 TaxiConfigMongoUpdater::~TaxiConfigMongoUpdater() { StopPeriodicUpdates(); }
 
 void TaxiConfigMongoUpdater::Update(
-    CacheUpdateTrait::UpdateType type,
-    const std::chrono::system_clock::time_point&,
-    const std::chrono::system_clock::time_point&, tracing::Span&& span) {
+    cache::UpdateType type, const std::chrono::system_clock::time_point&,
+    const std::chrono::system_clock::time_point&, tracing::Span&& span,
+    cache::UpdateStatisticsScope& stats) {
   namespace bbb = bsoncxx::builder::basic;
   namespace sm = storages::mongo;
   namespace config_db = mongo::db::taxi::config;
 
   auto collection = mongo_taxi_->GetCollection(config_db::kCollection);
 
-  cache::UpdateStatisticsScope stats(GetStatistics(), type);
-
-  if (type == CacheUpdateTrait::UpdateType::kIncremental) {
+  if (type == cache::UpdateType::kIncremental) {
     auto query = bbb::make_document(
         bbb::kvp(config_db::kUpdated, [this](bbb::sub_document subdoc) {
           subdoc.append(
@@ -103,8 +91,9 @@ void TaxiConfigMongoUpdater::Update(
     }
   }
 
-  stats.Finish(mongo_docs.Size());
   Emplace(std::move(mongo_docs));
+
+  stats.Finish(mongo_docs.Size());
   taxi_config_.Set(Get());
   seen_doc_update_time_ = seen_doc_update_time;
 }

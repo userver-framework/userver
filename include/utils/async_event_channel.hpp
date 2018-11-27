@@ -93,7 +93,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
   void SendEvent(const Args&... args) const {
     std::shared_lock<std::shared_timed_mutex> lock(mutex_);
     for (const Listener& listener : listeners_) {
-      engine::CriticalAsync(listener.second, args...).Detach();
+      listener.second(args...);
     }
   }
 

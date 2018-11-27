@@ -9,8 +9,13 @@
 namespace components {
 
 void CacheUpdateTrait::UpdateFull(tracing::Span&& span) {
-  Update(UpdateType::kFull, std::chrono::system_clock::time_point(),
-         std::chrono::system_clock::now(), std::move(span));
+  std::lock_guard<engine::Mutex> lock(update_mutex_);
+
+  auto update_type = cache::UpdateType::kFull;
+  cache::UpdateStatisticsScope stats(GetStatistics(), update_type);
+
+  Update(update_type, std::chrono::system_clock::time_point(),
+         std::chrono::system_clock::now(), std::move(span), stats);
 }
 
 CacheUpdateTrait::CacheUpdateTrait(CacheConfig&& config,
@@ -66,20 +71,23 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
 }
 
 void CacheUpdateTrait::DoPeriodicUpdate(tracing::Span&& span) {
+  std::lock_guard<engine::Mutex> lock(update_mutex_);
+
   const auto steady_now = std::chrono::steady_clock::now();
-  auto update_type = UpdateType::kFull;
+  auto update_type = cache::UpdateType::kFull;
   if (last_full_update_ + config_.full_update_interval_ > steady_now) {
-    update_type = UpdateType::kIncremental;
+    update_type = cache::UpdateType::kIncremental;
   }
 
+  cache::UpdateStatisticsScope stats(GetStatistics(), update_type);
   TRACE_INFO(span) << "Updating cache name=" << name_;
 
   const auto system_now = std::chrono::system_clock::now();
-  Update(update_type, last_update_, system_now, std::move(span));
+  Update(update_type, last_update_, system_now, std::move(span), stats);
   TRACE_INFO(span) << "Updated cache name=" << name_;
 
   last_update_ = system_now;
-  if (update_type == UpdateType::kFull) {
+  if (update_type == cache::UpdateType::kFull) {
     last_full_update_ = steady_now;
   }
 }

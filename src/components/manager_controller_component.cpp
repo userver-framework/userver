@@ -25,15 +25,15 @@ ManagerControllerComponent::ManagerControllerComponent(
       task_processor_map_(context.GetTaskProcessorsMap()) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterExtender(
-      kEngineMonitorDataName,
-      std::bind(&ManagerControllerComponent::ExtendStatistics, this,
-                std::placeholders::_1));
 
   auto& config = context.FindComponent<TaxiConfig>();
+  OnConfigUpdate(config.Get());
   config_subscription_ =
       config.AddListener(this, &ManagerControllerComponent::OnConfigUpdate);
-  OnConfigUpdate(config.Get());
+
+  statistics_holder_ = storage.RegisterExtender(
+      kEngineMonitorDataName,
+      [this](const auto& request) { return ExtendStatistics(request); });
 }
 
 ManagerControllerComponent::~ManagerControllerComponent() {

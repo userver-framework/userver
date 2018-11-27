@@ -127,6 +127,11 @@ void Manager::AddComponents(const ComponentList& component_list) {
       tasks.push_back(engine::CriticalAsync([&]() {
         try {
           (*adder)(*this, component_config_map);
+        } catch (const std::exception& e) {
+          LOG_ERROR() << "Failed to load component "
+                      << adder->GetComponentName() << ": " << e.what();
+          component_context_->CancelComponentsLoad();
+          throw;
         } catch (...) {
           component_context_->CancelComponentsLoad();
           throw;
@@ -176,12 +181,20 @@ void Manager::AddComponentImpl(
         const components::ComponentConfig&,
         const components::ComponentContext&)>
         factory) {
-  LOG_INFO() << "Starting component " << name;
   const auto config_it = config_map.find(name);
   if (config_it == config_map.end()) {
     throw std::runtime_error("Cannot start component " + name +
                              ": missing config");
   }
+  auto enabled =
+      config_it->second.ParseOptionalBool("load-enabled").value_or(true);
+  if (!enabled) {
+    LOG_INFO() << "Component " << name
+               << " load disabled in config.yaml, skipping";
+    return;
+  }
+
+  LOG_INFO() << "Starting component " << name;
 
   try {
     LOG_TRACE() << "Adding component " << name;

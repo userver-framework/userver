@@ -102,6 +102,8 @@ storages::mongo::DocumentElement DocsMap::Get(const std::string& name) const {
   if (!element)
     throw std::runtime_error("Mongo element is not valid for " + name);
 
+  requested_names_.insert(name);
+
   return element;
 }
 
@@ -114,7 +116,7 @@ void DocsMap::Set(std::string name, storages::mongo::DocumentValue obj) {
   }
 }
 
-void DocsMap::Parse(const std::string& json) {
+void DocsMap::Parse(const std::string& json, bool empty_ok) {
   namespace bbb = bsoncxx::builder::basic;
 
   auto bson = [&json] {
@@ -127,13 +129,13 @@ void DocsMap::Parse(const std::string& json) {
   }();
 
   auto view = bson.view();
-  if (view.empty())
+  if (!empty_ok && view.empty())
     throw std::runtime_error("DocsMap::Parse failed: BSON is empty");
 
   std::vector<storages::mongo::DocumentElement> elements(view.begin(),
                                                          view.end());
 
-  if (elements.empty())
+  if (!empty_ok && elements.empty())
     throw std::runtime_error("DocsMap::Parse failed: elements are empty");
 
   for (auto const& element : elements) {
@@ -143,5 +145,19 @@ void DocsMap::Parse(const std::string& json) {
 }
 
 size_t DocsMap::Size() const { return docs_.size(); }
+
+void DocsMap::MergeFromOther(DocsMap&& other) {
+  // TODO: do docs_.merge(other) after we get C++17 std lib
+  for (auto& it : other.docs_) {
+    std::string name = it.first;
+    storages::mongo::DocumentValue value = std::move(it.second);
+    docs_.emplace(std::move(name), std::move(value));
+  }
+}
+
+std::vector<std::string> DocsMap::GetRequestedNames() const {
+  return std::vector<std::string>(requested_names_.begin(),
+                                  requested_names_.end());
+}
 
 }  // namespace taxi_config

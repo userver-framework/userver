@@ -65,13 +65,12 @@ formats::json::Value StatisticsToJson(const UpdateStatistics& stats) {
   return result.ExtractValue();
 }
 
-UpdateStatisticsScope::UpdateStatisticsScope(
-    Statistics& stats, components::CacheUpdateTrait::UpdateType type)
+UpdateStatisticsScope::UpdateStatisticsScope(Statistics& stats,
+                                             cache::UpdateType type)
     : stats_(stats),
-      update_stats_(
-          type == components::CacheUpdateTrait::UpdateType::kIncremental
-              ? stats.incremental_update
-              : stats.full_update),
+      update_stats_(type == cache::UpdateType::kIncremental
+                        ? stats.incremental_update
+                        : stats.full_update),
       finished_(false),
       update_start_time_(std::chrono::system_clock::now().time_since_epoch()) {
   update_stats_.last_update_start_time = update_start_time_;

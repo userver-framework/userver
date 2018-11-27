@@ -166,8 +166,8 @@ Redis::Redis(const ComponentConfig& config,
           component_context.FindComponent<components::StatisticsStorage>()) {
   Connect(config, component_context);
 
-  config_subscription_ = config_.AddListener(this, &Redis::OnConfigUpdate);
   OnConfigUpdate(config_.Get());
+  config_subscription_ = config_.AddListener(this, &Redis::OnConfigUpdate);
 
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       kStatisticsName,

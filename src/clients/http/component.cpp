@@ -9,7 +9,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
     : LoggableComponentBase(component_config, context),
       taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
-  auto config = taxi_config_component_.Get();
+  auto config = taxi_config_component_.GetBootstrap();
   const auto& http_config = config->Get<clients::http::Config>();
   size_t threads = http_config.threads;
 
@@ -17,8 +17,8 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
 
   OnConfigUpdate(config);
 
-  subscriber_scope_ =
-      taxi_config_component_.AddListener(this, &HttpClient::OnConfigUpdate);
+  subscriber_scope_ = taxi_config_component_.AddListener(
+      this, &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
 }
 
 HttpClient::~HttpClient() { subscriber_scope_.Unsubscribe(); }
@@ -33,9 +33,11 @@ clients::http::Client& HttpClient::GetHttpClient() {
   return *http_client_;
 }
 
+template <typename ConfigTag>
 void HttpClient::OnConfigUpdate(
-    const std::shared_ptr<taxi_config::Config>& config) {
-  const auto& http_client_config = config->Get<clients::http::Config>();
+    const std::shared_ptr<taxi_config::BaseConfig<ConfigTag>>& config) {
+  const auto& http_client_config =
+      config->template Get<clients::http::Config>();
   http_client_->SetConnectionPoolSize(http_client_config.connection_pool_size);
 }
 

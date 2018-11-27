@@ -26,7 +26,9 @@ class HttpClient : public LoggableComponentBase {
   clients::http::Client& GetHttpClient();
 
  private:
-  void OnConfigUpdate(const std::shared_ptr<taxi_config::Config>& config);
+  template <typename ConfigTag>
+  void OnConfigUpdate(
+      const std::shared_ptr<taxi_config::BaseConfig<ConfigTag>>& config);
 
  private:
   std::shared_ptr<clients::http::Client> http_client_;
