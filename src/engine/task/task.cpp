@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 
 #include <engine/coro/pool.hpp>
@@ -9,20 +10,6 @@
 #include "task_processor.hpp"
 
 namespace engine {
-namespace {
-
-class CancelDisabledScope {
- public:
-  explicit CancelDisabledScope(impl::TaskContext* context)
-      : context_(context), old_value_(context_->SetCancellable(false)) {}
-  ~CancelDisabledScope() { context_->SetCancellable(old_value_); }
-
- private:
-  impl::TaskContext* context_;
-  bool old_value_;
-};
-
-}  // namespace
 
 Task::Task() = default;
 
@@ -82,13 +69,11 @@ void Task::Terminate() noexcept {
     // use std::promise + Detach() instead
     // do it with caution though as you may get a deadlock
     // e.g. between global event thread pool and task processor
-    auto caller_ctx = current_task::GetCurrentTaskContext();
-    assert(caller_ctx);
     if (!IsFinished()) {
       context_->RequestCancel(Task::CancellationReason::kAbandoned);
     }
 
-    CancelDisabledScope cancel_disabled(caller_ctx);
+    TaskCancellationBlocker cancel_blocker;
     while (!IsFinished()) Wait();
   }
 }
@@ -115,13 +100,6 @@ std::string ToString(Task::CancellationReason reason) {
 }
 
 namespace current_task {
-
-void CancellationPoint() {
-  auto context = GetCurrentTaskContext();
-  if (context->IsCancelRequested()) {
-    context->Sleep({});
-  }
-}
 
 TaskProcessor& GetTaskProcessor() {
   return GetCurrentTaskContext()->GetTaskProcessor();

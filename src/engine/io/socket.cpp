@@ -10,7 +10,7 @@
 #include <system_error>
 
 #include <engine/io/error.hpp>
-#include <engine/task/task.hpp>
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 
 #include <build_config.hpp>

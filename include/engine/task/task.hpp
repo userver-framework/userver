@@ -116,9 +116,6 @@ std::string ToString(Task::CancellationReason reason);
 
 namespace current_task {
 
-/// Checks for pending cancellation requests
-void CancellationPoint();
-
 /// Returns reference to the task processor executing the caller
 TaskProcessor& GetTaskProcessor();
 

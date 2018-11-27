@@ -47,6 +47,8 @@ impl::TaskContext* GetCurrentTaskContextUnchecked() {
   return current_task_context_ptr;
 }
 
+bool IsCancellable() { return GetCurrentTaskContext()->IsCancellable(); }
+
 }  // namespace current_task
 
 namespace impl {
@@ -87,14 +89,25 @@ void CallOnce(Func& func) {
 // It is not perfect as it is easily broken by destructor inlining, but it may
 // help in some cases.
 bool IsExecutingDestructor() {
+  // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-structure
   static const std::string kMangledNamePrefix = "_Z";
 
   for (const auto& frame : boost::stacktrace::stacktrace{}) {
     auto func_name = frame.name();
 
+    // Remove compiler-specific suffixes
+    // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-general
+    {
+      auto pos = func_name.find('$');
+      if (pos != func_name.npos) {
+        func_name.resize(pos);
+      }
+    }
+
     if (boost::algorithm::starts_with(func_name, kMangledNamePrefix)) {
       // XXX: Demangler in xenial doesn't know about decltype(auto),
       // change it to auto. We may change some names, but they're not relevant.
+      // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-builtin
       boost::algorithm::replace_all(func_name, "Dc", "Da");
       func_name = boost::core::demangle(func_name.c_str());
     }
@@ -114,6 +127,7 @@ bool IsExecutingDestructor() {
     } else {
       // For some mysterious reason name wasn't demangled, using safe mode.
       // Look for "D*" pattern, where * is digit (actually 0, 1 or 2)
+      // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-special-ctor-dtor
       for (auto pos = func_name.find('D');
            pos != func_name.npos && pos + 1 < func_name.size();
            pos = func_name.find('D', pos + 1)) {
@@ -244,6 +258,8 @@ void TaskContext::RequestCancel(Task::CancellationReason reason) {
     task_processor_.GetTaskCounter().AccountTaskCancel();
   }
 }
+
+bool TaskContext::IsCancellable() const { return is_cancellable_.load(); }
 
 bool TaskContext::SetCancellable(bool value) {
   return is_cancellable_.exchange(value);

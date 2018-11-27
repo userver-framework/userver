@@ -6,6 +6,7 @@
 #include <engine/async.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/sleep.hpp>
+#include <engine/task/cancel.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_with_result.hpp>
 
@@ -60,8 +61,8 @@ TEST(TaskContext, NoUnwindFromDtor) {
 
     __attribute__((noinline)) ~SynchronizingRaii() {
       request_event_.Send();
-      // ASSERT_NO_THROW uses return <expr> internally, does not compile
       EXPECT_NO_THROW(sync_event_.WaitForEvent());
+      EXPECT_TRUE(engine::current_task::IsCancelRequested());
     }
 
    private:
@@ -93,10 +94,11 @@ TEST(TaskContext, UnwindWorksInDtorSubtask) {
 
     ~DetachingRaii() {
       detached_task_ = engine::Async([] {
-        while (true) {
+        while (!engine::current_task::IsCancelRequested()) {
           engine::SleepFor(std::chrono::milliseconds(100));
-          engine::current_task::CancellationPoint();
         }
+        engine::current_task::CancellationPoint();
+        ADD_FAILURE() << "Cancelled task ran past cancellation point";
       });
       detach_event_.Send();
     }
@@ -114,6 +116,7 @@ TEST(TaskContext, UnwindWorksInDtorSubtask) {
     task_detached_event.WaitForEvent();
     task.Wait();
 
+    detached_task.WaitFor(std::chrono::milliseconds(10));
     ASSERT_FALSE(detached_task.IsFinished());
     detached_task.RequestCancel();
     detached_task.Wait();

@@ -92,7 +92,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
     return cancellation_reason_ != Task::CancellationReason::kNone;
   }
 
-  // for use by ~Task()
+  bool IsCancellable() const;
   // returns previous value
   bool SetCancellable(bool);
 
@@ -175,6 +175,8 @@ namespace current_task {
 
 impl::TaskContext* GetCurrentTaskContext();
 impl::TaskContext* GetCurrentTaskContextUnchecked();
+
+bool IsCancellable();
 
 }  // namespace current_task
 }  // namespace engine

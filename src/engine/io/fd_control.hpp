@@ -9,6 +9,7 @@
 #include <engine/io/error.hpp>
 #include <engine/io/fd_control_holder.hpp>
 #include <engine/mutex.hpp>
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 
 #include <engine/ev/watcher.hpp>
