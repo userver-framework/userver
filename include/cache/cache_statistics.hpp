@@ -66,11 +66,13 @@ class UpdateStatisticsScope {
 
   ~UpdateStatisticsScope();
 
-  UpdateStatistics* operator->();
-
   void Finish(size_t documents_count);
 
   void FinishNoChanges();
+
+  void IncreaseDocumentsReadCount(size_t add);
+
+  void IncreaseDocumentsParseFailures(size_t add);
 
  private:
   Statistics& stats_;

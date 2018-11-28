@@ -151,7 +151,13 @@ void DocsMap::MergeFromOther(DocsMap&& other) {
   for (auto& it : other.docs_) {
     std::string name = it.first;
     storages::mongo::DocumentValue value = std::move(it.second);
-    docs_.emplace(std::move(name), std::move(value));
+
+    auto this_it = docs_.find(name);
+    if (this_it == docs_.end()) {
+      docs_.emplace(std::move(name), std::move(value));
+    } else {
+      this_it->second = std::move(value);
+    }
   }
 }
 

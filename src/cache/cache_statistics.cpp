@@ -81,8 +81,6 @@ UpdateStatisticsScope::~UpdateStatisticsScope() {
   if (!finished_) ++update_stats_.update_failures_count;
 }
 
-UpdateStatistics* UpdateStatisticsScope::operator->() { return &update_stats_; }
-
 void UpdateStatisticsScope::Finish(size_t documents_count) {
   const auto update_stop_time =
       std::chrono::system_clock::now().time_since_epoch();
@@ -98,6 +96,14 @@ void UpdateStatisticsScope::Finish(size_t documents_count) {
 void UpdateStatisticsScope::FinishNoChanges() {
   update_stats_.update_no_changes_count++;
   Finish(stats_.documents_current_count.load());
+}
+
+void UpdateStatisticsScope::IncreaseDocumentsReadCount(size_t add) {
+  update_stats_.documents_read_count += add;
+}
+
+void UpdateStatisticsScope::IncreaseDocumentsParseFailures(size_t add) {
+  update_stats_.documents_parse_failures += add;
 }
 
 }  // namespace cache

@@ -129,7 +129,7 @@ void MongoCache<MongoCacheTraits>::Update(
   auto new_cache = GetData(type);
   for (; it != cursor.end(); ++it) {
     const auto& doc = *it;
-    ++stats_scope->documents_read_count;
+    stats_scope.IncreaseDocumentsReadCount(1);
 
     try {
       auto object = MongoCacheTraits::kDeserializeFunc(sm::DocumentValue(doc));
@@ -147,7 +147,7 @@ void MongoCache<MongoCacheTraits>::Update(
                   << MongoCacheTraits::kName
                   << ", _id=" << sm::ToString(doc["_id"])
                   << ", what(): " << e.what();
-      ++stats_scope->documents_parse_failures;
+      stats_scope.IncreaseDocumentsParseFailures(1);
 
       if (!MongoCacheTraits::kAreInvalidDocumentsSkipped) throw;
     }

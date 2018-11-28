@@ -78,7 +78,7 @@ void TaxiConfigMongoUpdater::Update(
 
   std::chrono::system_clock::time_point seen_doc_update_time;
   for (const auto& doc : collection.Find(sm::kEmptyObject).Get()) {
-    ++stats->documents_read_count;
+    stats.IncreaseDocumentsReadCount(1);
     try {
       const auto& updated_field = doc[config_db::kUpdated];
       if (updated_field) {
@@ -87,7 +87,7 @@ void TaxiConfigMongoUpdater::Update(
       }
       mongo_docs.Set(sm::ToString(doc[config_db::kId]), sm::DocumentValue(doc));
     } catch (const std::exception& e) {
-      ++stats->documents_parse_failures;
+      stats.IncreaseDocumentsParseFailures(1);
     }
   }
 

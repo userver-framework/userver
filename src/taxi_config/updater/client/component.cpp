@@ -69,6 +69,8 @@ void TaxiConfigClientUpdater::Update(
     auto reply = config_client_->FetchDocsMap(boost::none, GetDocsMapKeys());
     auto& docs_map = reply.docs_map;
 
+    stats.IncreaseDocumentsReadCount(docs_map.Size());
+
     /* Don't check for timestamp, accept any timestamp.
      * Otherwise we might end up with constantly failing to make full update
      * as every full update we get a bit outdated reply.
@@ -100,7 +102,8 @@ void TaxiConfigClientUpdater::Update(
       return;
     }
 
-    stats->documents_read_count += docs_map.Size();
+    stats.IncreaseDocumentsReadCount(docs_map.Size());
+
     ::taxi_config::DocsMap combined = *Get();
     combined.MergeFromOther(std::move(docs_map));
 
