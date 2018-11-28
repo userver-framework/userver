@@ -20,18 +20,15 @@ RequestConfig::Type StringToType(const std::string& str) {
 RequestConfig::RequestConfig(formats::yaml::Node yaml, std::string full_path,
                              yaml_config::VariableMapPtr config_vars_ptr)
     : yaml_config::YamlConfig(std::move(yaml), std::move(full_path),
-                              std::move(config_vars_ptr)) {}
+                              std::move(config_vars_ptr)),
+      type_(StringToType(Parse<std::string>("type", kHttp))) {}
 
 const RequestConfig::Type& RequestConfig::GetType() const { return type_; }
 
 RequestConfig RequestConfig::ParseFromYaml(
     const formats::yaml::Node& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
-  RequestConfig config(yaml, full_path, config_vars_ptr);
-  auto type = yaml_config::ParseOptionalString(yaml, "type", full_path,
-                                               config_vars_ptr);
-  if (type) config.type_ = StringToType(*type);
-  return config;
+  return {yaml, full_path, config_vars_ptr};
 }
 
 const std::string& RequestConfig::TypeToString(Type type) {

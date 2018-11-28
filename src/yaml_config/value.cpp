@@ -22,19 +22,6 @@ std::string GetFallbackName(const std::string& str) {
 
 }  // namespace impl
 
-namespace {
-
-template <typename ParserImpl>
-auto AdaptImpl(ParserImpl parser_impl) {
-  return [parser_impl = std::move(parser_impl)](
-      const formats::yaml::Node& obj, const std::string& name,
-      const std::string& full_path, const VariableMapPtr&) {
-    return parser_impl(obj, name, full_path);
-  };
-}
-
-}  // namespace
-
 void CheckIsMap(const formats::yaml::Node& obj, const std::string& full_path) {
   impl::CheckIsMap(obj, full_path);
 }
@@ -84,7 +71,7 @@ boost::optional<int> ParseOptionalInt(const formats::yaml::Node& obj,
                                       const std::string& full_path,
                                       const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
-                    AdaptImpl(&impl::ParseInt), &ParseOptionalInt);
+                    &impl::Parse<int, std::string>, &ParseOptionalInt);
 }
 
 boost::optional<bool> ParseOptionalBool(const formats::yaml::Node& obj,
@@ -92,21 +79,22 @@ boost::optional<bool> ParseOptionalBool(const formats::yaml::Node& obj,
                                         const std::string& full_path,
                                         const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
-                    AdaptImpl(&impl::ParseBool), &ParseOptionalBool);
+                    &impl::Parse<bool, std::string>, &ParseOptionalBool);
 }
 
 boost::optional<uint64_t> ParseOptionalUint64(
     const formats::yaml::Node& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
-                    AdaptImpl(&impl::ParseUint64), &ParseOptionalUint64);
+                    &impl::Parse<uint64_t, std::string>, &ParseOptionalUint64);
 }
 
 boost::optional<std::string> ParseOptionalString(
     const formats::yaml::Node& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
-                    AdaptImpl(&impl::ParseString), &ParseOptionalString);
+                    &impl::Parse<std::string, std::string>,
+                    &ParseOptionalString);
 }
 
 }  // namespace yaml_config

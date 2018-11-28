@@ -1,7 +1,5 @@
 #include <yaml_config/yaml_config.hpp>
 
-#include <yaml_config/value.hpp>
-
 namespace yaml_config {
 
 YamlConfig::YamlConfig(formats::yaml::Node yaml, std::string full_path,

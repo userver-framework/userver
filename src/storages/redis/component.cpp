@@ -193,7 +193,7 @@ void Redis::Connect(const ComponentConfig& config,
       redis_pools.sentinel_thread_pool_size,
       redis_pools.redis_thread_pool_size);
 
-  std::vector<RedisGroup> redis_groups = yaml_config::ParseArray<RedisGroup>(
+  auto redis_groups = yaml_config::Parse<std::vector<RedisGroup>>(
       config.Yaml(), "groups", config.FullPath(), config.ConfigVarsPtr());
   for (const RedisGroup& redis_group : redis_groups) {
     std::shared_ptr<redis::Sentinel> client;

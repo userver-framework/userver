@@ -4,7 +4,9 @@
 #include <string>
 
 #include <boost/optional.hpp>
+
 #include <formats/yaml.hpp>
+#include <yaml_config/value.hpp>
 
 #include "variable_map.hpp"
 
@@ -33,6 +35,25 @@ class YamlConfig {
                           const std::string& dflt) const;
   boost::optional<std::string> ParseOptionalString(
       const std::string& name) const;
+
+  template <typename T>
+  T Parse(const std::string& name) const {
+    return yaml_config::Parse<T>(yaml_, name, full_path_, config_vars_ptr_);
+  }
+
+  template <typename T>
+  T Parse(const std::string& name, const T& dflt) const {
+    return yaml_config::Parse<boost::optional<T>>(yaml_, name, full_path_,
+                                                  config_vars_ptr_)
+        .value_or(dflt);
+  }
+
+  template <typename T>
+  std::decay_t<T> Parse(const std::string& name, T&& dflt) const {
+    return yaml_config::Parse<boost::optional<std::decay_t<T>>>(
+               yaml_, name, full_path_, config_vars_ptr_)
+        .value_or(std::forward<T>(dflt));
+  }
 
  private:
   formats::yaml::Node yaml_;

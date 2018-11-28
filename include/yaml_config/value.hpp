@@ -52,6 +52,55 @@ std::string ParseString(const formats::yaml::Node& obj, const std::string& name,
                         const VariableMapPtr& config_vars_ptr);
 
 template <typename T>
+boost::optional<T> ParseOptional(const formats::yaml::Node& obj,
+                                 const std::string& name,
+                                 const std::string& full_path,
+                                 const VariableMapPtr& config_vars_ptr) {
+  return ParseValue(obj, name, full_path, config_vars_ptr,
+                    &impl::Parse<T, std::string>, &ParseOptional<T>);
+}
+
+namespace impl {
+
+template <typename T>
+struct ParseOptionalHelper {
+  T operator()(const formats::yaml::Node& obj, const std::string& name,
+               const std::string& full_path,
+               const VariableMapPtr& config_vars_ptr) const {
+    auto optional = ParseOptional<T>(obj, name, full_path, config_vars_ptr);
+    if (!optional) {
+      throw ParseError(full_path, name, '\'' + name + "' object");
+    }
+    return std::move(*optional);
+  }
+};
+
+template <typename T>
+struct ParseOptionalHelper<boost::optional<T>> {
+  boost::optional<T> operator()(const formats::yaml::Node& obj,
+                                const std::string& name,
+                                const std::string& full_path,
+                                const VariableMapPtr& config_vars_ptr) const {
+    return ParseOptional<T>(obj, name, full_path, config_vars_ptr);
+  }
+};
+
+}  // namespace impl
+
+template <typename T>
+T Parse(const formats::yaml::Node& obj, const std::string& name,
+        const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+  return impl::ParseOptionalHelper<T>()(obj, name, full_path, config_vars_ptr);
+}
+
+template <typename T>
+void ParseInto(T& result, const formats::yaml::Node& obj,
+               const std::string& name, const std::string& full_path,
+               const VariableMapPtr& config_vars_ptr) {
+  result = Parse<T>(obj, name, full_path, config_vars_ptr);
+}
+
+template <typename T>
 boost::optional<std::vector<T>> ParseOptionalArray(
     const formats::yaml::Node& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
