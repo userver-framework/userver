@@ -26,6 +26,12 @@ std::string DsnToString(const ::testing::TestParamInfo<std::string>& info);
 std::string DsnListToString(
     const ::testing::TestParamInfo<storages::postgres::DSNList>& info);
 
+void PrintBuffer(std::ostream&, const std::uint8_t* buffer, std::size_t size);
+inline void PrintBuffer(std::ostream& os, const std::string& buffer) {
+  PrintBuffer(os, reinterpret_cast<const std::uint8_t*>(buffer.data()),
+              buffer.size());
+}
+
 class PostgreSQLBase : public ::testing::Test {
  protected:
   void SetUp() override {

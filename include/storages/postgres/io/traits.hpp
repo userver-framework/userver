@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits>
+#include <string>
 #include <type_traits>
 
 #include <storages/postgres/detail/is_decl_complete.hpp>
@@ -14,11 +16,22 @@ namespace io {
 
 enum DataFormat { kTextDataFormat = 0, kBinaryDataFormat = 1 };
 
+/// Fields that are null are denoted by specifying their length == -1
+constexpr const Integer kPgNullBufferSize = -1;
+
 struct FieldBuffer {
-  bool is_null;
-  DataFormat format;
-  std::size_t length;
-  const char* buffer;
+  static constexpr std::size_t npos = std::numeric_limits<std::size_t>::max();
+
+  bool is_null = false;
+  DataFormat format = DataFormat::kTextDataFormat;
+  std::size_t length = 0;
+  const std::uint8_t* buffer = nullptr;
+
+  std::string ToString() const {
+    return {reinterpret_cast<const char*>(buffer), length};
+  }
+  constexpr FieldBuffer GetSubBuffer(std::size_t offset,
+                                     std::size_t size = npos) const;
 };
 
 /// @brief Primary template for Postgre buffer parser.
@@ -128,9 +141,39 @@ namespace detail {
 
 template <typename T, DataFormat F>
 struct CustomParserDefined : utils::IsDeclComplete<BufferParser<T, F>> {};
+template <typename T, DataFormat F>
+constexpr bool kCustomParserDefined = CustomParserDefined<T, F>::value;
+
+template <typename T>
+using CustomTextParserDefined =
+    CustomParserDefined<T, DataFormat::kTextDataFormat>;
+template <typename T>
+using CustomBinaryParserDefined =
+    CustomParserDefined<T, DataFormat::kBinaryDataFormat>;
+
+template <typename T>
+constexpr bool kCustomTextParserDefined = CustomTextParserDefined<T>::value;
+template <typename T>
+constexpr bool kCustomBinaryParserDefined = CustomBinaryParserDefined<T>::value;
 
 template <typename T, DataFormat F>
 struct CustomFormatterDefined : utils::IsDeclComplete<BufferFormatter<T, F>> {};
+template <typename T, DataFormat F>
+constexpr bool kCustomFormatterDefined = CustomFormatterDefined<T, F>::value;
+
+template <typename T>
+using CustomTextFormatterDefined =
+    CustomFormatterDefined<T, DataFormat::kTextDataFormat>;
+template <typename T>
+using CustomBinaryFormatterDefined =
+    CustomFormatterDefined<T, DataFormat::kBinaryDataFormat>;
+
+template <typename T>
+constexpr bool kCustomTextFormatterDefined =
+    CustomTextFormatterDefined<T>::value;
+template <typename T>
+constexpr bool kCustomBinaryFormatterDefined =
+    CustomBinaryFormatterDefined<T>::value;
 
 }  // namespace detail
 
@@ -150,6 +193,13 @@ void ReadBuffer(const FieldBuffer& buffer, T& value) {
   BufferReader<F>(value)(buffer);
 }
 
+template <typename T>
+void ReadBinary(const FieldBuffer& buffer, T& value) {
+  static_assert((traits::HasBinaryParser<T>::value == true),
+                "Type doesn't have a binary parser");
+  BufferReader<DataFormat::kBinaryDataFormat>(value)(buffer);
+}
+
 /// Helper function to create a buffer reader
 template <DataFormat F, typename T>
 typename traits::IO<T, F>::FormatterType BufferWriter(const T& value) {
@@ -163,19 +213,11 @@ void WriteBuffer(const UserTypes& types, Buffer& buffer, const T& value) {
   BufferWriter<F>(value)(types, buffer);
 }
 
-template <typename T, typename Buffer>
-void WriteBufferWithSize(const UserTypes& types, Buffer& buffer,
-                         const T& value) {
-  static_assert(
-      (traits::HasFormatter<T, DataFormat::kBinaryDataFormat>::value == true),
-      "Type doesn't have an appropriate formatter");
-  static constexpr auto size_len = sizeof(Integer);
-  buffer.resize(buffer.size() + size_len);
-  auto size_begin = buffer.end() - size_len;
-  auto size_before = buffer.size();
-  WriteBuffer<DataFormat::kBinaryDataFormat>(types, buffer, value);
-  Integer bytes = buffer.size() - size_before;
-  WriteBuffer<DataFormat::kBinaryDataFormat>(size_begin, bytes);
+template <typename Buffer, typename T>
+void WriteBinary(const UserTypes& types, Buffer& buffer, const T& value) {
+  static_assert((traits::HasBinaryFormatter<T>::value == true),
+                "Type doesn't have a binary formatter");
+  BufferWriter<DataFormat::kBinaryDataFormat>(value)(types, buffer);
 }
 
 namespace detail {

@@ -13,11 +13,7 @@ namespace storages::postgres {
 
 namespace io {
 
-/// @brief Primary template for C++ to Postgres mapping
-/// Must provide a Oid GetOid() static member function to get a mapped
-/// PostgreSQL type Oid
-/// @todo GetOid must accept a structure for querying user-defined type oids
-///       per connection.
+/// @brief Detect mapping of a C++ type to Postgres type.
 template <typename T, typename Enable = ::utils::void_t<>>
 struct CppToPg;
 
@@ -42,7 +38,8 @@ inline bool ForceReference(const T&...) {
 
 struct RegisterPredefinedOidParser {
   static RegisterPredefinedOidParser Register(PredefinedOids type_oid,
-                                              const std::string& cpp_name,
+                                              PredefinedOids array_oid,
+                                              std::string&& cpp_name,
                                               bool text_parser,
                                               bool bin_parser);
 };
@@ -50,7 +47,7 @@ struct RegisterPredefinedOidParser {
 // note: implementation is in user_types.cpp
 struct RegisterUserTypeParser {
   static RegisterUserTypeParser Register(const DBTypeName&,
-                                         const std::string& cpp_name,
+                                         std::string&& cpp_name,
                                          bool text_parser, bool bin_parser);
 };
 
@@ -59,15 +56,26 @@ struct RegisterUserTypeParser {
 template <typename T>
 struct CppToSystemPgImpl {
   using Mapping = CppToSystemPg<T>;
-  static constexpr PredefinedOids value = Mapping::value;
+  static constexpr auto type_oid = Mapping::value;
+  static_assert(type_oid != PredefinedOids::kInvalid, "Type oid is invalid");
+
+  using ArrayMapping = ArrayType<type_oid>;
+  static constexpr auto array_oid = ArrayMapping::value;
+  static_assert(array_oid != PredefinedOids::kInvalid,
+                "Array type oid is invalid");
+
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(
-          value, ::utils::GetTypeName(std::type_index{typeid(T)}),
+          type_oid, array_oid, ::utils::GetTypeName(std::type_index{typeid(T)}),
           io::traits::kHasTextParser<T>, io::traits::kHasBinaryParser<T>);
 
   static constexpr Oid GetOid(const UserTypes&) {
     ForceReference(init_);
-    return static_cast<Oid>(value);
+    return static_cast<Oid>(type_oid);
+  }
+  static constexpr Oid GetArrayOid(const UserTypes&) {
+    ForceReference(init_);
+    return static_cast<Oid>(array_oid);
   }
 };
 
@@ -79,20 +87,29 @@ struct CppToUserPgImpl;
 /// somewhere in the code.
 template <PredefinedOids TypeOid, typename T>
 struct PgToCppPredefined {
+  static constexpr auto type_oid = TypeOid;
+  static_assert(type_oid != PredefinedOids::kInvalid, "Type oid is invalid");
+
+  using ArrayMapping = ArrayType<type_oid>;
+  static constexpr auto array_oid = ArrayMapping::value;
+  static_assert(array_oid != PredefinedOids::kInvalid,
+                "Array type oid is invalid");
+
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(
-          TypeOid, ::utils::GetTypeName(std::type_index{typeid(T)}),
+          type_oid, array_oid, ::utils::GetTypeName<T>(),
           io::traits::kHasTextParser<T>, io::traits::kHasBinaryParser<T>);
 };
 
 }  // namespace detail
 
 template <typename T>
-struct CppToPg<T, typename std::enable_if<!traits::kIsSpecialMapping<T> &&
-                                          traits::kIsMappedToPg<T>>::type>
-    : std::conditional<traits::kIsMappedToSystemType<T>,
-                       detail::CppToSystemPgImpl<T>,
-                       detail::CppToUserPgImpl<T>>::type {};
+struct CppToPg<T, std::enable_if_t<!traits::kIsSpecialMapping<T> &&
+                                   traits::kIsMappedToPg<T> &&
+                                   !traits::kIsMappedToArray<T>>>
+    : std::conditional_t<traits::kIsMappedToSystemType<T>,
+                         detail::CppToSystemPgImpl<T>,
+                         detail::CppToUserPgImpl<T>> {};
 
 }  // namespace io
 }  // namespace storages::postgres

@@ -6,14 +6,7 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
-#include <storages/postgres/io/boost_multiprecision.hpp>
-#include <storages/postgres/io/chrono.hpp>
-#include <storages/postgres/io/floating_point_types.hpp>
-#include <storages/postgres/io/integral_types.hpp>
-#include <storages/postgres/io/optional.hpp>
-#include <storages/postgres/io/string_types.hpp>
-
-#include <storages/postgres/io/stream_text_formatter.hpp>
+#include <storages/postgres/io/supported_types.hpp>
 
 #include <storages/postgres/null.hpp>
 
@@ -58,7 +51,7 @@ class QueryParameters {
     using NullDetector = io::traits::GetSetNull<T>;
     if (NullDetector::IsNull(arg)) {
       param_formats.push_back(0);
-      param_lengths.push_back(0);
+      param_lengths.push_back(io::kPgNullBufferSize);
       param_buffers.push_back(nullptr);
     } else {
       WriteNullable(types, arg, std::false_type{});
@@ -73,8 +66,13 @@ class QueryParameters {
     parameters.push_back({});
     auto& buffer = parameters.back();
     io::WriteBuffer<FormatterTraits::value>(types, buffer, arg);
-    param_lengths.push_back(buffer.size());
-    param_buffers.push_back(buffer.data());
+    auto size = buffer.size();
+    param_lengths.push_back(size);
+    if (size == 0) {
+      param_buffers.push_back(empty_buffer);
+    } else {
+      param_buffers.push_back(buffer.data());
+    }
   }
 
  private:
@@ -82,6 +80,8 @@ class QueryParameters {
   using BufferType = std::vector<char>;
   using ParameterList = std::vector<BufferType>;
   using IntList = std::vector<int>;
+
+  static constexpr const char* empty_buffer = "";
 
   ParameterList parameters;  // TODO Replace with a single buffer
   OidList param_types;

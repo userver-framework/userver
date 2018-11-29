@@ -12,13 +12,11 @@ std::size_t StrHash(const char* str, std::size_t len) {
   return seed;
 }
 
-std::size_t StrHash(const char* str) { return StrHash(str, std::strlen(str)); }
-
 }  // namespace
 
 std::size_t DBTypeName::GetHash() const {
-  auto seed = StrHash(schema);
-  boost::hash_combine(seed, StrHash(name));
+  auto seed = StrHash(schema.data(), schema.size());
+  boost::hash_combine(seed, StrHash(name.data(), name.size()));
   return seed;
 }
 

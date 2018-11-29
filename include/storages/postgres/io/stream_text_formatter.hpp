@@ -24,10 +24,6 @@ struct HasOutputOperator<T,
     : std::true_type {};
 
 template <typename T>
-using CustomTextFormatterDefined =
-    CustomFormatterDefined<T, DataFormat::kTextDataFormat>;
-
-template <typename T>
 struct StreamTextFormatter {
   const T& value;
 
@@ -50,10 +46,9 @@ struct StreamTextFormatter {
 }  // namespace detail
 
 template <typename T>
-struct Output<
-    T, DataFormat::kTextDataFormat,
-    typename std::enable_if<!detail::CustomTextFormatterDefined<T>::value &&
-                            detail::HasOutputOperator<T>::value>::type> {
+struct Output<T, DataFormat::kTextDataFormat,
+              std::enable_if_t<!detail::CustomTextFormatterDefined<T>::value &&
+                               detail::HasOutputOperator<T>::value>> {
   using type = detail::StreamTextFormatter<T>;
 };
 

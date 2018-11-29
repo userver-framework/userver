@@ -173,13 +173,12 @@ struct BufferParser<
 
   void operator()(const FieldBuffer& buffer) {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S%Ez";
-    std::string timestr{buffer.buffer, buffer.length};
+    std::string timestr = buffer.ToString();
     typename ValueType::TimePointType tmp;
     if (cctz::parse(format, timestr, value.tz, &tmp)) {
       std::swap(tmp, value.value);
     } else {
-      std::string b{buffer.buffer, buffer.length};
-      throw TextParseFailure{::utils::GetTypeName<ValueType>(), b};
+      throw TextParseFailure{::utils::GetTypeName<ValueType>(), timestr};
     }
   }
 };
@@ -257,13 +256,12 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
   void operator()(const FieldBuffer& buffer) {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S";
     const auto tz = cctz::local_time_zone();
-    std::string timestr{buffer.buffer, buffer.length};
+    std::string timestr = buffer.ToString();
     ValueType tmp;
     if (cctz::parse(format, timestr, tz, &tmp)) {
       std::swap(tmp, value);
     } else {
-      std::string b{buffer.buffer, buffer.length};
-      throw TextParseFailure{::utils::GetTypeName<ValueType>(), b};
+      throw TextParseFailure{::utils::GetTypeName<ValueType>(), timestr};
     }
   }
 };

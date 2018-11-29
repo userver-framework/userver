@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <string>
 
+#include <utils/string_view.hpp>
+#include <utils/strlen.hpp>
+
 namespace storages::postgres {
 
 /// PostgreSQL Oid type
@@ -23,12 +26,27 @@ using Float8 = double;
 
 /// @brief Identity for a PostgreSQL type name
 struct DBTypeName {
-  // TODO use string_view
-  const char* const schema = nullptr;
-  // TODO use string_view
-  const char* const name = nullptr;
+  const ::utils::string_view schema;
+  const ::utils::string_view name;
 
-  bool Empty() const { return name == nullptr; }
+  constexpr DBTypeName() : schema{}, name{} {}
+  constexpr DBTypeName(const char* s, const char* n)
+      : schema(s, ::utils::StrLen(s)), name(n, ::utils::StrLen(n)) {}
+
+  bool operator==(const DBTypeName& rhs) const {
+    return name == rhs.name && schema == rhs.schema;
+  }
+  bool operator<(const DBTypeName& rhs) const {
+    auto schema_cmp = schema.compare(rhs.schema);
+    if (schema_cmp < 0) {
+      return true;
+    } else if (schema_cmp == 0) {
+      return name < rhs.name;
+    }
+    return false;
+  }
+
+  bool Empty() const { return name.empty(); }
   std::size_t GetHash() const;
 };
 
@@ -177,11 +195,21 @@ enum class PredefinedOids {
   kMacaddr = 829,
   kInet = 869,
   kCidr = 650,
+  kBooleanArray = 1000,  // Not in documentation
+  kCharArray = 1002,     // Not in documentation
+  kNameArray = 1003,     // Not in documentation
   kInt2Array = 1005,
   kInt4Array = 1007,
   kTextArray = 1009,
-  kOidArray = 1028,
+  kTidArray = 1010,      // Not in documentation
+  kXidArray = 1011,      // Not in documentation
+  kCidArray = 1012,      // Not in documentation
+  kBphcarArray = 1014,   // Not in documentation
+  kVarcharArray = 1015,  // Not in documentation
+  kInt8Array = 1016,     // Not in documentation
   kFloat4Array = 1021,
+  kFloat8Array = 1022,  // Not in documentation
+  kOidArray = 1028,
   kAclItem = 1033,
   kCstringArray = 1263,
   kBpchar = 1042,
@@ -189,8 +217,11 @@ enum class PredefinedOids {
   kDate = 1082,
   kTime = 1083,
   kTimestamp = 1114,
+  kTimestampArray = 1115,  // Not in documentation
   kTimestamptz = 1184,
+  kTimestamptzArray = 1185,  // Not in documentation
   kInterval = 1186,
+  kNumericArray = 1231,  // Not in documentation
   kTimetz = 1266,
   kBit = 1560,
   kVarbit = 1562,
@@ -230,8 +261,73 @@ enum class PredefinedOids {
   kAnyRange = 3831
 };
 
-template <PredefinedOids _Oid>
-using PredefinedOid = std::integral_constant<PredefinedOids, _Oid>;
+template <PredefinedOids TypeOid>
+using PredefinedOid = std::integral_constant<PredefinedOids, TypeOid>;
+
+//@{
+/** @name Array types for predefined oids */
+template <PredefinedOids TypeOid>
+struct ArrayType : PredefinedOid<PredefinedOids::kInvalid> {};
+
+template <>
+struct ArrayType<PredefinedOids::kBoolean>
+    : PredefinedOid<PredefinedOids::kBoolean> {};
+template <>
+struct ArrayType<PredefinedOids::kChar>
+    : PredefinedOid<PredefinedOids::kCharArray> {};
+template <>
+struct ArrayType<PredefinedOids::kName>
+    : PredefinedOid<PredefinedOids::kNameArray> {};
+template <>
+struct ArrayType<PredefinedOids::kInt2>
+    : PredefinedOid<PredefinedOids::kInt2Array> {};
+template <>
+struct ArrayType<PredefinedOids::kInt4>
+    : PredefinedOid<PredefinedOids::kInt4Array> {};
+template <>
+struct ArrayType<PredefinedOids::kInt8>
+    : PredefinedOid<PredefinedOids::kInt8Array> {};
+template <>
+struct ArrayType<PredefinedOids::kText>
+    : PredefinedOid<PredefinedOids::kTextArray> {};
+template <>
+struct ArrayType<PredefinedOids::kOid>
+    : PredefinedOid<PredefinedOids::kOidArray> {};
+template <>
+struct ArrayType<PredefinedOids::kTid>
+    : PredefinedOid<PredefinedOids::kTidArray> {};
+template <>
+struct ArrayType<PredefinedOids::kXid>
+    : PredefinedOid<PredefinedOids::kXidArray> {};
+template <>
+struct ArrayType<PredefinedOids::kCid>
+    : PredefinedOid<PredefinedOids::kCidArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kFloat4>
+    : PredefinedOid<PredefinedOids::kFloat4Array> {};
+template <>
+struct ArrayType<PredefinedOids::kFloat8>
+    : PredefinedOid<PredefinedOids::kFloat8Array> {};
+
+template <>
+struct ArrayType<PredefinedOids::kBpchar>
+    : PredefinedOid<PredefinedOids::kBphcarArray> {};
+template <>
+struct ArrayType<PredefinedOids::kVarchar>
+    : PredefinedOid<PredefinedOids::kVarcharArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kTimestamp>
+    : PredefinedOid<PredefinedOids::kTimestampArray> {};
+template <>
+struct ArrayType<PredefinedOids::kTimestamptz>
+    : PredefinedOid<PredefinedOids::kTimestamptzArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kNumeric>
+    : PredefinedOid<PredefinedOids::kNumericArray> {};
+//@}
 
 }  // namespace io
 }  // namespace storages::postgres

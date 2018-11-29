@@ -23,10 +23,6 @@ struct HasInputOperator<
                                 std::declval<T&>())>> : std::true_type {};
 
 template <typename T>
-using CustomTextParserDefined =
-    CustomParserDefined<T, DataFormat::kTextDataFormat>;
-
-template <typename T>
 struct StreamTextParser {
   T& value;
 
@@ -35,14 +31,14 @@ struct StreamTextParser {
     using source_type = boost::iostreams::basic_array_source<char>;
     using stream_type = boost::iostreams::stream<source_type>;
 
-    source_type source{buffer.buffer, buffer.length};
+    source_type source{reinterpret_cast<const char*>(buffer.buffer),
+                       buffer.length};
     stream_type is{source};
     T tmp;
     if (is >> tmp) {
       std::swap(tmp, value);
     } else {
-      std::string b{buffer.buffer, buffer.length};
-      throw TextParseFailure{::utils::GetTypeName<T>(), b};
+      throw TextParseFailure{::utils::GetTypeName<T>(), buffer.ToString()};
     }
   }
 };
@@ -50,10 +46,9 @@ struct StreamTextParser {
 }  // namespace detail
 
 template <typename T>
-struct Input<
-    T, DataFormat::kTextDataFormat,
-    typename std::enable_if<!detail::CustomTextParserDefined<T>::value &&
-                            detail::HasInputOperator<T>::value>::type> {
+struct Input<T, DataFormat::kTextDataFormat,
+             std::enable_if_t<!detail::kCustomTextParserDefined<T> &&
+                              detail::HasInputOperator<T>()>> {
   using type = detail::StreamTextParser<T>;
 };
 

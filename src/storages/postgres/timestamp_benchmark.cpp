@@ -8,7 +8,7 @@
 #include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/io/force_text.hpp>
 #include <storages/postgres/io/user_types.hpp>
-#include <storages/postgres/test_buffers.hpp>
+#include <storages/postgres/tests/test_buffers.hpp>
 
 #include <storages/postgres/util_benchmark.hpp>
 

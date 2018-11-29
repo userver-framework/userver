@@ -4,7 +4,7 @@
 
 #include <storages/postgres/io/boost_multiprecision.hpp>
 #include <storages/postgres/io/user_types.hpp>
-#include <storages/postgres/test_buffers.hpp>
+#include <storages/postgres/tests/test_buffers.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;

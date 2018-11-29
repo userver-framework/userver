@@ -36,8 +36,8 @@ struct IsSpecialMapping<postgres::detail::ForceTextFormat<T>> : std::true_type {
 template <typename T>
 struct BufferFormatter<
     postgres::detail::ForceTextFormat<T>, DataFormat::kTextDataFormat,
-    typename std::enable_if<
-        traits::HasFormatter<T, DataFormat::kTextDataFormat>::value>::type> {
+    std::enable_if_t<
+        traits::HasFormatter<T, DataFormat::kTextDataFormat>::value>> {
   using ValueType = postgres::detail::ForceTextFormat<T>;
   const ValueType& value;
 
@@ -51,8 +51,7 @@ struct BufferFormatter<
 
 template <typename T>
 struct CppToPg<postgres::detail::ForceTextFormat<T>,
-               typename std::enable_if<traits::kIsMappedToPg<T>>::type>
-    : CppToPg<T> {};
+               std::enable_if_t<traits::kIsMappedToPg<T>>> : CppToPg<T> {};
 
 }  // namespace io
 

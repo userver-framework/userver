@@ -43,6 +43,31 @@ std::string DsnListToString(const ::testing::TestParamInfo<pg::DSNList>& info) {
   return pg::MakeDsnNick(info.param[0], true);
 }
 
+void PrintBuffer(std::ostream& os, const std::uint8_t* buffer,
+                 std::size_t size) {
+  os << "Buffer size " << size << '\n';
+  std::size_t b_no{0};
+  std::ostringstream printable;
+  for (auto c = buffer; c != buffer + size; ++c) {
+    unsigned char byte = *c;
+    os << std::hex << std::setw(2) << std::setfill('0') << (int)byte;
+    printable << (std::isprint(*c) ? *c : '.');
+    ++b_no;
+    if (b_no % 16 == 0) {
+      os << '\t' << printable.str() << '\n';
+      printable.str(std::string{});
+    } else if (b_no % 8 == 0) {
+      os << "   ";
+      printable << " ";
+    } else {
+      os << " ";
+    }
+  }
+  auto remain = 16 - b_no % 16;
+  os << std::dec << std::setw(remain * 3 - 1) << std::setfill(' ') << ' '
+     << '\t' << printable.str() << '\n';
+}
+
 void PostgreSQLBase::CheckConnection(pg::detail::ConnectionPtr conn) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 

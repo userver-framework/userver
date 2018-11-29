@@ -77,7 +77,8 @@ io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row,
                                               std::size_t col) const {
   return io::FieldBuffer{IsFieldNull(row, col), GetFieldFormat(col),
                          GetFieldLength(row, col),
-                         PQgetvalue(handle_.get(), row, col)};
+                         reinterpret_cast<const std::uint8_t*>(
+                             PQgetvalue(handle_.get(), row, col))};
 }
 
 std::string ResultWrapper::GetErrorMessage() const {

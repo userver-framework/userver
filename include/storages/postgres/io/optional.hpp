@@ -5,12 +5,47 @@
 
 #include <boost/optional.hpp>
 
-namespace storages {
-namespace postgres {
-namespace io {
+namespace storages::postgres::io {
+
+template <typename T, DataFormat F>
+struct BufferParser<boost::optional<T>, F,
+                    std::enable_if_t<traits::kHasParser<T, F>>>
+    : detail::BufferParserBase<boost::optional<T>> {
+  using BaseType = detail::BufferParserBase<boost::optional<T>>;
+  using ValueParser = typename traits::IO<T, F>::ParserType;
+
+  using BaseType::BaseType;
+
+  void operator()(const FieldBuffer& buffer) {
+    T val;
+    ValueParser{val}(buffer);
+    this->value = val;
+  }
+};
+
+template <typename T, DataFormat F>
+struct BufferFormatter<boost::optional<T>, F,
+                       std::enable_if_t<traits::kHasFormatter<T, F>>>
+    : detail::BufferFormatterBase<boost::optional<T>> {
+  using BaseType = detail::BufferFormatterBase<boost::optional<T>>;
+  using ValueFormatter = typename traits::IO<T, F>::FormatterType;
+
+  using BaseType::BaseType;
+
+  template <typename Buffer>
+  void operator()(const UserTypes& types, Buffer& buffer) const {
+    if (this->value.is_initialized()) {
+      ValueFormatter{*this->value}(types, buffer);
+    }
+  }
+};
+
+template <typename T>
+struct CppToPg<boost::optional<T>, std::enable_if_t<traits::kIsMappedToPg<T>>>
+    : CppToPg<T> {};
+
 namespace traits {
 
-/// @brief
 template <typename T>
 struct IsNullable<boost::optional<T>> : std::true_type {};
 
@@ -19,43 +54,14 @@ struct GetSetNull<boost::optional<T>> {
   using ValueType = boost::optional<T>;
   inline static bool IsNull(const ValueType& v) { return !v.is_initialized(); }
   inline static void SetNull(ValueType& v) { ValueType().swap(v); }
+  inline static void SetDefault(ValueType& v) { v = T{}; }
 };
+
+template <typename T>
+struct IsMappedToPg<boost::optional<T>> : IsMappedToPg<T> {};
+template <typename T>
+struct IsSpecialMapping<boost::optional<T>> : IsMappedToPg<T> {};
 
 }  // namespace traits
 
-template <typename T, DataFormat F>
-struct BufferParser<
-    boost::optional<T>, F,
-    typename std::enable_if<traits::HasParser<T, F>::value>::type> {
-  using ValueType = boost::optional<T>;
-  ValueType& value;
-
-  BufferParser(ValueType& val) : value{val} {}
-
-  void operator()(const FieldBuffer& buf) {
-    T val;
-    ReadBuffer<F>(buf, val);
-    value = val;
-  }
-};
-
-template <typename T, DataFormat F>
-struct BufferFormatter<
-    boost::optional<T>, F,
-    typename std::enable_if<traits::HasFormatter<T, F>::value>::type> {
-  using ValueType = boost::optional<T>;
-  const ValueType& value;
-
-  BufferFormatter(const ValueType& val) : value{val} {}
-
-  template <typename Buffer>
-  void operator()(Buffer& buf) const {
-    if (value.is_initialized()) {
-      WriteBuffer<F>(buf, *value);
-    }  // else TODO throw exception
-  }
-};
-
-}  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::io

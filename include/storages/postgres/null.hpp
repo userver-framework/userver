@@ -32,7 +32,7 @@ struct GetSetNull<Null<T>> {
 template <typename T>
 struct IsMappedToPg<Null<T>> : IsMappedToPg<T> {};
 template <typename T>
-struct IsSpecialMapping<Null<T>> : std::true_type {};
+struct IsSpecialMapping<Null<T>> : IsMappedToPg<T> {};
 
 }  // namespace traits
 

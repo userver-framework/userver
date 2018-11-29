@@ -100,6 +100,9 @@ namespace postgres {
  *       - RowIndexOutOfBounds
  *       - TextParseFailure
  *       - TypeCannotBeNull
+ *     - ArrayError
+ *       - DimensionMismatch
+ *       - InvalidDimensions
  *     - TransactionError
  *       - AlreadyInTransaction
  *       - NotInTransaction
@@ -621,6 +624,30 @@ class FieldTupleMismatch : public ResultSetError {
                        std::to_string(field_count) + " != tuple size " +
                        std::to_string(tuple_size)) {}
 };
+//@}
+
+//@{
+/** @name Array errors */
+/// @brief Base error when working with array types.
+class ArrayError : public LogicError {
+  using LogicError::LogicError;
+};
+
+/// @brief Array received from postgres has different dimensions from those of
+/// C++ container.
+class DimensionMismatch : public ArrayError {
+ public:
+  DimensionMismatch()
+      : ArrayError("Array dimensions don't match dimensions of C++ type") {}
+};
+
+class InvalidDimensions : public ArrayError {
+ public:
+  InvalidDimensions(std::size_t expected, std::size_t actual)
+      : ArrayError("Invalid dimension size " + std::to_string(actual) +
+                   ". Expected " + std::to_string(expected)) {}
+};
+
 //@}
 
 //@{

@@ -10,7 +10,8 @@ using Buffer = std::vector<char>;
 
 inline io::FieldBuffer MakeFieldBuffer(const Buffer& buffer,
                                        io::DataFormat format) {
-  return {false, format, buffer.size(), buffer.data()};
+  return {false, format, buffer.size(),
+          reinterpret_cast<const std::uint8_t*>(buffer.data())};
 }
 
 }  // namespace test

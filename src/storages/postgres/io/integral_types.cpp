@@ -45,8 +45,7 @@ const std::unordered_set<std::string> kFalseLiterals{
 
 void BufferParser<bool, DataFormat::kTextDataFormat>::operator()(
     const FieldBuffer& buf) {
-  std::string bool_literal(buf.buffer, buf.length);
-  value = IsTrueLiteral(bool_literal);
+  value = IsTrueLiteral(buf.ToString());
 }
 
 }  // namespace storages::postgres::io

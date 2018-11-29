@@ -47,7 +47,11 @@ namespace storages::postgres {
 class UserTypes {
  public:
   Oid FindOid(DBTypeName) const;
+  Oid FindArrayOid(DBTypeName) const;
   DBTypeName FindName(Oid) const;
+  /// Find name of the base type for a domain or element type for an array.
+  /// For the rest of types returns the name for the oid if found.
+  DBTypeName FindBaseName(Oid) const;
 
   bool HasBinaryParser(Oid) const;
   bool HasTextParser(Oid) const;
@@ -61,7 +65,7 @@ class UserTypes {
                          DBTypeDescription::NamesEqual>;
   using DescriptionIterator = DescriptionSet::const_iterator;
   using MapByOid = std::unordered_map<Oid, DescriptionIterator>;
-  using MapByName = std::unordered_map<std::size_t, DescriptionIterator>;
+  using MapByName = std::unordered_map<DBTypeName, DescriptionIterator>;
 
   DescriptionSet types_;
   MapByOid by_oid_;
@@ -76,12 +80,17 @@ constexpr DBTypeName kPgUserTypeName = CppToUserPg<T>::postgres_name;
 template <typename T>
 struct CppToUserPgImpl {
   using Mapping = CppToUserPg<T>;
+  static constexpr DBTypeName postgres_name = kPgUserTypeName<T>;
   static const detail::RegisterUserTypeParser init_;
   static Oid GetOid(const UserTypes& user_types) {
-    static constexpr DBTypeName postgres_name = kPgUserTypeName<T>;
     ForceReference(init_);
     // TODO Handle oid not found
     return user_types.FindOid(postgres_name);
+  }
+  static Oid GetArrayOid(const UserTypes& user_types) {
+    ForceReference(init_);
+    // TODO Handle oid not found
+    return user_types.FindArrayOid(postgres_name);
   }
 };
 

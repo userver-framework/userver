@@ -30,12 +30,12 @@ const bool kReference = detail::ForceReference(
 
 void BufferParser<std::string, DataFormat::kTextDataFormat>::operator()(
     const FieldBuffer& buffer) {
-  std::string{buffer.buffer, buffer.length}.swap(value);
+  buffer.ToString().swap(value);
 }
 
 void BufferParser<std::string, DataFormat::kBinaryDataFormat>::operator()(
     const FieldBuffer& buffer) {
-  std::string{buffer.buffer, buffer.length}.swap(value);
+  buffer.ToString().swap(value);
 }
 
 }  // namespace storages::postgres::io

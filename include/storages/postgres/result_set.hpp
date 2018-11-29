@@ -7,13 +7,7 @@
 #include <utility>
 
 #include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/boost_multiprecision.hpp>
-#include <storages/postgres/io/chrono.hpp>
-#include <storages/postgres/io/floating_point_types.hpp>
-#include <storages/postgres/io/nullable_traits.hpp>
-#include <storages/postgres/io/stream_text_parser.hpp>
-#include <storages/postgres/io/string_types.hpp>
-#include <storages/postgres/io/traits.hpp>
+#include <storages/postgres/io/supported_types.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 
 #include <storages/postgres/detail/const_data_iterator.hpp>
@@ -546,49 +540,15 @@ void Row::To(const std::initializer_list<size_type>& indexes,
   detail::RowDataExtractor<T...>::ExtractTuple(*this, indexes, val);
 }
 
-namespace detail {
-
-template <typename T, typename = ::utils::void_t<>>
-struct CanReserve : std::false_type {};
-
-template <typename T>
-struct CanReserve<T, ::utils::void_t<decltype(std::declval<T>().reserve(
-                         std::declval<std::size_t>()))>> : std::true_type {};
-
-template <typename T>
-constexpr bool kCanReserve = CanReserve<T>::value;
-
-template <typename T, typename = ::utils::void_t<>>
-struct CanPushBack : std::false_type {};
-
-template <typename T>
-struct CanPushBack<T, ::utils::void_t<decltype(std::declval<T>().push_back(
-                          std::declval<typename T::value_type>()))>>
-    : std::true_type {};
-
-template <typename T>
-constexpr bool kCanPushBack = CanPushBack<T>::value;
-
-template <typename T>
-auto Inserter(T& container) {
-  if constexpr (kCanPushBack<T>) {
-    return std::back_inserter(container);
-  } else {
-    return std::inserter(container, container.end());
-  }
-}
-
-}  // namespace detail
-
 template <typename Container>
 Container ResultSet::AsContainer() const {
   using ValueType = typename Container::value_type;
   Container c;
-  if constexpr (detail::kCanReserve<Container>) {
+  if constexpr (io::traits::kCanReserve<Container>) {
     c.reserve(Size());
   }
   auto res = As<ValueType>();
-  std::copy(res.begin(), res.end(), detail::Inserter(c));
+  std::copy(res.begin(), res.end(), io::traits::Inserter(c));
   return c;
 }
 

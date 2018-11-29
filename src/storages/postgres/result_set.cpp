@@ -177,7 +177,9 @@ Row& Row::Advance(std::ptrdiff_t distance) {
 //----------------------------------------------------------------------------
 // ResultSet implementation
 //----------------------------------------------------------------------------
-ResultSet::size_type ResultSet::Size() const { return pimpl_->RowCount(); }
+ResultSet::size_type ResultSet::Size() const {
+  return pimpl_ != nullptr ? pimpl_->RowCount() : 0;
+}
 
 ResultSet::size_type ResultSet::FieldCount() const {
   return pimpl_->FieldCount();
