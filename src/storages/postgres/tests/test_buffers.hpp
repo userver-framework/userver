@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <storages/postgres/io/traits.hpp>
 
 namespace storages {
