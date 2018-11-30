@@ -54,7 +54,7 @@ struct BufferParser<pg_test::FooBar, DataFormat::kBinaryDataFormat> {};
 // User type test registration
 template <>
 struct CppToUserPg<pg_test::FooBar> {
-  static constexpr DBTypeName postgres_name = {kSchemaName, "foobar"};
+  static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
 }  // namespace storages::postgres::io
@@ -65,7 +65,7 @@ POSTGRE_TEST_P(LoadUserTypes) {
   EXPECT_TRUE(pg::io::HasBinaryParser(kCompositeName))
       << "Binary parser for composite is registered";
   EXPECT_FALSE(pg::io::HasTextParser(kCompositeName))
-      << "Text parser for composite is registered";
+      << "Text parser for composite is not registered";
 
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";

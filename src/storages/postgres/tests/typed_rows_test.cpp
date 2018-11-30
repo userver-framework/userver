@@ -8,7 +8,7 @@ namespace pg = storages::postgres;
 
 namespace static_test {
 
-using namespace pg::detail;
+using namespace pg::io::traits;
 
 using MyTupleType = ::std::tuple<int, std::string, double>;
 
@@ -64,9 +64,13 @@ static_assert(kRowTag<MyPolymorphicInrospected> ==
                   RowTagType::kIntrusiveIntrospection,
               "");
 
-static_assert(IsTuple<RowToUserData<MyTupleType>::ValueType>::value, "");
-static_assert(IsTuple<RowToUserData<MyAggregateStruct>::TupleType>::value, "");
-static_assert(IsTuple<RowToUserData<MyIntrusiveClass>::TupleType>::value, "");
+static_assert(IsTuple<pg::detail::RowToUserData<MyTupleType>::ValueType>::value,
+              "");
+static_assert(
+    IsTuple<pg::detail::RowToUserData<MyAggregateStruct>::TupleType>::value,
+    "");
+static_assert(
+    IsTuple<pg::detail::RowToUserData<MyIntrusiveClass>::TupleType>::value, "");
 
 }  // namespace static_test
 

@@ -20,6 +20,7 @@
 //@{
 /** @name Type derivatives */
 #include <storages/postgres/io/array_types.hpp>
+#include <storages/postgres/io/composite_types.hpp>
 #include <storages/postgres/io/optional.hpp>
 //@}
 

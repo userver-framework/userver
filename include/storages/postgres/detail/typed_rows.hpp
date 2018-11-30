@@ -6,79 +6,23 @@
 
 namespace storages::postgres::detail {
 
-template <typename T>
-struct IsTuple : std::false_type {};
-template <typename... T>
-struct IsTuple<std::tuple<T...>> : std::true_type {};
-
-template <typename T, typename = ::utils::void_t<>>
-struct HasIntrospection : std::false_type {};
-
-template <typename T>
-struct HasIntrospection<
-    T, ::utils::void_t<decltype(std::declval<T&>().Introspect())>>
-    : std::integral_constant<
-          bool, IsTuple<decltype(std::declval<T&>().Introspect())>::value> {};
-
-template <typename T>
-constexpr bool DetectIsAggregate() {
-  using type = typename std::remove_cv<T>::type;
-  return std::is_class<type>::value && !std::is_empty<type>::value &&
-         std::is_standard_layout<type>::value &&
-         !std::is_polymorphic<type>::value && !std::is_union<type>::value;
-}
-
-template <typename T>
-struct IsAggregateClass : std::integral_constant<bool, DetectIsAggregate<T>()> {
-};
-
-template <typename T>
-constexpr bool kIsAggregateClass = IsAggregateClass<T>::value;
-
-enum class RowTagType { kInvalid, kTuple, kAggregate, kIntrusiveIntrospection };
-
-template <RowTagType Tag>
-using RowTagConstant = std::integral_constant<RowTagType, Tag>;
-
-template <typename T>
-struct RowTag
-    : std::conditional<
-          IsTuple<T>::value, RowTagConstant<RowTagType::kTuple>,
-          typename std::conditional<
-              HasIntrospection<T>::value,
-              RowTagConstant<RowTagType::kIntrusiveIntrospection>,
-              typename std::conditional<
-                  IsAggregateClass<T>::value,
-                  RowTagConstant<RowTagType::kAggregate>,
-                  RowTagConstant<RowTagType::kInvalid>>::type>::type>::type {};
-
-template <typename T>
-constexpr RowTagType kRowTag = RowTag<T>::value;
-
-template <typename T>
-struct RemoveTupleReferences;
-
-template <typename... T>
-struct RemoveTupleReferences<std::tuple<T...>> {
-  using Type = std::tuple<typename std::remove_reference<T>::type...>;
-};
-
-template <typename T, RowTagType Tag>
+template <typename T, io::traits::RowTagType Tag>
 struct RowToUserDataImpl;
 
 template <typename T>
-struct RowToUserDataImpl<T, RowTagType::kTuple> {
+struct RowToUserDataImpl<T, io::traits::RowTagType::kTuple> {
   using ValueType = T;
 
   static ValueType FromRow(const Row& row) { return row.AsTuple<ValueType>(); }
 };
 
 template <typename T>
-struct RowToUserDataImpl<T, RowTagType::kAggregate> {
+struct RowToUserDataImpl<T, io::traits::RowTagType::kAggregate> {
   using ValueType = T;
   using TupleType =
       decltype(boost::pfr::structure_tie(std::declval<ValueType&>()));
-  using NonRefTuple = typename RemoveTupleReferences<TupleType>::Type;
+  using NonRefTuple =
+      typename io::traits::RemoveTupleReferences<TupleType>::type;
 
   static TupleType Get(ValueType& v) { return boost::pfr::structure_tie(v); }
   static ValueType FromRow(const Row& row) {
@@ -89,10 +33,11 @@ struct RowToUserDataImpl<T, RowTagType::kAggregate> {
 };
 
 template <typename T>
-struct RowToUserDataImpl<T, RowTagType::kIntrusiveIntrospection> {
+struct RowToUserDataImpl<T, io::traits::RowTagType::kIntrusiveIntrospection> {
   using ValueType = T;
   using TupleType = decltype(std::declval<ValueType&>().Introspect());
-  using NonRefTuple = typename RemoveTupleReferences<TupleType>::Type;
+  using NonRefTuple =
+      typename io::traits::RemoveTupleReferences<TupleType>::type;
 
   static TupleType Get(ValueType& v) { return v.Introspect(); }
   static ValueType FromRow(const Row& row) {
@@ -103,7 +48,7 @@ struct RowToUserDataImpl<T, RowTagType::kIntrusiveIntrospection> {
 };
 
 template <typename T>
-struct RowToUserData : RowToUserDataImpl<T, kRowTag<T>> {};
+struct RowToUserData : RowToUserDataImpl<T, io::traits::kRowTag<T>> {};
 
 template <typename T>
 class ConstTypedRowIterator : private Row {

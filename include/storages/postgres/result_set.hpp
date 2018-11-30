@@ -144,8 +144,9 @@ class Field {
 
   template <typename T>
   void Read(const io::FieldBuffer& fb, T&& val) const {
-    // TODO Static assert that the type has a parser at all
     using ValueType = typename std::decay<T>::type;
+    static_assert(io::traits::kHasAnyParser<ValueType>,
+                  "Type doesn't have any parsers defined");
     if (fb.format == io::DataFormat::kTextDataFormat) {
       ReadText(
           fb, std::forward<T>(val),
@@ -264,19 +265,23 @@ class Row {
   /// Read fields into variables in order of their appearance in the row
   template <typename... T>
   void To(T&&... val) const;
+  /// Read fields into tuple members in the order of their appearance in the row
+  ///
+  /// This is to distinguish reading a row into a tuple vs reading a field into
+  /// a tuple
   template <typename... T>
-  void To(std::tuple<T...>&) const;
+  void ToTuple(std::tuple<T...>&) const;
 
   template <typename... T>
   std::tuple<T...> As() const {
     std::tuple<T...> res;
-    To(res);
+    ToTuple(res);
     return res;
   }
   template <typename T>
   T AsTuple() const {
     T res;
-    To(res);
+    ToTuple(res);
     return res;
   }
 
@@ -284,12 +289,12 @@ class Row {
   template <typename... T>
   void To(const std::initializer_list<std::string>& names, T&&... val) const;
   template <typename... T>
-  void To(const std::initializer_list<std::string>& names,
-          std::tuple<T...>& val) const;
+  void ToTuple(const std::initializer_list<std::string>& names,
+               std::tuple<T...>& val) const;
   template <typename... T>
   std::tuple<T...> As(const std::initializer_list<std::string>& names) const {
     std::tuple<T...> res;
-    To(names, res);
+    ToTuple(names, res);
     return res;
   }
 
@@ -298,12 +303,12 @@ class Row {
   template <typename... T>
   void To(const std::initializer_list<size_type>& indexes, T&&... val) const;
   template <typename... T>
-  void To(const std::initializer_list<size_type>& indexes,
-          std::tuple<T...>& val) const;
+  void ToTuple(const std::initializer_list<size_type>& indexes,
+               std::tuple<T...>& val) const;
   template <typename... T>
   std::tuple<T...> As(const std::initializer_list<size_type>& indexes) const {
     std::tuple<T...> res;
-    To(indexes, res);
+    ToTuple(indexes, res);
     return res;
   }
   //@}
@@ -495,7 +500,7 @@ void Row::To(T&&... val) const {
 }
 
 template <typename... T>
-void Row::To(std::tuple<T...>& val) const {
+void Row::ToTuple(std::tuple<T...>& val) const {
   if (sizeof...(T) > Size()) {
     throw InvalidTupleSizeRequested(Size(), sizeof...(T));
   }
@@ -513,8 +518,8 @@ void Row::To(const std::initializer_list<std::string>& names,
 }
 
 template <typename... T>
-void Row::To(const std::initializer_list<std::string>& names,
-             std::tuple<T...>& val) const {
+void Row::ToTuple(const std::initializer_list<std::string>& names,
+                  std::tuple<T...>& val) const {
   if (sizeof...(T) != names.size()) {
     throw FieldTupleMismatch(names.size(), sizeof...(T));
   }
@@ -532,8 +537,8 @@ void Row::To(const std::initializer_list<size_type>& indexes,
 }
 
 template <typename... T>
-void Row::To(const std::initializer_list<size_type>& indexes,
-             std::tuple<T...>& val) const {
+void Row::ToTuple(const std::initializer_list<size_type>& indexes,
+                  std::tuple<T...>& val) const {
   if (sizeof...(T) != indexes.size()) {
     throw FieldTupleMismatch(indexes.size(), sizeof...(T));
   }

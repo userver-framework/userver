@@ -1,10 +1,13 @@
 #pragma once
 
+#include <tuple>
 #include <type_traits>
 
 #include <storages/postgres/detail/is_decl_complete.hpp>
 #include <storages/postgres/io/io_fwd.hpp>
 #include <storages/postgres/io/traits.hpp>
+
+#include <utils/variadic_logic.hpp>
 
 /// Namespace with metafunctions detecting different type traits needed for
 /// postgres io
@@ -165,6 +168,96 @@ auto Inserter(T& container) {
     return std::inserter(container, container.end());
   }
 }
+//@}
+
+//@{
+/** @name Row type traits */
+template <typename T>
+struct IsTuple : std::false_type {};
+template <typename... T>
+struct IsTuple<std::tuple<T...>> : std::true_type {};
+
+template <typename T, typename = ::utils::void_t<>>
+struct HasIntrospection : std::false_type {};
+
+template <typename T>
+struct HasIntrospection<
+    T, ::utils::void_t<decltype(std::declval<T&>().Introspect())>>
+    : std::integral_constant<
+          bool, IsTuple<decltype(std::declval<T&>().Introspect())>::value> {};
+
+namespace detail {
+
+template <typename T>
+constexpr bool DetectIsAggregate() {
+  using type = std::remove_cv_t<T>;
+  return std::is_class<type>::value && !std::is_empty<type>::value &&
+         std::is_standard_layout<type>::value &&
+         !std::is_polymorphic<type>::value && !std::is_union<type>::value;
+}
+
+}  // namespace detail
+
+template <typename T>
+struct IsAggregateClass : BoolConstant<detail::DetectIsAggregate<T>()> {};
+template <typename T>
+constexpr bool kIsAggregateClass = IsAggregateClass<T>::value;
+
+enum class RowTagType { kInvalid, kTuple, kAggregate, kIntrusiveIntrospection };
+
+template <RowTagType Tag>
+using RowTagConstant = std::integral_constant<RowTagType, Tag>;
+
+template <typename T>
+struct RowTag
+    : std::conditional_t<
+          IsTuple<T>::value, RowTagConstant<RowTagType::kTuple>,
+          std::conditional_t<
+              HasIntrospection<T>::value,
+              RowTagConstant<RowTagType::kIntrusiveIntrospection>,
+              std::conditional_t<IsAggregateClass<T>::value,
+                                 RowTagConstant<RowTagType::kAggregate>,
+                                 RowTagConstant<RowTagType::kInvalid>>>> {};
+
+template <typename T>
+constexpr RowTagType kRowTag = RowTag<T>::value;
+
+template <typename T>
+struct RemoveTupleReferences;
+
+template <typename... T>
+struct RemoveTupleReferences<std::tuple<T...>> {
+  using type = std::tuple<std::remove_reference_t<T>...>;
+};
+
+template <typename T>
+struct IsTupleOfRefs : std::false_type {};
+template <typename... T>
+struct IsTupleOfRefs<std::tuple<T&...>> : std::true_type {};
+
+template <typename T>
+struct AddTupleConstRef;
+
+template <typename... T>
+struct AddTupleConstRef<std::tuple<T...>> {
+  using type = std::tuple<
+      std::add_const_t<std::add_lvalue_reference_t<std::decay_t<T>>>...>;
+};
+
+template <typename T, DataFormat F, template <typename, DataFormat> class Pred,
+          template <typename...> class LogicOp = ::utils::And>
+struct TupleIOTrait : std::false_type {};
+template <typename... T, DataFormat F,
+          template <typename, DataFormat> class Pred,
+          template <typename...> class LogicOp>
+struct TupleIOTrait<std::tuple<T...>, F, Pred, LogicOp>
+    : LogicOp<typename Pred<std::decay_t<T>, F>::type...>::type {};
+
+template <typename T, DataFormat F>
+struct TupleHasParsers : TupleIOTrait<T, F, HasParser> {};
+template <typename T, DataFormat F>
+struct TupleHasFormatters : TupleIOTrait<T, F, HasFormatter> {};
+
 //@}
 
 //@{

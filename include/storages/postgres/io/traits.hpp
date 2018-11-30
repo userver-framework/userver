@@ -99,6 +99,8 @@ template <typename T>
 constexpr bool kHasTextParser = HasTextParser<T>::value;
 template <typename T>
 constexpr bool kHasBinaryParser = HasBinaryParser<T>::value;
+template <typename T>
+constexpr bool kHasAnyParser = kHasTextParser<T> || kHasBinaryParser<T>;
 
 template <typename T, DataFormat F>
 constexpr bool kHasFormatter = HasFormatter<T, F>::value;
@@ -106,6 +108,9 @@ template <typename T>
 constexpr bool kHasTextFormatter = HasTextFormatter<T>::value;
 template <typename T>
 constexpr bool kHasBinaryFormatter = HasBinaryFormatter<T>::value;
+template <typename T>
+constexpr bool kHasAnyFormatter =
+    kHasTextFormatter<T> || kHasBinaryFormatter<T>;
 //@}
 
 /// Parser selector
