@@ -64,6 +64,28 @@ DBTypeName UserTypes::FindBaseName(Oid oid) const {
   return {};
 }
 
+Oid UserTypes::FindBaseOid(Oid oid) const {
+  using TypeCategory = DBTypeDescription::TypeCategory;
+  using TypeClass = DBTypeDescription::TypeClass;
+  if (auto f = by_oid_.find(oid); f != by_oid_.end()) {
+    // We have a type description
+    const auto& desc = *f->second;
+    if (desc.type_class == TypeClass::kDomain) {
+      return FindBaseOid(desc.base_type);
+    } else if (desc.category == TypeCategory::kArray) {
+      return FindBaseOid(desc.element_type);
+    }
+    return desc.oid;
+  }
+  LOG_WARNING() << "PostgreSQL user type with oid " << oid << " not found";
+  return oid;
+}
+
+Oid UserTypes::FindBaseOid(DBTypeName name) const {
+  auto oid = FindOid(name);
+  return FindBaseOid(oid);
+}
+
 bool UserTypes::HasBinaryParser(Oid oid) const {
   auto name = FindBaseName(oid);
   if (!name.Empty()) {

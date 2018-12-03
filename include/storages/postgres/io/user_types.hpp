@@ -52,6 +52,10 @@ class UserTypes {
   /// Find name of the base type for a domain or element type for an array.
   /// For the rest of types returns the name for the oid if found.
   DBTypeName FindBaseName(Oid) const;
+  /// Find base oid for a domain or element type for an array.
+  /// For the rest of types returns the name for the oid if found.
+  Oid FindBaseOid(Oid) const;
+  Oid FindBaseOid(DBTypeName) const;
 
   bool HasBinaryParser(Oid) const;
   bool HasTextParser(Oid) const;
