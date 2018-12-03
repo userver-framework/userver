@@ -63,8 +63,8 @@ void PeriodicTask::Run() {
     settings.reset();
 
     try {
-      auto span = tracing::Tracer::GetTracer()->CreateSpanWithoutParent(name_);
-      callback_(std::move(span));
+      tracing::Span span(name_);
+      callback_();
     } catch (const std::exception& e) {
       LOG_ERROR() << "Exception in PeriodicTask with name=" << name_ << ": "
                   << e.what();

@@ -1,14 +1,20 @@
 #pragma once
 
+#include <list>
 #include <string>
 
+#include <boost/intrusive/list.hpp>
 #include <boost/optional.hpp>
 
 #include <tracing/tracer.hpp>
 
 namespace tracing {
 
-class Span::Impl {
+class Span;
+
+class Span::Impl
+    : public boost::intrusive::list_base_hook<
+          boost::intrusive::link_mode<boost::intrusive::auto_unlink>> {
  public:
   Impl(TracerPtr tracer, const std::string& name, const Span::Impl* parent,
        ReferenceType reference_type);
@@ -32,10 +38,14 @@ class Span::Impl {
 
   ReferenceType GetReferenceType() const { return reference_type_; }
 
+  void DetachFromCoroStack();
+  void AttachToCoroStack();
+
  private:
   std::shared_ptr<Tracer> tracer;
   logging::LogExtra log_extra_inheritable;
 
+  Span* span_;
   const std::string name_;
 
   boost::optional<logging::LogExtra> log_extra_local;

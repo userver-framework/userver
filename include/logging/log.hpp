@@ -96,6 +96,7 @@ class LogHelper {
   void LogTextKey();
   void LogModule(const char* path, int line, const char* func);
   void LogTaskIdAndCoroutineId();
+  void LogSpan();
 
   std::unique_ptr<MessageBuffer> buffer_;
   std::ostream verbatim_stream_;

@@ -14,7 +14,7 @@ class RequestData {
 
 class RequestContext {
  public:
-  RequestContext();
+  RequestContext() = default;
   RequestContext(RequestContext&&) = delete;
   RequestContext(const RequestContext&) = delete;
 
@@ -30,14 +30,8 @@ class RequestContext {
 
   void ClearData() { data_.reset(); }
 
-  logging::LogExtra& GetLogExtra() { return span_.GetInheritableLogExtra(); }
-
-  tracing::Span& GetSpan() { return span_; }
-
  private:
   std::unique_ptr<RequestData> data_;
-  logging::LogExtra log_extra_;
-  tracing::Span span_;
 };
 
 }  // namespace request

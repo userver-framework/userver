@@ -8,14 +8,14 @@
 
 namespace components {
 
-void CacheUpdateTrait::UpdateFull(tracing::Span&& span) {
+void CacheUpdateTrait::UpdateFull() {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
 
   auto update_type = cache::UpdateType::kFull;
   cache::UpdateStatisticsScope stats(GetStatistics(), update_type);
 
   Update(update_type, std::chrono::system_clock::time_point(),
-         std::chrono::system_clock::now(), std::move(span), stats);
+         std::chrono::system_clock::now(), stats);
 }
 
 CacheUpdateTrait::CacheUpdateTrait(CacheConfig&& config,
@@ -40,17 +40,16 @@ void CacheUpdateTrait::StartPeriodicUpdates() {
   }
 
   try {
+    tracing::Span span("first_update");
     // Force first update, do it synchronously
-    DoPeriodicUpdate(
-        tracing::Tracer::GetTracer()->CreateSpanWithoutParent("first_update"));
+    DoPeriodicUpdate();
 
-    update_task_.Start(
-        name_ + "-update-task",
-        {config_.update_interval_,
-         config_.update_jitter_,
-         {utils::PeriodicTask::Flags::kChaotic,
-          utils::PeriodicTask::Flags::kCritical}},
-        [this](tracing::Span&& span) { DoPeriodicUpdate(std::move(span)); });
+    update_task_.Start(name_ + "-update-task",
+                       {config_.update_interval_,
+                        config_.update_jitter_,
+                        {utils::PeriodicTask::Flags::kChaotic,
+                         utils::PeriodicTask::Flags::kCritical}},
+                       [this]() { DoPeriodicUpdate(); });
   } catch (...) {
     is_running_ = false;  // update_task_ is not started, don't check it in dtr
     throw;
@@ -70,7 +69,7 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
   }
 }
 
-void CacheUpdateTrait::DoPeriodicUpdate(tracing::Span&& span) {
+void CacheUpdateTrait::DoPeriodicUpdate() {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
 
   const auto steady_now = std::chrono::steady_clock::now();
@@ -80,11 +79,11 @@ void CacheUpdateTrait::DoPeriodicUpdate(tracing::Span&& span) {
   }
 
   cache::UpdateStatisticsScope stats(GetStatistics(), update_type);
-  TRACE_INFO(span) << "Updating cache name=" << name_;
+  LOG_INFO() << "Updating cache name=" << name_;
 
   const auto system_now = std::chrono::system_clock::now();
-  Update(update_type, last_update_, system_now, std::move(span), stats);
-  TRACE_INFO(span) << "Updated cache name=" << name_;
+  Update(update_type, last_update_, system_now, stats);
+  LOG_INFO() << "Updated cache name=" << name_;
 
   last_update_ = system_now;
   if (update_type == cache::UpdateType::kFull) {

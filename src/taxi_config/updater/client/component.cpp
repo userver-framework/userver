@@ -64,7 +64,7 @@ void TaxiConfigClientUpdater::Update(
     cache::UpdateType update_type,
     const std::chrono::system_clock::time_point& /*last_update*/,
     const std::chrono::system_clock::time_point& /*now*/,
-    tracing::Span&& /*span*/, cache::UpdateStatisticsScope& stats) {
+    cache::UpdateStatisticsScope& stats) {
   if (update_type == cache::UpdateType::kFull) {
     auto reply = config_client_->FetchDocsMap(boost::none, GetDocsMapKeys());
     auto& docs_map = reply.docs_map;

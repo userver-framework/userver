@@ -120,7 +120,7 @@ void Logging::OnLogRotate() {
   }
 }
 
-void Logging::FlushLogs(tracing::Span&&) {
+void Logging::FlushLogs() {
   logging::DefaultLogger()->flush();
   for (auto& item : loggers_) {
     item.second->flush();

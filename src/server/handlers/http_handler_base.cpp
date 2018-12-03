@@ -131,12 +131,13 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     bool log_request = http_server_settings_.NeedLogRequest();
     bool log_request_headers = http_server_settings_.NeedLogRequestHeaders();
 
-    auto& span = context.GetSpan();
+    auto span = tracing::Span::CurrentSpan();
+    assert(span);
 
     const auto& parent_link = http_request.GetHeader(kXYaRequestId);
-    if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
+    if (!parent_link.empty()) span->AddTag("parent_link", parent_link);
 
-    span.AddTag("request_url", http_request.GetUrl());
+    span->AddTag("request_url", http_request.GetUrl());
 
     if (log_request) {
       logging::LogExtra log_extra;
@@ -145,7 +146,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
         log_extra.Extend("request_headers", GetHeadersLogString(http_request));
       }
       log_extra.Extend("request_body", http_request.RequestBody());
-      TRACE_INFO(span) << "start handling" << std::move(log_extra);
+      LOG_INFO() << "start handling" << std::move(log_extra);
     }
 
     HttpHandlerStatisticsScope stats_scope(*statistics_,
@@ -154,21 +155,20 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     try {
       response.SetData(HandleRequestThrow(http_request, context));
     } catch (const http::HttpException& ex) {
-      TRACE_ERROR(span) << "http exception in '" << HandlerName()
-                        << "' handler in handle_request: code="
-                        << HttpStatusString(ex.GetStatus())
-                        << ", msg=" << ex.what()
-                        << ", body=" << ex.GetExternalErrorBody();
+      LOG_ERROR() << "http exception in '" << HandlerName()
+                  << "' handler in handle_request: code="
+                  << HttpStatusString(ex.GetStatus()) << ", msg=" << ex.what()
+                  << ", body=" << ex.GetExternalErrorBody();
       response.SetStatus(ex.GetStatus());
       response.SetData(ex.GetExternalErrorBody());
     } catch (const std::exception& ex) {
-      TRACE_ERROR(span) << "exception in '" << HandlerName()
-                        << "' handler in handle_request: " << ex.what();
+      LOG_ERROR() << "exception in '" << HandlerName()
+                  << "' handler in handle_request: " << ex.what();
       http_request_impl.MarkAsInternalServerError();
     }
 
-    response.SetHeader(kXYaRequestId, span.GetLink());
-    span.AddTag("response_code", static_cast<int>(response.GetStatus()));
+    response.SetHeader(kXYaRequestId, span->GetLink());
+    span->AddTag("response_code", static_cast<int>(response.GetStatus()));
 
     if (log_request) {
       logging::LogExtra log_extra;
@@ -177,8 +177,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
         log_extra.Extend("response_headers", GetHeadersLogString(response));
       }
       log_extra.Extend("response_data", response.GetData());
-      TRACE_INFO(span) << "finish handling " << http_request.GetUrl()
-                       << log_extra;
+      LOG_INFO() << "finish handling " << http_request.GetUrl() << log_extra;
     }
 
     const auto finish_time = std::chrono::system_clock::now();

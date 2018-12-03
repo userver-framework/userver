@@ -4,10 +4,10 @@
 
 #include <boost/algorithm/string/join.hpp>
 
-#include <engine/async.hpp>
 #include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
 #include <tracing/tracer.hpp>
+#include <utils/async.hpp>
 
 namespace components {
 
@@ -66,41 +66,39 @@ ComponentBase* ComponentContext::AddComponent(std::string name,
 }
 
 void ComponentContext::ClearComponents() {
-  auto root_span = tracing::Tracer::GetTracer()->CreateSpanWithoutParent(
-      kStopComponentRootName);
-  TRACE_INFO(root_span) << "Sending stopping notification to all components";
-  OnAllComponentsAreStopping(root_span);
-  TRACE_INFO(root_span) << "Stopping components";
+  tracing::Span span(kStopComponentRootName);
+  LOG_INFO() << "Sending stopping notification to all components";
+  OnAllComponentsAreStopping();
+  LOG_INFO() << "Stopping components";
 
   std::vector<engine::TaskWithResult<void>> unload_tasks;
   {
     std::lock_guard<engine::Mutex> lock(component_mutex_);
     for (const auto& component_item : components_) {
       const auto& name = component_item.first;
-      unload_tasks.emplace_back(
-          engine::CriticalAsync([&root_span, this, name]() {
-            WaitAndUnloadComponent(root_span, name);
-          }));
+      unload_tasks.emplace_back(utils::CriticalAsync(name, [this, name]() {
+        // TODO: create span here with parent task's span as a parent
+        WaitAndUnloadComponent(name);
+      }));
     }
   }
 
   for (auto& task : unload_tasks) task.Get();
 
-  TRACE_INFO(root_span) << "Stopped all components";
+  LOG_INFO() << "Stopped all components";
 }
 
-void ComponentContext::OnAllComponentsAreStopping(tracing::Span& parent_span) {
+void ComponentContext::OnAllComponentsAreStopping() {
   std::lock_guard<engine::Mutex> lock(component_mutex_);
 
   for (auto& component_item : components_) {
     try {
-      auto span = parent_span.CreateChild(kStoppingComponent);
+      tracing::Span span(kStoppingComponent);
       component_item.second->OnAllComponentsAreStopping();
     } catch (const std::exception& e) {
       const auto& name = component_item.first;
-      TRACE_ERROR(parent_span)
-          << "Exception while sendind stop notification to component " + name +
-                 ": " + e.what();
+      LOG_ERROR() << "Exception while sendind stop notification to component " +
+                         name + ": " + e.what();
     }
   }
 }
@@ -273,11 +271,10 @@ bool ComponentContext::MayUnload(const std::string& name) const {
   return true;
 }
 
-void ComponentContext::WaitAndUnloadComponent(tracing::Span& root_span,
-                                              const std::string& name) {
+void ComponentContext::WaitAndUnloadComponent(const std::string& name) {
   std::unique_ptr<ComponentBase> tmp;
 
-  TRACE_INFO(root_span) << "Preparing to stop component " << name;
+  LOG_INFO() << "Preparing to stop component " << name;
 
   {
     std::unique_lock<engine::Mutex> lock(component_mutex_);
@@ -289,12 +286,12 @@ void ComponentContext::WaitAndUnloadComponent(tracing::Span& root_span,
 
   // Actual stop without the mutex
   {
-    auto span = root_span.CreateChild(kStopComponentName);
+    tracing::Span span(kStopComponentName);
     span.AddTag(kComponentName, name);
 
-    TRACE_INFO(span) << "Stopping component";
+    LOG_INFO() << "Stopping component";
     tmp.reset();
-    TRACE_INFO(span) << "Stopped component";
+    LOG_INFO() << "Stopped component";
   }
 
   RemoveComponentDependencies(name);

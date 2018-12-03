@@ -15,7 +15,7 @@ namespace components {
 
 class CacheUpdateTrait {
  public:
-  void UpdateFull(tracing::Span&& span);
+  void UpdateFull();
 
  protected:
   CacheUpdateTrait(CacheConfig&& config, const std::string& name);
@@ -30,10 +30,9 @@ class CacheUpdateTrait {
   virtual void Update(cache::UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,
                       const std::chrono::system_clock::time_point& now,
-                      tracing::Span&& span,
                       cache::UpdateStatisticsScope& stats_scope) = 0;
 
-  void DoPeriodicUpdate(tracing::Span&& span);
+  void DoPeriodicUpdate();
 
   cache::Statistics statistics_;
   engine::Mutex update_mutex_;

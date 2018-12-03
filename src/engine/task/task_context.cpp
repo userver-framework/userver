@@ -159,7 +159,8 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       sleep_state_(SleepStateFlags::kSleeping),
       wakeup_source_(WakeupSource::kNone),
       task_pipe_(nullptr),
-      yield_reason_(YieldReason::kNone) {
+      yield_reason_(YieldReason::kNone),
+      local_storage_(nullptr) {
   assert(payload_);
   LOG_TRACE() << "task with task_id="
               << GetTaskIdString(current_task::GetCurrentTaskContextUnchecked())
@@ -340,9 +341,18 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       context->yield_reason_ = YieldReason::kTaskCancelled;
     } else {
       try {
-        CallOnce(context->payload_);
+        {
+          // Destroy contents of LocalStorage in the coroutine
+          // as dtors may want to schedule
+          LocalStorage local_storage;
+          context->local_storage_ = &local_storage;
+
+          CallOnce(context->payload_);
+        }
+        context->local_storage_ = nullptr;
         context->yield_reason_ = YieldReason::kTaskComplete;
       } catch (const CoroUnwinder&) {
+        context->local_storage_ = nullptr;
         context->yield_reason_ = YieldReason::kTaskCancelled;
       }
     }
@@ -352,6 +362,8 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     context->task_pipe_ = nullptr;
   }
 }
+
+LocalStorage& TaskContext::GetLocalStorage() { return *local_storage_; }
 
 void TaskContext::SetState(Task::State new_state) {
   auto old_state = Task::State::kNew;

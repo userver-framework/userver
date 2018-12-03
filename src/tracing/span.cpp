@@ -5,6 +5,8 @@
 #include <boost/container/small_vector.hpp>
 #include <boost/format.hpp>
 
+#include <engine/task/local_variable.hpp>
+#include <engine/task/task_context.hpp>
 #include <tracing/tracer.hpp>
 #include <utils/uuid4.hpp>
 
@@ -24,6 +26,14 @@ const std::string kReferenceType = "span_ref_type";
 const std::string kReferenceTypeChild = "child";
 const std::string kReferenceTypeFollows = "follows";
 
+/* Maintain coro-local span stack to identify "current span" in O(1).
+ * Use list instead of stack to avoid UB in case of "pop non-last item"
+ * in case of buggy users.
+ */
+engine::TaskLocalVariable<boost::intrusive::list<
+    Span::Impl, boost::intrusive::constant_time_size<false>>>
+    task_local_spans;
+
 }  // namespace
 
 Span::Impl::Impl(TracerPtr tracer, const std::string& name,
@@ -35,8 +45,10 @@ Span::Impl::Impl(TracerPtr tracer, const std::string& name,
       trace_id_(parent ? parent->GetTraceId()
                        : utils::generators::GenerateUuid()),
       span_id_(utils::generators::GenerateUuid()),
-      parent_id_(parent ? parent->GetParentId() : ""),
-      reference_type_(reference_type) {}
+      parent_id_(parent ? parent->GetSpanId() : ""),
+      reference_type_(reference_type) {
+  AttachToCoroStack();
+}
 
 Span::Impl::~Impl() {
   const double start_ts =
@@ -82,15 +94,41 @@ const std::string& Span::Impl::GetSpanId() const { return span_id_; }
 
 const std::string& Span::Impl::GetParentId() const { return parent_id_; }
 
+void Span::Impl::DetachFromCoroStack() { unlink(); }
+
+void Span::Impl::AttachToCoroStack() {
+  assert(!is_linked());
+  task_local_spans->push_back(*this);
+}
+
 Span::Span(TracerPtr tracer, const std::string& name, const Span* parent,
            ReferenceType reference_type)
     : pimpl_(std::make_unique<Impl>(std::move(tracer), name,
                                     parent ? parent->pimpl_.get() : nullptr,
                                     reference_type)) {}
 
-Span::Span(Span&& other) noexcept = default;
+Span::Span(const std::string& name, ReferenceType reference_type)
+    : pimpl_(std::make_unique<Impl>(
+          tracing::Tracer::GetTracer(), name,
+          task_local_spans->empty() ? nullptr : &task_local_spans->back(),
+          reference_type)) {
+  if (pimpl_->parent_id_.empty()) {
+    SetLink(utils::generators::GenerateUuid());
+  }
+  pimpl_->span_ = this;
+}
+
+Span::Span(Span&& other) noexcept : pimpl_(std::move(other.pimpl_)) {
+  pimpl_->span_ = this;
+}
 
 Span::~Span() = default;
+
+Span* Span::CurrentSpan() {
+  if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr)
+    return nullptr;
+  return task_local_spans->empty() ? nullptr : task_local_spans->back().span_;
+}
 
 Span Span::CreateChild(const std::string& name) const {
   auto span = pimpl_->tracer->CreateSpan(name, *this, ReferenceType::kChild);
@@ -144,6 +182,10 @@ logging::LogExtra& Span::GetInheritableLogExtra() {
 void Span::LogTo(logging::LogHelper& log_helper) const & {
   pimpl_->LogTo(log_helper);
 }
+
+void Span::DetachFromCoroStack() { pimpl_->DetachFromCoroStack(); }
+
+void Span::AttachToCoroStack() { pimpl_->AttachToCoroStack(); }
 
 const std::string& Span::GetTraceId() const { return pimpl_->GetTraceId(); }
 

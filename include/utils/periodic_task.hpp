@@ -54,7 +54,7 @@ class PeriodicTask {
     utils::Flags<Flags> flags;
   };
 
-  using Callback = std::function<void(tracing::Span)>;
+  using Callback = std::function<void()>;
 
   PeriodicTask() = default;
   PeriodicTask(PeriodicTask&&) = delete;

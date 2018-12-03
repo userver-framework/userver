@@ -12,12 +12,19 @@ class Span final {
   explicit Span(TracerPtr tracer, const std::string& name, const Span* parent,
                 ReferenceType reference_type);
 
+  /* Use default tracer and implicit coro local storage for parent
+   * identification */
+  Span(const std::string& name,
+       ReferenceType reference_type = ReferenceType::kChild);
+
   // TODO: remove in C++17 (for guaranteed copy elision)
   Span(Span&& other) noexcept;
 
   ~Span();
 
   Span& operator=(Span&&) = delete;
+
+  static Span* CurrentSpan();
 
   /** Create a child which can be used independently from the parent.
    * The child share no state with its parent. If you need to run code in
@@ -58,6 +65,9 @@ class Span final {
 
   void LogTo(logging::LogHelper& log_helper) const &;
 
+  void DetachFromCoroStack();
+  void AttachToCoroStack();
+
   class Impl;
 
  private:
@@ -73,10 +83,3 @@ LogHelper& operator<<(LogHelper& lh, const tracing::Span& span);
 LogHelper& operator<<(LogHelper& lh, const tracing::Span::Impl& span_impl);
 
 }  // namespace logging
-
-#define TRACE_TRACE(span) LOG_TRACE() << span
-#define TRACE_DEBUG(span) LOG_DEBUG() << span
-#define TRACE_INFO(span) LOG_INFO() << span
-#define TRACE_WARNING(span) LOG_WARNING() << span
-#define TRACE_ERROR(span) LOG_ERROR() << span
-#define TRACE_CRITICAL(span) LOG_CRITICAL() << span

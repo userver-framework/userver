@@ -7,6 +7,7 @@
 #include <components/component_list.hpp>
 #include <engine/async.hpp>
 #include <logging/log.hpp>
+#include <utils/async.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
@@ -124,7 +125,8 @@ void Manager::AddComponents(const ComponentList& component_list) {
   bool is_load_cancelled = false;
   try {
     for (const auto& adder : component_list) {
-      tasks.push_back(engine::CriticalAsync([&]() {
+      auto task_name = "start_" + adder->GetComponentName();
+      tasks.push_back(utils::CriticalAsync(task_name, [&]() {
         try {
           (*adder)(*this, component_config_map);
         } catch (const std::exception& e) {

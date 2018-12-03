@@ -22,7 +22,7 @@ class CacheInvalidator : public components::ComponentBase {
 
   void UnregisterCacheInvalidator(components::CacheUpdateTrait& owner);
 
-  void InvalidateCaches(tracing::Span& span);
+  void InvalidateCaches();
 
  private:
   struct Invalidator {

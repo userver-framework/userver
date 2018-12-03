@@ -43,7 +43,7 @@ TaxiConfigMongoUpdater::~TaxiConfigMongoUpdater() { StopPeriodicUpdates(); }
 
 void TaxiConfigMongoUpdater::Update(
     cache::UpdateType type, const std::chrono::system_clock::time_point&,
-    const std::chrono::system_clock::time_point&, tracing::Span&& span,
+    const std::chrono::system_clock::time_point&,
     cache::UpdateStatisticsScope& stats) {
   namespace bbb = bsoncxx::builder::basic;
   namespace sm = storages::mongo;
@@ -69,9 +69,9 @@ void TaxiConfigMongoUpdater::Update(
       stats.FinishNoChanges();
       return;
     }
-    TRACE_DEBUG(span) << "Updating dirty config";
+    LOG_DEBUG() << "Updating dirty config";
   } else {
-    TRACE_DEBUG(span) << "Full config update";
+    LOG_DEBUG() << "Full config update";
   }
 
   auto mongo_docs = fallback_config_;

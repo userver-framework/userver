@@ -64,7 +64,6 @@ class MongoCache
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now,
-              tracing::Span&& span,
               cache::UpdateStatisticsScope& stats_scope) override;
 
   storages::mongo::DocumentValue GetQuery(
@@ -102,7 +101,7 @@ template <class MongoCacheTraits>
 void MongoCache<MongoCacheTraits>::Update(
     cache::UpdateType type,
     const std::chrono::system_clock::time_point& last_update,
-    const std::chrono::system_clock::time_point& /*now*/, tracing::Span&& span,
+    const std::chrono::system_clock::time_point& /*now*/,
     cache::UpdateStatisticsScope& stats_scope) {
   namespace bbb = bsoncxx::builder::basic;
   namespace sm = storages::mongo;
@@ -121,7 +120,7 @@ void MongoCache<MongoCacheTraits>::Update(
   auto it = cursor.begin();
   if (type == cache::UpdateType::kIncremental && it == cursor.end()) {
     // Don't touch the cache at all
-    TRACE_INFO(span) << "No changes in cache " << MongoCacheTraits::kName;
+    LOG_INFO() << "No changes in cache " << MongoCacheTraits::kName;
     stats_scope.FinishNoChanges();
     return;
   }

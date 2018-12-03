@@ -76,9 +76,9 @@ class Logging : public ComponentBase {
 
  private:
   auto GetTaskFunction() {
-    return std::bind(&Logging::FlushLogs, this, std::placeholders::_1);
+    return [this] { FlushLogs(); };
   }
-  void FlushLogs(tracing::Span&&);
+  void FlushLogs();
 
   std::vector<logging::ThreadPoolPtr> thread_pools_;
   std::unordered_map<std::string, logging::LoggerPtr> loggers_;

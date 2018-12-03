@@ -9,10 +9,11 @@ const std::string kCacheInvalidateSpanTag = "cache_invalidate";
 CacheInvalidator::CacheInvalidator(const components::ComponentConfig&,
                                    const components::ComponentContext&) {}
 
-void CacheInvalidator::InvalidateCaches(tracing::Span& span) {
+void CacheInvalidator::InvalidateCaches() {
   std::lock_guard<engine::Mutex> lock(mutex_);
   for (auto& invalidator : cache_invalidators_) {
-    invalidator.handler(span.CreateChild(kCacheInvalidateSpanTag));
+    tracing::Span span(kCacheInvalidateSpanTag);
+    invalidator.handler();
   }
 }
 

@@ -7,14 +7,14 @@
 #include <ev.h>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
+#include <engine/coro/pool.hpp>
 #include <engine/deadline.hpp>
+#include <engine/ev/thread_control.hpp>
+#include <engine/task/local_storage.hpp>
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
-#include <utils/flags.hpp>
-
-#include <engine/coro/pool.hpp>
-#include <engine/ev/thread_control.hpp>
 #include <engine/wait_list.hpp>
+#include <utils/flags.hpp>
 #include "cxxabi_eh_globals.hpp"
 #include "task_counter.hpp"
 
@@ -124,6 +124,8 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
     task_queue_wait_timepoint_ = tp;
   }
 
+  LocalStorage& GetLocalStorage();
+
  private:
   static constexpr uint64_t kMagic = 0x6b73615453755459ull;  // "YTuSTask"
 
@@ -168,6 +170,8 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   CoroutinePtr coro_;
   TaskPipe* task_pipe_;
   YieldReason yield_reason_;
+
+  LocalStorage* local_storage_;
 };
 
 }  // namespace impl

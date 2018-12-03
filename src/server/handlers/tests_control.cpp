@@ -23,7 +23,7 @@ const std::string& TestsControl::HandlerName() const {
 
 formats::json::Value TestsControl::HandleRequestJsonThrow(
     const http::HttpRequest& request, const formats::json::Value& request_body,
-    request::RequestContext& context) const {
+    request::RequestContext&) const {
   if (request.GetMethod() != http::HttpMethod::kPost) throw http::BadRequest();
 
   bool invalidate_caches = false;
@@ -41,8 +41,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
               utils::datetime::Stringtime(value.asString()).time_since_epoch())
               .count();
     } else {
-      TRACE_ERROR(context.GetSpan())
-          << "now argument must be a string" << context.GetLogExtra();
+      LOG_ERROR() << "'now' argument must be a string";
       throw http::BadRequest();
     }
   }
@@ -54,7 +53,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   else
     utils::datetime::MockNowUnset();
 
-  if (invalidate_caches) cache_invalidator_.InvalidateCaches(context.GetSpan());
+  if (invalidate_caches) cache_invalidator_.InvalidateCaches();
 
   return formats::json::Value();
 }

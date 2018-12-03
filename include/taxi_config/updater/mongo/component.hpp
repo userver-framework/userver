@@ -28,7 +28,7 @@ class TaxiConfigMongoUpdater
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now,
-              tracing::Span&& span, cache::UpdateStatisticsScope&) override;
+              cache::UpdateStatisticsScope&) override;
 
  private:
   std::chrono::system_clock::time_point seen_doc_update_time_;

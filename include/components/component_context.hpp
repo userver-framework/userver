@@ -58,7 +58,7 @@ class ComponentContext {
 
   void OnAllComponentsLoaded();
 
-  void OnAllComponentsAreStopping(tracing::Span&);
+  void OnAllComponentsAreStopping();
 
   template <typename T>
   T& FindComponent() const {
@@ -121,7 +121,7 @@ class ComponentContext {
 
   bool MayUnload(const std::string& name) const;
 
-  void WaitAndUnloadComponent(tracing::Span&, const std::string& name);
+  void WaitAndUnloadComponent(const std::string& name);
 
   std::string GetLoadingComponentName(std::unique_lock<engine::Mutex>&) const;
 

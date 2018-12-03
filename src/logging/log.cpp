@@ -7,6 +7,7 @@
 
 #include <engine/task/task_context.hpp>
 #include <logging/spdlog.hpp>
+#include <tracing/span.hpp>
 #include <utils/swappingsmart.hpp>
 #include "log_streambuf.hpp"
 #include "log_workaround.hpp"
@@ -75,6 +76,7 @@ LogHelper::LogHelper(Level level, const char* path, int line, const char* func)
       verbatim_stream_(buffer_.get()),
       tskv_buffer_{std::make_unique<TskvBuffer>(buffer_->msg.raw)},
       tskv_stream_(tskv_buffer_.get()) {
+  LogSpan();
   LogModule(path, line, func);
   LogTaskIdAndCoroutineId();
   LogTextKey();  // This member outputs only a key without value
@@ -124,6 +126,11 @@ void LogHelper::LogTaskIdAndCoroutineId() {
                    << utils::encoding::kTskvKeyValueSeparator << task_id
                    << utils::encoding::kTskvPairsSeparator << "coro_id"
                    << utils::encoding::kTskvKeyValueSeparator << coro_id;
+}
+
+void LogHelper::LogSpan() {
+  auto* span = tracing::Span::CurrentSpan();
+  if (span) *this << *span;
 }
 
 void LogFlush() { DefaultLogger()->flush(); }
