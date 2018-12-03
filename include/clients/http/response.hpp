@@ -22,8 +22,21 @@ enum Status : uint16_t {
   BadRequest = 400,
   NotFound = 404,
   Conflict = 409,
-  InternalServerError = 500
+  InternalServerError = 500,
+  BadGateway = 502,
+  ServiceUnavailable = 503,
+  GatewayTimeout = 504,
+  InsufficientStorage = 507,
+  BandwithLimitExceeded = 509,
+  WebServerIsDown = 520,
+  ConnectionTimedOut = 522,
+  OriginIsUnreachable = 523,
+  TimeoutOccured = 524,
+  SslHandshakeFailed = 525,
+  InvalidSslCertificate = 526,
 };
+
+std::ostream& operator<<(std::ostream& os, Status s);
 
 /// Headers class
 typedef std::unordered_map<std::string, std::string> Headers;
@@ -41,7 +54,7 @@ class Response {
   /// return referece to headers
   inline Headers& headers() { return headers_; }
   /// status_code
-  long status_code() const;
+  Status status_code() const;
   /// check status code
   bool IsOk() const { return status_code() == Status::OK; }
   /// total request time
