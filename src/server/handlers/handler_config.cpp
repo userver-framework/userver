@@ -22,6 +22,7 @@ HandlerConfig HandlerConfig::ParseFromYaml(
                          full_path, config_vars_ptr);
   yaml_config::ParseInto(config.parse_args_from_body, yaml,
                          "parse_args_from_body", full_path, config_vars_ptr);
+  yaml_config::ParseInto(config.auth, yaml, "auth", full_path, config_vars_ptr);
 
   return config;
 }

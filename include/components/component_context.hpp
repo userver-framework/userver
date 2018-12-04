@@ -34,6 +34,7 @@ class Manager;
 class ComponentsLoadCancelledException : public std::runtime_error {
  public:
   ComponentsLoadCancelledException();
+  explicit ComponentsLoadCancelledException(const std::string& message);
 };
 
 class ComponentContext {

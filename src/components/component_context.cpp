@@ -21,6 +21,10 @@ const std::string kComponentName = "component_name";
 ComponentsLoadCancelledException::ComponentsLoadCancelledException()
     : std::runtime_error("Components load cancelled") {}
 
+ComponentsLoadCancelledException::ComponentsLoadCancelledException(
+    const std::string& message)
+    : std::runtime_error(message) {}
+
 ComponentContext::TaskToComponentMapScope::TaskToComponentMapScope(
     ComponentContext& context, const std::string& component_name)
     : context_(context) {

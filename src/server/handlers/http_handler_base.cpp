@@ -16,6 +16,8 @@
 #include <utils/graphite.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
 
+#include "auth/auth_checker.hpp"
+
 namespace server {
 namespace handlers {
 namespace {
@@ -87,7 +89,9 @@ HttpHandlerBase::HttpHandlerBase(
       allowed_methods_(InitAllowedMethods(GetConfig())),
       statistics_storage_(
           component_context.FindComponent<components::StatisticsStorage>()),
-      statistics_(std::make_unique<HandlerStatistics>()) {
+      statistics_(std::make_unique<HandlerStatistics>()),
+      auth_checker_(auth::CreateAuthChecker(
+          GetConfig(), http_server_settings_.GetAuthCheckerSettings())) {
   if (allowed_methods_.empty()) {
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
@@ -153,6 +157,8 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                            http_request.GetMethod());
 
     try {
+      if (http_server_settings_.NeedCheckAuthInHandlers())
+        auth_checker_->CheckAuth(http_request);
       response.SetData(HandleRequestThrow(http_request, context));
     } catch (const http::HttpException& ex) {
       LOG_ERROR() << "http exception in '" << HandlerName()

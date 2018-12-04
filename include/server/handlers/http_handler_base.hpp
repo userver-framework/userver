@@ -15,6 +15,9 @@ class StatisticsStorage;
 
 namespace server {
 namespace handlers {
+namespace auth {
+class AuthCheckerBase;
+}  // namespace auth
 
 class HttpHandlerBase : public HandlerBase {
  public:
@@ -63,6 +66,7 @@ class HttpHandlerBase : public HandlerBase {
   utils::statistics::Entry statistics_holder_;
 
   std::unique_ptr<HandlerStatistics> statistics_;
+  std::unique_ptr<auth::AuthCheckerBase> auth_checker_;
 };
 
 }  // namespace handlers

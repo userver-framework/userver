@@ -1,5 +1,6 @@
 #pragma once
 
+#include <server/handlers/auth/auth_checker_settings_component.hpp>
 #include <server_settings/http_server_settings_base_component.hpp>
 #include <server_settings/http_server_settings_config.hpp>
 #include <taxi_config/storage/component.hpp>
@@ -11,20 +12,26 @@ template <typename HttpServerSettingsConfigNames =
               server_settings::ConfigNamesDefault>
 class HttpServerSettings : public HttpServerSettingsBase {
  public:
-  HttpServerSettings(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
+  HttpServerSettings(const ComponentConfig& config,
+                     const ComponentContext& context)
       : HttpServerSettingsBase(config, context),
-        taxi_config_component_(
-            context.FindComponent<components::TaxiConfig>()) {}
+        taxi_config_component_(context.FindComponent<TaxiConfig>()),
+        auth_checker_settings_component_(
+            context.FindComponent<AuthCheckerSettings>()) {}
   virtual ~HttpServerSettings() = default;
 
   bool NeedLogRequest() const override;
   bool NeedLogRequestHeaders() const override;
+  bool NeedCheckAuthInHandlers() const override;
+
+  const server::handlers::auth::AuthCheckerSettings& GetAuthCheckerSettings()
+      const override;
 
  private:
   auto GetHttpServerSettingsConfig() const;
 
-  const components::TaxiConfig& taxi_config_component_;
+  const TaxiConfig& taxi_config_component_;
+  const AuthCheckerSettings& auth_checker_settings_component_;
 };
 
 template <typename HttpServerSettingsConfigNames>
@@ -36,6 +43,18 @@ template <typename HttpServerSettingsConfigNames>
 bool HttpServerSettings<HttpServerSettingsConfigNames>::NeedLogRequestHeaders()
     const {
   return GetHttpServerSettingsConfig().need_log_request_headers;
+}
+
+template <typename HttpServerSettingsConfigNames>
+bool HttpServerSettings<
+    HttpServerSettingsConfigNames>::NeedCheckAuthInHandlers() const {
+  return GetHttpServerSettingsConfig().need_check_auth_in_handlers;
+}
+
+template <typename HttpServerSettingsConfigNames>
+const server::handlers::auth::AuthCheckerSettings& HttpServerSettings<
+    HttpServerSettingsConfigNames>::GetAuthCheckerSettings() const {
+  return auth_checker_settings_component_.Get();
 }
 
 template <typename HttpServerSettingsConfigNames>

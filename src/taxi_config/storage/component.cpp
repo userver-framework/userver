@@ -35,7 +35,8 @@ std::shared_ptr<taxi_config::Config> TaxiConfig::Get() const {
   });
   LOG_TRACE() << "Wait finished";
 
-  if (config_load_cancelled_) throw std::runtime_error("config load cancelled");
+  if (config_load_cancelled_)
+    throw ComponentsLoadCancelledException("config load cancelled");
   return cache_.Get();
 }
 

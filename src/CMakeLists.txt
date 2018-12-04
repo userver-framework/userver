@@ -44,6 +44,7 @@ find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
 find_package(CurlYandex REQUIRED)
+find_package(CryptoPP REQUIRED)
 find_package(YamlCpp REQUIRED)
 # For time zones in pg driver
 # TODO Make it optional
@@ -87,6 +88,7 @@ target_link_libraries(${PROJECT_NAME}
     ${MONGOC_STATIC_LIBRARIES}
     ${PostgreSQL_LIBRARIES} # TODO Make libpq optional
     ${ICU_LIBRARIES} # TODO Make optional together with libpq
+    CryptoPP
 )
 
 set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)

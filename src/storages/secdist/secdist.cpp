@@ -10,8 +10,6 @@
 #include <utils/demangle.hpp>
 #include <yaml_config/value.hpp>
 
-#include <yaml_config/value.hpp>
-
 namespace storages {
 namespace secdist {
 
