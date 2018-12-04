@@ -1,4 +1,4 @@
-#include <utils/crypto/crypto.hpp>
+#include <crypto/crypto.hpp>
 
 #include <cryptopp/hex.h>
 #include <cryptopp/misc.h>
@@ -30,7 +30,6 @@ std::string MakeHash(const std::string& data) {
 
 }  // namespace
 
-namespace utils {
 namespace crypto {
 
 std::string Sha256(const std::string& data) {
@@ -50,4 +49,3 @@ bool AreStringsEqualConstTime(const std::string& str1,
 }
 
 }  // namespace crypto
-}  // namespace utils
