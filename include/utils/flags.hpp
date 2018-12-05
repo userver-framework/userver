@@ -26,6 +26,8 @@ class Flags {
   Flags operator|(Flags) const;
   Flags operator&(Flags) const;
 
+  ValueType GetValue();
+
  private:
   friend class AtomicFlags<Enum>;
 
@@ -185,6 +187,11 @@ Flags<Enum> operator|(Enum lhs, const AtomicFlags<Enum>& rhs) {
 template <typename Enum>
 Flags<Enum> operator&(Enum lhs, const AtomicFlags<Enum>& rhs) {
   return rhs & lhs;
+}
+
+template <typename Enum>
+typename Flags<Enum>::ValueType Flags<Enum>::GetValue() {
+  return this->value_;
 }
 
 }  // namespace utils

@@ -102,12 +102,8 @@ void ServerImpl::InitPortInfo(
     const components::ComponentContext& component_context, bool is_monitor) {
   LOG_INFO() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
-  engine::TaskProcessor* task_processor =
+  engine::TaskProcessor& task_processor =
       component_context.GetTaskProcessor(listener_config.task_processor);
-  if (!task_processor) {
-    throw std::runtime_error("can't find task_processor '" +
-                             listener_config.task_processor + "' for server");
-  }
 
   info.request_handler_ = std::make_unique<http::HttpRequestHandler>(
       component_context, config.logger_access, config.logger_access_tskv,
@@ -123,11 +119,11 @@ void ServerImpl::InitPortInfo(
   info.endpoint_info_ = std::make_shared<net::EndpointInfo>(
       listener_config, *info.request_handler_);
 
-  const auto& event_thread_pool = task_processor->EventThreadPool();
+  const auto& event_thread_pool = task_processor.EventThreadPool();
   size_t listener_shards = listener_config.shards ? *listener_config.shards
                                                   : event_thread_pool.size();
   while (listener_shards--) {
-    info.listeners_.emplace_back(info.endpoint_info_, *task_processor);
+    info.listeners_.emplace_back(info.endpoint_info_, task_processor);
   }
 }
 

@@ -39,7 +39,13 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
   } catch (const std::exception& e) {
     LOG_ERROR() << "Config client updater initialization failed: " << e.what();
     taxi_config_.SetLoadingFailed();
-    throw;
+
+    /* Start PeriodicTask without the 1st update:
+     * TaxiConfig may have been initialized with
+     * config cached in FS. If it is true, components loading will continue.
+     * Otherwise, SetLoadingFailed() above emits mass component unload.
+     */
+    StartPeriodicUpdates(Flag::kNoFirstUpdate);
   }
 }
 
@@ -47,8 +53,7 @@ TaxiConfigClientUpdater::~TaxiConfigClientUpdater() { StopPeriodicUpdates(); }
 
 void TaxiConfigClientUpdater::StoreIfEnabled() {
   auto ptr = Get();
-  if (store_enabled_)
-    taxi_config_.Set(std::make_shared<::taxi_config::Config>(*ptr));
+  if (store_enabled_) taxi_config_.SetConfig(ptr);
 
   docs_map_keys_ = ptr->GetRequestedNames();
 }

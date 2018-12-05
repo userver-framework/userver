@@ -21,7 +21,12 @@ class CacheUpdateTrait {
   CacheUpdateTrait(CacheConfig&& config, const std::string& name);
   virtual ~CacheUpdateTrait();
 
-  void StartPeriodicUpdates();
+  enum class Flag {
+    kNone = 0,
+    kNoFirstUpdate = 1 << 0,
+  };
+
+  void StartPeriodicUpdates(utils::Flags<Flag> flags = {});
   void StopPeriodicUpdates();
 
   cache::Statistics& GetStatistics() { return statistics_; }

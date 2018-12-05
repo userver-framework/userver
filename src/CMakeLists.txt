@@ -36,7 +36,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS coroutine program_options)
+find_package(Boost REQUIRED COMPONENTS coroutine program_options filesystem)
 find_package(Jemalloc REQUIRED)
 find_package(Hiredis 0.13.3 REQUIRED)
 find_package(LibEv REQUIRED)
@@ -81,6 +81,7 @@ target_link_libraries(${PROJECT_NAME}
     ${LIBCURL_YANDEX_LIBRARIES}
     ${ZLIB_LIBRARIES}
     Boost::coroutine
+    Boost::filesystem
     ${HIREDIS_LIBRARIES}
     ${HTTP_PARSER_LIBRARIES}
     ${LIBEV_LIBRARIES}

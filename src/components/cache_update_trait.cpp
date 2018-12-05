@@ -34,15 +34,17 @@ CacheUpdateTrait::~CacheUpdateTrait() {
   }
 }
 
-void CacheUpdateTrait::StartPeriodicUpdates() {
+void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
   if (is_running_.exchange(true)) {
     return;
   }
 
   try {
     tracing::Span span("first_update");
-    // Force first update, do it synchronously
-    DoPeriodicUpdate();
+    if (!(flags & Flag::kNoFirstUpdate)) {
+      // Force first update, do it synchronously
+      DoPeriodicUpdate();
+    }
 
     update_task_.Start(name_ + "-update-task",
                        {config_.update_interval_,

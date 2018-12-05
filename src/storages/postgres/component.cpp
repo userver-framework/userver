@@ -135,11 +135,7 @@ Postgres::Postgres(const ComponentConfig& config,
 
   const auto task_processor_name =
       config.ParseString("blocking_task_processor");
-  bg_task_processor_ = context.GetTaskProcessor(task_processor_name);
-  if (!bg_task_processor_) {
-    throw storages::postgres::InvalidConfig(
-        "Blocking task processor is not set");
-  }
+  bg_task_processor_ = &context.GetTaskProcessor(task_processor_name);
 
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       kStatisticsName,

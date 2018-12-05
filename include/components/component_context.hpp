@@ -89,7 +89,7 @@ class ComponentContext {
 
   size_t ComponentCount() const;
 
-  engine::TaskProcessor* GetTaskProcessor(const std::string& name) const;
+  engine::TaskProcessor& GetTaskProcessor(const std::string& name) const;
 
   TaskProcessorPtrMap GetTaskProcessorsMap() const;
 

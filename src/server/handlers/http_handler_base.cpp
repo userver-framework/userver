@@ -100,14 +100,10 @@ HttpHandlerBase::HttpHandlerBase(
     auto& server_component =
         component_context.FindComponent<components::Server>();
 
-    engine::TaskProcessor* task_processor =
+    engine::TaskProcessor& task_processor =
         component_context.GetTaskProcessor(GetConfig().task_processor);
-    if (task_processor == nullptr) {
-      throw std::runtime_error("can't find task_processor with name '" +
-                               GetConfig().task_processor + '\'');
-    }
     try {
-      server_component.AddHandler(*this, *task_processor);
+      server_component.AddHandler(*this, task_processor);
     } catch (const std::exception& ex) {
       throw std::runtime_error(std::string("can't add handler to server: ") +
                                ex.what());

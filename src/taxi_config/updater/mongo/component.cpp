@@ -22,7 +22,7 @@ TaxiConfigMongoUpdater::TaxiConfigMongoUpdater(const ComponentConfig& config,
     mongo_taxi_ = mongo_component.GetPool();
 
     auto fallback_config_contents =
-        blocking::fs::ReadFileContents(config.ParseString("fallback_path"));
+        blocking::fs::ReadFileContents(config.ParseString("fallback-path"));
     try {
       fallback_config_.Parse(fallback_config_contents, false);
     } catch (const std::exception& ex) {
@@ -93,8 +93,8 @@ void TaxiConfigMongoUpdater::Update(
 
   Emplace(std::move(mongo_docs));
 
+  taxi_config_.SetConfig(Get());
   stats.Finish(mongo_docs.Size());
-  taxi_config_.Set(Get());
   seen_doc_update_time_ = seen_doc_update_time;
 }
 

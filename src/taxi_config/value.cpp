@@ -6,7 +6,8 @@
 #include <bsoncxx/exception/exception.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/types/value.hpp>
-
+#include <formats/json/serialize.hpp>
+#include <formats/json/value_builder.hpp>
 #include <logging/logger.hpp>
 #include <redis/base.hpp>
 
@@ -164,6 +165,19 @@ void DocsMap::MergeFromOther(DocsMap&& other) {
 std::vector<std::string> DocsMap::GetRequestedNames() const {
   return std::vector<std::string>(requested_names_.begin(),
                                   requested_names_.end());
+}
+
+std::string DocsMap::AsJsonString() const {
+  formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
+
+  namespace bbb = bsoncxx::builder::basic;
+
+  bbb::document builder{};
+  for (auto& it : docs_) {
+    builder.append(bbb::kvp(it.first, it.second.view()["v"].get_value()));
+  }
+
+  return bsoncxx::to_json(builder.extract());
 }
 
 }  // namespace taxi_config

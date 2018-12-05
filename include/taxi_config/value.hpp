@@ -26,6 +26,8 @@ class DocsMap {
   void MergeFromOther(DocsMap&& other);
   std::vector<std::string> GetRequestedNames() const;
 
+  std::string AsJsonString() const;
+
  private:
   std::unordered_map<std::string, storages::mongo::DocumentValue> docs_;
   mutable std::unordered_set<std::string> requested_names_;

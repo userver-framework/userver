@@ -9,13 +9,13 @@
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <storages/mongo/pool.hpp>
-#include <taxi_config/config.hpp>
 #include <taxi_config/storage/component.hpp>
+#include <taxi_config/value.hpp>
 
 namespace components {
 
 class TaxiConfigMongoUpdater
-    : public CachingComponentBase<taxi_config::Config> {
+    : public CachingComponentBase<taxi_config::DocsMap> {
  public:
   static constexpr auto kName = "taxi-config-mongo-updater";
 

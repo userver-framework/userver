@@ -242,13 +242,14 @@ ComponentBase* ComponentContext::DoFindComponent(
   return component;
 }
 
-engine::TaskProcessor* ComponentContext::GetTaskProcessor(
+engine::TaskProcessor& ComponentContext::GetTaskProcessor(
     const std::string& name) const {
   auto it = task_processor_map_.find(name);
   if (it == task_processor_map_.cend()) {
-    return nullptr;
+    throw std::runtime_error("Failed to find task processor with name: " +
+                             name);
   }
-  return it->second.get();
+  return *it->second.get();
 }
 
 ComponentContext::TaskProcessorPtrMap ComponentContext::GetTaskProcessorsMap()
