@@ -1,7 +1,5 @@
 #include "wait_list_light.hpp"
 
-#include <boost/core/ignore_unused.hpp>
-
 #include <engine/task/task_context.hpp>
 
 namespace engine {
@@ -22,12 +20,11 @@ void WaitListLight::PinToCurrentTask() {
 #endif
 }
 
-void WaitListLight::PinToTask(impl::TaskContext& ctx) {
+void WaitListLight::PinToTask([[maybe_unused]] impl::TaskContext& ctx) {
   assert(!owner_ || owner_ == &ctx);
 #ifndef NDEBUG
   owner_ = &ctx;
 #endif
-  boost::ignore_unused(ctx);
 }
 
 void WaitListLight::Append(WaitListBase::Lock&,
@@ -53,12 +50,12 @@ void WaitListLight::WakeupOne(WaitListBase::Lock&) {
 
 void WaitListLight::WakeupAll(WaitListBase::Lock& lock) { WakeupOne(lock); }
 
-void WaitListLight::Remove(const boost::intrusive_ptr<impl::TaskContext>& ctx) {
+void WaitListLight::Remove(  //
+    [[maybe_unused]] const boost::intrusive_ptr<impl::TaskContext>& ctx) {
   LOG_TRACE() << "remove (cancel)";
   auto old = waiting_.exchange(nullptr);
 
   assert(!old || old == ctx.get());
-  boost::ignore_unused(ctx);
 
   if (old) intrusive_ptr_release(old);
 }

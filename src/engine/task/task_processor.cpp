@@ -3,7 +3,6 @@
 #include <cassert>
 #include <mutex>
 
-#include <boost/core/ignore_unused.hpp>
 #include <boost/sync/support/std_chrono.hpp>
 
 #include <logging/log.hpp>
@@ -107,9 +106,9 @@ void TaskProcessor::Adopt(
     context_ptr.reset();
     return;
   }
-  auto result = detached_contexts_.insert(std::move(context_ptr));
+  [[maybe_unused]] auto result =
+      detached_contexts_.insert(std::move(context_ptr));
   assert(result.second);
-  boost::ignore_unused(result);
 }
 
 std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const {

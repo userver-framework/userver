@@ -9,8 +9,6 @@
 #include <cstring>
 #include <system_error>
 
-#include <boost/core/ignore_unused.hpp>
-
 #include <curl-ev/easy.hpp>
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/multi.hpp>
@@ -358,11 +356,10 @@ int multi::socket(native::CURL* native_easy, native::curl_socket_t s, int what,
   return 0;
 }
 
-int multi::timer(native::CURLM*, long timeout_ms, void* userp) {
-  multi* self = static_cast<multi*>(userp);
+int multi::timer(native::CURLM*, [[maybe_unused]] long timeout_ms,
+                 void* userp) {
+  [[maybe_unused]] multi* self = static_cast<multi*>(userp);
   LOG_TRACE() << "timer " << reinterpret_cast<long>(self) << " " << timeout_ms;
-  boost::ignore_unused(self);
-  boost::ignore_unused(timeout_ms);
 
   const auto& pimpl = self->pimpl_;
 

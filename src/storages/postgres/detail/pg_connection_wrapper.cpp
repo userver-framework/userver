@@ -1,7 +1,5 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 
-#include <boost/core/ignore_unused.hpp>
-
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/message.hpp>
 
@@ -65,7 +63,7 @@ engine::TaskWithResult<void> PGConnectionWrapper::Close() {
       bg_task_processor_, [ tmp_conn, socket = std::move(tmp_sock) ]() mutable {
         PQfinish(tmp_conn);
         if (socket) {
-          boost::ignore_unused(std::move(socket).Release());
+          [[maybe_unused]] int fd = std::move(socket).Release();
         }
       });
 }

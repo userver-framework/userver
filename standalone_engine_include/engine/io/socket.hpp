@@ -47,7 +47,7 @@ class Socket {
   const Addr& Getpeername();
   const Addr& Getsockname();
 
-  __attribute__((warn_unused_result)) int Release() && noexcept;
+  [[nodiscard]] int Release() && noexcept;
 
   void Close();
 

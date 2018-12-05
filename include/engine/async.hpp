@@ -21,8 +21,8 @@ auto MakeTaskWithResult(TaskProcessor& task_processor,
 
 /// Runs an asynchronous function call using specified task processor
 template <typename Function, typename... Args>
-__attribute__((warn_unused_result)) auto Async(TaskProcessor& task_processor,
-                                               Function&& f, Args&&... args) {
+[[nodiscard]] auto Async(TaskProcessor& task_processor, Function&& f,
+                         Args&&... args) {
   return impl::MakeTaskWithResult(task_processor, Task::Importance::kNormal,
                                   std::forward<Function>(f),
                                   std::forward<Args>(args)...);
@@ -30,7 +30,7 @@ __attribute__((warn_unused_result)) auto Async(TaskProcessor& task_processor,
 
 /// Runs an asynchronous function call using task processor of the caller
 template <typename Function, typename... Args>
-__attribute__((warn_unused_result)) auto Async(Function&& f, Args&&... args) {
+[[nodiscard]] auto Async(Function&& f, Args&&... args) {
   return Async(current_task::GetTaskProcessor(), std::forward<Function>(f),
                std::forward<Args>(args)...);
 }
@@ -38,8 +38,8 @@ __attribute__((warn_unused_result)) auto Async(Function&& f, Args&&... args) {
 /// @brief Runs an asynchronous function call that must not be cancelled
 /// due to overload using specified task processor
 template <typename Function, typename... Args>
-__attribute__((warn_unused_result)) auto CriticalAsync(
-    TaskProcessor& task_processor, Function&& f, Args&&... args) {
+[[nodiscard]] auto CriticalAsync(TaskProcessor& task_processor, Function&& f,
+                                 Args&&... args) {
   return impl::MakeTaskWithResult(task_processor, Task::Importance::kCritical,
                                   std::forward<Function>(f),
                                   std::forward<Args>(args)...);
@@ -48,8 +48,7 @@ __attribute__((warn_unused_result)) auto CriticalAsync(
 /// @brief Runs an asynchronous function call that must not be cancelled
 /// due to overload using task processor of the caller
 template <typename Function, typename... Args>
-__attribute__((warn_unused_result)) auto CriticalAsync(Function&& f,
-                                                       Args&&... args) {
+[[nodiscard]] auto CriticalAsync(Function&& f, Args&&... args) {
   return CriticalAsync(current_task::GetTaskProcessor(),
                        std::forward<Function>(f), std::forward<Args>(args)...);
 }

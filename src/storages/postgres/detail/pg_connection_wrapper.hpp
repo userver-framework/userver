@@ -34,11 +34,9 @@ class PGConnectionWrapper {
   void AsyncConnect(const std::string& conninfo, Duration poll_timeout);
 
   /// @brief Close the connection on a background task processor.
-  // TODO Macro(?) for the attribute
-  __attribute__((warn_unused_result)) engine::TaskWithResult<void> Close();
+  [[nodiscard]] engine::TaskWithResult<void> Close();
   /// @brief Cancel current operation on a background task processor.
-  // TODO Macro(?) for the attribute
-  __attribute__((warn_unused_result)) engine::TaskWithResult<void> Cancel();
+  [[nodiscard]] engine::TaskWithResult<void> Cancel();
 
   // TODO Add tracing::Span
   /// @brief Wrapper for PQsendQuery

@@ -1,7 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <boost/core/ignore_unused.hpp>
-
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/tests/util_test.hpp>
 

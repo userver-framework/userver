@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <openssl/crypto.h>
-#include <boost/core/ignore_unused.hpp>
 
 namespace utils {
 
@@ -28,9 +27,6 @@ OpensslLock::OpensslLock() {
   CRYPTO_set_locking_callback(&OpensslLock::LockingFunction);
 }
 
-void OpensslLock::Init() {
-  static OpensslLock lock;
-  boost::ignore_unused(lock);
-}
+void OpensslLock::Init() { [[maybe_unused]] static OpensslLock lock; }
 
 }  // namespace utils

@@ -17,9 +17,8 @@ struct SpanWrapCall {
 };
 
 template <typename Function, typename... Args>
-__attribute__((warn_unused_result)) auto CriticalAsync(const std::string& name,
-                                                       Function&& f,
-                                                       Args&&... args) {
+[[nodiscard]] auto CriticalAsync(const std::string& name, Function&& f,
+                                 Args&&... args) {
   tracing::Span span(name);
   span.DetachFromCoroStack();
 
@@ -29,8 +28,8 @@ __attribute__((warn_unused_result)) auto CriticalAsync(const std::string& name,
 }
 
 template <typename Function, typename... Args>
-__attribute__((warn_unused_result)) auto Async(const std::string& name,
-                                               Function&& f, Args&&... args) {
+[[nodiscard]] auto Async(const std::string& name, Function&& f,
+                         Args&&... args) {
   tracing::Span span(name);
   span.DetachFromCoroStack();
 

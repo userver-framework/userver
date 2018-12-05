@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include <boost/core/ignore_unused.hpp>
 #include <boost/functional/hash.hpp>
 
 #include <postgresql/libpq-fe.h>
@@ -131,7 +130,7 @@ struct Connection::Impl {
     }
   }
 
-  __attribute__((warn_unused_result)) engine::TaskWithResult<void> Close() {
+  [[nodiscard]] engine::TaskWithResult<void> Close() {
     return conn_wrapper_.Close();
   }
 

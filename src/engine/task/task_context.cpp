@@ -7,7 +7,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/core/demangle.hpp>
-#include <boost/core/ignore_unused.hpp>
 #include <boost/stacktrace.hpp>
 
 #include <engine/coro/pool.hpp>
@@ -180,9 +179,8 @@ bool TaskContext::IsCritical() const {
 }
 
 void TaskContext::SetDetached() {
-  bool was_detached = is_detached_.exchange(true);
+  [[maybe_unused]] bool was_detached = is_detached_.exchange(true);
   assert(!was_detached);
-  boost::ignore_unused(was_detached);
 }
 
 void TaskContext::Wait() const { WaitUntil({}); }
@@ -291,10 +289,9 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
   yield_reason_ = YieldReason::kTaskWaiting;
   assert(task_pipe_);
   ProfilerStopExecution();
-  TaskContext* context = (*task_pipe_)().get();
+  [[maybe_unused]] TaskContext* context = (*task_pipe_)().get();
   ProfilerStartExecution();
   assert(context == this);
-  boost::ignore_unused(context);
 
   if (deadline_timer) deadline_timer.Stop();
 

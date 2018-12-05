@@ -1,6 +1,5 @@
 #include <iostream>
 
-#include <boost/core/ignore_unused.hpp>
 #include <boost/program_options.hpp>
 
 #include <engine/async.hpp>
@@ -92,8 +91,8 @@ void SetupLogger(const std::string& log_level) {
 }
 
 void Work(std::shared_ptr<redis::Sentinel>& sentinel, size_t i) {
-  auto response = sentinel->Get("key" + std::to_string(i)).Get();
-  boost::ignore_unused(response);
+  [[maybe_unused]] auto response =
+      sentinel->Get("key" + std::to_string(i)).Get();
 }
 
 void WaitForStop(engine::TaskProcessor& tp) {
