@@ -10,7 +10,7 @@ if(SANITIZE STREQUAL "")
   # no sanitizer
 elseif(SANITIZE STREQUAL "ub")
   # https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
-  set(SANITIZE_BUILD_FLAGS -fno-sanitize-recover=undefined)
+  set(SANITIZE_BUILD_FLAGS -fsanitize=undefined -fno-sanitize-recover=undefined)
 elseif(SANITIZE STREQUAL "addr")
   # http://releases.llvm.org/5.0.0/tools/clang/docs/AddressSanitizer.html
   set(SANITIZE_DEFS BOOST_USE_ASAN)
