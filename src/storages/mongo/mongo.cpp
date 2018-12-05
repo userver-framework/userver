@@ -6,6 +6,8 @@
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/types.hpp>
 
+#include <storages/mongo/error.hpp>
+
 namespace storages {
 namespace mongo {
 
@@ -158,32 +160,8 @@ std::vector<std::string> ToStringArray(const Element& array_item) {
   return result;
 }
 
-std::string MakeElementDescription(const DocumentElement& item) {
-  return "item '" + item.key().to_string() + '\'';
-}
-
-std::string MakeElementDescription(const ArrayElement&) { return "array item"; }
-
-template <typename Element>
-std::string MakeBadTypeDescription(const Element& item, const char* context) {
-  if (!item) {
-    return std::string("item is missing for ") + context;
-  }
-  return MakeElementDescription(item) + " has type" + to_string(item.type()) +
-         " (" +
-         std::to_string(
-             static_cast<std::underlying_type_t<bsoncxx::type>>(item.type())) +
-         "), which is unsuitable for " + context;
-}
-
 }  // namespace
 }  // namespace impl
-
-BadType::BadType(const DocumentElement& item, const char* context)
-    : MongoError(impl::MakeBadTypeDescription(item, context)) {}
-
-BadType::BadType(const ArrayElement& item, const char* context)
-    : MongoError(impl::MakeBadTypeDescription(item, context)) {}
 
 bool IsOneOf(const DocumentElement& item, utils::Flags<ElementKind> kinds) {
   return impl::IsOneOf(item, kinds);

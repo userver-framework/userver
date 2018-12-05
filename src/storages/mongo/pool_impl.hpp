@@ -8,6 +8,7 @@
 #include <mongocxx/uri.hpp>
 
 #include <engine/task/task_processor.hpp>
+#include <storages/mongo/pool_config.hpp>
 
 namespace storages {
 namespace mongo {
@@ -20,8 +21,7 @@ class PoolImpl {
       std::unique_ptr<Connection, std::function<void(Connection*)>>;
 
   PoolImpl(engine::TaskProcessor& task_processor, const std::string& uri,
-           int conn_timeout_ms, int so_timeout_ms, size_t min_size,
-           size_t max_size);
+           const PoolConfig& config);
   ~PoolImpl();
 
   ConnectionPtr Acquire();

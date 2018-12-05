@@ -10,6 +10,7 @@
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/oid.hpp>
 
+#include <storages/mongo/error.hpp>
 #include <storages/mongo/mongo.hpp>
 
 namespace sm = storages::mongo;

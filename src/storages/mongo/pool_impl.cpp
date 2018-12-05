@@ -9,6 +9,7 @@
 #include <mongocxx/instance.hpp>
 
 #include <logging/log.hpp>
+#include <storages/mongo/error.hpp>
 #include <storages/mongo/pool.hpp>
 
 #include "logger.hpp"
@@ -38,28 +39,20 @@ mongocxx::uri MakeUriWithTimeouts(const std::string& uri, int conn_timeout_ms,
 }  // namespace
 
 PoolImpl::PoolImpl(engine::TaskProcessor& task_processor,
-                   const std::string& uri, int conn_timeout_ms,
-                   int so_timeout_ms, size_t min_size, size_t max_size)
-    : task_processor_(task_processor), queue_(max_size), size_(0) {
-  if (conn_timeout_ms <= 0) {
-    throw InvalidConfig("invalid conn_timeout");
-  }
-  if (so_timeout_ms <= 0) {
-    throw InvalidConfig("invalid so_timeout");
-  }
-
+                   const std::string& uri, const PoolConfig& config)
+    : task_processor_(task_processor), queue_(config.max_size), size_(0) {
   // global mongocxx initializer
   static const mongocxx::instance kDriverInit(std::make_unique<impl::Logger>());
 
-  uri_ = MakeUriWithTimeouts(uri, conn_timeout_ms, so_timeout_ms);
+  uri_ = MakeUriWithTimeouts(uri, config.conn_timeout_ms, config.so_timeout_ms);
   if (uri_.hosts().size() != 1) {
     throw InvalidConfig("bad uri: specify exactly one server");
   }
   default_database_name_ = uri_.database();
 
   try {
-    LOG_INFO() << "Creating " << min_size << " mongo connections";
-    for (size_t i = 0; i < min_size; ++i) Push(Create());
+    LOG_INFO() << "Creating " << config.min_size << " mongo connections";
+    for (size_t i = 0; i < config.min_size; ++i) Push(Create());
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Mongo pool pre-population failed: " << ex.what();
     Clear();
@@ -99,9 +92,10 @@ PoolImpl::Connection* PoolImpl::Create() {
   static const std::string kPingDatabase = "admin";
   static const auto kPingCommand = bbb::make_document(bbb::kvp("ping", 1));
 
-  if (size_ > kCriticalPoolSize)
+  if (size_ > PoolConfig::kCriticalSize) {
     throw PoolError("Mongo pool reached critical size: " +
                     std::to_string(size_));
+  }
 
   LOG_INFO() << "Creating mongo connection, current pool size: "
              << size_.load();

@@ -5,7 +5,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -37,18 +36,6 @@ using ArrayElement = bsoncxx::array::element;
 static const DocumentValue kEmptyObject{bsoncxx::document::view{}};
 /// Empty array instance
 static const ArrayValue kEmptyArray{bsoncxx::array::view{}};
-
-/// Base class for mongo-related errors
-class MongoError : public std::runtime_error {
-  using std::runtime_error::runtime_error;
-};
-
-/// Represents type conversion failures
-class BadType : public MongoError {
- public:
-  BadType(const DocumentElement& item, const char* context);
-  BadType(const ArrayElement& item, const char* context);
-};
 
 /// Recognized BSON type classes
 enum class ElementKind {
