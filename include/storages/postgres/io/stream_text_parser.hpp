@@ -1,11 +1,13 @@
 #pragma once
 
-#include <iostream>
+#include <iosfwd>
 
 #include <boost/iostreams/stream.hpp>
 
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/traits.hpp>
+#include <storages/postgres/io/type_traits.hpp>
+
 #include <utils/demangle.hpp>
 
 namespace storages {
@@ -14,13 +16,6 @@ namespace io {
 namespace traits {
 
 namespace detail {
-template <typename T, typename = ::utils::void_t<>>
-struct HasInputOperator : std::false_type {};
-
-template <typename T>
-struct HasInputOperator<
-    T, ::utils::void_t<decltype(std::declval<std::istream&>() >>
-                                std::declval<T&>())>> : std::true_type {};
 
 template <typename T>
 struct StreamTextParser {
@@ -48,7 +43,7 @@ struct StreamTextParser {
 template <typename T>
 struct Input<T, DataFormat::kTextDataFormat,
              std::enable_if_t<!detail::kCustomTextParserDefined<T> &&
-                              detail::HasInputOperator<T>()>> {
+                              HasInputOperator<T>() && IsMappedToPg<T>()>> {
   using type = detail::StreamTextParser<T>;
 };
 

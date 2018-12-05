@@ -15,15 +15,14 @@ namespace pg = storages::postgres;
 
 namespace static_test {
 
-struct __no_input_operator {};
-static_assert(
-    pg::io::traits::detail::HasInputOperator<__no_input_operator>::value ==
-        false,
-    "Test input metafunction");
-static_assert(pg::io::traits::detail::HasInputOperator<int>::value == true,
+struct no_input_operator {};
+static_assert(pg::io::traits::HasInputOperator<no_input_operator>::value ==
+                  false,
+              "Test input metafunction");
+static_assert(pg::io::traits::HasInputOperator<int>::value == true,
               "Test input metafunction");
 static_assert(
-    (pg::io::traits::HasParser<__no_input_operator,
+    (pg::io::traits::HasParser<no_input_operator,
                                pg::io::DataFormat::kTextDataFormat>::value ==
      false),
     "Test has parser metafunction");

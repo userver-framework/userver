@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <storages/postgres/detail/db_data_type_name.hpp>
 #include <string>
 
 #include <utils/string_view.hpp>
@@ -30,6 +31,15 @@ struct DBTypeName {
   const ::utils::string_view name;
 
   constexpr DBTypeName() : schema{}, name{} {}
+  explicit constexpr DBTypeName(
+      std::pair<::utils::string_view, ::utils::string_view> n)
+      : schema(n.first), name(n.second) {}
+  /// Implicit constructor from a string literal, to enable declarations like
+  /// @code
+  /// DBTypeName my_type = "my_schema.my_type";
+  /// @endcode
+  /* implicit */ constexpr DBTypeName(const char* name)
+      : DBTypeName(utils::ParseDBName(name)) {}
   constexpr DBTypeName(const char* s, const char* n)
       : schema(s, ::utils::StrLen(s)), name(n, ::utils::StrLen(n)) {}
 

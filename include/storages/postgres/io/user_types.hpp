@@ -35,7 +35,7 @@ namespace storages::postgres {
 /// namespace storages::postgres::io {
 /// template <>
 /// struct CppToUserPg<my_ns::MyDataStructure> {
-///   static constexpr DBTypeName postgres_name = {"my_schema", "my_type"};
+///   static constexpr DBTypeName postgres_name = "my_schema.my_type";
 /// }
 /// @endcode
 ///

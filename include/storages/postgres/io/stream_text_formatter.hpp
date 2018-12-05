@@ -1,11 +1,12 @@
 #pragma once
 
-#include <storages/postgres/io/traits.hpp>
+#include <iosfwd>
 
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/stream.hpp>
 
-#include <iostream>
+#include <storages/postgres/io/traits.hpp>
+#include <storages/postgres/io/type_traits.hpp>
 
 namespace storages {
 namespace postgres {
@@ -13,15 +14,6 @@ namespace io {
 namespace traits {
 
 namespace detail {
-
-template <typename T, typename = ::utils::void_t<>>
-struct HasOutputOperator : std::false_type {};
-
-template <typename T>
-struct HasOutputOperator<T,
-                         ::utils::void_t<decltype(std::declval<std::ostream&>()
-                                                  << std::declval<T&>())>>
-    : std::true_type {};
 
 template <typename T>
 struct StreamTextFormatter {
@@ -47,8 +39,8 @@ struct StreamTextFormatter {
 
 template <typename T>
 struct Output<T, DataFormat::kTextDataFormat,
-              std::enable_if_t<!detail::CustomTextFormatterDefined<T>::value &&
-                               detail::HasOutputOperator<T>::value>> {
+              std::enable_if_t<!detail::CustomTextFormatterDefined<T>() &&
+                               HasOutputOperator<T>() && IsMappedToPg<T>()>> {
   using type = detail::StreamTextFormatter<T>;
 };
 

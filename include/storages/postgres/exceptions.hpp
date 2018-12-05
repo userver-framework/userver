@@ -5,6 +5,8 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/message.hpp>
 
+#include <utils/demangle.hpp>
+
 namespace storages {
 namespace postgres {
 
@@ -103,6 +105,9 @@ namespace postgres {
  *     - ArrayError
  *       - DimensionMismatch
  *       - InvalidDimensions
+ *     - EnumerationError
+ *       - InvalidEnumerationLiteral
+ *       - InvalidEnumerationValue
  *     - TransactionError
  *       - AlreadyInTransaction
  *       - NotInTransaction
@@ -648,6 +653,31 @@ class InvalidDimensions : public ArrayError {
                    ". Expected " + std::to_string(expected)) {}
 };
 
+//@}
+
+//@{
+/** @name Enumeration type errors */
+class EnumerationError : public LogicError {
+  using LogicError::LogicError;
+};
+
+class InvalidEnumerationLiteral : EnumerationError {
+ public:
+  InvalidEnumerationLiteral(const std::string& type_name,
+                            const std::string& literal)
+      : EnumerationError("Invalid enumeration literal '" + literal +
+                         "' for enum type '" + type_name + "'") {}
+};
+
+class InvalidEnumerationValue : EnumerationError {
+ public:
+  template <typename Enum>
+  explicit InvalidEnumerationValue(Enum val)
+      : EnumerationError(
+            "Invalid enumeration value '" +
+            std::to_string(static_cast<std::underlying_type_t<Enum>>(val)) +
+            "' for enum type '" + ::utils::GetTypeName<Enum>()) {}
+};
 //@}
 
 //@{

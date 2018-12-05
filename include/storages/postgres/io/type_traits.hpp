@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <tuple>
 #include <type_traits>
 
@@ -51,6 +52,26 @@ template <typename T>
 struct IsSpecialMapping : std::false_type {};
 template <typename T>
 constexpr bool kIsSpecialMapping = IsSpecialMapping<T>::value;
+//@}
+
+//@{
+/** @name Detect iostream operators */
+template <typename T, typename = ::utils::void_t<>>
+struct HasOutputOperator : std::false_type {};
+
+template <typename T>
+struct HasOutputOperator<T,
+                         ::utils::void_t<decltype(std::declval<std::ostream&>()
+                                                  << std::declval<T&>())>>
+    : std::true_type {};
+
+template <typename T, typename = ::utils::void_t<>>
+struct HasInputOperator : std::false_type {};
+
+template <typename T>
+struct HasInputOperator<
+    T, ::utils::void_t<decltype(std::declval<std::istream&>() >>
+                                std::declval<T&>())>> : std::true_type {};
 //@}
 
 //@{

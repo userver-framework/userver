@@ -10,7 +10,7 @@ constexpr const char* const kSchemaName = "__pg_test";
 const std::string kCreateTestSchema = "create schema if not exists __pg_test";
 const std::string kDropTestSchema = "drop schema if exists __pg_test cascade";
 
-constexpr pg::DBTypeName kEnumName{kSchemaName, "rainbow"};
+constexpr pg::DBTypeName kEnumName = "__pg_test.rainbow";
 const std::string kCreateAnEnumType = R"~(
 create type __pg_test.rainbow as enum (
   'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet'
@@ -24,7 +24,7 @@ create type __pg_test.foobar as (
   d double precision
 ))~";
 
-constexpr pg::DBTypeName kRangeName{kSchemaName, "timerange"};
+constexpr pg::DBTypeName kRangeName = "__pg_test.timerange";
 const std::string kCreateARangeType = R"~(
 create type __pg_test.timerange as range(
   subtype = time

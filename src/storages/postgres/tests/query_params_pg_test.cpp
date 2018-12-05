@@ -12,19 +12,17 @@ namespace static_test {
 using namespace io::traits;
 
 struct __no_output_operator {};
-static_assert(!detail::HasOutputOperator<__no_output_operator>::value,
+static_assert(!HasOutputOperator<__no_output_operator>::value,
               "Test output metafunction");
-static_assert(detail::HasOutputOperator<int>::value,
-              "Test output metafunction");
+static_assert(HasOutputOperator<int>::value, "Test output metafunction");
 static_assert(!kHasTextFormatter<__no_output_operator>,
               "Test has formatter metafuction");
 
-// static_assert(
-//    (pg::io::traits::HasFormatter<boost::optional<int>,
-//                                  pg::io::DataFormat::kTextDataFormat>::value
-//                                  ==
-//     true),
-//    "Test has formatter metafuction");
+static_assert(
+    (pg::io::traits::HasFormatter<boost::optional<int>,
+                                  pg::io::DataFormat::kTextDataFormat>::value ==
+     true),
+    "Test has formatter metafuction");
 
 }  // namespace static_test
 

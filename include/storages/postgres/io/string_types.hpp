@@ -7,6 +7,8 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
+#include <utils/string_view.hpp>
+
 namespace storages {
 namespace postgres {
 namespace io {
@@ -104,6 +106,36 @@ struct BufferParser<std::string, DataFormat::kBinaryDataFormat> {
   explicit BufferParser(std::string& val) : value{val} {}
 
   void operator()(const FieldBuffer& buffer);
+};
+//@}
+
+//@{
+/** @name string_view I/O */
+template <DataFormat F>
+struct BufferFormatter<::utils::string_view, F>
+    : detail::BufferFormatterBase<::utils::string_view> {
+  using BaseType = detail::BufferFormatterBase<::utils::string_view>;
+  using CharFormatter = BufferFormatter<const char*, F>;
+
+  using BaseType::BaseType;
+
+  template <typename Buffer>
+  void operator()(const UserTypes&, Buffer& buffer) const {
+    CharFormatter::WriteN(buffer, value.data(), value.size());
+  }
+};
+
+template <DataFormat F>
+struct BufferParser<::utils::string_view, F>
+    : detail::BufferParserBase<::utils::string_view> {
+  using BaseType = detail::BufferParserBase<::utils::string_view>;
+  using BaseType::BaseType;
+
+  void operator()(const FieldBuffer& buffer) {
+    using std::swap;
+    ValueType tmp{reinterpret_cast<const char*>(buffer.buffer), buffer.length};
+    swap(tmp, value);
+  }
 };
 //@}
 
