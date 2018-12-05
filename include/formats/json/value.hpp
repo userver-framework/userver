@@ -98,6 +98,7 @@ class Value {
   void CheckObjectOrNull() const;
   void CheckObjectOrArray() const;
   void CheckOutOfBounds(uint32_t index) const;
+  void CheckMemberExists(const std::string& key) const;
 
  private:
   NativeValuePtr root_;

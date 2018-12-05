@@ -48,6 +48,10 @@ std::string MsgForIndex(size_t index, size_t size, const std::string& path) {
          "' of size " + std::to_string(size) + " is out of bounds";
 }
 
+std::string MsgForKey(const std::string& key, const std::string& path) {
+  return std::string("Field '") + key + "' of object '" + path + "' is missing";
+}
+
 }  // namespace
 
 namespace formats {
@@ -67,6 +71,10 @@ TypeMismatchException::TypeMismatchException(const Json::Value& doc,
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            const std::string& path)
     : JsonException(MsgForIndex(index, size, path)) {}
+
+MemberMissingException::MemberMissingException(const std::string& key,
+                                               const std::string& path)
+    : JsonException(MsgForKey(key, path)) {}
 
 }  // namespace json
 }  // namespace formats

@@ -28,8 +28,7 @@ TEST_F(JsonMemberAccess, ChildBySquareBraketsTwice) {
 }
 
 TEST_F(JsonMemberAccess, ChildBySquareBraketsMissing) {
-  EXPECT_EQ(js_doc_["key_missing"],
-            formats::json::ValueBuilder().ExtractValue());
+  EXPECT_THROW(js_doc_["key_missing"], formats::json::MemberMissingException);
 }
 
 TEST_F(JsonMemberAccess, ChildBySquareBraketsWrong) {

@@ -40,5 +40,10 @@ class OutOfBoundsException : public JsonException {
   OutOfBoundsException(size_t index, size_t size, const std::string& path);
 };
 
+class MemberMissingException : public JsonException {
+ public:
+  MemberMissingException(const std::string& key, const std::string& path);
+};
+
 }  // namespace json
 }  // namespace formats
