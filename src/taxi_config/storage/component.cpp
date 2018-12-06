@@ -54,7 +54,7 @@ void TaxiConfig::SetConfig(std::shared_ptr<taxi_config::DocsMap> value_ptr) {
 }
 
 void TaxiConfig::SetLoadingFailed() {
-  if (Get()) {
+  if (cache_.Get()) {
     LOG_WARNING() << "Config was set to nullptr, using config from FS cache";
     return;
   }
