@@ -3,12 +3,14 @@
 #include <iostream>
 #include <sstream>
 
+#include <formats/json/exception.hpp>
 #include <storages/secdist/exceptions.hpp>
 
 namespace storages {
 namespace secdist {
 
-void ThrowInvalidSecdistType(const std::string& name, const std::string& type) {
+[[noreturn]] void ThrowInvalidSecdistType(const std::string& name,
+                                          const std::string& type) {
   throw InvalidSecdistJson('\'' + name + "' is not " + type +
                            " (or not found)");
 }
@@ -24,14 +26,13 @@ std::string GetString(const formats::json::Value& parent_val,
 
 int GetInt(const formats::json::Value& parent_val, const std::string& name,
            int dflt) {
-  const auto& val = parent_val[name];
-  if (val.isNull()) {
+  try {
+    return parent_val[name].asInt();
+  } catch (const formats::json::MemberMissingException&) {
     return dflt;
-  }
-  if (!val.isInt()) {
+  } catch (const formats::json::TypeMismatchException&) {
     ThrowInvalidSecdistType(name, "an int");
   }
-  return val.asInt();
 }
 
 void CheckIsObject(const formats::json::Value& val, const std::string& name) {

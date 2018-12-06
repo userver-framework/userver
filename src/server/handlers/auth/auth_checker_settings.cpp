@@ -16,8 +16,8 @@ namespace handlers {
 namespace auth {
 
 AuthCheckerSettings::AuthCheckerSettings(const formats::json::Value& doc) {
+  if (!doc.HasMember(kApikeys)) return;
   const auto& apikeys_map = doc[kApikeys];
-  if (apikeys_map.isNull()) return;
   if (!apikeys_map.isObject())
     throw std::runtime_error("cannot parse " + kApikeys + ", object expected");
 

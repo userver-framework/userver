@@ -7,7 +7,8 @@
 namespace storages {
 namespace secdist {
 
-void ThrowInvalidSecdistType(const std::string& name, const std::string& type);
+[[noreturn]] void ThrowInvalidSecdistType(const std::string& name,
+                                          const std::string& type);
 
 std::string GetString(const formats::json::Value& parent_val,
                       const std::string& name);
