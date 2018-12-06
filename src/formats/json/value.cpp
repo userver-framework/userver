@@ -29,8 +29,12 @@ Value::Value(const NativeValuePtr& root, const Json::Value& val,
 const Json::Value& Value::Get() const { return GetNative(); }
 
 Value Value::operator[](const std::string& key) const {
-  CheckMemberExists(key);
-  return {root_, GetNative()[key], path_, key};
+  CheckObjectOrNull();
+  const auto* child = GetNative().find(key.data(), key.data() + key.size());
+  if (!child) {
+    throw MemberMissingException(key, GetPath());
+  }
+  return {root_, *child, path_, key};
 }
 
 Value Value::operator[](uint32_t index) const {
@@ -165,13 +169,6 @@ void Value::CheckOutOfBounds(uint32_t index) const {
   const auto sz = GetSize();
   if (index >= sz) {
     throw OutOfBoundsException(index, sz, GetPath());
-  }
-}
-
-void Value::CheckMemberExists(const std::string& key) const {
-  CheckObjectOrNull();
-  if (!HasMember(key)) {
-    throw MemberMissingException(key, GetPath());
   }
 }
 
