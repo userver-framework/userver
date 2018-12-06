@@ -106,6 +106,15 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
     engine_data["coro-pool"] = std::move(json_coro_pool);
   }
 
+  engine_data["uptime-seconds"] =
+      std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::steady_clock::now() - components_manager_.GetStartTime())
+          .count();
+  engine_data["load-ms"] =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          components_manager_.GetLoadDuration())
+          .count();
+
   return engine_data.ExtractValue();
 }  // namespace components
 

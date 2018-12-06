@@ -54,6 +54,10 @@ class Manager {
 
   void OnLogRotate();
 
+  std::chrono::steady_clock::time_point GetStartTime() const;
+
+  std::chrono::milliseconds GetLoadDuration() const;
+
  private:
   void CreateComponentContext(
       components::ComponentContext::TaskProcessorMap&& task_processors,
@@ -76,6 +80,8 @@ class Manager {
 
   engine::TaskProcessor* default_task_processor_;
   components::Logging* logging_component_;
+  const std::chrono::steady_clock::time_point start_time_;
+  std::chrono::milliseconds load_duration_;
 };
 
 }  // namespace components

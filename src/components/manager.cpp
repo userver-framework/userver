@@ -42,7 +42,8 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
                  const ComponentList& component_list)
     : config_(std::move(config)),
       components_cleared_(false),
-      default_task_processor_(nullptr) {
+      default_task_processor_(nullptr),
+      start_time_(std::chrono::steady_clock::now()) {
   LOG_INFO() << "Starting components manager";
 
   task_processor_pools_ = std::make_shared<engine::impl::TaskProcessorPools>(
@@ -92,6 +93,14 @@ void Manager::OnLogRotate() {
   if (logging_component_) logging_component_->OnLogRotate();
 }
 
+std::chrono::steady_clock::time_point Manager::GetStartTime() const {
+  return start_time_;
+}
+
+std::chrono::milliseconds Manager::GetLoadDuration() const {
+  return load_duration_;
+}
+
 void Manager::CreateComponentContext(
     components::ComponentContext::TaskProcessorMap&& task_processors,
     const ComponentList& component_list) {
@@ -121,6 +130,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
     component_config_map.emplace(name, component_config);
   }
 
+  auto start_time = std::chrono::steady_clock::now();
   std::vector<engine::TaskWithResult<void>> tasks;
   bool is_load_cancelled = false;
   try {
@@ -175,6 +185,10 @@ void Manager::AddComponents(const ComponentList& component_list) {
     ClearComponents();
     throw;
   }
+
+  auto stop_time = std::chrono::steady_clock::now();
+  load_duration_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+      stop_time - start_time);
 }
 
 void Manager::AddComponentImpl(
