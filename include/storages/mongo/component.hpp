@@ -11,6 +11,7 @@
 #include <components/component_context.hpp>
 #include <storages/mongo/pool.hpp>
 #include <storages/mongo/pool_config.hpp>
+#include <storages/secdist/component.hpp>
 #include <utils/swappingsmart.hpp>
 
 namespace engine {
@@ -171,7 +172,7 @@ class MultiMongo : public LoggableComponentBase {
  private:
   storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
 
-  const ComponentContext& context_;
+  const Secdist& secdist_;
   const storages::mongo::PoolConfig pool_config_;
   std::unique_ptr<engine::TaskProcessor> task_processor_;
   utils::SwappingSmart<PoolMap> pool_map_ptr_;

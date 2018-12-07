@@ -30,10 +30,9 @@ auto MakeTaskProcessor(const ComponentConfig& config,
       context.GetManager().GetTaskProcessorPools());
 }
 
-std::string GetSecdistConnectionString(const ComponentContext& context,
+std::string GetSecdistConnectionString(const Secdist& secdist,
                                        const std::string& dbalias) {
   try {
-    auto& secdist = context.FindComponent<Secdist>();
     return secdist.Get()
         .Get<storages::mongo::secdist::MongoSettings>()
         .GetConnectionString(dbalias);
@@ -53,7 +52,8 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
 
   std::string connection_string;
   if (!dbalias.empty()) {
-    connection_string = GetSecdistConnectionString(context, dbalias);
+    connection_string =
+        GetSecdistConnectionString(context.FindComponent<Secdist>(), dbalias);
   } else {
     connection_string = config.ParseString("dbconnection");
   }
@@ -73,7 +73,7 @@ storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
-      context_(context),
+      secdist_(context.FindComponent<Secdist>()),
       pool_config_(config),
       task_processor_(MakeTaskProcessor(config, context, kDefaultThreadsNum)),
       pool_map_ptr_(std::make_shared<PoolMap>()) {}
@@ -149,7 +149,7 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
 
   if (!pool_ptr) {
     pool_ptr = std::make_shared<storages::mongo::Pool>(
-        GetSecdistConnectionString(target_->context_, dbalias),
+        GetSecdistConnectionString(target_->secdist_, dbalias),
         *target_->task_processor_, target_->pool_config_);
   }
 
