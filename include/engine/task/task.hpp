@@ -13,7 +13,7 @@
 namespace engine {
 namespace ev {
 class ThreadControl;
-}
+}  // namespace ev
 namespace impl {
 class TaskContext;
 class TaskContextHolder;
@@ -76,17 +76,25 @@ class Task {
   /// Returns whether the task finished execution
   bool IsFinished() const;
 
-  /// Suspends execution until the task finishes
-  void Wait() const;
+  /// @brief Suspends execution until the task finishes or caller is cancelled
+  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+  /// and no TaskCancellationBlockers are present.
+  void Wait() const noexcept(false);
 
-  /// Suspends execution until the task finishes or after the specified timeout
+  /// @brief Suspends execution until the task finishes or after the specified
+  /// timeout or until caller is cancelled
+  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+  /// and no TaskCancellationBlockers are present.
   template <typename Rep, typename Period>
-  void WaitFor(const std::chrono::duration<Rep, Period>&) const;
+  void WaitFor(const std::chrono::duration<Rep, Period>&) const noexcept(false);
 
   /// @brief Suspends execution until the task finishes or until the specified
-  /// time point is reached
+  /// time point is reached or until caller is cancelled
+  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+  /// and no TaskCancellationBlockers are present.
   template <typename Clock, typename Duration>
-  void WaitUntil(const std::chrono::time_point<Clock, Duration>&) const;
+  void WaitUntil(const std::chrono::time_point<Clock, Duration>&) const
+      noexcept(false);
 
   /// @brief Detaches task, allowing it to continue execution out of scope
   /// @note After detach, Task becomes invalid
@@ -114,6 +122,21 @@ class Task {
 /// Returns a string representation of a cancellation reason
 std::string ToString(Task::CancellationReason reason);
 
+/// Wait interruption exception
+class WaitInterruptedException : public std::runtime_error {
+ public:
+  explicit WaitInterruptedException(Task::CancellationReason reason)
+      : std::runtime_error(
+            "Wait interrupted because of task cancellation, reason=" +
+            ToString(reason)),
+        reason_(reason) {}
+
+  Task::CancellationReason Reason() const { return reason_; }
+
+ private:
+  const Task::CancellationReason reason_;
+};
+
 namespace current_task {
 
 /// Returns reference to the task processor executing the caller
@@ -130,13 +153,14 @@ void AccountSpuriousWakeup();
 }  // namespace current_task
 
 template <typename Rep, typename Period>
-void Task::WaitFor(const std::chrono::duration<Rep, Period>& duration) const {
+void Task::WaitFor(const std::chrono::duration<Rep, Period>& duration) const
+    noexcept(false) {
   DoWaitUntil(Deadline::FromDuration(duration));
 }
 
 template <typename Clock, typename Duration>
-void Task::WaitUntil(
-    const std::chrono::time_point<Clock, Duration>& until) const {
+void Task::WaitUntil(const std::chrono::time_point<Clock, Duration>& until)
+    const noexcept(false) {
   DoWaitUntil(Deadline::FromTimePoint(until));
 }
 

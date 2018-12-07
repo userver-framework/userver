@@ -36,7 +36,7 @@ Task::State Task::GetState() const {
 
 bool Task::IsFinished() const { return context_ && context_->IsFinished(); }
 
-void Task::Wait() const {
+void Task::Wait() const noexcept(false) {
   assert(context_);
   context_->Wait();
 }

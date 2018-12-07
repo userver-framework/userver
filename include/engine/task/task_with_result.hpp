@@ -16,18 +16,16 @@ namespace engine {
 class TaskProcessor;
 
 /// Cancelled TaskWithResult access exception
-class TaskCancelledException : public std::exception {
+class TaskCancelledException : public std::runtime_error {
  public:
-  TaskCancelledException(Task::CancellationReason reason)
-      : reason_(reason), msg_("Task cancelled, reason=" + ToString(reason)) {}
+  explicit TaskCancelledException(Task::CancellationReason reason)
+      : std::runtime_error("Task cancelled, reason=" + ToString(reason)),
+        reason_(reason) {}
 
   Task::CancellationReason Reason() const { return reason_; }
 
-  const char* what() const noexcept override { return msg_.c_str(); }
-
  private:
   const Task::CancellationReason reason_;
-  std::string msg_;
 };
 
 /// Asynchronous task with result
@@ -53,9 +51,11 @@ class TaskWithResult : public Task {
         wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
 
   /// @brief Returns (or rethrows) the result of task invocation
+  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+  /// and no TaskCancellationBlockers are present.
   /// @throws TaskCancelledException
   ///   if no result is available becase the task was cancelled
-  T Get() {
+  T Get() noexcept(false) {
     assert(wrapped_call_ptr_);
     Wait();
     if (GetState() == State::kCancelled) {

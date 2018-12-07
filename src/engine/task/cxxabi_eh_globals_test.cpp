@@ -8,6 +8,7 @@
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
 #include <engine/sleep.hpp>
+#include <engine/task/cancel.hpp>
 #include <utest/utest.hpp>
 
 namespace {
@@ -29,13 +30,14 @@ TEST(CxxabiEhGlobals, UncaughtIsCoroLocal) {
           cv.NotifyOne();
         }
         engine::SleepFor(std::chrono::seconds(1));
+        engine::current_task::CancellationPoint();
 
         // if we got here, subtask wasn't cancelled while it should've been
         // one of possible reasons is uncaught exception leaked via thread local
         ASSERT_FALSE(std::uncaught_exception());
         FAIL() << "Subtask wasn't cancelled";
       });
-      cv.Wait(lock);
+      ASSERT_EQ(engine::CvStatus::kNoTimeout, cv.Wait(lock));
 
       // we'll switch to subtask during stack unwinding (in its dtor)
       throw TestException{};
@@ -56,13 +58,13 @@ TEST(CxxabiEhGlobals, ActiveIsCoroLocal) {
     auto subtask = engine::Async([&cv, &mutex, &sub_cv] {
       std::unique_lock<engine::Mutex> lock(mutex);
       cv.NotifyOne();
-      sub_cv.Wait(lock);
+      ASSERT_EQ(engine::CvStatus::kNoTimeout, sub_cv.Wait(lock));
 
       // this coro shouldn't have an active exception
       ASSERT_FALSE(std::current_exception());
       cv.NotifyOne();
     });
-    cv.Wait(lock);
+    ASSERT_EQ(engine::CvStatus::kNoTimeout, cv.Wait(lock));
 
     try {
       throw TestException{};

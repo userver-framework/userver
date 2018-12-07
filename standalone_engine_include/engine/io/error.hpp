@@ -22,5 +22,10 @@ class IoTimeout : public IoError {
   size_t bytes_transferred_;
 };
 
+class IoCancelled : public IoError {
+ public:
+  explicit IoCancelled(const std::string& context);
+};
+
 }  // namespace io
 }  // namespace engine

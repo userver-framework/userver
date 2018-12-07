@@ -28,7 +28,9 @@ class SingleConsumerEvent {
   /// Wait until event is in a signalled state, then atomically
   //  wake up and clear signal flag. If already in signal state,
   //  clear the flag and return without sleeping.
-  void WaitForEvent();
+  /// @returns whether the event signalled (otherwise task could've been
+  //  cancelled)
+  [[nodiscard]] bool WaitForEvent();
 
   /// Set a signal flag and awake a coroutine that waits on it (if any).
   //  If the signal flag is already set, does nothing.

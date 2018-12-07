@@ -56,14 +56,14 @@ Socket::Socket(int fd) : fd_control_(impl::FdControl::Adopt(fd)) {}
 
 bool Socket::IsOpen() const { return !!fd_control_; }
 
-void Socket::WaitReadable(Deadline deadline) {
+bool Socket::WaitReadable(Deadline deadline) {
   assert(IsOpen());
-  fd_control_->Read().Wait(std::move(deadline));
+  return fd_control_->Read().Wait(std::move(deadline));
 }
 
-void Socket::WaitWriteable(Deadline deadline) {
+bool Socket::WaitWriteable(Deadline deadline) {
   assert(IsOpen());
-  fd_control_->Write().Wait(std::move(deadline));
+  return fd_control_->Write().Wait(std::move(deadline));
 }
 
 size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
@@ -111,8 +111,6 @@ Socket Socket::Accept(Deadline deadline) {
   if (!IsOpen()) {
     throw IoError("Attempt to Accept from closed socket");
   }
-  current_task::CancellationPoint();
-
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);
   for (;;) {
@@ -138,6 +136,9 @@ Socket Socket::Accept(Deadline deadline) {
 #if EAGAIN != EWOULDBLOCK
       case EWOULDBLOCK:
 #endif
+        if (current_task::ShouldCancel()) {
+          throw IoCancelled("Accept");
+        }
         WaitReadable(deadline);
         if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
             engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
@@ -191,8 +192,6 @@ int Socket::Release() && noexcept {
 }
 
 Socket Connect(Addr addr, Deadline deadline) {
-  current_task::CancellationPoint();
-
   auto socket = MakeSocket(addr);
 
   int err_value = ::connect(socket.Fd(), addr.Sockaddr(), addr.Addrlen());
@@ -201,6 +200,9 @@ Socket Connect(Addr addr, Deadline deadline) {
   }
   err_value = errno;
   if (err_value == EINPROGRESS) {
+    if (current_task::ShouldCancel()) {
+      throw IoCancelled("Connect");
+    }
     socket.WaitWriteable(deadline);
     if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
         engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
@@ -219,8 +221,6 @@ Socket Connect(Addr addr, Deadline deadline) {
 }
 
 Socket Listen(Addr addr, int backlog) {
-  current_task::CancellationPoint();
-
   auto socket = MakeSocket(addr);
 
   socket.SetOption(SOL_SOCKET, SO_REUSEADDR, 1);

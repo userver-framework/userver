@@ -51,7 +51,7 @@ class Direction {
 
   int Fd() const { return fd_; }
 
-  void Wait(Deadline);
+  [[nodiscard]] bool Wait(Deadline);
 
   // (IoFunc*)(int, void*, size_t), e.g. read
   template <typename IoFunc, typename... Context>
@@ -116,8 +116,6 @@ template <typename IoFunc, typename... Context>
 size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
                             TransferMode mode, Deadline deadline,
                             const Context&... context) {
-  current_task::CancellationPoint();
-
   char* const begin = static_cast<char*>(buf);
   char* const end = begin + len;
 
@@ -136,7 +134,10 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
       if (pos != begin && mode == TransferMode::kPartial) {
         break;
       }
-      Wait(deadline);
+      if (current_task::ShouldCancel()) {
+        throw IoCancelled(utils::impl::ToString(context...));
+      }
+      [[maybe_unused]] auto is_ready = Wait(deadline);
       if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
           engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
         throw IoTimeout(/*bytes_transferred =*/pos - begin);

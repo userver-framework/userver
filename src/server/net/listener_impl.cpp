@@ -37,12 +37,11 @@ ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
                            std::shared_ptr<EndpointInfo> endpoint_info)
     : task_processor_(task_processor),
       endpoint_info_(std::move(endpoint_info)),
-      is_closing_(false),
       stats_(std::make_shared<Stats>()),
       socket_listener_task_(engine::CriticalAsync(
           task_processor_,
           [this](engine::io::Socket&& request_socket) {
-            while (true) {
+            while (!engine::current_task::ShouldCancel()) {
               try {
                 AcceptConnection(request_socket);
               } catch (const std::exception& ex) {

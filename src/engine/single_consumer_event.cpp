@@ -1,4 +1,5 @@
 #include <engine/single_consumer_event.hpp>
+#include <engine/task/cancel.hpp>
 #include "task/task_context.hpp"
 #include "wait_list_light.hpp"
 
@@ -10,7 +11,10 @@ SingleConsumerEvent::SingleConsumerEvent()
 
 SingleConsumerEvent::~SingleConsumerEvent() = default;
 
-void SingleConsumerEvent::WaitForEvent() {
+bool SingleConsumerEvent::WaitForEvent() {
+  bool was_signaled = false;
+  if (current_task::ShouldCancel()) return was_signaled;
+
   lock_waiters_->PinToCurrentTask();
 
   impl::TaskContext* const current = current_task::GetCurrentTaskContext();
@@ -18,7 +22,8 @@ void SingleConsumerEvent::WaitForEvent() {
 
   impl::WaitListLight::Lock lock;
 
-  while (!signaled_.exchange(false)) {
+  while (!(was_signaled = signaled_.exchange(false)) &&
+         !current_task::ShouldCancel()) {
     LOG_TRACE() << "iteration()";
 
     impl::TaskContext::SleepParams sleep_params;
@@ -33,6 +38,8 @@ void SingleConsumerEvent::WaitForEvent() {
     current->Sleep(std::move(sleep_params));
   }
   LOG_TRACE() << "exit";
+
+  return was_signaled;
 }
 
 void SingleConsumerEvent::Send() {

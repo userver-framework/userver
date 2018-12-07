@@ -1,9 +1,11 @@
 #include <components/component_context.hpp>
 
+#include <cassert>
 #include <queue>
 
 #include <boost/algorithm/string/join.hpp>
 
+#include <engine/task/cancel.hpp>
 #include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
 #include <tracing/tracer.hpp>
@@ -232,13 +234,14 @@ ComponentBase* ComponentContext::DoFindComponent(
   LOG_INFO() << "component " << name << " is not loaded yet, component "
              << GetLoadingComponentName(lock) << " is waiting for it to load";
 
-  component_cv_.Wait(lock, [this, &lock, &component, &name]() {
+  auto was_found = component_cv_.Wait(lock, [this, &lock, &component, &name]() {
     if (components_load_cancelled_) return true;
     component = DoFindComponentNoWait(name, lock);
     return component != nullptr;
   });
 
-  if (components_load_cancelled_) throw ComponentsLoadCancelledException();
+  if (!was_found || components_load_cancelled_)
+    throw ComponentsLoadCancelledException();
   return component;
 }
 
@@ -282,8 +285,11 @@ void ComponentContext::WaitAndUnloadComponent(const std::string& name) {
   LOG_INFO() << "Preparing to stop component " << name;
 
   {
+    engine::TaskCancellationBlocker block_cancel;
     std::unique_lock<engine::Mutex> lock(component_mutex_);
-    component_cv_.Wait(lock, [this, &name]() { return MayUnload(name); });
+    [[maybe_unused]] bool may_unload =
+        component_cv_.Wait(lock, [this, &name]() { return MayUnload(name); });
+    assert(may_unload);
 
     std::swap(tmp, components_[name]);
     components_.erase(name);

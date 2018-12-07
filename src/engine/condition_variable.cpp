@@ -17,12 +17,12 @@ void ConditionVariable::NotifyOne() { impl_->NotifyOne(); }
 
 void ConditionVariable::NotifyAll() { impl_->NotifyAll(); }
 
-void ConditionVariable::DoWait(std::unique_lock<Mutex>& lock) {
-  impl_->Wait(lock);
+CvStatus ConditionVariable::DoWait(std::unique_lock<Mutex>& lock) {
+  return impl_->Wait(lock);
 }
 
-std::cv_status ConditionVariable::DoWaitUntil(std::unique_lock<Mutex>& lock,
-                                              Deadline deadline) {
+CvStatus ConditionVariable::DoWaitUntil(std::unique_lock<Mutex>& lock,
+                                        Deadline deadline) {
   return impl_->WaitUntil(lock, std::move(deadline));
 }
 

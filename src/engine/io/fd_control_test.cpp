@@ -81,15 +81,18 @@ TEST(FdControl, Wait) {
 
     auto read_control = FdControl::Adopt(pipe.In());
     auto& read_dir = read_control->Read();
-    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100)));
+    EXPECT_FALSE(
+        read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100))));
     EXPECT_TRUE(HasTimedOut());
 
     CheckedWrite(pipe.Out(), buf.data(), 1);
-    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100)));
+    EXPECT_TRUE(
+        read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100))));
     EXPECT_FALSE(HasTimedOut());
 
     EXPECT_EQ(::read(pipe.In(), buf.data(), buf.size()), 1);
-    read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100)));
+    EXPECT_FALSE(
+        read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100))));
     EXPECT_TRUE(HasTimedOut());
   });
 }

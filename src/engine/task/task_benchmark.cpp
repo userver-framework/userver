@@ -9,6 +9,7 @@
 #include <engine/run_in_coro.hpp>
 #include <engine/sleep.hpp>
 #include <engine/standalone.hpp>
+#include <engine/task/cancel.hpp>
 #include <engine/task/task.hpp>
 #include <utils/gbench_auxilary.hpp>
 
@@ -28,7 +29,7 @@ void engine_task_yield(benchmark::State& state) {
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0); i++)
           tasks.push_back(engine::Async([]() {
-            for (;;) engine::Yield();
+            while (!engine::current_task::ShouldCancel()) engine::Yield();
           }));
 
         for (auto _ : state) engine::Yield();
@@ -44,7 +45,7 @@ void engine_task_yield_multiple_threads(benchmark::State& state) {
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0) - 1; i++)
           tasks.push_back(engine::Async([]() {
-            for (;;) engine::Yield();
+            while (!engine::current_task::ShouldCancel()) engine::Yield();
           }));
 
         for (auto _ : state) engine::Yield();

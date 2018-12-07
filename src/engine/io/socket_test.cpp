@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <arpa/inet.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include <cerrno>
@@ -11,6 +12,7 @@
 #include <engine/io/addr.hpp>
 #include <engine/io/socket.hpp>
 #include <engine/mutex.hpp>
+#include <engine/single_consumer_event.hpp>
 #include <engine/sleep.hpp>
 #include <utest/utest.hpp>
 
@@ -133,7 +135,7 @@ TEST(Socket, ListenConnect) {
 
     {
       std::unique_lock<engine::Mutex> lock(ports_mutex);
-      ports_cv.Wait(lock, [&] { return are_ports_filled; });
+      ASSERT_TRUE(ports_cv.Wait(lock, [&] { return are_ports_filled; }));
     }
 
     EXPECT_EQ(first_client_port, GetPort(first_client.Getsockname()));
@@ -169,5 +171,50 @@ TEST(Socket, Closed) {
     EXPECT_FALSE(closed_socket.IsOpen());
     EXPECT_EQ(io::Socket::kInvalidFd, closed_socket.Fd());
     EXPECT_EQ(io::Socket::kInvalidFd, std::move(closed_socket).Release());
+  });
+}
+
+TEST(Socket, Cancel) {
+  RunInCoro([] {
+    Listener listener;
+
+    auto connect_task =
+        engine::Async([&] { return io::Connect(listener.addr, {}); });
+    auto server_socket = listener.socket.Accept({});
+    auto client_socket = connect_task.Get();
+
+    engine::SingleConsumerEvent has_started_event;
+    auto check_is_cancelling = [&](const char* io_op_text, auto io_op) {
+      auto io_task = engine::Async([&] {
+        has_started_event.Send();
+        io_op();
+      });
+      if (!has_started_event.WaitForEvent()) {
+        return ::testing::AssertionFailure() << "io_task did not start";
+      }
+      io_task.RequestCancel();
+      try {
+        io_task.Get();
+      } catch (const io::IoCancelled&) {
+        return ::testing::AssertionSuccess();
+      } catch (const std::exception&) {
+        return ::testing::AssertionFailure()
+               << "io operaton " << io_op_text
+               << " did throw something other than IoCancelled";
+      }
+      return ::testing::AssertionFailure()
+             << "io operation " << io_op_text << " did not throw IoCancelled";
+    };
+
+    std::vector<char> buf(client_socket.GetOption(SOL_SOCKET, SO_SNDBUF * 4));
+    EXPECT_PRED_FORMAT1(check_is_cancelling,
+                        [&] { client_socket.RecvSome(buf.data(), 1, {}); });
+    EXPECT_PRED_FORMAT1(check_is_cancelling,
+                        [&] { client_socket.RecvAll(buf.data(), 1, {}); });
+    EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
+      client_socket.SendAll(buf.data(), buf.size(), {});
+    });
+    EXPECT_PRED_FORMAT1(check_is_cancelling,
+                        [&] { listener.socket.Accept({}); });
   });
 }

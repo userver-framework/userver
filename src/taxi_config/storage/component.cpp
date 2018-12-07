@@ -27,12 +27,12 @@ std::shared_ptr<taxi_config::Config> TaxiConfig::Get() const {
 
   LOG_TRACE() << "Wait started";
   std::unique_lock<engine::Mutex> lock(loaded_mutex_);
-  loaded_cv_.Wait(lock, [this]() {
+  auto was_loaded = loaded_cv_.Wait(lock, [this]() {
     return cache_.Get() != nullptr || config_load_cancelled_;
   });
   LOG_TRACE() << "Wait finished";
 
-  if (config_load_cancelled_)
+  if (!was_loaded || config_load_cancelled_)
     throw ComponentsLoadCancelledException("config load cancelled");
   return cache_.Get();
 }

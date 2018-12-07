@@ -1,12 +1,14 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <chrono>
 #include <exception>
 #include <future>
 #include <mutex>
 
 #include <engine/deadline.hpp>
+#include <engine/task/cancel.hpp>
 #include <utils/result_store.hpp>
 
 #include "condition_variable_any.hpp"
@@ -84,8 +86,11 @@ T FutureState<T>::Get() {
 
 template <typename T>
 void FutureState<T>::Wait() {
+  engine::TaskCancellationBlocker block_cancel;
   std::unique_lock<std::mutex> lock(mutex_);
-  result_cv_.Wait(lock, [this] { return IsReady(); });
+  [[maybe_unused]] bool is_ready =
+      result_cv_.Wait(lock, [this] { return IsReady(); });
+  assert(is_ready);
 }
 
 template <typename T>
@@ -161,8 +166,11 @@ inline void FutureState<void>::Get() {
 }
 
 inline void FutureState<void>::Wait() {
+  engine::TaskCancellationBlocker block_cancel;
   std::unique_lock<std::mutex> lock(mutex_);
-  result_cv_.Wait(lock, [this] { return IsReady(); });
+  [[maybe_unused]] bool is_ready =
+      result_cv_.Wait(lock, [this] { return IsReady(); });
+  assert(is_ready);
 }
 
 template <typename Rep, typename Period>

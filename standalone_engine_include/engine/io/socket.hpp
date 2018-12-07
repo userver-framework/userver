@@ -34,8 +34,8 @@ class Socket {
   explicit operator bool() const { return IsOpen(); }
   bool IsOpen() const;
 
-  void WaitReadable(Deadline);
-  void WaitWriteable(Deadline);
+  bool WaitReadable(Deadline);
+  bool WaitWriteable(Deadline);
 
   size_t RecvSome(void* buf, size_t len, Deadline deadline);
   size_t RecvAll(void* buf, size_t len, Deadline deadline);

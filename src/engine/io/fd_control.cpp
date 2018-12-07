@@ -8,8 +8,11 @@
 #include <memory>
 #include <stdexcept>
 
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <utils/check_syscall.hpp>
+
+#include <engine/task/task_context.hpp>
 
 namespace engine {
 namespace io {
@@ -26,6 +29,15 @@ int SetNonblock(int fd) {
   return fd;
 }
 
+std::string ToString(Direction::Kind direction_kind) {
+  switch (direction_kind) {
+    case Direction::Kind::kRead:
+      return "read";
+    case Direction::Kind::kWrite:
+      return "write";
+  }
+}
+
 }  // namespace
 
 Direction::Direction(Kind kind)
@@ -37,8 +49,13 @@ Direction::Direction(Kind kind)
   watcher_.Init(&IoWatcherCb);
 }
 
-void Direction::Wait(Deadline deadline) {
+bool Direction::Wait(Deadline deadline) {
   assert(IsValid());
+
+  if (engine::current_task::ShouldCancel()) {
+    throw IoCancelled("Wait " + ToString(kind_) + "able");
+  }
+
   engine::impl::WaitList::Lock lock(*waiters_);
 
   auto caller_ctx = current_task::GetCurrentTaskContext();
@@ -52,6 +69,9 @@ void Direction::Wait(Deadline deadline) {
   };
 
   caller_ctx->Sleep(std::move(sleep_params));
+
+  return caller_ctx->GetWakeupSource() ==
+         engine::impl::TaskContext::WakeupSource::kWaitList;
 }
 
 void Direction::Reset(int fd) {

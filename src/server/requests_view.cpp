@@ -1,5 +1,6 @@
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
+#include <engine/task/cancel.hpp>
 #include <server/requests_view.hpp>
 
 namespace {
@@ -83,10 +84,10 @@ void RequestsView::HandleQueue() {
 }
 
 void RequestsView::DoJob() {
-  for (;;) {
+  while (!engine::current_task::ShouldCancel()) {
     GarbageCollect();
     HandleQueue();
-    engine::SleepFor(kDequeuePollPeriod);
+    engine::InterruptibleSleepFor(kDequeuePollPeriod);
   }
 }
 

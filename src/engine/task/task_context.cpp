@@ -1,8 +1,6 @@
 #include "task_context.hpp"
 
 #include <cassert>
-#include <cctype>
-#include <exception>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -11,9 +9,11 @@
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/timer.hpp>
+#include <engine/task/cancel.hpp>
 #include <logging/log_extra.hpp>
 
-#include "task_processor.hpp"
+#include <engine/task/coro_unwinder.hpp>
+#include <engine/task/task_processor.hpp>
 
 namespace engine {
 namespace current_task {
@@ -46,8 +46,6 @@ impl::TaskContext* GetCurrentTaskContextUnchecked() {
   return current_task_context_ptr;
 }
 
-bool IsCancellable() { return GetCurrentTaskContext()->IsCancellable(); }
-
 }  // namespace current_task
 
 namespace impl {
@@ -56,17 +54,6 @@ namespace {
 std::string GetTaskIdString(const impl::TaskContext* task) {
   return std::to_string(task ? task->GetTaskId() : 0);
 }
-
-// we don't use native boost.coroutine stack unwinding mechanisms for cancel
-// as they don't allow us to yield from unwind
-// e.g. to serialize nested tasks destruction
-//
-// XXX: Standard library has catch-all in some places, namely streams.
-// With libstdc++ we can use magic __forced_unwind exception class
-// but libc++ has nothing of the like.
-// It's possile that we will have to use low-level C++ ABI for forced unwinds
-// here, but for now this'll suffice.
-class CoroUnwinder {};
 
 class CurrentTaskScope {
  public:
@@ -82,62 +69,6 @@ void CallOnce(Func& func) {
     auto func_to_destroy = std::move(func);
     func_to_destroy();
   }
-}
-
-// Heuristic to detect calls from destructors.
-// It is not perfect as it is easily broken by destructor inlining, but it may
-// help in some cases.
-bool IsExecutingDestructor() {
-  // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-structure
-  static const std::string kMangledNamePrefix = "_Z";
-
-  for (const auto& frame : boost::stacktrace::stacktrace{}) {
-    auto func_name = frame.name();
-
-    // Remove compiler-specific suffixes
-    // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-general
-    {
-      auto pos = func_name.find('$');
-      if (pos != func_name.npos) {
-        func_name.resize(pos);
-      }
-    }
-
-    if (boost::algorithm::starts_with(func_name, kMangledNamePrefix)) {
-      // XXX: Demangler in xenial doesn't know about decltype(auto),
-      // change it to auto. We may change some names, but they're not relevant.
-      // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-builtin
-      boost::algorithm::replace_all(func_name, "Dc", "Da");
-      func_name = boost::core::demangle(func_name.c_str());
-    }
-
-    if (!boost::algorithm::starts_with(func_name, kMangledNamePrefix)) {
-      // Look for dtors (~Name)
-      for (auto pos = func_name.find('~');
-           pos != func_name.npos && pos + 1 < func_name.size();
-           pos = func_name.find('~', pos + 1)) {
-        // operator~()
-        if (func_name[pos + 1] == '(') continue;
-        // nested members (lambdas, classes etc.)
-        if (func_name.find(':', pos + 1) != func_name.npos) continue;
-
-        return true;
-      }
-    } else {
-      // For some mysterious reason name wasn't demangled, using safe mode.
-      // Look for "D*" pattern, where * is digit (actually 0, 1 or 2)
-      // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-special-ctor-dtor
-      for (auto pos = func_name.find('D');
-           pos != func_name.npos && pos + 1 < func_name.size();
-           pos = func_name.find('D', pos + 1)) {
-        // definitely not mangled dtor token
-        if (!std::isdigit(func_name[pos + 1])) continue;
-
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 }  // namespace
@@ -188,7 +119,12 @@ void TaskContext::Wait() const { WaitUntil({}); }
 void TaskContext::WaitUntil(Deadline deadline) const {
   if (IsFinished()) return;
 
+  if (current_task::ShouldCancel()) {
+    throw WaitInterruptedException(cancellation_reason_);
+  }
+
   WaitList::Lock lock(*finish_waiters_);
+
   auto caller_ctx = current_task::GetCurrentTaskContext();
   SleepParams new_sleep_params;
   new_sleep_params.deadline = std::move(deadline);
@@ -199,6 +135,10 @@ void TaskContext::WaitUntil(Deadline deadline) const {
   };
   if (IsFinished()) return;  // try to avoid ctx switch if possible
   caller_ctx->Sleep(std::move(new_sleep_params));
+
+  if (!IsFinished() && current_task::ShouldCancel()) {
+    throw WaitInterruptedException(cancellation_reason_);
+  }
 }
 
 void TaskContext::DoStep() {
@@ -268,9 +208,6 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
   assert(current_task::GetCurrentTaskContext() == this);
   assert(state_ == Task::State::kRunning);
 
-  // don't sleep if we're going to cancel anyway
-  if (IsCancelRequested()) Unwind();
-
   sleep_params_ = std::move(sleep_params);
   ev::Timer deadline_timer;
   if (sleep_params_.deadline.IsReachable()) {
@@ -306,8 +243,6 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
   sleep_params_ = {};
   // reset state again in case timer has fired during wakeup
   sleep_state_ = SleepStateFlags::kNone;
-
-  if (IsCancelRequested()) Unwind();
 }
 
 void TaskContext::Wakeup(WakeupSource source) {
@@ -406,22 +341,6 @@ void TaskContext::Schedule() {
   SetState(Task::State::kQueued);
   task_processor_.Schedule(this);
   // NOTE: may be executed at this point
-}
-
-void TaskContext::Unwind() {
-  assert(current_task::GetCurrentTaskContext() == this);
-  assert(state_ == Task::State::kRunning);
-
-  if (std::uncaught_exception()) return;
-  if (IsExecutingDestructor()) {
-    LOG_WARNING() << "Attempt to cancel a task while executing destructor"
-                  << logging::LogExtra::Stacktrace();
-    return;
-  }
-  if (SetCancellable(false)) {
-    LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
-    throw CoroUnwinder{};
-  }
 }
 
 #ifdef USERVER_PROFILER

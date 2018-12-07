@@ -18,7 +18,8 @@ TEST(SingleConsumerEvent, Ctr) { engine::SingleConsumerEvent event; }
 TEST(SingleConsumerEvent, WaitAndCancel) {
   RunInCoro([] {
     engine::SingleConsumerEvent event;
-    auto task = engine::Async([&event]() { event.WaitForEvent(); });
+    auto task =
+        engine::Async([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(task.IsFinished());
@@ -28,7 +29,8 @@ TEST(SingleConsumerEvent, WaitAndCancel) {
 TEST(SingleConsumerEvent, WaitAndSend) {
   RunInCoro([] {
     engine::SingleConsumerEvent event;
-    auto task = engine::Async([&event]() { event.WaitForEvent(); });
+    auto task =
+        engine::Async([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
 
     engine::SleepFor(std::chrono::milliseconds(50));
     event.Send();
@@ -42,7 +44,7 @@ TEST(SingleConsumerEvent, WaitAndSendDouble) {
   RunInCoro([] {
     engine::SingleConsumerEvent event;
     auto task = engine::Async([&event]() {
-      for (int i = 0; i < 2; i++) event.WaitForEvent();
+      for (int i = 0; i < 2; i++) EXPECT_TRUE(event.WaitForEvent());
     });
 
     for (int i = 0; i < 2; i++) {
@@ -60,7 +62,7 @@ TEST(SingleConsumerEvent, SendAndWait) {
     engine::SingleConsumerEvent event;
     auto task = engine::Async([&event]() {
       engine::SleepFor(std::chrono::milliseconds(50));
-      event.WaitForEvent();
+      EXPECT_TRUE(event.WaitForEvent());
     });
 
     event.Send();
@@ -74,8 +76,8 @@ TEST(SingleConsumerEvent, SendAndWait2) {
   RunInCoro([] {
     engine::SingleConsumerEvent event;
     auto task = engine::Async([&event]() {
-      event.WaitForEvent();
-      event.WaitForEvent();
+      EXPECT_TRUE(event.WaitForEvent());
+      EXPECT_TRUE(event.WaitForEvent());
     });
 
     event.Send();
@@ -91,9 +93,9 @@ TEST(SingleConsumerEvent, SendAndWait3) {
   RunInCoro([] {
     engine::SingleConsumerEvent event;
     auto task = engine::Async([&event]() {
-      event.WaitForEvent();
-      event.WaitForEvent();
-      event.WaitForEvent();
+      EXPECT_TRUE(event.WaitForEvent());
+      EXPECT_TRUE(event.WaitForEvent());
+      EXPECT_FALSE(event.WaitForEvent());
     });
 
     event.Send();
@@ -113,8 +115,7 @@ TEST(SingleConsumerEvent, Multithread) {
         std::atomic<int> got{0};
 
         auto task = engine::Async([&got, &event]() {
-          while (true) {
-            event.WaitForEvent();
+          while (event.WaitForEvent()) {
             got++;
           }
         });

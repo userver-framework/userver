@@ -39,8 +39,6 @@ class ListenerImpl {
   engine::TaskProcessor& task_processor_;
   std::shared_ptr<EndpointInfo> endpoint_info_;
 
-  bool is_closing_;
-
   std::shared_ptr<Stats> stats_;
 
   engine::TaskWithResult<void> socket_listener_task_;

@@ -1,9 +1,10 @@
 #pragma once
 
-#include <condition_variable>
 #include <memory>
 
+#include <engine/condition_variable.hpp>
 #include <engine/deadline.hpp>
+#include <engine/task/cancel.hpp>
 
 #include "task/task_context.hpp"
 #include "wait_list.hpp"
@@ -21,12 +22,12 @@ class ConditionVariableAny {
   ConditionVariableAny& operator=(const ConditionVariableAny&) = delete;
   ConditionVariableAny& operator=(ConditionVariableAny&&) noexcept = default;
 
-  void Wait(std::unique_lock<MutexType>&);
+  [[nodiscard]] CvStatus Wait(std::unique_lock<MutexType>&);
 
   template <typename Predicate>
-  void Wait(std::unique_lock<MutexType>&, Predicate&&);
+  [[nodiscard]] bool Wait(std::unique_lock<MutexType>&, Predicate&&);
 
-  std::cv_status WaitUntil(std::unique_lock<MutexType>&, Deadline);
+  CvStatus WaitUntil(std::unique_lock<MutexType>&, Deadline);
 
   template <typename Predicate>
   bool WaitUntil(std::unique_lock<MutexType>&, Deadline, Predicate&&);
@@ -43,24 +44,26 @@ ConditionVariableAny<MutexType>::ConditionVariableAny()
     : waiters_(std::make_shared<WaitList>()) {}
 
 template <typename MutexType>
-void ConditionVariableAny<MutexType>::Wait(std::unique_lock<MutexType>& lock) {
-  WaitUntil(lock, {});
+CvStatus ConditionVariableAny<MutexType>::Wait(
+    std::unique_lock<MutexType>& lock) {
+  return WaitUntil(lock, {});
 }
 
 template <typename MutexType>
 template <typename Predicate>
-void ConditionVariableAny<MutexType>::Wait(std::unique_lock<MutexType>& lock,
+bool ConditionVariableAny<MutexType>::Wait(std::unique_lock<MutexType>& lock,
                                            Predicate&& predicate) {
-  while (!predicate()) {
-    Wait(lock);
-  }
+  return WaitUntil(lock, {}, std::forward<Predicate>(predicate));
 }
 
 template <typename MutexType>
-std::cv_status ConditionVariableAny<MutexType>::WaitUntil(
+CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     std::unique_lock<MutexType>& lock, Deadline deadline) {
   if (deadline.IsReached()) {
-    return std::cv_status::timeout;
+    return CvStatus::kTimeout;
+  }
+  if (current_task::ShouldCancel()) {
+    return CvStatus::kCancelled;
   }
 
   WaitList::Lock waiters_lock(*waiters_);
@@ -78,10 +81,17 @@ std::cv_status ConditionVariableAny<MutexType>::WaitUntil(
   new_sleep_params.exec_before_awake = [&lock] { lock.lock(); };
   context->Sleep(std::move(new_sleep_params));
 
-  return context->GetWakeupSource() ==
-                 impl::TaskContext::WakeupSource::kDeadlineTimer
-             ? std::cv_status::timeout
-             : std::cv_status::no_timeout;
+  switch (context->GetWakeupSource()) {
+    case TaskContext::WakeupSource::kCancelRequest:
+      return CvStatus::kCancelled;
+    case TaskContext::WakeupSource::kDeadlineTimer:
+      return CvStatus::kTimeout;
+    case TaskContext::WakeupSource::kNone:
+      assert(!"invalid wakeup source");
+      [[fallthrough]];
+    case TaskContext::WakeupSource::kWaitList:
+      return CvStatus::kNoTimeout;
+  }
 }
 
 template <typename MutexType>
@@ -90,10 +100,13 @@ bool ConditionVariableAny<MutexType>::WaitUntil(
     std::unique_lock<MutexType>& lock, Deadline deadline,
     Predicate&& predicate) {
   bool predicate_result = predicate();
-  auto status = std::cv_status::no_timeout;
-  while (!predicate_result && status == std::cv_status::no_timeout) {
+  auto status = CvStatus::kNoTimeout;
+  while (!predicate_result && status == CvStatus::kNoTimeout) {
     status = WaitUntil(lock, std::move(deadline));
     predicate_result = predicate();
+    if (!predicate_result && status == CvStatus::kNoTimeout) {
+      current_task::AccountSpuriousWakeup();
+    }
   }
   return predicate_result;
 }

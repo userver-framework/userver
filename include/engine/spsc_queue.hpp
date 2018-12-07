@@ -3,6 +3,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <engine/single_consumer_event.hpp>
+#include <engine/task/cancel.hpp>
 
 namespace engine {
 
@@ -168,9 +169,9 @@ bool SpscQueue<T>::PopNoblockNoConsumer(T& value) {
 template <typename T>
 bool SpscQueue<T>::Push(T&& value) {
   while (size_ >= max_length_) {
-    if (!consumer_is_alive_) return false;
+    if (!consumer_is_alive_ || current_task::ShouldCancel()) return false;
 
-    nonfull_event_.WaitForEvent();
+    [[maybe_unused]] auto was_nonfull = nonfull_event_.WaitForEvent();
   }
 
   if (!consumer_is_alive_) return false;
@@ -184,14 +185,14 @@ bool SpscQueue<T>::Push(T&& value) {
 template <typename T>
 bool SpscQueue<T>::Pop(T& value) {
   while (!PopNoblock(value)) {
-    if (!producer_is_alive_) {
+    if (!producer_is_alive_ || current_task::ShouldCancel()) {
       // Producer might have pushed smth in queue between .pop()
       // and !producer_is_alive_ check. Check twice to avoid TOCTOU.
       if (PopNoblock(value)) break;
       return false;
     }
 
-    nonempty_event_.WaitForEvent();
+    [[maybe_unused]] auto was_nonempty = nonempty_event_.WaitForEvent();
   }
 
   // queue_.pop() is ok

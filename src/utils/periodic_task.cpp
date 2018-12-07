@@ -2,6 +2,7 @@
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <tracing/tracer.hpp>
 
@@ -50,10 +51,10 @@ void PeriodicTask::Run() {
   {
     auto settings = settings_.Get();
     if (!(settings->flags & Flags::kNow))
-      engine::SleepFor(MutatePeriod(settings->period));
+      engine::InterruptibleSleepFor(MutatePeriod(settings->period));
   }
 
-  while (true) {
+  while (!engine::current_task::ShouldCancel()) {
     const auto before = engine::Deadline::TimePoint::clock::now();
 
     auto settings = settings_.Get();
@@ -72,9 +73,9 @@ void PeriodicTask::Run() {
     }
 
     if (strong)
-      engine::SleepUntil(before + MutatePeriod(period));
+      engine::InterruptibleSleepUntil(before + MutatePeriod(period));
     else
-      engine::SleepFor(MutatePeriod(period));
+      engine::InterruptibleSleepFor(MutatePeriod(period));
   }
 }
 

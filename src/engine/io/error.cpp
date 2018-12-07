@@ -11,5 +11,8 @@ IoTimeout::IoTimeout(size_t bytes_transferred)
     : IoError("I/O operation timed out"),
       bytes_transferred_(bytes_transferred) {}
 
+IoCancelled::IoCancelled(const std::string& context)
+    : IoError("Operation cancelled: " + context) {}
+
 }  // namespace io
 }  // namespace engine

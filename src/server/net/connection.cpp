@@ -11,6 +11,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <engine/async.hpp>
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_request_handler.hpp>
 #include <server/http/http_request_parser.hpp>
@@ -166,7 +167,7 @@ void Connection::HandleQueueItem(QueueItem& item) {
 void Connection::SendResponses(Queue::Consumer consumer) {
   LOG_TRACE() << "Sending responses for fd " << Fd();
 
-  while (true) {
+  while (!engine::current_task::ShouldCancel()) {
     std::unique_ptr<QueueItem> item;
     if (!consumer.Pop(item)) break;
 

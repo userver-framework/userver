@@ -88,7 +88,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   Task::CancellationReason GetCancellationReason() const {
     return cancellation_reason_;
   }
-  bool IsCancelRequested() {
+  bool IsCancelRequested() const {
     return cancellation_reason_ != Task::CancellationReason::kNone;
   }
 
@@ -138,10 +138,8 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   void SetState(Task::State);
 
   void Schedule();
-  void Unwind();
 
   void ProfilerStartExecution();
-
   void ProfilerStopExecution();
 
   const uint64_t magic_;
@@ -179,8 +177,6 @@ namespace current_task {
 
 impl::TaskContext* GetCurrentTaskContext();
 impl::TaskContext* GetCurrentTaskContextUnchecked();
-
-bool IsCancellable();
 
 }  // namespace current_task
 }  // namespace engine
