@@ -74,7 +74,7 @@ class PeriodicTask {
     Stop();
   }
 
-  void Stop();
+  void Stop() noexcept;
 
   void SetSettings(Settings settings);
 

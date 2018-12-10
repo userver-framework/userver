@@ -33,13 +33,14 @@ void PeriodicTask::DoStart() {
   }
 }
 
-void PeriodicTask::Stop() {
+void PeriodicTask::Stop() noexcept {
   if (task_.IsValid()) {
     LOG_INFO() << "Stopping PeriodicTask with name=" << name_;
     task_.RequestCancel();
-    task_.Wait();
-    LOG_INFO() << "Stopped PeriodicTask with name=" << name_;
+
+    // Do not call `Wait()` here, because it may throw.
     task_ = engine::TaskWithResult<void>();
+    LOG_INFO() << "Stopped PeriodicTask with name=" << name_;
   }
 }
 
