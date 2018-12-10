@@ -84,7 +84,7 @@ std::string MakeUrl(utils::string_view path, T begin, T end) {
 
 }  // namespace
 
-std::string MakeUrl(std::string path, const Args& query_args) {
+std::string MakeUrl(utils::string_view path, const Args& query_args) {
   return MakeUrl(path, query_args.begin(), query_args.end());
 }
 
