@@ -16,6 +16,7 @@ endif
 ifeq ($(origin CXX),default)
   CXX := clang++-6.0
 endif
+export CC CXX
 SCAN_BUILD = scan-build-5.0
 SCAN_BUILD_OPTS = -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
