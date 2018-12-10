@@ -22,9 +22,14 @@ class Span final {
 
   ~Span();
 
-  Span& operator=(Span&&) = delete;
+  Span& operator=(const Span&) = delete;
+
+  Span& operator=(Span&&);
 
   static Span* CurrentSpan();
+
+  static Span MakeSpan(const std::string& name, const std::string& trace_id,
+                       const std::string& parent_span_id);
 
   /** Create a child which can be used independently from the parent.
    * The child share no state with its parent. If you need to run code in

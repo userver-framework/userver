@@ -54,9 +54,9 @@ class Span::Impl
   const std::chrono::system_clock::time_point start_system_time_;
   const std::chrono::steady_clock::time_point start_steady_time_;
 
-  const std::string trace_id_;
+  std::string trace_id_;
   const std::string span_id_;
-  const std::string parent_id_;
+  std::string parent_id_;
   const ReferenceType reference_type_;
 
   friend class Span;

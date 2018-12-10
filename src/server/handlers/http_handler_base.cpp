@@ -5,6 +5,7 @@
 #include <components/statistics_storage.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
+#include <http/common_headers.hpp>
 #include <logging/log.hpp>
 #include <server/component.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
@@ -12,6 +13,7 @@
 #include <server/http/http_method.hpp>
 #include <server/http/http_request_impl.hpp>
 #include <tracing/span.hpp>
+#include <tracing/tags.hpp>
 #include <tracing/tracing.hpp>
 #include <utils/graphite.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
@@ -22,7 +24,7 @@ namespace server {
 namespace handlers {
 namespace {
 
-const std::string kXYaRequestId = "X-YaRequestId";
+const std::string kHttpRequestSpanTag = "http_request";
 
 template <typename HeadersHolder>
 std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
@@ -131,13 +133,18 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     bool log_request = http_server_settings_.NeedLogRequest();
     bool log_request_headers = http_server_settings_.NeedLogRequestHeaders();
 
-    auto span = tracing::Span::CurrentSpan();
-    assert(span);
+    const auto& parent_link =
+        http_request.GetHeader(::http::headers::kXYaRequestId);
+    const auto& trace_id = http_request.GetHeader(::http::headers::kXYaTraceId);
+    const auto& parent_span_id =
+        http_request.GetHeader(::http::headers::kXYaSpanId);
 
-    const auto& parent_link = http_request.GetHeader(kXYaRequestId);
-    if (!parent_link.empty()) span->AddTag("parent_link", parent_link);
+    auto span =
+        tracing::Span::MakeSpan(kHttpRequestSpanTag, trace_id, parent_span_id);
 
-    span->AddTag("request_url", http_request.GetUrl());
+    if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
+    span.AddTag(tracing::kHttpUrl, http_request.GetUrl());
+    span.AddTag(tracing::kHttpMethod, http_request.GetMethodStr());
 
     if (log_request) {
       logging::LogExtra log_extra;
@@ -169,8 +176,10 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       http_request_impl.MarkAsInternalServerError();
     }
 
-    response.SetHeader(kXYaRequestId, span->GetLink());
-    span->AddTag("response_code", static_cast<int>(response.GetStatus()));
+    response.SetHeader(::http::headers::kXYaRequestId, span.GetLink());
+    int response_code = static_cast<int>(response.GetStatus());
+    span.AddTag(tracing::kHttpStatusCode, response_code);
+    if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
 
     if (log_request) {
       logging::LogExtra log_extra;

@@ -35,7 +35,13 @@ std::future_status ResponseFuture::Wait() const {
 }
 
 std::shared_ptr<Response> ResponseFuture::Get() {
-  if (Wait() == std::future_status::ready) return future_->get();
+  const auto future_status = Wait();
+  if (future_status == std::future_status::ready) {
+    auto response = future_->get();
+
+    return response;
+  }
+
   throw TimeoutException("Future timeout");
 }
 

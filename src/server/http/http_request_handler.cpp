@@ -12,10 +12,6 @@
 namespace server {
 namespace http {
 
-namespace {
-const std::string kHttpRequestSpanTag = "http_request";
-}  // namespace
-
 HttpRequestHandler::HttpRequestHandler(
     const components::ComponentContext& component_context,
     const boost::optional<std::string>& logger_access_component,
@@ -54,7 +50,6 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   ] {
     request->SetTaskStartTime();
 
-    tracing::Span span(kHttpRequestSpanTag);
     request::RequestContext context;
     handler->HandleRequest(*request, context);
 

@@ -122,12 +122,22 @@ Span::Span(Span&& other) noexcept : pimpl_(std::move(other.pimpl_)) {
   pimpl_->span_ = this;
 }
 
+Span& Span::operator=(Span&&) = default;
+
 Span::~Span() = default;
 
 Span* Span::CurrentSpan() {
   if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr)
     return nullptr;
   return task_local_spans->empty() ? nullptr : task_local_spans->back().span_;
+}
+
+Span Span::MakeSpan(const std::string& name, const std::string& trace_id,
+                    const std::string& parent_span_id) {
+  Span span(name);
+  if (!trace_id.empty()) span.pimpl_->trace_id_ = trace_id;
+  span.pimpl_->parent_id_ = parent_span_id;
+  return span;
 }
 
 Span Span::CreateChild(const std::string& name) const {

@@ -10,16 +10,19 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <engine/ev/watcher/timer_watcher.hpp>
-
 #include <clients/http/error.hpp>
 #include <clients/http/form.hpp>
 #include <clients/http/response_future.hpp>
 #include <curl-ev/easy.hpp>
+#include <engine/ev/watcher/timer_watcher.hpp>
+#include <http/common_headers.hpp>
+#include <tracing/span.hpp>
+#include <tracing/tags.hpp>
 
 namespace clients {
 namespace http {
 
+namespace {
 /// Maximum number of redirects
 constexpr long kMaxRedirectCount = 10;
 /// Max number of retries during calculating timeoutt
@@ -28,6 +31,9 @@ constexpr int kMaxRetryInTimeout = 5;
 constexpr long kEBBaseTime = 25;
 /// Least http code that we treat as bad for exponential backoff algorithm
 constexpr long kLeastBadHttpCodeForEB = 500;
+
+const std::string kTracingClientName = "external";
+}  // namespace
 
 // RequestImpl definition
 
@@ -120,6 +126,8 @@ class Request::RequestImpl
   std::string put_method_data;
   const char* put_method_cursor = nullptr;
   size_t put_method_rest_data_size = 0;
+
+  boost::optional<tracing::Span> span_;
 };
 
 // Module functions
@@ -365,15 +373,24 @@ size_t Request::RequestImpl::on_header(void* ptr, size_t size, size_t nmemb,
 
 void Request::RequestImpl::on_completed(
     std::shared_ptr<Request::RequestImpl> holder, const std::error_code& err) {
-  LOG_DEBUG() << "Request::RequestImpl::on_completed(1)";
+  auto& span = *holder->span_;
+  LOG_DEBUG() << "Request::RequestImpl::on_completed(1)" << span;
 
-  LOG_DEBUG() << "Request::RequestImpl::on_completed(2)";
+  LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
+    span.AddTag(tracing::kErrorFlag, true);
+    span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
+
     holder->promise_.set_exception(PrepareException(err));
   } else {
+    span.AddTag(tracing::kHttpStatusCode, holder->response()->status_code());
+    if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
+
     holder->promise_.set_value(holder->response_move());
   }
-  LOG_DEBUG() << "Request::RequestImpl::on_completed(3)";
+
+  LOG_DEBUG() << "Request::RequestImpl::on_completed(3)" << span;
+  holder->span_.reset();
 }
 
 size_t Request::RequestImpl::PutMethodReadCallback(void* out_buffer,
@@ -402,7 +419,7 @@ size_t Request::RequestImpl::PutMethodReadCallback(void* out_buffer,
 
 void Request::RequestImpl::on_retry(
     std::shared_ptr<Request::RequestImpl> holder, const std::error_code& err) {
-  LOG_DEBUG() << "RequestImpl::on_retry";
+  LOG_DEBUG() << "RequestImpl::on_retry" << *holder->span_;
 
   // We do not need to retry
   //  - if we got result and http code is good
@@ -469,6 +486,15 @@ void Request::RequestImpl::parse_header(char* ptr, size_t size) {
 
 engine::Future<std::shared_ptr<Response>>
 Request::RequestImpl::async_perform() {
+  span_.emplace(kTracingClientName);
+  easy().add_header(::http::headers::kXYaSpanId, span_->GetSpanId());
+  easy().add_header(::http::headers::kXYaTraceId, span_->GetTraceId());
+  easy().add_header(::http::headers::kXYaRequestId, span_->GetLink());
+  span_->AddTag(tracing::kHttpUrl, easy().get_effective_url());
+
+  // Span is local to a Request, it is not related to current coroutine
+  span_->DetachFromCoroStack();
+
   // define header function
   easy().set_header_function(&Request::RequestImpl::on_header);
   easy().set_header_data(this);
