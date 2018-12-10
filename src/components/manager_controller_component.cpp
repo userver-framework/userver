@@ -116,7 +116,7 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
           .count();
 
   return engine_data.ExtractValue();
-}  // namespace components
+}
 
 void ManagerControllerComponent::OnConfigUpdate(const TaxiConfigPtr& cfg) {
   auto config = cfg->Get<ManagerControllerTaxiConfig>();

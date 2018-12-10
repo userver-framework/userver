@@ -39,6 +39,6 @@ class ManagerControllerComponent : public ComponentBase {
   components::ComponentContext::TaskProcessorPtrMap task_processor_map_;
   utils::statistics::Entry statistics_holder_;
   utils::AsyncEventSubscriberScope config_subscription_;
-};  // namespace components
+};
 
 }  // namespace components

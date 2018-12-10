@@ -32,7 +32,7 @@ class LocalStorage {
 
   void* GetGeneric(Key key);
 
-  void* SetGeneric(Key key, void* ptr, DeleterType deleter);
+  void SetGeneric(Key key, void* ptr, DeleterType deleter);
 
   template <typename T>
   static void Deleter(void* ptr) {

@@ -9,10 +9,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include <components/component_base.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
+#include <engine/task/task_with_result.hpp>
 #include <utils/demangle.hpp>
-#include "component_base.hpp"
 
 namespace engine {
 class TaskProcessor;
@@ -23,13 +24,16 @@ class TaskContext;
 
 }  // namespace engine
 
-namespace tracing {
-class Span;
-}  // namespace tracing
-
 namespace components {
 
 class Manager;
+
+namespace impl {
+
+enum class ComponentLifetimeStage;
+class ComponentInfo;
+
+}  // namespace impl
 
 class ComponentsLoadCancelledException : public std::runtime_error {
  public:
@@ -39,8 +43,6 @@ class ComponentsLoadCancelledException : public std::runtime_error {
 
 class ComponentContext {
  public:
-  using ComponentMap =
-      std::unordered_map<std::string, std::unique_ptr<ComponentBase>>;
   using TaskProcessorMap =
       std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
   using TaskProcessorPtrMap =
@@ -51,16 +53,25 @@ class ComponentContext {
 
   ComponentContext(const Manager& manager, TaskProcessorMap,
                    std::set<std::string> loading_component_names);
+  ~ComponentContext();
 
-  ComponentBase* AddComponent(std::string name,
+  ComponentBase* AddComponent(const std::string& name,
                               const ComponentFactory& factory);
-
-  void ClearComponents();
 
   void OnAllComponentsLoaded();
 
   void OnAllComponentsAreStopping();
 
+  void ClearComponents();
+
+  /// Can only be called from other component's constructor in a task where that
+  /// constructor was called.
+  /// May block and asynchronously wait for the creation of the requested
+  /// component.
+  /// @throw `ComponentsLoadCancelledException` if components loading was
+  /// cancelled due to errors in the creation of other component.
+  /// @throw `std::runtime_error` if component missing in `component_list` was
+  /// requested.
   template <typename T>
   T& FindComponent() const {
     return FindComponent<T>(T::kName);
@@ -87,8 +98,6 @@ class ComponentContext {
     return dynamic_cast<T*>(DoFindComponent(name));
   }
 
-  size_t ComponentCount() const;
-
   engine::TaskProcessor& GetTaskProcessor(const std::string& name) const;
 
   TaskProcessorPtrMap GetTaskProcessorsMap() const;
@@ -96,8 +105,6 @@ class ComponentContext {
   const Manager& GetManager() const;
 
   void CancelComponentsLoad();
-
-  void RemoveComponentDependencies(const std::string& name);
 
  private:
   class TaskToComponentMapScope {
@@ -110,36 +117,72 @@ class ComponentContext {
     ComponentContext& context_;
   };
 
-  ComponentBase* DoFindComponent(const std::string& name) const;
+  using ComponentMap =
+      std::unordered_map<std::string, std::unique_ptr<impl::ComponentInfo>>;
 
-  ComponentBase* DoFindComponentNoWait(const std::string& name,
-                                       std::unique_lock<engine::Mutex>&) const;
+  enum class DependencyType { kNormal, kInverted };
+
+  struct ComponentLifetimeStageSwitchingParams {
+    ComponentLifetimeStageSwitchingParams(
+        const impl::ComponentLifetimeStage& next_stage,
+        void (impl::ComponentInfo::*stage_switch_handler)(),
+        const std::string& stage_switch_handler_name,
+        DependencyType dependency_type, bool allow_cancelling)
+        : next_stage(next_stage),
+          stage_switch_handler(stage_switch_handler),
+          stage_switch_handler_name(stage_switch_handler_name),
+          dependency_type(dependency_type),
+          allow_cancelling(allow_cancelling),
+          is_component_lifetime_stage_switchings_cancelled{false} {}
+
+    const impl::ComponentLifetimeStage& next_stage;
+    void (impl::ComponentInfo::*stage_switch_handler)();
+    const std::string& stage_switch_handler_name;
+    DependencyType dependency_type;
+    bool allow_cancelling;
+    std::atomic<bool> is_component_lifetime_stage_switchings_cancelled;
+  };
+
+  void ProcessSingleComponentLifetimeStageSwitching(
+      const std::string& name, impl::ComponentInfo& component_info,
+      ComponentLifetimeStageSwitchingParams& params);
+
+  void ProcessAllComponentLifetimeStageSwitchings(
+      ComponentLifetimeStageSwitchingParams params);
+
+  ComponentBase* DoFindComponent(const std::string& name) const;
 
   void AddDependency(const std::string& name) const;
 
-  void CheckForDependencyLoop(const std::string& entry_name,
-                              std::unique_lock<engine::Mutex>&) const;
+  bool FindDependencyPathDfs(const std::string& current,
+                             const std::string& target,
+                             std::set<std::string>& handled,
+                             std::vector<std::string>& dependency_path,
+                             std::unique_lock<engine::Mutex>&) const;
+  void CheckForDependencyCycle(const std::string& new_dependency_from,
+                               const std::string& new_dependency_to,
+                               std::unique_lock<engine::Mutex>&) const;
 
-  bool MayUnload(const std::string& name) const;
-
-  void WaitAndUnloadComponent(const std::string& name);
+  void PrepareComponentLifetimeStageSwitching();
+  void CancelComponentLifetimeStageSwitching();
 
   std::string GetLoadingComponentName(std::unique_lock<engine::Mutex>&) const;
+  void StartPrintAddingComponentsTask();
+  void StopPrintAddingComponentsTask();
+  void PrintAddingComponents() const;
 
   const Manager& manager_;
+  TaskProcessorMap task_processor_map_;
+
+  ComponentMap components_;
+  std::atomic_flag components_load_cancelled_ = ATOMIC_FLAG_INIT;
 
   mutable engine::Mutex component_mutex_;
-  mutable engine::ConditionVariable component_cv_;
-  ComponentMap components_;
-  TaskProcessorMap task_processor_map_;
-  std::set<std::string> loading_component_names_;
-
-  // dependee -> dependency
-  mutable std::unordered_map<std::string, std::set<std::string>>
-      component_dependencies_;
   std::unordered_map<engine::impl::TaskContext*, std::string>
       task_to_component_map_;
-  bool components_load_cancelled_{false};
+  engine::ConditionVariable print_adding_components_cv_;
+  bool print_adding_components_stopped_;
+  std::unique_ptr<engine::TaskWithResult<void>> print_adding_components_task_;
 };
 
 }  // namespace components

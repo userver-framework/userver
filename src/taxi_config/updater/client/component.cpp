@@ -38,12 +38,10 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
     LOG_ERROR() << "Config client updater initialization failed: " << e.what();
-    taxi_config_.SetLoadingFailed();
-
+    taxi_config_.NotifyLoadingFailed(e.what());
     /* Start PeriodicTask without the 1st update:
-     * TaxiConfig may have been initialized with
-     * config cached in FS. If it is true, components loading will continue.
-     * Otherwise, SetLoadingFailed() above emits mass component unload.
+     * TaxiConfig has been initialized with
+     * config cached in FS. Components loading will continue.
      */
     StartPeriodicUpdates(Flag::kNoFirstUpdate);
   }

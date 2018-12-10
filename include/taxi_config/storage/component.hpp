@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <exception>
 #include <memory>
 
 #include <components/cache_update_trait.hpp>
@@ -25,6 +26,8 @@ class TaxiConfig : public LoggableComponentBase,
   /// Get config, may block if no config is available yet
   std::shared_ptr<taxi_config::Config> Get() const;
 
+  void NotifyLoadingFailed(const std::string& updater_error);
+
   /// Get config, always returns something without blocking
   /// (either up-to-date config or bootstrap config)
   std::shared_ptr<taxi_config::BootstrapConfig> GetBootstrap() const;
@@ -33,9 +36,12 @@ class TaxiConfig : public LoggableComponentBase,
   /// (e.g. config client).
   void SetConfig(std::shared_ptr<taxi_config::DocsMap> value_ptr);
 
-  void SetLoadingFailed();
+  void OnLoadingCancelled() override;
 
  private:
+  /// non-blocking check if config is available
+  bool Has() const;
+
   bool IsFsCacheEnabled() const;
   void ReadFsCache();
   void WriteFsCache(const taxi_config::DocsMap&);
@@ -54,6 +60,7 @@ class TaxiConfig : public LoggableComponentBase,
   mutable engine::ConditionVariable loaded_cv_;
   mutable engine::Mutex loaded_mutex_;
   utils::SwappingSmart<taxi_config::Config> cache_;
+  std::string loading_error_msg_;
 };
 
 }  // namespace components

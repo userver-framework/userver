@@ -17,26 +17,19 @@ TaxiConfigMongoUpdater::TaxiConfigMongoUpdater(const ComponentConfig& config,
                                                const ComponentContext& context)
     : CachingComponentBase(config, context, kName),
       taxi_config_(context.FindComponent<TaxiConfig>()) {
+  auto& mongo_component = context.FindComponent<Mongo>("mongo-taxi");
+  mongo_taxi_ = mongo_component.GetPool();
+
+  auto fallback_config_contents =
+      blocking::fs::ReadFileContents(config.ParseString("fallback-path"));
   try {
-    auto& mongo_component = context.FindComponent<Mongo>("mongo-taxi");
-    mongo_taxi_ = mongo_component.GetPool();
-
-    auto fallback_config_contents =
-        blocking::fs::ReadFileContents(config.ParseString("fallback-path"));
-    try {
-      fallback_config_.Parse(fallback_config_contents, false);
-    } catch (const std::exception& ex) {
-      throw std::runtime_error(
-          std::string("Cannot load fallback taxi config: ") + ex.what());
-    }
-
-    StartPeriodicUpdates();
-  } catch (...) {
-    LOG_DEBUG() << "mongo updater init failed";
-    taxi_config_.SetLoadingFailed();
-    StopPeriodicUpdates();
-    throw;
+    fallback_config_.Parse(fallback_config_contents, false);
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
+                             ex.what());
   }
+
+  StartPeriodicUpdates();
 }
 
 TaxiConfigMongoUpdater::~TaxiConfigMongoUpdater() { StopPeriodicUpdates(); }

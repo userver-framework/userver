@@ -62,7 +62,11 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
         "Cannot start components manager: missing default task processor");
   }
   default_task_processor_ = default_task_processor_it->second.get();
-  CreateComponentContext(std::move(task_processors), component_list);
+  RunInCoro(*default_task_processor_, [
+    this, task_processors = std::move(task_processors), &component_list
+  ]() mutable {
+    CreateComponentContext(std::move(task_processors), component_list);
+  });
 
   LOG_INFO() << "Started components manager";
 }
@@ -118,8 +122,7 @@ void Manager::CreateComponentContext(
   component_context_ = std::make_unique<components::ComponentContext>(
       *this, std::move(task_processors), std::move(loading_component_names));
 
-  RunInCoro(*default_task_processor_,
-            [this, &component_list]() { AddComponents(component_list); });
+  AddComponents(component_list);
 }
 
 void Manager::AddComponents(const ComponentList& component_list) {
@@ -139,9 +142,14 @@ void Manager::AddComponents(const ComponentList& component_list) {
       tasks.push_back(utils::CriticalAsync(task_name, [&]() {
         try {
           (*adder)(*this, component_config_map);
-        } catch (const std::exception& e) {
-          LOG_ERROR() << "Failed to load component "
-                      << adder->GetComponentName() << ": " << e.what();
+        } catch (const ComponentsLoadCancelledException& ex) {
+          LOG_WARNING() << "Cannot start component "
+                        << adder->GetComponentName() << ": " << ex.what();
+          component_context_->CancelComponentsLoad();
+          throw;
+        } catch (const std::exception& ex) {
+          LOG_ERROR() << "Cannot start component " << adder->GetComponentName()
+                      << ": " << ex.what();
           component_context_->CancelComponentsLoad();
           throw;
         } catch (...) {
@@ -178,7 +186,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
         "were caught");
   }
 
-  LOG_INFO() << "All components loaded";
+  LOG_INFO() << "All components created";
   try {
     component_context_->OnAllComponentsLoaded();
   } catch (const std::exception& ex) {
@@ -189,6 +197,8 @@ void Manager::AddComponents(const ComponentList& component_list) {
   auto stop_time = std::chrono::steady_clock::now();
   load_duration_ = std::chrono::duration_cast<std::chrono::milliseconds>(
       stop_time - start_time);
+
+  LOG_INFO() << "All components loaded";
 }
 
 void Manager::AddComponentImpl(
@@ -212,26 +222,14 @@ void Manager::AddComponentImpl(
 
   LOG_INFO() << "Starting component " << name;
 
-  try {
-    LOG_TRACE() << "Adding component " << name;
-    auto* component = component_context_->AddComponent(name, [
-      &factory, &config = config_it->second
-    ](const components::ComponentContext& component_context) {
-      return factory(config, component_context);
-    });
-    if (auto* logging_component = dynamic_cast<components::Logging*>(component))
-      logging_component_ = logging_component;
-    LOG_TRACE() << "Added component " << name;
-  } catch (const ComponentsLoadCancelledException& ex) {
-    LOG_WARNING() << "Cannot start component " << name << ": " << ex.what();
-    component_context_->RemoveComponentDependencies(name);
-    throw;
-  } catch (const std::exception& ex) {
-    std::string message = "Cannot start component " + name + ": " + ex.what();
-    component_context_->RemoveComponentDependencies(name);
-    LOG_ERROR() << message;
-    throw std::runtime_error(message);
-  }
+  auto* component = component_context_->AddComponent(name, [
+    &factory, &config = config_it->second
+  ](const components::ComponentContext& component_context) {
+    return factory(config, component_context);
+  });
+  if (auto* logging_component = dynamic_cast<components::Logging*>(component))
+    logging_component_ = logging_component;
+
   LOG_INFO() << "Started component " << name;
 }
 

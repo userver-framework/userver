@@ -12,7 +12,7 @@ void* LocalStorage::GetGeneric(Key key) {
   return nullptr;
 }
 
-void* LocalStorage::SetGeneric(Key key, void* ptr, DeleterType deleter) {
+void LocalStorage::SetGeneric(Key key, void* ptr, DeleterType deleter) {
   if (data_.size() <= key) {
     data_.resize(key + 1);
   }
@@ -21,7 +21,6 @@ void* LocalStorage::SetGeneric(Key key, void* ptr, DeleterType deleter) {
 
   data.ptr = ptr;
   data.deleter = deleter;
-  return &data;
 }
 
 }  // namespace engine

@@ -26,15 +26,29 @@ std::shared_ptr<taxi_config::Config> TaxiConfig::Get() const {
   if (ptr) return ptr;
 
   LOG_TRACE() << "Wait started";
-  std::unique_lock<engine::Mutex> lock(loaded_mutex_);
-  auto was_loaded = loaded_cv_.Wait(lock, [this]() {
-    return cache_.Get() != nullptr || config_load_cancelled_;
-  });
+  bool was_loaded;
+  {
+    std::unique_lock<engine::Mutex> lock(loaded_mutex_);
+    was_loaded = loaded_cv_.Wait(lock, [this]() {
+      return cache_.Get() != nullptr || config_load_cancelled_;
+    });
+  }
   LOG_TRACE() << "Wait finished";
 
   if (!was_loaded || config_load_cancelled_)
     throw ComponentsLoadCancelledException("config load cancelled");
   return cache_.Get();
+}
+
+void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
+  if (!Has()) {
+    std::string message;
+    if (!loading_error_msg_.empty()) {
+      message += "TaxiConfig error: " + loading_error_msg_ + ", ";
+    }
+    message += "error from updater: " + updater_error;
+    throw std::runtime_error(message);
+  }
 }
 
 std::shared_ptr<taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap() const {
@@ -43,7 +57,11 @@ std::shared_ptr<taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap() const {
 
 void TaxiConfig::DoSetConfig(
     const std::shared_ptr<taxi_config::DocsMap>& value_ptr) {
-  cache_.Set(std::make_shared<taxi_config::Config>(*value_ptr));
+  auto config = std::make_shared<taxi_config::Config>(*value_ptr);
+  {
+    std::lock_guard<engine::Mutex> lock(loaded_mutex_);
+    cache_.Set(std::move(config));
+  }
   loaded_cv_.NotifyAll();
   SendEvent(cache_.Get());
 }
@@ -53,16 +71,18 @@ void TaxiConfig::SetConfig(std::shared_ptr<taxi_config::DocsMap> value_ptr) {
   WriteFsCache(*value_ptr);
 }
 
-void TaxiConfig::SetLoadingFailed() {
-  if (cache_.Get()) {
-    LOG_WARNING() << "Config was set to nullptr, using config from FS cache";
-    return;
-  }
+void TaxiConfig::OnLoadingCancelled() {
+  if (Has()) return;
 
   LOG_ERROR() << "Config was set to nullptr, config load cancelled";
-  config_load_cancelled_ = true;
+  {
+    std::lock_guard<engine::Mutex> lock(loaded_mutex_);
+    config_load_cancelled_ = true;
+  }
   loaded_cv_.NotifyAll();
 }
+
+bool TaxiConfig::Has() const { return !!cache_.Get(); }
 
 bool TaxiConfig::IsFsCacheEnabled() const { return !fs_cache_path_.empty(); }
 
@@ -86,7 +106,9 @@ void TaxiConfig::ReadFsCache() {
      * 3) cache file is created by an old server version, it misses some
      * variables which are needed in current server version
      */
-    LOG_WARNING() << "Failed to load config from FS cache: " << e.what();
+    loading_error_msg_ =
+        std::string("Failed to load config from FS cache: ") + e.what();
+    LOG_WARNING() << loading_error_msg_;
   }
 }
 

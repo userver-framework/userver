@@ -11,13 +11,15 @@
 #include <tracing/tracer.hpp>
 #include <utils/async.hpp>
 
+#include "component_context_component_info.hpp"
+
 namespace components {
 
 namespace {
-const std::string kStopComponentRootName = "all_components_stop";
-const std::string kStoppingComponent = "component_stopping";
-const std::string kStopComponentName = "component_stop";
-const std::string kComponentName = "component_name";
+const std::string kOnAllComponentsLoadedRootName = "all_components_loaded";
+const std::string kClearComponentsRootName = "clear_components";
+
+const std::chrono::seconds kPrintAddingComponentsPeriod{10};
 }  // namespace
 
 ComponentsLoadCancelledException::ComponentsLoadCancelledException()
@@ -51,198 +53,61 @@ ComponentContext::ComponentContext(
     std::set<std::string> loading_component_names)
     : manager_(manager),
       task_processor_map_(std::move(task_processor_map)),
-      loading_component_names_(std::move(loading_component_names)) {}
+      print_adding_components_stopped_(false) {
+  for (const auto& component_name : loading_component_names) {
+    components_.emplace(
+        std::piecewise_construct, std::tie(component_name),
+        std::forward_as_tuple(
+            std::make_unique<impl::ComponentInfo>(component_name)));
+  }
+  StartPrintAddingComponentsTask();
+}
 
-ComponentBase* ComponentContext::AddComponent(std::string name,
+ComponentContext::~ComponentContext() {}
+
+ComponentBase* ComponentContext::AddComponent(const std::string& name,
                                               const ComponentFactory& factory) {
   TaskToComponentMapScope task_to_component_map_scope(*this, name);
 
-  auto component = factory(*this);
-  auto pcomponent = component.get();
-  {
-    std::lock_guard<engine::Mutex> lock(component_mutex_);
+  auto& component_info = *components_.at(name);
+  if (component_info.GetComponent())
+    throw std::runtime_error("trying to add component " + name +
+                             " multiple times");
 
-    auto res = components_.emplace(std::move(name), std::move(component));
-    if (!res.second)
-      throw std::runtime_error("duplicate component name: " + res.first->first);
-  }
+  component_info.SetComponent(factory(*this));
 
-  component_cv_.NotifyAll();
-  return pcomponent;
-}
-
-void ComponentContext::ClearComponents() {
-  tracing::Span span(kStopComponentRootName);
-  LOG_INFO() << "Sending stopping notification to all components";
-  OnAllComponentsAreStopping();
-  LOG_INFO() << "Stopping components";
-
-  std::vector<engine::TaskWithResult<void>> unload_tasks;
-  {
-    std::lock_guard<engine::Mutex> lock(component_mutex_);
-    for (const auto& component_item : components_) {
-      const auto& name = component_item.first;
-      unload_tasks.emplace_back(utils::CriticalAsync(name, [this, name]() {
-        // TODO: create span here with parent task's span as a parent
-        WaitAndUnloadComponent(name);
-      }));
-    }
-  }
-
-  for (auto& task : unload_tasks) task.Get();
-
-  LOG_INFO() << "Stopped all components";
-}
-
-void ComponentContext::OnAllComponentsAreStopping() {
-  std::lock_guard<engine::Mutex> lock(component_mutex_);
-
-  for (auto& component_item : components_) {
-    try {
-      tracing::Span span(kStoppingComponent);
-      component_item.second->OnAllComponentsAreStopping();
-    } catch (const std::exception& e) {
-      const auto& name = component_item.first;
-      LOG_ERROR() << "Exception while sendind stop notification to component " +
-                         name + ": " + e.what();
-    }
-  }
+  return component_info.GetComponent();
 }
 
 void ComponentContext::OnAllComponentsLoaded() {
-  std::lock_guard<engine::Mutex> lock(component_mutex_);
-  for (auto& component_item : components_) {
-    try {
-      component_item.second->OnAllComponentsLoaded();
-    } catch (const std::exception& ex) {
-      std::string message = "OnAllComponentsLoaded() failed for component " +
-                            component_item.first + ": " + ex.what();
-      LOG_ERROR() << message;
-      throw std::runtime_error(message);
-    }
-  }
+  StopPrintAddingComponentsTask();
+  tracing::Span span(kOnAllComponentsLoadedRootName);
+  return ProcessAllComponentLifetimeStageSwitchings(
+      {impl::ComponentLifetimeStage::kRunning,
+       &impl::ComponentInfo::OnAllComponentsLoaded, "OnAllComponentsLoaded()",
+       DependencyType::kNormal, true});
 }
 
-size_t ComponentContext::ComponentCount() const {
-  std::lock_guard<engine::Mutex> lock(component_mutex_);
-  return components_.size();
+void ComponentContext::OnAllComponentsAreStopping() {
+  LOG_INFO() << "Sending stopping notification to all components";
+  ProcessAllComponentLifetimeStageSwitchings(
+      {impl::ComponentLifetimeStage::kReadyForClearing,
+       &impl::ComponentInfo::OnAllComponentsAreStopping,
+       "OnAllComponentsAreStopping()", DependencyType::kInverted, false});
 }
 
-const Manager& ComponentContext::GetManager() const { return manager_; }
+void ComponentContext::ClearComponents() {
+  StopPrintAddingComponentsTask();
+  tracing::Span span(kClearComponentsRootName);
+  OnAllComponentsAreStopping();
 
-ComponentBase* ComponentContext::DoFindComponentNoWait(
-    const std::string& name, std::unique_lock<engine::Mutex>&) const {
-  const auto it = components_.find(name);
-  if (it != components_.cend()) {
-    return it->second.get();
-  }
-  return nullptr;
-}
+  LOG_INFO() << "Stopping components";
+  ProcessAllComponentLifetimeStageSwitchings(
+      {impl::ComponentLifetimeStage::kNull,
+       &impl::ComponentInfo::ClearComponent, "ClearComponent()",
+       DependencyType::kInverted, false});
 
-void ComponentContext::CheckForDependencyLoop(
-    const std::string& entry_name, std::unique_lock<engine::Mutex>&) const {
-  std::queue<std::string> todo;
-  std::set<std::string> handled;
-  std::unordered_map<std::string, std::string> parent;
-
-  todo.push(entry_name);
-  handled.insert(entry_name);
-  parent[entry_name] = std::string();
-
-  while (!todo.empty()) {
-    const auto cur_name = std::move(todo.front());
-    todo.pop();
-
-    if (component_dependencies_.count(cur_name) > 0) {
-      for (const auto& name : component_dependencies_[cur_name]) {
-        if (name == entry_name) {
-          std::vector<std::string> dependency_chain;
-          dependency_chain.push_back(name);
-          for (auto it = cur_name; !it.empty(); it = parent[it])
-            dependency_chain.push_back(it);
-
-          LOG_ERROR() << "Found circular dependency between components: "
-                      << boost::algorithm::join(dependency_chain, " -> ");
-          throw std::runtime_error("circular dependency");
-        }
-
-        if (handled.count(name) > 0) continue;
-
-        todo.push(name);
-        handled.insert(name);
-        parent.emplace(name, cur_name);
-      }
-    }
-  }
-}
-
-void ComponentContext::CancelComponentsLoad() {
-  std::lock_guard<engine::Mutex> lock(component_mutex_);
-  components_load_cancelled_ = true;
-
-  component_cv_.NotifyAll();
-}
-
-std::string ComponentContext::GetLoadingComponentName(
-    std::unique_lock<engine::Mutex>&) const {
-  try {
-    return task_to_component_map_.at(
-        engine::current_task::GetCurrentTaskContext());
-  } catch (const std::exception&) {
-    throw std::runtime_error(
-        "FindComponent() can be called only from a task of component load");
-  }
-}
-
-void ComponentContext::AddDependency(const std::string& name) const {
-  std::unique_lock<engine::Mutex> lock(component_mutex_);
-
-  const auto& current_component = GetLoadingComponentName(lock);
-
-  auto& current_component_dependency =
-      component_dependencies_[current_component];
-
-  if (current_component_dependency.count(name) == 0) {
-    LOG_INFO() << "Resolving dependency " << current_component << " -> "
-               << name;
-
-    current_component_dependency.insert(name);
-    CheckForDependencyLoop(name, lock);
-  }
-}
-
-void ComponentContext::RemoveComponentDependencies(const std::string& name) {
-  LOG_INFO() << "Removing " << name << " from component dependees";
-  std::lock_guard<engine::Mutex> lock(component_mutex_);
-  component_dependencies_.erase(name);
-
-  component_cv_.NotifyAll();
-}
-
-ComponentBase* ComponentContext::DoFindComponent(
-    const std::string& name) const {
-  AddDependency(name);
-
-  std::unique_lock<engine::Mutex> lock(component_mutex_);
-
-  if (loading_component_names_.count(name) == 0)
-    throw std::runtime_error("Requested non-existing component " + name);
-
-  auto component = DoFindComponentNoWait(name, lock);
-  if (component) return component;
-
-  LOG_INFO() << "component " << name << " is not loaded yet, component "
-             << GetLoadingComponentName(lock) << " is waiting for it to load";
-
-  auto was_found = component_cv_.Wait(lock, [this, &lock, &component, &name]() {
-    if (components_load_cancelled_) return true;
-    component = DoFindComponentNoWait(name, lock);
-    return component != nullptr;
-  });
-
-  if (!was_found || components_load_cancelled_)
-    throw ComponentsLoadCancelledException();
-  return component;
+  LOG_INFO() << "Stopped all components";
 }
 
 engine::TaskProcessor& ComponentContext::GetTaskProcessor(
@@ -264,48 +129,236 @@ ComponentContext::TaskProcessorPtrMap ComponentContext::GetTaskProcessorsMap()
   return result;
 }
 
-bool ComponentContext::MayUnload(const std::string& name) const {
-  // If there is any component that depends on 'name' then no
-  for (const auto& it : component_dependencies_) {
-    const auto& deps = it.second;
-    if (deps.count(name) > 0) {
-      LOG_INFO() << "Component " << name << " may not unload yet (" << it.first
-                 << " depends on " << name << ")";
-      return false;
-    }
-  }
+const Manager& ComponentContext::GetManager() const { return manager_; }
 
-  LOG_INFO() << "Component " << name << " may unload now";
-  return true;
+void ComponentContext::CancelComponentsLoad() {
+  CancelComponentLifetimeStageSwitching();
+  if (components_load_cancelled_.test_and_set()) return;
+  for (const auto& component_item : components_) {
+    component_item.second->OnLoadingCancelled();
+  }
 }
 
-void ComponentContext::WaitAndUnloadComponent(const std::string& name) {
-  std::unique_ptr<ComponentBase> tmp;
+void ComponentContext::ProcessSingleComponentLifetimeStageSwitching(
+    const std::string& name, impl::ComponentInfo& component_info,
+    ComponentLifetimeStageSwitchingParams& params) {
+  LOG_DEBUG() << "Preparing to call " << params.stage_switch_handler_name
+              << " for component " << name;
 
-  LOG_INFO() << "Preparing to stop component " << name;
+  auto wait_cb = [&](const std::string& component_name) {
+    auto& dependency_from =
+        (params.dependency_type == DependencyType::kNormal ? name
+                                                           : component_name);
+    auto& dependency_to =
+        (params.dependency_type == DependencyType::kInverted ? name
+                                                             : component_name);
+    auto& other_component_info = *components_.at(component_name);
+    if (other_component_info.GetStage() != params.next_stage) {
+      LOG_DEBUG() << "Cannot call " << params.stage_switch_handler_name
+                  << " for component " << name << " yet (" << dependency_from
+                  << " depends on " << dependency_to << ")";
+      other_component_info.WaitStage(params.next_stage,
+                                     params.stage_switch_handler_name);
+    }
+  };
+  try {
+    if (params.dependency_type == DependencyType::kNormal)
+      component_info.ForEachItDependsOn(wait_cb);
+    else
+      component_info.ForEachDependsOnIt(wait_cb);
+
+    LOG_INFO() << "Call " << params.stage_switch_handler_name
+               << " for component " << name;
+    (component_info.*params.stage_switch_handler)();
+  } catch (const impl::StageSwitchingCancelledException& ex) {
+    LOG_WARNING() << params.stage_switch_handler_name
+                  << " failed for component " << name << ": " << ex.what();
+    component_info.SetStage(params.next_stage);
+    throw;
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << params.stage_switch_handler_name << " failed for component "
+                << name << ": " << ex.what();
+    if (params.allow_cancelling) {
+      component_info.SetStageSwitchingCancelled(true);
+      if (!params.is_component_lifetime_stage_switchings_cancelled.exchange(
+              true)) {
+        CancelComponentLifetimeStageSwitching();
+      }
+      component_info.SetStage(params.next_stage);
+      throw;
+    }
+  }
+  component_info.SetStage(params.next_stage);
+}
+
+void ComponentContext::ProcessAllComponentLifetimeStageSwitchings(
+    ComponentLifetimeStageSwitchingParams params) {
+  PrepareComponentLifetimeStageSwitching();
+
+  std::vector<std::pair<std::string, engine::TaskWithResult<void>>> tasks;
+  for (const auto& component_item : components_) {
+    const auto& name = component_item.first;
+    auto& component_info = *component_item.second;
+    tasks.emplace_back(name, engine::CriticalAsync([&]() {
+                         ProcessSingleComponentLifetimeStageSwitching(
+                             name, component_info, params);
+                       }));
+  }
+
+  try {
+    for (auto& task_item : tasks) {
+      try {
+        task_item.second.Get();
+      } catch (const impl::StageSwitchingCancelledException& ex) {
+      }
+    }
+  } catch (const std::exception& ex) {
+    if (params.allow_cancelling &&
+        !params.is_component_lifetime_stage_switchings_cancelled.exchange(
+            true)) {
+      CancelComponentLifetimeStageSwitching();
+    }
+
+    for (auto& task_item : tasks) task_item.second.Wait();
+
+    throw;
+  }
+
+  if (params.is_component_lifetime_stage_switchings_cancelled)
+    throw std::logic_error(
+        params.stage_switch_handler_name +
+        " cancelled but only StageSwitchingCancelledExceptions were caught");
+}
+
+ComponentBase* ComponentContext::DoFindComponent(
+    const std::string& name) const {
+  if (components_.count(name) == 0)
+    throw std::runtime_error("Requested non-existing component " + name);
+
+  AddDependency(name);
+
+  auto& component_info = *components_.at(name);
+  auto component = component_info.GetComponent();
+  if (component) return component;
 
   {
     engine::TaskCancellationBlocker block_cancel;
     std::unique_lock<engine::Mutex> lock(component_mutex_);
-    [[maybe_unused]] bool may_unload =
-        component_cv_.Wait(lock, [this, &name]() { return MayUnload(name); });
-    assert(may_unload);
-
-    std::swap(tmp, components_[name]);
-    components_.erase(name);
+    LOG_INFO() << "component " << name << " is not loaded yet, component "
+               << GetLoadingComponentName(lock) << " is waiting for it to load";
   }
 
-  // Actual stop without the mutex
+  return component_info.WaitAndGetComponent();
+}
+
+void ComponentContext::AddDependency(const std::string& name) const {
+  std::unique_lock<engine::Mutex> lock(component_mutex_);
+
+  const auto& current_component_name = GetLoadingComponentName(lock);
+  if (components_.at(current_component_name)->CheckItDependsOn(name)) return;
+
+  LOG_INFO() << "Resolving dependency " << current_component_name << " -> "
+             << name;
+  CheckForDependencyCycle(current_component_name, name, lock);
+
+  components_.at(current_component_name)->AddItDependsOn(name);
+  components_.at(name)->AddDependsOnIt(current_component_name);
+}
+
+bool ComponentContext::FindDependencyPathDfs(
+    const std::string& current, const std::string& target,
+    std::set<std::string>& handled, std::vector<std::string>& dependency_path,
+    std::unique_lock<engine::Mutex>& lock) const {
+  handled.insert(current);
+  bool found = (current == target);
+
+  components_.at(current)->ForEachDependsOnIt([&](const std::string& name) {
+    if (!found && !handled.count(name))
+      found =
+          FindDependencyPathDfs(name, target, handled, dependency_path, lock);
+  });
+
+  if (found) dependency_path.push_back(current);
+
+  return found;
+}
+
+void ComponentContext::CheckForDependencyCycle(
+    const std::string& new_dependency_from,
+    const std::string& new_dependency_to,
+    std::unique_lock<engine::Mutex>& lock) const {
+  std::set<std::string> handled;
+  std::vector<std::string> dependency_chain;
+
+  if (FindDependencyPathDfs(new_dependency_from, new_dependency_to, handled,
+                            dependency_chain, lock)) {
+    dependency_chain.push_back(new_dependency_to);
+    LOG_ERROR() << "Found circular dependency between components: "
+                << boost::algorithm::join(dependency_chain, " -> ");
+    throw std::runtime_error("circular components dependency");
+  }
+}
+
+void ComponentContext::PrepareComponentLifetimeStageSwitching() {
+  for (const auto& component_item : components_) {
+    component_item.second->SetStageSwitchingCancelled(false);
+  }
+}
+
+void ComponentContext::CancelComponentLifetimeStageSwitching() {
+  for (const auto& component_item : components_) {
+    component_item.second->SetStageSwitchingCancelled(true);
+  }
+}
+
+std::string ComponentContext::GetLoadingComponentName(
+    std::unique_lock<engine::Mutex>&) const {
+  try {
+    return task_to_component_map_.at(
+        engine::current_task::GetCurrentTaskContext());
+  } catch (const std::exception&) {
+    throw std::runtime_error(
+        "FindComponent() can be called only from a task of component creation");
+  }
+}
+
+void ComponentContext::StartPrintAddingComponentsTask() {
+  print_adding_components_task_ =
+      std::make_unique<engine::TaskWithResult<void>>(
+          engine::CriticalAsync([this]() {
+            for (;;) {
+              {
+                std::unique_lock<engine::Mutex> lock(component_mutex_);
+                print_adding_components_cv_.WaitFor(
+                    lock, kPrintAddingComponentsPeriod,
+                    [this]() { return print_adding_components_stopped_; });
+                if (print_adding_components_stopped_) return;
+              }
+              PrintAddingComponents();
+            }
+          }));
+}
+
+void ComponentContext::StopPrintAddingComponentsTask() {
+  LOG_DEBUG() << "Stopping adding components printing";
   {
-    tracing::Span span(kStopComponentName);
-    span.AddTag(kComponentName, name);
-
-    LOG_INFO() << "Stopping component";
-    tmp.reset();
-    LOG_INFO() << "Stopped component";
+    std::lock_guard<engine::Mutex> lock(component_mutex_);
+    print_adding_components_stopped_ = true;
   }
+  print_adding_components_cv_.NotifyAll();
+  print_adding_components_task_.reset();
+}
 
-  RemoveComponentDependencies(name);
+void ComponentContext::PrintAddingComponents() const {
+  std::vector<std::string> adding_components;
+  {
+    std::lock_guard<engine::Mutex> lock(component_mutex_);
+    for (auto elem : task_to_component_map_) {
+      adding_components.push_back(elem.second);
+    }
+  }
+  LOG_INFO() << "still adding components: ["
+             << boost::algorithm::join(adding_components, ", ") << ']';
 }
 
 }  // namespace components
