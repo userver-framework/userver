@@ -5,6 +5,7 @@
 
 #include <engine/async.hpp>
 #include <engine/io/socket.hpp>
+#include <logging/log_extra.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
 
@@ -18,7 +19,7 @@ class PGConnectionWrapper {
   using ResultHandle = detail::ResultWrapper::ResultHandle;
 
  public:
-  PGConnectionWrapper(engine::TaskProcessor& tp) : bg_task_processor_{tp} {}
+  PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id);
 
   PGConnectionWrapper(const PGConnectionWrapper&) = delete;
   PGConnectionWrapper& operator=(const PGConnectionWrapper&) = delete;
@@ -67,7 +68,7 @@ class PGConnectionWrapper {
   PGTransactionStatusType GetTransactionStatus() const;
 
   void StartAsyncConnect(const std::string& conninfo);
-  void WaitConnectionFinish(const std::string& conninfo, Duration poll_timeout);
+  void WaitConnectionFinish(Duration poll_timeout);
   void OnConnect();
 
   void WaitSocketWriteable(Duration timeout);
@@ -88,6 +89,7 @@ class PGConnectionWrapper {
 
   PGconn* conn_ = nullptr;
   engine::io::Socket socket_;
+  logging::LogExtra log_extra_;
 };
 
 }  // namespace detail

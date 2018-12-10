@@ -133,9 +133,11 @@ class ConnectionPool::Impl {
 
     LOG_DEBUG() << "Creating PostgreSQL connection, current pool size: "
                 << sg.GetSize();
+    const auto conn_id = ++stats_.connection.open_total;
     std::unique_ptr<detail::Connection> connection;
     try {
-      connection = detail::Connection::Connect(dsn_, bg_task_processor_);
+      connection =
+          detail::Connection::Connect(dsn_, bg_task_processor_, conn_id);
     } catch (const Error&) {
       ++stats_.connection.error_total;
       throw;
@@ -144,7 +146,6 @@ class ConnectionPool::Impl {
     // Clean up the statistics and not account it
     std::ignore = connection->GetStatsAndReset();
 
-    ++stats_.connection.open_total;
     sg.Dismiss();
     return connection.release();
   }

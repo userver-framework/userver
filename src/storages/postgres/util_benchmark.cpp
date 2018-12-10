@@ -30,7 +30,8 @@ void PgConnection::SetUp(benchmark::State&) {
   auto conninfo = GetDsnFromEnv();
   if (!conninfo.empty()) {
     RunInCoro([this, conninfo] {
-      conn_ = detail::Connection::Connect(conninfo, GetTaskProcessor());
+      conn_ = detail::Connection::Connect(conninfo, GetTaskProcessor(),
+                                          kConnectionId);
     });
   }
 }
@@ -48,7 +49,7 @@ bool PgConnection::IsConnectionValid() const {
 engine::TaskProcessor& PgConnection::GetTaskProcessor() {
   static auto task_processor_holder =
       engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          1, "close_pg_connection", engine::impl::MakeTaskProcessorPools());
+          1, "close_pg_conn", engine::impl::MakeTaskProcessorPools());
   return *task_processor_holder;
 }
 

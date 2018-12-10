@@ -80,10 +80,12 @@ class Connection {
   ///
   /// @param conninfo Connection string, @see https://www.postgresql.org/docs/10/static/libpq-connect.html#LIBPQ-CONNSTRING
   /// @param bg_task_processor task processor for blocking operations
+  /// @param id host-wide unique id for connection identification in logs
   /// @throws ConnectionFailed
   // clang-format on
   static std::unique_ptr<Connection> Connect(
-      const std::string& conninfo, engine::TaskProcessor& bg_task_processor);
+      const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
+      uint32_t id);
 
   /// Close the connection
   /// TODO When called from another thread/coroutine will wait for current

@@ -18,6 +18,7 @@
 #include <utest/utest.hpp>
 
 constexpr static const char* kPostgresDsn = "POSTGRES_DSN_TEST";
+constexpr uint32_t kConnectionId = 0;
 
 std::vector<std::string> GetDsnFromEnv();
 std::vector<storages::postgres::DSNList> GetDsnListFromEnv();
@@ -76,7 +77,7 @@ class PostgreConnection
       pg::detail::ConnectionPtr conn;
 
       EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                          dsn_list_[0], GetTaskProcessor()))
+                          dsn_list_[0], GetTaskProcessor(), kConnectionId))
           << "Connect to correct DSN";
       func(std::move(conn));
     });

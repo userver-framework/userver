@@ -25,8 +25,8 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreStats,
 TEST_P(PostgreStats, NoTransactions) {
   RunInCoro([this] {
     pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(
-        conn = pg::detail::Connection::Connect(dsn_, GetTaskProcessor()))
+    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                        dsn_, GetTaskProcessor(), kConnectionId))
         << "Connect to correct DSN";
     ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
@@ -44,8 +44,8 @@ TEST_P(PostgreStats, NoTransactions) {
 TEST_P(PostgreStats, StatsResetAfterGet) {
   RunInCoro([this] {
     pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(
-        conn = pg::detail::Connection::Connect(dsn_, GetTaskProcessor()))
+    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                        dsn_, GetTaskProcessor(), kConnectionId))
         << "Connect to correct DSN";
     ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
@@ -68,8 +68,8 @@ TEST_P(PostgreStats, StatsResetAfterGet) {
 TEST_P(PostgreStats, TransactionStartTime) {
   RunInCoro([this] {
     pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(
-        conn = pg::detail::Connection::Connect(dsn_, GetTaskProcessor()))
+    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                        dsn_, GetTaskProcessor(), kConnectionId))
         << "Connect to correct DSN";
     ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
@@ -92,8 +92,8 @@ TEST_P(PostgreStats, TransactionStartTime) {
 TEST_P(PostgreStats, TransactionExecuted) {
   RunInCoro([this] {
     pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(
-        conn = pg::detail::Connection::Connect(dsn_, GetTaskProcessor()))
+    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                        dsn_, GetTaskProcessor(), kConnectionId))
         << "Connect to correct DSN";
     ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
@@ -123,8 +123,8 @@ TEST_P(PostgreStats, TransactionExecuted) {
 TEST_P(PostgreStats, TransactionFailed) {
   RunInCoro([this] {
     pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(
-        conn = pg::detail::Connection::Connect(dsn_, GetTaskProcessor()))
+    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                        dsn_, GetTaskProcessor(), kConnectionId))
         << "Connect to correct DSN";
     ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
@@ -154,8 +154,8 @@ TEST_P(PostgreStats, TransactionFailed) {
 TEST_P(PostgreStats, TransactionMultiExecutions) {
   RunInCoro([this] {
     pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(
-        conn = pg::detail::Connection::Connect(dsn_, GetTaskProcessor()))
+    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                        dsn_, GetTaskProcessor(), kConnectionId))
         << "Connect to correct DSN";
     ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 

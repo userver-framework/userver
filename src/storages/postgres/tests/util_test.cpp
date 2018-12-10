@@ -89,7 +89,7 @@ void PostgreSQLBase::CheckConnection(pg::detail::ConnectionPtr conn) {
 engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
   static auto task_processor_holder =
       engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          1, "close_pg_connection", engine::impl::MakeTaskProcessorPools());
+          1, "close_pg_conn", engine::impl::MakeTaskProcessorPools());
   return *task_processor_holder;
 }
 

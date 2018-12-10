@@ -14,6 +14,7 @@ namespace postgres {
 namespace bench {
 
 constexpr static const char* kPostgresDsn = "POSTGRES_DSN_BENCH";
+constexpr uint32_t kConnectionId = 0;
 
 class PgConnection : public benchmark::Fixture {
  public:

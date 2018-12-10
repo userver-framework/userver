@@ -122,8 +122,8 @@ struct Connection::Impl {
   UserTypes db_types_;
   bool read_only_ = true;
 
-  Impl(engine::TaskProcessor& bg_task_processor)
-      : conn_wrapper_{bg_task_processor} {}
+  Impl(engine::TaskProcessor& bg_task_processor, uint32_t id)
+      : conn_wrapper_{bg_task_processor, id} {}
   ~Impl() {
     if (ConnectionState::kOffline != GetConnectionState()) {
       Close().Detach();
@@ -301,10 +301,11 @@ struct Connection::Impl {
 };  // Connection::Impl
 
 std::unique_ptr<Connection> Connection::Connect(
-    const std::string& conninfo, engine::TaskProcessor& bg_task_processor) {
+    const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
+    uint32_t id) {
   std::unique_ptr<Connection> conn(new Connection());
 
-  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor);
+  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id);
   conn->pimpl_->AsyncConnect(conninfo);
 
   return conn;

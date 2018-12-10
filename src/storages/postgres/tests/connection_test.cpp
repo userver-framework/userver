@@ -266,7 +266,8 @@ POSTGRE_TEST_P(RAIITransaction) {
 
 TEST_P(PostgreConnection, Connect) {
   RunInCoro([this] {
-    EXPECT_THROW(pg::detail::Connection::Connect("psql://", GetTaskProcessor()),
+    EXPECT_THROW(pg::detail::Connection::Connect("psql://", GetTaskProcessor(),
+                                                 kConnectionId),
                  pg::ConnectionFailed)
         << "Fail to connect with invalid DSN";
 
@@ -274,7 +275,7 @@ TEST_P(PostgreConnection, Connect) {
       pg::detail::ConnectionPtr conn;
 
       EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                          dsn_list_[0], GetTaskProcessor()))
+                          dsn_list_[0], GetTaskProcessor(), kConnectionId))
           << "Connect to correct DSN";
       CheckConnection(std::move(conn));
     }
