@@ -24,147 +24,99 @@ INSTANTIATE_TEST_CASE_P(
                       ),
     /**/);
 
-using TestData = std::pair<std::string, std::size_t>;
+struct TestData {
+  std::string original_dsn;
+  std::size_t dsn_params_count;
+  std::string host_and_port;
+  std::string dbname;
+  std::string host;
+};
+
 class Split : public ::testing::TestWithParam<TestData> {};
 
 TEST_P(Split, ByHost) {
   const auto& param = GetParam();
 
   std::vector<std::string> split_dsn;
-  EXPECT_NO_THROW(split_dsn = pg::SplitByHost(param.first));
-  EXPECT_EQ(param.second, split_dsn.size());
+  EXPECT_NO_THROW(split_dsn = pg::SplitByHost(param.original_dsn));
+  EXPECT_EQ(split_dsn.size(), param.dsn_params_count);
+}
+
+TEST_P(Split, FirstHostAndPort) {
+  const auto& param = GetParam();
+
+  std::string host_and_port;
+  EXPECT_NO_THROW(host_and_port =
+                      pg::FirstHostAndPortFromDsn(param.original_dsn));
+  EXPECT_EQ(host_and_port, param.host_and_port);
+}
+
+TEST_P(Split, FirstDbName) {
+  const auto& param = GetParam();
+
+  std::string dbname;
+  EXPECT_NO_THROW(dbname = pg::FirstDbNameFromDsn(param.original_dsn));
+  EXPECT_EQ(dbname, param.dbname);
+}
+
+TEST_P(Split, FirstHost) {
+  const auto& param = GetParam();
+
+  std::string host;
+  EXPECT_NO_THROW(host = pg::FirstHostNameFromDsn(param.original_dsn));
+  EXPECT_EQ(host, param.host);
 }
 
 INSTANTIATE_TEST_CASE_P(
     PostgreDSN, Split,
     ::testing::Values(
-        std::make_pair("", 1),
-        std::make_pair(
-            "host=localhost port=5432 dbname=mydb connect_timeout=10", 1),
-        std::make_pair("host=localhost,host1 port=5432,5433 dbname=mydb "
-                       "connect_timeout=10",
-                       2),
-        std::make_pair(
-            "host=localhost,host1 port=5432 dbname=mydb connect_timeout=10", 2),
+        TestData{"", 1, "localhost:5432", "", "localhost"},
+        TestData{"host=localhost port=5432 dbname=mydb connect_timeout=10", 1,
+                 "localhost:5432", "mydb", "localhost"},
+        TestData{"host=localhost,host1 port=5432,5433 dbname=mydb "
+                 "connect_timeout=10",
+                 2, "localhost:5432", "mydb", "localhost"},
+        TestData{
+            "host=localhost,host1 port=5432 dbname=mydb connect_timeout=10", 2,
+            "localhost:5432", "mydb", "localhost"},
         // URIs
-        std::make_pair("postgresql://", 1),
-        std::make_pair("postgresql://localhost", 1),
-        std::make_pair("postgresql://localhost:5433", 1),
-        std::make_pair("postgresql://localhost/mydb", 1),
-        std::make_pair("postgresql://user@localhost", 1),
-        std::make_pair("postgresql://user:secret@localhost", 1),
-        std::make_pair("postgresql://other@localhost/"
-                       "otherdb?connect_timeout=10&application_name=myapp",
-                       1),
+        TestData{"postgresql://", 1, "localhost:5432", "", "localhost"},
+        TestData{"postgresql://localhost", 1, "localhost:5432", "",
+                 "localhost"},
+        TestData{"postgresql://localhost:5433", 1, "localhost:5433", "",
+                 "localhost"},
+        TestData{"postgresql://localhost/mydb", 1, "localhost:5432", "mydb",
+                 "localhost"},
+        TestData{"postgresql://user@localhost", 1, "localhost:5432", "",
+                 "localhost"},
+        TestData{"postgresql://user:secret@localhost", 1, "localhost:5432", "",
+                 "localhost"},
+        TestData{"postgresql://other@localhost/"
+                 "otherdb?connect_timeout=10&application_name=myapp",
+                 1, "localhost:5432", "otherdb", "localhost"},
         // multi-host uri-like dsn is introduced in PostgreSQL 10.
-        // TODO Restore the test as soon as we replace all postgre libs with
-        // version 10
-        // std::make_pair("postgresql://host1:123,host2:456/"
-        //               "somedb?application_name=myapp",
-        //               2),
+        TestData{"postgresql://host1:123,host2:456/"
+                 "somedb?application_name=myapp",
+                 2, "host1:123", "somedb", "host1"},
         // target_session_attrs is introduced in PostgreSQL 10.
-        // TODO Restore the test as soon as we replace all postgre libs with
-        // version 10
-        // std::make_pair("postgresql://host1:123,host2:456/"
-        //               "somedb?target_session_attrs=any&application_name=myapp",
-        //               2),
-        std::make_pair("postgresql:///mydb?host=localhost&port=5433", 1),
-        std::make_pair("postgresql://[2001:db8::1234]/database", 1),
-        std::make_pair("postgresql:///dbname?host=/var/lib/postgresql", 1),
-        std::make_pair("postgresql://%2Fvar%2Flib%2Fpostgresql/dbname", 1)),
+        TestData{"postgresql://host1:123,host2:456/"
+                 "somedb?target_session_attrs=any&application_name=myapp",
+                 2, "host1:123", "somedb", "host1"},
+        TestData{"postgresql:///mydb?host=localhost&port=5433", 1,
+                 "localhost:5433", "mydb", "localhost"},
+        // TODO Fix IPv6 representation. Should be:
+        // [2001:db8::1234]:5432
+        TestData{"postgresql://[2001:db8::1234]/database", 1,
+                 "2001:db8::1234:5432", "database", "2001:db8::1234"},
+        TestData{"postgresql:///dbname?host=/var/lib/postgresql", 1,
+                 "/var/lib/postgresql:5432", "dbname", "/var/lib/postgresql"},
+        TestData{"postgresql://%2Fvar%2Flib%2Fpostgresql/dbname", 1,
+                 "/var/lib/postgresql:5432", "dbname", "/var/lib/postgresql"}),
     /**/);
 
-using TestDataHaP = std::pair<std::string, std::string>;
-class HostAndPort : public ::testing::TestWithParam<TestDataHaP> {};
-
-TEST_P(HostAndPort, ByDsn) {
-  const auto& param = GetParam();
-
-  std::string host_and_port;
-  EXPECT_NO_THROW(host_and_port = pg::FirstHostAndPortFromDsn(param.first));
-  EXPECT_EQ(host_and_port, param.second);
+TEST(PostgreDSN, EscapeHostName) {
+  EXPECT_EQ(pg::EscapeHostName("host-name.with.numbers130.dots.and-dashes"),
+            "host_name_with_numbers130_dots_and_dashes");
 }
-
-INSTANTIATE_TEST_CASE_P(
-    PostgreDSN, HostAndPort,
-    ::testing::Values(
-        std::make_pair(
-            "host=localhost port=5432 dbname=mydb connect_timeout=10",
-            "localhost:5432"),
-        // URIs
-        std::make_pair("postgresql://localhost", "localhost:5432"),
-        std::make_pair("postgresql://localhost:5433", "localhost:5433"),
-        std::make_pair("postgresql://localhost/mydb", "localhost:5432"),
-        std::make_pair("postgresql://user@localhost", "localhost:5432"),
-        std::make_pair("postgresql://user:secret@localhost", "localhost:5432"),
-        std::make_pair("postgresql://other@localhost/"
-                       "otherdb?connect_timeout=10&application_name=myapp",
-                       "localhost:5432"),
-        // multi-host uri-like dsn is introduced in PostgreSQL 10.
-        // TODO Restore the test as soon as we replace all postgre libs with
-        // version 10
-        // std::make_pair("postgresql://host1:123,host2:456/"
-        //               "somedb?application_name=myapp",
-        //               "host1:123"),
-        // target_session_attrs is introduced in PostgreSQL 10.
-        // TODO Restore the test as soon as we replace all postgre libs with
-        // version 10
-        // std::make_pair("postgresql://host1:123,host2:456/"
-        //               "somedb?target_session_attrs=any&application_name=myapp",
-        //               "host1:123"),
-        std::make_pair("postgresql:///mydb?host=localhost&port=5433",
-                       "localhost:5433"),
-        std::make_pair("postgresql://[2001:db8::1234]/database",
-                       "2001:db8::1234:5432"),
-        std::make_pair("postgresql:///dbname?host=/var/lib/postgresql",
-                       "/var/lib/postgresql:5432"),
-        std::make_pair("postgresql://%2Fvar%2Flib%2Fpostgresql/dbname",
-                       "/var/lib/postgresql:5432")),
-    /**/);
-
-using TestDataDbName = std::pair<std::string, std::string>;
-class DbName : public ::testing::TestWithParam<TestDataDbName> {};
-
-TEST_P(DbName, ByDsn) {
-  const auto& param = GetParam();
-
-  std::string dbname;
-  EXPECT_NO_THROW(dbname = pg::FirstDbNameFromDsn(param.first));
-  EXPECT_EQ(dbname, param.second);
-}
-
-INSTANTIATE_TEST_CASE_P(
-    PostgreDSN, DbName,
-    ::testing::Values(
-        std::make_pair(
-            "host=localhost port=5432 dbname=mydb connect_timeout=10", "mydb"),
-        // URIs
-        std::make_pair("postgresql://localhost", ""),
-        std::make_pair("postgresql://localhost:5433", ""),
-        std::make_pair("postgresql://localhost/mydb", "mydb"),
-        std::make_pair("postgresql://user@localhost", ""),
-        std::make_pair("postgresql://user:secret@localhost", ""),
-        std::make_pair("postgresql://other@localhost/"
-                       "otherdb?connect_timeout=10&application_name=myapp",
-                       "otherdb"),
-        // multi-host uri-like dsn is introduced in PostgreSQL 10.
-        // TODO Restore the test as soon as we replace all postgre libs with
-        // version 10
-        // std::make_pair("postgresql://host1:123,host2:456/"
-        //               "somedb?application_name=myapp",
-        //               "somedb"),
-        // target_session_attrs is introduced in PostgreSQL 10.
-        // TODO Restore the test as soon as we replace all postgre libs with
-        // version 10
-        // std::make_pair("postgresql://host1:123,host2:456/"
-        //               "somedb?target_session_attrs=any&application_name=myapp",
-        //               "somedb"),
-        std::make_pair("postgresql:///mydb?host=localhost&port=5433", "mydb"),
-        std::make_pair("postgresql://[2001:db8::1234]/database", "database"),
-        std::make_pair("postgresql:///dbname?host=/var/lib/postgresql",
-                       "dbname"),
-        std::make_pair("postgresql://%2Fvar%2Flib%2Fpostgresql/dbname",
-                       "dbname")),
-    /**/);
 
 }  // namespace

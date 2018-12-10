@@ -14,7 +14,10 @@ DSNList SplitByHost(const std::string& conninfo);
 std::string MakeDsnNick(const std::string& conninfo, bool escape);
 
 std::string FirstHostAndPortFromDsn(const std::string& conninfo);
+std::string FirstHostNameFromDsn(const std::string& conninfo);
 std::string FirstDbNameFromDsn(const std::string& conninfo);
+
+std::string EscapeHostName(const std::string& hostname, char escape_char = '_');
 
 }  // namespace postgres
 }  // namespace storages

@@ -163,6 +163,12 @@ std::string FirstHostAndPortFromDsn(const std::string& conninfo) {
   return host + ':' + port;
 }
 
+std::string FirstHostNameFromDsn(const std::string& conninfo) {
+  const auto hap = ParseDSNOptions(conninfo);
+  auto host = hap.hosts.empty() ? kPostgreSQLDefaultHost : hap.hosts.front();
+  return host;
+}
+
 std::string FirstDbNameFromDsn(const std::string& conninfo) {
   std::string db_name;
   ParseDSNOptions(conninfo, [&db_name](PQconninfoOption* opt) {
@@ -171,6 +177,14 @@ std::string FirstDbNameFromDsn(const std::string& conninfo) {
     }
   });
   return db_name;
+}
+
+std::string EscapeHostName(const std::string& hostname, char escape_char) {
+  auto escaped = hostname;
+  std::replace_if(escaped.begin(), escaped.end(),
+                  [](char c) { return !std::isalpha(c) && !std::isdigit(c); },
+                  escape_char);
+  return escaped;
 }
 
 }  // namespace postgres
