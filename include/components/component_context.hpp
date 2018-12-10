@@ -52,7 +52,7 @@ class ComponentContext {
           const components::ComponentContext&)>;
 
   ComponentContext(const Manager& manager, TaskProcessorMap,
-                   std::set<std::string> loading_component_names);
+                   const std::set<std::string>& loading_component_names);
   ~ComponentContext();
 
   ComponentBase* AddComponent(const std::string& name,

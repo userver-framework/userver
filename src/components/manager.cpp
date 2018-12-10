@@ -120,7 +120,7 @@ void Manager::CreateComponentContext(
     }
   }
   component_context_ = std::make_unique<components::ComponentContext>(
-      *this, std::move(task_processors), std::move(loading_component_names));
+      *this, std::move(task_processors), loading_component_names);
 
   AddComponents(component_list);
 }

@@ -50,7 +50,7 @@ ComponentContext::TaskToComponentMapScope::~TaskToComponentMapScope() {
 
 ComponentContext::ComponentContext(
     const Manager& manager, TaskProcessorMap task_processor_map,
-    std::set<std::string> loading_component_names)
+    const std::set<std::string>& loading_component_names)
     : manager_(manager),
       task_processor_map_(std::move(task_processor_map)),
       print_adding_components_stopped_(false) {
