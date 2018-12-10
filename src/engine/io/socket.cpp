@@ -153,7 +153,9 @@ Socket Socket::Accept(Deadline deadline) {
       case EPROTO:
       case ENOPROTOOPT:
       case EHOSTDOWN:
+#ifdef ENONET  // No ENONET in Mac OS
       case ENONET:
+#endif
       case EHOSTUNREACH:
       case EOPNOTSUPP:
       case ENETUNREACH:

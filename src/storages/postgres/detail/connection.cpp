@@ -4,7 +4,7 @@
 
 #include <boost/functional/hash.hpp>
 
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 
 #include <engine/io/socket.hpp>
 #include <logging/log.hpp>

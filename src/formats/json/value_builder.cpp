@@ -25,7 +25,11 @@ ValueBuilder::ValueBuilder(uint64_t t)
 ValueBuilder::ValueBuilder(int64_t t)
     : value_(std::make_shared<Json::Value>(Json::Int64(t))) {}
 
+#ifdef _LIBCPP_VERSION
+ValueBuilder::ValueBuilder(long t) : ValueBuilder(int64_t(t)) {}
+#else
 ValueBuilder::ValueBuilder(long long t) : ValueBuilder(int64_t(t)) {}
+#endif
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   Copy(value_.GetNative(), other);

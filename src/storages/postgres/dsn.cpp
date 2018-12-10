@@ -11,7 +11,7 @@
 
 #include <boost/algorithm/string/split.hpp>
 
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 
 namespace storages {
 namespace postgres {

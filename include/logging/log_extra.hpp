@@ -109,6 +109,11 @@ class LogExtra {
   };
 
   static constexpr auto kSmallVectorSize = 24;
+#ifdef _LIBCPP_VERSION  // TODO Find out a nicer way to calculate this size
+  static constexpr auto kPimplSize = 1560;
+#else
+  static constexpr auto kPimplSize = 1944;
+#endif
   using MapItem = std::pair<Key, ProtectedValue>;
   using Map = boost::container::small_vector<MapItem, kSmallVectorSize>;
 
@@ -120,7 +125,7 @@ class LogExtra {
 
   const std::pair<Key, ProtectedValue>* Find(const Key&) const;
 
-  utils::FastPimpl<Map, 1944, 8, true> extra_;
+  utils::FastPimpl<Map, kPimplSize, 8, true> extra_;
 };
 
 }  // namespace logging

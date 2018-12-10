@@ -1,6 +1,6 @@
 #include <storages/postgres/tests/util_test.hpp>
 
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 
 #include <boost/algorithm/string.hpp>
 

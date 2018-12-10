@@ -17,7 +17,7 @@ class TestException : public std::exception {};
 
 }  // namespace
 
-TEST(CxxabiEhGlobals, UncaughtIsCoroLocal) {
+TEST(CxxabiEhGlobals, DISABLED_IN_LIBCPP_TEST_NAME(UncaughtIsCoroLocal)) {
   RunInCoro([] {
     try {
       engine::Mutex mutex;
@@ -48,7 +48,7 @@ TEST(CxxabiEhGlobals, UncaughtIsCoroLocal) {
   });
 }
 
-TEST(CxxabiEhGlobals, ActiveIsCoroLocal) {
+TEST(CxxabiEhGlobals, DISABLED_IN_LIBCPP_TEST_NAME(ActiveIsCoroLocal)) {
   RunInCoro([] {
     engine::Mutex mutex;
     engine::ConditionVariable cv;

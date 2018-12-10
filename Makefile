@@ -1,17 +1,21 @@
 -include Makefile.local
 
 # NOTE: use Makefile.local for customization
+KERNEL := $(shell uname -s)
+ifeq ($(KERNEL),Darwin)
+  -include Makefile.macos
+endif
+
 BUILD_TYPE ?= Release
 BUILD_DIR ?= build
 DOCS_DIR ?= docs
 CMAKE_DIR = $(CURDIR)
-export CC = clang-6.0
-export CXX = clang++-6.0
+CC ?= clang-6.0
+CXX ?= clang++-6.0
 SCAN_BUILD = scan-build-5.0
 SCAN_BUILD_OPTS = -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
 
-KERNEL := $(shell uname -s)
 ifeq ($(KERNEL),Linux)
   NPROCS := $(shell nproc --all)
 else ifeq ($(KERNEL),Darwin)
@@ -29,6 +33,7 @@ all: build
 cmake: $(BUILD_DIR)/Makefile
 
 $(BUILD_DIR)/Makefile:
+	@echo "Makefile: CC = ${CC} CXX = ${CXX}"
 	@mkdir -p $(BUILD_DIR)
 	@cd $(BUILD_DIR) && \
       cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $(CMAKE_OPTS) $(CMAKE_DIR)

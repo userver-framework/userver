@@ -22,8 +22,7 @@ const pg::UserTypes types;
 
 void CctzTimestampFormat(benchmark::State& state) {
   const auto utc = cctz::utc_time_zone();
-  std::chrono::high_resolution_clock::time_point tp =
-      std::chrono::high_resolution_clock::now();
+  auto tp = std::chrono::system_clock::now();
   for (auto _ : state) {
     cctz::format(time_format, tp, utc);
   }
@@ -32,7 +31,7 @@ void CctzTimestampFormat(benchmark::State& state) {
 void CctzTimestampParse(benchmark::State& state) {
   const std::string pg_timestamp = "2018-11-07 13:28:44.194045+03";
   const auto utc = cctz::utc_time_zone();
-  std::chrono::high_resolution_clock::time_point tp;
+  std::chrono::system_clock::time_point tp;
   for (auto _ : state) {
     cctz::parse(time_format, pg_timestamp, utc, &tp);
   }

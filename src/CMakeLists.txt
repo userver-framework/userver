@@ -46,6 +46,8 @@ find_package(ExternalProjectGBench REQUIRED)
 find_package(CurlYandex REQUIRED)
 find_package(CryptoPP REQUIRED)
 find_package(YamlCpp REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(Iconv REQUIRED)
 # For time zones in pg driver
 # TODO Make it optional
 find_package(ICU REQUIRED COMPONENTS uc i18n)
@@ -75,7 +77,7 @@ target_link_libraries(${PROJECT_NAME}
     ${LIBMONGOCXX_STATIC_LIBRARIES}
     sanitize-target
     yandex-taxi-backend-common-cpp
-    yaml-cpp
+    libyamlcpp
   PRIVATE
     spdlog_lib
     ${LIBCURL_YANDEX_LIBRARIES}
@@ -89,6 +91,8 @@ target_link_libraries(${PROJECT_NAME}
     ${MONGOC_STATIC_LIBRARIES}
     ${PostgreSQL_LIBRARIES} # TODO Make libpq optional
     ${ICU_LIBRARIES} # TODO Make optional together with libpq
+    OpenSSL::Crypto
+    ${Iconv_LIBRARIES}
     CryptoPP
 )
 
@@ -149,15 +153,26 @@ set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(utest
   PUBLIC
-    -Wl,--start-group
-        ${PROJECT_NAME}+standalone_engine
-        yandex-taxi-backend-common-cpp
-    -Wl,--end-group
     libgtest
     libgmock
   PRIVATE
     Boost::program_options
 )
+if (NOT MACOS)
+target_link_libraries(utest
+  PUBLIC
+    -Wl,--start-group
+        ${PROJECT_NAME}+standalone_engine
+        yandex-taxi-backend-common-cpp
+    -Wl,--end-group
+)
+else()
+target_link_libraries(utest
+  PUBLIC
+        ${PROJECT_NAME}+standalone_engine
+        yandex-taxi-backend-common-cpp
+)
+endif()
 
 target_include_directories(utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing
@@ -168,11 +183,16 @@ add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
+
 target_link_libraries(${PROJECT_NAME}_unittest
-  atomic
   utest
   Boost::program_options
 )
+if (NOT MACOS)
+target_link_libraries(${PROJECT_NAME}_unittest
+  atomic
+)
+endif()
 
 add_google_tests(${PROJECT_NAME}_unittest)
 
@@ -184,6 +204,12 @@ target_include_directories(${PROJECT_NAME}_benchmark SYSTEM PRIVATE
   ${GBENCH_INCLUDE_DIRS}
 )
 
+set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(${PROJECT_NAME}_benchmark
+  PUBLIC
+      ${GBENCH_LIBRARIES}
+)
+if (NOT MACOS)
 target_link_libraries(${PROJECT_NAME}_benchmark
   PUBLIC
     atomic
@@ -191,5 +217,11 @@ target_link_libraries(${PROJECT_NAME}_benchmark
         ${PROJECT_NAME}+standalone_engine
         yandex-taxi-backend-common-cpp
     -Wl,--end-group
-    ${GBENCH_LIBRARIES}
 )
+else()
+target_link_libraries(${PROJECT_NAME}_benchmark
+  PUBLIC
+        ${PROJECT_NAME}+standalone_engine
+        yandex-taxi-backend-common-cpp
+)
+endif()

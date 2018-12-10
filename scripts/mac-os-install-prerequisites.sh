@@ -1,0 +1,16 @@
+#!/bin/sh
+
+echo "Adding brew taxi-external tap"
+brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap.git
+
+echo "Installing required packages with brew"
+REQUIRED_PACKAGES="cppcheck jemalloc libev http-parser mongo-c-driver yaml-cpp hiredis yandex-taxi-mongo-cxx-driver postgres openssl cryptopp"
+
+brew install boost --with-icu4c
+brew install $REQUIRED_PACKAGES
+
+brew list jsoncpp > /dev/null 2>&1
+HAS_JSON_CPP=$?
+if [ $HAS_JSON_CPP -eq 0 ]; then
+  echo "jsoncpp installed with brew is incompatible with userver (it has it's own). Please remove it"
+fi

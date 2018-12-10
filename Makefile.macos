@@ -1,0 +1,4 @@
+CC ?= clang
+CXX ?= clang++
+CMAKE_OPTS += -DDISABLE_STACKTRACE=1 -DICU_ROOT=/usr/local/opt/icu4c/ -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl
+

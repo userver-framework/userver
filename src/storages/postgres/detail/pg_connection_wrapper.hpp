@@ -1,6 +1,6 @@
 #pragma once
 
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 #include <chrono>
 
 #include <engine/async.hpp>

@@ -6,7 +6,7 @@
 
 #include <utils/thread_name.hpp>
 
-TEST(ThreadName, Set) {
+TEST(ThreadName, DISABLED_IN_MAC_OS_TEST_NAME(Set)) {
   std::mutex mutex;
   std::condition_variable cv;
   std::atomic_int c{0};

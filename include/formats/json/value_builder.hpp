@@ -38,7 +38,11 @@ class ValueBuilder {
   ValueBuilder(const char* str);
   ValueBuilder(uint64_t t);
   ValueBuilder(int64_t t);
+#ifdef _LIBCPP_VERSION  // In libc++ long long and int64_t are the same
+  ValueBuilder(long t);
+#else
   ValueBuilder(long long t);
+#endif
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.

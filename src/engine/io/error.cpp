@@ -1,5 +1,7 @@
 #include <engine/io/error.hpp>
 
+#include <string>
+
 namespace engine {
 namespace io {
 

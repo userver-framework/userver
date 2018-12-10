@@ -11,18 +11,9 @@ namespace {
 
 namespace icu_ns = U_ICU_NAMESPACE;
 
-// Not marked const because mktime requires a non-const pointer
-std::tm kPgEpochTm{/* tm_sec */ 0,
-                   /* tm_min */ 0,
-                   /* tm_hour */ 0,
-                   /* tm_mday */ 1,
-                   /* tm_mon */ 0,
-                   /* tm_year */ 100,
-                   /* tm_wday */ 6 /* Saturday */,
-                   /* tm_yday */ 0,
-                   /* tm_isdst */ 0,
-                   /* tm_gmtoff */ 0,
-                   "UTC"};
+// 01.01.2000 00:00:00 @ UTC, PostgreSQL epoch
+const std::time_t kPgEpochT = 946684800;
+const auto kPgEpoch = std::chrono::system_clock::from_time_t(kPgEpochT);
 
 /// Local ICU time zone. Might be useful to calculate current UTC offset.
 icu_ns::TimeZone& GetICUTimezone() {
@@ -50,9 +41,7 @@ TimeZoneID GetLocalTimezoneID() {
 
 }  // namespace
 
-TimePoint PostgresEpoch() {
-  return std::chrono::system_clock::from_time_t(std::mktime(&kPgEpochTm));
-}
+TimePoint PostgresEpoch() { return kPgEpoch; }
 
 const TimeZoneID& LocalTimezoneID() {
   static TimeZoneID tz = GetLocalTimezoneID();

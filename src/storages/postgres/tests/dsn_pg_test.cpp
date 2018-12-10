@@ -6,7 +6,7 @@
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 
 namespace {
 

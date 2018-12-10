@@ -151,7 +151,7 @@ void TaskContext::DoStep() {
   sleep_state_ = SleepStateFlags::kNone;
   SetState(Task::State::kRunning);
   {
-    CurrentTaskScope current_task(this);
+    CurrentTaskScope current_task_scope(this);
     (*coro_)(this);
     CallOnce(sleep_params_.exec_after_asleep);
   }
@@ -373,4 +373,7 @@ void TaskContext::ProfilerStopExecution() {}
 }  // namespace impl
 }  // namespace engine
 
+#ifndef _LIBCPP_VERSION
+// Doesn't work with Mac OS (TODO)
 #include "cxxabi_eh_globals.inc"
+#endif

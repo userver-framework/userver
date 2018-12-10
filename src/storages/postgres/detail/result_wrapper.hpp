@@ -1,6 +1,6 @@
 #pragma once
 
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 #include <memory>
 
 #include <storages/postgres/postgres_fwd.hpp>
