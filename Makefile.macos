@@ -1,4 +1,9 @@
-CC ?= clang
-CXX ?= clang++
+ifeq ($(origin CC),default)
+  CC := clang
+endif
+ifeq ($(origin CXX),default)
+  CXX := clang++
+endif
+
 CMAKE_OPTS += -DDISABLE_STACKTRACE=1 -DICU_ROOT=/usr/local/opt/icu4c/ -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl
 
