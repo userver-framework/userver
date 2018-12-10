@@ -110,6 +110,8 @@ class MultiMongo : public LoggableComponentBase {
   using PoolMap = std::unordered_map<std::string, storages::mongo::PoolPtr>;
 
  public:
+  static constexpr const char* kName = "multi-mongo";
+
   /// Default shared thread pool size
   static constexpr size_t kDefaultThreadsNum = 4;
 
