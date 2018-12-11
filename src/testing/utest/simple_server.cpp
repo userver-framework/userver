@@ -4,7 +4,9 @@
 
 #include <engine/async.hpp>
 #include <engine/io/socket.hpp>
+#include <engine/mutex.hpp>
 #include <engine/task/cancel.hpp>
+#include <logging/log.hpp>
 
 #include <gtest/gtest.h>
 
@@ -84,13 +86,13 @@ class SimpleServer::Impl {
   Impl(Ports ports, OnRequest f, Protocol protocol);
 
  private:
+  void PushTask(engine::Task&& task);
+
   OnRequest callback_;
 
-  using acceptors_t = std::vector<engine::Task>;
-  acceptors_t acceptors_;
-
-  void Validate();
-  void Accept(acceptors_t::iterator acceptor);
+  using Tasks = std::vector<engine::Task>;
+  engine::Mutex task_mutex_;
+  Tasks tasks_;
 
   static engine::io::Addr MakeLoopbackAddress(unsigned short port, Protocol p);
   void StartPortListening(unsigned short port, Protocol protocol);
@@ -98,19 +100,20 @@ class SimpleServer::Impl {
 
 SimpleServer::Impl::Impl(Ports ports, OnRequest f, Protocol protocol)
     : callback_{std::move(f)} {
+  EXPECT_TRUE(ports.size())
+      << "SimpleServer must be started with at least one listen port";
+
+  EXPECT_TRUE(callback_)
+      << "SimpleServer must be started with a request callback";
+
   for (auto port : ports) {
     StartPortListening(port, protocol);
   }
-
-  Validate();
 }
 
-void SimpleServer::Impl::Validate() {
-  ASSERT_TRUE(!acceptors_.empty())
-      << "SimpleServer must be started with at least one listen port";
-
-  ASSERT_TRUE(callback_)
-      << "SimpleServer must be started with a request callback";
+void SimpleServer::Impl::PushTask(engine::Task&& task) {
+  std::lock_guard<engine::Mutex> lock{task_mutex_};
+  tasks_.emplace_back(std::move(task));
 }
 
 engine::io::Addr SimpleServer::Impl::MakeLoopbackAddress(unsigned short port,
@@ -143,17 +146,17 @@ void SimpleServer::Impl::StartPortListening(unsigned short port,
   // started listing yet and someone is already connecting...
   auto acceptor = engine::io::Listen(addr);
 
-  acceptors_.emplace_back(
-      engine::Async([ this, acceptor = std::move(acceptor) ]() mutable {
-        while (!engine::current_task::IsCancelRequested()) {
-          auto socket = acceptor.Accept({});
+  PushTask(engine::Async([ this, acceptor = std::move(acceptor) ]() mutable {
+    while (!engine::current_task::IsCancelRequested()) {
+      auto socket = acceptor.Accept({});
 
-          engine::Async([ this, s = std::move(socket) ]() mutable {
-            Client::Run(std::move(s), this->callback_);
-          })
-              .Detach();
-        }
+      LOG_INFO() << "SimpleServer accepted socket";
+
+      PushTask(engine::Async([ this, s = std::move(socket) ]() mutable {
+        Client::Run(std::move(s), this->callback_);
       }));
+    }
+  }));
 }
 
 SimpleServer::SimpleServer(Ports ports, OnRequest callback, Protocol p)
