@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -18,22 +19,20 @@ struct ClusterHostTypeHash {
 
 class ClusterTopology {
  public:
-  using HostIndices = std::vector<size_t>;
+  using HostsByType =
+      std::unordered_map<ClusterHostType, DSNList, ClusterHostTypeHash>;
 
  public:
-  explicit ClusterTopology(const ClusterDescription& cluster_desc);
+  virtual ~ClusterTopology() = default;
 
-  const DSNList& GetDsnList() const;
-  HostIndices GetHostsByType(ClusterHostType ht) const;
+  const DSNList& GetDsnList() const { return dsn_list_; }
+  virtual HostsByType GetHostsByType() const = 0;
 
- private:
-  void AddHost(ClusterHostType host_type, const std::string& host);
-
- private:
+ protected:
   DSNList dsn_list_;
-  std::unordered_map<ClusterHostType, HostIndices, ClusterHostTypeHash>
-      host_to_indices_;
 };
+
+using ClusterTopologyPtr = std::unique_ptr<ClusterTopology>;
 
 }  // namespace detail
 }  // namespace postgres

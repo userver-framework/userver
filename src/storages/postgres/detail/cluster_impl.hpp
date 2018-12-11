@@ -1,7 +1,7 @@
 #pragma once
 
 #include <atomic>
-#include <vector>
+#include <unordered_map>
 
 #include <engine/task/task_processor.hpp>
 #include <storages/postgres/cluster_types.hpp>
@@ -18,18 +18,25 @@ namespace detail {
 
 class ClusterImpl {
  public:
-  ClusterImpl(ClusterTopology&& topology,
+  ClusterImpl(const ClusterDescription& cluster_desc,
               engine::TaskProcessor& bg_task_processor, size_t initial_size,
               size_t max_size);
+  // TODO pass conninfo and SplitByHost ?
+  ClusterImpl(const DSNList& dsn_list, engine::TaskProcessor& bg_task_processor,
+              size_t initial_size, size_t max_size);
 
   ClusterStatistics GetStatistics() const;
 
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options);
 
  private:
-  ClusterTopology topology_;
+  void InitPools(const DSNList& dsn_list, size_t initial_size, size_t max_size);
+
+ private:
+  ClusterTopologyPtr topology_;
   engine::TaskProcessor& bg_task_processor_;
-  std::vector<ConnectionPool> host_pools_;
+  // TODO: consider using string_view
+  std::unordered_map<std::string, ConnectionPool> host_pools_;
   std::atomic<uint32_t> host_ind_;
 };
 

@@ -1,9 +1,11 @@
 #include <storages/postgres/pool.hpp>
 
 #include <atomic>
+#include <vector>
 
 #include <boost/lockfree/queue.hpp>
 
+#include <engine/async.hpp>
 #include <logging/log.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/time_types.hpp>
@@ -48,15 +50,24 @@ class ConnectionPool::Impl {
       throw InvalidConfig("PostgreSQL DSN is empty");
     }
 
-    try {
-      LOG_INFO() << "Creating " << initial_size << " PostgreSQL connections";
-      for (size_t i = 0; i < initial_size; ++i) {
-        Push(Create());
+    std::vector<engine::TaskWithResult<detail::Connection*>> tasks;
+    tasks.reserve(initial_size);
+    LOG_INFO() << "Creating " << initial_size << " PostgreSQL connections";
+    for (size_t i = 0; i < initial_size; ++i) {
+      auto task = engine::Async([this] { return Create(); });
+      tasks.push_back(std::move(task));
+    }
+
+    for (auto&& task : tasks) {
+      try {
+        Push(task.Get());
+      } catch (const ConnectionError&) {
+        // We'll re-create connections later on demand
+      } catch (const std::exception& ex) {
+        LOG_ERROR() << "PostgreSQL pool pre-population failed: " << ex.what();
+        Clear();
+        throw;
       }
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "PostgreSQL pool pre-population failed: " << ex.what();
-      Clear();
-      throw;
     }
   }
 

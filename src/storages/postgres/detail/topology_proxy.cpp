@@ -1,4 +1,4 @@
-#include <storages/postgres/detail/topology.hpp>
+#include <storages/postgres/detail/topology_proxy.hpp>
 
 #include <logging/log.hpp>
 #include <storages/postgres/exceptions.hpp>
@@ -7,7 +7,8 @@ namespace storages {
 namespace postgres {
 namespace detail {
 
-ClusterTopology::ClusterTopology(const ClusterDescription& cluster_desc) {
+ClusterTopologyProxy::ClusterTopologyProxy(
+    const ClusterDescription& cluster_desc) {
   if (cluster_desc.master_dsn_.empty()) {
     throw ClusterUnavailable("Master host is unavailable");
   }
@@ -22,27 +23,19 @@ ClusterTopology::ClusterTopology(const ClusterDescription& cluster_desc) {
   }
 }
 
-const DSNList& ClusterTopology::GetDsnList() const { return dsn_list_; }
-
-ClusterTopology::HostIndices ClusterTopology::GetHostsByType(
-    ClusterHostType ht) const {
-  auto it = host_to_indices_.find(ht);
-  if (it == host_to_indices_.end()) {
-    return {};
-  }
-  return it->second;
+ClusterTopology::HostsByType ClusterTopologyProxy::GetHostsByType() const {
+  return hosts_by_type;
 }
 
-void ClusterTopology::AddHost(ClusterHostType host_type,
-                              const std::string& host) {
+void ClusterTopologyProxy::AddHost(ClusterHostType host_type,
+                                   const std::string& host) {
   if (host.empty()) {
     LOG_INFO() << "No " << host_type << " host added";
     return;
   }
 
-  const auto insert_ind = dsn_list_.size();
   dsn_list_.push_back(host);
-  host_to_indices_[host_type].push_back(insert_ind);
+  hosts_by_type[host_type].push_back(host);
   LOG_INFO() << "Added " << host_type << " host";
 }
 

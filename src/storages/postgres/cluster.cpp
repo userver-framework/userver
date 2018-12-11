@@ -1,7 +1,6 @@
 #include <storages/postgres/cluster.hpp>
 
 #include <storages/postgres/detail/cluster_impl.hpp>
-#include <storages/postgres/detail/topology.hpp>
 
 namespace storages {
 namespace postgres {
@@ -10,9 +9,8 @@ Cluster::Cluster(const ClusterDescription& cluster_desc,
                  engine::TaskProcessor& bg_task_processor,
                  size_t initial_idle_connection_pool_size,
                  size_t max_connection_pool_size) {
-  detail::ClusterTopology topology(cluster_desc);
   pimpl_ = std::make_unique<detail::ClusterImpl>(
-      std::move(topology), bg_task_processor, initial_idle_connection_pool_size,
+      cluster_desc, bg_task_processor, initial_idle_connection_pool_size,
       max_connection_pool_size);
 }
 
