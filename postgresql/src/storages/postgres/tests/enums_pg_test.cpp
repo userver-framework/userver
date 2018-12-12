@@ -8,6 +8,7 @@ namespace tt = io::traits;
 
 namespace {
 
+[[maybe_unused]] constexpr const char* const kSchemaName = "__pg_test";
 const std::string kCreateTestSchema = "create schema if not exists __pg_test";
 const std::string kDropTestSchema = "drop schema if exists __pg_test cascade";
 
@@ -35,6 +36,7 @@ namespace storages::postgres::io {
 
 template <>
 struct CppToUserPg<Rainbow> : EnumMappingBase<Rainbow> {
+  [[maybe_unused]] static constexpr DBTypeName postgres_name = "__pg_test.rainbow";
   static constexpr EnumeratorList enumerators{
       {EnumType::kRed, "red"},       {EnumType::kOrange, "orange"},
       {EnumType::kYellow, "yellow"}, {EnumType::kGreen, "green"},
