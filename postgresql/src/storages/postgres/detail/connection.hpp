@@ -8,6 +8,7 @@
 #include <storages/postgres/transaction.hpp>
 
 #include <engine/task/task_processor.hpp>
+#include <logging/log_extra.hpp>
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 
@@ -144,6 +145,10 @@ class Connection {
   /// @brief Reload user types after creating a type
   void ReloadUserTypes();
   const UserTypes& GetUserTypes() const;
+
+  /// @brief Get extra log information
+  /// Used for internal needs
+  const logging::LogExtra& GetLogExtra() const;
 
   //@{
   /** @name Command sending interface for experimenting */

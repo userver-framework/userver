@@ -185,6 +185,10 @@ struct Connection::Impl {
     }
   }
 
+  const logging::LogExtra& GetLogExtra() const {
+    return conn_wrapper_.GetLogExtra();
+  }
+
   ConnectionState GetConnectionState() const {
     return conn_wrapper_.GetConnectionState();
   }
@@ -346,6 +350,10 @@ void Connection::SetParameter(const std::string& param,
 void Connection::ReloadUserTypes() { pimpl_->LoadUserTypes(); }
 const UserTypes& Connection::GetUserTypes() const {
   return pimpl_->GetUserTypes();
+}
+
+const logging::LogExtra& Connection::GetLogExtra() const {
+  return pimpl_->GetLogExtra();
 }
 
 ResultSet Connection::ExperimentalExecute(

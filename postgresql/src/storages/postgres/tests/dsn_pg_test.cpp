@@ -27,9 +27,9 @@ INSTANTIATE_TEST_CASE_P(
 struct TestData {
   std::string original_dsn;
   std::size_t dsn_params_count;
-  std::string host_and_port;
-  std::string dbname;
   std::string host;
+  std::string port;
+  std::string dbname;
 };
 
 class Split : public ::testing::TestWithParam<TestData> {};
@@ -42,77 +42,70 @@ TEST_P(Split, ByHost) {
   EXPECT_EQ(split_dsn.size(), param.dsn_params_count);
 }
 
-TEST_P(Split, FirstHostAndPort) {
+TEST_P(Split, Options) {
   const auto& param = GetParam();
 
-  std::string host_and_port;
-  EXPECT_NO_THROW(host_and_port =
-                      pg::FirstHostAndPortFromDsn(param.original_dsn));
-  EXPECT_EQ(host_and_port, param.host_and_port);
-}
-
-TEST_P(Split, FirstDbName) {
-  const auto& param = GetParam();
-
-  std::string dbname;
-  EXPECT_NO_THROW(dbname = pg::FirstDbNameFromDsn(param.original_dsn));
-  EXPECT_EQ(dbname, param.dbname);
-}
-
-TEST_P(Split, FirstHost) {
-  const auto& param = GetParam();
-
-  std::string host;
-  EXPECT_NO_THROW(host = pg::FirstHostNameFromDsn(param.original_dsn));
-  EXPECT_EQ(host, param.host);
+  pg::DsnOptions options;
+  EXPECT_NO_THROW(options = pg::OptionsFromDsn(param.original_dsn));
+  EXPECT_EQ(options.host, param.host);
+  EXPECT_EQ(options.port, param.port);
+  EXPECT_EQ(options.dbname, param.dbname);
 }
 
 INSTANTIATE_TEST_CASE_P(
     PostgreDSN, Split,
     ::testing::Values(
-        TestData{"", 1, "localhost:5432", "", "localhost"},
+        TestData{"", 1, "localhost", "5432", ""},
         TestData{"host=localhost port=5432 dbname=mydb connect_timeout=10", 1,
-                 "localhost:5432", "mydb", "localhost"},
+                 "localhost", "5432", "mydb"},
         TestData{"host=localhost,host1 port=5432,5433 dbname=mydb "
                  "connect_timeout=10",
-                 2, "localhost:5432", "mydb", "localhost"},
+                 2, "localhost", "5432", "mydb"},
         TestData{
             "host=localhost,host1 port=5432 dbname=mydb connect_timeout=10", 2,
-            "localhost:5432", "mydb", "localhost"},
+            "localhost", "5432", "mydb"},
         // URIs
-        TestData{"postgresql://", 1, "localhost:5432", "", "localhost"},
-        TestData{"postgresql://localhost", 1, "localhost:5432", "",
-                 "localhost"},
-        TestData{"postgresql://localhost:5433", 1, "localhost:5433", "",
-                 "localhost"},
-        TestData{"postgresql://localhost/mydb", 1, "localhost:5432", "mydb",
-                 "localhost"},
-        TestData{"postgresql://user@localhost", 1, "localhost:5432", "",
-                 "localhost"},
-        TestData{"postgresql://user:secret@localhost", 1, "localhost:5432", "",
-                 "localhost"},
+        TestData{"postgresql://", 1, "localhost", "5432", ""},
+        TestData{"postgresql://localhost", 1, "localhost", "5432", ""},
+        TestData{"postgresql://localhost:5433", 1, "localhost", "5433", ""},
+        TestData{"postgresql://localhost/mydb", 1, "localhost", "5432", "mydb"},
+        TestData{"postgresql://user@localhost", 1, "localhost", "5432", ""},
+        TestData{"postgresql://user:secret@localhost", 1, "localhost", "5432",
+                 ""},
         TestData{"postgresql://other@localhost/"
                  "otherdb?connect_timeout=10&application_name=myapp",
-                 1, "localhost:5432", "otherdb", "localhost"},
+                 1, "localhost", "5432", "otherdb"},
         // multi-host uri-like dsn is introduced in PostgreSQL 10.
         TestData{"postgresql://host1:123,host2:456/"
                  "somedb?application_name=myapp",
-                 2, "host1:123", "somedb", "host1"},
+                 2, "host1", "123", "somedb"},
         // target_session_attrs is introduced in PostgreSQL 10.
         TestData{"postgresql://host1:123,host2:456/"
                  "somedb?target_session_attrs=any&application_name=myapp",
-                 2, "host1:123", "somedb", "host1"},
-        TestData{"postgresql:///mydb?host=localhost&port=5433", 1,
-                 "localhost:5433", "mydb", "localhost"},
-        // TODO Fix IPv6 representation. Should be:
-        // [2001:db8::1234]:5432
-        TestData{"postgresql://[2001:db8::1234]/database", 1,
-                 "2001:db8::1234:5432", "database", "2001:db8::1234"},
+                 2, "host1", "123", "somedb"},
+        TestData{"postgresql:///mydb?host=localhost&port=5433", 1, "localhost",
+                 "5433", "mydb"},
+        TestData{"postgresql://[2001:db8::1234]/database", 1, "2001:db8::1234",
+                 "5432", "database"},
         TestData{"postgresql:///dbname?host=/var/lib/postgresql", 1,
-                 "/var/lib/postgresql:5432", "dbname", "/var/lib/postgresql"},
+                 "/var/lib/postgresql", "5432", "dbname"},
         TestData{"postgresql://%2Fvar%2Flib%2Fpostgresql/dbname", 1,
-                 "/var/lib/postgresql:5432", "dbname", "/var/lib/postgresql"}),
+                 "/var/lib/postgresql", "5432", "dbname"}),
     /**/);
+
+TEST(PostgreDSN, DsnCutPassword) {
+  const auto dsn_cut = pg::DsnCutPassword(
+      "host=127.0.0.1 port=6432 dbname=mydb connect_timeout=10 user=myuser "
+      "password=mypass");
+  EXPECT_EQ(dsn_cut.find("password"), dsn_cut.npos);
+  EXPECT_EQ(dsn_cut.find("mypass"), dsn_cut.npos);
+
+  pg::DsnOptions options;
+  EXPECT_NO_THROW(options = pg::OptionsFromDsn(dsn_cut));
+  EXPECT_EQ(options.host, "127.0.0.1");
+  EXPECT_EQ(options.port, "6432");
+  EXPECT_EQ(options.dbname, "mydb");
+}
 
 TEST(PostgreDSN, EscapeHostName) {
   EXPECT_EQ(pg::EscapeHostName("host-name.with.numbers130.dots.and-dashes"),

@@ -51,8 +51,8 @@ void ClusterTopologyDiscovery::InitHostInfo(const DSNList& dsn_list) {
   host_types_.resize(host_count, kNothing);
 
   for (size_t i = 0; i < host_count; ++i) {
-    const auto hostname = FirstHostNameFromDsn(dsn_list_[i]);
-    escaped_to_dsn_index_[EscapeHostName(hostname)] = i;
+    const auto options = OptionsFromDsn(dsn_list_[i]);
+    escaped_to_dsn_index_[EscapeHostName(options.host)] = i;
   }
 }
 
@@ -159,9 +159,9 @@ void ClusterTopologyDiscovery::FindSyncSlaves(HostTypeList& host_types,
     return;
   }
 
-  // TODO take out sensitive info from dsn when logged
-  LOG_INFO() << "Found master host: '" << dsn_list_[master_index] << '\'';
-  auto task = engine::Async([ this, conn = connections_[master_index].get() ] {
+  auto* conn = connections_[master_index].get();
+  LOG_INFO() << conn->GetLogExtra() << "Found master host";
+  auto task = engine::Async([this, conn] {
     // TODO exception handling here
     auto res = conn->Execute("show synchronous_standby_names");
     if (!res) {
@@ -188,12 +188,10 @@ void ClusterTopologyDiscovery::FindSyncSlaves(HostTypeList& host_types,
     LOG_WARNING() << "No sync slave hosts found";
   }
   for (auto&& index : sync_slave_indices) {
-    // TODO take out sensitive info from dsn when logged
-    LOG_INFO() << "Found sync slave host: '" << dsn_list_[index] << '\'';
+    LOG_INFO() << connections_[index]->GetLogExtra() << "Found sync slave host";
     if (index == master_index) {
-      // TODO take out sensitive info from dsn when logged
-      LOG_ERROR() << "Overwriting master type with sync slave type for host "
-                  << dsn_list_[index];
+      LOG_ERROR() << connections_[index]->GetLogExtra()
+                  << "Attempt to overwrite master type with sync slave type";
     }
     host_types[index] = ClusterHostType::kSyncSlave;
   }

@@ -118,9 +118,7 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
   const auto& dsn =
       host_dsns[host_ind_.fetch_add(1, std::memory_order_relaxed) %
                 host_dsns.size()];
-  // TODO take out sensitive info from dsn when logged
-  LOG_TRACE() << "Starting transaction on the host of " << host_type
-              << " type, dsn=" << dsn;
+  LOG_TRACE() << "Starting transaction on the host of " << host_type << " type";
 
   auto it_find = host_pools_.find(dsn);
   if (it_find == host_pools_.end()) {

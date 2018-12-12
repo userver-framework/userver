@@ -63,6 +63,9 @@ class PGConnectionWrapper {
   /// @brief Wait for query result
   /// Will return result or throw an exception
   ResultSet WaitResult(Duration timeout);
+  /// @brief Get extra log information
+  /// Used for internal needs
+  const logging::LogExtra& GetLogExtra() const;
 
  private:
   PGTransactionStatusType GetTransactionStatus() const;

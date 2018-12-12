@@ -62,9 +62,9 @@ void AddInstanceStatistics(
   if (desc.dsn.empty()) {
     return;
   }
-  const auto host_and_port =
-      storages::postgres::FirstHostAndPortFromDsn(desc.dsn);
-  parent[host_and_port] = InstanceStatisticsToJson(desc.stats);
+  const auto options = storages::postgres::OptionsFromDsn(desc.dsn);
+  parent[options.host + ':' + options.port] =
+      InstanceStatisticsToJson(desc.stats);
 }
 
 formats::json::ValueBuilder ClusterStatisticsToJson(
@@ -109,7 +109,8 @@ Postgres::Postgres(const ComponentConfig& config,
   storages::postgres::ClusterDescription cluster_desc;
   if (dbalias.empty()) {
     const auto dsn_string = config.ParseString("dbconnection");
-    db_name_ = storages::postgres::FirstDbNameFromDsn(dsn_string);
+    const auto options = storages::postgres::OptionsFromDsn(dsn_string);
+    db_name_ = options.dbname;
     shard_to_desc_.push_back(
         storages::postgres::ClusterDescription(dsn_string));
   } else {

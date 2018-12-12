@@ -154,29 +154,38 @@ std::string MakeDsnNick(const std::string& conninfo, bool escape) {
   return dsn_str;
 }
 
-std::string FirstHostAndPortFromDsn(const std::string& conninfo) {
-  const auto hap = ParseDSNOptions(conninfo);
-  const auto host =
-      hap.hosts.empty() ? kPostgreSQLDefaultHost : hap.hosts.front();
-  const auto port =
-      hap.ports.empty() ? kPostgreSQLDefaultPort : hap.ports.front();
-  return host + ':' + port;
-}
-
-std::string FirstHostNameFromDsn(const std::string& conninfo) {
-  const auto hap = ParseDSNOptions(conninfo);
-  auto host = hap.hosts.empty() ? kPostgreSQLDefaultHost : hap.hosts.front();
-  return host;
-}
-
-std::string FirstDbNameFromDsn(const std::string& conninfo) {
-  std::string db_name;
-  ParseDSNOptions(conninfo, [&db_name](PQconninfoOption* opt) {
-    if (db_name.empty() && opt->keyword == std::string("dbname")) {
-      db_name = opt->val;
+DsnOptions OptionsFromDsn(const std::string& conninfo) {
+  DsnOptions options;
+  const auto hap = ParseDSNOptions(conninfo, [&options](PQconninfoOption* opt) {
+    std::string keyword = opt->keyword;
+    if (options.dbname.empty() && keyword == "dbname") {
+      options.dbname = opt->val;
     }
   });
-  return db_name;
+  options.host = hap.hosts.empty() ? kPostgreSQLDefaultHost : hap.hosts.front();
+  options.port = hap.ports.empty() ? kPostgreSQLDefaultPort : hap.ports.front();
+  return options;
+}
+
+std::string DsnCutPassword(const std::string& conninfo) {
+  OptionsHandle opts = {nullptr, &PQconninfoFree};
+  try {
+    opts = MakeDSNOptions(conninfo);
+  } catch (const InvalidDSN&) {
+    return {};
+  }
+
+  std::string cleared;
+  const std::string password = "password";
+
+  auto opt = opts.get();
+  while (opt != nullptr && opt->keyword != nullptr) {
+    if (opt->val != nullptr && opt->keyword != password) {
+      cleared += std::string(opt->keyword) + '=' + std::string(opt->val) + ' ';
+    }
+    ++opt;
+  }
+  return cleared;
 }
 
 std::string EscapeHostName(const std::string& hostname, char escape_char) {

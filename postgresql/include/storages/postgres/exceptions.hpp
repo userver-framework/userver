@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include <storages/postgres/dsn.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/message.hpp>
 
@@ -178,9 +179,10 @@ class ConnectionError : public RuntimeError {
 class ConnectionFailed : public ConnectionError {
  public:
   explicit ConnectionFailed(const std::string& conninfo)
-      : ConnectionError(conninfo + " Failed to connect to PostgreSQL server") {}
+      : ConnectionError(DsnCutPassword(conninfo) +
+                        " Failed to connect to PostgreSQL server") {}
   ConnectionFailed(const std::string& conninfo, const std::string& message)
-      : ConnectionError(conninfo + " " + message) {}
+      : ConnectionError(DsnCutPassword(conninfo) + ' ' + message) {}
 };
 
 /// @brief Connection error reported by PostgreSQL server.

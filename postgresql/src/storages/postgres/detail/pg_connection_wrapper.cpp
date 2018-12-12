@@ -131,12 +131,11 @@ engine::TaskWithResult<void> PGConnectionWrapper::Cancel() {
 
 void PGConnectionWrapper::AsyncConnect(const std::string& conninfo,
                                        Duration poll_timeout) {
-  // TODO trim user password and other sensitive info from conninfo
-  LOG_DEBUG() << log_extra_ << "Connecting to " << conninfo;
+  LOG_DEBUG() << log_extra_ << "Connecting to " << DsnCutPassword(conninfo);
   StartAsyncConnect(conninfo);
   WaitConnectionFinish(poll_timeout);
   OnConnect();
-  LOG_DEBUG() << log_extra_ << "Connected to " << conninfo;
+  LOG_DEBUG() << log_extra_ << "Connected to " << DsnCutPassword(conninfo);
 }
 
 void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
@@ -144,7 +143,7 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
     LOG_ERROR() << log_extra_
                 << "Attempt to connect a connection that is already connected"
                 << logging::LogExtra::Stacktrace();
-    throw ConnectionError{"Already connected"};
+    throw ConnectionFailed{conninfo, "Already connected"};
   }
   conn_ = PQconnectStart(conninfo.c_str());
   if (!conn_) {
@@ -170,7 +169,10 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
     throw ConnectionFailed{conninfo, "Invalid socket handle"};
   }
   socket_ = engine::io::Socket(socket);
-  log_extra_.Extend("dsn", FirstHostAndPortFromDsn(conninfo));
+
+  const auto options = OptionsFromDsn(conninfo);
+  log_extra_.Extend("host", options.host + ':' + options.port);
+  log_extra_.Extend("dbname", options.dbname);
 
   if (kVerboseErrors) {
     PQsetErrorVerbosity(conn_, PQERRORS_VERBOSE);
@@ -192,7 +194,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Duration poll_timeout) {
         break;
       case PGRES_POLLING_FAILED:
         LOG_ERROR() << log_extra_ << " libpq polling failed";
-        CheckError<ConnectionFailed>("PQconnectPoll", 0);
+        CheckError<ConnectionError>("PQconnectPoll", 0);
       default:
         assert(!"Unexpected enumeration value");
         break;
@@ -247,6 +249,10 @@ ResultSet PGConnectionWrapper::WaitResult(Duration timeout) {
     ConsumeInput(timeout);
   }
   return MakeResult(std::move(handle));
+}
+
+const logging::LogExtra& PGConnectionWrapper::GetLogExtra() const {
+  return log_extra_;
 }
 
 ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
