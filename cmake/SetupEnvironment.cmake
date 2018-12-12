@@ -125,14 +125,7 @@ if (CLANG)
     message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
   endif()
 
-  add_compile_options ("-Wno-old-style-cast")
-  add_compile_options ("-Wno-undefined-var-template")
-  add_compile_options ("-Wno-unused-private-field")
-  add_compile_options ("-Wno-unused-const-variable")
-  add_compile_options ("-Wno-pessimizing-move")
-  add_compile_options ("-Wno-absolute-value")
-  add_compile_options ("-Wno-mismatched-tags")
-  add_compile_options ("-Wno-missing-braces") #-Wmissing-braces is buggy in some versions on clang
+  add_compile_options ("-Wno-missing-braces") # -Wmissing-braces is buggy in some versions on clang
   add_compile_options ("-Wno-braced-scalar-init")
 endif()
 

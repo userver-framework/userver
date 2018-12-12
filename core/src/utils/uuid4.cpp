@@ -11,8 +11,6 @@ namespace generators {
 
 namespace {
 
-const size_t kMaxGeneratorBufferCount = 16;
-
 class Uuid4Generator {
  public:
   using Uuid = boost::uuids::uuid;

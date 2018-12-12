@@ -65,7 +65,7 @@ class TimerWatcher;
 namespace curl {
 class easy;
 class socket_type;
-class socket_info;
+struct socket_info;
 
 class CURLASIO_API multi {
  public:

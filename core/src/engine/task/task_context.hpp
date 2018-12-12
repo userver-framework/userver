@@ -142,7 +142,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   void ProfilerStartExecution();
   void ProfilerStopExecution();
 
-  const uint64_t magic_;
+  [[maybe_unused]] const uint64_t magic_;
   TaskProcessor& task_processor_;
   const TaskCounter::Token task_counter_token_;
   const bool is_critical_;

@@ -29,7 +29,7 @@ namespace components {
 
 class ComponentList;
 
-class ManagerConfig;
+struct ManagerConfig;
 
 class Manager {
  public:

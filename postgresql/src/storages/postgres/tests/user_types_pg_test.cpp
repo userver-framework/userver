@@ -34,8 +34,6 @@ constexpr pg::DBTypeName kDomainName{kSchemaName, "dom"};
 const std::string kCreateADomain = R"~(
 create domain __pg_test.dom as text default 'foobar' not null)~";
 
-constexpr pg::DBTypeName kNotThere{kSchemaName, "not_there"};
-
 }  // namespace
 
 namespace pg_test {

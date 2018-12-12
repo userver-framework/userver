@@ -15,7 +15,7 @@ namespace server {
 class RequestsView;
 
 class ServerImpl;
-class ServerConfig;
+struct ServerConfig;
 
 class Server {
  public:
