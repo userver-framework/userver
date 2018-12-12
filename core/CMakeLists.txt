@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(yandex-taxi-userver)
+project(yandex-taxi-userver-core)
+
+include(GetUserverVersion)
+message(STATUS "Userver version ${USERVER_VERSION}")
 
 include(CheckFunctionExists)
 check_function_exists("accept4" HAVE_ACCEPT4)
@@ -29,28 +32,32 @@ file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*_benchmark.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 )
-list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
-
+file(GLOB_RECURSE LIBUBENCH_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.hpp
+)
+list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS coroutine program_options filesystem)
-find_package(Jemalloc REQUIRED)
-find_package(Hiredis 0.13.3 REQUIRED)
-find_package(LibEv REQUIRED)
+find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+
+# Hiredis' config doesn't set _FOUND :(
+find_package(Hiredis 0.13.3)
+append_debian_depends("libhiredis-dev (>= 0.13.3-2.4)")
+
+find_package_required(LibEv "libev-dev")
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
-find_package(CurlYandex REQUIRED)
+find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev")
 find_package(CryptoPP REQUIRED)
-find_package(YamlCpp REQUIRED)
-find_package(OpenSSL REQUIRED)
 find_package(Iconv REQUIRED)
-# For time zones in pg driver
-# TODO Make it optional
-find_package(ICU REQUIRED COMPONENTS uc i18n)
+find_package_required(YamlCpp "libyaml-cpp-dev (>= 1:0.6)")
+find_package_required(OpenSSL "libcrypto++-dev")
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev (>=2.8)" 2.8)
@@ -62,9 +69,6 @@ find_package_required_version(libbsoncxx-static
     "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
 find_package_required_version(libmongocxx-static
     "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
-# TODO Make libpq optional
-find_package_required_version(PostgreSQL
-    "libpq-dev postgresql-server-dev-10" 10)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -84,34 +88,32 @@ target_link_libraries(${PROJECT_NAME}
     ${ZLIB_LIBRARIES}
     Boost::coroutine
     Boost::filesystem
+    Boost::program_options
     ${HIREDIS_LIBRARIES}
     ${HTTP_PARSER_LIBRARIES}
     ${LIBEV_LIBRARIES}
     ${BSON_STATIC_LIBRARIES}
     ${MONGOC_STATIC_LIBRARIES}
-    ${PostgreSQL_LIBRARIES} # TODO Make libpq optional
-    ${ICU_LIBRARIES} # TODO Make optional together with libpq
-    OpenSSL::Crypto
     ${Iconv_LIBRARIES}
+    OpenSSL::Crypto
     CryptoPP
 )
 
-set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(
   USERVER_STANDALONE_ENGINE_INCLUDE_DIR
-  ${CMAKE_CURRENT_SOURCE_DIR}/../standalone_engine_include
+  ${CMAKE_CURRENT_SOURCE_DIR}/standalone_engine_include
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}
 )
 
+
 # include them as system to suppress errors
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   ${LIBBSONCXX_STATIC_INCLUDE_DIRS}
   ${LIBMONGOCXX_STATIC_INCLUDE_DIRS}
-  # Used in PosgreSQL driver, TODO make it optional
-  ${USERVER_THIRD_PARTY_DIRS}/magic_get/include
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
@@ -119,8 +121,6 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${MONGOC_STATIC_INCLUDE_DIRS}
   ${USERVER_THIRD_PARTY_DIRS}/boost-sync-event/include
   ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
-  ${PostgreSQL_INCLUDE_DIRS} # TODO Make libpq optional
-  ${ICU_INCLUDE_DIRS} # TODO Make optional together with libpq
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -130,14 +130,15 @@ target_include_directories(${PROJECT_NAME}
     ${LIBCURL_YANDEX_INCLUDE_DIR}
   PRIVATE
     ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
     ${LIBEV_INCLUDE_DIR}
 )
 
-add_library(${PROJECT_NAME}+standalone_engine INTERFACE)
-target_link_libraries(${PROJECT_NAME}+standalone_engine INTERFACE ${PROJECT_NAME})
-target_include_directories(${PROJECT_NAME}+standalone_engine INTERFACE
+set(LIBSTANDALONE_ENGINE yandex-taxi-userver+standalone_engine)
+add_library(${LIBSTANDALONE_ENGINE} INTERFACE)
+target_link_libraries(${LIBSTANDALONE_ENGINE} INTERFACE ${PROJECT_NAME})
+target_include_directories(${LIBSTANDALONE_ENGINE} INTERFACE
   ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
 )
 
@@ -145,7 +146,7 @@ option(USERVER_PROFILER "Enable task execution profiler" OFF)
 message("engine profiler: ${USERVER_PROFILER}")
 if (USERVER_PROFILER)
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSERVER_PROFILER=1)
-  target_compile_definitions(${PROJECT_NAME}+standalone_engine INTERFACE -DUSERVER_PROFILER=1)
+  target_compile_definitions(${LIBSTANDALONE_ENGINE} INTERFACE -DUSERVER_PROFILER=1)
 endif()
 
 add_library(utest STATIC ${LIBUTEST_SOURCES})
@@ -159,19 +160,22 @@ target_link_libraries(utest
     Boost::program_options
 )
 if (NOT MACOS)
-target_link_libraries(utest
-  PUBLIC
-    -Wl,--start-group
-        ${PROJECT_NAME}+standalone_engine
-        yandex-taxi-backend-common-cpp
-    -Wl,--end-group
-)
+    target_link_libraries(utest
+      PUBLIC
+        -Wl,--start-group
+	    ${LIBSTANDALONE_ENGINE}
+            yandex-taxi-backend-common-cpp
+        -Wl,--end-group
+    )
+    target_link_libraries(utest PRIVATE
+      atomic
+    )
 else()
-target_link_libraries(utest
-  PUBLIC
-        ${PROJECT_NAME}+standalone_engine
-        yandex-taxi-backend-common-cpp
-)
+    target_link_libraries(utest
+      PUBLIC
+	    ${LIBSTANDALONE_ENGINE}
+            yandex-taxi-backend-common-cpp
+    )
 endif()
 
 target_include_directories(utest PUBLIC
@@ -186,42 +190,32 @@ target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
 
 target_link_libraries(${PROJECT_NAME}_unittest
   utest
-  Boost::program_options
 )
-if (NOT MACOS)
-target_link_libraries(${PROJECT_NAME}_unittest
-  atomic
-)
-endif()
 
 add_google_tests(${PROJECT_NAME}_unittest)
 
-add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-)
-target_include_directories(${PROJECT_NAME}_benchmark SYSTEM PRIVATE
-  ${GBENCH_INCLUDE_DIRS}
-)
 
-set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(${PROJECT_NAME}_benchmark
-  PUBLIC
-      ${GBENCH_LIBRARIES}
-)
+add_library(ubench ${LIBUBENCH_SOURCES})
+target_include_directories(ubench PUBLIC ${GBENCH_INCLUDE_DIRS})
+target_include_directories(ubench SYSTEM PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+target_link_libraries(ubench PUBLIC ${GBENCH_LIBRARIES})
 if (NOT MACOS)
-target_link_libraries(${PROJECT_NAME}_benchmark
-  PUBLIC
-    atomic
-    -Wl,--start-group
-        ${PROJECT_NAME}+standalone_engine
-        yandex-taxi-backend-common-cpp
-    -Wl,--end-group
-)
+    target_link_libraries(ubench
+        PUBLIC
+            atomic
+            -Wl,--start-group
+	        ${LIBSTANDALONE_ENGINE}
+                yandex-taxi-backend-common-cpp
+            -Wl,--end-group
+    )
 else()
-target_link_libraries(${PROJECT_NAME}_benchmark
-  PUBLIC
-        ${PROJECT_NAME}+standalone_engine
-        yandex-taxi-backend-common-cpp
-)
+    target_link_libraries(ubench
+        PUBLIC
+	    ${LIBSTANDALONE_ENGINE}
+            yandex-taxi-backend-common-cpp
+    )
 endif()
+
+add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC ubench)

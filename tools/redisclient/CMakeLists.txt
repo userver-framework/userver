@@ -28,4 +28,4 @@ endif()
 # Include directories marked SYSTEM so that includes from external projects
 # do not generate warnings treated as errors
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
-    $<TARGET_PROPERTY:yandex-taxi-userver,INCLUDE_DIRECTORIES>)
+    $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>)
