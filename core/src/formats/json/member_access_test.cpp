@@ -19,21 +19,32 @@ struct JsonMemberAccess : public ::testing::Test {
 };
 
 TEST_F(JsonMemberAccess, ChildBySquareBrakets) {
+  EXPECT_FALSE(js_doc_["key1"].isMissing());
   EXPECT_EQ(js_doc_["key1"], formats::json::ValueBuilder(1).ExtractValue());
 }
 
 TEST_F(JsonMemberAccess, ChildBySquareBraketsTwice) {
+  EXPECT_FALSE(js_doc_["key3"]["sub"].isMissing());
   EXPECT_EQ(js_doc_["key3"]["sub"],
             formats::json::ValueBuilder(-1).ExtractValue());
 }
 
 TEST_F(JsonMemberAccess, ChildBySquareBraketsMissing) {
-  EXPECT_THROW(js_doc_["key_missing"], formats::json::MemberMissingException);
+  EXPECT_NO_THROW(js_doc_["key_missing"]);
+  EXPECT_EQ(js_doc_["key_missing"].GetPath(), "key_missing");
+  EXPECT_TRUE(js_doc_["key_missing"].isMissing());
+  EXPECT_FALSE(js_doc_["key_missing"].isNull());
+  EXPECT_THROW(js_doc_["key_missing"].asBool(),
+               formats::json::MemberMissingException);
 }
 
-TEST_F(JsonMemberAccess, ChildBySquareBraketsWrong) {
-  EXPECT_THROW(js_doc_["key1"]["key_wrong"],
-               formats::json::TypeMismatchException);
+TEST_F(JsonMemberAccess, ChildBySquareBraketsMissingTwice) {
+  EXPECT_NO_THROW(js_doc_["key_missing"]["sub"]);
+  EXPECT_EQ(js_doc_["key_missing"]["sub"].GetPath(), "key_missing.sub");
+  EXPECT_TRUE(js_doc_["key_missing"]["sub"].isMissing());
+  EXPECT_FALSE(js_doc_["key_missing"]["sub"].isNull());
+  EXPECT_THROW(js_doc_["key_missing"]["sub"].asBool(),
+               formats::json::MemberMissingException);
 }
 
 TEST_F(JsonMemberAccess, ChildBySquareBraketsArray) {
@@ -183,6 +194,7 @@ TEST_F(JsonMemberAccess, MemberCount) { EXPECT_EQ(js_doc_.GetSize(), 6); }
 TEST_F(JsonMemberAccess, HasMember) {
   EXPECT_TRUE(js_doc_.HasMember("key1"));
   EXPECT_FALSE(js_doc_.HasMember("keyX"));
+  EXPECT_FALSE(js_doc_["keyX"].HasMember("key1"));
 }
 
 TEST_F(JsonMemberAccess, CopyMoveSubobject) {
@@ -198,6 +210,11 @@ TEST_F(JsonMemberAccess, CopyMoveSubobject) {
 TEST_F(JsonMemberAccess, IteratorOnNullThrows) {
   formats::json::Value v;
   EXPECT_THROW(v.begin(), formats::json::TypeMismatchException);
+}
+
+TEST_F(JsonMemberAccess, IteratorOnMissingThrows) {
+  formats::json::Value v;
+  EXPECT_THROW(v["missing_key"].begin(), formats::json::MemberMissingException);
 }
 
 TEST_F(JsonMemberAccess, CloneValues) {

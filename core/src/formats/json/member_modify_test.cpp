@@ -254,3 +254,9 @@ TEST_F(JsonMemberModify, TypeCheckMinMax) {
   EXPECT_EQ(v["long"].asInt64(), std::numeric_limits<long>::min());
   EXPECT_EQ(v["long long"].asInt64(), std::numeric_limits<long long>::min());
 }
+
+TEST_F(JsonMemberModify, CannotBuildFromMissing) {
+  formats::json::Value v;
+  formats::json::ValueBuilder bld;
+  EXPECT_THROW(bld = v["missing_key"], formats::json::MemberMissingException);
+}

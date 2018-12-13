@@ -10,31 +10,29 @@ Value::Value() noexcept : value_ptr_(nullptr) {}
 Value::Value(NativeValuePtr&& root) noexcept
     : root_(std::move(root)), value_ptr_(root_.get()) {}
 
-Value::Value(const NativeValuePtr& root, const Json::Value& val,
+Value::Value(const NativeValuePtr& root, const Json::Value* value_ptr,
              const formats::json::Path& path, const std::string& key)
-    : root_(root), value_ptr_(const_cast<Json::Value*>(&val)), path_(path) {
+    : root_(root),
+      value_ptr_(const_cast<Json::Value*>(value_ptr)),
+      path_(path) {
   path_.push_back(key);
 }
 
 Value::Value(const NativeValuePtr& root, const Json::Value& val,
              const formats::json::Path& path, uint32_t index)
     : root_(root), value_ptr_(const_cast<Json::Value*>(&val)), path_(path) {
-  std::string str;
-  str += '[';
-  str += std::to_string(index);
-  str += ']';
-  path_.push_back(std::move(str));
+  path_.push_back('[' + std::to_string(index) + ']');
 }
 
 const Json::Value& Value::Get() const { return GetNative(); }
 
 Value Value::operator[](const std::string& key) const {
-  CheckObjectOrNull();
-  const auto* child = GetNative().find(key.data(), key.data() + key.size());
-  if (!child) {
-    throw MemberMissingException(key, GetPath());
+  const Json::Value* child = nullptr;
+  if (!isMissing()) {
+    CheckObjectOrNull();
+    child = GetNative().find(key.data(), key.data() + key.size());
   }
-  return {root_, *child, path_, key};
+  return {root_, child, path_, key};
 }
 
 Value Value::operator[](uint32_t index) const {
@@ -65,8 +63,12 @@ bool Value::operator!=(const Value& other) const {
   return GetNative() != other.GetNative();
 }
 
-#define IS_TYPE(type) \
-  bool Value::is##type() const { return GetNative().is##type(); }
+bool Value::isMissing() const { return root_ && !value_ptr_; }
+
+#define IS_TYPE(type)                              \
+  bool Value::is##type() const {                   \
+    return !isMissing() && GetNative().is##type(); \
+  }
 
 #define AS_TYPE(type, c_type, j_type)                                    \
   c_type Value::as##type() const {                                       \
@@ -101,11 +103,11 @@ bool Value::isFloat() const { return isDouble(); }
 #undef IS_TYPE
 
 bool Value::HasMember(const char* key) const {
-  return GetNative().isMember(key);
+  return !isMissing() && GetNative().isMember(key);
 }
 
 bool Value::HasMember(const std::string& key) const {
-  return GetNative().isMember(key);
+  return !isMissing() && GetNative().isMember(key);
 }
 
 std::string Value::GetPath() const { return PathToString(path_); }
@@ -118,7 +120,7 @@ Value Value::Clone() const {
 
 void Value::Set(const NativeValuePtr& root, const Json::Value& val,
                 const formats::json::Path& path, const std::string& key) {
-  *this = Value(root, val, path, key);
+  *this = Value(root, &val, path, key);
 }
 
 void Value::Set(const NativeValuePtr& root, const Json::Value& val,
@@ -126,13 +128,21 @@ void Value::Set(const NativeValuePtr& root, const Json::Value& val,
   *this = Value(root, val, path, index);
 }
 
+// Value states
+//
+// !!root_ | !!value_ptr_ | Description
+// ------- | ------------ | ------------------
+//  false  |     false    | Implicitly `kNull`
+//  false  |     true     | ---
+//  true   |     false    | Missing
+//  true   |     true     | Valid
 void Value::EnsureValid() {
-  if (root_) {
-    return;
+  if (!root_) {
+    root_ = std::make_shared<Json::Value>();
+    value_ptr_ = root_.get();
+  } else if (isMissing()) {
+    throw MemberMissingException(GetPath());
   }
-
-  root_ = std::make_shared<Json::Value>();
-  value_ptr_ = root_.get();
 }
 
 bool Value::IsRoot() const { return root_.get() == value_ptr_; }
@@ -166,9 +176,8 @@ void Value::CheckObjectOrArray() const {
 }
 
 void Value::CheckOutOfBounds(uint32_t index) const {
-  const auto sz = GetSize();
-  if (index >= sz) {
-    throw OutOfBoundsException(index, sz, GetPath());
+  if (!GetNative().isValidIndex(index)) {
+    throw OutOfBoundsException(index, GetSize(), GetPath());
   }
 }
 

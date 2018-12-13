@@ -42,7 +42,7 @@ class OutOfBoundsException : public JsonException {
 
 class MemberMissingException : public JsonException {
  public:
-  MemberMissingException(const std::string& key, const std::string& path);
+  explicit MemberMissingException(const std::string& path);
 };
 
 }  // namespace json

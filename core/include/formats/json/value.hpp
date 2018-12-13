@@ -45,6 +45,7 @@ class Value {
   bool operator==(const Value& other) const;
   bool operator!=(const Value& other) const;
 
+  bool isMissing() const;
   bool isNull() const;
   bool isBool() const;
   bool isInt() const;
@@ -80,7 +81,7 @@ class Value {
   bool IsRoot() const;
 
  private:
-  Value(const NativeValuePtr& root, const Json::Value& val,
+  Value(const NativeValuePtr& root, const Json::Value* value_ptr,
         const formats::json::Path& path, const std::string& key);
   Value(const NativeValuePtr& root, const Json::Value& val,
         const formats::json::Path& path, uint32_t index);

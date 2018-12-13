@@ -56,7 +56,7 @@ ValueBuilder::ValueBuilder(formats::json::Value&& other) {
 ValueBuilder::ValueBuilder(const NativeValuePtr& root, const Json::Value& val,
                            const formats::json::Path& path,
                            const std::string& key)
-    : value_(root, val, path, key) {}
+    : value_(root, &val, path, key) {}
 
 ValueBuilder::ValueBuilder(const NativeValuePtr& root, const Json::Value& val,
                            const formats::json::Path& path, uint32_t index)
