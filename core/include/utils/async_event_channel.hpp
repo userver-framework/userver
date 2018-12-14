@@ -3,8 +3,13 @@
 #include <algorithm>
 #include <shared_mutex>
 
-#include <engine/async.hpp>
+#include <engine/mutex.hpp>
 #include <logging/log.hpp>
+#include <utils/async.hpp>
+
+namespace {
+const auto kSubscriberErrorTimeout = std::chrono::seconds(30);
+}
 
 namespace utils {
 
@@ -61,45 +66,70 @@ class AsyncEventSubscriberScope {
   FunctionId id_;
 };
 
+/* AsyncEventChannel is a in-process pubsub with strict FIFO serialization. */
 template <typename... Args>
 class AsyncEventChannel : public AsyncEventChannelBase {
  public:
   using Function = std::function<void(Args... args)>;
 
-  AsyncEventSubscriberScope AddListener(FunctionId id, Function func) {
-    std::lock_guard<std::shared_timed_mutex> lock(mutex_);
+  explicit AsyncEventChannel(std::string name) : name_(std::move(name)) {}
+
+  AsyncEventSubscriberScope AddListener(FunctionId id, std::string name,
+                                        Function func) {
+    std::lock_guard<engine::Mutex> lock(mutex_);
 
     auto it = FindListener(id);
     if (it != listeners_.end()) throw std::runtime_error("already subscribed");
 
-    listeners_.emplace_back(id, std::move(func));
+    listeners_.emplace_back(id, std::move(name), std::move(func));
     return AsyncEventSubscriberScope(this, id);
   }
 
   template <class Class>
-  AsyncEventSubscriberScope AddListener(Class* obj,
+  AsyncEventSubscriberScope AddListener(Class* obj, std::string name,
                                         void (Class::*func)(Args...)) {
-    return AddListener(reinterpret_cast<FunctionId>(obj),
+    return AddListener(reinterpret_cast<FunctionId>(obj), std::move(name),
                        [obj, func](Args... args) { (obj->*func)(args...); });
   }
 
   template <class Class>
-  AsyncEventSubscriberScope AddListener(const Class* obj,
+  AsyncEventSubscriberScope AddListener(const Class* obj, std::string name,
                                         void (Class::*func)(Args...) const) {
-    return AddListener(reinterpret_cast<FunctionId>(obj),
+    return AddListener(reinterpret_cast<FunctionId>(obj), std::move(name),
                        [obj, func](Args... args) { (obj->*func)(args...); });
   }
 
   void SendEvent(const Args&... args) const {
-    std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+    std::lock_guard<engine::Mutex> lock(mutex_);
+
+    std::vector<std::pair<std::string, engine::TaskWithResult<void>>>
+        subscribers;
     for (const Listener& listener : listeners_) {
-      listener.second(args...);
+      const auto& subscriber_name = listener.name;
+      subscribers.push_back(std::make_pair(
+          subscriber_name,
+          utils::Async("async_channel_" + name_ + '_' + subscriber_name,
+                       listener.function, args...)));
+    }
+
+    // Wait for all tasks regardless of the result
+    for (auto& subscriber : subscribers) {
+      WaitForTask(subscriber.first, subscriber.second);
+    }
+
+    for (auto& task : subscribers) {
+      try {
+        task.second.Get();
+      } catch (const std::exception& e) {
+        LOG_ERROR() << "Unhandled exception in subscriber " << task.first
+                    << ": " << e.what();
+      }
     }
   }
 
  private:
   bool RemoveListener(FunctionId id) noexcept override {
-    std::lock_guard<std::shared_timed_mutex> lock(mutex_);
+    std::lock_guard<engine::Mutex> lock(mutex_);
 
     auto it = FindListener(id);
     if (it == listeners_.end()) {
@@ -114,15 +144,33 @@ class AsyncEventChannel : public AsyncEventChannelBase {
     return true;
   }
 
-  using Listener = std::pair<FunctionId, Function>;
+  void WaitForTask(const std::string& name,
+                   const engine::TaskWithResult<void>& task) const {
+    while (true) {
+      task.WaitFor(kSubscriberErrorTimeout);
+      if (task.IsFinished()) return;
+
+      LOG_ERROR() << "Subscriber " << name << " handles event for too long";
+    }
+  }
+
+  struct Listener {
+    Listener(FunctionId id, std::string name, Function function)
+        : id(id), name(std::move(name)), function(std::move(function)) {}
+
+    FunctionId id;
+    std::string name;
+    Function function;
+  };
 
   typename std::vector<Listener>::iterator FindListener(FunctionId id) {
     return std::find_if(
         listeners_.begin(), listeners_.end(),
-        [id](const Listener& listener) { return listener.first == id; });
+        [id](const Listener& listener) { return listener.id == id; });
   }
 
-  mutable std::shared_timed_mutex mutex_;
+  const std::string name_;
+  mutable engine::Mutex mutex_;
   std::vector<Listener> listeners_;
 };
 

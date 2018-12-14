@@ -59,6 +59,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context,
                                               const std::string& name)
     : LoggableComponentBase(config, context),
+      utils::AsyncEventChannel<const std::shared_ptr<T>&>(name),
       CacheUpdateTrait(CacheConfig(config), name),
       cache_invalidator_holder_(*this, context),
       name_(name) {

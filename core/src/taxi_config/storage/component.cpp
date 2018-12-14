@@ -10,6 +10,8 @@ namespace components {
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
+      utils::AsyncEventChannel<const std::shared_ptr<taxi_config::Config>&>(
+          kName),
       config_load_cancelled_(false),
       fs_task_processor_(context.GetTaskProcessor(
           config.ParseString("fs-task-processor-name"))),

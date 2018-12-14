@@ -18,7 +18,8 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   OnConfigUpdate(config);
 
   subscriber_scope_ = taxi_config_component_.AddListener(
-      this, &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
+      this, "http_client",
+      &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
 }
 
 HttpClient::~HttpClient() { subscriber_scope_.Unsubscribe(); }

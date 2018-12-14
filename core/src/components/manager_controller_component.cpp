@@ -28,8 +28,8 @@ ManagerControllerComponent::ManagerControllerComponent(
 
   auto& config = context.FindComponent<TaxiConfig>();
   OnConfigUpdate(config.Get());
-  config_subscription_ =
-      config.AddListener(this, &ManagerControllerComponent::OnConfigUpdate);
+  config_subscription_ = config.AddListener(
+      this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
 
   statistics_holder_ = storage.RegisterExtender(
       kEngineMonitorDataName,
