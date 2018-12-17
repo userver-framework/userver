@@ -25,11 +25,7 @@ class ClusterTopology {
  public:
   virtual ~ClusterTopology() = default;
 
-  const DSNList& GetDsnList() const { return dsn_list_; }
   virtual HostsByType GetHostsByType() const = 0;
-
- protected:
-  DSNList dsn_list_;
 };
 
 using ClusterTopologyPtr = std::unique_ptr<ClusterTopology>;

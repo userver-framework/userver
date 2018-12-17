@@ -157,7 +157,7 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
   const auto* msg_for_status = MsgForStatus(status);
   if (CONNECTION_BAD == status) {
     const std::string msg = msg_for_status;
-    LOG_DEBUG() << log_extra_ << msg;
+    LOG_ERROR() << log_extra_ << msg;
     CloseWithError(ConnectionFailed{conninfo, msg});
   } else {
     LOG_TRACE() << log_extra_ << msg_for_status;

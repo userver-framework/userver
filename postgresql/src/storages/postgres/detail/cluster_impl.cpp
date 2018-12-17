@@ -15,8 +15,9 @@ ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
                          engine::TaskProcessor& bg_task_processor,
                          size_t initial_size, size_t max_size)
     : bg_task_processor_(bg_task_processor), host_ind_(0) {
-  topology_ = std::make_unique<detail::ClusterTopologyProxy>(cluster_desc);
-  const auto& dsn_list = topology_->GetDsnList();
+  topology_ = std::make_unique<ClusterTopologyProxy>(cluster_desc);
+  const auto& dsn_list =
+      static_cast<ClusterTopologyProxy*>(topology_.get())->GetDsnList();
   InitPools(dsn_list, initial_size, max_size);
 }
 
@@ -24,8 +25,8 @@ ClusterImpl::ClusterImpl(const DSNList& dsn_list,
                          engine::TaskProcessor& bg_task_processor,
                          size_t initial_size, size_t max_size)
     : bg_task_processor_(bg_task_processor), host_ind_(0) {
-  topology_ = std::make_unique<detail::ClusterTopologyDiscovery>(
-      bg_task_processor_, dsn_list);
+  topology_ =
+      std::make_unique<ClusterTopologyDiscovery>(bg_task_processor_, dsn_list);
   InitPools(dsn_list, initial_size, max_size);
 }
 

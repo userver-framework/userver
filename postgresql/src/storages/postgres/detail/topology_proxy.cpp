@@ -23,6 +23,8 @@ ClusterTopologyProxy::ClusterTopologyProxy(
   }
 }
 
+const DSNList& ClusterTopologyProxy::GetDsnList() const { return dsn_list_; }
+
 ClusterTopology::HostsByType ClusterTopologyProxy::GetHostsByType() const {
   return hosts_by_type;
 }

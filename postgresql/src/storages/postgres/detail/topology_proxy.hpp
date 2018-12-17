@@ -10,6 +10,7 @@ class ClusterTopologyProxy : public ClusterTopology {
  public:
   explicit ClusterTopologyProxy(const ClusterDescription& cluster_desc);
 
+  const DSNList& GetDsnList() const;
   HostsByType GetHostsByType() const override;
 
  private:
@@ -17,6 +18,7 @@ class ClusterTopologyProxy : public ClusterTopology {
 
  private:
   HostsByType hosts_by_type;
+  DSNList dsn_list_;
 };
 
 }  // namespace detail
