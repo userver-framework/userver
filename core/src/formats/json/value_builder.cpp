@@ -50,7 +50,10 @@ ValueBuilder::ValueBuilder(const formats::json::Value& other) {
 ValueBuilder::ValueBuilder(formats::json::Value&& other) {
   // As we have new native object created,
   // we fill it with the other's native object.
-  value_.GetNative() = std::move(other.GetNative());
+  if (other.IsUniqueReference())
+    value_.GetNative() = std::move(other.GetNative());
+  else
+    value_.GetNative() = other.GetNative();
 }
 
 ValueBuilder::ValueBuilder(const NativeValuePtr& root, const Json::Value& val,

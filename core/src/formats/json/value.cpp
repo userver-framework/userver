@@ -147,6 +147,8 @@ void Value::EnsureValid() {
 
 bool Value::IsRoot() const { return root_.get() == value_ptr_; }
 
+bool Value::IsUniqueReference() const { return root_.unique(); }
+
 const Json::Value& Value::GetNative() const {
   const_cast<Value*>(this)->EnsureValid();
   return *value_ptr_;

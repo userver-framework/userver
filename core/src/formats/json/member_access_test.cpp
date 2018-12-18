@@ -233,3 +233,14 @@ TEST_F(JsonMemberAccess, CreateEmptyAndAccess) {
   EXPECT_FALSE(v.HasMember("key_missing"));
   EXPECT_THROW(v.asBool(), formats::json::TypeMismatchException);
 }
+
+TEST_F(JsonMemberAccess, Subfield) {
+  formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
+
+  formats::json::Value old = js_doc_["key1"].Clone();
+  EXPECT_EQ(old, js_doc_["key1"]);
+
+  body_builder["key1"] = js_doc_["key1"];
+
+  EXPECT_EQ(old, js_doc_["key1"]);
+}

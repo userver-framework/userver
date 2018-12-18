@@ -79,6 +79,7 @@ class Value {
   Value(NativeValuePtr&& root) noexcept;
   const Json::Value& Get() const;
   bool IsRoot() const;
+  bool IsUniqueReference() const;
 
  private:
   Value(const NativeValuePtr& root, const Json::Value* value_ptr,
