@@ -71,6 +71,19 @@ void CallOnce(Func& func) {
   }
 }
 
+TaskContext::WakeupSource GetPrimaryWakeupSource(int sleep_state_value) {
+  for (auto source : {TaskContext::WakeupSource::kWaitList,
+                      TaskContext::WakeupSource::kDeadlineTimer,
+                      TaskContext::WakeupSource::kCancelRequest,
+                      TaskContext::WakeupSource::kBootstrap}) {
+    if (sleep_state_value & static_cast<int>(source)) return source;
+  }
+  LOG_ERROR() << "Cannot find valid wakeup source"
+              << logging::LogExtra::Stacktrace();
+  throw std::logic_error("Cannot find valid wakeup source, stacktrace:\n" +
+                         to_string(boost::stacktrace::stacktrace{}));
+}
+
 }  // namespace
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
@@ -86,7 +99,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       cancellation_reason_(Task::CancellationReason::kNone),
       finish_waiters_(std::make_shared<WaitList>()),
       task_queue_wait_timepoint_(),
-      sleep_state_(SleepStateFlags::kSleeping),
+      sleep_state_(SleepStateFlags::kSleep),
       wakeup_source_(WakeupSource::kNone),
       task_pipe_(nullptr),
       yield_reason_(YieldReason::kNone),
@@ -146,9 +159,10 @@ void TaskContext::DoStep() {
 
   if (!coro_) {
     coro_ = task_processor_.GetCoroPool().GetCoroutine();
+    sleep_state_.Clear(SleepStateFlags::kWakeupByBootstrap);
   }
 
-  sleep_state_ = SleepStateFlags::kNone;
+  sleep_state_.Clear(SleepStateFlags::kSleep);
   SetState(Task::State::kRunning);
   {
     CurrentTaskScope current_task_scope(this);
@@ -169,10 +183,11 @@ void TaskContext::DoStep() {
     case YieldReason::kTaskWaiting:
       SetState(Task::State::kSuspended);
       {
-        auto prev_sleep_state =
-            sleep_state_.FetchOr(SleepStateFlags::kSleeping);
-        if ((prev_sleep_state & SleepStateFlags::kWakeupRequested) &&
-            !(prev_sleep_state & SleepStateFlags::kSleeping)) {
+        if (!IsCancellable()) {
+          sleep_state_.Clear(SleepStateFlags::kWakeupByCancelRequest);
+        }
+        auto prev_sleep_state = sleep_state_.FetchOr(SleepStateFlags::kSleep);
+        if (prev_sleep_state && !(prev_sleep_state & SleepStateFlags::kSleep)) {
           Schedule();
         }
       }
@@ -201,6 +216,9 @@ void TaskContext::RequestCancel(Task::CancellationReason reason) {
 bool TaskContext::IsCancellable() const { return is_cancellable_.load(); }
 
 bool TaskContext::SetCancellable(bool value) {
+  assert(current_task::GetCurrentTaskContext() == this);
+  assert(state_ == Task::State::kRunning);
+
   return is_cancellable_.exchange(value);
 }
 
@@ -232,26 +250,34 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
 
   if (deadline_timer) deadline_timer.Stop();
 
-  if (wakeup_source_ != WakeupSource::kWaitList) {
+  if (!(sleep_state_ & SleepStateFlags::kWakeupByWaitList)) {
     auto wait_list = sleep_params_.wait_list.lock();
     if (wait_list) {
       wait_list->Remove(this);
     }
   }
+  // state can be modified in pre-awake payload
+  auto old_sleep_state = sleep_state_.Exchange(SleepStateFlags::kNone);
+  wakeup_source_ = GetPrimaryWakeupSource(old_sleep_state.GetValue());
+
   CallOnce(sleep_params_.exec_before_awake);
 
   sleep_params_ = {};
-  // reset state again in case timer has fired during wakeup
+  // reset state again for timer firing during wakeup and/or pre-awake doings
   sleep_state_ = SleepStateFlags::kNone;
 }
 
 void TaskContext::Wakeup(WakeupSource source) {
   if (IsFinished()) return;
+  if (source == WakeupSource::kCancelRequest && !IsCancellable()) return;
+
   auto prev_sleep_state =
-      sleep_state_.FetchOr(SleepStateFlags::kWakeupRequested);
-  if (!(prev_sleep_state & SleepStateFlags::kWakeupRequested)) {
-    wakeup_source_ = source;
-    if (prev_sleep_state & SleepStateFlags::kSleeping) {
+      sleep_state_.FetchOr(static_cast<SleepStateFlags>(source));
+  if (prev_sleep_state == SleepStateFlags::kSleep) {
+    // IsCancellable() should not be changed now until wakeup
+    if (source != WakeupSource::kCancelRequest || IsCancellable() ||
+        sleep_state_.Clear(SleepStateFlags::kWakeupByCancelRequest) !=
+            SleepStateFlags::kSleep) {
       Schedule();
     }
   }

@@ -87,6 +87,7 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     case TaskContext::WakeupSource::kDeadlineTimer:
       return CvStatus::kTimeout;
     case TaskContext::WakeupSource::kNone:
+    case TaskContext::WakeupSource::kBootstrap:
       assert(!"invalid wakeup source");
       [[fallthrough]];
     case TaskContext::WakeupSource::kWaitList:

@@ -22,9 +22,13 @@ class Flags {
 
   Flags& operator|=(Flags);
   Flags& operator&=(Flags);
+  Flags& Clear(Flags);
 
   Flags operator|(Flags) const;
   Flags operator&(Flags) const;
+
+  bool operator==(Flags) const;
+  bool operator!=(Flags) const;
 
   ValueType GetValue();
 
@@ -41,6 +45,12 @@ template <typename Enum>
 Flags<Enum> operator&(Enum, Flags<Enum>);
 
 template <typename Enum>
+bool operator==(Enum, Flags<Enum>);
+
+template <typename Enum>
+bool operator!=(Enum, Flags<Enum>);
+
+template <typename Enum>
 class AtomicFlags {
  public:
   using ValueType = std::underlying_type_t<Enum>;
@@ -53,14 +63,22 @@ class AtomicFlags {
   /*implicit*/ operator Flags<Enum>() const;
 
   AtomicFlags& operator=(Flags<Enum>);
+  Flags<Enum> Exchange(Flags<Enum>);
 
   AtomicFlags& operator|=(Flags<Enum>);
   AtomicFlags& operator&=(Flags<Enum>);
+  AtomicFlags& Clear(Flags<Enum>);
   Flags<Enum> FetchOr(Flags<Enum>);
   Flags<Enum> FetchAnd(Flags<Enum>);
+  Flags<Enum> FetchClear(Flags<Enum>);
 
   Flags<Enum> operator|(Flags<Enum>) const;
   Flags<Enum> operator&(Flags<Enum>)const;
+
+  bool operator==(Flags<Enum>) const;
+  bool operator!=(Flags<Enum>) const;
+
+  ValueType GetValue();
 
  private:
   std::atomic<ValueType> value_;
@@ -71,6 +89,12 @@ Flags<Enum> operator|(Enum, const AtomicFlags<Enum>&);
 
 template <typename Enum>
 Flags<Enum> operator&(Enum, const AtomicFlags<Enum>&);
+
+template <typename Enum>
+bool operator==(Enum, const AtomicFlags<Enum>&);
+
+template <typename Enum>
+bool operator!=(Enum, const AtomicFlags<Enum>&);
 
 template <typename Enum>
 Flags<Enum>::Flags(Enum value) : value_(static_cast<ValueType>(value)) {}
@@ -100,6 +124,12 @@ Flags<Enum>& Flags<Enum>::operator&=(Flags rhs) {
 }
 
 template <typename Enum>
+Flags<Enum>& Flags<Enum>::Clear(Flags flags) {
+  value_ &= ~flags.value_;
+  return *this;
+}
+
+template <typename Enum>
 Flags<Enum> Flags<Enum>::operator|(Flags rhs) const {
   return Flags(*this) |= rhs;
 }
@@ -110,6 +140,21 @@ Flags<Enum> Flags<Enum>::operator&(Flags rhs) const {
 }
 
 template <typename Enum>
+bool Flags<Enum>::operator==(Flags rhs) const {
+  return value_ == rhs.value_;
+}
+
+template <typename Enum>
+bool Flags<Enum>::operator!=(Flags rhs) const {
+  return !(*this == rhs);
+}
+
+template <typename Enum>
+typename Flags<Enum>::ValueType Flags<Enum>::GetValue() {
+  return this->value_;
+}
+
+template <typename Enum>
 Flags<Enum> operator|(Enum lhs, Flags<Enum> rhs) {
   return rhs |= lhs;
 }
@@ -117,6 +162,16 @@ Flags<Enum> operator|(Enum lhs, Flags<Enum> rhs) {
 template <typename Enum>
 Flags<Enum> operator&(Enum lhs, Flags<Enum> rhs) {
   return rhs &= lhs;
+}
+
+template <typename Enum>
+bool operator==(Enum lhs, Flags<Enum> rhs) {
+  return rhs == lhs;
+}
+
+template <typename Enum>
+bool operator!=(Enum lhs, Flags<Enum> rhs) {
+  return rhs != lhs;
 }
 
 template <typename Enum>
@@ -148,6 +203,11 @@ AtomicFlags<Enum>& AtomicFlags<Enum>::operator=(Flags<Enum> rhs) {
 }
 
 template <typename Enum>
+Flags<Enum> AtomicFlags<Enum>::Exchange(Flags<Enum> flags) {
+  return static_cast<Enum>(value_.exchange(flags.value_));
+}
+
+template <typename Enum>
 AtomicFlags<Enum>& AtomicFlags<Enum>::operator|=(Flags<Enum> rhs) {
   FetchOr(rhs);
   return *this;
@@ -156,6 +216,12 @@ AtomicFlags<Enum>& AtomicFlags<Enum>::operator|=(Flags<Enum> rhs) {
 template <typename Enum>
 AtomicFlags<Enum>& AtomicFlags<Enum>::operator&=(Flags<Enum> rhs) {
   FetchAnd(rhs);
+  return *this;
+}
+
+template <typename Enum>
+AtomicFlags<Enum>& AtomicFlags<Enum>::Clear(Flags<Enum> flags) {
+  FetchClear(flags);
   return *this;
 }
 
@@ -170,6 +236,11 @@ Flags<Enum> AtomicFlags<Enum>::FetchAnd(Flags<Enum> rhs) {
 }
 
 template <typename Enum>
+Flags<Enum> AtomicFlags<Enum>::FetchClear(Flags<Enum> flags) {
+  return static_cast<Enum>(value_.fetch_and(~flags.value_));
+}
+
+template <typename Enum>
 Flags<Enum> AtomicFlags<Enum>::operator|(Flags<Enum> rhs) const {
   return Flags<Enum>(*this) |= rhs;
 }
@@ -177,6 +248,21 @@ Flags<Enum> AtomicFlags<Enum>::operator|(Flags<Enum> rhs) const {
 template <typename Enum>
 Flags<Enum> AtomicFlags<Enum>::operator&(Flags<Enum> rhs) const {
   return Flags<Enum>(*this) &= rhs;
+}
+
+template <typename Enum>
+bool AtomicFlags<Enum>::operator==(Flags<Enum> rhs) const {
+  return value_ == rhs.value_;
+}
+
+template <typename Enum>
+bool AtomicFlags<Enum>::operator!=(Flags<Enum> rhs) const {
+  return !(*this == rhs);
+}
+
+template <typename Enum>
+typename AtomicFlags<Enum>::ValueType AtomicFlags<Enum>::GetValue() {
+  return this->value_.load();
 }
 
 template <typename Enum>
@@ -190,8 +276,13 @@ Flags<Enum> operator&(Enum lhs, const AtomicFlags<Enum>& rhs) {
 }
 
 template <typename Enum>
-typename Flags<Enum>::ValueType Flags<Enum>::GetValue() {
-  return this->value_;
+bool operator==(Enum lhs, const AtomicFlags<Enum>& rhs) {
+  return rhs == lhs;
+}
+
+template <typename Enum>
+bool operator!=(Enum lhs, const AtomicFlags<Enum>& rhs) {
+  return rhs != lhs;
 }
 
 }  // namespace utils

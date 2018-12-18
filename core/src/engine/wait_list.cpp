@@ -11,6 +11,8 @@ namespace impl {
 void WaitList::Append([[maybe_unused]] WaitListBase::Lock& lock,
                       boost::intrusive_ptr<impl::TaskContext> context) {
   assert(lock);
+  assert(std::find(waiting_contexts_.begin(), waiting_contexts_.end(),
+                   context) == waiting_contexts_.end());
   waiting_contexts_.push_back(std::move(context));
 }
 

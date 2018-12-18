@@ -32,11 +32,14 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   using TaskId = uint64_t;
 
   enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
+
+  /// Wakeup sources in descending priority order
   enum class WakeupSource {
-    kNone,
-    kCancelRequest,
-    kWaitList,
-    kDeadlineTimer,
+    kNone = 0,
+    kWaitList = (1 << 0),
+    kDeadlineTimer = (1 << 1),
+    kCancelRequest = (1 << 2),
+    kBootstrap = (1 << 3),
   };
 
   struct SleepParams {
@@ -131,8 +134,12 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
 
   enum class SleepStateFlags {
     kNone = 0,
-    kSleeping = (1 << 0),
-    kWakeupRequested = (1 << 1),
+    kWakeupByWaitList = static_cast<int>(WakeupSource::kWaitList),
+    kWakeupByDeadlineTimer = static_cast<int>(WakeupSource::kDeadlineTimer),
+    kWakeupByCancelRequest = static_cast<int>(WakeupSource::kCancelRequest),
+    kWakeupByBootstrap = static_cast<int>(WakeupSource::kBootstrap),
+
+    kSleep = (kWakeupByBootstrap << 1)
   };
 
   void SetState(Task::State);

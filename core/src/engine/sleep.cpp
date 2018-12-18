@@ -1,6 +1,8 @@
 #include <engine/sleep.hpp>
 
-#include "task/task_context.hpp"
+#include <engine/task/cancel.hpp>
+
+#include <engine/task/task_context.hpp>
 
 namespace engine {
 
@@ -13,12 +15,8 @@ void InterruptibleSleepUntil(Deadline deadline) {
 }
 
 void SleepUntil(Deadline deadline) {
-  auto context = current_task::GetCurrentTaskContext();
-  for (auto wakeup_source = impl::TaskContext::WakeupSource::kNone;
-       wakeup_source != impl::TaskContext::WakeupSource::kDeadlineTimer;
-       wakeup_source = context->GetWakeupSource()) {
-    InterruptibleSleepUntil(deadline);
-  }
+  TaskCancellationBlocker block_cancel;
+  InterruptibleSleepUntil(deadline);
 }
 
 void Yield() {
