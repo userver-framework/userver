@@ -7,13 +7,13 @@
 #include <storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres {
-
-/// @page psql_user_types Mapping a C++ type to PostgreSQL user type.
+namespace io {
+/// @page pg_user_types µPg: Mapping a C++ type to PostgreSQL user type
 ///
-/// In PosgtgreSQL there are four kinds of user types available:
-///   - composite (row) types, @see pg_composite_types
-///   - enumerations @see pg_enum
-///   - ranges @see pg_range
+/// In PosgtgreSQL the following kinds of user types are available:
+///   - composite (row) types, see @ref pg_composite_types
+///   - enumerations, see @ref pg_enum
+///   - ranges, not implemented yet
 ///   - domains
 ///
 /// Domains are essentially some data types with database constraints applied
@@ -22,26 +22,27 @@ namespace storages::postgres {
 /// Other user types can be mapped to C++ types, more information on defining
 /// a mapped C++ type can be found on respective pages. After a C++ type is
 /// defined, it must be mapped to it's PostgreSQL counterpart by specialising
-/// CppToUserPg template for the type. C++ types are mapped to PostgreSQL types
-/// by their names, so the specialisation for CppToUserPg template must have a
-/// `static constexpr` member of type DBTypeName named `postgres_name`.
+/// CppToUserPg template for the type. C++ types are mapped to PostgreSQL
+/// types by their names, so the specialisation for CppToUserPg template
+/// must have a `static constexpr` member of type DBTypeName named
+/// `postgres_name`.
 ///
-/// @code
-/// namespace my_ns {
-/// struct MyDataStructure {
-///   std::string name;
-/// };
-/// }
-/// namespace storages::postgres::io {
-/// template <>
-/// struct CppToUserPg<my_ns::MyDataStructure> {
-///   static constexpr DBTypeName postgres_name = "my_schema.my_type";
-/// }
-/// @endcode
+/// @par C++ type
+///
+/// @snippet storages/postgres/tests/user_types_pg_test.cpp User type
+///
+/// @par Declaring C++ type to PostgreSQL type mapping
+///
+/// @warning The type mapping specialisation **must** be accessible at the
+/// points where parsing/formatting of the C++ type is instantiated. The
+/// header where the C++ type is declared is an appropriate place to do it.
+///
+/// @snippet storages/postgres/tests/user_types_pg_test.cpp User type mapping
 ///
 /// A connection gets the data types' definitions after connect and uses the
 /// definitions to map C++ types to PostgreSQL type oids.
 ///
+}  // namespace io
 
 /// @brief Container for connection-specific user data types.
 class UserTypes {

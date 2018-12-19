@@ -22,6 +22,7 @@ create type __pg_test.foobar as (
 
 }  // namespace
 
+/*! [User type declaration] */
 namespace pg_test {
 
 struct FooBar {
@@ -53,25 +54,31 @@ class FooClass {
 using FooTuple = std::tuple<int, std::string, double, std::vector<int>>;
 
 }  // namespace pg_test
+/*! [User type declaration] */
 
+/*! [User type mapping] */
 namespace storages::postgres::io {
 
+// This specialisation MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<pg_test::FooBar> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
+// This specialisation MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<pg_test::FooClass> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
+// This specialisation MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<pg_test::FooTuple> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
 }  // namespace storages::postgres::io
+/*! [User type mapping] */
 
 namespace static_test {
 

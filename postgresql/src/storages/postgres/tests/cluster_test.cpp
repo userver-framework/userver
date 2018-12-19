@@ -50,10 +50,9 @@ TEST_P(PostgreCluster, ClusterSyncSlaveRW) {
   RunInCoro([this] {
     auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
 
-    EXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSyncSlave,
-                               pg::TransactionOptions{
-                                   pg::TransactionOptions::Mode::kReadWrite}),
-                 pg::ClusterUnavailable);
+    EXPECT_THROW(
+        cluster.Begin(pg::ClusterHostType::kSyncSlave, pg::Transaction::RW),
+        pg::ClusterUnavailable);
   });
 }
 
@@ -61,10 +60,9 @@ TEST_P(PostgreCluster, ClusterAsyncSlaveRW) {
   RunInCoro([this] {
     auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
 
-    EXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSlave,
-                               pg::TransactionOptions{
-                                   pg::TransactionOptions::Mode::kReadWrite}),
-                 pg::ClusterUnavailable);
+    EXPECT_THROW(
+        cluster.Begin(pg::ClusterHostType::kSlave, pg::Transaction::RW),
+        pg::ClusterUnavailable);
   });
 }
 

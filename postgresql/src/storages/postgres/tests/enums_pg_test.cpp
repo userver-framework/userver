@@ -11,10 +11,12 @@ namespace {
 const std::string kCreateTestSchema = "create schema if not exists __pg_test";
 const std::string kDropTestSchema = "drop schema if exists __pg_test cascade";
 
+/*! [Enum type DDL] */
 const std::string kCreateAnEnumType = R"~(
 create type __pg_test.rainbow as enum (
   'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet'
 ))~";
+/*! [Enum type DDL] */
 
 const std::string kSelectEnumValues = R"~(
 select  'red'::__pg_test.rainbow as red,
@@ -26,23 +28,32 @@ select  'red'::__pg_test.rainbow as red,
         'violet'::__pg_test.rainbow as violet
 )~";
 
+/*! [C++ enum type] */
 enum class Rainbow { kRed, kOrange, kYellow, kGreen, kCyan, kBlue, kViolet };
+/*! [C++ enum type] */
 
 }  // namespace
 
+// this is used as a code snippet in documentation, clang-format makes it ugly
+// clang-format off
+/*! [C++ to Pg mapping] */
 namespace storages::postgres::io {
-
+// This specialisation MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<Rainbow> : EnumMappingBase<Rainbow> {
   static constexpr DBTypeName postgres_name = "__pg_test.rainbow";
   static constexpr EnumeratorList enumerators{
-      {EnumType::kRed, "red"},       {EnumType::kOrange, "orange"},
-      {EnumType::kYellow, "yellow"}, {EnumType::kGreen, "green"},
-      {EnumType::kCyan, "cyan"},     {EnumType::kBlue, "blue"},
+      {EnumType::kRed,    "red"},
+      {EnumType::kOrange, "orange"},
+      {EnumType::kYellow, "yellow"},
+      {EnumType::kGreen,  "green"},
+      {EnumType::kCyan,   "cyan"},
+      {EnumType::kBlue,   "blue"},
       {EnumType::kViolet, "violet"}};
 };
-
 }  // namespace storages::postgres::io
+/*! [C++ to Pg mapping] */
+// clang-format on
 
 namespace static_test {
 

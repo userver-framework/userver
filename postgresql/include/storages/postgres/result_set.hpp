@@ -17,6 +17,128 @@
 namespace storages {
 namespace postgres {
 
+/// @page pg_process_results µPg: Working with result sets
+///
+/// A result set returned from Execute function is a thin read only wrapper
+/// around the libpq result. It can be copied around as it contains only a
+/// smart pointer to the underlying result set.
+///
+/// The result set's lifetime is not limited by the transaction in which it was
+/// created. In can be used after the transaction is committed or rolled back.
+///
+/// @par Iterating result set's rows
+///
+/// The ResultSet provides interface for range-based iteration over its rows.
+/// @code
+/// auto result = trx.Execute(""select foo, bar from foobar"");
+/// for (auto row : result) {
+///   // Process row data here
+/// }
+/// @endcode
+///
+/// Also rows can be accessed via indexing operators.
+/// @code
+/// auto result = trx.Execute(""select foo, bar from foobar"");
+/// for (auto idx = 0; idx < result.Size(); ++idx) {
+///   auto row = result[idx];
+///   // process row data here
+/// }
+/// @endcode
+///
+/// @par Accessing fields in a row
+///
+/// Fields in a row can be accessed by their index, by field name and can be
+/// iterated over. Invalid index or name will throw an exception.
+/// @code
+/// auto f1 = row[0];
+/// auto f2 = row["foo"];
+/// auto f3 = row[1];
+/// auto f4 = row["bar"];
+///
+/// for (auto f : row) {
+///   // Process field here
+/// }
+/// @endcode
+///
+/// @par Extracting field's data to variables
+///
+/// A Field object provides an interface to convert underlying buffer to a
+/// C++ variable of supported type. Please see @ref pg_types for more
+/// information on supported types.
+///
+/// Functions Field::As and Field::To can throw an exception if the field
+/// value is `null`. Their Field::Coalesce counterparts instead set the result
+/// to default value.
+///
+/// All data extraction functions can throw parsing errors (descendants of
+/// ResultSetError).
+///
+/// @code
+/// auto foo = row["foo"].As<int>();
+/// auto bar = row["bar"].As<std::string>();
+///
+/// foo = row["foo"].Coalesce(42);
+/// // There is no parser for char*, so a string object must be passed here.
+/// bar = row["bar"].Coalesce(std::string{"bar"});
+///
+/// row["foo"].To(foo);
+/// row["bar"].To(bar);
+///
+/// row["foo"].Coalesce(foo, 42);
+/// // The type is deduced by the first argument, so the second will be also
+/// // treated as std::string
+/// row["bar"].Coalesce(bar, "baz");
+/// @endcode
+///
+/// @par Extracting data directly from a Row object
+///
+/// Data can be extracted straight from a Row object to a pack or a tuple of
+/// user variables. The number of user variables cannot exceed the number of
+/// fields in the result. If it does, an exception will be thrown.
+///
+/// When used without additional parameters, the field values are extracted
+/// in the order of their appearance.
+///
+/// When a subset of the fields is needed, the fields can be specified by their
+/// indexes or names.
+///
+/// Row's data extraction functions throw exceptions as the field extraction
+/// functions. Also a FieldIndexOutOfBounds or FieldNameDoesntExist can be
+/// thrown.
+///
+/// @code
+/// auto [foo, bar] = row.As<int, std::string>();
+/// row.To(foo, bar);
+///
+/// auto [bar, foo] = row.As<std::string, int>({1, 0});
+/// row.To({1, 0}, bar, foo);
+///
+/// auto [bar, foo] = row.As<std::string, int>({"bar", "foo"});
+/// row.To({"bar", "foo"}, bar, foo);
+/// @endcode
+///
+/// @todo Interface for converting a row to a single value without a tuple
+///
+/// @par Converting a Row to a user row type
+///
+/// A row can be converted to a user type (tuple, structure, class), for more
+/// information on data type requrements see @ref pg_user_row_types
+///
+/// @todo Interface for converting rows to arbitrary user types
+///
+/// @par Converting ResultSet to a result set with user row types
+///
+/// A result set can be represented as a set of user row types or extracted to
+/// a container. For more information see @ref pg_user_row_types
+///
+/// @todo Interface for copying a ResultSet to an output interator.
+///
+/// @par Non-select query results
+///
+/// @todo Process non-select result and provide interface. Do the docs.
+///
+/// Next: @ref pg_user_row_types
+
 struct FieldDescription {
   /// Index of the field in the result set
   std::size_t index;
@@ -81,6 +203,9 @@ class Field {
   /** @name Data access */
   bool IsNull() const;
 
+  /// Read the field's buffer into user-provided variable.
+  /// @throws FieldValueIsNull If the field is null and the C++ type is
+  ///                           not nullable.
   template <typename T>
   size_type To(T&& val) const {
     using ValueType = typename std::decay<T>::type;
@@ -89,6 +214,8 @@ class Field {
                         io::traits::IsNullable<ValueType>{});
   }
 
+  /// Read the field's buffer into user-provided variable.
+  /// If the field is null, set the variable to the default value.
   template <typename T>
   void Coalesce(T& val, const T& default_val) const {
     if (!IsNull())
@@ -97,6 +224,9 @@ class Field {
       val = default_val;
   }
 
+  /// Convert the field's buffer into a C++ type.
+  /// @throws FieldValueIsNull If the field is null and the C++ type is
+  ///                           not nullable.
   template <typename T>
   typename std::decay<T>::type As() const {
     T val;
@@ -104,6 +234,8 @@ class Field {
     return val;
   }
 
+  /// Convert the field's buffer into a C++ type.
+  /// If the field is null, return default value.
   template <typename T>
   typename std::decay<T>::type Coalesce(const T& default_val) const {
     if (IsNull()) return default_val;
@@ -426,7 +558,7 @@ class ResultSet {
   /// @brief Get a wrapper for iterating over a set of typed results.
   /// For more information see @ref psql_typed_results
   template <typename T>
-  TypedResultSet<T> As() const {
+  TypedResultSet<T> AsSetOf() const {
     return TypedResultSet<T>{*this};
   }
 
@@ -552,7 +684,7 @@ Container ResultSet::AsContainer() const {
   if constexpr (io::traits::kCanReserve<Container>) {
     c.reserve(Size());
   }
-  auto res = As<ValueType>();
+  auto res = AsSetOf<ValueType>();
   std::copy(res.begin(), res.end(), io::traits::Inserter(c));
   return c;
 }

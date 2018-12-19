@@ -10,8 +10,6 @@
 
 #include <utils/variadic_logic.hpp>
 
-/// Namespace with metafunctions detecting different type traits needed for
-/// postgres io
 namespace storages::postgres::io::traits {
 
 template <bool Value>

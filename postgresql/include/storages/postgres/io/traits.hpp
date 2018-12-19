@@ -14,6 +14,11 @@ class UserTypes;
 
 namespace io {
 
+/// @page pg_io µPg: Parsers and Formatters
+///
+/// @todo Decribe the system of parser, formatters and their customization
+///
+
 enum DataFormat { kTextDataFormat = 0, kBinaryDataFormat = 1 };
 
 /// Fields that are null are denoted by specifying their length == -1

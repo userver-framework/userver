@@ -22,7 +22,8 @@ using ClusterImplPtr = std::unique_ptr<ClusterImpl>;
 }  // namespace detail
 
 /// @brief Interface for executing queries on a cluster of PostgreSQL servers
-
+///
+/// @todo Add information about topology discovery
 class Cluster {
  public:
   /// Cluster constructor

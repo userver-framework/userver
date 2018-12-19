@@ -6,6 +6,7 @@
 namespace storages {
 namespace postgres {
 
+/*! [Isolation levels] */
 /// @brief SQL transaction isolation level
 /// @see https://www.postgresql.org/docs/current/static/sql-set-transaction.html
 enum class IsolationLevel {
@@ -15,17 +16,36 @@ enum class IsolationLevel {
   kReadUncommitted  //!< READ UNCOMMITTED @warning In Postgres READ UNCOMMITTED
                     //!< is treated as READ COMMITTED
 };
+/*! [Isolation levels] */
 
 std::ostream& operator<<(std::ostream&, IsolationLevel);
 
 /// @brief PostgreSQL transaction options
+///
+/// A transaction can be started using all isolation levels and modes
+/// supported by PostgreSQL server as specified in it's documentation.
+///
+/// Default isolation level is READ COMMITTED, default mode is READ WRITE.
+/// @code
+/// // Read-write read committed transaction.
+/// TransactionOptions opts;
+/// @endcode
+///
+/// Transaction class provides constants Transaction::RW, Transaction::RO and
+/// Transaction::Deferrable for convenience.
+///
+/// Other variants can be created with TransactionOptions constructors
+/// that are constexpr.
+///
 /// @see https://www.postgresql.org/docs/current/static/sql-set-transaction.html
 struct TransactionOptions {
+  /*! [Transaction modes] */
   enum Mode {
     kReadWrite = 0,
     kReadOnly = 1,
     kDeferrable = 3  //!< Deferrable transaction is read only
   };
+  /*! [Transaction modes] */
   IsolationLevel isolation_level = IsolationLevel::kReadCommitted;
   Mode mode = kReadWrite;
 

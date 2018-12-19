@@ -9,8 +9,8 @@
 
 namespace storages::postgres {
 
-/// PostgreSQL Oid type
-/// unsigned int is used to match the type used in libpq
+/// PostgreSQL Oid type.
+// Aliased to unsigned int to match the type used in libpq.
 using Oid = unsigned int;
 
 //@{

@@ -6,7 +6,6 @@ namespace io = pg::io;
 
 namespace {
 
-constexpr const char* const kSchemaName = "__pg_test";
 const std::string kCreateTestSchema = "create schema if not exists __pg_test";
 const std::string kDropTestSchema = "drop schema if exists __pg_test cascade";
 
@@ -16,7 +15,7 @@ create type __pg_test.rainbow as enum (
   'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet'
 ))~";
 
-constexpr pg::DBTypeName kCompositeName{kSchemaName, "foobar"};
+constexpr pg::DBTypeName kCompositeName = "__pg_test.foobar";
 const std::string kCreateACompositeType = R"~(
 create type __pg_test.foobar as (
   i integer,
@@ -30,34 +29,30 @@ create type __pg_test.timerange as range(
   subtype = time
 ))~";
 
-constexpr pg::DBTypeName kDomainName{kSchemaName, "dom"};
+constexpr pg::DBTypeName kDomainName = "__pg_test.dom";
 const std::string kCreateADomain = R"~(
 create domain __pg_test.dom as text default 'foobar' not null)~";
 
 }  // namespace
 
+/*! [User type] */
 namespace pg_test {
-
 struct FooBar {
   pg::Integer i;
   std::string s;
   double d;
 };
-
 }  // namespace pg_test
-
+/*! [User type] */
+/*! [User type mapping] */
 namespace storages::postgres::io {
-
-template <>
-struct BufferParser<pg_test::FooBar, DataFormat::kBinaryDataFormat> {};
-
-// User type test registration
+// This specialisation MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<pg_test::FooBar> {
-  static constexpr DBTypeName postgres_name = kCompositeName;
+  static constexpr DBTypeName postgres_name = "__pg_test.foobar";
 };
-
 }  // namespace storages::postgres::io
+/*! [User type mapping] */
 
 namespace {
 

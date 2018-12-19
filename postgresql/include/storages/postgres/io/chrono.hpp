@@ -28,12 +28,13 @@ struct TimeZoneID {
 const TimeZoneID& LocalTimezoneID();
 
 /**
- * @page PostrgeSQL timestamp support
+ * @page pg_timestamp µPg timestamp support
  *
  * The driver provides mapping from C++ std::chrono::time_point template type to
  * Postgres timestamp (without time zone) data type.
  *
- * The value is formatted/parsed using UTC timezone.
+ * The value is formatted/parsed using UTC time zone. After that the local TZ
+ * offset is applied.
  *
  * To read/write timestamp with time zone Postgres data type a helper type is
  * provided.

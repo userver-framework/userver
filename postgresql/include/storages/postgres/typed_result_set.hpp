@@ -5,7 +5,7 @@
 
 namespace storages::postgres {
 
-/// @page psql_typed_results Typed PostgreSQL results.
+/// @page pg_user_row_types µPg: Typed PostgreSQL results
 ///
 /// The ResultSet provides access to a generic PostgreSQL result buffer wrapper
 /// with access to individual column buffers and means to parse the buffers into
@@ -14,33 +14,27 @@ namespace storages::postgres {
 /// For a user that wishes to get the results in a form of a sequence or a
 /// container of C++ tuples or structures, the driver provides a way to coerce
 /// the generic result set into a typed result set or a container of tuples or
-/// structures that fulfil certain conditions.
+/// structures that fulfill certain conditions.
 ///
 /// TypedResultSet provides container interface for typed result rows for
 /// iteration or random access without converting all the result set at once.
 /// The iterators in the TypedResultSet satisfy requirements for a constant
-/// RandomAccessIterator with the exception of dereferencing iterators. The
-/// prefix dereferencing operator of the iterators returns value (not a
-/// reference to it) and the iterators don't have the postfix dereferencing
-/// operators (->).
+/// RandomAccessIterator with the exception of dereferencing iterators.
 ///
-/// # Data row coercion
+/// @warning The operator* of the iterators returns value (not a reference to
+/// it) and the iterators don't have the operator->.
+///
+/// @par Data row extraction
 ///
 /// The data rows can be obtained as:
 ///   - std::tuple;
 ///   - aggregate class as is;
 ///   - non-aggregate class with some augmentation.
 ///
-/// Members of the tuple or the classes must have appropriate PostgreSQL data
-/// parsers.
-/// For more information about parsers see @ref psql_io (@todo add psql_io page,
-/// will be completed within https://st.yandex-team.ru/TAXICOMMON-363).
+/// Data members of the tuple or the classes must be supported by the driver.
+/// For more information on supported data types please see @ref pg_types
 ///
-/// For more information about adding user types see @ref psql_user_types (@todo
-/// add psql_user_types page, will be completed within
-/// https://st.yandex-team.ru/TAXICOMMON-363).
-///
-/// ## std::tuple.
+/// @par std::tuple.
 ///
 /// The first option is to convert ResultSet's row to std::tuples.
 ///
@@ -48,7 +42,7 @@ namespace storages::postgres {
 /// using my_row_type = std::tuple<int, string>;
 /// auto trx = ...;
 /// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.As<my_row_type>();
+/// auto iteration = generic_result.AsSetOf<my_row_type>();
 /// for (auto row : iteration) {
 ///   static_assert(std::is_same_v<decltype(row), my_row_type>,
 ///       "Iterate over tuples");
@@ -59,7 +53,7 @@ namespace storages::postgres {
 /// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
 /// ```
 ///
-/// ## Aggregate classes.
+/// @par Aggregate classes.
 ///
 /// A data row can be coerced to an aggregate class.
 ///
@@ -73,7 +67,7 @@ namespace storages::postgres {
 ///   std::string b;
 /// };
 /// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.As<my_row_type>();
+/// auto iteration = generic_result.AsSetOf<my_row_type>();
 /// for (auto row : iteration) {
 ///   static_assert(std::is_same_v<decltype(row), my_row_type>,
 ///       "Iterate over aggregate classes");
@@ -83,7 +77,7 @@ namespace storages::postgres {
 /// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
 /// ```
 ///
-/// ## Non-aggregate classes.
+/// @par Non-aggregate classes.
 ///
 /// Classes that do not satisfy the aggregate class requirements can be used
 /// to be created from data rows by providing additional `Introspect` non-static
@@ -104,7 +98,7 @@ namespace storages::postgres {
 /// };
 ///
 /// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.As<my_row_type>();
+/// auto iteration = generic_result.AsSetOf<my_row_type>();
 /// for (auto row : iteration) {
 ///   static_assert(std::is_same_v<decltype(row), my_row_type>,
 ///       "Iterate over non-aggregate classes");

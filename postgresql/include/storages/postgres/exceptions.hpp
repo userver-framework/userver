@@ -12,25 +12,25 @@ namespace storages {
 namespace postgres {
 
 /**
- * @page Postgres errors.
+ * @page pg_errors µPg: Postgres errors
  *
  * Base class for all PostgreSQL errors is Error which is derived from
  * std::runtime_error. This is done to simplify exception handling.
  *
- * There are two base types of errors: runtime (@see RuntimeError) and logic
- * (@see LogicError).
+ * There are two base types of errors: runtime (RuntimeError) and logic
+ * (LogicError).
  *
- * Logic errors are a consequence of faulty logic within the program such as
+ * **Logic errors** are a consequence of faulty logic within the program such as
  * violating logical preconditions or invariants and may be preventable by
  * correcting the program.
  *
- * Runtime errors are due to events beyond the scope of the program, such as
+ * **Runtime errors** are due to events beyond the scope of the program, such as
  * network failure, faulty configuration file, unique index violation etc. A
  * user can catch such an error and recover from it by reconnecting, providing
  * a decent default for configuration or modifying the key value.
  *
  * Both logic and runtime errors can contain a postgres server message
- * (@see Message). Those are ServerLogicError and ServerRuntimeError
+ * (Message). Those are ServerLogicError and ServerRuntimeError
  * respectively. These errors occur on the server side and are translated into
  * exceptions by the driver. Server errors are descendants of either
  * ServerLogicError or ServerRuntimeError and their hierarchy corresponds to SQL
@@ -94,7 +94,7 @@ namespace postgres {
  *   - LogicError
  *     - ResultSetError
  *       - FieldIndexOutOfBounds
- *       - FieldNameDoenstExist
+ *       - FieldNameDoesntExist
  *       - FieldTupleMismatch
  *       - FieldValueIsNull
  *       - InvalidInputBufferSize

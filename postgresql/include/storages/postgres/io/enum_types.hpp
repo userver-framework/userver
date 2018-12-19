@@ -16,22 +16,18 @@
 
 namespace storages::postgres::io {
 
-/// @page pg_enum Mapping a C++ enum to PostgreSQL enum type.
+/// @page pg_enum µPg: Mapping a C++ enum to PostgreSQL enum type.
 ///
 /// A C++ enumeration can be mapped to a PostgreSQL enum type by providing a
 /// list of PostgreSQL literals mapped to the enumeration values.
 ///
 /// For example, if we have a C++ enumeration declared as follows:
-/// @code
-/// enum class TrafficLigths {
-///   kRed, kYellow, kGreen
-/// };
-/// @endcode
+/// @snippet storages/postgres/tests/enums_pg_test.cpp C++ enum type
 /// and a PostgreSQL enum type:
 /// @code
-/// create type my_schema.traffic_lights as enum (
-///   'red', 'yellow', 'green'
-/// );
+/// create type __pg_test.rainbow as enum (
+///  'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet'
+/// )
 /// @endcode
 /// all we need to do to declare the mapping between the C++ type and PosgtreSQL
 /// enumeration is provide a specialisation of CppToUserPg template.
@@ -39,19 +35,11 @@ namespace storages::postgres::io {
 /// enumeration we need to provide a list of enumerators with corresponding
 /// literals.
 ///
-/// @code
-/// namespace storages::postgres::io {
-/// template <>
-/// struct CppToUserPg<TrafficLights> : EnumMappingBase<TrafficLights> {
-///   static constexpr DBTypeName postgres_name = "my_schema.traffic_lights";
-///   static constexpr EnumeratorList enumerators {
-///     {EnumType::kRed, "red"},
-///     {EnumType::kYellow, "yellow"},
-///     {EnumType::kGreen, "green"}
-///   };
-/// };
-/// } // namespace
-/// @endcode
+/// @warning The type mapping specialisation **must** be accessible at the
+/// points where parsing/formatting of the C++ type is instantiated. The
+/// header where the C++ type is declared is an appropriate place to do it.
+///
+/// @snippet storages/postgres/tests/enums_pg_test.cpp C++ to Pg mapping
 ///
 /// The specialisation of CppToUserPg derives from EnumMappingBase for it to
 /// provide type aliases for EnumeratorList and EnumType. EnumType is an alias
@@ -61,6 +49,7 @@ namespace storages::postgres::io {
 
 namespace detail {
 
+/// Enumerator literal value holder
 template <typename Enum>
 struct Enumerator {
   Enum enumerator;
@@ -72,11 +61,22 @@ struct Enumerator {
 
 }  // namespace detail
 
+/// Base template for providing type aliases for defining enumeration
+/// mapping.
 template <typename Enum>
 struct EnumMappingBase {
   static_assert(std::is_enum<Enum>(), "Type must be an enumeration");
+  /// @brief Type alias for the enumeration.
+  ///
+  /// As the mapping must be specialized in `storages::postgres::io` namespace,
+  /// the enumerator value can be quite a long name. This type alias is a
+  /// shortcut to the enumeration type.
   using EnumType = Enum;
+  /// Type alias for enumerator literal value holder
   using Enumerator = detail::Enumerator<Enum>;
+  /// @brief Type alias for enumerator-literal mapping.
+  ///
+  /// See @ref pg_enum
   using EnumeratorList = const std::initializer_list<Enumerator>;
 };
 

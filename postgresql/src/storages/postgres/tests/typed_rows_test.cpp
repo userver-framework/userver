@@ -91,19 +91,19 @@ POSTGRE_TEST_P(TypedResult) {
   EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
   ASSERT_FALSE(res.IsEmpty());
 
-  auto tuples_res = res.As<MyTuple>();
+  auto tuples_res = res.AsSetOf<MyTuple>();
   auto t = tuples_res[0];
   EXPECT_EQ(42, std::get<0>(t));
   EXPECT_EQ("foobar", std::get<1>(t));
   EXPECT_EQ(3.14, std::get<2>(t));
 
-  auto struct_res = res.As<MyStruct>();
+  auto struct_res = res.AsSetOf<MyStruct>();
   auto s = struct_res[0];
   EXPECT_EQ(42, s.int_member);
   EXPECT_EQ("foobar", s.string_member);
   EXPECT_EQ(3.14, s.double_member);
 
-  auto class_res = res.As<MyClass>();
+  auto class_res = res.AsSetOf<MyClass>();
   auto c = class_res[0];
   EXPECT_EQ(42, c.GetInt());
   EXPECT_EQ("foobar", c.GetString());

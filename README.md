@@ -3,7 +3,7 @@
 Включает в себя:
   * Поддержку асинхронного кода на основе корутин
   * HTTP-сервер
-  * Драйверы для СУБД: Redis, MongoDB
+  * Драйверы для СУБД: Redis, MongoDB, PostgreSQL
 
 ## Использование
 [Документация API](https://github.yandex-team.ru/pages/taxi/userver/)

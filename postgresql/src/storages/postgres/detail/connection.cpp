@@ -173,7 +173,7 @@ struct Connection::Impl {
 
   void LoadUserTypes() {
     try {
-      auto res = ExecuteCommand(kGetUserTypesSQL).As<DBTypeDescription>();
+      auto res = ExecuteCommand(kGetUserTypesSQL).AsSetOf<DBTypeDescription>();
       db_types_.Reset();
       for (auto desc : res) {
         db_types_.AddType(std::move(desc));

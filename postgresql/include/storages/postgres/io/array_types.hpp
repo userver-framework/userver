@@ -11,6 +11,24 @@
 
 namespace storages::postgres::io {
 
+/// @page pg_arrays µPg: Arrays
+///
+/// µPg provides support for PostgreSQL arrays when the element type is
+/// supported by the driver, including user types.
+///
+/// Array parser will throw DimensionMismatch if the dimensions of C++
+/// container do not match that of the buffer received from the server.
+///
+/// Array formatter will throw InvalidDimensions if containers on same
+/// level of depth have different sizes.
+///
+/// Example of invalid dimensions from tests:
+/// @snippet storages/postgres/tests/arrays_pg_test.cpp Invalid dimensions
+///
+/// @par Currently supported containers
+/// - std::vector
+/// - std::array
+
 namespace traits {
 
 template <typename Container>
