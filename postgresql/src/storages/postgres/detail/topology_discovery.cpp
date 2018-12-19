@@ -27,11 +27,29 @@ std::string HostAndPortFromDsn(const std::string& dsn) {
   return options.host + ':' + options.port;
 }
 
+struct TryLockGuard {
+  TryLockGuard(std::atomic_flag& lock) : lock_(lock) {
+    lock_acquired_ = !lock_.test_and_set(std::memory_order_acq_rel);
+  }
+
+  ~TryLockGuard() {
+    if (lock_acquired_) {
+      lock_.clear(std::memory_order_release);
+    }
+  }
+
+  bool LockAcquired() const { return lock_acquired_; }
+
+ private:
+  std::atomic_flag& lock_;
+  bool lock_acquired_;
+};
+
 }  // namespace
 
 ClusterTopologyDiscovery::ClusterTopologyDiscovery(
     engine::TaskProcessor& bg_task_processor, const DSNList& dsn_list)
-    : bg_task_processor_(bg_task_processor) {
+    : bg_task_processor_(bg_task_processor), update_lock_ ATOMIC_FLAG_INIT {
   CreateConnections(dsn_list);
   BuildEscapedNames();
   StartPeriodicUpdates();
@@ -192,13 +210,16 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
 }
 
 void ClusterTopologyDiscovery::CheckTopology() {
-  LOG_INFO() << "Checking cluster topology";
   HostTypeList host_types;
-
-  // TODO don't block if next call came soon, think of short path with skipping
-  // close updates
   {
-    std::lock_guard<engine::Mutex> lock(update_mutex_);
+    TryLockGuard lock(update_lock_);
+    if (!lock.LockAcquired()) {
+      LOG_TRACE() << "Already checking cluster topology";
+      return;
+    }
+
+    // TODO check for close updates and discard those
+    LOG_INFO() << "Checking cluster topology";
 
     host_types.resize(connections_.size(), kNothing);
     const auto master_index = CheckHostsAndFindMaster(host_types);

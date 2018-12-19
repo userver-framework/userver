@@ -54,7 +54,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   std::vector<ConnectionState> connections_;
   std::unordered_map<std::string, size_t> escaped_to_dsn_index_;
   ::utils::PeriodicTask periodic_task_;
-  engine::Mutex update_mutex_;
+  std::atomic_flag update_lock_;
   mutable engine::Mutex hosts_mutex_;
 };
 
