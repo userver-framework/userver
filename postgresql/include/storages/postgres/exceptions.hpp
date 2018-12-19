@@ -663,7 +663,7 @@ class EnumerationError : public LogicError {
   using LogicError::LogicError;
 };
 
-class InvalidEnumerationLiteral : EnumerationError {
+class InvalidEnumerationLiteral : public EnumerationError {
  public:
   InvalidEnumerationLiteral(const std::string& type_name,
                             const std::string& literal)
@@ -671,7 +671,7 @@ class InvalidEnumerationLiteral : EnumerationError {
                          "' for enum type '" + type_name + "'") {}
 };
 
-class InvalidEnumerationValue : EnumerationError {
+class InvalidEnumerationValue : public EnumerationError {
  public:
   template <typename Enum>
   explicit InvalidEnumerationValue(Enum val)
