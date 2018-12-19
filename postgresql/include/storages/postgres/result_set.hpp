@@ -30,7 +30,7 @@ namespace postgres {
 ///
 /// The ResultSet provides interface for range-based iteration over its rows.
 /// @code
-/// auto result = trx.Execute(""select foo, bar from foobar"");
+/// auto result = trx.Execute("select foo, bar from foobar");
 /// for (auto row : result) {
 ///   // Process row data here
 /// }
@@ -38,7 +38,7 @@ namespace postgres {
 ///
 /// Also rows can be accessed via indexing operators.
 /// @code
-/// auto result = trx.Execute(""select foo, bar from foobar"");
+/// auto result = trx.Execute("select foo, bar from foobar");
 /// for (auto idx = 0; idx < result.Size(); ++idx) {
 ///   auto row = result[idx];
 ///   // process row data here

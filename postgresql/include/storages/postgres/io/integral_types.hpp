@@ -39,8 +39,9 @@ struct IntegralBySizeParser {
   constexpr static std::size_t size = Size;
 
   static IntType ParseBuffer(const FieldBuffer& buf) {
-    const IntType* p = reinterpret_cast<const IntType*>(buf.buffer);
-    return boost::endian::big_to_native(*p);
+    IntType i;
+    std::memcpy(&i, buf.buffer, size);
+    return boost::endian::big_to_native(i);
   }
 };
 
