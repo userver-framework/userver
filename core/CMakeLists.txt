@@ -61,14 +61,6 @@ find_package_required(OpenSSL "libcrypto++-dev")
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev (>=2.8)" 2.8)
-find_package_required_version(libbson-static-1.0
-    "libyandex-taxi-mongo-c-driver-dev" 1.12.0)
-find_package_required_version(libmongoc-static-1.0
-    "libyandex-taxi-mongo-c-driver-dev" 1.12.0)
-find_package_required_version(libbsoncxx-static
-    "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
-find_package_required_version(libmongocxx-static
-    "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -77,8 +69,6 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC
     ${CMAKE_THREAD_LIBS_INIT}
     ${JEMALLOC_LIBRARIES}
-    ${LIBBSONCXX_STATIC_LIBRARIES}
-    ${LIBMONGOCXX_STATIC_LIBRARIES}
     sanitize-target
     yandex-taxi-backend-common-cpp
     libyamlcpp
@@ -92,8 +82,6 @@ target_link_libraries(${PROJECT_NAME}
     ${HIREDIS_LIBRARIES}
     ${HTTP_PARSER_LIBRARIES}
     ${LIBEV_LIBRARIES}
-    ${BSON_STATIC_LIBRARIES}
-    ${MONGOC_STATIC_LIBRARIES}
     ${Iconv_LIBRARIES}
     OpenSSL::Crypto
     CryptoPP
@@ -109,16 +97,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}
 )
 
-
-# include them as system to suppress errors
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-  ${LIBBSONCXX_STATIC_INCLUDE_DIRS}
-  ${LIBMONGOCXX_STATIC_INCLUDE_DIRS}
-)
-
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-  ${BSON_STATIC_INCLUDE_DIRS}
-  ${MONGOC_STATIC_INCLUDE_DIRS}
   ${USERVER_THIRD_PARTY_DIRS}/boost-sync-event/include
   ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
 )
@@ -187,11 +166,9 @@ add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
-
 target_link_libraries(${PROJECT_NAME}_unittest
   utest
 )
-
 add_google_tests(${PROJECT_NAME}_unittest)
 
 

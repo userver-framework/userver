@@ -1,7 +1,5 @@
 #include <clients/config/client.hpp>
 
-#include <bsoncxx/json.hpp>
-
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
 

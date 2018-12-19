@@ -9,7 +9,6 @@
 #include <components/caching_component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
-#include <storages/mongo/pool.hpp>
 #include <taxi_config/config.hpp>
 #include <taxi_config/storage/component.hpp>
 
@@ -19,8 +18,6 @@ class TaxiConfigClientUpdater
     : public CachingComponentBase<taxi_config::DocsMap> {
  public:
   static constexpr auto kName = "taxi-config-client-updater";
-
-  using EmplaceDocsCb = std::function<void(taxi_config::DocsMap&& mongo_docs)>;
 
   TaxiConfigClientUpdater(const ComponentConfig&, const ComponentContext&);
 

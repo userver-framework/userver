@@ -5,6 +5,7 @@
 #include <blocking/fs/read.hpp>
 #include <cache/update_type.hpp>
 #include <clients/http/component.hpp>
+#include <formats/json/serialize.hpp>
 #include <utils/string_to_duration.hpp>
 
 namespace components {
@@ -79,7 +80,7 @@ void TaxiConfigClientUpdater::Update(
      * as every full update we get a bit outdated reply.
      */
 
-    ::taxi_config::DocsMap combined = fallback_config_;
+    ::taxi_config::DocsMap combined(fallback_config_);
     combined.MergeFromOther(std::move(docs_map));
 
     auto size = combined.Size();

@@ -16,7 +16,7 @@
 #include <utils/statistics/percentile_format_json.hpp>
 #include <yaml_config/value.hpp>
 
-#include "redis_config.hpp"
+#include <storages/redis/redis_config.hpp>
 #include "redis_secdist.hpp"
 
 namespace {

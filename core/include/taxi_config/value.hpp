@@ -9,7 +9,7 @@
 #include <boost/optional.hpp>
 
 #include <engine/mutex.hpp>
-#include <storages/mongo/mongo.hpp>
+#include <formats/json/value.hpp>
 #include <utils/meta.hpp>
 #include <yaml_config/value.hpp>
 
@@ -17,8 +17,8 @@ namespace taxi_config {
 
 class DocsMap {
  public:
-  storages::mongo::DocumentElement Get(const std::string& name) const;
-  void Set(std::string name, storages::mongo::DocumentValue);
+  formats::json::Value Get(const std::string& name) const;
+  void Set(std::string name, formats::json::Value);
   void Parse(const std::string& json, bool empty_ok);
   size_t Size() const;
 
@@ -29,66 +29,16 @@ class DocsMap {
   std::string AsJsonString() const;
 
  private:
-  std::unordered_map<std::string, storages::mongo::DocumentValue> docs_;
+  std::unordered_map<std::string, formats::json::Value> docs_;
   mutable std::unordered_set<std::string> requested_names_;
 };
 
 namespace impl {
 
-template <class T>
-static constexpr bool IsSpecialized =
-    !meta::is_bool<T>::value &&
-    (std::is_arithmetic<T>::value || meta::is_duration<T>::value ||
-     meta::is_vector<T>::value || meta::is_map<T>::value);
-
-template <typename T>
-typename std::enable_if_t<!IsSpecialized<T>, T> MongoCast(
-    const storages::mongo::DocumentElement& elem);
-
-template <class T>
-typename std::enable_if_t<std::is_floating_point<T>::value, T> MongoCast(
-    const storages::mongo::DocumentElement& elem) {
-  return static_cast<T>(storages::mongo::ToDouble(elem));
-}
-
-template <class T>
-typename std::enable_if_t<
-    std::is_integral<T>::value && !meta::is_bool<T>::value, T>
-MongoCast(const storages::mongo::DocumentElement& elem) {
-  return boost::numeric_cast<T>(storages::mongo::ToInt64(elem));
-}
-
-template <class T>
-typename std::enable_if_t<meta::is_duration<T>::value, T> MongoCast(
-    const storages::mongo::DocumentElement& elem) {
-  return T(MongoCast<typename T::rep>(elem));
-}
-
-template <class T>
-typename std::enable_if_t<meta::is_map<T>::value, T> MongoCast(
-    const storages::mongo::DocumentElement& elem) {
-  T response;
-  const auto& obj = storages::mongo::ToDocument(elem);
-  for (const auto& elem : obj) {
-    response.emplace(elem.key(), MongoCast<typename T::mapped_type>(elem));
-  }
-  return response;
-}
-
-template <class T>
-typename std::enable_if_t<meta::is_vector<T>::value, T> MongoCast(
-    const storages::mongo::DocumentElement& elem) {
-  T response;
-  for (const auto& subitem : storages::mongo::ToArray(elem))
-    response.emplace_back(MongoCast<typename T::value_type>(subitem));
-
-  return response;
-}
-
 template <typename Res>
 Res Parse(const std::string& name, const DocsMap& mongo_docs) {
   auto const element = mongo_docs.Get(name);
-  return MongoCast<Res>(element);
+  return element.As<Res>();
 }
 
 }  // namespace impl
@@ -109,3 +59,36 @@ class Value {
 };
 
 }  // namespace taxi_config
+
+template <typename T>
+std::unordered_map<std::string, T> ParseJson(
+    const formats::json::Value& elem, std::unordered_map<std::string, T>*) {
+  std::unordered_map<std::string, T> response;
+  for (auto it = elem.begin(); it != elem.end(); ++it) {
+    response.emplace(it.GetName(), it->As<T>());
+  }
+  return response;
+}
+
+template <typename T>
+std::map<std::string, T> ParseJson(const formats::json::Value& elem,
+                                   std::map<std::string, T>*) {
+  std::map<std::string, T> response;
+  for (auto it = elem.begin(); it != elem.end(); ++it) {
+    response.emplace(it.GetName(), it->As<T>());
+  }
+  return response;
+}
+
+template <typename T>
+std::vector<T> ParseJson(const formats::json::Value& elem, std::vector<T>*) {
+  std::vector<T> response;
+  for (const auto& item : elem)
+    response.emplace_back(item.As<typename T::value_type>());
+  return response;
+}
+
+namespace formats::json {
+std::unordered_set<std::string> ParseJson(const formats::json::Value& elem,
+                                          std::unordered_set<std::string>*);
+}

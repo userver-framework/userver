@@ -69,6 +69,9 @@ class Value {
   double asDouble() const;
   std::string asString() const;
 
+  template <typename T>
+  T As() const;
+
   bool HasMember(const char* key) const;
   bool HasMember(const std::string& key) const;
 
@@ -109,6 +112,36 @@ class Value {
   friend class Iterator<IterTraits>;
   friend class ValueBuilder;
 };
+
+template <typename T>
+T Value::As() const {
+  T* dont_use_me = nullptr;
+  return ParseJson(*this, dont_use_me);
+}
+
+template <>
+bool Value::As<bool>() const;
+
+template <>
+int32_t Value::As<int32_t>() const;
+
+template <>
+int64_t Value::As<int64_t>() const;
+
+template <>
+uint32_t Value::As<uint32_t>() const;
+
+template <>
+uint64_t Value::As<uint64_t>() const;
+
+template <>
+float Value::As<float>() const;
+
+template <>
+double Value::As<double>() const;
+
+template <>
+std::string Value::As<std::string>() const;
 
 }  // namespace json
 }  // namespace formats

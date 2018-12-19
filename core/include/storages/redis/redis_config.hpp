@@ -3,6 +3,10 @@
 #include <redis/base.hpp>
 #include <taxi_config/value.hpp>
 
+namespace redis {
+CommandControl ParseJson(const formats::json::Value& elem, CommandControl*);
+}
+
 namespace storages {
 namespace redis {
 

@@ -102,6 +102,46 @@ bool Value::isFloat() const { return isDouble(); }
 #undef AS_TYPE
 #undef IS_TYPE
 
+template <>
+bool Value::As<bool>() const {
+  return asBool();
+}
+
+template <>
+int32_t Value::As<int32_t>() const {
+  return asInt();
+}
+
+template <>
+int64_t Value::As<int64_t>() const {
+  return asInt64();
+}
+
+template <>
+uint32_t Value::As<uint32_t>() const {
+  return asUInt();
+}
+
+template <>
+uint64_t Value::As<uint64_t>() const {
+  return asUInt64();
+}
+
+template <>
+float Value::As<float>() const {
+  return asFloat();
+}
+
+template <>
+double Value::As<double>() const {
+  return asDouble();
+}
+
+template <>
+std::string Value::As<std::string>() const {
+  return asString();
+}
+
 bool Value::HasMember(const char* key) const {
   return !isMissing() && GetNative().isMember(key);
 }
