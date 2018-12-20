@@ -18,7 +18,7 @@ void CheckTransaction(pg::Transaction trx) {
 
   // TODO Check idle connection count before and after begin
   EXPECT_NO_THROW(res = trx.Execute("select 1"));
-  EXPECT_TRUE((bool)res) << "Result set is obtained";
+  EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   // TODO Check idle connection count before and after commit
   EXPECT_NO_THROW(trx.Commit());
   EXPECT_THROW(trx.Commit(), pg::NotInTransaction);

@@ -61,6 +61,8 @@ POSTGRE_TEST_P(StringRoundtrip) {
   EXPECT_NO_THROW(res = conn->ExperimentalExecute(
                       "select $1", pg::io::kBinaryDataFormat, unicode_str));
   EXPECT_EQ(unicode_str, res[0][0].As<std::string>()) << "Binary reply";
+  auto str_res = res.AsSetOf<std::string>();
+  EXPECT_EQ(unicode_str, str_res[0]);
 
   EXPECT_NO_THROW(res = conn->Execute("select $1", std::string{}));
   EXPECT_EQ(std::string{}, res[0][0].As<std::string>()) << "Empty string";

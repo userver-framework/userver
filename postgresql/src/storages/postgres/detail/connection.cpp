@@ -148,7 +148,7 @@ struct Connection::Impl {
     // We cannot handle exceptions here, so we let them got to the caller
     // Detect if the connection is read only.
     auto res = ExecuteCommandNoPrepare("show transaction_read_only");
-    if (res) {
+    if (!res.IsEmpty()) {
       res.Front().To(read_only_);
     }
     SetLocalTimezone();

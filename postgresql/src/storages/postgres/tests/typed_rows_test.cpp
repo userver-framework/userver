@@ -54,23 +54,24 @@ class MyPolymorphicInrospected : public MyPolymorphicBase {
   }
 };
 
-static_assert(kRowTag<MyTupleType> == RowTagType::kTuple, "");
-static_assert(kRowTag<MyAggregateStruct> == RowTagType::kAggregate, "");
-static_assert(kRowTag<MyIntrusiveClass> == RowTagType::kIntrusiveIntrospection,
+static_assert(kRowCategory<std::string> == RowCategoryType::kNonRow, "");
+static_assert((kRowCategory<std::vector<std::string>> ==
+               RowCategoryType::kNonRow),
               "");
-static_assert(kRowTag<MyPolymorphicBase> == RowTagType::kInvalid, "");
-static_assert(kRowTag<MyPolymorphicDerived> == RowTagType::kInvalid, "");
-static_assert(kRowTag<MyPolymorphicInrospected> ==
-                  RowTagType::kIntrusiveIntrospection,
-              "");
+static_assert(kRowCategory<pg::Numeric> == RowCategoryType::kNonRow, "");
 
-static_assert(IsTuple<pg::detail::RowToUserData<MyTupleType>::ValueType>::value,
+static_assert(kRowCategory<MyTupleType> == RowCategoryType::kTuple, "");
+static_assert(kRowCategory<MyAggregateStruct> == RowCategoryType::kAggregate,
               "");
-static_assert(
-    IsTuple<pg::detail::RowToUserData<MyAggregateStruct>::TupleType>::value,
-    "");
-static_assert(
-    IsTuple<pg::detail::RowToUserData<MyIntrusiveClass>::TupleType>::value, "");
+static_assert(kRowCategory<MyIntrusiveClass> ==
+                  RowCategoryType::kIntrusiveIntrospection,
+              "");
+static_assert(kRowCategory<MyPolymorphicBase> == RowCategoryType::kNonRow, "");
+static_assert(kRowCategory<MyPolymorphicDerived> == RowCategoryType::kNonRow,
+              "");
+static_assert(kRowCategory<MyPolymorphicInrospected> ==
+                  RowCategoryType::kIntrusiveIntrospection,
+              "");
 
 }  // namespace static_test
 
@@ -90,6 +91,8 @@ POSTGRE_TEST_P(TypedResult) {
 
   EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
   ASSERT_FALSE(res.IsEmpty());
+
+  EXPECT_THROW(res.AsSetOf<int>(), pg::NonSingleColumResultSet);
 
   auto tuples_res = res.AsSetOf<MyTuple>();
   auto t = tuples_res[0];

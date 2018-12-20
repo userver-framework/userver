@@ -6,51 +6,7 @@
 
 namespace storages::postgres::detail {
 
-template <typename T, io::traits::RowTagType Tag>
-struct RowToUserDataImpl;
-
-template <typename T>
-struct RowToUserDataImpl<T, io::traits::RowTagType::kTuple> {
-  using ValueType = T;
-
-  static ValueType FromRow(const Row& row) { return row.AsTuple<ValueType>(); }
-};
-
-template <typename T>
-struct RowToUserDataImpl<T, io::traits::RowTagType::kAggregate> {
-  using ValueType = T;
-  using TupleType =
-      decltype(boost::pfr::structure_tie(std::declval<ValueType&>()));
-  using NonRefTuple =
-      typename io::traits::RemoveTupleReferences<TupleType>::type;
-
-  static TupleType Get(ValueType& v) { return boost::pfr::structure_tie(v); }
-  static ValueType FromRow(const Row& row) {
-    ValueType v;
-    Get(v) = row.AsTuple<NonRefTuple>();
-    return v;
-  }
-};
-
-template <typename T>
-struct RowToUserDataImpl<T, io::traits::RowTagType::kIntrusiveIntrospection> {
-  using ValueType = T;
-  using TupleType = decltype(std::declval<ValueType&>().Introspect());
-  using NonRefTuple =
-      typename io::traits::RemoveTupleReferences<TupleType>::type;
-
-  static TupleType Get(ValueType& v) { return v.Introspect(); }
-  static ValueType FromRow(const Row& row) {
-    ValueType v;
-    Get(v) = row.AsTuple<NonRefTuple>();
-    return v;
-  }
-};
-
-template <typename T>
-struct RowToUserData : RowToUserDataImpl<T, io::traits::kRowTag<T>> {};
-
-template <typename T>
+template <typename T, typename ExtractionTag>
 class ConstTypedRowIterator : private Row {
  public:
   //@{
@@ -64,16 +20,14 @@ class ConstTypedRowIterator : private Row {
   /// iterator.
   using iterator_category = std::input_iterator_tag;
   //@}
- private:
-  //@{
-  using UserData = RowToUserData<T>;
-  //@}
+  static constexpr ExtractionTag kExtractTag;
+
  public:
   //@{
   /** @name Iterator dereferencing */
   /// Read typed value from underlying postgres buffers and return it.
   /// Please note there is no operator ->.
-  value_type operator*() const { return UserData::FromRow(*this); }
+  value_type operator*() const { return As<value_type>(kExtractTag); }
   //@}
   //@{
   /** @name Iterator validity */
@@ -148,7 +102,7 @@ class ConstTypedRowIterator : private Row {
   }
   //@}
  private:
-  friend class TypedResultSet<T>;
+  friend class TypedResultSet<T, ExtractionTag>;
 
   ConstTypedRowIterator(detail::ResultWrapperPtr res, size_type row)
       : Row(res, row) {}

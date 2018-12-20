@@ -288,14 +288,14 @@ void ClusterTopologyDiscovery::FindSyncSlaves(HostTypeList& host_types,
   LOG_INFO() << conn->GetLogExtra() << "Found master host";
   auto task = engine::Async([this, conn] {
     auto res = conn->Execute("show synchronous_standby_names");
-    if (!res) {
+    if (res.IsEmpty()) {
       return std::vector<size_t>{};
     }
 
     std::vector<size_t> sync_slave_indices;
     sync_slave_indices.reserve(res.Size());
     for (auto&& res_row : res) {
-      const auto sync_slave_name = std::get<0>(res_row.As<std::string>());
+      const auto sync_slave_name = res_row.As<std::string>();
       auto find_it = escaped_to_dsn_index_.find(sync_slave_name);
       if (find_it != escaped_to_dsn_index_.end()) {
         sync_slave_indices.push_back(find_it->second);

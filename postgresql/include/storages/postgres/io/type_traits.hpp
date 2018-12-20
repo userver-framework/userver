@@ -189,58 +189,6 @@ auto Inserter(T& container) {
 }
 //@}
 
-//@{
-/** @name Row type traits */
-template <typename T>
-struct IsTuple : std::false_type {};
-template <typename... T>
-struct IsTuple<std::tuple<T...>> : std::true_type {};
-
-template <typename T, typename = ::utils::void_t<>>
-struct HasIntrospection : std::false_type {};
-
-template <typename T>
-struct HasIntrospection<
-    T, ::utils::void_t<decltype(std::declval<T&>().Introspect())>>
-    : std::integral_constant<
-          bool, IsTuple<decltype(std::declval<T&>().Introspect())>::value> {};
-
-namespace detail {
-
-template <typename T>
-constexpr bool DetectIsAggregate() {
-  using type = std::remove_cv_t<T>;
-  return std::is_class<type>::value && !std::is_empty<type>::value &&
-         std::is_standard_layout<type>::value &&
-         !std::is_polymorphic<type>::value && !std::is_union<type>::value;
-}
-
-}  // namespace detail
-
-template <typename T>
-struct IsAggregateClass : BoolConstant<detail::DetectIsAggregate<T>()> {};
-template <typename T>
-constexpr bool kIsAggregateClass = IsAggregateClass<T>::value;
-
-enum class RowTagType { kInvalid, kTuple, kAggregate, kIntrusiveIntrospection };
-
-template <RowTagType Tag>
-using RowTagConstant = std::integral_constant<RowTagType, Tag>;
-
-template <typename T>
-struct RowTag
-    : std::conditional_t<
-          IsTuple<T>::value, RowTagConstant<RowTagType::kTuple>,
-          std::conditional_t<
-              HasIntrospection<T>::value,
-              RowTagConstant<RowTagType::kIntrusiveIntrospection>,
-              std::conditional_t<IsAggregateClass<T>::value,
-                                 RowTagConstant<RowTagType::kAggregate>,
-                                 RowTagConstant<RowTagType::kInvalid>>>> {};
-
-template <typename T>
-constexpr RowTagType kRowTag = RowTag<T>::value;
-
 template <typename T>
 struct RemoveTupleReferences;
 

@@ -20,6 +20,11 @@ create type __pg_test.foobar as (
   a integer[]
 ))~";
 
+const std::string kCreateCompositeOfComposites = R"~(
+create type __pg_test.foobars as (
+  f __pg_test.foobar[]
+))~";
+
 }  // namespace
 
 /*! [User type declaration] */
@@ -53,6 +58,14 @@ class FooClass {
 
 using FooTuple = std::tuple<int, std::string, double, std::vector<int>>;
 
+struct BunchOfFoo {
+  std::vector<FooBar> foobars;
+
+  bool operator==(const BunchOfFoo& rhs) const {
+    return foobars == rhs.foobars;
+  }
+};
+
 }  // namespace pg_test
 /*! [User type declaration] */
 
@@ -77,6 +90,11 @@ struct CppToUserPg<pg_test::FooTuple> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
+template <>
+struct CppToUserPg<pg_test::BunchOfFoo> {
+  static constexpr DBTypeName postgres_name = "__pg_test.foobars";
+};
+
 }  // namespace storages::postgres::io
 /*! [User type mapping] */
 
@@ -98,6 +116,9 @@ static_assert((tt::detail::CompositeHasParsers<
 static_assert((!tt::detail::CompositeHasParsers<
                   int, io::DataFormat::kBinaryDataFormat>::value),
               "");
+
+static_assert(tt::kHasAnyParser<pg_test::BunchOfFoo>, "");
+static_assert(tt::kHasAnyFormatter<pg_test::BunchOfFoo>, "");
 }  // namespace static_test
 
 namespace {
@@ -113,6 +134,8 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
 
   EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
+  EXPECT_NO_THROW(conn->Execute(kCreateCompositeOfComposites))
+      << "Successfully create composite of composites";
   EXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
 
   EXPECT_NO_THROW(
@@ -120,7 +143,7 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
           "select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1])::__pg_test.foobar"));
   std::vector<int> expected_vector{-1, 0, 1};
 
-  ASSERT_TRUE(res);
+  ASSERT_FALSE(res.IsEmpty());
   ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
 
   pg_test::FooBar fb;
@@ -152,9 +175,25 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(
       res = conn->Execute("select $1 as array_of_foo", FooVector{fb, fb, fb}));
 
-  ASSERT_TRUE(res);
+  ASSERT_FALSE(res.IsEmpty());
   ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
-  EXPECT_EQ((FooVector{fb, fb, fb}), res[0][0].As<FooVector>());
+  EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
+
+  pg_test::BunchOfFoo bf{{fb, fb, fb}};
+  EXPECT_NO_THROW(res = conn->Execute("select $1 as bunch", bf));
+  ASSERT_FALSE(res.IsEmpty());
+  ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
+  pg_test::BunchOfFoo bf1;
+  EXPECT_NO_THROW(res[0].To(bf1));
+  EXPECT_EQ(bf, bf1);
+  EXPECT_EQ(bf, res[0].As<pg_test::BunchOfFoo>());
+
+  // Unwrapping composite structure to a row
+  EXPECT_NO_THROW(res = conn->Execute("select $1.*", bf));
+  ASSERT_FALSE(res.IsEmpty());
+  EXPECT_NO_THROW(res[0].To(bf1, pg::kRowTag));
+  EXPECT_EQ(bf, bf1);
+  EXPECT_EQ(bf, res[0].As<pg_test::BunchOfFoo>(pg::kRowTag));
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }

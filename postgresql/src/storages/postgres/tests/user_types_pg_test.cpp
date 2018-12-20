@@ -62,7 +62,7 @@ void CheckDomainExpectations(pg::detail::ConnectionPtr& conn,
   EXPECT_NO_THROW(conn->Execute(create_statement)) << create_statement;
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(res = conn->Execute(check_statement)) << check_statement;
-  ASSERT_TRUE(res);
+  ASSERT_FALSE(res.IsEmpty());
   EXPECT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
 }
 

@@ -12,6 +12,7 @@
 
 #include <storages/postgres/detail/const_data_iterator.hpp>
 
+#include <logging/log.hpp>
 #include <utils/demangle.hpp>
 
 namespace storages {
@@ -106,6 +107,14 @@ namespace postgres {
 /// functions. Also a FieldIndexOutOfBounds or FieldNameDoesntExist can be
 /// thrown.
 ///
+/// Statements that return user-defined PostgreSQL type may be called as
+/// returning either one-column row with the whole type in it or as multi-column
+/// row with every column representing a field in the type. For the purpose of
+/// disambiguation, kRowTag may be used.
+///
+/// When a first column is extracted, it is expected that the result set
+/// contains the only column, otherwise an exception will be thrown.
+///
 /// @code
 /// auto [foo, bar] = row.As<int, std::string>();
 /// row.To(foo, bar);
@@ -115,9 +124,31 @@ namespace postgres {
 ///
 /// auto [bar, foo] = row.As<std::string, int>({"bar", "foo"});
 /// row.To({"bar", "foo"}, bar, foo);
+///
+/// // extract the whole row into a row-type structure.
+/// // The FooBar type must not have the C++ to PostgreSQL mapping in this case
+/// auto foobar = row.As<FooBar>();
+/// row.To(foobar);
+/// // If the FooBar type does have the mapping, the function call must be
+/// // disambiguated.
+/// foobar = row.As<FooBar>(kRowTag);
+/// row.To(foobar, kRowTag);
 /// @endcode
 ///
-/// @todo Interface for converting a row to a single value without a tuple
+/// In the following example it is assumed that the row has a single column
+/// and the FooBar type is mapped to a PostgreSQL type.
+///
+/// @note The row is used to extract different types, it doesn't mean it will
+/// actually work with incompatible types.
+///
+/// @code
+/// auto foobar = row.As<FooBar>();
+/// row.To(foobar);
+///
+/// auto str = row.As<std::string>();
+/// auto i = row.As<int>();
+/// @endcode
+///
 ///
 /// @par Converting a Row to a user row type
 ///
@@ -176,7 +207,7 @@ class RowDescription {
 
 class Row;
 class ResultSet;
-template <typename T>
+template <typename T, typename ExtractionTag>
 class TypedResultSet;
 
 /// @brief Accessor to a single field in a result set's row
@@ -393,56 +424,84 @@ class Row {
   //@}
 
   //@{
-  /** @name Bulk access to row's data */
+  /** @name Access to row's data */
+  /// Read the contents of the row to a user's row type or read the first
+  /// column into the value.
+  ///
+  /// If the user tries to read the first column into a variable, it must be the
+  /// only column in the result set. If the result set contains more than one
+  /// column, the function will throw NotASingleColumResultSet. If the result
+  /// set is OK to contain more than one columns, the first column value should
+  /// be accessed via `row[0].To/As`.
+  ///
+  /// If the type is a 'row' type, the function will read the fields of the row
+  /// into the type's data members.
+  ///
+  /// If the type can be treated as both a row type and a composite type (the
+  /// type is mapped to a PostgreSQL type), the function will treat the type
+  /// as a type for the first (and the only) column.
+  ///
+  /// To read the all fields of the row as a row type, the To(T&&, RowTag)
+  /// should be used.
+  template <typename T>
+  void To(T&& val) const;
+
+  /// Function to disambiguate reading the row to a user's row type (row fields
+  /// to user's type data members)
+  template <typename T>
+  void To(T&& val, RowTag) const;
+
+  /// Function to disambiguate reading the first column to a user's composite
+  /// type (PostgreSQL composite type to user's type).
+  /// The same as calling To(T&& val) for a T mapped to a PostgreSQL type.
+  ///
+  /// See @ref pg_composite_types
+  template <typename T>
+  void To(T&& val, FieldTag) const;
+
   /// Read fields into variables in order of their appearance in the row
   template <typename... T>
   void To(T&&... val) const;
-  /// Read fields into tuple members in the order of their appearance in the row
-  ///
-  /// This is to distinguish reading a row into a tuple vs reading a field into
-  /// a tuple
-  template <typename... T>
-  void ToTuple(std::tuple<T...>&) const;
 
-  template <typename... T>
-  std::tuple<T...> As() const {
-    std::tuple<T...> res;
-    ToTuple(res);
-    return res;
-  }
+  /// @brief Parse values from the row and return the result.
+  ///
+  /// If there are more than one type arguments to the function, it will
+  /// return a tuple of those types.
+  ///
+  /// If there is a single type argument to the function, it will read the first
+  /// and the only column of the row or the whole row to the row type (depending
+  /// on C++ to PosgreSQL mapping presence) and return plain value of this type.
+  ///
+  /// @see To(T&&)
+  template <typename T, typename... Y>
+  auto As() const;
+
   template <typename T>
-  T AsTuple() const {
-    T res;
-    ToTuple(res);
-    return res;
+  T As(RowTag) const {
+    T val;
+    To(val, kRowTag);
+    return val;
+  }
+
+  template <typename T>
+  T As(FieldTag) const {
+    T val;
+    To(val, kFieldTag);
+    return val;
   }
 
   /// Read fields into variables in order of their names in the first argument
   template <typename... T>
   void To(const std::initializer_list<std::string>& names, T&&... val) const;
   template <typename... T>
-  void ToTuple(const std::initializer_list<std::string>& names,
-               std::tuple<T...>& val) const;
-  template <typename... T>
-  std::tuple<T...> As(const std::initializer_list<std::string>& names) const {
-    std::tuple<T...> res;
-    ToTuple(names, res);
-    return res;
-  }
+  std::tuple<T...> As(const std::initializer_list<std::string>& names) const;
 
   /// Read fields into variables in order of their indexes in the first
   /// argument
   template <typename... T>
   void To(const std::initializer_list<size_type>& indexes, T&&... val) const;
   template <typename... T>
-  void ToTuple(const std::initializer_list<size_type>& indexes,
-               std::tuple<T...>& val) const;
-  template <typename... T>
-  std::tuple<T...> As(const std::initializer_list<size_type>& indexes) const {
-    std::tuple<T...> res;
-    ToTuple(indexes, res);
-    return res;
-  }
+  std::tuple<T...> As(const std::initializer_list<size_type>& indexes) const;
   //@}
 
   size_type IndexOfName(std::string const&) const;
@@ -509,8 +568,6 @@ class ResultSet {
   /// Number of rows in the result set
   size_type Size() const;
   bool IsEmpty() const { return Size() == 0; }
-  explicit operator bool() const { return !IsEmpty(); }
-  bool operator!() const { return IsEmpty(); }
 
   //@{
   /** @name Row container interface */
@@ -558,9 +615,11 @@ class ResultSet {
   /// @brief Get a wrapper for iterating over a set of typed results.
   /// For more information see @ref psql_typed_results
   template <typename T>
-  TypedResultSet<T> AsSetOf() const {
-    return TypedResultSet<T>{*this};
-  }
+  auto AsSetOf() const;
+  template <typename T>
+  auto AsSetOf(RowTag) const;
+  template <typename T>
+  auto AsSetOf(FieldTag) const;
 
   /// @brief Extract data into a container.
   /// For more information see @ref psql_typed_results
@@ -568,7 +627,7 @@ class ResultSet {
   Container AsContainer() const;
   //@}
  private:
-  template <typename T>
+  template <typename T, typename Tag>
   friend class TypedResultSet;
 
   detail::ResultWrapperPtr pimpl_;
@@ -587,8 +646,10 @@ struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
     (row[Indexes].To(std::forward<T>(val)), ...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>& val) {
-    std::tuple<T...> tmp{row[Indexes].template As<T>()...};
-    tmp.swap(val);
+    (row[Indexes].To(std::get<Indexes>(val)), ...);
+  }
+  static void ExtractTuple(const Row& row, std::tuple<T...>&& val) {
+    (row[Indexes].To(std::get<Indexes>(val)), ...);
   }
 
   static void ExtractValues(const Row& row,
@@ -619,9 +680,63 @@ struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
 template <typename... T>
 struct RowDataExtractor
     : RowDataExtractorBase<std::index_sequence_for<T...>, T...> {};
+
+template <typename T>
+struct TupleDataExtractor;
+template <typename... T>
+struct TupleDataExtractor<std::tuple<T...>>
+    : RowDataExtractorBase<std::index_sequence_for<T...>, T...> {};
 //@}
 
 }  // namespace detail
+
+template <typename T>
+void Row::To(T&& val) const {
+  using ValueType = std::decay_t<T>;
+  if constexpr (io::traits::kIsCompositeType<ValueType>) {
+    To(std::forward<T>(val), kFieldTag);
+  } else if constexpr (io::traits::kIsRowType<ValueType>) {
+    To(std::forward<T>(val), kRowTag);
+  } else {
+    To(std::forward<T>(val), kFieldTag);
+  }
+}
+
+template <typename T>
+void Row::To(T&& val, RowTag) const {
+  // Convert the val into a writable tuple and extract the data
+  using ValueType = std::decay_t<T>;
+  static_assert(io::traits::kIsRowType<ValueType>,
+                "This type cannot be used as a row type");
+  using RowType = io::RowType<ValueType>;
+  using TupleType = typename RowType::TupleType;
+  constexpr auto tuple_size = RowType::size;
+  if (tuple_size > Size()) {
+    throw InvalidTupleSizeRequested(Size(), tuple_size);
+  } else if (tuple_size < Size()) {
+    LOG_WARNING() << "Row size is greater that the number of data members in "
+                     "C++ user datatype "
+                  << ::utils::GetTypeName<T>();
+  }
+
+  detail::TupleDataExtractor<TupleType>::ExtractTuple(
+      *this, RowType::GetTuple(std::forward<T>(val)));
+}
+
+template <typename T>
+void Row::To(T&& val, FieldTag) const {
+  using ValueType = std::decay_t<T>;
+  static_assert(io::traits::kIsMappedToPg<ValueType>,
+                "This type is not mapped to a PostgreSQL type");
+  // Read the first field into the type
+  if (Size() < 1) {
+    throw InvalidTupleSizeRequested{Size(), 1};
+  }
+  if (Size() > 1) {
+    throw NonSingleColumResultSet{Size()};
+  }
+  At(0).To(std::forward<T>(val));
+}
 
 template <typename... T>
 void Row::To(T&&... val) const {
@@ -631,12 +746,22 @@ void Row::To(T&&... val) const {
   detail::RowDataExtractor<T...>::ExtractValues(*this, std::forward<T>(val)...);
 }
 
-template <typename... T>
-void Row::ToTuple(std::tuple<T...>& val) const {
-  if (sizeof...(T) > Size()) {
-    throw InvalidTupleSizeRequested(Size(), sizeof...(T));
+template <typename T, typename... Y>
+auto Row::As() const {
+  if constexpr (sizeof...(Y) > 0) {
+    std::tuple<T, Y...> res;
+    To(res, kRowTag);
+    return res;
+  } else {
+    using ValueType = std::decay_t<T>;
+    if constexpr (io::traits::kIsCompositeType<ValueType>) {
+      return As<T>(kFieldTag);
+    } else if constexpr (io::traits::kIsRowType<ValueType>) {
+      return As<T>(kRowTag);
+    } else {
+      return As<T>(kFieldTag);
+    }
   }
-  detail::RowDataExtractor<T...>::ExtractTuple(*this, val);
 }
 
 template <typename... T>
@@ -650,12 +775,14 @@ void Row::To(const std::initializer_list<std::string>& names,
 }
 
 template <typename... T>
-void Row::ToTuple(const std::initializer_list<std::string>& names,
-                  std::tuple<T...>& val) const {
+std::tuple<T...> Row::As(
+    const std::initializer_list<std::string>& names) const {
   if (sizeof...(T) != names.size()) {
     throw FieldTupleMismatch(names.size(), sizeof...(T));
   }
-  detail::RowDataExtractor<T...>::ExtractTuple(*this, names, val);
+  std::tuple<T...> res;
+  detail::RowDataExtractor<T...>::ExtractTuple(*this, names, res);
+  return res;
 }
 
 template <typename... T>
@@ -669,12 +796,45 @@ void Row::To(const std::initializer_list<size_type>& indexes,
 }
 
 template <typename... T>
-void Row::ToTuple(const std::initializer_list<size_type>& indexes,
-                  std::tuple<T...>& val) const {
+std::tuple<T...> Row::As(
+    const std::initializer_list<size_type>& indexes) const {
   if (sizeof...(T) != indexes.size()) {
     throw FieldTupleMismatch(indexes.size(), sizeof...(T));
   }
-  detail::RowDataExtractor<T...>::ExtractTuple(*this, indexes, val);
+  std::tuple<T...> res;
+  detail::RowDataExtractor<T...>::ExtractTuple(*this, indexes, res);
+  return res;
+}
+
+template <typename T>
+auto ResultSet::AsSetOf() const {
+  using ValueType = std::decay_t<T>;
+  if constexpr (io::traits::kIsCompositeType<ValueType>) {
+    return AsSetOf<T>(kFieldTag);
+  } else if constexpr (io::traits::kIsRowType<ValueType>) {
+    return AsSetOf<T>(kRowTag);
+  } else {
+    return AsSetOf<T>(kFieldTag);
+  }
+}
+
+template <typename T>
+auto ResultSet::AsSetOf(RowTag) const {
+  using ValueType = std::decay_t<T>;
+  static_assert(io::traits::kIsRowType<ValueType>,
+                "This type cannot be used as a row type");
+  return TypedResultSet<T, RowTag>{*this};
+}
+
+template <typename T>
+auto ResultSet::AsSetOf(FieldTag) const {
+  using ValueType = std::decay_t<T>;
+  static_assert(io::traits::kIsMappedToPg<ValueType>,
+                "This type is not mapped to a PostgreSQL type");
+  if (FieldCount() > 1) {
+    throw NonSingleColumResultSet{FieldCount()};
+  }
+  return TypedResultSet<T, FieldTag>{*this};
 }
 
 template <typename Container>

@@ -5,6 +5,7 @@
 
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
+#include <storages/postgres/io/row_types.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 #include <storages/postgres/io/type_traits.hpp>
@@ -42,62 +43,11 @@ namespace storages::postgres::io {
 
 namespace detail {
 
-template <typename T, traits::RowTagType>
-struct CompositeTupleImpl;
-
-template <typename T>
-struct CompositeTupleImpl<T, traits::RowTagType::kTuple> {
-  using ValueType = T;
-  using TupleType = T;
-  static constexpr std::size_t size = std::tuple_size<TupleType>::value;
-  using IndexSequence = std::make_index_sequence<size>;
-
-  static TupleType& Get(ValueType& value) { return value; }
-  static const TupleType& Get(const ValueType& value) { return value; }
-};
-
-template <typename T>
-struct CompositeTupleImpl<T, traits::RowTagType::kAggregate> {
-  using ValueType = T;
-  using TupleType =
-      decltype(boost::pfr::structure_tie(std::declval<ValueType&>()));
-  static constexpr std::size_t size = std::tuple_size<TupleType>::value;
-  using IndexSequence = std::make_index_sequence<size>;
-
-  static TupleType Get(ValueType& value) {
-    return boost::pfr::structure_tie(value);
-  }
-  static auto Get(const ValueType& value) {
-    return boost::pfr::structure_to_tuple(value);
-  }
-};
-
-template <typename T>
-struct CompositeTupleImpl<T, traits::RowTagType::kIntrusiveIntrospection> {
-  using ValueType = T;
-  using TupleType = decltype(std::declval<ValueType&>().Introspect());
-  static_assert(traits::IsTupleOfRefs<TupleType>(),
-                "Introspect must return a tuple of lvalue references");
-  using ConstRefTuple = typename traits::AddTupleConstRef<TupleType>::type;
-  static constexpr std::size_t size = std::tuple_size<TupleType>::value;
-  using IndexSequence = std::make_index_sequence<size>;
-
-  static TupleType Get(ValueType& v) { return v.Introspect(); }
-  static auto Get(const ValueType& v) {
-    // const_cast here is to avoid making users write const-overloaded functions
-    // or static template Introspect functions.
-    return ConstRefTuple{const_cast<ValueType&>(v).Introspect()};
-  }
-};
-
-template <typename T>
-struct CompositeTuple : CompositeTupleImpl<T, traits::kRowTag<T>> {};
-
 template <typename T>
 struct CompositeBinaryParser : BufferParserBase<T> {
   using BaseType = BufferParserBase<T>;
-  using TupleType = CompositeTuple<T>;
-  using IndexSequence = typename TupleType::IndexSequence;
+  using RowType = io::RowType<T>;
+  using IndexSequence = typename RowType::IndexSequence;
 
   using BaseType::BaseType;
 
@@ -108,11 +58,11 @@ struct CompositeBinaryParser : BufferParserBase<T> {
     ReadBinary(buffer.GetSubBuffer(offset, int_size), field_count);
     offset += int_size;
 
-    if (field_count != TupleType::size) {
-      throw LogicError("Composite type field count mismatch");
+    if (field_count != RowType::size) {
+      throw CompositeSizeMismatch(field_count, RowType::size);
     }
 
-    ReadTuple(buffer.GetSubBuffer(offset), TupleType::Get(this->value),
+    ReadTuple(buffer.GetSubBuffer(offset), RowType::GetTuple(this->value),
               IndexSequence{});
   }
 
@@ -138,9 +88,9 @@ struct CompositeBinaryParser : BufferParserBase<T> {
 template <typename T>
 struct CompositeBinaryFormatter : BufferFormatterBase<T> {
   using BaseType = BufferFormatterBase<T>;
-  using TupleType = CompositeTuple<T>;
-  using IndexSequence = typename TupleType::IndexSequence;
-  static constexpr std::size_t size = TupleType::size;
+  using RowType = io::RowType<T>;
+  using IndexSequence = typename RowType::IndexSequence;
+  static constexpr std::size_t size = RowType::size;
 
   using BaseType::BaseType;
 
@@ -148,7 +98,7 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
   void operator()(const UserTypes& types, Buffer& buffer) const {
     // Number of fields
     WriteBinary(types, buffer, static_cast<Integer>(size));
-    WriteTuple(types, buffer, TupleType::Get(this->value), IndexSequence{});
+    WriteTuple(types, buffer, RowType::GetTuple(this->value), IndexSequence{});
   }
 
  private:
@@ -174,18 +124,16 @@ namespace detail {
 
 template <typename T, DataFormat F>
 constexpr bool DetectCompositeParsers() {
-  if constexpr (kRowTag<T> != RowTagType::kInvalid) {
-    return TupleHasParsers<typename io::detail::CompositeTuple<T>::TupleType,
-                           F>::value;
+  if constexpr (kIsRowType<T>) {
+    return TupleHasParsers<typename io::RowType<T>::TupleType, F>::value;
   }
   return false;
 }
 
 template <typename T, DataFormat F>
 constexpr bool DetectCompositeFormatters() {
-  if constexpr (kRowTag<T> != RowTagType::kInvalid) {
-    return TupleHasFormatters<typename io::detail::CompositeTuple<T>::TupleType,
-                              F>::value;
+  if constexpr (kIsRowType<T>) {
+    return TupleHasFormatters<typename io::RowType<T>::TupleType, F>::value;
   }
   return false;
 }
@@ -207,8 +155,7 @@ constexpr bool kCompositeHasFormatters = CompositeHasFormatters<T, F>::value;
 template <typename T>
 struct Input<T, DataFormat::kBinaryDataFormat,
              std::enable_if_t<!detail::kCustomBinaryParserDefined<T> &&
-                              kIsMappedToUserType<T> &&
-                              kRowTag<T> != RowTagType::kInvalid>> {
+                              kIsMappedToUserType<T> && kIsRowType<T>>> {
   static_assert(
       (detail::kCompositeHasParsers<T, DataFormat::kBinaryDataFormat> == true),
       "Not all composite type members have binary parsers");
@@ -218,8 +165,7 @@ struct Input<T, DataFormat::kBinaryDataFormat,
 template <typename T>
 struct Output<T, DataFormat::kBinaryDataFormat,
               std::enable_if_t<!detail::kCustomBinaryFormatterDefined<T> &&
-                               kIsMappedToUserType<T> &&
-                               kRowTag<T> != RowTagType::kInvalid>> {
+                               kIsMappedToUserType<T> && kIsRowType<T>>> {
   static_assert(
       (detail::kCompositeHasFormatters<T, DataFormat::kBinaryDataFormat> ==
        true),

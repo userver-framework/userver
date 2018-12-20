@@ -99,6 +99,7 @@ namespace postgres {
  *       - FieldValueIsNull
  *       - InvalidInputBufferSize
  *       - InvalidTupleSizeRequested
+ *       - NonSingleColumResultSet
  *       - NoValueParser
  *       - RowIndexOutOfBounds
  *       - TextParseFailure
@@ -622,6 +623,17 @@ class InvalidTupleSizeRequested : public ResultSetError {
                        std::to_string(tuple_size)) {}
 };
 
+/// @brief A row or result set requested to be treated as a single column, but
+/// contains more than one column.
+class NonSingleColumResultSet : public ResultSetError {
+ public:
+  NonSingleColumResultSet(std::size_t actual_size)
+      : ResultSetError("The result set contains " +
+                       std::to_string(actual_size) +
+                       " columns. If it is OK, please use row interface to "
+                       "access the first column object") {}
+};
+
 /// @brief A row was requested to be parsed based on field names/indexed,
 /// the count of names/indexes doesn't match the tuple size.
 class FieldTupleMismatch : public ResultSetError {
@@ -630,6 +642,16 @@ class FieldTupleMismatch : public ResultSetError {
       : ResultSetError("Invalid tuple size requested. Field count " +
                        std::to_string(field_count) + " != tuple size " +
                        std::to_string(tuple_size)) {}
+};
+
+/// @brief PostgreSQL composite type has different count of members from
+/// the C++ counterpart.
+class CompositeSizeMismatch : public ResultSetError {
+ public:
+  CompositeSizeMismatch(std::size_t pg_size, std::size_t cpp_size)
+      : ResultSetError("Invalid composite type size. PostgreSQL type has " +
+                       std::to_string(pg_size) + " members, C++ type has " +
+                       std::to_string(cpp_size) + " members") {}
 };
 //@}
 

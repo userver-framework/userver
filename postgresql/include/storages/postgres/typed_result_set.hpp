@@ -107,25 +107,44 @@ namespace storages::postgres {
 ///
 /// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
 /// ```
-template <typename T>
+/// @par Single-column result set
+///
+/// A single-column result set can be used to extract directly to the column
+/// type. User types mapped to PostgreSQL will work as well. If you need to
+/// extract the whole row into such a structure, you will need to disambiguate
+/// the call with the kRowTag.
+///
+/// @code
+/// auto string_set = generic_result.AsSetOf<std::string>();
+/// std::string s = string_set[0];
+///
+/// auto string_vec = generic_result.AsContainer<std::vector<std::string>>();
+///
+/// // Extract first column into the composite type
+/// auto foo_set = generic_result.AsSetOf<FooBar>();
+/// auto foo_vec = generic_result.AsContainer<std::vector<FooBar>>();
+///
+/// // Extract the whole row, disambiguation
+/// auto foo_set = generic_result.AsSetOf<FooBar>(kRowTag);
+///
+/// @endcode
+///
+template <typename T, typename ExtractionTag>
 class TypedResultSet {
  public:
   using size_type = ResultSet::size_type;
   using difference_type = ResultSet::difference_type;
   static constexpr size_type npos = ResultSet::npos;
+  static constexpr ExtractionTag kExtractTag;
 
   //@{
   /** @name Row container concept */
-  using const_iterator = detail::ConstTypedRowIterator<T>;
+  using const_iterator = detail::ConstTypedRowIterator<T, ExtractionTag>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
   using value_type = T;
   using reference = const value_type;
   using pointer = const_iterator;
-  //@}
- private:
-  //@{
-  using UserData = detail::RowToUserData<T>;
   //@}
  public:
   explicit TypedResultSet(ResultSet result) : result_{result} {}
@@ -133,8 +152,6 @@ class TypedResultSet {
   /// Number of rows in the result set
   size_type Size() const { return result_.Size(); }
   bool IsEmpty() const { return Size() == 0; }
-  explicit operator bool() const { return !IsEmpty(); }
-  bool operator!() const { return IsEmpty(); }
   //@{
   /** @name Container interface */
   //@{
@@ -162,13 +179,13 @@ class TypedResultSet {
   /// Access a row by index
   /// Accessing a row beyond the result set size is undefined behaviour
   reference operator[](size_type index) const {
-    return UserData::FromRow(result_[index]);
+    return result_[index].template As<value_type>(kExtractTag);
   }
   /// Range-checked access to a row by index
   /// Accessing a row beyond the result set size will throw an exception
   /// @throws RowIndexOutOfBounds
   reference At(size_type index) const {
-    return UserData::FromRow(result_.At(index));
+    return result_.At(index).template As<value_type>(kExtractTag);
   }
   //@}
   //@}

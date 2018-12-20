@@ -41,7 +41,7 @@ POSTGRE_TEST_P(SelectOne) {
   EXPECT_NO_THROW(res = conn->Execute("select 1 as val"))
       << "select 1 successfully executes";
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  EXPECT_TRUE((bool)res) << "Result set is obtained";
+  EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(1, res.FieldCount()) << "Result contains 1 field";
 
@@ -67,7 +67,7 @@ POSTGRE_TEST_P(SelectPlaceholder) {
   EXPECT_NO_THROW(res = conn->Execute("select $1", 42))
       << "select integral placeholder successfully executes";
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  EXPECT_TRUE((bool)res) << "Result set is obtained";
+  EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(1, res.FieldCount()) << "Result contains 1 field";
 
@@ -82,7 +82,7 @@ POSTGRE_TEST_P(SelectPlaceholder) {
   EXPECT_NO_THROW(res = conn->Execute("select $1", "fooo"))
       << "select text placeholder successfully executes";
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  EXPECT_TRUE((bool)res) << "Result set is obtained";
+  EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(1, res.FieldCount()) << "Result contains 1 field";
 
@@ -104,7 +104,7 @@ POSTGRE_TEST_P(CheckResultset) {
                       "foo bar", 42, 3.14f, 6.28))
       << "select four cols successfully executes";
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  EXPECT_TRUE((bool)res) << "Result set is obtained";
+  EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(4, res.FieldCount()) << "Result contains 4 fields";
 
@@ -236,7 +236,7 @@ POSTGRE_TEST_P(AutoTransaction) {
 
     EXPECT_NO_THROW(res = trx.Execute("select 1"));
     //    EXPECT_EQ(pg::ConnectionState::kTranIdle, conn->GetState());
-    EXPECT_TRUE((bool)res) << "Result set is obtained";
+    EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
 
     EXPECT_NO_THROW(trx.Commit());
 
@@ -258,7 +258,7 @@ POSTGRE_TEST_P(RAIITransaction) {
 
     EXPECT_NO_THROW(res = trx.Execute("select 1"));
     //    EXPECT_EQ(pg::ConnectionState::kTranIdle, conn->GetState());
-    EXPECT_TRUE((bool)res) << "Result set is obtained";
+    EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   }
 }
 

@@ -99,6 +99,11 @@
 //@}
 
 //@{
+/** @name Row types */
+#include <storages/postgres/io/row_types.hpp>
+//@}
+
+//@{
 /** @name Type derivatives */
 #include <storages/postgres/io/array_types.hpp>
 #include <storages/postgres/io/composite_types.hpp>

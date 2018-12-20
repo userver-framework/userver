@@ -21,6 +21,8 @@ struct And<T, U, V...> {
 template <typename T, T A, T B>
 struct And<std::integral_constant<T, A>, std::integral_constant<T, B>>
     : std::integral_constant<T, B && A> {};
+template <typename T, T A>
+struct And<std::integral_constant<T, A>> : std::integral_constant<T, A> {};
 
 template <typename... T>
 struct Or;
@@ -37,5 +39,7 @@ struct Or<T, U, V...> {
 template <typename T, T A, T B>
 struct Or<std::integral_constant<T, A>, std::integral_constant<T, B>>
     : std::integral_constant<T, B || A> {};
+template <typename T, T A>
+struct Or<std::integral_constant<T, A>> : std::integral_constant<T, A> {};
 
 }  // namespace utils
