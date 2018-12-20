@@ -134,6 +134,13 @@ uint32_t Value::As<uint32_t>() const;
 template <>
 uint64_t Value::As<uint64_t>() const;
 
+#ifdef _LIBCPP_VERSION
+template <>
+inline unsigned long Value::As<unsigned long>() const {
+  return As<uint64_t>();
+}
+#endif
+
 template <>
 float Value::As<float>() const;
 
