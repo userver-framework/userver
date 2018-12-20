@@ -42,7 +42,13 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS coroutine program_options filesystem)
+find_package(Boost REQUIRED COMPONENTS coroutine program_options filesystem locale thread)
+append_debian_depends("libboost-coroutine-dev")
+append_debian_depends("libboost-filesystem-dev")
+append_debian_depends("libboost-program-options-dev")
+append_debian_depends("libboost-locale-dev")
+append_debian_depends("libboost-thread-dev")
+
 find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
 
 # Hiredis' config doesn't set _FOUND :(
@@ -53,7 +59,7 @@ find_package_required(LibEv "libev-dev")
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
-find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev")
+find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev libnghttp2-dev")
 find_package(CryptoPP REQUIRED)
 find_package(Iconv REQUIRED)
 find_package_required(YamlCpp "libyaml-cpp-dev (>= 1:0.6)")

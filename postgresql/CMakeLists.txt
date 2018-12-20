@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 project(yandex-taxi-userver-postgresql)
 
 # For time zones in pg driver
-find_package(ICU REQUIRED COMPONENTS uc i18n)
+find_package_components_required(ICU "libicu-dev" uc i18n)
 
 find_package_required_version(PostgreSQL
     "libpq-dev postgresql-server-dev-10" 10)
