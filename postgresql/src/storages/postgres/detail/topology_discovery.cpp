@@ -247,7 +247,7 @@ size_t ClusterTopologyDiscovery::CheckHostsAndFindMaster(
 
     auto task = engine::Async([conn] {
       auto res = conn->Execute("select pg_is_in_recovery()");
-      assert(res && "pg_is_in_recovery must return bool value");
+      assert(!res.IsEmpty() && "pg_is_in_recovery must return bool value");
 
       bool in_recovery = true;
       res.Front().To(in_recovery);
