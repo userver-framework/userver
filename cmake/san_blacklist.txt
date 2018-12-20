@@ -1,0 +1,19 @@
+# This blacklist should be applied when LLVM is built
+# with -fsanitize=undefined instrumentation. It exists
+# because libstdc++ has some undefined behavior issues
+# in some of the headers, in particular, stl_tree.h.
+
+# upcast of address with insufficient space for an object of type std::_Rb_tree_node<...>
+src:*bits/stl_tree.h=undefined
+
+# libstdc++ 4.8 creates a null reference when calling
+# data() on an empty vector: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=59829
+src:*bits/stl_iterator.h=null
+src:*bits/stl_vector.h=null
+
+# libstdc++ 8.0.1 casts an under-aligned pointer to type type_info:
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85930
+src:*bits/shared_ptr_base.h=alignment
+
+# Old versions of Boost have alignment problems within Boost.Lockfree.
+src:*boost/lockfree/*=alignment
