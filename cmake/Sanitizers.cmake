@@ -1,15 +1,38 @@
 cmake_minimum_required (VERSION 3.8)
 
+if (TARGET sanitize-target)
+    return()
+endif()
+
+include(SetupEnvironment) # required for CCACHE_EXECUTABLE and CMAKE_*_COMPILER_LAUNCHER
+
 SET(SANITIZE_ENUM "mem, addr, thread, ub")
 set(SANITIZE "" CACHE STRING "Clang sanitizer, possible values: ${SANITIZE_ENUM}")
 if (NOT CLANG AND SANITIZE)
   message(FATAL_ERROR "-DSANITIZE can be set only when complied using clang.  Please set CC=clang-5.0 CXX=clang++-5.0 or smth.")
 endif()
 
+add_library(sanitize-target INTERFACE)
+
 if(SANITIZE STREQUAL "")
   # no sanitizer
 else()
-  get_filename_component(SANITIZE_BLACKLIST san_blacklist.txt ABSOLUTE CACHE)
+  # Forces the ccache to rebuild on file change
+  target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/san_blacklist.txt)
+
+  # Appending a blacklist from uservices (or other projects that set ${SANITIZE_BLACKLIST})
+  if(DEFINED SANITIZE_BLACKLIST AND (NOT SANITIZE_BLACKLIST STREQUAL ""))
+    target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
+  endif()
+
+  if(DEFINED CCACHE_EXECUTABLE)
+    if(DEFINED CMAKE_C_COMPILER_LAUNCHER)
+      set(CMAKE_C_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${CMAKE_CURRENT_LIST_DIR}/san_blacklist.txt,${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
+    endif()
+    if(DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
+      set(CMAKE_CXX_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${CMAKE_CURRENT_LIST_DIR}/san_blacklist.txt,${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
+    endif()
+  endif()
 
   if(SANITIZE STREQUAL "ub")
     # https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
@@ -30,12 +53,6 @@ else()
     message(FATAL_ERROR "-DSANITIZE has invalid value (${SANITIZE}), possible values: ${SANITIZE_ENUM}")
   endif()
 endif()
-
-if(DEFINED SANITIZE_BLACKLIST AND (NOT SANITIZE_BLACKLIST STREQUAL ""))
-  set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize-blacklist=${SANITIZE_BLACKLIST})
-endif()
-
-add_library(sanitize-target INTERFACE)
 
 target_compile_definitions(sanitize-target INTERFACE
   ${SANITIZE_DEFS}
