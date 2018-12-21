@@ -42,7 +42,9 @@ class RequestBase {
 
   virtual void MarkAsInternalServerError() const = 0;
 
- private:
+  virtual void AccountResponseTime() = 0;
+
+ protected:
   std::chrono::steady_clock::time_point start_time_;
   std::chrono::steady_clock::time_point task_create_time_;
   std::chrono::steady_clock::time_point task_start_time_;

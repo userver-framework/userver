@@ -41,7 +41,7 @@ class ReplyCodesStatistics {
   std::atomic<size_t> reply_401_{0};
 };
 
-class HttpHandlerBase::Statistics {
+class HttpHandlerMethodStatistics {
  public:
   void Account(unsigned int code, size_t ms) {
     reply_codes_.Account(code);
@@ -70,11 +70,16 @@ class HttpHandlerBase::Statistics {
   std::atomic<size_t> in_flight_{0};
 };
 
-class HttpHandlerBase::HandlerStatistics {
+class HttpHandlerStatistics {
  public:
-  Statistics& GetStatisticByMethod(http::HttpMethod method);
+  HttpHandlerMethodStatistics& GetStatisticByMethod(http::HttpMethod method);
 
-  Statistics& GetTotalStatistics();
+  const HttpHandlerMethodStatistics& GetStatisticByMethod(
+      http::HttpMethod method) const;
+
+  HttpHandlerMethodStatistics& GetTotalStatistics();
+
+  const HttpHandlerMethodStatistics& GetTotalStatistics() const;
 
   void Account(http::HttpMethod method, unsigned int code,
                std::chrono::milliseconds ms);
@@ -82,19 +87,20 @@ class HttpHandlerBase::HandlerStatistics {
   bool IsOkMethod(http::HttpMethod method) const;
 
  private:
-  Statistics stats_;
-  std::array<Statistics, http::kHandlerMethodsMax + 1> stats_by_method_;
+  HttpHandlerMethodStatistics stats_;
+  std::array<HttpHandlerMethodStatistics, http::kHandlerMethodsMax + 1>
+      stats_by_method_;
 };
 
-class HttpHandlerBase::HttpHandlerStatisticsScope {
+class HttpHandlerStatisticsScope {
  public:
-  HttpHandlerStatisticsScope(HttpHandlerBase::HandlerStatistics& stats,
+  HttpHandlerStatisticsScope(HttpHandlerStatistics& stats,
                              http::HttpMethod method);
 
   void Account(unsigned int code, std::chrono::milliseconds ms);
 
  private:
-  HttpHandlerBase::HandlerStatistics& stats_;
+  HttpHandlerStatistics& stats_;
   const http::HttpMethod method_;
 };
 

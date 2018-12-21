@@ -61,7 +61,7 @@ std::vector<http::HttpMethod> InitAllowedMethods(const HandlerConfig& config) {
 }  // namespace
 
 formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
-    const HttpHandlerBase::Statistics& stats) {
+    const HttpHandlerMethodStatistics& stats) {
   formats::json::ValueBuilder result;
   formats::json::ValueBuilder total;
 
@@ -91,7 +91,8 @@ HttpHandlerBase::HttpHandlerBase(
       allowed_methods_(InitAllowedMethods(GetConfig())),
       statistics_storage_(
           component_context.FindComponent<components::StatisticsStorage>()),
-      statistics_(std::make_unique<HandlerStatistics>()),
+      handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
+      request_statistics_(std::make_unique<HttpHandlerStatistics>()),
       auth_checker_(auth::CreateAuthChecker(
           GetConfig(), http_server_settings_.GetAuthCheckerSettings())) {
   if (allowed_methods_.empty()) {
@@ -156,7 +157,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       LOG_INFO() << "start handling" << std::move(log_extra);
     }
 
-    HttpHandlerStatisticsScope stats_scope(*statistics_,
+    HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
                                            http_request.GetMethod());
 
     try {
@@ -222,16 +223,28 @@ const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()
   return allowed_methods_;
 }
 
+HttpHandlerStatistics& HttpHandlerBase::GetRequestStatistics() const {
+  return *request_statistics_;
+}
+
 formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder result;
-  result["all-methods"] = StatisticsToJson(statistics_->GetTotalStatistics());
+  result["handler"] = FormatStatistics(*handler_statistics_);
+  result["request"] = FormatStatistics(*request_statistics_);
+  return result;
+}
+
+formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
+    const HttpHandlerStatistics& stats) {
+  formats::json::ValueBuilder result;
+  result["all-methods"] = StatisticsToJson(stats.GetTotalStatistics());
 
   if (IsMethodStatisticIncluded()) {
     formats::json::ValueBuilder by_method;
     for (auto method : GetAllowedMethods()) {
       by_method[ToString(method)] =
-          StatisticsToJson(statistics_->GetStatisticByMethod(method));
+          StatisticsToJson(stats.GetStatisticByMethod(method));
     }
     result["by-method"] = std::move(by_method);
   }

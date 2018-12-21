@@ -4,9 +4,9 @@
 
 #include <engine/async.hpp>
 #include <logging/logger.hpp>
+#include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
-
 #include "http_request_impl.hpp"
 
 namespace server {
@@ -35,6 +35,10 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     // No handler found, response status is already set
     // by HttpRequestConstructor::CheckStatus
 
+    static handlers::HttpHandlerStatistics dummy_statistics;
+
+    http_request.SetHttpHandlerStatistics(dummy_statistics);
+
     return engine::Async([request = std::move(request)]() {
       request->SetTaskStartTime();
       request->SetResponseNotifyTime();
@@ -44,6 +48,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   }
 
   http_request.SetMatchedPathLength(handler_info.matched_path_length);
+  http_request.SetHttpHandlerStatistics(
+      handler_info.handler->GetRequestStatistics());
 
   auto payload = [
     request = std::move(request), handler = std::move(handler_info.handler)

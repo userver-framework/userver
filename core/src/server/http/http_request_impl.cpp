@@ -2,9 +2,9 @@
 
 #include <engine/task/task.hpp>
 #include <logging/logger.hpp>
-#include <utils/encoding/tskv.hpp>
-
 #include <logging/spdlog.hpp>
+#include <server/handlers/http_handler_base_statistics.hpp>
+#include <utils/encoding/tskv.hpp>
 
 namespace {
 
@@ -70,7 +70,8 @@ HttpRequestImpl::HttpRequestImpl()
       http_major_(1),
       http_minor_(1),
       is_final_{false},
-      response_(std::make_unique<HttpResponse>(*this)) {}
+      response_(std::make_unique<HttpResponse>(*this)),
+      handler_statistics_(nullptr) {}
 
 HttpRequestImpl::~HttpRequestImpl() {}
 
@@ -152,10 +153,23 @@ void HttpRequestImpl::SetMatchedPathLength(size_t length) {
   path_suffix_ = request_path_.substr(length);
 }
 
+void HttpRequestImpl::AccountResponseTime() {
+  assert(handler_statistics_);
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      finish_send_response_time_ - start_time_);
+  auto code = static_cast<int>(response_->GetStatus());
+  handler_statistics_->Account(GetMethod(), code, ms);
+}
+
 void HttpRequestImpl::MarkAsInternalServerError() const {
   response_->SetStatus(http::HttpStatus::kInternalServerError);
   response_->SetData({});
   response_->ClearHeaders();
+}
+
+void HttpRequestImpl::SetHttpHandlerStatistics(
+    handlers::HttpHandlerStatistics& stats) {
+  handler_statistics_ = &stats;
 }
 
 void HttpRequestImpl::WriteAccessLogs(

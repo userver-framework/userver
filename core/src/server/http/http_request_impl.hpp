@@ -12,6 +12,10 @@
 #include <server/request/request_base.hpp>
 
 namespace server {
+namespace handlers {
+class HttpHandlerStatistics;
+}
+
 namespace http {
 
 class HttpRequestImpl : public request::RequestBase {
@@ -75,7 +79,11 @@ class HttpRequestImpl : public request::RequestBase {
 
   virtual void SetMatchedPathLength(size_t length) override;
 
+  virtual void AccountResponseTime() override;
+
   void MarkAsInternalServerError() const override;
+
+  void SetHttpHandlerStatistics(handlers::HttpHandlerStatistics&);
 
   friend class HttpRequestConstructor;
 
@@ -95,6 +103,7 @@ class HttpRequestImpl : public request::RequestBase {
   bool is_final_;
 
   std::unique_ptr<HttpResponse> response_;
+  handlers::HttpHandlerStatistics* handler_statistics_;
 };
 
 }  // namespace http

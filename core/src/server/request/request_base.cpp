@@ -29,6 +29,7 @@ void RequestBase::SetStartSendResponseTime() {
 
 void RequestBase::SetFinishSendResponseTime() {
   finish_send_response_time_ = std::chrono::steady_clock::now();
+  AccountResponseTime();
 }
 
 }  // namespace request

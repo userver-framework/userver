@@ -19,6 +19,10 @@ namespace auth {
 class AuthCheckerBase;
 }  // namespace auth
 
+class HttpHandlerStatistics;
+class HttpHandlerMethodStatistics;
+class HttpHandlerStatisticsScope;
+
 class HttpHandlerBase : public HandlerBase {
  public:
   HttpHandlerBase(const components::ComponentConfig& config,
@@ -37,6 +41,8 @@ class HttpHandlerBase : public HandlerBase {
 
   const std::vector<http::HttpMethod>& GetAllowedMethods() const;
 
+  HttpHandlerStatistics& GetRequestStatistics() const;
+
  protected:
   virtual std::string HandleRequestThrow(
       const http::HttpRequest& request,
@@ -50,14 +56,13 @@ class HttpHandlerBase : public HandlerBase {
   virtual bool IsMethodStatisticIncluded() const { return false; }
 
  private:
-  class Statistics;
-  class HandlerStatistics;
-  class HttpHandlerStatisticsScope;
-
-  static formats::json::ValueBuilder StatisticsToJson(const Statistics& stats);
+  static formats::json::ValueBuilder StatisticsToJson(
+      const HttpHandlerMethodStatistics& stats);
 
   formats::json::ValueBuilder ExtendStatistics(
       const utils::statistics::StatisticsRequest&);
+
+  formats::json::ValueBuilder FormatStatistics(const HttpHandlerStatistics&);
 
  private:
   const components::HttpServerSettingsBase& http_server_settings_;
@@ -65,7 +70,8 @@ class HttpHandlerBase : public HandlerBase {
   components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 
-  std::unique_ptr<HandlerStatistics> statistics_;
+  std::unique_ptr<HttpHandlerStatistics> handler_statistics_;
+  std::unique_ptr<HttpHandlerStatistics> request_statistics_;
   std::unique_ptr<auth::AuthCheckerBase> auth_checker_;
 };
 
