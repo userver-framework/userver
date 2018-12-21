@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/pg_types.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
@@ -44,11 +45,35 @@ namespace io {
 ///
 }  // namespace io
 
+/// @brief PostgreSQL composite type description
+class CompositeTypeDescription {
+ public:
+  using CompositeFieldDefs = std::vector<CompositeFieldDef>;
+  CompositeTypeDescription(CompositeFieldDefs::const_iterator begin,
+                           CompositeFieldDefs::const_iterator end)
+      : attributes_{begin, end} {}
+  std::size_t Size() const { return attributes_.size(); }
+  bool Empty() const { return attributes_.empty(); }
+  const CompositeFieldDef& operator[](std::size_t index) const {
+    if (index >= Size()) {
+      throw FieldIndexOutOfBounds{index};
+    }
+    return attributes_[index];
+  }
+
+ private:
+  CompositeFieldDefs attributes_;
+};
+
 /// @brief Container for connection-specific user data types.
 class UserTypes {
  public:
+  using CompositeFieldDefs = std::vector<CompositeFieldDef>;
+
+ public:
   Oid FindOid(DBTypeName) const;
   Oid FindArrayOid(DBTypeName) const;
+  Oid FindElementOid(Oid) const;
   DBTypeName FindName(Oid) const;
   /// Find name of the base type for a domain or element type for an array.
   /// For the rest of types returns the name for the oid if found.
@@ -63,6 +88,9 @@ class UserTypes {
 
   void Reset();
   void AddType(DBTypeDescription&& desc);
+  void AddCompositeFields(CompositeFieldDefs&& defs);
+
+  const CompositeTypeDescription& GetCompositeDescription(Oid) const;
 
  private:
   using DescriptionSet =
@@ -71,10 +99,12 @@ class UserTypes {
   using DescriptionIterator = DescriptionSet::const_iterator;
   using MapByOid = std::unordered_map<Oid, DescriptionIterator>;
   using MapByName = std::unordered_map<DBTypeName, DescriptionIterator>;
+  using CompositeTypes = std::unordered_map<Oid, CompositeTypeDescription>;
 
   DescriptionSet types_;
   MapByOid by_oid_;
   MapByName by_name_;
+  CompositeTypes composite_types_;
 };
 
 namespace io::detail {

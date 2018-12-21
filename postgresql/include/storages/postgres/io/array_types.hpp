@@ -8,6 +8,7 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 #include <storages/postgres/io/type_traits.hpp>
+#include <storages/postgres/io/user_types.hpp>
 
 namespace storages::postgres::io {
 
@@ -121,6 +122,7 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
   using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
+    using std::swap;
     static constexpr std::size_t int_size = sizeof(Integer);
     std::size_t offset{0};
 
@@ -128,6 +130,11 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     Integer dim_count{0};
     ReadBinary(buffer.GetSubBuffer(offset, int_size), dim_count);
     if (dim_count != static_cast<Integer>(dimensions)) {
+      if (dim_count == 0) {
+        ValueType empty{};
+        swap(this->value, empty);
+        return;
+      }
       throw DimensionMismatch{};
     }
     offset += int_size;
@@ -160,7 +167,6 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     // read elements
     ValueType tmp;
     ReadDimension(buffer.GetSubBuffer(offset), on_the_wire.begin(), tmp);
-    using std::swap;
     swap(this->value, tmp);
   }
 
@@ -220,8 +226,9 @@ template <typename Container>
 struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
   using BaseType = BufferFormatterBase<Container>;
   using ValueType = typename BaseType::ValueType;
+  using ArrayMapping = CppToPg<Container>;
   using ElementType = typename traits::ContainerFinalElement<Container>::type;
-  using Mapping = CppToPg<ElementType>;
+  using ElementMapping = CppToPg<ElementType>;
   constexpr static std::size_t dimensions = traits::kDimensionCount<Container>;
   using Dimensions = std::array<std::size_t, dimensions>;
   using DimensionIterator = typename Dimensions::iterator;
@@ -231,13 +238,19 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
 
   // top level container
   template <typename Buffer>
-  void operator()(const UserTypes& types, Buffer& buffer) const {
+  void operator()(const UserTypes& types, Buffer& buffer,
+                  Oid replace_oid = kInvalidOid) const {
     // Write number of dimensions
     WriteBinary(types, buffer, static_cast<Integer>(dimensions));
     // Write flags
     WriteBinary(types, buffer, static_cast<Integer>(0));
-    // Write type oid
-    WriteBinary(types, buffer, static_cast<Integer>(Mapping::GetOid(types)));
+    // Write element type oid
+    auto elem_type_oid = ElementMapping::GetOid(types);
+    if (replace_oid != kInvalidOid &&
+        replace_oid != ArrayMapping::GetOid(types)) {
+      elem_type_oid = types.FindElementOid(replace_oid);
+    }
+    WriteBinary(types, buffer, static_cast<Integer>(elem_type_oid));
     Dimensions dims = GetDimensions();
     // Write data per dimension
     WriteDimensionData(types, buffer, dims);

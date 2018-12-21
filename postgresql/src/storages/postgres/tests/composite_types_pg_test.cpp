@@ -17,7 +17,8 @@ create type __pg_test.foobar as (
   i integer,
   s text,
   d double precision,
-  a integer[]
+  a integer[],
+  v varchar[]
 ))~";
 
 const std::string kCreateCompositeOfComposites = R"~(
@@ -35,6 +36,7 @@ struct FooBar {
   std::string s;
   double d;
   std::vector<int> a;
+  std::vector<std::string> v;
 
   bool operator==(const FooBar& rhs) const {
     return i == rhs.i && s == rhs.s && d == rhs.d && a == rhs.a;
@@ -46,9 +48,10 @@ class FooClass {
   std::string s;
   double d;
   std::vector<int> a;
+  std::vector<std::string> v;
 
  public:
-  auto Introspect() { return std::tie(i, s, d, a); }
+  auto Introspect() { return std::tie(i, s, d, a, v); }
 
   auto GetI() const { return i; }
   auto GetS() const { return s; }
@@ -56,7 +59,8 @@ class FooClass {
   auto GetA() const { return a; }
 };
 
-using FooTuple = std::tuple<int, std::string, double, std::vector<int>>;
+using FooTuple = std::tuple<int, std::string, double, std::vector<int>,
+                            std::vector<std::string>>;
 
 struct BunchOfFoo {
   std::vector<FooBar> foobars;
@@ -129,7 +133,6 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
 
   pg::ResultSet res{nullptr};
   ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-
   ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
   EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
@@ -139,8 +142,8 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
 
   EXPECT_NO_THROW(
-      res = conn->Execute(
-          "select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1])::__pg_test.foobar"));
+      res = conn->Execute("select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
+                          "ARRAY['a', 'b', 'c'])::__pg_test.foobar"));
   std::vector<int> expected_vector{-1, 0, 1};
 
   ASSERT_FALSE(res.IsEmpty());
@@ -180,6 +183,7 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
 
   pg_test::BunchOfFoo bf{{fb, fb, fb}};
+  res = conn->Execute("select $1 as bunch", bf);
   EXPECT_NO_THROW(res = conn->Execute("select $1 as bunch", bf));
   ASSERT_FALSE(res.IsEmpty());
   ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());

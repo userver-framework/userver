@@ -257,4 +257,31 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
   }
 }
 
+POSTGRE_TEST_P(ArrayEmpty) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+  {
+    EXPECT_NO_THROW(res = conn->Execute("select ARRAY[]::integer[]"));
+    static_test::one_dim_vector v{1};
+    EXPECT_NO_THROW(res[0].To(v));
+    EXPECT_TRUE(v.empty());
+  }
+  {
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as array",
+                                        static_test::one_dim_vector{}));
+    static_test::one_dim_vector v{1};
+    EXPECT_NO_THROW(res[0].To(v));
+    EXPECT_TRUE(v.empty());
+  }
+}
+
+POSTGRE_TEST_P(ArrayOfVarchar) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(
+      conn->Execute("create temporary table vchar_array_test( v varchar[] )"));
+  EXPECT_NO_THROW(conn->Execute("insert into vchar_array_test values ($1)",
+                                std::vector<std::string>{"foo", "bar"}));
+}
+
 }  // namespace

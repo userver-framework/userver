@@ -43,8 +43,23 @@ std::size_t ReadRawBinary(const FieldBuffer& buffer, T& value) {
   }
 }
 
+namespace detail {
+
+template <typename T, typename Buffer, typename Enable = ::utils::void_t<>>
+struct FormatterAcceptsReplacementOid : std::false_type {};
+
 template <typename T, typename Buffer>
-void WriteRawBinary(const UserTypes& types, Buffer& buffer, const T& value) {
+struct FormatterAcceptsReplacementOid<
+    T, Buffer,
+    ::utils::void_t<decltype(std::declval<T&>()(
+        std::declval<const UserTypes&>(), std::declval<Buffer&>(),
+        std::declval<Oid>()))>> : std::true_type {};
+
+}  // namespace detail
+
+template <typename T, typename Buffer>
+void WriteRawBinary(const UserTypes& types, Buffer& buffer, const T& value,
+                    Oid replace_oid = kInvalidOid) {
   static_assert(
       (traits::HasFormatter<T, DataFormat::kBinaryDataFormat>::value == true),
       "Type doesn't have a binary formatter");
@@ -52,10 +67,18 @@ void WriteRawBinary(const UserTypes& types, Buffer& buffer, const T& value) {
   if (traits::GetSetNull<T>::IsNull(value)) {
     WriteBinary(types, buffer, kPgNullBufferSize);
   } else {
+    using BufferFormatter =
+        typename traits::IO<T, DataFormat::kBinaryDataFormat>::FormatterType;
+    using AcceptsReplacementOid =
+        detail::FormatterAcceptsReplacementOid<BufferFormatter, Buffer>;
     auto len_start = buffer.size();
     buffer.resize(buffer.size() + size_len);
     auto size_before = buffer.size();
-    WriteBuffer<DataFormat::kBinaryDataFormat>(types, buffer, value);
+    if constexpr (AcceptsReplacementOid{}) {
+      BufferFormatter{value}(types, buffer, replace_oid);
+    } else {
+      WriteBuffer<DataFormat::kBinaryDataFormat>(types, buffer, value);
+    }
     Integer bytes = buffer.size() - size_before;
     BufferWriter<DataFormat::kBinaryDataFormat>(bytes)(buffer.begin() +
                                                        len_start);

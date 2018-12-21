@@ -93,12 +93,22 @@ select  t.oid,
         t.typelem,
         t.typarray,
         t.typbasetype,
-        t.typnotnull,
-        t.typtypmod,
-        t.typndims
+        t.typnotnull
 from pg_catalog.pg_type t
   left join pg_catalog.pg_namespace n on n.oid = t.typnamespace
-where n.nspname not in ('pg_catalog', 'pg_toast', 'information_schema'))~";
+where n.nspname not in ('pg_catalog', 'pg_toast', 'information_schema')
+order by t.oid)~";
+
+const std::string kGetCompositeAttribsSQL = R"~(
+select c.reltype,
+    a.attname,
+    a.atttypid
+from pg_catalog.pg_class c
+left join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+left join pg_catalog.pg_attribute a on a.attrelid = c.oid
+where n.nspname not in ('pg_catalog', 'pg_toast', 'information_schema')
+  and a.attnum > 0
+order by c.reltype, a.attnum)~";
 
 }  // namespace
 
@@ -173,11 +183,17 @@ struct Connection::Impl {
 
   void LoadUserTypes() {
     try {
-      auto res = ExecuteCommand(kGetUserTypesSQL).AsSetOf<DBTypeDescription>();
+      auto types =
+          ExecuteCommand(kGetUserTypesSQL).AsSetOf<DBTypeDescription>();
+      auto attribs = ExecuteCommand(kGetCompositeAttribsSQL)
+                         .AsContainer<UserTypes::CompositeFieldDefs>();
+      // End of definitions marker, to simplify processing
+      attribs.push_back(CompositeFieldDef::EmptyDef());
       db_types_.Reset();
-      for (auto desc : res) {
+      for (auto desc : types) {
         db_types_.AddType(std::move(desc));
       }
+      db_types_.AddCompositeFields(std::move(attribs));
     } catch (const Error& e) {
       LOG_ERROR() << "Error loading user datatypes: " << e.what();
       // TODO Decide about rethrowing

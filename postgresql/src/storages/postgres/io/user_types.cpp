@@ -1,3 +1,4 @@
+#include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/user_types.hpp>
 
 #include <logging/log.hpp>
@@ -35,6 +36,20 @@ Oid UserTypes::FindArrayOid(DBTypeName name) const {
   }
   LOG_WARNING() << "PostgreSQL type " << name.schema << "." << name.name
                 << " not found";
+  return static_cast<Oid>(io::PredefinedOids::kInvalid);
+}
+
+Oid UserTypes::FindElementOid(Oid array_oid) const {
+  auto predefined =
+      io::GetArrayElementOid(static_cast<io::PredefinedOids>(array_oid));
+  if (predefined != io::PredefinedOids::kInvalid) {
+    return static_cast<Oid>(predefined);
+  }
+  if (auto f = by_oid_.find(array_oid); f != by_oid_.end()) {
+    if (f->second->category == DBTypeDescription::TypeCategory::kArray) {
+      return f->second->element_type;
+    }
+  }
   return static_cast<Oid>(io::PredefinedOids::kInvalid);
 }
 
@@ -106,6 +121,7 @@ void UserTypes::Reset() {
   types_.clear();
   by_oid_.clear();
   by_name_.clear();
+  composite_types_.clear();
 }
 
 void UserTypes::AddType(DBTypeDescription&& desc) {
@@ -121,6 +137,37 @@ void UserTypes::AddType(DBTypeDescription&& desc) {
     // schema and name is not available any more as it was moved
     LOG_ERROR() << "Failed to insert user type with oid " << oid;
   }
+}
+
+void UserTypes::AddCompositeFields(CompositeFieldDefs&& defs) {
+  if (defs.empty()) {
+    return;
+  }
+  auto p = defs.begin();
+  Oid current = p->owner;
+  auto start = p;
+  for (; p != defs.end(); ++p) {
+    // The last group is handled automatically as we have fake element in the
+    // end
+    if (p->owner != current) {
+      // owner changed
+      LOG_DEBUG() << "Add " << p - start << " attributes to composite type "
+                  << current;
+      composite_types_.insert(
+          std::make_pair(current, CompositeTypeDescription{start, p}));
+      start = p;
+      current = p->owner;
+    }
+  }
+}
+
+const CompositeTypeDescription& UserTypes::GetCompositeDescription(
+    Oid oid) const {
+  if (auto f = composite_types_.find(oid); f != composite_types_.end()) {
+    return f->second;
+  }
+  throw UserTypeError{"Composite type description for oid " +
+                      std::to_string(oid) + " not found"};
 }
 
 namespace io {

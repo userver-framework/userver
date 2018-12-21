@@ -12,6 +12,7 @@ namespace storages::postgres {
 /// PostgreSQL Oid type.
 // Aliased to unsigned int to match the type used in libpq.
 using Oid = unsigned int;
+constexpr Oid kInvalidOid = 0;
 
 //@{
 /** @name Type aliases for integral types */
@@ -149,6 +150,15 @@ struct DBTypeDescription {
       return lhs.name == rhs.name && lhs.schema == rhs.schema;
     }
   };
+};
+
+/// Description of a field in a user-defined composite type, for type checking
+struct CompositeFieldDef {
+  Oid owner;
+  std::string name;
+  Oid type;
+
+  static CompositeFieldDef EmptyDef() { return {kInvalidOid, {}, kInvalidOid}; }
 };
 
 namespace io {

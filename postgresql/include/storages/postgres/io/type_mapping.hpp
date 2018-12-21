@@ -24,6 +24,10 @@ struct PgToCpp;
 bool HasTextParser(PredefinedOids);
 /// Find out if a binary parser for a predefined Postgres type was registered.
 bool HasBinaryParser(PredefinedOids);
+/// Find out if predefined Postgres types are mapped to the same cpp type
+bool MappedToSameType(PredefinedOids, PredefinedOids);
+/// Get array element oid for a predefined type
+PredefinedOids GetArrayElementOid(PredefinedOids);
 
 bool HasTextParser(DBTypeName);
 bool HasBinaryParser(DBTypeName);
@@ -66,7 +70,7 @@ struct CppToSystemPgImpl {
 
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(
-          type_oid, array_oid, ::utils::GetTypeName(std::type_index{typeid(T)}),
+          type_oid, array_oid, ::utils::GetTypeName<T>(),
           io::traits::kHasTextParser<T>, io::traits::kHasBinaryParser<T>);
 
   static constexpr Oid GetOid(const UserTypes&) {

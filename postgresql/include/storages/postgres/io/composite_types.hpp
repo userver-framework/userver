@@ -11,6 +11,8 @@
 #include <storages/postgres/io/type_traits.hpp>
 #include <storages/postgres/io/user_types.hpp>
 
+#include <logging/log.hpp>
+
 #include <utils/variadic_logic.hpp>
 
 namespace storages::postgres::io {
@@ -88,6 +90,7 @@ struct CompositeBinaryParser : BufferParserBase<T> {
 template <typename T>
 struct CompositeBinaryFormatter : BufferFormatterBase<T> {
   using BaseType = BufferFormatterBase<T>;
+  using PgMapping = CppToPg<T>;
   using RowType = io::RowType<T>;
   using IndexSequence = typename RowType::IndexSequence;
   static constexpr std::size_t size = RowType::size;
@@ -96,22 +99,45 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
+    const auto& type_desc =
+        types.GetCompositeDescription(PgMapping::GetOid(types));
+    if (type_desc.Size() != size) {
+      throw CompositeSizeMismatch{type_desc.Size(), size};
+    }
     // Number of fields
     WriteBinary(types, buffer, static_cast<Integer>(size));
-    WriteTuple(types, buffer, RowType::GetTuple(this->value), IndexSequence{});
+    WriteTuple(types, type_desc, buffer, RowType::GetTuple(this->value),
+               IndexSequence{});
   }
 
  private:
   template <typename Buffer, typename U>
-  void WriteField(const UserTypes& types, Buffer& buffer, const U& val) const {
+  void WriteField(const UserTypes& types,
+                  const CompositeTypeDescription& type_desc, std::size_t index,
+                  Buffer& buffer, const U& val) const {
     Integer field_type = CppToPg<U>::GetOid(types);
+    const auto& field_desc = type_desc[index];
+    if (field_type != field_desc.type) {
+      if (io::MappedToSameType(static_cast<PredefinedOids>(field_type),
+                               static_cast<PredefinedOids>(field_desc.type))) {
+        field_type = field_desc.type;
+      } else {
+        LOG_WARNING() << "Type mismatch for " << PgMapping::postgres_name.schema
+                      << "." << PgMapping::postgres_name.name << " field "
+                      << field_desc.name << ". In database the type oid is "
+                      << field_desc.type << ", user supplied type oid is "
+                      << field_type;
+      }
+    }
     WriteBinary(types, buffer, field_type);
-    WriteRawBinary(types, buffer, val);
+    WriteRawBinary(types, buffer, val, field_type);
   }
   template <typename Buffer, typename Tuple, std::size_t... Indexes>
-  void WriteTuple(const UserTypes& types, Buffer& buffer, Tuple&& tuple,
-                  std::index_sequence<Indexes...>) const {
-    (WriteField(types, buffer, std::get<Indexes>(std::forward<Tuple>(tuple))),
+  void WriteTuple(const UserTypes& types,
+                  const CompositeTypeDescription& type_desc, Buffer& buffer,
+                  Tuple&& tuple, std::index_sequence<Indexes...>) const {
+    (WriteField(types, type_desc, Indexes, buffer,
+                std::get<Indexes>(std::forward<Tuple>(tuple))),
      ...);
   }
 };

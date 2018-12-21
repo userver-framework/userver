@@ -104,6 +104,8 @@ namespace postgres {
  *       - RowIndexOutOfBounds
  *       - TextParseFailure
  *       - TypeCannotBeNull
+ *     - UserTypeError
+ *       - CompositeSizeMismatch
  *     - ArrayError
  *       - DimensionMismatch
  *       - InvalidDimensions
@@ -644,15 +646,24 @@ class FieldTupleMismatch : public ResultSetError {
                        std::to_string(tuple_size)) {}
 };
 
+//@}
+
+//@{
+/// @brief Base error when working with mapped types
+class UserTypeError : public LogicError {
+  using LogicError::LogicError;
+};
+
 /// @brief PostgreSQL composite type has different count of members from
 /// the C++ counterpart.
-class CompositeSizeMismatch : public ResultSetError {
+class CompositeSizeMismatch : public UserTypeError {
  public:
   CompositeSizeMismatch(std::size_t pg_size, std::size_t cpp_size)
-      : ResultSetError("Invalid composite type size. PostgreSQL type has " +
-                       std::to_string(pg_size) + " members, C++ type has " +
-                       std::to_string(cpp_size) + " members") {}
+      : UserTypeError("Invalid composite type size. PostgreSQL type has " +
+                      std::to_string(pg_size) + " members, C++ type has " +
+                      std::to_string(cpp_size) + " members") {}
 };
+
 //@}
 
 //@{
