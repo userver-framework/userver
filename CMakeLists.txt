@@ -34,7 +34,6 @@ add_dependencies(yandex-taxi-backend-common-cpp spdlog_lib)
 add_subdirectory(core)
 add_subdirectory(tools/engine)
 add_subdirectory(tools/httpclient)
-add_subdirectory(tools/redisclient)
 add_subdirectory(tools/netcat)
 add_subdirectory(tools/asyncmongo_proto)
 
@@ -43,4 +42,5 @@ set(YANDEX_TAXI_USERVER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL 
 if(NOT USERVICES)
   find_package(Helperyandex-taxi-userver-core)
   find_package(Helperyandex-taxi-userver-postgresql)
+  find_package(Helperyandex-taxi-userver-redis)
 endif(NOT USERVICES)

@@ -18,7 +18,7 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/src/*_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
 
 file(GLOB_RECURSE LIBUTEST_SOURCES
@@ -51,10 +51,6 @@ append_debian_depends("libboost-thread-dev")
 
 find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
 
-# Hiredis' config doesn't set _FOUND :(
-find_package(Hiredis 0.13.3)
-append_debian_depends("libhiredis-dev")
-
 find_package_required(LibEv "libev-dev")
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
@@ -85,7 +81,6 @@ target_link_libraries(${PROJECT_NAME}
     Boost::coroutine
     Boost::filesystem
     Boost::program_options
-    ${HIREDIS_LIBRARIES}
     ${HTTP_PARSER_LIBRARIES}
     ${LIBEV_LIBRARIES}
     ${Iconv_LIBRARIES}

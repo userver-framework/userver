@@ -15,13 +15,17 @@ if (NOT MACOS)
 target_link_libraries (${PROJECT_NAME}
   -Wl,--start-group
     yandex-taxi-userver+standalone_engine
+    yandex-taxi-userver-redis
     yandex-taxi-backend-common-cpp
+    yandex-taxi-backend-common-cpp-redis
   -Wl,--end-group
 )
 else()
 target_link_libraries (${PROJECT_NAME}
     yandex-taxi-userver+standalone_engine
+    yandex-taxi-userver-redis
     yandex-taxi-backend-common-cpp
+    yandex-taxi-backend-common-cpp-redis
 )
 endif()
 
