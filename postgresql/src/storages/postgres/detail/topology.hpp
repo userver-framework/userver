@@ -26,6 +26,8 @@ class ClusterTopology {
   virtual ~ClusterTopology() = default;
 
   virtual HostsByType GetHostsByType() const = 0;
+  virtual void CheckTopology() = 0;
+  virtual void OperationFailed(const std::string& dsn) = 0;
 };
 
 using ClusterTopologyPtr = std::unique_ptr<ClusterTopology>;

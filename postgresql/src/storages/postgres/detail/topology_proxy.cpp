@@ -26,7 +26,7 @@ ClusterTopologyProxy::ClusterTopologyProxy(
 const DSNList& ClusterTopologyProxy::GetDsnList() const { return dsn_list_; }
 
 ClusterTopology::HostsByType ClusterTopologyProxy::GetHostsByType() const {
-  return hosts_by_type;
+  return hosts_by_type_;
 }
 
 void ClusterTopologyProxy::AddHost(ClusterHostType host_type,
@@ -37,7 +37,7 @@ void ClusterTopologyProxy::AddHost(ClusterHostType host_type,
   }
 
   dsn_list_.push_back(host);
-  hosts_by_type[host_type].push_back(host);
+  hosts_by_type_[host_type].push_back(host);
   LOG_INFO() << "Added " << host_type << " host";
 }
 

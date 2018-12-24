@@ -11,12 +11,21 @@ namespace detail {
 
 namespace {
 
-constexpr const char* kPeriodicTaskName = "pg_topology";
 // ------------------------------------------------------------
 // TODO Move constants to config
-const std::chrono::seconds kUpdateInterval(5);
-constexpr size_t kImmediateReconnects = 5;
+// How many immediate reconnect attempts are tried after connection failure
+constexpr size_t kImmediateReconnects = 2;
+// Interval between reconnect attempts after kImmediateReconnects tries
 const std::chrono::seconds kReconnectInterval(3);
+// Failed operations count after which the host is marked as unavailable
+constexpr size_t kFailureThreshold = 30;
+// Account topology check as this many regular operations when checking
+// threshold.
+// With every failed operation, a counter of failed operations for a host is
+// incremented. When the counter reaches the threshold, the host is marked as
+// unavailable. Every topology check failure for the host accounts as weighted
+// number of failures.
+constexpr size_t kTopologyCheckWeight = 10;
 // ------------------------------------------------------------
 constexpr ClusterHostType kNothing = static_cast<ClusterHostType>(0);
 constexpr size_t kInvalidIndex = static_cast<size_t>(-1);
@@ -47,38 +56,37 @@ struct TryLockGuard {
 
 }  // namespace
 
+ClusterTopologyDiscovery::ConnectionState::ConnectionState(
+    const std::string& dsn, ConnectionTask&& task)
+    : dsn(dsn),
+      conn_variant(std::move(task)),
+      host_type(kNothing),
+      failed_reconnects(0),
+      failed_operations(0) {}
+
 ClusterTopologyDiscovery::ClusterTopologyDiscovery(
     engine::TaskProcessor& bg_task_processor, const DSNList& dsn_list)
     : bg_task_processor_(bg_task_processor), update_lock_ ATOMIC_FLAG_INIT {
   CreateConnections(dsn_list);
-  BuildEscapedNames();
-  StartPeriodicUpdates();
+  BuildIndexes();
 }
 
 ClusterTopologyDiscovery::~ClusterTopologyDiscovery() { StopRunningTasks(); }
 
 ClusterTopology::HostsByType ClusterTopologyDiscovery::GetHostsByType() const {
   std::lock_guard<engine::Mutex> lock(hosts_mutex_);
-  const auto host_count = connections_.size();
-  assert(host_count == host_types_.size() &&
-         "DSN count and host types count don't match");
-
-  // TODO consider using SwappingSmart
-  HostsByType hosts_by_type;
-  for (size_t i = 0; i < host_count; ++i) {
-    const auto host_type = host_types_[i];
-    if (host_type != kNothing) {
-      hosts_by_type[host_type].push_back(connections_[i].dsn);
-    }
-  }
-  return hosts_by_type;
+  return hosts_by_type_;
 }
 
-void ClusterTopologyDiscovery::BuildEscapedNames() {
+void ClusterTopologyDiscovery::BuildIndexes() {
   const auto host_count = connections_.size();
-  host_types_.resize(host_count, kNothing);
+  dsn_to_index_.reserve(host_count);
+  escaped_to_dsn_index_.reserve(host_count);
 
   for (size_t i = 0; i < host_count; ++i) {
+    // Build name to index mapping
+    dsn_to_index_[connections_[i].dsn] = i;
+    // Build escaped name to index mapping
     const auto options = OptionsFromDsn(connections_[i].dsn);
     escaped_to_dsn_index_[EscapeHostName(options.host)] = i;
   }
@@ -102,22 +110,11 @@ void ClusterTopologyDiscovery::CreateConnections(const DSNList& dsn_list) {
 
   connections_.reserve(host_count);
   for (size_t i = 0; i < host_count; ++i) {
-    connections_.push_back(
-        ConnectionState{dsn_list[i], std::move(tasks[i]), 0});
+    connections_.emplace_back(dsn_list[i], std::move(tasks[i]));
   }
 }
 
-void ClusterTopologyDiscovery::StartPeriodicUpdates() {
-  using ::utils::PeriodicTask;
-  using Flags = ::utils::PeriodicTask::Flags;
-
-  PeriodicTask::Settings settings(kUpdateInterval, {Flags::kNow});
-  periodic_task_.Start(kPeriodicTaskName, settings,
-                       [this] { CheckTopology(); });
-}
-
 void ClusterTopologyDiscovery::StopRunningTasks() {
-  periodic_task_.Stop();
   LOG_INFO() << "Closing connections";
   for (auto&& conn : connections_) {
     try {
@@ -142,6 +139,12 @@ engine::TaskWithResult<ConnectionPtr> ClusterTopologyDiscovery::Connect(
 
 void ClusterTopologyDiscovery::Reconnect(size_t index) {
   const auto failed_reconnects = connections_[index].failed_reconnects++;
+  connections_[index].failed_operations += kTopologyCheckWeight;
+  // TODO should we check something more here?
+  if (connections_[index].failed_operations >= kFailureThreshold) {
+    connections_[index].host_type = kNothing;
+  }
+
   auto conn =
       std::move(boost::get<ConnectionPtr>(connections_[index].conn_variant));
   if (conn) {
@@ -210,7 +213,6 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
 }
 
 void ClusterTopologyDiscovery::CheckTopology() {
-  HostTypeList host_types;
   {
     TryLockGuard lock(update_lock_);
     if (!lock.LockAcquired()) {
@@ -221,19 +223,20 @@ void ClusterTopologyDiscovery::CheckTopology() {
     // TODO check for close updates and discard those
     LOG_INFO() << "Checking cluster topology";
 
-    host_types.resize(connections_.size(), kNothing);
-    const auto master_index = CheckHostsAndFindMaster(host_types);
-    FindSyncSlaves(host_types, master_index);
+    const auto master_index = CheckHostsAndFindMaster();
+    FindSyncSlaves(master_index);
   }
 
-  LOG_TRACE() << DumpTopologyState(host_types);
-
-  std::lock_guard<engine::Mutex> lock(hosts_mutex_);
-  host_types_ = std::move(host_types);
+  LOG_TRACE() << DumpTopologyState();
+  UpdateHostsByType();
 }
 
-size_t ClusterTopologyDiscovery::CheckHostsAndFindMaster(
-    HostTypeList& host_types) {
+void ClusterTopologyDiscovery::OperationFailed(const std::string& dsn) {
+  const auto index = dsn_to_index_[dsn];
+  ++connections_[index].failed_operations;
+}
+
+size_t ClusterTopologyDiscovery::CheckHostsAndFindMaster() {
   const auto host_count = connections_.size();
   std::vector<std::pair<size_t, engine::TaskWithResult<ClusterHostType>>> tasks;
   tasks.reserve(host_count);
@@ -258,16 +261,23 @@ size_t ClusterTopologyDiscovery::CheckHostsAndFindMaster(
 
   size_t master_index = kInvalidIndex;
   for (auto && [ index, task ] : tasks) {
-    auto host_type = kNothing;
     try {
-      host_type = task.Get();
+      const auto host_type = task.Get();
+      assert(host_type != kNothing && "Wrong replica state received");
+
+      // TODO introduce and check host state here
+      if (connections_[index].failed_operations > 0) {
+        connections_[index].failed_operations.Store(0);
+        LOG_TRACE() << GetConnectionOrThrow(index)->GetLogExtra()
+                    << "Host has been marked as failed and is now working";
+      } else {
+        connections_[index].host_type = host_type;
+      }
     } catch (const ConnectionError&) {
       Reconnect(index);
     }
-    host_types[index] = host_type;
 
-    assert(host_type != kNothing && "Wrong replica state received");
-    if (host_type == ClusterHostType::kMaster) {
+    if (connections_[index].host_type == ClusterHostType::kMaster) {
       if (master_index != kInvalidIndex) {
         LOG_WARNING() << "More than one master host found";
       }
@@ -277,8 +287,7 @@ size_t ClusterTopologyDiscovery::CheckHostsAndFindMaster(
   return master_index;
 }
 
-void ClusterTopologyDiscovery::FindSyncSlaves(HostTypeList& host_types,
-                                              size_t master_index) {
+void ClusterTopologyDiscovery::FindSyncSlaves(size_t master_index) {
   if (master_index == kInvalidIndex) {
     LOG_WARNING() << "No master hosts found";
     return;
@@ -312,7 +321,6 @@ void ClusterTopologyDiscovery::FindSyncSlaves(HostTypeList& host_types,
     sync_slave_indices = task.Get();
   } catch (const ConnectionError&) {
     LOG_WARNING() << "Master host is lost while asking for sync slaves";
-    host_types[master_index] = kNothing;
     Reconnect(master_index);
   }
 
@@ -327,9 +335,9 @@ void ClusterTopologyDiscovery::FindSyncSlaves(HostTypeList& host_types,
         LOG_ERROR() << conn->GetLogExtra()
                     << "Attempt to overwrite master type with sync slave type";
       }
-      host_types[index] = ClusterHostType::kSyncSlave;
+      connections_[index].host_type = ClusterHostType::kSyncSlave;
     } else {
-      assert(host_types[index] == kNothing &&
+      assert(connections_[index].host_type == kNothing &&
              "Missing host should already be marked as kNothing");
       LOG_WARNING() << "Found unavailable sync slave host="
                     << HostAndPortFromDsn(connections_[index].dsn);
@@ -337,21 +345,30 @@ void ClusterTopologyDiscovery::FindSyncSlaves(HostTypeList& host_types,
   }
 }
 
-std::string ClusterTopologyDiscovery::DumpTopologyState(
-    const HostTypeList& host_types) const {
-  const auto host_count = connections_.size();
-  assert(host_count == host_types.size() &&
-         "DSN count and host types count don't match");
-
+std::string ClusterTopologyDiscovery::DumpTopologyState() const {
   std::string topology_state = "Topology state:\n";
-  for (size_t i = 0; i < host_count; ++i) {
-    const auto host_type = host_types[i];
+  for (const auto& conn : connections_) {
+    const auto host_type = conn.host_type;
     std::string host_type_name =
         (host_type != kNothing) ? ToString(host_type) : "--- unavailable ---";
-    topology_state += HostAndPortFromDsn(connections_[i].dsn) + " : " +
-                      std::move(host_type_name) + '\n';
+    topology_state +=
+        HostAndPortFromDsn(conn.dsn) + " : " + std::move(host_type_name) + '\n';
   }
   return topology_state;
+}
+
+void ClusterTopologyDiscovery::UpdateHostsByType() {
+  HostsByType hosts_by_type;
+  for (const auto& conn : connections_) {
+    const auto host_type = conn.host_type;
+    if (host_type != kNothing) {
+      hosts_by_type[host_type].push_back(conn.dsn);
+    }
+  }
+
+  std::lock_guard<engine::Mutex> lock(hosts_mutex_);
+  // TODO consider using SwappingSmart
+  hosts_by_type_ = std::move(hosts_by_type);
 }
 
 }  // namespace detail

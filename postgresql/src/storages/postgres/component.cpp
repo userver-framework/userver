@@ -106,7 +106,6 @@ Postgres::Postgres(const ComponentConfig& config,
           context.FindComponent<components::StatisticsStorage>()) {
   const auto dbalias = config.ParseString("dbalias", {});
 
-  storages::postgres::ClusterDescription cluster_desc;
   if (dbalias.empty()) {
     const auto dsn_string = config.ParseString("dbconnection");
     const auto options = storages::postgres::OptionsFromDsn(dsn_string);

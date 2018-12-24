@@ -11,6 +11,14 @@ namespace storages {
 namespace postgres {
 namespace detail {
 
+namespace {
+
+constexpr const char* kPeriodicTaskName = "pg_topology";
+// TODO Move constants to config
+const std::chrono::seconds kUpdateInterval(5);
+
+}  // namespace
+
 ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
                          engine::TaskProcessor& bg_task_processor,
                          size_t initial_size, size_t max_size)
@@ -28,7 +36,21 @@ ClusterImpl::ClusterImpl(const DSNList& dsn_list,
   topology_ =
       std::make_unique<ClusterTopologyDiscovery>(bg_task_processor_, dsn_list);
   InitPools(dsn_list, initial_size, max_size);
+  StartPeriodicUpdates();
 }
+
+ClusterImpl::~ClusterImpl() { StopPeriodicUpdates(); }
+
+void ClusterImpl::StartPeriodicUpdates() {
+  using ::utils::PeriodicTask;
+  using Flags = ::utils::PeriodicTask::Flags;
+
+  PeriodicTask::Settings settings(kUpdateInterval, {Flags::kNow});
+  periodic_task_.Start(kPeriodicTaskName, settings,
+                       [this] { CheckTopology(); });
+}
+
+void ClusterImpl::StopPeriodicUpdates() { periodic_task_.Stop(); }
 
 void ClusterImpl::InitPools(const DSNList& dsn_list, size_t initial_size,
                             size_t max_size) {
@@ -50,6 +72,8 @@ void ClusterImpl::InitPools(const DSNList& dsn_list, size_t initial_size,
     host_pools_.insert(task.Get());
   }
 }
+
+void ClusterImpl::CheckTopology() { topology_->CheckTopology(); }
 
 ClusterStatistics ClusterImpl::GetStatistics() const {
   ClusterStatistics cluster_stats;
@@ -125,8 +149,13 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
   if (it_find == host_pools_.end()) {
     throw ClusterUnavailable("Host not found for given DSN: " + dsn);
   }
-  // TODO Catch connection problems and force topology update
-  return it_find->second.Begin(options);
+
+  try {
+    return it_find->second.Begin(options);
+  } catch (const ConnectionError&) {
+    topology_->OperationFailed(dsn);
+    throw;
+  }
 }
 
 }  // namespace detail

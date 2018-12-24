@@ -6,8 +6,9 @@
 
 #include <engine/mutex.hpp>
 #include <engine/task/task_processor.hpp>
+#include <engine/task/task_with_result.hpp>
 #include <storages/postgres/detail/connection.hpp>
-#include <utils/periodic_task.hpp>
+#include <utils/statistics/relaxed_counter.hpp>
 
 namespace storages {
 namespace postgres {
@@ -20,13 +21,12 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   ~ClusterTopologyDiscovery();
 
   HostsByType GetHostsByType() const override;
+  void CheckTopology() override;
+  void OperationFailed(const std::string& dsn) override;
 
  private:
-  using HostTypeList = std::vector<ClusterHostType>;
-
-  void BuildEscapedNames();
+  void BuildIndexes();
   void CreateConnections(const DSNList& dsn_list);
-  void StartPeriodicUpdates();
   void StopRunningTasks();
   [[nodiscard]] engine::TaskWithResult<ConnectionPtr> Connect(std::string dsn);
   void Reconnect(size_t index);
@@ -35,27 +35,45 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   Connection* GetConnectionOrThrow(size_t index) const noexcept(false);
   Connection* GetConnectionOrNull(size_t index);
 
-  void CheckTopology();
-  size_t CheckHostsAndFindMaster(HostTypeList& host_types);
-  void FindSyncSlaves(HostTypeList& host_types, size_t master_index);
-  std::string DumpTopologyState(const HostTypeList& host_types) const;
+  size_t CheckHostsAndFindMaster();
+  void FindSyncSlaves(size_t master_index);
+  std::string DumpTopologyState() const;
+  void UpdateHostsByType();
 
  private:
   using ConnectionTask = engine::TaskWithResult<ConnectionPtr>;
 
+  template <typename T>
+  class RelaxedAtomic : public ::utils::statistics::RelaxedCounter<T> {
+   public:
+    using ::utils::statistics::RelaxedCounter<T>::RelaxedCounter;
+    RelaxedAtomic(RelaxedAtomic&& other) noexcept
+        : ::utils::statistics::RelaxedCounter<T>(other.Load()) {}
+  };
+
   struct ConnectionState {
+    ConnectionState(const std::string& dsn, ConnectionTask&& task);
+    ConnectionState(ConnectionState&&) noexcept = default;
+    ConnectionState& operator=(ConnectionState&&) = default;
+
     std::string dsn;
     boost::variant<ConnectionPtr, ConnectionTask> conn_variant;
-    size_t failed_reconnects = 0;
+    ClusterHostType host_type;
+    size_t failed_reconnects;
+
+    // The data below is modified concurrently
+
+    // We don't care about exact accuracy
+    RelaxedAtomic<size_t> failed_operations;
   };
 
   engine::TaskProcessor& bg_task_processor_;
-  HostTypeList host_types_;
   std::vector<ConnectionState> connections_;
-  std::unordered_map<std::string, size_t> escaped_to_dsn_index_;
-  ::utils::PeriodicTask periodic_task_;
-  std::atomic_flag update_lock_;
   mutable engine::Mutex hosts_mutex_;
+  HostsByType hosts_by_type_;
+  std::unordered_map<std::string, size_t> dsn_to_index_;
+  std::unordered_map<std::string, size_t> escaped_to_dsn_index_;
+  std::atomic_flag update_lock_;
 };
 
 }  // namespace detail
