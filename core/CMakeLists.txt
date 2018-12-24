@@ -53,20 +53,20 @@ find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
 
 # Hiredis' config doesn't set _FOUND :(
 find_package(Hiredis 0.13.3)
-append_debian_depends("libhiredis-dev (>= 0.13.3-2.4)")
+append_debian_depends("libhiredis-dev")
 
 find_package_required(LibEv "libev-dev")
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
-find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev, libnghttp2-dev, libgcrypt11-dev, libkrb5-dev")
+find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev libnghttp2-dev libgcrypt11-dev libkrb5-dev")
 find_package(CryptoPP REQUIRED)
 find_package(Iconv REQUIRED)
-find_package_required(YamlCpp "libyaml-cpp-dev (>= 1:0.6)")
+find_package_required(YamlCpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libcrypto++-dev")
 
 find_package_required_version(Http_Parser
-    "libhttp-parser-dev (>=2.8)" 2.8)
+    "libhttp-parser-dev" 2.8)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
