@@ -1,3 +1,9 @@
+# WARNING!
+# DO NOT FORGET TO CHANGE THE CRC32 IN FILE NAME ON MODIFICATION!
+#
+# Changing the name is essential for correct work of `ccache`.
+# Do not forget to change the file name in `Sanitizers.cmake`.
+
 # upcast of address with insufficient space for an object of type std::_Rb_tree_node<...>
 [undefined]
 src:*bits/stl_tree.h
