@@ -113,7 +113,7 @@ if (NOT CLANG) # bug in clang https://llvm.org/bugs/show_bug.cgi?id=24979
 endif()
 if (CLANG)
   message (STATUS "boost: ${Boost_VERSION}")
-  if (${Boost_VERSION} STREQUAL "105800" AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+  if (${Boost_VERSION} STREQUAL "105800" AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR ${CMAKE_BUILD_TYPE} STREQUAL "Test"))
     message (WARNING "Boost 1.58 is known to fail to compile under clang-5.0 with debug enabled (\"ordered comparison between pointer and zero ('int' and 'void *')\"), disabling Boost assertions.")
     add_definitions("-DBOOST_DISABLE_ASSERTS")
   endif ()
