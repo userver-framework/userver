@@ -7,7 +7,6 @@
 #include <system_error>
 
 #include <boost/core/ignore_unused.hpp>
-#include <boost/filesystem/operations.hpp>
 
 #include <blocking/fs/file_descriptor.hpp>
 #include <utils/strerror.hpp>
@@ -35,6 +34,10 @@ void SyncDirectoryContents(const std::string& path) {
 
 void Rename(const std::string& source, const std::string& destination) {
   boost::filesystem::rename(source, destination);
+}
+
+void Chmod(const std::string& path, boost::filesystem::perms perms) {
+  boost::filesystem::permissions(path, perms);
 }
 
 }  // namespace fs

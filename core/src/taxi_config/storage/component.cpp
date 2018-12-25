@@ -120,8 +120,11 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
   tracing::Span span("taxi_config_fs_cache_write");
   try {
     const auto contents = docs_map.AsJsonString();
+    using perms = boost::filesystem::perms;
+    auto mode = perms::owner_read | perms::owner_write | perms::group_read |
+                perms::others_read;
     async::fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_,
-                                             std::move(contents));
+                                             std::move(contents), mode);
 
     LOG_INFO() << "Successfully wrote taxi_config from FS cache";
   } catch (const std::exception& e) {

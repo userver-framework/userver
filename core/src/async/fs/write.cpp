@@ -1,7 +1,5 @@
 #include <async/fs/write.hpp>
 
-#include <boost/filesystem/operations.hpp>
-
 #include <blocking/fs/write.hpp>
 #include <engine/async.hpp>
 
@@ -25,9 +23,15 @@ void Rename(engine::TaskProcessor& async_tp, const std::string& source,
   engine::Async(async_tp, &blocking::fs::Rename, source, destination).Get();
 }
 
+void Chmod(engine::TaskProcessor& async_tp, const std::string& path,
+           boost::filesystem::perms perms) {
+  engine::Async(async_tp, &blocking::fs::Chmod, path, perms).Get();
+}
+
 void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
                                    const std::string& path,
-                                   std::string contents) {
+                                   std::string contents,
+                                   boost::filesystem::perms perms) {
   auto tmp_path = path + ".tmp";
   RewriteFileContents(async_tp, tmp_path, std::move(contents));
 
@@ -36,6 +40,8 @@ void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
 
   Rename(async_tp, tmp_path, path);
   SyncDirectoryContents(async_tp, directory_path.string());
+
+  Chmod(async_tp, path, perms);
 }
 
 }  // namespace fs

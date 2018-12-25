@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include <boost/filesystem/operations.hpp>
 #include <engine/task/task_processor_fwd.hpp>
 
 namespace async {
@@ -17,7 +18,11 @@ void Rename(engine::TaskProcessor& async_tp, const std::string& source,
  * then atomically replaces the destination */
 void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
                                    const std::string& path,
-                                   std::string contents);
+                                   std::string contents,
+                                   boost::filesystem::perms perms);
+
+void Chmod(engine::TaskProcessor& async_tp, const std::string& path,
+           boost::filesystem::perms perms);
 
 }  // namespace fs
 }  // namespace async
