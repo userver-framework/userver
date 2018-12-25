@@ -3,6 +3,7 @@
 #include <limits>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 
 #include <storages/postgres/detail/is_decl_complete.hpp>
 #include <storages/postgres/io/pg_types.hpp>
@@ -21,6 +22,34 @@ namespace io {
 
 enum DataFormat { kTextDataFormat = 0, kBinaryDataFormat = 1 };
 
+/// Category of buffer contents.
+///
+/// Applied to binary parsers and deduced from field's data type.
+enum class BufferCategory {
+  kNoParser,         //!< kNoParser the data type doesn't have a parser defined
+  kPlainBuffer,      //!< kPlainBuffer the buffer is a single plain value
+  kArrayBuffer,      //!< kArrayBuffer the buffer contains an array of values
+  kCompositeBuffer,  //!< kCompositeBuffer the buffer contains a user-defined
+                     //!< composite type
+  kRangeBuffer       //!< kRangeBuffer the buffer contains a range type
+};
+
+const std::string& ToString(BufferCategory);
+
+template <BufferCategory Category>
+using BufferCategoryConstant = std::integral_constant<BufferCategory, Category>;
+
+using TypeBufferCategory = std::unordered_map<Oid, BufferCategory>;
+
+BufferCategory GetTypeBufferCategory(const TypeBufferCategory&, Oid);
+
+struct BufferCategoryHash {
+  using IntegerType = std::underlying_type_t<BufferCategory>;
+  std::size_t operator()(BufferCategory val) const {
+    return std::hash<IntegerType>{}(static_cast<IntegerType>(val));
+  }
+};
+
 /// Fields that are null are denoted by specifying their length == -1
 constexpr const Integer kPgNullBufferSize = -1;
 
@@ -29,14 +58,16 @@ struct FieldBuffer {
 
   bool is_null = false;
   DataFormat format = DataFormat::kTextDataFormat;
+  BufferCategory category = BufferCategory::kPlainBuffer;
   std::size_t length = 0;
   const std::uint8_t* buffer = nullptr;
 
   std::string ToString() const {
     return {reinterpret_cast<const char*>(buffer), length};
   }
-  constexpr FieldBuffer GetSubBuffer(std::size_t offset,
-                                     std::size_t size = npos) const;
+  constexpr FieldBuffer GetSubBuffer(
+      std::size_t offset, std::size_t size = npos,
+      BufferCategory cat = BufferCategory::kNoParser) const;
 };
 
 /// @brief Primary template for Postgre buffer parser.
@@ -132,6 +163,9 @@ struct BestParser {
   using type = typename IO<T, value>::ParserType;
 };
 
+template <typename T>
+using BestParserType = typename BestParser<T>::type;
+
 /// Formatter selector
 template <typename T>
 struct BestFormatter {
@@ -146,6 +180,36 @@ struct BestFormatter {
                 "No formatter defined for type");
   using type = typename IO<T, value>::FormatterType;
 };
+
+template <typename T>
+using BestFormatterType = typename BestFormatter<T>::type;
+
+/// Buffer category for parser
+template <typename T>
+struct ParserBufferCategory
+    : BufferCategoryConstant<BufferCategory::kPlainBuffer> {};
+template <typename T>
+using ParserBufferCategoryType = typename ParserBufferCategory<T>::type;
+template <typename T>
+constexpr BufferCategory kParserBufferCategory = ParserBufferCategory<T>::value;
+
+//@{
+/** @name Buffer category for a type */
+namespace detail {
+template <typename T>
+constexpr auto DetectBufferCategory() {
+  if constexpr (kHasAnyParser<T>) {
+    return ParserBufferCategoryType<BestParserType<T>>{};
+  } else {
+    return BufferCategoryConstant<BufferCategory::kNoParser>{};
+  }
+};
+}  // namespace detail
+template <typename T>
+struct TypeBufferCategory : decltype(detail::DetectBufferCategory<T>()) {};
+template <typename T>
+constexpr BufferCategory kTypeBufferCategory = TypeBufferCategory<T>::value;
+//@}
 
 namespace detail {
 
@@ -188,47 +252,6 @@ constexpr bool kCustomBinaryFormatterDefined =
 }  // namespace detail
 
 }  // namespace traits
-
-/// Helper function to create a buffer parser
-template <DataFormat F, typename T>
-typename traits::IO<T, F>::ParserType BufferReader(T& value) {
-  return typename traits::IO<T, F>::ParserType(value);
-}
-
-/// @brief Read a value from input buffer
-template <DataFormat F, typename T>
-void ReadBuffer(const FieldBuffer& buffer, T& value) {
-  static_assert((traits::HasParser<T, F>::value == true),
-                "Type doesn't have an appropriate parser");
-  BufferReader<F>(value)(buffer);
-}
-
-template <typename T>
-void ReadBinary(const FieldBuffer& buffer, T& value) {
-  static_assert((traits::HasBinaryParser<T>::value == true),
-                "Type doesn't have a binary parser");
-  BufferReader<DataFormat::kBinaryDataFormat>(value)(buffer);
-}
-
-/// Helper function to create a buffer reader
-template <DataFormat F, typename T>
-typename traits::IO<T, F>::FormatterType BufferWriter(const T& value) {
-  return typename traits::IO<T, F>::FormatterType(value);
-}
-
-template <DataFormat F, typename T, typename Buffer>
-void WriteBuffer(const UserTypes& types, Buffer& buffer, const T& value) {
-  static_assert((traits::HasFormatter<T, F>::value == true),
-                "Type doesn't have an appropriate formatter");
-  BufferWriter<F>(value)(types, buffer);
-}
-
-template <typename Buffer, typename T>
-void WriteBinary(const UserTypes& types, Buffer& buffer, const T& value) {
-  static_assert((traits::HasBinaryFormatter<T>::value == true),
-                "Type doesn't have a binary formatter");
-  BufferWriter<DataFormat::kBinaryDataFormat>(value)(types, buffer);
-}
 
 namespace detail {
 

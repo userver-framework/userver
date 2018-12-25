@@ -19,7 +19,34 @@ ParserMap& TextParsers() {
   return parsers_;
 }
 
+const std::unordered_map<DBTypeDescription::TypeCategory, io::BufferCategory,
+                         DBTypeDescription::TypeCategoryHash>
+    kTypeCategoryToBufferCategory{
+        {DBTypeDescription::TypeCategory::kArray,
+         io::BufferCategory::kArrayBuffer},
+        {DBTypeDescription::TypeCategory::kComposite,
+         io::BufferCategory::kCompositeBuffer},
+        {DBTypeDescription::TypeCategory::kRange,
+         io::BufferCategory::kRangeBuffer},
+    };
+
+io::BufferCategory FindBufferCategory(DBTypeDescription::TypeCategory cat) {
+  if (auto f = kTypeCategoryToBufferCategory.find(cat);
+      f != kTypeCategoryToBufferCategory.end()) {
+    return f->second;
+  }
+  return io::BufferCategory::kPlainBuffer;
+}
+
 }  // namespace
+
+void UserTypes::Reset() {
+  types_.clear();
+  by_oid_.clear();
+  by_name_.clear();
+  buffer_categories_.clear();
+  composite_types_.clear();
+}
 
 Oid UserTypes::FindOid(DBTypeName name) const {
   if (auto f = by_name_.find(name); f != by_name_.end()) {
@@ -27,7 +54,7 @@ Oid UserTypes::FindOid(DBTypeName name) const {
   }
   LOG_WARNING() << "PostgreSQL type " << name.schema << "." << name.name
                 << " not found";
-  return static_cast<Oid>(io::PredefinedOids::kInvalid);
+  return kInvalidOid;
 }
 
 Oid UserTypes::FindArrayOid(DBTypeName name) const {
@@ -36,7 +63,7 @@ Oid UserTypes::FindArrayOid(DBTypeName name) const {
   }
   LOG_WARNING() << "PostgreSQL type " << name.schema << "." << name.name
                 << " not found";
-  return static_cast<Oid>(io::PredefinedOids::kInvalid);
+  return kInvalidOid;
 }
 
 Oid UserTypes::FindElementOid(Oid array_oid) const {
@@ -50,7 +77,7 @@ Oid UserTypes::FindElementOid(Oid array_oid) const {
       return f->second->element_type;
     }
   }
-  return static_cast<Oid>(io::PredefinedOids::kInvalid);
+  return kInvalidOid;
 }
 
 DBTypeName UserTypes::FindName(Oid oid) const {
@@ -117,11 +144,15 @@ bool UserTypes::HasTextParser(Oid oid) const {
   return false;
 }
 
-void UserTypes::Reset() {
-  types_.clear();
-  by_oid_.clear();
-  by_name_.clear();
-  composite_types_.clear();
+io::BufferCategory UserTypes::GetBufferCategory(Oid oid) const {
+  auto cat = io::GetBufferCategory(static_cast<io::PredefinedOids>(oid));
+  if (cat != io::BufferCategory::kNoParser) {
+    return cat;
+  }
+  if (auto f = buffer_categories_.find(oid); f != buffer_categories_.end()) {
+    return f->second;
+  }
+  return io::BufferCategory::kNoParser;
 }
 
 void UserTypes::AddType(DBTypeDescription&& desc) {
@@ -133,6 +164,8 @@ void UserTypes::AddType(DBTypeDescription&& desc) {
   if (auto ins = types_.insert(std::move(desc)); ins.second) {
     by_oid_.insert(std::make_pair(oid, ins.first));
     by_name_.insert(std::make_pair(ins.first->GetName(), ins.first));
+    auto cat = FindBufferCategory(ins.first->category);
+    buffer_categories_.insert(std::make_pair(oid, cat));
   } else {
     // schema and name is not available any more as it was moved
     LOG_ERROR() << "Failed to insert user type with oid " << oid;

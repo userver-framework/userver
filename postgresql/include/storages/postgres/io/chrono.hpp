@@ -4,7 +4,7 @@
 #include <chrono>
 
 #include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/traits.hpp>
+#include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
 #include <utils/demangle.hpp>

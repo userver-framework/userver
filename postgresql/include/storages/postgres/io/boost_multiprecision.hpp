@@ -1,7 +1,7 @@
 #pragma once
 
+#include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/stream_text_parser.hpp>
-#include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
 #include <boost/iostreams/device/back_inserter.hpp>

@@ -121,14 +121,17 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
 
   using BaseType::BaseType;
 
-  void operator()(const FieldBuffer& buffer) {
+  void operator()(const FieldBuffer& buffer,
+                  const TypeBufferCategory& categories) {
     using std::swap;
     static constexpr std::size_t int_size = sizeof(Integer);
     std::size_t offset{0};
 
     // read dimension count
     Integer dim_count{0};
-    ReadBinary(buffer.GetSubBuffer(offset, int_size), dim_count);
+    ReadBinary(
+        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
+        dim_count);
     if (dim_count != static_cast<Integer>(dimensions)) {
       if (dim_count == 0) {
         ValueType empty{};
@@ -141,24 +144,33 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
 
     // read flags
     Integer flags{0};
-    ReadBinary(buffer.GetSubBuffer(offset, int_size), flags);
+    ReadBinary(
+        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
+        flags);
     // TODO check flags
     offset += int_size;
 
     // read element oid
     Integer elem_oid{0};
-    ReadBinary(buffer.GetSubBuffer(offset, int_size), elem_oid);
+    ReadBinary(
+        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
+        elem_oid);
     // TODO check elem_oid
+    auto elem_category = GetTypeBufferCategory(categories, elem_oid);
     offset += int_size;
 
     // read dimension data
     Dimensions on_the_wire;
     for (auto& dim : on_the_wire) {
       Integer dim_val, lbound;
-      ReadBinary(buffer.GetSubBuffer(offset, int_size), dim_val);
+      ReadBinary(
+          buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
+          dim_val);
       dim = dim_val;
       offset += int_size;
-      ReadBinary(buffer.GetSubBuffer(offset, int_size), lbound);
+      ReadBinary(
+          buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
+          lbound);
       offset += int_size;
     }
     if (!CheckDimensions(on_the_wire)) {
@@ -166,7 +178,8 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     }
     // read elements
     ValueType tmp;
-    ReadDimension(buffer.GetSubBuffer(offset), on_the_wire.begin(), tmp);
+    ReadDimension(buffer.GetSubBuffer(offset), on_the_wire.begin(),
+                  elem_category, categories, tmp);
     swap(this->value, tmp);
   }
 
@@ -201,7 +214,10 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
   }
   template <typename Element>
   std::size_t ReadDimension(const FieldBuffer& buffer,
-                            DimensionConstIterator dim, Element& elem) {
+                            DimensionConstIterator dim,
+                            BufferCategory elem_category,
+                            const TypeBufferCategory& categories,
+                            Element& elem) {
     if constexpr (traits::kIsCompatibleContainer<Element>) {
       std::size_t offset = 0;
       if constexpr (traits::kCanResize<Element>) {
@@ -211,10 +227,12 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
       for (std::size_t i = 0; i < *dim; ++i) {
         if constexpr (1 < traits::kDimensionCount<Element>) {
           // read subdimensions
-          offset +=
-              ReadDimension(buffer.GetSubBuffer(offset), dim + 1, *value++);
+          offset += ReadDimension(buffer.GetSubBuffer(offset), dim + 1,
+                                  elem_category, categories, *value++);
         } else {
-          offset += ReadRawBinary(buffer.GetSubBuffer(offset), *value++);
+          offset += ReadRawBinary(
+              buffer.GetSubBuffer(offset, FieldBuffer::npos, elem_category),
+              *value++, categories);
         }
       }
       return offset;
@@ -387,6 +405,10 @@ struct Output<T, DataFormat::kBinaryDataFormat,
                                    T, DataFormat::kBinaryDataFormat>>> {
   using type = io::detail::ArrayBinaryFormatter<T>;
 };
+
+template <typename T>
+struct ParserBufferCategory<io::detail::ArrayBinaryParser<T>>
+    : std::integral_constant<BufferCategory, BufferCategory::kArrayBuffer> {};
 
 // std::vector
 template <typename... T>

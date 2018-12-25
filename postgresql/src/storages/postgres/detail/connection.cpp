@@ -241,9 +241,9 @@ struct Connection::Impl {
     } else {
       LOG_TRACE() << "Query " << statement << " is not yet prepared";
       conn_wrapper_.SendPrepare(statement_name, statement, params);
-      conn_wrapper_.WaitResult(kDefaultTimeout);
+      conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
       conn_wrapper_.SendDescribePrepared(statement_name);
-      auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
+      auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
       prepared_.insert(std::make_pair(
           query_hash, res.GetRowDescription().BestReplyFormat(db_types_)));
       ++stats_.parse_total;
@@ -256,7 +256,7 @@ struct Connection::Impl {
                 << " format for reply";
 
     conn_wrapper_.SendPreparedQuery(statement_name, params, fmt);
-    auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
+    auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
     count_execute.AccountResult(res, fmt);
     return res;
   }
@@ -266,7 +266,7 @@ struct Connection::Impl {
     CountExecute count_execute(stats_);
     conn_wrapper_.SendQuery(statement);
 
-    auto res = conn_wrapper_.WaitResult(kDefaultTimeout);
+    auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
     count_execute.AccountResult(res, io::DataFormat::kTextDataFormat);
     return res;
   }
@@ -278,7 +278,7 @@ struct Connection::Impl {
                                 io::DataFormat reply_format,
                                 const detail::QueryParameters& params) {
     conn_wrapper_.SendQuery(statement, params, reply_format);
-    return conn_wrapper_.WaitResult(kDefaultTimeout);
+    return conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
   }
 
   void Begin(const TransactionOptions& options,

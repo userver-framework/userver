@@ -62,7 +62,7 @@ class PGConnectionWrapper {
   // TODO Add tracing::Span
   /// @brief Wait for query result
   /// Will return result or throw an exception
-  ResultSet WaitResult(Duration timeout);
+  ResultSet WaitResult(const UserTypes&, Duration timeout);
   /// @brief Get extra log information
   /// Used for internal needs
   const logging::LogExtra& GetLogExtra() const;
@@ -80,7 +80,7 @@ class PGConnectionWrapper {
   void Flush(Duration timeout);
   void ConsumeInput(Duration timeout);
 
-  ResultSet MakeResult(ResultHandle&& handle);
+  ResultSet MakeResult(const UserTypes&, ResultHandle&& handle);
 
   template <typename ExceptionType>
   void CheckError(const std::string& cmd, int pg_dispatch_result);

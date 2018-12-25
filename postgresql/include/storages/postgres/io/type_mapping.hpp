@@ -28,6 +28,8 @@ bool HasBinaryParser(PredefinedOids);
 bool MappedToSameType(PredefinedOids, PredefinedOids);
 /// Get array element oid for a predefined type
 PredefinedOids GetArrayElementOid(PredefinedOids);
+/// Get the buffer category for a predefined type
+BufferCategory GetBufferCategory(PredefinedOids);
 
 bool HasTextParser(DBTypeName);
 bool HasBinaryParser(DBTypeName);
@@ -43,6 +45,7 @@ inline bool ForceReference(const T&...) {
 struct RegisterPredefinedOidParser {
   static RegisterPredefinedOidParser Register(PredefinedOids type_oid,
                                               PredefinedOids array_oid,
+                                              BufferCategory category,
                                               std::string&& cpp_name,
                                               bool text_parser,
                                               bool bin_parser);
@@ -70,8 +73,9 @@ struct CppToSystemPgImpl {
 
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(
-          type_oid, array_oid, ::utils::GetTypeName<T>(),
-          io::traits::kHasTextParser<T>, io::traits::kHasBinaryParser<T>);
+          type_oid, array_oid, io::traits::kTypeBufferCategory<T>,
+          ::utils::GetTypeName<T>(), io::traits::kHasTextParser<T>,
+          io::traits::kHasBinaryParser<T>);
 
   static constexpr Oid GetOid(const UserTypes&) {
     ForceReference(init_);
@@ -101,8 +105,9 @@ struct PgToCppPredefined {
 
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(
-          type_oid, array_oid, ::utils::GetTypeName<T>(),
-          io::traits::kHasTextParser<T>, io::traits::kHasBinaryParser<T>);
+          type_oid, array_oid, io::traits::kTypeBufferCategory<T>,
+          ::utils::GetTypeName<T>(), io::traits::kHasTextParser<T>,
+          io::traits::kHasBinaryParser<T>);
 };
 
 }  // namespace detail

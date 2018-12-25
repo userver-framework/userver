@@ -101,11 +101,50 @@ static_assert(tt::kIsMappedToPg<three_dim_array>, "");
 
 static_assert(tt::kIsMappedToPg<vector_of_arrays>, "");
 
+static_assert(tt::kHasAnyParser<one_dim_vector>, "");
+
+static_assert(tt::kTypeBufferCategory<one_dim_vector> ==
+                  io::BufferCategory::kArrayBuffer,
+              "");
+static_assert(tt::kTypeBufferCategory<two_dim_vector> ==
+                  io::BufferCategory::kArrayBuffer,
+              "");
+static_assert(tt::kTypeBufferCategory<three_dim_vector> ==
+                  io::BufferCategory::kArrayBuffer,
+              "");
+
+static_assert(tt::kTypeBufferCategory<one_dim_array> ==
+                  io::BufferCategory::kArrayBuffer,
+              "");
+static_assert(tt::kTypeBufferCategory<two_dim_array> ==
+                  io::BufferCategory::kArrayBuffer,
+              "");
+static_assert(tt::kTypeBufferCategory<three_dim_array> ==
+                  io::BufferCategory::kArrayBuffer,
+              "");
+
+static_assert(tt::kTypeBufferCategory<vector_of_arrays> ==
+                  io::BufferCategory::kArrayBuffer,
+              "");
+
 }  // namespace static_test
 
 namespace {
 
 const pg::UserTypes types;
+
+pg::io::TypeBufferCategory GetTestTypeCategories() {
+  pg::io::TypeBufferCategory result;
+  using Oids = pg::io::PredefinedOids;
+  for (auto p_oid : {Oids::kInt2, Oids::kInt2Array, Oids::kInt4,
+                     Oids::kInt4Array, Oids::kInt8, Oids::kInt8Array}) {
+    auto oid = static_cast<pg::Oid>(p_oid);
+    result.insert(std::make_pair(oid, types.GetBufferCategory(oid)));
+  }
+  return result;
+}
+
+const pg::io::TypeBufferCategory categories = GetTestTypeCategories();
 
 const std::string kArraysSQL = R"~(
 select  '{1, 2, 3, 4}'::integer[],
@@ -125,21 +164,26 @@ TEST(PostgreIO, Arrays) {
     EXPECT_FALSE(buffer.empty());
     // PrintBuffer(buffer);
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
+                                  io::BufferCategory::kArrayBuffer);
     static_test::one_dim_vector tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt));
+    EXPECT_NO_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt, categories));
     EXPECT_EQ(src, tgt);
 
     static_test::one_dim_array a1;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a1));
+    EXPECT_NO_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a1, categories));
 
     static_test::two_dim_array a2;
-    EXPECT_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a2),
-                 pg::DimensionMismatch);
+    EXPECT_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a2, categories),
+        pg::DimensionMismatch);
 
     static_test::three_dim_array a3;
-    EXPECT_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a3),
-                 pg::DimensionMismatch);
+    EXPECT_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a3, categories),
+        pg::DimensionMismatch);
   }
   {
     static_test::two_dim_vector src{{1, 2, 3}, {4, 5, 6}};
@@ -149,20 +193,25 @@ TEST(PostgreIO, Arrays) {
     EXPECT_FALSE(buffer.empty());
     // PrintBuffer(buffer);
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
+                                  io::BufferCategory::kArrayBuffer);
     static_test::two_dim_vector tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt));
+    EXPECT_NO_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt, categories));
     EXPECT_EQ(src, tgt);
 
     static_test::two_dim_array a2;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a2));
+    EXPECT_NO_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a2, categories));
 
     static_test::one_dim_array a1;
-    EXPECT_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a1),
-                 pg::DimensionMismatch);
+    EXPECT_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a1, categories),
+        pg::DimensionMismatch);
     static_test::three_dim_array a3;
-    EXPECT_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a3),
-                 pg::DimensionMismatch);
+    EXPECT_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a3, categories),
+        pg::DimensionMismatch);
   }
   {
     using test_array = static_test::three_dim_array;
@@ -173,9 +222,11 @@ TEST(PostgreIO, Arrays) {
     EXPECT_FALSE(buffer.empty());
     // PrintBuffer(buffer);
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
+                                  io::BufferCategory::kArrayBuffer);
     test_array tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt));
+    EXPECT_NO_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt, categories));
     EXPECT_EQ(src, tgt);
   }
   {
@@ -186,9 +237,11 @@ TEST(PostgreIO, Arrays) {
         io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, src));
     EXPECT_FALSE(buffer.empty());
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
+                                  io::BufferCategory::kArrayBuffer);
     test_array tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt));
+    EXPECT_NO_THROW(
+        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt, categories));
     EXPECT_EQ(src, tgt);
   }
   {
@@ -211,6 +264,7 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
     EXPECT_NO_THROW(res = conn->Execute("select $1 as int_array", src));
     test_array tgt;
     EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
     EXPECT_EQ(src, tgt);
   }
   {
@@ -219,6 +273,7 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
     EXPECT_NO_THROW(res = conn->Execute("select $1 as array3d", src));
     test_array tgt;
     EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
     EXPECT_EQ(src, tgt);
   }
   {
@@ -227,6 +282,7 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
     EXPECT_NO_THROW(res = conn->Execute("select $1 as float_array", src));
     test_array tgt;
     EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<float>(), pg::InvalidParserCategory);
     EXPECT_EQ(src, tgt);
   }
   {
@@ -235,6 +291,7 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
     EXPECT_NO_THROW(res = conn->Execute("select $1 as text_array", src));
     test_array tgt;
     EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
     EXPECT_EQ(src, tgt);
   }
   {
@@ -246,6 +303,7 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
         res = conn->Execute("select $1 as text_array_with_nulls", src));
     test_array tgt;
     EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<nullable_type>(), pg::InvalidParserCategory);
     ASSERT_EQ(4, tgt.size());
     EXPECT_FALSE(tgt[0].is_initialized());
     EXPECT_TRUE(tgt[1].is_initialized());

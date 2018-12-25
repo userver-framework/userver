@@ -1,14 +1,15 @@
 #pragma once
 
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/nullable_traits.hpp>
-#include <storages/postgres/io/traits.hpp>
 
 namespace storages::postgres::io {
 
 constexpr FieldBuffer FieldBuffer::GetSubBuffer(std::size_t offset,
-                                                std::size_t len) const {
+                                                std::size_t len,
+                                                BufferCategory cat) const {
   auto new_buffer_start = buffer + offset;
   if (offset > length) {
     throw InvalidInputBufferSize(
@@ -19,14 +20,19 @@ constexpr FieldBuffer FieldBuffer::GetSubBuffer(std::size_t offset,
     throw InvalidInputBufferSize(
         len, ". Buffer remaininig size is " + std::to_string(length - offset));
   }
-  return {is_null, format, len, new_buffer_start};
+  if (cat == BufferCategory::kNoParser) {
+    cat = category;
+  }
+  return {is_null, format, cat, len, new_buffer_start};
 }
 
 template <typename T>
-std::size_t ReadRawBinary(const FieldBuffer& buffer, T& value) {
+std::size_t ReadRawBinary(const FieldBuffer& buffer, T& value,
+                          const TypeBufferCategory& categories) {
   static constexpr auto size_len = sizeof(Integer);
   Integer length{0};
-  ReadBinary(buffer.GetSubBuffer(0, size_len), length);
+  ReadBinary(buffer.GetSubBuffer(0, size_len, BufferCategory::kPlainBuffer),
+             length);
   if (length == kPgNullBufferSize) {
     // NULL value
     traits::GetSetNull<T>::SetNull(value);
@@ -38,7 +44,7 @@ std::size_t ReadRawBinary(const FieldBuffer& buffer, T& value) {
     traits::GetSetNull<T>::SetDefault(value);
     return size_len;
   } else {
-    ReadBinary(buffer.GetSubBuffer(size_len, length), value);
+    ReadBinary(buffer.GetSubBuffer(size_len, length), value, categories);
     return length + size_len;
   }
 }

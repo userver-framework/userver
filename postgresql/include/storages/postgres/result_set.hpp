@@ -275,6 +275,7 @@ class Field {
   //@}
  private:
   io::FieldBuffer GetBuffer() const;
+  const io::TypeBufferCategory& GetTypeBufferCategories() const;
 
  protected:
   friend class Row;
@@ -295,58 +296,48 @@ class Field {
     return fb.length;
   }
   template <typename T>
-  size_type ReadNullable(const io::FieldBuffer& fb, T&& val,
+  size_type ReadNullable(const io::FieldBuffer& buffer, T&& val,
                          std::false_type) const {
-    if (fb.is_null) {
+    if (buffer.is_null) {
       throw FieldValueIsNull{field_index_};
     } else {
-      Read(fb, std::forward<T>(val));
+      Read(buffer, std::forward<T>(val));
     }
-    return fb.length;
+    return buffer.length;
   }
 
   template <typename T>
-  void Read(const io::FieldBuffer& fb, T&& val) const {
+  void Read(const io::FieldBuffer& buffer, T&& val) const {
     using ValueType = typename std::decay<T>::type;
     static_assert(io::traits::kHasAnyParser<ValueType>,
                   "Type doesn't have any parsers defined");
-    if (fb.format == io::DataFormat::kTextDataFormat) {
-      ReadText(
-          fb, std::forward<T>(val),
-          io::traits::HasParser<ValueType, io::DataFormat::kTextDataFormat>{});
+    if (buffer.format == io::DataFormat::kTextDataFormat) {
+      ReadText(buffer, std::forward<T>(val));
     } else {
-      ReadBinary(fb, std::forward<T>(val),
-                 io::traits::HasParser<ValueType,
-                                       io::DataFormat::kBinaryDataFormat>{});
+      ReadBinary(buffer, std::forward<T>(val));
     }
   }
 
   template <typename T>
-  void ReadText(io::FieldBuffer const& fb, T&& val, std::true_type) const {
+  void ReadText(const io::FieldBuffer& buffer, T&& val) const {
     using ValueType = typename std::decay<T>::type;
-    using Parser =
-        typename io::traits::IO<ValueType,
-                                io::DataFormat::kTextDataFormat>::ParserType;
-    Parser{std::forward<T>(val)}(fb);
-  }
-  template <typename T>
-  void ReadText(io::FieldBuffer const&, T&&, std::false_type) const {
-    throw NoValueParser{::utils::GetTypeName<T>(),
-                        io::DataFormat::kTextDataFormat};
+    if constexpr (io::traits::kHasTextParser<ValueType>) {
+      io::ReadText(buffer, std::forward<T>(val));
+    } else {
+      throw NoValueParser{::utils::GetTypeName<T>(),
+                          io::DataFormat::kTextDataFormat};
+    }
   }
 
   template <typename T>
-  void ReadBinary(io::FieldBuffer const& fb, T&& val, std::true_type) const {
+  void ReadBinary(const io::FieldBuffer& buffer, T&& val) const {
     using ValueType = typename std::decay<T>::type;
-    using Parser =
-        typename io::traits::IO<ValueType,
-                                io::DataFormat::kBinaryDataFormat>::ParserType;
-    Parser{std::forward<T>(val)}(fb);
-  }
-  template <typename T>
-  void ReadBinary(io::FieldBuffer const&, T&&, std::false_type) const {
-    throw NoValueParser{::utils::GetTypeName<T>(),
-                        io::DataFormat::kBinaryDataFormat};
+    if constexpr (io::traits::kHasBinaryParser<ValueType>) {
+      io::ReadBinary(buffer, std::forward<T>(val), GetTypeBufferCategories());
+    } else {
+      throw NoValueParser{::utils::GetTypeName<T>(),
+                          io::DataFormat::kBinaryDataFormat};
+    }
   }
   //@{
   /** @name Iteration support */

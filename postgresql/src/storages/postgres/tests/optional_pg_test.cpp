@@ -34,7 +34,7 @@ TEST(PostgreIO, Optional) {
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
     optional_int tgt;
-    EXPECT_NO_THROW(io::ReadRawBinary(fb, tgt));
+    EXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
     EXPECT_EQ(null, tgt);
   }
 }

@@ -150,6 +150,12 @@ struct DBTypeDescription {
       return lhs.name == rhs.name && lhs.schema == rhs.schema;
     }
   };
+  struct TypeCategoryHash {
+    using IntegralType = std::underlying_type_t<TypeCategory>;
+    auto operator()(TypeCategory val) const {
+      return std::hash<IntegralType>{}(static_cast<IntegralType>(val));
+    }
+  };
 };
 
 /// Description of a field in a user-defined composite type, for type checking
@@ -178,7 +184,7 @@ namespace io {
 /// order by 1, 2
 /// @endcode
 enum class PredefinedOids {
-  kInvalid = 0,
+  kInvalid = kInvalidOid,
   kBoolean = 16,
   kBytea = 17,
   kChar = 18,

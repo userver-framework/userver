@@ -22,18 +22,24 @@ class ResultWrapper {
  public:
   ResultWrapper(ResultHandle&& res) : handle_{std::move(res)} {};
 
+  void FillBufferCategories(const UserTypes& types);
+
   ExecStatusType GetStatus() const;
 
   //@{
   /** @name Data result */
   std::size_t RowCount() const;
   std::size_t FieldCount() const;
+  const io::TypeBufferCategory& GetTypeBufferCategories() const {
+    return buffer_categories_;
+  }
 
   std::size_t IndexOfName(std::string const& name) const;
 
   FieldDescription GetFieldDescription(std::size_t col) const;
   io::DataFormat GetFieldFormat(std::size_t col) const;
   Oid GetFieldTypeOid(std::size_t col) const;
+  io::BufferCategory GetFieldBufferCategory(std::size_t col) const;
   bool IsFieldNull(std::size_t row, std::size_t col) const;
   std::size_t GetFieldLength(std::size_t row, std::size_t col) const;
   io::FieldBuffer GetFieldBuffer(std::size_t row, std::size_t col) const;
@@ -62,6 +68,7 @@ class ResultWrapper {
 
  private:
   ResultHandle handle_;
+  io::TypeBufferCategory buffer_categories_;
 };
 
 inline ResultWrapper::ResultHandle MakeResultHandle(PGresult* pg_res) {

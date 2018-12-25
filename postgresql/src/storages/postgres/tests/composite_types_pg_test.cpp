@@ -123,9 +123,38 @@ static_assert((!tt::detail::CompositeHasParsers<
 
 static_assert(tt::kHasAnyParser<pg_test::BunchOfFoo>, "");
 static_assert(tt::kHasAnyFormatter<pg_test::BunchOfFoo>, "");
+
+static_assert(tt::kTypeBufferCategory<pg_test::FooTuple> ==
+                  io::BufferCategory::kCompositeBuffer,
+              "");
+static_assert(tt::kTypeBufferCategory<pg_test::FooBar> ==
+                  io::BufferCategory::kCompositeBuffer,
+              "");
+static_assert(tt::kTypeBufferCategory<pg_test::FooClass> ==
+                  io::BufferCategory::kCompositeBuffer,
+              "");
+static_assert(tt::kTypeBufferCategory<pg_test::BunchOfFoo> ==
+                  io::BufferCategory::kCompositeBuffer,
+              "");
+
 }  // namespace static_test
 
 namespace {
+
+const pg::UserTypes types;
+
+pg::io::TypeBufferCategory GetTestTypeCategories() {
+  pg::io::TypeBufferCategory result;
+  using Oids = pg::io::PredefinedOids;
+  for (auto p_oid : {Oids::kInt2, Oids::kInt2Array, Oids::kInt4,
+                     Oids::kInt4Array, Oids::kInt8, Oids::kInt8Array}) {
+    auto oid = static_cast<pg::Oid>(p_oid);
+    result.insert(std::make_pair(oid, types.GetBufferCategory(oid)));
+  }
+  return result;
+}
+
+const pg::io::TypeBufferCategory categories = GetTestTypeCategories();
 
 POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
@@ -151,6 +180,7 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
 
   pg_test::FooBar fb;
   EXPECT_NO_THROW(res[0].To(fb));
+  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ(42, fb.i);
   EXPECT_EQ("foobar", fb.s);
   EXPECT_EQ(3.14, fb.d);
@@ -180,6 +210,8 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
 
   ASSERT_FALSE(res.IsEmpty());
   ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
+  EXPECT_THROW(res[0][0].As<pg_test::FooBar>(), pg::InvalidParserCategory);
+  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
 
   pg_test::BunchOfFoo bf{{fb, fb, fb}};
@@ -198,6 +230,8 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(res[0].To(bf1, pg::kRowTag));
   EXPECT_EQ(bf, bf1);
   EXPECT_EQ(bf, res[0].As<pg_test::BunchOfFoo>(pg::kRowTag));
+
+  EXPECT_ANY_THROW(res[0][0].To(bf1));
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }

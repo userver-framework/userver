@@ -27,7 +27,40 @@ constexpr std::pair<const char*, int> kExtraErrorFields[]{
     {"pg_datatype", PG_DIAG_DATATYPE_NAME},
     {"pg_constraint", PG_DIAG_CONSTRAINT_NAME}};
 
+void AddTypeBufferCategories(Oid data_type, const UserTypes& types,
+                             io::TypeBufferCategory& cats) {
+  if (cats.count(data_type)) {
+    return;
+  }
+  auto cat = types.GetBufferCategory(data_type);
+  if (cat == io::BufferCategory::kNoParser) {
+    throw UnknownBufferCategory(data_type);
+  }
+  cats.insert(std::make_pair(data_type, cat));
+  if (cat == io::BufferCategory::kArrayBuffer) {
+    // Recursively add buffer category for array element
+    auto elem_oid = types.FindElementOid(data_type);
+    AddTypeBufferCategories(elem_oid, types, cats);
+  } else if (cat == io::BufferCategory::kCompositeBuffer) {
+    // Recursively add buffer categories for data members
+    const auto& type_desc = types.GetCompositeDescription(data_type);
+    auto n_fields = type_desc.Size();
+    for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
+      AddTypeBufferCategories(type_desc[f_no].type, types, cats);
+    }
+  }
+}
+
 }  // namespace
+
+void ResultWrapper::FillBufferCategories(const UserTypes& types) {
+  buffer_categories_.clear();
+  auto n_fields = FieldCount();
+  for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
+    auto data_type = GetFieldTypeOid(f_no);
+    AddTypeBufferCategories(data_type, types, buffer_categories_);
+  }
+}
 
 ExecStatusType ResultWrapper::GetStatus() const {
   return PQresultStatus(handle_.get());
@@ -68,6 +101,16 @@ Oid ResultWrapper::GetFieldTypeOid(std::size_t col) const {
   return PQftype(handle_.get(), col);
 }
 
+io::BufferCategory ResultWrapper::GetFieldBufferCategory(
+    std::size_t col) const {
+  auto data_type = GetFieldTypeOid(col);
+  if (auto f = buffer_categories_.find(data_type);
+      f != buffer_categories_.end()) {
+    return f->second;
+  }
+  return io::BufferCategory::kNoParser;
+}
+
 std::size_t ResultWrapper::GetFieldLength(std::size_t row,
                                           std::size_t col) const {
   return PQgetlength(handle_.get(), row, col);
@@ -76,7 +119,7 @@ std::size_t ResultWrapper::GetFieldLength(std::size_t row,
 io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row,
                                               std::size_t col) const {
   return io::FieldBuffer{IsFieldNull(row, col), GetFieldFormat(col),
-                         GetFieldLength(row, col),
+                         GetFieldBufferCategory(col), GetFieldLength(row, col),
                          reinterpret_cast<const std::uint8_t*>(
                              PQgetvalue(handle_.get(), row, col))};
 }

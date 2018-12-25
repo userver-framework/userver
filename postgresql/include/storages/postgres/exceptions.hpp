@@ -98,12 +98,14 @@ namespace postgres {
  *       - FieldTupleMismatch
  *       - FieldValueIsNull
  *       - InvalidInputBufferSize
+ *       - InvalidParserCategory
  *       - InvalidTupleSizeRequested
  *       - NonSingleColumResultSet
  *       - NoValueParser
  *       - RowIndexOutOfBounds
  *       - TextParseFailure
  *       - TypeCannotBeNull
+ *       - UnknownBufferCategory
  *     - UserTypeError
  *       - CompositeSizeMismatch
  *     - ArrayError
@@ -583,6 +585,26 @@ class TypeCannotBeNull : public ResultSetError {
  public:
   TypeCannotBeNull(const std::string& type)
       : ResultSetError(type + " cannot be null") {}
+};
+
+/// @brief Field buffer contains different category of data than expected by
+/// data parser.
+class InvalidParserCategory : public ResultSetError {
+ public:
+  InvalidParserCategory(const std::string& type, io::BufferCategory parser,
+                        io::BufferCategory buffer)
+      : ResultSetError("Buffer category '" + ToString(buffer) +
+                       "' doesn't match the category of the parser '" +
+                       ToString(parser) + "' for type '" + type + "'") {}
+};
+
+/// @brief While checking result set types, failed to determine the buffer
+/// category for a type oid.
+class UnknownBufferCategory : public ResultSetError {
+ public:
+  UnknownBufferCategory(Oid type_oid)
+      : ResultSetError("Failed to find buffer category for type oid " +
+                       std::to_string(type_oid)){};
 };
 
 /// @brief A field was requested to be parsed to a type that doesn't have an

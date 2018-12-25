@@ -53,36 +53,47 @@ struct CompositeBinaryParser : BufferParserBase<T> {
 
   using BaseType::BaseType;
 
-  void operator()(const FieldBuffer& buffer) {
+  void operator()(const FieldBuffer& buffer,
+                  const TypeBufferCategory& categories) {
     std::size_t offset{0};
 
     Integer field_count{0};
-    ReadBinary(buffer.GetSubBuffer(offset, int_size), field_count);
+    ReadBinary(
+        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
+        field_count);
     offset += int_size;
 
     if (field_count != RowType::size) {
       throw CompositeSizeMismatch(field_count, RowType::size);
     }
 
-    ReadTuple(buffer.GetSubBuffer(offset), RowType::GetTuple(this->value),
-              IndexSequence{});
+    ReadTuple(buffer.GetSubBuffer(offset), categories,
+              RowType::GetTuple(this->value), IndexSequence{});
   }
 
  private:
   static constexpr std::size_t int_size = sizeof(Integer);
 
   template <typename U>
-  void ReadField(const FieldBuffer& buffer, std::size_t& offset, U& val) const {
+  void ReadField(const FieldBuffer& buffer, std::size_t& offset,
+                 const TypeBufferCategory& categories, U& val) const {
     Integer field_type;
-    ReadBinary(buffer.GetSubBuffer(offset, int_size), field_type);
+    ReadBinary(
+        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
+        field_type);
     offset += int_size;
-    offset += ReadRawBinary(buffer.GetSubBuffer(offset), val);
+    auto elem_category = GetTypeBufferCategory(categories, field_type);
+    offset += ReadRawBinary(
+        buffer.GetSubBuffer(offset, FieldBuffer::npos, elem_category), val,
+        categories);
   }
   template <typename Tuple, std::size_t... Indexes>
-  void ReadTuple(const FieldBuffer& buffer, Tuple&& tuple,
+  void ReadTuple(const FieldBuffer& buffer,
+                 const TypeBufferCategory& categories, Tuple&& tuple,
                  std::index_sequence<Indexes...>) const {
     std::size_t offset{0};
-    (ReadField(buffer, offset, std::get<Indexes>(std::forward<Tuple>(tuple))),
+    (ReadField(buffer, offset, categories,
+               std::get<Indexes>(std::forward<Tuple>(tuple))),
      ...);
   }
 };
@@ -197,6 +208,11 @@ struct Output<T, DataFormat::kBinaryDataFormat,
        true),
       "Not all composite type members have binary formatters");
   using type = io::detail::CompositeBinaryFormatter<T>;
+};
+
+template <typename T>
+struct ParserBufferCategory<io::detail::CompositeBinaryParser<T>>
+    : std::integral_constant<BufferCategory, BufferCategory::kCompositeBuffer> {
 };
 
 }  // namespace traits

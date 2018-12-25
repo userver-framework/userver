@@ -235,7 +235,8 @@ void PGConnectionWrapper::ConsumeInput(Duration timeout) {
   }
 }
 
-ResultSet PGConnectionWrapper::WaitResult(Duration timeout) {
+ResultSet PGConnectionWrapper::WaitResult(const UserTypes& types,
+                                          Duration timeout) {
   Flush(timeout);
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(timeout);
@@ -248,14 +249,15 @@ ResultSet PGConnectionWrapper::WaitResult(Duration timeout) {
     handle = MakeResultHandle(pg_res);
     ConsumeInput(timeout);
   }
-  return MakeResult(std::move(handle));
+  return MakeResult(types, std::move(handle));
 }
 
 const logging::LogExtra& PGConnectionWrapper::GetLogExtra() const {
   return log_extra_;
 }
 
-ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
+ResultSet PGConnectionWrapper::MakeResult(const UserTypes& types,
+                                          ResultHandle&& handle) {
   auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(handle));
   auto status = wrapper->GetStatus();
   switch (status) {
@@ -324,6 +326,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
       break;
     }
   }
+  wrapper->FillBufferCategories(types);
   return ResultSet{wrapper};
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <storages/postgres/io/traits.hpp>
+#include <storages/postgres/io/buffer_io.hpp>
 #include <utils/demangle.hpp>
 
 namespace storages::postgres::io {

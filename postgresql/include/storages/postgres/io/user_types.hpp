@@ -71,8 +71,12 @@ class UserTypes {
   using CompositeFieldDefs = std::vector<CompositeFieldDef>;
 
  public:
+  void Reset();
+
   Oid FindOid(DBTypeName) const;
   Oid FindArrayOid(DBTypeName) const;
+  /// Find element type oid for an array type.
+  /// Returns invalid oid if the type is not an array or the type is not found
   Oid FindElementOid(Oid) const;
   DBTypeName FindName(Oid) const;
   /// Find name of the base type for a domain or element type for an array.
@@ -85,8 +89,8 @@ class UserTypes {
 
   bool HasBinaryParser(Oid) const;
   bool HasTextParser(Oid) const;
+  io::BufferCategory GetBufferCategory(Oid) const;
 
-  void Reset();
   void AddType(DBTypeDescription&& desc);
   void AddCompositeFields(CompositeFieldDefs&& defs);
 
@@ -104,6 +108,7 @@ class UserTypes {
   DescriptionSet types_;
   MapByOid by_oid_;
   MapByName by_name_;
+  io::TypeBufferCategory buffer_categories_;
   CompositeTypes composite_types_;
 };
 

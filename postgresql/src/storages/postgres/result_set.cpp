@@ -47,6 +47,10 @@ io::FieldBuffer Field::GetBuffer() const {
   return res_->GetFieldBuffer(row_index_, field_index_);
 }
 
+const io::TypeBufferCategory& Field::GetTypeBufferCategories() const {
+  return res_->GetTypeBufferCategories();
+}
+
 io::DataFormat Field::GetDataFormat() const {
   return res_->GetFieldFormat(field_index_);
 }

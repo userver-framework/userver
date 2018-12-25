@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <storages/postgres/exceptions.hpp>
+
 namespace storages::postgres::io {
 
 namespace {
@@ -27,15 +29,53 @@ OidToOid& ArrayToElement() {
   return map_;
 }
 
+TypeBufferCategory& TypeCategories() {
+  static TypeBufferCategory cats_;
+  return cats_;
+}
+
+const std::unordered_map<BufferCategory, std::string, BufferCategoryHash>
+    kBufferCategoryToString{
+        {BufferCategory::kNoParser, "no parser"},
+        {BufferCategory::kPlainBuffer, "plain buffer"},
+        {BufferCategory::kArrayBuffer, "array buffer"},
+        {BufferCategory::kCompositeBuffer, "composite buffer"},
+        {BufferCategory::kRangeBuffer, "range buffer"},
+    };
+
 }  // namespace
+
+const std::string& ToString(BufferCategory val) {
+  if (auto f = kBufferCategoryToString.find(val);
+      f != kBufferCategoryToString.end()) {
+    return f->second;
+  }
+  throw LogicError("Invalid buffer category value " +
+                   std::to_string(static_cast<int>(val)));
+}
+
+BufferCategory GetTypeBufferCategory(const TypeBufferCategory& categories,
+                                     Oid type_oid) {
+  if (auto f = categories.find(type_oid); f != categories.end()) {
+    return f->second;
+  }
+  return BufferCategory::kNoParser;
+}
 
 namespace detail {
 
 RegisterPredefinedOidParser RegisterPredefinedOidParser::Register(
-    PredefinedOids type_oid, PredefinedOids array_oid, std::string&& cpp_name,
-    bool text_parser, bool bin_parser) {
+    PredefinedOids type_oid, PredefinedOids array_oid, BufferCategory category,
+    std::string&& cpp_name, bool text_parser, bool bin_parser) {
   auto both = text_parser && bin_parser;
   ArrayToElement().insert(std::make_pair(array_oid, type_oid));
+  // No use registering no category for a type - this is default.
+  if (category != BufferCategory::kNoParser) {
+    TypeCategories().insert(
+        std::make_pair(static_cast<Oid>(type_oid), category));
+    TypeCategories().insert(std::make_pair(static_cast<Oid>(array_oid),
+                                           BufferCategory::kArrayBuffer));
+  }
   if (both) {
     TextParsers().insert(std::make_pair(type_oid, cpp_name));
     TextParsers().insert(std::make_pair(array_oid, cpp_name));
@@ -80,6 +120,14 @@ bool MappedToSameType(PredefinedOids lhs, PredefinedOids rhs) {
     }
   }
   return false;
+}
+
+BufferCategory GetBufferCategory(PredefinedOids oid) {
+  const auto& cats = TypeCategories();
+  if (auto f = cats.find(static_cast<Oid>(oid)); f != cats.end()) {
+    return f->second;
+  }
+  return BufferCategory::kNoParser;
 }
 
 PredefinedOids GetArrayElementOid(PredefinedOids array_oid) {
