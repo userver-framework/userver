@@ -27,13 +27,44 @@ constexpr size_t kFailureThreshold = 30;
 // number of failures.
 constexpr size_t kTopologyCheckWeight = 10;
 // ------------------------------------------------------------
+// Constant marking unavailable host type
 constexpr ClusterHostType kNothing = static_cast<ClusterHostType>(0);
+// Invalid index
 constexpr size_t kInvalidIndex = static_cast<size_t>(-1);
+// Special connection ID to ease detection in logs
 constexpr uint32_t kConnectionId = 4'100'200'300;
+// Time slice used in task polling checks
+const std::chrono::milliseconds kWaitInterval(100);
+// Minimal duration of topology check routine
+const std::chrono::milliseconds kMinCheckDuration(3000);
 
 std::string HostAndPortFromDsn(const std::string& dsn) {
   auto options = OptionsFromDsn(dsn);
   return options.host + ':' + options.port;
+}
+
+using TaskList = std::vector<engine::Task*>;
+
+size_t WaitAnyUntil(const TaskList& tasks,
+                    const std::chrono::steady_clock::time_point& time_point) {
+  do {
+    for (size_t i = 0; i < tasks.size(); ++i) {
+      const auto* task = tasks[i];
+      if (!task || !task->IsValid()) {
+        continue;
+      }
+
+      if (task->IsFinished()) {
+        return i;
+      }
+    }
+
+    const auto next_point =
+        std::min(std::chrono::steady_clock::now() + kWaitInterval, time_point);
+    engine::SleepUntil(next_point);
+  } while (std::chrono::steady_clock::now() < time_point);
+
+  return kInvalidIndex;
 }
 
 struct TryLockGuard {
@@ -56,17 +87,30 @@ struct TryLockGuard {
 
 }  // namespace
 
+const std::chrono::seconds ClusterTopologyDiscovery::kUpdateInterval{5};
+
 ClusterTopologyDiscovery::ConnectionState::ConnectionState(
     const std::string& dsn, ConnectionTask&& task)
     : dsn(dsn),
       conn_variant(std::move(task)),
       host_type(kNothing),
       failed_reconnects(0),
+      check_stage(HostCheckStage::kReconnect),
       failed_operations(0) {}
 
 ClusterTopologyDiscovery::ClusterTopologyDiscovery(
     engine::TaskProcessor& bg_task_processor, const DSNList& dsn_list)
-    : bg_task_processor_(bg_task_processor), update_lock_ ATOMIC_FLAG_INIT {
+    : bg_task_processor_(bg_task_processor),
+      check_duration_(std::chrono::duration_cast<std::chrono::milliseconds>(
+                          kUpdateInterval) *
+                      4 / 5),
+      update_lock_ ATOMIC_FLAG_INIT {
+  if (check_duration_ < kMinCheckDuration) {
+    check_duration_ = kMinCheckDuration;
+    LOG_WARNING() << "Too short topology update interval specified. Topology "
+                     "check duration is set to "
+                  << check_duration_.count() << " ms";
+  }
   CreateConnections(dsn_list);
   BuildIndexes();
 }
@@ -144,6 +188,7 @@ void ClusterTopologyDiscovery::Reconnect(size_t index) {
   if (connections_[index].failed_operations >= kFailureThreshold) {
     connections_[index].host_type = kNothing;
   }
+  connections_[index].check_stage = HostCheckStage::kReconnect;
 
   auto conn =
       std::move(boost::get<ConnectionPtr>(connections_[index].conn_variant));
@@ -159,9 +204,9 @@ void ClusterTopologyDiscovery::Reconnect(size_t index) {
       [this, failed_reconnects](ConnectionPtr conn, std::string dsn) {
         const auto wait_for_reconnect =
             failed_reconnects >= kImmediateReconnects;
-        std::chrono::system_clock::time_point tp;
+        std::chrono::steady_clock::time_point tp;
         if (wait_for_reconnect) {
-          tp = std::chrono::system_clock::now() + kReconnectInterval;
+          tp = std::chrono::steady_clock::now() + kReconnectInterval;
         }
 
         CloseConnection(std::move(conn));
@@ -220,11 +265,11 @@ void ClusterTopologyDiscovery::CheckTopology() {
       return;
     }
 
-    // TODO check for close updates and discard those
-    LOG_INFO() << "Checking cluster topology";
-
-    const auto master_index = CheckHostsAndFindMaster();
-    FindSyncSlaves(master_index);
+    const auto check_end_point =
+        std::chrono::steady_clock::now() + check_duration_;
+    LOG_INFO() << "Checking cluster topology. Check duration is "
+               << check_duration_.count() << " ms";
+    CheckHosts(check_end_point);
   }
 
   LOG_TRACE() << DumpTopologyState();
@@ -236,65 +281,90 @@ void ClusterTopologyDiscovery::OperationFailed(const std::string& dsn) {
   ++connections_[index].failed_operations;
 }
 
-size_t ClusterTopologyDiscovery::CheckHostsAndFindMaster() {
+void ClusterTopologyDiscovery::CheckHosts(
+    const std::chrono::steady_clock::time_point& check_end_point) {
   const auto host_count = connections_.size();
-  std::vector<std::pair<size_t, engine::TaskWithResult<ClusterHostType>>> tasks;
-  tasks.reserve(host_count);
+  TaskList check_tasks(host_count, nullptr);
 
   for (size_t i = 0; i < host_count; ++i) {
-    auto* conn = GetConnectionOrNull(i);
-    if (!conn) {
-      // TODO maybe wait for some time now?
-      continue;
-    }
-
-    auto task = engine::Async([conn] {
-      auto res = conn->Execute("select pg_is_in_recovery()");
-      assert(!res.IsEmpty() && "pg_is_in_recovery must return bool value");
-
-      bool in_recovery = true;
-      res.Front().To(in_recovery);
-      return in_recovery ? ClusterHostType::kSlave : ClusterHostType::kMaster;
-    });
-    tasks.push_back(std::make_pair(i, std::move(task)));
+    check_tasks[i] = CheckAvailability(i);
   }
 
-  size_t master_index = kInvalidIndex;
-  for (auto && [ index, task ] : tasks) {
-    try {
-      const auto host_type = task.Get();
-      assert(host_type != kNothing && "Wrong replica state received");
-
-      // TODO introduce and check host state here
-      if (connections_[index].failed_operations > 0) {
-        connections_[index].failed_operations.Store(0);
-        LOG_TRACE() << GetConnectionOrThrow(index)->GetLogExtra()
-                    << "Host has been marked as failed and is now working";
-      } else {
-        connections_[index].host_type = host_type;
-      }
-    } catch (const ConnectionError&) {
-      Reconnect(index);
-    }
-
-    if (connections_[index].host_type == ClusterHostType::kMaster) {
-      if (master_index != kInvalidIndex) {
-        LOG_WARNING() << "More than one master host found";
-      }
-      master_index = index;
+  size_t index = kInvalidIndex;
+  while ((index = WaitAnyUntil(check_tasks, check_end_point)) !=
+         kInvalidIndex) {
+    switch (connections_[index].check_stage) {
+      case HostCheckStage::kReconnect:
+        check_tasks[index] = CheckAvailability(index);
+        break;
+      case HostCheckStage::kAvailability:
+        check_tasks[index] = CheckIfMaster(
+            index, static_cast<engine::TaskWithResult<ClusterHostType>&>(
+                       *check_tasks[index]));
+        break;
+      case HostCheckStage::kSyncSlaves:
+        check_tasks[index] = CheckSyncSlaves(
+            index, static_cast<engine::TaskWithResult<std::vector<size_t>>&>(
+                       *check_tasks[index]));
+        break;
     }
   }
-  return master_index;
 }
 
-void ClusterTopologyDiscovery::FindSyncSlaves(size_t master_index) {
-  if (master_index == kInvalidIndex) {
-    LOG_WARNING() << "No master hosts found";
-    return;
+engine::Task* ClusterTopologyDiscovery::CheckAvailability(size_t index) {
+  auto* conn = GetConnectionOrNull(index);
+  if (!conn) {
+    assert(connections_[index].check_stage == HostCheckStage::kReconnect &&
+           "Wrong host check stage");
+    return &boost::get<ConnectionTask>(connections_[index].conn_variant);
   }
 
-  auto* conn = GetConnectionOrThrow(master_index);
-  LOG_INFO() << conn->GetLogExtra() << "Found master host";
+  auto task = engine::Async([conn] {
+    auto res = conn->Execute("select pg_is_in_recovery()");
+    assert(!res.IsEmpty() && "pg_is_in_recovery must return bool value");
+
+    const bool in_recovery = res.Front().As<bool>();
+    return in_recovery ? ClusterHostType::kSlave : ClusterHostType::kMaster;
+  });
+
+  connections_[index].check_task =
+      std::make_unique<engine::TaskWithResult<ClusterHostType>>(
+          std::move(task));
+  connections_[index].check_stage = HostCheckStage::kAvailability;
+  return connections_[index].check_task.get();
+}
+
+engine::Task* ClusterTopologyDiscovery::CheckIfMaster(
+    size_t index, engine::TaskWithResult<ClusterHostType>& task) {
+  auto host_type = kNothing;
+  try {
+    host_type = task.Get();
+  } catch (const ConnectionError&) {
+    Reconnect(index);
+    return &boost::get<ConnectionTask>(connections_[index].conn_variant);
+  }
+  assert(host_type != kNothing && "Wrong replica state received");
+
+  // TODO introduce and check host state here
+  if (connections_[index].failed_operations > 0) {
+    connections_[index].failed_operations.Store(0);
+    LOG_TRACE() << GetConnectionOrThrow(index)->GetLogExtra()
+                << "Found working host marked as failed. Returning into "
+                   "operation with next update";
+  } else {
+    connections_[index].host_type = host_type;
+  }
+
+  if (connections_[index].host_type == ClusterHostType::kMaster) {
+    auto* conn = GetConnectionOrThrow(index);
+    LOG_INFO() << conn->GetLogExtra() << "Found master host";
+    return FindSyncSlaves(index, conn);
+  }
+  return nullptr;
+}
+
+engine::Task* ClusterTopologyDiscovery::FindSyncSlaves(size_t master_index,
+                                                       Connection* conn) {
   auto task = engine::Async([this, conn] {
     auto res = conn->Execute("show synchronous_standby_names");
     if (res.IsEmpty()) {
@@ -316,12 +386,22 @@ void ClusterTopologyDiscovery::FindSyncSlaves(size_t master_index) {
     return sync_slave_indices;
   });
 
+  connections_[master_index].check_task =
+      std::make_unique<engine::TaskWithResult<std::vector<size_t>>>(
+          std::move(task));
+  connections_[master_index].check_stage = HostCheckStage::kSyncSlaves;
+  return connections_[master_index].check_task.get();
+}
+
+engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
+    size_t master_index, engine::TaskWithResult<std::vector<size_t>>& task) {
   std::vector<size_t> sync_slave_indices;
   try {
     sync_slave_indices = task.Get();
   } catch (const ConnectionError&) {
     LOG_WARNING() << "Master host is lost while asking for sync slaves";
     Reconnect(master_index);
+    return &boost::get<ConnectionTask>(connections_[master_index].conn_variant);
   }
 
   if (sync_slave_indices.empty()) {
@@ -343,6 +423,8 @@ void ClusterTopologyDiscovery::FindSyncSlaves(size_t master_index) {
                     << HostAndPortFromDsn(connections_[index].dsn);
     }
   }
+  // Nothing more to do
+  return nullptr;
 }
 
 std::string ClusterTopologyDiscovery::DumpTopologyState() const {
@@ -358,12 +440,24 @@ std::string ClusterTopologyDiscovery::DumpTopologyState() const {
 }
 
 void ClusterTopologyDiscovery::UpdateHostsByType() {
+  size_t master_index = kInvalidIndex;
   HostsByType hosts_by_type;
-  for (const auto& conn : connections_) {
+  for (size_t i = 0; i < connections_.size(); ++i) {
+    const auto& conn = connections_[i];
     const auto host_type = conn.host_type;
     if (host_type != kNothing) {
       hosts_by_type[host_type].push_back(conn.dsn);
+      if (host_type == ClusterHostType::kMaster) {
+        if (master_index != kInvalidIndex) {
+          LOG_WARNING() << "More than one master host found";
+        }
+        master_index = i;
+      }
     }
+  }
+
+  if (master_index == kInvalidIndex) {
+    LOG_WARNING() << "No master hosts found";
   }
 
   std::lock_guard<engine::Mutex> lock(hosts_mutex_);

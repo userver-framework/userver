@@ -2,6 +2,8 @@
 
 #include <storages/postgres/detail/topology.hpp>
 
+#include <chrono>
+
 #include <boost/variant.hpp>
 
 #include <engine/mutex.hpp>
@@ -24,6 +26,10 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   void CheckTopology() override;
   void OperationFailed(const std::string& dsn) override;
 
+  // TODO Move constants to config
+  // Topology check interval. Should be no less than kMinCheckDuration
+  static const std::chrono::seconds kUpdateInterval;
+
  private:
   void BuildIndexes();
   void CreateConnections(const DSNList& dsn_list);
@@ -35,8 +41,13 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   Connection* GetConnectionOrThrow(size_t index) const noexcept(false);
   Connection* GetConnectionOrNull(size_t index);
 
-  size_t CheckHostsAndFindMaster();
-  void FindSyncSlaves(size_t master_index);
+  void CheckHosts(const std::chrono::steady_clock::time_point& check_end_point);
+  engine::Task* CheckAvailability(size_t index);
+  engine::Task* CheckIfMaster(size_t index,
+                              engine::TaskWithResult<ClusterHostType>& task);
+  engine::Task* FindSyncSlaves(size_t master_index, Connection* conn);
+  engine::Task* CheckSyncSlaves(
+      size_t master_index, engine::TaskWithResult<std::vector<size_t>>& task);
   std::string DumpTopologyState() const;
   void UpdateHostsByType();
 
@@ -51,6 +62,12 @@ class ClusterTopologyDiscovery : public ClusterTopology {
         : ::utils::statistics::RelaxedCounter<T>(other.Load()) {}
   };
 
+  enum class HostCheckStage {
+    kReconnect,
+    kAvailability,
+    kSyncSlaves,
+  };
+
   struct ConnectionState {
     ConnectionState(const std::string& dsn, ConnectionTask&& task);
     ConnectionState(ConnectionState&&) noexcept = default;
@@ -61,6 +78,9 @@ class ClusterTopologyDiscovery : public ClusterTopology {
     ClusterHostType host_type;
     size_t failed_reconnects;
 
+    std::unique_ptr<engine::Task> check_task;
+    HostCheckStage check_stage;
+
     // The data below is modified concurrently
 
     // We don't care about exact accuracy
@@ -68,6 +88,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   };
 
   engine::TaskProcessor& bg_task_processor_;
+  std::chrono::milliseconds check_duration_;
   std::vector<ConnectionState> connections_;
   mutable engine::Mutex hosts_mutex_;
   HostsByType hosts_by_type_;

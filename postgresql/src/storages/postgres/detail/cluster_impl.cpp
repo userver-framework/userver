@@ -14,8 +14,6 @@ namespace detail {
 namespace {
 
 constexpr const char* kPeriodicTaskName = "pg_topology";
-// TODO Move constants to config
-const std::chrono::seconds kUpdateInterval(5);
 
 }  // namespace
 
@@ -45,7 +43,9 @@ void ClusterImpl::StartPeriodicUpdates() {
   using ::utils::PeriodicTask;
   using Flags = ::utils::PeriodicTask::Flags;
 
-  PeriodicTask::Settings settings(kUpdateInterval, {Flags::kNow});
+  // TODO remove ugly constant
+  PeriodicTask::Settings settings(ClusterTopologyDiscovery::kUpdateInterval,
+                                  {Flags::kNow, Flags::kStrong});
   periodic_task_.Start(kPeriodicTaskName, settings,
                        [this] { CheckTopology(); });
 }
