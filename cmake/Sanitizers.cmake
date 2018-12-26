@@ -17,9 +17,9 @@ add_library(sanitize-target INTERFACE)
 if(SANITIZE STREQUAL "")
   # no sanitizer
 else()
-  # Forces the ccache to rebuild on file change
-  target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/san_blacklist.txt)
-  target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/san_blacklist.txt)
+  set(USERVER_BLACKLIST ${CMAKE_CURRENT_LIST_DIR}/sanitize.blacklist.txt)
+  target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_BLACKLIST})
+  target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_BLACKLIST})
 
   # Appending a blacklist from uservices (or other projects that set ${SANITIZE_BLACKLIST})
   if(DEFINED SANITIZE_BLACKLIST AND (NOT SANITIZE_BLACKLIST STREQUAL ""))
@@ -32,8 +32,10 @@ else()
     if (NOT CCACHE_EXECUTABLE)
       message(FATAL_ERROR "failed to locate ccache executable")
     endif()
-    set(CMAKE_C_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${CMAKE_CURRENT_LIST_DIR}/sanitize.blacklist.txt,${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
-    set(CMAKE_CXX_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${CMAKE_CURRENT_LIST_DIR}/sanitize.blacklist.txt,${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
+
+    # Forces the ccache to rebuild on blacklist file change
+    set(CMAKE_C_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${USERVER_BLACKLIST},${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
+    set(CMAKE_CXX_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${USERVER_BLACKLIST},${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
   endif()
 
   if(SANITIZE STREQUAL "ub")
