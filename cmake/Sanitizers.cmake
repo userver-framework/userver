@@ -4,7 +4,7 @@ if (TARGET sanitize-target)
     return()
 endif()
 
-include(ValidateCRC32)
+include(SetupEnvironment) # required for CCACHE_EXECUTABLE and CMAKE_*_COMPILER_LAUNCHER
 
 SET(SANITIZE_ENUM "mem, addr, thread, ub")
 set(SANITIZE "" CACHE STRING "Clang sanitizer, possible values: ${SANITIZE_ENUM}")
@@ -17,15 +17,23 @@ add_library(sanitize-target INTERFACE)
 if(SANITIZE STREQUAL "")
   # no sanitizer
 else()
-  # New file name forces the `ccache` to rebuild on file change. That's why we have the CRC32 in the file name and its validation.
-  set(USERVER_SANITIZERS_BLACKLIST "${CMAKE_CURRENT_LIST_DIR}/san_blacklist.5a0bfc44.txt")
-  vaildate_crc32(${USERVER_SANITIZERS_BLACKLIST})
-  target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_SANITIZERS_BLACKLIST})
+  # Forces the ccache to rebuild on file change
+  target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/san_blacklist.txt)
+  target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${CMAKE_CURRENT_LIST_DIR}/san_blacklist.txt)
 
   # Appending a blacklist from uservices (or other projects that set ${SANITIZE_BLACKLIST})
   if(DEFINED SANITIZE_BLACKLIST AND (NOT SANITIZE_BLACKLIST STREQUAL ""))
-    vaildate_crc32(${SANITIZE_BLACKLIST})
     target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
+    target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
+  endif()
+
+  if (USE_CCACHE)
+    find_program(CCACHE_EXECUTABLE ccache)
+    if (NOT CCACHE_EXECUTABLE)
+      message(FATAL_ERROR "failed to locate ccache executable")
+    endif()
+    set(CMAKE_C_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${CMAKE_CURRENT_LIST_DIR}/sanitize.blacklist.txt,${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
+    set(CMAKE_CXX_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${CMAKE_CURRENT_LIST_DIR}/sanitize.blacklist.txt,${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
   endif()
 
   if(SANITIZE STREQUAL "ub")
