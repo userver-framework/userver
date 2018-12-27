@@ -89,8 +89,8 @@ struct TryLockGuard {
 
 const std::chrono::seconds ClusterTopologyDiscovery::kUpdateInterval{5};
 
-ClusterTopologyDiscovery::ConnectionState::ConnectionState(
-    const std::string& dsn, ConnectionTask&& task)
+ClusterTopologyDiscovery::HostState::HostState(const std::string& dsn,
+                                               ConnectionTask&& task)
     : dsn(dsn),
       conn_variant(std::move(task)),
       host_type(kNothing),
@@ -123,15 +123,15 @@ ClusterTopology::HostsByType ClusterTopologyDiscovery::GetHostsByType() const {
 }
 
 void ClusterTopologyDiscovery::BuildIndexes() {
-  const auto host_count = connections_.size();
+  const auto host_count = host_states_.size();
   dsn_to_index_.reserve(host_count);
   escaped_to_dsn_index_.reserve(host_count);
 
   for (size_t i = 0; i < host_count; ++i) {
     // Build name to index mapping
-    dsn_to_index_[connections_[i].dsn] = i;
+    dsn_to_index_[host_states_[i].dsn] = i;
     // Build escaped name to index mapping
-    const auto options = OptionsFromDsn(connections_[i].dsn);
+    const auto options = OptionsFromDsn(host_states_[i].dsn);
     escaped_to_dsn_index_[EscapeHostName(options.host)] = i;
   }
 }
@@ -152,19 +152,19 @@ void ClusterTopologyDiscovery::CreateConnections(const DSNList& dsn_list) {
     task.Wait();
   }
 
-  connections_.reserve(host_count);
+  host_states_.reserve(host_count);
   for (size_t i = 0; i < host_count; ++i) {
-    connections_.emplace_back(dsn_list[i], std::move(tasks[i]));
+    host_states_.emplace_back(dsn_list[i], std::move(tasks[i]));
   }
 }
 
 void ClusterTopologyDiscovery::StopRunningTasks() {
   LOG_INFO() << "Closing connections";
-  for (auto&& conn : connections_) {
+  for (auto&& state : host_states_) {
     try {
-      CloseConnection(std::move(boost::get<ConnectionPtr>(conn.conn_variant)));
+      CloseConnection(std::move(boost::get<ConnectionPtr>(state.conn_variant)));
     } catch (const boost::bad_get&) {
-      auto& conn_task = boost::get<ConnectionTask>(conn.conn_variant);
+      auto& conn_task = boost::get<ConnectionTask>(state.conn_variant);
       conn_task.RequestCancel();
       conn_task = ConnectionTask();
     }
@@ -182,22 +182,22 @@ engine::TaskWithResult<ConnectionPtr> ClusterTopologyDiscovery::Connect(
 }
 
 void ClusterTopologyDiscovery::Reconnect(size_t index) {
-  const auto failed_reconnects = connections_[index].failed_reconnects++;
-  connections_[index].failed_operations += kTopologyCheckWeight;
+  const auto failed_reconnects = host_states_[index].failed_reconnects++;
+  host_states_[index].failed_operations += kTopologyCheckWeight;
   // TODO should we check something more here?
-  if (connections_[index].failed_operations >= kFailureThreshold) {
-    connections_[index].host_type = kNothing;
+  if (host_states_[index].failed_operations >= kFailureThreshold) {
+    host_states_[index].host_type = kNothing;
   }
-  connections_[index].check_stage = HostCheckStage::kReconnect;
+  host_states_[index].check_stage = HostCheckStage::kReconnect;
 
   auto conn =
-      std::move(boost::get<ConnectionPtr>(connections_[index].conn_variant));
+      std::move(boost::get<ConnectionPtr>(host_states_[index].conn_variant));
   if (conn) {
     LOG_DEBUG() << conn->GetLogExtra() << "Starting reconnect #"
                 << failed_reconnects + 1;
   } else {
     LOG_DEBUG() << "Starting reconnect #" << failed_reconnects + 1
-                << " for host=" << HostAndPortFromDsn(connections_[index].dsn);
+                << " for host=" << HostAndPortFromDsn(host_states_[index].dsn);
   }
 
   auto task = engine::Async(
@@ -216,8 +216,8 @@ void ClusterTopologyDiscovery::Reconnect(size_t index) {
         }
         return Connect(std::move(dsn)).Get();
       },
-      std::move(conn), connections_[index].dsn);
-  connections_[index].conn_variant = std::move(task);
+      std::move(conn), host_states_[index].dsn);
+  host_states_[index].conn_variant = std::move(task);
 }
 
 void ClusterTopologyDiscovery::CloseConnection(ConnectionPtr conn_ptr) {
@@ -228,7 +228,7 @@ void ClusterTopologyDiscovery::CloseConnection(ConnectionPtr conn_ptr) {
 
 Connection* ClusterTopologyDiscovery::GetConnectionOrThrow(size_t index) const
     noexcept(false) {
-  return boost::get<ConnectionPtr>(connections_[index].conn_variant).get();
+  return boost::get<ConnectionPtr>(host_states_[index].conn_variant).get();
 }
 
 Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
@@ -238,7 +238,7 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
   }
 
   auto& conn_task =
-      boost::get<ConnectionTask>(connections_[index].conn_variant);
+      boost::get<ConnectionTask>(host_states_[index].conn_variant);
   if (!conn_task.IsFinished()) {
     return nullptr;
   }
@@ -246,12 +246,12 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
   try {
     auto conn_ptr = conn_task.Get();
     auto* conn = conn_ptr.get();
-    connections_[index].conn_variant = std::move(conn_ptr);
-    connections_[index].failed_reconnects = 0;
+    host_states_[index].conn_variant = std::move(conn_ptr);
+    host_states_[index].failed_reconnects = 0;
     return conn;
   } catch (const ConnectionError&) {
     // Reconnect expects connection rather than task
-    connections_[index].conn_variant = nullptr;
+    host_states_[index].conn_variant = nullptr;
     Reconnect(index);
   }
   return nullptr;
@@ -278,12 +278,12 @@ void ClusterTopologyDiscovery::CheckTopology() {
 
 void ClusterTopologyDiscovery::OperationFailed(const std::string& dsn) {
   const auto index = dsn_to_index_[dsn];
-  ++connections_[index].failed_operations;
+  ++host_states_[index].failed_operations;
 }
 
 void ClusterTopologyDiscovery::CheckHosts(
     const std::chrono::steady_clock::time_point& check_end_point) {
-  const auto host_count = connections_.size();
+  const auto host_count = host_states_.size();
   TaskList check_tasks(host_count, nullptr);
 
   for (size_t i = 0; i < host_count; ++i) {
@@ -293,7 +293,7 @@ void ClusterTopologyDiscovery::CheckHosts(
   size_t index = kInvalidIndex;
   while ((index = WaitAnyUntil(check_tasks, check_end_point)) !=
          kInvalidIndex) {
-    switch (connections_[index].check_stage) {
+    switch (host_states_[index].check_stage) {
       case HostCheckStage::kReconnect:
         check_tasks[index] = CheckAvailability(index);
         break;
@@ -314,9 +314,9 @@ void ClusterTopologyDiscovery::CheckHosts(
 engine::Task* ClusterTopologyDiscovery::CheckAvailability(size_t index) {
   auto* conn = GetConnectionOrNull(index);
   if (!conn) {
-    assert(connections_[index].check_stage == HostCheckStage::kReconnect &&
+    assert(host_states_[index].check_stage == HostCheckStage::kReconnect &&
            "Wrong host check stage");
-    return &boost::get<ConnectionTask>(connections_[index].conn_variant);
+    return &boost::get<ConnectionTask>(host_states_[index].conn_variant);
   }
 
   auto task = engine::Async([conn] {
@@ -327,11 +327,11 @@ engine::Task* ClusterTopologyDiscovery::CheckAvailability(size_t index) {
     return in_recovery ? ClusterHostType::kSlave : ClusterHostType::kMaster;
   });
 
-  connections_[index].check_task =
+  host_states_[index].check_task =
       std::make_unique<engine::TaskWithResult<ClusterHostType>>(
           std::move(task));
-  connections_[index].check_stage = HostCheckStage::kAvailability;
-  return connections_[index].check_task.get();
+  host_states_[index].check_stage = HostCheckStage::kAvailability;
+  return host_states_[index].check_task.get();
 }
 
 engine::Task* ClusterTopologyDiscovery::CheckIfMaster(
@@ -341,21 +341,21 @@ engine::Task* ClusterTopologyDiscovery::CheckIfMaster(
     host_type = task.Get();
   } catch (const ConnectionError&) {
     Reconnect(index);
-    return &boost::get<ConnectionTask>(connections_[index].conn_variant);
+    return &boost::get<ConnectionTask>(host_states_[index].conn_variant);
   }
   assert(host_type != kNothing && "Wrong replica state received");
 
   // TODO introduce and check host state here
-  if (connections_[index].failed_operations > 0) {
-    connections_[index].failed_operations.Store(0);
+  if (host_states_[index].failed_operations > 0) {
+    host_states_[index].failed_operations.Store(0);
     LOG_TRACE() << GetConnectionOrThrow(index)->GetLogExtra()
                 << "Found working host marked as failed. Returning into "
                    "operation with next update";
   } else {
-    connections_[index].host_type = host_type;
+    host_states_[index].host_type = host_type;
   }
 
-  if (connections_[index].host_type == ClusterHostType::kMaster) {
+  if (host_states_[index].host_type == ClusterHostType::kMaster) {
     auto* conn = GetConnectionOrThrow(index);
     LOG_INFO() << conn->GetLogExtra() << "Found master host";
     return FindSyncSlaves(index, conn);
@@ -386,11 +386,11 @@ engine::Task* ClusterTopologyDiscovery::FindSyncSlaves(size_t master_index,
     return sync_slave_indices;
   });
 
-  connections_[master_index].check_task =
+  host_states_[master_index].check_task =
       std::make_unique<engine::TaskWithResult<std::vector<size_t>>>(
           std::move(task));
-  connections_[master_index].check_stage = HostCheckStage::kSyncSlaves;
-  return connections_[master_index].check_task.get();
+  host_states_[master_index].check_stage = HostCheckStage::kSyncSlaves;
+  return host_states_[master_index].check_task.get();
 }
 
 engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
@@ -401,7 +401,7 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
   } catch (const ConnectionError&) {
     LOG_WARNING() << "Master host is lost while asking for sync slaves";
     Reconnect(master_index);
-    return &boost::get<ConnectionTask>(connections_[master_index].conn_variant);
+    return &boost::get<ConnectionTask>(host_states_[master_index].conn_variant);
   }
 
   if (sync_slave_indices.empty()) {
@@ -415,12 +415,12 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
         LOG_ERROR() << conn->GetLogExtra()
                     << "Attempt to overwrite master type with sync slave type";
       }
-      connections_[index].host_type = ClusterHostType::kSyncSlave;
+      host_states_[index].host_type = ClusterHostType::kSyncSlave;
     } else {
-      assert(connections_[index].host_type == kNothing &&
+      assert(host_states_[index].host_type == kNothing &&
              "Missing host should already be marked as kNothing");
       LOG_WARNING() << "Found unavailable sync slave host="
-                    << HostAndPortFromDsn(connections_[index].dsn);
+                    << HostAndPortFromDsn(host_states_[index].dsn);
     }
   }
   // Nothing more to do
@@ -429,12 +429,12 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
 
 std::string ClusterTopologyDiscovery::DumpTopologyState() const {
   std::string topology_state = "Topology state:\n";
-  for (const auto& conn : connections_) {
-    const auto host_type = conn.host_type;
+  for (const auto& state : host_states_) {
+    const auto host_type = state.host_type;
     std::string host_type_name =
         (host_type != kNothing) ? ToString(host_type) : "--- unavailable ---";
-    topology_state +=
-        HostAndPortFromDsn(conn.dsn) + " : " + std::move(host_type_name) + '\n';
+    topology_state += HostAndPortFromDsn(state.dsn) + " : " +
+                      std::move(host_type_name) + '\n';
   }
   return topology_state;
 }
@@ -442,11 +442,11 @@ std::string ClusterTopologyDiscovery::DumpTopologyState() const {
 void ClusterTopologyDiscovery::UpdateHostsByType() {
   size_t master_index = kInvalidIndex;
   HostsByType hosts_by_type;
-  for (size_t i = 0; i < connections_.size(); ++i) {
-    const auto& conn = connections_[i];
-    const auto host_type = conn.host_type;
+  for (size_t i = 0; i < host_states_.size(); ++i) {
+    const auto& state = host_states_[i];
+    const auto host_type = state.host_type;
     if (host_type != kNothing) {
-      hosts_by_type[host_type].push_back(conn.dsn);
+      hosts_by_type[host_type].push_back(state.dsn);
       if (host_type == ClusterHostType::kMaster) {
         if (master_index != kInvalidIndex) {
           LOG_WARNING() << "More than one master host found";

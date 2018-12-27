@@ -68,10 +68,10 @@ class ClusterTopologyDiscovery : public ClusterTopology {
     kSyncSlaves,
   };
 
-  struct ConnectionState {
-    ConnectionState(const std::string& dsn, ConnectionTask&& task);
-    ConnectionState(ConnectionState&&) noexcept = default;
-    ConnectionState& operator=(ConnectionState&&) = default;
+  struct HostState {
+    HostState(const std::string& dsn, ConnectionTask&& task);
+    HostState(HostState&&) noexcept = default;
+    HostState& operator=(HostState&&) = default;
 
     std::string dsn;
     boost::variant<ConnectionPtr, ConnectionTask> conn_variant;
@@ -89,7 +89,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
 
   engine::TaskProcessor& bg_task_processor_;
   std::chrono::milliseconds check_duration_;
-  std::vector<ConnectionState> connections_;
+  std::vector<HostState> host_states_;
   mutable engine::Mutex hosts_mutex_;
   HostsByType hosts_by_type_;
   std::unordered_map<std::string, size_t> dsn_to_index_;
