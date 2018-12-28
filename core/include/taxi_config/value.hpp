@@ -17,7 +17,9 @@ namespace taxi_config {
 
 class DocsMap {
  public:
+  /* Returns config item or throws an exception if key is missing */
   formats::json::Value Get(const std::string& name) const;
+
   void Set(std::string name, formats::json::Value);
   void Parse(const std::string& json, bool empty_ok);
   size_t Size() const;

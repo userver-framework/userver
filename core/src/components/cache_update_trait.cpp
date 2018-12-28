@@ -20,7 +20,10 @@ void CacheUpdateTrait::UpdateFull() {
 
 CacheUpdateTrait::CacheUpdateTrait(CacheConfig&& config,
                                    const std::string& name)
-    : config_(std::move(config)), name_(name), is_running_(false) {}
+    : static_config_(std::move(config)),
+      config_(static_config_),
+      name_(name),
+      is_running_(false) {}
 
 CacheUpdateTrait::~CacheUpdateTrait() {
   if (is_running_.load()) {
@@ -46,11 +49,7 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
       DoPeriodicUpdate();
     }
 
-    update_task_.Start(name_ + "-update-task",
-                       {config_.update_interval_,
-                        config_.update_jitter_,
-                        {utils::PeriodicTask::Flags::kChaotic,
-                         utils::PeriodicTask::Flags::kCritical}},
+    update_task_.Start(name_ + "-update-task", GetPeriodicTaskSettings(),
                        [this]() { DoPeriodicUpdate(); });
   } catch (...) {
     is_running_ = false;  // update_task_ is not started, don't check it in dtr
@@ -69,6 +68,12 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
     LOG_ERROR() << "Exception in update task: " << ex.what()
                 << ". Component name '" << name_ << "'";
   }
+}
+
+void CacheUpdateTrait::SetConfig(boost::optional<CacheConfig> config) {
+  std::lock_guard<engine::Mutex> lock(update_mutex_);
+  config_ = config.value_or(static_config_);
+  update_task_.SetSettings(GetPeriodicTaskSettings());
 }
 
 void CacheUpdateTrait::DoPeriodicUpdate() {
@@ -91,6 +96,14 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
   if (update_type == cache::UpdateType::kFull) {
     last_full_update_ = steady_now;
   }
+}
+
+utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings()
+    const {
+  return utils::PeriodicTask::Settings(config_.update_interval_,
+                                       config_.update_jitter_,
+                                       {utils::PeriodicTask::Flags::kChaotic,
+                                        utils::PeriodicTask::Flags::kCritical});
 }
 
 }  // namespace components

@@ -16,6 +16,7 @@ class ConfigModule {
  public:
   static const T& Get(const BaseConfig<ConfigTag>& config);
   static boost::any Factory(const DocsMap& docs_map) { return T(docs_map); }
+  static void Unregister();
 
  private:
   static std::type_index type_;
@@ -45,6 +46,8 @@ class BaseConfig {
   static void DoRegister(const std::type_info& type,
                          std::function<boost::any(const DocsMap&)>&& factory);
 
+  static void Unregister(const std::type_info& type);
+
  private:
   const boost::any& Get(const std::type_index& type) const;
 
@@ -66,6 +69,11 @@ using BootstrapConfig = BaseConfig<BootstrapConfigTag>;
 template <typename ConfigTag, typename T>
 const T& ConfigModule<ConfigTag, T>::Get(const BaseConfig<ConfigTag>& config) {
   return boost::any_cast<const T&>(config.Get(type_));
+}
+
+template <typename ConfigTag, typename T>
+void ConfigModule<ConfigTag, T>::Unregister() {
+  BaseConfig<ConfigTag>::Unregister(typeid(T));
 }
 
 template <typename ConfigTag, typename T>

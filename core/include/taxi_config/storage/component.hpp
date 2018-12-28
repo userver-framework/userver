@@ -5,10 +5,10 @@
 #include <memory>
 
 #include <components/cache_update_trait.hpp>
-#include <components/caching_component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <taxi_config/config.hpp>
+#include <utils/async_event_channel.hpp>
 
 namespace components {
 

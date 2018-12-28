@@ -1,5 +1,7 @@
 #include <taxi_config/config.hpp>
 
+#include <cassert>
+
 #include <utils/demangle.hpp>
 
 namespace taxi_config {
@@ -25,6 +27,13 @@ void BaseConfig<ConfigTag>::DoRegister(
     const std::type_info& type,
     std::function<boost::any(const DocsMap&)>&& factory) {
   ExtraBaseConfigFactories<ConfigTag>()[type] = std::move(factory);
+}
+
+template <typename ConfigTag>
+void BaseConfig<ConfigTag>::Unregister(const std::type_info& type) {
+  [[maybe_unused]] size_t count =
+      ExtraBaseConfigFactories<ConfigTag>().erase(type);
+  assert(count == 1);
 }
 
 template <typename ConfigTag>

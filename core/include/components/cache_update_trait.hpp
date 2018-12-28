@@ -31,6 +31,9 @@ class CacheUpdateTrait {
 
   cache::Statistics& GetStatistics() { return statistics_; }
 
+  /* If no config is set, use static default (from config.yaml) */
+  void SetConfig(boost::optional<CacheConfig> config);
+
  private:
   virtual void Update(cache::UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,
@@ -39,8 +42,11 @@ class CacheUpdateTrait {
 
   void DoPeriodicUpdate();
 
+  utils::PeriodicTask::Settings GetPeriodicTaskSettings() const;
+
   cache::Statistics statistics_;
   engine::Mutex update_mutex_;
+  const CacheConfig static_config_;
   CacheConfig config_;
   const std::string name_;
   std::atomic<bool> is_running_;
