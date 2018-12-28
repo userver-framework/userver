@@ -1,6 +1,6 @@
 #include <server/cache_invalidator_holder.hpp>
 
-#include <components/cache_invalidator.hpp>
+#include <cache/cache_invalidator.hpp>
 
 namespace server {
 

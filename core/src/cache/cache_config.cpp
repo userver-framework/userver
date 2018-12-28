@@ -1,5 +1,5 @@
+#include <cache/cache_config.hpp>
 #include <cassert>
-#include <components/cache_config.hpp>
 
 namespace components {
 
@@ -53,6 +53,8 @@ CacheConfig CacheConfigSet::ParseConfig(formats::json::Value json) {
 
   return config;
 }
+
+bool CacheConfigSet::IsConfigEnabled() { return !ConfigName().empty(); }
 
 void CacheConfigSet::SetConfigName(const std::string& name) {
   ConfigName() = name;

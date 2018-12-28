@@ -1,7 +1,7 @@
 #include <components/common_component_list.hpp>
 
+#include <cache/cache_invalidator.hpp>
 #include <clients/http/component.hpp>
-#include <components/cache_invalidator.hpp>
 #include <components/manager_controller_component.hpp>
 #include <components/statistics_storage.hpp>
 #include <components/tracer.hpp>

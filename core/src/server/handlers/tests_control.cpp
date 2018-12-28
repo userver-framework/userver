@@ -1,6 +1,6 @@
 #include <server/handlers/tests_control.hpp>
 
-#include <components/cache_invalidator.hpp>
+#include <cache/cache_invalidator.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_error.hpp>
 #include <utils/datetime.hpp>

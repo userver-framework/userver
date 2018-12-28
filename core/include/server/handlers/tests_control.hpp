@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <components/cache_update_trait.hpp>
+#include <cache/cache_update_trait.hpp>
 #include <engine/mutex.hpp>
 #include <server/handlers/http_handler_json_base.hpp>
 

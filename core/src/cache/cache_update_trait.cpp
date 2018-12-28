@@ -1,4 +1,4 @@
-#include <components/cache_update_trait.hpp>
+#include <cache/cache_update_trait.hpp>
 
 #include <cstdint>
 

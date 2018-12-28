@@ -5,7 +5,7 @@
 #include <string>
 
 #include <cache/cache_statistics.hpp>
-#include <components/caching_component_base.hpp>
+#include <cache/caching_component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <storages/mongo/pool.hpp>

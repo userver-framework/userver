@@ -1,6 +1,6 @@
 #pragma once
 
-#include <components/cache_config.hpp>
+#include <cache/cache_config.hpp>
 #include <components/component_list.hpp>
 
 namespace utils {

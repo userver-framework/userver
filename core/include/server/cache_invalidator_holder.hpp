@@ -1,6 +1,6 @@
 #pragma once
 
-#include <components/cache_update_trait.hpp>
+#include <cache/cache_update_trait.hpp>
 #include <components/component_context.hpp>
 
 namespace components {

@@ -4,7 +4,7 @@
 #include <exception>
 #include <memory>
 
-#include <components/cache_update_trait.hpp>
+#include <cache/cache_update_trait.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <taxi_config/config.hpp>

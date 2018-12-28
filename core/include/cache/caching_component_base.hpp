@@ -13,10 +13,10 @@
 #include <utils/async_event_channel.hpp>
 #include <utils/swappingsmart.hpp>
 
+#include <components/component_base.hpp>
+#include <components/component_config.hpp>
 #include "cache_config.hpp"
 #include "cache_update_trait.hpp"
-#include "component_base.hpp"
-#include "component_config.hpp"
 
 namespace components {
 
@@ -74,7 +74,8 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       "cache." + name_, std::bind(&CachingComponentBase<T>::ExtendStatistics,
                                   this, std::placeholders::_1));
 
-  if (config.ParseBool("config-settings", false)) {
+  if (config.ParseBool("config-settings", true) &&
+      CacheConfigSet::IsConfigEnabled()) {
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
     OnConfigUpdate(taxi_config.Get());
     config_subscription_ = taxi_config.AddListener(

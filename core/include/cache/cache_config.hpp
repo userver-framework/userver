@@ -5,9 +5,9 @@
 
 #include <boost/optional.hpp>
 
+#include <components/component_config.hpp>
 #include <taxi_config/config.hpp>
 #include <taxi_config/value.hpp>
-#include "component_config.hpp"
 
 namespace components {
 
@@ -28,6 +28,8 @@ class CacheConfigSet {
 
   /// Get config for cache
   boost::optional<CacheConfig> GetConfig(const std::string& cache_name) const;
+
+  static bool IsConfigEnabled();
 
   static void SetConfigName(const std::string& name);
 
