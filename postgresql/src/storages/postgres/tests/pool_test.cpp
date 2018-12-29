@@ -77,6 +77,14 @@ TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   });
 }
 
+TEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
+  RunInCoro([this] {
+    EXPECT_THROW(pg::ConnectionPool(dsn_, GetTaskProcessor(), 2, 1),
+                 pg::PoolError)
+        << "Pool reached max size";
+  });
+}
+
 TEST_P(PostgrePool, PoolTransaction) {
   RunInCoro([this] {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10);
