@@ -26,7 +26,7 @@ add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(MACOS found)
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos)
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
 endif()
 
 option(LTO "Use -flto=thin for link time optimizations" ON)
