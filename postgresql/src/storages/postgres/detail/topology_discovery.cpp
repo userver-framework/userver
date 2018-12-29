@@ -97,7 +97,7 @@ ClusterTopologyDiscovery::HostState::HostState(const std::string& dsn,
       host_type(kNothing),
       failed_reconnects(0),
       changes{kNothing, 0},
-      check_stage(HostCheckStage::kReconnect),
+      checks{{}, HostChecks::Stage::kReconnect},
       failed_operations(0) {}
 
 ClusterTopologyDiscovery::ClusterTopologyDiscovery(
@@ -203,7 +203,7 @@ void ClusterTopologyDiscovery::Reconnect(size_t index) {
       },
       std::move(conn), host_states_[index].dsn);
   host_states_[index].conn_variant = std::move(task);
-  host_states_[index].check_stage = HostCheckStage::kReconnect;
+  host_states_[index].checks.stage = HostChecks::Stage::kReconnect;
 }
 
 void ClusterTopologyDiscovery::CloseConnection(ConnectionPtr conn_ptr) {
@@ -310,16 +310,16 @@ void ClusterTopologyDiscovery::CheckHosts(
   size_t index = kInvalidIndex;
   while ((index = WaitAnyUntil(check_tasks, check_end_point)) !=
          kInvalidIndex) {
-    switch (host_states_[index].check_stage) {
-      case HostCheckStage::kReconnect:
+    switch (host_states_[index].checks.stage) {
+      case HostChecks::Stage::kReconnect:
         check_tasks[index] = CheckAvailability(index);
         break;
-      case HostCheckStage::kAvailability:
+      case HostChecks::Stage::kAvailability:
         check_tasks[index] = CheckIfMaster(
             index, static_cast<engine::TaskWithResult<ClusterHostType>&>(
                        *check_tasks[index]));
         break;
-      case HostCheckStage::kSyncSlaves:
+      case HostChecks::Stage::kSyncSlaves:
         check_tasks[index] = CheckSyncSlaves(
             index, static_cast<engine::TaskWithResult<std::vector<size_t>>&>(
                        *check_tasks[index]));
@@ -331,7 +331,7 @@ void ClusterTopologyDiscovery::CheckHosts(
 engine::Task* ClusterTopologyDiscovery::CheckAvailability(size_t index) {
   auto* conn = GetConnectionOrNull(index);
   if (!conn) {
-    assert(host_states_[index].check_stage == HostCheckStage::kReconnect &&
+    assert(host_states_[index].checks.stage == HostChecks::Stage::kReconnect &&
            "Wrong host check stage");
     return &boost::get<ConnectionTask>(host_states_[index].conn_variant);
   }
@@ -344,11 +344,11 @@ engine::Task* ClusterTopologyDiscovery::CheckAvailability(size_t index) {
     return in_recovery ? ClusterHostType::kSlave : ClusterHostType::kMaster;
   });
 
-  host_states_[index].check_task =
+  host_states_[index].checks.task =
       std::make_unique<engine::TaskWithResult<ClusterHostType>>(
           std::move(task));
-  host_states_[index].check_stage = HostCheckStage::kAvailability;
-  return host_states_[index].check_task.get();
+  host_states_[index].checks.stage = HostChecks::Stage::kAvailability;
+  return host_states_[index].checks.task.get();
 }
 
 engine::Task* ClusterTopologyDiscovery::CheckIfMaster(
@@ -397,11 +397,11 @@ engine::Task* ClusterTopologyDiscovery::FindSyncSlaves(size_t master_index,
     return sync_slave_indices;
   });
 
-  host_states_[master_index].check_task =
+  host_states_[master_index].checks.task =
       std::make_unique<engine::TaskWithResult<std::vector<size_t>>>(
           std::move(task));
-  host_states_[master_index].check_stage = HostCheckStage::kSyncSlaves;
-  return host_states_[master_index].check_task.get();
+  host_states_[master_index].checks.stage = HostChecks::Stage::kSyncSlaves;
+  return host_states_[master_index].checks.task.get();
 }
 
 engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(

@@ -65,10 +65,15 @@ class ClusterTopologyDiscovery : public ClusterTopology {
         : ::utils::statistics::RelaxedCounter<T>(other.Load()) {}
   };
 
-  enum class HostCheckStage {
-    kReconnect,
-    kAvailability,
-    kSyncSlaves,
+  struct HostChecks {
+    enum class Stage {
+      kReconnect,
+      kAvailability,
+      kSyncSlaves,
+    };
+
+    std::unique_ptr<engine::Task> task;
+    Stage stage;
   };
 
   struct StateChages {
@@ -88,8 +93,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
 
     StateChages changes;
 
-    std::unique_ptr<engine::Task> check_task;
-    HostCheckStage check_stage;
+    HostChecks checks;
 
     // The data below is modified concurrently
 
