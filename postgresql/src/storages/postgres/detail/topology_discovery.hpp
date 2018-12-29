@@ -50,9 +50,9 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   engine::Task* FindSyncSlaves(size_t master_index, Connection* conn);
   engine::Task* CheckSyncSlaves(
       size_t master_index, engine::TaskWithResult<std::vector<size_t>>& task);
-  void UpdateHostTypes();
+  bool UpdateHostTypes();
   std::string DumpTopologyState() const;
-  void UpdateHostsByType();
+  HostsByType BuildHostsByType() const;
 
  private:
   using ConnectionTask = engine::TaskWithResult<ConnectionPtr>;

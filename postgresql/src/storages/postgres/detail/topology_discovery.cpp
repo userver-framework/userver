@@ -274,6 +274,8 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
 }
 
 void ClusterTopologyDiscovery::CheckTopology() {
+  HostsByType hosts_by_type;
+
   {
     TryLockGuard lock(update_lock_);
     if (!lock.LockAcquired()) {
@@ -286,11 +288,20 @@ void ClusterTopologyDiscovery::CheckTopology() {
     LOG_INFO() << "Checking cluster topology. Check duration is "
                << check_duration_.count() << " ms";
     CheckHosts(check_end_point);
-    UpdateHostTypes();
+
+    const auto updated = UpdateHostTypes();
+    if (updated) {
+      hosts_by_type = BuildHostsByType();
+    }
   }
 
   LOG_TRACE() << DumpTopologyState();
-  UpdateHostsByType();
+
+  if (!hosts_by_type.empty()) {
+    std::lock_guard<engine::Mutex> lock(hosts_mutex_);
+    // TODO consider using SwappingSmart
+    hosts_by_type_ = std::move(hosts_by_type);
+  }
 }
 
 void ClusterTopologyDiscovery::OperationFailed(const std::string& dsn) {
@@ -436,7 +447,8 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
   return nullptr;
 }
 
-void ClusterTopologyDiscovery::UpdateHostTypes() {
+bool ClusterTopologyDiscovery::UpdateHostTypes() {
+  bool updated = false;
   for (size_t i = 0; i < host_states_.size(); ++i) {
     if (!ShouldChangeHostType(i)) {
       continue;
@@ -454,11 +466,13 @@ void ClusterTopologyDiscovery::UpdateHostTypes() {
                   << HostTypeToString(new_type)
                   << " for host=" << HostAndPortFromDsn(host_states_[i].dsn);
     }
+    updated = true;
     state.host_type = new_type;
     state.changes.new_type = kNothing;
     state.changes.count = 0;
   }
   initial_check_ = false;
+  return updated;
 }
 
 std::string ClusterTopologyDiscovery::DumpTopologyState() const {
@@ -472,9 +486,11 @@ std::string ClusterTopologyDiscovery::DumpTopologyState() const {
   return topology_state;
 }
 
-void ClusterTopologyDiscovery::UpdateHostsByType() {
+ClusterTopology::HostsByType ClusterTopologyDiscovery::BuildHostsByType()
+    const {
   size_t master_index = kInvalidIndex;
   HostsByType hosts_by_type;
+
   for (size_t i = 0; i < host_states_.size(); ++i) {
     const auto& state = host_states_[i];
     const auto host_type = state.host_type;
@@ -492,10 +508,7 @@ void ClusterTopologyDiscovery::UpdateHostsByType() {
   if (master_index == kInvalidIndex) {
     LOG_WARNING() << "No master hosts found";
   }
-
-  std::lock_guard<engine::Mutex> lock(hosts_mutex_);
-  // TODO consider using SwappingSmart
-  hosts_by_type_ = std::move(hosts_by_type);
+  return hosts_by_type;
 }
 
 }  // namespace detail
