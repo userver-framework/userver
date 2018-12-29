@@ -37,6 +37,8 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   [[nodiscard]] engine::TaskWithResult<ConnectionPtr> Connect(std::string dsn);
   void Reconnect(size_t index);
   void CloseConnection(ConnectionPtr conn_ptr);
+  void AccountHostTypeChange(size_t index, ClusterHostType new_type);
+  bool ShouldChangeHostType(size_t index) const;
 
   Connection* GetConnectionOrThrow(size_t index) const noexcept(false);
   Connection* GetConnectionOrNull(size_t index);
@@ -48,6 +50,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   engine::Task* FindSyncSlaves(size_t master_index, Connection* conn);
   engine::Task* CheckSyncSlaves(
       size_t master_index, engine::TaskWithResult<std::vector<size_t>>& task);
+  void UpdateHostTypes();
   std::string DumpTopologyState() const;
   void UpdateHostsByType();
 
@@ -68,6 +71,11 @@ class ClusterTopologyDiscovery : public ClusterTopology {
     kSyncSlaves,
   };
 
+  struct StateChages {
+    ClusterHostType new_type;
+    size_t count;
+  };
+
   struct HostState {
     HostState(const std::string& dsn, ConnectionTask&& task);
     HostState(HostState&&) noexcept = default;
@@ -77,6 +85,8 @@ class ClusterTopologyDiscovery : public ClusterTopology {
     boost::variant<ConnectionPtr, ConnectionTask> conn_variant;
     ClusterHostType host_type;
     size_t failed_reconnects;
+
+    StateChages changes;
 
     std::unique_ptr<engine::Task> check_task;
     HostCheckStage check_stage;
@@ -94,6 +104,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   HostsByType hosts_by_type_;
   std::unordered_map<std::string, size_t> dsn_to_index_;
   std::unordered_map<std::string, size_t> escaped_to_dsn_index_;
+  bool initial_check_;
   std::atomic_flag update_lock_;
 };
 

@@ -17,15 +17,12 @@ namespace {
 constexpr size_t kImmediateReconnects = 2;
 // Interval between reconnect attempts after kImmediateReconnects tries
 const std::chrono::seconds kReconnectInterval(3);
+// TODO Do we need this?
 // Failed operations count after which the host is marked as unavailable
 constexpr size_t kFailureThreshold = 30;
-// Account topology check as this many regular operations when checking
-// threshold.
-// With every failed operation, a counter of failed operations for a host is
-// incremented. When the counter reaches the threshold, the host is marked as
-// unavailable. Every topology check failure for the host accounts as weighted
-// number of failures.
-constexpr size_t kTopologyCheckWeight = 10;
+// State (type/availability) of a host is changed when this many subsequent
+// identical new states observed
+constexpr size_t kCooldownThreshold = 3;
 // ------------------------------------------------------------
 // Constant marking unavailable host type
 constexpr ClusterHostType kNothing = static_cast<ClusterHostType>(0);
@@ -67,6 +64,10 @@ size_t WaitAnyUntil(const TaskList& tasks,
   return kInvalidIndex;
 }
 
+std::string HostTypeToString(ClusterHostType host_type) {
+  return host_type != kNothing ? ToString(host_type) : "--- unavailable ---";
+}
+
 struct TryLockGuard {
   TryLockGuard(std::atomic_flag& lock) : lock_(lock) {
     lock_acquired_ = !lock_.test_and_set(std::memory_order_acq_rel);
@@ -95,6 +96,7 @@ ClusterTopologyDiscovery::HostState::HostState(const std::string& dsn,
       conn_variant(std::move(task)),
       host_type(kNothing),
       failed_reconnects(0),
+      changes{kNothing, 0},
       check_stage(HostCheckStage::kReconnect),
       failed_operations(0) {}
 
@@ -104,6 +106,7 @@ ClusterTopologyDiscovery::ClusterTopologyDiscovery(
       check_duration_(std::chrono::duration_cast<std::chrono::milliseconds>(
                           kUpdateInterval) *
                       4 / 5),
+      initial_check_(true),
       update_lock_ ATOMIC_FLAG_INIT {
   if (check_duration_ < kMinCheckDuration) {
     check_duration_ = kMinCheckDuration;
@@ -137,24 +140,12 @@ void ClusterTopologyDiscovery::BuildIndexes() {
 }
 
 void ClusterTopologyDiscovery::CreateConnections(const DSNList& dsn_list) {
-  const auto host_count = dsn_list.size();
-  std::vector<engine::TaskWithResult<ConnectionPtr>> tasks;
-  tasks.reserve(host_count);
-
   LOG_INFO() << "Creating connections to monitor cluster topology";
+
+  host_states_.reserve(dsn_list.size());
   for (auto&& dsn : dsn_list) {
-    tasks.push_back(Connect(dsn));
-  }
-
-  // Wait for connections to be established, but grab them when they are needed
-  // This way we don't need to handle connection errors in place
-  for (auto&& task : tasks) {
-    task.Wait();
-  }
-
-  host_states_.reserve(host_count);
-  for (size_t i = 0; i < host_count; ++i) {
-    host_states_.emplace_back(dsn_list[i], std::move(tasks[i]));
+    // Don't wait for connections, we'll do it during topology check
+    host_states_.emplace_back(dsn, Connect(dsn));
   }
 }
 
@@ -182,14 +173,8 @@ engine::TaskWithResult<ConnectionPtr> ClusterTopologyDiscovery::Connect(
 }
 
 void ClusterTopologyDiscovery::Reconnect(size_t index) {
+  AccountHostTypeChange(index, kNothing);
   const auto failed_reconnects = host_states_[index].failed_reconnects++;
-  host_states_[index].failed_operations += kTopologyCheckWeight;
-  // TODO should we check something more here?
-  if (host_states_[index].failed_operations >= kFailureThreshold) {
-    host_states_[index].host_type = kNothing;
-  }
-  host_states_[index].check_stage = HostCheckStage::kReconnect;
-
   auto conn =
       std::move(boost::get<ConnectionPtr>(host_states_[index].conn_variant));
   if (conn) {
@@ -218,12 +203,43 @@ void ClusterTopologyDiscovery::Reconnect(size_t index) {
       },
       std::move(conn), host_states_[index].dsn);
   host_states_[index].conn_variant = std::move(task);
+  host_states_[index].check_stage = HostCheckStage::kReconnect;
 }
 
 void ClusterTopologyDiscovery::CloseConnection(ConnectionPtr conn_ptr) {
   if (conn_ptr) {
     conn_ptr->Close();
   }
+}
+
+void ClusterTopologyDiscovery::AccountHostTypeChange(size_t index,
+                                                     ClusterHostType new_type) {
+  if (new_type == host_states_[index].host_type) {
+    // Same type as we have now
+    host_states_[index].changes.count = 0;
+  } else if (new_type == host_states_[index].changes.new_type) {
+    // Subsequent host type change
+    ++host_states_[index].changes.count;
+  } else {
+    // Brand new host type change
+    host_states_[index].changes.count = 1;
+  }
+  host_states_[index].changes.new_type = new_type;
+}
+
+bool ClusterTopologyDiscovery::ShouldChangeHostType(size_t index) const {
+  // We want to publish availability states after the very first check
+  if (initial_check_) {
+    return true;
+  }
+  // Immediately change host type if there is too many failed operations
+  if (host_states_[index].failed_operations >= kFailureThreshold) {
+    return true;
+  }
+  if (host_states_[index].changes.count >= kCooldownThreshold) {
+    return true;
+  }
+  return false;
 }
 
 Connection* ClusterTopologyDiscovery::GetConnectionOrThrow(size_t index) const
@@ -270,6 +286,7 @@ void ClusterTopologyDiscovery::CheckTopology() {
     LOG_INFO() << "Checking cluster topology. Check duration is "
                << check_duration_.count() << " ms";
     CheckHosts(check_end_point);
+    UpdateHostTypes();
   }
 
   LOG_TRACE() << DumpTopologyState();
@@ -345,17 +362,11 @@ engine::Task* ClusterTopologyDiscovery::CheckIfMaster(
   }
   assert(host_type != kNothing && "Wrong replica state received");
 
-  // TODO introduce and check host state here
-  if (host_states_[index].failed_operations > 0) {
-    host_states_[index].failed_operations.Store(0);
-    LOG_TRACE() << GetConnectionOrThrow(index)->GetLogExtra()
-                << "Found working host marked as failed. Returning into "
-                   "operation with next update";
-  } else {
-    host_states_[index].host_type = host_type;
-  }
+  AccountHostTypeChange(index, host_type);
+  // As the host is back online we can reset failed operations counter
+  host_states_[index].failed_operations.Store(0);
 
-  if (host_states_[index].host_type == ClusterHostType::kMaster) {
+  if (host_type == ClusterHostType::kMaster) {
     auto* conn = GetConnectionOrThrow(index);
     LOG_INFO() << conn->GetLogExtra() << "Found master host";
     return FindSyncSlaves(index, conn);
@@ -415,10 +426,8 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
         LOG_ERROR() << conn->GetLogExtra()
                     << "Attempt to overwrite master type with sync slave type";
       }
-      host_states_[index].host_type = ClusterHostType::kSyncSlave;
+      AccountHostTypeChange(index, ClusterHostType::kSyncSlave);
     } else {
-      assert(host_states_[index].host_type == kNothing &&
-             "Missing host should already be marked as kNothing");
       LOG_WARNING() << "Found unavailable sync slave host="
                     << HostAndPortFromDsn(host_states_[index].dsn);
     }
@@ -427,12 +436,36 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
   return nullptr;
 }
 
+void ClusterTopologyDiscovery::UpdateHostTypes() {
+  for (size_t i = 0; i < host_states_.size(); ++i) {
+    if (!ShouldChangeHostType(i)) {
+      continue;
+    }
+    auto& state = host_states_[i];
+    const auto new_type = state.changes.new_type;
+    auto* conn = GetConnectionOrNull(i);
+    if (conn) {
+      LOG_DEBUG() << conn->GetLogExtra() << "Host type changed from "
+                  << HostTypeToString(state.host_type) << " to "
+                  << HostTypeToString(new_type);
+    } else {
+      LOG_DEBUG() << "Host type changed from "
+                  << HostTypeToString(state.host_type) << " to "
+                  << HostTypeToString(new_type)
+                  << " for host=" << HostAndPortFromDsn(host_states_[i].dsn);
+    }
+    state.host_type = new_type;
+    state.changes.new_type = kNothing;
+    state.changes.count = 0;
+  }
+  initial_check_ = false;
+}
+
 std::string ClusterTopologyDiscovery::DumpTopologyState() const {
   std::string topology_state = "Topology state:\n";
   for (const auto& state : host_states_) {
     const auto host_type = state.host_type;
-    std::string host_type_name =
-        (host_type != kNothing) ? ToString(host_type) : "--- unavailable ---";
+    std::string host_type_name = HostTypeToString(host_type);
     topology_state += HostAndPortFromDsn(state.dsn) + " : " +
                       std::move(host_type_name) + '\n';
   }
