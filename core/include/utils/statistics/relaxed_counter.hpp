@@ -49,7 +49,7 @@ class RelaxedCounter {
   }
 
  private:
-  std::atomic<T> val_;
+  std::atomic<T> val_{T{}};
 };
 
 }  // namespace statistics

@@ -65,13 +65,7 @@ formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
   formats::json::ValueBuilder result;
   formats::json::ValueBuilder total;
 
-  formats::json::ValueBuilder reply_codes;
-  size_t sum = 0;
-  for (auto it : stats.GetReplyCodes()) {
-    reply_codes[std::to_string(it.first)] = it.second;
-    sum += it.second;
-  }
-  total["reply-codes"] = std::move(reply_codes);
+  total["reply-codes"] = stats.FormatReplyCodes();
   total["in-flight"] = stats.GetInFlight();
 
   total["timings"]["1min"] =
