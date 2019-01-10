@@ -99,8 +99,9 @@ void LogHelper::AppendLogExtra() {
 
   for (const auto& item : *items) {
     verbatim_stream_ << utils::encoding::kTskvPairsSeparator;
-    utils::encoding::EncodeTskv(verbatim_stream_, item.first,
-                                utils::encoding::EncodeTskvMode::kKey);
+    utils::encoding::EncodeTskv(
+        verbatim_stream_, item.first,
+        utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
     verbatim_stream_ << utils::encoding::kTskvKeyValueSeparator;
     boost::apply_visitor(visitor, item.second.GetValue());
   }

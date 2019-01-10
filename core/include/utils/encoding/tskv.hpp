@@ -8,7 +8,9 @@ namespace encoding {
 const char kTskvKeyValueSeparator = '=';
 const char kTskvPairsSeparator = '\t';
 
-enum class EncodeTskvMode { kKey, kValue };
+// kKeyReplacePeriod is for logging. Elastic has a long history of problems with
+// periods in TSKV keys. See https://nda.ya.ru/3UX7Ab for more info.
+enum class EncodeTskvMode { kKey, kValue, kKeyReplacePeriod };
 
 template <typename T>
 struct TypeNeedsEncodeTskv
@@ -39,6 +41,9 @@ template <typename T, typename Char,
 typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
     T& to, Char ch, EncodeTskvMode mode,
     const EncodeTskvPutChar& put_char = EncodeTskvPutChar()) {
+  const bool is_key_encoding = (mode == EncodeTskvMode::kKey ||
+                                mode == EncodeTskvMode::kKeyReplacePeriod);
+
   switch (ch) {
     case '\t':
       put_char(to, '\\');
@@ -62,8 +67,15 @@ typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
       put_char(to, ch);
       break;
     case '=':
-      if (mode == EncodeTskvMode::kKey) put_char(to, '\\');
+      if (is_key_encoding) put_char(to, '\\');
       put_char(to, ch);
+      break;
+    case '.':
+      if (mode == EncodeTskvMode::kKeyReplacePeriod) {
+        put_char(to, '_');
+      } else {
+        put_char(to, ch);
+      }
       break;
     case 'A':
     case 'B':
@@ -91,7 +103,7 @@ typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
     case 'X':
     case 'Y':
     case 'Z':
-      if (mode == EncodeTskvMode::kKey) {
+      if (is_key_encoding) {
         put_char(to, ch | 0x20);  // ch - 'A' + 'a'
         break;
       }
