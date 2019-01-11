@@ -37,20 +37,31 @@ engine::TaskLocalVariable<boost::intrusive::list<
 }  // namespace
 
 Span::Impl::Impl(TracerPtr tracer, const std::string& name,
-                 const Span::Impl* parent, ReferenceType reference_type)
-    : tracer(std::move(tracer)),
+                 const Span::Impl* parent, ReferenceType reference_type,
+                 logging::Level log_level)
+    : log_level_(logging::ShouldLog(log_level) ? log_level
+                                               : logging::Level::kNone),
+      tracer(std::move(tracer)),
       name_(name),
-      start_system_time_(std::chrono::system_clock::now()),
-      start_steady_time_(std::chrono::steady_clock::now()),
+      start_system_time_(log_level == logging::Level::kNone
+                             ? std::chrono::system_clock::time_point::min()
+                             : std::chrono::system_clock::now()),
+      start_steady_time_(log_level == logging::Level::kNone
+                             ? std::chrono::steady_clock::time_point::min()
+                             : std::chrono::steady_clock::now()),
       trace_id_(parent ? parent->GetTraceId()
                        : utils::generators::GenerateUuid()),
       span_id_(utils::generators::GenerateUuid()),
-      parent_id_(parent ? parent->GetSpanId() : ""),
+      parent_id_(parent ? parent->GetSpanId() : std::string{}),
       reference_type_(reference_type) {
   AttachToCoroStack();
 }
 
 Span::Impl::~Impl() {
+  if (!logging::ShouldLog(log_level_)) {
+    return;
+  }
+
   const double start_ts =
       start_system_time_.time_since_epoch().count() / 1000000000.0;
 
@@ -73,7 +84,7 @@ Span::Impl::~Impl() {
                             {kReferenceType, ref_type},
                             {kTimeUnitsAttrName, "ms"}});
 
-  LOG_INFO() << std::move(result) << std::move(*this);
+  LOG(log_level_) << std::move(result) << std::move(*this);
 }
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) const & {
@@ -102,16 +113,17 @@ void Span::Impl::AttachToCoroStack() {
 }
 
 Span::Span(TracerPtr tracer, const std::string& name, const Span* parent,
-           ReferenceType reference_type)
+           ReferenceType reference_type, logging::Level log_level)
     : pimpl_(std::make_unique<Impl>(std::move(tracer), name,
                                     parent ? parent->pimpl_.get() : nullptr,
-                                    reference_type)) {}
+                                    reference_type, log_level)) {}
 
-Span::Span(const std::string& name, ReferenceType reference_type)
+Span::Span(const std::string& name, ReferenceType reference_type,
+           logging::Level log_level)
     : pimpl_(std::make_unique<Impl>(
           tracing::Tracer::GetTracer(), name,
           task_local_spans->empty() ? nullptr : &task_local_spans->back(),
-          reference_type)) {
+          reference_type, log_level)) {
   if (pimpl_->parent_id_.empty()) {
     SetLink(utils::generators::GenerateUuid());
   }

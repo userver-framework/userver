@@ -45,6 +45,8 @@ void UpdateLogLevelCache() {
   const auto& logger = DefaultLogger();
   for (int i = 0; i < kLevelMax + 1; i++)
     GetShouldLogCache()[i] = LoggerShouldLog(logger, static_cast<Level>(i));
+
+  GetShouldLogCache()[static_cast<int>(Level::kNone)] = false;
 }
 
 }  // namespace

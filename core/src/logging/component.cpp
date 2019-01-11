@@ -86,7 +86,8 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
   flush_task_.Start("log_flusher",
                     utils::PeriodicTask::Settings(
                         std::chrono::duration_cast<std::chrono::milliseconds>(
-                            kDefaultFlushInterval)),
+                            kDefaultFlushInterval),
+                        {}, logging::Level::kTrace),
                     GetTaskFunction());
 }
 

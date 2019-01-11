@@ -17,7 +17,7 @@ class Span::Impl
           boost::intrusive::link_mode<boost::intrusive::auto_unlink>> {
  public:
   Impl(TracerPtr tracer, const std::string& name, const Span::Impl* parent,
-       ReferenceType reference_type);
+       ReferenceType reference_type, logging::Level log_level);
 
   Impl(Impl&&) = default;
 
@@ -42,6 +42,8 @@ class Span::Impl
   void AttachToCoroStack();
 
  private:
+  const logging::Level log_level_;
+
   std::shared_ptr<Tracer> tracer;
   logging::LogExtra log_extra_inheritable;
 

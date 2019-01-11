@@ -62,10 +62,11 @@ void PeriodicTask::Run() {
     auto period = settings->period;
     const auto exception_period = settings->exception_period.value_or(period);
     const bool strong = static_cast<bool>(settings->flags & Flags::kStrong);
+    const auto span_log_level = settings->span_level;
     settings.reset();
 
     try {
-      tracing::Span span(name_);
+      tracing::Span span(name_, tracing::ReferenceType::kChild, span_log_level);
       callback_();
     } catch (const std::exception& e) {
       LOG_ERROR() << "Exception in PeriodicTask with name=" << name_ << ": "

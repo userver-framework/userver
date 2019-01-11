@@ -10,12 +10,14 @@ namespace tracing {
 class Span final {
  public:
   explicit Span(TracerPtr tracer, const std::string& name, const Span* parent,
-                ReferenceType reference_type);
+                ReferenceType reference_type,
+                logging::Level log_level = logging::Level::kInfo);
 
   /* Use default tracer and implicit coro local storage for parent
    * identification */
   Span(const std::string& name,
-       ReferenceType reference_type = ReferenceType::kChild);
+       ReferenceType reference_type = ReferenceType::kChild,
+       logging::Level log_level = logging::Level::kInfo);
 
   // TODO: remove in C++17 (for guaranteed copy elision)
   Span(Span&& other) noexcept;

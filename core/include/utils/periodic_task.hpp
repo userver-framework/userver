@@ -33,17 +33,26 @@ class PeriodicTask {
   struct Settings {
     static constexpr uint8_t kDistributionPercent = 25;
 
-    Settings(std::chrono::milliseconds period, utils::Flags<Flags> flags = {})
-        : Settings(period, kDistributionPercent, flags) {}
+    Settings(std::chrono::milliseconds period, utils::Flags<Flags> flags = {},
+             logging::Level span_level = logging::Level::kInfo)
+        : Settings(period, kDistributionPercent, flags, span_level) {}
+
     Settings(std::chrono::milliseconds period,
              std::chrono::milliseconds distribution,
-             utils::Flags<Flags> flags = {})
-        : period(period), distribution(distribution), flags(flags) {
+             utils::Flags<Flags> flags = {},
+             logging::Level span_level = logging::Level::kInfo)
+        : period(period),
+          distribution(distribution),
+          flags(flags),
+          span_level(span_level) {
       assert(distribution <= period);
     }
+
     Settings(std::chrono::milliseconds period, uint8_t distribution_percent,
-             utils::Flags<Flags> flags = {})
-        : Settings(period, period * distribution_percent / 100, flags) {
+             utils::Flags<Flags> flags = {},
+             logging::Level span_level = logging::Level::kInfo)
+        : Settings(period, period * distribution_percent / 100, flags,
+                   span_level) {
       assert(distribution_percent <= 100);
     }
 
@@ -52,6 +61,7 @@ class PeriodicTask {
     /// Used instead of period, if set.
     boost::optional<std::chrono::milliseconds> exception_period;
     utils::Flags<Flags> flags;
+    logging::Level span_level;
   };
 
   using Callback = std::function<void()>;
