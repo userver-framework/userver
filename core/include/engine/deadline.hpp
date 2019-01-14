@@ -12,7 +12,8 @@ namespace engine {
 /// Internal representation of a deadline time point
 class Deadline {
  public:
-  using TimePoint = std::chrono::steady_clock::time_point;
+  using Clock = std::chrono::steady_clock;
+  using TimePoint = Clock::time_point;
 
   /// Creates an unreachable deadline
   Deadline() = default;
@@ -22,12 +23,14 @@ class Deadline {
 
   /// Returns whether the deadline is reached
   bool IsReached() const {
-    return IsReachable() && value_ < TimePoint::clock::now();
+    if (!IsReachable()) return false;
+    return value_ == kPassed || value_ < TimePoint::clock::now();
   }
 
   /// Returns the duration of time left before the reachable deadline
   auto TimeLeft() const {
     assert(IsReachable());
+    if (value_ == kPassed) return Clock::duration::zero();
     return value_ - TimePoint::clock::now();
   }
 
@@ -51,6 +54,8 @@ class Deadline {
     return Deadline(time_point);
   }
   /// @endcond
+
+  static constexpr TimePoint kPassed = TimePoint::min();
 
  private:
   explicit Deadline(TimePoint value) : value_(std::move(value)) {}

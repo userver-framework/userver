@@ -19,6 +19,10 @@ TEST(Task, Wait) {
   });
 }
 
+TEST(Task, Yield) {
+  RunInCoro([] { engine::Yield(); });
+}
+
 TEST(Task, WaitFor) {
   RunInCoro([] {
     auto task = engine::Async([] {});

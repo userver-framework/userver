@@ -56,7 +56,7 @@ class TaskProcessor {
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-  size_t GetTaskQueueSize() const { return task_queue_size_; }
+  size_t GetTaskQueueSize() const { return task_queue_.size_approx(); }
 
   size_t GetWorkerCount() const { return workers_.size(); }
 
@@ -82,7 +82,6 @@ class TaskProcessor {
   const TaskProcessorConfig config_;
   std::shared_ptr<impl::TaskProcessorPools> pools_;
 
-  std::atomic<bool> is_running_;
   std::atomic<bool> is_shutting_down_;
 
   std::mutex detached_contexts_mutex_;
@@ -91,7 +90,6 @@ class TaskProcessor {
       detached_contexts_;
 
   moodycamel::BlockingConcurrentQueue<impl::TaskContext*> task_queue_;
-  std::atomic<size_t> task_queue_size_;
 
   std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{};
   std::atomic<size_t> max_task_queue_wait_length_{0};

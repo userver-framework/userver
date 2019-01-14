@@ -6,6 +6,25 @@
 
 #include <utest/utest.hpp>
 
+TEST(Mutex, LockUnlock) {
+  RunInCoro([] {
+    engine::Mutex mutex;
+    mutex.lock();
+    mutex.unlock();
+  });
+}
+
+TEST(Mutex, LockUnlockDouble) {
+  RunInCoro([] {
+    engine::Mutex mutex;
+    mutex.lock();
+    mutex.unlock();
+
+    mutex.lock();
+    mutex.unlock();
+  });
+}
+
 TEST(Mutex, WaitAndCancel) {
   RunInCoro([] {
     engine::Mutex mutex;

@@ -71,20 +71,37 @@ void CallOnce(Func& func) {
   }
 }
 
-TaskContext::WakeupSource GetPrimaryWakeupSource(int sleep_state_value) {
-  for (auto source : {TaskContext::WakeupSource::kWaitList,
-                      TaskContext::WakeupSource::kDeadlineTimer,
-                      TaskContext::WakeupSource::kCancelRequest,
-                      TaskContext::WakeupSource::kBootstrap}) {
-    if (sleep_state_value & static_cast<int>(source)) return source;
-  }
+}  // namespace
+
+TaskContext::LocalStorageGuard::LocalStorageGuard(TaskContext& context)
+    : context_(context) {
+  context_.local_storage_ = &local_storage_;
+}
+
+TaskContext::LocalStorageGuard::~LocalStorageGuard() {
+  context_.local_storage_ = nullptr;
+}
+
+TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
+    utils::Flags<SleepStateFlags> sleep_state) {
+  static constexpr std::pair<utils::Flags<SleepStateFlags>, WakeupSource> l[] =
+      {{{SleepStateFlags::kWakeupByWaitList}, WakeupSource::kWaitList},
+       {{SleepStateFlags::kWakeupByDeadlineTimer},
+        WakeupSource::kDeadlineTimer},
+       {{SleepStateFlags::kWakeupByBootstrap}, WakeupSource::kBootstrap}};
+  for (auto it : l)
+    if (sleep_state & it.first) return it.second;
+
+  if ((sleep_state & SleepStateFlags::kWakeupByCancelRequest) &&
+      !(sleep_state & SleepStateFlags::kNonCancellable))
+    return WakeupSource::kCancelRequest;
+
   LOG_ERROR() << "Cannot find valid wakeup source"
               << logging::LogExtra::Stacktrace();
   throw std::logic_error("Cannot find valid wakeup source, stacktrace:\n" +
-                         to_string(boost::stacktrace::stacktrace{}));
+                         to_string(boost::stacktrace::stacktrace{}) +
+                         "\nvalue = " + std::to_string(sleep_state.GetValue()));
 }
-
-}  // namespace
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Payload payload)
@@ -97,9 +114,10 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_detached_(false),
       is_cancellable_(true),
       cancellation_reason_(Task::CancellationReason::kNone),
-      finish_waiters_(std::make_shared<WaitList>()),
+      finish_waiters_(std::make_shared<WaitListLight>()),
       task_queue_wait_timepoint_(),
-      sleep_state_(SleepStateFlags::kSleep),
+      wait_manager_(nullptr),
+      sleep_state_(SleepStateFlags::kSleeping),
       wakeup_source_(WakeupSource::kNone),
       task_pipe_(nullptr),
       yield_reason_(YieldReason::kNone),
@@ -129,27 +147,49 @@ void TaskContext::SetDetached() {
 
 void TaskContext::Wait() const { WaitUntil({}); }
 
+namespace impl {
+
+class LockedWaitStrategy final : public WaitStrategy {
+ public:
+  LockedWaitStrategy(Deadline deadline, std::shared_ptr<WaitListLight> waiters,
+                     TaskContext& current, const TaskContext& target)
+      : WaitStrategy(deadline),
+        waiters_(std::move(waiters)),
+        current_(current),
+        target_(target) {}
+
+  void AfterAsleep() override {
+    waiters_->Append(lock_, &current_);
+    if (target_.IsFinished()) waiters_->WakeupOne(lock_);
+  }
+
+  void BeforeAwake() override {}
+
+  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+
+ private:
+  const std::shared_ptr<WaitListLight> waiters_;
+  WaitListLight::Lock lock_;
+  TaskContext& current_;
+  const TaskContext& target_;
+};
+
+};  // namespace impl
+
 void TaskContext::WaitUntil(Deadline deadline) const {
+  // try to avoid ctx switch if possible
   if (IsFinished()) return;
 
   if (current_task::ShouldCancel()) {
     throw WaitInterruptedException(cancellation_reason_);
   }
 
-  WaitList::Lock lock(*finish_waiters_);
+  auto current = current_task::GetCurrentTaskContext();
+  impl::LockedWaitStrategy wait_manager(deadline, finish_waiters_, *current,
+                                        *this);
+  current->Sleep(&wait_manager);
 
-  auto caller_ctx = current_task::GetCurrentTaskContext();
-  SleepParams new_sleep_params;
-  new_sleep_params.deadline = std::move(deadline);
-  new_sleep_params.wait_list = finish_waiters_;
-  new_sleep_params.exec_after_asleep = [this, &lock, caller_ctx] {
-    finish_waiters_->Append(lock, caller_ctx);
-    lock.Release();
-  };
-  if (IsFinished()) return;  // try to avoid ctx switch if possible
-  caller_ctx->Sleep(std::move(new_sleep_params));
-
-  if (!IsFinished() && current_task::ShouldCancel()) {
+  if (!IsFinished() && current->ShouldCancel()) {
     throw WaitInterruptedException(cancellation_reason_);
   }
 }
@@ -157,17 +197,22 @@ void TaskContext::WaitUntil(Deadline deadline) const {
 void TaskContext::DoStep() {
   if (IsFinished()) return;
 
+  utils::Flags<SleepStateFlags> clear_flags{SleepStateFlags::kSleeping};
   if (!coro_) {
     coro_ = task_processor_.GetCoroPool().GetCoroutine();
-    sleep_state_.Clear(SleepStateFlags::kWakeupByBootstrap);
+    clear_flags |= SleepStateFlags::kWakeupByBootstrap;
   }
+  // Do non-atomic fetch_and() - we don't care about lost spurious
+  // wakeup events
+  utils::Flags<SleepStateFlags> new_sleep_state(sleep_state_);
+  new_sleep_state.Clear(clear_flags);
+  sleep_state_.Store(new_sleep_state, std::memory_order_relaxed);
 
-  sleep_state_.Clear(SleepStateFlags::kSleep);
-  SetState(Task::State::kRunning);
   {
     CurrentTaskScope current_task_scope(this);
+    SetState(Task::State::kRunning);
     (*coro_)(this);
-    CallOnce(sleep_params_.exec_after_asleep);
+    if (wait_manager_) wait_manager_->AfterAsleep();
   }
 
   switch (yield_reason_) {
@@ -183,11 +228,18 @@ void TaskContext::DoStep() {
     case YieldReason::kTaskWaiting:
       SetState(Task::State::kSuspended);
       {
-        if (!IsCancellable()) {
-          sleep_state_.Clear(SleepStateFlags::kWakeupByCancelRequest);
-        }
-        auto prev_sleep_state = sleep_state_.FetchOr(SleepStateFlags::kSleep);
-        if (prev_sleep_state && !(prev_sleep_state & SleepStateFlags::kSleep)) {
+        utils::Flags<SleepStateFlags> new_flags = SleepStateFlags::kSleeping;
+        if (!IsCancellable()) new_flags |= SleepStateFlags::kNonCancellable;
+
+        // Synchronization point for relaxed SetState()
+        auto prev_sleep_state =
+            sleep_state_.FetchOr(new_flags, std::memory_order_seq_cst);
+
+        assert(!(prev_sleep_state & SleepStateFlags::kSleeping));
+        if (new_flags & SleepStateFlags::kNonCancellable)
+          prev_sleep_state.Clear({SleepStateFlags::kWakeupByCancelRequest,
+                                  SleepStateFlags::kNonCancellable});
+        if (prev_sleep_state) {
           Schedule();
         }
       }
@@ -207,29 +259,36 @@ void TaskContext::RequestCancel(Task::CancellationReason reason) {
                        current_task::GetCurrentTaskContextUnchecked())
                 << " cancelled task with task_id=" << GetTaskIdString(this)
                 << logging::LogExtra::Stacktrace();
-    cancellation_reason_ = reason;
+    cancellation_reason_.store(reason, std::memory_order_relaxed);
     Wakeup(WakeupSource::kCancelRequest);
     task_processor_.GetTaskCounter().AccountTaskCancel();
   }
 }
 
-bool TaskContext::IsCancellable() const { return is_cancellable_.load(); }
+bool TaskContext::IsCancellable() const { return is_cancellable_; }
 
 bool TaskContext::SetCancellable(bool value) {
   assert(current_task::GetCurrentTaskContext() == this);
   assert(state_ == Task::State::kRunning);
 
-  return is_cancellable_.exchange(value);
+  return std::exchange(is_cancellable_, value);
 }
 
-void TaskContext::Sleep(SleepParams&& sleep_params) {
+void TaskContext::Sleep(WaitStrategy* wait_manager) {
   assert(current_task::GetCurrentTaskContext() == this);
   assert(state_ == Task::State::kRunning);
 
-  sleep_params_ = std::move(sleep_params);
+  assert(wait_manager != nullptr);
+  /* ConditionVariable might call Sleep() inside of Sleep() due to
+   * a lock in AfterAsleep, so store an old value on the stack.
+   */
+  auto* old_wait_manager = std::exchange(wait_manager_, wait_manager);
+
+  wait_manager_ = wait_manager;
   ev::Timer deadline_timer;
-  if (sleep_params_.deadline.IsReachable()) {
-    const auto time_left = sleep_params_.deadline.TimeLeft();
+  auto deadline = wait_manager_->GetDeadline();
+  if (deadline.IsReachable()) {
+    const auto time_left = deadline.TimeLeft();
     if (time_left.count() > 0) {
       boost::intrusive_ptr<TaskContext> ctx(this);
       deadline_timer = ev::Timer(
@@ -247,40 +306,89 @@ void TaskContext::Sleep(SleepParams&& sleep_params) {
   [[maybe_unused]] TaskContext* context = (*task_pipe_)().get();
   ProfilerStartExecution();
   assert(context == this);
+  assert(state_ == Task::State::kRunning);
 
   if (deadline_timer) deadline_timer.Stop();
 
   if (!(sleep_state_ & SleepStateFlags::kWakeupByWaitList)) {
-    auto wait_list = sleep_params_.wait_list.lock();
+    auto wait_list = wait_manager_->GetWaitList();
     if (wait_list) {
       wait_list->Remove(this);
     }
   }
-  // state can be modified in pre-awake payload
-  auto old_sleep_state = sleep_state_.Exchange(SleepStateFlags::kNone);
-  wakeup_source_ = GetPrimaryWakeupSource(old_sleep_state.GetValue());
+  // Clear sleep_state_ now as we may sleep in BeforeAwake() below.
+  // Use Load()+Store() instead of Exchange() as seq_cst for RMW operations is
+  // very expensive for such hot path.
+  auto old_sleep_state = sleep_state_.Load(std::memory_order_acquire);
+  sleep_state_.Store(SleepStateFlags::kNone, std::memory_order_relaxed);
 
-  CallOnce(sleep_params_.exec_before_awake);
+  wakeup_source_ = GetPrimaryWakeupSource(old_sleep_state);
 
-  sleep_params_ = {};
-  // reset state again for timer firing during wakeup and/or pre-awake doings
-  sleep_state_ = SleepStateFlags::kNone;
+  wait_manager_->BeforeAwake();
+  wait_manager_ = old_wait_manager;
+
+  // Reset state again for timer firing during wakeup and/or pre-awake doings.
+  // All such racy wakeup-ers must be cancelled in BeforeAwake().
+  sleep_state_.Store(SleepStateFlags::kNone, std::memory_order_relaxed);
+}
+
+bool TaskContext::ShouldSchedule(utils::Flags<SleepStateFlags> prev_flags,
+                                 WakeupSource source) {
+  /* ShouldSchedule() returns true only for the first Wakeup().  All Wakeup()s
+   * are serialized due to seq_cst in FetchOr().
+   */
+
+  if (!(prev_flags & SleepStateFlags::kSleeping)) return false;
+
+  if (source == WakeupSource::kCancelRequest) {
+    /* Don't wakeup if:
+     * 1) kNonCancellable
+     * 2) Other WakeupSource is already triggered
+     */
+    return prev_flags == SleepStateFlags::kSleeping;
+  } else if (source == WakeupSource::kBootstrap) {
+    return true;
+  } else {
+    if (prev_flags & SleepStateFlags::kNonCancellable) {
+      /* If there was a cancellation request, but cancellation is blocked,
+       * ignore it - we're the first to Schedule().
+       */
+      prev_flags.Clear({SleepStateFlags::kNonCancellable,
+                        SleepStateFlags::kWakeupByCancelRequest});
+    }
+
+    /* Don't wakeup if:
+     * 1) kNonCancellable and zero or more kCancelRequest triggered
+     * 2) !kNonCancellable and any other WakeupSource is triggered
+     */
+
+    // We're the first to wakeup the baby
+    return prev_flags == SleepStateFlags::kSleeping;
+  }
 }
 
 void TaskContext::Wakeup(WakeupSource source) {
   if (IsFinished()) return;
-  if (source == WakeupSource::kCancelRequest && !IsCancellable()) return;
 
+  if (source == WakeupSource::kCancelRequest &&
+      (sleep_state_ & SleepStateFlags::kNonCancellable))
+    return;
+
+  /* Set flag regardless of kSleeping - missing kSleeping usually means one of
+   * the following: 1) the task is somewhere between Sleep() and setting
+   * kSleeping in DoStep(). 2) the task is already awaken, but BeforeAwake() is
+   * not yet finished (and not all timers/watchers are stopped).
+   */
   auto prev_sleep_state =
       sleep_state_.FetchOr(static_cast<SleepStateFlags>(source));
-  if (prev_sleep_state == SleepStateFlags::kSleep) {
-    // IsCancellable() should not be changed now until wakeup
-    if (source != WakeupSource::kCancelRequest || IsCancellable() ||
-        sleep_state_.Clear(SleepStateFlags::kWakeupByCancelRequest) !=
-            SleepStateFlags::kSleep) {
-      Schedule();
-    }
+  if (ShouldSchedule(prev_sleep_state, source)) {
+    Schedule();
   }
+}
+
+TaskContext::WakeupSource TaskContext::GetWakeupSource() const {
+  assert(current_task::GetCurrentTaskContext() == this);
+  return wakeup_source_;
 }
 
 void TaskContext::CoroFunc(TaskPipe& task_pipe) {
@@ -295,22 +403,22 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     // to synchronize in its dtor (e.g. lambda closure)
     if (context->IsCancelRequested()) {
       context->SetCancellable(false);
-      context->payload_ = {};
+      {
+        LocalStorageGuard local_storage_guard(*context);
+        context->payload_ = {};
+      }
       context->yield_reason_ = YieldReason::kTaskCancelled;
     } else {
       try {
         {
           // Destroy contents of LocalStorage in the coroutine
           // as dtors may want to schedule
-          LocalStorage local_storage;
-          context->local_storage_ = &local_storage;
+          LocalStorageGuard local_storage_guard(*context);
 
           CallOnce(context->payload_);
         }
-        context->local_storage_ = nullptr;
         context->yield_reason_ = YieldReason::kTaskComplete;
       } catch (const CoroUnwinder&) {
-        context->local_storage_ = nullptr;
         context->yield_reason_ = YieldReason::kTaskCancelled;
       }
     }
@@ -325,6 +433,7 @@ LocalStorage& TaskContext::GetLocalStorage() { return *local_storage_; }
 
 void TaskContext::SetState(Task::State new_state) {
   auto old_state = Task::State::kNew;
+
   // CAS optimization
   switch (new_state) {
     case Task::State::kQueued:
@@ -344,6 +453,29 @@ void TaskContext::SetState(Task::State new_state) {
     case Task::State::kNew:
       assert(!"Invalid new task state");
   }
+
+  if (new_state == Task::State::kRunning ||
+      new_state == Task::State::kSuspended) {
+    if (new_state == Task::State::kRunning) {
+      assert(current_task::GetCurrentTaskContext() == this);
+    } else {
+      assert(current_task::GetCurrentTaskContextUnchecked() == nullptr);
+    }
+    assert(old_state == state_);
+    // For kRunning we don't care other threads see old state_ (kQueued) for
+    // some time.
+    // For kSuspended synchronization point is DoStep()'s
+    // sleep_state_.FetchOr().
+    state_.store(new_state, std::memory_order_relaxed);
+    return;
+  }
+  if (new_state == Task::State::kQueued) {
+    assert(old_state == state_ || state_ == Task::State::kNew);
+    // Synchronization point is TaskProcessor::Schedule()
+    state_.store(new_state, std::memory_order_relaxed);
+    return;
+  }
+
   // use strong CAS here to avoid losing transitions to finished
   while (!state_.compare_exchange_strong(old_state, new_state)) {
     if (old_state == new_state) {
@@ -357,7 +489,7 @@ void TaskContext::SetState(Task::State new_state) {
     }
   }
   if (IsFinished()) {
-    WaitList::Lock lock(*finish_waiters_);
+    WaitListLight::Lock lock;
     finish_waiters_->WakeupAll(lock);
   }
 }

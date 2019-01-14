@@ -38,7 +38,7 @@ class SingleConsumerEvent {
 
  private:
   std::shared_ptr<impl::WaitListLight> lock_waiters_;
-  std::atomic<bool> signaled_;
+  std::atomic<bool> is_signaled_;
 };
 
 }  // namespace engine

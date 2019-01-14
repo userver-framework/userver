@@ -16,9 +16,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
     : config_(std::move(config)),
       pools_(std::move(pools)),
-      is_running_(true),
       is_shutting_down_(false),
-      task_queue_size_(0),
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
       max_task_queue_wait_length_(0),
       overload_action_(TaskProcessorSettings::OverloadAction::kIgnore),
@@ -46,7 +44,7 @@ TaskProcessor::~TaskProcessor() {
   // Some tasks may be bound but not scheduled yet
   task_counter_.WaitForExhaustion(std::chrono::milliseconds(10));
 
-  is_running_ = false;
+  task_queue_.enqueue(nullptr);
 
   for (auto& w : workers_) {
     w.join();
@@ -71,13 +69,15 @@ void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {
   assert(context);
-  if (max_task_queue_wait_length_ && !context->IsCritical() &&
-      task_queue_size_ >= max_task_queue_wait_length_) {
-    LOG_WARNING() << "failed to enqueue task: task_queue_size_="
-                  << task_queue_size_ << " >= "
-                  << "task_queue_size_threshold="
-                  << max_task_queue_wait_length_;
-    HandleOverload(*context);
+  if (max_task_queue_wait_length_ && !context->IsCritical()) {
+    size_t queue_size = GetTaskQueueSize();
+    if (queue_size >= max_task_queue_wait_length_) {
+      LOG_WARNING() << "failed to enqueue task: task_queue_ size=" << queue_size
+                    << " >= "
+                    << "task_queue_size_threshold="
+                    << max_task_queue_wait_length_;
+      HandleOverload(*context);
+    }
   }
   if (is_shutting_down_)
     context->RequestCancel(Task::CancellationReason::kShutdown);
@@ -87,7 +87,6 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
   // having native support for intrusive ptrs in lockfree would've been great
   // but oh well
   intrusive_ptr_add_ref(context);
-  ++task_queue_size_;
 
   task_queue_.enqueue(context);
   // NOTE: task may be executed at this point
@@ -168,14 +167,14 @@ impl::TaskContext* TaskProcessor::DequeueTask() {
    */
   thread_local moodycamel::ConsumerToken token(task_queue_);
 
-  /* 'timeout' is used for periodic polling of is_running_
-   * in case of TaskProcessor stop.
-   */
-  static const auto timeout = std::chrono::milliseconds(50);
+  task_queue_.wait_dequeue(token, buf);
+  GetTaskCounter().AccountTaskSwitchSlow();
 
-  while (!task_queue_.wait_dequeue_timed(token, buf, timeout) && is_running_) {
-    GetTaskCounter().AccountTaskSwitchSlow();
+  if (!buf) {
+    // return "stop" token back
+    task_queue_.enqueue(nullptr);
   }
+
   return buf;
 }
 
@@ -185,7 +184,6 @@ void TaskProcessor::ProcessTasks() noexcept {
     boost::intrusive_ptr<impl::TaskContext> context(DequeueTask(),
                                                     /* add_ref =*/false);
     if (!context) break;
-    --task_queue_size_;
 
     CheckWaitTime(*context);
 

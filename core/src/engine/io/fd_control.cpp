@@ -38,6 +38,37 @@ std::string ToString(Direction::Kind direction_kind) {
   }
 }
 
+class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
+ public:
+  DirectionWaitStrategy(Deadline deadline,
+                        std::shared_ptr<engine::impl::WaitList> waiters,
+                        ev::Watcher<ev_io>& watcher,
+                        engine::impl::TaskContext* current)
+      : WaitStrategy(deadline),
+        waiters_(std::move(waiters)),
+        lock_(*waiters_),
+        watcher_(watcher),
+        current_(current) {}
+
+  void AfterAsleep() override {
+    waiters_->Append(lock_, current_);
+    lock_.Release();
+    watcher_.StartAsync();
+  }
+
+  void BeforeAwake() override {}
+
+  std::shared_ptr<engine::impl::WaitListBase> GetWaitList() override {
+    return waiters_;
+  }
+
+ private:
+  const std::shared_ptr<engine::impl::WaitList> waiters_;
+  engine::impl::WaitList::Lock lock_;
+  ev::Watcher<ev_io>& watcher_;
+  engine::impl::TaskContext* const current_;
+};
+
 }  // namespace
 
 Direction::Direction(Kind kind)
@@ -52,25 +83,17 @@ Direction::Direction(Kind kind)
 bool Direction::Wait(Deadline deadline) {
   assert(IsValid());
 
-  if (engine::current_task::ShouldCancel()) {
+  auto current = current_task::GetCurrentTaskContext();
+
+  if (current->ShouldCancel()) {
     throw IoCancelled("Wait " + ToString(kind_) + "able");
   }
 
-  engine::impl::WaitList::Lock lock(*waiters_);
+  impl::DirectionWaitStrategy wait_manager(deadline, waiters_, watcher_,
+                                           current);
+  current->Sleep(&wait_manager);
 
-  auto caller_ctx = current_task::GetCurrentTaskContext();
-  engine::impl::TaskContext::SleepParams sleep_params;
-  sleep_params.deadline = std::move(deadline);
-  sleep_params.wait_list = waiters_;
-  sleep_params.exec_after_asleep = [this, &lock, caller_ctx] {
-    waiters_->Append(lock, caller_ctx);
-    lock.Release();
-    watcher_.StartAsync();
-  };
-
-  caller_ctx->Sleep(std::move(sleep_params));
-
-  return caller_ctx->GetWakeupSource() ==
+  return current->GetWakeupSource() ==
          engine::impl::TaskContext::WakeupSource::kWaitList;
 }
 

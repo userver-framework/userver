@@ -13,6 +13,38 @@ namespace engine {
 namespace impl {
 
 template <typename MutexType>
+class CvWaitStrategy final : public WaitStrategy {
+ public:
+  CvWaitStrategy(Deadline deadline, std::shared_ptr<WaitList> waiters,
+                 TaskContext& current, std::unique_lock<MutexType>& mutex_lock)
+      : WaitStrategy(deadline),
+        waiters_(std::move(waiters)),
+        lock_(*waiters_),
+        current_(current),
+        mutex_lock_(mutex_lock) {}
+
+  void AfterAsleep() override {
+    assert(&current_ == current_task::GetCurrentTaskContext());
+    waiters_->Append(lock_, &current_);
+    lock_.Release();
+    mutex_lock_.unlock();
+  }
+
+  void BeforeAwake() override {
+    assert(&current_ == current_task::GetCurrentTaskContext());
+    mutex_lock_.lock();
+  }
+
+  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+
+ private:
+  const std::shared_ptr<WaitList> waiters_;
+  WaitList::Lock lock_;
+  TaskContext& current_;
+  std::unique_lock<MutexType>& mutex_lock_;
+};
+
+template <typename MutexType>
 class ConditionVariableAny {
  public:
   ConditionVariableAny();
@@ -62,26 +94,16 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
   if (deadline.IsReached()) {
     return CvStatus::kTimeout;
   }
-  if (current_task::ShouldCancel()) {
+
+  auto current = current_task::GetCurrentTaskContext();
+  if (current->ShouldCancel()) {
     return CvStatus::kCancelled;
   }
 
-  WaitList::Lock waiters_lock(*waiters_);
+  CvWaitStrategy<MutexType> wait_manager(deadline, waiters_, *current, lock);
+  current->Sleep(&wait_manager);
 
-  auto context = current_task::GetCurrentTaskContext();
-
-  impl::TaskContext::SleepParams new_sleep_params;
-  new_sleep_params.deadline = std::move(deadline);
-  new_sleep_params.wait_list = waiters_;
-  new_sleep_params.exec_after_asleep = [this, &lock, &waiters_lock, context] {
-    waiters_->Append(waiters_lock, context);
-    waiters_lock.Release();
-    lock.unlock();
-  };
-  new_sleep_params.exec_before_awake = [&lock] { lock.lock(); };
-  context->Sleep(std::move(new_sleep_params));
-
-  switch (context->GetWakeupSource()) {
+  switch (current->GetWakeupSource()) {
     case TaskContext::WakeupSource::kCancelRequest:
       return CvStatus::kCancelled;
     case TaskContext::WakeupSource::kDeadlineTimer:

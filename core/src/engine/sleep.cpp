@@ -6,12 +6,26 @@
 
 namespace engine {
 
-void InterruptibleSleepUntil(Deadline deadline) {
-  auto context = current_task::GetCurrentTaskContext();
+namespace impl {
+namespace {
+class CommonSleepWaitStrategy final : public WaitStrategy {
+ public:
+  CommonSleepWaitStrategy(Deadline deadline) : WaitStrategy(deadline) {}
 
-  impl::TaskContext::SleepParams new_sleep_params;
-  new_sleep_params.deadline = std::move(deadline);
-  context->Sleep(std::move(new_sleep_params));
+  void AfterAsleep() override {}
+
+  void BeforeAwake() override {}
+
+  std::shared_ptr<WaitListBase> GetWaitList() override { return {}; }
+};
+}  // namespace
+}  // namespace impl
+
+void InterruptibleSleepUntil(Deadline deadline) {
+  auto current = current_task::GetCurrentTaskContext();
+
+  impl::CommonSleepWaitStrategy wait_manager(deadline);
+  current->Sleep(&wait_manager);
 }
 
 void SleepUntil(Deadline deadline) {
@@ -19,8 +33,6 @@ void SleepUntil(Deadline deadline) {
   InterruptibleSleepUntil(deadline);
 }
 
-void Yield() {
-  SleepUntil(Deadline::FromTimePoint(Deadline::TimePoint::clock::now()));
-}
+void Yield() { SleepUntil(Deadline::FromTimePoint(Deadline::kPassed)); }
 
 }  // namespace engine

@@ -13,7 +13,7 @@
 #include <engine/task/local_storage.hpp>
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
-#include <engine/wait_list.hpp>
+#include <engine/wait_list_light.hpp>
 #include <utils/flags.hpp>
 #include "cxxabi_eh_globals.hpp"
 #include "task_counter.hpp"
@@ -23,6 +23,33 @@ namespace engine {
 class TaskProcessor;
 
 namespace impl {
+
+class WaitStrategy {
+ public:
+  // Implementation may setup timers/watchers here. Implementation must make
+  // sure that there is no race between AfterAsleep() and WaitList-specific
+  // wakeup (if "add task to wait list iff not ready" is not protected from
+  // Wakeup, e.g. for WaitListLight). AfterAsleep() *may* call Wakeup() for
+  // current task - sleep_state_ is set in DoStep() and double checked for such
+  // early wakeups. It may not sleep.
+  virtual void AfterAsleep() = 0;
+
+  // Implementation should delete current task from all wait lists, stop all
+  // timers/watchers, and release all allocated resources.
+  // sleep_state_ will be cleared later at Sleep() return. Current task should
+  // acquire all resources if needed (e.g. mutex), thus it may sleep.
+  virtual void BeforeAwake() = 0;
+
+  Deadline GetDeadline() const { return deadline_; }
+
+  virtual std::shared_ptr<WaitListBase> GetWaitList() = 0;
+
+ protected:
+  WaitStrategy(Deadline deadline) : deadline_(deadline) {}
+
+ private:
+  const Deadline deadline_;
+};
 
 class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
  public:
@@ -40,17 +67,6 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
     kDeadlineTimer = (1 << 1),
     kCancelRequest = (1 << 2),
     kBootstrap = (1 << 3),
-  };
-
-  struct SleepParams {
-    // no deadline by default
-    Deadline deadline;
-    // list to cleanup in case of cancel
-    std::weak_ptr<WaitListBase> wait_list;
-    // called from the same thread after leaving coroutine
-    Payload exec_after_asleep;
-    // called from coroutine before leaving Sleep()
-    Payload exec_before_awake;
   };
 
   TaskContext(TaskProcessor&, Task::Importance, Payload);
@@ -99,16 +115,20 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   // returns previous value
   bool SetCancellable(bool);
 
+  bool ShouldCancel() const { return IsCancelRequested() && IsCancellable(); }
+
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
-  void Sleep(SleepParams&&);
+  void Sleep(WaitStrategy*);
 
   // causes this to return from the nearest sleep
   // i.e. wakeup is queued if task is running
   // normally non-blocking, except corner cases in TaskProcessor::Schedule()
   void Wakeup(WakeupSource);
-  WakeupSource GetWakeupSource() const { return wakeup_source_; }
+
+  // Must be called from this
+  WakeupSource GetWakeupSource() const;
 
   static void CoroFunc(TaskPipe& task_pipe);
 
@@ -139,12 +159,17 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
     kWakeupByCancelRequest = static_cast<int>(WakeupSource::kCancelRequest),
     kWakeupByBootstrap = static_cast<int>(WakeupSource::kBootstrap),
 
-    kSleep = (kWakeupByBootstrap << 1)
+    kSleeping = (kWakeupByBootstrap << 1),
+    kNonCancellable = (kSleeping << 1)
   };
+  static WakeupSource GetPrimaryWakeupSource(
+      utils::Flags<SleepStateFlags> sleep_state);
 
   void SetState(Task::State);
 
   void Schedule();
+  static bool ShouldSchedule(utils::Flags<SleepStateFlags> flags,
+                             WakeupSource source);
 
   void ProfilerStartExecution();
   void ProfilerStopExecution();
@@ -158,9 +183,9 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
 
   std::atomic<Task::State> state_;
   std::atomic<bool> is_detached_;
-  std::atomic<bool> is_cancellable_;
+  bool is_cancellable_;
   std::atomic<Task::CancellationReason> cancellation_reason_;
-  std::shared_ptr<WaitList> finish_waiters_;
+  std::shared_ptr<WaitListLight> finish_waiters_;
 
   // () if not defined
   std::chrono::steady_clock::time_point task_queue_wait_timepoint_;
@@ -168,13 +193,24 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   std::chrono::steady_clock::time_point execute_started_;
 #endif  // USERVER_PROFILER
 
-  SleepParams sleep_params_;
+  WaitStrategy* wait_manager_;
   utils::AtomicFlags<SleepStateFlags> sleep_state_;
-  std::atomic<WakeupSource> wakeup_source_;
+  WakeupSource wakeup_source_;
 
   CoroutinePtr coro_;
   TaskPipe* task_pipe_;
   YieldReason yield_reason_;
+
+  class LocalStorageGuard {
+   public:
+    LocalStorageGuard(TaskContext& context);
+
+    ~LocalStorageGuard();
+
+   private:
+    TaskContext& context_;
+    LocalStorage local_storage_;
+  };
 
   LocalStorage* local_storage_;
 };

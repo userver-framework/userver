@@ -11,6 +11,7 @@
 #include <engine/standalone.hpp>
 #include <engine/task/cancel.hpp>
 #include <engine/task/task.hpp>
+#include <engine/task/task_context.hpp>
 #include <utils/gbench_auxilary.hpp>
 
 void engine_task_create(benchmark::State& state) {
@@ -29,7 +30,8 @@ void engine_task_yield(benchmark::State& state) {
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0); i++)
           tasks.push_back(engine::Async([]() {
-            while (!engine::current_task::ShouldCancel()) engine::Yield();
+            auto* current = engine::current_task::GetCurrentTaskContext();
+            while (!current->ShouldCancel()) engine::Yield();
           }));
 
         for (auto _ : state) engine::Yield();

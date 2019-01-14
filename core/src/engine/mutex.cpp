@@ -7,6 +7,34 @@
 
 namespace engine {
 
+namespace impl {
+namespace {
+class MutexWaitStrategy final : public WaitStrategy {
+ public:
+  MutexWaitStrategy(std::shared_ptr<WaitList> waiters, TaskContext* current)
+      : WaitStrategy({}),
+        waiters_(waiters),
+        lock_(*waiters),
+        current_(current) {}
+
+  void AfterAsleep() override {
+    waiters_->Append(lock_, current_);
+    lock_.Release();
+  }
+
+  void BeforeAwake() override { lock_.Acquire(); }
+
+  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+
+ private:
+  const std::shared_ptr<WaitList> waiters_;
+  WaitList::Lock lock_;
+  TaskContext* const current_;
+};
+}  // namespace
+
+}  // namespace impl
+
 Mutex::Mutex()
     : lock_waiters_(std::make_shared<impl::WaitList>()), owner_(nullptr) {}
 
@@ -15,17 +43,11 @@ Mutex::~Mutex() { assert(!owner_); }
 void Mutex::lock() {
   impl::TaskContext* const current = current_task::GetCurrentTaskContext();
   assert(current);
-  impl::WaitList::Lock lock(*lock_waiters_);
+
+  impl::MutexWaitStrategy wait_manager(lock_waiters_, current);
   while (owner_) {
     assert(owner_ != current);
-    impl::TaskContext::SleepParams sleep_params;
-    sleep_params.wait_list = lock_waiters_;
-    sleep_params.exec_after_asleep = [this, &lock, current] {
-      lock_waiters_->Append(lock, current);
-      lock.Release();
-    };
-    sleep_params.exec_before_awake = [&lock] { lock.Acquire(); };
-    current->Sleep(std::move(sleep_params));
+    current->Sleep(&wait_manager);
   }
   owner_ = current;
 }

@@ -5,37 +5,55 @@
 
 namespace engine {
 
+namespace impl {
+namespace {
+class EventWaitStrategy final : public WaitStrategy {
+ public:
+  EventWaitStrategy(std::shared_ptr<impl::WaitListLight> waiters,
+                    const std::atomic<bool>& signaled, TaskContext* current)
+      : WaitStrategy({}),
+        waiters_(waiters),
+        is_signaled_(signaled),
+        current_(current) {}
+
+  void AfterAsleep() override {
+    waiters_->Append(lock_, current_);
+    if (is_signaled_) waiters_->WakeupOne(lock_);
+  }
+
+  void BeforeAwake() override {}
+
+  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+
+ private:
+  std::shared_ptr<impl::WaitListLight> waiters_;
+  const std::atomic<bool>& is_signaled_;
+  TaskContext* const current_;
+  WaitListLight::Lock lock_;
+};
+}  // namespace
+}  // namespace impl
+
 SingleConsumerEvent::SingleConsumerEvent()
     : lock_waiters_(std::make_shared<impl::WaitListLight>()),
-      signaled_(false) {}
+      is_signaled_(false) {}
 
 SingleConsumerEvent::~SingleConsumerEvent() = default;
 
 bool SingleConsumerEvent::WaitForEvent() {
   bool was_signaled = false;
-  if (current_task::ShouldCancel()) return was_signaled;
-
-  lock_waiters_->PinToCurrentTask();
-
   impl::TaskContext* const current = current_task::GetCurrentTaskContext();
+  if (current->ShouldCancel()) return was_signaled;
+
   LOG_TRACE() << "WaitForEvent()";
+  lock_waiters_->PinToCurrentTask();
+  impl::EventWaitStrategy wait_manager(lock_waiters_, is_signaled_, current);
 
-  impl::WaitListLight::Lock lock;
-
-  while (!(was_signaled = signaled_.exchange(false)) &&
-         !current_task::ShouldCancel()) {
+  while (!(was_signaled =
+               is_signaled_.exchange(false, std::memory_order_acquire)) &&
+         !current->ShouldCancel()) {
     LOG_TRACE() << "iteration()";
-
-    impl::TaskContext::SleepParams sleep_params;
-
-    sleep_params.wait_list = lock_waiters_;
-    sleep_params.exec_after_asleep = [this, &lock, current] {
-      LOG_TRACE() << "exec_after_asleep()";
-      lock_waiters_->Append(lock, current);
-      if (signaled_) lock_waiters_->WakeupOne(lock);
-    };
-
-    current->Sleep(std::move(sleep_params));
+    current->Sleep(&wait_manager);
   }
   LOG_TRACE() << "exit";
 
@@ -43,7 +61,7 @@ bool SingleConsumerEvent::WaitForEvent() {
 }
 
 void SingleConsumerEvent::Send() {
-  signaled_ = true;
+  is_signaled_.store(true, std::memory_order_release);
 
   impl::WaitListLight::Lock lock;
   lock_waiters_->WakeupOne(lock);
