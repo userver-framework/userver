@@ -45,6 +45,7 @@ using TaskList = std::vector<engine::Task*>;
 size_t WaitAnyUntil(const TaskList& tasks,
                     const std::chrono::steady_clock::time_point& time_point) {
   do {
+    bool has_working_tasks = false;
     for (size_t i = 0; i < tasks.size(); ++i) {
       const auto* task = tasks[i];
       if (!task || !task->IsValid()) {
@@ -54,6 +55,12 @@ size_t WaitAnyUntil(const TaskList& tasks,
       if (task->IsFinished()) {
         return i;
       }
+      has_working_tasks = true;
+    }
+
+    // Nothing to do if no tasks left in progress
+    if (!has_working_tasks) {
+      return kInvalidIndex;
     }
 
     const auto next_point =
