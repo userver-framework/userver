@@ -136,7 +136,7 @@ Span::Span(Span&& other) noexcept : pimpl_(std::move(other.pimpl_)) {
 
 Span& Span::operator=(Span&&) = default;
 
-Span::~Span() = default;
+Span::~Span() { DetachFromCoroStack(); }
 
 Span* Span::CurrentSpan() {
   if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr)
@@ -205,7 +205,9 @@ void Span::LogTo(logging::LogHelper& log_helper) const & {
   pimpl_->LogTo(log_helper);
 }
 
-void Span::DetachFromCoroStack() { pimpl_->DetachFromCoroStack(); }
+void Span::DetachFromCoroStack() {
+  if (pimpl_) pimpl_->DetachFromCoroStack();
+}
 
 void Span::AttachToCoroStack() { pimpl_->AttachToCoroStack(); }
 
