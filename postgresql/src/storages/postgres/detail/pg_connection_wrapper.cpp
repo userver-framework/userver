@@ -134,7 +134,6 @@ void PGConnectionWrapper::AsyncConnect(const std::string& conninfo,
   LOG_DEBUG() << log_extra_ << "Connecting to " << DsnCutPassword(conninfo);
   StartAsyncConnect(conninfo);
   WaitConnectionFinish(poll_timeout);
-  OnConnect();
   LOG_DEBUG() << log_extra_ << "Connected to " << DsnCutPassword(conninfo);
 }
 
@@ -145,6 +144,7 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
                 << logging::LogExtra::Stacktrace();
     throw ConnectionFailed{conninfo, "Already connected"};
   }
+
   conn_ = PQconnectStart(conninfo.c_str());
   if (!conn_) {
     // The only reason the pointer cannot be null is that libpq failed
@@ -153,6 +153,14 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
                 << logging::LogExtra::Stacktrace();
     throw ConnectionFailed{conninfo, "Failed to allocate PGconn structure"};
   }
+
+  if (PQsetnonblocking(conn_, 1)) {
+    LOG_ERROR() << log_extra_
+                << "libpq failed to set non-blocking connection mode";
+    throw ConnectionFailed{conninfo,
+                           "Failed to set non-blocking connection mode"};
+  }
+
   const auto status = PQstatus(conn_);
   const auto* msg_for_status = MsgForStatus(status);
   if (CONNECTION_BAD == status) {
@@ -162,6 +170,7 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
   } else {
     LOG_TRACE() << log_extra_ << msg_for_status;
   }
+
   const auto socket = PQsocket(conn_);
   if (socket < 0) {
     LOG_ERROR() << log_extra_ << "Invalid PostgreSQL socket " << socket
@@ -201,13 +210,6 @@ void PGConnectionWrapper::WaitConnectionFinish(Duration poll_timeout) {
     }
     poll_res = PQconnectPoll(conn_);
     LOG_TRACE() << log_extra_ << MsgForStatus(PQstatus(conn_));
-  }
-}
-
-void PGConnectionWrapper::OnConnect() {
-  if (PQsetnonblocking(conn_, 1)) {
-    // TODO Deside on severity of the problem
-    LOG_WARNING() << log_extra_ << "Failed to set non-blocking connection mode";
   }
 }
 

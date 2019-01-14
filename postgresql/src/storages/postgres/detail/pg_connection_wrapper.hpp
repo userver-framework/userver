@@ -72,7 +72,6 @@ class PGConnectionWrapper {
 
   void StartAsyncConnect(const std::string& conninfo);
   void WaitConnectionFinish(Duration poll_timeout);
-  void OnConnect();
 
   void WaitSocketWriteable(Duration timeout);
   void WaitSocketReadable(Duration timeout);
