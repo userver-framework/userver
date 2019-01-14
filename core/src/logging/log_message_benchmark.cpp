@@ -70,6 +70,7 @@ BENCHMARK_DEFINE_F(LogHelperBenchmark, LogCheck)(benchmark::State& state) {
   for (auto _ : state) {
     LOG_TRACE() << msg.c_str();
   }
+  state.SetComplexityN(state.range(0));
 }
 BENCHMARK_REGISTER_F(LogHelperBenchmark, LogCheck)
     ->RangeMultiplier(2)
