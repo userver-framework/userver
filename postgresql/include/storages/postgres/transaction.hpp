@@ -1,13 +1,14 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
+#include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 #include <storages/postgres/result_set.hpp>
-
-#include <memory>
-#include <string>
 
 namespace storages {
 namespace postgres {

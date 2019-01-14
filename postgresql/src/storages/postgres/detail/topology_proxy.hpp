@@ -12,7 +12,7 @@ class ClusterTopologyProxy : public ClusterTopology {
 
   const DSNList& GetDsnList() const;
   HostsByType GetHostsByType() const override;
-  void CheckTopology() override {}
+  HostAvailabilityChanges CheckTopology() override { return {}; }
   void OperationFailed(const std::string& dsn) override {}
 
  private:

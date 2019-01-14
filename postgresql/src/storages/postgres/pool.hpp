@@ -1,16 +1,21 @@
 #pragma once
 
-#include <atomic>
 #include <memory>
 
-#include <engine/task/task_processor.hpp>
-#include <storages/postgres/dsn.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
 
+namespace engine {
+class TaskProcessor;
+}
+
 namespace storages {
 namespace postgres {
+
+namespace detail {
+class ConnectionPoolImpl;
+}
 
 /// PostgreSQL client connection pool
 class ConnectionPool {
@@ -40,8 +45,7 @@ class ConnectionPool {
   Transaction Begin(const TransactionOptions&);
 
  private:
-  class Impl;
-  std::unique_ptr<Impl> pimpl_;
+  std::shared_ptr<detail::ConnectionPoolImpl> pimpl_;
 };
 
 }  // namespace postgres

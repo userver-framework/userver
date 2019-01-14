@@ -1,10 +1,12 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 #include <unordered_map>
 
 #include <engine/task/task_processor.hpp>
 #include <utils/periodic_task.hpp>
+#include <utils/swappingsmart.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/detail/topology.hpp>
@@ -32,18 +34,36 @@ class ClusterImpl {
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options);
 
  private:
-  void InitPools(const DSNList& dsn_list, size_t initial_size, size_t max_size);
+  using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
+  using HostPoolByDsn = std::unordered_map<std::string, ConnectionPoolPtr>;
+
+  ClusterImpl(engine::TaskProcessor& bg_task_processor, size_t initial_size,
+              size_t max_size);
+
+  void InitPools(const DSNList& dsn_list);
   void StartPeriodicUpdates();
   void StopPeriodicUpdates();
   void CheckTopology();
+  ConnectionPoolPtr GetPool(const std::string& dsn) const;
 
  private:
   ClusterTopologyPtr topology_;
   engine::TaskProcessor& bg_task_processor_;
   ::utils::PeriodicTask periodic_task_;
-  // TODO: consider using string_view
-  std::unordered_map<std::string, ConnectionPool> host_pools_;
+  // This variable should never be used directly as it may be modified
+  // concurrently.
+  // Obtain needed pool with GetPool call.
+  // Don't try to modify the variable from two different places as it may result
+  // in lost updates.
+  // Places of direct usage:
+  // - InitPools - pool initialization (before use)
+  // - GetPool - get needed pool with atomicity guarantees
+  // - CheckTopology - single place of modification
+  ::utils::SwappingSmart<const HostPoolByDsn> host_pools_;
   std::atomic<uint32_t> host_ind_;
+  size_t pool_initial_size_;
+  size_t pool_max_size_;
+  std::atomic_flag update_lock_;
 };
 
 }  // namespace detail

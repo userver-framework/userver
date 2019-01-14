@@ -22,11 +22,20 @@ class ClusterTopology {
   using HostsByType =
       std::unordered_map<ClusterHostType, DSNList, ClusterHostTypeHash>;
 
+  enum class HostAvailability {
+    kOffline,    /// The host went offline
+    kPreOnline,  /// Next iteration the host might go online
+    kOnline,     /// The host is back online
+  };
+
+  using HostAvailabilityChanges =
+      std::unordered_map<std::string, HostAvailability>;
+
  public:
   virtual ~ClusterTopology() = default;
 
   virtual HostsByType GetHostsByType() const = 0;
-  virtual void CheckTopology() = 0;
+  virtual HostAvailabilityChanges CheckTopology() = 0;
   virtual void OperationFailed(const std::string& dsn) = 0;
 };
 

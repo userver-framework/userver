@@ -75,24 +75,6 @@ std::string HostTypeToString(ClusterHostType host_type) {
   return host_type != kNothing ? ToString(host_type) : "--- unavailable ---";
 }
 
-struct TryLockGuard {
-  TryLockGuard(std::atomic_flag& lock) : lock_(lock) {
-    lock_acquired_ = !lock_.test_and_set(std::memory_order_acq_rel);
-  }
-
-  ~TryLockGuard() {
-    if (lock_acquired_) {
-      lock_.clear(std::memory_order_release);
-    }
-  }
-
-  bool LockAcquired() const { return lock_acquired_; }
-
- private:
-  std::atomic_flag& lock_;
-  bool lock_acquired_;
-};
-
 }  // namespace
 
 const std::chrono::seconds ClusterTopologyDiscovery::kUpdateInterval{5};
@@ -113,8 +95,7 @@ ClusterTopologyDiscovery::ClusterTopologyDiscovery(
       check_duration_(std::chrono::duration_cast<std::chrono::milliseconds>(
                           kUpdateInterval) *
                       4 / 5),
-      initial_check_(true),
-      update_lock_ ATOMIC_FLAG_INIT {
+      initial_check_(true) {
   if (check_duration_ < kMinCheckDuration) {
     check_duration_ = kMinCheckDuration;
     LOG_WARNING() << "Too short topology update interval specified. Topology "
@@ -280,26 +261,19 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
   return nullptr;
 }
 
-void ClusterTopologyDiscovery::CheckTopology() {
+ClusterTopology::HostAvailabilityChanges
+ClusterTopologyDiscovery::CheckTopology() {
+  const auto check_end_point =
+      std::chrono::steady_clock::now() + check_duration_;
+  LOG_INFO() << "Checking cluster topology. Check duration is "
+             << check_duration_.count() << " ms";
+  CheckHosts(check_end_point);
+
   HostsByType hosts_by_type;
-
-  {
-    TryLockGuard lock(update_lock_);
-    if (!lock.LockAcquired()) {
-      LOG_TRACE() << "Already checking cluster topology";
-      return;
-    }
-
-    const auto check_end_point =
-        std::chrono::steady_clock::now() + check_duration_;
-    LOG_INFO() << "Checking cluster topology. Check duration is "
-               << check_duration_.count() << " ms";
-    CheckHosts(check_end_point);
-
-    const auto updated = UpdateHostTypes();
-    if (updated) {
-      hosts_by_type = BuildHostsByType();
-    }
+  HostAvailabilityChanges host_availability;
+  const auto updated = UpdateHostTypes(host_availability);
+  if (updated) {
+    hosts_by_type = BuildHostsByType();
   }
 
   LOG_TRACE() << DumpTopologyState();
@@ -309,6 +283,7 @@ void ClusterTopologyDiscovery::CheckTopology() {
     // TODO consider using SwappingSmart
     hosts_by_type_ = std::move(hosts_by_type);
   }
+  return host_availability;
 }
 
 void ClusterTopologyDiscovery::OperationFailed(const std::string& dsn) {
@@ -454,13 +429,19 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
   return nullptr;
 }
 
-bool ClusterTopologyDiscovery::UpdateHostTypes() {
+bool ClusterTopologyDiscovery::UpdateHostTypes(
+    HostAvailabilityChanges& host_availability) {
   bool updated = false;
   for (size_t i = 0; i < host_states_.size(); ++i) {
+    auto& state = host_states_[i];
     if (!ShouldChangeHostType(i)) {
+      // Check if we are pre-online already
+      const auto pre_threshold = kCooldownThreshold - 1;
+      if (pre_threshold != 0 && state.changes.count == pre_threshold) {
+        host_availability[state.dsn] = HostAvailability::kPreOnline;
+      }
       continue;
     }
-    auto& state = host_states_[i];
     const auto new_type = state.changes.new_type;
     auto* conn = GetConnectionOrNull(i);
     if (conn) {
@@ -477,6 +458,9 @@ bool ClusterTopologyDiscovery::UpdateHostTypes() {
     state.host_type = new_type;
     state.changes.new_type = kNothing;
     state.changes.count = 0;
+    host_availability[state.dsn] = new_type == kNothing
+                                       ? HostAvailability::kOffline
+                                       : HostAvailability::kOnline;
   }
   initial_check_ = false;
   return updated;

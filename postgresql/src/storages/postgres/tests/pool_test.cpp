@@ -91,3 +91,16 @@ TEST_P(PostgrePool, PoolTransaction) {
     PoolTransaction(pool);
   });
 }
+
+TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
+  RunInCoro([this] {
+    auto pool =
+        std::make_unique<pg::ConnectionPool>(dsn_, GetTaskProcessor(), 1, 1);
+    pg::detail::ConnectionPtr conn;
+
+    EXPECT_NO_THROW(conn = pool->GetConnection())
+        << "Obtained connection from pool";
+    pool.reset();
+    CheckConnection(std::move(conn));
+  });
+}

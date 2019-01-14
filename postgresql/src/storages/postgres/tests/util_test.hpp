@@ -13,6 +13,7 @@
 
 #include <engine/task/task.hpp>
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/dsn.hpp>
 
 #include <utest/utest.hpp>

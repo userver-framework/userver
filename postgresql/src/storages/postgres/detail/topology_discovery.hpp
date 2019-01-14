@@ -10,6 +10,7 @@
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/detail/connection_ptr.hpp>
 #include <utils/statistics/relaxed_counter.hpp>
 
 namespace storages {
@@ -23,7 +24,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   ~ClusterTopologyDiscovery();
 
   HostsByType GetHostsByType() const override;
-  void CheckTopology() override;
+  HostAvailabilityChanges CheckTopology() override;
   void OperationFailed(const std::string& dsn) override;
 
   // TODO Move constants to config
@@ -50,7 +51,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   engine::Task* FindSyncSlaves(size_t master_index, Connection* conn);
   engine::Task* CheckSyncSlaves(
       size_t master_index, engine::TaskWithResult<std::vector<size_t>>& task);
-  bool UpdateHostTypes();
+  bool UpdateHostTypes(HostAvailabilityChanges& host_availability);
   std::string DumpTopologyState() const;
   HostsByType BuildHostsByType() const;
 
@@ -109,7 +110,6 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   std::unordered_map<std::string, size_t> dsn_to_index_;
   std::unordered_map<std::string, size_t> escaped_to_dsn_index_;
   bool initial_check_;
-  std::atomic_flag update_lock_;
 };
 
 }  // namespace detail

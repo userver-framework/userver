@@ -5,6 +5,7 @@
 #include <functional>
 
 #include <engine/task/task.hpp>
+#include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 
 void RunInCoro(std::function<void()> user_cb, size_t worker_threads = 1);
