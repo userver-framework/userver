@@ -74,10 +74,10 @@ void SetDefaultLoggerLevel(Level level) {
 }
 
 LogHelper::LogHelper(Level level, const char* path, int line, const char* func)
-    : buffer_{std::make_unique<MessageBuffer>(level)},
-      verbatim_stream_(buffer_.get()),
-      tskv_buffer_{std::make_unique<TskvBuffer>(buffer_->msg.raw)},
-      tskv_stream_(tskv_buffer_.get()) {
+    : buffer_{level},
+      verbatim_stream_(&*buffer_),
+      tskv_buffer_{buffer_->msg.raw},
+      tskv_stream_(&*tskv_buffer_) {
   LogSpan();
   LogModule(path, line, func);
   LogTaskIdAndCoroutineId();

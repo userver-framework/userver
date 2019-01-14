@@ -48,19 +48,28 @@ class FastPimpl {
   const T& operator*() const noexcept { return *AsHeld(); }
 
   ~FastPimpl() noexcept {
-    static_assert(
-        Size >= sizeof(T),
-        "incorrect specialization of Size: Size is less than sizeof(T)");
-    static_assert(
-        Size == sizeof(T) || !Strict,
-        "incorrect specialization of Size: Size and sizeof(T) mismatch");
-    static_assert(Alignment % alignof(T) == 0,
-                  "incorrect specialization of Alignment: Alignment and "
-                  "alignment_of(T) mismatch");
+    validator<sizeof(T), alignof(T)>::validate();
     AsHeld()->~T();
   }
 
  private:
+  // Separate class for better diagnostics: with it actual sizes are visible in
+  // compiler error message.
+  template <std::size_t ActualSize, std::size_t ActualAlignment>
+  struct validator {
+    static void validate() noexcept {
+      static_assert(
+          Size >= ActualSize,
+          "incorrect specialization of Size: Size is less than sizeof(T)");
+      static_assert(
+          Size == ActualSize || !Strict,
+          "incorrect specialization of Size: Size and sizeof(T) mismatch");
+      static_assert(Alignment % ActualAlignment == 0,
+                    "incorrect specialization of Alignment: Alignment and "
+                    "alignment_of(T) mismatch");
+    }
+  };
+
   std::aligned_storage_t<Size, Alignment> storage_;
 
   T* AsHeld() noexcept { return reinterpret_cast<T*>(&storage_); }

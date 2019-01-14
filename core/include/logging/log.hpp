@@ -98,9 +98,12 @@ class LogHelper {
   void LogTaskIdAndCoroutineId();
   void LogSpan();
 
-  std::unique_ptr<MessageBuffer> buffer_;
+  static constexpr std::size_t kMessageBufferPimplSize = 656;
+  utils::FastPimpl<MessageBuffer, kMessageBufferPimplSize, 8, true> buffer_;
   std::ostream verbatim_stream_;
-  std::unique_ptr<TskvBuffer> tskv_buffer_;
+
+  static constexpr std::size_t kTskvBufferPimplSize = 80;
+  utils::FastPimpl<TskvBuffer, kTskvBufferPimplSize, 8, true> tskv_buffer_;
   std::ostream tskv_stream_;
   LogExtra extra_;
 };

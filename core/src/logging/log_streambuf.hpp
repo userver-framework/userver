@@ -8,10 +8,10 @@
 
 namespace logging {
 
-class MessageBuffer : public std::streambuf {
+class MessageBuffer final : public std::streambuf {
  public:
   MessageBuffer(Level level);
-  virtual ~MessageBuffer() = default;
+  ~MessageBuffer() = default;
 
  protected:
   std::streamsize xsputn(const char_type* s, std::streamsize n) override;

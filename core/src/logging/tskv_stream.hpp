@@ -10,13 +10,13 @@
 namespace logging {
 
 /// @brief Stream buffer that tskv-encodes values
-class TskvBuffer : public std::streambuf {
+class TskvBuffer final : public std::streambuf {
  public:
   TskvBuffer(fmt::memory_buffer& buff,
              utils::encoding::EncodeTskvMode mode =
                  utils::encoding::EncodeTskvMode::kValue)
       : buffer_{buff}, mode_{mode} {}
-  virtual ~TskvBuffer() = default;
+  ~TskvBuffer() = default;
 
  protected:
   std::streamsize xsputn(const char_type* s, std::streamsize n) override;
