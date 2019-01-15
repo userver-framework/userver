@@ -1,6 +1,7 @@
 #include <storages/postgres/detail/pool_impl.hpp>
 
 #include <engine/async.hpp>
+#include <engine/sleep.hpp>
 #include <logging/log.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/exceptions.hpp>
@@ -10,6 +11,12 @@ namespace postgres {
 namespace detail {
 
 namespace {
+
+// TODO Move constants to config
+// Time to wait for connection to become available
+const std::chrono::seconds kConnWaitTimeout(2);
+// Minimal duration of connection availability check
+const std::chrono::milliseconds kConnCheckDuration(20);
 
 struct SizeGuard {
   SizeGuard(std::atomic<size_t>& size)
@@ -32,40 +39,57 @@ struct SizeGuard {
 
 }  // namespace
 
+template <typename T>
+struct TaskDetachGuard {
+  TaskDetachGuard(engine::TaskWithResult<T> task) : task_(std::move(task)) {}
+
+  ~TaskDetachGuard() {
+    if (task_.IsValid()) {
+      std::move(task_).Detach();
+    }
+  }
+
+  engine::TaskWithResult<T>& Get() { return task_; }
+
+ private:
+  engine::TaskWithResult<T> task_;
+};
+
 ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
                                        engine::TaskProcessor& bg_task_processor,
-                                       size_t initial_size, size_t max_size)
+                                       size_t max_size)
     : dsn_(dsn),
       bg_task_processor_(bg_task_processor),
       max_size_(max_size),
       queue_(max_size),
-      size_(0) {
+      size_(0) {}
+
+ConnectionPoolImpl::~ConnectionPoolImpl() { Clear(); }
+
+std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
+    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
+    size_t initial_size, size_t max_size) {
+  auto impl = std::shared_ptr<ConnectionPoolImpl>(
+      new ConnectionPoolImpl(dsn, bg_task_processor, max_size));
+  impl->Init(initial_size);
+  return impl;
+}
+
+void ConnectionPoolImpl::Init(size_t initial_size) {
   if (dsn_.empty()) {
     throw InvalidConfig("PostgreSQL DSN is empty");
   }
 
-  std::vector<engine::TaskWithResult<Connection*>> tasks;
-  tasks.reserve(initial_size);
+  if (initial_size > max_size_) {
+    throw InvalidConfig(
+        "PostgreSQL pool max size is less than requested initial size");
+  }
+
   LOG_INFO() << "Creating " << initial_size << " PostgreSQL connections";
   for (size_t i = 0; i < initial_size; ++i) {
-    auto task = engine::Async([this] { return Create(); });
-    tasks.push_back(std::move(task));
-  }
-
-  for (auto&& task : tasks) {
-    try {
-      Push(task.Get());
-    } catch (const ConnectionError&) {
-      // We'll re-create connections later on demand
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "PostgreSQL pool pre-population failed: " << ex.what();
-      Clear();
-      throw;
-    }
+    Create().Detach();
   }
 }
-
-ConnectionPoolImpl::~ConnectionPoolImpl() { Clear(); }
 
 ConnectionPtr ConnectionPoolImpl::Acquire() {
   // Obtain smart pointer first to prolong lifetime of this object
@@ -108,6 +132,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
   }
 
   // TODO: determine connection states that are allowed here
+  ++stats_.connection.error_total;
   LOG_WARNING() << "Released connection in "
                 << (connection->IsConnected() ? "busy" : "closed")
                 << " state. Deleting...";
@@ -127,31 +152,41 @@ Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options) {
   return Transaction{std::move(conn), options, std::move(trx_start_time)};
 }
 
-Connection* ConnectionPoolImpl::Create() {
-  SizeGuard sg(size_);
+engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
+  return engine::Async([thiz = shared_from_this()] {
+    SizeGuard sg(thiz->size_);
 
-  if (sg.GetSize() > max_size_) {
-    ++stats_.pool_error_exhaust_total;
-    throw PoolError("PostgreSQL pool reached maximum size: " +
-                    std::to_string(max_size_));
-  }
+    if (sg.GetSize() > thiz->max_size_) {
+      LOG_WARNING() << "PostgreSQL pool reached maximum size: "
+                    << thiz->max_size_;
+      return false;
+    }
 
-  LOG_DEBUG() << "Creating PostgreSQL connection, current pool size: "
-              << sg.GetSize();
-  const auto conn_id = ++stats_.connection.open_total;
-  std::unique_ptr<Connection> connection;
-  try {
-    connection = Connection::Connect(dsn_, bg_task_processor_, conn_id);
-  } catch (const Error&) {
-    ++stats_.connection.error_total;
-    throw;
-  }
+    LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
+                << sg.GetSize();
+    const auto conn_id = ++thiz->stats_.connection.open_total;
+    std::unique_ptr<Connection> connection;
+    try {
+      connection =
+          Connection::Connect(thiz->dsn_, thiz->bg_task_processor_, conn_id);
+    } catch (const ConnectionError&) {
+      // No problem if it's connection error
+      ++thiz->stats_.connection.error_total;
+      return false;
+    } catch (const Error& ex) {
+      ++thiz->stats_.connection.error_total;
+      LOG_ERROR() << "Connection creation failed with error: " << ex.what();
+      throw;
+    }
+    LOG_TRACE() << "PostgreSQL connection created";
 
-  // Clean up the statistics and not account it
-  std::ignore = connection->GetStatsAndReset();
+    // Clean up the statistics and not account it
+    std::ignore = connection->GetStatsAndReset();
 
-  sg.Dismiss();
-  return connection.release();
+    sg.Dismiss();
+    thiz->Push(connection.release());
+    return true;
+  });
 }
 
 void ConnectionPoolImpl::Push(Connection* connection) {
@@ -159,6 +194,7 @@ void ConnectionPoolImpl::Push(Connection* connection) {
     return;
   }
 
+  // TODO Reflect this as a statistics error
   LOG_WARNING() << "Couldn't push connection back to the pool. Deleting...";
   DeleteConnection(connection);
 }
@@ -168,7 +204,42 @@ Connection* ConnectionPoolImpl::Pop() {
   if (queue_.pop(connection)) {
     return connection;
   }
-  return Create();
+
+  // No connections found - need to create new one and wait for connection to
+  // become available in the queue
+  const auto conn_wait_end_point =
+      detail::SteadyClock::now() + kConnWaitTimeout;
+  TaskDetachGuard task_guard(Create());
+  auto& create_task = task_guard.Get();
+
+  do {
+    const auto next_point =
+        std::min(std::chrono::steady_clock::now() + kConnCheckDuration,
+                 conn_wait_end_point);
+    // TODO Need MPMC queue with wait on empty capability
+    engine::SleepUntil(next_point);
+
+    bool create_again = false;
+    if (create_task.IsValid() && create_task.IsFinished()) {
+      // If connection has been created but we failed to get it from the queue
+      // - we'll need to create connection again
+      create_again = create_task.Get();
+      create_task = {};
+    }
+
+    if (queue_.pop(connection)) {
+      return connection;
+    }
+
+    if (create_again) {
+      LOG_DEBUG() << "Connection has been created, but stolen. "
+                     "Re-creating again...";
+      create_task = Create();
+    }
+  } while (detail::SteadyClock::now() < conn_wait_end_point);
+
+  ++stats_.pool_error_exhaust_total;
+  throw PoolError("No available connections found");
 }
 
 void ConnectionPoolImpl::Clear() {

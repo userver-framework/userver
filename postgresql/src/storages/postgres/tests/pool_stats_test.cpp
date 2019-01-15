@@ -62,9 +62,9 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
 
     // We can't check all the counters as some of them are used for internal ops
     const auto& stats = pool.GetStatistics();
-    EXPECT_EQ(stats.connection.open_total, min_pool_size);
+    EXPECT_LE(stats.connection.open_total, min_pool_size);
     EXPECT_EQ(stats.connection.drop_total, 0);
-    EXPECT_EQ(stats.connection.active, min_pool_size);
+    EXPECT_LE(stats.connection.active, min_pool_size);
     EXPECT_EQ(stats.connection.used, 0);
     EXPECT_EQ(stats.connection.maximum, 10);
     EXPECT_EQ(stats.transaction.total, 0);

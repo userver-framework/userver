@@ -7,6 +7,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <engine/task/task_processor.hpp>
+#include <engine/task/task_with_result.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/options.hpp>
@@ -20,9 +21,9 @@ namespace detail {
 class ConnectionPoolImpl
     : public std::enable_shared_from_this<ConnectionPoolImpl> {
  public:
-  ConnectionPoolImpl(const std::string& dsn,
-                     engine::TaskProcessor& bg_task_processor,
-                     size_t initial_size, size_t max_size);
+  static std::shared_ptr<ConnectionPoolImpl> Create(
+      const std::string& dsn, engine::TaskProcessor& bg_task_processor,
+      size_t initial_size, size_t max_size);
   ~ConnectionPoolImpl();
 
   ConnectionPtr Acquire();
@@ -32,7 +33,11 @@ class ConnectionPoolImpl
   Transaction Begin(const TransactionOptions& options);
 
  private:
-  detail::Connection* Create();
+  ConnectionPoolImpl(const std::string& dsn,
+                     engine::TaskProcessor& bg_task_processor, size_t max_size);
+  void Init(size_t initial_size);
+
+  [[nodiscard]] engine::TaskWithResult<bool> Create();
 
   void Push(detail::Connection* connection);
   detail::Connection* Pop();

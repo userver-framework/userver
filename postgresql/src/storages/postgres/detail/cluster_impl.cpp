@@ -84,27 +84,18 @@ void ClusterImpl::StartPeriodicUpdates() {
 void ClusterImpl::StopPeriodicUpdates() { periodic_task_.Stop(); }
 
 void ClusterImpl::InitPools(const DSNList& dsn_list) {
-  std::vector<engine::TaskWithResult<std::pair<std::string, ConnectionPoolPtr>>>
-      tasks;
-  tasks.reserve(dsn_list.size());
   HostPoolByDsn host_pools;
   host_pools.reserve(dsn_list.size());
 
-  // TODO this code may be simplified when we don't block on pool initialization
-  for (auto dsn : dsn_list) {
-    auto task = engine::Async([ this, dsn = std::move(dsn) ] {
-      return std::make_pair(dsn, std::make_shared<ConnectionPool>(
-                                     dsn, bg_task_processor_,
-                                     pool_initial_size_, pool_max_size_));
-    });
-    tasks.push_back(std::move(task));
-  }
-
-  for (auto&& task : tasks) {
-    host_pools.insert(task.Get());
+  LOG_DEBUG() << "Starting pools initialization";
+  for (const auto& dsn : dsn_list) {
+    host_pools.insert(std::make_pair(
+        dsn, std::make_shared<ConnectionPool>(
+                 dsn, bg_task_processor_, pool_initial_size_, pool_max_size_)));
   }
 
   host_pools_.Set(std::make_shared<HostPoolByDsn>(std::move(host_pools)));
+  LOG_DEBUG() << "Pools initialized";
 }
 
 void ClusterImpl::CheckTopology() {

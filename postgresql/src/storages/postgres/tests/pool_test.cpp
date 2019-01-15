@@ -4,6 +4,7 @@
 
 #include <utest/utest.hpp>
 
+#include <engine/async.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
@@ -77,10 +78,30 @@ TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   });
 }
 
+TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
+  RunInCoro([this] {
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1);
+    pg::detail::ConnectionPtr conn;
+
+    EXPECT_NO_THROW(conn = pool.GetConnection())
+        << "Obtained connection from pool";
+    // Free up connection asynchronously
+    engine::Async(GetTaskProcessor(),
+                  [](pg::detail::ConnectionPtr conn) { conn = nullptr; },
+                  std::move(conn))
+        .Detach();
+    EXPECT_NO_THROW(conn = pool.GetConnection())
+        << "Execution blocked because pool reached max size, but connection "
+           "found later";
+
+    CheckConnection(std::move(conn));
+  });
+}
+
 TEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
   RunInCoro([this] {
     EXPECT_THROW(pg::ConnectionPool(dsn_, GetTaskProcessor(), 2, 1),
-                 pg::PoolError)
+                 pg::InvalidConfig)
         << "Pool reached max size";
   });
 }

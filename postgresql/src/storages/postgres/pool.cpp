@@ -7,9 +7,9 @@ namespace postgres {
 
 ConnectionPool::ConnectionPool(const std::string& dsn,
                                engine::TaskProcessor& bg_task_processor,
-                               size_t min_size, size_t max_size) {
-  pimpl_ = std::make_shared<detail::ConnectionPoolImpl>(dsn, bg_task_processor,
-                                                        min_size, max_size);
+                               size_t initial_size, size_t max_size) {
+  pimpl_ = detail::ConnectionPoolImpl::Create(dsn, bg_task_processor,
+                                              initial_size, max_size);
 }
 
 ConnectionPool::~ConnectionPool() = default;
