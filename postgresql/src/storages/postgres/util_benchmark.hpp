@@ -5,7 +5,6 @@
 #include <functional>
 
 #include <engine/task/task.hpp>
-#include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 
 void RunInCoro(std::function<void()> user_cb, size_t worker_threads = 1);
@@ -20,6 +19,7 @@ constexpr uint32_t kConnectionId = 0;
 class PgConnection : public benchmark::Fixture {
  public:
   PgConnection();
+  ~PgConnection();
 
  protected:
   void SetUp(benchmark::State& st) override;
@@ -29,7 +29,7 @@ class PgConnection : public benchmark::Fixture {
 
   static engine::TaskProcessor& GetTaskProcessor();
 
-  detail::ConnectionPtr conn_;
+  std::unique_ptr<detail::Connection> conn_;
 };
 
 }  // namespace bench

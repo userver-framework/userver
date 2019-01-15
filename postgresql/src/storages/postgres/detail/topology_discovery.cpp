@@ -141,7 +141,8 @@ void ClusterTopologyDiscovery::StopRunningTasks() {
   LOG_INFO() << "Closing connections";
   for (auto&& state : host_states_) {
     try {
-      CloseConnection(std::move(boost::get<ConnectionPtr>(state.conn_variant)));
+      CloseConnection(std::move(
+          boost::get<std::unique_ptr<Connection>>(state.conn_variant)));
     } catch (const boost::bad_get&) {
       auto& conn_task = boost::get<ConnectionTask>(state.conn_variant);
       conn_task.RequestCancel();
@@ -151,20 +152,18 @@ void ClusterTopologyDiscovery::StopRunningTasks() {
   LOG_INFO() << "Closed connections";
 }
 
-engine::TaskWithResult<ConnectionPtr> ClusterTopologyDiscovery::Connect(
+ClusterTopologyDiscovery::ConnectionTask ClusterTopologyDiscovery::Connect(
     std::string dsn) {
   return engine::Async([ this, dsn = std::move(dsn) ] {
-    ConnectionPtr conn =
-        Connection::Connect(dsn, bg_task_processor_, kConnectionId);
-    return conn;
+    return Connection::Connect(dsn, bg_task_processor_, kConnectionId);
   });
 }
 
 void ClusterTopologyDiscovery::Reconnect(size_t index) {
   AccountHostTypeChange(index, kNothing);
   const auto failed_reconnects = host_states_[index].failed_reconnects++;
-  auto conn =
-      std::move(boost::get<ConnectionPtr>(host_states_[index].conn_variant));
+  auto conn = std::move(boost::get<std::unique_ptr<Connection>>(
+      host_states_[index].conn_variant));
   if (conn) {
     LOG_DEBUG() << conn->GetLogExtra() << "Starting reconnect #"
                 << failed_reconnects + 1;
@@ -174,7 +173,8 @@ void ClusterTopologyDiscovery::Reconnect(size_t index) {
   }
 
   auto task = engine::Async(
-      [this, failed_reconnects](ConnectionPtr conn, std::string dsn) {
+      [this, failed_reconnects](std::unique_ptr<Connection> conn,
+                                std::string dsn) {
         const auto wait_for_reconnect =
             failed_reconnects >= kImmediateReconnects;
         std::chrono::steady_clock::time_point tp;
@@ -194,7 +194,8 @@ void ClusterTopologyDiscovery::Reconnect(size_t index) {
   host_states_[index].checks.stage = HostChecks::Stage::kReconnect;
 }
 
-void ClusterTopologyDiscovery::CloseConnection(ConnectionPtr conn_ptr) {
+void ClusterTopologyDiscovery::CloseConnection(
+    std::unique_ptr<Connection> conn_ptr) {
   if (conn_ptr) {
     conn_ptr->Close();
   }
@@ -232,7 +233,9 @@ bool ClusterTopologyDiscovery::ShouldChangeHostType(size_t index) const {
 
 Connection* ClusterTopologyDiscovery::GetConnectionOrThrow(size_t index) const
     noexcept(false) {
-  return boost::get<ConnectionPtr>(host_states_[index].conn_variant).get();
+  return boost::get<std::unique_ptr<Connection>>(
+             host_states_[index].conn_variant)
+      .get();
 }
 
 Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {

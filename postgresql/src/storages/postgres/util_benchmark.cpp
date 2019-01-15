@@ -24,7 +24,9 @@ std::string GetDsnFromEnv() {
 
 }  // namespace
 
-PgConnection::PgConnection() {}
+PgConnection::PgConnection() = default;
+
+PgConnection::~PgConnection() = default;
 
 void PgConnection::SetUp(benchmark::State&) {
   auto conninfo = GetDsnFromEnv();

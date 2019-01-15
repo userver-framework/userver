@@ -10,7 +10,6 @@
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/detail/connection_ptr.hpp>
 #include <utils/statistics/relaxed_counter.hpp>
 
 namespace storages {
@@ -32,12 +31,14 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   static const std::chrono::seconds kUpdateInterval;
 
  private:
+  using ConnectionTask = engine::TaskWithResult<std::unique_ptr<Connection>>;
+
   void BuildIndexes();
   void CreateConnections(const DSNList& dsn_list);
   void StopRunningTasks();
-  [[nodiscard]] engine::TaskWithResult<ConnectionPtr> Connect(std::string dsn);
+  [[nodiscard]] ConnectionTask Connect(std::string dsn);
   void Reconnect(size_t index);
-  void CloseConnection(ConnectionPtr conn_ptr);
+  void CloseConnection(std::unique_ptr<Connection> conn_ptr);
   void AccountHostTypeChange(size_t index, ClusterHostType new_type);
   bool ShouldChangeHostType(size_t index) const;
 
@@ -56,8 +57,6 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   HostsByType BuildHostsByType() const;
 
  private:
-  using ConnectionTask = engine::TaskWithResult<ConnectionPtr>;
-
   template <typename T>
   class RelaxedAtomic : public ::utils::statistics::RelaxedCounter<T> {
    public:
@@ -88,7 +87,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
     HostState& operator=(HostState&&) = default;
 
     std::string dsn;
-    boost::variant<ConnectionPtr, ConnectionTask> conn_variant;
+    boost::variant<std::unique_ptr<Connection>, ConnectionTask> conn_variant;
     ClusterHostType host_type;
     size_t failed_reconnects;
 
