@@ -3,8 +3,8 @@
 /// @file logging/log.hpp
 /// @brief Logging helpers
 
-#include <iostream>
 #include <memory>
+#include <ostream>
 
 #include <boost/system/error_code.hpp>
 
@@ -26,10 +26,6 @@ LoggerPtr SetDefaultLogger(LoggerPtr);
 /// Sets new log level for default logger
 void SetDefaultLoggerLevel(Level);
 
-// Forward declaration for message buffer implementation
-class MessageBuffer;
-class TskvBuffer;
-
 /// Stream-like tskv-formatted log message builder
 class LogHelper {
  public:
@@ -39,8 +35,14 @@ class LogHelper {
   /// @param line line of the source file that generated the message
   /// @param func name of the function that generated the message
   LogHelper(Level level, const char* path, int line, const char* func);
-  ~LogHelper() noexcept(false);
+  ~LogHelper();
 
+  LogHelper(LogHelper&&) = delete;
+  LogHelper(const LogHelper&) = delete;
+  LogHelper& operator=(LogHelper&&) = delete;
+  LogHelper& operator=(const LogHelper&) = delete;
+
+  // All the logging goes through this function
   template <typename T>
   friend LogHelper&& operator<<(LogHelper&& lh, const T& value) {
     lh << value;
@@ -53,17 +55,17 @@ class LogHelper {
   }
 
   friend LogHelper& operator<<(LogHelper& lh, const void* value) {
-    lh.verbatim_stream_ << reinterpret_cast<unsigned long long>(value);
+    lh.Stream() << reinterpret_cast<unsigned long long>(value);
     return lh;
   }
 
   friend LogHelper& operator<<(LogHelper& lh, void* value) {
-    lh.verbatim_stream_ << reinterpret_cast<unsigned long long>(value);
+    lh.Stream() << reinterpret_cast<unsigned long long>(value);
     return lh;
   }
 
   friend LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
-    lh.verbatim_stream_ << ec.category().name() << ':' << ec.value();
+    lh.Stream() << ec.category().name() << ':' << ec.value();
     return lh;
   }
 
@@ -72,7 +74,7 @@ class LogHelper {
       typename std::enable_if<!utils::encoding::TypeNeedsEncodeTskv<T>::value,
                               LogHelper&>::type
       operator<<(LogHelper& lh, const T& value) {
-    lh.verbatim_stream_ << value;
+    lh.Stream() << value;
     return lh;
   }
 
@@ -80,7 +82,15 @@ class LogHelper {
   friend typename std::enable_if<utils::encoding::TypeNeedsEncodeTskv<T>::value,
                                  LogHelper&>::type
   operator<<(LogHelper& lh, const T& value) {
-    lh.tskv_stream_ << value;
+    try {
+      lh.StartTskvEncoding();
+      lh.Stream() << value;
+    } catch (...) {
+      lh.EndTskvEncoding();
+      throw;
+    }
+
+    lh.EndTskvEncoding();
     return lh;
   }
 
@@ -90,7 +100,7 @@ class LogHelper {
   }
 
  private:
-  void DoLog();
+  void DoLog() noexcept;
 
   void AppendLogExtra();
   void LogTextKey();
@@ -98,13 +108,14 @@ class LogHelper {
   void LogTaskIdAndCoroutineId();
   void LogSpan();
 
-  static constexpr std::size_t kMessageBufferPimplSize = 656;
-  utils::FastPimpl<MessageBuffer, kMessageBufferPimplSize, 8, true> buffer_;
-  std::ostream verbatim_stream_;
+  std::ostream& Stream() noexcept;
+  void StartTskvEncoding() noexcept;
+  void EndTskvEncoding() noexcept;
 
-  static constexpr std::size_t kTskvBufferPimplSize = 80;
-  utils::FastPimpl<TskvBuffer, kTskvBufferPimplSize, 8, true> tskv_buffer_;
-  std::ostream tskv_stream_;
+  struct StreamImpl;
+  static constexpr std::size_t kStreamImplSize = 936;
+  utils::FastPimpl<StreamImpl, kStreamImplSize, 8, true> pimpl_;
+
   LogExtra extra_;
 };
 

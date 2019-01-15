@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <cstdlib>
 #include <exception>
+#include <iostream>
 #include <string>
 #include <vector>
 

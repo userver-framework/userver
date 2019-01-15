@@ -33,7 +33,7 @@ class LogExtra {
     kFrozen,  ///< Attempts to replace this value will be ignored
   };
 
-  LogExtra();
+  LogExtra() noexcept;
 
   LogExtra(const LogExtra&);
 

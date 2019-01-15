@@ -9,7 +9,8 @@
 
 namespace logging {
 
-LogExtra::LogExtra() = default;
+LogExtra::LogExtra() noexcept  // constructor of small_vector does not throw
+{}
 
 LogExtra::LogExtra(const LogExtra&) = default;
 
