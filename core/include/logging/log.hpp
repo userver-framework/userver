@@ -113,7 +113,11 @@ class LogHelper {
   void EndTskvEncoding() noexcept;
 
   struct StreamImpl;
+#ifdef _LIBCPP_VERSION
+  static constexpr std::size_t kStreamImplSize = 824;
+#else
   static constexpr std::size_t kStreamImplSize = 936;
+#endif
   utils::FastPimpl<StreamImpl, kStreamImplSize, 8, true> pimpl_;
 
   LogExtra extra_;
