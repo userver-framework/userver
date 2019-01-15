@@ -47,10 +47,7 @@ bool PgConnection::IsConnectionValid() const {
 }
 
 engine::TaskProcessor& PgConnection::GetTaskProcessor() {
-  static auto task_processor_holder =
-      engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          1, "close_pg_conn", engine::impl::MakeTaskProcessorPools());
-  return *task_processor_holder;
+  return engine::current_task::GetCurrentTaskContext()->GetTaskProcessor();
 }
 
 }  // namespace bench
