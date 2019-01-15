@@ -104,3 +104,29 @@ TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
     CheckConnection(std::move(conn));
   });
 }
+
+TEST_P(PostgrePool, ConnectionPtrWorks) {
+  RunInCoro([this] {
+    auto pool =
+        std::make_unique<pg::ConnectionPool>(dsn_, GetTaskProcessor(), 2, 2);
+    pg::detail::ConnectionPtr conn;
+
+    EXPECT_NO_THROW(conn = pool->GetConnection())
+        << "Obtained connection from pool";
+    EXPECT_NO_THROW(conn = pool->GetConnection())
+        << "Obtained another connection from pool";
+    CheckConnection(std::move(conn));
+
+    // We still should have initial count of working connections in the pool
+    EXPECT_NO_THROW(conn = pool->GetConnection())
+        << "Obtained connection from pool again";
+    EXPECT_NO_THROW(conn = pool->GetConnection())
+        << "Obtained another connection from pool again";
+    pg::detail::ConnectionPtr conn2;
+    EXPECT_NO_THROW(conn2 = pool->GetConnection())
+        << "Obtained connection from pool one more time";
+    pool.reset();
+    CheckConnection(std::move(conn));
+    CheckConnection(std::move(conn2));
+  });
+}

@@ -18,17 +18,16 @@ ConnectionPtr::ConnectionPtr(Connection* conn,
   assert(pool_ && "This constructor requires non-empty parent pool");
 }
 
-ConnectionPtr::~ConnectionPtr() {
-  // It's possible that connection doesn't have a parent pool if created
-  // standalone - in this case it will be freed up automatically
-  if (pool_) {
-    pool_->Release(conn_.release());
-  }
+ConnectionPtr::~ConnectionPtr() { Reset(nullptr, nullptr); }
+
+ConnectionPtr::ConnectionPtr(ConnectionPtr&& other) noexcept {
+  Reset(std::move(other.conn_), std::move(other.pool_));
 }
 
-ConnectionPtr::ConnectionPtr(ConnectionPtr&&) noexcept = default;
-
-ConnectionPtr& ConnectionPtr::operator=(ConnectionPtr&&) noexcept = default;
+ConnectionPtr& ConnectionPtr::operator=(ConnectionPtr&& other) noexcept {
+  Reset(std::move(other.conn_), std::move(other.pool_));
+  return *this;
+}
 
 ConnectionPtr::operator bool() const noexcept { return conn_ != nullptr; }
 
@@ -40,6 +39,22 @@ Connection& ConnectionPtr::operator*() const {
 }
 
 Connection* ConnectionPtr::operator->() const noexcept { return conn_.get(); }
+
+void ConnectionPtr::Reset(std::unique_ptr<Connection> conn,
+                          std::shared_ptr<ConnectionPoolImpl> pool) {
+  Release();
+  conn_ = std::move(conn);
+  pool_ = std::move(pool);
+}
+
+void ConnectionPtr::Release() {
+  // We release pooled connection but reset standalone one
+  if (pool_) {
+    pool_->Release(conn_.release());
+  } else {
+    conn_.reset();
+  }
+}
 
 }  // namespace detail
 }  // namespace postgres

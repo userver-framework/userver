@@ -32,6 +32,10 @@ class ConnectionPtr {
   Connection* operator->() const noexcept;
 
  private:
+  void Reset(std::unique_ptr<Connection> conn,
+             std::shared_ptr<ConnectionPoolImpl> pool);
+  void Release();
+
   std::unique_ptr<Connection> conn_;
   std::shared_ptr<ConnectionPoolImpl> pool_;
 };
