@@ -6,6 +6,8 @@
 
 #include <components/run.hpp>
 
+#include <boost/exception/diagnostic_information.hpp>
+
 namespace utils {
 
 int DoDaemonMain(int argc, char** argv,
@@ -42,7 +44,12 @@ int DoDaemonMain(int argc, char** argv,
     components::Run(config_path, components_list, init_log_path);
     return 0;
   } catch (const std::exception& ex) {
-    std::cerr << "Unhandled exception: " << ex.what() << '\n';
+    std::cerr << FILENAME << ':' << __LINE__
+              << " Unhandled exception: " << ex.what() << '\n';
+    return 1;
+  } catch (...) {
+    std::cerr << FILENAME << ':' << __LINE__ << " Non-standard exception: "
+              << boost::current_exception_diagnostic_information() << '\n';
     return 1;
   }
 }
