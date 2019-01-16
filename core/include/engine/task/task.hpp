@@ -9,6 +9,7 @@
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <engine/deadline.hpp>
+#include <utils/clang_format_workarounds.hpp>
 
 namespace engine {
 namespace ev {
@@ -22,7 +23,7 @@ class TaskContextHolder;
 class TaskProcessor;
 
 /// Asynchronous task
-class Task {
+class USERVER_NODISCARD Task {
  public:
   /// Task importance
   enum class Importance {
@@ -96,6 +97,12 @@ class Task {
   void WaitUntil(const std::chrono::time_point<Clock, Duration>&) const
       noexcept(false);
 
+  /// @brief Suspends execution until the task finishes or until the specified
+  /// deadline is reached or until caller is cancelled
+  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+  /// and no TaskCancellationBlockers are present.
+  void WaitUntil(Deadline) const;
+
   /// @brief Detaches task, allowing it to continue execution out of scope
   /// @note After detach, Task becomes invalid
   void Detach() &&;
@@ -112,8 +119,10 @@ class Task {
   Task(impl::TaskContextHolder&&);
   /// @endcond
 
+  /// Marks task as invalid
+  void Invalidate();
+
  private:
-  void DoWaitUntil(Deadline) const;
   void Terminate() noexcept;
 
   boost::intrusive_ptr<impl::TaskContext> context_;
@@ -155,13 +164,13 @@ void AccountSpuriousWakeup();
 template <typename Rep, typename Period>
 void Task::WaitFor(const std::chrono::duration<Rep, Period>& duration) const
     noexcept(false) {
-  DoWaitUntil(Deadline::FromDuration(duration));
+  WaitUntil(Deadline::FromDuration(duration));
 }
 
 template <typename Clock, typename Duration>
 void Task::WaitUntil(const std::chrono::time_point<Clock, Duration>& until)
     const noexcept(false) {
-  DoWaitUntil(Deadline::FromTimePoint(until));
+  WaitUntil(Deadline::FromTimePoint(until));
 }
 
 }  // namespace engine

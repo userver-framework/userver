@@ -144,3 +144,12 @@ TEST(Task, CancelWaiting) {
     while (!is_subtask_started) engine::Yield();
   });
 }
+
+TEST(Task, GetInvalidatesTask) {
+  RunInCoro([] {
+    auto task = engine::Async([] {});
+    ASSERT_TRUE(task.IsValid());
+    EXPECT_NO_THROW(task.Get());
+    EXPECT_FALSE(task.IsValid());
+  });
+}

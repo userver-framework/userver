@@ -9,6 +9,7 @@
 
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
+#include <utils/clang_format_workarounds.hpp>
 #include <utils/wrapped_call.hpp>
 
 namespace engine {
@@ -30,7 +31,7 @@ class TaskCancelledException : public std::runtime_error {
 
 /// Asynchronous task with result
 template <typename T>
-class TaskWithResult : public Task {
+class USERVER_NODISCARD TaskWithResult : public Task {
  public:
   /// @brief Default constructor
   ///
@@ -50,7 +51,8 @@ class TaskWithResult : public Task {
             [wrapped_call_ptr] { wrapped_call_ptr->Perform(); })),
         wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
 
-  /// @brief Returns (or rethrows) the result of task invocation
+  /// @brief Returns (or rethrows) the result of task invocation.
+  /// After return from this method the task is not valid.
   /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
   /// and no TaskCancellationBlockers are present.
   /// @throws TaskCancelledException
@@ -61,6 +63,7 @@ class TaskWithResult : public Task {
     if (GetState() == State::kCancelled) {
       throw TaskCancelledException(GetCancellationReason());
     }
+    Invalidate();
     return wrapped_call_ptr_->Retrieve();
   }
 

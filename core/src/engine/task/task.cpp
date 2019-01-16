@@ -41,6 +41,11 @@ void Task::Wait() const noexcept(false) {
   context_->Wait();
 }
 
+void Task::WaitUntil(Deadline deadline) const {
+  assert(context_);
+  context_->WaitUntil(std::move(deadline));
+}
+
 void Task::Detach() && {
   if (context_) {
     assert(context_->use_count() > 0);
@@ -58,20 +63,18 @@ Task::CancellationReason Task::GetCancellationReason() const {
   return context_->GetCancellationReason();
 }
 
-void Task::DoWaitUntil(Deadline deadline) const {
-  assert(context_);
-  context_->WaitUntil(std::move(deadline));
+void Task::Invalidate() {
+  Terminate();
+  context_.reset();
 }
 
 void Task::Terminate() noexcept {
-  if (context_) {
+  if (context_ && !IsFinished()) {
     // TODO: it is currently not possible to Wait() from outside of coro
     // use std::promise + Detach() instead
     // do it with caution though as you may get a deadlock
     // e.g. between global event thread pool and task processor
-    if (!IsFinished()) {
-      context_->RequestCancel(Task::CancellationReason::kAbandoned);
-    }
+    context_->RequestCancel(Task::CancellationReason::kAbandoned);
 
     TaskCancellationBlocker cancel_blocker;
     while (!IsFinished()) Wait();
