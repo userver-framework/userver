@@ -11,6 +11,7 @@
 #include <engine/task/task_with_result.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <utils/statistics/relaxed_counter.hpp>
+#include <utils/swappingsmart.hpp>
 
 namespace storages {
 namespace postgres {
@@ -52,7 +53,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   engine::Task* FindSyncSlaves(size_t master_index, Connection* conn);
   engine::Task* CheckSyncSlaves(
       size_t master_index, engine::TaskWithResult<std::vector<size_t>>& task);
-  bool UpdateHostTypes(HostAvailabilityChanges& host_availability);
+  HostAvailabilityChanges UpdateHostTypes();
   std::string DumpTopologyState() const;
   HostsByType BuildHostsByType() const;
 
@@ -104,8 +105,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   engine::TaskProcessor& bg_task_processor_;
   std::chrono::milliseconds check_duration_;
   std::vector<HostState> host_states_;
-  mutable engine::Mutex hosts_mutex_;
-  HostsByType hosts_by_type_;
+  ::utils::SwappingSmart<HostsByType> hosts_by_type_;
   std::unordered_map<std::string, size_t> dsn_to_index_;
   std::unordered_map<std::string, size_t> escaped_to_dsn_index_;
   bool initial_check_;

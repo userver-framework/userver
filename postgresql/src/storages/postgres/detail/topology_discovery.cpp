@@ -95,6 +95,7 @@ ClusterTopologyDiscovery::ClusterTopologyDiscovery(
       check_duration_(std::chrono::duration_cast<std::chrono::milliseconds>(
                           kUpdateInterval) *
                       4 / 5),
+      hosts_by_type_(std::make_shared<HostsByType>()),
       initial_check_(true) {
   if (check_duration_ < kMinCheckDuration) {
     check_duration_ = kMinCheckDuration;
@@ -109,8 +110,7 @@ ClusterTopologyDiscovery::ClusterTopologyDiscovery(
 ClusterTopologyDiscovery::~ClusterTopologyDiscovery() { StopRunningTasks(); }
 
 ClusterTopology::HostsByType ClusterTopologyDiscovery::GetHostsByType() const {
-  std::lock_guard<engine::Mutex> lock(hosts_mutex_);
-  return hosts_by_type_;
+  return *hosts_by_type_.Get();
 }
 
 void ClusterTopologyDiscovery::BuildIndexes() {
@@ -272,20 +272,10 @@ ClusterTopologyDiscovery::CheckTopology() {
              << check_duration_.count() << " ms";
   CheckHosts(check_end_point);
 
-  HostsByType hosts_by_type;
-  HostAvailabilityChanges host_availability;
-  const auto updated = UpdateHostTypes(host_availability);
-  if (updated) {
-    hosts_by_type = BuildHostsByType();
-  }
+  auto host_availability = UpdateHostTypes();
+  initial_check_ = false;
 
   LOG_TRACE() << DumpTopologyState();
-
-  if (!hosts_by_type.empty()) {
-    std::lock_guard<engine::Mutex> lock(hosts_mutex_);
-    // TODO consider using SwappingSmart
-    hosts_by_type_ = std::move(hosts_by_type);
-  }
   return host_availability;
 }
 
@@ -303,6 +293,7 @@ void ClusterTopologyDiscovery::CheckHosts(
     check_tasks[i] = CheckAvailability(i);
   }
 
+  HostsByType hosts_by_type;
   size_t index = kInvalidIndex;
   while ((index = WaitAnyUntil(check_tasks, check_end_point)) !=
          kInvalidIndex) {
@@ -320,6 +311,21 @@ void ClusterTopologyDiscovery::CheckHosts(
             index, static_cast<engine::TaskWithResult<std::vector<size_t>>&>(
                        *check_tasks[index]));
         break;
+    }
+
+    // This is the initial check and the current task is completed
+    // Let's update hosts info right away - it may not be very accurate
+    // (as sync slaves won't be determined here) but still is useful
+    // The correct info will be set by the end of this topology check
+    if (initial_check_ && check_tasks[index] == nullptr) {
+      const auto& state = host_states_[index];
+      const auto new_type = state.changes.new_type;
+      if (new_type != kNothing) {
+        hosts_by_type[new_type].push_back(state.dsn);
+        hosts_by_type_.Set(HostsByType(hosts_by_type));
+        LOG_DEBUG() << "Initially added host=" << HostAndPortFromDsn(state.dsn)
+                    << " as " << HostTypeToString(new_type);
+      }
     }
   }
 }
@@ -432,8 +438,9 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
   return nullptr;
 }
 
-bool ClusterTopologyDiscovery::UpdateHostTypes(
-    HostAvailabilityChanges& host_availability) {
+ClusterTopology::HostAvailabilityChanges
+ClusterTopologyDiscovery::UpdateHostTypes() {
+  HostAvailabilityChanges host_availability;
   bool updated = false;
   for (size_t i = 0; i < host_states_.size(); ++i) {
     auto& state = host_states_[i];
@@ -465,8 +472,11 @@ bool ClusterTopologyDiscovery::UpdateHostTypes(
                                        ? HostAvailability::kOffline
                                        : HostAvailability::kOnline;
   }
-  initial_check_ = false;
-  return updated;
+
+  if (updated) {
+    hosts_by_type_.Set(BuildHostsByType());
+  }
+  return host_availability;
 }
 
 std::string ClusterTopologyDiscovery::DumpTopologyState() const {

@@ -94,7 +94,7 @@ void ClusterImpl::InitPools(const DSNList& dsn_list) {
                  dsn, bg_task_processor_, pool_initial_size_, pool_max_size_)));
   }
 
-  host_pools_.Set(std::make_shared<HostPoolByDsn>(std::move(host_pools)));
+  host_pools_.Set(std::move(host_pools));
   LOG_DEBUG() << "Pools initialized";
 }
 
@@ -127,7 +127,7 @@ void ClusterImpl::CheckTopology() {
     }
   }
   // Set pools atomically
-  host_pools_.Set(std::make_shared<HostPoolByDsn>(std::move(host_pools)));
+  host_pools_.Set(std::move(host_pools));
 }
 
 ClusterImpl::ConnectionPoolPtr ClusterImpl::GetPool(
