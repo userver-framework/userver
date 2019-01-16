@@ -9,11 +9,11 @@
 namespace formats {
 namespace json {
 
-/// @brief Bidirectional iterator for `formats::json::Value`
+/// @brief Iterator for `formats::json::Value`
 template <typename iter_traits>
 class Iterator {
  public:
-  using iterator_category = std::bidirectional_iterator_tag;
+  using iterator_category = std::forward_iterator_tag;
   using difference_type = typename iter_traits::native_iter::difference_type;
   using value_type = typename iter_traits::value_type;
   using reference = typename iter_traits::reference;
@@ -28,9 +28,7 @@ class Iterator {
   Iterator& operator=(Iterator&& other) noexcept;
 
   Iterator operator++(int);
-  Iterator operator--(int);
   Iterator& operator++();
-  Iterator& operator--();
   reference operator*() const;
   pointer operator->() const;
 

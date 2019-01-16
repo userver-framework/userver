@@ -45,29 +45,17 @@ class Value {
   bool operator==(const Value& other) const;
   bool operator!=(const Value& other) const;
 
-  bool isMissing() const;
-  bool isNull() const;
-  bool isBool() const;
-  bool isInt() const;
-  bool isInt64() const;
-  bool isUInt() const;
-  bool isUInt64() const;
-  bool isIntegral() const;
-  bool isFloat() const;
-  bool isDouble() const;
-  bool isNumeric() const;
-  bool isString() const;
-  bool isArray() const;
-  bool isObject() const;
+  bool IsMissing() const;
 
-  bool asBool() const;
-  int32_t asInt() const;
-  int64_t asInt64() const;
-  uint32_t asUInt() const;
-  uint64_t asUInt64() const;
-  float asFloat() const;
-  double asDouble() const;
-  std::string asString() const;
+  bool IsNull() const;
+  bool IsBool() const;
+  bool IsInt() const;
+  bool IsInt64() const;
+  bool IsUInt64() const;
+  bool IsDouble() const;
+  bool IsString() const;
+  bool IsArray() const;
+  bool IsObject() const;
 
   template <typename T>
   T As() const;
@@ -99,10 +87,11 @@ class Value {
   const Json::Value& GetNative() const;
   Json::Value& GetNative();
 
+  void CheckNotMissing() const;
   void CheckArrayOrNull() const;
   void CheckObjectOrNull() const;
-  void CheckObjectOrArray() const;
-  void CheckOutOfBounds(uint32_t index) const;
+  void CheckObjectOrArrayOrNull() const;
+  void CheckInBounds(uint32_t index) const;
 
  private:
   NativeValuePtr root_;
@@ -115,7 +104,7 @@ class Value {
 
 template <typename T>
 T Value::As() const {
-  T* dont_use_me = nullptr;
+  const T* dont_use_me = nullptr;
   return ParseJson(*this, dont_use_me);
 }
 
@@ -129,9 +118,6 @@ template <>
 int64_t Value::As<int64_t>() const;
 
 template <>
-uint32_t Value::As<uint32_t>() const;
-
-template <>
 uint64_t Value::As<uint64_t>() const;
 
 #ifdef _LIBCPP_VERSION
@@ -140,9 +126,6 @@ inline unsigned long Value::As<unsigned long>() const {
   return As<uint64_t>();
 }
 #endif
-
-template <>
-float Value::As<float>() const;
 
 template <>
 double Value::As<double>() const;

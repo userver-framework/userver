@@ -34,28 +34,28 @@ TEST_F(JsonMemberModify, BuildNewValueEveryTime) {
 
 TEST_F(JsonMemberModify, CheckPrimitiveTypesChange) {
   builder_["key1"] = -100;
-  EXPECT_EQ(GetBuiltValue()["key1"].asInt(), -100);
+  EXPECT_EQ(GetBuiltValue()["key1"].As<int>(), -100);
   builder_["key1"] = "100";
-  EXPECT_EQ(GetBuiltValue()["key1"].asString(), "100");
+  EXPECT_EQ(GetBuiltValue()["key1"].As<std::string>(), "100");
   builder_["key1"] = true;
-  EXPECT_TRUE(GetBuiltValue()["key1"].asBool());
+  EXPECT_TRUE(GetBuiltValue()["key1"].As<bool>());
 }
 
 TEST_F(JsonMemberModify, CheckNestedTypesChange) {
   builder_["key3"]["sub"] = false;
-  EXPECT_FALSE(GetBuiltValue()["key3"]["sub"].asBool());
+  EXPECT_FALSE(GetBuiltValue()["key3"]["sub"].As<bool>());
   builder_["key3"] = -100;
-  EXPECT_EQ(GetBuiltValue()["key3"].asInt(), -100);
+  EXPECT_EQ(GetBuiltValue()["key3"].As<int>(), -100);
   builder_["key3"] = formats::json::FromString("{\"sub\":-1}");
-  EXPECT_EQ(GetBuiltValue()["key3"]["sub"].asInt(), -1);
+  EXPECT_EQ(GetBuiltValue()["key3"]["sub"].As<int>(), -1);
 }
 
 TEST_F(JsonMemberModify, CheckNestedArrayChange) {
   builder_["key4"][1] = 10;
   builder_["key4"][2] = 100;
-  EXPECT_EQ(GetBuiltValue()["key4"][0].asInt(), 1);
-  EXPECT_EQ(GetBuiltValue()["key4"][1].asInt(), 10);
-  EXPECT_EQ(GetBuiltValue()["key4"][2].asInt(), 100);
+  EXPECT_EQ(GetBuiltValue()["key4"][0].As<int>(), 1);
+  EXPECT_EQ(GetBuiltValue()["key4"][1].As<int>(), 10);
+  EXPECT_EQ(GetBuiltValue()["key4"][2].As<int>(), 100);
 }
 
 TEST_F(JsonMemberModify, ArrayResize) {
@@ -64,24 +64,24 @@ TEST_F(JsonMemberModify, ArrayResize) {
 
   builder_["key4"][3] = 4;
   for (size_t i = 0; i < 4; ++i) {
-    EXPECT_EQ(GetBuiltValue()["key4"][i].asInt(), i + 1);
+    EXPECT_EQ(GetBuiltValue()["key4"][i].As<int>(), i + 1);
   }
 
   builder_["key4"].Resize(1);
   EXPECT_EQ(GetBuiltValue()["key4"].GetSize(), 1);
-  EXPECT_EQ(GetBuiltValue()["key4"][0].asInt(), 1);
+  EXPECT_EQ(GetBuiltValue()["key4"][0].As<int>(), 1);
   EXPECT_THROW(GetBuiltValue()["key4"][2], formats::json::OutOfBoundsException);
 }
 
 TEST_F(JsonMemberModify, ArrayFromNull) {
   builder_ = formats::json::ValueBuilder();
-  EXPECT_THROW(GetBuiltValue().GetSize(), formats::json::TypeMismatchException);
+  EXPECT_EQ(GetBuiltValue().GetSize(), 0);
 
   builder_.Resize(1);
   EXPECT_EQ(GetBuiltValue().GetSize(), 1);
 
   builder_[0] = 0;
-  EXPECT_EQ(GetBuiltValue()[0].asInt(), 0);
+  EXPECT_EQ(GetBuiltValue()[0].As<int>(), 0);
   EXPECT_THROW(GetBuiltValue()[2], formats::json::OutOfBoundsException);
 }
 
@@ -95,15 +95,15 @@ TEST_F(JsonMemberModify, ArrayPushBack) {
   EXPECT_EQ(GetBuiltValue().GetSize(), size);
 
   for (auto i = 0; i < size; ++i) {
-    EXPECT_EQ(GetBuiltValue()[i].asInt(), i);
+    EXPECT_EQ(GetBuiltValue()[i].As<int>(), i);
   }
 }
 
 TEST_F(JsonMemberModify, PushBackFromExisting) {
   builder_["key4"].PushBack(builder_["key1"]);
   EXPECT_EQ(GetBuiltValue()["key4"].GetSize(), 4);
-  EXPECT_EQ(GetBuiltValue()["key4"][3].asInt(), 1);
-  EXPECT_EQ(GetBuiltValue()["key1"].asInt(), 1);
+  EXPECT_EQ(GetBuiltValue()["key4"][3].As<int>(), 1);
+  EXPECT_EQ(GetBuiltValue()["key1"].As<int>(), 1);
 }
 
 TEST_F(JsonMemberModify, PushBackWrongTypeThrows) {
@@ -133,7 +133,7 @@ TEST_F(JsonMemberModify, ObjectIteratorModify) {
       name += std::to_string(i);
       EXPECT_EQ(it.GetName(), name);
 
-      EXPECT_EQ(it->asInt(), i + offset);
+      EXPECT_EQ(it->As<int>(), i + offset);
     }
   }
 }
@@ -141,7 +141,7 @@ TEST_F(JsonMemberModify, ObjectIteratorModify) {
 TEST_F(JsonMemberModify, MemberCount) { EXPECT_EQ(builder_.GetSize(), 5); }
 
 TEST_F(JsonMemberModify, NonArrayThrowGetSize) {
-  formats::json::ValueBuilder bld;
+  formats::json::ValueBuilder bld(true);
   EXPECT_THROW(bld.GetSize(), formats::json::TypeMismatchException);
 }
 
@@ -156,7 +156,7 @@ TEST_F(JsonMemberModify, ArrayIteratorRead) {
 
   auto it = GetBuiltValue().begin();
   for (auto i = 0; i < size; ++i, ++it) {
-    EXPECT_EQ(it->asInt(), i);
+    EXPECT_EQ(it->As<int>(), i);
   }
   EXPECT_EQ(builder_.GetSize(), size);
 }
@@ -183,16 +183,15 @@ TEST_F(JsonMemberModify, ArrayIteratorModify) {
   {
     auto it = GetBuiltValue().begin();
     for (auto i = 0; i < size; ++i, ++it) {
-      EXPECT_EQ(it->asInt(), i + offset);
+      EXPECT_EQ(it->As<int>(), i + offset);
     }
   }
   EXPECT_EQ(builder_.GetSize(), size);
 }
 
 TEST_F(JsonMemberModify, CreateSpecificType) {
-  formats::json::ValueBuilder js_obj(formats::json::Type::kNull);
-  EXPECT_THROW(GetValue(js_obj).GetSize(),
-               formats::json::TypeMismatchException);
+  formats::json::ValueBuilder js_obj(formats::json::Type::kObject);
+  EXPECT_THROW(GetValue(js_obj)[0], formats::json::TypeMismatchException);
 
   formats::json::ValueBuilder js_arr(formats::json::Type::kArray);
   EXPECT_THROW(GetValue(js_arr)["key"], formats::json::TypeMismatchException);
@@ -214,17 +213,17 @@ TEST_F(JsonMemberModify, SubdocOutlivesRoot) {
 
 TEST_F(JsonMemberModify, MoveValueBuilder) {
   formats::json::ValueBuilder v = std::move(builder_);
-  EXPECT_FALSE(GetValue(v).isNull());
-  EXPECT_TRUE(GetBuiltValue().isNull());
+  EXPECT_FALSE(GetValue(v).IsNull());
+  EXPECT_TRUE(GetBuiltValue().IsNull());
 }
 
 TEST_F(JsonMemberModify, CheckSubobjectChange) {
   formats::json::ValueBuilder v = GetBuiltValue();
   builder_["key4"] = v["key3"];
   EXPECT_TRUE(GetBuiltValue()["key4"].HasMember("sub"));
-  EXPECT_EQ(GetBuiltValue()["key4"]["sub"].asInt(), -1);
+  EXPECT_EQ(GetBuiltValue()["key4"]["sub"].As<int>(), -1);
   EXPECT_TRUE(GetValue(v)["key3"].HasMember("sub"));
-  EXPECT_EQ(GetValue(v)["key3"]["sub"].asInt(), -1);
+  EXPECT_EQ(GetValue(v)["key3"]["sub"].As<int>(), -1);
 }
 
 TEST_F(JsonMemberModify, TypeCheckMinMax) {
@@ -242,17 +241,18 @@ TEST_F(JsonMemberModify, TypeCheckMinMax) {
   bld["long long"] = std::numeric_limits<long long>::min();
 
   auto v = GetValue(bld);
-  EXPECT_EQ(v["int8_t"].asInt(), std::numeric_limits<int8_t>::min());
-  EXPECT_EQ(v["uint8_t"].asUInt(), std::numeric_limits<uint8_t>::max());
-  EXPECT_EQ(v["int16_t"].asInt(), std::numeric_limits<int16_t>::min());
-  EXPECT_EQ(v["uint16_t"].asUInt(), std::numeric_limits<uint16_t>::max());
-  EXPECT_EQ(v["int32_t"].asInt(), std::numeric_limits<int32_t>::min());
-  EXPECT_EQ(v["uint32_t"].asUInt(), std::numeric_limits<uint32_t>::max());
-  EXPECT_EQ(v["int64_t"].asInt64(), std::numeric_limits<int64_t>::min());
-  EXPECT_EQ(v["uint64_t"].asUInt64(), std::numeric_limits<uint64_t>::max());
-  EXPECT_EQ(v["size_t"].asUInt64(), std::numeric_limits<size_t>::max());
-  EXPECT_EQ(v["long"].asInt64(), std::numeric_limits<long>::min());
-  EXPECT_EQ(v["long long"].asInt64(), std::numeric_limits<long long>::min());
+  EXPECT_EQ(v["int8_t"].As<int>(), std::numeric_limits<int8_t>::min());
+  EXPECT_EQ(v["uint8_t"].As<uint64_t>(), std::numeric_limits<uint8_t>::max());
+  EXPECT_EQ(v["int16_t"].As<int>(), std::numeric_limits<int16_t>::min());
+  EXPECT_EQ(v["uint16_t"].As<uint64_t>(), std::numeric_limits<uint16_t>::max());
+  EXPECT_EQ(v["int32_t"].As<int>(), std::numeric_limits<int32_t>::min());
+  EXPECT_EQ(v["uint32_t"].As<uint64_t>(), std::numeric_limits<uint32_t>::max());
+  EXPECT_EQ(v["int64_t"].As<int64_t>(), std::numeric_limits<int64_t>::min());
+  EXPECT_EQ(v["uint64_t"].As<uint64_t>(), std::numeric_limits<uint64_t>::max());
+  EXPECT_EQ(v["size_t"].As<size_t>(), std::numeric_limits<size_t>::max());
+  EXPECT_EQ(v["long"].As<int64_t>(), std::numeric_limits<long>::min());
+  EXPECT_EQ(v["long long"].As<int64_t>(),
+            std::numeric_limits<long long>::min());
 }
 
 TEST_F(JsonMemberModify, CannotBuildFromMissing) {

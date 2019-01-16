@@ -18,16 +18,16 @@ namespace secdist {
 std::string GetString(const formats::json::Value& parent_val,
                       const std::string& name) {
   const auto& val = parent_val[name];
-  if (!val.isString()) {
+  if (!val.IsString()) {
     ThrowInvalidSecdistType(name, "a string");
   }
-  return val.asString();
+  return val.As<std::string>();
 }
 
 int GetInt(const formats::json::Value& parent_val, const std::string& name,
            int dflt) {
   try {
-    return parent_val[name].asInt();
+    return parent_val[name].As<int>();
   } catch (const formats::json::MemberMissingException&) {
     return dflt;
   } catch (const formats::json::TypeMismatchException&) {
@@ -36,13 +36,13 @@ int GetInt(const formats::json::Value& parent_val, const std::string& name,
 }
 
 void CheckIsObject(const formats::json::Value& val, const std::string& name) {
-  if (!val.isObject()) {
+  if (!val.IsObject()) {
     ThrowInvalidSecdistType(name, "an object");
   }
 }
 
 void CheckIsArray(const formats::json::Value& val, const std::string& name) {
-  if (!val.isArray()) {
+  if (!val.IsArray()) {
     ThrowInvalidSecdistType(name, "an array");
   }
 }

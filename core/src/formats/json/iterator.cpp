@@ -54,22 +54,9 @@ Iterator<iter_traits> Iterator<iter_traits>::operator++(int) {
 }
 
 template <typename iter_traits>
-Iterator<iter_traits> Iterator<iter_traits>::operator--(int) {
-  valid_ = false;
-  return Iterator<iter_traits>(root_, iter_--, path_);
-}
-
-template <typename iter_traits>
 Iterator<iter_traits>& Iterator<iter_traits>::operator++() {
   valid_ = false;
   ++iter_;
-  return *this;
-}
-
-template <typename iter_traits>
-Iterator<iter_traits>& Iterator<iter_traits>::operator--() {
-  valid_ = false;
-  --iter_;
   return *this;
 }
 

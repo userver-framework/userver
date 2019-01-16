@@ -54,7 +54,7 @@ Client::Reply Client::FetchDocsMap(
   reply.docs_map.Parse(formats::json::ToString(configs_json), true);
 
   auto updated_at_json = json_value["updated_at"];
-  reply.timestamp = updated_at_json.asString();
+  reply.timestamp = updated_at_json.As<std::string>();
   return reply;
 }
 

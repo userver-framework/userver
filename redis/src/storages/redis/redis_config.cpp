@@ -1,9 +1,12 @@
 #include <storages/redis/redis_config.hpp>
 
+#include <stdexcept>
+
 namespace redis {
 
-redis::CommandControl::Strategy ParseJson(const formats::json::Value& elem,
-                                          ::redis::CommandControl::Strategy*) {
+redis::CommandControl::Strategy ParseJson(
+    const formats::json::Value& elem,
+    const ::redis::CommandControl::Strategy*) {
   auto strategy = elem.As<std::string>();
   if (strategy == "every_dc") {
     return redis::CommandControl::Strategy::kEveryDc;
@@ -21,23 +24,34 @@ redis::CommandControl::Strategy ParseJson(const formats::json::Value& elem,
 }
 
 ::redis::CommandControl ParseJson(const formats::json::Value& elem,
-                                  ::redis::CommandControl*) {
+                                  const ::redis::CommandControl*) {
   ::redis::CommandControl response;
 
   for (auto it = elem.begin(); it != elem.end(); ++it) {
     const auto& name = it.GetName();
     if (name == "timeout_all_ms") {
-      response.timeout_all = std::chrono::milliseconds(it->As<unsigned>());
+      response.timeout_all = std::chrono::milliseconds(it->As<int64_t>());
+      if (response.timeout_all.count() < 0) {
+        throw std::runtime_error("invalid timeout_all in redis CommandControl");
+      }
     } else if (name == "timeout_single_ms") {
-      response.timeout_single = std::chrono::milliseconds(it->As<unsigned>());
+      response.timeout_single = std::chrono::milliseconds(it->As<int64_t>());
+      if (response.timeout_single.count() < 0) {
+        throw std::runtime_error(
+            "invalid timeout_single in redis CommandControl");
+      }
     } else if (name == "max_retries") {
-      response.max_retries = it->As<unsigned>();
+      response.max_retries = it->As<size_t>();
     } else if (name == "strategy") {
       response.strategy = it->As<::redis::CommandControl::Strategy>();
     } else if (name == "best_dc_count") {
-      response.best_dc_count = it->As<unsigned>();
+      response.best_dc_count = it->As<size_t>();
     } else if (name == "max_ping_latency_ms") {
-      response.max_ping_latency = std::chrono::milliseconds(it->As<unsigned>());
+      response.max_ping_latency = std::chrono::milliseconds(it->As<int64_t>());
+      if (response.max_ping_latency.count() < 0) {
+        throw std::runtime_error(
+            "invalid max_ping_latency in redis CommandControl");
+      }
     } else {
       LOG_WARNING() << "unknown key for CommandControl map: " << name;
     }

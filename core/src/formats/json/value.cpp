@@ -28,7 +28,7 @@ const Json::Value& Value::Get() const { return GetNative(); }
 
 Value Value::operator[](const std::string& key) const {
   const Json::Value* child = nullptr;
-  if (!isMissing()) {
+  if (!IsMissing()) {
     CheckObjectOrNull();
     child = GetNative().find(key.data(), key.data() + key.size());
   }
@@ -36,22 +36,22 @@ Value Value::operator[](const std::string& key) const {
 }
 
 Value Value::operator[](uint32_t index) const {
-  CheckOutOfBounds(index);
+  CheckInBounds(index);
   return {root_, GetNative()[index], path_, index};
 }
 
 Value::const_iterator Value::begin() const {
-  CheckObjectOrArray();
+  CheckObjectOrArrayOrNull();
   return {root_, GetNative().begin(), path_};
 }
 
 Value::const_iterator Value::end() const {
-  CheckObjectOrArray();
+  CheckObjectOrArrayOrNull();
   return {root_, GetNative().end(), path_};
 }
 
 uint32_t Value::GetSize() const {
-  CheckObjectOrArray();
+  CheckObjectOrArrayOrNull();
   return GetNative().size();
 }
 
@@ -63,91 +63,66 @@ bool Value::operator!=(const Value& other) const {
   return GetNative() != other.GetNative();
 }
 
-bool Value::isMissing() const { return root_ && !value_ptr_; }
+bool Value::IsMissing() const { return root_ && !value_ptr_; }
 
-#define IS_TYPE(type)                              \
-  bool Value::is##type() const {                   \
-    return !isMissing() && GetNative().is##type(); \
-  }
-
-#define AS_TYPE(type, c_type, j_type)                                    \
-  c_type Value::as##type() const {                                       \
-    if (!is##type()) {                                                   \
-      throw TypeMismatchException(GetNative(), Json::j_type, GetPath()); \
-    }                                                                    \
-    return GetNative().as##type();                                       \
-  }
-
-#define IS_AS_TYPE(type, c_type, j_type) \
-  IS_TYPE(type)                          \
-  AS_TYPE(type, c_type, j_type)
-
-IS_TYPE(Null)
-IS_AS_TYPE(Bool, bool, booleanValue)
-IS_AS_TYPE(Int, int32_t, intValue)
-IS_AS_TYPE(Int64, int64_t, intValue)
-IS_AS_TYPE(UInt, uint32_t, uintValue)
-IS_AS_TYPE(UInt64, uint64_t, uintValue)
-IS_TYPE(Integral)
-AS_TYPE(Float, float, realValue)
-IS_AS_TYPE(Double, double, realValue)
-IS_TYPE(Numeric)
-IS_AS_TYPE(String, std::string, stringValue)
-IS_TYPE(Array)
-IS_TYPE(Object)
-
-bool Value::isFloat() const { return isDouble(); }
-
-#undef IS_AS_TYPE
-#undef AS_TYPE
-#undef IS_TYPE
+bool Value::IsNull() const { return !IsMissing() && GetNative().isNull(); }
+bool Value::IsBool() const { return !IsMissing() && GetNative().isBool(); }
+bool Value::IsInt() const { return !IsMissing() && GetNative().isInt(); }
+bool Value::IsInt64() const { return !IsMissing() && GetNative().isInt64(); }
+bool Value::IsUInt64() const { return !IsMissing() && GetNative().isUInt64(); }
+bool Value::IsDouble() const { return !IsMissing() && GetNative().isDouble(); }
+bool Value::IsString() const { return !IsMissing() && GetNative().isString(); }
+bool Value::IsArray() const { return !IsMissing() && GetNative().isArray(); }
+bool Value::IsObject() const { return !IsMissing() && GetNative().isObject(); }
 
 template <>
 bool Value::As<bool>() const {
-  return asBool();
+  CheckNotMissing();
+  if (IsBool()) return GetNative().asBool();
+  throw TypeMismatchException(GetNative(), Json::booleanValue, GetPath());
 }
 
 template <>
 int32_t Value::As<int32_t>() const {
-  return asInt();
+  CheckNotMissing();
+  if (IsInt()) return GetNative().asInt();
+  throw TypeMismatchException(GetNative(), Json::intValue, GetPath());
 }
 
 template <>
 int64_t Value::As<int64_t>() const {
-  return asInt64();
-}
-
-template <>
-uint32_t Value::As<uint32_t>() const {
-  return asUInt();
+  CheckNotMissing();
+  if (IsInt64()) return GetNative().asInt64();
+  throw TypeMismatchException(GetNative(), Json::intValue, GetPath());
 }
 
 template <>
 uint64_t Value::As<uint64_t>() const {
-  return asUInt64();
-}
-
-template <>
-float Value::As<float>() const {
-  return asFloat();
+  CheckNotMissing();
+  if (IsUInt64()) return GetNative().asUInt64();
+  throw TypeMismatchException(GetNative(), Json::uintValue, GetPath());
 }
 
 template <>
 double Value::As<double>() const {
-  return asDouble();
+  CheckNotMissing();
+  if (IsDouble()) return GetNative().asDouble();
+  throw TypeMismatchException(GetNative(), Json::realValue, GetPath());
 }
 
 template <>
 std::string Value::As<std::string>() const {
-  return asString();
+  CheckNotMissing();
+  if (IsString()) return GetNative().asString();
+  throw TypeMismatchException(GetNative(), Json::stringValue, GetPath());
 }
 
 bool Value::HasMember(const char* key) const {
-  return !isMissing() && GetNative().isMember(key);
+  return !IsMissing() && GetNative().isMember(key);
 }
 
 bool Value::HasMember(const std::string& key) const {
-  return !isMissing() && GetNative().isMember(key);
+  return !IsMissing() && GetNative().isMember(key);
 }
 
 std::string Value::GetPath() const { return PathToString(path_); }
@@ -177,17 +152,16 @@ void Value::Set(const NativeValuePtr& root, const Json::Value& val,
 //  true   |     false    | Missing
 //  true   |     true     | Valid
 void Value::EnsureValid() {
+  CheckNotMissing();
   if (!root_) {
     root_ = std::make_shared<Json::Value>();
     value_ptr_ = root_.get();
-  } else if (isMissing()) {
-    throw MemberMissingException(GetPath());
   }
 }
 
 bool Value::IsRoot() const { return root_.get() == value_ptr_; }
 
-bool Value::IsUniqueReference() const { return root_.unique(); }
+bool Value::IsUniqueReference() const { return root_.use_count() == 1; }
 
 const Json::Value& Value::GetNative() const {
   const_cast<Value*>(this)->EnsureValid();
@@ -199,25 +173,32 @@ Json::Value& Value::GetNative() {
   return *value_ptr_;
 }
 
+void Value::CheckNotMissing() const {
+  if (IsMissing()) {
+    throw MemberMissingException(GetPath());
+  }
+}
+
 void Value::CheckArrayOrNull() const {
-  if (!isArray() && !isNull()) {
+  if (!IsArray() && !IsNull()) {
     throw TypeMismatchException(GetNative(), Json::arrayValue, GetPath());
   }
 }
 
 void Value::CheckObjectOrNull() const {
-  if (!isObject() && !isNull()) {
+  if (!IsObject() && !IsNull()) {
     throw TypeMismatchException(GetNative(), Json::objectValue, GetPath());
   }
 }
 
-void Value::CheckObjectOrArray() const {
-  if (!isObject() && !isArray()) {
+void Value::CheckObjectOrArrayOrNull() const {
+  if (!IsObject() && !IsArray() && !IsNull()) {
     throw TypeMismatchException(GetNative(), Json::objectValue, GetPath());
   }
 }
 
-void Value::CheckOutOfBounds(uint32_t index) const {
+void Value::CheckInBounds(uint32_t index) const {
+  CheckArrayOrNull();
   if (!GetNative().isValidIndex(index)) {
     throw OutOfBoundsException(index, GetSize(), GetPath());
   }

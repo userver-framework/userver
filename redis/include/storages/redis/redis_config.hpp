@@ -4,7 +4,8 @@
 #include <taxi_config/value.hpp>
 
 namespace redis {
-CommandControl ParseJson(const formats::json::Value& elem, CommandControl*);
+CommandControl ParseJson(const formats::json::Value& elem,
+                         const CommandControl*);
 }
 
 namespace storages {

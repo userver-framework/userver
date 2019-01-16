@@ -71,17 +71,17 @@ ValueBuilder ValueBuilder::operator[](const std::string& key) {
 }
 
 ValueBuilder ValueBuilder::operator[](uint32_t index) {
-  value_.CheckOutOfBounds(index);
+  value_.CheckInBounds(index);
   return {value_.root_, value_.GetNative()[index], value_.path_, index};
 }
 
 ValueBuilder::iterator ValueBuilder::begin() {
-  value_.CheckObjectOrArray();
+  value_.CheckObjectOrArrayOrNull();
   return {value_.root_, value_.GetNative().begin(), value_.path_};
 }
 
 ValueBuilder::iterator ValueBuilder::end() {
-  value_.CheckObjectOrArray();
+  value_.CheckObjectOrArrayOrNull();
   return {value_.root_, value_.GetNative().end(), value_.path_};
 }
 

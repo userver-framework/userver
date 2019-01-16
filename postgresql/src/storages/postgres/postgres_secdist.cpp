@@ -18,11 +18,11 @@ ClusterDescription ClusterDescriptionFromJson(
   const formats::json::Value& slaves = elem["slaves"];
   storages::secdist::CheckIsArray(slaves, "slaves");
   for (auto it = slaves.begin(); it != slaves.end(); ++it) {
-    if (!it->isString()) {
+    if (!it->IsString()) {
       storages::secdist::ThrowInvalidSecdistType(
           "slaves[" + std::to_string(it.GetIndex()) + ']', "a string");
     }
-    slave_dsns.push_back(it->asString());
+    slave_dsns.push_back(it->As<std::string>());
   }
 
   return {master_dsn, sync_slave_dsn, slave_dsns};
@@ -51,7 +51,7 @@ PostgresSettings::PostgresSettings(const formats::json::Value& doc) {
       storages::secdist::CheckIsObject(
           *shard_it, dbalias + '[' + std::to_string(shard_it.GetIndex() + ']'));
       // Legacy check, expect shard_num to be in order
-      const auto shard_num = (*shard_it)["shard_number"].asUInt64();
+      const auto shard_num = (*shard_it)["shard_number"].As<uint64_t>();
       if (shard_num != shard_num_expect) {
         throw storages::secdist::SecdistError(
             "shard_number " + std::to_string(shard_num) +

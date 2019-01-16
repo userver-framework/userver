@@ -19,12 +19,12 @@ struct JsonMemberAccess : public ::testing::Test {
 };
 
 TEST_F(JsonMemberAccess, ChildBySquareBrakets) {
-  EXPECT_FALSE(js_doc_["key1"].isMissing());
+  EXPECT_FALSE(js_doc_["key1"].IsMissing());
   EXPECT_EQ(js_doc_["key1"], formats::json::ValueBuilder(1).ExtractValue());
 }
 
 TEST_F(JsonMemberAccess, ChildBySquareBraketsTwice) {
-  EXPECT_FALSE(js_doc_["key3"]["sub"].isMissing());
+  EXPECT_FALSE(js_doc_["key3"]["sub"].IsMissing());
   EXPECT_EQ(js_doc_["key3"]["sub"],
             formats::json::ValueBuilder(-1).ExtractValue());
 }
@@ -32,18 +32,18 @@ TEST_F(JsonMemberAccess, ChildBySquareBraketsTwice) {
 TEST_F(JsonMemberAccess, ChildBySquareBraketsMissing) {
   EXPECT_NO_THROW(js_doc_["key_missing"]);
   EXPECT_EQ(js_doc_["key_missing"].GetPath(), "key_missing");
-  EXPECT_TRUE(js_doc_["key_missing"].isMissing());
-  EXPECT_FALSE(js_doc_["key_missing"].isNull());
-  EXPECT_THROW(js_doc_["key_missing"].asBool(),
+  EXPECT_TRUE(js_doc_["key_missing"].IsMissing());
+  EXPECT_FALSE(js_doc_["key_missing"].IsNull());
+  EXPECT_THROW(js_doc_["key_missing"].As<bool>(),
                formats::json::MemberMissingException);
 }
 
 TEST_F(JsonMemberAccess, ChildBySquareBraketsMissingTwice) {
   EXPECT_NO_THROW(js_doc_["key_missing"]["sub"]);
   EXPECT_EQ(js_doc_["key_missing"]["sub"].GetPath(), "key_missing.sub");
-  EXPECT_TRUE(js_doc_["key_missing"]["sub"].isMissing());
-  EXPECT_FALSE(js_doc_["key_missing"]["sub"].isNull());
-  EXPECT_THROW(js_doc_["key_missing"]["sub"].asBool(),
+  EXPECT_TRUE(js_doc_["key_missing"]["sub"].IsMissing());
+  EXPECT_FALSE(js_doc_["key_missing"]["sub"].IsNull());
+  EXPECT_THROW(js_doc_["key_missing"]["sub"].As<bool>(),
                formats::json::MemberMissingException);
 }
 
@@ -65,13 +65,11 @@ TEST_F(JsonMemberAccess, IterateMemberNames) {
   }
 }
 
-TEST_F(JsonMemberAccess, IterateBothWaysAndCheckValues) {
+TEST_F(JsonMemberAccess, IterateAndCheckValues) {
   auto it = js_doc_.begin();
   EXPECT_EQ(*it, formats::json::ValueBuilder(1).ExtractValue());
   ++it;
   EXPECT_EQ(*it, formats::json::ValueBuilder("val").ExtractValue());
-  --it;
-  EXPECT_EQ(*it, formats::json::ValueBuilder(1).ExtractValue());
 }
 
 TEST_F(JsonMemberAccess, IterateMembersAndCheckKey3) {
@@ -106,57 +104,54 @@ TEST_F(JsonMemberAccess, IterateMembersAndCheckKey4Index) {
 }
 
 TEST_F(JsonMemberAccess, CheckPrimitiveTypes) {
-  EXPECT_TRUE(js_doc_["key1"].isIntegral());
-  EXPECT_TRUE(js_doc_["key1"].isNumeric());
-  EXPECT_TRUE(js_doc_["key1"].isUInt64());
-  EXPECT_EQ(js_doc_["key1"].asUInt(), 1);
+  EXPECT_TRUE(js_doc_["key1"].IsUInt64());
+  EXPECT_EQ(js_doc_["key1"].As<uint64_t>(), 1);
 
-  EXPECT_TRUE(js_doc_["key2"].isString());
-  EXPECT_EQ(js_doc_["key2"].asString(), "val");
+  EXPECT_TRUE(js_doc_["key2"].IsString());
+  EXPECT_EQ(js_doc_["key2"].As<std::string>(), "val");
 
-  EXPECT_TRUE(js_doc_["key3"].isObject());
-  EXPECT_TRUE(js_doc_["key3"]["sub"].isIntegral());
-  EXPECT_TRUE(js_doc_["key3"]["sub"].isNumeric());
-  EXPECT_TRUE(js_doc_["key3"]["sub"].isInt64());
-  EXPECT_FALSE(js_doc_["key3"]["sub"].isUInt64());
-  EXPECT_EQ(js_doc_["key3"]["sub"].asInt(), -1);
+  EXPECT_TRUE(js_doc_["key3"].IsObject());
+  EXPECT_TRUE(js_doc_["key3"]["sub"].IsInt64());
+  EXPECT_FALSE(js_doc_["key3"]["sub"].IsUInt64());
+  EXPECT_EQ(js_doc_["key3"]["sub"].As<int>(), -1);
 
-  EXPECT_TRUE(js_doc_["key4"].isArray());
-  EXPECT_TRUE(js_doc_["key4"][0].isIntegral());
-  EXPECT_TRUE(js_doc_["key4"][0].isNumeric());
-  EXPECT_TRUE(js_doc_["key4"][0].isUInt64());
-  EXPECT_EQ(js_doc_["key4"][0].asUInt(), 1);
+  EXPECT_TRUE(js_doc_["key4"].IsArray());
+  EXPECT_TRUE(js_doc_["key4"][0].IsUInt64());
+  EXPECT_EQ(js_doc_["key4"][0].As<uint64_t>(), 1);
 
-  EXPECT_FALSE(js_doc_["key5"].isIntegral());
-  EXPECT_TRUE(js_doc_["key5"].isNumeric());
-  EXPECT_TRUE(js_doc_["key5"].isDouble());
-  EXPECT_FLOAT_EQ(js_doc_["key5"].asFloat(), 10.5f);
+  EXPECT_TRUE(js_doc_["key5"].IsDouble());
+  EXPECT_DOUBLE_EQ(js_doc_["key5"].As<double>(), 10.5);
 }
 
 TEST_F(JsonMemberAccess, CheckPrimitiveTypeExceptions) {
-  EXPECT_THROW(js_doc_["key1"].asBool(), formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key1"].asString(),
+  EXPECT_THROW(js_doc_["key1"].As<bool>(),
                formats::json::TypeMismatchException);
-  EXPECT_NO_THROW(js_doc_["key1"].asDouble());
+  EXPECT_THROW(js_doc_["key1"].As<std::string>(),
+               formats::json::TypeMismatchException);
+  EXPECT_NO_THROW(js_doc_["key1"].As<double>());
 
-  EXPECT_THROW(js_doc_["key2"].asBool(), formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key2"].asDouble(),
+  EXPECT_THROW(js_doc_["key2"].As<bool>(),
                formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key2"].asUInt(), formats::json::TypeMismatchException);
+  EXPECT_THROW(js_doc_["key2"].As<double>(),
+               formats::json::TypeMismatchException);
+  EXPECT_THROW(js_doc_["key2"].As<uint64_t>(),
+               formats::json::TypeMismatchException);
 
-  EXPECT_THROW(js_doc_["key5"].asBool(), formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key5"].asString(),
+  EXPECT_THROW(js_doc_["key5"].As<bool>(),
                formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key5"].asUInt64(),
+  EXPECT_THROW(js_doc_["key5"].As<std::string>(),
                formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key5"].asInt(), formats::json::TypeMismatchException);
+  EXPECT_THROW(js_doc_["key5"].As<uint64_t>(),
+               formats::json::TypeMismatchException);
+  EXPECT_THROW(js_doc_["key5"].As<int>(), formats::json::TypeMismatchException);
 
-  EXPECT_THROW(js_doc_["key6"].asFloat(), formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key6"].asString(),
+  EXPECT_THROW(js_doc_["key6"].As<double>(),
                formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key6"].asUInt64(),
+  EXPECT_THROW(js_doc_["key6"].As<std::string>(),
                formats::json::TypeMismatchException);
-  EXPECT_THROW(js_doc_["key6"].asInt(), formats::json::TypeMismatchException);
+  EXPECT_THROW(js_doc_["key6"].As<uint64_t>(),
+               formats::json::TypeMismatchException);
+  EXPECT_THROW(js_doc_["key6"].As<int>(), formats::json::TypeMismatchException);
 }
 
 TEST_F(JsonMemberAccess, MemberPaths) {
@@ -207,9 +202,9 @@ TEST_F(JsonMemberAccess, CopyMoveSubobject) {
             formats::json::detail::GetPtr(js_doc_["key3"]));
 }
 
-TEST_F(JsonMemberAccess, IteratorOnNullThrows) {
+TEST_F(JsonMemberAccess, IteratorOnNull) {
   formats::json::Value v;
-  EXPECT_THROW(v.begin(), formats::json::TypeMismatchException);
+  EXPECT_EQ(v.begin(), v.end());
 }
 
 TEST_F(JsonMemberAccess, IteratorOnMissingThrows) {
@@ -229,9 +224,9 @@ TEST_F(JsonMemberAccess, CreateEmptyAndAccess) {
   formats::json::Value v;
   EXPECT_TRUE(static_cast<formats::json::detail::Value&>(v).IsRoot());
   EXPECT_EQ(v.GetPath(), "/");
-  EXPECT_TRUE(v.isNull());
+  EXPECT_TRUE(v.IsNull());
   EXPECT_FALSE(v.HasMember("key_missing"));
-  EXPECT_THROW(v.asBool(), formats::json::TypeMismatchException);
+  EXPECT_THROW(v.As<bool>(), formats::json::TypeMismatchException);
 }
 
 TEST_F(JsonMemberAccess, Subfield) {

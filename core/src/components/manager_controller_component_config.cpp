@@ -9,9 +9,9 @@ engine::TaskProcessorSettings ParseTaskProcessorSettings(
   const auto overload_doc = doc["wait_queue_overload"];
 
   settings.wait_queue_time_limit =
-      std::chrono::microseconds(overload_doc["time_limit_us"].asInt64());
-  settings.wait_queue_length_limit = overload_doc["length_limit"].asInt64();
-  const auto action = overload_doc["action"].asString();
+      std::chrono::microseconds(overload_doc["time_limit_us"].As<int64_t>());
+  settings.wait_queue_length_limit = overload_doc["length_limit"].As<int64_t>();
+  const auto action = overload_doc["action"].As<std::string>();
 
   using oa = engine::TaskProcessorSettings::OverloadAction;
   if (action == "cancel")

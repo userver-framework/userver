@@ -64,7 +64,8 @@ class Value {
 
 template <typename T>
 std::unordered_map<std::string, T> ParseJson(
-    const formats::json::Value& elem, std::unordered_map<std::string, T>*) {
+    const formats::json::Value& elem,
+    const std::unordered_map<std::string, T>*) {
   std::unordered_map<std::string, T> response;
   for (auto it = elem.begin(); it != elem.end(); ++it) {
     response.emplace(it.GetName(), it->As<T>());
@@ -74,7 +75,7 @@ std::unordered_map<std::string, T> ParseJson(
 
 template <typename T>
 std::map<std::string, T> ParseJson(const formats::json::Value& elem,
-                                   std::map<std::string, T>*) {
+                                   const std::map<std::string, T>*) {
   std::map<std::string, T> response;
   for (auto it = elem.begin(); it != elem.end(); ++it) {
     response.emplace(it.GetName(), it->As<T>());
@@ -83,7 +84,8 @@ std::map<std::string, T> ParseJson(const formats::json::Value& elem,
 }
 
 template <typename T>
-std::vector<T> ParseJson(const formats::json::Value& elem, std::vector<T>*) {
+std::vector<T> ParseJson(const formats::json::Value& elem,
+                         const std::vector<T>*) {
   std::vector<T> response;
   for (const auto& item : elem)
     response.emplace_back(item.As<typename T::value_type>());
@@ -91,6 +93,6 @@ std::vector<T> ParseJson(const formats::json::Value& elem, std::vector<T>*) {
 }
 
 namespace formats::json {
-std::unordered_set<std::string> ParseJson(const formats::json::Value& elem,
-                                          std::unordered_set<std::string>*);
+std::unordered_set<std::string> ParseJson(
+    const formats::json::Value& elem, const std::unordered_set<std::string>*);
 }

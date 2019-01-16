@@ -7,8 +7,8 @@
 #include <logging/logger.hpp>
 
 namespace formats::json {
-std::unordered_set<std::string> ParseJson(const formats::json::Value& elem,
-                                          std::unordered_set<std::string>*) {
+std::unordered_set<std::string> ParseJson(
+    const formats::json::Value& elem, const std::unordered_set<std::string>*) {
   std::unordered_set<std::string> response;
   for (const auto& subitem : elem) {
     response.emplace(subitem.As<std::string>());
@@ -26,7 +26,7 @@ formats::json::Value DocsMap::Get(const std::string& name) const {
 
   const auto& doc = mongo_it->second;
   auto value = doc["v"];
-  if (value.isMissing())
+  if (value.IsMissing())
     throw std::runtime_error("Mongo config have no element 'v' for " + name);
 
   requested_names_.insert(name);

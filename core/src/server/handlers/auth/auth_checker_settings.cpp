@@ -18,17 +18,17 @@ namespace auth {
 AuthCheckerSettings::AuthCheckerSettings(const formats::json::Value& doc) {
   if (!doc.HasMember(kApikeys)) return;
   const auto& apikeys_map = doc[kApikeys];
-  if (!apikeys_map.isObject())
+  if (!apikeys_map.IsObject())
     throw std::runtime_error("cannot parse " + kApikeys + ", object expected");
 
   for (auto elem = apikeys_map.begin(); elem != apikeys_map.end(); ++elem) {
     const std::string& apikey_type = elem.GetName();
-    if (!elem->isArray())
+    if (!elem->IsArray())
       throw std::runtime_error("cannot parse " + kApikeys + '.' + apikey_type +
                                ", array expected");
     for (auto key = elem->begin(); key != elem->end(); ++key) {
-      if (key->isString()) {
-        apikeys_map_[apikey_type].insert(key->asString());
+      if (key->IsString()) {
+        apikeys_map_[apikey_type].insert(key->As<std::string>());
       } else {
         throw std::runtime_error(
             "cannot parse " + kApikeys + '.' + apikey_type + '[' +

@@ -28,18 +28,18 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
 
   bool invalidate_caches = false;
   const formats::json::Value& value = request_body["invalidate_caches"];
-  if (value.isBool()) {
-    invalidate_caches = value.asBool();
+  if (value.IsBool()) {
+    invalidate_caches = value.As<bool>();
   }
 
   std::time_t now = 0;
   if (request_body.HasMember("now")) {
     const formats::json::Value& value = request_body["now"];
-    if (value.isString()) {
-      now =
-          std::chrono::duration_cast<std::chrono::seconds>(
-              utils::datetime::Stringtime(value.asString()).time_since_epoch())
-              .count();
+    if (value.IsString()) {
+      now = std::chrono::duration_cast<std::chrono::seconds>(
+                utils::datetime::Stringtime(value.As<std::string>())
+                    .time_since_epoch())
+                .count();
     } else {
       LOG_ERROR() << "'now' argument must be a string";
       throw http::BadRequest();
