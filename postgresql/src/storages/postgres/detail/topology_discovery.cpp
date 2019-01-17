@@ -85,7 +85,7 @@ ClusterTopologyDiscovery::HostState::HostState(const std::string& dsn,
       conn_variant(std::move(task)),
       host_type(kNothing),
       failed_reconnects(0),
-      changes{kNothing, 0},
+      changes{kNothing, kNothing, 0},
       checks{{}, HostChecks::Stage::kReconnect},
       failed_operations(0) {}
 
@@ -160,7 +160,7 @@ ClusterTopologyDiscovery::ConnectionTask ClusterTopologyDiscovery::Connect(
 }
 
 void ClusterTopologyDiscovery::Reconnect(size_t index) {
-  AccountHostTypeChange(index, kNothing);
+  host_states_[index].changes.last_check_type = kNothing;
   const auto failed_reconnects = host_states_[index].failed_reconnects++;
   auto conn = std::move(boost::get<std::unique_ptr<Connection>>(
       host_states_[index].conn_variant));
@@ -201,19 +201,22 @@ void ClusterTopologyDiscovery::CloseConnection(
   }
 }
 
-void ClusterTopologyDiscovery::AccountHostTypeChange(size_t index,
-                                                     ClusterHostType new_type) {
-  if (new_type == host_states_[index].host_type) {
+void ClusterTopologyDiscovery::AccountHostTypeChange(size_t index) {
+  if (host_states_[index].changes.last_check_type ==
+      host_states_[index].host_type) {
     // Same type as we have now
     host_states_[index].changes.count = 0;
-  } else if (new_type == host_states_[index].changes.new_type) {
+  } else if (host_states_[index].changes.last_check_type ==
+             host_states_[index].changes.new_type) {
     // Subsequent host type change
     ++host_states_[index].changes.count;
   } else {
     // Brand new host type change
     host_states_[index].changes.count = 1;
   }
-  host_states_[index].changes.new_type = new_type;
+
+  host_states_[index].changes.new_type =
+      host_states_[index].changes.last_check_type;
 }
 
 bool ClusterTopologyDiscovery::ShouldChangeHostType(size_t index) const {
@@ -319,7 +322,7 @@ void ClusterTopologyDiscovery::CheckHosts(
     // The correct info will be set by the end of this topology check
     if (initial_check_ && check_tasks[index] == nullptr) {
       const auto& state = host_states_[index];
-      const auto new_type = state.changes.new_type;
+      const auto new_type = state.changes.last_check_type;
       if (new_type != kNothing) {
         hosts_by_type[new_type].push_back(state.dsn);
         hosts_by_type_.Set(HostsByType(hosts_by_type));
@@ -364,7 +367,7 @@ engine::Task* ClusterTopologyDiscovery::CheckIfMaster(
   }
   assert(host_type != kNothing && "Wrong replica state received");
 
-  AccountHostTypeChange(index, host_type);
+  host_states_[index].changes.last_check_type = host_type;
   // As the host is back online we can reset failed operations counter
   host_states_[index].failed_operations.Store(0);
 
@@ -428,7 +431,7 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(
         LOG_ERROR() << conn->GetLogExtra()
                     << "Attempt to overwrite master type with sync slave type";
       }
-      AccountHostTypeChange(index, ClusterHostType::kSyncSlave);
+      host_states_[index].changes.last_check_type = ClusterHostType::kSyncSlave;
     } else {
       LOG_WARNING() << "Found unavailable sync slave host="
                     << HostAndPortFromDsn(host_states_[index].dsn);
@@ -443,6 +446,9 @@ ClusterTopologyDiscovery::UpdateHostTypes() {
   HostAvailabilityChanges host_availability;
   bool updated = false;
   for (size_t i = 0; i < host_states_.size(); ++i) {
+    // Update potential host type found after the checks
+    AccountHostTypeChange(i);
+
     auto& state = host_states_[i];
     if (!ShouldChangeHostType(i)) {
       // Check if we are pre-online already
@@ -466,8 +472,7 @@ ClusterTopologyDiscovery::UpdateHostTypes() {
     }
     updated = true;
     state.host_type = new_type;
-    state.changes.new_type = kNothing;
-    state.changes.count = 0;
+    state.changes = {kNothing, kNothing, 0};
     host_availability[state.dsn] = new_type == kNothing
                                        ? HostAvailability::kOffline
                                        : HostAvailability::kOnline;

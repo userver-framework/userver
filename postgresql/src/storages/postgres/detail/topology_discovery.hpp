@@ -40,7 +40,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   [[nodiscard]] ConnectionTask Connect(std::string dsn);
   void Reconnect(size_t index);
   void CloseConnection(std::unique_ptr<Connection> conn_ptr);
-  void AccountHostTypeChange(size_t index, ClusterHostType new_type);
+  void AccountHostTypeChange(size_t index);
   bool ShouldChangeHostType(size_t index) const;
 
   Connection* GetConnectionOrThrow(size_t index) const noexcept(false);
@@ -78,6 +78,7 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   };
 
   struct StateChages {
+    ClusterHostType last_check_type;
     ClusterHostType new_type;
     size_t count;
   };
