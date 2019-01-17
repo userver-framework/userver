@@ -32,6 +32,17 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   static const std::chrono::seconds kUpdateInterval;
 
  private:
+  struct HostChecks {
+    enum class Stage {
+      kAvailability,
+      kSyncSlaves,
+    };
+
+    std::unique_ptr<engine::Task> task;
+    Stage stage;
+  };
+
+  using ChecksList = std::vector<HostChecks>;
   using ConnectionTask = engine::TaskWithResult<std::unique_ptr<Connection>>;
 
   void BuildIndexes();
@@ -47,12 +58,14 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   Connection* GetConnectionOrNull(size_t index);
 
   void CheckHosts(const std::chrono::steady_clock::time_point& check_end_point);
-  engine::Task* CheckAvailability(size_t index);
-  engine::Task* CheckIfMaster(size_t index,
-                              engine::TaskWithResult<ClusterHostType>& task);
-  engine::Task* FindSyncSlaves(size_t master_index, Connection* conn);
-  engine::Task* CheckSyncSlaves(
-      size_t master_index, engine::TaskWithResult<std::vector<size_t>>& task);
+  engine::Task* CheckAvailability(size_t index, ChecksList& checks);
+  engine::Task* DetectMaster(size_t index, ChecksList& checks);
+  engine::Task* CheckSyncSlaves(size_t master_index, ChecksList& checks,
+                                Connection* conn);
+  engine::Task* DetectSyncSlaves(size_t master_index, ChecksList& checks);
+  template <typename T>
+  engine::Task* SetCheckStage(size_t index, ChecksList& checks, T&& task,
+                              HostChecks::Stage stage) const;
   HostAvailabilityChanges UpdateHostTypes();
   std::string DumpTopologyState() const;
   HostsByType BuildHostsByType() const;
@@ -64,17 +77,6 @@ class ClusterTopologyDiscovery : public ClusterTopology {
     using ::utils::statistics::RelaxedCounter<T>::RelaxedCounter;
     RelaxedAtomic(RelaxedAtomic&& other) noexcept
         : ::utils::statistics::RelaxedCounter<T>(other.Load()) {}
-  };
-
-  struct HostChecks {
-    enum class Stage {
-      kReconnect,
-      kAvailability,
-      kSyncSlaves,
-    };
-
-    std::unique_ptr<engine::Task> task;
-    Stage stage;
   };
 
   struct StateChages {
@@ -94,8 +96,6 @@ class ClusterTopologyDiscovery : public ClusterTopology {
     size_t failed_reconnects;
 
     StateChages changes;
-
-    HostChecks checks;
 
     // The data below is modified concurrently
 
