@@ -251,6 +251,7 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
     return nullptr;
   }
 
+  bool conn_error = false;
   try {
     auto conn_ptr = conn_task.Get();
     auto* conn = conn_ptr.get();
@@ -258,6 +259,12 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
     host_states_[index].failed_reconnects = 0;
     return conn;
   } catch (const ConnectionError&) {
+    conn_error = true;
+  } catch (const Error& ex) {
+    LOG_ERROR() << "Unexpected exception in connection: " << ex.what();
+    conn_error = true;
+  }
+  if (conn_error) {
     // Reconnect expects connection rather than task
     host_states_[index].conn_variant = nullptr;
     Reconnect(index);
@@ -370,10 +377,17 @@ engine::Task* ClusterTopologyDiscovery::DetectMaster(size_t index,
   auto tmp_task = std::move(checks[index].task);
   auto& task = static_cast<engine::TaskWithResult<ClusterHostType>&>(*tmp_task);
 
+  bool conn_error = false;
   auto host_type = kNothing;
   try {
     host_type = task.Get();
   } catch (const ConnectionError&) {
+    conn_error = true;
+  } catch (const Error& ex) {
+    LOG_ERROR() << "Unexpected exception in connection: " << ex.what();
+    conn_error = true;
+  }
+  if (conn_error) {
     Reconnect(index);
     return &boost::get<ConnectionTask>(host_states_[index].conn_variant);
   }
@@ -427,11 +441,18 @@ engine::Task* ClusterTopologyDiscovery::DetectSyncSlaves(size_t master_index,
   auto& task =
       static_cast<engine::TaskWithResult<std::vector<size_t>>&>(*tmp_task);
 
+  bool conn_error = false;
   std::vector<size_t> sync_slave_indices;
   try {
     sync_slave_indices = task.Get();
   } catch (const ConnectionError&) {
-    LOG_WARNING() << "Master host is lost while asking for sync slaves";
+    LOG_INFO() << "Master host was lost while asking for sync slaves";
+    conn_error = true;
+  } catch (const Error& ex) {
+    LOG_ERROR() << "Unexpected exception in connection: " << ex.what();
+    conn_error = true;
+  }
+  if (conn_error) {
     Reconnect(master_index);
     return &boost::get<ConnectionTask>(host_states_[master_index].conn_variant);
   }
@@ -476,9 +497,10 @@ ClusterTopologyDiscovery::UpdateHostTypes() {
 
     auto& state = host_states_[i];
     if (!ShouldChangeHostType(i)) {
-      // Check if we are pre-online already
+      // Check if we are offline and are getting pre-online
       const auto pre_threshold = kCooldownThreshold - 1;
-      if (pre_threshold != 0 && state.changes.count == pre_threshold) {
+      if (state.host_type == kNothing && state.changes.new_type != kNothing &&
+          state.changes.count == pre_threshold) {
         host_availability[state.dsn] = HostAvailability::kPreOnline;
       }
       continue;

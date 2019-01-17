@@ -116,13 +116,13 @@ void ClusterImpl::CheckTopology() {
                     << " from the map";
         break;
       case ClusterTopology::HostAvailability::kPreOnline:
-        host_pools[dsn] = std::make_shared<ConnectionPool>(
-            dsn, bg_task_processor_, pool_initial_size_, pool_max_size_);
-        LOG_DEBUG() << "Added pool for host=" << HostAndPortFromDsn(dsn)
-                    << " to the map";
-        break;
       case ClusterTopology::HostAvailability::kOnline:
-        // Do nothing, we've already created the pool in pre-online phase
+        if (!host_pools[dsn]) {
+          host_pools[dsn] = std::make_shared<ConnectionPool>(
+              dsn, bg_task_processor_, pool_initial_size_, pool_max_size_);
+          LOG_DEBUG() << "Added pool for host=" << HostAndPortFromDsn(dsn)
+                      << " to the map";
+        }
         break;
     }
   }
