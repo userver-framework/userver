@@ -146,3 +146,6 @@ enable_testing ()
 
 set (CMAKE_INSTALL_DO_STRIP "NO")
 set (CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+
+# The oldest CPU we support is Xeon E5-2660 0 (Sandy Bridge)
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=sandybridge")
