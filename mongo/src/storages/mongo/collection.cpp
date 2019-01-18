@@ -1,6 +1,6 @@
 #include <storages/mongo/collection.hpp>
 
-#include <mongoc.h>
+#include <mongoc/mongoc.h>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/third_party/mnmlstc/core/optional.hpp>
 #include <mongocxx/exception/write_exception.hpp>

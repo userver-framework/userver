@@ -490,8 +490,8 @@ void ValueImpl::EnsureParsed() {
           [ this, &parsed_array,
             indexer = ArrayIndexer() ](bson_iter_t * it) mutable {
             utils::string_view expected_key = indexer.GetKey();
-            utils::string_view actual_key{bson_iter_key(it)};
-            // XXX: libbson 1.13 has bson_iter_key_len(it)
+            utils::string_view actual_key(bson_iter_key(it),
+                                          bson_iter_key_len(it));
             if (expected_key != actual_key) {
               throw ParseException(
                   "malformed BSON array at " + GetPath() +
@@ -517,9 +517,7 @@ void ValueImpl::EnsureParsed() {
       ForEachValue(
           bson_value_.value.v_doc.data, bson_value_.value.v_doc.data_len, path_,
           [this, &parsed_doc](bson_iter_t* it) {
-            // libbson 1.13
-            // utils::string_view key(bson_iter_key(it), bson_iter_key_len(it));
-            utils::string_view key = bson_iter_key(it);
+            utils::string_view key(bson_iter_key(it), bson_iter_key_len(it));
             const bson_value_t* iter_value = bson_iter_value(it);
             if (!iter_value) {
               throw ParseException("malformed BSON element at " + GetPath() +

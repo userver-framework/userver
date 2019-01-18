@@ -3,7 +3,7 @@
 #include <chrono>
 #include <memory>
 
-#include <bson.h>
+#include <bson/bson.h>
 #include <boost/variant.hpp>
 
 #include <formats/bson/types.hpp>

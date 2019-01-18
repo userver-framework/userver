@@ -3,7 +3,7 @@
 #include <cassert>
 #include <stdexcept>
 
-#include <bson.h>
+#include <bson/bson.h>
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <formats/bson/exception.hpp>

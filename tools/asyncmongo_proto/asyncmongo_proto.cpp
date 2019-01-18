@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include <mongoc.h>
+#include <mongoc/mongoc.h>
 #include <boost/program_options.hpp>
 
 #include <engine/async.hpp>

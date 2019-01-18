@@ -3,7 +3,7 @@
 #include <array>
 #include <memory>
 
-#include <bson.h>
+#include <bson/bson.h>
 
 #include <formats/bson/exception.hpp>
 #include <utils/string_view.hpp>

@@ -1,9 +1,9 @@
 project(yandex-taxi-userver-mongo)
 
 find_package_required_version(libbson-static-1.0
-    "libyandex-taxi-mongo-c-driver-dev" 1.12.0)
+    "libyandex-taxi-mongo-c-driver-dev" 1.13.0)
 find_package_required_version(libmongoc-static-1.0
-    "libyandex-taxi-mongo-c-driver-dev" 1.12.0)
+    "libyandex-taxi-mongo-c-driver-dev" 1.13.0)
 find_package_required_version(libbsoncxx-static
     "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
 find_package_required_version(libmongocxx-static

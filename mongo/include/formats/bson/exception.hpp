@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <bson.h>
+#include <bson/bson.h>
 
 namespace formats::bson {
 
