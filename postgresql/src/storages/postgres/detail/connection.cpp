@@ -134,17 +134,10 @@ struct Connection::Impl {
 
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id)
       : conn_wrapper_{bg_task_processor, id} {}
-  ~Impl() {
-    if (ConnectionState::kOffline != GetConnectionState()) {
-      Close().Detach();
-    }
-  }
 
-  [[nodiscard]] engine::TaskWithResult<void> Close() {
-    return conn_wrapper_.Close();
-  }
+  void Close() { conn_wrapper_.Close().Wait(); }
 
-  void Cancel() { conn_wrapper_.Cancel().Get(); }
+  void Cancel() { conn_wrapper_.Cancel().Wait(); }
 
   Connection::Statistics GetStatsAndReset() {
     assert(!IsInTransaction() &&
@@ -347,7 +340,7 @@ bool Connection::IsIdle() const { return pimpl_->IsIdle(); }
 
 bool Connection::IsInTransaction() const { return pimpl_->IsInTransaction(); }
 
-void Connection::Close() { pimpl_->Close().Get(); }
+void Connection::Close() { pimpl_->Close(); }
 
 Connection::Statistics Connection::GetStatsAndReset() {
   return pimpl_->GetStatsAndReset();

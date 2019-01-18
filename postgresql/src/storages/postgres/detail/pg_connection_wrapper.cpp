@@ -53,6 +53,8 @@ PGConnectionWrapper::PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id)
   log_extra_.Extend("conn_id", id);
 }
 
+PGConnectionWrapper::~PGConnectionWrapper() { Close().Detach(); }
+
 template <typename ExceptionType>
 void PGConnectionWrapper::CheckError(const std::string& cmd,
                                      int pg_dispatch_result) {
@@ -85,19 +87,16 @@ ConnectionState PGConnectionWrapper::GetConnectionState() const {
   }
 }
 
-engine::TaskWithResult<void> PGConnectionWrapper::Close() {
-  if (!conn_) {
-    // TODO avoid empty task
-    return engine::Async(bg_task_processor_, [] {});
-  }
-
-  engine::io::Socket tmp_sock{std::move(socket_)};
-  socket_ = engine::io::Socket();
-
+engine::Task PGConnectionWrapper::Close() {
+  engine::io::Socket tmp_sock = std::exchange(socket_, {});
   PGconn* tmp_conn = std::exchange(conn_, nullptr);
+
   return engine::CriticalAsync(
       bg_task_processor_, [ tmp_conn, socket = std::move(tmp_sock) ]() mutable {
-        PQfinish(tmp_conn);
+        if (tmp_conn != nullptr) {
+          PQfinish(tmp_conn);
+        }
+
         if (socket) {
           [[maybe_unused]] int fd = std::move(socket).Release();
         }
@@ -108,13 +107,12 @@ template <typename ExceptionType>
 void PGConnectionWrapper::CloseWithError(ExceptionType&& ex) {
   LOG_DEBUG() << log_extra_
               << "Closing connection because of failure: " << ex.what();
-  Close().Get();
+  Close().Wait();
   throw std::forward<ExceptionType>(ex);
 }
 
-engine::TaskWithResult<void> PGConnectionWrapper::Cancel() {
-  if (ConnectionState::kOffline == GetConnectionState()) {
-    // TODO avoid empty task
+engine::Task PGConnectionWrapper::Cancel() {
+  if (!conn_) {
     return engine::Async(bg_task_processor_, [] {});
   }
   std::unique_ptr<PGcancel, decltype(&PQfreeCancel)> cancel{PQgetCancel(conn_),

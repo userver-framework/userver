@@ -5,6 +5,7 @@
 
 #include <engine/async.hpp>
 #include <engine/io/socket.hpp>
+#include <engine/task/task.hpp>
 #include <logging/log_extra.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
@@ -20,6 +21,7 @@ class PGConnectionWrapper {
 
  public:
   PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id);
+  ~PGConnectionWrapper();
 
   PGConnectionWrapper(const PGConnectionWrapper&) = delete;
   PGConnectionWrapper& operator=(const PGConnectionWrapper&) = delete;
@@ -35,9 +37,9 @@ class PGConnectionWrapper {
   void AsyncConnect(const std::string& conninfo, Duration poll_timeout);
 
   /// @brief Close the connection on a background task processor.
-  [[nodiscard]] engine::TaskWithResult<void> Close();
+  [[nodiscard]] engine::Task Close();
   /// @brief Cancel current operation on a background task processor.
-  [[nodiscard]] engine::TaskWithResult<void> Cancel();
+  [[nodiscard]] engine::Task Cancel();
 
   // TODO Add tracing::Span
   /// @brief Wrapper for PQsendQuery
