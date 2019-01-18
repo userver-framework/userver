@@ -54,6 +54,7 @@ Span::Impl::Impl(TracerPtr tracer, const std::string& name,
       span_id_(utils::generators::GenerateUuid()),
       parent_id_(parent ? parent->GetSpanId() : std::string{}),
       reference_type_(reference_type) {
+  if (parent) log_extra_inheritable = parent->log_extra_inheritable;
   AttachToCoroStack();
 }
 
@@ -154,14 +155,12 @@ Span Span::MakeSpan(const std::string& name, const std::string& trace_id,
 
 Span Span::CreateChild(const std::string& name) const {
   auto span = pimpl_->tracer->CreateSpan(name, *this, ReferenceType::kChild);
-  span.pimpl_->log_extra_inheritable = pimpl_->log_extra_inheritable;
   return span;
 }
 
 Span Span::CreateFollower(const std::string& name) const {
   auto span =
       pimpl_->tracer->CreateSpan(name, *this, ReferenceType::kReference);
-  span.pimpl_->log_extra_inheritable = pimpl_->log_extra_inheritable;
   return span;
 }
 
