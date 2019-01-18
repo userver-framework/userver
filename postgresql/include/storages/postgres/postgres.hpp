@@ -20,6 +20,7 @@
 /// - PostgreSQL cluster topology discovery;
 /// - Manual cluster sharding (access to shard clusters by index);
 /// - Connection pooling;
+/// - Automatic PgaaS topology discovery;
 /// - Selecting query target (master/slave);
 /// - Connection failover (TODO)
 /// - Transaction support;
@@ -36,6 +37,7 @@
 /// - @ref pg_types
 /// - @ref pg_user_types
 /// - @ref pg_errors
+/// - @ref pg_topology
 
 namespace storages {
 /// @brief Top namespace for µPg driver

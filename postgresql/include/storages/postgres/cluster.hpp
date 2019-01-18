@@ -7,6 +7,45 @@
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
 
+/// @page pg_topology µPg: Cluster topology discovery
+///
+/// @par Principles of PgaaS role determination
+/// - Every host except master is in recovery state from PostgreSQL's POV.
+/// This means the check 'select pg_is_in_recovery()' returns `false` for the
+/// master and `true` for every other host type.
+/// - Some hosts are in sync slave mode. This may be determined by executing
+/// 'show synchronous_standby_names' on the master.
+/// Slave names returned by this statement are escaped host names where every
+/// non-letter and non-digit are replaced with '_'.
+///
+/// @par PgaaS sync slaves lag
+/// By default, PgaaS synchronous slaves are working with 'synchronous_commit'
+/// set to 'remote_apply'. Therefore, sync slave may be lagging behind the
+/// master and thus is not truly 'synchronous' from the reader's POV,
+/// but things may change with time.
+///
+/// @par Algorithm
+/// Every topology update runs for at most 80% of timer update interval, but no
+/// less than kMinCheckDuration.
+/// Topology check is done in CheckTopology method in two phases:
+/// - host check routine which collects relevant info about host states and
+/// roles is executed
+/// - update routine which actualizes host states is called
+/// All the processing is done single-thread, and CheckTopology method is not
+/// designed to support multi-threaded calls, so synchronization must be
+/// guaranteed outside.
+/// Check routine consists of the following stages:
+/// - reconnect/wait for connection to become available
+/// - availability check (joint with master detection)
+/// - sync slaves detection (only for master host)
+/// Every stage, including connection to the host, may fail and thus cause
+/// reconnect again and again.
+/// The core of check process is task multiplexing that allows to simultaneously
+/// track different tasks representing different stages.
+/// During checks the info about hosts is stored into changes.last_check_type
+/// variable.
+/// The info is then actualized later during second phase of topology check.
+
 namespace engine {
 class TaskProcessor;
 }  // namespace engine
