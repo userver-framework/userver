@@ -32,13 +32,18 @@ class ClusterTopologyDiscovery : public ClusterTopology {
   static const std::chrono::seconds kUpdateInterval;
 
  private:
+  /// State of host checks in progress
   struct HostChecks {
     enum class Stage {
+      /// Availability (and master) check stage
       kAvailability,
+      /// Sync slaves check stage
       kSyncSlaves,
     };
 
+    /// Host state check operation in progress (if any)
     std::unique_ptr<engine::Task> task;
+    /// Current check stage
     Stage stage;
   };
 
@@ -79,36 +84,56 @@ class ClusterTopologyDiscovery : public ClusterTopology {
         : ::utils::statistics::RelaxedCounter<T>(other.Load()) {}
   };
 
+  /// Keeps changes happening with the host
   struct StateChages {
+    /// Host type determined after last check
     ClusterHostType last_check_type;
+    /// Host type kept as potential new type after number of checks
     ClusterHostType new_type;
+    /// Number of times new host type seen in a row
     size_t count;
   };
 
+  /// Host state info
   struct HostState {
     HostState(const std::string& dsn, ConnectionTask&& task);
     HostState(HostState&&) noexcept = default;
     HostState& operator=(HostState&&) = default;
 
+    /// Host DSN
     std::string dsn;
+    /// Either a working connection to the host or a task if connection is being
+    /// established
     boost::variant<std::unique_ptr<Connection>, ConnectionTask> conn_variant;
+    /// Currently exposed host type (role)
     ClusterHostType host_type;
+    /// Number of failed reconnects in a row
     size_t failed_reconnects;
 
+    /// Current state of changes to the host
     StateChages changes;
 
     // The data below is modified concurrently
 
-    // We don't care about exact accuracy
+    /// Failed operations counter helping immediately mark the host as offline
+    /// when the given threshold is reached
+    /// @note We don't care about exact accuracy so it's a relaxed atomic
     RelaxedAtomic<size_t> failed_operations;
   };
 
+  /// Background task processor passed to connection objects
   engine::TaskProcessor& bg_task_processor_;
+  /// Duration of topology check routine
   std::chrono::milliseconds check_duration_;
+  /// Host states array
   std::vector<HostState> host_states_;
+  /// Currently determined host types exposed to the client
   ::utils::SwappingSmart<HostsByType> hosts_by_type_;
+  /// Host DSN names to array index mapping
   std::unordered_map<std::string, size_t> dsn_to_index_;
+  /// Index to search for sync slave names returned from the specific call to Pg
   std::unordered_map<std::string, size_t> escaped_to_dsn_index_;
+  /// Initial check flag
   bool initial_check_;
 };
 
