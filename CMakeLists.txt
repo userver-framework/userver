@@ -41,6 +41,7 @@ set(YANDEX_TAXI_USERVER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL 
 
 if(NOT USERVICES)
   find_package(Helperyandex-taxi-userver-core)
+  find_package(Helperyandex-taxi-userver-mongo)
   find_package(Helperyandex-taxi-userver-postgresql)
   find_package(Helperyandex-taxi-userver-redis)
 endif(NOT USERVICES)

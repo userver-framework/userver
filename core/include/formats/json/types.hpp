@@ -5,13 +5,13 @@
 
 #include <json/value.h>
 
+#include <formats/common/path.hpp>
+
 namespace formats {
 namespace json {
 
-using Path = std::vector<std::string>;
-
-std::string PathToString(const Path& path, const std::string& root = "/",
-                         char separator = '.');
+using formats::common::Path;
+using formats::common::PathToString;
 
 enum class Type {
   kNull,

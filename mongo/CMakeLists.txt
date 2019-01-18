@@ -46,16 +46,16 @@ target_include_directories(
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   ${LIBBSONCXX_STATIC_INCLUDE_DIRS}
   ${LIBMONGOCXX_STATIC_INCLUDE_DIRS}
+  ${BSON_STATIC_INCLUDE_DIRS}
 )
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-  ${BSON_STATIC_INCLUDE_DIRS}
   ${MONGOC_STATIC_INCLUDE_DIRS}
 )
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
     $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
 )
 
-# add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-# set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
-# target_link_libraries(${PROJECT_NAME}_unittest utest)
-# add_google_tests(${PROJECT_NAME}_unittest)
+add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(${PROJECT_NAME}_unittest utest ${PROJECT_NAME})
+add_google_tests(${PROJECT_NAME}_unittest)

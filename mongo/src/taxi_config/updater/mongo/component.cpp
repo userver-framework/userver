@@ -4,14 +4,14 @@
 
 #include <blocking/fs/read.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/json.hpp>
 #include <bsoncxx/types.hpp>
+#include <formats/json/serialize.hpp>
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/read_preference.hpp>
-#include <bsoncxx/json.hpp>
 #include <storages/mongo/component.hpp>
 #include <storages/mongo/mongo.hpp>
 #include <taxi_config/mongo/names.hpp>
-#include <formats/json/serialize.hpp>
 
 namespace components {
 
@@ -80,7 +80,8 @@ void TaxiConfigMongoUpdater::Update(
         seen_doc_update_time =
             std::max(seen_doc_update_time, sm::ToTimePoint(updated_field));
       }
-      mongo_docs.Set(sm::ToString(doc[config_db::kId]), formats::json::FromString(bsoncxx::to_json(doc)));
+      mongo_docs.Set(sm::ToString(doc[config_db::kId]),
+                     formats::json::FromString(bsoncxx::to_json(doc)));
     } catch (const std::exception& e) {
       stats.IncreaseDocumentsParseFailures(1);
     }
