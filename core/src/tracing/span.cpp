@@ -85,6 +85,10 @@ Span::Impl::~Impl() {
                             {kReferenceType, ref_type},
                             {kTimeUnitsAttrName, "ms"}});
 
+  if (time_storage_) {
+    result.Extend(time_storage_->GetLogs());
+  }
+
   LOG(log_level_) << std::move(result) << std::move(*this);
 }
 
@@ -166,6 +170,10 @@ Span Span::CreateFollower(const std::string& name) const {
 
 ScopeTime Span::CreateScopeTime() {
   return ScopeTime(pimpl_->GetTimeStorage());
+}
+
+ScopeTime Span::CreateScopeTime(const std::string& name) {
+  return ScopeTime(pimpl_->GetTimeStorage(), name);
 }
 
 void Span::AddNonInheritableTag(std::string key,

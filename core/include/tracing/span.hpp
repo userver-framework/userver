@@ -43,6 +43,8 @@ class Span final {
 
   ScopeTime CreateScopeTime();
 
+  ScopeTime CreateScopeTime(const std::string& name);
+
   /** Add a tag that is used in this Span and all future children.
    */
   void AddTag(std::string key, logging::LogExtra::Value value);

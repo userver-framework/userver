@@ -50,3 +50,18 @@ TEST_F(Span, InheritTag) {
     EXPECT_NE(std::string::npos, sstream.str().find("k=v"));
   });
 }
+
+TEST_F(Span, ScopeTime) {
+  RunInCoro([this] {
+    {
+      tracing::Span span("span_name");
+      auto st = span.CreateScopeTime("xxx");
+
+      logging::LogFlush();
+      EXPECT_EQ(std::string::npos, sstream.str().find("xxx"));
+    }
+
+    logging::LogFlush();
+    EXPECT_NE(std::string::npos, sstream.str().find("xxx_time="));
+  });
+}
