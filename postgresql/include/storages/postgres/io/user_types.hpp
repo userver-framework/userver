@@ -123,14 +123,12 @@ struct CppToUserPgImpl {
   static constexpr DBTypeName postgres_name = kPgUserTypeName<T>;
   static const detail::RegisterUserTypeParser init_;
   static Oid GetOid(const UserTypes& user_types) {
-    ForceReference(init_);
     // TODO Handle oid not found
-    return user_types.FindOid(postgres_name);
+    return user_types.FindOid(init_.postgres_name);
   }
   static Oid GetArrayOid(const UserTypes& user_types) {
-    ForceReference(init_);
     // TODO Handle oid not found
-    return user_types.FindArrayOid(postgres_name);
+    return user_types.FindArrayOid(init_.postgres_name);
   }
 };
 
@@ -140,7 +138,6 @@ const RegisterUserTypeParser CppToUserPgImpl<T>::init_ =
                                      ::utils::GetTypeName<T>(),
                                      io::traits::kHasTextParser<T>,
                                      io::traits::kHasBinaryParser<T>);
-
 }  // namespace io::detail
 
 }  // namespace storages::postgres

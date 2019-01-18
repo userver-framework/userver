@@ -50,6 +50,7 @@ struct CompositeBinaryParser : BufferParserBase<T> {
   using BaseType = BufferParserBase<T>;
   using RowType = io::RowType<T>;
   using IndexSequence = typename RowType::IndexSequence;
+  using PgMapping = CppToPg<T>;
 
   using BaseType::BaseType;
 
@@ -63,7 +64,7 @@ struct CompositeBinaryParser : BufferParserBase<T> {
         field_count);
     offset += int_size;
 
-    if (field_count != RowType::size) {
+    if (field_count != RowType::size && ForceReference(PgMapping::init_)) {
       throw CompositeSizeMismatch(field_count, RowType::size);
     }
 

@@ -225,7 +225,7 @@ RegisterUserTypeParser RegisterUserTypeParser::Register(
   } else if (bin_parser) {
     BinaryParsers().insert(std::make_pair(pg_name, std::move(cpp_name)));
   }
-  return {};
+  return {pg_name};
 }
 
 }  // namespace detail

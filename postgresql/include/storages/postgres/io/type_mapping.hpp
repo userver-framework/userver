@@ -56,6 +56,7 @@ struct RegisterUserTypeParser {
   static RegisterUserTypeParser Register(const DBTypeName&,
                                          std::string&& cpp_name,
                                          bool text_parser, bool bin_parser);
+  const DBTypeName postgres_name;
 };
 
 /// @brief Declare a mapping of a C++ type to a PostgreSQL type oid.

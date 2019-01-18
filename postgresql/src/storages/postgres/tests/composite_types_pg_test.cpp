@@ -70,6 +70,14 @@ struct BunchOfFoo {
   }
 };
 
+struct NoUseInWrite {
+  int i;
+  std::string s;
+  double d;
+  std::vector<int> a;
+  std::vector<std::string> v;
+};
+
 }  // namespace pg_test
 /*! [User type declaration] */
 
@@ -101,6 +109,17 @@ struct CppToUserPg<pg_test::BunchOfFoo> {
 
 }  // namespace storages::postgres::io
 /*! [User type mapping] */
+
+namespace storages::postgres::io {
+
+// This mapping is separate from the others as it shouldn't get to the code
+// snippet for generating documentation.
+template <>
+struct CppToUserPg<pg_test::NoUseInWrite> {
+  static constexpr DBTypeName postgres_name = kCompositeName;
+};
+
+}  // namespace storages::postgres::io
 
 namespace static_test {
 
@@ -232,6 +251,12 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_EQ(bf, res[0].As<pg_test::BunchOfFoo>(pg::kRowTag));
 
   EXPECT_ANY_THROW(res[0][0].To(bf1));
+
+  // Using a mapped type only for reading
+  EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fb));
+  EXPECT_NO_THROW(res.AsContainer<std::vector<pg_test::NoUseInWrite>>())
+      << "A type that is not used for writing query parameter buffers must be"
+         "available for reading";
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
