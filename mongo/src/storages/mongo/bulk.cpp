@@ -74,8 +74,8 @@ void BulkOperationBuilder::InsertOne(DocumentValue obj) {
   bulk_->Append(mongocxx::model::insert_one(std::move(obj)));
 }
 
-engine::TaskWithResult<void> BulkOperationBuilder::Execute(
-    mongocxx::write_concern wc) {
+engine::TaskWithResult<boost::optional<mongocxx::result::bulk_write>>
+BulkOperationBuilder::Execute(mongocxx::write_concern wc) {
   return bulk_->Execute(std::move(wc));
 }
 

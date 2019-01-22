@@ -5,6 +5,7 @@
 
 #include <memory>
 
+#include <mongocxx/bulk_write.hpp>
 #include <mongocxx/write_concern.hpp>
 
 #include <engine/task/task_with_result.hpp>
@@ -88,7 +89,8 @@ class BulkOperationBuilder {
   void InsertOne(DocumentValue);
 
   /// Runs the operation
-  engine::TaskWithResult<void> Execute(mongocxx::write_concern);
+  engine::TaskWithResult<boost::optional<mongocxx::result::bulk_write>> Execute(
+      mongocxx::write_concern);
 
  private:
   std::shared_ptr<impl::BulkOperationBuilderImpl> bulk_;
