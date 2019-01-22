@@ -3,6 +3,7 @@
 #include <boost/endian/arithmetic.hpp>
 
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
@@ -46,19 +47,20 @@ struct IntegralBySizeParser {
 };
 
 template <typename T>
-struct IntegralBinaryParser {
-  T& value;
-  explicit IntegralBinaryParser(T& val) : value{val} {}
+struct IntegralBinaryParser : BufferParserBase<T> {
+  using BaseType = BufferParserBase<T>;
+  using BaseType::BaseType;
+
   void operator()(const FieldBuffer& buf) {
     switch (buf.length) {
       case 2:
-        value = IntegralBySizeParser<2>::ParseBuffer(buf);
+        this->value = IntegralBySizeParser<2>::ParseBuffer(buf);
         break;
       case 4:
-        value = IntegralBySizeParser<4>::ParseBuffer(buf);
+        this->value = IntegralBySizeParser<4>::ParseBuffer(buf);
         break;
       case 8:
-        value = IntegralBySizeParser<8>::ParseBuffer(buf);
+        this->value = IntegralBySizeParser<8>::ParseBuffer(buf);
         break;
       default:
         throw InvalidInputBufferSize{buf.length, "for an integral value type"};

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <storages/postgres/io/buffer_io.hpp>
+#include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/nullable_traits.hpp>
 #include <storages/postgres/io/traits.hpp>
 

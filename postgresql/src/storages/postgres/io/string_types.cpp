@@ -21,6 +21,7 @@ struct PgToCpp<PredefinedOids::kName, std::string>
 namespace {
 
 const bool kReference = detail::ForceReference(
+    CppToPg<char>::init_, CppToPg<std::string>::init_,
     PgToCpp<PredefinedOids::kChar, char>::init_,
     PgToCpp<PredefinedOids::kBpchar, std::string>::init_,
     PgToCpp<PredefinedOids::kVarchar, std::string>::init_,

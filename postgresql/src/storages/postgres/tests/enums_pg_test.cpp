@@ -32,6 +32,9 @@ select  'red'::__pg_test.rainbow as red,
 enum class Rainbow { kRed, kOrange, kYellow, kGreen, kCyan, kBlue, kViolet };
 /*! [C++ enum type] */
 
+// This data type is for testing a data type that is used only for reading
+enum class RainbowRO { kRed, kOrange, kYellow, kGreen, kCyan, kBlue, kViolet };
+
 }  // namespace
 
 // this is used as a code snippet in documentation, clang-format makes it ugly
@@ -54,6 +57,29 @@ struct CppToUserPg<Rainbow> : EnumMappingBase<Rainbow> {
 }  // namespace storages::postgres::io
 /*! [C++ to Pg mapping] */
 // clang-format on
+
+// Reopen the namespace not to get to the code snippet
+namespace storages::postgres::io {
+
+template <>
+struct CppToUserPg<RainbowRO> : EnumMappingBase<RainbowRO> {
+  static constexpr DBTypeName postgres_name = "__pg_test.rainbow";
+  static constexpr EnumeratorList enumerators{
+      {EnumType::kRed, "red"},       {EnumType::kOrange, "orange"},
+      {EnumType::kYellow, "yellow"}, {EnumType::kGreen, "green"},
+      {EnumType::kCyan, "cyan"},     {EnumType::kBlue, "blue"},
+      {EnumType::kViolet, "violet"}};
+};
+
+namespace traits {
+
+// To ensure it is never written to a buffer
+template <DataFormat F>
+struct HasFormatter<RainbowRO, F> : std::false_type {};
+
+}  // namespace traits
+
+}  // namespace storages::postgres::io
 
 namespace static_test {
 
@@ -106,6 +132,9 @@ POSTGRE_TEST_P(EnumRoundtrip) {
     EXPECT_NO_THROW(res = conn->Execute("select $1", en.enumerator));
     EXPECT_EQ(en.enumerator, res[0][0].As<Rainbow>());
     EXPECT_EQ(en.literal, res[0][0].As<::utils::string_view>());
+    // Test the data type that is used for reading only
+    EXPECT_NO_THROW(res[0][0].As<RainbowRO>())
+        << "Read a datatype that is never written to a Pg buffer";
   }
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";

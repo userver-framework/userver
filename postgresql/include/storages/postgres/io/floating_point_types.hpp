@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/endian/arithmetic.hpp>
+#include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
@@ -37,17 +38,17 @@ struct FloatingPointBySizeParser {
 };
 
 template <typename T>
-struct FloatingPointBinaryParser {
-  T& value;
+struct FloatingPointBinaryParser : BufferParserBase<T> {
+  using BaseType = BufferParserBase<T>;
+  using BaseType::BaseType;
 
-  explicit FloatingPointBinaryParser(T& val) : value{val} {}
   void operator()(const FieldBuffer& buf) {
     switch (buf.length) {
       case 4:
-        value = FloatingPointBySizeParser<4>::ParseBuffer(buf);
+        this->value = FloatingPointBySizeParser<4>::ParseBuffer(buf);
         break;
       case 8:
-        value = FloatingPointBySizeParser<8>::ParseBuffer(buf);
+        this->value = FloatingPointBySizeParser<8>::ParseBuffer(buf);
         break;
       default:
         throw InvalidInputBufferSize{buf.length,

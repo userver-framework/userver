@@ -253,23 +253,5 @@ constexpr bool kCustomBinaryFormatterDefined =
 
 }  // namespace traits
 
-namespace detail {
-
-template <typename T>
-struct BufferParserBase {
-  using ValueType = T;
-  ValueType& value;
-  BufferParserBase(ValueType& v) : value{v} {}
-};
-
-template <typename T>
-struct BufferFormatterBase {
-  using ValueType = T;
-  const ValueType& value;
-  BufferFormatterBase(const ValueType& v) : value{v} {}
-};
-
-}  // namespace detail
-
 }  // namespace io
 }  // namespace storages::postgres

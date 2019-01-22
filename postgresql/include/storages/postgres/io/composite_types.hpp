@@ -4,6 +4,7 @@
 #include <utility>
 
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
 #include <storages/postgres/io/row_types.hpp>
 #include <storages/postgres/io/traits.hpp>
@@ -50,7 +51,6 @@ struct CompositeBinaryParser : BufferParserBase<T> {
   using BaseType = BufferParserBase<T>;
   using RowType = io::RowType<T>;
   using IndexSequence = typename RowType::IndexSequence;
-  using PgMapping = CppToPg<T>;
 
   using BaseType::BaseType;
 
@@ -64,7 +64,7 @@ struct CompositeBinaryParser : BufferParserBase<T> {
         field_count);
     offset += int_size;
 
-    if (field_count != RowType::size && ForceReference(PgMapping::init_)) {
+    if (field_count != RowType::size) {
       throw CompositeSizeMismatch(field_count, RowType::size);
     }
 

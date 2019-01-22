@@ -5,6 +5,7 @@
 
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
+#include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
 #include <utils/demangle.hpp>
@@ -165,19 +166,20 @@ struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
 template <typename Duration>
 struct BufferParser<
     postgres::detail::TimestampTz<std::chrono::time_point<ClockType, Duration>>,
-    DataFormat::kTextDataFormat> {
-  using ValueType = postgres::detail::TimestampTz<
-      std::chrono::time_point<ClockType, Duration>>;
-  ValueType value;
-
-  explicit BufferParser(ValueType&& val) : value{std::move(val)} {}
+    DataFormat::kTextDataFormat>
+    : detail::BufferParserBase<postgres::detail::TimestampTz<
+          std::chrono::time_point<ClockType, Duration>>&&> {
+  using BaseType = detail::BufferParserBase<postgres::detail::TimestampTz<
+      std::chrono::time_point<ClockType, Duration>>&&>;
+  using ValueType = typename BaseType::ValueType;
+  using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S%Ez";
     std::string timestr = buffer.ToString();
     typename ValueType::TimePointType tmp;
-    if (cctz::parse(format, timestr, value.tz, &tmp)) {
-      std::swap(tmp, value.value);
+    if (cctz::parse(format, timestr, this->value.tz, &tmp)) {
+      std::swap(tmp, this->value.value);
     } else {
       throw TextParseFailure{::utils::GetTypeName<ValueType>(), timestr};
     }
@@ -189,18 +191,19 @@ struct BufferParser<
 template <typename Duration>
 struct BufferParser<
     postgres::detail::TimestampTz<std::chrono::time_point<ClockType, Duration>>,
-    DataFormat::kBinaryDataFormat> {
-  using ValueType = postgres::detail::TimestampTz<
-      std::chrono::time_point<ClockType, Duration>>;
-  ValueType value;
-
-  explicit BufferParser(ValueType&& val) : value{std::move(val)} {}
+    DataFormat::kBinaryDataFormat>
+    : detail::BufferParserBase<postgres::detail::TimestampTz<
+          std::chrono::time_point<ClockType, Duration>>&&> {
+  using BaseType = detail::BufferParserBase<postgres::detail::TimestampTz<
+      std::chrono::time_point<ClockType, Duration>>&&>;
+  using ValueType = typename BaseType::ValueType;
+  using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
-    auto lookup = value.tz.lookup(value.value);
+    auto lookup = this->value.tz.lookup(this->value.value);
     typename ValueType::TimePointType tmp;
     ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, tmp);
-    value.value = tmp + std::chrono::seconds{lookup.offset};
+    this->value.value = tmp + std::chrono::seconds{lookup.offset};
   }
 };
 
@@ -248,11 +251,12 @@ struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
 /// @brief Text parser for std::chrono::time_point.
 template <typename Duration>
 struct BufferParser<std::chrono::time_point<ClockType, Duration>,
-                    DataFormat::kTextDataFormat> {
-  using ValueType = std::chrono::time_point<ClockType, Duration>;
-
-  ValueType& value;
-  explicit BufferParser(ValueType& val) : value{val} {}
+                    DataFormat::kTextDataFormat>
+    : detail::BufferParserBase<std::chrono::time_point<ClockType, Duration>> {
+  using BaseType =
+      detail::BufferParserBase<std::chrono::time_point<ClockType, Duration>>;
+  using ValueType = typename BaseType::ValueType;
+  using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
     static const std::string format = "%Y-%m-%d %H:%M:%E*S";
@@ -260,7 +264,7 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
     std::string timestr = buffer.ToString();
     ValueType tmp;
     if (cctz::parse(format, timestr, tz, &tmp)) {
-      std::swap(tmp, value);
+      std::swap(tmp, this->value);
     } else {
       throw TextParseFailure{::utils::GetTypeName<ValueType>(), timestr};
     }
@@ -270,18 +274,19 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
 /// @brief Binary parser for std::chrono::time_point.
 template <typename Duration>
 struct BufferParser<std::chrono::time_point<ClockType, Duration>,
-                    DataFormat::kBinaryDataFormat> {
-  using ValueType = std::chrono::time_point<ClockType, Duration>;
-
-  ValueType& value;
-  explicit BufferParser(ValueType& val) : value{val} {}
+                    DataFormat::kBinaryDataFormat>
+    : detail::BufferParserBase<std::chrono::time_point<ClockType, Duration>> {
+  using BaseType =
+      detail::BufferParserBase<std::chrono::time_point<ClockType, Duration>>;
+  using ValueType = typename BaseType::ValueType;
+  using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
     static const ValueType pg_epoch = PostgresEpoch();
     Bigint usec{0};
     ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, usec);
     ValueType tmp = pg_epoch + std::chrono::microseconds{usec};
-    std::swap(tmp, value);
+    std::swap(tmp, this->value);
   }
 };
 

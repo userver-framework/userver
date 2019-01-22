@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
@@ -118,6 +119,7 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
   using Dimensions = std::array<std::size_t, dimensions>;
   using DimensionIterator = typename Dimensions::iterator;
   using DimensionConstIterator = typename Dimensions::const_iterator;
+  using ElementMapping = CppToPg<ElementType>;
 
   using BaseType::BaseType;
 
@@ -132,7 +134,8 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     ReadBinary(
         buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
         dim_count);
-    if (dim_count != static_cast<Integer>(dimensions)) {
+    if (dim_count != static_cast<Integer>(dimensions) &&
+        ForceReference(ElementMapping::init_)) {
       if (dim_count == 0) {
         ValueType empty{};
         swap(this->value, empty);

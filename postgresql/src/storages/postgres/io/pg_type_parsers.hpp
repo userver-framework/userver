@@ -1,6 +1,7 @@
 #pragma once
 
 #include <storages/postgres/io/buffer_io.hpp>
+#include <storages/postgres/io/buffer_io_base.hpp>
 #include <utils/demangle.hpp>
 
 namespace storages::postgres::io {
@@ -26,12 +27,18 @@ struct CharToEnum : BufferParserBase<Enum> {
 
 template <>
 struct BufferParser<DBTypeDescription::TypeClass, DataFormat::kBinaryDataFormat>
-    : detail::CharToEnum<DBTypeDescription::TypeClass> {};
+    : detail::CharToEnum<DBTypeDescription::TypeClass> {
+  using BaseType = detail::CharToEnum<DBTypeDescription::TypeClass>;
+  using BaseType::BaseType;
+};
 
 template <>
 struct BufferParser<DBTypeDescription::TypeCategory,
                     DataFormat::kBinaryDataFormat>
-    : detail::CharToEnum<DBTypeDescription::TypeCategory> {};
+    : detail::CharToEnum<DBTypeDescription::TypeCategory> {
+  using BaseType = detail::CharToEnum<DBTypeDescription::TypeCategory>;
+  using BaseType::BaseType;
+};
 
 template <>
 struct BufferParser<Oid, DataFormat::kBinaryDataFormat>
