@@ -172,7 +172,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
     /* Wait for all tasks to exit, but don't .Get() them - we've already caught
      * an exception, ignore the rest */
     for (auto& task : tasks) {
-      task.Wait();
+      if (task.IsValid()) task.Wait();
     }
 
     ClearComponents();

@@ -219,7 +219,9 @@ void ComponentContext::ProcessAllComponentLifetimeStageSwitchings(
       CancelComponentLifetimeStageSwitching();
     }
 
-    for (auto& task_item : tasks) task_item.second.Wait();
+    for (auto& task_item : tasks) {
+      if (task_item.second.IsValid()) task_item.second.Wait();
+    }
 
     throw;
   }
