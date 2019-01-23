@@ -165,6 +165,12 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                   << ", body=" << ex.GetExternalErrorBody();
       response.SetStatus(ex.GetStatus());
       response.SetData(ex.GetExternalErrorBody());
+    } catch (const handlers::CustomHandlerException& ex) {
+      LOG_ERROR() << "custom handler exception in '" << HandlerName()
+                  << "' handler in handle_request: msg=" << ex.what()
+                  << ", body=" << ex.GetExternalErrorBody();
+      response.SetStatus(http::GetHttpStatus(ex.GetCode()));
+      response.SetData(ex.GetExternalErrorBody());
     } catch (const std::exception& ex) {
       LOG_ERROR() << "exception in '" << HandlerName()
                   << "' handler in handle_request: " << ex.what();
