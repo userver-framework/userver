@@ -13,6 +13,7 @@
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
 #include <logging/reopening_file_sink.hpp>
+#include <utils/thread_name.hpp>
 #include <yaml_config/value.hpp>
 
 #include "config.hpp"
@@ -52,15 +53,23 @@ Logging::Logging(const ComponentConfig& config,
     auto file_sink =
         std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
     std::shared_ptr<spdlog::details::thread_pool> tp;
+
+    auto old_thread_name = utils::GetCurrentThreadName();
+    utils::SetCurrentThreadName("log/" + logger_name);
+
     if (is_default_logger) {
       spdlog::init_thread_pool(logger_config.message_queue_size,
                                logger_config.thread_pool_size);
       tp = spdlog::thread_pool();
+
     } else {
       tp = std::make_shared<spdlog::details::thread_pool>(
           logger_config.message_queue_size, logger_config.thread_pool_size);
       thread_pools_.push_back(tp);
     }
+
+    utils::SetCurrentThreadName(old_thread_name);
+
     auto logger = std::make_shared<spdlog::async_logger>(
         logger_name, std::move(file_sink), tp, overflow_policy);
     logger->set_level(

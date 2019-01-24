@@ -34,3 +34,14 @@ TEST(ThreadName, DISABLED_IN_MAC_OS_TEST_NAME(Set)) {
 
   thread.join();
 }
+
+TEST(ThreadName, DISABLED_IN_MAC_OS_TEST_NAME(SetSelf)) {
+  auto old_name = utils::GetCurrentThreadName();
+  auto new_name = "12345";
+
+  utils::SetCurrentThreadName(new_name);
+  EXPECT_EQ(new_name, utils::GetCurrentThreadName());
+
+  utils::SetCurrentThreadName(old_name);
+  EXPECT_EQ(old_name, utils::GetCurrentThreadName());
+}
