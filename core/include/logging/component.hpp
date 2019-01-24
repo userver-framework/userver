@@ -80,6 +80,7 @@ class Logging : public ComponentBase {
   }
   void FlushLogs();
 
+  engine::TaskProcessor* fs_task_processor_;
   std::vector<logging::ThreadPoolPtr> thread_pools_;
   std::unordered_map<std::string, logging::LoggerPtr> loggers_;
   utils::PeriodicTask flush_task_;

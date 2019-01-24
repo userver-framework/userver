@@ -9,6 +9,7 @@
 
 #include <spdlog/async.h>
 
+#include <engine/async.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
 #include <logging/reopening_file_sink.hpp>
@@ -23,10 +24,16 @@ std::chrono::seconds kDefaultFlushInterval{2};
 
 }  // namespace
 
-Logging::Logging(const ComponentConfig& config, const ComponentContext&) {
-  auto loggers = config.Yaml()["loggers"];
+Logging::Logging(const ComponentConfig& config,
+                 const ComponentContext& context) {
+  const auto& yaml = config.Yaml();
+  auto loggers = yaml["loggers"];
   auto loggers_full_path = config.FullPath() + ".loggers";
   yaml_config::CheckIsMap(loggers, loggers_full_path);
+  auto fs_task_processor_name =
+      yaml_config::ParseString(yaml, "fs-task-processor-name",
+                               config.FullPath(), config.ConfigVarsPtr());
+  fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
 
   for (auto it = loggers.begin(); it != loggers.end(); ++it) {
     auto logger_name = it->first.as<std::string>();
@@ -101,23 +108,38 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
   return it->second;
 }
 
-void Logging::OnLogRotate() {
-  auto reopen_all = [](auto& sinks) {
-    for (auto s : sinks) {
-      auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
-      if (reop) {
-        // TODO Handle exceptions here
-        reop->Reopen(/* truncate = */ false);
-      }
+namespace {
+void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
+  for (auto s : sinks) {
+    auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
+    if (reop) {
+      // TODO Handle exceptions here
+      reop->Reopen(/* truncate = */ false);
     }
-  };
+  }
+};
+}  // namespace
 
-  // this must be a copy
+void Logging::OnLogRotate() {
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(loggers_.size() + 1);
+
+  // this must be a copy as the default logger may change
   auto default_logger = logging::DefaultLogger();
-  reopen_all(default_logger->sinks());
+  tasks.push_back(engine::CriticalAsync(*fs_task_processor_, ReopenAll,
+                                        std::ref(default_logger->sinks())));
 
   for (const auto& item : loggers_) {
-    reopen_all(item.second->sinks());
+    tasks.push_back(engine::CriticalAsync(*fs_task_processor_, ReopenAll,
+                                          std::ref(item.second->sinks())));
+  }
+
+  for (auto& task : tasks) {
+    try {
+      task.Get();
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception on log reopen: " << e.what();
+    }
   }
 }
 
