@@ -10,6 +10,7 @@
 
 #include <utils/encoding/hex.hpp>
 #include <utils/encoding/tskv.hpp>
+#include <utils/string_view.hpp>
 
 #include "level.hpp"
 #include "log_extra.hpp"
@@ -26,7 +27,11 @@ LoggerPtr SetDefaultLogger(LoggerPtr);
 /// Sets new log level for default logger
 void SetDefaultLoggerLevel(Level);
 
-/// Stream-like tskv-formatted log message builder
+/// Stream-like tskv-formatted log message builder.
+///
+/// Users can add LogHelper& operator<<(LogHelper&, ) overloads to use a faster
+/// localeless logging, rather than outputting data through the ostream
+/// operator.
 class LogHelper {
  public:
   /// @brief Constructs LogHelper
@@ -34,7 +39,7 @@ class LogHelper {
   /// @param path path of the source file that generated the message
   /// @param line line of the source file that generated the message
   /// @param func name of the function that generated the message
-  LogHelper(Level level, const char* path, int line, const char* func);
+  LogHelper(Level level, const char* path, int line, const char* func) noexcept;
   ~LogHelper();
 
   LogHelper(LogHelper&&) = delete;
@@ -42,64 +47,58 @@ class LogHelper {
   LogHelper& operator=(LogHelper&&) = delete;
   LogHelper& operator=(const LogHelper&) = delete;
 
-  // All the logging goes through this function
-  template <typename T>
-  friend LogHelper&& operator<<(LogHelper&& lh, const T& value) {
-    lh << value;
-    return std::move(lh);
-  }
+  // Helper function that could be called on LogHelper&& to get LogHelper&.
+  LogHelper& AsLvalue() noexcept { return *this; }
 
   template <typename T>
-  friend LogHelper& operator<<(LogHelper& lh, const std::atomic<T>& value) {
-    return lh << value.load();
-  }
+  LogHelper& operator<<(const T& value) {
+    constexpr bool encode = utils::encoding::TypeNeedsEncodeTskv<T>::value;
+    EncodingGuard guard{*this, encode ? Encode::kValue : Encode::kNone};
 
-  friend LogHelper& operator<<(LogHelper& lh, const void* value) {
-    lh.Stream() << reinterpret_cast<unsigned long long>(value);
-    return lh;
-  }
+    constexpr bool is_char_like =
+        std::is_constructible<utils::string_view, T>::value ||
+        std::is_same<char, T>::value || std::is_same<signed char, T>::value ||
+        std::is_same<unsigned char, T>::value;
 
-  friend LogHelper& operator<<(LogHelper& lh, void* value) {
-    lh.Stream() << reinterpret_cast<unsigned long long>(value);
-    return lh;
-  }
-
-  friend LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
-    lh.Stream() << ec.category().name() << ':' << ec.value();
-    return lh;
-  }
-
-  template <typename T>
-  friend
-      typename std::enable_if<!utils::encoding::TypeNeedsEncodeTskv<T>::value,
-                              LogHelper&>::type
-      operator<<(LogHelper& lh, const T& value) {
-    lh.Stream() << value;
-    return lh;
-  }
-
-  template <typename T>
-  friend typename std::enable_if<utils::encoding::TypeNeedsEncodeTskv<T>::value,
-                                 LogHelper&>::type
-  operator<<(LogHelper& lh, const T& value) {
-    try {
-      lh.StartTskvEncoding();
-      lh.Stream() << value;
-    } catch (...) {
-      lh.EndTskvEncoding();
-      throw;
+    if constexpr (is_char_like) {
+      Put(value);
+    } else if constexpr (std::is_floating_point<T>::value) {
+      PutFloatingPoint(value);
+    } else if constexpr (std::is_signed<T>::value) {
+      PutSigned(value);
+    } else if constexpr (std::is_unsigned<T>::value) {
+      PutUnsigned(value);
+    } else {
+      // No operator<< overload for LogHelper and type T. You could provide one,
+      // to speed up logging of value.
+      Stream() << value;
     }
 
-    lh.EndTskvEncoding();
-    return lh;
+    return *this;
   }
 
-  friend LogHelper& operator<<(LogHelper& lh, LogExtra extra) {
-    lh.extra_.Extend(std::move(extra));
-    return lh;
+  LogHelper& operator<<(LogExtra extra) {
+    extra_.Extend(std::move(extra));
+    return *this;
   }
+
+  /// Outputs value in a hex mode with the shortest representation, just like
+  /// std::to_chars does.
+  void PutHexShort(unsigned long long value);
+
+  /// Outputs value in a hex mode with the fixed length representation.
+  void PutHex(const void* value);
 
  private:
+  enum class Encode { kNone, kValue, kKeyReplacePeriod };
+
+  struct EncodingGuard {
+    LogHelper& lh;
+
+    EncodingGuard(LogHelper& lh, Encode mode) noexcept;
+    ~EncodingGuard();
+  };
+
   void DoLog() noexcept;
 
   void AppendLogExtra();
@@ -108,24 +107,57 @@ class LogHelper {
   void LogTaskIdAndCoroutineId();
   void LogSpan();
 
-  std::ostream& Stream() noexcept;
-  void StartTskvEncoding() noexcept;
-  void EndTskvEncoding() noexcept;
+  void PutFloatingPoint(float value);
+  void PutFloatingPoint(double value);
+  void PutFloatingPoint(long double value);
+  void PutUnsigned(unsigned long long value);
+  void PutSigned(long long value);
+  void Put(utils::string_view value);
+  void Put(char value);
 
-  struct StreamImpl;
+  std::ostream& Stream();
+
+  class Impl;
 #ifdef _LIBCPP_VERSION
-  static constexpr std::size_t kStreamImplSize = 824;
+  static constexpr std::size_t kStreamImplSize = 840;
 #else
-  static constexpr std::size_t kStreamImplSize = 936;
+  static constexpr std::size_t kStreamImplSize = 952;
 #endif
-  utils::FastPimpl<StreamImpl, kStreamImplSize, 8, true> pimpl_;
+  utils::FastPimpl<Impl, kStreamImplSize, 8, true> pimpl_;
 
   LogExtra extra_;
 };
 
 inline LogHelper& operator<<(LogHelper& lh, std::error_code ec) {
-  lh << ec.category().name() << ":" << ec.value() << " (" << ec.message()
-     << ")";
+  lh << ec.category().name() << ':' << ec.value() << " (" << ec.message()
+     << ')';
+  return lh;
+}
+
+template <typename T>
+inline LogHelper& operator<<(LogHelper& lh, const std::atomic<T>& value) {
+  return lh << value.load();
+}
+
+inline LogHelper& operator<<(LogHelper& lh, const void* value) {
+  lh.PutHex(value);
+  return lh;
+}
+
+inline LogHelper& operator<<(LogHelper& lh, void* value) {
+  lh.PutHex(value);
+  return lh;
+}
+
+inline LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
+  lh << ec.category().name() << ':' << ec.value();
+  return lh;
+}
+
+template <class Result, class... Args>
+inline LogHelper& operator<<(LogHelper& lh, Result (*)(Args...)) {
+  static_assert(!sizeof(Result),
+                "Outputing functions or std::ostream formatters is forbidden");
   return lh;
 }
 
@@ -137,9 +169,9 @@ void LogFlush();
 /// @brief Builds a stream and evaluates a message for the default logger
 /// if lvl matches the verbosity, otherwise the message is not evaluated
 /// @hideinitializer
-#define LOG(lvl)                                                      \
-  for (bool _need_log = ShouldLog(lvl); _need_log; _need_log = false) \
-  ::logging::LogHelper(lvl, FILENAME, __LINE__, __func__)
+#define LOG(lvl)                 \
+  if (::logging::ShouldLog(lvl)) \
+  ::logging::LogHelper(lvl, FILENAME, __LINE__, __func__).AsLvalue()
 
 #define LOG_TRACE() LOG(::logging::Level::kTrace)
 #define LOG_DEBUG() LOG(::logging::Level::kDebug)

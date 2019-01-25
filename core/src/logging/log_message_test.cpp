@@ -25,3 +25,74 @@ TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
   EXPECT_NE(std::string::npos, sstream.str().find("http_port_ipv4"))
       << "periods were not escaped";
 }
+
+TEST_F(LoggingTest, FloatingPoint) {
+  constexpr float f = 3.1415f;
+  LOG_CRITICAL() << f;
+  logging::LogFlush();
+
+  std::ostringstream oss;
+  oss << f;
+
+  EXPECT_NE(std::string::npos, sstream.str().find(oss.str()))
+      << f << " was represented as " << sstream.str();
+  sstream.str({});
+  oss.str({});
+
+  constexpr double d = 3.1415;
+  LOG_CRITICAL() << d;
+  logging::LogFlush();
+  oss << d;
+
+  EXPECT_NE(std::string::npos, sstream.str().find(oss.str()))
+      << d << " was represented as " << sstream.str();
+  sstream.str({});
+  oss.str({});
+
+  constexpr long double ld = 3.1415;
+  LOG_CRITICAL() << ld;
+  logging::LogFlush();
+  oss << ld;
+
+  EXPECT_NE(std::string::npos, sstream.str().find(oss.str()))
+      << ld << " was represented as " << sstream.str();
+  sstream.str({});
+  oss.str({});
+}
+
+TEST_F(LoggingTest, NegativeValue) {
+  LOG_CRITICAL() << -1;
+  logging::LogFlush();
+
+  EXPECT_NE(std::string::npos, sstream.str().find("-1"))
+      << "-1 was represented as " << sstream.str();
+}
+
+TEST_F(LoggingTest, MinValue) {
+  constexpr auto val = std::numeric_limits<long long>::min();
+  LOG_CRITICAL() << val;
+  logging::LogFlush();
+
+  std::ostringstream oss;
+  oss << val;
+
+  EXPECT_NE(std::string::npos, sstream.str().find(oss.str()))
+      << val << " was represented as " << sstream.str();
+}
+
+struct UserStructure {};
+logging::LogHelper& operator<<(logging::LogHelper& os, UserStructure /*val*/) {
+  os.PutHexShort(0xFF161300);
+  os << '\t';
+  void* p = nullptr;
+  os.PutHex(p);
+  return os;
+}
+
+TEST_F(LoggingTest, UserStruct) {
+  LOG_CRITICAL() << UserStructure{};
+  logging::LogFlush();
+
+  EXPECT_NE(std::string::npos, sstream.str().find("FF161300\\t0x00000000"))
+      << "FF161300\\t0x00000000 was represented as " << sstream.str();
+}

@@ -8,9 +8,14 @@
 #include <engine/task/task_context.hpp>
 #include <logging/spdlog.hpp>
 #include <tracing/span.hpp>
+#include <utils/string_view.hpp>
 #include <utils/swappingsmart.hpp>
-#include "log_streambuf.hpp"
 #include "log_workaround.hpp"
+
+#include <boost/stacktrace/detail/to_dec_array.hpp>
+#include <boost/stacktrace/detail/to_hex_array.hpp>
+
+#include "log_helper_impl.hpp"
 
 #define NOTHROW_CALL_BASE(ERROR_PREFIX, FUNCTION)                             \
   try {                                                                       \
@@ -33,7 +38,7 @@
 namespace logging {
 namespace {
 
-const char kPathLineSeparator = ':';
+constexpr char kPathLineSeparator = ':';
 
 class LogExtraValueVisitor : public boost::static_visitor<void> {
  public:
@@ -90,50 +95,50 @@ void SetDefaultLoggerLevel(Level level) {
   UpdateLogLevelCache();
 }
 
-struct LogHelper::StreamImpl {
-  MessageBuffer buffer_;
-  std::ostream stream_;
-
-  StreamImpl(Level level) : buffer_{level}, stream_(&buffer_) {}
-};
-
-std::ostream& LogHelper::Stream() noexcept { return pimpl_->stream_; }
-
-void LogHelper::StartTskvEncoding() noexcept {
-  return pimpl_->buffer_.StartTskvValueEncoding();
-}
-void LogHelper::EndTskvEncoding() noexcept {
-  return pimpl_->buffer_.EndTskvValueEncoding();
-}
+std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
 LogHelper::LogHelper(Level level, const char* path, int line,
-                     const char* func)
-    : pimpl_(level)  // May throw bad_alloc
-{
+                     const char* func) noexcept
+    : pimpl_(level) {
+  [[maybe_unused]] const auto initial_capacity = pimpl_->Capacity();
+
+  // The following functions actually never throw if the assertions at the
+  // bottom hold.
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogSpan())
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogModule(path, line, func))
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogTaskIdAndCoroutineId())
 
   LogTextKey();  // This member outputs only a key without value
                  // This call must be the last in constructor
+
+  assert(!pimpl_->IsStreamInitialized() &&
+         "Some function frome above initialized the std::ostream. That's a "
+         "heavy operation that should be avoided. Add a breakpoint on Stream() "
+         "function and tune the implementation.");
+
+  assert(initial_capacity == pimpl_->Capacity() &&
+         "Logging buffer is too small to keep initial data. Adjust the "
+         "spdlog::details::log_msg class or reduce the output of the above "
+         "functions.");
 }
 
 LogHelper::~LogHelper() { DoLog(); }
 
 void LogHelper::DoLog() noexcept {
   NOTHROW_CALL_GENERIC(AppendLogExtra())
-  NOTHROW_CALL_GENERIC(Stream().flush());
+  if (pimpl_->IsStreamInitialized()) {
+    NOTHROW_CALL_GENERIC(Stream().flush());
+  }
 
   try {
     static_cast<LoggerWorkaroud*>(DefaultLogger().get())
-        ->sink_it_(pimpl_->buffer_.msg);
+        ->sink_it_(pimpl_->Message());
   } catch (...) {
     try {
       std::cerr << "LogHelper failed to sink_it_:"
                 << boost::current_exception_diagnostic_information() << '\n';
 
-      auto buf = static_cast<std::basic_streambuf<char>*>(&pimpl_->buffer_);
-      NOTHROW_CALL_GENERIC(std::cerr << buf);
+      NOTHROW_CALL_GENERIC(std::cerr << pimpl_->StreamBuf());
     } catch (...) {
     }
     assert(false && "LogHelper::DoLog()");
@@ -147,40 +152,113 @@ void LogHelper::AppendLogExtra() {
   LogExtraValueVisitor visitor(*this);
 
   for (const auto& item : *items) {
-    Stream() << utils::encoding::kTskvPairsSeparator;
-    utils::encoding::EncodeTskv(
-        Stream(), item.first,
-        utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
-    Stream() << utils::encoding::kTskvKeyValueSeparator;
+    Put(utils::encoding::kTskvPairsSeparator);
+
+    {
+      EncodingGuard guard{*this, Encode::kKeyReplacePeriod};
+      Put(item.first);
+    }
+    Put(utils::encoding::kTskvKeyValueSeparator);
     boost::apply_visitor(visitor, item.second.GetValue());
   }
 }
 
 void LogHelper::LogTextKey() {
-  Stream() << utils::encoding::kTskvPairsSeparator << "text"
-           << utils::encoding::kTskvKeyValueSeparator;
+  Put(utils::encoding::kTskvPairsSeparator);
+  Put("text");
+  Put(utils::encoding::kTskvKeyValueSeparator);
 }
 
 void LogHelper::LogModule(const char* path, int line, const char* func) {
-  Stream() << "module" << utils::encoding::kTskvKeyValueSeparator << func
-           << " ( ";
-  Stream() << path;
-  Stream() << kPathLineSeparator << line << " ) ";
+  Put("module");
+  Put(utils::encoding::kTskvKeyValueSeparator);
+  Put(func);
+  Put(" ( ");
+  Put(path);
+  Put(kPathLineSeparator);
+  PutSigned(line);
+  Put(" ) ");
 }
 
 void LogHelper::LogTaskIdAndCoroutineId() {
   auto task = engine::current_task::GetCurrentTaskContextUnchecked();
   uint64_t task_id = task ? reinterpret_cast<uint64_t>(task) : 0;
   uint64_t coro_id = task ? task->GetCoroId() : 0;
-  Stream() << utils::encoding::kTskvPairsSeparator << "task_id"
-           << utils::encoding::kTskvKeyValueSeparator << task_id
-           << utils::encoding::kTskvPairsSeparator << "coro_id"
-           << utils::encoding::kTskvKeyValueSeparator << coro_id;
+
+  Put(utils::encoding::kTskvPairsSeparator);
+  Put("task_id");
+  Put(utils::encoding::kTskvKeyValueSeparator);
+  PutHexShort(task_id);
+  Put(utils::encoding::kTskvPairsSeparator);
+  Put("coro_id");
+  Put(utils::encoding::kTskvKeyValueSeparator);
+  PutHexShort(coro_id);
 }
 
 void LogHelper::LogSpan() {
   auto* span = tracing::Span::CurrentSpan();
   if (span) *this << *span;
+}
+
+// TODO: use std::to_chars in all the Put* functions.
+void LogHelper::PutHexShort(unsigned long long value) {
+  using boost::stacktrace::detail::to_hex_array_bytes;
+  if (value == 0) {
+    Put('0');
+    return;
+  }
+
+  std::array<char, sizeof(value) * 2> ret;
+  char* out = ret.data() + ret.size();
+  while (value) {
+    --out;
+    *out = to_hex_array_bytes[value & 0xFu];
+    value >>= 4;
+  }
+
+  Put({out, static_cast<std::size_t>(ret.data() + ret.size() - out)});
+}
+void LogHelper::PutHex(const void* value) {
+  Put(boost::stacktrace::detail::to_hex_array(value).data());
+}
+void LogHelper::PutFloatingPoint(float value) {
+  format_to(pimpl_->Message().raw, "{}", value);
+}
+void LogHelper::PutFloatingPoint(double value) {
+  format_to(pimpl_->Message().raw, "{}", value);
+}
+void LogHelper::PutFloatingPoint(long double value) {
+  format_to(pimpl_->Message().raw, "{}", value);
+}
+void LogHelper::PutUnsigned(unsigned long long value) {
+  Put(boost::stacktrace::detail::to_dec_array(value).data());
+}
+void LogHelper::PutSigned(long long value) {
+  auto value_as_unsigned = static_cast<unsigned long long>(value);
+
+  if (value < 0) {
+    Put('-');
+
+    // safe way to convert negative value to a positive
+    value_as_unsigned = 0u - value_as_unsigned;
+  }
+
+  PutUnsigned(value_as_unsigned);
+}
+
+void LogHelper::Put(utils::string_view value) {
+  pimpl_->xsputn(value.data(), value.size());
+}
+
+void LogHelper::Put(char value) { pimpl_->xsputn(&value, 1); }
+
+LogHelper::EncodingGuard::EncodingGuard(LogHelper& lh, Encode mode) noexcept
+    : lh{lh} {
+  lh.pimpl_->SetEncoding(mode);
+}
+
+LogHelper::EncodingGuard::~EncodingGuard() {
+  lh.pimpl_->SetEncoding(Encode::kNone);
 }
 
 void LogFlush() { DefaultLogger()->flush(); }
