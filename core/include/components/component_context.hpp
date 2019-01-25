@@ -79,11 +79,26 @@ class ComponentContext {
 
   template <typename T>
   T& FindComponent(const std::string& name) const {
-    T* ptr = dynamic_cast<T*>(DoFindComponent(name));
+    if (components_.count(name) == 0) {
+      std::unique_lock<engine::Mutex> lock(component_mutex_);
+      throw std::runtime_error(
+          "Component '" + GetLoadingComponentName(lock) +
+          "' requested component with non registered name '" + name +
+          "' of type " + utils::GetTypeName<T>());
+    }
+
+    auto* component_base = DoFindComponent(name);
+    T* ptr = dynamic_cast<T*>(component_base);
     assert(ptr != nullptr);
     if (!ptr) {
-      throw std::runtime_error("Cannot find component of type " +
-                               utils::GetTypeName(typeid(T)) + " name=" + name);
+      std::unique_lock<engine::Mutex> lock(component_mutex_);
+      throw std::runtime_error(
+          "Component '" + GetLoadingComponentName(lock) +
+          "' requested component with name '" + name + "' that is actually " +
+          (component_base
+               ? "has type " + utils::GetTypeName(typeid(*component_base))
+               : std::string{"a nullptr"}) +
+          " rather than a " + utils::GetTypeName<T>());
     }
     return *ptr;
   }
@@ -95,6 +110,9 @@ class ComponentContext {
 
   template <typename T>
   T* FindComponentOptional(const std::string& name) const {
+    if (components_.count(name) == 0) {
+      return nullptr;
+    }
     return dynamic_cast<T*>(DoFindComponent(name));
   }
 

@@ -20,7 +20,6 @@ class AuthCheckerSettings : public LoggableComponentBase {
   }
 
  private:
-  const Secdist& secdist_component_;
   server::handlers::auth::AuthCheckerSettings settings_;
 };
 

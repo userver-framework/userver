@@ -234,9 +234,6 @@ void ComponentContext::ProcessAllComponentLifetimeStageSwitchings(
 
 ComponentBase* ComponentContext::DoFindComponent(
     const std::string& name) const {
-  if (components_.count(name) == 0)
-    throw std::runtime_error("Requested non-existing component " + name);
-
   AddDependency(name);
 
   auto& component_info = *components_.at(name);

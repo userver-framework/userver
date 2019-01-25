@@ -2,12 +2,23 @@
 
 namespace components {
 
+namespace {
+
+server::handlers::auth::AuthCheckerSettings GetSettings(Secdist* secdist) {
+  if (secdist) {
+    return secdist->Get().Get<server::handlers::auth::AuthCheckerSettings>();
+  }
+
+  return server::handlers::auth::AuthCheckerSettings{formats::json::Value{}};
+}
+
+}  // namespace
+
 AuthCheckerSettings::AuthCheckerSettings(
     const ComponentConfig& component_config,
     const ComponentContext& component_context)
     : LoggableComponentBase(component_config, component_context),
-      secdist_component_(component_context.FindComponent<Secdist>()),
-      settings_(secdist_component_.Get()
-                    .Get<server::handlers::auth::AuthCheckerSettings>()) {}
+      settings_(
+          GetSettings(component_context.FindComponentOptional<Secdist>())) {}
 
 }  // namespace components
