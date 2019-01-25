@@ -10,6 +10,7 @@
 #include <spdlog/async.h>
 
 #include <engine/async.hpp>
+#include <engine/sleep.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
 #include <logging/reopening_file_sink.hpp>
@@ -21,7 +22,8 @@
 namespace components {
 namespace {
 
-std::chrono::seconds kDefaultFlushInterval{2};
+const std::chrono::seconds kDefaultFlushInterval{2};
+const std::chrono::milliseconds kRelaxPeriod{1000};
 
 }  // namespace
 
@@ -79,17 +81,9 @@ Logging::Logging(const ComponentConfig& config,
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
 
     if (is_default_logger) {
-      auto old_default_logger = logging::SetDefaultLogger(std::move(logger));
-      if (old_default_logger) {
-        // Close file sinks
-        for (auto s : old_default_logger->sinks()) {
-          auto reop =
-              std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
-          if (reop) {
-            reop->Close();
-          }
-        }
-      }
+      logging::SetDefaultLogger(logger);
+      engine::SleepFor(std::chrono::milliseconds(kRelaxPeriod));
+      logging::SetDefaultLogger(logger);
     } else {
       auto insertion_result =
           loggers_.emplace(std::move(logger_name), std::move(logger));
