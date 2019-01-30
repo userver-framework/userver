@@ -69,6 +69,8 @@ class LogExtra {
   void Extend(LogExtra&& extra);
 
   /// @brief Creates a LogExtra with current thread's stacktrace
+  static LogExtra StacktraceNocache();
+
   static LogExtra Stacktrace();
 
   /// @brief Adds a range of key-value pairs
