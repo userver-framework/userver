@@ -22,6 +22,21 @@ TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
 #endif  // USERVER_PROFILER
   config.profiler_threshold = std::chrono::microseconds(profiler_threshold_us);
 
+  auto task_trace_yaml = yaml["task-trace"];
+  if (task_trace_yaml) {
+    auto tt_full_path = full_path + ".task-trace";
+    config.task_trace_every =
+        yaml_config::ParseOptionalUint64(task_trace_yaml, "every", tt_full_path,
+                                         config_vars_ptr)
+            .value_or(1000);
+    config.task_trace_max_csw = yaml_config::ParseOptionalUint64(
+                                    task_trace_yaml, "max-context-switch-count",
+                                    tt_full_path, config_vars_ptr)
+                                    .value_or(1000);
+    config.task_trace_logger_name = yaml_config::ParseString(
+        task_trace_yaml, "logger", tt_full_path, config_vars_ptr);
+  }
+
   return config;
 }
 

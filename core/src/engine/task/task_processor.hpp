@@ -68,6 +68,14 @@ class TaskProcessor {
 
   std::chrono::microseconds GetProfilerThreshold() const;
 
+  size_t GetTaskTraceMaxCswForNewTask() const;
+
+  const std::string& GetTaskTraceLoggerName() const;
+
+  void SetTaskTraceLogger(::logging::LoggerPtr logger);
+
+  ::logging::LoggerPtr GetTraceLogger() const;
+
  private:
   impl::TaskContext* DequeueTask();
 
@@ -99,6 +107,8 @@ class TaskProcessor {
 
   std::vector<std::thread> workers_;
   impl::TaskCounter task_counter_;
+  std::atomic<bool> task_trace_logger_set_;
+  ::logging::LoggerPtr task_trace_logger_;
 };
 
 }  // namespace engine

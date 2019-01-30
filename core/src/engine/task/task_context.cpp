@@ -116,6 +116,8 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       cancellation_reason_(Task::CancellationReason::kNone),
       finish_waiters_(std::make_shared<WaitListLight>()),
       task_queue_wait_timepoint_(),
+      last_state_change_timepoint_(),
+      trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_manager_(nullptr),
       sleep_state_(SleepStateFlags::kSleeping),
       wakeup_source_(WakeupSource::kNone),
@@ -220,9 +222,13 @@ void TaskContext::DoStep() {
     case YieldReason::kTaskComplete:
       task_processor_.GetCoroPool().PutCoroutine(std::move(coro_));
       coro_.reset();
-      SetState(yield_reason_ == YieldReason::kTaskComplete
-                   ? Task::State::kCompleted
-                   : Task::State::kCancelled);
+      {
+        auto new_state = (yield_reason_ == YieldReason::kTaskComplete)
+                             ? Task::State::kCompleted
+                             : Task::State::kCancelled;
+        SetState(new_state);
+        TraceStateTransition(new_state);
+      }
       break;
 
     case YieldReason::kTaskWaiting:
@@ -302,9 +308,11 @@ void TaskContext::Sleep(WaitStrategy* wait_manager) {
 
   yield_reason_ = YieldReason::kTaskWaiting;
   assert(task_pipe_);
+  TraceStateTransition(Task::State::kSuspended);
   ProfilerStopExecution();
   [[maybe_unused]] TaskContext* context = (*task_pipe_)().get();
   ProfilerStartExecution();
+  TraceStateTransition(Task::State::kRunning);
   assert(context == this);
   assert(state_ == Task::State::kRunning);
 
@@ -415,6 +423,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
           // as dtors may want to schedule
           LocalStorageGuard local_storage_guard(*context);
 
+          context->TraceStateTransition(Task::State::kRunning);
           CallOnce(context->payload_);
         }
         context->yield_reason_ = YieldReason::kTaskComplete;
@@ -428,6 +437,8 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     context->task_pipe_ = nullptr;
   }
 }
+
+bool TaskContext::HasLocalStorage() const { return local_storage_ != nullptr; }
 
 LocalStorage& TaskContext::GetLocalStorage() { return *local_storage_; }
 
@@ -488,6 +499,7 @@ void TaskContext::SetState(Task::State new_state) {
       return;
     }
   }
+
   if (IsFinished()) {
     WaitListLight::Lock lock;
     finish_waiters_->WakeupAll(lock);
@@ -497,6 +509,7 @@ void TaskContext::SetState(Task::State new_state) {
 void TaskContext::Schedule() {
   assert(state_ != Task::State::kQueued);
   SetState(Task::State::kQueued);
+  TraceStateTransition(Task::State::kQueued);
   task_processor_.Schedule(this);
   // NOTE: may be executed at this point
 }
@@ -527,6 +540,25 @@ void TaskContext::ProfilerStartExecution() {}
 
 void TaskContext::ProfilerStopExecution() {}
 #endif
+
+void TaskContext::TraceStateTransition(Task::State state) {
+  if (trace_csw_left_ == 0) return;
+  --trace_csw_left_;
+
+  auto now = std::chrono::steady_clock::now();
+  auto diff = now - last_state_change_timepoint_;
+  if (last_state_change_timepoint_ == std::chrono::steady_clock::time_point())
+    diff = now - now;
+  auto diff_us =
+      std::chrono::duration_cast<std::chrono::microseconds>(diff).count();
+  last_state_change_timepoint_ = now;
+
+  auto istate = Task::GetStateName(state);
+
+  LOG_INFO_TO(task_processor_.GetTraceLogger())
+      << "Task " << GetTaskId() << " changed state to " << istate
+      << ", delay = " << diff_us << "us" << logging::LogExtra::Stacktrace();
+}
 
 }  // namespace impl
 }  // namespace engine

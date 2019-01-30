@@ -97,9 +97,9 @@ void SetDefaultLoggerLevel(Level level) {
 
 std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
-LogHelper::LogHelper(Level level, const char* path, int line,
+LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
                      const char* func) noexcept
-    : pimpl_(level) {
+    : pimpl_(std::move(logger), level) {
   [[maybe_unused]] const auto initial_capacity = pimpl_->Capacity();
 
   // The following functions actually never throw if the assertions at the
@@ -131,7 +131,7 @@ void LogHelper::DoLog() noexcept {
   }
 
   try {
-    static_cast<LoggerWorkaroud*>(DefaultLogger().get())
+    static_cast<LoggerWorkaroud*>(pimpl_->GetLogger().get())
         ->sink_it_(pimpl_->Message());
   } catch (...) {
     try {

@@ -34,6 +34,16 @@ ManagerControllerComponent::ManagerControllerComponent(
   statistics_holder_ = storage.RegisterExtender(
       kEngineMonitorDataName,
       [this](const auto& request) { return ExtendStatistics(request); });
+
+  auto& logger_component = context.FindComponent<components::Logging>();
+  for (auto& it : context.GetTaskProcessorsMap()) {
+    auto* task_processor = it.second;
+    const auto& logger_name = task_processor->GetTaskTraceLoggerName();
+    if (!logger_name.empty()) {
+      auto logger = logger_component.GetLogger(logger_name);
+      task_processor->SetTaskTraceLogger(std::move(logger));
+    }
+  }
 }
 
 ManagerControllerComponent::~ManagerControllerComponent() {

@@ -34,6 +34,33 @@ Task::State Task::GetState() const {
   return context_ ? context_->GetState() : State::kInvalid;
 }
 
+const std::string& Task::GetStateName(State state) {
+  static const std::string kInvalid = "kInvalid";
+  static const std::string kNew = "kNew";
+  static const std::string kQueued = "kQueued";
+  static const std::string kRunning = "kRunning";
+  static const std::string kSuspended = "kSuspended";
+  static const std::string kCancelled = "kCancelled";
+  static const std::string kCompleted = "kCompleted";
+
+  switch (state) {
+    case State::kInvalid:
+      return kInvalid;
+    case State::kNew:
+      return kNew;
+    case State::kQueued:
+      return kQueued;
+    case State::kRunning:
+      return kRunning;
+    case State::kSuspended:
+      return kSuspended;
+    case State::kCancelled:
+      return kCancelled;
+    case State::kCompleted:
+      return kCompleted;
+  }
+}
+
 bool Task::IsFinished() const { return context_ && context_->IsFinished(); }
 
 void Task::Wait() const noexcept(false) {

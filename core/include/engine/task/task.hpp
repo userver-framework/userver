@@ -74,6 +74,8 @@ class USERVER_NODISCARD Task {
   /// Gets the task State
   State GetState() const;
 
+  static const std::string& GetStateName(State state);
+
   /// Returns whether the task finished execution
   bool IsFinished() const;
 

@@ -25,9 +25,9 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
 // SetDefaultLogger is called in components::Run and no logging happens before
 // that. So at this point the logging is initialized and
 // DefaultLogger()->name() shuld not throw.
-LogHelper::Impl::Impl(Level level) noexcept
-    : msg_(&DefaultLogger()->name(),
-           static_cast<spdlog::level::level_enum>(level)),
+LogHelper::Impl::Impl(LoggerPtr logger, Level level) noexcept
+    : logger_(std::move(logger)),
+      msg_(&logger_->name(), static_cast<spdlog::level::level_enum>(level)),
       encode_mode_{Encode::kNone} {}
 
 std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {

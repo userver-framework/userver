@@ -17,6 +17,10 @@ struct TaskProcessorConfig {
   std::string thread_name;
   std::chrono::microseconds profiler_threshold;
 
+  size_t task_trace_every = 1000;
+  size_t task_trace_max_csw = 0;
+  std::string task_trace_logger_name;
+
   static TaskProcessorConfig ParseFromYaml(
       const formats::yaml::Node& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);

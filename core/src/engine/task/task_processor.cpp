@@ -20,7 +20,9 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
       max_task_queue_wait_length_(0),
       overload_action_(TaskProcessorSettings::OverloadAction::kIgnore),
-      task_queue_wait_time_overloaded_(false) {
+      task_queue_wait_time_overloaded_(false),
+      task_trace_logger_set_{false},
+      task_trace_logger_{nullptr} {
   LOG_TRACE() << "creating task_processor " << Name() << " "
               << "worker_threads=" << config_.worker_threads
               << " thread_name=" << config_.thread_name;
@@ -56,7 +58,8 @@ TaskProcessor::~TaskProcessor() {
 void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
   static constexpr size_t kTaskTimestampFrequency = 16;
   thread_local size_t task_count = 0;
-  if (task_count++ % kTaskTimestampFrequency == 0) {
+  if (task_count++ == kTaskTimestampFrequency) {
+    task_count = 0;
     context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
   } else {
     /* Don't call clock_gettime() too often.
@@ -112,6 +115,31 @@ void TaskProcessor::Adopt(
 
 std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const {
   return config_.profiler_threshold;
+}
+
+size_t TaskProcessor::GetTaskTraceMaxCswForNewTask() const {
+  thread_local size_t count = 0;
+  if (count++ == config_.task_trace_every) {
+    count = 0;
+    return config_.task_trace_max_csw;
+  } else {
+    return 0;
+  }
+}
+
+const std::string& TaskProcessor::GetTaskTraceLoggerName() const {
+  return config_.task_trace_logger_name;
+}
+
+void TaskProcessor::SetTaskTraceLogger(::logging::LoggerPtr logger) {
+  assert(!task_trace_logger_set_);
+  task_trace_logger_ = std::move(logger);
+  task_trace_logger_set_ = true;
+}
+
+::logging::LoggerPtr TaskProcessor::GetTraceLogger() const {
+  if (!task_trace_logger_set_) return ::logging::DefaultLogger();
+  return task_trace_logger_;
 }
 
 void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {

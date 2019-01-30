@@ -147,6 +147,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
     task_queue_wait_timepoint_ = tp;
   }
 
+  bool HasLocalStorage() const;
   LocalStorage& GetLocalStorage();
 
  private:
@@ -174,6 +175,9 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   void ProfilerStartExecution();
   void ProfilerStopExecution();
 
+  void TraceStateTransition(Task::State state);
+
+ private:
   [[maybe_unused]] const uint64_t magic_;
   TaskProcessor& task_processor_;
   const TaskCounter::Token task_counter_token_;
@@ -192,6 +196,9 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
 #ifdef USERVER_PROFILER
   std::chrono::steady_clock::time_point execute_started_;
 #endif  // USERVER_PROFILER
+  std::chrono::steady_clock::time_point last_state_change_timepoint_;
+
+  size_t trace_csw_left_;
 
   WaitStrategy* wait_manager_;
   utils::AtomicFlags<SleepStateFlags> sleep_state_;

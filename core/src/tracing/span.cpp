@@ -144,8 +144,9 @@ Span& Span::operator=(Span&&) = default;
 Span::~Span() { DetachFromCoroStack(); }
 
 Span* Span::CurrentSpan() {
-  if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr)
-    return nullptr;
+  auto current = engine::current_task::GetCurrentTaskContextUnchecked();
+  if (current == nullptr) return nullptr;
+  if (!current->HasLocalStorage()) return nullptr;
   return task_local_spans->empty() ? nullptr : task_local_spans->back().span_;
 }
 

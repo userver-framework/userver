@@ -39,7 +39,8 @@ class LogHelper {
   /// @param path path of the source file that generated the message
   /// @param line line of the source file that generated the message
   /// @param func name of the function that generated the message
-  LogHelper(Level level, const char* path, int line, const char* func) noexcept;
+  LogHelper(LoggerPtr logger, Level level, const char* path, int line,
+            const char* func) noexcept;
   ~LogHelper();
 
   LogHelper(LogHelper&&) = delete;
@@ -119,9 +120,9 @@ class LogHelper {
 
   class Impl;
 #ifdef _LIBCPP_VERSION
-  static constexpr std::size_t kStreamImplSize = 840;
+  static constexpr std::size_t kStreamImplSize = 856;
 #else
-  static constexpr std::size_t kStreamImplSize = 952;
+  static constexpr std::size_t kStreamImplSize = 968;
 #endif
   utils::FastPimpl<Impl, kStreamImplSize, 8, true> pimpl_;
 
@@ -169,9 +170,11 @@ void LogFlush();
 /// @brief Builds a stream and evaluates a message for the default logger
 /// if lvl matches the verbosity, otherwise the message is not evaluated
 /// @hideinitializer
-#define LOG(lvl)                 \
+#define LOG_TO(logger, lvl)      \
   if (::logging::ShouldLog(lvl)) \
-  ::logging::LogHelper(lvl, FILENAME, __LINE__, __func__).AsLvalue()
+  ::logging::LogHelper(logger, lvl, FILENAME, __LINE__, __func__).AsLvalue()
+
+#define LOG(lvl) LOG_TO(::logging::DefaultLogger(), lvl)
 
 #define LOG_TRACE() LOG(::logging::Level::kTrace)
 #define LOG_DEBUG() LOG(::logging::Level::kDebug)
@@ -179,3 +182,10 @@ void LogFlush();
 #define LOG_WARNING() LOG(::logging::Level::kWarning)
 #define LOG_ERROR() LOG(::logging::Level::kError)
 #define LOG_CRITICAL() LOG(::logging::Level::kCritical)
+
+#define LOG_TRACE_TO(logger) LOG_TO(logger, ::logging::Level::kTrace)
+#define LOG_DEBUG_TO(logger) LOG_TO(logger, ::logging::Level::kDebug)
+#define LOG_INFO_TO(logger) LOG_TO(logger, ::logging::Level::kInfo)
+#define LOG_WARNING_TO(logger) LOG_TO(logger, ::logging::Level::kWarning)
+#define LOG_ERROR_TO(logger) LOG_TO(logger, ::logging::Level::kError)
+#define LOG_CRITICAL_TO(logger) LOG_TO(logger, ::logging::Level::kCritical)

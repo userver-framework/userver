@@ -15,7 +15,7 @@ class LogHelper::Impl {
   using char_type = std::streambuf::char_type;
   using int_type = std::streambuf::int_type;
 
-  explicit Impl(Level level) noexcept;
+  explicit Impl(LoggerPtr logger, Level level) noexcept;
 
   void SetEncoding(Encode encode_mode) noexcept { encode_mode_ = encode_mode; }
 
@@ -28,6 +28,8 @@ class LogHelper::Impl {
 
   std::streamsize xsputn(const char_type* s, std::streamsize n);
   int_type overflow(int_type c);
+
+  const LoggerPtr& GetLogger() const { return logger_; }
 
  private:
   class BufferStd final : public std::streambuf {
@@ -50,6 +52,8 @@ class LogHelper::Impl {
 
   LazyInitedStream& GetLazyInitedStream();
 
+ private:
+  LoggerPtr logger_;
   spdlog::details::log_msg msg_;
   Encode encode_mode_;
   boost::optional<LazyInitedStream> lazy_stream_;
