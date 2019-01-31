@@ -234,7 +234,17 @@ struct Connection::Impl {
     } else {
       LOG_TRACE() << "Query " << statement << " is not yet prepared";
       conn_wrapper_.SendPrepare(statement_name, statement, params);
-      conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
+      try {
+        conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
+      } catch (DuplicatePreparedStatement const& e) {
+        LOG_ERROR()
+            << "Looks like your pg_bouncer doesn't clean up connections "
+               "upon returning them to the pool. Please set pg_bouncer's "
+               "pooling mode to `session` and `server_reset_query` parameter "
+               "to `DISCARD ALL`. Please see documentation here "
+               "https://nda.ya.ru/3UXMpu";
+        throw;
+      }
       conn_wrapper_.SendDescribePrepared(statement_name);
       auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
       prepared_.insert(std::make_pair(
@@ -249,9 +259,16 @@ struct Connection::Impl {
                 << " format for reply";
 
     conn_wrapper_.SendPreparedQuery(statement_name, params, fmt);
-    auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
-    count_execute.AccountResult(res, fmt);
-    return res;
+    try {
+      auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
+      count_execute.AccountResult(res, fmt);
+      return res;
+    } catch (InvalidSqlStatementName const& e) {
+      LOG_ERROR() << "Looks like your pg_bouncer is not in 'session' mode. "
+                     "Please switch pg_bouncers's pooling mode to 'session'. "
+                     "Please see documentation here https://nda.ya.ru/3UXMpu";
+      throw;
+    }
   }
 
   // TODO Add tracing::Span

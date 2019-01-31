@@ -119,10 +119,11 @@ void Message::ThrowException() const {
       throw InvalidTransactionState{*this};
 
     // Class 26 - Invalid SQL Statement Name
-    // Class 34 - Invalid Cursor Name
-    // Class 3D - Invalid Catalogue Name
-    // Class 3F - Invalid Schema Name
     case SqlStateClass::kInvalidSqlStatementName:
+      throw InvalidSqlStatementName{*this};
+      // Class 34 - Invalid Cursor Name
+      // Class 3D - Invalid Catalogue Name
+      // Class 3F - Invalid Schema Name
     case SqlStateClass::kInvalidCursorName:
     case SqlStateClass::kInvalidCatalogName:
     case SqlStateClass::kInvalidSchemaName:
@@ -157,10 +158,13 @@ void Message::ThrowException() const {
       throw TransactionRollback{*this};
     // Class 42 - Syntax Error Or Access Rule Violation
     case SqlStateClass::kSyntaxErrorOrAccessRuleViolation:
-      if (state == SqlState::kSyntaxError) {
-        throw SyntaxError{*this};
-      } else {
-        throw AccessRuleViolation{*this};
+      switch (state) {
+        case SqlState::kSyntaxError:
+          throw SyntaxError{*this};
+        case SqlState::kDuplicatePreparedStatement:
+          throw DuplicatePreparedStatement(*this);
+        default:
+          throw AccessRuleViolation{*this};
       }
     // Class 44 - WITH CHECK OPTION Violation
     case SqlStateClass::kWithCheckOptionViolation:

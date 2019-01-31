@@ -55,6 +55,7 @@ namespace postgres {
  *     - InvalidGrantor
  *     - DiagnosticsException
  *     - DataException
+ *     - DuplicatePreparedStatement
  *     - IntegrityConstraintViolation
  *       - RestrictViolation
  *       - NotNullViolation (TODO Make it a logic error)
@@ -65,6 +66,7 @@ namespace postgres {
  *       - TriggeredDataChangeViolation
  *       - WithCheckOptionViolation
  *     - InvalidCursorState
+ *     - InvalidSqlStatementName
  *     - InvalidTransactionState
  *     - DependentPrivilegeDescriptorsStillExist
  *     - InvalidTransactionTermination
@@ -347,9 +349,16 @@ class InvalidTransactionState : public ServerRuntimeError {
 //@}
 
 //@{
+/** @name Class 26 - Invalid SQL Statement Name */
+/// This exception is thrown in case a prepared statement doesn't exist
+class InvalidSqlStatementName : public ServerRuntimeError {
+  using ServerRuntimeError::ServerRuntimeError;
+};
+//@}
+
+//@{
 /** @name Invalid object name, several classes */
 /// @brief Exception class for several Invalid * Name classes.
-/// Class 26 - Invalid SQL Statement Name
 /// Class 34 - Invalid Cursor Name
 /// Class 3D - Invalid Catalogue Name
 /// Class 3F - Invalid Schema Name
@@ -423,6 +432,10 @@ class SyntaxError : public ServerLogicError {
 };
 
 class AccessRuleViolation : public ServerLogicError {
+  using ServerLogicError::ServerLogicError;
+};
+
+class DuplicatePreparedStatement : public ServerLogicError {
   using ServerLogicError::ServerLogicError;
 };
 
