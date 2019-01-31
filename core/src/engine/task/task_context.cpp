@@ -182,6 +182,8 @@ void TaskContext::WaitUntil(Deadline deadline) const {
   // try to avoid ctx switch if possible
   if (IsFinished()) return;
 
+  assert(current_task::GetCurrentTaskContextUnchecked() != nullptr);
+
   if (current_task::ShouldCancel()) {
     throw WaitInterruptedException(cancellation_reason_);
   }

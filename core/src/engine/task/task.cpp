@@ -1,13 +1,15 @@
 #include <engine/task/task.hpp>
 
 #include <cassert>
-
-#include <engine/task/cancel.hpp>
-#include <logging/log.hpp>
+#include <future>
 
 #include <engine/coro/pool.hpp>
-#include "task_context.hpp"
-#include "task_processor.hpp"
+#include <engine/task/task_context.hpp>
+#include <engine/task/task_processor.hpp>
+
+#include <engine/async.hpp>
+#include <engine/task/cancel.hpp>
+#include <logging/log.hpp>
 
 namespace engine {
 
@@ -88,6 +90,27 @@ void Task::RequestCancel() {
 Task::CancellationReason Task::GetCancellationReason() const {
   assert(context_);
   return context_->GetCancellationReason();
+}
+
+void Task::BlockingWait() const {
+  assert(current_task::GetCurrentTaskContextUnchecked() == nullptr);
+
+  if (context_->IsFinished()) return;
+
+  auto context = context_.get();
+  std::packaged_task<void()> task([context] { context->Wait(); });
+  auto future = task.get_future();
+
+  engine::CriticalAsync(context->GetTaskProcessor(), std::move(task)).Detach();
+  future.wait();
+
+  while (!context_->IsFinished()) {
+    // context->Wait() in task was interrupted. It is possible only in case of
+    // TaskProcessor shutdown. context_ will stop soon, but we have no reliable
+    // tool to notify this thread when it is finished. So poll context until it
+    // is finished.
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
 }
 
 void Task::Invalidate() {

@@ -79,7 +79,9 @@ class USERVER_NODISCARD Task {
   /// Returns whether the task finished execution
   bool IsFinished() const;
 
-  /// @brief Suspends execution until the task finishes or caller is cancelled
+  /// @brief Suspends execution until the task finishes or caller is cancelled.
+  /// Can be called from coroutine context only. For non-coroutine context use
+  /// BlockingWait().
   /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
   /// and no TaskCancellationBlockers are present.
   void Wait() const noexcept(false);
@@ -114,6 +116,10 @@ class USERVER_NODISCARD Task {
 
   /// Gets task CancellationReason
   CancellationReason GetCancellationReason() const;
+
+  /// Waits for the task in non-coroutine context
+  /// (e.g. non-TaskProcessor's std::thread).
+  void BlockingWait() const;
 
  protected:
   /// @cond
