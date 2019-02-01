@@ -6,6 +6,7 @@
 #include <bson/bson.h>
 
 #include <formats/bson/exception.hpp>
+#include <formats/bson/types.hpp>
 #include <utils/string_view.hpp>
 
 namespace formats::bson::impl {

@@ -35,7 +35,6 @@ add_subdirectory(core)
 add_subdirectory(tools/engine)
 add_subdirectory(tools/httpclient)
 add_subdirectory(tools/netcat)
-add_subdirectory(tools/asyncmongo_proto)
 
 set(YANDEX_TAXI_USERVER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "")
 

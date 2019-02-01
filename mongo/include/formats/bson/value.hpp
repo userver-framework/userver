@@ -112,6 +112,9 @@ class Value {
   /// Throws a MemberMissingException if the selected element does not exist
   void CheckNotMissing() const;
 
+ protected:
+  const impl::BsonHolder& GetBson() const;
+
  private:
   friend class ValueBuilder;
   friend class impl::BsonBuilder;

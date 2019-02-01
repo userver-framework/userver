@@ -22,6 +22,9 @@ class Document : public Value {
   /// @cond
   /// Constructs from a native type, internal use only
   explicit Document(impl::BsonHolder);
+
+  /// Native type access, internal use only
+  using Value::GetBson;
   /// @endcond
 };
 

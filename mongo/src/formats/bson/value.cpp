@@ -264,4 +264,6 @@ unsigned long long Value::Convert<unsigned long long>() const {
 
 void Value::CheckNotMissing() const { impl_->CheckNotMissing(); }
 
+const impl::BsonHolder& Value::GetBson() const { return impl_->GetBson(); }
+
 }  // namespace formats::bson
