@@ -1,25 +1,37 @@
 #include <cache/cache_config.hpp>
 #include <cassert>
 
+#include <utils/string_to_duration.hpp>
+
 namespace components {
 
 namespace {
 
 const std::string kUpdateIntervalMs = "update-interval-ms";
 const std::string kUpdateJitterMs = "update-jitter-ms";
-const std::string kFullUpdateInterval = "full-update-interval-ms";
+const std::string kFullUpdateIntervalMs = "full-update-interval-ms";
 
-uint64_t GetDefaultJitterMs(const std::chrono::milliseconds& interval) {
-  return (interval / 10).count();
+const std::string kUpdateInterval = "update-interval";
+const std::string kUpdateJitter = "update-jitter";
+const std::string kFullUpdateInterval = "full-update-interval";
+
+std::chrono::milliseconds GetDefaultJitterMs(
+    const std::chrono::milliseconds& interval) {
+  return interval / 10;
+}
+
+std::chrono::milliseconds JsonToMs(formats::json::Value json) {
+  return std::chrono::milliseconds{json.As<uint64_t>()};
 }
 
 }  // namespace
 
 CacheConfig::CacheConfig(const ComponentConfig& config)
-    : update_interval_(config.ParseUint64(kUpdateIntervalMs)),
-      update_jitter_(config.ParseUint64(kUpdateJitterMs,
-                                        GetDefaultJitterMs(update_interval_))),
-      full_update_interval_(config.ParseUint64(kFullUpdateInterval, 0)) {}
+    : update_interval_(config.ParseDuration(kUpdateInterval)),
+      update_jitter_(config.ParseDuration(
+          kUpdateJitter, GetDefaultJitterMs(update_interval_))),
+      full_update_interval_(config.ParseDuration(
+          kFullUpdateInterval, std::chrono::milliseconds::zero())) {}
 
 CacheConfig::CacheConfig(std::chrono::milliseconds update_interval,
                          std::chrono::milliseconds update_jitter,
@@ -46,10 +58,9 @@ boost::optional<CacheConfig> CacheConfigSet::GetConfig(
 }
 
 CacheConfig CacheConfigSet::ParseConfig(formats::json::Value json) {
-  CacheConfig config(
-      std::chrono::seconds(json[kUpdateIntervalMs].As<uint64_t>()),
-      std::chrono::seconds(json[kUpdateJitterMs].As<uint64_t>()),
-      std::chrono::seconds(json[kFullUpdateInterval].As<uint64_t>()));
+  CacheConfig config(JsonToMs(json[kUpdateIntervalMs]),
+                     JsonToMs(json[kUpdateJitterMs]),
+                     JsonToMs(json[kFullUpdateIntervalMs]));
 
   return config;
 }
