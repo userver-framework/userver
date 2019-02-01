@@ -14,6 +14,10 @@
 
 #include "logger.hpp"
 
+namespace logging {
+struct LoggerConfig;
+}
+
 namespace components {
 
 // clang-format off
@@ -79,6 +83,10 @@ class Logging : public ComponentBase {
     return [this] { FlushLogs(); };
   }
   void FlushLogs();
+
+  std::shared_ptr<spdlog::logger> CreateLogger(
+      const std::string& logger_name,
+      const logging::LoggerConfig& logger_config, bool is_default_logger);
 
   engine::TaskProcessor* fs_task_processor_;
   std::vector<logging::ThreadPoolPtr> thread_pools_;

@@ -8,6 +8,7 @@
 #include <logging/spdlog.hpp>
 
 #include <spdlog/async.h>
+#include <spdlog/sinks/stdout_sinks.h>
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
@@ -45,35 +46,8 @@ Logging::Logging(const ComponentConfig& config,
 
     auto logger_config = logging::LoggerConfig::ParseFromYaml(
         it->second, logger_full_path, config.ConfigVarsPtr());
+    auto logger = CreateLogger(logger_name, logger_config, is_default_logger);
 
-    auto overflow_policy = spdlog::async_overflow_policy::overrun_oldest;
-    if (logger_config.queue_overflow_behavior ==
-        logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
-      overflow_policy = spdlog::async_overflow_policy::block;
-    }
-
-    auto file_sink =
-        std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
-    std::shared_ptr<spdlog::details::thread_pool> tp;
-
-    auto old_thread_name = utils::GetCurrentThreadName();
-    utils::SetCurrentThreadName("log/" + logger_name);
-
-    if (is_default_logger) {
-      spdlog::init_thread_pool(logger_config.message_queue_size,
-                               logger_config.thread_pool_size);
-      tp = spdlog::thread_pool();
-
-    } else {
-      tp = std::make_shared<spdlog::details::thread_pool>(
-          logger_config.message_queue_size, logger_config.thread_pool_size);
-      thread_pools_.push_back(tp);
-    }
-
-    utils::SetCurrentThreadName(old_thread_name);
-
-    auto logger = std::make_shared<spdlog::async_logger>(
-        logger_name, std::move(file_sink), tp, overflow_policy);
     logger->set_level(
         static_cast<spdlog::level::level_enum>(logger_config.level));
     logger->set_pattern(logger_config.pattern);
@@ -152,6 +126,42 @@ void Logging::FlushLogs() {
   for (auto& item : loggers_) {
     item.second->flush();
   }
+}
+
+std::shared_ptr<spdlog::logger> Logging::CreateLogger(
+    const std::string& logger_name, const logging::LoggerConfig& logger_config,
+    bool is_default_logger) {
+  if (logger_config.file_path == "@stderr")
+    return logging::MakeStderrLogger(logger_name, logger_config.level);
+
+  auto overflow_policy = spdlog::async_overflow_policy::overrun_oldest;
+  if (logger_config.queue_overflow_behavior ==
+      logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
+    overflow_policy = spdlog::async_overflow_policy::block;
+  }
+
+  auto file_sink =
+      std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
+  std::shared_ptr<spdlog::details::thread_pool> tp;
+
+  auto old_thread_name = utils::GetCurrentThreadName();
+  utils::SetCurrentThreadName("log/" + logger_name);
+
+  if (is_default_logger) {
+    spdlog::init_thread_pool(logger_config.message_queue_size,
+                             logger_config.thread_pool_size);
+    tp = spdlog::thread_pool();
+
+  } else {
+    tp = std::make_shared<spdlog::details::thread_pool>(
+        logger_config.message_queue_size, logger_config.thread_pool_size);
+    thread_pools_.push_back(tp);
+  }
+
+  utils::SetCurrentThreadName(old_thread_name);
+
+  return std::make_shared<spdlog::async_logger>(
+      logger_name, std::move(file_sink), tp, overflow_policy);
 }
 
 }  // namespace components
