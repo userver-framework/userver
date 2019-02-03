@@ -49,6 +49,9 @@ append_debian_depends("libboost-program-options-dev")
 append_debian_depends("libboost-locale-dev")
 append_debian_depends("libboost-thread-dev")
 
+# backend-common-cpp deps
+append_debian_depends("libcctz-dev")
+
 find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
 
 find_package_required(LibEv "libev-dev")

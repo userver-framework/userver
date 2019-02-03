@@ -3,10 +3,9 @@ macro(init_debian_depends)
 endmacro()
 
 macro(append_debian_depends PACKAGE)
-    string(FIND "${DEBIAN_DEPENDS}" "${PACKAGE}" INDEX)
-    if(INDEX EQUAL -1)
-        set(DEBIAN_DEPENDS "${DEBIAN_DEPENDS}, ${PACKAGE}" CACHE INTERNAL DEBIAN_DEPENDS)
-    endif()
+    string(REGEX REPLACE " +" ";" PACKAGE_LIST ${PACKAGE})
+    list(APPEND DEBIAN_DEPENDS ${PACKAGE_LIST})
+    set(DEBIAN_DEPENDS "${DEBIAN_DEPENDS}" CACHE INTERNAL DEBIAN_DEPENDS)
 endmacro()
 
 macro(find_package_required PACKAGE debpackage)
