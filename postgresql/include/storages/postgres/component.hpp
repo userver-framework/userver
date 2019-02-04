@@ -105,9 +105,9 @@ namespace components {
 class Postgres : public LoggableComponentBase {
  public:
   /// Default initial connection count
-  static constexpr size_t kDefaultMinPoolSize = 16;
+  static constexpr size_t kDefaultMinPoolSize = 4;
   /// Default connections limit
-  static constexpr size_t kDefaultMaxPoolSize = 100;
+  static constexpr size_t kDefaultMaxPoolSize = 15;
   /// Default shard number
   static constexpr size_t kDefaultShardNumber = 0;
 
