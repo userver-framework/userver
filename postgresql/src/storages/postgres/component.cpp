@@ -110,14 +110,14 @@ Postgres::Postgres(const ComponentConfig& config,
     const auto dsn_string = config.ParseString("dbconnection");
     const auto options = storages::postgres::OptionsFromDsn(dsn_string);
     db_name_ = options.dbname;
-    shard_to_desc_.push_back(
-        storages::postgres::ClusterDescription(dsn_string));
+    cluster_desc_.push_back(storages::postgres::ClusterDescription(
+        storages::postgres::SplitByHost(dsn_string)));
   } else {
     try {
       auto& secdist = context.FindComponent<Secdist>();
-      shard_to_desc_ = secdist.Get()
-                           .Get<storages::postgres::secdist::PostgresSettings>()
-                           .GetShardedClusterDescription(dbalias);
+      cluster_desc_ = secdist.Get()
+                          .Get<storages::postgres::secdist::PostgresSettings>()
+                          .GetShardedClusterDescription(dbalias);
       db_name_ = dbalias;
     } catch (const storages::secdist::SecdistError& ex) {
       LOG_ERROR() << "Failed to load Postgres config for dbalias " << dbalias
@@ -125,10 +125,6 @@ Postgres::Postgres(const ComponentConfig& config,
       throw;
     }
   }
-
-  const auto shard_count = shard_to_desc_.size();
-  shards_.resize(shard_count);
-  shards_ready_.resize(shard_count, nullptr);
 
   min_pool_size_ = config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
   max_pool_size_ = config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
@@ -140,6 +136,25 @@ Postgres::Postgres(const ComponentConfig& config,
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       kStatisticsName,
       std::bind(&Postgres::ExtendStatistics, this, std::placeholders::_1));
+
+  // Start all clusters here
+  LOG_DEBUG() << "Start " << cluster_desc_.size() << " shards for " << db_name_;
+  std::vector<engine::TaskWithResult<void>> tasks;
+  for (auto const& cluster_desc : cluster_desc_) {
+    auto cluster = std::make_shared<storages::postgres::Cluster>(
+        cluster_desc, *bg_task_processor_, min_pool_size_, max_pool_size_);
+    clusters_.push_back(cluster);
+    tasks.push_back(cluster->DiscoverTopology());
+  }
+
+  // Wait for topology discovery
+  LOG_DEBUG() << "Wait for initial topology discovery";
+  for (auto& t : tasks) {
+    // An exception in topology discovery at this stage should prevent starting
+    // the component
+    t.Get();
+  }
+  LOG_DEBUG() << "Component ready";
 }
 
 Postgres::~Postgres() { statistics_holder_.Unregister(); }
@@ -155,30 +170,18 @@ storages::postgres::ClusterPtr Postgres::GetClusterForShard(
         "Shard number " + std::to_string(shard) + " is out of range");
   }
 
-  std::lock_guard<engine::Mutex> lock(shards_mutex_);
-
-  auto& cluster = shards_[shard];
-  if (!cluster) {
-    const auto& desc = shard_to_desc_[shard];
-    cluster = std::make_shared<storages::postgres::Cluster>(
-        desc, *bg_task_processor_, min_pool_size_, max_pool_size_);
-
-    std::lock_guard<engine::Mutex> lk(shards_ready_mutex_);
-    shards_ready_[shard] = cluster.get();
-  }
-  return cluster;
+  return clusters_[shard];
 }
 
-size_t Postgres::GetShardCount() const { return shards_.size(); }
+size_t Postgres::GetShardCount() const { return clusters_.size(); }
 
 formats::json::Value Postgres::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
   std::vector<storages::postgres::Cluster*> shards_ready;
   shards_ready.reserve(GetShardCount());
-  {
-    std::lock_guard<engine::Mutex> lk(shards_ready_mutex_);
-    shards_ready = shards_ready_;
-  }
+  std::transform(clusters_.begin(), clusters_.end(),
+                 std::back_inserter(shards_ready),
+                 [](const auto& sh) { return sh.get(); });
 
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   result[db_name_] = PostgresStatisticsToJson(shards_ready);

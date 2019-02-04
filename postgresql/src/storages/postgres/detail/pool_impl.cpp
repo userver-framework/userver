@@ -164,7 +164,8 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
 
     LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
                 << sg.GetSize();
-    const auto conn_id = ++thiz->stats_.connection.open_total;
+    const decltype(thiz->stats_.connection.open_total)::ValueType conn_id =
+        ++thiz->stats_.connection.open_total;
     std::unique_ptr<Connection> connection;
     try {
       connection =

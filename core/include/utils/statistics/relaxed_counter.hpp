@@ -8,12 +8,21 @@ namespace statistics {
 template <class T>
 class RelaxedCounter {
  public:
+  using ValueType = T;
+
+ public:
   RelaxedCounter() noexcept = default;
   constexpr RelaxedCounter(T desired) noexcept : val_(std::move(desired)) {}
+  RelaxedCounter(RelaxedCounter&& other) noexcept : val_(other.Load()) {}
 
-  T operator=(T desired) noexcept {
+  RelaxedCounter& operator=(RelaxedCounter&& rhs) noexcept {
+    val_ = std::move(rhs.val_);
+    return *this;
+  }
+
+  RelaxedCounter& operator=(T desired) noexcept {
     Store(desired);
-    return desired;
+    return *this;
   }
 
   void Store(T desired) noexcept {
@@ -24,28 +33,32 @@ class RelaxedCounter {
 
   operator T() const noexcept { return Load(); }
 
-  T operator++() noexcept {
-    return val_.fetch_add(1, std::memory_order_relaxed) + 1;
+  RelaxedCounter& operator++() noexcept {
+    val_.fetch_add(1, std::memory_order_relaxed);
+    return *this;
   }
 
   T operator++(int)noexcept {
     return val_.fetch_add(1, std::memory_order_relaxed);
   }
 
-  T operator--() noexcept {
-    return val_.fetch_sub(1, std::memory_order_relaxed) - 1;
+  RelaxedCounter& operator--() noexcept {
+    val_.fetch_sub(1, std::memory_order_relaxed);
+    return *this;
   }
 
   T operator--(int)noexcept {
     return val_.fetch_sub(1, std::memory_order_relaxed);
   }
 
-  T operator+=(T arg) noexcept {
-    return val_.fetch_add(arg, std::memory_order_relaxed) + arg;
+  RelaxedCounter& operator+=(T arg) noexcept {
+    val_.fetch_add(arg, std::memory_order_relaxed);
+    return *this;
   }
 
-  T operator-=(T arg) noexcept {
-    return val_.fetch_sub(arg, std::memory_order_relaxed) - arg;
+  RelaxedCounter& operator-=(T arg) noexcept {
+    val_.fetch_sub(arg, std::memory_order_relaxed);
+    return *this;
   }
 
  private:

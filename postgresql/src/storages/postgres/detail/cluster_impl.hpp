@@ -24,14 +24,14 @@ class ClusterImpl {
   ClusterImpl(const ClusterDescription& cluster_desc,
               engine::TaskProcessor& bg_task_processor, size_t initial_size,
               size_t max_size);
-  // TODO pass conninfo and SplitByHost ?
-  ClusterImpl(const DSNList& dsn_list, engine::TaskProcessor& bg_task_processor,
-              size_t initial_size, size_t max_size);
   ~ClusterImpl();
 
   ClusterStatistics GetStatistics() const;
 
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options);
+
+  // The task returned MUST NOT outlive the ClusterImpl object
+  engine::TaskWithResult<void> DiscoverTopology();
 
  private:
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;

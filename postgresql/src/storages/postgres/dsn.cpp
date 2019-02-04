@@ -78,7 +78,10 @@ HostAndPort ParseDSNOptions(
 DSNList SplitByHost(const std::string& conninfo) {
   std::ostringstream options;
   const auto hap = ParseDSNOptions(conninfo, [&options](PQconninfoOption* opt) {
-    options << " " << opt->keyword << "=" << opt->val;
+    // Ignore target_session_attrs
+    if (std::strcmp(opt->keyword, "target_session_attrs") != 0) {
+      options << " " << opt->keyword << "=" << opt->val;
+    }
   });
 
   const auto& hosts = hap.hosts;

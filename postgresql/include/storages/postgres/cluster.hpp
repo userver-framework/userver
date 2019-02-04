@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <engine/task/task_with_result.hpp>
+
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
@@ -49,6 +51,10 @@
 namespace engine {
 class TaskProcessor;
 }  // namespace engine
+
+namespace components {
+class Postgres;
+}  // namespace components
 
 namespace storages {
 namespace postgres {
@@ -132,6 +138,9 @@ class Cluster {
   //@}
   //@}
  private:
+  friend class components::Postgres;
+  engine::TaskWithResult<void> DiscoverTopology();
+
   detail::ClusterImplPtr pimpl_;
 };
 

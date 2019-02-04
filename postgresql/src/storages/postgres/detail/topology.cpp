@@ -1,4 +1,4 @@
-#include <storages/postgres/detail/topology_discovery.hpp>
+#include <storages/postgres/detail/topology.hpp>
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
@@ -77,10 +77,10 @@ std::string HostTypeToString(ClusterHostType host_type) {
 
 }  // namespace
 
-const std::chrono::seconds ClusterTopologyDiscovery::kUpdateInterval{5};
+const std::chrono::seconds ClusterTopology::kUpdateInterval{5};
 
-ClusterTopologyDiscovery::HostState::HostState(const std::string& dsn,
-                                               ConnectionTask&& task)
+ClusterTopology::HostState::HostState(const std::string& dsn,
+                                      ConnectionTask&& task)
     : dsn(dsn),
       conn_variant(std::move(task)),
       host_type(kNothing),
@@ -88,8 +88,51 @@ ClusterTopologyDiscovery::HostState::HostState(const std::string& dsn,
       changes{kNothing, kNothing, 0},
       failed_operations(0) {}
 
-ClusterTopologyDiscovery::ClusterTopologyDiscovery(
-    engine::TaskProcessor& bg_task_processor, const DSNList& dsn_list)
+class ClusterTopology::ClusterDescriptionVisitor
+    : public boost::static_visitor<DSNList> {
+ public:
+  ClusterDescriptionVisitor(ClusterTopology& topology) : topology_{topology} {}
+
+  DSNList operator()(DSNList const& dsn_list) const {
+    if (dsn_list.empty()) {
+      throw InvalidConfig("Empty DSN list specified for PostgreSQL cluster");
+    }
+    return dsn_list;
+  }
+
+  DSNList operator()(ClusterDescription::PredefinedRoles const& roles) const {
+    HostsByType hosts_by_type;
+    std::set<std::string> dsns;
+    if (!roles.master_dsn_.empty()) {
+      hosts_by_type[ClusterHostType::kMaster].push_back(roles.master_dsn_);
+      dsns.insert(roles.master_dsn_);
+    }
+
+    if (!roles.sync_slave_dsn_.empty()) {
+      hosts_by_type[ClusterHostType::kSyncSlave].push_back(
+          roles.sync_slave_dsn_);
+      dsns.insert(roles.sync_slave_dsn_);
+    }
+
+    hosts_by_type.emplace(ClusterHostType::kSlave, roles.slave_dsns_);
+    std::copy(roles.slave_dsns_.begin(), roles.slave_dsns_.end(),
+              std::inserter(dsns, dsns.end()));
+
+    if (dsns.empty()) {
+      throw InvalidConfig("Empty DSN list specified for PostgreSQL cluster");
+    }
+
+    topology_.hosts_by_type_.Set(std::move(hosts_by_type));
+
+    return DSNList{dsns.begin(), dsns.end()};
+  }
+
+ private:
+  ClusterTopology& topology_;
+};
+
+ClusterTopology::ClusterTopology(engine::TaskProcessor& bg_task_processor,
+                                 const ClusterDescription& desc)
     : bg_task_processor_(bg_task_processor),
       check_duration_(std::chrono::duration_cast<std::chrono::milliseconds>(
                           kUpdateInterval) *
@@ -102,17 +145,20 @@ ClusterTopologyDiscovery::ClusterTopologyDiscovery(
                      "check duration is set to "
                   << check_duration_.count() << " ms";
   }
-  CreateConnections(dsn_list);
+  dsns_ =
+      boost::apply_visitor(ClusterDescriptionVisitor{*this}, desc.description_);
+
+  CreateConnections(dsns_);
   BuildIndexes();
 }
 
-ClusterTopologyDiscovery::~ClusterTopologyDiscovery() { StopRunningTasks(); }
+ClusterTopology::~ClusterTopology() { StopRunningTasks(); }
 
-ClusterTopology::HostsByType ClusterTopologyDiscovery::GetHostsByType() const {
+ClusterTopology::HostsByType ClusterTopology::GetHostsByType() const {
   return *hosts_by_type_.Get();
 }
 
-void ClusterTopologyDiscovery::BuildIndexes() {
+void ClusterTopology::BuildIndexes() {
   const auto host_count = host_states_.size();
   dsn_to_index_.reserve(host_count);
   escaped_to_dsn_index_.reserve(host_count);
@@ -126,7 +172,7 @@ void ClusterTopologyDiscovery::BuildIndexes() {
   }
 }
 
-void ClusterTopologyDiscovery::CreateConnections(const DSNList& dsn_list) {
+void ClusterTopology::CreateConnections(const DSNList& dsn_list) {
   LOG_INFO() << "Creating connections to monitor cluster topology";
 
   host_states_.reserve(dsn_list.size());
@@ -136,7 +182,7 @@ void ClusterTopologyDiscovery::CreateConnections(const DSNList& dsn_list) {
   }
 }
 
-void ClusterTopologyDiscovery::StopRunningTasks() {
+void ClusterTopology::StopRunningTasks() {
   LOG_INFO() << "Closing connections";
   for (auto&& state : host_states_) {
     try {
@@ -151,14 +197,13 @@ void ClusterTopologyDiscovery::StopRunningTasks() {
   LOG_INFO() << "Closed connections";
 }
 
-ClusterTopologyDiscovery::ConnectionTask ClusterTopologyDiscovery::Connect(
-    std::string dsn) {
+ClusterTopology::ConnectionTask ClusterTopology::Connect(std::string dsn) {
   return engine::Async([ this, dsn = std::move(dsn) ] {
     return Connection::Connect(dsn, bg_task_processor_, kConnectionId);
   });
 }
 
-void ClusterTopologyDiscovery::Reconnect(size_t index) {
+void ClusterTopology::Reconnect(size_t index) {
   host_states_[index].changes.last_check_type = kNothing;
   const auto failed_reconnects = host_states_[index].failed_reconnects++;
   auto conn = std::move(boost::get<std::unique_ptr<Connection>>(
@@ -192,14 +237,13 @@ void ClusterTopologyDiscovery::Reconnect(size_t index) {
   host_states_[index].conn_variant = std::move(task);
 }
 
-void ClusterTopologyDiscovery::CloseConnection(
-    std::unique_ptr<Connection> conn_ptr) {
+void ClusterTopology::CloseConnection(std::unique_ptr<Connection> conn_ptr) {
   if (conn_ptr) {
     conn_ptr->Close();
   }
 }
 
-void ClusterTopologyDiscovery::AccountHostTypeChange(size_t index) {
+void ClusterTopology::AccountHostTypeChange(size_t index) {
   if (host_states_[index].changes.last_check_type ==
       host_states_[index].host_type) {
     // Same type as we have now
@@ -217,7 +261,7 @@ void ClusterTopologyDiscovery::AccountHostTypeChange(size_t index) {
       host_states_[index].changes.last_check_type;
 }
 
-bool ClusterTopologyDiscovery::ShouldChangeHostType(size_t index) const {
+bool ClusterTopology::ShouldChangeHostType(size_t index) const {
   // We want to publish availability states after the very first check
   if (initial_check_) {
     return true;
@@ -232,14 +276,14 @@ bool ClusterTopologyDiscovery::ShouldChangeHostType(size_t index) const {
   return false;
 }
 
-Connection* ClusterTopologyDiscovery::GetConnectionOrThrow(size_t index) const
+Connection* ClusterTopology::GetConnectionOrThrow(size_t index) const
     noexcept(false) {
   return boost::get<std::unique_ptr<Connection>>(
              host_states_[index].conn_variant)
       .get();
 }
 
-Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
+Connection* ClusterTopology::GetConnectionOrNull(size_t index) {
   try {
     return GetConnectionOrThrow(index);
   } catch (const boost::bad_get&) {
@@ -272,8 +316,7 @@ Connection* ClusterTopologyDiscovery::GetConnectionOrNull(size_t index) {
   return nullptr;
 }
 
-ClusterTopology::HostAvailabilityChanges
-ClusterTopologyDiscovery::CheckTopology() {
+ClusterTopology::HostAvailabilityChanges ClusterTopology::CheckTopology() {
   const auto check_end_point =
       std::chrono::steady_clock::now() + check_duration_;
   LOG_INFO() << "Checking cluster topology. Check duration is "
@@ -287,12 +330,12 @@ ClusterTopologyDiscovery::CheckTopology() {
   return host_availability;
 }
 
-void ClusterTopologyDiscovery::OperationFailed(const std::string& dsn) {
+void ClusterTopology::OperationFailed(const std::string& dsn) {
   const auto index = dsn_to_index_[dsn];
   ++host_states_[index].failed_operations;
 }
 
-void ClusterTopologyDiscovery::CheckHosts(
+void ClusterTopology::CheckHosts(
     const std::chrono::steady_clock::time_point& check_end_point) {
   const auto host_count = host_states_.size();
   // check_tasks vector keeps either a pointer to reconnect task or a pointer to
@@ -352,8 +395,8 @@ void ClusterTopologyDiscovery::CheckHosts(
   }
 }
 
-engine::Task* ClusterTopologyDiscovery::CheckAvailability(size_t index,
-                                                          ChecksList& checks) {
+engine::Task* ClusterTopology::CheckAvailability(size_t index,
+                                                 ChecksList& checks) {
   auto* conn = GetConnectionOrNull(index);
   if (!conn) {
     return &boost::get<ConnectionTask>(host_states_[index].conn_variant);
@@ -371,8 +414,7 @@ engine::Task* ClusterTopologyDiscovery::CheckAvailability(size_t index,
                        HostChecks::Stage::kAvailability);
 }
 
-engine::Task* ClusterTopologyDiscovery::DetectMaster(size_t index,
-                                                     ChecksList& checks) {
+engine::Task* ClusterTopology::DetectMaster(size_t index, ChecksList& checks) {
   // We need to take out the task as empty task has special meaning
   auto tmp_task = std::move(checks[index].task);
   auto& task = static_cast<engine::TaskWithResult<ClusterHostType>&>(*tmp_task);
@@ -406,9 +448,9 @@ engine::Task* ClusterTopologyDiscovery::DetectMaster(size_t index,
   return nullptr;
 }
 
-engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(size_t master_index,
-                                                        ChecksList& checks,
-                                                        Connection* conn) {
+engine::Task* ClusterTopology::CheckSyncSlaves(size_t master_index,
+                                               ChecksList& checks,
+                                               Connection* conn) {
   auto task = engine::Async([this, conn] {
     auto res = conn->Execute("show synchronous_standby_names");
     if (res.IsEmpty()) {
@@ -434,8 +476,8 @@ engine::Task* ClusterTopologyDiscovery::CheckSyncSlaves(size_t master_index,
                        HostChecks::Stage::kSyncSlaves);
 }
 
-engine::Task* ClusterTopologyDiscovery::DetectSyncSlaves(size_t master_index,
-                                                         ChecksList& checks) {
+engine::Task* ClusterTopology::DetectSyncSlaves(size_t master_index,
+                                                ChecksList& checks) {
   // We need to take out the task as empty task has special meaning
   auto tmp_task = std::move(checks[master_index].task);
   auto& task =
@@ -479,16 +521,16 @@ engine::Task* ClusterTopologyDiscovery::DetectSyncSlaves(size_t master_index,
 }
 
 template <typename T>
-engine::Task* ClusterTopologyDiscovery::SetCheckStage(
-    size_t index, ChecksList& checks, T&& task, HostChecks::Stage stage) const {
+engine::Task* ClusterTopology::SetCheckStage(size_t index, ChecksList& checks,
+                                             T&& task,
+                                             HostChecks::Stage stage) const {
   assert(!checks[index].task && "No check task should be available");
   checks[index].task = std::make_unique<T>(std::move(task));
   checks[index].stage = stage;
   return checks[index].task.get();
 }
 
-ClusterTopology::HostAvailabilityChanges
-ClusterTopologyDiscovery::UpdateHostTypes() {
+ClusterTopology::HostAvailabilityChanges ClusterTopology::UpdateHostTypes() {
   HostAvailabilityChanges host_availability;
   bool updated = false;
   for (size_t i = 0; i < host_states_.size(); ++i) {
@@ -531,7 +573,7 @@ ClusterTopologyDiscovery::UpdateHostTypes() {
   return host_availability;
 }
 
-std::string ClusterTopologyDiscovery::DumpTopologyState() const {
+std::string ClusterTopology::DumpTopologyState() const {
   std::string topology_state = "Topology state:\n";
   for (const auto& state : host_states_) {
     const auto host_type = state.host_type;
@@ -542,8 +584,7 @@ std::string ClusterTopologyDiscovery::DumpTopologyState() const {
   return topology_state;
 }
 
-ClusterTopology::HostsByType ClusterTopologyDiscovery::BuildHostsByType()
-    const {
+ClusterTopology::HostsByType ClusterTopology::BuildHostsByType() const {
   size_t master_index = kInvalidIndex;
   HostsByType hosts_by_type;
 

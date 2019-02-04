@@ -28,8 +28,15 @@ void CheckTransaction(pg::Transaction trx) {
 pg::Cluster CreateCluster(const std::string& dsn,
                           engine::TaskProcessor& bg_task_processor,
                           size_t max_size) {
-  return pg::Cluster(pg::ClusterDescription(dsn), bg_task_processor, 0,
+  return pg::Cluster(pg::ClusterDescription({dsn}), bg_task_processor, 0,
                      max_size);
+}
+
+pg::Cluster CreateClusterWithMaster(const std::string& dsn,
+                                    engine::TaskProcessor& bg_task_processor,
+                                    size_t max_size) {
+  return pg::Cluster(pg::ClusterDescription(dsn, std::string{}, {}),
+                     bg_task_processor, 0, max_size);
 }
 
 }  // namespace
@@ -68,7 +75,7 @@ TEST_P(PostgreCluster, ClusterAsyncSlaveRW) {
 
 TEST_P(PostgreCluster, ClusterEmptyPool) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 0);
+    auto cluster = CreateClusterWithMaster(dsn_, GetTaskProcessor(), 0);
 
     EXPECT_THROW(cluster.Begin({}), pg::PoolError);
   });
@@ -76,7 +83,7 @@ TEST_P(PostgreCluster, ClusterEmptyPool) {
 
 TEST_P(PostgreCluster, ClusterTransaction) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
+    auto cluster = CreateClusterWithMaster(dsn_, GetTaskProcessor(), 1);
 
     CheckTransaction(cluster.Begin({}));
   });

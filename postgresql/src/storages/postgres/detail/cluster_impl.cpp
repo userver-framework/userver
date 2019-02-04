@@ -2,8 +2,6 @@
 
 #include <engine/async.hpp>
 
-#include <storages/postgres/detail/topology_discovery.hpp>
-#include <storages/postgres/detail/topology_proxy.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 
@@ -44,20 +42,9 @@ ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
                          engine::TaskProcessor& bg_task_processor,
                          size_t initial_size, size_t max_size)
     : ClusterImpl(bg_task_processor, initial_size, max_size) {
-  topology_ = std::make_unique<ClusterTopologyProxy>(cluster_desc);
-  const auto& dsn_list =
-      static_cast<ClusterTopologyProxy*>(topology_.get())->GetDsnList();
-  InitPools(dsn_list);
-}
-
-ClusterImpl::ClusterImpl(const DSNList& dsn_list,
-                         engine::TaskProcessor& bg_task_processor,
-                         size_t initial_size, size_t max_size)
-    : ClusterImpl(bg_task_processor, initial_size, max_size) {
   topology_ =
-      std::make_unique<ClusterTopologyDiscovery>(bg_task_processor_, dsn_list);
-  InitPools(dsn_list);
-  StartPeriodicUpdates();
+      std::make_unique<ClusterTopology>(bg_task_processor_, cluster_desc);
+  InitPools(topology_->GetDsnList());
 }
 
 ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
@@ -70,12 +57,19 @@ ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
 
 ClusterImpl::~ClusterImpl() { StopPeriodicUpdates(); }
 
+engine::TaskWithResult<void> ClusterImpl::DiscoverTopology() {
+  return engine::Async([this] {
+    CheckTopology();
+    StartPeriodicUpdates();
+  });
+}
+
 void ClusterImpl::StartPeriodicUpdates() {
   using ::utils::PeriodicTask;
   using Flags = ::utils::PeriodicTask::Flags;
 
   // TODO remove ugly constant
-  PeriodicTask::Settings settings(ClusterTopologyDiscovery::kUpdateInterval,
+  PeriodicTask::Settings settings(ClusterTopology::kUpdateInterval,
                                   {Flags::kNow, Flags::kStrong});
   periodic_task_.Start(kPeriodicTaskName, settings,
                        [this] { CheckTopology(); });
@@ -194,6 +188,13 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
   }
 
   auto hosts_by_type = topology_->GetHostsByType();
+  while (host_type != ClusterHostType::kMaster &&
+         hosts_by_type.count(host_type) == 0) {
+    auto fb = Fallback(host_type);
+    LOG_WARNING() << "There is no pool for host type " << ToString(host_type)
+                  << ", falling back to " << ToString(fb);
+    host_type = fb;
+  }
   const auto& host_dsns = hosts_by_type[host_type];
   if (host_dsns.empty()) {
     throw ClusterUnavailable("Pool for host type (passed: " + ToString(ht) +

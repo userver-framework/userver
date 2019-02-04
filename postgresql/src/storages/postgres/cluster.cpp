@@ -40,5 +40,9 @@ ResultSet Cluster::Execute(ClusterHostType ht,
   return Execute<>(ht, options, statement);
 }
 
+engine::TaskWithResult<void> Cluster::DiscoverTopology() {
+  return pimpl_->DiscoverTopology();
+}
+
 }  // namespace postgres
 }  // namespace storages

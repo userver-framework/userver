@@ -126,6 +126,7 @@ namespace postgres {
  *       - ConnectionFailed
  *       - ServerConnectionError (contains a message from server)
  *     - PoolError
+ *     - ClusterError
  *     - InvalidConfig
  *     - InvalidDSN
  */
@@ -212,6 +213,11 @@ class ClusterUnavailable : public ConnectionError {
 class CommandError : public ConnectionError {
   using ConnectionError::ConnectionError;
 };
+
+class ClusterError : public RuntimeError {
+  using RuntimeError::RuntimeError;
+};
+
 //@}
 
 //@{

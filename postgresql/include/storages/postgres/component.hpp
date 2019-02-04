@@ -29,17 +29,67 @@ namespace components {
 ///
 /// ## Configuration example:
 ///
-/// ```
-/// {
-///   postgres-taxi:
-///     dbalias: taxi
-///     blocking_task_processor: task-processor-name
-///     min_pool_size: 16
-///     max_pool_size: 100
-/// }
+/// ```yaml
+///  postgres-taxi:
+///    dbalias: taxi
+///    blocking_task_processor: task-processor-name
+///    min_pool_size: 16
+///    max_pool_size: 100
 /// ```
 /// You must specify either `dbalias` or `conn_info`.
+/// If the component is configured with an alias, it will lookup connection data
+/// in secdist.json
+///
 /// You must specify `blocking_task_processor` as well.
+///
+/// ## Secdist format
+///
+/// A PosgreSQL alias in secdist is described as a JSON array of objects
+/// containing a single cluster description. There are two formats of describing
+/// a cluster, the first one assigns predefined roles to DSNs, the second one
+/// is just a list of DSNs and the Postgres component takes care of discovering
+/// the cluster's topology itself.
+///
+/// ### Predefined roles
+///
+/// In predefined roles format the component requires single-host connection
+/// strings.
+///
+/// ```json
+/// {
+///   "shard_number" : 0,
+///   "master": "host=localhost dbname=example",
+///   "sync_slave": "host=localhost dbname=example",
+///   "slaves": [
+///     "host=localhost dbname=example"
+///   ]
+/// }
+/// ```
+///
+/// The predefined roles format is deprecated and the support will be removed as
+/// soon as all µservices migrate to the automatical discovery format.
+///
+/// ### Automatic discovery
+///
+/// In automatic discovery format the connection strings are any valid
+/// PostgreSQL connection strings including multi-host ones with the exception
+/// of `target_session_attrs` which will be ignored.
+///
+/// ```json
+/// {
+///   "shard_number" : 0,
+///   "hosts": [
+///     "host=host1,host2,host3 dbname=example",
+///     "postgresql://host1:5432,host2:6432,host3:12000/example"
+///   ]
+/// }
+/// ```
+///
+/// The `shard_number` parameter is required in both formats and must match the
+/// index of cluster description object in the alias array.
+///
+/// Please see [PostgreSQL documentation](https://www.postgresql.org/docs/10/libpq-connect.html#LIBPQ-CONNSTRING)
+/// on connection strings.
 ///
 /// ## Available options:
 /// Name | Description | Default value
@@ -87,11 +137,8 @@ class Postgres : public LoggableComponentBase {
   size_t min_pool_size_ = 0;
   size_t max_pool_size_ = 0;
   engine::TaskProcessor* bg_task_processor_ = nullptr;
-  storages::postgres::ShardedClusterDescription shard_to_desc_;
-  mutable engine::Mutex shards_mutex_;
-  mutable std::vector<storages::postgres::ClusterPtr> shards_;
-  mutable engine::Mutex shards_ready_mutex_;
-  mutable std::vector<storages::postgres::Cluster*> shards_ready_;
+  storages::postgres::ShardedClusterDescription cluster_desc_;
+  std::vector<storages::postgres::ClusterPtr> clusters_;
 };
 
 }  // namespace components
