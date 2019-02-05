@@ -65,3 +65,7 @@ TEST_F(Span, ScopeTime) {
     EXPECT_NE(std::string::npos, sstream.str().find("xxx_time="));
   });
 }
+
+TEST_F(Span, InTest) {
+  RunInCoro([] { tracing::Span::CurrentSpan()->AddTag("1", 2); });
+}

@@ -6,6 +6,7 @@
 
 #include <engine/async.hpp>
 #include <engine/standalone.hpp>
+#include <tracing/span.hpp>
 
 void RunInCoro(std::function<void()> user_cb, size_t worker_threads) {
   auto task_processor_holder =
@@ -20,6 +21,8 @@ void RunInCoro(std::function<void()> user_cb, size_t worker_threads) {
 
   auto cb = [&user_cb, &mutex, &done, &cv, &ex]() {
     try {
+      tracing::Span span("span", tracing::ReferenceType::kChild,
+                         logging::Level::kNone);
       user_cb();
     } catch (const std::exception&) {
       ex = std::current_exception();

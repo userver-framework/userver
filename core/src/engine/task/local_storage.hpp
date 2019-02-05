@@ -41,8 +41,17 @@ class LocalStorage {
   }
 
   struct Data {
+    Data() = default;
+    Data(Data&& other) noexcept { *this = std::move(other); }
     ~Data() {
       if (deleter) deleter(ptr);
+    }
+
+    Data& operator=(Data&& other) noexcept {
+      if (this == &other) return *this;
+      std::swap(other.ptr, ptr);
+      std::swap(other.deleter, deleter);
+      return *this;
     }
 
     void* ptr = nullptr;
