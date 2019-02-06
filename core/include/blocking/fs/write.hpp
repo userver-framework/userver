@@ -16,5 +16,7 @@ void Rename(const std::string& source, const std::string& destination);
 
 void Chmod(const std::string& path, boost::filesystem::perms perms);
 
+bool RemoveSingleFile(const std::string& path);
+
 }  // namespace fs
 }  // namespace blocking

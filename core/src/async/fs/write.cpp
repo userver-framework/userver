@@ -44,5 +44,10 @@ void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
   Chmod(async_tp, path, perms);
 }
 
+bool RemoveSingleFile(engine::TaskProcessor& async_tp,
+                      const std::string& path) {
+  return engine::Async(async_tp, &blocking::fs::RemoveSingleFile, path).Get();
+}
+
 }  // namespace fs
 }  // namespace async

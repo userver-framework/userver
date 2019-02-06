@@ -40,5 +40,9 @@ void Chmod(const std::string& path, boost::filesystem::perms perms) {
   boost::filesystem::permissions(path, perms);
 }
 
+bool RemoveSingleFile(const std::string& path) {
+  return boost::filesystem::remove(path);
+}
+
 }  // namespace fs
 }  // namespace blocking

@@ -24,5 +24,7 @@ void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
 void Chmod(engine::TaskProcessor& async_tp, const std::string& path,
            boost::filesystem::perms perms);
 
+bool RemoveSingleFile(engine::TaskProcessor& async_tp, const std::string& path);
+
 }  // namespace fs
 }  // namespace async

@@ -9,5 +9,7 @@ namespace fs {
 
 std::string ReadFileContents(engine::TaskProcessor& async_tp,
                              const std::string& path);
-}
+bool FileExists(engine::TaskProcessor& async_tp, const std::string& path);
+
+}  // namespace fs
 }  // namespace async

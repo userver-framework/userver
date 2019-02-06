@@ -28,8 +28,18 @@ ListenerConfig ListenerConfig::ParseFromYaml(
 
   auto optional_port =
       yaml_config::ParseOptionalInt(yaml, "port", full_path, config_vars_ptr);
+  auto optional_unix = yaml_config::ParseOptionalString(
+      yaml, "unix-socket", full_path, config_vars_ptr);
+  if (optional_port && optional_unix)
+    throw std::runtime_error(
+        "Both 'port' and 'unix-socket' fields are set, only single field may "
+        "be set at a time");
+  if (!optional_port && !optional_unix)
+    throw std::runtime_error(
+        "Either 'port' or 'unix-socket' fields must be set");
   if (optional_port)
     config.port = CheckPort(*optional_port, full_path + ".port");
+  if (optional_unix) config.unix_socket_path = *optional_unix;
 
   auto optional_backlog = yaml_config::ParseOptionalInt(
       yaml, "backlog", full_path, config_vars_ptr);

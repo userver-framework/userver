@@ -14,6 +14,7 @@ namespace net {
 
 struct ListenerConfig {
   ConnectionConfig connection_config;
+  std::string unix_socket_path;
   uint16_t port = 80;
   int backlog = 1024;  // truncated to net.core.somaxconn
   size_t max_connections = 32768;
