@@ -72,23 +72,23 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${JEMALLOC_LIBRARIES}
+    Threads::Threads
+    Jemalloc
     sanitize-target
     yandex-taxi-backend-common-cpp
     libyamlcpp
   PRIVATE
-    spdlog_lib
     ${LIBCURL_YANDEX_LIBRARIES}
-    ${ZLIB_LIBRARIES}
     Boost::coroutine
     Boost::filesystem
     Boost::program_options
-    ${HTTP_PARSER_LIBRARIES}
-    ${LIBEV_LIBRARIES}
-    ${Iconv_LIBRARIES}
-    OpenSSL::Crypto
     CryptoPP
+    Http_Parser
+    Iconv::Iconv
+    LibEv
+    OpenSSL::Crypto
+    ZLIB::ZLIB
+    spdlog_lib
 )
 
 set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -115,7 +115,6 @@ target_include_directories(${PROJECT_NAME}
     ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${LIBEV_INCLUDE_DIR}
 )
 
 set(LIBSTANDALONE_ENGINE yandex-taxi-userver+standalone_engine)
