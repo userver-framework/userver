@@ -105,7 +105,7 @@ class LogHelper {
   void AppendLogExtra();
   void LogTextKey();
   void LogModule(const char* path, int line, const char* func);
-  void LogTaskIdAndCoroutineId();
+  void LogIds();
   void LogSpan();
 
   void PutFloatingPoint(float value);

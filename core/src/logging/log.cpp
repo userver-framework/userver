@@ -106,7 +106,7 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
   // bottom hold.
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogSpan())
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogModule(path, line, func))
-  NOTHROW_CALL_CONSTRUCTOR(path, line, LogTaskIdAndCoroutineId())
+  NOTHROW_CALL_CONSTRUCTOR(path, line, LogIds())
 
   LogTextKey();  // This member outputs only a key without value
                  // This call must be the last in constructor
@@ -180,19 +180,26 @@ void LogHelper::LogModule(const char* path, int line, const char* func) {
   Put(" ) ");
 }
 
-void LogHelper::LogTaskIdAndCoroutineId() {
+void LogHelper::LogIds() {
   auto task = engine::current_task::GetCurrentTaskContextUnchecked();
   uint64_t task_id = task ? reinterpret_cast<uint64_t>(task) : 0;
   uint64_t coro_id = task ? task->GetCoroId() : 0;
+  auto thread_id = reinterpret_cast<void*>(pthread_self());
 
   Put(utils::encoding::kTskvPairsSeparator);
   Put("task_id");
   Put(utils::encoding::kTskvKeyValueSeparator);
   PutHexShort(task_id);
+
   Put(utils::encoding::kTskvPairsSeparator);
   Put("coro_id");
   Put(utils::encoding::kTskvKeyValueSeparator);
   PutHexShort(coro_id);
+
+  Put(utils::encoding::kTskvPairsSeparator);
+  Put("thread_id");
+  Put(utils::encoding::kTskvKeyValueSeparator);
+  PutHex(thread_id);
 }
 
 void LogHelper::LogSpan() {
