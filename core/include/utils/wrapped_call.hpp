@@ -68,8 +68,10 @@ class WrappedCallImpl final
     : public WrappedCall<decltype(
           std::declval<Function>()(std::declval<Args>()...))> {
  public:
-  explicit WrappedCallImpl(Function&& f, Args&&... args)
-      : f_(std::move(f)), args_(std::make_tuple(std::forward<Args>(args)...)) {}
+  template <class... ArgsIn>
+  explicit WrappedCallImpl(Function&& f, ArgsIn&&... args)
+      : f_(std::forward<Function>(f)),
+        args_(std::make_tuple(std::forward<ArgsIn>(args)...)) {}
 
  private:
   decltype(std::declval<Function>()(std::declval<Args>()...)) Call() override {
@@ -86,11 +88,18 @@ class WrappedCallImpl final
   decltype(std::make_tuple(std::declval<Args>()...)) args_;
 };
 
+template <class T>
+using remove_cv_ref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
 }  // namespace impl
 
 template <typename Function, typename... Args>
 auto WrapCall(Function&& f, Args&&... args) {
-  return std::make_shared<impl::WrappedCallImpl<Function, Args...>>(
+  static_assert((!std::is_array<impl::remove_cv_ref_t<Args>>::value && ...),
+                "Passing arrays to Async is forbidden");
+
+  return std::make_shared<
+      impl::WrappedCallImpl<Function, impl::remove_cv_ref_t<Args>...>>(
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 

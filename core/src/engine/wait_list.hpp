@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -34,6 +35,15 @@ class WaitList final : public WaitListBase {
   WaitList(WaitList&&) = delete;
   WaitList& operator=(const WaitList&) = delete;
   WaitList& operator=(WaitList&&) = delete;
+
+#ifndef NDEBUG
+  ~WaitList() {
+    Lock lock{*this};
+    assert(waiting_contexts_.empty() && "Someone is waiting on the WaitList");
+  }
+#else
+  ~WaitList() = default;
+#endif
 
   void Append(WaitListBase::Lock&,
               boost::intrusive_ptr<impl::TaskContext>) override;
