@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <formats/json/value.hpp>
 
@@ -21,6 +22,7 @@ class PostgresSettings {
  private:
   std::unordered_map<std::string, ShardedClusterDescription>
       sharded_cluster_descs_;
+  std::unordered_set<std::string> invalid_dbaliases_;
 };
 
 }  // namespace secdist

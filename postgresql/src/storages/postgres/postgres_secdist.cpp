@@ -21,7 +21,7 @@ void CheckSingleHostDSN(const std::string& dsn) {
   }
   if (dsns.size() > 1) {
     throw storages::secdist::SecdistError(
-        dsn +
+        DsnCutPassword(dsn) +
         " contains multiple hosts, this is not supported in this configuration "
         "type");
   }
@@ -89,20 +89,28 @@ PostgresSettings::PostgresSettings(const formats::json::Value& doc) {
     sharded_cluster_for_db.reserve(cluster_array.GetSize());
 
     size_t shard_num_expect = 0;
-    for (auto shard_it = cluster_array.begin(); shard_it != cluster_array.end();
-         ++shard_it) {
-      storages::secdist::CheckIsObject(
-          *shard_it, dbalias + '[' + std::to_string(shard_it.GetIndex() + ']'));
-      // Legacy check, expect shard_num to be in order
-      const auto shard_num = (*shard_it)["shard_number"].As<uint64_t>();
-      if (shard_num != shard_num_expect) {
-        throw storages::secdist::SecdistError(
-            "shard_number " + std::to_string(shard_num) +
-            " is out of order. Should equal to " +
-            std::to_string(shard_num_expect));
+    try {
+      for (auto shard_it = cluster_array.begin();
+           shard_it != cluster_array.end(); ++shard_it) {
+        storages::secdist::CheckIsObject(
+            *shard_it,
+            dbalias + '[' + std::to_string(shard_it.GetIndex() + ']'));
+        // Legacy check, expect shard_num to be in order
+        const auto shard_num = (*shard_it)["shard_number"].As<uint64_t>();
+        if (shard_num != shard_num_expect) {
+          throw storages::secdist::SecdistError(
+              "shard_number " + std::to_string(shard_num) +
+              " is out of order. Should equal to " +
+              std::to_string(shard_num_expect));
+        }
+        ++shard_num_expect;
+        sharded_cluster_for_db.push_back(ClusterDescriptionFromJson(*shard_it));
       }
-      ++shard_num_expect;
-      sharded_cluster_for_db.push_back(ClusterDescriptionFromJson(*shard_it));
+    } catch (storages::secdist::SecdistError& e) {
+      LOG_WARNING() << "Secdist for " << dbalias
+                    << " contains unsupported formats: " << e.what();
+      sharded_cluster_descs_.erase(dbalias);
+      invalid_dbaliases_.insert(dbalias);
     }
   }
 }
@@ -112,6 +120,10 @@ ShardedClusterDescription PostgresSettings::GetShardedClusterDescription(
   auto it = sharded_cluster_descs_.find(dbalias);
 
   if (it == sharded_cluster_descs_.end()) {
+    if (invalid_dbaliases_.count(dbalias)) {
+      throw storages::secdist::SecdistError(
+          "dbalias " + dbalias + " secdist config is in unsupported format");
+    }
     throw storages::secdist::UnknownPostgresDbAlias(
         "dbalias " + dbalias + " not found in secdist config");
   }
