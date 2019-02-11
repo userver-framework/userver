@@ -40,22 +40,39 @@ Mutex::Mutex()
 
 Mutex::~Mutex() { assert(!owner_); }
 
-void Mutex::lock() {
-  impl::TaskContext* const current = current_task::GetCurrentTaskContext();
-  assert(current);
+void Mutex::LockSlowPath(impl::TaskContext* const current) {
+  impl::TaskContext* expected = nullptr;
 
   impl::MutexWaitStrategy wait_manager(lock_waiters_, current);
-  while (owner_) {
-    assert(owner_ != current);
+  while (!owner_.compare_exchange_strong(expected, current,
+                                         std::memory_order_relaxed)) {
+    if (expected == current) {
+      assert(false && "Mutex is locked twice from the same task");
+      throw std::runtime_error("Mutex is locked twice from the same task");
+    }
     current->Sleep(&wait_manager);
+    expected = nullptr;
+  };
+}
+
+void Mutex::lock() {
+  impl::TaskContext* const current = current_task::GetCurrentTaskContext();
+
+  impl::TaskContext* expected = nullptr;
+  if (owner_.compare_exchange_strong(expected, current,
+                                     std::memory_order_acquire)) {
+    return;  // Fast path
+  } else {
+    LockSlowPath(current);
   }
-  owner_ = current;
 }
 
 void Mutex::unlock() {
+  [[maybe_unused]] const auto old_owner =
+      owner_.exchange(nullptr, std::memory_order_release);
+  assert(old_owner == current_task::GetCurrentTaskContext());
+
   impl::WaitList::Lock lock(*lock_waiters_);
-  assert(owner_ == current_task::GetCurrentTaskContext());
-  owner_ = nullptr;
   lock_waiters_->WakeupOne(lock);
 }
 
