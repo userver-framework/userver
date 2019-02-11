@@ -1,0 +1,28 @@
+* @taxi/common-group-developers
+
+# TODO: move these into hierarchy
+/core/**/conductor/ @antoshkka
+/core/**/fs/ @antoshkka
+/core/**/system/ @antoshkka
+
+/core/*/cache/ @segoon
+/core/*/clients/config/ @segoon
+/core/*/clients/http/ @segoon
+/core/*/crypto/ @bugaevskiy @segoon
+/core/*/curl-ev/ @segoon
+/core/*/engine/ @bugaevskiy @segoon
+/core/*/formats/ @bugaevskiy
+/core/*/http/ @segoon
+/core/*/logging/ @antoshkka @segoon
+/core/*/server/ @dzhuk
+/core/*/server_settings/ @segoon
+/core/*/storages/secdist/ @segoon
+/core/*/taxi_config/ @segoon
+/core/*/tracing/ @segoon
+/core/*/yaml_config/ @antoshkka
+
+/mongo/ @bugaevskiy
+
+/postgresql/ @ser-fedorov
+
+/redis/ @dzhuk @segoon
