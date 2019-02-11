@@ -17,6 +17,7 @@
 #include <blocking/fs/read.hpp>
 #include <blocking/fs/write.hpp>
 #include <engine/async.hpp>
+#include <engine/io/error.hpp>
 #include <engine/io/socket.hpp>
 #include <engine/sleep.hpp>
 #include <logging/log.hpp>
@@ -86,6 +87,8 @@ ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
             while (!engine::current_task::ShouldCancel()) {
               try {
                 AcceptConnection(request_socket);
+              } catch (const engine::io::IoCancelled&) {
+                break;
               } catch (const std::exception& ex) {
                 LOG_ERROR() << "can't accept connection: " << ex.what();
               }

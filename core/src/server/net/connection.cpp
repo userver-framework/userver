@@ -11,6 +11,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <engine/async.hpp>
+#include <engine/io/error.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_request_handler.hpp>
@@ -125,6 +126,8 @@ void Connection::ListenForRequests(Queue::Producer producer) {
         break;
       }
     }
+  } catch (const engine::io::IoCancelled&) {
+    // go to finalization, do not pass Go, do not collect $200
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Error while receiving from peer "
                 << peer_socket_.Getpeername() << " on fd " << Fd() << ": "
@@ -174,6 +177,9 @@ void Connection::SendResponses(Queue::Consumer consumer) {
     HandleQueueItem(*item);
     auto& request = *item->first;
     auto& response = request.GetResponse();
+
+    // the response is ready, so let's not drop it
+    engine::TaskCancellationBlocker block_cancel;
     assert(!response.IsSent());
     request.SetStartSendResponseTime();
     if (peer_socket_) {
