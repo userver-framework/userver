@@ -6,8 +6,8 @@
 
 #include <utils/flags.hpp>
 
-namespace blocking {
 namespace fs {
+namespace blocking {
 
 class FileDescriptor {
  public:
@@ -54,5 +54,5 @@ class FileDescriptor {
   std::string path_;
 };
 
-}  // namespace fs
 }  // namespace blocking
+}  // namespace fs

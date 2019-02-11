@@ -2,8 +2,8 @@
 
 #include <fstream>
 
-#include <async/fs/read.hpp>
-#include <async/fs/write.hpp>
+#include <fs/read.hpp>
+#include <fs/write.hpp>
 
 namespace components {
 
@@ -96,7 +96,7 @@ void TaxiConfig::ReadFsCache() {
     auto docs_map = std::make_shared<::taxi_config::DocsMap>();
 
     const auto contents =
-        async::fs::ReadFileContents(fs_task_processor_, fs_cache_path_);
+        fs::ReadFileContents(fs_task_processor_, fs_cache_path_);
     docs_map->Parse(contents, false);
 
     DoSetConfig(docs_map);
@@ -123,8 +123,8 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
     using perms = boost::filesystem::perms;
     auto mode = perms::owner_read | perms::owner_write | perms::group_read |
                 perms::others_read;
-    async::fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_,
-                                             std::move(contents), mode);
+    fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_,
+                                      std::move(contents), mode);
 
     LOG_INFO() << "Successfully wrote taxi_config from FS cache";
   } catch (const std::exception& e) {
@@ -135,7 +135,7 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
 void TaxiConfig::ReadBootstrap(const std::string& bootstrap_fname) {
   try {
     auto bootstrap_config_contents =
-        async::fs::ReadFileContents(fs_task_processor_, bootstrap_fname);
+        fs::ReadFileContents(fs_task_processor_, bootstrap_fname);
     taxi_config::DocsMap bootstrap_config;
     bootstrap_config.Parse(bootstrap_config_contents, false);
     bootstrap_config_ =

@@ -1,19 +1,17 @@
-#include <async/fs/read.hpp>
+#include <fs/read.hpp>
 
-#include <blocking/fs/read.hpp>
 #include <engine/async.hpp>
+#include <fs/blocking/read.hpp>
 
-namespace async {
 namespace fs {
 
 std::string ReadFileContents(engine::TaskProcessor& async_tp,
                              const std::string& path) {
-  return engine::Async(async_tp, &blocking::fs::ReadFileContents, path).Get();
+  return engine::Async(async_tp, &fs::blocking::ReadFileContents, path).Get();
 }
 
 bool FileExists(engine::TaskProcessor& async_tp, const std::string& path) {
-  return engine::Async(async_tp, &blocking::fs::FileExists, path).Get();
+  return engine::Async(async_tp, &fs::blocking::FileExists, path).Get();
 }
 
 }  // namespace fs
-}  // namespace async

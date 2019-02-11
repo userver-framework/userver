@@ -2,11 +2,11 @@
 
 #include <stdexcept>
 
-#include <blocking/fs/read.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/types.hpp>
 #include <formats/json/serialize.hpp>
+#include <fs/blocking/read.hpp>
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/read_preference.hpp>
 #include <storages/mongo/component.hpp>
@@ -23,7 +23,7 @@ TaxiConfigMongoUpdater::TaxiConfigMongoUpdater(const ComponentConfig& config,
   mongo_taxi_ = mongo_component.GetPool();
 
   auto fallback_config_contents =
-      blocking::fs::ReadFileContents(config.ParseString("fallback-path"));
+      fs::blocking::ReadFileContents(config.ParseString("fallback-path"));
   try {
     fallback_config_.Parse(fallback_config_contents, false);
   } catch (const std::exception& ex) {

@@ -2,10 +2,10 @@
 
 #include <fstream>
 
-#include <blocking/fs/read.hpp>
 #include <cache/update_type.hpp>
 #include <clients/http/component.hpp>
 #include <formats/json/serialize.hpp>
+#include <fs/blocking/read.hpp>
 #include <utils/string_to_duration.hpp>
 
 namespace components {
@@ -24,7 +24,7 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
   config.retries = component_config.ParseInt("http-retries");
   config.config_url = component_config.ParseString("config-url");
 
-  auto fallback_config_contents = blocking::fs::ReadFileContents(
+  auto fallback_config_contents = fs::blocking::ReadFileContents(
       component_config.ParseString("fallback-path"));
   try {
     fallback_config_.Parse(fallback_config_contents, false);

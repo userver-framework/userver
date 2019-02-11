@@ -1,4 +1,4 @@
-#include <blocking/fs/write.hpp>
+#include <fs/blocking/write.hpp>
 
 #include <fcntl.h>
 
@@ -8,11 +8,11 @@
 
 #include <boost/core/ignore_unused.hpp>
 
-#include <blocking/fs/file_descriptor.hpp>
+#include <fs/blocking/file_descriptor.hpp>
 #include <utils/strerror.hpp>
 
-namespace blocking {
 namespace fs {
+namespace blocking {
 
 void RewriteFileContents(const std::string& path, std::string contents) {
   auto fd = FileDescriptor::OpenFile(
@@ -44,5 +44,5 @@ bool RemoveSingleFile(const std::string& path) {
   return boost::filesystem::remove(path);
 }
 
-}  // namespace fs
 }  // namespace blocking
+}  // namespace fs

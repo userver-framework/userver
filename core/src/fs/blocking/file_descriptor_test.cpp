@@ -1,9 +1,9 @@
-#include <blocking/fs/file_descriptor.hpp>
+#include <fs/blocking/file_descriptor.hpp>
 #include <utest/utest.hpp>
 
 #include <boost/filesystem/operations.hpp>
 
-using FileDescriptor = blocking::fs::FileDescriptor;
+using FileDescriptor = fs::blocking::FileDescriptor;
 
 TEST(FileDescriptor, CreateTempFile) {
   auto fd = FileDescriptor::CreateTempFile(

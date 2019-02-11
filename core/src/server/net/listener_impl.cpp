@@ -14,12 +14,12 @@
 #include <string>
 #include <system_error>
 
-#include <blocking/fs/read.hpp>
-#include <blocking/fs/write.hpp>
 #include <engine/async.hpp>
 #include <engine/io/error.hpp>
 #include <engine/io/socket.hpp>
 #include <engine/sleep.hpp>
+#include <fs/blocking/read.hpp>
+#include <fs/blocking/write.hpp>
 #include <logging/log.hpp>
 
 namespace server {
@@ -44,15 +44,15 @@ engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
   /* Use blocking API here, it is not critical as CreateUnixSocket() is called
    * on startup only */
 
-  if (blocking::fs::GetFileType(path) ==
+  if (fs::blocking::GetFileType(path) ==
       boost::filesystem::file_type::socket_file)
-    blocking::fs::RemoveSingleFile(path);
+    fs::blocking::RemoveSingleFile(path);
 
   auto socket = engine::io::Listen(
       engine::io::Addr(addr_storage, SOCK_STREAM, 0), backlog);
 
   auto perms = static_cast<boost::filesystem::perms>(0666);
-  blocking::fs::Chmod(path, perms);
+  fs::blocking::Chmod(path, perms);
   return socket;
 }
 

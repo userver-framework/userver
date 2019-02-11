@@ -1,4 +1,4 @@
-#include <blocking/fs/file_descriptor.hpp>
+#include <fs/blocking/file_descriptor.hpp>
 
 #include <fcntl.h>
 
@@ -11,8 +11,8 @@
 #include <logging/log.hpp>
 #include <utils/string_view.hpp>
 
-namespace blocking {
 namespace fs {
+namespace blocking {
 
 /*
  * Note: use functions from C library as fstream doesn't work with
@@ -166,5 +166,5 @@ FileDescriptor FileDescriptor::FromFdChecked(int fd, std::string filename) {
   return FileDescriptor{fd, std::move(filename)};
 }
 
-}  // namespace fs
 }  // namespace blocking
+}  // namespace fs
