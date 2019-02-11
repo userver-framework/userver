@@ -18,13 +18,12 @@ void WaitList::Append([[maybe_unused]] WaitListBase::Lock& lock,
 
 void WaitList::WakeupOne([[maybe_unused]] WaitListBase::Lock& lock) {
   assert(lock);
-  while (!waiting_contexts_.empty()) {
-    auto next_context = std::move(waiting_contexts_.front());
+  SkipRemoved(lock);
+  if (!waiting_contexts_.empty()) {
+    assert(waiting_contexts_.front());
+    waiting_contexts_.front()->Wakeup(
+        impl::TaskContext::WakeupSource::kWaitList);
     waiting_contexts_.pop_front();
-    if (next_context) {
-      next_context->Wakeup(impl::TaskContext::WakeupSource::kWaitList);
-      break;
-    }
   }
 }
 
@@ -48,6 +47,13 @@ void WaitList::Remove(const boost::intrusive_ptr<impl::TaskContext>& context) {
   it->reset();
   assert(std::find(std::next(it), waiting_contexts_.end(), context) ==
          waiting_contexts_.end());
+}
+
+void WaitList::SkipRemoved([[maybe_unused]] WaitListBase::Lock& lock) {
+  assert(lock);
+  while (!waiting_contexts_.empty() && !waiting_contexts_.front()) {
+    waiting_contexts_.pop_front();
+  }
 }
 
 }  // namespace impl

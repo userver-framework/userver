@@ -39,6 +39,7 @@ class WaitList final : public WaitListBase {
 #ifndef NDEBUG
   ~WaitList() {
     Lock lock{*this};
+    SkipRemoved(lock);
     assert(waiting_contexts_.empty() && "Someone is waiting on the WaitList");
   }
 #else
@@ -53,6 +54,8 @@ class WaitList final : public WaitListBase {
   void Remove(const boost::intrusive_ptr<impl::TaskContext>&) override;
 
  private:
+  void SkipRemoved(WaitListBase::Lock&);
+
   std::mutex mutex_;
   std::deque<boost::intrusive_ptr<impl::TaskContext>> waiting_contexts_;
 };
