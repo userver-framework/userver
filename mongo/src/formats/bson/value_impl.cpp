@@ -495,14 +495,14 @@ void ValueImpl::EnsureParsed() {
             if (expected_key != actual_key) {
               throw ParseException(
                   "malformed BSON array at " + GetPath() +
-                  ": index mismatch, expected=" + expected_key.to_string() +
-                  ", got=" + actual_key.to_string());
+                  ": index mismatch, expected=" + std::string(expected_key) +
+                  ", got=" + std::string(actual_key));
             }
 
             const bson_value_t* iter_value = bson_iter_value(it);
             if (!iter_value) {
               throw ParseException("malformed BSON element at " + GetPath() +
-                                   '[' + expected_key.to_string() + ']');
+                                   '[' + std::string(expected_key) + ']');
             }
             parsed_array.push_back(
                 std::make_shared<ValueImpl>(EmplaceEnabler{}, storage_, path_,
@@ -521,14 +521,14 @@ void ValueImpl::EnsureParsed() {
             const bson_value_t* iter_value = bson_iter_value(it);
             if (!iter_value) {
               throw ParseException("malformed BSON element at " + GetPath() +
-                                   '.' + key.to_string());
+                                   '.' + std::string(key));
             }
             auto[parsed_it, is_new] = parsed_doc.emplace(
-                key.to_string(),
+                std::string(key),
                 std::make_shared<ValueImpl>(EmplaceEnabler{}, storage_, path_,
-                                            *iter_value, key.to_string()));
+                                            *iter_value, std::string(key)));
             if (!is_new) {
-              throw ParseException("duplicate key '" + key.to_string() +
+              throw ParseException("duplicate key '" + std::string(key) +
                                    "' at " + GetPath());
             }
           });
