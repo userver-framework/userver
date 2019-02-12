@@ -145,7 +145,10 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       if (log_request_headers) {
         log_extra.Extend("request_headers", GetHeadersLogString(http_request));
       }
-      log_extra.Extend("request_body", http_request.RequestBody());
+      const auto& body = http_request.RequestBody();
+      uint64_t body_length = body.length();
+      log_extra.Extend("request_body_length", body_length);
+      log_extra.Extend("request_body", body);
       LOG_INFO() << "start handling" << std::move(log_extra);
     }
 
