@@ -56,8 +56,11 @@ Logging::Logging(const ComponentConfig& config,
 
     if (is_default_logger) {
       logging::SetDefaultLogger(logger);
-      engine::SleepFor(std::chrono::milliseconds(kRelaxPeriod));
-      logging::SetDefaultLogger(logger);
+      engine::Async([logger] {
+        engine::SleepFor(std::chrono::milliseconds(kRelaxPeriod));
+        logging::SetDefaultLogger(logger);
+      })
+          .Detach();
     } else {
       auto insertion_result =
           loggers_.emplace(std::move(logger_name), std::move(logger));
