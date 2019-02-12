@@ -6,7 +6,7 @@ project(yandex-taxi-userver-postgresql)
 find_package_components_required(ICU "libicu-dev" uc i18n)
 
 find_package_required_version(PostgreSQL
-    "libpq-dev, postgresql-server-dev-10" 10)
+    "libpq-dev postgresql-server-dev-10" 10)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
