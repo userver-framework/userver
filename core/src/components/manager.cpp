@@ -138,7 +138,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
   bool is_load_cancelled = false;
   try {
     for (const auto& adder : component_list) {
-      auto task_name = "start_" + adder->GetComponentName();
+      auto task_name = "boot/" + adder->GetComponentName();
       tasks.push_back(utils::CriticalAsync(task_name, [&]() {
         try {
           (*adder)(*this, component_config_map);

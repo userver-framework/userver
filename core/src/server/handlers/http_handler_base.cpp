@@ -24,8 +24,6 @@ namespace server {
 namespace handlers {
 namespace {
 
-const std::string kHttpRequestSpanTag = "http_request";
-
 template <typename HeadersHolder>
 std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
   formats::json::ValueBuilder json_headers(formats::json::Type::kObject);
@@ -134,8 +132,8 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     const auto& parent_span_id =
         http_request.GetHeader(::http::headers::kXYaSpanId);
 
-    auto span =
-        tracing::Span::MakeSpan(kHttpRequestSpanTag, trace_id, parent_span_id);
+    auto span = tracing::Span::MakeSpan("http/" + HandlerName(), trace_id,
+                                        parent_span_id);
 
     if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
     span.AddTag(tracing::kHttpUrl, http_request.GetUrl());

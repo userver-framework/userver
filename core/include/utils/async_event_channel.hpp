@@ -108,7 +108,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
       const auto& subscriber_name = listener.name;
       subscribers.push_back(std::make_pair(
           subscriber_name,
-          utils::Async("async_channel_" + name_ + '_' + subscriber_name,
+          utils::Async("async_channel/" + name_ + '_' + subscriber_name,
                        listener.function, args...)));
     }
 

@@ -43,13 +43,13 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
   }
 
   try {
-    tracing::Span span("first_update");
+    tracing::Span span("first-update/" + name_);
     if (!(flags & Flag::kNoFirstUpdate)) {
       // Force first update, do it synchronously
       DoPeriodicUpdate();
     }
 
-    update_task_.Start(name_ + "-update-task", GetPeriodicTaskSettings(),
+    update_task_.Start("update-task/" + name_, GetPeriodicTaskSettings(),
                        [this]() { DoPeriodicUpdate(); });
   } catch (...) {
     is_running_ = false;  // update_task_ is not started, don't check it in dtr
