@@ -6,6 +6,12 @@
 
 #include <logging/log.hpp>
 
+#define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
+#define PGCW_LOG_DEBUG() LOG_DEBUG() << log_extra_
+#define PGCW_LOG_INFO() LOG_INFO() << log_extra_
+#define PGCW_LOG_WARNING() LOG_WARNING() << log_extra_
+#define PGCW_LOG_ERROR() LOG_ERROR() << log_extra_
+
 namespace storages {
 namespace postgres {
 namespace detail {
@@ -60,7 +66,7 @@ void PGConnectionWrapper::CheckError(const std::string& cmd,
                                      int pg_dispatch_result) {
   if (pg_dispatch_result == 0) {
     auto msg = PQerrorMessage(conn_);
-    LOG_ERROR() << log_extra_ << "libpq " << cmd << " error: " << msg;
+    PGCW_LOG_ERROR() << "libpq " << cmd << " error: " << msg;
     throw ExceptionType(cmd + " execution error: " + msg);
   }
 }
@@ -105,8 +111,7 @@ engine::Task PGConnectionWrapper::Close() {
 
 template <typename ExceptionType>
 void PGConnectionWrapper::CloseWithError(ExceptionType&& ex) {
-  LOG_DEBUG() << log_extra_
-              << "Closing connection because of failure: " << ex.what();
+  PGCW_LOG_DEBUG() << "Closing connection because of failure: " << ex.what();
   Close().Wait();
   throw std::forward<ExceptionType>(ex);
 }
@@ -115,13 +120,14 @@ engine::Task PGConnectionWrapper::Cancel() {
   if (!conn_) {
     return engine::Async(bg_task_processor_, [] {});
   }
+  PGCW_LOG_DEBUG() << "Cancel current request";
   std::unique_ptr<PGcancel, decltype(&PQfreeCancel)> cancel{PQgetCancel(conn_),
                                                             &PQfreeCancel};
   return engine::Async(
       bg_task_processor_, [ this, cancel = std::move(cancel) ] {
         std::array<char, kErrBufferSize> buffer;
         if (!PQcancel(cancel.get(), buffer.data(), buffer.size())) {
-          LOG_WARNING() << log_extra_ << "Failed to cancel current request";
+          PGCW_LOG_WARNING() << "Failed to cancel current request";
           // TODO Throw exception or not?
         }
       });
@@ -129,17 +135,17 @@ engine::Task PGConnectionWrapper::Cancel() {
 
 void PGConnectionWrapper::AsyncConnect(const std::string& conninfo,
                                        Duration poll_timeout) {
-  LOG_DEBUG() << log_extra_ << "Connecting to " << DsnCutPassword(conninfo);
+  PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(conninfo);
   StartAsyncConnect(conninfo);
-  WaitConnectionFinish(poll_timeout);
-  LOG_DEBUG() << log_extra_ << "Connected to " << DsnCutPassword(conninfo);
+  WaitConnectionFinish(Deadline::FromDuration(poll_timeout));
+  PGCW_LOG_DEBUG() << "Connected to " << DsnCutPassword(conninfo);
 }
 
 void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
   if (conn_) {
-    LOG_ERROR() << log_extra_
-                << "Attempt to connect a connection that is already connected"
-                << logging::LogExtra::Stacktrace();
+    PGCW_LOG_ERROR()
+        << "Attempt to connect a connection that is already connected"
+        << logging::LogExtra::Stacktrace();
     throw ConnectionFailed{conninfo, "Already connected"};
   }
 
@@ -147,14 +153,13 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
   if (!conn_) {
     // The only reason the pointer cannot be null is that libpq failed
     // to allocate memory for the structure
-    LOG_ERROR() << log_extra_ << "libpq failed to allocate a PGconn structure"
-                << logging::LogExtra::Stacktrace();
+    PGCW_LOG_ERROR() << "libpq failed to allocate a PGconn structure"
+                     << logging::LogExtra::Stacktrace();
     throw ConnectionFailed{conninfo, "Failed to allocate PGconn structure"};
   }
 
   if (PQsetnonblocking(conn_, 1)) {
-    LOG_ERROR() << log_extra_
-                << "libpq failed to set non-blocking connection mode";
+    PGCW_LOG_ERROR() << "libpq failed to set non-blocking connection mode";
     throw ConnectionFailed{conninfo,
                            "Failed to set non-blocking connection mode"};
   }
@@ -163,16 +168,16 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
   const auto* msg_for_status = MsgForStatus(status);
   if (CONNECTION_BAD == status) {
     const std::string msg = msg_for_status;
-    LOG_ERROR() << log_extra_ << msg;
+    PGCW_LOG_ERROR() << msg;
     CloseWithError(ConnectionFailed{conninfo, msg});
   } else {
-    LOG_TRACE() << log_extra_ << msg_for_status;
+    PGCW_LOG_TRACE() << msg_for_status;
   }
 
   const auto socket = PQsocket(conn_);
   if (socket < 0) {
-    LOG_ERROR() << log_extra_ << "Invalid PostgreSQL socket " << socket
-                << " while connecting";
+    PGCW_LOG_ERROR() << "Invalid PostgreSQL socket " << socket
+                     << " while connecting";
     throw ConnectionFailed{conninfo, "Invalid socket handle"};
   }
   socket_ = engine::io::Socket(socket);
@@ -186,70 +191,95 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
   }
 }
 
-void PGConnectionWrapper::WaitConnectionFinish(Duration poll_timeout) {
+void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline) {
   auto poll_res = PGRES_POLLING_WRITING;
   while (poll_res != PGRES_POLLING_OK) {
     switch (poll_res) {
       case PGRES_POLLING_READING:
-        WaitSocketReadable(poll_timeout);
+        if (!WaitSocketReadable(deadline)) {
+          PGCW_LOG_ERROR()
+              << "Timeout while polling PostgreSQL connection socket";
+          throw ConnectionTimeoutError("Timed out while polling connection");
+        }
         break;
       case PGRES_POLLING_WRITING:
-        WaitSocketWriteable(poll_timeout);
+        if (!WaitSocketWriteable(deadline)) {
+          PGCW_LOG_ERROR()
+              << "Timeout while polling PostgreSQL connection socket";
+          throw ConnectionTimeoutError("Timed out while polling connection");
+        }
         break;
       case PGRES_POLLING_ACTIVE:
         // This is an obsolete state, just ignore it
         break;
       case PGRES_POLLING_FAILED:
-        LOG_ERROR() << log_extra_ << " libpq polling failed";
+        PGCW_LOG_ERROR() << " libpq polling failed";
         CheckError<ConnectionError>("PQconnectPoll", 0);
       default:
         assert(!"Unexpected enumeration value");
         break;
     }
     poll_res = PQconnectPoll(conn_);
-    LOG_TRACE() << log_extra_ << MsgForStatus(PQstatus(conn_));
+    PGCW_LOG_TRACE() << MsgForStatus(PQstatus(conn_));
   }
 }
 
-void PGConnectionWrapper::WaitSocketReadable(Duration timeout) {
-  socket_.WaitReadable(engine::Deadline::FromDuration(timeout));
+bool PGConnectionWrapper::WaitSocketReadable(Deadline deadline) {
+  return socket_.WaitReadable(deadline);
 }
 
-void PGConnectionWrapper::WaitSocketWriteable(Duration timeout) {
-  socket_.WaitWriteable(engine::Deadline::FromDuration(timeout));
+bool PGConnectionWrapper::WaitSocketWriteable(Deadline deadline) {
+  return socket_.WaitWriteable(deadline);
 }
 
-void PGConnectionWrapper::Flush(Duration timeout) {
+void PGConnectionWrapper::Flush(Deadline deadline) {
   while (const int flush_res = PQflush(conn_)) {
     if (flush_res < 0) {
       throw CommandError(PQerrorMessage(conn_));
     }
-    WaitSocketWriteable(timeout);
+    if (!WaitSocketWriteable(deadline)) {
+      PGCW_LOG_ERROR() << "Timeout while flushing PostgreSQL connection socket";
+      throw ConnectionTimeoutError("Timed out while flushing connection");
+    }
   }
 }
 
-void PGConnectionWrapper::ConsumeInput(Duration timeout) {
+void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
   while (PQisBusy(conn_)) {
-    WaitSocketReadable(timeout);
+    if (!WaitSocketReadable(deadline)) {
+      PGCW_LOG_ERROR()
+          << "Timeout while consuming input from PostgreSQL connection socket";
+      throw ConnectionTimeoutError("Timed out while consuming input");
+    }
     CheckError<CommandError>("PQconsumeInput", PQconsumeInput(conn_));
   }
 }
 
 ResultSet PGConnectionWrapper::WaitResult(const UserTypes& types,
-                                          Duration timeout) {
-  Flush(timeout);
+                                          Deadline deadline) {
+  Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
-  ConsumeInput(timeout);
+  ConsumeInput(deadline);
   while (auto pg_res = PQgetResult(conn_)) {
     if (handle) {
       // TODO Decide about the severity of this situation
-      LOG_DEBUG()
+      PGCW_LOG_DEBUG()
           << "Query returned several result sets, a result set is discarded";
     }
     handle = MakeResultHandle(pg_res);
-    ConsumeInput(timeout);
+    ConsumeInput(deadline);
   }
   return MakeResult(types, std::move(handle));
+}
+
+void PGConnectionWrapper::DiscardInput(Deadline deadline) {
+  Flush(deadline);
+  auto handle = MakeResultHandle(nullptr);
+  ConsumeInput(deadline);
+  while (auto pg_res = PQgetResult(conn_)) {
+    handle = MakeResultHandle(pg_res);
+    ConsumeInput(deadline);
+  }
 }
 
 const logging::LogExtra& PGConnectionWrapper::GetLogExtra() const {
@@ -264,23 +294,22 @@ ResultSet PGConnectionWrapper::MakeResult(const UserTypes& types,
     case PGRES_EMPTY_QUERY:
       throw LogicError{"Empty query"};
     case PGRES_COMMAND_OK:
-      LOG_TRACE() << log_extra_
-                  << "Successful completion of a command returning no data";
+      PGCW_LOG_TRACE()
+          << "Successful completion of a command returning no data";
       break;
     case PGRES_TUPLES_OK:
-      LOG_TRACE() << log_extra_
-                  << "Successful completion of a command returning data";
+      PGCW_LOG_TRACE() << "Successful completion of a command returning data";
       break;
     case PGRES_SINGLE_TUPLE:
-      LOG_ERROR()
+      PGCW_LOG_ERROR()
           << "libpq was switched to SINGLE_ROW mode, this is not supported.";
       CloseWithError(NotImplemented{"Single row mode is not supported"});
     case PGRES_COPY_IN:
     case PGRES_COPY_OUT:
     case PGRES_COPY_BOTH:
-      LOG_ERROR() << log_extra_
-                  << "PostgreSQL COPY command invoked which is not implemented"
-                  << logging::LogExtra::Stacktrace();
+      PGCW_LOG_ERROR()
+          << "PostgreSQL COPY command invoked which is not implemented"
+          << logging::LogExtra::Stacktrace();
       CloseWithError(NotImplemented{"Copy is not implemented"});
     case PGRES_BAD_RESPONSE:
       CloseWithError(ConnectionError{"Failed to parse server response"});
@@ -288,26 +317,28 @@ ResultSet PGConnectionWrapper::MakeResult(const UserTypes& types,
       Message msg{wrapper};
       switch (msg.GetSeverity()) {
         case Message::Severity::kDebug:
-          LOG_DEBUG() << log_extra_ << "Postgres " << msg.GetSeverityString()
-                      << " message: " << msg.GetMessage() << msg.GetLogExtra();
+          PGCW_LOG_DEBUG() << "Postgres " << msg.GetSeverityString()
+                           << " message: " << msg.GetMessage()
+                           << msg.GetLogExtra();
           break;
         case Message::Severity::kLog:
         case Message::Severity::kInfo:
         case Message::Severity::kNotice:
-          LOG_INFO() << log_extra_ << "Postgres " << msg.GetSeverityString()
-                     << " message: " << msg.GetMessage() << msg.GetLogExtra();
+          PGCW_LOG_INFO() << "Postgres " << msg.GetSeverityString()
+                          << " message: " << msg.GetMessage()
+                          << msg.GetLogExtra();
           break;
         case Message::Severity::kWarning:
-          LOG_WARNING() << log_extra_ << "Postgres " << msg.GetSeverityString()
-                        << " message: " << msg.GetMessage()
-                        << msg.GetLogExtra();
+          PGCW_LOG_WARNING()
+              << "Postgres " << msg.GetSeverityString()
+              << " message: " << msg.GetMessage() << msg.GetLogExtra();
           break;
         case Message::Severity::kError:
         case Message::Severity::kFatal:
         case Message::Severity::kPanic:
-          LOG_ERROR() << log_extra_ << "Postgres " << msg.GetSeverityString()
-                      << " message (marked as non-fatal): " << msg.GetMessage()
-                      << msg.GetLogExtra();
+          PGCW_LOG_ERROR() << "Postgres " << msg.GetSeverityString()
+                           << " message (marked as non-fatal): "
+                           << msg.GetMessage() << msg.GetLogExtra();
           break;
       }
       break;
@@ -315,12 +346,11 @@ ResultSet PGConnectionWrapper::MakeResult(const UserTypes& types,
     case PGRES_FATAL_ERROR: {
       Message msg{wrapper};
       if (!IsWhitelistedState(msg.GetSqlState())) {
-        LOG_ERROR() << log_extra_ << "Fatal error occured: " << msg.GetMessage()
-                    << msg.GetLogExtra();
+        PGCW_LOG_ERROR() << "Fatal error occured: " << msg.GetMessage()
+                         << msg.GetLogExtra();
       } else {
-        LOG_WARNING() << log_extra_
-                      << "Fatal error occured: " << msg.GetMessage()
-                      << msg.GetLogExtra();
+        PGCW_LOG_WARNING() << "Fatal error occured: " << msg.GetMessage()
+                           << msg.GetLogExtra();
       }
       msg.ThrowException();
       break;
@@ -331,7 +361,7 @@ ResultSet PGConnectionWrapper::MakeResult(const UserTypes& types,
 }
 
 void PGConnectionWrapper::SendQuery(const std::string& statement) {
-  CheckError<CommandError>("PQsendQuery",
+  CheckError<CommandError>("PQsendQuery `" + statement + "`",
                            PQsendQuery(conn_, statement.c_str()));
 }
 

@@ -57,20 +57,33 @@ struct TaskDetachGuard {
 
 ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
                                        engine::TaskProcessor& bg_task_processor,
-                                       size_t max_size)
+                                       size_t max_size,
+                                       CommandControl default_cmd_ctl)
     : dsn_(dsn),
       bg_task_processor_(bg_task_processor),
       max_size_(max_size),
       queue_(max_size),
-      size_(0) {}
+      size_(0),
+      default_cmd_ctl_{
+          std::make_shared<const CommandControl>(std::move(default_cmd_ctl))} {}
 
 ConnectionPoolImpl::~ConnectionPoolImpl() { Clear(); }
 
 std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
     const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-    size_t initial_size, size_t max_size) {
-  auto impl = std::shared_ptr<ConnectionPoolImpl>(
-      new ConnectionPoolImpl(dsn, bg_task_processor, max_size));
+    size_t initial_size, size_t max_size, CommandControl default_cmd_ctl) {
+  // structure to call constructor of ConnectionPoolImpl that shouldn't be
+  // accessible in public interface
+  struct ImplForConstruction : ConnectionPoolImpl {
+    ImplForConstruction(const std::string& dsn,
+                        engine::TaskProcessor& bg_task_processor,
+                        size_t max_size, CommandControl default_cmd_ctl)
+        : ConnectionPoolImpl(dsn, bg_task_processor, max_size,
+                             std::move(default_cmd_ctl)) {}
+  };
+
+  auto impl = std::make_shared<ImplForConstruction>(dsn, bg_task_processor,
+                                                    max_size, default_cmd_ctl);
   impl->Init(initial_size);
   return impl;
 }
@@ -96,6 +109,7 @@ ConnectionPtr ConnectionPoolImpl::Acquire() {
   auto thiz = shared_from_this();
   auto* connection = Pop();
   ++stats_.connection.used;
+  connection->SetDefaultCommandControl(*default_cmd_ctl_.Get());
   return {connection, std::move(thiz)};
 }
 
@@ -133,9 +147,19 @@ void ConnectionPoolImpl::Release(Connection* connection) {
 
   // TODO: determine connection states that are allowed here
   ++stats_.connection.error_total;
-  LOG_WARNING() << "Released connection in "
-                << (connection->IsConnected() ? "busy" : "closed")
-                << " state. Deleting...";
+  if (!connection->IsConnected()) {
+    LOG_WARNING() << "Released connection in closed state. Deleting...";
+  } else {
+    LOG_WARNING() << "Released connection in busy state. Trying to clean up...";
+    auto cmd_ctl = default_cmd_ctl_.Get();
+    connection->Cleanup(cmd_ctl->network * 10);
+    if (connection->IsIdle()) {
+      LOG_DEBUG() << "Succesfully cleaned up dirty connection";
+      Push(connection);
+      return;
+    }
+    LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
+  }
   DeleteConnection(connection);
 }
 
@@ -145,11 +169,13 @@ const InstanceStatistics& ConnectionPoolImpl::GetStatistics() const {
   return stats_;
 }
 
-Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options) {
+Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options,
+                                      OptionalCommandControl trx_cmd_ctl) {
   auto trx_start_time = detail::SteadyClock::now();
   auto conn = Acquire();
   assert(conn);
-  return Transaction{std::move(conn), options, std::move(trx_start_time)};
+  return Transaction{std::move(conn), options, trx_cmd_ctl,
+                     std::move(trx_start_time)};
 }
 
 engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
@@ -168,8 +194,9 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
         ++thiz->stats_.connection.open_total;
     std::unique_ptr<Connection> connection;
     try {
-      connection =
-          Connection::Connect(thiz->dsn_, thiz->bg_task_processor_, conn_id);
+      auto cmd_ctl = thiz->default_cmd_ctl_.Get();
+      connection = Connection::Connect(thiz->dsn_, thiz->bg_task_processor_,
+                                       conn_id, *cmd_ctl);
     } catch (const ConnectionError&) {
       // No problem if it's connection error
       ++thiz->stats_.connection.error_total;
@@ -254,6 +281,10 @@ void ConnectionPoolImpl::DeleteConnection(Connection* connection) {
   delete connection;
   --size_;
   ++stats_.connection.drop_total;
+}
+
+void ConnectionPoolImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
+  default_cmd_ctl_.Set(std::make_shared<const CommandControl>(cmd_ctl));
 }
 
 }  // namespace detail

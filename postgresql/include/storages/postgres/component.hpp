@@ -3,6 +3,7 @@
 /// @file storages/postgres/component.hpp
 /// @brief @copybrief components::Postgres
 
+#include <chrono>
 #include <vector>
 
 #include <components/component_base.hpp>
@@ -10,6 +11,7 @@
 #include <components/component_context.hpp>
 #include <components/statistics_storage.hpp>
 #include <engine/mutex.hpp>
+#include <taxi_config/storage/component.hpp>
 #include <utils/statistics/storage.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
@@ -92,13 +94,13 @@ namespace components {
 /// on connection strings.
 ///
 /// ## Available options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// dbalias | name of the database in secdist config (if available) | --
-/// dbconnection | connection DSN string (used if no dbalias specified) | --
+/// Name                    | Description                                               | Default value
+/// ----------------------- | --------------------------------------------------------- | -------------
+/// dbalias                 | name of the database in secdist config (if available)     | --
+/// dbconnection            | connection DSN string (used if no dbalias specified)      | --
 /// blocking_task_processor | name of task processor for background blocking operations | --
-/// min_pool_size | number of connections created initially | 16
-/// max_pool_size | limit of connections count | 100
+/// min_pool_size           | number of connections created initially                   | 4
+/// max_pool_size           | limit of connections count                                | 15
 
 // clang-format on
 
@@ -110,6 +112,11 @@ class Postgres : public LoggableComponentBase {
   static constexpr size_t kDefaultMaxPoolSize = 15;
   /// Default shard number
   static constexpr size_t kDefaultShardNumber = 0;
+  /// Default command control
+  static constexpr storages::postgres::CommandControl kDefaultCommandControl{
+      std::chrono::milliseconds{100},  // network timeout
+      std::chrono::milliseconds{50}    // statement timeout
+  };
 
   /// Component constructor
   Postgres(const ComponentConfig&, const ComponentContext&);
@@ -130,6 +137,16 @@ class Postgres : public LoggableComponentBase {
       const utils::statistics::StatisticsRequest& /*request*/);
 
  private:
+  using TaxiConfigPtr = std::shared_ptr<taxi_config::Config>;
+  storages::postgres::CommandControl GetCommandControlConfig(
+      const TaxiConfigPtr& cfg) const;
+  void OnConfigUpdate(const TaxiConfigPtr& cfg);
+  /// Set default command control for all clusters managed by the component
+  void SetDefaultCommandControl(storages::postgres::CommandControl);
+
+ private:
+  utils::AsyncEventSubscriberScope config_subscription_;
+
   components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 

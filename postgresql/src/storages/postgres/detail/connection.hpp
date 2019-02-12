@@ -82,11 +82,15 @@ class Connection {
   /// @param conninfo Connection string, @see https://www.postgresql.org/docs/10/static/libpq-connect.html#LIBPQ-CONNSTRING
   /// @param bg_task_processor task processor for blocking operations
   /// @param id host-wide unique id for connection identification in logs
-  /// @throws ConnectionFailed
+  /// @param default_cmd_ctl default parameters for operations
+  /// @throws ConnectionFailed, ConnectionTimeoutError
   // clang-format on
   static std::unique_ptr<Connection> Connect(
       const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
-      uint32_t id);
+      uint32_t id, CommandControl default_cmd_ctl);
+
+  CommandControl GetDefaultCommandControl() const;
+  void SetDefaultCommandControl(CommandControl cmd_ctl);
 
   /// Close the connection
   /// TODO When called from another thread/coroutine will wait for current
@@ -113,7 +117,8 @@ class Connection {
   /// Suspends coroutine for execution
   /// @throws AlreadyInTransaction
   void Begin(const TransactionOptions& options,
-             SteadyClock::time_point&& trx_start_time);
+             SteadyClock::time_point&& trx_start_time,
+             OptionalCommandControl trx_cmd_ctl = {});
   /// Commit current transaction
   /// Suspends coroutine for execution
   /// @throws NotInTransaction
@@ -129,13 +134,28 @@ class Connection {
   /// Cancel current operation
   void Cancel();
   ResultSet Execute(const std::string& statement,
-                    const detail::QueryParameters& = {});
+                    const detail::QueryParameters& = {},
+                    OptionalCommandControl statement_cmd_ctl = {});
   template <typename... T>
   ResultSet Execute(const std::string& statement, const T&... args) {
     detail::QueryParameters params;
     params.Write(GetUserTypes(), args...);
     return Execute(statement, params);
   }
+  template <typename... T>
+  ResultSet Execute(CommandControl statement_cmd_ctl,
+                    const std::string& statement, const T&... args) {
+    detail::QueryParameters params;
+    params.Write(GetUserTypes(), args...);
+    return Execute(statement, params, statement_cmd_ctl);
+  }
+
+  /// Try to return connection to idle state discarding all results.
+  /// If there is a transaction in progress - roll it back.
+  /// For usage in connection pools.
+  /// Will do nothing if connection failed, it's responsibility of the pool
+  /// to destroy the connection.
+  void Cleanup(TimeoutType timeout);
 
   /// @brief Set session parameter
   /// Parameters documentation

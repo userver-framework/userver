@@ -7,9 +7,10 @@ namespace postgres {
 
 ConnectionPool::ConnectionPool(const std::string& dsn,
                                engine::TaskProcessor& bg_task_processor,
-                               size_t initial_size, size_t max_size) {
-  pimpl_ = detail::ConnectionPoolImpl::Create(dsn, bg_task_processor,
-                                              initial_size, max_size);
+                               size_t initial_size, size_t max_size,
+                               CommandControl default_cmd_ctl) {
+  pimpl_ = detail::ConnectionPoolImpl::Create(
+      dsn, bg_task_processor, initial_size, max_size, default_cmd_ctl);
 }
 
 ConnectionPool::~ConnectionPool() = default;
@@ -26,8 +27,13 @@ const InstanceStatistics& ConnectionPool::GetStatistics() const {
   return pimpl_->GetStatistics();
 }
 
-Transaction ConnectionPool::Begin(const TransactionOptions& options) {
-  return pimpl_->Begin(options);
+Transaction ConnectionPool::Begin(const TransactionOptions& options,
+                                  OptionalCommandControl cmd_ctl) {
+  return pimpl_->Begin(options, cmd_ctl);
+}
+
+void ConnectionPool::SetDefaultCommandControl(CommandControl cmd_ctl) {
+  pimpl_->SetDefaultCommandControl(cmd_ctl);
 }
 
 }  // namespace postgres

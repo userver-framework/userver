@@ -21,6 +21,9 @@
 constexpr static const char* kPostgresDsn = "POSTGRES_DSN_TEST";
 constexpr uint32_t kConnectionId = 0;
 
+constexpr storages::postgres::CommandControl kTestCmdCtl{
+    storages::postgres::TimeoutType{100}, storages::postgres::TimeoutType{50}};
+
 std::vector<std::string> GetDsnFromEnv();
 std::vector<storages::postgres::DSNList> GetDsnListFromEnv();
 
@@ -77,8 +80,9 @@ class PostgreConnection
     RunInCoro([this, func] {
       pg::detail::ConnectionPtr conn;
 
-      EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                          dsn_list_[0], GetTaskProcessor(), kConnectionId))
+      EXPECT_NO_THROW(
+          conn = pg::detail::Connection::Connect(
+              dsn_list_[0], GetTaskProcessor(), kConnectionId, kTestCmdCtl))
           << "Connect to correct DSN";
       func(std::move(conn));
     });

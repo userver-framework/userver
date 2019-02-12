@@ -26,7 +26,9 @@ enum DataFormat { kTextDataFormat = 0, kBinaryDataFormat = 1 };
 ///
 /// Applied to binary parsers and deduced from field's data type.
 enum class BufferCategory {
-  kNoParser,         //!< kNoParser the data type doesn't have a parser defined
+  kNoParser,  //!< kNoParser the data type doesn't have a parser defined
+  kVoid,  //!< kVoid there won't be a buffer for this field, but the category is
+          //!< required for correctly handling void results
   kPlainBuffer,      //!< kPlainBuffer the buffer is a single plain value
   kArrayBuffer,      //!< kArrayBuffer the buffer contains an array of values
   kCompositeBuffer,  //!< kCompositeBuffer the buffer contains a user-defined

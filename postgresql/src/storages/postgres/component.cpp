@@ -13,6 +13,7 @@
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/postgres_config.hpp>
 #include <storages/postgres/postgres_secdist.hpp>
 #include <storages/postgres/statistics.hpp>
 
@@ -104,6 +105,12 @@ Postgres::Postgres(const ComponentConfig& config,
     : LoggableComponentBase(config, context),
       statistics_storage_(
           context.FindComponent<components::StatisticsStorage>()) {
+  TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
+  config_subscription_ =
+      cfg.AddListener(this, "postgres", &Postgres::OnConfigUpdate);
+  OnConfigUpdate(cfg.Get());
+  auto cmd_ctl = GetCommandControlConfig(cfg.Get());
+
   const auto dbalias = config.ParseString("dbalias", {});
 
   if (dbalias.empty()) {
@@ -142,7 +149,8 @@ Postgres::Postgres(const ComponentConfig& config,
   std::vector<engine::TaskWithResult<void>> tasks;
   for (auto const& cluster_desc : cluster_desc_) {
     auto cluster = std::make_shared<storages::postgres::Cluster>(
-        cluster_desc, *bg_task_processor_, min_pool_size_, max_pool_size_);
+        cluster_desc, *bg_task_processor_, min_pool_size_, max_pool_size_,
+        cmd_ctl);
     clusters_.push_back(cluster);
     tasks.push_back(cluster->DiscoverTopology());
   }
@@ -157,7 +165,10 @@ Postgres::Postgres(const ComponentConfig& config,
   LOG_DEBUG() << "Component ready";
 }
 
-Postgres::~Postgres() { statistics_holder_.Unregister(); }
+Postgres::~Postgres() {
+  statistics_holder_.Unregister();
+  config_subscription_.Unsubscribe();
+}
 
 storages::postgres::ClusterPtr Postgres::GetCluster() const {
   return GetClusterForShard(kDefaultShardNumber);
@@ -186,6 +197,22 @@ formats::json::Value Postgres::ExtendStatistics(
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   result[db_name_] = PostgresStatisticsToJson(shards_ready);
   return result.ExtractValue();
+}
+
+void Postgres::SetDefaultCommandControl(
+    storages::postgres::CommandControl cmd_ctl) {
+  for (auto cluster : clusters_) {
+    cluster->SetDefaultCommandControl(cmd_ctl);
+  }
+}
+
+storages::postgres::CommandControl Postgres::GetCommandControlConfig(
+    const TaxiConfigPtr& cfg) const {
+  return cfg->Get<storages::postgres::Config>().default_command_control;
+}
+
+void Postgres::OnConfigUpdate(const TaxiConfigPtr& cfg) {
+  SetDefaultCommandControl(GetCommandControlConfig(cfg));
 }
 
 }  // namespace components

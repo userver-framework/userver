@@ -40,7 +40,8 @@ class ClusterTopology {
 
  public:
   ClusterTopology(engine::TaskProcessor& bg_task_processor,
-                  const ClusterDescription& desc);
+                  const ClusterDescription& desc,
+                  CommandControl default_cmd_ctl);
 
   ~ClusterTopology();
 
@@ -154,6 +155,8 @@ class ClusterTopology {
   std::unordered_map<std::string, size_t> escaped_to_dsn_index_;
   /// Initial check flag
   bool initial_check_;
+
+  CommandControl default_cmd_ctl_;
 };
 
 using ClusterTopologyPtr = std::unique_ptr<ClusterTopology>;

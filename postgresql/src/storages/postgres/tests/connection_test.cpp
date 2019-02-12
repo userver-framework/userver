@@ -262,20 +262,42 @@ POSTGRE_TEST_P(RAIITransaction) {
   }
 }
 
+POSTGRE_TEST_P(StatementTimout) {
+  ASSERT_TRUE(conn.get());
+  pg::ResultSet res{nullptr};
+
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  // Network timeout
+  conn->SetDefaultCommandControl(
+      pg::CommandControl{pg::TimeoutType{10}, pg::TimeoutType{0}});
+  EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
+  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
+  EXPECT_NO_THROW(conn->Cleanup(pg::TimeoutType{1000}));
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  // Query cancelled
+  conn->SetDefaultCommandControl(
+      pg::CommandControl{pg::TimeoutType{2000}, pg::TimeoutType{10}});
+  EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCanceled);
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_NO_THROW(conn->Cleanup(pg::TimeoutType{1000}));
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+}
+
 }  // namespace
 
 TEST_P(PostgreConnection, Connect) {
   RunInCoro([this] {
     EXPECT_THROW(pg::detail::Connection::Connect("psql://", GetTaskProcessor(),
-                                                 kConnectionId),
+                                                 kConnectionId, kTestCmdCtl),
                  pg::ConnectionFailed)
         << "Fail to connect with invalid DSN";
 
     {
       pg::detail::ConnectionPtr conn;
 
-      EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                          dsn_list_[0], GetTaskProcessor(), kConnectionId))
+      EXPECT_NO_THROW(
+          conn = pg::detail::Connection::Connect(
+              dsn_list_[0], GetTaskProcessor(), kConnectionId, kTestCmdCtl))
           << "Connect to correct DSN";
       CheckConnection(std::move(conn));
     }

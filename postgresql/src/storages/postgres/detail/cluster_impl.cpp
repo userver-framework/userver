@@ -40,19 +40,23 @@ struct TryLockGuard {
 
 ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
                          engine::TaskProcessor& bg_task_processor,
-                         size_t initial_size, size_t max_size)
-    : ClusterImpl(bg_task_processor, initial_size, max_size) {
-  topology_ =
-      std::make_unique<ClusterTopology>(bg_task_processor_, cluster_desc);
+                         size_t initial_size, size_t max_size,
+                         CommandControl default_cmd_ctl)
+    : ClusterImpl(bg_task_processor, initial_size, max_size, default_cmd_ctl) {
+  topology_ = std::make_unique<ClusterTopology>(bg_task_processor_,
+                                                cluster_desc, default_cmd_ctl);
   InitPools(topology_->GetDsnList());
 }
 
 ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
-                         size_t initial_size, size_t max_size)
+                         size_t initial_size, size_t max_size,
+                         CommandControl default_cmd_ctl)
     : bg_task_processor_(bg_task_processor),
       host_ind_(0),
       pool_initial_size_(initial_size),
       pool_max_size_(max_size),
+      default_cmd_ctl_(
+          std::make_shared<const CommandControl>(std::move(default_cmd_ctl))),
       update_lock_ ATOMIC_FLAG_INIT {}
 
 ClusterImpl::~ClusterImpl() { StopPeriodicUpdates(); }
@@ -82,10 +86,12 @@ void ClusterImpl::InitPools(const DSNList& dsn_list) {
   host_pools.reserve(dsn_list.size());
 
   LOG_DEBUG() << "Starting pools initialization";
+  auto cmd_ctl = default_cmd_ctl_.Get();
   for (const auto& dsn : dsn_list) {
     host_pools.insert(std::make_pair(
-        dsn, std::make_shared<ConnectionPool>(
-                 dsn, bg_task_processor_, pool_initial_size_, pool_max_size_)));
+        dsn, std::make_shared<ConnectionPool>(dsn, bg_task_processor_,
+                                              pool_initial_size_,
+                                              pool_max_size_, *cmd_ctl)));
   }
 
   host_pools_.Set(std::move(host_pools));
@@ -102,6 +108,7 @@ void ClusterImpl::CheckTopology() {
   // Copy pools first
   auto host_pools = *host_pools_.Get();
   const auto hosts_availability = topology_->CheckTopology();
+  auto cmd_ctl = default_cmd_ctl_.Get();
   for (const auto & [ dsn, avail ] : hosts_availability) {
     switch (avail) {
       case ClusterTopology::HostAvailability::kOffline:
@@ -113,7 +120,8 @@ void ClusterImpl::CheckTopology() {
       case ClusterTopology::HostAvailability::kOnline:
         if (!host_pools[dsn]) {
           host_pools[dsn] = std::make_shared<ConnectionPool>(
-              dsn, bg_task_processor_, pool_initial_size_, pool_max_size_);
+              dsn, bg_task_processor_, pool_initial_size_, pool_max_size_,
+              *cmd_ctl);
           LOG_DEBUG() << "Added pool for host=" << HostAndPortFromDsn(dsn)
                       << " to the map";
         }
@@ -172,7 +180,8 @@ ClusterStatistics ClusterImpl::GetStatistics() const {
 }
 
 Transaction ClusterImpl::Begin(ClusterHostType ht,
-                               const TransactionOptions& options) {
+                               const TransactionOptions& options,
+                               OptionalCommandControl cmd_ctl) {
   LOG_TRACE() << "Requested transaction on the host of " << ht << " type";
   auto host_type = ht;
   if (options.IsReadOnly()) {
@@ -211,13 +220,18 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
   if (!pool) {
     throw ClusterUnavailable("Host not found for given DSN: " + dsn);
   }
-
+  pool->SetDefaultCommandControl(*default_cmd_ctl_.Get());
   try {
-    return pool->Begin(options);
+    return pool->Begin(options, cmd_ctl);
   } catch (const ConnectionError&) {
     topology_->OperationFailed(dsn);
     throw;
   }
+}
+
+void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
+  default_cmd_ctl_.Set(
+      std::make_shared<const CommandControl>(std::move(cmd_ctl)));
 }
 
 }  // namespace detail

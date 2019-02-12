@@ -130,6 +130,7 @@ class Transaction {
  public:
   explicit Transaction(detail::ConnectionPtr&& impl,
                        const TransactionOptions& = RW,
+                       OptionalCommandControl trx_cmd_ctl = {},
                        detail::SteadyClock::time_point&& trx_start_time =
                            detail::SteadyClock::now());
 
@@ -142,10 +143,6 @@ class Transaction {
   ~Transaction();
   //@{
   /** @name Query execution */
-  /// Execute statement without parameters
-  /// Suspends coroutine for execution
-  /// @throws NotInTransaction, SyntaxError, ConstraintViolation
-  ResultSet Execute(const std::string& statement);
   /// Execute statement with arbitrary parameters
   /// Suspends coroutine for execution
   /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
@@ -154,7 +151,19 @@ class Transaction {
   ResultSet Execute(const std::string& statement, Args... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
-    return DoExecute(statement, params);
+    return DoExecute(statement, params, {});
+  }
+  /// Execute statement with arbitrary parameters and per-statement command
+  /// control.
+  /// Suspends coroutine for execution
+  /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
+  /// InvalidParameterType
+  template <typename... Args>
+  ResultSet Execute(CommandControl statement_cmd_ctl,
+                    const std::string& statement, Args... args) {
+    detail::QueryParameters params;
+    params.Write(GetConnectionUserTypes(), args...);
+    return DoExecute(statement, params, std::move(statement_cmd_ctl));
   }
   /// Set a connection parameter
   /// https://www.postgresql.org/docs/current/sql-set.html
@@ -175,7 +184,8 @@ class Transaction {
 
  private:
   ResultSet DoExecute(const std::string& statement,
-                      const detail::QueryParameters& params);
+                      const detail::QueryParameters& params,
+                      OptionalCommandControl statement_cmd_ctl);
   const UserTypes& GetConnectionUserTypes() const;
 
  private:

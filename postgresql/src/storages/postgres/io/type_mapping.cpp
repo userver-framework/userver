@@ -14,13 +14,15 @@ namespace {
 using ParserList = std::unordered_multimap<PredefinedOids, std::string>;
 using OidToOid = std::unordered_map<PredefinedOids, PredefinedOids>;
 
+char const* const kVoidLiteral = "void";
+
 ParserList& BinaryParsers() {
-  static ParserList parsers_;
+  static ParserList parsers_{{PredefinedOids::kVoid, kVoidLiteral}};
   return parsers_;
 }
 
 ParserList& TextParsers() {
-  static ParserList parsers_;
+  static ParserList parsers_{{PredefinedOids::kVoid, kVoidLiteral}};
   return parsers_;
 }
 
@@ -37,6 +39,7 @@ TypeBufferCategory& TypeCategories() {
 const std::unordered_map<BufferCategory, std::string, BufferCategoryHash>
     kBufferCategoryToString{
         {BufferCategory::kNoParser, "no parser"},
+        {BufferCategory::kVoid, "void result"},
         {BufferCategory::kPlainBuffer, "plain buffer"},
         {BufferCategory::kArrayBuffer, "array buffer"},
         {BufferCategory::kCompositeBuffer, "composite buffer"},
@@ -123,6 +126,9 @@ bool MappedToSameType(PredefinedOids lhs, PredefinedOids rhs) {
 }
 
 BufferCategory GetBufferCategory(PredefinedOids oid) {
+  if (oid == PredefinedOids::kVoid) {
+    return BufferCategory::kVoid;
+  }
   const auto& cats = TypeCategories();
   if (auto f = cats.find(static_cast<Oid>(oid)); f != cats.end()) {
     return f->second;

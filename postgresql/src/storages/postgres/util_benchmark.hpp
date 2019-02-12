@@ -16,6 +16,8 @@ namespace bench {
 constexpr static const char* kPostgresDsn = "POSTGRES_DSN_BENCH";
 constexpr uint32_t kConnectionId = 0;
 
+constexpr CommandControl kBenchCmdCtl{TimeoutType{100}, TimeoutType{50}};
+
 class PgConnection : public benchmark::Fixture {
  public:
   PgConnection();

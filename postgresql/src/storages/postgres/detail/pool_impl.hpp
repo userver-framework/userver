@@ -8,6 +8,8 @@
 
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
+#include <utils/swappingsmart.hpp>
+
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/options.hpp>
@@ -23,18 +25,24 @@ class ConnectionPoolImpl
  public:
   static std::shared_ptr<ConnectionPoolImpl> Create(
       const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-      size_t initial_size, size_t max_size);
+      size_t initial_size, size_t max_size, CommandControl default_cmd_ctl);
   ~ConnectionPoolImpl();
 
-  ConnectionPtr Acquire();
+  [[nodiscard]] ConnectionPtr Acquire();
   void Release(Connection* connection);
 
   const InstanceStatistics& GetStatistics() const;
-  Transaction Begin(const TransactionOptions& options);
+  [[nodiscard]] Transaction Begin(const TransactionOptions& options,
+                                  OptionalCommandControl trx_cmd_ctl = {});
+
+  void SetDefaultCommandControl(CommandControl);
+
+ protected:
+  ConnectionPoolImpl(const std::string& dsn,
+                     engine::TaskProcessor& bg_task_processor, size_t max_size,
+                     CommandControl default_cmd_ctl);
 
  private:
-  ConnectionPoolImpl(const std::string& dsn,
-                     engine::TaskProcessor& bg_task_processor, size_t max_size);
   void Init(size_t initial_size);
 
   [[nodiscard]] engine::TaskWithResult<bool> Create();
@@ -52,6 +60,7 @@ class ConnectionPoolImpl
   size_t max_size_;
   boost::lockfree::queue<detail::Connection*> queue_;
   std::atomic<size_t> size_;
+  ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
 };
 
 }  // namespace detail

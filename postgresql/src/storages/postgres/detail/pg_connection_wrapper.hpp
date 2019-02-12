@@ -16,7 +16,8 @@ namespace detail {
 
 class PGConnectionWrapper {
  public:
-  using Duration = engine::Deadline::TimePoint::clock::duration;
+  using Deadline = engine::Deadline;
+  using Duration = Deadline::TimePoint::clock::duration;
   using ResultHandle = detail::ResultWrapper::ResultHandle;
 
  public:
@@ -38,12 +39,14 @@ class PGConnectionWrapper {
 
   /// @brief Close the connection on a background task processor.
   [[nodiscard]] engine::Task Close();
+
   /// @brief Cancel current operation on a background task processor.
   [[nodiscard]] engine::Task Cancel();
 
   // TODO Add tracing::Span
   /// @brief Wrapper for PQsendQuery
   void SendQuery(const std::string& statement);
+
   // TODO Add tracing::Span
   /// @brief Wrapper for PQsendQueryParams
   void SendQuery(const std::string& statement, const QueryParameters& params,
@@ -53,18 +56,25 @@ class PGConnectionWrapper {
   /// @brief Wrapper for PQsendPrepare
   void SendPrepare(const std::string& name, const std::string& statement,
                    const QueryParameters& params);
+
   // TODO Add tracing::Span
   /// @brief Wrapper for PQsendDescribePrepared
   void SendDescribePrepared(const std::string& name);
+
   // TODO Add tracing::Span
   /// @brief Wrapper for PQsendQueryPrepared
   void SendPreparedQuery(
       const std::string& name, const QueryParameters& params,
       io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
+
   // TODO Add tracing::Span
   /// @brief Wait for query result
   /// Will return result or throw an exception
-  ResultSet WaitResult(const UserTypes&, Duration timeout);
+  ResultSet WaitResult(const UserTypes&, Deadline deadline);
+
+  /// Consume all input discarding all result sets
+  void DiscardInput(Deadline deadline);
+
   /// @brief Get extra log information
   /// Used for internal needs
   const logging::LogExtra& GetLogExtra() const;
@@ -73,18 +83,27 @@ class PGConnectionWrapper {
   PGTransactionStatusType GetTransactionStatus() const;
 
   void StartAsyncConnect(const std::string& conninfo);
-  void WaitConnectionFinish(Duration poll_timeout);
 
-  void WaitSocketWriteable(Duration timeout);
-  void WaitSocketReadable(Duration timeout);
+  /// @param deadline
+  /// @throws ConnectionTimeoutError if was awakened by the deadline
+  void WaitConnectionFinish(Deadline deadline);
 
-  void Flush(Duration timeout);
-  void ConsumeInput(Duration timeout);
+  /// @param deadline
+  /// @return true if wait was successful, false if was awakened by the deadline
+  [[nodiscard]] bool WaitSocketWriteable(Deadline deadline);
+
+  /// @param deadline
+  /// @return true if wait was successful, false if was awakened by the deadline
+  [[nodiscard]] bool WaitSocketReadable(Deadline deadline);
+
+  void Flush(Deadline deadline);
+  void ConsumeInput(Deadline deadline);
 
   ResultSet MakeResult(const UserTypes&, ResultHandle&& handle);
 
   template <typename ExceptionType>
   void CheckError(const std::string& cmd, int pg_dispatch_result);
+
   template <typename ExceptionType>
   void CloseWithError(ExceptionType&& ex);
 

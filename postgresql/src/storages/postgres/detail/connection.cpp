@@ -22,8 +22,7 @@ namespace detail {
 
 namespace {
 
-// TODO Move the timeout constant to config
-const std::chrono::seconds kDefaultTimeout(2);
+const char* const kStatementTimeoutParameter = "statement_timeout";
 
 std::size_t QueryHash(const std::string& statement,
                       const QueryParameters& params) {
@@ -110,6 +109,8 @@ where n.nspname not in ('pg_catalog', 'pg_toast', 'information_schema')
   and a.attnum > 0
 order by c.reltype, a.attnum)~";
 
+const TimeoutType kConnectTimeout{2000};
+
 }  // namespace
 
 Connection::Statistics::Statistics() noexcept
@@ -132,8 +133,53 @@ struct Connection::Impl {
   UserTypes db_types_;
   bool read_only_ = true;
 
-  Impl(engine::TaskProcessor& bg_task_processor, uint32_t id)
-      : conn_wrapper_{bg_task_processor, id} {}
+  CommandControl default_cmd_ctl_;
+  OptionalCommandControl transaction_cmd_ctl_;
+  TimeoutType current_statement_timeout_;
+
+  struct StatementTimeoutCentry {
+    StatementTimeoutCentry(Impl* conn, OptionalCommandControl cmd_ctl)
+        : connection_{conn},
+          cmd_ctl_{std::move(cmd_ctl)},
+          old_timeout_{conn->current_statement_timeout_},
+          session_scope_{false} {
+      if (cmd_ctl_.is_initialized()) {
+        if (connection_->IsInTransaction()) {
+          connection_->SetStatementTimeout(cmd_ctl_->statement);
+        } else {
+          connection_->SetDefaultStatementTimeout(cmd_ctl_->statement);
+          session_scope_ = true;
+        }
+      }
+    }
+
+    ~StatementTimeoutCentry() noexcept {
+      if (cmd_ctl_.is_initialized() &&
+          connection_->current_statement_timeout_ != old_timeout_ &&
+          connection_->GetConnectionState() != ConnectionState::kTranActive) {
+        try {
+          if (session_scope_) {
+            connection_->SetDefaultStatementTimeout(old_timeout_);
+          } else {
+            connection_->SetStatementTimeout(old_timeout_);
+          }
+        } catch (std::exception const& e) {
+          LOG_ERROR() << "Failed to reset old statement timeout: " << e.what();
+        }
+      }
+    }
+
+   private:
+    Impl* const connection_;
+    OptionalCommandControl cmd_ctl_;
+    TimeoutType old_timeout_;
+    bool session_scope_;
+  };
+
+  Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
+       CommandControl default_cmd_ctl)
+      : conn_wrapper_{bg_task_processor, id},
+        default_cmd_ctl_{default_cmd_ctl} {}
 
   void Close() { conn_wrapper_.Close().Wait(); }
 
@@ -147,7 +193,9 @@ struct Connection::Impl {
 
   // TODO Add tracing::Span
   void AsyncConnect(const std::string& conninfo) {
-    conn_wrapper_.AsyncConnect(conninfo, kDefaultTimeout);
+    // While connecting there are several network roundtrips, so give them
+    // some allowance.
+    conn_wrapper_.AsyncConnect(conninfo, kConnectTimeout);
     // We cannot handle exceptions here, so we let them got to the caller
     // Detect if the connection is read only.
     auto res = ExecuteCommandNoPrepare("show transaction_read_only");
@@ -155,11 +203,45 @@ struct Connection::Impl {
       res.Front().To(read_only_);
     }
     SetLocalTimezone();
+    SetDefaultStatementTimeout(default_cmd_ctl_.statement);
     LoadUserTypes();
   }
 
-  /// @brief Set local timezone. If the timezone is invalid, catch the exception
-  /// and log error.
+  void SetDefaultCommandControl(CommandControl cmd_ctl) {
+    SetDefaultStatementTimeout(cmd_ctl.statement);
+    default_cmd_ctl_ = cmd_ctl;
+  }
+
+  void SetTransactionCommandControl(CommandControl cmd_ctl) {
+    if (!IsInTransaction()) {
+      throw NotInTransaction{
+          "Cannot set transaction command control out of transaction"};
+    }
+    transaction_cmd_ctl_ = cmd_ctl;
+    SetStatementTimeout(cmd_ctl.statement);
+  }
+
+  void ResetTransactionCommandControl() {
+    transaction_cmd_ctl_.reset();
+    current_statement_timeout_ = default_cmd_ctl_.statement;
+  }
+
+  TimeoutType CurrentNetworkTimeout() const {
+    if (transaction_cmd_ctl_.is_initialized()) {
+      return transaction_cmd_ctl_->network;
+    }
+    return default_cmd_ctl_.network;
+  }
+
+  TimeoutType CurrentStatementTimeout() const {
+    if (transaction_cmd_ctl_.is_initialized()) {
+      return transaction_cmd_ctl_->statement;
+    }
+    return default_cmd_ctl_.statement;
+  }
+
+  /// @brief Set local timezone. If the timezone is invalid, catch the
+  /// exception and log error.
   void SetLocalTimezone() {
     const auto& tz = LocalTimezoneID();
     LOG_TRACE() << "Try and set pg timezone id " << tz.id << " canonical id "
@@ -172,6 +254,22 @@ struct Connection::Impl {
       // by connection wrapper.
       LOG_ERROR() << "Invalid value for time zone " << tz_id;
     }  // Let all other exceptions be propagated to the caller
+  }
+
+  void SetDefaultStatementTimeout(TimeoutType timeout) {
+    if (current_statement_timeout_ != timeout) {
+      SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
+                   ParameterScope::kSession);
+      current_statement_timeout_ = timeout;
+    }
+  }
+
+  void SetStatementTimeout(TimeoutType timeout) {
+    if (current_statement_timeout_ != timeout) {
+      SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
+                   ParameterScope::kTransaction);
+      current_statement_timeout_ = timeout;
+    }
   }
 
   void LoadUserTypes() {
@@ -222,9 +320,32 @@ struct Connection::Impl {
     return ExecuteCommand(statement, params);
   }
 
+  template <typename... T>
+  ResultSet ExecuteCommand(CommandControl stmt_cmd_ctl,
+                           const std::string& statement, const T&... args) {
+    detail::QueryParameters params;
+    params.Write(db_types_, args...);
+    return ExecuteCommand(statement, params,
+                          OptionalCommandControl{std::move(stmt_cmd_ctl)});
+  }
+
+  void CheckBusy() {
+    if (GetConnectionState() == ConnectionState::kTranActive) {
+      throw ConnectionBusy("There is another query in flight");
+    }
+  }
+
   // TODO Add tracing::Span
   ResultSet ExecuteCommand(const std::string& statement,
-                           const detail::QueryParameters& params) {
+                           const detail::QueryParameters& params,
+                           OptionalCommandControl statement_cmd_ctl = {}) {
+    CheckBusy();
+    TimeoutType network_timeout = statement_cmd_ctl.is_initialized()
+                                      ? statement_cmd_ctl->network
+                                      : CurrentNetworkTimeout();
+    auto deadline = engine::Deadline::FromDuration(network_timeout);
+    StatementTimeoutCentry centry{this, std::move(statement_cmd_ctl)};
+
     CountExecute count_execute(stats_);
     auto query_hash = QueryHash(statement, params);
     std::string statement_name = "q" + std::to_string(query_hash);
@@ -235,7 +356,7 @@ struct Connection::Impl {
       LOG_TRACE() << "Query " << statement << " is not yet prepared";
       conn_wrapper_.SendPrepare(statement_name, statement, params);
       try {
-        conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
+        conn_wrapper_.WaitResult(db_types_, deadline);
       } catch (DuplicatePreparedStatement const& e) {
         LOG_ERROR()
             << "Looks like your pg_bouncer doesn't clean up connections "
@@ -246,7 +367,7 @@ struct Connection::Impl {
         throw;
       }
       conn_wrapper_.SendDescribePrepared(statement_name);
-      auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
+      auto res = conn_wrapper_.WaitResult(db_types_, deadline);
       prepared_.insert(std::make_pair(
           query_hash, res.GetRowDescription().BestReplyFormat(db_types_)));
       ++stats_.parse_total;
@@ -260,7 +381,7 @@ struct Connection::Impl {
 
     conn_wrapper_.SendPreparedQuery(statement_name, params, fmt);
     try {
-      auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
+      auto res = conn_wrapper_.WaitResult(db_types_, deadline);
       count_execute.AccountResult(res, fmt);
       return res;
     } catch (InvalidSqlStatementName const& e) {
@@ -268,15 +389,22 @@ struct Connection::Impl {
                      "Please switch pg_bouncers's pooling mode to 'session'. "
                      "Please see documentation here https://nda.ya.ru/3UXMpu";
       throw;
+    } catch (ConnectionTimeoutError const& e) {
+      LOG_ERROR() << "Statement " << statement
+                  << " network timeout error: " << e.what() << ". "
+                  << "Network timout was " << network_timeout.count() << "ms";
+      throw;
     }
   }
 
   // TODO Add tracing::Span
   ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
+    CheckBusy();
     CountExecute count_execute(stats_);
     conn_wrapper_.SendQuery(statement);
 
-    auto res = conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
+    auto res = conn_wrapper_.WaitResult(
+        db_types_, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
     count_execute.AccountResult(res, io::DataFormat::kTextDataFormat);
     return res;
   }
@@ -288,17 +416,22 @@ struct Connection::Impl {
                                 io::DataFormat reply_format,
                                 const detail::QueryParameters& params) {
     conn_wrapper_.SendQuery(statement, params, reply_format);
-    return conn_wrapper_.WaitResult(db_types_, kDefaultTimeout);
+    return conn_wrapper_.WaitResult(
+        db_types_, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
   }
 
   void Begin(const TransactionOptions& options,
-             SteadyClock::time_point&& trx_start_time) {
+             SteadyClock::time_point&& trx_start_time,
+             OptionalCommandControl trx_cmd_ctl = {}) {
     if (IsInTransaction()) {
       throw AlreadyInTransaction();
     }
     stats_.trx_start_time = std::move(trx_start_time);
     ++stats_.trx_total;
     ExecuteCommandNoPrepare(BeginStatement(options));
+    if (trx_cmd_ctl) {
+      SetTransactionCommandControl(*trx_cmd_ctl);
+    }
   }
 
   void Commit() {
@@ -307,6 +440,7 @@ struct Connection::Impl {
     }
     CountCommit count_commit(stats_);
     ExecuteCommandNoPrepare("commit");
+    ResetTransactionCommandControl();
   }
 
   void Rollback() {
@@ -315,6 +449,37 @@ struct Connection::Impl {
     }
     CountRollback count_rollback(stats_);
     ExecuteCommandNoPrepare("rollback");
+    ResetTransactionCommandControl();
+  }
+
+  void Cleanup(TimeoutType timeout) {
+    {
+      auto state = GetConnectionState();
+      if (state == ConnectionState::kOffline) {
+        return;
+      }
+      auto deadline = engine::Deadline::FromDuration(timeout);
+      if (GetConnectionState() == ConnectionState::kTranActive) {
+        auto cancel = conn_wrapper_.Cancel();
+        // May throw on timeout
+        try {
+          conn_wrapper_.DiscardInput(deadline);
+        } catch (std::exception const&) {
+          // Consume error, we will throw later if we detect transaction is busy
+        }
+        cancel.WaitUntil(deadline);
+      }
+    }
+    {
+      auto state = GetConnectionState();
+      if (state == ConnectionState::kTranActive) {
+        throw ConnectionTimeoutError("Timeout while cleaning up connection");
+      }
+      if (state > ConnectionState::kIdle) {
+        Rollback();
+      }
+      SetDefaultStatementTimeout(default_cmd_ctl_.statement);
+    }
   }
 
   bool IsConnected() const {
@@ -332,10 +497,10 @@ struct Connection::Impl {
 
 std::unique_ptr<Connection> Connection::Connect(
     const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
-    uint32_t id) {
+    uint32_t id, CommandControl default_cmd_ctl) {
   std::unique_ptr<Connection> conn(new Connection());
 
-  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id);
+  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, default_cmd_ctl);
   conn->pimpl_->AsyncConnect(conninfo);
 
   return conn;
@@ -344,6 +509,14 @@ std::unique_ptr<Connection> Connection::Connect(
 Connection::Connection() {}
 
 Connection::~Connection() = default;
+
+CommandControl Connection::GetDefaultCommandControl() const {
+  return pimpl_->default_cmd_ctl_;
+}
+
+void Connection::SetDefaultCommandControl(CommandControl cmd_ctl) {
+  pimpl_->SetDefaultCommandControl(cmd_ctl);
+}
 
 bool Connection::IsReadOnly() const { return pimpl_->read_only_; }
 
@@ -364,8 +537,10 @@ Connection::Statistics Connection::GetStatsAndReset() {
 }
 
 ResultSet Connection::Execute(const std::string& statement,
-                              const detail::QueryParameters& params) {
-  return pimpl_->ExecuteCommand(statement, params);
+                              const detail::QueryParameters& params,
+                              OptionalCommandControl statement_cmd_ctl) {
+  return pimpl_->ExecuteCommand(statement, params,
+                                std::move(statement_cmd_ctl));
 }
 
 void Connection::SetParameter(const std::string& param,
@@ -374,6 +549,7 @@ void Connection::SetParameter(const std::string& param,
 }
 
 void Connection::ReloadUserTypes() { pimpl_->LoadUserTypes(); }
+
 const UserTypes& Connection::GetUserTypes() const {
   return pimpl_->GetUserTypes();
 }
@@ -389,13 +565,16 @@ ResultSet Connection::ExperimentalExecute(
 }
 
 void Connection::Begin(const TransactionOptions& options,
-                       SteadyClock::time_point&& trx_start_time) {
-  pimpl_->Begin(options, std::move(trx_start_time));
+                       SteadyClock::time_point&& trx_start_time,
+                       OptionalCommandControl trx_cmd_ctl) {
+  pimpl_->Begin(options, std::move(trx_start_time), std::move(trx_cmd_ctl));
 }
 
 void Connection::Commit() { pimpl_->Commit(); }
 
 void Connection::Rollback() { pimpl_->Rollback(); }
+
+void Connection::Cleanup(TimeoutType timeout) { pimpl_->Cleanup(timeout); }
 
 }  // namespace detail
 }  // namespace postgres

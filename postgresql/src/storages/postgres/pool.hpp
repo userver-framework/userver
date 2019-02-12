@@ -25,9 +25,10 @@ class ConnectionPool {
   /// @param bg_task_processor task processor for blocking connection operations
   /// @param initial_size initial (minimum) idle connections count
   /// @param max_size maximum idle connections count
+  /// @param default_cmd_ctl default settings for operations
   ConnectionPool(const std::string& dsn,
                  engine::TaskProcessor& bg_task_processor, size_t initial_size,
-                 size_t max_size);
+                 size_t max_size, CommandControl default_cmd_ctl);
   ~ConnectionPool();
 
   ConnectionPool(ConnectionPool&&) noexcept;
@@ -42,7 +43,10 @@ class ConnectionPool {
 
   const InstanceStatistics& GetStatistics() const;
 
-  Transaction Begin(const TransactionOptions&);
+  [[nodiscard]] Transaction Begin(const TransactionOptions&,
+                                  OptionalCommandControl = {});
+
+  void SetDefaultCommandControl(CommandControl);
 
  private:
   std::shared_ptr<detail::ConnectionPoolImpl> pimpl_;

@@ -16,10 +16,11 @@ const detail::QueryParameters kEmptyParams;
 
 Transaction::Transaction(detail::ConnectionPtr&& conn,
                          const TransactionOptions& options,
+                         OptionalCommandControl trx_cmd_ctl,
                          detail::SteadyClock::time_point&& trx_start_time)
     : conn_{std::move(conn)} {
   if (conn_) {
-    conn_->Begin(options, std::move(trx_start_time));
+    conn_->Begin(options, std::move(trx_start_time), trx_cmd_ctl);
   }
 }
 Transaction::Transaction(Transaction&&) noexcept = default;
@@ -40,23 +41,15 @@ Transaction::~Transaction() {
 
 Transaction& Transaction::operator=(Transaction&& rhs) = default;
 
-ResultSet Transaction::Execute(const std::string& statement) {
-  if (!conn_) {
-    LOG_ERROR() << "Execute called after transaction finished"
-                << logging::LogExtra::Stacktrace();
-    throw NotInTransaction("Transaction handle is not valid");
-  }
-  return conn_->Execute(statement, kEmptyParams);
-}
-
 ResultSet Transaction::DoExecute(const std::string& statement,
-                                 const detail::QueryParameters& params) {
+                                 const detail::QueryParameters& params,
+                                 OptionalCommandControl statement_cmd_ctl) {
   if (!conn_) {
     LOG_ERROR() << "Execute called after transaction finished"
                 << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
-  return conn_->Execute(statement, params);
+  return conn_->Execute(statement, params, std::move(statement_cmd_ctl));
 }
 
 void Transaction::SetParameter(const std::string& param_name,

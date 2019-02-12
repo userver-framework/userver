@@ -29,14 +29,14 @@ pg::Cluster CreateCluster(const std::string& dsn,
                           engine::TaskProcessor& bg_task_processor,
                           size_t max_size) {
   return pg::Cluster(pg::ClusterDescription({dsn}), bg_task_processor, 0,
-                     max_size);
+                     max_size, kTestCmdCtl);
 }
 
 pg::Cluster CreateClusterWithMaster(const std::string& dsn,
                                     engine::TaskProcessor& bg_task_processor,
                                     size_t max_size) {
   return pg::Cluster(pg::ClusterDescription(dsn, std::string{}, {}),
-                     bg_task_processor, 0, max_size);
+                     bg_task_processor, 0, max_size, kTestCmdCtl);
 }
 
 }  // namespace

@@ -43,7 +43,7 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePool,
 
 TEST_P(PostgrePool, ConnectionPool) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool.GetConnection())
@@ -54,7 +54,7 @@ TEST_P(PostgrePool, ConnectionPool) {
 
 TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 0, 1);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 0, 1, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool.GetConnection())
@@ -65,7 +65,7 @@ TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
 
 TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool.GetConnection())
@@ -80,7 +80,7 @@ TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
 
 TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool.GetConnection())
@@ -100,23 +100,24 @@ TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
 
 TEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
   RunInCoro([this] {
-    EXPECT_THROW(pg::ConnectionPool(dsn_, GetTaskProcessor(), 2, 1),
-                 pg::InvalidConfig)
+    EXPECT_THROW(
+        pg::ConnectionPool(dsn_, GetTaskProcessor(), 2, 1, kTestCmdCtl),
+        pg::InvalidConfig)
         << "Pool reached max size";
   });
 }
 
 TEST_P(PostgrePool, PoolTransaction) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10, kTestCmdCtl);
     PoolTransaction(pool);
   });
 }
 
 TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
   RunInCoro([this] {
-    auto pool =
-        std::make_unique<pg::ConnectionPool>(dsn_, GetTaskProcessor(), 1, 1);
+    auto pool = std::make_unique<pg::ConnectionPool>(dsn_, GetTaskProcessor(),
+                                                     1, 1, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool->GetConnection())
@@ -128,8 +129,8 @@ TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
 
 TEST_P(PostgrePool, ConnectionPtrWorks) {
   RunInCoro([this] {
-    auto pool =
-        std::make_unique<pg::ConnectionPool>(dsn_, GetTaskProcessor(), 2, 2);
+    auto pool = std::make_unique<pg::ConnectionPool>(dsn_, GetTaskProcessor(),
+                                                     2, 2, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
     EXPECT_NO_THROW(conn = pool->GetConnection())
@@ -149,5 +150,57 @@ TEST_P(PostgrePool, ConnectionPtrWorks) {
     pool.reset();
     CheckConnection(std::move(conn));
     CheckConnection(std::move(conn2));
+  });
+}
+
+TEST_P(PostgrePool, ConnectionCleanup) {
+  RunInCoro([this] {
+    auto pool = std::make_unique<pg::ConnectionPool>(
+        dsn_, GetTaskProcessor(), 1, 1,
+        pg::CommandControl{pg::TimeoutType{100}, pg::TimeoutType{1000}});
+
+    {
+      auto const& stats = pool->GetStatistics();
+      EXPECT_EQ(0, stats.connection.open_total);
+      EXPECT_EQ(0, stats.connection.active);
+
+      pg::Transaction trx{nullptr};
+      EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
+
+      EXPECT_EQ(1, stats.connection.open_total);
+      EXPECT_EQ(0, stats.connection.active);
+      EXPECT_EQ(1, stats.connection.used);
+      EXPECT_THROW(trx.Execute("select pg_sleep(1)"),
+                   pg::ConnectionTimeoutError)
+          << "Fail statement on timeout";
+      EXPECT_ANY_THROW(trx.Commit())
+          << "Connection is left in an unusable state";
+    }
+    {
+      auto const& stats = pool->GetStatistics();
+      EXPECT_EQ(1, stats.connection.open_total);
+      EXPECT_EQ(1, stats.connection.active);
+      EXPECT_EQ(0, stats.connection.used);
+      EXPECT_EQ(0, stats.connection.drop_total);
+      EXPECT_EQ(1, stats.connection.error_total);
+    }
+    pool->SetDefaultCommandControl(
+        pg::CommandControl{pg::TimeoutType{1000}, pg::TimeoutType{10}});
+    {
+      pg::Transaction trx{nullptr};
+      EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
+
+      EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCanceled)
+          << "Fail statement on timeout";
+      EXPECT_NO_THROW(trx.Commit()) << "Connection is left in a usable state";
+    }
+    {
+      auto const& stats = pool->GetStatistics();
+      EXPECT_EQ(1, stats.connection.open_total);
+      EXPECT_EQ(1, stats.connection.active);
+      EXPECT_EQ(0, stats.connection.used);
+      EXPECT_EQ(0, stats.connection.drop_total);
+      EXPECT_EQ(1, stats.connection.error_total);
+    }
   });
 }

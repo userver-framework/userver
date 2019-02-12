@@ -77,13 +77,14 @@ class Cluster {
   /// @param initial_idle_connection_pool_size initial (minimum) idle
   /// connections count
   /// @param max_connection_pool_size maximum connections count in the pool
+  /// @param cmd_ctl command execution options
   /// @note When `max_connection_pool_size` is reached, and no idle connections
   /// available, `PoolError` is thrown for every new connection
   /// request
   Cluster(const ClusterDescription& cluster_desc,
           engine::TaskProcessor& bg_task_processor,
           size_t initial_idle_connection_pool_size,
-          size_t max_connection_pool_size);
+          size_t max_connection_pool_size, CommandControl cmd_ctl);
   ~Cluster();
 
   /// Get cluster statistics
@@ -96,13 +97,14 @@ class Cluster {
   /// to master. If the transaction is RO, will start trying connections
   /// starting with slaves.
   /// @throws ClusterUnavailable if no hosts are available
-  Transaction Begin(const TransactionOptions&);
+  Transaction Begin(const TransactionOptions&, OptionalCommandControl = {});
   /// Start a transaction in a connection to a specific cluster part
   /// If specified host type is not available, may fall back to other host type,
   /// @see ClusterHostType.
   /// If the transaction is RW, only master connection will be used.
   /// @throws ClusterUnavailable if no hosts are available
-  Transaction Begin(ClusterHostType, const TransactionOptions&);
+  Transaction Begin(ClusterHostType, const TransactionOptions&,
+                    OptionalCommandControl = {});
   //@}
 
   //@{
@@ -137,6 +139,9 @@ class Cluster {
                     const std::string& statement, Args... args);
   //@}
   //@}
+
+  void SetDefaultCommandControl(CommandControl);
+
  private:
   friend class components::Postgres;
   engine::TaskWithResult<void> DiscoverTopology();

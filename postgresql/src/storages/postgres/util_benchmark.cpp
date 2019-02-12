@@ -33,7 +33,7 @@ void PgConnection::SetUp(benchmark::State&) {
   if (!conninfo.empty()) {
     RunInCoro([this, conninfo] {
       conn_ = detail::Connection::Connect(conninfo, GetTaskProcessor(),
-                                          kConnectionId);
+                                          kConnectionId, kBenchCmdCtl);
     });
   }
 }

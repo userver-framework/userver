@@ -125,6 +125,8 @@ namespace postgres {
  *       - CommandError
  *       - ConnectionFailed
  *       - ServerConnectionError (contains a message from server)
+ *       - ConnectionTimeoutError
+ *     - ConnectionBusy
  *     - PoolError
  *     - ClusterError
  *     - InvalidConfig
@@ -214,7 +216,18 @@ class CommandError : public ConnectionError {
   using ConnectionError::ConnectionError;
 };
 
+/// @brief A network operation on a connection has timed out
+class ConnectionTimeoutError : public ConnectionError {
+  using ConnectionError::ConnectionError;
+};
+
 class ClusterError : public RuntimeError {
+  using RuntimeError::RuntimeError;
+};
+
+/// @brief An attempt to make a query to server was made while there is another
+/// query in flight.
+class ConnectionBusy : public RuntimeError {
   using RuntimeError::RuntimeError;
 };
 
@@ -593,8 +606,8 @@ class FieldNameDoesntExist : public ResultSetError {
 class FieldValueIsNull : public ResultSetError {
  public:
   FieldValueIsNull(std::size_t field_index)
-      : ResultSetError("Field " + std::to_string(field_index) +
-                       "value is null") {}
+      : ResultSetError("Field #" + std::to_string(field_index) +
+                       " value is null") {}
 };
 
 /// @brief A value of a non-nullable type requested to be set null.
