@@ -44,8 +44,9 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   ///   in case of task processor overload
   /// @param wrapped_call_ptr task body
   /// @see Async()
-  TaskWithResult(TaskProcessor& task_processor, Importance importance,
-                 std::shared_ptr<utils::WrappedCall<T>>&& wrapped_call_ptr)
+  TaskWithResult(
+      TaskProcessor& task_processor, Importance importance,
+      std::shared_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
       : Task(impl::TaskContextHolder::MakeContext(
             task_processor, importance,
             [wrapped_call_ptr] { wrapped_call_ptr->Perform(); })),
@@ -68,7 +69,7 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   }
 
  private:
-  std::shared_ptr<utils::WrappedCall<T>> wrapped_call_ptr_;
+  std::shared_ptr<utils::impl::WrappedCall<T>> wrapped_call_ptr_;
 };
 
 }  // namespace engine

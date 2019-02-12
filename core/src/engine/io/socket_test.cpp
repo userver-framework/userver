@@ -206,7 +206,7 @@ TEST(Socket, Cancel) {
              << "io operation " << io_op_text << " did not throw IoCancelled";
     };
 
-    std::vector<char> buf(client_socket.GetOption(SOL_SOCKET, SO_SNDBUF * 4));
+    std::vector<char> buf(client_socket.GetOption(SOL_SOCKET, SO_SNDBUF) * 4);
     EXPECT_PRED_FORMAT1(check_is_cancelling,
                         [&] { client_socket.RecvSome(buf.data(), 1, {}); });
     EXPECT_PRED_FORMAT1(check_is_cancelling,

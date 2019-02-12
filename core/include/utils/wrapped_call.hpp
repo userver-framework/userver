@@ -10,6 +10,7 @@
 #include <utils/result_store.hpp>
 
 namespace utils {
+namespace impl {
 
 /// Wraps a function invocation into a WrappedCall holder
 template <typename Function, typename... Args>
@@ -25,14 +26,23 @@ class WrappedCall {
   /// Returns (or rethrows) the result of wrapped call invocation
   T Retrieve();
 
+  WrappedCall(WrappedCall&&) = delete;
+  WrappedCall(const WrappedCall&) = delete;
+  WrappedCall& operator=(WrappedCall&&) = delete;
+  WrappedCall& operator=(const WrappedCall&) = delete;
+
  protected:
-  virtual ~WrappedCall() = default;
+  using CallImpl = T (*)(WrappedCall* self);
+
+  // No `virtual` to avoid vtable bloat and typeinfo generation.
+  WrappedCall(CallImpl call) : call_impl_{call} {}
+  ~WrappedCall() = default;  // Must be overriden in derived class.
 
  private:
   void DoPerform();
+  T Call() { return call_impl_(this); }
 
-  virtual T Call() = 0;
-
+  const CallImpl call_impl_;
   ResultStore<T> result_;
 };
 
@@ -61,45 +71,61 @@ inline void WrappedCall<void>::DoPerform() {
   result_.SetValue();
 }
 
-namespace impl {
-
+// Stores passed arguments and function. Invokes function later with argument
+// types exactly matching the initial types of arguments passed to WrapCall.
 template <typename Function, typename... Args>
 class WrappedCallImpl final
     : public WrappedCall<decltype(
           std::declval<Function>()(std::declval<Args>()...))> {
+  using ResultType =
+      decltype(std::declval<Function>()(std::declval<Args>()...));
+  using BaseType = WrappedCall<ResultType>;
+
  public:
-  template <class... ArgsIn>
-  explicit WrappedCallImpl(Function&& f, ArgsIn&&... args)
-      : f_(std::forward<Function>(f)),
-        args_(std::make_tuple(std::forward<ArgsIn>(args)...)) {}
+  explicit WrappedCallImpl(Function&& f, Args&&... args)
+      : BaseType(&WrappedCallImpl::Call),
+        f_(std::forward<Function>(f)),
+        args_(std::make_tuple(std::forward<Args>(args)...)) {}
 
  private:
-  decltype(std::declval<Function>()(std::declval<Args>()...)) Call() override {
-    return DoCall(std::index_sequence_for<Args...>());
+  static ResultType Call(BaseType* self) {
+    return static_cast<WrappedCallImpl*>(self)->DoCall(
+        std::index_sequence_for<Args...>());
   }
 
   template <size_t... Indices>
-  decltype(auto) DoCall(std::index_sequence<Indices...>) {
-    auto f = std::move(f_);
-    return f(std::get<Indices>(std::move(args_))...);
+  ResultType DoCall(std::index_sequence<Indices...>) {
+    if constexpr (std::is_pointer<StoredFunction>::value) {
+      assert(f_);
+      auto f = std::exchange(f_, nullptr);
+      return f(std::forward<Args>(std::get<Indices>(args_))...);
+    } else {
+      // We have to cleanup `f_` after usage. Moving it to temporary.
+      auto f = std::move(f_);
+      return std::forward<Function>(f)(
+          std::forward<Args>(std::get<Indices>(args_))...);
+    }
   }
 
-  Function f_;
+  // Storing function references as function pointers, storing other function
+  // types (including function objects) by value.
+  using UnrefFunction = std::remove_reference_t<Function>;
+  using StoredFunction =
+      std::conditional_t<std::is_function<UnrefFunction>::value, UnrefFunction*,
+                         UnrefFunction>;
+  StoredFunction f_;
   decltype(std::make_tuple(std::declval<Args>()...)) args_;
 };
-
-template <class T>
-using remove_cv_ref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
 }  // namespace impl
 
 template <typename Function, typename... Args>
 auto WrapCall(Function&& f, Args&&... args) {
-  static_assert((!std::is_array<impl::remove_cv_ref_t<Args>>::value && ...),
-                "Passing arrays to Async is forbidden");
+  static_assert(
+      (!std::is_array<std::remove_reference_t<Args>>::value && ...),
+      "Passing C arrays to Async is forbidden. Use std::array instead");
 
-  return std::make_shared<
-      impl::WrappedCallImpl<Function, impl::remove_cv_ref_t<Args>...>>(
+  return std::make_shared<impl::WrappedCallImpl<Function, Args...>>(
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
