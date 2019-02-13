@@ -51,6 +51,8 @@ class Connection {
     SmallCounter commit_total : 1;
     /// Number of transactions rolled back
     SmallCounter rollback_total : 1;
+    /// Number of out-of-transaction executions
+    SmallCounter out_of_trx : 1;
     /// Number of parsed queries
     Counter parse_total;
     /// Number of query executions (calls to `Execute`)
@@ -127,6 +129,11 @@ class Connection {
   /// Suspends coroutine for execution
   /// @throws NotInTransaction
   void Rollback();
+
+  /// Mark start time of non-transaction execution, for stats
+  void Start(SteadyClock::time_point&& start_time);
+  /// Mark non-transaction execution finished, for stats
+  void Finish();
   //@}
 
   //@{

@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
@@ -34,6 +35,8 @@ class ConnectionPool {
   ConnectionPool(ConnectionPool&&) noexcept;
   ConnectionPool& operator=(ConnectionPool&&);
 
+  std::string const& GetDsn() const;
+
   /// Get idle connection from pool
   /// If no idle connection and `max_size` is not reached - create a new
   /// connection.
@@ -45,6 +48,8 @@ class ConnectionPool {
 
   [[nodiscard]] Transaction Begin(const TransactionOptions&,
                                   OptionalCommandControl = {});
+
+  [[nodiscard]] detail::NonTransaction Start();
 
   void SetDefaultCommandControl(CommandControl);
 

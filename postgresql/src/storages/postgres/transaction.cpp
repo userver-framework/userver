@@ -8,12 +8,6 @@
 namespace storages {
 namespace postgres {
 
-namespace {
-
-const detail::QueryParameters kEmptyParams;
-
-}  // namespace
-
 Transaction::Transaction(detail::ConnectionPtr&& conn,
                          const TransactionOptions& options,
                          OptionalCommandControl trx_cmd_ctl,

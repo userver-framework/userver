@@ -12,6 +12,7 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
+#include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
@@ -28,12 +29,16 @@ class ConnectionPoolImpl
       size_t initial_size, size_t max_size, CommandControl default_cmd_ctl);
   ~ConnectionPoolImpl();
 
+  std::string const& GetDsn() const { return dsn_; }
+
   [[nodiscard]] ConnectionPtr Acquire();
   void Release(Connection* connection);
 
   const InstanceStatistics& GetStatistics() const;
   [[nodiscard]] Transaction Begin(const TransactionOptions& options,
                                   OptionalCommandControl trx_cmd_ctl = {});
+
+  [[nodiscard]] NonTransaction Start();
 
   void SetDefaultCommandControl(CommandControl);
 

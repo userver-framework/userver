@@ -19,6 +19,8 @@ ConnectionPool::ConnectionPool(ConnectionPool&&) noexcept = default;
 
 ConnectionPool& ConnectionPool::operator=(ConnectionPool&&) = default;
 
+std::string const& ConnectionPool::GetDsn() const { return pimpl_->GetDsn(); }
+
 detail::ConnectionPtr ConnectionPool::GetConnection() {
   return pimpl_->Acquire();
 }
@@ -31,6 +33,8 @@ Transaction ConnectionPool::Begin(const TransactionOptions& options,
                                   OptionalCommandControl cmd_ctl) {
   return pimpl_->Begin(options, cmd_ctl);
 }
+
+detail::NonTransaction ConnectionPool::Start() { return pimpl_->Start(); }
 
 void ConnectionPool::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl);

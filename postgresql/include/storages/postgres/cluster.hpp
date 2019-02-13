@@ -5,6 +5,7 @@
 #include <engine/task/task_with_result.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
+#include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
@@ -109,38 +110,23 @@ class Cluster {
 
   //@{
   /** @name Single-statement query in an auto-commit transaction */
-  //@{
-  /** @name Parameterless */
-  /// Execute the statement in any available connection, @see Begin for
-  /// connection selection logic.
-  /// @throws ClusterUnavailable, SyntaxError, ConstraintViolation
-  ResultSet Execute(const TransactionOptions&, const std::string& statement);
-  /// Start a transaction in a connection to a specific cluster part
-  /// @see Begin
-  /// @throws ClusterUnavailable, SyntaxError, ConstraintViolation
-  ResultSet Execute(ClusterHostType, const TransactionOptions&,
-                    const std::string& statement);
-  //@}
-  //@{
-  /** @name With arbitrary parameters */
-  // clang-format off
-  /// Execute the statement in any available connection
-  /// @throws ClusterUnavailable, SyntaxError, ConstraintViolation, InvalidParameterType
-  // clang-format on
+  /// Execute a statement at host of specified type.
+  /// @note ClusterHostType::kAny cannot be used here
   template <typename... Args>
-  ResultSet Execute(const TransactionOptions&, const std::string& statement,
-                    Args... args);
-  // clang-format off
-  /// Start a transaction in a connection to a specific cluster part
-  /// @throws ClusterUnavailable, SyntaxError, ConstraintViolation, InvalidParameterType
-  // clang-format on
+  ResultSet Execute(ClusterHostType, const std::string& statement,
+                    Args&&... args);
+  /// Execute a statement at host of specified type with specific command
+  /// control settings.
+  /// @note ClusterHostType::kAny cannot be used here
   template <typename... Args>
-  ResultSet Execute(ClusterHostType, const TransactionOptions&,
-                    const std::string& statement, Args... args);
-  //@}
+  ResultSet Execute(ClusterHostType, CommandControl,
+                    const std::string& statement, Args&&... args);
   //@}
 
   void SetDefaultCommandControl(CommandControl);
+
+ private:
+  detail::NonTransaction Start(ClusterHostType ht);
 
  private:
   friend class components::Postgres;
@@ -150,21 +136,18 @@ class Cluster {
 };
 
 template <typename... Args>
-ResultSet Cluster::Execute(const TransactionOptions& opts,
-                           const std::string& statement, Args... args) {
-  auto trx = Begin(opts);
-  auto res = trx.Execute(statement, std::forward<Args>(args)...);
-  trx.Commit();
-  return res;
+ResultSet Cluster::Execute(ClusterHostType ht, const std::string& statement,
+                           Args&&... args) {
+  auto ntrx = Start(ht);
+  return ntrx.Execute(statement, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
-ResultSet Cluster::Execute(ClusterHostType ht, const TransactionOptions& opts,
-                           const std::string& statement, Args... args) {
-  auto trx = Begin(ht, opts);
-  auto res = trx.Execute(statement, std::forward<Args>(args)...);
-  trx.Commit();
-  return res;
+ResultSet Cluster::Execute(ClusterHostType ht, CommandControl statement_cmd_ctl,
+                           const std::string& statement, Args&&... args) {
+  auto ntrx = Start(ht);
+  return ntrx.Execute(std::move(statement_cmd_ctl), statement,
+                      std::forward<Args>(args)...);
 }
 
 }  // namespace postgres

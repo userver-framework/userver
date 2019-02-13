@@ -117,6 +117,7 @@ Connection::Statistics::Statistics() noexcept
     : trx_total(0),
       commit_total(0),
       rollback_total(0),
+      out_of_trx(0),
       parse_total(0),
       execute_total(0),
       reply_total(0),
@@ -452,6 +453,13 @@ struct Connection::Impl {
     ResetTransactionCommandControl();
   }
 
+  void Start(SteadyClock::time_point&& start_time) {
+    ++stats_.trx_total;
+    ++stats_.out_of_trx;
+    stats_.trx_start_time = std::move(start_time);
+  }
+  void Finish() { stats_.trx_end_time = SteadyClock::now(); }
+
   void Cleanup(TimeoutType timeout) {
     {
       auto state = GetConnectionState();
@@ -573,6 +581,12 @@ void Connection::Begin(const TransactionOptions& options,
 void Connection::Commit() { pimpl_->Commit(); }
 
 void Connection::Rollback() { pimpl_->Rollback(); }
+
+void Connection::Start(SteadyClock::time_point&& start_time) {
+  pimpl_->Start(std::move(start_time));
+}
+
+void Connection::Finish() { pimpl_->Finish(); }
 
 void Connection::Cleanup(TimeoutType timeout) { pimpl_->Cleanup(timeout); }
 

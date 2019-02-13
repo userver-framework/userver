@@ -179,6 +179,38 @@ ClusterStatistics ClusterImpl::GetStatistics() const {
   return cluster_stats;
 }
 
+ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostType ht) {
+  auto host_type = ht;
+  auto hosts_by_type = topology_->GetHostsByType();
+  while (host_type != ClusterHostType::kMaster &&
+         hosts_by_type[host_type].empty()) {
+    auto fb = Fallback(host_type);
+    LOG_WARNING() << "There is no pool for host type " << ToString(host_type)
+                  << ", falling back to " << ToString(fb);
+    host_type = fb;
+  }
+  const auto& host_dsns = hosts_by_type[host_type];
+  if (host_dsns.empty()) {
+    LOG_WARNING() << "Pool for host type (requested: " << ToString(ht)
+                  << ", picked " << ToString(host_type) << ") is not available";
+    throw ClusterUnavailable("Pool for host type (passed: " + ToString(ht) +
+                             ", picked: " + ToString(host_type) +
+                             ") is not available");
+  }
+
+  const auto& dsn =
+      host_dsns[host_ind_.fetch_add(1, std::memory_order_relaxed) %
+                host_dsns.size()];
+  LOG_TRACE() << "Starting transaction on the host of " << host_type << " type";
+
+  auto pool = GetPool(dsn);
+  if (!pool) {
+    throw ClusterUnavailable("Host not found for given DSN: " + dsn);
+  }
+  pool->SetDefaultCommandControl(*default_cmd_ctl_.Get());
+  return pool;
+}
+
 Transaction ClusterImpl::Begin(ClusterHostType ht,
                                const TransactionOptions& options,
                                OptionalCommandControl cmd_ctl) {
@@ -196,35 +228,26 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
     }
   }
 
-  auto hosts_by_type = topology_->GetHostsByType();
-  while (host_type != ClusterHostType::kMaster &&
-         hosts_by_type.count(host_type) == 0) {
-    auto fb = Fallback(host_type);
-    LOG_WARNING() << "There is no pool for host type " << ToString(host_type)
-                  << ", falling back to " << ToString(fb);
-    host_type = fb;
-  }
-  const auto& host_dsns = hosts_by_type[host_type];
-  if (host_dsns.empty()) {
-    throw ClusterUnavailable("Pool for host type (passed: " + ToString(ht) +
-                             ", picked: " + ToString(host_type) +
-                             ") is not available");
-  }
-
-  const auto& dsn =
-      host_dsns[host_ind_.fetch_add(1, std::memory_order_relaxed) %
-                host_dsns.size()];
-  LOG_TRACE() << "Starting transaction on the host of " << host_type << " type";
-
-  auto pool = GetPool(dsn);
-  if (!pool) {
-    throw ClusterUnavailable("Host not found for given DSN: " + dsn);
-  }
-  pool->SetDefaultCommandControl(*default_cmd_ctl_.Get());
+  auto pool = FindPool(host_type);
   try {
     return pool->Begin(options, cmd_ctl);
   } catch (const ConnectionError&) {
-    topology_->OperationFailed(dsn);
+    topology_->OperationFailed(pool->GetDsn());
+    throw;
+  }
+}
+
+NonTransaction ClusterImpl::Start(ClusterHostType host_type) {
+  if (host_type == ClusterHostType::kAny) {
+    throw LogicError("Cannot use any host for execution of a single statement");
+  }
+  LOG_TRACE() << "Requested single statement on the host of " << host_type
+              << " type";
+  auto pool = FindPool(host_type);
+  try {
+    return pool->Start();
+  } catch (const ConnectionError&) {
+    topology_->OperationFailed(pool->GetDsn());
     throw;
   }
 }

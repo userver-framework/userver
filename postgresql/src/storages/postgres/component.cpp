@@ -36,6 +36,7 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   trx["total"] = stats.transaction.total;
   trx["committed"] = stats.transaction.commit_total;
   trx["rolled-back"] = stats.transaction.rollback_total;
+  trx["no-tran"] = stats.transaction.out_of_trx_total;
 
   auto timing = trx["timings"];
   timing["full"]["1min"] =

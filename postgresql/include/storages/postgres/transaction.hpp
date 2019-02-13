@@ -148,7 +148,7 @@ class Transaction {
   /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
   /// InvalidParameterType
   template <typename... Args>
-  ResultSet Execute(const std::string& statement, Args... args) {
+  ResultSet Execute(const std::string& statement, Args const&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
     return DoExecute(statement, params, {});
@@ -160,7 +160,7 @@ class Transaction {
   /// InvalidParameterType
   template <typename... Args>
   ResultSet Execute(CommandControl statement_cmd_ctl,
-                    const std::string& statement, Args... args) {
+                    const std::string& statement, Args const&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
     return DoExecute(statement, params, std::move(statement_cmd_ctl));

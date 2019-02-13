@@ -20,6 +20,8 @@ struct TransactionStatistics {
   Counter commit_total = 0;
   /// Number of transactions rolled back
   Counter rollback_total = 0;
+  /// Number of out-of-transaction executions
+  Counter out_of_trx_total = 0;
   /// Number of parsed queries
   Counter parse_total = 0;
   /// Number of query executions
@@ -96,6 +98,7 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     transaction.total = stats.transaction.total;
     transaction.commit_total = stats.transaction.commit_total;
     transaction.rollback_total = stats.transaction.rollback_total;
+    transaction.out_of_trx_total = stats.transaction.out_of_trx_total;
     transaction.parse_total = stats.transaction.parse_total;
     transaction.execute_total = stats.transaction.execute_total;
     transaction.reply_total = stats.transaction.reply_total;

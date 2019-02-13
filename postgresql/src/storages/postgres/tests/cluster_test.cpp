@@ -88,3 +88,22 @@ TEST_P(PostgreCluster, ClusterTransaction) {
     CheckTransaction(cluster.Begin({}));
   });
 }
+
+TEST_P(PostgreCluster, SingleQuery) {
+  RunInCoro([this] {
+    auto cluster = CreateClusterWithMaster(dsn_, GetTaskProcessor(), 1);
+
+    EXPECT_THROW(cluster.Execute(pg::ClusterHostType::kAny, "select 1"),
+                 pg::ClusterError);
+    pg::ResultSet res{nullptr};
+    EXPECT_NO_THROW(
+        res = cluster.Execute(pg::ClusterHostType::kMaster, "select 1"));
+    EXPECT_EQ(1, res.Size());
+    EXPECT_NO_THROW(
+        res = cluster.Execute(pg::ClusterHostType::kSyncSlave, "select 1"));
+    EXPECT_EQ(1, res.Size());
+    EXPECT_NO_THROW(
+        res = cluster.Execute(pg::ClusterHostType::kSlave, "select 1"));
+    EXPECT_EQ(1, res.Size());
+  });
+}

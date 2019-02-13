@@ -124,6 +124,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
     stats_.transaction.total += conn_stats.trx_total;
     stats_.transaction.commit_total += conn_stats.commit_total;
     stats_.transaction.rollback_total += conn_stats.rollback_total;
+    stats_.transaction.out_of_trx_total += conn_stats.out_of_trx;
     stats_.transaction.parse_total += conn_stats.parse_total;
     stats_.transaction.execute_total += conn_stats.execute_total;
     stats_.transaction.reply_total += conn_stats.reply_total;
@@ -176,6 +177,13 @@ Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options,
   assert(conn);
   return Transaction{std::move(conn), options, trx_cmd_ctl,
                      std::move(trx_start_time)};
+}
+
+NonTransaction ConnectionPoolImpl::Start() {
+  auto start_time = detail::SteadyClock::now();
+  auto conn = Acquire();
+  assert(conn);
+  return NonTransaction{std::move(conn), std::move(start_time)};
 }
 
 engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {

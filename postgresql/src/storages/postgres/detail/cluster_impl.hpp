@@ -9,6 +9,7 @@
 #include <utils/swappingsmart.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
+#include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/detail/topology.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/pool.hpp>
@@ -31,6 +32,8 @@ class ClusterImpl {
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options,
                     OptionalCommandControl = {});
 
+  NonTransaction Start(ClusterHostType ht);
+
   // The task returned MUST NOT outlive the ClusterImpl object
   engine::TaskWithResult<void> DiscoverTopology();
   void SetDefaultCommandControl(CommandControl);
@@ -47,6 +50,7 @@ class ClusterImpl {
   void StopPeriodicUpdates();
   void CheckTopology();
   ConnectionPoolPtr GetPool(const std::string& dsn) const;
+  ConnectionPoolPtr FindPool(ClusterHostType ht);
 
  private:
   ClusterTopologyPtr topology_;

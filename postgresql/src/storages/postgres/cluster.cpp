@@ -31,15 +31,8 @@ Transaction Cluster::Begin(ClusterHostType ht,
   return pimpl_->Begin(ht, options, cmd_ctl);
 }
 
-ResultSet Cluster::Execute(const TransactionOptions& options,
-                           const std::string& statement) {
-  return Execute(ClusterHostType::kAny, options, statement);
-}
-
-ResultSet Cluster::Execute(ClusterHostType ht,
-                           const TransactionOptions& options,
-                           const std::string& statement) {
-  return Execute<>(ht, options, statement);
+detail::NonTransaction Cluster::Start(ClusterHostType ht) {
+  return pimpl_->Start(ht);
 }
 
 engine::TaskWithResult<void> Cluster::DiscoverTopology() {
