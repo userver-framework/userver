@@ -30,7 +30,6 @@ constexpr size_t kBufferSize = 16 * 1024;
 constexpr int kCompatibleMajorVersion = 1;
 constexpr int kMaxCompatibleMinorVersion = 13;
 
-// TODO: conflicts in debian
 static_assert((MONGOC_MAJOR_VERSION) == kCompatibleMajorVersion &&
                   (MONGOC_MINOR_VERSION) <= kMaxCompatibleMinorVersion,
               "Check mongoc_stream_t structure compatibility with "
@@ -88,6 +87,11 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t* host,
   try {
     return engine::io::Connect(engine::io::Addr(addr, SOCK_STREAM, 0),
                                DeadlineFromTimeoutMs(timeout_ms));
+  } catch (const engine::io::IoCancelled& ex) {
+    // do not log
+    bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
+                   "%s", ex.what());
+    return {};
   } catch (const std::exception& ex) {
     LOG_INFO() << "Cannot connect to UNIX socket '" << host->host
                << "': " << ex.what();
@@ -127,13 +131,18 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
       try {
         return engine::io::Connect(current_addr,
                                    DeadlineFromTimeoutMs(timeout_ms));
+      } catch (const engine::io::IoCancelled& ex) {
+        // do not log
+        bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
+                       "%s", ex.what());
+        return {};
       } catch (const engine::io::IoError& ex) {
         LOG_DEBUG() << "Cannot connect to " << host->host << " at "
                     << current_addr << ": " << ex.what();
       }
     }
   } catch (const std::exception& ex) {
-    LOG_INFO() << "Cannot connect to " << host->host << ": " << ex.what();
+    LOG_ERROR() << "Cannot connect to " << host->host << ": " << ex.what();
   }
   bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                  "Cannot connect to %s", host->host_and_port);
@@ -143,6 +152,7 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
 engine::io::Socket Connect(const mongoc_host_list_t* host, int32_t timeout_ms,
                            bson_error_t* error) {
   switch (host->family) {
+    case AF_UNSPEC:  // mongoc thinks this is okay
     case AF_INET:
     case AF_INET6:
       return ConnectTcpByName(host, timeout_ms, error);
@@ -275,6 +285,8 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
       bytes_sent +=
           self->socket_.SendAll(iov[i].iov_base, iov[i].iov_len, deadline);
     }
+  } catch (const engine::io::IoCancelled&) {
+    // pass
   } catch (const engine::io::IoTimeout& timeout_ex) {
     self->is_timed_out_ = true;
     bytes_sent += timeout_ex.BytesTransferred();
@@ -308,6 +320,8 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 
       if (!iov[curr_iov].iov_len) ++curr_iov;
     }
+  } catch (const engine::io::IoCancelled&) {
+    // pass
   } catch (const engine::io::IoTimeout& timeout_ex) {
     self->is_timed_out_ = true;
     recvd_total += timeout_ex.BytesTransferred();
@@ -352,6 +366,8 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
         try {
           stream->socket_.WaitWriteable(deadline);
           return POLLOUT;
+        } catch (const engine::io::IoCancelled&) {
+          return POLLERR;
         } catch (const engine::io::IoTimeout&) {
           stream->is_timed_out_ = true;
           return 0;
@@ -365,6 +381,8 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
             try {
               stream->socket_.WaitReadable(deadline);
               return POLLIN & events;
+            } catch (const engine::io::IoCancelled&) {
+              return POLLERR;
             } catch (const engine::io::IoTimeout&) {
               stream->is_timed_out_ = true;
               return 0;

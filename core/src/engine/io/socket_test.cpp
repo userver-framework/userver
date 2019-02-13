@@ -41,7 +41,7 @@ struct Listener {
       try {
         socket = io::Listen(addr);
         return;
-      } catch (const std::system_error& ex) {
+      } catch (const io::IoError&) {
         // retry
       }
     }
@@ -66,10 +66,10 @@ TEST(Socket, ConnectFail) {
     try {
       io::Connect(io::Addr(addr_storage, SOCK_STREAM, 0), {});
       FAIL() << "Connection to 23/tcp succeeded";
-    } catch (const std::system_error& ex) {
+    } catch (const io::IoSystemError& ex) {
       // oh come on, system and generic categories don't match =/
       EXPECT_EQ(static_cast<int>(std::errc::connection_refused),
-                ex.code().value());
+                ex.Code().value());
     }
   });
 }

@@ -2,25 +2,23 @@
 
 #include <cassert>
 
-#include <bson/bson.h>
-
 #include <formats/bson.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo_ng/exception.hpp>
 
-#include <formats/bson/wrappers.hpp>
 #include <storages/mongo_ng/async_stream.hpp>
+#include <storages/mongo_ng/bson_error.hpp>
 
 namespace storages::mongo_ng::impl {
 namespace {
 
 UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
                int conn_timeout_ms, int so_timeout_ms) {
-  bson_error_t parse_error;
-  UriPtr uri(mongoc_uri_new_with_error(uri_string.c_str(), &parse_error));
+  BsonError parse_error;
+  UriPtr uri(mongoc_uri_new_with_error(uri_string.c_str(), parse_error.Get()));
   if (!uri) {
     throw InvalidConfigException(
-        pool_id, std::string("bad uri: ") + parse_error.message);
+        pool_id, std::string("Bad MongoDB uri: ") + parse_error->message);
   }
   mongoc_uri_set_option_as_int32(uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
                                  conn_timeout_ms);
@@ -56,6 +54,12 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
   CheckAsyncStreamCompatible();
 
   uri_ = MakeUri(id_, uri_string, config.conn_timeout_ms, config.so_timeout_ms);
+  const char* uri_database = mongoc_uri_get_database(uri_.get());
+  if (!uri_database) {
+    throw InvalidConfigException(id_, "MongoDB uri must include database name");
+  }
+  default_database_ = uri_database;
+
   ssl_opt_ = MakeSslOpt(uri_.get());
 
   try {
@@ -70,6 +74,10 @@ PoolImpl::~PoolImpl() {
   const ClientDeleter deleter;
   mongoc_client_t* client = nullptr;
   while (queue_.pop(client)) deleter(client);
+}
+
+const std::string& PoolImpl::DefaultDatabaseName() const {
+  return default_database_;
 }
 
 PoolImpl::BoundClientPtr PoolImpl::Acquire() {
@@ -113,12 +121,12 @@ mongoc_client_t* PoolImpl::Create() {
 
   // force topology refresh
   // XXX: Periodic task forcing topology refresh?
-  bson_error_t error;
-  if (!mongoc_client_command_simple(client.get(), kPingDatabase,
-                                    kPingCommand.GetBson().get(),
-                                    kPingReadPrefs.get(), nullptr, &error)) {
+  BsonError error;
+  if (!mongoc_client_command_simple(
+          client.get(), kPingDatabase, kPingCommand.GetBson().get(),
+          kPingReadPrefs.get(), nullptr, error.Get())) {
     throw PoolException(
-        id_, std::string("Connection to MongoDB failed: ") + error.message);
+        id_, std::string("Connection to MongoDB failed: ") + error->message);
   }
 
   ++size_;

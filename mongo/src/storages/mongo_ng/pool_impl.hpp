@@ -31,6 +31,8 @@ class PoolImpl {
            const PoolConfig& config);
   ~PoolImpl();
 
+  const std::string& DefaultDatabaseName() const;
+
   BoundClientPtr Acquire();
 
  private:
@@ -41,10 +43,14 @@ class PoolImpl {
 
   const std::string id_;
   const std::string app_name_;
+  std::string default_database_;
   UriPtr uri_;
   mongoc_ssl_opt_t ssl_opt_;
   boost::lockfree::queue<mongoc_client_t*> queue_;
   std::atomic<size_t> size_;
 };
+
+using BoundClientPtr = PoolImpl::BoundClientPtr;
+using PoolImplPtr = std::shared_ptr<PoolImpl>;
 
 }  // namespace storages::mongo_ng::impl

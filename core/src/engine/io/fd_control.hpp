@@ -3,7 +3,6 @@
 #include <atomic>
 #include <cassert>
 #include <cerrno>
-#include <system_error>
 
 #include <engine/deadline.hpp>
 #include <engine/io/error.hpp>
@@ -147,9 +146,9 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
       }
     } else {
       const auto err_value = errno;
-      std::system_error ex(
-          err_value, std::system_category(),
-          utils::impl::ToString("Error while ", context..., ", fd=", fd_));
+      IoSystemError ex(
+          utils::impl::ToString("Error while ", context..., ", fd=", fd_),
+          err_value);
       LOG_ERROR() << ex.what();
       if (pos != begin) {
         break;

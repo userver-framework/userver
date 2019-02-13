@@ -58,4 +58,4 @@ target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}_unittest utest ${PROJECT_NAME})
-add_google_tests(${PROJECT_NAME}_unittest)
+add_google_tests_with_mongo(${PROJECT_NAME}_unittest)

@@ -4,6 +4,7 @@
 /// @brief @copybrief storages::mongo_ng::PoolConfig
 
 #include <cstddef>
+#include <string>
 
 namespace storages::mongo_ng {
 
@@ -24,6 +25,11 @@ class PoolConfig {
   // Constructor for component use
   // explicit PoolConfig(const components::ComponentConfig&);
 
+  /// @cond
+  // Constructs a constrained pool for tests, not to be used in production code
+  explicit PoolConfig(std::string app_name);
+  /// @endcond
+
   /// Connection timeout (ms)
   const int conn_timeout_ms;
   /// Socket (I/O) timeout (ms)
@@ -34,7 +40,6 @@ class PoolConfig {
   const size_t idle_limit;
 
   /// Application name (sent to server)
-  // XXX: Validate size() < MONGOC_HANDSHAKE_APPNAME_MAX and valid utf8
   const std::string app_name;
 };
 

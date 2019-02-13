@@ -28,6 +28,20 @@ struct ClientDeleter {
 };
 using UnboundClientPtr = std::unique_ptr<mongoc_client_t, ClientDeleter>;
 
+struct CollectionDeleter {
+  void operator()(mongoc_collection_t* collection) const noexcept {
+    mongoc_collection_destroy(collection);
+  }
+};
+using CollectionPtr = std::unique_ptr<mongoc_collection_t, CollectionDeleter>;
+
+struct DatabaseDeleter {
+  void operator()(mongoc_database_t* db) const noexcept {
+    mongoc_database_destroy(db);
+  }
+};
+using DatabasePtr = std::unique_ptr<mongoc_database_t, DatabaseDeleter>;
+
 struct ReadPrefsDeleter {
   void operator()(mongoc_read_prefs_t* read_prefs) const noexcept {
     mongoc_read_prefs_destroy(read_prefs);

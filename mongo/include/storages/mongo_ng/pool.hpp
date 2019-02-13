@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+#include <storages/mongo_ng/collection.hpp>
 #include <storages/mongo_ng/pool_config.hpp>
 
 namespace storages::mongo_ng {
@@ -24,12 +25,11 @@ class Pool {
   Pool(std::string id, const std::string& uri, const PoolConfig& config);
   ~Pool();
 
-  // Returns a handle for the specified collection from the default database
-  // Collection GetCollection(std::string name);
+  /// Checks whether a collection exists
+  bool HasCollection(const std::string& name) const;
 
-  // Returns a handle for the specified database
-  // Database GetDatabase(std::string database);
-  // XXX: list databases?
+  /// Returns a handle for the specified collection
+  Collection GetCollection(std::string name) const;
 
  private:
   std::shared_ptr<impl::PoolImpl> impl_;

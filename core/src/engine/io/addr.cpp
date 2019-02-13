@@ -3,9 +3,10 @@
 #include <arpa/inet.h>
 
 #include <iostream>
-#include <system_error>
 
 #include <boost/algorithm/string/trim.hpp>
+
+#include <engine/io/error.hpp>
 
 namespace engine {
 namespace io {
@@ -19,8 +20,8 @@ std::string Addr::RemoteAddress() const {
       remote_address.resize(INET_ADDRSTRLEN);
       if (!inet_ntop(AF_INET, &inet_addr->sin_addr, &remote_address[0],
                      remote_address.size())) {
-        throw std::system_error(errno, std::system_category(),
-                                "Cannot convert IPv4 address to string");
+        int err_value = errno;
+        throw IoSystemError("Cannot convert IPv4 address to string", err_value);
       }
     } break;
 
@@ -29,8 +30,8 @@ std::string Addr::RemoteAddress() const {
       remote_address.resize(INET6_ADDRSTRLEN);
       if (!inet_ntop(AF_INET6, &inet6_addr->sin6_addr, &remote_address[0],
                      remote_address.size())) {
-        throw std::system_error(errno, std::system_category(),
-                                "Cannot convert IPv6 address to string");
+        int err_value = errno;
+        throw IoSystemError("Cannot convert IPv6 address to string", err_value);
       }
     } break;
 

@@ -5,7 +5,7 @@
 #include <logging/level.hpp>
 #include <logging/log.hpp>
 
-namespace storages::mongo::impl {
+namespace storages::mongo_ng::impl {
 namespace {
 
 logging::Level ConvertLogLevel(mongoc_log_level_t level) {
@@ -40,4 +40,4 @@ void LogMongocMessage(mongoc_log_level_t level, const char* domain,
   }
 }
 
-}  // namespace storages::mongo::impl
+}  // namespace storages::mongo_ng::impl

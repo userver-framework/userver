@@ -7,7 +7,6 @@
 #include <cassert>
 #include <cerrno>
 #include <string>
-#include <system_error>
 
 #include <engine/io/error.hpp>
 #include <engine/task/cancel.hpp>
@@ -214,10 +213,10 @@ Socket Connect(Addr addr, Deadline deadline) {
   }
 
   if (err_value) {
-    throw std::system_error(
-        err_value, std::system_category(),
+    throw IoSystemError(
         utils::impl::ToString("Error while establishing connection, fd=",
-                              socket.Fd(), ", addr=", addr));
+                              socket.Fd(), ", addr=", addr),
+        err_value);
   }
   return socket;
 }

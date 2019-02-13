@@ -33,13 +33,15 @@ target_include_directories(
 add_dependencies(yandex-taxi-backend-common-cpp spdlog_lib)
 
 add_subdirectory(core)
-add_subdirectory(tools/engine)
-add_subdirectory(tools/httpclient)
-add_subdirectory(tools/netcat)
 
 set(YANDEX_TAXI_USERVER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "")
 
 if(NOT USERVICES)
+  add_subdirectory(testsuite)
+  add_subdirectory(tools/engine)
+  add_subdirectory(tools/httpclient)
+  add_subdirectory(tools/netcat)
+
   find_package(Helperyandex-taxi-userver-core)
   find_package(Helperyandex-taxi-userver-mongo)
   find_package(Helperyandex-taxi-userver-postgresql)
