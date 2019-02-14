@@ -106,11 +106,11 @@ void ConnectionPoolImpl::Init(size_t initial_size) {
 
 ConnectionPtr ConnectionPoolImpl::Acquire() {
   // Obtain smart pointer first to prolong lifetime of this object
-  auto thiz = shared_from_this();
+  auto shared_this = shared_from_this();
   auto* connection = Pop();
   ++stats_.connection.used;
   connection->SetDefaultCommandControl(*default_cmd_ctl_.Get());
-  return {connection, std::move(thiz)};
+  return {connection, std::move(shared_this)};
 }
 
 void ConnectionPoolImpl::Release(Connection* connection) {
@@ -150,18 +150,30 @@ void ConnectionPoolImpl::Release(Connection* connection) {
   ++stats_.connection.error_total;
   if (!connection->IsConnected()) {
     LOG_WARNING() << "Released connection in closed state. Deleting...";
+    DeleteConnection(connection);
   } else {
-    LOG_WARNING() << "Released connection in busy state. Trying to clean up...";
-    auto cmd_ctl = default_cmd_ctl_.Get();
-    connection->Cleanup(cmd_ctl->network * 10);
-    if (connection->IsIdle()) {
-      LOG_DEBUG() << "Succesfully cleaned up dirty connection";
-      Push(connection);
-      return;
-    }
-    LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
+    // Connection cleanup is done asynchronously while returning control to the
+    // user
+    engine::CriticalAsync([ shared_this = shared_from_this(), connection ] {
+      LOG_WARNING()
+          << "Released connection in busy state. Trying to clean up...";
+      auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
+      try {
+        connection->Cleanup(cmd_ctl->network * 10);
+        if (connection->IsIdle()) {
+          LOG_DEBUG() << "Succesfully cleaned up dirty connection";
+          shared_this->Push(connection);
+          return;
+        }
+      } catch (const std::exception& e) {
+        LOG_WARNING() << "Exception while cleaning up a dirty connection: "
+                      << e.what();
+      }
+      LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
+      shared_this->DeleteConnection(connection);
+    })
+        .Detach();
   }
-  DeleteConnection(connection);
 }
 
 const InstanceStatistics& ConnectionPoolImpl::GetStatistics() const {
@@ -187,30 +199,32 @@ NonTransaction ConnectionPoolImpl::Start() {
 }
 
 engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
-  return engine::Async([thiz = shared_from_this()] {
-    SizeGuard sg(thiz->size_);
+  return engine::Async([shared_this = shared_from_this()] {
+    SizeGuard sg(shared_this->size_);
 
-    if (sg.GetSize() > thiz->max_size_) {
+    if (sg.GetSize() > shared_this->max_size_) {
       LOG_WARNING() << "PostgreSQL pool reached maximum size: "
-                    << thiz->max_size_;
+                    << shared_this->max_size_;
       return false;
     }
 
     LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
                 << sg.GetSize();
-    const decltype(thiz->stats_.connection.open_total)::ValueType conn_id =
-        ++thiz->stats_.connection.open_total;
+    const decltype(
+        shared_this->stats_.connection.open_total)::ValueType conn_id =
+        ++shared_this->stats_.connection.open_total;
     std::unique_ptr<Connection> connection;
     try {
-      auto cmd_ctl = thiz->default_cmd_ctl_.Get();
-      connection = Connection::Connect(thiz->dsn_, thiz->bg_task_processor_,
-                                       conn_id, *cmd_ctl);
+      auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
+      connection = Connection::Connect(shared_this->dsn_,
+                                       shared_this->bg_task_processor_, conn_id,
+                                       *cmd_ctl);
     } catch (const ConnectionError&) {
       // No problem if it's connection error
-      ++thiz->stats_.connection.error_total;
+      ++shared_this->stats_.connection.error_total;
       return false;
     } catch (const Error& ex) {
-      ++thiz->stats_.connection.error_total;
+      ++shared_this->stats_.connection.error_total;
       LOG_ERROR() << "Connection creation failed with error: " << ex.what();
       throw;
     }
@@ -220,7 +234,7 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
     std::ignore = connection->GetStatsAndReset();
 
     sg.Dismiss();
-    thiz->Push(connection.release());
+    shared_this->Push(connection.release());
     return true;
   });
 }
