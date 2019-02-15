@@ -2,8 +2,6 @@
 
 #include <iterator>
 
-#include <json/value.h>
-
 #include <formats/json/types.hpp>
 
 namespace formats {
@@ -43,7 +41,6 @@ class Iterator {
   uint32_t GetIndex() const;
 
  private:
-  void ThrowTypeMismatch(Json::ValueType expected) const;
   void UpdateValue() const;
 
  private:

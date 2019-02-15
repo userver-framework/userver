@@ -31,7 +31,7 @@ class BadStreamException : public JsonException {
 
 class TypeMismatchException : public JsonException {
  public:
-  TypeMismatchException(const Json::Value& doc, Json::ValueType expected,
+  TypeMismatchException(Json::ValueType actual, Json::ValueType expected,
                         const std::string& path);
 };
 

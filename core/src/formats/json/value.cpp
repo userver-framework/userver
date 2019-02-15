@@ -79,42 +79,43 @@ template <>
 bool Value::As<bool>() const {
   CheckNotMissing();
   if (IsBool()) return GetNative().asBool();
-  throw TypeMismatchException(GetNative(), Json::booleanValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::booleanValue,
+                              GetPath());
 }
 
 template <>
 int32_t Value::As<int32_t>() const {
   CheckNotMissing();
   if (IsInt()) return GetNative().asInt();
-  throw TypeMismatchException(GetNative(), Json::intValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::intValue, GetPath());
 }
 
 template <>
 int64_t Value::As<int64_t>() const {
   CheckNotMissing();
   if (IsInt64()) return GetNative().asInt64();
-  throw TypeMismatchException(GetNative(), Json::intValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::intValue, GetPath());
 }
 
 template <>
 uint64_t Value::As<uint64_t>() const {
   CheckNotMissing();
   if (IsUInt64()) return GetNative().asUInt64();
-  throw TypeMismatchException(GetNative(), Json::uintValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::uintValue, GetPath());
 }
 
 template <>
 double Value::As<double>() const {
   CheckNotMissing();
   if (IsDouble()) return GetNative().asDouble();
-  throw TypeMismatchException(GetNative(), Json::realValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::realValue, GetPath());
 }
 
 template <>
 std::string Value::As<std::string>() const {
   CheckNotMissing();
   if (IsString()) return GetNative().asString();
-  throw TypeMismatchException(GetNative(), Json::stringValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::stringValue, GetPath());
 }
 
 bool Value::HasMember(const char* key) const {
@@ -181,19 +182,22 @@ void Value::CheckNotMissing() const {
 
 void Value::CheckArrayOrNull() const {
   if (!IsArray() && !IsNull()) {
-    throw TypeMismatchException(GetNative(), Json::arrayValue, GetPath());
+    throw TypeMismatchException(GetNative().type(), Json::arrayValue,
+                                GetPath());
   }
 }
 
 void Value::CheckObjectOrNull() const {
   if (!IsObject() && !IsNull()) {
-    throw TypeMismatchException(GetNative(), Json::objectValue, GetPath());
+    throw TypeMismatchException(GetNative().type(), Json::objectValue,
+                                GetPath());
   }
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
   if (!IsObject() && !IsArray() && !IsNull()) {
-    throw TypeMismatchException(GetNative(), Json::objectValue, GetPath());
+    throw TypeMismatchException(GetNative().type(), Json::objectValue,
+                                GetPath());
   }
 }
 

@@ -90,7 +90,9 @@ template <typename iter_traits>
 std::string Iterator<iter_traits>::GetName() const {
   const auto& name = iter_.name();
   if (name.empty()) {
-    ThrowTypeMismatch(Json::objectValue);
+    throw TypeMismatchException(Json::ValueType::arrayValue,
+                                Json::ValueType::objectValue,
+                                PathToString(path_));
   }
   return name;
 }
@@ -99,15 +101,11 @@ template <typename iter_traits>
 uint32_t Iterator<iter_traits>::GetIndex() const {
   const auto index = iter_.index();
   if (static_cast<Json::Int>(index) == -1) {
-    ThrowTypeMismatch(Json::arrayValue);
+    throw TypeMismatchException(Json::ValueType::objectValue,
+                                Json::ValueType::arrayValue,
+                                PathToString(path_));
   }
   return index;
-}
-
-template <typename iter_traits>
-void Iterator<iter_traits>::ThrowTypeMismatch(Json::ValueType expected) const {
-  UpdateValue();
-  throw TypeMismatchException(value_.Get(), expected, value_.GetPath());
 }
 
 template <typename iter_traits>

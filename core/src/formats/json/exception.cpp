@@ -36,11 +36,11 @@ const char* NameForType(Json::ValueType expected) {
 #undef RET_NAME
 }
 
-std::string MsgForType(const Json::Value& doc, Json::ValueType expected,
+std::string MsgForType(Json::ValueType actual, Json::ValueType expected,
                        const std::string& path) {
   return std::string("Field '") + path +
          "' is of a wrong type. Expected: " + NameForType(expected) +
-         ", actual: " + NameForType(doc.type());
+         ", actual: " + NameForType(actual);
 }
 
 std::string MsgForIndex(size_t index, size_t size, const std::string& path) {
@@ -63,10 +63,10 @@ BadStreamException::BadStreamException(const std::istream& is)
 BadStreamException::BadStreamException(const std::ostream& os)
     : JsonException(MsgForState(os.rdstate(), "output")) {}
 
-TypeMismatchException::TypeMismatchException(const Json::Value& doc,
+TypeMismatchException::TypeMismatchException(Json::ValueType actual,
                                              Json::ValueType expected,
                                              const std::string& path)
-    : JsonException(MsgForType(doc, expected, path)) {}
+    : JsonException(MsgForType(actual, expected, path)) {}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            const std::string& path)
