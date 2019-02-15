@@ -1,14 +1,13 @@
 #include "http_request_impl.hpp"
 
 #include <engine/task/task.hpp>
+#include <http/common_headers.hpp>
 #include <logging/logger.hpp>
 #include <logging/spdlog.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <utils/encoding/tskv.hpp>
 
 namespace {
-
-const std::string kHostHeader = "Host";
 
 std::string EscapeLogString(const std::string& str,
                             const std::vector<uint8_t>& need_escape_map) {
@@ -84,7 +83,7 @@ std::chrono::duration<double> HttpRequestImpl::GetResponseTime() const {
 }
 
 const std::string& HttpRequestImpl::GetHost() const {
-  return GetHeader(kHostHeader);
+  return GetHeader(::http::headers::kHost);
 }
 
 const std::string& HttpRequestImpl::GetArg(const std::string& arg_name) const {

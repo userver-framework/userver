@@ -7,6 +7,7 @@
 
 #include <build_config.hpp>
 #include <engine/io/socket.hpp>
+#include <http/common_headers.hpp>
 #include <server/http/content_type.hpp>
 
 #include "http_request_impl.hpp"
@@ -14,11 +15,9 @@
 namespace {
 
 const std::string kCrlf = "\r\n";
-const std::string kHeaderContentEncoding = "Content-Encoding";
-const std::string kHeaderContentType = "Content-Type";
-const std::string kHeaderConnection = "Connection";
 const std::string kResponseHttpVersionPrefix = "HTTP/";
-const std::string kServerName = "Server: taxi_userver/" USERVER_VERSION;
+const std::string kServerName =
+    ::http::headers::kServer + ": taxi_userver/" USERVER_VERSION;
 
 const std::string kClose = "close";
 const std::string kKeepAlive = "keep-alive";
@@ -86,11 +85,11 @@ void HttpResponse::SetHeader(std::string name, std::string value) {
 }
 
 void HttpResponse::SetContentType(std::string type) {
-  SetHeader(kHeaderContentType, std::move(type));
+  SetHeader(::http::headers::kContentType, std::move(type));
 }
 
 void HttpResponse::SetContentEncoding(std::string encoding) {
-  SetHeader(kHeaderContentEncoding, std::move(encoding));
+  SetHeader(::http::headers::kContentEncoding, std::move(encoding));
 }
 
 void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
@@ -119,12 +118,13 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
       cctz::format(format_string, std::chrono::system_clock::now(), tz);
 
   os << "Date: " << time_str << kCrlf;
-  if (headers_.find(kHeaderContentType) == headers_.end())
-    os << kHeaderContentType << ": " << content_type::kTextHtml << kCrlf;
+  if (headers_.find(::http::headers::kContentType) == headers_.end())
+    os << ::http::headers::kContentType << ": " << content_type::kTextHtml
+       << kCrlf;
   for (const auto& header : headers_)
     os << header.first << ": " << header.second << kCrlf;
-  if (headers_.find(kHeaderConnection) == headers_.end())
-    os << kHeaderConnection << ": "
+  if (headers_.find(::http::headers::kConnection) == headers_.end())
+    os << ::http::headers::kConnection << ": "
        << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
   os << "Content-Length: " << data_.size() << kCrlf << kCrlf;
   if (!is_head_request) os << data_;
