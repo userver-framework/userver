@@ -12,6 +12,7 @@ set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
+set (CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 add_compile_options ("-pipe" "-fno-omit-frame-pointer")
 add_compile_options ("-fexceptions" "-g")
@@ -124,6 +125,9 @@ if (CLANG)
   if (MACOS AND ${Boost_VERSION} STRLESS "106800")
     message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
   endif()
+
+  #  bug on xenial https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-3.8/+bug/1664321
+  add_definitions (-DBOOST_REGEX_NO_EXTERNAL_TEMPLATES=1)
 
   add_compile_options ("-Wno-missing-braces") # -Wmissing-braces is buggy in some versions on clang
   add_compile_options ("-Wno-braced-scalar-init")
