@@ -86,9 +86,9 @@ TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
     EXPECT_NO_THROW(conn = pool.GetConnection())
         << "Obtained connection from pool";
     // Free up connection asynchronously
-    engine::Async(GetTaskProcessor(),
-                  [](pg::detail::ConnectionPtr conn) { conn = nullptr; },
-                  std::move(conn))
+    engine::impl::Async(GetTaskProcessor(),
+                        [](pg::detail::ConnectionPtr conn) { conn = nullptr; },
+                        std::move(conn))
         .Detach();
     EXPECT_NO_THROW(conn = pool.GetConnection())
         << "Execution blocked because pool reached max size, but connection "

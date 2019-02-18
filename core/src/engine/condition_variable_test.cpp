@@ -42,7 +42,7 @@ TEST(ConditionVariable, Satisfy1) {
     engine::ConditionVariable cv;
     bool ok = false;
 
-    auto task = engine::Async([&] {
+    auto task = engine::impl::Async([&] {
       std::unique_lock<engine::Mutex> lock(mutex);
       EXPECT_TRUE(cv.Wait(lock, [&ok] { return ok; }));
     });
@@ -66,7 +66,7 @@ TEST(ConditionVariable, SatisfyMultiple) {
 
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < 40; i++)
-          tasks.push_back(engine::Async([&] {
+          tasks.push_back(engine::impl::Async([&] {
             for (int j = 0; j < 10; j++) {
               std::unique_lock<engine::Mutex> lock(mutex);
               EXPECT_TRUE(cv.Wait(lock, [&ok] { return ok; }));
@@ -92,7 +92,7 @@ TEST(ConditionVariable, WaitStatus) {
     engine::ConditionVariable cv;
     SpinEvent has_started_event;
     {
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.Wait(lock);
@@ -105,7 +105,7 @@ TEST(ConditionVariable, WaitStatus) {
       EXPECT_EQ(engine::CvStatus::kNoTimeout, task.Get());
     }
     {
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.Wait(lock);
@@ -127,7 +127,7 @@ TEST(ConditionVariable, WaitPredicateStatus) {
     SpinEvent has_started_event;
     {
       bool flag = false;
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.Wait(lock, [&] { return flag; });
@@ -142,7 +142,7 @@ TEST(ConditionVariable, WaitPredicateStatus) {
     }
     {
       bool flag = false;
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.Wait(lock, [&] { return flag; });
@@ -163,7 +163,7 @@ TEST(ConditionVariable, WaitForStatus) {
     engine::ConditionVariable cv;
     SpinEvent has_started_event;
     {
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.WaitFor(lock, kWaitPeriod);
@@ -176,7 +176,7 @@ TEST(ConditionVariable, WaitForStatus) {
       EXPECT_EQ(engine::CvStatus::kNoTimeout, task.Get());
     }
     {
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.WaitFor(lock, kWaitPeriod);
@@ -185,7 +185,7 @@ TEST(ConditionVariable, WaitForStatus) {
       EXPECT_EQ(engine::CvStatus::kTimeout, task.Get());
     }
     {
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.WaitFor(lock, kWaitPeriod);
@@ -207,7 +207,7 @@ TEST(ConditionVariable, WaitForPredicateStatus) {
     SpinEvent has_started_event;
     {
       bool flag = false;
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.WaitFor(lock, kWaitPeriod, [&] { return flag; });
@@ -223,7 +223,7 @@ TEST(ConditionVariable, WaitForPredicateStatus) {
     }
     {
       bool flag = false;
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.WaitFor(lock, kWaitPeriod, [&] { return flag; });
@@ -233,7 +233,7 @@ TEST(ConditionVariable, WaitForPredicateStatus) {
     }
     {
       bool flag = false;
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         return cv.WaitFor(lock, kWaitPeriod, [&] { return flag; });
@@ -254,7 +254,7 @@ TEST(ConditionVariable, BlockedCancelWait) {
     engine::ConditionVariable cv;
     SpinEvent has_started_event;
     {
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         engine::TaskCancellationBlocker block_cancel;
@@ -283,7 +283,7 @@ TEST(ConditionVariable, BlockedCancelWaitPredicate) {
     SpinEvent has_started_event;
     {
       bool flag = false;
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         engine::TaskCancellationBlocker block_cancel;
@@ -300,7 +300,7 @@ TEST(ConditionVariable, BlockedCancelWaitPredicate) {
     }
     {
       bool flag = false;
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         engine::TaskCancellationBlocker block_cancel;
@@ -330,7 +330,7 @@ TEST(ConditionVariable, BlockedCancelWaitFor) {
     engine::ConditionVariable cv;
     SpinEvent has_started_event;
     {
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         engine::TaskCancellationBlocker block_cancel;
@@ -345,7 +345,7 @@ TEST(ConditionVariable, BlockedCancelWaitFor) {
       EXPECT_EQ(engine::CvStatus::kNoTimeout, task.Get());
     }
     {
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         engine::TaskCancellationBlocker block_cancel;
@@ -368,7 +368,7 @@ TEST(ConditionVariable, BlockedCancelWaitForPredicate) {
     SpinEvent has_started_event;
     {
       bool flag = false;
-      auto task = engine::Async([&] {
+      auto task = engine::impl::Async([&] {
         std::unique_lock<engine::Mutex> lock(mutex);
         has_started_event.Send();
         engine::TaskCancellationBlocker block_cancel;

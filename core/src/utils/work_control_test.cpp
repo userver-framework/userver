@@ -42,7 +42,7 @@ TEST(WorkControl, WaitAsync) {
     auto token = work_control.GetToken();
     EXPECT_TRUE(work_control.AreWorkersAlive());
 
-    auto task = engine::Async([token = std::move(token)] {
+    auto task = engine::impl::Async([token = std::move(token)] {
       while (!token->IsFinished()) engine::Yield();
     });
     EXPECT_TRUE(work_control.AreWorkersAlive());
@@ -64,7 +64,7 @@ TEST(WorkControl, WaitSync) {
     auto token = work_control.GetToken();
     EXPECT_TRUE(work_control.AreWorkersAlive());
 
-    auto task = engine::Async([token = std::move(token)] {
+    auto task = engine::impl::Async([token = std::move(token)] {
       while (!token->IsFinished()) engine::Yield();
     });
     EXPECT_TRUE(work_control.AreWorkersAlive());
@@ -82,10 +82,10 @@ TEST(WorkControl, WaitSync2) {
   RunInCoro([] {
     utils::WorkControl work_control;
 
-    auto task1 = engine::Async([token = work_control.GetToken()] {
+    auto task1 = engine::impl::Async([token = work_control.GetToken()] {
       while (!token->IsFinished()) engine::Yield();
     });
-    auto task2 = engine::Async([token = work_control.GetToken()] {
+    auto task2 = engine::impl::Async([token = work_control.GetToken()] {
       while (!token->IsFinished()) engine::Yield();
     });
     EXPECT_TRUE(work_control.AreWorkersAlive());

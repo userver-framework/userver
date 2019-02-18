@@ -203,7 +203,7 @@ void LogHelper::LogIds() {
 }
 
 void LogHelper::LogSpan() {
-  auto* span = tracing::Span::CurrentSpan();
+  auto* span = tracing::Span::CurrentSpanUnchecked();
   if (span) *this << *span;
 }
 

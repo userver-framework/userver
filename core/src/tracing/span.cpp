@@ -143,7 +143,19 @@ Span& Span::operator=(Span&&) = default;
 
 Span::~Span() { DetachFromCoroStack(); }
 
-Span* Span::CurrentSpan() {
+Span& Span::CurrentSpan() {
+  auto* span = CurrentSpanUnchecked();
+  assert(span != nullptr);
+  if (span == nullptr) {
+    static constexpr const char* msg =
+        "Span::CurrentSpan() called from Span'less task";
+    LOG_ERROR() << msg << logging::LogExtra::Stacktrace();
+    throw std::logic_error(msg);
+  }
+  return *span;
+}
+
+Span* Span::CurrentSpanUnchecked() {
   auto current = engine::current_task::GetCurrentTaskContextUnchecked();
   if (current == nullptr) return nullptr;
   if (!current->HasLocalStorage()) return nullptr;

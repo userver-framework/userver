@@ -66,7 +66,7 @@ TEST(SpscQueue, Block) {
     auto queue = engine::SpscQueue<int>::Create();
 
     auto consumer_task =
-        engine::Async([consumer = queue->GetConsumer()]() mutable {
+        engine::impl::Async([consumer = queue->GetConsumer()]() mutable {
           int value;
           EXPECT_TRUE(consumer.Pop(value));
           EXPECT_EQ(0, value);

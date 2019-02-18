@@ -12,7 +12,7 @@ TEST(Task, Ctr) { engine::Task task; }
 
 TEST(Task, Wait) {
   RunInCoro([] {
-    auto task = engine::Async([] {});
+    auto task = engine::impl::Async([] {});
     task.Wait();
     EXPECT_TRUE(task.IsFinished());
     EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
@@ -25,7 +25,7 @@ TEST(Task, Yield) {
 
 TEST(Task, WaitFor) {
   RunInCoro([] {
-    auto task = engine::Async([] {});
+    auto task = engine::impl::Async([] {});
     task.WaitFor(std::chrono::seconds(10));
     EXPECT_TRUE(task.IsFinished());
     EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
@@ -34,8 +34,8 @@ TEST(Task, WaitFor) {
 
 TEST(Task, EarlyCancel) {
   RunInCoro([] {
-    auto task =
-        engine::Async([] { ADD_FAILURE() << "Cancelled task has started"; });
+    auto task = engine::impl::Async(
+        [] { ADD_FAILURE() << "Cancelled task has started"; });
     task.RequestCancel();
     task.WaitFor(std::chrono::milliseconds(100));
     EXPECT_TRUE(task.IsFinished());
@@ -45,7 +45,7 @@ TEST(Task, EarlyCancel) {
 
 TEST(Task, Cancel) {
   RunInCoro([] {
-    auto task = engine::Async([] {
+    auto task = engine::impl::Async([] {
       engine::InterruptibleSleepFor(std::chrono::seconds(10));
       EXPECT_TRUE(engine::current_task::IsCancelRequested());
     });
@@ -60,7 +60,7 @@ TEST(Task, Cancel) {
 
 TEST(Task, CancelWithPoint) {
   RunInCoro([] {
-    auto task = engine::Async([] {
+    auto task = engine::impl::Async([] {
       engine::InterruptibleSleepFor(std::chrono::seconds(10));
       engine::current_task::CancellationPoint();
       ADD_FAILURE() << "Task ran past cancellation point";
@@ -76,7 +76,7 @@ TEST(Task, CancelWithPoint) {
 
 TEST(Task, AutoCancel) {
   RunInCoro([] {
-    auto task = engine::Async([] {
+    auto task = engine::impl::Async([] {
       engine::InterruptibleSleepFor(std::chrono::seconds(10));
       EXPECT_TRUE(engine::current_task::IsCancelRequested());
     });
@@ -87,25 +87,26 @@ TEST(Task, AutoCancel) {
 
 TEST(Task, Get) {
   RunInCoro([] {
-    auto result = engine::Async([] { return 12; }).Get();
+    auto result = engine::impl::Async([] { return 12; }).Get();
     EXPECT_EQ(12, result);
   });
 }
 
 TEST(Task, GetVoid) {
-  RunInCoro([] { EXPECT_NO_THROW(engine::Async([] { return; }).Get()); });
+  RunInCoro([] { EXPECT_NO_THROW(engine::impl::Async([] { return; }).Get()); });
 }
 
 TEST(Task, GetException) {
   RunInCoro([] {
-    EXPECT_THROW(engine::Async([] { throw std::runtime_error("123"); }).Get(),
-                 std::runtime_error);
+    EXPECT_THROW(
+        engine::impl::Async([] { throw std::runtime_error("123"); }).Get(),
+        std::runtime_error);
   });
 }
 
 TEST(Task, GetCancel) {
   RunInCoro([] {
-    auto task = engine::Async([] {
+    auto task = engine::impl::Async([] {
       engine::InterruptibleSleepFor(std::chrono::seconds(10));
       EXPECT_TRUE(engine::current_task::IsCancelRequested());
     });
@@ -117,7 +118,7 @@ TEST(Task, GetCancel) {
 
 TEST(Task, GetCancelWithPoint) {
   RunInCoro([] {
-    auto task = engine::Async([] {
+    auto task = engine::impl::Async([] {
       engine::InterruptibleSleepFor(std::chrono::seconds(10));
       engine::current_task::CancellationPoint();
       ADD_FAILURE() << "Task ran past cancellation point";
@@ -132,8 +133,8 @@ TEST(Task, CancelWaiting) {
   RunInCoro([] {
     std::atomic<bool> is_subtask_started{false};
 
-    auto task = engine::Async([&] {
-      auto subtask = engine::Async([&] {
+    auto task = engine::impl::Async([&] {
+      auto subtask = engine::impl::Async([&] {
         is_subtask_started = true;
         engine::InterruptibleSleepFor(std::chrono::seconds(10));
         EXPECT_TRUE(engine::current_task::IsCancelRequested());
@@ -147,7 +148,7 @@ TEST(Task, CancelWaiting) {
 
 TEST(Task, GetInvalidatesTask) {
   RunInCoro([] {
-    auto task = engine::Async([] {});
+    auto task = engine::impl::Async([] {});
     ASSERT_TRUE(task.IsValid());
     EXPECT_NO_THROW(task.Get());
     EXPECT_FALSE(task.IsValid());

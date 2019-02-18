@@ -203,7 +203,7 @@ void ClusterTopology::StopRunningTasks() {
 }
 
 ClusterTopology::ConnectionTask ClusterTopology::Connect(std::string dsn) {
-  return engine::Async([ this, dsn = std::move(dsn) ] {
+  return engine::impl::Async([ this, dsn = std::move(dsn) ] {
     return Connection::Connect(dsn, bg_task_processor_, kConnectionId,
                                default_cmd_ctl_);
   });
@@ -222,7 +222,7 @@ void ClusterTopology::Reconnect(size_t index) {
                 << " for host=" << HostAndPortFromDsn(host_states_[index].dsn);
   }
 
-  auto task = engine::Async(
+  auto task = engine::impl::Async(
       [this, failed_reconnects](std::unique_ptr<Connection> conn,
                                 std::string dsn) {
         const auto wait_for_reconnect =
@@ -408,7 +408,7 @@ engine::Task* ClusterTopology::CheckAvailability(size_t index,
     return &boost::get<ConnectionTask>(host_states_[index].conn_variant);
   }
 
-  auto task = engine::Async([conn] {
+  auto task = engine::impl::Async([conn] {
     auto res = conn->Execute("select pg_is_in_recovery()");
     assert(!res.IsEmpty() && "pg_is_in_recovery must return bool value");
 
@@ -457,7 +457,7 @@ engine::Task* ClusterTopology::DetectMaster(size_t index, ChecksList& checks) {
 engine::Task* ClusterTopology::CheckSyncSlaves(size_t master_index,
                                                ChecksList& checks,
                                                Connection* conn) {
-  auto task = engine::Async([this, conn] {
+  auto task = engine::impl::Async([this, conn] {
     auto res = conn->Execute(kSelectSyncSlaveNames);
     if (res.IsEmpty()) {
       return std::vector<size_t>{};

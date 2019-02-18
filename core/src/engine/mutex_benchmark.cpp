@@ -79,7 +79,7 @@ void mutex_lock_unlock_contention(benchmark::State& state) {
 
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0) - 1; i++)
-          tasks.push_back(engine::Async([&]() {
+          tasks.push_back(engine::impl::Async([&]() {
             while (run) {
               m.lock();
               m.unlock();

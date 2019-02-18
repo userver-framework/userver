@@ -7,11 +7,12 @@ namespace fs {
 
 std::string ReadFileContents(engine::TaskProcessor& async_tp,
                              const std::string& path) {
-  return engine::Async(async_tp, &fs::blocking::ReadFileContents, path).Get();
+  return engine::impl::Async(async_tp, &fs::blocking::ReadFileContents, path)
+      .Get();
 }
 
 bool FileExists(engine::TaskProcessor& async_tp, const std::string& path) {
-  return engine::Async(async_tp, &fs::blocking::FileExists, path).Get();
+  return engine::impl::Async(async_tp, &fs::blocking::FileExists, path).Get();
 }
 
 }  // namespace fs

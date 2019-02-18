@@ -38,7 +38,7 @@ TEST_F(Span, Tag) {
 TEST_F(Span, InheritTag) {
   RunInCoro([this] {
     tracing::Span span("span_name");
-    tracing::Span::CurrentSpan()->AddTag("k", "v");
+    tracing::Span::CurrentSpan().AddTag("k", "v");
 
     logging::LogFlush();
     EXPECT_EQ(std::string::npos, sstream.str().find("k=v"));
@@ -67,5 +67,5 @@ TEST_F(Span, ScopeTime) {
 }
 
 TEST_F(Span, InTest) {
-  RunInCoro([] { tracing::Span::CurrentSpan()->AddTag("1", 2); });
+  RunInCoro([] { tracing::Span::CurrentSpan().AddTag("1", 2); });
 }

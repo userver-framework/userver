@@ -27,9 +27,9 @@ void PeriodicTask::Start(std::string name, Settings settings,
 void PeriodicTask::DoStart() {
   LOG_INFO() << "Starting PeriodicTask with name=" << name_;
   if (settings_.Get()->flags & Flags::kCritical) {
-    task_ = engine::CriticalAsync(std::mem_fn(&PeriodicTask::Run), this);
+    task_ = engine::impl::CriticalAsync(std::mem_fn(&PeriodicTask::Run), this);
   } else {
-    task_ = engine::Async(std::mem_fn(&PeriodicTask::Run), this);
+    task_ = engine::impl::Async(std::mem_fn(&PeriodicTask::Run), this);
   }
 }
 

@@ -154,24 +154,25 @@ void ConnectionPoolImpl::Release(Connection* connection) {
   } else {
     // Connection cleanup is done asynchronously while returning control to the
     // user
-    engine::CriticalAsync([ shared_this = shared_from_this(), connection ] {
-      LOG_WARNING()
-          << "Released connection in busy state. Trying to clean up...";
-      auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
-      try {
-        connection->Cleanup(cmd_ctl->network * 10);
-        if (connection->IsIdle()) {
-          LOG_DEBUG() << "Succesfully cleaned up dirty connection";
-          shared_this->Push(connection);
-          return;
-        }
-      } catch (const std::exception& e) {
-        LOG_WARNING() << "Exception while cleaning up a dirty connection: "
-                      << e.what();
-      }
-      LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
-      shared_this->DeleteConnection(connection);
-    })
+    engine::impl::CriticalAsync(
+        [ shared_this = shared_from_this(), connection ] {
+          LOG_WARNING()
+              << "Released connection in busy state. Trying to clean up...";
+          auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
+          try {
+            connection->Cleanup(cmd_ctl->network * 10);
+            if (connection->IsIdle()) {
+              LOG_DEBUG() << "Succesfully cleaned up dirty connection";
+              shared_this->Push(connection);
+              return;
+            }
+          } catch (const std::exception& e) {
+            LOG_WARNING() << "Exception while cleaning up a dirty connection: "
+                          << e.what();
+          }
+          LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
+          shared_this->DeleteConnection(connection);
+        })
         .Detach();
   }
 }
@@ -199,7 +200,7 @@ NonTransaction ConnectionPoolImpl::Start() {
 }
 
 engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
-  return engine::Async([shared_this = shared_from_this()] {
+  return engine::impl::Async([shared_this = shared_from_this()] {
     SizeGuard sg(shared_this->size_);
 
     if (sg.GetSize() > shared_this->max_size_) {

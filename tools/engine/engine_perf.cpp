@@ -104,7 +104,7 @@ void DoWork(const Config& config) {
   auto tp1 = std::chrono::system_clock::now();
   LOG_WARNING() << "Creating workers...";
   for (size_t i = 0; i < config.coroutines; ++i) {
-    tasks[i] = engine::Async(tp, &Worker, std::ref(worker_context));
+    tasks[i] = engine::impl::Async(tp, &Worker, std::ref(worker_context));
   }
   LOG_WARNING() << "All workers are started " << std::this_thread::get_id();
 
@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
     done = true;
     cv.notify_all();
   };
-  engine::Async(*task_processor_holder, std::move(cb)).Detach();
+  engine::impl::Async(*task_processor_holder, std::move(cb)).Detach();
   auto timeout = std::chrono::seconds(1000);
   {
     std::unique_lock<std::mutex> lock(mutex);

@@ -62,10 +62,11 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   };
 
   if (!is_monitor_) {
-    return engine::Async(*handler_info.task_processor, std::move(payload));
+    return engine::impl::Async(*handler_info.task_processor,
+                               std::move(payload));
   } else {
-    return engine::CriticalAsync(*handler_info.task_processor,
-                                 std::move(payload));
+    return engine::impl::CriticalAsync(*handler_info.task_processor,
+                                       std::move(payload));
   }
 }
 
@@ -114,7 +115,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartDummyTask(
 
   http_request.SetHttpHandlerStatistics(dummy_statistics);
 
-  return engine::Async([request = std::move(request)]() {
+  return engine::impl::Async([request = std::move(request)]() {
     request->SetTaskStartTime();
     request->SetResponseNotifyTime();
     request->SetCompleteNotifyTime();

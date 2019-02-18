@@ -22,9 +22,9 @@ template <typename Function, typename... Args>
   tracing::Span span(name);
   span.DetachFromCoroStack();
 
-  return engine::CriticalAsync(SpanWrapCall(), std::move(span),
-                               std::forward<Function>(f),
-                               std::forward<Args>(args)...);
+  return engine::impl::CriticalAsync(SpanWrapCall(), std::move(span),
+                                     std::forward<Function>(f),
+                                     std::forward<Args>(args)...);
 }
 
 template <typename Function, typename... Args>
@@ -33,8 +33,9 @@ template <typename Function, typename... Args>
   tracing::Span span(name);
   span.DetachFromCoroStack();
 
-  return engine::Async(SpanWrapCall(), std::move(span),
-                       std::forward<Function>(f), std::forward<Args>(args)...);
+  return engine::impl::Async(SpanWrapCall(), std::move(span),
+                             std::forward<Function>(f),
+                             std::forward<Args>(args)...);
 }
 
 }  // namespace utils

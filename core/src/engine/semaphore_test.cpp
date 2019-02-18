@@ -10,8 +10,8 @@ TEST(Semaphore, Ctr) { engine::Semaphore s{100}; }
 TEST(Semaphore, OnePass) {
   RunInCoro([] {
     engine::Semaphore s{1};
-    auto task =
-        engine::Async([&s]() { std::lock_guard<engine::Semaphore> guard{s}; });
+    auto task = engine::impl::Async(
+        [&s]() { std::lock_guard<engine::Semaphore> guard{s}; });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_TRUE(task.IsFinished());
@@ -22,8 +22,8 @@ TEST(Semaphore, TwoPass) {
   RunInCoro([] {
     engine::Semaphore s{2};
     std::lock_guard<engine::Semaphore> guard1{s};
-    auto task =
-        engine::Async([&s]() { std::lock_guard<engine::Semaphore> guard2{s}; });
+    auto task = engine::impl::Async(
+        [&s]() { std::lock_guard<engine::Semaphore> guard2{s}; });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_TRUE(task.IsFinished());
@@ -34,8 +34,8 @@ TEST(Semaphore, LockAndCancel) {
   RunInCoro([] {
     engine::Semaphore s{1};
     std::unique_lock<engine::Semaphore> guard{s};
-    auto task =
-        engine::Async([&s]() { std::lock_guard<engine::Semaphore> guard{s}; });
+    auto task = engine::impl::Async(
+        [&s]() { std::lock_guard<engine::Semaphore> guard{s}; });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(task.IsFinished());
@@ -48,8 +48,8 @@ TEST(Semaphore, Lock2AndCancel) {
     engine::Semaphore s{2};
     std::lock_guard<engine::Semaphore> guard{s};
     std::unique_lock<engine::Semaphore> guard1{s};
-    auto task =
-        engine::Async([&s]() { std::lock_guard<engine::Semaphore> guard{s}; });
+    auto task = engine::impl::Async(
+        [&s]() { std::lock_guard<engine::Semaphore> guard{s}; });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(task.IsFinished());
@@ -67,7 +67,7 @@ TEST(Semaphore, LocksUnlocks) {
       }
     };
 
-    auto task = engine::Async(multilocker);
+    auto task = engine::impl::Async(multilocker);
     multilocker();
 
     task.WaitFor(std::chrono::milliseconds(50));
@@ -86,7 +86,7 @@ TEST(Semaphore, LocksUnlocksMT) {
           }
         };
 
-        auto task = engine::Async(multilocker);
+        auto task = engine::impl::Async(multilocker);
         multilocker();
 
         task.WaitFor(std::chrono::milliseconds(50));
@@ -107,10 +107,10 @@ TEST(Semaphore, LocksUnlocksMtTourture) {
         };
 
         engine::TaskWithResult<void> tasks[] = {
-            engine::Async(multilocker), engine::Async(multilocker),
-            engine::Async(multilocker), engine::Async(multilocker),
-            engine::Async(multilocker), engine::Async(multilocker),
-            engine::Async(multilocker), engine::Async(multilocker)};
+            engine::impl::Async(multilocker), engine::impl::Async(multilocker),
+            engine::impl::Async(multilocker), engine::impl::Async(multilocker),
+            engine::impl::Async(multilocker), engine::impl::Async(multilocker),
+            engine::impl::Async(multilocker), engine::impl::Async(multilocker)};
 
         for (auto& t : tasks) {
           t.WaitFor(std::chrono::milliseconds(50));

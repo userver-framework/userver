@@ -94,7 +94,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
 
     std::array<engine::TaskWithResult<void>, trx_count> tasks;
     for (auto i = 0; i < trx_count; ++i) {
-      auto task = engine::Async([&pool] {
+      auto task = engine::impl::Async([&pool] {
         pg::detail::ConnectionPtr conn;
 
         EXPECT_NO_THROW(conn = pool.GetConnection())

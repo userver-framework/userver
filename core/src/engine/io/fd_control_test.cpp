@@ -162,7 +162,7 @@ TEST(FdControl, WholeTransfer) {
                       Deadline::FromDuration(std::chrono::milliseconds(250)),
                       "reading"));
 
-        auto sender = engine::Async([fd = pipe.Out()] {
+        auto sender = engine::impl::Async([fd = pipe.Out()] {
           engine::SleepFor(std::chrono::milliseconds(20));
           CheckedWrite(fd, "test", 4);
           engine::SleepFor(std::chrono::milliseconds(100));

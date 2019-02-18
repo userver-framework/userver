@@ -101,7 +101,8 @@ void Task::BlockingWait() const {
   std::packaged_task<void()> task([context] { context->Wait(); });
   auto future = task.get_future();
 
-  engine::CriticalAsync(context->GetTaskProcessor(), std::move(task)).Detach();
+  engine::impl::CriticalAsync(context->GetTaskProcessor(), std::move(task))
+      .Detach();
   future.wait();
 
   while (!context_->IsFinished()) {

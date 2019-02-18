@@ -107,7 +107,7 @@ engine::Task PGConnectionWrapper::Close() {
   engine::io::Socket tmp_sock = std::exchange(socket_, {});
   PGconn* tmp_conn = std::exchange(conn_, nullptr);
 
-  return engine::CriticalAsync(
+  return engine::impl::CriticalAsync(
       bg_task_processor_, [ tmp_conn, socket = std::move(tmp_sock) ]() mutable {
         if (tmp_conn != nullptr) {
           PQfinish(tmp_conn);
@@ -128,12 +128,12 @@ void PGConnectionWrapper::CloseWithError(ExceptionType&& ex) {
 
 engine::Task PGConnectionWrapper::Cancel() {
   if (!conn_) {
-    return engine::Async(bg_task_processor_, [] {});
+    return engine::impl::Async(bg_task_processor_, [] {});
   }
   PGCW_LOG_DEBUG() << "Cancel current request";
   std::unique_ptr<PGcancel, decltype(&PQfreeCancel)> cancel{PQgetCancel(conn_),
                                                             &PQfreeCancel};
-  return engine::Async(
+  return engine::impl::Async(
       bg_task_processor_, [ this, cancel = std::move(cancel) ] {
         std::array<char, kErrBufferSize> buffer;
         if (!PQcancel(cancel.get(), buffer.data(), buffer.size())) {

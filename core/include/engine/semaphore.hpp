@@ -15,7 +15,7 @@ class WaitList;
 /// Example:
 ///   engine::Semaphore sem{2};
 ///   std::unique_lock<engine::Semaphore> lock{sem};
-///   engine::Async([&sem]() {
+///   utils::Async("work", [&sem]() {
 ///       std::lock_guard<engine::Semaphore> guard{sem};
 ///       // ...
 ///   }).Detach();

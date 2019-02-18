@@ -26,7 +26,7 @@ class CursorImpl {
   decltype(auto) operator-> () const { return it_.operator->(); }
 
   CursorImpl& operator++() {
-    engine::Async(task_processor_, [this] { ++it_; }).Get();
+    engine::impl::Async(task_processor_, [this] { ++it_; }).Get();
     return *this;
   }
 

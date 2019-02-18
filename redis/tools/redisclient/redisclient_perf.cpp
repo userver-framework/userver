@@ -128,7 +128,7 @@ void Fire(engine::TaskProcessor& task_processor,
 
   const auto per_ms = per_second / 1000.0;
   for (size_t i = 0;; ++i) {
-    engine::Async(task_processor, Work, std::ref(sentinel), i).Detach();
+    engine::impl::Async(task_processor, Work, std::ref(sentinel), i).Detach();
 
     /* Burn CPU */
     while (true) {

@@ -199,7 +199,7 @@ void ComponentContext::ProcessAllComponentLifetimeStageSwitchings(
   for (const auto& component_item : components_) {
     const auto& name = component_item.first;
     auto& component_info = *component_item.second;
-    tasks.emplace_back(name, engine::CriticalAsync([&]() {
+    tasks.emplace_back(name, engine::impl::CriticalAsync([&]() {
                          ProcessSingleComponentLifetimeStageSwitching(
                              name, component_info, params);
                        }));
@@ -324,7 +324,7 @@ std::string ComponentContext::GetLoadingComponentName(
 void ComponentContext::StartPrintAddingComponentsTask() {
   print_adding_components_task_ =
       std::make_unique<engine::TaskWithResult<void>>(
-          engine::CriticalAsync([this]() {
+          engine::impl::CriticalAsync([this]() {
             for (;;) {
               {
                 std::unique_lock<engine::Mutex> lock(component_mutex_);

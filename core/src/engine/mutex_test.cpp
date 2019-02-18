@@ -29,7 +29,7 @@ TEST(Mutex, WaitAndCancel) {
   RunInCoro([] {
     engine::Mutex mutex;
     std::unique_lock<engine::Mutex> lock(mutex);
-    auto task = engine::Async(
+    auto task = engine::impl::Async(
         [&mutex]() { std::lock_guard<engine::Mutex> lock(mutex); });
 
     task.WaitFor(std::chrono::milliseconds(50));

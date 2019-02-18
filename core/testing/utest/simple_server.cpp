@@ -146,17 +146,19 @@ void SimpleServer::Impl::StartPortListening(unsigned short port,
   // started listing yet and someone is already connecting...
   auto acceptor = engine::io::Listen(addr);
 
-  PushTask(engine::Async([ this, acceptor = std::move(acceptor) ]() mutable {
-    while (!engine::current_task::IsCancelRequested()) {
-      auto socket = acceptor.Accept({});
+  PushTask(
+      engine::impl::Async([ this, acceptor = std::move(acceptor) ]() mutable {
+        while (!engine::current_task::IsCancelRequested()) {
+          auto socket = acceptor.Accept({});
 
-      LOG_INFO() << "SimpleServer accepted socket";
+          LOG_INFO() << "SimpleServer accepted socket";
 
-      PushTask(engine::Async([ this, s = std::move(socket) ]() mutable {
-        Client::Run(std::move(s), this->callback_);
+          PushTask(
+              engine::impl::Async([ this, s = std::move(socket) ]() mutable {
+                Client::Run(std::move(s), this->callback_);
+              }));
+        }
       }));
-    }
-  }));
 }
 
 SimpleServer::SimpleServer(Ports ports, OnRequest callback, Protocol p)

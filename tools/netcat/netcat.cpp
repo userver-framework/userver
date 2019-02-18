@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
   std::condition_variable cv;
   std::atomic_bool done{false};
   std::exception_ptr ex;
-  engine::Async(
+  engine::impl::Async(
       *task_processor_holder,
       [&] {
         try {

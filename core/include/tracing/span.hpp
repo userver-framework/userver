@@ -28,7 +28,15 @@ class Span final {
 
   Span& operator=(Span&&);
 
-  static Span* CurrentSpan();
+  /// Return the Span of the current task. May not be called in non-coroutine
+  /// context. May not be called from a task with no alive Span.
+  /// Rule of thumb: it is safe to call it from a task created by
+  /// utils::Async/utils::CriticalAsync/utils::PeriodicTask. If current task was
+  /// created with an explicit engine::impl::*Async(), you have to create a Span
+  /// beforehand.
+  static Span& CurrentSpan();
+
+  static Span* CurrentSpanUnchecked();
 
   static Span MakeSpan(const std::string& name, const std::string& trace_id,
                        const std::string& parent_span_id);

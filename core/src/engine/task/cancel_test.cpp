@@ -38,7 +38,7 @@ TEST(Cancel, NoUnwindFromDtor) {
   RunInCoro([] {
     engine::SingleConsumerEvent in_dtor_event;
     engine::SingleConsumerEvent cancel_sent_event;
-    auto task = engine::Async(
+    auto task = engine::impl::Async(
         [&] { SynchronizingRaii raii(in_dtor_event, cancel_sent_event); });
     ASSERT_TRUE(in_dtor_event.WaitForEvent());
     task.RequestCancel();
@@ -58,7 +58,7 @@ TEST(Cancel, UnwindWorksInDtorSubtask) {
         : detach_event_(detach_event), detached_task_(detached_task) {}
 
     ~DetachingRaii() {
-      detached_task_ = engine::Async([] {
+      detached_task_ = engine::impl::Async([] {
         while (!engine::current_task::IsCancelRequested()) {
           engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
         }
@@ -76,7 +76,7 @@ TEST(Cancel, UnwindWorksInDtorSubtask) {
   RunInCoro([] {
     engine::TaskWithResult<void> detached_task;
     engine::SingleConsumerEvent task_detached_event;
-    auto task = engine::Async(
+    auto task = engine::impl::Async(
         [&] { DetachingRaii raii(task_detached_event, detached_task); });
     ASSERT_TRUE(task_detached_event.WaitForEvent());
     task.Wait();

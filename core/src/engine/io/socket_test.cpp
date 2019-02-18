@@ -100,7 +100,7 @@ TEST(Socket, ListenConnect) {
 
     uint16_t first_client_port = 0;
     uint16_t second_client_port = 0;
-    auto listen_task = engine::Async([&] {
+    auto listen_task = engine::impl::Async([&] {
       auto first_client = listener.socket.Accept({});
       EXPECT_TRUE(first_client.IsOpen());
       auto second_client = listener.socket.Accept({});
@@ -179,13 +179,13 @@ TEST(Socket, Cancel) {
     Listener listener;
 
     auto connect_task =
-        engine::Async([&] { return io::Connect(listener.addr, {}); });
+        engine::impl::Async([&] { return io::Connect(listener.addr, {}); });
     auto server_socket = listener.socket.Accept({});
     auto client_socket = connect_task.Get();
 
     engine::SingleConsumerEvent has_started_event;
     auto check_is_cancelling = [&](const char* io_op_text, auto io_op) {
-      auto io_task = engine::Async([&] {
+      auto io_task = engine::impl::Async([&] {
         has_started_event.Send();
         io_op();
       });

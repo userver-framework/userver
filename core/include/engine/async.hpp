@@ -17,8 +17,6 @@ auto MakeTaskWithResult(TaskProcessor& task_processor,
                         Task::Importance importance, Function&& f,
                         Args&&... args);
 
-}  // namespace impl
-
 /// Runs an asynchronous function call using specified task processor
 template <typename Function, typename... Args>
 [[nodiscard]] auto Async(TaskProcessor& task_processor, Function&& f,
@@ -52,8 +50,6 @@ template <typename Function, typename... Args>
   return CriticalAsync(current_task::GetTaskProcessor(),
                        std::forward<Function>(f), std::forward<Args>(args)...);
 }
-
-namespace impl {
 
 template <typename Function, typename... Args>
 auto MakeTaskWithResult(TaskProcessor& task_processor,

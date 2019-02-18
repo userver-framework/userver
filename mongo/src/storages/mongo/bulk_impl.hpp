@@ -27,7 +27,7 @@ class BulkOperationBuilderImpl
 
   engine::TaskWithResult<boost::optional<mongocxx::result::bulk_write>> Execute(
       mongocxx::write_concern wc = {}) {
-    return engine::Async(
+    return engine::impl::Async(
         collection_->GetPool().GetTaskProcessor(),
         [ self = shared_from_this(), wc = std::move(wc) ]()
             ->boost::optional<mongocxx::result::bulk_write> {

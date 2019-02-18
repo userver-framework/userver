@@ -56,7 +56,7 @@ Logging::Logging(const ComponentConfig& config,
 
     if (is_default_logger) {
       logging::SetDefaultLogger(logger);
-      engine::Async([logger] {
+      engine::impl::Async([logger] {
         engine::SleepFor(std::chrono::milliseconds(kRelaxPeriod));
         logging::SetDefaultLogger(logger);
       })
@@ -106,12 +106,12 @@ void Logging::OnLogRotate() {
 
   // this must be a copy as the default logger may change
   auto default_logger = logging::DefaultLogger();
-  tasks.push_back(engine::CriticalAsync(*fs_task_processor_, ReopenAll,
-                                        std::ref(default_logger->sinks())));
+  tasks.push_back(engine::impl::CriticalAsync(
+      *fs_task_processor_, ReopenAll, std::ref(default_logger->sinks())));
 
   for (const auto& item : loggers_) {
-    tasks.push_back(engine::CriticalAsync(*fs_task_processor_, ReopenAll,
-                                          std::ref(item.second->sinks())));
+    tasks.push_back(engine::impl::CriticalAsync(
+        *fs_task_processor_, ReopenAll, std::ref(item.second->sinks())));
   }
 
   for (auto& task : tasks) {

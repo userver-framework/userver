@@ -24,7 +24,7 @@ TEST(TaskContext, DetachedAndCancelledOnStart) {
 
   RunInCoro(
       [] {
-        auto task = engine::Async([checker = DtorInCoroChecker()] {
+        auto task = engine::impl::Async([checker = DtorInCoroChecker()] {
           FAIL() << "Cancelled task started";
         });
         task.RequestCancel();
@@ -35,9 +35,9 @@ TEST(TaskContext, DetachedAndCancelledOnStart) {
   // Same, but with WrappedCall closure
   RunInCoro(
       [] {
-        auto task =
-            engine::Async([](auto&&) { FAIL() << "Cancelled task started"; },
-                          DtorInCoroChecker());
+        auto task = engine::impl::Async(
+            [](auto&&) { FAIL() << "Cancelled task started"; },
+            DtorInCoroChecker());
         task.RequestCancel();
         std::move(task).Detach();
       },

@@ -81,7 +81,7 @@ ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
     : task_processor_(task_processor),
       endpoint_info_(std::move(endpoint_info)),
       stats_(std::make_shared<Stats>()),
-      socket_listener_task_(engine::CriticalAsync(
+      socket_listener_task_(engine::impl::CriticalAsync(
           task_processor_,
           [this](engine::io::Socket&& request_socket) {
             while (!engine::current_task::ShouldCancel()) {

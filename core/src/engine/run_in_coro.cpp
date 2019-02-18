@@ -32,7 +32,7 @@ void RunInCoro(std::function<void()> user_cb, size_t worker_threads) {
     done = true;
     cv.notify_all();
   };
-  engine::Async(*task_processor_holder, std::move(cb)).Detach();
+  engine::impl::Async(*task_processor_holder, std::move(cb)).Detach();
 
   std::unique_lock<std::mutex> lock(mutex);
   cv.wait(lock, [&done]() { return done.load(); });

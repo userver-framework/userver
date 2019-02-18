@@ -24,7 +24,7 @@ TEST(CxxabiEhGlobals, DISABLED_IN_LIBCPP_TEST_NAME(UncaughtIsCoroLocal)) {
       engine::ConditionVariable cv;
       std::unique_lock<engine::Mutex> lock(mutex);
 
-      auto subtask = engine::Async([&cv, &mutex] {
+      auto subtask = engine::impl::Async([&cv, &mutex] {
         {
           std::unique_lock<engine::Mutex> lock(mutex);
           cv.NotifyOne();
@@ -55,7 +55,7 @@ TEST(CxxabiEhGlobals, DISABLED_IN_LIBCPP_TEST_NAME(ActiveIsCoroLocal)) {
     engine::ConditionVariable sub_cv;
     std::unique_lock<engine::Mutex> lock(mutex);
 
-    auto subtask = engine::Async([&cv, &mutex, &sub_cv] {
+    auto subtask = engine::impl::Async([&cv, &mutex, &sub_cv] {
       std::unique_lock<engine::Mutex> lock(mutex);
       cv.NotifyOne();
       ASSERT_EQ(engine::CvStatus::kNoTimeout, sub_cv.Wait(lock));

@@ -77,16 +77,16 @@ void Connection::Start() {
 
   LOG_TRACE() << "Starting socket listener for fd " << Fd();
 
-  response_sender_task_ = engine::CriticalAsync(
+  response_sender_task_ = engine::impl::CriticalAsync(
       task_processor_,
       [this](Queue::Consumer consumer) { SendResponses(std::move(consumer)); },
       request_tasks_->GetConsumer());
   socket_listener_ =
-      engine::CriticalAsync(task_processor_,
-                            [this](Queue::Producer producer) {
-                              ListenForRequests(std::move(producer));
-                            },
-                            request_tasks_->GetProducer());
+      engine::impl::CriticalAsync(task_processor_,
+                                  [this](Queue::Producer producer) {
+                                    ListenForRequests(std::move(producer));
+                                  },
+                                  request_tasks_->GetProducer());
   LOG_TRACE() << "Started socket listener for fd " << Fd();
 }
 
@@ -213,7 +213,7 @@ void Connection::CloseAsync() {
 
   // We should delete this, but we cannot do ~Connection() as it waits for
   // current task. So, create a mini-task for killing this.
-  engine::CriticalAsync(
+  engine::impl::CriticalAsync(
       [](std::shared_ptr<Connection> shared_this) { shared_this.reset(); },
       std::move(shared_this_))
       .Detach();

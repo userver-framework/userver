@@ -62,7 +62,7 @@ ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
 ClusterImpl::~ClusterImpl() { StopPeriodicUpdates(); }
 
 engine::TaskWithResult<void> ClusterImpl::DiscoverTopology() {
-  return engine::Async([this] {
+  return engine::impl::Async([this] {
     CheckTopology();
     StartPeriodicUpdates();
   });
