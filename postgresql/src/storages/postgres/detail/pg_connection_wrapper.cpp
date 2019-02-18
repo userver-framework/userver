@@ -11,6 +11,7 @@
 #define PGCW_LOG_INFO() LOG_INFO() << log_extra_
 #define PGCW_LOG_WARNING() LOG_WARNING() << log_extra_
 #define PGCW_LOG_ERROR() LOG_ERROR() << log_extra_
+#define PGCW_LOG(level) LOG(level) << log_extra_
 
 namespace storages {
 namespace postgres {
@@ -49,6 +50,15 @@ const char* MsgForStatus(ConnStatusType status) {
     case CONNECTION_CONSUME:
       return "PQstatus: Consuming remaining response messages on connection";
   }
+}
+
+void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
+  if (!conn_wrapper_ptr || !pg_res) {
+    return;
+  }
+
+  auto conn_wrapper = static_cast<PGConnectionWrapper*>(conn_wrapper_ptr);
+  conn_wrapper->LogNotice(pg_res);
 }
 
 }  // namespace
@@ -157,6 +167,8 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
                      << logging::LogExtra::Stacktrace();
     throw ConnectionFailed{conninfo, "Failed to allocate PGconn structure"};
   }
+
+  PQsetNoticeReceiver(conn_, &NoticeReceiver, this);
 
   if (PQsetnonblocking(conn_, 1)) {
     PGCW_LOG_ERROR() << "libpq failed to set non-blocking connection mode";
@@ -418,6 +430,23 @@ void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
                             params.ParamBuffers(), params.ParamLengthsBuffer(),
                             params.ParamFormatsBuffer(),
                             static_cast<int>(reply_format)));
+  }
+}
+
+void PGConnectionWrapper::LogNotice(PGresult const* pg_res) {
+  auto severity = Message::SeverityFromString(
+      PQresultErrorField(pg_res, PG_DIAG_SEVERITY_NONLOCALIZED));
+  auto msg = PQresultErrorMessage(pg_res);
+  if (msg) {
+    ::logging::Level lvl = ::logging::Level::kInfo;
+    if (severity >= Message::Severity::kError) {
+      lvl = ::logging::Level::kError;
+    } else if (severity == Message::Severity::kWarning) {
+      lvl = ::logging::Level::kWarning;
+    } else if (severity < Message::Severity::kInfo) {
+      lvl = ::logging::Level::kDebug;
+    }
+    PGCW_LOG(lvl) << msg;
   }
 }
 

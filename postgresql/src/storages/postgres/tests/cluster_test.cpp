@@ -94,7 +94,7 @@ TEST_P(PostgreCluster, SingleQuery) {
     auto cluster = CreateClusterWithMaster(dsn_, GetTaskProcessor(), 1);
 
     EXPECT_THROW(cluster.Execute(pg::ClusterHostType::kAny, "select 1"),
-                 pg::ClusterError);
+                 pg::LogicError);
     pg::ResultSet res{nullptr};
     EXPECT_NO_THROW(
         res = cluster.Execute(pg::ClusterHostType::kMaster, "select 1"));

@@ -79,6 +79,8 @@ class PGConnectionWrapper {
   /// Used for internal needs
   const logging::LogExtra& GetLogExtra() const;
 
+  void LogNotice(PGresult const*);
+
  private:
   PGTransactionStatusType GetTransactionStatus() const;
 
