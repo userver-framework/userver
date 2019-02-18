@@ -6,6 +6,7 @@
 
 #include <logging/log.hpp>
 #include <server/http/http_status.hpp>
+#include <utils/exception.hpp>
 
 namespace server {
 namespace http {
@@ -317,7 +318,10 @@ void HttpRequestConstructor::AccountRequestSize(size_t size) {
   request_size_ += size;
   if (request_size_ > config_.max_request_size) {
     SetStatus(Status::kRequestTooLarge);
-    throw std::runtime_error("request is too large");
+    utils::LogErrorAndThrow(
+        "request is too large, " + std::to_string(request_size_) + ">" +
+        std::to_string(config_.max_request_size) +
+        " (enforced by 'max_request_size' handler limit in config.yaml)");
   }
 }
 
@@ -325,7 +329,10 @@ void HttpRequestConstructor::AccountUrlSize(size_t size) {
   url_size_ += size;
   if (url_size_ > config_.max_url_size) {
     SetStatus(Status::kUriTooLong);
-    throw std::runtime_error("url is too long");
+    utils::LogErrorAndThrow("url is too long " + std::to_string(url_size_) +
+                            ">" + std::to_string(config_.max_url_size) +
+                            " (enforced by 'max_url_size' handler limit in "
+                            "config.yaml)");
   }
 }
 
@@ -333,7 +340,11 @@ void HttpRequestConstructor::AccountHeadersSize(size_t size) {
   headers_size_ += size;
   if (headers_size_ > config_.max_headers_size) {
     SetStatus(Status::kHeadersTooLarge);
-    throw std::runtime_error("headers too large");
+    utils::LogErrorAndThrow("headers too large " +
+                            std::to_string(headers_size_) + ">" +
+                            std::to_string(config_.max_headers_size) +
+                            " (enforced by 'max_headers_size' handler limit in "
+                            "config.yaml)");
   }
 }
 
@@ -378,31 +389,39 @@ void HttpRequestConstructor::CheckStatus() const {
     case Status::kBadRequest:
       request_->SetResponseStatus(HttpStatus::kBadRequest);
       request_->GetHttpResponse().SetData("bad request");
+      request_->GetHttpResponse().SetReady();
       break;
     case Status::kUriTooLong:
       request_->SetResponseStatus(HttpStatus::kUriTooLong);
+      request_->GetHttpResponse().SetReady();
       break;
     case Status::kParseUrlError:
       request_->SetResponseStatus(HttpStatus::kBadRequest);
       request_->GetHttpResponse().SetData("invalid url");
+      request_->GetHttpResponse().SetReady();
       break;
     case Status::kHandlerNotFound:
       request_->SetResponseStatus(HttpStatus::kNotFound);
+      request_->GetHttpResponse().SetReady();
       break;
     case Status::kHeadersTooLarge:
       request_->SetResponseStatus(HttpStatus::kRequestHeaderFieldsTooLarge);
+      request_->GetHttpResponse().SetReady();
       break;
     case Status::kRequestTooLarge:
       request_->SetResponseStatus(HttpStatus::kPayloadTooLarge);
       request_->GetHttpResponse().SetData("too large request");
+      request_->GetHttpResponse().SetReady();
       break;
     case Status::kParseArgsError:
       request_->SetResponseStatus(HttpStatus::kBadRequest);
       request_->GetHttpResponse().SetData("invalid args");
+      request_->GetHttpResponse().SetReady();
       break;
     case Status::kParseCookiesError:
       request_->SetResponseStatus(HttpStatus::kBadRequest);
       request_->GetHttpResponse().SetData("invalid cookies");
+      request_->GetHttpResponse().SetReady();
       break;
   }
 }

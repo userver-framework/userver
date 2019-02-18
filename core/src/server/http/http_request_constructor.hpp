@@ -29,7 +29,7 @@ class HttpRequestConstructor : public request::RequestConstructor {
 
   struct Config {
     size_t max_url_size = 8192;
-    size_t max_request_size = 65536;
+    size_t max_request_size = 1024 * 1024;
     size_t max_headers_size = 65536;
     bool parse_args_from_body = false;
   };

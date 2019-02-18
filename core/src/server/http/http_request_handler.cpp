@@ -25,6 +25,12 @@ HttpRequestHandler::HttpRequestHandler(
 engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     std::shared_ptr<request::RequestBase> request) const {
   auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
+  LOG_TRACE() << "ready=" << http_request.GetResponse().IsReady();
+  if (http_request.GetResponse().IsReady()) {
+    // Request is already handled, user handler must not be called
+    return StartDummyTask(std::move(request));
+  }
+
   if (new_request_hook_) new_request_hook_(request);
 
   auto handler_info =
@@ -34,17 +40,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   if (!handler_info.task_processor) {
     // No handler found, response status is already set
     // by HttpRequestConstructor::CheckStatus
-
-    static handlers::HttpHandlerStatistics dummy_statistics;
-
-    http_request.SetHttpHandlerStatistics(dummy_statistics);
-
-    return engine::Async([request = std::move(request)]() {
-      request->SetTaskStartTime();
-      request->SetResponseNotifyTime();
-      request->SetCompleteNotifyTime();
-      request->GetResponse().SetReady();
-    });
+    return StartDummyTask(std::move(request));
   }
 
   http_request.SetMatchedPathLength(handler_info.matched_path_length);
@@ -109,6 +105,21 @@ const HandlerInfoIndex& HttpRequestHandler::GetHandlerInfoIndex() const {
 
 void HttpRequestHandler::SetNewRequestHook(NewRequestHook hook) {
   new_request_hook_ = std::move(hook);
+}
+
+engine::TaskWithResult<void> HttpRequestHandler::StartDummyTask(
+    std::shared_ptr<request::RequestBase> request) const {
+  auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
+  static handlers::HttpHandlerStatistics dummy_statistics;
+
+  http_request.SetHttpHandlerStatistics(dummy_statistics);
+
+  return engine::Async([request = std::move(request)]() {
+    request->SetTaskStartTime();
+    request->SetResponseNotifyTime();
+    request->SetCompleteNotifyTime();
+    request->GetResponse().SetReady();
+  });
 }
 
 }  // namespace http

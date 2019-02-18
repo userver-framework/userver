@@ -36,6 +36,10 @@ class HttpRequestHandler : public request::RequestHandlerBase {
   const HandlerInfoIndex& GetHandlerInfoIndex() const;
 
  private:
+  engine::TaskWithResult<void> StartDummyTask(
+      std::shared_ptr<request::RequestBase> request) const;
+
+ private:
   // handler_infos_mutex_ is used for pushing handlers into handler_info_index_
   // before server start. After start handler_info_index_ is read only and
   // synchronization is not needed.
