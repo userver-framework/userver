@@ -75,6 +75,9 @@ std::string HostTypeToString(ClusterHostType host_type) {
   return host_type != kNothing ? ToString(host_type) : "--- unavailable ---";
 }
 
+std::string const kSelectSyncSlaveNames =
+    R"~(select distinct application_name from pg_stat_replication where sync_state = 'sync')~";
+
 }  // namespace
 
 const std::chrono::seconds ClusterTopology::kUpdateInterval{5};
@@ -455,7 +458,7 @@ engine::Task* ClusterTopology::CheckSyncSlaves(size_t master_index,
                                                ChecksList& checks,
                                                Connection* conn) {
   auto task = engine::Async([this, conn] {
-    auto res = conn->Execute("show synchronous_standby_names");
+    auto res = conn->Execute(kSelectSyncSlaveNames);
     if (res.IsEmpty()) {
       return std::vector<size_t>{};
     }
