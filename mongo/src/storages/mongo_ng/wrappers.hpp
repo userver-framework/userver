@@ -35,6 +35,13 @@ struct CollectionDeleter {
 };
 using CollectionPtr = std::unique_ptr<mongoc_collection_t, CollectionDeleter>;
 
+struct CursorDeleter {
+  void operator()(mongoc_cursor_t* cursor) const noexcept {
+    mongoc_cursor_destroy(cursor);
+  }
+};
+using CursorPtr = std::unique_ptr<mongoc_cursor_t, CursorDeleter>;
+
 struct DatabaseDeleter {
   void operator()(mongoc_database_t* db) const noexcept {
     mongoc_database_destroy(db);

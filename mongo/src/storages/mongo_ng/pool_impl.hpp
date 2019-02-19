@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <memory>
 #include <string>
 
@@ -17,13 +18,13 @@ class PoolImpl {
  public:
   class ClientPusher {
    public:
-    explicit ClientPusher(PoolImpl& pool) : pool_(pool) {}
+    explicit ClientPusher(PoolImpl* pool) : pool_(pool) { assert(pool_); }
     void operator()(mongoc_client_t* client) const noexcept {
-      pool_.Push(client);
+      pool_->Push(client);
     }
 
    private:
-    PoolImpl& pool_;
+    PoolImpl* pool_;
   };
   using BoundClientPtr = std::unique_ptr<mongoc_client_t, ClientPusher>;
 

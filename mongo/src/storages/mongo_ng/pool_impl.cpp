@@ -81,13 +81,13 @@ const std::string& PoolImpl::DefaultDatabaseName() const {
 }
 
 PoolImpl::BoundClientPtr PoolImpl::Acquire() {
-  return {Pop(), ClientPusher(*this)};
+  return {Pop(), ClientPusher(this)};
 }
 
 void PoolImpl::Push(mongoc_client_t* client) noexcept {
   assert(client);
   if (queue_.bounded_push(client)) return;
-  mongoc_client_destroy(client);
+  ClientDeleter()(client);
   --size_;
 }
 

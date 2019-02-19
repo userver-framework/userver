@@ -18,8 +18,11 @@ struct DocumentDeleter {
 class MutableBson {
  public:
   MutableBson() : bson_(bson_new()) {}
+
   MutableBson(const uint8_t* data, size_t len)
       : bson_(bson_new_from_data(data, len)) {}
+
+  MutableBson(const bson_t* bson) : bson_(bson_copy(bson)) {}
 
   bson_t* Get() { return bson_.get(); }
 

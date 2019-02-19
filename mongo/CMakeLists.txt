@@ -18,6 +18,11 @@ file(GLOB_RECURSE UNIT_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
+file(GLOB_RECURSE MONGO_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_mongotest.cpp
+)
+list(REMOVE_ITEM SOURCES ${MONGO_TEST_SOURCES})
+
 # file(GLOB_RECURSE BENCH_SOURCES
 #   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 # )
@@ -58,4 +63,12 @@ target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}_unittest utest ${PROJECT_NAME})
-add_google_tests_with_mongo(${PROJECT_NAME}_unittest)
+add_google_tests(${PROJECT_NAME}_unittest)
+
+# XXX: testsuite doesn't support parallel builds
+if(NOT USERVICES)
+  add_executable(${PROJECT_NAME}_mongotest ${MONGO_TEST_SOURCES})
+  set_target_properties(${PROJECT_NAME}_mongotest PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(${PROJECT_NAME}_mongotest utest ${PROJECT_NAME})
+  add_google_tests_with_mongo(${PROJECT_NAME}_mongotest)
+endif(NOT USERVICES)

@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <formats/bson/document.hpp>
+#include <storages/mongo_ng/cursor.hpp>
 
 namespace storages::mongo_ng {
 
@@ -21,6 +22,10 @@ class Collection {
   /// Returns the number of documents matching the query
   size_t Count(const formats::bson::Document& filter) const;
 
+  /// Performs a query on the collection
+  Cursor Find(const formats::bson::Document& filter) const;
+
+  /// Inserts a single document into the collection
   void InsertOne(const formats::bson::Document& document);
 
  private:
