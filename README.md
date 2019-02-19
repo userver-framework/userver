@@ -18,8 +18,8 @@
 
 Для сборки требуются:
   * Ubuntu Xenial c подключенным репозиторием xenial-updates/universe
-  * clang-6.0
-  * clang-format-6.0
+  * clang-7
+  * clang-format-5.0
 
 В `Makefile` определены цели:
   * `all`/`build` -- выполняет сборку всего кода в директории

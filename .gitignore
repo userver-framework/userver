@@ -5,3 +5,5 @@
 /build/
 /docs/
 CMakeLists.txt.user
+compile_commands.json
+tags

@@ -11,10 +11,10 @@ BUILD_DIR ?= build
 DOCS_DIR ?= docs
 CMAKE_DIR = $(CURDIR)
 ifeq ($(origin CC),default)
-  CC := clang-6.0
+  CC := clang-7
 endif
 ifeq ($(origin CXX),default)
-  CXX := clang++-6.0
+  CXX := clang++-7
 endif
 export CC CXX
 SCAN_BUILD = scan-build-5.0

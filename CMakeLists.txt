@@ -15,6 +15,7 @@ include(FindPackageRequired)
 set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTERNAL "")
 
 init_debian_depends()
+append_debian_depends("clang-7 lld-7")
 
 check_submodule(${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp CMakeLists.txt)
 add_subdirectory(backend-common-cpp)

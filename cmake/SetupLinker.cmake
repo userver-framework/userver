@@ -1,4 +1,4 @@
-set(USE_LD "gold" CACHE STRING "Linker to use e.g. gold, lld")
+set(USE_LD "lld-7" CACHE STRING "Linker to use e.g. gold, lld")
 
 if (USE_LD)
     set(CUSTOM_LINKER ${USE_LD})

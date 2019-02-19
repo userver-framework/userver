@@ -26,7 +26,6 @@ BENCHMARK(engine_task_create);
 void engine_task_yield(benchmark::State& state) {
   RunInCoro(
       [&]() {
-
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0); i++)
           tasks.push_back(engine::impl::Async([]() {
@@ -43,7 +42,6 @@ BENCHMARK(engine_task_yield)->Arg(0)->RangeMultiplier(2)->Range(1, 10);
 void engine_task_yield_multiple_threads(benchmark::State& state) {
   RunInCoro(
       [&]() {
-
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0) - 1; i++)
           tasks.push_back(engine::impl::Async([]() {
