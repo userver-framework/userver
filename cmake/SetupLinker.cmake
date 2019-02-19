@@ -9,10 +9,10 @@ if (CUSTOM_LINKER)
               ERROR_QUIET OUTPUT_VARIABLE LD_VERSION)
 
     if (("${CUSTOM_LINKER}" MATCHES "gold") AND ("${LD_VERSION}" MATCHES "GNU gold"))
-        set(CUSTOM_LD_OK ON)
+        set(CUSTOM_LD_OK ON CACHE INTERNAL CUSTOM_LD_OK)
         message (STATUS "Using GNU gold linker")
     elseif(("${CUSTOM_LINKER}" MATCHES "lld") AND ("${LD_VERSION}" MATCHES "LLD"))
-        set(CUSTOM_LD_OK ON)
+        set(CUSTOM_LD_OK ON CACHE INTERNAL CUSTOM_LD_OK)
         message (STATUS "Using LLVM lld linker")
     endif ()
 

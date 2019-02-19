@@ -30,34 +30,40 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
 endif()
 
+include(SetupLinker)
 option(LTO "Use -flto=thin for link time optimizations" ON)
-message(STATUS "LTO: ${LTO}")
-if(LTO)
-  # ar from binutils fails to link -flto=thin with the following message:
-  # ../../src/libyandex-taxi-userver.a: error adding symbols: Archive has no index; run ranlib to add one
-  # In Debian/Ubuntu llvm-ar is installed with version suffix.
-  # In Mac OS with brew llvm-ar is installed without version suffix
-  # into /usr/local/opt/llvm/ with brew
-  if (MACOS)
-    set(LLVM_PATH_HINTS /usr/local/opt/llvm/bin)
-  endif()
-  find_program(LLVM_AR NAMES llvm-ar-7 llvm-ar HINTS ${LLVM_PATH_HINTS})
-  find_program(LLVM_RANLIB NAMES llvm-ranlib-7 llvm-ranlib HINTS ${LLVM_PATH_HINTS})
-  if (NOT LLVM_AR)
-    message(FATAL_ERROR "LLVM archiver (llvm-ar) not found, you can disable it by specifying -DLTO=OFF")
-  endif()
-  if (NOT LLVM_RANLIB)
-    message(FATAL_ERROR "LLVM archiver (llvm-ranlib) not found, you can disable it by specifying -DLTO=OFF")
-  endif()
-  set(CMAKE_AR ${LLVM_AR})
-  set(CMAKE_RANLIB ${LLVM_RANLIB})
 
-  set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
-  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
-  add_compile_options ("$<$<CONFIG:RELEASE>:-flto=thin>")
-endif(LTO)
+if (CUSTOM_LD_OK)
+    message(STATUS "LTO: ${LTO}")
+    if(LTO)
+        # ar from binutils fails to link -flto=thin with the following message:
+        # ../../src/libyandex-taxi-userver.a: error adding symbols: Archive has no index; run ranlib to add one
+        # In Debian/Ubuntu llvm-ar is installed with version suffix.
+        # In Mac OS with brew llvm-ar is installed without version suffix
+        # into /usr/local/opt/llvm/ with brew
+        if (MACOS)
+            set(LLVM_PATH_HINTS /usr/local/opt/llvm/bin)
+        endif()
+        find_program(LLVM_AR NAMES llvm-ar-7 llvm-ar HINTS ${LLVM_PATH_HINTS})
+        find_program(LLVM_RANLIB NAMES llvm-ranlib-7 llvm-ranlib HINTS ${LLVM_PATH_HINTS})
+        if (NOT LLVM_AR)
+            message(FATAL_ERROR "LLVM archiver (llvm-ar) not found, you can disable it by specifying -DLTO=OFF")
+        endif()
+        if (NOT LLVM_RANLIB)
+            message(FATAL_ERROR "LLVM archiver (llvm-ranlib) not found, you can disable it by specifying -DLTO=OFF")
+        endif()
+        set(CMAKE_AR ${LLVM_AR})
+        set(CMAKE_RANLIB ${LLVM_RANLIB})
 
-
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
+        add_compile_options ("$<$<CONFIG:RELEASE>:-flto=thin>")
+    endif(LTO)
+else()
+    if (LTO)
+        message(STATUS "LTO: OFF (due to custom linker)")
+    endif(LTO)
+endif(CUSTOM_LD_OK)
 
 option(USE_CCACHE "Use ccache for build" ON)
 if (USE_CCACHE)
@@ -143,8 +149,6 @@ endif ()
 
 # pretty file name for logging
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFILENAME='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
-
-include(SetupLinker)
 
 enable_testing ()
 
