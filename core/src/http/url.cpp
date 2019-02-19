@@ -71,15 +71,20 @@ std::string UrlDecode(utils::string_view range) {
 namespace {
 
 template <typename T>
-std::string MakeUrl(utils::string_view path, T begin, T end) {
-  std::string result(path);
+std::string DoMakeQuery(T begin, T end) {
+  std::string result;
   bool first = true;
   for (auto it = begin; it != end; ++it) {
-    result += first ? '?' : '&';
+    if (!first) result += '&';
     first = false;
     result += UrlEncode(it->first) + '=' + UrlEncode(it->second);
   }
   return result;
+}
+
+template <typename T>
+std::string MakeUrl(utils::string_view path, T begin, T end) {
+  return std::string(path) + '?' + DoMakeQuery(begin, end);
 }
 
 }  // namespace
@@ -93,6 +98,16 @@ std::string MakeUrl(
     std::initializer_list<std::pair<utils::string_view, utils::string_view>>
         query_args) {
   return MakeUrl(path, query_args.begin(), query_args.end());
+}
+
+std::string MakeQuery(const Args& query_args) {
+  return DoMakeQuery(query_args.begin(), query_args.end());
+}
+
+std::string MakeQuery(
+    std::initializer_list<std::pair<utils::string_view, utils::string_view>>
+        query_args) {
+  return DoMakeQuery(query_args.begin(), query_args.end());
 }
 
 }  // namespace http
