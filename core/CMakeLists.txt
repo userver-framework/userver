@@ -52,8 +52,6 @@ append_debian_depends("libboost-thread-dev")
 # backend-common-cpp deps
 append_debian_depends("libcctz-dev")
 
-find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
-
 find_package_required(LibEv "libev-dev")
 find_package(ZLIB REQUIRED)
 find_package(ExternalProjectGTest REQUIRED)
@@ -70,10 +68,15 @@ find_package_required_version(Http_Parser
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
+# https://github.com/jemalloc/jemalloc/issues/820
+if(NOT SANITIZE)
+  find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+  target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
+endif(NOT SANITIZE)
+
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
-    Jemalloc
     sanitize-target
     yandex-taxi-backend-common-cpp
     libyamlcpp

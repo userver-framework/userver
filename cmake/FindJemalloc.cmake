@@ -1,3 +1,8 @@
+# https://github.com/jemalloc/jemalloc/issues/820
+if(SANITIZE)
+  message(FATAL_ERROR "jemalloc is not compatible with sanitizers, please skip it for SANITIZE-enabled builds")
+endif(SANITIZE)
+
 find_path(JEMALLOC_INCLUDE_DIR jemalloc/jemalloc.h)
 find_library(JEMALLOC_LIBRARIES NAMES jemalloc)
 
