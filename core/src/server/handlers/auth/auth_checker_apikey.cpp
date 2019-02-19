@@ -1,6 +1,6 @@
 #include "auth_checker_apikey.hpp"
 
-#include <crypto/crypto.hpp>
+#include <crypto/algorithm.hpp>
 #include <server/http/http_error.hpp>
 #include <yaml_config/value.hpp>
 
@@ -90,7 +90,8 @@ const ApiKeysSet& AuthCheckerApiKey::GetApiKeysByType(
 bool AuthCheckerApiKey::IsApiKeyAllowed(const std::string& api_key,
                                         const ApiKeysSet& allowed_keys) const {
   for (const auto& allowed_key : allowed_keys) {
-    if (crypto::AreStringsEqualConstTime(api_key, allowed_key)) return true;
+    if (crypto::algorithm::AreStringsEqualConstTime(api_key, allowed_key))
+      return true;
   }
   return false;
 }

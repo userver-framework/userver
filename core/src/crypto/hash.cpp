@@ -1,8 +1,11 @@
-#include <crypto/crypto.hpp>
+#include <crypto/hash.hpp>
 
 #include <cryptopp/hex.h>
-#include <cryptopp/misc.h>
 #include <cryptopp/sha.h>
+
+#define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
+#include <cryptopp/md5.h>
+#undef CRYPTOPP_ENABLE_NAMESPACE_WEAK
 
 #ifdef CRYPTOPP_NO_GLOBAL_BYTE
 using CryptoPP::byte;
@@ -30,7 +33,7 @@ std::string MakeHash(const std::string& data) {
 
 }  // namespace
 
-namespace crypto {
+namespace crypto::hash {
 
 std::string Sha256(const std::string& data) {
   return MakeHash<CryptoPP::SHA256>(data);
@@ -40,12 +43,11 @@ std::string Sha512(const std::string& data) {
   return MakeHash<CryptoPP::SHA512>(data);
 }
 
-bool AreStringsEqualConstTime(const std::string& str1,
-                              const std::string& str2) {
-  if (str1.size() != str2.size()) return false;
-  return CryptoPP::VerifyBufsEqual(reinterpret_cast<const byte*>(str1.data()),
-                                   reinterpret_cast<const byte*>(str2.data()),
-                                   str1.size());
+namespace weak {
+
+std::string Md5(const std::string& data) {
+  return MakeHash<CryptoPP::Weak::MD5>(data);
 }
 
-}  // namespace crypto
+}  // namespace weak
+}  // namespace crypto::hash
