@@ -38,10 +38,12 @@ struct CountExecute {
   }
 
   ~CountExecute() {
+    auto now = SteadyClock::now();
     if (!completed_) {
       ++stats_.error_execute_total;
     }
-    stats_.sum_query_duration += SteadyClock::now() - exec_begin_time;
+    stats_.sum_query_duration += now - exec_begin_time;
+    stats_.last_execute_finish = now;
   }
 
   void AccountResult(const ResultSet& res, io::DataFormat format) {
@@ -428,6 +430,7 @@ struct Connection::Impl {
       throw AlreadyInTransaction();
     }
     stats_.trx_start_time = std::move(trx_start_time);
+    stats_.work_start_time = SteadyClock::now();
     ++stats_.trx_total;
     ExecuteCommandNoPrepare(BeginStatement(options));
     if (trx_cmd_ctl) {
@@ -457,6 +460,7 @@ struct Connection::Impl {
     ++stats_.trx_total;
     ++stats_.out_of_trx;
     stats_.trx_start_time = std::move(start_time);
+    stats_.work_start_time = SteadyClock::now();
   }
   void Finish() { stats_.trx_end_time = SteadyClock::now(); }
 

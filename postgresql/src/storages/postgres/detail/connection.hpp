@@ -64,10 +64,15 @@ class Connection {
     /// Error during query execution
     Counter error_execute_total;
 
-    /// Transaction initiation time
+    /// Transaction initiation time (includes wait in pool)
     SteadyClock::time_point trx_start_time;
-    /// Transaction end time
+    /// Actual work start time (doesn't include pool wait time)
+    SteadyClock::time_point work_start_time;
+    /// Transaction end time (user called commit/rollback/finish)
     SteadyClock::time_point trx_end_time;
+    /// Time of last statement executed, to calculate times between statement
+    /// processing finish and user letting go of the connection.
+    SteadyClock::time_point last_execute_finish;
     /// Sum of all query durations
     SteadyClock::duration sum_query_duration;
   };

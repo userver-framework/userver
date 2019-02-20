@@ -39,6 +39,15 @@ struct TransactionStatistics {
   Accumulator total_percentile;
   /// Transaction aggregated query execution time distribution
   Accumulator busy_percentile;
+  /// Transaction wait for pool time (difference between trx_start_time and
+  /// work_start_time)
+  Accumulator wait_start_percentile;
+  /// Transaction wait for pool time (difference between last_execute_finish and
+  /// trx_end_time)
+  Accumulator wait_end_percentile;
+  /// Return to pool percentile (difference between trx_end_time and time the
+  /// connection has been returned to the pool)
+  Accumulator return_to_pool_percentile;
 };
 
 /// @brief Template connection statistics storage
@@ -108,6 +117,12 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
         stats.transaction.total_percentile.GetStatsForPeriod());
     transaction.busy_percentile.Add(
         stats.transaction.busy_percentile.GetStatsForPeriod());
+    transaction.wait_start_percentile.Add(
+        stats.transaction.wait_start_percentile.GetStatsForPeriod());
+    transaction.wait_end_percentile.Add(
+        stats.transaction.wait_end_percentile.GetStatsForPeriod());
+    transaction.return_to_pool_percentile.Add(
+        stats.transaction.return_to_pool_percentile.GetStatsForPeriod());
     pool_error_exhaust_total = stats.pool_error_exhaust_total;
     return *this;
   }

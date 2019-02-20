@@ -43,6 +43,12 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
       utils::statistics::PercentileToJson(stats.transaction.total_percentile);
   timing["busy"]["1min"] =
       utils::statistics::PercentileToJson(stats.transaction.busy_percentile);
+  timing["wait-start"]["1min"] = utils::statistics::PercentileToJson(
+      stats.transaction.wait_start_percentile);
+  timing["wait-end"]["1min"] = utils::statistics::PercentileToJson(
+      stats.transaction.wait_end_percentile);
+  timing["return-to-pool"]["1min"] = utils::statistics::PercentileToJson(
+      stats.transaction.return_to_pool_percentile);
 
   auto query = instance["queries"];
   query["parsed"] = stats.transaction.parse_total;

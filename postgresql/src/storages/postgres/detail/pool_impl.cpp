@@ -121,6 +121,8 @@ void ConnectionPoolImpl::Release(Connection* connection) {
   if (!connection->IsInTransaction()) {
     const auto conn_stats = connection->GetStatsAndReset();
 
+    auto now = SteadyClock::now();
+
     stats_.transaction.total += conn_stats.trx_total;
     stats_.transaction.commit_total += conn_stats.commit_total;
     stats_.transaction.rollback_total += conn_stats.rollback_total;
@@ -138,6 +140,18 @@ void ConnectionPoolImpl::Release(Connection* connection) {
     stats_.transaction.busy_percentile.GetCurrentCounter().Account(
         std::chrono::duration_cast<std::chrono::milliseconds>(
             conn_stats.sum_query_duration)
+            .count());
+    stats_.transaction.wait_start_percentile.GetCurrentCounter().Account(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            conn_stats.work_start_time - conn_stats.trx_start_time)
+            .count());
+    stats_.transaction.wait_end_percentile.GetCurrentCounter().Account(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            conn_stats.trx_end_time - conn_stats.last_execute_finish)
+            .count());
+    stats_.transaction.return_to_pool_percentile.GetCurrentCounter().Account(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - conn_stats.trx_end_time)
             .count());
   }
 
