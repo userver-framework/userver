@@ -7,7 +7,7 @@
 
 namespace engine {
 
-/* Single producer, single consumer queue */
+/// Single producer, single consumer queue
 template <typename T>
 class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
  public:
@@ -218,9 +218,8 @@ void SpscQueue<T>::MarkProducerIsDead() {
   nonempty_event_.Send();
 }
 
-/* Template specialization for unique_ptr<T>: it queues T* and calls T::delete
- * for all non-pop'ed items in destructor.
- */
+/// Template specialization for `unique_ptr<T>`: it queues `T*` and calls
+/// `T::delete` for all non-poped items in destructor.
 template <typename T>
 class SpscQueue<std::unique_ptr<T>> : public SpscQueue<T*> {
  public:

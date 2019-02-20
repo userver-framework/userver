@@ -5,7 +5,7 @@ namespace components {
 class ComponentContext;
 class ComponentConfig;
 
-/* Don't use it for application components, use LoggableComponentBase instead */
+/// Don't use it for application components, use LoggableComponentBase instead
 class ComponentBase {
  public:
   /// There is no action in a base constructor but you have to initialize
@@ -43,7 +43,7 @@ class ComponentBase {
   virtual void OnAllComponentsAreStopping() {}
 };
 
-/* Base class for all application components, it depends on logger and tracer */
+/// Base class for all application components, it depends on logger and tracer
 class LoggableComponentBase : public ComponentBase {
  public:
   LoggableComponentBase(const ComponentConfig&, const ComponentContext&);

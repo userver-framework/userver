@@ -5,6 +5,8 @@
 namespace server {
 namespace handlers {
 
+/// Convenient base for handlers that accept requests with body in
+/// json format.
 class HttpHandlerJsonBase : public HttpHandlerBase {
  public:
   HttpHandlerJsonBase(const components::ComponentConfig& config,

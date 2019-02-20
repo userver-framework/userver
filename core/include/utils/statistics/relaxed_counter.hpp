@@ -5,6 +5,7 @@
 namespace utils {
 namespace statistics {
 
+/// @brief Atomic counter of type T with relaxed memory ordering
 template <class T>
 class RelaxedCounter {
  public:
