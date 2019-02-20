@@ -71,8 +71,11 @@ void AddInstanceStatistics(
     return;
   }
   const auto options = storages::postgres::OptionsFromDsn(desc.dsn);
-  parent[options.host + ':' + options.port] =
-      InstanceStatisticsToJson(desc.stats);
+  auto hostname = options.host;
+  if (!options.port.empty()) {
+    hostname += ':' + options.port;
+  }
+  parent[hostname] = InstanceStatisticsToJson(desc.stats);
 }
 
 formats::json::ValueBuilder ClusterStatisticsToJson(
