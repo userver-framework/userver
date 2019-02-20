@@ -1,11 +1,28 @@
 #include <storages/postgres/io/chrono.hpp>
 
+#include <storages/postgres/io/type_mapping.hpp>
+
 #include <unicode/timezone.h>
 
 #include <logging/log.hpp>
 
 namespace storages {
 namespace postgres {
+
+namespace io {
+
+template <>
+struct PgToCpp<PredefinedOids::kTimestamptz, TimePoint>
+    : detail::PgToCppPredefined<PredefinedOids::kTimestamptz, TimePoint> {};
+
+namespace {
+
+const bool kReference = detail::ForceReference(
+    PgToCpp<PredefinedOids::kTimestamptz, TimePoint>::init_);
+
+}  // namespace
+
+}  // namespace io
 
 namespace {
 
