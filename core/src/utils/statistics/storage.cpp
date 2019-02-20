@@ -13,8 +13,11 @@ namespace {
 void UpdateFields(formats::json::ValueBuilder& object,
                   formats::json::ValueBuilder value) {
   for (auto it = value.begin(); it != value.end(); ++it) {
-    const auto& name = it.GetName();
-    object[name] = value[name];
+    auto name = it.GetName();
+    for (auto& c : name) {
+      if (c == '.') c = '_';
+    }
+    object[name] = *it;
   }
 }
 
