@@ -2,6 +2,23 @@
 
 #include <crypto/hash.hpp>
 
+TEST(Crypto, Sha1) {
+  EXPECT_EQ("da39a3ee5e6b4b0d3255bfef95601890afd80709", crypto::hash::Sha1({}));
+  EXPECT_EQ("a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+            crypto::hash::Sha1("test"));
+  EXPECT_EQ("4e1243bd22c66e76c2ba9eddc1f91394e57f9f83",
+            crypto::hash::Sha1("test\n"));
+}
+
+TEST(Crypto, Sha224) {
+  EXPECT_EQ("d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
+            crypto::hash::Sha224({}));
+  EXPECT_EQ("90a3ed9e32b2aaf4c61c410eb925426119e1a9dc53d4286ade99a809",
+            crypto::hash::Sha224("test"));
+  EXPECT_EQ("52f1bf093f4b7588726035c176c0cdb4376cfea53819f1395ac9e6ec",
+            crypto::hash::Sha224("test\n"));
+}
+
 TEST(Crypto, Sha256) {
   EXPECT_EQ("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
             crypto::hash::Sha256({}));
@@ -32,4 +49,21 @@ TEST(Crypto, Md5) {
             crypto::hash::weak::Md5("test"));
   EXPECT_EQ("d8e8fca2dc0f896fd7cb4cb0031ba249",
             crypto::hash::weak::Md5("test\n"));
+}
+
+TEST(Crypto, Hmac) {
+  EXPECT_EQ(
+      "9ba1f63365a6caf66e46348f43cdef956015bea997adeb06e69007ee3ff517df10fc5eb8"
+      "60da3d43b82c2a040c931119d2dfc6d08e253742293a868cc2d82015",
+      crypto::hash::HmacSha512("test", "test",
+                               crypto::hash::OutputEncoding::kHex));
+  EXPECT_EQ(
+      "m6H2M2WmyvZuRjSPQ83vlWAVvqmXresG5pAH7j/1F98Q/F64YNo9Q7gsKgQMkxEZ0t/"
+      "G0I4lN0IpOoaMwtggFQ==",
+      crypto::hash::HmacSha512("test", "test",
+                               crypto::hash::OutputEncoding::kBase64));
+
+  EXPECT_EQ("0c94515c15e5095b8a87a50ba0df3bf38ed05fe6",
+            crypto::hash::HmacSha1("test", "test",
+                                   crypto::hash::OutputEncoding::kHex));
 }
