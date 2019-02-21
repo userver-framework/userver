@@ -2,8 +2,10 @@
 
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 
 #include <logging/logging_test.hpp>
+#include <utils/traceful_exception.hpp>
 
 TEST_F(LoggingTest, TskvEncode) {
   LOG_CRITICAL() << "line 1\nline 2";
@@ -95,4 +97,41 @@ TEST_F(LoggingTest, UserStruct) {
 
   EXPECT_NE(std::string::npos, sstream.str().find("FF161300\\t0x00000000"))
       << "FF161300\\t0x00000000 was represented as " << sstream.str();
+}
+
+TEST_F(LoggingTest, PlainException) {
+  LOG_CRITICAL() << std::runtime_error("test exception");
+  logging::LogFlush();
+
+  EXPECT_NE(std::string::npos, sstream.str().find("test exception"))
+      << "exception was not printed correctly";
+}
+
+TEST_F(LoggingTest, TracefulException) {
+  LOG_CRITICAL() << utils::TracefulException("traceful exception");
+  logging::LogFlush();
+
+  EXPECT_NE(std::string::npos, sstream.str().find("traceful exception"))
+      << "traceful exception missing its message";
+  EXPECT_NE(std::string::npos, sstream.str().find("\tstacktrace="))
+      << "traceful exception missing its trace";
+}
+
+TEST_F(LoggingTest, AttachedException) {
+  try {
+    throw utils::impl::AttachTraceToException(
+        std::logic_error("plain exception"))
+        << " with additional info";
+  } catch (const std::exception& ex) {
+    LOG_CRITICAL() << ex;
+  }
+  logging::LogFlush();
+
+  EXPECT_NE(std::string::npos, sstream.str().find("plain exception"))
+      << "missing plain exception message";
+  EXPECT_NE(std::string::npos,
+            sstream.str().find("plain exception with additional info"))
+      << "traceful exception message malformed";
+  EXPECT_NE(std::string::npos, sstream.str().find("\tstacktrace="))
+      << "traceful exception missing its trace";
 }

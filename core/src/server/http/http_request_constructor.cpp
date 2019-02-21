@@ -169,7 +169,7 @@ void HttpRequestConstructor::FinalizeImpl() {
     if (config_.parse_args_from_body)
       ParseArgs(request_->request_body_.data(), request_->request_body_.size());
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "can't parse args: " << ex.what();
+    LOG_WARNING() << "can't parse args: " << ex;
     SetStatus(Status::kParseArgsError);
     return;
   }
@@ -184,7 +184,7 @@ void HttpRequestConstructor::FinalizeImpl() {
   try {
     ParseCookies();
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "can't parse cookies: " << ex.what();
+    LOG_WARNING() << "can't parse cookies: " << ex;
     SetStatus(Status::kParseCookiesError);
     return;
   }

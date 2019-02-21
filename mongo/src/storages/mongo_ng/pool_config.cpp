@@ -22,7 +22,7 @@ PoolConfig::PoolConfig(std::string app_name_)
       idle_limit(4),
       app_name(std::move(app_name_)) {
   if (!IsValidAppName(app_name)) {
-    throw InvalidConfigException("test", "Invalid appname in pool config");
+    throw InvalidConfigException("test") << "Invalid appname in pool config";
   }
 }
 

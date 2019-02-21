@@ -311,7 +311,7 @@ Connection* ClusterTopology::GetConnectionOrNull(size_t index) {
   } catch (const ConnectionError&) {
     conn_error = true;
   } catch (const Error& ex) {
-    LOG_ERROR() << "Unexpected exception in connection: " << ex.what();
+    LOG_ERROR() << "Unexpected exception in connection: " << ex;
     conn_error = true;
   }
   if (conn_error) {
@@ -432,7 +432,7 @@ engine::Task* ClusterTopology::DetectMaster(size_t index, ChecksList& checks) {
   } catch (const ConnectionError&) {
     conn_error = true;
   } catch (const Error& ex) {
-    LOG_ERROR() << "Unexpected exception in connection: " << ex.what();
+    LOG_ERROR() << "Unexpected exception in connection: " << ex;
     conn_error = true;
   }
   if (conn_error) {
@@ -497,7 +497,7 @@ engine::Task* ClusterTopology::DetectSyncSlaves(size_t master_index,
     LOG_INFO() << "Master host was lost while asking for sync slaves";
     conn_error = true;
   } catch (const Error& ex) {
-    LOG_ERROR() << "Unexpected exception in connection: " << ex.what();
+    LOG_ERROR() << "Unexpected exception in connection: " << ex;
     conn_error = true;
   }
   if (conn_error) {

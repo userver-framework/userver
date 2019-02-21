@@ -54,7 +54,7 @@ void Timer::TimerImpl::DoOnTimer() {
   try {
     on_timer_func_();  // called in event loop
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "exception in on_timer_func: " << ex.what();
+    LOG_ERROR() << "exception in on_timer_func: " << ex;
   }
 }
 

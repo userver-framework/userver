@@ -38,7 +38,7 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
         component_context.FindComponent<HttpClient>().GetHttpClient(), config);
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
-    LOG_ERROR() << "Config client updater initialization failed: " << e.what();
+    LOG_ERROR() << "Config client updater initialization failed: " << e;
     taxi_config_.NotifyLoadingFailed(e.what());
     /* Start PeriodicTask without the 1st update:
      * TaxiConfig has been initialized with

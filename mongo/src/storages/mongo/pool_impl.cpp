@@ -54,7 +54,7 @@ PoolImpl::PoolImpl(engine::TaskProcessor& task_processor,
     LOG_INFO() << "Creating " << config.min_size << " mongo connections";
     for (size_t i = 0; i < config.min_size; ++i) Push(Create());
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Mongo pool pre-population failed: " << ex.what();
+    LOG_ERROR() << "Mongo pool pre-population failed: " << ex;
     Clear();
     throw;
   }

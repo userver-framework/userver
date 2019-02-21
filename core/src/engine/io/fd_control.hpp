@@ -149,7 +149,7 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
       IoSystemError ex(
           utils::impl::ToString("Error while ", context..., ", fd=", fd_),
           err_value);
-      LOG_ERROR() << ex.what();
+      LOG_ERROR() << ex;
       if (pos != begin) {
         break;
       }

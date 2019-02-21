@@ -145,12 +145,12 @@ void Manager::AddComponents(const ComponentList& component_list) {
           (*adder)(*this, component_config_map);
         } catch (const ComponentsLoadCancelledException& ex) {
           LOG_WARNING() << "Cannot start component "
-                        << adder->GetComponentName() << ": " << ex.what();
+                        << adder->GetComponentName() << ": " << ex;
           component_context_->CancelComponentsLoad();
           throw;
         } catch (const std::exception& ex) {
           LOG_ERROR() << "Cannot start component " << adder->GetComponentName()
-                      << ": " << ex.what();
+                      << ": " << ex;
           component_context_->CancelComponentsLoad();
           throw;
         } catch (...) {
@@ -242,7 +242,7 @@ void Manager::ClearComponents() {
   try {
     component_context_->ClearComponents();
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "error in clear components: " << ex.what();
+    LOG_ERROR() << "error in clear components: " << ex;
   }
 }
 

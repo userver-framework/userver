@@ -207,8 +207,7 @@ void Redis::Connect(const ComponentConfig& config,
                      .GetSettings(redis_group.config_name);
     } catch (const storages::secdist::SecdistError& ex) {
       LOG_ERROR() << "Failed to load redis config (db=" << redis_group.db
-                  << " config_name=" << redis_group.config_name
-                  << "): " << ex.what();
+                  << " config_name=" << redis_group.config_name << "): " << ex;
       throw;
     }
     client = redis::Sentinel::CreateSentinel(
@@ -226,7 +225,7 @@ Redis::~Redis() {
     statistics_holder_.Unregister();
     config_subscription_.Unsubscribe();
   } catch (std::exception const& e) {
-    LOG_ERROR() << "exception while destroying Redis component: " << e.what();
+    LOG_ERROR() << "exception while destroying Redis component: " << e;
   } catch (...) {
     LOG_ERROR() << "non-standard exception while destroying Redis component";
   }

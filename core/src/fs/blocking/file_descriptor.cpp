@@ -48,7 +48,7 @@ FileDescriptor::~FileDescriptor() {
     try {
       Close();
     } catch (const std::exception& e) {
-      LOG_ERROR() << e.what();
+      LOG_ERROR() << e;
     }
   }
 }

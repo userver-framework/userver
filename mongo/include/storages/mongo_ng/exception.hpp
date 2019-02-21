@@ -3,27 +3,21 @@
 /// @file storages/mongo_ng/exception.hpp
 /// @brief MongoDB-specific exceptions
 
-#include <stdexcept>
+#include <utils/traceful_exception.hpp>
 
 namespace storages::mongo_ng {
 
 /// Generic mongo-related exception
-class MongoException : public std::exception {
+class MongoException : public utils::TracefulException {
  public:
-  explicit MongoException(std::string msg) : msg_(std::move(msg)) {}
-  virtual ~MongoException() = default;
-
-  virtual const char* what() const noexcept override { return msg_.c_str(); }
-
- private:
-  std::string msg_;
+  using utils::TracefulException::TracefulException;
 };
 
 /// Client pool error
 class PoolException : public MongoException {
  public:
-  PoolException(std::string pool_id, std::string msg)
-      : MongoException(msg + " in pool '" + pool_id + '\''),
+  explicit PoolException(std::string pool_id)
+      : MongoException("in pool '" + pool_id + "': "),
         pool_id_(std::move(pool_id)) {}
 
   const std::string& PoolId() const { return pool_id_; }

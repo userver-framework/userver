@@ -61,7 +61,7 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
   try {
     manager_ptr = std::make_unique<Manager>(std::move(config), component_list);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Loading failed: " << ex.what();
+    LOG_ERROR() << "Loading failed: " << ex;
     throw;
   }
 
@@ -84,8 +84,7 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
             ManagerConfig::ParseFromFile(config_path));
       } catch (const std::exception& ex) {
         LOG_ERROR()
-            << "Reload failed, cannot update components manager config: "
-            << ex.what();
+            << "Reload failed, cannot update components manager config: " << ex;
         continue;
       }
       if (new_config->yaml == manager_ptr->GetConfig().yaml &&
@@ -99,7 +98,7 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
         new_manager_ptr =
             std::make_unique<Manager>(std::move(new_config), component_list);
       } catch (const std::exception& ex) {
-        LOG_ERROR() << "Reload failed: " << ex.what();
+        LOG_ERROR() << "Reload failed: " << ex;
         continue;
       }
       LOG_INFO() << "New components manager started, shutting down the old one";

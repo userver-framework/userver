@@ -6,10 +6,12 @@
 #include <boost/container/small_vector.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <logging/log_extra_stacktrace.hpp>
 #include <logging/spdlog.hpp>
 #include <tracing/span.hpp>
 #include <utils/string_view.hpp>
 #include <utils/swappingsmart.hpp>
+#include <utils/traceful_exception.hpp>
 #include "log_workaround.hpp"
 
 #include <boost/stacktrace/detail/to_dec_array.hpp>
@@ -258,6 +260,17 @@ void LogHelper::Put(utils::string_view value) {
 }
 
 void LogHelper::Put(char value) { pimpl_->xsputn(&value, 1); }
+
+void LogHelper::PutException(const std::exception& ex) {
+  const auto* traceful = dynamic_cast<const utils::TracefulExceptionBase*>(&ex);
+  if (traceful) {
+    Put(traceful->Message());
+    extra_.Extend(impl::MakeLogExtraStacktrace(
+        traceful->Trace(), impl::LogExtraStacktraceFlags::kFrozen));
+  } else {
+    Put(ex.what());
+  }
+}
 
 LogHelper::EncodingGuard::EncodingGuard(LogHelper& lh, Encode mode) noexcept
     : lh{lh} {

@@ -138,7 +138,7 @@ Postgres::Postgres(const ComponentConfig& config,
       db_name_ = dbalias;
     } catch (const storages::secdist::SecdistError& ex) {
       LOG_ERROR() << "Failed to load Postgres config for dbalias " << dbalias
-                  << ": " << ex.what();
+                  << ": " << ex;
       throw;
     }
   }

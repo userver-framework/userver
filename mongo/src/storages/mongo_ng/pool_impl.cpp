@@ -5,6 +5,7 @@
 #include <formats/bson.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo_ng/exception.hpp>
+#include <utils/traceful_exception.hpp>
 
 #include <storages/mongo_ng/async_stream.hpp>
 #include <storages/mongo_ng/bson_error.hpp>
@@ -17,8 +18,8 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
   BsonError parse_error;
   UriPtr uri(mongoc_uri_new_with_error(uri_string.c_str(), parse_error.Get()));
   if (!uri) {
-    throw InvalidConfigException(
-        pool_id, std::string("Bad MongoDB uri: ") + parse_error->message);
+    throw InvalidConfigException(pool_id)
+        << "Bad MongoDB uri: " << parse_error->message;
   }
   mongoc_uri_set_option_as_int32(uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
                                  conn_timeout_ms);
@@ -56,7 +57,8 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
   uri_ = MakeUri(id_, uri_string, config.conn_timeout_ms, config.so_timeout_ms);
   const char* uri_database = mongoc_uri_get_database(uri_.get());
   if (!uri_database) {
-    throw InvalidConfigException(id_, "MongoDB uri must include database name");
+    throw InvalidConfigException(id_)
+        << "MongoDB uri must include database name";
   }
   default_database_ = uri_database;
 
@@ -66,7 +68,7 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
     LOG_INFO() << "Creating " << config.initial_size << " mongo connections";
     for (size_t i = 0; i < config.initial_size; ++i) Push(Create());
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex.what();
+    LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex;
   }
 }
 
@@ -105,8 +107,7 @@ mongoc_client_t* PoolImpl::Create() {
       mongoc_read_prefs_new(MONGOC_READ_SECONDARY_PREFERRED));
 
   if (size_ >= PoolConfig::kMaxSize) {
-    throw PoolException(
-        id_, "Mongo pool reached size limit: " + std::to_string(size_));
+    throw PoolException(id_) << "Mongo pool reached size limit: " << size_;
   }
   LOG_INFO() << "Creating mongo connection, current pool size: "
              << size_.load();
@@ -125,8 +126,8 @@ mongoc_client_t* PoolImpl::Create() {
   if (!mongoc_client_command_simple(
           client.get(), kPingDatabase, kPingCommand.GetBson().get(),
           kPingReadPrefs.get(), nullptr, error.Get())) {
-    throw PoolException(
-        id_, std::string("Connection to MongoDB failed: ") + error->message);
+    throw PoolException(id_)
+        << "Connection to MongoDB failed: " << error->message;
   }
 
   ++size_;

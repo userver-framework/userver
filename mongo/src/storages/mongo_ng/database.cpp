@@ -12,7 +12,7 @@ namespace storages::mongo_ng::impl {
 Database::Database(PoolImplPtr pool, std::string database_name)
     : pool_(std::move(pool)), database_name_(std::move(database_name)) {
   if (!utils::text::IsCString(database_name_)) {
-    throw MongoException("Invalid database name: '" + database_name);
+    throw MongoException("Invalid database name: '" + database_name_);
   }
 }
 

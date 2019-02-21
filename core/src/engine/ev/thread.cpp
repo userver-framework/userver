@@ -206,7 +206,7 @@ void Thread::UpdateLoopWatcherImpl() {
       else
         func_promise->set_value();
     } catch (const std::exception& ex) {
-      LOG_ERROR() << "can't set value or exception: " << ex.what();
+      LOG_ERROR() << "can't set value or exception: " << ex;
     }
   }
   LOG_TRACE() << "func_promise set";
@@ -218,7 +218,7 @@ void Thread::UpdateLoopWatcherImpl() {
     try {
       (*func)();
     } catch (const std::exception& ex) {
-      LOG_WARNING() << "exception in async thread func: " << ex.what();
+      LOG_WARNING() << "exception in async thread func: " << ex;
     }
   }
   LOG_TRACE() << "exit";

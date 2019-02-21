@@ -131,7 +131,7 @@ void Connection::ListenForRequests(Queue::Producer producer) {
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Error while receiving from peer "
                 << peer_socket_.Getpeername() << " on fd " << Fd() << ": "
-                << ex.what();
+                << ex;
   }
 
   LOG_TRACE() << "Stopping ListenForRequests()";
@@ -161,7 +161,7 @@ void Connection::HandleQueueItem(QueueItem& item) {
   try {
     item.second.Get();
   } catch (const std::exception& e) {
-    LOG_WARNING() << "Request failed with unhandled exception: " << e.what();
+    LOG_WARNING() << "Request failed with unhandled exception: " << e;
 
     item.first->MarkAsInternalServerError();
   }
@@ -186,7 +186,7 @@ void Connection::SendResponses(Queue::Consumer consumer) {
       try {
         response.SendResponse(peer_socket_);
       } catch (const std::exception& ex) {
-        LOG_ERROR() << "Error sending data: " << ex.what();
+        LOG_ERROR() << "Error sending data: " << ex;
 
         send_failure_time_ = std::chrono::steady_clock::now();
         response.SetSendFailed(send_failure_time_);

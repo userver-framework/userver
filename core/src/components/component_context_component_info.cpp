@@ -111,7 +111,7 @@ void ComponentInfo::OnAllComponentsAreStopping() {
     component_->OnAllComponentsAreStopping();
   } catch (const std::exception& ex) {
     LOG_ERROR() << "OnAllComponentsAreStopping() failed for component " << name_
-                << ": " << ex.what();
+                << ": " << ex;
   }
 }
 

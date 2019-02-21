@@ -14,7 +14,7 @@ Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
     secdist_config_ = storages::secdist::SecdistConfig(config_path);
   } catch (const storages::secdist::SecdistError& ex) {
     LOG_ERROR() << "Failed to load secdist config from " << config_path << ": "
-                << ex.what();
+                << ex;
     throw;
   }
 }

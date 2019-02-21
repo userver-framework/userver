@@ -219,7 +219,7 @@ void TaskProcessor::ProcessTasks() noexcept {
     try {
       context->DoStep();
     } catch (const std::exception& ex) {
-      LOG_ERROR() << "uncaught exception from DoStep: " << ex.what();
+      LOG_ERROR() << "uncaught exception from DoStep: " << ex;
       has_failed = true;
     }
     // has_failed is not observable from Adopt()

@@ -121,7 +121,7 @@ engine::Task PGConnectionWrapper::Close() {
 
 template <typename ExceptionType>
 void PGConnectionWrapper::CloseWithError(ExceptionType&& ex) {
-  PGCW_LOG_DEBUG() << "Closing connection because of failure: " << ex.what();
+  PGCW_LOG_DEBUG() << "Closing connection because of failure: " << ex;
   Close().Wait();
   throw std::forward<ExceptionType>(ex);
 }

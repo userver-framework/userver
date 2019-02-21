@@ -119,7 +119,7 @@ void Logging::OnLogRotate() {
       task.BlockingWait();
       task.Get();
     } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception on log reopen: " << e.what();
+      LOG_ERROR() << "Exception on log reopen: " << e;
     }
   }
 }

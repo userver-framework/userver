@@ -28,7 +28,7 @@ Transaction::~Transaction() {
     } catch (const std::exception& e) {
       LOG_ERROR() << "Exception when rolling back an abandoned transaction in "
                      "destructor: "
-                  << e.what();
+                  << e;
     }
   }
 }

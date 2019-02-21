@@ -6,7 +6,8 @@
 
 #include <boost/stacktrace.hpp>
 #include <logging/log.hpp>
-#include <logging/stacktrace_cache.hpp>
+
+#include <logging/log_extra_stacktrace.hpp>
 
 namespace logging {
 
@@ -60,16 +61,12 @@ void LogExtra::Extend(LogExtra&& extra) {
 }
 
 LogExtra LogExtra::StacktraceNocache() {
-  LogExtra ret;
-  ret.Extend("stacktrace", to_string(boost::stacktrace::stacktrace{}));
-  return ret;
+  return impl::MakeLogExtraStacktrace(boost::stacktrace::stacktrace{},
+                                      impl::LogExtraStacktraceFlags::kNoCache);
 }
 
 LogExtra LogExtra::Stacktrace() {
-  LogExtra ret;
-  ret.Extend("stacktrace",
-             stacktrace_cache::to_string(boost::stacktrace::stacktrace{}));
-  return ret;
+  return impl::MakeLogExtraStacktrace(boost::stacktrace::stacktrace{});
 }
 
 const std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(

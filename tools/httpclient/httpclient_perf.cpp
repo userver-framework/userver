@@ -175,7 +175,7 @@ void Worker(WorkerContext& context) {
                         .count()
                  << "us";
     } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception: " << e.what();
+      LOG_ERROR() << "Exception: " << e;
     } catch (...) {
       LOG_ERROR() << "Non-std::exception exception";
     }

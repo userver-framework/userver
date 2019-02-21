@@ -167,7 +167,7 @@ struct Connection::Impl {
             connection_->SetStatementTimeout(old_timeout_);
           }
         } catch (std::exception const& e) {
-          LOG_ERROR() << "Failed to reset old statement timeout: " << e.what();
+          LOG_ERROR() << "Failed to reset old statement timeout: " << e;
         }
       }
     }
@@ -289,7 +289,7 @@ struct Connection::Impl {
       }
       db_types_.AddCompositeFields(std::move(attribs));
     } catch (const Error& e) {
-      LOG_ERROR() << "Error loading user datatypes: " << e.what();
+      LOG_ERROR() << "Error loading user datatypes: " << e;
       // TODO Decide about rethrowing
       throw;
     }
@@ -394,7 +394,7 @@ struct Connection::Impl {
       throw;
     } catch (ConnectionTimeoutError const& e) {
       LOG_ERROR() << "Statement " << statement
-                  << " network timeout error: " << e.what() << ". "
+                  << " network timeout error: " << e << ". "
                   << "Network timout was " << network_timeout.count() << "ms";
       throw;
     }

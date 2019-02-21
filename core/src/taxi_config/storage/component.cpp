@@ -128,7 +128,7 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
 
     LOG_INFO() << "Successfully wrote taxi_config from FS cache";
   } catch (const std::exception& e) {
-    LOG_ERROR() << "Failed to save config to FS cache: " << e.what();
+    LOG_ERROR() << "Failed to save config to FS cache: " << e;
   }
 }
 

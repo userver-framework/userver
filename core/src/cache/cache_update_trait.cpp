@@ -65,8 +65,8 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
   try {
     update_task_.Stop();
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Exception in update task: " << ex.what()
-                << ". Component name '" << name_ << "'";
+    LOG_ERROR() << "Exception in update task: " << ex << ". Component name '"
+                << name_ << "'";
   }
 }
 

@@ -158,7 +158,7 @@ int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
   try {
     request_constructor_->AppendUrl(data, size);
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "can't append url: " << ex.what();
+    LOG_WARNING() << "can't append url: " << ex;
     return -1;
   }
   return 0;
@@ -172,7 +172,7 @@ int HttpRequestParser::OnHeaderFieldImpl(http_parser* p, const char* data,
   try {
     request_constructor_->AppendHeaderField(data, size);
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "can't append header field: " << ex.what();
+    LOG_WARNING() << "can't append header field: " << ex;
     return -1;
   }
   return 0;
@@ -186,7 +186,7 @@ int HttpRequestParser::OnHeaderValueImpl(http_parser* p, const char* data,
   try {
     request_constructor_->AppendHeaderValue(data, size);
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "can't append header value: " << ex.what();
+    LOG_WARNING() << "can't append header value: " << ex;
     return -1;
   }
   return 0;
@@ -198,7 +198,7 @@ int HttpRequestParser::OnHeadersCompleteImpl(http_parser* p) {
   try {
     request_constructor_->AppendHeaderField("", 0);
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "can't append header value: " << ex.what();
+    LOG_WARNING() << "can't append header value: " << ex;
     return -1;
   }
   LOG_TRACE() << "headers complete";
@@ -213,7 +213,7 @@ int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
   try {
     request_constructor_->AppendBody(data, size);
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "can't append body: " << ex.what();
+    LOG_WARNING() << "can't append body: " << ex;
     return -1;
   }
   return 0;
@@ -249,7 +249,7 @@ bool HttpRequestParser::CheckUrlComplete(http_parser* p) {
   try {
     request_constructor_->ParseUrl();
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "can't parse url: " << ex.what();
+    LOG_WARNING() << "can't parse url: " << ex;
     return false;
   }
   return true;

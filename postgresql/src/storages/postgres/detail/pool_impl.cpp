@@ -182,7 +182,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
             }
           } catch (const std::exception& e) {
             LOG_WARNING() << "Exception while cleaning up a dirty connection: "
-                          << e.what();
+                          << e;
           }
           LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
           shared_this->DeleteConnection(connection);
@@ -240,7 +240,7 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
       return false;
     } catch (const Error& ex) {
       ++shared_this->stats_.connection.error_total;
-      LOG_ERROR() << "Connection creation failed with error: " << ex.what();
+      LOG_ERROR() << "Connection creation failed with error: " << ex;
       throw;
     }
     LOG_TRACE() << "PostgreSQL connection created";

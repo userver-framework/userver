@@ -122,7 +122,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
         task.second.Get();
       } catch (const std::exception& e) {
         LOG_ERROR() << "Unhandled exception in subscriber " << task.first
-                    << ": " << e.what();
+                    << ": " << e;
       }
     }
   }

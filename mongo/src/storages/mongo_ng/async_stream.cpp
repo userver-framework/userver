@@ -94,7 +94,7 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t* host,
     return {};
   } catch (const std::exception& ex) {
     LOG_INFO() << "Cannot connect to UNIX socket '" << host->host
-               << "': " << ex.what();
+               << "': " << ex;
   }
   bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                  "Cannot connect to UNIX socket '%s'", host->host);
@@ -138,11 +138,11 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
         return {};
       } catch (const engine::io::IoError& ex) {
         LOG_DEBUG() << "Cannot connect to " << host->host << " at "
-                    << current_addr << ": " << ex.what();
+                    << current_addr << ": " << ex;
       }
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Cannot connect to " << host->host << ": " << ex.what();
+    LOG_ERROR() << "Cannot connect to " << host->host << ": " << ex;
   }
   bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                  "Cannot connect to %s", host->host_and_port);

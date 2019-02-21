@@ -172,12 +172,12 @@ void ComponentContext::ProcessSingleComponentLifetimeStageSwitching(
     (component_info.*params.stage_switch_handler)();
   } catch (const impl::StageSwitchingCancelledException& ex) {
     LOG_WARNING() << params.stage_switch_handler_name
-                  << " failed for component " << name << ": " << ex.what();
+                  << " failed for component " << name << ": " << ex;
     component_info.SetStage(params.next_stage);
     throw;
   } catch (const std::exception& ex) {
     LOG_ERROR() << params.stage_switch_handler_name << " failed for component "
-                << name << ": " << ex.what();
+                << name << ": " << ex;
     if (params.allow_cancelling) {
       component_info.SetStageSwitchingCancelled(true);
       if (!params.is_component_lifetime_stage_switchings_cancelled.exchange(

@@ -70,7 +70,7 @@ void PeriodicTask::Run() {
       callback_();
     } catch (const std::exception& e) {
       LOG_ERROR() << "Exception in PeriodicTask with name=" << name_ << ": "
-                  << e.what();
+                  << e;
       period = exception_period;
     }
 

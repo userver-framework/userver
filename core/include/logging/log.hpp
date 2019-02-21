@@ -3,6 +3,7 @@
 /// @file logging/log.hpp
 /// @brief Logging helpers
 
+#include <exception>
 #include <memory>
 #include <ostream>
 
@@ -69,6 +70,8 @@ class LogHelper {
       PutSigned(value);
     } else if constexpr (std::is_unsigned<T>::value) {
       PutUnsigned(value);
+    } else if constexpr (std::is_base_of<std::exception, T>::value) {
+      PutException(value);
     } else {
       // No operator<< overload for LogHelper and type T. You could provide one,
       // to speed up logging of value.
@@ -115,6 +118,7 @@ class LogHelper {
   void PutSigned(long long value);
   void Put(utils::string_view value);
   void Put(char value);
+  void PutException(const std::exception& ex);
 
   std::ostream& Stream();
 

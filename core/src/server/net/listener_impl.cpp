@@ -90,7 +90,7 @@ ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
               } catch (const engine::io::IoCancelled&) {
                 break;
               } catch (const std::exception& ex) {
-                LOG_ERROR() << "can't accept connection: " << ex.what();
+                LOG_ERROR() << "can't accept connection: " << ex;
               }
             }
           },

@@ -108,7 +108,7 @@ PostgresSettings::PostgresSettings(const formats::json::Value& doc) {
       }
     } catch (storages::secdist::SecdistError& e) {
       LOG_WARNING() << "Secdist for " << dbalias
-                    << " contains unsupported formats: " << e.what();
+                    << " contains unsupported formats: " << e;
       sharded_cluster_descs_.erase(dbalias);
       invalid_dbaliases_.insert(dbalias);
     }
