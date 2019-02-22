@@ -71,6 +71,17 @@ inline void WrappedCall<void>::DoPerform() {
   result_.SetValue();
 }
 
+template <typename T>
+class OptionalSetNoneGuard {
+ public:
+  OptionalSetNoneGuard(boost::optional<T>& o) : o_(o) {}
+
+  ~OptionalSetNoneGuard() { o_ = boost::none; }
+
+ private:
+  boost::optional<T>& o_;
+};
+
 // Stores passed arguments and function. Invokes function later with argument
 // types exactly matching the initial types of arguments passed to WrapCall.
 template <typename Function, typename... Args>
@@ -95,16 +106,18 @@ class WrappedCallImpl final
 
   template <size_t... Indices>
   ResultType DoCall(std::index_sequence<Indices...>) {
+    assert(f_);
+    assert(args_);
+
+    OptionalSetNoneGuard guard(args_);
+    OptionalSetNoneGuard guard_f(f_);
+
     if constexpr (std::is_pointer<StoredFunction>::value) {
-      assert(f_);
-      auto f = std::exchange(f_, nullptr);
-      return f(std::forward<Args>(std::get<Indices>(args_))...);
-    } else {
-      // We have to cleanup `f_` after usage. Moving it to temporary.
-      auto f = std::move(f_);
-      return std::forward<Function>(f)(
-          std::forward<Args>(std::get<Indices>(args_))...);
+      assert(*f_);
     }
+
+    return std::forward<StoredFunction>(*f_)(
+        std::forward<Args>(std::get<Indices>(*args_))...);
   }
 
   // Storing function references as function pointers, storing other function
@@ -113,8 +126,8 @@ class WrappedCallImpl final
   using StoredFunction =
       std::conditional_t<std::is_function<UnrefFunction>::value, UnrefFunction*,
                          UnrefFunction>;
-  StoredFunction f_;
-  decltype(std::make_tuple(std::declval<Args>()...)) args_;
+  boost::optional<StoredFunction> f_;
+  boost::optional<decltype(std::make_tuple(std::declval<Args>()...))> args_;
 };
 
 }  // namespace impl
