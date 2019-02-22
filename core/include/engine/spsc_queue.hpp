@@ -1,5 +1,9 @@
 #pragma once
 
+#include <atomic>
+#include <cassert>
+#include <memory>
+
 #include <boost/lockfree/queue.hpp>
 
 #include <engine/single_consumer_event.hpp>
@@ -9,9 +13,9 @@ namespace engine {
 
 /// Single producer, single consumer queue
 template <typename T>
-class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
+class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
  public:
-  virtual ~SpscQueue();
+  ~SpscQueue();
 
   SpscQueue(const SpscQueue&) = delete;
 
@@ -31,9 +35,16 @@ class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
       if (queue_) queue_->MarkProducerIsDead();
     }
 
-    /// Push element into queue. May block if queue is full.
-    /// Returns false if consumer is dead.
+    /// Push element into queue. May block if queue is full, but the consumer is
+    /// alive.
+    /// @returns whether the consumer was alive and push succeeded.
     bool Push(T&& value) { return queue_->Push(std::move(value)); }
+
+    /// Try to push element into queue without blocking.
+    /// @returns whether the consumer was alive and push succeeded.
+    [[nodiscard]] bool PushNoblock(T&& value) {
+      return queue_->PushNoblock(std::move(value));
+    }
 
    private:
     std::shared_ptr<SpscQueue<T>> queue_;
@@ -51,10 +62,17 @@ class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
       if (queue_) queue_->MarkConsumerIsDead();
     }
 
-    /// Pop element. Returns true if smth is popped, false if queue is empty,
-    /// producer is dead, and no element is popped.
-    /// May block if queue is empty, but producer is alive.
-    bool Pop(T& value) { return queue_->Pop(value); }
+    /// Pop element from queue. May block if queue is empty, but the producer is
+    /// alive.
+    /// @returns whether something was popped.
+    /// @note `false` is returned only when the producer is no longer alive.
+    [[nodiscard]] bool Pop(T& value) { return queue_->Pop(value); }
+
+    /// Try to pop element from queue without blocking.
+    /// @return whether something was popped.
+    [[nodiscard]] bool PopNoblock(T& value) {
+      return queue_->PopNoblock(value);
+    }
 
    private:
     std::shared_ptr<SpscQueue<T>> queue_;
@@ -66,15 +84,17 @@ class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
   /// Can be called only once
   Consumer GetConsumer();
 
+  /// @brief Sets the limit on the queue size, pushes over this limit will block
+  /// @note This is a soft limit and may be slightly overrun under load.
   void SetMaxLength(size_t length);
 
   size_t Size() const;
 
-  /// Can be called only if Consumer is dead to release all queued items
-  bool PopNoblockNoConsumer(T&);
+ private:
+  class EmplaceEnabler {};
 
- protected:
-  SpscQueue()
+ public:
+  explicit SpscQueue(EmplaceEnabler)
       :
 #ifndef NDEBUG
         consumer_is_created_{false},
@@ -88,17 +108,22 @@ class SpscQueue : public std::enable_shared_from_this<SpscQueue<T>> {
 
  private:
   bool Push(T&&);
+  bool PushNoblock(T&&);
+  bool DoPush(T&&);
 
   bool Pop(T&);
-
   bool PopNoblock(T&);
+  bool DoPop(T&);
 
   void MarkConsumerIsDead();
 
   void MarkProducerIsDead();
 
-  friend class Producer;
-  friend class Consumer;
+  /// Can be called only if Consumer is dead to release all queued items
+  bool PopNoblockNoConsumer(T&);
+
+  template <typename>
+  friend class SpscQueue;
 
  private:
   boost::lockfree::queue<T> queue_;
@@ -118,10 +143,7 @@ std::shared_ptr<SpscQueue<T>> SpscQueue<T>::Create() {
                 "SpscQueue<std::unique_ptr<T>> instead of SpscQueue<T> or use "
                 "another T.");
 
-  struct X : SpscQueue<T> {
-    X() = default;
-  };
-  return std::make_shared<X>();
+  return std::make_shared<SpscQueue<T>>(EmplaceEnabler{});
 }
 
 template <typename T>
@@ -163,17 +185,31 @@ size_t SpscQueue<T>::Size() const {
 template <typename T>
 bool SpscQueue<T>::PopNoblockNoConsumer(T& value) {
   assert(!this->consumer_is_alive_ || !this->consumer_is_created_);
-  return this->PopNoblock(value);
+  if (queue_.pop(value)) {
+    --size_;
+    return true;
+  }
+  return false;
 }
 
 template <typename T>
 bool SpscQueue<T>::Push(T&& value) {
-  while (size_ >= max_length_) {
-    if (!consumer_is_alive_ || current_task::ShouldCancel()) return false;
+  while (size_ >= max_length_ && consumer_is_alive_) {
+    if (current_task::ShouldCancel()) return false;
 
     [[maybe_unused]] auto was_nonfull = nonfull_event_.WaitForEvent();
   }
+  return DoPush(std::move(value));
+}
 
+template <typename T>
+bool SpscQueue<T>::PushNoblock(T&& value) {
+  if (size_ >= max_length_) return false;
+  return DoPush(std::move(value));
+}
+
+template <typename T>
+bool SpscQueue<T>::DoPush(T&& value) {
   if (!consumer_is_alive_) return false;
 
   ++size_;
@@ -184,26 +220,31 @@ bool SpscQueue<T>::Push(T&& value) {
 
 template <typename T>
 bool SpscQueue<T>::Pop(T& value) {
-  while (!PopNoblock(value)) {
+  while (!DoPop(value)) {
     if (!producer_is_alive_ || current_task::ShouldCancel()) {
       // Producer might have pushed smth in queue between .pop()
       // and !producer_is_alive_ check. Check twice to avoid TOCTOU.
-      if (PopNoblock(value)) break;
-      return false;
+      return DoPop(value);
     }
 
     [[maybe_unused]] auto was_nonempty = nonempty_event_.WaitForEvent();
   }
-
-  // queue_.pop() is ok
-  --size_;
-  nonfull_event_.Send();
   return true;
 }
 
 template <typename T>
 bool SpscQueue<T>::PopNoblock(T& value) {
-  return queue_.pop(value);
+  return DoPop(value);
+}
+
+template <typename T>
+bool SpscQueue<T>::DoPop(T& value) {
+  if (queue_.pop(value)) {
+    --size_;
+    nonfull_event_.Send();
+    return true;
+  }
+  return false;
 }
 
 template <typename T>
@@ -221,24 +262,22 @@ void SpscQueue<T>::MarkProducerIsDead() {
 /// Template specialization for `unique_ptr<T>`: it queues `T*` and calls
 /// `T::delete` for all non-poped items in destructor.
 template <typename T>
-class SpscQueue<std::unique_ptr<T>> : public SpscQueue<T*> {
+class SpscQueue<std::unique_ptr<T>> final {
  public:
-  static std::shared_ptr<SpscQueue<std::unique_ptr<T>>> Create() {
-    struct X : SpscQueue<std::unique_ptr<T>> {
-      X() = default;
-    };
+  SpscQueue()
+      : impl_(std::make_shared<SpscQueue<T*>>(
+            typename SpscQueue<T*>::EmplaceEnabler{})) {}
 
-    return std::make_shared<X>();
+  static auto Create() {
+    return std::make_shared<SpscQueue<std::unique_ptr<T>>>();
   }
 
   ~SpscQueue() noexcept {
     T* value;
-    while (this->PopNoblockNoConsumer(value)) {
+    while (impl_->PopNoblockNoConsumer(value)) {
       delete value;
     }
   }
-
-  using typename SpscQueue<T*>::Producer;
 
   class Consumer {
    public:
@@ -249,9 +288,16 @@ class SpscQueue<std::unique_ptr<T>> : public SpscQueue<T*> {
 
     Consumer(Consumer&&) = default;
 
-    bool Pop(std::unique_ptr<T>& value) {
+    [[nodiscard]] bool Pop(std::unique_ptr<T>& value) {
       T* ptr;
       if (!consumer_.Pop(ptr)) return false;
+      value.reset(ptr);
+      return true;
+    }
+
+    [[nodiscard]] bool PopNoblock(std::unique_ptr<T>& value) {
+      T* ptr;
+      if (!consumer_.PopNoblock(ptr)) return false;
       value.reset(ptr);
       return true;
     }
@@ -260,16 +306,40 @@ class SpscQueue<std::unique_ptr<T>> : public SpscQueue<T*> {
     typename SpscQueue<T*>::Consumer consumer_;
   };
 
-  Consumer GetConsumer() {
-    return Consumer(this->SpscQueue<T*>::GetConsumer());
-  }
+  class Producer {
+   public:
+    Producer(typename SpscQueue<T*>::Producer producer)
+        : producer_(std::move(producer)) {}
 
-  using SpscQueue<T*>::GetProducer;
-  using SpscQueue<T*>::Size;
-  using SpscQueue<T*>::SetMaxLength;
+    Producer(const Producer&) = delete;
+
+    Producer(Producer&&) = default;
+
+    bool Push(std::unique_ptr<T>&& value) {
+      if (!producer_.Push(value.get())) return false;
+      value.release();
+      return true;
+    }
+
+    bool PushNoblock(std::unique_ptr<T>&& value) {
+      if (!producer_.PushNoblock(value.get())) return false;
+      value.release();
+      return true;
+    }
+
+   private:
+    typename SpscQueue<T*>::Producer producer_;
+  };
+
+  Consumer GetConsumer() { return Consumer(impl_->GetConsumer()); }
+
+  Producer GetProducer() { return Producer(impl_->GetProducer()); }
+
+  size_t Size() const { return impl_->Size(); }
+  void SetMaxLength(size_t length) { impl_->SetMaxLength(length); }
 
  private:
-  SpscQueue() = default;
+  std::shared_ptr<SpscQueue<T*>> impl_;
 };
 
 }  // namespace engine

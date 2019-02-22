@@ -67,7 +67,7 @@ TEST(SpscQueue, Block) {
 
     auto consumer_task =
         engine::impl::Async([consumer = queue->GetConsumer()]() mutable {
-          int value;
+          int value = -1;
           EXPECT_TRUE(consumer.Pop(value));
           EXPECT_EQ(0, value);
 
@@ -85,6 +85,40 @@ TEST(SpscQueue, Block) {
       EXPECT_TRUE(producer.Push(0));
       engine::Yield();
       EXPECT_TRUE(producer.Push(1));
+    }
+
+    consumer_task.Get();
+  });
+}
+
+TEST(SpscQueue, Noblock) {
+  RunInCoro([] {
+    auto queue = engine::SpscQueue<int>::Create();
+    queue->SetMaxLength(2);
+
+    auto consumer_task =
+        engine::impl::Async([consumer = queue->GetConsumer()]() mutable {
+          int value = -1;
+          size_t i = 0;
+          while (!consumer.PopNoblock(value)) {
+            ++i;
+            engine::Yield();
+          }
+          EXPECT_EQ(0, value);
+          EXPECT_NE(0, i);
+
+          EXPECT_TRUE(consumer.PopNoblock(value));
+          EXPECT_EQ(1, value);
+        });
+
+    engine::Yield();
+    engine::Yield();
+
+    {
+      auto producer = queue->GetProducer();
+      EXPECT_TRUE(producer.PushNoblock(0));
+      EXPECT_TRUE(producer.PushNoblock(1));
+      EXPECT_FALSE(producer.PushNoblock(2));
     }
 
     consumer_task.Get();
