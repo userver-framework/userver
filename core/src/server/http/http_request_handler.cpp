@@ -47,9 +47,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   http_request.SetHttpHandlerStatistics(
       handler_info.handler->GetRequestStatistics());
 
-  auto payload = [
-    request = std::move(request), handler = std::move(handler_info.handler)
-  ] {
+  auto payload = [request = std::move(request),
+                  handler = std::move(handler_info.handler)] {
     request->SetTaskStartTime();
 
     request::RequestContext context;

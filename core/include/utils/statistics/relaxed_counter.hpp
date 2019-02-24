@@ -39,7 +39,7 @@ class RelaxedCounter {
     return *this;
   }
 
-  T operator++(int)noexcept {
+  T operator++(int) noexcept {
     return val_.fetch_add(1, std::memory_order_relaxed);
   }
 
@@ -48,7 +48,7 @@ class RelaxedCounter {
     return *this;
   }
 
-  T operator--(int)noexcept {
+  T operator--(int) noexcept {
     return val_.fetch_sub(1, std::memory_order_relaxed);
   }
 

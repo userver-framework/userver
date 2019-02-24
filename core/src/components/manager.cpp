@@ -63,11 +63,12 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
         "Cannot start components manager: missing default task processor");
   }
   default_task_processor_ = default_task_processor_it->second.get();
-  RunInCoro(*default_task_processor_, [
-    this, task_processors = std::move(task_processors), &component_list
-  ]() mutable {
-    CreateComponentContext(std::move(task_processors), component_list);
-  });
+  RunInCoro(*default_task_processor_,
+            [this, task_processors = std::move(task_processors),
+             &component_list]() mutable {
+              CreateComponentContext(std::move(task_processors),
+                                     component_list);
+            });
 
   LOG_INFO() << "Started components manager";
 }
@@ -111,7 +112,7 @@ void Manager::CreateComponentContext(
     const ComponentList& component_list) {
   std::set<std::string> loading_component_names;
   for (const auto& adder : component_list) {
-    auto[it, inserted] =
+    auto [it, inserted] =
         loading_component_names.insert(adder->GetComponentName());
     if (!inserted) {
       std::string message =
@@ -223,11 +224,11 @@ void Manager::AddComponentImpl(
 
   LOG_INFO() << "Starting component " << name;
 
-  auto* component = component_context_->AddComponent(name, [
-    &factory, &config = config_it->second
-  ](const components::ComponentContext& component_context) {
-    return factory(config, component_context);
-  });
+  auto* component = component_context_->AddComponent(
+      name, [&factory, &config = config_it->second](
+                const components::ComponentContext& component_context) {
+        return factory(config, component_context);
+      });
   if (auto* logging_component = dynamic_cast<components::Logging*>(component))
     logging_component_ = logging_component;
 

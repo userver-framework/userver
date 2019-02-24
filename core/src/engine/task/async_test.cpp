@@ -61,7 +61,7 @@ TEST(Task, FunctionLifetime) {
         std::atomic<int> count = 0;
 
         EXPECT_EQ(0, count.load());
-        auto task = engine::impl::Async([guard = Guard(count)]{});
+        auto task = engine::impl::Async([guard = Guard(count)] {});
         EXPECT_EQ(1, count.load());
 
         engine::Yield();

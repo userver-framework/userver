@@ -29,17 +29,17 @@ class BulkOperationBuilderImpl
       mongocxx::write_concern wc = {}) {
     return engine::impl::Async(
         collection_->GetPool().GetTaskProcessor(),
-        [ self = shared_from_this(), wc = std::move(wc) ]()
-            ->boost::optional<mongocxx::result::bulk_write> {
-              auto conn = self->collection_->GetPool().Acquire();
-              mongocxx::options::bulk_write options;
-              options.ordered(false);
-              options.write_concern(std::move(wc));
-              auto result = self->collection_->GetCollection(conn).bulk_write(
-                  self->bulk_, options);
-              if (!result) return boost::none;
-              return std::move(*result);
-            });
+        [self = shared_from_this(), wc = std::move(wc)]()
+            -> boost::optional<mongocxx::result::bulk_write> {
+          auto conn = self->collection_->GetPool().Acquire();
+          mongocxx::options::bulk_write options;
+          options.ordered(false);
+          options.write_concern(std::move(wc));
+          auto result = self->collection_->GetCollection(conn).bulk_write(
+              self->bulk_, options);
+          if (!result) return boost::none;
+          return std::move(*result);
+        });
   }
 
  private:

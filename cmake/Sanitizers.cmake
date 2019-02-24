@@ -9,7 +9,7 @@ include(SetupEnvironment) # required for CCACHE_EXECUTABLE and CMAKE_*_COMPILER_
 SET(SANITIZE_ENUM "mem, addr, thread, ub")
 set(SANITIZE "" CACHE STRING "Clang sanitizer, possible values: ${SANITIZE_ENUM}")
 if (NOT CLANG AND SANITIZE)
-  message(FATAL_ERROR "-DSANITIZE can be set only when complied using clang.  Please set CC=clang-5.0 CXX=clang++-5.0 or smth.")
+  message(FATAL_ERROR "-DSANITIZE can be set only when complied using clang.  Please set CC=clang-7 CXX=clang++-7 or smth.")
 endif()
 
 add_library(sanitize-target INTERFACE)
@@ -42,12 +42,12 @@ else()
     # https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
     set(SANITIZE_BUILD_FLAGS -fsanitize=undefined -fno-sanitize-recover=undefined)
   elseif(SANITIZE STREQUAL "addr")
-    # http://releases.llvm.org/5.0.0/tools/clang/docs/AddressSanitizer.html
+    # http://releases.llvm.org/7.0.0/tools/clang/docs/AddressSanitizer.html
     set(SANITIZE_DEFS BOOST_USE_ASAN)
     set(SANITIZE_BUILD_FLAGS -fsanitize=address -g)
     set(SANITIZE_CXX_FLAGS -fno-omit-frame-pointer)
   elseif(SANITIZE STREQUAL "thread")
-    # http://releases.llvm.org/5.0.0/tools/clang/docs/ThreadSanitizer.html
+    # http://releases.llvm.org/7.0.0/tools/clang/docs/ThreadSanitizer.html
     set(SANITIZE_BUILD_FLAGS -fsanitize=thread -g)
   elseif(SANITIZE STREQUAL "mem")
     # https://clang.llvm.org/docs/MemorySanitizer.html

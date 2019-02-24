@@ -26,7 +26,7 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
     }
 
     void operator()(const ParsedDocument& doc) const {
-      for (const auto & [ key, elem ] : doc) {
+      for (const auto& [key, elem] : doc) {
         builder_.AppendInto(builder_.bson_->Get(), key, *elem);
       }
     }
@@ -171,7 +171,7 @@ void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
 
     void operator()(const ParsedDocument& doc) const {
       SubdocBson subdoc_bson(dest_, key_.data(), key_.size());
-      for (const auto & [ key, elem ] : doc) {
+      for (const auto& [key, elem] : doc) {
         builder_.AppendInto(subdoc_bson.Get(), key, *elem);
       }
     }

@@ -203,7 +203,7 @@ void ClusterTopology::StopRunningTasks() {
 }
 
 ClusterTopology::ConnectionTask ClusterTopology::Connect(std::string dsn) {
-  return engine::impl::Async([ this, dsn = std::move(dsn) ] {
+  return engine::impl::Async([this, dsn = std::move(dsn)] {
     return Connection::Connect(dsn, bg_task_processor_, kConnectionId,
                                default_cmd_ctl_);
   });

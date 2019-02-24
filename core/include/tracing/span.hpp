@@ -80,7 +80,7 @@ class Span final {
   const std::string& GetSpanId() const;
   const std::string& GetParentId() const;
 
-  void LogTo(logging::LogHelper& log_helper) const &;
+  void LogTo(logging::LogHelper& log_helper) const&;
 
   void DetachFromCoroStack();
   void AttachToCoroStack();

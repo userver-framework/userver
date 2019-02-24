@@ -108,7 +108,7 @@ engine::Task PGConnectionWrapper::Close() {
   PGconn* tmp_conn = std::exchange(conn_, nullptr);
 
   return engine::impl::CriticalAsync(
-      bg_task_processor_, [ tmp_conn, socket = std::move(tmp_sock) ]() mutable {
+      bg_task_processor_, [tmp_conn, socket = std::move(tmp_sock)]() mutable {
         if (tmp_conn != nullptr) {
           PQfinish(tmp_conn);
         }
@@ -134,7 +134,7 @@ engine::Task PGConnectionWrapper::Cancel() {
   std::unique_ptr<PGcancel, decltype(&PQfreeCancel)> cancel{PQgetCancel(conn_),
                                                             &PQfreeCancel};
   return engine::impl::Async(
-      bg_task_processor_, [ this, cancel = std::move(cancel) ] {
+      bg_task_processor_, [this, cancel = std::move(cancel)] {
         std::array<char, kErrBufferSize> buffer;
         if (!PQcancel(cancel.get(), buffer.data(), buffer.size())) {
           PGCW_LOG_WARNING() << "Failed to cancel current request";

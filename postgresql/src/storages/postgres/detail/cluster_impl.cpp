@@ -109,7 +109,7 @@ void ClusterImpl::CheckTopology() {
   auto host_pools = *host_pools_.Get();
   const auto hosts_availability = topology_->CheckTopology();
   auto cmd_ctl = default_cmd_ctl_.Get();
-  for (const auto & [ dsn, avail ] : hosts_availability) {
+  for (const auto& [dsn, avail] : hosts_availability) {
     switch (avail) {
       case ClusterTopology::HostAvailability::kOffline:
         host_pools.erase(dsn);

@@ -25,9 +25,9 @@ struct OverloadsTest {
   void operator()(const std::string&, std::string&&) & { ++overload2; }
   void operator()(const std::string&, const std::string&) & { ++overload3; }
 
-  void operator()(std::string&, std::string&&) const & { ++overload4; }
-  void operator()(const std::string&, std::string&&) const & { ++overload5; }
-  void operator()(const std::string&, const std::string&) const & {
+  void operator()(std::string&, std::string&&) const& { ++overload4; }
+  void operator()(const std::string&, std::string&&) const& { ++overload5; }
+  void operator()(const std::string&, const std::string&) const& {
     ++overload6;
   }
 

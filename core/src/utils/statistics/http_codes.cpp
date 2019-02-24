@@ -15,7 +15,7 @@ namespace utils::statistics {
 HttpCodes::HttpCodes(std::initializer_list<unsigned short> codes) {
   particular_codes.reserve(codes.size());
   for (auto code : codes) {
-    [[maybe_unused]] auto[it, inserted] = particular_codes.emplace(code, 0);
+    [[maybe_unused]] auto [it, inserted] = particular_codes.emplace(code, 0);
     assert(inserted);
   }
 }
@@ -50,7 +50,7 @@ formats::json::Value HttpCodes::FormatReplyCodes() const {
   codes["5xx"] = code_5xx.Load();
   codes["other"] = code_other.Load();
 
-  for (auto & [ code, count ] : particular_codes) {
+  for (auto& [code, count] : particular_codes) {
     codes[std::to_string(code)] = count.Load();
   }
 

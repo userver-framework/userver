@@ -39,7 +39,7 @@ Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
 }
 
 void Timer::TimerImpl::Start() {
-  thread_control_.RunInEvLoopAsync([ self = shared_from_this(), this ]() {
+  thread_control_.RunInEvLoopAsync([self = shared_from_this(), this]() {
     thread_control_.TimerStartUnsafe(timer_);
   });
 }
@@ -67,7 +67,7 @@ void Timer::TimerImpl::Init() {
 }
 
 void Timer::TimerImpl::Stop() {
-  thread_control_.RunInEvLoopAsync([ self = shared_from_this(), this ]() {
+  thread_control_.RunInEvLoopAsync([self = shared_from_this(), this]() {
     thread_control_.TimerStopUnsafe(timer_);
   });
 }

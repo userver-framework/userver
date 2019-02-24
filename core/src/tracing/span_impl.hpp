@@ -28,7 +28,7 @@ class Span::Impl
     return time_storage_.get();
   }
 
-  void LogTo(logging::LogHelper& log_helper) const &;
+  void LogTo(logging::LogHelper& log_helper) const&;
 
   void LogTo(logging::LogHelper& log_helper) &&;
 

@@ -377,7 +377,7 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
       }));
     } else {
       waiters.push_back(
-          engine::impl::Async([ deadline, stream, events = streams[i].events ] {
+          engine::impl::Async([deadline, stream, events = streams[i].events] {
             try {
               stream->socket_.WaitReadable(deadline);
               return POLLIN & events;

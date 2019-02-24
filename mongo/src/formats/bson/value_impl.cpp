@@ -34,7 +34,7 @@ class DeepCopyVisitor : public boost::static_visitor<ValueImpl::ParsedValue> {
 
   ValueImpl::ParsedValue operator()(const ParsedDocument& src) const {
     ParsedDocument dest;
-    for (const auto & [ k, v ] : src) {
+    for (const auto& [k, v] : src) {
       dest[k] = std::make_shared<ValueImpl>(*v);
     }
     return dest;
@@ -487,8 +487,8 @@ void ValueImpl::EnsureParsed() {
       ParsedArray parsed_array;
       ForEachValue(
           bson_value_.value.v_doc.data, bson_value_.value.v_doc.data_len, path_,
-          [ this, &parsed_array,
-            indexer = ArrayIndexer() ](bson_iter_t * it) mutable {
+          [this, &parsed_array,
+           indexer = ArrayIndexer()](bson_iter_t* it) mutable {
             utils::string_view expected_key = indexer.GetKey();
             utils::string_view actual_key(bson_iter_key(it),
                                           bson_iter_key_len(it));
@@ -523,7 +523,7 @@ void ValueImpl::EnsureParsed() {
               throw ParseException("malformed BSON element at " + GetPath() +
                                    '.' + std::string(key));
             }
-            auto[parsed_it, is_new] = parsed_doc.emplace(
+            auto [parsed_it, is_new] = parsed_doc.emplace(
                 std::string(key),
                 std::make_shared<ValueImpl>(EmplaceEnabler{}, storage_, path_,
                                             *iter_value, std::string(key)));
@@ -573,7 +573,7 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
       const auto& lhs_doc = boost::get<ParsedDocument>(lhs_.parsed_value_);
       const auto& rhs_doc = boost::get<ParsedDocument>(rhs_.parsed_value_);
       if (lhs_doc.size() != rhs_doc.size()) return false;
-      for (const auto & [ k, v ] : lhs_doc) {
+      for (const auto& [k, v] : lhs_doc) {
         auto rhs_it = rhs_doc.find(k);
         if (rhs_it == rhs_doc.end() || *rhs_it->second != *v) return false;
       }

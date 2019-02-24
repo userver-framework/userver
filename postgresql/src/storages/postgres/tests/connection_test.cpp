@@ -156,19 +156,19 @@ POSTGRE_TEST_P(CheckResultset) {
       EXPECT_EQ(6.28, d);
     }
     {
-      auto[str, i, f, d] = row.As<std::string, pg::Integer, float, double>();
+      auto [str, i, f, d] = row.As<std::string, pg::Integer, float, double>();
       EXPECT_EQ("foo bar", str);
       EXPECT_EQ(42, i);
       EXPECT_EQ(3.14f, f);
       EXPECT_EQ(6.28, d);
     }
     {
-      auto[str, d] = row.As<std::string, double>({"str", "double"});
+      auto [str, d] = row.As<std::string, double>({"str", "double"});
       EXPECT_EQ("foo bar", str);
       EXPECT_EQ(6.28, d);
     }
     {
-      auto[str, d] = row.As<std::string, double>({0, 3});
+      auto [str, d] = row.As<std::string, double>({0, 3});
       EXPECT_EQ("foo bar", str);
       EXPECT_EQ(6.28, d);
     }

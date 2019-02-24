@@ -41,8 +41,8 @@ void SetThreadName([[maybe_unused]] pthread_t thread_id,
     LOG_WARNING() << "Thread name '" << name << "' is too long, truncated to '"
                   << truncated_name << '\'';
   }
-    // Doesn't work with Mac OS. In Mac OS a thread can be renamed
-    // only from within the thread.
+  // Doesn't work with Mac OS. In Mac OS a thread can be renamed
+  // only from within the thread.
 #ifndef __APPLE__
   int ret = ::pthread_setname_np(thread_id, truncated_name.c_str());
   if (ret) {

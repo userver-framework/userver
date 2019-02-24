@@ -81,7 +81,7 @@ class Binary {
 
   /// @name Raw data access
   /// @{
-  const std::string& ToString() const & { return data_; }
+  const std::string& ToString() const& { return data_; }
   std::string&& ToString() && { return std::move(data_); }
 
   const uint8_t* Data() const {

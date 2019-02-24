@@ -176,7 +176,7 @@ engine::TaskWithResult<size_t> Collection::Count(
     DocumentValue query, mongocxx::options::count options) const {
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](auto&& query, const auto& options)->size_t {
+      [impl = impl_](auto&& query, const auto& options) -> size_t {
         auto conn = impl->GetPool().Acquire();
         return impl->GetCollection(conn).count(std::move(query), options);
       },
@@ -200,7 +200,7 @@ engine::TaskWithResult<size_t> Collection::DeleteMany(
     DocumentValue query, mongocxx::options::delete_options options) {
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](auto&& query, const auto& options)->size_t {
+      [impl = impl_](auto&& query, const auto& options) -> size_t {
         auto conn = impl->GetPool().Acquire();
         auto result =
             impl->GetCollection(conn).delete_many(std::move(query), options);
@@ -212,29 +212,29 @@ engine::TaskWithResult<size_t> Collection::DeleteMany(
 engine::TaskWithResult<bool> Collection::ReplaceOne(
     DocumentValue query, DocumentValue replacement,
     mongocxx::options::update options) {
-  return engine::impl::Async(impl_->GetPool().GetTaskProcessor(), [
-    impl = impl_, query = std::move(query),
-    replacement = std::move(replacement), options = std::move(options)
-  ] {
-    auto conn = impl->GetPool().Acquire();
-    auto result = impl->GetCollection(conn).replace_one(
-        query.view(), replacement.view(), options);
-    return result && result->matched_count();
-  });
+  return engine::impl::Async(
+      impl_->GetPool().GetTaskProcessor(),
+      [impl = impl_, query = std::move(query),
+       replacement = std::move(replacement), options = std::move(options)] {
+        auto conn = impl->GetPool().Acquire();
+        auto result = impl->GetCollection(conn).replace_one(
+            query.view(), replacement.view(), options);
+        return result && result->matched_count();
+      });
 }
 
 engine::TaskWithResult<bool> Collection::UpdateOne(
     DocumentValue query, DocumentValue update,
     mongocxx::options::update options) {
-  return engine::impl::Async(impl_->GetPool().GetTaskProcessor(), [
-    impl = impl_, query = std::move(query), update = std::move(update),
-    options = std::move(options)
-  ] {
-    auto conn = impl->GetPool().Acquire();
-    auto result = impl->GetCollection(conn).update_one(query.view(),
-                                                       update.view(), options);
-    return result && result->matched_count();
-  });
+  return engine::impl::Async(
+      impl_->GetPool().GetTaskProcessor(),
+      [impl = impl_, query = std::move(query), update = std::move(update),
+       options = std::move(options)] {
+        auto conn = impl->GetPool().Acquire();
+        auto result = impl->GetCollection(conn).update_one(
+            query.view(), update.view(), options);
+        return result && result->matched_count();
+      });
 }
 
 engine::TaskWithResult<size_t> Collection::UpdateMany(
@@ -242,16 +242,13 @@ engine::TaskWithResult<size_t> Collection::UpdateMany(
     mongocxx::options::update options) {
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [
-        impl = impl_, query = std::move(query), update = std::move(update),
-        options = std::move(options)
-      ]()
-          ->size_t {
-            auto conn = impl->GetPool().Acquire();
-            auto result = impl->GetCollection(conn).update_many(
-                query.view(), update.view(), options);
-            return result ? result->matched_count() : 0;
-          });
+      [impl = impl_, query = std::move(query), update = std::move(update),
+       options = std::move(options)]() -> size_t {
+        auto conn = impl->GetPool().Acquire();
+        auto result = impl->GetCollection(conn).update_many(
+            query.view(), update.view(), options);
+        return result ? result->matched_count() : 0;
+      });
 }
 
 BulkOperationBuilder Collection::UnorderedBulk() {

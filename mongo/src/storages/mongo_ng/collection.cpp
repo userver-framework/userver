@@ -10,14 +10,14 @@ Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl)
     : impl_(std::move(impl)) {}
 
 Cursor Collection::Find(const formats::bson::Document& filter) const {
-  auto[client, collection] = impl_->GetNativeCollection();
+  auto [client, collection] = impl_->GetNativeCollection();
   impl::CursorPtr native_cursor(mongoc_collection_find_with_opts(
       collection.get(), filter.GetBson().get(), nullptr, nullptr));
   return Cursor(impl::CursorImpl(std::move(client), std::move(native_cursor)));
 }
 
 size_t Collection::CountApprox() const {
-  auto[client, collection] = impl_->GetNativeCollection();
+  auto [client, collection] = impl_->GetNativeCollection();
 
   impl::BsonError error;
   auto count = mongoc_collection_estimated_document_count(
@@ -27,7 +27,7 @@ size_t Collection::CountApprox() const {
 }
 
 size_t Collection::Count(const formats::bson::Document& filter) const {
-  auto[client, collection] = impl_->GetNativeCollection();
+  auto [client, collection] = impl_->GetNativeCollection();
 
   impl::BsonError error;
   auto count = mongoc_collection_count_documents(
@@ -38,7 +38,7 @@ size_t Collection::Count(const formats::bson::Document& filter) const {
 }
 
 void Collection::InsertOne(const formats::bson::Document& document) {
-  auto[client, collection] = impl_->GetNativeCollection();
+  auto [client, collection] = impl_->GetNativeCollection();
 
   impl::BsonError error;
   if (!mongoc_collection_insert_one(collection.get(), document.GetBson().get(),

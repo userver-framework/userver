@@ -92,7 +92,7 @@ Span::Impl::~Impl() {
   LOG(log_level_) << std::move(result) << std::move(*this);
 }
 
-void Span::Impl::LogTo(logging::LogHelper& log_helper) const & {
+void Span::Impl::LogTo(logging::LogHelper& log_helper) const& {
   log_helper << log_extra_inheritable;
   if (log_extra_local) log_helper << log_extra_local.get();
   tracer->LogSpanContextTo(*this, log_helper);
@@ -221,7 +221,7 @@ logging::LogExtra& Span::GetInheritableLogExtra() {
   return pimpl_->log_extra_inheritable;
 }
 
-void Span::LogTo(logging::LogHelper& log_helper) const & {
+void Span::LogTo(logging::LogHelper& log_helper) const& {
   pimpl_->LogTo(log_helper);
 }
 

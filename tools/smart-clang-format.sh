@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # params
-CLANG_FORMAT_VERSION=5.0
+CLANG_FORMAT_VERSION=7
 SOURCE_REGEXP="(^|\./)(core|mongo|postgresql|redis|tests|examples|tools)/.+\.[ch]pp"
 
 # check clang-format
