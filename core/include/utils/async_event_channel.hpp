@@ -74,8 +74,9 @@ class AsyncEventChannel : public AsyncEventChannelBase {
 
   explicit AsyncEventChannel(std::string name) : name_(std::move(name)) {}
 
-  AsyncEventSubscriberScope AddListener(FunctionId id, std::string name,
-                                        Function func) {
+  [[nodiscard]] AsyncEventSubscriberScope AddListener(FunctionId id,
+                                                      std::string name,
+                                                      Function func) {
     std::lock_guard<engine::Mutex> lock(mutex_);
 
     auto it = FindListener(id);
@@ -86,15 +87,15 @@ class AsyncEventChannel : public AsyncEventChannelBase {
   }
 
   template <class Class>
-  AsyncEventSubscriberScope AddListener(Class* obj, std::string name,
-                                        void (Class::*func)(Args...)) {
+  [[nodiscard]] AsyncEventSubscriberScope AddListener(
+      Class* obj, std::string name, void (Class::*func)(Args...)) {
     return AddListener(reinterpret_cast<FunctionId>(obj), std::move(name),
                        [obj, func](Args... args) { (obj->*func)(args...); });
   }
 
   template <class Class>
-  AsyncEventSubscriberScope AddListener(const Class* obj, std::string name,
-                                        void (Class::*func)(Args...) const) {
+  [[nodiscard]] AsyncEventSubscriberScope AddListener(
+      const Class* obj, std::string name, void (Class::*func)(Args...) const) {
     return AddListener(reinterpret_cast<FunctionId>(obj), std::move(name),
                        [obj, func](Args... args) { (obj->*func)(args...); });
   }

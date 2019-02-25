@@ -13,6 +13,7 @@ namespace tracing {
 // representing the same data. For example, the SPAN_KIND='server' can be
 // inferred from a Zipkin span by the presence of ss/sr annotations.
 
+extern const std::string kType;
 extern const std::string kHttpUrl;
 extern const std::string kHttpMethod;
 extern const std::string kHttpStatusCode;

@@ -19,6 +19,7 @@ using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
 const std::string kStopWatchAttrName = "stopwatch_name";
 const std::string kTotalTimeAttrName = "total_time";
+const std::string kTotalTimeSecondsAttrName = "delay";
 const std::string kTimeUnitsAttrName = "stopwatch_units";
 const std::string kStartTimestampAttrName = "start_timestamp";
 
@@ -82,6 +83,7 @@ Span::Impl::~Impl() {
   logging::LogExtra result({{kStopWatchAttrName, name_},
                             {kStartTimestampAttrName, start_ts_str.data()},
                             {kTotalTimeAttrName, total_time_ms},
+                            {kTotalTimeSecondsAttrName, total_time_ms / 1000.0},
                             {kReferenceType, ref_type},
                             {kTimeUnitsAttrName, "ms"}});
 

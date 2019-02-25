@@ -137,6 +137,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
 
     if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
     span.AddTag(tracing::kHttpUrl, http_request.GetUrl());
+    span.AddTag(tracing::kType, "response");
     span.AddTag(tracing::kHttpMethod, http_request.GetMethodStr());
 
     if (log_request) {
