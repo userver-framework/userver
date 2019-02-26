@@ -6,17 +6,6 @@
 #include <formats/json/value_builder.hpp>
 #include <logging/logger.hpp>
 
-namespace formats::json {
-std::unordered_set<std::string> ParseJson(
-    const formats::json::Value& elem, const std::unordered_set<std::string>*) {
-  std::unordered_set<std::string> response;
-  for (const auto& subitem : elem) {
-    response.emplace(subitem.As<std::string>());
-  }
-  return response;
-}
-}  // namespace formats::json
-
 namespace taxi_config {
 
 formats::json::Value DocsMap::Get(const std::string& name) const {

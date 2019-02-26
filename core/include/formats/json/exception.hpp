@@ -40,6 +40,15 @@ class OutOfBoundsException : public JsonException {
   OutOfBoundsException(size_t index, size_t size, const std::string& path);
 };
 
+class IntegralOverflowException : public JsonException {
+ public:
+  IntegralOverflowException(int64_t min, int64_t value, int64_t max,
+                            const std::string& path);
+
+  IntegralOverflowException(uint64_t min, uint64_t value, uint64_t max,
+                            const std::string& path);
+};
+
 class MemberMissingException : public JsonException {
  public:
   explicit MemberMissingException(const std::string& path);

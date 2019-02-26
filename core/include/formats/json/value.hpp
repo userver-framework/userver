@@ -1,9 +1,11 @@
 #pragma once
 
+#include <limits>
 #include <type_traits>
 
 #include <json/value.h>
 
+#include <formats/json/exception.hpp>
 #include <formats/json/iterator.hpp>
 #include <formats/json/types.hpp>
 
@@ -66,6 +68,12 @@ class Value {
   std::string GetPath() const;
   Value Clone() const;
 
+  void CheckNotMissing() const;
+  void CheckArrayOrNull() const;
+  void CheckObjectOrNull() const;
+  void CheckObjectOrArrayOrNull() const;
+  void CheckInBounds(uint32_t index) const;
+
  protected:
   Value(NativeValuePtr&& root) noexcept;
   const Json::Value& Get() const;
@@ -86,12 +94,6 @@ class Value {
   void EnsureValid();
   const Json::Value& GetNative() const;
   Json::Value& GetNative();
-
-  void CheckNotMissing() const;
-  void CheckArrayOrNull() const;
-  void CheckObjectOrNull() const;
-  void CheckObjectOrArrayOrNull() const;
-  void CheckInBounds(uint32_t index) const;
 
  private:
   NativeValuePtr root_;
@@ -132,6 +134,20 @@ double Value::As<double>() const;
 
 template <>
 std::string Value::As<std::string>() const;
+
+template <typename T>
+std::enable_if_t<std::is_integral<T>::value && (sizeof(T) > 1), T> ParseJson(
+    const formats::json::Value& value, const T*) {
+  using IntT = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
+
+  auto val = value.As<IntT>();
+  auto min = static_cast<IntT>(std::numeric_limits<T>::min());
+  auto max = static_cast<IntT>(std::numeric_limits<T>::max());
+  if (val < min || val > max)
+    throw IntegralOverflowException(min, val, max, value.GetPath());
+
+  return val;
+}
 
 }  // namespace json
 }  // namespace formats

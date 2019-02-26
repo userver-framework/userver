@@ -91,8 +91,3 @@ std::vector<T> ParseJson(const formats::json::Value& elem,
     response.emplace_back(item.As<typename T::value_type>());
   return response;
 }
-
-namespace formats::json {
-std::unordered_set<std::string> ParseJson(
-    const formats::json::Value& elem, const std::unordered_set<std::string>*);
-}

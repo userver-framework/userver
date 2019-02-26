@@ -52,6 +52,13 @@ std::string MsgForMissing(const std::string& path) {
   return std::string("Field '") + path + "' is missing";
 }
 
+template <typename T>
+std::string MsgForOverflow(T min, T value, T max, const std::string& path) {
+  return std::string("Value of '") + path + "' is out of bounds (" +
+         std::to_string(min) + " <= " + std::to_string(value) +
+         " <= " + std::to_string(max) + ")";
+}
+
 }  // namespace
 
 namespace formats {
@@ -71,6 +78,17 @@ TypeMismatchException::TypeMismatchException(Json::ValueType actual,
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            const std::string& path)
     : JsonException(MsgForIndex(index, size, path)) {}
+
+IntegralOverflowException::IntegralOverflowException(int64_t min, int64_t value,
+                                                     int64_t max,
+                                                     const std::string& path)
+    : JsonException(MsgForOverflow(min, value, max, path)) {}
+
+IntegralOverflowException::IntegralOverflowException(uint64_t min,
+                                                     uint64_t value,
+                                                     uint64_t max,
+                                                     const std::string& path)
+    : JsonException(MsgForOverflow(min, value, max, path)) {}
 
 MemberMissingException::MemberMissingException(const std::string& path)
     : JsonException(MsgForMissing(path)) {}
