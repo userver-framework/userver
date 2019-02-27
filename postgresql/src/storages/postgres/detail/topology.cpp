@@ -4,6 +4,7 @@
 #include <engine/sleep.hpp>
 #include <logging/log.hpp>
 #include <storages/postgres/exceptions.hpp>
+#include <utils/assert.hpp>
 
 namespace storages {
 namespace postgres {
@@ -410,7 +411,7 @@ engine::Task* ClusterTopology::CheckAvailability(size_t index,
 
   auto task = engine::impl::Async([conn] {
     auto res = conn->Execute("select pg_is_in_recovery()");
-    assert(!res.IsEmpty() && "pg_is_in_recovery must return bool value");
+    UASSERT_MSG(!res.IsEmpty(), "pg_is_in_recovery must return bool value");
 
     const bool in_recovery = res.Front().As<bool>();
     return in_recovery ? ClusterHostType::kSlave : ClusterHostType::kMaster;
@@ -439,7 +440,7 @@ engine::Task* ClusterTopology::DetectMaster(size_t index, ChecksList& checks) {
     Reconnect(index);
     return &boost::get<ConnectionTask>(host_states_[index].conn_variant);
   }
-  assert(host_type != kNothing && "Wrong replica state received");
+  UASSERT_MSG(host_type != kNothing, "Wrong replica state received");
 
   host_states_[index].changes.last_check_type = host_type;
   // As the host is back online we can reset failed operations counter
@@ -530,7 +531,7 @@ template <typename T>
 engine::Task* ClusterTopology::SetCheckStage(size_t index, ChecksList& checks,
                                              T&& task,
                                              HostChecks::Stage stage) const {
-  assert(!checks[index].task && "No check task should be available");
+  UASSERT_MSG(!checks[index].task, "No check task should be available");
   checks[index].task = std::make_unique<T>(std::move(task));
   checks[index].stage = stage;
   return checks[index].task.get();

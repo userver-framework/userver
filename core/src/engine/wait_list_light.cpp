@@ -1,12 +1,13 @@
 #include "wait_list_light.hpp"
 
 #include <engine/task/task_context.hpp>
+#include <utils/assert.hpp>
 
 namespace engine {
 namespace impl {
 
 WaitListLight::Lock::operator bool() {
-  assert(false && "must not be called");
+  UASSERT_MSG(false, "must not be called");
   return true;
 }
 
@@ -15,13 +16,13 @@ WaitListLight::~WaitListLight() = default;
 void WaitListLight::PinToCurrentTask() {
 #ifndef NDEBUG
   auto task = engine::current_task::GetCurrentTaskContext();
-  assert(task);
+  UASSERT(task);
   PinToTask(*task);
 #endif
 }
 
 void WaitListLight::PinToTask([[maybe_unused]] impl::TaskContext& ctx) {
-  assert(!owner_ || owner_ == &ctx);
+  UASSERT(!owner_ || owner_ == &ctx);
 #ifndef NDEBUG
   owner_ = &ctx;
 #endif
@@ -30,8 +31,8 @@ void WaitListLight::PinToTask([[maybe_unused]] impl::TaskContext& ctx) {
 void WaitListLight::Append(WaitListBase::Lock&,
                            boost::intrusive_ptr<impl::TaskContext> ctx) {
   LOG_TRACE() << "Appending, use_count=" << ctx->use_count();
-  assert(!waiting_);
-  assert(!owner_ || owner_ == ctx.get());
+  UASSERT(!waiting_);
+  UASSERT(!owner_ || owner_ == ctx.get());
 
   auto ptr = ctx.get();
   intrusive_ptr_add_ref(ptr);
@@ -55,7 +56,7 @@ void WaitListLight::Remove(  //
   LOG_TRACE() << "remove (cancel)";
   auto old = waiting_.exchange(nullptr);
 
-  assert(!old || old == ctx.get());
+  UASSERT(!old || old == ctx.get());
 
   if (old) intrusive_ptr_release(old);
 }

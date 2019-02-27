@@ -1,6 +1,5 @@
 #include <components/component_context.hpp>
 
-#include <cassert>
 #include <queue>
 
 #include <boost/algorithm/string/join.hpp>
@@ -9,6 +8,7 @@
 #include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
 #include <tracing/tracer.hpp>
+#include <utils/assert.hpp>
 #include <utils/async.hpp>
 
 #include "component_context_component_info.hpp"

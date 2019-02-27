@@ -15,7 +15,7 @@ ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection> conn)
 ConnectionPtr::ConnectionPtr(Connection* conn,
                              std::shared_ptr<ConnectionPoolImpl> pool)
     : conn_(conn), pool_(std::move(pool)) {
-  assert(pool_ && "This constructor requires non-empty parent pool");
+  UASSERT_MSG(pool_, "This constructor requires non-empty parent pool");
 }
 
 ConnectionPtr::~ConnectionPtr() { Reset(nullptr, nullptr); }
@@ -34,7 +34,7 @@ ConnectionPtr::operator bool() const noexcept { return conn_ != nullptr; }
 Connection* ConnectionPtr::get() const noexcept { return conn_.get(); }
 
 Connection& ConnectionPtr::operator*() const {
-  assert(conn_ && "Dereferencing null connection pointer");
+  UASSERT_MSG(conn_, "Dereferencing null connection pointer");
   return *conn_;
 }
 

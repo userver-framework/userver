@@ -1,10 +1,9 @@
 #include <formats/bson/value_builder.hpp>
 
-#include <cassert>
-
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <formats/bson/value_impl.hpp>
+#include <utils/assert.hpp>
 
 namespace formats::bson {
 

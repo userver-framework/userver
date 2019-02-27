@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <chrono>
 #include <deque>
 #include <future>
@@ -12,6 +11,8 @@
 
 #include <ev.h>
 #include <boost/lockfree/queue.hpp>
+
+#include <utils/assert.hpp>
 
 namespace engine {
 namespace ev {

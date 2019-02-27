@@ -7,6 +7,7 @@
 
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo_ng/bson_error.hpp>
+#include <utils/assert.hpp>
 
 namespace storages::mongo_ng::impl {
 
@@ -31,11 +32,11 @@ void CursorImpl::Next() {
 
   current_ = boost::none;
   if (!HasMore()) {
-    assert(!cursor_ && !client_);
+    UASSERT(!cursor_ && !client_);
     return;
   }
 
-  assert(client_ && cursor_);
+  UASSERT(client_ && cursor_);
   const bson_t* current_bson = nullptr;
   impl::BsonError error;
   while (!mongoc_cursor_error(cursor_.get(), error.Get()) && HasMore()) {

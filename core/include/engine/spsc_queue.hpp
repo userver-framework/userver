@@ -1,13 +1,13 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
 #include <memory>
 
 #include <boost/lockfree/queue.hpp>
 
 #include <engine/single_consumer_event.hpp>
 #include <engine/task/cancel.hpp>
+#include <utils/assert.hpp>
 
 namespace engine {
 
@@ -148,13 +148,13 @@ std::shared_ptr<SpscQueue<T>> SpscQueue<T>::Create() {
 
 template <typename T>
 SpscQueue<T>::~SpscQueue() {
-  assert(!consumer_is_alive_ || !consumer_is_created_);
-  assert(!producer_is_alive_ || !producer_is_created_);
+  UASSERT(!consumer_is_alive_ || !consumer_is_created_);
+  UASSERT(!producer_is_alive_ || !producer_is_created_);
 }
 
 template <typename T>
 typename SpscQueue<T>::Producer SpscQueue<T>::GetProducer() {
-  assert(!this->producer_is_created_);
+  UASSERT(!this->producer_is_created_);
 #ifndef NDEBUG
   this->producer_is_created_ = true;
 #endif
@@ -163,7 +163,7 @@ typename SpscQueue<T>::Producer SpscQueue<T>::GetProducer() {
 
 template <typename T>
 typename SpscQueue<T>::Consumer SpscQueue<T>::GetConsumer() {
-  assert(!this->consumer_is_created_);
+  UASSERT(!this->consumer_is_created_);
 #ifndef NDEBUG
   this->consumer_is_created_ = true;
 #endif
@@ -184,7 +184,7 @@ size_t SpscQueue<T>::Size() const {
 
 template <typename T>
 bool SpscQueue<T>::PopNoblockNoConsumer(T& value) {
-  assert(!this->consumer_is_alive_ || !this->consumer_is_created_);
+  UASSERT(!this->consumer_is_alive_ || !this->consumer_is_created_);
   if (queue_.pop(value)) {
     --size_;
     return true;

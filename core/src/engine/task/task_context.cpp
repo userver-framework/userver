@@ -1,7 +1,5 @@
 #include "task_context.hpp"
 
-#include <cassert>
-
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/core/demangle.hpp>
@@ -11,6 +9,7 @@
 #include <engine/ev/timer.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log_extra.hpp>
+#include <utils/assert.hpp>
 
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/task_processor.hpp>
@@ -22,14 +21,14 @@ namespace {
 thread_local impl::TaskContext* current_task_context_ptr = nullptr;
 
 void SetCurrentTaskContext(impl::TaskContext* context) {
-  assert(!current_task_context_ptr || !context);
+  UASSERT(!current_task_context_ptr || !context);
   current_task_context_ptr = context;
 }
 
 }  // namespace
 
 impl::TaskContext* GetCurrentTaskContext() {
-  assert(current_task_context_ptr);
+  UASSERT(current_task_context_ptr);
   if (!current_task_context_ptr) {
     LOG_ERROR()
         << "current_task::GetCurrentTaskContext() called outside coroutine"
@@ -124,7 +123,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       task_pipe_(nullptr),
       yield_reason_(YieldReason::kNone),
       local_storage_(nullptr) {
-  assert(payload_);
+  UASSERT(payload_);
   LOG_TRACE() << "task with task_id="
               << GetTaskIdString(current_task::GetCurrentTaskContextUnchecked())
               << " created task with task_id=" << GetTaskIdString(this)
@@ -144,7 +143,7 @@ bool TaskContext::IsCritical() const {
 
 void TaskContext::SetDetached() {
   [[maybe_unused]] bool was_detached = is_detached_.exchange(true);
-  assert(!was_detached);
+  UASSERT(!was_detached);
 }
 
 void TaskContext::Wait() const { WaitUntil({}); }
@@ -182,7 +181,7 @@ void TaskContext::WaitUntil(Deadline deadline) const {
   // try to avoid ctx switch if possible
   if (IsFinished()) return;
 
-  assert(current_task::GetCurrentTaskContextUnchecked() != nullptr);
+  UASSERT(current_task::GetCurrentTaskContextUnchecked() != nullptr);
 
   if (current_task::ShouldCancel()) {
     throw WaitInterruptedException(cancellation_reason_);
@@ -243,7 +242,7 @@ void TaskContext::DoStep() {
         auto prev_sleep_state =
             sleep_state_.FetchOr(new_flags, std::memory_order_seq_cst);
 
-        assert(!(prev_sleep_state & SleepStateFlags::kSleeping));
+        UASSERT(!(prev_sleep_state & SleepStateFlags::kSleeping));
         if (new_flags & SleepStateFlags::kNonCancellable)
           prev_sleep_state.Clear({SleepStateFlags::kWakeupByCancelRequest,
                                   SleepStateFlags::kNonCancellable});
@@ -254,7 +253,7 @@ void TaskContext::DoStep() {
       break;
 
     case YieldReason::kNone:
-      assert(!"invalid yield reason");
+      UASSERT(!"invalid yield reason");
       throw std::logic_error("invalid yield reason");
   }
 }
@@ -276,17 +275,17 @@ void TaskContext::RequestCancel(Task::CancellationReason reason) {
 bool TaskContext::IsCancellable() const { return is_cancellable_; }
 
 bool TaskContext::SetCancellable(bool value) {
-  assert(current_task::GetCurrentTaskContext() == this);
-  assert(state_ == Task::State::kRunning);
+  UASSERT(current_task::GetCurrentTaskContext() == this);
+  UASSERT(state_ == Task::State::kRunning);
 
   return std::exchange(is_cancellable_, value);
 }
 
 void TaskContext::Sleep(WaitStrategy* wait_manager) {
-  assert(current_task::GetCurrentTaskContext() == this);
-  assert(state_ == Task::State::kRunning);
+  UASSERT(current_task::GetCurrentTaskContext() == this);
+  UASSERT(state_ == Task::State::kRunning);
 
-  assert(wait_manager != nullptr);
+  UASSERT(wait_manager != nullptr);
   /* ConditionVariable might call Sleep() inside of Sleep() due to
    * a lock in AfterAsleep, so store an old value on the stack.
    */
@@ -309,14 +308,14 @@ void TaskContext::Sleep(WaitStrategy* wait_manager) {
   }
 
   yield_reason_ = YieldReason::kTaskWaiting;
-  assert(task_pipe_);
+  UASSERT(task_pipe_);
   TraceStateTransition(Task::State::kSuspended);
   ProfilerStopExecution();
   [[maybe_unused]] TaskContext* context = (*task_pipe_)().get();
   ProfilerStartExecution();
   TraceStateTransition(Task::State::kRunning);
-  assert(context == this);
-  assert(state_ == Task::State::kRunning);
+  UASSERT(context == this);
+  UASSERT(state_ == Task::State::kRunning);
 
   if (deadline_timer) deadline_timer.Stop();
 
@@ -397,13 +396,13 @@ void TaskContext::Wakeup(WakeupSource source) {
 }
 
 TaskContext::WakeupSource TaskContext::GetWakeupSource() const {
-  assert(current_task::GetCurrentTaskContext() == this);
+  UASSERT(current_task::GetCurrentTaskContext() == this);
   return wakeup_source_;
 }
 
 void TaskContext::CoroFunc(TaskPipe& task_pipe) {
   for (TaskContext* context : task_pipe) {
-    assert(context);
+    UASSERT(context);
     context->yield_reason_ = YieldReason::kNone;
     context->task_pipe_ = &task_pipe;
 
@@ -464,17 +463,17 @@ void TaskContext::SetState(Task::State new_state) {
       break;
     case Task::State::kInvalid:
     case Task::State::kNew:
-      assert(!"Invalid new task state");
+      UASSERT(!"Invalid new task state");
   }
 
   if (new_state == Task::State::kRunning ||
       new_state == Task::State::kSuspended) {
     if (new_state == Task::State::kRunning) {
-      assert(current_task::GetCurrentTaskContext() == this);
+      UASSERT(current_task::GetCurrentTaskContext() == this);
     } else {
-      assert(current_task::GetCurrentTaskContextUnchecked() == nullptr);
+      UASSERT(current_task::GetCurrentTaskContextUnchecked() == nullptr);
     }
-    assert(old_state == state_);
+    UASSERT(old_state == state_);
     // For kRunning we don't care other threads see old state_ (kQueued) for
     // some time.
     // For kSuspended synchronization point is DoStep()'s
@@ -483,7 +482,7 @@ void TaskContext::SetState(Task::State new_state) {
     return;
   }
   if (new_state == Task::State::kQueued) {
-    assert(old_state == state_ || state_ == Task::State::kNew);
+    UASSERT(old_state == state_ || state_ == Task::State::kNew);
     // Synchronization point is TaskProcessor::Schedule()
     state_.store(new_state, std::memory_order_relaxed);
     return;
@@ -509,7 +508,7 @@ void TaskContext::SetState(Task::State new_state) {
 }
 
 void TaskContext::Schedule() {
-  assert(state_ != Task::State::kQueued);
+  UASSERT(state_ != Task::State::kQueued);
   SetState(Task::State::kQueued);
   TraceStateTransition(Task::State::kQueued);
   task_processor_.Schedule(this);

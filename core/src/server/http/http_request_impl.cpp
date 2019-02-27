@@ -153,7 +153,7 @@ void HttpRequestImpl::SetMatchedPathLength(size_t length) {
 }
 
 void HttpRequestImpl::AccountResponseTime() {
-  assert(handler_statistics_);
+  UASSERT(handler_statistics_);
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_send_response_time_ - start_time_);
   auto code = static_cast<int>(response_->GetStatus());

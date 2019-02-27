@@ -8,6 +8,7 @@
 #include <engine/task/local_variable.hpp>
 #include <engine/task/task_context.hpp>
 #include <tracing/tracer.hpp>
+#include <utils/assert.hpp>
 #include <utils/uuid4.hpp>
 
 namespace tracing {
@@ -115,7 +116,7 @@ const std::string& Span::Impl::GetParentId() const { return parent_id_; }
 void Span::Impl::DetachFromCoroStack() { unlink(); }
 
 void Span::Impl::AttachToCoroStack() {
-  assert(!is_linked());
+  UASSERT(!is_linked());
   task_local_spans->push_back(*this);
 }
 
@@ -147,7 +148,7 @@ Span::~Span() { DetachFromCoroStack(); }
 
 Span& Span::CurrentSpan() {
   auto* span = CurrentSpanUnchecked();
-  assert(span != nullptr);
+  UASSERT(span != nullptr);
   if (span == nullptr) {
     static constexpr const char* msg =
         "Span::CurrentSpan() called from Span'less task";

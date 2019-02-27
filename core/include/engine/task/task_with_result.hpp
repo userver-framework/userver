@@ -3,12 +3,12 @@
 /// @file engine/task/task_with_result.hpp
 /// @brief @copybrief engine::TaskWithResult
 
-#include <cassert>
 #include <memory>
 #include <stdexcept>
 
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
+#include <utils/assert.hpp>
 #include <utils/clang_format_workarounds.hpp>
 #include <utils/wrapped_call.hpp>
 
@@ -59,7 +59,7 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   /// @throws TaskCancelledException
   ///   if no result is available becase the task was cancelled
   T Get() noexcept(false) {
-    assert(wrapped_call_ptr_);
+    UASSERT(wrapped_call_ptr_);
     Wait();
     if (GetState() == State::kCancelled) {
       throw TaskCancelledException(GetCancellationReason());

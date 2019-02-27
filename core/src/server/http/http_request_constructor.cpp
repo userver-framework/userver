@@ -1,11 +1,11 @@
 #include "http_request_constructor.hpp"
 
 #include <algorithm>
-#include <cassert>
 #include <sstream>
 
 #include <logging/log.hpp>
 #include <server/http/http_status.hpp>
+#include <utils/assert.hpp>
 #include <utils/exception.hpp>
 
 namespace server {
@@ -107,7 +107,7 @@ void HttpRequestConstructor::AppendHeaderField(const char* data, size_t size) {
 }
 
 void HttpRequestConstructor::AppendHeaderValue(const char* data, size_t size) {
-  assert(header_field_flag_);
+  UASSERT(header_field_flag_);
   header_value_flag_ = true;
 
   AccountHeadersSize(size);
@@ -174,9 +174,9 @@ void HttpRequestConstructor::FinalizeImpl() {
     return;
   }
 
-  assert(std::all_of(request_->request_args_.begin(),
-                     request_->request_args_.end(),
-                     [](const auto& arg) { return !arg.second.empty(); }));
+  UASSERT(std::all_of(request_->request_args_.begin(),
+                      request_->request_args_.end(),
+                      [](const auto& arg) { return !arg.second.empty(); }));
 
   LOG_TRACE() << DumpRequestArgs();
   LOG_TRACE() << DumpHeaders();
@@ -255,7 +255,7 @@ void HttpRequestConstructor::ParseArgs(const char* data, size_t size) {
 }
 
 void HttpRequestConstructor::AddHeader() {
-  assert(header_field_flag_);
+  UASSERT(header_field_flag_);
   auto it = request_->headers_.find(header_field_);
   if (it == request_->headers_.end()) {
     request_->headers_.emplace(std::move(header_field_),

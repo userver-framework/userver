@@ -67,7 +67,7 @@ PoolImpl::ConnectionPtr PoolImpl::Acquire() {
 }
 
 void PoolImpl::Push(Connection* connection) {
-  assert(connection);
+  UASSERT(connection);
   if (queue_.push(connection)) return;
   delete connection;
   --size_;

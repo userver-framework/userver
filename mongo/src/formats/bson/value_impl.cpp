@@ -1,11 +1,11 @@
 #include <formats/bson/value_impl.hpp>
 
-#include <cassert>
 #include <cstring>
 
 #include <formats/bson/bson_builder.hpp>
 #include <formats/bson/exception.hpp>
 #include <formats/bson/wrappers.hpp>
+#include <utils/assert.hpp>
 #include <utils/text.hpp>
 
 namespace formats::bson::impl {
@@ -147,7 +147,7 @@ bool operator==(const bson_value_t& lhs, const bson_value_t& rhs) {
       return true;
 
     default:
-      assert(!"Unexpected value_type in bson_value comparison");
+      UASSERT_MSG(false, "Unexpected value_type in bson_value comparison");
       return false;
   }
 }
@@ -408,7 +408,7 @@ ValueImpl::Iterator ValueImpl::Begin() {
   class Visitor : public boost::static_visitor<ValueImpl::Iterator> {
    public:
     result_type operator()(std::nullptr_t) const {
-      assert(false);
+      UASSERT(false);
       return {};
     }
 
@@ -429,7 +429,7 @@ ValueImpl::Iterator ValueImpl::End() {
   class Visitor : public boost::static_visitor<ValueImpl::Iterator> {
    public:
     result_type operator()(std::nullptr_t) const {
-      assert(false);
+      UASSERT(false);
       return {};
     }
 
@@ -455,7 +455,7 @@ void ValueImpl::EnsureParsed() {
 
   switch (bson_value_.value_type) {
     case BSON_TYPE_EOD:
-      assert(false);
+      UASSERT(false);
       break;
 
     // these types are parsed during bson_value_t construction
@@ -542,7 +542,7 @@ void ValueImpl::SyncBsonValue() {
   // either primitive type or was never touched
   if (IsNullptr(parsed_value_)) return;
 
-  assert(IsDocument() || IsArray());
+  UASSERT(IsDocument() || IsArray());
 
   if (IsDocument()) {
     *this = ValueImpl(BsonBuilder(*this).Extract(), DocumentKind::kDocument);
@@ -558,7 +558,7 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
 
   EnsureParsed();
   rhs.EnsureParsed();
-  assert(parsed_value_.which() == rhs.parsed_value_.which());
+  UASSERT(parsed_value_.which() == rhs.parsed_value_.which());
 
   class Visitor : public boost::static_visitor<bool> {
    public:

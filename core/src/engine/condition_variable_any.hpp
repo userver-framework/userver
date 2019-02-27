@@ -5,6 +5,7 @@
 #include <engine/condition_variable.hpp>
 #include <engine/deadline.hpp>
 #include <engine/task/cancel.hpp>
+#include <utils/assert.hpp>
 
 #include "task/task_context.hpp"
 #include "wait_list.hpp"
@@ -24,14 +25,14 @@ class CvWaitStrategy final : public WaitStrategy {
         mutex_lock_(mutex_lock) {}
 
   void AfterAsleep() override {
-    assert(&current_ == current_task::GetCurrentTaskContext());
+    UASSERT(&current_ == current_task::GetCurrentTaskContext());
     waiters_->Append(lock_, &current_);
     lock_.Release();
     mutex_lock_.unlock();
   }
 
   void BeforeAwake() override {
-    assert(&current_ == current_task::GetCurrentTaskContext());
+    UASSERT(&current_ == current_task::GetCurrentTaskContext());
     mutex_lock_.lock();
   }
 
@@ -110,7 +111,7 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
       return CvStatus::kTimeout;
     case TaskContext::WakeupSource::kNone:
     case TaskContext::WakeupSource::kBootstrap:
-      assert(!"invalid wakeup source");
+      UASSERT(!"invalid wakeup source");
       [[fallthrough]];
     case TaskContext::WakeupSource::kWaitList:
       return CvStatus::kNoTimeout;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
 #include <chrono>
 #include <exception>
 #include <future>
@@ -9,6 +8,7 @@
 
 #include <engine/deadline.hpp>
 #include <engine/task/cancel.hpp>
+#include <utils/assert.hpp>
 #include <utils/result_store.hpp>
 
 #include "condition_variable_any.hpp"
@@ -90,7 +90,7 @@ void FutureState<T>::Wait() {
   std::unique_lock<std::mutex> lock(mutex_);
   [[maybe_unused]] bool is_ready =
       result_cv_.Wait(lock, [this] { return IsReady(); });
-  assert(is_ready);
+  UASSERT(is_ready);
 }
 
 template <typename T>
@@ -170,7 +170,7 @@ inline void FutureState<void>::Wait() {
   std::unique_lock<std::mutex> lock(mutex_);
   [[maybe_unused]] bool is_ready =
       result_cv_.Wait(lock, [this] { return IsReady(); });
-  assert(is_ready);
+  UASSERT(is_ready);
 }
 
 template <typename Rep, typename Period>

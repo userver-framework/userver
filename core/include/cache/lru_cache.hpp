@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <list>
 #include <unordered_map>
+
+#include <utils/assert.hpp>
 
 namespace cache {
 
@@ -10,7 +11,7 @@ template <typename T, typename U>
 class LRU {
  public:
   explicit LRU(size_t max_size) : max_size_(max_size), map_(max_size) {
-    assert(max_size_ > 0);
+    UASSERT(max_size_ > 0);
   }
 
   void Put(const T& key, U value);

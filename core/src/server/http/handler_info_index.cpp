@@ -43,7 +43,7 @@ void HandlerMethodIndex::AddHandler(const handlers::HttpHandlerBase& handler,
 void HandlerMethodIndex::AddHandlerInfo(HttpMethod method,
                                         HandlerInfo& handler_info) {
   auto index = static_cast<size_t>(method);
-  assert(index <= kHandlerMethodsMax);
+  UASSERT(index <= kHandlerMethodsMax);
   if (pmethods_[index])
     throw std::runtime_error(
         "duplicate handler method+path: " + ToString(method) + " " +

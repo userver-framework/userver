@@ -1,10 +1,10 @@
 #include <utils/statistics/http_codes.hpp>
 
-#include <formats/json/value_builder.hpp>
-
 #include <atomic>
-#include <cassert>
 #include <unordered_map>
+
+#include <formats/json/value_builder.hpp>
+#include <utils/assert.hpp>
 
 #if ATOMIC_LLONG_LOCK_FREE != 2
 #error "std::atomic<long long> is not lockfree"
@@ -16,7 +16,7 @@ HttpCodes::HttpCodes(std::initializer_list<unsigned short> codes) {
   particular_codes.reserve(codes.size());
   for (auto code : codes) {
     [[maybe_unused]] auto [it, inserted] = particular_codes.emplace(code, 0);
-    assert(inserted);
+    UASSERT(inserted);
   }
 }
 

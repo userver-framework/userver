@@ -1,10 +1,9 @@
 #include <storages/mongo_ng/pool_impl.hpp>
 
-#include <cassert>
-
 #include <formats/bson.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo_ng/exception.hpp>
+#include <utils/assert.hpp>
 #include <utils/traceful_exception.hpp>
 
 #include <storages/mongo_ng/async_stream.hpp>
@@ -87,7 +86,7 @@ PoolImpl::BoundClientPtr PoolImpl::Acquire() {
 }
 
 void PoolImpl::Push(mongoc_client_t* client) noexcept {
-  assert(client);
+  UASSERT(client);
   if (queue_.bounded_push(client)) return;
   ClientDeleter()(client);
   --size_;

@@ -5,7 +5,6 @@
 #include <sys/socket.h>
 
 #include <array>
-#include <cassert>
 #include <cstdlib>
 #include <memory>
 #include <stdexcept>
@@ -21,6 +20,7 @@
 #include <engine/task/task_with_result.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo_ng/wrappers.hpp>
+#include <utils/assert.hpp>
 
 namespace storages::mongo_ng::impl {
 namespace {
@@ -219,7 +219,7 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
   }
 
   // enable buffering
-  assert(stream);
+  UASSERT(stream);
   return mongoc_stream_buffered_new(stream.release(), kBufferSize);
 }
 

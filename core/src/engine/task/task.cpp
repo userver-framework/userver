@@ -1,11 +1,11 @@
 #include <engine/task/task.hpp>
 
-#include <cassert>
 #include <future>
 
 #include <engine/coro/pool.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
+#include <utils/assert.hpp>
 
 #include <engine/async.hpp>
 #include <engine/task/cancel.hpp>
@@ -66,34 +66,34 @@ const std::string& Task::GetStateName(State state) {
 bool Task::IsFinished() const { return context_ && context_->IsFinished(); }
 
 void Task::Wait() const noexcept(false) {
-  assert(context_);
+  UASSERT(context_);
   context_->Wait();
 }
 
 void Task::WaitUntil(Deadline deadline) const {
-  assert(context_);
+  UASSERT(context_);
   context_->WaitUntil(std::move(deadline));
 }
 
 void Task::Detach() && {
   if (context_) {
-    assert(context_->use_count() > 0);
+    UASSERT(context_->use_count() > 0);
     context_->GetTaskProcessor().Adopt(std::move(context_));
   }
 }
 
 void Task::RequestCancel() {
-  assert(context_);
+  UASSERT(context_);
   context_->RequestCancel(CancellationReason::kUserRequest);
 }
 
 Task::CancellationReason Task::GetCancellationReason() const {
-  assert(context_);
+  UASSERT(context_);
   return context_->GetCancellationReason();
 }
 
 void Task::BlockingWait() const {
-  assert(current_task::GetCurrentTaskContextUnchecked() == nullptr);
+  UASSERT(current_task::GetCurrentTaskContextUnchecked() == nullptr);
 
   if (context_->IsFinished()) return;
 

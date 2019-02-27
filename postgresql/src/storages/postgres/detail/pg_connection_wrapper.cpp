@@ -5,6 +5,7 @@
 #include <storages/postgres/message.hpp>
 
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 
 #define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
 #define PGCW_LOG_DEBUG() LOG_DEBUG() << log_extra_
@@ -228,7 +229,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline) {
         PGCW_LOG_ERROR() << " libpq polling failed";
         CheckError<ConnectionError>("PQconnectPoll", 0);
       default:
-        assert(!"Unexpected enumeration value");
+        UASSERT(!"Unexpected enumeration value");
         break;
     }
     poll_res = PQconnectPoll(conn_);

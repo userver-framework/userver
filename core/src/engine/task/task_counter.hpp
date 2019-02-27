@@ -1,10 +1,10 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
 #include <chrono>
 #include <thread>
 
+#include <utils/assert.hpp>
 #include <utils/statistics.hpp>
 
 namespace engine {
@@ -29,7 +29,7 @@ class TaskCounter {
     TaskCounter& counter_;
   };
 
-  ~TaskCounter() { assert(!value_); }
+  ~TaskCounter() { UASSERT(!value_); }
 
   template <typename Rep, typename Period>
   void WaitForExhaustion(

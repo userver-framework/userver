@@ -7,6 +7,8 @@
 
 #include "future_state.hpp"
 
+#include <utils/assert.hpp>
+
 namespace engine {
 
 // Convenience classes for asynchronous data/event transfer
@@ -193,7 +195,7 @@ inline Promise<void>::~Promise() {
 inline Future<void> Promise<void>::get_future() { return Future<void>(state_); }
 
 inline void Promise<void>::set_value() {
-  assert(!state_->IsReady());
+  UASSERT(!state_->IsReady());
   state_->SetValue();
 }
 

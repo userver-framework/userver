@@ -4,13 +4,13 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <cassert>
 #include <cerrno>
 #include <string>
 
 #include <engine/io/error.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 
 #include <build_config.hpp>
 #include <engine/io/fd_control.hpp>
@@ -40,7 +40,7 @@ Addr& MemoizeAddr(Addr& addr, decltype(&::getpeername) getter,
     AddrStorage buf;
     auto len = buf.Size();
     utils::CheckSyscall(getter(socket.Fd(), buf.Data(), &len), context...);
-    assert(len <= buf.Size());
+    UASSERT(len <= buf.Size());
     addr = Addr(buf, 0, 0);
   }
   return addr;
@@ -56,12 +56,12 @@ Socket::Socket(int fd) : fd_control_(impl::FdControl::Adopt(fd)) {}
 bool Socket::IsOpen() const { return !!fd_control_; }
 
 bool Socket::WaitReadable(Deadline deadline) {
-  assert(IsOpen());
+  UASSERT(IsOpen());
   return fd_control_->Read().Wait(std::move(deadline));
 }
 
 bool Socket::WaitWriteable(Deadline deadline) {
-  assert(IsOpen());
+  UASSERT(IsOpen());
   return fd_control_->Write().Wait(std::move(deadline));
 }
 
@@ -123,7 +123,7 @@ Socket Socket::Accept(Deadline deadline) {
     int fd = ::accept(dir.Fd(), buf.Data(), &len);
 #endif
 
-    assert(len <= buf.Size());
+    UASSERT(len <= buf.Size());
     if (fd != -1) {
       auto peersock = Socket(fd);
       peersock.peername_ = Addr(buf, 0, 0);
@@ -172,13 +172,13 @@ void Socket::Close() { fd_control_.reset(); }
 int Socket::Fd() const { return fd_control_ ? fd_control_->Fd() : kInvalidFd; }
 
 const Addr& Socket::Getpeername() {
-  assert(IsOpen());
+  UASSERT(IsOpen());
   return MemoizeAddr(peername_, &::getpeername, *this,
                      "getting peer name, fd=", Fd());
 }
 
 const Addr& Socket::Getsockname() {
-  assert(IsOpen());
+  UASSERT(IsOpen());
   return MemoizeAddr(sockname_, &::getsockname, *this,
                      "getting socket name, fd=", Fd());
 }
@@ -243,18 +243,18 @@ Socket Listen(Addr addr, int backlog) {
 }
 
 int Socket::GetOption(int layer, int optname) const {
-  assert(IsOpen());
+  UASSERT(IsOpen());
   int value = -1;
   socklen_t value_len = sizeof(value);
   utils::CheckSyscall(::getsockopt(Fd(), layer, optname, &value, &value_len),
                       "getting socket option ", layer, ',', optname, " on fd ",
                       Fd());
-  assert(value_len == sizeof(value));
+  UASSERT(value_len == sizeof(value));
   return value;
 }
 
 void Socket::SetOption(int layer, int optname, int optval) {
-  assert(IsOpen());
+  UASSERT(IsOpen());
   utils::CheckSyscall(
       ::setsockopt(Fd(), layer, optname, &optval, sizeof(optval)),
       "setting socket option ", layer, ',', optname, " to ", optval, " on fd ",

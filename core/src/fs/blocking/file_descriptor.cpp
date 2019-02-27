@@ -5,10 +5,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <cassert>
 #include <system_error>
 
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 #include <utils/string_view.hpp>
 
 namespace fs {
@@ -65,7 +65,7 @@ auto FileDescriptor::GetFileStats() const {
 }
 
 FileDescriptor FileDescriptor::CreateTempFile(std::string pattern) {
-  assert(!pattern.empty());
+  UASSERT(!pattern.empty());
 
   constexpr char kPathPattern[] = ".XXXXXX";
   pattern += '/';
@@ -84,14 +84,14 @@ FileDescriptor FileDescriptor::CreateTempFile(std::string pattern) {
 
 FileDescriptor FileDescriptor::OpenFile(std::string filename, OpenFlags flags,
                                         int mode) {
-  assert(!filename.empty());
+  UASSERT(!filename.empty());
   const auto fd = ::open(filename.c_str(), NativeModeFromOpenMode(flags), mode);
   return FromFdChecked(fd, std::move(filename));
 }
 
 FileDescriptor FileDescriptor::OpenDirectory(std::string directory,
                                              OpenFlags flags) {
-  assert(!directory.empty());
+  UASSERT(!directory.empty());
   const auto directory_fd =
       ::open(directory.c_str(), NativeModeFromOpenMode(flags) | O_DIRECTORY);
   return FromFdChecked(directory_fd, std::move(directory));

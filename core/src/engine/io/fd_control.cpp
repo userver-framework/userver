@@ -4,15 +4,16 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
-#include <cassert>
 #include <memory>
 #include <stdexcept>
 
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <utils/assert.hpp>
 
 namespace engine {
 namespace io {
@@ -81,7 +82,7 @@ Direction::Direction(Kind kind)
 }
 
 bool Direction::Wait(Deadline deadline) {
-  assert(IsValid());
+  UASSERT(IsValid());
 
   auto current = current_task::GetCurrentTaskContext();
 
@@ -98,8 +99,8 @@ bool Direction::Wait(Deadline deadline) {
 }
 
 void Direction::Reset(int fd) {
-  assert(!IsValid());
-  assert(fd_ == fd || fd_ == -1);
+  UASSERT(!IsValid());
+  UASSERT(fd_ == fd || fd_ == -1);
   fd_ = fd;
   watcher_.Set(fd_, kind_ == Kind::kRead ? EV_READ : EV_WRITE);
   is_valid_ = true;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
 #include <memory>
 #include <set>
 #include <stdexcept>
@@ -13,6 +12,7 @@
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/task_with_result.hpp>
+#include <utils/assert.hpp>
 #include <utils/demangle.hpp>
 
 namespace engine {
@@ -89,7 +89,7 @@ class ComponentContext {
 
     auto* component_base = DoFindComponent(name);
     T* ptr = dynamic_cast<T*>(component_base);
-    assert(ptr != nullptr);
+    UASSERT(ptr != nullptr);
     if (!ptr) {
       std::unique_lock<engine::Mutex> lock(component_mutex_);
       throw std::runtime_error(

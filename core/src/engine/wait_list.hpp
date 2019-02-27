@@ -1,14 +1,14 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
 #include <deque>
 #include <memory>
 #include <mutex>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include "wait_list_base.hpp"
+#include <engine/wait_list_base.hpp>
+#include <utils/assert.hpp>
 
 namespace engine {
 namespace impl {
@@ -40,7 +40,8 @@ class WaitList final : public WaitListBase {
   ~WaitList() {
     Lock lock{*this};
     SkipRemoved(lock);
-    assert(waiting_contexts_.empty() && "Someone is waiting on the WaitList");
+    UASSERT_MSG(waiting_contexts_.empty(),
+                "Someone is waiting on the WaitList");
   }
 #else
   ~WaitList() = default;

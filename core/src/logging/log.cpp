@@ -9,6 +9,7 @@
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/spdlog.hpp>
 #include <tracing/span.hpp>
+#include <utils/assert.hpp>
 #include <utils/string_view.hpp>
 #include <utils/swappingsmart.hpp>
 #include <utils/traceful_exception.hpp>
@@ -26,9 +27,9 @@
     try {                                                                     \
       std::cerr << ERROR_PREFIX "failed to " #FUNCTION ":"                    \
                 << boost::current_exception_diagnostic_information() << '\n'; \
-      assert(false && #FUNCTION);                                             \
+      UASSERT_MSG(false, #FUNCTION);                                          \
     } catch (...) {                                                           \
-      assert(false && #FUNCTION " (second catch)");                           \
+      UASSERT_MSG(false, #FUNCTION " (second catch)");                        \
     }                                                                         \
   }
 
@@ -113,15 +114,17 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
   LogTextKey();  // This member outputs only a key without value
                  // This call must be the last in constructor
 
-  assert(!pimpl_->IsStreamInitialized() &&
-         "Some function frome above initialized the std::ostream. That's a "
-         "heavy operation that should be avoided. Add a breakpoint on Stream() "
-         "function and tune the implementation.");
+  UASSERT_MSG(
+      !pimpl_->IsStreamInitialized(),
+      "Some function frome above initialized the std::ostream. That's a "
+      "heavy operation that should be avoided. Add a breakpoint on Stream() "
+      "function and tune the implementation.");
 
-  assert(initial_capacity == pimpl_->Capacity() &&
-         "Logging buffer is too small to keep initial data. Adjust the "
-         "spdlog::details::log_msg class or reduce the output of the above "
-         "functions.");
+  UASSERT_MSG(
+      initial_capacity == pimpl_->Capacity(),
+      "Logging buffer is too small to keep initial data. Adjust the "
+      "spdlog::details::log_msg class or reduce the output of the above "
+      "functions.");
 }
 
 LogHelper::~LogHelper() { DoLog(); }
@@ -143,7 +146,7 @@ void LogHelper::DoLog() noexcept {
       NOTHROW_CALL_GENERIC(std::cerr << pimpl_->StreamBuf());
     } catch (...) {
     }
-    assert(false && "LogHelper::DoLog()");
+    UASSERT_MSG(false, "LogHelper::DoLog()");
   }
 }
 

@@ -1,11 +1,10 @@
 #include <storages/postgres/result_set.hpp>
 
-#include <cassert>
-
 #include <logging/log.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/user_types.hpp>
+#include <utils/assert.hpp>
 
 namespace storages {
 namespace postgres {
@@ -67,10 +66,10 @@ int Field::Compare(const Field& rhs) const { return Distance(rhs); }
 std::ptrdiff_t Field::Distance(const Field& rhs) const {
   // Invalid iterators are equal
   if (!IsValid() && !rhs.IsValid()) return 0;
-  assert(res_ == rhs.res_ &&
-         "Cannot compare iterators in different result sets");
-  assert(row_index_ == rhs.row_index_ &&
-         "Cannot compare field iterators in different data rows");
+  UASSERT_MSG(res_ == rhs.res_,
+              "Cannot compare iterators in different result sets");
+  UASSERT_MSG(row_index_ == rhs.row_index_,
+              "Cannot compare field iterators in different data rows");
   return field_index_ - rhs.field_index_;
 }
 
@@ -146,8 +145,8 @@ int Row::Compare(const Row& rhs) const { return Distance(rhs); }
 std::ptrdiff_t Row::Distance(const Row& rhs) const {
   // Invalid iterators are equal
   if (!IsValid() && !rhs.IsValid()) return 0;
-  assert(res_ == rhs.res_ &&
-         "Cannot compare iterators in different result sets");
+  UASSERT_MSG(res_ == rhs.res_,
+              "Cannot compare iterators in different result sets");
   return row_index_ - rhs.row_index_;
 }
 

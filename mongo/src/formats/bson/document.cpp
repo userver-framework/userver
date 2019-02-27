@@ -1,9 +1,8 @@
 #include <formats/bson/document.hpp>
 
-#include <cassert>
-
 #include <formats/bson/inline.hpp>
 #include <formats/bson/value_impl.hpp>
+#include <utils/assert.hpp>
 
 namespace formats::bson {
 

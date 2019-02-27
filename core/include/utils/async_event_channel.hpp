@@ -55,8 +55,8 @@ class AsyncEventSubscriberScope {
       LOG_ERROR() << "Event subscriber has't unregistered itself, you have "
                      "to store AsyncEventSubscriberScope and explicitly call "
                      "Unsubscribe() when subscription is not needed.";
-      assert(false &&
-             "Unsubscribe() is not called for AsyncEventSubscriberScope");
+      UASSERT_MSG(false,
+                  "Unsubscribe() is not called for AsyncEventSubscriberScope");
       channel_->RemoveListener(id_);
     }
   }
@@ -137,7 +137,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
       LOG_ERROR()
           << logging::LogExtra::Stacktrace()
           << "Trying to unregister a subscriber which is not registered";
-      assert(false);
+      UASSERT(false);
       return false;
     }
 

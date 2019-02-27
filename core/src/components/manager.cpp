@@ -80,7 +80,7 @@ Manager::~Manager() {
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
   LOG_TRACE() << "Stopping task processor pools";
-  assert(task_processor_pools_.use_count() == 1);
+  UASSERT(task_processor_pools_.use_count() == 1);
   task_processor_pools_.reset();
   LOG_TRACE() << "Stopped task processor_pools";
   LOG_INFO() << "Stopped components manager";

@@ -1,6 +1,5 @@
 #include <engine/task/cancel.hpp>
 
-#include <cassert>
 #include <cctype>
 #include <exception>
 
@@ -11,6 +10,7 @@
 
 #include <engine/sleep.hpp>
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/task_context.hpp>
@@ -76,7 +76,7 @@ bool IsExecutingDestructor() {
 
 void Unwind() {
   auto ctx = current_task::GetCurrentTaskContext();
-  assert(ctx->GetState() == Task::State::kRunning);
+  UASSERT(ctx->GetState() == Task::State::kRunning);
 
   if (std::uncaught_exception()) return;
   if (IsExecutingDestructor()) {
@@ -97,7 +97,7 @@ TaskCancellationBlocker::TaskCancellationBlocker()
       was_allowed_(context_->SetCancellable(false)) {}
 
 TaskCancellationBlocker::~TaskCancellationBlocker() {
-  assert(context_ == current_task::GetCurrentTaskContext());
+  UASSERT(context_ == current_task::GetCurrentTaskContext());
   context_->SetCancellable(was_allowed_);
 }
 

@@ -7,6 +7,7 @@
 #include <memory>
 #include <tuple>
 
+#include <utils/assert.hpp>
 #include <utils/result_store.hpp>
 
 namespace utils {
@@ -106,14 +107,14 @@ class WrappedCallImpl final
 
   template <size_t... Indices>
   ResultType DoCall(std::index_sequence<Indices...>) {
-    assert(f_);
-    assert(args_);
+    UASSERT(f_);
+    UASSERT(args_);
 
     OptionalSetNoneGuard guard(args_);
     OptionalSetNoneGuard guard_f(f_);
 
     if constexpr (std::is_pointer<StoredFunction>::value) {
-      assert(*f_);
+      UASSERT(*f_);
     }
 
     return std::forward<StoredFunction>(*f_)(

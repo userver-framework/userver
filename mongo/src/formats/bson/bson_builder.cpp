@@ -1,6 +1,5 @@
 #include <formats/bson/bson_builder.hpp>
 
-#include <cassert>
 #include <stdexcept>
 
 #include <bson/bson.h>
@@ -9,6 +8,7 @@
 #include <formats/bson/exception.hpp>
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
+#include <utils/assert.hpp>
 #include <utils/text.hpp>
 
 namespace formats::bson::impl {
@@ -21,7 +21,7 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
     Visitor(BsonBuilder& builder) : builder_(builder) {}
 
     void operator()(std::nullptr_t) const {
-      assert(!"Attempt to build a document from primitive type");
+      UASSERT(!"Attempt to build a document from primitive type");
       throw std::logic_error("Attempt to build a document from primitive type");
     }
 

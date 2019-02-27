@@ -8,6 +8,7 @@
 
 #include <engine/io/socket.hpp>
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 
 #include <engine/async.hpp>
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
@@ -189,8 +190,8 @@ struct Connection::Impl {
   void Cancel() { conn_wrapper_.Cancel().Wait(); }
 
   Connection::Statistics GetStatsAndReset() {
-    assert(!IsInTransaction() &&
-           "GetStatsAndReset should be called outside of transaction");
+    UASSERT_MSG(!IsInTransaction(),
+                "GetStatsAndReset should be called outside of transaction");
     return std::exchange(stats_, Connection::Statistics{});
   }
 

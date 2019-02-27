@@ -1,6 +1,6 @@
 #include <formats/json/types.hpp>
 
-#include <cassert>
+#include <utils/assert.hpp>
 
 namespace formats {
 namespace json {
@@ -14,8 +14,9 @@ Json::ValueType ToNativeType(Type type) {
     case Type::kObject:
       return Json::objectValue;
     default:
-      assert(false &&
-             "No mapping from formats::json::Type to Json::ValueType found");
+      UASSERT_MSG(
+          false,
+          "No mapping from formats::json::Type to Json::ValueType found");
       return Json::nullValue;
   }
 }

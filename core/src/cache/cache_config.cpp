@@ -1,6 +1,6 @@
 #include <cache/cache_config.hpp>
-#include <cassert>
 
+#include <utils/assert.hpp>
 #include <utils/string_to_duration.hpp>
 
 namespace components {
@@ -41,7 +41,7 @@ CacheConfig::CacheConfig(std::chrono::milliseconds update_interval,
       full_update_interval_(full_update_interval) {}
 
 CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
-  assert(!ConfigName().empty());
+  UASSERT(!ConfigName().empty());
 
   auto caches_json = docs_map.Get(ConfigName());
   for (auto it = caches_json.begin(); it != caches_json.end(); ++it) {

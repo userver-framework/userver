@@ -1,10 +1,9 @@
 #include "http_request_parser.hpp"
 
-#include <cassert>
-
 #include <logging/log.hpp>
 #include <server/http/http_method.hpp>
 #include <server/request/request_base.hpp>
+#include <utils/assert.hpp>
 
 namespace server {
 namespace http {
@@ -95,28 +94,28 @@ bool HttpRequestParser::Parse(const char* data, size_t size) {
 int HttpRequestParser::OnMessageBegin(http_parser* p) {
   HttpRequestParser* http_request_parser =
       static_cast<HttpRequestParser*>(p->data);
-  assert(http_request_parser != nullptr);
+  UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnMessageBeginImpl(p);
 }
 
 int HttpRequestParser::OnHeadersComplete(http_parser* p) {
   HttpRequestParser* http_request_parser =
       static_cast<HttpRequestParser*>(p->data);
-  assert(http_request_parser != nullptr);
+  UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeadersCompleteImpl(p);
 }
 
 int HttpRequestParser::OnMessageComplete(http_parser* p) {
   HttpRequestParser* http_request_parser =
       static_cast<HttpRequestParser*>(p->data);
-  assert(http_request_parser != nullptr);
+  UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnMessageCompleteImpl(p);
 }
 
 int HttpRequestParser::OnUrl(http_parser* p, const char* data, size_t size) {
   HttpRequestParser* http_request_parser =
       static_cast<HttpRequestParser*>(p->data);
-  assert(http_request_parser != nullptr);
+  UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnUrlImpl(p, data, size);
 }
 
@@ -124,7 +123,7 @@ int HttpRequestParser::OnHeaderField(http_parser* p, const char* data,
                                      size_t size) {
   HttpRequestParser* http_request_parser =
       static_cast<HttpRequestParser*>(p->data);
-  assert(http_request_parser != nullptr);
+  UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeaderFieldImpl(p, data, size);
 }
 
@@ -132,14 +131,14 @@ int HttpRequestParser::OnHeaderValue(http_parser* p, const char* data,
                                      size_t size) {
   HttpRequestParser* http_request_parser =
       static_cast<HttpRequestParser*>(p->data);
-  assert(http_request_parser != nullptr);
+  UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeaderValueImpl(p, data, size);
 }
 
 int HttpRequestParser::OnBody(http_parser* p, const char* data, size_t size) {
   HttpRequestParser* http_request_parser =
       static_cast<HttpRequestParser*>(p->data);
-  assert(http_request_parser != nullptr);
+  UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnBodyImpl(p, data, size);
 }
 
@@ -151,7 +150,7 @@ int HttpRequestParser::OnMessageBeginImpl(http_parser*) {
 
 int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
                                  size_t size) {
-  assert(request_constructor_);
+  UASSERT(request_constructor_);
   LOG_TRACE() << "url: '" << std::string(data, size) << '\'';
   request_constructor_->SetMethod(
       ConvertHttpMethod(static_cast<http_method>(p->method)));
@@ -166,7 +165,7 @@ int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
 
 int HttpRequestParser::OnHeaderFieldImpl(http_parser* p, const char* data,
                                          size_t size) {
-  assert(request_constructor_);
+  UASSERT(request_constructor_);
   LOG_TRACE() << "header field: '" << std::string(data, size) << "'";
   if (!CheckUrlComplete(p)) return -1;
   try {
@@ -180,7 +179,7 @@ int HttpRequestParser::OnHeaderFieldImpl(http_parser* p, const char* data,
 
 int HttpRequestParser::OnHeaderValueImpl(http_parser* p, const char* data,
                                          size_t size) {
-  assert(request_constructor_);
+  UASSERT(request_constructor_);
   if (!CheckUrlComplete(p)) return -1;
   LOG_TRACE() << "header value: '" << std::string(data, size) << '\'';
   try {
@@ -193,7 +192,7 @@ int HttpRequestParser::OnHeaderValueImpl(http_parser* p, const char* data,
 }
 
 int HttpRequestParser::OnHeadersCompleteImpl(http_parser* p) {
-  assert(request_constructor_);
+  UASSERT(request_constructor_);
   if (!CheckUrlComplete(p)) return -1;
   try {
     request_constructor_->AppendHeaderField("", 0);
@@ -207,7 +206,7 @@ int HttpRequestParser::OnHeadersCompleteImpl(http_parser* p) {
 
 int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
                                   size_t size) {
-  assert(request_constructor_);
+  UASSERT(request_constructor_);
   if (!CheckUrlComplete(p)) return -1;
   LOG_TRACE() << "body: '" << std::string(data, size) << "'";
   try {
@@ -220,7 +219,7 @@ int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
 }
 
 int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
-  assert(request_constructor_);
+  UASSERT(request_constructor_);
   if (p->upgrade) {
     LOG_WARNING() << "upgrade detected";
     return -1;  // error

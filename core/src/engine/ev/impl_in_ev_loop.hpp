@@ -5,6 +5,8 @@
 
 #include "thread_control.hpp"
 
+#include <utils/assert.hpp>
+
 namespace engine {
 namespace ev {
 
@@ -15,12 +17,12 @@ class ImplInEvLoop : public ThreadControl {
   explicit ImplInEvLoop(const ThreadControl& thread_control, Args&&... args)
       : ThreadControl(thread_control) {
     CreateInEvLoop(thread_control, std::forward<Args>(args)...);
-    assert(impl_);
+    UASSERT(impl_);
   }
 
   virtual ~ImplInEvLoop() {
     DestroyInEvLoop();
-    assert(!impl_);
+    UASSERT(!impl_);
   }
 
  protected:

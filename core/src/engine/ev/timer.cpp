@@ -1,9 +1,9 @@
 #include "timer.hpp"
 
-#include <cassert>
 #include <mutex>
 
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 
 namespace engine {
 namespace ev {
@@ -46,7 +46,7 @@ void Timer::TimerImpl::Start() {
 
 void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) {
   TimerImpl* ev_timer = static_cast<TimerImpl*>(w->data);
-  assert(ev_timer != nullptr);
+  UASSERT(ev_timer != nullptr);
   ev_timer->DoOnTimer();
 }
 

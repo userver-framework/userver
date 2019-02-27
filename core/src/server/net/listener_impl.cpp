@@ -7,7 +7,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
@@ -21,6 +20,7 @@
 #include <fs/blocking/read.hpp>
 #include <fs/blocking/write.hpp>
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 
 namespace server {
 namespace net {
@@ -153,7 +153,7 @@ void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
 void ListenerImpl::AddConnection(
     const std::shared_ptr<Connection>& connection) {
   int fd = connection->Fd();
-  assert(fd >= 0);
+  UASSERT(fd >= 0);
 
   /* connections_ is expected not to grow too big:
    * it is limited to ~max simultaneous connections by all listeners

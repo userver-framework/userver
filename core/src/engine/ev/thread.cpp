@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 #include <utils/thread_name.hpp>
 
 namespace engine {
@@ -25,7 +26,7 @@ Thread::Thread(const std::string& thread_name)
 
 Thread::~Thread() {
   StopEventLoop();
-  assert(loop_ == nullptr);
+  UASSERT(loop_ == nullptr);
 }
 
 void Thread::AsyncStartUnsafe(ev_async& w) { ev_async_start(GetEvLoop(), &w); }
@@ -135,7 +136,7 @@ void Thread::SafeEvCall(const Func& func) {
 
 void Thread::Start() {
   loop_ = ev_loop_new(EVFLAG_AUTO);
-  assert(loop_);
+  UASSERT(loop_);
   ev_set_userdata(loop_, this);
   ev_set_loop_release_cb(loop_, Release, Acquire);
 
@@ -160,7 +161,7 @@ void Thread::StopEventLoop() {
 
 void Thread::UpdateEvLoop() {
   if (IsInEvThread()) return;
-  assert(!func_promise_);
+  UASSERT(!func_promise_);
   auto func_promise = std::make_unique<std::promise<void>>();
   auto func_future = func_promise->get_future();
   func_promise_ = std::move(func_promise);
@@ -181,7 +182,7 @@ void Thread::RunEvLoop() {
 
 void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) {
   Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
-  assert(ev_thread != nullptr);
+  UASSERT(ev_thread != nullptr);
   ev_thread->UpdateLoopWatcherImpl();
 }
 
@@ -190,7 +191,7 @@ void Thread::UpdateLoopWatcherImpl() {
               << (func_promise_ ? 1 : 0)
               << " func_queue_.empty()=" << func_queue_.empty();
   if (func_promise_) {
-    assert(func_ptr_);
+    UASSERT(func_ptr_);
     std::exception_ptr ex_ptr;
     try {
       (*func_ptr_)();
@@ -226,7 +227,7 @@ void Thread::UpdateLoopWatcherImpl() {
 
 void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) {
   Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
-  assert(ev_thread != nullptr);
+  UASSERT(ev_thread != nullptr);
   ev_thread->BreakLoopWatcherImpl();
 }
 
@@ -238,13 +239,13 @@ void Thread::BreakLoopWatcherImpl() {
 
 void Thread::Acquire(struct ev_loop* loop) noexcept {
   Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
-  assert(ev_thread != nullptr);
+  UASSERT(ev_thread != nullptr);
   ev_thread->AcquireImpl();
 }
 
 void Thread::Release(struct ev_loop* loop) noexcept {
   Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
-  assert(ev_thread != nullptr);
+  UASSERT(ev_thread != nullptr);
   ev_thread->ReleaseImpl();
 }
 

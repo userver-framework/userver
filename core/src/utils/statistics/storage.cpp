@@ -7,6 +7,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 
 namespace {
 
@@ -48,7 +49,7 @@ Entry::Entry(Entry&& other) noexcept
   other.storage_ = nullptr;
 }
 
-Entry::~Entry() { assert(storage_ == nullptr); }
+Entry::~Entry() { UASSERT(storage_ == nullptr); }
 
 void Entry::Unregister() noexcept {
   if (storage_) {

@@ -1,7 +1,6 @@
 #include <taxi_config/config.hpp>
 
-#include <cassert>
-
+#include <utils/assert.hpp>
 #include <utils/demangle.hpp>
 
 namespace taxi_config {
@@ -33,7 +32,7 @@ template <typename ConfigTag>
 void BaseConfig<ConfigTag>::Unregister(const std::type_info& type) {
   [[maybe_unused]] size_t count =
       ExtraBaseConfigFactories<ConfigTag>().erase(type);
-  assert(count == 1);
+  UASSERT(count == 1);
 }
 
 template <typename ConfigTag>

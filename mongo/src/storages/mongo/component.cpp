@@ -112,7 +112,7 @@ MultiMongo::PoolSet MultiMongo::NewPoolSet() { return PoolSet(*this); }
 storages::mongo::PoolPtr MultiMongo::FindPool(
     const std::string& dbalias) const {
   auto pool_map = pool_map_ptr_.Get();
-  assert(pool_map);
+  UASSERT(pool_map);
 
   auto it = pool_map->find(dbalias);
   if (it == pool_map->end()) return {};
@@ -139,7 +139,7 @@ MultiMongo::PoolSet& MultiMongo::PoolSet::operator=(PoolSet&&) noexcept =
 
 void MultiMongo::PoolSet::AddExistingPools() {
   auto pool_map = target_->pool_map_ptr_.Get();
-  assert(pool_map);
+  UASSERT(pool_map);
 
   pool_map_ptr_->insert(pool_map->begin(), pool_map->end());
 }

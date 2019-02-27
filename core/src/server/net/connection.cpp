@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cerrno>
 #include <stdexcept>
 #include <system_error>
@@ -17,6 +16,7 @@
 #include <server/http/http_request_handler.hpp>
 #include <server/http/http_request_parser.hpp>
 #include <server/request/request_config.hpp>
+#include <utils/assert.hpp>
 
 namespace server {
 namespace net {
@@ -47,7 +47,7 @@ Connection::~Connection() {
 
   // Socket listener can be simply cancelled
   LOG_TRACE() << "Stopping socket listener for fd " << fd;
-  assert(socket_listener_);
+  UASSERT(socket_listener_);
   socket_listener_ = {};
   LOG_TRACE() << "Stopped socket listener for fd " << fd;
 
@@ -59,7 +59,7 @@ Connection::~Connection() {
   peer_socket_.Close();
 
   LOG_TRACE() << "RequestBase tasks queue became empty for fd " << fd;
-  assert(IsRequestTasksEmpty());
+  UASSERT(IsRequestTasksEmpty());
 
   --stats_->active_connections;
   ++stats_->connections_closed;
@@ -179,7 +179,7 @@ void Connection::SendResponses(Queue::Consumer consumer) {
 
     // the response is ready, so let's not drop it
     engine::TaskCancellationBlocker block_cancel;
-    assert(!response.IsSent());
+    UASSERT(!response.IsSent());
     request.SetStartSendResponseTime();
     if (peer_socket_) {
       try {

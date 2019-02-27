@@ -6,7 +6,7 @@ namespace handlers {
 HttpHandlerMethodStatistics& HttpHandlerStatistics::GetStatisticByMethod(
     http::HttpMethod method) {
   size_t index = static_cast<size_t>(method);
-  assert(index < stats_by_method_.size());
+  UASSERT(index < stats_by_method_.size());
 
   return stats_by_method_[index];
 }
@@ -14,7 +14,7 @@ HttpHandlerMethodStatistics& HttpHandlerStatistics::GetStatisticByMethod(
 const HttpHandlerMethodStatistics& HttpHandlerStatistics::GetStatisticByMethod(
     http::HttpMethod method) const {
   size_t index = static_cast<size_t>(method);
-  assert(index < stats_by_method_.size());
+  UASSERT(index < stats_by_method_.size());
 
   return stats_by_method_[index];
 }

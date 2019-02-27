@@ -33,7 +33,7 @@ Client::Client(size_t io_threads) {
 Client::~Client() { Stop(); }
 
 void Client::Stop() {
-  // TODO: assert(no pending requests)
+  // TODO: UASSERT(no pending requests)
   std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
   while (!idle_easy_queue_.empty()) idle_easy_queue_.pop();
 

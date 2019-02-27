@@ -1,6 +1,6 @@
 #include <storages/mongo/cursor.hpp>
 
-#include <cassert>
+#include <utils/assert.hpp>
 
 #include "cursor_impl.hpp"
 
@@ -26,17 +26,17 @@ Cursor::Iterator::Iterator(impl::CursorImpl* cursor) : cursor_(cursor) {
 }
 
 Cursor::Iterator::reference Cursor::Iterator::operator*() const {
-  assert(cursor_);
+  UASSERT(cursor_);
   return **cursor_;
 }
 
 Cursor::Iterator::pointer Cursor::Iterator::operator->() const {
-  assert(cursor_);
+  UASSERT(cursor_);
   return cursor_->operator->();
 }
 
 Cursor::Iterator& Cursor::Iterator::operator++() {
-  assert(cursor_);
+  UASSERT(cursor_);
   ++*cursor_;
   if (cursor_->IsExhausted()) cursor_ = nullptr;
   return *this;

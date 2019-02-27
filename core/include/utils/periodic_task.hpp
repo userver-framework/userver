@@ -4,6 +4,7 @@
 
 #include <engine/task/task_with_result.hpp>
 #include <tracing/span.hpp>
+#include <utils/assert.hpp>
 #include <utils/flags.hpp>
 #include <utils/swappingsmart.hpp>
 
@@ -45,7 +46,7 @@ class PeriodicTask {
           distribution(distribution),
           flags(flags),
           span_level(span_level) {
-      assert(distribution <= period);
+      UASSERT(distribution <= period);
     }
 
     Settings(std::chrono::milliseconds period, uint8_t distribution_percent,
@@ -53,7 +54,7 @@ class PeriodicTask {
              logging::Level span_level = logging::Level::kInfo)
         : Settings(period, period * distribution_percent / 100, flags,
                    span_level) {
-      assert(distribution_percent <= 100);
+      UASSERT(distribution_percent <= 100);
     }
 
     std::chrono::milliseconds period;
@@ -80,7 +81,7 @@ class PeriodicTask {
    * exits the object is destroyed and using X's 'this' in callback is UB.
    */
   ~PeriodicTask() {
-    assert(!task_.IsValid());
+    UASSERT(!task_.IsValid());
     Stop();
   }
 

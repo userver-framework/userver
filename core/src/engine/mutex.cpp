@@ -1,7 +1,6 @@
 #include <engine/mutex.hpp>
 
-#include <cassert>
-
+#include <utils/assert.hpp>
 #include "task/task_context.hpp"
 #include "wait_list.hpp"
 
@@ -38,7 +37,7 @@ class MutexWaitStrategy final : public WaitStrategy {
 Mutex::Mutex()
     : lock_waiters_(std::make_shared<impl::WaitList>()), owner_(nullptr) {}
 
-Mutex::~Mutex() { assert(!owner_); }
+Mutex::~Mutex() { UASSERT(!owner_); }
 
 void Mutex::LockSlowPath(impl::TaskContext* const current) {
   impl::TaskContext* expected = nullptr;
@@ -47,7 +46,7 @@ void Mutex::LockSlowPath(impl::TaskContext* const current) {
   while (!owner_.compare_exchange_strong(expected, current,
                                          std::memory_order_relaxed)) {
     if (expected == current) {
-      assert(false && "Mutex is locked twice from the same task");
+      UASSERT_MSG(false, "Mutex is locked twice from the same task");
       throw std::runtime_error("Mutex is locked twice from the same task");
     }
     current->Sleep(&wait_manager);
@@ -70,7 +69,7 @@ void Mutex::lock() {
 void Mutex::unlock() {
   [[maybe_unused]] const auto old_owner =
       owner_.exchange(nullptr, std::memory_order_release);
-  assert(old_owner == current_task::GetCurrentTaskContext());
+  UASSERT(old_owner == current_task::GetCurrentTaskContext());
 
   impl::WaitList::Lock lock(*lock_waiters_);
   lock_waiters_->WakeupOne(lock);

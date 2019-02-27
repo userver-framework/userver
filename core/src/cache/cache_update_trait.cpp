@@ -33,7 +33,7 @@ CacheUpdateTrait::~CacheUpdateTrait() {
            "Derived class has to call StopPeriodicUpdates() in destructor. "
         << "Component name '" << name_ << "'";
     // Don't crash in production
-    assert(false && "StopPeriodicUpdates() is not called");
+    UASSERT_MSG(false, "StopPeriodicUpdates() is not called");
   }
 }
 

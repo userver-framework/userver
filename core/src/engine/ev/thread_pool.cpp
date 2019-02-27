@@ -1,9 +1,9 @@
 #include "thread_pool.hpp"
 
-#include <cassert>
-
 #include "thread.hpp"
 #include "thread_control.hpp"
+
+#include <utils/assert.hpp>
 
 namespace engine {
 namespace ev {
@@ -24,7 +24,7 @@ ThreadPool::ThreadPoolInfo::ThreadPoolInfo(ThreadPool& thread_pool)
 }
 
 ThreadControl& ThreadPool::ThreadPoolInfo::NextThread() {
-  assert(!thread_controls_.empty());
+  UASSERT(!thread_controls_.empty());
   // just ignore counter_ overflow
   return thread_controls_[counter_++ % thread_controls_.size()];
 }
@@ -33,7 +33,7 @@ std::vector<ThreadControl*> ThreadPool::ThreadPoolInfo::NextThreads(
     size_t count) {
   std::vector<ThreadControl*> res;
   if (!count) return res;
-  assert(!thread_controls_.empty());
+  UASSERT(!thread_controls_.empty());
   res.reserve(count);
   size_t start = counter_.fetch_add(count);  // just ignore counter_ overflow
   for (size_t i = 0; i < count; i++)

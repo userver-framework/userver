@@ -1,8 +1,7 @@
 #include <utils/signal_catcher.hpp>
 
-#include <cassert>
-
-#include "check_syscall.hpp"
+#include <utils/assert.hpp>
+#include <utils/check_syscall.hpp>
 
 namespace utils {
 
@@ -23,7 +22,7 @@ SignalCatcher::~SignalCatcher() noexcept(false) {
 int SignalCatcher::Catch() {
   int signum = -1;
   utils::CheckSyscall(sigwait(&sigset_, &signum), "waiting for signal");
-  assert(signum != -1);
+  UASSERT(signum != -1);
   return signum;
 }
 

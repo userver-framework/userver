@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
 #include <cerrno>
 
 #include <engine/deadline.hpp>
@@ -10,6 +9,7 @@
 #include <engine/mutex.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 
 #include <engine/ev/watcher.hpp>
 #include <engine/task/task_context.hpp>
@@ -93,11 +93,11 @@ class FdControl {
   int Fd() const { return read_.Fd(); }
 
   Direction& Read() {
-    assert(IsValid());
+    UASSERT(IsValid());
     return read_;
   }
   Direction& Write() {
-    assert(IsValid());
+    UASSERT(IsValid());
     return write_;
   }
 

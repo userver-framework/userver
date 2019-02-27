@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
 #include <memory>
 #include <string>
 
@@ -11,6 +10,7 @@
 
 #include <storages/mongo_ng/pool_config.hpp>
 #include <storages/mongo_ng/wrappers.hpp>
+#include <utils/assert.hpp>
 
 namespace storages::mongo_ng::impl {
 
@@ -18,7 +18,7 @@ class PoolImpl {
  public:
   class ClientPusher {
    public:
-    explicit ClientPusher(PoolImpl* pool) : pool_(pool) { assert(pool_); }
+    explicit ClientPusher(PoolImpl* pool) : pool_(pool) { UASSERT(pool_); }
     void operator()(mongoc_client_t* client) const noexcept {
       pool_->Push(client);
     }

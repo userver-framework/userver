@@ -114,7 +114,7 @@ ConnectionPtr ConnectionPoolImpl::Acquire() {
 }
 
 void ConnectionPoolImpl::Release(Connection* connection) {
-  assert(connection);
+  UASSERT(connection);
   --stats_.connection.used;
 
   // Grab stats only if connection is not in transaction
@@ -200,7 +200,7 @@ Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options,
                                       OptionalCommandControl trx_cmd_ctl) {
   auto trx_start_time = detail::SteadyClock::now();
   auto conn = Acquire();
-  assert(conn);
+  UASSERT(conn);
   return Transaction{std::move(conn), options, trx_cmd_ctl,
                      std::move(trx_start_time)};
 }
@@ -208,7 +208,7 @@ Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options,
 NonTransaction ConnectionPoolImpl::Start() {
   auto start_time = detail::SteadyClock::now();
   auto conn = Acquire();
-  assert(conn);
+  UASSERT(conn);
   return NonTransaction{std::move(conn), std::move(start_time)};
 }
 

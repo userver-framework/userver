@@ -2,14 +2,13 @@
 
 #include <unistd.h>
 
-#include <cassert>
 #include <cstring>
 
 #include <components/manager.hpp>
+#include <logging/config.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
-
-#include <logging/config.hpp>
+#include <utils/assert.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
@@ -110,7 +109,7 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
     } else {
       LOG_WARNING() << "Got unexpected signal: " << signum << " ("
                     << utils::strsignal(signum) << ')';
-      assert(!"unexpected signal");
+      UASSERT(!"unexpected signal");
     }
   }
 }

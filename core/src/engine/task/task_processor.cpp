@@ -1,11 +1,11 @@
 #include "task_processor.hpp"
 
-#include <cassert>
 #include <mutex>
 
 #include <boost/sync/support/std_chrono.hpp>
 
 #include <logging/log.hpp>
+#include <utils/assert.hpp>
 #include <utils/thread_name.hpp>
 
 #include "task_context.hpp"
@@ -52,7 +52,7 @@ TaskProcessor::~TaskProcessor() {
     w.join();
   }
 
-  assert(task_counter_.GetCurrentValue() == 0);
+  UASSERT(task_counter_.GetCurrentValue() == 0);
 }
 
 void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
@@ -71,7 +71,7 @@ void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
 }
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {
-  assert(context);
+  UASSERT(context);
   if (max_task_queue_wait_length_ && !context->IsCritical()) {
     size_t queue_size = GetTaskQueueSize();
     if (queue_size >= max_task_queue_wait_length_) {
@@ -97,7 +97,7 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
 
 void TaskProcessor::Adopt(
     boost::intrusive_ptr<impl::TaskContext>&& context_ptr) {
-  assert(context_ptr);
+  UASSERT(context_ptr);
   std::unique_lock<std::mutex> lock(detached_contexts_mutex_);
   // SetDetached should be called under lock to synchronize with ProcessTasks
   // IsFinished() cannot change value after the last IsDetached() check
@@ -110,7 +110,7 @@ void TaskProcessor::Adopt(
   }
   [[maybe_unused]] auto result =
       detached_contexts_.insert(std::move(context_ptr));
-  assert(result.second);
+  UASSERT(result.second);
 }
 
 std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const {
@@ -132,7 +132,7 @@ const std::string& TaskProcessor::GetTaskTraceLoggerName() const {
 }
 
 void TaskProcessor::SetTaskTraceLogger(::logging::LoggerPtr logger) {
-  assert(!task_trace_logger_set_);
+  UASSERT(!task_trace_logger_set_);
   task_trace_logger_ = std::move(logger);
   task_trace_logger_set_ = true;
 }

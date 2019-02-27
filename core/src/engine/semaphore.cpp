@@ -15,7 +15,7 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
         waiters_(waiters),
         current_(current),
         lock_{*waiters_} {
-    assert(current_);
+    UASSERT(current_);
   }
 
   void AfterAsleep() override {
@@ -38,7 +38,7 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
 Semaphore::Semaphore(std::size_t max_simultaneous_locks)
     : lock_waiters_(std::make_shared<impl::WaitList>()),
       remaining_simultaneous_locks_(max_simultaneous_locks) {
-  assert(max_simultaneous_locks > 0);
+  UASSERT(max_simultaneous_locks > 0);
 }
 
 void Semaphore::lock() {

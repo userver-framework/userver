@@ -3,9 +3,10 @@
 /// @file engine/deadline.hpp
 /// @brief Internal representation of a deadline time point
 
-#include <cassert>
 #include <chrono>
 #include <utility>
+
+#include <utils/assert.hpp>
 
 namespace engine {
 
@@ -29,7 +30,7 @@ class Deadline {
 
   /// Returns the duration of time left before the reachable deadline
   auto TimeLeft() const {
-    assert(IsReachable());
+    UASSERT(IsReachable());
     if (value_ == kPassed) return Clock::duration::zero();
     return value_ - TimePoint::clock::now();
   }
