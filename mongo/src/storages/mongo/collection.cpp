@@ -54,12 +54,13 @@ engine::TaskWithResult<boost::optional<DocumentValue>> Collection::FindOne(
     DocumentValue query, mongocxx::options::find options) const {
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](auto&& query, const auto& options) {
-        auto conn = impl->GetPool().Acquire();
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
+                     const auto& options) {
+        auto conn = token.GetConnection();
         return ToBoostOptional(
             impl->GetCollection(conn).find_one(std::move(query), options));
       },
-      std::move(query), std::move(options));
+      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
 }
 
 engine::TaskWithResult<boost::optional<DocumentValue>> Collection::FindOne(
@@ -71,16 +72,17 @@ engine::TaskWithResult<boost::optional<DocumentValue>> Collection::FindOne(
 
 engine::TaskWithResult<Cursor> Collection::Find(
     DocumentValue query, mongocxx::options::find options) const {
-  return engine::impl::Async(impl_->GetPool().GetTaskProcessor(),
-                             [impl = impl_](auto&& query, const auto& options) {
-                               auto conn = impl->GetPool().Acquire();
-                               auto cursor = impl->GetCollection(conn).find(
-                                   std::move(query), options);
-                               return Cursor(std::make_unique<impl::CursorImpl>(
-                                   impl->GetPool().GetTaskProcessor(),
-                                   std::move(conn), std::move(cursor)));
-                             },
-                             std::move(query), std::move(options));
+  return engine::impl::Async(
+      impl_->GetPool().GetTaskProcessor(),
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
+                     const auto& options) {
+        auto conn = token.GetConnection();
+        auto cursor = impl->GetCollection(conn).find(std::move(query), options);
+        return Cursor(std::make_unique<impl::CursorImpl>(
+            impl->GetPool().GetTaskProcessor(), std::move(conn),
+            std::move(cursor)));
+      },
+      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
 }
 
 engine::TaskWithResult<Cursor> Collection::Find(
@@ -95,12 +97,13 @@ Collection::FindOneAndDelete(DocumentValue query,
                              mongocxx::options::find_one_and_delete options) {
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](auto&& query, const auto& options) {
-        auto conn = impl->GetPool().Acquire();
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
+                     const auto& options) {
+        auto conn = token.GetConnection();
         return ToBoostOptional(impl->GetCollection(conn).find_one_and_delete(
             std::move(query), options));
       },
-      std::move(query), std::move(options));
+      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
 }
 
 engine::TaskWithResult<boost::optional<DocumentValue>>
@@ -112,8 +115,9 @@ Collection::FindOneAndReplace(DocumentValue query, DocumentValue replacement,
 
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](auto&& query, auto&& replacement, const auto& options) {
-        auto conn = impl->GetPool().Acquire();
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
+                     auto&& replacement, const auto& options) {
+        auto conn = token.GetConnection();
         try {
           return ToBoostOptional(impl->GetCollection(conn).find_one_and_replace(
               query.view(), replacement.view(), options));
@@ -129,7 +133,8 @@ Collection::FindOneAndReplace(DocumentValue query, DocumentValue replacement,
           }
         }
       },
-      std::move(query), std::move(replacement), std::move(options));
+      impl_->GetPool().AcquireToken(), std::move(query), std::move(replacement),
+      std::move(options));
 }
 
 engine::TaskWithResult<boost::optional<DocumentValue>>
@@ -141,8 +146,9 @@ Collection::FindOneAndUpdate(DocumentValue query, DocumentValue update,
 
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](auto&& query, auto&& update, const auto& options) {
-        auto conn = impl->GetPool().Acquire();
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
+                     auto&& update, const auto& options) {
+        auto conn = token.GetConnection();
         try {
           return ToBoostOptional(impl->GetCollection(conn).find_one_and_update(
               query.view(), update.view(), options));
@@ -158,55 +164,60 @@ Collection::FindOneAndUpdate(DocumentValue query, DocumentValue update,
           }
         }
       },
-      std::move(query), std::move(update), std::move(options));
+      impl_->GetPool().AcquireToken(), std::move(query), std::move(update),
+      std::move(options));
 }
 
 engine::TaskWithResult<void> Collection::InsertOne(
     DocumentValue obj, mongocxx::options::insert options) {
-  return engine::impl::Async(impl_->GetPool().GetTaskProcessor(),
-                             [impl = impl_](auto&& obj, const auto& options) {
-                               auto conn = impl->GetPool().Acquire();
-                               impl->GetCollection(conn).insert_one(
-                                   std::move(obj), options);
-                             },
-                             std::move(obj), std::move(options));
+  return engine::impl::Async(
+      impl_->GetPool().GetTaskProcessor(),
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& obj,
+                     const auto& options) {
+        auto conn = token.GetConnection();
+        impl->GetCollection(conn).insert_one(std::move(obj), options);
+      },
+      impl_->GetPool().AcquireToken(), std::move(obj), std::move(options));
 }
 
 engine::TaskWithResult<size_t> Collection::Count(
     DocumentValue query, mongocxx::options::count options) const {
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](auto&& query, const auto& options) -> size_t {
-        auto conn = impl->GetPool().Acquire();
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
+                     const auto& options) -> size_t {
+        auto conn = token.GetConnection();
         return impl->GetCollection(conn).count(std::move(query), options);
       },
-      std::move(query), std::move(options));
+      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
 }
 
 engine::TaskWithResult<bool> Collection::DeleteOne(
     DocumentValue query, mongocxx::options::delete_options options) {
-  return engine::impl::Async(impl_->GetPool().GetTaskProcessor(),
-                             [impl = impl_](auto&& query, const auto& options) {
-                               auto conn = impl->GetPool().Acquire();
-                               auto result =
-                                   impl->GetCollection(conn).delete_one(
-                                       std::move(query), options);
-                               return result && result->deleted_count();
-                             },
-                             std::move(query), std::move(options));
+  return engine::impl::Async(
+      impl_->GetPool().GetTaskProcessor(),
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
+                     const auto& options) {
+        auto conn = token.GetConnection();
+        auto result =
+            impl->GetCollection(conn).delete_one(std::move(query), options);
+        return result && result->deleted_count();
+      },
+      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
 }
 
 engine::TaskWithResult<size_t> Collection::DeleteMany(
     DocumentValue query, mongocxx::options::delete_options options) {
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](auto&& query, const auto& options) -> size_t {
-        auto conn = impl->GetPool().Acquire();
+      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
+                     const auto& options) -> size_t {
+        auto conn = token.GetConnection();
         auto result =
             impl->GetCollection(conn).delete_many(std::move(query), options);
         return result ? result->deleted_count() : 0;
       },
-      std::move(query), std::move(options));
+      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
 }
 
 engine::TaskWithResult<bool> Collection::ReplaceOne(
@@ -215,12 +226,14 @@ engine::TaskWithResult<bool> Collection::ReplaceOne(
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
       [impl = impl_, query = std::move(query),
-       replacement = std::move(replacement), options = std::move(options)] {
-        auto conn = impl->GetPool().Acquire();
+       replacement = std::move(replacement),
+       options = std::move(options)](impl::PoolImpl::ConnectionToken&& token) {
+        auto conn = token.GetConnection();
         auto result = impl->GetCollection(conn).replace_one(
             query.view(), replacement.view(), options);
         return result && result->matched_count();
-      });
+      },
+      impl_->GetPool().AcquireToken());
 }
 
 engine::TaskWithResult<bool> Collection::UpdateOne(
@@ -229,12 +242,13 @@ engine::TaskWithResult<bool> Collection::UpdateOne(
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
       [impl = impl_, query = std::move(query), update = std::move(update),
-       options = std::move(options)] {
-        auto conn = impl->GetPool().Acquire();
+       options = std::move(options)](impl::PoolImpl::ConnectionToken&& token) {
+        auto conn = token.GetConnection();
         auto result = impl->GetCollection(conn).update_one(
             query.view(), update.view(), options);
         return result && result->matched_count();
-      });
+      },
+      impl_->GetPool().AcquireToken());
 }
 
 engine::TaskWithResult<size_t> Collection::UpdateMany(
@@ -243,12 +257,14 @@ engine::TaskWithResult<size_t> Collection::UpdateMany(
   return engine::impl::Async(
       impl_->GetPool().GetTaskProcessor(),
       [impl = impl_, query = std::move(query), update = std::move(update),
-       options = std::move(options)]() -> size_t {
-        auto conn = impl->GetPool().Acquire();
+       options = std::move(options)](
+          impl::PoolImpl::ConnectionToken&& token) -> size_t {
+        auto conn = token.GetConnection();
         auto result = impl->GetCollection(conn).update_many(
             query.view(), update.view(), options);
         return result ? result->matched_count() : 0;
-      });
+      },
+      impl_->GetPool().AcquireToken());
 }
 
 BulkOperationBuilder Collection::UnorderedBulk() {

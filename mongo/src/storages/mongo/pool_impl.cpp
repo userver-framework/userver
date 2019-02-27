@@ -38,9 +38,36 @@ mongocxx::uri MakeUriWithTimeouts(const std::string& uri, int conn_timeout_ms,
 
 }  // namespace
 
+PoolImpl::ConnectionToken::ConnectionToken(PoolImpl* pool) : pool_(pool) {
+  assert(pool_);
+
+  const auto new_tokens_issued = ++pool_->tokens_issued_;
+  if (pool_->tokens_limit_ && new_tokens_issued > pool_->tokens_limit_) {
+    --pool_->tokens_issued_;
+    throw PoolError("Mongo pool reached pending requests limit: " +
+                    std::to_string(new_tokens_issued));
+  }
+}
+
+PoolImpl::ConnectionToken::~ConnectionToken() {
+  if (pool_) --pool_->tokens_issued_;
+}
+
+PoolImpl::ConnectionToken::ConnectionToken(ConnectionToken&& other) noexcept
+    : pool_(std::exchange(other.pool_, nullptr)) {}
+
+PoolImpl::ConnectionPtr PoolImpl::ConnectionToken::GetConnection() {
+  return {pool_->Pop(),
+          [pool = pool_](Connection* connection) { pool->Push(connection); }};
+}
+
 PoolImpl::PoolImpl(engine::TaskProcessor& task_processor,
                    const std::string& uri, const PoolConfig& config)
-    : task_processor_(task_processor), queue_(config.max_size), size_(0) {
+    : task_processor_(task_processor),
+      queue_(config.max_size),
+      size_(0),
+      tokens_limit_(config.max_pending_requests),
+      tokens_issued_(0) {
   // global mongocxx initializer
   static const mongocxx::instance kDriverInit(std::make_unique<impl::Logger>());
 
@@ -62,8 +89,8 @@ PoolImpl::PoolImpl(engine::TaskProcessor& task_processor,
 
 PoolImpl::~PoolImpl() { Clear(); }
 
-PoolImpl::ConnectionPtr PoolImpl::Acquire() {
-  return {Pop(), [this](Connection* connection) { Push(connection); }};
+PoolImpl::ConnectionToken PoolImpl::AcquireToken() {
+  return ConnectionToken(this);
 }
 
 void PoolImpl::Push(Connection* connection) {

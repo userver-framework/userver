@@ -20,11 +20,24 @@ class PoolImpl {
   using ConnectionPtr =
       std::unique_ptr<Connection, std::function<void(Connection*)>>;
 
+  class ConnectionToken {
+   public:
+    explicit ConnectionToken(PoolImpl* pool);
+    ~ConnectionToken();
+
+    ConnectionToken(ConnectionToken&& other) noexcept;
+
+    ConnectionPtr GetConnection();
+
+   private:
+    PoolImpl* pool_;
+  };
+
   PoolImpl(engine::TaskProcessor& task_processor, const std::string& uri,
            const PoolConfig& config);
   ~PoolImpl();
 
-  ConnectionPtr Acquire();
+  ConnectionToken AcquireToken();
 
   const std::string& GetDefaultDatabaseName() const;
   engine::TaskProcessor& GetTaskProcessor();
@@ -42,6 +55,9 @@ class PoolImpl {
 
   boost::lockfree::queue<Connection*> queue_;
   std::atomic<size_t> size_;
+
+  const size_t tokens_limit_;
+  std::atomic<size_t> tokens_issued_;
 };
 
 }  // namespace impl

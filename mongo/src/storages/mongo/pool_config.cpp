@@ -11,7 +11,9 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
       so_timeout_ms(
           component_config.ParseInt("so_timeout_ms", kDefaultSoTimeoutMs)),
       min_size(component_config.ParseUint64("min_pool_size", kDefaultMinSize)),
-      max_size(component_config.ParseUint64("max_pool_size", kDefaultMaxSize)) {
+      max_size(component_config.ParseUint64("max_pool_size", kDefaultMaxSize)),
+      max_pending_requests(component_config.ParseUint64(
+          "max_pool_pending_requests", kDefaultMaxPendingRequests)) {
   if (conn_timeout_ms <= 0) {
     throw InvalidConfig("invalid conn_timeout");
   }

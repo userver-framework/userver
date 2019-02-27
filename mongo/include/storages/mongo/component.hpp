@@ -36,7 +36,9 @@ namespace components {
 ///   "so_timeout_ms": 30000,
 ///   "min_pool_size": 32,
 ///   "max_pool_size": 256,
-///   "threads": "2"
+///   "max_pool_pending_requests": 5000,
+///   "queued_request_timeout_ms": 1000,
+///   "threads": "4"
 /// }
 /// ```
 /// You must specify one of `dbalias` or `dbconnection`.
@@ -49,8 +51,10 @@ namespace components {
 /// conn_timeout_ms | connection timeout (ms) | 5s
 /// so_timeout_ms | socket timeout (ms) | 30s
 /// min_pool_size | number of connections created initially | 32
-/// max_pool_size | limit of idle connections count | 256
-/// threads | size of backing thread pool | 2
+/// max_pool_size | limit for idle connections number | 256
+/// max_pool_pending_requests | limit for pending requests number, set to `0` to disable | 5000
+/// queued_request_timeout_ms | TTL for non-started request (ms), set to `0` to disable | 1000
+/// threads | size of backing thread pool | 4
 ///
 /// The limit for the total connections count is storages::mongo::PoolConfig::kCriticalSize.
 
@@ -58,8 +62,10 @@ namespace components {
 
 class Mongo : public LoggableComponentBase {
  public:
+  /// Default queued request TTL in milliseconds
+  static constexpr uint64_t kDefaultQueuedRequestTimeoutMs = 1000;
   /// Default thread pool size
-  static constexpr size_t kDefaultThreadsNum = 2;
+  static constexpr size_t kDefaultThreadsNum = 4;
 
   /// Component constructor
   Mongo(const ComponentConfig&, const ComponentContext&);
@@ -89,7 +95,9 @@ class Mongo : public LoggableComponentBase {
 ///   "so_timeout_ms": 30000,
 ///   "min_pool_size": 32,
 ///   "max_pool_size": 256,
-///   "threads": "2"
+///   "max_pool_pending_requests": 5000,
+///   "queued_request_timeout_ms": 1000,
+///   "threads": "8"
 /// }
 /// ```
 /// ## Available options:
@@ -98,8 +106,10 @@ class Mongo : public LoggableComponentBase {
 /// conn_timeout_ms | connection timeout (ms) | 5s
 /// so_timeout_ms | socket timeout (ms) | 30s
 /// min_pool_size | number of connections created initially (per database) | 32
-/// max_pool_size | limit of idle connections count (per database) | 256
-/// threads | size of backing thread pool (shared) | 4
+/// max_pool_size | limit for idle connections number (per database) | 256
+/// max_pool_pending_requests | limit for pending requests number, set to `0` to disable (per database) | 5000
+/// queued_request_timeout_ms | TTL for non-started request (ms), set to `0` to disable | 1000
+/// threads | size of backing thread pool (shared) | 8
 ///
 /// The limit for the connections count per database is storages::mongo::PoolConfig::kCriticalSize.
 
@@ -112,8 +122,10 @@ class MultiMongo : public LoggableComponentBase {
  public:
   static constexpr const char* kName = "multi-mongo";
 
+  /// Default queued request TTL in milliseconds
+  static constexpr int64_t kDefaultQueuedRequestTimeoutMs = 1000;
   /// Default shared thread pool size
-  static constexpr size_t kDefaultThreadsNum = 4;
+  static constexpr size_t kDefaultThreadsNum = 8;
 
   /// Component constructor
   MultiMongo(const ComponentConfig&, const ComponentContext&);

@@ -21,6 +21,8 @@ class PoolConfig {
   static constexpr size_t kDefaultMinSize = 32;
   /// Default idle connections limit
   static constexpr size_t kDefaultMaxSize = 256;
+  /// Default pending requests limit
+  static constexpr size_t kDefaultMaxPendingRequests = 5000;
   /// Overall connection limit (fixed)
   static constexpr size_t kCriticalSize = 1000;
 
@@ -35,6 +37,8 @@ class PoolConfig {
   const size_t min_size;
   /// Idle connections limit
   const size_t max_size;
+  /// Pending requests limis
+  const size_t max_pending_requests;
 };
 
 }  // namespace mongo

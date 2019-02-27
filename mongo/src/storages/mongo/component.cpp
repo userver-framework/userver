@@ -18,16 +18,27 @@ namespace {
 
 const std::string kThreadName = "mongo-worker";
 
+template <typename MongoComponent>
 auto MakeTaskProcessor(const ComponentConfig& config,
-                       const ComponentContext& context,
-                       size_t default_threads_num) {
-  const auto threads_num = config.ParseUint64("threads", default_threads_num);
+                       const ComponentContext& context) {
+  const auto threads_num =
+      config.ParseUint64("threads", MongoComponent::kDefaultThreadsNum);
   engine::TaskProcessorConfig task_processor_config;
   task_processor_config.thread_name = kThreadName;
   task_processor_config.worker_threads = threads_num;
-  return std::make_unique<engine::TaskProcessor>(
+  auto task_processor = std::make_unique<engine::TaskProcessor>(
       std::move(task_processor_config),
       context.GetManager().GetTaskProcessorPools());
+
+  engine::TaskProcessorSettings task_processor_settings;
+  task_processor_settings.wait_queue_time_limit = std::chrono::milliseconds{
+      config.ParseUint64("queued_request_timeout_ms",
+                         MongoComponent::kDefaultQueuedRequestTimeoutMs)};
+  task_processor_settings.overload_action =
+      engine::TaskProcessorSettings::OverloadAction::kCancel;
+  task_processor->SetSettings(std::move(task_processor_settings));
+
+  return task_processor;
 }
 
 std::string GetSecdistConnectionString(const Secdist& secdist,
@@ -60,7 +71,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
 
   storages::mongo::PoolConfig pool_config(config);
 
-  task_processor_ = MakeTaskProcessor(config, context, kDefaultThreadsNum);
+  task_processor_ = MakeTaskProcessor<Mongo>(config, context);
 
   pool_ = std::make_shared<storages::mongo::Pool>(
       connection_string, *task_processor_, pool_config);
@@ -75,7 +86,7 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
     : LoggableComponentBase(config, context),
       secdist_(context.FindComponent<Secdist>()),
       pool_config_(config),
-      task_processor_(MakeTaskProcessor(config, context, kDefaultThreadsNum)),
+      task_processor_(MakeTaskProcessor<MultiMongo>(config, context)),
       pool_map_ptr_(std::make_shared<PoolMap>()) {}
 
 MultiMongo::~MultiMongo() = default;

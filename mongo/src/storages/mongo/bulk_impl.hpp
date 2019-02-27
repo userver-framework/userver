@@ -29,9 +29,10 @@ class BulkOperationBuilderImpl
       mongocxx::write_concern wc = {}) {
     return engine::impl::Async(
         collection_->GetPool().GetTaskProcessor(),
-        [self = shared_from_this(), wc = std::move(wc)]()
+        [self = shared_from_this(),
+         wc = std::move(wc)](impl::PoolImpl::ConnectionToken&& token)
             -> boost::optional<mongocxx::result::bulk_write> {
-          auto conn = self->collection_->GetPool().Acquire();
+          auto conn = token.GetConnection();
           mongocxx::options::bulk_write options;
           options.ordered(false);
           options.write_concern(std::move(wc));
@@ -39,7 +40,8 @@ class BulkOperationBuilderImpl
               self->bulk_, options);
           if (!result) return boost::none;
           return std::move(*result);
-        });
+        },
+        collection_->GetPool().AcquireToken());
   }
 
  private:
