@@ -18,6 +18,9 @@ class BsonBuilder {
   explicit BsonBuilder(const ValueImpl&);
   ~BsonBuilder();
 
+  BsonBuilder(BsonBuilder&&) noexcept;
+  BsonBuilder& operator=(BsonBuilder&&) noexcept;
+
   BsonBuilder& Append(utils::string_view key, std::nullptr_t);
   BsonBuilder& Append(utils::string_view key, bool);
   BsonBuilder& Append(utils::string_view key, int32_t);
@@ -42,6 +45,9 @@ class BsonBuilder {
   BsonBuilder& Append(utils::string_view key, MaxKey);
 
   BsonBuilder& Append(utils::string_view key, const Value&);
+
+  const bson_t* Get() const;
+  bson_t* Get();
 
   BsonHolder Extract();
 

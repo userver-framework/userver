@@ -10,16 +10,20 @@
 using namespace formats::bson;
 using namespace storages::mongo_ng;
 
-TEST(Collection, SmokeTemp) {
-  RunInCoro([] {
-    Pool test_pool("collection_test",
-                   "mongodb://localhost:27217/collection_test",
-                   PoolConfig("userver_collection_test"));
+namespace {
+Pool MakeTestPool() {
+  return {"collection_test", "mongodb://localhost:27217/collection_test",
+          PoolConfig("userver_collection_test")};
+}
+}  // namespace
 
+TEST(Collection, Read) {
+  RunInCoro([] {
+    auto pool = MakeTestPool();
     static const auto kFilter = MakeDoc("x", 1);
 
     {
-      auto coll = test_pool.GetCollection("collection_test");
+      auto coll = pool.GetCollection("read");
 
       EXPECT_EQ(0, coll.CountApprox());
       EXPECT_EQ(0, coll.Count({}));
@@ -47,7 +51,7 @@ TEST(Collection, SmokeTemp) {
       EXPECT_EQ(2, coll.Count(kFilter));
       EXPECT_EQ(2, coll.Count(MakeDoc("x", MakeDoc("$gt", 1))));
 
-      auto other_coll = test_pool.GetCollection("other");
+      auto other_coll = pool.GetCollection("read_other");
       EXPECT_EQ(0, other_coll.CountApprox());
       EXPECT_EQ(0, other_coll.Count({}));
       EXPECT_EQ(0, other_coll.Count(kFilter));
@@ -83,7 +87,7 @@ TEST(Collection, SmokeTemp) {
       }
     }
 
-    EXPECT_EQ(4, test_pool.GetCollection("collection_test").CountApprox());
-    EXPECT_EQ(0, test_pool.GetCollection("even_more_other").CountApprox());
+    EXPECT_EQ(4, pool.GetCollection("read").CountApprox());
+    EXPECT_EQ(0, pool.GetCollection("read_other").CountApprox());
   });
 }

@@ -273,3 +273,22 @@ TEST(BsonValueBuilder, UnsetFieldsAreSkipped) {
   EXPECT_TRUE(val.HasMember("set"));
   EXPECT_FALSE(val.HasMember("unset"));
 }
+
+TEST(BsonValueBuilder, PredefType) {
+  {
+    fb::ValueBuilder doc_builder(fb::ValueBuilder::Type::kDocument);
+    EXPECT_EQ(0, doc_builder.GetSize());
+    EXPECT_THROW(doc_builder.Resize(0), fb::TypeMismatchException);
+    EXPECT_NO_THROW(doc_builder["a"] = 1);
+    EXPECT_NO_THROW(fb::Document(doc_builder.ExtractValue()));
+  }
+
+  {
+    fb::ValueBuilder arr_builder(fb::ValueBuilder::Type::kArray);
+    EXPECT_EQ(0, arr_builder.GetSize());
+    EXPECT_THROW(arr_builder["a"], fb::TypeMismatchException);
+    EXPECT_NO_THROW(arr_builder.PushBack(1));
+    EXPECT_THROW(fb::Document(arr_builder.ExtractValue()),
+                 fb::TypeMismatchException);
+  }
+}

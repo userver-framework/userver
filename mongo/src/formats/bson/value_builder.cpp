@@ -3,12 +3,19 @@
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <formats/bson/value_impl.hpp>
+#include <formats/bson/wrappers.hpp>
 #include <utils/assert.hpp>
 
 namespace formats::bson {
 
 ValueBuilder::ValueBuilder()
     : impl_(std::make_shared<impl::ValueImpl>(nullptr)) {}
+
+ValueBuilder::ValueBuilder(ValueBuilder::Type type)
+    : impl_(std::make_shared<impl::ValueImpl>(
+          impl::MutableBson().Extract(),
+          type == Type::kDocument ? impl::ValueImpl::DocumentKind::kDocument
+                                  : impl::ValueImpl::DocumentKind::kArray)) {}
 
 ValueBuilder::ValueBuilder(impl::ValueImplPtr impl) : impl_(std::move(impl)) {}
 

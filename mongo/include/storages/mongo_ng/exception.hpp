@@ -31,4 +31,16 @@ class InvalidConfigException : public PoolException {
   using PoolException::PoolException;
 };
 
+/// Generic query error
+class QueryException : public MongoException {
+ public:
+  using MongoException::MongoException;
+};
+
+/// Query option validation error
+class InvalidQueryOptionException : public QueryException {
+ public:
+  using QueryException::QueryException;
+};
+
 }  // namespace storages::mongo_ng

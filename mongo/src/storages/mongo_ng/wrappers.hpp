@@ -49,6 +49,14 @@ struct DatabaseDeleter {
 };
 using DatabasePtr = std::unique_ptr<mongoc_database_t, DatabaseDeleter>;
 
+struct ReadConcernDeleter {
+  void operator()(mongoc_read_concern_t* read_concern) const noexcept {
+    mongoc_read_concern_destroy(read_concern);
+  }
+};
+using ReadConcernPtr =
+    std::unique_ptr<mongoc_read_concern_t, ReadConcernDeleter>;
+
 struct ReadPrefsDeleter {
   void operator()(mongoc_read_prefs_t* read_prefs) const noexcept {
     mongoc_read_prefs_destroy(read_prefs);

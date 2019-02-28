@@ -24,6 +24,7 @@ class MutableBson {
 
   MutableBson(const bson_t* bson) : bson_(bson_copy(bson)) {}
 
+  const bson_t* Get() const { return bson_.get(); }
   bson_t* Get() { return bson_.get(); }
 
   BsonHolder Extract() { return BsonHolder(std::move(bson_)); }

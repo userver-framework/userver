@@ -19,8 +19,14 @@ class ValueBuilder {
  public:
   using iterator = Iterator<ValueBuilder>;
 
-  /// Constructs a `null` value
+  /// Value types that can be preset
+  enum class Type { kDocument, kArray };
+
+  /// Constructs a `null` value (may be used as either document or array)
   ValueBuilder();
+
+  /// Constructs a value with the predefined type
+  explicit ValueBuilder(Type);
 
   /// @cond
   /// Constructor from implementation, internal use only

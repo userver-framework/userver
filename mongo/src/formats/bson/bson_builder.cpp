@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 #include <bson/bson.h>
-#include <boost/numeric/conversion/cast.hpp>
 
 #include <formats/bson/exception.hpp>
 #include <formats/bson/value_impl.hpp>
@@ -46,6 +45,8 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
 }
 
 BsonBuilder::~BsonBuilder() = default;
+BsonBuilder::BsonBuilder(BsonBuilder&&) noexcept = default;
+BsonBuilder& BsonBuilder::operator=(BsonBuilder&&) noexcept = default;
 
 BsonBuilder& BsonBuilder::Append(utils::string_view key, std::nullptr_t) {
   bson_append_null(bson_->Get(), key.data(), key.size());
@@ -68,7 +69,11 @@ BsonBuilder& BsonBuilder::Append(utils::string_view key, int64_t value) {
 }
 
 BsonBuilder& BsonBuilder::Append(utils::string_view key, uint64_t value) {
-  return Append(key, boost::numeric_cast<int64_t>(value));
+  if (value > std::numeric_limits<int64_t>::max()) {
+    throw BsonException("The value ")
+        << value << " of '" << key << "' is too high for BSON";
+  }
+  return Append(key, static_cast<int64_t>(value));
 }
 
 #ifdef _LIBCPP_VERSION
@@ -195,6 +200,9 @@ void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
   boost::apply_visitor(Visitor(*this, dest, std::move(key), &value.bson_value_),
                        value.parsed_value_);
 }
+
+const bson_t* BsonBuilder::Get() const { return bson_->Get(); }
+bson_t* BsonBuilder::Get() { return bson_->Get(); }
 
 BsonHolder BsonBuilder::Extract() { return bson_->Extract(); }
 
