@@ -91,6 +91,7 @@
 //@{
 /** @name Data types */
 #include <storages/postgres/io/boost_multiprecision.hpp>
+#include <storages/postgres/io/bytea.hpp>
 #include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/io/enum_types.hpp>
 #include <storages/postgres/io/floating_point_types.hpp>

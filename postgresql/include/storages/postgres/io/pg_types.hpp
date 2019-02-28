@@ -222,6 +222,7 @@ enum class PredefinedOids {
   kInet = 869,
   kCidr = 650,
   kBooleanArray = 1000,  // Not in documentation
+  kByteaArray = 1001,    // Not in documentation
   kCharArray = 1002,     // Not in documentation
   kNameArray = 1003,     // Not in documentation
   kInt2Array = 1005,
@@ -297,7 +298,10 @@ struct ArrayType : PredefinedOid<PredefinedOids::kInvalid> {};
 
 template <>
 struct ArrayType<PredefinedOids::kBoolean>
-    : PredefinedOid<PredefinedOids::kBoolean> {};
+    : PredefinedOid<PredefinedOids::kBooleanArray> {};
+template <>
+struct ArrayType<PredefinedOids::kBytea>
+    : PredefinedOid<PredefinedOids::kByteaArray> {};
 template <>
 struct ArrayType<PredefinedOids::kChar>
     : PredefinedOid<PredefinedOids::kCharArray> {};
