@@ -1,10 +1,8 @@
 #include "simple_server.hpp"
 
-#include <vector>
-
 #include <engine/async.hpp>
 #include <engine/io/socket.hpp>
-#include <engine/mutex.hpp>
+#include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 
@@ -16,11 +14,11 @@ namespace {
 
 class Client {
  public:
-  static void Run(engine::io::Socket socket, SimpleServer::OnRequest& f);
+  static void Run(engine::io::Socket socket, SimpleServer::OnRequest f);
 
  private:
-  Client(engine::io::Socket socket, SimpleServer::OnRequest& f)
-      : socket_{std::move(socket)}, callback_{f} {}
+  Client(engine::io::Socket socket, SimpleServer::OnRequest f)
+      : socket_{std::move(socket)}, callback_{std::move(f)} {}
 
   bool NeedsMoreReading() const {
     return (resp_.command == SimpleServer::Response::kTryReadMore);
@@ -39,15 +37,15 @@ class Client {
   static constexpr std::size_t kReadBufferChunkSize = 1024 * 1024 * 1;
 
   engine::io::Socket socket_;
-  SimpleServer::OnRequest& callback_;
+  SimpleServer::OnRequest callback_;
 
   SimpleServer::Request incomming_data_{};
   std::size_t previously_received_{0};
   SimpleServer::Response resp_{};
 };
 
-void Client::Run(engine::io::Socket socket, SimpleServer::OnRequest& f) {
-  Client c{std::move(socket), f};
+void Client::Run(engine::io::Socket socket, SimpleServer::OnRequest f) {
+  Client c{std::move(socket), std::move(f)};
   do {
     c.StartNewRequest();
     do {
@@ -86,13 +84,7 @@ class SimpleServer::Impl {
   Impl(Ports ports, OnRequest f, Protocol protocol);
 
  private:
-  void PushTask(engine::Task&& task);
-
   OnRequest callback_;
-
-  using Tasks = std::vector<engine::Task>;
-  engine::Mutex task_mutex_;
-  Tasks tasks_;
 
   static engine::io::Addr MakeLoopbackAddress(unsigned short port, Protocol p);
   void StartPortListening(unsigned short port, Protocol protocol);
@@ -109,11 +101,6 @@ SimpleServer::Impl::Impl(Ports ports, OnRequest f, Protocol protocol)
   for (auto port : ports) {
     StartPortListening(port, protocol);
   }
-}
-
-void SimpleServer::Impl::PushTask(engine::Task&& task) {
-  std::lock_guard<engine::Mutex> lock{task_mutex_};
-  tasks_.emplace_back(std::move(task));
 }
 
 engine::io::Addr SimpleServer::Impl::MakeLoopbackAddress(unsigned short port,
@@ -146,18 +133,20 @@ void SimpleServer::Impl::StartPortListening(unsigned short port,
   // started listing yet and someone is already connecting...
   auto acceptor = engine::io::Listen(addr);
 
-  PushTask(
-      engine::impl::Async([this, acceptor = std::move(acceptor)]() mutable {
+  engine::impl::Async(
+      [cb = callback_, acceptor = std::move(acceptor)]() mutable {
         while (!engine::current_task::IsCancelRequested()) {
           auto socket = acceptor.Accept({});
 
           LOG_INFO() << "SimpleServer accepted socket";
 
-          PushTask(engine::impl::Async([this, s = std::move(socket)]() mutable {
-            Client::Run(std::move(s), this->callback_);
-          }));
+          engine::impl::Async([cb = cb, s = std::move(socket)]() mutable {
+            Client::Run(std::move(s), cb);
+          })
+              .Detach();
         }
-      }));
+      })
+      .Detach();
 }
 
 SimpleServer::SimpleServer(Ports ports, OnRequest callback, Protocol p)
