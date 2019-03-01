@@ -53,14 +53,14 @@ append_debian_depends("libboost-thread-dev")
 append_debian_depends("libcctz-dev")
 
 find_package_required(LibEv "libev-dev")
-find_package(ZLIB REQUIRED)
+find_package_required(ZLIB "zlib1g-dev")
 find_package(ExternalProjectGTest REQUIRED)
 find_package(ExternalProjectGBench REQUIRED)
 find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev libnghttp2-dev libgcrypt11-dev libkrb5-dev")
-find_package(CryptoPP REQUIRED)
+find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(YamlCpp "libyaml-cpp-dev")
-find_package_required(OpenSSL "libcrypto++-dev")
+find_package_required(OpenSSL "libssl-dev")
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)
