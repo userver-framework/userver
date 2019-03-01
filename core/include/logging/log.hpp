@@ -174,8 +174,10 @@ void LogFlush();
 /// @brief Builds a stream and evaluates a message for the default logger
 /// if lvl matches the verbosity, otherwise the message is not evaluated
 /// @hideinitializer
-#define LOG_TO(logger, lvl)      \
-  if (::logging::ShouldLog(lvl)) \
+#define LOG_TO(logger, lvl)                                                   \
+  for (bool logging_internal_should_log_variable = ::logging::ShouldLog(lvl); \
+       logging_internal_should_log_variable;                                  \
+       logging_internal_should_log_variable = false)                          \
   ::logging::LogHelper(logger, lvl, FILENAME, __LINE__, __func__).AsLvalue()
 
 #define LOG(lvl) LOG_TO(::logging::DefaultLogger(), lvl)

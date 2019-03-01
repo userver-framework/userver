@@ -135,3 +135,10 @@ TEST_F(LoggingTest, AttachedException) {
   EXPECT_NE(std::string::npos, sstream.str().find("\tstacktrace="))
       << "traceful exception missing its trace";
 }
+
+TEST_F(LoggingTest, IfExpressionWithoutBraces) {
+  if (true)
+    LOG(::logging::Level::kNone) << "test";
+  else
+    FAIL() << "Logging affected the else statement";
+}
