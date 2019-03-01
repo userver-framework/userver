@@ -16,7 +16,10 @@ const std::string kIoThreadName = "curl";
 }  // namespace
 
 std::shared_ptr<Client> Client::Create(size_t io_threads) {
-  return std::make_shared<Client>(io_threads);
+  struct EmplaceEnabler : public Client {
+    EmplaceEnabler(size_t io_threads) : Client(io_threads) {}
+  };
+  return std::make_shared<EmplaceEnabler>(io_threads);
 }
 
 Client::Client(size_t io_threads) {
@@ -26,18 +29,32 @@ Client::Client(size_t io_threads) {
   thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
 
   for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
-    multis_.push_back(std::make_shared<curl::multi>(*thread_control_ptr));
+    multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr));
   }
 }
 
-Client::~Client() { Stop(); }
+Client::~Client() {
+  {
+    std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
+    while (!idle_easy_queue_.empty()) idle_easy_queue_.pop();
+  }
 
-void Client::Stop() {
-  // TODO: UASSERT(no pending requests)
-  std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
-  while (!idle_easy_queue_.empty()) idle_easy_queue_.pop();
+  // We have to destroy *this only when all the requests are finished, because
+  // otherwise `multis_` and `thread_pool_` are destroyed and pending requests
+  // cause UB (e.g. segfault).
+  //
+  // We can not refcount *this in `EasyWrapper` because that leads to
+  // destruction of `thread_pool_` in the thread of the thread pool (that's an
+  // UB).
+  //
+  // Best solution so far: track the pending tasks and wait for them to drop to
+  // zero.
+  while (pending_tasks_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
 
   multis_.clear();
+  thread_pool_.reset();
 }
 
 std::shared_ptr<Request> Client::CreateRequest() {
@@ -48,8 +65,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
       idle_easy_queue_.pop();
       lock.unlock();
 
-      auto wrapper = std::make_shared<EasyWrapper>(easy, shared_from_this());
-      return std::make_shared<Request>(wrapper);
+      auto wrapper = std::make_shared<EasyWrapper>(std::move(easy), *this);
+      return std::make_shared<Request>(std::move(wrapper));
     }
   }
 
@@ -57,8 +74,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
   int i = rand_r(&rand_state) % multis_.size();
   auto& multi = multis_[i];
   auto wrapper = std::make_shared<EasyWrapper>(
-      std::make_shared<curl::easy>(*multi), shared_from_this());
-  return std::make_shared<Request>(wrapper);
+      std::make_unique<curl::easy>(*multi), *this);
+  return std::make_shared<Request>(std::move(wrapper));
 }
 
 void Client::SetMaxPipelineLength(size_t max_pipeline_length) {
@@ -92,10 +109,16 @@ void Client::SetConnectionPoolSize(size_t connection_pool_size) {
   }
 }
 
-void Client::PushIdleEasy(std::shared_ptr<curl::easy> /*easy*/) {
+void Client::PushIdleEasy(std::unique_ptr<curl::easy> /*easy*/) noexcept {
   // FIXME: https://st.yandex-team.ru/TAXICOMMON-282
+  // try {
   //  std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
   //  idle_easy_queue_.push(std::move(easy));
+  // } catch (const std::exception& e) {
+  //   LOG_ERROR() << e.what();
+  // }
+
+  DecPending();
 }
 
 }  // namespace http

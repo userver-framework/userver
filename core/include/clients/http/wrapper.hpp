@@ -13,15 +13,20 @@ class Client;
 
 class EasyWrapper {
  public:
-  EasyWrapper(std::shared_ptr<curl::easy> easy, std::weak_ptr<Client> client);
+  EasyWrapper(std::unique_ptr<curl::easy> easy, Client& client);
+
+  EasyWrapper(const EasyWrapper&) = delete;
+  EasyWrapper(EasyWrapper&&) = delete;
+  EasyWrapper& operator=(const EasyWrapper&) = delete;
+  EasyWrapper& operator=(EasyWrapper&&) = delete;
 
   ~EasyWrapper();
 
   curl::easy& Easy();
 
  private:
-  std::shared_ptr<curl::easy> easy_;
-  std::weak_ptr<Client> client_;
+  std::unique_ptr<curl::easy> easy_;
+  Client& client_;
 };
 
 }  // namespace http

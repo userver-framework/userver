@@ -13,7 +13,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   const auto& http_config = config->Get<clients::http::Config>();
   size_t threads = http_config.threads;
 
-  http_client_ = std::make_unique<clients::http::Client>(threads);
+  http_client_ = clients::http::Client::Create(threads);
 
   OnConfigUpdate(config);
 
