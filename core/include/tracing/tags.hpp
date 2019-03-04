@@ -15,6 +15,7 @@ namespace tracing {
 
 extern const std::string kType;
 extern const std::string kHttpUrl;
+extern const std::string kHttpMetaType;
 extern const std::string kHttpMethod;
 extern const std::string kHttpStatusCode;
 extern const std::string kErrorFlag;
