@@ -88,6 +88,9 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
   /// @note This is a soft limit and may be slightly overrun under load.
   void SetMaxLength(size_t length);
 
+  /// @brief Gets the limit on the queue size
+  size_t GetMaxLength() const;
+
   size_t Size() const;
 
  private:
@@ -175,6 +178,11 @@ void SpscQueue<T>::SetMaxLength(size_t length) {
   max_length_ = length;
   // It might result in a spurious wakeup, but it is race-free.
   nonfull_event_.Send();
+}
+
+template <typename T>
+size_t SpscQueue<T>::GetMaxLength() const {
+  return max_length_;
 }
 
 template <typename T>
@@ -337,6 +345,8 @@ class SpscQueue<std::unique_ptr<T>> final {
 
   size_t Size() const { return impl_->Size(); }
   void SetMaxLength(size_t length) { impl_->SetMaxLength(length); }
+
+  size_t GetMaxLength() const { return impl_->GetMaxLength(); }
 
  private:
   std::shared_ptr<SpscQueue<T*>> impl_;
