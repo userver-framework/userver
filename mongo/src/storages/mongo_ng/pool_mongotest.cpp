@@ -41,6 +41,6 @@ TEST(Pool, ConnectionFailure) {
   RunInCoro([] {
     // constructor should not throw
     Pool badPool("bad", "mongodb://%2Fnonexistent.sock/bad", kPoolConfig);
-    EXPECT_THROW(badPool.HasCollection("test"), PoolException);
+    EXPECT_THROW(badPool.HasCollection("test"), ClusterUnavailableException);
   });
 }

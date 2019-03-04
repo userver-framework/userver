@@ -51,7 +51,7 @@ Projection& Projection::Slice(const std::string& field, int32_t limit,
     slice[kSliceOp] = limit;
   } else {
     if (limit < 0) {
-      throw InvalidQueryOptionException("Cannot use negative slice limit ")
+      throw InvalidQueryArgumentException("Cannot use negative slice limit ")
           << limit << " with nonzero skip " << skip << " in projection";
     }
     slice[kSliceOp].PushBack(skip);
@@ -102,7 +102,8 @@ const formats::bson::Value& Hint::Value() const { return value_; }
 
 Comment::Comment(std::string value) : value_(std::move(value)) {
   if (!utils::text::IsUtf8(value_)) {
-    throw InvalidQueryOptionException("Provided comment is not a valid UTF-8");
+    throw InvalidQueryArgumentException(
+        "Provided comment is not a valid UTF-8");
   }
 }
 

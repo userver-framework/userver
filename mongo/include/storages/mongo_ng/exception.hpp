@@ -13,22 +13,33 @@ class MongoException : public utils::TracefulException {
   using utils::TracefulException::TracefulException;
 };
 
-/// Client pool error
-class PoolException : public MongoException {
- public:
-  explicit PoolException(std::string pool_id)
-      : MongoException("in pool '" + pool_id + "': "),
-        pool_id_(std::move(pool_id)) {}
-
-  const std::string& PoolId() const { return pool_id_; }
-
- private:
-  std::string pool_id_;
+/// Config validation error
+class InvalidConfigException : public MongoException {
+  using MongoException::MongoException;
 };
 
-/// Config validation error
-class InvalidConfigException : public PoolException {
-  using PoolException::PoolException;
+/// Network (connectivity) error
+class NetworkException : public MongoException {
+ public:
+  using MongoException::MongoException;
+};
+
+/// No server available to satisfy request constraints
+class ClusterUnavailableException : public MongoException {
+ public:
+  using MongoException::MongoException;
+};
+
+/// Incompatible server version
+class IncompatibleServerException : public MongoException {
+ public:
+  using MongoException::MongoException;
+};
+
+/// Authentication error
+class AuthenticationException : public MongoException {
+ public:
+  using MongoException::MongoException;
 };
 
 /// Generic query error
@@ -37,10 +48,36 @@ class QueryException : public MongoException {
   using MongoException::MongoException;
 };
 
-/// Query option validation error
-class InvalidQueryOptionException : public QueryException {
+/// Query argument validation error
+class InvalidQueryArgumentException : public QueryException {
  public:
   using QueryException::QueryException;
+};
+
+/// Server-side error
+class ServerException : public QueryException {
+ public:
+  explicit ServerException(int code) : code_(code) {}
+
+  ServerException(int code, std::string message)
+      : QueryException(std::move(message)), code_(code) {}
+
+  int Code() const { return code_; }
+
+ private:
+  int code_;
+};
+
+/// Write concern error
+class WriteConcernException : public ServerException {
+ public:
+  using ServerException::ServerException;
+};
+
+/// Duplicate key error
+class DuplicateKeyException : public ServerException {
+ public:
+  using ServerException::ServerException;
 };
 
 }  // namespace storages::mongo_ng

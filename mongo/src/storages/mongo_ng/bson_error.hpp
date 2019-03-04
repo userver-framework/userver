@@ -16,7 +16,7 @@ class BsonError {
   bson_error_t* Get() { return &value_; }
 
   /// Unconditionally throws specialized MongoException based on value
-  void Throw() const;
+  [[noreturn]] void Throw(std::string context) const;
 
  private:
   bson_error_t value_;

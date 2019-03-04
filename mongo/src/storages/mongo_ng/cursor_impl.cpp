@@ -50,7 +50,9 @@ void CursorImpl::Next() {
     cursor_.reset();
     client_.reset();
   }
-  if (error) error.Throw();
+  if (error) {
+    error.Throw("Error iterating over query results");
+  }
 }
 
 }  // namespace storages::mongo_ng::impl

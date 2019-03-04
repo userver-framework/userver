@@ -24,7 +24,7 @@ void Collection::InsertOne(const formats::bson::Document& document) {
   impl::BsonError error;
   if (!mongoc_collection_insert_one(collection.get(), document.GetBson().get(),
                                     nullptr, nullptr, error.Get())) {
-    error.Throw();
+    error.Throw("Error inserting document");
   }
 }
 
@@ -36,7 +36,9 @@ size_t Collection::Execute(const operations::Count& count_op) const {
       collection.get(), count_op.impl_->filter.GetBson().get(),
       GetNative(count_op.impl_->options), count_op.impl_->read_prefs.get(),
       nullptr, error.Get());
-  if (count < 0) error.Throw();
+  if (count < 0) {
+    error.Throw("Error counting documents");
+  }
   return count;
 }
 
@@ -48,7 +50,9 @@ size_t Collection::Execute(
   auto count = mongoc_collection_estimated_document_count(
       collection.get(), GetNative(count_approx_op.impl_->options),
       count_approx_op.impl_->read_prefs.get(), nullptr, error.Get());
-  if (count < 0) error.Throw();
+  if (count < 0) {
+    error.Throw("Error counting documents");
+  }
   return count;
 }
 

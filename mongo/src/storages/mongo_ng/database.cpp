@@ -28,7 +28,9 @@ bool Database::HasCollection(const std::string& collection_name) const {
   BsonError error;
   bool has_collection = mongoc_database_has_collection(
       database.get(), collection_name.c_str(), error.Get());
-  if (error) error.Throw();
+  if (error) {
+    error.Throw("Error checking for collection existence");
+  }
   return has_collection;
 }
 

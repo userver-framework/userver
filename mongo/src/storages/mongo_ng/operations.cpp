@@ -63,7 +63,8 @@ impl::ReadPrefsPtr MakeReadPrefs(const options::ReadPreference& option) {
     mongoc_read_prefs_add_tag(read_prefs.get(), tag.GetBson().get());
   }
   if (!mongoc_read_prefs_is_valid(read_prefs.get())) {
-    throw InvalidQueryOptionException("provided read preference is not valid");
+    throw InvalidQueryArgumentException(
+        "Provided read preference is not valid");
   }
   return read_prefs;
 }
@@ -84,8 +85,8 @@ void AppendReadConcern(formats::bson::impl::BsonBuilder& builder,
 void AppendUint64Option(formats::bson::impl::BsonBuilder& builder,
                         const std::string& name, uint64_t value) {
   if (value > std::numeric_limits<int64_t>::max()) {
-    throw InvalidQueryOptionException(name)
-        << " value of " << value << " is too high";
+    throw InvalidQueryArgumentException("Value")
+        << value << " of '" << name << "' is too high";
   }
   builder.Append(name, value);
 }

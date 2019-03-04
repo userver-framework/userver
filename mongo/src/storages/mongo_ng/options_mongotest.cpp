@@ -30,7 +30,7 @@ TEST(Options, ReadPreference) {
     EXPECT_THROW(coll.Count({}, options::ReadPreference(
                                     options::ReadPreference::kPrimary)
                                     .AddTag(MakeDoc("sometag", 1))),
-                 InvalidQueryOptionException);
+                 InvalidQueryArgumentException);
   });
 }
 
@@ -85,9 +85,9 @@ TEST(Options, SkipLimit) {
     }
 
     EXPECT_THROW(coll.CountApprox(options::Skip{static_cast<size_t>(-1)}),
-                 InvalidQueryOptionException);
+                 InvalidQueryArgumentException);
     EXPECT_THROW(coll.CountApprox(options::Limit{static_cast<size_t>(-1)}),
-                 InvalidQueryOptionException);
+                 InvalidQueryArgumentException);
   });
 }
 
@@ -164,7 +164,7 @@ TEST(Options, Projection) {
       EXPECT_EQ(3, (*doc)["arr"][0].As<int>());
     }
     EXPECT_THROW(coll.FindOne({}, options::Projection{}.Slice("arr", -1, 2)),
-                 InvalidQueryOptionException);
+                 InvalidQueryArgumentException);
     {
       auto doc = coll.FindOne({}, options::Projection{"a"}.Slice("arr", 2, -3));
       ASSERT_TRUE(doc);
