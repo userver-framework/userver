@@ -31,6 +31,7 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   conn["active"] = stats.connection.active;
   conn["busy"] = stats.connection.used;
   conn["max"] = stats.connection.maximum;
+  conn["waiting"] = stats.connection.waiting;
 
   auto trx = instance["transactions"];
   trx["total"] = stats.transaction.total;
@@ -49,6 +50,10 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
       stats.transaction.wait_end_percentile);
   timing["return-to-pool"]["1min"] = utils::statistics::PercentileToJson(
       stats.transaction.return_to_pool_percentile);
+  timing["connect"]["1min"] =
+      utils::statistics::PercentileToJson(stats.connection_percentile);
+  timing["acquire-connection"]["1min"] =
+      utils::statistics::PercentileToJson(stats.acquire_percentile);
 
   auto query = instance["queries"];
   query["parsed"] = stats.transaction.parse_total;
@@ -58,8 +63,10 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
 
   auto errors = instance["errors"];
   errors["query-exec"] = stats.transaction.error_execute_total;
+  errors["query-timeout"] = stats.transaction.execute_timeout;
   errors["connection"] = stats.connection.error_total;
   errors["pool"] = stats.pool_error_exhaust_total;
+  errors["connection-timeout"] = stats.connection.error_timeout;
 
   return instance;
 }

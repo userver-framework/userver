@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <engine/deadline.hpp>
+
 #include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
@@ -42,14 +44,15 @@ class ConnectionPool {
   /// connection.
   /// Suspends coroutine until a connection is available
   /// TODO Remove from interface
-  detail::ConnectionPtr GetConnection();
+  detail::ConnectionPtr GetConnection(engine::Deadline);
 
   const InstanceStatistics& GetStatistics() const;
 
   [[nodiscard]] Transaction Begin(const TransactionOptions&,
+                                  engine::Deadline deadline,
                                   OptionalCommandControl = {});
 
-  [[nodiscard]] detail::NonTransaction Start();
+  [[nodiscard]] detail::NonTransaction Start(engine::Deadline deadline);
 
   void SetDefaultCommandControl(CommandControl);
 

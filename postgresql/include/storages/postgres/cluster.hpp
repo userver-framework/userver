@@ -124,9 +124,10 @@ class Cluster {
   //@}
 
   void SetDefaultCommandControl(CommandControl);
+  SharedCommandControl GetDefaultCommandControl() const;
 
  private:
-  detail::NonTransaction Start(ClusterHostType ht);
+  detail::NonTransaction Start(ClusterHostType ht, engine::Deadline deadline);
 
  private:
   friend class components::Postgres;
@@ -138,14 +139,17 @@ class Cluster {
 template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostType ht, const std::string& statement,
                            Args&&... args) {
-  auto ntrx = Start(ht);
+  auto deadline =
+      engine::Deadline::FromDuration(GetDefaultCommandControl()->network);
+  auto ntrx = Start(ht, deadline);
   return ntrx.Execute(statement, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostType ht, CommandControl statement_cmd_ctl,
                            const std::string& statement, Args&&... args) {
-  auto ntrx = Start(ht);
+  auto deadline = engine::Deadline::FromDuration(statement_cmd_ctl.network);
+  auto ntrx = Start(ht, deadline);
   return ntrx.Execute(std::move(statement_cmd_ctl), statement,
                       std::forward<Args>(args)...);
 }

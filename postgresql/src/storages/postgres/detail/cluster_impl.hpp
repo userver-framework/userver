@@ -30,13 +30,17 @@ class ClusterImpl {
   ClusterStatistics GetStatistics() const;
 
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options,
-                    OptionalCommandControl = {});
+                    engine::Deadline deadline, OptionalCommandControl = {});
 
-  NonTransaction Start(ClusterHostType ht);
+  NonTransaction Start(ClusterHostType ht, engine::Deadline deadline);
 
   // The task returned MUST NOT outlive the ClusterImpl object
   engine::TaskWithResult<void> DiscoverTopology();
+
   void SetDefaultCommandControl(CommandControl);
+  SharedCommandControl GetDefaultCommandControl() const {
+    return default_cmd_ctl_.Get();
+  }
 
  private:
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;

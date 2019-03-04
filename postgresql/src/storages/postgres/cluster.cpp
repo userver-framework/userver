@@ -28,11 +28,16 @@ Transaction Cluster::Begin(const TransactionOptions& options,
 Transaction Cluster::Begin(ClusterHostType ht,
                            const TransactionOptions& options,
                            OptionalCommandControl cmd_ctl) {
-  return pimpl_->Begin(ht, options, cmd_ctl);
+  TimeoutType timeout = cmd_ctl.is_initialized()
+                            ? cmd_ctl->network
+                            : GetDefaultCommandControl()->network;
+  auto deadline = engine::Deadline::FromDuration(timeout);
+  return pimpl_->Begin(ht, options, deadline, cmd_ctl);
 }
 
-detail::NonTransaction Cluster::Start(ClusterHostType ht) {
-  return pimpl_->Start(ht);
+detail::NonTransaction Cluster::Start(ClusterHostType ht,
+                                      engine::Deadline deadline) {
+  return pimpl_->Start(ht, deadline);
 }
 
 engine::TaskWithResult<void> Cluster::DiscoverTopology() {
@@ -41,6 +46,10 @@ engine::TaskWithResult<void> Cluster::DiscoverTopology() {
 
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl);
+}
+
+SharedCommandControl Cluster::GetDefaultCommandControl() const {
+  return pimpl_->GetDefaultCommandControl();
 }
 
 }  // namespace postgres

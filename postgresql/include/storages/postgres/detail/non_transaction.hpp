@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <engine/deadline.hpp>
+
 #include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/detail/time_types.hpp>
@@ -14,9 +16,9 @@ namespace storages::postgres::detail {
 
 class NonTransaction {
  public:
-  explicit NonTransaction(detail::ConnectionPtr&& impl,
-                          detail::SteadyClock::time_point&& start_time =
-                              detail::SteadyClock::now());
+  explicit NonTransaction(
+      ConnectionPtr&& impl, engine::Deadline deadline,
+      SteadyClock::time_point start_time = detail::SteadyClock::now());
 
   NonTransaction(NonTransaction&&) noexcept;
   NonTransaction& operator=(NonTransaction&&);
@@ -59,6 +61,7 @@ class NonTransaction {
 
  private:
   detail::ConnectionPtr conn_;
+  engine::Deadline deadline_;
 };
 
 }  // namespace storages::postgres::detail

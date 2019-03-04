@@ -97,7 +97,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
       auto task = engine::impl::Async([&pool] {
         pg::detail::ConnectionPtr conn;
 
-        EXPECT_NO_THROW(conn = pool.GetConnection())
+        EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
             << "Obtained connection from pool";
         ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
@@ -151,7 +151,7 @@ TEST_P(PostgrePoolStats, ConnUsed) {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
-    EXPECT_NO_THROW(conn = pool.GetConnection())
+    EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
 
     const auto& stats = pool.GetStatistics();

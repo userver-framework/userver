@@ -145,10 +145,10 @@ engine::Task PGConnectionWrapper::Cancel() {
 }
 
 void PGConnectionWrapper::AsyncConnect(const std::string& conninfo,
-                                       Duration poll_timeout) {
+                                       Deadline deadline) {
   PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(conninfo);
   StartAsyncConnect(conninfo);
-  WaitConnectionFinish(Deadline::FromDuration(poll_timeout));
+  WaitConnectionFinish(deadline);
   PGCW_LOG_DEBUG() << "Connected to " << DsnCutPassword(conninfo);
 }
 
@@ -206,19 +206,24 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
 
 void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline) {
   auto poll_res = PGRES_POLLING_WRITING;
+  auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+      deadline.TimeLeft());
   while (poll_res != PGRES_POLLING_OK) {
     switch (poll_res) {
       case PGRES_POLLING_READING:
         if (!WaitSocketReadable(deadline)) {
-          PGCW_LOG_ERROR()
-              << "Timeout while polling PostgreSQL connection socket";
+          PGCW_LOG_ERROR() << "Timeout while polling PostgreSQL connection "
+                              "socket, timeout was "
+                           << timeout.count() << "ms";
           throw ConnectionTimeoutError("Timed out while polling connection");
         }
         break;
       case PGRES_POLLING_WRITING:
         if (!WaitSocketWriteable(deadline)) {
-          PGCW_LOG_ERROR()
-              << "Timeout while polling PostgreSQL connection socket";
+          PGCW_LOG_ERROR() << "Timeout while polling PostgreSQL connection "
+                              "socket, timeout was "
+                           << timeout.count() << "ms";
+          ;
           throw ConnectionTimeoutError("Timed out while polling connection");
         }
         break;

@@ -213,6 +213,7 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostType ht) {
 
 Transaction ClusterImpl::Begin(ClusterHostType ht,
                                const TransactionOptions& options,
+                               engine::Deadline deadline,
                                OptionalCommandControl cmd_ctl) {
   LOG_TRACE() << "Requested transaction on the host of " << ht << " type";
   auto host_type = ht;
@@ -230,14 +231,15 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
 
   auto pool = FindPool(host_type);
   try {
-    return pool->Begin(options, cmd_ctl);
+    return pool->Begin(options, deadline, cmd_ctl);
   } catch (const ConnectionError&) {
     topology_->OperationFailed(pool->GetDsn());
     throw;
   }
 }
 
-NonTransaction ClusterImpl::Start(ClusterHostType host_type) {
+NonTransaction ClusterImpl::Start(ClusterHostType host_type,
+                                  engine::Deadline deadline) {
   if (host_type == ClusterHostType::kAny) {
     throw LogicError("Cannot use any host for execution of a single statement");
   }
@@ -245,7 +247,7 @@ NonTransaction ClusterImpl::Start(ClusterHostType host_type) {
               << " type";
   auto pool = FindPool(host_type);
   try {
-    return pool->Start();
+    return pool->Start(deadline);
   } catch (const ConnectionError&) {
     topology_->OperationFailed(pool->GetDsn());
     throw;

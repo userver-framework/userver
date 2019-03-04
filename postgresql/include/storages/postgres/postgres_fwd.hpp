@@ -44,6 +44,7 @@ struct CommandControl {
 };
 
 using OptionalCommandControl = boost::optional<CommandControl>;
+using SharedCommandControl = std::shared_ptr<const CommandControl>;
 
 }  // namespace postgres
 }  // namespace storages

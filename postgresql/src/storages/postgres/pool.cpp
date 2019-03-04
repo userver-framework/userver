@@ -21,8 +21,8 @@ ConnectionPool& ConnectionPool::operator=(ConnectionPool&&) = default;
 
 std::string const& ConnectionPool::GetDsn() const { return pimpl_->GetDsn(); }
 
-detail::ConnectionPtr ConnectionPool::GetConnection() {
-  return pimpl_->Acquire();
+detail::ConnectionPtr ConnectionPool::GetConnection(engine::Deadline deadline) {
+  return pimpl_->Acquire(deadline);
 }
 
 const InstanceStatistics& ConnectionPool::GetStatistics() const {
@@ -30,11 +30,14 @@ const InstanceStatistics& ConnectionPool::GetStatistics() const {
 }
 
 Transaction ConnectionPool::Begin(const TransactionOptions& options,
+                                  engine::Deadline deadline,
                                   OptionalCommandControl cmd_ctl) {
-  return pimpl_->Begin(options, cmd_ctl);
+  return pimpl_->Begin(options, deadline, cmd_ctl);
 }
 
-detail::NonTransaction ConnectionPool::Start() { return pimpl_->Start(); }
+detail::NonTransaction ConnectionPool::Start(engine::Deadline deadline) {
+  return pimpl_->Start(deadline);
+}
 
 void ConnectionPool::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl);

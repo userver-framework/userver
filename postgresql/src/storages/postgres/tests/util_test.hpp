@@ -24,6 +24,10 @@ constexpr uint32_t kConnectionId = 0;
 constexpr storages::postgres::CommandControl kTestCmdCtl{
     storages::postgres::TimeoutType{100}, storages::postgres::TimeoutType{50}};
 
+inline engine::Deadline MakeDeadline() {
+  return engine::Deadline::FromDuration(kTestCmdCtl.network);
+}
+
 std::vector<std::string> GetDsnFromEnv();
 std::vector<storages::postgres::DSNList> GetDsnListFromEnv();
 

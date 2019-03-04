@@ -32,6 +32,8 @@ struct TransactionStatistics {
   Counter bin_reply_total = 0;
   /// Error during query execution
   Counter error_execute_total = 0;
+  /// Timeout while executing query
+  Counter execute_timeout = 0;
 
   // TODO pick reasonable resolution for transaction
   // execution times
@@ -63,8 +65,12 @@ struct ConnectionStatistics {
   Counter used = 0;
   /// Number of maximum allowed connections
   Counter maximum = 0;
+  /// Number of waiting requests
+  Counter waiting = 0;
   /// Error during connection
   Counter error_total = 0;
+  /// Connection timeouts (timeouts while connecting)
+  Counter error_timeout = 0;
 };
 
 /// @brief Template instance statistics storage
@@ -76,6 +82,10 @@ struct InstanceStatisticsTemplate {
   TransactionStatistics<Counter, Accumulator> transaction;
   /// Error caused by pool exhaustion
   Counter pool_error_exhaust_total = 0;
+  /// Connect time percentile
+  Accumulator connection_percentile;
+  /// Acquire connection percentile
+  Accumulator acquire_percentile;
 };
 
 using Percentile = ::utils::statistics::Percentile<2048>;
@@ -104,6 +114,7 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     connection.used = stats.connection.used;
     connection.maximum = stats.connection.maximum;
     connection.error_total = stats.connection.error_total;
+    connection.waiting = stats.connection.waiting;
     transaction.total = stats.transaction.total;
     transaction.commit_total = stats.transaction.commit_total;
     transaction.rollback_total = stats.transaction.rollback_total;
@@ -113,6 +124,7 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     transaction.reply_total = stats.transaction.reply_total;
     transaction.bin_reply_total = stats.transaction.bin_reply_total;
     transaction.error_execute_total = stats.transaction.error_execute_total;
+    transaction.execute_timeout = stats.transaction.execute_timeout;
     transaction.total_percentile.Add(
         stats.transaction.total_percentile.GetStatsForPeriod());
     transaction.busy_percentile.Add(
@@ -124,6 +136,8 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     transaction.return_to_pool_percentile.Add(
         stats.transaction.return_to_pool_percentile.GetStatsForPeriod());
     pool_error_exhaust_total = stats.pool_error_exhaust_total;
+    connection_percentile.Add(stats.connection_percentile.GetStatsForPeriod());
+    acquire_percentile.Add(stats.acquire_percentile.GetStatsForPeriod());
     return *this;
   }
   InstanceStatisticsNonatomic& operator=(InstanceStatisticsNonatomic&&) =

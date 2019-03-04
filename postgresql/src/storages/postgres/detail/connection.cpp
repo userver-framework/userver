@@ -126,6 +126,7 @@ Connection::Statistics::Statistics() noexcept
       reply_total(0),
       bin_reply_total(0),
       error_execute_total(0),
+      execute_timeout(0),
       sum_query_duration(0) {}
 
 struct Connection::Impl {
@@ -149,9 +150,13 @@ struct Connection::Impl {
           session_scope_{false} {
       if (cmd_ctl_.is_initialized()) {
         if (connection_->IsInTransaction()) {
-          connection_->SetStatementTimeout(cmd_ctl_->statement);
+          connection_->SetStatementTimeout(
+              cmd_ctl_->statement,
+              engine::Deadline::FromDuration(cmd_ctl_->network));
         } else {
-          connection_->SetDefaultStatementTimeout(cmd_ctl_->statement);
+          connection_->SetDefaultStatementTimeout(
+              cmd_ctl_->statement,
+              engine::Deadline::FromDuration(cmd_ctl_->network));
           session_scope_ = true;
         }
       }
@@ -163,11 +168,15 @@ struct Connection::Impl {
           connection_->GetConnectionState() != ConnectionState::kTranActive) {
         try {
           if (session_scope_) {
-            connection_->SetDefaultStatementTimeout(old_timeout_);
+            connection_->SetDefaultStatementTimeout(
+                old_timeout_,
+                engine::Deadline::FromDuration(cmd_ctl_->network));
           } else {
-            connection_->SetStatementTimeout(old_timeout_);
+            connection_->SetStatementTimeout(
+                old_timeout_,
+                engine::Deadline::FromDuration(cmd_ctl_->network));
           }
-        } catch (std::exception const& e) {
+        } catch (const std::exception& e) {
           LOG_ERROR() << "Failed to reset old statement timeout: " << e;
         }
       }
@@ -197,22 +206,25 @@ struct Connection::Impl {
 
   // TODO Add tracing::Span
   void AsyncConnect(const std::string& conninfo) {
+    auto deadline = engine::Deadline::FromDuration(kConnectTimeout);
     // While connecting there are several network roundtrips, so give them
     // some allowance.
-    conn_wrapper_.AsyncConnect(conninfo, kConnectTimeout);
+    conn_wrapper_.AsyncConnect(conninfo, deadline);
     // We cannot handle exceptions here, so we let them got to the caller
     // Detect if the connection is read only.
-    auto res = ExecuteCommandNoPrepare("show transaction_read_only");
+    auto res = ExecuteCommandNoPrepare("show transaction_read_only", deadline);
     if (!res.IsEmpty()) {
       res.Front().To(read_only_);
     }
-    SetLocalTimezone();
-    SetDefaultStatementTimeout(default_cmd_ctl_.statement);
-    LoadUserTypes();
+    ExecuteCommandNoPrepare("discard all", deadline);
+    SetLocalTimezone(deadline);
+    SetDefaultStatementTimeout(default_cmd_ctl_.statement, deadline);
+    LoadUserTypes(deadline);
   }
 
   void SetDefaultCommandControl(CommandControl cmd_ctl) {
-    SetDefaultStatementTimeout(cmd_ctl.statement);
+    SetDefaultStatementTimeout(cmd_ctl.statement,
+                               engine::Deadline::FromDuration(cmd_ctl.network));
     default_cmd_ctl_ = cmd_ctl;
   }
 
@@ -222,7 +234,8 @@ struct Connection::Impl {
           "Cannot set transaction command control out of transaction"};
     }
     transaction_cmd_ctl_ = cmd_ctl;
-    SetStatementTimeout(cmd_ctl.statement);
+    SetStatementTimeout(cmd_ctl.statement,
+                        engine::Deadline::FromDuration(cmd_ctl.network));
   }
 
   void ResetTransactionCommandControl() {
@@ -237,6 +250,10 @@ struct Connection::Impl {
     return default_cmd_ctl_.network;
   }
 
+  engine::Deadline MakeCurrentDeadline() const {
+    return engine::Deadline::FromDuration(CurrentNetworkTimeout());
+  }
+
   TimeoutType CurrentStatementTimeout() const {
     if (transaction_cmd_ctl_.is_initialized()) {
       return transaction_cmd_ctl_->statement;
@@ -246,13 +263,13 @@ struct Connection::Impl {
 
   /// @brief Set local timezone. If the timezone is invalid, catch the
   /// exception and log error.
-  void SetLocalTimezone() {
+  void SetLocalTimezone(engine::Deadline deadline) {
     const auto& tz = LocalTimezoneID();
     LOG_TRACE() << "Try and set pg timezone id " << tz.id << " canonical id "
                 << tz.canonical_id;
     const auto& tz_id = tz.canonical_id.empty() ? tz.id : tz.canonical_id;
     try {
-      SetParameter("TimeZone", tz_id, ParameterScope::kSession);
+      SetParameter("TimeZone", tz_id, ParameterScope::kSession, deadline);
     } catch (const DataException&) {
       // No need to log the DataException message, it has been already logged
       // by connection wrapper.
@@ -260,27 +277,28 @@ struct Connection::Impl {
     }  // Let all other exceptions be propagated to the caller
   }
 
-  void SetDefaultStatementTimeout(TimeoutType timeout) {
+  void SetDefaultStatementTimeout(TimeoutType timeout,
+                                  engine::Deadline deadline) {
     if (current_statement_timeout_ != timeout) {
       SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
-                   ParameterScope::kSession);
+                   ParameterScope::kSession, deadline);
       current_statement_timeout_ = timeout;
     }
   }
 
-  void SetStatementTimeout(TimeoutType timeout) {
+  void SetStatementTimeout(TimeoutType timeout, engine::Deadline deadline) {
     if (current_statement_timeout_ != timeout) {
       SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
-                   ParameterScope::kTransaction);
+                   ParameterScope::kTransaction, deadline);
       current_statement_timeout_ = timeout;
     }
   }
 
-  void LoadUserTypes() {
+  void LoadUserTypes(engine::Deadline deadline) {
     try {
-      auto types =
-          ExecuteCommand(kGetUserTypesSQL).AsSetOf<DBTypeDescription>();
-      auto attribs = ExecuteCommand(kGetCompositeAttribsSQL)
+      auto types = ExecuteCommand(deadline, kGetUserTypesSQL)
+                       .AsSetOf<DBTypeDescription>();
+      auto attribs = ExecuteCommand(deadline, kGetCompositeAttribsSQL)
                          .AsContainer<UserTypes::CompositeFieldDefs>();
       // End of definitions marker, to simplify processing
       attribs.push_back(CompositeFieldDef::EmptyDef());
@@ -305,7 +323,7 @@ struct Connection::Impl {
   }
 
   void SetParameter(const std::string& param, const std::string& value,
-                    ParameterScope scope) {
+                    ParameterScope scope, engine::Deadline deadline) {
     bool is_transaction_scope = (scope == ParameterScope::kTransaction);
     auto log_level = (is_transaction_scope ? ::logging::Level::kDebug
                                            : ::logging::Level::kInfo);
@@ -313,24 +331,16 @@ struct Connection::Impl {
     LOG(log_level) << "Set '" << param << "' = '" << value << "' at "
                    << (is_transaction_scope ? "transaction" : "session")
                    << " scope";
-    ExecuteCommand("select set_config($1, $2, $3)", param, value,
+    ExecuteCommand(deadline, "select set_config($1, $2, $3)", param, value,
                    is_transaction_scope);
   }
 
   template <typename... T>
-  ResultSet ExecuteCommand(const std::string& statement, const T&... args) {
-    detail::QueryParameters params;
-    params.Write(db_types_, args...);
-    return ExecuteCommand(statement, params);
-  }
-
-  template <typename... T>
-  ResultSet ExecuteCommand(CommandControl stmt_cmd_ctl,
+  ResultSet ExecuteCommand(engine::Deadline deadline,
                            const std::string& statement, const T&... args) {
     detail::QueryParameters params;
     params.Write(db_types_, args...);
-    return ExecuteCommand(statement, params,
-                          OptionalCommandControl{std::move(stmt_cmd_ctl)});
+    return ExecuteCommand(statement, params, deadline);
   }
 
   void CheckBusy() {
@@ -339,17 +349,45 @@ struct Connection::Impl {
     }
   }
 
-  // TODO Add tracing::Span
   ResultSet ExecuteCommand(const std::string& statement,
                            const detail::QueryParameters& params,
-                           OptionalCommandControl statement_cmd_ctl = {}) {
+                           OptionalCommandControl statement_cmd_ctl) {
     CheckBusy();
     TimeoutType network_timeout = statement_cmd_ctl.is_initialized()
                                       ? statement_cmd_ctl->network
                                       : CurrentNetworkTimeout();
     auto deadline = engine::Deadline::FromDuration(network_timeout);
     StatementTimeoutCentry centry{this, std::move(statement_cmd_ctl)};
+    return ExecuteCommand(statement, params, deadline);
+  }
 
+  ResultSet ExecuteCommand(const std::string& statement,
+                           const detail::QueryParameters& params,
+                           engine::Deadline deadline,
+                           OptionalCommandControl statement_cmd_ctl) {
+    CheckBusy();
+    if (statement_cmd_ctl.is_initialized() &&
+        deadline.TimeLeft() < statement_cmd_ctl->network) {
+      deadline = engine::Deadline::FromDuration(statement_cmd_ctl->network);
+    }
+    StatementTimeoutCentry centry{this, std::move(statement_cmd_ctl)};
+    return ExecuteCommand(statement, params, deadline);
+  }
+
+  // TODO Add tracing::Span
+  ResultSet ExecuteCommand(const std::string& statement,
+                           const detail::QueryParameters& params,
+                           engine::Deadline deadline) {
+    if (deadline.IsReached()) {
+      ++stats_.execute_timeout;
+      LOG_ERROR()
+          << "Deadline was reached before starting to execute statement `"
+          << statement << "`";
+      throw ConnectionTimeoutError{"Deadline reached before executing"};
+    }
+    TimeoutType network_timeout =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline.TimeLeft());
     CountExecute count_execute(stats_);
     auto query_hash = QueryHash(statement, params);
     std::string statement_name = "q" + std::to_string(query_hash);
@@ -361,7 +399,7 @@ struct Connection::Impl {
       conn_wrapper_.SendPrepare(statement_name, statement, params);
       try {
         conn_wrapper_.WaitResult(db_types_, deadline);
-      } catch (DuplicatePreparedStatement const& e) {
+      } catch (const DuplicatePreparedStatement& e) {
         LOG_ERROR()
             << "Looks like your pg_bouncer doesn't clean up connections "
                "upon returning them to the pool. Please set pg_bouncer's "
@@ -388,29 +426,59 @@ struct Connection::Impl {
       auto res = conn_wrapper_.WaitResult(db_types_, deadline);
       count_execute.AccountResult(res, fmt);
       return res;
-    } catch (InvalidSqlStatementName const& e) {
+    } catch (const InvalidSqlStatementName& e) {
       LOG_ERROR() << "Looks like your pg_bouncer is not in 'session' mode. "
                      "Please switch pg_bouncers's pooling mode to 'session'. "
                      "Please see documentation here https://nda.ya.ru/3UXMpu";
       throw;
-    } catch (ConnectionTimeoutError const& e) {
-      LOG_ERROR() << "Statement " << statement
-                  << " network timeout error: " << e << ". "
+    } catch (const ConnectionTimeoutError& e) {
+      ++stats_.execute_timeout;
+      LOG_ERROR() << "Statement `" << statement
+                  << "` network timeout error: " << e << ". "
                   << "Network timout was " << network_timeout.count() << "ms";
+      throw;
+    } catch (const QueryCanceled& e) {
+      ++stats_.execute_timeout;
+      LOG_ERROR() << "Statement `" << statement << "` was canceled: " << e
+                  << ". Statement timeout was "
+                  << current_statement_timeout_.count() << "ms";
       throw;
     }
   }
 
   // TODO Add tracing::Span
   ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
+    return ExecuteCommandNoPrepare(
+        statement, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
+  }
+
+  // TODO Add tracing::Span
+  ResultSet ExecuteCommandNoPrepare(const std::string& statement,
+                                    engine::Deadline deadline) {
     CheckBusy();
     CountExecute count_execute(stats_);
-    conn_wrapper_.SendQuery(statement);
+    TimeoutType network_timeout =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline.TimeLeft());
 
-    auto res = conn_wrapper_.WaitResult(
-        db_types_, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
-    count_execute.AccountResult(res, io::DataFormat::kTextDataFormat);
-    return res;
+    conn_wrapper_.SendQuery(statement);
+    try {
+      auto res = conn_wrapper_.WaitResult(db_types_, deadline);
+      count_execute.AccountResult(res, io::DataFormat::kTextDataFormat);
+      return res;
+    } catch (const ConnectionTimeoutError& e) {
+      ++stats_.execute_timeout;
+      LOG_ERROR() << "Statement `" << statement
+                  << "` network timeout error: " << e << ". "
+                  << "Network timout was " << network_timeout.count() << "ms";
+      throw;
+    } catch (const QueryCanceled& e) {
+      ++stats_.execute_timeout;
+      LOG_ERROR() << "Statement `" << statement << "` was canceled: " << e
+                  << ". Statement timeout was "
+                  << current_statement_timeout_.count() << "ms";
+      throw;
+    }
   }
 
   /// A separate method from ExecuteCommand as the method will be transformed
@@ -462,22 +530,23 @@ struct Connection::Impl {
     ++stats_.out_of_trx;
     stats_.trx_start_time = std::move(start_time);
     stats_.work_start_time = SteadyClock::now();
+    stats_.last_execute_finish = stats_.work_start_time;
   }
   void Finish() { stats_.trx_end_time = SteadyClock::now(); }
 
   void Cleanup(TimeoutType timeout) {
+    auto deadline = engine::Deadline::FromDuration(timeout);
     {
       auto state = GetConnectionState();
       if (state == ConnectionState::kOffline) {
         return;
       }
-      auto deadline = engine::Deadline::FromDuration(timeout);
       if (GetConnectionState() == ConnectionState::kTranActive) {
         auto cancel = conn_wrapper_.Cancel();
         // May throw on timeout
         try {
           conn_wrapper_.DiscardInput(deadline);
-        } catch (std::exception const&) {
+        } catch (const std::exception&) {
           // Consume error, we will throw later if we detect transaction is busy
         }
         cancel.WaitUntil(deadline);
@@ -491,7 +560,7 @@ struct Connection::Impl {
       if (state > ConnectionState::kIdle) {
         Rollback();
       }
-      SetDefaultStatementTimeout(default_cmd_ctl_.statement);
+      SetDefaultStatementTimeout(default_cmd_ctl_.statement, deadline);
     }
   }
 
@@ -556,12 +625,21 @@ ResultSet Connection::Execute(const std::string& statement,
                                 std::move(statement_cmd_ctl));
 }
 
-void Connection::SetParameter(const std::string& param,
-                              const std::string& value, ParameterScope scope) {
-  pimpl_->SetParameter(param, value, scope);
+ResultSet Connection::Execute(const std::string& statement,
+                              const detail::QueryParameters& params,
+                              engine::Deadline deadline,
+                              OptionalCommandControl statement_cmd_ctl) {
+  return pimpl_->ExecuteCommand(statement, params, deadline, statement_cmd_ctl);
 }
 
-void Connection::ReloadUserTypes() { pimpl_->LoadUserTypes(); }
+void Connection::SetParameter(const std::string& param,
+                              const std::string& value, ParameterScope scope) {
+  pimpl_->SetParameter(param, value, scope, pimpl_->MakeCurrentDeadline());
+}
+
+void Connection::ReloadUserTypes() {
+  pimpl_->LoadUserTypes(pimpl_->MakeCurrentDeadline());
+}
 
 const UserTypes& Connection::GetUserTypes() const {
   return pimpl_->GetUserTypes();

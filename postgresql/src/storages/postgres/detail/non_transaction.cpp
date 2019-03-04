@@ -7,9 +7,9 @@
 
 namespace storages::postgres::detail {
 
-NonTransaction::NonTransaction(ConnectionPtr&& conn,
-                               detail::SteadyClock::time_point&& start_time)
-    : conn_{std::move(conn)} {
+NonTransaction::NonTransaction(ConnectionPtr&& conn, engine::Deadline deadline,
+                               detail::SteadyClock::time_point start_time)
+    : conn_{std::move(conn)}, deadline_{std::move(deadline)} {
   conn_->Start(std::move(start_time));
 }
 
@@ -21,7 +21,8 @@ NonTransaction& NonTransaction::operator=(NonTransaction&&) = default;
 ResultSet NonTransaction::DoExecute(const std::string& statement,
                                     const detail::QueryParameters& params,
                                     OptionalCommandControl statement_cmd_ctl) {
-  return conn_->Execute(statement, params, std::move(statement_cmd_ctl));
+  return conn_->Execute(statement, params, deadline_,
+                        std::move(statement_cmd_ctl));
 }
 
 const UserTypes& NonTransaction::GetConnectionUserTypes() const {

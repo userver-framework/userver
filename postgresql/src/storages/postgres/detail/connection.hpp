@@ -63,6 +63,8 @@ class Connection {
     Counter bin_reply_total;
     /// Error during query execution
     Counter error_execute_total;
+    /// Timeout while executing
+    Counter execute_timeout;
 
     /// Transaction initiation time (includes wait in pool)
     SteadyClock::time_point trx_start_time;
@@ -148,6 +150,9 @@ class Connection {
   ResultSet Execute(const std::string& statement,
                     const detail::QueryParameters& = {},
                     OptionalCommandControl statement_cmd_ctl = {});
+  ResultSet Execute(const std::string& statement,
+                    const detail::QueryParameters&, engine::Deadline,
+                    OptionalCommandControl statement_cmd_ctl);
   template <typename... T>
   ResultSet Execute(const std::string& statement, const T&... args) {
     detail::QueryParameters params;

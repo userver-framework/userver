@@ -35,7 +35,7 @@ class PGConnectionWrapper {
   /// current couroutine)
   /// @param conninfo Connection string
   /// @param
-  void AsyncConnect(const std::string& conninfo, Duration poll_timeout);
+  void AsyncConnect(const std::string& conninfo, Deadline deadline);
 
   /// @brief Close the connection on a background task processor.
   [[nodiscard]] engine::Task Close();

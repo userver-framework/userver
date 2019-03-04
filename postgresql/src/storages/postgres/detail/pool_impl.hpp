@@ -6,8 +6,10 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <engine/condition_variable.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
+#include <utils/size_guard.hpp>
 #include <utils/swappingsmart.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
@@ -31,14 +33,15 @@ class ConnectionPoolImpl
 
   std::string const& GetDsn() const { return dsn_; }
 
-  [[nodiscard]] ConnectionPtr Acquire();
+  [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
   void Release(Connection* connection);
 
   const InstanceStatistics& GetStatistics() const;
   [[nodiscard]] Transaction Begin(const TransactionOptions& options,
+                                  engine::Deadline deadline,
                                   OptionalCommandControl trx_cmd_ctl = {});
 
-  [[nodiscard]] NonTransaction Start();
+  [[nodiscard]] NonTransaction Start(engine::Deadline deadline);
 
   void SetDefaultCommandControl(CommandControl);
 
@@ -48,23 +51,30 @@ class ConnectionPoolImpl
                      CommandControl default_cmd_ctl);
 
  private:
+  using SizeGuard = ::utils::SizeGuard<std::atomic<size_t>>;
+
   void Init(size_t initial_size);
 
-  [[nodiscard]] engine::TaskWithResult<bool> Create();
+  [[nodiscard]] engine::TaskWithResult<bool> Connect(SizeGuard&&);
 
-  void Push(detail::Connection* connection);
-  detail::Connection* Pop();
+  void Push(Connection* connection);
+  Connection* Pop(engine::Deadline);
 
   void Clear();
-  void DeleteConnection(detail::Connection* connection);
+  void DeleteConnection(Connection* connection);
+
+  void AccountConnectionStats(Connection::Statistics stats);
 
  private:
   mutable InstanceStatistics stats_;
   std::string dsn_;
   engine::TaskProcessor& bg_task_processor_;
   size_t max_size_;
-  boost::lockfree::queue<detail::Connection*> queue_;
+  engine::Mutex wait_mutex_;
+  engine::ConditionVariable conn_available_;
+  boost::lockfree::queue<Connection*> queue_;
   std::atomic<size_t> size_;
+  std::atomic<size_t> wait_count_;
   ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
 };
 

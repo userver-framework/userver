@@ -10,49 +10,21 @@ namespace storages {
 namespace postgres {
 namespace detail {
 
-namespace {
-
-// TODO Move constants to config
-// Time to wait for connection to become available
-const std::chrono::seconds kConnWaitTimeout(2);
-// Minimal duration of connection availability check
-const std::chrono::milliseconds kConnCheckDuration(20);
-
-struct SizeGuard {
-  SizeGuard(std::atomic<size_t>& size)
-      : size_(size), cur_size_(++size_), dismissed_(false) {}
-
-  ~SizeGuard() {
-    if (!dismissed_) {
-      --size_;
-    }
+struct Stopwatch {
+  using Accumulator = ::utils::statistics::RecentPeriod<Percentile, Percentile,
+                                                        detail::SteadyClock>;
+  explicit Stopwatch(Accumulator& acc)
+      : accum_{acc}, start_{SteadyClock::now()} {}
+  ~Stopwatch() {
+    accum_.GetCurrentCounter().Account(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            SteadyClock::now() - start_)
+            .count());
   }
 
-  void Dismiss() { dismissed_ = true; }
-  size_t GetSize() const { return cur_size_; }
-
  private:
-  std::atomic<size_t>& size_;
-  size_t cur_size_;
-  bool dismissed_;
-};
-
-}  // namespace
-
-template <typename T>
-struct TaskDetachGuard {
-  TaskDetachGuard(engine::TaskWithResult<T> task) : task_(std::move(task)) {}
-
-  ~TaskDetachGuard() {
-    if (task_.IsValid()) {
-      std::move(task_).Detach();
-    }
-  }
-
-  engine::TaskWithResult<T>& Get() { return task_; }
-
- private:
-  engine::TaskWithResult<T> task_;
+  Accumulator& accum_;
+  SteadyClock::time_point start_;
 };
 
 ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
@@ -64,6 +36,7 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
       max_size_(max_size),
       queue_(max_size),
       size_(0),
+      wait_count_{0},
       default_cmd_ctl_{
           std::make_shared<const CommandControl>(std::move(default_cmd_ctl))} {}
 
@@ -100,59 +73,66 @@ void ConnectionPoolImpl::Init(size_t initial_size) {
 
   LOG_INFO() << "Creating " << initial_size << " PostgreSQL connections";
   for (size_t i = 0; i < initial_size; ++i) {
-    Create().Detach();
+    Connect(SizeGuard{size_}).Detach();
   }
+  LOG_INFO() << "Pool initialized";
 }
 
-ConnectionPtr ConnectionPoolImpl::Acquire() {
+ConnectionPtr ConnectionPoolImpl::Acquire(engine::Deadline deadline) {
   // Obtain smart pointer first to prolong lifetime of this object
   auto shared_this = shared_from_this();
-  auto* connection = Pop();
+  auto* connection = Pop(deadline);
   ++stats_.connection.used;
   connection->SetDefaultCommandControl(*default_cmd_ctl_.Get());
   return {connection, std::move(shared_this)};
 }
 
+void ConnectionPoolImpl::AccountConnectionStats(
+    Connection::Statistics conn_stats) {
+  auto now = SteadyClock::now();
+
+  stats_.transaction.total += conn_stats.trx_total;
+  stats_.transaction.commit_total += conn_stats.commit_total;
+  stats_.transaction.rollback_total += conn_stats.rollback_total;
+  stats_.transaction.out_of_trx_total += conn_stats.out_of_trx;
+  stats_.transaction.parse_total += conn_stats.parse_total;
+  stats_.transaction.execute_total += conn_stats.execute_total;
+  stats_.transaction.reply_total += conn_stats.reply_total;
+  stats_.transaction.bin_reply_total += conn_stats.bin_reply_total;
+  stats_.transaction.error_execute_total += conn_stats.error_execute_total;
+  stats_.transaction.execute_timeout += conn_stats.execute_timeout;
+
+  stats_.transaction.total_percentile.GetCurrentCounter().Account(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          conn_stats.trx_end_time - conn_stats.trx_start_time)
+          .count());
+  stats_.transaction.busy_percentile.GetCurrentCounter().Account(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          conn_stats.sum_query_duration)
+          .count());
+  stats_.transaction.wait_start_percentile.GetCurrentCounter().Account(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          conn_stats.work_start_time - conn_stats.trx_start_time)
+          .count());
+  stats_.transaction.wait_end_percentile.GetCurrentCounter().Account(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          conn_stats.trx_end_time - conn_stats.last_execute_finish)
+          .count());
+  stats_.transaction.return_to_pool_percentile.GetCurrentCounter().Account(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          now - conn_stats.trx_end_time)
+          .count());
+}
+
 void ConnectionPoolImpl::Release(Connection* connection) {
   UASSERT(connection);
-  --stats_.connection.used;
+  using DecGuard =
+      ::utils::SizeGuard<::utils::statistics::RelaxedCounter<uint32_t>>;
+  DecGuard dg{stats_.connection.used, DecGuard::DontIncrement{}};
 
   // Grab stats only if connection is not in transaction
   if (!connection->IsInTransaction()) {
-    const auto conn_stats = connection->GetStatsAndReset();
-
-    auto now = SteadyClock::now();
-
-    stats_.transaction.total += conn_stats.trx_total;
-    stats_.transaction.commit_total += conn_stats.commit_total;
-    stats_.transaction.rollback_total += conn_stats.rollback_total;
-    stats_.transaction.out_of_trx_total += conn_stats.out_of_trx;
-    stats_.transaction.parse_total += conn_stats.parse_total;
-    stats_.transaction.execute_total += conn_stats.execute_total;
-    stats_.transaction.reply_total += conn_stats.reply_total;
-    stats_.transaction.bin_reply_total += conn_stats.bin_reply_total;
-    stats_.transaction.error_execute_total += conn_stats.error_execute_total;
-
-    stats_.transaction.total_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            conn_stats.trx_end_time - conn_stats.trx_start_time)
-            .count());
-    stats_.transaction.busy_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            conn_stats.sum_query_duration)
-            .count());
-    stats_.transaction.wait_start_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            conn_stats.work_start_time - conn_stats.trx_start_time)
-            .count());
-    stats_.transaction.wait_end_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            conn_stats.trx_end_time - conn_stats.last_execute_finish)
-            .count());
-    stats_.transaction.return_to_pool_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            now - conn_stats.trx_end_time)
-            .count());
+    AccountConnectionStats(connection->GetStatsAndReset());
   }
 
   if (connection->IsIdle()) {
@@ -161,14 +141,15 @@ void ConnectionPoolImpl::Release(Connection* connection) {
   }
 
   // TODO: determine connection states that are allowed here
-  ++stats_.connection.error_total;
   if (!connection->IsConnected()) {
+    ++stats_.connection.error_total;
     LOG_WARNING() << "Released connection in closed state. Deleting...";
     DeleteConnection(connection);
   } else {
     // Connection cleanup is done asynchronously while returning control to the
     // user
-    engine::impl::CriticalAsync([shared_this = shared_from_this(), connection] {
+    engine::impl::CriticalAsync([shared_this = shared_from_this(), connection,
+                                 dec_cnt = std::move(dg)] {
       LOG_WARNING()
           << "Released connection in busy state. Trying to clean up...";
       auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
@@ -176,6 +157,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
         connection->Cleanup(cmd_ctl->network * 10);
         if (connection->IsIdle()) {
           LOG_DEBUG() << "Succesfully cleaned up dirty connection";
+          shared_this->AccountConnectionStats(connection->GetStatsAndReset());
           shared_this->Push(connection);
           return;
         }
@@ -184,6 +166,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
                       << e;
       }
       LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
+      ++shared_this->stats_.connection.error_total;
       shared_this->DeleteConnection(connection);
     })
         .Detach();
@@ -192,69 +175,74 @@ void ConnectionPoolImpl::Release(Connection* connection) {
 
 const InstanceStatistics& ConnectionPoolImpl::GetStatistics() const {
   stats_.connection.active = size_.load(std::memory_order_relaxed);
+  stats_.connection.waiting = wait_count_.load(std::memory_order_relaxed);
   stats_.connection.maximum = max_size_;
   return stats_;
 }
 
 Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options,
+                                      engine::Deadline deadline,
                                       OptionalCommandControl trx_cmd_ctl) {
   auto trx_start_time = detail::SteadyClock::now();
-  auto conn = Acquire();
+  auto conn = Acquire(deadline);
   UASSERT(conn);
   return Transaction{std::move(conn), options, trx_cmd_ctl,
                      std::move(trx_start_time)};
 }
 
-NonTransaction ConnectionPoolImpl::Start() {
+NonTransaction ConnectionPoolImpl::Start(engine::Deadline deadline) {
   auto start_time = detail::SteadyClock::now();
-  auto conn = Acquire();
+  auto conn = Acquire(deadline);
   UASSERT(conn);
-  return NonTransaction{std::move(conn), std::move(start_time)};
+  return NonTransaction{std::move(conn), std::move(deadline),
+                        std::move(start_time)};
 }
 
-engine::TaskWithResult<bool> ConnectionPoolImpl::Create() {
-  return engine::impl::Async([shared_this = shared_from_this()] {
-    SizeGuard sg(shared_this->size_);
+engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
+    SizeGuard&& size_guard) {
+  return engine::impl::Async(
+      [shared_this = shared_from_this(), sg = std::move(size_guard)]() mutable {
+        LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
+                    << sg.GetSize();
+        const uint32_t conn_id = ++shared_this->stats_.connection.open_total;
+        std::unique_ptr<Connection> connection;
+        Stopwatch st{shared_this->stats_.connection_percentile};
+        try {
+          auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
+          connection = Connection::Connect(shared_this->dsn_,
+                                           shared_this->bg_task_processor_,
+                                           conn_id, *cmd_ctl);
+        } catch (const ConnectionTimeoutError&) {
+          // No problem if it's connection error
+          ++shared_this->stats_.connection.error_timeout;
+          ++shared_this->stats_.connection.error_total;
+          ++shared_this->stats_.connection.drop_total;
+          return false;
+        } catch (const ConnectionError&) {
+          // No problem if it's connection error
+          ++shared_this->stats_.connection.error_total;
+          ++shared_this->stats_.connection.drop_total;
+          return false;
+        } catch (const Error& ex) {
+          ++shared_this->stats_.connection.error_total;
+          ++shared_this->stats_.connection.drop_total;
+          LOG_ERROR() << "Connection creation failed with error: " << ex;
+          throw;
+        }
+        LOG_TRACE() << "PostgreSQL connection created";
 
-    if (sg.GetSize() > shared_this->max_size_) {
-      LOG_WARNING() << "PostgreSQL pool reached maximum size: "
-                    << shared_this->max_size_;
-      return false;
-    }
+        // Clean up the statistics and not account it
+        [[maybe_unused]] const auto& stats = connection->GetStatsAndReset();
 
-    LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
-                << sg.GetSize();
-    const decltype(
-        shared_this->stats_.connection.open_total)::ValueType conn_id =
-        ++shared_this->stats_.connection.open_total;
-    std::unique_ptr<Connection> connection;
-    try {
-      auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
-      connection = Connection::Connect(shared_this->dsn_,
-                                       shared_this->bg_task_processor_, conn_id,
-                                       *cmd_ctl);
-    } catch (const ConnectionError&) {
-      // No problem if it's connection error
-      ++shared_this->stats_.connection.error_total;
-      return false;
-    } catch (const Error& ex) {
-      ++shared_this->stats_.connection.error_total;
-      LOG_ERROR() << "Connection creation failed with error: " << ex;
-      throw;
-    }
-    LOG_TRACE() << "PostgreSQL connection created";
-
-    // Clean up the statistics and not account it
-    std::ignore = connection->GetStatsAndReset();
-
-    sg.Dismiss();
-    shared_this->Push(connection.release());
-    return true;
-  });
+        sg.Dismiss();
+        shared_this->Push(connection.release());
+        return true;
+      });
 }
 
 void ConnectionPoolImpl::Push(Connection* connection) {
   if (queue_.push(connection)) {
+    conn_available_.NotifyOne();
     return;
   }
 
@@ -263,44 +251,38 @@ void ConnectionPoolImpl::Push(Connection* connection) {
   DeleteConnection(connection);
 }
 
-Connection* ConnectionPoolImpl::Pop() {
+Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
+  if (deadline.IsReached()) {
+    ++stats_.connection.error_timeout;
+    throw PoolError("Deadline reached before trying to get a connection");
+  }
+  Stopwatch st{stats_.acquire_percentile};
+  auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+      deadline.TimeLeft());
   Connection* connection = nullptr;
   if (queue_.pop(connection)) {
     return connection;
   }
 
-  // No connections found - need to create new one and wait for connection to
-  // become available in the queue
-  const auto conn_wait_end_point =
-      detail::SteadyClock::now() + kConnWaitTimeout;
-  TaskDetachGuard task_guard(Create());
-  auto& create_task = task_guard.Get();
-
-  do {
-    const auto next_point =
-        std::min(std::chrono::steady_clock::now() + kConnCheckDuration,
-                 conn_wait_end_point);
-    // TODO Need MPMC queue with wait on empty capability
-    engine::SleepUntil(next_point);
-
-    bool create_again = false;
-    if (create_task.IsValid() && create_task.IsFinished()) {
-      // If connection has been created but we failed to get it from the queue
-      // - we'll need to create connection again
-      create_again = create_task.Get();
-      create_task = {};
+  // No connections found - create a new one if pool is not exhausted
+  LOG_DEBUG() << "No idle connections, try to get one in " << timeout.count()
+              << "ms";
+  SizeGuard wg(wait_count_);
+  {
+    SizeGuard sg(size_);
+    if (sg.GetSize() <= max_size_) {
+      // Create a new connection
+      Connect(std::move(sg)).Detach();
     }
-
-    if (queue_.pop(connection)) {
+  }
+  {
+    std::unique_lock<engine::Mutex> lock{wait_mutex_};
+    // Wait for a connection
+    if (conn_available_.WaitUntil(lock, deadline,
+                                  [&] { return queue_.pop(connection); })) {
       return connection;
     }
-
-    if (create_again) {
-      LOG_DEBUG() << "Connection has been created, but stolen. "
-                     "Re-creating again...";
-      create_task = Create();
-    }
-  } while (detail::SteadyClock::now() < conn_wait_end_point);
+  }
 
   ++stats_.pool_error_exhaust_total;
   throw PoolError("No available connections found");

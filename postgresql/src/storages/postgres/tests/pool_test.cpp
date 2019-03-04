@@ -19,7 +19,7 @@ void PoolTransaction(pg::ConnectionPool& pool) {
   pg::ResultSet res{nullptr};
 
   // TODO Check idle connection count before and after begin
-  EXPECT_NO_THROW(trx = pool.Begin(pg::TransactionOptions{}));
+  EXPECT_NO_THROW(trx = pool.Begin(pg::TransactionOptions{}, MakeDeadline()));
   EXPECT_NO_THROW(res = trx.Execute("select 1"));
   EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   // TODO Check idle connection count before and after commit
@@ -46,7 +46,7 @@ TEST_P(PostgrePool, ConnectionPool) {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
-    EXPECT_NO_THROW(conn = pool.GetConnection())
+    EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
     CheckConnection(std::move(conn));
   });
@@ -57,7 +57,7 @@ TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 0, 1, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
-    EXPECT_NO_THROW(conn = pool.GetConnection())
+    EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from empty pool";
     CheckConnection(std::move(conn));
   });
@@ -68,10 +68,11 @@ TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
-    EXPECT_NO_THROW(conn = pool.GetConnection())
+    EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
-    EXPECT_THROW(pg::detail::ConnectionPtr conn2 = pool.GetConnection(),
-                 pg::PoolError)
+    EXPECT_THROW(
+        pg::detail::ConnectionPtr conn2 = pool.GetConnection(MakeDeadline()),
+        pg::PoolError)
         << "Pool reached max size";
 
     CheckConnection(std::move(conn));
@@ -83,14 +84,14 @@ TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
-    EXPECT_NO_THROW(conn = pool.GetConnection())
+    EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
     // Free up connection asynchronously
     engine::impl::Async(GetTaskProcessor(),
                         [](pg::detail::ConnectionPtr conn) { conn = nullptr; },
                         std::move(conn))
         .Detach();
-    EXPECT_NO_THROW(conn = pool.GetConnection())
+    EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Execution blocked because pool reached max size, but connection "
            "found later";
 
@@ -120,7 +121,7 @@ TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
                                                      1, 1, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
-    EXPECT_NO_THROW(conn = pool->GetConnection())
+    EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
     pool.reset();
     CheckConnection(std::move(conn));
@@ -133,19 +134,19 @@ TEST_P(PostgrePool, ConnectionPtrWorks) {
                                                      2, 2, kTestCmdCtl);
     pg::detail::ConnectionPtr conn;
 
-    EXPECT_NO_THROW(conn = pool->GetConnection())
+    EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
-    EXPECT_NO_THROW(conn = pool->GetConnection())
+    EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
         << "Obtained another connection from pool";
     CheckConnection(std::move(conn));
 
     // We still should have initial count of working connections in the pool
-    EXPECT_NO_THROW(conn = pool->GetConnection())
+    EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
         << "Obtained connection from pool again";
-    EXPECT_NO_THROW(conn = pool->GetConnection())
+    EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
         << "Obtained another connection from pool again";
     pg::detail::ConnectionPtr conn2;
-    EXPECT_NO_THROW(conn2 = pool->GetConnection())
+    EXPECT_NO_THROW(conn2 = pool->GetConnection(MakeDeadline()))
         << "Obtained connection from pool one more time";
     pool.reset();
     CheckConnection(std::move(conn));
@@ -162,13 +163,15 @@ TEST_P(PostgrePool, ConnectionCleanup) {
     {
       auto const& stats = pool->GetStatistics();
       EXPECT_EQ(0, stats.connection.open_total);
-      EXPECT_EQ(0, stats.connection.active);
+      EXPECT_EQ(1, stats.connection.active);
+      EXPECT_EQ(0, stats.connection.error_total);
 
       pg::Transaction trx{nullptr};
-      EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
+      EXPECT_NO_THROW(trx = pool->Begin({}, MakeDeadline()))
+          << "Start transaction in a pool";
 
       EXPECT_EQ(1, stats.connection.open_total);
-      EXPECT_EQ(0, stats.connection.active);
+      EXPECT_EQ(1, stats.connection.active);
       EXPECT_EQ(1, stats.connection.used);
       EXPECT_THROW(trx.Execute("select pg_sleep(1)"),
                    pg::ConnectionTimeoutError)
@@ -180,15 +183,16 @@ TEST_P(PostgrePool, ConnectionCleanup) {
       auto const& stats = pool->GetStatistics();
       EXPECT_EQ(1, stats.connection.open_total);
       EXPECT_EQ(1, stats.connection.active);
-      EXPECT_EQ(0, stats.connection.used);
+      EXPECT_EQ(1, stats.connection.used);
       EXPECT_EQ(0, stats.connection.drop_total);
-      EXPECT_EQ(1, stats.connection.error_total);
+      EXPECT_EQ(0, stats.connection.error_total);
     }
     pool->SetDefaultCommandControl(
         pg::CommandControl{pg::TimeoutType{1000}, pg::TimeoutType{10}});
     {
       pg::Transaction trx{nullptr};
-      EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
+      EXPECT_NO_THROW(trx = pool->Begin({}, MakeDeadline()))
+          << "Start transaction in a pool";
 
       EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCanceled)
           << "Fail statement on timeout";
@@ -200,7 +204,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
       EXPECT_EQ(1, stats.connection.active);
       EXPECT_EQ(0, stats.connection.used);
       EXPECT_EQ(0, stats.connection.drop_total);
-      EXPECT_EQ(1, stats.connection.error_total);
+      EXPECT_EQ(0, stats.connection.error_total);
     }
   });
 }
