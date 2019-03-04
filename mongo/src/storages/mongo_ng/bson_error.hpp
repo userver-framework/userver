@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <bson/bson.h>
 
 namespace storages::mongo_ng::impl {
