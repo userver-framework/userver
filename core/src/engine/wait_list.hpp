@@ -1,14 +1,12 @@
 #pragma once
 
 #include <atomic>
-#include <deque>
-#include <memory>
 #include <mutex>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <utils/fast_pimpl.hpp>
 
 #include <engine/wait_list_base.hpp>
-#include <utils/assert.hpp>
 
 namespace engine {
 namespace impl {
@@ -30,22 +28,13 @@ class WaitList final : public WaitListBase {
     std::unique_lock<std::mutex> impl_;
   };
 
-  WaitList() = default;
+  WaitList();
   WaitList(const WaitList&) = delete;
   WaitList(WaitList&&) = delete;
   WaitList& operator=(const WaitList&) = delete;
   WaitList& operator=(WaitList&&) = delete;
 
-#ifndef NDEBUG
-  ~WaitList() {
-    Lock lock{*this};
-    SkipRemoved(lock);
-    UASSERT_MSG(waiting_contexts_.empty(),
-                "Someone is waiting on the WaitList");
-  }
-#else
-  ~WaitList() = default;
-#endif
+  ~WaitList();
 
   void Append(WaitListBase::Lock&,
               boost::intrusive_ptr<impl::TaskContext>) override;
@@ -55,10 +44,12 @@ class WaitList final : public WaitListBase {
   void Remove(const boost::intrusive_ptr<impl::TaskContext>&) override;
 
  private:
-  void SkipRemoved(WaitListBase::Lock&);
-
   std::mutex mutex_;
-  std::deque<boost::intrusive_ptr<impl::TaskContext>> waiting_contexts_;
+
+  struct List;
+  static constexpr std::size_t kListSize = sizeof(void*) * 2;
+  static constexpr std::size_t kListAlignment = alignof(void*);
+  utils::FastPimpl<List, kListSize, kListAlignment> waiting_contexts_;
 };
 
 }  // namespace impl

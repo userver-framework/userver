@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <ev.h>
+#include <boost/intrusive/list_hook.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <engine/coro/pool.hpp>
@@ -220,6 +221,12 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
   };
 
   LocalStorage* local_storage_;
+
+ public:
+  using WaitListHook = typename boost::intrusive::make_list_member_hook<
+      boost::intrusive::link_mode<boost::intrusive::auto_unlink>>::type;
+
+  WaitListHook wait_list_hook;
 };
 
 }  // namespace impl
