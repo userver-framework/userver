@@ -152,6 +152,12 @@ BsonBuilder& BsonBuilder::Append(utils::string_view key, MaxKey) {
   return *this;
 }
 
+BsonBuilder& BsonBuilder::Append(utils::string_view key,
+                                 const BsonHolder& doc) {
+  bson_append_document(bson_->Get(), key.data(), key.size(), doc.get());
+  return *this;
+}
+
 BsonBuilder& BsonBuilder::Append(utils::string_view key, const Value& value) {
   value.impl_->CheckNotMissing();
   bson_append_value(bson_->Get(), key.data(), key.size(),

@@ -22,6 +22,47 @@ ReadPreference& ReadPreference::AddTag(formats::bson::Document tag) {
   return *this;
 }
 
+WriteConcern::WriteConcern(Level level)
+    : nodes_count_(0), is_majority_(false), timeout_(0) {
+  switch (level) {
+    case Level::kMajority:
+      is_majority_ = true;
+      timeout_ = kDefaultMajorityTimeout;
+      break;
+
+    case Level::kUnacknowledged:;  // already set up
+  }
+}
+
+WriteConcern::WriteConcern(size_t nodes_count)
+    : nodes_count_(nodes_count), is_majority_(false), timeout_(0) {}
+
+WriteConcern::WriteConcern(std::string tag)
+    : nodes_count_(0), is_majority_(false), tag_(std::move(tag)), timeout_(0) {
+  if (!utils::text::IsCString(tag_)) {
+    throw InvalidQueryArgumentException("Invalid write concern tag");
+  }
+}
+
+bool WriteConcern::IsMajority() const { return is_majority_; }
+size_t WriteConcern::NodesCount() const { return nodes_count_; }
+const std::string& WriteConcern::Tag() const { return tag_; }
+const boost::optional<bool>& WriteConcern::Journal() const { return journal_; }
+
+const std::chrono::milliseconds& WriteConcern::Timeout() const {
+  return timeout_;
+}
+
+WriteConcern& WriteConcern::SetTimeout(std::chrono::milliseconds timeout) {
+  timeout_ = std::move(timeout);
+  return *this;
+}
+
+WriteConcern& WriteConcern::SetJournal(bool value) {
+  journal_ = value;
+  return *this;
+}
+
 Projection::Projection()
     : builder_(formats::bson::ValueBuilder::Type::kDocument) {}
 

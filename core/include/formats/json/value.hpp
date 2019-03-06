@@ -62,6 +62,9 @@ class Value {
   template <typename T>
   T As() const;
 
+  template <typename T, typename First, typename... Rest>
+  T As(First&& default_arg, Rest&&... more_default_args) const;
+
   bool HasMember(const char* key) const;
   bool HasMember(const std::string& key) const;
 
@@ -134,6 +137,15 @@ double Value::As<double>() const;
 
 template <>
 std::string Value::As<std::string>() const;
+
+template <typename T, typename First, typename... Rest>
+T Value::As(First&& default_arg, Rest&&... more_default_args) const {
+  if (IsMissing()) {
+    return T(std::forward<First>(default_arg),
+             std::forward<Rest>(more_default_args)...);
+  }
+  return As<T>();
+}
 
 template <typename T>
 std::enable_if_t<std::is_integral<T>::value && (sizeof(T) > 1), T> ParseJson(

@@ -101,12 +101,34 @@ class Value {
     return ParseBson(*this, dont_use_me);
   }
 
+  /// Extracts the specified type with strict type checks, or constructs the
+  /// default value when the field is not present
+  template <typename T, typename First, typename... Rest>
+  T As(First&& default_arg, Rest&&... more_default_args) const {
+    if (IsMissing()) {
+      return T(std::forward<First>(default_arg),
+               std::forward<Rest>(more_default_args)...);
+    }
+    return As<T>();
+  }
+
   /// @brief Extracts the specified type with relaxed type checks.
   /// For example, `true` may be converted to 1.0.
   template <typename T>
   T Convert() const {
     const T* dont_use_me = nullptr;
     return ConvertBson(*this, dont_use_me);
+  }
+
+  /// Extracts the specified type with strict type checks, or constructs the
+  /// default value when the field is not present
+  template <typename T, typename First, typename... Rest>
+  T Convert(First&& default_arg, Rest&&... more_default_args) const {
+    if (IsMissing()) {
+      return T(std::forward<First>(default_arg),
+               std::forward<Rest>(more_default_args)...);
+    }
+    return Convert<T>();
   }
 
   /// Throws a MemberMissingException if the selected element does not exist

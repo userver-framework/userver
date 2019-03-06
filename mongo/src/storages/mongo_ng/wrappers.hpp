@@ -49,6 +49,14 @@ struct DatabaseDeleter {
 };
 using DatabasePtr = std::unique_ptr<mongoc_database_t, DatabaseDeleter>;
 
+struct FindAndModifyOptsDeleter {
+  void operator()(mongoc_find_and_modify_opts_t* opts) const noexcept {
+    mongoc_find_and_modify_opts_destroy(opts);
+  }
+};
+using FindAndModifyOptsPtr =
+    std::unique_ptr<mongoc_find_and_modify_opts_t, FindAndModifyOptsDeleter>;
+
 struct ReadConcernDeleter {
   void operator()(mongoc_read_concern_t* read_concern) const noexcept {
     mongoc_read_concern_destroy(read_concern);
@@ -75,5 +83,13 @@ struct UriDeleter {
   void operator()(mongoc_uri_t* uri) const noexcept { mongoc_uri_destroy(uri); }
 };
 using UriPtr = std::unique_ptr<mongoc_uri_t, UriDeleter>;
+
+struct WriteConcernDeleter {
+  void operator()(mongoc_write_concern_t* write_concern) const noexcept {
+    mongoc_write_concern_destroy(write_concern);
+  }
+};
+using WriteConcernPtr =
+    std::unique_ptr<mongoc_write_concern_t, WriteConcernDeleter>;
 
 }  // namespace storages::mongo_ng::impl

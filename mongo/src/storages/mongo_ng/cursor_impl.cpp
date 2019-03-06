@@ -5,8 +5,9 @@
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
+#include <storages/mongo_ng/mongo_error.hpp>
+
 #include <formats/bson/wrappers.hpp>
-#include <storages/mongo_ng/bson_error.hpp>
 #include <utils/assert.hpp>
 
 namespace storages::mongo_ng::impl {
@@ -38,8 +39,8 @@ void CursorImpl::Next() {
 
   UASSERT(client_ && cursor_);
   const bson_t* current_bson = nullptr;
-  impl::BsonError error;
-  while (!mongoc_cursor_error(cursor_.get(), error.Get()) && HasMore()) {
+  MongoError error;
+  while (!mongoc_cursor_error(cursor_.get(), error.GetNative()) && HasMore()) {
     if (mongoc_cursor_next(cursor_.get(), &current_bson)) {
       current_ = formats::bson::Document(
           formats::bson::impl::MutableBson(current_bson).Extract());

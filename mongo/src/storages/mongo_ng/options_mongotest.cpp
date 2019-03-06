@@ -314,3 +314,89 @@ TEST(Options, MaxServerTime) {
         coll.FindOne({}, options::MaxServerTime{std::chrono::seconds{1}}));
   });
 }
+
+TEST(Options, WriteConcern) {
+  RunInCoro([] {
+    auto pool = MakeTestPool();
+    auto coll = pool.GetCollection("write_concern");
+
+    coll.InsertOne({}, options::WriteConcern::kMajority);
+    EXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern::kMajority));
+    EXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern::kUnacknowledged));
+    EXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern{1}));
+    EXPECT_NO_THROW(coll.InsertOne(
+        {}, options::WriteConcern{options::WriteConcern::kMajority}
+                .SetJournal(false)
+                .SetTimeout(std::chrono::milliseconds(100))));
+    EXPECT_THROW(
+        coll.InsertOne({}, options::WriteConcern{static_cast<size_t>(-1)}),
+        InvalidQueryArgumentException);
+    EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{1}.SetTimeout(
+                                        std::chrono::milliseconds::max())),
+                 InvalidQueryArgumentException);
+    EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{10}),
+                 ServerException);
+    EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{"test"}),
+                 ServerException);
+  });
+}
+
+TEST(Options, Unordered) {
+  RunInCoro([] {
+    auto pool = MakeTestPool();
+    auto coll = pool.GetCollection("unordered");
+
+    coll.InsertOne(MakeDoc("_id", 1));
+
+    operations::InsertMany op({MakeDoc("_id", 1)});
+    op.Append(MakeDoc("_id", 2));
+    op.SetOption(options::SuppressServerExceptions{});
+    {
+      auto result = coll.Execute(op);
+      EXPECT_EQ(0, result.InsertedCount());
+      auto errors = result.ServerErrors();
+      ASSERT_EQ(1, errors.size());
+      EXPECT_TRUE(errors[0].IsServerError());
+      EXPECT_EQ(11000, errors[0].Code());
+    }
+    op.SetOption(options::Unordered{});
+    {
+      auto result = coll.Execute(op);
+      EXPECT_EQ(1, result.InsertedCount());
+      auto errors = result.ServerErrors();
+      ASSERT_EQ(1, errors.size());
+      EXPECT_TRUE(errors[0].IsServerError());
+      EXPECT_EQ(11000, errors[0].Code());
+    }
+  });
+}
+
+TEST(Options, Upsert) {
+  RunInCoro([] {
+    auto pool = MakeTestPool();
+    auto coll = pool.GetCollection("upsert");
+
+    coll.InsertOne(MakeDoc("_id", 1));
+    {
+      auto result = coll.ReplaceOne(MakeDoc("_id", 2), MakeDoc());
+      EXPECT_EQ(0, result.MatchedCount());
+      EXPECT_EQ(0, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+    }
+    {
+      auto result =
+          coll.ReplaceOne(MakeDoc("_id", 2), MakeDoc(), options::Upsert{});
+      EXPECT_EQ(0, result.MatchedCount());
+      EXPECT_EQ(0, result.ModifiedCount());
+      EXPECT_EQ(1, result.UpsertedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.UpsertedId().IsInt32());
+      EXPECT_EQ(2, result.UpsertedId().As<int>());
+    }
+    EXPECT_EQ(2, coll.CountApprox());
+  });
+}

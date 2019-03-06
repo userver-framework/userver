@@ -2,12 +2,14 @@
 
 #include <memory>
 #include <type_traits>
+#include <vector>
 
 #include <boost/optional.hpp>
 
 #include <formats/bson/document.hpp>
 #include <storages/mongo_ng/cursor.hpp>
 #include <storages/mongo_ng/operations.hpp>
+#include <storages/mongo_ng/write_result.hpp>
 
 namespace storages::mongo_ng {
 
@@ -38,13 +40,67 @@ class Collection {
       formats::bson::Document filter, Options&&... options) const;
 
   /// Inserts a single document into the collection
-  void InsertOne(const formats::bson::Document& document);
+  template <typename... Options>
+  WriteResult InsertOne(formats::bson::Document document, Options&&... options);
+
+  /// Inserts multiple documents into the collection
+  template <typename... Options>
+  WriteResult InsertMany(std::vector<formats::bson::Document> documents,
+                         Options&&... options);
+
+  /// @brief Replaces a single matching document
+  /// @see options::Upsert
+  template <typename... Options>
+  WriteResult ReplaceOne(formats::bson::Document selector,
+                         formats::bson::Document replacement,
+                         Options&&... options);
+
+  /// @brief Updates a single matching document
+  /// @see options::Upsert
+  template <typename... Options>
+  WriteResult UpdateOne(formats::bson::Document selector,
+                        formats::bson::Document update, Options&&... options);
+
+  /// @brief Updates all matching documents
+  /// @see options::Upsert
+  template <typename... Options>
+  WriteResult UpdateMany(formats::bson::Document selector,
+                         formats::bson::Document update, Options&&... options);
+
+  /// Deletes a single matching document
+  template <typename... Options>
+  WriteResult DeleteOne(formats::bson::Document selector, Options&&... options);
+
+  /// Deletes all matching documents
+  template <typename... Options>
+  WriteResult DeleteMany(formats::bson::Document selector,
+                         Options&&... options);
+
+  /// @brief Atomically updates a single matching document
+  /// @see options::ReturnNew
+  /// @see options::Upsert
+  template <typename... Options>
+  WriteResult FindAndModify(formats::bson::Document query,
+                            const formats::bson::Document& update,
+                            Options&&... options);
+
+  /// Atomically removes a single matching document
+  template <typename... Options>
+  WriteResult FindAndRemove(formats::bson::Document query,
+                            Options&&... options);
 
   /// @name Prepared operation executors
   /// @{
   size_t Execute(const operations::Count&) const;
   size_t Execute(const operations::CountApprox&) const;
   Cursor Execute(const operations::Find&) const;
+  WriteResult Execute(const operations::InsertOne&);
+  WriteResult Execute(const operations::InsertMany&);
+  WriteResult Execute(const operations::ReplaceOne&);
+  WriteResult Execute(const operations::Update&);
+  WriteResult Execute(const operations::Delete&);
+  WriteResult Execute(const operations::FindAndModify&);
+  WriteResult Execute(const operations::FindAndRemove&);
   /// @}
  private:
   std::shared_ptr<impl::CollectionImpl> impl_;
@@ -83,6 +139,87 @@ boost::optional<formats::bson::Document> Collection::FindOne(
                      std::forward<Options>(options)...);
   if (cursor.begin() == cursor.end()) return {};
   return *cursor.begin();
+}
+
+template <typename... Options>
+WriteResult Collection::InsertOne(formats::bson::Document document,
+                                  Options&&... options) {
+  operations::InsertOne insert_op(std::move(document));
+  (insert_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(insert_op);
+}
+
+template <typename... Options>
+WriteResult Collection::InsertMany(
+    std::vector<formats::bson::Document> documents, Options&&... options) {
+  operations::InsertMany insert_op(std::move(documents));
+  (insert_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(insert_op);
+}
+
+template <typename... Options>
+WriteResult Collection::ReplaceOne(formats::bson::Document selector,
+                                   formats::bson::Document replacement,
+                                   Options&&... options) {
+  operations::ReplaceOne replace_op(std::move(selector),
+                                    std::move(replacement));
+  (replace_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(replace_op);
+}
+
+template <typename... Options>
+WriteResult Collection::UpdateOne(formats::bson::Document selector,
+                                  formats::bson::Document update,
+                                  Options&&... options) {
+  operations::Update update_op(operations::Update::Mode::kSingle,
+                               std::move(selector), std::move(update));
+  (update_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(update_op);
+}
+
+template <typename... Options>
+WriteResult Collection::UpdateMany(formats::bson::Document selector,
+                                   formats::bson::Document update,
+                                   Options&&... options) {
+  operations::Update update_op(operations::Update::Mode::kMulti,
+                               std::move(selector), std::move(update));
+  (update_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(update_op);
+}
+
+template <typename... Options>
+WriteResult Collection::DeleteOne(formats::bson::Document selector,
+                                  Options&&... options) {
+  operations::Delete delete_op(operations::Delete::Mode::kSingle,
+                               std::move(selector));
+  (delete_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(delete_op);
+}
+
+template <typename... Options>
+WriteResult Collection::DeleteMany(formats::bson::Document selector,
+                                   Options&&... options) {
+  operations::Delete delete_op(operations::Delete::Mode::kMulti,
+                               std::move(selector));
+  (delete_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(delete_op);
+}
+
+template <typename... Options>
+WriteResult Collection::FindAndModify(formats::bson::Document query,
+                                      const formats::bson::Document& update,
+                                      Options&&... options) {
+  operations::FindAndModify fam_op(std::move(query), update);
+  (fam_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(fam_op);
+}
+
+template <typename... Options>
+WriteResult Collection::FindAndRemove(formats::bson::Document query,
+                                      Options&&... options) {
+  operations::FindAndRemove fam_op(std::move(query));
+  (fam_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(fam_op);
 }
 
 }  // namespace storages::mongo_ng

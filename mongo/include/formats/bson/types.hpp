@@ -32,6 +32,9 @@ using formats::common::PathToString;
 /// BSON ObjectId
 class Oid {
  public:
+  /// Generates a new id
+  Oid();
+
   /// Constructor from hex-encoded form
   explicit Oid(const std::string& hex_encoded);
 

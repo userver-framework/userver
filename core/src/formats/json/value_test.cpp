@@ -1,3 +1,4 @@
+#include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/serialize_container.hpp>
 #include <formats/json/value.hpp>
@@ -83,4 +84,24 @@ TEST(JsonParse, IntOverflow) {
 
   value = formats::json::FromString("[65535]")[0];
   EXPECT_EQ(65535u, value.As<uint16_t>());
+}
+
+TEST(JsonParse, Default) {
+  auto value = formats::json::FromString(R"({"existing": "yes"})");
+  EXPECT_EQ("yes", value["existing"].As<std::string>());
+  EXPECT_EQ("yes", value["existing"].As<std::string>(std::string{"no"}));
+  EXPECT_EQ("yes", value["existing"].As<std::string>("no"));
+  EXPECT_THROW(value["existing"].As<int>(),
+               formats::json::TypeMismatchException);
+  EXPECT_THROW(value["existing"].As<int>(0),
+               formats::json::TypeMismatchException);
+
+  EXPECT_THROW(value["nonexistent"].As<std::string>(),
+               formats::json::MemberMissingException);
+  EXPECT_EQ("no", value["nonexistent"].As<std::string>(std::string("no")));
+  EXPECT_EQ("no", value["nonexistent"].As<std::string>("no"));
+  EXPECT_EQ("no", value["nonexistent"].As<std::string>("nope", 2));
+  EXPECT_THROW(value["nonexistent"].As<int>(),
+               formats::json::MemberMissingException);
+  EXPECT_EQ(0, value["nonexistent"].As<int>(0));
 }

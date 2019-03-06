@@ -7,6 +7,8 @@
 
 namespace formats::bson {
 
+Oid::Oid() { bson_oid_init(&oid_, nullptr); }
+
 Oid::Oid(const std::string& hex_encoded) {
   if (!bson_oid_is_valid(hex_encoded.data(), hex_encoded.size())) {
     throw BsonException("Invalid hex-encoded ObjectId: '" + hex_encoded + '\'');

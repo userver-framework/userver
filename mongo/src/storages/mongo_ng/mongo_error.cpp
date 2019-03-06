@@ -1,12 +1,37 @@
-#include <storages/mongo_ng/bson_error.hpp>
+#include <storages/mongo_ng/mongo_error.hpp>
 
 #include <mongoc/mongoc.h>
 
 #include <storages/mongo_ng/exception.hpp>
 
-namespace storages::mongo_ng::impl {
+namespace storages::mongo_ng {
 
-[[noreturn]] void BsonError::Throw(std::string prefix) const {
+MongoError::MongoError() : value_{0, 0, '\0'} {}
+
+MongoError::operator bool() const { return !!value_.code; }
+
+// NOTE: must be manually synchronized with Throw
+bool MongoError::IsServerError() const {
+  switch (value_.domain) {
+    case MONGOC_ERROR_WRITE_CONCERN:
+      return true;
+
+    case MONGOC_ERROR_SERVER:
+      return value_.code != MONGOC_ERROR_QUERY_COMMAND_NOT_FOUND;
+
+    default:
+      return false;
+  }
+}
+
+uint32_t MongoError::Code() const { return value_.code; }
+const char* MongoError::Message() const { return value_.message; }
+uint32_t MongoError::Domain() const { return value_.domain; }
+
+bson_error_t* MongoError::GetNative() { return &value_; }
+
+// NOTE: must be manually synchronized with IsServerError
+[[noreturn]] void MongoError::Throw(std::string prefix) const {
   if (!prefix.empty()) prefix += ": ";
 
   switch (value_.domain) {
@@ -118,4 +143,4 @@ namespace storages::mongo_ng::impl {
       << '[' << value_.domain << ',' << value_.code << "] " << value_.message;
 }
 
-}  // namespace storages::mongo_ng::impl
+}  // namespace storages::mongo_ng

@@ -31,6 +31,11 @@ TEST(BsonConversion, Missing) {
     EXPECT_EQ(0, elem.Convert<size_t>());
     EXPECT_DOUBLE_EQ(0.0, elem.Convert<double>());
     EXPECT_TRUE(elem.Convert<std::string>().empty());
+
+    EXPECT_EQ(true, elem.Convert<bool>(true));
+    EXPECT_EQ(1, elem.Convert<int>(1));
+    EXPECT_EQ("test", elem.Convert<std::string>("test"));
+    EXPECT_EQ("test", elem.Convert<std::string>("test123", 4));
   };
 
   const auto doc = fb::MakeDoc("a", fb::MakeArray(), "b", fb::MakeDoc());

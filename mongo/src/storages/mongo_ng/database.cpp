@@ -1,9 +1,9 @@
 #include <storages/mongo_ng/database.hpp>
 
 #include <storages/mongo_ng/exception.hpp>
+#include <storages/mongo_ng/mongo_error.hpp>
 #include <utils/text.hpp>
 
-#include <storages/mongo_ng/bson_error.hpp>
 #include <storages/mongo_ng/collection_impl.hpp>
 #include <storages/mongo_ng/wrappers.hpp>
 
@@ -25,9 +25,9 @@ bool Database::HasCollection(const std::string& collection_name) const {
   DatabasePtr database(
       mongoc_client_get_database(client.get(), database_name_.c_str()));
 
-  BsonError error;
+  MongoError error;
   bool has_collection = mongoc_database_has_collection(
-      database.get(), collection_name.c_str(), error.Get());
+      database.get(), collection_name.c_str(), error.GetNative());
   if (error) {
     error.Throw("Error checking for collection existence");
   }

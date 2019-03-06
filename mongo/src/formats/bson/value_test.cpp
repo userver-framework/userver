@@ -153,3 +153,13 @@ TEST(BsonValue, Null) {
   EXPECT_TRUE(null["f"].IsMissing());
   EXPECT_THROW(null[0], fb::OutOfBoundsException);
 }
+
+TEST(BsonValue, Default) {
+  EXPECT_THROW(kDoc["nonexistent"].As<std::string>(),
+               fb::MemberMissingException);
+  EXPECT_EQ("no", kDoc["nonexistent"].As<std::string>(std::string("no")));
+  EXPECT_EQ("no", kDoc["nonexistent"].As<std::string>("no"));
+  EXPECT_EQ("no", kDoc["nonexistent"].As<std::string>("nope", 2));
+  EXPECT_THROW(kDoc["nonexistent"].As<int>(), fb::MemberMissingException);
+  EXPECT_EQ(0, kDoc["nonexistent"].As<int>(0));
+}

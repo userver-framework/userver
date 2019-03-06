@@ -17,7 +17,12 @@ struct DocumentDeleter {
 
 class MutableBson {
  public:
+  class NoInit {};
+
   MutableBson() : bson_(bson_new()) {}
+
+  MutableBson(NoInit)
+      : bson_(static_cast<bson_t*>(bson_malloc(sizeof(bson_t)))) {}
 
   MutableBson(const uint8_t* data, size_t len)
       : bson_(bson_new_from_data(data, len)) {}

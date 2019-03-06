@@ -7,11 +7,11 @@ namespace {
 
 std::string MsgForState(std::ios::iostate state, const char* stream) {
   const char* str_state = "GOOD?";
-  if (state | std::ios::badbit) {
+  if (state & std::ios::badbit) {
     str_state = "BAD";
-  } else if (state | std::ios::failbit) {
+  } else if (state & std::ios::failbit) {
     str_state = "FAIL";
-  } else if (state | std::ios::eofbit) {
+  } else if (state & std::ios::eofbit) {
     str_state = "EOF";
   }
 

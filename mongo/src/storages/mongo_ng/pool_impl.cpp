@@ -3,22 +3,23 @@
 #include <formats/bson.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo_ng/exception.hpp>
+#include <storages/mongo_ng/mongo_error.hpp>
 #include <utils/assert.hpp>
 #include <utils/traceful_exception.hpp>
 
 #include <storages/mongo_ng/async_stream.hpp>
-#include <storages/mongo_ng/bson_error.hpp>
 
 namespace storages::mongo_ng::impl {
 namespace {
 
 UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
                int conn_timeout_ms, int so_timeout_ms) {
-  BsonError parse_error;
-  UriPtr uri(mongoc_uri_new_with_error(uri_string.c_str(), parse_error.Get()));
+  MongoError parse_error;
+  UriPtr uri(
+      mongoc_uri_new_with_error(uri_string.c_str(), parse_error.GetNative()));
   if (!uri) {
     throw InvalidConfigException("Bad MongoDB uri for pool '")
-        << pool_id << "': " << parse_error->message;
+        << pool_id << "': " << parse_error.Message();
   }
   mongoc_uri_set_option_as_int32(uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
                                  conn_timeout_ms);
@@ -122,10 +123,10 @@ mongoc_client_t* PoolImpl::Create() {
 
   // force topology refresh
   // XXX: Periodic task forcing topology refresh?
-  BsonError error;
+  MongoError error;
   if (!mongoc_client_command_simple(
           client.get(), kPingDatabase, kPingCommand.GetBson().get(),
-          kPingReadPrefs.get(), nullptr, error.Get())) {
+          kPingReadPrefs.get(), nullptr, error.GetNative())) {
     error.Throw("Couldn't create a connection in mongo pool '" + id_ + '\'');
   }
 

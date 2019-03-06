@@ -44,6 +44,8 @@ class BsonBuilder {
   BsonBuilder& Append(utils::string_view key, MinKey);
   BsonBuilder& Append(utils::string_view key, MaxKey);
 
+  BsonBuilder& Append(utils::string_view key, const BsonHolder&);
+
   BsonBuilder& Append(utils::string_view key, const Value&);
 
   const bson_t* Get() const;

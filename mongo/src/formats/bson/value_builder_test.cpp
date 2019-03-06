@@ -73,6 +73,20 @@ TEST(BsonValueBuilder, Oid) {
   auto val = fb::ValueBuilder(oid).ExtractValue();
   ASSERT_TRUE(val.IsOid());
   EXPECT_EQ(oid, val.As<fb::Oid>());
+
+  const auto tp_before =
+      std::chrono::system_clock::now() - std::chrono::minutes{1};
+  auto new_val1 = fb::ValueBuilder(fb::Oid{}).ExtractValue();
+  auto new_val2 = fb::ValueBuilder(fb::Oid{}).ExtractValue();
+  const auto tp_after =
+      std::chrono::system_clock::now() + std::chrono::minutes{1};
+  ASSERT_TRUE(new_val1.IsOid());
+  ASSERT_TRUE(new_val2.IsOid());
+  EXPECT_NE(new_val1, new_val2);
+  EXPECT_GT(new_val1.As<fb::Oid>().GetTimePoint(), tp_before);
+  EXPECT_GT(new_val2.As<fb::Oid>().GetTimePoint(), tp_before);
+  EXPECT_LT(new_val1.As<fb::Oid>().GetTimePoint(), tp_after);
+  EXPECT_LT(new_val2.As<fb::Oid>().GetTimePoint(), tp_after);
 }
 
 TEST(BsonValueBuilder, Binary) {

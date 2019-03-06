@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include <boost/optional.hpp>
+
 #include <formats/bson/document.hpp>
 #include <formats/bson/value_builder.hpp>
 
@@ -60,6 +62,58 @@ enum class ReadConcern {
   kAvailable,
 };
 
+/// @brief Write concern
+/// @see https://docs.mongodb.org/manual/reference/write-concern/
+class WriteConcern {
+ public:
+  enum Level {
+    /// Wait until propagation to a "majority" of RS nodes
+    kMajority,
+    /// Do not check for operation errors, do not wait for write, same as `0`
+    kUnacknowledged,
+  };
+
+  /// Default timeout for "majority" write concern
+  static constexpr std::chrono::seconds kDefaultMajorityTimeout{1};
+
+  /// Creates a write concern with the special level
+  explicit WriteConcern(Level level);
+
+  /// Creates a write concern waiting for propagation to `nodes_count` RS nodes
+  explicit WriteConcern(size_t nodes_count);
+
+  /// Creates a write concern defined in RS config
+  explicit WriteConcern(std::string tag);
+
+  bool IsMajority() const;
+  size_t NodesCount() const;
+  const std::string& Tag() const;
+  const boost::optional<bool>& Journal() const;
+  const std::chrono::milliseconds& Timeout() const;
+
+  /// Sets write concern timeout, `0` means no timeout
+  WriteConcern& SetTimeout(std::chrono::milliseconds timeout);
+
+  /// Sets whether to wait for on-disk journal commit
+  WriteConcern& SetJournal(bool value);
+
+ private:
+  size_t nodes_count_;
+  bool is_majority_;
+  boost::optional<bool> journal_;
+  std::string tag_;
+  std::chrono::milliseconds timeout_;
+};
+
+/// Disables ordering on bulk operations causing them to continue after an error
+class Unordered {};
+
+/// Enables insertion of a new document when update selector matches nothing
+class Upsert {};
+
+/// Specifies that FindAndModify should return the new version of an object
+class ReturnNew {};
+
 /// Specifies the number of documents to skip
 class Skip {
  public:
@@ -89,7 +143,7 @@ class Limit {
 /// https://docs.mongodb.com/manual/tutorial/project-fields-from-query-results/
 class Projection {
  public:
-  /// Creates an empty projection including all fields
+  /// Creates a default projection including all fields
   Projection();
 
   /// Creates a projection including only specified fields
@@ -186,6 +240,10 @@ class Hint {
 /// Suppresses errors on querying a sharded collection with unavailable shards
 class AllowPartialResults {};
 
+/// Disables exception throw on server errors, should be checked manually in
+/// WriteResult
+class SuppressServerExceptions {};
+
 /// @brief Enables tailable cursor, which block at the end of capped collections
 /// @note Automatically sets `awaitData`.
 /// @see https://docs.mongodb.com/manual/core/tailable-cursors/
@@ -218,8 +276,7 @@ class BatchSize {
 /// @warning This does not set any client-side timeouts.
 class MaxServerTime {
  public:
-  template <typename Rep, typename Period>
-  explicit MaxServerTime(const std::chrono::duration<Rep, Period>& value)
+  explicit MaxServerTime(const std::chrono::milliseconds& value)
       : value_(value) {}
 
   const std::chrono::milliseconds& Value() const { return value_; }

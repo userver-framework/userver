@@ -1,5 +1,6 @@
 #include <storages/mongo_ng/operations.hpp>
 
+#include <chrono>
 #include <limits>
 
 #include <bson/bson.h>
@@ -7,6 +8,7 @@
 
 #include <formats/bson/value_builder.hpp>
 #include <storages/mongo_ng/exception.hpp>
+#include <utils/assert.hpp>
 
 #include <storages/mongo_ng/operations_impl.hpp>
 
@@ -69,6 +71,16 @@ impl::ReadPrefsPtr MakeReadPrefs(const options::ReadPreference& option) {
   return read_prefs;
 }
 
+formats::bson::impl::BsonHolder MakeSortBson(const options::Sort& sort) {
+  // order is significant here, so we build BSON directly
+  formats::bson::impl::BsonBuilder builder;
+  for (const auto& [field, direction] : sort.GetOrder()) {
+    builder.Append(field,
+                   direction == options::Sort::Direction::kAscending ? 1 : -1);
+  }
+  return builder.Extract();
+}
+
 void AppendReadConcern(formats::bson::impl::BsonBuilder& builder,
                        options::ReadConcern level) {
   impl::ReadConcernPtr read_concern(mongoc_read_concern_new());
@@ -78,14 +90,70 @@ void AppendReadConcern(formats::bson::impl::BsonBuilder& builder,
   }
 
   if (!mongoc_read_concern_append(read_concern.get(), builder.Get())) {
-    throw MongoException("Cannot write read concern option");
+    throw MongoException("Cannot append read concern option");
+  }
+}
+
+void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder,
+                        options::WriteConcern::Level level) {
+  impl::WriteConcernPtr write_concern(mongoc_write_concern_new());
+  switch (level) {
+    case options::WriteConcern::kMajority:
+      mongoc_write_concern_set_wmajority(
+          write_concern.get(),
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              options::WriteConcern::kDefaultMajorityTimeout)
+              .count());
+      break;
+    case options::WriteConcern::kUnacknowledged:
+      mongoc_write_concern_set_w(write_concern.get(), 0);
+      break;
+  }
+  if (!mongoc_write_concern_append(write_concern.get(), builder.Get())) {
+    throw MongoException("Cannot append write concern option");
+  }
+}
+
+void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder,
+                        const options::WriteConcern& wc_option) {
+  if (wc_option.NodesCount() > std::numeric_limits<int32_t>::max()) {
+    throw InvalidQueryArgumentException("Value ")
+        << wc_option.NodesCount()
+        << " of write concern nodes count is too high";
+  }
+  auto timeout_ms = wc_option.Timeout().count();
+  if (timeout_ms > std::numeric_limits<int32_t>::max()) {
+    throw InvalidQueryArgumentException("Value ")
+        << timeout_ms << "ms of write concern timeout is too high";
+  }
+
+  impl::WriteConcernPtr write_concern(mongoc_write_concern_new());
+
+  if (wc_option.IsMajority()) {
+    mongoc_write_concern_set_wmajority(write_concern.get(), timeout_ms);
+  } else {
+    if (!wc_option.Tag().empty()) {
+      mongoc_write_concern_set_wtag(write_concern.get(),
+                                    wc_option.Tag().c_str());
+    } else {
+      mongoc_write_concern_set_w(write_concern.get(), wc_option.NodesCount());
+    }
+    mongoc_write_concern_set_wtimeout(write_concern.get(), timeout_ms);
+  }
+
+  if (wc_option.Journal()) {
+    mongoc_write_concern_set_journal(write_concern.get(), *wc_option.Journal());
+  }
+
+  if (!mongoc_write_concern_append(write_concern.get(), builder.Get())) {
+    throw MongoException("Cannot append write concern option");
   }
 }
 
 void AppendUint64Option(formats::bson::impl::BsonBuilder& builder,
                         const std::string& name, uint64_t value) {
   if (value > std::numeric_limits<int64_t>::max()) {
-    throw InvalidQueryArgumentException("Value")
+    throw InvalidQueryArgumentException("Value ")
         << value << " of '" << name << "' is too high";
   }
   builder.Append(name, value);
@@ -104,6 +172,23 @@ void AppendLimit(formats::bson::impl::BsonBuilder& builder,
 
   static const std::string kOptionName = "limit";
   AppendUint64Option(builder, kOptionName, limit.Value());
+}
+
+void AppendUpsert(formats::bson::impl::BsonBuilder& builder) {
+  static const std::string kOptionName = "upsert";
+  builder.Append(kOptionName, true);
+}
+
+void EnableFlag(const impl::FindAndModifyOptsPtr& fam_options,
+                mongoc_find_and_modify_flags_t new_flag) {
+  UASSERT(!!fam_options);
+  const auto old_flags =
+      mongoc_find_and_modify_opts_get_flags(fam_options.get());
+  if (!mongoc_find_and_modify_opts_set_flags(
+          fam_options.get(),
+          static_cast<mongoc_find_and_modify_flags_t>(old_flags | new_flag))) {
+    throw MongoException("Cannot set FAM flag ") << new_flag;
+  }
 }
 
 }  // namespace
@@ -189,15 +274,7 @@ void Find::SetOption(const options::Sort& sort) {
   if (sort.GetOrder().empty()) return;
 
   static const std::string kOptionName = "sort";
-  // order is significant here, so we build BSON directly
-  formats::bson::impl::SubdocBson subdoc(GetBuilder(impl_->options).Get(),
-                                         kOptionName.c_str(),
-                                         kOptionName.size());
-  for (const auto& [field, direction] : sort.GetOrder()) {
-    bson_append_int32(
-        subdoc.Get(), field.c_str(), field.size(),
-        direction == options::Sort::Direction::kAscending ? 1 : -1);
-  }
+  GetBuilder(impl_->options).Append(kOptionName, MakeSortBson(sort));
 }
 
 void Find::SetOption(const options::Hint& hint) {
@@ -237,6 +314,230 @@ void Find::SetOption(const options::MaxServerTime& max_server_time) {
   static const std::string kOptionName = "maxTimeMS";
   GetBuilder(impl_->options)
       .Append(kOptionName, max_server_time.Value().count());
+}
+
+InsertOne::InsertOne(formats::bson::Document document)
+    : impl_(std::move(document)) {}
+
+InsertOne::~InsertOne() = default;
+
+void InsertOne::SetOption(options::WriteConcern::Level level) {
+  AppendWriteConcern(GetBuilder(impl_->options), level);
+}
+
+void InsertOne::SetOption(const options::WriteConcern& write_concern) {
+  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+}
+
+void InsertOne::SetOption(options::SuppressServerExceptions) {
+  impl_->should_throw = false;
+}
+
+InsertMany::InsertMany() = default;
+
+InsertMany::InsertMany(std::vector<formats::bson::Document> documents_)
+    : impl_(std::move(documents_)) {}
+
+InsertMany::~InsertMany() = default;
+
+void InsertMany::Append(formats::bson::Document document) {
+  impl_->documents.push_back(std::move(document));
+}
+
+void InsertMany::SetOption(options::Unordered) {
+  static const std::string kOptionName = "ordered";
+  GetBuilder(impl_->options).Append(kOptionName, false);
+}
+
+void InsertMany::SetOption(options::WriteConcern::Level level) {
+  AppendWriteConcern(GetBuilder(impl_->options), level);
+}
+
+void InsertMany::SetOption(const options::WriteConcern& write_concern) {
+  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+}
+
+void InsertMany::SetOption(options::SuppressServerExceptions) {
+  impl_->should_throw = false;
+}
+
+ReplaceOne::ReplaceOne(formats::bson::Document selector,
+                       formats::bson::Document replacement)
+    : impl_(std::move(selector), std::move(replacement)) {}
+
+ReplaceOne::~ReplaceOne() = default;
+
+void ReplaceOne::SetOption(options::Upsert) {
+  AppendUpsert(GetBuilder(impl_->options));
+}
+
+void ReplaceOne::SetOption(options::WriteConcern::Level level) {
+  AppendWriteConcern(GetBuilder(impl_->options), level);
+}
+
+void ReplaceOne::SetOption(const options::WriteConcern& write_concern) {
+  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+}
+
+void ReplaceOne::SetOption(options::SuppressServerExceptions) {
+  impl_->should_throw = false;
+}
+
+Update::Update(Mode mode, formats::bson::Document selector,
+               formats::bson::Document update)
+    : impl_(mode, std::move(selector), std::move(update)) {}
+
+Update::~Update() = default;
+
+void Update::SetOption(options::Upsert) {
+  AppendUpsert(GetBuilder(impl_->options));
+}
+
+void Update::SetOption(options::WriteConcern::Level level) {
+  AppendWriteConcern(GetBuilder(impl_->options), level);
+}
+
+void Update::SetOption(const options::WriteConcern& write_concern) {
+  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+}
+
+void Update::SetOption(options::SuppressServerExceptions) {
+  impl_->should_throw = false;
+}
+
+Delete::Delete(Mode mode, formats::bson::Document selector)
+    : impl_(mode, std::move(selector)) {}
+
+Delete::~Delete() = default;
+
+void Delete::SetOption(options::WriteConcern::Level level) {
+  AppendWriteConcern(GetBuilder(impl_->options), level);
+}
+
+void Delete::SetOption(const options::WriteConcern& write_concern) {
+  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+}
+
+void Delete::SetOption(options::SuppressServerExceptions) {
+  impl_->should_throw = false;
+}
+
+FindAndModify::FindAndModify(formats::bson::Document query,
+                             const formats::bson::Document& update)
+    : impl_(std::move(query)) {
+  impl_->options.reset(mongoc_find_and_modify_opts_new());
+  if (!mongoc_find_and_modify_opts_set_update(impl_->options.get(),
+                                              update.GetBson().get())) {
+    throw MongoException("Cannot set update document");
+  }
+}
+
+FindAndModify::~FindAndModify() = default;
+
+void FindAndModify::SetOption(options::Upsert) {
+  EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_UPSERT);
+}
+
+void FindAndModify::SetOption(options::ReturnNew) {
+  EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_RETURN_NEW);
+}
+
+void FindAndModify::SetOption(const options::Sort& sort) {
+  if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(),
+                                            MakeSortBson(sort).get())) {
+    throw MongoException("Cannot set sort");
+  }
+}
+
+void FindAndModify::SetOption(options::Projection projection) {
+  const auto projection_doc = std::move(projection).Extract();
+  if (!mongoc_find_and_modify_opts_set_fields(impl_->options.get(),
+                                              projection_doc.GetBson().get())) {
+    throw MongoException("Cannot set projection");
+  }
+}
+
+void FindAndModify::SetOption(options::WriteConcern::Level level) {
+  formats::bson::impl::BsonBuilder wc_builder;
+  AppendWriteConcern(wc_builder, level);
+  if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
+                                          wc_builder.Extract().get())) {
+    throw MongoException("Cannot set write concern");
+  }
+}
+
+void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
+  formats::bson::impl::BsonBuilder wc_builder;
+  AppendWriteConcern(wc_builder, write_concern);
+  if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
+                                          wc_builder.Extract().get())) {
+    throw MongoException("Cannot set write concern");
+  }
+}
+
+void FindAndModify::SetOption(const options::MaxServerTime& max_server_time) {
+  auto value_ms = max_server_time.Value().count();
+  if (value_ms < 0 || value_ms > std::numeric_limits<uint32_t>::max()) {
+    throw InvalidQueryArgumentException("Max server time of ")
+        << value_ms << "ms is out of bounds";
+  }
+  if (!mongoc_find_and_modify_opts_set_max_time_ms(impl_->options.get(),
+                                                   value_ms)) {
+    throw MongoException("Cannot set max server time");
+  }
+}
+
+FindAndRemove::FindAndRemove(formats::bson::Document query)
+    : impl_(std::move(query)) {
+  impl_->options.reset(mongoc_find_and_modify_opts_new());
+  EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_REMOVE);
+}
+
+FindAndRemove::~FindAndRemove() = default;
+
+void FindAndRemove::SetOption(const options::Sort& sort) {
+  if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(),
+                                            MakeSortBson(sort).get())) {
+    throw MongoException("Cannot set sort");
+  }
+}
+
+void FindAndRemove::SetOption(options::Projection projection) {
+  const auto projection_doc = std::move(projection).Extract();
+  if (!mongoc_find_and_modify_opts_set_fields(impl_->options.get(),
+                                              projection_doc.GetBson().get())) {
+    throw MongoException("Cannot set projection");
+  }
+}
+
+void FindAndRemove::SetOption(options::WriteConcern::Level level) {
+  formats::bson::impl::BsonBuilder wc_builder;
+  AppendWriteConcern(wc_builder, level);
+  if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
+                                          wc_builder.Extract().get())) {
+    throw MongoException("Cannot set write concern");
+  }
+}
+
+void FindAndRemove::SetOption(const options::WriteConcern& write_concern) {
+  formats::bson::impl::BsonBuilder wc_builder;
+  AppendWriteConcern(wc_builder, write_concern);
+  if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
+                                          wc_builder.Extract().get())) {
+    throw MongoException("Cannot set write concern");
+  }
+}
+
+void FindAndRemove::SetOption(const options::MaxServerTime& max_server_time) {
+  auto value_ms = max_server_time.Value().count();
+  if (value_ms < 0 || value_ms > std::numeric_limits<uint32_t>::max()) {
+    throw InvalidQueryArgumentException("Max server time of ")
+        << value_ms << "ms is out of bounds";
+  }
+  if (!mongoc_find_and_modify_opts_set_max_time_ms(impl_->options.get(),
+                                                   value_ms)) {
+    throw MongoException("Cannot set max server time");
+  }
 }
 
 }  // namespace storages::mongo_ng::operations
