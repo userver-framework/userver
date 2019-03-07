@@ -1,5 +1,8 @@
 #include <storages/mongo_ng/pool_impl.hpp>
 
+#include <chrono>
+#include <limits>
+
 #include <formats/bson.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo_ng/exception.hpp>
@@ -12,8 +15,19 @@
 namespace storages::mongo_ng::impl {
 namespace {
 
+int32_t CheckedTimeoutMs(const std::chrono::milliseconds& timeout,
+                         const char* name) {
+  auto timeout_ms = timeout.count();
+  if (timeout_ms < 0 || timeout_ms > std::numeric_limits<int32_t>::max()) {
+    throw InvalidConfigException("Bad value ")
+        << timeout_ms << "ms for '" << name << '\'';
+  }
+  return timeout_ms;
+}
+
 UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
-               int conn_timeout_ms, int so_timeout_ms) {
+               std::chrono::milliseconds conn_timeout,
+               std::chrono::milliseconds so_timeout) {
   MongoError parse_error;
   UriPtr uri(
       mongoc_uri_new_with_error(uri_string.c_str(), parse_error.GetNative()));
@@ -21,10 +35,12 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
     throw InvalidConfigException("Bad MongoDB uri for pool '")
         << pool_id << "': " << parse_error.Message();
   }
-  mongoc_uri_set_option_as_int32(uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
-                                 conn_timeout_ms);
-  mongoc_uri_set_option_as_int32(uri.get(), MONGOC_URI_SOCKETTIMEOUTMS,
-                                 so_timeout_ms);
+  mongoc_uri_set_option_as_int32(
+      uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
+      CheckedTimeoutMs(conn_timeout, MONGOC_URI_CONNECTTIMEOUTMS));
+  mongoc_uri_set_option_as_int32(
+      uri.get(), MONGOC_URI_SOCKETTIMEOUTMS,
+      CheckedTimeoutMs(so_timeout, MONGOC_URI_SOCKETTIMEOUTMS));
   return uri;
 }
 
@@ -49,12 +65,15 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
                    const PoolConfig& config)
     : id_(std::move(id)),
       app_name_(config.app_name),
-      queue_(config.idle_limit),
-      size_(0) {
+      max_size_(config.max_size),
+      queue_timeout_(config.queue_timeout),
+      size_semaphore_(config.max_size),
+      connecting_semaphore_(config.connecting_limit),
+      queue_(config.idle_limit) {
   static const GlobalInitializer kInitMongoc;
   CheckAsyncStreamCompatible();
 
-  uri_ = MakeUri(id_, uri_string, config.conn_timeout_ms, config.so_timeout_ms);
+  uri_ = MakeUri(id_, uri_string, config.conn_timeout, config.so_timeout);
   const char* uri_database = mongoc_uri_get_database(uri_.get());
   if (!uri_database) {
     throw InvalidConfigException("MongoDB uri for pool '")
@@ -90,13 +109,18 @@ void PoolImpl::Push(mongoc_client_t* client) noexcept {
   UASSERT(client);
   if (queue_.bounded_push(client)) return;
   ClientDeleter()(client);
-  --size_;
+  size_semaphore_.unlock_shared();
 }
 
 mongoc_client_t* PoolImpl::Pop() {
-  mongoc_client_t* client = nullptr;
-  if (queue_.pop(client)) return client;
+  if (auto* client = TryGetIdle()) return client;
   return Create();
+}
+
+mongoc_client_t* PoolImpl::TryGetIdle() {
+  mongoc_client_t* client = nullptr;
+  queue_.pop(client);
+  return client;
 }
 
 mongoc_client_t* PoolImpl::Create() {
@@ -104,14 +128,34 @@ mongoc_client_t* PoolImpl::Create() {
   static const char* kPingDatabase = "admin";
   static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
   static const ReadPrefsPtr kPingReadPrefs(
-      mongoc_read_prefs_new(MONGOC_READ_SECONDARY_PREFERRED));
+      mongoc_read_prefs_new(MONGOC_READ_NEAREST));
 
-  if (size_ >= PoolConfig::kMaxSize) {
+  auto deadline = engine::Deadline::FromDuration(queue_timeout_);
+
+  if (!size_semaphore_.try_lock_shared_until(deadline)) {
+    // retry getting idle connection after the wait
+    if (auto* client = TryGetIdle()) return client;
+
     throw MongoException("Mongo pool '")
-        << id_ << "' reached size limit: " << PoolConfig::kMaxSize;
+        << id_ << "' has reached size limit: " << max_size_;
   }
-  LOG_INFO() << "Creating mongo connection, current pool size: "
-             << size_.load();
+  std::shared_lock<engine::Semaphore> size_lock(size_semaphore_,
+                                                std::adopt_lock);
+
+  if (!connecting_semaphore_.try_lock_shared_until(deadline)) {
+    // retry getting idle connection after the wait
+    if (auto* client = TryGetIdle()) return client;
+
+    throw MongoException("Mongo pool '")
+        << id_ << "' has too many establishing connections";
+  }
+  std::shared_lock<engine::Semaphore> connecting_lock(connecting_semaphore_,
+                                                      std::adopt_lock);
+
+  // retry getting idle connection after the wait
+  if (auto* client = TryGetIdle()) return client;
+
+  LOG_DEBUG() << "Creating mongo connection";
 
   UnboundClientPtr client(mongoc_client_new_from_uri(uri_.get()));
   mongoc_client_set_error_api(client.get(), MONGOC_ERROR_API_VERSION_2);
@@ -130,7 +174,7 @@ mongoc_client_t* PoolImpl::Create() {
     error.Throw("Couldn't create a connection in mongo pool '" + id_ + '\'');
   }
 
-  ++size_;
+  size_lock.release();
   return client.release();
 }
 

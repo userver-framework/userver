@@ -260,18 +260,6 @@ class Comment {
   std::string value_;
 };
 
-/// @brief Specifies the number of documents to retrive at a time
-/// @note The value of `0` uses the default batch size
-class BatchSize {
- public:
-  explicit BatchSize(size_t value) : value_(value) {}
-
-  size_t Value() const { return value_; }
-
- private:
-  size_t value_;
-};
-
 /// @brief Specifies the server-side time limit for the operation
 /// @warning This does not set any client-side timeouts.
 class MaxServerTime {

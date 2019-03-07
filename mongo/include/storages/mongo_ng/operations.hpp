@@ -72,7 +72,6 @@ class Find {
   void SetOption(options::AllowPartialResults);
   void SetOption(options::Tailable);
   void SetOption(const options::Comment&);
-  void SetOption(options::BatchSize);
   void SetOption(const options::MaxServerTime&);
 
  private:

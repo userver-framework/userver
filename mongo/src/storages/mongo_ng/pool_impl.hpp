@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -8,6 +9,8 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <engine/deadline.hpp>
+#include <engine/semaphore.hpp>
 #include <storages/mongo_ng/pool_config.hpp>
 #include <storages/mongo_ng/wrappers.hpp>
 #include <utils/assert.hpp>
@@ -40,6 +43,7 @@ class PoolImpl {
   void Push(mongoc_client_t*) noexcept;
   mongoc_client_t* Pop();
 
+  mongoc_client_t* TryGetIdle();
   mongoc_client_t* Create();
 
   const std::string id_;
@@ -47,8 +51,12 @@ class PoolImpl {
   std::string default_database_;
   UriPtr uri_;
   mongoc_ssl_opt_t ssl_opt_;
+
+  const size_t max_size_;
+  const std::chrono::milliseconds queue_timeout_;
+  engine::Semaphore size_semaphore_;
+  engine::Semaphore connecting_semaphore_;
   boost::lockfree::queue<mongoc_client_t*> queue_;
-  std::atomic<size_t> size_;
 };
 
 using BoundClientPtr = PoolImpl::BoundClientPtr;

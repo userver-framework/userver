@@ -302,14 +302,6 @@ void Find::SetOption(const options::Comment& comment) {
   GetBuilder(impl_->options).Append(kOptionName, comment.Value());
 }
 
-void Find::SetOption(options::BatchSize batch_size) {
-  if (!batch_size.Value()) return;
-
-  static const std::string kOptionName = "batchSize";
-  AppendUint64Option(GetBuilder(impl_->options), kOptionName,
-                     batch_size.Value());
-}
-
 void Find::SetOption(const options::MaxServerTime& max_server_time) {
   static const std::string kOptionName = "maxTimeMS";
   GetBuilder(impl_->options)

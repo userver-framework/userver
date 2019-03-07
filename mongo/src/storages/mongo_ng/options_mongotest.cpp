@@ -290,21 +290,6 @@ TEST(Options, Comment) {
   });
 }
 
-TEST(Options, BatchSize) {
-  RunInCoro([] {
-    auto pool = MakeTestPool();
-    auto coll = pool.GetCollection("batch_size");
-
-    coll.InsertOne(MakeDoc("x", 0));
-    coll.InsertOne(MakeDoc("x", 1));
-
-    {
-      auto cursor = coll.Find({}, options::BatchSize{1});
-      EXPECT_EQ(2, std::distance(cursor.begin(), cursor.end()));
-    }
-  });
-}
-
 TEST(Options, MaxServerTime) {
   RunInCoro([] {
     auto pool = MakeTestPool();
