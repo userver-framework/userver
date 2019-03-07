@@ -27,6 +27,24 @@ constexpr char kOkCloseResponse[] =
     "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Length: "
     "0\r\n\r\n";
 
+bool ReceivedFull(const HttpRequest& request) {
+  constexpr char kBoundary[] = "boundary=";
+  auto pos = request.find(kBoundary);
+  if (pos == std::string::npos) {
+    return false;
+  }
+
+  pos += sizeof(kBoundary) - 1;
+  auto end_pos = request.find("\r\n", pos);
+  if (end_pos == std::string::npos) {
+    return false;
+  }
+
+  std::string end_boundary = request.substr(pos, end_pos - pos);
+  end_boundary += "--";
+  return request.find(end_boundary) != std::string::npos;
+}
+
 void validate_filesend(const HttpRequest& request, std::string key,
                        std::string filename, const std::string& content_type,
                        const std::string& test_data) {
@@ -68,12 +86,19 @@ void validate_filesend(const HttpRequest& request, std::string key,
 }
 
 HttpResponse validating_callback1(const HttpRequest& request) {
+  if (!ReceivedFull(request)) {
+    return {{}, HttpResponse::kTryReadMore};
+  }
   validate_filesend(request, kKey, kFileNameTxt, kImageJpeg, kTestData);
 
   return {kOkCloseResponse, HttpResponse::kWriteAndClose};
 }
 
 HttpResponse validating_callback2(const HttpRequest& request) {
+  if (!ReceivedFull(request)) {
+    return {{}, HttpResponse::kTryReadMore};
+  }
+
   validate_filesend(request, kKey, kFileNameTxt, kImageJpeg, kTestData);
   validate_filesend(request, kKey2, kFileName2Bmp, kImageBmp, kOtherTestData);
 
