@@ -11,18 +11,23 @@
 
 namespace formats::bson::impl {
 
+struct RawDeleter {
+  template <typename T>
+  void operator()(T* ptr) const noexcept {
+    bson_free(reinterpret_cast<void*>(ptr));
+  }
+};
+
+template <typename T>
+using RawPtr = std::unique_ptr<T, RawDeleter>;
+
 struct DocumentDeleter {
   void operator()(bson_t* bson) const noexcept { bson_destroy(bson); }
 };
 
 class MutableBson {
  public:
-  class NoInit {};
-
   MutableBson() : bson_(bson_new()) {}
-
-  MutableBson(NoInit)
-      : bson_(static_cast<bson_t*>(bson_malloc(sizeof(bson_t)))) {}
 
   MutableBson(const uint8_t* data, size_t len)
       : bson_(bson_new_from_data(data, len)) {}
@@ -36,6 +41,29 @@ class MutableBson {
 
  private:
   std::unique_ptr<bson_t, DocumentDeleter> bson_;
+};
+
+// This MUST be initialized externally
+class UninitializedBson {
+ public:
+  UninitializedBson()
+      : bson_(static_cast<bson_t*>(bson_malloc(sizeof(bson_t)))) {}
+
+  ~UninitializedBson() {
+    if (bson_) DocumentDeleter{}(bson_.get());
+  }
+
+  bson_t* Get() { return bson_.get(); }
+
+  BsonHolder Extract() {
+    return BsonHolder(bson_.release(), [](bson_t* bson) {
+      DocumentDeleter{}(bson);
+      RawDeleter{}(bson);
+    });
+  }
+
+ private:
+  RawPtr<bson_t> bson_;
 };
 
 class ArrayIndexer {

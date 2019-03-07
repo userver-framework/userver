@@ -21,8 +21,6 @@ const bson_t* GetNative(
 
 class WriteResultHelper {
  public:
-  WriteResultHelper() : bson_(formats::bson::impl::MutableBson::NoInit{}) {}
-
   bson_t* GetNative() { return bson_.Get(); }
 
   WriteResult Extract() {
@@ -30,7 +28,7 @@ class WriteResultHelper {
   }
 
  private:
-  formats::bson::impl::MutableBson bson_;
+  formats::bson::impl::UninitializedBson bson_;
 };
 
 }  // namespace

@@ -40,4 +40,10 @@ class MemberMissingException : public BsonException {
   explicit MemberMissingException(const std::string& path);
 };
 
+/// Conversion error
+class ConversionException : public BsonException {
+ public:
+  using BsonException::BsonException;
+};
+
 }  // namespace formats::bson
