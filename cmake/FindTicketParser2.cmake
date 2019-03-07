@@ -3,7 +3,7 @@ find_library(TICKET_PARSER2_LIBRARIES ticket_parser2)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(TicketParser2
-    "Can't file libticket-parser2, please install libticket-parser2-dev"
+    "Can't find libticket-parser2, please install libticket-parser2-dev or brew install ticket_parser2"
     TICKET_PARSER2_INCLUDE_DIRECTORIES TICKET_PARSER2_LIBRARIES)
 
 if (TicketParser2_FOUND)
