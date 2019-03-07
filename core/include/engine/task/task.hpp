@@ -69,7 +69,6 @@ class USERVER_NODISCARD Task {
 
   /// Checks whether the task is valid
   bool IsValid() const;
-  explicit operator bool() const { return IsValid(); }
 
   /// Gets the task State
   State GetState() const;

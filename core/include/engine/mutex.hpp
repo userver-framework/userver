@@ -4,8 +4,11 @@
 /// @brief @copybrief engine::Mutex
 
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <mutex>  // for std locks
+
+#include <engine/deadline.hpp>
 
 namespace engine {
 namespace impl {
@@ -26,19 +29,35 @@ class Mutex {
   Mutex& operator=(const Mutex&) = delete;
   Mutex& operator=(Mutex&&) = delete;
 
-  /// Suspends execution until the mutex lock is acquired
   void lock();
-
-  /// Releases mutex lock
   void unlock();
+  bool try_lock();
 
-  // TODO: try_lock, try_lock_for, try_lock_until
+  template <typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>&);
+
+  template <typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>&);
+
+  bool try_lock_until(Deadline deadline);
 
  private:
-  void LockSlowPath(impl::TaskContext* current);
+  bool LockFastPath(impl::TaskContext*);
+  bool LockSlowPath(impl::TaskContext*, Deadline);
 
   std::shared_ptr<impl::WaitList> lock_waiters_;
   std::atomic<impl::TaskContext*> owner_;
 };
+
+template <typename Rep, typename Period>
+bool Mutex::try_lock_for(const std::chrono::duration<Rep, Period>& duration) {
+  return try_lock_until(Deadline::FromDuration(duration));
+}
+
+template <typename Clock, typename Duration>
+bool Mutex::try_lock_until(
+    const std::chrono::time_point<Clock, Duration>& until) {
+  return try_lock_until(Deadline::FromTimePoint(until));
+}
 
 }  // namespace engine

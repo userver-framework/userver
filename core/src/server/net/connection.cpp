@@ -47,7 +47,7 @@ Connection::~Connection() {
 
   // Socket listener can be simply cancelled
   LOG_TRACE() << "Stopping socket listener for fd " << fd;
-  UASSERT(socket_listener_);
+  UASSERT(socket_listener_.IsValid());
   socket_listener_ = {};
   LOG_TRACE() << "Stopped socket listener for fd " << fd;
 

@@ -31,7 +31,6 @@ class Future {
   Future& operator=(Future&&) noexcept = default;
 
   bool IsValid() const;
-  explicit operator bool() const { return IsValid(); }
 
   T get();
   void wait() const;

@@ -17,12 +17,12 @@ void semaphore_lock(benchmark::State& state) {
         engine::Semaphore sem{std::numeric_limits<std::size_t>::max()};
 
         for (auto _ : state) {
-          sem.lock();
+          sem.lock_shared();
           ++i;
         }
 
         for (unsigned j = 0; j < i; ++j) {
-          sem.unlock();
+          sem.unlock_shared();
         }
       },
       1);
@@ -37,13 +37,13 @@ void semaphore_unlock(benchmark::State& state) {
 
         auto lock_multiple = [&i, &sem]() {
           for (; i < 1024; ++i) {
-            sem.lock();
+            sem.lock_shared();
           }
         };
         lock_multiple();
 
         for (auto _ : state) {
-          sem.unlock();
+          sem.unlock_shared();
 
           if (--i == 0) {
             state.PauseTiming();
@@ -53,7 +53,7 @@ void semaphore_unlock(benchmark::State& state) {
         }
 
         while (i) {
-          sem.unlock();
+          sem.unlock_shared();
           --i;
         }
       },
@@ -71,14 +71,14 @@ void semaphore_lock_unlock_contention(benchmark::State& state) {
         for (int i = 0; i < state.range(0) - 1; i++)
           tasks.push_back(engine::impl::Async([&]() {
             while (run) {
-              sem.lock();
-              sem.unlock();
+              sem.lock_shared();
+              sem.unlock_shared();
             }
           }));
 
         for (auto _ : state) {
-          sem.lock();
-          sem.unlock();
+          sem.lock_shared();
+          sem.unlock_shared();
         }
 
         run = false;
@@ -97,22 +97,22 @@ void semaphore_lock_unlock_payload_contention(benchmark::State& state) {
         for (int i = 0; i < state.range(0) - 1; i++)
           tasks.push_back(engine::impl::Async([&]() {
             while (run) {
-              sem.lock();
+              sem.lock_shared();
               {
                 std::vector<int> tmp(32, 32);
                 benchmark::DoNotOptimize(tmp);
               }
-              sem.unlock();
+              sem.unlock_shared();
             }
           }));
 
         for (auto _ : state) {
-          sem.lock();
+          sem.lock_shared();
           {
             std::vector<int> tmp(32, 32);
             benchmark::DoNotOptimize(tmp);
           }
-          sem.unlock();
+          sem.unlock_shared();
         }
 
         run = false;
@@ -133,14 +133,14 @@ void semaphore_lock_unlock_coro_contention(benchmark::State& state) {
         for (int i = 0; i < state.range(0) - 1; i++)
           tasks.push_back(engine::impl::Async([&]() {
             while (run) {
-              sem.lock();
-              sem.unlock();
+              sem.lock_shared();
+              sem.unlock_shared();
             }
           }));
 
         for (auto _ : state) {
-          sem.lock();
-          sem.unlock();
+          sem.lock_shared();
+          sem.unlock_shared();
         }
 
         run = false;
@@ -161,22 +161,22 @@ void semaphore_lock_unlock_payload_coro_contention(benchmark::State& state) {
         for (int i = 0; i < state.range(0) - 1; i++)
           tasks.push_back(engine::impl::Async([&]() {
             while (run) {
-              sem.lock();
+              sem.lock_shared();
               {
                 std::vector<int> tmp(32, 32);
                 benchmark::DoNotOptimize(tmp);
               }
-              sem.unlock();
+              sem.unlock_shared();
             }
           }));
 
         for (auto _ : state) {
-          sem.lock();
+          sem.lock_shared();
           {
             std::vector<int> tmp(32, 32);
             benchmark::DoNotOptimize(tmp);
           }
-          sem.unlock();
+          sem.unlock_shared();
         }
 
         run = false;
@@ -197,15 +197,15 @@ void semaphore_lock_unlock_st_coro_contention(benchmark::State& state) {
         for (int i = 0; i < state.range(0) - 1; i++)
           tasks.push_back(engine::impl::Async([&]() {
             while (run) {
-              sem.lock();
-              sem.unlock();
+              sem.lock_shared();
+              sem.unlock_shared();
             }
           }));
 
         for (auto _ : state) {
-          sem.lock();
+          sem.lock_shared();
           engine::Yield();
-          sem.unlock();
+          sem.unlock_shared();
         }
 
         run = false;

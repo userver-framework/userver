@@ -45,3 +45,41 @@ TEST(Mutex, WaitAndCancel) {
     EXPECT_NO_THROW(task.Get());
   });
 }
+
+TEST(Mutex, TryLock) {
+  RunInCoro([] {
+    engine::Mutex mutex;
+
+    EXPECT_TRUE(!!std::unique_lock<engine::Mutex>(mutex, std::try_to_lock));
+    EXPECT_TRUE(!!std::unique_lock<engine::Mutex>(
+        mutex, std::chrono::milliseconds(10)));
+    EXPECT_TRUE(!!std::unique_lock<engine::Mutex>(
+        mutex, std::chrono::system_clock::now()));
+
+    std::unique_lock<engine::Mutex> lock(mutex);
+    EXPECT_FALSE(engine::impl::Async([&mutex] {
+                   return !!std::unique_lock<engine::Mutex>(mutex,
+                                                            std::try_to_lock);
+                 })
+                     .Get());
+
+    EXPECT_FALSE(engine::impl::Async([&mutex] {
+                   return !!std::unique_lock<engine::Mutex>(
+                       mutex, std::chrono::milliseconds(10));
+                 })
+                     .Get());
+    EXPECT_FALSE(engine::impl::Async([&mutex] {
+                   return !!std::unique_lock<engine::Mutex>(
+                       mutex, std::chrono::system_clock::now());
+                 })
+                     .Get());
+
+    auto long_waiter = engine::impl::Async([&mutex] {
+      return !!std::unique_lock<engine::Mutex>(mutex, std::chrono::seconds(10));
+    });
+    engine::Yield();
+    EXPECT_FALSE(long_waiter.IsFinished());
+    lock.unlock();
+    EXPECT_TRUE(long_waiter.Get());
+  });
+}
