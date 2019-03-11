@@ -18,6 +18,11 @@ class InvalidConfigException : public MongoException {
   using MongoException::MongoException;
 };
 
+/// Nonexistent pool requested from the set
+class PoolNotFoundException : public MongoException {
+  using MongoException::MongoException;
+};
+
 /// Network (connectivity) error
 class NetworkException : public MongoException {
  public:

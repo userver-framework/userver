@@ -11,6 +11,7 @@
 
 namespace storages::mongo_ng {
 
+/// MongoDB write operation result
 class WriteResult {
  public:
   /// Creates an empty write result

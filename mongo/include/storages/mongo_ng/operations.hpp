@@ -11,6 +11,7 @@ namespace storages::mongo_ng {
 class Collection;
 }  // namespace storages::mongo_ng
 
+/// Collection operations
 namespace storages::mongo_ng::operations {
 
 /// Counts documents matching the filter

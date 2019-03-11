@@ -17,6 +17,7 @@ namespace impl {
 class CollectionImpl;
 }  // namespace impl
 
+/// MongoDB collection
 class Collection {
  public:
   explicit Collection(std::shared_ptr<impl::CollectionImpl>);

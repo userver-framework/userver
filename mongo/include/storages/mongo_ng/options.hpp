@@ -15,6 +15,7 @@
 #include <formats/bson/document.hpp>
 #include <formats/bson/value_builder.hpp>
 
+/// Collection operation options
 namespace storages::mongo_ng::options {
 
 /// @brief Read preference
@@ -240,8 +241,8 @@ class Hint {
 /// Suppresses errors on querying a sharded collection with unavailable shards
 class AllowPartialResults {};
 
-/// Disables exception throw on server errors, should be checked manually in
-/// WriteResult
+/// @brief Disables exception throw on server errors, should be checked manually
+/// in WriteResult
 class SuppressServerExceptions {};
 
 /// @brief Enables tailable cursor, which block at the end of capped collections

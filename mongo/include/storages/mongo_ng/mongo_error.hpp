@@ -6,6 +6,7 @@
 
 namespace storages::mongo_ng {
 
+/// MongoDB error
 class MongoError {
  public:
   /// @cond

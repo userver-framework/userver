@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <string>
 
+#include <components/component_config.hpp>
+
 namespace storages::mongo_ng {
 
 /// MongoDB connection pool configuration
@@ -28,7 +30,7 @@ class PoolConfig {
   static constexpr size_t kDefaultConnectingLimit = 8;
 
   // Constructor for component use
-  // explicit PoolConfig(const components::ComponentConfig&);
+  explicit PoolConfig(const components::ComponentConfig&);
 
   /// @cond
   // Constructs a constrained pool for tests, not to be used in production code

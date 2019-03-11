@@ -1,10 +1,13 @@
 #include "async_stream.hpp"
 
 #include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <poll.h>
 #include <sys/socket.h>
 
 #include <array>
+#include <cerrno>
 #include <cstdlib>
 #include <memory>
 #include <stdexcept>
@@ -28,7 +31,11 @@ namespace {
 constexpr size_t kBufferSize = 16 * 1024;
 
 constexpr int kCompatibleMajorVersion = 1;
+#if MONGOC_CHECK_VERSION(1, 14, 0)
+constexpr int kMaxCompatibleMinorVersion = 14;
+#else
 constexpr int kMaxCompatibleMinorVersion = 13;
+#endif
 
 static_assert((MONGOC_MAJOR_VERSION) == kCompatibleMajorVersion &&
                   (MONGOC_MINOR_VERSION) <= kMaxCompatibleMinorVersion,
@@ -56,6 +63,7 @@ class AsyncStream : public mongoc_stream_t {
   static ssize_t Poll(mongoc_stream_poll_t*, size_t, int32_t);
   static void Failed(mongoc_stream_t*);
   static bool TimedOut(mongoc_stream_t*);
+  static bool ShouldRetry(mongoc_stream_t*);
 
   engine::io::Socket socket_;
   bool is_timed_out_;
@@ -129,8 +137,10 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
       engine::io::Addr current_addr(res->ai_addr, res->ai_socktype,
                                     res->ai_protocol);
       try {
-        return engine::io::Connect(current_addr,
-                                   DeadlineFromTimeoutMs(timeout_ms));
+        auto socket = engine::io::Connect(current_addr,
+                                          DeadlineFromTimeoutMs(timeout_ms));
+        socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
+        return socket;
       } catch (const engine::io::IoCancelled& ex) {
         // do not log
         bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
@@ -237,6 +247,9 @@ AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
   poll = &Poll;
   failed = &Failed;
   timed_out = &TimedOut;
+#if MONGOC_CHECK_VERSION(1, 14, 0)
+  should_retry = &ShouldRetry;
+#endif
 }
 
 StreamPtr AsyncStream::Create(engine::io::Socket socket) {
@@ -276,6 +289,7 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Writing to async stream " << self;
   self->is_timed_out_ = false;
+  int error = 0;
 
   const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
 
@@ -286,13 +300,23 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
           self->socket_.SendAll(iov[i].iov_base, iov[i].iov_len, deadline);
     }
   } catch (const engine::io::IoCancelled&) {
-    // pass
+    if (!bytes_sent) {
+      error = EINVAL;
+      bytes_sent = -1;
+    }
   } catch (const engine::io::IoTimeout& timeout_ex) {
     self->is_timed_out_ = true;
+    error = ETIMEDOUT;
     bytes_sent += timeout_ex.BytesTransferred();
-  } catch (const engine::io::IoError&) {
-    return -1;
+  } catch (const engine::io::IoSystemError& io_sys) {
+    error = io_sys.Code().value();
+    bytes_sent = -1;
+  } catch (const engine::io::IoError& io_ex) {
+    error = EINVAL;
+    bytes_sent = -1;
   }
+  // libmongoc expects restored errno
+  errno = error;
   return bytes_sent;
 }
 
@@ -302,6 +326,7 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Reading from async stream " << self;
   self->is_timed_out_ = false;
+  int error = 0;
 
   const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
 
@@ -321,15 +346,23 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
       if (!iov[curr_iov].iov_len) ++curr_iov;
     }
   } catch (const engine::io::IoCancelled&) {
-    // pass
+    if (!recvd_total) error = EINVAL;
   } catch (const engine::io::IoTimeout& timeout_ex) {
     self->is_timed_out_ = true;
+    error = ETIMEDOUT;
     recvd_total += timeout_ex.BytesTransferred();
-  } catch (const engine::io::IoError&) {
-    // pass
+  } catch (const engine::io::IoSystemError& io_sys) {
+    error = io_sys.Code().value();
+  } catch (const engine::io::IoError& io_ex) {
+    error = EINVAL;
   }
   // return value logic from _mongoc_stream_socket_readv
-  return recvd_total >= min_bytes ? recvd_total : -1;
+  if (recvd_total < min_bytes) {
+    // libmongoc expects restored errno
+    errno = error;
+    return -1;
+  }
+  return recvd_total;
 }
 
 int AsyncStream::Setsockopt(mongoc_stream_t* stream, int level, int optname,
@@ -413,6 +446,11 @@ bool AsyncStream::TimedOut(mongoc_stream_t* stream) {
   LOG_TRACE() << "Checking timeout state for async stream " << self;
 
   return self->is_timed_out_;
+}
+
+bool AsyncStream::ShouldRetry(mongoc_stream_t*) {
+  // we handle socket retries ourselves
+  return false;
 }
 
 }  // namespace storages::mongo_ng::impl

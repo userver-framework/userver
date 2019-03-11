@@ -119,8 +119,8 @@ mongoc_client_t* PoolImpl::Pop() {
 
 mongoc_client_t* PoolImpl::TryGetIdle() {
   mongoc_client_t* client = nullptr;
-  queue_.pop(client);
-  return client;
+  if (queue_.pop(client)) return client;
+  return nullptr;
 }
 
 mongoc_client_t* PoolImpl::Create() {
