@@ -33,7 +33,7 @@ namespace components {
 ///   queue_timeout: 1s
 ///   initial_size: 4
 ///   max_size: 128
-///   idle_limit: 32
+///   idle_limit: 64
 ///   connecting_limit: 8
 /// ```
 /// You must specify one of `dbalias` or `dbconnection`.
@@ -49,7 +49,7 @@ namespace components {
 /// queue_timeout | max connection queue wait time | 1s
 /// initial_size | number of connections created initially | 4
 /// max_size | limit for total connections number | 128
-/// idle_limit | limit for idle connections number | 32
+/// idle_limit | limit for idle connections number | 64
 /// connecting_limit | limit for establishing connections number | 8
 
 // clang-format on
@@ -82,7 +82,7 @@ class MongoNg : public LoggableComponentBase {
 ///   queue_timeout: 1s
 ///   initial_size: 4
 ///   max_size: 128
-///   idle_limit: 32
+///   idle_limit: 64
 ///   connecting_limit: 8
 /// ```
 ///
@@ -95,7 +95,7 @@ class MongoNg : public LoggableComponentBase {
 /// queue_timeout | max connection queue wait time | 1s
 /// initial_size | number of connections created initially (per database) | 4
 /// max_size | limit for total connections number (per database) | 128
-/// idle_limit | limit for idle connections number (per database) | 32
+/// idle_limit | limit for idle connections number (per database) | 64
 /// connecting_limit | limit for establishing connections number (per database) | 8
 
 // clang-format on

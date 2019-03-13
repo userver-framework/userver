@@ -25,7 +25,7 @@ class PoolConfig {
   /// Default total connections limit
   static constexpr size_t kDefaultMaxSize = 128;
   /// Default idle connections limit
-  static constexpr size_t kDefaultIdleLimit = 32;
+  static constexpr size_t kDefaultIdleLimit = 64;
   /// Default establishing connections limit
   static constexpr size_t kDefaultConnectingLimit = 8;
 

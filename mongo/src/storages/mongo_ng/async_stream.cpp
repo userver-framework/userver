@@ -9,6 +9,7 @@
 #include <array>
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -51,6 +52,11 @@ class AsyncStream : public mongoc_stream_t {
  private:
   AsyncStream(engine::io::Socket) noexcept;
 
+  // mongoc_stream_buffered does not provide write buffering
+  // NOTE: returns number of bytes sent, not buffered!
+  size_t BufferedSend(void*, size_t, engine::Deadline);
+  size_t FlushSendBuffer(engine::Deadline);
+
   // mongoc_stream_t interface
   static void Destroy(mongoc_stream_t*);
   static int Close(mongoc_stream_t*);
@@ -67,7 +73,15 @@ class AsyncStream : public mongoc_stream_t {
 
   engine::io::Socket socket_;
   bool is_timed_out_;
+
+  size_t send_buffer_bytes_used_;
+  // buffer size is adjusted for better heap utilization
+  static constexpr size_t kMaxBufferOffset = 512;
+  std::array<char, kBufferSize - kMaxBufferOffset> send_buffer_;
 };
+static_assert(sizeof(AsyncStream) <= kBufferSize &&
+                  sizeof(AsyncStream) >= (kBufferSize / 2 + kBufferSize / 4),
+              "AsyncStream has suboptimal size");
 
 engine::Deadline DeadlineFromTimeoutMs(int32_t timeout_ms) {
   if (timeout_ms < 0) return {};
@@ -228,13 +242,15 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
     }
   }
 
-  // enable buffering
+  // enable read buffering
   UASSERT(stream);
   return mongoc_stream_buffered_new(stream.release(), kBufferSize);
 }
 
 AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
-    : socket_(std::move(socket)), is_timed_out_(false) {
+    : socket_(std::move(socket)),
+      is_timed_out_(false),
+      send_buffer_bytes_used_(0) {
   type = kStreamType;
   destroy = &Destroy;
   close = &Close;
@@ -250,6 +266,35 @@ AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
 #if MONGOC_CHECK_VERSION(1, 14, 0)
   should_retry = &ShouldRetry;
 #endif
+}
+
+size_t AsyncStream::BufferedSend(void* data, size_t size,
+                                 engine::Deadline deadline) {
+  size_t bytes_sent = 0;
+
+  size_t bytes_left = size;
+  const char* pos = static_cast<const char*>(data);
+  while (bytes_left) {
+    const size_t batch_size = std::min<size_t>(
+        bytes_left, send_buffer_.size() - send_buffer_bytes_used_);
+
+    std::memcpy(send_buffer_.data() + send_buffer_bytes_used_, pos, batch_size);
+    send_buffer_bytes_used_ += batch_size;
+    bytes_left -= batch_size;
+    pos += batch_size;
+
+    UASSERT(send_buffer_bytes_used_ <= send_buffer_.size());
+    if (send_buffer_bytes_used_ == send_buffer_.size()) {
+      bytes_sent += FlushSendBuffer(deadline);
+    }
+  }
+  return bytes_sent;
+}
+
+size_t AsyncStream::FlushSendBuffer(engine::Deadline deadline) {
+  const size_t bytes_to_send = std::exchange(send_buffer_bytes_used_, 0);
+  if (!bytes_to_send) return 0;
+  return socket_.SendAll(send_buffer_.data(), bytes_to_send, deadline);
 }
 
 StreamPtr AsyncStream::Create(engine::io::Socket socket) {
@@ -297,8 +342,9 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
   try {
     for (size_t i = 0; i < iovcnt; ++i) {
       bytes_sent +=
-          self->socket_.SendAll(iov[i].iov_base, iov[i].iov_len, deadline);
+          self->BufferedSend(iov[i].iov_base, iov[i].iov_len, deadline);
     }
+    bytes_sent += self->FlushSendBuffer(deadline);
   } catch (const engine::io::IoCancelled&) {
     if (!bytes_sent) {
       error = EINVAL;
