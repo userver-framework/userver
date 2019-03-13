@@ -42,7 +42,7 @@ JsonString ApplyConversionToString(const impl::BsonHolder& bson,
 
 Document FromJsonString(utils::string_view json) {
   bson_error_t error;
-  impl::MutableBson bson(bson_new_from_json(
+  auto bson = impl::MutableBson::AdoptNative(bson_new_from_json(
       reinterpret_cast<const uint8_t*>(json.data()), json.size(), &error));
   if (!bson.Get()) {
     throw ConversionException("Error parsing BSON from JSON: ")

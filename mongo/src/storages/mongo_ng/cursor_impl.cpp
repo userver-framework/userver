@@ -43,7 +43,7 @@ void CursorImpl::Next() {
   while (!mongoc_cursor_error(cursor_.get(), error.GetNative()) && HasMore()) {
     if (mongoc_cursor_next(cursor_.get(), &current_bson)) {
       current_ = formats::bson::Document(
-          formats::bson::impl::MutableBson(current_bson).Extract());
+          formats::bson::impl::MutableBson::CopyNative(current_bson).Extract());
       break;
     }
   }

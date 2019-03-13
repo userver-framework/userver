@@ -32,7 +32,11 @@ class MutableBson {
   MutableBson(const uint8_t* data, size_t len)
       : bson_(bson_new_from_data(data, len)) {}
 
-  MutableBson(const bson_t* bson) : bson_(bson_copy(bson)) {}
+  static MutableBson AdoptNative(bson_t* bson) { return MutableBson(bson); }
+
+  static MutableBson CopyNative(const bson_t* bson) {
+    return MutableBson(bson_copy(bson));
+  }
 
   const bson_t* Get() const { return bson_.get(); }
   bson_t* Get() { return bson_.get(); }
@@ -40,6 +44,8 @@ class MutableBson {
   BsonHolder Extract() { return BsonHolder(std::move(bson_)); }
 
  private:
+  explicit MutableBson(bson_t* bson) : bson_(bson) {}
+
   std::unique_ptr<bson_t, DocumentDeleter> bson_;
 };
 
