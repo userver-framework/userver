@@ -205,7 +205,6 @@ std::shared_ptr<Request> Request::http_version(http_version_t version) {
 }
 
 std::shared_ptr<Request> Request::retry(int retries, bool on_fails) {
-  UASSERT(retries >= 1);
   if (retries <= 0) retries = 1;
   pimpl_->retry(retries, on_fails);
   return shared_from_this();
