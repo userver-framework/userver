@@ -144,8 +144,6 @@ pg::io::TypeBufferCategory GetTestTypeCategories() {
   return result;
 }
 
-const pg::io::TypeBufferCategory categories = GetTestTypeCategories();
-
 const std::string kArraysSQL = R"~(
 select  '{1, 2, 3, 4}'::integer[],
         '{{1}, {2}, {3}, {4}}'::integer[],
@@ -156,6 +154,7 @@ select  '{1, 2, 3, 4}'::integer[],
 )~";
 
 TEST(PostgreIO, Arrays) {
+  const pg::io::TypeBufferCategory categories = GetTestTypeCategories();
   {
     static_test::one_dim_vector src{1, 2, 3};
     pg::test::Buffer buffer;
