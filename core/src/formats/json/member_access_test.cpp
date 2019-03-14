@@ -56,6 +56,7 @@ TEST_F(JsonMemberAccess, ChildBySquareBraketsBounds) {
 }
 
 TEST_F(JsonMemberAccess, IterateMemberNames) {
+  EXPECT_TRUE(js_doc_.IsObject());
   size_t ind = 1;
   for (auto it = js_doc_.begin(); it != js_doc_.end(); ++it, ++ind) {
     std::ostringstream os("key", std::ios::ate);

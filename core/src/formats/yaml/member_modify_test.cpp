@@ -1,0 +1,269 @@
+#include <gtest/gtest.h>
+
+#include <limits>
+
+#include <formats/yaml/exception.hpp>
+#include <formats/yaml/serialize.hpp>
+#include <formats/yaml/value_builder.hpp>
+#include <formats/yaml/value_detail.hpp>
+
+namespace {
+constexpr const char* kDoc = R"(
+key1: 1
+key2: val
+key3:
+  sub: -1
+key4: [1, 2, 3]
+key5: 10.5
+)";
+}
+
+struct YamlMemberModify : public ::testing::Test {
+  YamlMemberModify() : builder_(formats::yaml::FromString(kDoc)) {}
+
+  formats::yaml::Value GetValue(formats::yaml::ValueBuilder& bld) {
+    auto v = bld.ExtractValue();
+    bld = v;
+    return v;
+  }
+
+  formats::yaml::Value GetBuiltValue() { return GetValue(builder_); }
+
+  formats::yaml::ValueBuilder builder_;
+};
+
+TEST_F(YamlMemberModify, BuildNewValueEveryTime) {
+  EXPECT_FALSE(
+      formats::yaml::detail::IsSamePtrs(GetBuiltValue(), GetBuiltValue()));
+}
+
+TEST_F(YamlMemberModify, CheckPrimitiveTypesChange) {
+  builder_["key1"] = -100;
+  EXPECT_EQ(GetBuiltValue()["key1"].As<int>(), -100);
+
+  builder_["key1"] = "100";
+  EXPECT_EQ(GetBuiltValue()["key1"].As<std::string>(), "100");
+  builder_["key1"] = true;
+  EXPECT_TRUE(GetBuiltValue()["key1"].As<bool>());
+}
+
+TEST_F(YamlMemberModify, CheckNestedTypesChange) {
+  builder_["key3"]["sub"] = false;
+  EXPECT_FALSE(GetBuiltValue()["key3"]["sub"].As<bool>());
+  builder_["key3"] = -100;
+  EXPECT_EQ(GetBuiltValue()["key3"].As<int>(), -100);
+  builder_["key3"] = formats::yaml::FromString("{\"sub\":-1}");
+  EXPECT_EQ(GetBuiltValue()["key3"]["sub"].As<int>(), -1);
+}
+
+TEST_F(YamlMemberModify, CheckNestedArrayChange) {
+  builder_["key4"][1] = 10;
+  builder_["key4"][2] = 100;
+  EXPECT_EQ(GetBuiltValue()["key4"][0].As<int>(), 1);
+  EXPECT_EQ(GetBuiltValue()["key4"][1].As<int>(), 10);
+  EXPECT_EQ(GetBuiltValue()["key4"][2].As<int>(), 100);
+}
+
+TEST_F(YamlMemberModify, ArrayResize) {
+  builder_["key4"].Resize(4);
+  EXPECT_EQ(GetBuiltValue()["key4"].GetSize(), 4);
+
+  builder_["key4"][3] = 4;
+  for (size_t i = 0; i < 4; ++i) {
+    EXPECT_EQ(GetBuiltValue()["key4"][i].As<int>(), i + 1);
+  }
+
+  builder_["key4"].Resize(1);
+
+  EXPECT_EQ(GetBuiltValue()["key4"].GetSize(), 1);
+  EXPECT_EQ(GetBuiltValue()["key4"][0].As<int>(), 1);
+  EXPECT_THROW(GetBuiltValue()["key4"][2], formats::yaml::OutOfBoundsException);
+}
+
+TEST_F(YamlMemberModify, ArrayFromNull) {
+  builder_ = formats::yaml::ValueBuilder();
+  EXPECT_EQ(GetBuiltValue().GetSize(), 0);
+
+  builder_.Resize(1);
+  EXPECT_EQ(GetBuiltValue().GetSize(), 1);
+
+  builder_[0] = 0;
+  EXPECT_EQ(GetBuiltValue()[0].As<int>(), 0);
+  EXPECT_THROW(GetBuiltValue()[2], formats::yaml::OutOfBoundsException);
+}
+
+TEST_F(YamlMemberModify, ArrayPushBack) {
+  builder_ = formats::yaml::ValueBuilder(formats::yaml::Type::kArray);
+
+  const auto size = 5;
+  for (auto i = 0; i < size; ++i) {
+    builder_.PushBack(i);
+  }
+  EXPECT_EQ(GetBuiltValue().GetSize(), size);
+
+  for (auto i = 0; i < size; ++i) {
+    EXPECT_EQ(GetBuiltValue()[i].As<int>(), i);
+  }
+}
+
+TEST_F(YamlMemberModify, PushBackFromExisting) {
+  builder_["key4"].PushBack(builder_["key1"]);
+  EXPECT_EQ(GetBuiltValue()["key4"].GetSize(), 4);
+  EXPECT_EQ(GetBuiltValue()["key4"][3].As<int>(), 1);
+  EXPECT_EQ(GetBuiltValue()["key1"].As<int>(), 1);
+}
+
+TEST_F(YamlMemberModify, PushBackWrongTypeThrows) {
+  EXPECT_THROW(builder_["key1"].PushBack(1),
+               formats::yaml::TypeMismatchException);
+}
+
+TEST_F(YamlMemberModify, ExtractFromSubBuilderThrows) {
+  auto bld = builder_["key1"];
+  EXPECT_THROW(bld.ExtractValue(), formats::yaml::YamlException);
+}
+
+TEST_F(YamlMemberModify, ObjectIteratorModify) {
+  const size_t offset = 3;
+  size_t size = 0;
+  {
+    auto it = builder_.begin();
+    for (; it != builder_.end(); ++it) {
+      *it = offset + (++size);
+    }
+  }
+
+  {
+    auto it = GetBuiltValue().begin();
+    for (size_t i = 1; i <= size; ++i, ++it) {
+      std::string name = "key";
+      name += std::to_string(i);
+      EXPECT_EQ(it.GetName(), name);
+
+      EXPECT_EQ(it->As<int>(), i + offset);
+    }
+  }
+}
+
+TEST_F(YamlMemberModify, MemberCount) { EXPECT_EQ(builder_.GetSize(), 5); }
+
+TEST_F(YamlMemberModify, NonArrayThrowGetSize) {
+  formats::yaml::ValueBuilder bld(true);
+  EXPECT_THROW(bld.GetSize(), formats::yaml::TypeMismatchException);
+}
+
+TEST_F(YamlMemberModify, ArrayIteratorRead) {
+  builder_ = formats::yaml::ValueBuilder();
+  const auto size = 10;
+  builder_.Resize(size);
+
+  for (auto i = 0; i < size; ++i) {
+    builder_[i] = i;
+  }
+
+  auto it = GetBuiltValue().begin();
+  for (auto i = 0; i < size; ++i, ++it) {
+    EXPECT_EQ(it->As<int>(), i);
+  }
+  EXPECT_EQ(builder_.GetSize(), size);
+}
+
+TEST_F(YamlMemberModify, ArrayIteratorModify) {
+  builder_ = formats::yaml::ValueBuilder();
+  const auto size = 10;
+  builder_.Resize(size);
+
+  const size_t offset = 3;
+  {
+    // YamlCpp cannot initialize values of array
+    // with iterators (need to first set values with operator[])
+    for (auto i = 0; i < size; ++i) {
+      builder_[i] = 0;
+    }
+
+    auto it = builder_.begin();
+    for (auto i = offset; it != builder_.end(); ++it, ++i) {
+      *it = i;
+    }
+  }
+
+  {
+    auto it = GetBuiltValue().begin();
+    for (auto i = 0; i < size; ++i, ++it) {
+      EXPECT_EQ(it->As<int>(), i + offset);
+    }
+  }
+  EXPECT_EQ(builder_.GetSize(), size);
+}
+
+TEST_F(YamlMemberModify, CreateSpecificType) {
+  formats::yaml::ValueBuilder js_obj(formats::yaml::Type::kObject);
+  EXPECT_THROW(GetValue(js_obj)[0], formats::yaml::TypeMismatchException);
+
+  formats::yaml::ValueBuilder js_arr(formats::yaml::Type::kArray);
+  EXPECT_THROW(GetValue(js_arr)["key"], formats::yaml::TypeMismatchException);
+}
+
+TEST_F(YamlMemberModify, IteratorOutlivesRoot) {
+  auto it = GetBuiltValue().begin();
+  {
+    formats::yaml::Value v = GetBuiltValue();
+    it = v["key4"].begin();
+  }
+  EXPECT_EQ((++it)->GetPath(), "key4.[1]");
+}
+
+TEST_F(YamlMemberModify, SubdocOutlivesRoot) {
+  formats::yaml::Value v = GetBuiltValue()["key3"];
+  EXPECT_TRUE(v.HasMember("sub"));
+}
+
+TEST_F(YamlMemberModify, MoveValueBuilder) {
+  formats::yaml::ValueBuilder v = std::move(builder_);
+  EXPECT_FALSE(GetValue(v).IsNull());
+  EXPECT_TRUE(GetBuiltValue().IsNull());
+}
+
+TEST_F(YamlMemberModify, CheckSubobjectChange) {
+  formats::yaml::ValueBuilder v = GetBuiltValue();
+  builder_["key4"] = v["key3"];
+  EXPECT_TRUE(GetBuiltValue()["key4"].HasMember("sub"));
+  EXPECT_EQ(GetBuiltValue()["key4"]["sub"].As<int>(), -1);
+  EXPECT_TRUE(GetValue(v)["key3"].HasMember("sub"));
+  EXPECT_EQ(GetValue(v)["key3"]["sub"].As<int>(), -1);
+}
+
+TEST_F(YamlMemberModify, TypeCheckMinMax) {
+  formats::yaml::ValueBuilder bld;
+  bld["int8_t"] = std::numeric_limits<int8_t>::min();
+  bld["uint8_t"] = std::numeric_limits<uint8_t>::max();
+  bld["int16_t"] = std::numeric_limits<int16_t>::min();
+  bld["uint16_t"] = std::numeric_limits<uint16_t>::max();
+  bld["int32_t"] = std::numeric_limits<int32_t>::min();
+  bld["uint32_t"] = std::numeric_limits<uint32_t>::max();
+  bld["int64_t"] = std::numeric_limits<int64_t>::min();
+  bld["uint64_t"] = std::numeric_limits<uint64_t>::max();
+  bld["size_t"] = std::numeric_limits<size_t>::max();
+  bld["long"] = std::numeric_limits<long>::min();
+  bld["long long"] = std::numeric_limits<long long>::min();
+
+  auto v = GetValue(bld);
+  EXPECT_EQ(v["int8_t"].As<int>(), std::numeric_limits<int8_t>::min());
+  EXPECT_EQ(v["uint8_t"].As<uint64_t>(), std::numeric_limits<uint8_t>::max());
+  EXPECT_EQ(v["int16_t"].As<int>(), std::numeric_limits<int16_t>::min());
+  EXPECT_EQ(v["uint16_t"].As<uint64_t>(), std::numeric_limits<uint16_t>::max());
+  EXPECT_EQ(v["int32_t"].As<int>(), std::numeric_limits<int32_t>::min());
+  EXPECT_EQ(v["uint32_t"].As<uint64_t>(), std::numeric_limits<uint32_t>::max());
+  EXPECT_EQ(v["int64_t"].As<int64_t>(), std::numeric_limits<int64_t>::min());
+  EXPECT_EQ(v["uint64_t"].As<uint64_t>(), std::numeric_limits<uint64_t>::max());
+  EXPECT_EQ(v["size_t"].As<size_t>(), std::numeric_limits<size_t>::max());
+  EXPECT_EQ(v["long"].As<int64_t>(), std::numeric_limits<long>::min());
+  EXPECT_EQ(v["long long"].As<int64_t>(),
+            std::numeric_limits<long long>::min());
+}
+
+TEST_F(YamlMemberModify, CannotBuildFromMissing) {
+  formats::yaml::Value v;
+  formats::yaml::ValueBuilder bld;
+  EXPECT_THROW(bld = v["missing_key"], formats::yaml::MemberMissingException);
+}
