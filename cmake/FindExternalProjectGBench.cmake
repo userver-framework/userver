@@ -6,9 +6,7 @@ endif()
 
 ExternalProject_Add(
         gbench
-        GIT_REPOSITORY https://github.yandex-team.ru/taxi-external/google-benchmark.git
-        GIT_TAG v1.4.0
-        TIMEOUT 10
+        SOURCE_DIR ${userver_SOURCE_DIR}/submodules/google-benchmark
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
         CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                 -DBENCHMARK_ENABLE_GTEST_TESTS=OFF
@@ -16,6 +14,8 @@ ExternalProject_Add(
                 -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
                 -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
                 -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
+        # Use inplace, not download
+        DOWNLOAD_COMMAND ""
         # Disable install step
         INSTALL_COMMAND ""
         # Disable update command, since we use predefined stable version

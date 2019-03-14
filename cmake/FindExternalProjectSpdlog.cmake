@@ -4,9 +4,7 @@ if (NOT TARGET spdlog)
 
 ExternalProject_Add(
         spdlog
-        GIT_REPOSITORY https://github.yandex-team.ru/taxi-external/spdlog.git
-        GIT_TAG v1.1.0
-        TIMEOUT 10
+        SOURCE_DIR ${userver_SOURCE_DIR}/submodules/spdlog
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
         CMAKE_ARGS -DSPDLOG_BUILD_EXAMPLES=OFF
                 -DSPDLOG_BUILD_TESTING=OFF
@@ -15,6 +13,8 @@ ExternalProject_Add(
                 -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
                 -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
         PATCH_COMMAND pwd
+        # Use inplace, not download
+        DOWNLOAD_COMMAND ""
         # Disable install step
         INSTALL_COMMAND ""
         # Disable update command, since we use predefined stable version

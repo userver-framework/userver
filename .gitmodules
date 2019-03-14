@@ -4,3 +4,12 @@
 [submodule "testsuite"]
 	path = testsuite/testsuite
 	url = git@github.yandex-team.ru:taxi/testsuite.git
+[submodule "submodules/googletest"]
+	path = submodules/googletest
+	url = git@github.yandex-team.ru:taxi/googletest.git
+[submodule "submodules/google-benchmark"]
+	path = submodules/google-benchmark
+	url = git@github.yandex-team.ru:taxi-external/google-benchmark.git
+[submodule "submodules/spdlog"]
+	path = submodules/spdlog
+	url = git@github.yandex-team.ru:taxi-external/spdlog.git

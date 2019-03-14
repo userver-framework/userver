@@ -6,15 +6,15 @@ endif()
 
 ExternalProject_Add(
         gtest
-        GIT_REPOSITORY https://github.yandex-team.ru/taxi-external/googletest.git
-        GIT_TAG release-1.8.0
-        TIMEOUT 10
+        SOURCE_DIR ${userver_SOURCE_DIR}/submodules/googletest
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
         CMAKE_ARGS -DBUILD_GTEST:BOOL=ON -DBUILD_GMOCK:BOOL=OFF
                 -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
                 -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
                 -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
         # CMAKE_ARGS ${ext_CMAKE_ARGS}
+        # Use inplace, not download
+        DOWNLOAD_COMMAND ""
         # Disable install step
         INSTALL_COMMAND ""
         # Disable update command, since we use predefined stable version
@@ -48,12 +48,12 @@ set( GTEST_MAIN_LIBRARY ${binary_dir}/googletest/${CMAKE_FIND_LIBRARY_PREFIXES}g
 # Add gmock
 ExternalProject_Add(
         gmock
-        GIT_REPOSITORY https://github.yandex-team.ru/taxi-external/googletest.git
-        GIT_TAG release-1.8.0
-        TIMEOUT 10
+        SOURCE_DIR ${userver_SOURCE_DIR}/submodules/googletest
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}
         CMAKE_ARGS -DBUILD_GTEST:BOOL=OFF -DBUILD_GMOCK:BOOL=ON
         #CMAKE_ARGS ${ext_CMAKE_ARGS}
+        # Use inplace, not download
+        DOWNLOAD_COMMAND ""
         # Disable install step
         INSTALL_COMMAND ""
         # Disable update command, since we use predefined stable version
