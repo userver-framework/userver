@@ -23,7 +23,9 @@ std::exception_ptr PrepareException(std::error_code ec) {
     case curl::errc::easy::peer_failed_verification:
     case curl::errc::easy::ssl_cipher:
     case curl::errc::easy::ssl_certproblem:
+#if CURLE_SSL_CACERT != CURLE_PEER_FAILED_VERIFICATION
     case curl::errc::easy::ssl_cacert:
+#endif
     case curl::errc::easy::ssl_cacert_badfile:
     case curl::errc::easy::ssl_issuer_error:
     case curl::errc::easy::ssl_crl_badfile:
