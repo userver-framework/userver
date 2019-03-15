@@ -1,52 +1,27 @@
 #include <gtest/gtest.h>
 
-#include <fstream>
-#include <sstream>
-
 #include <formats/yaml/exception.hpp>
 #include <formats/yaml/serialize.hpp>
 
-namespace {
-constexpr const char* kDoc = "key1: 1\nkey2: val";
-}
+#include <formats/common/serialize_test.hpp>
 
-TEST(YamlSerialize, StringToString) {
-  auto&& js_doc = formats::yaml::FromString(kDoc);
-  EXPECT_EQ(formats::yaml::ToString(js_doc), kDoc);
-}
+template <>
+struct Serialization<formats::yaml::Value> : public ::testing::Test {
+  constexpr static const char* kDoc = "key1: 1\nkey2: val";
 
-TEST(YamlSerialize, StreamToString) {
-  std::istringstream is(kDoc);
-  auto&& js_doc = formats::yaml::FromStream(is);
-  EXPECT_EQ(formats::yaml::ToString(js_doc), kDoc);
-}
+  using ValueBuilder = formats::yaml::ValueBuilder;
+  using Value = formats::yaml::Value;
+  using Type = formats::yaml::Type;
 
-TEST(YamlSerialize, StringToStream) {
-  auto&& js_doc = formats::yaml::FromString(kDoc);
-  std::ostringstream os;
-  formats::yaml::Serialize(js_doc, os);
-  EXPECT_EQ(os.str(), kDoc);
-}
+  using ParseException = formats::yaml::ParseException;
+  using TypeMismatchException = formats::yaml::TypeMismatchException;
+  using OutOfBoundsException = formats::yaml::OutOfBoundsException;
+  using IntegralOverflowException = formats::yaml::IntegralOverflowException;
+  using MemberMissingException = formats::yaml::MemberMissingException;
+  using BadStreamException = formats::yaml::BadStreamException;
 
-TEST(YamlSerialize, StreamReadException) {
-  std::fstream is("some-missing-doc");
-  EXPECT_THROW(formats::yaml::FromStream(is),
-               formats::yaml::BadStreamException);
-}
+  constexpr static auto FromString = formats::yaml::FromString;
+  constexpr static auto FromStream = formats::yaml::FromStream;
+};
 
-TEST(YamlSerialize, StreamWriteException) {
-  auto&& js_doc = formats::yaml::FromString(kDoc);
-  std::ostringstream os;
-  os.setstate(std::ios::failbit);
-  EXPECT_THROW(formats::yaml::Serialize(js_doc, os),
-               formats::yaml::BadStreamException);
-}
-
-TEST(YamlSerialize, ParsingException) {
-  // Differs from JSON
-  EXPECT_THROW(formats::yaml::FromString("&"), formats::yaml::ParseException);
-}
-
-TEST(YamlSerialize, EmptyDocException) {
-  EXPECT_THROW(formats::yaml::FromString(""), formats::yaml::ParseException);
-}
+INSTANTIATE_TYPED_TEST_CASE_P(FormatsYaml, Serialization, formats::yaml::Value);

@@ -24,8 +24,6 @@ Value::Value(const NativeValuePtr& root, const Json::Value& val,
   path_.push_back('[' + std::to_string(index) + ']');
 }
 
-const Json::Value& Value::Get() const { return GetNative(); }
-
 Value Value::operator[](const std::string& key) const {
   const Json::Value* child = nullptr;
   if (!IsMissing()) {

@@ -1,51 +1,27 @@
 #include <gtest/gtest.h>
 
-#include <fstream>
-#include <sstream>
-
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
 
-namespace {
-constexpr const char* kDoc = "{\"key1\":1,\"key2\":\"val\"}";
-}
+#include <formats/common/serialize_test.hpp>
 
-TEST(JsonSerialize, StringToString) {
-  auto&& js_doc = formats::json::FromString(kDoc);
-  EXPECT_EQ(formats::json::ToString(js_doc), kDoc);
-}
+template <>
+struct Serialization<formats::json::Value> : public ::testing::Test {
+  constexpr static const char* kDoc = "{\"key1\":1,\"key2\":\"val\"}";
 
-TEST(JsonSerialize, StreamToString) {
-  std::istringstream is(kDoc);
-  auto&& js_doc = formats::json::FromStream(is);
-  EXPECT_EQ(formats::json::ToString(js_doc), kDoc);
-}
+  using ValueBuilder = formats::json::ValueBuilder;
+  using Value = formats::json::Value;
+  using Type = formats::json::Type;
 
-TEST(JsonSerialize, StringToStream) {
-  auto&& js_doc = formats::json::FromString(kDoc);
-  std::ostringstream os;
-  formats::json::Serialize(js_doc, os);
-  EXPECT_EQ(os.str(), kDoc);
-}
+  using ParseException = formats::json::ParseException;
+  using TypeMismatchException = formats::json::TypeMismatchException;
+  using OutOfBoundsException = formats::json::OutOfBoundsException;
+  using IntegralOverflowException = formats::json::IntegralOverflowException;
+  using MemberMissingException = formats::json::MemberMissingException;
+  using BadStreamException = formats::json::BadStreamException;
 
-TEST(JsonSerialize, StreamReadException) {
-  std::fstream is("some-missing-doc");
-  EXPECT_THROW(formats::json::FromStream(is),
-               formats::json::BadStreamException);
-}
+  constexpr static auto FromString = formats::json::FromString;
+  constexpr static auto FromStream = formats::json::FromStream;
+};
 
-TEST(JsonSerialize, StreamWriteException) {
-  auto&& js_doc = formats::json::FromString(kDoc);
-  std::ostringstream os;
-  os.setstate(std::ios::failbit);
-  EXPECT_THROW(formats::json::Serialize(js_doc, os),
-               formats::json::BadStreamException);
-}
-
-TEST(JsonSerialize, ParsingException) {
-  EXPECT_THROW(formats::json::FromString("\'"), formats::json::ParseException);
-}
-
-TEST(JsonSerialize, EmptyDocException) {
-  EXPECT_THROW(formats::json::FromString(""), formats::json::ParseException);
-}
+INSTANTIATE_TYPED_TEST_CASE_P(FormatsJson, Serialization, formats::json::Value);

@@ -81,13 +81,12 @@ class Value {
   void CheckObjectOrArrayOrNull() const;
   void CheckInBounds(uint32_t index) const;
 
- protected:
-  Value(const YAML::Node& root) noexcept;
-  const YAML::Node& Get() const;
   bool IsRoot() const;
-  bool IsSameNode(const Value& other) const;
+  bool DebugIsReferencingSameMemory(const Value& other) const;
 
  private:
+  Value(const YAML::Node& root) noexcept;
+
   static Value MakeNonRoot(const YAML::Node& value,
                            const formats::yaml::Path& path,
                            const std::string& key);

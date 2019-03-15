@@ -123,18 +123,19 @@ uint32_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 
 void ValueBuilder::Resize(uint32_t size) {
   value_.CheckArrayOrNull();
-  auto sequnce_lengh = value_.GetNative().size();
-  if (sequnce_lengh == size) {
+
+  auto sequence_lengh = value_.GetNative().size();
+  if (sequence_lengh == size) {
     return;
   }
 
-  if (sequnce_lengh < size) {
-    for (; sequnce_lengh != size; ++sequnce_lengh) {
+  if (sequence_lengh < size) {
+    for (; sequence_lengh != size; ++sequence_lengh) {
       value_.GetNative().push_back(YAML::Node{});
     }
   } else {
     // YAML has problems with updating size after the shrink operation, so
-    // instead of removinf nodes, we copy them into a new one.
+    // instead of removing nodes, we copy them into a new one.
     YAML::Node new_node;
     for (std::size_t i = 0; i != size; ++i) {
       new_node[i] = (*value_.value_pimpl_)[i];
@@ -146,7 +147,8 @@ void ValueBuilder::Resize(uint32_t size) {
 
 void ValueBuilder::PushBack(ValueBuilder&& bld) {
   value_.CheckArrayOrNull();
-  value_.GetNative()[static_cast<int>(value_.GetSize())] = std::move(bld).Get();
+  value_.GetNative()[static_cast<int>(value_.GetSize())] =
+      std::move(bld).value_.GetNative();
 }
 
 formats::yaml::Value ValueBuilder::ExtractValue() {
@@ -172,8 +174,6 @@ void ValueBuilder::SetNonRoot(const YAML::Node& val,
                               const formats::yaml::Path& path, uint32_t index) {
   value_.SetNonRoot(val, path, index);
 }
-
-const YAML::Node& ValueBuilder::Get() const { return value_.Get(); }
 
 std::string ValueBuilder::GetPath() const { return value_.GetPath(); }
 

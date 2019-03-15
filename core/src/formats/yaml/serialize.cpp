@@ -6,7 +6,6 @@
 #include <sstream>
 
 #include <formats/yaml/exception.hpp>
-#include <formats/yaml/value_detail.hpp>
 
 #include <yaml-cpp/yaml.h>
 

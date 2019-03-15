@@ -77,8 +77,6 @@ Value Value::MakeNonRoot(const YAML::Node& value,
   return ret;
 }
 
-const YAML::Node& Value::Get() const { return GetNative(); }
-
 Value Value::operator[](const std::string& key) const {
   if (!IsMissing()) {
     CheckObjectOrNull();
@@ -222,9 +220,8 @@ void Value::EnsureValid() const { CheckNotMissing(); }
 
 bool Value::IsRoot() const { return is_root_; }
 
-bool Value::IsSameNode(const Value& other) const {
-  return is_root_ == other.is_root_ && value_pimpl_->is(*other.value_pimpl_) &&
-         path_ == other.path_;
+bool Value::DebugIsReferencingSameMemory(const Value& other) const {
+  return value_pimpl_->is(*other.value_pimpl_);
 }
 
 const YAML::Node& Value::GetNative() const {

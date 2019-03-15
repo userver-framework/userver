@@ -85,7 +85,6 @@ class ValueBuilder {
            const formats::json::Path& path, const std::string& key);
   void Set(const NativeValuePtr& root, const Json::Value& val,
            const formats::json::Path& path, uint32_t index);
-  const Json::Value& Get() const;
   std::string GetPath() const;
 
   void Copy(Json::Value& to, const ValueBuilder& from);

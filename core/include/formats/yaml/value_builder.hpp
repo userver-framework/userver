@@ -87,7 +87,6 @@ class ValueBuilder {
                   const std::string& key);
   void SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
                   uint32_t index);
-  const YAML::Node& Get() const;
   std::string GetPath() const;
 
   void Copy(const ValueBuilder& from);

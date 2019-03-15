@@ -77,13 +77,15 @@ class Value {
   void CheckObjectOrArrayOrNull() const;
   void CheckInBounds(uint32_t index) const;
 
- protected:
-  Value(NativeValuePtr&& root) noexcept;
-  const Json::Value& Get() const;
   bool IsRoot() const;
-  bool IsUniqueReference() const;
+  bool DebugIsReferencingSameMemory(const Value& other) const {
+    return value_ptr_ == other.value_ptr_;
+  }
 
  private:
+  Value(NativeValuePtr&& root) noexcept;
+  bool IsUniqueReference() const;
+
   Value(const NativeValuePtr& root, const Json::Value* value_ptr,
         const formats::json::Path& path, const std::string& key);
   Value(const NativeValuePtr& root, const Json::Value& val,
@@ -105,6 +107,10 @@ class Value {
 
   friend class Iterator<IterTraits>;
   friend class ValueBuilder;
+
+  friend formats::json::Value FromString(const std::string&);
+  friend formats::json::Value FromStream(std::istream&);
+  friend void Serialize(const formats::json::Value&, std::ostream&);
 };
 
 template <typename T>

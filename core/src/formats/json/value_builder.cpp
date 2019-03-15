@@ -122,8 +122,6 @@ void ValueBuilder::Set(const NativeValuePtr& root, const Json::Value& val,
   value_.Set(root, val, path, index);
 }
 
-const Json::Value& ValueBuilder::Get() const { return value_.Get(); }
-
 std::string ValueBuilder::GetPath() const { return value_.GetPath(); }
 
 void ValueBuilder::Copy(Json::Value& to, const ValueBuilder& from) {

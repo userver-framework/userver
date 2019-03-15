@@ -9,7 +9,6 @@
 #include <json/writer.h>
 
 #include <formats/json/exception.hpp>
-#include <formats/json/value_detail.hpp>
 
 namespace {
 constexpr size_t kBufSize = 32 * 1024ull;
@@ -34,7 +33,7 @@ formats::json::Value FromString(const std::string& doc) {
                      &errors)) {
     throw ParseException(errors);
   }
-  return formats::json::detail::Value(std::move(root));
+  return formats::json::Value(std::move(root));
 }
 
 formats::json::Value FromStream(std::istream& is) {
@@ -63,8 +62,7 @@ void Serialize(const formats::json::Value& doc, std::ostream& os) {
     builder["indentation"] = "";
     return builder.newStreamWriter();
   }());
-  writer->write(static_cast<const formats::json::detail::Value&>(doc).Get(),
-                &os);
+  writer->write(doc.GetNative(), &os);
   if (!os) {
     throw BadStreamException(os);
   }
