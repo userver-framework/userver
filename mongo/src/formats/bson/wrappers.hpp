@@ -32,6 +32,15 @@ class MutableBson {
   MutableBson(const uint8_t* data, size_t len)
       : bson_(bson_new_from_data(data, len)) {}
 
+  MutableBson(const MutableBson& other) { *this = other; }
+  MutableBson(MutableBson&&) noexcept = default;
+
+  MutableBson& operator=(const MutableBson& rhs) {
+    return *this = CopyNative(rhs.bson_.get());
+  }
+
+  MutableBson& operator=(MutableBson&&) noexcept = default;
+
   static MutableBson AdoptNative(bson_t* bson) { return MutableBson(bson); }
 
   static MutableBson CopyNative(const bson_t* bson) {

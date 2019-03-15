@@ -28,6 +28,10 @@ class CollectionImpl {
     }
   }
 
+  PoolImpl& GetPoolImpl() const { return *pool_impl_; }
+  const std::string& GetDatabaseName() const { return database_name_; }
+  const std::string& GetCollectionName() const { return collection_name_; }
+
   std::tuple<BoundClientPtr, CollectionPtr> GetNativeCollection() {
     auto client = pool_impl_->Acquire();
     CollectionPtr collection(mongoc_client_get_collection(

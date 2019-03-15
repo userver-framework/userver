@@ -17,6 +17,7 @@ TEST(BsonValueBuilder, Default) {
 TEST(BsonValueBuilder, Null) {
   auto val = fb::ValueBuilder(nullptr).ExtractValue();
   EXPECT_TRUE(val.IsNull());
+  EXPECT_EQ(val, fb::ValueBuilder(fb::kNull).ExtractValue());
 }
 
 TEST(BsonValueBuilder, Bool) {

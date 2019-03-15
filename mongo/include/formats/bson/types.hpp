@@ -29,6 +29,8 @@ using ParsedDocument = std::unordered_map<std::string, ValueImplPtr>;
 using formats::common::Path;
 using formats::common::PathToString;
 
+inline constexpr auto kNull = nullptr;
+
 /// BSON ObjectId
 class Oid {
  public:

@@ -18,7 +18,9 @@ class BsonBuilder {
   explicit BsonBuilder(const ValueImpl&);
   ~BsonBuilder();
 
+  BsonBuilder(const BsonBuilder&);
   BsonBuilder(BsonBuilder&&) noexcept;
+  BsonBuilder& operator=(const BsonBuilder&);
   BsonBuilder& operator=(BsonBuilder&&) noexcept;
 
   BsonBuilder& Append(utils::string_view key, std::nullptr_t);

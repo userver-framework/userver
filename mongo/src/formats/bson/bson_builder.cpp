@@ -45,7 +45,10 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
 }
 
 BsonBuilder::~BsonBuilder() = default;
+
+BsonBuilder::BsonBuilder(const BsonBuilder&) = default;
 BsonBuilder::BsonBuilder(BsonBuilder&&) noexcept = default;
+BsonBuilder& BsonBuilder::operator=(const BsonBuilder&) = default;
 BsonBuilder& BsonBuilder::operator=(BsonBuilder&&) noexcept = default;
 
 BsonBuilder& BsonBuilder::Append(utils::string_view key, std::nullptr_t) {

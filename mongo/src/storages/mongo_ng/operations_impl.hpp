@@ -5,9 +5,10 @@
 #include <boost/optional.hpp>
 
 #include <formats/bson/bson_builder.hpp>
+#include <formats/bson/document.hpp>
+#include <storages/mongo_ng/bulk.hpp>
 #include <storages/mongo_ng/operations.hpp>
 
-#include <formats/bson/wrappers.hpp>
 #include <storages/mongo_ng/wrappers.hpp>
 
 namespace storages::mongo_ng::operations {
@@ -38,7 +39,7 @@ class Find::Impl {
 
 class InsertOne::Impl {
  public:
-  explicit Impl(formats::bson::Document document_)
+  explicit Impl(formats::bson::Document&& document_)
       : document(std::move(document_)), should_throw(true) {}
 
   formats::bson::Document document;
@@ -50,7 +51,7 @@ class InsertMany::Impl {
  public:
   Impl() : should_throw(true) {}
 
-  explicit Impl(std::vector<formats::bson::Document> documents_)
+  explicit Impl(std::vector<formats::bson::Document>&& documents_)
       : documents(std::move(documents_)), should_throw(true) {}
 
   std::vector<formats::bson::Document> documents;
@@ -60,7 +61,8 @@ class InsertMany::Impl {
 
 class ReplaceOne::Impl {
  public:
-  Impl(formats::bson::Document selector_, formats::bson::Document replacement_)
+  Impl(formats::bson::Document&& selector_,
+       formats::bson::Document&& replacement_)
       : selector(std::move(selector_)),
         replacement(std::move(replacement_)),
         should_throw(true) {}
@@ -73,7 +75,7 @@ class ReplaceOne::Impl {
 
 class Update::Impl {
  public:
-  Impl(Mode mode_, formats::bson::Document selector_,
+  Impl(Mode mode_, formats::bson::Document&& selector_,
        formats::bson::Document update_)
       : mode(mode_),
         should_throw(true),
@@ -89,7 +91,7 @@ class Update::Impl {
 
 class Delete::Impl {
  public:
-  Impl(Mode mode_, formats::bson::Document selector_)
+  Impl(Mode mode_, formats::bson::Document&& selector_)
       : mode(mode_), should_throw(true), selector(std::move(selector_)) {}
 
   Mode mode;
@@ -100,7 +102,7 @@ class Delete::Impl {
 
 class FindAndModify::Impl {
  public:
-  explicit Impl(formats::bson::Document query_) : query(std::move(query_)) {}
+  explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
 
   formats::bson::Document query;
   impl::FindAndModifyOptsPtr options;
@@ -108,10 +110,18 @@ class FindAndModify::Impl {
 
 class FindAndRemove::Impl {
  public:
-  explicit Impl(formats::bson::Document query_) : query(std::move(query_)) {}
+  explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
 
   formats::bson::Document query;
   impl::FindAndModifyOptsPtr options;
+};
+
+class Bulk::Impl {
+ public:
+  Impl() : should_throw(true) {}
+
+  impl::BulkOperationPtr bulk;
+  bool should_throw;
 };
 
 }  // namespace storages::mongo_ng::operations

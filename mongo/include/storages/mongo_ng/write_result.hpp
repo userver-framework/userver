@@ -32,7 +32,8 @@ class WriteResult {
   size_t DeletedCount() const;
   /// @}
 
-  /// `_id` value of the upserted document if any, missing value otherwise
+  /// @brief `_id` value of upserted document if any, missing value otherwise
+  /// @note Not filled for bulk operations.
   formats::bson::Value UpsertedId() const;
 
   /// The document returned by FindAnd* operation if any

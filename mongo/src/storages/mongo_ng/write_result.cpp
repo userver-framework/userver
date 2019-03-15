@@ -19,13 +19,13 @@ WriteResult::WriteResult(formats::bson::Document value)
     : value_(std::move(value)) {}
 
 size_t WriteResult::InsertedCount() const {
-  return value_["insertedCount"].As<size_t>(0);
+  return value_["insertedCount"].As<size_t>(value_["nInserted"].As<size_t>(0));
 }
 
 size_t WriteResult::MatchedCount() const {
   auto fam_status = value_[kFamStatus];
   if (fam_status.IsMissing()) {
-    return value_["matchedCount"].As<size_t>(0);
+    return value_["matchedCount"].As<size_t>(value_["nMatched"].As<size_t>(0));
   }
   if (fam_status[kFamStatusUpsertedId].IsMissing()) {
     return fam_status[kFamStatusAffectedCount].As<size_t>();
@@ -36,7 +36,8 @@ size_t WriteResult::MatchedCount() const {
 size_t WriteResult::ModifiedCount() const {
   auto fam_status = value_[kFamStatus];
   if (fam_status.IsMissing()) {
-    return value_["modifiedCount"].As<size_t>(0);
+    return value_["modifiedCount"].As<size_t>(
+        value_["nModified"].As<size_t>(0));
   }
   if (fam_status[kFamStatusUpdatedExisting].As<bool>(false)) {
     return fam_status[kFamStatusAffectedCount].As<size_t>();
@@ -47,7 +48,8 @@ size_t WriteResult::ModifiedCount() const {
 size_t WriteResult::UpsertedCount() const {
   auto fam_status = value_[kFamStatus];
   if (fam_status.IsMissing()) {
-    return value_["upsertedCount"].As<size_t>(0);
+    return value_["upsertedCount"].As<size_t>(
+        value_["nUpserted"].As<size_t>(0));
   }
   if (!fam_status[kFamStatusUpsertedId].IsMissing()) {
     return fam_status[kFamStatusAffectedCount].As<size_t>();
@@ -58,7 +60,7 @@ size_t WriteResult::UpsertedCount() const {
 size_t WriteResult::DeletedCount() const {
   auto fam_status = value_[kFamStatus];
   if (fam_status.IsMissing()) {
-    return value_["deletedCount"].As<size_t>(0);
+    return value_["deletedCount"].As<size_t>(value_["nRemoved"].As<size_t>(0));
   }
   if (fam_status[kFamStatusUpdatedExisting].IsMissing()) {
     return fam_status[kFamStatusAffectedCount].As<size_t>();

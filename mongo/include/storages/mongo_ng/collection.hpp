@@ -7,6 +7,7 @@
 #include <boost/optional.hpp>
 
 #include <formats/bson/document.hpp>
+#include <storages/mongo_ng/bulk.hpp>
 #include <storages/mongo_ng/cursor.hpp>
 #include <storages/mongo_ng/operations.hpp>
 #include <storages/mongo_ng/write_result.hpp>
@@ -90,6 +91,14 @@ class Collection {
   WriteResult FindAndRemove(formats::bson::Document query,
                             Options&&... options);
 
+  /// Efficiently executes multiple operations in order, stops on error
+  template <typename... Options>
+  operations::Bulk MakeOrderedBulk(Options&&... options);
+
+  /// Efficiently executes multiple operations out of order, continues on error
+  template <typename... Options>
+  operations::Bulk MakeUnorderedBulk(Options&&... options);
+
   /// @name Prepared operation executors
   /// @{
   size_t Execute(const operations::Count&) const;
@@ -102,6 +111,7 @@ class Collection {
   WriteResult Execute(const operations::Delete&);
   WriteResult Execute(const operations::FindAndModify&);
   WriteResult Execute(const operations::FindAndRemove&);
+  WriteResult Execute(operations::Bulk&&);
   /// @}
  private:
   std::shared_ptr<impl::CollectionImpl> impl_;
@@ -221,6 +231,20 @@ WriteResult Collection::FindAndRemove(formats::bson::Document query,
   operations::FindAndRemove fam_op(std::move(query));
   (fam_op.SetOption(std::forward<Options>(options)), ...);
   return Execute(fam_op);
+}
+
+template <typename... Options>
+operations::Bulk Collection::MakeOrderedBulk(Options&&... options) {
+  operations::Bulk bulk(operations::Bulk::Mode::kOrdered);
+  (bulk.SetOption(std::forward<Options>(options)), ...);
+  return bulk;
+}
+
+template <typename... Options>
+operations::Bulk Collection::MakeUnorderedBulk(Options&&... options) {
+  operations::Bulk bulk(operations::Bulk::Mode::kUnordered);
+  (bulk.SetOption(std::forward<Options>(options)), ...);
+  return bulk;
 }
 
 }  // namespace storages::mongo_ng

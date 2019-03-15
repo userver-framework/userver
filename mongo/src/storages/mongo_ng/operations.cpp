@@ -1,27 +1,18 @@
 #include <storages/mongo_ng/operations.hpp>
 
-#include <chrono>
-#include <limits>
-
-#include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
+#include <formats/bson/bson_builder.hpp>
 #include <formats/bson/value_builder.hpp>
 #include <storages/mongo_ng/exception.hpp>
 #include <utils/assert.hpp>
 
+#include <storages/mongo_ng/operations_common.hpp>
 #include <storages/mongo_ng/operations_impl.hpp>
+#include <storages/mongo_ng/wrappers.hpp>
 
 namespace storages::mongo_ng::operations {
 namespace {
-
-formats::bson::impl::BsonBuilder& GetBuilder(
-    boost::optional<formats::bson::impl::BsonBuilder>& optional_builder) {
-  if (!optional_builder) {
-    optional_builder.emplace();
-  }
-  return *optional_builder;
-}
 
 mongoc_read_mode_t ToNativeReadMode(options::ReadPreference::Mode mode) {
   using Mode = options::ReadPreference::Mode;
@@ -96,56 +87,16 @@ void AppendReadConcern(formats::bson::impl::BsonBuilder& builder,
 
 void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder,
                         options::WriteConcern::Level level) {
-  impl::WriteConcernPtr write_concern(mongoc_write_concern_new());
-  switch (level) {
-    case options::WriteConcern::kMajority:
-      mongoc_write_concern_set_wmajority(
-          write_concern.get(),
-          std::chrono::duration_cast<std::chrono::milliseconds>(
-              options::WriteConcern::kDefaultMajorityTimeout)
-              .count());
-      break;
-    case options::WriteConcern::kUnacknowledged:
-      mongoc_write_concern_set_w(write_concern.get(), 0);
-      break;
-  }
-  if (!mongoc_write_concern_append(write_concern.get(), builder.Get())) {
+  if (!mongoc_write_concern_append(impl::MakeWriteConcern(level).get(),
+                                   builder.Get())) {
     throw MongoException("Cannot append write concern option");
   }
 }
 
 void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder,
                         const options::WriteConcern& wc_option) {
-  if (wc_option.NodesCount() > std::numeric_limits<int32_t>::max()) {
-    throw InvalidQueryArgumentException("Value ")
-        << wc_option.NodesCount()
-        << " of write concern nodes count is too high";
-  }
-  auto timeout_ms = wc_option.Timeout().count();
-  if (timeout_ms > std::numeric_limits<int32_t>::max()) {
-    throw InvalidQueryArgumentException("Value ")
-        << timeout_ms << "ms of write concern timeout is too high";
-  }
-
-  impl::WriteConcernPtr write_concern(mongoc_write_concern_new());
-
-  if (wc_option.IsMajority()) {
-    mongoc_write_concern_set_wmajority(write_concern.get(), timeout_ms);
-  } else {
-    if (!wc_option.Tag().empty()) {
-      mongoc_write_concern_set_wtag(write_concern.get(),
-                                    wc_option.Tag().c_str());
-    } else {
-      mongoc_write_concern_set_w(write_concern.get(), wc_option.NodesCount());
-    }
-    mongoc_write_concern_set_wtimeout(write_concern.get(), timeout_ms);
-  }
-
-  if (wc_option.Journal()) {
-    mongoc_write_concern_set_journal(write_concern.get(), *wc_option.Journal());
-  }
-
-  if (!mongoc_write_concern_append(write_concern.get(), builder.Get())) {
+  if (!mongoc_write_concern_append(impl::MakeWriteConcern(wc_option).get(),
+                                   builder.Get())) {
     throw MongoException("Cannot append write concern option");
   }
 }
@@ -174,11 +125,6 @@ void AppendLimit(formats::bson::impl::BsonBuilder& builder,
   AppendUint64Option(builder, kOptionName, limit.Value());
 }
 
-void AppendUpsert(formats::bson::impl::BsonBuilder& builder) {
-  static const std::string kOptionName = "upsert";
-  builder.Append(kOptionName, true);
-}
-
 void EnableFlag(const impl::FindAndModifyOptsPtr& fam_options,
                 mongoc_find_and_modify_flags_t new_flag) {
   UASSERT(!!fam_options);
@@ -196,6 +142,16 @@ void EnableFlag(const impl::FindAndModifyOptsPtr& fam_options,
 Count::Count(formats::bson::Document filter) : impl_(std::move(filter)) {}
 Count::~Count() = default;
 
+Count::Count(const Count& other) : impl_(other.impl_->filter) {
+  impl_->read_prefs.reset(
+      mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
+  impl_->options = other.impl_->options;
+}
+
+Count::Count(Count&&) noexcept = default;
+Count& Count::operator=(const Count& rhs) { return *this = Count(rhs); }
+Count& Count::operator=(Count&&) noexcept = default;
+
 void Count::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
 }
@@ -205,19 +161,33 @@ void Count::SetOption(options::ReadPreference::Mode mode) {
 }
 
 void Count::SetOption(options::ReadConcern level) {
-  AppendReadConcern(GetBuilder(impl_->options), level);
+  AppendReadConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
 void Count::SetOption(options::Skip skip) {
-  AppendSkip(GetBuilder(impl_->options), skip);
+  AppendSkip(impl::EnsureBuilder(impl_->options), skip);
 }
 
 void Count::SetOption(options::Limit limit) {
-  AppendLimit(GetBuilder(impl_->options), limit);
+  AppendLimit(impl::EnsureBuilder(impl_->options), limit);
 }
 
 CountApprox::CountApprox() = default;
 CountApprox::~CountApprox() = default;
+
+CountApprox::CountApprox(const CountApprox& other) {
+  impl_->read_prefs.reset(
+      mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
+  impl_->options = other.impl_->options;
+}
+
+CountApprox::CountApprox(CountApprox&&) noexcept = default;
+
+CountApprox& CountApprox::operator=(const CountApprox& rhs) {
+  return *this = CountApprox(rhs);
+}
+
+CountApprox& CountApprox::operator=(CountApprox&&) noexcept = default;
 
 void CountApprox::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
@@ -228,19 +198,29 @@ void CountApprox::SetOption(options::ReadPreference::Mode mode) {
 }
 
 void CountApprox::SetOption(options::ReadConcern level) {
-  AppendReadConcern(GetBuilder(impl_->options), level);
+  AppendReadConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
 void CountApprox::SetOption(options::Skip skip) {
-  AppendSkip(GetBuilder(impl_->options), skip);
+  AppendSkip(impl::EnsureBuilder(impl_->options), skip);
 }
 
 void CountApprox::SetOption(options::Limit limit) {
-  AppendLimit(GetBuilder(impl_->options), limit);
+  AppendLimit(impl::EnsureBuilder(impl_->options), limit);
 }
 
 Find::Find(formats::bson::Document filter) : impl_(std::move(filter)) {}
 Find::~Find() = default;
+
+Find::Find(const Find& other) : impl_(other.impl_->filter) {
+  impl_->read_prefs.reset(
+      mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
+  impl_->options = other.impl_->options;
+}
+
+Find::Find(Find&&) noexcept = default;
+Find& Find::operator=(const Find& rhs) { return *this = Find(rhs); }
+Find& Find::operator=(Find&&) noexcept = default;
 
 void Find::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
@@ -251,22 +231,22 @@ void Find::SetOption(options::ReadPreference::Mode mode) {
 }
 
 void Find::SetOption(options::ReadConcern level) {
-  AppendReadConcern(GetBuilder(impl_->options), level);
+  AppendReadConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
 void Find::SetOption(options::Skip skip) {
-  AppendSkip(GetBuilder(impl_->options), skip);
+  AppendSkip(impl::EnsureBuilder(impl_->options), skip);
 }
 
 void Find::SetOption(options::Limit limit) {
-  AppendLimit(GetBuilder(impl_->options), limit);
+  AppendLimit(impl::EnsureBuilder(impl_->options), limit);
 }
 
 void Find::SetOption(options::Projection projection) {
   if (projection.IsEmpty()) return;
 
   static const std::string kOptionName = "projection";
-  GetBuilder(impl_->options)
+  impl::EnsureBuilder(impl_->options)
       .Append(kOptionName, std::move(projection).Extract());
 }
 
@@ -274,17 +254,17 @@ void Find::SetOption(const options::Sort& sort) {
   if (sort.GetOrder().empty()) return;
 
   static const std::string kOptionName = "sort";
-  GetBuilder(impl_->options).Append(kOptionName, MakeSortBson(sort));
+  impl::EnsureBuilder(impl_->options).Append(kOptionName, MakeSortBson(sort));
 }
 
 void Find::SetOption(const options::Hint& hint) {
   static const std::string kOptionName = "hint";
-  GetBuilder(impl_->options).Append(kOptionName, hint.Value());
+  impl::EnsureBuilder(impl_->options).Append(kOptionName, hint.Value());
 }
 
 void Find::SetOption(options::AllowPartialResults) {
   static const std::string kOptionName = "allowPartialResults";
-  GetBuilder(impl_->options).Append(kOptionName, true);
+  impl::EnsureBuilder(impl_->options).Append(kOptionName, true);
 }
 
 void Find::SetOption(options::Tailable) {
@@ -293,18 +273,18 @@ void Find::SetOption(options::Tailable) {
   static const std::string kNoCursorTimeout = "noCursorTimeout";
 
   for (const auto& option : {kTailable, kAwaitData, kNoCursorTimeout}) {
-    GetBuilder(impl_->options).Append(option, true);
+    impl::EnsureBuilder(impl_->options).Append(option, true);
   }
 }
 
 void Find::SetOption(const options::Comment& comment) {
   static const std::string kOptionName = "comment";
-  GetBuilder(impl_->options).Append(kOptionName, comment.Value());
+  impl::EnsureBuilder(impl_->options).Append(kOptionName, comment.Value());
 }
 
 void Find::SetOption(const options::MaxServerTime& max_server_time) {
   static const std::string kOptionName = "maxTimeMS";
-  GetBuilder(impl_->options)
+  impl::EnsureBuilder(impl_->options)
       .Append(kOptionName, max_server_time.Value().count());
 }
 
@@ -313,12 +293,17 @@ InsertOne::InsertOne(formats::bson::Document document)
 
 InsertOne::~InsertOne() = default;
 
+InsertOne::InsertOne(const InsertOne&) = default;
+InsertOne::InsertOne(InsertOne&&) noexcept = default;
+InsertOne& InsertOne::operator=(const InsertOne&) = default;
+InsertOne& InsertOne::operator=(InsertOne&&) noexcept = default;
+
 void InsertOne::SetOption(options::WriteConcern::Level level) {
-  AppendWriteConcern(GetBuilder(impl_->options), level);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
 void InsertOne::SetOption(const options::WriteConcern& write_concern) {
-  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
 }
 
 void InsertOne::SetOption(options::SuppressServerExceptions) {
@@ -332,21 +317,26 @@ InsertMany::InsertMany(std::vector<formats::bson::Document> documents_)
 
 InsertMany::~InsertMany() = default;
 
+InsertMany::InsertMany(const InsertMany&) = default;
+InsertMany::InsertMany(InsertMany&&) noexcept = default;
+InsertMany& InsertMany::operator=(const InsertMany&) = default;
+InsertMany& InsertMany::operator=(InsertMany&&) noexcept = default;
+
 void InsertMany::Append(formats::bson::Document document) {
   impl_->documents.push_back(std::move(document));
 }
 
 void InsertMany::SetOption(options::Unordered) {
   static const std::string kOptionName = "ordered";
-  GetBuilder(impl_->options).Append(kOptionName, false);
+  impl::EnsureBuilder(impl_->options).Append(kOptionName, false);
 }
 
 void InsertMany::SetOption(options::WriteConcern::Level level) {
-  AppendWriteConcern(GetBuilder(impl_->options), level);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
 void InsertMany::SetOption(const options::WriteConcern& write_concern) {
-  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
 }
 
 void InsertMany::SetOption(options::SuppressServerExceptions) {
@@ -359,16 +349,21 @@ ReplaceOne::ReplaceOne(formats::bson::Document selector,
 
 ReplaceOne::~ReplaceOne() = default;
 
+ReplaceOne::ReplaceOne(const ReplaceOne&) = default;
+ReplaceOne::ReplaceOne(ReplaceOne&&) noexcept = default;
+ReplaceOne& ReplaceOne::operator=(const ReplaceOne&) = default;
+ReplaceOne& ReplaceOne::operator=(ReplaceOne&&) noexcept = default;
+
 void ReplaceOne::SetOption(options::Upsert) {
-  AppendUpsert(GetBuilder(impl_->options));
+  impl::AppendUpsert(impl::EnsureBuilder(impl_->options));
 }
 
 void ReplaceOne::SetOption(options::WriteConcern::Level level) {
-  AppendWriteConcern(GetBuilder(impl_->options), level);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
 void ReplaceOne::SetOption(const options::WriteConcern& write_concern) {
-  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
 }
 
 void ReplaceOne::SetOption(options::SuppressServerExceptions) {
@@ -381,16 +376,21 @@ Update::Update(Mode mode, formats::bson::Document selector,
 
 Update::~Update() = default;
 
+Update::Update(const Update&) = default;
+Update::Update(Update&&) noexcept = default;
+Update& Update::operator=(const Update&) = default;
+Update& Update::operator=(Update&&) noexcept = default;
+
 void Update::SetOption(options::Upsert) {
-  AppendUpsert(GetBuilder(impl_->options));
+  impl::AppendUpsert(impl::EnsureBuilder(impl_->options));
 }
 
 void Update::SetOption(options::WriteConcern::Level level) {
-  AppendWriteConcern(GetBuilder(impl_->options), level);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
 void Update::SetOption(const options::WriteConcern& write_concern) {
-  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
 }
 
 void Update::SetOption(options::SuppressServerExceptions) {
@@ -402,12 +402,17 @@ Delete::Delete(Mode mode, formats::bson::Document selector)
 
 Delete::~Delete() = default;
 
+Delete::Delete(const Delete&) = default;
+Delete::Delete(Delete&&) noexcept = default;
+Delete& Delete::operator=(const Delete&) = default;
+Delete& Delete::operator=(Delete&&) noexcept = default;
+
 void Delete::SetOption(options::WriteConcern::Level level) {
-  AppendWriteConcern(GetBuilder(impl_->options), level);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
 void Delete::SetOption(const options::WriteConcern& write_concern) {
-  AppendWriteConcern(GetBuilder(impl_->options), write_concern);
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
 }
 
 void Delete::SetOption(options::SuppressServerExceptions) {
@@ -425,6 +430,9 @@ FindAndModify::FindAndModify(formats::bson::Document query,
 }
 
 FindAndModify::~FindAndModify() = default;
+
+FindAndModify::FindAndModify(FindAndModify&&) noexcept = default;
+FindAndModify& FindAndModify::operator=(FindAndModify&&) noexcept = default;
 
 void FindAndModify::SetOption(options::Upsert) {
   EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_UPSERT);
@@ -486,6 +494,9 @@ FindAndRemove::FindAndRemove(formats::bson::Document query)
 }
 
 FindAndRemove::~FindAndRemove() = default;
+
+FindAndRemove::FindAndRemove(FindAndRemove&&) noexcept = default;
+FindAndRemove& FindAndRemove::operator=(FindAndRemove&&) noexcept = default;
 
 void FindAndRemove::SetOption(const options::Sort& sort) {
   if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(),

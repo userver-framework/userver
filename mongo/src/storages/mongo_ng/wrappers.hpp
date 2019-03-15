@@ -21,6 +21,14 @@ class GlobalInitializer {
   ~GlobalInitializer() { mongoc_cleanup(); }
 };
 
+struct BulkOperationDeleter {
+  void operator()(mongoc_bulk_operation_t* bulk) const noexcept {
+    mongoc_bulk_operation_destroy(bulk);
+  }
+};
+using BulkOperationPtr =
+    std::unique_ptr<mongoc_bulk_operation_t, BulkOperationDeleter>;
+
 struct ClientDeleter {
   void operator()(mongoc_client_t* client) const noexcept {
     mongoc_client_destroy(client);

@@ -20,6 +20,11 @@ class Count {
   explicit Count(formats::bson::Document filter);
   ~Count();
 
+  Count(const Count&);
+  Count(Count&&) noexcept;
+  Count& operator=(const Count&);
+  Count& operator=(Count&&) noexcept;
+
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
   void SetOption(options::ReadConcern);
@@ -41,6 +46,11 @@ class CountApprox {
   CountApprox();
   ~CountApprox();
 
+  CountApprox(const CountApprox&);
+  CountApprox(CountApprox&&) noexcept;
+  CountApprox& operator=(const CountApprox&);
+  CountApprox& operator=(CountApprox&&) noexcept;
+
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
   void SetOption(options::ReadConcern);
@@ -61,6 +71,11 @@ class Find {
  public:
   explicit Find(formats::bson::Document filter);
   ~Find();
+
+  Find(const Find&);
+  Find(Find&&) noexcept;
+  Find& operator=(const Find&);
+  Find& operator=(Find&&) noexcept;
 
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
@@ -90,6 +105,11 @@ class InsertOne {
   explicit InsertOne(formats::bson::Document document);
   ~InsertOne();
 
+  InsertOne(const InsertOne&);
+  InsertOne(InsertOne&&) noexcept;
+  InsertOne& operator=(const InsertOne&);
+  InsertOne& operator=(InsertOne&&) noexcept;
+
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
   void SetOption(options::SuppressServerExceptions);
@@ -109,6 +129,11 @@ class InsertMany {
   InsertMany();
   explicit InsertMany(std::vector<formats::bson::Document> documents);
   ~InsertMany();
+
+  InsertMany(const InsertMany&);
+  InsertMany(InsertMany&&) noexcept;
+  InsertMany& operator=(const InsertMany&);
+  InsertMany& operator=(InsertMany&&) noexcept;
 
   void Append(formats::bson::Document document);
 
@@ -133,6 +158,11 @@ class ReplaceOne {
              formats::bson::Document replacement);
   ~ReplaceOne();
 
+  ReplaceOne(const ReplaceOne&);
+  ReplaceOne(ReplaceOne&&) noexcept;
+  ReplaceOne& operator=(const ReplaceOne&);
+  ReplaceOne& operator=(ReplaceOne&&) noexcept;
+
   void SetOption(options::Upsert);
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
@@ -156,6 +186,11 @@ class Update {
          formats::bson::Document update);
   ~Update();
 
+  Update(const Update&);
+  Update(Update&&) noexcept;
+  Update& operator=(const Update&);
+  Update& operator=(Update&&) noexcept;
+
   void SetOption(options::Upsert);
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
@@ -178,6 +213,11 @@ class Delete {
   Delete(Mode mode, formats::bson::Document selector);
   ~Delete();
 
+  Delete(const Delete&);
+  Delete(Delete&&) noexcept;
+  Delete& operator=(const Delete&);
+  Delete& operator=(Delete&&) noexcept;
+
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
   void SetOption(options::SuppressServerExceptions);
@@ -197,6 +237,11 @@ class FindAndModify {
   FindAndModify(formats::bson::Document query,
                 const formats::bson::Document& update);
   ~FindAndModify();
+
+  FindAndModify(const FindAndModify&) = delete;
+  FindAndModify(FindAndModify&&) noexcept;
+  FindAndModify& operator=(const FindAndModify&) = delete;
+  FindAndModify& operator=(FindAndModify&&) noexcept;
 
   void SetOption(options::Upsert);
   void SetOption(options::ReturnNew);
@@ -220,6 +265,11 @@ class FindAndRemove {
  public:
   explicit FindAndRemove(formats::bson::Document query);
   ~FindAndRemove();
+
+  FindAndRemove(const FindAndRemove&) = delete;
+  FindAndRemove(FindAndRemove&&) noexcept;
+  FindAndRemove& operator=(const FindAndRemove&) = delete;
+  FindAndRemove& operator=(FindAndRemove&&) noexcept;
 
   void SetOption(const options::Sort&);
   void SetOption(options::Projection);

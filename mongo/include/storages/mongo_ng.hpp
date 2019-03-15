@@ -3,6 +3,7 @@
 /// @file storages/mongo_ng.hpp
 /// @brief Include-all header for MongoDB client
 
+#include <storages/mongo_ng/bulk.hpp>
 #include <storages/mongo_ng/collection.hpp>
 #include <storages/mongo_ng/cursor.hpp>
 #include <storages/mongo_ng/exception.hpp>
