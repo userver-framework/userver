@@ -22,8 +22,8 @@ ifeq ($(origin CXX),default)
   CXX := clang++-7
 endif
 export CC CXX
-SCAN_BUILD = scan-build-5.0
-SCAN_BUILD_OPTS = -o $(PWD)/static-analyzer-report/
+SCAN_BUILD = scan-build-7
+SCAN_BUILD_OPTS = --force-analyze-debug-code --show-description --use-cc $(CC) --use-c++ $(CXX) -stats -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
 PYTHON3_PATH = $(firstword $(wildcard /usr/lib/yandex/taxi-py3/bin/python3) python3)
 

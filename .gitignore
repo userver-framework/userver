@@ -7,3 +7,4 @@
 CMakeLists.txt.user
 compile_commands.json
 tags
+static-analyzer-report
