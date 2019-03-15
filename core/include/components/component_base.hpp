@@ -25,7 +25,7 @@ class ComponentBase {
   /// It is a good place to stop your work here.
   /// All components dependent on the current component were destroyed.
   /// All components on which the current component depends are still alive.
-  virtual ~ComponentBase() {}
+  virtual ~ComponentBase() = default;
 
   /// Called once if the creation of any other component failed.
   /// If the current component expects some other component to take any action

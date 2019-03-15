@@ -24,7 +24,7 @@ class TracefulException;
 /// instead
 class TracefulExceptionBase {
  public:
-  virtual ~TracefulExceptionBase() {}
+  virtual ~TracefulExceptionBase() = default;
 
   const std::string& Message() const noexcept { return message_; }
   const boost::stacktrace::stacktrace& Trace() const noexcept {
@@ -61,7 +61,7 @@ class TracefulExceptionBase {
 class TracefulException : public std::exception, public TracefulExceptionBase {
  public:
   TracefulException() = default;
-  TracefulException(std::string what)
+  explicit TracefulException(std::string what)
       : TracefulExceptionBase(std::move(what)) {}
 
   const char* what() const noexcept override;

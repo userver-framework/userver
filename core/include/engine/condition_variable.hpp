@@ -113,7 +113,8 @@ template <typename Rep, typename Period, typename Predicate>
 bool ConditionVariable::WaitFor(
     std::unique_lock<Mutex>& lock,
     const std::chrono::duration<Rep, Period>& timeout, Predicate&& predicate) {
-  return WaitUntil(lock, Deadline::FromDuration(timeout), std::move(predicate));
+  return WaitUntil(lock, Deadline::FromDuration(timeout),
+                   std::forward<Predicate>(predicate));
 }
 
 template <typename Clock, typename Duration>
@@ -128,7 +129,8 @@ bool ConditionVariable::WaitUntil(
     std::unique_lock<Mutex>& lock,
     const std::chrono::time_point<Clock, Duration>& until,
     Predicate&& predicate) {
-  return WaitUntil(lock, Deadline::FromTimePoint(until), std::move(predicate));
+  return WaitUntil(lock, Deadline::FromTimePoint(until),
+                   std::forward<Predicate>(predicate));
 }
 
 template <typename Predicate>

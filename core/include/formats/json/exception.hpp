@@ -12,7 +12,7 @@ class JsonException : public std::exception {
  public:
   explicit JsonException(std::string msg) : msg_(std::move(msg)) {}
 
-  virtual const char* what() const noexcept override { return msg_.c_str(); }
+  const char* what() const noexcept override { return msg_.c_str(); }
 
  private:
   std::string msg_;

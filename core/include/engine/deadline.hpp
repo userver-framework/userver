@@ -59,7 +59,7 @@ class Deadline {
   static constexpr TimePoint kPassed = TimePoint::min();
 
  private:
-  explicit Deadline(TimePoint value) : value_(std::move(value)) {}
+  explicit Deadline(TimePoint value) : value_(value) {}
 
   TimePoint value_;
 };

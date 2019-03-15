@@ -130,7 +130,7 @@ LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(
 }
 
 LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(
-    ProtectedValue&& other) {
+    ProtectedValue&& other) noexcept {
   if (frozen_) return *this;
   value_ = std::move(other.GetValue());
   frozen_ = other.frozen_;

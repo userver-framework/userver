@@ -29,8 +29,8 @@ std::vector<std::string> ReadGroups() {
         continue;
       }
 
-      if (const auto pos = line.find("'"); pos != std::string::npos) {
-        line = line.substr(pos + 1, line.find_last_of("'") - pos - 1);
+      if (const auto pos = line.find('\''); pos != std::string::npos) {
+        line = line.substr(pos + 1, line.find_last_of('\'') - pos - 1);
       } else {
         line = line.substr(sizeof("groups"));
       }

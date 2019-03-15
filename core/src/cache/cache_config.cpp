@@ -20,7 +20,7 @@ std::chrono::milliseconds GetDefaultJitterMs(
   return interval / 10;
 }
 
-std::chrono::milliseconds JsonToMs(formats::json::Value json) {
+std::chrono::milliseconds JsonToMs(const formats::json::Value& json) {
   return std::chrono::milliseconds{json.As<uint64_t>()};
 }
 
@@ -57,7 +57,7 @@ boost::optional<CacheConfig> CacheConfigSet::GetConfig(
   return it->second;
 }
 
-CacheConfig CacheConfigSet::ParseConfig(formats::json::Value json) {
+CacheConfig CacheConfigSet::ParseConfig(const formats::json::Value& json) {
   CacheConfig config(JsonToMs(json[kUpdateIntervalMs]),
                      JsonToMs(json[kUpdateJitterMs]),
                      JsonToMs(json[kFullUpdateIntervalMs]));

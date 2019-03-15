@@ -15,9 +15,9 @@ class Span final {
 
   /* Use default tracer and implicit coro local storage for parent
    * identification */
-  Span(const std::string& name,
-       ReferenceType reference_type = ReferenceType::kChild,
-       logging::Level log_level = logging::Level::kInfo);
+  explicit Span(const std::string& name,
+                ReferenceType reference_type = ReferenceType::kChild,
+                logging::Level log_level = logging::Level::kInfo);
 
   // TODO: remove in C++17 (for guaranteed copy elision)
   Span(Span&& other) noexcept;
@@ -26,7 +26,7 @@ class Span final {
 
   Span& operator=(const Span&) = delete;
 
-  Span& operator=(Span&&);
+  Span& operator=(Span&&) noexcept;
 
   /// Return the Span of the current task. May not be called in non-coroutine
   /// context. May not be called from a task with no alive Span.

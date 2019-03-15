@@ -142,7 +142,7 @@ Span::Span(Span&& other) noexcept : pimpl_(std::move(other.pimpl_)) {
   pimpl_->span_ = this;
 }
 
-Span& Span::operator=(Span&&) = default;
+Span& Span::operator=(Span&&) noexcept = default;
 
 Span::~Span() { DetachFromCoroStack(); }
 

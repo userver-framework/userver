@@ -36,7 +36,7 @@ class WrappedCall {
   using CallImpl = T (*)(WrappedCall* self);
 
   // No `virtual` to avoid vtable bloat and typeinfo generation.
-  WrappedCall(CallImpl call) : call_impl_{call} {}
+  explicit WrappedCall(CallImpl call) : call_impl_{call} {}
   ~WrappedCall() = default;  // Must be overriden in derived class.
 
  private:

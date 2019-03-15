@@ -99,7 +99,7 @@ class LogExtra {
     ProtectedValue(ProtectedValue&& other) = default;
 
     ProtectedValue& operator=(const ProtectedValue& other);
-    ProtectedValue& operator=(ProtectedValue&& other);
+    ProtectedValue& operator=(ProtectedValue&& other) noexcept;
 
     void SetFrozen();
     Value& GetValue() { return value_; }

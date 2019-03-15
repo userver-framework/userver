@@ -25,9 +25,9 @@ class ConfigModule {
 template <typename ConfigTag>
 class BaseConfig {
  public:
-  BaseConfig(const DocsMap& docs_map);
+  explicit BaseConfig(const DocsMap& docs_map);
 
-  BaseConfig(BaseConfig&&) = default;
+  BaseConfig(BaseConfig&&) noexcept = default;
 
   ~BaseConfig() = default;
 

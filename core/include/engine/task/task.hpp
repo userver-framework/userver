@@ -123,7 +123,7 @@ class USERVER_NODISCARD Task {
  protected:
   /// @cond
   /// Constructor for internal use
-  Task(impl::TaskContextHolder&&);
+  explicit Task(impl::TaskContextHolder&&);
   /// @endcond
 
   /// Marks task as invalid

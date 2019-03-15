@@ -1,7 +1,7 @@
 #include <blocking/system/get_hostname.hpp>
 
-#include <limits.h>
 #include <unistd.h>
+#include <climits>
 #include <system_error>
 
 namespace blocking::system {

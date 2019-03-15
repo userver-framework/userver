@@ -34,7 +34,7 @@ class CacheConfigSet {
   static void SetConfigName(const std::string& name);
 
  private:
-  static CacheConfig ParseConfig(formats::json::Value json);
+  static CacheConfig ParseConfig(const formats::json::Value& json);
 
   static std::string& ConfigName();
 
