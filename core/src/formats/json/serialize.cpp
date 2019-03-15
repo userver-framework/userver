@@ -23,11 +23,11 @@ formats::json::Value FromString(const std::string& doc) {
     throw ParseException("JSON document is empty");
   }
 
-  Json::CharReaderBuilder builder;
-  builder["allowComments"] = false;
-
-  // TODO: think of using reader pool
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  thread_local std::unique_ptr<Json::CharReader> reader([]() {
+    Json::CharReaderBuilder builder;
+    builder["allowComments"] = false;
+    return builder.newCharReader();
+  }());
   auto root = std::make_shared<Json::Value>();
   std::string errors;
   if (!reader->parse(doc.data(), doc.data() + doc.size(), root.get(),
@@ -57,12 +57,12 @@ formats::json::Value FromFile(const std::string& path) {
 }
 
 void Serialize(const formats::json::Value& doc, std::ostream& os) {
-  Json::StreamWriterBuilder builder;
-  builder["commentStyle"] = "None";
-  builder["indentation"] = "";
-
-  // TODO: think of using writer pool
-  std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+  thread_local std::unique_ptr<Json::StreamWriter> writer([]() {
+    Json::StreamWriterBuilder builder;
+    builder["commentStyle"] = "None";
+    builder["indentation"] = "";
+    return builder.newStreamWriter();
+  }());
   writer->write(static_cast<const formats::json::detail::Value&>(doc).Get(),
                 &os);
   if (!os) {
