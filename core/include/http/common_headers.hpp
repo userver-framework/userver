@@ -1,87 +1,85 @@
 #pragma once
 
-#include <string>
-
 namespace http {
 namespace headers {
 
 // Headers from rfc7231
 
 // Representation Metadata
-extern const std::string kContentType;
-extern const std::string kContentEncoding;
-extern const std::string kContentLanguage;
-extern const std::string kContentLocation;
+inline const char kContentType[] = "Content-Type";
+inline const char kContentEncoding[] = "Content-Encoding";
+inline const char kContentLanguage[] = "Content-Language";
+inline const char kContentLocation[] = "Content-Location";
 
 // Payload Semantics
-extern const std::string kContentLength;
-extern const std::string kContentRange;
-extern const std::string kTrailer;
-extern const std::string kTransferEncoding;
+inline const char kContentLength[] = "Content-Length";
+inline const char kContentRange[] = "Content-Range";
+inline const char kTrailer[] = "Trailer";
+inline const char kTransferEncoding[] = "Transfer-Encoding";
 
-// Request Headers Controls
-extern const std::string kCacheControl;
-extern const std::string kExpect;
-extern const std::string kHost;
-extern const std::string kMaxForwards;
-extern const std::string kPragma;
-extern const std::string kRange;
-extern const std::string kTE;
+// Request Headers - Controls
+inline const char kCacheControl[] = "Cache-Control";
+inline const char kExpect[] = "Expect";
+inline const char kHost[] = "Host";
+inline const char kMaxForwards[] = "Max-Forwards";
+inline const char kPragma[] = "Pragma";
+inline const char kRange[] = "Range";
+inline const char kTE[] = "TE";
 
 // Conditionals
-extern const std::string kIfMatch;
-extern const std::string kIfNoneMatch;
-extern const std::string kIfModifiedSince;
-extern const std::string kIfUnmodifiedSince;
-extern const std::string kIfRange;
+inline const char kIfMatch[] = "If-Match";
+inline const char kIfNoneMatch[] = "If-None-Match";
+inline const char kIfModifiedSince[] = "If-Modified-Since";
+inline const char kIfUnmodifiedSince[] = "If-Unmodified-Since";
+inline const char kIfRange[] = "If-Range";
 
 // Content Negotiation
-extern const std::string kAccept;
-extern const std::string kAcceptCharset;
-extern const std::string kAcceptEncoding;
-extern const std::string kAcceptLanguage;
+inline const char kAccept[] = "Accept";
+inline const char kAcceptCharset[] = "Accept-Charset";
+inline const char kAcceptEncoding[] = "Accept-Encoding";
+inline const char kAcceptLanguage[] = "Accept-Language";
 
 // Authentication Credentials
-extern const std::string kAuthorization;
-extern const std::string kProxyAuthorization;
+inline const char kAuthorization[] = "Authorization";
+inline const char kProxyAuthorization[] = "Proxy-Authorization";
 
 // Request Context
-extern const std::string kFrom;
-extern const std::string kReferer;
-extern const std::string kUserAgent;
+inline const char kFrom[] = "From";
+inline const char kReferer[] = "Referer";
+inline const char kUserAgent[] = "User-Agent";
 
 // Response Header Fields
 
 // Control Data
-extern const std::string kAge;
-extern const std::string kExpires;
-extern const std::string kDate;
-extern const std::string kLocation;
-extern const std::string kRetryAfter;
-extern const std::string kVary;
-extern const std::string kWarning;
+inline const char kAge[] = "Age";
+inline const char kExpires[] = "Expires";
+inline const char kDate[] = "Date";
+inline const char kLocation[] = "Location";
+inline const char kRetryAfter[] = "Retry-After";
+inline const char kVary[] = "Vary";
+inline const char kWarning[] = "Warning";
 
 // Validator Header Fields
-extern const std::string kETag;
-extern const std::string kLastModified;
+inline const char kETag[] = "ETag";
+inline const char kLastModified[] = "Last-Modified";
 
 // Authentication Challenges
-extern const std::string kWWWAuthenticate;
-extern const std::string kProxyAuthenticate;
+inline const char kWWWAuthenticate[] = "WWW-Authenticate";
+inline const char kProxyAuthenticate[] = "Proxy-Authenticate";
 
 // Response Context
-extern const std::string kAcceptRanges;
-extern const std::string kAllow;
-extern const std::string kServer;
+inline const char kAcceptRanges[] = "Accept-Ranges";
+inline const char kAllow[] = "Allow";
+inline const char kServer[] = "Server";
 
 // Extra headers
-extern const std::string kConnection;
+inline const char kConnection[] = "Connection";
 
 // Tracing headers
 
-extern const std::string kXYaSpanId;
-extern const std::string kXYaTraceId;
-extern const std::string kXYaRequestId;
+inline const char kXYaRequestId[] = "X-YaRequestId";
+inline const char kXYaTraceId[] = "X-YaTraceId";
+inline const char kXYaSpanId[] = "X-YaSpanId";
 
 }  // namespace headers
 }  // namespace http

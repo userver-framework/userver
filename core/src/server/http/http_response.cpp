@@ -17,7 +17,7 @@ namespace {
 const std::string kCrlf = "\r\n";
 const std::string kResponseHttpVersionPrefix = "HTTP/";
 const std::string kServerName =
-    ::http::headers::kServer + ": taxi_userver/" USERVER_VERSION;
+    std::string(::http::headers::kServer) + ": taxi_userver/" USERVER_VERSION;
 
 const std::string kClose = "close";
 const std::string kKeepAlive = "keep-alive";
