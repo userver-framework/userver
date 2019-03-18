@@ -13,14 +13,14 @@ namespace components {
 
 class ComponentConfig : public yaml_config::YamlConfig {
  public:
-  ComponentConfig(formats::yaml::Node yaml, std::string full_path,
+  ComponentConfig(formats::yaml::Value yaml, std::string full_path,
                   yaml_config::VariableMapPtr config_vars_ptr);
 
   const std::string& Name() const;
   void SetName(const std::string& name);
 
   static ComponentConfig ParseFromYaml(
-      const formats::yaml::Node& yaml, const std::string& full_path,
+      const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);
 
  private:

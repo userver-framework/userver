@@ -17,7 +17,7 @@ RequestConfig::Type StringToType(const std::string& str) {
 
 }  // namespace
 
-RequestConfig::RequestConfig(formats::yaml::Node yaml, std::string full_path,
+RequestConfig::RequestConfig(formats::yaml::Value yaml, std::string full_path,
                              yaml_config::VariableMapPtr config_vars_ptr)
     : yaml_config::YamlConfig(std::move(yaml), std::move(full_path),
                               std::move(config_vars_ptr)),
@@ -26,7 +26,7 @@ RequestConfig::RequestConfig(formats::yaml::Node yaml, std::string full_path,
 const RequestConfig::Type& RequestConfig::GetType() const { return type_; }
 
 RequestConfig RequestConfig::ParseFromYaml(
-    const formats::yaml::Node& yaml, const std::string& full_path,
+    const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
   return {yaml, full_path, config_vars_ptr};
 }

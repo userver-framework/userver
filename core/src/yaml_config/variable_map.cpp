@@ -1,40 +1,31 @@
 #include <yaml_config/variable_map.hpp>
 
-#include <fstream>
-#include <stdexcept>
+#include <formats/yaml/serialize.hpp>
 
 namespace yaml_config {
 
 VariableMap::VariableMap() = default;
 
-VariableMap::VariableMap(formats::yaml::Node yaml) : yaml_(std::move(yaml)) {
-  if (!yaml_.IsMap()) {
+VariableMap::VariableMap(formats::yaml::Value yaml) : yaml_(std::move(yaml)) {
+  if (!yaml_.IsObject()) {
     throw std::runtime_error("Substitution variable mapping is not an object");
   }
 }
 
 bool VariableMap::IsDefined(const std::string& name) const {
-  return yaml_[name].IsDefined();
+  return !yaml_[name].IsMissing();
 }
 
-formats::yaml::Node VariableMap::GetVariable(const std::string& name) const {
+formats::yaml::Value VariableMap::GetVariable(const std::string& name) const {
   auto var = yaml_[name];
-  if (!var) {
+  if (var.IsMissing()) {
     throw std::out_of_range("Config variable '" + name + "' is undefined");
   }
   return var;
 }
 
 VariableMap VariableMap::ParseFromFile(const std::string& path) {
-  std::ifstream input_stream(path);
-  formats::yaml::Node config_vars_yaml;
-  try {
-    config_vars_yaml = formats::yaml::Load(input_stream);
-  } catch (const formats::yaml::Exception& e) {
-    throw std::runtime_error("Cannot parse variables mapping file '" + path +
-                             "': " + e.what());
-  }
-
+  formats::yaml::Value config_vars_yaml = formats::yaml::FromFile(path);
   return VariableMap(std::move(config_vars_yaml));
 }
 

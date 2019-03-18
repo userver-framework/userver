@@ -189,7 +189,7 @@ struct RedisGroup {
   std::string sharding_strategy;
 
   static RedisGroup ParseFromYaml(
-      const formats::yaml::Node& yaml, const std::string& full_path,
+      const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr) {
     RedisGroup config;
     config.db =
@@ -209,7 +209,7 @@ struct SubscribeRedisGroup {
   std::string config_name;
 
   static SubscribeRedisGroup ParseFromYaml(
-      const formats::yaml::Node& yaml, const std::string& full_path,
+      const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr) {
     SubscribeRedisGroup config;
     config.db =
@@ -225,7 +225,7 @@ struct RedisPools {
   int redis_thread_pool_size;
 
   static RedisPools ParseFromYaml(
-      const formats::yaml::Node& yaml, const std::string& full_path,
+      const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr) {
     RedisPools pools;
     pools.sentinel_thread_pool_size = yaml_config::ParseInt(

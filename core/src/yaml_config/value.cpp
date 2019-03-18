@@ -3,17 +3,17 @@
 namespace yaml_config {
 namespace impl {
 
-bool IsSubstitution(const formats::yaml::Node& value) {
+bool IsSubstitution(const formats::yaml::Value& value) {
   try {
-    const auto& str = value.as<std::string>();
+    const auto& str = value.As<std::string>();
     return !str.empty() && str.front() == '$';
-  } catch (formats::yaml::Exception&) {
+  } catch (formats::yaml::YamlException&) {
     return false;
   }
 }
 
-std::string GetSubstitutionVarName(const formats::yaml::Node& value) {
-  return value.as<std::string>().substr(1);
+std::string GetSubstitutionVarName(const formats::yaml::Value& value) {
+  return value.As<std::string>().substr(1);
 }
 
 std::string GetFallbackName(const std::string& str) {
@@ -22,11 +22,11 @@ std::string GetFallbackName(const std::string& str) {
 
 }  // namespace impl
 
-void CheckIsMap(const formats::yaml::Node& obj, const std::string& full_path) {
+void CheckIsMap(const formats::yaml::Value& obj, const std::string& full_path) {
   impl::CheckIsMap(obj, full_path);
 }
 
-int ParseInt(const formats::yaml::Node& obj, const std::string& name,
+int ParseInt(const formats::yaml::Value& obj, const std::string& name,
              const std::string& full_path,
              const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalInt(obj, name, full_path, config_vars_ptr);
@@ -36,7 +36,7 @@ int ParseInt(const formats::yaml::Node& obj, const std::string& name,
   return *optional;
 }
 
-bool ParseBool(const formats::yaml::Node& obj, const std::string& name,
+bool ParseBool(const formats::yaml::Value& obj, const std::string& name,
                const std::string& full_path,
                const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalBool(obj, name, full_path, config_vars_ptr);
@@ -46,7 +46,7 @@ bool ParseBool(const formats::yaml::Node& obj, const std::string& name,
   return *optional;
 }
 
-uint64_t ParseUint64(const formats::yaml::Node& obj, const std::string& name,
+uint64_t ParseUint64(const formats::yaml::Value& obj, const std::string& name,
                      const std::string& full_path,
                      const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalUint64(obj, name, full_path, config_vars_ptr);
@@ -56,8 +56,8 @@ uint64_t ParseUint64(const formats::yaml::Node& obj, const std::string& name,
   return *optional;
 }
 
-std::string ParseString(const formats::yaml::Node& obj, const std::string& name,
-                        const std::string& full_path,
+std::string ParseString(const formats::yaml::Value& obj,
+                        const std::string& name, const std::string& full_path,
                         const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalString(obj, name, full_path, config_vars_ptr);
   if (!optional) {
@@ -66,7 +66,7 @@ std::string ParseString(const formats::yaml::Node& obj, const std::string& name,
   return std::move(*optional);
 }
 
-boost::optional<int> ParseOptionalInt(const formats::yaml::Node& obj,
+boost::optional<int> ParseOptionalInt(const formats::yaml::Value& obj,
                                       const std::string& name,
                                       const std::string& full_path,
                                       const VariableMapPtr& config_vars_ptr) {
@@ -74,7 +74,7 @@ boost::optional<int> ParseOptionalInt(const formats::yaml::Node& obj,
                     &impl::Parse<int, std::string>, &ParseOptionalInt);
 }
 
-boost::optional<bool> ParseOptionalBool(const formats::yaml::Node& obj,
+boost::optional<bool> ParseOptionalBool(const formats::yaml::Value& obj,
                                         const std::string& name,
                                         const std::string& full_path,
                                         const VariableMapPtr& config_vars_ptr) {
@@ -83,14 +83,14 @@ boost::optional<bool> ParseOptionalBool(const formats::yaml::Node& obj,
 }
 
 boost::optional<uint64_t> ParseOptionalUint64(
-    const formats::yaml::Node& obj, const std::string& name,
+    const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
                     &impl::Parse<uint64_t, std::string>, &ParseOptionalUint64);
 }
 
 boost::optional<std::string> ParseOptionalString(
-    const formats::yaml::Node& obj, const std::string& name,
+    const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
                     &impl::Parse<std::string, std::string>,

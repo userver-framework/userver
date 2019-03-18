@@ -5,7 +5,7 @@
 namespace engine {
 
 TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
-    const formats::yaml::Node& yaml, const std::string& full_path,
+    const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
   TaskProcessorConfig config;
   config.worker_threads = yaml_config::ParseUint64(yaml, "worker_threads",
@@ -23,7 +23,7 @@ TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
   config.profiler_threshold = std::chrono::microseconds(profiler_threshold_us);
 
   auto task_trace_yaml = yaml["task-trace"];
-  if (task_trace_yaml) {
+  if (!task_trace_yaml.IsMissing()) {
     auto tt_full_path = full_path + ".task-trace";
     config.task_trace_every =
         yaml_config::ParseOptionalUint64(task_trace_yaml, "every", tt_full_path,

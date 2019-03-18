@@ -24,7 +24,7 @@ const std::string LoggerConfig::kDefaultPattern =
     "tskv\ttimestamp=%Y-%m-%dT%H:%M:%S.%f\ttimezone=%z\tlevel=%l\t%v";
 
 LoggerConfig LoggerConfig::ParseFromYaml(
-    const formats::yaml::Node& yaml, const std::string& full_path,
+    const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
   LoggerConfig config;
   config.file_path =

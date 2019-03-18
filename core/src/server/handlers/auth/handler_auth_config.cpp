@@ -25,14 +25,14 @@ std::string ToString(AuthType auth_type) {
 }
 
 HandlerAuthConfig::HandlerAuthConfig(
-    formats::yaml::Node yaml, std::string full_path,
+    formats::yaml::Value yaml, std::string full_path,
     yaml_config::VariableMapPtr config_vars_ptr)
     : yaml_config::YamlConfig(std::move(yaml), std::move(full_path),
                               std::move(config_vars_ptr)),
       type_(ParseAuthType(ParseString("type"))) {}
 
 HandlerAuthConfig HandlerAuthConfig::ParseFromYaml(
-    const formats::yaml::Node& yaml, const std::string& full_path,
+    const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
   return {yaml, full_path, config_vars_ptr};
 }

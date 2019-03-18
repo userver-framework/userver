@@ -40,12 +40,12 @@ Logging::Logging(const ComponentConfig& config,
   fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
 
   for (auto it = loggers.begin(); it != loggers.end(); ++it) {
-    auto logger_name = it->first.as<std::string>();
+    auto logger_name = it.GetName();
     auto logger_full_path = loggers_full_path + '.' + logger_name;
     bool is_default_logger = logger_name == "default";
 
     auto logger_config = logging::LoggerConfig::ParseFromYaml(
-        it->second, logger_full_path, config.ConfigVarsPtr());
+        *it, logger_full_path, config.ConfigVarsPtr());
     auto logger = CreateLogger(logger_name, logger_config, is_default_logger);
 
     logger->set_level(

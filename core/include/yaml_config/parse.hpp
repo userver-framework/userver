@@ -33,23 +33,23 @@ class ParseError : public std::runtime_error {
 
 namespace impl {
 
-void CheckIsMap(const formats::yaml::Node& obj, const std::string& full_path);
-void CheckIsSequence(const formats::yaml::Node& obj,
+void CheckIsMap(const formats::yaml::Value& obj, const std::string& full_path);
+void CheckIsSequence(const formats::yaml::Value& obj,
                      const std::string& full_path);
 
-void CheckContainer(const formats::yaml::Node& obj, const std::string&,
+void CheckContainer(const formats::yaml::Value& obj, const std::string&,
                     const std::string& full_path);
-void CheckContainer(const formats::yaml::Node& obj, const size_t&,
+void CheckContainer(const formats::yaml::Value& obj, const size_t&,
                     const std::string& full_path);
 
 template <typename Type, typename Field>
-Type ParseTypeImpl(const formats::yaml::Node& obj, const Field& field,
+Type ParseTypeImpl(const formats::yaml::Value& obj, const Field& field,
                    const std::string& full_path, const std::string& type_name) {
   const auto& value = obj[field];
   CheckContainer(obj, field, full_path);
   try {
-    return value.template as<Type>();
-  } catch (formats::yaml::Exception&) {
+    return value.template As<Type>();
+  } catch (formats::yaml::YamlException&) {
     throw ParseError(full_path, field, type_name);
   }
 }
@@ -73,14 +73,14 @@ class ParseHelper {
   template <typename T>
   struct HasParseFromYaml<
       T, ::utils::void_t<decltype(T::ParseFromYaml(
-             std::declval<formats::yaml::Node>(), std::declval<std::string>(),
+             std::declval<formats::yaml::Value>(), std::declval<std::string>(),
              std::declval<yaml_config::VariableMapPtr>()))>>
       : public std::true_type {};
 
  public:
   template <typename T = Type>
   std::enable_if_t<HasParseFromYaml<T>::value, T> operator()(
-      const formats::yaml::Node& obj, const Field& field,
+      const formats::yaml::Value& obj, const Field& field,
       const std::string& full_path,
       const VariableMapPtr& config_vars_ptr) const {
     const auto& value = obj[field];
@@ -90,38 +90,38 @@ class ParseHelper {
 
   template <typename T = Type>
   std::enable_if_t<!HasParseFromYaml<T>::value, T> operator()(
-      const formats::yaml::Node& obj, const Field& field,
+      const formats::yaml::Value& obj, const Field& field,
       const std::string& full_path, const VariableMapPtr&) const {
     return ParseTypeImpl<T>(obj, field, full_path, GetTypeName<T>());
   }
 };
 
 template <typename T, typename Field>
-T Parse(const formats::yaml::Node& obj, const Field& field,
+T Parse(const formats::yaml::Value& obj, const Field& field,
         const std::string& full_path, const VariableMapPtr& config_vars_ptr);
 
 template <typename T, typename Field>
 inline boost::optional<std::vector<T>> ParseOptionalArray(
-    const formats::yaml::Node& obj, const Field& field,
+    const formats::yaml::Value& obj, const Field& field,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   const auto& value = obj[field];
-  if (!value.IsSequence()) {
+  if (!value.IsArray()) {
     return {};
   }
 
   std::vector<T> parsed_array;
-  auto size = value.size();
+  auto size = value.GetSize();
   parsed_array.reserve(size);
   for (decltype(size) i = 0; i < size; ++i) {
     // TODO: "$substitutions" are not supported for array elements yet
     parsed_array.emplace_back(impl::Parse<T>(
         value, i, PathAppend(full_path, field), config_vars_ptr));
   }
-  return std::move(parsed_array);
+  return parsed_array;
 }
 
 template <typename T, typename Field>
-inline std::vector<T> ParseArray(const formats::yaml::Node& obj,
+inline std::vector<T> ParseArray(const formats::yaml::Value& obj,
                                  const Field& field,
                                  const std::string& full_path,
                                  const VariableMapPtr& config_vars_ptr) {
@@ -135,27 +135,27 @@ inline std::vector<T> ParseArray(const formats::yaml::Node& obj,
 
 template <typename T>
 inline boost::optional<std::vector<T>> ParseOptionalMapAsArray(
-    const formats::yaml::Node& obj, const std::string& name,
+    const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   const auto& value = obj[name];
-  if (!value.IsMap()) {
+  if (!value.IsObject()) {
     return {};
   }
 
   std::vector<T> parsed_array;
-  parsed_array.reserve(value.size());
+  parsed_array.reserve(value.GetSize());
   for (auto it = value.begin(); it != value.end(); ++it) {
-    const auto elem_name = it->first.as<std::string>();
+    const auto elem_name = it.GetName();
     auto parsed = T::ParseFromYaml(
-        it->second, full_path + '.' + name + '.' + elem_name, config_vars_ptr);
+        *it, full_path + '.' + name + '.' + elem_name, config_vars_ptr);
     parsed.SetName(elem_name);
     parsed_array.emplace_back(std::move(parsed));
   }
-  return std::move(parsed_array);
+  return parsed_array;
 }
 
 template <typename T>
-inline std::vector<T> ParseMapAsArray(const formats::yaml::Node& obj,
+inline std::vector<T> ParseMapAsArray(const formats::yaml::Value& obj,
                                       const std::string& name,
                                       const std::string& full_path,
                                       const VariableMapPtr& config_vars_ptr) {
@@ -169,7 +169,7 @@ inline std::vector<T> ParseMapAsArray(const formats::yaml::Node& obj,
 
 template <typename T, typename Field>
 struct ParseHelperArray {
-  T operator()(const formats::yaml::Node& obj, const Field& field,
+  T operator()(const formats::yaml::Value& obj, const Field& field,
                const std::string& full_path,
                const VariableMapPtr& config_vars_ptr) const {
     return ParseHelper<T, Field>()(obj, field, full_path, config_vars_ptr);
@@ -178,7 +178,7 @@ struct ParseHelperArray {
 
 template <typename T, typename Field>
 struct ParseHelperArray<std::vector<T>, Field> {
-  std::vector<T> operator()(const formats::yaml::Node& obj, const Field& field,
+  std::vector<T> operator()(const formats::yaml::Value& obj, const Field& field,
                             const std::string& full_path,
                             const VariableMapPtr& config_vars_ptr) const {
     return impl::ParseArray<T>(obj, field, full_path, config_vars_ptr);
@@ -187,7 +187,7 @@ struct ParseHelperArray<std::vector<T>, Field> {
 
 template <typename T, typename Field>
 struct ParseHelperOptional {
-  T operator()(const formats::yaml::Node& obj, const Field& field,
+  T operator()(const formats::yaml::Value& obj, const Field& field,
                const std::string& full_path,
                const VariableMapPtr& config_vars_ptr) const {
     return ParseHelperArray<T, Field>()(obj, field, full_path, config_vars_ptr);
@@ -196,7 +196,7 @@ struct ParseHelperOptional {
 
 template <typename T, typename Field>
 struct ParseHelperOptional<boost::optional<T>, Field> {
-  boost::optional<T> operator()(const formats::yaml::Node& obj,
+  boost::optional<T> operator()(const formats::yaml::Value& obj,
                                 const Field& field,
                                 const std::string& full_path,
                                 const VariableMapPtr& config_vars_ptr) const {
@@ -209,7 +209,7 @@ struct ParseHelperOptional<boost::optional<T>, Field> {
 };
 
 template <typename T, typename Field>
-T Parse(const formats::yaml::Node& obj, const Field& field,
+T Parse(const formats::yaml::Value& obj, const Field& field,
         const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseHelperOptional<T, Field>()(obj, field, full_path,
                                          config_vars_ptr);

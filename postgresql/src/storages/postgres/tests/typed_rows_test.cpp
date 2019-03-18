@@ -1,4 +1,5 @@
 #include <deque>
+#include <list>
 #include <set>
 
 #include <storages/postgres/tests/util_test.hpp>

@@ -109,13 +109,77 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4Index) {
   size_t ind = 1;
   for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it, ++ind) {
     if (ind == 4) {
+      EXPECT_TRUE(it->IsArray());
+
       size_t subind = 0;
       for (auto subit = it->begin(); subit != it->end(); ++subit, ++subind) {
         EXPECT_EQ(subit.GetIndex(), subind);
         EXPECT_THROW(subit.GetName(), TypeMismatchException);
       }
+
+      EXPECT_TRUE(it->IsArray()) << "Array iteration damaged the iterator";
+      EXPECT_EQ(it->GetSize(), 3) << "Array iteration damaged the iterator";
+    } else {
+      EXPECT_FALSE(it->IsArray());
+
+      std::ostringstream os("key", std::ios::ate);
+      os << ind;
+      EXPECT_EQ(it.GetName(), os.str()) << "Failed for index " << ind;
     }
   }
+}
+
+TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
+  using TypeMismatchException = typename TestFixture::TypeMismatchException;
+
+  size_t ind = 1;
+  for (auto it = this->doc_.begin(); it != this->doc_.end(); it++, ++ind) {
+    if (ind == 4) {
+      EXPECT_TRUE(it->IsArray());
+
+      size_t subind = 0;
+      for (auto subit = it->begin(); subit != it->end(); subit++, ++subind) {
+        EXPECT_EQ(subit.GetIndex(), subind);
+        EXPECT_THROW(subit.GetName(), TypeMismatchException);
+      }
+
+      EXPECT_TRUE(it->IsArray()) << "Array iteration damaged the iterator";
+      EXPECT_EQ(it->GetSize(), 3) << "Array iteration damaged the iterator";
+    } else {
+      EXPECT_FALSE(it->IsArray());
+
+      std::ostringstream os("key", std::ios::ate);
+      os << ind;
+      EXPECT_EQ(it.GetName(), os.str()) << "Failed for index " << ind;
+    }
+  }
+}
+
+TYPED_TEST_P(MemberAccess, Algorithms) {
+  using TypeMismatchException = typename TestFixture::TypeMismatchException;
+
+  auto it =
+      std::find_if(this->doc_.begin(), this->doc_.end(), [](const auto& v) {
+        return v.IsString() && v.template As<std::string>() == "val";
+      });
+  ASSERT_NE(it, this->doc_.end()) << "failed to find array";
+  EXPECT_EQ(it->template As<std::string>(), "val");
+  EXPECT_EQ(it.GetName(), "key2");
+
+  auto it_new = it;
+  ++it_new;
+  EXPECT_EQ(it_new.GetName(), "key3");
+  EXPECT_TRUE(it_new->IsObject());
+
+  EXPECT_EQ(it->template As<std::string>(), "val");
+
+  ++it;
+  ++it;
+  EXPECT_EQ(it.GetName(), "key4");
+  EXPECT_EQ(it->GetSize(), 3);
+
+  EXPECT_EQ(it_new.GetName(), "key3");
+  EXPECT_TRUE(it_new->IsObject());
 }
 
 TYPED_TEST_P(MemberAccess, CheckPrimitiveTypes) {
@@ -190,7 +254,10 @@ TYPED_TEST_P(MemberAccess, MemberPathsByIterator) {
   EXPECT_EQ((++arr_it)->GetPath(), "key4.[2]");
 }
 
-TYPED_TEST_P(MemberAccess, MemberCount) { EXPECT_EQ(this->doc_.GetSize(), 6); }
+TYPED_TEST_P(MemberAccess, MemberCount) {
+  EXPECT_EQ(this->doc_.GetSize(), 6) << "Incorrect size of a map";
+  EXPECT_EQ(this->doc_["key4"].GetSize(), 3) << "Incorrect size of an array";
+}
 
 TYPED_TEST_P(MemberAccess, HasMember) {
   EXPECT_TRUE(this->doc_.HasMember("key1"));
@@ -264,6 +331,31 @@ TYPED_TEST_P(MemberAccess, Subfield) {
   EXPECT_EQ(old, this->doc_["key1"]);
 }
 
+TYPED_TEST_P(MemberAccess, ValueAssignment) {
+  using Value = typename TestFixture::Value;
+
+  Value v;
+  v = this->doc_["key4"];
+  EXPECT_TRUE(v.IsArray());
+
+  v = this->doc_["key1"];
+  EXPECT_FALSE(v.IsArray());
+  EXPECT_TRUE(this->doc_["key4"].IsArray());
+
+  Value v2;
+  v2 = v;
+  v = this->doc_["key4"];
+  EXPECT_TRUE(v.IsArray());
+  EXPECT_FALSE(v2.IsArray());
+
+  Value v3;
+  v = this->doc_["key1"];
+  v3 = std::move(v);
+  v = this->doc_["key4"];
+  EXPECT_TRUE(v.IsArray());
+  EXPECT_FALSE(v3.IsArray());
+}
+
 REGISTER_TYPED_TEST_CASE_P(
     MemberAccess,
 
@@ -273,9 +365,11 @@ REGISTER_TYPED_TEST_CASE_P(
 
     IterateMemberNames, IterateAndCheckValues, IterateMembersAndCheckKey3,
     IterateMembersAndCheckKey4, IterateMembersAndCheckKey4Index,
+    IterateMembersAndCheckKey4IndexPostincrement, Algorithms,
 
     CheckPrimitiveTypes, CheckPrimitiveTypeExceptions, MemberPaths,
     MemberPathsByIterator, MemberCount, HasMember, CopyMoveSubobject,
     IteratorOnNull,
 
-    IteratorOnMissingThrows, CloneValues, CreateEmptyAndAccess, Subfield);
+    IteratorOnMissingThrows, CloneValues, CreateEmptyAndAccess, Subfield,
+    ValueAssignment);

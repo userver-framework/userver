@@ -4,13 +4,13 @@
 
 namespace yaml_config {
 
-YamlConfig::YamlConfig(formats::yaml::Node yaml, std::string full_path,
+YamlConfig::YamlConfig(formats::yaml::Value yaml, std::string full_path,
                        VariableMapPtr config_vars_ptr)
     : yaml_(std::move(yaml)),
       full_path_(std::move(full_path)),
       config_vars_ptr_(std::move(config_vars_ptr)) {}
 
-const formats::yaml::Node& YamlConfig::Yaml() const { return yaml_; }
+const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
 const std::string& YamlConfig::FullPath() const { return full_path_; }
 const yaml_config::VariableMapPtr& YamlConfig::ConfigVarsPtr() const {
   return config_vars_ptr_;

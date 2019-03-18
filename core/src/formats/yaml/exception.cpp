@@ -40,12 +40,13 @@ const char* NameForType(Type expected) {
 }
 
 std::string MsgForType(Type actual, Type expected, const std::string& path) {
+  UASSERT(actual != expected);
+
   std::string ret =
       std::string("Field '") + path +
       "' has wrong type. Expected YAML Value type: " + NameForType(expected) +
       ", actual: " + NameForType(actual);
 
-  UASSERT(actual != expected);
   return ret;
 }
 

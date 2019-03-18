@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <limits>
 #include <type_traits>
 
@@ -7,7 +8,9 @@
 #include <formats/yaml/iterator.hpp>
 #include <formats/yaml/types.hpp>
 
+#include <utils/demangle.hpp>
 #include <utils/fast_pimpl.hpp>
+#include <utils/string_to_duration.hpp>
 
 namespace formats {
 namespace yaml {
@@ -168,6 +171,22 @@ std::enable_if_t<std::is_integral<T>::value && (sizeof(T) > 1), T> ParseYaml(
     throw IntegralOverflowException(min, val, max, value.GetPath());
 
   return val;
+}
+
+template <class Type, class Ratio>
+auto ParseYaml(const formats::yaml::Value& n,
+               const std::chrono::duration<Type, Ratio>*) {
+  const auto dur = utils::StringToDuration(n.As<std::string>());
+  const auto to =
+      std::chrono::duration_cast<std::chrono::duration<Type, Ratio>>(dur);
+  if (to != dur) {
+    throw YamlException(
+        "'" + n.As<std::string>() + "' can not be represented as " +
+        utils::GetTypeName<std::chrono::duration<Type, Ratio>>() +
+        " without precision loss");
+  }
+
+  return to;
 }
 
 }  // namespace yaml

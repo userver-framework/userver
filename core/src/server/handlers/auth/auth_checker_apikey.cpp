@@ -98,7 +98,7 @@ bool AuthCheckerApiKey::IsApiKeyAllowed(const std::string& api_key,
 
 AuthCheckerApiKey::ApiKeyTypeByMethodSettings
 AuthCheckerApiKey::ApiKeyTypeByMethodSettings::ParseFromYaml(
-    const formats::yaml::Node& yaml, const std::string& full_path,
+    const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
   ApiKeyTypeByMethodSettings settings;
   for (auto method : http::kHandlerMethods) {

@@ -14,8 +14,8 @@ template <typename V>
 class iterator_base;
 }  // namespace detail
 
-typedef detail::iterator_base<detail::iterator_value> iterator;
-typedef detail::iterator_base<const detail::iterator_value> const_iterator;
+using iterator = detail::iterator_base<detail::iterator_value>;
+using const_iterator = detail::iterator_base<const detail::iterator_value>;
 }  // namespace YAML
 
 namespace formats {

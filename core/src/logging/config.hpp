@@ -29,7 +29,7 @@ struct LoggerConfig {
   size_t thread_pool_size = kDefaultThreadPoolSize;
 
   static LoggerConfig ParseFromYaml(
-      const formats::yaml::Node& yaml, const std::string& full_path,
+      const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 

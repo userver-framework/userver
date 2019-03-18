@@ -6,7 +6,7 @@ namespace server {
 namespace handlers {
 
 HandlerConfig HandlerConfig::ParseFromYaml(
-    const formats::yaml::Node& yaml, const std::string& full_path,
+    const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
   HandlerConfig config;
   yaml_config::ParseInto(config.path, yaml, "path", full_path, config_vars_ptr);

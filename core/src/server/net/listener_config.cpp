@@ -20,7 +20,7 @@ int CheckPort(int port, const std::string& name) {
 }  // namespace
 
 ListenerConfig ListenerConfig::ParseFromYaml(
-    const formats::yaml::Node& yaml, const std::string& full_path,
+    const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
   ListenerConfig config;
   config.connection_config = ConnectionConfig::ParseFromYaml(

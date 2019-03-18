@@ -22,7 +22,7 @@ struct TaskProcessorConfig {
   std::string task_trace_logger_name;
 
   static TaskProcessorConfig ParseFromYaml(
-      const formats::yaml::Node& yaml, const std::string& full_path,
+      const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);
   void SetName(const std::string& name);
 };

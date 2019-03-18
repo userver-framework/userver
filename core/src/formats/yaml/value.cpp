@@ -50,8 +50,20 @@ Value::Value() noexcept : Value(YAML::Node()) {}
 
 Value::Value(Value&&) = default;
 Value::Value(const Value&) = default;
-Value& Value::operator=(Value&&) = default;
-Value& Value::operator=(const Value&) = default;
+
+Value& Value::operator=(Value&& other) {
+  value_pimpl_->reset(*other.value_pimpl_);
+  is_root_ = other.is_root_;
+  path_ = std::move(other.path_);
+  return *this;
+}
+
+Value& Value::operator=(const Value& other) {
+  value_pimpl_->reset(*other.value_pimpl_);
+  is_root_ = other.is_root_;
+  path_ = other.path_;
+  return *this;
+}
 
 Value::~Value() = default;
 
@@ -183,7 +195,8 @@ double Value::As<double>() const {
 
 template <>
 std::string Value::As<std::string>() const {
-  return ValueAs<std::string>();
+  CheckNotMissing();
+  return value_pimpl_->Scalar();
 }
 
 bool Value::HasMember(const char* key) const {

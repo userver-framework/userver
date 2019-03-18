@@ -20,11 +20,11 @@ struct ManagerConfig {
   std::vector<engine::TaskProcessorConfig> task_processors;
   std::string default_task_processor;
 
-  formats::yaml::Node yaml;  // the owner
+  formats::yaml::Value yaml;  // the owner
   yaml_config::VariableMapPtr config_vars_ptr;
 
   static ManagerConfig ParseFromYaml(
-      formats::yaml::Node yaml, const std::string& name,
+      formats::yaml::Value yaml, const std::string& name,
       yaml_config::VariableMapPtr config_vars_ptr);
 
   static ManagerConfig ParseFromString(const std::string&);

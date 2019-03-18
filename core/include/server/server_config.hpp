@@ -20,7 +20,7 @@ struct ServerConfig {
   yaml_config::VariableMapPtr config_vars_ptr;
 
   static ServerConfig ParseFromYaml(
-      const formats::yaml::Node& yaml, const std::string& full_path,
+      const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 

@@ -14,7 +14,7 @@ struct ThreadPoolConfig {
   std::string thread_name = "event-worker";
 
   static ThreadPoolConfig ParseFromYaml(
-      const formats::yaml::Node& yaml, const std::string& full_path,
+      const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);
 };
 

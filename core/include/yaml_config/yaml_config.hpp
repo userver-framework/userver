@@ -15,10 +15,10 @@ namespace yaml_config {
 
 class YamlConfig {
  public:
-  YamlConfig(formats::yaml::Node yaml, std::string full_path,
+  YamlConfig(formats::yaml::Value yaml, std::string full_path,
              VariableMapPtr config_vars_ptr);
 
-  const formats::yaml::Node& Yaml() const;
+  const formats::yaml::Value& Yaml() const;
   const std::string& FullPath() const;
   const VariableMapPtr& ConfigVarsPtr() const;
 
@@ -63,7 +63,7 @@ class YamlConfig {
   }
 
  private:
-  formats::yaml::Node yaml_;
+  formats::yaml::Value yaml_;
   std::string full_path_;
   VariableMapPtr config_vars_ptr_;
 };
