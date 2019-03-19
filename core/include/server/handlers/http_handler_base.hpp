@@ -3,6 +3,7 @@
 #include <string>
 
 #include <components/manager.hpp>
+#include <server/handlers/auth/auth_checker_base.hpp>
 #include <server/handlers/handler_base.hpp>
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
@@ -15,9 +16,6 @@ class StatisticsStorage;
 
 namespace server {
 namespace handlers {
-namespace auth {
-class AuthCheckerBase;
-}  // namespace auth
 
 class HttpHandlerStatistics;
 class HttpHandlerMethodStatistics;
@@ -72,7 +70,7 @@ class HttpHandlerBase : public HandlerBase {
 
   std::unique_ptr<HttpHandlerStatistics> handler_statistics_;
   std::unique_ptr<HttpHandlerStatistics> request_statistics_;
-  std::unique_ptr<auth::AuthCheckerBase> auth_checker_;
+  auth::AuthCheckerBasePtr auth_checker_;
 };
 
 }  // namespace handlers

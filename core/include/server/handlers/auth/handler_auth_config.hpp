@@ -11,23 +11,19 @@ namespace server {
 namespace handlers {
 namespace auth {
 
-enum class AuthType { kApiKey };
-
-std::string ToString(AuthType auth_type);
-
 class HandlerAuthConfig : public yaml_config::YamlConfig {
  public:
   HandlerAuthConfig(formats::yaml::Value yaml, std::string full_path,
                     yaml_config::VariableMapPtr config_vars_ptr);
 
-  AuthType GetType() const { return type_; };
+  const std::string& GetType() const { return type_; };
 
   static HandlerAuthConfig ParseFromYaml(
       const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);
 
  private:
-  AuthType type_;
+  std::string type_;
 };
 
 }  // namespace auth

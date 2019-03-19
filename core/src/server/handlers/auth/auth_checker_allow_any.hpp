@@ -1,6 +1,6 @@
 #pragma once
 
-#include "auth_checker_base.hpp"
+#include <server/handlers/auth/auth_checker_base.hpp>
 
 namespace server {
 namespace handlers {

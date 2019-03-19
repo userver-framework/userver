@@ -37,6 +37,16 @@ class BadRequest : public HttpException {
                       std::move(external_error_body)) {}
 };
 
+class Unauthorized : public HttpException {
+ public:
+  explicit Unauthorized(
+      std::string internal_error_message = "Unauthorized",
+      std::string external_error_body = std::string()) noexcept
+      : HttpException(server::http::HttpStatus::kUnauthorized,
+                      std::move(internal_error_message),
+                      std::move(external_error_body)) {}
+};
+
 class InternalServerError : public HttpException {
  public:
   explicit InternalServerError(

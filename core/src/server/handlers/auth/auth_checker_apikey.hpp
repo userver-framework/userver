@@ -1,10 +1,10 @@
 #pragma once
 
+#include <server/handlers/auth/auth_checker_base.hpp>
+#include <server/handlers/auth/auth_checker_factory.hpp>
 #include <server/handlers/auth/auth_checker_settings.hpp>
 #include <server/handlers/auth/handler_auth_config.hpp>
 #include <server/http/handler_methods.hpp>
-
-#include "auth_checker_base.hpp"
 
 namespace server {
 namespace handlers {

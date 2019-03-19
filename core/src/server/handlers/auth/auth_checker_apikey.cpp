@@ -77,9 +77,14 @@ const ApiKeysSet* AuthCheckerApiKey::GetApiKeysForRequest(
 const ApiKeysSet& AuthCheckerApiKey::GetApiKeysByType(
     const AuthCheckerSettings& settings, const std::string& apikey_type) {
   const auto& apikeys_map = settings.GetApiKeysMap();
+  if (!apikeys_map) {
+    throw std::runtime_error(
+        "apikeys map not found in auth checker settings (possible missing "
+        "value in secdist)");
+  }
 
-  auto it = apikeys_map.find(apikey_type);
-  if (it == apikeys_map.end()) {
+  auto it = apikeys_map->find(apikey_type);
+  if (it == apikeys_map->end()) {
     throw std::runtime_error(
         "apikey_type '" + apikey_type +
         "' not found in apikeys settings (possible missing value in secdist)");

@@ -15,7 +15,7 @@ class AuthCheckerBase {
   virtual void CheckAuth(const http::HttpRequest& request) const = 0;
 };
 
-using AuthCheckerBasePtr = std::unique_ptr<AuthCheckerBase>;
+using AuthCheckerBasePtr = std::shared_ptr<AuthCheckerBase>;
 
 }  // namespace auth
 }  // namespace handlers

@@ -86,7 +86,8 @@ HttpHandlerBase::HttpHandlerBase(
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
       request_statistics_(std::make_unique<HttpHandlerStatistics>()),
       auth_checker_(auth::CreateAuthChecker(
-          GetConfig(), http_server_settings_.GetAuthCheckerSettings())) {
+          component_context, GetConfig(),
+          http_server_settings_.GetAuthCheckerSettings())) {
   if (allowed_methods_.empty()) {
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
