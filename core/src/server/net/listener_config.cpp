@@ -11,7 +11,7 @@ namespace net {
 namespace {
 
 int CheckPort(int port, const std::string& name) {
-  if (port <= 0 || port >= 65536) {
+  if (port < 0 || port >= 65536) {
     throw std::runtime_error("Invalid " + name);
   }
   return port;
@@ -31,7 +31,7 @@ ListenerConfig ListenerConfig::ParseFromYaml(
   auto optional_unix = yaml_config::ParseOptionalString(
       yaml, "unix-socket", full_path, config_vars_ptr);
 
-  if (optional_port && *optional_port != 0)
+  if (optional_port)
     config.port = CheckPort(*optional_port, full_path + ".port");
   if (optional_unix && !optional_unix->empty())
     config.unix_socket_path = *optional_unix;
