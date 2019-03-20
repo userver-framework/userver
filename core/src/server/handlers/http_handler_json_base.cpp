@@ -20,7 +20,7 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
   try {
     if (!request.RequestBody().empty())
       request_json = formats::json::FromString(request.RequestBody());
-  } catch (const formats::json::JsonException& e) {
+  } catch (const formats::json::Exception& e) {
     throw http::BadRequest("Invalid JSON body",
                            std::string("Invalid JSON body: ") + e.what());
   }

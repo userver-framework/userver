@@ -1,11 +1,12 @@
 #pragma once
 
+#include <formats/parse/to.hpp>
 #include <redis/base.hpp>
 #include <taxi_config/value.hpp>
 
 namespace redis {
-CommandControl ParseJson(const formats::json::Value& elem,
-                         const CommandControl*);
+CommandControl Parse(const formats::json::Value& elem,
+                     formats::parse::To<CommandControl>);
 }
 
 namespace storages {

@@ -9,6 +9,7 @@
 #include <boost/optional.hpp>
 
 #include <engine/mutex.hpp>
+#include <formats/json/serialize_container.hpp>
 #include <formats/json/value.hpp>
 #include <utils/meta.hpp>
 #include <yaml_config/value.hpp>
@@ -61,33 +62,3 @@ class Value {
 };
 
 }  // namespace taxi_config
-
-template <typename T>
-std::unordered_map<std::string, T> ParseJson(
-    const formats::json::Value& elem,
-    const std::unordered_map<std::string, T>*) {
-  std::unordered_map<std::string, T> response;
-  for (auto it = elem.begin(); it != elem.end(); ++it) {
-    response.emplace(it.GetName(), it->As<T>());
-  }
-  return response;
-}
-
-template <typename T>
-std::map<std::string, T> ParseJson(const formats::json::Value& elem,
-                                   const std::map<std::string, T>*) {
-  std::map<std::string, T> response;
-  for (auto it = elem.begin(); it != elem.end(); ++it) {
-    response.emplace(it.GetName(), it->As<T>());
-  }
-  return response;
-}
-
-template <typename T>
-std::vector<T> ParseJson(const formats::json::Value& elem,
-                         const std::vector<T>*) {
-  std::vector<T> response;
-  for (const auto& item : elem)
-    response.emplace_back(item.As<typename T::value_type>());
-  return response;
-}

@@ -15,14 +15,12 @@ YAML::NodeType::value ToNative(Type t) {
   switch (t) {
     case Type::kArray:
       return YAML::NodeType::Sequence;
-    case Type::kMap:
-      return YAML::NodeType::Map;
     case Type::kMissing:
       return YAML::NodeType::Undefined;
     case Type::kNull:
       return YAML::NodeType::Null;
     case Type::kObject:
-      return YAML::NodeType::Map;  // same as kMap
+      return YAML::NodeType::Map;
   }
 }
 
@@ -60,6 +58,10 @@ ValueBuilder::ValueBuilder(long long t) : value_(YAML::Node(t)) {}
 ValueBuilder::ValueBuilder(unsigned long long t) : value_(YAML::Node(t)) {}
 #endif
 
+ValueBuilder::ValueBuilder(float t) : value_(YAML::Node(t)) {}
+
+ValueBuilder::ValueBuilder(double t) : value_(YAML::Node(t)) {}
+
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   Copy(other);
   return *this;
@@ -88,7 +90,7 @@ ValueBuilder ValueBuilder::MakeNonRoot(const YAML::Node& val,
 
 ValueBuilder ValueBuilder::MakeNonRoot(const YAML::Node& val,
                                        const formats::yaml::Path& path,
-                                       uint32_t index) {
+                                       std::size_t index) {
   ValueBuilder ret;
   ret.value_ = Value::MakeNonRoot(val, path, index);
   return ret;
@@ -99,7 +101,7 @@ ValueBuilder ValueBuilder::operator[](const std::string& key) {
   return MakeNonRoot(value_.GetNative()[key], value_.path_, key);
 }
 
-ValueBuilder ValueBuilder::operator[](uint32_t index) {
+ValueBuilder ValueBuilder::operator[](std::size_t index) {
   value_.CheckInBounds(index);
   return MakeNonRoot(value_.GetNative()[index], value_.path_, index);
 }
@@ -119,9 +121,9 @@ ValueBuilder::iterator ValueBuilder::end() {
           value_.path_};
 }
 
-uint32_t ValueBuilder::GetSize() const { return value_.GetSize(); }
+std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 
-void ValueBuilder::Resize(uint32_t size) {
+void ValueBuilder::Resize(std::size_t size) {
   value_.CheckArrayOrNull();
 
   auto sequence_lengh = value_.GetNative().size();
@@ -153,7 +155,7 @@ void ValueBuilder::PushBack(ValueBuilder&& bld) {
 
 formats::yaml::Value ValueBuilder::ExtractValue() {
   if (!value_.IsRoot()) {
-    throw YamlException("Extract should be called only from the root builder");
+    throw Exception("Extract should be called only from the root builder");
   }
 
   // Create underlying native object first,
@@ -171,7 +173,8 @@ void ValueBuilder::SetNonRoot(const YAML::Node& val,
 }
 
 void ValueBuilder::SetNonRoot(const YAML::Node& val,
-                              const formats::yaml::Path& path, uint32_t index) {
+                              const formats::yaml::Path& path,
+                              std::size_t index) {
   value_.SetNonRoot(val, path, index);
 }
 

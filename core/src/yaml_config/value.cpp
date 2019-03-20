@@ -7,7 +7,7 @@ bool IsSubstitution(const formats::yaml::Value& value) {
   try {
     const auto& str = value.As<std::string>();
     return !str.empty() && str.front() == '$';
-  } catch (formats::yaml::YamlException&) {
+  } catch (formats::yaml::Exception&) {
     return false;
   }
 }

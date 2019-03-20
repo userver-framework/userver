@@ -6,6 +6,8 @@
 #include <storages/postgres/exceptions.hpp>
 #include <utils/assert.hpp>
 
+#include <set>
+
 namespace storages {
 namespace postgres {
 namespace detail {

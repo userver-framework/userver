@@ -3,6 +3,8 @@
 #include <istream>
 #include <ostream>
 
+#include <json/value.h>
+
 namespace {
 
 std::string MsgForState(std::ios::iostate state, const char* stream) {
@@ -52,46 +54,28 @@ std::string MsgForMissing(const std::string& path) {
   return std::string("Field '") + path + "' is missing";
 }
 
-template <typename T>
-std::string MsgForOverflow(T min, T value, T max, const std::string& path) {
-  return std::string("Value of '") + path + "' is out of bounds (" +
-         std::to_string(min) + " <= " + std::to_string(value) +
-         " <= " + std::to_string(max) + ")";
-}
-
 }  // namespace
 
 namespace formats {
 namespace json {
 
 BadStreamException::BadStreamException(const std::istream& is)
-    : JsonException(MsgForState(is.rdstate(), "input")) {}
+    : Exception(MsgForState(is.rdstate(), "input")) {}
 
 BadStreamException::BadStreamException(const std::ostream& os)
-    : JsonException(MsgForState(os.rdstate(), "output")) {}
+    : Exception(MsgForState(os.rdstate(), "output")) {}
 
-TypeMismatchException::TypeMismatchException(Json::ValueType actual,
-                                             Json::ValueType expected,
+TypeMismatchException::TypeMismatchException(int actual, int expected,
                                              const std::string& path)
-    : JsonException(MsgForType(actual, expected, path)) {}
+    : Exception(MsgForType(static_cast<Json::ValueType>(actual),
+                           static_cast<Json::ValueType>(expected), path)) {}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            const std::string& path)
-    : JsonException(MsgForIndex(index, size, path)) {}
-
-IntegralOverflowException::IntegralOverflowException(int64_t min, int64_t value,
-                                                     int64_t max,
-                                                     const std::string& path)
-    : JsonException(MsgForOverflow(min, value, max, path)) {}
-
-IntegralOverflowException::IntegralOverflowException(uint64_t min,
-                                                     uint64_t value,
-                                                     uint64_t max,
-                                                     const std::string& path)
-    : JsonException(MsgForOverflow(min, value, max, path)) {}
+    : Exception(MsgForIndex(index, size, path)) {}
 
 MemberMissingException::MemberMissingException(const std::string& path)
-    : JsonException(MsgForMissing(path)) {}
+    : Exception(MsgForMissing(path)) {}
 
 }  // namespace json
 }  // namespace formats

@@ -31,7 +31,7 @@ SecdistConfig::SecdistConfig(const std::string& path) {
   formats::json::Value doc;
   try {
     doc = formats::json::FromStream(json_stream);
-  } catch (const formats::json::JsonException& e) {
+  } catch (const formats::json::Exception& e) {
     throw InvalidSecdistJson(std::string("Cannot load secdist config: ") +
                              e.what());
   }

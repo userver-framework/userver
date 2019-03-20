@@ -2,8 +2,30 @@
 
 #include <formats/json/exception.hpp>
 
+#include <json/value.h>
+
+#include <utils/assert.hpp>
+
 namespace formats {
 namespace json {
+
+namespace {
+Json::ValueType ToNativeType(Type type) {
+  switch (type) {
+    case Type::kNull:
+      return Json::nullValue;
+    case Type::kArray:
+      return Json::arrayValue;
+    case Type::kObject:
+      return Json::objectValue;
+    default:
+      UASSERT_MSG(
+          false,
+          "No mapping from formats::json::Type to Json::ValueType found");
+      return Json::nullValue;
+  }
+}
+}  // namespace
 
 ValueBuilder::ValueBuilder(Type type)
     : value_(std::make_shared<Json::Value>(ToNativeType(type))) {}
@@ -16,20 +38,33 @@ ValueBuilder::ValueBuilder(ValueBuilder&& other) {
   Move(value_.GetNative(), std::move(other));
 }
 
+ValueBuilder::ValueBuilder(bool t) : value_(std::make_shared<Json::Value>(t)) {}
+
 ValueBuilder::ValueBuilder(const char* str)
     : value_(std::make_shared<Json::Value>(std::string(str))) {}
 
+ValueBuilder::ValueBuilder(const std::string& str)
+    : value_(std::make_shared<Json::Value>(str)) {}
+
+ValueBuilder::ValueBuilder(int t) : value_(std::make_shared<Json::Value>(t)) {}
+ValueBuilder::ValueBuilder(unsigned int t)
+    : value_(std::make_shared<Json::Value>(t)) {}
 ValueBuilder::ValueBuilder(uint64_t t)
     : value_(std::make_shared<Json::Value>(Json::UInt64(t))) {}
-
 ValueBuilder::ValueBuilder(int64_t t)
     : value_(std::make_shared<Json::Value>(Json::Int64(t))) {}
 
-#ifdef _LIBCPP_VERSION
+#ifdef _LIBCPP_VERSION  // In libc++ long long and int64_t are the same
 ValueBuilder::ValueBuilder(long t) : ValueBuilder(int64_t(t)) {}
+ValueBuilder::ValueBuilder(unsigned long t) : ValueBuilder(uint64_t(t)) {}
 #else
 ValueBuilder::ValueBuilder(long long t) : ValueBuilder(int64_t(t)) {}
+ValueBuilder::ValueBuilder(unsigned long long t) : ValueBuilder(uint64_t(t)) {}
 #endif
+ValueBuilder::ValueBuilder(float t)
+    : value_(std::make_shared<Json::Value>(t)) {}
+ValueBuilder::ValueBuilder(double t)
+    : value_(std::make_shared<Json::Value>(t)) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   Copy(value_.GetNative(), other);
@@ -62,7 +97,7 @@ ValueBuilder::ValueBuilder(const NativeValuePtr& root, const Json::Value& val,
     : value_(root, &val, path, key) {}
 
 ValueBuilder::ValueBuilder(const NativeValuePtr& root, const Json::Value& val,
-                           const formats::json::Path& path, uint32_t index)
+                           const formats::json::Path& path, std::size_t index)
     : value_(root, val, path, index) {}
 
 ValueBuilder ValueBuilder::operator[](const std::string& key) {
@@ -70,9 +105,10 @@ ValueBuilder ValueBuilder::operator[](const std::string& key) {
   return {value_.root_, value_.GetNative()[key], value_.path_, key};
 }
 
-ValueBuilder ValueBuilder::operator[](uint32_t index) {
+ValueBuilder ValueBuilder::operator[](std::size_t index) {
   value_.CheckInBounds(index);
-  return {value_.root_, value_.GetNative()[index], value_.path_, index};
+  return {value_.root_, value_.GetNative()[static_cast<int>(index)],
+          value_.path_, index};
 }
 
 ValueBuilder::iterator ValueBuilder::begin() {
@@ -85,9 +121,9 @@ ValueBuilder::iterator ValueBuilder::end() {
   return {value_.root_, value_.GetNative().end(), value_.path_};
 }
 
-uint32_t ValueBuilder::GetSize() const { return value_.GetSize(); }
+std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 
-void ValueBuilder::Resize(uint32_t size) {
+void ValueBuilder::Resize(std::size_t size) {
   value_.CheckArrayOrNull();
   value_.GetNative().resize(size);
 }
@@ -99,7 +135,7 @@ void ValueBuilder::PushBack(ValueBuilder&& bld) {
 
 formats::json::Value ValueBuilder::ExtractValue() {
   if (!value_.IsRoot()) {
-    throw JsonException("Extract should be called only from the root builder");
+    throw Exception("Extract should be called only from the root builder");
   }
 
   // Create underlying native object first,
@@ -111,15 +147,18 @@ formats::json::Value ValueBuilder::ExtractValue() {
   return v;
 }
 
-void ValueBuilder::Set(const NativeValuePtr& root, const Json::Value& val,
-                       const formats::json::Path& path,
-                       const std::string& key) {
-  value_.Set(root, val, path, key);
+void ValueBuilder::SetNonRoot(const NativeValuePtr& root,
+                              const Json::Value& val,
+                              const formats::json::Path& path,
+                              const std::string& key) {
+  value_.SetNonRoot(root, val, path, key);
 }
 
-void ValueBuilder::Set(const NativeValuePtr& root, const Json::Value& val,
-                       const formats::json::Path& path, uint32_t index) {
-  value_.Set(root, val, path, index);
+void ValueBuilder::SetNonRoot(const NativeValuePtr& root,
+                              const Json::Value& val,
+                              const formats::json::Path& path,
+                              std::size_t index) {
+  value_.SetNonRoot(root, val, path, index);
 }
 
 std::string ValueBuilder::GetPath() const { return value_.GetPath(); }

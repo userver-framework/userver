@@ -33,9 +33,8 @@ struct MemberModify<formats::json::Value> : public ::testing::Test {
   using ParseException = formats::json::ParseException;
   using TypeMismatchException = formats::json::TypeMismatchException;
   using OutOfBoundsException = formats::json::OutOfBoundsException;
-  using IntegralOverflowException = formats::json::IntegralOverflowException;
   using MemberMissingException = formats::json::MemberMissingException;
-  using Exception = formats::json::JsonException;
+  using Exception = formats::json::Exception;
 
   constexpr static auto FromString = formats::json::FromString;
 };

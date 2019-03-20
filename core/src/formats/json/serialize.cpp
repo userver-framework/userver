@@ -50,11 +50,6 @@ formats::json::Value FromStream(std::istream& is) {
   return FromString(res);
 }
 
-formats::json::Value FromFile(const std::string& path) {
-  std::ifstream is(path);
-  return FromStream(is);
-}
-
 void Serialize(const formats::json::Value& doc, std::ostream& os) {
   thread_local std::unique_ptr<Json::StreamWriter> writer([]() {
     Json::StreamWriterBuilder builder;
@@ -73,6 +68,15 @@ std::string ToString(const formats::json::Value& doc) {
   Serialize(doc, os);
   return os.str();
 }
+
+namespace blocking {
+
+formats::json::Value FromFile(const std::string& path) {
+  std::ifstream is(path);
+  return FromStream(is);
+}
+
+}  // namespace blocking
 
 }  // namespace json
 }  // namespace formats

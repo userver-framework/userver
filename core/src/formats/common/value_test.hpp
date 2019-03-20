@@ -5,6 +5,35 @@
 #include <unordered_map>
 #include <vector>
 
+#include <formats/parse/to.hpp>
+
+namespace {
+namespace testing_namespace {
+struct TestType {
+  int i;
+};
+
+template <class Value>
+TestType Parse(const Value& val, formats::parse::To<TestType>) {
+  return TestType{val.template As<int>()};
+}
+}  // namespace testing_namespace
+
+namespace testing_namespace2 {
+struct TestType {
+  int i;
+};
+}  // namespace testing_namespace2
+}  // namespace
+
+namespace formats::parse {
+template <class Value>
+testing_namespace2::TestType Parse(const Value& val,
+                                   To<testing_namespace2::TestType>) {
+  return testing_namespace2::TestType{val.template As<int>()};
+}
+}  // namespace formats::parse
+
 template <class T>
 struct Parsing : public ::testing::Test {};
 
@@ -95,6 +124,32 @@ TYPED_TEST_P(Parsing, IntOverflow) {
   EXPECT_EQ(65535u, value.template As<uint16_t>());
 }
 
+TYPED_TEST_P(Parsing, UserProvidedCommonParser) {
+  auto value = this->FromString("[42]")[0];
+
+  const auto converted = value.template As<testing_namespace::TestType>();
+  EXPECT_EQ(converted.i, 42);
+
+  const auto converted2 = value.template As<testing_namespace2::TestType>();
+  EXPECT_EQ(converted2.i, 42);
+}
+
+TYPED_TEST_P(Parsing, ChronoSeconds) {
+  auto value = this->FromString("[\"10h\"]")[0];
+
+  {
+    const auto converted = value.template As<std::chrono::seconds>();
+    EXPECT_EQ(converted, std::chrono::hours(10));
+  }
+
+  {
+    value = this->FromString("[10]")[0];
+
+    const auto converted = value.template As<std::chrono::seconds>();
+    EXPECT_EQ(converted, std::chrono::seconds{10});
+  }
+}
+
 REGISTER_TYPED_TEST_CASE_P(Parsing,
 
                            ContainersCtr, VectorInt, VectorIntNull,
@@ -102,4 +157,6 @@ REGISTER_TYPED_TEST_CASE_P(Parsing,
                            VectorVectorIntNull, OptionalIntNone,
 
                            OptionalInt, OptionalVectorInt, Int, UInt,
-                           IntOverflow);
+                           IntOverflow, UserProvidedCommonParser,
+
+                           ChronoSeconds);

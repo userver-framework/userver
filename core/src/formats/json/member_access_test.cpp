@@ -26,7 +26,6 @@ struct MemberAccess<formats::json::Value> : public ::testing::Test {
   using ParseException = formats::json::ParseException;
   using TypeMismatchException = formats::json::TypeMismatchException;
   using OutOfBoundsException = formats::json::OutOfBoundsException;
-  using IntegralOverflowException = formats::json::IntegralOverflowException;
   using MemberMissingException = formats::json::MemberMissingException;
 };
 

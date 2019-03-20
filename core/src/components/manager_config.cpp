@@ -25,7 +25,7 @@ ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
   formats::yaml::Value config_yaml;
   try {
     config_yaml = ParseYaml(source);
-  } catch (const formats::yaml::YamlException& e) {
+  } catch (const formats::yaml::Exception& e) {
     throw std::runtime_error("Cannot parse config from '" + source_desc +
                              "': " + e.what());
   }

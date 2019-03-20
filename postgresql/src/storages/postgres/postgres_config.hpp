@@ -6,8 +6,8 @@
 namespace storages {
 namespace postgres {
 
-CommandControl ParseJson(const formats::json::Value& elem,
-                         const CommandControl*);
+CommandControl Parse(const formats::json::Value& elem,
+                     formats::parse::To<CommandControl>);
 
 class Config {
  public:

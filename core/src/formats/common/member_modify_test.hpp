@@ -155,7 +155,7 @@ TYPED_TEST_P(MemberModify, ArrayIteratorRead) {
 
   auto it = this->GetBuiltValue().begin();
   for (auto i = 0; i < size; ++i, ++it) {
-    EXPECT_EQ(it->template As<int>(), i);
+    EXPECT_EQ(it->template As<int>(), i) << "Failed at index " << i;
   }
   EXPECT_EQ(this->builder_.GetSize(), size);
 }
@@ -184,7 +184,7 @@ TYPED_TEST_P(MemberModify, ArrayIteratorModify) {
   {
     auto it = this->GetBuiltValue().begin();
     for (auto i = 0; i < size; ++i, ++it) {
-      EXPECT_EQ(it->template As<int>(), i + offset);
+      EXPECT_EQ(it->template As<int>(), i + offset) << "Failed at index " << i;
     }
   }
   EXPECT_EQ(this->builder_.GetSize(), size);
@@ -255,6 +255,9 @@ TYPED_TEST_P(MemberModify, TypeCheckMinMax) {
   bld["long"] = std::numeric_limits<long>::min();
   bld["long long"] = std::numeric_limits<long long>::min();
 
+  bld["float"] = 0.f;
+  bld["double"] = 0.0;
+
   auto v = this->GetValue(bld);
   EXPECT_EQ(v["int8_t"].template As<int>(), std::numeric_limits<int8_t>::min());
   EXPECT_EQ(v["uint8_t"].template As<uint64_t>(),
@@ -276,6 +279,9 @@ TYPED_TEST_P(MemberModify, TypeCheckMinMax) {
   EXPECT_EQ(v["long"].template As<int64_t>(), std::numeric_limits<long>::min());
   EXPECT_EQ(v["long long"].template As<int64_t>(),
             std::numeric_limits<long long>::min());
+
+  EXPECT_EQ(v["float"].template As<float>(), 0.f);
+  EXPECT_EQ(v["double"].template As<double>(), 0.0);
 }
 
 TYPED_TEST_P(MemberModify, CannotBuildFromMissing) {

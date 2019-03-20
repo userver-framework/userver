@@ -49,7 +49,7 @@ Type ParseTypeImpl(const formats::yaml::Value& obj, const Field& field,
   CheckContainer(obj, field, full_path);
   try {
     return value.template As<Type>();
-  } catch (formats::yaml::YamlException&) {
+  } catch (formats::yaml::Exception&) {
     throw ParseError(full_path, field, type_name);
   }
 }

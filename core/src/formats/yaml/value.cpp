@@ -32,13 +32,13 @@ Type FromNative(YAML::NodeType::value t) {
     case YAML::NodeType::Sequence:
       return Type::kArray;
     case YAML::NodeType::Map:
-      return Type::kMap;
+      return Type::kObject;
     case YAML::NodeType::Undefined:
       return Type::kMissing;
     case YAML::NodeType::Null:
       return Type::kNull;
     case YAML::NodeType::Scalar:
-      return Type::kObject;
+      return Type::kObject;  // same as Map
   }
 }
 
@@ -92,34 +92,35 @@ Value Value::MakeNonRoot(const YAML::Node& value,
 Value Value::operator[](const std::string& key) const {
   if (!IsMissing()) {
     CheckObjectOrNull();
-    return MakeNonRoot(GetNative()[key], path_, key);
+    return MakeNonRoot((*value_pimpl_)[key], path_, key);
   }
   return MakeNonRoot(MakeMissingNode(), path_, key);
 }
 
-Value Value::operator[](uint32_t index) const {
+Value Value::operator[](std::size_t index) const {
   if (!IsMissing()) {
     CheckInBounds(index);
-    return MakeNonRoot(GetNative()[index], path_, index);
+    return MakeNonRoot((*value_pimpl_)[index], path_, index);
   }
   return MakeNonRoot(MakeMissingNode(), path_, index);
 }
 
 Value::const_iterator Value::begin() const {
   CheckObjectOrArrayOrNull();
-  return {GetNative().begin(), GetNative().IsSequence() ? 0 : -1, path_};
+  return {value_pimpl_->begin(), value_pimpl_->IsSequence() ? 0 : -1, path_};
 }
 
 Value::const_iterator Value::end() const {
   CheckObjectOrArrayOrNull();
-  return {GetNative().end(),
-          GetNative().IsSequence() ? static_cast<int>(GetNative().size()) : -1,
-          path_};
+  return {
+      value_pimpl_->end(),
+      value_pimpl_->IsSequence() ? static_cast<int>(value_pimpl_->size()) : -1,
+      path_};
 }
 
-uint32_t Value::GetSize() const {
+std::size_t Value::GetSize() const {
   CheckObjectOrArrayOrNull();
-  return GetNative().size();
+  return value_pimpl_->size();
 }
 
 bool Value::operator==(const Value& other) const {
@@ -174,11 +175,6 @@ bool Value::As<bool>() const {
 }
 
 template <>
-int32_t Value::As<int32_t>() const {
-  return ValueAs<int32_t>();
-}
-
-template <>
 int64_t Value::As<int64_t>() const {
   return ValueAs<int64_t>();
 }
@@ -212,8 +208,6 @@ std::string Value::GetPath() const { return PathToString(path_); }
 Value Value::Clone() const {
   Value v;
   *v.value_pimpl_ = YAML::Clone(GetNative());
-  v.is_root_ = is_root_;
-  v.path_ = path_;
   return v;
 }
 
@@ -229,21 +223,21 @@ void Value::SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
   *this = MakeNonRoot(val, path, index);
 }
 
-void Value::EnsureValid() const { CheckNotMissing(); }
+void Value::EnsureNotMissing() const { CheckNotMissing(); }
 
-bool Value::IsRoot() const { return is_root_; }
+bool Value::IsRoot() const noexcept { return is_root_; }
 
 bool Value::DebugIsReferencingSameMemory(const Value& other) const {
   return value_pimpl_->is(*other.value_pimpl_);
 }
 
 const YAML::Node& Value::GetNative() const {
-  EnsureValid();
+  EnsureNotMissing();
   return *value_pimpl_;
 }
 
 YAML::Node& Value::GetNative() {
-  EnsureValid();
+  EnsureNotMissing();
   return *value_pimpl_;
 }
 
@@ -274,9 +268,9 @@ void Value::CheckObjectOrArrayOrNull() const {
   }
 }
 
-void Value::CheckInBounds(uint32_t index) const {
+void Value::CheckInBounds(std::size_t index) const {
   CheckArrayOrNull();
-  if (!GetNative()[index]) {
+  if (!(*value_pimpl_)[index]) {
     throw OutOfBoundsException(index, GetSize(), GetPath());
   }
 }

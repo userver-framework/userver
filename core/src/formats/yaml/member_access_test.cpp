@@ -32,7 +32,6 @@ struct MemberAccess<formats::yaml::Value> : public ::testing::Test {
   using ParseException = formats::yaml::ParseException;
   using TypeMismatchException = formats::yaml::TypeMismatchException;
   using OutOfBoundsException = formats::yaml::OutOfBoundsException;
-  using IntegralOverflowException = formats::yaml::IntegralOverflowException;
   using MemberMissingException = formats::yaml::MemberMissingException;
 };
 

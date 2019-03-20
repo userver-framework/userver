@@ -4,9 +4,9 @@
 
 namespace redis {
 
-redis::CommandControl::Strategy ParseJson(
+redis::CommandControl::Strategy Parse(
     const formats::json::Value& elem,
-    const ::redis::CommandControl::Strategy*) {
+    formats::parse::To<::redis::CommandControl::Strategy>) {
   auto strategy = elem.As<std::string>();
   if (strategy == "every_dc") {
     return redis::CommandControl::Strategy::kEveryDc;
@@ -23,8 +23,8 @@ redis::CommandControl::Strategy ParseJson(
   }
 }
 
-::redis::CommandControl ParseJson(const formats::json::Value& elem,
-                                  const ::redis::CommandControl*) {
+::redis::CommandControl Parse(const formats::json::Value& elem,
+                              formats::parse::To<::redis::CommandControl>) {
   ::redis::CommandControl response;
 
   for (auto it = elem.begin(); it != elem.end(); ++it) {

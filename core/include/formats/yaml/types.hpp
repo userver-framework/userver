@@ -1,9 +1,10 @@
 #pragma once
 
-#include <memory>
-#include <vector>
+#include <type_traits>
+#include <utils/void_t.hpp>
 
 #include <formats/common/path.hpp>
+#include <formats/common/type.hpp>
 
 // Forward declarations
 namespace YAML {
@@ -23,14 +24,9 @@ namespace yaml {
 
 using formats::common::Path;
 using formats::common::PathToString;
+using formats::common::Type;
 
-enum class Type {
-  kNull,
-  kArray,
-  kObject,
-  kMap,
-  kMissing,
-};
+class Value;
 
 }  // namespace yaml
 }  // namespace formats

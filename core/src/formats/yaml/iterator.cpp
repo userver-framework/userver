@@ -100,7 +100,8 @@ bool Iterator<iter_traits>::operator!=(
 template <typename iter_traits>
 std::string Iterator<iter_traits>::GetName() const {
   if (index_ != -1) {
-    throw TypeMismatchException(Type::kArray, Type::kMap, PathToString(path_));
+    throw TypeMismatchException(Type::kArray, Type::kObject,
+                                PathToString(path_));
   }
   return (*iter_pimpl_)->first.Scalar();
 }
@@ -108,7 +109,8 @@ std::string Iterator<iter_traits>::GetName() const {
 template <typename iter_traits>
 uint32_t Iterator<iter_traits>::GetIndex() const {
   if (index_ == -1) {
-    throw TypeMismatchException(Type::kMap, Type::kArray, PathToString(path_));
+    throw TypeMismatchException(Type::kObject, Type::kArray,
+                                PathToString(path_));
   }
   return index_;
 }

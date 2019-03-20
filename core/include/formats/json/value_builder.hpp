@@ -8,7 +8,7 @@ namespace json {
 class ValueBuilder {
  public:
   struct IterTraits {
-    using native_iter = Json::Value::iterator;
+    using native_iter = Json::ValueIterator;
     using value_type = formats::json::ValueBuilder;
     using reference = formats::json::ValueBuilder&;
     using pointer = formats::json::ValueBuilder*;
@@ -17,7 +17,10 @@ class ValueBuilder {
   using iterator = Iterator<IterTraits>;
 
  public:
+  /// Constructs a valueBuilder that holds kNull
   ValueBuilder() noexcept = default;
+
+  /// Constructs a valueBuilder that holds default value for provided `type`.
   ValueBuilder(Type type);
 
   ValueBuilder(const ValueBuilder& other);
@@ -28,21 +31,23 @@ class ValueBuilder {
   ValueBuilder(const formats::json::Value& other);
   ValueBuilder(formats::json::Value&& other);
 
-  /// Converting constructor.
-  template <typename T>
-  ValueBuilder(
-      T t, typename std::enable_if<std::is_arithmetic<T>::value ||
-                                   std::is_same<T, std::string>::value>::type* =
-               nullptr)
-      : value_(std::make_shared<Json::Value>(std::move(t))) {}
+  /// Converting constructors.
+  ValueBuilder(bool t);
   ValueBuilder(const char* str);
+  ValueBuilder(const std::string& str);
+  ValueBuilder(int t);
+  ValueBuilder(unsigned int t);
   ValueBuilder(uint64_t t);
   ValueBuilder(int64_t t);
 #ifdef _LIBCPP_VERSION  // In libc++ long long and int64_t are the same
   ValueBuilder(long t);
+  ValueBuilder(unsigned long t);
 #else
   ValueBuilder(long long t);
+  ValueBuilder(unsigned long long t);
 #endif
+  ValueBuilder(float t);
+  ValueBuilder(double t);
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
@@ -50,19 +55,19 @@ class ValueBuilder {
   /// @brief Access array member by index for modification.
   /// @throw `TypeMismatchException` if not array value.
   /// @throw `OutOfBoundsException` if index is greater than size.
-  ValueBuilder operator[](uint32_t index);
+  ValueBuilder operator[](std::size_t index);
 
   iterator begin();
   iterator end();
 
   /// @brief Returns array size or object members count.
   /// @throw `TypeMismatchException` if not array or object value.
-  uint32_t GetSize() const;
+  std::size_t GetSize() const;
 
   /// @brief Resize the array value or convert null value
   /// into an array of requested size.
   /// @throw `TypeMismatchException` if not array or null value.
-  void Resize(uint32_t size);
+  void Resize(std::size_t size);
 
   /// @brief Add element into the last position of array.
   /// @throw `TypeMismatchException` if not array or null value.
@@ -78,13 +83,13 @@ class ValueBuilder {
   ValueBuilder(const NativeValuePtr& root, const Json::Value& val,
                const formats::json::Path& path, const std::string& key);
   ValueBuilder(const NativeValuePtr& root, const Json::Value& val,
-               const formats::json::Path& path, uint32_t index);
+               const formats::json::Path& path, std::size_t index);
 
   // For iterator interface compatibility
-  void Set(const NativeValuePtr& root, const Json::Value& val,
-           const formats::json::Path& path, const std::string& key);
-  void Set(const NativeValuePtr& root, const Json::Value& val,
-           const formats::json::Path& path, uint32_t index);
+  void SetNonRoot(const NativeValuePtr& root, const Json::Value& val,
+                  const formats::json::Path& path, const std::string& key);
+  void SetNonRoot(const NativeValuePtr& root, const Json::Value& val,
+                  const formats::json::Path& path, std::size_t index);
   std::string GetPath() const;
 
   void Copy(Json::Value& to, const ValueBuilder& from);

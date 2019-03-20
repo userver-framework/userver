@@ -17,7 +17,10 @@ class ValueBuilder {
   using iterator = Iterator<IterTraits>;
 
  public:
+  /// Constructs a valueBuilder that holds kNull
   ValueBuilder();
+
+  /// Constructs a valueBuilder that holds default value for provided `type`.
   ValueBuilder(Type type);
 
   ValueBuilder(const ValueBuilder& other);
@@ -43,6 +46,8 @@ class ValueBuilder {
   ValueBuilder(long long t);
   ValueBuilder(unsigned long long t);
 #endif
+  ValueBuilder(float t);
+  ValueBuilder(double t);
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
@@ -50,19 +55,19 @@ class ValueBuilder {
   /// @brief Access array member by index for modification.
   /// @throw `TypeMismatchException` if not array value.
   /// @throw `OutOfBoundsException` if index is greater than size.
-  ValueBuilder operator[](uint32_t index);
+  ValueBuilder operator[](std::size_t index);
 
   iterator begin();
   iterator end();
 
   /// @brief Returns array size or object members count.
   /// @throw `TypeMismatchException` if not array or object value.
-  uint32_t GetSize() const;
+  std::size_t GetSize() const;
 
   /// @brief Resize the array value or convert null value
   /// into an array of requested size.
   /// @throw `TypeMismatchException` if not array or null value.
-  void Resize(uint32_t size);
+  void Resize(std::size_t size);
 
   /// @brief Add element into the last position of array.
   /// @throw `TypeMismatchException` if not array or null value.
@@ -80,13 +85,13 @@ class ValueBuilder {
                                   const std::string& key);
   static ValueBuilder MakeNonRoot(const YAML::Node& val,
                                   const formats::yaml::Path& path,
-                                  uint32_t index);
+                                  std::size_t index);
 
   // For iterator interface compatibility
   void SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
                   const std::string& key);
   void SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
-                  uint32_t index);
+                  std::size_t index);
   std::string GetPath() const;
 
   void Copy(const ValueBuilder& from);

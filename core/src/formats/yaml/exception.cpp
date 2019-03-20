@@ -33,7 +33,6 @@ const char* NameForType(Type expected) {
   RET_NAME(kNull)
   RET_NAME(kArray)
   RET_NAME(kObject)
-  RET_NAME(kMap)
   RET_NAME(kMissing)
   return "ERROR";
 #undef RET_NAME
@@ -68,47 +67,29 @@ std::string MsgForMissing(const std::string& path) {
   return std::string("Field '") + path + "' is missing";
 }
 
-template <typename T>
-std::string MsgForOverflow(T min, T value, T max, const std::string& path) {
-  return std::string("Value of '") + path + "' is out of bounds (" +
-         std::to_string(min) + " <= " + std::to_string(value) +
-         " <= " + std::to_string(max) + ")";
-}
-
 }  // namespace
 
 BadStreamException::BadStreamException(const std::istream& is)
-    : YamlException(MsgForState(is.rdstate(), "input")) {}
+    : Exception(MsgForState(is.rdstate(), "input")) {}
 
 BadStreamException::BadStreamException(const std::ostream& os)
-    : YamlException(MsgForState(os.rdstate(), "output")) {}
+    : Exception(MsgForState(os.rdstate(), "output")) {}
 
 TypeMismatchException::TypeMismatchException(Type actual, Type expected,
                                              const std::string& path)
-    : YamlException(MsgForType(actual, expected, path)) {}
+    : Exception(MsgForType(actual, expected, path)) {}
 
 TypeMismatchException::TypeMismatchException(const YAML::Node& value,
                                              const std::string& expected_type,
                                              const std::string& path)
-    : YamlException(MsgForType(expected_type, path, value)) {}
+    : Exception(MsgForType(expected_type, path, value)) {}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            const std::string& path)
-    : YamlException(MsgForIndex(index, size, path)) {}
-
-IntegralOverflowException::IntegralOverflowException(int64_t min, int64_t value,
-                                                     int64_t max,
-                                                     const std::string& path)
-    : YamlException(MsgForOverflow(min, value, max, path)) {}
-
-IntegralOverflowException::IntegralOverflowException(uint64_t min,
-                                                     uint64_t value,
-                                                     uint64_t max,
-                                                     const std::string& path)
-    : YamlException(MsgForOverflow(min, value, max, path)) {}
+    : Exception(MsgForIndex(index, size, path)) {}
 
 MemberMissingException::MemberMissingException(const std::string& path)
-    : YamlException(MsgForMissing(path)) {}
+    : Exception(MsgForMissing(path)) {}
 
 }  // namespace yaml
 }  // namespace formats

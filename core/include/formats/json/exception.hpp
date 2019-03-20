@@ -2,54 +2,43 @@
 
 #include <iosfwd>
 #include <stdexcept>
-
-#include <json/value.h>
+#include <string>
 
 namespace formats {
 namespace json {
 
-class JsonException : public std::exception {
+class Exception : public std::exception {
  public:
-  explicit JsonException(std::string msg) : msg_(std::move(msg)) {}
+  explicit Exception(std::string msg) : msg_(std::move(msg)) {}
 
-  const char* what() const noexcept override { return msg_.c_str(); }
+  const char* what() const noexcept final { return msg_.c_str(); }
 
  private:
   std::string msg_;
 };
 
-class ParseException : public JsonException {
+class ParseException : public Exception {
  public:
-  using JsonException::JsonException;
+  using Exception::Exception;
 };
 
-class BadStreamException : public JsonException {
+class BadStreamException : public Exception {
  public:
   explicit BadStreamException(const std::istream& is);
   explicit BadStreamException(const std::ostream& os);
 };
 
-class TypeMismatchException : public JsonException {
+class TypeMismatchException : public Exception {
  public:
-  TypeMismatchException(Json::ValueType actual, Json::ValueType expected,
-                        const std::string& path);
+  TypeMismatchException(int actual, int expected, const std::string& path);
 };
 
-class OutOfBoundsException : public JsonException {
+class OutOfBoundsException : public Exception {
  public:
   OutOfBoundsException(size_t index, size_t size, const std::string& path);
 };
 
-class IntegralOverflowException : public JsonException {
- public:
-  IntegralOverflowException(int64_t min, int64_t value, int64_t max,
-                            const std::string& path);
-
-  IntegralOverflowException(uint64_t min, uint64_t value, uint64_t max,
-                            const std::string& path);
-};
-
-class MemberMissingException : public JsonException {
+class MemberMissingException : public Exception {
  public:
   explicit MemberMissingException(const std::string& path);
 };

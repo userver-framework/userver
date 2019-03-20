@@ -356,6 +356,57 @@ TYPED_TEST_P(MemberAccess, ValueAssignment) {
   EXPECT_FALSE(v3.IsArray());
 }
 
+TYPED_TEST_P(MemberAccess, ConstFunctionsOnMissing) {
+  using Value = typename TestFixture::Value;
+  using MemberMissingException = typename TestFixture::MemberMissingException;
+
+  Value v = Value()["missing"];
+  ASSERT_NO_THROW(v.IsMissing());
+  ASSERT_TRUE(v.IsMissing());
+
+  EXPECT_FALSE(v.IsNull());
+  EXPECT_FALSE(v.IsBool());
+  EXPECT_FALSE(v.IsInt());
+  EXPECT_FALSE(v.IsInt64());
+  EXPECT_FALSE(v.IsUInt64());
+  EXPECT_FALSE(v.IsDouble());
+  EXPECT_FALSE(v.IsString());
+  EXPECT_FALSE(v.IsArray());
+  EXPECT_FALSE(v.IsObject());
+
+  EXPECT_THROW(v == v, MemberMissingException);
+  EXPECT_THROW(v != v, MemberMissingException);
+
+  EXPECT_EQ(v.GetPath(), "missing");
+
+  EXPECT_NO_THROW(v.IsRoot());
+  EXPECT_FALSE(v.IsRoot());
+  EXPECT_NO_THROW(v.HasMember("key_missing"));
+}
+
+TYPED_TEST_P(MemberAccess, AsWithDefault) {
+  using Value = typename TestFixture::Value;
+
+  EXPECT_EQ(Value()["missing"].template As<int>(42), 42);
+  EXPECT_EQ(this->doc_["key4"][1].template As<int>(42), 2);
+}
+
+TYPED_TEST_P(MemberAccess, RootAndPathOfCloned) {
+  using Value = typename TestFixture::Value;
+
+  EXPECT_TRUE(this->doc_.Clone().IsRoot());
+  EXPECT_TRUE(this->doc_.IsRoot());
+
+  EXPECT_TRUE(this->doc_["key4"].Clone().IsRoot());
+  EXPECT_FALSE(this->doc_["key4"].IsRoot());
+
+  EXPECT_EQ(this->doc_.Clone().GetPath(), this->doc_.GetPath());
+  EXPECT_EQ(this->doc_.Clone().GetPath(), "/");
+
+  EXPECT_EQ(this->doc_["key4"].Clone().GetPath(), "/");
+  EXPECT_EQ(this->doc_["key4"].GetPath(), "key4");
+}
+
 REGISTER_TYPED_TEST_CASE_P(
     MemberAccess,
 
@@ -372,4 +423,5 @@ REGISTER_TYPED_TEST_CASE_P(
     IteratorOnNull,
 
     IteratorOnMissingThrows, CloneValues, CreateEmptyAndAccess, Subfield,
-    ValueAssignment);
+    ValueAssignment, ConstFunctionsOnMissing, AsWithDefault,
+    RootAndPathOfCloned);

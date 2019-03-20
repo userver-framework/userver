@@ -2,10 +2,14 @@
 
 #include <formats/json/exception.hpp>
 
+#include <json/value.h>
+
 namespace formats {
 namespace json {
 
 Value::Value() noexcept : value_ptr_(nullptr) {}
+
+Value::~Value() = default;
 
 Value::Value(NativeValuePtr&& root) noexcept
     : root_(std::move(root)), value_ptr_(root_.get()) {}
@@ -19,7 +23,7 @@ Value::Value(const NativeValuePtr& root, const Json::Value* value_ptr,
 }
 
 Value::Value(const NativeValuePtr& root, const Json::Value& val,
-             const formats::json::Path& path, uint32_t index)
+             const formats::json::Path& path, std::size_t index)
     : root_(root), value_ptr_(const_cast<Json::Value*>(&val)), path_(path) {
   path_.push_back('[' + std::to_string(index) + ']');
 }
@@ -33,9 +37,9 @@ Value Value::operator[](const std::string& key) const {
   return {root_, child, path_, key};
 }
 
-Value Value::operator[](uint32_t index) const {
+Value Value::operator[](std::size_t index) const {
   CheckInBounds(index);
-  return {root_, GetNative()[index], path_, index};
+  return {root_, GetNative()[static_cast<int>(index)], path_, index};
 }
 
 Value::const_iterator Value::begin() const {
@@ -48,7 +52,7 @@ Value::const_iterator Value::end() const {
   return {root_, GetNative().end(), path_};
 }
 
-uint32_t Value::GetSize() const {
+std::size_t Value::GetSize() const {
   CheckObjectOrArrayOrNull();
   return GetNative().size();
 }
@@ -61,7 +65,7 @@ bool Value::operator!=(const Value& other) const {
   return GetNative() != other.GetNative();
 }
 
-bool Value::IsMissing() const { return root_ && !value_ptr_; }
+bool Value::IsMissing() const noexcept { return root_ && !value_ptr_; }
 
 bool Value::IsNull() const { return !IsMissing() && GetNative().isNull(); }
 bool Value::IsBool() const { return !IsMissing() && GetNative().isBool(); }
@@ -132,13 +136,14 @@ Value Value::Clone() const {
   return v;
 }
 
-void Value::Set(const NativeValuePtr& root, const Json::Value& val,
-                const formats::json::Path& path, const std::string& key) {
+void Value::SetNonRoot(const NativeValuePtr& root, const Json::Value& val,
+                       const formats::json::Path& path,
+                       const std::string& key) {
   *this = Value(root, &val, path, key);
 }
 
-void Value::Set(const NativeValuePtr& root, const Json::Value& val,
-                const formats::json::Path& path, uint32_t index) {
+void Value::SetNonRoot(const NativeValuePtr& root, const Json::Value& val,
+                       const formats::json::Path& path, std::size_t index) {
   *this = Value(root, val, path, index);
 }
 
@@ -150,7 +155,7 @@ void Value::Set(const NativeValuePtr& root, const Json::Value& val,
 //  false  |     true     | ---
 //  true   |     false    | Missing
 //  true   |     true     | Valid
-void Value::EnsureValid() {
+void Value::EnsureNotMissing() {
   CheckNotMissing();
   if (!root_) {
     root_ = std::make_shared<Json::Value>();
@@ -158,17 +163,17 @@ void Value::EnsureValid() {
   }
 }
 
-bool Value::IsRoot() const { return root_.get() == value_ptr_; }
+bool Value::IsRoot() const noexcept { return root_.get() == value_ptr_; }
 
 bool Value::IsUniqueReference() const { return root_.use_count() == 1; }
 
 const Json::Value& Value::GetNative() const {
-  const_cast<Value*>(this)->EnsureValid();
+  const_cast<Value*>(this)->EnsureNotMissing();
   return *value_ptr_;
 }
 
 Json::Value& Value::GetNative() {
-  EnsureValid();
+  EnsureNotMissing();
   return *value_ptr_;
 }
 
@@ -199,7 +204,7 @@ void Value::CheckObjectOrArrayOrNull() const {
   }
 }
 
-void Value::CheckInBounds(uint32_t index) const {
+void Value::CheckInBounds(std::size_t index) const {
   CheckArrayOrNull();
   if (!GetNative().isValidIndex(index)) {
     throw OutOfBoundsException(index, GetSize(), GetPath());

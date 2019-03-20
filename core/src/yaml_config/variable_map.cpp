@@ -25,7 +25,8 @@ formats::yaml::Value VariableMap::GetVariable(const std::string& name) const {
 }
 
 VariableMap VariableMap::ParseFromFile(const std::string& path) {
-  formats::yaml::Value config_vars_yaml = formats::yaml::FromFile(path);
+  formats::yaml::Value config_vars_yaml =
+      formats::yaml::blocking::FromFile(path);
   return VariableMap(std::move(config_vars_yaml));
 }
 

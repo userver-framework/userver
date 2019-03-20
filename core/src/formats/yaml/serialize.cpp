@@ -36,11 +36,6 @@ formats::yaml::Value FromStream(std::istream& is) {
   }
 }
 
-formats::yaml::Value FromFile(const std::string& path) {
-  std::ifstream is(path);
-  return FromStream(is);
-}
-
 void Serialize(const formats::yaml::Value& doc, std::ostream& os) {
   os << doc.GetNative();
   if (!os) {
@@ -53,6 +48,13 @@ std::string ToString(const formats::yaml::Value& doc) {
   Serialize(doc, os);
   return os.str();
 }
+
+namespace blocking {
+formats::yaml::Value FromFile(const std::string& path) {
+  std::ifstream is(path);
+  return FromStream(is);
+}
+}  // namespace blocking
 
 }  // namespace yaml
 }  // namespace formats

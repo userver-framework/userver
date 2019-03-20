@@ -2,15 +2,16 @@
 
 #include <iosfwd>
 #include <stdexcept>
+#include <string>
 
 #include <formats/yaml/types.hpp>
 
 namespace formats {
 namespace yaml {
 
-class YamlException : public std::exception {
+class Exception : public std::exception {
  public:
-  explicit YamlException(std::string msg) : msg_(std::move(msg)) {}
+  explicit Exception(std::string msg) : msg_(std::move(msg)) {}
 
   const char* what() const noexcept final { return msg_.c_str(); }
 
@@ -18,18 +19,18 @@ class YamlException : public std::exception {
   std::string msg_;
 };
 
-class ParseException : public YamlException {
+class ParseException : public Exception {
  public:
-  using YamlException::YamlException;
+  using Exception::Exception;
 };
 
-class BadStreamException : public YamlException {
+class BadStreamException : public Exception {
  public:
   explicit BadStreamException(const std::istream& is);
   explicit BadStreamException(const std::ostream& os);
 };
 
-class TypeMismatchException : public YamlException {
+class TypeMismatchException : public Exception {
  public:
   TypeMismatchException(Type actual, Type expected, const std::string& path);
   TypeMismatchException(const YAML::Node& value,
@@ -37,21 +38,12 @@ class TypeMismatchException : public YamlException {
                         const std::string& path);
 };
 
-class OutOfBoundsException : public YamlException {
+class OutOfBoundsException : public Exception {
  public:
   OutOfBoundsException(size_t index, size_t size, const std::string& path);
 };
 
-class IntegralOverflowException : public YamlException {
- public:
-  IntegralOverflowException(int64_t min, int64_t value, int64_t max,
-                            const std::string& path);
-
-  IntegralOverflowException(uint64_t min, uint64_t value, uint64_t max,
-                            const std::string& path);
-};
-
-class MemberMissingException : public YamlException {
+class MemberMissingException : public Exception {
  public:
   explicit MemberMissingException(const std::string& path);
 };
