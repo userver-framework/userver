@@ -77,4 +77,6 @@ std::string DocsMap::AsJsonString() const {
   return formats::json::ToString(body_builder.ExtractValue());
 }
 
+const std::string kValueDictDefaultName = "__default__";
+
 }  // namespace taxi_config
