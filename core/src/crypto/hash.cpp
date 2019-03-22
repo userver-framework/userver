@@ -108,6 +108,11 @@ std::string HmacSha512(const std::string& key, const std::string& message,
   return CalculateHmac<CryptoPP::SHA512>(key, message, encoding);
 }
 
+std::string HmacSha256(const std::string& key, const std::string& message,
+                       OutputEncoding encoding) {
+  return CalculateHmac<CryptoPP::SHA256>(key, message, encoding);
+}
+
 std::string HmacSha1(const std::string& key, const std::string& message,
                      OutputEncoding encoding) {
   return CalculateHmac<CryptoPP::SHA1>(key, message, encoding);

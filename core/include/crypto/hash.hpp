@@ -45,6 +45,15 @@ std::string Sha512(const std::string& data,
 std::string HmacSha1(const std::string& key, const std::string& message,
                      OutputEncoding encoding = OutputEncoding::kHex);
 
+/// @brief Calculates HMAC (using SHA-256 hash), encodes result with `encoding`
+/// algorithm
+/// @param key HMAC key
+/// @param message data to encode
+/// @param encoding result could be returned as binary string or encoded
+/// @throws CryptoException internal library exception
+std::string HmacSha256(const std::string& key, const std::string& message,
+                       OutputEncoding encoding = OutputEncoding::kHex);
+
 /// @brief Calculates HMAC (using SHA-512 hash), encodes result with `encoding`
 /// algorithm
 /// @param key HMAC key

@@ -63,6 +63,10 @@ TEST(Crypto, Hmac) {
       crypto::hash::HmacSha512("test", "test",
                                crypto::hash::OutputEncoding::kBase64));
 
+  EXPECT_EQ("88cd2108b5347d973cf39cdf9053d7dd42704876d8c9a9bd8e2d168259d3ddf7",
+            crypto::hash::HmacSha256("test", "test",
+                                     crypto::hash::OutputEncoding::kHex));
+
   EXPECT_EQ("0c94515c15e5095b8a87a50ba0df3bf38ed05fe6",
             crypto::hash::HmacSha1("test", "test",
                                    crypto::hash::OutputEncoding::kHex));
