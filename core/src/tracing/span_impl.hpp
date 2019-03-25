@@ -50,7 +50,7 @@ class Span::Impl
   Span* span_;
   const std::string name_;
 
-  boost::optional<logging::LogExtra> log_extra_local;
+  boost::optional<logging::LogExtra> log_extra_local_;
   boost::optional<TimeStorage> time_storage_;
 
   const std::chrono::system_clock::time_point start_system_time_;

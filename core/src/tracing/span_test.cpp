@@ -51,6 +51,18 @@ TEST_F(Span, InheritTag) {
   });
 }
 
+TEST_F(Span, NonInheritTag) {
+  RunInCoro([this] {
+    tracing::Span span("span_name");
+
+    tracing::Span::CurrentSpan().AddNonInheritableTag("k", "v");
+    LOG_INFO() << "inside";
+    logging::LogFlush();
+
+    EXPECT_EQ(std::string::npos, sstream.str().find("k=v"));
+  });
+}
+
 TEST_F(Span, ScopeTime) {
   RunInCoro([this] {
     {

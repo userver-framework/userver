@@ -88,6 +88,8 @@ Span::Impl::~Impl() {
                             {kReferenceType, ref_type},
                             {kTimeUnitsAttrName, "ms"}});
 
+  if (log_extra_local_) result.Extend(std::move(*log_extra_local_));
+
   if (time_storage_) {
     result.Extend(time_storage_->GetLogs());
   }
@@ -97,13 +99,11 @@ Span::Impl::~Impl() {
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) const& {
   log_helper << log_extra_inheritable;
-  if (log_extra_local) log_helper << log_extra_local.get();
   tracer->LogSpanContextTo(*this, log_helper);
 }
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) && {
   log_helper << std::move(log_extra_inheritable);
-  if (log_extra_local) log_helper << std::move(log_extra_local.get());
   tracer->LogSpanContextTo(*this, log_helper);
 }
 
@@ -194,8 +194,8 @@ ScopeTime Span::CreateScopeTime(const std::string& name) {
 
 void Span::AddNonInheritableTag(std::string key,
                                 logging::LogExtra::Value value) {
-  if (!pimpl_->log_extra_local) pimpl_->log_extra_local.emplace();
-  pimpl_->log_extra_local->Extend(std::move(key), std::move(value));
+  if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
+  pimpl_->log_extra_local_->Extend(std::move(key), std::move(value));
 }
 
 void Span::AddTag(std::string key, logging::LogExtra::Value value) {

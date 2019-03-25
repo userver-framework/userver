@@ -137,9 +137,11 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                         parent_span_id);
 
     if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
-    span.AddTag(tracing::kHttpMetaType, http_request.GetRequestPath());
-    span.AddTag(tracing::kType, "response");
-    span.AddTag(tracing::kHttpMethod, http_request.GetMethodStr());
+    span.AddNonInheritableTag(tracing::kHttpMetaType,
+                              http_request.GetRequestPath());
+    span.AddNonInheritableTag(tracing::kType, "response");
+    span.AddNonInheritableTag(tracing::kHttpMethod,
+                              http_request.GetMethodStr());
 
     if (log_request) {
       logging::LogExtra log_extra;
