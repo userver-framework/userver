@@ -32,6 +32,7 @@ Connection::Connection(engine::TaskProcessor& task_processor,
       request_handler_(request_handler),
       stats_(std::move(stats)),
       remote_address_(peer_socket_.Getpeername().RemoteAddress()),
+      request_tasks_(Queue::Create()),
       is_accepting_requests_(true),
       stop_sender_after_queue_is_empty_(false),
       is_closing_(false) {
@@ -79,13 +80,13 @@ void Connection::Start() {
   response_sender_task_ = engine::impl::CriticalAsync(
       task_processor_,
       [this](Queue::Consumer consumer) { SendResponses(std::move(consumer)); },
-      request_tasks_.GetConsumer());
+      request_tasks_->GetConsumer());
   socket_listener_ =
       engine::impl::CriticalAsync(task_processor_,
                                   [this](Queue::Producer producer) {
                                     ListenForRequests(std::move(producer));
                                   },
-                                  request_tasks_.GetProducer());
+                                  request_tasks_->GetProducer());
   LOG_TRACE() << "Started socket listener for fd " << Fd();
 }
 
@@ -94,11 +95,11 @@ void Connection::Stop() { socket_listener_.RequestCancel(); }
 int Connection::Fd() const { return peer_socket_.Fd(); }
 
 bool Connection::IsRequestTasksEmpty() const {
-  return request_tasks_.Size() == 0;
+  return request_tasks_->Size() == 0;
 }
 
 void Connection::ListenForRequests(Queue::Producer producer) {
-  request_tasks_.SetMaxLength(config_.requests_queue_size_threshold);
+  request_tasks_->SetMaxLength(config_.requests_queue_size_threshold);
   try {
     http::HttpRequestParser request_parser(
         request_handler_.GetHandlerInfoIndex(), *config_.request,
