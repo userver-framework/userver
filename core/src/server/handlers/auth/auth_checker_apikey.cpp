@@ -52,7 +52,8 @@ void AuthCheckerApiKey::CheckAuth(const http::HttpRequest& request) const {
 
   const auto& request_apikey = request.GetHeader(kApiKeyHeader);
   if (request_apikey.empty())
-    throw http::BadRequest("missing or empty " + kApiKeyHeader + " header");
+    throw ClientError(
+        InternalMessage{"missing or empty " + kApiKeyHeader + " header"});
 
   if (IsApiKeyAllowed(request_apikey, *allowed_keys)) {
     LOG_DEBUG() << "IsApiKeyAllowed: OK";
@@ -60,9 +61,9 @@ void AuthCheckerApiKey::CheckAuth(const http::HttpRequest& request) const {
   } else {
     LOG_WARNING() << "invalid apikey in " << kApiKeyHeader;
   }
-  throw http::HttpException(
-      http::HttpStatus::kForbidden,
-      "no valid apikey found in " + kApiKeyHeader + " header");
+  throw ClientError(
+      HandlerErrorCode::kForbidden,
+      InternalMessage{"no valid apikey found in " + kApiKeyHeader + " header"});
 }
 
 const ApiKeysSet* AuthCheckerApiKey::GetApiKeysForRequest(

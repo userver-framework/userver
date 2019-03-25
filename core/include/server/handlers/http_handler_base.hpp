@@ -42,6 +42,9 @@ class HttpHandlerBase : public HandlerBase {
   HttpHandlerStatistics& GetRequestStatistics() const;
 
  protected:
+  [[noreturn]] void ThrowUnsupportedHttpMethod(
+      const http::HttpRequest& request) const;
+
   virtual std::string HandleRequestThrow(
       const http::HttpRequest& request,
       request::RequestContext& context) const = 0;

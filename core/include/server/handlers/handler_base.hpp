@@ -4,6 +4,7 @@
 
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <server/handlers/exceptions.hpp>
 #include <server/request/request_base.hpp>
 #include <server/request/request_context.hpp>
 
@@ -27,6 +28,15 @@ class HandlerBase : public components::ComponentBase {
   const HandlerConfig& GetConfig() const;
 
   bool IsEnabled() const { return is_enabled_; }
+
+ protected:
+  // Pull the type names in the handler's scope to shorten throwing code
+  using HandlerErrorCode = handlers::HandlerErrorCode;
+  using InternalMessage = handlers::InternalMessage;
+  using ExternalBody = handlers::ExternalBody;
+
+  using ClientError = handlers::ClientError;
+  using InternalServerError = handlers::InternalServerError;
 
  private:
   HandlerConfig config_;

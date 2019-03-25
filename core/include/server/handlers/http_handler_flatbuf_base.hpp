@@ -45,7 +45,8 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::HandleRequestThrow(
   flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(body.data()),
                                  body.size());
   if (!input_fbb->Verify(verifier)) {
-    throw http::BadRequest("Invalid FlatBuffers format in request body");
+    throw ClientError(
+        InternalMessage{"Invalid FlatBuffers format in request body"});
   }
 
   typename InputType::NativeTableType input;

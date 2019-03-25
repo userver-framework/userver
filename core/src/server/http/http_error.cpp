@@ -14,7 +14,15 @@ const std::unordered_map<handlers::HandlerErrorCode, HttpStatus,
     kCustomHandlerStatusToHttp{
         {HandlerErrorCode::kClientError, HttpStatus::kBadRequest},
         {HandlerErrorCode::kUnauthorized, HttpStatus::kUnauthorized},
-        {HandlerErrorCode::kServerSideError, HttpStatus::kInternalServerError}};
+        {HandlerErrorCode::kForbidden, HttpStatus::kForbidden},
+        {HandlerErrorCode::kResourceNotFound, HttpStatus::kNotFound},
+        {HandlerErrorCode::kInvalidUsage, HttpStatus::kMethodNotAllowed},
+        {HandlerErrorCode::kNotAcceptable, HttpStatus::kNotAcceptable},
+        {HandlerErrorCode::kConfictState, HttpStatus::kConflict},
+        {HandlerErrorCode::kPayloadTooLarge, HttpStatus::kPayloadTooLarge},
+        {HandlerErrorCode::kTooManyRequests, HttpStatus::kTooManyRequests},
+        {HandlerErrorCode::kServerSideError, HttpStatus::kInternalServerError},
+        {HandlerErrorCode::kBadGateway, HttpStatus::kBadGateway}};
 
 }  // namespace
 

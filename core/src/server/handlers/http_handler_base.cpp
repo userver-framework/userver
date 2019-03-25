@@ -164,6 +164,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
         auth_checker_->CheckAuth(http_request);
       response.SetData(HandleRequestThrow(http_request, context));
     } catch (const http::HttpException& ex) {
+      // TODO Remove this catch branch
       LOG_ERROR() << "http exception in '" << HandlerName()
                   << "' handler in handle_request: code="
                   << HttpStatusString(ex.GetStatus()) << ", msg=" << ex
@@ -204,6 +205,13 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex;
   }
+}
+
+void HttpHandlerBase::ThrowUnsupportedHttpMethod(
+    const http::HttpRequest& request) const {
+  throw ClientError(HandlerErrorCode::kInvalidUsage,
+                    InternalMessage{"method " + request.GetMethodStr() +
+                                    " is not allowed in " + HandlerName()});
 }
 
 void HttpHandlerBase::OnRequestComplete(

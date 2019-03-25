@@ -133,6 +133,7 @@ if (USERVER_PROFILER)
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSERVER_PROFILER=1)
   target_compile_definitions(${LIBSTANDALONE_ENGINE} INTERFACE -DUSERVER_PROFILER=1)
 endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSERVER_NO_DEPRECATED_HTTP_ERRORS)
 
 add_library(utest STATIC ${LIBUTEST_SOURCES})
 set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)

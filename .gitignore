@@ -7,3 +7,8 @@ CMakeLists.txt.user
 compile_commands.json
 tags
 static-analyzer-report
+.project
+.cproject
+.pydevproject
+.settings*
+

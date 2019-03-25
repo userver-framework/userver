@@ -9,7 +9,18 @@
 namespace server {
 namespace http {
 
-class HttpException : public std::runtime_error {
+#ifndef USERVER_NO_DEPRECATED_HTTP_ERRORS
+// clang-format off
+#define DEPRECATED_EXCEPTION(NEW_TYPE) \
+  [[deprecated("Please use server::handlers::" #NEW_TYPE \
+		  " instead. (see https://nda.ya.ru/3UYP5M)")]]
+// clang-format on
+#else
+#define DEPRECATED_EXCEPTION(NEW_TYPE)
+#endif
+
+class DEPRECATED_EXCEPTION(CustomHandlerException) HttpException
+    : public std::runtime_error {
  public:
   explicit HttpException(
       HttpStatus status, std::string internal_error_message,
@@ -28,7 +39,7 @@ class HttpException : public std::runtime_error {
   const std::string external_error_body_;
 };
 
-class BadRequest : public HttpException {
+class DEPRECATED_EXCEPTION(ClientError) BadRequest : public HttpException {
  public:
   explicit BadRequest(std::string internal_error_message = "Bad request",
                       std::string external_error_body = std::string())
@@ -37,7 +48,7 @@ class BadRequest : public HttpException {
                       std::move(external_error_body)) {}
 };
 
-class Unauthorized : public HttpException {
+class DEPRECATED_EXCEPTION(Unauthorized) Unauthorized : public HttpException {
  public:
   explicit Unauthorized(
       std::string internal_error_message = "Unauthorized",
@@ -47,7 +58,8 @@ class Unauthorized : public HttpException {
                       std::move(external_error_body)) {}
 };
 
-class InternalServerError : public HttpException {
+class DEPRECATED_EXCEPTION(InternalServerError) InternalServerError
+    : public HttpException {
  public:
   explicit InternalServerError(
       std::string internal_error_message = "Internal server error",
@@ -56,6 +68,8 @@ class InternalServerError : public HttpException {
                       std::move(internal_error_message),
                       std::move(external_error_body)) {}
 };
+
+#undef DEPRECATED_EXCEPTION
 
 /**
  * Get http status code mapped to generic handler error code.
