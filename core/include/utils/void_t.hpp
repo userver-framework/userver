@@ -2,7 +2,7 @@
 
 namespace utils {
 
-#if __cpp_lib_void_t >= 201411
+#if __cpp_lib_void_t >= 201411 && !defined(__clang__)
 template <typename... T>
 using void_t = std::void_t<T...>;
 #else
