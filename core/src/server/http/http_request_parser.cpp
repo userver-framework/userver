@@ -26,6 +26,8 @@ HttpMethod ConvertHttpMethod(http_method method) {
       return HttpMethod::kConnect;
     case HTTP_PATCH:
       return HttpMethod::kPatch;
+    case HTTP_OPTIONS:
+      return HttpMethod::kOptions;
     default:
       return HttpMethod::kUnknown;
   }

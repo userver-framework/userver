@@ -13,7 +13,7 @@ std::map<HttpMethod, std::string> InitHttpMethodNames() {
   std::map<HttpMethod, std::string> names;
   for (auto method : {HttpMethod::kDelete, HttpMethod::kGet, HttpMethod::kHead,
                       HttpMethod::kPost, HttpMethod::kPut, HttpMethod::kPatch,
-                      HttpMethod::kConnect}) {
+                      HttpMethod::kConnect, HttpMethod::kOptions}) {
     names[method] = ToString(method);
   }
   return names;
@@ -48,6 +48,7 @@ const std::string& ToString(HttpMethod method) {
   static const std::string kPut = http_method_str(HTTP_PUT);
   static const std::string kConnect = http_method_str(HTTP_CONNECT);
   static const std::string kPatch = http_method_str(HTTP_PATCH);
+  static const std::string kOptions = http_method_str(HTTP_OPTIONS);
   static const std::string kUnknown = "unknown";
 
   switch (method) {
@@ -65,6 +66,8 @@ const std::string& ToString(HttpMethod method) {
       return kConnect;
     case HttpMethod::kPatch:
       return kPatch;
+    case HttpMethod::kOptions:
+      return kOptions;
     case HttpMethod::kUnknown:
       return kUnknown;
   }

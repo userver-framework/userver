@@ -14,7 +14,7 @@ class multi;
 namespace clients {
 namespace http {
 
-enum HttpMethod { DELETE, GET, HEAD, POST, PUT, PATCH };
+enum HttpMethod { DELETE, GET, HEAD, POST, PUT, PATCH, OPTIONS };
 
 class Form;
 

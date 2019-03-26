@@ -42,6 +42,7 @@ INSTANTIATE_TEST_CASE_P(
         MethodsData{"PUT", HttpMethod::kPut, HttpMethod::kPut},
         MethodsData{"CONNECT", HttpMethod::kConnect, HttpMethod::kConnect},
         MethodsData{"PATCH", HttpMethod::kPatch, HttpMethod::kPatch},
+        MethodsData{"OPTIONS", HttpMethod::kOptions, HttpMethod::kOptions},
         MethodsData{"GE", HttpMethod::kUnknown, HttpMethod::kUnknown},
         MethodsData{"GETT", HttpMethod::kUnknown, HttpMethod::kUnknown},
         MethodsData{"get", HttpMethod::kUnknown, HttpMethod::kUnknown},

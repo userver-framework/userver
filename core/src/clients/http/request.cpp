@@ -245,6 +245,9 @@ std::shared_ptr<Request> Request::method(HttpMethod method) {
       easy().set_upload(true);
       easy().set_put(true);
       break;
+    case OPTIONS:
+      easy().set_custom_request("OPTIONS");
+      break;
     case PATCH:
       easy().set_custom_request("PATCH");
       break;

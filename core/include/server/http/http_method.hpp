@@ -13,6 +13,7 @@ enum class HttpMethod {
   kPut,
   kPatch,
   kConnect,
+  kOptions,
   kUnknown,
 };
 
