@@ -20,11 +20,13 @@ class LRU {
 
   U GetOr(const T& key, const U& default_value);
 
+  void Resize(size_t new_max_size);
+
  private:
   using Pair = std::pair<T, U>;
   using Map = std::unordered_map<T, typename std::list<Pair>::iterator>;
 
-  const size_t max_size_;
+  size_t max_size_;
   Map map_;
   std::list<Pair> list_;
 };
@@ -66,6 +68,12 @@ U LRU<T, U>::GetOr(const T& key, const U& default_value) {
   auto ptr = Get(key);
   if (ptr) return *ptr;
   return default_value;
+}
+
+template <typename T, typename U>
+void LRU<T, U>::Resize(size_t new_max_size) {
+  UASSERT(max_size_ > 0);
+  max_size_ = new_max_size;
 }
 
 }  // namespace cache
