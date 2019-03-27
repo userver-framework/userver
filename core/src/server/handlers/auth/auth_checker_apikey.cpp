@@ -41,29 +41,31 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
   }
 }
 
-void AuthCheckerApiKey::CheckAuth(const http::HttpRequest& request) const {
+[[nodiscard]] AuthCheckResult AuthCheckerApiKey::CheckAuth(
+    const http::HttpRequest& request) const {
   const auto* allowed_keys = GetApiKeysForRequest(request);
   if (!allowed_keys) {
-    LOG_DEBUG() << "CheckAuth: OK, apikey_type is not set for '" +
-                       request.GetMethodStr() + ' ' + request.GetRequestPath() +
-                       "' requests";
-    return;
+    return AuthCheckResult{AuthCheckResult::Status::kOk,
+                           "apikey_type is not set for '" +
+                               request.GetMethodStr() + ' ' +
+                               request.GetRequestPath() + "' requests"};
   }
 
   const auto& request_apikey = request.GetHeader(kApiKeyHeader);
-  if (request_apikey.empty())
-    throw ClientError(
-        InternalMessage{"missing or empty " + kApiKeyHeader + " header"});
+  if (request_apikey.empty()) {
+    return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound,
+                           "missing or empty " + kApiKeyHeader + " header"};
+  }
 
   if (IsApiKeyAllowed(request_apikey, *allowed_keys)) {
-    LOG_DEBUG() << "IsApiKeyAllowed: OK";
-    return;
-  } else {
-    LOG_WARNING() << "invalid apikey in " << kApiKeyHeader;
+    return AuthCheckResult{AuthCheckResult::Status::kOk,
+                           std::string{"IsApiKeyAllowed: OK"}};
   }
-  throw ClientError(
-      HandlerErrorCode::kForbidden,
-      InternalMessage{"no valid apikey found in " + kApiKeyHeader + " header"});
+  LOG_WARNING() << "access is not allowed with apikey from " << kApiKeyHeader;
+
+  return AuthCheckResult{
+      AuthCheckResult::Status::kForbidden,
+      "no valid apikey found in " + kApiKeyHeader + " header"};
 }
 
 const ApiKeysSet* AuthCheckerApiKey::GetApiKeysForRequest(

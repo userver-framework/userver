@@ -85,7 +85,7 @@ HttpHandlerBase::HttpHandlerBase(
           component_context.FindComponent<components::StatisticsStorage>()),
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
       request_statistics_(std::make_unique<HttpHandlerStatistics>()),
-      auth_checker_(auth::CreateAuthChecker(
+      auth_checkers_(auth::CreateAuthCheckers(
           component_context, GetConfig(),
           http_server_settings_.GetAuthCheckerSettings())) {
   if (allowed_methods_.empty()) {
@@ -160,8 +160,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                            http_request.GetMethod());
 
     try {
-      if (http_server_settings_.NeedCheckAuthInHandlers())
-        auth_checker_->CheckAuth(http_request);
+      CheckAuth(http_request);
       response.SetData(HandleRequestThrow(http_request, context));
     } catch (const http::HttpException& ex) {
       // TODO Remove this catch branch
@@ -238,6 +237,20 @@ const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()
 
 HttpHandlerStatistics& HttpHandlerBase::GetRequestStatistics() const {
   return *request_statistics_;
+}
+
+void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request) const {
+  if (!http_server_settings_.NeedCheckAuthInHandlers()) {
+    LOG_DEBUG() << "auth checks are disabled for current service";
+    return;
+  }
+
+  if (!NeedCheckAuth()) {
+    LOG_DEBUG() << "auth checks are disabled for current handler";
+    return;
+  }
+
+  auth::CheckAuth(auth_checkers_, http_request);
 }
 
 formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(

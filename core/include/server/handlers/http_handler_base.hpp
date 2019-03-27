@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <components/manager.hpp>
 #include <server/handlers/auth/auth_checker_base.hpp>
@@ -56,7 +57,12 @@ class HttpHandlerBase : public HandlerBase {
    * methods */
   virtual bool IsMethodStatisticIncluded() const { return false; }
 
+  // Override it if you want to disable auth checks in handler by some condition
+  virtual bool NeedCheckAuth() const { return true; }
+
  private:
+  void CheckAuth(const http::HttpRequest& http_request) const;
+
   static formats::json::ValueBuilder StatisticsToJson(
       const HttpHandlerMethodStatistics& stats);
 
@@ -65,7 +71,6 @@ class HttpHandlerBase : public HandlerBase {
 
   formats::json::ValueBuilder FormatStatistics(const HttpHandlerStatistics&);
 
- private:
   const components::HttpServerSettingsBase& http_server_settings_;
   const std::vector<http::HttpMethod> allowed_methods_;
   components::StatisticsStorage& statistics_storage_;
@@ -73,7 +78,7 @@ class HttpHandlerBase : public HandlerBase {
 
   std::unique_ptr<HttpHandlerStatistics> handler_statistics_;
   std::unique_ptr<HttpHandlerStatistics> request_statistics_;
-  auth::AuthCheckerBasePtr auth_checker_;
+  std::vector<auth::AuthCheckerBasePtr> auth_checkers_;
 };
 
 }  // namespace handlers

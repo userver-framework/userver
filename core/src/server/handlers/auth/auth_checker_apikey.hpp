@@ -15,7 +15,8 @@ class AuthCheckerApiKey : public AuthCheckerBase {
   AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
                     const AuthCheckerSettings& settings);
 
-  void CheckAuth(const http::HttpRequest& request) const override;
+  [[nodiscard]] AuthCheckResult CheckAuth(
+      const http::HttpRequest& request) const override;
 
  private:
   struct ApiKeyTypeByMethodSettings {

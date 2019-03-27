@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <formats/yaml.hpp>
 
@@ -16,14 +17,16 @@ class HandlerAuthConfig : public yaml_config::YamlConfig {
   HandlerAuthConfig(formats::yaml::Value yaml, std::string full_path,
                     yaml_config::VariableMapPtr config_vars_ptr);
 
-  const std::string& GetType() const { return type_; };
+  const std::vector<std::string>& GetTypes() const { return types_; };
 
   static HandlerAuthConfig ParseFromYaml(
       const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr);
 
  private:
-  std::string type_;
+  std::vector<std::string> ParseTypes();
+
+  std::vector<std::string> types_;
 };
 
 }  // namespace auth
