@@ -5,6 +5,8 @@
 #include <boost/container/small_vector.hpp>
 #include <boost/format.hpp>
 
+#include <type_traits>
+
 #include <engine/task/local_variable.hpp>
 #include <engine/task/task_context.hpp>
 #include <tracing/tracer.hpp>
@@ -142,8 +144,6 @@ Span::Span(Span&& other) noexcept : pimpl_(std::move(other.pimpl_)) {
   pimpl_->span_ = this;
 }
 
-Span& Span::operator=(Span&&) noexcept = default;
-
 Span::~Span() { DetachFromCoroStack(); }
 
 Span& Span::CurrentSpan() {
@@ -239,6 +239,11 @@ const std::string& Span::GetTraceId() const { return pimpl_->GetTraceId(); }
 const std::string& Span::GetSpanId() const { return pimpl_->GetSpanId(); }
 
 const std::string& Span::GetParentId() const { return pimpl_->GetParentId(); }
+
+static_assert(!std::is_copy_assignable<Span>::value,
+              "tracing::Span must not be copy assignable");
+static_assert(!std::is_move_assignable<Span>::value,
+              "tracing::Span must not be move assignable");
 
 }  // namespace tracing
 

@@ -9,6 +9,7 @@
 #include <logging/log_extra.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
+#include <tracing/span.hpp>
 
 namespace storages {
 namespace postgres {
@@ -29,13 +30,12 @@ class PGConnectionWrapper {
 
   ConnectionState GetConnectionState() const;
 
-  // TODO Add tracing::Span
   /// @brief Asynchronously connect PG instance.
   /// Start asynchronous connection and wait for it's completion (suspending
   /// current couroutine)
   /// @param conninfo Connection string
   /// @param
-  void AsyncConnect(const std::string& conninfo, Deadline deadline);
+  void AsyncConnect(const std::string& conninfo, Deadline deadline, ScopeTime&);
 
   /// @brief Close the connection on a background task processor.
   [[nodiscard]] engine::Task Close();
@@ -43,34 +43,29 @@ class PGConnectionWrapper {
   /// @brief Cancel current operation on a background task processor.
   [[nodiscard]] engine::Task Cancel();
 
-  // TODO Add tracing::Span
   /// @brief Wrapper for PQsendQuery
-  void SendQuery(const std::string& statement);
+  void SendQuery(const std::string& statement, ScopeTime&);
 
-  // TODO Add tracing::Span
   /// @brief Wrapper for PQsendQueryParams
   void SendQuery(const std::string& statement, const QueryParameters& params,
+                 ScopeTime&,
                  io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
 
-  // TODO Add tracing::Span
   /// @brief Wrapper for PQsendPrepare
   void SendPrepare(const std::string& name, const std::string& statement,
-                   const QueryParameters& params);
+                   const QueryParameters& params, ScopeTime&);
 
-  // TODO Add tracing::Span
   /// @brief Wrapper for PQsendDescribePrepared
-  void SendDescribePrepared(const std::string& name);
+  void SendDescribePrepared(const std::string& name, ScopeTime&);
 
-  // TODO Add tracing::Span
   /// @brief Wrapper for PQsendQueryPrepared
   void SendPreparedQuery(
-      const std::string& name, const QueryParameters& params,
+      const std::string& name, const QueryParameters& params, ScopeTime&,
       io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
 
-  // TODO Add tracing::Span
   /// @brief Wait for query result
   /// Will return result or throw an exception
-  ResultSet WaitResult(const UserTypes&, Deadline deadline);
+  ResultSet WaitResult(const UserTypes&, Deadline deadline, ScopeTime&);
 
   /// Consume all input discarding all result sets
   void DiscardInput(Deadline deadline);
@@ -107,7 +102,7 @@ class PGConnectionWrapper {
   void CheckError(const std::string& cmd, int pg_dispatch_result);
 
   template <typename ExceptionType>
-  void CloseWithError(ExceptionType&& ex);
+  [[noreturn]] void CloseWithError(ExceptionType&& ex);
 
  private:
   engine::TaskProcessor& bg_task_processor_;

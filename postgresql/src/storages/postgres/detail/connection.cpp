@@ -13,9 +13,12 @@
 #include <engine/async.hpp>
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
+#include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <storages/postgres/io/user_types.hpp>
+#include <tracing/span.hpp>
+#include <tracing/tags.hpp>
 
 namespace storages {
 namespace postgres {
@@ -204,12 +207,15 @@ struct Connection::Impl {
     return std::exchange(stats_, Connection::Statistics{});
   }
 
-  // TODO Add tracing::Span
   void AsyncConnect(const std::string& conninfo) {
+    tracing::Span span{scopes::kConnect};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    auto scope = span.CreateScopeTime();
     auto deadline = engine::Deadline::FromDuration(kConnectTimeout);
     // While connecting there are several network roundtrips, so give them
     // some allowance.
-    conn_wrapper_.AsyncConnect(conninfo, deadline);
+    conn_wrapper_.AsyncConnect(conninfo, deadline, scope);
+    scope.Reset(scopes::kGetConnectData);
     // We cannot handle exceptions here, so we let them got to the caller
     // Detect if the connection is read only.
     auto res = ExecuteCommandNoPrepare("show transaction_read_only", deadline);
@@ -374,10 +380,12 @@ struct Connection::Impl {
     return ExecuteCommand(statement, params, deadline);
   }
 
-  // TODO Add tracing::Span
   ResultSet ExecuteCommand(const std::string& statement,
                            const detail::QueryParameters& params,
                            engine::Deadline deadline) {
+    tracing::Span span{scopes::kQuery};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
       LOG_ERROR()
@@ -385,6 +393,7 @@ struct Connection::Impl {
           << statement << "`";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
+    auto scope = span.CreateScopeTime();
     TimeoutType network_timeout =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             deadline.TimeLeft());
@@ -395,10 +404,11 @@ struct Connection::Impl {
     if (prepared_.count(query_hash)) {
       LOG_TRACE() << "Query " << statement << " is already prepared.";
     } else {
+      scope.Reset(scopes::kPrepare);
       LOG_TRACE() << "Query " << statement << " is not yet prepared";
-      conn_wrapper_.SendPrepare(statement_name, statement, params);
+      conn_wrapper_.SendPrepare(statement_name, statement, params, scope);
       try {
-        conn_wrapper_.WaitResult(db_types_, deadline);
+        conn_wrapper_.WaitResult(db_types_, deadline, scope);
       } catch (const DuplicatePreparedStatement& e) {
         LOG_ERROR()
             << "Looks like your pg_bouncer doesn't clean up connections "
@@ -406,64 +416,78 @@ struct Connection::Impl {
                "pooling mode to `session` and `server_reset_query` parameter "
                "to `DISCARD ALL`. Please see documentation here "
                "https://nda.ya.ru/3UXMpu";
+        span.AddTag(tracing::kErrorFlag, true);
+        throw;
+      } catch (const std::exception&) {
+        span.AddTag(tracing::kErrorFlag, true);
         throw;
       }
-      conn_wrapper_.SendDescribePrepared(statement_name);
-      auto res = conn_wrapper_.WaitResult(db_types_, deadline);
+
+      conn_wrapper_.SendDescribePrepared(statement_name, scope);
+      auto res = conn_wrapper_.WaitResult(db_types_, deadline, scope);
       prepared_.insert(std::make_pair(
           query_hash, res.GetRowDescription().BestReplyFormat(db_types_)));
       ++stats_.parse_total;
     }
-    // TODO Get field descriptions from the prepare result and use them to
+    // Get field descriptions from the prepare result and use them to
     // build text/binary format description
     auto fmt = prepared_[query_hash];
     LOG_TRACE() << "Use "
                 << (fmt == io::DataFormat::kTextDataFormat ? "text" : "binary")
                 << " format for reply";
 
-    conn_wrapper_.SendPreparedQuery(statement_name, params, fmt);
+    scope.Reset(scopes::kExec);
+    conn_wrapper_.SendPreparedQuery(statement_name, params, scope, fmt);
     try {
-      auto res = conn_wrapper_.WaitResult(db_types_, deadline);
+      auto res = conn_wrapper_.WaitResult(db_types_, deadline, scope);
       count_execute.AccountResult(res, fmt);
       return res;
     } catch (const InvalidSqlStatementName& e) {
       LOG_ERROR() << "Looks like your pg_bouncer is not in 'session' mode. "
                      "Please switch pg_bouncers's pooling mode to 'session'. "
                      "Please see documentation here https://nda.ya.ru/3UXMpu";
+      span.AddTag(tracing::kErrorFlag, true);
       throw;
     } catch (const ConnectionTimeoutError& e) {
       ++stats_.execute_timeout;
       LOG_ERROR() << "Statement `" << statement
                   << "` network timeout error: " << e << ". "
                   << "Network timout was " << network_timeout.count() << "ms";
+      span.AddTag(tracing::kErrorFlag, true);
       throw;
     } catch (const QueryCanceled& e) {
       ++stats_.execute_timeout;
       LOG_ERROR() << "Statement `" << statement << "` was canceled: " << e
                   << ". Statement timeout was "
                   << current_statement_timeout_.count() << "ms";
+      span.AddTag(tracing::kErrorFlag, true);
+      throw;
+    } catch (const std::exception&) {
+      span.AddTag(tracing::kErrorFlag, true);
       throw;
     }
   }
 
-  // TODO Add tracing::Span
   ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
     return ExecuteCommandNoPrepare(
         statement, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
   }
 
-  // TODO Add tracing::Span
   ResultSet ExecuteCommandNoPrepare(const std::string& statement,
                                     engine::Deadline deadline) {
     CheckBusy();
+    tracing::Span span{scopes::kQuery};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, statement);
     CountExecute count_execute(stats_);
     TimeoutType network_timeout =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             deadline.TimeLeft());
 
-    conn_wrapper_.SendQuery(statement);
+    auto scope = span.CreateScopeTime(scopes::kExec);
+    conn_wrapper_.SendQuery(statement, scope);
     try {
-      auto res = conn_wrapper_.WaitResult(db_types_, deadline);
+      auto res = conn_wrapper_.WaitResult(db_types_, deadline, scope);
       count_execute.AccountResult(res, io::DataFormat::kTextDataFormat);
       return res;
     } catch (const ConnectionTimeoutError& e) {
@@ -471,12 +495,17 @@ struct Connection::Impl {
       LOG_ERROR() << "Statement `" << statement
                   << "` network timeout error: " << e << ". "
                   << "Network timout was " << network_timeout.count() << "ms";
+      span.AddTag(tracing::kErrorFlag, true);
       throw;
     } catch (const QueryCanceled& e) {
       ++stats_.execute_timeout;
       LOG_ERROR() << "Statement `" << statement << "` was canceled: " << e
                   << ". Statement timeout was "
                   << current_statement_timeout_.count() << "ms";
+      span.AddTag(tracing::kErrorFlag, true);
+      throw;
+    } catch (const std::exception&) {
+      span.AddTag(tracing::kErrorFlag, true);
       throw;
     }
   }
@@ -487,9 +516,14 @@ struct Connection::Impl {
   ResultSet ExperimentalExecute(const std::string& statement,
                                 io::DataFormat reply_format,
                                 const detail::QueryParameters& params) {
-    conn_wrapper_.SendQuery(statement, params, reply_format);
+    tracing::Span span{"pg_experimental_execute"};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, statement);
+    auto scope = span.CreateScopeTime();
+    conn_wrapper_.SendQuery(statement, params, scope, reply_format);
     return conn_wrapper_.WaitResult(
-        db_types_, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
+        db_types_, engine::Deadline::FromDuration(CurrentNetworkTimeout()),
+        scope);
   }
 
   void Begin(const TransactionOptions& options,

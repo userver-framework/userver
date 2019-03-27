@@ -26,7 +26,7 @@ class Span final {
 
   Span& operator=(const Span&) = delete;
 
-  Span& operator=(Span&&) noexcept;
+  Span& operator=(Span&&) = delete;
 
   /// Return the Span of the current task. May not be called in non-coroutine
   /// context. May not be called from a task with no alive Span.

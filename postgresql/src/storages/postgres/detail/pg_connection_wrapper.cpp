@@ -1,5 +1,6 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 
+#include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/message.hpp>
@@ -145,9 +146,11 @@ engine::Task PGConnectionWrapper::Cancel() {
 }
 
 void PGConnectionWrapper::AsyncConnect(const std::string& conninfo,
-                                       Deadline deadline) {
+                                       Deadline deadline, ScopeTime& scope) {
   PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(conninfo);
+  scope.Reset(scopes::kLibpqConnect);
   StartAsyncConnect(conninfo);
+  scope.Reset(scopes::kLibpqWaitConnectFinish);
   WaitConnectionFinish(deadline);
   PGCW_LOG_DEBUG() << "Connected to " << DsnCutPassword(conninfo);
 }
@@ -233,6 +236,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline) {
       case PGRES_POLLING_FAILED:
         PGCW_LOG_ERROR() << " libpq polling failed";
         CheckError<ConnectionError>("PQconnectPoll", 0);
+        break;
       default:
         UASSERT(!"Unexpected enumeration value");
         break;
@@ -274,7 +278,8 @@ void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
 }
 
 ResultSet PGConnectionWrapper::WaitResult(const UserTypes& types,
-                                          Deadline deadline) {
+                                          Deadline deadline, ScopeTime& scope) {
+  scope.Reset(scopes::kLibpqWaitResult);
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(deadline);
@@ -378,14 +383,18 @@ ResultSet PGConnectionWrapper::MakeResult(const UserTypes& types,
   return ResultSet{wrapper};
 }
 
-void PGConnectionWrapper::SendQuery(const std::string& statement) {
+void PGConnectionWrapper::SendQuery(const std::string& statement,
+                                    ScopeTime& scope) {
+  scope.Reset(scopes::kLibpqSendQuery);
   CheckError<CommandError>("PQsendQuery `" + statement + "`",
                            PQsendQuery(conn_, statement.c_str()));
 }
 
 void PGConnectionWrapper::SendQuery(const std::string& statement,
                                     const QueryParameters& params,
+                                    ScopeTime& scope,
                                     io::DataFormat reply_format) {
+  scope.Reset(scopes::kLibpqSendQueryParams);
   if (params.Empty()) {
     CheckError<CommandError>(
         "PQsendQueryParams",
@@ -403,7 +412,9 @@ void PGConnectionWrapper::SendQuery(const std::string& statement,
 
 void PGConnectionWrapper::SendPrepare(const std::string& name,
                                       const std::string& statement,
-                                      const QueryParameters& params) {
+                                      const QueryParameters& params,
+                                      ScopeTime& scope) {
+  scope.Reset(scopes::kLibpqSendPrepare);
   if (params.Empty()) {
     CheckError<CommandError>(
         "PQsendPrepare",
@@ -416,14 +427,18 @@ void PGConnectionWrapper::SendPrepare(const std::string& name,
   }
 }
 
-void PGConnectionWrapper::SendDescribePrepared(const std::string& name) {
+void PGConnectionWrapper::SendDescribePrepared(const std::string& name,
+                                               ScopeTime& scope) {
+  scope.Reset(scopes::kLibpqSendDescribePrepared);
   CheckError<CommandError>("PQsendDescribePrepared",
                            PQsendDescribePrepared(conn_, name.c_str()));
 }
 
 void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
                                             const QueryParameters& params,
+                                            ScopeTime& scope,
                                             io::DataFormat reply_format) {
+  scope.Reset(scopes::kLibpqSendQueryPrepared);
   if (params.Empty()) {
     CheckError<CommandError>(
         "PQsendQueryPrepared",
