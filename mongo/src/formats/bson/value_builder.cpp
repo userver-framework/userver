@@ -8,14 +8,26 @@
 
 namespace formats::bson {
 
-ValueBuilder::ValueBuilder()
-    : impl_(std::make_shared<impl::ValueImpl>(nullptr)) {}
+ValueBuilder::ValueBuilder() : ValueBuilder(Type::kNull) {}
 
-ValueBuilder::ValueBuilder(ValueBuilder::Type type)
-    : impl_(std::make_shared<impl::ValueImpl>(
+ValueBuilder::ValueBuilder(ValueBuilder::Type type) {
+  switch (type) {
+    case Type::kNull:
+      impl_ = std::make_shared<impl::ValueImpl>(nullptr);
+      break;
+
+    case Type::kArray:
+      impl_ = std::make_shared<impl::ValueImpl>(
+          impl::MutableBson().Extract(), impl::ValueImpl::DocumentKind::kArray);
+      break;
+
+    case Type::kObject:
+      impl_ = std::make_shared<impl::ValueImpl>(
           impl::MutableBson().Extract(),
-          type == Type::kDocument ? impl::ValueImpl::DocumentKind::kDocument
-                                  : impl::ValueImpl::DocumentKind::kArray)) {}
+          impl::ValueImpl::DocumentKind::kDocument);
+      break;
+  }
+}
 
 ValueBuilder::ValueBuilder(impl::ValueImplPtr impl) : impl_(std::move(impl)) {}
 
@@ -56,6 +68,9 @@ ValueBuilder::ValueBuilder(bool value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
 ValueBuilder::ValueBuilder(int32_t value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(uint32_t value)
+    : impl_(std::make_shared<impl::ValueImpl>(
+          boost::numeric_cast<int64_t>(value))) {}
 ValueBuilder::ValueBuilder(int64_t value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
 ValueBuilder::ValueBuilder(uint64_t value)

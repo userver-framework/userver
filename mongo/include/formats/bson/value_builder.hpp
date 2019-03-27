@@ -11,6 +11,7 @@
 #include <formats/bson/iterator.hpp>
 #include <formats/bson/types.hpp>
 #include <formats/bson/value.hpp>
+#include <formats/common/type.hpp>
 
 namespace formats::bson {
 
@@ -18,9 +19,7 @@ namespace formats::bson {
 class ValueBuilder {
  public:
   using iterator = Iterator<ValueBuilder>;
-
-  /// Value types that can be preset
-  enum class Type { kDocument, kArray };
+  using Type = formats::common::Type;
 
   /// Constructs a `null` value (may be used as either document or array)
   ValueBuilder();
@@ -49,6 +48,7 @@ class ValueBuilder {
   /* implicit */ ValueBuilder(std::nullptr_t);
   /* implicit */ ValueBuilder(bool);
   /* implicit */ ValueBuilder(int32_t);
+  /* implicit */ ValueBuilder(uint32_t);
   /* implicit */ ValueBuilder(int64_t);
   /* implicit */ ValueBuilder(uint64_t);
   /* implicit */ ValueBuilder(double);

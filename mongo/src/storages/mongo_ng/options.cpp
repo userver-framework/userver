@@ -64,7 +64,7 @@ WriteConcern& WriteConcern::SetJournal(bool value) {
 }
 
 Projection::Projection()
-    : builder_(formats::bson::ValueBuilder::Type::kDocument) {}
+    : builder_(formats::bson::ValueBuilder::Type::kObject) {}
 
 Projection::Projection(std::initializer_list<std::string> fields_to_include)
     : Projection() {

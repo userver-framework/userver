@@ -18,6 +18,8 @@ TEST(BsonValueBuilder, Null) {
   auto val = fb::ValueBuilder(nullptr).ExtractValue();
   EXPECT_TRUE(val.IsNull());
   EXPECT_EQ(val, fb::ValueBuilder(fb::kNull).ExtractValue());
+  EXPECT_EQ(val,
+            fb::ValueBuilder(fb::ValueBuilder::Type::kNull).ExtractValue());
 }
 
 TEST(BsonValueBuilder, Bool) {
@@ -291,7 +293,7 @@ TEST(BsonValueBuilder, UnsetFieldsAreSkipped) {
 
 TEST(BsonValueBuilder, PredefType) {
   {
-    fb::ValueBuilder doc_builder(fb::ValueBuilder::Type::kDocument);
+    fb::ValueBuilder doc_builder(fb::ValueBuilder::Type::kObject);
     EXPECT_EQ(0, doc_builder.GetSize());
     EXPECT_THROW(doc_builder.Resize(0), fb::TypeMismatchException);
     EXPECT_NO_THROW(doc_builder["a"] = 1);

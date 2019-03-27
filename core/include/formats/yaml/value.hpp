@@ -175,7 +175,6 @@ class Value {
   void SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
                   uint32_t index);
 
-  void EnsureNotMissing() const;
   const YAML::Node& GetNative() const;
   YAML::Node& GetNative();
 

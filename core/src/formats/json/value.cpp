@@ -86,13 +86,6 @@ bool Value::As<bool>() const {
 }
 
 template <>
-int32_t Value::As<int32_t>() const {
-  CheckNotMissing();
-  if (IsInt()) return GetNative().asInt();
-  throw TypeMismatchException(GetNative().type(), Json::intValue, GetPath());
-}
-
-template <>
 int64_t Value::As<int64_t>() const {
   CheckNotMissing();
   if (IsInt64()) return GetNative().asInt64();

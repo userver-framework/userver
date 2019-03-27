@@ -8,8 +8,12 @@
 #include <cstdint>
 #include <string>
 
+#include <formats/bson/exception.hpp>
 #include <formats/bson/iterator.hpp>
 #include <formats/bson/types.hpp>
+#include <formats/common/meta.hpp>
+#include <formats/parse/common.hpp>
+#include <formats/parse/common_containers.hpp>
 
 namespace formats::bson {
 namespace impl {
@@ -24,6 +28,7 @@ class ValueBuilder;
 class Value {
  public:
   using const_iterator = Iterator<Value>;
+  using ParseException = formats::bson::ConversionException;
 
   /// Constructs a `null` value
   Value();
@@ -96,9 +101,15 @@ class Value {
   /// Extracts the specified type with strict type checks
   template <typename T>
   T As() const {
+    static_assert(
+        formats::common::kHasParseTo<Value, T>,
+        "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace "
+        "of `T` or `formats::parse`."
+        ""
+        "Probably you have not provided a `Parse` function overload.");
+
     CheckNotMissing();
-    const T* dont_use_me = nullptr;
-    return ParseBson(*this, dont_use_me);
+    return Parse(*this, formats::parse::To<T>{});
   }
 
   /// Extracts the specified type with strict type checks, or constructs the
@@ -115,20 +126,26 @@ class Value {
   /// @brief Extracts the specified type with relaxed type checks.
   /// For example, `true` may be converted to 1.0.
   template <typename T>
-  T Convert() const {
-    const T* dont_use_me = nullptr;
-    return ConvertBson(*this, dont_use_me);
+  T ConvertTo() const {
+    static_assert(
+        formats::common::kHasConvertTo<Value, T>,
+        "There is no `Convert(const Value&, formats::parse::To<T>)` in "
+        "namespace of `T` or `formats::parse`."
+        ""
+        "Probably you have not provided a `Convert` function overload.");
+
+    return Convert(*this, formats::parse::To<T>{});
   }
 
   /// Extracts the specified type with strict type checks, or constructs the
   /// default value when the field is not present
   template <typename T, typename First, typename... Rest>
-  T Convert(First&& default_arg, Rest&&... more_default_args) const {
+  T ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
     if (IsMissing()) {
       return T(std::forward<First>(default_arg),
                std::forward<Rest>(more_default_args)...);
     }
-    return Convert<T>();
+    return ConvertTo<T>();
   }
 
   /// Throws a MemberMissingException if the selected element does not exist
@@ -149,9 +166,6 @@ template <>
 bool Value::As<bool>() const;
 
 template <>
-int32_t Value::As<int32_t>() const;
-
-template <>
 int64_t Value::As<int64_t>() const;
 
 template <>
@@ -167,6 +181,10 @@ template <>
 std::chrono::system_clock::time_point
 Value::As<std::chrono::system_clock::time_point>() const;
 
+// Do not use common type-agnostic version
+template <>
+std::chrono::seconds Value::As<std::chrono::seconds>() const;
+
 template <>
 Oid Value::As<Oid>() const;
 
@@ -180,48 +198,19 @@ template <>
 Document Value::As<Document>() const;
 
 template <>
-bool Value::Convert<bool>() const;
+bool Value::ConvertTo<bool>() const;
 
 template <>
-int32_t Value::Convert<int32_t>() const;
+int64_t Value::ConvertTo<int64_t>() const;
 
 template <>
-int64_t Value::Convert<int64_t>() const;
+uint64_t Value::ConvertTo<uint64_t>() const;
 
 template <>
-uint64_t Value::Convert<uint64_t>() const;
+double Value::ConvertTo<double>() const;
 
 template <>
-double Value::Convert<double>() const;
-
-template <>
-std::string Value::Convert<std::string>() const;
-
-#ifdef _LIBCPP_VERSION
-template <>
-long Value::As<long>() const;
-
-template <>
-unsigned long Value::As<unsigned long>() const;
-
-template <>
-long Value::Convert<long>() const;
-
-template <>
-unsigned long Value::Convert<unsigned long>() const;
-#else
-template <>
-long long Value::As<long long>() const;
-
-template <>
-unsigned long long Value::As<unsigned long long>() const;
-
-template <>
-long long Value::Convert<long long>() const;
-
-template <>
-unsigned long long Value::Convert<unsigned long long>() const;
-#endif
+std::string Value::ConvertTo<std::string>() const;
 /// @endcond
 
 }  // namespace formats::bson

@@ -61,7 +61,7 @@ class Iterator {
   uint32_t GetIndex() const;
 
  private:
-  impl::ValueImpl& iterable_;
+  impl::ValueImpl* iterable_;
   NativeIter it_;
 };
 

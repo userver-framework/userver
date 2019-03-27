@@ -149,7 +149,7 @@ void MongoNgCache<MongoCacheTraits>::Update(
     } catch (const std::exception& e) {
       LOG_ERROR() << "Failed to deserialize cache item of cache "
                   << MongoCacheTraits::kName
-                  << ", _id=" << doc["_id"].template Convert<std::string>()
+                  << ", _id=" << doc["_id"].template ConvertTo<std::string>()
                   << ", what(): " << e;
       stats_scope.IncreaseDocumentsParseFailures(1);
 

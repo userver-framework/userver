@@ -33,7 +33,6 @@ const char* NameForType(Type expected) {
   RET_NAME(kNull)
   RET_NAME(kArray)
   RET_NAME(kObject)
-  RET_NAME(kMissing)
   return "ERROR";
 #undef RET_NAME
 }

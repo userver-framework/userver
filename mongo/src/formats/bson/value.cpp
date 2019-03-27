@@ -67,17 +67,9 @@ bool Value::As<bool>() const {
 }
 
 template <>
-int32_t Value::As<int32_t>() const {
-  CheckNotMissing();
-  if (IsInt32()) return impl_->GetNative()->value.v_int32;
-  if (IsInt64()) return boost::numeric_cast<int32_t>(As<int64_t>());
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_INT32, GetPath());
-}
-
-template <>
 int64_t Value::As<int64_t>() const {
   CheckNotMissing();
-  if (IsInt32()) return As<int32_t>();
+  if (IsInt32()) return impl_->GetNative()->value.v_int32;
   if (IsInt64()) return impl_->GetNative()->value.v_int64;
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_INT64, GetPath());
 }
@@ -120,6 +112,12 @@ Value::As<std::chrono::system_clock::time_point>() const {
 }
 
 template <>
+std::chrono::seconds Value::As<std::chrono::seconds>() const {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+      As<std::chrono::system_clock::time_point>().time_since_epoch());
+}
+
+template <>
 Oid Value::As<Oid>() const {
   CheckNotMissing();
   if (IsOid()) return impl_->GetNative()->value.v_oid;
@@ -159,7 +157,7 @@ Document Value::As<Document>() const {
 }
 
 template <>
-bool Value::Convert<bool>() const {
+bool Value::ConvertTo<bool>() const {
   if (IsMissing() || IsNull()) return false;
   if (IsBool()) return As<bool>();
   if (IsInt32()) return As<int32_t>();
@@ -174,18 +172,7 @@ bool Value::Convert<bool>() const {
 }
 
 template <>
-int32_t Value::Convert<int32_t>() const {
-  if (IsMissing() || IsNull()) return 0;
-  if (IsBool()) return As<bool>();
-  if (IsInt32()) return As<int32_t>();
-  if (IsInt64()) return boost::numeric_cast<int32_t>(As<int64_t>());
-  if (IsDouble()) return boost::numeric_cast<int32_t>(As<double>());
-
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_INT32, GetPath());
-}
-
-template <>
-int64_t Value::Convert<int64_t>() const {
+int64_t Value::ConvertTo<int64_t>() const {
   if (IsMissing() || IsNull()) return 0;
   if (IsBool()) return As<bool>();
   if (IsInt32()) return As<int32_t>();
@@ -197,69 +184,29 @@ int64_t Value::Convert<int64_t>() const {
 }
 
 template <>
-uint64_t Value::Convert<uint64_t>() const {
+uint64_t Value::ConvertTo<uint64_t>() const {
   if (IsDouble()) return boost::numeric_cast<uint64_t>(As<double>());
-  return boost::numeric_cast<uint64_t>(Convert<int64_t>());
+  return boost::numeric_cast<uint64_t>(ConvertTo<int64_t>());
 }
 
 template <>
-double Value::Convert<double>() const {
+double Value::ConvertTo<double>() const {
   if (IsDouble()) return As<double>();
-  return Convert<int64_t>();
+  return ConvertTo<int64_t>();
 }
 
 template <>
-std::string Value::Convert<std::string>() const {
+std::string Value::ConvertTo<std::string>() const {
   if (IsString()) return As<std::string>();
   if (IsBinary()) return As<Binary>().ToString();
 
   if (IsMissing() || IsNull()) return {};
   if (IsBool()) return As<bool>() ? "true" : "false";
-  if (IsInt64() || IsDateTime()) return std::to_string(Convert<int64_t>());
+  if (IsInt64() || IsDateTime()) return std::to_string(ConvertTo<int64_t>());
   if (IsDouble()) return std::to_string(As<double>());
   if (IsOid()) return As<Oid>().ToString();
 
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_UTF8, GetPath());
-}
-
-#ifdef _LIBCPP_VERSION
-template <>
-long Value::As<long>() const {
-#else
-template <>
-long long Value::As<long long>() const {
-#endif
-  return As<int64_t>();
-}
-
-#ifdef _LIBCPP_VERSION
-template <>
-unsigned long Value::As<unsigned long>() const {
-#else
-template <>
-unsigned long long Value::As<unsigned long long>() const {
-#endif
-  return As<uint64_t>();
-}
-
-#ifdef _LIBCPP_VERSION
-template <>
-long Value::Convert<long>() const {
-#else
-template <>
-long long Value::Convert<long long>() const {
-#endif
-  return Convert<int64_t>();
-}
-
-#ifdef _LIBCPP_VERSION
-template <>
-unsigned long Value::Convert<unsigned long>() const {
-#else
-template <>
-unsigned long long Value::Convert<unsigned long long>() const {
-#endif
-  return Convert<uint64_t>();
 }
 
 void Value::CheckNotMissing() const { impl_->CheckNotMissing(); }

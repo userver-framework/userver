@@ -25,17 +25,17 @@ TEST(BsonConversion, Missing) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_FALSE(elem.Convert<bool>());
-    EXPECT_EQ(0, elem.Convert<int32_t>());
-    EXPECT_EQ(0, elem.Convert<int64_t>());
-    EXPECT_EQ(0, elem.Convert<size_t>());
-    EXPECT_DOUBLE_EQ(0.0, elem.Convert<double>());
-    EXPECT_TRUE(elem.Convert<std::string>().empty());
+    EXPECT_FALSE(elem.ConvertTo<bool>());
+    EXPECT_EQ(0, elem.ConvertTo<int32_t>());
+    EXPECT_EQ(0, elem.ConvertTo<int64_t>());
+    EXPECT_EQ(0, elem.ConvertTo<size_t>());
+    EXPECT_DOUBLE_EQ(0.0, elem.ConvertTo<double>());
+    EXPECT_TRUE(elem.ConvertTo<std::string>().empty());
 
-    EXPECT_EQ(true, elem.Convert<bool>(true));
-    EXPECT_EQ(1, elem.Convert<int>(1));
-    EXPECT_EQ("test", elem.Convert<std::string>("test"));
-    EXPECT_EQ("test", elem.Convert<std::string>("test123", 4));
+    EXPECT_EQ(true, elem.ConvertTo<bool>(true));
+    EXPECT_EQ(1, elem.ConvertTo<int>(1));
+    EXPECT_EQ("test", elem.ConvertTo<std::string>("test"));
+    EXPECT_EQ("test", elem.ConvertTo<std::string>("test123", 4));
   };
 
   const auto doc = fb::MakeDoc("a", fb::MakeArray(), "b", fb::MakeDoc());
@@ -65,12 +65,12 @@ TEST(BsonConversion, Null) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_FALSE(elem.Convert<bool>());
-    EXPECT_EQ(0, elem.Convert<int32_t>());
-    EXPECT_EQ(0, elem.Convert<int64_t>());
-    EXPECT_EQ(0, elem.Convert<size_t>());
-    EXPECT_DOUBLE_EQ(0.0, elem.Convert<double>());
-    EXPECT_TRUE(elem.Convert<std::string>().empty());
+    EXPECT_FALSE(elem.ConvertTo<bool>());
+    EXPECT_EQ(0, elem.ConvertTo<int32_t>());
+    EXPECT_EQ(0, elem.ConvertTo<int64_t>());
+    EXPECT_EQ(0, elem.ConvertTo<size_t>());
+    EXPECT_DOUBLE_EQ(0.0, elem.ConvertTo<double>());
+    EXPECT_TRUE(elem.ConvertTo<std::string>().empty());
   };
 
   const auto doc = fb::MakeDoc("a", fb::MakeArray(nullptr), "e", nullptr);
@@ -97,15 +97,15 @@ TEST(BsonConversion, Bool) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_EQ(value, elem.Convert<bool>());
-    EXPECT_EQ(value, elem.Convert<int32_t>());
-    EXPECT_EQ(value, elem.Convert<int64_t>());
-    EXPECT_EQ(value, elem.Convert<size_t>());
-    EXPECT_DOUBLE_EQ(value, elem.Convert<double>());
+    EXPECT_EQ(value, elem.ConvertTo<bool>());
+    EXPECT_EQ(value, elem.ConvertTo<int32_t>());
+    EXPECT_EQ(value, elem.ConvertTo<int64_t>());
+    EXPECT_EQ(value, elem.ConvertTo<size_t>());
+    EXPECT_DOUBLE_EQ(value, elem.ConvertTo<double>());
     if (value) {
-      EXPECT_EQ("true", elem.Convert<std::string>());
+      EXPECT_EQ("true", elem.ConvertTo<std::string>());
     } else {
-      EXPECT_EQ("false", elem.Convert<std::string>());
+      EXPECT_EQ("false", elem.ConvertTo<std::string>());
     }
   };
 
@@ -136,16 +136,16 @@ TEST(BsonConversion, Double) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_EQ(!!value, elem.Convert<bool>());
-    EXPECT_EQ(static_cast<int32_t>(value), elem.Convert<int32_t>());
-    EXPECT_EQ(static_cast<int64_t>(value), elem.Convert<int64_t>());
+    EXPECT_EQ(!!value, elem.ConvertTo<bool>());
+    EXPECT_EQ(static_cast<int32_t>(value), elem.ConvertTo<int32_t>());
+    EXPECT_EQ(static_cast<int64_t>(value), elem.ConvertTo<int64_t>());
     if (value > -1.0) {
-      EXPECT_EQ(static_cast<size_t>(value), elem.Convert<size_t>());
+      EXPECT_EQ(static_cast<size_t>(value), elem.ConvertTo<size_t>());
     } else {
-      EXPECT_ANY_THROW(elem.Convert<size_t>());
+      EXPECT_ANY_THROW(elem.ConvertTo<size_t>());
     }
-    EXPECT_DOUBLE_EQ(value, elem.Convert<double>());
-    EXPECT_EQ(std::to_string(value), elem.Convert<std::string>());
+    EXPECT_DOUBLE_EQ(value, elem.ConvertTo<double>());
+    EXPECT_EQ(std::to_string(value), elem.ConvertTo<std::string>());
   };
 
   const auto doc = fb::MakeDoc("a", fb::MakeArray(0.0, 0.123, -0.123), "ez",
@@ -177,16 +177,16 @@ TEST(BsonConversion, Int32) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_EQ(!!value, elem.Convert<bool>());
-    EXPECT_EQ(value, elem.Convert<int32_t>());
-    EXPECT_EQ(value, elem.Convert<int64_t>());
+    EXPECT_EQ(!!value, elem.ConvertTo<bool>());
+    EXPECT_EQ(value, elem.ConvertTo<int32_t>());
+    EXPECT_EQ(value, elem.ConvertTo<int64_t>());
     if (value >= 0) {
-      EXPECT_EQ(value, elem.Convert<size_t>());
+      EXPECT_EQ(value, elem.ConvertTo<size_t>());
     } else {
-      EXPECT_ANY_THROW(elem.Convert<size_t>());
+      EXPECT_ANY_THROW(elem.ConvertTo<size_t>());
     }
-    EXPECT_DOUBLE_EQ(value, elem.Convert<double>());
-    EXPECT_EQ(std::to_string(value), elem.Convert<std::string>());
+    EXPECT_DOUBLE_EQ(value, elem.ConvertTo<double>());
+    EXPECT_EQ(std::to_string(value), elem.ConvertTo<std::string>());
   };
 
   const auto doc =
@@ -219,16 +219,16 @@ TEST(BsonConversion, Int64) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_EQ(!!value, elem.Convert<bool>());
-    EXPECT_EQ(value, elem.Convert<int32_t>());
-    EXPECT_EQ(value, elem.Convert<int64_t>());
+    EXPECT_EQ(!!value, elem.ConvertTo<bool>());
+    EXPECT_EQ(value, elem.ConvertTo<int32_t>());
+    EXPECT_EQ(value, elem.ConvertTo<int64_t>());
     if (value >= 0) {
-      EXPECT_EQ(value, elem.Convert<size_t>());
+      EXPECT_EQ(value, elem.ConvertTo<size_t>());
     } else {
-      EXPECT_ANY_THROW(elem.Convert<size_t>());
+      EXPECT_ANY_THROW(elem.ConvertTo<size_t>());
     }
-    EXPECT_DOUBLE_EQ(value, elem.Convert<double>());
-    EXPECT_EQ(std::to_string(value), elem.Convert<std::string>());
+    EXPECT_DOUBLE_EQ(value, elem.ConvertTo<double>());
+    EXPECT_EQ(std::to_string(value), elem.ConvertTo<std::string>());
   };
 
   const auto doc =
@@ -261,12 +261,12 @@ TEST(BsonConversion, Utf8) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_EQ(!value.empty(), elem.Convert<bool>());
-    EXPECT_THROW(elem.Convert<int32_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<int64_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<size_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<double>(), fb::TypeMismatchException);
-    EXPECT_EQ(value, elem.Convert<std::string>());
+    EXPECT_EQ(!value.empty(), elem.ConvertTo<bool>());
+    EXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
+    EXPECT_EQ(value, elem.ConvertTo<std::string>());
   };
 
   const auto doc =
@@ -296,12 +296,12 @@ TEST(BsonConversion, Binary) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_EQ(!value.empty(), elem.Convert<bool>());
-    EXPECT_THROW(elem.Convert<int32_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<int64_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<size_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<double>(), fb::TypeMismatchException);
-    EXPECT_EQ(value, elem.Convert<std::string>());
+    EXPECT_EQ(!value.empty(), elem.ConvertTo<bool>());
+    EXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
+    EXPECT_EQ(value, elem.ConvertTo<std::string>());
   };
 
   const auto doc =
@@ -315,7 +315,8 @@ TEST(BsonConversion, Binary) {
 
 TEST(BsonConversion, DateTime) {
   auto test_elem = [](const fb::Value& elem,
-                      const std::chrono::system_clock::time_point& value) {
+                      const std::chrono::system_clock::time_point& value,
+                      bool is_int32) {
     EXPECT_FALSE(elem.IsMissing());
     EXPECT_FALSE(elem.IsArray());
     EXPECT_FALSE(elem.IsDocument());
@@ -338,20 +339,27 @@ TEST(BsonConversion, DateTime) {
             value.time_since_epoch())
             .count();
 
-    EXPECT_TRUE(elem.Convert<bool>());
-    EXPECT_THROW(elem.Convert<int32_t>(), fb::TypeMismatchException);
-    EXPECT_EQ(int_value, elem.Convert<int64_t>());
-    EXPECT_EQ(int_value, elem.Convert<size_t>());
-    EXPECT_DOUBLE_EQ(int_value, elem.Convert<double>());
-    EXPECT_EQ(std::to_string(int_value), elem.Convert<std::string>());
+    EXPECT_TRUE(elem.ConvertTo<bool>());
+    if (is_int32) {
+      EXPECT_EQ(int_value, elem.ConvertTo<int32_t>());
+    } else {
+      EXPECT_THROW(elem.ConvertTo<int32_t>(), fb::ConversionException);
+    }
+    EXPECT_EQ(int_value, elem.ConvertTo<int64_t>());
+    EXPECT_EQ(int_value, elem.ConvertTo<size_t>());
+    EXPECT_DOUBLE_EQ(int_value, elem.ConvertTo<double>());
+    EXPECT_EQ(std::to_string(int_value), elem.ConvertTo<std::string>());
   };
 
   const auto time1 = std::chrono::system_clock::from_time_t(1535749200);
   const auto time2 = std::chrono::system_clock::from_time_t(1538341200);
+  const auto time3 = std::chrono::system_clock::from_time_t(1538341);
 
-  const auto doc = fb::MakeDoc("a", fb::MakeArray(time1), "e", time2);
-  test_elem(doc["a"][0], time1);
-  test_elem(doc["e"], time2);
+  const auto doc =
+      fb::MakeDoc("a", fb::MakeArray(time1), "e", time2, "s", time3);
+  test_elem(doc["a"][0], time1, false);
+  test_elem(doc["e"], time2, false);
+  test_elem(doc["s"], time3, true);
 }
 
 TEST(BsonConversion, Oid) {
@@ -373,12 +381,12 @@ TEST(BsonConversion, Oid) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_THROW(elem.Convert<bool>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<int32_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<int64_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<size_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.Convert<double>(), fb::TypeMismatchException);
-    EXPECT_EQ(oid_string, elem.Convert<std::string>());
+    EXPECT_THROW(elem.ConvertTo<bool>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
+    EXPECT_EQ(oid_string, elem.ConvertTo<std::string>());
   };
 
   const auto doc =

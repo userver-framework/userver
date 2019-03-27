@@ -14,7 +14,7 @@ Iterator<ValueType>::ArrowProxy::ArrowProxy(ValueType value)
 
 template <typename ValueType>
 Iterator<ValueType>::Iterator(impl::ValueImpl& iterable, NativeIter it)
-    : iterable_(iterable), it_(std::move(it)) {}
+    : iterable_(&iterable), it_(std::move(it)) {}
 
 template <typename ValueType>
 Iterator<ValueType> Iterator<ValueType>::operator++(int) {
@@ -79,7 +79,7 @@ std::string Iterator<ValueType>::GetName() const {
    private:
     const impl::ValueImpl& iterable_;
   };
-  return boost::apply_visitor(Visitor(iterable_), it_);
+  return boost::apply_visitor(Visitor(*iterable_), it_);
 }
 
 template <typename ValueType>
@@ -101,7 +101,7 @@ uint32_t Iterator<ValueType>::GetIndex() const {
    private:
     impl::ValueImpl& iterable_;
   };
-  return boost::apply_visitor(Visitor(iterable_), it_);
+  return boost::apply_visitor(Visitor(*iterable_), it_);
 }
 
 // Template instantiations

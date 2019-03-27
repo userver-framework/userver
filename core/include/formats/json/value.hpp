@@ -211,20 +211,10 @@ template <>
 bool Value::As<bool>() const;
 
 template <>
-int32_t Value::As<int32_t>() const;
-
-template <>
 int64_t Value::As<int64_t>() const;
 
 template <>
 uint64_t Value::As<uint64_t>() const;
-
-#ifdef _LIBCPP_VERSION
-template <>
-inline unsigned long Value::As<unsigned long>() const {
-  return As<uint64_t>();
-}
-#endif
 
 template <>
 double Value::As<double>() const;

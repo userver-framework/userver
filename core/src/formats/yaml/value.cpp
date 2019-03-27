@@ -33,12 +33,12 @@ Type FromNative(YAML::NodeType::value t) {
       return Type::kArray;
     case YAML::NodeType::Map:
       return Type::kObject;
-    case YAML::NodeType::Undefined:
-      return Type::kMissing;
     case YAML::NodeType::Null:
       return Type::kNull;
     case YAML::NodeType::Scalar:
       return Type::kObject;  // same as Map
+    case YAML::NodeType::Undefined:
+      throw std::logic_error("undefined node type should not be used");
   }
 }
 
@@ -223,8 +223,6 @@ void Value::SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
   *this = MakeNonRoot(val, path, index);
 }
 
-void Value::EnsureNotMissing() const { CheckNotMissing(); }
-
 bool Value::IsRoot() const noexcept { return is_root_; }
 
 bool Value::DebugIsReferencingSameMemory(const Value& other) const {
@@ -232,12 +230,12 @@ bool Value::DebugIsReferencingSameMemory(const Value& other) const {
 }
 
 const YAML::Node& Value::GetNative() const {
-  EnsureNotMissing();
+  CheckNotMissing();
   return *value_pimpl_;
 }
 
 YAML::Node& Value::GetNative() {
-  EnsureNotMissing();
+  CheckNotMissing();
   return *value_pimpl_;
 }
 

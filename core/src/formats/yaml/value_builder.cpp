@@ -15,8 +15,6 @@ YAML::NodeType::value ToNative(Type t) {
   switch (t) {
     case Type::kArray:
       return YAML::NodeType::Sequence;
-    case Type::kMissing:
-      return YAML::NodeType::Undefined;
     case Type::kNull:
       return YAML::NodeType::Null;
     case Type::kObject:
@@ -28,9 +26,7 @@ YAML::NodeType::value ToNative(Type t) {
 
 ValueBuilder::ValueBuilder() : value_(YAML::Node()) {}
 
-ValueBuilder::ValueBuilder(Type type)
-    : value_(type == Type::kMissing ? YAML::Node()
-                                    : YAML::Node(ToNative(type))) {}
+ValueBuilder::ValueBuilder(Type type) : value_(YAML::Node(ToNative(type))) {}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) { Copy(other); }
 
