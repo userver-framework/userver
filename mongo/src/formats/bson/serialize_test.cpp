@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -15,12 +16,16 @@ namespace {
 const std::string kJson = R"({
   "string": "test",
   "int": 1,
-  "double": 1.0
+  "double": 1.0,
+  "date": { "$date": "1970-01-01T00:00:00.001Z" }
 })";
 
-const auto kDoc =
-    formats::bson::MakeDoc("string", "test", "int", int64_t{1}, "double", 1.0,
-                           "inf", std::numeric_limits<double>::infinity());
+const auto kTimePoint =
+    std::chrono::system_clock::from_time_t(0) + std::chrono::milliseconds{1};
+
+const auto kDoc = formats::bson::MakeDoc(
+    "string", "test", "int", int64_t{1}, "double", 1.0, "inf",
+    std::numeric_limits<double>::infinity(), "date", kTimePoint);
 
 }  // namespace
 
@@ -32,6 +37,9 @@ TEST(Serialize, FromJson) {
   EXPECT_EQ(1, doc["int"].As<int>());
   ASSERT_TRUE(doc["double"].IsDouble());
   EXPECT_DOUBLE_EQ(1.0, doc["double"].As<double>());
+  ASSERT_TRUE(doc["date"].IsDateTime());
+  EXPECT_EQ(kTimePoint,
+            doc["date"].As<std::chrono::system_clock::time_point>());
 }
 
 TEST(Serialize, ToCanonicalJson) {
@@ -46,6 +54,8 @@ TEST(Serialize, ToCanonicalJson) {
   EXPECT_EQ("1.0", json["double"]["$numberDouble"].As<std::string>());
   ASSERT_TRUE(json["inf"]["$numberDouble"].IsString());
   EXPECT_EQ("Infinity", json["inf"]["$numberDouble"].As<std::string>());
+  ASSERT_TRUE(json["date"]["$date"]["$numberLong"].IsString());
+  EXPECT_EQ("1", json["date"]["$date"]["$numberLong"].As<std::string>());
 }
 
 TEST(Serialize, ToRelaxedJson) {
@@ -60,6 +70,9 @@ TEST(Serialize, ToRelaxedJson) {
   EXPECT_DOUBLE_EQ(1.0, json["double"].As<double>());
   ASSERT_TRUE(json["inf"]["$numberDouble"].IsString());
   EXPECT_EQ("Infinity", json["inf"]["$numberDouble"].As<std::string>());
+  ASSERT_TRUE(json["date"]["$date"].IsString());
+  EXPECT_EQ("1970-01-01T00:00:00.001Z",
+            json["date"]["$date"].As<std::string>());
 }
 
 TEST(Serialize, ToLegacyJson) {
@@ -76,4 +89,6 @@ TEST(Serialize, ToLegacyJson) {
   EXPECT_DOUBLE_EQ(1.0, json["double"].As<double>());
   // ASSERT_TRUE(json["inf"].IsDouble());
   // EXPECT_TRUE(std::isinf(json["inf"].As<double>()));
+  ASSERT_TRUE(json["date"]["$date"].IsInt64());
+  EXPECT_EQ(1, json["date"]["$date"].As<int64_t>());
 }
