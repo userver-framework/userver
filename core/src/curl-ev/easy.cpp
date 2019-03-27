@@ -108,6 +108,15 @@ void easy::_cancel() {
 
 void easy::reset() {
   LOG_TRACE() << "easy::reset start " << reinterpret_cast<long>(this);
+
+  post_fields_.clear();
+  form_.reset();
+  if (headers_) headers_->clear();
+  if (http200_aliases_) http200_aliases_->clear();
+  if (resolved_hosts_) resolved_hosts_->clear();
+  share_.reset();
+  if (telnet_options_) telnet_options_->clear();
+
   if (multi_registered_) {
     multi_->GetThreadControl().RunInEvLoopSync(std::bind(&easy::_reset, this));
   }

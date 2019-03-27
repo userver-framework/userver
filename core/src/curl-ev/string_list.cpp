@@ -14,12 +14,7 @@ string_list::string_list() : list_(0) {
   initref_ = initialization::ensure_initialization();
 }
 
-string_list::~string_list() {
-  if (list_) {
-    native::curl_slist_free_all(list_);
-    list_ = 0;
-  }
-}
+string_list::~string_list() { clear(); }
 
 void string_list::add(const char* str) {
   native::curl_slist* p = native::curl_slist_append(list_, str);
@@ -32,3 +27,10 @@ void string_list::add(const char* str) {
 }
 
 void string_list::add(const std::string& str) { add(str.c_str()); }
+
+void string_list::clear() noexcept {
+  if (list_) {
+    native::curl_slist_free_all(list_);
+    list_ = 0;
+  }
+}

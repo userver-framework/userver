@@ -109,14 +109,14 @@ void Client::SetConnectionPoolSize(size_t connection_pool_size) {
   }
 }
 
-void Client::PushIdleEasy(std::unique_ptr<curl::easy> /*easy*/) noexcept {
-  // FIXME: https://st.yandex-team.ru/TAXICOMMON-282
-  // try {
-  //  std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
-  //  idle_easy_queue_.push(std::move(easy));
-  // } catch (const std::exception& e) {
-  //   LOG_ERROR() << e.what();
-  // }
+void Client::PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept {
+  try {
+    easy->reset();
+    std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
+    idle_easy_queue_.push(std::move(easy));
+  } catch (const std::exception& e) {
+    LOG_ERROR() << e.what();
+  }
 
   DecPending();
 }

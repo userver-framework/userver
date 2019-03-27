@@ -27,6 +27,7 @@ class CURLASIO_API string_list
 
   void add(const char* str);
   void add(const std::string& str);
+  void clear() noexcept;
 
  private:
   initialization::ptr initref_;
