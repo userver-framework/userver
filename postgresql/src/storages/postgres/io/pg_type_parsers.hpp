@@ -53,6 +53,18 @@ struct BufferParser<Oid, DataFormat::kBinaryDataFormat>
 };
 
 template <>
+struct BufferParser<std::uint16_t, DataFormat::kBinaryDataFormat>
+    : detail::BufferParserBase<std::uint16_t> {
+  using BufferParserBase::BufferParserBase;
+
+  void operator()(const FieldBuffer& buffer) {
+    Smallint tmp;
+    ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, tmp);
+    value = static_cast<std::uint16_t>(tmp);
+  }
+};
+
+template <>
 struct CppToSystemPg<Oid> : PredefinedOid<PredefinedOids::kOid> {};
 
 }  // namespace storages::postgres::io

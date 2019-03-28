@@ -1,6 +1,7 @@
 #pragma once
 
 #include <storages/postgres/io/buffer_io.hpp>
+#include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/stream_text_parser.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
@@ -18,6 +19,12 @@ using ArbitraryPrecision = boost::multiprecision::number<
 using Numeric = ArbitraryPrecision<50>;
 
 namespace io {
+
+namespace detail {
+
+std::string NumericBufferToString(const FieldBuffer& buffer);
+
+}  // namespace detail
 
 template <std::size_t Precision>
 struct BufferFormatter<ArbitraryPrecision<Precision>,
@@ -38,6 +45,22 @@ struct BufferFormatter<ArbitraryPrecision<Precision>,
       os << std::setprecision(std::numeric_limits<Value>::digits10) << value;
     }
     if (buf.empty() || buf.back() != '\0') buf.push_back('\0');
+  }
+};
+
+template <std::size_t Precision>
+struct BufferParser<ArbitraryPrecision<Precision>,
+                    DataFormat::kBinaryDataFormat>
+    : detail::BufferParserBase<ArbitraryPrecision<Precision>> {
+  using BaseType = detail::BufferParserBase<ArbitraryPrecision<Precision>>;
+  using BaseType::BaseType;
+  using NumberType = boost::multiprecision::cpp_dec_float<Precision>;
+
+  void operator()(const FieldBuffer& buffer) {
+    auto str = detail::NumericBufferToString(buffer);
+    // cpp_dec_float provides const char* constructor, where it parses the
+    // contents to internal buffers. no std::string constructor is provided.
+    this->value = NumberType{str.c_str()};
   }
 };
 

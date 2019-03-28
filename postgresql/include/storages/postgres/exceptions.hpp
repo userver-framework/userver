@@ -99,6 +99,7 @@ namespace postgres {
  *       - FieldNameDoesntExist
  *       - FieldTupleMismatch
  *       - FieldValueIsNull
+ *       - InvalidBinaryBuffer
  *       - InvalidInputBufferSize
  *       - InvalidParserCategory
  *       - InvalidTupleSizeRequested
@@ -658,6 +659,14 @@ class InvalidInputBufferSize : public ResultSetError {
   InvalidInputBufferSize(std::size_t size, const std::string& message)
       : ResultSetError("Buffer size " + std::to_string(size) + " is invalid " +
                        message) {}
+};
+
+/// @brief Binary buffer contains invalid data.
+/// Can occur when parsing binary buffers containing multiple fields.
+class InvalidBinaryBuffer : public ResultSetError {
+ public:
+  InvalidBinaryBuffer(const std::string& message)
+      : ResultSetError("Invalid binary buffer: " + message) {}
 };
 
 /// @brief Text buffer failed to parse to a requested type.
