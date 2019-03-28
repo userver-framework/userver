@@ -43,7 +43,7 @@ namespace {
 
 constexpr char kPathLineSeparator = ':';
 
-class LogExtraValueVisitor : public boost::static_visitor<void> {
+class LogExtraValueVisitor {
  public:
   LogExtraValueVisitor(LogHelper& lh) noexcept : lh_(lh) {}
 

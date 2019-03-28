@@ -15,7 +15,7 @@ namespace formats::bson::impl {
 BsonBuilder::BsonBuilder() = default;
 
 BsonBuilder::BsonBuilder(const ValueImpl& value) {
-  class Visitor : public boost::static_visitor<void> {
+  class Visitor {
    public:
     Visitor(BsonBuilder& builder) : builder_(builder) {}
 
@@ -170,7 +170,7 @@ BsonBuilder& BsonBuilder::Append(utils::string_view key, const Value& value) {
 
 void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
                              const ValueImpl& value) {
-  class Visitor : public boost::static_visitor<void> {
+  class Visitor {
    public:
     Visitor(BsonBuilder& builder, bson_t* dest, utils::string_view key,
             const bson_value_t* bson_value)

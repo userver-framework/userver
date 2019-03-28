@@ -31,7 +31,7 @@ Iterator<ValueType>& Iterator<ValueType>::operator++() {
 
 template <typename ValueType>
 ValueType Iterator<ValueType>::operator*() const {
-  class Visitor : public boost::static_visitor<impl::ValueImplPtr> {
+  class Visitor {
    public:
     impl::ValueImplPtr operator()(impl::ParsedArray::const_iterator it) const {
       return *it;
@@ -63,7 +63,7 @@ bool Iterator<ValueType>::operator!=(const Iterator& rhs) const {
 
 template <typename ValueType>
 std::string Iterator<ValueType>::GetName() const {
-  class Visitor : public boost::static_visitor<std::string> {
+  class Visitor {
    public:
     Visitor(const impl::ValueImpl& iterable) : iterable_(iterable) {}
 
@@ -84,7 +84,7 @@ std::string Iterator<ValueType>::GetName() const {
 
 template <typename ValueType>
 uint32_t Iterator<ValueType>::GetIndex() const {
-  class Visitor : public boost::static_visitor<uint32_t> {
+  class Visitor {
    public:
     Visitor(impl::ValueImpl& iterable) : iterable_(iterable) {}
 

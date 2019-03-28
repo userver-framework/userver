@@ -13,7 +13,7 @@ namespace {
 
 static constexpr bson_value_t kDefaultBsonValue{BSON_TYPE_EOD, {}, {}};
 
-class IsNullptrVisitor : public boost::static_visitor<bool> {
+class IsNullptrVisitor {
  public:
   bool operator()(std::nullptr_t) const { return true; }
 
@@ -28,7 +28,7 @@ bool IsNullptr(const Variant& variant) {
   return boost::apply_visitor(IsNullptrVisitor{}, variant);
 }
 
-class DeepCopyVisitor : public boost::static_visitor<ValueImpl::ParsedValue> {
+class DeepCopyVisitor {
  public:
   ValueImpl::ParsedValue operator()(std::nullptr_t) const { return nullptr; }
 
@@ -290,7 +290,7 @@ ValueImpl& ValueImpl::operator=(ValueImpl&& rhs) noexcept {
 }
 
 bool ValueImpl::IsStorageOwner() const {
-  class Visitor : public boost::static_visitor<bool> {
+  class Visitor {
    public:
     Visitor(const ValueImpl& value) : value_(value) {}
 
@@ -378,7 +378,7 @@ void ValueImpl::PushBack(ValueImplPtr impl) {
 }
 
 uint32_t ValueImpl::GetSize() const {
-  class Visitor : public boost::static_visitor<uint32_t> {
+  class Visitor {
    public:
     Visitor(const ValueImpl& value) : value_(value) {}
 
@@ -405,17 +405,17 @@ uint32_t ValueImpl::GetSize() const {
 std::string ValueImpl::GetPath() const { return PathToString(path_); }
 
 ValueImpl::Iterator ValueImpl::Begin() {
-  class Visitor : public boost::static_visitor<ValueImpl::Iterator> {
+  class Visitor {
    public:
-    result_type operator()(std::nullptr_t) const {
+    ValueImpl::Iterator operator()(std::nullptr_t) const {
       UASSERT(false);
       return {};
     }
 
-    result_type operator()(const ParsedArray& arr) const {
+    ValueImpl::Iterator operator()(const ParsedArray& arr) const {
       return arr.cbegin();
     }
-    result_type operator()(const ParsedDocument& doc) const {
+    ValueImpl::Iterator operator()(const ParsedDocument& doc) const {
       return doc.cbegin();
     }
   };
@@ -426,15 +426,17 @@ ValueImpl::Iterator ValueImpl::Begin() {
 }
 
 ValueImpl::Iterator ValueImpl::End() {
-  class Visitor : public boost::static_visitor<ValueImpl::Iterator> {
+  class Visitor {
    public:
-    result_type operator()(std::nullptr_t) const {
+    ValueImpl::Iterator operator()(std::nullptr_t) const {
       UASSERT(false);
       return {};
     }
 
-    result_type operator()(const ParsedArray& arr) const { return arr.cend(); }
-    result_type operator()(const ParsedDocument& doc) const {
+    ValueImpl::Iterator operator()(const ParsedArray& arr) const {
+      return arr.cend();
+    }
+    ValueImpl::Iterator operator()(const ParsedDocument& doc) const {
       return doc.cend();
     }
   };
@@ -560,7 +562,7 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
   rhs.EnsureParsed();
   UASSERT(parsed_value_.which() == rhs.parsed_value_.which());
 
-  class Visitor : public boost::static_visitor<bool> {
+  class Visitor {
    public:
     Visitor(const ValueImpl& lhs, const ValueImpl& rhs)
         : lhs_(lhs), rhs_(rhs) {}

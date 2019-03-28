@@ -8,7 +8,7 @@ namespace net {
 
 Listener::Listener(std::shared_ptr<EndpointInfo> endpoint_info,
                    engine::TaskProcessor& task_processor)
-    : task_processor_(task_processor),
+    : task_processor_(&task_processor),
       endpoint_info_(std::move(endpoint_info)) {}
 
 Listener::~Listener() {
@@ -20,7 +20,7 @@ Listener::~Listener() {
 }
 
 void Listener::Start() {
-  impl_ = std::make_unique<ListenerImpl>(task_processor_, endpoint_info_);
+  impl_ = std::make_unique<ListenerImpl>(*task_processor_, endpoint_info_);
 }
 
 Stats Listener::GetStats() const {

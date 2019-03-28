@@ -27,7 +27,7 @@ class Listener {
   Stats GetStats() const;
 
  private:
-  engine::TaskProcessor& task_processor_;
+  engine::TaskProcessor* task_processor_;
   std::shared_ptr<EndpointInfo> endpoint_info_;
 
   std::unique_ptr<ListenerImpl> impl_;

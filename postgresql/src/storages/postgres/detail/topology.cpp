@@ -94,8 +94,7 @@ ClusterTopology::HostState::HostState(const std::string& dsn,
       changes{kNothing, kNothing, 0},
       failed_operations(0) {}
 
-class ClusterTopology::ClusterDescriptionVisitor
-    : public boost::static_visitor<DSNList> {
+class ClusterTopology::ClusterDescriptionVisitor {
  public:
   ClusterDescriptionVisitor(ClusterTopology& topology) : topology_{topology} {}
 
