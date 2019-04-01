@@ -3,7 +3,8 @@
 #include <mutex>
 #include <queue>
 
-#include "request.hpp"
+#include <clients/http/request.hpp>
+#include <clients/http/statistics.hpp>
 
 namespace curl {
 class multi;
@@ -36,8 +37,14 @@ class Client {
   void SetMaxHostConnections(size_t max_host_connections);
   void SetConnectionPoolSize(size_t connection_pool_size);
 
+  PoolStatistics GetPoolStatistics() const;
+
  private:
   explicit Client(size_t io_threads);
+
+  InstanceStatistics GetMultiStatistics(size_t n) const;
+
+  size_t FindMultiIndex(const curl::multi&) const;
 
   // Functions for EasyWrapper that must be noexcept, as they are called from
   // the EasyWrapper destructor.
@@ -48,8 +55,9 @@ class Client {
 
   std::atomic<std::size_t> pending_tasks_{0};
 
-  std::vector<std::unique_ptr<curl::multi>> multis_;
   std::unique_ptr<engine::ev::ThreadPool> thread_pool_;
+  std::vector<Statistics> statistics_;
+  std::vector<std::unique_ptr<curl::multi>> multis_;
 
   std::mutex idle_easy_queue_mutex_;
   std::queue<std::unique_ptr<curl::easy>> idle_easy_queue_;

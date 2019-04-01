@@ -28,7 +28,7 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value) {
   static_assert(!detail::ParserRequiresTypeCategories<BufferReader>::value,
                 "Type parser requires knowledge about type categories");
   if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
-    throw InvalidParserCategory(::utils::GetTypeName<ValueType>(),
+    throw InvalidParserCategory(::compiler::GetTypeName<ValueType>(),
                                 traits::kTypeBufferCategory<ValueType>,
                                 buffer.category);
   }
@@ -43,7 +43,7 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value,
                 "Type doesn't have an appropriate parser");
   using BufferReader = typename traits::IO<ValueType, F>::ParserType;
   if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
-    throw InvalidParserCategory(::utils::GetTypeName<ValueType>(),
+    throw InvalidParserCategory(::compiler::GetTypeName<ValueType>(),
                                 traits::kTypeBufferCategory<ValueType>,
                                 buffer.category);
   }

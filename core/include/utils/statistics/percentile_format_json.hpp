@@ -1,5 +1,6 @@
 #pragma once
 
+#include <formats/json/value_builder.hpp>
 #include <utils/statistics/percentile.hpp>
 
 namespace utils {
@@ -10,7 +11,7 @@ formats::json::ValueBuilder PercentileToJson(
     const Percentile<M, T, N, K>& perc) {
   static const size_t percents[] = {0, 50, 90, 95, 98, 99, 100};
 
-  formats::json::ValueBuilder result(formats::json::Type::kObject);
+  formats::json::ValueBuilder result;
   for (const auto& percent : percents) {
     result["p" + std::to_string(percent)] = perc.GetPercentile(percent);
   }

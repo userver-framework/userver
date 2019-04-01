@@ -8,7 +8,7 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_traits.hpp>
 
-#include <utils/demangle.hpp>
+#include <compiler/demangle.hpp>
 
 namespace storages {
 namespace postgres {
@@ -33,7 +33,7 @@ struct StreamTextParser {
     if (is >> tmp) {
       std::swap(tmp, value);
     } else {
-      throw TextParseFailure{::utils::GetTypeName<T>(), buffer.ToString()};
+      throw TextParseFailure{::compiler::GetTypeName<T>(), buffer.ToString()};
     }
   }
 };

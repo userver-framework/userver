@@ -9,7 +9,7 @@
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
-#include <utils/demangle.hpp>
+#include <compiler/demangle.hpp>
 
 namespace storages {
 namespace postgres {
@@ -182,7 +182,7 @@ struct BufferParser<
     if (cctz::parse(format, timestr, this->value.tz, &tmp)) {
       std::swap(tmp, this->value.value);
     } else {
-      throw TextParseFailure{::utils::GetTypeName<ValueType>(), timestr};
+      throw TextParseFailure{::compiler::GetTypeName<ValueType>(), timestr};
     }
   }
 };
@@ -267,7 +267,7 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
     if (cctz::parse(format, timestr, tz, &tmp)) {
       std::swap(tmp, this->value);
     } else {
-      throw TextParseFailure{::utils::GetTypeName<ValueType>(), timestr};
+      throw TextParseFailure{::compiler::GetTypeName<ValueType>(), timestr};
     }
   }
 };

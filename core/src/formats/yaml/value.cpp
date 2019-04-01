@@ -2,8 +2,8 @@
 
 #include <formats/yaml/exception.hpp>
 
+#include <compiler/demangle.hpp>
 #include <utils/assert.hpp>
-#include <utils/demangle.hpp>
 
 #include <yaml-cpp/yaml.h>
 
@@ -149,7 +149,7 @@ T Value::ValueAs() const {
   bool ok = true;
   auto res = value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
   if (!ok) {
-    throw TypeMismatchException(*value_pimpl_, utils::GetTypeName<T>(),
+    throw TypeMismatchException(*value_pimpl_, compiler::GetTypeName<T>(),
                                 GetPath());
   }
   return res;

@@ -141,7 +141,7 @@ class EnumerationMap {
       return f->second;
     }
     throw InvalidEnumerationLiteral{
-        ::utils::GetTypeName<EnumType>(),
+        ::compiler::GetTypeName<EnumType>(),
         std::string{literal.data(), literal.size()}};
   }
   static StringType GetLiteral(EnumType enumerator) {

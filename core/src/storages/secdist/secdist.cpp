@@ -4,10 +4,10 @@
 #include <fstream>
 #include <sstream>
 
+#include <compiler/demangle.hpp>
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
 #include <storages/secdist/exceptions.hpp>
-#include <utils/demangle.hpp>
 #include <yaml_config/value.hpp>
 
 namespace storages {
@@ -57,7 +57,7 @@ const boost::any& SecdistConfig::Get(const std::type_index& type,
   try {
     return configs_.at(index);
   } catch (const std::out_of_range&) {
-    throw std::out_of_range("Type " + utils::GetTypeName(type) +
+    throw std::out_of_range("Type " + compiler::GetTypeName(type) +
                             " is not registered as config");
   }
 }

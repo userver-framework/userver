@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
-#include "thread_control.hpp"
-#include "thread_pool_config.hpp"
+#include <engine/ev/thread_control.hpp>
+#include <engine/ev/thread_pool_config.hpp>
 
 namespace engine {
 namespace ev {

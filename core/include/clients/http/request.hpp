@@ -17,11 +17,13 @@ namespace http {
 enum HttpMethod { DELETE, GET, HEAD, POST, PUT, PATCH, OPTIONS };
 
 class Form;
+class RequestStats;
 
 /// Class for creating and performing new http requests
 class Request : public std::enable_shared_from_this<Request> {
  public:
-  explicit Request(std::shared_ptr<EasyWrapper>);
+  explicit Request(std::shared_ptr<EasyWrapper>,
+                   std::shared_ptr<RequestStats> req_stats);
 
   /// Specifies method
   std::shared_ptr<Request> method(HttpMethod method);

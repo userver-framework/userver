@@ -3,9 +3,9 @@
 #include <chrono>
 #include <limits>
 
+#include <compiler/demangle.hpp>
 #include <formats/common/meta.hpp>
 #include <formats/parse/to.hpp>
-#include <utils/demangle.hpp>
 #include <utils/string_to_duration.hpp>
 
 namespace formats::parse {
@@ -73,7 +73,8 @@ auto Parse(const Value& n, To<std::chrono::seconds>) {
   if (!succeeded) {
     throw typename Value::ParseException(
         "'" + n.template As<std::string>() + "' can not be represented as " +
-        utils::GetTypeName<std::chrono::seconds>() + " without precision loss");
+        compiler::GetTypeName<std::chrono::seconds>() +
+        " without precision loss");
   }
 
   return to;
@@ -109,7 +110,8 @@ auto Convert(const Value& n, To<std::chrono::seconds>) {
   if (!succeeded) {
     throw typename Value::ParseException(
         "'" + n.template As<std::string>() + "' can not be represented as " +
-        utils::GetTypeName<std::chrono::seconds>() + " without precision loss");
+        compiler::GetTypeName<std::chrono::seconds>() +
+        " without precision loss");
   }
 
   return to;

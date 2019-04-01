@@ -3,11 +3,11 @@
 #include <string>
 #include <type_traits>
 
+#include <compiler/demangle.hpp>
 #include <storages/postgres/detail/is_decl_complete.hpp>
 #include <storages/postgres/io/pg_types.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_traits.hpp>
-#include <utils/demangle.hpp>
 
 namespace storages::postgres {
 
@@ -75,7 +75,7 @@ struct CppToSystemPgImpl {
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(
           type_oid, array_oid, io::traits::kTypeBufferCategory<T>,
-          ::utils::GetTypeName<T>(), io::traits::kHasTextParser<T>,
+          ::compiler::GetTypeName<T>(), io::traits::kHasTextParser<T>,
           io::traits::kHasBinaryParser<T>);
 
   static constexpr Oid GetOid(const UserTypes&) {
@@ -107,7 +107,7 @@ struct PgToCppPredefined {
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(
           type_oid, array_oid, io::traits::kTypeBufferCategory<T>,
-          ::utils::GetTypeName<T>(), io::traits::kHasTextParser<T>,
+          ::compiler::GetTypeName<T>(), io::traits::kHasTextParser<T>,
           io::traits::kHasBinaryParser<T>);
 };
 

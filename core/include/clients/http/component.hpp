@@ -5,6 +5,7 @@
 #include <components/component_context.hpp>
 #include <taxi_config/storage/component.hpp>
 
+#include <components/statistics_storage.hpp>
 #include <utils/async_event_channel.hpp>
 
 namespace clients {
@@ -30,10 +31,13 @@ class HttpClient : public LoggableComponentBase {
   void OnConfigUpdate(
       const std::shared_ptr<taxi_config::BaseConfig<ConfigTag>>& config);
 
+  formats::json::Value ExtendStatistics();
+
  private:
   std::shared_ptr<clients::http::Client> http_client_;
   components::TaxiConfig& taxi_config_component_;
   utils::AsyncEventSubscriberScope subscriber_scope_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace components

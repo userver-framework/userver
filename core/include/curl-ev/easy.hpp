@@ -140,6 +140,8 @@ class CURLASIO_API easy {
   easy(const easy&) = delete;
   ~easy();
 
+  const multi& GetMulti() const { return *multi_; }
+
   inline native::CURL* native_handle() { return handle_; }
   engine::ev::ThreadControl& GetThreadControl();
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <typeindex>
 
-namespace utils {
+namespace compiler {
 
 std::string GetTypeName(const std::type_index& type);
 
@@ -71,4 +71,4 @@ template <typename T>
 std::string GetTypeName() {
   return detail::TypeNameHelper<T>::Get();
 }
-}  // namespace utils
+}  // namespace compiler

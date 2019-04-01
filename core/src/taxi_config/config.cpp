@@ -1,7 +1,7 @@
 #include <taxi_config/config.hpp>
 
+#include <compiler/demangle.hpp>
 #include <utils/assert.hpp>
-#include <utils/demangle.hpp>
 
 namespace taxi_config {
 
@@ -41,7 +41,7 @@ const boost::any& BaseConfig<ConfigTag>::Get(
   try {
     return extra_configs_.at(type);
   } catch (const std::out_of_range& ex) {
-    throw std::out_of_range("Type " + utils::GetTypeName(type) +
+    throw std::out_of_range("Type " + compiler::GetTypeName(type) +
                             " is not registered as config");
   }
 }

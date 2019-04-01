@@ -1,4 +1,4 @@
-#include <utils/demangle.hpp>
+#include <compiler/demangle.hpp>
 #ifdef __GNUG__
 #define CXA_DEMANGLE
 #include <cxxabi.h>
@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 
-namespace utils {
+namespace compiler {
 
 std::string GetTypeName(const std::type_index& type) {
 #ifdef CXA_DEMANGLE
@@ -22,4 +22,4 @@ std::string GetTypeName(const std::type_index& type) {
 #endif
 }
 
-}  // namespace utils
+}  // namespace compiler

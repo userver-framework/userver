@@ -8,12 +8,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include <compiler/demangle.hpp>
 #include <components/component_base.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <utils/assert.hpp>
-#include <utils/demangle.hpp>
 
 namespace engine {
 class TaskProcessor;
@@ -84,7 +84,7 @@ class ComponentContext {
       throw std::runtime_error(
           "Component '" + GetLoadingComponentName(lock) +
           "' requested component with non registered name '" + name +
-          "' of type " + utils::GetTypeName<T>());
+          "' of type " + compiler::GetTypeName<T>());
     }
 
     auto* component_base = DoFindComponent(name);
@@ -96,9 +96,9 @@ class ComponentContext {
           "Component '" + GetLoadingComponentName(lock) +
           "' requested component with name '" + name + "' that is actually " +
           (component_base
-               ? "has type " + utils::GetTypeName(typeid(*component_base))
+               ? "has type " + compiler::GetTypeName(typeid(*component_base))
                : std::string{"a nullptr"}) +
-          " rather than a " + utils::GetTypeName<T>());
+          " rather than a " + compiler::GetTypeName<T>());
     }
     return *ptr;
   }

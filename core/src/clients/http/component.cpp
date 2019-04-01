@@ -2,6 +2,8 @@
 
 #include <clients/http/client.hpp>
 #include <clients/http/config.hpp>
+#include <clients/http/statistics.hpp>
+#include <components/statistics_storage.hpp>
 
 namespace components {
 
@@ -20,9 +22,20 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   subscriber_scope_ = taxi_config_component_.AddListener(
       this, "http_client",
       &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
+
+  auto& storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+  statistics_holder_ = storage.RegisterExtender(
+      "httpclient",
+      [this](const utils::statistics::StatisticsRequest& /*request*/) {
+        return ExtendStatistics();
+      });
 }
 
-HttpClient::~HttpClient() { subscriber_scope_.Unsubscribe(); }
+HttpClient::~HttpClient() {
+  statistics_holder_.Unregister();
+  subscriber_scope_.Unsubscribe();
+}
 
 clients::http::Client& HttpClient::GetHttpClient() {
   if (!http_client_) {
@@ -40,6 +53,10 @@ void HttpClient::OnConfigUpdate(
   const auto& http_client_config =
       config->template Get<clients::http::Config>();
   http_client_->SetConnectionPoolSize(http_client_config.connection_pool_size);
+}
+
+formats::json::Value HttpClient::ExtendStatistics() {
+  return clients::http::PoolStatisticsToJson(http_client_->GetPoolStatistics());
 }
 
 }  // namespace components

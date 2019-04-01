@@ -1,8 +1,8 @@
 #pragma once
 
+#include <compiler/demangle.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
-#include <utils/demangle.hpp>
 
 namespace storages::postgres::io {
 
@@ -17,7 +17,7 @@ struct CharToEnum : BufferParserBase<Enum> {
   void operator()(const FieldBuffer& buffer) {
     if (buffer.length != 1) {
       throw InvalidInputBufferSize{
-          buffer.length, "for type " + ::utils::GetTypeName<ValueType>()};
+          buffer.length, "for type " + ::compiler::GetTypeName<ValueType>()};
     }
     this->value = static_cast<ValueType>(*buffer.buffer);
   }

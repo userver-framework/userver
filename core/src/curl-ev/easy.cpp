@@ -20,6 +20,7 @@
 #include <server/net/listener_impl.hpp>
 
 using namespace curl;
+using BusyMarker = ::utils::statistics::BusyMarker;
 
 easy* easy::from_native(native::CURL* native_easy) {
   easy* easy_handle;
@@ -66,6 +67,8 @@ void easy::_async_perform(handler_type handler) {
         "attempt to perform async. operation without assigning a multi object");
   }
 
+  BusyMarker busy(multi_->Statistics().get_busy_storage());
+
   // Cancel all previous async. operations
   cancel();
 
@@ -101,6 +104,8 @@ void easy::cancel() {
 
 void easy::_cancel() {
   if (multi_registered_) {
+    BusyMarker busy(multi_->Statistics().get_busy_storage());
+
     handle_completion(std::make_error_code(std::errc::operation_canceled));
     multi_->remove(this);
   }
@@ -556,13 +561,18 @@ native::curl_socket_t easy::opensocket(void* clientp,
                                        native::curlsocktype purpose,
                                        struct native::curl_sockaddr* address) {
   easy* self = static_cast<easy*>(clientp);
+  multi* multi_handle = self->multi_;
+  native::curl_socket_t s = -1;
 
   switch (purpose) {
     case native::CURLSOCKTYPE_IPCXN:
       switch (address->socktype) {
         case SOCK_STREAM:
           // Note to self: Why is address->protocol always set to zero?
-          return self->open_tcp_socket(address);
+          s = self->open_tcp_socket(address);
+          if (s != -1 && multi_handle)
+            multi_handle->Statistics().mark_open_socket();
+          return s;
 
         case SOCK_DGRAM:
           // TODO implement - I've seen other libcurl wrappers with UDP
@@ -590,5 +600,6 @@ native::curl_socket_t easy::opensocket(void* clientp,
 int easy::closesocket(void* clientp, native::curl_socket_t item) {
   multi* multi_handle = static_cast<multi*>(clientp);
   multi_handle->socket_cleanup(item);
+  multi_handle->Statistics().mark_close_socket();
   return 0;
 }

@@ -7,8 +7,8 @@
 
 #include <boost/optional.hpp>
 
+#include <compiler/demangle.hpp>
 #include <formats/yaml.hpp>
-#include <utils/demangle.hpp>
 #include <utils/void_t.hpp>
 
 #include "variable_map.hpp"
@@ -56,7 +56,7 @@ Type ParseTypeImpl(const formats::yaml::Value& obj, const Field& field,
 
 template <typename T>
 static std::string GetTypeName() {
-  return utils::GetTypeName<T>();
+  return compiler::GetTypeName<T>();
 }
 
 template <>

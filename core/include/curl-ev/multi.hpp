@@ -16,6 +16,7 @@
 #include "config.hpp"
 #include "error_code.hpp"
 #include "initialization.hpp"
+#include "multi_statistics.hpp"
 #include "native.hpp"
 
 namespace engine {
@@ -84,6 +85,8 @@ class CURLASIO_API multi {
 
   engine::ev::ThreadControl& GetThreadControl() { return thread_control_; }
 
+  MultiStatistics& Statistics() { return statistics_; }
+
   enum pipelining_mode_t { pipe_nothing, pipe_http1, pipe_multiplex };
   IMPLEMENT_CURL_MOPTION_ENUM(set_pipelining, native::CURLMOPT_PIPELINING,
                               pipelining_mode_t, long);
@@ -136,5 +139,6 @@ class CURLASIO_API multi {
   std::unique_ptr<Impl> pimpl_;
   native::CURLM* handle_;
   engine::ev::ThreadControl& thread_control_;
+  MultiStatistics statistics_;
 };
 }  // namespace curl

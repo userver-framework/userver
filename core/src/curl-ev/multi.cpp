@@ -23,6 +23,7 @@
 namespace curl {
 
 using easy_set_type = std::set<easy*>;
+using BusyMarker = ::utils::statistics::BusyMarker;
 
 typedef std::map<socket_type::native_handle_type, multi::socket_info_ptr>
     socket_map_type;
@@ -174,6 +175,8 @@ void multi::monitor_socket(socket_info_ptr si, int action) {
     return;
   }
 
+  BusyMarker busy(Statistics().get_busy_storage());
+
   if (si->monitor_read && !si->pending_read_op) {
     start_read_op(si);
   }
@@ -276,6 +279,8 @@ void multi::handle_socket_write(std::error_code err, socket_info_ptr si) {
     return;
   }
 
+  BusyMarker busy(Statistics().get_busy_storage());
+
   if (!err) {
     socket_action(si->orig_libcurl_socket, CURL_CSELECT_OUT);
     process_messages();
@@ -296,6 +301,7 @@ void multi::handle_socket_write(std::error_code err, socket_info_ptr si) {
 
 void multi::handle_timeout(const std::error_code& err) {
   if (!err) {
+    BusyMarker busy(Statistics().get_busy_storage());
     LOG_TRACE() << "handle_timeout " << reinterpret_cast<long long>(this);
     socket_action(CURL_SOCKET_TIMEOUT, 0);
     process_messages();

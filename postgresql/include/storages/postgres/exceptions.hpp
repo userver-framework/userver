@@ -6,7 +6,7 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/message.hpp>
 
-#include <utils/demangle.hpp>
+#include <compiler/demangle.hpp>
 
 namespace storages {
 namespace postgres {
@@ -774,7 +774,7 @@ class InvalidEnumerationValue : public EnumerationError {
       : EnumerationError(
             "Invalid enumeration value '" +
             std::to_string(static_cast<std::underlying_type_t<Enum>>(val)) +
-            "' for enum type '" + ::utils::GetTypeName<Enum>()) {}
+            "' for enum type '" + ::compiler::GetTypeName<Enum>()) {}
 };
 //@}
 

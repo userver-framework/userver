@@ -2,8 +2,8 @@
 
 #include <type_traits>
 
+#include <compiler/demangle.hpp>
 #include <storages/postgres/exceptions.hpp>
-#include <utils/demangle.hpp>
 
 namespace storages {
 namespace postgres {
@@ -21,7 +21,7 @@ struct GetSetNull {
   inline static bool IsNull(const T&) { return false; }
   inline static void SetNull(T&) {
     // TODO Consider a static_assert here
-    throw TypeCannotBeNull(::utils::GetTypeName<T>());
+    throw TypeCannotBeNull(::compiler::GetTypeName<T>());
   }
   inline static void SetDefault(T& value) { value = T{}; }
 };

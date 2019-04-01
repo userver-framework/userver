@@ -22,12 +22,13 @@ std::shared_ptr<Client> Client::Create(size_t io_threads) {
   return std::make_shared<EmplaceEnabler>(io_threads);
 }
 
-Client::Client(size_t io_threads) {
+Client::Client(size_t io_threads) : statistics_(io_threads) {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
   ev_config.thread_name = kIoThreadName;
   thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
 
+  multis_.reserve(io_threads);
   for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
     multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr));
   }
@@ -65,8 +66,10 @@ std::shared_ptr<Request> Client::CreateRequest() {
       idle_easy_queue_.pop();
       lock.unlock();
 
+      auto idx = FindMultiIndex(easy->GetMulti());
       auto wrapper = std::make_shared<EasyWrapper>(std::move(easy), *this);
-      return std::make_shared<Request>(std::move(wrapper));
+      return std::make_shared<Request>(std::move(wrapper),
+                                       statistics_[idx].CreateRequestStats());
     }
   }
 
@@ -75,7 +78,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
   auto& multi = multis_[i];
   auto wrapper = std::make_shared<EasyWrapper>(
       std::make_unique<curl::easy>(*multi), *this);
-  return std::make_shared<Request>(std::move(wrapper));
+  return std::make_shared<Request>(std::move(wrapper),
+                                   statistics_[i].CreateRequestStats());
 }
 
 void Client::SetMaxPipelineLength(size_t max_pipeline_length) {
@@ -107,6 +111,38 @@ void Client::SetConnectionPoolSize(size_t connection_pool_size) {
   for (auto& multi : multis_) {
     multi->set_max_connections(pool_size);
   }
+}
+
+InstanceStatistics Client::GetMultiStatistics(size_t n) const {
+  UASSERT(n < statistics_.size());
+  InstanceStatistics s(statistics_[n]);
+
+  /* Update statistics from multi in place */
+  const auto& multi_stats = multis_[n]->Statistics();
+
+  /* There is a race between close/open updates, so at least make open>=close
+   * to observe non-negative current socket count. */
+  s.multi.socket_close = multi_stats.close_socket_total();
+  s.multi.socket_open = multi_stats.open_socket_total();
+  s.multi.current_load = multi_stats.get_busy_storage().GetCurrentLoad();
+  return s;
+}
+
+size_t Client::FindMultiIndex(const curl::multi& multi) const {
+  for (size_t i = 0; i < multis_.size(); i++) {
+    if (multis_[i].get() == &multi) return i;
+  }
+  UASSERT_MSG(false, "Unknown multi");
+  throw std::logic_error("Unknown multi");
+}
+
+PoolStatistics Client::GetPoolStatistics() const {
+  PoolStatistics stats;
+  stats.multi.reserve(multis_.size());
+  for (size_t i = 0; i < multis_.size(); i++) {
+    stats.multi.push_back(GetMultiStatistics(i));
+  };
+  return stats;
 }
 
 void Client::PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept {

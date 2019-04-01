@@ -12,8 +12,8 @@
 
 #include <storages/postgres/detail/const_data_iterator.hpp>
 
+#include <compiler/demangle.hpp>
 #include <logging/log.hpp>
-#include <utils/demangle.hpp>
 
 namespace storages {
 namespace postgres {
@@ -324,7 +324,7 @@ class Field {
     if constexpr (io::traits::kHasTextParser<ValueType>) {
       io::ReadText(buffer, std::forward<T>(val));
     } else {
-      throw NoValueParser{::utils::GetTypeName<T>(),
+      throw NoValueParser{::compiler::GetTypeName<T>(),
                           io::DataFormat::kTextDataFormat};
     }
   }
@@ -335,7 +335,7 @@ class Field {
     if constexpr (io::traits::kHasBinaryParser<ValueType>) {
       io::ReadBinary(buffer, std::forward<T>(val), GetTypeBufferCategories());
     } else {
-      throw NoValueParser{::utils::GetTypeName<T>(),
+      throw NoValueParser{::compiler::GetTypeName<T>(),
                           io::DataFormat::kBinaryDataFormat};
     }
   }
@@ -707,7 +707,7 @@ void Row::To(T&& val, RowTag) const {
   } else if (tuple_size < Size()) {
     LOG_WARNING() << "Row size is greater that the number of data members in "
                      "C++ user datatype "
-                  << ::utils::GetTypeName<T>();
+                  << ::compiler::GetTypeName<T>();
   }
 
   detail::TupleDataExtractor<TupleType>::ExtractTuple(

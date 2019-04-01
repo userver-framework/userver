@@ -13,6 +13,7 @@
 #include <clients/http/error.hpp>
 #include <clients/http/form.hpp>
 #include <clients/http/response_future.hpp>
+#include <clients/http/statistics.hpp>
 #include <curl-ev/easy.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <http/common_headers.hpp>
@@ -40,7 +41,8 @@ const std::string kTracingClientName = "external";
 class Request::RequestImpl
     : public std::enable_shared_from_this<Request::RequestImpl> {
  public:
-  explicit RequestImpl(std::shared_ptr<EasyWrapper>);
+  RequestImpl(std::shared_ptr<EasyWrapper>,
+              std::shared_ptr<RequestStats> req_stats);
 
   /// Perform async http request
   engine::Future<std::shared_ptr<Response>> async_perform();
@@ -105,6 +107,7 @@ class Request::RequestImpl
  private:
   /// curl handler wrapper
   std::shared_ptr<EasyWrapper> easy_;
+  std::shared_ptr<RequestStats> stats_;
 
   /// response
   std::shared_ptr<Response> response_;
@@ -147,8 +150,10 @@ long complete_timeout(long request_timeout, int retries) {
 
 // Request implementation
 
-Request::Request(std::shared_ptr<EasyWrapper> wrapper)
-    : pimpl_(std::make_shared<Request::RequestImpl>(wrapper)) {
+Request::Request(std::shared_ptr<EasyWrapper> wrapper,
+                 std::shared_ptr<RequestStats> req_stats)
+    : pimpl_(std::make_shared<Request::RequestImpl>(std::move(wrapper),
+                                                    std::move(req_stats))) {
   LOG_DEBUG() << "Request::Request()";
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);
@@ -312,8 +317,9 @@ void Request::Cancel() const { pimpl_->Cancel(); }
 
 // RequestImpl implementation
 
-Request::RequestImpl::RequestImpl(std::shared_ptr<EasyWrapper> wrapper)
-    : easy_(std::move(wrapper)), timeout_ms_(0) {
+Request::RequestImpl::RequestImpl(std::shared_ptr<EasyWrapper> wrapper,
+                                  std::shared_ptr<RequestStats> req_stats)
+    : easy_(std::move(wrapper)), stats_(std::move(req_stats)), timeout_ms_(0) {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
 }
@@ -380,15 +386,21 @@ void Request::RequestImpl::on_completed(
   auto& span = *holder->span_;
   LOG_DEBUG() << "Request::RequestImpl::on_completed(1)" << span;
 
+  holder->stats_->StoreTimeToStart(holder->easy().timings().time_to_start());
+
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
     span.AddTag(tracing::kErrorFlag, true);
     span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
 
+    holder->stats_->FinishEc(err);
+
     holder->promise_.set_exception(PrepareException(err));
   } else {
     span.AddTag(tracing::kHttpStatusCode, holder->response()->status_code());
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
+
+    holder->stats_->FinishOk(holder->easy().get_response_code());
 
     holder->promise_.set_value(holder->response_move());
   }
@@ -424,6 +436,12 @@ size_t Request::RequestImpl::PutMethodReadCallback(void* out_buffer,
 void Request::RequestImpl::on_retry(
     std::shared_ptr<Request::RequestImpl> holder, const std::error_code& err) {
   LOG_DEBUG() << "RequestImpl::on_retry" << *holder->span_;
+
+  holder->stats_->StoreTimeToStart(holder->easy().timings().time_to_start());
+  if (err)
+    holder->stats_->FinishEc(err);
+  else
+    holder->stats_->FinishOk(holder->easy().get_response_code());
 
   // We do not need to retry
   //  - if we got result and http code is good
@@ -505,6 +523,8 @@ Request::RequestImpl::async_perform() {
 
   // set autodecooding for gzip and deflate
   easy().set_accept_encoding("gzip,deflate");
+
+  stats_->Start();
 
   // if we need retries call with special callback
   if (retry_.retries <= 1)

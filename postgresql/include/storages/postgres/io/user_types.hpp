@@ -135,7 +135,7 @@ struct CppToUserPgImpl {
 template <typename T>
 const RegisterUserTypeParser CppToUserPgImpl<T>::init_ =
     RegisterUserTypeParser::Register(kPgUserTypeName<T>,
-                                     ::utils::GetTypeName<T>(),
+                                     ::compiler::GetTypeName<T>(),
                                      io::traits::kHasTextParser<T>,
                                      io::traits::kHasBinaryParser<T>);
 }  // namespace io::detail
