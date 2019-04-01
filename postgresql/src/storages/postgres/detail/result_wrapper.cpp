@@ -72,6 +72,27 @@ std::size_t ResultWrapper::FieldCount() const {
   return PQnfields(handle_.get());
 }
 
+std::string ResultWrapper::CommandStatus() const {
+  return PQcmdStatus(handle_.get());
+}
+
+std::size_t ResultWrapper::RowsAffected() const {
+  auto str = PQcmdTuples(handle_.get());
+  if (str) {
+    char* endptr = nullptr;
+    auto val = std::strtoll(str, &endptr, 10);
+    if (endptr == str) {
+      return 0;
+    }
+    if (val < 0) {
+      // This is very strange and actually shouldn't happen, but just in case
+      return 0;
+    }
+    return val;
+  }
+  return 0;
+}
+
 std::size_t ResultWrapper::IndexOfName(const std::string& name) const {
   auto n = PQfnumber(handle_.get(), name.c_str());
   if (n < 0) return ResultSet::npos;

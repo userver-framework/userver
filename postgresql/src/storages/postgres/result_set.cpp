@@ -188,6 +188,12 @@ ResultSet::size_type ResultSet::FieldCount() const {
   return pimpl_->FieldCount();
 }
 
+ResultSet::size_type ResultSet::RowsAffected() const {
+  return pimpl_->RowsAffected();
+}
+
+std::string ResultSet::CommandStatus() const { return pimpl_->CommandStatus(); }
+
 ResultSet::const_iterator ResultSet::cbegin() const {
   return const_iterator(pimpl_, 0);
 }

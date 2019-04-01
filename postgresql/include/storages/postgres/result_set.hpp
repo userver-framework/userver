@@ -560,6 +560,9 @@ class ResultSet {
   size_type Size() const;
   bool IsEmpty() const { return Size() == 0; }
 
+  size_type RowsAffected() const;
+  std::string CommandStatus() const;
+
   //@{
   /** @name Row container interface */
   //@{

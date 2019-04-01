@@ -33,6 +33,8 @@ class ResultWrapper {
   const io::TypeBufferCategory& GetTypeBufferCategories() const {
     return buffer_categories_;
   }
+  std::string CommandStatus() const;
+  std::size_t RowsAffected() const;
 
   std::size_t IndexOfName(std::string const& name) const;
 

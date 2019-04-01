@@ -107,6 +107,8 @@ POSTGRE_TEST_P(CheckResultset) {
   EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(4, res.FieldCount()) << "Result contains 4 fields";
+  EXPECT_EQ(1, res.RowsAffected()) << "The query affected 1 row";
+  EXPECT_EQ("SELECT 1", res.CommandStatus());
 
   for (const auto& row : res) {
     EXPECT_EQ(4, row.Size()) << "Row contains 4 fields";
