@@ -60,6 +60,7 @@ class ValueBuilder {
   /* implicit */ ValueBuilder(const Decimal128&);
   /* implicit */ ValueBuilder(MinKey);
   /* implicit */ ValueBuilder(MaxKey);
+  /* implicit */ ValueBuilder(const Timestamp&);
 #ifdef _LIBCPP_VERSION
   /* implicit */ ValueBuilder(long);
   /* implicit */ ValueBuilder(unsigned long);

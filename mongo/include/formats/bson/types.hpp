@@ -148,6 +148,42 @@ class MinKey {};
 /// BSON MaxKey
 class MaxKey {};
 
+/// @brief BSON Timestamp
+/// @warning Do not use this type for time point representation!
+/// It is very limited and intended for internal MongoDB use.
+class Timestamp {
+ public:
+  /// @brief Creates an empty timestamp
+  /// @note MongoDB only replaces empty timestamps in top-level fields.
+  Timestamp();
+
+  /// Creates a timestamp with specified values
+  Timestamp(uint32_t timestamp, uint32_t increment);
+
+  /// Returns stored unix timestamp
+  time_t GetTimestamp() const;
+
+  /// Returns stored increment
+  uint32_t GetIncrement() const;
+
+  /// Returns packed 64-bit timestamp value
+  uint64_t Pack() const;
+
+  /// Restores a timestamp from the packed form
+  static Timestamp Unpack(uint64_t);
+
+  bool operator==(const Timestamp&) const;
+  bool operator!=(const Timestamp&) const;
+  bool operator<(const Timestamp&) const;
+  bool operator>(const Timestamp&) const;
+  bool operator<=(const Timestamp&) const;
+  bool operator>=(const Timestamp&) const;
+
+ private:
+  uint32_t timestamp_;
+  uint32_t increment_;
+};
+
 }  // namespace formats::bson
 
 namespace std {
@@ -162,6 +198,11 @@ struct hash<formats::bson::Binary> {
   size_t operator()(const formats::bson::Binary& binary) const {
     return hash<string>()(binary.data_);
   }
+};
+
+template <>
+struct hash<formats::bson::Timestamp> {
+  size_t operator()(const formats::bson::Timestamp& timestamp) const;
 };
 
 }  // namespace std

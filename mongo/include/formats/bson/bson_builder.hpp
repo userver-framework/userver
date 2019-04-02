@@ -45,6 +45,7 @@ class BsonBuilder {
   BsonBuilder& Append(utils::string_view key, const Decimal128&);
   BsonBuilder& Append(utils::string_view key, MinKey);
   BsonBuilder& Append(utils::string_view key, MaxKey);
+  BsonBuilder& Append(utils::string_view key, const Timestamp&);
 
   BsonBuilder& Append(utils::string_view key, const BsonHolder&);
 

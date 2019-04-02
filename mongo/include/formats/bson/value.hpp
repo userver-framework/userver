@@ -95,6 +95,7 @@ class Value {
   bool IsDecimal128() const;
   bool IsMinKey() const;
   bool IsMaxKey() const;
+  bool IsTimestamp() const;
 
   bool IsObject() const { return IsDocument(); }
   /// @}
@@ -152,6 +153,19 @@ class Value {
   /// Throws a MemberMissingException if the selected element does not exist
   void CheckNotMissing() const;
 
+  /// @brief Throws a TypeMismatchException if the selected element
+  /// is not an array or null
+  void CheckArrayOrNull() const;
+
+  /// @brief Throws a TypeMismatchException if the selected element
+  /// is not a document or null
+  void CheckDocumentOrNull() const;
+
+  /// @cond
+  /// Same, for parsing capabilities
+  void CheckObjectOrNull() const { CheckDocumentOrNull(); }
+  /// @endcond
+
  protected:
   const impl::BsonHolder& GetBson() const;
 
@@ -182,10 +196,6 @@ template <>
 std::chrono::system_clock::time_point
 Value::As<std::chrono::system_clock::time_point>() const;
 
-// Do not use common type-agnostic version
-template <>
-std::chrono::seconds Value::As<std::chrono::seconds>() const;
-
 template <>
 Oid Value::As<Oid>() const;
 
@@ -194,6 +204,9 @@ Binary Value::As<Binary>() const;
 
 template <>
 Decimal128 Value::As<Decimal128>() const;
+
+template <>
+Timestamp Value::As<Timestamp>() const;
 
 template <>
 Document Value::As<Document>() const;

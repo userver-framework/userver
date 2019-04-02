@@ -91,6 +91,49 @@ bool Decimal128::operator!=(const Decimal128& rhs) const {
   return !(*this == rhs);
 }
 
+Timestamp::Timestamp() : timestamp_(0), increment_(0) {}
+
+Timestamp::Timestamp(uint32_t timestamp, uint32_t increment)
+    : timestamp_(timestamp), increment_(increment) {}
+
+time_t Timestamp::GetTimestamp() const { return timestamp_; }
+
+uint32_t Timestamp::GetIncrement() const { return increment_; }
+
+uint64_t Timestamp::Pack() const {
+  return (static_cast<uint64_t>(GetTimestamp()) << 32) | GetIncrement();
+}
+
+Timestamp Timestamp::Unpack(uint64_t packed) {
+  return {static_cast<uint32_t>(packed >> 32),
+          static_cast<uint32_t>(packed & ((1ul << 32) - 1))};
+}
+
+bool Timestamp::operator==(const Timestamp& rhs) const {
+  return timestamp_ == rhs.timestamp_ && increment_ == rhs.increment_;
+}
+
+bool Timestamp::operator!=(const Timestamp& rhs) const {
+  return !(*this == rhs);
+}
+
+bool Timestamp::operator<(const Timestamp& rhs) const {
+  return timestamp_ < rhs.timestamp_ ||
+         (timestamp_ == rhs.timestamp_ && increment_ < rhs.increment_);
+}
+
+bool Timestamp::operator>(const Timestamp& rhs) const {
+  return !(*this < rhs || *this == rhs);
+}
+
+bool Timestamp::operator<=(const Timestamp& rhs) const {
+  return !(*this > rhs);
+}
+
+bool Timestamp::operator>=(const Timestamp& rhs) const {
+  return !(*this < rhs);
+}
+
 }  // namespace formats::bson
 
 namespace std {
@@ -98,6 +141,11 @@ namespace std {
 size_t hash<formats::bson::Oid>::operator()(
     const formats::bson::Oid& oid) const {
   return bson_oid_hash(&oid.oid_);
+}
+
+size_t hash<formats::bson::Timestamp>::operator()(
+    const formats::bson::Timestamp& timestamp) const {
+  return hash<uint64_t>{}(timestamp.Pack());
 }
 
 }  // namespace std

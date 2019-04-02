@@ -94,6 +94,8 @@ ValueBuilder::ValueBuilder(MinKey value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
 ValueBuilder::ValueBuilder(MaxKey value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(const Timestamp& value)
+    : impl_(std::make_shared<impl::ValueImpl>(value)) {}
 
 #ifdef _LIBCPP_VERSION
 ValueBuilder::ValueBuilder(long value)

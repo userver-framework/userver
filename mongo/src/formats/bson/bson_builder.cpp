@@ -156,6 +156,13 @@ BsonBuilder& BsonBuilder::Append(utils::string_view key, MaxKey) {
 }
 
 BsonBuilder& BsonBuilder::Append(utils::string_view key,
+                                 const Timestamp& value) {
+  bson_append_timestamp(bson_->Get(), key.data(), key.size(),
+                        value.GetTimestamp(), value.GetIncrement());
+  return *this;
+}
+
+BsonBuilder& BsonBuilder::Append(utils::string_view key,
                                  const BsonHolder& doc) {
   bson_append_document(bson_->Get(), key.data(), key.size(), doc.get());
   return *this;

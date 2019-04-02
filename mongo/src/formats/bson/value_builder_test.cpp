@@ -113,6 +113,30 @@ TEST(BsonValueBuilder, MinMaxKey) {
   EXPECT_TRUE(maxkey.IsMaxKey());
 }
 
+TEST(BsonValueBuilder, Timestamp) {
+  const auto ts_before1 = fb::Timestamp(1111111111, 12321);
+  const auto ts_before2 = fb::Timestamp(1554138241, 10000);
+  const auto ts_after1 = fb::Timestamp(1999999999, 12321);
+  const auto ts_after2 = fb::Timestamp(1554138241, 99999);
+
+  auto val = fb::ValueBuilder(fb::Timestamp(1554138241, 12321)).ExtractValue();
+  ASSERT_TRUE(val.IsTimestamp());
+  auto ts = val.As<fb::Timestamp>();
+  EXPECT_EQ(1554138241, ts.GetTimestamp());
+  EXPECT_EQ(12321, ts.GetIncrement());
+  EXPECT_EQ(0x5CA2448100003021, ts.Pack());
+  EXPECT_EQ(ts, fb::Timestamp::Unpack(ts.Pack()));
+
+  EXPECT_NE(ts, ts_before1);
+  EXPECT_GT(ts, ts_before1);
+  EXPECT_NE(ts, ts_before2);
+  EXPECT_GT(ts, ts_before2);
+  EXPECT_NE(ts, ts_after1);
+  EXPECT_LT(ts, ts_after1);
+  EXPECT_NE(ts, ts_after2);
+  EXPECT_LT(ts, ts_after2);
+}
+
 TEST(BsonValueBuilder, Array) {
   fb::ValueBuilder builder;
   EXPECT_EQ(0, builder.GetSize());

@@ -58,6 +58,7 @@ bool Value::IsDecimal128() const {
 
 bool Value::IsMinKey() const { return impl_->Type() == BSON_TYPE_MINKEY; }
 bool Value::IsMaxKey() const { return impl_->Type() == BSON_TYPE_MAXKEY; }
+bool Value::IsTimestamp() const { return impl_->Type() == BSON_TYPE_TIMESTAMP; }
 
 template <>
 bool Value::As<bool>() const {
@@ -112,12 +113,6 @@ Value::As<std::chrono::system_clock::time_point>() const {
 }
 
 template <>
-std::chrono::seconds Value::As<std::chrono::seconds>() const {
-  return std::chrono::duration_cast<std::chrono::seconds>(
-      As<std::chrono::system_clock::time_point>().time_since_epoch());
-}
-
-template <>
 Oid Value::As<Oid>() const {
   CheckNotMissing();
   if (IsOid()) return impl_->GetNative()->value.v_oid;
@@ -140,6 +135,16 @@ Decimal128 Value::As<Decimal128>() const {
   CheckNotMissing();
   if (IsDecimal128()) return impl_->GetNative()->value.v_decimal128;
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_DECIMAL128, GetPath());
+}
+
+template <>
+Timestamp Value::As<Timestamp>() const {
+  CheckNotMissing();
+  if (IsTimestamp()) {
+    return Timestamp(impl_->GetNative()->value.v_timestamp.timestamp,
+                     impl_->GetNative()->value.v_timestamp.increment);
+  }
+  throw TypeMismatchException(impl_->Type(), BSON_TYPE_TIMESTAMP, GetPath());
 }
 
 template <>
@@ -210,6 +215,16 @@ std::string Value::ConvertTo<std::string>() const {
 }
 
 void Value::CheckNotMissing() const { impl_->CheckNotMissing(); }
+
+void Value::CheckArrayOrNull() const {
+  if (IsNull()) return;
+  impl_->CheckIsArray();
+}
+
+void Value::CheckDocumentOrNull() const {
+  if (IsNull()) return;
+  impl_->CheckIsDocument();
+}
 
 const impl::BsonHolder& Value::GetBson() const { return impl_->GetBson(); }
 

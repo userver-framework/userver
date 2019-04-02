@@ -4,7 +4,7 @@ echo "Adding brew taxi-external tap"
 brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap.git
 
 echo "Installing required packages with brew"
-REQUIRED_PACKAGES="cppcheck jemalloc libev http-parser mongo-c-driver yaml-cpp hiredis yandex-taxi-mongo-cxx-driver postgres openssl cryptopp cctz libyandex-taxi-graph"
+REQUIRED_PACKAGES="cppcheck jemalloc libev http-parser yandex-taxi-mongo-c-driver yaml-cpp hiredis yandex-taxi-mongo-cxx-driver postgres openssl cryptopp cctz libyandex-taxi-graph"
 
 brew install boost
 brew install $REQUIRED_PACKAGES

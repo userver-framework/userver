@@ -35,6 +35,7 @@ class ValueImpl {
   explicit ValueImpl(const Decimal128&);
   explicit ValueImpl(MinKey);
   explicit ValueImpl(MaxKey);
+  explicit ValueImpl(const Timestamp&);
 
   // Copy/move preserves paths
   ValueImpl(const ValueImpl&);

@@ -2,12 +2,13 @@
 
 #include <chrono>
 #include <limits>
+#include <unordered_map>
+#include <vector>
 
 #include <formats/bson.hpp>
 
 namespace fb = formats::bson;
 using TimePoint = std::chrono::system_clock::time_point;
-using Seconds = std::chrono::seconds;
 
 TEST(BsonExtraction, Missing) {
   auto test_elem = [](const fb::Value& elem) {
@@ -27,6 +28,7 @@ TEST(BsonExtraction, Missing) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::MemberMissingException);
     EXPECT_THROW(elem.As<int32_t>(), fb::MemberMissingException);
@@ -35,11 +37,11 @@ TEST(BsonExtraction, Missing) {
     EXPECT_THROW(elem.As<double>(), fb::MemberMissingException);
     EXPECT_THROW(elem.As<std::string>(), fb::MemberMissingException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::MemberMissingException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::MemberMissingException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::MemberMissingException);
     EXPECT_THROW(elem.As<fb::Binary>(), fb::MemberMissingException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::MemberMissingException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::MemberMissingException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::MemberMissingException);
   };
 
   const auto doc = fb::MakeDoc("a", fb::MakeArray(), "b", fb::MakeDoc());
@@ -68,6 +70,7 @@ TEST(BsonExtraction, Null) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<int32_t>(), fb::TypeMismatchException);
@@ -76,11 +79,11 @@ TEST(BsonExtraction, Null) {
     EXPECT_THROW(elem.As<double>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto doc = fb::MakeDoc("a", fb::MakeArray(nullptr), "e", nullptr);
@@ -106,6 +109,7 @@ TEST(BsonExtraction, Bool) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_EQ(value, elem.As<bool>());
     EXPECT_THROW(elem.As<int32_t>(), fb::TypeMismatchException);
@@ -114,11 +118,11 @@ TEST(BsonExtraction, Bool) {
     EXPECT_THROW(elem.As<double>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto doc =
@@ -147,6 +151,7 @@ TEST(BsonExtraction, Double) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<int32_t>(), fb::TypeMismatchException);
@@ -155,11 +160,11 @@ TEST(BsonExtraction, Double) {
     EXPECT_DOUBLE_EQ(value, elem.As<double>());
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto doc = fb::MakeDoc("a", fb::MakeArray(0.0, 0.123, -0.123), "ez",
@@ -190,6 +195,7 @@ TEST(BsonExtraction, Int32) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
     EXPECT_EQ(value, elem.As<int32_t>());
@@ -202,11 +208,11 @@ TEST(BsonExtraction, Int32) {
     EXPECT_DOUBLE_EQ(value, elem.As<double>());
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto doc =
@@ -238,6 +244,7 @@ TEST(BsonExtraction, Int64) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
     if (value < std::numeric_limits<int32_t>::min() ||
@@ -255,11 +262,11 @@ TEST(BsonExtraction, Int64) {
     EXPECT_DOUBLE_EQ(value, elem.As<double>());
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto doc =
@@ -294,6 +301,7 @@ TEST(BsonExtraction, Utf8) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<int32_t>(), fb::TypeMismatchException);
@@ -302,11 +310,11 @@ TEST(BsonExtraction, Utf8) {
     EXPECT_THROW(elem.As<double>(), fb::TypeMismatchException);
     EXPECT_EQ(value, elem.As<std::string>());
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto doc =
@@ -336,6 +344,7 @@ TEST(BsonExtraction, Binary) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<int32_t>(), fb::TypeMismatchException);
@@ -344,11 +353,11 @@ TEST(BsonExtraction, Binary) {
     EXPECT_THROW(elem.As<double>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
     EXPECT_EQ(fb::Binary(value), elem.As<fb::Binary>());
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto doc =
@@ -379,6 +388,7 @@ TEST(BsonExtraction, DateTime) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<int32_t>(), fb::TypeMismatchException);
@@ -387,11 +397,11 @@ TEST(BsonExtraction, DateTime) {
     EXPECT_THROW(elem.As<double>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_EQ(value, elem.As<TimePoint>());
-    EXPECT_EQ(value.time_since_epoch(), elem.As<Seconds>());
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto time1 = std::chrono::system_clock::from_time_t(1535749200);
@@ -420,6 +430,7 @@ TEST(BsonExtraction, Oid) {
     EXPECT_FALSE(elem.IsMinKey());
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
+    EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<int32_t>(), fb::TypeMismatchException);
@@ -428,11 +439,11 @@ TEST(BsonExtraction, Oid) {
     EXPECT_THROW(elem.As<double>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.As<Seconds>(), fb::TypeMismatchException);
     EXPECT_EQ(fb::Oid(oid_string), elem.As<fb::Oid>());
     EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
   const auto doc =
@@ -440,4 +451,71 @@ TEST(BsonExtraction, Oid) {
                   fb::Oid("5bb139509ecb0a21a6000002"));
   test_elem(doc["a"][0], "5b89ac509ecb0a21a6000001");
   test_elem(doc["e"], "5bb139509ecb0a21a6000002");
+}
+
+TEST(BsonExtraction, Timestamp) {
+  auto test_elem = [](const fb::Value& elem, const fb::Timestamp& ts) {
+    EXPECT_FALSE(elem.IsMissing());
+    EXPECT_FALSE(elem.IsArray());
+    EXPECT_FALSE(elem.IsDocument());
+    EXPECT_FALSE(elem.IsNull());
+    EXPECT_FALSE(elem.IsBool());
+    EXPECT_FALSE(elem.IsInt32());
+    EXPECT_FALSE(elem.IsInt64());
+    EXPECT_FALSE(elem.IsDouble());
+    EXPECT_FALSE(elem.IsString());
+    EXPECT_FALSE(elem.IsDateTime());
+    EXPECT_FALSE(elem.IsOid());
+    EXPECT_FALSE(elem.IsBinary());
+    EXPECT_FALSE(elem.IsDecimal128());
+    EXPECT_FALSE(elem.IsMinKey());
+    EXPECT_FALSE(elem.IsMaxKey());
+    EXPECT_FALSE(elem.IsObject());
+    EXPECT_TRUE(elem.IsTimestamp());
+
+    EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<int32_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<int64_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<size_t>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<double>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Binary>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Decimal128>(), fb::TypeMismatchException);
+    EXPECT_THROW(elem.As<fb::Document>(), fb::TypeMismatchException);
+    EXPECT_EQ(elem.As<fb::Timestamp>(), ts);
+  };
+
+  const fb::Timestamp zero;
+  const fb::Timestamp time_only(1554138241, 0);
+  const fb::Timestamp nonzero(1554138241, 321);
+
+  const auto doc = fb::MakeDoc("a", fb::MakeArray(zero, time_only, nonzero),
+                               "ez", zero, "et", time_only, "enz", nonzero);
+
+  test_elem(doc["a"][0], zero);
+  test_elem(doc["a"][1], time_only);
+  test_elem(doc["a"][2], nonzero);
+  test_elem(doc["ez"], zero);
+  test_elem(doc["et"], time_only);
+  test_elem(doc["enz"], nonzero);
+}
+
+TEST(BsonExtraction, Containers) {
+  const auto doc = fb::MakeDoc("a", fb::MakeArray(0, 1, 2), "d",
+                               fb::MakeDoc("one", 1, "two", 2));
+
+  EXPECT_THROW((doc["a"].As<std::unordered_map<std::string, int>>()),
+               fb::TypeMismatchException);
+  EXPECT_THROW(doc["d"].As<std::vector<int>>(), fb::TypeMismatchException);
+
+  auto arr = doc["a"].As<std::vector<int>>();
+  for (int i = 0; i < static_cast<int>(arr.size()); ++i) {
+    EXPECT_EQ(i, arr[i]) << "mismatch at position " << i;
+  }
+
+  auto umap = doc["d"].As<std::unordered_map<std::string, int>>();
+  EXPECT_EQ(1, umap["one"]);
+  EXPECT_EQ(2, umap["two"]);
 }

@@ -244,6 +244,12 @@ ValueImpl::ValueImpl(MaxKey) : ValueImpl() {
   bson_value_.value_type = BSON_TYPE_MAXKEY;
 }
 
+ValueImpl::ValueImpl(const Timestamp& value) : ValueImpl() {
+  bson_value_.value_type = BSON_TYPE_TIMESTAMP;
+  bson_value_.value.v_timestamp.timestamp = value.GetTimestamp();
+  bson_value_.value.v_timestamp.increment = value.GetIncrement();
+}
+
 ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, Path path,
                      const bson_value_t& bson_value, uint32_t index)
     : storage_(std::move(storage)),
@@ -469,6 +475,7 @@ void ValueImpl::EnsureParsed() {
     case BSON_TYPE_DATE_TIME:
     case BSON_TYPE_NULL:
     case BSON_TYPE_INT32:
+    case BSON_TYPE_TIMESTAMP:
     case BSON_TYPE_INT64:
     case BSON_TYPE_DECIMAL128:
     case BSON_TYPE_MAXKEY:
@@ -482,7 +489,6 @@ void ValueImpl::EnsureParsed() {
     case BSON_TYPE_CODE:
     case BSON_TYPE_SYMBOL:
     case BSON_TYPE_CODEWSCOPE:
-    case BSON_TYPE_TIMESTAMP:
       break;
 
     case BSON_TYPE_ARRAY: {
