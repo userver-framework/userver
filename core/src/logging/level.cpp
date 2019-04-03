@@ -7,9 +7,9 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/map.hpp>
 
-#include <utils/str_icase.hpp>
-
 #include <logging/spdlog.hpp>
+#include <tracing/span.hpp>
+#include <utils/str_icase.hpp>
 
 namespace logging {
 
@@ -51,6 +51,28 @@ Level LevelFromString(const std::string& level_name) {
         "')");
   }
   return it->second;
+}
+
+boost::optional<Level> OptionalLevelFromString(
+    const boost::optional<std::string>& level_name) {
+  if (level_name)
+    return LevelFromString(*level_name);
+  else
+    return boost::none;
+}
+
+bool ShouldLog(Level level) noexcept {
+  if (!GetShouldLogCache()[static_cast<size_t>(level)]) return false;
+
+  auto* span = tracing::Span::CurrentSpanUnchecked();
+  if (span) {
+    auto local_log_level = span->GetLocalLogLevel();
+    if (local_log_level && *local_log_level > level) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 }  // namespace logging

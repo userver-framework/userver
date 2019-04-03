@@ -7,6 +7,8 @@
 #include <atomic>
 #include <string>
 
+#include <boost/optional.hpp>
+
 namespace logging {
 
 /// Log levels
@@ -25,14 +27,15 @@ static const auto kLevelMax = static_cast<int>(Level::kNone);
 /// Converts lowercase level name to a corresponding Level
 Level LevelFromString(const std::string&);
 
+boost::optional<Level> OptionalLevelFromString(
+    const boost::optional<std::string>& level_name);
+
 inline auto& GetShouldLogCache() noexcept {
   static std::array<std::atomic<bool>, kLevelMax + 1> values{
       false, false, true, true, true, true, false};
   return values;
 }
 
-inline bool ShouldLog(Level level) noexcept {
-  return GetShouldLogCache()[static_cast<size_t>(level)];
-}
+bool ShouldLog(Level level) noexcept;
 
 }  // namespace logging

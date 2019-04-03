@@ -81,3 +81,56 @@ TEST_F(Span, ScopeTime) {
 TEST_F(Span, InTest) {
   RunInCoro([] { tracing::Span::CurrentSpan().AddTag("1", 2); });
 }
+
+TEST_F(Span, LocalLogLevel) {
+  RunInCoro([this] {
+    {
+      tracing::Span span("span_name");
+
+      LOG_INFO() << "info1";
+      logging::LogFlush();
+      EXPECT_NE(std::string::npos, sstream.str().find("info1"));
+
+      span.SetLocalLogLevel(::logging::Level::kWarning);
+      LOG_INFO() << "info2";
+      LOG_WARNING() << "warning2";
+      logging::LogFlush();
+      EXPECT_EQ(std::string::npos, sstream.str().find("info2"));
+      EXPECT_NE(std::string::npos, sstream.str().find("warning2"));
+
+      {
+        tracing::Span span("span2");
+
+        LOG_WARNING() << "warning3";
+        LOG_INFO() << "info3";
+        logging::LogFlush();
+        EXPECT_NE(std::string::npos, sstream.str().find("warning3"));
+        EXPECT_EQ(std::string::npos, sstream.str().find("info3"));
+      }
+    }
+
+    LOG_INFO() << "info4";
+    logging::LogFlush();
+    EXPECT_NE(std::string::npos, sstream.str().find("info4"));
+  });
+}
+
+TEST_F(Span, LowerLocalLogLevel) {
+  RunInCoro([this] {
+    tracing::Span span("parent_span");
+    span.SetLocalLogLevel(::logging::Level::kError);
+
+    {
+      tracing::Span span("logged_span");
+      span.SetLocalLogLevel(::logging::Level::kInfo);
+      span.AddTag("test_tag", "test_value1");
+
+      LOG_INFO() << "simplelog";
+      logging::LogFlush();
+      EXPECT_NE(std::string::npos, sstream.str().find("simplelog"));
+    }
+
+    logging::LogFlush();
+    EXPECT_NE(std::string::npos, sstream.str().find("logged_span"));
+  });
+}

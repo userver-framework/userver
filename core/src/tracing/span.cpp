@@ -43,22 +43,20 @@ engine::TaskLocalVariable<boost::intrusive::list<
 Span::Impl::Impl(TracerPtr tracer, const std::string& name,
                  const Span::Impl* parent, ReferenceType reference_type,
                  logging::Level log_level)
-    : log_level_(logging::ShouldLog(log_level) ? log_level
-                                               : logging::Level::kNone),
+    : log_level_(log_level),
       tracer(std::move(tracer)),
       name_(name),
-      start_system_time_(log_level == logging::Level::kNone
-                             ? std::chrono::system_clock::time_point::min()
-                             : std::chrono::system_clock::now()),
-      start_steady_time_(log_level == logging::Level::kNone
-                             ? std::chrono::steady_clock::time_point::min()
-                             : std::chrono::steady_clock::now()),
+      start_system_time_(std::chrono::system_clock::now()),
+      start_steady_time_(std::chrono::steady_clock::now()),
       trace_id_(parent ? parent->GetTraceId()
                        : utils::generators::GenerateUuid()),
       span_id_(utils::generators::GenerateUuid()),
       parent_id_(parent ? parent->GetSpanId() : std::string{}),
       reference_type_(reference_type) {
-  if (parent) log_extra_inheritable = parent->log_extra_inheritable;
+  if (parent) {
+    log_extra_inheritable = parent->log_extra_inheritable;
+    local_log_level_ = parent->local_log_level_;
+  }
   AttachToCoroStack();
 }
 
@@ -96,7 +94,7 @@ Span::Impl::~Impl() {
     result.Extend(time_storage_->GetLogs());
   }
 
-  LOG(log_level_) << std::move(result) << std::move(*this);
+  LOG(log_level_) << std::move(result);
 }
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) const& {
@@ -144,7 +142,7 @@ Span::Span(Span&& other) noexcept : pimpl_(std::move(other.pimpl_)) {
   pimpl_->span_ = this;
 }
 
-Span::~Span() { DetachFromCoroStack(); }
+Span::~Span() = default;
 
 Span& Span::CurrentSpan() {
   auto* span = CurrentSpanUnchecked();
@@ -196,6 +194,14 @@ void Span::AddNonInheritableTag(std::string key,
                                 logging::LogExtra::Value value) {
   if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
   pimpl_->log_extra_local_->Extend(std::move(key), std::move(value));
+}
+
+void Span::SetLocalLogLevel(boost::optional<logging::Level> log_level) {
+  pimpl_->local_log_level_ = log_level;
+}
+
+boost::optional<logging::Level> Span::GetLocalLogLevel() const {
+  return pimpl_->local_log_level_;
 }
 
 void Span::AddTag(std::string key, logging::LogExtra::Value value) {
@@ -256,6 +262,11 @@ LogHelper& operator<<(LogHelper& lh, const tracing::Span& span) {
 
 LogHelper& operator<<(LogHelper& lh, const tracing::Span::Impl& span_impl) {
   span_impl.LogTo(lh);
+  return lh;
+}
+
+LogHelper& operator<<(LogHelper& lh, tracing::Span::Impl&& span_impl) {
+  std::move(span_impl).LogTo(lh);
   return lh;
 }
 

@@ -87,7 +87,9 @@ HttpHandlerBase::HttpHandlerBase(
       request_statistics_(std::make_unique<HttpHandlerStatistics>()),
       auth_checkers_(auth::CreateAuthCheckers(
           component_context, GetConfig(),
-          http_server_settings_.GetAuthCheckerSettings())) {
+          http_server_settings_.GetAuthCheckerSettings())),
+      log_level_(logging::OptionalLevelFromString(
+          config.ParseOptionalString("log-level"))) {
   if (allowed_methods_.empty()) {
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
@@ -135,6 +137,8 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
 
     auto span = tracing::Span::MakeSpan("http/" + HandlerName(), trace_id,
                                         parent_span_id);
+
+    span.SetLocalLogLevel(log_level_);
 
     if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
     span.AddNonInheritableTag(tracing::kHttpMetaType,

@@ -67,6 +67,10 @@ class Span final {
    */
   void AddNonInheritableTag(std::string key, logging::LogExtra::Value value);
 
+  void SetLocalLogLevel(boost::optional<logging::Level> log_level);
+
+  boost::optional<logging::Level> GetLocalLogLevel() const;
+
   /** Set link. Can be called only once. */
   void SetLink(std::string link);
 
@@ -96,6 +100,8 @@ class Span final {
 namespace logging {
 
 LogHelper& operator<<(LogHelper& lh, const tracing::Span& span);
+
+LogHelper& operator<<(LogHelper& lh, tracing::Span::Impl&& span_impl);
 
 LogHelper& operator<<(LogHelper& lh, const tracing::Span::Impl& span_impl);
 
