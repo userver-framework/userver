@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <unordered_map>
 #include <vector>
 
 #include <boost/optional.hpp>
@@ -32,16 +33,15 @@ class WriteResult {
   size_t DeletedCount() const;
   /// @}
 
-  /// @brief `_id` value of upserted document if any, missing value otherwise
-  /// @note Not filled for bulk operations.
-  formats::bson::Value UpsertedId() const;
+  /// Map of `_id` values of upserted documents by operation (document) index
+  std::unordered_map<size_t, formats::bson::Value> UpsertedIds() const;
 
   /// The document returned by FindAnd* operation if any
   boost::optional<formats::bson::Document> FoundDocument() const;
 
-  /// @brief Server errors
+  /// @brief Map of server errors by operation (document) index
   /// @see options::SuppressServerExceptions
-  std::vector<MongoError> ServerErrors() const;
+  std::unordered_map<size_t, MongoError> ServerErrors() const;
 
   /// @brief Write concern errors
   /// @see options::SuppressServerExceptions

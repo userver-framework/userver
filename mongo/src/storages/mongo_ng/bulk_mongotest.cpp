@@ -28,6 +28,7 @@ TEST(Bulk, InsertOne) {
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -41,6 +42,7 @@ TEST(Bulk, InsertOne) {
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -65,11 +67,12 @@ TEST(Bulk, InsertOne) {
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
 
       auto errors = result.ServerErrors();
       ASSERT_EQ(1, errors.size());
-      EXPECT_EQ(11000, errors[0].Code());
+      EXPECT_EQ(11000, errors[2].Code());
     }
     coll.DeleteMany({});
     {
@@ -86,12 +89,13 @@ TEST(Bulk, InsertOne) {
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
 
       auto errors = result.ServerErrors();
       ASSERT_EQ(2, errors.size());
-      EXPECT_EQ(11000, errors[0].Code());
-      EXPECT_EQ(11000, errors[1].Code());
+      EXPECT_EQ(11000, errors[2].Code());
+      EXPECT_EQ(11000, errors[4].Code());
     }
   });
 }
@@ -112,6 +116,7 @@ TEST(Bulk, ReplaceOne) {
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -127,6 +132,7 @@ TEST(Bulk, ReplaceOne) {
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
 
       auto errors = result.ServerErrors();
@@ -154,6 +160,10 @@ TEST(Bulk, Update) {
       EXPECT_EQ(0, result.DeletedCount());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
+
+      auto upserted_ids = result.UpsertedIds();
+      EXPECT_EQ(1, upserted_ids.size());
+      EXPECT_EQ(1, upserted_ids[0].As<int>());
     }
     {
       auto bulk = coll.MakeUnorderedBulk(options::SuppressServerExceptions{});
@@ -175,6 +185,10 @@ TEST(Bulk, Update) {
       auto errors = result.ServerErrors();
       ASSERT_EQ(1, errors.size());
       EXPECT_EQ(11000, errors[0].Code());
+
+      auto upserted_ids = result.UpsertedIds();
+      EXPECT_EQ(1, upserted_ids.size());
+      EXPECT_EQ(2, upserted_ids[1].As<int>());
     }
   });
 }
@@ -202,6 +216,7 @@ TEST(Bulk, Delete) {
     EXPECT_EQ(0, result.ModifiedCount());
     EXPECT_EQ(0, result.UpsertedCount());
     EXPECT_EQ(6, result.DeletedCount());
+    EXPECT_TRUE(result.UpsertedIds().empty());
     EXPECT_TRUE(result.ServerErrors().empty());
     EXPECT_TRUE(result.WriteConcernErrors().empty());
   });
@@ -233,5 +248,9 @@ TEST(Bulk, Mixed) {
     EXPECT_EQ(3, result.DeletedCount());
     EXPECT_TRUE(result.ServerErrors().empty());
     EXPECT_TRUE(result.WriteConcernErrors().empty());
+
+    auto upserted_ids = result.UpsertedIds();
+    EXPECT_EQ(1, upserted_ids.size());
+    EXPECT_TRUE(upserted_ids[5].IsOid());
   });
 }

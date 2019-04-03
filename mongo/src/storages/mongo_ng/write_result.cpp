@@ -68,12 +68,25 @@ size_t WriteResult::DeletedCount() const {
   return 0;
 }
 
-formats::bson::Value WriteResult::UpsertedId() const {
-  auto fam_status = value_[kFamStatus];
-  if (fam_status.IsMissing()) {
-    return value_["upsertedId"];
+std::unordered_map<size_t, formats::bson::Value> WriteResult::UpsertedIds()
+    const {
+  std::unordered_map<size_t, formats::bson::Value> upserted_ids;
+
+  // only one of these can be present: for FAM, update and bulk respectively
+  auto fam_upserted_id = value_[kFamStatus][kFamStatusUpsertedId];
+  auto upserted_id = value_["upsertedId"];
+  auto upserted = value_["upserted"];
+  if (!fam_upserted_id.IsMissing()) {
+    upserted_ids.emplace(0, fam_upserted_id);
+  } else if (!upserted_id.IsMissing()) {
+    upserted_ids.emplace(0, std::move(upserted_id));
+  } else if (!upserted.IsMissing()) {
+    upserted_ids.reserve(upserted.GetSize());
+    for (const auto& id_doc : upserted) {
+      upserted_ids.emplace(id_doc["index"].As<size_t>(), id_doc["_id"]);
+    }
   }
-  return fam_status[kFamStatusUpsertedId];
+  return upserted_ids;
 }
 
 boost::optional<formats::bson::Document> WriteResult::FoundDocument() const {
@@ -82,18 +95,17 @@ boost::optional<formats::bson::Document> WriteResult::FoundDocument() const {
   return doc.As<formats::bson::Document>();
 }
 
-std::vector<MongoError> WriteResult::ServerErrors() const {
-  std::vector<MongoError> errors;
+std::unordered_map<size_t, MongoError> WriteResult::ServerErrors() const {
+  std::unordered_map<size_t, MongoError> errors;
 
   const auto& error_values = value_["writeErrors"];
   if (error_values.IsMissing()) return errors;
 
   errors.reserve(error_values.GetSize());
   for (const auto& value : error_values) {
-    errors.emplace_back();
-    bson_set_error(errors.back().GetNative(), MONGOC_ERROR_SERVER,
-                   // XXX: uint32_t TAXICOMMON-734
-                   value["code"].As<int>(0), "%s",
+    auto it = errors.emplace(value["index"].As<size_t>(), MongoError{}).first;
+    bson_set_error(it->second.GetNative(), MONGOC_ERROR_SERVER,
+                   value["code"].As<uint32_t>(0), "%s",
                    value["errmsg"].As<std::string>(std::string{}).c_str());
   }
   return errors;
@@ -109,8 +121,7 @@ std::vector<MongoError> WriteResult::WriteConcernErrors() const {
   for (const auto& value : wc_error_values) {
     wc_errors.emplace_back();
     bson_set_error(wc_errors.back().GetNative(), MONGOC_ERROR_WRITE_CONCERN,
-                   // XXX: uint32_t TAXICOMMON-734
-                   value["code"].As<int>(0), "%s",
+                   value["code"].As<uint32_t>(0), "%s",
                    value["errmsg"].As<std::string>(std::string{}).c_str());
   }
   return wc_errors;

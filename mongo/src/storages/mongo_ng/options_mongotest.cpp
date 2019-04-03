@@ -367,7 +367,7 @@ TEST(Options, Upsert) {
       EXPECT_EQ(0, result.MatchedCount());
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -379,8 +379,9 @@ TEST(Options, Upsert) {
       EXPECT_EQ(1, result.UpsertedCount());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
-      ASSERT_TRUE(result.UpsertedId().IsInt32());
-      EXPECT_EQ(2, result.UpsertedId().As<int>());
+      auto upserted_ids = result.UpsertedIds();
+      ASSERT_TRUE(upserted_ids[0].IsInt32());
+      EXPECT_EQ(2, upserted_ids[0].As<int>());
     }
     EXPECT_EQ(2, coll.CountApprox());
   });

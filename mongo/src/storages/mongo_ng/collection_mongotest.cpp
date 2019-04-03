@@ -149,8 +149,8 @@ TEST(Collection, InsertMany) {
 
       auto errors = result.ServerErrors();
       ASSERT_EQ(1, errors.size());
-      EXPECT_TRUE(errors[0].IsServerError());
-      EXPECT_EQ(11000, errors[0].Code());
+      EXPECT_TRUE(errors[1].IsServerError());
+      EXPECT_EQ(11000, errors[1].Code());
     }
   });
 }
@@ -169,7 +169,7 @@ TEST(Collecion, ReplaceOne) {
       EXPECT_EQ(1, result.MatchedCount());
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -178,7 +178,7 @@ TEST(Collecion, ReplaceOne) {
       EXPECT_EQ(0, result.MatchedCount());
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -190,15 +190,16 @@ TEST(Collecion, ReplaceOne) {
       EXPECT_EQ(1, result.UpsertedCount());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
-      ASSERT_TRUE(result.UpsertedId().IsInt32());
-      EXPECT_EQ(2, result.UpsertedId().As<int>());
+      auto upserted_ids = result.UpsertedIds();
+      ASSERT_TRUE(upserted_ids[0].IsInt32());
+      EXPECT_EQ(2, upserted_ids[0].As<int>());
     }
     {
       auto result = coll.ReplaceOne(MakeDoc(), MakeDoc("x", 3));
       EXPECT_EQ(1, result.MatchedCount());
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -222,7 +223,7 @@ TEST(Collection, Update) {
       EXPECT_EQ(1, result.MatchedCount());
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -232,7 +233,7 @@ TEST(Collection, Update) {
       EXPECT_EQ(1, result.MatchedCount());
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -242,7 +243,7 @@ TEST(Collection, Update) {
       EXPECT_EQ(0, result.MatchedCount());
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -255,8 +256,9 @@ TEST(Collection, Update) {
       EXPECT_EQ(1, result.UpsertedCount());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
-      ASSERT_TRUE(result.UpsertedId().IsInt32());
-      EXPECT_EQ(2, result.UpsertedId().As<int>());
+      auto upserted_ids = result.UpsertedIds();
+      ASSERT_TRUE(upserted_ids[0].IsInt32());
+      EXPECT_EQ(2, upserted_ids[0].As<int>());
     }
     {
       auto result =
@@ -264,7 +266,7 @@ TEST(Collection, Update) {
       EXPECT_EQ(2, result.MatchedCount());
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -277,8 +279,9 @@ TEST(Collection, Update) {
       EXPECT_EQ(1, result.UpsertedCount());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
-      ASSERT_TRUE(result.UpsertedId().IsInt32());
-      EXPECT_EQ(3, result.UpsertedId().As<int>());
+      auto upserted_ids = result.UpsertedIds();
+      ASSERT_TRUE(upserted_ids[0].IsInt32());
+      EXPECT_EQ(3, upserted_ids[0].As<int>());
     }
     {
       auto result =
@@ -286,7 +289,7 @@ TEST(Collection, Update) {
       EXPECT_EQ(1, result.MatchedCount());
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
@@ -348,7 +351,7 @@ TEST(Collection, FindAndModify) {
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
-      EXPECT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_FALSE(result.FoundDocument());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
@@ -363,8 +366,9 @@ TEST(Collection, FindAndModify) {
       EXPECT_FALSE(result.FoundDocument());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
-      ASSERT_TRUE(result.UpsertedId().IsInt32());
-      EXPECT_EQ(2, result.UpsertedId().As<int>());
+      auto upserted_ids = result.UpsertedIds();
+      ASSERT_TRUE(upserted_ids[0].IsInt32());
+      EXPECT_EQ(2, upserted_ids[0].As<int>());
     }
     {
       auto result = coll.FindAndModify(MakeDoc("_id", 3), MakeDoc("x", 30),
@@ -375,11 +379,12 @@ TEST(Collection, FindAndModify) {
       EXPECT_EQ(0, result.DeletedCount());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
-      ASSERT_TRUE(result.UpsertedId().IsInt32());
-      EXPECT_EQ(3, result.UpsertedId().As<int>());
+      auto upserted_ids = result.UpsertedIds();
+      ASSERT_TRUE(upserted_ids[0].IsInt32());
+      EXPECT_EQ(3, upserted_ids[0].As<int>());
       ASSERT_TRUE(result.FoundDocument());
       auto doc = *result.FoundDocument();
-      EXPECT_EQ(doc["_id"], result.UpsertedId());
+      EXPECT_EQ(doc["_id"], upserted_ids[0]);
       EXPECT_EQ(30, doc["x"].As<int>());
     }
     {
@@ -389,7 +394,7 @@ TEST(Collection, FindAndModify) {
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
-      ASSERT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
       ASSERT_TRUE(result.FoundDocument());
@@ -407,7 +412,7 @@ TEST(Collection, FindAndModify) {
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
-      ASSERT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
       ASSERT_TRUE(result.FoundDocument());
@@ -423,7 +428,7 @@ TEST(Collection, FindAndModify) {
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
-      ASSERT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
       ASSERT_TRUE(result.FoundDocument());
@@ -440,7 +445,7 @@ TEST(Collection, FindAndModify) {
       EXPECT_EQ(1, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(0, result.DeletedCount());
-      ASSERT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
       ASSERT_TRUE(result.FoundDocument());
@@ -456,7 +461,7 @@ TEST(Collection, FindAndModify) {
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(1, result.DeletedCount());
-      ASSERT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
       ASSERT_TRUE(result.FoundDocument());
@@ -472,7 +477,7 @@ TEST(Collection, FindAndModify) {
       EXPECT_EQ(0, result.ModifiedCount());
       EXPECT_EQ(0, result.UpsertedCount());
       EXPECT_EQ(1, result.DeletedCount());
-      ASSERT_TRUE(result.UpsertedId().IsMissing());
+      EXPECT_TRUE(result.UpsertedIds().empty());
       EXPECT_TRUE(result.ServerErrors().empty());
       EXPECT_TRUE(result.WriteConcernErrors().empty());
       ASSERT_TRUE(result.FoundDocument());
