@@ -12,9 +12,9 @@ class BaseException : public std::exception {
  public:
   BaseException() = default;
   explicit BaseException(std::string msg) : msg_(std::move(msg)) {}
-  virtual ~BaseException() = default;
+  ~BaseException() override = default;
 
-  virtual const char* what() const noexcept override { return msg_.c_str(); }
+  const char* what() const noexcept override { return msg_.c_str(); }
 
  protected:
   std::string msg_;
@@ -24,7 +24,7 @@ class BaseException : public std::exception {
 class BaseCodeException : public BaseException {
  public:
   BaseCodeException(std::error_code ec, const std::string& msg);
-  virtual ~BaseCodeException() = default;
+  ~BaseCodeException() override = default;
 
   const std::error_code& error_code() const noexcept { return ec_; }
 
@@ -35,49 +35,49 @@ class BaseCodeException : public BaseException {
 class TimeoutException : public BaseException {
  public:
   using BaseException::BaseException;
-  virtual ~TimeoutException() = default;
+  ~TimeoutException() override = default;
 };
 
 class SSLException : public BaseCodeException {
  public:
   using BaseCodeException::BaseCodeException;
-  virtual ~SSLException() = default;
+  ~SSLException() override = default;
 };
 
 class TechnicalError : public BaseCodeException {
  public:
   using BaseCodeException::BaseCodeException;
-  virtual ~TechnicalError() = default;
+  ~TechnicalError() override = default;
 };
 
 class BadArgumentException : public BaseCodeException {
  public:
   using BaseCodeException::BaseCodeException;
-  virtual ~BadArgumentException() = default;
+  ~BadArgumentException() override = default;
 };
 
 class TooManyRedirectsException : public BaseCodeException {
  public:
   using BaseCodeException::BaseCodeException;
-  virtual ~TooManyRedirectsException() = default;
+  ~TooManyRedirectsException() override = default;
 };
 
 class NetworkProblemException : public BaseCodeException {
  public:
   using BaseCodeException::BaseCodeException;
-  virtual ~NetworkProblemException() = default;
+  ~NetworkProblemException() override = default;
 };
 
 class DNSProblemException : public BaseCodeException {
  public:
   using BaseCodeException::BaseCodeException;
-  virtual ~DNSProblemException() = default;
+  ~DNSProblemException() override = default;
 };
 
 class AuthFailedException : public BaseCodeException {
  public:
   using BaseCodeException::BaseCodeException;
-  virtual ~AuthFailedException() = default;
+  ~AuthFailedException() override = default;
 };
 
 /// Base class for HttpClientException and HttpServerException
@@ -86,7 +86,7 @@ class HttpException : public BaseException {
   HttpException(long code) : code_(code) {
     msg_ = "Raise for status exception, code = " + std::to_string(code);
   }
-  virtual ~HttpException() = default;
+  ~HttpException() override = default;
 
   long code() const { return code_; }
 
@@ -97,13 +97,13 @@ class HttpException : public BaseException {
 class HttpClientException : public HttpException {
  public:
   using HttpException::HttpException;
-  virtual ~HttpClientException() = default;
+  ~HttpClientException() override = default;
 };
 
 class HttpServerException : public HttpException {
  public:
   using HttpException::HttpException;
-  virtual ~HttpServerException() = default;
+  ~HttpServerException() override = default;
 };
 
 /// map error_code to exceptions

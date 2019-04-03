@@ -55,8 +55,7 @@ class SecdistConfig {
 
   static std::size_t Register(
       std::function<boost::any(const formats::json::Value&)>&& factory);
-  const boost::any& Get(const std::type_index& type,
-                        const std::size_t index) const;
+  const boost::any& Get(const std::type_index& type, std::size_t index) const;
 
   template <typename T>
   friend class detail::SecdistModule;

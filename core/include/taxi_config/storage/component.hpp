@@ -21,7 +21,7 @@ class TaxiConfig : public LoggableComponentBase,
   static constexpr const char* kName = "taxi-config";
 
   TaxiConfig(const ComponentConfig&, const ComponentContext&);
-  ~TaxiConfig();
+  ~TaxiConfig() override;
 
   /// Get config, may block if no config is available yet
   std::shared_ptr<taxi_config::Config> Get() const;

@@ -155,7 +155,7 @@ long long InstanceStatistics::GetNotOkErrorCount() const {
 }
 
 void InstanceStatistics::Add(const std::vector<InstanceStatistics>& stats) {
-  for (const auto stat : stats) {
+  for (const auto& stat : stats) {
     easy_handles += stat.easy_handles;
     last_time_to_start_us +=
         stat.last_time_to_start_us;  // will be divided later
@@ -169,7 +169,7 @@ void InstanceStatistics::Add(const std::vector<InstanceStatistics>& stats) {
     multi += stat.multi;
   }
 
-  if (stats.size()) {
+  if (!stats.empty()) {
     last_time_to_start_us /= stats.size();
     multi.current_load /= stats.size();
   }

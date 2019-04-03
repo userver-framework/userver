@@ -34,7 +34,7 @@ class WaitList final : public WaitListBase {
   WaitList& operator=(const WaitList&) = delete;
   WaitList& operator=(WaitList&&) = delete;
 
-  ~WaitList();
+  ~WaitList() final;
 
   void Append(WaitListBase::Lock&,
               boost::intrusive_ptr<impl::TaskContext>) override;

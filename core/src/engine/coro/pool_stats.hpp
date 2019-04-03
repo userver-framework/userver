@@ -18,6 +18,7 @@ inline PoolStats& operator+=(PoolStats& lhs, const PoolStats& rhs) {
 }
 
 inline PoolStats operator+(PoolStats&& lhs, const PoolStats& rhs) {
+  // NOLINTNEXTLINE(performance-move-const-arg,hicpp-move-const-arg)
   return std::move(lhs += rhs);
 }
 

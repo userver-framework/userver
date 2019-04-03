@@ -19,7 +19,7 @@ namespace impl {
 template <typename T>
 class FutureState {
  public:
-  bool IsReady() const;
+  bool IsReady() const noexcept;
   T Get();
   void Wait();
 
@@ -48,7 +48,7 @@ class FutureState {
 template <>
 class FutureState<void> {
  public:
-  bool IsReady() const;
+  bool IsReady() const noexcept;
   void Get();
   void Wait();
 
@@ -74,7 +74,7 @@ class FutureState<void> {
 };
 
 template <typename T>
-bool FutureState<T>::IsReady() const {
+bool FutureState<T>::IsReady() const noexcept {
   return is_ready_;
 }
 
@@ -158,7 +158,7 @@ void FutureState<T>::SetException(std::exception_ptr&& ex) {
   result_cv_.NotifyAll();
 }
 
-inline bool FutureState<void>::IsReady() const { return is_ready_; }
+inline bool FutureState<void>::IsReady() const noexcept { return is_ready_; }
 
 inline void FutureState<void>::Get() {
   Wait();

@@ -20,7 +20,7 @@ class ManagerControllerComponent : public ComponentBase {
   ManagerControllerComponent(const components::ComponentConfig& config,
                              const components::ComponentContext& context);
 
-  ~ManagerControllerComponent();
+  ~ManagerControllerComponent() override;
 
   static constexpr const char* kName = "manager-controller";
 

@@ -22,13 +22,13 @@ class Storage;
 
 class Entry {
  public:
-  Entry() : storage_(nullptr) {}
+  Entry() = default;
   Entry(const Entry& other) = delete;
   Entry(Entry&& other) noexcept;
 
   ~Entry();
 
-  Entry& operator=(Entry&& other);
+  Entry& operator=(Entry&& other) noexcept;
 
   void Unregister() noexcept;
 
@@ -37,7 +37,7 @@ class Entry {
       : storage_(&storage), iterator_(iterator) {}
 
  private:
-  Storage* storage_;
+  Storage* storage_{nullptr};
   StorageIterator iterator_;
 
   friend class Storage;  // in RegisterExtender()

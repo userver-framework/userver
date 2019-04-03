@@ -21,6 +21,7 @@ class DocsMap {
   /* Returns config item or throws an exception if key is missing */
   formats::json::Value Get(const std::string& name) const;
 
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
   void Set(std::string name, formats::json::Value);
   void Parse(const std::string& json, bool empty_ok);
   size_t Size() const;
@@ -69,7 +70,7 @@ class ValueDict {
   using DictType = std::unordered_map<std::string, ValueType>;
 
   ValueDict() = default;
-  ValueDict(std::string name, const DocsMap& mongo_docs);
+  ValueDict(const std::string& name, const DocsMap& mongo_docs);
   ValueDict(std::string name, DictType dict)
       : name_(std::move(name)), dict_(std::move(dict)) {}
 
@@ -122,7 +123,8 @@ ValueDict<T> Parse(const formats::json::Value& elem,
 }
 
 template <typename ValueType>
-ValueDict<ValueType>::ValueDict(std::string name, const DocsMap& mongo_docs)
+ValueDict<ValueType>::ValueDict(const std::string& name,
+                                const DocsMap& mongo_docs)
     : ValueDict<ValueType>(mongo_docs.Get(name).As<ValueDict<ValueType>>()) {}
 
 }  // namespace taxi_config

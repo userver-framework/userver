@@ -67,7 +67,7 @@ class Logging : public ComponentBase {
 
   /// Component constructor
   Logging(const ComponentConfig&, const ComponentContext&);
-  ~Logging();
+  ~Logging() override;
 
   /// @brief Returns a logger by its name
   /// @param name Name of the logger

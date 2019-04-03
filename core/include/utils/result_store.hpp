@@ -26,7 +26,7 @@ class ResultStore {
   void SetValue(T&&);
 
   /// Stores an exception
-  void SetException(std::exception_ptr&&);
+  void SetException(std::exception_ptr&&) noexcept;
 
  private:
   // variant here would require a specialization for exception_ptr
@@ -43,10 +43,10 @@ class ResultStore<void> {
   void Retrieve();
 
   /// Marks the value as available
-  void SetValue();
+  void SetValue() noexcept;
 
   /// Stores an exception
-  void SetException(std::exception_ptr&&);
+  void SetException(std::exception_ptr&&) noexcept;
 
  private:
   bool has_value_{false};
@@ -71,7 +71,7 @@ void ResultStore<T>::SetValue(T&& value) {
 }
 
 template <typename T>
-void ResultStore<T>::SetException(std::exception_ptr&& exception) {
+void ResultStore<T>::SetException(std::exception_ptr&& exception) noexcept {
   exception_ = std::move(exception);
 }
 
@@ -81,9 +81,10 @@ inline void ResultStore<void>::Retrieve() {
   throw std::logic_error("result store is not ready");
 }
 
-inline void ResultStore<void>::SetValue() { has_value_ = true; }
+inline void ResultStore<void>::SetValue() noexcept { has_value_ = true; }
 
-inline void ResultStore<void>::SetException(std::exception_ptr&& exception) {
+inline void ResultStore<void>::SetException(
+    std::exception_ptr&& exception) noexcept {
   exception_ = std::move(exception);
 }
 

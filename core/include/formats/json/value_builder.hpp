@@ -24,8 +24,10 @@ class ValueBuilder {
   ValueBuilder(Type type);
 
   ValueBuilder(const ValueBuilder& other);
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   ValueBuilder(ValueBuilder&& other);
   ValueBuilder& operator=(const ValueBuilder& other);
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   ValueBuilder& operator=(ValueBuilder&& other);
 
   ValueBuilder(const formats::json::Value& other);

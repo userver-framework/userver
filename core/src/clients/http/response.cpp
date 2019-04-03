@@ -94,7 +94,8 @@ curl::LocalTimings Response::local_timings() const {
 std::basic_ostream<char, std::char_traits<char>>& curl::operator<<(
     std::ostream& stream, const curl::easy& ceasy) {
   // curl::easy does not have const methods, but we really do not change it here
-  curl::easy& easy = const_cast<curl::easy&>(ceasy);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+  auto& easy = const_cast<curl::easy&>(ceasy);
 
   // url code upload download time
   stream << easy.get_effective_url() << ' ' << easy.get_response_code() << ' '

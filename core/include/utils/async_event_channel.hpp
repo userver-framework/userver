@@ -7,11 +7,12 @@
 #include <logging/log.hpp>
 #include <utils/async.hpp>
 
-namespace {
-const auto kSubscriberErrorTimeout = std::chrono::seconds(30);
-}
-
 namespace utils {
+
+// NOLINTNEXTLINE(google-build-namespaces)
+namespace {
+constexpr const auto kSubscriberErrorTimeout = std::chrono::seconds(30);
+}
 
 class AsyncEventChannelBase {
  public:
@@ -27,17 +28,18 @@ class AsyncEventSubscriberScope {
  public:
   using FunctionId = AsyncEventChannelBase::FunctionId;
 
-  AsyncEventSubscriberScope() : channel_(nullptr), id_(0) {}
+  AsyncEventSubscriberScope() = default;
 
   AsyncEventSubscriberScope(AsyncEventChannelBase* channel, FunctionId id)
       : channel_(channel), id_(id) {}
 
-  AsyncEventSubscriberScope(AsyncEventSubscriberScope&& scope)
+  AsyncEventSubscriberScope(AsyncEventSubscriberScope&& scope) noexcept
       : channel_(scope.channel_), id_(scope.id_) {
     scope.id_ = 0;
   }
 
-  AsyncEventSubscriberScope& operator=(AsyncEventSubscriberScope&& other) {
+  AsyncEventSubscriberScope& operator=(
+      AsyncEventSubscriberScope&& other) noexcept {
     std::swap(other.channel_, channel_);
     std::swap(other.id_, id_);
     return *this;
@@ -62,8 +64,8 @@ class AsyncEventSubscriberScope {
   }
 
  private:
-  AsyncEventChannelBase* channel_;
-  FunctionId id_;
+  AsyncEventChannelBase* channel_{nullptr};
+  FunctionId id_{0};
 };
 
 /* AsyncEventChannel is a in-process pubsub with strict FIFO serialization. */

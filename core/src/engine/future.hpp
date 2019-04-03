@@ -57,7 +57,7 @@ template <typename T>
 class Promise {
  public:
   Promise();
-  ~Promise();
+  ~Promise() noexcept;
 
   Promise(const Promise&) = delete;
   Promise(Promise&&) noexcept = default;
@@ -78,7 +78,7 @@ template <>
 class Promise<void> {
  public:
   Promise();
-  ~Promise();
+  ~Promise() noexcept;
 
   Promise(const Promise&) = delete;
   Promise(Promise&&) noexcept = default;
@@ -154,10 +154,14 @@ template <typename T>
 Promise<T>::Promise() : state_(std::make_shared<impl::FutureState<T>>()) {}
 
 template <typename T>
-Promise<T>::~Promise() {
+Promise<T>::~Promise() noexcept {
   if (state_ && !state_->IsReady()) {
-    state_->SetException(std::make_exception_ptr(
-        std::future_error(std::future_errc::broken_promise)));
+    try {
+      state_->SetException(std::make_exception_ptr(
+          std::future_error(std::future_errc::broken_promise)));
+    } catch (const std::future_error&) {
+      UASSERT_MSG(false, "Invalid promise usage");
+    }
   }
 }
 
@@ -184,10 +188,14 @@ void Promise<T>::set_exception(std::exception_ptr ex) {
 inline Promise<void>::Promise()
     : state_(std::make_shared<impl::FutureState<void>>()) {}
 
-inline Promise<void>::~Promise() {
+inline Promise<void>::~Promise() noexcept {
   if (state_ && !state_->IsReady()) {
-    state_->SetException(std::make_exception_ptr(
-        std::future_error(std::future_errc::broken_promise)));
+    try {
+      state_->SetException(std::make_exception_ptr(
+          std::future_error(std::future_errc::broken_promise)));
+    } catch (const std::future_error&) {
+      UASSERT_MSG(false, "Invalid promise usage");
+    }
   }
 }
 

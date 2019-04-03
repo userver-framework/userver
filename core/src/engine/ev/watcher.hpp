@@ -13,7 +13,7 @@ class Watcher : public ThreadControl {
  public:
   template <typename Obj>
   Watcher(const ThreadControl& thread_control, Obj* data);
-  virtual ~Watcher();
+  ~Watcher() override;
 
   void Init(void (*cb)(struct ev_loop*, ev_async*, int));
   void Init(void (*cb)(struct ev_loop*, ev_io*, int));

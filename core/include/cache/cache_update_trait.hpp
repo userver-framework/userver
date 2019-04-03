@@ -32,7 +32,7 @@ class CacheUpdateTrait {
   cache::Statistics& GetStatistics() { return statistics_; }
 
   /* If no config is set, use static default (from config.yaml) */
-  void SetConfig(boost::optional<CacheConfig> config);
+  void SetConfig(const boost::optional<CacheConfig>& config);
 
  private:
   virtual void Update(cache::UpdateType type,

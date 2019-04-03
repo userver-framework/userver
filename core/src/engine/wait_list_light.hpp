@@ -17,7 +17,7 @@ class WaitListLight final : public WaitListBase {
     void Release() override {}
   };
 
-  ~WaitListLight();
+  ~WaitListLight() final;
 
   WaitListLight() = default;
   WaitListLight(const WaitListLight&) = delete;
@@ -40,7 +40,7 @@ class WaitListLight final : public WaitListBase {
   void Remove(const boost::intrusive_ptr<impl::TaskContext>&) override;
 
  private:
-  std::atomic<impl::TaskContext*> waiting_;
+  std::atomic<impl::TaskContext*> waiting_{nullptr};
 #ifndef NDEBUG
   impl::TaskContext* owner_;
 #endif

@@ -16,7 +16,7 @@ namespace impl {
 class ComponentAdderBase {
  public:
   explicit ComponentAdderBase(std::string name) : name_(std::move(name)) {}
-  virtual ~ComponentAdderBase() {}
+  virtual ~ComponentAdderBase() = default;
 
   const std::string& GetComponentName() const { return name_; }
 

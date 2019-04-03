@@ -37,10 +37,12 @@ class LogExtra {
 
   LogExtra(const LogExtra&);
 
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   LogExtra(LogExtra&&);
 
   ~LogExtra();
 
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   LogExtra& operator=(LogExtra&&);
 
   LogExtra& operator=(const LogExtra&);

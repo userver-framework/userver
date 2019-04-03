@@ -117,7 +117,7 @@ class ThreadControl;
     throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                  \
     struct native::curl_slist* it = info;                          \
     while (it) {                                                   \
-      results.push_back(std::string(it->data));                    \
+      results.emplace_back(it->data);                              \
       it = it->next;                                               \
     }                                                              \
     native::curl_slist_free_all(info);                             \
@@ -132,7 +132,7 @@ class string_list;
 
 class CURLASIO_API easy {
  public:
-  typedef std::function<void(const std::error_code& err)> handler_type;
+  using handler_type = std::function<void(const std::error_code& err)>;
 
   static easy* from_native(native::CURL* native_easy);
 
@@ -155,10 +155,9 @@ class CURLASIO_API easy {
   void set_sink(std::ostream* sink);
   void set_sink(std::ostream* sink, std::error_code& ec);
 
-  typedef std::function<bool(
-      native::curl_off_t dltotal, native::curl_off_t dlnow,
-      native::curl_off_t ultotal, native::curl_off_t ulnow)>
-      progress_callback_t;
+  using progress_callback_t =
+      std::function<bool(native::curl_off_t dltotal, native::curl_off_t dlnow,
+                         native::curl_off_t ultotal, native::curl_off_t ulnow)>;
   void unset_progress_callback();
   void set_progress_callback(progress_callback_t progress_callback);
 
@@ -173,76 +172,77 @@ class CURLASIO_API easy {
 
   // callback options
 
-  typedef size_t (*write_function_t)(char* ptr, size_t size, size_t nmemb,
-                                     void* userdata);
+  using write_function_t = size_t (*)(char* ptr, size_t size, size_t nmemb,
+                                      void* userdata);
   IMPLEMENT_CURL_OPTION(set_write_function, native::CURLOPT_WRITEFUNCTION,
                         write_function_t);
   IMPLEMENT_CURL_OPTION(set_write_data, native::CURLOPT_WRITEDATA, void*);
-  typedef size_t (*read_function_t)(void* ptr, size_t size, size_t nmemb,
-                                    void* userdata);
+  using read_function_t = size_t (*)(void* ptr, size_t size, size_t nmemb,
+                                     void* userdata);
   IMPLEMENT_CURL_OPTION(set_read_function, native::CURLOPT_READFUNCTION,
                         read_function_t);
   IMPLEMENT_CURL_OPTION(set_read_data, native::CURLOPT_READDATA, void*);
-  typedef native::curlioerr (*ioctl_function_t)(native::CURL* handle, int cmd,
-                                                void* clientp);
+  using ioctl_function_t = native::curlioerr (*)(native::CURL* handle, int cmd,
+                                                 void* clientp);
   IMPLEMENT_CURL_OPTION(set_ioctl_function, native::CURLOPT_IOCTLFUNCTION,
                         ioctl_function_t);
   IMPLEMENT_CURL_OPTION(set_ioctl_data, native::CURLOPT_IOCTLDATA, void*);
-  typedef int (*seek_function_t)(void* instream, native::curl_off_t offset,
-                                 int origin);
+  using seek_function_t = int (*)(void* instream, native::curl_off_t offset,
+                                  int origin);
   IMPLEMENT_CURL_OPTION(set_seek_function, native::CURLOPT_SEEKFUNCTION,
                         seek_function_t);
   IMPLEMENT_CURL_OPTION(set_seek_data, native::CURLOPT_SEEKDATA, void*);
-  typedef int (*sockopt_function_t)(void* clientp, native::curl_socket_t curlfd,
-                                    native::curlsocktype purpose);
+  using sockopt_function_t = int (*)(void* clientp,
+                                     native::curl_socket_t curlfd,
+                                     native::curlsocktype purpose);
   IMPLEMENT_CURL_OPTION(set_sockopt_function, native::CURLOPT_SOCKOPTFUNCTION,
                         sockopt_function_t);
   IMPLEMENT_CURL_OPTION(set_sockopt_data, native::CURLOPT_SOCKOPTDATA, void*);
-  typedef native::curl_socket_t (*opensocket_function_t)(
-      void* clientp, native::curlsocktype purpose,
-      struct native::curl_sockaddr* address);
+  using opensocket_function_t =
+      native::curl_socket_t (*)(void* clientp, native::curlsocktype purpose,
+                                struct native::curl_sockaddr* address);
   IMPLEMENT_CURL_OPTION(set_opensocket_function,
                         native::CURLOPT_OPENSOCKETFUNCTION,
                         opensocket_function_t);
   IMPLEMENT_CURL_OPTION(set_opensocket_data, native::CURLOPT_OPENSOCKETDATA,
                         void*);
-  typedef int (*closesocket_function_t)(void* clientp,
-                                        native::curl_socket_t item);
+  using closesocket_function_t = int (*)(void* clientp,
+                                         native::curl_socket_t item);
   IMPLEMENT_CURL_OPTION(set_closesocket_function,
                         native::CURLOPT_CLOSESOCKETFUNCTION,
                         closesocket_function_t);
   IMPLEMENT_CURL_OPTION(set_closesocket_data, native::CURLOPT_CLOSESOCKETDATA,
                         void*);
-  typedef int (*progress_function_t)(void* clientp, double dltotal,
-                                     double dlnow, double ultotal,
-                                     double ulnow);
+  using progress_function_t = int (*)(void* clientp, double dltotal,
+                                      double dlnow, double ultotal,
+                                      double ulnow);
   IMPLEMENT_CURL_OPTION(set_progress_function, native::CURLOPT_PROGRESSFUNCTION,
                         progress_function_t);
   IMPLEMENT_CURL_OPTION(set_progress_data, native::CURLOPT_PROGRESSDATA, void*);
-  typedef int (*xferinfo_function_t)(void* clientp, native::curl_off_t dltotal,
-                                     native::curl_off_t dlnow,
-                                     native::curl_off_t ultotal,
-                                     native::curl_off_t ulnow);
+  using xferinfo_function_t = int (*)(void* clientp, native::curl_off_t dltotal,
+                                      native::curl_off_t dlnow,
+                                      native::curl_off_t ultotal,
+                                      native::curl_off_t ulnow);
   IMPLEMENT_CURL_OPTION(set_xferinfo_function, native::CURLOPT_XFERINFOFUNCTION,
                         xferinfo_function_t);
   IMPLEMENT_CURL_OPTION(set_xferinfo_data, native::CURLOPT_XFERINFODATA, void*);
-  typedef size_t (*header_function_t)(void* ptr, size_t size, size_t nmemb,
-                                      void* userdata);
+  using header_function_t = size_t (*)(void* ptr, size_t size, size_t nmemb,
+                                       void* userdata);
   IMPLEMENT_CURL_OPTION(set_header_function, native::CURLOPT_HEADERFUNCTION,
                         header_function_t);
   IMPLEMENT_CURL_OPTION(set_header_data, native::CURLOPT_HEADERDATA, void*);
-  typedef int (*debug_callback_t)(native::CURL*, native::curl_infotype, char*,
-                                  size_t, void*);
+  using debug_callback_t = int (*)(native::CURL*, native::curl_infotype, char*,
+                                   size_t, void*);
   IMPLEMENT_CURL_OPTION(set_debug_callback, native::CURLOPT_DEBUGFUNCTION,
                         debug_callback_t);
   IMPLEMENT_CURL_OPTION(set_debug_data, native::CURLOPT_DEBUGDATA, void*);
-  typedef native::CURLcode (*ssl_ctx_function_t)(native::CURL* curl,
-                                                 void* sslctx, void* parm);
+  using ssl_ctx_function_t = native::CURLcode (*)(native::CURL* curl,
+                                                  void* sslctx, void* parm);
   IMPLEMENT_CURL_OPTION(set_ssl_ctx_function, native::CURLOPT_SSL_CTX_FUNCTION,
                         ssl_ctx_function_t);
   IMPLEMENT_CURL_OPTION(set_ssl_ctx_data, native::CURLOPT_SSL_CTX_DATA, void*);
-  typedef size_t (*interleave_function_t)(void* ptr, size_t size, size_t nmemb,
-                                          void* userdata);
+  using interleave_function_t = size_t (*)(void* ptr, size_t size, size_t nmemb,
+                                           void* userdata);
   IMPLEMENT_CURL_OPTION(set_interleave_function,
                         native::CURLOPT_INTERLEAVEFUNCTION,
                         interleave_function_t);

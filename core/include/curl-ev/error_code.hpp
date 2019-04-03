@@ -98,7 +98,7 @@ enum easy_error_codes {
   ftp_bad_file_list = native::CURLE_FTP_BAD_FILE_LIST,
   chunk_failed = native::CURLE_CHUNK_FAILED
 };
-}
+}  // namespace easy
 
 namespace multi {
 enum multi_error_codes {
@@ -110,7 +110,7 @@ enum multi_error_codes {
   bad_socket = native::CURLM_BAD_SOCKET,
   unknown_option = native::CURLM_UNKNOWN_OPTION
 };
-}
+}  // namespace multi
 
 namespace share {
 enum share_error_codes {
@@ -121,7 +121,7 @@ enum share_error_codes {
   nomem = native::CURLSHE_NOMEM,
   not_built_in = native::CURLSHE_NOT_BUILT_IN
 };
-}
+}  // namespace share
 
 namespace form {
 enum form_error_codes {
@@ -134,7 +134,7 @@ enum form_error_codes {
   illegal_array = native::CURL_FORMADD_ILLEGAL_ARRAY,
   disabled = native::CURL_FORMADD_DISABLED
 };
-}
+}  // namespace form
 
 const std::error_category& get_easy_category() noexcept;
 const std::error_category& get_multi_category() noexcept;

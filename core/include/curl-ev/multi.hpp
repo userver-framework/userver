@@ -107,14 +107,14 @@ class CURLASIO_API multi {
   void socket_action(native::curl_socket_t s, int event_bitmask);
   socket_info_ptr register_cares_socket(native::curl_socket_t s);
 
-  typedef int (*socket_function_t)(native::CURL* native_easy,
-                                   native::curl_socket_t s, int what,
-                                   void* userp, void* socketp);
+  using socket_function_t = int (*)(native::CURL* native_easy,
+                                    native::curl_socket_t s, int what,
+                                    void* userp, void* socketp);
   void set_socket_function(socket_function_t socket_function);
   void set_socket_data(void* socket_data);
 
-  typedef int (*timer_function_t)(native::CURLM* native_multi, long timeout_ms,
-                                  void* userp);
+  using timer_function_t = int (*)(native::CURLM* native_multi, long timeout_ms,
+                                   void* userp);
   void set_timer_function(timer_function_t timer_function);
   void set_timer_data(void* timer_data);
 

@@ -53,7 +53,7 @@ std::size_t SecdistConfig::Register(
 }
 
 const boost::any& SecdistConfig::Get(const std::type_index& type,
-                                     const std::size_t index) const {
+                                     std::size_t index) const {
   try {
     return configs_.at(index);
   } catch (const std::out_of_range&) {

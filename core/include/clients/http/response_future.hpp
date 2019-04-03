@@ -22,7 +22,7 @@ class ResponseFuture {
                  std::chrono::milliseconds total_timeout,
                  std::shared_ptr<EasyWrapper> easy);
 
-  ResponseFuture(ResponseFuture&& future);
+  ResponseFuture(ResponseFuture&& other) noexcept;
 
   ResponseFuture(const ResponseFuture&) = delete;
 
@@ -30,7 +30,7 @@ class ResponseFuture {
 
   ResponseFuture& operator=(const ResponseFuture&) = delete;
 
-  ResponseFuture& operator=(ResponseFuture&&);
+  ResponseFuture& operator=(ResponseFuture&&) noexcept;
 
   void Cancel();
 

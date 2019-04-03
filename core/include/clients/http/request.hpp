@@ -60,9 +60,6 @@ class Request : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> form(const std::shared_ptr<Form>& form);
   /// Headers for request as map
   std::shared_ptr<Request> headers(const Headers& headers);
-  /// Headers for request as map, std::initializer_list for map can be passed as
-  /// headers value
-  std::shared_ptr<Request> headers(Headers&& headers);
   /// Follow redirects or not. Default: follow
   std::shared_ptr<Request> follow_redirects(bool follow = true);
   /// Set timeout in ms for request

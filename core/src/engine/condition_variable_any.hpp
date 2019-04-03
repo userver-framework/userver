@@ -126,7 +126,7 @@ bool ConditionVariableAny<MutexType>::WaitUntil(
   bool predicate_result = predicate();
   auto status = CvStatus::kNoTimeout;
   while (!predicate_result && status == CvStatus::kNoTimeout) {
-    status = WaitUntil(lock, std::move(deadline));
+    status = WaitUntil(lock, deadline);
     predicate_result = predicate();
     if (!predicate_result && status == CvStatus::kNoTimeout) {
       current_task::AccountSpuriousWakeup();

@@ -12,6 +12,7 @@ struct EhGlobals {};
 // It is required to allow task switching during unwind.
 struct EhGlobals {
   void* data[4];
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init, hicpp-member-init)
   EhGlobals() { ::memset(data, 0, sizeof(data)); }
 };
 #else

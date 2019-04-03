@@ -55,6 +55,7 @@ class Pool {
 
 template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
+    // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     : config_(std::move(config)),
       executor_(std::move(executor)),
       attributes_(kStackSize, boost::coroutines::no_stack_unwind),

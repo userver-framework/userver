@@ -32,7 +32,7 @@ class CachingComponentBase
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
                        const std::string& name);
 
-  ~CachingComponentBase();
+  ~CachingComponentBase() override;
 
   const std::string& Name() const;
   std::shared_ptr<T> Get() const;

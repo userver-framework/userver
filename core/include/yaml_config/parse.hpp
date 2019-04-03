@@ -147,6 +147,7 @@ inline boost::optional<std::vector<T>> ParseOptionalMapAsArray(
   for (auto it = value.begin(); it != value.end(); ++it) {
     const auto elem_name = it.GetName();
     auto parsed = T::ParseFromYaml(
+        // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
         *it, full_path + '.' + name + '.' + elem_name, config_vars_ptr);
     parsed.SetName(elem_name);
     parsed_array.emplace_back(std::move(parsed));

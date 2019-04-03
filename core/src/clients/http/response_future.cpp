@@ -12,7 +12,11 @@ ResponseFuture::ResponseFuture(
       deadline_(std::chrono::system_clock::now() + total_timeout),
       easy_(std::move(easy)) {}
 
-ResponseFuture::ResponseFuture(ResponseFuture&&) = default;
+ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept {
+  std::swap(future_, other.future_);
+  std::swap(deadline_, other.deadline_);
+  std::swap(easy_, other.easy_);
+}
 
 ResponseFuture::~ResponseFuture() {
   if (future_->IsValid()) {
@@ -21,7 +25,8 @@ ResponseFuture::~ResponseFuture() {
   }
 }
 
-ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) = default;
+ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept =
+    default;
 
 void ResponseFuture::Cancel() {
   easy_->Easy().cancel();

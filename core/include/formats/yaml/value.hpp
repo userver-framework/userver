@@ -33,8 +33,10 @@ class Value {
   /// @brief Constructs a Value that holds a Null.
   Value() noexcept;
 
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   Value(Value&&);
   Value(const Value&);
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   Value& operator=(Value&&);
   Value& operator=(const Value&);
 

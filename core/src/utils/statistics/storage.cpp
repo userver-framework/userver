@@ -58,7 +58,7 @@ void Entry::Unregister() noexcept {
   }
 }
 
-Entry& Entry::operator=(Entry&& other) {
+Entry& Entry::operator=(Entry&& other) noexcept {
   Unregister();
   std::swap(storage_, other.storage_);
   std::swap(iterator_, other.iterator_);

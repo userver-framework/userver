@@ -39,12 +39,12 @@ enum Status : uint16_t {
 std::ostream& operator<<(std::ostream& os, Status s);
 
 /// Headers class
-typedef std::unordered_map<std::string, std::string> Headers;
+using Headers = std::unordered_map<std::string, std::string>;
 
 /// Class that will be returned for successful request
 class Response {
  public:
-  Response(std::shared_ptr<EasyWrapper> easy) : easy_(easy) {}
+  Response(std::shared_ptr<EasyWrapper> easy) : easy_(std::move(easy)) {}
 
   /// response stream
   inline std::ostringstream& sink_stream() { return response_stream_; }

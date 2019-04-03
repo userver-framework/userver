@@ -46,7 +46,6 @@ using Percentile = utils::statistics::Percentile<2048>;
 
 struct Statistics {
   Statistics() = default;
-  Statistics(const Statistics&) = default;
 
   std::shared_ptr<RequestStats> CreateRequestStats() {
     return std::make_shared<RequestStats>(*this);

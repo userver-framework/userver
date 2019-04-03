@@ -8,7 +8,7 @@ namespace ev {
 class ThreadControl {
  public:
   explicit ThreadControl(Thread& thread) : thread_(thread) {}
-  virtual ~ThreadControl() {}
+  virtual ~ThreadControl() = default;
 
   inline struct ev_loop* GetEvLoop() const { return thread_.GetEvLoop(); }
 

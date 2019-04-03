@@ -77,9 +77,7 @@ class Request::RequestImpl
   curl::easy& easy() { return easy_->Easy(); }
   const curl::easy& easy() const { return easy_->Easy(); }
   std::shared_ptr<Response> response() const { return response_; }
-  std::shared_ptr<Response> response_move() const {
-    return std::move(response_);
-  }
+  std::shared_ptr<Response> response_move() { return std::move(response_); }
 
   /// set data for PUT-method
   void SetPutMethodData(std::string&& data);
@@ -226,12 +224,6 @@ std::shared_ptr<Request> Request::headers(const Headers& headers) {
   return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::headers(Headers&& headers) {
-  for (auto&& header : headers)
-    easy().add_header(std::move(header.first), std::move(header.second));
-  return shared_from_this();
-}
-
 std::shared_ptr<Request> Request::method(HttpMethod method) {
   switch (method) {
     case DELETE:
@@ -375,13 +367,14 @@ void Request::RequestImpl::SetPutMethodData(std::string&& data) {
 
 size_t Request::RequestImpl::on_header(void* ptr, size_t size, size_t nmemb,
                                        void* userdata) {
-  Request::RequestImpl* self = static_cast<Request::RequestImpl*>(userdata);
+  auto* self = static_cast<Request::RequestImpl*>(userdata);
   size_t data_size = size * nmemb;
   if (self) self->parse_header(static_cast<char*>(ptr), data_size);
   return data_size;
 }
 
 void Request::RequestImpl::on_completed(
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     std::shared_ptr<Request::RequestImpl> holder, const std::error_code& err) {
   auto& span = *holder->span_;
   LOG_DEBUG() << "Request::RequestImpl::on_completed(1)" << span;
@@ -434,6 +427,7 @@ size_t Request::RequestImpl::PutMethodReadCallback(void* out_buffer,
 }
 
 void Request::RequestImpl::on_retry(
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     std::shared_ptr<Request::RequestImpl> holder, const std::error_code& err) {
   LOG_DEBUG() << "RequestImpl::on_retry" << *holder->span_;
 
@@ -499,7 +493,7 @@ void Request::RequestImpl::parse_header(char* ptr, size_t size) {
   *end = '\0';
 
   auto col_pos = strchr(ptr, ':');
-  if (col_pos == NULL) return;
+  if (col_pos == nullptr) return;
 
   std::string key(ptr, col_pos - ptr);
   std::string value(col_pos + 1, end - col_pos - 1);
