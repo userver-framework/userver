@@ -10,6 +10,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <clients/http/destination_statistics.hpp>
 #include <clients/http/error.hpp>
 #include <clients/http/form.hpp>
 #include <clients/http/response_future.hpp>
@@ -17,6 +18,7 @@
 #include <curl-ev/easy.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <http/common_headers.hpp>
+#include <http/url.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
 
@@ -42,7 +44,8 @@ class Request::RequestImpl
     : public std::enable_shared_from_this<Request::RequestImpl> {
  public:
   RequestImpl(std::shared_ptr<EasyWrapper>,
-              std::shared_ptr<RequestStats> req_stats);
+              std::shared_ptr<RequestStats> req_stats,
+              std::shared_ptr<DestinationStatistics> dest_stats);
 
   /// Perform async http request
   engine::Future<std::shared_ptr<Response>> async_perform();
@@ -71,6 +74,10 @@ class Request::RequestImpl
 
   /// cancel request
   void Cancel();
+
+  void SetDestinationMetricNameAuto(std::string destination);
+
+  void SetDestinationMetricName(const std::string& destination);
 
   std::shared_ptr<EasyWrapper> easy_wrapper() { return easy_; }
 
@@ -106,6 +113,10 @@ class Request::RequestImpl
   /// curl handler wrapper
   std::shared_ptr<EasyWrapper> easy_;
   std::shared_ptr<RequestStats> stats_;
+  std::shared_ptr<RequestStats> dest_req_stats_;
+
+  std::shared_ptr<DestinationStatistics> dest_stats_;
+  std::string destination_metric_name_;
 
   /// response
   std::shared_ptr<Response> response_;
@@ -149,9 +160,10 @@ long complete_timeout(long request_timeout, int retries) {
 // Request implementation
 
 Request::Request(std::shared_ptr<EasyWrapper> wrapper,
-                 std::shared_ptr<RequestStats> req_stats)
-    : pimpl_(std::make_shared<Request::RequestImpl>(std::move(wrapper),
-                                                    std::move(req_stats))) {
+                 std::shared_ptr<RequestStats> req_stats,
+                 std::shared_ptr<DestinationStatistics> dest_stats)
+    : pimpl_(std::make_shared<Request::RequestImpl>(
+          std::move(wrapper), std::move(req_stats), std::move(dest_stats))) {
   LOG_DEBUG() << "Request::Request()";
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);
@@ -168,6 +180,7 @@ ResponseFuture Request::async_perform() {
 std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }
 
 std::shared_ptr<Request> Request::url(const std::string& _url) {
+  pimpl_->SetDestinationMetricNameAuto(::http::ExtractMetaTypeFromUrl(_url));
   easy().set_url(_url.c_str());
   return shared_from_this();
 }
@@ -307,11 +320,25 @@ std::shared_ptr<Response> Request::response() const {
 
 void Request::Cancel() const { pimpl_->Cancel(); }
 
+void Request::SetDestinationMetricName(const std::string& destination) {
+  pimpl_->SetDestinationMetricName(destination);
+}
+
+void Request::RequestImpl::SetDestinationMetricNameAuto(
+    std::string destination) {
+  destination_metric_name_ = std::move(destination);
+}
+
 // RequestImpl implementation
 
-Request::RequestImpl::RequestImpl(std::shared_ptr<EasyWrapper> wrapper,
-                                  std::shared_ptr<RequestStats> req_stats)
-    : easy_(std::move(wrapper)), stats_(std::move(req_stats)), timeout_ms_(0) {
+Request::RequestImpl::RequestImpl(
+    std::shared_ptr<EasyWrapper> wrapper,
+    std::shared_ptr<RequestStats> req_stats,
+    std::shared_ptr<DestinationStatistics> dest_stats)
+    : easy_(std::move(wrapper)),
+      stats_(std::move(req_stats)),
+      dest_stats_(std::move(dest_stats)),
+      timeout_ms_(0) {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
 }
@@ -359,6 +386,11 @@ void Request::RequestImpl::retry(int retries, bool on_fails) {
 
 void Request::RequestImpl::Cancel() { easy().cancel(); }
 
+void Request::RequestImpl::SetDestinationMetricName(
+    const std::string& destination) {
+  dest_req_stats_ = dest_stats_->GetStatisticsForDestination(destination);
+}
+
 void Request::RequestImpl::SetPutMethodData(std::string&& data) {
   put_method_data = std::move(data);
   put_method_cursor = nullptr;
@@ -379,7 +411,10 @@ void Request::RequestImpl::on_completed(
   auto& span = *holder->span_;
   LOG_DEBUG() << "Request::RequestImpl::on_completed(1)" << span;
 
-  holder->stats_->StoreTimeToStart(holder->easy().timings().time_to_start());
+  auto time_to_start = holder->easy().timings().time_to_start();
+  holder->stats_->StoreTimeToStart(time_to_start);
+  if (holder->dest_req_stats_)
+    holder->dest_req_stats_->StoreTimeToStart(time_to_start);
 
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
@@ -387,6 +422,7 @@ void Request::RequestImpl::on_completed(
     span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
 
     holder->stats_->FinishEc(err);
+    if (holder->dest_req_stats_) holder->dest_req_stats_->FinishEc(err);
 
     holder->promise_.set_exception(PrepareException(err));
   } else {
@@ -394,6 +430,8 @@ void Request::RequestImpl::on_completed(
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
 
     holder->stats_->FinishOk(holder->easy().get_response_code());
+    if (holder->dest_req_stats_)
+      holder->dest_req_stats_->FinishOk(holder->easy().get_response_code());
 
     holder->promise_.set_value(holder->response_move());
   }
@@ -436,6 +474,14 @@ void Request::RequestImpl::on_retry(
     holder->stats_->FinishEc(err);
   else
     holder->stats_->FinishOk(holder->easy().get_response_code());
+  if (holder->dest_req_stats_) {
+    holder->dest_req_stats_->StoreTimeToStart(
+        holder->easy().timings().time_to_start());
+    if (err)
+      holder->dest_req_stats_->FinishEc(err);
+    else
+      holder->dest_req_stats_->FinishOk(holder->easy().get_response_code());
+  }
 
   // We do not need to retry
   //  - if we got result and http code is good
@@ -518,7 +564,13 @@ Request::RequestImpl::async_perform() {
   // set autodecooding for gzip and deflate
   easy().set_accept_encoding("gzip,deflate");
 
+  if (!dest_req_stats_) {
+    dest_req_stats_ =
+        dest_stats_->GetStatisticsForDestinationAuto(destination_metric_name_);
+  }
+
   stats_->Start();
+  if (dest_req_stats_) dest_req_stats_->Start();
 
   // if we need retries call with special callback
   if (retry_.retries <= 1)

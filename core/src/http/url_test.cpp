@@ -54,3 +54,24 @@ TEST(MakeUrl, InitializerList2) {
   EXPECT_EQ("path?a=12345&c=d",
             http::MakeUrl("path", {{"a", value}, {"c", "d"}}));
 }
+
+TEST(ExtractMetaTypeFromUrl, Emtpy) {
+  EXPECT_EQ("", http::ExtractMetaTypeFromUrl(""));
+}
+
+TEST(ExtractMetaTypeFromUrl, NoQuery) {
+  EXPECT_EQ("ya.ru", http::ExtractMetaTypeFromUrl("ya.ru"));
+  EXPECT_EQ("ya.ru/some/path", http::ExtractMetaTypeFromUrl("ya.ru/some/path"));
+  EXPECT_EQ("http://ya.ru/some/path",
+            http::ExtractMetaTypeFromUrl("http://ya.ru/some/path"));
+}
+
+TEST(ExtractMetaTypeFromUrl, WithQuery) {
+  EXPECT_EQ("ya.ru", http::ExtractMetaTypeFromUrl("ya.ru?abc=cde"));
+  EXPECT_EQ("ya.ru", http::ExtractMetaTypeFromUrl("ya.ru?abc=cde&v=x"));
+  EXPECT_EQ("https://ya.ru",
+            http::ExtractMetaTypeFromUrl("https://ya.ru?abc=cde&v=x"));
+  EXPECT_EQ(
+      "https://ya.ru/some/path",
+      http::ExtractMetaTypeFromUrl("https://ya.ru/some/path?abc=cde&v=x"));
+}

@@ -102,7 +102,7 @@ void Statistics::AccountError(ErrorGroup error) {
   error_count[static_cast<int>(error)]++;
 }
 
-formats::json::Value StatisticsToJson(const InstanceStatistics& stats) {
+formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats) {
   formats::json::ValueBuilder json;
   json["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.timings_percentile)
@@ -125,10 +125,10 @@ formats::json::Value StatisticsToJson(const InstanceStatistics& stats) {
   json["sockets"]["active"] =
       stats.multi.socket_open - stats.multi.socket_close;
 
-  return json.ExtractValue();
+  return json;
 }
 
-formats::json::Value PoolStatisticsToJson(const PoolStatistics& stats) {
+formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats) {
   formats::json::ValueBuilder json;
   InstanceStatistics sum_stats;
 
@@ -138,8 +138,7 @@ formats::json::Value PoolStatisticsToJson(const PoolStatistics& stats) {
   }
 
   json["pool-total"] = StatisticsToJson(sum_stats);
-
-  return json.ExtractValue();
+  return json;
 }
 
 long long InstanceStatistics::GetNotOkErrorCount() const {

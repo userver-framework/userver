@@ -102,15 +102,18 @@ TEST(HttpClient, Headers) {
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
-    for (unsigned i = 0; i < kRepetitions; ++i)
-      http_client_ptr->CreateRequest()
-          ->post("http://127.0.0.1:51234/", kTestData)
-          ->retry(1)
-          ->headers({std::pair<const char*, const char*>{kTestHeader, "test"}})
-          ->verify(true)
-          ->http_version(curl::easy::http_version_1_1)
-          ->timeout(std::chrono::milliseconds(100))
-          ->perform();
+    for (unsigned i = 0; i < kRepetitions; ++i) {
+      [[maybe_unused]] auto response =
+          http_client_ptr->CreateRequest()
+              ->post("http://127.0.0.1:51234/", kTestData)
+              ->retry(1)
+              ->headers(
+                  {std::pair<const char*, const char*>{kTestHeader, "test"}})
+              ->verify(true)
+              ->http_version(curl::easy::http_version_1_1)
+              ->timeout(std::chrono::milliseconds(100))
+              ->perform();
+    }
 
     http_client_ptr.reset();
   });

@@ -22,7 +22,9 @@ std::shared_ptr<Client> Client::Create(size_t io_threads) {
   return std::make_shared<EmplaceEnabler>(io_threads);
 }
 
-Client::Client(size_t io_threads) : statistics_(io_threads) {
+Client::Client(size_t io_threads)
+    : destination_statistics_(std::make_shared<DestinationStatistics>()),
+      statistics_(io_threads) {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
   ev_config.thread_name = kIoThreadName;
@@ -69,7 +71,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
       auto idx = FindMultiIndex(easy->GetMulti());
       auto wrapper = std::make_shared<EasyWrapper>(std::move(easy), *this);
       return std::make_shared<Request>(std::move(wrapper),
-                                       statistics_[idx].CreateRequestStats());
+                                       statistics_[idx].CreateRequestStats(),
+                                       destination_statistics_);
     }
   }
 
@@ -79,7 +82,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
   auto wrapper = std::make_shared<EasyWrapper>(
       std::make_unique<curl::easy>(*multi), *this);
   return std::make_shared<Request>(std::move(wrapper),
-                                   statistics_[i].CreateRequestStats());
+                                   statistics_[i].CreateRequestStats(),
+                                   destination_statistics_);
 }
 
 void Client::SetMaxPipelineLength(size_t max_pipeline_length) {
@@ -143,6 +147,15 @@ PoolStatistics Client::GetPoolStatistics() const {
     stats.multi.push_back(GetMultiStatistics(i));
   };
   return stats;
+}
+
+void Client::SetDestinationMetricsAutoMaxSize(size_t max_size) {
+  destination_statistics_->SetAutoMaxSize(max_size);
+}
+
+DestinationStatistics::DestinationsMap Client::GetDestinationStatistics()
+    const {
+  return destination_statistics_->GetCurrentMap();
 }
 
 void Client::PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept {

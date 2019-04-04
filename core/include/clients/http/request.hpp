@@ -18,12 +18,14 @@ enum HttpMethod { DELETE, GET, HEAD, POST, PUT, PATCH, OPTIONS };
 
 class Form;
 class RequestStats;
+class DestinationStatistics;
 
 /// Class for creating and performing new http requests
 class Request : public std::enable_shared_from_this<Request> {
  public:
   explicit Request(std::shared_ptr<EasyWrapper>,
-                   std::shared_ptr<RequestStats> req_stats);
+                   std::shared_ptr<RequestStats> req_stats,
+                   std::shared_ptr<DestinationStatistics> dest_stats);
 
   /// Specifies method
   std::shared_ptr<Request> method(HttpMethod method);
@@ -86,13 +88,13 @@ class Request : public std::enable_shared_from_this<Request> {
 
   /// Perform request async, after completing callack will be called
   /// or it can be waiting on a future.
-  ResponseFuture async_perform();
+  [[nodiscard]] ResponseFuture async_perform();
 
   /// Calls async_perform and wait for timeout_ms on a future. Deafult time
   /// for waiting will be timeout value if it was setted. If error occured it
   /// will be thrown as exception.
 
-  std::shared_ptr<Response> perform();
+  [[nodiscard]] std::shared_ptr<Response> perform();
 
   /// Get curl hadler for specific settings
   curl::easy& easy();
@@ -102,6 +104,8 @@ class Request : public std::enable_shared_from_this<Request> {
 
   /// Cancel request
   void Cancel() const;
+
+  void SetDestinationMetricName(const std::string& destination);
 
  private:
   class RequestImpl;

@@ -26,4 +26,6 @@ std::string MakeUrl(
     std::initializer_list<std::pair<utils::string_view, utils::string_view>>
         query_args);
 
+std::string ExtractMetaTypeFromUrl(const std::string& url);
+
 }  // namespace http

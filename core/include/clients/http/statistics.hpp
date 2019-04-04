@@ -114,7 +114,9 @@ struct PoolStatistics {
   std::vector<InstanceStatistics> multi;
 };
 
-formats::json::Value PoolStatisticsToJson(const PoolStatistics& stats);
+formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats);
+
+formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats);
 
 }  // namespace http
 }  // namespace clients

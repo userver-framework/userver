@@ -110,4 +110,11 @@ std::string MakeQuery(
   return DoMakeQuery(query_args.begin(), query_args.end());
 }
 
+std::string ExtractMetaTypeFromUrl(const std::string& url) {
+  auto pos = url.find('?');
+  if (pos == std::string::npos) return url;
+
+  return url.substr(0, pos);
+}
+
 }  // namespace http

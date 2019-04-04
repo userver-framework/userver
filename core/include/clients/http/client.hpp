@@ -3,6 +3,7 @@
 #include <mutex>
 #include <queue>
 
+#include <clients/http/destination_statistics.hpp>
 #include <clients/http/request.hpp>
 #include <clients/http/statistics.hpp>
 
@@ -39,6 +40,11 @@ class Client {
 
   PoolStatistics GetPoolStatistics() const;
 
+  /* Set max number of automatically created destination metrics */
+  void SetDestinationMetricsAutoMaxSize(size_t max_size);
+
+  DestinationStatistics::DestinationsMap GetDestinationStatistics() const;
+
  private:
   explicit Client(size_t io_threads);
 
@@ -55,6 +61,7 @@ class Client {
 
   std::atomic<std::size_t> pending_tasks_{0};
 
+  std::shared_ptr<DestinationStatistics> destination_statistics_;
   std::unique_ptr<engine::ev::ThreadPool> thread_pool_;
   std::vector<Statistics> statistics_;
   std::vector<std::unique_ptr<curl::multi>> multis_;

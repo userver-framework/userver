@@ -2,10 +2,15 @@
 
 #include <clients/http/client.hpp>
 #include <clients/http/config.hpp>
+#include <clients/http/destination_statistics_json.hpp>
 #include <clients/http/statistics.hpp>
 #include <components/statistics_storage.hpp>
 
 namespace components {
+
+namespace {
+const auto kDestinationMetricsAutoMaxSizeDefault = 100;
+}
 
 HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
@@ -16,6 +21,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   size_t threads = http_config.threads;
 
   http_client_ = clients::http::Client::Create(threads);
+  http_client_->SetDestinationMetricsAutoMaxSize(
+      component_config.ParseInt("destination-metrics-auto-max-size",
+                                kDestinationMetricsAutoMaxSizeDefault));
 
   OnConfigUpdate(config);
 
@@ -56,7 +64,11 @@ void HttpClient::OnConfigUpdate(
 }
 
 formats::json::Value HttpClient::ExtendStatistics() {
-  return clients::http::PoolStatisticsToJson(http_client_->GetPoolStatistics());
+  auto json =
+      clients::http::PoolStatisticsToJson(http_client_->GetPoolStatistics());
+  json["destinations"] = clients::http::DestinationStatisticsToJson(
+      http_client_->GetDestinationStatistics());
+  return json.ExtractValue();
 }
 
 }  // namespace components
