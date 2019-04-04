@@ -25,7 +25,7 @@ export CC CXX
 SCAN_BUILD = scan-build-7
 SCAN_BUILD_OPTS = --force-analyze-debug-code --show-description --use-cc $(CC) --use-c++ $(CXX) -stats -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
-PYTHON3_PATH = $(firstword $(wildcard /usr/lib/yandex/taxi-py3/bin/python3) python3)
+PYTHON3_PATH = $(firstword $(wildcard /usr/lib/yandex/taxi-py3-1/bin/python3) python3)
 
 ifeq ($(CXX),clang++-7)
 ifeq ($(shell which llvm-symbolizer),)
