@@ -23,6 +23,7 @@ namespace io {
 namespace detail {
 
 std::string NumericBufferToString(const FieldBuffer& buffer);
+std::string StringToNumericBuffer(const std::string& str_rep);
 
 }  // namespace detail
 
@@ -42,9 +43,28 @@ struct BufferFormatter<ArbitraryPrecision<Precision>,
     {
       sink_type sink{buf};
       stream_type os{sink};
-      os << std::setprecision(std::numeric_limits<Value>::digits10) << value;
+      os << std::setprecision(std::numeric_limits<Value>::digits10)
+         << std::fixed << value;
     }
     if (buf.empty() || buf.back() != '\0') buf.push_back('\0');
+  }
+};
+
+template <std::size_t Precision>
+struct BufferFormatter<ArbitraryPrecision<Precision>,
+                       DataFormat::kBinaryDataFormat> {
+  using Value = ArbitraryPrecision<Precision>;
+  const Value& value;
+
+  BufferFormatter(const Value& val) : value{val} {}
+
+  template <typename Buffer>
+  void operator()(const UserTypes&, Buffer& buf) const {
+    auto str_rep = value.str(std::numeric_limits<Value>::max_digits10,
+                             std::ios_base::fixed);
+    auto bin_str = detail::StringToNumericBuffer(str_rep);
+    buf.reserve(buf.size() + bin_str.size());
+    std::copy(bin_str.begin(), bin_str.end(), std::back_inserter(buf));
   }
 };
 

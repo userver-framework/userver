@@ -65,6 +65,16 @@ struct BufferParser<std::uint16_t, DataFormat::kBinaryDataFormat>
 };
 
 template <>
+struct BufferFormatter<std::uint16_t, DataFormat::kBinaryDataFormat>
+    : detail::BufferFormatterBase<std::uint16_t> {
+  using BufferFormatterBase::BufferFormatterBase;
+  template <typename Buffer>
+  void operator()(const UserTypes& types, Buffer& buf) const {
+    WriteBinary(types, buf, static_cast<std::int16_t>(value));
+  }
+};
+
+template <>
 struct CppToSystemPg<Oid> : PredefinedOid<PredefinedOids::kOid> {};
 
 }  // namespace storages::postgres::io

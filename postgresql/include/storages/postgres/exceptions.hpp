@@ -114,6 +114,7 @@ namespace postgres {
  *     - ArrayError
  *       - DimensionMismatch
  *       - InvalidDimensions
+ *     - InvalidInputFormat
  *     - EnumerationError
  *       - InvalidEnumerationLiteral
  *       - InvalidEnumerationValue
@@ -752,6 +753,14 @@ class InvalidDimensions : public ArrayError {
 };
 
 //@}
+
+/// @brief Invalid format for input data.
+///
+/// Can occur when a numeric string representation cannot be parsed for sending
+/// in binary buffers
+class InvalidInputFormat : public LogicError {
+  using LogicError::LogicError;
+};
 
 //@{
 /** @name Enumeration type errors */

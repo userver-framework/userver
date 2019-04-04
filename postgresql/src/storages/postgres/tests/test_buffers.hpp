@@ -10,8 +10,9 @@ namespace test {
 
 using Buffer = std::vector<char>;
 
-inline io::FieldBuffer MakeFieldBuffer(
-    const Buffer& buffer, io::DataFormat format,
+template <typename BufferType>
+io::FieldBuffer MakeFieldBuffer(
+    const BufferType& buffer, io::DataFormat format,
     io::BufferCategory cat = io::BufferCategory::kPlainBuffer) {
   return {false, format, cat, buffer.size(),
           reinterpret_cast<const std::uint8_t*>(buffer.data())};

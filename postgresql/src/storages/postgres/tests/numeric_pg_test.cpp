@@ -57,6 +57,34 @@ TEST(PostgreIO, Numeric) {
   }
 }
 
+class PostgreNumericIO : public ::testing::TestWithParam<std::string> {};
+
+TEST_P(PostgreNumericIO, ParseString) {
+  auto str_rep = GetParam();
+  auto str_buf = io::detail::StringToNumericBuffer(str_rep);
+  EXPECT_FALSE(str_buf.empty());
+  pg::Numeric num{str_rep.c_str()};
+  auto fb =
+      pg::test::MakeFieldBuffer(str_buf, io::DataFormat::kBinaryDataFormat);
+  pg::Numeric tgt;
+  EXPECT_NO_THROW(io::ReadBinary(fb, tgt));
+  if (str_rep != "nan")
+    EXPECT_EQ(num, tgt) << "Expected " << num << " parsed " << tgt;
+}
+
+INSTANTIATE_TEST_CASE_P(
+    PostgreIO, PostgreNumericIO,
+    ::testing::Values("0", "nan", ".0", ".1", "-.5", "10", "100", "1000",
+                      "1000000", "100000.0000001", ".001", "0.0001",
+                      "0.00000000001", "1.000000001", "00000", "000.000000",
+                      "10000."
+                      "00000000000000000000000000000000000000000000000000000000"
+                      "000000000000000000000000",
+                      "0."
+                      "00000000100000000000000000000000000000000000000000000000"
+                      "000000000000000000000000"),
+    /**/);
+
 POSTGRE_TEST_P(NumericRoundtrip) {
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};
