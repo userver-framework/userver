@@ -3,10 +3,13 @@
 #include <condition_variable>
 #include <mutex>
 
+#include <boost/algorithm/string/split.hpp>
+
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
 #include <engine/sleep.hpp>
 #include <logging/log.hpp>
+#include <logging/logging_test.hpp>
 #include <utest/utest.hpp>
 #include <utils/periodic_task.hpp>
 
@@ -51,7 +54,7 @@ struct SimpleTaskData {
     LOG_DEBUG() << "SimpleTaskData::Run";
     cv.NotifyOne();
 
-    if (throw_exception) throw std::runtime_error("");
+    if (throw_exception) throw std::runtime_error("error_msg");
   }
 
   int GetCount() const { return c; }
@@ -261,6 +264,39 @@ TEST(PeriodicTask, Restart) {
     EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio, [&simple, n]() {
       return simple.GetCount() > n;
     }));
+    task.Stop();
+  });
+}
+
+class PeriodicTaskLog : public LoggingTest {};
+
+TEST_F(PeriodicTaskLog, ErrorLog) {
+  RunInCoro([this] {
+    SimpleTaskData simple;
+    simple.throw_exception = true;
+
+    auto period = std::chrono::milliseconds(10000);
+    utils::PeriodicTask::Settings settings(period,
+                                           utils::PeriodicTask::Flags::kNow);
+    auto n = 5;
+    utils::PeriodicTask task;
+    task.Start("task_name", settings, simple.GetTaskFunction());
+
+    EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio,
+                               [&simple]() { return simple.GetCount() > 0; }));
+
+    std::vector<std::string> log_strings;
+    auto log = sstream.str();
+    int error_msg = 0;
+    boost::split(log_strings, log, [](char c) { return c == '\n'; });
+    for (const auto& str : log_strings) {
+      if (str.find("error_msg") != std::string::npos) {
+        error_msg++;
+        EXPECT_NE(std::string::npos, str.find("span_id="));
+      }
+    }
+    EXPECT_EQ(1, error_msg);
+
     task.Stop();
   });
 }

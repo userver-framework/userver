@@ -65,13 +65,15 @@ void PeriodicTask::Run() {
     const auto span_log_level = settings->span_level;
     settings.reset();
 
-    try {
+    {
       tracing::Span span(name_, tracing::ReferenceType::kChild, span_log_level);
-      callback_();
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception in PeriodicTask with name=" << name_ << ": "
-                  << e;
-      period = exception_period;
+      try {
+        callback_();
+      } catch (const std::exception& e) {
+        LOG_ERROR() << "Exception in PeriodicTask with name=" << name_ << ": "
+                    << e;
+        period = exception_period;
+      }
     }
 
     if (strong)
