@@ -110,7 +110,6 @@ class Value {
         ""
         "Probably you have not provided a `Parse` function overload.");
 
-    CheckNotMissing();
     return Parse(*this, formats::parse::To<T>{});
   }
 
