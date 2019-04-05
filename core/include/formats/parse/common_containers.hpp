@@ -94,12 +94,18 @@ boost::optional<T> Parse(const Value& value, To<boost::optional<T>>) {
 
 template <class Value, typename T>
 std::unordered_set<T> Convert(const Value& value, To<std::unordered_set<T>>) {
+  if (value.IsMissing()) {
+    return {};
+  }
   return impl::ParseArray<std::unordered_set<T>, T>(
       value, &impl::ConvertToExtractor<T, Value>);
 }
 
 template <class Value, typename T>
 std::set<T> Convert(const Value& value, To<std::set<T>>) {
+  if (value.IsMissing()) {
+    return {};
+  }
   return impl::ParseArray<std::set<T>, T>(value,
                                           &impl::ConvertToExtractor<T, Value>);
 }
@@ -107,6 +113,9 @@ std::set<T> Convert(const Value& value, To<std::set<T>>) {
 template <class Value, typename T>
 std::enable_if_t<meta::is_vector<T>::value, T> Convert(const Value& value,
                                                        To<T>) {
+  if (value.IsMissing()) {
+    return {};
+  }
   return impl::ParseArray<T, typename T::value_type>(
       value, &impl::ConvertToExtractor<typename T::value_type, Value>);
 }
@@ -114,6 +123,9 @@ std::enable_if_t<meta::is_vector<T>::value, T> Convert(const Value& value,
 template <class Value, typename T>
 std::unordered_map<std::string, T> Convert(
     const Value& value, To<std::unordered_map<std::string, T>>) {
+  if (value.IsMissing()) {
+    return {};
+  }
   return impl::ParseObject<std::unordered_map<std::string, T>, T>(
       value, &impl::ConvertToExtractor<T, Value>);
 }
@@ -121,6 +133,9 @@ std::unordered_map<std::string, T> Convert(
 template <class Value, typename T>
 std::map<std::string, T> Convert(const Value& value,
                                  To<std::map<std::string, T>>) {
+  if (value.IsMissing()) {
+    return {};
+  }
   return impl::ParseObject<std::map<std::string, T>, T>(
       value, &impl::ConvertToExtractor<T, Value>);
 }
