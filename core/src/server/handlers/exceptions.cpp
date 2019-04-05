@@ -21,9 +21,7 @@ const std::unordered_map<HandlerErrorCode, const char*, HandlerErrorCodeHash>
         {HandlerErrorCode::kPayloadTooLarge, "Payload too large"},
         {HandlerErrorCode::kTooManyRequests, "Too many requests"},
         {HandlerErrorCode::kServerSideError, "Internal server error"},
-        {HandlerErrorCode::kBadGateway, "Bad gateway"},
-        {HandlerErrorCode::kGatewayTimeout, "Gateway Timeout"},
-    };
+        {HandlerErrorCode::kBadGateway, "Bad gateway"}};
 
 }  // namespace
 

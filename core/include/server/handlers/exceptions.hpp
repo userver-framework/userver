@@ -41,9 +41,6 @@ enum class HandlerErrorCode {
                      //!< the request
   kBadGateway,  //!< kBadGateway An error occured while passing the request to
                 //!< another service
-
-  kGatewayTimeout,  //!< kGatewayTimeout A timeout occured while passing the
-                    //!< request to another service
   // TODO More server-side error conditions
 };
 
