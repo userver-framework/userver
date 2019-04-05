@@ -22,19 +22,30 @@ class CacheInvalidator : public components::ComponentBase {
 
   void UnregisterCacheInvalidator(components::CacheUpdateTrait& owner);
 
+  void RegisterComponentInvalidator(components::ComponentBase& owner,
+                                    Callback&& handler);
+
+  void UnregisterComponentInvalidator(components::ComponentBase& owner);
+
   void InvalidateCaches();
 
  private:
+  template <typename T>
   struct Invalidator {
-    components::CacheUpdateTrait* owner;
+    T* owner;
     Callback handler;
 
-    Invalidator(components::CacheUpdateTrait* owner, Callback&& handler)
+    Invalidator(T* owner, Callback&& handler)
         : owner(owner), handler(std::move(handler)) {}
   };
 
+  template <typename T>
+  void UnregisterInvalidatorGeneric(T& owner,
+                                    std::vector<Invalidator<T>>& invalidators);
+
   engine::Mutex mutex_;
-  std::vector<Invalidator> cache_invalidators_;
+  std::vector<Invalidator<components::CacheUpdateTrait>> cache_invalidators_;
+  std::vector<Invalidator<components::ComponentBase>> invalidators_;
 };
 
 }  // namespace components

@@ -7,6 +7,7 @@
 
 namespace cache {
 
+/// Thread-unsafe LRU cache
 template <typename T, typename U>
 class LRU {
  public:
@@ -21,6 +22,12 @@ class LRU {
   U GetOr(const T& key, const U& default_value);
 
   void Resize(size_t new_max_size);
+
+  void Invalidate();
+
+  /// Call Function(const T&, const U&) for all items
+  template <typename Function>
+  void VisitAll(Function func) const;
 
  private:
   using Pair = std::pair<T, U>;
@@ -74,6 +81,18 @@ template <typename T, typename U>
 void LRU<T, U>::Resize(size_t new_max_size) {
   UASSERT(max_size_ > 0);
   max_size_ = new_max_size;
+}
+
+template <typename T, typename U>
+void LRU<T, U>::Invalidate() {
+  map_.clear();
+  list_.clear();
+}
+
+template <typename T, typename U>
+template <typename Function>
+void LRU<T, U>::VisitAll(Function func) const {
+  for (auto it : list_) func(it.first, it.second);
 }
 
 }  // namespace cache

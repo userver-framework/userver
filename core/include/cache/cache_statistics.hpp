@@ -8,6 +8,15 @@
 
 namespace cache {
 
+static const char* kStatisticsNameFull = "full";
+static const char* kStatisticsNameIncremental = "incremental";
+static const char* kStatisticsNameAny = "any";
+static const char* kStatisticsNameCurrentDocumentsCount =
+    "current-documents-count";
+
+static const char* kStatisticsNameHits = "hits";
+static const char* kStatisticsNameMisses = "misses";
+
 struct UpdateStatistics {
   std::atomic<size_t> update_attempt_count{0};
   std::atomic<size_t> update_no_changes_count{0};

@@ -130,11 +130,12 @@ formats::json::Value CachingComponentBase<T>::ExtendStatistics(
   const auto any = cache::CombineStatistics(full, incremental);
 
   formats::json::ValueBuilder builder;
-  builder["full"] = cache::StatisticsToJson(full);
-  builder["incremental"] = cache::StatisticsToJson(incremental);
-  builder["any"] = cache::StatisticsToJson(any);
+  builder[cache::kStatisticsNameFull] = cache::StatisticsToJson(full);
+  builder[cache::kStatisticsNameIncremental] =
+      cache::StatisticsToJson(incremental);
+  builder[cache::kStatisticsNameAny] = cache::StatisticsToJson(any);
 
-  builder["current-documents-count"] =
+  builder[cache::kStatisticsNameCurrentDocumentsCount] =
       GetStatistics().documents_current_count.load();
 
   return builder.ExtractValue();

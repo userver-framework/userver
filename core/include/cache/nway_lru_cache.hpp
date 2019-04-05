@@ -21,9 +21,14 @@ class NWayLRU {
 
   U GetOr(const T& key, const U& default_value);
 
+  void Invalidate();
+
+  template <typename Function>
+  void VisitAll(Function func) const;
+
  private:
   struct Way {
-    engine::Mutex mutex;
+    mutable engine::Mutex mutex;
     // max_size is not used, will be reset by Resize() in NWayLRU::NWayLRU
     LRU<T, U> cache{1};
   };
@@ -65,6 +70,23 @@ U NWayLRU<T, U>::GetOr(const T& key, const U& default_value) {
   auto& way = GetWay(key);
   std::unique_lock<engine::Mutex> lock(way.mutex);
   return way.cache.GetOr(key, default_value);
+}
+
+template <typename T, typename U>
+void NWayLRU<T, U>::Invalidate() {
+  for (auto& way : caches_) {
+    std::unique_lock<engine::Mutex> lock(way.mutex);
+    way.cache.Invalidate();
+  }
+}
+
+template <typename T, typename U>
+template <typename Function>
+void NWayLRU<T, U>::VisitAll(Function func) const {
+  for (const auto& way : caches_) {
+    std::unique_lock<engine::Mutex> lock(way.mutex);
+    way.cache.VisitAll(func);
+  }
 }
 
 template <typename T, typename U>
