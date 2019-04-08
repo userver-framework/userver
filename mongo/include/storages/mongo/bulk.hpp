@@ -1,100 +1,131 @@
 #pragma once
 
 /// @file storages/mongo/bulk.hpp
-/// @brief @copybrief storages::mongo::BulkOperationBuilder
+/// @brief Bulk collection operation model
 
-#include <memory>
+#include <storages/mongo/bulk_ops.hpp>
+#include <storages/mongo/options.hpp>
+#include <utils/fast_pimpl.hpp>
 
-#include <mongocxx/bulk_write.hpp>
-#include <mongocxx/write_concern.hpp>
+namespace storages::mongo {
+class Collection;
+}  // namespace storages::mongo
 
-#include <engine/task/task_with_result.hpp>
-#include <storages/mongo/mongo.hpp>
+namespace storages::mongo::operations {
 
-namespace storages {
-namespace mongo {
-
-namespace impl {
-class BulkOperationBuilderImpl;
-}  // namespace impl
-
-/// Bulk upsert suboperation interface
-class BulkUpsertBuilder {
+/// Efficiently executes a number of operations over a single collection
+class Bulk {
  public:
-  /// @cond
-  /// Constructor for internal use
-  BulkUpsertBuilder(std::shared_ptr<impl::BulkOperationBuilderImpl>&& bulk,
-                    DocumentValue query);
-  /// @endcond
+  enum class Mode { kOrdered, kUnordered };
 
-  /// Inserts or replaces a single matching document as a part of bulk operation
-  void ReplaceOne(DocumentValue) &&;
+  explicit Bulk(Mode);
+  ~Bulk();
 
-  /// Inserts or updates a single matching document as a part of bulk operation
-  void UpdateOne(DocumentValue) &&;
+  Bulk(const Bulk&) = delete;
+  Bulk(Bulk&&) noexcept;
+  Bulk& operator=(const Bulk&) = delete;
+  Bulk& operator=(Bulk&&) noexcept;
 
-  /// Inserts or updates all matching documents as a part of bulk operation
-  void UpdateMany(DocumentValue) &&;
+  void SetOption(options::WriteConcern::Level);
+  void SetOption(const options::WriteConcern&);
+  void SetOption(options::SuppressServerExceptions);
+
+  /// Inserts a single document
+  template <typename... Options>
+  void InsertOne(formats::bson::Document document, Options&&... options);
+
+  /// @brief Replaces a single matching document
+  /// @see options::Upsert
+  template <typename... Options>
+  void ReplaceOne(formats::bson::Document selector,
+                  formats::bson::Document replacement, Options&&... options);
+
+  /// @brief Updates a single matching document
+  /// @see options::Upsert
+  template <typename... Options>
+  void UpdateOne(formats::bson::Document selector,
+                 formats::bson::Document update, Options&&... options);
+
+  /// @brief Updates all matching documents
+  /// @see options::Upsert
+  template <typename... Options>
+  void UpdateMany(formats::bson::Document selector,
+                  formats::bson::Document update, Options&&... options);
+
+  /// Deletes a single matching document
+  template <typename... Options>
+  void DeleteOne(formats::bson::Document selector, Options&&... options);
+
+  /// Deletes all matching documents
+  template <typename... Options>
+  void DeleteMany(formats::bson::Document selector, Options&&... options);
+
+  /// @name Prepared sub-operation inserters
+  /// @{
+  void Append(const bulk_ops::InsertOne&);
+  void Append(const bulk_ops::ReplaceOne&);
+  void Append(const bulk_ops::Update&);
+  void Append(const bulk_ops::Delete&);
+  /// @}
 
  private:
-  std::shared_ptr<impl::BulkOperationBuilderImpl> bulk_;
-  DocumentValue query_;
+  friend class ::storages::mongo::Collection;
+
+  class Impl;
+  static constexpr size_t kSize = 16;
+  static constexpr size_t kAlignment = 8;
+  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
 };
 
-/// Bulk update suboperation interface
-class BulkUpdateBuilder {
- public:
-  /// @cond
-  /// Constructor for internal use
-  BulkUpdateBuilder(std::shared_ptr<impl::BulkOperationBuilderImpl> bulk,
-                    DocumentValue query);
-  /// @endcond
+template <typename... Options>
+void Bulk::InsertOne(formats::bson::Document document, Options&&... options) {
+  bulk_ops::InsertOne insert_subop(std::move(document));
+  (insert_subop.SetOption(std::forward<Options>(options)), ...);
+  Append(insert_subop);
+}
 
-  /// Converts this suboperation into an upsert
-  BulkUpsertBuilder Upsert() &&;
+template <typename... Options>
+void Bulk::ReplaceOne(formats::bson::Document selector,
+                      formats::bson::Document replacement,
+                      Options&&... options) {
+  bulk_ops::ReplaceOne replace_subop(std::move(selector),
+                                     std::move(replacement));
+  (replace_subop.SetOption(std::forward<Options>(options)), ...);
+  Append(replace_subop);
+}
 
-  /// Replaces a single matching document as a part of bulk operation
-  void ReplaceOne(DocumentValue) &&;
+template <typename... Options>
+void Bulk::UpdateOne(formats::bson::Document selector,
+                     formats::bson::Document update, Options&&... options) {
+  bulk_ops::Update update_subop(bulk_ops::Update::Mode::kSingle,
+                                std::move(selector), std::move(update));
+  (update_subop.SetOption(std::forward<Options>(options)), ...);
+  Append(update_subop);
+}
 
-  /// Updates a single matching document as a part of bulk operation
-  void UpdateOne(DocumentValue) &&;
+template <typename... Options>
+void Bulk::UpdateMany(formats::bson::Document selector,
+                      formats::bson::Document update, Options&&... options) {
+  bulk_ops::Update update_subop(bulk_ops::Update::Mode::kMulti,
+                                std::move(selector), std::move(update));
+  (update_subop.SetOption(std::forward<Options>(options)), ...);
+  Append(update_subop);
+}
 
-  /// Updates all matching documents as a part of bulk operation
-  void UpdateMany(DocumentValue) &&;
+template <typename... Options>
+void Bulk::DeleteOne(formats::bson::Document selector, Options&&... options) {
+  bulk_ops::Delete delete_subop(bulk_ops::Delete::Mode::kSingle,
+                                std::move(selector));
+  (delete_subop.SetOption(std::forward<Options>(options)), ...);
+  Append(delete_subop);
+}
 
-  /// Deletes a single matching document as a part of bulk operation
-  void DeleteOne() &&;
+template <typename... Options>
+void Bulk::DeleteMany(formats::bson::Document selector, Options&&... options) {
+  bulk_ops::Delete delete_subop(bulk_ops::Delete::Mode::kMulti,
+                                std::move(selector));
+  (delete_subop.SetOption(std::forward<Options>(options)), ...);
+  Append(delete_subop);
+}
 
-  /// Deletes all matching documents as a part of bulk operation
-  void DeleteMany() &&;
-
- private:
-  std::shared_ptr<impl::BulkOperationBuilderImpl> bulk_;
-  DocumentValue query_;
-};
-
-/// Bulk operation interface
-class BulkOperationBuilder {
- public:
-  /// @cond
-  /// Constructor for internal use
-  explicit BulkOperationBuilder(
-      std::shared_ptr<impl::BulkOperationBuilderImpl>&&);
-  /// @endcond
-
-  /// Interface for update suboperations
-  BulkUpdateBuilder Find(DocumentValue) const;
-
-  /// Inserts a single document as a part of bulk operation
-  void InsertOne(DocumentValue);
-
-  /// Runs the operation
-  engine::TaskWithResult<boost::optional<mongocxx::result::bulk_write>> Execute(
-      mongocxx::write_concern);
-
- private:
-  std::shared_ptr<impl::BulkOperationBuilderImpl> bulk_;
-};
-
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo::operations

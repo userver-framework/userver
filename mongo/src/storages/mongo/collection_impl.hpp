@@ -1,36 +1,48 @@
 #pragma once
 
-#include <memory>
-#include <string>
+#include <mongoc/mongoc.h>
 
-#include <mongocxx/collection.hpp>
+#include <tuple>
 
-#include "pool_impl.hpp"
+#include <storages/mongo/exception.hpp>
+#include <utils/text.hpp>
 
-namespace storages {
-namespace mongo {
-namespace impl {
+#include <storages/mongo/pool_impl.hpp>
+#include <storages/mongo/wrappers.hpp>
+
+namespace storages::mongo::impl {
 
 class CollectionImpl {
  public:
-  CollectionImpl(std::shared_ptr<PoolImpl> pool, std::string database_name,
+  CollectionImpl(PoolImplPtr pool_impl, std::string database_name,
                  std::string collection_name)
-      : pool_(std::move(pool)),
+      : pool_impl_(std::move(pool_impl)),
         database_name_(std::move(database_name)),
-        collection_name_(std::move(collection_name)) {}
-
-  PoolImpl& GetPool() { return *pool_; }
-
-  mongocxx::collection GetCollection(const PoolImpl::ConnectionPtr& conn) {
-    return conn->database(database_name_).collection(collection_name_);
+        collection_name_(std::move(collection_name)) {
+    if (!utils::text::IsCString(database_name_)) {
+      throw MongoException("Invalid database name: '" + database_name_ + '\'');
+    }
+    if (!utils::text::IsCString(collection_name_)) {
+      throw MongoException("Invalid collection name: '" + collection_name_ +
+                           '\'');
+    }
   }
 
- public:
-  const std::shared_ptr<PoolImpl> pool_;
-  const std::string database_name_;
-  const std::string collection_name_;
+  PoolImpl& GetPoolImpl() const { return *pool_impl_; }
+  const std::string& GetDatabaseName() const { return database_name_; }
+  const std::string& GetCollectionName() const { return collection_name_; }
+
+  std::tuple<BoundClientPtr, CollectionPtr> GetNativeCollection() {
+    auto client = pool_impl_->Acquire();
+    CollectionPtr collection(mongoc_client_get_collection(
+        client.get(), database_name_.c_str(), collection_name_.c_str()));
+    return std::make_tuple(std::move(client), std::move(collection));
+  }
+
+ private:
+  PoolImplPtr pool_impl_;
+  std::string database_name_;
+  std::string collection_name_;
 };
 
-}  // namespace impl
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo::impl

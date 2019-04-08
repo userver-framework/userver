@@ -1,51 +1,43 @@
 #include <storages/mongo/cursor.hpp>
 
-#include <utils/assert.hpp>
+#include <storages/mongo/cursor_impl.hpp>
 
-#include "cursor_impl.hpp"
+namespace storages::mongo {
 
-namespace storages {
-namespace mongo {
-
-Cursor::Cursor(std::unique_ptr<impl::CursorImpl>&& impl)
-    : impl_(std::move(impl)) {}
+Cursor::Cursor(impl::CursorImpl impl) : impl_(std::move(impl)) {}
 
 Cursor::~Cursor() = default;
 Cursor::Cursor(Cursor&&) noexcept = default;
 Cursor& Cursor::operator=(Cursor&&) noexcept = default;
 
-Cursor::Iterator Cursor::begin() const { return Iterator(impl_.get()); }
-Cursor::Iterator Cursor::end() const { return Iterator(nullptr); }
+bool Cursor::HasMore() const { return impl_->IsValid(); }
 
-bool Cursor::More() const { return begin() != end(); }
+Cursor::Iterator Cursor::begin() { return Iterator(this); }
 
-DocumentValue Cursor::Next() const { return std::move(*begin()++); }
+Cursor::Iterator Cursor::end() { return Iterator(nullptr); }
 
-Cursor::Iterator::Iterator(impl::CursorImpl* cursor) : cursor_(cursor) {
-  if (cursor_ && cursor_->IsExhausted()) cursor_ = nullptr;
+Cursor::Iterator::Iterator(Cursor* cursor) : cursor_(cursor) {
+  if (cursor_ && !cursor_->impl_->IsValid()) cursor_ = nullptr;
 }
 
-Cursor::Iterator::reference Cursor::Iterator::operator*() const {
-  UASSERT(cursor_);
-  return **cursor_;
-}
-
-Cursor::Iterator::pointer Cursor::Iterator::operator->() const {
-  UASSERT(cursor_);
-  return cursor_->operator->();
+Cursor::Iterator::DocHolder Cursor::Iterator::operator++(int) {
+  DocHolder old_value(**this);
+  ++*this;
+  return old_value;
 }
 
 Cursor::Iterator& Cursor::Iterator::operator++() {
-  UASSERT(cursor_);
-  ++*cursor_;
-  if (cursor_->IsExhausted()) cursor_ = nullptr;
+  cursor_->impl_->Next();
+  if (!cursor_->impl_->IsValid()) cursor_ = nullptr;
   return *this;
 }
 
-std::unique_ptr<DocumentValue> Cursor::Iterator::operator++(int) {
-  auto value = std::make_unique<DocumentValue>(**this);
-  ++*this;
-  return value;
+const formats::bson::Document& Cursor::Iterator::operator*() const {
+  return cursor_->impl_->Current();
+}
+
+const formats::bson::Document* Cursor::Iterator::operator->() const {
+  return &cursor_->impl_->Current();
 }
 
 bool Cursor::Iterator::operator==(const Iterator& rhs) const {
@@ -56,5 +48,4 @@ bool Cursor::Iterator::operator!=(const Iterator& rhs) const {
   return !(*this == rhs);
 }
 
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo

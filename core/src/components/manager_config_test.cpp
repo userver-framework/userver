@@ -157,7 +157,6 @@ fcm_subscribe_base_url: http://localhost:9999
 fs_worker_threads: 4
 logger_level: info
 main_worker_threads: 16
-mongo_worker_threads: 2
 monitor_worker_threads: 4
 pg_worker_threads: 4
 redis_threads: 8

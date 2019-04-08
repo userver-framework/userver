@@ -1,131 +1,250 @@
 #pragma once
 
-/// @file storages/mongo/collection.hpp
-/// @brief @copybrief storages::mongo::Collection
-
-#include <initializer_list>
 #include <memory>
-#include <string>
+#include <type_traits>
+#include <vector>
 
 #include <boost/optional.hpp>
-#include <bsoncxx/document/view_or_value.hpp>
-#include <mongocxx/collection.hpp>
 
-#include <engine/task/task_with_result.hpp>
+#include <formats/bson/document.hpp>
 #include <storages/mongo/bulk.hpp>
 #include <storages/mongo/cursor.hpp>
-#include <storages/mongo/mongo.hpp>
-#include <utils/flags.hpp>
+#include <storages/mongo/operations.hpp>
+#include <storages/mongo/write_result.hpp>
 
-namespace storages {
-namespace mongo {
+namespace storages::mongo {
 
 namespace impl {
 class CollectionImpl;
 }  // namespace impl
 
-/// Query projection set holder
-class FieldsToReturn {
- public:
-  /// Constructor from existing projection document
-  /*implicit*/ FieldsToReturn(DocumentValue);
-
-  /// Constructor from list of fields to return
-  FieldsToReturn(std::initializer_list<std::string>);
-
-  /// Projection document access
-  operator bsoncxx::document::view_or_value() &&;
-
- private:
-  DocumentValue fields_;
-};
-
-/// Database collection interface
+/// MongoDB collection
 class Collection {
  public:
-  /// @cond
-  /// Constructor for internal use
-  explicit Collection(std::shared_ptr<impl::CollectionImpl>&&);
-  /// @endcond
+  explicit Collection(std::shared_ptr<impl::CollectionImpl>);
 
-  /// @{
-  /// Finds a single document that match the provided filter
-  engine::TaskWithResult<boost::optional<DocumentValue>> FindOne(
-      DocumentValue query, mongocxx::options::find options = {}) const;
-  engine::TaskWithResult<boost::optional<DocumentValue>> FindOne(
-      DocumentValue query, FieldsToReturn fields,
-      mongocxx::options::find options = {}) const;
-  /// @}
+  /// Returns the number of documents matching the query
+  template <typename... Options>
+  size_t Count(formats::bson::Document filter, Options&&... options) const;
 
-  /// @{
-  /// Finds the documents matching the provided filter
-  engine::TaskWithResult<Cursor> Find(
-      DocumentValue query, mongocxx::options::find options = {}) const;
-  engine::TaskWithResult<Cursor> Find(
-      DocumentValue query, FieldsToReturn fields,
-      mongocxx::options::find options = {}) const;
-  /// @}
+  /// @brief Returns an approximated count of all documents in the collection
+  /// @note This method uses collection metadata since 4.0 and should be faster
+  template <typename... Options>
+  size_t CountApprox(Options&&... options) const;
 
-  /// Counts the number of documents matching the provided filter
-  engine::TaskWithResult<size_t> Count(
-      DocumentValue query, mongocxx::options::count options = {}) const;
+  /// Performs a query on the collection
+  template <typename... Options>
+  Cursor Find(formats::bson::Document filter, Options&&... options) const;
 
-  /// Deletes a single document matching the filter and returns the original
-  engine::TaskWithResult<boost::optional<DocumentValue>> FindOneAndDelete(
-      DocumentValue query, mongocxx::options::find_one_and_delete options = {});
+  /// Retrieves a single document from the collection
+  template <typename... Options>
+  boost::optional<formats::bson::Document> FindOne(
+      formats::bson::Document filter, Options&&... options) const;
 
-  /// @brief Replaces a single document matching the filter and returns it
-  /// @note Returns new value by default, you need to set the `return_document`
-  /// option to get the original
-  engine::TaskWithResult<boost::optional<DocumentValue>> FindOneAndReplace(
-      DocumentValue query, DocumentValue replacement,
-      mongocxx::options::find_one_and_replace options = {});
+  /// Inserts a single document into the collection
+  template <typename... Options>
+  WriteResult InsertOne(formats::bson::Document document, Options&&... options);
 
-  /// @brief Updates a single document matching the filter and returns it
-  /// @note Returns new value by default, you need to set the `return_document`
-  /// option to get the original
-  engine::TaskWithResult<boost::optional<DocumentValue>> FindOneAndUpdate(
-      DocumentValue query, DocumentValue update,
-      mongocxx::options::find_one_and_update options = {});
-
-  /// Inserts a single document
-  engine::TaskWithResult<void> InsertOne(
-      DocumentValue obj, mongocxx::options::insert options = {});
-
-  /// @brief Deletes a single matching document
-  /// @returns whether a document was deleted
-  engine::TaskWithResult<bool> DeleteOne(
-      DocumentValue query, mongocxx::options::delete_options options = {});
-
-  /// @brief Deletes all matching documents
-  /// @returns number of deleted documents
-  engine::TaskWithResult<size_t> DeleteMany(
-      DocumentValue query, mongocxx::options::delete_options options = {});
+  /// Inserts multiple documents into the collection
+  template <typename... Options>
+  WriteResult InsertMany(std::vector<formats::bson::Document> documents,
+                         Options&&... options);
 
   /// @brief Replaces a single matching document
-  /// @returns whether a document was matched
-  engine::TaskWithResult<bool> ReplaceOne(
-      DocumentValue query, DocumentValue replacement,
-      mongocxx::options::update options = {});
+  /// @see options::Upsert
+  template <typename... Options>
+  WriteResult ReplaceOne(formats::bson::Document selector,
+                         formats::bson::Document replacement,
+                         Options&&... options);
 
   /// @brief Updates a single matching document
-  /// @returns whether a document was matched
-  engine::TaskWithResult<bool> UpdateOne(
-      DocumentValue query, DocumentValue update,
-      mongocxx::options::update options = {});
+  /// @see options::Upsert
+  template <typename... Options>
+  WriteResult UpdateOne(formats::bson::Document selector,
+                        formats::bson::Document update, Options&&... options);
 
   /// @brief Updates all matching documents
-  /// @returns number of matched documents
-  engine::TaskWithResult<size_t> UpdateMany(
-      DocumentValue query, DocumentValue update,
-      mongocxx::options::update options = {});
+  /// @see options::Upsert
+  template <typename... Options>
+  WriteResult UpdateMany(formats::bson::Document selector,
+                         formats::bson::Document update, Options&&... options);
 
-  /// Unordered bulk operation interface
-  BulkOperationBuilder UnorderedBulk();
+  /// Deletes a single matching document
+  template <typename... Options>
+  WriteResult DeleteOne(formats::bson::Document selector, Options&&... options);
 
+  /// Deletes all matching documents
+  template <typename... Options>
+  WriteResult DeleteMany(formats::bson::Document selector,
+                         Options&&... options);
+
+  /// @brief Atomically updates a single matching document
+  /// @see options::ReturnNew
+  /// @see options::Upsert
+  template <typename... Options>
+  WriteResult FindAndModify(formats::bson::Document query,
+                            const formats::bson::Document& update,
+                            Options&&... options);
+
+  /// Atomically removes a single matching document
+  template <typename... Options>
+  WriteResult FindAndRemove(formats::bson::Document query,
+                            Options&&... options);
+
+  /// Efficiently executes multiple operations in order, stops on error
+  template <typename... Options>
+  operations::Bulk MakeOrderedBulk(Options&&... options);
+
+  /// Efficiently executes multiple operations out of order, continues on error
+  template <typename... Options>
+  operations::Bulk MakeUnorderedBulk(Options&&... options);
+
+  /// @name Prepared operation executors
+  /// @{
+  size_t Execute(const operations::Count&) const;
+  size_t Execute(const operations::CountApprox&) const;
+  Cursor Execute(const operations::Find&) const;
+  WriteResult Execute(const operations::InsertOne&);
+  WriteResult Execute(const operations::InsertMany&);
+  WriteResult Execute(const operations::ReplaceOne&);
+  WriteResult Execute(const operations::Update&);
+  WriteResult Execute(const operations::Delete&);
+  WriteResult Execute(const operations::FindAndModify&);
+  WriteResult Execute(const operations::FindAndRemove&);
+  WriteResult Execute(operations::Bulk&&);
+  /// @}
  private:
   std::shared_ptr<impl::CollectionImpl> impl_;
 };
 
-}  // namespace mongo
-}  // namespace storages
+template <typename... Options>
+size_t Collection::Count(formats::bson::Document filter,
+                         Options&&... options) const {
+  operations::Count count_op(std::move(filter));
+  (count_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(count_op);
+}
+
+template <typename... Options>
+size_t Collection::CountApprox(Options&&... options) const {
+  operations::CountApprox count_approx_op;
+  (count_approx_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(count_approx_op);
+}
+
+template <typename... Options>
+Cursor Collection::Find(formats::bson::Document filter,
+                        Options&&... options) const {
+  operations::Find find_op(std::move(filter));
+  (find_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(find_op);
+}
+
+template <typename... Options>
+boost::optional<formats::bson::Document> Collection::FindOne(
+    formats::bson::Document filter, Options&&... options) const {
+  static_assert(
+      !(std::is_same<std::decay_t<Options>, options::Limit>::value || ...),
+      "Limit option cannot be used in FindOne");
+  auto cursor = Find(std::move(filter), options::Limit{1},
+                     std::forward<Options>(options)...);
+  if (cursor.begin() == cursor.end()) return {};
+  return *cursor.begin();
+}
+
+template <typename... Options>
+WriteResult Collection::InsertOne(formats::bson::Document document,
+                                  Options&&... options) {
+  operations::InsertOne insert_op(std::move(document));
+  (insert_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(insert_op);
+}
+
+template <typename... Options>
+WriteResult Collection::InsertMany(
+    std::vector<formats::bson::Document> documents, Options&&... options) {
+  operations::InsertMany insert_op(std::move(documents));
+  (insert_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(insert_op);
+}
+
+template <typename... Options>
+WriteResult Collection::ReplaceOne(formats::bson::Document selector,
+                                   formats::bson::Document replacement,
+                                   Options&&... options) {
+  operations::ReplaceOne replace_op(std::move(selector),
+                                    std::move(replacement));
+  (replace_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(replace_op);
+}
+
+template <typename... Options>
+WriteResult Collection::UpdateOne(formats::bson::Document selector,
+                                  formats::bson::Document update,
+                                  Options&&... options) {
+  operations::Update update_op(operations::Update::Mode::kSingle,
+                               std::move(selector), std::move(update));
+  (update_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(update_op);
+}
+
+template <typename... Options>
+WriteResult Collection::UpdateMany(formats::bson::Document selector,
+                                   formats::bson::Document update,
+                                   Options&&... options) {
+  operations::Update update_op(operations::Update::Mode::kMulti,
+                               std::move(selector), std::move(update));
+  (update_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(update_op);
+}
+
+template <typename... Options>
+WriteResult Collection::DeleteOne(formats::bson::Document selector,
+                                  Options&&... options) {
+  operations::Delete delete_op(operations::Delete::Mode::kSingle,
+                               std::move(selector));
+  (delete_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(delete_op);
+}
+
+template <typename... Options>
+WriteResult Collection::DeleteMany(formats::bson::Document selector,
+                                   Options&&... options) {
+  operations::Delete delete_op(operations::Delete::Mode::kMulti,
+                               std::move(selector));
+  (delete_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(delete_op);
+}
+
+template <typename... Options>
+WriteResult Collection::FindAndModify(formats::bson::Document query,
+                                      const formats::bson::Document& update,
+                                      Options&&... options) {
+  operations::FindAndModify fam_op(std::move(query), update);
+  (fam_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(fam_op);
+}
+
+template <typename... Options>
+WriteResult Collection::FindAndRemove(formats::bson::Document query,
+                                      Options&&... options) {
+  operations::FindAndRemove fam_op(std::move(query));
+  (fam_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(fam_op);
+}
+
+template <typename... Options>
+operations::Bulk Collection::MakeOrderedBulk(Options&&... options) {
+  operations::Bulk bulk(operations::Bulk::Mode::kOrdered);
+  (bulk.SetOption(std::forward<Options>(options)), ...);
+  return bulk;
+}
+
+template <typename... Options>
+operations::Bulk Collection::MakeUnorderedBulk(Options&&... options) {
+  operations::Bulk bulk(operations::Bulk::Mode::kUnordered);
+  (bulk.SetOption(std::forward<Options>(options)), ...);
+  return bulk;
+}
+
+}  // namespace storages::mongo

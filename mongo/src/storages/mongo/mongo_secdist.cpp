@@ -3,9 +3,7 @@
 #include <storages/secdist/exceptions.hpp>
 #include <storages/secdist/helpers.hpp>
 
-namespace storages {
-namespace mongo {
-namespace secdist {
+namespace storages::mongo::secdist {
 
 MongoSettings::MongoSettings(const formats::json::Value& doc) {
   const formats::json::Value& mongo_settings = doc["mongo_settings"];
@@ -30,6 +28,4 @@ const std::string& MongoSettings::GetConnectionString(
   return it->second;
 }
 
-}  // namespace secdist
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo::secdist

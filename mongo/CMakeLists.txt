@@ -4,10 +4,6 @@ find_package_required_version(libbson-static-1.0
     "libyandex-taxi-mongo-c-driver-dev" 1.14.0)
 find_package_required_version(libmongoc-static-1.0
     "libyandex-taxi-mongo-c-driver-dev" 1.14.0)
-find_package_required_version(libbsoncxx-static
-    "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
-find_package_required_version(libmongocxx-static
-    "libyandex-taxi-mongo-cxx-driver-dev" 3.3.1)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
@@ -34,8 +30,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     yandex-taxi-userver-core
-    ${LIBBSONCXX_STATIC_LIBRARIES}
-    ${LIBMONGOCXX_STATIC_LIBRARIES}
   PRIVATE
     ${MONGOC_STATIC_LIBRARIES}
     ${BSON_STATIC_LIBRARIES}
@@ -49,8 +43,6 @@ target_include_directories(
 )
 # include them as system to suppress errors
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-  ${LIBBSONCXX_STATIC_INCLUDE_DIRS}
-  ${LIBMONGOCXX_STATIC_INCLUDE_DIRS}
   ${BSON_STATIC_INCLUDE_DIRS}
 )
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE

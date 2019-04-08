@@ -4,18 +4,12 @@
 /// @brief @copybrief storages::mongo::Pool
 
 #include <memory>
-#include <stdexcept>
 #include <string>
 
 #include <storages/mongo/collection.hpp>
 #include <storages/mongo/pool_config.hpp>
 
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
-
-namespace storages {
-namespace mongo {
+namespace storages::mongo {
 
 namespace impl {
 class PoolImpl;
@@ -25,19 +19,17 @@ class PoolImpl;
 class Pool {
  public:
   /// Client pool constructor
+  /// @param id pool identificaton string
   /// @param uri database connection string
-  /// @param task_processor TaskProcessor to use for synchronous operations
   /// @param config pool configuration
-  Pool(const std::string& uri, engine::TaskProcessor& task_processor,
-       const PoolConfig& config);
+  Pool(std::string id, const std::string& uri, const PoolConfig& config);
   ~Pool();
 
-  /// Returns an interface for the specified collection from default database
-  Collection GetCollection(std::string collection_name);
+  /// Checks whether a collection exists
+  bool HasCollection(const std::string& name) const;
 
-  /// Return an interface for the specified collection/database pair
-  Collection GetCollection(std::string database_name,
-                           std::string collection_name);
+  /// Returns a handle for the specified collection
+  Collection GetCollection(std::string name) const;
 
  private:
   std::shared_ptr<impl::PoolImpl> impl_;
@@ -45,5 +37,4 @@ class Pool {
 
 using PoolPtr = std::shared_ptr<Pool>;
 
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo

@@ -5,44 +5,39 @@
 #include <logging/level.hpp>
 #include <logging/log.hpp>
 
-namespace storages {
-namespace mongo {
-namespace impl {
+namespace storages::mongo::impl {
 namespace {
 
-logging::Level ConvertLogLevel(mongocxx::log_level level) {
+logging::Level ConvertLogLevel(mongoc_log_level_t level) {
   switch (level) {
-    case mongocxx::log_level::k_error:
-    case mongocxx::log_level::k_critical:
-    case mongocxx::log_level::k_warning:
+    case MONGOC_LOG_LEVEL_ERROR:
+    case MONGOC_LOG_LEVEL_CRITICAL:
+    case MONGOC_LOG_LEVEL_WARNING:
       return logging::Level::kWarning;
 
-    case mongocxx::log_level::k_message:
-    case mongocxx::log_level::k_info:
+    case MONGOC_LOG_LEVEL_MESSAGE:
+    case MONGOC_LOG_LEVEL_INFO:
       return logging::Level::kDebug;
 
-    case mongocxx::log_level::k_debug:
-    case mongocxx::log_level::k_trace:
+    case MONGOC_LOG_LEVEL_DEBUG:
+    case MONGOC_LOG_LEVEL_TRACE:
       return logging::Level::kTrace;
   }
-  LOG_WARNING() << "Unexpected mongocxx log level";
+  LOG_WARNING() << "Unexpected mongoc log level (" << level << ')';
   return logging::Level::kWarning;
 }
 
 }  // namespace
 
-void Logger::operator()(mongocxx::log_level level,
-                        mongocxx::stdx::string_view domain,
-                        mongocxx::stdx::string_view message) noexcept {
+void LogMongocMessage(mongoc_log_level_t level, const char* domain,
+                      const char* message, void*) {
   try {
     LOG(ConvertLogLevel(level))
-        << "Mongo driver " << to_string(level).to_string() << " ["
-        << domain.to_string() << "]: " << message.to_string();
+        << "Mongo driver " << mongoc_log_level_str(level) << " [" << domain
+        << "]: " << message;
   } catch (const std::exception&) {
     // cannot throw here
   }
 }
 
-}  // namespace impl
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo::impl

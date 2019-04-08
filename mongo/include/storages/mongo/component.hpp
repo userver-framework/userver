@@ -14,10 +14,6 @@
 #include <storages/secdist/component.hpp>
 #include <utils/swappingsmart.hpp>
 
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
-
 namespace components {
 
 // clang-format off
@@ -29,17 +25,16 @@ namespace components {
 /// ## Configuration example:
 ///
 /// ```
-/// {
-///   "name": "mongo-taxi",
-///   "dbalias": "taxi",
-///   "conn_timeout_ms": 5000,
-///   "so_timeout_ms": 30000,
-///   "min_pool_size": 32,
-///   "max_pool_size": 256,
-///   "max_pool_pending_requests": 5000,
-///   "queued_request_timeout_ms": 1000,
-///   "threads": "4"
-/// }
+/// mongo-taxi:
+///   dbalias: taxi
+///   appname: userver-sample
+///   conn_timeout: 5s
+///   so_timeout: 10s
+///   queue_timeout: 1s
+///   initial_size: 4
+///   max_size: 128
+///   idle_limit: 64
+///   connecting_limit: 8
 /// ```
 /// You must specify one of `dbalias` or `dbconnection`.
 ///
@@ -48,35 +43,26 @@ namespace components {
 /// ---- | ----------- | -------------
 /// dbalias | name of the database in secdist config (if available) | --
 /// dbconnection | connection string (used if no dbalias specified) | --
-/// conn_timeout_ms | connection timeout (ms) | 5s
-/// so_timeout_ms | socket timeout (ms) | 30s
-/// min_pool_size | number of connections created initially | 32
-/// max_pool_size | limit for idle connections number | 256
-/// max_pool_pending_requests | limit for pending requests number, set to `0` to disable | 5000
-/// queued_request_timeout_ms | TTL for non-started request (ms), set to `0` to disable | 1000
-/// threads | size of backing thread pool | 4
-///
-/// The limit for the total connections count is storages::mongo::PoolConfig::kCriticalSize.
+/// appname | application name for the DB server | userver
+/// conn_timeout | connection timeout | 5s
+/// so_timeout | socket timeout | 10s
+/// queue_timeout | max connection queue wait time | 1s
+/// initial_size | number of connections created initially | 4
+/// max_size | limit for total connections number | 128
+/// idle_limit | limit for idle connections number | 64
+/// connecting_limit | limit for establishing connections number | 8
 
 // clang-format on
 
 class Mongo : public LoggableComponentBase {
  public:
-  /// Default queued request TTL in milliseconds
-  static constexpr uint64_t kDefaultQueuedRequestTimeoutMs = 1000;
-  /// Default thread pool size
-  static constexpr size_t kDefaultThreadsNum = 4;
-
   /// Component constructor
   Mongo(const ComponentConfig&, const ComponentContext&);
-  /// Component destructor
-  ~Mongo();
 
   /// Client pool accessor
   storages::mongo::PoolPtr GetPool() const;
 
  private:
-  std::unique_ptr<engine::TaskProcessor> task_processor_;
   storages::mongo::PoolPtr pool_;
 };
 
@@ -89,29 +75,28 @@ class Mongo : public LoggableComponentBase {
 /// ## Configuration example:
 ///
 /// ```
-/// {
-///   "name": "mongo-dynamic",
-///   "conn_timeout_ms": 5000,
-///   "so_timeout_ms": 30000,
-///   "min_pool_size": 32,
-///   "max_pool_size": 256,
-///   "max_pool_pending_requests": 5000,
-///   "queued_request_timeout_ms": 1000,
-///   "threads": "8"
-/// }
+/// multi-mongo:
+///   appname: userver-sample
+///   conn_timeout: 5s
+///   so_timeout: 10s
+///   queue_timeout: 1s
+///   initial_size: 4
+///   max_size: 128
+///   idle_limit: 64
+///   connecting_limit: 8
 /// ```
+///
 /// ## Available options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// conn_timeout_ms | connection timeout (ms) | 5s
-/// so_timeout_ms | socket timeout (ms) | 30s
-/// min_pool_size | number of connections created initially (per database) | 32
-/// max_pool_size | limit for idle connections number (per database) | 256
-/// max_pool_pending_requests | limit for pending requests number, set to `0` to disable (per database) | 5000
-/// queued_request_timeout_ms | TTL for non-started request (ms), set to `0` to disable | 1000
-/// threads | size of backing thread pool (shared) | 8
-///
-/// The limit for the connections count per database is storages::mongo::PoolConfig::kCriticalSize.
+/// appname | application name for the DB server | userver
+/// conn_timeout | connection timeout | 5s
+/// so_timeout | socket timeout | 10s
+/// queue_timeout | max connection queue wait time | 1s
+/// initial_size | number of connections created initially (per database) | 4
+/// max_size | limit for total connections number (per database) | 128
+/// idle_limit | limit for idle connections number (per database) | 64
+/// connecting_limit | limit for establishing connections number (per database) | 8
 
 // clang-format on
 
@@ -122,15 +107,8 @@ class MultiMongo : public LoggableComponentBase {
  public:
   static constexpr const char* kName = "multi-mongo";
 
-  /// Default queued request TTL in milliseconds
-  static constexpr int64_t kDefaultQueuedRequestTimeoutMs = 1000;
-  /// Default shared thread pool size
-  static constexpr size_t kDefaultThreadsNum = 8;
-
   /// Component constructor
   MultiMongo(const ComponentConfig&, const ComponentContext&);
-  /// Component destructor
-  ~MultiMongo();
 
   /// Client pool accessor
   /// @param dbalias name previously passed to `AddPool`
@@ -186,9 +164,9 @@ class MultiMongo : public LoggableComponentBase {
  private:
   storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
 
+  const std::string name_;
   const Secdist& secdist_;
   const storages::mongo::PoolConfig pool_config_;
-  std::unique_ptr<engine::TaskProcessor> task_processor_;
   utils::SwappingSmart<PoolMap> pool_map_ptr_;
 };
 

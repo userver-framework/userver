@@ -1,276 +1,232 @@
 #include <storages/mongo/collection.hpp>
 
-#include <mongoc/mongoc.h>
-#include <bsoncxx/builder/basic/document.hpp>
-#include <bsoncxx/third_party/mnmlstc/core/optional.hpp>
-#include <mongocxx/exception/write_exception.hpp>
+#include <bson/bson.h>
 
-#include <engine/async.hpp>
+#include <formats/bson/document.hpp>
+#include <formats/bson/inline.hpp>
+#include <storages/mongo/mongo_error.hpp>
 
-#include "bulk_impl.hpp"
-#include "collection_impl.hpp"
-#include "cursor_impl.hpp"
-#include "pool_impl.hpp"
+#include <formats/bson/wrappers.hpp>
+#include <storages/mongo/collection_impl.hpp>
+#include <storages/mongo/cursor_impl.hpp>
+#include <storages/mongo/operations_common.hpp>
+#include <storages/mongo/operations_impl.hpp>
 
-namespace storages {
-namespace mongo {
-
+namespace storages::mongo {
 namespace {
 
-template <typename T>
-boost::optional<T> ToBoostOptional(core::optional<T>&& core_optional) {
-  if (!core_optional) return {};
-  return std::move(*core_optional);
-}
+class WriteResultHelper {
+ public:
+  bson_t* GetNative() { return bson_.Get(); }
 
-bool IsDuplicateKeyError(const mongocxx::write_exception& ex) {
-  return ex.code().value() == MONGOC_ERROR_DUPLICATE_KEY;
-}
-
-DocumentValue BuildFields(std::initializer_list<std::string> fields) {
-  bsoncxx::builder::basic::document builder;
-  for (const auto& field : fields) {
-    builder.append(bsoncxx::builder::basic::kvp(field, 1));
+  WriteResult Extract() {
+    return WriteResult(formats::bson::Document(bson_.Extract()));
   }
-  return builder.extract();
-}
+
+ private:
+  formats::bson::impl::UninitializedBson bson_;
+};
 
 }  // namespace
 
-FieldsToReturn::FieldsToReturn(DocumentValue fields)
-    : fields_(std::move(fields)) {}
-
-FieldsToReturn::FieldsToReturn(std::initializer_list<std::string> fields)
-    : fields_(BuildFields(fields)) {}
-
-FieldsToReturn::operator bsoncxx::document::view_or_value() && {
-  return std::move(fields_);
-}
-
-Collection::Collection(std::shared_ptr<impl::CollectionImpl>&& impl)
+Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl)
     : impl_(std::move(impl)) {}
 
-engine::TaskWithResult<boost::optional<DocumentValue>> Collection::FindOne(
-    DocumentValue query, mongocxx::options::find options) const {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
-                     const auto& options) {
-        auto conn = token.GetConnection();
-        return ToBoostOptional(
-            impl->GetCollection(conn).find_one(std::move(query), options));
-      },
-      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
+size_t Collection::Execute(const operations::Count& count_op) const {
+  auto [client, collection] = impl_->GetNativeCollection();
+
+  MongoError error;
+  auto count = mongoc_collection_count_documents(
+      collection.get(), count_op.impl_->filter.GetBson().get(),
+      impl::GetNative(count_op.impl_->options),
+      count_op.impl_->read_prefs.get(), nullptr, error.GetNative());
+  if (count < 0) {
+    error.Throw("Error counting documents");
+  }
+  return count;
 }
 
-engine::TaskWithResult<boost::optional<DocumentValue>> Collection::FindOne(
-    DocumentValue query, FieldsToReturn fields,
-    mongocxx::options::find options) const {
-  options.projection(std::move(fields));
-  return FindOne(std::move(query), std::move(options));
+size_t Collection::Execute(
+    const operations::CountApprox& count_approx_op) const {
+  auto [client, collection] = impl_->GetNativeCollection();
+
+  MongoError error;
+  auto count = mongoc_collection_estimated_document_count(
+      collection.get(), impl::GetNative(count_approx_op.impl_->options),
+      count_approx_op.impl_->read_prefs.get(), nullptr, error.GetNative());
+  if (count < 0) {
+    error.Throw("Error counting documents");
+  }
+  return count;
 }
 
-engine::TaskWithResult<Cursor> Collection::Find(
-    DocumentValue query, mongocxx::options::find options) const {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
-                     const auto& options) {
-        auto conn = token.GetConnection();
-        auto cursor = impl->GetCollection(conn).find(std::move(query), options);
-        return Cursor(std::make_unique<impl::CursorImpl>(
-            impl->GetPool().GetTaskProcessor(), std::move(conn),
-            std::move(cursor)));
-      },
-      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
+Cursor Collection::Execute(const operations::Find& find_op) const {
+  auto [client, collection] = impl_->GetNativeCollection();
+  impl::CursorPtr native_cursor(mongoc_collection_find_with_opts(
+      collection.get(), find_op.impl_->filter.GetBson().get(),
+      impl::GetNative(find_op.impl_->options),
+      find_op.impl_->read_prefs.get()));
+  return Cursor(impl::CursorImpl(std::move(client), std::move(native_cursor)));
 }
 
-engine::TaskWithResult<Cursor> Collection::Find(
-    DocumentValue query, FieldsToReturn fields,
-    mongocxx::options::find options) const {
-  options.projection(std::move(fields));
-  return Find(std::move(query), std::move(options));
+WriteResult Collection::Execute(const operations::InsertOne& insert_op) {
+  auto [client, collection] = impl_->GetNativeCollection();
+
+  MongoError error;
+  WriteResultHelper write_result;
+  if (!mongoc_collection_insert_one(
+          collection.get(), insert_op.impl_->document.GetBson().get(),
+          impl::GetNative(insert_op.impl_->options), write_result.GetNative(),
+          error.GetNative()) &&
+      (insert_op.impl_->should_throw || !error.IsServerError())) {
+    error.Throw("Error inserting document");
+  }
+  return write_result.Extract();
 }
 
-engine::TaskWithResult<boost::optional<DocumentValue>>
-Collection::FindOneAndDelete(DocumentValue query,
-                             mongocxx::options::find_one_and_delete options) {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
-                     const auto& options) {
-        auto conn = token.GetConnection();
-        return ToBoostOptional(impl->GetCollection(conn).find_one_and_delete(
-            std::move(query), options));
-      },
-      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
-}
+WriteResult Collection::Execute(const operations::InsertMany& insert_op) {
+  if (insert_op.impl_->documents.empty()) return {};
 
-engine::TaskWithResult<boost::optional<DocumentValue>>
-Collection::FindOneAndReplace(DocumentValue query, DocumentValue replacement,
-                              mongocxx::options::find_one_and_replace options) {
-  if (!options.return_document()) {
-    options.return_document(mongocxx::options::return_document::k_after);
+  std::vector<const bson_t*> bsons;
+  bsons.reserve(insert_op.impl_->documents.size());
+  for (const auto& doc : insert_op.impl_->documents) {
+    bsons.push_back(doc.GetBson().get());
   }
 
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
-                     auto&& replacement, const auto& options) {
-        auto conn = token.GetConnection();
-        try {
-          return ToBoostOptional(impl->GetCollection(conn).find_one_and_replace(
-              query.view(), replacement.view(), options));
-        } catch (const mongocxx::write_exception& ex) {
-          // Retry duplicate key upsert once, could've been race
-          if (IsDuplicateKeyError(ex) && options.upsert() &&
-              *options.upsert()) {
-            return ToBoostOptional(
-                impl->GetCollection(conn).find_one_and_replace(
-                    query.view(), replacement.view(), options));
-          } else {
-            throw;
-          }
-        }
-      },
-      impl_->GetPool().AcquireToken(), std::move(query), std::move(replacement),
-      std::move(options));
-}
+  auto [client, collection] = impl_->GetNativeCollection();
 
-engine::TaskWithResult<boost::optional<DocumentValue>>
-Collection::FindOneAndUpdate(DocumentValue query, DocumentValue update,
-                             mongocxx::options::find_one_and_update options) {
-  if (!options.return_document()) {
-    options.return_document(mongocxx::options::return_document::k_after);
+  MongoError error;
+  WriteResultHelper write_result;
+  if (!mongoc_collection_insert_many(
+          collection.get(), bsons.data(), bsons.size(),
+          impl::GetNative(insert_op.impl_->options), write_result.GetNative(),
+          error.GetNative()) &&
+      (insert_op.impl_->should_throw || !error.IsServerError())) {
+    error.Throw("Error inserting documents");
   }
-
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
-                     auto&& update, const auto& options) {
-        auto conn = token.GetConnection();
-        try {
-          return ToBoostOptional(impl->GetCollection(conn).find_one_and_update(
-              query.view(), update.view(), options));
-        } catch (const mongocxx::write_exception& ex) {
-          // Retry duplicate key upsert once, could've been race
-          if (IsDuplicateKeyError(ex) && options.upsert() &&
-              *options.upsert()) {
-            return ToBoostOptional(
-                impl->GetCollection(conn).find_one_and_update(
-                    query.view(), update.view(), options));
-          } else {
-            throw;
-          }
-        }
-      },
-      impl_->GetPool().AcquireToken(), std::move(query), std::move(update),
-      std::move(options));
+  return write_result.Extract();
 }
 
-engine::TaskWithResult<void> Collection::InsertOne(
-    DocumentValue obj, mongocxx::options::insert options) {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& obj,
-                     const auto& options) {
-        auto conn = token.GetConnection();
-        impl->GetCollection(conn).insert_one(std::move(obj), options);
-      },
-      impl_->GetPool().AcquireToken(), std::move(obj), std::move(options));
+WriteResult Collection::Execute(const operations::ReplaceOne& replace_op) {
+  auto [client, collection] = impl_->GetNativeCollection();
+
+  MongoError error;
+  WriteResultHelper write_result;
+  if (!mongoc_collection_replace_one(
+          collection.get(), replace_op.impl_->selector.GetBson().get(),
+          replace_op.impl_->replacement.GetBson().get(),
+          impl::GetNative(replace_op.impl_->options), write_result.GetNative(),
+          error.GetNative()) &&
+      (replace_op.impl_->should_throw || !error.IsServerError())) {
+    error.Throw("Error replacing document");
+  }
+  return write_result.Extract();
 }
 
-engine::TaskWithResult<size_t> Collection::Count(
-    DocumentValue query, mongocxx::options::count options) const {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
-                     const auto& options) -> size_t {
-        auto conn = token.GetConnection();
-        return impl->GetCollection(conn).count(std::move(query), options);
-      },
-      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
+WriteResult Collection::Execute(const operations::Update& update_op) {
+  auto [client, collection] = impl_->GetNativeCollection();
+
+  MongoError error;
+  WriteResultHelper write_result;
+  bool has_succeeded = false;
+  switch (update_op.impl_->mode) {
+    case operations::Update::Mode::kSingle:
+      has_succeeded = mongoc_collection_update_one(
+          collection.get(), update_op.impl_->selector.GetBson().get(),
+          update_op.impl_->update.GetBson().get(),
+          impl::GetNative(update_op.impl_->options), write_result.GetNative(),
+          error.GetNative());
+      break;
+
+    case operations::Update::Mode::kMulti:
+      has_succeeded = mongoc_collection_update_many(
+          collection.get(), update_op.impl_->selector.GetBson().get(),
+          update_op.impl_->update.GetBson().get(),
+          impl::GetNative(update_op.impl_->options), write_result.GetNative(),
+          error.GetNative());
+      break;
+  }
+  if (!has_succeeded &&
+      (update_op.impl_->should_throw || !error.IsServerError())) {
+    error.Throw("Error updating documents");
+  }
+  return write_result.Extract();
 }
 
-engine::TaskWithResult<bool> Collection::DeleteOne(
-    DocumentValue query, mongocxx::options::delete_options options) {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
-                     const auto& options) {
-        auto conn = token.GetConnection();
-        auto result =
-            impl->GetCollection(conn).delete_one(std::move(query), options);
-        return result && result->deleted_count();
-      },
-      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
+WriteResult Collection::Execute(const operations::Delete& delete_op) {
+  auto [client, collection] = impl_->GetNativeCollection();
+
+  MongoError error;
+  WriteResultHelper write_result;
+  bool has_succeeded = false;
+  switch (delete_op.impl_->mode) {
+    case operations::Delete::Mode::kSingle:
+      has_succeeded = mongoc_collection_delete_one(
+          collection.get(), delete_op.impl_->selector.GetBson().get(),
+          impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
+          error.GetNative());
+      break;
+
+    case operations::Delete::Mode::kMulti:
+      has_succeeded = mongoc_collection_delete_many(
+          collection.get(), delete_op.impl_->selector.GetBson().get(),
+          impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
+          error.GetNative());
+      break;
+  }
+  if (!has_succeeded &&
+      (delete_op.impl_->should_throw || !error.IsServerError())) {
+    error.Throw("Error deleting documents");
+  }
+  return write_result.Extract();
 }
 
-engine::TaskWithResult<size_t> Collection::DeleteMany(
-    DocumentValue query, mongocxx::options::delete_options options) {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_](impl::PoolImpl::ConnectionToken&& token, auto&& query,
-                     const auto& options) -> size_t {
-        auto conn = token.GetConnection();
-        auto result =
-            impl->GetCollection(conn).delete_many(std::move(query), options);
-        return result ? result->deleted_count() : 0;
-      },
-      impl_->GetPool().AcquireToken(), std::move(query), std::move(options));
+WriteResult Collection::Execute(const operations::FindAndModify& fam_op) {
+  auto [client, collection] = impl_->GetNativeCollection();
+
+  MongoError error;
+  WriteResultHelper write_result;
+  if (!mongoc_collection_find_and_modify_with_opts(
+          collection.get(), fam_op.impl_->query.GetBson().get(),
+          fam_op.impl_->options.get(), write_result.GetNative(),
+          error.GetNative())) {
+    error.Throw("Error running find and modify");
+  }
+  return write_result.Extract();
 }
 
-engine::TaskWithResult<bool> Collection::ReplaceOne(
-    DocumentValue query, DocumentValue replacement,
-    mongocxx::options::update options) {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_, query = std::move(query),
-       replacement = std::move(replacement),
-       options = std::move(options)](impl::PoolImpl::ConnectionToken&& token) {
-        auto conn = token.GetConnection();
-        auto result = impl->GetCollection(conn).replace_one(
-            query.view(), replacement.view(), options);
-        return result && result->matched_count();
-      },
-      impl_->GetPool().AcquireToken());
+WriteResult Collection::Execute(const operations::FindAndRemove& fam_op) {
+  auto [client, collection] = impl_->GetNativeCollection();
+
+  MongoError error;
+  WriteResultHelper write_result;
+  if (!mongoc_collection_find_and_modify_with_opts(
+          collection.get(), fam_op.impl_->query.GetBson().get(),
+          fam_op.impl_->options.get(), write_result.GetNative(),
+          error.GetNative())) {
+    error.Throw("Error running find and remove");
+  }
+  return write_result.Extract();
 }
 
-engine::TaskWithResult<bool> Collection::UpdateOne(
-    DocumentValue query, DocumentValue update,
-    mongocxx::options::update options) {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_, query = std::move(query), update = std::move(update),
-       options = std::move(options)](impl::PoolImpl::ConnectionToken&& token) {
-        auto conn = token.GetConnection();
-        auto result = impl->GetCollection(conn).update_one(
-            query.view(), update.view(), options);
-        return result && result->matched_count();
-      },
-      impl_->GetPool().AcquireToken());
+WriteResult Collection::Execute(operations::Bulk&& bulk_op) {
+  mongoc_bulk_operation_set_database(bulk_op.impl_->bulk.get(),
+                                     impl_->GetDatabaseName().c_str());
+  mongoc_bulk_operation_set_collection(bulk_op.impl_->bulk.get(),
+                                       impl_->GetCollectionName().c_str());
+
+  auto client = impl_->GetPoolImpl().Acquire();
+  mongoc_bulk_operation_set_client(bulk_op.impl_->bulk.get(), client.get());
+
+  MongoError error;
+  WriteResultHelper write_result;
+  if (!mongoc_bulk_operation_execute(bulk_op.impl_->bulk.get(),
+                                     write_result.GetNative(),
+                                     error.GetNative()) &&
+      (bulk_op.impl_->should_throw || !error.IsServerError())) {
+    error.Throw("Error running bulk operation");
+  }
+  return write_result.Extract();
 }
 
-engine::TaskWithResult<size_t> Collection::UpdateMany(
-    DocumentValue query, DocumentValue update,
-    mongocxx::options::update options) {
-  return engine::impl::Async(
-      impl_->GetPool().GetTaskProcessor(),
-      [impl = impl_, query = std::move(query), update = std::move(update),
-       options = std::move(options)](
-          impl::PoolImpl::ConnectionToken&& token) -> size_t {
-        auto conn = token.GetConnection();
-        auto result = impl->GetCollection(conn).update_many(
-            query.view(), update.view(), options);
-        return result ? result->matched_count() : 0;
-      },
-      impl_->GetPool().AcquireToken());
-}
-
-BulkOperationBuilder Collection::UnorderedBulk() {
-  return BulkOperationBuilder(
-      std::make_shared<impl::BulkOperationBuilderImpl>(impl_));
-}
-
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo

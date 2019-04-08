@@ -1,65 +1,65 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <memory>
+#include <string>
+
+#include <mongoc/mongoc.h>
 
 #include <boost/lockfree/queue.hpp>
-#include <mongocxx/client.hpp>
-#include <mongocxx/uri.hpp>
 
-#include <engine/task/task_processor.hpp>
+#include <engine/deadline.hpp>
+#include <engine/semaphore.hpp>
 #include <storages/mongo/pool_config.hpp>
+#include <storages/mongo/wrappers.hpp>
+#include <utils/assert.hpp>
 
-namespace storages {
-namespace mongo {
-namespace impl {
+namespace storages::mongo::impl {
 
 class PoolImpl {
  public:
-  using Connection = mongocxx::client;
-  using ConnectionPtr =
-      std::unique_ptr<Connection, std::function<void(Connection*)>>;
-
-  class ConnectionToken {
+  class ClientPusher {
    public:
-    explicit ConnectionToken(PoolImpl* pool);
-    ~ConnectionToken();
-
-    ConnectionToken(ConnectionToken&& other) noexcept;
-
-    ConnectionPtr GetConnection();
+    explicit ClientPusher(PoolImpl* pool) : pool_(pool) { UASSERT(pool_); }
+    void operator()(mongoc_client_t* client) const noexcept {
+      pool_->Push(client);
+    }
 
    private:
     PoolImpl* pool_;
   };
+  using BoundClientPtr = std::unique_ptr<mongoc_client_t, ClientPusher>;
 
-  PoolImpl(engine::TaskProcessor& task_processor, const std::string& uri,
+  PoolImpl(std::string id, const std::string& uri_string,
            const PoolConfig& config);
   ~PoolImpl();
 
-  ConnectionToken AcquireToken();
+  const std::string& DefaultDatabaseName() const;
 
-  const std::string& GetDefaultDatabaseName() const;
-  engine::TaskProcessor& GetTaskProcessor();
+  BoundClientPtr Acquire();
 
  private:
-  void Push(Connection* connection);
-  Connection* Pop();
+  void Push(mongoc_client_t*) noexcept;
+  mongoc_client_t* Pop();
 
-  Connection* Create();
-  void Clear();
+  mongoc_client_t* TryGetIdle();
+  mongoc_client_t* Create();
 
-  engine::TaskProcessor& task_processor_;
-  mongocxx::uri uri_;
-  std::string default_database_name_;
+  const std::string id_;
+  const std::string app_name_;
+  std::string default_database_;
+  UriPtr uri_;
+  mongoc_ssl_opt_t ssl_opt_;
 
-  boost::lockfree::queue<Connection*> queue_;
-  std::atomic<size_t> size_;
-
-  const size_t tokens_limit_;
-  std::atomic<size_t> tokens_issued_;
+  const size_t max_size_;
+  const std::chrono::milliseconds queue_timeout_;
+  engine::Semaphore size_semaphore_;
+  engine::Semaphore connecting_semaphore_;
+  boost::lockfree::queue<mongoc_client_t*> queue_;
 };
 
-}  // namespace impl
-}  // namespace mongo
-}  // namespace storages
+using BoundClientPtr = PoolImpl::BoundClientPtr;
+using PoolImplPtr = std::shared_ptr<PoolImpl>;
+
+}  // namespace storages::mongo::impl

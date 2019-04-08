@@ -1,42 +1,28 @@
 #pragma once
 
-#include <mongocxx/cursor.hpp>
+#include <boost/optional.hpp>
 
-#include <engine/async.hpp>
-#include <engine/task/task_processor.hpp>
-#include "pool_impl.hpp"
+#include <formats/bson/document.hpp>
 
-namespace storages {
-namespace mongo {
-namespace impl {
+#include <storages/mongo/pool_impl.hpp>
+#include <storages/mongo/wrappers.hpp>
+
+namespace storages::mongo::impl {
 
 class CursorImpl {
  public:
-  // mongocxx::cursor::begin() may block
-  CursorImpl(engine::TaskProcessor& task_processor,
-             PoolImpl::ConnectionPtr&& conn, mongocxx::cursor&& cursor)
-      : task_processor_(task_processor),
-        conn_(std::move(conn)),
-        cursor_(std::move(cursor)),
-        it_(cursor_.begin()) {}
+  CursorImpl(PoolImpl::BoundClientPtr, CursorPtr);
 
-  bool IsExhausted() { return cursor_.begin() == cursor_.end(); }
+  bool IsValid() const;
+  bool HasMore() const;
 
-  decltype(auto) operator*() const { return *it_; }
-  decltype(auto) operator-> () const { return it_.operator->(); }
-
-  CursorImpl& operator++() {
-    engine::impl::Async(task_processor_, [this] { ++it_; }).Get();
-    return *this;
-  }
+  const formats::bson::Document& Current() const;
+  void Next();
 
  private:
-  engine::TaskProcessor& task_processor_;
-  const PoolImpl::ConnectionPtr conn_;
-  mongocxx::cursor cursor_;
-  mongocxx::cursor::iterator it_;
+  boost::optional<formats::bson::Document> current_;
+  PoolImpl::BoundClientPtr client_;
+  CursorPtr cursor_;
 };
 
-}  // namespace impl
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo::impl

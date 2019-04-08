@@ -1,150 +1,181 @@
-#include "pool_impl.hpp"
+#include <storages/mongo/pool_impl.hpp>
 
-#include <bson/bson.h>
-#include <mongoc/mongoc.h>
+#include <chrono>
+#include <limits>
 
-#include <bsoncxx/builder/basic/document.hpp>
-#include <bsoncxx/document/value.hpp>
-#include <mongocxx/exception/operation_exception.hpp>
-#include <mongocxx/instance.hpp>
-
+#include <formats/bson.hpp>
 #include <logging/log.hpp>
-#include <storages/mongo/error.hpp>
-#include <storages/mongo/pool.hpp>
+#include <storages/mongo/exception.hpp>
+#include <storages/mongo/mongo_error.hpp>
+#include <utils/assert.hpp>
+#include <utils/traceful_exception.hpp>
 
-#include "logger.hpp"
+#include <storages/mongo/async_stream.hpp>
 
-namespace storages {
-namespace mongo {
-namespace impl {
+namespace storages::mongo::impl {
 namespace {
 
-mongocxx::uri MakeUriWithTimeouts(const std::string& uri, int conn_timeout_ms,
-                                  int so_timeout_ms) {
-  // mongocxx doesn't provide options setters for uri
-  bson_error_t parse_error;
-  std::unique_ptr<mongoc_uri_t, decltype(&mongoc_uri_destroy)> parsed_uri(
-      mongoc_uri_new_with_error(uri.c_str(), &parse_error),
-      &mongoc_uri_destroy);
-  if (!parsed_uri) {
-    throw InvalidConfig(std::string("bad uri: ") + parse_error.message);
+int32_t CheckedTimeoutMs(const std::chrono::milliseconds& timeout,
+                         const char* name) {
+  auto timeout_ms = timeout.count();
+  if (timeout_ms < 0 || timeout_ms > std::numeric_limits<int32_t>::max()) {
+    throw InvalidConfigException("Bad value ")
+        << timeout_ms << "ms for '" << name << '\'';
   }
-  mongoc_uri_set_option_as_int32(parsed_uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
-                                 conn_timeout_ms);
-  mongoc_uri_set_option_as_int32(parsed_uri.get(), MONGOC_URI_SOCKETTIMEOUTMS,
-                                 so_timeout_ms);
-  return mongocxx::uri(mongoc_uri_get_string(parsed_uri.get()));
+  return timeout_ms;
+}
+
+UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
+               std::chrono::milliseconds conn_timeout,
+               std::chrono::milliseconds so_timeout) {
+  MongoError parse_error;
+  UriPtr uri(
+      mongoc_uri_new_with_error(uri_string.c_str(), parse_error.GetNative()));
+  if (!uri) {
+    throw InvalidConfigException("Bad MongoDB uri for pool '")
+        << pool_id << "': " << parse_error.Message();
+  }
+  mongoc_uri_set_option_as_int32(
+      uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
+      CheckedTimeoutMs(conn_timeout, MONGOC_URI_CONNECTTIMEOUTMS));
+  mongoc_uri_set_option_as_int32(
+      uri.get(), MONGOC_URI_SOCKETTIMEOUTMS,
+      CheckedTimeoutMs(so_timeout, MONGOC_URI_SOCKETTIMEOUTMS));
+  return uri;
+}
+
+mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
+  mongoc_ssl_opt_t ssl_opt = *mongoc_ssl_opt_get_default();
+  ssl_opt.pem_file = mongoc_uri_get_option_as_utf8(
+      uri, MONGOC_URI_SSLCLIENTCERTIFICATEKEYFILE, NULL);
+  ssl_opt.pem_pwd = mongoc_uri_get_option_as_utf8(
+      uri, MONGOC_URI_SSLCLIENTCERTIFICATEKEYPASSWORD, NULL);
+  ssl_opt.ca_file = mongoc_uri_get_option_as_utf8(
+      uri, MONGOC_URI_SSLCERTIFICATEAUTHORITYFILE, NULL);
+  ssl_opt.weak_cert_validation = mongoc_uri_get_option_as_bool(
+      uri, MONGOC_URI_SSLALLOWINVALIDCERTIFICATES, false);
+  ssl_opt.allow_invalid_hostname = mongoc_uri_get_option_as_bool(
+      uri, MONGOC_URI_SSLALLOWINVALIDHOSTNAMES, false);
+  return ssl_opt;
 }
 
 }  // namespace
 
-PoolImpl::ConnectionToken::ConnectionToken(PoolImpl* pool) : pool_(pool) {
-  assert(pool_);
+PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
+                   const PoolConfig& config)
+    : id_(std::move(id)),
+      app_name_(config.app_name),
+      max_size_(config.max_size),
+      queue_timeout_(config.queue_timeout),
+      size_semaphore_(config.max_size),
+      connecting_semaphore_(config.connecting_limit),
+      queue_(config.idle_limit) {
+  static const GlobalInitializer kInitMongoc;
+  CheckAsyncStreamCompatible();
 
-  const auto new_tokens_issued = ++pool_->tokens_issued_;
-  if (pool_->tokens_limit_ && new_tokens_issued > pool_->tokens_limit_) {
-    --pool_->tokens_issued_;
-    throw PoolError("Mongo pool reached pending requests limit: " +
-                    std::to_string(new_tokens_issued));
+  uri_ = MakeUri(id_, uri_string, config.conn_timeout, config.so_timeout);
+  const char* uri_database = mongoc_uri_get_database(uri_.get());
+  if (!uri_database) {
+    throw InvalidConfigException("MongoDB uri for pool '")
+        << id_ << "' must include database name";
   }
-}
+  default_database_ = uri_database;
 
-PoolImpl::ConnectionToken::~ConnectionToken() {
-  if (pool_) --pool_->tokens_issued_;
-}
-
-PoolImpl::ConnectionToken::ConnectionToken(ConnectionToken&& other) noexcept
-    : pool_(std::exchange(other.pool_, nullptr)) {}
-
-PoolImpl::ConnectionPtr PoolImpl::ConnectionToken::GetConnection() {
-  return {pool_->Pop(),
-          [pool = pool_](Connection* connection) { pool->Push(connection); }};
-}
-
-PoolImpl::PoolImpl(engine::TaskProcessor& task_processor,
-                   const std::string& uri, const PoolConfig& config)
-    : task_processor_(task_processor),
-      queue_(config.max_size),
-      size_(0),
-      tokens_limit_(config.max_pending_requests),
-      tokens_issued_(0) {
-  // global mongocxx initializer
-  static const mongocxx::instance kDriverInit(std::make_unique<impl::Logger>());
-
-  uri_ = MakeUriWithTimeouts(uri, config.conn_timeout_ms, config.so_timeout_ms);
-  if (uri_.hosts().size() != 1) {
-    throw InvalidConfig("bad uri: specify exactly one server");
-  }
-  default_database_name_ = uri_.database();
+  ssl_opt_ = MakeSslOpt(uri_.get());
 
   try {
-    LOG_INFO() << "Creating " << config.min_size << " mongo connections";
-    for (size_t i = 0; i < config.min_size; ++i) Push(Create());
+    LOG_INFO() << "Creating " << config.initial_size << " mongo connections";
+    for (size_t i = 0; i < config.initial_size; ++i) Push(Create());
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Mongo pool pre-population failed: " << ex;
-    Clear();
-    throw;
+    LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex;
   }
 }
 
-PoolImpl::~PoolImpl() { Clear(); }
-
-PoolImpl::ConnectionToken PoolImpl::AcquireToken() {
-  return ConnectionToken(this);
+PoolImpl::~PoolImpl() {
+  const ClientDeleter deleter;
+  mongoc_client_t* client = nullptr;
+  while (queue_.pop(client)) deleter(client);
 }
 
-void PoolImpl::Push(Connection* connection) {
-  UASSERT(connection);
-  if (queue_.push(connection)) return;
-  delete connection;
-  --size_;
+const std::string& PoolImpl::DefaultDatabaseName() const {
+  return default_database_;
 }
 
-PoolImpl::Connection* PoolImpl::Pop() {
-  Connection* connection = nullptr;
-  if (queue_.pop(connection)) return connection;
+PoolImpl::BoundClientPtr PoolImpl::Acquire() {
+  return {Pop(), ClientPusher(this)};
+}
+
+void PoolImpl::Push(mongoc_client_t* client) noexcept {
+  UASSERT(client);
+  if (queue_.bounded_push(client)) return;
+  ClientDeleter()(client);
+  size_semaphore_.unlock_shared();
+}
+
+mongoc_client_t* PoolImpl::Pop() {
+  if (auto* client = TryGetIdle()) return client;
   return Create();
 }
 
-const std::string& PoolImpl::GetDefaultDatabaseName() const {
-  return default_database_name_;
+mongoc_client_t* PoolImpl::TryGetIdle() {
+  mongoc_client_t* client = nullptr;
+  if (queue_.pop(client)) return client;
+  return nullptr;
 }
 
-engine::TaskProcessor& PoolImpl::GetTaskProcessor() { return task_processor_; }
-
-PoolImpl::Connection* PoolImpl::Create() {
-  namespace bbb = bsoncxx::builder::basic;
-
+mongoc_client_t* PoolImpl::Create() {
   // "admin" is an internal mongodb database and always exists/accessible
-  static const std::string kPingDatabase = "admin";
-  static const auto kPingCommand = bbb::make_document(bbb::kvp("ping", 1));
+  static const char* kPingDatabase = "admin";
+  static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
+  static const ReadPrefsPtr kPingReadPrefs(
+      mongoc_read_prefs_new(MONGOC_READ_NEAREST));
 
-  if (size_ > PoolConfig::kCriticalSize) {
-    throw PoolError("Mongo pool reached critical size: " +
-                    std::to_string(size_));
+  auto deadline = engine::Deadline::FromDuration(queue_timeout_);
+
+  if (!size_semaphore_.try_lock_shared_until(deadline)) {
+    // retry getting idle connection after the wait
+    if (auto* client = TryGetIdle()) return client;
+
+    throw MongoException("Mongo pool '")
+        << id_ << "' has reached size limit: " << max_size_;
+  }
+  std::shared_lock<engine::Semaphore> size_lock(size_semaphore_,
+                                                std::adopt_lock);
+
+  if (!connecting_semaphore_.try_lock_shared_until(deadline)) {
+    // retry getting idle connection after the wait
+    if (auto* client = TryGetIdle()) return client;
+
+    throw MongoException("Mongo pool '")
+        << id_ << "' has too many establishing connections";
+  }
+  std::shared_lock<engine::Semaphore> connecting_lock(connecting_semaphore_,
+                                                      std::adopt_lock);
+
+  // retry getting idle connection after the wait
+  if (auto* client = TryGetIdle()) return client;
+
+  LOG_DEBUG() << "Creating mongo connection";
+
+  UnboundClientPtr client(mongoc_client_new_from_uri(uri_.get()));
+  mongoc_client_set_error_api(client.get(), MONGOC_ERROR_API_VERSION_2);
+  mongoc_client_set_stream_initiator(client.get(), &MakeAsyncStream, &ssl_opt_);
+
+  if (!app_name_.empty()) {
+    mongoc_client_set_appname(client.get(), app_name_.c_str());
   }
 
-  LOG_INFO() << "Creating mongo connection, current pool size: "
-             << size_.load();
-
-  auto connection = std::make_unique<Connection>(uri_);
-
-  try {
-    // force connection
-    connection->database(kPingDatabase).run_command(kPingCommand.view());
-  } catch (const mongocxx::operation_exception& ex) {
-    throw PoolError(std::string("Connection to mongo failed: ") + ex.what());
+  // force topology refresh
+  // XXX: Periodic task forcing topology refresh?
+  MongoError error;
+  if (!mongoc_client_command_simple(
+          client.get(), kPingDatabase, kPingCommand.GetBson().get(),
+          kPingReadPrefs.get(), nullptr, error.GetNative())) {
+    error.Throw("Couldn't create a connection in mongo pool '" + id_ + '\'');
   }
 
-  ++size_;
-  return connection.release();
+  size_lock.release();
+  return client.release();
 }
 
-void PoolImpl::Clear() {
-  Connection* connection = nullptr;
-  while (queue_.pop(connection)) delete connection;
-}
-
-}  // namespace impl
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo::impl

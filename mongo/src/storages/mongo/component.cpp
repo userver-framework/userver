@@ -4,42 +4,15 @@
 
 #include <components/manager.hpp>
 #include <logging/log.hpp>
-#include <storages/mongo/error.hpp>
+#include <storages/mongo/exception.hpp>
 #include <storages/secdist/component.hpp>
 
-#include <engine/task/task_processor.hpp>
-#include <engine/task/task_processor_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
 #include <storages/secdist/exceptions.hpp>
 
 namespace components {
 
 namespace {
-
-const std::string kThreadName = "mongo-worker";
-
-template <typename MongoComponent>
-auto MakeTaskProcessor(const ComponentConfig& config,
-                       const ComponentContext& context) {
-  const auto threads_num =
-      config.ParseUint64("threads", MongoComponent::kDefaultThreadsNum);
-  engine::TaskProcessorConfig task_processor_config;
-  task_processor_config.thread_name = kThreadName;
-  task_processor_config.worker_threads = threads_num;
-  auto task_processor = std::make_unique<engine::TaskProcessor>(
-      std::move(task_processor_config),
-      context.GetManager().GetTaskProcessorPools());
-
-  engine::TaskProcessorSettings task_processor_settings;
-  task_processor_settings.wait_queue_time_limit = std::chrono::milliseconds{
-      config.ParseUint64("queued_request_timeout_ms",
-                         MongoComponent::kDefaultQueuedRequestTimeoutMs)};
-  task_processor_settings.overload_action =
-      engine::TaskProcessorSettings::OverloadAction::kCancel;
-  task_processor->SetSettings(std::move(task_processor_settings));
-
-  return task_processor;
-}
 
 std::string GetSecdistConnectionString(const Secdist& secdist,
                                        const std::string& dbalias) {
@@ -48,10 +21,9 @@ std::string GetSecdistConnectionString(const Secdist& secdist,
         .Get<storages::mongo::secdist::MongoSettings>()
         .GetConnectionString(dbalias);
   } catch (const storages::secdist::SecdistError& ex) {
-    std::string message =
-        "Failed to load mongo config for dbalias " + dbalias + ": " + ex.what();
-    LOG_ERROR() << message;
-    throw storages::mongo::InvalidConfig(std::move(message));
+    throw storages::mongo::InvalidConfigException(
+        "Failed to load mongo config for dbalias ")
+        << dbalias << ": " << ex.what();
   }
 }
 
@@ -71,31 +43,26 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
 
   storages::mongo::PoolConfig pool_config(config);
 
-  task_processor_ = MakeTaskProcessor<Mongo>(config, context);
-
   pool_ = std::make_shared<storages::mongo::Pool>(
-      connection_string, *task_processor_, pool_config);
+      config.Name(), connection_string, pool_config);
 }
-
-Mongo::~Mongo() = default;
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
 MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
+      name_(config.Name()),
       secdist_(context.FindComponent<Secdist>()),
       pool_config_(config),
-      task_processor_(MakeTaskProcessor<MultiMongo>(config, context)),
       pool_map_ptr_(std::make_shared<PoolMap>()) {}
-
-MultiMongo::~MultiMongo() = default;
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
   auto pool_ptr = FindPool(dbalias);
-  if (!pool_ptr)
-    throw storages::mongo::PoolNotFound("pool " + dbalias +
-                                        " is not in the working set");
+  if (!pool_ptr) {
+    throw storages::mongo::PoolNotFoundException("pool ")
+        << dbalias << " is not in the working set";
+  }
   return pool_ptr;
 }
 
@@ -160,8 +127,9 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
 
   if (!pool_ptr) {
     pool_ptr = std::make_shared<storages::mongo::Pool>(
+        target_->name_ + ':' + dbalias,
         GetSecdistConnectionString(target_->secdist_, dbalias),
-        *target_->task_processor_, target_->pool_config_);
+        target_->pool_config_);
   }
 
   pool_map_ptr_->emplace(std::move(dbalias), std::move(pool_ptr));

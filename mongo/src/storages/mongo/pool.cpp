@@ -1,27 +1,24 @@
 #include <storages/mongo/pool.hpp>
 
-#include "collection_impl.hpp"
-#include "pool_impl.hpp"
+#include <storages/mongo/collection_impl.hpp>
+#include <storages/mongo/database.hpp>
+#include <storages/mongo/pool_impl.hpp>
 
-namespace storages {
-namespace mongo {
+namespace storages::mongo {
 
-Pool::Pool(const std::string& uri, engine::TaskProcessor& task_processor,
-           const PoolConfig& config)
-    : impl_(std::make_unique<impl::PoolImpl>(task_processor, uri, config)) {}
+Pool::Pool(std::string id, const std::string& uri, const PoolConfig& config)
+    : impl_(std::make_shared<impl::PoolImpl>(std::move(id), uri, config)) {}
 
 Pool::~Pool() = default;
 
-Collection Pool::GetCollection(std::string collection_name) {
-  return GetCollection(impl_->GetDefaultDatabaseName(),
-                       std::move(collection_name));
+bool Pool::HasCollection(const std::string& name) const {
+  return impl::Database(impl_, impl_->DefaultDatabaseName())
+      .HasCollection(name);
 }
 
-Collection Pool::GetCollection(std::string database_name,
-                               std::string collection_name) {
+Collection Pool::GetCollection(std::string name) const {
   return Collection(std::make_shared<impl::CollectionImpl>(
-      impl_, std::move(database_name), std::move(collection_name)));
+      impl_, impl_->DefaultDatabaseName(), std::move(name)));
 }
 
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo

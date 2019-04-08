@@ -1,17 +1,10 @@
 #pragma once
 
-#include <mongocxx/logger.hpp>
+#include <mongoc/mongoc.h>
 
-namespace storages {
-namespace mongo {
-namespace impl {
+namespace storages::mongo::impl {
 
-class Logger : public mongocxx::logger {
- public:
-  void operator()(mongocxx::log_level level, mongocxx::stdx::string_view domain,
-                  mongocxx::stdx::string_view message) noexcept override;
-};
+void LogMongocMessage(mongoc_log_level_t level, const char* domain,
+                      const char* message, void*);
 
-}  // namespace impl
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo::impl

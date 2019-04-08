@@ -5,9 +5,7 @@
 
 #include <formats/json/value.hpp>
 
-namespace storages {
-namespace mongo {
-namespace secdist {
+namespace storages::mongo::secdist {
 
 class MongoSettings {
  public:
@@ -19,6 +17,4 @@ class MongoSettings {
   std::unordered_map<std::string, std::string> settings_;
 };
 
-}  // namespace secdist
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo::secdist
