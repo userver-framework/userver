@@ -1,6 +1,7 @@
 #include <formats/bson/value.hpp>
 
-#include <boost/numeric/conversion/cast.hpp>
+#include <cmath>
+#include <limits>
 
 #include <formats/bson/bson_builder.hpp>
 #include <formats/bson/document.hpp>
@@ -8,6 +9,18 @@
 #include <formats/bson/wrappers.hpp>
 
 namespace formats::bson {
+namespace {
+
+template <typename T>
+auto CheckedNotTooNegative(T x, const Value& value) {
+  if (x <= -1) {
+    throw ConversionException("Cannot convert to unsigned value from negative ")
+        << value.GetPath() << '=' << x;
+  }
+  return x;
+};
+
+}  // namespace
 
 Value::Value() : impl_(std::make_shared<impl::ValueImpl>(nullptr)) {}
 
@@ -69,25 +82,60 @@ bool Value::As<bool>() const {
 
 template <>
 int64_t Value::As<int64_t>() const {
+  static_assert(std::numeric_limits<double>::digits <
+                    std::numeric_limits<int64_t>::digits,
+                "Your compiler provides unusually large double, please contact "
+                "userver support chat");
+
   CheckNotMissing();
   if (IsInt32()) return impl_->GetNative()->value.v_int32;
   if (IsInt64()) return impl_->GetNative()->value.v_int64;
+  if (IsDouble()) {
+    auto as_double = As<double>();
+    double int_part = 0.0;
+    auto frac_part = std::modf(as_double, &int_part);
+    if (frac_part) {
+      throw ConversionException("Conversion of ")
+          << GetPath() << '=' << as_double
+          << " to integer causes precision loss";
+    }
+    return static_cast<int64_t>(as_double);
+  }
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_INT64, GetPath());
 }
 
 template <>
 uint64_t Value::As<uint64_t>() const {
   CheckNotMissing();
-  if (IsInt32()) return boost::numeric_cast<uint64_t>(As<int32_t>());
-  if (IsInt64()) return boost::numeric_cast<uint64_t>(As<int64_t>());
+  if (IsInt64() || IsInt32() || IsDouble()) {
+    return static_cast<uint64_t>(CheckedNotTooNegative(As<int64_t>(), *this));
+  }
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_INT64, GetPath());
 }
 
 template <>
 double Value::As<double>() const {
+  static_assert(std::numeric_limits<double>::radix == 2,
+                "Your compiler provides double with an unusual radix, please "
+                "contact userver support chat");
+  static_assert(std::numeric_limits<double>::digits >=
+                    std::numeric_limits<int32_t>::digits,
+                "Your compiler provides unusually small double, please contact "
+                "userver support chat");
+
   CheckNotMissing();
-  if (IsInt32()) return boost::numeric_cast<double>(As<int32_t>());
-  if (IsInt64()) return boost::numeric_cast<double>(As<int64_t>());
+  if (IsInt32()) return static_cast<double>(As<int64_t>());
+  if (IsInt64()) {
+    static constexpr int64_t MAX_INT_DOUBLE =
+        1L << std::numeric_limits<double>::digits;
+
+    auto as_int = As<int64_t>();
+    if (std::abs(as_int) > MAX_INT_DOUBLE) {
+      throw ConversionException("Conversion of ")
+          << GetPath() << '=' << as_int << " to double causes precision loss";
+    }
+    return static_cast<double>(as_int);
+  }
   if (IsDouble()) return impl_->GetNative()->value.v_double;
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_DOUBLE, GetPath());
 }
@@ -165,8 +213,7 @@ template <>
 bool Value::ConvertTo<bool>() const {
   if (IsMissing() || IsNull()) return false;
   if (IsBool()) return As<bool>();
-  if (IsInt32()) return As<int32_t>();
-  if (IsInt64()) return As<int64_t>();
+  if (IsInt64() || IsInt32()) return As<int64_t>();
   if (IsDouble()) return As<double>();
   if (IsDateTime()) return true;
   if (IsString()) return impl_->GetNative()->value.v_utf8.len;
@@ -180,9 +227,8 @@ template <>
 int64_t Value::ConvertTo<int64_t>() const {
   if (IsMissing() || IsNull()) return 0;
   if (IsBool()) return As<bool>();
-  if (IsInt32()) return As<int32_t>();
-  if (IsInt64()) return As<int64_t>();
-  if (IsDouble()) return boost::numeric_cast<int64_t>(As<double>());
+  if (IsInt64() || IsInt32()) return As<int64_t>();
+  if (IsDouble()) return static_cast<int64_t>(As<double>());
   if (IsDateTime()) return impl_->GetNative()->value.v_datetime;
 
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_INT64, GetPath());
@@ -190,8 +236,11 @@ int64_t Value::ConvertTo<int64_t>() const {
 
 template <>
 uint64_t Value::ConvertTo<uint64_t>() const {
-  if (IsDouble()) return boost::numeric_cast<uint64_t>(As<double>());
-  return boost::numeric_cast<uint64_t>(ConvertTo<int64_t>());
+  if (IsDouble() && !(IsInt64() || IsInt32())) {
+    return static_cast<uint64_t>(CheckedNotTooNegative(As<double>(), *this));
+  }
+  return static_cast<uint64_t>(
+      CheckedNotTooNegative(ConvertTo<int64_t>(), *this));
 }
 
 template <>
