@@ -5,6 +5,8 @@
 namespace server {
 namespace handlers {
 
+const size_t kLogRequestDataSizeDefaultLimit = 512;
+
 HandlerConfig HandlerConfig::ParseFromYaml(
     const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
@@ -23,6 +25,22 @@ HandlerConfig HandlerConfig::ParseFromYaml(
   yaml_config::ParseInto(config.parse_args_from_body, yaml,
                          "parse_args_from_body", full_path, config_vars_ptr);
   yaml_config::ParseInto(config.auth, yaml, "auth", full_path, config_vars_ptr);
+
+  boost::optional<size_t> request_body_size_log_limit;
+  yaml_config::ParseInto(request_body_size_log_limit, yaml,
+                         "request_body_size_log_limit", full_path,
+                         config_vars_ptr);
+  config.request_body_size_log_limit = request_body_size_log_limit
+                                           ? *request_body_size_log_limit
+                                           : kLogRequestDataSizeDefaultLimit;
+
+  boost::optional<size_t> response_data_size_log_limit;
+  yaml_config::ParseInto(response_data_size_log_limit, yaml,
+                         "response_data_size_log_limit", full_path,
+                         config_vars_ptr);
+  config.response_data_size_log_limit = response_data_size_log_limit
+                                            ? *response_data_size_log_limit
+                                            : kLogRequestDataSizeDefaultLimit;
 
   return config;
 }

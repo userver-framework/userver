@@ -56,6 +56,63 @@ std::vector<http::HttpMethod> InitAllowedMethods(const HandlerConfig& config) {
   return allowed_methods;
 }
 
+class RequestProcessor {
+ public:
+  RequestProcessor(const HttpHandlerBase& handler,
+                   const http::HttpRequestImpl& http_request_impl,
+                   const http::HttpRequest& http_request)
+      : handler_(handler),
+        http_request_impl_(http_request_impl),
+        http_request_(http_request),
+        process_finished_(false) {}
+
+  template <typename Func>
+  bool ProcessRequestStep(const std::string& step_name,
+                          const Func& process_step_func) {
+    if (process_finished_) return true;
+    process_finished_ = DoProcessRequestStep(step_name, process_step_func);
+    return process_finished_;
+  }
+
+ private:
+  template <typename Func>
+  bool DoProcessRequestStep(const std::string& step_name,
+                            const Func& process_step_func) {
+    auto& response = http_request_.GetHttpResponse();
+
+    try {
+      process_step_func();
+    } catch (const http::HttpException& ex) {
+      // TODO Remove this catch branch
+      LOG_ERROR() << "http exception in '" << handler_.HandlerName()
+                  << "' handler in " + step_name + ": code="
+                  << HttpStatusString(ex.GetStatus()) << ", msg=" << ex
+                  << ", body=" << ex.GetExternalErrorBody();
+      response.SetStatus(ex.GetStatus());
+      response.SetData(ex.GetExternalErrorBody());
+      return true;
+    } catch (const handlers::CustomHandlerException& ex) {
+      LOG_ERROR() << "custom handler exception in '" << handler_.HandlerName()
+                  << "' handler in " + step_name + ": msg=" << ex
+                  << ", body=" << ex.GetExternalErrorBody();
+      response.SetStatus(http::GetHttpStatus(ex.GetCode()));
+      response.SetData(ex.GetExternalErrorBody());
+      return true;
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "exception in '" << handler_.HandlerName()
+                  << "' handler in " + step_name + ": " << ex;
+      http_request_impl_.MarkAsInternalServerError();
+      return true;
+    }
+    return false;
+  }
+
+  const HttpHandlerBase& handler_;
+  const http::HttpRequestImpl& http_request_impl_;
+  const http::HttpRequest& http_request_;
+  bool process_finished_;
+};
+
 }  // namespace
 
 formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
@@ -147,6 +204,17 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     span.AddNonInheritableTag(tracing::kHttpMethod,
                               http_request.GetMethodStr());
 
+    static const std::string kParseRequestDataStep = "parse_request_data";
+    static const std::string kCheckAuthStep = "check_auth";
+    static const std::string kHandleRequestStep = "handle_request";
+
+    RequestProcessor request_processor(*this, http_request_impl, http_request);
+
+    request_processor.ProcessRequestStep(
+        kParseRequestDataStep, [this, &http_request, &context] {
+          ParseRequestData(http_request, context);
+        });
+
     if (log_request) {
       logging::LogExtra log_extra;
 
@@ -156,35 +224,22 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       const auto& body = http_request.RequestBody();
       uint64_t body_length = body.length();
       log_extra.Extend("request_body_length", body_length);
-      log_extra.Extend("request_body", body);
-      LOG_INFO() << "start handling" << std::move(log_extra);
+      log_extra.Extend("request_body", GetRequestBodyForLoggingChecked(
+                                           http_request, context, body));
+      LOG_INFO() << "start handling " << http_request.GetUrl()
+                 << std::move(log_extra);
     }
 
     HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
                                            http_request.GetMethod());
 
-    try {
-      CheckAuth(http_request);
-      response.SetData(HandleRequestThrow(http_request, context));
-    } catch (const http::HttpException& ex) {
-      // TODO Remove this catch branch
-      LOG_ERROR() << "http exception in '" << HandlerName()
-                  << "' handler in handle_request: code="
-                  << HttpStatusString(ex.GetStatus()) << ", msg=" << ex
-                  << ", body=" << ex.GetExternalErrorBody();
-      response.SetStatus(ex.GetStatus());
-      response.SetData(ex.GetExternalErrorBody());
-    } catch (const handlers::CustomHandlerException& ex) {
-      LOG_ERROR() << "custom handler exception in '" << HandlerName()
-                  << "' handler in handle_request: msg=" << ex
-                  << ", body=" << ex.GetExternalErrorBody();
-      response.SetStatus(http::GetHttpStatus(ex.GetCode()));
-      response.SetData(ex.GetExternalErrorBody());
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "exception in '" << HandlerName()
-                  << "' handler in handle_request: " << ex;
-      http_request_impl.MarkAsInternalServerError();
-    }
+    request_processor.ProcessRequestStep(
+        kCheckAuthStep, [this, &http_request] { CheckAuth(http_request); });
+
+    request_processor.ProcessRequestStep(
+        kHandleRequestStep, [this, &response, &http_request, &context] {
+          response.SetData(HandleRequestThrow(http_request, context));
+        });
 
     response.SetHeader(::http::headers::kXYaRequestId, span.GetLink());
     int response_code = static_cast<int>(response.GetStatus());
@@ -197,7 +252,9 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       if (log_request_headers) {
         log_extra.Extend("response_headers", GetHeadersLogString(response));
       }
-      log_extra.Extend("response_data", response.GetData());
+      log_extra.Extend("response_data",
+                       GetResponseDataForLoggingChecked(http_request, context,
+                                                        response.GetData()));
       LOG_INFO() << "finish handling " << http_request.GetUrl() << log_extra;
     }
 
@@ -255,6 +312,45 @@ void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request) const {
   }
 
   auth::CheckAuth(auth_checkers_, http_request);
+}
+
+std::string HttpHandlerBase::GetRequestBodyForLogging(
+    const http::HttpRequest&, request::RequestContext&,
+    const std::string& request_body) const {
+  size_t limit = GetConfig().request_body_size_log_limit;
+  if (request_body.size() <= limit) return request_body;
+  return request_body.substr(0, limit) + "...(truncated)";
+}
+
+std::string HttpHandlerBase::GetResponseDataForLogging(
+    const http::HttpRequest&, request::RequestContext&,
+    const std::string& response_data) const {
+  size_t limit = GetConfig().response_data_size_log_limit;
+  if (response_data.size() <= limit) return response_data;
+  return response_data.substr(0, limit) + "...(truncated, total " +
+         std::to_string(response_data.size()) + " bytes)";
+}
+
+std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
+    const http::HttpRequest& request, request::RequestContext& context,
+    const std::string& request_body) const {
+  try {
+    return GetRequestBodyForLogging(request, context, request_body);
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "failed to get request body for logging: " << ex;
+    return "<error in GetRequestBodyForLogging>";
+  }
+}
+
+std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
+    const http::HttpRequest& request, request::RequestContext& context,
+    const std::string& response_data) const {
+  try {
+    return GetResponseDataForLogging(request, context, response_data);
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "failed to get response data for logging: " << ex;
+    return "<error in GetResponseDataForLogging>";
+  }
 }
 
 formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(

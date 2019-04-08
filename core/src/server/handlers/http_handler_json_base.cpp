@@ -12,6 +12,9 @@ namespace handlers {
 
 namespace {
 
+const std::string kRequestDataName = "__request_json";
+const std::string kResponseDataName = "__response_json";
+
 class JsonErrorBuilder {
  public:
   explicit JsonErrorBuilder(const CustomHandlerException& ex)
@@ -46,21 +49,16 @@ HttpHandlerJsonBase::HttpHandlerJsonBase(
 
 std::string HttpHandlerJsonBase::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext& context) const {
-  formats::json::Value request_json;
-  try {
-    if (!request.RequestBody().empty())
-      request_json = formats::json::FromString(request.RequestBody());
-  } catch (const formats::json::Exception& e) {
-    throw RequestParseError(
-        InternalMessage{"Invalid JSON body"},
-        ExternalBody{std::string("Invalid JSON body: ") + e.what()});
-  }
+  const auto& request_json =
+      context.GetData<const formats::json::Value&>(kRequestDataName);
 
   auto& response = request.GetHttpResponse();
   response.SetContentType(http::content_type::kApplicationJson);
 
   try {
-    auto response_json = HandleRequestJsonThrow(request, request_json, context);
+    const auto& response_json = context.SetData<const formats::json::Value>(
+        kResponseDataName,
+        HandleRequestJsonThrow(request, request_json, context));
     return formats::json::ToString(response_json);
   } catch (const http::HttpException& ex) {
     // TODO Remove this catch branch
@@ -79,6 +77,32 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
   } catch (const CustomHandlerException& ex) {
     throw CustomHandlerException(JsonErrorBuilder{ex}, ex.GetCode());
   }
+}
+
+const formats::json::Value* HttpHandlerJsonBase::GetRequestJson(
+    const request::RequestContext& context) const {
+  return context.GetDataOptional<const formats::json::Value>(kRequestDataName);
+}
+
+const formats::json::Value* HttpHandlerJsonBase::GetResponseJson(
+    const request::RequestContext& context) const {
+  return context.GetDataOptional<const formats::json::Value>(kResponseDataName);
+}
+
+void HttpHandlerJsonBase::ParseRequestData(
+    const http::HttpRequest& request, request::RequestContext& context) const {
+  formats::json::Value request_json;
+  try {
+    if (!request.RequestBody().empty())
+      request_json = formats::json::FromString(request.RequestBody());
+  } catch (const formats::json::Exception& e) {
+    throw RequestParseError(
+        InternalMessage{"Invalid JSON body"},
+        ExternalBody{std::string("Invalid JSON body: ") + e.what()});
+  }
+
+  context.SetData<const formats::json::Value>(kRequestDataName,
+                                              std::move(request_json));
 }
 
 }  // namespace handlers

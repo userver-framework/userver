@@ -1,5 +1,7 @@
 #pragma once
 
+/// @file server/handlers/http_handler_base.hpp
+
 #include <string>
 #include <vector>
 
@@ -53,14 +55,38 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& /*request*/,
       request::RequestContext& /*context*/) const {}
 
-  /* Override it to show per HTTP-method statistics besides statistics for all
-   * methods */
+  /// Override it to show per HTTP-method statistics besides statistics for all
+  /// methods
   virtual bool IsMethodStatisticIncluded() const { return false; }
 
-  // Override it if you want to disable auth checks in handler by some condition
+  /// Override it if you want to disable auth checks in handler by some
+  /// condition
   virtual bool NeedCheckAuth() const { return true; }
 
+  /// Override it if you need a custom request body logging.
+  virtual std::string GetRequestBodyForLogging(
+      const http::HttpRequest& request, request::RequestContext& context,
+      const std::string& request_body) const;
+
+  /// Override it if you need a custom response data logging.
+  virtual std::string GetResponseDataForLogging(
+      const http::HttpRequest& request, request::RequestContext& context,
+      const std::string& response_data) const;
+
+  /// For internal use. You don't need to override it. This method is overriden
+  /// in format-specific base handlers.
+  virtual void ParseRequestData(const http::HttpRequest&,
+                                request::RequestContext&) const {}
+
  private:
+  std::string GetRequestBodyForLoggingChecked(
+      const http::HttpRequest& request, request::RequestContext& context,
+      const std::string& request_body) const;
+
+  std::string GetResponseDataForLoggingChecked(
+      const http::HttpRequest& request, request::RequestContext& context,
+      const std::string& response_data) const;
+
   void CheckAuth(const http::HttpRequest& http_request) const;
 
   static formats::json::ValueBuilder StatisticsToJson(

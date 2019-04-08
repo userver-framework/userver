@@ -1,5 +1,7 @@
 #pragma once
 
+/// @file server/handlers/http_handler_json_base.hpp
+
 #include <server/handlers/http_handler_base.hpp>
 
 namespace server {
@@ -20,6 +22,20 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
       const http::HttpRequest& request,
       const formats::json::Value& request_json,
       request::RequestContext& context) const = 0;
+
+  /// @returns A pointer to json request if it was parsed successfully or
+  /// nullptr otherwise.
+  const formats::json::Value* GetRequestJson(
+      const request::RequestContext& context) const;
+
+  /// @returns a pointer to json response if it was returned successfully by
+  /// `HandleRequestJsonThrow()` or nullptr otherwise.
+  const formats::json::Value* GetResponseJson(
+      const request::RequestContext& context) const;
+
+ private:
+  void ParseRequestData(const http::HttpRequest& request,
+                        request::RequestContext& context) const override final;
 };
 
 }  // namespace handlers
