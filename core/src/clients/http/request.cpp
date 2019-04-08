@@ -86,12 +86,6 @@ class Request::RequestImpl
   std::shared_ptr<Response> response() const { return response_; }
   std::shared_ptr<Response> response_move() { return std::move(response_); }
 
-  /// set data for PUT-method
-  void SetPutMethodData(std::string&& data);
-  /// callback for PUT-method read function
-  static size_t PutMethodReadCallback(void* out_buffer, size_t size,
-                                      size_t nmemb, void* stream);
-
  private:
   /// final callback that calls user callback and set value in promise
   static void on_completed(std::shared_ptr<RequestImpl>,
@@ -134,10 +128,6 @@ class Request::RequestImpl
     /// pointer to timer
     std::unique_ptr<engine::ev::TimerWatcher> timer;
   } retry_;
-  /// data for PUT-method read callback
-  std::string put_method_data;
-  const char* put_method_cursor = nullptr;
-  size_t put_method_rest_data_size = 0;
 
   boost::optional<tracing::Span> span_;
 };
@@ -252,8 +242,7 @@ std::shared_ptr<Request> Request::method(HttpMethod method) {
       easy().set_post(true);
       break;
     case PUT:
-      easy().set_upload(true);
-      easy().set_put(true);
+      easy().set_custom_request("PUT");
       break;
     case OPTIONS:
       easy().set_custom_request("OPTIONS");
@@ -294,13 +283,7 @@ std::shared_ptr<Request> Request::post(const std::string& url,
 std::shared_ptr<Request> Request::put(const std::string& url,
                                       std::string data) {
   auto shared_this = put()->url(url);
-  // Set data for PUT-method
-  const auto data_size = data.size();
-  pimpl_->SetPutMethodData(std::move(data));
-  // Set PUT-method optionals
-  easy().set_read_function(Request::RequestImpl::PutMethodReadCallback);
-  easy().set_read_data(pimpl_.get());
-  easy().set_in_file_size(data_size);
+  easy().set_post_fields(std::move(data));
   return shared_this;
 }
 
@@ -391,12 +374,6 @@ void Request::RequestImpl::SetDestinationMetricName(
   dest_req_stats_ = dest_stats_->GetStatisticsForDestination(destination);
 }
 
-void Request::RequestImpl::SetPutMethodData(std::string&& data) {
-  put_method_data = std::move(data);
-  put_method_cursor = nullptr;
-  put_method_rest_data_size = 0;
-}
-
 size_t Request::RequestImpl::on_header(void* ptr, size_t size, size_t nmemb,
                                        void* userdata) {
   auto* self = static_cast<Request::RequestImpl*>(userdata);
@@ -438,30 +415,6 @@ void Request::RequestImpl::on_completed(
 
   LOG_DEBUG() << "Request::RequestImpl::on_completed(3)" << span;
   holder->span_.reset();
-}
-
-size_t Request::RequestImpl::PutMethodReadCallback(void* out_buffer,
-                                                   size_t size, size_t nmemb,
-                                                   void* stream) {
-  const auto impl = reinterpret_cast<Request::RequestImpl*>(stream);
-
-  // Fill metadada on first call
-  if (!impl->put_method_cursor) {
-    impl->put_method_cursor = impl->put_method_data.data();
-    impl->put_method_rest_data_size = impl->put_method_data.size();
-  }
-
-  // Fill out buffer
-  const size_t curl_buffer_size = nmemb * size;
-  const auto bytes_to_copy =
-      std::min(impl->put_method_rest_data_size, curl_buffer_size);
-  std::copy(impl->put_method_cursor, impl->put_method_cursor + bytes_to_copy,
-            static_cast<char*>(out_buffer));
-
-  // Update metadata
-  impl->put_method_cursor += bytes_to_copy;
-  impl->put_method_rest_data_size -= bytes_to_copy;
-  return bytes_to_copy;
 }
 
 void Request::RequestImpl::on_retry(
