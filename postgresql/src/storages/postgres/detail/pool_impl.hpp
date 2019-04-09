@@ -66,6 +66,9 @@ class ConnectionPoolImpl
   void AccountConnectionStats(Connection::Statistics stats);
 
  private:
+  using RecentCounter = ::utils::statistics::RecentPeriod<
+      ::utils::statistics::RelaxedCounter<size_t>, size_t>;
+
   mutable InstanceStatistics stats_;
   std::string dsn_;
   engine::TaskProcessor& bg_task_processor_;
@@ -76,6 +79,7 @@ class ConnectionPoolImpl
   std::atomic<size_t> size_;
   std::atomic<size_t> wait_count_;
   ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
+  RecentCounter recent_conn_errors_;
 };
 
 }  // namespace detail

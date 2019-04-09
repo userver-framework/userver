@@ -10,6 +10,13 @@ namespace storages {
 namespace postgres {
 namespace detail {
 
+namespace {
+
+constexpr std::size_t kRecentErrorThreshold = 2;
+constexpr std::chrono::seconds kRecentErrorPeriod{15};
+
+}  // namespace
+
 struct Stopwatch {
   using Accumulator = ::utils::statistics::RecentPeriod<Percentile, Percentile,
                                                         detail::SteadyClock>;
@@ -217,11 +224,13 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
           ++shared_this->stats_.connection.error_timeout;
           ++shared_this->stats_.connection.error_total;
           ++shared_this->stats_.connection.drop_total;
+          ++shared_this->recent_conn_errors_.GetCurrentCounter();
           return false;
         } catch (const ConnectionError&) {
           // No problem if it's connection error
           ++shared_this->stats_.connection.error_total;
           ++shared_this->stats_.connection.drop_total;
+          ++shared_this->recent_conn_errors_.GetCurrentCounter();
           return false;
         } catch (const Error& ex) {
           ++shared_this->stats_.connection.error_total;
@@ -271,8 +280,15 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
   {
     SizeGuard sg(size_);
     if (sg.GetSize() <= max_size_) {
-      // Create a new connection
-      Connect(std::move(sg)).Detach();
+      // Checking errors is more expensive than incrementing an atomic, so we
+      // check it only if we can start a new connection.
+      if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
+          kRecentErrorThreshold) {
+        // Create a new connection
+        Connect(std::move(sg)).Detach();
+      } else {
+        LOG_DEBUG() << "Too many connection errors in recent period";
+      }
     }
   }
   {
