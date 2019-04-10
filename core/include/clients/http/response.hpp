@@ -47,12 +47,14 @@ class Response {
   Response(std::shared_ptr<EasyWrapper> easy) : easy_(std::move(easy)) {}
 
   /// response stream
-  inline std::ostringstream& sink_stream() { return response_stream_; }
+  std::ostringstream& sink_stream() { return response_stream_; }
 
   /// body as string
-  inline std::string body() const { return response_stream_.str(); }
+  std::string body() const { return response_stream_.str(); }
   /// return referece to headers
-  inline Headers& headers() { return headers_; }
+  const Headers& headers() const { return headers_; }
+  Headers& headers() { return headers_; }
+
   /// status_code
   Status status_code() const;
   /// check status code
