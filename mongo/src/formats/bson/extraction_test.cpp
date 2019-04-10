@@ -167,7 +167,11 @@ TEST(BsonExtraction, Double) {
       EXPECT_THROW(elem.As<int64_t>(), fb::ConversionException);
       EXPECT_THROW(elem.As<size_t>(), fb::ConversionException);
     }
-    EXPECT_DOUBLE_EQ(value, elem.As<double>());
+    if (!std::isnan(value)) {
+      EXPECT_DOUBLE_EQ(value, elem.As<double>());
+    } else {
+      EXPECT_TRUE(std::isnan(elem.As<double>()));
+    }
     EXPECT_THROW(elem.As<std::string>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<TimePoint>(), fb::TypeMismatchException);
     EXPECT_THROW(elem.As<fb::Oid>(), fb::TypeMismatchException);
@@ -177,14 +181,23 @@ TEST(BsonExtraction, Double) {
     EXPECT_THROW(elem.As<fb::Timestamp>(), fb::TypeMismatchException);
   };
 
-  const auto doc = fb::MakeDoc("a", fb::MakeArray(0.0, 0.123, -0.123), "ez",
-                               0.0, "ep", 3.21, "en", -3.21);
+  const auto doc =
+      fb::MakeDoc("a", fb::MakeArray(0.0, 0.123, -0.123), "ez", 0.0, "ep", 3.21,
+                  "en", -3.21, "plarge", 1e100, "nlarge", -1e100, "pinf",
+                  std::numeric_limits<double>::infinity(), "ninf",
+                  -std::numeric_limits<double>::infinity(), "nan",
+                  std::numeric_limits<double>::quiet_NaN());
   test_elem(doc["a"][0], 0.0);
   test_elem(doc["a"][1], 0.123);
   test_elem(doc["a"][2], -0.123);
   test_elem(doc["ez"], 0.0);
   test_elem(doc["ep"], 3.21);
   test_elem(doc["en"], -3.21);
+  test_elem(doc["plarge"], 1e100);
+  test_elem(doc["nlarge"], -1e100);
+  test_elem(doc["pinf"], std::numeric_limits<double>::infinity());
+  test_elem(doc["ninf"], -std::numeric_limits<double>::infinity());
+  test_elem(doc["nan"], std::numeric_limits<double>::quiet_NaN());
 }
 
 TEST(BsonExtraction, Int32) {
