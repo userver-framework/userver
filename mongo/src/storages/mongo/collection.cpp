@@ -5,6 +5,7 @@
 #include <formats/bson/document.hpp>
 #include <formats/bson/inline.hpp>
 #include <storages/mongo/mongo_error.hpp>
+#include <utils/assert.hpp>
 
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo/collection_impl.hpp>
@@ -210,6 +211,9 @@ WriteResult Collection::Execute(const operations::FindAndRemove& fam_op) {
 }
 
 WriteResult Collection::Execute(operations::Bulk&& bulk_op) {
+  if (bulk_op.IsEmpty()) return {};
+
+  UASSERT(bulk_op.impl_->bulk);
   mongoc_bulk_operation_set_database(bulk_op.impl_->bulk.get(),
                                      impl_->GetDatabaseName().c_str());
   mongoc_bulk_operation_set_collection(bulk_op.impl_->bulk.get(),

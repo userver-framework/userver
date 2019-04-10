@@ -13,6 +13,26 @@ Pool MakeTestPool() {
 }
 }  // namespace
 
+TEST(Bulk, Empty) {
+  RunInCoro([] {
+    auto pool = MakeTestPool();
+    auto coll = pool.GetCollection("empty");
+
+    auto bulk = coll.MakeUnorderedBulk();
+    EXPECT_TRUE(bulk.IsEmpty());
+    auto result = coll.Execute(std::move(bulk));
+
+    EXPECT_EQ(0, result.InsertedCount());
+    EXPECT_EQ(0, result.MatchedCount());
+    EXPECT_EQ(0, result.ModifiedCount());
+    EXPECT_EQ(0, result.UpsertedCount());
+    EXPECT_EQ(0, result.DeletedCount());
+    EXPECT_TRUE(result.UpsertedIds().empty());
+    EXPECT_TRUE(result.ServerErrors().empty());
+    EXPECT_TRUE(result.WriteConcernErrors().empty());
+  });
+}
+
 TEST(Bulk, InsertOne) {
   RunInCoro([] {
     auto pool = MakeTestPool();
@@ -21,6 +41,7 @@ TEST(Bulk, InsertOne) {
     {
       auto bulk = coll.MakeOrderedBulk();
       bulk.InsertOne(MakeDoc("x", 1));
+      EXPECT_FALSE(bulk.IsEmpty());
       auto result = coll.Execute(std::move(bulk));
 
       EXPECT_EQ(1, result.InsertedCount());
@@ -35,6 +56,7 @@ TEST(Bulk, InsertOne) {
     {
       auto bulk = coll.MakeUnorderedBulk(options::WriteConcern::kMajority);
       bulk.InsertOne(MakeDoc("x", 1));
+      EXPECT_FALSE(bulk.IsEmpty());
       auto result = coll.Execute(std::move(bulk));
 
       EXPECT_EQ(1, result.InsertedCount());
@@ -50,6 +72,7 @@ TEST(Bulk, InsertOne) {
       auto bulk = coll.MakeOrderedBulk();
       bulk.InsertOne(MakeDoc("_id", 1));
       bulk.InsertOne(MakeDoc("_id", 1));
+      EXPECT_FALSE(bulk.IsEmpty());
       EXPECT_THROW(coll.Execute(std::move(bulk)), DuplicateKeyException);
     }
     coll.DeleteMany({});
@@ -60,6 +83,7 @@ TEST(Bulk, InsertOne) {
       bulk.InsertOne(MakeDoc("_id", 1));
       bulk.InsertOne(MakeDoc("_id", 3));
       bulk.InsertOne(MakeDoc("_id", 1));
+      EXPECT_FALSE(bulk.IsEmpty());
       auto result = coll.Execute(std::move(bulk));
 
       EXPECT_EQ(2, result.InsertedCount());
@@ -82,6 +106,7 @@ TEST(Bulk, InsertOne) {
       bulk.InsertOne(MakeDoc("_id", 1));
       bulk.InsertOne(MakeDoc("_id", 3));
       bulk.InsertOne(MakeDoc("_id", 1));
+      EXPECT_FALSE(bulk.IsEmpty());
       auto result = coll.Execute(std::move(bulk));
 
       EXPECT_EQ(3, result.InsertedCount());
@@ -109,6 +134,7 @@ TEST(Bulk, ReplaceOne) {
     {
       auto bulk = coll.MakeOrderedBulk();
       bulk.ReplaceOne({}, MakeDoc("x", 2));
+      EXPECT_FALSE(bulk.IsEmpty());
       auto result = coll.Execute(std::move(bulk));
 
       EXPECT_EQ(0, result.InsertedCount());
@@ -125,6 +151,7 @@ TEST(Bulk, ReplaceOne) {
                                          options::SuppressServerExceptions{});
       bulk.ReplaceOne(MakeDoc("y", 0), MakeDoc("_id", 1), options::Upsert{});
       bulk.ReplaceOne({}, MakeDoc("x", 3));
+      EXPECT_FALSE(bulk.IsEmpty());
       auto result = coll.Execute(std::move(bulk));
 
       EXPECT_EQ(0, result.InsertedCount());
@@ -151,6 +178,7 @@ TEST(Bulk, Update) {
       auto bulk = coll.MakeOrderedBulk();
       bulk.UpdateOne(MakeDoc("_id", 1), MakeDoc("$set", MakeDoc("x", 1)),
                      options::Upsert{});
+      EXPECT_FALSE(bulk.IsEmpty());
       auto result = coll.Execute(std::move(bulk));
 
       EXPECT_EQ(0, result.InsertedCount());
@@ -173,6 +201,7 @@ TEST(Bulk, Update) {
       bulk.UpdateOne(MakeDoc("_id", 2), MakeDoc("$set", MakeDoc("x", 2)),
                      options::Upsert{});
       bulk.UpdateMany({}, MakeDoc("$inc", MakeDoc("x", 1)));
+      EXPECT_FALSE(bulk.IsEmpty());
       auto result = coll.Execute(std::move(bulk));
 
       EXPECT_EQ(0, result.InsertedCount());
@@ -209,6 +238,7 @@ TEST(Bulk, Delete) {
     bulk.DeleteOne(MakeDoc("x", MakeDoc("$gt", 6)));
     bulk.DeleteMany(MakeDoc("x", MakeDoc("$gt", 10)));
     bulk.DeleteMany(MakeDoc("x", MakeDoc("$lt", 5)));
+    EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
     EXPECT_EQ(0, result.InsertedCount());
@@ -239,6 +269,7 @@ TEST(Bulk, Mixed) {
     bulk.DeleteMany(MakeDoc("x", MakeDoc("$gt", 1)));
     bulk.UpdateMany({}, MakeDoc("$set", MakeDoc("x", 0)));
     bulk.DeleteOne(MakeDoc("x", MakeDoc("$lt", 1)));
+    EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
     EXPECT_EQ(3, result.InsertedCount());

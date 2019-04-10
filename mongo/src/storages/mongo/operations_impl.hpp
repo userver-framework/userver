@@ -40,11 +40,11 @@ class Find::Impl {
 class InsertOne::Impl {
  public:
   explicit Impl(formats::bson::Document&& document_)
-      : document(std::move(document_)), should_throw(true) {}
+      : document(std::move(document_)) {}
 
   formats::bson::Document document;
   boost::optional<formats::bson::impl::BsonBuilder> options;
-  bool should_throw;
+  bool should_throw{true};
 };
 
 class InsertMany::Impl {
@@ -63,14 +63,12 @@ class ReplaceOne::Impl {
  public:
   Impl(formats::bson::Document&& selector_,
        formats::bson::Document&& replacement_)
-      : selector(std::move(selector_)),
-        replacement(std::move(replacement_)),
-        should_throw(true) {}
+      : selector(std::move(selector_)), replacement(std::move(replacement_)) {}
 
   formats::bson::Document selector;
   formats::bson::Document replacement;
   boost::optional<formats::bson::impl::BsonBuilder> options;
-  bool should_throw;
+  bool should_throw{true};
 };
 
 class Update::Impl {
@@ -78,12 +76,11 @@ class Update::Impl {
   Impl(Mode mode_, formats::bson::Document&& selector_,
        formats::bson::Document update_)
       : mode(mode_),
-        should_throw(true),
         selector(std::move(selector_)),
         update(std::move(update_)) {}
 
   Mode mode;
-  bool should_throw;  // moved here for size optimization
+  bool should_throw{true};  // moved here for size optimization
   formats::bson::Document selector;
   formats::bson::Document update;
   boost::optional<formats::bson::impl::BsonBuilder> options;
@@ -92,10 +89,10 @@ class Update::Impl {
 class Delete::Impl {
  public:
   Impl(Mode mode_, formats::bson::Document&& selector_)
-      : mode(mode_), should_throw(true), selector(std::move(selector_)) {}
+      : mode(mode_), selector(std::move(selector_)) {}
 
   Mode mode;
-  bool should_throw;  // moved here for size optimization
+  bool should_throw{true};  // moved here for size optimization
   formats::bson::Document selector;
   boost::optional<formats::bson::impl::BsonBuilder> options;
 };
@@ -118,9 +115,10 @@ class FindAndRemove::Impl {
 
 class Bulk::Impl {
  public:
-  Impl() = default;
+  explicit Impl(Mode mode_) : mode(mode_) {}
 
   impl::BulkOperationPtr bulk;
+  Mode mode;
   bool should_throw{true};
 };
 

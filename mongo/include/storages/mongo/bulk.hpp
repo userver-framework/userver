@@ -26,6 +26,8 @@ class Bulk {
   Bulk& operator=(const Bulk&) = delete;
   Bulk& operator=(Bulk&&) noexcept;
 
+  bool IsEmpty() const;
+
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
   void SetOption(options::SuppressServerExceptions);
