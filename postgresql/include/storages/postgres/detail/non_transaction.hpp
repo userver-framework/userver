@@ -17,11 +17,11 @@ namespace storages::postgres::detail {
 class NonTransaction {
  public:
   explicit NonTransaction(
-      ConnectionPtr&& impl, engine::Deadline deadline,
+      ConnectionPtr&& conn, engine::Deadline deadline,
       SteadyClock::time_point start_time = detail::SteadyClock::now());
 
   NonTransaction(NonTransaction&&) noexcept;
-  NonTransaction& operator=(NonTransaction&&);
+  NonTransaction& operator=(NonTransaction&&) noexcept;
 
   NonTransaction(const NonTransaction&) = delete;
   NonTransaction& operator=(const NonTransaction&) = delete;

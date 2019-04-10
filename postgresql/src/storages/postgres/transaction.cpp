@@ -14,6 +14,7 @@ Transaction::Transaction(detail::ConnectionPtr&& conn,
                          detail::SteadyClock::time_point&& trx_start_time)
     : conn_{std::move(conn)} {
   if (conn_) {
+    // NOLINTNEXTLINE(hicpp-move-const-arg)
     conn_->Begin(options, std::move(trx_start_time), trx_cmd_ctl);
   }
 }
@@ -33,7 +34,7 @@ Transaction::~Transaction() {
   }
 }
 
-Transaction& Transaction::operator=(Transaction&& rhs) = default;
+Transaction& Transaction::operator=(Transaction&& rhs) noexcept = default;
 
 ResultSet Transaction::DoExecute(const std::string& statement,
                                  const detail::QueryParameters& params,

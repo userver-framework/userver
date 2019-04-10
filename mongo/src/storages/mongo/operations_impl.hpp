@@ -49,14 +49,14 @@ class InsertOne::Impl {
 
 class InsertMany::Impl {
  public:
-  Impl() : should_throw(true) {}
+  Impl() = default;
 
   explicit Impl(std::vector<formats::bson::Document>&& documents_)
-      : documents(std::move(documents_)), should_throw(true) {}
+      : documents(std::move(documents_)) {}
 
   std::vector<formats::bson::Document> documents;
   boost::optional<formats::bson::impl::BsonBuilder> options;
-  bool should_throw;
+  bool should_throw{true};
 };
 
 class ReplaceOne::Impl {
@@ -118,10 +118,10 @@ class FindAndRemove::Impl {
 
 class Bulk::Impl {
  public:
-  Impl() : should_throw(true) {}
+  Impl() = default;
 
   impl::BulkOperationPtr bulk;
-  bool should_throw;
+  bool should_throw{true};
 };
 
 }  // namespace storages::mongo::operations

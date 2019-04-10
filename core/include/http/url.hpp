@@ -7,9 +7,9 @@
 
 namespace http {
 
-std::string UrlDecode(utils::string_view encoded);
+std::string UrlDecode(utils::string_view range);
 
-std::string UrlEncode(utils::string_view decoded);
+std::string UrlEncode(utils::string_view input_string);
 
 using Args = std::unordered_map<std::string, std::string>;
 

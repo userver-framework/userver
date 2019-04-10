@@ -5,6 +5,7 @@ namespace ev {
 
 template <>
 void Watcher<ev_async>::Init(void (*cb)(struct ev_loop*, ev_async*, int)) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&w_, cb);
 }
 
@@ -25,11 +26,13 @@ void Watcher<ev_async>::StopImpl() {
 template <>
 void Watcher<ev_io>::Init(void (*cb)(struct ev_loop*, ev_io*, int), int fd,
                           int events) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_io_init(&w_, cb, fd, events);
 }
 
 template <>
 void Watcher<ev_io>::Init(void (*cb)(struct ev_loop*, ev_io*, int)) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_init(&w_, cb);
 }
 
@@ -56,12 +59,14 @@ void Watcher<ev_io>::StopImpl() {
 template <>
 void Watcher<ev_timer>::Init(void (*cb)(struct ev_loop*, ev_timer*, int),
                              ev_tstamp after, ev_tstamp repeat) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_init(&w_, cb, after, repeat);
 }
 
 template <>
 template <>
 void Watcher<ev_timer>::Set(ev_tstamp after, ev_tstamp repeat) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_set(&w_, after, repeat);
 }
 
@@ -88,6 +93,7 @@ void Watcher<ev_timer>::AgainImpl() {
 
 template <>
 void Watcher<ev_idle>::Init(void (*cb)(struct ev_loop*, ev_idle*, int)) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_idle_init(&w_, cb);
 }
 

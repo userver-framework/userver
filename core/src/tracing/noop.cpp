@@ -11,8 +11,7 @@ const std::string kParentIdName = "parent_id";
 
 class NoopTracer : public Tracer {
  public:
-  virtual void LogSpanContextTo(const Span::Impl&,
-                                logging::LogHelper&) const override;
+  void LogSpanContextTo(const Span::Impl&, logging::LogHelper&) const override;
 };
 
 void NoopTracer::LogSpanContextTo(const Span::Impl& span,

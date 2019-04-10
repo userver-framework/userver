@@ -7,7 +7,7 @@ namespace http {
 namespace {
 
 std::array<bool, kHandlerMethodsMax + 1> InitHandlerMethodsArray() {
-  std::array<bool, kHandlerMethodsMax + 1> is_handler_method;
+  std::array<bool, kHandlerMethodsMax + 1> is_handler_method{};
   is_handler_method.fill(false);
   for (auto method : kHandlerMethods) {
     is_handler_method[static_cast<size_t>(method)] = true;

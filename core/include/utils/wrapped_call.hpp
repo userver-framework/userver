@@ -113,6 +113,7 @@ class WrappedCallImpl final
     OptionalSetNoneGuard guard(args_);
     OptionalSetNoneGuard guard_f(f_);
 
+    // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
     if constexpr (std::is_pointer<StoredFunction>::value) {
       UASSERT(*f_);
     }

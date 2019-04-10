@@ -25,7 +25,7 @@ class FileDescriptor {
   FileDescriptor& operator=(FileDescriptor&& other) noexcept;
   ~FileDescriptor();
 
-  static FileDescriptor CreateTempFile(std::string directory);
+  static FileDescriptor CreateTempFile(std::string pattern);
   static FileDescriptor OpenFile(std::string filename, OpenFlags flags,
                                  int mode = 0600);
   static FileDescriptor OpenDirectory(std::string directory, OpenFlags flags);
@@ -45,7 +45,7 @@ class FileDescriptor {
   const std::string& GetPath() const { return path_; }
 
  private:
-  FileDescriptor(int fd, std::string file_name);
+  FileDescriptor(int fd, std::string path);
   auto GetFileStats() const;
 
   static FileDescriptor FromFdChecked(int fd, std::string filename);

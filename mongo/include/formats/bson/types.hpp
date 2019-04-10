@@ -180,8 +180,8 @@ class Timestamp {
   bool operator>=(const Timestamp&) const;
 
  private:
-  uint32_t timestamp_;
-  uint32_t increment_;
+  uint32_t timestamp_{0};
+  uint32_t increment_{0};
 };
 
 }  // namespace formats::bson

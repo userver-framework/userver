@@ -25,9 +25,9 @@ class HttpResponse : public request::ResponseBase {
   using HeadersMapKeys = decltype(HeadersMap() | boost::adaptors::map_keys);
 
   explicit HttpResponse(const HttpRequestImpl& request);
-  virtual ~HttpResponse();
+  ~HttpResponse() override;
 
-  virtual void SetSendFailed(
+  void SetSendFailed(
       std::chrono::steady_clock::time_point failure_time) override;
 
   void SetHeader(std::string name, std::string value);
@@ -42,15 +42,13 @@ class HttpResponse : public request::ResponseBase {
   const std::string& GetHeader(const std::string& header_name) const;
 
   // TODO: server internals. remove from public interface
-  virtual void SendResponse(engine::io::Socket& socket) override;
+  void SendResponse(engine::io::Socket& socket) override;
 
-  virtual void SetStatusServiceUnavailable() override {
+  void SetStatusServiceUnavailable() override {
     SetStatus(HttpStatus::kServiceUnavailable);
   }
-  virtual void SetStatusOk() override { SetStatus(HttpStatus::kOk); }
-  virtual void SetStatusNotFound() override {
-    SetStatus(HttpStatus::kNotFound);
-  }
+  void SetStatusOk() override { SetStatus(HttpStatus::kOk); }
+  void SetStatusNotFound() override { SetStatus(HttpStatus::kNotFound); }
 
  private:
   const HttpRequestImpl& request_;

@@ -21,7 +21,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
   ReadFsCache();
 }
 
-TaxiConfig::~TaxiConfig() {}
+TaxiConfig::~TaxiConfig() = default;
 
 std::shared_ptr<taxi_config::Config> TaxiConfig::Get() const {
   auto ptr = cache_.Get();
@@ -62,7 +62,7 @@ void TaxiConfig::DoSetConfig(
   auto config = std::make_shared<taxi_config::Config>(*value_ptr);
   {
     std::lock_guard<engine::Mutex> lock(loaded_mutex_);
-    cache_.Set(std::move(config));
+    cache_.Set(config);
   }
   loaded_cv_.NotifyAll();
   SendEvent(cache_.Get());
@@ -124,7 +124,7 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
     auto mode = perms::owner_read | perms::owner_write | perms::group_read |
                 perms::others_read;
     fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_,
-                                      std::move(contents), mode);
+                                      contents, mode);
 
     LOG_INFO() << "Successfully wrote taxi_config from FS cache";
   } catch (const std::exception& e) {

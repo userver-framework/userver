@@ -50,11 +50,13 @@ std::ostream& operator<<(std::ostream& os, const Addr& addr) {
   switch (addr.Domain()) {
     case AddrDomain::kInet: {
       const auto* inet_addr = addr.As<struct sockaddr_in>();
+      // NOLINTNEXTLINE(hicpp-no-assembler)
       os << addr.RemoteAddress() << ':' << ntohs(inet_addr->sin_port);
     } break;
 
     case AddrDomain::kInet6: {
       const auto* inet6_addr = addr.As<struct sockaddr_in6>();
+      // NOLINTNEXTLINE(hicpp-no-assembler)
       os << '[' << addr.RemoteAddress() << "]:" << ntohs(inet6_addr->sin6_port);
     } break;
 

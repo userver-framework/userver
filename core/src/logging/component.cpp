@@ -7,6 +7,8 @@
 // to override spdlog's level names
 #include <logging/spdlog.hpp>
 
+#include <fmt/format.h>
+
 #include <spdlog/async.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
@@ -41,7 +43,8 @@ Logging::Logging(const ComponentConfig& config,
 
   for (auto it = loggers.begin(); it != loggers.end(); ++it) {
     auto logger_name = it.GetName();
-    auto logger_full_path = loggers_full_path + '.' + logger_name;
+    auto logger_full_path =
+        fmt::format("{}.{}", loggers_full_path, logger_name);
     bool is_default_logger = logger_name == "default";
 
     auto logger_config = logging::LoggerConfig::ParseFromYaml(
@@ -90,7 +93,7 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
 
 namespace {
 void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
-  for (auto s : sinks) {
+  for (const auto& s : sinks) {
     auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
     if (reop) {
       // TODO Handle exceptions here

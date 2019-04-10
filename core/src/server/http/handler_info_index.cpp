@@ -25,7 +25,7 @@ class HandlerMethodIndex {
   void AddHandlerInfo(HttpMethod method, HandlerInfo& handler_info);
 
   std::deque<HandlerInfo> handler_info_holder_;
-  std::array<HandlerInfo*, kHandlerMethodsMax + 1> pmethods_;
+  std::array<HandlerInfo*, kHandlerMethodsMax + 1> pmethods_{};
 };
 
 HandlerMethodIndex::HandlerMethodIndex() { pmethods_.fill(nullptr); }
@@ -53,7 +53,7 @@ void HandlerMethodIndex::AddHandlerInfo(HttpMethod method,
 
 bool HandlerMethodIndex::GetHandlerInfo(HttpMethod method,
                                         HandlerInfo& handler_info) const {
-  size_t index = static_cast<size_t>(method);
+  auto index = static_cast<size_t>(method);
   if (index > kHandlerMethodsMax) return false;
   if (!pmethods_[index]) return false;
   handler_info = *pmethods_[index];

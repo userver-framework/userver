@@ -35,7 +35,7 @@ class ConnectionPool {
   ~ConnectionPool();
 
   ConnectionPool(ConnectionPool&&) noexcept;
-  ConnectionPool& operator=(ConnectionPool&&);
+  ConnectionPool& operator=(ConnectionPool&&) noexcept;
 
   std::string const& GetDsn() const;
 

@@ -23,7 +23,7 @@ CvStatus ConditionVariable::Wait(std::unique_lock<Mutex>& lock) {
 
 CvStatus ConditionVariable::WaitUntil(std::unique_lock<Mutex>& lock,
                                       Deadline deadline) {
-  return impl_->WaitUntil(lock, std::move(deadline));
+  return impl_->WaitUntil(lock, deadline);
 }
 
 }  // namespace engine

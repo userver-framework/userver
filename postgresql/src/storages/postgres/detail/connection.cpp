@@ -143,7 +143,7 @@ struct Connection::Impl {
 
   CommandControl default_cmd_ctl_;
   OptionalCommandControl transaction_cmd_ctl_;
-  TimeoutType current_statement_timeout_;
+  TimeoutType current_statement_timeout_{};
 
   struct StatementTimeoutCentry {
     StatementTimeoutCentry(Impl* conn, OptionalCommandControl cmd_ctl)
@@ -532,7 +532,7 @@ struct Connection::Impl {
     if (IsInTransaction()) {
       throw AlreadyInTransaction();
     }
-    stats_.trx_start_time = std::move(trx_start_time);
+    stats_.trx_start_time = trx_start_time;
     stats_.work_start_time = SteadyClock::now();
     ++stats_.trx_total;
     ExecuteCommandNoPrepare(BeginStatement(options));
@@ -562,7 +562,7 @@ struct Connection::Impl {
   void Start(SteadyClock::time_point&& start_time) {
     ++stats_.trx_total;
     ++stats_.out_of_trx;
-    stats_.trx_start_time = std::move(start_time);
+    stats_.trx_start_time = start_time;
     stats_.work_start_time = SteadyClock::now();
     stats_.last_execute_finish = stats_.work_start_time;
   }
@@ -622,7 +622,7 @@ std::unique_ptr<Connection> Connection::Connect(
   return conn;
 }
 
-Connection::Connection() {}
+Connection::Connection() = default;
 
 Connection::~Connection() = default;
 
@@ -692,6 +692,7 @@ ResultSet Connection::ExperimentalExecute(
 void Connection::Begin(const TransactionOptions& options,
                        SteadyClock::time_point&& trx_start_time,
                        OptionalCommandControl trx_cmd_ctl) {
+  // NOLINTNEXTLINE(hicpp-move-const-arg)
   pimpl_->Begin(options, std::move(trx_start_time), std::move(trx_cmd_ctl));
 }
 
@@ -700,6 +701,7 @@ void Connection::Commit() { pimpl_->Commit(); }
 void Connection::Rollback() { pimpl_->Rollback(); }
 
 void Connection::Start(SteadyClock::time_point&& start_time) {
+  // NOLINTNEXTLINE(hicpp-move-const-arg)
   pimpl_->Start(std::move(start_time));
 }
 

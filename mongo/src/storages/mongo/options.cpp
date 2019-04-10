@@ -54,7 +54,7 @@ const std::chrono::milliseconds& WriteConcern::Timeout() const {
 }
 
 WriteConcern& WriteConcern::SetTimeout(std::chrono::milliseconds timeout) {
-  timeout_ = std::move(timeout);
+  timeout_ = timeout;
   return *this;
 }
 
@@ -122,7 +122,7 @@ formats::bson::Document Projection::Extract() && {
 Sort::Sort(Order order) : order_(std::move(order)) {}
 
 Sort::Sort(std::initializer_list<Order::value_type> order) {
-  for (auto& [field, direction] : order) By(std::move(field), direction);
+  for (auto& [field, direction] : order) By(field, direction);
 }
 
 Sort& Sort::By(std::string field, Direction direction) {

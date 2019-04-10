@@ -38,7 +38,7 @@ OptionsHandle MakeDSNOptions(const std::string& conninfo) {
   if (errmsg) {
     InvalidDSN err{conninfo, errmsg};
     PQfreemem(errmsg);
-    throw err;
+    throw std::move(err);
   }
   return opts;
 }

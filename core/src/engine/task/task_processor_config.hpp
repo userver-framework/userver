@@ -13,12 +13,12 @@ namespace engine {
 struct TaskProcessorConfig {
   std::string name;
 
-  size_t worker_threads = 6;
+  size_t worker_threads{6};
   std::string thread_name;
-  std::chrono::microseconds profiler_threshold;
+  std::chrono::microseconds profiler_threshold{0};
 
-  size_t task_trace_every = 1000;
-  size_t task_trace_max_csw = 0;
+  size_t task_trace_every{1000};
+  size_t task_trace_max_csw{0};
   std::string task_trace_logger_name;
 
   static TaskProcessorConfig ParseFromYaml(

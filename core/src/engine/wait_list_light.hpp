@@ -42,7 +42,7 @@ class WaitListLight final : public WaitListBase {
  private:
   std::atomic<impl::TaskContext*> waiting_{nullptr};
 #ifndef NDEBUG
-  impl::TaskContext* owner_;
+  impl::TaskContext* owner_{nullptr};
 #endif
 };
 

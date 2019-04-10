@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,readability-*,performance*,modernize-*,misc*,hicpp-*,google-*,cppcoreguidelines*,clang-analyzer*,bugprone-*,boost*,-cppcoreguidelines-pro-type-reinterpret-cast,-google-readability-braces-around-statements,-readability-braces-around-statements,-hicpp-braces-around-statements,-google-runtime-int,-google-runtime-references,-readability-implicit-bool-conversion,-readability-named-parameter,-google-readability-todo,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-owning-memory,-readability-else-after-return,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-special-member-functions,-hicpp-special-member-functions,-clang-analyzer-optin.cplusplus.VirtualCall,-hicpp-no-array-decay,-readability-misleading-indentation,-hicpp-signed-bitwise,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-google-explicit-constructor,-hicpp-explicit-conversions,-modernize-pass-by-value,-hicpp-noexcept-move,-cppcoreguidelines-pro-type-vararg,-hicpp-vararg'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,readability-*,performance*,modernize-*,misc*,hicpp-*,google-*,cppcoreguidelines*,clang-analyzer*,bugprone-*,boost*,-cppcoreguidelines-pro-type-reinterpret-cast,-google-readability-braces-around-statements,-readability-braces-around-statements,-hicpp-braces-around-statements,-google-runtime-int,-google-runtime-references,-readability-implicit-bool-conversion,-readability-named-parameter,-google-readability-todo,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-owning-memory,-readability-else-after-return,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-special-member-functions,-hicpp-special-member-functions,-clang-analyzer-optin.cplusplus.VirtualCall,-hicpp-no-array-decay,-readability-misleading-indentation,-hicpp-signed-bitwise,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-google-explicit-constructor,-hicpp-explicit-conversions,-modernize-pass-by-value,-hicpp-noexcept-move,-cppcoreguidelines-pro-type-vararg,-hicpp-vararg,-bugprone-lambda-function-name,-modernize-use-uncaught-exceptions,-cppcoreguidelines-pro-type-union-access,-clang-analyzer-core.uninitialized.UndefReturn,-hicpp-member-init,-clang-analyzer-core.uninitialized.Assign,-performance-unnecessary-value-param,-clang-analyzer-core.CallAndMessage,-readability-redundant-declaration,-cppcoreguidelines-narrowing-conversions,-misc-unconventional-assign-operator,-performance-move-const-arg'
 WarningsAsErrors: '*'
 HeaderFilterRegex: 'core/*'
 AnalyzeTemporaryDtors: false
@@ -63,7 +63,7 @@ CheckOptions:
   - key:             cppcoreguidelines-pro-bounds-constant-array-index.IncludeStyle
     value:           '0'
   - key:             cppcoreguidelines-pro-type-member-init.IgnoreArrays
-    value:           '0'
+    value:           1
   - key:             cppcoreguidelines-special-member-functions.AllowMissingMoveFunctions
     value:           '0'
   - key:             cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
@@ -224,6 +224,8 @@ CheckOptions:
     value:           llvm
   - key:             performance-unnecessary-value-param.IncludeStyle
     value:           llvm
+  - key:             performance-unnecessary-value-param.AllowedTypes
+    value:           string_view;shared_ptr;socket_info_ptr;LoggerPtr
   - key:             readability-function-size.BranchThreshold
     value:           '4294967295'
   - key:             readability-function-size.LineThreshold

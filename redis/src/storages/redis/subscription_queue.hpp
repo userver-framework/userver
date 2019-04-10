@@ -12,7 +12,7 @@ namespace redis {
 struct ChannelSubscriptionQueueItem {
   std::string message;
 
-  ChannelSubscriptionQueueItem() {}
+  ChannelSubscriptionQueueItem() = default;
   explicit ChannelSubscriptionQueueItem(std::string message)
       : message(std::move(message)) {}
 };
@@ -21,7 +21,7 @@ struct PatternSubscriptionQueueItem {
   std::string channel;
   std::string message;
 
-  PatternSubscriptionQueueItem() {}
+  PatternSubscriptionQueueItem() = default;
   PatternSubscriptionQueueItem(std::string channel, std::string message)
       : channel(std::move(channel)), message(std::move(message)) {}
 };

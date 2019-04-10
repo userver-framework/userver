@@ -36,6 +36,7 @@ class MutableBson {
   MutableBson(MutableBson&&) noexcept = default;
 
   MutableBson& operator=(const MutableBson& rhs) {
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     return *this = CopyNative(rhs.bson_.get());
   }
 
@@ -83,6 +84,7 @@ class UninitializedBson {
 
 class ArrayIndexer {
  public:
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   ArrayIndexer(uint32_t init_idx = 0) : idx_(init_idx) {}
 
   uint32_t Index() const { return idx_; }
@@ -104,6 +106,7 @@ class ArrayIndexer {
 
 class SubarrayBson {
  public:
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   SubarrayBson(bson_t* parent, const char* key, size_t key_len)
       : parent_(parent) {
     bson_append_array_begin(parent_, key, key_len, &bson_);
@@ -123,6 +126,7 @@ class SubarrayBson {
 
 class SubdocBson {
  public:
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   SubdocBson(bson_t* parent, const char* key, size_t key_len)
       : parent_(parent) {
     bson_append_document_begin(parent_, key, key_len, &bson_);

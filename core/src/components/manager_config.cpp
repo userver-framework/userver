@@ -45,6 +45,7 @@ ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
 
 ManagerConfig ManagerConfig::ParseFromYaml(
     formats::yaml::Value yaml, const std::string& name,
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     yaml_config::VariableMapPtr config_vars_ptr) {
   ManagerConfig config;
   config.yaml = std::move(yaml);

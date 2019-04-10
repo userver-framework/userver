@@ -8,6 +8,7 @@ namespace ev {
 TimerWatcher::TimerWatcher(ThreadControl& thread_control)
     : ev_timer_(thread_control, this) {}
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 TimerWatcher::~TimerWatcher() { Cancel(); }
 
 void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout,

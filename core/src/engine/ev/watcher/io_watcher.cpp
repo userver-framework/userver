@@ -10,6 +10,7 @@ IoWatcher::IoWatcher(ThreadControl& thread_control)
       watcher_read_(thread_control, this),
       watcher_write_(thread_control, this) {}
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 IoWatcher::~IoWatcher() {
   Cancel();
   CloseFd();

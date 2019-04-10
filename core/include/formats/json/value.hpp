@@ -175,7 +175,7 @@ class Value {
 
  private:
   NativeValuePtr root_;
-  Json::Value* value_ptr_;
+  Json::Value* value_ptr_{nullptr};
   formats::json::Path path_;
 
   friend class Iterator<IterTraits>;

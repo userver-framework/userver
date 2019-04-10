@@ -10,7 +10,7 @@ AsyncWatcher::AsyncWatcher(ThreadControl& thread_control, Callback cb)
   ev_async_.Init(&AsyncWatcher::OnEvent);
 }
 
-AsyncWatcher::~AsyncWatcher() {}
+AsyncWatcher::~AsyncWatcher() = default;
 
 void AsyncWatcher::Start() { ev_async_.Start(); }
 

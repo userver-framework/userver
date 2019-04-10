@@ -17,7 +17,7 @@ ConnectionPool::~ConnectionPool() = default;
 
 ConnectionPool::ConnectionPool(ConnectionPool&&) noexcept = default;
 
-ConnectionPool& ConnectionPool::operator=(ConnectionPool&&) = default;
+ConnectionPool& ConnectionPool::operator=(ConnectionPool&&) noexcept = default;
 
 std::string const& ConnectionPool::GetDsn() const { return pimpl_->GetDsn(); }
 

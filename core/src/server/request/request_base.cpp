@@ -5,7 +5,7 @@ namespace request {
 
 RequestBase::RequestBase() : start_time_(std::chrono::steady_clock::now()) {}
 
-RequestBase::~RequestBase() {}
+RequestBase::~RequestBase() = default;
 
 void RequestBase::SetTaskCreateTime() {
   task_create_time_ = std::chrono::steady_clock::now();

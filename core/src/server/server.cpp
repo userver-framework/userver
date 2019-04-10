@@ -112,7 +112,7 @@ void ServerImpl::InitPortInfo(
   auto queue = requests_view_->GetQueue();
   requests_view_->StartBackgroudWorker();
   auto hook = [queue](std::shared_ptr<request::RequestBase> request) {
-    queue->enqueue(std::move(request));
+    queue->enqueue(request);
   };
   info.request_handler_->SetNewRequestHook(std::move(hook));
 

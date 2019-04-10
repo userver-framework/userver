@@ -21,7 +21,7 @@ const std::string kProcessRedisSubscriptionMessage =
 
 class SubscriptionTokenImplBase {
  public:
-  virtual ~SubscriptionTokenImplBase() {}
+  virtual ~SubscriptionTokenImplBase() = default;
 
   virtual void SetMaxQueueLength(size_t length) = 0;
 
@@ -36,7 +36,7 @@ class SubscriptionTokenImpl : public SubscriptionTokenImplBase {
                         std::string channel, OnMessageCb on_message_cb,
                         const ::redis::CommandControl& command_control);
 
-  ~SubscriptionTokenImpl();
+  ~SubscriptionTokenImpl() override;
 
   void SetMaxQueueLength(size_t length) override;
 
@@ -89,7 +89,7 @@ class PsubscriptionTokenImpl : public SubscriptionTokenImplBase {
                          std::string pattern, OnPmessageCb on_pmessage_cb,
                          const ::redis::CommandControl& command_control);
 
-  ~PsubscriptionTokenImpl();
+  ~PsubscriptionTokenImpl() override;
 
   void SetMaxQueueLength(size_t length) override;
 
@@ -150,9 +150,10 @@ SubscriptionToken::SubscriptionToken(
           subscribe_sentinel, std::move(pattern), std::move(on_pmessage_cb),
           command_control)) {}
 
-SubscriptionToken::~SubscriptionToken() {}
+SubscriptionToken::~SubscriptionToken() = default;
 
-SubscriptionToken& SubscriptionToken::operator=(SubscriptionToken&&) = default;
+SubscriptionToken& SubscriptionToken::operator=(SubscriptionToken&&) noexcept =
+    default;
 
 void SubscriptionToken::SetMaxQueueLength(size_t length) {
   if (!impl_) throw std::runtime_error("SubscriptionToken is not initialized");

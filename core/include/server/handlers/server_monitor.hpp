@@ -14,10 +14,9 @@ class ServerMonitor : public HttpHandlerBase {
 
   static constexpr const char* kName = "handler-server-monitor";
 
-  virtual const std::string& HandlerName() const override;
-  virtual std::string HandleRequestThrow(
-      const http::HttpRequest& request,
-      request::RequestContext&) const override;
+  const std::string& HandlerName() const override;
+  std::string HandleRequestThrow(const http::HttpRequest& request,
+                                 request::RequestContext&) const override;
 
   formats::json::Value GetEngineStats(
       utils::statistics::StatisticsRequest) const;

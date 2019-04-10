@@ -11,7 +11,7 @@
 namespace formats::bson::impl {
 namespace {
 
-static constexpr bson_value_t kDefaultBsonValue{BSON_TYPE_EOD, {}, {}};
+constexpr bson_value_t kDefaultBsonValue{BSON_TYPE_EOD, {}, {}};
 
 class IsNullptrVisitor {
  public:
@@ -174,6 +174,7 @@ ValueImpl::ValueImpl(BsonHolder bson, DocumentKind kind)
   }
   const auto& stored_bson = GetBson();
   bson_value_.value.v_doc.data =
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       const_cast<uint8_t*>(bson_get_data(stored_bson.get()));
   bson_value_.value.v_doc.data_len = stored_bson->len;
 }
@@ -276,12 +277,14 @@ ValueImpl::ValueImpl(const ValueImpl& other)
   UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ValueImpl::ValueImpl(ValueImpl&& other) noexcept { *this = std::move(other); }
 
 ValueImpl& ValueImpl::operator=(const ValueImpl& rhs) {
   if (this == &rhs) return *this;
 
   ValueImpl tmp(rhs);
+  // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
   return *this = std::move(tmp);
 }
 
@@ -331,13 +334,13 @@ ValueImplPtr ValueImpl::operator[](const std::string& name) {
                                      kDefaultBsonValue, name);
 }
 
-ValueImplPtr ValueImpl::operator[](uint32_t idx) {
-  if (IsNull()) throw OutOfBoundsException(idx, 0, GetPath());
+ValueImplPtr ValueImpl::operator[](uint32_t index) {
+  if (IsNull()) throw OutOfBoundsException(index, 0, GetPath());
 
   CheckIsArray();
   EnsureParsed();
-  CheckInBounds(idx);
-  return boost::get<ParsedArray>(parsed_value_)[idx];
+  CheckInBounds(index);
+  return boost::get<ParsedArray>(parsed_value_)[index];
 }
 
 bool ValueImpl::HasMember(const std::string& name) {

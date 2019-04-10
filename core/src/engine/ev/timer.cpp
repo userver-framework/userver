@@ -26,7 +26,7 @@ class Timer::TimerImpl : public std::enable_shared_from_this<Timer::TimerImpl> {
 
   double first_call_after_;
   double repeat_every_;
-  ev_timer timer_;
+  ev_timer timer_{};
 };
 
 Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
@@ -45,7 +45,7 @@ void Timer::TimerImpl::Start() {
 }
 
 void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) {
-  TimerImpl* ev_timer = static_cast<TimerImpl*>(w->data);
+  auto* ev_timer = static_cast<TimerImpl*>(w->data);
   UASSERT(ev_timer != nullptr);
   ev_timer->DoOnTimer();
 }
@@ -61,6 +61,7 @@ void Timer::TimerImpl::DoOnTimer() {
 void Timer::TimerImpl::Init() {
   if (first_call_after_ < 0.0) first_call_after_ = 0.0;
   timer_.data = this;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_init(&timer_, OnTimer, first_call_after_, repeat_every_);
   LOG_TRACE() << "first_call_after_=" << first_call_after_
               << " repeat_every_=" << repeat_every_;

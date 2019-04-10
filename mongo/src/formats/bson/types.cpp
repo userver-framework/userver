@@ -7,8 +7,10 @@
 
 namespace formats::bson {
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Oid::Oid() { bson_oid_init(&oid_, nullptr); }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Oid::Oid(const std::string& hex_encoded) {
   if (!bson_oid_is_valid(hex_encoded.data(), hex_encoded.size())) {
     throw BsonException("Invalid hex-encoded ObjectId: '" + hex_encoded + '\'');
@@ -52,6 +54,7 @@ bool Oid::operator>(const Oid& rhs) const {
 bool Oid::operator<=(const Oid& rhs) const { return !(*this > rhs); }
 bool Oid::operator>=(const Oid& rhs) const { return !(*this < rhs); }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Decimal128::Decimal128(const std::string& value) {
   if (!utils::text::IsAscii(value)) {
     throw BsonException("Non-ASCII chars found during Decimal128 parse");
@@ -91,7 +94,7 @@ bool Decimal128::operator!=(const Decimal128& rhs) const {
   return !(*this == rhs);
 }
 
-Timestamp::Timestamp() : timestamp_(0), increment_(0) {}
+Timestamp::Timestamp() = default;
 
 Timestamp::Timestamp(uint32_t timestamp, uint32_t increment)
     : timestamp_(timestamp), increment_(increment) {}

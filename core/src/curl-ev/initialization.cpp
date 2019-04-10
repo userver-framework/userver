@@ -13,6 +13,7 @@
 #include <curl-ev/initialization.hpp>
 #include <curl-ev/native.hpp>
 
+// NOLINTNEXTLINE(google-build-using-namespace)
 using namespace curl;
 
 namespace {

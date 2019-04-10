@@ -667,12 +667,12 @@ class CURLASIO_API easy {
   void DoRun();
 
   initialization::ptr initref_;
-  native::CURL* handle_;
+  native::CURL* handle_{nullptr};
   multi* multi_;
   bool multi_registered_;
   handler_type handler_;
   std::shared_ptr<std::istream> source_;
-  std::ostream* sink_;
+  std::ostream* sink_{nullptr};
   std::string post_fields_;
   std::shared_ptr<form> form_;
   std::shared_ptr<string_list> headers_;

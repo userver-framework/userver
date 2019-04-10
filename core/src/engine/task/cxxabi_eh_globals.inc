@@ -3,6 +3,7 @@ namespace impl {
 
 namespace {
 
+// NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 abi::__cxa_eh_globals* GetGlobals() throw() {
   thread_local EhGlobals tls_globals;
   auto* globals = &tls_globals;
@@ -14,11 +15,13 @@ abi::__cxa_eh_globals* GetGlobals() throw() {
 }
 
 __attribute__((section("cxa")))
+// NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 extern "C" abi::__cxa_eh_globals* __cxa_get_globals() throw() {
   return GetGlobals();
 }
 
 __attribute__((section("cxa")))
+// NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 extern "C" abi::__cxa_eh_globals* __cxa_get_globals_fast() throw() {
   return GetGlobals();
 }

@@ -227,7 +227,7 @@ struct RedisPools {
   static RedisPools ParseFromYaml(
       const formats::yaml::Value& yaml, const std::string& full_path,
       const yaml_config::VariableMapPtr& config_vars_ptr) {
-    RedisPools pools;
+    RedisPools pools{};
     pools.sentinel_thread_pool_size = yaml_config::ParseInt(
         yaml, "sentinel_thread_pool_size", full_path, config_vars_ptr);
     pools.redis_thread_pool_size = yaml_config::ParseInt(

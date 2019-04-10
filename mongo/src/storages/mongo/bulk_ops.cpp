@@ -12,7 +12,9 @@ InsertOne::InsertOne(formats::bson::Document document)
 
 InsertOne::~InsertOne() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertOne::InsertOne(const InsertOne&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertOne::InsertOne(InsertOne&&) noexcept = default;
 InsertOne& InsertOne::operator=(const InsertOne&) = default;
 InsertOne& InsertOne::operator=(InsertOne&&) noexcept = default;
@@ -23,7 +25,9 @@ ReplaceOne::ReplaceOne(formats::bson::Document selector,
 
 ReplaceOne::~ReplaceOne() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ReplaceOne::ReplaceOne(const ReplaceOne&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ReplaceOne::ReplaceOne(ReplaceOne&&) noexcept = default;
 ReplaceOne& ReplaceOne::operator=(const ReplaceOne&) = default;
 ReplaceOne& ReplaceOne::operator=(ReplaceOne&&) noexcept = default;
@@ -33,12 +37,14 @@ void ReplaceOne::SetOption(options::Upsert) {
 }
 
 Update::Update(Mode mode, formats::bson::Document selector,
-               formats::bson::Document replacement)
-    : impl_(mode, std::move(selector), std::move(replacement)) {}
+               formats::bson::Document update)
+    : impl_(mode, std::move(selector), std::move(update)) {}
 
 Update::~Update() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Update::Update(const Update&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Update::Update(Update&&) noexcept = default;
 Update& Update::operator=(const Update&) = default;
 Update& Update::operator=(Update&&) noexcept = default;
@@ -52,7 +58,9 @@ Delete::Delete(Mode mode, formats::bson::Document selector)
 
 Delete::~Delete() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Delete::Delete(const Delete&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Delete::Delete(Delete&&) noexcept = default;
 Delete& Delete::operator=(const Delete&) = default;
 Delete& Delete::operator=(Delete&&) noexcept = default;

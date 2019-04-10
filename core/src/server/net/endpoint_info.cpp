@@ -5,9 +5,7 @@ namespace net {
 
 EndpointInfo::EndpointInfo(const ListenerConfig& listener_config,
                            http::HttpRequestHandler& request_handler)
-    : listener_config(listener_config),
-      request_handler(request_handler),
-      connection_count(0) {}
+    : listener_config(listener_config), request_handler(request_handler) {}
 
 }  // namespace net
 }  // namespace server

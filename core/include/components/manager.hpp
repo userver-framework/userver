@@ -69,8 +69,9 @@ class Manager {
           const components::ComponentConfig&,
           const components::ComponentContext&)>
           factory);
-  void ClearComponents();
+  void ClearComponents() noexcept;
 
+ private:
   std::unique_ptr<const ManagerConfig> config_;
   std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools_;
 
@@ -79,8 +80,8 @@ class Manager {
   bool components_cleared_;
 
   engine::TaskProcessor* default_task_processor_;
-  components::Logging* logging_component_;
   const std::chrono::steady_clock::time_point start_time_;
+  components::Logging* logging_component_;
   std::chrono::milliseconds load_duration_;
 };
 

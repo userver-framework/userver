@@ -34,7 +34,7 @@ class LogHelper::Impl {
  private:
   class BufferStd final : public std::streambuf {
    public:
-    explicit BufferStd(Impl& impl) : std::streambuf{}, impl_{impl} {}
+    explicit BufferStd(Impl& impl) : impl_{impl} {}
 
    private:
     int_type overflow(int_type c) override;

@@ -226,8 +226,11 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       log_extra.Extend("request_body_length", body_length);
       log_extra.Extend("request_body", GetRequestBodyForLoggingChecked(
                                            http_request, context, body));
-      LOG_INFO() << "start handling " << http_request.GetUrl()
-                 << std::move(log_extra);
+      LOG_INFO()
+          << "start handling "
+          << http_request.GetUrl()
+          // NOLINTNEXTLINE(bugprone-use-after-move,hicpp-invalid-access-moved)
+          << std::move(log_extra);
     }
 
     HttpHandlerStatisticsScope stats_scope(*handler_statistics_,

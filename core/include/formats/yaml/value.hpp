@@ -36,7 +36,7 @@ class Value {
   // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   Value(Value&&);
   Value(const Value&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor,bugprone-exception-escape)
   Value& operator=(Value&&);
   Value& operator=(const Value&);
 
@@ -187,7 +187,7 @@ class Value {
   template <class T>
   T ValueAs() const;
 
-  bool is_root_;
+  bool is_root_{false};
 
   static constexpr std::size_t kNativeNodeSize = 32;
   static constexpr std::size_t kNativeAlignment = alignof(void*);

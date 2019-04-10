@@ -32,7 +32,7 @@ class ClusterImpl {
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options,
                     engine::Deadline deadline, OptionalCommandControl = {});
 
-  NonTransaction Start(ClusterHostType ht, engine::Deadline deadline);
+  NonTransaction Start(ClusterHostType host_type, engine::Deadline deadline);
 
   // The task returned MUST NOT outlive the ClusterImpl object
   engine::TaskWithResult<void> DiscoverTopology();

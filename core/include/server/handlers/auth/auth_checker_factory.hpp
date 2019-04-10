@@ -11,7 +11,7 @@ namespace auth {
 
 class AuthCheckerFactoryBase {
  public:
-  virtual ~AuthCheckerFactoryBase() {}
+  virtual ~AuthCheckerFactoryBase() = default;
 
   virtual AuthCheckerBasePtr operator()(const components::ComponentContext&,
                                         const HandlerAuthConfig&,

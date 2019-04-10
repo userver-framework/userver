@@ -17,6 +17,7 @@ Value::Value(NativeValuePtr&& root) noexcept
 Value::Value(const NativeValuePtr& root, const Json::Value* value_ptr,
              const formats::json::Path& path, const std::string& key)
     : root_(root),
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       value_ptr_(const_cast<Json::Value*>(value_ptr)),
       path_(path) {
   path_.push_back(key);
@@ -24,6 +25,7 @@ Value::Value(const NativeValuePtr& root, const Json::Value* value_ptr,
 
 Value::Value(const NativeValuePtr& root, const Json::Value& val,
              const formats::json::Path& path, std::size_t index)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     : root_(root), value_ptr_(const_cast<Json::Value*>(&val)), path_(path) {
   path_.push_back('[' + std::to_string(index) + ']');
 }
@@ -161,6 +163,7 @@ bool Value::IsRoot() const noexcept { return root_.get() == value_ptr_; }
 bool Value::IsUniqueReference() const { return root_.use_count() == 1; }
 
 const Json::Value& Value::GetNative() const {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   const_cast<Value*>(this)->EnsureNotMissing();
   return *value_ptr_;
 }

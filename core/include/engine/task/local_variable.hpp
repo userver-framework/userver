@@ -5,13 +5,15 @@
 namespace engine {
 
 class TaskLocalVariableAny {
- protected:
-  TaskLocalVariableAny();
+ public:
   TaskLocalVariableAny(const TaskLocalVariableAny&) = delete;
   TaskLocalVariableAny(TaskLocalVariableAny&&) = delete;
 
   TaskLocalVariableAny& operator=(const TaskLocalVariableAny&) = delete;
   TaskLocalVariableAny& operator=(TaskLocalVariableAny&&) = delete;
+
+ protected:
+  TaskLocalVariableAny();
 
  protected:
   engine::LocalStorage& GetCurrentLocalStorage();

@@ -34,7 +34,7 @@ void CheckHeaderName(const std::string& name) {
   static auto bad_chars = init();
 
   for (char c : name) {
-    uint8_t code = static_cast<uint8_t>(c);
+    auto code = static_cast<uint8_t>(c);
     if (bad_chars[code]) {
       throw std::runtime_error(
           std::string("invalid character in header name: '") + c + "' (#" +
@@ -53,7 +53,7 @@ void CheckHeaderValue(const std::string& value) {
   static auto bad_chars = init();
 
   for (char c : value) {
-    uint8_t code = static_cast<uint8_t>(c);
+    auto code = static_cast<uint8_t>(c);
     if (bad_chars[code]) {
       throw std::runtime_error(
           std::string("invalid character in header value: '") + c + "' (#" +
@@ -70,7 +70,7 @@ namespace http {
 HttpResponse::HttpResponse(const HttpRequestImpl& request)
     : request_(request) {}
 
-HttpResponse::~HttpResponse() {}
+HttpResponse::~HttpResponse() = default;
 
 void HttpResponse::SetSendFailed(
     std::chrono::steady_clock::time_point failure_time) {

@@ -34,6 +34,7 @@ ValueBuilder::ValueBuilder(const ValueBuilder& other) {
   Copy(value_.GetNative(), other);
 }
 
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(ValueBuilder&& other) {
   Move(value_.GetNative(), std::move(other));
 }
@@ -71,6 +72,7 @@ ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   return *this;
 }
 
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder& ValueBuilder::operator=(ValueBuilder&& other) {
   Move(value_.GetNative(), std::move(other));
   return *this;
@@ -82,6 +84,7 @@ ValueBuilder::ValueBuilder(const formats::json::Value& other) {
   value_.GetNative() = other.GetNative();
 }
 
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(formats::json::Value&& other) {
   // As we have new native object created,
   // we fill it with the other's native object.

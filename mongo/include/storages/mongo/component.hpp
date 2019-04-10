@@ -154,7 +154,7 @@ class MultiMongo : public LoggableComponentBase {
     void Activate();
 
    private:
-    MultiMongo* target_;
+    MultiMongo* target_{nullptr};
     std::shared_ptr<PoolMap> pool_map_ptr_;
   };
 

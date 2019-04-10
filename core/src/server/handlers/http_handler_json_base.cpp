@@ -77,8 +77,7 @@ void HttpHandlerJsonBase::ParseRequestData(
         ExternalBody{std::string("Invalid JSON body: ") + e.what()});
   }
 
-  context.SetData<const formats::json::Value>(kRequestDataName,
-                                              std::move(request_json));
+  context.SetData<const formats::json::Value>(kRequestDataName, request_json);
 }
 
 }  // namespace handlers

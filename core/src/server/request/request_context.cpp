@@ -74,6 +74,7 @@ void RequestContext::Impl::EraseAnyData(const std::string& name) {
   named_datum_.erase(it);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 RequestContext::RequestContext() = default;
 
 RequestContext::~RequestContext() = default;

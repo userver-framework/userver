@@ -34,7 +34,7 @@ class TypeMismatchException : public Exception {
  public:
   TypeMismatchException(Type actual, Type expected, const std::string& path);
   TypeMismatchException(const YAML::Node& value,
-                        const std::string& type_expected,
+                        const std::string& expected_type,
                         const std::string& path);
 };
 

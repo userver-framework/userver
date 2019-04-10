@@ -23,9 +23,9 @@ class DEPRECATED_EXCEPTION(CustomHandlerException) HttpException
     : public std::runtime_error {
  public:
   explicit HttpException(
-      HttpStatus status, std::string internal_error_message,
+      HttpStatus status, const std::string& internal_error_message,
       std::string external_error_body = std::string()) noexcept
-      : std::runtime_error(std::move(internal_error_message)),
+      : std::runtime_error(internal_error_message),
         status_(status),
         external_error_body_(std::move(external_error_body)) {}
 
@@ -41,31 +41,28 @@ class DEPRECATED_EXCEPTION(CustomHandlerException) HttpException
 
 class DEPRECATED_EXCEPTION(ClientError) BadRequest : public HttpException {
  public:
-  explicit BadRequest(std::string internal_error_message = "Bad request",
+  explicit BadRequest(const std::string& internal_error_message = "Bad request",
                       std::string external_error_body = std::string())
-      : HttpException(HttpStatus::kBadRequest,
-                      std::move(internal_error_message),
+      : HttpException(HttpStatus::kBadRequest, internal_error_message,
                       std::move(external_error_body)) {}
 };
 
 class DEPRECATED_EXCEPTION(Unauthorized) Unauthorized : public HttpException {
  public:
   explicit Unauthorized(
-      std::string internal_error_message = "Unauthorized",
+      const std::string& internal_error_message = "Unauthorized",
       std::string external_error_body = std::string()) noexcept
       : HttpException(server::http::HttpStatus::kUnauthorized,
-                      std::move(internal_error_message),
-                      std::move(external_error_body)) {}
+                      internal_error_message, std::move(external_error_body)) {}
 };
 
 class DEPRECATED_EXCEPTION(InternalServerError) InternalServerError
     : public HttpException {
  public:
   explicit InternalServerError(
-      std::string internal_error_message = "Internal server error",
+      const std::string& internal_error_message = "Internal server error",
       std::string external_error_body = std::string())
-      : HttpException(HttpStatus::kInternalServerError,
-                      std::move(internal_error_message),
+      : HttpException(HttpStatus::kInternalServerError, internal_error_message,
                       std::move(external_error_body)) {}
 };
 

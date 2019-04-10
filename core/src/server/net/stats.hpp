@@ -54,9 +54,7 @@ inline Stats& operator+=(Stats& lhs, const Stats& rhs) {
   return lhs;
 }
 
-inline Stats operator+(Stats&& lhs, const Stats& rhs) {
-  return std::move(lhs += rhs);
-}
+inline Stats operator+(Stats&& lhs, const Stats& rhs) { return lhs += rhs; }
 
 }  // namespace net
 }  // namespace server

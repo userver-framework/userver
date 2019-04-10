@@ -7,8 +7,10 @@ namespace formats::bson::impl {
 
 class InlineArrayBuilder::Helper : public ArrayIndexer {};
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Document InlineDocBuilder::Build() { return Document(builder_.Extract()); }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InlineArrayBuilder::InlineArrayBuilder() = default;
 InlineArrayBuilder::~InlineArrayBuilder() = default;
 

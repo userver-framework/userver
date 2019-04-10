@@ -111,13 +111,16 @@ engine::io::Addr SimpleServer::Impl::MakeLoopbackAddress(unsigned short port,
     case kTcpIpV4: {
       auto* sa = addr_storage.As<struct sockaddr_in>();
       sa->sin_family = AF_INET;
+      // NOLINTNEXTLINE(hicpp-no-assembler)
       sa->sin_port = htons(port);
+      // NOLINTNEXTLINE(hicpp-no-assembler)
       sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
       return engine::io::Addr(addr_storage, SOCK_STREAM, 0);
     }
     case kTcpIpV6: {
       auto* sa = addr_storage.As<struct sockaddr_in6>();
       sa->sin6_family = AF_INET6;
+      // NOLINTNEXTLINE(hicpp-no-assembler)
       sa->sin6_port = htons(port);
       sa->sin6_addr = in6addr_loopback;
       return engine::io::Addr(addr_storage, SOCK_STREAM, 0);

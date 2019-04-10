@@ -49,6 +49,7 @@ struct CachedData {
 };
 
 template <typename T>
+// NOLINTNEXTLINE(misc-definitions-in-headers)
 thread_local CachedData<T> cache;
 
 }  // namespace impl
@@ -135,7 +136,7 @@ class WritablePtr {
   /// visible to new readers (IOW, Variable::Read() returns ReadablePtr
   /// referencing the stored value, not an old value).
   void Commit() {
-    UASSERT(ptr_.get() != nullptr);
+    UASSERT(ptr_ != nullptr);
     LOG_TRACE() << "Committing ptr=" << ptr_.get();
 
     std::unique_ptr<T> old_ptr(var_.current_.exchange(ptr_.release()));

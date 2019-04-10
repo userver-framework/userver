@@ -14,9 +14,8 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
   HttpHandlerJsonBase(const components::ComponentConfig& config,
                       const components::ComponentContext& component_context);
 
-  std::string HandleRequestThrow(
-      const http::HttpRequest& request,
-      request::RequestContext& context) const override final;
+  std::string HandleRequestThrow(const http::HttpRequest& request,
+                                 request::RequestContext& context) const final;
 
   virtual formats::json::Value HandleRequestJsonThrow(
       const http::HttpRequest& request,
@@ -35,7 +34,7 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
 
  private:
   void ParseRequestData(const http::HttpRequest& request,
-                        request::RequestContext& context) const override final;
+                        request::RequestContext& context) const final;
 };
 
 }  // namespace handlers

@@ -47,7 +47,7 @@ TimeZoneID GetLocalTimezoneID() {
   UErrorCode err_code{U_ZERO_ERROR};
   tz.getID(id);
   id.toUTF8String(result.id);
-  tz.getCanonicalID(id, canonical, err_code);
+  icu_ns::TimeZone::getCanonicalID(id, canonical, err_code);
   if (U_FAILURE(err_code)) {
     LOG_TRACE() << "Error when getting canonical id for time zone " << result.id
                 << ": " << u_errorName(err_code);

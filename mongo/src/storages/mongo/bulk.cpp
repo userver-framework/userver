@@ -10,6 +10,7 @@
 
 namespace storages::mongo::operations {
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Bulk::Bulk(Mode mode) {
   const bool is_ordered = (mode == Mode::kOrdered);
   impl_->bulk.reset(mongoc_bulk_operation_new(is_ordered));
@@ -17,6 +18,7 @@ Bulk::Bulk(Mode mode) {
 
 Bulk::~Bulk() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Bulk::Bulk(Bulk&&) noexcept = default;
 Bulk& Bulk::operator=(Bulk&&) noexcept = default;
 

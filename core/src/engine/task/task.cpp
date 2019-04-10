@@ -72,7 +72,7 @@ void Task::Wait() const noexcept(false) {
 
 void Task::WaitUntil(Deadline deadline) const {
   UASSERT(context_);
-  context_->WaitUntil(std::move(deadline));
+  context_->WaitUntil(deadline);
 }
 
 void Task::Detach() && {

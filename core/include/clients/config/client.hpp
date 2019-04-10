@@ -15,8 +15,8 @@ namespace clients {
 namespace taxi_config {
 
 struct ClientConfig {
-  std::chrono::milliseconds timeout;
-  int retries;
+  std::chrono::milliseconds timeout{0};
+  int retries{1};
   std::string config_url;
 };
 

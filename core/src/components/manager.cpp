@@ -44,9 +44,12 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
     : config_(std::move(config)),
       components_cleared_(false),
       default_task_processor_(nullptr),
-      start_time_(std::chrono::steady_clock::now()) {
+      start_time_(std::chrono::steady_clock::now()),
+      logging_component_(nullptr),
+      load_duration_{0} {
   LOG_INFO() << "Starting components manager";
 
+  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
   task_processor_pools_ = std::make_shared<engine::impl::TaskProcessorPools>(
       config_->coro_pool, config_->event_thread_pool);
 
@@ -76,7 +79,11 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
 Manager::~Manager() {
   LOG_INFO() << "Stopping components manager";
   LOG_TRACE() << "Stopping component context";
-  RunInCoro(*default_task_processor_, [this]() { ClearComponents(); });
+  try {
+    RunInCoro(*default_task_processor_, [this]() { ClearComponents(); });
+  } catch (const std::exception& exc) {
+    LOG_ERROR() << "Failed to clear components: " << exc;
+  }
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
   LOG_TRACE() << "Stopping task processor pools";
@@ -131,7 +138,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
   components::ComponentConfigMap component_config_map;
 
   for (const auto& component_config : config_->components) {
-    const auto name = component_config.Name();
+    const auto& name = component_config.Name();
     component_config_map.emplace(name, component_config);
   }
 
@@ -235,7 +242,7 @@ void Manager::AddComponentImpl(
   LOG_INFO() << "Started component " << name;
 }
 
-void Manager::ClearComponents() {
+void Manager::ClearComponents() noexcept {
   {
     std::unique_lock<std::shared_timed_mutex> lock(context_mutex_);
     components_cleared_ = true;

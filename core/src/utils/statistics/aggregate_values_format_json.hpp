@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fmt/format.h>
+
 #include <formats/json/value_builder.hpp>
 #include <utils/statistics.hpp>
 
@@ -14,7 +16,7 @@ formats::json::Value AggregatedValuesToJson(
   for (size_t i = 0; i < length; ++i) {
     auto t1 = std::to_string(i ? (1 << i) : 0);
     auto t2 = (i == length - 1) ? "x" : std::to_string((1 << (i + 1)) - 1);
-    std::string key = t1 + "-" + t2 + suffix;
+    std::string key = fmt::format("{}-{}{}", t1, t2, suffix);
     result[key] = stats.value[i].load();
   }
   return result.ExtractValue();

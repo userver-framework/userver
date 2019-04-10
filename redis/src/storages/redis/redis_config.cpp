@@ -61,7 +61,7 @@ redis::CommandControl::Strategy Parse(
        ::redis::CommandControl::Strategy::kNearestServerPing)) {
     LOG_WARNING() << "CommandControl.best_dc_count = " << response.best_dc_count
                   << ", but is ignored for the current strategy ("
-                  << (size_t)response.strategy << ")";
+                  << static_cast<size_t>(response.strategy) << ")";
   }
   return response;
 }

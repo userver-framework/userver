@@ -21,7 +21,7 @@ namespace http {
 class HttpRequestImpl : public request::RequestBase {
  public:
   HttpRequestImpl();
-  virtual ~HttpRequestImpl();
+  ~HttpRequestImpl() override;
 
   const HttpMethod& GetMethod() const { return method_; }
   const HttpMethod& GetOrigMethod() const { return orig_method_; }
@@ -61,15 +61,12 @@ class HttpRequestImpl : public request::RequestBase {
 
   bool IsFinal() const override { return is_final_; }
 
-  virtual request::ResponseBase& GetResponse() const override {
-    return *response_;
-  }
+  request::ResponseBase& GetResponse() const override { return *response_; }
   HttpResponse& GetHttpResponse() const { return *response_; }
 
-  virtual void WriteAccessLogs(
-      const logging::LoggerPtr& logger_access,
-      const logging::LoggerPtr& logger_access_tskv,
-      const std::string& remote_address) const override;
+  void WriteAccessLogs(const logging::LoggerPtr& logger_access,
+                       const logging::LoggerPtr& logger_access_tskv,
+                       const std::string& remote_address) const override;
 
   void WriteAccessLog(const logging::LoggerPtr& logger_access,
                       const std::string& remote_address) const;
@@ -77,9 +74,9 @@ class HttpRequestImpl : public request::RequestBase {
   void WriteAccessTskvLog(const logging::LoggerPtr& logger_access_tskv,
                           const std::string& remote_address) const;
 
-  virtual void SetMatchedPathLength(size_t length) override;
+  void SetMatchedPathLength(size_t length) override;
 
-  virtual void AccountResponseTime() override;
+  void AccountResponseTime() override;
 
   void MarkAsInternalServerError() const override;
 
@@ -89,10 +86,10 @@ class HttpRequestImpl : public request::RequestBase {
 
  private:
   // method_ = (orig_method_ == kHead ? kGet : orig_method_)
-  HttpMethod method_;
-  HttpMethod orig_method_;
-  unsigned short http_major_;
-  unsigned short http_minor_;
+  HttpMethod method_{HttpMethod::kUnknown};
+  HttpMethod orig_method_{HttpMethod::kUnknown};
+  unsigned short http_major_{1};
+  unsigned short http_minor_{1};
   std::string url_;
   std::string request_path_;
   std::string request_body_;
@@ -100,10 +97,10 @@ class HttpRequestImpl : public request::RequestBase {
   std::unordered_map<std::string, std::vector<std::string>> request_args_;
   HeadersMap headers_;
   CookiesMap cookies_;
-  bool is_final_;
+  bool is_final_{false};
 
   std::unique_ptr<HttpResponse> response_;
-  handlers::HttpHandlerStatistics* handler_statistics_;
+  handlers::HttpHandlerStatistics* handler_statistics_{nullptr};
 };
 
 }  // namespace http

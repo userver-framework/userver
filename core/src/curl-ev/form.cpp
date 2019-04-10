@@ -12,16 +12,17 @@
 #include <curl-ev/form.hpp>
 #include <curl-ev/native.hpp>
 
+// NOLINTNEXTLINE(google-build-using-namespace)
 using namespace curl;
 
-form::form() : post_(0), last_(0) {
+form::form() : post_(nullptr), last_(nullptr) {
   initref_ = initialization::ensure_initialization();
 }
 
 form::~form() {
   if (post_) {
     native::curl_formfree(post_);
-    post_ = 0;
+    post_ = nullptr;
   }
 }
 

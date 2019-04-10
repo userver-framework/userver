@@ -83,9 +83,9 @@ class TaskProcessor {
 
   void SetTaskQueueWaitTimepoint(impl::TaskContext* context);
 
-  void CheckWaitTime(impl::TaskContext& task);
+  void CheckWaitTime(impl::TaskContext& context);
 
-  void HandleOverload(impl::TaskContext& task);
+  void HandleOverload(impl::TaskContext& context);
 
   const TaskProcessorConfig config_;
   std::shared_ptr<impl::TaskProcessorPools> pools_;
@@ -107,8 +107,8 @@ class TaskProcessor {
 
   std::vector<std::thread> workers_;
   impl::TaskCounter task_counter_;
-  std::atomic<bool> task_trace_logger_set_;
-  ::logging::LoggerPtr task_trace_logger_;
+  std::atomic<bool> task_trace_logger_set_{false};
+  ::logging::LoggerPtr task_trace_logger_{nullptr};
 };
 
 }  // namespace engine

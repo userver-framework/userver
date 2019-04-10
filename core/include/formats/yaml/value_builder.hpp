@@ -24,10 +24,11 @@ class ValueBuilder {
   ValueBuilder(Type type);
 
   ValueBuilder(const ValueBuilder& other);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor,bugprone-exception-escape)
   ValueBuilder(ValueBuilder&& other);
+  // NOLINTNEXTLINE(bugprone-exception-escape)
   ValueBuilder& operator=(const ValueBuilder& other);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor,bugprone-exception-escape)
   ValueBuilder& operator=(ValueBuilder&& other);
 
   ValueBuilder(const formats::yaml::Value& other);

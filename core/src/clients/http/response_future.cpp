@@ -12,6 +12,7 @@ ResponseFuture::ResponseFuture(
       deadline_(std::chrono::system_clock::now() + total_timeout),
       easy_(std::move(easy)) {}
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept {
   std::swap(future_, other.future_);
   std::swap(deadline_, other.deadline_);

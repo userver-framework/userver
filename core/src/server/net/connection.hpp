@@ -73,7 +73,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   engine::TaskProcessor& task_processor_;
   const ConnectionConfig& config_;
   engine::io::Socket peer_socket_;
-  Type type_;
+  Type type_{Type::kRequest};
   const http::HttpRequestHandler& request_handler_;
   const std::shared_ptr<Stats> stats_;
   const std::string remote_address_;

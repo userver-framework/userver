@@ -148,7 +148,9 @@ Count::Count(const Count& other) : impl_(other.impl_->filter) {
   impl_->options = other.impl_->options;
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Count::Count(Count&&) noexcept = default;
+// NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
 Count& Count::operator=(const Count& rhs) { return *this = Count(rhs); }
 Count& Count::operator=(Count&&) noexcept = default;
 
@@ -172,18 +174,22 @@ void Count::SetOption(options::Limit limit) {
   AppendLimit(impl::EnsureBuilder(impl_->options), limit);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 CountApprox::CountApprox() = default;
 CountApprox::~CountApprox() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 CountApprox::CountApprox(const CountApprox& other) {
   impl_->read_prefs.reset(
       mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
   impl_->options = other.impl_->options;
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 CountApprox::CountApprox(CountApprox&&) noexcept = default;
 
 CountApprox& CountApprox::operator=(const CountApprox& rhs) {
+  // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
   return *this = CountApprox(rhs);
 }
 
@@ -218,7 +224,9 @@ Find::Find(const Find& other) : impl_(other.impl_->filter) {
   impl_->options = other.impl_->options;
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Find::Find(Find&&) noexcept = default;
+// NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
 Find& Find::operator=(const Find& rhs) { return *this = Find(rhs); }
 Find& Find::operator=(Find&&) noexcept = default;
 
@@ -293,7 +301,9 @@ InsertOne::InsertOne(formats::bson::Document document)
 
 InsertOne::~InsertOne() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertOne::InsertOne(const InsertOne&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertOne::InsertOne(InsertOne&&) noexcept = default;
 InsertOne& InsertOne::operator=(const InsertOne&) = default;
 InsertOne& InsertOne::operator=(InsertOne&&) noexcept = default;
@@ -310,6 +320,7 @@ void InsertOne::SetOption(options::SuppressServerExceptions) {
   impl_->should_throw = false;
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertMany::InsertMany() = default;
 
 InsertMany::InsertMany(std::vector<formats::bson::Document> documents_)
@@ -317,7 +328,9 @@ InsertMany::InsertMany(std::vector<formats::bson::Document> documents_)
 
 InsertMany::~InsertMany() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertMany::InsertMany(const InsertMany&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertMany::InsertMany(InsertMany&&) noexcept = default;
 InsertMany& InsertMany::operator=(const InsertMany&) = default;
 InsertMany& InsertMany::operator=(InsertMany&&) noexcept = default;
@@ -349,7 +362,9 @@ ReplaceOne::ReplaceOne(formats::bson::Document selector,
 
 ReplaceOne::~ReplaceOne() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ReplaceOne::ReplaceOne(const ReplaceOne&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ReplaceOne::ReplaceOne(ReplaceOne&&) noexcept = default;
 ReplaceOne& ReplaceOne::operator=(const ReplaceOne&) = default;
 ReplaceOne& ReplaceOne::operator=(ReplaceOne&&) noexcept = default;
@@ -376,7 +391,9 @@ Update::Update(Mode mode, formats::bson::Document selector,
 
 Update::~Update() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Update::Update(const Update&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Update::Update(Update&&) noexcept = default;
 Update& Update::operator=(const Update&) = default;
 Update& Update::operator=(Update&&) noexcept = default;
@@ -402,7 +419,9 @@ Delete::Delete(Mode mode, formats::bson::Document selector)
 
 Delete::~Delete() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Delete::Delete(const Delete&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Delete::Delete(Delete&&) noexcept = default;
 Delete& Delete::operator=(const Delete&) = default;
 Delete& Delete::operator=(Delete&&) noexcept = default;
@@ -431,7 +450,9 @@ FindAndModify::FindAndModify(formats::bson::Document query,
 
 FindAndModify::~FindAndModify() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 FindAndModify::FindAndModify(FindAndModify&&) noexcept = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 FindAndModify& FindAndModify::operator=(FindAndModify&&) noexcept = default;
 
 void FindAndModify::SetOption(options::Upsert) {
@@ -495,6 +516,7 @@ FindAndRemove::FindAndRemove(formats::bson::Document query)
 
 FindAndRemove::~FindAndRemove() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 FindAndRemove::FindAndRemove(FindAndRemove&&) noexcept = default;
 FindAndRemove& FindAndRemove::operator=(FindAndRemove&&) noexcept = default;
 

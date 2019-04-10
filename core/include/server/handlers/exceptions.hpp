@@ -59,11 +59,11 @@ struct HandlerErrorCodeHash {
 const char* GetCodeDescription(HandlerErrorCode) noexcept;
 
 struct InternalMessage {
-  const std::string body;
+  std::string body;
 };
 
 struct ExternalBody {
-  const std::string body;
+  std::string body;
 };
 
 namespace detail {
@@ -146,7 +146,7 @@ class CustomHandlerException : public std::runtime_error {
       : CustomHandlerException(ExternalBody{builder.GetExternalBody()},
                                InternalMessage{builder.GetInternalMessage()},
                                code) {}
-  const HandlerErrorCode code_;
+  const HandlerErrorCode code_{kDefaultCode};
   const std::string external_body_;
 };
 
@@ -177,6 +177,7 @@ class ExceptionWithCode : public CustomHandlerException {
                                std::move(internal_message), code) {}
 
   template <typename MessageBuilder>
+  // NOLINTNEXTLINE(bugprone-forwarding-reference-overload)
   explicit ExceptionWithCode(MessageBuilder&& builder,
                              HandlerErrorCode code = kDefaultCode)
       : CustomHandlerException(builder, code) {}

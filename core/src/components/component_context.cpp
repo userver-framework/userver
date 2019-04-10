@@ -63,7 +63,7 @@ ComponentContext::ComponentContext(
   StartPrintAddingComponentsTask();
 }
 
-ComponentContext::~ComponentContext() {}
+ComponentContext::~ComponentContext() = default;
 
 ComponentBase* ComponentContext::AddComponent(const std::string& name,
                                               const ComponentFactory& factory) {
@@ -117,7 +117,7 @@ engine::TaskProcessor& ComponentContext::GetTaskProcessor(
     throw std::runtime_error("Failed to find task processor with name: " +
                              name);
   }
-  return *it->second.get();
+  return *it->second;
 }
 
 ComponentContext::TaskProcessorPtrMap ComponentContext::GetTaskProcessorsMap()
@@ -352,7 +352,7 @@ void ComponentContext::PrintAddingComponents() const {
   std::vector<std::string> adding_components;
   {
     std::lock_guard<engine::Mutex> lock(component_mutex_);
-    for (auto elem : task_to_component_map_) {
+    for (const auto& elem : task_to_component_map_) {
       adding_components.push_back(elem.second);
     }
   }

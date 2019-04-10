@@ -54,6 +54,7 @@ FileDescriptor::~FileDescriptor() {
 }
 
 auto FileDescriptor::GetFileStats() const {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   struct ::stat result;
   if (0 != ::fstat(fd_, &result)) {
     const auto code = std::make_error_code(std::errc(errno));
@@ -136,6 +137,7 @@ void FileDescriptor::Write(const std::string& contents) {
 std::string FileDescriptor::ReadContents() {
   std::string result;
   for (;;) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     std::array<char, 4096> buffer;
     ssize_t s = read(fd_, buffer.data(), buffer.size());
     if (s < 0) {

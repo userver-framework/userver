@@ -12,7 +12,7 @@ class EventWaitStrategy final : public WaitStrategy {
   EventWaitStrategy(std::shared_ptr<impl::WaitListLight> waiters,
                     const std::atomic<bool>& signaled, TaskContext* current)
       : WaitStrategy({}),
-        waiters_(waiters),
+        waiters_(std::move(waiters)),
         is_signaled_(signaled),
         current_(current) {}
 

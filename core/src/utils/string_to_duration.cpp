@@ -11,6 +11,7 @@ namespace {
 template <class Rep, class Period>
 std::chrono::milliseconds checked_convert(std::chrono::duration<Rep, Period> d,
                                           const std::string& data) {
+  // NOLINTNEXTLINE(google-build-using-namespace)
   using namespace std::chrono;
 
   const duration<long double, milliseconds::period> extended_duration{d};

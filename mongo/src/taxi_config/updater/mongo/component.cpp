@@ -78,10 +78,11 @@ void TaxiConfigMongoUpdater::Update(
     }
   }
 
+  auto docs_count = mongo_docs.Size();
   Emplace(std::move(mongo_docs));
 
   taxi_config_.SetConfig(Get());
-  stats.Finish(mongo_docs.Size());
+  stats.Finish(docs_count);
   seen_doc_update_time_ = seen_doc_update_time;
 }
 

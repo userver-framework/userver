@@ -19,6 +19,7 @@
 #include <engine/async.hpp>
 #include <server/net/listener_impl.hpp>
 
+// NOLINTNEXTLINE(google-build-using-namespace)
 using namespace curl;
 using BusyMarker = ::utils::statistics::BusyMarker;
 
@@ -43,7 +44,7 @@ easy::~easy() {
 
   if (handle_) {
     native::curl_easy_cleanup(handle_);
-    handle_ = 0;
+    handle_ = nullptr;
   }
 }
 
@@ -140,13 +141,13 @@ void easy::_reset() {
 
 void easy::set_source(std::shared_ptr<std::istream> source) {
   std::error_code ec;
-  set_source(source, ec);
+  set_source(std::move(source), ec);
   throw_error(ec, "set_source");
 }
 
 void easy::set_source(std::shared_ptr<std::istream> source,
                       std::error_code& ec) {
-  source_ = source;
+  source_ = std::move(source);
   set_read_function(&easy::read_function, ec);
   if (!ec) set_read_data(this, ec);
   if (!ec) set_seek_function(&easy::seek_function, ec);
@@ -171,12 +172,12 @@ void easy::set_sink(std::ostream* sink, std::error_code& ec) {
 
 void easy::unset_progress_callback() {
   set_no_progress(true);
-  set_xferinfo_function(0);
-  set_xferinfo_data(0);
+  set_xferinfo_function(nullptr);
+  set_xferinfo_data(nullptr);
 }
 
 void easy::set_progress_callback(progress_callback_t progress_callback) {
-  progress_callback_ = progress_callback;
+  progress_callback_ = std::move(progress_callback);
   set_no_progress(false);
   set_xferinfo_function(&easy::xferinfo_function);
   set_xferinfo_data(this);
@@ -217,7 +218,7 @@ void easy::set_post_fields(std::string&& post_fields, std::error_code& ec) {
 
 void easy::set_http_post(std::shared_ptr<form> form) {
   std::error_code ec;
-  set_http_post(form, ec);
+  set_http_post(std::move(form), ec);
   throw_error(ec, "set_http_post");
 }
 
@@ -262,13 +263,13 @@ void easy::add_header(const std::string& header, std::error_code& ec) {
 
 void easy::set_headers(std::shared_ptr<string_list> headers) {
   std::error_code ec;
-  set_headers(headers, ec);
+  set_headers(std::move(headers), ec);
   throw_error(ec, "set_headers");
 }
 
 void easy::set_headers(std::shared_ptr<string_list> headers,
                        std::error_code& ec) {
-  headers_ = headers;
+  headers_ = std::move(headers);
 
   if (headers_) {
     ec = std::error_code(native::curl_easy_setopt(
@@ -299,21 +300,21 @@ void easy::add_http200_alias(const std::string& http200_alias,
 
 void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases) {
   std::error_code ec;
-  set_http200_aliases(http200_aliases, ec);
+  set_http200_aliases(std::move(http200_aliases), ec);
   throw_error(ec, "set_http200_aliases");
 }
 
 void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases,
                                std::error_code& ec) {
-  http200_aliases_ = http200_aliases;
+  http200_aliases_ = std::move(http200_aliases);
 
   if (http200_aliases) {
     ec = std::error_code(
         native::curl_easy_setopt(handle_, native::CURLOPT_HTTP200ALIASES,
-                                 http200_aliases->native_handle()));
+                                 http200_aliases_->native_handle()));
   } else {
     ec = std::error_code(native::curl_easy_setopt(
-        handle_, native::CURLOPT_HTTP200ALIASES, NULL));
+        handle_, native::CURLOPT_HTTP200ALIASES, nullptr));
   }
 }
 
@@ -335,13 +336,13 @@ void easy::add_resolve(const std::string& resolved_host, std::error_code& ec) {
 
 void easy::set_resolves(std::shared_ptr<string_list> resolved_hosts) {
   std::error_code ec;
-  set_resolves(resolved_hosts, ec);
+  set_resolves(std::move(resolved_hosts), ec);
   throw_error(ec, "set_resolves");
 }
 
 void easy::set_resolves(std::shared_ptr<string_list> resolved_hosts,
                         std::error_code& ec) {
-  resolved_hosts_ = resolved_hosts;
+  resolved_hosts_ = std::move(resolved_hosts);
 
   if (resolved_hosts_) {
     ec = std::error_code(native::curl_easy_setopt(
@@ -354,7 +355,7 @@ void easy::set_resolves(std::shared_ptr<string_list> resolved_hosts,
 
 void easy::set_share(std::shared_ptr<share> share) {
   std::error_code ec;
-  set_share(share, ec);
+  set_share(std::move(share), ec);
   throw_error(ec, "set_share");
 }
 
@@ -363,7 +364,7 @@ void easy::set_share(std::shared_ptr<share> share, std::error_code& ec) {
 
   if (share) {
     ec = std::error_code(native::curl_easy_setopt(
-        handle_, native::CURLOPT_SHARE, share->native_handle()));
+        handle_, native::CURLOPT_SHARE, share_->native_handle()));
   } else {
     ec = std::error_code(
         native::curl_easy_setopt(handle_, native::CURLOPT_SHARE, NULL));
@@ -402,13 +403,13 @@ void easy::add_telnet_option(const std::string& option,
 
 void easy::set_telnet_options(std::shared_ptr<string_list> telnet_options) {
   std::error_code ec;
-  set_telnet_options(telnet_options, ec);
+  set_telnet_options(std::move(telnet_options), ec);
   throw_error(ec, "set_telnet_options");
 }
 
 void easy::set_telnet_options(std::shared_ptr<string_list> telnet_options,
                               std::error_code& ec) {
-  telnet_options_ = telnet_options;
+  telnet_options_ = std::move(telnet_options);
 
   if (telnet_options_) {
     ec = std::error_code(
@@ -568,6 +569,7 @@ native::curl_socket_t easy::opensocket(void* clientp,
   multi* multi_handle = self->multi_;
   native::curl_socket_t s = -1;
 
+  // NOLINTNEXTLINE(hicpp-multiway-paths-covered)
   switch (purpose) {
     case native::CURLSOCKTYPE_IPCXN:
       switch (address->socktype) {
@@ -602,7 +604,7 @@ native::curl_socket_t easy::opensocket(void* clientp,
 }
 
 int easy::closesocket(void* clientp, native::curl_socket_t item) {
-  multi* multi_handle = static_cast<multi*>(clientp);
+  auto* multi_handle = static_cast<multi*>(clientp);
   multi_handle->socket_cleanup(item);
   multi_handle->Statistics().mark_close_socket();
   return 0;

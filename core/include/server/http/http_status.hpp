@@ -70,7 +70,7 @@ namespace http {
   /* end of HTTP_STATUS_MAP_STRING */
 
 enum class HttpStatus {
-#define XX(num, name, string) name = num,
+#define XX(num, name, string) name = (num),
 
   HTTP_STATUS_MAP_STRING(XX)
 

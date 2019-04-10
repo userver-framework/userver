@@ -425,6 +425,7 @@ engine::Task* ClusterTopology::CheckAvailability(size_t index,
 engine::Task* ClusterTopology::DetectMaster(size_t index, ChecksList& checks) {
   // We need to take out the task as empty task has special meaning
   auto tmp_task = std::move(checks[index].task);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto& task = static_cast<engine::TaskWithResult<ClusterHostType>&>(*tmp_task);
 
   bool conn_error = false;
@@ -489,6 +490,7 @@ engine::Task* ClusterTopology::DetectSyncSlaves(size_t master_index,
   // We need to take out the task as empty task has special meaning
   auto tmp_task = std::move(checks[master_index].task);
   auto& task =
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
       static_cast<engine::TaskWithResult<std::vector<size_t>>&>(*tmp_task);
 
   bool conn_error = false;
@@ -533,7 +535,7 @@ engine::Task* ClusterTopology::SetCheckStage(size_t index, ChecksList& checks,
                                              T&& task,
                                              HostChecks::Stage stage) const {
   UASSERT_MSG(!checks[index].task, "No check task should be available");
-  checks[index].task = std::make_unique<T>(std::move(task));
+  checks[index].task = std::make_unique<T>(std::forward<T>(task));
   checks[index].stage = stage;
   return checks[index].task.get();
 }

@@ -20,7 +20,7 @@ class EvSocket : public engine::ev::IoWatcher {
   EvSocket(engine::ev::ThreadControl& thread_control)
       : engine::ev::IoWatcher(thread_control) {}
 
-  ~EvSocket() {}
+  ~EvSocket() noexcept = default;
 
   enum class Domain { kIPv4, kIPv6 };
   bool Open(Domain domain) {

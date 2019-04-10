@@ -114,8 +114,6 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_cancellable_(true),
       cancellation_reason_(Task::CancellationReason::kNone),
       finish_waiters_(std::make_shared<WaitListLight>()),
-      task_queue_wait_timepoint_(),
-      last_state_change_timepoint_(),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_manager_(nullptr),
       sleep_state_(SleepStateFlags::kSleeping),
@@ -130,7 +128,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
               << logging::LogExtra::Stacktrace();
 }
 
-TaskContext::~TaskContext() {
+TaskContext::~TaskContext() noexcept {
   LOG_TRACE() << "Task with task_id=" << GetTaskIdString(this) << " stopped"
               << logging::LogExtra::Stacktrace();
 }
@@ -202,6 +200,7 @@ void TaskContext::DoStep() {
 
   utils::Flags<SleepStateFlags> clear_flags{SleepStateFlags::kSleeping};
   if (!coro_) {
+    // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
     coro_ = task_processor_.GetCoroPool().GetCoroutine();
     clear_flags |= SleepStateFlags::kWakeupByBootstrap;
   }
@@ -221,6 +220,7 @@ void TaskContext::DoStep() {
   switch (yield_reason_) {
     case YieldReason::kTaskCancelled:
     case YieldReason::kTaskComplete:
+      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
       task_processor_.GetCoroPool().PutCoroutine(std::move(coro_));
       coro_.reset();
       {
@@ -549,7 +549,7 @@ void TaskContext::TraceStateTransition(Task::State state) {
   auto now = std::chrono::steady_clock::now();
   auto diff = now - last_state_change_timepoint_;
   if (last_state_change_timepoint_ == std::chrono::steady_clock::time_point())
-    diff = now - now;
+    diff = {};
   auto diff_us =
       std::chrono::duration_cast<std::chrono::microseconds>(diff).count();
   last_state_change_timepoint_ = now;

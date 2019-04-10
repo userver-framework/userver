@@ -17,7 +17,7 @@ namespace request {
 class ResponseBase {
  public:
   ResponseBase() = default;
-  virtual ~ResponseBase() {}
+  virtual ~ResponseBase() noexcept = default;
 
   void SetData(std::string data);
   const std::string& GetData() const { return data_; }

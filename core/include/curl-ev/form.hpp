@@ -81,8 +81,8 @@ class CURLASIO_API form {
 
  private:
   initialization::ptr initref_;
-  native::curl_httppost* post_;
-  native::curl_httppost* last_;
+  native::curl_httppost* post_{nullptr};
+  native::curl_httppost* last_{nullptr};
   std::vector<std::shared_ptr<std::string>> buffers_;
 };
 

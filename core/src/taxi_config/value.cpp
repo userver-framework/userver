@@ -26,7 +26,7 @@ formats::json::Value DocsMap::Get(const std::string& name) const {
 void DocsMap::Set(std::string name, formats::json::Value obj) {
   auto it = docs_.find(name);
   if (it != docs_.end()) {
-    it->second = std::move(obj);
+    it->second = obj;
   } else {
     docs_.emplace(std::move(name), std::move(obj));
   }
@@ -51,13 +51,13 @@ void DocsMap::MergeFromOther(DocsMap&& other) {
   // TODO: do docs_.merge(other) after we get C++17 std lib
   for (auto& it : other.docs_) {
     std::string name = it.first;
-    formats::json::Value value = std::move(it.second);
+    formats::json::Value value = it.second;
 
     auto this_it = docs_.find(name);
     if (this_it == docs_.end()) {
       docs_.emplace(std::move(name), std::move(value));
     } else {
-      this_it->second = std::move(value);
+      this_it->second = value;
     }
   }
 }

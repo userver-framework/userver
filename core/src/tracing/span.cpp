@@ -40,6 +40,7 @@ engine::TaskLocalVariable<boost::intrusive::list<
 
 }  // namespace
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Span::Impl::Impl(TracerPtr tracer, const std::string& name,
                  const Span::Impl* parent, ReferenceType reference_type,
                  logging::Level log_level)
@@ -68,6 +69,7 @@ Span::Impl::~Impl() {
   const double start_ts =
       start_system_time_.time_since_epoch().count() / 1000000000.0;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   std::array<char, 64> start_ts_str;
   snprintf(start_ts_str.data(), start_ts_str.size(), "%.6lf", start_ts);
   start_ts_str[start_ts_str.size() - 1] = 0;
@@ -94,6 +96,7 @@ Span::Impl::~Impl() {
     result.Extend(time_storage_->GetLogs());
   }
 
+  // NOLINTNEXTLINE(bugprone-use-after-move,hicpp-invalid-access-moved)
   LOG(log_level_) << std::move(result);
 }
 

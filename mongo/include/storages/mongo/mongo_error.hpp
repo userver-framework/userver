@@ -32,7 +32,7 @@ class MongoError {
   /// @endcond
 
   /// Unconditionally throws specialized MongoException
-  [[noreturn]] void Throw(std::string context) const;
+  [[noreturn]] void Throw(std::string prefix) const;
 
  private:
   bson_error_t value_;

@@ -21,7 +21,7 @@ class TaxiConfigClientUpdater
 
   TaxiConfigClientUpdater(const ComponentConfig&, const ComponentContext&);
 
-  ~TaxiConfigClientUpdater();
+  ~TaxiConfigClientUpdater() override;
 
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,

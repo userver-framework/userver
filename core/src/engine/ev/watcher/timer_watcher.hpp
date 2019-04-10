@@ -12,6 +12,7 @@ class TimerWatcher {
   explicit TimerWatcher(ThreadControl& thread_control);
 
   TimerWatcher(const TimerWatcher&) = delete;
+  // NOLINTNEXTLINE(bugprone-exception-escape)
   ~TimerWatcher();
 
   void Cancel();

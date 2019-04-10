@@ -16,9 +16,9 @@ class InspectRequests : public HttpHandlerJsonBase {
 
   static constexpr const char* kName = "handler-inspect-requests";
 
-  virtual const std::string& HandlerName() const override;
+  const std::string& HandlerName() const override;
 
-  virtual formats::json::Value HandleRequestJsonThrow(
+  formats::json::Value HandleRequestJsonThrow(
       const http::HttpRequest& request,
       const formats::json::Value& request_json,
       request::RequestContext& context) const override;

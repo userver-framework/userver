@@ -64,15 +64,9 @@ namespace server {
 namespace http {
 
 HttpRequestImpl::HttpRequestImpl()
-    : method_(HttpMethod::kUnknown),
-      orig_method_(HttpMethod::kUnknown),
-      http_major_(1),
-      http_minor_(1),
-      is_final_{false},
-      response_(std::make_unique<HttpResponse>(*this)),
-      handler_statistics_(nullptr) {}
+    : response_(std::make_unique<HttpResponse>(*this)) {}
 
-HttpRequestImpl::~HttpRequestImpl() {}
+HttpRequestImpl::~HttpRequestImpl() = default;
 
 std::chrono::duration<double> HttpRequestImpl::GetRequestTime() const {
   return GetResponse().SentTime() - StartTime();
@@ -184,7 +178,7 @@ void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
   if (!logger_access) return;
 
   logger_access->info(
-      "{} {} \"{} {} HTTP/{}.{}\" {} \"{}\" \"{}\" \"{}\" {:0.6f} - {} {:0.6f}",
+      R"({} {} "{} {} HTTP/{}.{}" {} "{}" "{}" "{}" {:0.6f} - {} {:0.6f})",
       EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
       EscapeForAccessLog(GetOrigMethodStr()), EscapeForAccessLog(GetUrl()),
       GetHttpMajor(), GetHttpMinor(), static_cast<int>(response_->GetStatus()),

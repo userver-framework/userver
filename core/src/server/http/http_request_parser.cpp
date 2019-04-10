@@ -94,52 +94,45 @@ bool HttpRequestParser::Parse(const char* data, size_t size) {
 }
 
 int HttpRequestParser::OnMessageBegin(http_parser* p) {
-  HttpRequestParser* http_request_parser =
-      static_cast<HttpRequestParser*>(p->data);
+  auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnMessageBeginImpl(p);
 }
 
 int HttpRequestParser::OnHeadersComplete(http_parser* p) {
-  HttpRequestParser* http_request_parser =
-      static_cast<HttpRequestParser*>(p->data);
+  auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeadersCompleteImpl(p);
 }
 
 int HttpRequestParser::OnMessageComplete(http_parser* p) {
-  HttpRequestParser* http_request_parser =
-      static_cast<HttpRequestParser*>(p->data);
+  auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnMessageCompleteImpl(p);
 }
 
 int HttpRequestParser::OnUrl(http_parser* p, const char* data, size_t size) {
-  HttpRequestParser* http_request_parser =
-      static_cast<HttpRequestParser*>(p->data);
+  auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnUrlImpl(p, data, size);
 }
 
 int HttpRequestParser::OnHeaderField(http_parser* p, const char* data,
                                      size_t size) {
-  HttpRequestParser* http_request_parser =
-      static_cast<HttpRequestParser*>(p->data);
+  auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeaderFieldImpl(p, data, size);
 }
 
 int HttpRequestParser::OnHeaderValue(http_parser* p, const char* data,
                                      size_t size) {
-  HttpRequestParser* http_request_parser =
-      static_cast<HttpRequestParser*>(p->data);
+  auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeaderValueImpl(p, data, size);
 }
 
 int HttpRequestParser::OnBody(http_parser* p, const char* data, size_t size) {
-  HttpRequestParser* http_request_parser =
-      static_cast<HttpRequestParser*>(p->data);
+  auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnBodyImpl(p, data, size);
 }

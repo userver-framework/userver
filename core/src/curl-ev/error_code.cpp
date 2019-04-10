@@ -9,11 +9,12 @@
 
 #include <curl-ev/error_code.hpp>
 
+// NOLINTNEXTLINE(google-build-using-namespace)
 using namespace curl;
 
 class curl_easy_error_category : public std::error_category {
  public:
-  curl_easy_error_category() {}
+  curl_easy_error_category() = default;
   const char* name() const noexcept override;
   std::string message(int ev) const override;
 };
@@ -28,7 +29,7 @@ std::string curl_easy_error_category::message(int ev) const {
 
 class curl_multi_error_category : public std::error_category {
  public:
-  curl_multi_error_category() {}
+  curl_multi_error_category() = default;
   const char* name() const noexcept override;
   std::string message(int ev) const override;
 };
@@ -43,7 +44,7 @@ std::string curl_multi_error_category::message(int ev) const {
 
 class curl_share_error_category : public std::error_category {
  public:
-  curl_share_error_category() {}
+  curl_share_error_category() = default;
   const char* name() const noexcept override;
   std::string message(int ev) const override;
 };
@@ -58,7 +59,7 @@ std::string curl_share_error_category::message(int ev) const {
 
 class curl_form_error_category : public std::error_category {
  public:
-  curl_form_error_category() {}
+  curl_form_error_category() = default;
   const char* name() const noexcept override;
   std::string message(int ev) const override;
 };

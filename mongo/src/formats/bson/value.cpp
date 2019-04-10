@@ -14,6 +14,7 @@ namespace {
 template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {
   if (x <= -1) {
+    // NOLINTNEXTLINE(hicpp-exception-baseclass)
     throw ConversionException("Cannot convert to unsigned value from negative ")
         << value.GetPath() << '=' << x;
   }
@@ -30,7 +31,7 @@ Value Value::operator[](const std::string& name) const {
   return Value((*impl_)[name]);
 }
 
-Value Value::operator[](uint32_t idx) const { return Value((*impl_)[idx]); }
+Value Value::operator[](uint32_t index) const { return Value((*impl_)[index]); }
 
 bool Value::HasMember(const std::string& name) const {
   return impl_->HasMember(name);
@@ -94,6 +95,7 @@ int64_t Value::As<int64_t>() const {
     auto as_double = As<double>();
     double int_part = 0.0;
     auto frac_part = std::modf(as_double, &int_part);
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions)
     if (frac_part) {
       throw ConversionException("Conversion of ")
           << GetPath() << '=' << as_double
@@ -214,7 +216,8 @@ bool Value::ConvertTo<bool>() const {
   if (IsMissing() || IsNull()) return false;
   if (IsBool()) return As<bool>();
   if (IsInt64() || IsInt32()) return As<int64_t>();
-  if (IsDouble()) return As<double>();
+  if (IsDouble())
+    return fabs(As<double>()) > std::numeric_limits<double>::epsilon();
   if (IsDateTime()) return true;
   if (IsString()) return impl_->GetNative()->value.v_utf8.len;
   if (IsBinary()) return impl_->GetNative()->value.v_binary.data_len;

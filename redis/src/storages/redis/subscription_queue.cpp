@@ -25,6 +25,7 @@ void SubscriptionQueue<Item>::SetMaxLength(size_t length) {
 
 template <typename Item>
 bool SubscriptionQueue<Item>::PopMessage(std::unique_ptr<Item>& msg_ptr) {
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return consumer_.Pop(msg_ptr);
 }
 
@@ -41,7 +42,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
     ::redis::SubscribeSentinel& subscribe_sentinel, std::string channel,
     const ::redis::CommandControl& command_control) {
   return subscribe_sentinel.Subscribe(
-      std::move(channel),
+      channel,
       [this](const std::string& channel, const std::string& message) {
         if (!producer_.PushNoblock(std::make_unique<Item>(message))) {
           // Use SubscriptionQueue::SetMaxLength() or
@@ -64,7 +65,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
     ::redis::SubscribeSentinel& subscribe_sentinel, std::string pattern,
     const ::redis::CommandControl& command_control) {
   return subscribe_sentinel.Psubscribe(
-      std::move(pattern),
+      pattern,
       [this](const std::string& pattern, const std::string& channel,
              const std::string& message) {
         if (!producer_.PushNoblock(std::make_unique<Item>(channel, message))) {

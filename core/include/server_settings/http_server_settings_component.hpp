@@ -18,7 +18,7 @@ class HttpServerSettings : public HttpServerSettingsBase {
         taxi_config_component_(context.FindComponent<TaxiConfig>()),
         auth_checker_settings_component_(
             context.FindComponent<AuthCheckerSettings>()) {}
-  virtual ~HttpServerSettings() = default;
+  ~HttpServerSettings() override = default;
 
   bool NeedLogRequest() const override;
   bool NeedLogRequestHeaders() const override;

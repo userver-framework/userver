@@ -61,6 +61,7 @@ find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(YamlCpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
+find_package_required(Fmt "libfmt-dev")
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)
@@ -80,6 +81,7 @@ target_link_libraries(${PROJECT_NAME}
     sanitize-target
     yandex-taxi-backend-common-cpp
     libyamlcpp
+    Fmt
   PRIVATE
     ${LIBCURL_YANDEX_LIBRARIES}
     Boost::coroutine

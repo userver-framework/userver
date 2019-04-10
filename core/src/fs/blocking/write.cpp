@@ -14,11 +14,11 @@
 namespace fs {
 namespace blocking {
 
-void RewriteFileContents(const std::string& path, std::string contents) {
+void RewriteFileContents(const std::string& path, const std::string& contents) {
   auto fd = FileDescriptor::OpenFile(
-      path.c_str(), utils::Flags<FileDescriptor::OpenMode>() |
-                        FileDescriptor::OpenMode::kWrite |
-                        FileDescriptor::OpenMode::kCreateIfNotExists);
+      path, utils::Flags<FileDescriptor::OpenMode>() |
+                FileDescriptor::OpenMode::kWrite |
+                FileDescriptor::OpenMode::kCreateIfNotExists);
 
   fd.Write(contents);
   fd.FSync();

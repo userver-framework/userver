@@ -352,7 +352,7 @@ std::string HttpRequestConstructor::DumpRequestArgs() const {
   std::ostringstream os;
   DumpArray(os, "request_args", request_->request_args_,
             [&os](const std::pair<std::string, std::vector<std::string>>& arg) {
-              os << "{\"arg_name\":\"" << arg.first << "\", ";
+              os << R"({"arg_name":")" << arg.first << "\", ";
               DumpArray(os, "\"arg_values\"", arg.second,
                         [&os](const std::string& value) {
                           os << "\"" << value << "\"";
@@ -365,8 +365,8 @@ std::string HttpRequestConstructor::DumpHeaders() const {
   std::ostringstream os;
   DumpArray(os, "headers", request_->headers_,
             [&os](const std::pair<std::string, std::string>& header) {
-              os << "{\"header_name\":\"" << header.first
-                 << "\", \"header_value\":\"" << header.second << "\"}";
+              os << R"({"header_name":")" << header.first
+                 << R"(", "header_value":")" << header.second << "\"}";
             });
   return os.str();
 }
@@ -375,8 +375,8 @@ std::string HttpRequestConstructor::DumpCookies() const {
   std::ostringstream os;
   DumpArray(os, "cookies", request_->cookies_,
             [&os](const std::pair<std::string, std::string>& cookie) {
-              os << "{\"cookie_name\":\"" << cookie.first
-                 << "\", \"cookie_value\":\"" << cookie.second << "\"}";
+              os << R"({"cookie_name":")" << cookie.first
+                 << R"(", "cookie_value":")" << cookie.second << "\"}";
             });
   return os.str();
 }

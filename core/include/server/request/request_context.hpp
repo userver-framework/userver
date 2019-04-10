@@ -113,6 +113,7 @@ Data& RequestContext::GetUserData() {
 
 template <typename Data>
 const Data& RequestContext::GetUserData() const {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<RequestContext*>(this)->GetUserData<Data>();
 }
 
@@ -125,6 +126,7 @@ std::remove_reference_t<Data>* RequestContext::GetUserDataOptional() {
 template <typename Data>
 const std::remove_reference_t<Data>* RequestContext::GetUserDataOptional()
     const {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<RequestContext*>(this)->GetUserDataOptional<Data>();
 }
 
@@ -148,6 +150,7 @@ Data& RequestContext::GetData(const std::string& name) {
 
 template <typename Data>
 const Data& RequestContext::GetData(const std::string& name) const {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<RequestContext*>(this)->GetData<Data>(name);
 }
 
@@ -161,6 +164,7 @@ std::remove_reference_t<Data>* RequestContext::GetDataOptional(
 template <typename Data>
 const std::remove_reference_t<Data>* RequestContext::GetDataOptional(
     const std::string& name) const {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<RequestContext*>(this)->GetDataOptional<Data>(name);
 }
 

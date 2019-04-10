@@ -21,7 +21,7 @@ enum class ComponentLifetimeStage {
 
 class StageSwitchingCancelledException : public std::runtime_error {
  public:
-  explicit StageSwitchingCancelledException(std::string message);
+  explicit StageSwitchingCancelledException(const std::string& message);
 };
 
 class ComponentInfo {

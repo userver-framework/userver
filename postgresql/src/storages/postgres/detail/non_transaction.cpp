@@ -9,14 +9,15 @@ namespace storages::postgres::detail {
 
 NonTransaction::NonTransaction(ConnectionPtr&& conn, engine::Deadline deadline,
                                detail::SteadyClock::time_point start_time)
-    : conn_{std::move(conn)}, deadline_{std::move(deadline)} {
+    : conn_{std::move(conn)}, deadline_{deadline} {
+  // NOLINTNEXTLINE(hicpp-move-const-arg)
   conn_->Start(std::move(start_time));
 }
 
 NonTransaction::NonTransaction(NonTransaction&&) noexcept = default;
 NonTransaction::~NonTransaction() { conn_->Finish(); }
 
-NonTransaction& NonTransaction::operator=(NonTransaction&&) = default;
+NonTransaction& NonTransaction::operator=(NonTransaction&&) noexcept = default;
 
 ResultSet NonTransaction::DoExecute(const std::string& statement,
                                     const detail::QueryParameters& params,

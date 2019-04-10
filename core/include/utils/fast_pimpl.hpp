@@ -15,6 +15,7 @@ namespace utils {
 template <class T, size_t Size, size_t Alignment, bool Strict = false>
 class FastPimpl {
  public:
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   FastPimpl(FastPimpl&& v) noexcept(noexcept(T(std::declval<T>())))
       : FastPimpl(std::move(*v)) {}
 
@@ -28,6 +29,7 @@ class FastPimpl {
   }
 
   FastPimpl& operator=(FastPimpl&& rhs) noexcept(
+      // NOLINTNEXTLINE(performance-noexcept-move-constructor)
       noexcept(std::declval<T&>() = std::declval<T>())) {
     *AsHeld() = std::move(*rhs);
     return *this;

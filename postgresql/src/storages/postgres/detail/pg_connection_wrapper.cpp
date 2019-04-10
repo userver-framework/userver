@@ -109,6 +109,7 @@ engine::Task PGConnectionWrapper::Close() {
   engine::io::Socket tmp_sock = std::exchange(socket_, {});
   PGconn* tmp_conn = std::exchange(conn_, nullptr);
 
+  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
   return engine::impl::CriticalAsync(
       bg_task_processor_, [tmp_conn, socket = std::move(tmp_sock)]() mutable {
         if (tmp_conn != nullptr) {
@@ -125,19 +126,22 @@ template <typename ExceptionType>
 void PGConnectionWrapper::CloseWithError(ExceptionType&& ex) {
   PGCW_LOG_DEBUG() << "Closing connection because of failure: " << ex;
   Close().Wait();
+  // NOLINTNEXTLINE(hicpp-exception-baseclass)
   throw std::forward<ExceptionType>(ex);
 }
 
 engine::Task PGConnectionWrapper::Cancel() {
   if (!conn_) {
+    // NOLINTNEXTLINE(cppcoreguidelines-slicing)
     return engine::impl::Async(bg_task_processor_, [] {});
   }
   PGCW_LOG_DEBUG() << "Cancel current request";
   std::unique_ptr<PGcancel, decltype(&PQfreeCancel)> cancel{PQgetCancel(conn_),
                                                             &PQfreeCancel};
+  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
   return engine::impl::Async(
       bg_task_processor_, [this, cancel = std::move(cancel)] {
-        std::array<char, kErrBufferSize> buffer;
+        std::array<char, kErrBufferSize> buffer{};
         if (!PQcancel(cancel.get(), buffer.data(), buffer.size())) {
           PGCW_LOG_WARNING() << "Failed to cancel current request";
           // TODO Throw exception or not?

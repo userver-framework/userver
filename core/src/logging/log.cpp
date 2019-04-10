@@ -34,7 +34,7 @@
   }
 
 #define NOTHROW_CALL_CONSTRUCTOR(PATH, LINE, FUNCTION) \
-  NOTHROW_CALL_BASE(PATH << ':' << LINE << ": ", FUNCTION)
+  NOTHROW_CALL_BASE((PATH) << ':' << (LINE) << ": ", (FUNCTION))
 
 #define NOTHROW_CALL_GENERIC(FUNCTION) NOTHROW_CALL_BASE("LogHelper ", FUNCTION)
 
@@ -136,6 +136,7 @@ void LogHelper::DoLog() noexcept {
   }
 
   try {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     static_cast<LoggerWorkaroud*>(pimpl_->GetLogger().get())
         ->sink_it_(pimpl_->Message());
   } catch (...) {
@@ -220,6 +221,7 @@ void LogHelper::PutHexShort(unsigned long long value) {
     return;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   std::array<char, sizeof(value) * 2> ret;
   char* out = ret.data() + ret.size();
   while (value) {

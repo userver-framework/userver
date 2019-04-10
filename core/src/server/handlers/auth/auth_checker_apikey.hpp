@@ -35,7 +35,7 @@ class AuthCheckerApiKey : public AuthCheckerBase {
   bool IsApiKeyAllowed(const std::string& api_key,
                        const ApiKeysSet& allowed_keys) const;
 
-  std::array<const ApiKeysSet*, http::kHandlerMethodsMax + 1> keys_by_method_;
+  std::array<const ApiKeysSet*, http::kHandlerMethodsMax + 1> keys_by_method_{};
 };
 
 }  // namespace auth

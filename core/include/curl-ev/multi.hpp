@@ -125,7 +125,7 @@ class CURLASIO_API multi {
   void start_read_op(socket_info_ptr si);
   void handle_socket_read(std::error_code err, socket_info_ptr si);
   void start_write_op(socket_info_ptr si);
-  void handle_socket_write(std::error_code ec, socket_info_ptr si);
+  void handle_socket_write(std::error_code err, socket_info_ptr si);
   void handle_timeout(const std::error_code& err);
   void handle_async();
 

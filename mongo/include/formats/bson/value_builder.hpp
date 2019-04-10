@@ -33,13 +33,16 @@ class ValueBuilder {
   /// @endcond
 
   ValueBuilder(const ValueBuilder& other);
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   ValueBuilder(ValueBuilder&& other);
   ValueBuilder& operator=(const ValueBuilder& other);
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   ValueBuilder& operator=(ValueBuilder&& other);
 
   /// @{
   /// Efficiently constructs a copy of an existing value
   ValueBuilder(const Value&);
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   ValueBuilder(Value&&);
   /// @}
 

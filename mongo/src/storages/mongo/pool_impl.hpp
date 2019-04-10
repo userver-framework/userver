@@ -50,7 +50,7 @@ class PoolImpl {
   const std::string app_name_;
   std::string default_database_;
   UriPtr uri_;
-  mongoc_ssl_opt_t ssl_opt_;
+  mongoc_ssl_opt_t ssl_opt_{};
 
   const size_t max_size_;
   const std::chrono::milliseconds queue_timeout_;

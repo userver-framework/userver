@@ -30,7 +30,7 @@ class Redis : public LoggableComponentBase {
   Redis(const ComponentConfig& config,
         const ComponentContext& component_context);
 
-  ~Redis();
+  ~Redis() override;
 
   static constexpr const char* kName = "redis";
 

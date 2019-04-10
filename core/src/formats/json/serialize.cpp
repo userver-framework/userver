@@ -43,6 +43,7 @@ formats::json::Value FromStream(std::istream& is) {
 
   std::string res;
   while (is.good()) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     std::array<char, kBufSize> buf;
     is.read(buf.data(), buf.size());
     res.append(buf.data(), is.gcount());

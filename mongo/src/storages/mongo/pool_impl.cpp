@@ -47,11 +47,11 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
 mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
   mongoc_ssl_opt_t ssl_opt = *mongoc_ssl_opt_get_default();
   ssl_opt.pem_file = mongoc_uri_get_option_as_utf8(
-      uri, MONGOC_URI_SSLCLIENTCERTIFICATEKEYFILE, NULL);
+      uri, MONGOC_URI_SSLCLIENTCERTIFICATEKEYFILE, nullptr);
   ssl_opt.pem_pwd = mongoc_uri_get_option_as_utf8(
-      uri, MONGOC_URI_SSLCLIENTCERTIFICATEKEYPASSWORD, NULL);
+      uri, MONGOC_URI_SSLCLIENTCERTIFICATEKEYPASSWORD, nullptr);
   ssl_opt.ca_file = mongoc_uri_get_option_as_utf8(
-      uri, MONGOC_URI_SSLCERTIFICATEAUTHORITYFILE, NULL);
+      uri, MONGOC_URI_SSLCERTIFICATEAUTHORITYFILE, nullptr);
   ssl_opt.weak_cert_validation = mongoc_uri_get_option_as_bool(
       uri, MONGOC_URI_SSLALLOWINVALIDCERTIFICATES, false);
   ssl_opt.allow_invalid_hostname = mongoc_uri_get_option_as_bool(
@@ -102,6 +102,7 @@ const std::string& PoolImpl::DefaultDatabaseName() const {
 }
 
 PoolImpl::BoundClientPtr PoolImpl::Acquire() {
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return {Pop(), ClientPusher(this)};
 }
 

@@ -36,7 +36,8 @@ struct QueueHelper<std::unique_ptr<T>> {
   using LockFreeQueue = boost::lockfree::queue<T*>;
   static void Push(LockFreeQueue& queue, std::unique_ptr<T>&& value) {
     QueueHelper<T*>::Push(queue, value.get());
-    value.release();
+    [[maybe_unused]] auto ptr = value.release();
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   }
   [[nodiscard]] static bool Pop(LockFreeQueue& queue,
                                 std::unique_ptr<T>& value) {
@@ -68,7 +69,7 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
 
     Producer(const Producer&) = delete;
 
-    Producer(Producer&&) = default;
+    Producer(Producer&&) noexcept = default;
 
     ~Producer() {
       if (queue_) queue_->MarkProducerIsDead();
@@ -98,7 +99,7 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
 
     Consumer(const Consumer&) = delete;
 
-    Consumer(Consumer&&) = default;
+    Consumer(Consumer&&) noexcept = default;
 
     ~Consumer() {
       if (queue_) queue_->MarkConsumerIsDead();

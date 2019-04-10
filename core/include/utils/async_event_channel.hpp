@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <shared_mutex>
 
 #include <engine/mutex.hpp>
@@ -9,9 +10,8 @@
 
 namespace utils {
 
-// NOLINTNEXTLINE(google-build-namespaces)
-namespace {
-constexpr const auto kSubscriberErrorTimeout = std::chrono::seconds(30);
+namespace impl {
+extern const std::chrono::seconds kSubscriberErrorTimeout;
 }
 
 class AsyncEventChannelBase {
@@ -150,7 +150,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
   void WaitForTask(const std::string& name,
                    const engine::TaskWithResult<void>& task) const {
     while (true) {
-      task.WaitFor(kSubscriberErrorTimeout);
+      task.WaitFor(impl::kSubscriberErrorTimeout);
       if (task.IsFinished()) return;
 
       LOG_ERROR() << "Subscriber " << name << " handles event for too long";

@@ -35,7 +35,7 @@ void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
       return;
     }
     if (first) {
-      check_result_first = std::move(check_result);
+      check_result_first = check_result;
       first = false;
     }
   }

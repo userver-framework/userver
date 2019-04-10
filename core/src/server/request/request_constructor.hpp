@@ -10,7 +10,7 @@ namespace request {
 class RequestConstructor {
  public:
   RequestConstructor() = default;
-  virtual ~RequestConstructor() {}
+  virtual ~RequestConstructor() = default;
 
   virtual std::shared_ptr<RequestBase> Finalize() = 0;
 };

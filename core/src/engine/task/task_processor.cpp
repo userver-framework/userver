@@ -19,9 +19,6 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
       is_shutting_down_(false),
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
       max_task_queue_wait_length_(0),
-      overload_action_(TaskProcessorSettings::OverloadAction::kIgnore),
-      task_queue_wait_time_overloaded_(false),
-      task_trace_logger_set_{false},
       task_trace_logger_{nullptr} {
   LOG_TRACE() << "creating task_processor " << Name() << " "
               << "worker_threads=" << config_.worker_threads
@@ -91,6 +88,7 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
   // but oh well
   intrusive_ptr_add_ref(context);
 
+  // NOLINTNEXTLINE(clang-analyzer-core.NullDereference)
   task_queue_.enqueue(context);
   // NOTE: task may be executed at this point
 }

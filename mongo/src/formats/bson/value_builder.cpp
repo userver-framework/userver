@@ -33,6 +33,7 @@ ValueBuilder::ValueBuilder(impl::ValueImplPtr impl) : impl_(std::move(impl)) {}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) { *this = other; }
 
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(ValueBuilder&& other) { *this = std::move(other); }
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
@@ -40,6 +41,7 @@ ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   return *this;
 }
 
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder& ValueBuilder::operator=(ValueBuilder&& other) {
   if (other.impl_.use_count() == 1) {
     Assign(std::move(other.impl_));

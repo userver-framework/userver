@@ -16,7 +16,7 @@ class HandlerBase : public components::ComponentBase {
   HandlerBase(const components::ComponentConfig& config,
               const components::ComponentContext& component_context,
               bool is_monitor = false);
-  virtual ~HandlerBase() {}
+  ~HandlerBase() noexcept override = default;
 
   virtual void HandleRequest(const request::RequestBase& request,
                              request::RequestContext& context) const = 0;

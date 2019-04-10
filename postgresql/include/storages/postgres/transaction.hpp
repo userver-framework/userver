@@ -128,14 +128,14 @@ class Transaction {
       TransactionOptions::Deferrable()};
   //@}
  public:
-  explicit Transaction(detail::ConnectionPtr&& impl,
+  explicit Transaction(detail::ConnectionPtr&& conn,
                        const TransactionOptions& = RW,
                        OptionalCommandControl trx_cmd_ctl = {},
                        detail::SteadyClock::time_point&& trx_start_time =
                            detail::SteadyClock::now());
 
   Transaction(Transaction&&) noexcept;
-  Transaction& operator=(Transaction&&);
+  Transaction& operator=(Transaction&&) noexcept;
 
   Transaction(const Transaction&) = delete;
   Transaction& operator=(const Transaction&) = delete;

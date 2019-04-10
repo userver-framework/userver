@@ -26,14 +26,15 @@ class CURLASIO_API share : public std::enable_shared_from_this<share> {
   void set_share_dns(bool enabled);
   void set_share_ssl_session(bool enabled);
 
-  typedef void (*lock_function_t)(native::CURL* handle,
-                                  native::curl_lock_data data,
-                                  native::curl_lock_access access,
-                                  void* userptr);
+  using lock_function_t = void (*)(native::CURL* handle,
+                                   native::curl_lock_data data,
+                                   native::curl_lock_access access,
+                                   void* userptr);
   void set_lock_function(lock_function_t lock_function);
 
-  typedef void (*unlock_function_t)(native::CURL* handle,
-                                    native::curl_lock_data data, void* userptr);
+  using unlock_function_t = void (*)(native::CURL* handle,
+                                     native::curl_lock_data data,
+                                     void* userptr);
   void set_unlock_function(unlock_function_t unlock_function);
 
   void set_user_data(void* user_data);

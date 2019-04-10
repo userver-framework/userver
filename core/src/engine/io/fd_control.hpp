@@ -85,6 +85,7 @@ class FdControl {
   static FdControlHolder Adopt(int fd);
 
   FdControl();
+  // NOLINTNEXTLINE(bugprone-exception-escape)
   ~FdControl();
 
   explicit operator bool() const { return IsValid(); }
@@ -153,7 +154,7 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
       if (pos != begin) {
         break;
       }
-      throw ex;
+      throw std::move(ex);
     }
   }
   return pos - begin;

@@ -59,6 +59,7 @@ Pool<Task>::Pool(PoolConfig config, Executor executor)
     : config_(std::move(config)),
       executor_(std::move(executor)),
       attributes_(kStackSize, boost::coroutines::no_stack_unwind),
+      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
       coroutines_(config.max_size),
       idle_coroutines_num_(0),
       total_coroutines_num_(0) {
@@ -80,6 +81,7 @@ Pool<Task>::~Pool() {
 template <typename Task>
 typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
   Coroutine* coroutine = nullptr;
+  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
   if (coroutines_.pop(coroutine)) {
     --idle_coroutines_num_;
   } else {
@@ -91,8 +93,9 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
 
 template <typename Task>
 void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
+  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
   if (coroutines_.bounded_push(coroutine_ptr.get())) {
-    coroutine_ptr.release();
+    [[maybe_unused]] auto ptr = coroutine_ptr.release();
     ++idle_coroutines_num_;
   }
 }

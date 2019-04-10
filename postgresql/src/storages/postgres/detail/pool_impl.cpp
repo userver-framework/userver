@@ -45,7 +45,7 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
       size_(0),
       wait_count_{0},
       default_cmd_ctl_{
-          std::make_shared<const CommandControl>(std::move(default_cmd_ctl))} {}
+          std::make_shared<const CommandControl>(default_cmd_ctl)} {}
 
 ConnectionPoolImpl::~ConnectionPoolImpl() { Clear(); }
 
@@ -54,12 +54,13 @@ std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
     size_t initial_size, size_t max_size, CommandControl default_cmd_ctl) {
   // structure to call constructor of ConnectionPoolImpl that shouldn't be
   // accessible in public interface
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   struct ImplForConstruction : ConnectionPoolImpl {
     ImplForConstruction(const std::string& dsn,
                         engine::TaskProcessor& bg_task_processor,
                         size_t max_size, CommandControl default_cmd_ctl)
         : ConnectionPoolImpl(dsn, bg_task_processor, max_size,
-                             std::move(default_cmd_ctl)) {}
+                             default_cmd_ctl) {}
   };
 
   auto impl = std::make_shared<ImplForConstruction>(dsn, bg_task_processor,
@@ -194,6 +195,7 @@ Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options,
   auto conn = Acquire(deadline);
   UASSERT(conn);
   return Transaction{std::move(conn), options, trx_cmd_ctl,
+                     // NOLINTNEXTLINE(hicpp-move-const-arg)
                      std::move(trx_start_time)};
 }
 
@@ -201,8 +203,7 @@ NonTransaction ConnectionPoolImpl::Start(engine::Deadline deadline) {
   auto start_time = detail::SteadyClock::now();
   auto conn = Acquire(deadline);
   UASSERT(conn);
-  return NonTransaction{std::move(conn), std::move(deadline),
-                        std::move(start_time)};
+  return NonTransaction{std::move(conn), deadline, start_time};
 }
 
 engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(

@@ -25,8 +25,8 @@ namespace curl {
 using easy_set_type = std::set<easy*>;
 using BusyMarker = ::utils::statistics::BusyMarker;
 
-typedef std::map<socket_type::native_handle_type, multi::socket_info_ptr>
-    socket_map_type;
+using socket_map_type =
+    std::map<socket_type::native_handle_type, multi::socket_info_ptr>;
 
 class multi::Impl {
  public:
@@ -75,14 +75,14 @@ multi::multi(engine::ev::ThreadControl& thread_control)
 
 multi::~multi() {
   while (!pimpl_->easy_handles_.empty()) {
-    easy_set_type::iterator it = pimpl_->easy_handles_.begin();
+    auto it = pimpl_->easy_handles_.begin();
     easy* easy_handle = *it;
     easy_handle->cancel();
   }
 
   if (handle_) {
     native::curl_multi_cleanup(handle_);
-    handle_ = 0;
+    handle_ = nullptr;
   }
 }
 
@@ -92,7 +92,7 @@ void multi::add(easy* easy_handle) {
 }
 
 void multi::remove(easy* easy_handle) {
-  easy_set_type::iterator it = pimpl_->easy_handles_.find(easy_handle);
+  auto it = pimpl_->easy_handles_.find(easy_handle);
 
   if (it != pimpl_->easy_handles_.end()) {
     pimpl_->easy_handles_.erase(it);
@@ -106,7 +106,7 @@ void multi::socket_register(std::shared_ptr<socket_info> si) {
 }
 
 void multi::socket_cleanup(native::curl_socket_t s) {
-  socket_map_type::iterator it = pimpl_->sockets_.find(s);
+  auto it = pimpl_->sockets_.find(s);
 
   if (it != pimpl_->sockets_.end()) {
     socket_info_ptr p = it->second;
@@ -211,7 +211,9 @@ void multi::process_messages() {
       easy* easy_handle = easy::from_native(msg->easy_handle);
       std::error_code ec;
 
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       if (msg->data.result != native::CURLE_OK) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         ec = std::error_code(msg->data.result);
       }
 
@@ -310,7 +312,7 @@ void multi::handle_timeout(const std::error_code& err) {
 
 multi::socket_info_ptr multi::get_socket_from_native(
     native::curl_socket_t native_socket) {
-  socket_map_type::iterator it = pimpl_->sockets_.find(native_socket);
+  auto it = pimpl_->sockets_.find(native_socket);
 
   if (it != pimpl_->sockets_.end()) {
     return it->second;
@@ -321,14 +323,14 @@ multi::socket_info_ptr multi::get_socket_from_native(
 
 int multi::socket(native::CURL* native_easy, native::curl_socket_t s, int what,
                   void* userp, void* socketp) {
-  multi* self = static_cast<multi*>(userp);
+  auto* self = static_cast<multi*>(userp);
   LOG_TRACE() << "socket multi=" << reinterpret_cast<long>(self)
               << " what=" << what << " &si=" << reinterpret_cast<long>(socketp);
 
   if (what == CURL_POLL_REMOVE) {
     // stop listening for events
     if (socketp) {
-      socket_info_ptr* si = static_cast<socket_info_ptr*>(socketp);
+      auto si = static_cast<socket_info_ptr*>(socketp);
 
       /*
        * c-ares sockets call neither OPENSOCKET_FUNCTION nor
@@ -343,7 +345,7 @@ int multi::socket(native::CURL* native_easy, native::curl_socket_t s, int what,
     }
   } else if (socketp) {
     // change direction
-    socket_info_ptr* si = static_cast<socket_info_ptr*>(socketp);
+    auto* si = static_cast<socket_info_ptr*>(socketp);
     (*si)->handle = easy::from_native(native_easy);
     self->monitor_socket(*si, what);
   } else if (native_easy) {
@@ -364,7 +366,7 @@ int multi::socket(native::CURL* native_easy, native::curl_socket_t s, int what,
 
 int multi::timer(native::CURLM*, [[maybe_unused]] long timeout_ms,
                  void* userp) {
-  [[maybe_unused]] multi* self = static_cast<multi*>(userp);
+  [[maybe_unused]] auto* self = static_cast<multi*>(userp);
   LOG_TRACE() << "timer " << reinterpret_cast<long>(self) << " " << timeout_ms;
 
   const auto& pimpl = self->pimpl_;

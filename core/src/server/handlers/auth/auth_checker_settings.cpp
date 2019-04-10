@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <fmt/format.h>
+
 #include <formats/json/serialize.hpp>
 #include <logging/log.hpp>
 
@@ -31,15 +33,15 @@ void AuthCheckerSettings::ParseApikeys(
   for (auto elem = apikeys_map.begin(); elem != apikeys_map.end(); ++elem) {
     const std::string& apikey_type = elem.GetName();
     if (!elem->IsArray())
-      throw std::runtime_error("cannot parse " + kApikeys + '.' + apikey_type +
-                               ", array expected");
+      throw std::runtime_error(
+          fmt::format("cannot parse {}.{}, expected", kApikeys, apikey_type));
     for (auto key = elem->begin(); key != elem->end(); ++key) {
       if (key->IsString()) {
         (*apikeys_map_)[apikey_type].insert(key->As<std::string>());
       } else {
         throw std::runtime_error(
-            "cannot parse " + kApikeys + '.' + apikey_type + '[' +
-            std::to_string(key.GetIndex()) + "], string expected");
+            fmt::format("cannot parse {}.{}[{}], string expected", kApikeys,
+                        apikey_type, std::to_string(key.GetIndex())));
       }
     }
   }

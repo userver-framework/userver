@@ -94,8 +94,8 @@ formats::json::ValueBuilder ClusterStatisticsToJson(
   AddInstanceStatistics(stats.sync_slave, sync_slave);
   auto slaves = cluster["slaves"];
   slaves = {formats::json::Type::kObject};
-  for (auto i = 0u; i < stats.slaves.size(); ++i) {
-    AddInstanceStatistics(stats.slaves[i], slaves);
+  for (const auto& slave : stats.slaves) {
+    AddInstanceStatistics(slave, slaves);
   }
   return cluster;
 }
@@ -218,7 +218,7 @@ formats::json::Value Postgres::ExtendStatistics(
 
 void Postgres::SetDefaultCommandControl(
     storages::postgres::CommandControl cmd_ctl) {
-  for (auto cluster : clusters_) {
+  for (const auto& cluster : clusters_) {
     cluster->SetDefaultCommandControl(cmd_ctl);
   }
 }

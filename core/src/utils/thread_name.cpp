@@ -16,6 +16,7 @@ namespace {
 constexpr size_t kMaxThreadNameLen = 15;  // + '\0'
 
 std::string GetThreadName(pthread_t thread_id) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   std::array<char, kMaxThreadNameLen + 1> buf;
 
   int ret = ::pthread_getname_np(thread_id, buf.data(), buf.size());

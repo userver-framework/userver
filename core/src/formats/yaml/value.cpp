@@ -48,9 +48,12 @@ auto MakeMissingNode() { return YAML::Node{}[0]; }
 
 Value::Value() noexcept : Value(YAML::Node()) {}
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,performance-noexcept-move-constructor,hicpp-member-init)
 Value::Value(Value&&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 Value::Value(const Value&) = default;
 
+// NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
 Value& Value::operator=(Value&& other) {
   value_pimpl_->reset(*other.value_pimpl_);
   is_root_ = other.is_root_;

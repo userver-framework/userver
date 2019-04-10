@@ -22,7 +22,7 @@ class Server : public LoggableComponentBase {
   Server(const components::ComponentConfig& component_config,
          const components::ComponentContext& component_context);
 
-  ~Server();
+  ~Server() override;
 
   void OnAllComponentsLoaded() override;
 

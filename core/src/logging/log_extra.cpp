@@ -11,19 +11,24 @@
 
 namespace logging {
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-use-equals-default,hicpp-member-init,modernize-use-equals-default)
 LogExtra::LogExtra() noexcept  // constructor of small_vector does not throw
 {}
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 LogExtra::LogExtra(const LogExtra&) = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,performance-noexcept-move-constructor,hicpp-member-init)
 LogExtra::LogExtra(LogExtra&&) = default;
 
 LogExtra::~LogExtra() = default;
 
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 LogExtra& LogExtra::operator=(LogExtra&&) = default;
 
 LogExtra& LogExtra::operator=(const LogExtra&) = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 LogExtra::LogExtra(std::initializer_list<Pair> initial,
                    ExtendType extend_type) {
   ExtendRange(initial.begin(), initial.end(), extend_type);
@@ -126,6 +131,7 @@ LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(
   if (frozen_) return *this;
   value_ = other.GetValue();
   frozen_ = other.frozen_;
+  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
   return *this;
 }
 

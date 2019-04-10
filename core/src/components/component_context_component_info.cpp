@@ -15,8 +15,8 @@ namespace components {
 namespace impl {
 
 StageSwitchingCancelledException::StageSwitchingCancelledException(
-    std::string message)
-    : std::runtime_error(std::move(message)) {}
+    const std::string& message)
+    : std::runtime_error(message) {}
 
 ComponentInfo::ComponentInfo(std::string name) : name_(std::move(name)) {}
 
@@ -51,7 +51,7 @@ ComponentBase* ComponentInfo::GetComponent() const {
 ComponentBase* ComponentInfo::WaitAndGetComponent() const {
   std::unique_lock<engine::Mutex> lock(mutex_);
   auto ok = cv_.Wait(lock, [this]() {
-    return stage_switching_cancelled_ || component_.get() != nullptr;
+    return stage_switching_cancelled_ || component_ != nullptr;
   });
   if (!ok || stage_switching_cancelled_)
     throw ComponentsLoadCancelledException();
@@ -135,8 +135,7 @@ void ComponentInfo::WaitStage(ComponentLifetimeStage stage,
     return stage_switching_cancelled_ || stage_ == stage;
   });
   if (!ok && stage_switching_cancelled_)
-    throw StageSwitchingCancelledException(
-        std::move(method_name.append(" cancelled")));
+    throw StageSwitchingCancelledException(method_name.append(" cancelled"));
 }
 
 bool ComponentInfo::HasComponent() const {

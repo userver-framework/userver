@@ -22,7 +22,7 @@ class TaxiConfigMongoUpdater
 
   TaxiConfigMongoUpdater(const ComponentConfig&, const ComponentContext&);
 
-  ~TaxiConfigMongoUpdater();
+  ~TaxiConfigMongoUpdater() override;
 
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,

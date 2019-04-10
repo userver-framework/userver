@@ -1,6 +1,6 @@
 #include <curl-ev/local_timings.hpp>
 
-#include <assert.h>
+#include <cassert>
 
 namespace curl {
 

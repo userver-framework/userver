@@ -9,6 +9,7 @@
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/share.hpp>
 
+// NOLINTNEXTLINE(google-build-using-namespace)
 using namespace curl;
 
 share::share() {
@@ -27,7 +28,7 @@ share::share() {
 share::~share() {
   if (handle_) {
     native::curl_share_cleanup(handle_);
-    handle_ = 0;
+    handle_ = nullptr;
   }
 }
 
@@ -72,11 +73,11 @@ void share::set_user_data(void* user_data) {
 
 void share::lock(native::CURL*, native::curl_lock_data,
                  native::curl_lock_access, void* userptr) {
-  share* self = static_cast<share*>(userptr);
+  auto* self = static_cast<share*>(userptr);
   self->mutex_.lock();
 }
 
 void share::unlock(native::CURL*, native::curl_lock_data, void* userptr) {
-  share* self = static_cast<share*>(userptr);
+  auto* self = static_cast<share*>(userptr);
   self->mutex_.unlock();
 }

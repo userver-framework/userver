@@ -18,8 +18,8 @@ struct HandlerConfig {
   boost::optional<size_t> max_url_size;
   boost::optional<size_t> max_request_size;
   boost::optional<size_t> max_headers_size;
-  size_t request_body_size_log_limit;
-  size_t response_data_size_log_limit;
+  size_t request_body_size_log_limit{0};
+  size_t response_data_size_log_limit{0};
   boost::optional<bool> parse_args_from_body;
   boost::optional<auth::HandlerAuthConfig> auth;
 

@@ -12,8 +12,10 @@
 
 namespace formats::bson::impl {
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BsonBuilder::BsonBuilder() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BsonBuilder::BsonBuilder(const ValueImpl& value) {
   class Visitor {
    public:
@@ -46,7 +48,9 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
 
 BsonBuilder::~BsonBuilder() = default;
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BsonBuilder::BsonBuilder(const BsonBuilder&) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BsonBuilder::BsonBuilder(BsonBuilder&&) noexcept = default;
 BsonBuilder& BsonBuilder::operator=(const BsonBuilder&) = default;
 BsonBuilder& BsonBuilder::operator=(BsonBuilder&&) noexcept = default;
@@ -181,10 +185,7 @@ void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
    public:
     Visitor(BsonBuilder& builder, bson_t* dest, utils::string_view key,
             const bson_value_t* bson_value)
-        : builder_(builder),
-          dest_(dest),
-          key_(std::move(key)),
-          bson_value_(bson_value) {}
+        : builder_(builder), dest_(dest), key_(key), bson_value_(bson_value) {}
 
     void operator()(std::nullptr_t) const {
       bson_append_value(dest_, key_.data(), key_.size(), bson_value_);
@@ -213,7 +214,7 @@ void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
     const bson_value_t* bson_value_;
   };
   if (value.IsMissing()) return;
-  boost::apply_visitor(Visitor(*this, dest, std::move(key), &value.bson_value_),
+  boost::apply_visitor(Visitor(*this, dest, key, &value.bson_value_),
                        value.parsed_value_);
 }
 

@@ -7,7 +7,7 @@ namespace request {
 
 class RequestParser {
  public:
-  virtual ~RequestParser() {}
+  virtual ~RequestParser() noexcept = default;
 
   virtual bool Parse(const char* data, size_t size) = 0;
 };

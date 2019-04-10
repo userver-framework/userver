@@ -19,7 +19,7 @@ class AsyncWatcher {
   void Send();
 
  private:
-  static void OnEvent(struct ev_loop* loop, ev_async* timer, int events);
+  static void OnEvent(struct ev_loop* loop, ev_async* async, int events);
   void CallCb();
 
  private:

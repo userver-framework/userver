@@ -78,8 +78,8 @@ class Thread {
   std::mutex mutex_;
   std::mutex loop_mutex_;
   std::unique_lock<std::mutex> lock_;
-  ev_async watch_update_;
-  ev_async watch_break_;
+  ev_async watch_update_{};
+  ev_async watch_break_{};
   bool is_running_;
 };
 

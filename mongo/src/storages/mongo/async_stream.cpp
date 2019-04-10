@@ -14,8 +14,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include <boost/lexical_cast.hpp>
-
 #include <engine/async.hpp>
 #include <engine/deadline.hpp>
 #include <engine/io/addr.hpp>
@@ -130,8 +128,9 @@ using AddrinfoPtr = std::unique_ptr<struct addrinfo, AddrinfoDeleter>;
 
 engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
                                     int32_t timeout_ms, bson_error_t* error) {
-  const auto port_string = boost::lexical_cast<std::string>(host->port);
+  const auto port_string = std::to_string(host->port);
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   struct addrinfo hints;
   std::memset(&hints, 0, sizeof(hints));
   hints.ai_family = host->family;
@@ -232,7 +231,7 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
                        "Cannot initialize TLS stream");
         return nullptr;
       }
-      stream.release();
+      [[maybe_unused]] auto ptr = stream.release();
       stream = std::move(wrapped_stream);
     }
 
@@ -247,6 +246,7 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
   return mongoc_stream_buffered_new(stream.release(), kBufferSize);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
     : socket_(std::move(socket)),
       is_timed_out_(false),
@@ -302,6 +302,7 @@ StreamPtr AsyncStream::Create(engine::io::Socket socket) {
 }
 
 void AsyncStream::Destroy(mongoc_stream_t* stream) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Destroying async stream " << self;
 
@@ -309,6 +310,7 @@ void AsyncStream::Destroy(mongoc_stream_t* stream) {
 }
 
 int AsyncStream::Close(mongoc_stream_t* stream) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Closing async stream " << self;
   self->is_timed_out_ = false;
@@ -322,6 +324,7 @@ int AsyncStream::Close(mongoc_stream_t* stream) {
 }
 
 int AsyncStream::Flush(mongoc_stream_t* stream) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Flushing async stream " << self;
   self->is_timed_out_ = false;
@@ -331,6 +334,7 @@ int AsyncStream::Flush(mongoc_stream_t* stream) {
 
 ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
                             size_t iovcnt, int32_t timeout_ms) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Writing to async stream " << self;
   self->is_timed_out_ = false;
@@ -369,6 +373,7 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
                            size_t iovcnt, size_t min_bytes,
                            int32_t timeout_ms) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Reading from async stream " << self;
   self->is_timed_out_ = false;
@@ -413,6 +418,7 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 
 int AsyncStream::Setsockopt(mongoc_stream_t* stream, int level, int optname,
                             void* optval, mongoc_socklen_t optlen) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Setting socket option for async stream " << self;
   self->is_timed_out_ = false;
@@ -421,6 +427,7 @@ int AsyncStream::Setsockopt(mongoc_stream_t* stream, int level, int optname,
 }
 
 bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* stream = static_cast<AsyncStream*>(base_stream);
   LOG_TRACE() << "Checking whether async stream is closed";
   stream->is_timed_out_ = false;
@@ -438,6 +445,7 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
   // XXX: it'd be nice to have WaitAny or FdControl::Poll for this, really
   std::vector<engine::TaskWithResult<int>> waiters;
   for (size_t i = 0; i < nstreams; ++i) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto* stream = static_cast<AsyncStream*>(streams[i].stream);
     stream->is_timed_out_ = false;
     if (streams[i].events & POLLOUT) {
@@ -481,6 +489,7 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
 }
 
 void AsyncStream::Failed(mongoc_stream_t* stream) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Failing async stream " << self;
 
@@ -488,6 +497,7 @@ void AsyncStream::Failed(mongoc_stream_t* stream) {
 }
 
 bool AsyncStream::TimedOut(mongoc_stream_t* stream) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Checking timeout state for async stream " << self;
 

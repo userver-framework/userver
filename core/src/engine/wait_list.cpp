@@ -38,7 +38,7 @@ struct WaitList::List
           impl::TaskContext, boost::intrusive::constant_time_size<false>,
           MemberHookConfig>::type {};
 
-WaitList::WaitList() = default;
+WaitList::WaitList() : waiting_contexts_() {}
 
 WaitList::~WaitList() {
   UASSERT_MSG(waiting_contexts_->empty(), "Someone is waiting on the WaitList");

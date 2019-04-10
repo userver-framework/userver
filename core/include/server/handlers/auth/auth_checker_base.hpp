@@ -27,7 +27,7 @@ class AuthCheckResult {
       Status status, boost::optional<std::string> reason = boost::none,
       boost::optional<std::string> ext_reason = boost::none,
       boost::optional<HandlerErrorCode> code = boost::none);
-  virtual ~AuthCheckResult() {}
+  virtual ~AuthCheckResult() noexcept = default;
 
   Status GetStatus() const;
 
@@ -36,7 +36,7 @@ class AuthCheckResult {
   virtual void RaiseForStatus() const;
 
  private:
-  Status status_;
+  Status status_{Status::kOk};
   boost::optional<std::string> reason_;
   boost::optional<std::string> ext_reason_;
   boost::optional<HandlerErrorCode> code_;
@@ -44,7 +44,7 @@ class AuthCheckResult {
 
 class AuthCheckerBase {
  public:
-  virtual ~AuthCheckerBase() {}
+  virtual ~AuthCheckerBase() noexcept = default;
 
   [[nodiscard]] virtual AuthCheckResult CheckAuth(
       const http::HttpRequest& request) const = 0;

@@ -8,9 +8,10 @@
 
 #include <curl-ev/string_list.hpp>
 
+// NOLINTNEXTLINE(google-build-using-namespace)
 using namespace curl;
 
-string_list::string_list() : list_(0) {
+string_list::string_list() : list_(nullptr) {
   initref_ = initialization::ensure_initialization();
 }
 
@@ -31,6 +32,6 @@ void string_list::add(const std::string& str) { add(str.c_str()); }
 void string_list::clear() noexcept {
   if (list_) {
     native::curl_slist_free_all(list_);
-    list_ = 0;
+    list_ = nullptr;
   }
 }

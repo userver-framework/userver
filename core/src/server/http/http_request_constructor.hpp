@@ -49,7 +49,7 @@ class HttpRequestConstructor : public request::RequestConstructor {
 
   void SetIsFinal(bool is_final);
 
-  virtual std::shared_ptr<request::RequestBase> Finalize() override;
+  std::shared_ptr<request::RequestBase> Finalize() override;
 
   static std::string UrlDecode(const char* data, const char* data_end);
 
@@ -74,7 +74,7 @@ class HttpRequestConstructor : public request::RequestConstructor {
   Config config_;
   const HandlerInfoIndex& handler_info_index_;
 
-  http_parser_url parsed_url_;
+  http_parser_url parsed_url_{};
   std::string header_field_;
   std::string header_value_;
   bool header_field_flag_ = false;

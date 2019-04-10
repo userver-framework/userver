@@ -25,7 +25,7 @@ class HttpRequestParser : public request::RequestParser {
                     OnNewRequestCb&& on_new_request_cb,
                     net::ParserStats& stats);
 
-  virtual bool Parse(const char* data, size_t size) override;
+  bool Parse(const char* data, size_t size) override;
 
  private:
   static int OnMessageBegin(http_parser* p);
@@ -58,7 +58,7 @@ class HttpRequestParser : public request::RequestParser {
 
   OnNewRequestCb on_new_request_cb_;
 
-  http_parser parser_;
+  http_parser parser_{};
   std::unique_ptr<HttpRequestConstructor> request_constructor_;
 
   static const http_parser_settings parser_settings;

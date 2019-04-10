@@ -32,7 +32,7 @@ bool IsExecutingDestructor() {
     // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-general
     {
       auto pos = func_name.find('$');
-      if (pos != func_name.npos) {
+      if (pos != std::string::npos) {
         func_name.resize(pos);
       }
     }
@@ -48,12 +48,12 @@ bool IsExecutingDestructor() {
     if (!boost::algorithm::starts_with(func_name, kMangledNamePrefix)) {
       // Look for dtors (~Name)
       for (auto pos = func_name.find('~');
-           pos != func_name.npos && pos + 1 < func_name.size();
+           pos != std::string::npos && pos + 1 < func_name.size();
            pos = func_name.find('~', pos + 1)) {
         // operator~()
         if (func_name[pos + 1] == '(') continue;
         // nested members (lambdas, classes etc.)
-        if (func_name.find(':', pos + 1) != func_name.npos) continue;
+        if (func_name.find(':', pos + 1) != std::string::npos) continue;
 
         return true;
       }
@@ -62,7 +62,7 @@ bool IsExecutingDestructor() {
       // Look for "D*" pattern, where * is digit (actually 0, 1 or 2)
       // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-special-ctor-dtor
       for (auto pos = func_name.find('D');
-           pos != func_name.npos && pos + 1 < func_name.size();
+           pos != std::string::npos && pos + 1 < func_name.size();
            pos = func_name.find('D', pos + 1)) {
         // definitely not mangled dtor token
         if (!std::isdigit(func_name[pos + 1])) continue;
@@ -86,6 +86,7 @@ void Unwind() {
   }
   if (ctx->SetCancellable(false)) {
     LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
+    // NOLINTNEXTLINE(hicpp-exception-baseclass)
     throw impl::CoroUnwinder{};
   }
 }

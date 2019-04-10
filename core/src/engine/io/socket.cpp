@@ -57,12 +57,12 @@ bool Socket::IsOpen() const { return !!fd_control_; }
 
 bool Socket::WaitReadable(Deadline deadline) {
   UASSERT(IsOpen());
-  return fd_control_->Read().Wait(std::move(deadline));
+  return fd_control_->Read().Wait(deadline);
 }
 
 bool Socket::WaitWriteable(Deadline deadline) {
   UASSERT(IsOpen());
-  return fd_control_->Write().Wait(std::move(deadline));
+  return fd_control_->Write().Wait(deadline);
 }
 
 size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
@@ -72,7 +72,7 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);
   return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kPartial,
-                       std::move(deadline), "Recv from ", peername_);
+                       deadline, "Recv from ", peername_);
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
@@ -82,7 +82,7 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);
   return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kWhole,
-                       std::move(deadline), "RecvAll from ", peername_);
+                       deadline, "RecvAll from ", peername_);
 }
 
 size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
@@ -101,9 +101,10 @@ size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
   static const auto send_func = &::write;
 #endif
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return dir.PerformIo(lock, send_func, const_cast<void*>(buf), len,
-                       impl::TransferMode::kWhole, std::move(deadline),
-                       "Send to ", peername_);
+                       impl::TransferMode::kWhole, deadline, "Send to ",
+                       peername_);
 }
 
 Socket Socket::Accept(Deadline deadline) {

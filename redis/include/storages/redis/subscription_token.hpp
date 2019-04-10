@@ -31,7 +31,7 @@ class SubscriptionToken {
                     const ::redis::CommandControl& command_control);
   ~SubscriptionToken();
 
-  SubscriptionToken& operator=(SubscriptionToken&&);
+  SubscriptionToken& operator=(SubscriptionToken&&) noexcept;
 
   void SetMaxQueueLength(size_t length);
 

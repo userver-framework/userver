@@ -18,7 +18,7 @@ class HttpServerSettingsBase : public LoggableComponentBase {
  public:
   using LoggableComponentBase::LoggableComponentBase;
 
-  virtual ~HttpServerSettingsBase() = default;
+  ~HttpServerSettingsBase() override = default;
 
   static constexpr const char* kName = "http-server-settings";
 

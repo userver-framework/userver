@@ -16,6 +16,7 @@ const size_t kInitFuncQueueCapacity = 64;
 
 Thread::Thread(const std::string& thread_name)
     : func_ptr_(nullptr),
+      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
@@ -27,6 +28,7 @@ Thread::Thread(const std::string& thread_name)
 Thread::~Thread() {
   StopEventLoop();
   UASSERT(loop_ == nullptr);
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
 }
 
 void Thread::AsyncStartUnsafe(ev_async& w) { ev_async_start(GetEvLoop(), &w); }
@@ -140,11 +142,15 @@ void Thread::Start() {
   ev_set_userdata(loop_, this);
   ev_set_loop_release_cb(loop_, Release, Acquire);
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&watch_update_, UpdateLoopWatcher);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_set_priority(&watch_update_, 1);
   ev_async_start(loop_, &watch_update_);
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&watch_break_, BreakLoopWatcher);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_set_priority(&watch_break_, EV_MAXPRI);
   ev_async_start(loop_, &watch_break_);
 
@@ -181,7 +187,7 @@ void Thread::RunEvLoop() {
 }
 
 void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) {
-  Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
+  auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   ev_thread->UpdateLoopWatcherImpl();
 }
@@ -226,7 +232,7 @@ void Thread::UpdateLoopWatcherImpl() {
 }
 
 void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) {
-  Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
+  auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   ev_thread->BreakLoopWatcherImpl();
 }
@@ -238,13 +244,13 @@ void Thread::BreakLoopWatcherImpl() {
 }
 
 void Thread::Acquire(struct ev_loop* loop) noexcept {
-  Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
+  auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   ev_thread->AcquireImpl();
 }
 
 void Thread::Release(struct ev_loop* loop) noexcept {
-  Thread* ev_thread = static_cast<Thread*>(ev_userdata(loop));
+  auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   ev_thread->ReleaseImpl();
 }

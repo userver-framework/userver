@@ -26,7 +26,7 @@ JsonErrorBuilder::JsonErrorBuilder(const CustomHandlerException& ex)
   json_error_body = formats::json::ToString(response_json.ExtractValue());
 }
 
-static_assert(detail::kHasInternalMessage<JsonErrorBuilder>, "");
+static_assert(detail::kHasInternalMessage<JsonErrorBuilder>);
 
 }  // namespace handlers
 }  // namespace server

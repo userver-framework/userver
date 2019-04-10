@@ -23,8 +23,7 @@ IoSystemError::IoSystemError(std::string message, int err_value)
                     std::error_code(err_value, std::system_category())) {}
 
 IoSystemError::IoSystemError(std::string message, std::error_code code)
-    : IoError(std::move(message) + ": " + code.message()),
-      code_(std::move(code)) {}
+    : IoError(std::move(message) + ": " + code.message()), code_(code) {}
 
 }  // namespace io
 }  // namespace engine

@@ -14,6 +14,7 @@ SignalCatcher::SignalCatcher(std::initializer_list<int> signals) {
                       "blocking signals");
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 SignalCatcher::~SignalCatcher() noexcept(false) {
   utils::CheckSyscall(pthread_sigmask(SIG_SETMASK, &old_sigset_, nullptr),
                       "restoring signal mask");

@@ -30,13 +30,12 @@ class HttpHandlerBase : public HandlerBase {
                   const components::ComponentContext& component_context,
                   bool is_monitor = false);
 
-  ~HttpHandlerBase();
+  ~HttpHandlerBase() override;
 
-  virtual void HandleRequest(const request::RequestBase& request,
-                             request::RequestContext& context) const override;
-  virtual void OnRequestComplete(
-      const request::RequestBase& request,
-      request::RequestContext& context) const override;
+  void HandleRequest(const request::RequestBase& request,
+                     request::RequestContext& context) const override;
+  void OnRequestComplete(const request::RequestBase& request,
+                         request::RequestContext& context) const override;
 
   virtual const std::string& HandlerName() const = 0;
 

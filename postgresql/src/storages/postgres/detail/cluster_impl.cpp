@@ -56,6 +56,7 @@ ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
       pool_initial_size_(initial_size),
       pool_max_size_(max_size),
       default_cmd_ctl_(
+          // NOLINTNEXTLINE(hicpp-move-const-arg)
           std::make_shared<const CommandControl>(std::move(default_cmd_ctl))),
       update_lock_ ATOMIC_FLAG_INIT {}
 
@@ -94,6 +95,7 @@ void ClusterImpl::InitPools(const DSNList& dsn_list) {
                                               pool_max_size_, *cmd_ctl)));
   }
 
+  // NOLINTNEXTLINE(hicpp-move-const-arg)
   host_pools_.Set(std::move(host_pools));
   LOG_DEBUG() << "Pools initialized";
 }
@@ -129,6 +131,7 @@ void ClusterImpl::CheckTopology() {
     }
   }
   // Set pools atomically
+  // NOLINTNEXTLINE(hicpp-move-const-arg)
   host_pools_.Set(std::move(host_pools));
 }
 
@@ -256,6 +259,7 @@ NonTransaction ClusterImpl::Start(ClusterHostType host_type,
 
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
   default_cmd_ctl_.Set(
+      // NOLINTNEXTLINE(hicpp-move-const-arg)
       std::make_shared<const CommandControl>(std::move(cmd_ctl)));
 }
 

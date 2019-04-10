@@ -22,6 +22,7 @@ enum class AddrDomain {
 
 class AddrStorage {
  public:
+  // NOLINTNEXTLINE(hicpp-member-init,cppcoreguidelines-pro-type-member-init)
   AddrStorage() { ::memset(&data_, 0, sizeof(data_)); }
 
   template <typename T>
@@ -65,13 +66,13 @@ class AddrStorage {
 
 class Addr {
  public:
-  Addr() : domain_(AddrDomain::kInvalid), type_(-1), protocol_(-1) {}
+  Addr() = default;
 
   Addr(const AddrStorage& addr, int type, int protocol)
       : Addr(addr.Data(), type, protocol) {}
 
   Addr(const void* addr, int type, int protocol)
-      : domain_(AddrDomain::kInvalid), type_(type), protocol_(protocol) {
+      : type_(type), protocol_(protocol) {
     auto* sockaddr = reinterpret_cast<const struct sockaddr*>(addr);
     domain_ = static_cast<AddrDomain>(sockaddr->sa_family);
     ::memcpy(addr_.Data(), addr, Addrlen());
@@ -88,14 +89,16 @@ class Addr {
   }
 
   const struct sockaddr* Sockaddr() const { return As<struct sockaddr>(); }
-  constexpr socklen_t Addrlen() const { return addr_.Addrlen(domain_); }
+  constexpr socklen_t Addrlen() const {
+    return engine::io::AddrStorage::Addrlen(domain_);
+  }
 
   std::string RemoteAddress() const;  // without port
 
  private:
-  AddrDomain domain_;
-  int type_;
-  int protocol_;
+  AddrDomain domain_{AddrDomain::kInvalid};
+  int type_{-1};
+  int protocol_{-1};
   AddrStorage addr_;
 };
 

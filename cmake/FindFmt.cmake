@@ -3,7 +3,7 @@ find_library(FMT_LIBRARIES fmt)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Fmt
-    "Can't find libfmt-dev, please install libfmt-dev"
+    "Can't find libfmt-dev, please install libfmt-dev or brew install fmt"
     FMT_INCLUDE_DIRECTORIES FMT_LIBRARIES)
 
 if (Fmt_FOUND)

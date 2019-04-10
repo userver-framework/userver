@@ -128,6 +128,7 @@ void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) {
 FdControl::FdControl()
     : read_(Direction::Kind::kRead), write_(Direction::Kind::kWrite) {}
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 FdControl::~FdControl() { Close(); }
 
 FdControlHolder FdControl::Adopt(int fd) {

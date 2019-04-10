@@ -32,8 +32,8 @@ std::ostream& operator<<(std::ostream& os, const ClusterHostType& ht) {
 
 std::string ToString(const ClusterHostType& ht) { return ToStringRaw(ht); }
 
-ClusterDescription::ClusterDescription(DSNList hosts)
-    : description_{std::move(hosts)} {}
+ClusterDescription::ClusterDescription(DSNList multi_host_dsn)
+    : description_{std::move(multi_host_dsn)} {}
 
 ClusterDescription::ClusterDescription(const std::string& master_dsn,
                                        const std::string& sync_slave_dsn,
