@@ -154,7 +154,8 @@ TEST(BsonExtraction, Double) {
     EXPECT_FALSE(elem.IsTimestamp());
 
     EXPECT_THROW(elem.As<bool>(), fb::TypeMismatchException);
-    if (static_cast<int>(value) == value) {  // HACK
+    if (std::abs(value) < std::numeric_limits<int>::max() &&
+        static_cast<int>(value) == value) {  // HACK
       EXPECT_EQ(value, elem.As<double>());
       EXPECT_EQ(value, elem.As<int64_t>());
       if (value >= 0) {
