@@ -110,8 +110,8 @@ smart-clang-format:
 	@tools/smart-clang-format.sh
 
 .PHONY: clang-tidy
-clang-tidy:
-	@tools/run-clang-tidy-7 -header-filter="/(core|mongo|postgresql|redis).*" -q -j$(NPROCS)
+clang-tidy: cmake
+	@tools/run-clang-tidy-7 -p build -header-filter="/(core|mongo|postgresql|redis).*" -q -j$(NPROCS)
 
 .PHONY: check-pep8
 check-pep8:
