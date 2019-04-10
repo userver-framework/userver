@@ -122,6 +122,10 @@ void easy::reset() {
   share_.reset();
   if (telnet_options_) telnet_options_->clear();
 
+  set_custom_request(nullptr);
+  set_no_body(false);
+  set_post(false);
+
   if (multi_registered_) {
     multi_->GetThreadControl().RunInEvLoopSync(std::bind(&easy::_reset, this));
   }

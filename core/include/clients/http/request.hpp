@@ -53,8 +53,12 @@ class Request : public std::enable_shared_from_this<Request> {
   /// PATCH request
   std::shared_ptr<Request> patch();
   /// PATCH request with url and data
-  std::shared_ptr<Request> patch(const std::string& url,
-                                 const std::string& data);
+  std::shared_ptr<Request> patch(const std::string& url, std::string data);
+
+  /// DELETE request
+  std::shared_ptr<Request> delete_method();
+  /// DELETE request with url
+  std::shared_ptr<Request> delete_method(const std::string& url);
 
   /// url if you don't specify request type with url
   std::shared_ptr<Request> url(const std::string& url);

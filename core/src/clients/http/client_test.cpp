@@ -15,6 +15,51 @@ constexpr unsigned kRepetitions = 200;
 
 constexpr char kTestHeader[] = "X-Test-Header";
 
+class RequestMethodTestData {
+ public:
+  using Request = clients::http::Request;
+  using TwoArgsFunction = std::shared_ptr<Request> (Request::*)(
+      const std::string& url, std::string data_);
+  using OneArgFunction =
+      std::shared_ptr<Request> (Request::*)(const std::string& url);
+
+  RequestMethodTestData(const char* method_name, const char* data,
+                        TwoArgsFunction func)
+      : method_name_(method_name), data_(data), func_two_args_(func) {}
+
+  RequestMethodTestData(const char* method_name, const char* data,
+                        OneArgFunction func)
+      : method_name_(method_name), data_(data), func_one_arg_(func) {}
+
+  template <class Callback>
+  bool PerformRequest(const char* url, const Callback& callback,
+                      clients::http::Client& client) const {
+    *callback.method_name = method_name_;
+    *callback.data = data_;
+
+    auto request = client.CreateRequest();
+    if (func_two_args_) {
+      request = (request.get()->*func_two_args_)(url, data_);
+    } else {
+      request = (request.get()->*func_one_arg_)(url);
+    }
+
+    return request->verify(true)
+        ->http_version(curl::easy::http_version_1_1)
+        ->timeout(std::chrono::milliseconds(100))
+        ->perform()
+        ->IsOk();
+  }
+
+  const char* GetMethodName() const { return method_name_; }
+
+ private:
+  const char* method_name_;
+  const char* data_;
+  TwoArgsFunction func_two_args_{nullptr};
+  OneArgFunction func_one_arg_{nullptr};
+};
+
 using HttpResponse = testing::SimpleServer::Response;
 using HttpRequest = testing::SimpleServer::Request;
 using HttpCallback = testing::SimpleServer::OnRequest;
@@ -58,6 +103,37 @@ static HttpResponse echo_callback(const HttpRequest& request) {
           std::to_string(payload.size()) + "\r\n\r\n" + payload,
       HttpResponse::kWriteAndClose};
 }
+
+struct validating_shared_callback {
+  const std::shared_ptr<std::string> method_name =
+      std::make_shared<std::string>();
+
+  const std::shared_ptr<std::string> data = std::make_shared<std::string>();
+
+  HttpResponse operator()(const HttpRequest& request) const {
+    LOG_INFO() << "HTTP Server receive: " << request;
+
+    const auto cont = process_100(request);
+
+    EXPECT_FALSE(!!cont) << "This callback does not work with CONTINUE";
+
+    const auto first_line_end = request.find("\r\n");
+    EXPECT_LT(request.find(*method_name), first_line_end)
+        << "No '" << *method_name
+        << "' in first line of a request: " << request;
+
+    const auto header_end = request.find("\r\n\r\n", first_line_end) + 4;
+    EXPECT_EQ(request.substr(header_end), *data)
+        << "Request body differ from '" << *data
+        << "'. Whole request: " << request;
+
+    return {
+        "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Type: "
+        "text/html\r\nContent-Length: " +
+            std::to_string(request.size()) + "\r\n\r\n" + request,
+        HttpResponse::kWriteAndClose};
+  }
+};
 
 static HttpResponse put_validate_callback(const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
@@ -279,46 +355,33 @@ TEST(HttpClient, PutShutdownWithHugeResponse) {
   });
 }
 
-TEST(HttpClient, PutPostGetRequestsMix) {
+TEST(HttpClient, MethodsMix) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &echo_callback);
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+    using clients::http::Request;
+    constexpr char kUrl[] = "http://127.0.0.1:51234/";
 
-    for (unsigned i = 0; i < kRepetitions; ++i) {
-      const auto res_put = http_client_ptr->CreateRequest()
-                               ->put("http://127.0.0.1:51234/", kTestData)
-                               ->retry(1)
-                               ->verify(true)
-                               ->http_version(curl::easy::http_version_1_1)
-                               ->timeout(std::chrono::milliseconds(100))
-                               ->perform();
+    const validating_shared_callback callback{};
+    const testing::SimpleServer http_server({51234}, callback);
+    const auto http_client = clients::http::Client::Create(kHttpIoThreads);
 
-      EXPECT_EQ(res_put->body(), kTestData);
-    }
+    const RequestMethodTestData tests[] = {
+        {"PUT", kTestData, &Request::put},
+        {"POST", kTestData, &Request::post},
+        {"GET", "", &Request::get},
+        {"HEAD", "", &Request::head},
+        {"DELETE", "", &Request::delete_method},
+        {"PATCH", kTestData, &Request::patch},
+    };
 
-    for (unsigned i = 0; i < kRepetitions; ++i) {
-      const auto res_post = http_client_ptr->CreateRequest()
-                                ->post("http://127.0.0.1:51234/", kTestData)
-                                ->retry(1)
-                                ->verify(true)
-                                ->http_version(curl::easy::http_version_1_1)
-                                ->timeout(std::chrono::milliseconds(100))
-                                ->perform();
+    for (const auto method1 : tests) {
+      for (const auto method2 : tests) {
+        const bool ok1 = method1.PerformRequest(kUrl, callback, *http_client);
+        EXPECT_TRUE(ok1) << "Failed to perform " << method1.GetMethodName();
 
-      EXPECT_EQ(res_post->body(), kTestData);
-    }
-
-    for (unsigned i = 0; i < kRepetitions; ++i) {
-      const auto res_post = http_client_ptr->CreateRequest()
-                                ->get("http://127.0.0.1:51234/")
-                                ->retry(1)
-                                ->verify(true)
-                                ->http_version(curl::easy::http_version_1_1)
-                                ->timeout(std::chrono::milliseconds(100))
-                                ->perform();
-
-      EXPECT_EQ(res_post->body(), "");
+        const auto ok2 = method2.PerformRequest(kUrl, callback, *http_client);
+        EXPECT_TRUE(ok2) << "Failed to perform " << method2.GetMethodName()
+                         << " after " << method1.GetMethodName();
+      }
     }
   });
 }
@@ -330,16 +393,17 @@ TEST(HttpClient, Headers) {
         clients::http::Client::Create(kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i) {
-      [[maybe_unused]] auto response =
-          http_client_ptr->CreateRequest()
-              ->post("http://127.0.0.1:51234/", kTestData)
-              ->retry(1)
-              ->headers(
-                  {std::pair<const char*, const char*>{kTestHeader, "test"}})
-              ->verify(true)
-              ->http_version(curl::easy::http_version_1_1)
-              ->timeout(std::chrono::milliseconds(100))
-              ->perform();
+      const auto response = http_client_ptr->CreateRequest()
+                                ->post("http://127.0.0.1:51234/", kTestData)
+                                ->retry(1)
+                                ->headers({std::pair<const char*, const char*>{
+                                    kTestHeader, "test"}})
+                                ->verify(true)
+                                ->http_version(curl::easy::http_version_1_1)
+                                ->timeout(std::chrono::milliseconds(100))
+                                ->perform();
+
+      EXPECT_TRUE(response->IsOk());
     }
 
     http_client_ptr.reset();

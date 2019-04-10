@@ -259,6 +259,7 @@ std::shared_ptr<Request> Request::head() { return method(HEAD); }
 std::shared_ptr<Request> Request::post() { return method(POST); }
 std::shared_ptr<Request> Request::put() { return method(PUT); }
 std::shared_ptr<Request> Request::patch() { return method(PATCH); }
+std::shared_ptr<Request> Request::delete_method() { return method(DELETE); }
 
 std::shared_ptr<Request> Request::get(const std::string& url) {
   return get()->url(url);
@@ -288,10 +289,14 @@ std::shared_ptr<Request> Request::put(const std::string& url,
 }
 
 std::shared_ptr<Request> Request::patch(const std::string& url,
-                                        const std::string& data) {
+                                        std::string data) {
   auto shared_this = patch()->url(url);
-  easy().set_post_fields(data);
+  easy().set_post_fields(std::move(data));
   return shared_this;
+}
+
+std::shared_ptr<Request> Request::delete_method(const std::string& url) {
+  return delete_method()->url(url);
 }
 
 curl::easy& Request::easy() { return pimpl_->easy(); }
