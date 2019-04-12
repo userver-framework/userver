@@ -36,6 +36,8 @@ constexpr long kEBBaseTime = 25;
 constexpr long kLeastBadHttpCodeForEB = 500;
 
 const std::string kTracingClientName = "external";
+
+const std::string kHeaderExpect = "Expect";
 }  // namespace
 
 // RequestImpl definition
@@ -240,9 +242,11 @@ std::shared_ptr<Request> Request::method(HttpMethod method) {
       break;
     case POST:
       easy().set_post(true);
+      easy().add_header(kHeaderExpect, "");
       break;
     case PUT:
       easy().set_custom_request("PUT");
+      easy().add_header(kHeaderExpect, "");
       break;
     case OPTIONS:
       easy().set_custom_request("OPTIONS");
