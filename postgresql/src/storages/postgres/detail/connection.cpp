@@ -422,11 +422,14 @@ struct Connection::Impl {
         span.AddTag(tracing::kErrorFlag, true);
         throw;
       }
+      // Mark the statement prepared at once
+      prepared_.emplace(query_hash, io::kBinaryDataFormat);
 
       conn_wrapper_.SendDescribePrepared(statement_name, scope);
       auto res = conn_wrapper_.WaitResult(db_types_, deadline, scope);
-      prepared_.insert(std::make_pair(
-          query_hash, res.GetRowDescription().BestReplyFormat(db_types_)));
+      // And now mark with actual protocol format
+      prepared_[query_hash] =
+          res.GetRowDescription().BestReplyFormat(db_types_);
       ++stats_.parse_total;
     }
     // Get field descriptions from the prepare result and use them to
