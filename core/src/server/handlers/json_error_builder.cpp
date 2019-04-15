@@ -14,7 +14,7 @@ JsonErrorBuilder::JsonErrorBuilder(const CustomHandlerException& ex)
   formats::json::ValueBuilder response_json(formats::json::Type::kObject);
 
   const auto status = http::GetHttpStatus(ex.GetCode());
-  response_json["code"] = static_cast<int>(status);
+  response_json["code"] = std::to_string(static_cast<int>(status));
 
   const auto& error_message = ex.GetExternalErrorBody();
   if (!error_message.empty()) {

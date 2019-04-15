@@ -41,11 +41,14 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
     formats::json::ValueBuilder response_json(formats::json::Type::kObject);
 
     auto status = ex.GetStatus();
-    response_json["code"] = static_cast<int>(status);
-    response_json["error"] = HttpStatusString(status);
+    response_json["code"] = std::to_string(static_cast<int>(status));
 
     const auto& error_message = ex.GetExternalErrorBody();
-    if (!error_message.empty()) response_json["message"] = error_message;
+    if (!error_message.empty()) {
+      response_json["message"] = error_message;
+    } else {
+      response_json["message"] = HttpStatusString(status);
+    }
 
     throw http::HttpException(
         ex.GetStatus(), ex.what(),
