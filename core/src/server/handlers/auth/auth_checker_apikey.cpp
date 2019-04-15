@@ -42,7 +42,7 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
 }
 
 [[nodiscard]] AuthCheckResult AuthCheckerApiKey::CheckAuth(
-    const http::HttpRequest& request) const {
+    const http::HttpRequest& request, request::RequestContext&) const {
   const auto* allowed_keys = GetApiKeysForRequest(request);
   if (!allowed_keys) {
     return AuthCheckResult{AuthCheckResult::Status::kOk,

@@ -237,7 +237,8 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                            http_request.GetMethod());
 
     request_processor.ProcessRequestStep(
-        kCheckAuthStep, [this, &http_request] { CheckAuth(http_request); });
+        kCheckAuthStep,
+        [this, &http_request, &context] { CheckAuth(http_request, context); });
 
     request_processor.ProcessRequestStep(
         kHandleRequestStep, [this, &response, &http_request, &context] {
@@ -303,7 +304,8 @@ HttpHandlerStatistics& HttpHandlerBase::GetRequestStatistics() const {
   return *request_statistics_;
 }
 
-void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request) const {
+void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
+                                request::RequestContext& context) const {
   if (!http_server_settings_.NeedCheckAuthInHandlers()) {
     LOG_DEBUG() << "auth checks are disabled for current service";
     return;
@@ -314,7 +316,7 @@ void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request) const {
     return;
   }
 
-  auth::CheckAuth(auth_checkers_, http_request);
+  auth::CheckAuth(auth_checkers_, http_request, context);
 }
 
 std::string HttpHandlerBase::GetRequestBodyForLogging(

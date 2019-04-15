@@ -22,14 +22,15 @@ std::vector<AuthCheckerBasePtr> CreateAuthCheckers(
 }
 
 void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
-               const http::HttpRequest& http_request) {
+               const http::HttpRequest& http_request,
+               request::RequestContext& context) {
   if (auth_checkers.empty()) return;
 
   auth::AuthCheckResult check_result_first;
 
   bool first = true;
   for (const auto& auth_checker : auth_checkers) {
-    auto check_result = auth_checker->CheckAuth(http_request);
+    auto check_result = auth_checker->CheckAuth(http_request, context);
     if (check_result.GetStatus() != AuthCheckResult::Status::kTokenNotFound) {
       check_result.RaiseForStatus();
       return;

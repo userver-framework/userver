@@ -86,7 +86,8 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& response_data) const;
 
-  void CheckAuth(const http::HttpRequest& http_request) const;
+  void CheckAuth(const http::HttpRequest& http_request,
+                 request::RequestContext& context) const;
 
   static formats::json::ValueBuilder StatisticsToJson(
       const HttpHandlerMethodStatistics& stats);

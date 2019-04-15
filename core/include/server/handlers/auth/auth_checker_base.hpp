@@ -7,6 +7,7 @@
 
 #include <server/handlers/exceptions.hpp>
 #include <server/http/http_request.hpp>
+#include <server/request/request_context.hpp>
 
 namespace server {
 namespace handlers {
@@ -47,7 +48,8 @@ class AuthCheckerBase {
   virtual ~AuthCheckerBase() noexcept = default;
 
   [[nodiscard]] virtual AuthCheckResult CheckAuth(
-      const http::HttpRequest& request) const = 0;
+      const http::HttpRequest& request,
+      request::RequestContext& context) const = 0;
 };
 
 using AuthCheckerBasePtr = std::shared_ptr<AuthCheckerBase>;

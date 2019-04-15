@@ -17,7 +17,8 @@ std::vector<AuthCheckerBasePtr> CreateAuthCheckers(
     const HandlerConfig& config, const AuthCheckerSettings& settings);
 
 void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
-               const http::HttpRequest& http_request);
+               const http::HttpRequest& http_request,
+               request::RequestContext& context);
 
 }  // namespace auth
 }  // namespace handlers
