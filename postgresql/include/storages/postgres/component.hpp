@@ -114,8 +114,8 @@ class Postgres : public LoggableComponentBase {
   static constexpr size_t kDefaultShardNumber = 0;
   /// Default command control
   static constexpr storages::postgres::CommandControl kDefaultCommandControl{
-      std::chrono::milliseconds{100},  // network timeout
-      std::chrono::milliseconds{50}    // statement timeout
+      std::chrono::milliseconds{500},  // network timeout
+      std::chrono::milliseconds{250}   // statement timeout
   };
 
   /// Component constructor
