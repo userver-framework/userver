@@ -145,53 +145,6 @@ struct Connection::Impl {
   OptionalCommandControl transaction_cmd_ctl_;
   TimeoutType current_statement_timeout_{};
 
-  struct StatementTimeoutCentry {
-    StatementTimeoutCentry(Impl* conn, OptionalCommandControl cmd_ctl)
-        : connection_{conn},
-          cmd_ctl_{std::move(cmd_ctl)},
-          old_timeout_{conn->current_statement_timeout_},
-          session_scope_{false} {
-      if (cmd_ctl_.is_initialized()) {
-        if (connection_->IsInTransaction()) {
-          connection_->SetStatementTimeout(
-              cmd_ctl_->statement,
-              engine::Deadline::FromDuration(cmd_ctl_->network));
-        } else {
-          connection_->SetDefaultStatementTimeout(
-              cmd_ctl_->statement,
-              engine::Deadline::FromDuration(cmd_ctl_->network));
-          session_scope_ = true;
-        }
-      }
-    }
-
-    ~StatementTimeoutCentry() noexcept {
-      if (cmd_ctl_.is_initialized() &&
-          connection_->current_statement_timeout_ != old_timeout_ &&
-          connection_->GetConnectionState() != ConnectionState::kTranActive) {
-        try {
-          if (session_scope_) {
-            connection_->SetDefaultStatementTimeout(
-                old_timeout_,
-                engine::Deadline::FromDuration(cmd_ctl_->network));
-          } else {
-            connection_->SetStatementTimeout(
-                old_timeout_,
-                engine::Deadline::FromDuration(cmd_ctl_->network));
-          }
-        } catch (const std::exception& e) {
-          LOG_ERROR() << "Failed to reset old statement timeout: " << e;
-        }
-      }
-    }
-
-   private:
-    Impl* const connection_;
-    OptionalCommandControl cmd_ctl_;
-    TimeoutType old_timeout_;
-    bool session_scope_;
-  };
-
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
        CommandControl default_cmd_ctl)
       : conn_wrapper_{bg_task_processor, id},
@@ -250,7 +203,7 @@ struct Connection::Impl {
   }
 
   TimeoutType CurrentNetworkTimeout() const {
-    if (transaction_cmd_ctl_.is_initialized()) {
+    if (!!transaction_cmd_ctl_) {
       return transaction_cmd_ctl_->network;
     }
     return default_cmd_ctl_.network;
@@ -261,7 +214,7 @@ struct Connection::Impl {
   }
 
   TimeoutType CurrentStatementTimeout() const {
-    if (transaction_cmd_ctl_.is_initialized()) {
+    if (!!transaction_cmd_ctl_) {
       return transaction_cmd_ctl_->statement;
     }
     return default_cmd_ctl_.statement;
@@ -297,6 +250,17 @@ struct Connection::Impl {
       SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
                    ParameterScope::kTransaction, deadline);
       current_statement_timeout_ = timeout;
+    }
+  }
+
+  void SetStatementTimeout(OptionalCommandControl cmd_ctl) {
+    if (!!cmd_ctl) {
+      SetDefaultStatementTimeout(
+          cmd_ctl->statement, engine::Deadline::FromDuration(cmd_ctl->network));
+    } else {
+      SetDefaultStatementTimeout(
+          default_cmd_ctl_.statement,
+          engine::Deadline::FromDuration(default_cmd_ctl_.network));
     }
   }
 
@@ -359,11 +323,11 @@ struct Connection::Impl {
                            const detail::QueryParameters& params,
                            OptionalCommandControl statement_cmd_ctl) {
     CheckBusy();
-    TimeoutType network_timeout = statement_cmd_ctl.is_initialized()
+    TimeoutType network_timeout = !!statement_cmd_ctl
                                       ? statement_cmd_ctl->network
                                       : CurrentNetworkTimeout();
     auto deadline = engine::Deadline::FromDuration(network_timeout);
-    StatementTimeoutCentry centry{this, std::move(statement_cmd_ctl)};
+    SetStatementTimeout(std::move(statement_cmd_ctl));
     return ExecuteCommand(statement, params, deadline);
   }
 
@@ -372,11 +336,11 @@ struct Connection::Impl {
                            engine::Deadline deadline,
                            OptionalCommandControl statement_cmd_ctl) {
     CheckBusy();
-    if (statement_cmd_ctl.is_initialized() &&
+    if (!!statement_cmd_ctl &&
         deadline.TimeLeft() < statement_cmd_ctl->network) {
       deadline = engine::Deadline::FromDuration(statement_cmd_ctl->network);
     }
-    StatementTimeoutCentry centry{this, std::move(statement_cmd_ctl)};
+    SetStatementTimeout(std::move(statement_cmd_ctl));
     return ExecuteCommand(statement, params, deadline);
   }
 
@@ -584,7 +548,8 @@ struct Connection::Impl {
         try {
           conn_wrapper_.DiscardInput(deadline);
         } catch (const std::exception&) {
-          // Consume error, we will throw later if we detect transaction is busy
+          // Consume error, we will throw later if we detect transaction is
+          // busy
         }
         cancel.WaitUntil(deadline);
       }
