@@ -75,7 +75,19 @@ class HandlerInfoIndex::HandlerInfoIndexImpl {
 void HandlerInfoIndex::HandlerInfoIndexImpl::AddHandler(
     const handlers::HttpHandlerBase& handler,
     engine::TaskProcessor& task_processor) {
-  handler_infos_[handler.GetConfig().path].AddHandler(handler, task_processor);
+  const auto& path = handler.GetConfig().path;
+  handler_infos_[path].AddHandler(handler, task_processor);
+  bool url_trailing_slash =
+      handler.GetConfig().url_trailing_slash.is_initialized() &&
+      handler.GetConfig().url_trailing_slash.get();
+  if (url_trailing_slash && !path.empty()) {
+    if (path.back() == '/') {
+      handler_infos_[path.substr(0, path.size() - 1)].AddHandler(
+          handler, task_processor);
+    } else {
+      handler_infos_[path + "/"].AddHandler(handler, task_processor);
+    }
+  }
 }
 
 HandlerInfo HandlerInfoIndex::HandlerInfoIndexImpl::GetHandlerInfo(

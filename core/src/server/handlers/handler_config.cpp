@@ -25,6 +25,8 @@ HandlerConfig HandlerConfig::ParseFromYaml(
   yaml_config::ParseInto(config.parse_args_from_body, yaml,
                          "parse_args_from_body", full_path, config_vars_ptr);
   yaml_config::ParseInto(config.auth, yaml, "auth", full_path, config_vars_ptr);
+  yaml_config::ParseInto(config.url_trailing_slash, yaml, "url_trailing_slash",
+                         full_path, config_vars_ptr);
 
   boost::optional<size_t> request_body_size_log_limit;
   yaml_config::ParseInto(request_body_size_log_limit, yaml,
