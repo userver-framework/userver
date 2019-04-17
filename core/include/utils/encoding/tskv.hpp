@@ -35,7 +35,8 @@ class EncodeTskvPutCharDefault<std::string> {
   void operator()(std::string& to, char ch) const { to.push_back(ch); }
 };
 
-// https://wiki.yandex-team.ru/statbox/LogRequirements/#tskvformat
+// Format: https://wiki.yandex-team.ru/statbox/LogRequirements/#tskvformat
+// with one exception: quotation mark (") is not escaped.
 template <typename T, typename Char,
           typename EncodeTskvPutChar = EncodeTskvPutCharDefault<T>>
 typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
@@ -62,7 +63,6 @@ typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
       put_char(to, '0');
       break;
     case '\\':
-    case '"':
       put_char(to, '\\');
       put_char(to, ch);
       break;

@@ -113,6 +113,11 @@ class RequestProcessor {
   bool process_finished_;
 };
 
+const std::string kTracingTypeResponse = "response";
+const std::string kTracingTypeRequest = "request";
+const std::string kTracingBody = "body";
+const std::string kTracingUri = "uri";
+
 }  // namespace
 
 formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
@@ -200,7 +205,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
     span.AddNonInheritableTag(tracing::kHttpMetaType,
                               http_request.GetRequestPath());
-    span.AddNonInheritableTag(tracing::kType, "response");
+    span.AddNonInheritableTag(tracing::kType, kTracingTypeResponse);
     span.AddNonInheritableTag(tracing::kHttpMethod,
                               http_request.GetMethodStr());
 
@@ -221,14 +226,15 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       if (log_request_headers) {
         log_extra.Extend("request_headers", GetHeadersLogString(http_request));
       }
+      log_extra.Extend(tracing::kType, kTracingTypeRequest);
       const auto& body = http_request.RequestBody();
       uint64_t body_length = body.length();
       log_extra.Extend("request_body_length", body_length);
-      log_extra.Extend("request_body", GetRequestBodyForLoggingChecked(
-                                           http_request, context, body));
+      log_extra.Extend(kTracingBody, GetRequestBodyForLoggingChecked(
+                                         http_request, context, body));
+      log_extra.Extend(kTracingUri, http_request.GetUrl());
       LOG_INFO()
-          << "start handling "
-          << http_request.GetUrl()
+          << "start handling"
           // NOLINTNEXTLINE(bugprone-use-after-move,hicpp-invalid-access-moved)
           << std::move(log_extra);
     }
@@ -251,16 +257,15 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
 
     if (log_request) {
-      logging::LogExtra log_extra;
-
       if (log_request_headers) {
-        log_extra.Extend("response_headers", GetHeadersLogString(response));
+        span.AddNonInheritableTag("response_headers",
+                                  GetHeadersLogString(response));
       }
-      log_extra.Extend("response_data",
-                       GetResponseDataForLoggingChecked(http_request, context,
-                                                        response.GetData()));
-      LOG_INFO() << "finish handling " << http_request.GetUrl() << log_extra;
+      span.AddNonInheritableTag(
+          kTracingBody, GetResponseDataForLoggingChecked(http_request, context,
+                                                         response.GetData()));
     }
+    span.AddNonInheritableTag(kTracingUri, http_request.GetUrl());
 
     const auto finish_time = std::chrono::system_clock::now();
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
