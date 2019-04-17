@@ -1,5 +1,7 @@
 #pragma once
 
+/// @file server/http/http_request.hpp
+
 #include <chrono>
 #include <string>
 #include <vector>
@@ -39,6 +41,15 @@ class HttpRequest {
   bool HasArg(const std::string& arg_name) const;
   size_t ArgCount() const;
   std::vector<std::string> ArgNames() const;
+
+  /// get named argument from URL path with wildcards
+  const std::string& GetPathArg(const std::string& arg_name) const;
+  /// get argument from URL path with wildcards by its 0-based index
+  const std::string& GetPathArg(size_t index) const;
+  bool HasPathArg(const std::string& arg_name) const;
+  bool HasPathArg(size_t index) const;
+  /// @returns number of wildcard arguments in URL path
+  size_t PathArgCount() const;
 
   const std::string& GetHeader(const std::string& header_name) const;
   bool HasHeader(const std::string& header_name) const;

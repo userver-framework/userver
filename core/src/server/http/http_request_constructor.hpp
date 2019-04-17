@@ -21,6 +21,7 @@ class HttpRequestConstructor : public request::RequestConstructor {
     kUriTooLong,
     kParseUrlError,
     kHandlerNotFound,
+    kMethodNotAllowed,
     kHeadersTooLarge,
     kRequestTooLarge,
     kParseArgsError,

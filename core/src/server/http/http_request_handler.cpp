@@ -24,31 +24,28 @@ HttpRequestHandler::HttpRequestHandler(
 
 engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     std::shared_ptr<request::RequestBase> request) const {
-  auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
+  const auto& http_request =
+      dynamic_cast<const http::HttpRequestImpl&>(*request);
   LOG_TRACE() << "ready=" << http_request.GetResponse().IsReady();
   if (http_request.GetResponse().IsReady()) {
     // Request is already handled, user handler must not be called
+    request->SetTaskCreateTime();
     return StartDummyTask(std::move(request));
   }
 
   if (new_request_hook_) new_request_hook_(request);
 
-  auto handler_info =
-      GetHandlerInfo(http_request.GetMethod(), http_request.GetRequestPath());
   request->SetTaskCreateTime();
 
-  if (!handler_info.task_processor) {
+  auto* task_processor = http_request.GetTaskProcessor();
+  auto* handler = http_request.GetHttpHandler();
+  if (!task_processor || !handler) {
     // No handler found, response status is already set
     // by HttpRequestConstructor::CheckStatus
     return StartDummyTask(std::move(request));
   }
 
-  http_request.SetMatchedPathLength(handler_info.matched_path_length);
-  http_request.SetHttpHandlerStatistics(
-      handler_info.handler->GetRequestStatistics());
-
-  auto payload = [request = std::move(request),
-                  handler = handler_info.handler] {
+  auto payload = [request = std::move(request), handler] {
     request->SetTaskStartTime();
 
     request::RequestContext context;
@@ -61,11 +58,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   };
 
   if (!is_monitor_) {
-    return engine::impl::Async(*handler_info.task_processor,
-                               std::move(payload));
+    return engine::impl::Async(*task_processor, std::move(payload));
   } else {
-    return engine::impl::CriticalAsync(*handler_info.task_processor,
-                                       std::move(payload));
+    return engine::impl::CriticalAsync(*task_processor, std::move(payload));
   }
 }
 
@@ -84,15 +79,6 @@ void HttpRequestHandler::AddHandler(const handlers::HttpHandlerBase& handler,
   }
   std::lock_guard<engine::Mutex> lock(handler_infos_mutex_);
   handler_info_index_.AddHandler(handler, task_processor);
-}
-
-HandlerInfo HttpRequestHandler::GetHandlerInfo(HttpMethod method,
-                                               const std::string& path) const {
-  if (!add_handler_disabled_) {
-    throw std::runtime_error(
-        "handler adding must be disabled before GetHandlerInfo() call");
-  }
-  return handler_info_index_.GetHandlerInfo(method, path);
 }
 
 const HandlerInfoIndex& HttpRequestHandler::GetHandlerInfoIndex() const {

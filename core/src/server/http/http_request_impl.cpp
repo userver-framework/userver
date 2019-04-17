@@ -107,6 +107,29 @@ std::vector<std::string> HttpRequestImpl::ArgNames() const {
   return res;
 }
 
+const std::string& HttpRequestImpl::GetPathArg(
+    const std::string& arg_name) const {
+  auto it = path_args_by_name_index_.find(arg_name);
+  if (it == path_args_by_name_index_.end()) return kEmptyString;
+  UASSERT(it->second < path_args_.size());
+  return path_args_[it->second];
+}
+
+const std::string& HttpRequestImpl::GetPathArg(size_t index) const {
+  return index < PathArgCount() ? path_args_[index] : kEmptyString;
+}
+
+bool HttpRequestImpl::HasPathArg(const std::string& arg_name) const {
+  return path_args_by_name_index_.find(arg_name) !=
+         path_args_by_name_index_.end();
+}
+
+bool HttpRequestImpl::HasPathArg(size_t index) const {
+  return index < PathArgCount();
+}
+
+size_t HttpRequestImpl::PathArgCount() const { return path_args_.size(); }
+
 const std::string& HttpRequestImpl::GetHeader(
     const std::string& header_name) const {
   auto it = headers_.find(header_name);
@@ -142,6 +165,18 @@ CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
   return cookies_ | boost::adaptors::map_keys;
 }
 
+void HttpRequestImpl::SetPathArgs(
+    std::vector<std::pair<std::string, std::string>> args) {
+  path_args_.clear();
+  path_args_by_name_index_.clear();
+  for (auto& [name, value] : args) {
+    path_args_.push_back(std::move(value));
+    if (!name.empty()) {
+      path_args_by_name_index_[std::move(name)] = path_args_.size() - 1;
+    }
+  }
+}
+
 void HttpRequestImpl::SetMatchedPathLength(size_t length) {
   path_suffix_ = request_path_.substr(length);
 }
@@ -158,6 +193,22 @@ void HttpRequestImpl::MarkAsInternalServerError() const {
   response_->SetStatus(http::HttpStatus::kInternalServerError);
   response_->SetData({});
   response_->ClearHeaders();
+}
+
+void HttpRequestImpl::SetHttpHandler(const handlers::HttpHandlerBase& handler) {
+  handler_ = &handler;
+}
+
+const handlers::HttpHandlerBase* HttpRequestImpl::GetHttpHandler() const {
+  return handler_;
+}
+
+void HttpRequestImpl::SetTaskProcessor(engine::TaskProcessor& task_processor) {
+  task_processor_ = &task_processor;
+}
+
+engine::TaskProcessor* HttpRequestImpl::GetTaskProcessor() const {
+  return task_processor_;
 }
 
 void HttpRequestImpl::SetHttpHandlerStatistics(

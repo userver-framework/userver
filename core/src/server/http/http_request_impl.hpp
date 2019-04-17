@@ -11,10 +11,15 @@
 #include <server/http/http_types.hpp>
 #include <server/request/request_base.hpp>
 
+namespace engine {
+class TaskProcessor;
+}  // namespace engine
+
 namespace server {
 namespace handlers {
 class HttpHandlerStatistics;
-}
+class HttpHandlerBase;
+}  // namespace handlers
 
 namespace http {
 
@@ -43,6 +48,12 @@ class HttpRequestImpl : public request::RequestBase {
   bool HasArg(const std::string& arg_name) const;
   size_t ArgCount() const;
   std::vector<std::string> ArgNames() const;
+
+  const std::string& GetPathArg(const std::string& arg_name) const;
+  const std::string& GetPathArg(size_t index) const;
+  bool HasPathArg(const std::string& arg_name) const;
+  bool HasPathArg(size_t index) const;
+  size_t PathArgCount() const;
 
   const std::string& GetHeader(const std::string& header_name) const;
   bool HasHeader(const std::string& header_name) const;
@@ -74,11 +85,19 @@ class HttpRequestImpl : public request::RequestBase {
   void WriteAccessTskvLog(const logging::LoggerPtr& logger_access_tskv,
                           const std::string& remote_address) const;
 
+  void SetPathArgs(std::vector<std::pair<std::string, std::string>> args);
+
   void SetMatchedPathLength(size_t length) override;
 
   void AccountResponseTime() override;
 
   void MarkAsInternalServerError() const override;
+
+  void SetHttpHandler(const handlers::HttpHandlerBase& handler);
+  const handlers::HttpHandlerBase* GetHttpHandler() const;
+
+  void SetTaskProcessor(engine::TaskProcessor& task_processor);
+  engine::TaskProcessor* GetTaskProcessor() const;
 
   void SetHttpHandlerStatistics(handlers::HttpHandlerStatistics&);
 
@@ -95,11 +114,15 @@ class HttpRequestImpl : public request::RequestBase {
   std::string request_body_;
   std::string path_suffix_;
   std::unordered_map<std::string, std::vector<std::string>> request_args_;
+  std::vector<std::string> path_args_;
+  std::unordered_map<std::string, size_t> path_args_by_name_index_;
   HeadersMap headers_;
   CookiesMap cookies_;
   bool is_final_{false};
 
   std::unique_ptr<HttpResponse> response_;
+  engine::TaskProcessor* task_processor_{nullptr};
+  const handlers::HttpHandlerBase* handler_{nullptr};
   handlers::HttpHandlerStatistics* handler_statistics_{nullptr};
 };
 

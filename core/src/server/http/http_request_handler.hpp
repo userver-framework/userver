@@ -32,7 +32,6 @@ class HttpRequestHandler : public request::RequestHandlerBase {
   void DisableAddHandler();
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
-  HandlerInfo GetHandlerInfo(HttpMethod method, const std::string& path) const;
   const HandlerInfoIndex& GetHandlerInfoIndex() const;
 
  private:

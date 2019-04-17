@@ -68,12 +68,16 @@ void HttpRequestConstructor::ParseUrl() {
     throw std::runtime_error("can't parse path");
   }
 
-  auto handler_info = handler_info_index_.GetHandlerInfo(
+  auto match_result = handler_info_index_.MatchRequest(
       request_->GetMethod(), request_->GetRequestPath());
-  request_->SetMatchedPathLength(handler_info.matched_path_length);
+  const auto& handler_info = match_result.handler_info;
 
-  if (handler_info.handler) {
-    const auto& handler_config = handler_info.handler->GetConfig();
+  request_->SetMatchedPathLength(match_result.matched_path_length);
+  request_->SetPathArgs(std::move(match_result.args_from_path));
+
+  if (handler_info) {
+    UASSERT(match_result.status == MatchRequestResult::Status::kOk);
+    const auto& handler_config = handler_info->handler.GetConfig();
     if (handler_config.max_url_size)
       config_.max_url_size = *handler_config.max_url_size;
     if (handler_config.max_request_size)
@@ -82,8 +86,16 @@ void HttpRequestConstructor::ParseUrl() {
       config_.max_headers_size = *handler_config.max_headers_size;
     if (handler_config.parse_args_from_body)
       config_.parse_args_from_body = *handler_config.parse_args_from_body;
+
+    request_->SetTaskProcessor(handler_info->task_processor);
+    request_->SetHttpHandler(handler_info->handler);
+    request_->SetHttpHandlerStatistics(
+        handler_info->handler.GetRequestStatistics());
   } else {
-    SetStatus(Status::kHandlerNotFound);
+    if (match_result.status == MatchRequestResult::Status::kMethodNotAllowed)
+      SetStatus(Status::kMethodNotAllowed);
+    else
+      SetStatus(Status::kHandlerNotFound);
   }
 
   // recheck sizes using per-handler limits
@@ -402,6 +414,10 @@ void HttpRequestConstructor::CheckStatus() const {
       break;
     case Status::kHandlerNotFound:
       request_->SetResponseStatus(HttpStatus::kNotFound);
+      request_->GetHttpResponse().SetReady();
+      break;
+    case Status::kMethodNotAllowed:
+      request_->SetResponseStatus(HttpStatus::kMethodNotAllowed);
       request_->GetHttpResponse().SetReady();
       break;
     case Status::kHeadersTooLarge:

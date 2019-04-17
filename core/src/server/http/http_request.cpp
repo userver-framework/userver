@@ -64,6 +64,24 @@ std::vector<std::string> HttpRequest::ArgNames() const {
   return impl_.ArgNames();
 }
 
+const std::string& HttpRequest::GetPathArg(const std::string& arg_name) const {
+  return impl_.GetPathArg(arg_name);
+}
+
+const std::string& HttpRequest::GetPathArg(size_t index) const {
+  return impl_.GetPathArg(index);
+}
+
+bool HttpRequest::HasPathArg(const std::string& arg_name) const {
+  return impl_.HasPathArg(arg_name);
+}
+
+bool HttpRequest::HasPathArg(size_t index) const {
+  return impl_.HasPathArg(index);
+}
+
+size_t HttpRequest::PathArgCount() const { return impl_.PathArgCount(); }
+
 const std::string& HttpRequest::GetHeader(
     const std::string& header_name) const {
   return impl_.GetHeader(header_name);

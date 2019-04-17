@@ -4,8 +4,24 @@
 
 namespace server {
 namespace handlers {
+namespace {
+
+const std::string kUrlTrailingSlashBoth = "both";
+const std::string kUrlTrailingSlashStrictMatch = "strict-match";
+
+}  // namespace
 
 const size_t kLogRequestDataSizeDefaultLimit = 512;
+
+UrlTrailingSlashOption Parse(const formats::yaml::Value& yaml,
+                             formats::parse::To<UrlTrailingSlashOption>) {
+  const auto& value = yaml.As<std::string>();
+  if (value == kUrlTrailingSlashBoth) return UrlTrailingSlashOption::kBoth;
+  if (value == kUrlTrailingSlashStrictMatch)
+    return UrlTrailingSlashOption::kStrictMatch;
+  throw std::runtime_error("can't parse UrlTrailingSlashOption from '" + value +
+                           '\'');
+}
 
 HandlerConfig HandlerConfig::ParseFromYaml(
     const formats::yaml::Value& yaml, const std::string& full_path,

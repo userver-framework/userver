@@ -22,6 +22,7 @@ components_manager:
       task_processor: monitor-task-processor
     handler-ping:
       path: /ping
+      url_trailing_slash: strict-match
       task_processor: main-task-processor
     handler-send:
       path: /v1/send
