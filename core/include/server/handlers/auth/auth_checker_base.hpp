@@ -13,8 +13,7 @@ namespace server {
 namespace handlers {
 namespace auth {
 
-class AuthCheckResult {
- public:
+struct AuthCheckResult {
   enum class Status {
     kTokenNotFound,
     kInternalCheckFailure,
@@ -23,25 +22,14 @@ class AuthCheckResult {
     kOk
   };
 
-  AuthCheckResult() = default;
-  explicit AuthCheckResult(
-      Status status, boost::optional<std::string> reason = boost::none,
-      boost::optional<std::string> ext_reason = boost::none,
-      boost::optional<HandlerErrorCode> code = boost::none);
-  virtual ~AuthCheckResult() noexcept = default;
-
-  Status GetStatus() const;
-
-  virtual const std::string& GetDefaultReasonForStatus(Status status) const;
-
-  virtual void RaiseForStatus() const;
-
- private:
-  Status status_{Status::kOk};
-  boost::optional<std::string> reason_;
-  boost::optional<std::string> ext_reason_;
-  boost::optional<HandlerErrorCode> code_;
+  Status status{Status::kOk};
+  boost::optional<std::string> reason{};
+  boost::optional<std::string> ext_reason{};
+  boost::optional<HandlerErrorCode> code{};
 };
+
+const std::string& GetDefaultReasonForStatus(AuthCheckResult::Status status);
+void RaiseForStatus(const AuthCheckResult& auth_check);
 
 class AuthCheckerBase {
  public:

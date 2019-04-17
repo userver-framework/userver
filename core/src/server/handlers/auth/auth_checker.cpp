@@ -31,8 +31,8 @@ void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
   bool first = true;
   for (const auto& auth_checker : auth_checkers) {
     auto check_result = auth_checker->CheckAuth(http_request, context);
-    if (check_result.GetStatus() != AuthCheckResult::Status::kTokenNotFound) {
-      check_result.RaiseForStatus();
+    if (check_result.status != AuthCheckResult::Status::kTokenNotFound) {
+      RaiseForStatus(check_result);
       return;
     }
     if (first) {
@@ -41,7 +41,7 @@ void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
     }
   }
 
-  check_result_first.RaiseForStatus();
+  RaiseForStatus(check_result_first);
 }
 
 }  // namespace auth

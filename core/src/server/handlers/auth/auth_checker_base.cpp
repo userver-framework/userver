@@ -8,26 +8,16 @@ namespace server {
 namespace handlers {
 namespace auth {
 
-AuthCheckResult::AuthCheckResult(Status status,
-                                 boost::optional<std::string> reason,
-                                 boost::optional<std::string> ext_reason,
-                                 boost::optional<HandlerErrorCode> code)
-    : status_(status),
-      reason_(std::move(reason)),
-      ext_reason_(std::move(ext_reason)),
-      code_(std::move(code)) {}
+const std::string& GetDefaultReasonForStatus(AuthCheckResult::Status status) {
+  using Status = AuthCheckResult::Status;
 
-AuthCheckResult::Status AuthCheckResult::GetStatus() const { return status_; }
-
-const std::string& AuthCheckResult::GetDefaultReasonForStatus(
-    Status status) const {
   static const std::string kTokenNotFoundReason = "token not found";
   static const std::string kInternalCheckFailureReason = "auth check failed";
   static const std::string kInvalidTokenReason = "invalid token";
   static const std::string kForbiddenReason = "forbidden";
   static const std::string kOkReason = "OK";
 
-  switch (status_) {
+  switch (status) {
     case Status::kTokenNotFound:
       return kTokenNotFoundReason;
     case Status::kInternalCheckFailure:
@@ -43,35 +33,31 @@ const std::string& AuthCheckResult::GetDefaultReasonForStatus(
                            std::to_string(static_cast<int>(status)));
 }
 
-void AuthCheckResult::RaiseForStatus() const {
-  const std::string& reason =
-      reason_ ? *reason_ : GetDefaultReasonForStatus(status_);
+void RaiseForStatus(const AuthCheckResult& auth_check) {
+  using Status = AuthCheckResult::Status;
 
-  if (code_) {
-    throw CustomHandlerException(
-        ext_reason_ ? ExternalBody{*ext_reason_} : ExternalBody{},
-        InternalMessage{reason}, *code_);
+  ExternalBody ext_body{auth_check.ext_reason.value_or("")};
+  InternalMessage reason{auth_check.reason
+                             ? *auth_check.reason
+                             : GetDefaultReasonForStatus(auth_check.status)};
+
+  if (auth_check.code) {
+    throw CustomHandlerException(std::move(ext_body), std::move(reason),
+                                 *auth_check.code);
   }
 
-  switch (status_) {
+  switch (auth_check.status) {
     case Status::kTokenNotFound:
-      throw ClientError(
-          InternalMessage{reason},
-          ext_reason_ ? ExternalBody{*ext_reason_} : ExternalBody{});
+      throw ClientError(std::move(reason), std::move(ext_body));
     case Status::kInvalidToken:
-      throw Unauthorized(
-          InternalMessage{reason},
-          ext_reason_ ? ExternalBody{*ext_reason_} : ExternalBody{});
+      throw Unauthorized(std::move(reason), std::move(ext_body));
     case Status::kForbidden:
-      throw CustomHandlerException(
-          ext_reason_ ? ExternalBody{*ext_reason_} : ExternalBody{},
-          InternalMessage{reason}, HandlerErrorCode::kForbidden);
+      throw CustomHandlerException(std::move(ext_body), std::move(reason),
+                                   HandlerErrorCode::kForbidden);
     case Status::kInternalCheckFailure:
-      throw InternalServerError(
-          InternalMessage{reason},
-          ext_reason_ ? ExternalBody{*ext_reason_} : ExternalBody{});
+      throw InternalServerError(std::move(reason), std::move(ext_body));
     case Status::kOk:
-      LOG_DEBUG() << "authentication succeeded: " << reason;
+      LOG_DEBUG() << "authentication succeeded: " << reason.body;
       break;
   }
 }
