@@ -89,10 +89,10 @@ void ConnectionPoolImpl::Init(size_t initial_size) {
 ConnectionPtr ConnectionPoolImpl::Acquire(engine::Deadline deadline) {
   // Obtain smart pointer first to prolong lifetime of this object
   auto shared_this = shared_from_this();
-  auto* connection = Pop(deadline);
+  ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
   ++stats_.connection.used;
   connection->SetDefaultCommandControl(*default_cmd_ctl_.Get());
-  return {connection, std::move(shared_this)};
+  return connection;
 }
 
 void ConnectionPoolImpl::AccountConnectionStats(

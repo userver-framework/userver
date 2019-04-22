@@ -17,9 +17,8 @@ class ConnectionPoolImpl;
 /// pointer to it.
 class ConnectionPtr {
  public:
-  ConnectionPtr(std::nullptr_t = nullptr);
-  ConnectionPtr(std::unique_ptr<Connection> conn);
-  ConnectionPtr(Connection* conn, std::shared_ptr<ConnectionPoolImpl> pool);
+  explicit ConnectionPtr(std::unique_ptr<Connection>&& conn);
+  ConnectionPtr(Connection* conn, std::shared_ptr<ConnectionPoolImpl>&& pool);
   ~ConnectionPtr();
 
   ConnectionPtr(ConnectionPtr&&) noexcept;
@@ -36,8 +35,8 @@ class ConnectionPtr {
              std::shared_ptr<ConnectionPoolImpl> pool);
   void Release();
 
-  std::unique_ptr<Connection> conn_;
   std::shared_ptr<ConnectionPoolImpl> pool_;
+  std::unique_ptr<Connection> conn_;
 };
 
 }  // namespace detail

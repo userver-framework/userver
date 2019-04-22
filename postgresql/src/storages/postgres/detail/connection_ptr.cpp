@@ -7,14 +7,12 @@ namespace storages {
 namespace postgres {
 namespace detail {
 
-ConnectionPtr::ConnectionPtr(std::nullptr_t) {}
-
-ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection> conn)
+ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection>&& conn)
     : conn_(std::move(conn)) {}
 
 ConnectionPtr::ConnectionPtr(Connection* conn,
-                             std::shared_ptr<ConnectionPoolImpl> pool)
-    : conn_(conn), pool_(std::move(pool)) {
+                             std::shared_ptr<ConnectionPoolImpl>&& pool)
+    : pool_(std::move(pool)), conn_(conn) {
   UASSERT_MSG(pool_, "This constructor requires non-empty parent pool");
 }
 

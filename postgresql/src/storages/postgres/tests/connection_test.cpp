@@ -295,12 +295,8 @@ TEST_P(PostgreConnection, Connect) {
         << "Fail to connect with invalid DSN";
 
     {
-      pg::detail::ConnectionPtr conn;
-
-      EXPECT_NO_THROW(
-          conn = pg::detail::Connection::Connect(
-              dsn_list_[0], GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-          << "Connect to correct DSN";
+      pg::detail::ConnectionPtr conn =
+          MakeConnection(dsn_list_[0], GetTaskProcessor());
       CheckConnection(std::move(conn));
     }
   });

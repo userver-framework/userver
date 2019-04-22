@@ -28,6 +28,20 @@ inline engine::Deadline MakeDeadline() {
   return engine::Deadline::FromDuration(kTestCmdCtl.network);
 }
 
+inline storages::postgres::detail::ConnectionPtr MakeConnection(
+    const std::string& dsn, engine::TaskProcessor& task_processor) {
+  namespace pg = storages::postgres;
+  std::unique_ptr<pg::detail::Connection> conn;
+
+  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                      dsn, task_processor, kConnectionId, kTestCmdCtl))
+      << "Connect to correct DSN";
+  if (!conn) {
+    ADD_FAILURE() << "Expected non-empty connection pointer";
+  }
+  return pg::detail::ConnectionPtr(std::move(conn));
+}
+
 std::vector<std::string> GetDsnFromEnv();
 std::vector<storages::postgres::DSNList> GetDsnListFromEnv();
 
@@ -80,15 +94,8 @@ class PostgreConnection
  protected:
   void RunConnectionTest(
       std::function<void(storages::postgres::detail::ConnectionPtr)> func) {
-    namespace pg = storages::postgres;
     RunInCoro([this, func] {
-      pg::detail::ConnectionPtr conn;
-
-      EXPECT_NO_THROW(
-          conn = pg::detail::Connection::Connect(
-              dsn_list_[0], GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-          << "Connect to correct DSN";
-      func(std::move(conn));
+      func(MakeConnection(dsn_list_[0], GetTaskProcessor()));
     });
   }
   storages::postgres::DSNList dsn_list_;

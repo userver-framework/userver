@@ -15,7 +15,7 @@ namespace pg = storages::postgres;
 namespace {
 
 void PoolTransaction(pg::ConnectionPool& pool) {
-  pg::Transaction trx{nullptr};
+  pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
   pg::ResultSet res{nullptr};
 
   // TODO Check idle connection count before and after begin
@@ -44,7 +44,7 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePool,
 TEST_P(PostgrePool, ConnectionPool) {
   RunInCoro([this] {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10, kTestCmdCtl);
-    pg::detail::ConnectionPtr conn;
+    pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
@@ -55,7 +55,7 @@ TEST_P(PostgrePool, ConnectionPool) {
 TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
   RunInCoro([this] {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 0, 1, kTestCmdCtl);
-    pg::detail::ConnectionPtr conn;
+    pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from empty pool";
@@ -66,7 +66,7 @@ TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
 TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   RunInCoro([this] {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1, kTestCmdCtl);
-    pg::detail::ConnectionPtr conn;
+    pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
@@ -82,13 +82,15 @@ TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
 TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
   RunInCoro([this] {
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 1, kTestCmdCtl);
-    pg::detail::ConnectionPtr conn;
+    pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
     // Free up connection asynchronously
     engine::impl::Async(GetTaskProcessor(),
-                        [](pg::detail::ConnectionPtr conn) { conn = nullptr; },
+                        [](pg::detail::ConnectionPtr conn) {
+                          conn = pg::detail::ConnectionPtr(nullptr);
+                        },
                         std::move(conn))
         .Detach();
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
@@ -119,7 +121,7 @@ TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
   RunInCoro([this] {
     auto pool = std::make_unique<pg::ConnectionPool>(dsn_, GetTaskProcessor(),
                                                      1, 1, kTestCmdCtl);
-    pg::detail::ConnectionPtr conn;
+    pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
@@ -132,7 +134,7 @@ TEST_P(PostgrePool, ConnectionPtrWorks) {
   RunInCoro([this] {
     auto pool = std::make_unique<pg::ConnectionPool>(dsn_, GetTaskProcessor(),
                                                      2, 2, kTestCmdCtl);
-    pg::detail::ConnectionPtr conn;
+    pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
         << "Obtained connection from pool";
@@ -145,7 +147,7 @@ TEST_P(PostgrePool, ConnectionPtrWorks) {
         << "Obtained connection from pool again";
     EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
         << "Obtained another connection from pool again";
-    pg::detail::ConnectionPtr conn2;
+    pg::detail::ConnectionPtr conn2(nullptr);
     EXPECT_NO_THROW(conn2 = pool->GetConnection(MakeDeadline()))
         << "Obtained connection from pool one more time";
     pool.reset();
@@ -166,7 +168,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
       EXPECT_EQ(1, stats.connection.active);
       EXPECT_EQ(0, stats.connection.error_total);
 
-      pg::Transaction trx{nullptr};
+      pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
       EXPECT_NO_THROW(trx = pool->Begin({}, MakeDeadline()))
           << "Start transaction in a pool";
 
@@ -190,7 +192,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
     pool->SetDefaultCommandControl(
         pg::CommandControl{pg::TimeoutType{1000}, pg::TimeoutType{10}});
     {
-      pg::Transaction trx{nullptr};
+      pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
       EXPECT_NO_THROW(trx = pool->Begin({}, MakeDeadline()))
           << "Start transaction in a pool";
 

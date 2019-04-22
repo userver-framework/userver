@@ -24,11 +24,7 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreStats,
 
 TEST_P(PostgreStats, NoTransactions) {
   RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                        dsn_, GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-        << "Connect to correct DSN";
-    ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+    auto conn = MakeConnection(dsn_, GetTaskProcessor());
 
     // We can't check all the counters as some of them are used for internal ops
     const auto stats = conn->GetStatsAndReset();
@@ -44,11 +40,7 @@ TEST_P(PostgreStats, NoTransactions) {
 
 TEST_P(PostgreStats, StatsResetAfterGet) {
   RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                        dsn_, GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-        << "Connect to correct DSN";
-    ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+    auto conn = MakeConnection(dsn_, GetTaskProcessor());
 
     std::ignore = conn->GetStatsAndReset();
     const auto stats = conn->GetStatsAndReset();
@@ -69,11 +61,7 @@ TEST_P(PostgreStats, StatsResetAfterGet) {
 
 TEST_P(PostgreStats, TransactionStartTime) {
   RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                        dsn_, GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-        << "Connect to correct DSN";
-    ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+    auto conn = MakeConnection(dsn_, GetTaskProcessor());
 
     std::ignore = conn->GetStatsAndReset();
     const auto stats = conn->GetStatsAndReset();
@@ -94,11 +82,7 @@ TEST_P(PostgreStats, TransactionStartTime) {
 
 TEST_P(PostgreStats, TransactionExecuted) {
   RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                        dsn_, GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-        << "Connect to correct DSN";
-    ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+    auto conn = MakeConnection(dsn_, GetTaskProcessor());
 
     std::ignore = conn->GetStatsAndReset();
     const auto time_start = pg::detail::SteadyClock::now();
@@ -126,11 +110,7 @@ TEST_P(PostgreStats, TransactionExecuted) {
 
 TEST_P(PostgreStats, TransactionFailed) {
   RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                        dsn_, GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-        << "Connect to correct DSN";
-    ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+    auto conn = MakeConnection(dsn_, GetTaskProcessor());
 
     std::ignore = conn->GetStatsAndReset();
     const auto time_start = pg::detail::SteadyClock::now();
@@ -158,11 +138,7 @@ TEST_P(PostgreStats, TransactionFailed) {
 
 TEST_P(PostgreStats, TransactionMultiExecutions) {
   RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                        dsn_, GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-        << "Connect to correct DSN";
-    ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+    auto conn = MakeConnection(dsn_, GetTaskProcessor());
 
     const auto exec_count = 10;
     std::ignore = conn->GetStatsAndReset();
@@ -189,11 +165,7 @@ TEST_P(PostgreStats, TransactionMultiExecutions) {
 
 TEST_P(PostgreStats, SingleQuery) {
   RunInCoro([this] {
-    pg::detail::ConnectionPtr conn;
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                        dsn_, GetTaskProcessor(), kConnectionId, kTestCmdCtl))
-        << "Connect to correct DSN";
-    ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+    auto conn = MakeConnection(dsn_, GetTaskProcessor());
 
     std::ignore = conn->GetStatsAndReset();
 
