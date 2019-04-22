@@ -11,7 +11,7 @@ LTO_CACHE_FOLDER ?= $(HOME)/.ltocache
 ifneq ($(LTO_CACHE_FOLDER),)
 	CMAKE_OPTS += -DLTO_CACHE_FOLDER=$(LTO_CACHE_FOLDER)
 endif
-BUILD_TYPE ?= Release
+BUILD_TYPE ?= Debug
 BUILD_DIR ?= build
 DOCS_DIR ?= docs
 CMAKE_DIR = $(CURDIR)
@@ -93,12 +93,12 @@ cppcheck: $(BUILD_DIR)/Makefile
 
 .PHONY: test
 test:
-	@$(MAKE) BUILD_TYPE=Debug build
+	@$(MAKE) build
 	@cd $(BUILD_DIR) && ctest -V
 
 .PHONY: utest
 utest:
-	@$(MAKE) BUILD_TYPE=Debug build
+	@$(MAKE) build
 	@cd $(BUILD_DIR) && ctest -V -R '_unittest$$'
 
 .PHONY: clang-format
