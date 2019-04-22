@@ -9,6 +9,7 @@
 #include <engine/io/socket.hpp>
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
+#include <utils/uuid4.hpp>
 
 #include <engine/async.hpp>
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
@@ -145,10 +146,13 @@ struct Connection::Impl {
   OptionalCommandControl transaction_cmd_ctl_;
   TimeoutDuration current_statement_timeout_{};
 
+  std::string uuid_;
+
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
        CommandControl default_cmd_ctl)
       : conn_wrapper_{bg_task_processor, id},
-        default_cmd_ctl_{default_cmd_ctl} {}
+        default_cmd_ctl_{default_cmd_ctl},
+        uuid_{::utils::generators::GenerateUuid()} {}
 
   void Close() { conn_wrapper_.Close().Wait(); }
 
@@ -365,7 +369,7 @@ struct Connection::Impl {
             deadline.TimeLeft());
     CountExecute count_execute(stats_);
     auto query_hash = QueryHash(statement, params);
-    std::string statement_name = "q" + std::to_string(query_hash);
+    std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
 
     if (prepared_.count(query_hash)) {
       LOG_TRACE() << "Query " << statement << " is already prepared.";
@@ -373,6 +377,8 @@ struct Connection::Impl {
       scope.Reset(scopes::kPrepare);
       LOG_TRACE() << "Query " << statement << " is not yet prepared";
       conn_wrapper_.SendPrepare(statement_name, statement, params, scope);
+      // Mark the statement prepared as soon as the send works correctly
+      prepared_.emplace(query_hash, io::kBinaryDataFormat);
       try {
         conn_wrapper_.WaitResult(db_types_, deadline, scope);
       } catch (const DuplicatePreparedStatement& e) {
@@ -385,11 +391,10 @@ struct Connection::Impl {
         span.AddTag(tracing::kErrorFlag, true);
         throw;
       } catch (const std::exception&) {
+        prepared_.erase(query_hash);
         span.AddTag(tracing::kErrorFlag, true);
         throw;
       }
-      // Mark the statement prepared at once
-      prepared_.emplace(query_hash, io::kBinaryDataFormat);
 
       conn_wrapper_.SendDescribePrepared(statement_name, scope);
       auto res = conn_wrapper_.WaitResult(db_types_, deadline, scope);
