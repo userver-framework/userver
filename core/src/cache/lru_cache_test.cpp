@@ -13,6 +13,13 @@ TEST(Lru, SetGet) {
   EXPECT_EQ(3, cache.GetOr(1, -1));
 }
 
+TEST(Lru, Erase) {
+  Lru cache(10);
+  cache.Put(1, 2);
+  cache.Erase(1);
+  EXPECT_EQ(nullptr, cache.Get(1));
+}
+
 TEST(Lru, MultipleSet) {
   Lru cache(10);
   cache.Put(1, 10);

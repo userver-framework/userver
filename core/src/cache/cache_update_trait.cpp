@@ -18,7 +18,7 @@ void CacheUpdateTrait::UpdateFull() {
          std::chrono::system_clock::now(), stats);
 }
 
-CacheUpdateTrait::CacheUpdateTrait(CacheConfig&& config,
+CacheUpdateTrait::CacheUpdateTrait(cache::CacheConfig&& config,
                                    const std::string& name)
     // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     : static_config_(std::move(config)),
@@ -71,7 +71,8 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
   }
 }
 
-void CacheUpdateTrait::SetConfig(const boost::optional<CacheConfig>& config) {
+void CacheUpdateTrait::SetConfig(
+    const boost::optional<cache::CacheConfig>& config) {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
   config_ = config.value_or(static_config_);
   update_task_.SetSettings(GetPeriodicTaskSettings());

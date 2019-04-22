@@ -8,7 +8,6 @@
 #include <components/statistics_storage.hpp>
 #include <engine/condition_variable.hpp>
 #include <server/cache_invalidator_holder.hpp>
-#include <taxi_config/config.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <utils/async_event_channel.hpp>
 #include <utils/swappingsmart.hpp>
@@ -65,7 +64,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const std::string& name)
     : LoggableComponentBase(config, context),
       utils::AsyncEventChannel<const std::shared_ptr<T>&>(name),
-      CacheUpdateTrait(CacheConfig(config), name),
+      CacheUpdateTrait(cache::CacheConfig(config), name),
       cache_invalidator_holder_(*this, context),
       name_(name) {
   auto& storage =
@@ -75,7 +74,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                   this, std::placeholders::_1));
 
   if (config.ParseBool("config-settings", true) &&
-      CacheConfigSet::IsConfigEnabled()) {
+      cache::CacheConfigSet::IsConfigEnabled()) {
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
     OnConfigUpdate(taxi_config.Get());
     config_subscription_ = taxi_config.AddListener(
@@ -144,7 +143,7 @@ formats::json::Value CachingComponentBase<T>::ExtendStatistics(
 template <typename T>
 void CachingComponentBase<T>::OnConfigUpdate(
     const std::shared_ptr<taxi_config::Config>& cfg) {
-  SetConfig(cfg->Get<components::CacheConfigSet>().GetConfig(name_));
+  SetConfig(cfg->Get<cache::CacheConfigSet>().GetConfig(name_));
 }
 
 }  // namespace components

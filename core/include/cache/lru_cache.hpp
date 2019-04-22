@@ -17,17 +17,21 @@ class LRU {
 
   void Put(const T& key, U value);
 
+  void Erase(const T& key);
+
   const U* Get(const T& key);
 
   U GetOr(const T& key, const U& default_value);
 
-  void Resize(size_t new_max_size);
+  void SetMaxSize(size_t new_max_size);
 
   void Invalidate();
 
   /// Call Function(const T&, const U&) for all items
   template <typename Function>
   void VisitAll(Function func) const;
+
+  size_t GetSize() const;
 
  private:
   using Pair = std::pair<T, U>;
@@ -63,6 +67,14 @@ void LRU<T, U>::Put(const T& key, U value) {
 }
 
 template <typename T, typename U>
+void LRU<T, U>::Erase(const T& key) {
+  auto it = map_.find(key);
+  if (it == map_.end()) return;
+  list_.erase(it->second);
+  map_.erase(it);
+}
+
+template <typename T, typename U>
 const U* LRU<T, U>::Get(const T& key) {
   auto it = map_.find(key);
   if (it == map_.end()) return nullptr;
@@ -78,7 +90,7 @@ U LRU<T, U>::GetOr(const T& key, const U& default_value) {
 }
 
 template <typename T, typename U>
-void LRU<T, U>::Resize(size_t new_max_size) {
+void LRU<T, U>::SetMaxSize(size_t new_max_size) {
   UASSERT(max_size_ > 0);
   max_size_ = new_max_size;
 }
@@ -93,6 +105,11 @@ template <typename T, typename U>
 template <typename Function>
 void LRU<T, U>::VisitAll(Function func) const {
   for (auto it : list_) func(it.first, it.second);
+}
+
+template <typename T, typename U>
+size_t LRU<T, U>::GetSize() const {
+  return map_.size();
 }
 
 }  // namespace cache

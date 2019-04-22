@@ -15,7 +15,7 @@ int DoDaemonMain(int argc, char** argv,
 inline int DaemonMain(int argc, char** argv,
                       const components::ComponentList& components_list) {
   ++server::handlers::auth::auth_checker_apikey_module_activation;
-  components::CacheConfigInit();
+  cache::CacheConfigInit();
   return DoDaemonMain(argc, argv, components_list);
 }
 

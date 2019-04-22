@@ -18,7 +18,7 @@ class CacheUpdateTrait {
   void UpdateFull();
 
  protected:
-  CacheUpdateTrait(CacheConfig&& config, const std::string& name);
+  CacheUpdateTrait(cache::CacheConfig&& config, const std::string& name);
   virtual ~CacheUpdateTrait();
 
   enum class Flag {
@@ -32,7 +32,7 @@ class CacheUpdateTrait {
   cache::Statistics& GetStatistics() { return statistics_; }
 
   /* If no config is set, use static default (from config.yaml) */
-  void SetConfig(const boost::optional<CacheConfig>& config);
+  void SetConfig(const boost::optional<cache::CacheConfig>& config);
 
  private:
   virtual void Update(cache::UpdateType type,
@@ -46,8 +46,8 @@ class CacheUpdateTrait {
 
   cache::Statistics statistics_;
   engine::Mutex update_mutex_;
-  const CacheConfig static_config_;
-  CacheConfig config_;
+  const cache::CacheConfig static_config_;
+  cache::CacheConfig config_;
   const std::string name_;
   std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
