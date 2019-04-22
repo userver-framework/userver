@@ -44,8 +44,7 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
       queue_(max_size),
       size_(0),
       wait_count_{0},
-      default_cmd_ctl_{
-          std::make_shared<const CommandControl>(default_cmd_ctl)} {}
+      default_cmd_ctl_{default_cmd_ctl} {}
 
 ConnectionPoolImpl::~ConnectionPoolImpl() { Clear(); }
 
@@ -91,7 +90,7 @@ ConnectionPtr ConnectionPoolImpl::Acquire(engine::Deadline deadline) {
   auto shared_this = shared_from_this();
   ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
   ++stats_.connection.used;
-  connection->SetDefaultCommandControl(*default_cmd_ctl_.Get());
+  connection->SetDefaultCommandControl(*default_cmd_ctl_.Read());
   return connection;
 }
 
@@ -160,7 +159,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
                                  dec_cnt = std::move(dg)] {
       LOG_WARNING()
           << "Released connection in busy state. Trying to clean up...";
-      auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
+      auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
       try {
         connection->Cleanup(cmd_ctl->network * 10);
         if (connection->IsIdle()) {
@@ -216,7 +215,7 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
         std::unique_ptr<Connection> connection;
         Stopwatch st{shared_this->stats_.connection_percentile};
         try {
-          auto cmd_ctl = shared_this->default_cmd_ctl_.Get();
+          auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
           connection = Connection::Connect(shared_this->dsn_,
                                            shared_this->bg_task_processor_,
                                            conn_id, *cmd_ctl);
@@ -319,7 +318,11 @@ void ConnectionPoolImpl::DeleteConnection(Connection* connection) {
 }
 
 void ConnectionPoolImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
-  default_cmd_ctl_.Set(std::make_shared<const CommandControl>(cmd_ctl));
+  auto writer = default_cmd_ctl_.StartWrite();
+  if (*writer != cmd_ctl) {
+    *writer = cmd_ctl;
+    writer.Commit();
+  }
 }
 
 }  // namespace detail

@@ -99,7 +99,7 @@ class Connection {
       uint32_t id, CommandControl default_cmd_ctl);
 
   CommandControl GetDefaultCommandControl() const;
-  void SetDefaultCommandControl(CommandControl cmd_ctl);
+  void SetDefaultCommandControl(const CommandControl& cmd_ctl);
 
   /// Close the connection
   /// TODO When called from another thread/coroutine will wait for current
@@ -164,7 +164,8 @@ class Connection {
                     const std::string& statement, const T&... args) {
     detail::QueryParameters params;
     params.Write(GetUserTypes(), args...);
-    return Execute(statement, params, statement_cmd_ctl);
+    return Execute(statement, params,
+                   OptionalCommandControl{statement_cmd_ctl});
   }
 
   /// Try to return connection to idle state discarding all results.
@@ -172,7 +173,7 @@ class Connection {
   /// For usage in connection pools.
   /// Will do nothing if connection failed, it's responsibility of the pool
   /// to destroy the connection.
-  void Cleanup(TimeoutType timeout);
+  void Cleanup(TimeoutDuration timeout);
 
   /// @brief Set session parameter
   /// Parameters documentation

@@ -9,8 +9,8 @@
 #include <engine/condition_variable.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
+#include <rcu/rcu.hpp>
 #include <utils/size_guard.hpp>
-#include <utils/swappingsmart.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
@@ -78,7 +78,7 @@ class ConnectionPoolImpl
   boost::lockfree::queue<Connection*> queue_;
   std::atomic<size_t> size_;
   std::atomic<size_t> wait_count_;
-  ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
+  rcu::Variable<CommandControl> default_cmd_ctl_;
   RecentCounter recent_conn_errors_;
 };
 

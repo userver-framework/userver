@@ -24,23 +24,27 @@ class ResultWrapper;
 using ResultWrapperPtr = std::shared_ptr<const ResultWrapper>;
 }  // namespace detail
 
-using TimeoutType = std::chrono::milliseconds;
+using TimeoutDuration = std::chrono::milliseconds;
 
 struct CommandControl {
-  TimeoutType network;
-  TimeoutType statement;
+  TimeoutDuration network;
+  TimeoutDuration statement;
 
-  constexpr CommandControl WithNetworkTimeout(TimeoutType n) const noexcept {
+  constexpr CommandControl WithNetworkTimeout(TimeoutDuration n) const
+      noexcept {
     return {n, statement};
   }
 
-  constexpr CommandControl WithStatementTimeout(TimeoutType s) const noexcept {
+  constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const
+      noexcept {
     return {network, s};
   }
 
   bool operator==(CommandControl const& rhs) const {
     return network == rhs.network && statement == rhs.statement;
   }
+
+  bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
 };
 
 using OptionalCommandControl = boost::optional<CommandControl>;

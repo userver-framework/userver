@@ -160,7 +160,8 @@ TEST_P(PostgrePool, ConnectionCleanup) {
   RunInCoro([this] {
     auto pool = std::make_unique<pg::ConnectionPool>(
         dsn_, GetTaskProcessor(), 1, 1,
-        pg::CommandControl{pg::TimeoutType{100}, pg::TimeoutType{1000}});
+        pg::CommandControl{pg::TimeoutDuration{100},
+                           pg::TimeoutDuration{1000}});
 
     {
       auto const& stats = pool->GetStatistics();
@@ -190,7 +191,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
       EXPECT_EQ(0, stats.connection.error_total);
     }
     pool->SetDefaultCommandControl(
-        pg::CommandControl{pg::TimeoutType{1000}, pg::TimeoutType{10}});
+        pg::CommandControl{pg::TimeoutDuration{1000}, pg::TimeoutDuration{10}});
     {
       pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
       EXPECT_NO_THROW(trx = pool->Begin({}, MakeDeadline()))

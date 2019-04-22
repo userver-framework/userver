@@ -115,7 +115,7 @@ where n.nspname not in ('pg_catalog', 'pg_toast', 'information_schema')
   and a.attnum > 0
 order by c.reltype, a.attnum)~";
 
-const TimeoutType kConnectTimeout{2000};
+const TimeoutDuration kConnectTimeout{2000};
 
 }  // namespace
 
@@ -143,7 +143,7 @@ struct Connection::Impl {
 
   CommandControl default_cmd_ctl_;
   OptionalCommandControl transaction_cmd_ctl_;
-  TimeoutType current_statement_timeout_{};
+  TimeoutDuration current_statement_timeout_{};
 
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
        CommandControl default_cmd_ctl)
@@ -177,14 +177,16 @@ struct Connection::Impl {
     }
     ExecuteCommandNoPrepare("discard all", deadline);
     SetLocalTimezone(deadline);
-    SetDefaultStatementTimeout(default_cmd_ctl_.statement, deadline);
+    SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
     LoadUserTypes(deadline);
   }
 
-  void SetDefaultCommandControl(CommandControl cmd_ctl) {
-    SetDefaultStatementTimeout(cmd_ctl.statement,
-                               engine::Deadline::FromDuration(cmd_ctl.network));
-    default_cmd_ctl_ = cmd_ctl;
+  void SetDefaultCommandControl(const CommandControl& cmd_ctl) {
+    if (cmd_ctl != default_cmd_ctl_) {
+      SetConnectionStatementTimeout(
+          cmd_ctl.statement, engine::Deadline::FromDuration(cmd_ctl.network));
+      default_cmd_ctl_ = cmd_ctl;
+    }
   }
 
   void SetTransactionCommandControl(CommandControl cmd_ctl) {
@@ -202,7 +204,7 @@ struct Connection::Impl {
     current_statement_timeout_ = default_cmd_ctl_.statement;
   }
 
-  TimeoutType CurrentNetworkTimeout() const {
+  TimeoutDuration CurrentNetworkTimeout() const {
     if (!!transaction_cmd_ctl_) {
       return transaction_cmd_ctl_->network;
     }
@@ -213,7 +215,7 @@ struct Connection::Impl {
     return engine::Deadline::FromDuration(CurrentNetworkTimeout());
   }
 
-  TimeoutType CurrentStatementTimeout() const {
+  TimeoutDuration CurrentStatementTimeout() const {
     if (!!transaction_cmd_ctl_) {
       return transaction_cmd_ctl_->statement;
     }
@@ -236,8 +238,8 @@ struct Connection::Impl {
     }  // Let all other exceptions be propagated to the caller
   }
 
-  void SetDefaultStatementTimeout(TimeoutType timeout,
-                                  engine::Deadline deadline) {
+  void SetConnectionStatementTimeout(TimeoutDuration timeout,
+                                     engine::Deadline deadline) {
     if (current_statement_timeout_ != timeout) {
       SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
                    ParameterScope::kSession, deadline);
@@ -245,7 +247,7 @@ struct Connection::Impl {
     }
   }
 
-  void SetStatementTimeout(TimeoutType timeout, engine::Deadline deadline) {
+  void SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
     if (current_statement_timeout_ != timeout) {
       SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
                    ParameterScope::kTransaction, deadline);
@@ -255,10 +257,10 @@ struct Connection::Impl {
 
   void SetStatementTimeout(OptionalCommandControl cmd_ctl) {
     if (!!cmd_ctl) {
-      SetDefaultStatementTimeout(
+      SetConnectionStatementTimeout(
           cmd_ctl->statement, engine::Deadline::FromDuration(cmd_ctl->network));
     } else {
-      SetDefaultStatementTimeout(
+      SetConnectionStatementTimeout(
           default_cmd_ctl_.statement,
           engine::Deadline::FromDuration(default_cmd_ctl_.network));
     }
@@ -323,9 +325,9 @@ struct Connection::Impl {
                            const detail::QueryParameters& params,
                            OptionalCommandControl statement_cmd_ctl) {
     CheckBusy();
-    TimeoutType network_timeout = !!statement_cmd_ctl
-                                      ? statement_cmd_ctl->network
-                                      : CurrentNetworkTimeout();
+    TimeoutDuration network_timeout = !!statement_cmd_ctl
+                                          ? statement_cmd_ctl->network
+                                          : CurrentNetworkTimeout();
     auto deadline = engine::Deadline::FromDuration(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
     return ExecuteCommand(statement, params, deadline);
@@ -358,7 +360,7 @@ struct Connection::Impl {
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
     auto scope = span.CreateScopeTime();
-    TimeoutType network_timeout =
+    TimeoutDuration network_timeout =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             deadline.TimeLeft());
     CountExecute count_execute(stats_);
@@ -447,7 +449,7 @@ struct Connection::Impl {
     span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
     span.AddTag(tracing::kDatabaseStatement, statement);
     CountExecute count_execute(stats_);
-    TimeoutType network_timeout =
+    TimeoutDuration network_timeout =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             deadline.TimeLeft());
 
@@ -535,7 +537,7 @@ struct Connection::Impl {
   }
   void Finish() { stats_.trx_end_time = SteadyClock::now(); }
 
-  void Cleanup(TimeoutType timeout) {
+  void Cleanup(TimeoutDuration timeout) {
     auto deadline = engine::Deadline::FromDuration(timeout);
     {
       auto state = GetConnectionState();
@@ -562,7 +564,7 @@ struct Connection::Impl {
       if (state > ConnectionState::kIdle) {
         Rollback();
       }
-      SetDefaultStatementTimeout(default_cmd_ctl_.statement, deadline);
+      SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
     }
   }
 
@@ -598,7 +600,7 @@ CommandControl Connection::GetDefaultCommandControl() const {
   return pimpl_->default_cmd_ctl_;
 }
 
-void Connection::SetDefaultCommandControl(CommandControl cmd_ctl) {
+void Connection::SetDefaultCommandControl(const CommandControl& cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl);
 }
 
@@ -675,7 +677,7 @@ void Connection::Start(SteadyClock::time_point&& start_time) {
 
 void Connection::Finish() { pimpl_->Finish(); }
 
-void Connection::Cleanup(TimeoutType timeout) { pimpl_->Cleanup(timeout); }
+void Connection::Cleanup(TimeoutDuration timeout) { pimpl_->Cleanup(timeout); }
 
 }  // namespace detail
 }  // namespace postgres

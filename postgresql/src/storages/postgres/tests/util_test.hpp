@@ -22,7 +22,8 @@ constexpr static const char* kPostgresDsn = "POSTGRES_DSN_TEST";
 constexpr uint32_t kConnectionId = 0;
 
 constexpr storages::postgres::CommandControl kTestCmdCtl{
-    storages::postgres::TimeoutType{100}, storages::postgres::TimeoutType{50}};
+    storages::postgres::TimeoutDuration{100},
+    storages::postgres::TimeoutDuration{50}};
 
 inline engine::Deadline MakeDeadline() {
   return engine::Deadline::FromDuration(kTestCmdCtl.network);

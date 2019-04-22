@@ -271,17 +271,17 @@ POSTGRE_TEST_P(StatementTimout) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Network timeout
   conn->SetDefaultCommandControl(
-      pg::CommandControl{pg::TimeoutType{10}, pg::TimeoutType{0}});
+      pg::CommandControl{pg::TimeoutDuration{10}, pg::TimeoutDuration{0}});
   EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
   EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
-  EXPECT_NO_THROW(conn->Cleanup(pg::TimeoutType{1000}));
+  EXPECT_NO_THROW(conn->Cleanup(pg::TimeoutDuration{1000}));
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Query cancelled
   conn->SetDefaultCommandControl(
-      pg::CommandControl{pg::TimeoutType{2000}, pg::TimeoutType{10}});
+      pg::CommandControl{pg::TimeoutDuration{2000}, pg::TimeoutDuration{10}});
   EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCanceled);
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  EXPECT_NO_THROW(conn->Cleanup(pg::TimeoutType{1000}));
+  EXPECT_NO_THROW(conn->Cleanup(pg::TimeoutDuration{1000}));
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
