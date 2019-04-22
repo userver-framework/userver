@@ -3,6 +3,8 @@
 #include <engine/ev/thread_pool.hpp>
 #include <logging/log.hpp>
 
+#include <moodycamel/concurrentqueue.h>
+
 #include <cstdlib>
 
 #include <utils/openssl_lock.hpp>
@@ -24,7 +26,8 @@ std::shared_ptr<Client> Client::Create(size_t io_threads) {
 
 Client::Client(size_t io_threads)
     : destination_statistics_(std::make_shared<DestinationStatistics>()),
-      statistics_(io_threads) {
+      statistics_(io_threads),
+      idle_queue_() {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
   ev_config.thread_name = kIoThreadName;
@@ -37,11 +40,6 @@ Client::Client(size_t io_threads)
 }
 
 Client::~Client() {
-  {
-    std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
-    while (!idle_easy_queue_.empty()) idle_easy_queue_.pop();
-  }
-
   // We have to destroy *this only when all the requests are finished, because
   // otherwise `multis_` and `thread_pool_` are destroyed and pending requests
   // cause UB (e.g. segfault).
@@ -56,24 +54,21 @@ Client::~Client() {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
 
+  while (TryDequeueIdle())
+    ;
+
   multis_.clear();
   thread_pool_.reset();
 }
 
 std::shared_ptr<Request> Client::CreateRequest() {
-  {
-    std::unique_lock<std::mutex> lock(idle_easy_queue_mutex_);
-    if (!idle_easy_queue_.empty()) {
-      auto easy = std::move(idle_easy_queue_.front());
-      idle_easy_queue_.pop();
-      lock.unlock();
-
-      auto idx = FindMultiIndex(easy->GetMulti());
-      auto wrapper = std::make_shared<EasyWrapper>(std::move(easy), *this);
-      return std::make_shared<Request>(std::move(wrapper),
-                                       statistics_[idx].CreateRequestStats(),
-                                       destination_statistics_);
-    }
+  auto easy = TryDequeueIdle();
+  if (easy) {
+    auto idx = FindMultiIndex(easy->GetMulti());
+    auto wrapper = std::make_shared<EasyWrapper>(std::move(easy), *this);
+    return std::make_shared<Request>(std::move(wrapper),
+                                     statistics_[idx].CreateRequestStats(),
+                                     destination_statistics_);
   }
 
   thread_local unsigned int rand_state = 0;
@@ -161,13 +156,20 @@ DestinationStatistics::DestinationsMap Client::GetDestinationStatistics()
 void Client::PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept {
   try {
     easy->reset();
-    std::lock_guard<std::mutex> lock(idle_easy_queue_mutex_);
-    idle_easy_queue_.push(std::move(easy));
+    idle_queue_->enqueue(std::move(easy));
   } catch (const std::exception& e) {
-    LOG_ERROR() << e.what();
+    LOG_ERROR() << e;
   }
 
   DecPending();
+}
+
+std::unique_ptr<curl::easy> Client::TryDequeueIdle() noexcept {
+  std::unique_ptr<curl::easy> result;
+  if (!idle_queue_->try_dequeue(result)) {
+    return {};
+  }
+  return result;
 }
 
 }  // namespace http

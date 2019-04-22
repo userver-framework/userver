@@ -1,11 +1,11 @@
 #pragma once
 
-#include <mutex>
-#include <queue>
-
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/request.hpp>
 #include <clients/http/statistics.hpp>
+
+#include <moodycamel/concurrentqueue_fwd.h>
+#include <utils/fast_pimpl.hpp>
 
 namespace curl {
 class multi;
@@ -59,6 +59,8 @@ class Client {
   void DecPending() noexcept { --pending_tasks_; }
   void PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept;
 
+  std::unique_ptr<curl::easy> TryDequeueIdle() noexcept;
+
   std::atomic<std::size_t> pending_tasks_{0};
 
   std::shared_ptr<DestinationStatistics> destination_statistics_;
@@ -66,8 +68,12 @@ class Client {
   std::vector<Statistics> statistics_;
   std::vector<std::unique_ptr<curl::multi>> multis_;
 
-  std::mutex idle_easy_queue_mutex_;
-  std::queue<std::unique_ptr<curl::easy>> idle_easy_queue_;
+  static constexpr size_t kIdleQueueSize = 616;
+  static constexpr size_t kIdleQueueAlignment = 8;
+  using IdleQueueTraits = moodycamel::ConcurrentQueueDefaultTraits;
+  using IdeQueueValue = std::unique_ptr<curl::easy>;
+  using IdleQueue = moodycamel::ConcurrentQueue<IdeQueueValue, IdleQueueTraits>;
+  utils::FastPimpl<IdleQueue, kIdleQueueSize, kIdleQueueAlignment> idle_queue_;
 };
 
 }  // namespace http
