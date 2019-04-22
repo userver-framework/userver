@@ -56,7 +56,7 @@ class LruCacheComponent : public components::LoggableComponentBase {
 
   void OnConfigUpdate(const std::shared_ptr<taxi_config::Config>& cfg);
 
-  void UpdateConfig(const LruCacheConfig& config);
+  void UpdateConfig(const LruCacheConfigStatic& config);
 
  private:
   const std::string name_;
@@ -146,7 +146,8 @@ void LruCacheComponent<Key, Value>::OnConfigUpdate(
 }
 
 template <typename Key, typename Value>
-void LruCacheComponent<Key, Value>::UpdateConfig(const LruCacheConfig& config) {
+void LruCacheComponent<Key, Value>::UpdateConfig(
+    const LruCacheConfigStatic& config) {
   cache_->UpdateWaySize(config.GetWaySize());
   cache_->UpdateMaxLifetime(config.config.lifetime);
 }
