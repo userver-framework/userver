@@ -10,7 +10,6 @@ constexpr size_t kHttpIoThreads{1};
 using HttpResponse = testing::SimpleServer::Response;
 using HttpRequest = testing::SimpleServer::Request;
 using HttpCallback = testing::SimpleServer::OnRequest;
-using HttpPorts = testing::SimpleServer::Ports;
 
 static HttpResponse Callback(int code, const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
@@ -33,13 +32,12 @@ TEST(DestinationStatistics, Empty) {
 
 TEST(DestinationStatistics, Ok) {
   TestInCoro([] {
-    const testing::SimpleServer http_server(
-        {51234},
-        [](const HttpRequest& request) { return Callback(200, request); });
+    const testing::SimpleServer http_server{
+        [](const HttpRequest& request) { return Callback(200, request); }};
     std::shared_ptr<clients::http::Client> client =
         clients::http::Client::Create(kHttpIoThreads);
 
-    auto url = "http://127.0.0.1:51234/";
+    auto url = http_server.GetBaseUrl();
 
     auto response = client->CreateRequest()
                         ->post(url)
@@ -66,19 +64,17 @@ TEST(DestinationStatistics, Ok) {
 
 TEST(DestinationStatistics, Multiple) {
   TestInCoro([] {
-    const testing::SimpleServer http_server(
-        {51234},
-        [](const HttpRequest& request) { return Callback(200, request); });
-    const testing::SimpleServer http_server2(
-        {51235},
-        [](const HttpRequest& request) { return Callback(500, request); });
+    const testing::SimpleServer http_server{
+        [](const HttpRequest& request) { return Callback(200, request); }};
+    const testing::SimpleServer http_server2{
+        [](const HttpRequest& request) { return Callback(500, request); }};
     std::shared_ptr<clients::http::Client> client =
         clients::http::Client::Create(kHttpIoThreads);
 
     client->SetDestinationMetricsAutoMaxSize(100);
 
-    auto url = "http://127.0.0.1:51234/";
-    auto url2 = "http://127.0.0.1:51235/";
+    auto url = http_server.GetBaseUrl();
+    auto url2 = http_server2.GetBaseUrl();
 
     auto response = client->CreateRequest()
                         ->post(url)

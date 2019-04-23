@@ -109,7 +109,7 @@ HttpResponse validating_callback2(const HttpRequest& request) {
 
 TEST(CurlFormTest, MultipartFileWithContentType) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &validating_callback1);
+    const testing::SimpleServer http_server{&validating_callback1};
 
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
@@ -119,7 +119,7 @@ TEST(CurlFormTest, MultipartFileWithContentType) {
                      std::make_shared<std::string>(kTestData), kImageJpeg);
 
     auto resp = http_client_ptr->CreateRequest()
-                    ->post("http://127.0.0.1:51234/", form)
+                    ->post(http_server.GetBaseUrl(), form)
                     ->retry(1)
                     ->verify(true)
                     ->http_version(curl::easy::http_version_1_1)
@@ -132,7 +132,7 @@ TEST(CurlFormTest, MultipartFileWithContentType) {
 
 TEST(CurlFormTest, FilesWithContentType) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &validating_callback2);
+    const testing::SimpleServer http_server{&validating_callback2};
 
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
@@ -145,7 +145,7 @@ TEST(CurlFormTest, FilesWithContentType) {
                      std::make_shared<std::string>(kOtherTestData), kImageBmp);
 
     auto resp = http_client_ptr->CreateRequest()
-                    ->post("http://127.0.0.1:51234/", form)
+                    ->post(http_server.GetBaseUrl(), form)
                     ->retry(1)
                     ->verify(true)
                     ->http_version(curl::easy::http_version_1_1)

@@ -4,6 +4,7 @@
 #include <initializer_list>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace testing {
 
@@ -42,15 +43,18 @@ class SimpleServer {
   using Request = std::string;
   using OnRequest = std::function<Response(const Request&)>;
 
-  using Ports = std::initializer_list<unsigned short>;
+  using Port = unsigned short;
   enum Protocol { kTcpIpV4, kTcpIpV6 };
 
-  SimpleServer(Ports ports, OnRequest callback, Protocol protocol = kTcpIpV4);
+  SimpleServer(OnRequest callback, Protocol protocol = kTcpIpV4);
   ~SimpleServer();
+
+  Port GetPort() const;
+  std::string GetBaseUrl() const;
 
  private:
   class Impl;
-  std::unique_ptr<Impl> pimpl_;
+  const std::unique_ptr<Impl> pimpl_;
 };
 
 }  // namespace testing

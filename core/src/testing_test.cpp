@@ -22,18 +22,18 @@ SimpleServer::Response assert_received_nothing(const SimpleServer::Request& r) {
 }  // namespace
 
 TEST(SimpleServer, NothingReceived) {
-  TestInCoro([] { SimpleServer({8080, 8042}, assert_received_nothing); });
+  TestInCoro([] { SimpleServer{assert_received_nothing}; });
 }
 
 TEST(SimpleServer, ExampleTcpIpV4) {
   TestInCoro([] {
-    SimpleServer s({8080, 8042}, assert_received_ok);
+    SimpleServer s(assert_received_ok);
 
     // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
     engine::io::AddrStorage addr_storage;
     auto* sa = addr_storage.As<struct sockaddr_in>();
     sa->sin_family = AF_INET;
-    sa->sin_port = htons(8042);
+    sa->sin_port = htons(s.GetPort());
     sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
@@ -50,13 +50,13 @@ TEST(SimpleServer, ExampleTcpIpV4) {
 
 TEST(SimpleServer, ExampleTcpIpV6) {
   TestInCoro([] {
-    SimpleServer s({8080, 8042}, assert_received_ok, SimpleServer::kTcpIpV6);
+    SimpleServer s(assert_received_ok, SimpleServer::kTcpIpV6);
 
     // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
     engine::io::AddrStorage addr_storage;
     auto* sa = addr_storage.As<struct sockaddr_in6>();
     sa->sin6_family = AF_INET6;
-    sa->sin6_port = htons(8042);
+    sa->sin6_port = htons(s.GetPort());
     sa->sin6_addr = in6addr_loopback;
     engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
@@ -83,13 +83,13 @@ TEST(SimpleServer, ExampleTcpIpV4Twice) {
   };
 
   TestInCoro([assert_received_twice] {
-    SimpleServer s({8080, 8042}, assert_received_twice);
+    SimpleServer s(assert_received_twice);
 
     // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
     engine::io::AddrStorage addr_storage;
     auto* sa = addr_storage.As<struct sockaddr_in>();
     sa->sin_family = AF_INET;
-    sa->sin_port = htons(8042);
+    sa->sin_port = htons(s.GetPort());
     sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 

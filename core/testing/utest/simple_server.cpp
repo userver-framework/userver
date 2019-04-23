@@ -81,38 +81,37 @@ void Client::WriteResponse() {
 
 class SimpleServer::Impl {
  public:
-  Impl(Ports ports, OnRequest f, Protocol protocol);
+  Impl(OnRequest callback, Protocol protocol);
+
+  Port GetPort() const { return port_; };
+  Protocol GetProtocol() const { return protocol_; };
 
  private:
   OnRequest callback_;
+  Protocol protocol_;
+  Port port_{};
 
-  static engine::io::Addr MakeLoopbackAddress(unsigned short port, Protocol p);
-  void StartPortListening(unsigned short port, Protocol protocol);
+  engine::io::Addr MakeLoopbackAddress() const;
+  void StartPortListening();
 };
 
-SimpleServer::Impl::Impl(Ports ports, OnRequest f, Protocol protocol)
-    : callback_{std::move(f)} {
-  EXPECT_TRUE(ports.size())
-      << "SimpleServer must be started with at least one listen port";
-
+SimpleServer::Impl::Impl(OnRequest callback, Protocol protocol)
+    : callback_{std::move(callback)}, protocol_{protocol} {
   EXPECT_TRUE(callback_)
       << "SimpleServer must be started with a request callback";
 
-  for (auto port : ports) {
-    StartPortListening(port, protocol);
-  }
+  StartPortListening();
 }
 
-engine::io::Addr SimpleServer::Impl::MakeLoopbackAddress(unsigned short port,
-                                                         Protocol p) {
+engine::io::Addr SimpleServer::Impl::MakeLoopbackAddress() const {
   engine::io::AddrStorage addr_storage;
 
-  switch (p) {
+  switch (protocol_) {
     case kTcpIpV4: {
       auto* sa = addr_storage.As<struct sockaddr_in>();
       sa->sin_family = AF_INET;
       // NOLINTNEXTLINE(hicpp-no-assembler)
-      sa->sin_port = htons(port);
+      sa->sin_port = 0;
       // NOLINTNEXTLINE(hicpp-no-assembler)
       sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
       return engine::io::Addr(addr_storage, SOCK_STREAM, 0);
@@ -121,20 +120,27 @@ engine::io::Addr SimpleServer::Impl::MakeLoopbackAddress(unsigned short port,
       auto* sa = addr_storage.As<struct sockaddr_in6>();
       sa->sin6_family = AF_INET6;
       // NOLINTNEXTLINE(hicpp-no-assembler)
-      sa->sin6_port = htons(port);
+      sa->sin6_port = 0;
       sa->sin6_addr = in6addr_loopback;
       return engine::io::Addr(addr_storage, SOCK_STREAM, 0);
     }
   }
 }
 
-void SimpleServer::Impl::StartPortListening(unsigned short port,
-                                            Protocol protocol) {
-  engine::io::Addr addr = MakeLoopbackAddress(port, protocol);
+void SimpleServer::Impl::StartPortListening() {
+  engine::io::Addr addr = MakeLoopbackAddress();
 
   // Starting acceptor in this coro to avoid errors when acceptor has not
   // started listing yet and someone is already connecting...
-  auto acceptor = engine::io::Listen(addr);
+  engine::io::Socket acceptor = engine::io::Listen(addr);
+  switch (protocol_) {
+    case Protocol::kTcpIpV4:
+      port_ = ntohs(acceptor.Getsockname().As<sockaddr_in>()->sin_port);
+      break;
+    case Protocol::kTcpIpV6:
+      port_ = ntohs(acceptor.Getsockname().As<sockaddr_in6>()->sin6_port);
+      break;
+  }
 
   engine::impl::Async(
       [cb = callback_, acceptor = std::move(acceptor)]() mutable {
@@ -152,9 +158,27 @@ void SimpleServer::Impl::StartPortListening(unsigned short port,
       .Detach();
 }
 
-SimpleServer::SimpleServer(Ports ports, OnRequest callback, Protocol p)
-    : pimpl_{std::make_unique<Impl>(ports, std::move(callback), p)} {}
+SimpleServer::SimpleServer(OnRequest callback, Protocol protocol)
+    : pimpl_{std::make_unique<Impl>(std::move(callback), protocol)} {}
 
 SimpleServer::~SimpleServer() = default;
+
+unsigned short SimpleServer::GetPort() const { return pimpl_->GetPort(); }
+
+std::string SimpleServer::GetBaseUrl() const {
+  std::string url = "http://";
+  switch (pimpl_->GetProtocol()) {
+    case kTcpIpV4:
+      url += "127.0.0.1:";
+      break;
+    case kTcpIpV6:
+      url += "[::1]:";
+      break;
+  }
+
+  url += std::to_string(GetPort());
+
+  return url;
+}
 
 }  // namespace testing

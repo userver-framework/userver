@@ -32,7 +32,7 @@ class RequestMethodTestData {
       : method_name_(method_name), data_(data), func_one_arg_(func) {}
 
   template <class Callback>
-  bool PerformRequest(const char* url, const Callback& callback,
+  bool PerformRequest(const std::string& url, const Callback& callback,
                       clients::http::Client& client) const {
     *callback.method_name = method_name_;
     *callback.data = data_;
@@ -63,7 +63,6 @@ class RequestMethodTestData {
 using HttpResponse = testing::SimpleServer::Response;
 using HttpRequest = testing::SimpleServer::Request;
 using HttpCallback = testing::SimpleServer::OnRequest;
-using HttpPorts = testing::SimpleServer::Ports;
 
 static boost::optional<HttpResponse> process_100(const HttpRequest& request) {
   const bool requires_continue =
@@ -199,12 +198,12 @@ static HttpResponse header_validate_callback(const HttpRequest& request) {
 
 TEST(HttpClient, PostEcho) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &echo_callback);
+    const testing::SimpleServer http_server{&echo_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
     const auto res = http_client_ptr->CreateRequest()
-                         ->post("http://127.0.0.1:51234/", kTestData)
+                         ->post(http_server.GetBaseUrl(), kTestData)
                          ->retry(1)
                          ->verify(true)
                          ->http_version(curl::easy::http_version_1_1)
@@ -217,13 +216,13 @@ TEST(HttpClient, PostEcho) {
 
 TEST(HttpClient, PostShutdownWithPendingRequest) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &sleep_callback);
+    const testing::SimpleServer http_server{&sleep_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
-          ->post("http://127.0.0.1:51234/", kTestData)
+          ->post(http_server.GetBaseUrl(), kTestData)
           ->retry(1)
           ->verify(true)
           ->http_version(curl::easy::http_version_1_1)
@@ -237,7 +236,7 @@ TEST(HttpClient, PostShutdownWithPendingRequest) {
 
 TEST(HttpClient, PostShutdownWithPendingRequestHuge) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &sleep_callback);
+    const testing::SimpleServer http_server{&sleep_callback};
     const std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
@@ -248,7 +247,7 @@ TEST(HttpClient, PostShutdownWithPendingRequestHuge) {
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
-          ->post("http://127.0.0.1:51234/", request)
+          ->post(http_server.GetBaseUrl(), request)
           ->retry(1)
           ->verify(true)
           ->http_version(curl::easy::http_version_1_1)
@@ -260,12 +259,12 @@ TEST(HttpClient, PostShutdownWithPendingRequestHuge) {
 
 TEST(HttpClient, PutEcho) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &echo_callback);
+    const testing::SimpleServer http_server{&echo_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
     const auto res = http_client_ptr->CreateRequest()
-                         ->put("http://127.0.0.1:51234/", kTestData)
+                         ->put(http_server.GetBaseUrl(), kTestData)
                          ->retry(1)
                          ->verify(true)
                          ->http_version(curl::easy::http_version_1_1)
@@ -278,12 +277,12 @@ TEST(HttpClient, PutEcho) {
 
 TEST(HttpClient, PutValidateHeader) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &put_validate_callback);
+    const testing::SimpleServer http_server{&put_validate_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
     const auto res = http_client_ptr->CreateRequest()
-                         ->put("http://127.0.0.1:51234/", kTestData)
+                         ->put(http_server.GetBaseUrl(), kTestData)
                          ->retry(1)
                          ->verify(true)
                          ->http_version(curl::easy::http_version_1_1)
@@ -296,13 +295,13 @@ TEST(HttpClient, PutValidateHeader) {
 
 TEST(HttpClient, PutShutdownWithPendingRequest) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &sleep_callback);
+    const testing::SimpleServer http_server{&sleep_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
-          ->put("http://127.0.0.1:51234/", kTestData)
+          ->put(http_server.GetBaseUrl(), kTestData)
           ->retry(1)
           ->verify(true)
           ->http_version(curl::easy::http_version_1_1)
@@ -316,7 +315,7 @@ TEST(HttpClient, PutShutdownWithPendingRequest) {
 
 TEST(HttpClient, PutShutdownWithPendingRequestHuge) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &sleep_callback);
+    const testing::SimpleServer http_server{&sleep_callback};
     const std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
@@ -327,7 +326,7 @@ TEST(HttpClient, PutShutdownWithPendingRequestHuge) {
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
-          ->put("http://127.0.0.1:51234/", request)
+          ->put(http_server.GetBaseUrl(), request)
           ->retry(1)
           ->verify(true)
           ->http_version(curl::easy::http_version_1_1)
@@ -339,13 +338,13 @@ TEST(HttpClient, PutShutdownWithPendingRequestHuge) {
 
 TEST(HttpClient, PutShutdownWithHugeResponse) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &huge_data_callback);
+    const testing::SimpleServer http_server{&huge_data_callback};
     const std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
-          ->put("http://127.0.0.1:51234/", kTestData)
+          ->put(http_server.GetBaseUrl(), kTestData)
           ->retry(1)
           ->verify(true)
           ->http_version(curl::easy::http_version_1_1)
@@ -358,10 +357,9 @@ TEST(HttpClient, PutShutdownWithHugeResponse) {
 TEST(HttpClient, MethodsMix) {
   TestInCoro([] {
     using clients::http::Request;
-    constexpr char kUrl[] = "http://127.0.0.1:51234/";
 
     const validating_shared_callback callback{};
-    const testing::SimpleServer http_server({51234}, callback);
+    const testing::SimpleServer http_server{callback};
     const auto http_client = clients::http::Client::Create(kHttpIoThreads);
 
     const RequestMethodTestData tests[] = {
@@ -375,10 +373,12 @@ TEST(HttpClient, MethodsMix) {
 
     for (const auto method1 : tests) {
       for (const auto method2 : tests) {
-        const bool ok1 = method1.PerformRequest(kUrl, callback, *http_client);
+        const bool ok1 = method1.PerformRequest(http_server.GetBaseUrl(),
+                                                callback, *http_client);
         EXPECT_TRUE(ok1) << "Failed to perform " << method1.GetMethodName();
 
-        const auto ok2 = method2.PerformRequest(kUrl, callback, *http_client);
+        const auto ok2 = method2.PerformRequest(http_server.GetBaseUrl(),
+                                                callback, *http_client);
         EXPECT_TRUE(ok2) << "Failed to perform " << method2.GetMethodName()
                          << " after " << method1.GetMethodName();
       }
@@ -388,13 +388,13 @@ TEST(HttpClient, MethodsMix) {
 
 TEST(HttpClient, Headers) {
   TestInCoro([] {
-    const testing::SimpleServer http_server({51234}, &header_validate_callback);
+    const testing::SimpleServer http_server{&header_validate_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create(kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i) {
       const auto response = http_client_ptr->CreateRequest()
-                                ->post("http://127.0.0.1:51234/", kTestData)
+                                ->post(http_server.GetBaseUrl(), kTestData)
                                 ->retry(1)
                                 ->headers({std::pair<const char*, const char*>{
                                     kTestHeader, "test"}})
