@@ -18,3 +18,7 @@ src:*bits/shared_ptr_base.h
 # Old versions of Boost have alignment problems within Boost.Lockfree.
 [undefined]
 src:*boost/lockfree/*
+
+[undefined]
+# For downcasting with static_cast hack
+fun:*LogHelper*DoLog*
