@@ -55,7 +55,8 @@ void HttpRequestConstructor::ParseUrl() {
                             request_->method_ == HttpMethod::kConnect,
                             &parsed_url_)) {
     SetStatus(Status::kParseUrlError);
-    throw std::runtime_error("error in http_parser_parse_url()");
+    throw std::runtime_error("error in http_parser_parse_url() for url '" +
+                             request_->url_ + '\'');
   }
 
   if (parsed_url_.field_set & (1 << http_parser_url_fields::UF_PATH)) {
@@ -65,7 +66,7 @@ void HttpRequestConstructor::ParseUrl() {
     LOG_TRACE() << "path='" << request_->request_path_ << '\'';
   } else {
     SetStatus(Status::kParseUrlError);
-    throw std::runtime_error("can't parse path");
+    throw std::runtime_error("no path in url '" + request_->url_ + '\'');
   }
 
   auto match_result = handler_info_index_.MatchRequest(
@@ -220,7 +221,19 @@ std::string HttpRequestConstructor::UrlDecode(const char* data,
         res += static_cast<char>(num);
         ptr += 2;
       } else {
-        throw std::runtime_error("invalid percent-encoding sequence");
+        static constexpr std::size_t kMaxOutputLength = 100;
+        std::string data_short(data, data_end - data);
+        if (data_short.size() > kMaxOutputLength) {
+          data_short = data_short.substr(0, kMaxOutputLength);
+          data_short += "<...>";
+        }
+        const auto percent_encoded_len =
+            std::min(static_cast<std::size_t>(data_end - ptr), std::size_t{3});
+
+        throw std::runtime_error("invalid percent-encoding sequence '" +
+                                 std::string(ptr, percent_encoded_len) +
+                                 "\' in input '" + std::move(data_short) +
+                                 '\'');
       }
     } else {
       res += *ptr;
