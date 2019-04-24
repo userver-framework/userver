@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <formats/json.hpp>
+#include <utils/assert.hpp>
 #include <utils/void_t.hpp>
 
 namespace server {
@@ -125,11 +127,16 @@ class CustomHandlerException : public std::runtime_error {
   // Constructor for throwing with all arguments specified
   CustomHandlerException(ExternalBody external_body,
                          InternalMessage internal_message,
-                         HandlerErrorCode code)
+                         HandlerErrorCode code,
+                         formats::json::Value details = {})
       : runtime_error(internal_message.body.empty() ? GetCodeDescription(code)
                                                     : internal_message.body),
         code_{code},
-        external_body_{std::move(external_body.body)} {}
+        external_body_{std::move(external_body.body)},
+        details_{std::move(details)} {
+    UASSERT_MSG(details_.IsNull() || details_.IsObject(),
+                "The details JSON value must be either null or an object");
+  }
 
   template <typename MessageBuilder>
   CustomHandlerException(MessageBuilder&& builder, HandlerErrorCode code)
@@ -138,6 +145,7 @@ class CustomHandlerException : public std::runtime_error {
 
   HandlerErrorCode GetCode() const { return code_; }
   const std::string& GetExternalErrorBody() const { return external_body_; }
+  const formats::json::Value& GetDetails() const { return details_; };
 
  private:
   template <typename MessageBuilder>
@@ -148,6 +156,7 @@ class CustomHandlerException : public std::runtime_error {
                                code) {}
   const HandlerErrorCode code_{kDefaultCode};
   const std::string external_body_;
+  const formats::json::Value details_;
 };
 
 template <HandlerErrorCode Code>
@@ -175,6 +184,35 @@ class ExceptionWithCode : public CustomHandlerException {
                     ExternalBody external_body = {})
       : CustomHandlerException(std::move(external_body),
                                std::move(internal_message), code) {}
+
+  //@{
+  /** @name Constructors with JSON details */
+  ExceptionWithCode(ExternalBody external_body, formats::json::Value details,
+                    InternalMessage internal_message = {},
+                    HandlerErrorCode code = kDefaultCode)
+      : CustomHandlerException(std::move(external_body),
+                               std::move(internal_message), code,
+                               std::move(details)) {}
+  ExceptionWithCode(InternalMessage internal_message,
+                    formats::json::Value details,
+                    ExternalBody external_body = {},
+                    HandlerErrorCode code = kDefaultCode)
+      : CustomHandlerException(std::move(external_body),
+                               std::move(internal_message), code,
+                               std::move(details)) {}
+  ExceptionWithCode(HandlerErrorCode code, formats::json::Value details,
+                    ExternalBody external_body = {},
+                    InternalMessage internal_message = {})
+      : CustomHandlerException(std::move(external_body),
+                               std::move(internal_message), code,
+                               std::move(details)) {}
+  ExceptionWithCode(HandlerErrorCode code, formats::json::Value details,
+                    InternalMessage internal_message,
+                    ExternalBody external_body = {})
+      : CustomHandlerException(std::move(external_body),
+                               std::move(internal_message), code,
+                               std::move(details)) {}
+  //@}
 
   template <typename MessageBuilder>
   // NOLINTNEXTLINE(bugprone-forwarding-reference-overload)

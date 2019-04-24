@@ -23,6 +23,11 @@ JsonErrorBuilder::JsonErrorBuilder(const CustomHandlerException& ex)
     response_json["message"] = HttpStatusString(status);
   }
 
+  const auto& details = ex.GetDetails();
+  if (details.IsObject()) {
+    response_json["details"] = details;
+  }
+
   json_error_body = formats::json::ToString(response_json.ExtractValue());
 }
 
