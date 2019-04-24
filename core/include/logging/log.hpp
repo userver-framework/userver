@@ -28,6 +28,9 @@ LoggerPtr SetDefaultLogger(LoggerPtr);
 /// Sets new log level for default logger
 void SetDefaultLoggerLevel(Level);
 
+/// Returns log level for default logger
+Level GetDefaultLoggerLevel();
+
 /// Stream-like tskv-formatted log message builder.
 ///
 /// Users can add LogHelper& operator<<(LogHelper&, ) overloads to use a faster

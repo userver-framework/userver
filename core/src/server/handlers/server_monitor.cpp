@@ -27,7 +27,7 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
       statistics_storage_.GetStorage().GetAsJson(prefix, statistics_request);
 
   return formats::json::ToString(monitor_data.ExtractValue());
-}  // namespace server
+}
 
 }  // namespace handlers
 }  // namespace server

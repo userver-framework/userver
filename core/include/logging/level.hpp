@@ -27,6 +27,9 @@ static const auto kLevelMax = static_cast<int>(Level::kNone);
 /// Converts lowercase level name to a corresponding Level
 Level LevelFromString(const std::string&);
 
+/// Returns a string representation of logging level
+std::string ToString(Level level);
+
 boost::optional<Level> OptionalLevelFromString(
     const boost::optional<std::string>& level_name);
 

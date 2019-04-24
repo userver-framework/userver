@@ -20,6 +20,8 @@ namespace http {
 namespace {
 
 const std::string kAnySuffixMark{"*"};
+constexpr char kWildcardStart = '{';
+constexpr char kWildcardFinish = '}';
 
 std::vector<std::string> SplitBySlash(const std::string& path) {
   std::vector<std::string> path_vec;
@@ -28,12 +30,13 @@ std::vector<std::string> SplitBySlash(const std::string& path) {
 }
 
 bool HasWildcardSpecificSymbols(const std::string& str) {
-  return str.find('{') != std::string::npos ||
-         str.find('}') != std::string::npos;
+  return str.find(kWildcardStart) != std::string::npos ||
+         str.find(kWildcardFinish) != std::string::npos;
 }
 
 std::string ExtractWildcardName(const std::string& str) {
-  if (str.empty() || str.front() != '{' || str.back() != '}') {
+  if (str.empty() || str.front() != kWildcardStart ||
+      str.back() != kWildcardFinish) {
     throw std::runtime_error("Incorrect wildcard '" + str + '\'');
   }
 
@@ -144,12 +147,14 @@ class WildcardPathIndex {
  private:
   void AddHandler(const std::string& path,
                   const handlers::HttpHandlerBase& handler,
-                  engine::TaskProcessor& task_processor);
+                  engine::TaskProcessor& task_processor,
+                  bool dont_count_trailing_wildcard);
 
   void AddPath(const handlers::HttpHandlerBase& handler,
                engine::TaskProcessor& task_processor,
                std::vector<PathItem>&& fixed_path,
-               std::vector<PathItem> wildcards);
+               std::vector<PathItem> wildcards,
+               bool dont_count_trailing_wildcard);
 
   bool MatchRequest(const Node& node, HttpMethod method,
                     const std::vector<std::string>& path,
@@ -173,7 +178,7 @@ class WildcardPathIndex {
 void WildcardPathIndex::AddHandler(const handlers::HttpHandlerBase& handler,
                                    engine::TaskProcessor& task_processor) {
   const auto& path = handler.GetConfig().path;
-  AddHandler(path, handler, task_processor);
+  AddHandler(path, handler, task_processor, false);
 
   auto url_trailing_slash = GetUrlTrailingSlashOption(handler);
   if (url_trailing_slash == handlers::UrlTrailingSlashOption::kBoth &&
@@ -183,7 +188,8 @@ void WildcardPathIndex::AddHandler(const handlers::HttpHandlerBase& handler,
         if (path[path.size() - 2] == '/')
           throw std::runtime_error(
               "can't use 'url_trailing_slash' option with path ends with '//'");
-        AddHandler(path.substr(0, path.size() - 1), handler, task_processor);
+        AddHandler(path.substr(0, path.size() - 1), handler, task_processor,
+                   false);
       }
     } else if (path.back() == '*') {
       if (path.size() > 1 && path[path.size() - 2] == '/') {
@@ -192,13 +198,17 @@ void WildcardPathIndex::AddHandler(const handlers::HttpHandlerBase& handler,
           throw std::runtime_error(
               "can't use 'url_trailing_slash' option with path ends with "
               "'//*'");
-        AddHandler(path.substr(0, path.size() - 2), handler, task_processor);
+        AddHandler(path.substr(0, path.size() - 2), handler, task_processor,
+                   false);
       } else {
         throw std::runtime_error("incorrect path: '" + path +
                                  "': trailing '*' allowed after '/' only");
       }
     } else {
-      AddHandler(path + '/', handler, task_processor);
+      AddHandler(path + '/', handler, task_processor, false);
+      if (path.back() == kWildcardFinish) {
+        AddHandler(path, handler, task_processor, true);
+      }
     }
   }
 }
@@ -211,7 +221,8 @@ bool WildcardPathIndex::MatchRequest(HttpMethod method, const std::string& path,
 
 void WildcardPathIndex::AddHandler(const std::string& path,
                                    const handlers::HttpHandlerBase& handler,
-                                   engine::TaskProcessor& task_processor) {
+                                   engine::TaskProcessor& task_processor,
+                                   bool dont_count_trailing_wildcard) {
   auto path_vec = SplitBySlash(path);
   std::vector<PathItem> path_fixed_items;
   std::vector<PathItem> path_wildcards;
@@ -231,14 +242,16 @@ void WildcardPathIndex::AddHandler(const std::string& path,
                              "': " + ex.what());
   }
   AddPath(handler, task_processor, std::move(path_fixed_items),
-          std::move(path_wildcards));
+          std::move(path_wildcards), dont_count_trailing_wildcard);
 }
 
 void WildcardPathIndex::AddPath(const handlers::HttpHandlerBase& handler,
                                 engine::TaskProcessor& task_processor,
                                 std::vector<PathItem>&& fixed_path,
-                                std::vector<PathItem> wildcards) {
+                                std::vector<PathItem> wildcards,
+                                bool dont_count_trailing_wildcard) {
   size_t length = fixed_path.size() + wildcards.size();
+  if (dont_count_trailing_wildcard) --length;
   Node* cur = &root_;
   for (auto& path_item : std::move(fixed_path)) {
     cur = &cur->next[path_item.index][std::move(path_item.name)];
@@ -314,11 +327,12 @@ bool WildcardPathIndex::GetFromHandlerMethodIndex(
 
   match_result.handler_info = handler_info_data->handler_info;
   for (const auto& arg : handler_info_data->wildcards) {
-    if (arg.index >= path.size())
+    if (arg.index > path.size())
       throw std::logic_error(
           "matched path from handler has length greater than path from "
           "request");
-    match_result.args_from_path.emplace_back(arg.name, path[arg.index]);
+    match_result.args_from_path.emplace_back(
+        arg.name, arg.index == path.size() ? std::string{} : path[arg.index]);
   }
   match_result.status = MatchRequestResult::Status::kOk;
   return true;

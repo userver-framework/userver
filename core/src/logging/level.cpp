@@ -1,6 +1,7 @@
 #include <logging/level.hpp>
 #include <logging/log.hpp>
 
+#include <functional>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -10,6 +11,17 @@
 #include <logging/spdlog.hpp>
 #include <tracing/span.hpp>
 #include <utils/str_icase.hpp>
+
+namespace std {
+
+template <>
+struct hash<logging::Level> {
+  std::size_t operator()(logging::Level level) const {
+    return static_cast<std::size_t>(level);
+  }
+};
+
+}  // namespace std
 
 namespace logging {
 
@@ -35,13 +47,29 @@ static_assert(static_cast<spdlog::level::level_enum>(Level::kNone) ==
                   spdlog::level::off,
               "kNone enumerator value doesn't match spdlog's off");
 
+namespace {
+
+std::unordered_map<std::string, Level, utils::StrIcaseHash, utils::StrIcaseCmp>
+InitLevelMap() {
+  return {{"trace", Level::kTrace}, {"debug", Level::kDebug},
+          {"info", Level::kInfo},   {"warning", Level::kWarning},
+          {"error", Level::kError}, {"critical", Level::kCritical},
+          {"none", Level::kNone}};
+}
+
+std::unordered_map<Level, std::string> InitLevelToStringMap() {
+  auto level_map = InitLevelMap();
+  std::unordered_map<Level, std::string> result;
+  for (const auto& elem : level_map) {
+    result.emplace(elem.second, elem.first);
+  }
+  return result;
+}
+
+}  // namespace
+
 Level LevelFromString(const std::string& level_name) {
-  static const std::unordered_map<std::string, Level, utils::StrIcaseHash,
-                                  utils::StrIcaseCmp>
-      kLevelMap = {{"trace", Level::kTrace}, {"debug", Level::kDebug},
-                   {"info", Level::kInfo},   {"warning", Level::kWarning},
-                   {"error", Level::kError}, {"critical", Level::kCritical},
-                   {"none", Level::kNone}};
+  static const auto kLevelMap = InitLevelMap();
 
   auto it = kLevelMap.find(level_name);
   if (it == kLevelMap.end()) {
@@ -49,6 +77,15 @@ Level LevelFromString(const std::string& level_name) {
         "Unknown log level '" + level_name + "' (must be one of '" +
         boost::algorithm::join(kLevelMap | boost::adaptors::map_keys, "', '") +
         "')");
+  }
+  return it->second;
+}
+
+std::string ToString(Level level) {
+  static const auto kLevelToStringMap = InitLevelToStringMap();
+  auto it = kLevelToStringMap.find(level);
+  if (it == kLevelToStringMap.end()) {
+    return "Unknown (" + std::to_string(static_cast<int>(level)) + ')';
   }
   return it->second;
 }

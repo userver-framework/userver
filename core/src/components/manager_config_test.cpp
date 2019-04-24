@@ -20,6 +20,10 @@ components_manager:
     handler-inspect-requests:
       path: /service/inspect-requests
       task_processor: monitor-task-processor
+    handler-log-level:
+      path: /service/log-level/*
+      method: GET,PUT
+      task_processor: monitor-task-processor
     handler-ping:
       path: /ping
       url_trailing_slash: strict-match
@@ -177,7 +181,7 @@ TEST(ManagerConfig, Basic) {
   EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
   EXPECT_EQ(mc.task_processors.size(), 5);
 
-  ASSERT_EQ(mc.components.size(), 25);
+  ASSERT_EQ(mc.components.size(), 26);
   EXPECT_EQ(mc.components.front().Name(), "api-firebase");
   EXPECT_EQ(mc.components.back().Name(), "worker-fallback-subscription-queue");
 }

@@ -98,6 +98,10 @@ void SetDefaultLoggerLevel(Level level) {
   UpdateLogLevelCache();
 }
 
+Level GetDefaultLoggerLevel() {
+  return static_cast<Level>(DefaultLogger()->level());
+}
+
 std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
 LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
