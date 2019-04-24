@@ -42,6 +42,17 @@ TEST(rcu, ChangeCancelRead) {
   });
 }
 
+TEST(rcu, AssignRead) {
+  RunInCoro([] {
+    rcu::Variable<X> ptr(1, 2);
+
+    ptr.Assign({3, 4});
+
+    auto reader = ptr.Read();
+    EXPECT_EQ(std::make_pair(3, 4), *reader);
+  });
+}
+
 TEST(rcu, ReadNotCommitted) {
   RunInCoro([] {
     rcu::Variable<X> ptr(1, 2);

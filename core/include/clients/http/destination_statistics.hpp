@@ -3,7 +3,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include <rcu/rcu.hpp>
+#include <rcu/rcu_map.hpp>
 
 #include <clients/http/statistics.hpp>
 
@@ -23,10 +23,10 @@ class DestinationStatistics {
 
   void SetAutoMaxSize(size_t max_auto_destinations);
 
-  using DestinationsMap =
-      std::unordered_map<std::string, std::shared_ptr<Statistics>>;
+  using DestinationsMap = rcu::RcuMap<std::string, Statistics>;
 
-  DestinationsMap GetCurrentMap() const;
+  DestinationsMap::ConstIterator begin() const;
+  DestinationsMap::ConstIterator end() const;
 
  private:
   std::shared_ptr<RequestStats> GetExistingStatisticsForDestination(
@@ -36,7 +36,7 @@ class DestinationStatistics {
       const std::string& destination);
 
  private:
-  rcu::Variable<DestinationsMap> rcu_map_;
+  rcu::RcuMap<std::string, Statistics> rcu_map_;
   size_t max_auto_destinations_{0};
   std::atomic<size_t> current_auto_destinations_{{0}};
 };

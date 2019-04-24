@@ -1,6 +1,8 @@
 #include <utest/simple_server.hpp>
 #include <utest/utest.hpp>
 
+#include <unordered_set>
+
 #include <clients/http/client.hpp>
 
 namespace {
@@ -25,8 +27,8 @@ TEST(DestinationStatistics, Empty) {
     std::shared_ptr<clients::http::Client> client =
         clients::http::Client::Create(kHttpIoThreads);
 
-    auto dest_stats = client->GetDestinationStatistics();
-    EXPECT_EQ(0, dest_stats.size());
+    EXPECT_EQ(client->GetDestinationStatistics().begin(),
+              client->GetDestinationStatistics().end());
   });
 }
 
@@ -45,19 +47,21 @@ TEST(DestinationStatistics, Ok) {
                         ->timeout(std::chrono::milliseconds(100))
                         ->perform();
 
-    auto dest_stats = client->GetDestinationStatistics();
-    ASSERT_EQ(1, dest_stats.size());
+    const auto& dest_stats = client->GetDestinationStatistics();
+    size_t size = 0;
+    for (const auto& [stat_url, stat_ptr] : dest_stats) {
+      ASSERT_EQ(1, ++size);
 
-    auto it = dest_stats.begin();
-    EXPECT_EQ(url, it->first);
-    ASSERT_NE(nullptr, it->second);
+      EXPECT_EQ(url, stat_url);
+      ASSERT_NE(nullptr, stat_ptr);
 
-    using namespace clients::http;
-    auto stats = InstanceStatistics(*it->second);
-    auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
-    EXPECT_EQ(1, stats.error_count[ok]);
-    for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
-      if (i != ok) EXPECT_EQ(0, stats.error_count[i]);
+      using namespace clients::http;
+      auto stats = InstanceStatistics(*stat_ptr);
+      auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
+      EXPECT_EQ(1, stats.error_count[ok]);
+      for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
+        if (i != ok) EXPECT_EQ(0, stats.error_count[i]);
+      }
     }
   });
 }
@@ -87,17 +91,18 @@ TEST(DestinationStatistics, Multiple) {
                    ->timeout(std::chrono::milliseconds(100))
                    ->perform();
 
-    auto dest_stats = client->GetDestinationStatistics();
-    ASSERT_EQ(2, dest_stats.size());
+    const auto& dest_stats = client->GetDestinationStatistics();
+    size_t size = 0;
+    std::unordered_set<std::string> expected_urls{url, url2};
+    for (const auto& [stat_url, stat_ptr] : dest_stats) {
+      ASSERT_LE(++size, 2);
 
-    EXPECT_EQ(1, dest_stats.count(url));
-    EXPECT_EQ(1, dest_stats.count(url2));
+      EXPECT_EQ(1, expected_urls.erase(stat_url));
 
-    for (auto& it : dest_stats) {
-      ASSERT_NE(nullptr, it.second);
+      ASSERT_NE(nullptr, stat_ptr);
 
       using namespace clients::http;
-      auto stats = InstanceStatistics(*it.second);
+      auto stats = InstanceStatistics(*stat_ptr);
       auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
       EXPECT_EQ(1, stats.error_count[ok]);
       for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {

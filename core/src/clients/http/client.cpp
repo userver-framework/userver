@@ -148,9 +148,8 @@ void Client::SetDestinationMetricsAutoMaxSize(size_t max_size) {
   destination_statistics_->SetAutoMaxSize(max_size);
 }
 
-DestinationStatistics::DestinationsMap Client::GetDestinationStatistics()
-    const {
-  return destination_statistics_->GetCurrentMap();
+const DestinationStatistics& Client::GetDestinationStatistics() const {
+  return *destination_statistics_;
 }
 
 void Client::PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept {

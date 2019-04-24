@@ -10,6 +10,7 @@
 #include <engine/mutex.hpp>
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
+#include <utils/clang_format_workarounds.hpp>
 
 /// Read-Cope-Update variable
 /// @see Based on ideas from
@@ -60,7 +61,7 @@ thread_local CachedData<T> cache;
 /// changed during ReadablePtr lifetime, it will not affect value referenced by
 /// ReadablePtr.
 template <typename T>
-class ReadablePtr {
+class USERVER_NODISCARD ReadablePtr {
  public:
   explicit ReadablePtr(const Variable<T>& ptr)
       : hp_record_(ptr.MakeHazardPointer()) {
@@ -110,13 +111,23 @@ class ReadablePtr {
 /// engine::Mutex, which must be unlocked in the same coroutine that was used to
 /// lock the mutex.
 template <typename T>
-class WritablePtr {
+class USERVER_NODISCARD WritablePtr {
  public:
+  // We cannot use the next version for current state duplication because
+  // multiple writers might be waiting on `var.mutex_`.
   explicit WritablePtr(Variable<T>& var)
       : var_(var),
         lock_(var.mutex_),
-        ptr_(std::make_unique<T>(*var.GetCurrent())) {
+        ptr_(std::make_unique<T>(*var_.GetCurrent())) {
     LOG_TRACE() << "Start writing ptr=" << ptr_.get();
+  }
+
+  WritablePtr(Variable<T>& var, T initial_value)
+      : var_(var),
+        lock_(var.mutex_),
+        ptr_(std::make_unique<T>(std::move(initial_value))) {
+    LOG_TRACE() << "Start writing ptr=" << ptr_.get()
+                << " with custom initial value";
   }
 
   WritablePtr(WritablePtr<T>&& other) noexcept
@@ -189,6 +200,11 @@ class Variable {
   /// Obtain a smart pointer which can be used to make changes to the
   /// current value and to set the Variable to the changed value.
   WritablePtr<T> StartWrite() { return WritablePtr<T>(*this); }
+
+  /// Replaces Variable value with the provided one
+  void Assign(T new_value) {
+    WritablePtr<T>(*this, std::move(new_value)).Commit();
+  }
 
  private:
   T* GetCurrent() const { return current_.load(); }

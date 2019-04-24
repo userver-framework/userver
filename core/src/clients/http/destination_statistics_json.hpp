@@ -9,7 +9,7 @@ namespace http {
 class DestinationStatistics;
 
 formats::json::Value DestinationStatisticsToJson(
-    const DestinationStatistics::DestinationsMap& stats);
+    const DestinationStatistics& stats);
 
 }  // namespace http
 }  // namespace clients

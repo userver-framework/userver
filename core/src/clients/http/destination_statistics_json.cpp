@@ -7,10 +7,10 @@ namespace clients {
 namespace http {
 
 formats::json::Value DestinationStatisticsToJson(
-    const DestinationStatistics::DestinationsMap& stats) {
+    const DestinationStatistics& stats) {
   formats::json::ValueBuilder json;
-  for (const auto& it : stats)
-    json[it.first] = StatisticsToJson(InstanceStatistics(*it.second));
+  for (const auto& [url, stat_ptr] : stats)
+    json[url] = StatisticsToJson(InstanceStatistics(*stat_ptr));
   return json.ExtractValue();
 }
 

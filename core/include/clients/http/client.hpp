@@ -43,7 +43,7 @@ class Client {
   /* Set max number of automatically created destination metrics */
   void SetDestinationMetricsAutoMaxSize(size_t max_size);
 
-  DestinationStatistics::DestinationsMap GetDestinationStatistics() const;
+  const http::DestinationStatistics& GetDestinationStatistics() const;
 
  private:
   explicit Client(size_t io_threads);

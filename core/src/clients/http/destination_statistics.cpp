@@ -15,16 +15,7 @@ DestinationStatistics::GetStatisticsForDestination(
 std::shared_ptr<RequestStats>
 DestinationStatistics::CreateStatisticsForDestination(
     const std::string& destination) {
-  auto writer = rcu_map_.StartWrite();
-
-  // Recheck whether there's still no destination - other thread might already
-  // insert between ->find() and .StartWrite()
-  if (writer->count(destination) == 0)
-    (*writer)[destination] = std::make_shared<Statistics>();
-  writer.Commit();
-
-  // Re-read map with inserted value
-  return std::make_shared<RequestStats>(*(*rcu_map_.Read()).at(destination));
+  return std::make_shared<RequestStats>(*rcu_map_[destination]);
 }
 
 std::shared_ptr<RequestStats>
@@ -34,10 +25,9 @@ DestinationStatistics::GetExistingStatisticsForDestination(
    * It's safe to return RequestStats holding a reference to Statistics as
    * RequestStats lifetime is less than clients::http::Client's one.
    */
-  auto reader = rcu_map_.Read();
-  auto it = reader->find(destination);
-  if (it != reader->end())
-    return std::make_shared<RequestStats>(*it->second);
+  auto stats = rcu_map_.Get(destination);
+  if (stats)
+    return std::make_shared<RequestStats>(*stats);
   else
     return {};
 }
@@ -68,10 +58,14 @@ void DestinationStatistics::SetAutoMaxSize(size_t max_auto_destinations) {
   max_auto_destinations_ = max_auto_destinations;
 }
 
-DestinationStatistics::DestinationsMap DestinationStatistics::GetCurrentMap()
-    const {
-  auto ptr = rcu_map_.Read();
-  return *ptr;
+DestinationStatistics::DestinationsMap::ConstIterator
+DestinationStatistics::begin() const {
+  return rcu_map_.begin();
+}
+
+DestinationStatistics::DestinationsMap::ConstIterator
+DestinationStatistics::end() const {
+  return rcu_map_.end();
 }
 
 }  // namespace http
