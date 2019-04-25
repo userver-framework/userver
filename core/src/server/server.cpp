@@ -1,5 +1,6 @@
 #include <server/server.hpp>
 
+#include <algorithm>
 #include <stdexcept>
 
 #include <engine/task/task_processor.hpp>
@@ -50,6 +51,7 @@ class ServerImpl {
 };
 
 void ServerImpl::PortInfo::Stop() {
+  static constexpr size_t kMaxSleepMs = 50;
   LOG_TRACE() << "Stopping listeners";
   listeners_.clear();
   LOG_TRACE() << "Stopped listeners";
@@ -57,6 +59,19 @@ void ServerImpl::PortInfo::Stop() {
   LOG_TRACE() << "Stopping request handlers";
   request_handler_.reset();
   LOG_TRACE() << "Stopped request handlers";
+
+  if (endpoint_info_) {
+    // Connections are closing asynchronously.
+    // So we need to wait until they close.
+    for (size_t sleep_ms = 1; endpoint_info_->connection_count > 0;
+         sleep_ms = std::min(sleep_ms * 2, kMaxSleepMs)) {
+      LOG_DEBUG()
+          << "sleeping while connections are still closing... connection_count="
+          << endpoint_info_->connection_count << ", "
+          << endpoint_info_->GetDescription();
+      engine::SleepFor(std::chrono::milliseconds(sleep_ms));
+    }
+  }
 }
 
 void ServerImpl::PortInfo::Start() {
