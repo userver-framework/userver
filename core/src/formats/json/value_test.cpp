@@ -10,6 +10,7 @@
 template <>
 struct Parsing<formats::json::Value> : public ::testing::Test {
   constexpr static auto FromString = formats::json::FromString;
+  using ParseException = formats::json::Value::ParseException;
 };
 
 INSTANTIATE_TYPED_TEST_CASE_P(FormatsJson, Parsing, formats::json::Value);

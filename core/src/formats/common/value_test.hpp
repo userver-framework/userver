@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <formats/parse/to.hpp>
+#include <formats/parse/variant.hpp>
 
 namespace {
 namespace testing_namespace {
@@ -150,6 +151,41 @@ TYPED_TEST_P(Parsing, ChronoSeconds) {
   }
 }
 
+TYPED_TEST_P(Parsing, VariantOk1) {
+  using Variant = boost::variant<std::string, int>;
+
+  auto value = this->FromString("[\"string\"]")[0];
+  const auto converted = value.template As<Variant>();
+  EXPECT_EQ(Variant("string"), converted);
+}
+
+TYPED_TEST_P(Parsing, VariantOk2) {
+  using Variant = boost::variant<std::vector<int>, int>;
+
+  auto value = this->FromString("[10]")[0];
+  const auto converted = value.template As<Variant>();
+  // Don't use EXPECT_EQ() below as there is no operator<<(ostream&, const
+  // std::vector<T>&)
+  EXPECT_TRUE(Variant(10) == converted);
+}
+
+TYPED_TEST_P(Parsing, VariantAmbiguous) {
+  using Variant = boost::variant<long, int>;
+  using ParseException = typename TestFixture::ParseException;
+
+  auto value = this->FromString("[10]")[0];
+  EXPECT_THROW(value.template As<Variant>(), ParseException);
+}
+
+TYPED_TEST_P(Parsing, VariantUnambiguous) {
+  using Variant = boost::variant<unsigned, signed>;
+
+  auto value = this->FromString("[-10]")[0];
+  const auto converted = value.template As<Variant>();
+  EXPECT_EQ(Variant(-10), converted);
+  EXPECT_EQ(typeid(signed), converted.type());
+}
+
 REGISTER_TYPED_TEST_CASE_P(Parsing,
 
                            ContainersCtr, VectorInt, VectorIntNull,
@@ -159,4 +195,9 @@ REGISTER_TYPED_TEST_CASE_P(Parsing,
                            OptionalInt, OptionalVectorInt, Int, UInt,
                            IntOverflow, UserProvidedCommonParser,
 
-                           ChronoSeconds);
+                           ChronoSeconds,
+
+                           VariantOk1, VariantOk2, VariantAmbiguous,
+                           VariantUnambiguous
+
+);

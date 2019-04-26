@@ -7,6 +7,7 @@
 template <>
 struct Parsing<formats::yaml::Value> : public ::testing::Test {
   constexpr static auto FromString = formats::yaml::FromString;
+  using ParseException = formats::yaml::Value::ParseException;
 };
 
 INSTANTIATE_TYPED_TEST_CASE_P(FormatsYaml, Parsing, formats::yaml::Value);
