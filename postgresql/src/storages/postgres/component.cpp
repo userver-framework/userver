@@ -97,6 +97,11 @@ formats::json::ValueBuilder ClusterStatisticsToJson(
   for (const auto& slave : stats.slaves) {
     AddInstanceStatistics(slave, slaves);
   }
+  auto unknown = cluster["unknown"];
+  unknown = {formats::json::Type::kObject};
+  for (const auto& uho : stats.unknown) {
+    AddInstanceStatistics(uho, unknown);
+  }
   return cluster;
 }
 

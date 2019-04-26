@@ -160,6 +160,8 @@ struct ClusterStatistics {
   InstanceStatsDescriptor sync_slave;
   /// Slave instances statistics
   std::vector<InstanceStatsDescriptor> slaves;
+  /// Unknown/unreachable instances statistics
+  std::vector<InstanceStatsDescriptor> unknown;
 };
 
 }  // namespace postgres
