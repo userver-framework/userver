@@ -31,6 +31,7 @@ set (SPDLOG_INCLUDE_DIRS ${source_dir}/include)
 file (MAKE_DIRECTORY ${SPDLOG_INCLUDE_DIRS})
 
 add_library(spdlog_lib INTERFACE IMPORTED GLOBAL)
+target_compile_definitions(spdlog_lib INTERFACE SPDLOG_FMT_EXTERNAL=1)
 add_dependencies(spdlog_lib spdlog)
 set_target_properties(spdlog_lib PROPERTIES
         "INTERFACE_INCLUDE_DIRECTORIES" "${SPDLOG_INCLUDE_DIRS}"

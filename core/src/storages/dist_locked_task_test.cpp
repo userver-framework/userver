@@ -3,21 +3,21 @@
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
-#include <storages/distlock.hpp>
+#include <storages/dist_locked_task.hpp>
 #include <utest/utest.hpp>
 #include <utils/mock_now.hpp>
 
 namespace {
-storages::LockedTaskSettings CreateSettings() {
+storages::DistLockedTaskSettings CreateSettings() {
   using namespace std::chrono_literals;
-  return storages::LockedTaskSettings{10ms, 10ms, 100ms, 10ms};
+  return storages::DistLockedTaskSettings{10ms, 10ms, 100ms, 10ms};
 }
 }  // namespace
 
-class LockedTaskMock : public storages::LockedTask {
+class LockedTaskMock : public storages::DistLockedTask {
  public:
-  LockedTaskMock(LockedTask::WorkerFunc func)
-      : LockedTask("test", std::move(func), CreateSettings()) {}
+  LockedTaskMock(DistLockedTask::WorkerFunc func)
+      : DistLockedTask("test", std::move(func), CreateSettings()) {}
 
   void Allow(bool allowed) { allowed_ = allowed; }
 
@@ -28,7 +28,7 @@ class LockedTaskMock : public storages::LockedTask {
  protected:
   void RequestAcquire(std::chrono::milliseconds) override {
     attempts_++;
-    if (locked_) throw LockedTask::LockIsAcquiredByAnotherHostError();
+    if (locked_) throw DistLockedTask::LockIsAcquiredByAnotherHostError();
     if (!allowed_) throw std::runtime_error("not allowed");
   }
 

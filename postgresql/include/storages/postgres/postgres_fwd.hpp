@@ -30,6 +30,11 @@ struct CommandControl {
   TimeoutDuration network;
   TimeoutDuration statement;
 
+  constexpr CommandControl() = default;
+
+  constexpr CommandControl(TimeoutDuration network, TimeoutDuration statement)
+      : network(network), statement(statement) {}
+
   constexpr CommandControl WithNetworkTimeout(TimeoutDuration n) const
       noexcept {
     return {n, statement};
