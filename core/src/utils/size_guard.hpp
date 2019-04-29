@@ -62,10 +62,39 @@ struct SizeGuard {
   SizeGuard& operator=(SizeGuard&&) = delete;
 
   void Dismiss() { size_ = nullptr; }
-  ValueType GetSize() const { return size_when_created_; }
+  ValueType GetValue() const { return size_when_created_; }
 
  private:
   SizeType* size_;
+  ValueType size_when_created_;
+};
+
+template <typename T>
+struct SizeGuard<std::shared_ptr<std::atomic<T>>> {
+  using SharedSize = std::shared_ptr<std::atomic<T>>;
+  using ValueType = T;
+
+  SizeGuard() : size_when_created_{} {}
+
+  explicit SizeGuard(SharedSize size)
+      : size_{size}, size_when_created_{size ? ++(*size) : ValueType{}} {}
+  SizeGuard(SizeGuard&& rhs) noexcept
+      : size_{std::move(rhs.size_)},
+        size_when_created_{std::move(rhs.size_when_created_)} {}
+  ~SizeGuard() {
+    if (size_) {
+      --(*size_);
+    }
+  }
+
+  SizeGuard& operator=(const SizeGuard&) = delete;
+  SizeGuard& operator=(SizeGuard&&) = delete;
+
+  void Dismiss() { size_.reset(); }
+  ValueType GetValue() const { return size_when_created_; }
+
+ private:
+  SharedSize size_;
   ValueType size_when_created_;
 };
 

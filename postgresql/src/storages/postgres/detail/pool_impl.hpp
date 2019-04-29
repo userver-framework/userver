@@ -52,10 +52,12 @@ class ConnectionPoolImpl
 
  private:
   using SizeGuard = ::utils::SizeGuard<std::atomic<size_t>>;
+  using SharedCounter = std::shared_ptr<std::atomic<size_t>>;
+  using SharedSizeGuard = ::utils::SizeGuard<SharedCounter>;
 
   void Init(size_t initial_size);
 
-  [[nodiscard]] engine::TaskWithResult<bool> Connect(SizeGuard&&);
+  [[nodiscard]] engine::TaskWithResult<bool> Connect(SharedSizeGuard&&);
 
   void Push(Connection* connection);
   Connection* Pop(engine::Deadline);
@@ -76,7 +78,7 @@ class ConnectionPoolImpl
   engine::Mutex wait_mutex_;
   engine::ConditionVariable conn_available_;
   boost::lockfree::queue<Connection*> queue_;
-  std::atomic<size_t> size_;
+  SharedCounter size_;
   std::atomic<size_t> wait_count_;
   rcu::Variable<CommandControl> default_cmd_ctl_;
   RecentCounter recent_conn_errors_;

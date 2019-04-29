@@ -149,8 +149,8 @@ struct Connection::Impl {
   std::string uuid_;
 
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
-       CommandControl default_cmd_ctl)
-      : conn_wrapper_{bg_task_processor, id},
+       CommandControl default_cmd_ctl, SizeGuard&& size_guard)
+      : conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
         default_cmd_ctl_{default_cmd_ctl},
         uuid_{::utils::generators::GenerateUuid()} {}
 
@@ -588,10 +588,11 @@ struct Connection::Impl {
 
 std::unique_ptr<Connection> Connection::Connect(
     const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
-    uint32_t id, CommandControl default_cmd_ctl) {
+    uint32_t id, CommandControl default_cmd_ctl, SizeGuard&& size_guard) {
   std::unique_ptr<Connection> conn(new Connection());
 
-  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, default_cmd_ctl);
+  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, default_cmd_ctl,
+                                        std::move(size_guard));
   conn->pimpl_->AsyncConnect(conninfo);
 
   return conn;

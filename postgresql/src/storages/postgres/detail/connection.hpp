@@ -12,6 +12,8 @@
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 
+#include <utils/size_guard.hpp>
+
 namespace storages {
 namespace postgres {
 
@@ -79,6 +81,8 @@ class Connection {
     SteadyClock::duration sum_query_duration;
   };
 
+  using SizeGuard = ::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
+
  public:
   Connection(const Connection&) = delete;
   Connection(Connection&&) = delete;
@@ -92,11 +96,13 @@ class Connection {
   /// @param bg_task_processor task processor for blocking operations
   /// @param id host-wide unique id for connection identification in logs
   /// @param default_cmd_ctl default parameters for operations
+  /// @param size_guard structure to track the size of owning connection pool
   /// @throws ConnectionFailed, ConnectionTimeoutError
   // clang-format on
   static std::unique_ptr<Connection> Connect(
       const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
-      uint32_t id, CommandControl default_cmd_ctl);
+      uint32_t id, CommandControl default_cmd_ctl,
+      SizeGuard&& size_guard = SizeGuard{});
 
   CommandControl GetDefaultCommandControl() const;
   void SetDefaultCommandControl(const CommandControl& cmd_ctl);

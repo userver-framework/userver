@@ -42,7 +42,7 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
       bg_task_processor_(bg_task_processor),
       max_size_(max_size),
       queue_(max_size),
-      size_(0),
+      size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl} {}
 
@@ -80,7 +80,7 @@ void ConnectionPoolImpl::Init(size_t initial_size) {
 
   LOG_INFO() << "Creating " << initial_size << " PostgreSQL connections";
   for (size_t i = 0; i < initial_size; ++i) {
-    Connect(SizeGuard{size_}).Detach();
+    Connect(SharedSizeGuard{size_}).Detach();
   }
   LOG_INFO() << "Pool initialized";
 }
@@ -181,7 +181,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
 }
 
 const InstanceStatistics& ConnectionPoolImpl::GetStatistics() const {
-  stats_.connection.active = size_.load(std::memory_order_relaxed);
+  stats_.connection.active = size_->load(std::memory_order_relaxed);
   stats_.connection.waiting = wait_count_.load(std::memory_order_relaxed);
   stats_.connection.maximum = max_size_;
   return stats_;
@@ -206,11 +206,11 @@ NonTransaction ConnectionPoolImpl::Start(engine::Deadline deadline) {
 }
 
 engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
-    SizeGuard&& size_guard) {
+    SharedSizeGuard&& size_guard) {
   return engine::impl::Async(
       [shared_this = shared_from_this(), sg = std::move(size_guard)]() mutable {
         LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
-                    << sg.GetSize();
+                    << sg.GetValue();
         const uint32_t conn_id = ++shared_this->stats_.connection.open_total;
         std::unique_ptr<Connection> connection;
         Stopwatch st{shared_this->stats_.connection_percentile};
@@ -218,7 +218,7 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
           auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
           connection = Connection::Connect(shared_this->dsn_,
                                            shared_this->bg_task_processor_,
-                                           conn_id, *cmd_ctl);
+                                           conn_id, *cmd_ctl, std::move(sg));
         } catch (const ConnectionTimeoutError&) {
           // No problem if it's connection error
           ++shared_this->stats_.connection.error_timeout;
@@ -243,7 +243,6 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
         // Clean up the statistics and not account it
         [[maybe_unused]] const auto& stats = connection->GetStatsAndReset();
 
-        sg.Dismiss();
         shared_this->Push(connection.release());
         return true;
       });
@@ -278,8 +277,8 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
               << "ms";
   SizeGuard wg(wait_count_);
   {
-    SizeGuard sg(size_);
-    if (sg.GetSize() <= max_size_) {
+    SharedSizeGuard sg(size_);
+    if (sg.GetValue() <= max_size_) {
       // Checking errors is more expensive than incrementing an atomic, so we
       // check it only if we can start a new connection.
       if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
@@ -313,7 +312,6 @@ void ConnectionPoolImpl::Clear() {
 
 void ConnectionPoolImpl::DeleteConnection(Connection* connection) {
   delete connection;
-  --size_;
   ++stats_.connection.drop_total;
 }
 
