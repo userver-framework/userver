@@ -17,6 +17,7 @@
 #include <tracing/tracing.hpp>
 #include <utils/graphite.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
+#include <utils/text.hpp>
 
 #include "auth/auth_checker.hpp"
 
@@ -327,9 +328,13 @@ void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
 std::string HttpHandlerBase::GetRequestBodyForLogging(
     const http::HttpRequest&, request::RequestContext&,
     const std::string& request_body) const {
+  static const std::string kTruncated = "...(truncated)";
   size_t limit = GetConfig().request_body_size_log_limit;
   if (request_body.size() <= limit) return request_body;
-  return request_body.substr(0, limit) + "...(truncated)";
+  std::string result = request_body.substr(0, limit);
+  utils::text::utf8::TrimTruncatedEnding(result);
+  result += kTruncated;
+  return result;
 }
 
 std::string HttpHandlerBase::GetResponseDataForLogging(
