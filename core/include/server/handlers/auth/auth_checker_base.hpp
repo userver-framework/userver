@@ -5,6 +5,7 @@
 
 #include <boost/optional.hpp>
 
+#include <server/auth/user_auth_info.hpp>
 #include <server/handlers/exceptions.hpp>
 #include <server/http/http_request.hpp>
 #include <server/request/request_context.hpp>
@@ -33,11 +34,17 @@ void RaiseForStatus(const AuthCheckResult& auth_check);
 
 class AuthCheckerBase {
  public:
-  virtual ~AuthCheckerBase() noexcept = default;
+  virtual ~AuthCheckerBase();
 
   [[nodiscard]] virtual AuthCheckResult CheckAuth(
       const http::HttpRequest& request,
       request::RequestContext& context) const = 0;
+
+  [[nodiscard]] virtual bool SupportsUserAuth() const noexcept = 0;
+
+ protected:
+  void SetUserAuthInfo(server::request::RequestContext& request_context,
+                       server::auth::UserAuthInfo&& info) const;
 };
 
 using AuthCheckerBasePtr = std::shared_ptr<AuthCheckerBase>;

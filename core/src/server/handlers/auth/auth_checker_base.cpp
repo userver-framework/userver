@@ -62,6 +62,18 @@ void RaiseForStatus(const AuthCheckResult& auth_check) {
   }
 }
 
+AuthCheckerBase::~AuthCheckerBase() = default;
+
+void AuthCheckerBase::SetUserAuthInfo(
+    server::request::RequestContext& request_context,
+    server::auth::UserAuthInfo&& info) const {
+  UASSERT_MSG(SupportsUserAuth(),
+              "Attempt to set user info from a handler that does not support "
+              "user auth");
+
+  server::auth::UserAuthInfo::Set(request_context, std::move(info));
+}
+
 }  // namespace auth
 }  // namespace handlers
 }  // namespace server

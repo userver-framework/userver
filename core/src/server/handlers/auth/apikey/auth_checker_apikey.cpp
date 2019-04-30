@@ -12,9 +12,7 @@ const std::string kApiKeyTypeByMethod = "apikey_type_by_method";
 
 }  // namespace
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth::apikey {
 
 AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
                                      const AuthCheckerSettings& settings) {
@@ -117,6 +115,4 @@ AuthCheckerApiKey::ApiKeyTypeByMethodSettings::ParseFromYaml(
   return settings;
 }
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth::apikey

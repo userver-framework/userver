@@ -6,6 +6,25 @@ namespace server {
 namespace handlers {
 namespace auth {
 
+namespace {
+void ValidateAuthCheckersConsistency(
+    const std::vector<AuthCheckerBasePtr>& auth_checkers) {
+  const auto size = auth_checkers.size();
+  if (size == 0) {
+    return;
+  }
+
+  const bool sets_user = auth_checkers.front()->SupportsUserAuth();
+  for (std::size_t i = 1; i < size; ++i) {
+    if (sets_user != auth_checkers[i]->SupportsUserAuth()) {
+      throw std::runtime_error(
+          "Service authorization misconfigured. Mixing authorizations with "
+          "and without user validation is not allowed.");
+    }
+  }
+}
+}  // namespace
+
 std::vector<AuthCheckerBasePtr> CreateAuthCheckers(
     const components::ComponentContext& component_context,
     const HandlerConfig& config, const AuthCheckerSettings& settings) {
@@ -18,6 +37,9 @@ std::vector<AuthCheckerBasePtr> CreateAuthCheckers(
     auth_checkers.emplace_back(
         factory(component_context, *config.auth, settings));
   }
+
+  ValidateAuthCheckersConsistency(auth_checkers);
+
   return auth_checkers;
 }
 

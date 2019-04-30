@@ -81,5 +81,8 @@ inline const char kXYaRequestId[] = "X-YaRequestId";
 inline const char kXYaTraceId[] = "X-YaTraceId";
 inline const char kXYaSpanId[] = "X-YaSpanId";
 
+// Generic Yandex headers
+inline constexpr char kXYandexUid[] = "X-Yandex-UID";
+
 }  // namespace headers
 }  // namespace http

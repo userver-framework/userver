@@ -6,9 +6,7 @@
 #include <server/handlers/auth/handler_auth_config.hpp>
 #include <server/http/handler_methods.hpp>
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth::apikey {
 
 class AuthCheckerApiKey : public AuthCheckerBase {
  public:
@@ -18,6 +16,10 @@ class AuthCheckerApiKey : public AuthCheckerBase {
   [[nodiscard]] AuthCheckResult CheckAuth(
       const http::HttpRequest& request,
       request::RequestContext& context) const override;
+
+  [[nodiscard]] bool SupportsUserAuth() const noexcept override {
+    return false;
+  }
 
  private:
   struct ApiKeyTypeByMethodSettings {
@@ -39,6 +41,4 @@ class AuthCheckerApiKey : public AuthCheckerBase {
   std::array<const ApiKeysSet*, http::kHandlerMethodsMax + 1> keys_by_method_{};
 };
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth::apikey
