@@ -114,9 +114,8 @@ void ClusterImpl::CheckTopology() {
   for (const auto& [dsn, avail] : hosts_availability) {
     switch (avail) {
       case ClusterTopology::HostAvailability::kOffline:
-        host_pools.erase(dsn);
-        LOG_DEBUG() << "Removed pool for host=" << HostAndPortFromDsn(dsn)
-                    << " from the map";
+        LOG_DEBUG() << "Host=" << HostAndPortFromDsn(dsn)
+                    << " became unavailable";
         break;
       case ClusterTopology::HostAvailability::kPreOnline:
       case ClusterTopology::HostAvailability::kOnline:
