@@ -30,12 +30,13 @@ class Count {
   void SetOption(options::ReadConcern);
   void SetOption(options::Skip);
   void SetOption(options::Limit);
+  void SetOption(options::ForceCountImpl);
 
  private:
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 40;
+  static constexpr size_t kSize = 48;
   static constexpr size_t kAlignment = 8;
   utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
 };

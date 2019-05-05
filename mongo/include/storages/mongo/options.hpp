@@ -238,6 +238,9 @@ class Hint {
   formats::bson::Value value_;
 };
 
+/// Selects count implementation to use: new aggregation-based or old cmd-based
+enum class ForceCountImpl { kAggregate, kCmd };
+
 /// Suppresses errors on querying a sharded collection with unavailable shards
 class AllowPartialResults {};
 

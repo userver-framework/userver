@@ -146,6 +146,10 @@ Count::Count(const Count& other) : impl_(other.impl_->filter) {
   impl_->read_prefs.reset(
       mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
   impl_->options = other.impl_->options;
+
+  if (!impl_->filter.GetSize()) {
+    impl_->use_new_count = false;
+  }
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
@@ -172,6 +176,10 @@ void Count::SetOption(options::Skip skip) {
 
 void Count::SetOption(options::Limit limit) {
   AppendLimit(impl::EnsureBuilder(impl_->options), limit);
+}
+
+void Count::SetOption(options::ForceCountImpl count_impl) {
+  impl_->use_new_count = (count_impl == options::ForceCountImpl::kAggregate);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)

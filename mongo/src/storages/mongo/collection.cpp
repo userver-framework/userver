@@ -37,10 +37,23 @@ size_t Collection::Execute(const operations::Count& count_op) const {
   auto [client, collection] = impl_->GetNativeCollection();
 
   MongoError error;
-  auto count = mongoc_collection_count_documents(
-      collection.get(), count_op.impl_->filter.GetBson().get(),
-      impl::GetNative(count_op.impl_->options),
-      count_op.impl_->read_prefs.get(), nullptr, error.GetNative());
+  int64_t count = -1;
+  if (count_op.impl_->use_new_count) {
+    count = mongoc_collection_count_documents(
+        collection.get(), count_op.impl_->filter.GetBson().get(),
+        impl::GetNative(count_op.impl_->options),
+        count_op.impl_->read_prefs.get(), nullptr, error.GetNative());
+  } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
+    count = mongoc_collection_count_with_opts(
+        collection.get(), MONGOC_QUERY_NONE,
+        count_op.impl_->filter.GetBson().get(),  //
+        0, 0,  // skip and limit are set in options
+        impl::GetNative(count_op.impl_->options),
+        count_op.impl_->read_prefs.get(), error.GetNative());
+#pragma clang diagnostic pop
+  }
   if (count < 0) {
     error.Throw("Error counting documents");
   }

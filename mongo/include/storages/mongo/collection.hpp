@@ -23,12 +23,14 @@ class Collection {
  public:
   explicit Collection(std::shared_ptr<impl::CollectionImpl>);
 
-  /// Returns the number of documents matching the query
+  /// @brief Returns the number of documents matching the query
+  /// @warn Unless explicitly overridden, runs CountApprox for empty filters
+  /// @see options::ForceCountImpl
   template <typename... Options>
   size_t Count(formats::bson::Document filter, Options&&... options) const;
 
   /// @brief Returns an approximated count of all documents in the collection
-  /// @note This method uses collection metadata since 4.0 and should be faster
+  /// @note This method uses collection metadata and should be faster
   template <typename... Options>
   size_t CountApprox(Options&&... options) const;
 

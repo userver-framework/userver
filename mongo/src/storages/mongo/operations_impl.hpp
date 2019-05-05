@@ -20,6 +20,7 @@ class Count::Impl {
   formats::bson::Document filter;
   impl::ReadPrefsPtr read_prefs;
   boost::optional<formats::bson::impl::BsonBuilder> options;
+  bool use_new_count{false};
 };
 
 class CountApprox::Impl {
