@@ -353,21 +353,23 @@ formats::json::Value Redis::ExtendStatisticsRedisPubsub(
 }
 
 void Redis::OnConfigUpdate(const TaxiConfigPtr& cfg) {
+  LOG_INFO() << "update default command control";
   const auto& redis_config = cfg->Get<storages::redis::Config>();
+
   auto cc = std::make_shared<redis::CommandControl>(
       redis_config.default_command_control);
-  std::chrono::seconds subscriptions_rebalance_min_interval{
-      redis_config.subscriptions_rebalance_min_interval_seconds.Get()};
-
-  LOG_INFO() << "update default command control";
   for (auto& it : clients_) {
     auto& client = it.second;
     client->SetConfigDefaultCommandControl(cc);
   }
 
+  auto subscriber_cc = std::make_shared<redis::CommandControl>(
+      redis_config.subscriber_default_command_control);
+  std::chrono::seconds subscriptions_rebalance_min_interval{
+      redis_config.subscriptions_rebalance_min_interval_seconds.Get()};
   for (auto& it : subscribe_clients_) {
     auto& subscribe_client = it.second->GetNative();
-    subscribe_client.SetConfigDefaultCommandControl(cc);
+    subscribe_client.SetConfigDefaultCommandControl(subscriber_cc);
     subscribe_client.SetRebalanceMinInterval(
         subscriptions_rebalance_min_interval);
   }
