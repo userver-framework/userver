@@ -1,5 +1,7 @@
 #include "task_context.hpp"
 
+#include <exception>
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/core/demangle.hpp>
@@ -12,6 +14,7 @@
 #include <utils/assert.hpp>
 
 #include <engine/task/coro_unwinder.hpp>
+#include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
 
 namespace engine {
@@ -56,10 +59,19 @@ std::string GetTaskIdString(const impl::TaskContext* task) {
 
 class CurrentTaskScope {
  public:
-  explicit CurrentTaskScope(TaskContext* context) {
-    current_task::SetCurrentTaskContext(context);
+  explicit CurrentTaskScope(TaskContext& context, EhGlobals& eh_store)
+      : eh_store_(eh_store) {
+    current_task::SetCurrentTaskContext(&context);
+    ExchangeEhGlobals(eh_store_);
   }
-  ~CurrentTaskScope() { current_task::SetCurrentTaskContext(nullptr); }
+
+  ~CurrentTaskScope() {
+    ExchangeEhGlobals(eh_store_);
+    current_task::SetCurrentTaskContext(nullptr);
+  }
+
+ private:
+  EhGlobals& eh_store_;
 };
 
 template <typename Func>
@@ -210,12 +222,19 @@ void TaskContext::DoStep() {
   new_sleep_state.Clear(clear_flags);
   sleep_state_.Store(new_sleep_state, std::memory_order_relaxed);
 
+  // eh_globals is replaced in task scope, we must proxy the exception
+  std::exception_ptr uncaught;
   {
-    CurrentTaskScope current_task_scope(this);
-    SetState(Task::State::kRunning);
-    (*coro_)(this);
-    if (wait_manager_) wait_manager_->AfterAsleep();
+    CurrentTaskScope current_task_scope(*this, eh_globals_);
+    try {
+      SetState(Task::State::kRunning);
+      (*coro_)(this);
+      if (wait_manager_) wait_manager_->AfterAsleep();
+    } catch (...) {
+      uncaught = std::current_exception();
+    }
   }
+  if (uncaught) std::rethrow_exception(uncaught);
 
   switch (yield_reason_) {
     case YieldReason::kTaskCancelled:
@@ -564,7 +583,4 @@ void TaskContext::TraceStateTransition(Task::State state) {
 }  // namespace impl
 }  // namespace engine
 
-#ifndef _LIBCPP_VERSION
-// Doesn't work with Mac OS (TODO)
 #include "cxxabi_eh_globals.inc"
-#endif

@@ -1,31 +1,16 @@
-namespace engine {
-namespace impl {
+#ifdef USERVER_EHGLOBALS_INTERPOSE
 
-namespace {
-
-// NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
-abi::__cxa_eh_globals* GetGlobals() throw() {
-  thread_local EhGlobals tls_globals;
-  auto* globals = &tls_globals;
-
-  auto* context = current_task::GetCurrentTaskContextUnchecked();
-  if (context) globals = context->GetEhGlobals();
-
-  return reinterpret_cast<abi::__cxa_eh_globals*>(globals);
-}
-
+// using custom section to escape LTO
 __attribute__((section("cxa")))
 // NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 extern "C" abi::__cxa_eh_globals* __cxa_get_globals() throw() {
-  return GetGlobals();
+  return engine::impl::GetGlobals();
 }
 
 __attribute__((section("cxa")))
 // NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 extern "C" abi::__cxa_eh_globals* __cxa_get_globals_fast() throw() {
-  return GetGlobals();
+  return engine::impl::GetGlobals();
 }
 
-}  // namespace
-}  // namespace impl
-}  // namespace engine
+#endif
