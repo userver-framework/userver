@@ -105,6 +105,8 @@ class Request::RequestImpl
   /// run curl async_request
   void perform_request(curl::easy::handler_type handler);
 
+  void AccountResponse(std::error_code err);
+
  private:
   /// curl handler wrapper
   std::shared_ptr<EasyWrapper> easy_;
@@ -397,27 +399,17 @@ void Request::RequestImpl::on_completed(
   auto& span = *holder->span_;
   LOG_DEBUG() << "Request::RequestImpl::on_completed(1)" << span;
 
-  auto time_to_start = holder->easy().timings().time_to_start();
-  holder->stats_->StoreTimeToStart(time_to_start);
-  if (holder->dest_req_stats_)
-    holder->dest_req_stats_->StoreTimeToStart(time_to_start);
+  holder->AccountResponse(err);
 
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
     span.AddTag(tracing::kErrorFlag, true);
     span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
 
-    holder->stats_->FinishEc(err);
-    if (holder->dest_req_stats_) holder->dest_req_stats_->FinishEc(err);
-
     holder->promise_.set_exception(PrepareException(err));
   } else {
     span.AddTag(tracing::kHttpStatusCode, holder->response()->status_code());
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
-
-    holder->stats_->FinishOk(holder->easy().get_response_code());
-    if (holder->dest_req_stats_)
-      holder->dest_req_stats_->FinishOk(holder->easy().get_response_code());
 
     holder->promise_.set_value(holder->response_move());
   }
@@ -426,24 +418,26 @@ void Request::RequestImpl::on_completed(
   holder->span_.reset();
 }
 
+void Request::RequestImpl::AccountResponse(std::error_code err) {
+  stats_->StoreTimeToStart(easy().timings().time_to_start());
+  if (err)
+    stats_->FinishEc(err);
+  else
+    stats_->FinishOk(easy().get_response_code());
+
+  if (dest_req_stats_) {
+    dest_req_stats_->StoreTimeToStart(easy().timings().time_to_start());
+    if (err)
+      dest_req_stats_->FinishEc(err);
+    else
+      dest_req_stats_->FinishOk(easy().get_response_code());
+  }
+}
+
 void Request::RequestImpl::on_retry(
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     std::shared_ptr<Request::RequestImpl> holder, const std::error_code& err) {
   LOG_DEBUG() << "RequestImpl::on_retry" << *holder->span_;
-
-  holder->stats_->StoreTimeToStart(holder->easy().timings().time_to_start());
-  if (err)
-    holder->stats_->FinishEc(err);
-  else
-    holder->stats_->FinishOk(holder->easy().get_response_code());
-  if (holder->dest_req_stats_) {
-    holder->dest_req_stats_->StoreTimeToStart(
-        holder->easy().timings().time_to_start());
-    if (err)
-      holder->dest_req_stats_->FinishEc(err);
-    else
-      holder->dest_req_stats_->FinishOk(holder->easy().get_response_code());
-  }
 
   // We do not need to retry
   //  - if we got result and http code is good
@@ -457,6 +451,8 @@ void Request::RequestImpl::on_retry(
     // finish if don't need retry
     holder->on_completed(holder, err);
   } else {
+    holder->AccountResponse(err);
+
     // calculate timeout before retry
     long timeout_ms =
         kEBBaseTime * (rand() % ((1 << std::min(holder->retry_.current - 1,
