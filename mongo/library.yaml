@@ -1,0 +1,12 @@
+project-name: yandex-taxi-userver-mongo
+maintainers:
+  - Common components
+
+link-targets:
+  - libbson-static-1.0
+  - libmongoc-static-1.0
+  - yandex-taxi-userver-core
+
+debian:
+  build_dependencies:
+    - libyandex-taxi-mongo-c-driver-dev

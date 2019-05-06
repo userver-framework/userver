@@ -4,9 +4,8 @@ project(yandex-taxi-userver-postgresql)
 
 # For time zones in pg driver
 find_package_components_required(ICU "libicu-dev" uc i18n)
-
-find_package_required_version(PostgreSQL
-    "libpq-dev postgresql-server-dev-10" 10)
+    
+find_package(HelperPostgreSQL)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
@@ -32,7 +31,6 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   ${USERVER_THIRD_PARTY_DIRS}/magic_get/include
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
-  ${PostgreSQL_INCLUDE_DIRS}
 )
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
     $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
@@ -42,7 +40,7 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC
     yandex-taxi-userver-core
   PRIVATE
-    ${PostgreSQL_LIBRARIES}
+    PostgreSQL
     ICU::uc
     ICU::i18n
 )

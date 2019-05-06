@@ -5,8 +5,7 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
 )
 
-# Hiredis' config doesn't set _FOUND :(
-find_package(Hiredis 0.13.3)
+find_package(HelperHiredis)
 append_debian_depends("libhiredis-dev")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -18,7 +17,7 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC
     yandex-taxi-userver-core
     ${REDIS_COMMON}
-    ${HIREDIS_LIBRARIES}
+    Hiredis
 )
 target_include_directories(
   ${PROJECT_NAME}
@@ -52,7 +51,7 @@ target_link_libraries(${REDIS_COMMON}_unittest
   utest
   yandex-taxi-userver-core
   ${REDIS_COMMON}
-  ${HIREDIS_LIBRARIES}
+  Hiredis
 )
 target_include_directories(
   ${REDIS_COMMON}_unittest

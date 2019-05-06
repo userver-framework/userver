@@ -70,4 +70,10 @@ endif()
 
 endif(NOT CURL_YANDEX_ENABLED)
 
+if (LIBCURL_YANDEX_LIBRARIES AND NOT TARGET CurlYandex)
+  add_library(CurlYandex INTERFACE)
+  target_link_libraries(CurlYandex INTERFACE ${LIBCURL_YANDEX_LIBRARIES})
+  target_include_directories(CurlYandex INTERFACE ${LIBCURL_YANDEX_INCLUDE_DIR})
+endif()
+
 message(STATUS "Found LibCurl: ${LIBCURL_YANDEX_LIBRARIES}")

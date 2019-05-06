@@ -82,8 +82,8 @@ target_link_libraries(${PROJECT_NAME}
     yandex-taxi-backend-common-cpp
     libyamlcpp
     Fmt
+    CurlYandex
   PRIVATE
-    ${LIBCURL_YANDEX_LIBRARIES}
     Boost::coroutine
     Boost::filesystem
     Boost::program_options
@@ -112,10 +112,6 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 )
 
 target_include_directories(${PROJECT_NAME}
-  PUBLIC
-    # Curl include dirs is a public property because curl-ev/easy.hpp
-    # uses native curl from the following include:
-    ${LIBCURL_YANDEX_INCLUDE_DIR}
   PRIVATE
     ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
