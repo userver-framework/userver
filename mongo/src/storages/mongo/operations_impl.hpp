@@ -82,6 +82,7 @@ class Update::Impl {
 
   Mode mode;
   bool should_throw{true};  // moved here for size optimization
+  bool should_retry_dupkey{false};
   formats::bson::Document selector;
   formats::bson::Document update;
   boost::optional<formats::bson::impl::BsonBuilder> options;
@@ -104,6 +105,7 @@ class FindAndModify::Impl {
 
   formats::bson::Document query;
   impl::FindAndModifyOptsPtr options;
+  bool should_retry_dupkey{false};
 };
 
 class FindAndRemove::Impl {

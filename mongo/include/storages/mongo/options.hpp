@@ -112,6 +112,9 @@ class Unordered {};
 /// Enables insertion of a new document when update selector matches nothing
 class Upsert {};
 
+/// Enables automatic one-time retry of duplicate key errors
+class RetryDuplicateKey {};
+
 /// Specifies that FindAndModify should return the new version of an object
 class ReturnNew {};
 

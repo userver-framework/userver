@@ -140,31 +140,41 @@ WriteResult Collection::Execute(const operations::ReplaceOne& replace_op) {
 WriteResult Collection::Execute(const operations::Update& update_op) {
   auto [client, collection] = impl_->GetNativeCollection();
 
-  MongoError error;
-  WriteResultHelper write_result;
-  bool has_succeeded = false;
-  switch (update_op.impl_->mode) {
-    case operations::Update::Mode::kSingle:
-      has_succeeded = mongoc_collection_update_one(
-          collection.get(), update_op.impl_->selector.GetBson().get(),
-          update_op.impl_->update.GetBson().get(),
-          impl::GetNative(update_op.impl_->options), write_result.GetNative(),
-          error.GetNative());
-      break;
+  bool should_retry_dupkey = update_op.impl_->should_retry_dupkey;
+  while (true) {
+    MongoError error;
+    WriteResultHelper write_result;
+    bool has_succeeded = false;
+    switch (update_op.impl_->mode) {
+      case operations::Update::Mode::kSingle:
+        has_succeeded = mongoc_collection_update_one(
+            collection.get(), update_op.impl_->selector.GetBson().get(),
+            update_op.impl_->update.GetBson().get(),
+            impl::GetNative(update_op.impl_->options), write_result.GetNative(),
+            error.GetNative());
+        break;
 
-    case operations::Update::Mode::kMulti:
-      has_succeeded = mongoc_collection_update_many(
-          collection.get(), update_op.impl_->selector.GetBson().get(),
-          update_op.impl_->update.GetBson().get(),
-          impl::GetNative(update_op.impl_->options), write_result.GetNative(),
-          error.GetNative());
-      break;
+      case operations::Update::Mode::kMulti:
+        has_succeeded = mongoc_collection_update_many(
+            collection.get(), update_op.impl_->selector.GetBson().get(),
+            update_op.impl_->update.GetBson().get(),
+            impl::GetNative(update_op.impl_->options), write_result.GetNative(),
+            error.GetNative());
+        break;
+    }
+    if (!has_succeeded) {
+      // TODO replace with error.Kind() TAXICOMMON-103
+      if (should_retry_dupkey && error.Code() == 11000) {
+        UASSERT(update_op.impl_->mode == operations::Update::Mode::kSingle);
+        should_retry_dupkey = false;
+        continue;
+      }
+      if (update_op.impl_->should_throw || !error.IsServerError()) {
+        error.Throw("Error updating documents");
+      }
+    }
+    return write_result.Extract();
   }
-  if (!has_succeeded &&
-      (update_op.impl_->should_throw || !error.IsServerError())) {
-    error.Throw("Error updating documents");
-  }
-  return write_result.Extract();
 }
 
 WriteResult Collection::Execute(const operations::Delete& delete_op) {
@@ -198,15 +208,23 @@ WriteResult Collection::Execute(const operations::Delete& delete_op) {
 WriteResult Collection::Execute(const operations::FindAndModify& fam_op) {
   auto [client, collection] = impl_->GetNativeCollection();
 
-  MongoError error;
-  WriteResultHelper write_result;
-  if (!mongoc_collection_find_and_modify_with_opts(
-          collection.get(), fam_op.impl_->query.GetBson().get(),
-          fam_op.impl_->options.get(), write_result.GetNative(),
-          error.GetNative())) {
-    error.Throw("Error running find and modify");
+  bool should_retry_dupkey = fam_op.impl_->should_retry_dupkey;
+  while (true) {
+    MongoError error;
+    WriteResultHelper write_result;
+    if (!mongoc_collection_find_and_modify_with_opts(
+            collection.get(), fam_op.impl_->query.GetBson().get(),
+            fam_op.impl_->options.get(), write_result.GetNative(),
+            error.GetNative())) {
+      // TODO replace with error.Kind() TAXICOMMON-103
+      if (should_retry_dupkey && error.Code() == 11000) {
+        should_retry_dupkey = false;
+        continue;
+      }
+      error.Throw("Error running find and modify");
+    }
+    return write_result.Extract();
   }
-  return write_result.Extract();
 }
 
 WriteResult Collection::Execute(const operations::FindAndRemove& fam_op) {

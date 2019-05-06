@@ -193,6 +193,7 @@ class Update {
   Update& operator=(Update&&) noexcept;
 
   void SetOption(options::Upsert);
+  void SetOption(options::RetryDuplicateKey);
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
   void SetOption(options::SuppressServerExceptions);
@@ -244,8 +245,9 @@ class FindAndModify {
   FindAndModify& operator=(const FindAndModify&) = delete;
   FindAndModify& operator=(FindAndModify&&) noexcept;
 
-  void SetOption(options::Upsert);
   void SetOption(options::ReturnNew);
+  void SetOption(options::Upsert);
+  void SetOption(options::RetryDuplicateKey);
   void SetOption(const options::Sort&);
   void SetOption(options::Projection);
   void SetOption(options::WriteConcern::Level);
@@ -256,7 +258,7 @@ class FindAndModify {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 24;
+  static constexpr size_t kSize = 32;
   static constexpr size_t kAlignment = 8;
   utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
 };

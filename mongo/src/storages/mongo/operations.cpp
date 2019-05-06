@@ -410,6 +410,14 @@ void Update::SetOption(options::Upsert) {
   impl::AppendUpsert(impl::EnsureBuilder(impl_->options));
 }
 
+void Update::SetOption(options::RetryDuplicateKey) {
+  if (impl_->mode != Mode::kSingle) {
+    throw InvalidQueryArgumentException(
+        "Duplicate key errors cannot be retried for multi-document operations");
+  }
+  impl_->should_retry_dupkey = true;
+}
+
 void Update::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
 }
@@ -463,12 +471,16 @@ FindAndModify::FindAndModify(FindAndModify&&) noexcept = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 FindAndModify& FindAndModify::operator=(FindAndModify&&) noexcept = default;
 
+void FindAndModify::SetOption(options::ReturnNew) {
+  EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_RETURN_NEW);
+}
+
 void FindAndModify::SetOption(options::Upsert) {
   EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_UPSERT);
 }
 
-void FindAndModify::SetOption(options::ReturnNew) {
-  EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_RETURN_NEW);
+void FindAndModify::SetOption(options::RetryDuplicateKey) {
+  impl_->should_retry_dupkey = true;
 }
 
 void FindAndModify::SetOption(const options::Sort& sort) {
