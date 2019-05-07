@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <components/manager.hpp>
+#include <logging/level.hpp>
 #include <server/handlers/auth/auth_checker_base.hpp>
 #include <server/handlers/handler_base.hpp>
 #include <server/http/http_request.hpp>
@@ -42,6 +43,11 @@ class HttpHandlerBase : public HandlerBase {
   const std::vector<http::HttpMethod>& GetAllowedMethods() const;
 
   HttpHandlerStatistics& GetRequestStatistics() const;
+
+  /// Override it if you need a custom logging level for messages about finish
+  /// of request handling for some http statuses.
+  virtual logging::Level GetLogLevelForResponseStatus(
+      http::HttpStatus status) const;
 
  protected:
   [[noreturn]] void ThrowUnsupportedHttpMethod(

@@ -67,6 +67,11 @@ class Span final {
    */
   void AddNonInheritableTag(std::string key, logging::LogExtra::Value value);
 
+  /// Sets level for non-inheritable tags logging
+  void SetLogLevel(logging::Level log_level);
+
+  logging::Level GetLogLevel() const;
+
   void SetLocalLogLevel(boost::optional<logging::Level> log_level);
 
   boost::optional<logging::Level> GetLocalLogLevel() const;

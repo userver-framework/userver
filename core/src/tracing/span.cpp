@@ -205,6 +205,12 @@ void Span::AddNonInheritableTag(std::string key,
   pimpl_->log_extra_local_->Extend(std::move(key), std::move(value));
 }
 
+void Span::SetLogLevel(logging::Level log_level) {
+  pimpl_->log_level_ = log_level;
+}
+
+logging::Level Span::GetLogLevel() const { return pimpl_->log_level_; }
+
 void Span::SetLocalLogLevel(boost::optional<logging::Level> log_level) {
   pimpl_->local_log_level_ = log_level;
 }

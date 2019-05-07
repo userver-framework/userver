@@ -42,7 +42,7 @@ class Span::Impl
   void AttachToCoroStack();
 
  private:
-  const logging::Level log_level_;
+  logging::Level log_level_;
   boost::optional<logging::Level> local_log_level_;
 
   std::shared_ptr<Tracer> tracer;

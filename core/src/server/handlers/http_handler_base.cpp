@@ -85,18 +85,21 @@ class RequestProcessor {
       process_step_func();
     } catch (const http::HttpException& ex) {
       // TODO Remove this catch branch
-      LOG_ERROR() << "http exception in '" << handler_.HandlerName()
-                  << "' handler in " + step_name + ": code="
-                  << HttpStatusString(ex.GetStatus()) << ", msg=" << ex
-                  << ", body=" << ex.GetExternalErrorBody();
+      auto level = handler_.GetLogLevelForResponseStatus(ex.GetStatus());
+      LOG(level) << "http exception in '" << handler_.HandlerName()
+                 << "' handler in " + step_name + ": code="
+                 << HttpStatusString(ex.GetStatus()) << ", msg=" << ex
+                 << ", body=" << ex.GetExternalErrorBody();
       response.SetStatus(ex.GetStatus());
       response.SetData(ex.GetExternalErrorBody());
       return true;
     } catch (const handlers::CustomHandlerException& ex) {
-      LOG_ERROR() << "custom handler exception in '" << handler_.HandlerName()
-                  << "' handler in " + step_name + ": msg=" << ex
-                  << ", body=" << ex.GetExternalErrorBody();
-      response.SetStatus(http::GetHttpStatus(ex.GetCode()));
+      auto http_status = http::GetHttpStatus(ex.GetCode());
+      auto level = handler_.GetLogLevelForResponseStatus(http_status);
+      LOG(level) << "custom handler exception in '" << handler_.HandlerName()
+                 << "' handler in " + step_name + ": msg=" << ex
+                 << ", body=" << ex.GetExternalErrorBody();
+      response.SetStatus(http_status);
       response.SetData(ex.GetExternalErrorBody());
       return true;
     } catch (const std::exception& ex) {
@@ -105,6 +108,7 @@ class RequestProcessor {
       http_request_impl_.MarkAsInternalServerError();
       return true;
     }
+
     return false;
   }
 
@@ -256,6 +260,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     int response_code = static_cast<int>(response.GetStatus());
     span.AddTag(tracing::kHttpStatusCode, response_code);
     if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
+    span.SetLogLevel(GetLogLevelForResponseStatus(response.GetStatus()));
 
     if (log_request) {
       if (log_request_headers) {
@@ -308,6 +313,14 @@ const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()
 
 HttpHandlerStatistics& HttpHandlerBase::GetRequestStatistics() const {
   return *request_statistics_;
+}
+
+logging::Level HttpHandlerBase::GetLogLevelForResponseStatus(
+    http::HttpStatus status) const {
+  auto status_code = static_cast<int>(status);
+  if (status_code >= 400 && status_code <= 499) return logging::Level::kWarning;
+  if (status_code >= 500 && status_code <= 599) return logging::Level::kError;
+  return logging::Level::kInfo;
 }
 
 void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
