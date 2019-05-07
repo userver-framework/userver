@@ -98,8 +98,12 @@ boost::optional<Level> OptionalLevelFromString(
     return boost::none;
 }
 
+bool ShouldLogNospan(Level level) noexcept {
+  return GetShouldLogCache()[static_cast<size_t>(level)];
+}
+
 bool ShouldLog(Level level) noexcept {
-  if (!GetShouldLogCache()[static_cast<size_t>(level)]) return false;
+  if (!ShouldLogNospan(level)) return false;
 
   auto* span = tracing::Span::CurrentSpanUnchecked();
   if (span) {

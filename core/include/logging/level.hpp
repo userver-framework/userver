@@ -39,6 +39,8 @@ inline auto& GetShouldLogCache() noexcept {
   return values;
 }
 
+bool ShouldLogNospan(Level level) noexcept;
+
 bool ShouldLog(Level level) noexcept;
 
 }  // namespace logging

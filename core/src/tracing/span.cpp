@@ -62,7 +62,13 @@ Span::Impl::Impl(TracerPtr tracer, const std::string& name,
 }
 
 Span::Impl::~Impl() {
-  if (!logging::ShouldLog(log_level_)) {
+  DetachFromCoroStack();
+
+  /* We must honour default log level, but use span's level from ourselves,
+   * not the previous span's.
+   */
+  if (!logging::ShouldLogNospan(log_level_) ||
+      local_log_level_.value_or(logging::Level::kTrace) > log_level_) {
     return;
   }
 
@@ -96,8 +102,8 @@ Span::Impl::~Impl() {
     result.Extend(time_storage_->GetLogs());
   }
 
-  // NOLINTNEXTLINE(bugprone-use-after-move,hicpp-invalid-access-moved)
-  LOG(log_level_) << std::move(result);
+  DO_LOG_TO(::logging::DefaultLogger(), log_level_)
+      << std::move(result) << std::move(*this);
 }
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) const& {
