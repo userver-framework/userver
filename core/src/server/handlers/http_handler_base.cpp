@@ -93,19 +93,22 @@ class RequestProcessor {
       response.SetStatus(ex.GetStatus());
       response.SetData(ex.GetExternalErrorBody());
       return true;
-    } catch (const handlers::CustomHandlerException& ex) {
+    } catch (const CustomHandlerException& ex) {
       auto http_status = http::GetHttpStatus(ex.GetCode());
       auto level = handler_.GetLogLevelForResponseStatus(http_status);
       LOG(level) << "custom handler exception in '" << handler_.HandlerName()
                  << "' handler in " + step_name + ": msg=" << ex
                  << ", body=" << ex.GetExternalErrorBody();
       response.SetStatus(http_status);
-      response.SetData(ex.GetExternalErrorBody());
+      response.SetData(handler_.GetFormattedExternalErrorBody(
+          response.GetStatus(), ex.GetExternalErrorBody()));
       return true;
     } catch (const std::exception& ex) {
       LOG_ERROR() << "exception in '" << handler_.HandlerName()
                   << "' handler in " + step_name + ": " << ex;
       http_request_impl_.MarkAsInternalServerError();
+      response.SetData(handler_.GetFormattedExternalErrorBody(
+          response.GetStatus(), response.GetData()));
       return true;
     }
 
@@ -306,6 +309,21 @@ void HttpHandlerBase::OnRequestComplete(
   }
 }
 
+void HttpHandlerBase::HandleReadyRequest(
+    const request::RequestBase& request) const {
+  try {
+    const auto& http_request_impl =
+        dynamic_cast<const http::HttpRequestImpl&>(request);
+    const http::HttpRequest http_request(http_request_impl);
+    auto& response = http_request.GetHttpResponse();
+
+    response.SetData(GetFormattedExternalErrorBody(response.GetStatus(),
+                                                   response.GetData()));
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "unable to handle ready request: " << ex;
+  }
+}
+
 const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()
     const {
   return allowed_methods_;
@@ -321,6 +339,11 @@ logging::Level HttpHandlerBase::GetLogLevelForResponseStatus(
   if (status_code >= 400 && status_code <= 499) return logging::Level::kWarning;
   if (status_code >= 500 && status_code <= 599) return logging::Level::kError;
   return logging::Level::kInfo;
+}
+
+std::string HttpHandlerBase::GetFormattedExternalErrorBody(
+    http::HttpStatus, std::string external_error_body) const {
+  return external_error_body;
 }
 
 void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,

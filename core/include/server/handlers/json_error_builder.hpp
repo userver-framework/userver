@@ -1,6 +1,11 @@
 #pragma once
 
+#include <boost/optional.hpp>
+
+#include <formats/json/value.hpp>
+
 #include <server/handlers/exceptions.hpp>
+#include <server/http/http_status.hpp>
 
 namespace server {
 namespace handlers {
@@ -11,12 +16,17 @@ class JsonErrorBuilder {
  public:
   explicit JsonErrorBuilder(const CustomHandlerException& ex);
 
-  const std::string& GetInternalMessage() const { return internal_message; };
-  const std::string& GetExternalBody() const { return json_error_body; }
+  JsonErrorBuilder(
+      http::HttpStatus status, std::string internal_message,
+      std::string external_error_body,
+      boost::optional<const formats::json::Value&> details = boost::none);
+
+  const std::string& GetInternalMessage() const { return internal_message_; };
+  const std::string& GetExternalBody() const { return json_error_body_; }
 
  private:
-  std::string internal_message;
-  std::string json_error_body;
+  std::string internal_message_;
+  std::string json_error_body_;
 };
 
 }  // namespace handlers

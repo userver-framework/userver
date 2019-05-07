@@ -53,8 +53,6 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
     throw http::HttpException(
         ex.GetStatus(), ex.what(),
         formats::json::ToString(response_json.ExtractValue()));
-  } catch (const CustomHandlerException& ex) {
-    throw CustomHandlerException(JsonErrorBuilder{ex}, ex.GetCode());
   }
 }
 
@@ -66,6 +64,12 @@ const formats::json::Value* HttpHandlerJsonBase::GetRequestJson(
 const formats::json::Value* HttpHandlerJsonBase::GetResponseJson(
     const request::RequestContext& context) const {
   return context.GetDataOptional<const formats::json::Value>(kResponseDataName);
+}
+
+std::string HttpHandlerJsonBase::GetFormattedExternalErrorBody(
+    http::HttpStatus status, std::string external_error_body) const {
+  return JsonErrorBuilder(status, {}, std::move(external_error_body))
+      .GetExternalBody();
 }
 
 void HttpHandlerJsonBase::ParseRequestData(

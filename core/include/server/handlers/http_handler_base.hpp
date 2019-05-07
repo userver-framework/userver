@@ -38,6 +38,8 @@ class HttpHandlerBase : public HandlerBase {
   void OnRequestComplete(const request::RequestBase& request,
                          request::RequestContext& context) const override;
 
+  void HandleReadyRequest(const request::RequestBase& request) const final;
+
   virtual const std::string& HandlerName() const = 0;
 
   const std::vector<http::HttpMethod>& GetAllowedMethods() const;
@@ -48,6 +50,9 @@ class HttpHandlerBase : public HandlerBase {
   /// of request handling for some http statuses.
   virtual logging::Level GetLogLevelForResponseStatus(
       http::HttpStatus status) const;
+
+  virtual std::string GetFormattedExternalErrorBody(
+      http::HttpStatus status, std::string external_error_body) const;
 
  protected:
   [[noreturn]] void ThrowUnsupportedHttpMethod(

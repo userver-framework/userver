@@ -10,25 +10,29 @@ namespace server {
 namespace handlers {
 
 JsonErrorBuilder::JsonErrorBuilder(const CustomHandlerException& ex)
-    : internal_message{ex.what()} {
+    : JsonErrorBuilder(http::GetHttpStatus(ex.GetCode()), ex.what(),
+                       ex.GetExternalErrorBody(), ex.GetDetails()) {}
+
+JsonErrorBuilder::JsonErrorBuilder(
+    http::HttpStatus status, std::string internal_message,
+    std::string external_error_body,
+    boost::optional<const formats::json::Value&> details)
+    : internal_message_(std::move(internal_message)) {
   formats::json::ValueBuilder response_json(formats::json::Type::kObject);
 
-  const auto status = http::GetHttpStatus(ex.GetCode());
   response_json["code"] = std::to_string(static_cast<int>(status));
 
-  const auto& error_message = ex.GetExternalErrorBody();
-  if (!error_message.empty()) {
-    response_json["message"] = error_message;
+  if (!external_error_body.empty()) {
+    response_json["message"] = external_error_body;
   } else {
     response_json["message"] = HttpStatusString(status);
   }
 
-  const auto& details = ex.GetDetails();
-  if (details.IsObject()) {
-    response_json["details"] = details;
+  if (details && details->IsObject()) {
+    response_json["details"] = *details;
   }
 
-  json_error_body = formats::json::ToString(response_json.ExtractValue());
+  json_error_body_ = formats::json::ToString(response_json.ExtractValue());
 }
 
 static_assert(detail::kHasInternalMessage<JsonErrorBuilder>);

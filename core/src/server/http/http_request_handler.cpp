@@ -96,12 +96,14 @@ void HttpRequestHandler::SetNewRequestHook(NewRequestHook hook) {
 engine::TaskWithResult<void> HttpRequestHandler::StartDummyTask(
     std::shared_ptr<request::RequestBase> request) const {
   auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
+  auto* handler = http_request.GetHttpHandler();
   static handlers::HttpHandlerStatistics dummy_statistics;
 
   http_request.SetHttpHandlerStatistics(dummy_statistics);
 
-  return engine::impl::Async([request = std::move(request)]() {
+  return engine::impl::Async([request = std::move(request), handler]() {
     request->SetTaskStartTime();
+    if (handler) handler->HandleReadyRequest(*request);
     request->SetResponseNotifyTime();
     request->SetCompleteNotifyTime();
     request->GetResponse().SetReady();

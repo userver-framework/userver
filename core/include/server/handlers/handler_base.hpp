@@ -23,6 +23,8 @@ class HandlerBase : public components::ComponentBase {
   virtual void OnRequestComplete(const request::RequestBase& request,
                                  request::RequestContext& context) const = 0;
 
+  virtual void HandleReadyRequest(const request::RequestBase&) const {}
+
   bool IsMonitor() const { return is_monitor_; }
 
   const HandlerConfig& GetConfig() const;
