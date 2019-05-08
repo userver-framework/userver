@@ -164,5 +164,7 @@ struct ClusterStatistics {
   std::vector<InstanceStatsDescriptor> unknown;
 };
 
+using ClusterStatisticsPtr = std::unique_ptr<ClusterStatistics>;
+
 }  // namespace postgres
 }  // namespace storages

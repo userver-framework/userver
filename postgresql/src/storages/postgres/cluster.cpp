@@ -16,7 +16,7 @@ Cluster::Cluster(const ClusterDescription& cluster_desc,
 
 Cluster::~Cluster() = default;
 
-ClusterStatistics Cluster::GetStatistics() const {
+ClusterStatisticsPtr Cluster::GetStatistics() const {
   return pimpl_->GetStatistics();
 }
 

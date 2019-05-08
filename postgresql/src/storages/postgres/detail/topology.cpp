@@ -127,7 +127,7 @@ class ClusterTopology::ClusterDescriptionVisitor {
       throw InvalidConfig("Empty DSN list specified for PostgreSQL cluster");
     }
 
-    topology_.hosts_by_type_.Set(std::move(hosts_by_type));
+    topology_.hosts_by_type_.Assign(std::move(hosts_by_type));
 
     return DSNList{dsns.begin(), dsns.end()};
   }
@@ -143,7 +143,7 @@ ClusterTopology::ClusterTopology(engine::TaskProcessor& bg_task_processor,
       check_duration_(std::chrono::duration_cast<std::chrono::milliseconds>(
                           kUpdateInterval) *
                       4 / 5),
-      hosts_by_type_(std::make_shared<HostsByType>()),
+      hosts_by_type_(),
       initial_check_(true),
       default_cmd_ctl_{default_cmd_ctl} {
   if (check_duration_ < kMinCheckDuration) {
@@ -162,7 +162,7 @@ ClusterTopology::ClusterTopology(engine::TaskProcessor& bg_task_processor,
 ClusterTopology::~ClusterTopology() { StopRunningTasks(); }
 
 ClusterTopology::HostsByType ClusterTopology::GetHostsByType() const {
-  return *hosts_by_type_.Get();
+  return *hosts_by_type_.Read();
 }
 
 void ClusterTopology::BuildIndexes() {
@@ -360,10 +360,10 @@ void ClusterTopology::CheckHosts(
     check_tasks[i] = CheckAvailability(i, checks_holder);
   }
 
-  HostsByType hosts_by_type;
   size_t index = kInvalidIndex;
   while ((index = WaitAnyUntil(check_tasks, check_end_point)) !=
          kInvalidIndex) {
+    HostsByType hosts_by_type;
     // No check stage task means we are reconnecting
     if (!checks_holder[index].task) {
       check_tasks[index] = CheckAvailability(index, checks_holder);
@@ -388,7 +388,7 @@ void ClusterTopology::CheckHosts(
       const auto new_type = state.changes.last_check_type;
       if (new_type != kNothing) {
         hosts_by_type[new_type].push_back(state.dsn);
-        hosts_by_type_.Set(HostsByType(hosts_by_type));
+        hosts_by_type_.Assign(std::move(hosts_by_type));
         LOG_DEBUG() << "Initially added host=" << HostAndPortFromDsn(state.dsn)
                     << " as " << HostTypeToString(new_type);
       }
@@ -578,7 +578,7 @@ ClusterTopology::HostAvailabilityChanges ClusterTopology::UpdateHostTypes() {
   }
 
   if (updated) {
-    hosts_by_type_.Set(BuildHostsByType());
+    hosts_by_type_.Assign(BuildHostsByType());
   }
   return host_availability;
 }

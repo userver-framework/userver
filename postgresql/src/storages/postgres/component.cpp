@@ -86,20 +86,20 @@ void AddInstanceStatistics(
 }
 
 formats::json::ValueBuilder ClusterStatisticsToJson(
-    const storages::postgres::ClusterStatistics& stats) {
+    storages::postgres::ClusterStatisticsPtr stats) {
   formats::json::ValueBuilder cluster(formats::json::Type::kObject);
   auto master = cluster["master"];
-  AddInstanceStatistics(stats.master, master);
+  AddInstanceStatistics(stats->master, master);
   auto sync_slave = cluster["sync_slave"];
-  AddInstanceStatistics(stats.sync_slave, sync_slave);
+  AddInstanceStatistics(stats->sync_slave, sync_slave);
   auto slaves = cluster["slaves"];
   slaves = {formats::json::Type::kObject};
-  for (const auto& slave : stats.slaves) {
+  for (const auto& slave : stats->slaves) {
     AddInstanceStatistics(slave, slaves);
   }
   auto unknown = cluster["unknown"];
   unknown = {formats::json::Type::kObject};
-  for (const auto& uho : stats.unknown) {
+  for (const auto& uho : stats->unknown) {
     AddInstanceStatistics(uho, unknown);
   }
   return cluster;

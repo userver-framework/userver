@@ -27,7 +27,7 @@ class ClusterImpl {
               size_t max_size, CommandControl default_cmd_ctl);
   ~ClusterImpl();
 
-  ClusterStatistics GetStatistics() const;
+  ClusterStatisticsPtr GetStatistics() const;
 
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options,
                     engine::Deadline deadline, OptionalCommandControl = {});

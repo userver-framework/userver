@@ -143,8 +143,8 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::GetPool(
   return it_find == host_pools_ptr->end() ? nullptr : it_find->second;
 }
 
-ClusterStatistics ClusterImpl::GetStatistics() const {
-  ClusterStatistics cluster_stats;
+ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
+  auto cluster_stats = std::make_unique<ClusterStatistics>();
   auto hosts_by_type = topology_->GetHostsByType();
   // Copy all pools
   auto host_pools = *host_pools_.Get();
@@ -153,10 +153,10 @@ ClusterStatistics ClusterImpl::GetStatistics() const {
   const auto& master_dsns = hosts_by_type[ClusterHostType::kMaster];
   if (!master_dsns.empty()) {
     auto dsn = master_dsns[0];
-    cluster_stats.master.dsn = dsn;
+    cluster_stats->master.dsn = dsn;
     auto pool = host_pools.find(dsn);
     if (pool != host_pools.end()) {
-      cluster_stats.master.stats = pool->second->GetStatistics();
+      cluster_stats->master.stats = pool->second->GetStatistics();
       host_pools.erase(pool);
     }
   }
@@ -164,17 +164,17 @@ ClusterStatistics ClusterImpl::GetStatistics() const {
   const auto& sync_slave_dsns = hosts_by_type[ClusterHostType::kSyncSlave];
   if (!sync_slave_dsns.empty()) {
     auto dsn = sync_slave_dsns[0];
-    cluster_stats.sync_slave.dsn = dsn;
+    cluster_stats->sync_slave.dsn = dsn;
     auto pool = host_pools.find(dsn);
     if (pool != host_pools.end()) {
-      cluster_stats.sync_slave.stats = pool->second->GetStatistics();
+      cluster_stats->sync_slave.stats = pool->second->GetStatistics();
       host_pools.erase(pool);
     }
   }
 
   const auto& slaves_dsns = hosts_by_type[ClusterHostType::kSlave];
   if (!slaves_dsns.empty()) {
-    cluster_stats.slaves.reserve(slaves_dsns.size());
+    cluster_stats->slaves.reserve(slaves_dsns.size());
     for (auto&& dsn : slaves_dsns) {
       InstanceStatsDescriptor slave_desc;
       slave_desc.dsn = dsn;
@@ -183,16 +183,16 @@ ClusterStatistics ClusterImpl::GetStatistics() const {
         slave_desc.stats = pool->second->GetStatistics();
         host_pools.erase(pool);
       }
-      cluster_stats.slaves.push_back(std::move(slave_desc));
+      cluster_stats->slaves.push_back(std::move(slave_desc));
     }
   }
   if (!host_pools.empty()) {
-    cluster_stats.unknown.reserve(host_pools.size());
+    cluster_stats->unknown.reserve(host_pools.size());
     for (const auto& pool : host_pools) {
       InstanceStatsDescriptor desc;
       desc.dsn = pool.first;
       desc.stats = pool.second->GetStatistics();
-      cluster_stats.unknown.push_back(std::move(desc));
+      cluster_stats->unknown.push_back(std::move(desc));
     }
   }
   return cluster_stats;

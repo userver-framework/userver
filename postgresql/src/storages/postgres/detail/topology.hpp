@@ -11,8 +11,8 @@
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/detail/connection.hpp>
 
+#include <rcu/rcu.hpp>
 #include <utils/statistics/relaxed_counter.hpp>
-#include <utils/swappingsmart.hpp>
 
 namespace storages {
 namespace postgres {
@@ -146,7 +146,7 @@ class ClusterTopology {
   /// Host states array
   std::vector<HostState> host_states_;
   /// Currently determined host types exposed to the client
-  ::utils::SwappingSmart<HostsByType> hosts_by_type_;
+  rcu::Variable<HostsByType> hosts_by_type_;
   /// All DSNs handled by this topology discovery component
   DSNList dsns_;
   /// Host DSN names to array index mapping

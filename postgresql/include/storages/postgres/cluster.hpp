@@ -89,7 +89,9 @@ class Cluster {
   ~Cluster();
 
   /// Get cluster statistics
-  ClusterStatistics GetStatistics() const;
+  ///
+  /// The statistics object is too big to fit on stack
+  ClusterStatisticsPtr GetStatistics() const;
 
   //@{
   /** @name Transaction start */
