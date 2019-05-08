@@ -143,17 +143,7 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
   class EmplaceEnabler {};
 
  public:
-  explicit SpscQueue(EmplaceEnabler)
-      :
-#ifndef NDEBUG
-        consumer_is_created_{false},
-        producer_is_created_{false},
-#endif
-        consumer_is_alive_{true},
-        producer_is_alive_{true},
-        max_length_{-1UL},
-        size_{0} {
-  }
+  explicit SpscQueue(EmplaceEnabler) {}
 
  private:
   bool Push(T&&);
@@ -174,14 +164,17 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
  private:
   // Resolves to boost::lockfree::queue<T> except for std::unique_ptr<T>
   // specialization. In that case, resolves to boost::lockfree::queue<T*>
-  typename QueueHelper::LockFreeQueue queue_;
-  engine::SingleConsumerEvent nonempty_event_, nonfull_event_;
+  typename QueueHelper::LockFreeQueue queue_{1};
+  engine::SingleConsumerEvent nonempty_event_;
+  engine::SingleConsumerEvent nonfull_event_;
 #ifndef NDEBUG
-  std::atomic<bool> consumer_is_created_, producer_is_created_;
+  std::atomic<bool> consumer_is_created_{false};
+  std::atomic<bool> producer_is_created_{false};
 #endif
-  std::atomic<bool> consumer_is_alive_, producer_is_alive_;
-  std::atomic<size_t> max_length_;
-  std::atomic<size_t> size_;
+  std::atomic<bool> consumer_is_alive_{true};
+  std::atomic<bool> producer_is_alive_{true};
+  std::atomic<size_t> max_length_{-1UL};
+  std::atomic<size_t> size_{0};
 };
 
 template <typename T>
