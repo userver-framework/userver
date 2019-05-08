@@ -25,6 +25,8 @@ DsnOptions OptionsFromDsn(const std::string& conninfo);
 
 /// Return DSN string without 'password' field
 std::string DsnCutPassword(const std::string& conninfo);
+/// Return DSN string with password contents masked
+std::string DsnMaskPassword(const std::string& conninfo);
 
 std::string EscapeHostName(const std::string& hostname, char escape_char = '_');
 

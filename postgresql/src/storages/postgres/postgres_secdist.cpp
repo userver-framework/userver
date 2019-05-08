@@ -17,7 +17,7 @@ void CheckSingleHostDSN(const std::string& dsn) {
   auto dsns = storages::postgres::SplitByHost(dsn);
   if (dsns.empty()) {
     throw storages::secdist::SecdistError(
-        dsn + " doesn't seem as a valid PostgreSQL DSN");
+        DsnMaskPassword(dsn) + " doesn't seem as a valid PostgreSQL DSN");
   }
   if (dsns.size() > 1) {
     throw storages::secdist::SecdistError(
@@ -42,7 +42,7 @@ ClusterDescription ClusterDescriptionFromJson(
       auto multihost = storages::postgres::SplitByHost(dsn);
       if (multihost.empty()) {
         throw storages::secdist::SecdistError(
-            dsn + " doesn't seem as a valid PostgreSQL DSN");
+            DsnMaskPassword(dsn) + " doesn't seem as a valid PostgreSQL DSN");
       }
       dsn_set.insert(multihost.begin(), multihost.end());
     }

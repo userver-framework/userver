@@ -9,7 +9,9 @@
 #include <memory>
 #include <sstream>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/regex.hpp>
 
 #include <libpq-fe.h>
 
@@ -36,7 +38,7 @@ OptionsHandle MakeDSNOptions(const std::string& conninfo) {
                      &PQconninfoFree};
 
   if (errmsg) {
-    InvalidDSN err{conninfo, errmsg};
+    InvalidDSN err{DsnMaskPassword(conninfo), errmsg};
     PQfreemem(errmsg);
     throw std::move(err);
   }
@@ -90,7 +92,7 @@ DSNList SplitByHost(const std::string& conninfo) {
   if (hosts.empty()) {
     // default host, just return the options string
     if (ports.size() > 1)
-      throw InvalidDSN{conninfo, "Invalid port options count"};
+      throw InvalidDSN{DsnMaskPassword(conninfo), "Invalid port options count"};
     if (!ports.empty()) {
       options << " "
               << "port=" << ports.front();
@@ -98,7 +100,7 @@ DSNList SplitByHost(const std::string& conninfo) {
     res.push_back(options.str());
   } else {
     if (ports.size() > 1 && ports.size() != hosts.size()) {
-      throw InvalidDSN{conninfo, "Invalid port options count"};
+      throw InvalidDSN{DsnMaskPassword(conninfo), "Invalid port options count"};
     }
     for (auto host = hosts.begin(); host != hosts.end(); ++host) {
       std::ostringstream os;
@@ -189,6 +191,32 @@ std::string DsnCutPassword(const std::string& conninfo) {
     ++opt;
   }
   return cleared;
+}
+
+std::string DsnMaskPassword(const std::string& conninfo) {
+  static const std::string pg_url_start = "postgresql://";
+  static const std::string replace = "${1}123456$2";
+  if (boost::starts_with(conninfo, pg_url_start)) {
+    static const boost::regex url_re("^(postgresql://[^:]*:)[^@]+(@)");
+    static const boost::regex option_re("\\b(password=)[^&]+");
+    auto masked = boost::regex_replace(conninfo, url_re, replace);
+    masked = boost::regex_replace(masked, option_re, replace);
+    return masked;
+  } else {
+    static const boost::regex option_re(
+        R"~(
+          (\bpassword\s*=\s*)             # option keyword
+          (?:                             # followed by
+            (?:'(?:(?:\\['\\])|[^'])+')   # a single-quoted value
+                                          # with escaped ' or \ symbols
+            |                             # or
+            \S+                           # a sequence without spaces
+          )
+        )~",
+        boost::regex_constants::mod_x);
+    auto masked = boost::regex_replace(conninfo, option_re, replace);
+    return masked;
+  }
 }
 
 std::string EscapeHostName(const std::string& hostname, char escape_char) {

@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.8)
 
 project(yandex-taxi-userver-postgresql)
 
+find_package(Boost REQUIRED regex)
+append_debian_depends("libboost-regex-dev")
+
 # For time zones in pg driver
 find_package_components_required(ICU "libicu-dev" uc i18n)
     
@@ -43,6 +46,7 @@ target_link_libraries(${PROJECT_NAME}
     PostgreSQL
     ICU::uc
     ICU::i18n
+    Boost::regex
 )
 
 
