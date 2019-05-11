@@ -1,6 +1,7 @@
 #include <crypto/hash.hpp>
 
 #include <cryptopp/base64.h>
+#include <cryptopp/blake2.h>
 #include <cryptopp/filters.h>
 #include <cryptopp/hex.h>
 #include <cryptopp/hmac.h>
@@ -17,6 +18,13 @@ using CryptoPP::byte;
 #endif
 
 namespace {
+
+// Custom class for specific default initialization for Blake2b
+class AlgoBlake2b128 : public CryptoPP::BLAKE2b {
+ public:
+  AlgoBlake2b128() : CryptoPP::BLAKE2b(false, 16) {}
+  static constexpr size_t DIGESTSIZE{16};
+};
 
 std::string EncodeArray(const byte* ptr, size_t length,
                         crypto::hash::OutputEncoding encoding) {
@@ -86,6 +94,10 @@ std::string CalculateHash(const std::string& data,
 }  // namespace
 
 namespace crypto::hash {
+
+std::string Blake2b128(const std::string& data, OutputEncoding encoding) {
+  return CalculateHash<AlgoBlake2b128>(data, encoding);
+}
 
 std::string Sha1(const std::string& data, OutputEncoding encoding) {
   return CalculateHash<CryptoPP::SHA1>(data, encoding);
