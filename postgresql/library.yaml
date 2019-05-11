@@ -15,3 +15,7 @@ debian:
     - libicu-dev
     - libpq-dev
     - postgresql-server-dev-10
+
+configs:
+  names:
+  - POSTGRES_DEFAULT_COMMAND_CONTROL

@@ -42,3 +42,12 @@ debian:
     - libyandex-taxi-jemalloc-dev
     - lld-7
     - zlib1g-dev
+
+configs:
+  names:
+  - USERVER_LOG_REQUEST
+  - USERVER_TASK_PROCESSOR_QOS
+  - USERVER_CHECK_AUTH_IN_HANDLERS
+  - HTTP_CLIENT_THREADS
+  - HTTP_CLIENT_CONNECTION_POOL_SIZE
+  - USERVER_LOG_REQUEST_HEADERS

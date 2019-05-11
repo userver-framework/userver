@@ -9,3 +9,9 @@ link-targets:
 debian:
   build_dependencies:
     - libhiredis-dev
+
+configs:
+  names:
+  - REDIS_DEFAULT_COMMAND_CONTROL
+  - REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
+  - REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
