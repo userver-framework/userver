@@ -56,18 +56,21 @@ class AsyncStream : public mongoc_stream_t {
   size_t FlushSendBuffer(engine::Deadline);
 
   // mongoc_stream_t interface
-  static void Destroy(mongoc_stream_t*);
-  static int Close(mongoc_stream_t*);
-  static int Flush(mongoc_stream_t*);
-  static ssize_t Writev(mongoc_stream_t*, mongoc_iovec_t*, size_t, int32_t);
+  static void Destroy(mongoc_stream_t*) noexcept;
+  static int Close(mongoc_stream_t*) noexcept;
+  static int Flush(mongoc_stream_t*) noexcept;
+  static ssize_t Writev(mongoc_stream_t*, mongoc_iovec_t*, size_t,
+                        int32_t) noexcept;
   static ssize_t Readv(mongoc_stream_t*, mongoc_iovec_t*, size_t, size_t,
-                       int32_t);
-  static int Setsockopt(mongoc_stream_t*, int, int, void*, mongoc_socklen_t);
-  static bool CheckClosed(mongoc_stream_t*);
-  static ssize_t Poll(mongoc_stream_poll_t*, size_t, int32_t);
-  static void Failed(mongoc_stream_t*);
-  static bool TimedOut(mongoc_stream_t*);
-  static bool ShouldRetry(mongoc_stream_t*);
+                       int32_t) noexcept;
+  static int Setsockopt(mongoc_stream_t*, int, int, void*,
+                        mongoc_socklen_t) noexcept;
+  static bool CheckClosed(mongoc_stream_t*) noexcept;
+  // NOLINTNEXTLINE(bugprone-exception-escape)
+  static ssize_t Poll(mongoc_stream_poll_t*, size_t, int32_t) noexcept;
+  static void Failed(mongoc_stream_t*) noexcept;
+  static bool TimedOut(mongoc_stream_t*) noexcept;
+  static bool ShouldRetry(mongoc_stream_t*) noexcept;
 
   engine::io::Socket socket_;
   bool is_timed_out_;
@@ -208,7 +211,8 @@ void CheckAsyncStreamCompatible() {
 
 mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
                                  const mongoc_host_list_t* host,
-                                 void* user_data, bson_error_t* error) {
+                                 void* user_data,
+                                 bson_error_t* error) noexcept {
   const auto connect_timeout_ms =
       mongoc_uri_get_option_as_int32(uri, MONGOC_URI_CONNECTTIMEOUTMS, 5000);
   auto socket = Connect(host, connect_timeout_ms, error);
@@ -301,7 +305,7 @@ StreamPtr AsyncStream::Create(engine::io::Socket socket) {
   return StreamPtr(new AsyncStream(std::move(socket)));
 }
 
-void AsyncStream::Destroy(mongoc_stream_t* stream) {
+void AsyncStream::Destroy(mongoc_stream_t* stream) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Destroying async stream " << self;
@@ -309,7 +313,7 @@ void AsyncStream::Destroy(mongoc_stream_t* stream) {
   delete self;
 }
 
-int AsyncStream::Close(mongoc_stream_t* stream) {
+int AsyncStream::Close(mongoc_stream_t* stream) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Closing async stream " << self;
@@ -323,7 +327,7 @@ int AsyncStream::Close(mongoc_stream_t* stream) {
   return 0;
 }
 
-int AsyncStream::Flush(mongoc_stream_t* stream) {
+int AsyncStream::Flush(mongoc_stream_t* stream) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Flushing async stream " << self;
@@ -333,7 +337,7 @@ int AsyncStream::Flush(mongoc_stream_t* stream) {
 }
 
 ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
-                            size_t iovcnt, int32_t timeout_ms) {
+                            size_t iovcnt, int32_t timeout_ms) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Writing to async stream " << self;
@@ -372,7 +376,7 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 
 ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
                            size_t iovcnt, size_t min_bytes,
-                           int32_t timeout_ms) {
+                           int32_t timeout_ms) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Reading from async stream " << self;
@@ -417,7 +421,7 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 }
 
 int AsyncStream::Setsockopt(mongoc_stream_t* stream, int level, int optname,
-                            void* optval, mongoc_socklen_t optlen) {
+                            void* optval, mongoc_socklen_t optlen) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Setting socket option for async stream " << self;
@@ -426,7 +430,7 @@ int AsyncStream::Setsockopt(mongoc_stream_t* stream, int level, int optname,
   return ::setsockopt(self->socket_.Fd(), level, optname, optval, optlen);
 }
 
-bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) {
+bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* stream = static_cast<AsyncStream*>(base_stream);
   LOG_TRACE() << "Checking whether async stream is closed";
@@ -436,59 +440,70 @@ bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) {
   return !stream->socket_.IsOpen();
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
-                          int32_t timeout_ms) {
+                          int32_t timeout_ms) noexcept {
   LOG_TRACE() << "Polling async streams";
 
   const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
 
   // XXX: it'd be nice to have WaitAny or FdControl::Poll for this, really
   std::vector<engine::TaskWithResult<int>> waiters;
-  for (size_t i = 0; i < nstreams; ++i) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    auto* stream = static_cast<AsyncStream*>(streams[i].stream);
-    stream->is_timed_out_ = false;
-    if (streams[i].events & POLLOUT) {
-      waiters.push_back(engine::impl::Async([deadline, stream] {
-        try {
-          stream->socket_.WaitWriteable(deadline);
-          return POLLOUT;
-        } catch (const engine::io::IoCancelled&) {
-          return POLLERR;
-        } catch (const engine::io::IoTimeout&) {
-          stream->is_timed_out_ = true;
-          return 0;
-        } catch (const engine::io::IoError&) {
-          return POLLERR;
-        }
-      }));
-    } else {
-      waiters.push_back(
-          engine::impl::Async([deadline, stream, events = streams[i].events] {
-            try {
-              stream->socket_.WaitReadable(deadline);
-              return POLLIN & events;
-            } catch (const engine::io::IoCancelled&) {
-              return POLLERR;
-            } catch (const engine::io::IoTimeout&) {
-              stream->is_timed_out_ = true;
-              return 0;
-            } catch (const engine::io::IoError&) {
-              return POLLERR;
-            }
-          }));
+  try {
+    for (size_t i = 0; i < nstreams; ++i) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+      auto* stream = static_cast<AsyncStream*>(streams[i].stream);
+      stream->is_timed_out_ = false;
+      if (streams[i].events & POLLOUT) {
+        waiters.push_back(engine::impl::Async([deadline, stream] {
+          try {
+            stream->socket_.WaitWriteable(deadline);
+            return POLLOUT;
+          } catch (const engine::io::IoCancelled&) {
+            return POLLERR;
+          } catch (const engine::io::IoTimeout&) {
+            stream->is_timed_out_ = true;
+            return 0;
+          } catch (const engine::io::IoError&) {
+            return POLLERR;
+          }
+        }));
+      } else {
+        waiters.push_back(
+            engine::impl::Async([deadline, stream, events = streams[i].events] {
+              try {
+                stream->socket_.WaitReadable(deadline);
+                return POLLIN & events;
+              } catch (const engine::io::IoCancelled&) {
+                return POLLERR;
+              } catch (const engine::io::IoTimeout&) {
+                stream->is_timed_out_ = true;
+                return 0;
+              } catch (const engine::io::IoError&) {
+                return POLLERR;
+              }
+            }));
+      }
     }
+  } catch (const std::exception&) {
+    // only Async may fail here
+    errno = ENOMEM;
+    return -1;
   }
 
   ssize_t ready = 0;
   for (size_t i = 0; i < nstreams; ++i) {
-    streams[i].revents = waiters[i].Get();
+    try {
+      streams[i].revents = waiters[i].Get();
+    } catch (const engine::TaskCancelledException&) {
+      streams[i].revents = POLLERR;
+    }
     ready += !!streams[i].revents;
   }
   return ready;
 }
 
-void AsyncStream::Failed(mongoc_stream_t* stream) {
+void AsyncStream::Failed(mongoc_stream_t* stream) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Failing async stream " << self;
@@ -496,7 +511,7 @@ void AsyncStream::Failed(mongoc_stream_t* stream) {
   Destroy(self);
 }
 
-bool AsyncStream::TimedOut(mongoc_stream_t* stream) {
+bool AsyncStream::TimedOut(mongoc_stream_t* stream) noexcept {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Checking timeout state for async stream " << self;
@@ -504,7 +519,7 @@ bool AsyncStream::TimedOut(mongoc_stream_t* stream) {
   return self->is_timed_out_;
 }
 
-bool AsyncStream::ShouldRetry(mongoc_stream_t*) {
+bool AsyncStream::ShouldRetry(mongoc_stream_t*) noexcept {
   // we handle socket retries ourselves
   return false;
 }
