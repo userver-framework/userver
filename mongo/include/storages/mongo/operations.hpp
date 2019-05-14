@@ -23,7 +23,8 @@ class Count {
   Count(const Count&);
   Count(Count&&) noexcept;
   Count& operator=(const Count&);
-  Count& operator=(Count&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  Count& operator=(Count&&);
 
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
@@ -36,9 +37,10 @@ class Count {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 48;
+  static constexpr size_t kSize = 80;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Returns approximate number of documents in a collection
@@ -50,7 +52,8 @@ class CountApprox {
   CountApprox(const CountApprox&);
   CountApprox(CountApprox&&) noexcept;
   CountApprox& operator=(const CountApprox&);
-  CountApprox& operator=(CountApprox&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  CountApprox& operator=(CountApprox&&);
 
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
@@ -62,9 +65,10 @@ class CountApprox {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 24;
+  static constexpr size_t kSize = 56;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Retrieves documents matching the filter
@@ -76,7 +80,8 @@ class Find {
   Find(const Find&);
   Find(Find&&) noexcept;
   Find& operator=(const Find&);
-  Find& operator=(Find&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  Find& operator=(Find&&);
 
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
@@ -95,9 +100,10 @@ class Find {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 40;
+  static constexpr size_t kSize = 72;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Inserts a single document
@@ -109,7 +115,8 @@ class InsertOne {
   InsertOne(const InsertOne&);
   InsertOne(InsertOne&&) noexcept;
   InsertOne& operator=(const InsertOne&);
-  InsertOne& operator=(InsertOne&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  InsertOne& operator=(InsertOne&&);
 
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
@@ -119,9 +126,10 @@ class InsertOne {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 40;
+  static constexpr size_t kSize = 72;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Inserts multiple documents
@@ -134,7 +142,8 @@ class InsertMany {
   InsertMany(const InsertMany&);
   InsertMany(InsertMany&&) noexcept;
   InsertMany& operator=(const InsertMany&);
-  InsertMany& operator=(InsertMany&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  InsertMany& operator=(InsertMany&&);
 
   void Append(formats::bson::Document document);
 
@@ -147,9 +156,10 @@ class InsertMany {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 48;
+  static constexpr size_t kSize = 80;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Replaces a single document
@@ -162,7 +172,8 @@ class ReplaceOne {
   ReplaceOne(const ReplaceOne&);
   ReplaceOne(ReplaceOne&&) noexcept;
   ReplaceOne& operator=(const ReplaceOne&);
-  ReplaceOne& operator=(ReplaceOne&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  ReplaceOne& operator=(ReplaceOne&&);
 
   void SetOption(options::Upsert);
   void SetOption(options::WriteConcern::Level);
@@ -173,9 +184,10 @@ class ReplaceOne {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 56;
+  static constexpr size_t kSize = 88;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Updates documents
@@ -190,7 +202,8 @@ class Update {
   Update(const Update&);
   Update(Update&&) noexcept;
   Update& operator=(const Update&);
-  Update& operator=(Update&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  Update& operator=(Update&&);
 
   void SetOption(options::Upsert);
   void SetOption(options::RetryDuplicateKey);
@@ -202,9 +215,10 @@ class Update {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 56;
+  static constexpr size_t kSize = 88;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Deletes documents
@@ -218,7 +232,8 @@ class Delete {
   Delete(const Delete&);
   Delete(Delete&&) noexcept;
   Delete& operator=(const Delete&);
-  Delete& operator=(Delete&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  Delete& operator=(Delete&&);
 
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
@@ -228,9 +243,10 @@ class Delete {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 40;
+  static constexpr size_t kSize = 72;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Atomically updates a document and returns either previous or new version
@@ -243,7 +259,8 @@ class FindAndModify {
   FindAndModify(const FindAndModify&) = delete;
   FindAndModify(FindAndModify&&) noexcept;
   FindAndModify& operator=(const FindAndModify&) = delete;
-  FindAndModify& operator=(FindAndModify&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  FindAndModify& operator=(FindAndModify&&);
 
   void SetOption(options::ReturnNew);
   void SetOption(options::Upsert);
@@ -258,9 +275,10 @@ class FindAndModify {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 32;
+  static constexpr size_t kSize = 64;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 /// Atomically removes a document and returns it
@@ -272,7 +290,8 @@ class FindAndRemove {
   FindAndRemove(const FindAndRemove&) = delete;
   FindAndRemove(FindAndRemove&&) noexcept;
   FindAndRemove& operator=(const FindAndRemove&) = delete;
-  FindAndRemove& operator=(FindAndRemove&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  FindAndRemove& operator=(FindAndRemove&&);
 
   void SetOption(const options::Sort&);
   void SetOption(options::Projection);
@@ -284,9 +303,10 @@ class FindAndRemove {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 24;
+  static constexpr size_t kSize = 56;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 }  // namespace storages::mongo::operations

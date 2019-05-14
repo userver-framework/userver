@@ -9,9 +9,11 @@
 #include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <formats/json/value.hpp>
 #include <storages/mongo/pool.hpp>
 #include <storages/mongo/pool_config.hpp>
 #include <storages/secdist/component.hpp>
+#include <utils/statistics/storage.hpp>
 #include <utils/swappingsmart.hpp>
 
 namespace components {
@@ -59,11 +61,15 @@ class Mongo : public LoggableComponentBase {
   /// Component constructor
   Mongo(const ComponentConfig&, const ComponentContext&);
 
+  /// Component destructor
+  ~Mongo();
+
   /// Client pool accessor
   storages::mongo::PoolPtr GetPool() const;
 
  private:
   storages::mongo::PoolPtr pool_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 // clang-format off
@@ -110,18 +116,21 @@ class MultiMongo : public LoggableComponentBase {
   /// Component constructor
   MultiMongo(const ComponentConfig&, const ComponentContext&);
 
-  /// Client pool accessor
+  /// Component destructor
+  ~MultiMongo();
+
+  /// @brief Client pool accessor
   /// @param dbalias name previously passed to `AddPool`
   /// @throws PoolNotFound if no such database is enabled
   storages::mongo::PoolPtr GetPool(const std::string& dbalias) const;
 
-  /// @brief Adds a database to the working set by its name
+  /// @brief Adds a database to the working set by its name.
   /// Equivalent to
   /// `NewPoolSet()`-`AddExistingPools()`-`AddPool(dbalias)`-`Activate()`
   /// @param dbalias name of the database in secdist config
   void AddPool(std::string dbalias);
 
-  /// @brief Removes the database with the specified name from the working set
+  /// @brief Removes the database with the specified name from the working set.
   /// Equivalent to
   /// `NewPoolSet()`-`AddExistingPools()`-`RemovePool(dbalias)`-`Activate()`
   /// @param dbalias name of the database passed to AddPool
@@ -161,6 +170,9 @@ class MultiMongo : public LoggableComponentBase {
   /// Creates an empty database set bound to the component
   PoolSet NewPoolSet();
 
+  /// Returns component statistics JSON
+  formats::json::Value GetStatistics() const;
+
  private:
   storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
 
@@ -168,6 +180,7 @@ class MultiMongo : public LoggableComponentBase {
   const Secdist& secdist_;
   const storages::mongo::PoolConfig pool_config_;
   utils::SwappingSmart<PoolMap> pool_map_ptr_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace components

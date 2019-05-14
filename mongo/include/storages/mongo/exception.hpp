@@ -23,6 +23,11 @@ class PoolNotFoundException : public MongoException {
   using MongoException::MongoException;
 };
 
+/// Pool refused to satisfy connection request due to high load
+class PoolOverloadException : public MongoException {
+  using MongoException::MongoException;
+};
+
 /// Network (connectivity) error
 class NetworkException : public MongoException {
  public:

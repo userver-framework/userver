@@ -21,7 +21,7 @@ namespace engine {
 namespace io {
 namespace {
 
-// MAC_COMPAT
+// MAC_COMPAT: does not accept flags in type
 Socket MakeSocket(const Addr& addr) {
   return Socket(utils::CheckSyscall(::socket(addr.Family(),
 #ifdef SOCK_NONBLOCK
@@ -92,7 +92,7 @@ size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
   auto& dir = fd_control_->Write();
   impl::Direction::Lock lock(dir);
 
-// MAC_COMPAT
+// MAC_COMPAT: does not support MSG_NOSIGNAL
 #ifdef MSG_NOSIGNAL
   static const auto send_func = [](int fd, const void* buf, size_t len) {
     return ::send(fd, buf, len, MSG_NOSIGNAL);
@@ -117,7 +117,7 @@ Socket Socket::Accept(Deadline deadline) {
     AddrStorage buf;
     auto len = buf.Size();
 
-// MAC_COMPAT
+// MAC_COMPAT: no accept4
 #ifdef HAVE_ACCEPT4
     int fd = ::accept4(dir.Fd(), buf.Data(), &len, SOCK_NONBLOCK);
 #else
@@ -227,7 +227,7 @@ Socket Listen(Addr addr, int backlog) {
 
   socket.SetOption(SOL_SOCKET, SO_REUSEADDR, 1);
 
-// MAC_COMPAT
+// MAC_COMPAT: does not support REUSEPORT
 #ifdef SO_REUSEPORT
   socket.SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
 #else

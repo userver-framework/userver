@@ -6,7 +6,7 @@
 
 #include <boost/container/small_vector.hpp>
 
-namespace engine {
+namespace engine::impl {
 
 class LocalStorage {
  public:
@@ -62,4 +62,4 @@ class LocalStorage {
   boost::container::small_vector<Data, kInitialDataSize> data_;
 };
 
-}  // namespace engine
+}  // namespace engine::impl

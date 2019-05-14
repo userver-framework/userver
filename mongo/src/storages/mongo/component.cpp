@@ -2,7 +2,11 @@
 
 #include <stdexcept>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <components/manager.hpp>
+#include <components/statistics_storage.hpp>
+#include <formats/json/value_builder.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo/exception.hpp>
 #include <storages/secdist/component.hpp>
@@ -13,6 +17,8 @@
 namespace components {
 
 namespace {
+
+const std::string kStandardMongoPrefix = "mongo-";
 
 std::string GetSecdistConnectionString(const Secdist& secdist,
                                        const std::string& dbalias) {
@@ -45,7 +51,21 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
 
   pool_ = std::make_shared<storages::mongo::Pool>(
       config.Name(), connection_string, pool_config);
+
+  auto& statistics_storage =
+      context.FindComponent<components::StatisticsStorage>();
+
+  auto section_name = config.Name();
+  if (boost::algorithm::starts_with(section_name, kStandardMongoPrefix) &&
+      section_name.size() != kStandardMongoPrefix.size()) {
+    section_name = section_name.substr(kStandardMongoPrefix.size());
+  }
+  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
+      "mongo." + section_name,
+      [this](const auto&) { return pool_->GetStatistics(); });
 }
+
+Mongo::~Mongo() { statistics_holder_.Unregister(); }
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
@@ -55,7 +75,14 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
       name_(config.Name()),
       secdist_(context.FindComponent<Secdist>()),
       pool_config_(config),
-      pool_map_ptr_(std::make_shared<PoolMap>()) {}
+      pool_map_ptr_(std::make_shared<PoolMap>()) {
+  auto& statistics_storage =
+      context.FindComponent<components::StatisticsStorage>();
+  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
+      name_, [this](const auto&) { return GetStatistics(); });
+}
+
+MultiMongo::~MultiMongo() { statistics_holder_.Unregister(); }
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
   auto pool_ptr = FindPool(dbalias);
@@ -141,6 +168,17 @@ bool MultiMongo::PoolSet::RemovePool(const std::string& dbalias) {
 
 void MultiMongo::PoolSet::Activate() {
   target_->pool_map_ptr_.Set(pool_map_ptr_);
+}
+
+formats::json::Value MultiMongo::GetStatistics() const {
+  formats::json::ValueBuilder builder(formats::json::Type::kObject);
+
+  auto pool_map = pool_map_ptr_.Get();
+  for (const auto& [dbalias, pool] : *pool_map) {
+    builder[dbalias] = pool->GetStatistics();
+  }
+
+  return builder.ExtractValue();
 }
 
 }  // namespace components

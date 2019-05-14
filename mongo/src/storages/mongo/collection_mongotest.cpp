@@ -159,7 +159,7 @@ TEST(Collection, InsertMany) {
   });
 }
 
-TEST(Collecion, ReplaceOne) {
+TEST(Collection, ReplaceOne) {
   RunInCoro([] {
     auto pool = MakeTestPool();
     auto coll = pool.GetCollection("replace_one");

@@ -12,6 +12,7 @@
 #include <engine/deadline.hpp>
 #include <engine/semaphore.hpp>
 #include <storages/mongo/pool_config.hpp>
+#include <storages/mongo/stats.hpp>
 #include <storages/mongo/wrappers.hpp>
 #include <utils/assert.hpp>
 
@@ -21,7 +22,9 @@ class PoolImpl {
  public:
   class ClientPusher {
    public:
-    explicit ClientPusher(PoolImpl* pool) : pool_(pool) { UASSERT(pool_); }
+    explicit ClientPusher(PoolImpl* pool) noexcept : pool_(pool) {
+      UASSERT(pool_);
+    }
     void operator()(mongoc_client_t* client) const noexcept {
       pool_->Push(client);
     }
@@ -35,7 +38,11 @@ class PoolImpl {
            const PoolConfig& config);
   ~PoolImpl();
 
+  size_t SizeApprox() const;
+  size_t MaxSize() const;
   const std::string& DefaultDatabaseName() const;
+
+  stats::PoolStatistics& GetStatistics();
 
   BoundClientPtr Acquire();
 
@@ -57,6 +64,8 @@ class PoolImpl {
   engine::Semaphore size_semaphore_;
   engine::Semaphore connecting_semaphore_;
   boost::lockfree::queue<mongoc_client_t*> queue_;
+
+  stats::PoolStatistics statistics_;
 };
 
 using BoundClientPtr = PoolImpl::BoundClientPtr;

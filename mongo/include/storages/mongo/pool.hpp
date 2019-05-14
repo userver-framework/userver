@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+#include <formats/json/value.hpp>
 #include <storages/mongo/collection.hpp>
 #include <storages/mongo/pool_config.hpp>
 
@@ -30,6 +31,9 @@ class Pool {
 
   /// Returns a handle for the specified collection
   Collection GetCollection(std::string name) const;
+
+  /// Returns pool statistics JSON
+  formats::json::Value GetStatistics() const;
 
  private:
   std::shared_ptr<impl::PoolImpl> impl_;

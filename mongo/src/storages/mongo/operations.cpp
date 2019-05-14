@@ -6,6 +6,7 @@
 #include <formats/bson/value_builder.hpp>
 #include <storages/mongo/exception.hpp>
 #include <utils/assert.hpp>
+#include <utils/graphite.hpp>
 
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
@@ -137,12 +138,79 @@ void EnableFlag(const impl::FindAndModifyOptsPtr& fam_options,
   }
 }
 
+std::string MakeReadPrefsDescription(const options::ReadPreference::Mode mode) {
+  switch (mode) {
+    case options::ReadPreference::Mode::kPrimary:
+      return kDefaultReadPrefDesc;
+    case options::ReadPreference::Mode::kSecondary:
+      return "secondary";
+    case options::ReadPreference::Mode::kPrimaryPreferred:
+      return "primary-preferred";
+    case options::ReadPreference::Mode::kSecondaryPreferred:
+      return "secondary-preferred";
+    case options::ReadPreference::Mode::kNearest:
+      return "nearest";
+  }
+}
+
+std::string MakeReadPrefsDescription(
+    const options::ReadPreference& read_prefs) {
+  std::string result = MakeReadPrefsDescription(read_prefs.GetMode());
+  if (!read_prefs.GetTags().empty()) result += "-tagged";
+  return result;
+}
+
+std::string MakeWriteConcernDescription(options::WriteConcern::Level level) {
+  switch (level) {
+    case options::WriteConcern::Level::kMajority:
+      return "majority";
+    case options::WriteConcern::Level::kUnacknowledged:
+      return "unacknowledged";
+  }
+}
+
+std::string MakeWriteConcernDescription(
+    const options::WriteConcern& write_concern) {
+  std::string result;
+  if (write_concern.IsMajority()) {
+    result =
+        MakeWriteConcernDescription(options::WriteConcern::Level::kMajority);
+    if (write_concern.Timeout() !=
+        options::WriteConcern::kDefaultMajorityTimeout) {
+      result += "-timeout";
+    }
+  } else {
+    if (!write_concern.Tag().empty()) {
+      result = utils::graphite::EscapeName(write_concern.Tag());
+    } else if (!write_concern.NodesCount()) {
+      result = MakeWriteConcernDescription(
+          options::WriteConcern::Level::kUnacknowledged);
+    } else if (write_concern.NodesCount() == 1) {
+      result = kDefaultWriteConcernDesc;
+    } else {
+      result = "w" + std::to_string(write_concern.NodesCount());
+    }
+    if (write_concern.Timeout().count()) {
+      result += "-timeout";
+    }
+  }
+  if (write_concern.Journal()) {
+    result += "-j";
+    result += std::to_string(*write_concern.Journal());
+  }
+  return result;
+}
+
 }  // namespace
+
+const std::string kDefaultReadPrefDesc = "primary";
+const std::string kDefaultWriteConcernDesc = "default";
 
 Count::Count(formats::bson::Document filter) : impl_(std::move(filter)) {}
 Count::~Count() = default;
 
 Count::Count(const Count& other) : impl_(other.impl_->filter) {
+  impl_->read_prefs_desc = other.impl_->read_prefs_desc;
   impl_->read_prefs.reset(
       mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
   impl_->options = other.impl_->options;
@@ -156,14 +224,17 @@ Count::Count(const Count& other) : impl_(other.impl_->filter) {
 Count::Count(Count&&) noexcept = default;
 // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
 Count& Count::operator=(const Count& rhs) { return *this = Count(rhs); }
-Count& Count::operator=(Count&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+Count& Count::operator=(Count&&) = default;
 
 void Count::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
+  impl_->read_prefs_desc = MakeReadPrefsDescription(read_prefs);
 }
 
 void Count::SetOption(options::ReadPreference::Mode mode) {
   impl_->read_prefs = MakeReadPrefs(mode);
+  impl_->read_prefs_desc = MakeReadPrefsDescription(mode);
 }
 
 void Count::SetOption(options::ReadConcern level) {
@@ -188,6 +259,7 @@ CountApprox::~CountApprox() = default;
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 CountApprox::CountApprox(const CountApprox& other) {
+  impl_->read_prefs_desc = other.impl_->read_prefs_desc;
   impl_->read_prefs.reset(
       mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
   impl_->options = other.impl_->options;
@@ -201,14 +273,17 @@ CountApprox& CountApprox::operator=(const CountApprox& rhs) {
   return *this = CountApprox(rhs);
 }
 
-CountApprox& CountApprox::operator=(CountApprox&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+CountApprox& CountApprox::operator=(CountApprox&&) = default;
 
 void CountApprox::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
+  impl_->read_prefs_desc = MakeReadPrefsDescription(read_prefs);
 }
 
 void CountApprox::SetOption(options::ReadPreference::Mode mode) {
   impl_->read_prefs = MakeReadPrefs(mode);
+  impl_->read_prefs_desc = MakeReadPrefsDescription(mode);
 }
 
 void CountApprox::SetOption(options::ReadConcern level) {
@@ -227,6 +302,7 @@ Find::Find(formats::bson::Document filter) : impl_(std::move(filter)) {}
 Find::~Find() = default;
 
 Find::Find(const Find& other) : impl_(other.impl_->filter) {
+  impl_->read_prefs_desc = other.impl_->read_prefs_desc;
   impl_->read_prefs.reset(
       mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
   impl_->options = other.impl_->options;
@@ -236,14 +312,17 @@ Find::Find(const Find& other) : impl_(other.impl_->filter) {
 Find::Find(Find&&) noexcept = default;
 // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
 Find& Find::operator=(const Find& rhs) { return *this = Find(rhs); }
-Find& Find::operator=(Find&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+Find& Find::operator=(Find&&) = default;
 
 void Find::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
+  impl_->read_prefs_desc = MakeReadPrefsDescription(read_prefs);
 }
 
 void Find::SetOption(options::ReadPreference::Mode mode) {
   impl_->read_prefs = MakeReadPrefs(mode);
+  impl_->read_prefs_desc = MakeReadPrefsDescription(mode);
 }
 
 void Find::SetOption(options::ReadConcern level) {
@@ -314,14 +393,17 @@ InsertOne::InsertOne(const InsertOne&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertOne::InsertOne(InsertOne&&) noexcept = default;
 InsertOne& InsertOne::operator=(const InsertOne&) = default;
-InsertOne& InsertOne::operator=(InsertOne&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+InsertOne& InsertOne::operator=(InsertOne&&) = default;
 
 void InsertOne::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
 }
 
 void InsertOne::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
 }
 
 void InsertOne::SetOption(options::SuppressServerExceptions) {
@@ -341,7 +423,8 @@ InsertMany::InsertMany(const InsertMany&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertMany::InsertMany(InsertMany&&) noexcept = default;
 InsertMany& InsertMany::operator=(const InsertMany&) = default;
-InsertMany& InsertMany::operator=(InsertMany&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+InsertMany& InsertMany::operator=(InsertMany&&) = default;
 
 void InsertMany::Append(formats::bson::Document document) {
   impl_->documents.push_back(std::move(document));
@@ -354,10 +437,12 @@ void InsertMany::SetOption(options::Unordered) {
 
 void InsertMany::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
 }
 
 void InsertMany::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
 }
 
 void InsertMany::SetOption(options::SuppressServerExceptions) {
@@ -375,7 +460,8 @@ ReplaceOne::ReplaceOne(const ReplaceOne&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ReplaceOne::ReplaceOne(ReplaceOne&&) noexcept = default;
 ReplaceOne& ReplaceOne::operator=(const ReplaceOne&) = default;
-ReplaceOne& ReplaceOne::operator=(ReplaceOne&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+ReplaceOne& ReplaceOne::operator=(ReplaceOne&&) = default;
 
 void ReplaceOne::SetOption(options::Upsert) {
   impl::AppendUpsert(impl::EnsureBuilder(impl_->options));
@@ -383,10 +469,12 @@ void ReplaceOne::SetOption(options::Upsert) {
 
 void ReplaceOne::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
 }
 
 void ReplaceOne::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
 }
 
 void ReplaceOne::SetOption(options::SuppressServerExceptions) {
@@ -404,7 +492,8 @@ Update::Update(const Update&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Update::Update(Update&&) noexcept = default;
 Update& Update::operator=(const Update&) = default;
-Update& Update::operator=(Update&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+Update& Update::operator=(Update&&) = default;
 
 void Update::SetOption(options::Upsert) {
   impl::AppendUpsert(impl::EnsureBuilder(impl_->options));
@@ -420,10 +509,12 @@ void Update::SetOption(options::RetryDuplicateKey) {
 
 void Update::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
 }
 
 void Update::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
 }
 
 void Update::SetOption(options::SuppressServerExceptions) {
@@ -440,14 +531,17 @@ Delete::Delete(const Delete&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Delete::Delete(Delete&&) noexcept = default;
 Delete& Delete::operator=(const Delete&) = default;
-Delete& Delete::operator=(Delete&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+Delete& Delete::operator=(Delete&&) = default;
 
 void Delete::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
 }
 
 void Delete::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
 }
 
 void Delete::SetOption(options::SuppressServerExceptions) {
@@ -468,8 +562,8 @@ FindAndModify::~FindAndModify() = default;
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 FindAndModify::FindAndModify(FindAndModify&&) noexcept = default;
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-FindAndModify& FindAndModify::operator=(FindAndModify&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+FindAndModify& FindAndModify::operator=(FindAndModify&&) = default;
 
 void FindAndModify::SetOption(options::ReturnNew) {
   EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_RETURN_NEW);
@@ -505,6 +599,7 @@ void FindAndModify::SetOption(options::WriteConcern::Level level) {
                                           wc_builder.Extract().get())) {
     throw MongoException("Cannot set write concern");
   }
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
 }
 
 void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
@@ -514,6 +609,7 @@ void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
                                           wc_builder.Extract().get())) {
     throw MongoException("Cannot set write concern");
   }
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
 }
 
 void FindAndModify::SetOption(const options::MaxServerTime& max_server_time) {
@@ -538,7 +634,8 @@ FindAndRemove::~FindAndRemove() = default;
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 FindAndRemove::FindAndRemove(FindAndRemove&&) noexcept = default;
-FindAndRemove& FindAndRemove::operator=(FindAndRemove&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+FindAndRemove& FindAndRemove::operator=(FindAndRemove&&) = default;
 
 void FindAndRemove::SetOption(const options::Sort& sort) {
   if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(),
@@ -562,6 +659,7 @@ void FindAndRemove::SetOption(options::WriteConcern::Level level) {
                                           wc_builder.Extract().get())) {
     throw MongoException("Cannot set write concern");
   }
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
 }
 
 void FindAndRemove::SetOption(const options::WriteConcern& write_concern) {
@@ -571,6 +669,7 @@ void FindAndRemove::SetOption(const options::WriteConcern& write_concern) {
                                           wc_builder.Extract().get())) {
     throw MongoException("Cannot set write concern");
   }
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
 }
 
 void FindAndRemove::SetOption(const options::MaxServerTime& max_server_time) {

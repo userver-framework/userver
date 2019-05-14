@@ -45,6 +45,9 @@ class Semaphore {
 
   bool try_lock_shared_until(Deadline deadline);
 
+  /// Returns an approximate number of available locks, use only for statistics.
+  size_t RemainingApprox() const;
+
  private:
   bool LockFastPath();
   bool LockSlowPath(Deadline);

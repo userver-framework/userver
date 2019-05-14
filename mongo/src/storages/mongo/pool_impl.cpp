@@ -7,6 +7,7 @@
 #include <logging/log.hpp>
 #include <storages/mongo/exception.hpp>
 #include <storages/mongo/mongo_error.hpp>
+#include <storages/mongo/stats.hpp>
 #include <utils/assert.hpp>
 #include <utils/traceful_exception.hpp>
 
@@ -97,11 +98,20 @@ PoolImpl::~PoolImpl() {
   while (queue_.pop(client)) deleter(client);
 }
 
+size_t PoolImpl::SizeApprox() const {
+  return max_size_ - size_semaphore_.RemainingApprox();
+}
+
+size_t PoolImpl::MaxSize() const { return max_size_; }
+
 const std::string& PoolImpl::DefaultDatabaseName() const {
   return default_database_;
 }
 
+stats::PoolStatistics& PoolImpl::GetStatistics() { return statistics_; }
+
 PoolImpl::BoundClientPtr PoolImpl::Acquire() {
+  stats::PoolRequestStopwatch request_sw(statistics_.pool);
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return {Pop(), ClientPusher(this)};
 }
@@ -111,6 +121,7 @@ void PoolImpl::Push(mongoc_client_t* client) noexcept {
   if (queue_.bounded_push(client)) return;
   ClientDeleter()(client);
   size_semaphore_.unlock_shared();
+  ++statistics_.pool->GetCurrentCounter().closed;
 }
 
 mongoc_client_t* PoolImpl::Pop() {
@@ -131,13 +142,16 @@ mongoc_client_t* PoolImpl::Create() {
   static const ReadPrefsPtr kPingReadPrefs(
       mongoc_read_prefs_new(MONGOC_READ_NEAREST));
 
+  stats::PoolQueueStopwatch queue_sw(statistics_.pool);
   auto deadline = engine::Deadline::FromDuration(queue_timeout_);
 
   if (!size_semaphore_.try_lock_shared_until(deadline)) {
     // retry getting idle connection after the wait
     if (auto* client = TryGetIdle()) return client;
 
-    throw MongoException("Mongo pool '")
+    ++statistics_.pool->GetCurrentCounter().overload;
+
+    throw PoolOverloadException("Mongo pool '")
         << id_ << "' has reached size limit: " << max_size_;
   }
   std::shared_lock<engine::Semaphore> size_lock(size_semaphore_,
@@ -147,7 +161,9 @@ mongoc_client_t* PoolImpl::Create() {
     // retry getting idle connection after the wait
     if (auto* client = TryGetIdle()) return client;
 
-    throw MongoException("Mongo pool '")
+    ++statistics_.pool->GetCurrentCounter().overload;
+
+    throw PoolOverloadException("Mongo pool '")
         << id_ << "' has too many establishing connections";
   }
   std::shared_lock<engine::Semaphore> connecting_lock(connecting_semaphore_,
@@ -155,6 +171,7 @@ mongoc_client_t* PoolImpl::Create() {
 
   // retry getting idle connection after the wait
   if (auto* client = TryGetIdle()) return client;
+  queue_sw.Stop();
 
   LOG_DEBUG() << "Creating mongo connection";
 
@@ -169,13 +186,18 @@ mongoc_client_t* PoolImpl::Create() {
   // force topology refresh
   // XXX: Periodic task forcing topology refresh?
   MongoError error;
+  stats::OperationStopwatch ping_sw(statistics_.pool,
+                                    stats::PoolConnectStatistics::kPing);
   if (!mongoc_client_command_simple(
           client.get(), kPingDatabase, kPingCommand.GetBson().get(),
           kPingReadPrefs.get(), nullptr, error.GetNative())) {
+    ping_sw.AccountError(error.GetKind());
     error.Throw("Couldn't create a connection in mongo pool '" + id_ + '\'');
   }
 
   size_lock.release();
+  ping_sw.AccountSuccess();
+  ++statistics_.pool->GetCurrentCounter().created;
   return client.release();
 }
 

@@ -24,7 +24,8 @@ class Bulk {
   Bulk(const Bulk&) = delete;
   Bulk(Bulk&&) noexcept;
   Bulk& operator=(const Bulk&) = delete;
-  Bulk& operator=(Bulk&&) noexcept;
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  Bulk& operator=(Bulk&&);
 
   bool IsEmpty() const;
 
@@ -74,9 +75,10 @@ class Bulk {
   friend class ::storages::mongo::Collection;
 
   class Impl;
-  static constexpr size_t kSize = 16;
+  static constexpr size_t kSize = 48;
   static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
 template <typename... Options>

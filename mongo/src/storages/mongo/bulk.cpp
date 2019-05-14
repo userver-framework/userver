@@ -26,7 +26,8 @@ Bulk::~Bulk() = default;
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Bulk::Bulk(Bulk&&) noexcept = default;
-Bulk& Bulk::operator=(Bulk&&) noexcept = default;
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+Bulk& Bulk::operator=(Bulk&&) = default;
 
 bool Bulk::IsEmpty() const { return !impl_->bulk; }
 

@@ -61,7 +61,7 @@ class Cursor {
 
  private:
   class Impl;
-  static constexpr size_t kSize = 48;
+  static constexpr size_t kSize = 64;
   static constexpr size_t kAlignment = 8;
   utils::FastPimpl<impl::CursorImpl, kSize, kAlignment, true> impl_;
 };

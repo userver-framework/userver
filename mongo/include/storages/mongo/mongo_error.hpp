@@ -9,8 +9,23 @@ namespace storages::mongo {
 /// MongoDB error
 class MongoError {
  public:
+  /// Error kinds
+  enum class Kind {
+    kNoError,               ///< Error was not reported correctly
+    kNetwork,               ///< @copybrief NetworkException
+    kClusterUnavailable,    ///< @copybrief ClusterUnavailableException
+    kIncompatibleServer,    ///< @copybrief IncompatibleServerException
+    kAuthentication,        ///< @copybrief AuthenticationException
+    kQuery,                 ///< @copybrief QueryException
+    kInvalidQueryArgument,  ///< @copybrief InvalidQueryArgumentException
+    kServer,                ///< @copybrief ServerException
+    kWriteConcern,          ///< @copybrief WriteConcernException
+    kDuplicateKey,          ///< @copybrief DuplicateKeyException
+    kOther                  ///< Unclassified error
+  };
+
   /// @cond
-  /// Creates an unspecified error
+  /// Creates a not-an-error
   MongoError();
   /// @endcond
 
@@ -19,6 +34,7 @@ class MongoError {
 
   /// Checks whether this is a server error
   bool IsServerError() const;
+  Kind GetKind() const;
 
   uint32_t Code() const;
   const char* Message() const;

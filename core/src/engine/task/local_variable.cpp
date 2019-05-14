@@ -4,11 +4,11 @@
 
 namespace engine {
 
-engine::LocalStorage& TaskLocalVariableAny::GetCurrentLocalStorage() {
-  return engine::current_task::GetCurrentTaskContext()->GetLocalStorage();
+impl::LocalStorage& TaskLocalVariableAny::GetCurrentLocalStorage() {
+  return current_task::GetCurrentTaskContext()->GetLocalStorage();
 }
 
 TaskLocalVariableAny::TaskLocalVariableAny()
-    : coro_variable_index_(engine::LocalStorage::RegisterVariable()) {}
+    : coro_variable_index_(impl::LocalStorage::RegisterVariable()) {}
 
 }  // namespace engine

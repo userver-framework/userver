@@ -109,4 +109,8 @@ bool Semaphore::try_lock_shared_until(Deadline deadline) {
   return LockFastPath() || LockSlowPath(deadline);
 }
 
+size_t Semaphore::RemainingApprox() const {
+  return remaining_simultaneous_locks_.load(std::memory_order_relaxed);
+}
+
 }  // namespace engine

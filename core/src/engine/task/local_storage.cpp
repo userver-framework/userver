@@ -1,6 +1,6 @@
 #include <engine/task/local_storage.hpp>
 
-namespace engine {
+namespace engine::impl {
 
 LocalStorage::Key LocalStorage::RegisterVariable() {
   static std::atomic<Key> max_key{0};
@@ -23,4 +23,4 @@ void LocalStorage::SetGeneric(Key key, void* ptr, DeleterType deleter) {
   data.deleter = deleter;
 }
 
-}  // namespace engine
+}  // namespace engine::impl
