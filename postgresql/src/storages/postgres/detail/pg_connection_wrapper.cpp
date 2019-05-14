@@ -67,7 +67,9 @@ void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
 
 PGConnectionWrapper::PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
                                          SizeGuard&& size_guard)
-    : bg_task_processor_{tp}, size_guard_{std::move(size_guard)} {
+    : bg_task_processor_{tp},
+      size_guard_{std::move(size_guard)},
+      last_use_{std::chrono::steady_clock::now()} {
   // TODO add SSL initialization
   log_extra_.Extend("conn_id", id);
 }
@@ -269,6 +271,7 @@ void PGConnectionWrapper::Flush(Deadline deadline) {
       PGCW_LOG_ERROR() << "Timeout while flushing PostgreSQL connection socket";
       throw ConnectionTimeoutError("Timed out while flushing connection");
     }
+    UpdateLastUse();
   }
 }
 
@@ -280,6 +283,7 @@ void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
       throw ConnectionTimeoutError("Timed out while consuming input");
     }
     CheckError<CommandError>("PQconsumeInput", PQconsumeInput(conn_));
+    UpdateLastUse();
   }
 }
 
@@ -394,6 +398,7 @@ void PGConnectionWrapper::SendQuery(const std::string& statement,
   scope.Reset(scopes::kLibpqSendQuery);
   CheckError<CommandError>("PQsendQuery `" + statement + "`",
                            PQsendQuery(conn_, statement.c_str()));
+  UpdateLastUse();
 }
 
 void PGConnectionWrapper::SendQuery(const std::string& statement,
@@ -414,6 +419,7 @@ void PGConnectionWrapper::SendQuery(const std::string& statement,
             params.ParamBuffers(), params.ParamLengthsBuffer(),
             params.ParamFormatsBuffer(), static_cast<int>(reply_format)));
   }
+  UpdateLastUse();
 }
 
 void PGConnectionWrapper::SendPrepare(const std::string& name,
@@ -431,6 +437,7 @@ void PGConnectionWrapper::SendPrepare(const std::string& name,
         PQsendPrepare(conn_, name.c_str(), statement.c_str(), params.Size(),
                       params.ParamTypesBuffer()));
   }
+  UpdateLastUse();
 }
 
 void PGConnectionWrapper::SendDescribePrepared(const std::string& name,
@@ -438,6 +445,7 @@ void PGConnectionWrapper::SendDescribePrepared(const std::string& name,
   scope.Reset(scopes::kLibpqSendDescribePrepared);
   CheckError<CommandError>("PQsendDescribePrepared",
                            PQsendDescribePrepared(conn_, name.c_str()));
+  UpdateLastUse();
 }
 
 void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
@@ -458,6 +466,7 @@ void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
                             params.ParamFormatsBuffer(),
                             static_cast<int>(reply_format)));
   }
+  UpdateLastUse();
 }
 
 void PGConnectionWrapper::LogNotice(PGresult const* pg_res) {
@@ -475,6 +484,15 @@ void PGConnectionWrapper::LogNotice(PGresult const* pg_res) {
     }
     PGCW_LOG(lvl) << msg;
   }
+}
+
+void PGConnectionWrapper::UpdateLastUse() {
+  last_use_ = std::chrono::steady_clock::now();
+}
+
+TimeoutDuration PGConnectionWrapper::GetIdleDuration() const {
+  return std::chrono::duration_cast<TimeoutDuration>(
+      std::chrono::steady_clock::now() - last_use_);
 }
 
 }  // namespace detail

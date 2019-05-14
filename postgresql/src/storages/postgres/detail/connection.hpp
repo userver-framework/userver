@@ -211,6 +211,13 @@ class Connection {
   }
   //@}
   //@}
+
+  /// Get duration since last network operation
+  TimeoutDuration GetIdleDuration() const;
+  /// Ping the connection.
+  /// The function will do a query roundtrip to the database
+  void Ping();
+
  private:
   Connection();
 

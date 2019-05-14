@@ -79,6 +79,8 @@ class PGConnectionWrapper {
 
   void LogNotice(PGresult const*);
 
+  TimeoutDuration GetIdleDuration() const;
+
  private:
   PGTransactionStatusType GetTransactionStatus() const;
 
@@ -107,6 +109,8 @@ class PGConnectionWrapper {
   template <typename ExceptionType>
   [[noreturn]] void CloseWithError(ExceptionType&& ex);
 
+  void UpdateLastUse();
+
  private:
   engine::TaskProcessor& bg_task_processor_;
 
@@ -114,6 +118,7 @@ class PGConnectionWrapper {
   engine::io::Socket socket_;
   logging::LogExtra log_extra_;
   SizeGuard size_guard_;
+  std::chrono::steady_clock::time_point last_use_;
 };
 
 }  // namespace detail

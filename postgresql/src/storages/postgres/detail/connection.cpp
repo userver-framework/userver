@@ -116,6 +116,8 @@ where n.nspname not in ('pg_catalog', 'pg_toast', 'information_schema')
   and a.attnum > 0
 order by c.reltype, a.attnum)~";
 
+const std::string kPingStatement = "select 1 as ping";
+
 const TimeoutDuration kConnectTimeout{2000};
 
 }  // namespace
@@ -584,6 +586,12 @@ struct Connection::Impl {
   }
 
   const UserTypes& GetUserTypes() const { return db_types_; }
+
+  TimeoutDuration GetIdleDuration() const {
+    return conn_wrapper_.GetIdleDuration();
+  }
+
+  void Ping() { ExecuteCommand(MakeCurrentDeadline(), kPingStatement); }
 };  // Connection::Impl
 
 std::unique_ptr<Connection> Connection::Connect(
@@ -684,6 +692,12 @@ void Connection::Start(SteadyClock::time_point&& start_time) {
 void Connection::Finish() { pimpl_->Finish(); }
 
 void Connection::Cleanup(TimeoutDuration timeout) { pimpl_->Cleanup(timeout); }
+
+TimeoutDuration Connection::GetIdleDuration() const {
+  return pimpl_->GetIdleDuration();
+}
+
+void Connection::Ping() { pimpl_->Ping(); }
 
 }  // namespace detail
 }  // namespace postgres

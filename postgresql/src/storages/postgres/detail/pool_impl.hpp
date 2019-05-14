@@ -10,6 +10,7 @@
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <rcu/rcu.hpp>
+#include <utils/periodic_task.hpp>
 #include <utils/size_guard.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
@@ -67,6 +68,10 @@ class ConnectionPoolImpl
 
   void AccountConnectionStats(Connection::Statistics stats);
 
+  void PingConnections();
+  void StartPingTask();
+  void StopPingTask();
+
  private:
   using RecentCounter = ::utils::statistics::RecentPeriod<
       ::utils::statistics::RelaxedCounter<size_t>, size_t>;
@@ -74,6 +79,7 @@ class ConnectionPoolImpl
   mutable InstanceStatistics stats_;
   std::string dsn_;
   engine::TaskProcessor& bg_task_processor_;
+  ::utils::PeriodicTask ping_task_;
   size_t max_size_;
   engine::Mutex wait_mutex_;
   engine::ConditionVariable conn_available_;

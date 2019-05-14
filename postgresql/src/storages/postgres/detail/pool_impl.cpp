@@ -15,6 +15,10 @@ namespace {
 constexpr std::size_t kRecentErrorThreshold = 2;
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
+constexpr std::chrono::seconds kPingInterval{30};
+constexpr std::chrono::seconds kMaxIdleDuration{15};
+constexpr const char* kPingTaskName = "pg_ping";
+
 }  // namespace
 
 struct Stopwatch {
@@ -46,7 +50,10 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl} {}
 
-ConnectionPoolImpl::~ConnectionPoolImpl() { Clear(); }
+ConnectionPoolImpl::~ConnectionPoolImpl() {
+  StopPingTask();
+  Clear();
+}
 
 std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
     const std::string& dsn, engine::TaskProcessor& bg_task_processor,
@@ -78,11 +85,13 @@ void ConnectionPoolImpl::Init(size_t initial_size) {
         "PostgreSQL pool max size is less than requested initial size");
   }
 
-  LOG_INFO() << "Creating " << initial_size << " PostgreSQL connections";
+  LOG_INFO() << "Creating " << initial_size << " PostgreSQL connections to "
+             << DsnCutPassword(dsn_);
   for (size_t i = 0; i < initial_size; ++i) {
     Connect(SharedSizeGuard{size_}).Detach();
   }
   LOG_INFO() << "Pool initialized";
+  StartPingTask();
 }
 
 ConnectionPtr ConnectionPoolImpl::Acquire(engine::Deadline deadline) {
@@ -322,6 +331,42 @@ void ConnectionPoolImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
     writer.Commit();
   }
 }
+
+void ConnectionPoolImpl::PingConnections() {
+  // No point in doing database roundtrips if there are queries waiting for
+  // connections
+  if (wait_count_ > 0) {
+    LOG_DEBUG() << "No ping required for connection pool "
+                << DsnCutPassword(dsn_);
+    return;
+  }
+
+  LOG_DEBUG() << "Ping connection pool " << DsnCutPassword(dsn_);
+  auto cmd_ctl = *default_cmd_ctl_.Read();
+  auto deadline = engine::Deadline::FromDuration(cmd_ctl.network);
+  auto stale_connection = true;
+  while (stale_connection) {
+    auto conn = Acquire(deadline);
+    stale_connection = conn->GetIdleDuration() >= kMaxIdleDuration;
+    try {
+      conn->Ping();
+    } catch (const RuntimeError& e) {
+      LOG_ERROR() << "Exception while pinging connection to `"
+                  << DsnCutPassword(dsn_) << "`: " << e;
+    }
+  }
+
+  // TODO Check and maintain minimum count of connections
+}
+
+void ConnectionPoolImpl::StartPingTask() {
+  using Flags = ::utils::PeriodicTask::Flags;
+
+  ping_task_.Start(kPingTaskName, {kPingInterval, Flags::kStrong},
+                   [this] { PingConnections(); });
+}
+
+void ConnectionPoolImpl::StopPingTask() { ping_task_.Stop(); }
 
 }  // namespace detail
 }  // namespace postgres
