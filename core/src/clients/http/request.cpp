@@ -222,6 +222,7 @@ std::shared_ptr<Request> Request::retry(int retries, bool on_fails) {
 
 std::shared_ptr<Request> Request::form(const std::shared_ptr<Form>& form) {
   easy().set_http_post(form);
+  easy().add_header(kHeaderExpect, "");
   return shared_from_this();
 }
 
