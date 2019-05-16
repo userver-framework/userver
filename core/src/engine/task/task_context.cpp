@@ -193,17 +193,17 @@ void TaskContext::WaitUntil(Deadline deadline) const {
 
   UASSERT(current_task::GetCurrentTaskContextUnchecked() != nullptr);
 
-  if (current_task::ShouldCancel()) {
-    throw WaitInterruptedException(cancellation_reason_);
+  auto current = current_task::GetCurrentTaskContext();
+  if (current->ShouldCancel()) {
+    throw WaitInterruptedException(current->cancellation_reason_);
   }
 
-  auto current = current_task::GetCurrentTaskContext();
   impl::LockedWaitStrategy wait_manager(deadline, finish_waiters_, *current,
                                         *this);
   current->Sleep(&wait_manager);
 
   if (!IsFinished() && current->ShouldCancel()) {
-    throw WaitInterruptedException(cancellation_reason_);
+    throw WaitInterruptedException(current->cancellation_reason_);
   }
 }
 

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <engine/async.hpp>
+#include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
 
 #include <utest/utest.hpp>
@@ -42,4 +43,25 @@ TEST(TaskContext, DetachedAndCancelledOnStart) {
         std::move(task).Detach();
       },
       kWorkerThreads);
+}
+
+TEST(TaskContext, WaitInterruptedReason) {
+  RunInCoro([] {
+    auto long_task = engine::impl::Async(
+        [] { engine::InterruptibleSleepFor(std::chrono::seconds{5}); });
+    auto waiter = engine::impl::Async([&] {
+      auto reason = engine::Task::CancellationReason::kNone;
+      try {
+        long_task.Get();
+      } catch (const engine::WaitInterruptedException& ex) {
+        reason = ex.Reason();
+      }
+      EXPECT_EQ(engine::Task::CancellationReason::kUserRequest, reason);
+    });
+
+    engine::Yield();
+    ASSERT_EQ(engine::Task::State::kSuspended, waiter.GetState());
+    waiter.RequestCancel();
+    waiter.Get();
+  });
 }
