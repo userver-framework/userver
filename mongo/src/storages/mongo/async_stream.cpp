@@ -497,6 +497,9 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
       streams[i].revents = waiters[i].Get();
     } catch (const engine::TaskCancelledException&) {
       streams[i].revents = POLLERR;
+    } catch (const engine::WaitInterruptedException&) {
+      errno = EINVAL;
+      return -1;
     }
     ready += !!streams[i].revents;
   }
