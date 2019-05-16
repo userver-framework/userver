@@ -26,3 +26,5 @@
 /postgresql/ @ser-fedorov
 
 /redis/ @dzhuk @segoon
+
+/uboost_coro/ @bugaevskiy @antoshkka

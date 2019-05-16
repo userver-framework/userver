@@ -5,10 +5,9 @@
 #include <functional>
 #include <memory>
 
-#include <boost/coroutine/asymmetric_coroutine.hpp>
-#include <boost/coroutine/attributes.hpp>
-#include <boost/coroutine/protected_stack_allocator.hpp>
 #include <boost/lockfree/stack.hpp>
+#include <uboost_coro/coroutine2/coroutine.hpp>
+#include <uboost_coro/coroutine2/protected_fixedsize_stack.hpp>
 
 #include <logging/log.hpp>
 
@@ -24,12 +23,10 @@ static constexpr size_t kStackSize = 256 * 1024ull;
 template <typename Task>
 class Pool {
  public:
-  using Coroutine =
-      typename boost::coroutines::asymmetric_coroutine<Task*>::push_type;
+  using Coroutine = typename boost::coroutines2::coroutine<Task*>::push_type;
   using CoroutinePtr =
       std::unique_ptr<Coroutine, std::function<void(Coroutine*)>>;
-  using TaskPipe =
-      typename boost::coroutines::asymmetric_coroutine<Task*>::pull_type;
+  using TaskPipe = typename boost::coroutines2::coroutine<Task*>::pull_type;
   using Executor = std::function<void(TaskPipe&)>;
 
   Pool(PoolConfig config, Executor executor);
@@ -45,8 +42,8 @@ class Pool {
 
   const PoolConfig config_;
   const Executor executor_;
-  const boost::coroutines::attributes attributes_;
 
+  boost::coroutines2::protected_fixedsize_stack stack_allocator_;
   boost::lockfree::stack<Coroutine*, boost::lockfree::fixed_sized<true>>
       coroutines_;
   std::atomic<size_t> idle_coroutines_num_;
@@ -58,7 +55,7 @@ Pool<Task>::Pool(PoolConfig config, Executor executor)
     // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     : config_(std::move(config)),
       executor_(std::move(executor)),
-      attributes_(kStackSize, boost::coroutines::no_stack_unwind),
+      stack_allocator_(kStackSize),
       // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
       coroutines_(config.max_size),
       idle_coroutines_num_(0),
@@ -113,8 +110,7 @@ PoolStats Pool<Task>::GetStats() const {
 template <typename Task>
 typename Pool<Task>::Coroutine* Pool<Task>::CreateCoroutine(bool quiet) {
   auto new_total = ++total_coroutines_num_;
-  auto* coroutine = new Coroutine(
-      executor_, attributes_, boost::coroutines::protected_stack_allocator());
+  auto* coroutine = new Coroutine(stack_allocator_, executor_);
   if (!quiet) {
     LOG_DEBUG() << "Created a coroutine #" << new_total << '/'
                 << config_.max_size;

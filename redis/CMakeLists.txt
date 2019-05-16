@@ -18,6 +18,8 @@ target_link_libraries(${PROJECT_NAME}
     yandex-taxi-userver-core
     ${REDIS_COMMON}
     Hiredis
+  PRIVATE
+    yandex-taxi-userver-uboost-coro # uses Future
 )
 target_include_directories(
   ${PROJECT_NAME}
@@ -37,6 +39,7 @@ target_include_directories(
     ../core/include/
   PRIVATE
     ../core/src/
+    ../uboost_coro/include/
     ${SPDLOG_INCLUDE_DIRS}
 )
 

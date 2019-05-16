@@ -42,8 +42,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS coroutine program_options filesystem locale thread)
-append_debian_depends("libboost-coroutine-dev")
+find_package(Boost REQUIRED COMPONENTS program_options filesystem locale thread)
 append_debian_depends("libboost-filesystem-dev")
 append_debian_depends("libboost-program-options-dev")
 append_debian_depends("libboost-locale-dev")
@@ -84,7 +83,7 @@ target_link_libraries(${PROJECT_NAME}
     Fmt
     CurlYandex
   PRIVATE
-    Boost::coroutine
+    yandex-taxi-userver-uboost-coro
     Boost::filesystem
     Boost::program_options
     CryptoPP

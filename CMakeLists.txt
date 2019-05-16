@@ -27,13 +27,11 @@ target_include_directories(
     core/include/
     # TODO: flatbuffers should have public include in their CMakeLists.txt
     backend-common-cpp/third_party/flatbuffers/include/
-  PRIVATE
-    core/src/
-    ${SPDLOG_INCLUDE_DIRS}
 )
 add_dependencies(yandex-taxi-backend-common-cpp spdlog_lib)
 
 add_subdirectory(core)
+add_subdirectory(uboost_coro)
 
 set(YANDEX_TAXI_USERVER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "")
 

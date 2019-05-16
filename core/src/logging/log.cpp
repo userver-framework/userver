@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <boost/container/small_vector.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>

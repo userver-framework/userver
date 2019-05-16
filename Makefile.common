@@ -82,6 +82,11 @@ build-with-ubsan: cmake
 	@cd $(BUILD_DIR) && cmake -DSANITIZE="ub" $(CMAKE_DIR)
 	@$(MAKE) all
 
+.PHONY: build-with-sanitizers
+build-with-sanitizers: cmake
+	@cd $(BUILD_DIR) && cmake -DSANITIZE="addr ub" $(CMAKE_DIR)
+	@$(MAKE) all
+
 .PHONY: clang-static-analyzer
 clang-static-analyzer:
 	mkdir -p $(BUILD_CHECK_DIR)

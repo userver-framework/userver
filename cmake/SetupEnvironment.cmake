@@ -72,7 +72,7 @@ macro(add_compile_options_if_supported)
   endforeach()
 endmacro()
 
-find_package(Boost REQUIRED COMPONENTS coroutine)
+find_package(Boost REQUIRED)
 
 # all and extra do not enable theirs
 add_compile_options_if_supported ("-Wdisabled-optimization" "-Winvalid-pch")
@@ -88,14 +88,6 @@ if (NOT CLANG) # bug in clang https://llvm.org/bugs/show_bug.cgi?id=24979
 endif()
 if (CLANG)
   message (STATUS "boost: ${Boost_VERSION}")
-  if (${Boost_VERSION} STREQUAL "105800" AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "Test"))
-    message (WARNING "Boost 1.58 is known to fail to compile under clang-5.0 with debug enabled (\"ordered comparison between pointer and zero ('int' and 'void *')\"), disabling Boost assertions.")
-    add_definitions("-DBOOST_DISABLE_ASSERTS")
-  endif ()
-  if (${Boost_VERSION} STRGREATER "105900")
-    message(STATUS "Boost Coroutines are deprecated after 1.59, adding deprecation suppression flag")
-    add_definitions("-DBOOST_COROUTINES_NO_DEPRECATION_WARNING")
-  endif()
   if (MACOS AND ${Boost_VERSION} STRLESS "106800")
     message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
   endif()
@@ -105,6 +97,10 @@ if (CLANG)
 
   add_compile_options ("-Wno-missing-braces") # -Wmissing-braces is buggy in some versions on clang
   add_compile_options ("-Wno-braced-scalar-init")
+endif()
+
+if (${Boost_VERSION} STRLESS "106300")
+  add_definitions("-DBOOST_NO_CXX17_STD_APPLY" "-DBOOST_NO_CXX17_STD_INVOKE")
 endif()
 
 # build type specific
