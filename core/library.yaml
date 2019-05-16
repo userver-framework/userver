@@ -23,7 +23,6 @@ link-targets:
 debian:
   build_dependencies:
     - clang-7
-    - libboost-coroutine-dev
     - libboost-filesystem-dev
     - libboost-locale-dev
     - libboost-program-options-dev
