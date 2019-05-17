@@ -15,6 +15,7 @@
 #include <utils/statistics/storage.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
+#include <storages/postgres/options.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 
 namespace engine {
@@ -35,8 +36,9 @@ namespace components {
 ///  postgres-taxi:
 ///    dbalias: taxi
 ///    blocking_task_processor: task-processor-name
-///    min_pool_size: 16
-///    max_pool_size: 100
+///    min_pool_size: 4
+///    max_pool_size: 15
+///    max_queue_size: 200
 /// ```
 /// You must specify either `dbalias` or `conn_info`.
 /// If the component is configured with an alias, it will lookup connection data
@@ -110,6 +112,8 @@ class Postgres : public LoggableComponentBase {
   static constexpr size_t kDefaultMinPoolSize = 4;
   /// Default connections limit
   static constexpr size_t kDefaultMaxPoolSize = 15;
+  /// Default size of queue for clients waiting for connections
+  static constexpr size_t kDefaultMaxQueueSize = 200;
   /// Default shard number
   static constexpr size_t kDefaultShardNumber = 0;
   /// Default command control
@@ -151,8 +155,7 @@ class Postgres : public LoggableComponentBase {
   utils::statistics::Entry statistics_holder_;
 
   std::string db_name_;
-  size_t min_pool_size_ = 0;
-  size_t max_pool_size_ = 0;
+  storages::postgres::PoolSettings pool_settings_;
   engine::TaskProcessor* bg_task_processor_ = nullptr;
   storages::postgres::ShardedClusterDescription cluster_desc_;
   std::vector<storages::postgres::ClusterPtr> clusters_;

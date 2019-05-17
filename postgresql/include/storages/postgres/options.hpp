@@ -3,6 +3,8 @@
 #include <iosfwd>
 #include <string>
 
+#include <storages/postgres/postgres_fwd.hpp>
+
 namespace storages {
 namespace postgres {
 
@@ -70,6 +72,41 @@ constexpr inline bool operator==(const TransactionOptions& lhs,
   return lhs.isolation_level == rhs.isolation_level && lhs.mode == rhs.mode;
 }
 const std::string& BeginStatement(const TransactionOptions&);
+
+struct CommandControl {
+  TimeoutDuration network;
+  TimeoutDuration statement;
+
+  constexpr CommandControl() = default;
+
+  constexpr CommandControl(TimeoutDuration network, TimeoutDuration statement)
+      : network(network), statement(statement) {}
+
+  constexpr CommandControl WithNetworkTimeout(TimeoutDuration n) const
+      noexcept {
+    return {n, statement};
+  }
+
+  constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const
+      noexcept {
+    return {network, s};
+  }
+
+  bool operator==(CommandControl const& rhs) const {
+    return network == rhs.network && statement == rhs.statement;
+  }
+
+  bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
+};
+
+using OptionalCommandControl = boost::optional<CommandControl>;
+using SharedCommandControl = std::shared_ptr<const CommandControl>;
+
+struct PoolSettings {
+  size_t min_size = 0;
+  size_t max_size = 0;
+  size_t max_queue_size = 0;
+};
 
 }  // namespace postgres
 }  // namespace storages

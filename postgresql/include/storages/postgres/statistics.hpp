@@ -81,7 +81,9 @@ struct InstanceStatisticsTemplate {
   /// Transaction statistics
   TransactionStatistics<Counter, Accumulator> transaction;
   /// Error caused by pool exhaustion
-  Counter pool_error_exhaust_total = 0;
+  Counter pool_exhaust_errors = 0;
+  /// Error caused by queue size overflow
+  Counter queue_size_errors = 0;
   /// Connect time percentile
   Accumulator connection_percentile;
   /// Acquire connection percentile
@@ -135,7 +137,8 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
         stats.transaction.wait_end_percentile.GetStatsForPeriod());
     transaction.return_to_pool_percentile.Add(
         stats.transaction.return_to_pool_percentile.GetStatsForPeriod());
-    pool_error_exhaust_total = stats.pool_error_exhaust_total;
+    pool_exhaust_errors = stats.pool_exhaust_errors;
+    queue_size_errors = stats.queue_size_errors;
     connection_percentile.Add(stats.connection_percentile.GetStatsForPeriod());
     acquire_percentile.Add(stats.acquire_percentile.GetStatsForPeriod());
     return *this;

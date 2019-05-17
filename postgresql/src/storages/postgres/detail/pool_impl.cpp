@@ -40,12 +40,12 @@ struct Stopwatch {
 
 ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
                                        engine::TaskProcessor& bg_task_processor,
-                                       size_t max_size,
+                                       const PoolSettings& settings,
                                        CommandControl default_cmd_ctl)
     : dsn_(dsn),
+      settings_(settings),
       bg_task_processor_(bg_task_processor),
-      max_size_(max_size),
-      queue_(max_size),
+      queue_(settings.max_size),
       size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl} {}
@@ -57,37 +57,38 @@ ConnectionPoolImpl::~ConnectionPoolImpl() {
 
 std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
     const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-    size_t initial_size, size_t max_size, CommandControl default_cmd_ctl) {
+    const PoolSettings& pool_settings, CommandControl default_cmd_ctl) {
   // structure to call constructor of ConnectionPoolImpl that shouldn't be
   // accessible in public interface
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   struct ImplForConstruction : ConnectionPoolImpl {
     ImplForConstruction(const std::string& dsn,
                         engine::TaskProcessor& bg_task_processor,
-                        size_t max_size, CommandControl default_cmd_ctl)
-        : ConnectionPoolImpl(dsn, bg_task_processor, max_size,
+                        PoolSettings pool_settings,
+                        CommandControl default_cmd_ctl)
+        : ConnectionPoolImpl(dsn, bg_task_processor, pool_settings,
                              default_cmd_ctl) {}
   };
 
-  auto impl = std::make_shared<ImplForConstruction>(dsn, bg_task_processor,
-                                                    max_size, default_cmd_ctl);
-  impl->Init(initial_size);
+  auto impl = std::make_shared<ImplForConstruction>(
+      dsn, bg_task_processor, pool_settings, default_cmd_ctl);
+  impl->Init();
   return impl;
 }
 
-void ConnectionPoolImpl::Init(size_t initial_size) {
+void ConnectionPoolImpl::Init() {
   if (dsn_.empty()) {
     throw InvalidConfig("PostgreSQL DSN is empty");
   }
 
-  if (initial_size > max_size_) {
+  if (settings_.min_size > settings_.max_size) {
     throw InvalidConfig(
         "PostgreSQL pool max size is less than requested initial size");
   }
 
-  LOG_INFO() << "Creating " << initial_size << " PostgreSQL connections to "
-             << DsnCutPassword(dsn_);
-  for (size_t i = 0; i < initial_size; ++i) {
+  LOG_INFO() << "Creating " << settings_.min_size
+             << " PostgreSQL connections to " << DsnCutPassword(dsn_);
+  for (size_t i = 0; i < settings_.min_size; ++i) {
     Connect(SharedSizeGuard{size_}).Detach();
   }
   LOG_INFO() << "Pool initialized";
@@ -192,7 +193,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
 const InstanceStatistics& ConnectionPoolImpl::GetStatistics() const {
   stats_.connection.active = size_->load(std::memory_order_relaxed);
   stats_.connection.waiting = wait_count_.load(std::memory_order_relaxed);
-  stats_.connection.maximum = max_size_;
+  stats_.connection.maximum = settings_.max_size;
   return stats_;
 }
 
@@ -281,13 +282,17 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
     return connection;
   }
 
+  SizeGuard wg(wait_count_);
+  if (wg.GetValue() > settings_.max_queue_size) {
+    ++stats_.queue_size_errors;
+    throw PoolError("Wait queue size exceeded");
+  }
   // No connections found - create a new one if pool is not exhausted
   LOG_DEBUG() << "No idle connections, try to get one in " << timeout.count()
               << "ms";
-  SizeGuard wg(wait_count_);
   {
     SharedSizeGuard sg(size_);
-    if (sg.GetValue() <= max_size_) {
+    if (sg.GetValue() <= settings_.max_size) {
       // Checking errors is more expensive than incrementing an atomic, so we
       // check it only if we can start a new connection.
       if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
@@ -308,7 +313,7 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
     }
   }
 
-  ++stats_.pool_error_exhaust_total;
+  ++stats_.pool_exhaust_errors;
   throw PoolError("No available connections found");
 }
 

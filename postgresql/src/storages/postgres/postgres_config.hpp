@@ -1,6 +1,6 @@
 #pragma once
 
-#include <storages/postgres/postgres_fwd.hpp>
+#include <storages/postgres/options.hpp>
 #include <taxi_config/value.hpp>
 
 namespace storages {

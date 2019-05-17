@@ -65,7 +65,8 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   errors["query-exec"] = stats.transaction.error_execute_total;
   errors["query-timeout"] = stats.transaction.execute_timeout;
   errors["connection"] = stats.connection.error_total;
-  errors["pool"] = stats.pool_error_exhaust_total;
+  errors["pool"] = stats.pool_exhaust_errors;
+  errors["queue"] = stats.queue_size_errors;
   errors["connection-timeout"] = stats.connection.error_timeout;
 
   return instance;
@@ -155,8 +156,12 @@ Postgres::Postgres(const ComponentConfig& config,
     }
   }
 
-  min_pool_size_ = config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
-  max_pool_size_ = config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
+  pool_settings_.min_size =
+      config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
+  pool_settings_.max_size =
+      config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
+  pool_settings_.max_queue_size =
+      config.ParseUint64("max_queue_size", kDefaultMaxQueueSize);
 
   const auto task_processor_name =
       config.ParseString("blocking_task_processor");
@@ -171,8 +176,7 @@ Postgres::Postgres(const ComponentConfig& config,
   std::vector<engine::TaskWithResult<void>> tasks;
   for (auto const& cluster_desc : cluster_desc_) {
     auto cluster = std::make_shared<storages::postgres::Cluster>(
-        cluster_desc, *bg_task_processor_, min_pool_size_, max_pool_size_,
-        cmd_ctl);
+        cluster_desc, *bg_task_processor_, pool_settings_, cmd_ctl);
     clusters_.push_back(cluster);
     tasks.push_back(cluster->DiscoverTopology());
   }

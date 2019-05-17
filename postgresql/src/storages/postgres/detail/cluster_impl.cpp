@@ -40,21 +40,20 @@ struct TryLockGuard {
 
 ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
                          engine::TaskProcessor& bg_task_processor,
-                         size_t initial_size, size_t max_size,
+                         const PoolSettings& pool_settings,
                          CommandControl default_cmd_ctl)
-    : ClusterImpl(bg_task_processor, initial_size, max_size, default_cmd_ctl) {
+    : ClusterImpl(bg_task_processor, pool_settings, default_cmd_ctl) {
   topology_ = std::make_unique<ClusterTopology>(bg_task_processor_,
                                                 cluster_desc, default_cmd_ctl);
   InitPools(topology_->GetDsnList());
 }
 
 ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
-                         size_t initial_size, size_t max_size,
+                         const PoolSettings& pool_settings,
                          CommandControl default_cmd_ctl)
     : bg_task_processor_(bg_task_processor),
       host_ind_(0),
-      pool_initial_size_(initial_size),
-      pool_max_size_(max_size),
+      pool_settings_(pool_settings),
       default_cmd_ctl_(
           // NOLINTNEXTLINE(hicpp-move-const-arg)
           std::make_shared<const CommandControl>(std::move(default_cmd_ctl))),
@@ -91,8 +90,7 @@ void ClusterImpl::InitPools(const DSNList& dsn_list) {
   for (const auto& dsn : dsn_list) {
     host_pools.insert(std::make_pair(
         dsn, std::make_shared<ConnectionPool>(dsn, bg_task_processor_,
-                                              pool_initial_size_,
-                                              pool_max_size_, *cmd_ctl)));
+                                              pool_settings_, *cmd_ctl)));
   }
 
   // NOLINTNEXTLINE(hicpp-move-const-arg)
@@ -121,8 +119,7 @@ void ClusterImpl::CheckTopology() {
       case ClusterTopology::HostAvailability::kOnline:
         if (!host_pools[dsn]) {
           host_pools[dsn] = std::make_shared<ConnectionPool>(
-              dsn, bg_task_processor_, pool_initial_size_, pool_max_size_,
-              *cmd_ctl);
+              dsn, bg_task_processor_, pool_settings_, *cmd_ctl);
           LOG_DEBUG() << "Added pool for host=" << HostAndPortFromDsn(dsn)
                       << " to the map";
         }

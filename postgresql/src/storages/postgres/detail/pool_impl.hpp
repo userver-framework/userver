@@ -29,7 +29,7 @@ class ConnectionPoolImpl
  public:
   static std::shared_ptr<ConnectionPoolImpl> Create(
       const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-      size_t initial_size, size_t max_size, CommandControl default_cmd_ctl);
+      const PoolSettings& pool_settings, CommandControl default_cmd_ctl);
   ~ConnectionPoolImpl();
 
   std::string const& GetDsn() const { return dsn_; }
@@ -48,7 +48,8 @@ class ConnectionPoolImpl
 
  protected:
   ConnectionPoolImpl(const std::string& dsn,
-                     engine::TaskProcessor& bg_task_processor, size_t max_size,
+                     engine::TaskProcessor& bg_task_processor,
+                     const PoolSettings& settings,
                      CommandControl default_cmd_ctl);
 
  private:
@@ -56,7 +57,7 @@ class ConnectionPoolImpl
   using SharedCounter = std::shared_ptr<std::atomic<size_t>>;
   using SharedSizeGuard = ::utils::SizeGuard<SharedCounter>;
 
-  void Init(size_t initial_size);
+  void Init();
 
   [[nodiscard]] engine::TaskWithResult<bool> Connect(SharedSizeGuard&&);
 
@@ -78,9 +79,9 @@ class ConnectionPoolImpl
 
   mutable InstanceStatistics stats_;
   std::string dsn_;
+  PoolSettings settings_;
   engine::TaskProcessor& bg_task_processor_;
   ::utils::PeriodicTask ping_task_;
-  size_t max_size_;
   engine::Mutex wait_mutex_;
   engine::ConditionVariable conn_available_;
   boost::lockfree::queue<Connection*> queue_;

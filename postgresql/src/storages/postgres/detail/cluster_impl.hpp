@@ -23,8 +23,9 @@ namespace detail {
 class ClusterImpl {
  public:
   ClusterImpl(const ClusterDescription& cluster_desc,
-              engine::TaskProcessor& bg_task_processor, size_t initial_size,
-              size_t max_size, CommandControl default_cmd_ctl);
+              engine::TaskProcessor& bg_task_processor,
+              const PoolSettings& pool_settings,
+              CommandControl default_cmd_ctl);
   ~ClusterImpl();
 
   ClusterStatisticsPtr GetStatistics() const;
@@ -46,8 +47,9 @@ class ClusterImpl {
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
   using HostPoolByDsn = std::unordered_map<std::string, ConnectionPoolPtr>;
 
-  ClusterImpl(engine::TaskProcessor& bg_task_processor, size_t initial_size,
-              size_t max_size, CommandControl default_cmd_ctl);
+  ClusterImpl(engine::TaskProcessor& bg_task_processor,
+              const PoolSettings& pool_settings,
+              CommandControl default_cmd_ctl);
 
   void InitPools(const DSNList& dsn_list);
   void StartPeriodicUpdates();
@@ -71,8 +73,7 @@ class ClusterImpl {
   // - CheckTopology - single place of modification
   ::utils::SwappingSmart<const HostPoolByDsn> host_pools_;
   std::atomic<uint32_t> host_ind_;
-  size_t pool_initial_size_;
-  size_t pool_max_size_;
+  PoolSettings pool_settings_;
   ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
   std::atomic_flag update_lock_;
 };

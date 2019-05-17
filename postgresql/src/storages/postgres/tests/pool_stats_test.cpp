@@ -26,7 +26,7 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePoolStats,
 
 TEST_P(PostgrePoolStats, EmptyPool) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 0, 10, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {0, 10, 10}, kTestCmdCtl);
 
     const auto& stats = pool.GetStatistics();
     EXPECT_EQ(stats.connection.open_total, 0);
@@ -43,7 +43,8 @@ TEST_P(PostgrePoolStats, EmptyPool) {
     EXPECT_EQ(stats.transaction.bin_reply_total, 0);
     EXPECT_EQ(stats.transaction.error_execute_total, 0);
     EXPECT_EQ(stats.connection.error_total, 0);
-    EXPECT_EQ(stats.pool_error_exhaust_total, 0);
+    EXPECT_EQ(stats.pool_exhaust_errors, 0);
+    EXPECT_EQ(stats.queue_size_errors, 0);
     EXPECT_EQ(
         stats.transaction.total_percentile.GetCurrentCounter().GetPercentile(
             100),
@@ -58,7 +59,7 @@ TEST_P(PostgrePoolStats, EmptyPool) {
 TEST_P(PostgrePoolStats, MinPoolSize) {
   RunInCoro([this] {
     const auto min_pool_size = 2;
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), min_pool_size, 10,
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {min_pool_size, 10, 10},
                             kTestCmdCtl);
 
     // We can't check all the counters as some of them are used for internal ops
@@ -73,7 +74,8 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
     EXPECT_EQ(stats.transaction.rollback_total, 0);
     EXPECT_EQ(stats.transaction.error_execute_total, 0);
     EXPECT_EQ(stats.connection.error_total, 0);
-    EXPECT_EQ(stats.pool_error_exhaust_total, 0);
+    EXPECT_EQ(stats.pool_exhaust_errors, 0);
+    EXPECT_EQ(stats.queue_size_errors, 0);
     EXPECT_EQ(
         stats.transaction.total_percentile.GetCurrentCounter().GetPercentile(
             100),
@@ -87,7 +89,7 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
 
 TEST_P(PostgrePoolStats, RunTransactions) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10}, kTestCmdCtl);
 
     const auto trx_count = 5;
     const auto exec_count = 10;
@@ -134,7 +136,8 @@ TEST_P(PostgrePoolStats, RunTransactions) {
     EXPECT_EQ(stats.transaction.bin_reply_total, trx_count * exec_count);
     EXPECT_EQ(stats.transaction.error_execute_total, 0);
     EXPECT_EQ(stats.connection.error_total, 0);
-    EXPECT_EQ(stats.pool_error_exhaust_total, 0);
+    EXPECT_EQ(stats.pool_exhaust_errors, 0);
+    EXPECT_EQ(stats.queue_size_errors, 0);
     EXPECT_EQ(
         stats.transaction.total_percentile.GetStatsForPeriod(duration_min, true)
             .Count(),
@@ -148,7 +151,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
 
 TEST_P(PostgrePoolStats, ConnUsed) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), 1, 10, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10}, kTestCmdCtl);
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))

@@ -30,8 +30,9 @@ class ConnectionPool {
   /// @param max_size maximum idle connections count
   /// @param default_cmd_ctl default settings for operations
   ConnectionPool(const std::string& dsn,
-                 engine::TaskProcessor& bg_task_processor, size_t initial_size,
-                 size_t max_size, CommandControl default_cmd_ctl);
+                 engine::TaskProcessor& bg_task_processor,
+                 const PoolSettings& pool_settings,
+                 CommandControl default_cmd_ctl);
   ~ConnectionPool();
 
   ConnectionPool(ConnectionPool&&) noexcept;

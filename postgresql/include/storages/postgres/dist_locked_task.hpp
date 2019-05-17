@@ -2,7 +2,7 @@
 
 #include <rcu/rcu.hpp>
 #include <storages/dist_locked_task.hpp>
-#include <storages/postgres/postgres_fwd.hpp>
+#include <storages/postgres/options.hpp>
 
 namespace storages {
 namespace postgres {
