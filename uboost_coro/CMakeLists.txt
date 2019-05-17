@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 
 project(yandex-taxi-userver-uboost-coro)
 
+include(Sanitizers)
+
 include(CMakeDependentOption)
 CMAKE_DEPENDENT_OPTION(UBOOST_CORO_USE_UCONTEXT
   "Use ucontext for context switching"
@@ -51,9 +53,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_compile_options(${PROJECT_NAME} PRIVATE "-w") # no warnings
 target_compile_definitions(${PROJECT_NAME} PRIVATE "BOOST_CONTEXT_SOURCE")
 
+if (SANITIZE_ASAN_ENABLED)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_ASAN")
+endif()
+
 if(UBOOST_CORO_USE_UCONTEXT)
   target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_UCONTEXT")
-endif()  
-  
+endif()
+
 find_package(Boost REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost)

@@ -64,7 +64,7 @@ if(SANITIZE)
     list(REMOVE_ITEM SANITIZE_PENDING "addr")
 
     # https://clang.llvm.org/docs/AddressSanitizer.html
-    set(SANITIZE_DEFS BOOST_USE_ASAN)
+    set(SANITIZE_ASAN_ENABLED ON)
     set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=address)
     set(SANITIZE_CXX_FLAGS -fno-omit-frame-pointer)
   endif()
@@ -82,9 +82,6 @@ if(SANITIZE)
   endif()
 endif()
 
-target_compile_definitions(sanitize-target INTERFACE
-  ${SANITIZE_DEFS}
-)
 target_compile_options(sanitize-target INTERFACE
   ${SANITIZE_BUILD_FLAGS}
   ${SANITIZE_CXX_FLAGS}
