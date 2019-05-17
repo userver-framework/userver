@@ -3,7 +3,7 @@ maintainers:
   - Common components
 
 link-targets:
-  - Hiredis==0.13.3
+  - Hiredis
   - yandex-taxi-userver-core
 
 debian:
