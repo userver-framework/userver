@@ -46,11 +46,11 @@ TEST_P(PostgrePoolStats, EmptyPool) {
     EXPECT_EQ(stats.pool_exhaust_errors, 0);
     EXPECT_EQ(stats.queue_size_errors, 0);
     EXPECT_EQ(
-        stats.transaction.total_percentile.GetCurrentCounter().GetPercentile(
+        stats.transaction.total_percentile.GetStatsForPeriod().GetPercentile(
             100),
         0);
     EXPECT_EQ(
-        stats.transaction.busy_percentile.GetCurrentCounter().GetPercentile(
+        stats.transaction.busy_percentile.GetStatsForPeriod().GetPercentile(
             100),
         0);
   });
@@ -77,11 +77,11 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
     EXPECT_EQ(stats.pool_exhaust_errors, 0);
     EXPECT_EQ(stats.queue_size_errors, 0);
     EXPECT_EQ(
-        stats.transaction.total_percentile.GetCurrentCounter().GetPercentile(
+        stats.transaction.total_percentile.GetStatsForPeriod().GetPercentile(
             100),
         0);
     EXPECT_EQ(
-        stats.transaction.busy_percentile.GetCurrentCounter().GetPercentile(
+        stats.transaction.busy_percentile.GetStatsForPeriod().GetPercentile(
             100),
         0);
   });

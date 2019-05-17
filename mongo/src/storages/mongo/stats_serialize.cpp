@@ -156,7 +156,7 @@ CombinedCollectionStats DumpAndCombine(const CollectionStatistics& coll_stats,
 
   formats::json::ValueBuilder rp_builder(formats::json::Type::kObject);
   for (const auto& [read_pref, stats_agg] : coll_stats.read) {
-    const auto& read_stats = stats_agg->GetCurrentCounter();
+    const auto& read_stats = stats_agg->GetStatsForPeriod();
     auto rp_overall = DumpAndCombine(read_stats, rp_builder[read_pref]);
     overall.read.Add(rp_overall);
   }
@@ -164,7 +164,7 @@ CombinedCollectionStats DumpAndCombine(const CollectionStatistics& coll_stats,
 
   formats::json::ValueBuilder wc_builder(formats::json::Type::kObject);
   for (const auto& [write_concern, stats_agg] : coll_stats.write) {
-    const auto& write_stats = stats_agg->GetCurrentCounter();
+    const auto& write_stats = stats_agg->GetStatsForPeriod();
     auto wc_overall = DumpAndCombine(write_stats, wc_builder[write_concern]);
     overall.write.Add(wc_overall);
   }
@@ -193,7 +193,7 @@ void Dump(const PoolConnectStatistics& conn_stats,
 
 void PoolStatisticsToJson(const PoolStatistics& pool_stats,
                           formats::json::ValueBuilder& builder) {
-  Dump(pool_stats.pool->GetCurrentCounter(), builder["pool"]);
+  Dump(pool_stats.pool->GetStatsForPeriod(), builder["pool"]);
 
   CombinedCollectionStats pool_overall;
   formats::json::ValueBuilder coll_builder(formats::json::Type::kObject);
