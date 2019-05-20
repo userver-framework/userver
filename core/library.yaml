@@ -3,7 +3,6 @@ maintainers:
   - Common components
 
 link-targets:
-  - Boost::coroutine
   - Boost::filesystem
   - Boost::locale
   - Boost::program_options
