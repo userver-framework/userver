@@ -17,10 +17,22 @@ const std::string kRequestContextKeyUserAuthInfo = "auth::user_info";
 UserAuthInfo::UserAuthInfo(UserId default_id)
     : default_id_{default_id}, ids_{default_id} {}
 
+UserAuthInfo::UserAuthInfo(UserId default_id, std::string user_ticket)
+    : default_id_{default_id},
+      ids_{default_id},
+      user_ticket_{std::move(user_ticket)} {}
+
 UserAuthInfo::UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes)
     : default_id_(default_id),
       ids_(std::move(ids)),
       scopes_(std::move(scopes)) {}
+
+UserAuthInfo::UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes,
+                           std::string user_ticket)
+    : default_id_(default_id),
+      ids_(std::move(ids)),
+      scopes_(std::move(scopes)),
+      user_ticket_{std::move(user_ticket)} {}
 
 UserId UserAuthInfo::GetDefaultUserId() const { return default_id_; }
 
@@ -28,6 +40,10 @@ const UserIds& UserAuthInfo::GetUserIds() const { return ids_; }
 
 const boost::optional<UserScopes>& UserAuthInfo::GetUserScopesOptional() const {
   return scopes_;
+}
+
+const boost::optional<std::string>& UserAuthInfo::GetTicketOptional() const {
+  return user_ticket_;
 }
 
 void UserAuthInfo::Set(server::request::RequestContext& request_context,

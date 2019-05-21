@@ -19,12 +19,16 @@ namespace server::auth {
 class UserAuthInfo {
  public:
   explicit UserAuthInfo(UserId default_id);
+  UserAuthInfo(UserId default_id, std::string user_ticket);
 
   UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes);
+  UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes,
+               std::string user_ticket);
 
   UserId GetDefaultUserId() const;
   const UserIds& GetUserIds() const;
   const boost::optional<UserScopes>& GetUserScopesOptional() const;
+  const boost::optional<std::string>& GetTicketOptional() const;
 
  private:
   friend class server::handlers::auth::AuthCheckerBase;
@@ -34,6 +38,7 @@ class UserAuthInfo {
   UserId default_id_;
   UserIds ids_;
   boost::optional<UserScopes> scopes_;
+  boost::optional<std::string> user_ticket_;
 };
 
 const UserAuthInfo& GetUserAuthInfo(
