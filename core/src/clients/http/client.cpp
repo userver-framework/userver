@@ -1,4 +1,6 @@
 #include <clients/http/client.hpp>
+
+#include <clients/http/destination_statistics.hpp>
 #include <curl-ev/multi.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <logging/log.hpp>

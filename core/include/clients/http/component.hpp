@@ -1,20 +1,22 @@
 #pragma once
 
+#ifdef USERVER_TVM2_HTTP_CLIENT
+#error Use components::Http from clients/http.hpp instead
+#endif
+
 #include <components/component_base.hpp>
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <taxi_config/storage/component.hpp>
+#include <taxi_config/config.hpp>
 
 #include <components/statistics_storage.hpp>
 #include <utils/async_event_channel.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 class Client;
-}
-}  // namespace clients
+}  // namespace clients::http
 
 namespace components {
+
+class TaxiConfig;
 
 class HttpClient : public LoggableComponentBase {
  public:

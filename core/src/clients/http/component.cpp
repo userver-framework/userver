@@ -1,10 +1,14 @@
 #include <clients/http/component.hpp>
 
+#include <components/component_config.hpp>
+#include <components/component_context.hpp>
+#include <components/statistics_storage.hpp>
+#include <taxi_config/storage/component.hpp>
+
 #include <clients/http/client.hpp>
 #include <clients/http/config.hpp>
 #include <clients/http/destination_statistics_json.hpp>
 #include <clients/http/statistics.hpp>
-#include <components/statistics_storage.hpp>
 
 namespace components {
 

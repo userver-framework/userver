@@ -1,6 +1,9 @@
 #pragma once
 
-#include <clients/http/destination_statistics.hpp>
+#ifdef USERVER_TVM2_HTTP_CLIENT
+#error Use clients::Http from clients/http.hpp instead
+#endif
+
 #include <clients/http/request.hpp>
 #include <clients/http/statistics.hpp>
 
@@ -22,6 +25,7 @@ namespace clients {
 namespace http {
 
 class EasyWrapper;
+class DestinationStatistics;
 
 class Client {
  public:
@@ -33,6 +37,9 @@ class Client {
   ~Client();
 
   std::shared_ptr<Request> CreateRequest();
+
+  /// Providing CreateNonSignedRequest() function for the clinets::Http alias.
+  std::shared_ptr<Request> CreateNotSignedRequest() { return CreateRequest(); }
 
   void SetMaxPipelineLength(size_t max_pipeline_length);
   void SetMaxHostConnections(size_t max_host_connections);

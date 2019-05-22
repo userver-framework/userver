@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 #include <clients/http/client.hpp>
+#include <clients/http/destination_statistics.hpp>
 
 namespace {
 constexpr size_t kHttpIoThreads{1};
