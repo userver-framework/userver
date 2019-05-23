@@ -3,6 +3,7 @@
 /// @file formats/bson.hpp
 /// @brief Include-all header for BSON support
 
+#include <formats/bson/binary.hpp>
 #include <formats/bson/document.hpp>
 #include <formats/bson/exception.hpp>
 #include <formats/bson/inline.hpp>
