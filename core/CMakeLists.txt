@@ -41,16 +41,8 @@ list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-
 find_package(Boost REQUIRED COMPONENTS program_options filesystem locale thread)
-append_debian_depends("libboost-filesystem-dev")
-append_debian_depends("libboost-program-options-dev")
-append_debian_depends("libboost-locale-dev")
-append_debian_depends("libboost-thread-dev")
-
 # backend-common-cpp deps
-append_debian_depends("libcctz-dev")
-
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 find_package(ExternalProjectGTest REQUIRED)

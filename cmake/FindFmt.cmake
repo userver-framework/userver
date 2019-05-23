@@ -16,6 +16,4 @@ if (Fmt_FOUND)
         INTERFACE_LINK_LIBRARIES "${FMT_LIBRARIES}")
 endif()
 
-append_debian_depends("libfmt-dev")
-
 mark_as_advanced(FMT_INCLUDE_DIRECTORIES FMT_LIBRARIES)

@@ -6,7 +6,6 @@ file(GLOB_RECURSE SOURCES
 )
 
 find_package(HelperHiredis)
-append_debian_depends("libhiredis-dev")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
