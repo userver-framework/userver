@@ -1,10 +1,12 @@
 #include <server/handlers/tests_control.hpp>
 
 #include <cache/cache_invalidator.hpp>
+#include <clients/http/component.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_error.hpp>
 #include <utils/datetime.hpp>
 #include <utils/mock_now.hpp>
+#include <utils/testpoint.hpp>
 
 namespace server {
 namespace handlers {
@@ -14,7 +16,18 @@ TestsControl::TestsControl(
     const components::ComponentContext& component_context)
     : HttpHandlerJsonBase(config, component_context),
       cache_invalidator_(
-          component_context.FindComponent<components::CacheInvalidator>()) {}
+          component_context.FindComponent<components::CacheInvalidator>()) {
+  auto testpoint_url = config.ParseOptionalString("testpoint-url");
+  if (testpoint_url) {
+    auto& http_client =
+        component_context.FindComponent<components::HttpClient>()
+            .GetHttpClient();
+    auto testpoint_timeout =
+        config.ParseDuration("testpoint-timeout", std::chrono::seconds(1));
+    auto& tp = utils::TestPoint::GetInstance();
+    tp.Setup(http_client, *testpoint_url, testpoint_timeout);
+  }
+}
 
 const std::string& TestsControl::HandlerName() const {
   static const std::string kTestsControlName = kName;
