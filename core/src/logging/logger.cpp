@@ -9,6 +9,7 @@
 #include <logging/reopening_file_sink.hpp>
 
 #include <spdlog/formatter.h>
+#include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
 #include "config.hpp"
@@ -44,6 +45,11 @@ LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
   return MakeSimpleLogger(name,
                           std::make_shared<logging::ReopeningFileSinkMT>(path),
                           static_cast<spdlog::level::level_enum>(level));
+}
+
+LoggerPtr MakeNullLogger(const std::string& name) {
+  return MakeSimpleLogger(name, std::make_shared<spdlog::sinks::null_sink_mt>(),
+                          spdlog::level::off);
 }
 
 }  // namespace logging

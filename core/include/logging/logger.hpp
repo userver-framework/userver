@@ -41,4 +41,9 @@ LoggerPtr MakeStderrLogger(const std::string& name, Level level = Level::kInfo);
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
                          Level level = Level::kInfo);
 
+/// @brief Creates a logger that drops all incoming messages
+/// @param name logger name, for internal use, must be unique
+/// @see components::Logging
+LoggerPtr MakeNullLogger(const std::string& name);
+
 }  // namespace logging

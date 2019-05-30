@@ -137,6 +137,8 @@ void Logging::FlushLogs() {
 std::shared_ptr<spdlog::logger> Logging::CreateLogger(
     const std::string& logger_name, const logging::LoggerConfig& logger_config,
     bool is_default_logger) {
+  if (logger_config.file_path == "@null")
+    return logging::MakeNullLogger(logger_name);
   if (logger_config.file_path == "@stderr")
     return logging::MakeStderrLogger(logger_name, logger_config.level);
 
