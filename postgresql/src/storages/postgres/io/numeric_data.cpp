@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <storages/postgres/io/field_buffer.hpp>
 #include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <storages/postgres/io/user_types.hpp>
