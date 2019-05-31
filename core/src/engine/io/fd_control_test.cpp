@@ -42,6 +42,8 @@ namespace io = engine::io;
 using Deadline = engine::Deadline;
 using FdControl = io::impl::FdControl;
 
+constexpr std::chrono::milliseconds kReadTimeout{10};
+
 }  // namespace
 
 TEST(FdControl, Close) {
@@ -81,18 +83,15 @@ TEST(FdControl, Wait) {
 
     auto read_control = FdControl::Adopt(pipe.In());
     auto& read_dir = read_control->Read();
-    EXPECT_FALSE(
-        read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100))));
+    EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
     EXPECT_TRUE(HasTimedOut());
 
     CheckedWrite(pipe.Out(), buf.data(), 1);
-    EXPECT_TRUE(
-        read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100))));
+    EXPECT_TRUE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
     EXPECT_FALSE(HasTimedOut());
 
     EXPECT_EQ(::read(pipe.In(), buf.data(), buf.size()), 1);
-    EXPECT_FALSE(
-        read_dir.Wait(Deadline::FromDuration(std::chrono::milliseconds(100))));
+    EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
     EXPECT_TRUE(HasTimedOut());
   });
 }
@@ -109,8 +108,7 @@ TEST(FdControl, PartialTransfer) {
     try {
       read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
                          io::impl::TransferMode::kPartial,
-                         Deadline::FromDuration(std::chrono::milliseconds(10)),
-                         "reading");
+                         Deadline::FromDuration(kReadTimeout), "reading");
       FAIL() << "Did not time out";
     } catch (const io::IoTimeout& ex) {
       EXPECT_EQ(0, ex.BytesTransferred());
@@ -134,10 +132,9 @@ TEST(FdControl, WholeTransfer) {
         std::array<char, 16> buf;
         io::impl::Direction::Lock lock(read_dir);
         try {
-          read_dir.PerformIo(
-              lock, &::read, buf.data(), buf.size(),
-              io::impl::TransferMode::kWhole,
-              Deadline::FromDuration(std::chrono::milliseconds(10)), "reading");
+          read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+                             io::impl::TransferMode::kWhole,
+                             Deadline::FromDuration(kReadTimeout), "reading");
           FAIL() << "Did not time out";
         } catch (const io::IoTimeout& ex) {
           EXPECT_EQ(0, ex.BytesTransferred());
@@ -145,10 +142,9 @@ TEST(FdControl, WholeTransfer) {
 
         CheckedWrite(pipe.Out(), "test", 4);
         try {
-          read_dir.PerformIo(
-              lock, &::read, buf.data(), buf.size(),
-              io::impl::TransferMode::kWhole,
-              Deadline::FromDuration(std::chrono::milliseconds(10)), "reading");
+          read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+                             io::impl::TransferMode::kWhole,
+                             Deadline::FromDuration(kReadTimeout), "reading");
           FAIL() << "Did not time out";
         } catch (const io::IoTimeout& ex) {
           EXPECT_EQ(4, ex.BytesTransferred());
@@ -156,26 +152,32 @@ TEST(FdControl, WholeTransfer) {
 
         CheckedWrite(pipe.Out(), "testtesttesttesttest", 20);
         EXPECT_EQ(buf.size(),
-                  read_dir.PerformIo(
-                      lock, &::read, buf.data(), buf.size(),
-                      io::impl::TransferMode::kWhole,
-                      Deadline::FromDuration(std::chrono::milliseconds(250)),
-                      "reading"));
+                  read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+                                     io::impl::TransferMode::kWhole,
+                                     Deadline::FromDuration(kReadTimeout),
+                                     "reading"));
 
-        auto sender = engine::impl::Async([fd = pipe.Out()] {
-          engine::SleepFor(std::chrono::milliseconds(20));
+        std::atomic<int> read_attempts{0};
+        auto counted_read = [&read_attempts](int fd, void* buf, size_t count) {
+          ++read_attempts;
+          return ::read(fd, buf, count);
+        };
+        auto sender = engine::impl::Async([fd = pipe.Out(), &read_attempts] {
+          const auto deadline =
+              engine::Deadline::FromDuration(kMaxTestWaitTime);
+          engine::SleepFor(kReadTimeout);
           CheckedWrite(fd, "test", 4);
-          engine::SleepFor(std::chrono::milliseconds(100));
+          while (!read_attempts) {
+            ASSERT_FALSE(deadline.IsReached());
+            engine::SleepFor(kReadTimeout);
+          }
           CheckedWrite(fd, "testtesttesttesttest", 20);
         });
-        size_t size;
-        EXPECT_NO_THROW(
-            size = read_dir.PerformIo(
-                lock, &::read, buf.data(), buf.size(),
-                io::impl::TransferMode::kWhole,
-                Deadline::FromDuration(std::chrono::milliseconds(250)),
-                "reading"));
-        EXPECT_EQ(buf.size(), size);
+        EXPECT_EQ(buf.size(),
+                  read_dir.PerformIo(lock, counted_read, buf.data(), buf.size(),
+                                     io::impl::TransferMode::kWhole,
+                                     Deadline::FromDuration(kMaxTestWaitTime),
+                                     "reading"));
       },
       2);
 }

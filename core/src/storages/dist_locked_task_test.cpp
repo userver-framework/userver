@@ -8,9 +8,14 @@
 #include <utils/mock_now.hpp>
 
 namespace {
+
+constexpr std::chrono::milliseconds kAttemptInterval{10};
+constexpr auto kAttemptTimeout = 5 * kAttemptInterval;
+
 storages::DistLockedTaskSettings CreateSettings() {
   using namespace std::chrono_literals;
-  return storages::DistLockedTaskSettings{10ms, 10ms, 100ms, 10ms};
+  return storages::DistLockedTaskSettings{kAttemptInterval, kAttemptInterval,
+                                          100ms, kAttemptInterval};
 }
 }  // namespace
 
@@ -97,11 +102,10 @@ TEST(LockedTask, StartStop) {
         EXPECT_FALSE(locked_task.IsLocked());
 
         locked_task.Start();
-        EXPECT_FALSE(
-            locked_task.WaitForLocked(true, std::chrono::milliseconds(100)));
+        EXPECT_FALSE(locked_task.WaitForLocked(true, kAttemptTimeout));
 
         locked_task.Allow(true);
-        EXPECT_TRUE(locked_task.WaitForLocked(true, std::chrono::seconds(1)));
+        EXPECT_TRUE(locked_task.WaitForLocked(true, kMaxTestWaitTime));
 
         locked_task.Stop();
       },
@@ -117,10 +121,10 @@ TEST(LockedTask, Watchdog) {
 
         locked_task.Start();
         locked_task.Allow(true);
-        EXPECT_TRUE(locked_task.WaitForLocked(true, std::chrono::seconds(1)));
+        EXPECT_TRUE(locked_task.WaitForLocked(true, kMaxTestWaitTime));
 
         locked_task.Allow(false);
-        EXPECT_TRUE(locked_task.WaitForLocked(false, std::chrono::seconds(1)));
+        EXPECT_TRUE(locked_task.WaitForLocked(false, kMaxTestWaitTime));
 
         locked_task.Stop();
       },
@@ -135,14 +139,13 @@ TEST(LockedTask, OkAfterFail) {
         LockedTaskMockNoop locked_task;
 
         locked_task.Start();
-        EXPECT_FALSE(
-            locked_task.WaitForLocked(true, std::chrono::milliseconds(50)));
+        EXPECT_FALSE(locked_task.WaitForLocked(true, kAttemptTimeout));
         auto fail_count = locked_task.GetAttemtpsCount();
         EXPECT_LT(0, fail_count);
         EXPECT_FALSE(locked_task.IsLocked());
 
         locked_task.Allow(true);
-        EXPECT_TRUE(locked_task.WaitForLocked(true, std::chrono::seconds(1)));
+        EXPECT_TRUE(locked_task.WaitForLocked(true, kMaxTestWaitTime));
         EXPECT_LT(fail_count, locked_task.GetAttemtpsCount());
 
         locked_task.Stop();
@@ -159,22 +162,20 @@ TEST(LockedTask, OkFailOk) {
 
         locked_task.Start();
         locked_task.Allow(true);
-        EXPECT_TRUE(locked_task.WaitForLocked(true, std::chrono::seconds(1)));
+        EXPECT_TRUE(locked_task.WaitForLocked(true, kMaxTestWaitTime));
 
         locked_task.Allow(false);
         auto attempts_count = locked_task.GetAttemtpsCount();
         EXPECT_LT(0, attempts_count);
-        EXPECT_FALSE(
-            locked_task.WaitForLocked(false, std::chrono::milliseconds(50)));
+        EXPECT_FALSE(locked_task.WaitForLocked(false, kAttemptTimeout));
 
         auto attempts_count2 = locked_task.GetAttemtpsCount();
-        EXPECT_LT(attempts_count + 2, attempts_count2);
+        EXPECT_LT(attempts_count, attempts_count2);
 
         locked_task.Allow(true);
-        EXPECT_FALSE(
-            locked_task.WaitForLocked(false, std::chrono::milliseconds(50)));
+        EXPECT_FALSE(locked_task.WaitForLocked(false, kAttemptTimeout));
         auto attempts_count3 = locked_task.GetAttemtpsCount();
-        EXPECT_LT(attempts_count2 + 2, attempts_count3);
+        EXPECT_LT(attempts_count2, attempts_count3);
 
         locked_task.Stop();
       },
@@ -190,13 +191,13 @@ TEST(LockedTask, LockedByOther) {
 
         locked_task.Start();
         locked_task.Allow(true);
-        EXPECT_TRUE(locked_task.WaitForLocked(true, std::chrono::seconds(1)));
+        EXPECT_TRUE(locked_task.WaitForLocked(true, kMaxTestWaitTime));
 
         locked_task.LockedByOther(true);
-        EXPECT_TRUE(locked_task.WaitForLocked(false, std::chrono::seconds(1)));
+        EXPECT_TRUE(locked_task.WaitForLocked(false, kMaxTestWaitTime));
 
         locked_task.LockedByOther(false);
-        EXPECT_TRUE(locked_task.WaitForLocked(false, std::chrono::seconds(1)));
+        EXPECT_TRUE(locked_task.WaitForLocked(false, kMaxTestWaitTime));
 
         locked_task.Stop();
       },

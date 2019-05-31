@@ -15,7 +15,7 @@
 
 namespace {
 /* Scheduler is dumb, but the life is short. */
-const auto kSlowRatio = 5;
+const auto kSlowRatio = 10;
 }  // namespace
 
 TEST(PeriodicTask, Noop) {
@@ -163,14 +163,15 @@ TEST(PeriodicTask, Now) {
   RunInCoro([] {
     SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(50);
+    auto timeout = std::chrono::milliseconds(50);
 
     utils::PeriodicTask task(
         "task",
-        utils::PeriodicTask::Settings(period, utils::PeriodicTask::Flags::kNow),
+        utils::PeriodicTask::Settings(kMaxTestWaitTime,
+                                      utils::PeriodicTask::Flags::kNow),
         simple.GetTaskFunction());
-    EXPECT_TRUE(simple.WaitFor(period / 2,
-                               [&simple]() { return simple.GetCount() > 0; }));
+    EXPECT_TRUE(
+        simple.WaitFor(timeout, [&simple]() { return simple.GetCount() > 0; }));
 
     task.Stop();
   });
@@ -180,11 +181,13 @@ TEST(PeriodicTask, NotNow) {
   RunInCoro([] {
     SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(50);
+    auto timeout = std::chrono::milliseconds(50);
 
-    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
-    EXPECT_FALSE(simple.WaitFor(period / 2,
-                                [&simple]() { return simple.GetCount() > 0; }));
+    utils::PeriodicTask task("task",
+                             utils::PeriodicTask::Settings{kMaxTestWaitTime},
+                             simple.GetTaskFunction());
+    EXPECT_FALSE(
+        simple.WaitFor(timeout, [&simple]() { return simple.GetCount() > 0; }));
 
     task.Stop();
   });
