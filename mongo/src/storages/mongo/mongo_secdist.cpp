@@ -7,6 +7,9 @@ namespace storages::mongo::secdist {
 
 MongoSettings::MongoSettings(const formats::json::Value& doc) {
   const formats::json::Value& mongo_settings = doc["mongo_settings"];
+  // Mongo library can be used just for BSON without mongo configuration
+  if (mongo_settings.IsMissing()) return;
+
   storages::secdist::CheckIsObject(mongo_settings, "mongo_settings");
 
   for (auto it = mongo_settings.begin(); it != mongo_settings.end(); ++it) {
