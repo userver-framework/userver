@@ -4,9 +4,12 @@
 #include <fstream>
 #include <sstream>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <compiler/demangle.hpp>
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
+#include <formats/json/value_builder.hpp>
 #include <storages/secdist/exceptions.hpp>
 #include <yaml_config/value.hpp>
 
@@ -30,13 +33,19 @@ SecdistConfig::SecdistConfig(const std::string& path) {
   // if we don't want to read secdist, then we don't need to initialize
   if (GetConfigFactories().empty()) return;
 
-  std::ifstream json_stream(path);
   formats::json::Value doc;
-  try {
-    doc = formats::json::FromStream(json_stream);
-  } catch (const formats::json::Exception& e) {
-    throw InvalidSecdistJson(std::string("Cannot load secdist config: ") +
-                             e.what());
+  if (!boost::filesystem::exists(path)) {
+    // initialize as empty doc if file doesn't exist
+    doc = formats::json::ValueBuilder(formats::json::Type::kObject)
+              .ExtractValue();
+  } else {
+    std::ifstream json_stream(path);
+    try {
+      doc = formats::json::FromStream(json_stream);
+    } catch (const formats::json::Exception& e) {
+      throw InvalidSecdistJson(std::string("Cannot load secdist config: ") +
+                               e.what());
+    }
   }
 
   Init(doc);
