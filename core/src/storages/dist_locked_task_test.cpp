@@ -153,7 +153,8 @@ TEST(LockedTask, OkAfterFail) {
       3);
 }
 
-TEST(LockedTask, OkFailOk) {
+// TODO: TAXICOMMON-1059
+TEST(LockedTask, DISABLED_IN_MAC_OS_TEST_NAME(OkFailOk)) {
   utils::datetime::MockNowUnset();
 
   RunInCoro(
@@ -173,6 +174,7 @@ TEST(LockedTask, OkFailOk) {
         EXPECT_LT(attempts_count, attempts_count2);
 
         locked_task.Allow(true);
+        // FIXME
         EXPECT_FALSE(locked_task.WaitForLocked(false, kAttemptTimeout));
         auto attempts_count3 = locked_task.GetAttemtpsCount();
         EXPECT_LT(attempts_count2, attempts_count3);

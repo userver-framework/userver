@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <atomic>
+
 #include <engine/async.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/sleep.hpp>
@@ -60,14 +62,17 @@ TEST(SingleConsumerEvent, WaitAndSendDouble) {
 TEST(SingleConsumerEvent, SendAndWait) {
   RunInCoro([] {
     engine::SingleConsumerEvent event;
-    auto task = engine::impl::Async([&event]() {
-      engine::SleepFor(std::chrono::milliseconds(50));
+    std::atomic<bool> is_event_sent{false};
+
+    auto task = engine::impl::Async([&event, &is_event_sent]() {
+      while (!is_event_sent) engine::SleepFor(std::chrono::milliseconds(10));
       EXPECT_TRUE(event.WaitForEvent());
     });
 
     event.Send();
+    is_event_sent = true;
 
-    task.WaitFor(std::chrono::milliseconds(100));
+    task.WaitFor(kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
   });
 }
