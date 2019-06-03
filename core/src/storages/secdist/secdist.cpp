@@ -27,6 +27,9 @@ GetConfigFactories() {
 SecdistConfig::SecdistConfig() = default;
 
 SecdistConfig::SecdistConfig(const std::string& path) {
+  // if we don't want to read secdist, then we don't need to initialize
+  if (GetConfigFactories().empty()) return;
+
   std::ifstream json_stream(path);
   formats::json::Value doc;
   try {
