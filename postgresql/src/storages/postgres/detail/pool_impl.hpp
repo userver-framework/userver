@@ -69,6 +69,7 @@ class ConnectionPoolImpl
 
   void AccountConnectionStats(Connection::Statistics stats);
 
+  ConnectionPtr AcquireImmediate();
   void PingConnections();
   void StartPingTask();
   void StopPingTask();

@@ -275,8 +275,6 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
     throw PoolError("Deadline reached before trying to get a connection");
   }
   Stopwatch st{stats_.acquire_percentile};
-  auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
-      deadline.TimeLeft());
   Connection* connection = nullptr;
   if (queue_.pop(connection)) {
     return connection;
@@ -288,6 +286,8 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
     throw PoolError("Wait queue size exceeded");
   }
   // No connections found - create a new one if pool is not exhausted
+  auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+      deadline.TimeLeft());
   LOG_DEBUG() << "No idle connections, try to get one in " << timeout.count()
               << "ms";
   {
@@ -337,6 +337,18 @@ void ConnectionPoolImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
   }
 }
 
+ConnectionPtr ConnectionPoolImpl::AcquireImmediate() {
+  auto shared_this = shared_from_this();
+  Connection* conn = nullptr;
+  if (queue_.pop(conn)) {
+    ConnectionPtr connection{conn, std::move(shared_this)};
+    ++stats_.connection.used;
+    return connection;
+  }
+  ++stats_.pool_exhaust_errors;
+  throw PoolError("No available connections found");
+}
+
 void ConnectionPoolImpl::PingConnections() {
   // No point in doing database roundtrips if there are queries waiting for
   // connections
@@ -347,18 +359,22 @@ void ConnectionPoolImpl::PingConnections() {
   }
 
   LOG_DEBUG() << "Ping connection pool " << DsnCutPassword(dsn_);
-  auto cmd_ctl = *default_cmd_ctl_.Read();
-  auto deadline = engine::Deadline::FromDuration(cmd_ctl.network);
   auto stale_connection = true;
-  while (stale_connection) {
-    auto conn = Acquire(deadline);
-    stale_connection = conn->GetIdleDuration() >= kMaxIdleDuration;
+  auto count = size_->load(std::memory_order_relaxed);
+  while (count > 0 && stale_connection) {
     try {
+      auto conn = AcquireImmediate();
+      stale_connection = conn->GetIdleDuration() >= kMaxIdleDuration;
       conn->Ping();
+    } catch (const PoolError& e) {
+      LOG_DEBUG() << "All connections to `" << DsnCutPassword(dsn_)
+                  << "` are busy: " << e;
+      break;
     } catch (const RuntimeError& e) {
       LOG_ERROR() << "Exception while pinging connection to `"
                   << DsnCutPassword(dsn_) << "`: " << e;
     }
+    --count;
   }
 
   // TODO Check and maintain minimum count of connections

@@ -591,7 +591,11 @@ struct Connection::Impl {
     return conn_wrapper_.GetIdleDuration();
   }
 
-  void Ping() { ExecuteCommand(MakeCurrentDeadline(), kPingStatement); }
+  void Ping() {
+    Start(SteadyClock::now());
+    ExecuteCommand(MakeCurrentDeadline(), kPingStatement);
+    Finish();
+  }
 };  // Connection::Impl
 
 std::unique_ptr<Connection> Connection::Connect(
