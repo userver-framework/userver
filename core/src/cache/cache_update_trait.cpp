@@ -38,6 +38,10 @@ CacheUpdateTrait::~CacheUpdateTrait() {
   }
 }
 
+cache::AllowedUpdateTypes CacheUpdateTrait::AllowedUpdateTypes() const {
+  return config_.allowed_update_types;
+}
+
 void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
   if (is_running_.exchange(true)) {
     return;
@@ -83,7 +87,8 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
 
   const auto steady_now = std::chrono::steady_clock::now();
   auto update_type = cache::UpdateType::kFull;
-  if (last_full_update_ + config_.full_update_interval_ > steady_now) {
+  if (config_.allowed_update_types != cache::AllowedUpdateTypes::kOnlyFull &&
+      last_full_update_ + config_.full_update_interval > steady_now) {
     update_type = cache::UpdateType::kIncremental;
   }
 
@@ -102,8 +107,8 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
 
 utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings()
     const {
-  return utils::PeriodicTask::Settings(config_.update_interval_,
-                                       config_.update_jitter_,
+  return utils::PeriodicTask::Settings(config_.update_interval,
+                                       config_.update_jitter,
                                        {utils::PeriodicTask::Flags::kChaotic,
                                         utils::PeriodicTask::Flags::kCritical});
 }

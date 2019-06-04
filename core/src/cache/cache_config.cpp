@@ -1,7 +1,10 @@
 #include <cache/cache_config.hpp>
 
+#include <boost/optional.hpp>
+
 #include <utils/assert.hpp>
 #include <utils/string_to_duration.hpp>
+#include <utils/traceful_exception.hpp>
 
 namespace cache {
 
@@ -30,21 +33,88 @@ std::chrono::milliseconds JsonToMs(const formats::json::Value& json) {
   return std::chrono::milliseconds{json.As<uint64_t>()};
 }
 
+const std::string kUpdateTypes = "update-types";
+
+AllowedUpdateTypes ParseUpdateMode(const components::ComponentConfig& config) {
+  const auto update_types_str = config.ParseOptionalString(kUpdateTypes);
+  if (!update_types_str) {
+    if (config.Yaml().HasMember(kFullUpdateInterval) &&
+        config.Yaml().HasMember(kUpdateInterval)) {
+      return AllowedUpdateTypes::kFullAndIncremental;
+    } else {
+      return AllowedUpdateTypes::kOnlyFull;
+    }
+  } else if (*update_types_str == "full-and-incremental") {
+    return AllowedUpdateTypes::kFullAndIncremental;
+  } else if (*update_types_str == "only-full") {
+    return AllowedUpdateTypes::kOnlyFull;
+  }
+
+  throw std::logic_error("Invalid update types '" + *update_types_str +
+                         "' for cache '" + config.Name() + '\'');
+}
+
 }  // namespace
 
 CacheConfig::CacheConfig(const components::ComponentConfig& config)
-    : update_interval_(config.ParseDuration(kUpdateInterval)),
-      update_jitter_(config.ParseDuration(
-          kUpdateJitter, GetDefaultJitterMs(update_interval_))),
-      full_update_interval_(config.ParseDuration(
-          kFullUpdateInterval, std::chrono::milliseconds::zero())) {}
+    : allowed_update_types(ParseUpdateMode(config)),
+      update_interval(config.ParseDuration(kUpdateInterval,
+                                           std::chrono::milliseconds::zero())),
+      update_jitter(config.ParseDuration(kUpdateJitter,
+                                         GetDefaultJitterMs(update_interval))),
+      full_update_interval(config.ParseDuration(
+          kFullUpdateInterval, std::chrono::milliseconds::zero())) {
+  switch (allowed_update_types) {
+    case AllowedUpdateTypes::kFullAndIncremental:
+      if (!update_interval.count() || !full_update_interval.count()) {
+        throw std::logic_error("Both " + kUpdateInterval + " and " +
+                               kFullUpdateInterval +
+                               " must be set for cache "
+                               "'" +
+                               config.Name() + '\'');
+      }
+      if (update_interval >= full_update_interval) {
+        LOG_WARNING() << "Incremental updates requested for cache '"
+                      << config.Name()
+                      << "' but have lower frequency than full updates and "
+                         "will never happen. Remove "
+                      << kFullUpdateInterval
+                      << " config field if this is intended.";
+      }
+      break;
+    case AllowedUpdateTypes::kOnlyFull:
+      if (full_update_interval.count()) {
+        throw std::logic_error(
+            kFullUpdateInterval +
+            " config field should not be used for only-full updated cache '" +
+            config.Name() + "'. Please rename it to " + kUpdateInterval + '.');
+      }
+      if (!update_interval.count()) {
+        throw std::logic_error(kUpdateInterval + " is not set for cache '" +
+                               config.Name() + '\'');
+      }
+      full_update_interval = update_interval;
+      break;
+  }
+}
 
-CacheConfig::CacheConfig(std::chrono::milliseconds update_interval,
-                         std::chrono::milliseconds update_jitter,
-                         std::chrono::milliseconds full_update_interval)
-    : update_interval_(update_interval),
-      update_jitter_(update_jitter),
-      full_update_interval_(full_update_interval) {}
+CacheConfig::CacheConfig(std::chrono::milliseconds update_interval_,
+                         std::chrono::milliseconds update_jitter_,
+                         std::chrono::milliseconds full_update_interval_)
+    : allowed_update_types(AllowedUpdateTypes::kOnlyFull),
+      update_interval(update_interval_),
+      update_jitter(update_jitter_),
+      full_update_interval(full_update_interval_) {
+  if (!full_update_interval.count()) {
+    if (!update_interval.count()) {
+      throw utils::impl::AttachTraceToException(
+          std::logic_error("Update interval is not set for cache"));
+    }
+    full_update_interval = update_interval;
+  } else {
+    allowed_update_types = AllowedUpdateTypes::kFullAndIncremental;
+  }
+}
 
 LruCacheConfigStatic::LruCacheConfigStatic(
     const components::ComponentConfig& component_config)

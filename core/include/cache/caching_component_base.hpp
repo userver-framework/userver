@@ -19,9 +19,41 @@
 
 namespace components {
 
-// You need to override CacheUpdateTrait::Update
-// then call CacheUpdateTrait::StartPeriodicUpdates after setup
-// and CacheUpdateTrait::StopPeriodicUpdates before teardown
+// clang-format off
+
+/// @brief Base class for caching components
+///
+/// Provides facilities for creating periodically updated caches.
+/// You need to override CacheUpdateTrait::Update
+/// then call CacheUpdateTrait::StartPeriodicUpdates after setup
+/// and CacheUpdateTrait::StopPeriodicUpdates before teardown.
+/// 
+/// Caching components must be configured in service config (see options below)
+/// and may be reconfigured dynamically via TaxiConfig.
+///
+/// ## Available options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// update-types | specifies whether incremental and/or full updates will be used | see below
+/// update-interval | (*required*) interval between Update invocations | --
+/// update-jitter | max. amount of time by which interval may be adjusted for requests desynchronization | update_interval / 10
+/// full-update-interval | interval between full updates | --
+/// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
+///
+/// ### Update types
+///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
+///    must be specified. Updates with UpdateType::kIncremental will be triggered
+///    each `update-interval` (adjusted by jitter) unless `full-update-interval`
+///    has passed and UpdateType::kFull is triggered.
+///  * `only-full`: only `update-interval` must be specified. UpdateType::kFull
+///    will be triggered each `update-interval` (adjusted by jitter).
+///
+/// By default, update types are guessed based on update intervals presence.
+/// If both `update-interval` and `full-update-interval` are present,
+/// `full-and-incremental` types is assumed. Otherwise `only-full` is used.
+
+// clang-format on
+
 template <typename T>
 class CachingComponentBase
     : public LoggableComponentBase,

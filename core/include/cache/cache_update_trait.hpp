@@ -21,6 +21,8 @@ class CacheUpdateTrait {
   CacheUpdateTrait(cache::CacheConfig&& config, const std::string& name);
   virtual ~CacheUpdateTrait();
 
+  cache::AllowedUpdateTypes AllowedUpdateTypes() const;
+
   enum class Flag {
     kNone = 0,
     kNoFirstUpdate = 1 << 0,

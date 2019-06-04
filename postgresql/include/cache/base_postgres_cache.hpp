@@ -212,6 +212,15 @@ template <typename PostgreCachePolicy>
 PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
                                                const ComponentContext& context)
     : BaseType{config, context, kName} {
+  if (BaseType::AllowedUpdateTypes() ==
+          cache::AllowedUpdateTypes::kFullAndIncremental &&
+      !kIncrementalUpdates) {
+    throw std::logic_error(
+        "Incremental update support is requested in config but no update field "
+        "name is specified in traits of '" +
+        config.Name() + "' cache");
+  }
+
   const auto pg_alias = config.ParseString("pgcomponent", {});
   if (pg_alias.empty()) {
     throw storages::postgres::InvalidConfig{

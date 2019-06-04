@@ -11,6 +11,11 @@
 
 namespace cache {
 
+enum class AllowedUpdateTypes {
+  kFullAndIncremental,
+  kOnlyFull,
+};
+
 struct CacheConfig {
   explicit CacheConfig(const components::ComponentConfig& config);
 
@@ -18,9 +23,10 @@ struct CacheConfig {
               std::chrono::milliseconds update_jitter,
               std::chrono::milliseconds full_update_interval);
 
-  std::chrono::milliseconds update_interval_;
-  std::chrono::milliseconds update_jitter_;
-  std::chrono::milliseconds full_update_interval_;
+  AllowedUpdateTypes allowed_update_types;
+  std::chrono::milliseconds update_interval;
+  std::chrono::milliseconds update_jitter;
+  std::chrono::milliseconds full_update_interval;
 };
 
 struct LruCacheConfig {

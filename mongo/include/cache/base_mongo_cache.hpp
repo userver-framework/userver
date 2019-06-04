@@ -5,6 +5,7 @@
 
 #include <cache/cache_statistics.hpp>
 #include <cache/caching_component_base.hpp>
+#include <cache/mongo_cache_type_traits.hpp>
 #include <formats/bson/document.hpp>
 #include <formats/bson/inline.hpp>
 #include <storages/mongo/operations.hpp>
@@ -29,7 +30,8 @@ namespace components {
 ///   // Collection to read from
 ///   static constexpr auto kMongoCollectionsField =
 ///       &storages::mongo::Collections::config;
-///   // Update field name to use for incremental update
+///   // Update field name to use for incremental update (optional).
+///   // When missing, incremental update is disabled.
 ///   // Please use reference here to avoid global variables
 ///   // initialization order issues.
 ///   static constexpr const std::string& kMongoUpdateFieldName =
@@ -88,6 +90,19 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
                                          const ComponentContext& context)
     : CachingComponentBase<typename MongoCacheTraits::DataType>(
           config, context, MongoCacheTraits::kName) {
+  [[maybe_unused]] mongo_cache::impl::CheckTraits<MongoCacheTraits>
+      check_traits;
+
+  if (CachingComponentBase<
+          typename MongoCacheTraits::DataType>::AllowedUpdateTypes() ==
+          cache::AllowedUpdateTypes::kFullAndIncremental &&
+      !mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
+    throw std::logic_error(
+        "Incremental update support is requested in config but no update field "
+        "name is specified in traits of '" +
+        config.Name() + "' cache");
+  }
+
   auto& mongo_component = context.FindComponent<components::MongoCollections>();
   mongo_collections_ = mongo_component.GetCollections();
   mongo_collection_ =
@@ -166,10 +181,13 @@ formats::bson::Document MongoCache<MongoCacheTraits>::GetQuery(
     const std::chrono::system_clock::time_point& last_update) {
   namespace bson = formats::bson;
 
-  if (type == cache::UpdateType::kFull) return {};
-
-  return bson::MakeDoc(MongoCacheTraits::kMongoUpdateFieldName,
-                       bson::MakeDoc("$gt", last_update));
+  if constexpr (mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
+    if (type == cache::UpdateType::kIncremental) {
+      return bson::MakeDoc(MongoCacheTraits::kMongoUpdateFieldName,
+                           bson::MakeDoc("$gt", last_update));
+    }
+  }
+  return {};
 }
 
 template <class MongoCacheTraits>
