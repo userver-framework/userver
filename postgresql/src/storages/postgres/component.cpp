@@ -127,7 +127,8 @@ Postgres::Postgres(const ComponentConfig& config,
                    const ComponentContext& context)
     : LoggableComponentBase(config, context),
       statistics_storage_(
-          context.FindComponent<components::StatisticsStorage>()) {
+          context.FindComponent<components::StatisticsStorage>()),
+      database_{std::make_shared<storages::postgres::Database>()} {
   TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
   config_subscription_ =
       cfg.AddListener(this, "postgres", &Postgres::OnConfigUpdate);
@@ -177,7 +178,7 @@ Postgres::Postgres(const ComponentConfig& config,
   for (auto const& cluster_desc : cluster_desc_) {
     auto cluster = std::make_shared<storages::postgres::Cluster>(
         cluster_desc, *bg_task_processor_, pool_settings_, cmd_ctl);
-    clusters_.push_back(cluster);
+    database_->clusters_.push_back(cluster);
     tasks.push_back(cluster->DiscoverTopology());
   }
 
@@ -197,26 +198,21 @@ Postgres::~Postgres() {
 }
 
 storages::postgres::ClusterPtr Postgres::GetCluster() const {
-  return GetClusterForShard(kDefaultShardNumber);
+  return database_->GetCluster();
 }
 
 storages::postgres::ClusterPtr Postgres::GetClusterForShard(
     size_t shard) const {
-  if (shard >= GetShardCount()) {
-    throw storages::postgres::ClusterUnavailable(
-        "Shard number " + std::to_string(shard) + " is out of range");
-  }
-
-  return clusters_[shard];
+  return database_->GetClusterForShard(shard);
 }
 
-size_t Postgres::GetShardCount() const { return clusters_.size(); }
+size_t Postgres::GetShardCount() const { return database_->GetShardCount(); }
 
 formats::json::Value Postgres::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
   std::vector<storages::postgres::Cluster*> shards_ready;
   shards_ready.reserve(GetShardCount());
-  std::transform(clusters_.begin(), clusters_.end(),
+  std::transform(database_->clusters_.begin(), database_->clusters_.end(),
                  std::back_inserter(shards_ready),
                  [](const auto& sh) { return sh.get(); });
 
@@ -227,7 +223,7 @@ formats::json::Value Postgres::ExtendStatistics(
 
 void Postgres::SetDefaultCommandControl(
     storages::postgres::CommandControl cmd_ctl) {
-  for (const auto& cluster : clusters_) {
+  for (const auto& cluster : database_->clusters_) {
     cluster->SetDefaultCommandControl(cmd_ctl);
   }
 }

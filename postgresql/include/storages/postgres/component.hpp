@@ -15,8 +15,7 @@
 #include <utils/statistics/storage.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/postgres_fwd.hpp>
+#include <storages/postgres/database.hpp>
 
 namespace engine {
 class TaskProcessor;
@@ -136,6 +135,9 @@ class Postgres : public LoggableComponentBase {
   /// Get total shard count
   size_t GetShardCount() const;
 
+  /// Get database object
+  storages::postgres::DatabasePtr GetDatabase() const { return database_; }
+
   /// Reports statistics for PostgreSQL driver
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
@@ -158,7 +160,7 @@ class Postgres : public LoggableComponentBase {
   storages::postgres::PoolSettings pool_settings_;
   engine::TaskProcessor* bg_task_processor_ = nullptr;
   storages::postgres::ShardedClusterDescription cluster_desc_;
-  std::vector<storages::postgres::ClusterPtr> clusters_;
+  storages::postgres::DatabasePtr database_;
 };
 
 }  // namespace components
