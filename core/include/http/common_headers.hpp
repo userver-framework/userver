@@ -84,5 +84,8 @@ inline const char kXYaSpanId[] = "X-YaSpanId";
 // Generic Yandex headers
 inline constexpr char kXYandexUid[] = "X-Yandex-UID";
 
+// IP address of mobile client, not an IP address of single-hop client
+inline constexpr char kXRemoteIp[] = "X-Remote-IP";
+
 }  // namespace headers
 }  // namespace http
