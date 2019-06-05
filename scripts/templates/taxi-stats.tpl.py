@@ -2,6 +2,7 @@
 
 import argparse
 import numbers
+
 import requests
 
 
@@ -36,7 +37,9 @@ def handle_options():
     parser.add_argument(
         '--timeout', help='HTTP timeout (in seconds)', default=5, type=float)
     parser.add_argument(
-        'url_prefix', nargs='?', help='Shows metrics starting with this prefix (a hint for the server)', type=str)
+        'url_prefix', nargs='?',
+        help='Shows metrics starting with this prefix (a hint for the server)',
+        type=str)
     opts = parser.parse_args()
     return opts
 
@@ -48,14 +51,15 @@ def main():
     url = 'http://' + opts.hostname + opts.url
     if opts.url_prefix:
         url += '?prefix=' + opts.url_prefix
-    r = requests.get(url, timeout=opts.timeout,
-                     headers=headers)
-    r.raise_for_status()
+    req = requests.get(url, timeout=opts.timeout,
+                       headers=headers)
+    req.raise_for_status()
 
-    j = r.json()
-    fl = flatten_json('', j)
-    for k in sorted(fl):
-        print('{} {}'.format(k, fl[k]))
+    j = req.json()
+    flat = flatten_json('', j)
+    for k in sorted(flat):
+        print('{} {}'.format(k, flat[k]))
+
 
 if __name__ == '__main__':
     main()

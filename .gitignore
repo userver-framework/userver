@@ -1,4 +1,6 @@
 *.pyc
+.idea
+.mypy_cache
 *.orig
 *.local
 /build/
