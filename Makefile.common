@@ -120,15 +120,15 @@ clang-tidy: cmake
 
 .PHONY: check-pep8
 check-pep8:
-	if [ -e scripts/flake8.sh ]; then scripts/flake8.sh; else check-pep8 --watchers $(CMAKE_DIR); fi;
+	@if [ -e scripts/flake8.sh ]; then scripts/flake8.sh; else check-pep8 --watchers $(CMAKE_DIR); fi;
 
 .PHONY: smart-check-pep8
 smart-check-pep8:
-	if [ -e scripts/flake8.sh ]; then scripts/flake8.sh --smart; else check-pep8 --watchers --smart $(CMAKE_DIR); fi;
+	@if [ -e scripts/flake8.sh ]; then scripts/flake8.sh --smart; else check-pep8 --watchers --smart $(CMAKE_DIR); fi;
 
 .PHONY: teamcity-check-pep8
 teamcity-check-pep8:
-	if [ -e scripts/flake8.sh ]; then scripts/flake8.sh || echo "##teamcity[buildProblem description='pep8' identity='pep8']"; else check-pep8 --teamcity $(CMAKE_DIR); fi;
+	@if [ -e scripts/flake8.sh ]; then scripts/flake8.sh || echo "##teamcity[buildProblem description='pep8' identity='pep8']"; else check-pep8 --teamcity $(CMAKE_DIR); fi;
 
 .PHONY: docs
 docs:
