@@ -17,7 +17,7 @@ const std::string kRequestContextKeyUserAuthInfo = "auth::user_info";
 UserAuthInfo::UserAuthInfo(UserId default_id)
     : default_id_{default_id}, ids_{default_id} {}
 
-UserAuthInfo::UserAuthInfo(UserId default_id, std::string user_ticket)
+UserAuthInfo::UserAuthInfo(UserId default_id, Ticket user_ticket)
     : default_id_{default_id},
       ids_{default_id},
       user_ticket_{std::move(user_ticket)} {}
@@ -28,7 +28,7 @@ UserAuthInfo::UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes)
       scopes_(std::move(scopes)) {}
 
 UserAuthInfo::UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes,
-                           std::string user_ticket)
+                           Ticket user_ticket)
     : default_id_(default_id),
       ids_(std::move(ids)),
       scopes_(std::move(scopes)),
@@ -42,7 +42,8 @@ const boost::optional<UserScopes>& UserAuthInfo::GetUserScopesOptional() const {
   return scopes_;
 }
 
-const boost::optional<std::string>& UserAuthInfo::GetTicketOptional() const {
+const boost::optional<UserAuthInfo::Ticket>& UserAuthInfo::GetTicketOptional()
+    const {
   return user_ticket_;
 }
 

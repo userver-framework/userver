@@ -32,7 +32,7 @@ inline std::uint64_t ToUInt64(UserId v) noexcept {
 std::string ToString(UserId v);
 
 template <class Char>
-std::basic_ostream<Char> operator<<(std::basic_ostream<Char>& os, UserId v) {
+std::basic_ostream<Char>& operator<<(std::basic_ostream<Char>& os, UserId v) {
   return os << ToUInt64(v);
 }
 
