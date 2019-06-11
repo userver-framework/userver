@@ -224,6 +224,10 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     RequestProcessor request_processor(*this, http_request_impl, http_request);
 
     request_processor.ProcessRequestStep(
+        kCheckAuthStep,
+        [this, &http_request, &context] { CheckAuth(http_request, context); });
+
+    request_processor.ProcessRequestStep(
         kParseRequestDataStep, [this, &http_request, &context] {
           ParseRequestData(http_request, context);
         });
@@ -249,10 +253,6 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
 
     HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
                                            http_request.GetMethod());
-
-    request_processor.ProcessRequestStep(
-        kCheckAuthStep,
-        [this, &http_request, &context] { CheckAuth(http_request, context); });
 
     request_processor.ProcessRequestStep(
         kHandleRequestStep, [this, &response, &http_request, &context] {
