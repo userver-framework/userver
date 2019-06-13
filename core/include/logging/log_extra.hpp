@@ -22,8 +22,9 @@ class LogHelper;
 /// Extra tskv fields storage
 class LogExtra {
  public:
-  using Value = boost::variant<std::string, unsigned, int64_t, uint64_t, int,
-                               float, double>;
+  using Value =
+      boost::variant<std::string, int, long, long long, unsigned int,
+                     unsigned long, unsigned long long, float, double>;
   using Key = std::string;
   using Pair = std::pair<Key, Value>;
 
