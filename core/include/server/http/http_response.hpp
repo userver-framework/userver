@@ -6,6 +6,7 @@
 
 #include <boost/range/adaptor/map.hpp>
 
+#include <server/http/http_response_cookie.hpp>
 #include <server/request/response_base.hpp>
 #include <utils/str_icase.hpp>
 
@@ -24,6 +25,12 @@ class HttpResponse : public request::ResponseBase {
 
   using HeadersMapKeys = decltype(HeadersMap() | boost::adaptors::map_keys);
 
+  using CookiesMap =
+      std::unordered_map<std::string, Cookie, utils::StrIcaseHash,
+                         utils::StrIcaseCmp>;
+
+  using CookiesMapKeys = decltype(CookiesMap() | boost::adaptors::map_keys);
+
   explicit HttpResponse(const HttpRequestImpl& request);
   ~HttpResponse() override;
 
@@ -36,10 +43,16 @@ class HttpResponse : public request::ResponseBase {
   void SetStatus(HttpStatus status);
   void ClearHeaders();
 
+  void SetCookie(Cookie cookie);
+  void ClearCookies();
+
   HttpStatus GetStatus() const { return status_; }
 
   HeadersMapKeys GetHeaderNames() const;
   const std::string& GetHeader(const std::string& header_name) const;
+
+  CookiesMapKeys GetCookieNames() const;
+  const Cookie& GetCookie(const std::string& cookie_name) const;
 
   // TODO: server internals. remove from public interface
   void SendResponse(engine::io::Socket& socket) override;
@@ -54,6 +67,7 @@ class HttpResponse : public request::ResponseBase {
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;
   HeadersMap headers_;
+  CookiesMap cookies_;
 };
 
 }  // namespace http

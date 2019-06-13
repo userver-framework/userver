@@ -96,6 +96,14 @@ void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
 
 void HttpResponse::ClearHeaders() { headers_.clear(); }
 
+void HttpResponse::SetCookie(Cookie cookie) {
+  CheckHeaderValue(cookie.Name());
+  CheckHeaderValue(cookie.Value());
+  cookies_.emplace(cookie.Name(), std::move(cookie));
+}
+
+void HttpResponse::ClearCookies() { cookies_.clear(); }
+
 HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
   return headers_ | boost::adaptors::map_keys;
 }
@@ -103,6 +111,14 @@ HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
 const std::string& HttpResponse::GetHeader(
     const std::string& header_name) const {
   return headers_.at(header_name);
+}
+
+HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const {
+  return cookies_ | boost::adaptors::map_keys;
+}
+
+const Cookie& HttpResponse::GetCookie(const std::string& cookie_name) const {
+  return cookies_.at(cookie_name);
 }
 
 void HttpResponse::SendResponse(engine::io::Socket& socket) {
@@ -126,7 +142,11 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   if (headers_.find(::http::headers::kConnection) == headers_.end())
     os << ::http::headers::kConnection << ": "
        << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
-  os << "Content-Length: " << data_.size() << kCrlf << kCrlf;
+  os << "Content-Length: " << data_.size() << kCrlf;
+  for (const auto& cookie : cookies_)
+    os << ::http::headers::kSetCookie << ": " << cookie.second.ToString()
+       << kCrlf;
+  os << kCrlf;
   if (!is_head_request) os << data_;
 
   const auto response_data = os.str();

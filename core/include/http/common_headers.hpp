@@ -72,6 +72,9 @@ inline const char kAcceptRanges[] = "Accept-Ranges";
 inline const char kAllow[] = "Allow";
 inline const char kServer[] = "Server";
 
+// Cookie
+inline const char kSetCookie[] = "Set-Cookie";
+
 // Extra headers
 inline const char kConnection[] = "Connection";
 
