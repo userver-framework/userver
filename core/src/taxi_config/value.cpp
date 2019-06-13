@@ -39,9 +39,14 @@ void DocsMap::Parse(const std::string& json_string, bool empty_ok) {
     throw std::runtime_error("DocsMap::Parse failed: json is empty");
 
   for (auto it = json.begin(); it != json.end(); ++it) {
+    auto name = it.GetName();
     formats::json::ValueBuilder builder;
-    builder["v"] = *it;
-    Set(it.GetName(), builder.ExtractValue());
+
+    /* Use fake [name] magic to pass the json path into DocsMap
+     * to ease debugging of bad default value
+     */
+    builder[name]["v"] = *it;
+    Set(name, builder.ExtractValue()[name]);
   }
 }
 
