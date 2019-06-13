@@ -37,7 +37,11 @@ void ResponseFuture::Cancel() {
 void ResponseFuture::Detach() { *future_ = {}; }
 
 std::future_status ResponseFuture::Wait() const {
-  return future_->wait_until(deadline_);
+  auto status = future_->wait_until(deadline_);
+  if (status != std::future_status::ready) {
+    engine::current_task::CancellationPoint();
+  }
+  return status;
 }
 
 std::shared_ptr<Response> ResponseFuture::Get() {

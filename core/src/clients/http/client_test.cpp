@@ -2,7 +2,9 @@
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
+#include <engine/task/task_context.hpp>
 #include <logging/log.hpp>
+#include <utils/async.hpp>
 
 #include <utest/simple_server.hpp>
 #include <utest/utest.hpp>
@@ -211,6 +213,29 @@ TEST(HttpClient, PostEcho) {
                          ->perform();
 
     EXPECT_EQ(res->body(), kTestData);
+  });
+}
+
+TEST(HttpClient, Cancel) {
+  TestInCoro([] {
+    auto task = utils::Async("test", [] {
+      const testing::SimpleServer http_server{&echo_callback};
+      std::shared_ptr<clients::http::Client> http_client_ptr =
+          clients::http::Client::Create(kHttpIoThreads);
+
+      engine::current_task::GetCurrentTaskContext()->RequestCancel(
+          engine::Task::CancellationReason::kUserRequest);
+
+      const auto request = http_client_ptr->CreateRequest()
+                               ->post(http_server.GetBaseUrl(), kTestData)
+                               ->timeout(std::chrono::milliseconds(100));
+
+      auto response = request->perform();
+      EXPECT_TRUE(false) << "should have stopped";
+    });
+
+    task.Wait();
+    EXPECT_EQ(engine::Task::State::kCancelled, task.GetState());
   });
 }
 
