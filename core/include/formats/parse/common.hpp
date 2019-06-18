@@ -6,6 +6,7 @@
 #include <compiler/demangle.hpp>
 #include <formats/common/meta.hpp>
 #include <formats/parse/to.hpp>
+#include <utils/datetime.hpp>
 #include <utils/string_to_duration.hpp>
 
 namespace formats::parse {
@@ -78,6 +79,13 @@ auto Parse(const Value& n, To<std::chrono::seconds>) {
   }
 
   return to;
+}
+
+template <class Value>
+std::chrono::system_clock::time_point Parse(
+    const Value& n, To<std::chrono::system_clock::time_point>) {
+  return utils::datetime::Stringtime(n.template As<std::string>(), "UTC",
+                                     utils::datetime::kRfc3339Format);
 }
 
 template <class Value>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -23,6 +24,10 @@ inline formats::json::Value SerializeToJson(double value) {
   return formats::json::ValueBuilder(value).ExtractValue();
 }
 
+inline formats::json::Value SerializeToJson(bool value) {
+  return formats::json::ValueBuilder(value).ExtractValue();
+}
+
 template <typename T>
 formats::json::Value SerializeToJson(const std::vector<T>& value) {
   formats::json::ValueBuilder builder(formats::json::Type::kArray);
@@ -41,5 +46,7 @@ formats::json::Value SerializeToJson(
 
   return builder.ExtractValue();
 }
+
+formats::json::Value SerializeToJson(std::chrono::system_clock::time_point tp);
 
 }  // namespace formats::json
