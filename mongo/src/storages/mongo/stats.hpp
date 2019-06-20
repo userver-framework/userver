@@ -56,7 +56,7 @@ struct ReadOperationStatistics {
     kCount,
     kCountApprox,
     kFind,
-    // TODO: kGetmore,
+    kGetMore,
 
     kOpTypesCount
   };
@@ -164,6 +164,7 @@ class OperationStopwatch {
 
   void AccountSuccess();
   void AccountError(MongoError::Kind);
+  void Discard();
 
  private:
   void Account(OperationStatisticsItem::ErrorType) noexcept;

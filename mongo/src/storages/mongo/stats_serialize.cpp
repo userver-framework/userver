@@ -1,5 +1,6 @@
 #include <storages/mongo/stats.hpp>
 
+#include <initializer_list>
 #include <stdexcept>
 #include <tuple>
 
@@ -8,6 +9,9 @@
 
 namespace storages::mongo::stats {
 namespace {
+
+const std::initializer_list<double> kOperationsStatisticsPercentiles = {
+    95, 98, 99, 100};
 
 const char* ToCString(OperationStatisticsItem::ErrorType type) {
   using Type = OperationStatisticsItem::ErrorType;
@@ -48,8 +52,8 @@ const char* ToCString(ReadOperationStatistics::OpType type) {
       return "count-approx";
     case Type::kFind:
       return "find";
-      // case Type::kGetmore:
-      //   return "getmore";
+    case Type::kGetMore:
+      return "getmore";
 
     case Type::kOpTypesCount:
       UASSERT_MSG(false, "invalid type");
@@ -98,7 +102,8 @@ void Dump(const OperationStatisticsItem& item,
   }
   builder["success"] = item.counters[0].Load();
   builder["errors"] = total_errors;
-  builder["timings"] = utils::statistics::PercentileToJson(item.timings);
+  builder["timings"] = utils::statistics::PercentileToJson(
+      item.timings, kOperationsStatisticsPercentiles);
 }
 
 void Dump(const OperationStatisticsItem& item,

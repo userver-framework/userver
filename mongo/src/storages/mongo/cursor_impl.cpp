@@ -11,22 +11,6 @@
 #include <utils/assert.hpp>
 
 namespace storages::mongo::impl {
-namespace {
-
-// Dirty hack until TAXICOMMON-962
-// NOTE: END_OF_BATCH may never be observed in between operations
-enum class MongocCursorState { kUnprimed, kInBatch, kEndOfBatch, kDone };
-
-struct MongocCursorView {
-  char data_[20];
-  MongocCursorState state;
-};
-
-MongocCursorState GetCursorState(const mongoc_cursor_t* cursor) {
-  return reinterpret_cast<const MongocCursorView*>(cursor)->state;
-}
-
-}  // namespace
 
 CursorImpl::CursorImpl(
     PoolImpl::BoundClientPtr client, CursorPtr cursor,
@@ -59,14 +43,11 @@ void CursorImpl::Next() {
   }
 
   UASSERT(client_ && cursor_);
-  stats::OperationStopwatch<stats::ReadOperationStatistics> cursor_next_sw;
-  switch (GetCursorState(cursor_.get())) {
-    case MongocCursorState::kUnprimed:
-      cursor_next_sw = stats::OperationStopwatch(
-          stats_agg_, stats::ReadOperationStatistics::kFind);
-      break;
-    default:;  // do not account
-  }
+  const auto batch_num_before = mongoc_cursor_get_batch_num(cursor_.get());
+  stats::OperationStopwatch<stats::ReadOperationStatistics> cursor_next_sw(
+      stats_agg_, batch_num_before == -1
+                      ? stats::ReadOperationStatistics::kFind
+                      : stats::ReadOperationStatistics::kGetMore);
 
   const bson_t* current_bson = nullptr;
   MongoError error;
@@ -77,7 +58,9 @@ void CursorImpl::Next() {
       break;
     }
   }
-  if (!error) {
+  if (batch_num_before == mongoc_cursor_get_batch_num(cursor_.get())) {
+    cursor_next_sw.Discard();
+  } else if (!error) {
     cursor_next_sw.AccountSuccess();
   } else {
     cursor_next_sw.AccountError(error.GetKind());

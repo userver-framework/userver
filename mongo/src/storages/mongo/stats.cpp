@@ -88,6 +88,11 @@ void OperationStopwatch<OpStats>::AccountError(MongoError::Kind kind) {
 }
 
 template <typename OpStats>
+void OperationStopwatch<OpStats>::Discard() {
+  stats_agg_.reset();
+}
+
+template <typename OpStats>
 void OperationStopwatch<OpStats>::Account(
     OperationStatisticsItem::ErrorType error_type) noexcept {
   const auto stats_agg = std::exchange(stats_agg_, nullptr);
