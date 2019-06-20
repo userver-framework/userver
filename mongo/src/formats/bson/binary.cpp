@@ -16,14 +16,16 @@ Document FromBinaryString(utils::string_view binary) {
     throw ParseException("malformed BSON: invalid document length");
   }
 
+  size_t error_offset = 0;
   bson_error_t validation_error;
-  if (!bson_validate_with_error(
+  if (!bson_validate_with_error_and_offset(
           native.Get(),
           static_cast<bson_validate_flags_t>(BSON_VALIDATE_UTF8 |
                                              BSON_VALIDATE_UTF8_ALLOW_NULL |
                                              BSON_VALIDATE_EMPTY_KEYS),
-          &validation_error)) {
-    throw ParseException("malformed BSON: ") << validation_error.message;
+          &error_offset, &validation_error)) {
+    throw ParseException("malformed BSON near offset ")
+        << error_offset << ": " << validation_error.message;
   }
 
   return Document(native.Extract());

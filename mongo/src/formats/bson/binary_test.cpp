@@ -76,15 +76,14 @@ TEST(Binary, Invalid) {
       formats::bson::FromBinaryString(std::string{6, 0, 0, 0, 0x00, 0x00}),
       formats::bson::ParseException);
 
-  // FIXME: libbson does not catch that -- TAXICOMMON-1018
-  // // Invalid subdocument size
-  // EXPECT_THROW(formats::bson::FromBinaryString(std::string{
-  //                  // clang-format off
-  //                  15, 0, 0, 0,
-  //                    0x03, 't', 'e', 's', 't', '\0',
-  //                      4, 0, 0, 0,
-  //                    0x00
-  //                  // clang-format on
-  //              }),
-  //              formats::bson::ParseException);
+  // Invalid subdocument size
+  EXPECT_THROW(formats::bson::FromBinaryString(std::string{
+                   // clang-format off
+                   15, 0, 0, 0,
+                     0x03, 't', 'e', 's', 't', '\0',
+                       4, 0, 0, 0,
+                     0x00
+                   // clang-format on
+               }),
+               formats::bson::ParseException);
 }
