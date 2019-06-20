@@ -99,7 +99,8 @@ void HttpResponse::ClearHeaders() { headers_.clear(); }
 void HttpResponse::SetCookie(Cookie cookie) {
   CheckHeaderValue(cookie.Name());
   CheckHeaderValue(cookie.Value());
-  cookies_.emplace(cookie.Name(), std::move(cookie));
+  auto cookie_name = cookie.Name();
+  cookies_.emplace(std::move(cookie_name), std::move(cookie));
 }
 
 void HttpResponse::ClearCookies() { cookies_.clear(); }
