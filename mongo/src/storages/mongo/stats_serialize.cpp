@@ -13,91 +13,13 @@ namespace {
 const std::initializer_list<double> kOperationsStatisticsPercentiles = {
     95, 98, 99, 100};
 
-const char* ToCString(OperationStatisticsItem::ErrorType type) {
-  using Type = OperationStatisticsItem::ErrorType;
-  switch (type) {
-    case Type::kSuccess:
-      return "success";
-    case Type::kNetwork:
-      return "network";
-    case Type::kClusterUnavailable:
-      return "cluster-unavailable";
-    case Type::kBadServerVersion:
-      return "server-version";
-    case Type::kAuthFailure:
-      return "auth-failure";
-    case Type::kBadQueryArgument:
-      return "bad-query-arg";
-    case Type::kDuplicateKey:
-      return "duplicate-key";
-    case Type::kWriteConcern:
-      return "write-concern";
-    case Type::kServer:
-      return "server-error";
-    case Type::kOther:
-      return "other";
-
-    case Type::kErrorTypesCount:
-      UASSERT_MSG(false, "invalid type");
-      throw std::logic_error("invalid type");
-  }
-}
-
-const char* ToCString(ReadOperationStatistics::OpType type) {
-  using Type = ReadOperationStatistics::OpType;
-  switch (type) {
-    case Type::kCount:
-      return "count";
-    case Type::kCountApprox:
-      return "count-approx";
-    case Type::kFind:
-      return "find";
-    case Type::kGetMore:
-      return "getmore";
-
-    case Type::kOpTypesCount:
-      UASSERT_MSG(false, "invalid type");
-      throw std::logic_error("invalid type");
-  }
-}
-
-const char* ToCString(WriteOperationStatistics::OpType type) {
-  using Type = WriteOperationStatistics::OpType;
-  switch (type) {
-    case Type::kInsertOne:
-      return "insert-one";
-    case Type::kInsertMany:
-      return "insert-many";
-    case Type::kReplaceOne:
-      return "replace-one";
-    case Type::kUpdateOne:
-      return "update-one";
-    case Type::kUpdateMany:
-      return "update-many";
-    case Type::kDeleteOne:
-      return "delete-one";
-    case Type::kDeleteMany:
-      return "delete-many";
-    case Type::kFindAndModify:
-      return "find-and-modify";
-    case Type::kFindAndRemove:
-      return "find-and-remove";
-    case Type::kBulk:
-      return "bulk";
-
-    case Type::kOpTypesCount:
-      UASSERT_MSG(false, "invalid type");
-      throw std::logic_error("invalid type");
-  }
-}
-
 void Dump(const OperationStatisticsItem& item,
           formats::json::ValueBuilder& builder) {
   Counter::ValueType total_errors = 0;
   auto errors_builder = builder["by-error"];
   for (size_t i = 1; i < item.counters.size(); ++i) {
     auto type = static_cast<OperationStatisticsItem::ErrorType>(i);
-    errors_builder[ToCString(type)] = item.counters[i].Load();
+    errors_builder[ToString(type)] = item.counters[i].Load();
     total_errors += item.counters[i];
   }
   builder["success"] = item.counters[0].Load();
@@ -118,7 +40,7 @@ OperationStatisticsItem DumpAndCombine(
   auto op_builder = builder["by-operation"];
   for (size_t i = 0; i < read_stats.items.size(); ++i) {
     auto type = static_cast<ReadOperationStatistics::OpType>(i);
-    Dump(read_stats.items[i], op_builder[ToCString(type)]);
+    Dump(read_stats.items[i], op_builder[ToString(type)]);
     overall.Add(read_stats.items[i]);
   }
   Dump(overall, builder);
@@ -132,7 +54,7 @@ OperationStatisticsItem DumpAndCombine(
   auto op_builder = builder["by-operation"];
   for (size_t i = 0; i < write_stats.items.size(); ++i) {
     auto type = static_cast<WriteOperationStatistics::OpType>(i);
-    Dump(write_stats.items[i], op_builder[ToCString(type)]);
+    Dump(write_stats.items[i], op_builder[ToString(type)]);
     overall.Add(write_stats.items[i]);
   }
   Dump(overall, builder);

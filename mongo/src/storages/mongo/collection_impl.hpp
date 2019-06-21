@@ -5,6 +5,7 @@
 
 #include <storages/mongo/pool_impl.hpp>
 #include <storages/mongo/stats.hpp>
+#include <tracing/span.hpp>
 
 namespace storages::mongo::impl {
 
@@ -19,6 +20,7 @@ class CollectionImpl {
   BoundClientPtr GetClient();
   std::tuple<BoundClientPtr, CollectionPtr> GetNativeCollection();
 
+  tracing::Span MakeSpan(const std::string& name) const;
   stats::CollectionStatistics& GetCollectionStatistics();
 
  private:

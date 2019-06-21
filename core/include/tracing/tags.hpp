@@ -21,8 +21,11 @@ extern const std::string kHttpStatusCode;
 extern const std::string kErrorFlag;
 
 extern const std::string kDatabaseType;
+extern const std::string kDatabaseMongoType;
 extern const std::string kDatabasePostgresType;
 
+extern const std::string kDatabaseCollection;
+extern const std::string kDatabaseInstance;
 extern const std::string kDatabaseStatement;
 
 }  // namespace tracing

@@ -3,6 +3,7 @@
 #include <mongoc/mongoc.h>
 
 #include <storages/mongo/exception.hpp>
+#include <tracing/tags.hpp>
 #include <utils/text.hpp>
 
 #include <storages/mongo/wrappers.hpp>
@@ -39,6 +40,14 @@ CollectionImpl::GetNativeCollection() {
   CollectionPtr collection(mongoc_client_get_collection(
       client.get(), database_name_.c_str(), collection_name_.c_str()));
   return std::make_tuple(std::move(client), std::move(collection));
+}
+
+tracing::Span CollectionImpl::MakeSpan(const std::string& name) const {
+  tracing::Span span(name);
+  span.AddTag(tracing::kDatabaseType, tracing::kDatabaseMongoType);
+  span.AddTag(tracing::kDatabaseInstance, database_name_);
+  span.AddTag(tracing::kDatabaseCollection, collection_name_);
+  return span;
 }
 
 stats::CollectionStatistics& CollectionImpl::GetCollectionStatistics() {

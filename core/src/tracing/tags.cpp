@@ -16,7 +16,13 @@ const std::string kErrorFlag = "error";
 
 const std::string kDatabaseType = "db.type";
 
+const std::string kDatabaseMongoType = "mongo";
+
 const std::string kDatabasePostgresType = "postgres";
+
+const std::string kDatabaseCollection = "db.collection";
+
+const std::string kDatabaseInstance = "db.instance";
 
 const std::string kDatabaseStatement = "db.statement";
 

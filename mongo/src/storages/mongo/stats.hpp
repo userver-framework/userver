@@ -8,6 +8,7 @@
 
 #include <rcu/rcu_map.hpp>
 #include <storages/mongo/mongo_error.hpp>
+#include <utils/prof.hpp>
 #include <utils/statistics/percentile.hpp>
 #include <utils/statistics/recentperiod.hpp>
 #include <utils/statistics/relaxed_counter.hpp>
@@ -17,8 +18,8 @@ namespace storages::mongo::stats {
 using Counter = utils::statistics::RelaxedCounter<uint32_t>;
 using TimingsPercentile =
     utils::statistics::Percentile</*buckets =*/1000, uint32_t,
-                                  /*extra_buckets=*/900,
-                                  /*extra_bucket_size=*/10>;
+                                  /*extra_buckets=*/780,
+                                  /*extra_bucket_size=*/50>;
 
 template <typename T>
 using Aggregator = utils::statistics::RecentPeriod<T, T>;
@@ -51,6 +52,8 @@ struct OperationStatisticsItem {
   TimingsPercentile timings;
 };
 
+std::string ToString(OperationStatisticsItem::ErrorType type);
+
 struct ReadOperationStatistics {
   enum OpType {
     kCount,
@@ -70,6 +73,8 @@ struct ReadOperationStatistics {
 
   std::array<OperationStatisticsItem, kOpTypesCount> items;
 };
+
+std::string ToString(ReadOperationStatistics::OpType type);
 
 struct WriteOperationStatistics {
   enum OpType {
@@ -96,6 +101,8 @@ struct WriteOperationStatistics {
 
   std::array<OperationStatisticsItem, kOpTypesCount> items;
 };
+
+std::string ToString(WriteOperationStatistics::OpType type);
 
 struct CollectionStatistics {
   // read preference -> stats
@@ -131,6 +138,8 @@ struct PoolConnectStatistics {
   TimingsPercentile queue_wait_timings;
 };
 
+std::string ToString(PoolConnectStatistics::OpType type);
+
 struct PoolStatistics {
   PoolStatistics()
       : pool(std::make_shared<Aggregator<PoolConnectStatistics>>()) {}
@@ -139,28 +148,19 @@ struct PoolStatistics {
   rcu::RcuMap<std::string, CollectionStatistics> collections;
 };
 
-class StopwatchImpl {
- public:
-  StopwatchImpl() noexcept;
-
-  uint32_t ElapsedMs() const noexcept;
-
- private:
-  std::chrono::steady_clock::time_point start_;
-};
-
 template <typename OperationStatistics>
 class OperationStopwatch {
  public:
-  OperationStopwatch() = default;
+  OperationStopwatch();
   OperationStopwatch(std::shared_ptr<Aggregator<OperationStatistics>>,
                      typename OperationStatistics::OpType);
   ~OperationStopwatch();
 
   OperationStopwatch(const OperationStopwatch&) = delete;
   OperationStopwatch(OperationStopwatch&&) noexcept = default;
-  OperationStopwatch& operator=(const OperationStopwatch&) = delete;
-  OperationStopwatch& operator=(OperationStopwatch&&) noexcept = default;
+
+  void Reset(std::shared_ptr<Aggregator<OperationStatistics>>,
+             typename OperationStatistics::OpType);
 
   void AccountSuccess();
   void AccountError(MongoError::Kind);
@@ -170,7 +170,7 @@ class OperationStopwatch {
   void Account(OperationStatisticsItem::ErrorType) noexcept;
 
   std::shared_ptr<Aggregator<OperationStatistics>> stats_agg_;
-  StopwatchImpl stopwatch_;
+  ScopeTime scope_time_;
   typename OperationStatistics::OpType op_type_;
 };
 
@@ -182,12 +182,10 @@ class PoolRequestStopwatch {
 
   PoolRequestStopwatch(const PoolRequestStopwatch&) = delete;
   PoolRequestStopwatch(PoolRequestStopwatch&&) noexcept = default;
-  PoolRequestStopwatch& operator=(const PoolRequestStopwatch&) = delete;
-  PoolRequestStopwatch& operator=(PoolRequestStopwatch&&) noexcept = default;
 
  private:
   std::shared_ptr<Aggregator<PoolConnectStatistics>> stats_agg_;
-  StopwatchImpl stopwatch_;
+  ScopeTime scope_time_;
 };
 
 class PoolQueueStopwatch {
@@ -198,14 +196,12 @@ class PoolQueueStopwatch {
 
   PoolQueueStopwatch(const PoolQueueStopwatch&) = delete;
   PoolQueueStopwatch(PoolQueueStopwatch&&) noexcept = default;
-  PoolQueueStopwatch& operator=(const PoolQueueStopwatch&) = delete;
-  PoolQueueStopwatch& operator=(PoolQueueStopwatch&&) noexcept = default;
 
   void Stop() noexcept;
 
  private:
   std::shared_ptr<Aggregator<PoolConnectStatistics>> stats_agg_;
-  StopwatchImpl stopwatch_;
+  ScopeTime scope_time_;
 };
 
 template <typename Rep, typename Period>

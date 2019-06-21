@@ -35,6 +35,7 @@ Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl)
     : impl_(std::move(impl)) {}
 
 size_t Collection::Execute(const operations::Count& count_op) const {
+  auto span = impl_->MakeSpan("mongo_count");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr =
       impl_->GetCollectionStatistics().read[count_op.impl_->read_prefs_desc];
@@ -69,6 +70,7 @@ size_t Collection::Execute(const operations::Count& count_op) const {
 
 size_t Collection::Execute(
     const operations::CountApprox& count_approx_op) const {
+  auto span = impl_->MakeSpan("mongo_count_approx");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr = impl_->GetCollectionStatistics()
                        .read[count_approx_op.impl_->read_prefs_desc];
@@ -88,6 +90,7 @@ size_t Collection::Execute(
 }
 
 Cursor Collection::Execute(const operations::Find& find_op) const {
+  auto span = impl_->MakeSpan("mongo_find");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr =
       impl_->GetCollectionStatistics().read[find_op.impl_->read_prefs_desc];
@@ -101,6 +104,7 @@ Cursor Collection::Execute(const operations::Find& find_op) const {
 }
 
 WriteResult Collection::Execute(const operations::InsertOne& insert_op) {
+  auto span = impl_->MakeSpan("mongo_insert_one");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr = impl_->GetCollectionStatistics()
                        .write[insert_op.impl_->write_concern_desc];
@@ -124,6 +128,7 @@ WriteResult Collection::Execute(const operations::InsertOne& insert_op) {
 }
 
 WriteResult Collection::Execute(const operations::InsertMany& insert_op) {
+  auto span = impl_->MakeSpan("mongo_insert_many");
   if (insert_op.impl_->documents.empty()) return {};
 
   std::vector<const bson_t*> bsons;
@@ -155,6 +160,7 @@ WriteResult Collection::Execute(const operations::InsertMany& insert_op) {
 }
 
 WriteResult Collection::Execute(const operations::ReplaceOne& replace_op) {
+  auto span = impl_->MakeSpan("mongo_replace_one");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr = impl_->GetCollectionStatistics()
                        .write[replace_op.impl_->write_concern_desc];
@@ -179,6 +185,7 @@ WriteResult Collection::Execute(const operations::ReplaceOne& replace_op) {
 }
 
 WriteResult Collection::Execute(const operations::Update& update_op) {
+  auto span = impl_->MakeSpan("mongo_update");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr = impl_->GetCollectionStatistics()
                        .write[update_op.impl_->write_concern_desc];
@@ -191,8 +198,8 @@ WriteResult Collection::Execute(const operations::Update& update_op) {
     bool has_succeeded = false;
     switch (update_op.impl_->mode) {
       case operations::Update::Mode::kSingle:
-        update_sw = stats::OperationStopwatch(
-            std::move(stats_ptr), stats::WriteOperationStatistics::kUpdateOne);
+        update_sw.Reset(std::move(stats_ptr),
+                        stats::WriteOperationStatistics::kUpdateOne);
         has_succeeded = mongoc_collection_update_one(
             collection.get(), update_op.impl_->selector.GetBson().get(),
             update_op.impl_->update.GetBson().get(),
@@ -201,8 +208,8 @@ WriteResult Collection::Execute(const operations::Update& update_op) {
         break;
 
       case operations::Update::Mode::kMulti:
-        update_sw = stats::OperationStopwatch(
-            std::move(stats_ptr), stats::WriteOperationStatistics::kUpdateMany);
+        update_sw.Reset(std::move(stats_ptr),
+                        stats::WriteOperationStatistics::kUpdateMany);
         has_succeeded = mongoc_collection_update_many(
             collection.get(), update_op.impl_->selector.GetBson().get(),
             update_op.impl_->update.GetBson().get(),
@@ -230,6 +237,7 @@ WriteResult Collection::Execute(const operations::Update& update_op) {
 }
 
 WriteResult Collection::Execute(const operations::Delete& delete_op) {
+  auto span = impl_->MakeSpan("mongo_delete");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr = impl_->GetCollectionStatistics()
                        .write[delete_op.impl_->write_concern_desc];
@@ -240,8 +248,8 @@ WriteResult Collection::Execute(const operations::Delete& delete_op) {
   bool has_succeeded = false;
   switch (delete_op.impl_->mode) {
     case operations::Delete::Mode::kSingle:
-      delete_sw = stats::OperationStopwatch(
-          std::move(stats_ptr), stats::WriteOperationStatistics::kDeleteOne);
+      delete_sw.Reset(std::move(stats_ptr),
+                      stats::WriteOperationStatistics::kDeleteOne);
       has_succeeded = mongoc_collection_delete_one(
           collection.get(), delete_op.impl_->selector.GetBson().get(),
           impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
@@ -249,8 +257,8 @@ WriteResult Collection::Execute(const operations::Delete& delete_op) {
       break;
 
     case operations::Delete::Mode::kMulti:
-      delete_sw = stats::OperationStopwatch(
-          std::move(stats_ptr), stats::WriteOperationStatistics::kDeleteMany);
+      delete_sw.Reset(std::move(stats_ptr),
+                      stats::WriteOperationStatistics::kDeleteMany);
       has_succeeded = mongoc_collection_delete_many(
           collection.get(), delete_op.impl_->selector.GetBson().get(),
           impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
@@ -269,6 +277,7 @@ WriteResult Collection::Execute(const operations::Delete& delete_op) {
 }
 
 WriteResult Collection::Execute(const operations::FindAndModify& fam_op) {
+  auto span = impl_->MakeSpan("mongo_find_and_modify");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr =
       impl_->GetCollectionStatistics().write[fam_op.impl_->write_concern_desc];
@@ -299,6 +308,7 @@ WriteResult Collection::Execute(const operations::FindAndModify& fam_op) {
 }
 
 WriteResult Collection::Execute(const operations::FindAndRemove& fam_op) {
+  auto span = impl_->MakeSpan("mongo_find_and_delete");
   auto [client, collection] = impl_->GetNativeCollection();
   auto stats_ptr =
       impl_->GetCollectionStatistics().write[fam_op.impl_->write_concern_desc];
@@ -320,6 +330,7 @@ WriteResult Collection::Execute(const operations::FindAndRemove& fam_op) {
 }
 
 WriteResult Collection::Execute(operations::Bulk&& bulk_op) {
+  auto span = impl_->MakeSpan("mongo_bulk");
   if (bulk_op.IsEmpty()) return {};
 
   UASSERT(bulk_op.impl_->bulk);
