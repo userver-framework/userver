@@ -1,8 +1,11 @@
 #pragma once
 
 #include <chrono>
+#include <map>
+#include <set>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <formats/json/value_builder.hpp>
@@ -38,8 +41,35 @@ formats::json::Value SerializeToJson(const std::vector<T>& value) {
 }
 
 template <typename T>
+formats::json::Value SerializeToJson(const std::set<T>& value) {
+  formats::json::ValueBuilder builder(formats::json::Type::kArray);
+
+  for (const auto& item : value) builder.PushBack(SerializeToJson(item));
+
+  return builder.ExtractValue();
+}
+
+template <typename T>
+formats::json::Value SerializeToJson(const std::unordered_set<T>& value) {
+  formats::json::ValueBuilder builder(formats::json::Type::kArray);
+
+  for (const auto& item : value) builder.PushBack(SerializeToJson(item));
+
+  return builder.ExtractValue();
+}
+
+template <typename T>
 formats::json::Value SerializeToJson(
     const std::unordered_map<std::string, T>& value) {
+  formats::json::ValueBuilder builder(formats::json::Type::kObject);
+
+  for (const auto& it : value) builder[it.first] = SerializeToJson(it.second);
+
+  return builder.ExtractValue();
+}
+
+template <typename T>
+formats::json::Value SerializeToJson(const std::map<std::string, T>& value) {
   formats::json::ValueBuilder builder(formats::json::Type::kObject);
 
   for (const auto& it : value) builder[it.first] = SerializeToJson(it.second);
