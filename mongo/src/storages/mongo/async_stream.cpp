@@ -392,7 +392,7 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
       auto recvd_now = self->socket_.RecvSome(iov[curr_iov].iov_base,
                                               iov[curr_iov].iov_len, deadline);
       recvd_total += recvd_now;
-      if (recvd_total >= min_bytes) break;
+      if (!recvd_now || recvd_total >= min_bytes) break;
 
       iov[curr_iov].iov_base =
           reinterpret_cast<char*>(iov[curr_iov].iov_base) + recvd_now;
