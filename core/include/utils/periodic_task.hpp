@@ -81,13 +81,17 @@ class PeriodicTask {
    * exits the object is destroyed and using X's 'this' in callback is UB.
    */
   ~PeriodicTask() {
-    UASSERT(!task_.IsValid());
+    UASSERT(!IsRunning());
     Stop();
   }
 
   void Stop() noexcept;
 
   void SetSettings(Settings settings);
+
+  /// Checks if a periodic task (not a single iteration only) is running.
+  /// It may be in a callback execution or sleeping between callbacks.
+  bool IsRunning() const;
 
  private:
   void DoStart();

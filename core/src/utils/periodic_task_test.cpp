@@ -33,7 +33,9 @@ TEST(PeriodicTask, StartStop) {
   RunInCoro([] {
     utils::PeriodicTask task("task", std::chrono::milliseconds(100), []() {});
 
+    EXPECT_TRUE(task.IsRunning());
     task.Stop();
+    EXPECT_FALSE(task.IsRunning());
   });
 }
 
@@ -263,12 +265,15 @@ TEST(PeriodicTask, Restart) {
     auto period = std::chrono::milliseconds(10);
     auto n = 5;
     utils::PeriodicTask task;
+    EXPECT_FALSE(task.IsRunning());
     task.Start("task", period, simple.GetTaskFunction());
+    EXPECT_TRUE(task.IsRunning());
 
     EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio, [&simple, n]() {
       return simple.GetCount() > n;
     }));
     task.Stop();
+    EXPECT_FALSE(task.IsRunning());
   });
 }
 

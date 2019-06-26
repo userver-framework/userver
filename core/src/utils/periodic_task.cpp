@@ -34,7 +34,7 @@ void PeriodicTask::DoStart() {
 }
 
 void PeriodicTask::Stop() noexcept {
-  if (task_.IsValid()) {
+  if (IsRunning()) {
     LOG_INFO() << "Stopping PeriodicTask with name=" << name_;
     task_.RequestCancel();
 
@@ -47,6 +47,8 @@ void PeriodicTask::Stop() noexcept {
 void PeriodicTask::SetSettings(Settings settings) {
   settings_.Set(std::move(settings));
 }
+
+bool PeriodicTask::IsRunning() const { return task_.IsValid(); }
 
 void PeriodicTask::Run() {
   {
