@@ -484,7 +484,7 @@ void Request::RequestImpl::on_retry_timer(const std::error_code& err) {
 char* rfind_not_space(char* ptr, size_t size) {
   for (char* p = ptr + size - 1; p >= ptr; --p) {
     char c = *p;
-    if (c == '\n' || c == '\r' || c == ' ') continue;
+    if (c == '\n' || c == '\r' || c == ' ' || c == '\t') continue;
     return p + 1;
   }
   return ptr;
@@ -497,11 +497,22 @@ void Request::RequestImpl::parse_header(char* ptr, size_t size) {
   if (ptr == end) return;
   *end = '\0';
 
-  auto col_pos = strchr(ptr, ':');
+  const char* col_pos = strchr(ptr, ':');
   if (col_pos == nullptr) return;
 
   std::string key(ptr, col_pos - ptr);
-  std::string value(col_pos + 1, end - col_pos - 1);
+
+  ++col_pos;
+
+  // From https://tools.ietf.org/html/rfc7230#page-22 :
+  //
+  // header-field   = field-name ":" OWS field-value OWS
+  // OWS            = *( SP / HTAB )
+  while (end != col_pos && (*col_pos == ' ' || *col_pos == '\t')) {
+    ++col_pos;
+  }
+
+  std::string value(col_pos, end - col_pos);
   response_->headers()[std::move(key)] = std::move(value);
 }
 

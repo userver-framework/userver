@@ -1,5 +1,6 @@
 #include <clients/http/client.hpp>
 
+#include <fmt/format.h>
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
@@ -16,6 +17,9 @@ constexpr char kTestData[] = "Test Data";
 constexpr unsigned kRepetitions = 200;
 
 constexpr char kTestHeader[] = "X-Test-Header";
+
+constexpr char kResponse200WithHeaderPattern[] =
+    "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
 
 class RequestMethodTestData {
  public:
@@ -99,7 +103,7 @@ static HttpResponse echo_callback(const HttpRequest& request) {
   LOG_INFO() << "HTTP Server sending payload: " << payload;
 
   return {
-      "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Type: "
+      "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: "
       "text/html\r\nContent-Length: " +
           std::to_string(payload.size()) + "\r\n\r\n" + payload,
       HttpResponse::kWriteAndClose};
@@ -129,7 +133,7 @@ struct validating_shared_callback {
         << "'. Whole request: " << request;
 
     return {
-        "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Type: "
+        "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: "
         "text/html\r\nContent-Length: " +
             std::to_string(request.size()) + "\r\n\r\n" + request,
         HttpResponse::kWriteAndClose};
@@ -143,7 +147,7 @@ static HttpResponse put_validate_callback(const HttpRequest& request) {
       << "PUT request has no PUT in headers: " << request;
 
   return {
-      "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Length: "
+      "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
       "0\r\n\r\n",
       HttpResponse::kWriteAndClose};
 }
@@ -154,7 +158,7 @@ static HttpResponse sleep_callback(const HttpRequest& request) {
   engine::InterruptibleSleepFor(kMaxTestWaitTime);
 
   return {
-      "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Length: "
+      "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
       "4096\r\n\r\n" +
           std::string(4096, '@'),
       HttpResponse::kWriteAndClose};
@@ -169,7 +173,7 @@ static HttpResponse huge_data_callback(const HttpRequest& request) {
   }
 
   return {
-      "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Type: "
+      "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: "
       "text/html\r\nContent-Length: "
       "100000\r\n\r\n" +
           std::string(100000, '@'),
@@ -191,10 +195,21 @@ static HttpResponse header_validate_callback(const HttpRequest& request) {
       << "` exists more than once in request: " << request;
 
   return {
-      "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Length: "
+      "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
       "0\r\n\r\n",
       HttpResponse::kWriteAndClose};
 }
+
+struct Response200WithHeader {
+  const std::string header;
+
+  HttpResponse operator()(const HttpRequest&) const {
+    return {
+        fmt::format(kResponse200WithHeaderPattern, header),
+        HttpResponse::kWriteAndClose,
+    };
+  }
+};
 
 }  // namespace
 
@@ -432,5 +447,39 @@ TEST(HttpClient, Headers) {
     }
 
     http_client_ptr.reset();
+  });
+}
+
+TEST(HttpClient, HeadersAndWhitespaces) {
+  TestInCoro([] {
+    auto http_client_ptr = clients::http::Client::Create(kHttpIoThreads);
+
+    const std::string header_data = kTestData;
+    const std::string header_values[] = {
+        header_data,
+        "     " + header_data,
+        "\t \t" + header_data,
+        "\t \t" + header_data + "   \t",
+        "\t \t" + header_data + "\t ",
+        header_data + "   \t",
+        header_data + "\t ",
+    };
+
+    for (const auto& header_value : header_values) {
+      const testing::SimpleServer http_server{
+          Response200WithHeader{std::string(kTestHeader) + ':' + header_value}};
+
+      const auto response = http_client_ptr->CreateRequest()
+                                ->post(http_server.GetBaseUrl())
+                                ->timeout(std::chrono::milliseconds(100))
+                                ->perform();
+
+      EXPECT_TRUE(response->IsOk())
+          << "Header value is '" << header_value << "'";
+      ASSERT_TRUE(response->headers().count(kTestHeader))
+          << "Header value is '" << header_value << "'";
+      EXPECT_EQ(response->headers()[kTestHeader], header_data)
+          << "Header value is '" << header_value << "'";
+    }
   });
 }
