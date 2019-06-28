@@ -10,6 +10,8 @@ std::ostream& operator<<(std::ostream& os, Status s) {
       return os << "200 OK";
     case Created:
       return os << "201 Created";
+    case NoContent:
+      return os << "204 NoContent";
     case BadRequest:
       return os << "400 BadRequest";
     case NotFound:
