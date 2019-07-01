@@ -8,7 +8,7 @@
 
 namespace engine::impl {
 
-class LocalStorage {
+class LocalStorage final {
  public:
   using Key = size_t;
 

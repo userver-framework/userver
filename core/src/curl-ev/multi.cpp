@@ -28,7 +28,7 @@ using BusyMarker = ::utils::statistics::BusyMarker;
 using socket_map_type =
     std::map<socket_type::native_handle_type, multi::socket_info_ptr>;
 
-class multi::Impl {
+class multi::Impl final {
  public:
   Impl(engine::ev::ThreadControl& thread_control, multi& object);
 

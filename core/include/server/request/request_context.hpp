@@ -14,7 +14,7 @@ namespace request {
 /// It can store request-specific data during request processing.
 /// For example: you can store some data in `HandleRequestThrow()` method
 /// and access this data in `GetResponseDataForLogging()` method.
-class RequestContext {
+class RequestContext final {
  public:
   RequestContext();
   RequestContext(RequestContext&&) = delete;

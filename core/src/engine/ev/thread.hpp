@@ -17,7 +17,7 @@
 namespace engine {
 namespace ev {
 
-class Thread {
+class Thread final {
  public:
   explicit Thread(const std::string& thread_name);
   ~Thread();

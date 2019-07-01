@@ -13,7 +13,7 @@ class CacheInvalidator;
 namespace server {
 namespace handlers {
 
-class TestsControl : public HttpHandlerJsonBase {
+class TestsControl final : public HttpHandlerJsonBase {
  public:
   TestsControl(const components::ComponentConfig& config,
                const components::ComponentContext& component_context);

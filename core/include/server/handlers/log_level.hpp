@@ -7,7 +7,7 @@
 namespace server {
 namespace handlers {
 
-class LogLevel : public HttpHandlerBase {
+class LogLevel final : public HttpHandlerBase {
  public:
   LogLevel(const components::ComponentConfig& config,
            const components::ComponentContext& component_context);

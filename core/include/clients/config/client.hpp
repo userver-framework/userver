@@ -20,7 +20,7 @@ struct ClientConfig {
   std::string config_url;
 };
 
-class Client {
+class Client final {
  public:
   Client(clients::http::Client& http_client, const ClientConfig&);
 

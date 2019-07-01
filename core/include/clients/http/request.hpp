@@ -21,7 +21,7 @@ class RequestStats;
 class DestinationStatistics;
 
 /// Class for creating and performing new http requests
-class Request : public std::enable_shared_from_this<Request> {
+class Request final : public std::enable_shared_from_this<Request> {
  public:
   explicit Request(std::shared_ptr<EasyWrapper>,
                    std::shared_ptr<RequestStats> req_stats,

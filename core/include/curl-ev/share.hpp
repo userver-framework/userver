@@ -15,7 +15,7 @@
 #include "native.hpp"
 
 namespace curl {
-class CURLASIO_API share : public std::enable_shared_from_this<share> {
+class CURLASIO_API share final : public std::enable_shared_from_this<share> {
  public:
   share();
   share(const share&) = delete;

@@ -16,7 +16,7 @@
 namespace logging {
 
 template <typename Mutex>
-class ReopeningFileSink : public spdlog::sinks::base_sink<Mutex> {
+class ReopeningFileSink final : public spdlog::sinks::base_sink<Mutex> {
  public:
   using filename_t = spdlog::filename_t;
   using sink = spdlog::sinks::sink;

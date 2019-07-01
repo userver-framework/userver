@@ -10,7 +10,7 @@ namespace handlers {
 namespace auth {
 namespace {
 
-class AuthCheckerFactories {
+class AuthCheckerFactories final {
  public:
   void RegisterFactory(std::string auth_type,
                        std::unique_ptr<AuthCheckerFactoryBase>&& factory);

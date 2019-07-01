@@ -15,7 +15,7 @@ namespace engine {
 enum class CvStatus { kNoTimeout, kTimeout, kCancelled };
 
 /// std::condition_variable replacement for asynchronous tasks
-class ConditionVariable {
+class ConditionVariable final {
  public:
   ConditionVariable();
   ~ConditionVariable();

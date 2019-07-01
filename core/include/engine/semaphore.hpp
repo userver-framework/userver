@@ -23,7 +23,7 @@ class WaitList;
 ///       std::lock_guard<engine::Semaphore> guard{sem};
 ///       // ...
 ///   }).Detach();
-class Semaphore {
+class Semaphore final {
  public:
   explicit Semaphore(std::size_t max_simultaneous_locks);
   ~Semaphore() = default;

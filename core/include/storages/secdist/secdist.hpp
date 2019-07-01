@@ -21,7 +21,7 @@ class SecdistConfig;
 namespace detail {
 
 template <typename T>
-class SecdistModule {
+class SecdistModule final {
  public:
   static const T& Get(const SecdistConfig& config);
   static boost::any Factory(const formats::json::Value& data) {
@@ -34,7 +34,7 @@ class SecdistModule {
 
 }  // namespace detail
 
-class SecdistConfig {
+class SecdistConfig final {
  public:
   SecdistConfig();
   explicit SecdistConfig(const std::string& path);

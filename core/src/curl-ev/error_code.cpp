@@ -12,7 +12,7 @@
 // NOLINTNEXTLINE(google-build-using-namespace)
 using namespace curl;
 
-class curl_easy_error_category : public std::error_category {
+class curl_easy_error_category final : public std::error_category {
  public:
   curl_easy_error_category() = default;
   const char* name() const noexcept override;
@@ -27,7 +27,7 @@ std::string curl_easy_error_category::message(int ev) const {
   return native::curl_easy_strerror(static_cast<native::CURLcode>(ev));
 }
 
-class curl_multi_error_category : public std::error_category {
+class curl_multi_error_category final : public std::error_category {
  public:
   curl_multi_error_category() = default;
   const char* name() const noexcept override;
@@ -42,7 +42,7 @@ std::string curl_multi_error_category::message(int ev) const {
   return native::curl_multi_strerror(static_cast<native::CURLMcode>(ev));
 }
 
-class curl_share_error_category : public std::error_category {
+class curl_share_error_category final : public std::error_category {
  public:
   curl_share_error_category() = default;
   const char* name() const noexcept override;
@@ -57,7 +57,7 @@ std::string curl_share_error_category::message(int ev) const {
   return native::curl_share_strerror(static_cast<native::CURLSHcode>(ev));
 }
 
-class curl_form_error_category : public std::error_category {
+class curl_form_error_category final : public std::error_category {
  public:
   curl_form_error_category() = default;
   const char* name() const noexcept override;

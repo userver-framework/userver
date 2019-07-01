@@ -10,7 +10,7 @@ template <typename Enum>
 class AtomicFlags;
 
 template <typename Enum>
-class Flags {
+class Flags final {
  public:
   using ValueType = std::underlying_type_t<Enum>;
 
@@ -51,7 +51,7 @@ template <typename Enum>
 constexpr bool operator!=(Enum, Flags<Enum>);
 
 template <typename Enum>
-class AtomicFlags {
+class AtomicFlags final {
  public:
   using ValueType = std::underlying_type_t<Enum>;
 

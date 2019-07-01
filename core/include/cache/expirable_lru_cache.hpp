@@ -12,7 +12,7 @@ struct ExpirableLruCacheStatistics {
 };
 
 template <typename Key, typename Value>
-class ExpirableLruCache {
+class ExpirableLruCache final {
  public:
   using UpdateValueFunc = std::function<Value(const Key&)>;
 
@@ -107,7 +107,7 @@ bool ExpirableLruCache<Key, Value>::IsExpired(
 }
 
 template <typename Key, typename Value>
-class LruCacheWrapper {
+class LruCacheWrapper final {
  public:
   using Cache = ExpirableLruCache<Key, Value>;
   LruCacheWrapper(std::shared_ptr<Cache> cache,

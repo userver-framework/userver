@@ -16,7 +16,7 @@
 
 namespace taxi_config {
 
-class DocsMap {
+class DocsMap final {
  public:
   /* Returns config item or throws an exception if key is missing */
   formats::json::Value Get(const std::string& name) const;
@@ -48,7 +48,7 @@ Res Parse(const std::string& name, const DocsMap& mongo_docs) {
 }  // namespace impl
 
 template <typename T>
-class Value {
+class Value final {
  public:
   Value(const std::string& name, const DocsMap& mongo_docs)
       : value_(impl::Parse<T>(name, mongo_docs)) {}
@@ -65,7 +65,7 @@ class Value {
 extern const std::string kValueDictDefaultName;
 
 template <typename ValueType>
-class ValueDict {
+class ValueDict final {
  public:
   using DictType = std::unordered_map<std::string, ValueType>;
 

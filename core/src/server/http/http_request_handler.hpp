@@ -14,7 +14,7 @@
 namespace server {
 namespace http {
 
-class HttpRequestHandler : public request::RequestHandlerBase {
+class HttpRequestHandler final : public request::RequestHandlerBase {
  public:
   HttpRequestHandler(
       const components::ComponentContext& component_context,

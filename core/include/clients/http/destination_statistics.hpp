@@ -10,7 +10,7 @@
 namespace clients {
 namespace http {
 
-class DestinationStatistics {
+class DestinationStatistics final {
  public:
   // Return pointer to related RequestStats
   std::shared_ptr<RequestStats> GetStatisticsForDestination(

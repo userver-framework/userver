@@ -8,7 +8,7 @@
 
 namespace {
 
-class SpinEvent {
+class SpinEvent final {
  public:
   SpinEvent() : is_pending_(false) {}
 

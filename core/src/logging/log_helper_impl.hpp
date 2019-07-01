@@ -10,7 +10,7 @@
 
 namespace logging {
 
-class LogHelper::Impl {
+class LogHelper::Impl final {
  public:
   using char_type = std::streambuf::char_type;
   using int_type = std::streambuf::int_type;

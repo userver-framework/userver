@@ -11,7 +11,7 @@ namespace http {
 
 struct Statistics;
 
-class RequestStats {
+class RequestStats final {
  public:
   explicit RequestStats(Statistics& stats);
   ~RequestStats();

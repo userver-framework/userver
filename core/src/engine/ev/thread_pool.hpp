@@ -11,7 +11,7 @@
 namespace engine {
 namespace ev {
 
-class ThreadPool {
+class ThreadPool final {
  public:
   ThreadPool(ThreadPoolConfig config);
 
@@ -24,7 +24,7 @@ class ThreadPool {
   }
 
  private:
-  class ThreadPoolInfo {
+  class ThreadPoolInfo final {
    public:
     explicit ThreadPoolInfo(ThreadPool& thread_pool);
 

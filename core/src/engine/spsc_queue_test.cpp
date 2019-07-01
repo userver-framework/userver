@@ -7,7 +7,7 @@
 
 namespace {
 // This class tracks the number of created and destroyed objects
-struct RefCountData {
+struct RefCountData final {
   int val{0};
 
   // signed to allow for errorneous deletion to be detected.

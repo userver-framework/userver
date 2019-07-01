@@ -61,7 +61,7 @@ thread_local CachedData<T> cache;
 /// changed during ReadablePtr lifetime, it will not affect value referenced by
 /// ReadablePtr.
 template <typename T>
-class USERVER_NODISCARD ReadablePtr {
+class USERVER_NODISCARD ReadablePtr final {
  public:
   explicit ReadablePtr(const Variable<T>& ptr)
       : hp_record_(ptr.MakeHazardPointer()) {
@@ -111,7 +111,7 @@ class USERVER_NODISCARD ReadablePtr {
 /// engine::Mutex, which must be unlocked in the same coroutine that was used to
 /// lock the mutex.
 template <typename T>
-class USERVER_NODISCARD WritablePtr {
+class USERVER_NODISCARD WritablePtr final {
  public:
   // We cannot use the next version for current state duplication because
   // multiple writers might be waiting on `var.mutex_`.
@@ -174,7 +174,7 @@ class USERVER_NODISCARD WritablePtr {
 /// be eventually freed when a subsequent writer identifies that nobody works
 /// with this version.
 template <typename T>
-class Variable {
+class Variable final {
  public:
   explicit Variable(std::unique_ptr<T> ptr) : current_(ptr.release()) {}
 

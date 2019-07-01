@@ -8,7 +8,7 @@
 
 namespace components {
 
-class CacheInvalidator : public components::ComponentBase {
+class CacheInvalidator final : public components::ComponentBase {
  public:
   static constexpr const char* kName = "cache-invalidator";
 

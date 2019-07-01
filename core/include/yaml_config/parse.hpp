@@ -66,7 +66,7 @@ inline std::string GetTypeName<std::string>() {
 }
 
 template <typename Type, typename Field>
-class ParseHelper {
+class ParseHelper final {
  private:
   template <typename T, typename = ::utils::void_t<>>
   struct HasParseFromYaml : public std::false_type {};

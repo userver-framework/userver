@@ -12,7 +12,7 @@ namespace server::http {
 
 /// CookieData class
 
-class Cookie::CookieData {
+class Cookie::CookieData final {
  public:
   CookieData() = default;
   CookieData(std::string&& name, std::string&& value);

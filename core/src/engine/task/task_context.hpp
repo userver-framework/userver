@@ -52,7 +52,7 @@ class WaitStrategy {
   const Deadline deadline_;
 };
 
-class TaskContext : public boost::intrusive_ref_counter<TaskContext> {
+class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
  public:
   using CoroutinePtr = coro::Pool<TaskContext>::CoroutinePtr;
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;

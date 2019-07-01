@@ -15,7 +15,7 @@ namespace components {
 
 class StatisticsStorage;
 
-class Server : public LoggableComponentBase {
+class Server final : public LoggableComponentBase {
  public:
   static constexpr const char* kName = "server";
 

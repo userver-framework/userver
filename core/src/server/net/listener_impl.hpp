@@ -16,7 +16,7 @@
 namespace server {
 namespace net {
 
-class ListenerImpl {
+class ListenerImpl final {
  public:
   ListenerImpl(engine::TaskProcessor& task_processor,
                std::shared_ptr<EndpointInfo> endpoint_info);

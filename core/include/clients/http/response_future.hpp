@@ -16,7 +16,7 @@ class Future;
 namespace clients {
 namespace http {
 
-class ResponseFuture {
+class ResponseFuture final {
  public:
   ResponseFuture(engine::Future<std::shared_ptr<Response>>&& future,
                  std::chrono::milliseconds total_timeout,

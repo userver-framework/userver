@@ -20,7 +20,7 @@ namespace logging {
 class LogHelper;
 
 /// Extra tskv fields storage
-class LogExtra {
+class LogExtra final {
  public:
   using Value =
       boost::variant<std::string, int, long, long long, unsigned int,
@@ -94,7 +94,7 @@ class LogExtra {
  private:
   const Value& GetValue(const std::string& key) const;
 
-  class ProtectedValue {
+  class ProtectedValue final {
    public:
     ProtectedValue() = default;
     ProtectedValue(Value value, bool frozen);

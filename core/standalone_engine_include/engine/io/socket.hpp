@@ -21,7 +21,7 @@ class ConnectTimeout : public IoError {
 // all others are NOT coro-safe.
 // You may call Close with pending I/O though, but this is not recommended
 // in general (with active I/O it can cause loosely predictable effects).
-class Socket {
+class Socket final {
  public:
   // returned from closed socket
   static constexpr int kInvalidFd = -1;

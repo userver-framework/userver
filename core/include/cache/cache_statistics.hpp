@@ -69,7 +69,7 @@ struct Statistics {
         documents_current_count(other.documents_current_count.load()) {}
 };
 
-class UpdateStatisticsScope {
+class UpdateStatisticsScope final {
  public:
   UpdateStatisticsScope(Statistics& stats, cache::UpdateType type);
 

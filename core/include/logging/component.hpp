@@ -60,7 +60,7 @@ namespace components {
 
 // clang-format on
 
-class Logging : public ComponentBase {
+class Logging final : public ComponentBase {
  public:
   /// The default name of this component
   static constexpr const char* kName = "logging";

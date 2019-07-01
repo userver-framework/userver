@@ -14,7 +14,7 @@
 
 namespace {
 
-class Pipe {
+class Pipe final {
  public:
   Pipe() { utils::CheckSyscall(::pipe(fd_), "creating pipe"); }
   ~Pipe() {

@@ -5,7 +5,7 @@
 namespace clients {
 namespace http {
 
-class Form : public curl::form {
+class Form final : public curl::form {
   using curl::form::form;
 };
 

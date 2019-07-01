@@ -73,7 +73,7 @@ inline void WrappedCall<void>::DoPerform() {
 }
 
 template <typename T>
-class OptionalSetNoneGuard {
+class OptionalSetNoneGuard final {
  public:
   OptionalSetNoneGuard(boost::optional<T>& o) : o_(o) {}
 

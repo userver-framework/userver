@@ -35,7 +35,7 @@ struct MatchRequestResult {
   std::vector<std::pair<std::string, std::string>> args_from_path;
 };
 
-class HandlerInfoIndex {
+class HandlerInfoIndex final {
  public:
   HandlerInfoIndex();
   ~HandlerInfoIndex();

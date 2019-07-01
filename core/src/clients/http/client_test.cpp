@@ -21,7 +21,7 @@ constexpr char kTestHeader[] = "X-Test-Header";
 constexpr char kResponse200WithHeaderPattern[] =
     "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
 
-class RequestMethodTestData {
+class RequestMethodTestData final {
  public:
   using Request = clients::http::Request;
   using TwoArgsFunction = std::shared_ptr<Request> (Request::*)(

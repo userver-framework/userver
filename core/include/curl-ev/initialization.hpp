@@ -13,7 +13,7 @@
 #include "config.hpp"
 
 namespace curl {
-class initialization {
+class initialization final {
  public:
   using ptr = std::shared_ptr<initialization>;
   static ptr ensure_initialization();

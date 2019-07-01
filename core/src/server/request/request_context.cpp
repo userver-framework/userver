@@ -7,7 +7,7 @@
 namespace server {
 namespace request {
 
-class RequestContext::Impl {
+class RequestContext::Impl final {
  public:
   boost::any& SetUserAnyData(boost::any&& data);
   boost::any& GetUserAnyData();

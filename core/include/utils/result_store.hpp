@@ -12,7 +12,7 @@ namespace utils {
 
 /// Simple value/exception store
 template <typename T>
-class ResultStore {
+class ResultStore final {
  public:
   /// @brief Retrieves the stored value or rethrows the stored exception
   /// @throws std::logic_error if no value/exception stored
@@ -36,7 +36,7 @@ class ResultStore {
 
 /// Simple void value/exception store
 template <>
-class ResultStore<void> {
+class ResultStore<void> final {
  public:
   /// @brief Checks value availability or rethrows the stored exception
   /// @throws std::logic_error if no value/exception stored

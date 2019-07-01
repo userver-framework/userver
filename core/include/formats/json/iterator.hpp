@@ -11,7 +11,7 @@ namespace json {
 
 /// @brief Iterator for `formats::json::Value`
 template <typename iter_traits>
-class Iterator {
+class Iterator final {
  public:
   using iterator_category = std::forward_iterator_tag;
   using difference_type = std::ptrdiff_t;

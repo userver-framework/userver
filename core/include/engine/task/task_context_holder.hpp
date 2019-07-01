@@ -19,7 +19,7 @@ class TaskContext;
 
 using Payload = std::function<void()>;
 
-class TaskContextHolder {
+class TaskContextHolder final {
  public:
   ~TaskContextHolder();
 

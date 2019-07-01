@@ -3,7 +3,7 @@
 #include <chrono>
 
 namespace curl {
-class LocalTimings {
+class LocalTimings final {
  public:
   LocalTimings();
   void mark_start_performing();

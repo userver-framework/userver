@@ -43,7 +43,7 @@ std::ostream& operator<<(std::ostream& os, Status s);
 using Headers = std::unordered_map<std::string, std::string>;
 
 /// Class that will be returned for successful request
-class Response {
+class Response final {
  public:
   Response(std::shared_ptr<EasyWrapper> easy) : easy_(std::move(easy)) {}
 

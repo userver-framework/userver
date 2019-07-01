@@ -19,7 +19,7 @@ class WaitList;
 }  // namespace impl
 
 /// std::mutex replacement for asynchronous tasks
-class Mutex {
+class Mutex final {
  public:
   Mutex();
   ~Mutex();

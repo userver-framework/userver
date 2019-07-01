@@ -29,7 +29,7 @@ class TaskLocalVariableAny {
  * coroutine-specific code from ~T as ~T is called outside of any coroutine.
  */
 template <typename T>
-class TaskLocalVariable : public TaskLocalVariableAny {
+class TaskLocalVariable final : public TaskLocalVariableAny {
  public:
   /* Get current coroutine's instance of variable.
    * Must be called from a coroutine, otherwise it is UB.

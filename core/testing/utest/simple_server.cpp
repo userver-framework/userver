@@ -12,7 +12,7 @@ namespace testing {
 
 namespace {
 
-class Client {
+class Client final {
  public:
   static void Run(engine::io::Socket socket, SimpleServer::OnRequest f);
 

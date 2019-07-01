@@ -13,7 +13,7 @@ namespace utils {
 /**
  * @brief Task that periodically run a user callback.
  */
-class PeriodicTask {
+class PeriodicTask final {
  public:
   enum class Flags {
     kNone = 0,

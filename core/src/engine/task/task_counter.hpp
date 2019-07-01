@@ -10,9 +10,9 @@
 namespace engine {
 namespace impl {
 
-class TaskCounter {
+class TaskCounter final {
  public:
-  class Token {
+  class Token final {
    public:
     explicit Token(TaskCounter& counter) : counter_(counter) {
       ++counter_.value_;

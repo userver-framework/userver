@@ -13,7 +13,7 @@
 // path that did not acquire a coroutine, and payload was destroyed in
 // an unexpected context.
 TEST(TaskContext, DetachedAndCancelledOnStart) {
-  class DtorInCoroChecker {
+  class DtorInCoroChecker final {
    public:
     ~DtorInCoroChecker() {
       EXPECT_NE(nullptr,

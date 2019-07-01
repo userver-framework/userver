@@ -4,7 +4,8 @@
 
 namespace engine {
 
-class ConditionVariable::Impl : public impl::ConditionVariableAny<Mutex> {};
+class ConditionVariable::Impl final : public impl::ConditionVariableAny<Mutex> {
+};
 
 ConditionVariable::ConditionVariable() : impl_(std::make_unique<Impl>()) {}
 

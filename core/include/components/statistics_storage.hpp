@@ -7,7 +7,7 @@
 
 namespace components {
 
-class StatisticsStorage : public LoggableComponentBase {
+class StatisticsStorage final : public LoggableComponentBase {
  public:
   static constexpr auto kName = "statistics-storage";
 

@@ -15,7 +15,7 @@
 namespace server {
 namespace handlers {
 
-class HttpHandlerMethodStatistics {
+class HttpHandlerMethodStatistics final {
  public:
   void Account(unsigned int code, size_t ms) {
     reply_codes_.Account(code);
@@ -44,7 +44,7 @@ class HttpHandlerMethodStatistics {
   std::atomic<size_t> in_flight_{0};
 };
 
-class HttpHandlerStatistics {
+class HttpHandlerStatistics final {
  public:
   HttpHandlerMethodStatistics& GetStatisticByMethod(http::HttpMethod method);
 
@@ -66,7 +66,7 @@ class HttpHandlerStatistics {
       stats_by_method_;
 };
 
-class HttpHandlerStatisticsScope {
+class HttpHandlerStatisticsScope final {
  public:
   HttpHandlerStatisticsScope(HttpHandlerStatistics& stats,
                              http::HttpMethod method);

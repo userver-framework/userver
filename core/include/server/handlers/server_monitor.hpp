@@ -7,7 +7,7 @@
 namespace server {
 namespace handlers {
 
-class ServerMonitor : public HttpHandlerBase {
+class ServerMonitor final : public HttpHandlerBase {
  public:
   ServerMonitor(const components::ComponentConfig& config,
                 const components::ComponentContext& component_context);

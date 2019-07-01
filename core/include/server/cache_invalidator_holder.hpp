@@ -10,7 +10,7 @@ class CacheInvalidator;
 
 namespace server {
 
-class CacheInvalidatorHolder {
+class CacheInvalidatorHolder final {
  public:
   CacheInvalidatorHolder(components::CacheUpdateTrait& cache,
                          const components::ComponentContext&);
@@ -23,7 +23,7 @@ class CacheInvalidatorHolder {
 };
 
 template <typename T>
-class ComponentInvalidatorHolder {
+class ComponentInvalidatorHolder final {
  public:
   ComponentInvalidatorHolder(T& component,
                              const components::ComponentContext& context,

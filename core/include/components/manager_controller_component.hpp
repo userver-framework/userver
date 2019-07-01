@@ -15,7 +15,7 @@ namespace components {
 
 class Manager;
 
-class ManagerControllerComponent : public ComponentBase {
+class ManagerControllerComponent final : public ComponentBase {
  public:
   ManagerControllerComponent(const components::ComponentConfig& config,
                              const components::ComponentContext& context);

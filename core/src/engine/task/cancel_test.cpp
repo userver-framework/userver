@@ -14,7 +14,7 @@
 
 // We do not want unwind to start in destructors
 TEST(Cancel, NoUnwindFromDtor) {
-  class SynchronizingRaii {
+  class SynchronizingRaii final {
    public:
     SynchronizingRaii(engine::SingleConsumerEvent& request_event,
                       engine::SingleConsumerEvent& sync_event)
@@ -51,7 +51,7 @@ TEST(Cancel, NoUnwindFromDtor) {
 
 // Functors defined in dtors should unwind though
 TEST(Cancel, UnwindWorksInDtorSubtask) {
-  class DetachingRaii {
+  class DetachingRaii final {
    public:
     DetachingRaii(engine::SingleConsumerEvent& detach_event,
                   engine::TaskWithResult<void>& detached_task)

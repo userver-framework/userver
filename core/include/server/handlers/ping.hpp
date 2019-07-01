@@ -5,7 +5,7 @@
 namespace server {
 namespace handlers {
 
-class Ping : public HttpHandlerBase {
+class Ping final : public HttpHandlerBase {
  public:
   Ping(const components::ComponentConfig& config,
        const components::ComponentContext& component_context);

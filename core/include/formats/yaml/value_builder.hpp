@@ -5,7 +5,7 @@
 namespace formats {
 namespace yaml {
 
-class ValueBuilder {
+class ValueBuilder final {
  public:
   struct IterTraits {
     using native_iter = YAML::iterator;

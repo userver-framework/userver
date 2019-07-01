@@ -130,7 +130,7 @@ class multi;
 class share;
 class string_list;
 
-class CURLASIO_API easy {
+class CURLASIO_API easy final {
  public:
   using handler_type = std::function<void(const std::error_code& err)>;
 

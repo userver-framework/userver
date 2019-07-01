@@ -75,7 +75,7 @@ class Promise {
 };
 
 template <>
-class Promise<void> {
+class Promise<void> final {
  public:
   Promise();
   ~Promise() noexcept;

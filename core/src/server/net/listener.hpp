@@ -11,7 +11,7 @@
 namespace server {
 namespace net {
 
-class Listener {
+class Listener final {
  public:
   Listener(std::shared_ptr<EndpointInfo> endpoint_info,
            engine::TaskProcessor& task_processor);

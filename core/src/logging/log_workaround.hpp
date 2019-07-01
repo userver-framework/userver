@@ -4,7 +4,7 @@
 
 namespace logging {
 
-class LoggerWorkaroud : public spdlog::logger {
+class LoggerWorkaroud final : public spdlog::logger {
  public:
   using spdlog::logger::sink_it_;
 };

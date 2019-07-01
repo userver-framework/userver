@@ -17,7 +17,7 @@ class RequestsView;
 class ServerImpl;
 struct ServerConfig;
 
-class Server {
+class Server final {
  public:
   Server(ServerConfig config,
          const components::ComponentContext& component_context);

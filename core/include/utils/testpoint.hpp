@@ -16,7 +16,7 @@ class Client;
 namespace utils {
 
 // Don't use TestPoint directly, use TESTPOINT(name, json) instead
-class TestPoint {
+class TestPoint final {
  public:
   static TestPoint& GetInstance();
 

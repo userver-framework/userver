@@ -36,7 +36,7 @@ Level GetDefaultLoggerLevel();
 /// Users can add LogHelper& operator<<(LogHelper&, ) overloads to use a faster
 /// localeless logging, rather than outputting data through the ostream
 /// operator.
-class LogHelper {
+class LogHelper final {
  public:
   /// @brief Constructs LogHelper
   /// @param level message log level

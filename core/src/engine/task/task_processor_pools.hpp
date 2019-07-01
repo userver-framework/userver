@@ -7,7 +7,7 @@
 namespace engine {
 namespace impl {
 
-class TaskProcessorPools {
+class TaskProcessorPools final {
  public:
   using CoroPool = coro::Pool<TaskContext>;
 

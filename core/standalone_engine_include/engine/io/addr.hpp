@@ -20,7 +20,7 @@ enum class AddrDomain {
   kUnix = AF_UNIX
 };
 
-class AddrStorage {
+class AddrStorage final {
  public:
   // NOLINTNEXTLINE(hicpp-member-init,cppcoreguidelines-pro-type-member-init)
   AddrStorage() { ::memset(&data_, 0, sizeof(data_)); }

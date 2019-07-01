@@ -11,7 +11,7 @@
 namespace engine {
 
 /// Internal representation of a deadline time point
-class Deadline {
+class Deadline final {
  public:
   using Clock = std::chrono::steady_clock;
   using TimePoint = Clock::time_point;

@@ -7,7 +7,7 @@
 
 namespace curl {
 
-class MultiStatistics {
+class MultiStatistics final {
  public:
   MultiStatistics();
 

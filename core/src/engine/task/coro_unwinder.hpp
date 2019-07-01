@@ -12,7 +12,7 @@ namespace impl {
 // but libc++ has nothing of the like.
 // It's possile that we will have to use low-level C++ ABI for forced unwinds
 // here, but for now this'll suffice.
-class CoroUnwinder {};
+class CoroUnwinder final {};
 
 }  // namespace impl
 }  // namespace engine

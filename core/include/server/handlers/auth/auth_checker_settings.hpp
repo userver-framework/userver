@@ -10,7 +10,7 @@ namespace server {
 namespace handlers {
 namespace auth {
 
-class AuthCheckerSettings {
+class AuthCheckerSettings final {
  public:
   explicit AuthCheckerSettings(const formats::json::Value& doc);
 

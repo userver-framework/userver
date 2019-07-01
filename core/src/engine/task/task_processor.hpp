@@ -38,7 +38,7 @@ struct TaskProcessorSettings {
   OverloadAction overload_action{OverloadAction::kIgnore};
 };
 
-class TaskProcessor {
+class TaskProcessor final {
  public:
   using CoroPool = impl::TaskProcessorPools::CoroPool;
 

@@ -27,7 +27,7 @@ namespace testing {
 ///    });
 ///  }
 
-class SimpleServer {
+class SimpleServer final {
  public:
   struct Response {
     enum Commands {

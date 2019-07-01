@@ -41,7 +41,7 @@ class ComponentsLoadCancelledException : public std::runtime_error {
   explicit ComponentsLoadCancelledException(const std::string& message);
 };
 
-class ComponentContext {
+class ComponentContext final {
  public:
   using TaskProcessorMap =
       std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
@@ -125,7 +125,7 @@ class ComponentContext {
   void CancelComponentsLoad();
 
  private:
-  class TaskToComponentMapScope {
+  class TaskToComponentMapScope final {
    public:
     TaskToComponentMapScope(ComponentContext& context,
                             const std::string& component_name);

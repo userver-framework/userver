@@ -7,7 +7,7 @@
 
 namespace yaml_config {
 
-class VariableMap {
+class VariableMap final {
  public:
   VariableMap();
   explicit VariableMap(formats::yaml::Value yaml);

@@ -68,7 +68,7 @@ class easy;
 class socket_type;
 struct socket_info;
 
-class CURLASIO_API multi {
+class CURLASIO_API multi final {
  public:
   using Callback = std::function<void()>;
   multi(engine::ev::ThreadControl& thread_control);

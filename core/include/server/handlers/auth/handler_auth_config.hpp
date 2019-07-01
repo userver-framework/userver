@@ -12,7 +12,7 @@ namespace server {
 namespace handlers {
 namespace auth {
 
-class HandlerAuthConfig : public yaml_config::YamlConfig {
+class HandlerAuthConfig final : public yaml_config::YamlConfig {
  public:
   HandlerAuthConfig(formats::yaml::Value yaml, std::string full_path,
                     yaml_config::VariableMapPtr config_vars_ptr);

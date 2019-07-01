@@ -9,7 +9,7 @@
 namespace fs {
 namespace blocking {
 
-class FileDescriptor {
+class FileDescriptor final {
  public:
   enum class OpenMode {
     kNone,  // For utils::Flags<>

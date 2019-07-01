@@ -11,7 +11,7 @@
 namespace cache {
 
 template <typename T, typename U>
-class NWayLRU {
+class NWayLRU final {
  public:
   NWayLRU(size_t ways, size_t way_size);
 

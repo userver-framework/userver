@@ -24,7 +24,7 @@ class StageSwitchingCancelledException : public std::runtime_error {
   explicit StageSwitchingCancelledException(const std::string& message);
 };
 
-class ComponentInfo {
+class ComponentInfo final {
  public:
   explicit ComponentInfo(std::string name);
 

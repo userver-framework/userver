@@ -44,7 +44,7 @@ namespace {
 
 constexpr char kPathLineSeparator = ':';
 
-class LogExtraValueVisitor {
+class LogExtraValueVisitor final {
  public:
   LogExtraValueVisitor(LogHelper& lh) noexcept : lh_(lh) {}
 

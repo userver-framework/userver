@@ -15,7 +15,7 @@
 
 namespace server {
 
-class ServerImpl {
+class ServerImpl final {
  public:
   ServerImpl(ServerConfig config,
              const components::ComponentContext& component_context);

@@ -29,7 +29,7 @@ class ComponentAdderBase {
 
 }  // namespace impl
 
-class ComponentList {
+class ComponentList final {
  public:
   template <typename Component>
   ComponentList& Append() &;
@@ -55,7 +55,7 @@ class ComponentList {
 namespace impl {
 
 template <typename Component>
-class DefaultComponentAdder : public ComponentAdderBase {
+class DefaultComponentAdder final : public ComponentAdderBase {
  public:
   DefaultComponentAdder();
   void operator()(Manager&,
@@ -63,7 +63,7 @@ class DefaultComponentAdder : public ComponentAdderBase {
 };
 
 template <typename Component>
-class CustomNameComponentAdder : public ComponentAdderBase {
+class CustomNameComponentAdder final : public ComponentAdderBase {
  public:
   CustomNameComponentAdder(std::string name);
 

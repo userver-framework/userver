@@ -17,7 +17,7 @@ namespace engine {
 namespace impl {
 
 template <typename T>
-class FutureState {
+class FutureState final {
  public:
   bool IsReady() const noexcept;
   T Get();
@@ -46,7 +46,7 @@ class FutureState {
 };
 
 template <>
-class FutureState<void> {
+class FutureState<void> final {
  public:
   bool IsReady() const noexcept;
   void Get();

@@ -14,7 +14,7 @@ struct ConfigNamesDefault {
 };
 
 template <typename ConfigNames = ConfigNamesDefault>
-class HttpServerSettingsConfig {
+class HttpServerSettingsConfig final {
  public:
   explicit HttpServerSettingsConfig(const taxi_config::DocsMap& docs_map)
       : need_log_request(ConfigNames::kLogRequest, docs_map),

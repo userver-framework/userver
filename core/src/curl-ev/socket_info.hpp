@@ -43,7 +43,7 @@ class EvSocket : public engine::ev::IoWatcher {
 };
 
 // For forward declaration
-class socket_type : public EvSocket {
+class socket_type final : public EvSocket {
  public:
   using EvSocket::EvSocket;
 };

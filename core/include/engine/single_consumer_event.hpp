@@ -15,7 +15,7 @@ class WaitListLight;
 }  // namespace impl
 
 /// Event for a single awaiter, multiple signal coroutines
-class SingleConsumerEvent {
+class SingleConsumerEvent final {
  public:
   SingleConsumerEvent();
   ~SingleConsumerEvent();

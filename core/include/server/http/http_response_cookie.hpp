@@ -6,7 +6,7 @@
 
 namespace server::http {
 
-class Cookie {
+class Cookie final {
  public:
   Cookie(std::string name, std::string value);
   Cookie(Cookie&& cookie) noexcept;

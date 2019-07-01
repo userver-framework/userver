@@ -7,7 +7,7 @@
 namespace engine {
 namespace ev {
 
-class AsyncWatcher {
+class AsyncWatcher final {
  public:
   using Callback = std::function<void()>;
   explicit AsyncWatcher(ThreadControl& thread_control, Callback cb);

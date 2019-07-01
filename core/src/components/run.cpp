@@ -18,7 +18,7 @@ namespace components {
 
 namespace {
 
-class LogScope {
+class LogScope final {
  public:
   explicit LogScope(const std::string& init_log_path) {
     if (!init_log_path.empty()) {

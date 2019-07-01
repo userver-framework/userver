@@ -7,7 +7,7 @@
 namespace engine {
 namespace ev {
 
-class TimerWatcher {
+class TimerWatcher final {
  public:
   explicit TimerWatcher(ThreadControl& thread_control);
 

@@ -31,7 +31,7 @@ class TaskCancelledException : public std::runtime_error {
 
 /// Asynchronous task with result
 template <typename T>
-class USERVER_NODISCARD TaskWithResult : public Task {
+class USERVER_NODISCARD TaskWithResult final : public Task {
  public:
   /// @brief Default constructor
   ///

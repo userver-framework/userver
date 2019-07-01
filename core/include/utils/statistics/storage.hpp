@@ -20,7 +20,7 @@ using StorageIterator = StorageData::iterator;
 
 class Storage;
 
-class Entry {
+class Entry final {
  public:
   Entry() = default;
   Entry(const Entry& other) = delete;
@@ -43,7 +43,7 @@ class Entry {
   friend class Storage;  // in RegisterExtender()
 };
 
-class Storage {
+class Storage final {
  public:
   // Creates new Json::Value and calls every registered extender func over it.
   formats::json::ValueBuilder GetAsJson(const std::string& prefix,

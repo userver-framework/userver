@@ -5,7 +5,7 @@
 
 namespace utils {
 
-class IgnoreSignalScope {
+class IgnoreSignalScope final {
  public:
   explicit IgnoreSignalScope(int signal);
   // NOLINTNEXTLINE(bugprone-exception-escape)

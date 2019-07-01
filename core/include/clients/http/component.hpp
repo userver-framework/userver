@@ -18,7 +18,7 @@ namespace components {
 
 class TaxiConfig;
 
-class HttpClient : public LoggableComponentBase {
+class HttpClient final : public LoggableComponentBase {
  public:
   static constexpr auto kName = "http-client";
 

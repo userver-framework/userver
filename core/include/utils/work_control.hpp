@@ -7,7 +7,7 @@
 
 namespace utils {
 
-class WorkToken {
+class WorkToken final {
  public:
   bool IsFinished() const { return finished_; }
 
@@ -18,7 +18,7 @@ class WorkToken {
 };
 using WorkTokenPtr = std::shared_ptr<WorkToken>;
 
-class WorkControl {
+class WorkControl final {
  public:
   WorkControl() : token_(std::make_shared<WorkToken>()) {}
 

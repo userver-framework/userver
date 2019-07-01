@@ -9,7 +9,7 @@ class RequestsView;
 
 namespace handlers {
 
-class InspectRequests : public HttpHandlerJsonBase {
+class InspectRequests final : public HttpHandlerJsonBase {
  public:
   InspectRequests(const components::ComponentConfig& config,
                   const components::ComponentContext& component_context);

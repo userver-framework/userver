@@ -23,7 +23,7 @@ class HttpHandlerBase;
 
 namespace http {
 
-class HttpRequestImpl : public request::RequestBase {
+class HttpRequestImpl final : public request::RequestBase {
  public:
   HttpRequestImpl();
   ~HttpRequestImpl() override;

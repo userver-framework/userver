@@ -34,7 +34,7 @@ class TaskProcessorPools;
 std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(
     const TaskProcessorPoolsConfig& = {});
 
-class TaskProcessorHolder {
+class TaskProcessorHolder final {
  public:
   static TaskProcessorHolder MakeTaskProcessor(
       size_t threads_num, std::string thread_name,

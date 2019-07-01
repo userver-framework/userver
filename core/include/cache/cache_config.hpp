@@ -47,7 +47,7 @@ struct LruCacheConfigStatic {
   size_t ways;
 };
 
-class CacheConfigSet {
+class CacheConfigSet final {
  public:
   explicit CacheConfigSet(const taxi_config::DocsMap& docs_map);
 

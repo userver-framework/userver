@@ -63,7 +63,7 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
 
   static std::shared_ptr<SpscQueue> Create();
 
-  class Producer {
+  class Producer final {
    public:
     Producer(std::shared_ptr<SpscQueue<T>> queue) : queue_(std::move(queue)) {}
 
@@ -93,7 +93,7 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
     std::shared_ptr<SpscQueue<T>> queue_;
   };
 
-  class Consumer {
+  class Consumer final {
    public:
     Consumer(std::shared_ptr<SpscQueue<T>> queue) : queue_(std::move(queue)) {}
 

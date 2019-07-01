@@ -13,7 +13,7 @@ namespace utils {
  * But you have to manually set object size when you instantiate FastPimpl.
  */
 template <class T, size_t Size, size_t Alignment, bool Strict = false>
-class FastPimpl {
+class FastPimpl final {
  public:
   // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   FastPimpl(FastPimpl&& v) noexcept(noexcept(T(std::declval<T>())))

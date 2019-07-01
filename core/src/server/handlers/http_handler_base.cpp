@@ -57,7 +57,7 @@ std::vector<http::HttpMethod> InitAllowedMethods(const HandlerConfig& config) {
   return allowed_methods;
 }
 
-class RequestProcessor {
+class RequestProcessor final {
  public:
   RequestProcessor(const HttpHandlerBase& handler,
                    const http::HttpRequestImpl& http_request_impl,

@@ -31,7 +31,7 @@ class ComponentList;
 
 struct ManagerConfig;
 
-class Manager {
+class Manager final {
  public:
   Manager(std::unique_ptr<ManagerConfig>&& config,
           const ComponentList& component_list);

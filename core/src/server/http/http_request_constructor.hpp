@@ -13,7 +13,7 @@
 namespace server {
 namespace http {
 
-class HttpRequestConstructor : public request::RequestConstructor {
+class HttpRequestConstructor final : public request::RequestConstructor {
  public:
   enum class Status {
     kOk,

@@ -7,7 +7,7 @@ TEST(AsyncEventChannel, Ctr) {
   utils::AsyncEventChannel<int> channel("channel");
 }
 
-class Subscriber {
+class Subscriber final {
  public:
   Subscriber(int& x) : x_(x) {}
 

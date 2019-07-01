@@ -24,7 +24,7 @@ class AsyncEventChannelBase {
   virtual bool RemoveListener(FunctionId id) noexcept = 0;
 };
 
-class AsyncEventSubscriberScope {
+class AsyncEventSubscriberScope final {
  public:
   using FunctionId = AsyncEventChannelBase::FunctionId;
 

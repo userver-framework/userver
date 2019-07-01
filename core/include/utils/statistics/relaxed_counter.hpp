@@ -7,7 +7,7 @@ namespace statistics {
 
 /// @brief Atomic counter of type T with relaxed memory ordering
 template <class T>
-class RelaxedCounter {
+class RelaxedCounter final {
  public:
   using ValueType = T;
 

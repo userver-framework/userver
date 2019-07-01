@@ -28,11 +28,11 @@ enum class TransferMode {
 
 class FdControl;
 
-class Direction {
+class Direction final {
  public:
   enum class Kind { kRead, kWrite };
 
-  class Lock {
+  class Lock final {
    public:
     explicit Lock(Direction& dir) : impl_(dir.mutex_) {}
 
@@ -79,7 +79,7 @@ class Direction {
   ev::Watcher<ev_io> watcher_;
 };
 
-class FdControl {
+class FdControl final {
  public:
   // fd will be silently forced to nonblocking mode
   static FdControlHolder Adopt(int fd);

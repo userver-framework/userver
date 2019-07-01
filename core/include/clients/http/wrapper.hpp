@@ -11,7 +11,7 @@ namespace http {
 
 class Client;
 
-class EasyWrapper {
+class EasyWrapper final {
  public:
   EasyWrapper(std::unique_ptr<curl::easy> easy, Client& client);
 

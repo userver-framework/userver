@@ -8,7 +8,8 @@
 namespace engine {
 namespace ev {
 
-class Timer::TimerImpl : public std::enable_shared_from_this<Timer::TimerImpl> {
+class Timer::TimerImpl final
+    : public std::enable_shared_from_this<Timer::TimerImpl> {
  public:
   TimerImpl(ThreadControl& thread_control, Func on_timer_func,
             double first_call_after, double repeat_every);

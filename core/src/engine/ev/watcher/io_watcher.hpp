@@ -13,7 +13,7 @@ class IoWatcher {
   explicit IoWatcher(ThreadControl& thread_control);
   IoWatcher(const IoWatcher&) = delete;
   // NOLINTNEXTLINE(bugprone-exception-escape)
-  ~IoWatcher();
+  virtual ~IoWatcher();
 
   /* Set fd.  After the call IoWatcher owns the fd and eventually calls close().
    */

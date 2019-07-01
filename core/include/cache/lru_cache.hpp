@@ -9,7 +9,7 @@ namespace cache {
 
 /// Thread-unsafe LRU cache
 template <typename T, typename U>
-class LRU {
+class LRU final {
  public:
   explicit LRU(size_t max_size) : max_size_(max_size), map_(max_size) {
     UASSERT(max_size_ > 0);

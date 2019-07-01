@@ -15,7 +15,7 @@
 namespace server {
 namespace http {
 
-class HttpRequestParser : public request::RequestParser {
+class HttpRequestParser final : public request::RequestParser {
  public:
   using OnNewRequestCb =
       std::function<void(std::shared_ptr<request::RequestBase>&&)>;

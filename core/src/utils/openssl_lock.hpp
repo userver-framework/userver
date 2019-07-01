@@ -2,7 +2,7 @@
 
 namespace utils {
 
-class OpensslLock {
+class OpensslLock final {
  public:
   static void Init();
 

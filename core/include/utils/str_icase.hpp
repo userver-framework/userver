@@ -8,7 +8,7 @@
 
 namespace utils {
 
-class StrIcaseHash {
+class StrIcaseHash final {
  public:
   std::size_t operator()(const std::string& s) const {
     std::size_t res = 0;
@@ -23,7 +23,7 @@ class StrIcaseHash {
   }
 };
 
-class StrIcaseCmp {
+class StrIcaseCmp final {
  public:
   bool operator()(const std::string& l, const std::string& r) const {
     if (l.find('\0') != std::string::npos ||

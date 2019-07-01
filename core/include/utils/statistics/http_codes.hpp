@@ -9,7 +9,7 @@ class Value;
 
 namespace utils::statistics {
 
-class HttpCodes {
+class HttpCodes final {
  public:
   using CodeType = unsigned short;
 

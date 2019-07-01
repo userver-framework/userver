@@ -10,7 +10,7 @@
 namespace server {
 namespace auth {
 
-class UserScope {
+class UserScope final {
  public:
   explicit UserScope(std::string value) : value_(std::move(value)) {}
 

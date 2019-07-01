@@ -9,7 +9,7 @@ namespace engine {
 namespace ev {
 
 template <typename EvType>
-class Watcher : public ThreadControl {
+class Watcher final : public ThreadControl {
  public:
   template <typename Obj>
   Watcher(const ThreadControl& thread_control, Obj* data);

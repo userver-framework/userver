@@ -21,7 +21,7 @@ namespace coro {
 static constexpr size_t kStackSize = 256 * 1024ull;
 
 template <typename Task>
-class Pool {
+class Pool final {
  public:
   using Coroutine = typename boost::coroutines2::coroutine<Task*>::push_type;
   using CoroutinePtr =

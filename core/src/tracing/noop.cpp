@@ -9,7 +9,7 @@ const std::string kSpanIdName = "span_id";
 const std::string kParentIdName = "parent_id";
 }  // namespace
 
-class NoopTracer : public Tracer {
+class NoopTracer final : public Tracer {
  public:
   void LogSpanContextTo(const Span::Impl&, logging::LogHelper&) const override;
 };

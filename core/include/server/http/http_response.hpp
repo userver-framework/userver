@@ -17,7 +17,7 @@ namespace http {
 
 class HttpRequestImpl;
 
-class HttpResponse : public request::ResponseBase {
+class HttpResponse final : public request::ResponseBase {
  public:
   using HeadersMap =
       std::unordered_map<std::string, std::string, utils::StrIcaseHash,

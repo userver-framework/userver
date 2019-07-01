@@ -9,7 +9,7 @@
 
 namespace components {
 
-class AuthCheckerSettings : public LoggableComponentBase {
+class AuthCheckerSettings final : public LoggableComponentBase {
  public:
   AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
 

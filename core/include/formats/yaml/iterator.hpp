@@ -11,7 +11,7 @@ namespace yaml {
 
 /// @brief Iterator for `formats::yaml::Value`
 template <typename iter_traits>
-class Iterator {
+class Iterator final {
  public:
   using iterator_category = std::forward_iterator_tag;
   using difference_type = std::ptrdiff_t;

@@ -15,7 +15,7 @@ namespace http {
 
 class HttpRequestImpl;
 
-class HttpRequest {
+class HttpRequest final {
  public:
   explicit HttpRequest(const HttpRequestImpl& impl);
   ~HttpRequest() = default;

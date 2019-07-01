@@ -58,7 +58,7 @@ struct PathItem {
   std::string name;
 };
 
-class HandlerMethodIndex {
+class HandlerMethodIndex final {
  public:
   struct HandlerInfoData {
     HandlerInfoData(engine::TaskProcessor& task_processor,
@@ -128,7 +128,7 @@ bool HandlerMethodIndex::IsAllowedMethod(size_t method_index) const {
   return method_index <= kHandlerMethodsMax && pmethods_[method_index];
 }
 
-class WildcardPathIndex {
+class WildcardPathIndex final {
  public:
   struct Node {
     // ordered by position in path
@@ -357,7 +357,7 @@ PathItem WildcardPathIndex::ExtractWildcardPathItem(
   return PathItem{index, std::move(wildcard_name)};
 }
 
-class FixedPathIndex {
+class FixedPathIndex final {
  public:
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
@@ -418,7 +418,7 @@ bool FixedPathIndex::MatchRequest(HttpMethod method, const std::string& path,
 
 }  // namespace
 
-class HandlerInfoIndex::HandlerInfoIndexImpl {
+class HandlerInfoIndex::HandlerInfoIndexImpl final {
  public:
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);

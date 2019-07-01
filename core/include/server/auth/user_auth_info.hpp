@@ -17,7 +17,7 @@ class AuthCheckerBase;
 
 namespace server::auth {
 
-class UserAuthInfo {
+class UserAuthInfo final {
  public:
   using Ticket = utils::NonLoggable<std::string>;
 

@@ -28,7 +28,7 @@ void CancellationPoint();
 
 /// Blocks cancellation for specific scopes, e.g. destructors.
 /// Recursive, i.e. can be instantiated multiple times in a given call stack.
-class TaskCancellationBlocker {
+class TaskCancellationBlocker final {
  public:
   TaskCancellationBlocker();
   ~TaskCancellationBlocker();

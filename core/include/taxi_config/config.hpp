@@ -12,7 +12,7 @@ template <typename ConfigTag>
 class BaseConfig;
 
 template <typename ConfigTag, typename T>
-class ConfigModule {
+class ConfigModule final {
  public:
   static const T& Get(const BaseConfig<ConfigTag>& config);
   static boost::any Factory(const DocsMap& docs_map) { return T(docs_map); }
@@ -23,7 +23,7 @@ class ConfigModule {
 };
 
 template <typename ConfigTag>
-class BaseConfig {
+class BaseConfig final {
  public:
   explicit BaseConfig(const DocsMap& docs_map);
 

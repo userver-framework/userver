@@ -10,7 +10,7 @@ namespace components {
 
 template <typename HttpServerSettingsConfigNames =
               server_settings::ConfigNamesDefault>
-class HttpServerSettings : public HttpServerSettingsBase {
+class HttpServerSettings final : public HttpServerSettingsBase {
  public:
   HttpServerSettings(const ComponentConfig& config,
                      const ComponentContext& context)

@@ -7,7 +7,7 @@
 namespace server {
 namespace request {
 
-class RequestConfig : public yaml_config::YamlConfig {
+class RequestConfig final : public yaml_config::YamlConfig {
  public:
   enum class Type { kHttp };
 

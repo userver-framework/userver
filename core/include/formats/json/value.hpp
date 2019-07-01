@@ -14,7 +14,7 @@ namespace json {
 
 class ValueBuilder;
 
-class Value {
+class Value final {
  public:
   struct IterTraits {
     using native_iter = Json::ValueConstIterator;

@@ -10,7 +10,7 @@
 
 namespace server {
 
-class RequestsView {
+class RequestsView final {
  public:
   RequestsView();
   ~RequestsView();

@@ -6,7 +6,7 @@ namespace logging {
 
 namespace {
 
-class PutCharFmtBuffer {
+class PutCharFmtBuffer final {
  public:
   void operator()(fmt::memory_buffer& to, char ch) const { to.push_back(ch); }
 };

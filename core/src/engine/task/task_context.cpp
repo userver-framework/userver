@@ -57,7 +57,7 @@ std::string GetTaskIdString(const impl::TaskContext* task) {
   return std::to_string(task ? task->GetTaskId() : 0);
 }
 
-class CurrentTaskScope {
+class CurrentTaskScope final {
  public:
   explicit CurrentTaskScope(TaskContext& context, EhGlobals& eh_store)
       : eh_store_(eh_store) {

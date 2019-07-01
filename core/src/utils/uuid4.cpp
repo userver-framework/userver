@@ -11,7 +11,7 @@ namespace generators {
 
 namespace {
 
-class Uuid4Generator {
+class Uuid4Generator final {
  public:
   using Uuid = boost::uuids::uuid;
   using RandomGenerator = boost::uuids::random_generator;

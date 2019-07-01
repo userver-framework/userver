@@ -26,7 +26,7 @@ class MissingKeyException : public utils::TracefulException {
 /// @note No synchronization is provided for value access, it must be
 /// implemented by Value when necessary.
 template <typename Key, typename Value>
-class RcuMap {
+class RcuMap final {
  public:
   template <typename ValueType>
   class IteratorImpl;
@@ -97,7 +97,7 @@ class RcuMap {
 
 template <typename K, typename V>
 template <typename ValueType>
-class RcuMap<K, V>::IteratorImpl {
+class RcuMap<K, V>::IteratorImpl final {
  public:
   using iterator_category = std::forward_iterator_tag;
   using difference_type = ptrdiff_t;

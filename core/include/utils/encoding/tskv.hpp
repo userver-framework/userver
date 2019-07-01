@@ -18,19 +18,19 @@ struct TypeNeedsEncodeTskv
                                        !std::is_arithmetic<T>::value> {};
 
 template <typename T>
-class EncodeTskvPutCharDefault {
+class EncodeTskvPutCharDefault final {
  public:
   void operator()(T& to, char ch) const { to << ch; }
 };
 
 template <>
-class EncodeTskvPutCharDefault<std::ostream> {
+class EncodeTskvPutCharDefault<std::ostream> final {
  public:
   void operator()(std::ostream& to, char ch) const { to.put(ch); }
 };
 
 template <>
-class EncodeTskvPutCharDefault<std::string> {
+class EncodeTskvPutCharDefault<std::string> final {
  public:
   void operator()(std::string& to, char ch) const { to.push_back(ch); }
 };
