@@ -14,6 +14,8 @@ const std::string kHttpStatusCode = "meta_code";
 
 const std::string kErrorFlag = "error";
 
+const std::string kErrorMessage = "error_msg";
+
 const std::string kDatabaseType = "db.type";
 
 const std::string kDatabaseMongoType = "mongo";

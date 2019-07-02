@@ -19,6 +19,7 @@ extern const std::string kHttpMetaType;
 extern const std::string kHttpMethod;
 extern const std::string kHttpStatusCode;
 extern const std::string kErrorFlag;
+extern const std::string kErrorMessage;
 
 extern const std::string kDatabaseType;
 extern const std::string kDatabaseMongoType;

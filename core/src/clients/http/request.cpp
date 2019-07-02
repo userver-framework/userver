@@ -405,6 +405,7 @@ void Request::RequestImpl::on_completed(
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
     span.AddTag(tracing::kErrorFlag, true);
+    span.AddTag(tracing::kErrorMessage, err.message());
     span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
 
     holder->promise_.set_exception(PrepareException(err));
