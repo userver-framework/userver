@@ -241,6 +241,24 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
       return offset;
     }
   }
+
+  std::size_t ReadDimension(const FieldBuffer& buffer,
+                            DimensionConstIterator dim,
+                            BufferCategory elem_category,
+                            const TypeBufferCategory& categories,
+                            std::vector<bool>& elem) {
+    std::size_t offset = 0;
+    elem.resize(*dim);
+    auto value = elem.begin();
+    for (std::size_t i = 0; i < *dim; ++i) {
+      bool val{false};
+      offset += ReadRawBinary(
+          buffer.GetSubBuffer(offset, FieldBuffer::npos, elem_category), val,
+          categories);
+      *value++ = val;
+    }
+    return offset;
+  }
 };
 
 template <typename Container>
@@ -325,6 +343,17 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
       for (const auto& sub : element) {
         WriteRawBinary(types, buffer, sub);
       }
+    }
+  }
+
+  template <typename Buffer>
+  void WriteData(const UserTypes& types, DimensionConstIterator dim,
+                 Buffer& buffer, const std::vector<bool>& element) const {
+    if (*dim != element.size()) {
+      throw InvalidDimensions{*dim, element.size()};
+    }
+    for (bool sub : element) {
+      WriteRawBinary(types, buffer, sub);
     }
   }
 };

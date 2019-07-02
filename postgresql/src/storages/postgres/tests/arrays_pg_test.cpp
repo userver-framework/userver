@@ -341,4 +341,15 @@ POSTGRE_TEST_P(ArrayOfVarchar) {
                                 std::vector<std::string>{"foo", "bar"}));
 }
 
+POSTGRE_TEST_P(ArrayOfBool) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  std::vector<bool> src{true, false, true};
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(res = conn->Execute("select $1::boolean[]",
+                                      std::vector<bool>{true, false, true}));
+  std::vector<bool> tgt;
+  EXPECT_NO_THROW(res[0][0].To(tgt));
+  EXPECT_EQ(src, tgt);
+}
+
 }  // namespace
