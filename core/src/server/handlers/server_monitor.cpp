@@ -29,5 +29,12 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
   return formats::json::ToString(monitor_data.ExtractValue());
 }
 
+std::string ServerMonitor::GetResponseDataForLogging(const http::HttpRequest&,
+                                                     request::RequestContext&,
+                                                     const std::string&) const {
+  // Useless data for logs, no need to duplicate metrics in logs
+  return "<statistics data>";
+}
+
 }  // namespace handlers
 }  // namespace server

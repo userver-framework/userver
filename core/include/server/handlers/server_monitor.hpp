@@ -22,6 +22,10 @@ class ServerMonitor final : public HttpHandlerBase {
       utils::statistics::StatisticsRequest) const;
 
  private:
+  std::string GetResponseDataForLogging(
+      const http::HttpRequest& request, request::RequestContext& context,
+      const std::string& response_data) const override;
+
   components::StatisticsStorage& statistics_storage_;
 };
 
