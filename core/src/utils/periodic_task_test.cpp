@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 #include <condition_variable>
 #include <mutex>
@@ -274,6 +274,23 @@ TEST(PeriodicTask, Restart) {
     }));
     task.Stop();
     EXPECT_FALSE(task.IsRunning());
+  });
+}
+
+TEST(PeriodicTask, SynchronizeDebug) {
+  RunInCoro([] {
+    SimpleTaskData simple;
+
+    auto period = std::chrono::milliseconds(40000);  // some big value
+    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+
+    EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
+                                [&simple]() { return simple.GetCount() > 0; }));
+
+    task.SynchronizeDebug();
+    EXPECT_GE(simple.GetCount(), 1);
+
+    task.Stop();
   });
 }
 

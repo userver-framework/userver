@@ -14,6 +14,27 @@ inline void TestInCoro(std::function<void()> callback,
 
 inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
 
+namespace std::chrono {
+
+inline std::ostream& operator<<(std::ostream& os, std::chrono::seconds s) {
+  return os << s.count() << "s";
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                std::chrono::milliseconds ms) {
+  return os << ms.count() << "ms";
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                std::chrono::microseconds us) {
+  return os << us.count() << "us";
+}
+
+inline std::ostream& operator<<(std::ostream& os, std::chrono::nanoseconds ns) {
+  return os << ns.count() << "ns";
+}
+}  // namespace std::chrono
+
 #ifdef __APPLE__
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name
 #else

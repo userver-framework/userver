@@ -2,11 +2,13 @@
 
 #include <random>
 
+#include <engine/condition_variable.hpp>
+#include <engine/deadline.hpp>
 #include <engine/task/task_with_result.hpp>
+#include <rcu/rcu.hpp>
 #include <tracing/span.hpp>
 #include <utils/assert.hpp>
 #include <utils/flags.hpp>
-#include <utils/swappingsmart.hpp>
 
 namespace utils {
 
@@ -59,7 +61,7 @@ class PeriodicTask final {
 
     std::chrono::milliseconds period;
     std::chrono::milliseconds distribution;
-    /// Used instead of period, if set.
+    /// Used instead of period in case of exception, if set.
     boost::optional<std::chrono::milliseconds> exception_period;
     utils::Flags<Flags> flags;
     logging::Level span_level;
@@ -67,7 +69,7 @@ class PeriodicTask final {
 
   using Callback = std::function<void()>;
 
-  PeriodicTask() = default;
+  PeriodicTask();
   PeriodicTask(PeriodicTask&&) = delete;
   PeriodicTask(const PeriodicTask&) = delete;
 
@@ -89,23 +91,41 @@ class PeriodicTask final {
 
   void SetSettings(Settings settings);
 
+  /// Force next DoStep() iteration. It is guaranteed that there is at least one
+  /// call to DoStep() during SynchronizeDebug() execution. DoStep() is executed
+  /// as usual in the PeriodicTask's task (NOT in current task).
+  void SynchronizeDebug();
+
   /// Checks if a periodic task (not a single iteration only) is running.
   /// It may be in a callback execution or sleeping between callbacks.
   bool IsRunning() const;
 
  private:
+  void SleepUntil(engine::Deadline::TimePoint tp);
+
   void DoStart();
 
   void Run();
 
+  bool Step();
+
+  bool DoStep();
+
   std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
+
+  void WaitForFirstStep();
 
  private:
   std::string name_;
   Callback callback_;
   engine::TaskWithResult<void> task_;
-  utils::SwappingSmart<Settings> settings_;
+  rcu::Variable<Settings> settings_;
   std::minstd_rand rand_;  // default seed is OK
+
+  // For kNow only
+  engine::ConditionVariable start_cv_;
+  engine::Mutex start_mutex_;
+  std::atomic<bool> started_;
 };
 
 }  // namespace utils

@@ -9,6 +9,7 @@
 #include <components/component_context.hpp>
 #include <taxi_config/config.hpp>
 #include <utils/async_event_channel.hpp>
+#include <utils/swappingsmart.hpp>
 
 namespace components {
 
