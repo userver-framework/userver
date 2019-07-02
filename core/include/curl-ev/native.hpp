@@ -8,7 +8,24 @@
 
 #pragma once
 
+/* List of system headers used by libcurl 7.58:
+ *
+ * include/curl$ grep -r '#include <' -h | sed 's!\s*\s/\*.*!!' | sort -u
+ *
+ * Explicitly include them before <curl/curl.h> as the latter
+ * is included in curl::native namespace. If any system header
+ * is included as part of <curl/curl.h>, it will be unavailable
+ * to the rest of the world.
+ */
+#include <limits.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <time.h>
+
 #include <system_error>
 
 namespace curl {
