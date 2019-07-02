@@ -18,6 +18,8 @@ class ConfigModule final {
   static boost::any Factory(const DocsMap& docs_map) { return T(docs_map); }
   static void Unregister();
 
+  static bool IsRegistered();
+
  private:
   static std::type_index type_;
 };
@@ -48,6 +50,8 @@ class BaseConfig final {
 
   static void Unregister(const std::type_info& type);
 
+  static bool IsRegistered(const std::type_info& type);
+
  private:
   const boost::any& Get(const std::type_index& type) const;
 
@@ -74,6 +78,11 @@ const T& ConfigModule<ConfigTag, T>::Get(const BaseConfig<ConfigTag>& config) {
 template <typename ConfigTag, typename T>
 void ConfigModule<ConfigTag, T>::Unregister() {
   BaseConfig<ConfigTag>::Unregister(typeid(T));
+}
+
+template <typename ConfigTag, typename T>
+bool ConfigModule<ConfigTag, T>::IsRegistered() {
+  return BaseConfig<ConfigTag>::IsRegistered(typeid(T));
 }
 
 template <typename ConfigTag, typename T>

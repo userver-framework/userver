@@ -29,10 +29,16 @@ void BaseConfig<ConfigTag>::DoRegister(
 }
 
 template <typename ConfigTag>
+bool BaseConfig<ConfigTag>::IsRegistered(const std::type_info& type) {
+  return ExtraBaseConfigFactories<ConfigTag>().count(type) == 1;
+}
+
+template <typename ConfigTag>
 void BaseConfig<ConfigTag>::Unregister(const std::type_info& type) {
+  UASSERT(IsRegistered(type));
+
   [[maybe_unused]] size_t count =
       ExtraBaseConfigFactories<ConfigTag>().erase(type);
-  UASSERT(count == 1);
 }
 
 template <typename ConfigTag>
