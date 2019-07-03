@@ -265,6 +265,10 @@ struct Connection::Impl {
     if (!!cmd_ctl) {
       SetConnectionStatementTimeout(
           cmd_ctl->statement, engine::Deadline::FromDuration(cmd_ctl->network));
+    } else if (!!transaction_cmd_ctl_) {
+      SetStatementTimeout(
+          transaction_cmd_ctl_->statement,
+          engine::Deadline::FromDuration(transaction_cmd_ctl_->network));
     } else {
       SetConnectionStatementTimeout(
           default_cmd_ctl_.statement,

@@ -107,3 +107,24 @@ TEST_P(PostgreCluster, SingleQuery) {
     EXPECT_EQ(1, res.Size());
   });
 }
+
+TEST_P(PostgreCluster, TransactionTimouts) {
+  RunInCoro([this] {
+    auto cluster = CreateClusterWithMaster(dsn_, GetTaskProcessor(), 1);
+
+    {
+      // Default transaction timeout
+      auto trx = cluster.Begin(pg::Transaction::RW);
+      EXPECT_ANY_THROW(trx.Execute("select pg_sleep(0.2)"));
+      trx.Rollback();
+    }
+    {
+      // Custom transaction timeout
+      auto trx = cluster.Begin(pg::Transaction::RW,
+                               pg::CommandControl{pg::TimeoutDuration{1000},
+                                                  pg::TimeoutDuration{500}});
+      EXPECT_NO_THROW(trx.Execute("select pg_sleep(0.2)"));
+      trx.Commit();
+    }
+  });
+}
