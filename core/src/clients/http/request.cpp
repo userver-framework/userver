@@ -514,7 +514,7 @@ void Request::RequestImpl::parse_header(char* ptr, size_t size) {
   }
 
   std::string value(col_pos, end - col_pos);
-  response_->headers()[std::move(key)] = std::move(value);
+  response_->headers().emplace(std::move(key), std::move(value));
 }
 
 engine::Future<std::shared_ptr<Response>>

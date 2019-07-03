@@ -130,7 +130,7 @@ class multi;
 class share;
 class string_list;
 
-class CURLASIO_API easy final {
+class CURLASIO_API easy final : public std::enable_shared_from_this<easy> {
  public:
   using handler_type = std::function<void(const std::error_code& err)>;
 
@@ -642,6 +642,7 @@ class CURLASIO_API easy final {
 
   void init();
   native::curl_socket_t open_tcp_socket(native::curl_sockaddr* address);
+  void cancel(size_t request_num);
 
   static size_t write_function(char* ptr, size_t size, size_t nmemb,
                                void* userdata);
@@ -658,9 +659,10 @@ class CURLASIO_API easy final {
       struct native::curl_sockaddr* address);
   static int closesocket(void* clientp, native::curl_socket_t item);
 
-  void _async_perform(handler_type handler);
-  void _cancel();
-  void _reset();
+  // do_ev_* methods run in libev thread
+  void do_ev_async_perform(handler_type handler, size_t request_num);
+  void do_ev_cancel(size_t request_num);
+  void do_ev_reset();
 
   void StartTask();
 
@@ -669,6 +671,8 @@ class CURLASIO_API easy final {
   initialization::ptr initref_;
   native::CURL* handle_{nullptr};
   multi* multi_;
+  size_t request_counter_{0};
+  size_t cancelled_request_max_{0};
   bool multi_registered_;
   handler_type handler_;
   std::shared_ptr<std::istream> source_;

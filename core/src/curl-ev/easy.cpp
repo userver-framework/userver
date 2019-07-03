@@ -50,9 +50,13 @@ easy::~easy() {
 
 void easy::async_perform(handler_type handler) {
   LOG_TRACE() << "easy::async_perform start " << reinterpret_cast<long>(this);
+  size_t request_num = ++request_counter_;
   if (multi_) {
     multi_->GetThreadControl().RunInEvLoopAsync(
-        std::bind(&easy::_async_perform, this, handler));
+        [self = shared_from_this(), this, handler = std::move(handler),
+         request_num]() mutable {
+          return do_ev_async_perform(std::move(handler), request_num);
+        });
   } else {
     throw std::runtime_error("no multi!");
   }
@@ -60,8 +64,14 @@ void easy::async_perform(handler_type handler) {
               << reinterpret_cast<long>(this);
 }
 
-void easy::_async_perform(handler_type handler) {
-  LOG_TRACE() << "easy::_async_perform start " << reinterpret_cast<long>(this);
+void easy::do_ev_async_perform(handler_type handler, size_t request_num) {
+  if (request_num <= cancelled_request_max_) {
+    LOG_DEBUG() << "already cancelled";
+    return;
+  }
+
+  LOG_TRACE() << "easy::do_ev_async_perform start "
+              << reinterpret_cast<long>(this);
   timings_.mark_start_performing();
   if (!multi_) {
     throw std::runtime_error(
@@ -71,7 +81,7 @@ void easy::_async_perform(handler_type handler) {
   BusyMarker busy(multi_->Statistics().get_busy_storage());
 
   // Cancel all previous async. operations
-  cancel();
+  cancel(request_num - 1);
 
   // Keep track of all new sockets
   set_opensocket_function(&easy::opensocket);
@@ -92,18 +102,24 @@ void easy::_async_perform(handler_type handler) {
   // Registering the easy handle with the multi handle might invoke a set of
   // callbacks right away which cause the completion event to fire from within
   // this function.
-  LOG_TRACE() << "easy::_async_perform before multi_->add() "
+  LOG_TRACE() << "easy::do_ev_async_perform before multi_->add() "
               << reinterpret_cast<long>(this);
   multi_->add(this);
 }
 
-void easy::cancel() {
-  if (multi_registered_) {
-    multi_->GetThreadControl().RunInEvLoopSync(std::bind(&easy::_cancel, this));
-  }
+void easy::cancel() { cancel(request_counter_); }
+
+void easy::cancel(size_t request_num) {
+  multi_->GetThreadControl().RunInEvLoopSync(
+      std::bind(&easy::do_ev_cancel, this, request_num));
 }
 
-void easy::_cancel() {
+void easy::do_ev_cancel(size_t request_num) {
+  // RunInEvLoopAsync(do_ev_async_perform) and RunInEvLoopSync(do_ev_cancel) are
+  // not synchronized. So we need to count last cancelled request to prevent its
+  // execution in do_ev_async_perform().
+  if (cancelled_request_max_ < request_num)
+    cancelled_request_max_ = request_num;
   if (multi_registered_) {
     BusyMarker busy(multi_->Statistics().get_busy_storage());
 
@@ -127,13 +143,12 @@ void easy::reset() {
   set_no_body(false);
   set_post(false);
 
-  if (multi_registered_) {
-    multi_->GetThreadControl().RunInEvLoopSync(std::bind(&easy::_reset, this));
-  }
+  multi_->GetThreadControl().RunInEvLoopSync(
+      std::bind(&easy::do_ev_reset, this));
   LOG_TRACE() << "easy::reset finished " << reinterpret_cast<long>(this);
 }
 
-void easy::_reset() {
+void easy::do_ev_reset() {
   if (multi_registered_) {
     native::curl_easy_reset(handle_);
   }
@@ -506,6 +521,8 @@ size_t easy::read_function(void* ptr, size_t size, size_t nmemb,
   easy* self = static_cast<easy*>(userdata);
   size_t actual_size = size * nmemb;
 
+  if (!self->source_) return CURL_READFUNC_ABORT;
+
   if (self->source_->eof()) {
     return 0;
   }
@@ -513,7 +530,7 @@ size_t easy::read_function(void* ptr, size_t size, size_t nmemb,
   std::streamsize chars_stored =
       self->source_->readsome(static_cast<char*>(ptr), actual_size);
 
-  if (!self->source_) {
+  if (!*self->source_) {
     return CURL_READFUNC_ABORT;
   } else {
     return static_cast<size_t>(chars_stored);

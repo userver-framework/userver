@@ -77,7 +77,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
   int i = rand_r(&rand_state) % multis_.size();
   auto& multi = multis_[i];
   auto wrapper = std::make_shared<EasyWrapper>(
-      std::make_unique<curl::easy>(*multi), *this);
+      std::make_shared<curl::easy>(*multi), *this);
   return std::make_shared<Request>(std::move(wrapper),
                                    statistics_[i].CreateRequestStats(),
                                    destination_statistics_);
@@ -154,7 +154,7 @@ const DestinationStatistics& Client::GetDestinationStatistics() const {
   return *destination_statistics_;
 }
 
-void Client::PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept {
+void Client::PushIdleEasy(std::shared_ptr<curl::easy> easy) noexcept {
   try {
     easy->reset();
     idle_queue_->enqueue(std::move(easy));
@@ -165,8 +165,8 @@ void Client::PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept {
   DecPending();
 }
 
-std::unique_ptr<curl::easy> Client::TryDequeueIdle() noexcept {
-  std::unique_ptr<curl::easy> result;
+std::shared_ptr<curl::easy> Client::TryDequeueIdle() noexcept {
+  std::shared_ptr<curl::easy> result;
   if (!idle_queue_->try_dequeue(result)) {
     return {};
   }

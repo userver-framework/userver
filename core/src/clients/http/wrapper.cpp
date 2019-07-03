@@ -9,7 +9,7 @@
 namespace clients {
 namespace http {
 
-EasyWrapper::EasyWrapper(std::unique_ptr<curl::easy> easy, Client& client)
+EasyWrapper::EasyWrapper(std::shared_ptr<curl::easy> easy, Client& client)
     : easy_(std::move(easy)), client_(client) {
   client_.IncPending();
 }

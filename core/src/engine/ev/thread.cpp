@@ -16,6 +16,7 @@ const size_t kInitFuncQueueCapacity = 64;
 
 Thread::Thread(const std::string& thread_name)
     : func_ptr_(nullptr),
+      func_promise_set_{false},
       // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
@@ -100,7 +101,7 @@ void Thread::RunInEvLoopSync(const std::function<void()>& func) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     func_ptr_ = &func;
-    UpdateEvLoop();
+    WaitSyncRun();
   }
 }
 
@@ -165,12 +166,13 @@ void Thread::StopEventLoop() {
   loop_ = nullptr;
 }
 
-void Thread::UpdateEvLoop() {
-  if (IsInEvThread()) return;
+void Thread::WaitSyncRun() {
+  UASSERT(!IsInEvThread());
   UASSERT(!func_promise_);
-  auto func_promise = std::make_unique<std::promise<void>>();
-  auto func_future = func_promise->get_future();
-  func_promise_ = std::move(func_promise);
+  UASSERT(!func_promise_set_);
+  func_promise_ = std::make_unique<std::promise<void>>();
+  auto func_future = func_promise_->get_future();
+  func_promise_set_ = true;
   ev_async_send(loop_, &watch_update_);
   func_future.get();
 }
@@ -193,10 +195,11 @@ void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) {
 }
 
 void Thread::UpdateLoopWatcherImpl() {
-  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() func_promise_="
-              << (func_promise_ ? 1 : 0)
+  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() func_promise_set_="
+              << (func_promise_set_ ? 1 : 0)
               << " func_queue_.empty()=" << func_queue_.empty();
-  if (func_promise_) {
+  if (func_promise_set_) {
+    UASSERT(!!func_promise_);
     UASSERT(func_ptr_);
     std::exception_ptr ex_ptr;
     try {
@@ -207,6 +210,7 @@ void Thread::UpdateLoopWatcherImpl() {
     func_ptr_ = nullptr;
     std::unique_ptr<std::promise<void>> func_promise = std::move(func_promise_);
     func_promise_.reset();
+    func_promise_set_ = false;
     try {
       if (ex_ptr)
         func_promise->set_exception(std::move(ex_ptr));

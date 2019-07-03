@@ -13,7 +13,7 @@ class Client;
 
 class EasyWrapper final {
  public:
-  EasyWrapper(std::unique_ptr<curl::easy> easy, Client& client);
+  EasyWrapper(std::shared_ptr<curl::easy> easy, Client& client);
 
   EasyWrapper(const EasyWrapper&) = delete;
   EasyWrapper(EasyWrapper&&) = delete;
@@ -25,7 +25,7 @@ class EasyWrapper final {
   curl::easy& Easy();
 
  private:
-  std::unique_ptr<curl::easy> easy_;
+  std::shared_ptr<curl::easy> easy_;
   Client& client_;
 };
 

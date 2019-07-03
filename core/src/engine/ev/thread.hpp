@@ -1,18 +1,14 @@
 #pragma once
 
-#include <chrono>
-#include <deque>
+#include <atomic>
 #include <future>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
-#include <unordered_map>
 
 #include <ev.h>
 #include <boost/lockfree/queue.hpp>
-
-#include <utils/assert.hpp>
 
 namespace engine {
 namespace ev {
@@ -44,7 +40,13 @@ class Thread final {
   void IdleStart(ev_idle& w);
   void IdleStopUnsafe(ev_idle& w);
   void IdleStop(ev_idle& w);
+
   void RunInEvLoopSync(const std::function<void()>& func);
+  // Callbacks passed to RunInEvLoopAsync() are serialized.
+  // But RunInEvLoopAsync() has no serialization with RunInEvLoopSync() -
+  // callback from RunInEvLoopSync() may be called before callback from
+  // RunInEvLoopAsync() even if RunInEvLoopAsync() was called before
+  // RunInEvLoopSync().
   void RunInEvLoopAsync(std::function<void()>&& func);
 
   bool IsInEvThread() const;
@@ -56,7 +58,7 @@ class Thread final {
   void Start();
 
   void StopEventLoop();
-  void UpdateEvLoop();
+  void WaitSyncRun();
   void RunEvLoop();
 
   static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int);
@@ -71,6 +73,7 @@ class Thread final {
 
   const std::function<void()>* func_ptr_;
   std::unique_ptr<std::promise<void>> func_promise_;
+  std::atomic<bool> func_promise_set_;
   boost::lockfree::queue<std::function<void()>*> func_queue_;
 
   struct ev_loop* loop_;

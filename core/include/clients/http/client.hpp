@@ -64,9 +64,9 @@ class Client {
   friend class EasyWrapper;
   void IncPending() noexcept { ++pending_tasks_; }
   void DecPending() noexcept { --pending_tasks_; }
-  void PushIdleEasy(std::unique_ptr<curl::easy> easy) noexcept;
+  void PushIdleEasy(std::shared_ptr<curl::easy> easy) noexcept;
 
-  std::unique_ptr<curl::easy> TryDequeueIdle() noexcept;
+  std::shared_ptr<curl::easy> TryDequeueIdle() noexcept;
 
   std::atomic<std::size_t> pending_tasks_{0};
 
@@ -78,8 +78,9 @@ class Client {
   static constexpr size_t kIdleQueueSize = 616;
   static constexpr size_t kIdleQueueAlignment = 8;
   using IdleQueueTraits = moodycamel::ConcurrentQueueDefaultTraits;
-  using IdeQueueValue = std::unique_ptr<curl::easy>;
-  using IdleQueue = moodycamel::ConcurrentQueue<IdeQueueValue, IdleQueueTraits>;
+  using IdleQueueValue = std::shared_ptr<curl::easy>;
+  using IdleQueue =
+      moodycamel::ConcurrentQueue<IdleQueueValue, IdleQueueTraits>;
   utils::FastPimpl<IdleQueue, kIdleQueueSize, kIdleQueueAlignment> idle_queue_;
 };
 

@@ -1,16 +1,16 @@
 #pragma once
 
-#include <curl-ev/local_timings.hpp>
 #include <map>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 
+#include <curl-ev/easy.hpp>
+#include <curl-ev/local_timings.hpp>
+
 #include "error.hpp"
 #include "wrapper.hpp"
-
-#include <curl-ev/easy.hpp>
 
 namespace clients {
 namespace http {
