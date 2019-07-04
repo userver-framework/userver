@@ -638,7 +638,10 @@ class UnknownBufferCategory : public ResultSetError {
  public:
   UnknownBufferCategory(Oid type_oid)
       : ResultSetError("Failed to find buffer category for type oid " +
-                       std::to_string(type_oid)){};
+                       std::to_string(type_oid)),
+        type_oid{type_oid} {};
+
+  const Oid type_oid;
 };
 
 /// @brief A field was requested to be parsed to a type that doesn't have an

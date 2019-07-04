@@ -68,7 +68,7 @@ class PGConnectionWrapper {
 
   /// @brief Wait for query result
   /// Will return result or throw an exception
-  ResultSet WaitResult(const UserTypes&, Deadline deadline, ScopeTime&);
+  ResultSet WaitResult(Deadline deadline, ScopeTime&);
 
   /// Consume all input discarding all result sets
   void DiscardInput(Deadline deadline);
@@ -101,7 +101,7 @@ class PGConnectionWrapper {
   void Flush(Deadline deadline);
   void ConsumeInput(Deadline deadline);
 
-  ResultSet MakeResult(const UserTypes&, ResultHandle&& handle);
+  ResultSet MakeResult(ResultHandle&& handle);
 
   template <typename ExceptionType>
   void CheckError(const std::string& cmd, int pg_dispatch_result);

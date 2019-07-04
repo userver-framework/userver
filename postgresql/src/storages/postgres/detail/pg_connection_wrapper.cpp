@@ -287,8 +287,7 @@ void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
   }
 }
 
-ResultSet PGConnectionWrapper::WaitResult(const UserTypes& types,
-                                          Deadline deadline, ScopeTime& scope) {
+ResultSet PGConnectionWrapper::WaitResult(Deadline deadline, ScopeTime& scope) {
   scope.Reset(scopes::kLibpqWaitResult);
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
@@ -302,7 +301,7 @@ ResultSet PGConnectionWrapper::WaitResult(const UserTypes& types,
     handle = MakeResultHandle(pg_res);
     ConsumeInput(deadline);
   }
-  return MakeResult(types, std::move(handle));
+  return MakeResult(std::move(handle));
 }
 
 void PGConnectionWrapper::DiscardInput(Deadline deadline) {
@@ -319,8 +318,7 @@ const logging::LogExtra& PGConnectionWrapper::GetLogExtra() const {
   return log_extra_;
 }
 
-ResultSet PGConnectionWrapper::MakeResult(const UserTypes& types,
-                                          ResultHandle&& handle) {
+ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
   auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(handle));
   auto status = wrapper->GetStatus();
   switch (status) {
@@ -389,7 +387,6 @@ ResultSet PGConnectionWrapper::MakeResult(const UserTypes& types,
       break;
     }
   }
-  wrapper->FillBufferCategories(types);
   return ResultSet{wrapper};
 }
 

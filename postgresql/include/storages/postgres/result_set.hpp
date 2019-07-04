@@ -554,7 +554,8 @@ class ResultSet {
   //@}
 
  public:
-  explicit ResultSet(detail::ResultWrapperPtr pimpl) : pimpl_{pimpl} {}
+  explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl)
+      : pimpl_{pimpl} {}
 
   /// Number of rows in the result set
   size_type Size() const;
@@ -621,10 +622,14 @@ class ResultSet {
   Container AsContainer() const;
   //@}
  private:
+  friend class detail::Connection;
+  void FillBufferCategories(const UserTypes& types);
+
+ private:
   template <typename T, typename Tag>
   friend class TypedResultSet;
 
-  detail::ResultWrapperPtr pimpl_;
+  std::shared_ptr<detail::ResultWrapper> pimpl_;
 };
 
 namespace detail {

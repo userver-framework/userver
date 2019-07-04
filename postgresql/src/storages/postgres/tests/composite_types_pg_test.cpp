@@ -187,8 +187,8 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
       << "Successfully create a composite type";
   EXPECT_NO_THROW(conn->Execute(kCreateCompositeOfComposites))
       << "Successfully create composite of composites";
-  EXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
 
+  // The datatypes are expected to be automatically reloaded
   EXPECT_NO_THROW(
       res = conn->Execute("select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
                           "ARRAY['a', 'b', 'c'])::__pg_test.foobar"));

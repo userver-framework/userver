@@ -284,11 +284,12 @@ struct Connection::Impl {
                          .AsContainer<UserTypes::CompositeFieldDefs>();
       // End of definitions marker, to simplify processing
       attribs.push_back(CompositeFieldDef::EmptyDef());
-      db_types_.Reset();
+      UserTypes db_types;
       for (auto desc : types) {
-        db_types_.AddType(std::move(desc));
+        db_types.AddType(std::move(desc));
       }
-      db_types_.AddCompositeFields(std::move(attribs));
+      db_types.AddCompositeFields(std::move(attribs));
+      db_types_ = std::move(db_types);
     } catch (const Error& e) {
       LOG_ERROR() << "Error loading user datatypes: " << e;
       // TODO Decide about rethrowing
@@ -328,6 +329,18 @@ struct Connection::Impl {
   void CheckBusy() {
     if (GetConnectionState() == ConnectionState::kTranActive) {
       throw ConnectionBusy("There is another query in flight");
+    }
+  }
+
+  void FillBufferCategories(ResultSet& res) {
+    try {
+      res.FillBufferCategories(db_types_);
+    } catch (const UnknownBufferCategory& e) {
+      LOG_WARNING() << "Got a resultset with unknown datatype oid "
+                    << e.type_oid << ". Will reload user datatypes";
+      LoadUserTypes(MakeCurrentDeadline());
+      // Don't catch the error again, let it fly to the user
+      res.FillBufferCategories(db_types_);
     }
   }
 
@@ -386,7 +399,7 @@ struct Connection::Impl {
       // Mark the statement prepared as soon as the send works correctly
       prepared_.emplace(query_hash, io::kBinaryDataFormat);
       try {
-        conn_wrapper_.WaitResult(db_types_, deadline, scope);
+        conn_wrapper_.WaitResult(deadline, scope);
       } catch (const DuplicatePreparedStatement& e) {
         LOG_ERROR()
             << "Looks like your pg_bouncer doesn't clean up connections "
@@ -403,7 +416,8 @@ struct Connection::Impl {
       }
 
       conn_wrapper_.SendDescribePrepared(statement_name, scope);
-      auto res = conn_wrapper_.WaitResult(db_types_, deadline, scope);
+      auto res = conn_wrapper_.WaitResult(deadline, scope);
+      FillBufferCategories(res);
       // And now mark with actual protocol format
       prepared_[query_hash] =
           res.GetRowDescription().BestReplyFormat(db_types_);
@@ -419,7 +433,8 @@ struct Connection::Impl {
     scope.Reset(scopes::kExec);
     conn_wrapper_.SendPreparedQuery(statement_name, params, scope, fmt);
     try {
-      auto res = conn_wrapper_.WaitResult(db_types_, deadline, scope);
+      auto res = conn_wrapper_.WaitResult(deadline, scope);
+      FillBufferCategories(res);
       count_execute.AccountResult(res, fmt);
       return res;
     } catch (const InvalidSqlStatementName& e) {
@@ -467,7 +482,8 @@ struct Connection::Impl {
     auto scope = span.CreateScopeTime(scopes::kExec);
     conn_wrapper_.SendQuery(statement, scope);
     try {
-      auto res = conn_wrapper_.WaitResult(db_types_, deadline, scope);
+      auto res = conn_wrapper_.WaitResult(deadline, scope);
+      FillBufferCategories(res);
       count_execute.AccountResult(res, io::DataFormat::kTextDataFormat);
       return res;
     } catch (const ConnectionTimeoutError& e) {
@@ -501,9 +517,10 @@ struct Connection::Impl {
     span.AddTag(tracing::kDatabaseStatement, statement);
     auto scope = span.CreateScopeTime();
     conn_wrapper_.SendQuery(statement, params, scope, reply_format);
-    return conn_wrapper_.WaitResult(
-        db_types_, engine::Deadline::FromDuration(CurrentNetworkTimeout()),
-        scope);
+    auto res = conn_wrapper_.WaitResult(
+        engine::Deadline::FromDuration(CurrentNetworkTimeout()), scope);
+    FillBufferCategories(res);
+    return res;
   }
 
   void Begin(const TransactionOptions& options,

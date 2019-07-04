@@ -71,6 +71,13 @@ class UserTypes {
   using CompositeFieldDefs = std::vector<CompositeFieldDef>;
 
  public:
+  UserTypes() = default;
+  UserTypes(const UserTypes&) = delete;
+  UserTypes(UserTypes&&) noexcept = default;
+
+  UserTypes& operator=(const UserTypes&) = delete;
+  UserTypes& operator=(UserTypes&&) noexcept = default;
+
   void Reset();
 
   Oid FindOid(DBTypeName) const;
