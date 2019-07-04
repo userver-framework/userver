@@ -31,6 +31,11 @@ inline formats::json::Value SerializeToJson(bool value) {
   return formats::json::ValueBuilder(value).ExtractValue();
 }
 
+template <class Rep, class Period>
+inline Value SerializeToJson(std::chrono::duration<Rep, Period> duration) {
+  return formats::json::ValueBuilder(duration.count()).ExtractValue();
+}
+
 template <typename T>
 formats::json::Value SerializeToJson(const std::vector<T>& value) {
   formats::json::ValueBuilder builder(formats::json::Type::kArray);
