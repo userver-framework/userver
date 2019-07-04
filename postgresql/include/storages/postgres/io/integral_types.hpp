@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/endian/arithmetic.hpp>
+#include <boost/endian/conversion.hpp>
 
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
