@@ -162,6 +162,11 @@ Request::Request(std::shared_ptr<EasyWrapper> wrapper,
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);
   pimpl_->verify(true);
+
+  if (engine::current_task::IsCancelRequested()) {
+    throw CancelException(
+        "Failed to make HTTP request due to task cancellation");
+  }
 }
 
 ResponseFuture Request::async_perform() {

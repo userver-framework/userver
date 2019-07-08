@@ -38,6 +38,12 @@ class TimeoutException : public BaseException {
   ~TimeoutException() override = default;
 };
 
+class CancelException : public BaseException {
+ public:
+  using BaseException::BaseException;
+  ~CancelException() override = default;
+};
+
 class SSLException : public BaseCodeException {
  public:
   using BaseCodeException::BaseCodeException;

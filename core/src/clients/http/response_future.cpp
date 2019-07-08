@@ -38,8 +38,10 @@ void ResponseFuture::Detach() { *future_ = {}; }
 
 std::future_status ResponseFuture::Wait() const {
   auto status = future_->wait_until(deadline_);
-  if (status != std::future_status::ready) {
-    engine::current_task::CancellationPoint();
+  if (status != std::future_status::ready &&
+      engine::current_task::IsCancelRequested()) {
+    throw CancelException(
+        "HTTP response wait was aborted due to task cancellation");
   }
   return status;
 }

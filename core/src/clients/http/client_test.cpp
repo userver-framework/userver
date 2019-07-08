@@ -231,7 +231,7 @@ TEST(HttpClient, PostEcho) {
   });
 }
 
-TEST(HttpClient, Cancel) {
+TEST(HttpClient, CancelPre) {
   TestInCoro([] {
     auto task = utils::Async("test", [] {
       const testing::SimpleServer http_server{&echo_callback};
@@ -241,16 +241,33 @@ TEST(HttpClient, Cancel) {
       engine::current_task::GetCurrentTaskContext()->RequestCancel(
           engine::Task::CancellationReason::kUserRequest);
 
+      EXPECT_THROW(http_client_ptr->CreateRequest(),
+                   clients::http::CancelException);
+    });
+
+    task.Get();
+  });
+}
+
+TEST(HttpClient, CancelPost) {
+  TestInCoro([] {
+    auto task = utils::Async("test", [] {
+      const testing::SimpleServer http_server{&echo_callback};
+      std::shared_ptr<clients::http::Client> http_client_ptr =
+          clients::http::Client::Create(kHttpIoThreads);
+
       const auto request = http_client_ptr->CreateRequest()
                                ->post(http_server.GetBaseUrl(), kTestData)
                                ->timeout(std::chrono::milliseconds(100));
 
-      auto response = request->perform();
-      EXPECT_TRUE(false) << "should have stopped";
+      engine::current_task::GetCurrentTaskContext()->RequestCancel(
+          engine::Task::CancellationReason::kUserRequest);
+
+      auto future = request->async_perform();
+      EXPECT_THROW(future.Wait(), clients::http::CancelException);
     });
 
-    task.Wait();
-    EXPECT_EQ(engine::Task::State::kCancelled, task.GetState());
+    task.Get();
   });
 }
 

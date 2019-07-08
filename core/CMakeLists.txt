@@ -111,7 +111,8 @@ target_include_directories(${PROJECT_NAME}
 
 set(LIBSTANDALONE_ENGINE yandex-taxi-userver+standalone_engine)
 add_library(${LIBSTANDALONE_ENGINE} INTERFACE)
-target_link_libraries(${LIBSTANDALONE_ENGINE} INTERFACE ${PROJECT_NAME})
+target_link_libraries(${LIBSTANDALONE_ENGINE} INTERFACE ${PROJECT_NAME}
+    yandex-taxi-userver-uboost-coro)
 target_include_directories(${LIBSTANDALONE_ENGINE} INTERFACE
   ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
 )
