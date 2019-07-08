@@ -4,6 +4,7 @@
 
 #include <engine/run_in_coro.hpp>
 #include <logging/log.hpp>
+#include <utils/mock_now.hpp>
 
 namespace testing {
 namespace internal {
@@ -43,12 +44,21 @@ Config ParseTaxiConfig(int argc, char** argv) {
   return config;
 }
 
+class ResetMockNowListener : public ::testing::EmptyTestEventListener {
+  virtual void OnTestEnd(const ::testing::TestInfo&) {
+    utils::datetime::MockNowUnset();
+  }
+};
+
 }  // namespace
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
   const Config& config = ParseTaxiConfig(argc, argv);
+
+  auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
+  listeners.Append(new ResetMockNowListener());
 
   logging::SetDefaultLoggerLevel(config.log_level);
   return RUN_ALL_TESTS();
