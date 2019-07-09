@@ -42,8 +42,25 @@ auto GetMilliseconds(const std::chrono::duration<Rep, Period>& duration) {
 
 }  // namespace
 
+OperationStatisticsItem::OperationStatisticsItem() {
+  // success counter is always considered used
+  for (size_t i = 1; i < counters.size(); ++i) {
+    counters[i] = kUnusedCounter;
+  }
+}
+
+OperationStatisticsItem::OperationStatisticsItem(
+    const OperationStatisticsItem& other)
+    : timings(other.timings) {
+  for (size_t i = 0; i < counters.size(); ++i) {
+    counters[i] = other.counters[i].Load();
+  }
+}
+
 void OperationStatisticsItem::Reset() {
-  for (auto& counter : counters) counter = 0;
+  for (auto& counter : counters) {
+    if (counter != kUnusedCounter) counter = 0;
+  }
   timings.Reset();
 }
 
@@ -77,10 +94,6 @@ std::string ToString(OperationStatisticsItem::ErrorType type) {
   }
 }
 
-void ReadOperationStatistics::Reset() {
-  for (auto& item : items) item.Reset();
-}
-
 std::string ToString(ReadOperationStatistics::OpType type) {
   using Type = ReadOperationStatistics::OpType;
   switch (type) {
@@ -92,15 +105,7 @@ std::string ToString(ReadOperationStatistics::OpType type) {
       return "find";
     case Type::kGetMore:
       return "getmore";
-
-    case Type::kOpTypesCount:
-      UASSERT_MSG(false, "invalid type");
-      throw std::logic_error("invalid type");
   }
-}
-
-void WriteOperationStatistics::Reset() {
-  for (auto& item : items) item.Reset();
 }
 
 std::string ToString(WriteOperationStatistics::OpType type) {
@@ -126,21 +131,13 @@ std::string ToString(WriteOperationStatistics::OpType type) {
       return "find-and-remove";
     case Type::kBulk:
       return "bulk";
-
-    case Type::kOpTypesCount:
-      UASSERT_MSG(false, "invalid type");
-      throw std::logic_error("invalid type");
   }
 }
 
-void PoolConnectStatistics::Reset() {
-  requested = 0;
-  created = 0;
-  closed = 0;
-  overload = 0;
-  for (auto& item : items) item.Reset();
-  request_timings.Reset();
-  queue_wait_timings.Reset();
+PoolConnectStatistics::PoolConnectStatistics() {
+  for (auto& item : items) {
+    item = std::make_shared<Aggregator<OperationStatisticsItem>>();
+  }
 }
 
 std::string ToString(PoolConnectStatistics::OpType type) {
@@ -157,30 +154,26 @@ std::string ToString(PoolConnectStatistics::OpType type) {
 
 template <typename OpStats>
 OperationStopwatch<OpStats>::OperationStopwatch()
-    : scope_time_(tracing::Span::CurrentSpan().CreateScopeTime()),
-      op_type_(OpStats::OpType::kOpTypesCount) {}
+    : scope_time_(tracing::Span::CurrentSpan().CreateScopeTime()) {}
 
 template <typename OpStats>
 OperationStopwatch<OpStats>::OperationStopwatch(
-    std::shared_ptr<Aggregator<OpStats>> stats_agg,
-    typename OpStats::OpType op_type)
+    const std::shared_ptr<OpStats>& stats_ptr, typename OpStats::OpType op_type)
     : OperationStopwatch<OpStats>() {
-  Reset(std::move(stats_agg), op_type);
+  Reset(stats_ptr, op_type);
 }
 
 template <typename OpStats>
 OperationStopwatch<OpStats>::~OperationStopwatch() {
-  if (stats_agg_) Account(OperationStatisticsItem::ErrorType::kOther);
+  if (stats_item_agg_) Account(OperationStatisticsItem::ErrorType::kOther);
 }
 
 template <typename OpStats>
 void OperationStopwatch<OpStats>::Reset(
-    std::shared_ptr<Aggregator<OpStats>> stats_agg,
+    const std::shared_ptr<OpStats>& stats_ptr,
     typename OpStats::OpType op_type) {
-  stats_agg_ = std::move(stats_agg);
-  op_type_ = op_type;
-
-  scope_time_.Reset(ToString(op_type_));
+  stats_item_agg_ = stats_ptr->items[op_type];
+  scope_time_.Reset(ToString(op_type));
 }
 
 template <typename OpStats>
@@ -195,19 +188,24 @@ void OperationStopwatch<OpStats>::AccountError(MongoError::Kind kind) {
 
 template <typename OpStats>
 void OperationStopwatch<OpStats>::Discard() {
-  stats_agg_.reset();
+  stats_item_agg_.reset();
   scope_time_.Discard();
 }
 
 template <typename OpStats>
 void OperationStopwatch<OpStats>::Account(
     OperationStatisticsItem::ErrorType error_type) noexcept {
-  const auto stats_agg = std::exchange(stats_agg_, nullptr);
-  if (!stats_agg) return;
+  const auto stats_item_agg = std::exchange(stats_item_agg_, nullptr);
+  if (!stats_item_agg) return;
 
   try {
-    auto& stats_item = stats_agg->GetCurrentCounter().items[op_type_];
-    ++stats_item.counters[error_type];
+    auto& stats_item = stats_item_agg->GetCurrentCounter();
+    if (!++stats_item.counters[error_type]) {
+      static_assert(OperationStatisticsItem::kUnusedCounter == -1,
+                    "increment should reset the unused counter");
+      // was not used, adjust
+      ++stats_item.counters[error_type];
+    }
     stats_item.timings.Account(GetMilliseconds(scope_time_.Reset()));
   } catch (const std::exception&) {
     // ignore
@@ -219,38 +217,38 @@ template class OperationStopwatch<ReadOperationStatistics>;
 template class OperationStopwatch<WriteOperationStatistics>;
 template class OperationStopwatch<PoolConnectStatistics>;
 
-PoolRequestStopwatch::PoolRequestStopwatch(
-    std::shared_ptr<Aggregator<PoolConnectStatistics>> stats_agg)
-    : stats_agg_(std::move(stats_agg)),
+ConnectionWaitStopwatch::ConnectionWaitStopwatch(
+    std::shared_ptr<PoolConnectStatistics> stats_ptr)
+    : stats_ptr_(std::move(stats_ptr)),
       scope_time_(tracing::Span::CurrentSpan().CreateScopeTime("conn-wait")) {}
 
-PoolRequestStopwatch::~PoolRequestStopwatch() {
+ConnectionWaitStopwatch::~ConnectionWaitStopwatch() {
   try {
-    auto& stats = stats_agg_->GetCurrentCounter();
-    ++stats.requested;
-    stats.request_timings.Account(GetMilliseconds(scope_time_.Reset()));
+    ++stats_ptr_->requested;
+    stats_ptr_->request_timings_agg.GetCurrentCounter().Account(
+        GetMilliseconds(scope_time_.Reset()));
   } catch (const std::exception&) {
     // ignore
   }
 }
 
-PoolQueueStopwatch::PoolQueueStopwatch(
-    std::shared_ptr<Aggregator<PoolConnectStatistics>> stats_agg)
-    : stats_agg_(std::move(stats_agg)),
+ConnectionThrottleStopwatch::ConnectionThrottleStopwatch(
+    std::shared_ptr<PoolConnectStatistics> stats_ptr)
+    : stats_ptr_(std::move(stats_ptr)),
       scope_time_(
           tracing::Span::CurrentSpan().CreateScopeTime("conn-throttle")) {}
 
-PoolQueueStopwatch::~PoolQueueStopwatch() {
-  if (stats_agg_) Stop();
+ConnectionThrottleStopwatch::~ConnectionThrottleStopwatch() {
+  if (stats_ptr_) Stop();
 }
 
-void PoolQueueStopwatch::Stop() noexcept {
-  const auto stats_agg = std::exchange(stats_agg_, nullptr);
-  if (!stats_agg) return;
+void ConnectionThrottleStopwatch::Stop() noexcept {
+  const auto stats_ptr = std::exchange(stats_ptr_, nullptr);
+  if (!stats_ptr) return;
 
   try {
-    auto& stats = stats_agg->GetCurrentCounter();
-    stats.queue_wait_timings.Account(GetMilliseconds(scope_time_.Reset()));
+    stats_ptr->queue_wait_timings_agg.GetCurrentCounter().Account(
+        GetMilliseconds(scope_time_.Reset()));
   } catch (const std::exception&) {
     // ignore
   }

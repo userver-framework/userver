@@ -3,6 +3,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <ratio>
 #include <string>
 
@@ -15,7 +16,7 @@
 
 namespace storages::mongo::stats {
 
-using Counter = utils::statistics::RelaxedCounter<uint32_t>;
+using Counter = utils::statistics::RelaxedCounter<uint64_t>;
 using TimingsPercentile =
     utils::statistics::Percentile</*buckets =*/1000, uint32_t,
                                   /*extra_buckets=*/780,
@@ -41,12 +42,17 @@ struct OperationStatisticsItem {
     kErrorTypesCount
   };
 
+  OperationStatisticsItem();
+  OperationStatisticsItem(const OperationStatisticsItem&);
+
   template <typename Rep = int64_t, typename Period = std::ratio<1>>
   void Add(const OperationStatisticsItem& other,
            std::chrono::duration<Rep, Period> curr_duration = {},
            std::chrono::duration<Rep, Period> past_duration = {});
 
   void Reset();
+
+  static constexpr Counter::ValueType kUnusedCounter = -1;
 
   std::array<Counter, kErrorTypesCount> counters;
   TimingsPercentile timings;
@@ -60,18 +66,9 @@ struct ReadOperationStatistics {
     kCountApprox,
     kFind,
     kGetMore,
-
-    kOpTypesCount
   };
 
-  template <typename Rep = int64_t, typename Period = std::ratio<1>>
-  void Add(const ReadOperationStatistics& other,
-           std::chrono::duration<Rep, Period> curr_duration = {},
-           std::chrono::duration<Rep, Period> past_duration = {});
-
-  void Reset();
-
-  std::array<OperationStatisticsItem, kOpTypesCount> items;
+  rcu::RcuMap<OpType, Aggregator<OperationStatisticsItem>> items;
 };
 
 std::string ToString(ReadOperationStatistics::OpType type);
@@ -88,28 +85,19 @@ struct WriteOperationStatistics {
     kFindAndModify,
     kFindAndRemove,
     kBulk,
-
-    kOpTypesCount
   };
 
-  template <typename Rep = int64_t, typename Period = std::ratio<1>>
-  void Add(const WriteOperationStatistics& other,
-           std::chrono::duration<Rep, Period> curr_duration = {},
-           std::chrono::duration<Rep, Period> past_duration = {});
-
-  void Reset();
-
-  std::array<OperationStatisticsItem, kOpTypesCount> items;
+  rcu::RcuMap<OpType, Aggregator<OperationStatisticsItem>> items;
 };
 
 std::string ToString(WriteOperationStatistics::OpType type);
 
 struct CollectionStatistics {
   // read preference -> stats
-  rcu::RcuMap<std::string, Aggregator<ReadOperationStatistics>> read;
+  rcu::RcuMap<std::string, ReadOperationStatistics> read;
 
   // write concern -> stats
-  rcu::RcuMap<std::string, Aggregator<WriteOperationStatistics>> write;
+  rcu::RcuMap<std::string, WriteOperationStatistics> write;
 };
 
 struct PoolConnectStatistics {
@@ -120,31 +108,27 @@ struct PoolConnectStatistics {
     kOpTypesCount
   };
 
-  template <typename Rep = int64_t, typename Period = std::ratio<1>>
-  void Add(const PoolConnectStatistics& other,
-           std::chrono::duration<Rep, Period> curr_duration = {},
-           std::chrono::duration<Rep, Period> past_duration = {});
-
-  void Reset();
+  PoolConnectStatistics();
 
   Counter requested;
   Counter created;
   Counter closed;
   Counter overload;
 
-  std::array<OperationStatisticsItem, kOpTypesCount> items;
+  std::array<std::shared_ptr<Aggregator<OperationStatisticsItem>>,
+             OpType::kOpTypesCount>
+      items;
 
-  TimingsPercentile request_timings;
-  TimingsPercentile queue_wait_timings;
+  Aggregator<TimingsPercentile> request_timings_agg;
+  Aggregator<TimingsPercentile> queue_wait_timings_agg;
 };
 
 std::string ToString(PoolConnectStatistics::OpType type);
 
 struct PoolStatistics {
-  PoolStatistics()
-      : pool(std::make_shared<Aggregator<PoolConnectStatistics>>()) {}
+  PoolStatistics() : pool(std::make_shared<PoolConnectStatistics>()) {}
 
-  std::shared_ptr<Aggregator<PoolConnectStatistics>> pool;
+  std::shared_ptr<PoolConnectStatistics> pool;
   rcu::RcuMap<std::string, CollectionStatistics> collections;
 };
 
@@ -152,14 +136,14 @@ template <typename OperationStatistics>
 class OperationStopwatch {
  public:
   OperationStopwatch();
-  OperationStopwatch(std::shared_ptr<Aggregator<OperationStatistics>>,
+  OperationStopwatch(const std::shared_ptr<OperationStatistics>&,
                      typename OperationStatistics::OpType);
   ~OperationStopwatch();
 
   OperationStopwatch(const OperationStopwatch&) = delete;
   OperationStopwatch(OperationStopwatch&&) noexcept = default;
 
-  void Reset(std::shared_ptr<Aggregator<OperationStatistics>>,
+  void Reset(const std::shared_ptr<OperationStatistics>&,
              typename OperationStatistics::OpType);
 
   void AccountSuccess();
@@ -169,40 +153,62 @@ class OperationStopwatch {
  private:
   void Account(OperationStatisticsItem::ErrorType) noexcept;
 
-  std::shared_ptr<Aggregator<OperationStatistics>> stats_agg_;
+  std::shared_ptr<Aggregator<OperationStatisticsItem>> stats_item_agg_;
   ScopeTime scope_time_;
-  typename OperationStatistics::OpType op_type_;
 };
 
-class PoolRequestStopwatch {
+class ConnectionWaitStopwatch {
  public:
-  explicit PoolRequestStopwatch(
-      std::shared_ptr<Aggregator<PoolConnectStatistics>>);
-  ~PoolRequestStopwatch();
+  explicit ConnectionWaitStopwatch(std::shared_ptr<PoolConnectStatistics>);
+  ~ConnectionWaitStopwatch();
 
-  PoolRequestStopwatch(const PoolRequestStopwatch&) = delete;
-  PoolRequestStopwatch(PoolRequestStopwatch&&) noexcept = default;
+  ConnectionWaitStopwatch(const ConnectionWaitStopwatch&) = delete;
+  ConnectionWaitStopwatch(ConnectionWaitStopwatch&&) noexcept = default;
 
  private:
-  std::shared_ptr<Aggregator<PoolConnectStatistics>> stats_agg_;
+  std::shared_ptr<PoolConnectStatistics> stats_ptr_;
   ScopeTime scope_time_;
 };
 
-class PoolQueueStopwatch {
+class ConnectionThrottleStopwatch {
  public:
-  explicit PoolQueueStopwatch(
-      std::shared_ptr<Aggregator<PoolConnectStatistics>>);
-  ~PoolQueueStopwatch();
+  explicit ConnectionThrottleStopwatch(std::shared_ptr<PoolConnectStatistics>);
+  ~ConnectionThrottleStopwatch();
 
-  PoolQueueStopwatch(const PoolQueueStopwatch&) = delete;
-  PoolQueueStopwatch(PoolQueueStopwatch&&) noexcept = default;
+  ConnectionThrottleStopwatch(const ConnectionThrottleStopwatch&) = delete;
+  ConnectionThrottleStopwatch(ConnectionThrottleStopwatch&&) noexcept = default;
 
   void Stop() noexcept;
 
  private:
-  std::shared_ptr<Aggregator<PoolConnectStatistics>> stats_agg_;
+  std::shared_ptr<PoolConnectStatistics> stats_ptr_;
   ScopeTime scope_time_;
 };
+
+}  // namespace storages::mongo::stats
+
+// Have to be defined at this point
+namespace std {
+
+template <>
+struct hash<storages::mongo::stats::ReadOperationStatistics::OpType> {
+  size_t operator()(
+      storages::mongo::stats::ReadOperationStatistics::OpType type) const {
+    return hash<int>()(static_cast<int>(type));
+  }
+};
+
+template <>
+struct hash<storages::mongo::stats::WriteOperationStatistics::OpType> {
+  size_t operator()(
+      storages::mongo::stats::WriteOperationStatistics::OpType type) const {
+    return hash<int>()(static_cast<int>(type));
+  }
+};
+
+}  // namespace std
+
+namespace storages::mongo::stats {
 
 template <typename Rep, typename Period>
 void OperationStatisticsItem::Add(
@@ -210,46 +216,12 @@ void OperationStatisticsItem::Add(
     std::chrono::duration<Rep, Period> curr_duration,
     std::chrono::duration<Rep, Period> past_duration) {
   for (size_t i = 0; i < counters.size(); ++i) {
-    counters[i] += other.counters[i];
+    if (other.counters[i] != kUnusedCounter) {
+      if (counters[i] == kUnusedCounter) counters[i] = 0;
+      counters[i] += other.counters[i];
+    }
   }
   timings.Add(other.timings, curr_duration, past_duration);
-}
-
-template <typename Rep, typename Period>
-void ReadOperationStatistics::Add(
-    const ReadOperationStatistics& other,
-    std::chrono::duration<Rep, Period> curr_duration,
-    std::chrono::duration<Rep, Period> past_duration) {
-  for (size_t i = 0; i < items.size(); ++i) {
-    items[i].Add(other.items[i], curr_duration, past_duration);
-  }
-}
-
-template <typename Rep, typename Period>
-void WriteOperationStatistics::Add(
-    const WriteOperationStatistics& other,
-    std::chrono::duration<Rep, Period> curr_duration,
-    std::chrono::duration<Rep, Period> past_duration) {
-  for (size_t i = 0; i < items.size(); ++i) {
-    items[i].Add(other.items[i], curr_duration, past_duration);
-  }
-}
-
-template <typename Rep, typename Period>
-void PoolConnectStatistics::Add(
-    const PoolConnectStatistics& other,
-    std::chrono::duration<Rep, Period> curr_duration,
-    std::chrono::duration<Rep, Period> past_duration) {
-  requested += other.requested;
-  created += other.created;
-  closed += other.closed;
-  overload += other.overload;
-  for (size_t i = 0; i < items.size(); ++i) {
-    items[i].Add(other.items[i], curr_duration, past_duration);
-  }
-  request_timings.Add(other.request_timings, curr_duration, past_duration);
-  queue_wait_timings.Add(other.queue_wait_timings, curr_duration,
-                         past_duration);
 }
 
 }  // namespace storages::mongo::stats

@@ -41,7 +41,7 @@ size_t Collection::Execute(const operations::Count& count_op) const {
       impl_->GetCollectionStatistics().read[count_op.impl_->read_prefs_desc];
 
   MongoError error;
-  stats::OperationStopwatch count_sw(std::move(stats_ptr),
+  stats::OperationStopwatch count_sw(stats_ptr,
                                      stats::ReadOperationStatistics::kCount);
   int64_t count = -1;
   if (count_op.impl_->use_new_count) {
@@ -77,7 +77,7 @@ size_t Collection::Execute(
 
   MongoError error;
   stats::OperationStopwatch count_approx_sw(
-      std::move(stats_ptr), stats::ReadOperationStatistics::kCountApprox);
+      stats_ptr, stats::ReadOperationStatistics::kCountApprox);
   auto count = mongoc_collection_estimated_document_count(
       collection.get(), impl::GetNative(count_approx_op.impl_->options),
       count_approx_op.impl_->read_prefs.get(), nullptr, error.GetNative());
@@ -112,7 +112,7 @@ WriteResult Collection::Execute(const operations::InsertOne& insert_op) {
   MongoError error;
   WriteResultHelper write_result;
   stats::OperationStopwatch insert_sw(
-      std::move(stats_ptr), stats::WriteOperationStatistics::kInsertOne);
+      stats_ptr, stats::WriteOperationStatistics::kInsertOne);
   if (mongoc_collection_insert_one(
           collection.get(), insert_op.impl_->document.GetBson().get(),
           impl::GetNative(insert_op.impl_->options), write_result.GetNative(),
@@ -144,7 +144,7 @@ WriteResult Collection::Execute(const operations::InsertMany& insert_op) {
   MongoError error;
   WriteResultHelper write_result;
   stats::OperationStopwatch insert_sw(
-      std::move(stats_ptr), stats::WriteOperationStatistics::kInsertMany);
+      stats_ptr, stats::WriteOperationStatistics::kInsertMany);
   if (mongoc_collection_insert_many(
           collection.get(), bsons.data(), bsons.size(),
           impl::GetNative(insert_op.impl_->options), write_result.GetNative(),
@@ -168,7 +168,7 @@ WriteResult Collection::Execute(const operations::ReplaceOne& replace_op) {
   MongoError error;
   WriteResultHelper write_result;
   stats::OperationStopwatch replace_sw(
-      std::move(stats_ptr), stats::WriteOperationStatistics::kReplaceOne);
+      stats_ptr, stats::WriteOperationStatistics::kReplaceOne);
   if (mongoc_collection_replace_one(
           collection.get(), replace_op.impl_->selector.GetBson().get(),
           replace_op.impl_->replacement.GetBson().get(),
@@ -198,8 +198,7 @@ WriteResult Collection::Execute(const operations::Update& update_op) {
     bool has_succeeded = false;
     switch (update_op.impl_->mode) {
       case operations::Update::Mode::kSingle:
-        update_sw.Reset(std::move(stats_ptr),
-                        stats::WriteOperationStatistics::kUpdateOne);
+        update_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kUpdateOne);
         has_succeeded = mongoc_collection_update_one(
             collection.get(), update_op.impl_->selector.GetBson().get(),
             update_op.impl_->update.GetBson().get(),
@@ -208,7 +207,7 @@ WriteResult Collection::Execute(const operations::Update& update_op) {
         break;
 
       case operations::Update::Mode::kMulti:
-        update_sw.Reset(std::move(stats_ptr),
+        update_sw.Reset(stats_ptr,
                         stats::WriteOperationStatistics::kUpdateMany);
         has_succeeded = mongoc_collection_update_many(
             collection.get(), update_op.impl_->selector.GetBson().get(),
@@ -248,8 +247,7 @@ WriteResult Collection::Execute(const operations::Delete& delete_op) {
   bool has_succeeded = false;
   switch (delete_op.impl_->mode) {
     case operations::Delete::Mode::kSingle:
-      delete_sw.Reset(std::move(stats_ptr),
-                      stats::WriteOperationStatistics::kDeleteOne);
+      delete_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kDeleteOne);
       has_succeeded = mongoc_collection_delete_one(
           collection.get(), delete_op.impl_->selector.GetBson().get(),
           impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
@@ -257,8 +255,7 @@ WriteResult Collection::Execute(const operations::Delete& delete_op) {
       break;
 
     case operations::Delete::Mode::kMulti:
-      delete_sw.Reset(std::move(stats_ptr),
-                      stats::WriteOperationStatistics::kDeleteMany);
+      delete_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kDeleteMany);
       has_succeeded = mongoc_collection_delete_many(
           collection.get(), delete_op.impl_->selector.GetBson().get(),
           impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
@@ -287,7 +284,7 @@ WriteResult Collection::Execute(const operations::FindAndModify& fam_op) {
     MongoError error;
     WriteResultHelper write_result;
     stats::OperationStopwatch fam_sw(
-        std::move(stats_ptr), stats::WriteOperationStatistics::kFindAndModify);
+        stats_ptr, stats::WriteOperationStatistics::kFindAndModify);
     if (mongoc_collection_find_and_modify_with_opts(
             collection.get(), fam_op.impl_->query.GetBson().get(),
             fam_op.impl_->options.get(), write_result.GetNative(),
@@ -316,7 +313,7 @@ WriteResult Collection::Execute(const operations::FindAndRemove& fam_op) {
   MongoError error;
   WriteResultHelper write_result;
   stats::OperationStopwatch fam_sw(
-      std::move(stats_ptr), stats::WriteOperationStatistics::kFindAndRemove);
+      stats_ptr, stats::WriteOperationStatistics::kFindAndRemove);
   if (mongoc_collection_find_and_modify_with_opts(
           collection.get(), fam_op.impl_->query.GetBson().get(),
           fam_op.impl_->options.get(), write_result.GetNative(),
@@ -347,7 +344,7 @@ WriteResult Collection::Execute(operations::Bulk&& bulk_op) {
 
   MongoError error;
   WriteResultHelper write_result;
-  stats::OperationStopwatch bulk_sw(std::move(stats_ptr),
+  stats::OperationStopwatch bulk_sw(stats_ptr,
                                     stats::WriteOperationStatistics::kBulk);
   if (mongoc_bulk_operation_execute(bulk_op.impl_->bulk.get(),
                                     write_result.GetNative(),

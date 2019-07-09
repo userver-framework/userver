@@ -14,11 +14,10 @@ namespace storages::mongo::impl {
 
 CursorImpl::CursorImpl(
     PoolImpl::BoundClientPtr client, CursorPtr cursor,
-    std::shared_ptr<stats::Aggregator<stats::ReadOperationStatistics>>
-        stats_agg)
+    std::shared_ptr<stats::ReadOperationStatistics> stats_ptr)
     : client_(std::move(client)),
       cursor_(std::move(cursor)),
-      stats_agg_(std::move(stats_agg)) {
+      stats_ptr_(std::move(stats_ptr)) {
   Next();  // prime the cursor
 }
 
@@ -45,7 +44,7 @@ void CursorImpl::Next() {
   UASSERT(client_ && cursor_);
   const auto batch_num_before = mongoc_cursor_get_batch_num(cursor_.get());
   stats::OperationStopwatch<stats::ReadOperationStatistics> cursor_next_sw(
-      stats_agg_, batch_num_before == -1
+      stats_ptr_, batch_num_before == -1
                       ? stats::ReadOperationStatistics::kFind
                       : stats::ReadOperationStatistics::kGetMore);
 

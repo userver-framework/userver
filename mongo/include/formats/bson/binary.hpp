@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file formats/bson/binary.hpp
+/// @brief Binary representation helpers
+
 #include <string>
 
 #include <formats/bson/document.hpp>

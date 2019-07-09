@@ -1,9 +1,10 @@
-#include <storages/mongo/stats.hpp>
+#include <storages/mongo/stats_serialize.hpp>
 
 #include <initializer_list>
 #include <stdexcept>
 #include <tuple>
 
+#include <storages/mongo/stats.hpp>
 #include <utils/assert.hpp>
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
@@ -11,7 +12,7 @@
 namespace storages::mongo::stats {
 namespace {
 
-const std::initializer_list<double> kOperationsStatisticsPercentiles = {
+constexpr std::initializer_list<double> kOperationsStatisticsPercentiles = {
     95, 98, 99, 100};
 
 void Dump(const OperationStatisticsItem& item,
@@ -19,13 +20,18 @@ void Dump(const OperationStatisticsItem& item,
   Counter::ValueType total_errors = 0;
   auto errors_builder = builder["errors"];
   for (size_t i = 1; i < item.counters.size(); ++i) {
-    auto type = static_cast<OperationStatisticsItem::ErrorType>(i);
-    errors_builder[ToString(type)] = item.counters[i].Load();
-    total_errors += item.counters[i];
+    const auto value = item.counters[i].Load();
+    if (value != OperationStatisticsItem::kUnusedCounter) {
+      auto type = static_cast<OperationStatisticsItem::ErrorType>(i);
+      errors_builder[ToString(type)] = value;
+      total_errors += value;
+    }
   }
   utils::statistics::SolomonChildrenAreLabelValues(errors_builder,
                                                    "mongo_error");
   builder["errors"]["total"] = total_errors;
+  UASSERT_MSG(item.counters[0] != OperationStatisticsItem::kUnusedCounter,
+              "success counter must always be marked as used");
   builder["success"] = item.counters[0].Load();
   builder["timings"] = utils::statistics::PercentileToJson(
       item.timings, kOperationsStatisticsPercentiles);
@@ -41,10 +47,10 @@ OperationStatisticsItem DumpAndCombine(
     formats::json::ValueBuilder&& builder) {
   OperationStatisticsItem overall;
   auto op_builder = builder["by-operation"];
-  for (size_t i = 0; i < read_stats.items.size(); ++i) {
-    auto type = static_cast<ReadOperationStatistics::OpType>(i);
-    Dump(read_stats.items[i], op_builder[ToString(type)]);
-    overall.Add(read_stats.items[i]);
+  for (const auto& [type, item_agg] : read_stats.items) {
+    const auto item = item_agg->GetStatsForPeriod();
+    Dump(item, op_builder[ToString(type)]);
+    overall.Add(item);
   }
   utils::statistics::SolomonChildrenAreLabelValues(op_builder,
                                                    "mongo_operation");
@@ -58,10 +64,10 @@ OperationStatisticsItem DumpAndCombine(
     formats::json::ValueBuilder&& builder) {
   OperationStatisticsItem overall;
   auto op_builder = builder["by-operation"];
-  for (size_t i = 0; i < write_stats.items.size(); ++i) {
-    auto type = static_cast<WriteOperationStatistics::OpType>(i);
-    Dump(write_stats.items[i], op_builder[ToString(type)]);
-    overall.Add(write_stats.items[i]);
+  for (const auto& [type, item_agg] : write_stats.items) {
+    const auto item = item_agg->GetStatsForPeriod();
+    Dump(item, op_builder[ToString(type)]);
+    overall.Add(item);
   }
   utils::statistics::SolomonChildrenAreLabelValues(op_builder,
                                                    "mongo_operation");
@@ -91,9 +97,8 @@ CombinedCollectionStats DumpAndCombine(const CollectionStatistics& coll_stats,
   CombinedCollectionStats overall;
 
   formats::json::ValueBuilder rp_builder(formats::json::Type::kObject);
-  for (const auto& [read_pref, stats_agg] : coll_stats.read) {
-    const auto& read_stats = stats_agg->GetStatsForPeriod();
-    auto rp_overall = DumpAndCombine(read_stats, rp_builder[read_pref]);
+  for (const auto& [read_pref, stats_ptr] : coll_stats.read) {
+    auto rp_overall = DumpAndCombine(*stats_ptr, rp_builder[read_pref]);
     overall.read.Add(rp_overall);
   }
   utils::statistics::SolomonChildrenAreLabelValues(rp_builder,
@@ -102,9 +107,8 @@ CombinedCollectionStats DumpAndCombine(const CollectionStatistics& coll_stats,
   builder["by-read-preference"] = std::move(rp_builder);
 
   formats::json::ValueBuilder wc_builder(formats::json::Type::kObject);
-  for (const auto& [write_concern, stats_agg] : coll_stats.write) {
-    const auto& write_stats = stats_agg->GetStatsForPeriod();
-    auto wc_overall = DumpAndCombine(write_stats, wc_builder[write_concern]);
+  for (const auto& [write_concern, stats_ptr] : coll_stats.write) {
+    auto wc_overall = DumpAndCombine(*stats_ptr, wc_builder[write_concern]);
     overall.write.Add(wc_overall);
   }
   utils::statistics::SolomonChildrenAreLabelValues(wc_builder,
@@ -123,19 +127,19 @@ void Dump(const PoolConnectStatistics& conn_stats,
   builder["conn-closed"] = conn_stats.closed.Load();
   builder["overloads"] = conn_stats.overload.Load();
 
-  Dump(conn_stats.items[0], builder["conn-init"]);
+  Dump(conn_stats.items[0]->GetStatsForPeriod(), builder["conn-init"]);
 
-  builder["conn-request-timings"] =
-      utils::statistics::PercentileToJson(conn_stats.request_timings);
-  builder["queue-wait-timings"] =
-      utils::statistics::PercentileToJson(conn_stats.queue_wait_timings);
+  builder["conn-request-timings"] = utils::statistics::PercentileToJson(
+      conn_stats.request_timings_agg.GetStatsForPeriod());
+  builder["queue-wait-timings"] = utils::statistics::PercentileToJson(
+      conn_stats.queue_wait_timings_agg.GetStatsForPeriod());
 }
 
 }  // namespace
 
 void PoolStatisticsToJson(const PoolStatistics& pool_stats,
                           formats::json::ValueBuilder& builder) {
-  Dump(pool_stats.pool->GetStatsForPeriod(), builder["pool"]);
+  Dump(*pool_stats.pool, builder["pool"]);
 
   CombinedCollectionStats pool_overall;
   formats::json::ValueBuilder coll_builder(formats::json::Type::kObject);

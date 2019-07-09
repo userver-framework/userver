@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file formats/bson/bson_builder.hpp
+/// @brief Internal helpers for inline document build
+
 #include <chrono>
 #include <cstddef>
 

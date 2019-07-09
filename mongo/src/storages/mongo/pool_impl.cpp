@@ -111,7 +111,7 @@ const std::string& PoolImpl::DefaultDatabaseName() const {
 stats::PoolStatistics& PoolImpl::GetStatistics() { return statistics_; }
 
 PoolImpl::BoundClientPtr PoolImpl::Acquire() {
-  stats::PoolRequestStopwatch request_sw(statistics_.pool);
+  stats::ConnectionWaitStopwatch conn_wait_sw(statistics_.pool);
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return {Pop(), ClientPusher(this)};
 }
@@ -121,7 +121,7 @@ void PoolImpl::Push(mongoc_client_t* client) noexcept {
   if (queue_.bounded_push(client)) return;
   ClientDeleter()(client);
   size_semaphore_.unlock_shared();
-  ++statistics_.pool->GetCurrentCounter().closed;
+  ++statistics_.pool->closed;
 }
 
 mongoc_client_t* PoolImpl::Pop() {
@@ -142,14 +142,14 @@ mongoc_client_t* PoolImpl::Create() {
   static const ReadPrefsPtr kPingReadPrefs(
       mongoc_read_prefs_new(MONGOC_READ_NEAREST));
 
-  stats::PoolQueueStopwatch queue_sw(statistics_.pool);
+  stats::ConnectionThrottleStopwatch queue_sw(statistics_.pool);
   auto deadline = engine::Deadline::FromDuration(queue_timeout_);
 
   if (!size_semaphore_.try_lock_shared_until(deadline)) {
     // retry getting idle connection after the wait
     if (auto* client = TryGetIdle()) return client;
 
-    ++statistics_.pool->GetCurrentCounter().overload;
+    ++statistics_.pool->overload;
 
     throw PoolOverloadException("Mongo pool '")
         << id_ << "' has reached size limit: " << max_size_;
@@ -161,7 +161,7 @@ mongoc_client_t* PoolImpl::Create() {
     // retry getting idle connection after the wait
     if (auto* client = TryGetIdle()) return client;
 
-    ++statistics_.pool->GetCurrentCounter().overload;
+    ++statistics_.pool->overload;
 
     throw PoolOverloadException("Mongo pool '")
         << id_ << "' has too many establishing connections";
@@ -197,7 +197,7 @@ mongoc_client_t* PoolImpl::Create() {
 
   size_lock.release();
   ping_sw.AccountSuccess();
-  ++statistics_.pool->GetCurrentCounter().created;
+  ++statistics_.pool->created;
   return client.release();
 }
 

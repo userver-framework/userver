@@ -15,9 +15,8 @@ namespace storages::mongo::impl {
 
 class CursorImpl {
  public:
-  CursorImpl(
-      PoolImpl::BoundClientPtr, CursorPtr,
-      std::shared_ptr<stats::Aggregator<stats::ReadOperationStatistics>>);
+  CursorImpl(PoolImpl::BoundClientPtr, CursorPtr,
+             std::shared_ptr<stats::ReadOperationStatistics>);
 
   bool IsValid() const;
   bool HasMore() const;
@@ -29,7 +28,7 @@ class CursorImpl {
   boost::optional<formats::bson::Document> current_;
   PoolImpl::BoundClientPtr client_;
   CursorPtr cursor_;
-  std::shared_ptr<stats::Aggregator<stats::ReadOperationStatistics>> stats_agg_;
+  std::shared_ptr<stats::ReadOperationStatistics> stats_ptr_;
 };
 
 }  // namespace storages::mongo::impl

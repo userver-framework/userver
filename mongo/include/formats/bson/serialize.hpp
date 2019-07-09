@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file formats/bson/serialize.hpp
+/// @brief Textual serialization helpers
+
 #include <iosfwd>
 #include <string>
 
