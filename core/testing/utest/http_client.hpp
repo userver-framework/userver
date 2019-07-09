@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 namespace clients {
 namespace http {
 class Client;
