@@ -142,13 +142,16 @@ int HttpConnection::DoOnMessageComplete() {
     auto query = http_request_.path.substr(qm_pos + 1);
     http_request_.path.resize(qm_pos);
 
-    std::vector<std::string> query_values;
-    boost::split(query_values, query, [](char c) { return c == '&'; });
-    for (const auto& value : query_values) {
-      auto eq_pos = value.find('=');
-      EXPECT_NE(std::string::npos, eq_pos);
-      if (eq_pos != std::string::npos)
-        http_request_.query[value.substr(0, eq_pos)] = value.substr(eq_pos + 1);
+    if (!query.empty()) {
+      std::vector<std::string> query_values;
+      boost::split(query_values, query, [](char c) { return c == '&'; });
+      for (const auto& value : query_values) {
+        auto eq_pos = value.find('=');
+        EXPECT_NE(std::string::npos, eq_pos) << "Bad query: " << query;
+        if (eq_pos != std::string::npos)
+          http_request_.query[value.substr(0, eq_pos)] =
+              value.substr(eq_pos + 1);
+      }
     }
   }
 
