@@ -16,6 +16,7 @@
 #include <tracing/tags.hpp>
 #include <tracing/tracing.hpp>
 #include <utils/graphite.hpp>
+#include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
 #include <utils/text.hpp>
 
@@ -138,7 +139,9 @@ formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
 
   total["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.GetTimings());
+  utils::statistics::SolomonSkip(total["timings"]["1min"]);
 
+  utils::statistics::SolomonSkip(total);
   result["total"] = std::move(total);
   return result;
 }
@@ -176,6 +179,7 @@ HttpHandlerBase::HttpHandlerBase(
       throw std::runtime_error(std::string("can't add handler to server: ") +
                                ex.what());
     }
+    /// TODO: unable to add prefix metadata ATM
     const auto graphite_path = "http.by-path." +
                                utils::graphite::EscapeName(GetConfig().path) +
                                ".by-handler." + config.Name();
@@ -416,6 +420,7 @@ formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
     const HttpHandlerStatistics& stats) {
   formats::json::ValueBuilder result;
   result["all-methods"] = StatisticsToJson(stats.GetTotalStatistics());
+  utils::statistics::SolomonSkip(result["all-methods"]);
 
   if (IsMethodStatisticIncluded()) {
     formats::json::ValueBuilder by_method;
@@ -423,6 +428,8 @@ formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
       by_method[ToString(method)] =
           StatisticsToJson(stats.GetStatisticByMethod(method));
     }
+    utils::statistics::SolomonChildrenAreLabelValues(by_method, "http_method");
+    utils::statistics::SolomonSkip(by_method);
     result["by-method"] = std::move(by_method);
   }
   return result;

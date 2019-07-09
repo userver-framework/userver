@@ -7,6 +7,7 @@
 #include <server/cache_invalidator_holder.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <utils/async_event_channel.hpp>
+#include <utils/statistics/metadata.hpp>
 #include <utils/statistics/storage.hpp>
 
 namespace cache {
@@ -17,6 +18,7 @@ template <typename Key, typename Value>
 formats::json::Value GetCacheStatisticsAsJson(
     const ExpirableLruCache<Key, Value>& cache) {
   formats::json::ValueBuilder builder;
+  utils::statistics::SolomonLabelValue(builder, "cache_name");
 
   auto& stats = cache.GetStatistics();
   builder[kStatisticsNameCurrentDocumentsCount] = cache.GetSizeApproximate();

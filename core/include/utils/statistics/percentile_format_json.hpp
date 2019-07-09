@@ -4,6 +4,7 @@
 
 #include <formats/json/value_builder.hpp>
 #include <utils/assert.hpp>
+#include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile.hpp>
 
 namespace utils {
@@ -19,6 +20,7 @@ formats::json::ValueBuilder PercentileToJson(
   for (double percent : percents) {
     result[GetPercentileFieldName(percent)] = perc.GetPercentile(percent);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(result, "percentile");
   return result;
 }
 

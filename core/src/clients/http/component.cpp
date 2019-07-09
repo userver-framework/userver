@@ -4,6 +4,7 @@
 #include <components/component_context.hpp>
 #include <components/statistics_storage.hpp>
 #include <taxi_config/storage/component.hpp>
+#include <utils/statistics/metadata.hpp>
 
 #include <clients/http/client.hpp>
 #include <clients/http/config.hpp>
@@ -72,6 +73,9 @@ formats::json::Value HttpClient::ExtendStatistics() {
       clients::http::PoolStatisticsToJson(http_client_->GetPoolStatistics());
   json["destinations"] = clients::http::DestinationStatisticsToJson(
       http_client_->GetDestinationStatistics());
+  utils::statistics::SolomonChildrenAreLabelValues(json["destinations"],
+                                                   "http_destination");
+  utils::statistics::SolomonSkip(json["destinations"]);
   return json.ExtractValue();
 }
 

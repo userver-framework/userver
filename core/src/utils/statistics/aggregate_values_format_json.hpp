@@ -8,6 +8,7 @@
 namespace utils {
 namespace statistics {
 
+/// TODO: convert to histogram for Solomon
 template <size_t length>
 formats::json::Value AggregatedValuesToJson(
     const ::statistics::AggregatedValues<length>& stats,

@@ -7,6 +7,7 @@
 #include <logging/log.hpp>
 #include <storages/secdist/component.hpp>
 #include <storages/secdist/exceptions.hpp>
+#include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
 
 #include <storages/postgres/cluster.hpp>
@@ -42,18 +43,25 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   auto timing = trx["timings"];
   timing["full"]["1min"] =
       utils::statistics::PercentileToJson(stats.transaction.total_percentile);
+  utils::statistics::SolomonSkip(timing["full"]["1min"]);
   timing["busy"]["1min"] =
       utils::statistics::PercentileToJson(stats.transaction.busy_percentile);
+  utils::statistics::SolomonSkip(timing["busy"]["1min"]);
   timing["wait-start"]["1min"] = utils::statistics::PercentileToJson(
       stats.transaction.wait_start_percentile);
+  utils::statistics::SolomonSkip(timing["wait-start"]["1min"]);
   timing["wait-end"]["1min"] = utils::statistics::PercentileToJson(
       stats.transaction.wait_end_percentile);
+  utils::statistics::SolomonSkip(timing["wait-end"]["1min"]);
   timing["return-to-pool"]["1min"] = utils::statistics::PercentileToJson(
       stats.transaction.return_to_pool_percentile);
+  utils::statistics::SolomonSkip(timing["return-to-pool"]["1min"]);
   timing["connect"]["1min"] =
       utils::statistics::PercentileToJson(stats.connection_percentile);
+  utils::statistics::SolomonSkip(timing["connect"]["1min"]);
   timing["acquire-connection"]["1min"] =
       utils::statistics::PercentileToJson(stats.acquire_percentile);
+  utils::statistics::SolomonSkip(timing["acquire-connection"]["1min"]);
 
   auto query = instance["queries"];
   query["parsed"] = stats.transaction.parse_total;
@@ -62,6 +70,7 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   query["binary-replies"] = stats.transaction.bin_reply_total;
 
   auto errors = instance["errors"];
+  utils::statistics::SolomonChildrenAreLabelValues(errors, "postgresql_error");
   errors["query-exec"] = stats.transaction.error_execute_total;
   errors["query-timeout"] = stats.transaction.execute_timeout;
   errors["connection"] = stats.connection.error_total;
@@ -69,6 +78,7 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   errors["queue"] = stats.queue_size_errors;
   errors["connection-timeout"] = stats.connection.error_timeout;
 
+  utils::statistics::SolomonLabelValue(instance, "postgresql_instance");
   return instance;
 }
 
@@ -89,6 +99,8 @@ void AddInstanceStatistics(
 formats::json::ValueBuilder ClusterStatisticsToJson(
     storages::postgres::ClusterStatisticsPtr stats) {
   formats::json::ValueBuilder cluster(formats::json::Type::kObject);
+  utils::statistics::SolomonChildrenAreLabelValues(
+      cluster, "postgresql_cluster_host_type");
   auto master = cluster["master"];
   AddInstanceStatistics(stats->master, master);
   auto sync_slave = cluster["sync_slave"];
@@ -116,6 +128,8 @@ formats::json::ValueBuilder PostgresStatisticsToJson(
       result[shard_name] = ClusterStatisticsToJson(cluster->GetStatistics());
     }
   }
+  utils::statistics::SolomonChildrenAreLabelValues(result,
+                                                   "postgresql_database_shard");
   return result;
 }
 
@@ -218,6 +232,7 @@ formats::json::Value Postgres::ExtendStatistics(
 
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   result[db_name_] = PostgresStatisticsToJson(shards_ready);
+  utils::statistics::SolomonLabelValue(result[db_name_], "postgresql_database");
   return result.ExtractValue();
 }
 

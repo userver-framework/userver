@@ -1,6 +1,7 @@
 #include <utils/statistics/storage.hpp>
 
 #include <shared_mutex>
+#include <string>
 #include <utility>
 
 #include <boost/algorithm/string.hpp>
@@ -10,6 +11,9 @@
 #include <utils/assert.hpp>
 
 namespace {
+
+const std::string kVersionField = "$version";
+constexpr int kVersion = 2;
 
 void UpdateFields(formats::json::ValueBuilder& object,
                   formats::json::ValueBuilder value) {
@@ -68,6 +72,8 @@ Entry& Entry::operator=(Entry&& other) noexcept {
 formats::json::ValueBuilder Storage::GetAsJson(
     const std::string& prefix, const StatisticsRequest& request) const {
   formats::json::ValueBuilder result;
+  result[kVersionField] = kVersion;
+
   std::shared_lock<std::shared_timed_mutex> lock(mutex_);
 
   for (const auto& it : extender_funcs_) {

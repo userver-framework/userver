@@ -1,6 +1,7 @@
 #include <components/statistics_storage.hpp>
 #include <storages/postgres/component.hpp>
 #include <storages/postgres/dist_lock_component_base.hpp>
+#include <utils/statistics/metadata.hpp>
 
 namespace storages {
 namespace postgres {
@@ -70,6 +71,7 @@ formats::json::Value DistLockComponentBase::ExtendStatistics() {
   result["failures"] = stats.failures.load();
   result["watchdog-triggers"] = stats.watchdog_triggers.load();
   result["brain-splits"] = stats.brain_splits.load();
+  ::utils::statistics::SolomonLabelValue(result, "distlock_name");
 
   return result.ExtractValue();
 }

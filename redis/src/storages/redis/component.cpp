@@ -14,6 +14,7 @@
 #include <storages/secdist/exceptions.hpp>
 #include <storages/secdist/secdist.hpp>
 #include <utils/statistics.hpp>
+#include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
 #include <yaml_config/value.hpp>
 
@@ -34,15 +35,19 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
 
   result["request-sizes"]["1min"] =
       utils::statistics::PercentileToJson(stats.request_size_percentile);
+  utils::statistics::SolomonSkip(result["request-sizes"]["1min"]);
   result["reply-sizes"]["1min"] =
       utils::statistics::PercentileToJson(stats.reply_size_percentile);
+  utils::statistics::SolomonSkip(result["reply-sizes"]["1min"]);
   result["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.timings_percentile);
+  utils::statistics::SolomonSkip(result["timings"]["1min"]);
 
   result["reconnects"] = stats.reconnects;
 
   for (size_t i = 0; i <= redis::REDIS_ERR_MAX; ++i)
     errors[redis::Reply::StatusToString(i)] = stats.error_count[i];
+  utils::statistics::SolomonChildrenAreLabelValues(errors, "redis_error");
   result["errors"] = errors;
 
   if (real_instance) {
@@ -53,6 +58,8 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
       auto state = static_cast<redis::Redis::State>(i);
       states[redis::Redis::StateToString(state)] = stats.state == state ? 1 : 0;
     }
+    utils::statistics::SolomonChildrenAreLabelValues(states,
+                                                     "redis_instance_state");
     result["state"] = states;
 
     long long session_time_ms =
@@ -75,11 +82,14 @@ formats::json::ValueBuilder ShardStatisticsToJson(
     const auto& inst_stats = it2.second;
     insts[inst_name] = InstanceStatisticsToJson(inst_stats, true);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(insts, "redis_instance");
+  utils::statistics::SolomonSkip(insts);
   result["instances"] = insts;
   result["instances_count"] = insts.GetSize();
 
   result["shard-total"] =
       InstanceStatisticsToJson(shard_stats.GetShardTotalStatistics(), false);
+  utils::statistics::SolomonSkip(result["shard-total"]);
 
   result["is_ready"] = shard_stats.is_ready ? 1 : 0;
 
@@ -103,20 +113,29 @@ formats::json::ValueBuilder RedisStatisticsToJson(
     const auto& shard_stats = it.second;
     masters[shard_name] = ShardStatisticsToJson(shard_stats);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(masters, "redis_shard");
+  utils::statistics::SolomonLabelValue(masters, "redis_instance_type");
   result["masters"] = masters;
   for (const auto& it : stats.slaves) {
     const auto& shard_name = it.first;
     const auto& shard_stats = it.second;
     slaves[shard_name] = ShardStatisticsToJson(shard_stats);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(slaves, "redis_shard");
+  utils::statistics::SolomonLabelValue(slaves, "redis_instance_type");
   result["slaves"] = slaves;
   result["sentinels"] = ShardStatisticsToJson(stats.sentinel);
+  utils::statistics::SolomonLabelValue(result["sentinels"],
+                                       "redis_instance_type");
 
   result["shard-group-total"] =
       InstanceStatisticsToJson(stats.GetShardGroupTotalStatistics(), false);
+  utils::statistics::SolomonSkip(result["shard-group-total"]);
 
   result["errors"] = formats::json::Type::kObject;
   result["errors"]["redis_not_ready"] = stats.internal.redis_not_ready.load();
+  utils::statistics::SolomonChildrenAreLabelValues(result["errors"],
+                                                   "redis_error");
   return result;
 }
 
@@ -134,7 +153,10 @@ formats::json::ValueBuilder PubsubChannelStatisticsToJson(
 
     auto inst_name = stats.server_id.GetDescription();
     if (inst_name.empty()) inst_name = "unknown";
-    json["instances"][inst_name] = 1;
+    auto insts = json["instances"];
+    insts[inst_name] = 1;
+    utils::statistics::SolomonChildrenAreLabelValues(insts, "redis_instance");
+    utils::statistics::SolomonSkip(insts);
   }
   return json;
 }
@@ -145,6 +167,8 @@ formats::json::ValueBuilder PubsubShardStatisticsToJson(
   for (auto& it : stats.by_channel) {
     json[it.first] = PubsubChannelStatisticsToJson(it.second, extra);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(json,
+                                                   "redis_pubsub_channel");
   return json;
 }
 
@@ -157,10 +181,13 @@ formats::json::ValueBuilder RedisSubscribeStatisticsToJson(
   for (auto& it : stats.by_shard) {
     by_shard[it.first] = PubsubShardStatisticsToJson(it.second, true);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(by_shard, "redis_shard");
+  utils::statistics::SolomonSkip(by_shard);
   result["by-shard"] = std::move(by_shard);
 
   auto total_stats = stats.SumByShards();
   result["shard-group-total"] = PubsubShardStatisticsToJson(total_stats, false);
+  utils::statistics::SolomonSkip(result["shard-group-total"]);
 
   return result;
 }
@@ -338,6 +365,7 @@ formats::json::Value Redis::ExtendStatisticsRedis(
     const auto& redis = client.second;
     json[name] = RedisStatisticsToJson(redis);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(json, "redis_database");
   return json.ExtractValue();
 }
 
@@ -349,6 +377,8 @@ formats::json::Value Redis::ExtendStatisticsRedisPubsub(
     const auto& redis = client.second->GetNative();
     subscribe_json[name] = RedisSubscribeStatisticsToJson(redis);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(subscribe_json,
+                                                   "redis_database");
   return subscribe_json.ExtractValue();
 }
 

@@ -177,7 +177,6 @@ formats::json::Value MultiMongo::GetStatistics() const {
   for (const auto& [dbalias, pool] : *pool_map) {
     builder[dbalias] = pool->GetStatistics();
   }
-
   return builder.ExtractValue();
 }
 

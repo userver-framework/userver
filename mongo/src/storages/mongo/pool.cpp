@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include <formats/json/value_builder.hpp>
+#include <utils/statistics/metadata.hpp>
 
 #include <storages/mongo/collection_impl.hpp>
 #include <storages/mongo/database.hpp>
@@ -32,6 +33,7 @@ formats::json::Value Pool::GetStatistics() const {
   builder["pool"]["current-size"] = impl_->SizeApprox();
   builder["pool"]["max-size"] = impl_->MaxSize();
 
+  utils::statistics::SolomonLabelValue(builder, "mongo_database");
   return builder.ExtractValue();
 }
 

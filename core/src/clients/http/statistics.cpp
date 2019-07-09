@@ -3,6 +3,7 @@
 #include <curl-ev/error_code.hpp>
 
 #include <utils/statistics/common.hpp>
+#include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
 
 namespace clients {
@@ -107,12 +108,14 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats) {
   json["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.timings_percentile)
           .ExtractValue();
+  utils::statistics::SolomonSkip(json["timings"]["1min"]);
 
   formats::json::ValueBuilder errors;
   for (int i = 0; i < Statistics::kErrorGroupCount; i++) {
     const auto error_group = static_cast<Statistics::ErrorGroup>(i);
     errors[Statistics::ToString(error_group)] = stats.error_count[i];
   }
+  utils::statistics::SolomonChildrenAreLabelValues(errors, "http_error");
   json["errors"] = errors;
   json["pending-requests"] = stats.easy_handles;
   json["last-time-to-start-us"] = stats.last_time_to_start_us;
@@ -134,10 +137,13 @@ formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats) {
 
   sum_stats.Add(stats.multi);
   for (size_t i = 0; i < stats.multi.size(); i++) {
-    json["worker-" + std::to_string(i)] = StatisticsToJson(stats.multi[i]);
+    auto key = "worker-" + std::to_string(i);
+    json[key] = StatisticsToJson(stats.multi[i]);
+    utils::statistics::SolomonLabelValue(json[key], "http_worker_id");
   }
 
   json["pool-total"] = StatisticsToJson(sum_stats);
+  utils::statistics::SolomonSkip(json["pool-total"]);
   return json;
 }
 

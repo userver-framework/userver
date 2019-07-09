@@ -10,6 +10,7 @@
 #include <server/cache_invalidator_holder.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <utils/async_event_channel.hpp>
+#include <utils/statistics/metadata.hpp>
 #include <utils/swappingsmart.hpp>
 
 #include <components/component_base.hpp>
@@ -161,6 +162,7 @@ formats::json::Value CachingComponentBase<T>::ExtendStatistics(
   const auto any = cache::CombineStatistics(full, incremental);
 
   formats::json::ValueBuilder builder;
+  utils::statistics::SolomonLabelValue(builder, "cache_name");
   builder[cache::kStatisticsNameFull] = cache::StatisticsToJson(full);
   builder[cache::kStatisticsNameIncremental] =
       cache::StatisticsToJson(incremental);

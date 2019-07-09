@@ -8,6 +8,7 @@
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
 #include <utils/statistics/aggregate_values_format_json.hpp>
+#include <utils/statistics/metadata.hpp>
 
 #include <taxi_config/value.hpp>
 
@@ -72,6 +73,8 @@ formats::json::ValueBuilder ManagerControllerComponent::GetTaskProcessorStats(
 
   formats::json::ValueBuilder json_errors(formats::json::Type::kObject);
   json_errors["wait_queue_overload"] = counter.GetTasksOverload();
+  utils::statistics::SolomonChildrenAreLabelValues(json_errors,
+                                                   "task_processor_error");
   json_task_processor["errors"] = std::move(json_errors);
 
   formats::json::ValueBuilder json_context_switch(formats::json::Type::kObject);
@@ -101,6 +104,9 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
     const auto& task_processor = tp_item.second;
     json_task_processors[name] = GetTaskProcessorStats(*task_processor);
   }
+  utils::statistics::SolomonChildrenAreLabelValues(json_task_processors,
+                                                   "task_processor");
+  utils::statistics::SolomonSkip(json_task_processors);
   engine_data["task-processors"]["by-name"] = std::move(json_task_processors);
 
   auto coro_stats =

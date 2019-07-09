@@ -5,6 +5,7 @@
 
 #include <formats/json/value_builder.hpp>
 #include <utils/assert.hpp>
+#include <utils/statistics/metadata.hpp>
 
 #if ATOMIC_LLONG_LOCK_FREE != 2
 #error "std::atomic<long long> is not lockfree"
@@ -54,6 +55,7 @@ formats::json::Value HttpCodes::FormatReplyCodes() const {
     codes[std::to_string(code)] = count.Load();
   }
 
+  utils::statistics::SolomonChildrenAreLabelValues(codes, "http_code");
   return codes.ExtractValue();
 }
 
