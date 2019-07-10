@@ -22,3 +22,7 @@ src:*boost/lockfree/*
 [undefined]
 # For downcasting with static_cast hack
 fun:*LogHelper*DoLog*
+
+# OpenSSL is never deinitialized and inadvertedly leaks some memory
+[address]
+fun:ENGINE_load_builtin_engines
