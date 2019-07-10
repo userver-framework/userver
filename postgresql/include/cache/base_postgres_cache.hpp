@@ -280,7 +280,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
       stats_scope.IncreaseDocumentsParseFailures(1);
     }
   }
-  if (changes > 0) {
+  if (changes > 0 || type == cache::UpdateType::kFull) {
     // Set current cache
     stats_scope.Finish(data_cache->size());
     this->Set(std::move(data_cache));
