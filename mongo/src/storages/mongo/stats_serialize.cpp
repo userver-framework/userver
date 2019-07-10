@@ -21,7 +21,7 @@ void Dump(const OperationStatisticsItem& item,
   auto errors_builder = builder["errors"];
   for (size_t i = 1; i < item.counters.size(); ++i) {
     const auto value = item.counters[i].Load();
-    if (value != OperationStatisticsItem::kUnusedCounter) {
+    if (value) {
       auto type = static_cast<OperationStatisticsItem::ErrorType>(i);
       errors_builder[ToString(type)] = value;
       total_errors += value;
@@ -30,8 +30,6 @@ void Dump(const OperationStatisticsItem& item,
   utils::statistics::SolomonChildrenAreLabelValues(errors_builder,
                                                    "mongo_error");
   builder["errors"]["total"] = total_errors;
-  UASSERT_MSG(item.counters[0] != OperationStatisticsItem::kUnusedCounter,
-              "success counter must always be marked as used");
   builder["success"] = item.counters[0].Load();
   builder["timings"] = utils::statistics::PercentileToJson(
       item.timings, kOperationsStatisticsPercentiles);

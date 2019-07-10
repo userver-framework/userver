@@ -42,7 +42,7 @@ struct OperationStatisticsItem {
     kErrorTypesCount
   };
 
-  OperationStatisticsItem();
+  OperationStatisticsItem() = default;
   OperationStatisticsItem(const OperationStatisticsItem&);
 
   template <typename Rep = int64_t, typename Period = std::ratio<1>>
@@ -51,8 +51,6 @@ struct OperationStatisticsItem {
            std::chrono::duration<Rep, Period> past_duration = {});
 
   void Reset();
-
-  static constexpr Counter::ValueType kUnusedCounter = -1;
 
   std::array<Counter, kErrorTypesCount> counters;
   TimingsPercentile timings;
@@ -216,10 +214,7 @@ void OperationStatisticsItem::Add(
     std::chrono::duration<Rep, Period> curr_duration,
     std::chrono::duration<Rep, Period> past_duration) {
   for (size_t i = 0; i < counters.size(); ++i) {
-    if (other.counters[i] != kUnusedCounter) {
-      if (counters[i] == kUnusedCounter) counters[i] = 0;
-      counters[i] += other.counters[i];
-    }
+    counters[i] += other.counters[i];
   }
   timings.Add(other.timings, curr_duration, past_duration);
 }

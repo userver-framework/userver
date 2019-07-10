@@ -42,13 +42,6 @@ auto GetMilliseconds(const std::chrono::duration<Rep, Period>& duration) {
 
 }  // namespace
 
-OperationStatisticsItem::OperationStatisticsItem() {
-  // success counter is always considered used
-  for (size_t i = 1; i < counters.size(); ++i) {
-    counters[i] = kUnusedCounter;
-  }
-}
-
 OperationStatisticsItem::OperationStatisticsItem(
     const OperationStatisticsItem& other)
     : timings(other.timings) {
@@ -59,7 +52,7 @@ OperationStatisticsItem::OperationStatisticsItem(
 
 void OperationStatisticsItem::Reset() {
   for (auto& counter : counters) {
-    if (counter != kUnusedCounter) counter = 0;
+    counter = 0;
   }
   timings.Reset();
 }
@@ -200,12 +193,7 @@ void OperationStopwatch<OpStats>::Account(
 
   try {
     auto& stats_item = stats_item_agg->GetCurrentCounter();
-    if (!++stats_item.counters[error_type]) {
-      static_assert(OperationStatisticsItem::kUnusedCounter == -1,
-                    "increment should reset the unused counter");
-      // was not used, adjust
-      ++stats_item.counters[error_type];
-    }
+    ++stats_item.counters[error_type];
     stats_item.timings.Account(GetMilliseconds(scope_time_.Reset()));
   } catch (const std::exception&) {
     // ignore
