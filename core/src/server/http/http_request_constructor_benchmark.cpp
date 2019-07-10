@@ -14,9 +14,11 @@ void http_request_constructor_url_decode(benchmark::State& state) {
   const char* begin = input.c_str();
   const char* end = begin + strlen(begin);
 
+  using server::http::HttpRequestConstructor;
+
   for (auto _ : state)
-    benchmark::DoNotOptimize(
-        server::http::HttpRequestConstructor::UrlDecode(begin, end));
+    benchmark::DoNotOptimize(HttpRequestConstructor::UrlDecode(
+        begin, end, HttpRequestConstructor::DecodeMode::Query));
 }
 }  // namespace
 BENCHMARK(http_request_constructor_url_decode)
