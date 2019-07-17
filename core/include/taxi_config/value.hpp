@@ -74,6 +74,12 @@ class ValueDict final {
   ValueDict(std::string name, DictType dict)
       : name_(std::move(name)), dict_(std::move(dict)) {}
 
+  bool HasDefaultValue() const { return HasValue(kValueDictDefaultName); }
+
+  bool HasValue(const std::string& key) const {
+    return dict_.find(key) != dict_.end();
+  }
+
   const ValueType& GetDefaultValue() const {
     const auto it = dict_.find(kValueDictDefaultName);
     if (it == dict_.end()) {
