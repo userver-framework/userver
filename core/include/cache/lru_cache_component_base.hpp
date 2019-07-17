@@ -56,7 +56,7 @@ class LruCacheComponent : public components::LoggableComponentBase {
 
   Value GetByKey(const Key& key);
 
-  void OnConfigUpdate(const std::shared_ptr<taxi_config::Config>& cfg);
+  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
 
   void UpdateConfig(const LruCacheConfigStatic& config);
 
@@ -136,7 +136,7 @@ Value LruCacheComponent<Key, Value>::GetByKey(const Key& key) {
 
 template <typename Key, typename Value>
 void LruCacheComponent<Key, Value>::OnConfigUpdate(
-    const std::shared_ptr<taxi_config::Config>& cfg) {
+    const std::shared_ptr<const taxi_config::Config>& cfg) {
   auto config = cfg->Get<CacheConfigSet>().GetLruConfig(name_);
   if (config) {
     LOG_DEBUG() << "Using dymanic config for LRU cache";

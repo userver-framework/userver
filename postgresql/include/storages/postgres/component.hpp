@@ -143,7 +143,7 @@ class Postgres : public LoggableComponentBase {
       const utils::statistics::StatisticsRequest& /*request*/);
 
  private:
-  using TaxiConfigPtr = std::shared_ptr<taxi_config::Config>;
+  using TaxiConfigPtr = std::shared_ptr<const taxi_config::Config>;
   storages::postgres::CommandControl GetCommandControlConfig(
       const TaxiConfigPtr& cfg) const;
   void OnConfigUpdate(const TaxiConfigPtr& cfg);

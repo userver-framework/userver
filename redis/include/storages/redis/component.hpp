@@ -39,7 +39,7 @@ class Redis : public LoggableComponentBase {
       const std::string& name) const;
 
  private:
-  using TaxiConfigPtr = std::shared_ptr<taxi_config::Config>;
+  using TaxiConfigPtr = std::shared_ptr<const taxi_config::Config>;
   void OnConfigUpdate(const TaxiConfigPtr& cfg);
 
   void Connect(const ComponentConfig& config,

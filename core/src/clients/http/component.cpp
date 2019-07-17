@@ -62,7 +62,7 @@ clients::http::Client& HttpClient::GetHttpClient() {
 
 template <typename ConfigTag>
 void HttpClient::OnConfigUpdate(
-    const std::shared_ptr<taxi_config::BaseConfig<ConfigTag>>& config) {
+    const std::shared_ptr<const taxi_config::BaseConfig<ConfigTag>>& config) {
   const auto& http_client_config =
       config->template Get<clients::http::Config>();
   http_client_->SetConnectionPoolSize(http_client_config.connection_pool_size);

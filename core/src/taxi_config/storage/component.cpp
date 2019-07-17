@@ -10,8 +10,8 @@ namespace components {
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
-      utils::AsyncEventChannel<const std::shared_ptr<taxi_config::Config>&>(
-          kName),
+      utils::AsyncEventChannel<
+          const std::shared_ptr<const taxi_config::Config>&>(kName),
       config_load_cancelled_(false),
       fs_task_processor_(context.GetTaskProcessor(
           config.ParseString("fs-task-processor-name"))),
@@ -23,7 +23,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
 
 TaxiConfig::~TaxiConfig() = default;
 
-std::shared_ptr<taxi_config::Config> TaxiConfig::Get() const {
+std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
   auto ptr = cache_.Get();
   if (ptr) return ptr;
 
@@ -53,12 +53,13 @@ void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
   }
 }
 
-std::shared_ptr<taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap() const {
+std::shared_ptr<const taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap()
+    const {
   return bootstrap_config_;
 }
 
 void TaxiConfig::DoSetConfig(
-    const std::shared_ptr<taxi_config::DocsMap>& value_ptr) {
+    const std::shared_ptr<const taxi_config::DocsMap>& value_ptr) {
   auto config = std::make_shared<taxi_config::Config>(*value_ptr);
   {
     std::lock_guard<engine::Mutex> lock(loaded_mutex_);
@@ -68,7 +69,8 @@ void TaxiConfig::DoSetConfig(
   SendEvent(cache_.Get());
 }
 
-void TaxiConfig::SetConfig(std::shared_ptr<taxi_config::DocsMap> value_ptr) {
+void TaxiConfig::SetConfig(
+    std::shared_ptr<const taxi_config::DocsMap> value_ptr) {
   DoSetConfig(value_ptr);
   WriteFsCache(*value_ptr);
 }

@@ -17,7 +17,7 @@ class TaxiConfigImpl;
 
 class TaxiConfig : public LoggableComponentBase,
                    public utils::AsyncEventChannel<
-                       const std::shared_ptr<taxi_config::Config>&> {
+                       const std::shared_ptr<const taxi_config::Config>&> {
  public:
   static constexpr const char* kName = "taxi-config";
 
@@ -25,17 +25,17 @@ class TaxiConfig : public LoggableComponentBase,
   ~TaxiConfig() override;
 
   /// Get config, may block if no config is available yet
-  std::shared_ptr<taxi_config::Config> Get() const;
+  std::shared_ptr<const taxi_config::Config> Get() const;
 
   void NotifyLoadingFailed(const std::string& updater_error);
 
   /// Get config, always returns something without blocking
   /// (either up-to-date config or bootstrap config)
-  std::shared_ptr<taxi_config::BootstrapConfig> GetBootstrap() const;
+  std::shared_ptr<const taxi_config::BootstrapConfig> GetBootstrap() const;
 
   /// Set up-to-date config. Must be used by config updaters only
   /// (e.g. config client).
-  void SetConfig(std::shared_ptr<taxi_config::DocsMap> value_ptr);
+  void SetConfig(std::shared_ptr<const taxi_config::DocsMap> value_ptr);
 
   void OnLoadingCancelled() override;
 
@@ -49,10 +49,11 @@ class TaxiConfig : public LoggableComponentBase,
 
   void ReadBootstrap(const std::string& bootstrap_fname);
 
-  void DoSetConfig(const std::shared_ptr<taxi_config::DocsMap>& value_ptr);
+  void DoSetConfig(
+      const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
 
  private:
-  std::shared_ptr<taxi_config::BootstrapConfig> bootstrap_config_;
+  std::shared_ptr<const taxi_config::BootstrapConfig> bootstrap_config_;
   bool config_load_cancelled_;
 
   engine::TaskProcessor& fs_task_processor_;

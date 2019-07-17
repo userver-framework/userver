@@ -31,7 +31,7 @@ class ManagerControllerComponent final : public ComponentBase {
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 
-  using TaxiConfigPtr = std::shared_ptr<taxi_config::Config>;
+  using TaxiConfigPtr = std::shared_ptr<const taxi_config::Config>;
   void OnConfigUpdate(const TaxiConfigPtr& cfg);
 
  private:

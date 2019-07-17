@@ -58,7 +58,7 @@ namespace components {
 template <typename T>
 class CachingComponentBase
     : public LoggableComponentBase,
-      public utils::AsyncEventChannel<const std::shared_ptr<T>&>,
+      public utils::AsyncEventChannel<const std::shared_ptr<const T>&>,
       protected CacheUpdateTrait {
  public:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
@@ -67,10 +67,13 @@ class CachingComponentBase
   ~CachingComponentBase() override;
 
   const std::string& Name() const;
-  std::shared_ptr<T> Get() const;
+  std::shared_ptr<const T> Get() const;
+
+  // Don't use this function, use Get() instead
+  [[deprecated]] std::shared_ptr<T> GetLegacyToBeRemoved() const;
 
  protected:
-  void Set(std::shared_ptr<T> value_ptr);
+  void Set(std::shared_ptr<const T> value_ptr);
   void Set(T&& value);
 
   template <typename... Args>
@@ -81,11 +84,11 @@ class CachingComponentBase
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 
-  void OnConfigUpdate(const std::shared_ptr<taxi_config::Config>& cfg);
+  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
 
  private:
   utils::statistics::Entry statistics_holder_;
-  utils::SwappingSmart<T> cache_;
+  utils::SwappingSmart<const T> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
   server::CacheInvalidatorHolder cache_invalidator_holder_;
   const std::string name_;
@@ -96,7 +99,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context,
                                               const std::string& name)
     : LoggableComponentBase(config, context),
-      utils::AsyncEventChannel<const std::shared_ptr<T>&>(name),
+      utils::AsyncEventChannel<const std::shared_ptr<const T>&>(name),
       CacheUpdateTrait(cache::CacheConfig(config), name),
       cache_invalidator_holder_(*this, context),
       name_(name) {
@@ -127,12 +130,17 @@ const std::string& CachingComponentBase<T>::Name() const {
 }
 
 template <typename T>
-std::shared_ptr<T> CachingComponentBase<T>::Get() const {
+std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
   return cache_.Get();
 }
 
 template <typename T>
-void CachingComponentBase<T>::Set(std::shared_ptr<T> value_ptr) {
+std::shared_ptr<T> CachingComponentBase<T>::GetLegacyToBeRemoved() const {
+  return std::const_pointer_cast<T>(cache_.Get());
+}
+
+template <typename T>
+void CachingComponentBase<T>::Set(std::shared_ptr<const T> value_ptr) {
   cache_.Set(value_ptr);
   this->SendEvent(Get());
 }
@@ -176,7 +184,7 @@ formats::json::Value CachingComponentBase<T>::ExtendStatistics(
 
 template <typename T>
 void CachingComponentBase<T>::OnConfigUpdate(
-    const std::shared_ptr<taxi_config::Config>& cfg) {
+    const std::shared_ptr<const taxi_config::Config>& cfg) {
   SetConfig(cfg->Get<cache::CacheConfigSet>().GetConfig(name_));
 }
 
