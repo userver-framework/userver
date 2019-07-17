@@ -12,6 +12,9 @@
 #include <utils/strlen.hpp>
 #include <utils/void_t.hpp>
 
+#include <compiler/demangle.hpp>
+#include <logging/log.hpp>
+
 namespace components {
 
 /// @page pg_cache Caching Component for PostgreSQL
@@ -20,6 +23,12 @@ namespace components {
 ///
 /// PostgreSQL component name must be specified in `pgcomponent` configuration
 /// parameter.
+///
+/// Optionally the operation timeouts for cache loading can be specified:
+/// * full-update-op-timeout - timeout for a full update,
+///                            default value 1 minute
+/// * incremental-update-op-timeout - timeout for an incremental update,
+///                                   default value 1 second
 ///
 /// @par Cache policy
 ///
@@ -166,10 +175,16 @@ struct PolicyChecker {
       CachingComponentBase<DataCacheContainerType<PostgreCachePolicy>>;
 };
 
+constexpr std::chrono::milliseconds kDefaultFullUpdateTimeout =
+    std::chrono::minutes{1};
+constexpr std::chrono::milliseconds kDefaultIncrementalUpdateTimeout =
+    std::chrono::seconds{1};
+constexpr std::chrono::milliseconds kStatementTimeoutOff{0};
+
 }  // namespace pg_cache::detail
 
 template <typename PostgreCachePolicy>
-class PostgreCache
+class PostgreCache final
     : public pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType {
  public:
   // Type aliases
@@ -198,7 +213,8 @@ class PostgreCache
               cache::UpdateStatisticsScope& stats_scope) override;
 
   CachedData GetData(cache::UpdateType type);
-  void CacheResults(storages::postgres::ResultSet res, CachedData data_cache);
+  void CacheResults(storages::postgres::ResultSet res, CachedData data_cache,
+                    cache::UpdateStatisticsScope& stats_scope);
 
   static std::string GetDeltaQuery();
 
@@ -206,6 +222,9 @@ class PostgreCache
   static inline const std::string kDeltaQuery = GetDeltaQuery();
 
   std::vector<storages::postgres::ClusterPtr> clusters_;
+
+  std::chrono::milliseconds full_update_timeout_;
+  std::chrono::milliseconds incremental_update_timeout_;
 };
 
 template <typename PostgreCachePolicy>
@@ -220,6 +239,12 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
         "name is specified in traits of '" +
         config.Name() + "' cache");
   }
+
+  full_update_timeout_ = config.ParseDuration(
+      "full-update-op-timeout", pg_cache::detail::kDefaultFullUpdateTimeout);
+  incremental_update_timeout_ =
+      config.ParseDuration("incremental-update-op-timeout",
+                           pg_cache::detail::kDefaultIncrementalUpdateTimeout);
 
   const auto pg_alias = config.ParseString("pgcomponent", {});
   if (pg_alias.empty()) {
@@ -261,24 +286,28 @@ void PostgreCache<PostgreCachePolicy>::Update(
     const std::chrono::system_clock::time_point& last_update,
     const std::chrono::system_clock::time_point& /*now*/,
     cache::UpdateStatisticsScope& stats_scope) {
+  namespace pg = storages::postgres;
   if constexpr (!kIncrementalUpdates) {
     type = cache::UpdateType::kFull;
   }
   const std::string& query =
       (type == cache::UpdateType::kFull) ? kAllQuery : kDeltaQuery;
+  const std::chrono::milliseconds timeout = (type == cache::UpdateType::kFull)
+                                                ? full_update_timeout_
+                                                : incremental_update_timeout_;
+
   // COPY current cached data
   auto data_cache = GetData(type);
   size_t changes = 0;
   // Iterate clusters
   for (auto cluster : clusters_) {
-    try {
-      auto res = cluster->Execute(kClusterHostType, query, last_update);
-      stats_scope.IncreaseDocumentsParseFailures(res.Size());
-      CacheResults(res, data_cache);
-      changes += res.Size();
-    } catch (const std::exception& e) {
-      stats_scope.IncreaseDocumentsParseFailures(1);
-    }
+    auto res = cluster->Execute(
+        kClusterHostType,
+        pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
+        query, last_update);
+    stats_scope.IncreaseDocumentsReadCount(res.Size());
+    CacheResults(res, data_cache, stats_scope);
+    changes += res.Size();
   }
   if (changes > 0 || type == cache::UpdateType::kFull) {
     // Set current cache
@@ -291,11 +320,19 @@ void PostgreCache<PostgreCachePolicy>::Update(
 
 template <typename PostgreCachePolicy>
 void PostgreCache<PostgreCachePolicy>::CacheResults(
-    storages::postgres::ResultSet res, CachedData data_cache) {
+    storages::postgres::ResultSet res, CachedData data_cache,
+    cache::UpdateStatisticsScope& stats_scope) {
   auto values = res.AsSetOf<ValueType>();
-  for (auto value : values) {
-    auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
-    data_cache->insert({std::move(key), std::move(value)});
+  for (auto p = values.begin(); p != values.end(); ++p) {
+    try {
+      auto value = *p;
+      auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
+      data_cache->insert({std::move(key), std::move(value)});
+    } catch (const storages::postgres::Error& e) {
+      stats_scope.IncreaseDocumentsParseFailures(1);
+      LOG_ERROR() << "Error parsing data row in cache '" << kName << "' to '"
+                  << compiler::GetTypeName<ValueType>() << "': " << e.what();
+    }
   }
 }
 
