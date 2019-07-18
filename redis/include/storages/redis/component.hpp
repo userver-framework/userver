@@ -8,6 +8,7 @@
 #include <components/component_context.hpp>
 #include <utils/statistics/storage.hpp>
 
+#include <storages/redis/client.hpp>
 #include <taxi_config/storage/component.hpp>
 
 namespace redis {
@@ -34,6 +35,8 @@ class Redis : public LoggableComponentBase {
 
   static constexpr const char* kName = "redis";
 
+  storages::redis::ClientPtr GetClient(const std::string& name) const;
+  // TODO: [[deprecated("use GetClient()")]]
   std::shared_ptr<redis::Sentinel> Client(const std::string& name) const;
   std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient(
       const std::string& name) const;
@@ -52,7 +55,8 @@ class Redis : public LoggableComponentBase {
       const utils::statistics::StatisticsRequest& /*request*/);
 
   std::shared_ptr<redis::ThreadPools> thread_pools_;
-  std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> clients_;
+  std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> sentinels_;
+  std::unordered_map<std::string, storages::redis::ClientPtr> clients_;
   std::unordered_map<std::string,
                      std::shared_ptr<storages::redis::SubscribeClient>>
       subscribe_clients_;

@@ -1,6 +1,6 @@
 #include <storages/redis/redis_config.hpp>
 
-#include <stdexcept>
+#include <redis/exception.hpp>
 
 namespace redis {
 
@@ -32,12 +32,13 @@ redis::CommandControl::Strategy Parse(
     if (name == "timeout_all_ms") {
       response.timeout_all = std::chrono::milliseconds(it->As<int64_t>());
       if (response.timeout_all.count() < 0) {
-        throw std::runtime_error("invalid timeout_all in redis CommandControl");
+        throw ParseConfigException(
+            "invalid timeout_all in redis CommandControl");
       }
     } else if (name == "timeout_single_ms") {
       response.timeout_single = std::chrono::milliseconds(it->As<int64_t>());
       if (response.timeout_single.count() < 0) {
-        throw std::runtime_error(
+        throw ParseConfigException(
             "invalid timeout_single in redis CommandControl");
       }
     } else if (name == "max_retries") {
@@ -49,7 +50,7 @@ redis::CommandControl::Strategy Parse(
     } else if (name == "max_ping_latency_ms") {
       response.max_ping_latency = std::chrono::milliseconds(it->As<int64_t>());
       if (response.max_ping_latency.count() < 0) {
-        throw std::runtime_error(
+        throw ParseConfigException(
             "invalid max_ping_latency in redis CommandControl");
       }
     } else {

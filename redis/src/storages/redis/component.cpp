@@ -18,6 +18,7 @@
 #include <utils/statistics/percentile_format_json.hpp>
 #include <yaml_config/value.hpp>
 
+#include <storages/redis/client_impl.hpp>
 #include <storages/redis/redis_config.hpp>
 #include <storages/redis/subscribe_client.hpp>
 #include "redis_secdist.hpp"
@@ -286,9 +287,16 @@ Redis::Redis(const ComponentConfig& config,
                     std::placeholders::_1));
 }
 
-std::shared_ptr<redis::Sentinel> Redis::Client(const std::string& name) const {
+storages::redis::ClientPtr Redis::GetClient(const std::string& name) const {
   auto it = clients_.find(name);
   if (it == clients_.end())
+    throw std::runtime_error(name + " redis client not found");
+  return it->second;
+}
+
+std::shared_ptr<redis::Sentinel> Redis::Client(const std::string& name) const {
+  auto it = sentinels_.find(name);
+  if (it == sentinels_.end())
     throw std::runtime_error(name + " redis client not found");
   return it->second;
 }
@@ -321,10 +329,13 @@ void Redis::Connect(const ComponentConfig& config,
     auto client = redis::Sentinel::CreateSentinel(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
         redis::KeyShardFactory{redis_group.sharding_strategy});
-    if (client)
-      clients_.emplace(redis_group.db, client);
-    else
+    if (client) {
+      sentinels_.emplace(redis_group.db, client);
+      clients_.emplace(redis_group.db,
+                       std::make_shared<storages::redis::ClientImpl>(client));
+    } else {
       LOG_WARNING() << "skip redis client for " << redis_group.db;
+    }
   }
 
   auto subscribe_redis_groups =
@@ -360,7 +371,7 @@ Redis::~Redis() {
 formats::json::Value Redis::ExtendStatisticsRedis(
     const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder json(formats::json::Type::kObject);
-  for (const auto& client : clients_) {
+  for (const auto& client : sentinels_) {
     const auto& name = client.first;
     const auto& redis = client.second;
     json[name] = RedisStatisticsToJson(redis);
@@ -388,7 +399,7 @@ void Redis::OnConfigUpdate(const TaxiConfigPtr& cfg) {
 
   auto cc = std::make_shared<redis::CommandControl>(
       redis_config.default_command_control);
-  for (auto& it : clients_) {
+  for (auto& it : sentinels_) {
     auto& client = it.second;
     client->SetConfigDefaultCommandControl(cc);
   }
