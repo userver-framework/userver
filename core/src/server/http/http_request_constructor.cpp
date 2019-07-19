@@ -20,6 +20,23 @@ inline void Strip(const char*& begin, const char*& end) {
   while (begin < end && isspace(end[-1])) --end;
 }
 
+void StripDuplicateStartingSlashes(std::string& s) {
+  if (s.empty() || s[0] != '/') return;
+
+  size_t non_slash_pos = s.find_first_not_of('/');
+  if (non_slash_pos == std::string::npos) {
+    // all symbols are slashes
+    non_slash_pos = s.size();
+  }
+
+  if (non_slash_pos == 1) {
+    // fast path, no strip
+    return;
+  }
+
+  s = s.substr(non_slash_pos - 1);
+}
+
 }  // namespace
 
 HttpRequestConstructor::HttpRequestConstructor(
@@ -62,7 +79,9 @@ void HttpRequestConstructor::ParseUrl() {
   if (parsed_url_.field_set & (1 << http_parser_url_fields::UF_PATH)) {
     const auto& str_info =
         parsed_url_.field_data[http_parser_url_fields::UF_PATH];
+
     request_->request_path_ = request_->url_.substr(str_info.off, str_info.len);
+    StripDuplicateStartingSlashes(request_->request_path_);
     LOG_TRACE() << "path='" << request_->request_path_ << '\'';
   } else {
     SetStatus(Status::kParseUrlError);
