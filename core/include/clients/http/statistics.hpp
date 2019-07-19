@@ -17,8 +17,8 @@ class RequestStats final {
   ~RequestStats();
 
   void Start();
-  void FinishOk(int code);
-  void FinishEc(std::error_code ec);
+  void FinishOk(int code, int attempts);
+  void FinishEc(std::error_code ec, int attempts);
 
   void StoreTimeToStart(double seconds);
 
@@ -78,6 +78,7 @@ struct Statistics {
       timings_percentile;
   std::array<std::atomic_llong, kErrorGroupCount> error_count{
       {0, 0, 0, 0, 0, 0, 0}};
+  std::atomic_llong retries{0};
 
   friend struct InstanceStatistics;
   friend class RequestStats;
@@ -89,7 +90,8 @@ struct InstanceStatistics {
   InstanceStatistics(const Statistics& other)
       : easy_handles(other.easy_handles.load()),
         last_time_to_start_us(other.last_time_to_start_us.load()),
-        timings_percentile(other.timings_percentile.GetStatsForPeriod()) {
+        timings_percentile(other.timings_percentile.GetStatsForPeriod()),
+        retries(other.retries.load()) {
     for (size_t i = 0; i < error_count.size(); i++)
       error_count[i] = other.error_count[i].load(std::memory_order_relaxed);
   }
@@ -106,6 +108,7 @@ struct InstanceStatistics {
   Percentile timings_percentile;
   std::array<long long, Statistics::kErrorGroupCount> error_count{
       {0, 0, 0, 0, 0, 0, 0}};
+  long long retries{0};
 
   MultiStats multi;
 };

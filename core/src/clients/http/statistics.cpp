@@ -17,13 +17,15 @@ RequestStats::~RequestStats() { stats_.easy_handles--; }
 
 void RequestStats::Start() { start_time_ = std::chrono::steady_clock::now(); }
 
-void RequestStats::FinishOk([[maybe_unused]] int code) {
+void RequestStats::FinishOk([[maybe_unused]] int code, int attempts) {
   stats_.AccountError(Statistics::ErrorGroup::kOk);
+  if (attempts > 1) stats_.retries += attempts - 1;
   StoreTiming();
 }
 
-void RequestStats::FinishEc(std::error_code ec) {
+void RequestStats::FinishEc(std::error_code ec, int attempts) {
   stats_.AccountError(Statistics::ErrorCodeToGroup(ec));
+  if (attempts > 1) stats_.retries += attempts - 1;
   StoreTiming();
 }
 
@@ -117,6 +119,7 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats) {
   }
   utils::statistics::SolomonChildrenAreLabelValues(errors, "http_error");
   json["errors"] = errors;
+  json["retries"] = stats.retries;
   json["pending-requests"] = stats.easy_handles;
   json["last-time-to-start-us"] = stats.last_time_to_start_us;
   json["event-loop-load"][utils::statistics::DurationToString(
@@ -170,6 +173,7 @@ void InstanceStatistics::Add(const std::vector<InstanceStatistics>& stats) {
     for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
       error_count[i] += stat.error_count[i];
     }
+    retries += stat.retries;
 
     multi += stat.multi;
   }

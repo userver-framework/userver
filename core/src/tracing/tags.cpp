@@ -12,6 +12,8 @@ const std::string kHttpMethod = "method";
 
 const std::string kHttpStatusCode = "meta_code";
 
+const std::string kAttempts = "attempts";
+
 const std::string kErrorFlag = "error";
 
 const std::string kErrorMessage = "error_msg";

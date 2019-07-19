@@ -18,6 +18,7 @@ extern const std::string kHttpUrl;
 extern const std::string kHttpMetaType;
 extern const std::string kHttpMethod;
 extern const std::string kHttpStatusCode;
+extern const std::string kAttempts;
 extern const std::string kErrorFlag;
 extern const std::string kErrorMessage;
 

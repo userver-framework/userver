@@ -407,6 +407,8 @@ void Request::RequestImpl::on_completed(
 
   holder->AccountResponse(err);
 
+  span.AddTag(tracing::kAttempts, holder->retry_.current);
+
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
     span.AddTag(tracing::kErrorFlag, true);
@@ -426,18 +428,20 @@ void Request::RequestImpl::on_completed(
 }
 
 void Request::RequestImpl::AccountResponse(std::error_code err) {
+  const auto attempts = retry_.current;
+
   stats_->StoreTimeToStart(easy().timings().time_to_start());
   if (err)
-    stats_->FinishEc(err);
+    stats_->FinishEc(err, attempts);
   else
-    stats_->FinishOk(easy().get_response_code());
+    stats_->FinishOk(easy().get_response_code(), attempts);
 
   if (dest_req_stats_) {
     dest_req_stats_->StoreTimeToStart(easy().timings().time_to_start());
     if (err)
-      dest_req_stats_->FinishEc(err);
+      dest_req_stats_->FinishEc(err, attempts);
     else
-      dest_req_stats_->FinishOk(easy().get_response_code());
+      dest_req_stats_->FinishOk(easy().get_response_code(), attempts);
   }
 }
 
