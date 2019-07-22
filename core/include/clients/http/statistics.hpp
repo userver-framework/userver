@@ -42,7 +42,10 @@ struct MultiStats {
   }
 };
 
-using Percentile = utils::statistics::Percentile<2048>;
+using Percentile =
+    utils::statistics::Percentile</*buckets =*/2000, unsigned int,
+                                  /*extra_buckets=*/1180,
+                                  /*extra_bucket_size=*/100>;
 
 struct Statistics {
   Statistics() = default;
