@@ -37,7 +37,6 @@ void SetThreadName([[maybe_unused]] pthread_t thread_id,
   }
   const auto& truncated_name = name.substr(0, kMaxThreadNameLen);
   if (name.size() != truncated_name.size()) {
-    UASSERT(!"thread name is too long");
     // should be ERROR according to segoon@ but I insist -- bugaevskiy@
     LOG_WARNING() << "Thread name '" << name << "' is too long, truncated to '"
                   << truncated_name << '\'';
