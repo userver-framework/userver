@@ -41,6 +41,7 @@ class ClusterTopology {
  public:
   ClusterTopology(engine::TaskProcessor& bg_task_processor,
                   const ClusterDescription& desc,
+                  ConnectionSettings conn_settings,
                   CommandControl default_cmd_ctl);
 
   ~ClusterTopology();
@@ -143,6 +144,8 @@ class ClusterTopology {
   engine::TaskProcessor& bg_task_processor_;
   /// Duration of topology check routine
   std::chrono::milliseconds check_duration_;
+  /// Individual connection settings
+  ConnectionSettings conn_settings_;
   /// Host states array
   std::vector<HostState> host_states_;
   /// Currently determined host types exposed to the client

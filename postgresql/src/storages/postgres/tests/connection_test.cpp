@@ -289,8 +289,9 @@ POSTGRE_TEST_P(StatementTimout) {
 
 TEST_P(PostgreConnection, Connect) {
   RunInCoro([this] {
-    EXPECT_THROW(pg::detail::Connection::Connect("psql://", GetTaskProcessor(),
-                                                 kConnectionId, kTestCmdCtl),
+    EXPECT_THROW(pg::detail::Connection::Connect(
+                     "psql://", GetTaskProcessor(), kConnectionId,
+                     kCachePreparedStatements, kTestCmdCtl),
                  pg::ConnectionFailed)
         << "Fail to connect with invalid DSN";
 
@@ -299,5 +300,13 @@ TEST_P(PostgreConnection, Connect) {
           MakeConnection(dsn_list_[0], GetTaskProcessor());
       CheckConnection(std::move(conn));
     }
+  });
+}
+
+TEST_P(PostgreConnection, NoPreparedStatements) {
+  RunInCoro([this] {
+    EXPECT_NO_THROW(pg::detail::Connection::Connect(
+        dsn_list_[0], GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
+        kTestCmdCtl));
   });
 }

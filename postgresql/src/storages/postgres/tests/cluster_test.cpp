@@ -25,18 +25,21 @@ void CheckTransaction(pg::Transaction trx) {
   EXPECT_NO_THROW(trx.Rollback());
 }
 
-pg::Cluster CreateCluster(const std::string& dsn,
-                          engine::TaskProcessor& bg_task_processor,
-                          size_t max_size) {
+pg::Cluster CreateCluster(
+    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
+    size_t max_size,
+    pg::ConnectionSettings conn_settings = kCachePreparedStatements) {
   return pg::Cluster(pg::ClusterDescription({dsn}), bg_task_processor,
-                     {0, max_size, max_size}, kTestCmdCtl);
+                     {0, max_size, max_size}, conn_settings, kTestCmdCtl);
 }
 
-pg::Cluster CreateClusterWithMaster(const std::string& dsn,
-                                    engine::TaskProcessor& bg_task_processor,
-                                    size_t max_size) {
+pg::Cluster CreateClusterWithMaster(
+    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
+    size_t max_size,
+    pg::ConnectionSettings conn_settings = kCachePreparedStatements) {
   return pg::Cluster(pg::ClusterDescription(dsn, std::string{}, {}),
-                     bg_task_processor, {0, max_size, max_size}, kTestCmdCtl);
+                     bg_task_processor, {0, max_size, max_size}, conn_settings,
+                     kTestCmdCtl);
 }
 
 }  // namespace

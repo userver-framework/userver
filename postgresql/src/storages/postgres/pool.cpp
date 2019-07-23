@@ -7,10 +7,11 @@ namespace postgres {
 
 ConnectionPool::ConnectionPool(const std::string& dsn,
                                engine::TaskProcessor& bg_task_processor,
-                               const PoolSettings& pool_settings,
+                               PoolSettings pool_settings,
+                               ConnectionSettings conn_settings,
                                CommandControl default_cmd_ctl) {
-  pimpl_ = detail::ConnectionPoolImpl::Create(dsn, bg_task_processor,
-                                              pool_settings, default_cmd_ctl);
+  pimpl_ = detail::ConnectionPoolImpl::Create(
+      dsn, bg_task_processor, pool_settings, conn_settings, default_cmd_ctl);
 }
 
 ConnectionPool::~ConnectionPool() = default;

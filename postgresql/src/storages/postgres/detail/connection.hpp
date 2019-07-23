@@ -95,13 +95,14 @@ class Connection {
   /// @param conninfo Connection string, @see https://www.postgresql.org/docs/10/static/libpq-connect.html#LIBPQ-CONNSTRING
   /// @param bg_task_processor task processor for blocking operations
   /// @param id host-wide unique id for connection identification in logs
+  /// @param conn_settings the connection settings
   /// @param default_cmd_ctl default parameters for operations
   /// @param size_guard structure to track the size of owning connection pool
   /// @throws ConnectionFailed, ConnectionTimeoutError
   // clang-format on
   static std::unique_ptr<Connection> Connect(
       const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
-      uint32_t id, CommandControl default_cmd_ctl,
+      uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
       SizeGuard&& size_guard = SizeGuard{});
 
   CommandControl GetDefaultCommandControl() const;

@@ -31,7 +31,7 @@ class ConnectionPool {
   /// @param default_cmd_ctl default settings for operations
   ConnectionPool(const std::string& dsn,
                  engine::TaskProcessor& bg_task_processor,
-                 const PoolSettings& pool_settings,
+                 PoolSettings pool_settings, ConnectionSettings conn_settings,
                  CommandControl default_cmd_ctl);
   ~ConnectionPool();
 

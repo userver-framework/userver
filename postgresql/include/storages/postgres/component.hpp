@@ -102,6 +102,7 @@ namespace components {
 /// blocking_task_processor | name of task processor for background blocking operations | --
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | limit of connections count                                | 15
+/// persistent-prepared-statements | cache prepared statements or not                   | true
 
 // clang-format on
 
@@ -158,6 +159,7 @@ class Postgres : public LoggableComponentBase {
 
   std::string db_name_;
   storages::postgres::PoolSettings pool_settings_;
+  storages::postgres::ConnectionSettings conn_settings_;
   engine::TaskProcessor* bg_task_processor_ = nullptr;
   storages::postgres::ShardedClusterDescription cluster_desc_;
   storages::postgres::DatabasePtr database_;

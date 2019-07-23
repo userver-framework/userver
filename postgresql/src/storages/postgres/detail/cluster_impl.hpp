@@ -24,7 +24,7 @@ class ClusterImpl {
  public:
   ClusterImpl(const ClusterDescription& cluster_desc,
               engine::TaskProcessor& bg_task_processor,
-              const PoolSettings& pool_settings,
+              PoolSettings pool_settings, ConnectionSettings conn_settings,
               CommandControl default_cmd_ctl);
   ~ClusterImpl();
 
@@ -48,7 +48,7 @@ class ClusterImpl {
   using HostPoolByDsn = std::unordered_map<std::string, ConnectionPoolPtr>;
 
   ClusterImpl(engine::TaskProcessor& bg_task_processor,
-              const PoolSettings& pool_settings,
+              PoolSettings pool_settings, ConnectionSettings conn_settings,
               CommandControl default_cmd_ctl);
 
   void InitPools(const DSNList& dsn_list);
@@ -74,6 +74,7 @@ class ClusterImpl {
   ::utils::SwappingSmart<const HostPoolByDsn> host_pools_;
   std::atomic<uint32_t> host_ind_;
   PoolSettings pool_settings_;
+  ConnectionSettings conn_settings_;
   ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
   std::atomic_flag update_lock_;
 };

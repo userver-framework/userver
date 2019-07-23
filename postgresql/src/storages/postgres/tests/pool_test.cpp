@@ -43,7 +43,8 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePool,
 
 TEST_P(PostgrePool, ConnectionPool) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10}, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10},
+                            kCachePreparedStatements, kTestCmdCtl);
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
@@ -54,7 +55,8 @@ TEST_P(PostgrePool, ConnectionPool) {
 
 TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {0, 1, 10}, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {0, 1, 10},
+                            kCachePreparedStatements, kTestCmdCtl);
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
@@ -65,7 +67,8 @@ TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
 
 TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 1, 10}, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 1, 10},
+                            kCachePreparedStatements, kTestCmdCtl);
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
@@ -81,7 +84,8 @@ TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
 
 TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 1, 10}, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 1, 10},
+                            kCachePreparedStatements, kTestCmdCtl);
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
@@ -103,16 +107,17 @@ TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
 
 TEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
   RunInCoro([this] {
-    EXPECT_THROW(
-        pg::ConnectionPool(dsn_, GetTaskProcessor(), {2, 1, 10}, kTestCmdCtl),
-        pg::InvalidConfig)
+    EXPECT_THROW(pg::ConnectionPool(dsn_, GetTaskProcessor(), {2, 1, 10},
+                                    kCachePreparedStatements, kTestCmdCtl),
+                 pg::InvalidConfig)
         << "Pool reached max size";
   });
 }
 
 TEST_P(PostgrePool, PoolTransaction) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10}, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10},
+                            kCachePreparedStatements, kTestCmdCtl);
     PoolTransaction(pool);
   });
 }
@@ -120,7 +125,8 @@ TEST_P(PostgrePool, PoolTransaction) {
 TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
   RunInCoro([this] {
     auto pool = std::make_unique<pg::ConnectionPool>(
-        dsn_, GetTaskProcessor(), pg::PoolSettings{1, 1, 10}, kTestCmdCtl);
+        dsn_, GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+        kCachePreparedStatements, kTestCmdCtl);
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
@@ -133,7 +139,8 @@ TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
 TEST_P(PostgrePool, ConnectionPtrWorks) {
   RunInCoro([this] {
     auto pool = std::make_unique<pg::ConnectionPool>(
-        dsn_, GetTaskProcessor(), pg::PoolSettings{2, 2, 10}, kTestCmdCtl);
+        dsn_, GetTaskProcessor(), pg::PoolSettings{2, 2, 10},
+        kCachePreparedStatements, kTestCmdCtl);
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->GetConnection(MakeDeadline()))
@@ -160,6 +167,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
   RunInCoro([this] {
     auto pool = std::make_unique<pg::ConnectionPool>(
         dsn_, GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+        kCachePreparedStatements,
         pg::CommandControl{pg::TimeoutDuration{100},
                            pg::TimeoutDuration{1000}});
 

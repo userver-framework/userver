@@ -7,9 +7,10 @@ namespace postgres {
 
 Cluster::Cluster(const ClusterDescription& cluster_desc,
                  engine::TaskProcessor& bg_task_processor,
-                 const PoolSettings& pool_settings, CommandControl cmd_ctl) {
+                 PoolSettings pool_settings, ConnectionSettings conn_settings,
+                 CommandControl cmd_ctl) {
   pimpl_ = std::make_unique<detail::ClusterImpl>(
-      cluster_desc, bg_task_processor, pool_settings, cmd_ctl);
+      cluster_desc, bg_task_processor, pool_settings, conn_settings, cmd_ctl);
 }
 
 Cluster::~Cluster() = default;

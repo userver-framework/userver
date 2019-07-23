@@ -143,6 +143,7 @@ struct Connection::Impl {
   PreparedStatements prepared_;
   UserTypes db_types_;
   bool read_only_ = true;
+  ConnectionSettings settings_;
 
   CommandControl default_cmd_ctl_;
   OptionalCommandControl transaction_cmd_ctl_;
@@ -151,8 +152,10 @@ struct Connection::Impl {
   std::string uuid_;
 
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
-       CommandControl default_cmd_ctl, SizeGuard&& size_guard)
+       ConnectionSettings settings, CommandControl default_cmd_ctl,
+       SizeGuard&& size_guard)
       : conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
+        settings_{settings},
         default_cmd_ctl_{default_cmd_ctl},
         uuid_{::utils::generators::GenerateUuid()} {}
 
@@ -372,6 +375,10 @@ struct Connection::Impl {
   ResultSet ExecuteCommand(const std::string& statement,
                            const detail::QueryParameters& params,
                            engine::Deadline deadline) {
+    if (settings_.prepared_statements ==
+        ConnectionSettings::kNoPreparedStatements) {
+      return ExecuteCommandNoPrepare(statement, params, deadline);
+    }
     tracing::Span span{scopes::kQuery};
     span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
     span.AddTag(tracing::kDatabaseStatement, statement);
@@ -432,6 +439,77 @@ struct Connection::Impl {
 
     scope.Reset(scopes::kExec);
     conn_wrapper_.SendPreparedQuery(statement_name, params, scope, fmt);
+    return WaitResult(statement, deadline, network_timeout, count_execute, span,
+                      scope, fmt);
+  }
+
+  ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
+    return ExecuteCommandNoPrepare(
+        statement, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
+  }
+
+  ResultSet ExecuteCommandNoPrepare(const std::string& statement,
+                                    engine::Deadline deadline) {
+    CheckBusy();
+    tracing::Span span{scopes::kQuery};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, statement);
+    CountExecute count_execute(stats_);
+    TimeoutDuration network_timeout =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline.TimeLeft());
+
+    auto scope = span.CreateScopeTime(scopes::kExec);
+    conn_wrapper_.SendQuery(statement, scope);
+    return WaitResult(statement, deadline, network_timeout, count_execute, span,
+                      scope, io::DataFormat::kTextDataFormat);
+  }
+
+  ResultSet ExecuteCommandNoPrepare(const std::string& statement,
+                                    const QueryParameters& params,
+                                    engine::Deadline deadline) {
+    tracing::Span span{scopes::kQuery};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, statement);
+    if (deadline.IsReached()) {
+      ++stats_.execute_timeout;
+      LOG_ERROR()
+          << "Deadline was reached before starting to execute statement `"
+          << statement << "`";
+      throw ConnectionTimeoutError{"Deadline reached before executing"};
+    }
+    auto scope = span.CreateScopeTime();
+    TimeoutDuration network_timeout =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline.TimeLeft());
+    CountExecute count_execute(stats_);
+    conn_wrapper_.SendQuery(statement, params, scope,
+                            io::DataFormat::kBinaryDataFormat);
+    return WaitResult(statement, deadline, network_timeout, count_execute, span,
+                      scope, io::DataFormat::kBinaryDataFormat);
+  }
+
+  /// A separate method from ExecuteCommand as the method will be transformed
+  /// to parse-bind-execute pipeline. This method is for experimenting with
+  /// PostreSQL protocol and is intentionally separate from usual path method.
+  ResultSet ExperimentalExecute(const std::string& statement,
+                                io::DataFormat reply_format,
+                                const detail::QueryParameters& params) {
+    tracing::Span span{"pg_experimental_execute"};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, statement);
+    auto scope = span.CreateScopeTime();
+    conn_wrapper_.SendQuery(statement, params, scope, reply_format);
+    auto res = conn_wrapper_.WaitResult(
+        engine::Deadline::FromDuration(CurrentNetworkTimeout()), scope);
+    FillBufferCategories(res);
+    return res;
+  }
+
+  ResultSet WaitResult(const std::string& statement, engine::Deadline deadline,
+                       TimeoutDuration network_timeout,
+                       CountExecute& count_execute, tracing::Span& span,
+                       ScopeTime& scope, io::DataFormat fmt) {
     try {
       auto res = conn_wrapper_.WaitResult(deadline, scope);
       FillBufferCategories(res);
@@ -461,66 +539,6 @@ struct Connection::Impl {
       span.AddTag(tracing::kErrorFlag, true);
       throw;
     }
-  }
-
-  ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
-    return ExecuteCommandNoPrepare(
-        statement, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
-  }
-
-  ResultSet ExecuteCommandNoPrepare(const std::string& statement,
-                                    engine::Deadline deadline) {
-    CheckBusy();
-    tracing::Span span{scopes::kQuery};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
-    span.AddTag(tracing::kDatabaseStatement, statement);
-    CountExecute count_execute(stats_);
-    TimeoutDuration network_timeout =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            deadline.TimeLeft());
-
-    auto scope = span.CreateScopeTime(scopes::kExec);
-    conn_wrapper_.SendQuery(statement, scope);
-    try {
-      auto res = conn_wrapper_.WaitResult(deadline, scope);
-      FillBufferCategories(res);
-      count_execute.AccountResult(res, io::DataFormat::kTextDataFormat);
-      return res;
-    } catch (const ConnectionTimeoutError& e) {
-      ++stats_.execute_timeout;
-      LOG_ERROR() << "Statement `" << statement
-                  << "` network timeout error: " << e << ". "
-                  << "Network timout was " << network_timeout.count() << "ms";
-      span.AddTag(tracing::kErrorFlag, true);
-      throw;
-    } catch (const QueryCanceled& e) {
-      ++stats_.execute_timeout;
-      LOG_ERROR() << "Statement `" << statement << "` was canceled: " << e
-                  << ". Statement timeout was "
-                  << current_statement_timeout_.count() << "ms";
-      span.AddTag(tracing::kErrorFlag, true);
-      throw;
-    } catch (const std::exception&) {
-      span.AddTag(tracing::kErrorFlag, true);
-      throw;
-    }
-  }
-
-  /// A separate method from ExecuteCommand as the method will be transformed
-  /// to parse-bind-execute pipeline. This method is for experimenting with
-  /// PostreSQL protocol and is intentionally separate from usual path method.
-  ResultSet ExperimentalExecute(const std::string& statement,
-                                io::DataFormat reply_format,
-                                const detail::QueryParameters& params) {
-    tracing::Span span{"pg_experimental_execute"};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
-    span.AddTag(tracing::kDatabaseStatement, statement);
-    auto scope = span.CreateScopeTime();
-    conn_wrapper_.SendQuery(statement, params, scope, reply_format);
-    auto res = conn_wrapper_.WaitResult(
-        engine::Deadline::FromDuration(CurrentNetworkTimeout()), scope);
-    FillBufferCategories(res);
-    return res;
   }
 
   void Begin(const TransactionOptions& options,
@@ -621,11 +639,12 @@ struct Connection::Impl {
 
 std::unique_ptr<Connection> Connection::Connect(
     const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
-    uint32_t id, CommandControl default_cmd_ctl, SizeGuard&& size_guard) {
+    uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
+    SizeGuard&& size_guard) {
   std::unique_ptr<Connection> conn(new Connection());
 
-  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, default_cmd_ctl,
-                                        std::move(size_guard));
+  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, settings,
+                                        default_cmd_ctl, std::move(size_guard));
   conn->pimpl_->AsyncConnect(conninfo);
 
   return conn;

@@ -29,7 +29,8 @@ class ConnectionPoolImpl
  public:
   static std::shared_ptr<ConnectionPoolImpl> Create(
       const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-      const PoolSettings& pool_settings, CommandControl default_cmd_ctl);
+      PoolSettings pool_settings, ConnectionSettings conn_settings,
+      CommandControl default_cmd_ctl);
   ~ConnectionPoolImpl();
 
   std::string const& GetDsn() const { return dsn_; }
@@ -49,7 +50,7 @@ class ConnectionPoolImpl
  protected:
   ConnectionPoolImpl(const std::string& dsn,
                      engine::TaskProcessor& bg_task_processor,
-                     const PoolSettings& settings,
+                     PoolSettings settings, ConnectionSettings conn_settings,
                      CommandControl default_cmd_ctl);
 
  private:
@@ -81,6 +82,7 @@ class ConnectionPoolImpl
   mutable InstanceStatistics stats_;
   std::string dsn_;
   PoolSettings settings_;
+  ConnectionSettings conn_settings_;
   engine::TaskProcessor& bg_task_processor_;
   ::utils::PeriodicTask ping_task_;
   engine::Mutex wait_mutex_;

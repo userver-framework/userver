@@ -32,8 +32,9 @@ void PgConnection::SetUp(benchmark::State&) {
   auto conninfo = GetDsnFromEnv();
   if (!conninfo.empty()) {
     RunInCoro([this, conninfo] {
-      conn_ = detail::Connection::Connect(conninfo, GetTaskProcessor(),
-                                          kConnectionId, kBenchCmdCtl);
+      conn_ = detail::Connection::Connect(
+          conninfo, GetTaskProcessor(), kConnectionId,
+          {ConnectionSettings::kCachePreparedStatements}, kBenchCmdCtl);
     });
   }
 }

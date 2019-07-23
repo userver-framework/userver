@@ -40,12 +40,14 @@ struct Stopwatch {
 
 ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
                                        engine::TaskProcessor& bg_task_processor,
-                                       const PoolSettings& settings,
+                                       PoolSettings settings,
+                                       ConnectionSettings conn_settings,
                                        CommandControl default_cmd_ctl)
-    : dsn_(dsn),
-      settings_(settings),
-      bg_task_processor_(bg_task_processor),
-      queue_(settings.max_size),
+    : dsn_{dsn},
+      settings_{settings},
+      conn_settings_{conn_settings},
+      bg_task_processor_{bg_task_processor},
+      queue_{settings.max_size},
       size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl} {}
@@ -57,7 +59,8 @@ ConnectionPoolImpl::~ConnectionPoolImpl() {
 
 std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
     const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-    const PoolSettings& pool_settings, CommandControl default_cmd_ctl) {
+    PoolSettings pool_settings, ConnectionSettings conn_settings,
+    CommandControl default_cmd_ctl) {
   // structure to call constructor of ConnectionPoolImpl that shouldn't be
   // accessible in public interface
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
@@ -65,13 +68,14 @@ std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
     ImplForConstruction(const std::string& dsn,
                         engine::TaskProcessor& bg_task_processor,
                         PoolSettings pool_settings,
+                        ConnectionSettings conn_settings,
                         CommandControl default_cmd_ctl)
         : ConnectionPoolImpl(dsn, bg_task_processor, pool_settings,
-                             default_cmd_ctl) {}
+                             conn_settings, default_cmd_ctl) {}
   };
 
   auto impl = std::make_shared<ImplForConstruction>(
-      dsn, bg_task_processor, pool_settings, default_cmd_ctl);
+      dsn, bg_task_processor, pool_settings, conn_settings, default_cmd_ctl);
   impl->Init();
   return impl;
 }
@@ -226,9 +230,9 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
         Stopwatch st{shared_this->stats_.connection_percentile};
         try {
           auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
-          connection = Connection::Connect(shared_this->dsn_,
-                                           shared_this->bg_task_processor_,
-                                           conn_id, *cmd_ctl, std::move(sg));
+          connection = Connection::Connect(
+              shared_this->dsn_, shared_this->bg_task_processor_, conn_id,
+              shared_this->conn_settings_, *cmd_ctl, std::move(sg));
         } catch (const ConnectionTimeoutError&) {
           // No problem if it's connection error
           ++shared_this->stats_.connection.error_timeout;

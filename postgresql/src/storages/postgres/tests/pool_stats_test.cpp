@@ -26,7 +26,8 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePoolStats,
 
 TEST_P(PostgrePoolStats, EmptyPool) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {0, 10, 10}, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {0, 10, 10},
+                            kCachePreparedStatements, kTestCmdCtl);
 
     const auto& stats = pool.GetStatistics();
     EXPECT_EQ(stats.connection.open_total, 0);
@@ -60,7 +61,7 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
   RunInCoro([this] {
     const auto min_pool_size = 2;
     pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {min_pool_size, 10, 10},
-                            kTestCmdCtl);
+                            kCachePreparedStatements, kTestCmdCtl);
 
     // We can't check all the counters as some of them are used for internal ops
     const auto& stats = pool.GetStatistics();
@@ -89,7 +90,8 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
 
 TEST_P(PostgrePoolStats, RunTransactions) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10}, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10},
+                            kCachePreparedStatements, kTestCmdCtl);
 
     const auto trx_count = 5;
     const auto exec_count = 10;
@@ -151,7 +153,8 @@ TEST_P(PostgrePoolStats, RunTransactions) {
 
 TEST_P(PostgrePoolStats, ConnUsed) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10}, kTestCmdCtl);
+    pg::ConnectionPool pool(dsn_, GetTaskProcessor(), {1, 10, 10},
+                            kCachePreparedStatements, kTestCmdCtl);
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))

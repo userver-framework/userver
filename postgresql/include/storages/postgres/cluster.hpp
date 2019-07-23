@@ -76,13 +76,14 @@ class Cluster {
   /// @param cluster_desc Cluster configuration description
   /// @param bg_task_processor task processor for blocking connection operations
   /// @param pool_settings settings for connection pools
+  /// @param conn_settings settings for individual connections
   /// @param cmd_ctl command execution options
   /// @note When `max_connection_pool_size` is reached, and no idle connections
   /// available, `PoolError` is thrown for every new connection
   /// request
   Cluster(const ClusterDescription& cluster_desc,
-          engine::TaskProcessor& bg_task_processor,
-          const PoolSettings& pool_settings, CommandControl cmd_ctl);
+          engine::TaskProcessor& bg_task_processor, PoolSettings pool_settings,
+          ConnectionSettings conn_settings, CommandControl cmd_ctl);
   ~Cluster();
 
   /// Get cluster statistics

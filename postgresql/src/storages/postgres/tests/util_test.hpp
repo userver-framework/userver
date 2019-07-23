@@ -25,17 +25,25 @@ constexpr storages::postgres::CommandControl kTestCmdCtl{
     storages::postgres::TimeoutDuration{100},
     storages::postgres::TimeoutDuration{50}};
 
+constexpr storages::postgres::ConnectionSettings kCachePreparedStatements{
+    storages::postgres::ConnectionSettings::kCachePreparedStatements};
+constexpr storages::postgres::ConnectionSettings kNoPreparedStatements{
+    storages::postgres::ConnectionSettings::kNoPreparedStatements};
+
 inline engine::Deadline MakeDeadline() {
   return engine::Deadline::FromDuration(kTestCmdCtl.network);
 }
 
 inline storages::postgres::detail::ConnectionPtr MakeConnection(
-    const std::string& dsn, engine::TaskProcessor& task_processor) {
+    const std::string& dsn, engine::TaskProcessor& task_processor,
+    storages::postgres::ConnectionSettings settings =
+        kCachePreparedStatements) {
   namespace pg = storages::postgres;
   std::unique_ptr<pg::detail::Connection> conn;
 
-  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                      dsn, task_processor, kConnectionId, kTestCmdCtl))
+  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(dsn, task_processor,
+                                                         kConnectionId,
+                                                         settings, kTestCmdCtl))
       << "Connect to correct DSN";
   if (!conn) {
     ADD_FAILURE() << "Expected non-empty connection pointer";

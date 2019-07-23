@@ -143,6 +143,7 @@ Postgres::Postgres(const ComponentConfig& config,
       statistics_storage_(
           context.FindComponent<components::StatisticsStorage>()),
       database_{std::make_shared<storages::postgres::Database>()} {
+  namespace pg = storages::postgres;
   TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
   config_subscription_ =
       cfg.AddListener(this, "postgres", &Postgres::OnConfigUpdate);
@@ -153,15 +154,15 @@ Postgres::Postgres(const ComponentConfig& config,
 
   if (dbalias.empty()) {
     const auto dsn_string = config.ParseString("dbconnection");
-    const auto options = storages::postgres::OptionsFromDsn(dsn_string);
+    const auto options = pg::OptionsFromDsn(dsn_string);
     db_name_ = options.dbname;
-    cluster_desc_.push_back(storages::postgres::ClusterDescription(
-        storages::postgres::SplitByHost(dsn_string)));
+    cluster_desc_.push_back(
+        pg::ClusterDescription(pg::SplitByHost(dsn_string)));
   } else {
     try {
       auto& secdist = context.FindComponent<Secdist>();
       cluster_desc_ = secdist.Get()
-                          .Get<storages::postgres::secdist::PostgresSettings>()
+                          .Get<pg::secdist::PostgresSettings>()
                           .GetShardedClusterDescription(dbalias);
       db_name_ = dbalias;
     } catch (const storages::secdist::SecdistError& ex) {
@@ -177,6 +178,12 @@ Postgres::Postgres(const ComponentConfig& config,
       config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
   pool_settings_.max_queue_size =
       config.ParseUint64("max_queue_size", kDefaultMaxQueueSize);
+  bool persistent_prepared_statements =
+      config.ParseBool("persistent-prepared-statements", true);
+  conn_settings_.prepared_statements =
+      persistent_prepared_statements
+          ? pg::ConnectionSettings::kCachePreparedStatements
+          : pg::ConnectionSettings::kNoPreparedStatements;
 
   const auto task_processor_name =
       config.ParseString("blocking_task_processor");
@@ -190,8 +197,9 @@ Postgres::Postgres(const ComponentConfig& config,
   LOG_DEBUG() << "Start " << cluster_desc_.size() << " shards for " << db_name_;
   std::vector<engine::TaskWithResult<void>> tasks;
   for (auto const& cluster_desc : cluster_desc_) {
-    auto cluster = std::make_shared<storages::postgres::Cluster>(
-        cluster_desc, *bg_task_processor_, pool_settings_, cmd_ctl);
+    auto cluster =
+        std::make_shared<pg::Cluster>(cluster_desc, *bg_task_processor_,
+                                      pool_settings_, conn_settings_, cmd_ctl);
     database_->clusters_.push_back(cluster);
     tasks.push_back(cluster->DiscoverTopology());
   }

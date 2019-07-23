@@ -108,5 +108,13 @@ struct PoolSettings {
   size_t max_queue_size = 0;
 };
 
+struct ConnectionSettings {
+  enum PreparedStatementOptions {
+    kNoPreparedStatements,
+    kCachePreparedStatements,
+  };
+  PreparedStatementOptions prepared_statements = kCachePreparedStatements;
+};
+
 }  // namespace postgres
 }  // namespace storages
