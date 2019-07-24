@@ -68,7 +68,7 @@ void DistLockedTask::RequestAcquire(std::chrono::milliseconds lock_time) {
 }
 
 void DistLockedTask::RequestRelease() {
-  cluster_->Execute(ClusterHostType::kMaster, *cc_.Read(), acquire_query_,
+  cluster_->Execute(ClusterHostType::kMaster, *cc_.Read(), release_query_,
                     lock_name_, owner_);
 }
 

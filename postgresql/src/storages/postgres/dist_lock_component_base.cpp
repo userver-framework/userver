@@ -48,7 +48,7 @@ DistLockComponentBase::~DistLockComponentBase() {
 
 DistLockedTask& DistLockComponentBase::GetTask() { return *task_; }
 
-void DistLockComponentBase::StartDistLock() {
+void DistLockComponentBase::AutostartDistLock() {
   if (autostart_) task_->Start();
 }
 

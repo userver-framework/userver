@@ -25,7 +25,7 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   virtual void DoWork() = 0;
 
   /// Must be called in ctr
-  void StartDistLock();
+  void AutostartDistLock();
 
   /// Must be called in dtr
   void StopDistLock();
