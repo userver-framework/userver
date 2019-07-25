@@ -52,7 +52,8 @@ class HttpHandlerBase : public HandlerBase {
       http::HttpStatus status) const;
 
   virtual std::string GetFormattedExternalErrorBody(
-      http::HttpStatus status, std::string external_error_body) const;
+      http::HttpStatus status, const std::string& error_code,
+      std::string external_error_body) const;
 
  protected:
   [[noreturn]] void ThrowUnsupportedHttpMethod(

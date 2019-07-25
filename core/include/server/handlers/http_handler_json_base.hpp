@@ -38,7 +38,8 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
 
  private:
   std::string GetFormattedExternalErrorBody(
-      http::HttpStatus status, std::string external_error_body) const final;
+      http::HttpStatus status, const std::string& error_code,
+      std::string external_error_body) const final;
 };
 
 }  // namespace handlers

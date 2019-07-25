@@ -37,6 +37,24 @@ struct CustomMessage {
   const std::string& GetExternalBody() const { return message; }
 };
 
+struct CustomMessageWithServiceCode {
+  std::string service_code;
+  std::string message;
+
+  const std::string& GetServiceCode() const { return service_code; }
+  const std::string& GetInternalMessage() const { return message; }
+  const std::string& GetExternalBody() const { return message; }
+};
+
+struct CustomFormattedMessage {
+  static constexpr bool kIsExternalBodyFormatted = true;
+
+  std::string message;
+
+  const std::string& GetInternalMessage() const { return message; }
+  const std::string& GetExternalBody() const { return message; }
+};
+
 template <typename Error>
 class CustomHandlerExceptionTest : public ::testing::Test {
  public:
@@ -48,35 +66,76 @@ using ErrorTypes = ::testing::Types<ClientError, Unauthorized, ResourceNotFound,
                                     InternalServerError>;
 TYPED_TEST_CASE(CustomHandlerExceptionTest, ErrorTypes);
 
-TYPED_TEST(CustomHandlerExceptionTest, CorrectContents) {
+TYPED_TEST(CustomHandlerExceptionTest, AllDefault) {
   using ErrorType = typename TestFixture::ErrorType;
   constexpr auto kDefaultCode = TestFixture::kDefaultCode;
   EXPECT_THROW(throw ErrorType(), ErrorType);
   try {
-    // All parameters defaulted
     throw ErrorType();
   } catch (const ErrorType& e) {
     EXPECT_EQ(kDefaultCode, e.GetCode());
-    EXPECT_STREQ(GetCodeDescription(kDefaultCode), e.what());
+    EXPECT_EQ(GetCodeDescription(kDefaultCode), e.what());
+    EXPECT_TRUE(e.GetServiceCode().empty());
     EXPECT_TRUE(e.GetExternalErrorBody().empty());
+    EXPECT_FALSE(e.IsExternalErrorBodyFormatted());
   }
+}
+
+TYPED_TEST(CustomHandlerExceptionTest, OverrideMessage) {
+  using ErrorType = typename TestFixture::ErrorType;
+  constexpr auto kDefaultCode = TestFixture::kDefaultCode;
   try {
-    // Code defaulted, custom messages
     throw ErrorType(InternalMessage{"Something went wrong"},
                     ExternalBody{"Tell everyone about it"});
   } catch (const ErrorType& e) {
     EXPECT_EQ(kDefaultCode, e.GetCode());
     EXPECT_STREQ("Something went wrong", e.what());
+    EXPECT_TRUE(e.GetServiceCode().empty());
     EXPECT_EQ("Tell everyone about it", e.GetExternalErrorBody());
+    EXPECT_FALSE(e.IsExternalErrorBodyFormatted());
+  }
+}
+
+TYPED_TEST(CustomHandlerExceptionTest, ServiceCode) {
+  using ErrorType = typename TestFixture::ErrorType;
+  constexpr auto kDefaultCode = TestFixture::kDefaultCode;
+  try {
+    throw ErrorType(ServiceErrorCode{"custom_code"});
+  } catch (const ErrorType& e) {
+    EXPECT_EQ(kDefaultCode, e.GetCode());
+    EXPECT_EQ(GetCodeDescription(kDefaultCode), e.what());
+    EXPECT_EQ("custom_code", e.GetServiceCode());
+    EXPECT_TRUE(e.GetExternalErrorBody().empty());
+    EXPECT_FALSE(e.IsExternalErrorBodyFormatted());
   }
   try {
-    // Code defaulted, custom message builder
+    throw ErrorType(
+        CustomMessageWithServiceCode{"custom_code", "custom_message"});
+  } catch (const ErrorType& e) {
+    EXPECT_EQ(kDefaultCode, e.GetCode());
+    EXPECT_STREQ("custom_message", e.what());
+    EXPECT_EQ("custom_code", e.GetServiceCode());
+    EXPECT_EQ("custom_message", e.GetExternalErrorBody());
+    EXPECT_FALSE(e.IsExternalErrorBodyFormatted());
+  }
+}
+
+TYPED_TEST(CustomHandlerExceptionTest, MessageBuilder) {
+  using ErrorType = typename TestFixture::ErrorType;
+  constexpr auto kDefaultCode = TestFixture::kDefaultCode;
+  try {
     throw ErrorType(CustomMessage{"Something went wrong"});
   } catch (const ErrorType& e) {
     EXPECT_EQ(kDefaultCode, e.GetCode());
     EXPECT_STREQ("Something went wrong", e.what());
+    EXPECT_TRUE(e.GetServiceCode().empty());
     EXPECT_EQ("Something went wrong", e.GetExternalErrorBody());
+    EXPECT_FALSE(e.IsExternalErrorBodyFormatted());
   }
+}
+
+TYPED_TEST(CustomHandlerExceptionTest, CustomCode) {
+  using ErrorType = typename TestFixture::ErrorType;
   for (auto code :
        {HandlerErrorCode::kUnknownError, HandlerErrorCode::kClientError,
         HandlerErrorCode::kUnauthorized, HandlerErrorCode::kInvalidUsage,
@@ -89,8 +148,10 @@ TYPED_TEST(CustomHandlerExceptionTest, CorrectContents) {
       throw ErrorType(code);
     } catch (const ErrorType& e) {
       EXPECT_EQ(code, e.GetCode());
-      EXPECT_STREQ(GetCodeDescription(code), e.what());
+      EXPECT_EQ(GetCodeDescription(code), e.what());
+      EXPECT_TRUE(e.GetServiceCode().empty());
       EXPECT_TRUE(e.GetExternalErrorBody().empty());
+      EXPECT_FALSE(e.IsExternalErrorBodyFormatted());
     }
     try {
       // Custom code, custom message
@@ -98,8 +159,24 @@ TYPED_TEST(CustomHandlerExceptionTest, CorrectContents) {
     } catch (const ErrorType& e) {
       EXPECT_EQ(code, e.GetCode());
       EXPECT_STREQ("Something went wrong", e.what());
+      EXPECT_TRUE(e.GetServiceCode().empty());
       EXPECT_EQ("Something went wrong", e.GetExternalErrorBody());
+      EXPECT_FALSE(e.IsExternalErrorBodyFormatted());
     }
+  }
+}
+
+TYPED_TEST(CustomHandlerExceptionTest, DoubleFormat) {
+  using ErrorType = typename TestFixture::ErrorType;
+  constexpr auto kDefaultCode = TestFixture::kDefaultCode;
+  try {
+    throw ErrorType(CustomFormattedMessage{"test"});
+  } catch (const ErrorType& e) {
+    EXPECT_EQ(kDefaultCode, e.GetCode());
+    EXPECT_STREQ("test", e.what());
+    EXPECT_TRUE(e.GetServiceCode().empty());
+    EXPECT_EQ("test", e.GetExternalErrorBody());
+    EXPECT_TRUE(e.IsExternalErrorBodyFormatted());
   }
 }
 

@@ -4,29 +4,31 @@
 #include <formats/json/value_builder.hpp>
 
 #include <server/handlers/exceptions.hpp>
-#include <server/http/http_error.hpp>
+#include <utils/assert.hpp>
 
 namespace server {
 namespace handlers {
 
 JsonErrorBuilder::JsonErrorBuilder(const CustomHandlerException& ex)
-    : JsonErrorBuilder(http::GetHttpStatus(ex.GetCode()), ex.what(),
-                       ex.GetExternalErrorBody(), ex.GetDetails()) {}
+    : JsonErrorBuilder(
+          ex.GetServiceCode().empty() ? GetFallbackServiceCode(ex.GetCode())
+                                      : ex.GetServiceCode(),
+          ex.what(),
+          ex.GetExternalErrorBody().empty() ? GetCodeDescription(ex.GetCode())
+                                            : ex.GetExternalErrorBody(),
+          ex.GetDetails()) {}
 
 JsonErrorBuilder::JsonErrorBuilder(
-    http::HttpStatus status, std::string internal_message,
-    std::string external_error_body,
+    const std::string& error_code, std::string internal_message,
+    const std::string& external_error_body,
     boost::optional<const formats::json::Value&> details)
     : internal_message_(std::move(internal_message)) {
+  UASSERT_MSG(!error_code.empty(),
+              "Service-specific error code must be provided");
+
   formats::json::ValueBuilder response_json(formats::json::Type::kObject);
-
-  response_json["code"] = std::to_string(static_cast<int>(status));
-
-  if (!external_error_body.empty()) {
-    response_json["message"] = external_error_body;
-  } else {
-    response_json["message"] = HttpStatusString(status);
-  }
+  response_json["code"] = error_code;
+  response_json["message"] = external_error_body;
 
   if (details && details->IsObject()) {
     response_json["details"] = *details;
@@ -34,8 +36,6 @@ JsonErrorBuilder::JsonErrorBuilder(
 
   json_error_body_ = formats::json::ToString(response_json.ExtractValue());
 }
-
-static_assert(detail::kHasInternalMessage<JsonErrorBuilder>);
 
 }  // namespace handlers
 }  // namespace server

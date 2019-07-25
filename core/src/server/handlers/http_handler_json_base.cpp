@@ -5,8 +5,10 @@
 
 #include <server/handlers/exceptions.hpp>
 #include <server/handlers/json_error_builder.hpp>
+#include <server/handlers/legacy_json_error_builder.hpp>
 #include <server/http/content_type.hpp>
 #include <server/http/http_error.hpp>
+#include <server/http/http_status.hpp>
 
 namespace server {
 namespace handlers {
@@ -31,29 +33,10 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
   auto& response = request.GetHttpResponse();
   response.SetContentType(http::content_type::kApplicationJson);
 
-  try {
-    const auto& response_json = context.SetData<const formats::json::Value>(
-        kResponseDataName,
-        HandleRequestJsonThrow(request, request_json, context));
-    return formats::json::ToString(response_json);
-  } catch (const http::HttpException& ex) {
-    // TODO Remove this catch branch
-    formats::json::ValueBuilder response_json(formats::json::Type::kObject);
-
-    auto status = ex.GetStatus();
-    response_json["code"] = std::to_string(static_cast<int>(status));
-
-    const auto& error_message = ex.GetExternalErrorBody();
-    if (!error_message.empty()) {
-      response_json["message"] = error_message;
-    } else {
-      response_json["message"] = HttpStatusString(status);
-    }
-
-    throw http::HttpException(
-        ex.GetStatus(), ex.what(),
-        formats::json::ToString(response_json.ExtractValue()));
-  }
+  const auto& response_json = context.SetData<const formats::json::Value>(
+      kResponseDataName,
+      HandleRequestJsonThrow(request, request_json, context));
+  return formats::json::ToString(response_json);
 }
 
 const formats::json::Value* HttpHandlerJsonBase::GetRequestJson(
@@ -67,8 +50,13 @@ const formats::json::Value* HttpHandlerJsonBase::GetResponseJson(
 }
 
 std::string HttpHandlerJsonBase::GetFormattedExternalErrorBody(
-    http::HttpStatus status, std::string external_error_body) const {
-  return JsonErrorBuilder(status, {}, std::move(external_error_body))
+    http::HttpStatus status, const std::string& error_code,
+    std::string external_error_body) const {
+  if (error_code.empty()) {
+    return LegacyJsonErrorBuilder(status, {}, external_error_body)
+        .GetExternalBody();
+  }
+  return JsonErrorBuilder(error_code, {}, external_error_body)
       .GetExternalBody();
 }
 

@@ -84,16 +84,6 @@ class RequestProcessor final {
 
     try {
       process_step_func();
-    } catch (const http::HttpException& ex) {
-      // TODO Remove this catch branch
-      auto level = handler_.GetLogLevelForResponseStatus(ex.GetStatus());
-      LOG(level) << "http exception in '" << handler_.HandlerName()
-                 << "' handler in " + step_name + ": code="
-                 << HttpStatusString(ex.GetStatus()) << ", msg=" << ex
-                 << ", body=" << ex.GetExternalErrorBody();
-      response.SetStatus(ex.GetStatus());
-      response.SetData(ex.GetExternalErrorBody());
-      return true;
     } catch (const CustomHandlerException& ex) {
       auto http_status = http::GetHttpStatus(ex.GetCode());
       auto level = handler_.GetLogLevelForResponseStatus(http_status);
@@ -101,15 +91,20 @@ class RequestProcessor final {
                  << "' handler in " + step_name + ": msg=" << ex
                  << ", body=" << ex.GetExternalErrorBody();
       response.SetStatus(http_status);
-      response.SetData(handler_.GetFormattedExternalErrorBody(
-          response.GetStatus(), ex.GetExternalErrorBody()));
+      if (ex.IsExternalErrorBodyFormatted()) {
+        response.SetData(ex.GetExternalErrorBody());
+      } else {
+        response.SetData(handler_.GetFormattedExternalErrorBody(
+            response.GetStatus(), ex.GetServiceCode(),
+            ex.GetExternalErrorBody()));
+      }
       return true;
     } catch (const std::exception& ex) {
       LOG_ERROR() << "exception in '" << handler_.HandlerName()
                   << "' handler in " + step_name + ": " << ex;
       http_request_impl_.MarkAsInternalServerError();
       response.SetData(handler_.GetFormattedExternalErrorBody(
-          response.GetStatus(), response.GetData()));
+          response.GetStatus(), {}, response.GetData()));
       return true;
     }
 
@@ -321,7 +316,7 @@ void HttpHandlerBase::HandleReadyRequest(
     const http::HttpRequest http_request(http_request_impl);
     auto& response = http_request.GetHttpResponse();
 
-    response.SetData(GetFormattedExternalErrorBody(response.GetStatus(),
+    response.SetData(GetFormattedExternalErrorBody(response.GetStatus(), {},
                                                    response.GetData()));
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle ready request: " << ex;
@@ -346,7 +341,8 @@ logging::Level HttpHandlerBase::GetLogLevelForResponseStatus(
 }
 
 std::string HttpHandlerBase::GetFormattedExternalErrorBody(
-    http::HttpStatus, std::string external_error_body) const {
+    http::HttpStatus, const std::string&,
+    std::string external_error_body) const {
   return external_error_body;
 }
 

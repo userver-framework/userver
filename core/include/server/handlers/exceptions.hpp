@@ -58,7 +58,13 @@ struct HandlerErrorCodeHash {
   }
 };
 
-const char* GetCodeDescription(HandlerErrorCode) noexcept;
+std::string GetCodeDescription(HandlerErrorCode);
+
+std::string GetFallbackServiceCode(HandlerErrorCode);
+
+struct ServiceErrorCode {
+  std::string body;
+};
 
 struct InternalMessage {
   std::string body;
@@ -68,7 +74,27 @@ struct ExternalBody {
   std::string body;
 };
 
-namespace detail {
+namespace impl {
+
+template <typename T, typename = utils::void_t<>>
+struct IsExternalBodyFormatted : std::false_type {};
+template <typename T>
+constexpr bool kIsExternalBodyFormatted = IsExternalBodyFormatted<T>::value;
+
+template <typename T>
+struct IsExternalBodyFormatted<
+    T, utils::void_t<decltype(T::kIsExternalBodyFormatted)>>
+    : std::integral_constant<bool, T::kIsExternalBodyFormatted> {};
+
+template <typename T, typename = utils::void_t<>>
+struct HasServiceCode : std::false_type {};
+template <typename T>
+constexpr bool kHasServiceCode = HasServiceCode<T>::value;
+
+template <typename T>
+struct HasServiceCode<
+    T, utils::void_t<decltype(std::declval<const T&>().GetServiceCode())>>
+    : std::true_type {};
 
 template <typename T, typename = utils::void_t<>>
 struct HasInternalMessage : std::false_type {};
@@ -98,17 +124,72 @@ struct MessageExtractor {
 
   const T& builder;
 
-  auto GetExternalBody() const { return builder.GetExternalBody(); }
-  auto GetInternalMessage() const {
+  constexpr bool IsExternalBodyFormatted() const {
+    return kIsExternalBodyFormatted<T>;
+  }
+
+  std::string GetServiceCode() const {
+    if constexpr (kHasServiceCode<T>) {
+      return builder.GetServiceCode();
+    } else {
+      return std::string{};
+    }
+  }
+
+  std::string GetExternalBody() const { return builder.GetExternalBody(); }
+
+  std::string GetInternalMessage() const {
     if constexpr (kHasInternalMessage<T>) {
       return builder.GetInternalMessage();
     } else {
-      return InternalMessage{};
+      return std::string{};
     }
   }
 };
 
-}  // namespace detail
+struct CustomHandlerExceptionData final {
+  CustomHandlerExceptionData() = default;
+
+  template <typename... Args>
+  explicit CustomHandlerExceptionData(Args&&... args) {
+    (Apply(std::forward<Args>(args)), ...);
+  }
+
+  bool is_external_body_formatted{false};
+  HandlerErrorCode handler_code{HandlerErrorCode::kUnknownError};
+  std::string service_code;
+  std::string internal_message;
+  std::string external_body;
+  formats::json::Value details;
+
+ private:
+  void Apply(HandlerErrorCode handler_code_) { handler_code = handler_code_; }
+
+  void Apply(ServiceErrorCode service_code_) {
+    service_code = std::move(service_code_.body);
+  }
+
+  void Apply(InternalMessage internal_message_) {
+    internal_message = std::move(internal_message_.body);
+  }
+
+  void Apply(ExternalBody external_body_) {
+    external_body = std::move(external_body_.body);
+  }
+
+  void Apply(formats::json::Value details_) { details = std::move(details_); }
+
+  template <typename MessageBuilder>
+  void Apply(MessageBuilder&& builder) {
+    impl::MessageExtractor<MessageBuilder> extractor{builder};
+    is_external_body_formatted = extractor.IsExternalBodyFormatted();
+    service_code = extractor.GetServiceCode();
+    external_body = extractor.GetExternalBody();
+    internal_message = extractor.GetInternalMessage();
+  }
+};
+
+}  // namespace impl
 
 /**
  * Base class for handler exceptions.
@@ -117,6 +198,7 @@ class CustomHandlerException : public std::runtime_error {
  public:
   // Type aliases for usage in descenant classes that are in other namespaces
   using HandlerErrorCode = handlers::HandlerErrorCode;
+  using ServiceErrorCode = handlers::ServiceErrorCode;
   using InternalMessage = handlers::InternalMessage;
   using ExternalBody = handlers::ExternalBody;
 
@@ -124,39 +206,47 @@ class CustomHandlerException : public std::runtime_error {
       HandlerErrorCode::kUnknownError;
 
  public:
-  // Constructor for throwing with all arguments specified
-  CustomHandlerException(ExternalBody external_body,
-                         InternalMessage internal_message,
-                         HandlerErrorCode code,
-                         formats::json::Value details = {})
-      : runtime_error(internal_message.body.empty() ? GetCodeDescription(code)
-                                                    : internal_message.body),
-        code_{code},
-        external_body_{std::move(external_body.body)},
-        details_{std::move(details)} {
-    UASSERT_MSG(details_.IsNull() || details_.IsObject(),
+  CustomHandlerException(impl::CustomHandlerExceptionData data)
+      : runtime_error(data.internal_message.empty()
+                          ? GetCodeDescription(data.handler_code)
+                          : data.internal_message),
+        data_(std::move(data)) {
+    UASSERT_MSG(data_.details.IsNull() || data_.details.IsObject(),
                 "The details JSON value must be either null or an object");
   }
 
-  template <typename MessageBuilder>
-  CustomHandlerException(MessageBuilder&& builder, HandlerErrorCode code)
-      : CustomHandlerException(
-            detail::MessageExtractor<MessageBuilder>{builder}, code) {}
+  // Constructor for throwing with all arguments specified
+  CustomHandlerException(ServiceErrorCode service_code,
+                         ExternalBody external_body,
+                         InternalMessage internal_message,
+                         HandlerErrorCode handler_code,
+                         formats::json::Value details = {})
+      : CustomHandlerException(impl::CustomHandlerExceptionData{
+            std::move(service_code), std::move(external_body),
+            std::move(internal_message), handler_code, std::move(details)}) {}
 
-  HandlerErrorCode GetCode() const { return code_; }
-  const std::string& GetExternalErrorBody() const { return external_body_; }
-  const formats::json::Value& GetDetails() const { return details_; };
+  template <typename MessageBuilder>
+  CustomHandlerException(MessageBuilder&& builder,
+                         HandlerErrorCode handler_code)
+      : CustomHandlerException(impl::CustomHandlerExceptionData{
+            std::forward<MessageBuilder>(builder), handler_code}) {}
+
+  HandlerErrorCode GetCode() const { return data_.handler_code; }
+
+  const std::string& GetServiceCode() const { return data_.service_code; }
+
+  bool IsExternalErrorBodyFormatted() const {
+    return data_.is_external_body_formatted;
+  }
+
+  const std::string& GetExternalErrorBody() const {
+    return data_.external_body;
+  }
+
+  const formats::json::Value& GetDetails() const { return data_.details; };
 
  private:
-  template <typename MessageBuilder>
-  CustomHandlerException(detail::MessageExtractor<MessageBuilder>&& builder,
-                         HandlerErrorCode code)
-      : CustomHandlerException(ExternalBody{builder.GetExternalBody()},
-                               InternalMessage{builder.GetInternalMessage()},
-                               code) {}
-  const HandlerErrorCode code_{kDefaultCode};
-  const std::string external_body_;
-  const formats::json::Value details_;
+  const impl::CustomHandlerExceptionData data_;
 };
 
 template <HandlerErrorCode Code>
@@ -165,63 +255,10 @@ class ExceptionWithCode : public CustomHandlerException {
   constexpr static HandlerErrorCode kDefaultCode = Code;
   using BaseType = ExceptionWithCode<kDefaultCode>;
 
-  explicit ExceptionWithCode(ExternalBody external_body = {},
-                             InternalMessage internal_message = {},
-                             HandlerErrorCode code = kDefaultCode)
-      : CustomHandlerException(std::move(external_body),
-                               std::move(internal_message), code) {}
-  explicit ExceptionWithCode(InternalMessage internal_message,
-                             ExternalBody external_body = {},
-                             HandlerErrorCode code = kDefaultCode)
-      : CustomHandlerException(std::move(external_body),
-                               std::move(internal_message), code) {}
-  explicit ExceptionWithCode(HandlerErrorCode code,
-                             ExternalBody external_body = {},
-                             InternalMessage internal_message = {})
-      : CustomHandlerException(std::move(external_body),
-                               std::move(internal_message), code) {}
-  ExceptionWithCode(HandlerErrorCode code, InternalMessage internal_message,
-                    ExternalBody external_body = {})
-      : CustomHandlerException(std::move(external_body),
-                               std::move(internal_message), code) {}
-
-  //@{
-  /** @name Constructors with JSON details */
-  ExceptionWithCode(ExternalBody external_body, formats::json::Value details,
-                    InternalMessage internal_message = {},
-                    HandlerErrorCode code = kDefaultCode)
-      : CustomHandlerException(std::move(external_body),
-                               std::move(internal_message), code,
-                               std::move(details)) {}
-  ExceptionWithCode(InternalMessage internal_message,
-                    formats::json::Value details,
-                    ExternalBody external_body = {},
-                    HandlerErrorCode code = kDefaultCode)
-      : CustomHandlerException(std::move(external_body),
-                               std::move(internal_message), code,
-                               std::move(details)) {}
-  ExceptionWithCode(HandlerErrorCode code, formats::json::Value details,
-                    ExternalBody external_body = {},
-                    InternalMessage internal_message = {})
-      : CustomHandlerException(std::move(external_body),
-                               std::move(internal_message), code,
-                               std::move(details)) {}
-  ExceptionWithCode(HandlerErrorCode code, formats::json::Value details,
-                    InternalMessage internal_message,
-                    ExternalBody external_body = {})
-      : CustomHandlerException(std::move(external_body),
-                               std::move(internal_message), code,
-                               std::move(details)) {}
-  //@}
-
-  template <typename MessageBuilder>
-  // NOLINTNEXTLINE(bugprone-forwarding-reference-overload)
-  explicit ExceptionWithCode(MessageBuilder&& builder,
-                             HandlerErrorCode code = kDefaultCode)
-      : CustomHandlerException(builder, code) {}
-  template <typename MessageBuilder>
-  ExceptionWithCode(HandlerErrorCode code, MessageBuilder&& builder)
-      : CustomHandlerException(builder, code) {}
+  template <typename... Args>
+  explicit ExceptionWithCode(Args&&... args)
+      : CustomHandlerException(impl::CustomHandlerExceptionData(
+            kDefaultCode, std::forward<Args>(args)...)) {}
 };
 
 /**

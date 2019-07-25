@@ -5,21 +5,23 @@
 #include <formats/json/value.hpp>
 
 #include <server/handlers/exceptions.hpp>
+#include <server/http/http_status.hpp>
 
 namespace server {
 namespace handlers {
 
-/// JSON error message builder.
-/// Useful for handlers derived from HttpHandlerBase but responding via JSON.
-class JsonErrorBuilder {
+/// Legacy JSON error message builder.
+/// Consider using JsonErrorBuilder instead
+class LegacyJsonErrorBuilder {
  public:
   static constexpr bool kIsExternalBodyFormatted = true;
 
-  explicit JsonErrorBuilder(const CustomHandlerException& ex);
+  explicit LegacyJsonErrorBuilder(const CustomHandlerException& ex);
 
-  JsonErrorBuilder(const std::string& error_code, std::string internal_message,
-                   const std::string& external_error_body,
-                   boost::optional<const formats::json::Value&> details = {});
+  LegacyJsonErrorBuilder(
+      http::HttpStatus status, std::string internal_message,
+      std::string external_error_body,
+      boost::optional<const formats::json::Value&> details = boost::none);
 
   const std::string& GetInternalMessage() const { return internal_message_; };
 

@@ -7,7 +7,7 @@ namespace handlers {
 
 namespace {
 
-const std::unordered_map<HandlerErrorCode, const char*, HandlerErrorCodeHash>
+const std::unordered_map<HandlerErrorCode, std::string, HandlerErrorCodeHash>
     kCodeDescriptions{
         {HandlerErrorCode::kUnknownError, "Unknown error"},
         {HandlerErrorCode::kClientError, "Client error"},
@@ -25,13 +25,39 @@ const std::unordered_map<HandlerErrorCode, const char*, HandlerErrorCodeHash>
         {HandlerErrorCode::kGatewayTimeout, "Gateway Timeout"},
     };
 
+const std::unordered_map<HandlerErrorCode, std::string, HandlerErrorCodeHash>
+    kFallbackServiceCodes{
+        {HandlerErrorCode::kUnknownError, "unknown"},
+        {HandlerErrorCode::kClientError, "client_error"},
+        {HandlerErrorCode::kRequestParseError, "bad_request"},
+        {HandlerErrorCode::kUnauthorized, "unauthorized"},
+        {HandlerErrorCode::kForbidden, "forbidden"},
+        {HandlerErrorCode::kResourceNotFound, "not_found"},
+        {HandlerErrorCode::kInvalidUsage, "invalid_usage"},
+        {HandlerErrorCode::kNotAcceptable, "not_acceptable"},
+        {HandlerErrorCode::kConfictState, "conflict"},
+        {HandlerErrorCode::kPayloadTooLarge, "payload_too_large"},
+        {HandlerErrorCode::kTooManyRequests, "too_many_requests"},
+        {HandlerErrorCode::kServerSideError, "internal_server_error"},
+        {HandlerErrorCode::kBadGateway, "bad_gateway"},
+        {HandlerErrorCode::kGatewayTimeout, "gateway_timeout"},
+    };
+
 }  // namespace
 
-const char* GetCodeDescription(HandlerErrorCode code) noexcept {
+std::string GetCodeDescription(HandlerErrorCode code) {
   if (auto f = kCodeDescriptions.find(code); f != kCodeDescriptions.end()) {
     return f->second;
   }
   return kCodeDescriptions.at(HandlerErrorCode::kUnknownError);
+}
+
+std::string GetFallbackServiceCode(HandlerErrorCode code) {
+  auto it = kFallbackServiceCodes.find(code);
+  if (it == kFallbackServiceCodes.end()) {
+    it = kCodeDescriptions.find(HandlerErrorCode::kUnknownError);
+  }
+  return it->second;
 }
 
 }  // namespace handlers

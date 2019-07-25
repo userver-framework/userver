@@ -42,7 +42,7 @@ void RaiseForStatus(const AuthCheckResult& auth_check) {
                              : GetDefaultReasonForStatus(auth_check.status)};
 
   if (auth_check.code) {
-    throw CustomHandlerException(std::move(ext_body), std::move(reason),
+    throw CustomHandlerException({}, std::move(ext_body), std::move(reason),
                                  *auth_check.code);
   }
 
@@ -52,7 +52,7 @@ void RaiseForStatus(const AuthCheckResult& auth_check) {
     case Status::kInvalidToken:
       throw Unauthorized(std::move(reason), std::move(ext_body));
     case Status::kForbidden:
-      throw CustomHandlerException(std::move(ext_body), std::move(reason),
+      throw CustomHandlerException({}, std::move(ext_body), std::move(reason),
                                    HandlerErrorCode::kForbidden);
     case Status::kInternalCheckFailure:
       throw InternalServerError(std::move(reason), std::move(ext_body));
