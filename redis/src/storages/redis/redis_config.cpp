@@ -33,13 +33,13 @@ redis::CommandControl::Strategy Parse(
       response.timeout_all = std::chrono::milliseconds(it->As<int64_t>());
       if (response.timeout_all.count() < 0) {
         throw ParseConfigException(
-            "invalid timeout_all in redis CommandControl");
+            "Invalid timeout_all in redis CommandControl");
       }
     } else if (name == "timeout_single_ms") {
       response.timeout_single = std::chrono::milliseconds(it->As<int64_t>());
       if (response.timeout_single.count() < 0) {
         throw ParseConfigException(
-            "invalid timeout_single in redis CommandControl");
+            "Invalid timeout_single in redis CommandControl");
       }
     } else if (name == "max_retries") {
       response.max_retries = it->As<size_t>();
@@ -51,7 +51,7 @@ redis::CommandControl::Strategy Parse(
       response.max_ping_latency = std::chrono::milliseconds(it->As<int64_t>());
       if (response.max_ping_latency.count() < 0) {
         throw ParseConfigException(
-            "invalid max_ping_latency in redis CommandControl");
+            "Invalid max_ping_latency in redis CommandControl");
       }
     } else {
       LOG_WARNING() << "unknown key for CommandControl map: " << name;

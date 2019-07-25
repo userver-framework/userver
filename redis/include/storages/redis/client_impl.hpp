@@ -3,6 +3,7 @@
 /// @file storages/redis/client_impl.hpp
 /// @brief @copybrief storages::redis::ClientImpl
 
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -31,31 +32,49 @@ class ClientImpl final : public Client {
 
   // redis commands:
 
-  RequestAppend Append(const std::string& key, std::string value,
+  RequestAppend Append(std::string key, std::string value,
                        const CommandControl& command_control) override;
 
-  RequestDel Del(const std::string& key,
+  RequestDbsize Dbsize(size_t shard,
+                       const CommandControl& command_control) override;
+
+  RequestDel Del(std::string key,
                  const CommandControl& command_control) override;
 
-  RequestGet Get(const std::string& key,
+  RequestDel Del(std::vector<std::string> keys,
                  const CommandControl& command_control) override;
 
-  RequestHdel Hdel(const std::string& key, const std::string& field,
+  RequestEval Eval(std::string script, std::vector<std::string> keys,
+                   std::vector<std::string> args,
                    const CommandControl& command_control) override;
 
-  RequestHget Hget(const std::string& key, const std::string& field,
+  RequestExists Exists(std::string key,
+                       const CommandControl& command_control) override;
+
+  RequestExists Exists(std::vector<std::string> keys,
+                       const CommandControl& command_control) override;
+
+  RequestGet Get(std::string key,
+                 const CommandControl& command_control) override;
+
+  RequestHdel Hdel(std::string key, std::string field,
                    const CommandControl& command_control) override;
 
-  RequestHgetall Hgetall(const std::string& key,
+  RequestHdel Hdel(std::string key, std::vector<std::string> fields,
+                   const CommandControl& command_control) override;
+
+  RequestHget Hget(std::string key, std::string field,
+                   const CommandControl& command_control) override;
+
+  RequestHgetall Hgetall(std::string key,
                          const CommandControl& command_control) override;
 
   RequestHmset Hmset(
-      const std::string& key,
-      const std::vector<std::pair<std::string, std::string>>& field_val,
+      std::string key,
+      std::vector<std::pair<std::string, std::string>> field_values,
       const CommandControl& command_control) override;
 
-  RequestHset Hset(const std::string& key, const std::string& field,
-                   const std::string& value,
+  RequestHset Hset(std::string key, std::string field, std::string value,
                    const CommandControl& command_control) override;
 
   RequestKeys Keys(std::string keys_pattern, size_t shard,
@@ -70,68 +89,114 @@ class ClientImpl final : public Client {
   RequestPingMessage Ping(size_t shard, std::string message,
                           const CommandControl& command_control) override;
 
-  RequestPublish Publish(const std::string& channel, std::string message,
-                         const CommandControl& command_control) override;
+  void Publish(std::string channel, std::string message,
+               const CommandControl& command_control) override;
 
-  RequestPublish Publish(const std::string& channel, std::string message,
-                         const CommandControl& command_control,
-                         PubShard policy) override;
+  void Publish(std::string channel, std::string message,
+               const CommandControl& command_control, PubShard policy) override;
 
-  RequestSet Set(const std::string& key, std::string value,
+  RequestSet Set(std::string key, std::string value,
                  const CommandControl& command_control) override;
 
-  RequestSetex Setex(const std::string& key, int64_t seconds, std::string value,
+  RequestSet Set(std::string key, std::string value,
+                 std::chrono::milliseconds ttl,
+                 const CommandControl& command_control) override;
+
+  RequestSetIfExist SetIfExist(std::string key, std::string value,
+                               const CommandControl& command_control) override;
+
+  RequestSetIfExist SetIfExist(std::string key, std::string value,
+                               std::chrono::milliseconds ttl,
+                               const CommandControl& command_control) override;
+
+  RequestSetIfNotExist SetIfNotExist(
+      std::string key, std::string value,
+      const CommandControl& command_control) override;
+
+  RequestSetIfNotExist SetIfNotExist(
+      std::string key, std::string value, std::chrono::milliseconds ttl,
+      const CommandControl& command_control) override;
+
+  RequestSetex Setex(std::string key, std::chrono::seconds seconds,
+                     std::string value,
                      const CommandControl& command_control) override;
 
-  RequestStrlen Strlen(const std::string& key,
+  RequestSismember Sismember(std::string key, std::string member,
+                             const CommandControl& command_control) override;
+
+  RequestStrlen Strlen(std::string key,
                        const CommandControl& command_control) override;
 
-  RequestTtl Ttl(const std::string& key,
+  RequestTtl Ttl(std::string key,
                  const CommandControl& command_control) override;
 
-  RequestType Type(const std::string& key,
+  RequestType Type(std::string key,
                    const CommandControl& command_control) override;
 
-  RequestZadd Zadd(const std::string& key, double score,
-                   const std::string& member,
+  RequestZadd Zadd(std::string key, double score, std::string member,
                    const CommandControl& command_control) override;
 
-  RequestZadd Zadd(const std::string& key, double score,
-                   const std::string& member, const ZaddOptions& options,
+  RequestZadd Zadd(std::string key, double score, std::string member,
+                   const ZaddOptions& options,
                    const CommandControl& command_control) override;
+
+  RequestZaddIncr ZaddIncr(std::string key, double score, std::string member,
+                           const CommandControl& command_control) override;
+
+  RequestZaddIncrExisting ZaddIncrExisting(
+      std::string key, double score, std::string member,
+      const CommandControl& command_control) override;
+
+  RequestZcard Zcard(std::string key,
+                     const CommandControl& command_control) override;
 
   RequestZrangebyscore Zrangebyscore(
-      const std::string& key, double min, double max,
+      std::string key, double min, double max,
+      const CommandControl& command_control) override;
+
+  RequestZrangebyscore Zrangebyscore(
+      std::string key, std::string min, std::string max,
+      const CommandControl& command_control) override;
+
+  RequestZrangebyscore Zrangebyscore(
+      std::string key, double min, double max,
       const RangeOptions& range_options,
       const CommandControl& command_control) override;
 
   RequestZrangebyscore Zrangebyscore(
-      const std::string& key, const std::string& min, const std::string& max,
+      std::string key, std::string min, std::string max,
       const RangeOptions& range_options,
       const CommandControl& command_control) override;
 
   RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      const std::string& key, double min, double max,
+      std::string key, double min, double max,
+      const CommandControl& command_control) override;
+
+  RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+      std::string key, std::string min, std::string max,
+      const CommandControl& command_control) override;
+
+  RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+      std::string key, double min, double max,
       const RangeOptions& range_options,
       const CommandControl& command_control) override;
 
   RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      const std::string& key, const std::string& min, const std::string& max,
+      std::string key, std::string min, std::string max,
       const RangeOptions& range_options,
       const CommandControl& command_control) override;
 
-  RequestZrem Zrem(const std::string& key, const std::string& member,
+  RequestZrem Zrem(std::string key, std::string member,
                    const CommandControl& command_control) override;
 
-  RequestZscore Zscore(const std::string& key, const std::string& member,
+  RequestZrem Zrem(std::string key, std::vector<std::string> members,
+                   const CommandControl& command_control) override;
+
+  RequestZscore Zscore(std::string key, std::string member,
                        const CommandControl& command_control) override;
 
  private:
   using CmdArgs = ::redis::CmdArgs;
-
-  ::redis::Request MakeRequest(CmdArgs&& args, const std::string& key,
-                               bool master,
-                               const CommandControl& command_control);
 
   ::redis::Request MakeRequest(CmdArgs&& args, size_t shard, bool master,
                                const CommandControl& command_control);

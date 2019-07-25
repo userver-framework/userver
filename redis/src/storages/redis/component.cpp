@@ -18,6 +18,7 @@
 #include <utils/statistics/percentile_format_json.hpp>
 #include <yaml_config/value.hpp>
 
+#include <storages/redis/client.hpp>
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/redis_config.hpp>
 #include <storages/redis/subscribe_client.hpp>
@@ -287,7 +288,8 @@ Redis::Redis(const ComponentConfig& config,
                     std::placeholders::_1));
 }
 
-storages::redis::ClientPtr Redis::GetClient(const std::string& name) const {
+std::shared_ptr<storages::redis::Client> Redis::GetClient(
+    const std::string& name) const {
   auto it = clients_.find(name);
   if (it == clients_.end())
     throw std::runtime_error(name + " redis client not found");

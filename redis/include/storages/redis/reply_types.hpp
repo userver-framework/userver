@@ -23,7 +23,7 @@ enum class StatusPong { kPong };
 
 using TtlReply = ::redis::TtlReply;
 
-enum class TypeReply { kString, kList, kSet, kZset, kHash, kStream };
+enum class KeyType { kNone, kString, kList, kSet, kZset, kHash, kStream };
 
 }  // namespace redis
 }  // namespace storages

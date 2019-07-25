@@ -3,6 +3,7 @@
 /// @file storages/redis/client.hpp
 /// @brief @copybrief storages::redis::Client
 
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -36,33 +37,53 @@ class Client {
 
   // redis commands:
 
-  virtual RequestAppend Append(const std::string& key, std::string value,
+  virtual RequestAppend Append(std::string key, std::string value,
                                const CommandControl& command_control) = 0;
 
-  virtual RequestDel Del(const std::string& key,
+  virtual RequestDbsize Dbsize(size_t shard,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestDel Del(std::string key,
                          const CommandControl& command_control) = 0;
 
-  virtual RequestGet Get(const std::string& key,
+  virtual RequestDel Del(std::vector<std::string> keys,
                          const CommandControl& command_control) = 0;
 
-  virtual RequestHdel Hdel(const std::string& key, const std::string& field,
+  virtual RequestEval Eval(std::string script, std::vector<std::string> keys,
+                           std::vector<std::string> args,
                            const CommandControl& command_control) = 0;
 
-  virtual RequestHget Hget(const std::string& key, const std::string& field,
+  virtual RequestExists Exists(std::string key,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestExists Exists(std::vector<std::string> keys,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestGet Get(std::string key,
+                         const CommandControl& command_control) = 0;
+
+  virtual RequestHdel Hdel(std::string key, std::string field,
                            const CommandControl& command_control) = 0;
 
-  virtual RequestHgetall Hgetall(const std::string& key,
+  virtual RequestHdel Hdel(std::string key, std::vector<std::string> fields,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestHget Hget(std::string key, std::string field,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestHgetall Hgetall(std::string key,
                                  const CommandControl& command_control) = 0;
 
   virtual RequestHmset Hmset(
-      const std::string& key,
-      const std::vector<std::pair<std::string, std::string>>& field_val,
+      std::string key,
+      std::vector<std::pair<std::string, std::string>> field_values,
       const CommandControl& command_control) = 0;
 
-  virtual RequestHset Hset(const std::string& key, const std::string& field,
-                           const std::string& value,
+  virtual RequestHset Hset(std::string key, std::string field,
+                           std::string value,
                            const CommandControl& command_control) = 0;
 
+  // TODO: [[deprecated("use Scan")]]  // TODO: add 'Scan'
   virtual RequestKeys Keys(std::string keys_pattern, size_t shard,
                            const CommandControl& command_control) = 0;
 
@@ -75,65 +96,113 @@ class Client {
   virtual RequestPingMessage Ping(size_t shard, std::string message,
                                   const CommandControl& command_control) = 0;
 
-  virtual RequestPublish Publish(const std::string& channel,
-                                 std::string message,
-                                 const CommandControl& command_control) = 0;
+  virtual void Publish(std::string channel, std::string message,
+                       const CommandControl& command_control) = 0;
 
-  virtual RequestPublish Publish(const std::string& channel,
-                                 std::string message,
-                                 const CommandControl& command_control,
-                                 PubShard policy) = 0;
+  virtual void Publish(std::string channel, std::string message,
+                       const CommandControl& command_control,
+                       PubShard policy) = 0;
 
-  virtual RequestSet Set(const std::string& key, std::string value,
+  virtual RequestSet Set(std::string key, std::string value,
                          const CommandControl& command_control) = 0;
 
-  virtual RequestSetex Setex(const std::string& key, int64_t seconds,
+  virtual RequestSet Set(std::string key, std::string value,
+                         std::chrono::milliseconds ttl,
+                         const CommandControl& command_control) = 0;
+
+  virtual RequestSetIfExist SetIfExist(
+      std::string key, std::string value,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestSetIfExist SetIfExist(
+      std::string key, std::string value, std::chrono::milliseconds ttl,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestSetIfNotExist SetIfNotExist(
+      std::string key, std::string value,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestSetIfNotExist SetIfNotExist(
+      std::string key, std::string value, std::chrono::milliseconds ttl,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds,
                              std::string value,
                              const CommandControl& command_control) = 0;
 
-  virtual RequestStrlen Strlen(const std::string& key,
+  virtual RequestSismember Sismember(std::string key, std::string member,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestStrlen Strlen(std::string key,
                                const CommandControl& command_control) = 0;
 
-  virtual RequestTtl Ttl(const std::string& key,
+  virtual RequestTtl Ttl(std::string key,
                          const CommandControl& command_control) = 0;
 
-  virtual RequestType Type(const std::string& key,
+  virtual RequestType Type(std::string key,
                            const CommandControl& command_control) = 0;
 
-  virtual RequestZadd Zadd(const std::string& key, double score,
-                           const std::string& member,
+  virtual RequestZadd Zadd(std::string key, double score, std::string member,
                            const CommandControl& command_control) = 0;
 
-  virtual RequestZadd Zadd(const std::string& key, double score,
-                           const std::string& member,
+  virtual RequestZadd Zadd(std::string key, double score, std::string member,
                            const ZaddOptions& options,
                            const CommandControl& command_control) = 0;
 
+  virtual RequestZaddIncr ZaddIncr(std::string key, double score,
+                                   std::string member,
+                                   const CommandControl& command_control) = 0;
+
+  virtual RequestZaddIncrExisting ZaddIncrExisting(
+      std::string key, double score, std::string member,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestZcard Zcard(std::string key,
+                             const CommandControl& command_control) = 0;
+
   virtual RequestZrangebyscore Zrangebyscore(
-      const std::string& key, double min, double max,
+      std::string key, double min, double max,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestZrangebyscore Zrangebyscore(
+      std::string key, std::string min, std::string max,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestZrangebyscore Zrangebyscore(
+      std::string key, double min, double max,
       const RangeOptions& range_options,
       const CommandControl& command_control) = 0;
 
   virtual RequestZrangebyscore Zrangebyscore(
-      const std::string& key, const std::string& min, const std::string& max,
+      std::string key, std::string min, std::string max,
       const RangeOptions& range_options,
       const CommandControl& command_control) = 0;
 
   virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      const std::string& key, double min, double max,
+      std::string key, double min, double max,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+      std::string key, std::string min, std::string max,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+      std::string key, double min, double max,
       const RangeOptions& range_options,
       const CommandControl& command_control) = 0;
 
   virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      const std::string& key, const std::string& min, const std::string& max,
+      std::string key, std::string min, std::string max,
       const RangeOptions& range_options,
       const CommandControl& command_control) = 0;
 
-  virtual RequestZrem Zrem(const std::string& key, const std::string& member,
+  virtual RequestZrem Zrem(std::string key, std::string member,
                            const CommandControl& command_control) = 0;
 
-  virtual RequestZscore Zscore(const std::string& key,
-                               const std::string& member,
+  virtual RequestZrem Zrem(std::string key, std::vector<std::string> members,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestZscore Zscore(std::string key, std::string member,
                                const CommandControl& command_control) = 0;
 };
 

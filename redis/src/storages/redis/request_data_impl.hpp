@@ -8,7 +8,7 @@
 #include <redis/base.hpp>
 #include <redis/request.hpp>
 
-#include <storages/redis/reply_types.hpp>
+#include <storages/redis/parse_reply.hpp>
 #include <storages/redis/request_data_base.hpp>
 
 namespace storages {
@@ -44,7 +44,30 @@ class RequestDataImpl final : public RequestDataImplBase,
 
   void Wait() override { impl::Wait(GetRequest()); }
 
-  ReplyType Get(const std::string& request_description = {}) override;
+  ReplyType Get(const std::string& request_description = {}) override {
+    auto reply = GetReply();
+    return ParseReply<Result, ReplyType>(reply, request_description);
+  }
+
+  ::redis::ReplyPtr GetRaw() override { return GetReply(); }
+};
+
+template <typename Result, typename ReplyType = Result>
+class DummyRequestDataImpl final : public RequestDataBase<Result, ReplyType> {
+ public:
+  explicit DummyRequestDataImpl(::redis::ReplyPtr&& reply)
+      : reply_(std::move(reply)) {}
+
+  void Wait() override {}
+
+  ReplyType Get(const std::string& request_description = {}) override {
+    return ParseReply<Result, ReplyType>(reply_, request_description);
+  }
+
+  ::redis::ReplyPtr GetRaw() override { return reply_; }
+
+ private:
+  ::redis::ReplyPtr reply_;
 };
 
 }  // namespace redis

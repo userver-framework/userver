@@ -3,7 +3,8 @@
 #include <memory>
 
 #include <storages/redis/request.hpp>
-#include <storages/redis/request_data_impl.hpp>
+
+#include "request_data_impl.hpp"
 
 namespace storages {
 namespace redis {
@@ -16,6 +17,14 @@ Request<Result, ReplyType> CreateRequest(
       std::make_unique<RequestDataImpl<Result, ReplyType>>(std::move(request)));
 }
 
+template <typename Result, typename ReplyType = Result>
+Request<Result, ReplyType> CreateDummyRequest(
+    ::redis::ReplyPtr&& reply, Request<Result, ReplyType>* /* for ADL */) {
+  return Request<Result, ReplyType>(
+      std::make_unique<DummyRequestDataImpl<Result, ReplyType>>(
+          std::move(reply)));
+}
+
 }  // namespace impl
 
 template <typename Request>
@@ -23,6 +32,13 @@ Request CreateRequest(::redis::Request&& request) {
   Request* tmp = nullptr;
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateRequest(std::move(request), tmp);
+}
+
+template <typename Request>
+Request CreateDummyRequest(::redis::ReplyPtr reply) {
+  Request* tmp = nullptr;
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+  return impl::CreateDummyRequest(std::move(reply), tmp);
 }
 
 }  // namespace redis
