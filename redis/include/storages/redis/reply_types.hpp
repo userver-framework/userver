@@ -3,10 +3,13 @@
 #include <string>
 
 #include <redis/base.hpp>
+#include <redis/reply/expire_reply.hpp>
 #include <redis/reply/ttl_reply.hpp>
 
 namespace storages {
 namespace redis {
+
+using ExpireReply = ::redis::ExpireReply;
 
 enum class HsetReply { kCreated, kUpdated };
 
@@ -14,6 +17,8 @@ struct MemberScore final {
   std::string member;
   double score;
 };
+
+enum class PersistReply { kKeyOrTimeoutNotFound, kTimeoutRemoved };
 
 enum class SetReply { kSet, kNotSet };
 

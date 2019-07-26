@@ -54,6 +54,9 @@ class ClientImpl final : public Client {
   RequestExists Exists(std::vector<std::string> keys,
                        const CommandControl& command_control) override;
 
+  RequestExpire Expire(std::string key, std::chrono::seconds ttl,
+                       const CommandControl& command_control) override;
+
   RequestGet Get(std::string key,
                  const CommandControl& command_control) override;
 
@@ -63,11 +66,30 @@ class ClientImpl final : public Client {
   RequestHdel Hdel(std::string key, std::vector<std::string> fields,
                    const CommandControl& command_control) override;
 
+  RequestHexists Hexists(std::string key, std::string field,
+                         const CommandControl& command_control) override;
+
   RequestHget Hget(std::string key, std::string field,
                    const CommandControl& command_control) override;
 
   RequestHgetall Hgetall(std::string key,
                          const CommandControl& command_control) override;
+
+  RequestHincrby Hincrby(std::string key, std::string field, int64_t increment,
+                         const CommandControl& command_control) override;
+
+  RequestHincrbyfloat Hincrbyfloat(
+      std::string key, std::string field, double increment,
+      const CommandControl& command_control) override;
+
+  RequestHkeys Hkeys(std::string key,
+                     const CommandControl& command_control) override;
+
+  RequestHlen Hlen(std::string key,
+                   const CommandControl& command_control) override;
+
+  RequestHmget Hmget(std::vector<std::string> keys,
+                     const CommandControl& command_control) override;
 
   RequestHmset Hmset(
       std::string key,
@@ -77,17 +99,74 @@ class ClientImpl final : public Client {
   RequestHset Hset(std::string key, std::string field, std::string value,
                    const CommandControl& command_control) override;
 
+  RequestHsetnx Hsetnx(std::string key, std::string field, std::string value,
+                       const CommandControl& command_control) override;
+
+  RequestHvals Hvals(std::string key,
+                     const CommandControl& command_control) override;
+
+  RequestIncr Incr(std::string key,
+                   const CommandControl& command_control) override;
+
   RequestKeys Keys(std::string keys_pattern, size_t shard,
                    const CommandControl& command_control) override;
 
+  RequestLindex Lindex(std::string key, int64_t index,
+                       const CommandControl& command_control) override;
+
+  RequestLlen Llen(std::string key,
+                   const CommandControl& command_control) override;
+
+  RequestLpop Lpop(std::string key,
+                   const CommandControl& command_control) override;
+
+  RequestLpush Lpush(std::string key, std::string value,
+                     const CommandControl& command_control) override;
+
+  RequestLpush Lpush(std::string key, std::vector<std::string> values,
+                     const CommandControl& command_control) override;
+
+  RequestLrange Lrange(std::string key, int64_t start, int64_t stop,
+                       const CommandControl& command_control) override;
+
+  RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop,
+                     const CommandControl& command_control) override;
+
   RequestMget Mget(std::vector<std::string> keys,
                    const CommandControl& command_control) override;
+
+  RequestPersist Persist(std::string key,
+                         const CommandControl& command_control) override;
+
+  RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl,
+                         const CommandControl& command_control) override;
 
   RequestPing Ping(size_t shard,
                    const CommandControl& command_control) override;
 
   RequestPingMessage Ping(size_t shard, std::string message,
                           const CommandControl& command_control) override;
+
+  RequestRename Rename(std::string key, std::string new_key,
+                       const CommandControl& command_control) override;
+
+  RequestRpop Rpop(std::string key,
+                   const CommandControl& command_control) override;
+
+  RequestRpush Rpush(std::string key, std::string value,
+                     const CommandControl& command_control) override;
+
+  RequestRpush Rpush(std::string key, std::vector<std::string> values,
+                     const CommandControl& command_control) override;
+
+  RequestSadd Sadd(std::string key, std::string member,
+                   const CommandControl& command_control) override;
+
+  RequestSadd Sadd(std::string key, std::vector<std::string> members,
+                   const CommandControl& command_control) override;
+
+  RequestScard Scard(std::string key,
+                     const CommandControl& command_control) override;
 
   void Publish(std::string channel, std::string message,
                const CommandControl& command_control) override;
@@ -123,6 +202,22 @@ class ClientImpl final : public Client {
 
   RequestSismember Sismember(std::string key, std::string member,
                              const CommandControl& command_control) override;
+
+  RequestSmembers Smembers(std::string key,
+                           const CommandControl& command_control) override;
+
+  RequestSrandmember Srandmember(
+      std::string key, const CommandControl& command_control) override;
+
+  RequestSrandmembers Srandmembers(
+      std::string key, int64_t count,
+      const CommandControl& command_control) override;
+
+  RequestSrem Srem(std::string key, std::string member,
+                   const CommandControl& command_control) override;
+
+  RequestSrem Srem(std::string key, std::vector<std::string> members,
+                   const CommandControl& command_control) override;
 
   RequestStrlen Strlen(std::string key,
                        const CommandControl& command_control) override;

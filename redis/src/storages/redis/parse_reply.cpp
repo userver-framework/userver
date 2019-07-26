@@ -62,6 +62,20 @@ size_t ParseReply<size_t>(const ::redis::ReplyPtr& reply,
 }
 
 template <>
+bool ParseReply<size_t, bool>(const ::redis::ReplyPtr& reply,
+                              const std::string& request_description) {
+  reply->ExpectInt(request_description);
+  return !!reply->data.GetInt();
+}
+
+template <>
+int64_t ParseReply<int64_t>(const ::redis::ReplyPtr& reply,
+                            const std::string& request_description) {
+  reply->ExpectInt(request_description);
+  return reply->data.GetInt();
+}
+
+template <>
 HsetReply ParseReply<HsetReply>(const ::redis::ReplyPtr& reply,
                                 const std::string& request_description) {
   reply->ExpectInt(request_description);
@@ -73,9 +87,31 @@ HsetReply ParseReply<HsetReply>(const ::redis::ReplyPtr& reply,
 }
 
 template <>
+ExpireReply ParseReply<ExpireReply>(const ::redis::ReplyPtr& reply,
+                                    const std::string& request_description) {
+  return ExpireReply::Parse(reply, request_description);
+}
+
+template <>
 TtlReply ParseReply<TtlReply>(const ::redis::ReplyPtr& reply,
                               const std::string& request_description) {
   return TtlReply::Parse(reply, request_description);
+}
+
+template <>
+PersistReply ParseReply<PersistReply>(const ::redis::ReplyPtr& reply,
+                                      const std::string& request_description) {
+  reply->ExpectInt(request_description);
+  auto value = reply->data.GetInt();
+  switch (value) {
+    case 0:
+      return PersistReply::kKeyOrTimeoutNotFound;
+    case 1:
+      return PersistReply::kTimeoutRemoved;
+    default:
+      throw ::redis::ParseReplyException("Incorrect PERSIST result value: " +
+                                         std::to_string(value));
+  }
 }
 
 template <>

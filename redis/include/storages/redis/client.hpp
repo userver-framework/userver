@@ -59,6 +59,9 @@ class Client {
   virtual RequestExists Exists(std::vector<std::string> keys,
                                const CommandControl& command_control) = 0;
 
+  virtual RequestExpire Expire(std::string key, std::chrono::seconds ttl,
+                               const CommandControl& command_control) = 0;
+
   virtual RequestGet Get(std::string key,
                          const CommandControl& command_control) = 0;
 
@@ -68,11 +71,32 @@ class Client {
   virtual RequestHdel Hdel(std::string key, std::vector<std::string> fields,
                            const CommandControl& command_control) = 0;
 
+  virtual RequestHexists Hexists(std::string key, std::string field,
+                                 const CommandControl& command_control) = 0;
+
   virtual RequestHget Hget(std::string key, std::string field,
                            const CommandControl& command_control) = 0;
 
   virtual RequestHgetall Hgetall(std::string key,
                                  const CommandControl& command_control) = 0;
+
+  virtual RequestHincrby Hincrby(std::string key, std::string field,
+                                 int64_t increment,
+                                 const CommandControl& command_control) = 0;
+
+  virtual RequestHincrbyfloat Hincrbyfloat(
+      std::string key, std::string field, double increment,
+      const CommandControl& command_control) = 0;
+
+  // TODO: [[deprecated("use Hscan")]]  // TODO: add 'Hscan'
+  virtual RequestHkeys Hkeys(std::string key,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestHlen Hlen(std::string key,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestHmget Hmget(std::vector<std::string> keys,
+                             const CommandControl& command_control) = 0;
 
   virtual RequestHmset Hmset(
       std::string key,
@@ -83,18 +107,76 @@ class Client {
                            std::string value,
                            const CommandControl& command_control) = 0;
 
+  virtual RequestHsetnx Hsetnx(std::string key, std::string field,
+                               std::string value,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestHvals Hvals(std::string key,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestIncr Incr(std::string key,
+                           const CommandControl& command_control) = 0;
+
   // TODO: [[deprecated("use Scan")]]  // TODO: add 'Scan'
   virtual RequestKeys Keys(std::string keys_pattern, size_t shard,
                            const CommandControl& command_control) = 0;
 
+  virtual RequestLindex Lindex(std::string key, int64_t index,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestLlen Llen(std::string key,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestLpop Lpop(std::string key,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestLpush Lpush(std::string key, std::string value,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestLpush Lpush(std::string key, std::vector<std::string> values,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestLrange Lrange(std::string key, int64_t start, int64_t stop,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop,
+                             const CommandControl& command_control) = 0;
+
   virtual RequestMget Mget(std::vector<std::string> keys,
                            const CommandControl& command_control) = 0;
+
+  virtual RequestPersist Persist(std::string key,
+                                 const CommandControl& command_control) = 0;
+
+  virtual RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl,
+                                 const CommandControl& command_control) = 0;
 
   virtual RequestPing Ping(size_t shard,
                            const CommandControl& command_control) = 0;
 
   virtual RequestPingMessage Ping(size_t shard, std::string message,
                                   const CommandControl& command_control) = 0;
+
+  virtual RequestRename Rename(std::string key, std::string new_key,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestRpop Rpop(std::string key,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestRpush Rpush(std::string key, std::string value,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestRpush Rpush(std::string key, std::vector<std::string> values,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestSadd Sadd(std::string key, std::string member,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestSadd Sadd(std::string key, std::vector<std::string> members,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestScard Scard(std::string key,
+                             const CommandControl& command_control) = 0;
 
   virtual void Publish(std::string channel, std::string message,
                        const CommandControl& command_control) = 0;
@@ -132,6 +214,22 @@ class Client {
 
   virtual RequestSismember Sismember(std::string key, std::string member,
                                      const CommandControl& command_control) = 0;
+
+  virtual RequestSmembers Smembers(std::string key,
+                                   const CommandControl& command_control) = 0;
+
+  virtual RequestSrandmember Srandmember(
+      std::string key, const CommandControl& command_control) = 0;
+
+  virtual RequestSrandmembers Srandmembers(
+      std::string key, int64_t count,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestSrem Srem(std::string key, std::string member,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestSrem Srem(std::string key, std::vector<std::string> members,
+                           const CommandControl& command_control) = 0;
 
   virtual RequestStrlen Strlen(std::string key,
                                const CommandControl& command_control) = 0;

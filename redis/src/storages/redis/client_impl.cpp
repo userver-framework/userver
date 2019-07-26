@@ -87,6 +87,14 @@ RequestExists ClientImpl::Exists(std::vector<std::string> keys,
                   GetCommandControl(command_control)));
 }
 
+RequestExpire ClientImpl::Expire(std::string key, std::chrono::seconds ttl,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestExpire>(
+      MakeRequest(CmdArgs{"expire", std::move(key), ttl.count()}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 RequestGet ClientImpl::Get(std::string key,
                            const CommandControl& command_control) {
   auto shard = ShardByKey(key);
@@ -114,6 +122,14 @@ RequestHdel ClientImpl::Hdel(std::string key, std::vector<std::string> fields,
                   true, GetCommandControl(command_control)));
 }
 
+RequestHexists ClientImpl::Hexists(std::string key, std::string field,
+                                   const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestHexists>(
+      MakeRequest(CmdArgs{"hexists", std::move(key), std::move(field)}, shard,
+                  false, GetCommandControl(command_control)));
+}
+
 RequestHget ClientImpl::Hget(std::string key, std::string field,
                              const CommandControl& command_control) {
   auto shard = ShardByKey(key);
@@ -127,6 +143,51 @@ RequestHgetall ClientImpl::Hgetall(std::string key,
   auto shard = ShardByKey(key);
   return CreateRequest<RequestHgetall>(
       MakeRequest(CmdArgs{"hgetall", std::move(key)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestHincrby ClientImpl::Hincrby(std::string key, std::string field,
+                                   int64_t increment,
+                                   const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestHincrby>(MakeRequest(
+      CmdArgs{"hincrby", std::move(key), std::move(field), increment}, shard,
+      true, GetCommandControl(command_control)));
+}
+
+RequestHincrbyfloat ClientImpl::Hincrbyfloat(
+    std::string key, std::string field, double increment,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestHincrbyfloat>(MakeRequest(
+      CmdArgs{"hincrbyfloat", std::move(key), std::move(field), increment},
+      shard, true, GetCommandControl(command_control)));
+}
+
+RequestHkeys ClientImpl::Hkeys(std::string key,
+                               const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestHkeys>(
+      MakeRequest(CmdArgs{"hkeys", std::move(key)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestHlen ClientImpl::Hlen(std::string key,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestHlen>(
+      MakeRequest(CmdArgs{"hlen", std::move(key)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestHmget ClientImpl::Hmget(std::vector<std::string> keys,
+                               const CommandControl& command_control) {
+  if (keys.empty())
+    return CreateDummyRequest<RequestHmget>(
+        std::make_shared<::redis::Reply>("hmget", ::redis::ReplyData::Array{}));
+  auto shard = ShardByKey(keys.at(0));
+  return CreateRequest<RequestHmget>(
+      MakeRequest(CmdArgs{"hmget", std::move(keys)}, shard, false,
                   GetCommandControl(command_control)));
 }
 
@@ -152,10 +213,92 @@ RequestHset ClientImpl::Hset(std::string key, std::string field,
       shard, true, GetCommandControl(command_control)));
 }
 
+RequestHsetnx ClientImpl::Hsetnx(std::string key, std::string field,
+                                 std::string value,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestHsetnx>(MakeRequest(
+      CmdArgs{"hsetnx", std::move(key), std::move(field), std::move(value)},
+      shard, true, GetCommandControl(command_control)));
+}
+
+RequestHvals ClientImpl::Hvals(std::string key,
+                               const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestHvals>(
+      MakeRequest(CmdArgs{"hvals", std::move(key)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestIncr ClientImpl::Incr(std::string key,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestIncr>(
+      MakeRequest(CmdArgs{"incr", std::move(key)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 RequestKeys ClientImpl::Keys(std::string keys_pattern, size_t shard,
                              const CommandControl& command_control) {
   return CreateRequest<RequestKeys>(
       MakeRequest(CmdArgs{"keys", std::move(keys_pattern)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestLindex ClientImpl::Lindex(std::string key, int64_t index,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestLindex>(
+      MakeRequest(CmdArgs{"lindex", std::move(key), index}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestLlen ClientImpl::Llen(std::string key,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestLlen>(
+      MakeRequest(CmdArgs{"llen", std::move(key)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestLpop ClientImpl::Lpop(std::string key,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestLpop>(
+      MakeRequest(CmdArgs{"lpop", std::move(key)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
+RequestLpush ClientImpl::Lpush(std::string key, std::string value,
+                               const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestLpush>(
+      MakeRequest(CmdArgs{"lpush", std::move(key), std::move(value)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestLpush ClientImpl::Lpush(std::string key, std::vector<std::string> values,
+                               const CommandControl& command_control) {
+  if (values.empty()) return Llen(std::move(key), command_control);
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestLpush>(
+      MakeRequest(CmdArgs{"lpush", std::move(key), std::move(values)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestLrange ClientImpl::Lrange(std::string key, int64_t start, int64_t stop,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestLrange>(
+      MakeRequest(CmdArgs{"lrange", std::move(key), start, stop}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestLtrim ClientImpl::Ltrim(std::string key, int64_t start, int64_t stop,
+                               const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestLtrim>(
+      MakeRequest(CmdArgs{"ltrim", std::move(key), start, stop}, shard, true,
                   GetCommandControl(command_control)));
 }
 
@@ -170,6 +313,23 @@ RequestMget ClientImpl::Mget(std::vector<std::string> keys,
                   GetCommandControl(command_control)));
 }
 
+RequestPersist ClientImpl::Persist(std::string key,
+                                   const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestPersist>(
+      MakeRequest(CmdArgs{"persist", std::move(key)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
+RequestPexpire ClientImpl::Pexpire(std::string key,
+                                   std::chrono::milliseconds ttl,
+                                   const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestPexpire>(
+      MakeRequest(CmdArgs{"pexpire", std::move(key), ttl.count()}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 RequestPing ClientImpl::Ping(size_t shard,
                              const CommandControl& command_control) {
   return CreateRequest<RequestPing>(MakeRequest(
@@ -180,6 +340,66 @@ RequestPingMessage ClientImpl::Ping(size_t shard, std::string message,
                                     const CommandControl& command_control) {
   return CreateRequest<RequestPingMessage>(
       MakeRequest(CmdArgs{"ping", std::move(message)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestRename ClientImpl::Rename(std::string key, std::string new_key,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestRename>(
+      MakeRequest(CmdArgs{"rename", std::move(key), std::move(new_key)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestRpop ClientImpl::Rpop(std::string key,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestRpop>(
+      MakeRequest(CmdArgs{"rpop", std::move(key)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
+RequestRpush ClientImpl::Rpush(std::string key, std::string value,
+                               const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestRpush>(
+      MakeRequest(CmdArgs{"rpush", std::move(key), std::move(value)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestRpush ClientImpl::Rpush(std::string key, std::vector<std::string> values,
+                               const CommandControl& command_control) {
+  if (values.empty()) return Llen(std::move(key), command_control);
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestRpush>(
+      MakeRequest(CmdArgs{"rpush", std::move(key), std::move(values)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestSadd ClientImpl::Sadd(std::string key, std::string member,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestSadd>(
+      MakeRequest(CmdArgs{"sadd", std::move(key), std::move(member)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestSadd ClientImpl::Sadd(std::string key, std::vector<std::string> members,
+                             const CommandControl& command_control) {
+  if (members.empty())
+    return CreateDummyRequest<RequestSadd>(
+        std::make_shared<::redis::Reply>("sadd", 0));
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestSadd>(
+      MakeRequest(CmdArgs{"sadd", std::move(key), std::move(members)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestScard ClientImpl::Scard(std::string key,
+                               const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestScard>(
+      MakeRequest(CmdArgs{"scard", std::move(key)}, shard, false,
                   GetCommandControl(command_control)));
 }
 
@@ -263,6 +483,49 @@ RequestSismember ClientImpl::Sismember(std::string key, std::string member,
   return CreateRequest<RequestSismember>(
       MakeRequest(CmdArgs{"sismember", std::move(key), std::move(member)},
                   shard, false, GetCommandControl(command_control)));
+}
+
+RequestSmembers ClientImpl::Smembers(std::string key,
+                                     const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestSmembers>(
+      MakeRequest(CmdArgs{"smembers", std::move(key)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestSrandmember ClientImpl::Srandmember(
+    std::string key, const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestSrandmember>(
+      MakeRequest(CmdArgs{"srandmember", std::move(key)}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestSrandmembers ClientImpl::Srandmembers(
+    std::string key, int64_t count, const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestSrandmembers>(
+      MakeRequest(CmdArgs{"srandmember", std::move(key), count}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestSrem ClientImpl::Srem(std::string key, std::string member,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestSrem>(
+      MakeRequest(CmdArgs{"srem", std::move(key), std::move(member)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestSrem ClientImpl::Srem(std::string key, std::vector<std::string> members,
+                             const CommandControl& command_control) {
+  if (members.empty())
+    return CreateDummyRequest<RequestSrem>(
+        std::make_shared<::redis::Reply>("srem", 0));
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestSrem>(
+      MakeRequest(CmdArgs{"srem", std::move(key), std::move(members)}, shard,
+                  true, GetCommandControl(command_control)));
 }
 
 RequestStrlen ClientImpl::Strlen(std::string key,
