@@ -24,7 +24,7 @@ void UASSERT_failed(const std::string& expr, const char* file,
 
 void LogAndThrowInvariantError(const std::string& error) {
   LOG_ERROR() << error;
-  throw utils::InvariantError(error);
+  throw InvariantError(error);
 }
 
 }  // namespace utils

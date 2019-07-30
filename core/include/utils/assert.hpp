@@ -43,20 +43,20 @@ namespace utils {
 
 namespace utils {
 
-class InvariantError : public utils::TracefulException {
-  using utils::TracefulException::TracefulException;
+class InvariantError : public TracefulException {
+  using TracefulException::TracefulException;
 };
 
 [[noreturn]] void LogAndThrowInvariantError(const std::string& error);
 
-#define YTX_INVARIANT(condition, message)                                   \
-  do {                                                                      \
-    if (!(condition)) {                                                     \
-      const auto err_str =                                                  \
-          fmt::format("Invariant ({}) violation: {}", #condition, message); \
-      UASSERT_MSG(false, err_str);                                          \
-      utils::LogAndThrowInvariantError(err_str);                            \
-    }                                                                       \
+#define YTX_INVARIANT(condition, message)                                     \
+  do {                                                                        \
+    if (!(condition)) {                                                       \
+      const auto err_str =                                                    \
+          ::fmt::format("Invariant ({}) violation: {}", #condition, message); \
+      UASSERT_MSG(false, err_str);                                            \
+      ::utils::LogAndThrowInvariantError(err_str);                            \
+    }                                                                         \
   } while (0)
 
 }  // namespace utils
