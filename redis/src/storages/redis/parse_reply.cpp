@@ -1,6 +1,7 @@
 #include <storages/redis/parse_reply.hpp>
 
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <boost/optional.hpp>
@@ -16,6 +17,24 @@ namespace {
 
 const std::string kOk{"OK"};
 const std::string kPong{"PONG"};
+
+const std::string& GetStringElem(const ::redis::ReplyData::Array& array,
+                                 size_t elem_idx,
+                                 const ::redis::ReplyPtr& reply,
+                                 const std::string& request_description) {
+  const auto& elem = array.at(elem_idx);
+  if (!elem.IsString()) {
+    const std::string& request =
+        request_description.empty() ? reply->cmd : request_description;
+    throw ::redis::ParseReplyException(
+        "Unexpected redis reply type to '" + request +
+        "' request: " + "array[" + std::to_string(elem_idx) + "]: expected " +
+        ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kString) +
+        ", got type=" + elem.GetTypeString() + " elem=" + elem.ToString() +
+        " msg=" + reply->data.ToString());
+  }
+  return elem.GetString();
+}
 
 }  // namespace
 
@@ -164,6 +183,21 @@ SetReply ParseReply<SetReply>(const ::redis::ReplyPtr& reply,
 }
 
 template <>
+std::unordered_set<std::string> ParseReply<std::unordered_set<std::string>>(
+    const ::redis::ReplyPtr& reply, const std::string& request_description) {
+  reply->ExpectArray(request_description);
+
+  const auto& array = reply->data.GetArray();
+  std::unordered_set<std::string> result;
+  result.reserve(array.size());
+
+  for (size_t elem_idx = 0; elem_idx < array.size(); ++elem_idx) {
+    result.emplace(GetStringElem(array, elem_idx, reply, request_description));
+  }
+  return result;
+}
+
+template <>
 std::vector<std::string> ParseReply<std::vector<std::string>>(
     const ::redis::ReplyPtr& reply, const std::string& request_description) {
   reply->ExpectArray(request_description);
@@ -173,18 +207,8 @@ std::vector<std::string> ParseReply<std::vector<std::string>>(
   result.reserve(array.size());
 
   for (size_t elem_idx = 0; elem_idx < array.size(); ++elem_idx) {
-    const auto& elem = array[elem_idx];
-    if (!elem.IsString()) {
-      const std::string& request =
-          request_description.empty() ? reply->cmd : request_description;
-      throw ::redis::ParseReplyException(
-          "Unexpected redis reply type to '" + request +
-          "' request: " + "array[" + std::to_string(elem_idx) + "]: expected " +
-          ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kString) +
-          ", got type=" + elem.GetTypeString() + " elem=" + elem.ToString() +
-          " msg=" + reply->data.ToString());
-    }
-    result.emplace_back(elem.GetString());
+    result.emplace_back(
+        GetStringElem(array, elem_idx, reply, request_description));
   }
   return result;
 }
@@ -205,17 +229,8 @@ ParseReply<std::vector<boost::optional<std::string>>>(
       result.emplace_back(boost::none);
       continue;
     }
-    if (!elem.IsString()) {
-      const std::string& request =
-          request_description.empty() ? reply->cmd : request_description;
-      throw ::redis::ParseReplyException(
-          "Unexpected redis reply type to '" + request +
-          "' request: " + "array[" + std::to_string(elem_idx) + "]: expected " +
-          ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kString) +
-          ", got type=" + elem.GetTypeString() + " elem=" + elem.ToString() +
-          " msg=" + reply->data.ToString());
-    }
-    result.emplace_back(elem.GetString());
+    result.emplace_back(
+        GetStringElem(array, elem_idx, reply, request_description));
   }
   return result;
 }

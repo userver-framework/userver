@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <boost/optional.hpp>
@@ -83,7 +84,7 @@ using RequestSetIfNotExist = Request<boost::optional<StatusOk>, bool>;
 using RequestSetOptions = Request<SetReply>;
 using RequestSetex = Request<StatusOk, void>;
 using RequestSismember = Request<size_t>;
-using RequestSmembers = Request<std::vector<std::string>>;
+using RequestSmembers = Request<std::unordered_set<std::string>>;
 using RequestSrandmember = Request<boost::optional<std::string>>;
 using RequestSrandmembers = Request<std::vector<std::string>>;
 using RequestSrem = Request<size_t>;

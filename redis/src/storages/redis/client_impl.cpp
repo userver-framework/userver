@@ -180,15 +180,15 @@ RequestHlen ClientImpl::Hlen(std::string key,
                   GetCommandControl(command_control)));
 }
 
-RequestHmget ClientImpl::Hmget(std::vector<std::string> keys,
+RequestHmget ClientImpl::Hmget(std::string key, std::vector<std::string> fields,
                                const CommandControl& command_control) {
-  if (keys.empty())
+  if (fields.empty())
     return CreateDummyRequest<RequestHmget>(
         std::make_shared<::redis::Reply>("hmget", ::redis::ReplyData::Array{}));
-  auto shard = ShardByKey(keys.at(0));
+  auto shard = ShardByKey(key);
   return CreateRequest<RequestHmget>(
-      MakeRequest(CmdArgs{"hmget", std::move(keys)}, shard, false,
-                  GetCommandControl(command_control)));
+      MakeRequest(CmdArgs{"hmget", std::move(key), std::move(fields)}, shard,
+                  false, GetCommandControl(command_control)));
 }
 
 RequestHmset ClientImpl::Hmset(
@@ -346,6 +346,11 @@ RequestPingMessage ClientImpl::Ping(size_t shard, std::string message,
 RequestRename ClientImpl::Rename(std::string key, std::string new_key,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key);
+  auto new_shard = ShardByKey(new_key);
+  if (shard != new_shard)
+    throw ::redis::InvalidArgumentException(
+        "shard of key != shard of new_key (" + std::to_string(shard) +
+        " != " + std::to_string(new_shard) + ')');
   return CreateRequest<RequestRename>(
       MakeRequest(CmdArgs{"rename", std::move(key), std::move(new_key)}, shard,
                   true, GetCommandControl(command_control)));

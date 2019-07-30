@@ -95,7 +95,7 @@ class Client {
   virtual RequestHlen Hlen(std::string key,
                            const CommandControl& command_control) = 0;
 
-  virtual RequestHmget Hmget(std::vector<std::string> keys,
+  virtual RequestHmget Hmget(std::string key, std::vector<std::string> fields,
                              const CommandControl& command_control) = 0;
 
   virtual RequestHmset Hmset(

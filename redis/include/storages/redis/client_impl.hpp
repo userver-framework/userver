@@ -88,7 +88,7 @@ class ClientImpl final : public Client {
   RequestHlen Hlen(std::string key,
                    const CommandControl& command_control) override;
 
-  RequestHmget Hmget(std::vector<std::string> keys,
+  RequestHmget Hmget(std::string key, std::vector<std::string> fields,
                      const CommandControl& command_control) override;
 
   RequestHmset Hmset(
