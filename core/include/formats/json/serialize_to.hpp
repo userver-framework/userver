@@ -31,6 +31,10 @@ inline formats::json::Value SerializeToJson(bool value) {
   return formats::json::ValueBuilder(value).ExtractValue();
 }
 
+inline formats::json::Value SerializeToJson(const formats::json::Value& value) {
+  return value;
+}
+
 template <class Rep, class Period>
 inline Value SerializeToJson(std::chrono::duration<Rep, Period> duration) {
   return formats::json::ValueBuilder(duration.count()).ExtractValue();

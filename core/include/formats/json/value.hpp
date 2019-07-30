@@ -231,5 +231,7 @@ T Value::As(First&& default_arg, Rest&&... more_default_args) const {
   return As<T>();
 }
 
+inline Value Parse(const Value& value, parse::To<Value>) { return value; }
+
 }  // namespace json
 }  // namespace formats
