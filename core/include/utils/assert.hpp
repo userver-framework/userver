@@ -2,6 +2,10 @@
 
 #include <string>
 
+#include <fmt/format.h>
+
+#include <utils/traceful_exception.hpp>
+
 #ifndef NDEBUG
 
 #define UASSERT(expr)                                                   \
@@ -23,7 +27,7 @@ namespace utils {
 [[noreturn]] void UASSERT_failed(const std::string& expr, const char* file,
                                  unsigned int line, const char* function,
                                  const std::string& msg) noexcept;
-}
+}  // namespace utils
 
 #else  // NDEBUG
 
@@ -36,3 +40,23 @@ namespace utils {
   } while (0)
 
 #endif  // NDEBUG
+
+namespace utils {
+
+class InvariantError : public utils::TracefulException {
+  using utils::TracefulException::TracefulException;
+};
+
+[[noreturn]] void LogAndThrowInvariantError(const std::string& error);
+
+#define YTX_INVARIANT(condition, message)                                   \
+  do {                                                                      \
+    if (!(condition)) {                                                     \
+      const auto err_str =                                                  \
+          fmt::format("Invariant ({}) violation: {}", #condition, message); \
+      UASSERT_MSG(false, err_str);                                          \
+      utils::LogAndThrowInvariantError(err_str);                            \
+    }                                                                       \
+  } while (0)
+
+}  // namespace utils

@@ -4,6 +4,8 @@
 
 #include <boost/stacktrace.hpp>
 
+#include <logging/log.hpp>
+
 namespace utils {
 
 void UASSERT_failed(const std::string& expr, const char* file,
@@ -18,6 +20,11 @@ void UASSERT_failed(const std::string& expr, const char* file,
             << ".  Stacktrace:\n"
             << trace_msg << "\n";
   abort();
+}
+
+void LogAndThrowInvariantError(const std::string& error) {
+  LOG_ERROR() << error;
+  throw utils::InvariantError(error);
 }
 
 }  // namespace utils
