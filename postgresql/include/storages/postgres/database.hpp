@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 
