@@ -68,7 +68,7 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
       app_name_(config.app_name),
       max_size_(config.max_size),
       queue_timeout_(config.queue_timeout),
-      size_semaphore_(config.max_size),
+      in_use_semaphore_(config.max_size),
       connecting_semaphore_(config.connecting_limit),
       queue_(config.idle_limit) {
   static const GlobalInitializer kInitMongoc;
@@ -86,7 +86,10 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
 
   try {
     LOG_INFO() << "Creating " << config.initial_size << " mongo connections";
-    for (size_t i = 0; i < config.initial_size; ++i) Push(Create());
+    for (size_t i = 0; i < config.initial_size; ++i) {
+      in_use_semaphore_.lock_shared();  // compensate for unlock in Push
+      Push(Create());
+    }
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex;
   }
@@ -95,12 +98,15 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
 PoolImpl::~PoolImpl() {
   const ClientDeleter deleter;
   mongoc_client_t* client = nullptr;
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   while (queue_.pop(client)) deleter(client);
 }
 
-size_t PoolImpl::SizeApprox() const {
-  return max_size_ - size_semaphore_.RemainingApprox();
+size_t PoolImpl::InUseApprox() const {
+  return max_size_ - in_use_semaphore_.RemainingApprox();
 }
+
+size_t PoolImpl::SizeApprox() const { return size_.Load(); }
 
 size_t PoolImpl::MaxSize() const { return max_size_; }
 
@@ -112,25 +118,57 @@ stats::PoolStatistics& PoolImpl::GetStatistics() { return statistics_; }
 
 PoolImpl::BoundClientPtr PoolImpl::Acquire() {
   stats::ConnectionWaitStopwatch conn_wait_sw(statistics_.pool);
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return {Pop(), ClientPusher(this)};
 }
 
 void PoolImpl::Push(mongoc_client_t* client) noexcept {
   UASSERT(client);
-  if (queue_.bounded_push(client)) return;
-  ClientDeleter()(client);
-  size_semaphore_.unlock_shared();
-  ++statistics_.pool->closed;
+  if (!queue_.bounded_push(client)) {
+    ClientDeleter()(client);
+    --size_;
+    ++statistics_.pool->closed;
+  }
+  in_use_semaphore_.unlock_shared();
 }
 
 mongoc_client_t* PoolImpl::Pop() {
-  if (auto* client = TryGetIdle()) return client;
-  return Create();
+  stats::ConnectionThrottleStopwatch queue_sw(statistics_.pool);
+  const auto queue_deadline = engine::Deadline::FromDuration(queue_timeout_);
+
+  engine::SemaphoreLock in_use_lock(in_use_semaphore_, queue_deadline);
+  if (!in_use_lock) {
+    ++statistics_.pool->overload;
+    throw PoolOverloadException("Mongo pool '")
+        << id_ << "' has reached size limit: " << max_size_;
+  }
+
+  auto* client = TryGetIdle();
+  if (!client) {
+    engine::SemaphoreLock connecting_lock(connecting_semaphore_,
+                                          queue_deadline);
+    queue_sw.Stop();
+
+    // retry getting idle connection after the wait
+    client = TryGetIdle();
+    if (!client) {
+      if (!connecting_lock) {
+        ++statistics_.pool->overload;
+
+        throw PoolOverloadException("Mongo pool '")
+            << id_ << "' has too many establishing connections";
+      }
+      client = Create();
+    }
+  }
+
+  UASSERT(client);
+  in_use_lock.Release();
+  return client;
 }
 
 mongoc_client_t* PoolImpl::TryGetIdle() {
   mongoc_client_t* client = nullptr;
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (queue_.pop(client)) return client;
   return nullptr;
 }
@@ -141,37 +179,6 @@ mongoc_client_t* PoolImpl::Create() {
   static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
   static const ReadPrefsPtr kPingReadPrefs(
       mongoc_read_prefs_new(MONGOC_READ_NEAREST));
-
-  stats::ConnectionThrottleStopwatch queue_sw(statistics_.pool);
-  auto deadline = engine::Deadline::FromDuration(queue_timeout_);
-
-  if (!size_semaphore_.try_lock_shared_until(deadline)) {
-    // retry getting idle connection after the wait
-    if (auto* client = TryGetIdle()) return client;
-
-    ++statistics_.pool->overload;
-
-    throw PoolOverloadException("Mongo pool '")
-        << id_ << "' has reached size limit: " << max_size_;
-  }
-  std::shared_lock<engine::Semaphore> size_lock(size_semaphore_,
-                                                std::adopt_lock);
-
-  if (!connecting_semaphore_.try_lock_shared_until(deadline)) {
-    // retry getting idle connection after the wait
-    if (auto* client = TryGetIdle()) return client;
-
-    ++statistics_.pool->overload;
-
-    throw PoolOverloadException("Mongo pool '")
-        << id_ << "' has too many establishing connections";
-  }
-  std::shared_lock<engine::Semaphore> connecting_lock(connecting_semaphore_,
-                                                      std::adopt_lock);
-
-  // retry getting idle connection after the wait
-  if (auto* client = TryGetIdle()) return client;
-  queue_sw.Stop();
 
   LOG_DEBUG() << "Creating mongo connection";
 
@@ -195,7 +202,7 @@ mongoc_client_t* PoolImpl::Create() {
     error.Throw("Couldn't create a connection in mongo pool '" + id_ + '\'');
   }
 
-  size_lock.release();
+  ++size_;
   ping_sw.AccountSuccess();
   ++statistics_.pool->created;
   return client.release();

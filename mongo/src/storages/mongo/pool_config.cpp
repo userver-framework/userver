@@ -4,6 +4,8 @@
 
 #include <mongoc/mongoc.h>
 
+#include <boost/optional.hpp>
+
 #include <storages/mongo/exception.hpp>
 #include <utils/text.hpp>
 
@@ -43,26 +45,41 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
           component_config.ParseDuration("so_timeout", kDefaultSoTimeout)),
       queue_timeout(component_config.ParseDuration("queue_timeout",
                                                    kDefaultQueueTimeout)),
-      initial_size(
-          component_config.ParseUint64("initial_size", kDefaultInitialSize)),
-      max_size(component_config.ParseUint64("max_size", kDefaultMaxSize)),
-      idle_limit(component_config.ParseUint64("idle_limit", kDefaultIdleLimit)),
-      connecting_limit(component_config.ParseUint64("connecting_limit",
-                                                    kDefaultConnectingLimit)),
-      app_name(component_config.ParseString("appname", kDefaultAppName)) {
+      initial_size(kDefaultInitialSize),
+      max_size(component_config.Parse<size_t>("max_size", kDefaultMaxSize)),
+      idle_limit(kDefaultIdleLimit),
+      connecting_limit(component_config.Parse<size_t>("connecting_limit",
+                                                      kDefaultConnectingLimit)),
+      app_name(
+          component_config.Parse<std::string>("appname", kDefaultAppName)) {
   const auto& pool_id = component_config.Name();
   CheckTimeout(conn_timeout, "connection timeout", pool_id);
   CheckTimeout(so_timeout, "socket timeout", pool_id);
   CheckTimeout(queue_timeout, "queue wait timeout", pool_id);
 
-  if (!max_size || initial_size > max_size || idle_limit > max_size) {
+  if (!max_size) {
     throw InvalidConfigException("invalid max pool size in ")
         << pool_id << " pool config";
   }
-  if (!idle_limit || initial_size > idle_limit) {
+
+  auto user_idle_limit =
+      component_config.Parse<boost::optional<size_t>>("idle_limit");
+  idle_limit = user_idle_limit ? *user_idle_limit
+                               : std::min(kDefaultIdleLimit, max_size);
+  if (idle_limit > max_size) {
     throw InvalidConfigException("invalid idle connections limit in ")
         << pool_id << " pool config";
   }
+
+  auto user_initial_size =
+      component_config.Parse<boost::optional<size_t>>("initial_size");
+  initial_size = user_initial_size ? *user_initial_size
+                                   : std::min(kDefaultInitialSize, idle_limit);
+  if (initial_size > idle_limit) {
+    throw InvalidConfigException("invalid initial connections count in ")
+        << pool_id << " pool config";
+  }
+
   if (!connecting_limit) {
     throw InvalidConfigException("invalid establishing connections limit in ")
         << pool_id << " pool config";

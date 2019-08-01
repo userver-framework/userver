@@ -31,6 +31,7 @@ formats::json::Value Pool::GetStatistics() const {
   formats::json::ValueBuilder builder(formats::json::Type::kObject);
   stats::PoolStatisticsToJson(impl_->GetStatistics(), builder);
   builder["pool"]["current-size"] = impl_->SizeApprox();
+  builder["pool"]["current-in-use"] = impl_->InUseApprox();
   builder["pool"]["max-size"] = impl_->MaxSize();
 
   utils::statistics::SolomonLabelValue(builder, "mongo_database");

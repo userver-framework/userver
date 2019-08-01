@@ -21,7 +21,7 @@ class PoolConfig {
   /// Default connection queue timeout
   static constexpr auto kDefaultQueueTimeout = std::chrono::seconds{1};
   /// Default initial connection count
-  static constexpr size_t kDefaultInitialSize = 4;
+  static constexpr size_t kDefaultInitialSize = 16;
   /// Default total connections limit
   static constexpr size_t kDefaultMaxSize = 128;
   /// Default idle connections limit

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <chrono>
 #include <memory>
 #include <string>
@@ -15,6 +14,7 @@
 #include <storages/mongo/stats.hpp>
 #include <storages/mongo/wrappers.hpp>
 #include <utils/assert.hpp>
+#include <utils/statistics/relaxed_counter.hpp>
 
 namespace storages::mongo::impl {
 
@@ -38,6 +38,7 @@ class PoolImpl {
            const PoolConfig& config);
   ~PoolImpl();
 
+  size_t InUseApprox() const;
   size_t SizeApprox() const;
   size_t MaxSize() const;
   const std::string& DefaultDatabaseName() const;
@@ -61,7 +62,8 @@ class PoolImpl {
 
   const size_t max_size_;
   const std::chrono::milliseconds queue_timeout_;
-  engine::Semaphore size_semaphore_;
+  utils::statistics::RelaxedCounter<size_t> size_;
+  engine::Semaphore in_use_semaphore_;
   engine::Semaphore connecting_semaphore_;
   boost::lockfree::queue<mongoc_client_t*> queue_;
 

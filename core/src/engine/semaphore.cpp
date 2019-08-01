@@ -93,6 +93,7 @@ void Semaphore::lock_shared() {
 }
 
 void Semaphore::unlock_shared() {
+  LOG_TRACE() << "unlock_shared()";
   remaining_simultaneous_locks_.fetch_add(1, std::memory_order_release);
 
   impl::WaitList::Lock lock{*lock_waiters_};
