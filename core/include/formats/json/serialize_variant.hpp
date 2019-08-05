@@ -18,11 +18,4 @@ formats::json::Value Serialize(const boost::variant<Types...>& value,
       value);
 }
 
-template <typename... Types>
-json::Value Serialize(const boost::variant<Types...>& value, To<json::Value>) {
-  return boost::apply_visitor(
-      [](const auto& item) { return json::ValueBuilder(item).ExtractValue(); },
-      value);
-}
-
 }  // namespace formats::serialize
