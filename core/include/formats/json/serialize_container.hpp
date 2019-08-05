@@ -4,6 +4,7 @@
 
 #include <formats/json/value_builder.hpp>
 #include <formats/parse/common_containers.hpp>
+#include <formats/serialize/to.hpp>
 #include <utils/meta.hpp>
 
 namespace formats::serialize {
@@ -29,6 +30,13 @@ std::enable_if_t<meta::is_map<T>::value, ::formats::json::Value> Serialize(
     builder[it->first] = it->second;
   }
   return builder.ExtractValue();
+}
+
+template <typename Value, typename T>
+json::Value Serialize(const boost::optional<T>& value, To<json::Value>) {
+  if (!value) return {};
+
+  return json::ValueBuilder(*value).ExtractValue();
 }
 
 }  // namespace formats::serialize

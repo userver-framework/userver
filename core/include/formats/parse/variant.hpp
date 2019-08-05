@@ -1,11 +1,28 @@
 #pragma once
 
 #include <boost/optional.hpp>
-#include <boost/variant.hpp>
+#include <boost/variant/variant.hpp>
 
 #include <compiler/demangle.hpp>
 
 namespace formats::parse {
+
+template <typename ParseException, typename Variant, typename TypeA>
+[[noreturn]] void ThrowVariantAmbiguousParse(const std::string& path,
+                                             std::type_index type_b) {
+  throw ParseException(
+      "Value of '" + path +
+      "' is ambiguous, it is parseable into multiple variants of '" +
+      compiler::GetTypeName<Variant>() + "', at least '" +
+      compiler::GetTypeName<TypeA>() + "' and '" +
+      compiler::GetTypeName(type_b) + "'");
+}
+
+template <class ParseException, typename Variant>
+[[noreturn]] void ThrowVariantParseException(const std::string& path) {
+  throw ParseException("Value of '" + path + "' cannot be parsed as " +
+                       compiler::GetTypeName<Variant>());
+}
 
 namespace impl {
 
@@ -19,12 +36,8 @@ void ParseVariantSingle(const Value& value, boost::optional<Result>& result) {
       return;
     }
 
-    throw typename Value::ParseException(
-        "Value of '" + value.GetPath() +
-        "' is ambiguous, it is parseable into multiple variants of '" +
-        compiler::GetTypeName<Result>() + "', at least '" +
-        compiler::GetTypeName<T>() + "' and '" +
-        compiler::GetTypeName(old_type) + "'");
+    ThrowVariantAmbiguousParse<typename Value::ParseException, Result, T>(
+        value.GetPath(), old_type);
   } else {
     // No result yet
     try {
@@ -43,9 +56,8 @@ boost::variant<Types...> Parse(const Value& value,
   (impl::ParseVariantSingle<Types>(value, result), ...);
 
   if (!result) {
-    throw typename Value::ParseException(
-        "Value of '" + value.GetPath() + "' cannot be parsed as " +
-        compiler::GetTypeName<boost::variant<Types...>>());
+    ThrowVariantParseException<typename Value::ParseException,
+                               boost::variant<Types...>>(value.GetPath());
   }
 
   return std::move(*result);
