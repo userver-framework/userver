@@ -1,5 +1,10 @@
 #pragma once
 
+#include <chrono>
+
+#include <boost/numeric/conversion/cast.hpp>
+
+#include <formats/common/meta.hpp>
 #include <formats/json/value.hpp>
 
 namespace formats {
@@ -41,15 +46,11 @@ class ValueBuilder final {
   ValueBuilder(unsigned int t);
   ValueBuilder(uint64_t t);
   ValueBuilder(int64_t t);
-#ifdef _LIBCPP_VERSION  // In libc++ long long and int64_t are the same
-  ValueBuilder(long t);
-  ValueBuilder(unsigned long t);
-#else
-  ValueBuilder(long long t);
-  ValueBuilder(unsigned long long t);
-#endif
   ValueBuilder(float t);
   ValueBuilder(double t);
+
+  template <typename T>
+  ValueBuilder(const T& t);
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
@@ -103,5 +104,34 @@ class ValueBuilder final {
   friend class Iterator<IterTraits>;
 };
 
+template <typename T>
+ValueBuilder::ValueBuilder(const T& t)
+    : ValueBuilder(
+          Serialize(t, formats::serialize::To<formats::json::Value>())) {
+  static_assert(
+      formats::common::kHasSerializeTo<Value, T>,
+      "There is no `Serialize(const T&, formats::serialize::To<json::Value>)` "
+      " in namespace of `T` or `formats::serizalize`."
+      ""
+      "Probably you forgot to include the "
+      "<formats/serialize/serialize_container.hpp> or you "
+      "have not provided a `Serialize` function overload.");
+}
+
 }  // namespace json
+
+namespace serialize {
+
+template <typename T>
+std::enable_if_t<std::is_integral<T>::value, ::formats::json::Value> Serialize(
+    T value, To<::formats::json::Value>) {
+  using Type = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
+  return json::ValueBuilder(boost::numeric_cast<Type>(value)).ExtractValue();
+}
+
+json::Value Serialize(std::chrono::system_clock::time_point tp,
+                      To<::formats::json::Value>);
+
+}  // namespace serialize
+
 }  // namespace formats

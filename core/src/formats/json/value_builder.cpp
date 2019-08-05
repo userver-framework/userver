@@ -5,6 +5,7 @@
 #include <json/value.h>
 
 #include <utils/assert.hpp>
+#include <utils/datetime.hpp>
 
 namespace formats {
 namespace json {
@@ -55,13 +56,6 @@ ValueBuilder::ValueBuilder(uint64_t t)
 ValueBuilder::ValueBuilder(int64_t t)
     : value_(std::make_shared<Json::Value>(Json::Int64(t))) {}
 
-#ifdef _LIBCPP_VERSION  // In libc++ long long and int64_t are the same
-ValueBuilder::ValueBuilder(long t) : ValueBuilder(int64_t(t)) {}
-ValueBuilder::ValueBuilder(unsigned long t) : ValueBuilder(uint64_t(t)) {}
-#else
-ValueBuilder::ValueBuilder(long long t) : ValueBuilder(int64_t(t)) {}
-ValueBuilder::ValueBuilder(unsigned long long t) : ValueBuilder(uint64_t(t)) {}
-#endif
 ValueBuilder::ValueBuilder(float t)
     : value_(std::make_shared<Json::Value>(t)) {}
 ValueBuilder::ValueBuilder(double t)
@@ -179,4 +173,16 @@ void ValueBuilder::Move(Json::Value& to, ValueBuilder&& from) {
 }
 
 }  // namespace json
+
+namespace serialize {
+
+json::Value Serialize(std::chrono::system_clock::time_point tp,
+                      To<::formats::json::Value>) {
+  json::ValueBuilder builder =
+      utils::datetime::Timestring(tp, "UTC", utils::datetime::kRfc3339Format);
+  return builder.ExtractValue();
+}
+
+}  // namespace serialize
+
 }  // namespace formats
