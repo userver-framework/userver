@@ -20,7 +20,8 @@ namespace storages {
 namespace redis {
 
 /// @class ClientImpl
-class ClientImpl final : public Client {
+class ClientImpl final : public Client,
+                         public std::enable_shared_from_this<ClientImpl> {
  public:
   explicit ClientImpl(std::shared_ptr<::redis::Sentinel> sentinel);
 
@@ -164,6 +165,16 @@ class ClientImpl final : public Client {
 
   RequestSadd Sadd(std::string key, std::vector<std::string> members,
                    const CommandControl& command_control) override;
+
+  RequestScan Scan(size_t shard,
+                   const CommandControl& command_control) override;
+
+  RequestScan Scan(size_t shard, ScanOptions options,
+                   const CommandControl& command_control) override;
+
+  RequestScanImpl ScanImpl(size_t shard, ScanReply::Cursor cursor,
+                           ScanOptions options,
+                           const CommandControl& command_control);
 
   RequestScard Scard(std::string key,
                      const CommandControl& command_control) override;

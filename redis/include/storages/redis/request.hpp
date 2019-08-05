@@ -8,6 +8,7 @@
 
 #include <boost/optional.hpp>
 
+#include <redis/exception.hpp>
 #include <redis/reply.hpp>
 #include <utils/clang_format_workarounds.hpp>
 
@@ -37,6 +38,97 @@ class USERVER_NODISCARD Request final {
 
  private:
   std::unique_ptr<RequestDataBase<Result, ReplyType>> impl_;
+};
+
+class RequestScan final {
+ public:
+  using ReplyElem = std::string;
+
+  explicit RequestScan(std::unique_ptr<RequestScanDataBase>&& impl)
+      : impl_(std::move(impl)) {}
+
+  template <typename T = std::vector<ReplyElem>>
+  T GetAll(std::string request_description) {
+    SetRequestDescription(std::move(request_description));
+    return GetAll<T>();
+  }
+
+  template <typename T = std::vector<ReplyElem>>
+  T GetAll() {
+    return T{begin(), end()};
+  }
+
+  void SetRequestDescription(std::string request_description) {
+    impl_->SetRequestDescription(std::move(request_description));
+  }
+
+  class Iterator {
+   public:
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = ptrdiff_t;
+    using value_type = ReplyElem;
+    using reference = value_type&;
+    using pointer = value_type*;
+
+    explicit Iterator(RequestScan* stream) : stream_(stream) {
+      if (stream_ && !stream_->HasMore()) stream_ = nullptr;
+    }
+
+    class ReplyElemHolder {
+     public:
+      ReplyElemHolder(value_type reply_elem)
+          : reply_elem_(std::move(reply_elem)) {}
+
+      value_type& operator*() { return reply_elem_; }
+
+     private:
+      value_type reply_elem_;
+    };
+
+    ReplyElemHolder operator++(int) {
+      ReplyElemHolder old_value(stream_->Get());
+      ++*this;
+      return old_value;
+    }
+
+    Iterator& operator++() {
+      stream_->Get();
+      if (!stream_->HasMore()) stream_ = nullptr;
+      return *this;
+    }
+
+    reference operator*() { return stream_->Current(); }
+
+    pointer operator->() { return &**this; }
+
+    bool operator==(const Iterator& rhs) const {
+      return stream_ == rhs.stream_;
+    }
+
+    bool operator!=(const Iterator& rhs) const { return !(*this == rhs); }
+
+   private:
+    RequestScan* stream_;
+  };
+
+  Iterator begin() { return Iterator(this); }
+  Iterator end() { return Iterator(nullptr); }
+
+  class GetAfterEofException : public ::redis::Exception {
+   public:
+    using ::redis::Exception::Exception;
+  };
+
+ private:
+  ReplyElem& Current() { return impl_->Current(); }
+
+  ReplyElem Get() { return impl_->Get(); }
+
+  bool HasMore() { return !impl_->Eof(); }
+
+  friend class Iterator;
+
+  std::unique_ptr<RequestScanDataBase> impl_;
 };
 
 using RequestAppend = Request<size_t>;
@@ -77,6 +169,7 @@ using RequestRename = Request<StatusOk, void>;
 using RequestRpop = Request<boost::optional<std::string>>;
 using RequestRpush = Request<size_t>;
 using RequestSadd = Request<size_t>;
+using RequestScanImpl = Request<ScanReply>;
 using RequestScard = Request<size_t>;
 using RequestSet = Request<StatusOk, void>;
 using RequestSetIfExist = Request<boost::optional<StatusOk>, bool>;

@@ -8,6 +8,7 @@
 #include <redis/base.hpp>
 #include <redis/request.hpp>
 
+#include <storages/redis/client.hpp>
 #include <storages/redis/parse_reply.hpp>
 #include <storages/redis/request_data_base.hpp>
 
@@ -68,6 +69,33 @@ class DummyRequestDataImpl final : public RequestDataBase<Result, ReplyType> {
 
  private:
   ::redis::ReplyPtr reply_;
+};
+
+class ClientImpl;
+
+class RequestScanData final : public RequestScanDataBase {
+ public:
+  RequestScanData(std::shared_ptr<ClientImpl> client, size_t shard,
+                  ScanOptions options, const CommandControl& command_control);
+
+  std::string Get() override;
+
+  std::string& Current() override;
+
+  bool Eof() override;
+
+ private:
+  void CheckReply();
+
+  std::shared_ptr<ClientImpl> client_;
+  size_t shard_;
+  ScanOptions options_;
+  CommandControl command_control_;
+
+  std::unique_ptr<RequestScanImpl> request_;
+  std::unique_ptr<ScanReply> reply_;
+  size_t reply_keys_index_{0};
+  bool eof_{false};
 };
 
 }  // namespace redis

@@ -18,16 +18,20 @@ namespace {
 const std::string kOk{"OK"};
 const std::string kPong{"PONG"};
 
+const std::string& GetDescription(const ::redis::ReplyPtr& reply,
+                                  const std::string& request_description) {
+  return request_description.empty() ? reply->cmd : request_description;
+}
+
 const std::string& GetStringElem(const ::redis::ReplyData::Array& array,
                                  size_t elem_idx,
                                  const ::redis::ReplyPtr& reply,
                                  const std::string& request_description) {
   const auto& elem = array.at(elem_idx);
   if (!elem.IsString()) {
-    const std::string& request =
-        request_description.empty() ? reply->cmd : request_description;
+    const std::string& description = GetDescription(reply, request_description);
     throw ::redis::ParseReplyException(
-        "Unexpected redis reply type to '" + request +
+        "Unexpected redis reply type to '" + description +
         "' request: " + "array[" + std::to_string(elem_idx) + "]: expected " +
         ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kString) +
         ", got type=" + elem.GetTypeString() + " elem=" + elem.ToString() +
@@ -60,8 +64,9 @@ double ParseReply<double>(const ::redis::ReplyPtr& reply,
     return std::stod(reply->data.GetString());
   } catch (const std::exception& ex) {
     throw ::redis::ParseReplyException(
-        "Can't parse value from reply to '" + request_description +
-        "' request (" + reply->data.ToString() + "): " + ex.what());
+        "Can't parse value from reply to '" +
+        GetDescription(reply, request_description) + "' request (" +
+        reply->data.ToString() + "): " + ex.what());
   }
 }
 
@@ -100,8 +105,9 @@ HsetReply ParseReply<HsetReply>(const ::redis::ReplyPtr& reply,
   reply->ExpectInt(request_description);
   auto result = reply->data.GetInt();
   if (result < 0 || result > 1)
-    throw ::redis::ParseReplyException("Unexpected Hset reply: " +
-                                       std::to_string(result));
+    throw ::redis::ParseReplyException(
+        "Unexpected reply to '" + GetDescription(reply, request_description) +
+        "' request: " + std::to_string(result));
   return result ? HsetReply::kCreated : HsetReply::kUpdated;
 }
 
@@ -128,30 +134,24 @@ PersistReply ParseReply<PersistReply>(const ::redis::ReplyPtr& reply,
     case 1:
       return PersistReply::kTimeoutRemoved;
     default:
-      throw ::redis::ParseReplyException("Incorrect PERSIST result value: " +
-                                         std::to_string(value));
+      throw ::redis::ParseReplyException(
+          "Unexpected reply to '" + GetDescription(reply, request_description) +
+          "' request: " + std::to_string(value));
   }
 }
 
 template <>
 KeyType ParseReply<KeyType>(const ::redis::ReplyPtr& reply,
                             const std::string& request_description) {
-  static const std::unordered_map<std::string, KeyType> types_map{
-      {"none", KeyType::kNone},    {"string", KeyType::kString},
-      {"list", KeyType::kList},    {"set", KeyType::kSet},
-      {"zset", KeyType::kZset},    {"hash", KeyType::kHash},
-      {"stream", KeyType::kStream}};
   reply->ExpectStatus(request_description);
   const auto& status = reply->data.GetStatus();
-  auto it = types_map.find(status);
-  if (it == types_map.end()) {
-    const std::string& request =
-        request_description.empty() ? reply->cmd : request_description;
-    throw ::redis::ParseReplyException("Unexpected redis reply to '" + request +
-                                       "' request. unknown type: '" + status +
-                                       '\'');
+  try {
+    return ParseKeyType(status);
+  } catch (const std::exception& ex) {
+    const std::string& description = GetDescription(reply, request_description);
+    throw ::redis::ParseReplyException("Unexpected redis reply to '" +
+                                       description + "' request. " + ex.what());
   }
-  return it->second;
 }
 
 template <>
@@ -237,13 +237,14 @@ ParseReply<std::vector<boost::optional<std::string>>>(
 
 namespace {
 
-::redis::ReplyData::KeyValues GetKeyValues(const ::redis::ReplyPtr& reply,
-                                           const std::string& request) {
+::redis::ReplyData::KeyValues GetKeyValues(
+    const ::redis::ReplyPtr& reply, const std::string& request_description) {
   try {
     return reply->data.GetKeyValues();
   } catch (const std::exception& ex) {
-    throw ::redis::ParseReplyException("Can't parse response to '" + request +
-                                       "' request: " + ex.what());
+    const auto& description = GetDescription(reply, request_description);
+    throw ::redis::ParseReplyException("Can't parse response to '" +
+                                       description + "' request: " + ex.what());
   }
 }
 
@@ -252,10 +253,9 @@ namespace {
 template <>
 std::vector<MemberScore> ParseReply<std::vector<MemberScore>>(
     const ::redis::ReplyPtr& reply, const std::string& request_description) {
-  const std::string& request =
-      request_description.empty() ? reply->cmd : request_description;
+  reply->ExpectIsOk(request_description);
 
-  auto key_values = GetKeyValues(reply, request);
+  auto key_values = GetKeyValues(reply, request_description);
 
   std::vector<MemberScore> result;
 
@@ -268,9 +268,10 @@ std::vector<MemberScore> ParseReply<std::vector<MemberScore>>(
     try {
       score = std::stod(score_elem);
     } catch (const std::exception& ex) {
+      const auto& description = GetDescription(reply, request_description);
       throw ::redis::ParseReplyException(
           std::string("Can't parse response to '")
-              .append(request)
+              .append(description)
               .append("' request: can't parse score from '")
               .append(score_elem)
               .append("' msg=")
@@ -288,10 +289,9 @@ template <>
 std::unordered_map<std::string, std::string>
 ParseReply<std::unordered_map<std::string, std::string>>(
     const ::redis::ReplyPtr& reply, const std::string& request_description) {
-  const std::string& request =
-      request_description.empty() ? reply->cmd : request_description;
+  reply->ExpectIsOk(request_description);
 
-  auto key_values = GetKeyValues(reply, request);
+  auto key_values = GetKeyValues(reply, request_description);
 
   std::unordered_map<std::string, std::string> result;
 
@@ -308,6 +308,12 @@ template <>
     const ::redis::ReplyPtr& reply, const std::string& request_description) {
   reply->ExpectIsOk(request_description);
   return reply->data;
+}
+
+template <>
+ScanReply ParseReply<ScanReply>(const ::redis::ReplyPtr& reply,
+                                const std::string& request_description) {
+  return ScanReply::Parse(reply, request_description);
 }
 
 }  // namespace redis

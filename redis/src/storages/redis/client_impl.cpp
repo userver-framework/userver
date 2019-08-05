@@ -400,6 +400,28 @@ RequestSadd ClientImpl::Sadd(std::string key, std::vector<std::string> members,
                   true, GetCommandControl(command_control)));
 }
 
+RequestScan ClientImpl::Scan(size_t shard,
+                             const CommandControl& command_control) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+  return Scan(shard, {}, command_control);
+}
+
+RequestScan ClientImpl::Scan(size_t shard, ScanOptions options,
+                             const CommandControl& command_control) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+  return RequestScan(std::make_unique<RequestScanData>(
+      shared_from_this(), shard, std::move(options), command_control));
+}
+
+RequestScanImpl ClientImpl::ScanImpl(size_t shard, ScanReply::Cursor cursor,
+                                     ScanOptions options,
+                                     const CommandControl& command_control) {
+  CmdArgs cmd_args{"scan", cursor.GetValue(), options.ExtractMatch(),
+                   options.ExtractCount()};
+  return CreateRequest<RequestScanImpl>(MakeRequest(
+      std::move(cmd_args), shard, false, GetCommandControl(command_control)));
+}
+
 RequestScard ClientImpl::Scard(std::string key,
                                const CommandControl& command_control) {
   auto shard = ShardByKey(key);

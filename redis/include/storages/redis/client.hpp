@@ -19,6 +19,67 @@ using CommandControl = ::redis::CommandControl;
 using RangeOptions = ::redis::RangeOptions;
 using ZaddOptions = ::redis::ZaddOptions;
 
+class ScanOptions {
+ public:
+  ScanOptions() = default;
+  ScanOptions(ScanOptions& other) = default;
+  ScanOptions(const ScanOptions& other) = default;
+
+  ScanOptions(ScanOptions&& other) = default;
+
+  template <typename... Args>
+  ScanOptions(Args&&... args) {
+    (Apply(std::forward<Args>(args)), ...);
+  }
+
+  class Match {
+   public:
+    explicit Match(std::string value) : value_(std::move(value)) {}
+
+    const std::string& Get() const& { return value_; }
+
+    std::string Get() && { return std::move(value_); }
+
+   private:
+    std::string value_;
+  };
+
+  class Count {
+   public:
+    explicit Count(size_t value) : value_(value) {}
+
+    size_t Get() const { return value_; }
+
+   private:
+    size_t value_;
+  };
+
+  boost::optional<Match> ExtractMatch() { return std::move(pattern_); }
+
+  boost::optional<Count> ExtractCount() { return std::move(count_); }
+
+ private:
+  void Apply(Match pattern) {
+    if (pattern_)
+      throw ::redis::InvalidArgumentException("duplicate Match parameter");
+    pattern_ = std::move(pattern);
+  }
+
+  void Apply(Count count) {
+    if (count_)
+      throw ::redis::InvalidArgumentException("duplicate Count parameter");
+    count_ = count;
+  }
+
+  boost::optional<Match> pattern_;
+  boost::optional<Count> count_;
+};
+
+void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
+            boost::optional<ScanOptions::Match> arg);
+void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
+            boost::optional<ScanOptions::Count> arg);
+
 enum class PubShard {
   kZeroShard,
   kRoundRobin,
@@ -117,9 +178,9 @@ class Client {
   virtual RequestIncr Incr(std::string key,
                            const CommandControl& command_control) = 0;
 
-  // TODO: [[deprecated("use Scan")]]  // TODO: add 'Scan'
-  virtual RequestKeys Keys(std::string keys_pattern, size_t shard,
-                           const CommandControl& command_control) = 0;
+  [[deprecated("use Scan")]] virtual RequestKeys Keys(
+      std::string keys_pattern, size_t shard,
+      const CommandControl& command_control) = 0;
 
   virtual RequestLindex Lindex(std::string key, int64_t index,
                                const CommandControl& command_control) = 0;
@@ -173,6 +234,12 @@ class Client {
                            const CommandControl& command_control) = 0;
 
   virtual RequestSadd Sadd(std::string key, std::vector<std::string> members,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestScan Scan(size_t shard,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestScan Scan(size_t shard, ScanOptions options,
                            const CommandControl& command_control) = 0;
 
   virtual RequestScard Scard(std::string key,
