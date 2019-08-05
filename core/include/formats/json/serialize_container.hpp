@@ -32,7 +32,7 @@ std::enable_if_t<meta::is_map<T>::value, ::formats::json::Value> Serialize(
   return builder.ExtractValue();
 }
 
-template <typename Value, typename T>
+template <typename T>
 json::Value Serialize(const boost::optional<T>& value, To<json::Value>) {
   if (!value) return {};
 
