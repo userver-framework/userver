@@ -8,6 +8,7 @@
 #include <cache/mongo_cache_type_traits.hpp>
 #include <formats/bson/document.hpp>
 #include <formats/bson/inline.hpp>
+#include <formats/bson/value_builder.hpp>
 #include <storages/mongo/operations.hpp>
 #include <storages/mongo/options.hpp>
 
@@ -20,6 +21,9 @@ namespace components {
 // clang-format off
 
 /// @brief %Base class for all caches polling mongo collection
+///
+/// You have to provide a traits class in order to use this.
+/// All fields below (except for function overrides) are mandatory.
 ///
 /// Example of traits for MongoCache:
 ///
@@ -39,18 +43,35 @@ namespace components {
 ///       mongo::db::taxi::config::kUpdated;
 ///
 ///   // Cache element type
-///   using ObjectType = MongoDocument;
+///   using ObjectType = CachedObject;
 ///   // Cache element field name that is used as an index in the cache map
-///   static constexpr auto kKeyField = &MongoDocument::name;
+///   static constexpr auto kKeyField = &CachedObject::name;
 ///   // Type of kKeyField
 ///   using KeyType = std::string;
 ///   // Type of cache map, e.g. unordered_map, map, bimap
 ///   using DataType = std::unordered_map<KeyType, ObjectType>;
 ///
-///   // Function that converts BSON to ObjectType
-///   static constexpr auto kDeserializeFunc = &MongoDocument::FromBson;
-///   // Whether it is OK to read from replica (if true, you might get stale data)
+///   // Whether the cache prefers to read from replica (if true, you might get stale data)
 ///   static constexpr bool kIsSecondaryPreferred = true;
+///
+///   // Optional function that overrides BSON to ObjectType conversion
+///   static constexpr auto DeserializeObject = &CachedObject::FromBson;
+///   // or
+///   static ObjectType DeserializeObject(const formats::bson::Document& doc) {
+///     return doc["value"].As<ObjectType>();
+///   }
+///   // (default implementation calls doc.As<ObjectType>())
+///
+///   // Optional function that overrides data retrieval operation
+///   static storages::mongo::operations::Find GetFindOperation(
+///       cache::UpdateType type,
+///       const std::chrono::system_clock::time_point& last_update) {
+///     mongo::operations::Find find_op({});
+///     find_op.SetOption(mongo::options::Projection{"key", "value"});
+///     return find_op;
+///   }
+///   // (default implementation queries kMongoUpdateFieldName: {$gt: last_update}
+///   // for incremental updates)
 ///
 ///   // Whether update part of the cache even if failed to parse some documents
 ///   static constexpr bool kAreInvalidDocumentsSkipped = false;
@@ -75,7 +96,10 @@ class MongoCache
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope& stats_scope) override;
 
-  formats::bson::Document GetQuery(
+  typename MongoCacheTraits::ObjectType DeserializeObject(
+      const formats::bson::Document& doc) const;
+
+  storages::mongo::operations::Find GetFindOperation(
       cache::UpdateType type,
       const std::chrono::system_clock::time_point& last_update);
 
@@ -97,7 +121,8 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
   if (CachingComponentBase<
           typename MongoCacheTraits::DataType>::AllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
-      !mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
+      !mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits> &&
+      !mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {
     throw std::logic_error(
         "Incremental update support is requested in config but no update field "
         "name is specified in traits of '" +
@@ -128,17 +153,9 @@ void MongoCache<MongoCacheTraits>::Update(
   namespace sm = storages::mongo;
 
   auto* collection = mongo_collection_;
-
-  auto query = GetQuery(type, last_update);
-
-  sm::operations::Find find_op(std::move(query));
-  if (MongoCacheTraits::kIsSecondaryPreferred) {
-    find_op.SetOption(sm::options::ReadPreference::kSecondaryPreferred);
-  }
-
+  auto find_op = GetFindOperation(type, last_update);
   auto cursor = collection->Execute(find_op);
-  auto it = cursor.begin();
-  if (type == cache::UpdateType::kIncremental && it == cursor.end()) {
+  if (type == cache::UpdateType::kIncremental && !cursor) {
     // Don't touch the cache at all
     LOG_INFO() << "No changes in cache " << MongoCacheTraits::kName;
     stats_scope.FinishNoChanges();
@@ -146,12 +163,11 @@ void MongoCache<MongoCacheTraits>::Update(
   }
 
   auto new_cache = GetData(type);
-  for (; it != cursor.end(); ++it) {
-    const auto& doc = *it;
+  for (const auto& doc : cursor) {
     stats_scope.IncreaseDocumentsReadCount(1);
 
     try {
-      auto object = MongoCacheTraits::kDeserializeFunc(doc);
+      auto object = DeserializeObject(doc);
       auto key = (object.*MongoCacheTraits::kKeyField);
 
       if (type == cache::UpdateType::kIncremental ||
@@ -177,18 +193,43 @@ void MongoCache<MongoCacheTraits>::Update(
 }
 
 template <class MongoCacheTraits>
-formats::bson::Document MongoCache<MongoCacheTraits>::GetQuery(
+typename MongoCacheTraits::ObjectType
+MongoCache<MongoCacheTraits>::DeserializeObject(
+    const formats::bson::Document& doc) const {
+  if constexpr (mongo_cache::impl::kHasDeserializeObject<MongoCacheTraits>) {
+    return MongoCacheTraits::DeserializeObject(doc);
+  } else {
+    return doc.As<typename MongoCacheTraits::ObjectType>();
+  }
+}
+
+template <class MongoCacheTraits>
+storages::mongo::operations::Find
+MongoCache<MongoCacheTraits>::GetFindOperation(
     cache::UpdateType type,
     const std::chrono::system_clock::time_point& last_update) {
   namespace bson = formats::bson;
+  namespace sm = storages::mongo;
 
-  if constexpr (mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
-    if (type == cache::UpdateType::kIncremental) {
-      return bson::MakeDoc(MongoCacheTraits::kMongoUpdateFieldName,
-                           bson::MakeDoc("$gt", last_update));
+  auto find_op = [&]() -> sm::operations::Find {
+    if constexpr (mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {
+      return MongoCacheTraits::GetFindOperation(type, last_update);
+    } else {
+      bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
+      if constexpr (mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
+        if (type == cache::UpdateType::kIncremental) {
+          query_builder[MongoCacheTraits::kMongoUpdateFieldName] =
+              bson::MakeDoc("$gt", last_update);
+        }
+      }
+      return sm::operations::Find(query_builder.ExtractValue());
     }
+  }();
+
+  if (MongoCacheTraits::kIsSecondaryPreferred) {
+    find_op.SetOption(sm::options::ReadPreference::kSecondaryPreferred);
   }
-  return {};
+  return find_op;
 }
 
 template <class MongoCacheTraits>

@@ -42,27 +42,35 @@ template <typename T>
 constexpr bool kHasValidDataType = HasValidDataType<T>::value;
 
 template <typename T, typename = ::utils::void_t<>>
-struct HasDeserializeFunc : std::false_type {};
-template <typename T>
-struct HasDeserializeFunc<T, ::utils::void_t<decltype(T::kDeserializeFunc)>>
-    : std::true_type {};
-template <typename T>
-constexpr bool kHasDeserializeFunc = HasDeserializeFunc<T>::value;
-
-template <typename T, typename = ::utils::void_t<>>
 struct HasSecondaryPreferred : std::false_type {};
 template <typename T>
 struct HasSecondaryPreferred<
-    T, ::utils::void_t<std::decay_t<decltype(T::kIsSecondaryPreferred)>>>
+    T, ::utils::void_t<decltype(T::kIsSecondaryPreferred)>>
     : meta::is_bool<std::decay_t<decltype(T::kIsSecondaryPreferred)>> {};
 template <typename T>
 constexpr bool kHasSecondaryPreferred = HasSecondaryPreferred<T>::value;
 
 template <typename T, typename = ::utils::void_t<>>
+struct HasDeserializeObject : std::false_type {};
+template <typename T>
+struct HasDeserializeObject<T, ::utils::void_t<decltype(T::DeserializeObject)>>
+    : std::true_type {};
+template <typename T>
+constexpr bool kHasDeserializeObject = HasDeserializeObject<T>::value;
+
+template <typename T, typename = ::utils::void_t<>>
+struct HasFindOperation : std::false_type {};
+template <typename T>
+struct HasFindOperation<T, ::utils::void_t<decltype(T::GetFindOperation)>>
+    : std::true_type {};
+template <typename T>
+constexpr bool kHasFindOperation = HasFindOperation<T>::value;
+
+template <typename T, typename = ::utils::void_t<>>
 struct HasInvalidDocumentsSkipped : std::false_type {};
 template <typename T>
 struct HasInvalidDocumentsSkipped<
-    T, ::utils::void_t<std::decay_t<decltype(T::kAreInvalidDocumentsSkipped)>>>
+    T, ::utils::void_t<decltype(T::kAreInvalidDocumentsSkipped)>>
     : meta::is_bool<std::decay_t<decltype(T::kAreInvalidDocumentsSkipped)>> {};
 template <typename T>
 constexpr bool kHasInvalidDocumentsSkipped =
@@ -76,8 +84,6 @@ struct CheckTraits {
                 "Mongo cache traits must specify key field");
   static_assert(kHasValidDataType<MongoCacheTraits>,
                 "Mongo cache traits must specify mapping data type");
-  static_assert(kHasDeserializeFunc<MongoCacheTraits>,
-                "Mongo cache traits must provide deserialization function");
   static_assert(kHasSecondaryPreferred<MongoCacheTraits>,
                 "Mongo cache traits must specify read preference");
   static_assert(kHasInvalidDocumentsSkipped<MongoCacheTraits>,
