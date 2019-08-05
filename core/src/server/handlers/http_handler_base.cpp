@@ -1,5 +1,6 @@
 #include <server/handlers/http_handler_base.hpp>
 
+#include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 
 #include <components/statistics_storage.hpp>
@@ -33,6 +34,18 @@ std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
     json_headers[header_name] = headers_holder.GetHeader(header_name);
   }
   return formats::json::ToString(json_headers.ExtractValue());
+}
+
+/// @brief Return formatted for logging body truncated to limit length
+/// (handles utf-8 chars in the place of truncating)
+/// @param body original data
+/// @param limit requested maximum size
+std::string GetTruncatedBodyForLogging(const std::string& body, size_t limit) {
+  if (body.size() <= limit) return body;
+  std::string truncated = body.substr(0, limit);
+  utils::text::utf8::TrimTruncatedEnding(truncated);
+  return fmt::format("{}...(truncated, total {} bytes)", truncated,
+                     body.size());
 }
 
 std::vector<http::HttpMethod> InitAllowedMethods(const HandlerConfig& config) {
@@ -364,22 +377,15 @@ void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
 std::string HttpHandlerBase::GetRequestBodyForLogging(
     const http::HttpRequest&, request::RequestContext&,
     const std::string& request_body) const {
-  static const std::string kTruncated = "...(truncated)";
   size_t limit = GetConfig().request_body_size_log_limit;
-  if (request_body.size() <= limit) return request_body;
-  std::string result = request_body.substr(0, limit);
-  utils::text::utf8::TrimTruncatedEnding(result);
-  result += kTruncated;
-  return result;
+  return GetTruncatedBodyForLogging(request_body, limit);
 }
 
 std::string HttpHandlerBase::GetResponseDataForLogging(
     const http::HttpRequest&, request::RequestContext&,
     const std::string& response_data) const {
   size_t limit = GetConfig().response_data_size_log_limit;
-  if (response_data.size() <= limit) return response_data;
-  return response_data.substr(0, limit) + "...(truncated, total " +
-         std::to_string(response_data.size()) + " bytes)";
+  return GetTruncatedBodyForLogging(response_data, limit);
 }
 
 std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
