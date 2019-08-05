@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include <boost/optional.hpp>
+
 #include <formats/bson.hpp>
 
 namespace fb = formats::bson;
@@ -394,4 +396,28 @@ TEST(BsonConversion, Oid) {
                   fb::Oid("5bb139509ecb0a21a6000002"));
   test_elem(doc["a"][0], "5b89ac509ecb0a21a6000001");
   test_elem(doc["e"], "5bb139509ecb0a21a6000002");
+}
+
+TEST(BsonConversion, Containers) {
+  const auto doc = fb::MakeDoc("a", fb::MakeArray(0, 1, 2), "d",
+                               fb::MakeDoc("one", 1.0, "two", 2), "n", nullptr);
+
+  EXPECT_THROW((doc["a"].ConvertTo<std::unordered_map<std::string, int>>()),
+               fb::TypeMismatchException);
+  EXPECT_THROW(doc["d"].ConvertTo<std::vector<int>>(),
+               fb::TypeMismatchException);
+
+  auto arr = doc["a"].ConvertTo<std::vector<int>>();
+  for (int i = 0; i < static_cast<int>(arr.size()); ++i) {
+    EXPECT_EQ(i, arr[i]) << "mismatch at position " << i;
+  }
+
+  auto umap = doc["d"].ConvertTo<std::unordered_map<std::string, int>>();
+  EXPECT_EQ(1, umap["one"]);
+  EXPECT_EQ(2, umap["two"]);
+
+  EXPECT_TRUE(
+      (doc["n"].ConvertTo<std::unordered_map<std::string, int>>().empty()));
+  EXPECT_TRUE(doc["n"].ConvertTo<std::vector<int>>().empty());
+  EXPECT_FALSE(doc["n"].ConvertTo<boost::optional<std::string>>());
 }

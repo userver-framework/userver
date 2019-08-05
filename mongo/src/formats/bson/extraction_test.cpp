@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/optional.hpp>
+
 #include <formats/bson.hpp>
 
 namespace fb = formats::bson;
@@ -532,7 +534,7 @@ TEST(BsonExtraction, Timestamp) {
 
 TEST(BsonExtraction, Containers) {
   const auto doc = fb::MakeDoc("a", fb::MakeArray(0, 1, 2), "d",
-                               fb::MakeDoc("one", 1, "two", 2));
+                               fb::MakeDoc("one", 1, "two", 2), "n", nullptr);
 
   EXPECT_THROW((doc["a"].As<std::unordered_map<std::string, int>>()),
                fb::TypeMismatchException);
@@ -546,4 +548,8 @@ TEST(BsonExtraction, Containers) {
   auto umap = doc["d"].As<std::unordered_map<std::string, int>>();
   EXPECT_EQ(1, umap["one"]);
   EXPECT_EQ(2, umap["two"]);
+
+  EXPECT_TRUE((doc["n"].As<std::unordered_map<std::string, int>>().empty()));
+  EXPECT_TRUE(doc["n"].As<std::vector<int>>().empty());
+  EXPECT_FALSE(doc["n"].As<boost::optional<std::string>>());
 }

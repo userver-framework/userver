@@ -117,7 +117,7 @@ class Value {
   /// default value when the field is not present
   template <typename T, typename First, typename... Rest>
   T As(First&& default_arg, Rest&&... more_default_args) const {
-    if (IsMissing()) {
+    if (IsMissing() || IsNull()) {
       return T(std::forward<First>(default_arg),
                std::forward<Rest>(more_default_args)...);
     }
@@ -142,7 +142,7 @@ class Value {
   /// default value when the field is not present
   template <typename T, typename First, typename... Rest>
   T ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
-    if (IsMissing()) {
+    if (IsMissing() || IsNull()) {
       return T(std::forward<First>(default_arg),
                std::forward<Rest>(more_default_args)...);
     }
