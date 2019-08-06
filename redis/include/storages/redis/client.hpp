@@ -85,6 +85,10 @@ enum class PubShard {
   kRoundRobin,
 };
 
+using RetryNilFromMaster = ::redis::RetryNilFromMaster;
+
+static const RetryNilFromMaster kRetryNilFromMaster{};
+
 /// @class Client
 class Client {
  public:
@@ -126,6 +130,9 @@ class Client {
   virtual RequestGet Get(std::string key,
                          const CommandControl& command_control) = 0;
 
+  virtual RequestGet Get(std::string key, RetryNilFromMaster,
+                         const CommandControl& command_control) = 0;
+
   virtual RequestHdel Hdel(std::string key, std::string field,
                            const CommandControl& command_control) = 0;
 
@@ -136,6 +143,10 @@ class Client {
                                  const CommandControl& command_control) = 0;
 
   virtual RequestHget Hget(std::string key, std::string field,
+                           const CommandControl& command_control) = 0;
+
+  virtual RequestHget Hget(std::string key, std::string field,
+                           RetryNilFromMaster,
                            const CommandControl& command_control) = 0;
 
   virtual RequestHgetall Hgetall(std::string key,
@@ -368,6 +379,10 @@ class Client {
                            const CommandControl& command_control) = 0;
 
   virtual RequestZscore Zscore(std::string key, std::string member,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestZscore Zscore(std::string key, std::string member,
+                               RetryNilFromMaster,
                                const CommandControl& command_control) = 0;
 };
 

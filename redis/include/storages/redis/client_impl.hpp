@@ -61,6 +61,9 @@ class ClientImpl final : public Client,
   RequestGet Get(std::string key,
                  const CommandControl& command_control) override;
 
+  RequestGet Get(std::string key, RetryNilFromMaster,
+                 const CommandControl& command_control) override;
+
   RequestHdel Hdel(std::string key, std::string field,
                    const CommandControl& command_control) override;
 
@@ -71,6 +74,9 @@ class ClientImpl final : public Client,
                          const CommandControl& command_control) override;
 
   RequestHget Hget(std::string key, std::string field,
+                   const CommandControl& command_control) override;
+
+  RequestHget Hget(std::string key, std::string field, RetryNilFromMaster,
                    const CommandControl& command_control) override;
 
   RequestHgetall Hgetall(std::string key,
@@ -299,6 +305,9 @@ class ClientImpl final : public Client,
                    const CommandControl& command_control) override;
 
   RequestZscore Zscore(std::string key, std::string member,
+                       const CommandControl& command_control) override;
+
+  RequestZscore Zscore(std::string key, std::string member, RetryNilFromMaster,
                        const CommandControl& command_control) override;
 
  private:

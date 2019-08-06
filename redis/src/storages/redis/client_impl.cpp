@@ -103,6 +103,11 @@ RequestGet ClientImpl::Get(std::string key,
                   GetCommandControl(command_control)));
 }
 
+RequestGet ClientImpl::Get(std::string key, RetryNilFromMaster,
+                           const CommandControl& command_control) {
+  return Get(std::move(key), command_control.MergeWith(kRetryNilFromMaster));
+}
+
 RequestHdel ClientImpl::Hdel(std::string key, std::string field,
                              const CommandControl& command_control) {
   auto shard = ShardByKey(key);
@@ -136,6 +141,13 @@ RequestHget ClientImpl::Hget(std::string key, std::string field,
   return CreateRequest<RequestHget>(
       MakeRequest(CmdArgs{"hget", std::move(key), std::move(field)}, shard,
                   false, GetCommandControl(command_control)));
+}
+
+RequestHget ClientImpl::Hget(std::string key, std::string field,
+                             RetryNilFromMaster,
+                             const CommandControl& command_control) {
+  return Hget(std::move(key), std::move(field),
+              command_control.MergeWith(kRetryNilFromMaster));
 }
 
 RequestHgetall ClientImpl::Hgetall(std::string key,
@@ -728,6 +740,13 @@ RequestZscore ClientImpl::Zscore(std::string key, std::string member,
   return CreateRequest<RequestZscore>(
       MakeRequest(CmdArgs{"zscore", std::move(key), std::move(member)}, shard,
                   false, GetCommandControl(command_control)));
+}
+
+RequestZscore ClientImpl::Zscore(std::string key, std::string member,
+                                 RetryNilFromMaster,
+                                 const CommandControl& command_control) {
+  return Zscore(std::move(key), std::move(member),
+                command_control.MergeWith(kRetryNilFromMaster));
 }
 
 ::redis::Request ClientImpl::MakeRequest(
