@@ -2,7 +2,7 @@ project-name: yandex-taxi-userver-mongo
 maintainers:
   - Common components
 
-link-targets:
+libraries:
   - libbson-static-1.0
   - libmongoc-static-1.0
   - yandex-taxi-userver-core

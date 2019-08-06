@@ -2,7 +2,7 @@ project-name: yandex-taxi-userver-core
 maintainers:
   - Common components
 
-link-targets:
+libraries:
   - Boost::filesystem
   - Boost::locale
   - Boost::program_options

@@ -2,7 +2,7 @@ project-name: yandex-taxi-userver-postgresql
 maintainers:
   - Common components
 
-link-targets:
+libraries:
   - Boost::regex
   - ICU::i18n
   - ICU::uc

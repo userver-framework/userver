@@ -2,7 +2,7 @@ project-name: yandex-taxi-userver-redis
 maintainers:
   - Common components
 
-link-targets:
+libraries:
   - Hiredis
   - yandex-taxi-userver-core
 
