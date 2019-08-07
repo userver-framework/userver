@@ -2,11 +2,12 @@
 
 #include <logging/spdlog.hpp>
 
+#include <logging/logger.hpp>
+
 namespace logging {
+namespace impl {
 
-class LoggerWorkaroud final : public spdlog::logger {
- public:
-  using spdlog::logger::sink_it_;
-};
+void SinkMessage(const logging::LoggerPtr&, spdlog::details::log_msg&);
 
+}
 }  // namespace logging

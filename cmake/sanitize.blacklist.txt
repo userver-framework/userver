@@ -21,4 +21,4 @@ src:*boost/lockfree/*
 
 [undefined]
 # For downcasting with static_cast hack
-fun:*LogHelper*DoLog*
+src:*core/src/logging/log_workaround.cpp

@@ -141,9 +141,7 @@ void LogHelper::DoLog() noexcept {
   }
 
   try {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    static_cast<LoggerWorkaroud*>(pimpl_->GetLogger().get())
-        ->sink_it_(pimpl_->Message());
+    impl::SinkMessage(pimpl_->GetLogger(), pimpl_->Message());
   } catch (...) {
     try {
       std::cerr << "LogHelper failed to sink_it_:"
