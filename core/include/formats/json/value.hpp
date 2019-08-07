@@ -26,6 +26,7 @@ class Value final {
   using const_iterator = Iterator<IterTraits>;
   using Exception = formats::json::Exception;
   using ParseException = formats::json::ParseException;
+  using Builder = ValueBuilder;
 
  public:
   /// @brief Constructs a Value that holds a Null.

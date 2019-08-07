@@ -30,6 +30,7 @@ class Value {
   using const_iterator = Iterator<Value>;
   using Exception = formats::bson::BsonException;
   using ParseException = formats::bson::ConversionException;
+  using Builder = ValueBuilder;
 
   /// Constructs a `null` value
   Value();
