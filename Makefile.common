@@ -25,7 +25,7 @@ export CC CXX
 SCAN_BUILD = scan-build-7
 SCAN_BUILD_OPTS = --force-analyze-debug-code --show-description --use-cc $(CC) --use-c++ $(CXX) -stats -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
-PYTHON3_PATH = $(firstword $(wildcard /usr/lib/yandex/taxi-py3-1/bin/python3) python3)
+PYTHON3_BIN_DIR = $(wildcard /usr/lib/yandex/taxi-py3-2/bin/)
 
 ifeq ($(CXX),clang++-7)
 ifeq ($(shell which llvm-symbolizer),)
@@ -120,15 +120,15 @@ clang-tidy: cmake
 
 .PHONY: check-pep8
 check-pep8:
-	@check-pep8 --watchers $(CMAKE_DIR)
+	@${PYTHON3_BIN_DIR}check-pep8 --watchers $(CMAKE_DIR)
 
 .PHONY: smart-check-pep8
 smart-check-pep8:
-	@check-pep8 --watchers --smart $(CMAKE_DIR)
+	@${PYTHON3_BIN_DIR}check-pep8 --watchers --smart $(CMAKE_DIR)
 
 .PHONY: teamcity-check-pep8
 teamcity-check-pep8:
-	@check-pep8 --teamcity $(CMAKE_DIR)
+	@${PYTHON3_BIN_DIR}check-pep8 --teamcity $(CMAKE_DIR)
 
 .PHONY: docs
 docs:

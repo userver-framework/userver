@@ -16,7 +16,7 @@
 Перед коммитом необходимо прогнать clang-format.
 
 Если изменения были в питоновских файлах, то желательно прогнать и `make check-pep8`.
-Для проверки линтерами требуется поставить пакет `deps-py3-1` или 
+Для проверки линтерами требуется поставить пакет `taxi-deps-py3-2` или 
 воспользоваться `pip3 install -i https://pypi.yandex-team.ru/simple/ yandex-taxi-code-linters`
 для установки в виртуальное окружение. Подробнее можно узнать [здесь](https://github.yandex-team.ru/taxi/code-linters/blob/master/README.md)
 
