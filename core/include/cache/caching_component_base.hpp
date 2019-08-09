@@ -69,9 +69,6 @@ class CachingComponentBase
   const std::string& Name() const;
   std::shared_ptr<const T> Get() const;
 
-  // Don't use this function, use Get() instead
-  [[deprecated]] std::shared_ptr<T> GetLegacyToBeRemoved() const;
-
  protected:
   void Set(std::shared_ptr<const T> value_ptr);
   void Set(T&& value);
@@ -132,11 +129,6 @@ const std::string& CachingComponentBase<T>::Name() const {
 template <typename T>
 std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
   return cache_.Get();
-}
-
-template <typename T>
-std::shared_ptr<T> CachingComponentBase<T>::GetLegacyToBeRemoved() const {
-  return std::const_pointer_cast<T>(cache_.Get());
 }
 
 template <typename T>
