@@ -3,6 +3,8 @@
 /// @file cache/base_mongo_cache.hpp
 /// @brief @copybrief components::MongoCache
 
+#include <chrono>
+
 #include <cache/cache_statistics.hpp>
 #include <cache/caching_component_base.hpp>
 #include <cache/mongo_cache_type_traits.hpp>
@@ -101,20 +103,29 @@ class MongoCache
 
   storages::mongo::operations::Find GetFindOperation(
       cache::UpdateType type,
-      const std::chrono::system_clock::time_point& last_update);
+      const std::chrono::system_clock::time_point& last_update,
+      const std::chrono::system_clock::time_point& now,
+      const std::chrono::system_clock::duration& correction);
 
   std::shared_ptr<typename MongoCacheTraits::DataType> GetData(
       cache::UpdateType type);
 
-  storages::mongo::CollectionsPtr mongo_collections_;
-  storages::mongo::Collection* mongo_collection_;
+  const storages::mongo::CollectionsPtr mongo_collections_;
+  const storages::mongo::Collection* const mongo_collection_;
+  const std::chrono::system_clock::duration correction_;
 };
 
 template <class MongoCacheTraits>
 MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
                                          const ComponentContext& context)
     : CachingComponentBase<typename MongoCacheTraits::DataType>(
-          config, context, MongoCacheTraits::kName) {
+          config, context, MongoCacheTraits::kName),
+      mongo_collections_(context.FindComponent<components::MongoCollections>()
+                             .GetCollections()),
+      mongo_collection_(std::addressof(
+          mongo_collections_.get()->*MongoCacheTraits::kMongoCollectionsField)),
+      correction_(config.ParseDuration("update-correction",
+                                       std::chrono::milliseconds::zero())) {
   [[maybe_unused]] mongo_cache::impl::CheckTraits<MongoCacheTraits>
       check_traits;
 
@@ -128,13 +139,12 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
         "name is specified in traits of '" +
         config.Name() + "' cache");
   }
-
-  auto& mongo_component = context.FindComponent<components::MongoCollections>();
-  mongo_collections_ = mongo_component.GetCollections();
-  mongo_collection_ =
-      &((*mongo_collections_).*MongoCacheTraits::kMongoCollectionsField);
-
-  // TODO: update CacheConfig from TaxiConfig
+  if (correction_.count() < 0) {
+    throw std::logic_error(
+        "Refusing to set forward (negative) update correction requested in "
+        "config for '" +
+        config.Name() + "' cache");
+  }
 
   this->StartPeriodicUpdates();
 }
@@ -148,12 +158,12 @@ template <class MongoCacheTraits>
 void MongoCache<MongoCacheTraits>::Update(
     cache::UpdateType type,
     const std::chrono::system_clock::time_point& last_update,
-    const std::chrono::system_clock::time_point& /*now*/,
+    const std::chrono::system_clock::time_point& now,
     cache::UpdateStatisticsScope& stats_scope) {
   namespace sm = storages::mongo;
 
   auto* collection = mongo_collection_;
-  auto find_op = GetFindOperation(type, last_update);
+  auto find_op = GetFindOperation(type, last_update, now, correction_);
   auto cursor = collection->Execute(find_op);
   if (type == cache::UpdateType::kIncremental && !cursor) {
     // Don't touch the cache at all
@@ -207,19 +217,22 @@ template <class MongoCacheTraits>
 storages::mongo::operations::Find
 MongoCache<MongoCacheTraits>::GetFindOperation(
     cache::UpdateType type,
-    const std::chrono::system_clock::time_point& last_update) {
+    const std::chrono::system_clock::time_point& last_update,
+    const std::chrono::system_clock::time_point& now,
+    const std::chrono::system_clock::duration& correction) {
   namespace bson = formats::bson;
   namespace sm = storages::mongo;
 
   auto find_op = [&]() -> sm::operations::Find {
     if constexpr (mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {
-      return MongoCacheTraits::GetFindOperation(type, last_update);
+      return MongoCacheTraits::GetFindOperation(type, last_update, now,
+                                                correction);
     } else {
       bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
       if constexpr (mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
         if (type == cache::UpdateType::kIncremental) {
           query_builder[MongoCacheTraits::kMongoUpdateFieldName] =
-              bson::MakeDoc("$gt", last_update);
+              bson::MakeDoc("$gt", last_update - correction);
         }
       }
       return sm::operations::Find(query_builder.ExtractValue());

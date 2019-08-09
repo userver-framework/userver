@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <type_traits>
 #include <unordered_map>
 
@@ -223,14 +224,23 @@ class PostgreCache final
 
   std::vector<storages::postgres::ClusterPtr> clusters_;
 
-  std::chrono::milliseconds full_update_timeout_;
-  std::chrono::milliseconds incremental_update_timeout_;
+  const std::chrono::system_clock::duration correction_;
+  const std::chrono::milliseconds full_update_timeout_;
+  const std::chrono::milliseconds incremental_update_timeout_;
 };
 
 template <typename PostgreCachePolicy>
 PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
                                                const ComponentContext& context)
-    : BaseType{config, context, kName} {
+    : BaseType{config, context, kName},
+      correction_{config.ParseDuration("update-correction",
+                                       std::chrono::milliseconds{0})},
+      full_update_timeout_{
+          config.ParseDuration("full-update-op-timeout",
+                               pg_cache::detail::kDefaultFullUpdateTimeout)},
+      incremental_update_timeout_{config.ParseDuration(
+          "incremental-update-op-timeout",
+          pg_cache::detail::kDefaultIncrementalUpdateTimeout)} {
   if (BaseType::AllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
@@ -239,12 +249,12 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
         "name is specified in traits of '" +
         config.Name() + "' cache");
   }
-
-  full_update_timeout_ = config.ParseDuration(
-      "full-update-op-timeout", pg_cache::detail::kDefaultFullUpdateTimeout);
-  incremental_update_timeout_ =
-      config.ParseDuration("incremental-update-op-timeout",
-                           pg_cache::detail::kDefaultIncrementalUpdateTimeout);
+  if (correction_.count() < 0) {
+    throw std::logic_error(
+        "Refusing to set forward (negative) update correction requested in "
+        "config for '" +
+        config.Name() + "' cache");
+  }
 
   const auto pg_alias = config.ParseString("pgcomponent", {});
   if (pg_alias.empty()) {
@@ -304,7 +314,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
     auto res = cluster->Execute(
         kClusterHostType,
         pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-        query, last_update);
+        query, last_update - correction_);
     stats_scope.IncreaseDocumentsReadCount(res.Size());
     CacheResults(res, data_cache, stats_scope);
     changes += res.Size();

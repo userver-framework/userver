@@ -60,4 +60,4 @@ void rcu_contention(benchmark::State& state) {
       },
       state.range(0));
 }
-BENCHMARK(rcu_contention)->RangeMultiplier(2)->Ranges({{2, 32}, {true, false}});
+BENCHMARK(rcu_contention)->RangeMultiplier(2)->Ranges({{2, 32}, {false, true}});
