@@ -19,4 +19,13 @@ std::string Base64Encode(const std::string& data, Pad pad = Pad::kWith);
 /// @throws CryptoException internal library exception
 std::string Base64Decode(const std::string& data);
 
+/// @brief Encodes data to Base64 (using URL alphabet), add padding by default
+/// @param pad controls if pad should be added or not
+/// @throws CryptoException internal library exception
+std::string Base64UrlEncode(const std::string& data, Pad pad = Pad::kWith);
+
+/// @brief Decodes data from Base64 (using URL alphabet)
+/// @throws CryptoException internal library exception
+std::string Base64UrlDecode(const std::string& data);
+
 }  // namespace crypto::base64
