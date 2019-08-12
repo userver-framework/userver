@@ -30,6 +30,8 @@ namespace components {
 ///                            default value 1 minute
 /// * incremental-update-op-timeout - timeout for an incremental update,
 ///                                   default value 1 second
+/// * update-correction - incremental update window adjustment,
+///                       default value 0
 ///
 /// @par Cache policy
 ///

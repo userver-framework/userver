@@ -25,9 +25,15 @@ namespace components {
 /// @brief %Base class for all caches polling mongo collection
 ///
 /// You have to provide a traits class in order to use this.
-/// All fields below (except for function overrides) are mandatory.
 ///
-/// Example of traits for MongoCache:
+/// ## Available options:
+/// All options of CachingComponentBase and
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// update-correction | adjusts incremental updates window to overlap with previous update | 0
+///
+/// ## Traits example:
+/// All fields below (except for function overrides) are mandatory.
 ///
 /// ```
 /// struct MongoCacheTraitsExample {
