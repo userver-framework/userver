@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <components/component_config.hpp>
@@ -48,8 +49,13 @@ class ComponentList final {
   Adders::const_iterator begin() const { return adders_.begin(); }
   Adders::const_iterator end() const { return adders_.end(); }
 
+  bool Contains(const std::string& name) const {
+    return component_names_.count(name) > 0;
+  }
+
  private:
   std::vector<std::unique_ptr<impl::ComponentAdderBase>> adders_;
+  std::unordered_set<std::string> component_names_;
 };
 
 namespace impl {
@@ -75,14 +81,18 @@ class CustomNameComponentAdder final : public ComponentAdderBase {
 
 template <typename Component>
 ComponentList& ComponentList::Append() & {
-  adders_.push_back(std::make_unique<impl::DefaultComponentAdder<Component>>());
+  auto adder = std::make_unique<impl::DefaultComponentAdder<Component>>();
+  component_names_.insert(adder->GetComponentName());
+  adders_.push_back(std::move(adder));
   return *this;
 }
 
 template <typename Component>
 ComponentList& ComponentList::Append(std::string name) & {
-  adders_.push_back(std::make_unique<impl::CustomNameComponentAdder<Component>>(
-      std::move(name)));
+  auto adder = std::make_unique<impl::CustomNameComponentAdder<Component>>(
+      std::move(name));
+  component_names_.insert(adder->GetComponentName());
+  adders_.push_back(std::move(adder));
   return *this;
 }
 

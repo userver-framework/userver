@@ -106,12 +106,17 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       "cache." + name_, std::bind(&CachingComponentBase<T>::ExtendStatistics,
                                   this, std::placeholders::_1));
 
-  if (config.ParseBool("config-settings", true) &&
-      cache::CacheConfigSet::IsConfigEnabled()) {
-    auto& taxi_config = context.FindComponent<components::TaxiConfig>();
-    OnConfigUpdate(taxi_config.Get());
-    config_subscription_ = taxi_config.AddListener(
-        this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
+  try {
+    if (config.ParseBool("config-settings", true) &&
+        cache::CacheConfigSet::IsConfigEnabled()) {
+      auto& taxi_config = context.FindComponent<components::TaxiConfig>();
+      OnConfigUpdate(taxi_config.Get());
+      config_subscription_ = taxi_config.AddListener(
+          this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
+    }
+  } catch (...) {
+    statistics_holder_.Unregister();
+    throw;
   }
 }
 

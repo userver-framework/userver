@@ -139,6 +139,13 @@ void Manager::AddComponents(const ComponentList& component_list) {
 
   for (const auto& component_config : config_->components) {
     const auto& name = component_config.Name();
+    if (!component_list.Contains(name)) {
+      ClearComponents();
+      throw std::runtime_error(
+          "component config is found in config.yaml, but no component with "
+          "such name is registered: '" +
+          name + "', forgot to register in RegisterUserComponents()?");
+    }
     component_config_map.emplace(name, component_config);
   }
 

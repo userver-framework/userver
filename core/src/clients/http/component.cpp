@@ -36,13 +36,18 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       this, "http_client",
       &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
 
-  auto& storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterExtender(
-      "httpclient",
-      [this](const utils::statistics::StatisticsRequest& /*request*/) {
-        return ExtendStatistics();
-      });
+  try {
+    auto& storage =
+        context.FindComponent<components::StatisticsStorage>().GetStorage();
+    statistics_holder_ = storage.RegisterExtender(
+        "httpclient",
+        [this](const utils::statistics::StatisticsRequest& /*request*/) {
+          return ExtendStatistics();
+        });
+  } catch (...) {
+    subscriber_scope_.Unsubscribe();
+    throw;
+  }
 }
 
 HttpClient::~HttpClient() {
