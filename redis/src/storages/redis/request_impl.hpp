@@ -19,7 +19,7 @@ Request<Result, ReplyType> CreateRequest(
 
 template <typename Result, typename ReplyType = Result>
 Request<Result, ReplyType> CreateDummyRequest(
-    ::redis::ReplyPtr&& reply, Request<Result, ReplyType>* /* for ADL */) {
+    ReplyPtr&& reply, Request<Result, ReplyType>* /* for ADL */) {
   return Request<Result, ReplyType>(
       std::make_unique<DummyRequestDataImpl<Result, ReplyType>>(
           std::move(reply)));
@@ -35,7 +35,7 @@ Request CreateRequest(::redis::Request&& request) {
 }
 
 template <typename Request>
-Request CreateDummyRequest(::redis::ReplyPtr reply) {
+Request CreateDummyRequest(ReplyPtr reply) {
   Request* tmp = nullptr;
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateDummyRequest(std::move(reply), tmp);

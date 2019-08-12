@@ -28,7 +28,7 @@ class RequestDataImplBase {
   virtual ~RequestDataImplBase();
 
  protected:
-  ::redis::ReplyPtr GetReply();
+  ReplyPtr GetReply();
 
   ::redis::Request& GetRequest();
 
@@ -50,14 +50,13 @@ class RequestDataImpl final : public RequestDataImplBase,
     return ParseReply<Result, ReplyType>(reply, request_description);
   }
 
-  ::redis::ReplyPtr GetRaw() override { return GetReply(); }
+  ReplyPtr GetRaw() override { return GetReply(); }
 };
 
 template <typename Result, typename ReplyType = Result>
 class DummyRequestDataImpl final : public RequestDataBase<Result, ReplyType> {
  public:
-  explicit DummyRequestDataImpl(::redis::ReplyPtr&& reply)
-      : reply_(std::move(reply)) {}
+  explicit DummyRequestDataImpl(ReplyPtr&& reply) : reply_(std::move(reply)) {}
 
   void Wait() override {}
 
@@ -65,38 +64,66 @@ class DummyRequestDataImpl final : public RequestDataBase<Result, ReplyType> {
     return ParseReply<Result, ReplyType>(reply_, request_description);
   }
 
-  ::redis::ReplyPtr GetRaw() override { return reply_; }
+  ReplyPtr GetRaw() override { return reply_; }
 
  private:
-  ::redis::ReplyPtr reply_;
+  ReplyPtr reply_;
 };
 
 class ClientImpl;
 
-class RequestScanData final : public RequestScanDataBase {
+template <ScanTag scan_tag>
+class RequestScanData final : public RequestScanDataBase<scan_tag> {
  public:
+  using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+
+  template <ScanTag scan_tag_param = scan_tag>
   RequestScanData(std::shared_ptr<ClientImpl> client, size_t shard,
-                  ScanOptions options, const CommandControl& command_control);
+                  ScanOptionsTmpl<scan_tag> options,
+                  const CommandControl& command_control,
+                  std::enable_if_t<scan_tag_param == ScanTag::kScan>* = nullptr)
+      : RequestScanData(std::move(client), {}, shard, std::move(options),
+                        command_control, scan_tag) {}
 
-  std::string Get() override;
+  template <ScanTag scan_tag_param = scan_tag>
+  RequestScanData(std::shared_ptr<ClientImpl> client, std::string key,
+                  size_t shard, ScanOptionsTmpl<scan_tag> options,
+                  const CommandControl& command_control,
+                  std::enable_if_t<scan_tag_param != ScanTag::kScan>* = nullptr)
+      : RequestScanData(std::move(client), std::move(key), shard,
+                        std::move(options), command_control, scan_tag) {}
 
-  std::string& Current() override;
+  ReplyElem Get() override;
+
+  ReplyElem& Current() override;
 
   bool Eof() override;
 
  private:
+  RequestScanData(std::shared_ptr<ClientImpl> client, std::string key,
+                  size_t shard, ScanOptionsTmpl<scan_tag> options,
+                  const CommandControl& command_control, ScanTag);
+
   void CheckReply();
 
   std::shared_ptr<ClientImpl> client_;
+  std::string key_;
   size_t shard_;
-  ScanOptions options_;
+  ScanOptionsTmpl<scan_tag> options_;
   CommandControl command_control_;
 
-  std::unique_ptr<RequestScanImpl> request_;
+  using ScanReply = ScanReplyTmpl<scan_tag>;
+
+  std::unique_ptr<Request<ScanReply>> request_;
   std::unique_ptr<ScanReply> reply_;
   size_t reply_keys_index_{0};
   bool eof_{false};
 };
+
+extern template class RequestScanData<ScanTag::kScan>;
+extern template class RequestScanData<ScanTag::kSscan>;
+extern template class RequestScanData<ScanTag::kHscan>;
+extern template class RequestScanData<ScanTag::kZscan>;
 
 }  // namespace redis
 }  // namespace storages

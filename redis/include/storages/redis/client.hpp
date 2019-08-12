@@ -19,16 +19,16 @@ using CommandControl = ::redis::CommandControl;
 using RangeOptions = ::redis::RangeOptions;
 using ZaddOptions = ::redis::ZaddOptions;
 
-class ScanOptions {
+class ScanOptionsBase {
  public:
-  ScanOptions() = default;
-  ScanOptions(ScanOptions& other) = default;
-  ScanOptions(const ScanOptions& other) = default;
+  ScanOptionsBase() = default;
+  ScanOptionsBase(ScanOptionsBase& other) = default;
+  ScanOptionsBase(const ScanOptionsBase& other) = default;
 
-  ScanOptions(ScanOptions&& other) = default;
+  ScanOptionsBase(ScanOptionsBase&& other) = default;
 
   template <typename... Args>
-  ScanOptions(Args&&... args) {
+  ScanOptionsBase(Args&&... args) {
     (Apply(std::forward<Args>(args)), ...);
   }
 
@@ -75,10 +75,21 @@ class ScanOptions {
   boost::optional<Count> count_;
 };
 
+// strong typedef
+template <ScanTag scan_tag>
+class ScanOptionsTmpl : public ScanOptionsBase {
+  using ScanOptionsBase::ScanOptionsBase;
+};
+
+using ScanOptions = ScanOptionsTmpl<ScanTag::kScan>;
+using SscanOptions = ScanOptionsTmpl<ScanTag::kSscan>;
+using HscanOptions = ScanOptionsTmpl<ScanTag::kHscan>;
+using ZscanOptions = ScanOptionsTmpl<ScanTag::kZscan>;
+
 void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
-            boost::optional<ScanOptions::Match> arg);
+            boost::optional<ScanOptionsBase::Match> arg);
 void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
-            boost::optional<ScanOptions::Count> arg);
+            boost::optional<ScanOptionsBase::Count> arg);
 
 enum class PubShard {
   kZeroShard,
@@ -149,6 +160,7 @@ class Client {
                            RetryNilFromMaster,
                            const CommandControl& command_control) = 0;
 
+  // use Hscan in case of a big hash
   virtual RequestHgetall Hgetall(std::string key,
                                  const CommandControl& command_control) = 0;
 
@@ -160,7 +172,7 @@ class Client {
       std::string key, std::string field, double increment,
       const CommandControl& command_control) = 0;
 
-  // TODO: [[deprecated("use Hscan")]]  // TODO: add 'Hscan'
+  // use Hscan in case of a big hash
   virtual RequestHkeys Hkeys(std::string key,
                              const CommandControl& command_control) = 0;
 
@@ -175,6 +187,12 @@ class Client {
       std::vector<std::pair<std::string, std::string>> field_values,
       const CommandControl& command_control) = 0;
 
+  virtual RequestHscan Hscan(std::string key,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestHscan Hscan(std::string key, HscanOptions options,
+                             const CommandControl& command_control) = 0;
+
   virtual RequestHset Hset(std::string key, std::string field,
                            std::string value,
                            const CommandControl& command_control) = 0;
@@ -183,6 +201,7 @@ class Client {
                                std::string value,
                                const CommandControl& command_control) = 0;
 
+  // use Hscan in case of a big hash
   virtual RequestHvals Hvals(std::string key,
                              const CommandControl& command_control) = 0;
 
@@ -229,6 +248,13 @@ class Client {
   virtual RequestPingMessage Ping(size_t shard, std::string message,
                                   const CommandControl& command_control) = 0;
 
+  virtual void Publish(std::string channel, std::string message,
+                       const CommandControl& command_control) = 0;
+
+  virtual void Publish(std::string channel, std::string message,
+                       const CommandControl& command_control,
+                       PubShard policy) = 0;
+
   virtual RequestRename Rename(std::string key, std::string new_key,
                                const CommandControl& command_control) = 0;
 
@@ -255,13 +281,6 @@ class Client {
 
   virtual RequestScard Scard(std::string key,
                              const CommandControl& command_control) = 0;
-
-  virtual void Publish(std::string channel, std::string message,
-                       const CommandControl& command_control) = 0;
-
-  virtual void Publish(std::string channel, std::string message,
-                       const CommandControl& command_control,
-                       PubShard policy) = 0;
 
   virtual RequestSet Set(std::string key, std::string value,
                          const CommandControl& command_control) = 0;
@@ -293,6 +312,7 @@ class Client {
   virtual RequestSismember Sismember(std::string key, std::string member,
                                      const CommandControl& command_control) = 0;
 
+  // use Sscan in case of a big set
   virtual RequestSmembers Smembers(std::string key,
                                    const CommandControl& command_control) = 0;
 
@@ -308,6 +328,12 @@ class Client {
 
   virtual RequestSrem Srem(std::string key, std::vector<std::string> members,
                            const CommandControl& command_control) = 0;
+
+  virtual RequestSscan Sscan(std::string key,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestSscan Sscan(std::string key, SscanOptions options,
+                             const CommandControl& command_control) = 0;
 
   virtual RequestStrlen Strlen(std::string key,
                                const CommandControl& command_control) = 0;
@@ -377,6 +403,12 @@ class Client {
 
   virtual RequestZrem Zrem(std::string key, std::vector<std::string> members,
                            const CommandControl& command_control) = 0;
+
+  virtual RequestZscan Zscan(std::string key,
+                             const CommandControl& command_control) = 0;
+
+  virtual RequestZscan Zscan(std::string key, ZscanOptions options,
+                             const CommandControl& command_control) = 0;
 
   virtual RequestZscore Zscore(std::string key, std::string member,
                                const CommandControl& command_control) = 0;

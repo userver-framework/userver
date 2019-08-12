@@ -10,7 +10,7 @@ std::string CreateTmpKey(const std::string& key, std::string prefix) {
 }
 
 void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
-            boost::optional<ScanOptions::Match> arg) {
+            boost::optional<ScanOptionsBase::Match> arg) {
   if (arg) {
     args_.emplace_back("MATCH");
     args_.emplace_back(std::move(arg)->Get());
@@ -18,7 +18,7 @@ void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
 }
 
 void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
-            boost::optional<ScanOptions::Count> arg) {
+            boost::optional<ScanOptionsBase::Count> arg) {
   if (arg) {
     args_.emplace_back("COUNT");
     args_.emplace_back(std::to_string(arg->Get()));

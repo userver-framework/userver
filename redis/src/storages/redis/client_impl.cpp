@@ -7,6 +7,21 @@
 
 namespace storages {
 namespace redis {
+namespace {
+
+template <ScanTag>
+const std::string kScanCommandName;
+
+template <>
+const std::string kScanCommandName<ScanTag::kScan> = "scan";
+template <>
+const std::string kScanCommandName<ScanTag::kSscan> = "sscan";
+template <>
+const std::string kScanCommandName<ScanTag::kHscan> = "hscan";
+template <>
+const std::string kScanCommandName<ScanTag::kZscan> = "zscan";
+
+}  // namespace
 
 ClientImpl::ClientImpl(std::shared_ptr<::redis::Sentinel> sentinel)
     : redis_client_(std::move(sentinel)) {}
@@ -19,6 +34,17 @@ size_t ClientImpl::ShardByKey(const std::string& key) const {
 
 const std::string& ClientImpl::GetAnyKeyForShard(size_t shard_idx) const {
   return redis_client_->GetAnyKeyForShard(shard_idx);
+}
+
+template <ScanTag scan_tag>
+ScanRequest<scan_tag> ClientImpl::ScanTmpl(
+    std::string key, ScanOptionsTmpl<scan_tag> options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+  return ScanRequest<scan_tag>(std::make_unique<RequestScanData<scan_tag>>(
+      shared_from_this(), std::move(key), shard, std::move(options),
+      command_control));
 }
 
 // redis commands:
@@ -216,6 +242,18 @@ RequestHmset ClientImpl::Hmset(
                   shard, true, GetCommandControl(command_control)));
 }
 
+ScanRequest<ScanTag::kHscan> ClientImpl::Hscan(
+    std::string key, const CommandControl& command_control) {
+  return Hscan(std::move(key), {}, command_control);
+}
+
+ScanRequest<ScanTag::kHscan> ClientImpl::Hscan(
+    std::string key, ScanOptionsTmpl<ScanTag::kHscan> options,
+    const CommandControl& command_control) {
+  return ScanTmpl<ScanTag::kHscan>(std::move(key), std::move(options),
+                                   command_control);
+}
+
 RequestHset ClientImpl::Hset(std::string key, std::string field,
                              std::string value,
                              const CommandControl& command_control) {
@@ -355,6 +393,20 @@ RequestPingMessage ClientImpl::Ping(size_t shard, std::string message,
                   GetCommandControl(command_control)));
 }
 
+void ClientImpl::Publish(std::string channel, std::string message,
+                         const CommandControl& command_control) {
+  return Publish(std::move(channel), std::move(message), command_control,
+                 PubShard::kZeroShard);
+}
+
+void ClientImpl::Publish(std::string channel, std::string message,
+                         const CommandControl& command_control,
+                         PubShard policy) {
+  auto shard = GetPublishShard(policy);
+  MakeRequest(CmdArgs{"publish", std::move(channel), std::move(message)}, shard,
+              true, GetCommandControl(command_control));
+}
+
 RequestRename ClientImpl::Rename(std::string key, std::string new_key,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key);
@@ -412,25 +464,38 @@ RequestSadd ClientImpl::Sadd(std::string key, std::vector<std::string> members,
                   true, GetCommandControl(command_control)));
 }
 
-RequestScan ClientImpl::Scan(size_t shard,
-                             const CommandControl& command_control) {
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+ScanRequest<ScanTag::kScan> ClientImpl::Scan(
+    size_t shard, const CommandControl& command_control) {
   return Scan(shard, {}, command_control);
 }
 
-RequestScan ClientImpl::Scan(size_t shard, ScanOptions options,
-                             const CommandControl& command_control) {
+ScanRequest<ScanTag::kScan> ClientImpl::Scan(
+    size_t shard, ScanOptionsTmpl<ScanTag::kScan> options,
+    const CommandControl& command_control) {
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-  return RequestScan(std::make_unique<RequestScanData>(
-      shared_from_this(), shard, std::move(options), command_control));
+  return ScanRequest<ScanTag::kScan>(
+      std::make_unique<RequestScanData<ScanTag::kScan>>(
+          shared_from_this(), shard, std::move(options), command_control));
 }
 
-RequestScanImpl ClientImpl::ScanImpl(size_t shard, ScanReply::Cursor cursor,
-                                     ScanOptions options,
-                                     const CommandControl& command_control) {
-  CmdArgs cmd_args{"scan", cursor.GetValue(), options.ExtractMatch(),
+Request<ScanReplyTmpl<ScanTag::kScan>> ClientImpl::MakeScanRequestNoKey(
+    size_t shard, ScanReply::Cursor cursor, ScanOptions options,
+    const CommandControl& command_control) {
+  CmdArgs cmd_args{kScanCommandName<ScanTag::kScan>, cursor.GetValue(),
+                   options.ExtractMatch(), options.ExtractCount()};
+  return CreateRequest<Request<ScanReplyTmpl<ScanTag::kScan>>>(MakeRequest(
+      std::move(cmd_args), shard, false, GetCommandControl(command_control)));
+}
+
+template <ScanTag scan_tag>
+Request<ScanReplyTmpl<scan_tag>> ClientImpl::MakeScanRequestWithKey(
+    std::string key, size_t shard,
+    typename ScanReplyTmpl<scan_tag>::Cursor cursor,
+    ScanOptionsTmpl<scan_tag> options, const CommandControl& command_control) {
+  CmdArgs cmd_args{kScanCommandName<scan_tag>, std::move(key),
+                   cursor.GetValue(), options.ExtractMatch(),
                    options.ExtractCount()};
-  return CreateRequest<RequestScanImpl>(MakeRequest(
+  return CreateRequest<Request<ScanReplyTmpl<scan_tag>>>(MakeRequest(
       std::move(cmd_args), shard, false, GetCommandControl(command_control)));
 }
 
@@ -440,20 +505,6 @@ RequestScard ClientImpl::Scard(std::string key,
   return CreateRequest<RequestScard>(
       MakeRequest(CmdArgs{"scard", std::move(key)}, shard, false,
                   GetCommandControl(command_control)));
-}
-
-void ClientImpl::Publish(std::string channel, std::string message,
-                         const CommandControl& command_control) {
-  return Publish(std::move(channel), std::move(message), command_control,
-                 PubShard::kZeroShard);
-}
-
-void ClientImpl::Publish(std::string channel, std::string message,
-                         const CommandControl& command_control,
-                         PubShard policy) {
-  auto shard = GetPublishShard(policy);
-  MakeRequest(CmdArgs{"publish", std::move(channel), std::move(message)}, shard,
-              true, GetCommandControl(command_control));
 }
 
 RequestSet ClientImpl::Set(std::string key, std::string value,
@@ -565,6 +616,18 @@ RequestSrem ClientImpl::Srem(std::string key, std::vector<std::string> members,
   return CreateRequest<RequestSrem>(
       MakeRequest(CmdArgs{"srem", std::move(key), std::move(members)}, shard,
                   true, GetCommandControl(command_control)));
+}
+
+ScanRequest<ScanTag::kSscan> ClientImpl::Sscan(
+    std::string key, const CommandControl& command_control) {
+  return Sscan(std::move(key), {}, command_control);
+}
+
+ScanRequest<ScanTag::kSscan> ClientImpl::Sscan(
+    std::string key, ScanOptionsTmpl<ScanTag::kSscan> options,
+    const CommandControl& command_control) {
+  return ScanTmpl<ScanTag::kSscan>(std::move(key), std::move(options),
+                                   command_control);
 }
 
 RequestStrlen ClientImpl::Strlen(std::string key,
@@ -734,6 +797,18 @@ RequestZrem ClientImpl::Zrem(std::string key, std::vector<std::string> members,
                   true, GetCommandControl(command_control)));
 }
 
+ScanRequest<ScanTag::kZscan> ClientImpl::Zscan(
+    std::string key, const CommandControl& command_control) {
+  return Zscan(std::move(key), {}, command_control);
+}
+
+ScanRequest<ScanTag::kZscan> ClientImpl::Zscan(
+    std::string key, ScanOptionsTmpl<ScanTag::kZscan> options,
+    const CommandControl& command_control) {
+  return ScanTmpl<ScanTag::kZscan>(std::move(key), std::move(options),
+                                   command_control);
+}
+
 RequestZscore ClientImpl::Zscore(std::string key, std::string member,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key);
@@ -771,6 +846,27 @@ size_t ClientImpl::GetPublishShard(PubShard policy) {
 
   return 0;
 }
+
+template Request<ScanReplyTmpl<ScanTag::kSscan>>
+ClientImpl::MakeScanRequestWithKey(
+    std::string key, size_t shard,
+    ScanReplyTmpl<ScanTag::kSscan>::Cursor cursor,
+    ScanOptionsTmpl<ScanTag::kSscan> options,
+    const CommandControl& command_control);
+
+template Request<ScanReplyTmpl<ScanTag::kHscan>>
+ClientImpl::MakeScanRequestWithKey(
+    std::string key, size_t shard,
+    ScanReplyTmpl<ScanTag::kHscan>::Cursor cursor,
+    ScanOptionsTmpl<ScanTag::kHscan> options,
+    const CommandControl& command_control);
+
+template Request<ScanReplyTmpl<ScanTag::kZscan>>
+ClientImpl::MakeScanRequestWithKey(
+    std::string key, size_t shard,
+    ScanReplyTmpl<ScanTag::kZscan>::Cursor cursor,
+    ScanOptionsTmpl<ScanTag::kZscan> options,
+    const CommandControl& command_control);
 
 }  // namespace redis
 }  // namespace storages

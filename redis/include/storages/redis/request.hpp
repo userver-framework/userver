@@ -14,6 +14,7 @@
 
 #include <storages/redis/reply_types.hpp>
 #include <storages/redis/request_data_base.hpp>
+#include <storages/redis/scan_tag.hpp>
 
 namespace storages {
 namespace redis {
@@ -34,17 +35,18 @@ class USERVER_NODISCARD Request final {
     return impl_->Get(request_description);
   }
 
-  ::redis::ReplyPtr GetRaw() { return impl_->GetRaw(); }
+  ReplyPtr GetRaw() { return impl_->GetRaw(); }
 
  private:
   std::unique_ptr<RequestDataBase<Result, ReplyType>> impl_;
 };
 
-class RequestScan final {
+template <ScanTag scan_tag>
+class ScanRequest final {
  public:
-  using ReplyElem = std::string;
+  using ReplyElem = typename ScanReplyElem<scan_tag>::type;
 
-  explicit RequestScan(std::unique_ptr<RequestScanDataBase>&& impl)
+  explicit ScanRequest(std::unique_ptr<RequestScanDataBase<scan_tag>>&& impl)
       : impl_(std::move(impl)) {}
 
   template <typename T = std::vector<ReplyElem>>
@@ -70,7 +72,7 @@ class RequestScan final {
     using reference = value_type&;
     using pointer = value_type*;
 
-    explicit Iterator(RequestScan* stream) : stream_(stream) {
+    explicit Iterator(ScanRequest* stream) : stream_(stream) {
       if (stream_ && !stream_->HasMore()) stream_ = nullptr;
     }
 
@@ -108,7 +110,7 @@ class RequestScan final {
     bool operator!=(const Iterator& rhs) const { return !(*this == rhs); }
 
    private:
-    RequestScan* stream_;
+    ScanRequest* stream_;
   };
 
   Iterator begin() { return Iterator(this); }
@@ -128,7 +130,7 @@ class RequestScan final {
 
   friend class Iterator;
 
-  std::unique_ptr<RequestScanDataBase> impl_;
+  std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
 };
 
 using RequestAppend = Request<size_t>;
@@ -148,6 +150,7 @@ using RequestHkeys = Request<std::vector<std::string>>;
 using RequestHlen = Request<size_t>;
 using RequestHmget = Request<std::vector<boost::optional<std::string>>>;
 using RequestHmset = Request<StatusOk, void>;
+using RequestHscan = ScanRequest<ScanTag::kHscan>;
 using RequestHset = Request<HsetReply>;
 using RequestHsetnx = Request<size_t, bool>;
 using RequestHvals = Request<std::vector<std::string>>;
@@ -169,7 +172,7 @@ using RequestRename = Request<StatusOk, void>;
 using RequestRpop = Request<boost::optional<std::string>>;
 using RequestRpush = Request<size_t>;
 using RequestSadd = Request<size_t>;
-using RequestScanImpl = Request<ScanReply>;
+using RequestScan = ScanRequest<ScanTag::kScan>;
 using RequestScard = Request<size_t>;
 using RequestSet = Request<StatusOk, void>;
 using RequestSetIfExist = Request<boost::optional<StatusOk>, bool>;
@@ -181,6 +184,7 @@ using RequestSmembers = Request<std::unordered_set<std::string>>;
 using RequestSrandmember = Request<boost::optional<std::string>>;
 using RequestSrandmembers = Request<std::vector<std::string>>;
 using RequestSrem = Request<size_t>;
+using RequestSscan = ScanRequest<ScanTag::kSscan>;
 using RequestStrlen = Request<size_t>;
 using RequestTtl = Request<TtlReply>;
 using RequestType = Request<KeyType>;
@@ -191,6 +195,7 @@ using RequestZcard = Request<size_t>;
 using RequestZrangebyscore = Request<std::vector<std::string>>;
 using RequestZrangebyscoreWithScores = Request<std::vector<MemberScore>>;
 using RequestZrem = Request<size_t>;
+using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<boost::optional<double>>;
 
 }  // namespace redis

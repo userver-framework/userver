@@ -103,6 +103,13 @@ class ClientImpl final : public Client,
       std::vector<std::pair<std::string, std::string>> field_values,
       const CommandControl& command_control) override;
 
+  ScanRequest<ScanTag::kHscan> Hscan(
+      std::string key, const CommandControl& command_control) override;
+
+  ScanRequest<ScanTag::kHscan> Hscan(
+      std::string key, HscanOptions options,
+      const CommandControl& command_control) override;
+
   RequestHset Hset(std::string key, std::string field, std::string value,
                    const CommandControl& command_control) override;
 
@@ -154,6 +161,12 @@ class ClientImpl final : public Client,
   RequestPingMessage Ping(size_t shard, std::string message,
                           const CommandControl& command_control) override;
 
+  void Publish(std::string channel, std::string message,
+               const CommandControl& command_control) override;
+
+  void Publish(std::string channel, std::string message,
+               const CommandControl& command_control, PubShard policy) override;
+
   RequestRename Rename(std::string key, std::string new_key,
                        const CommandControl& command_control) override;
 
@@ -172,24 +185,30 @@ class ClientImpl final : public Client,
   RequestSadd Sadd(std::string key, std::vector<std::string> members,
                    const CommandControl& command_control) override;
 
-  RequestScan Scan(size_t shard,
-                   const CommandControl& command_control) override;
+  ScanRequest<ScanTag::kScan> Scan(
+      size_t shard, const CommandControl& command_control) override;
 
-  RequestScan Scan(size_t shard, ScanOptions options,
-                   const CommandControl& command_control) override;
+  ScanRequest<ScanTag::kScan> Scan(
+      size_t shard, ScanOptions options,
+      const CommandControl& command_control) override;
 
-  RequestScanImpl ScanImpl(size_t shard, ScanReply::Cursor cursor,
-                           ScanOptions options,
-                           const CommandControl& command_control);
+  Request<ScanReplyTmpl<ScanTag::kScan>> MakeScanRequestNoKey(
+      size_t shard, ScanReply::Cursor cursor, ScanOptions options,
+      const CommandControl& command_control);
+
+  template <ScanTag scan_tag>
+  Request<ScanReplyTmpl<scan_tag>> MakeScanRequestWithKey(
+      std::string key, size_t shard,
+      typename ScanReplyTmpl<scan_tag>::Cursor cursor,
+      ScanOptionsTmpl<scan_tag> options, const CommandControl& command_control);
+
+  template <ScanTag scan_tag>
+  ScanRequest<scan_tag> ScanTmpl(std::string key,
+                                 ScanOptionsTmpl<scan_tag> options,
+                                 const CommandControl& command_control);
 
   RequestScard Scard(std::string key,
                      const CommandControl& command_control) override;
-
-  void Publish(std::string channel, std::string message,
-               const CommandControl& command_control) override;
-
-  void Publish(std::string channel, std::string message,
-               const CommandControl& command_control, PubShard policy) override;
 
   RequestSet Set(std::string key, std::string value,
                  const CommandControl& command_control) override;
@@ -235,6 +254,13 @@ class ClientImpl final : public Client,
 
   RequestSrem Srem(std::string key, std::vector<std::string> members,
                    const CommandControl& command_control) override;
+
+  ScanRequest<ScanTag::kSscan> Sscan(
+      std::string key, const CommandControl& command_control) override;
+
+  ScanRequest<ScanTag::kSscan> Sscan(
+      std::string key, SscanOptions options,
+      const CommandControl& command_control) override;
 
   RequestStrlen Strlen(std::string key,
                        const CommandControl& command_control) override;
@@ -303,6 +329,13 @@ class ClientImpl final : public Client,
 
   RequestZrem Zrem(std::string key, std::vector<std::string> members,
                    const CommandControl& command_control) override;
+
+  ScanRequest<ScanTag::kZscan> Zscan(
+      std::string key, const CommandControl& command_control) override;
+
+  ScanRequest<ScanTag::kZscan> Zscan(
+      std::string key, ZscanOptions options,
+      const CommandControl& command_control) override;
 
   RequestZscore Zscore(std::string key, std::string member,
                        const CommandControl& command_control) override;

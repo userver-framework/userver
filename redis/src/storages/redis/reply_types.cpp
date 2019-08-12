@@ -1,12 +1,15 @@
 #include <storages/redis/reply_types.hpp>
 
-#include <redis/reply/scan_reply.hpp>
+#include <redis/reply.hpp>
+
+#include <storages/redis/parse_reply.hpp>
 
 namespace storages {
 namespace redis {
 
-ScanReply ScanReply::Parse(::redis::ReplyPtr reply,
-                           const std::string& request_description) {
+template <ScanTag scan_tag>
+ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
+    const ReplyPtr& reply, const std::string& request_description) {
   reply->ExpectArray(request_description);
   const auto& request =
       request_description.empty() ? reply->cmd : request_description;
@@ -45,26 +48,17 @@ ScanReply ScanReply::Parse(::redis::ReplyPtr reply,
         "Can't parse reply to '" + request +
         "' request: " + "Can't parse cursor from " + cursor_elem.GetString());
   }
-  const auto& keys_data = keys_elem.GetArray();
 
-  std::vector<std::string> keys;
-  keys.reserve(keys_data.size());
-  for (const auto& key_data : keys_data) {
-    if (!key_data.IsString()) {
-      throw ::redis::ParseReplyException(
-          "Unexpected format of reply to '" + request +
-          "' request: expected keys of type " +
-          ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kString) +
-          ", but one of elements has " + key_data.GetTypeString() + " type");
-    }
-    keys.emplace_back(key_data.GetString());
-  }
+  auto keys = ParseReplyDataArray(keys_elem, reply, request_description,
+                                  To<std::vector<ReplyElem>>{});
 
-  return ScanReply{Cursor{cursor}, std::move(keys)};
+  return ScanReplyTmpl{Cursor{cursor}, std::move(keys)};
 }
 
-ScanReply::ScanReply(Cursor cursor, std::vector<std::string> keys)
-    : cursor_(cursor), keys_(std::move(keys)) {}
+template class ScanReplyTmpl<ScanTag::kScan>;
+template class ScanReplyTmpl<ScanTag::kSscan>;
+template class ScanReplyTmpl<ScanTag::kHscan>;
+template class ScanReplyTmpl<ScanTag::kZscan>;
 
 }  // namespace redis
 }  // namespace storages
