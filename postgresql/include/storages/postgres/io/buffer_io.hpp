@@ -16,6 +16,10 @@ struct ParserRequiresTypeCategories<
            std::declval<const FieldBuffer&>(),
            std::declval<const TypeBufferCategory&>()))>> : std::true_type {};
 
+template <typename T>
+constexpr bool kParserRequiresTypeCategories = ParserRequiresTypeCategories<
+    typename traits::IO<T, DataFormat::kBinaryDataFormat>::ParserType>::value;
+
 }  // namespace detail
 
 /// @brief Read a value from input buffer

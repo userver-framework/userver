@@ -43,6 +43,8 @@ struct FooBar {
   }
 };
 
+using FooBarOpt = boost::optional<FooBar>;
+
 class FooClass {
   int i;
   std::string s;
@@ -257,6 +259,34 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(res.AsContainer<std::vector<pg_test::NoUseInWrite>>())
       << "A type that is not used for writing query parameter buffers must be"
          "available for reading";
+
+  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+POSTGRE_TEST_P(OptionalCompositeTypeRoundtrip) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  pg::ResultSet res{nullptr};
+  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+
+  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+      << "Successfully create a composite type";
+
+  EXPECT_NO_THROW(
+      res = conn->Execute("select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
+                          "ARRAY['a', 'b', 'c'])::__pg_test.foobar"));
+  {
+    auto fo = res.Front().As<pg_test::FooBarOpt>();
+    EXPECT_TRUE(!!fo) << "Non-empty optional result expected";
+  }
+
+  EXPECT_NO_THROW(res = conn->Execute("select null::__pg_test.foobar"));
+  {
+    auto fo = res.Front().As<pg_test::FooBarOpt>();
+    EXPECT_TRUE(!fo) << "Empty optional result expected";
+  }
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }

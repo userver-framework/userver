@@ -9,10 +9,10 @@
 
 namespace storages::postgres::io {
 
-template <typename T, DataFormat F>
-struct BufferParser<boost::optional<T>, F,
-                    std::enable_if_t<traits::kHasParser<T, F>>>
-    : detail::BufferParserBase<boost::optional<T>> {
+namespace detail {
+
+template <typename T, DataFormat F, bool Categories>
+struct OptionalValueParser : BufferParserBase<boost::optional<T>> {
   using BaseType = detail::BufferParserBase<boost::optional<T>>;
   using ValueParser = typename traits::IO<T, F>::ParserType;
 
@@ -23,6 +23,34 @@ struct BufferParser<boost::optional<T>, F,
     ValueParser{val}(buffer);
     this->value = val;
   }
+};
+
+template <typename T, DataFormat F>
+struct OptionalValueParser<T, F, true> : BufferParserBase<boost::optional<T>> {
+  using BaseType = detail::BufferParserBase<boost::optional<T>>;
+  using ValueParser = typename traits::IO<T, F>::ParserType;
+
+  using BaseType::BaseType;
+
+  void operator()(const FieldBuffer& buffer,
+                  const TypeBufferCategory& categories) {
+    T val;
+    ValueParser{val}(buffer, categories);
+    this->value = val;
+  }
+};
+
+}  // namespace detail
+
+template <typename T, DataFormat F>
+struct BufferParser<boost::optional<T>, F,
+                    std::enable_if_t<traits::kHasParser<T, F>>>
+    : detail::OptionalValueParser<T, F,
+                                  detail::kParserRequiresTypeCategories<T>> {
+  using BaseType =
+      detail::OptionalValueParser<T, F,
+                                  detail::kParserRequiresTypeCategories<T>>;
+  using BaseType::BaseType;
 };
 
 template <typename T, DataFormat F>
@@ -63,6 +91,12 @@ template <typename T>
 struct IsMappedToPg<boost::optional<T>> : IsMappedToPg<T> {};
 template <typename T>
 struct IsSpecialMapping<boost::optional<T>> : IsMappedToPg<T> {};
+
+template <typename T>
+struct ParserBufferCategory<
+    BufferParser<boost::optional<T>, DataFormat::kBinaryDataFormat>>
+    : ParserBufferCategory<
+          typename traits::IO<T, DataFormat::kBinaryDataFormat>::ParserType> {};
 
 }  // namespace traits
 
