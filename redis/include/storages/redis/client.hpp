@@ -11,6 +11,7 @@
 #include <redis/command_options.hpp>
 
 #include <storages/redis/request.hpp>
+#include <storages/redis/request_eval.hpp>
 
 namespace storages {
 namespace redis {
@@ -125,9 +126,24 @@ class Client {
   virtual RequestDel Del(std::vector<std::string> keys,
                          const CommandControl& command_control) = 0;
 
-  virtual RequestEval Eval(std::string script, std::vector<std::string> keys,
-                           std::vector<std::string> args,
-                           const CommandControl& command_control) = 0;
+  template <typename ScriptResult,
+            typename ReplyType = impl::DefaultReplyType<ScriptResult>>
+  RequestEval<ScriptResult, ReplyType> Eval(
+      std::string script, std::vector<std::string> keys,
+      std::vector<std::string> args, const CommandControl& command_control) {
+    return RequestEval<ScriptResult, ReplyType>{EvalCommon(
+        std::move(script), std::move(keys), std::move(args), command_control)};
+  }
+
+  template <typename ScriptInfo, typename ReplyType = impl::DefaultReplyType<
+                                     std::decay_t<ScriptInfo>>>
+  RequestEval<std::decay_t<ScriptInfo>, ReplyType> Eval(
+      const ScriptInfo& script_info, std::vector<std::string> keys,
+      std::vector<std::string> args, const CommandControl& command_control) {
+    return RequestEval<std::decay_t<ScriptInfo>, ReplyType>{
+        EvalCommon(script_info.GetScript(), std::move(keys), std::move(args),
+                   command_control)};
+  }
 
   virtual RequestExists Exists(std::string key,
                                const CommandControl& command_control) = 0;
@@ -416,6 +432,11 @@ class Client {
   virtual RequestZscore Zscore(std::string key, std::string member,
                                RetryNilFromMaster,
                                const CommandControl& command_control) = 0;
+
+ protected:
+  virtual RequestEvalCommon EvalCommon(
+      std::string script, std::vector<std::string> keys,
+      std::vector<std::string> args, const CommandControl& command_control) = 0;
 };
 
 using ClientPtr = std::shared_ptr<Client>;

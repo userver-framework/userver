@@ -23,11 +23,28 @@ namespace impl {
 const ::redis::ReplyData& GetArrayData(const ReplyPtr& reply,
                                        const std::string& request_description);
 
+template <typename Result, typename ReplyType, typename = ::utils::void_t<>>
+struct HasParseFunctionFromRedisReply {
+  static constexpr bool value = false;
+};
+
+template <typename Result, typename ReplyType>
+struct HasParseFunctionFromRedisReply<
+    Result, ReplyType,
+    ::utils::void_t<decltype(
+        Result::Parse(std::declval<const ReplyPtr&>(),
+                      std::declval<const std::string&>()))>> {
+  static constexpr bool value =
+      std::is_same<decltype(Result::Parse(std::declval<const ReplyPtr&>(),
+                                          std::declval<const std::string&>())),
+                   ReplyType>::value;
+};
+
 }  // namespace impl
 
 /// An ADL helper that allows searching for `Parse` functions in namespace
 /// `storages::redis` additionally to the namespace of `Result`.
-template <typename Result, typename ReplyType = Result>
+template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
 struct To {};
 
 std::vector<std::string> ParseReplyDataArray(
@@ -104,25 +121,8 @@ std::unordered_map<std::string, std::string> Parse(
                          const std::string& request_description,
                          To<::redis::ReplyData>);
 
-template <typename Result, typename ReplyType, typename = ::utils::void_t<>>
-struct HasParseFunctionFromRedisReply {
-  static constexpr bool value = false;
-};
-
-template <typename Result, typename ReplyType>
-struct HasParseFunctionFromRedisReply<
-    Result, ReplyType,
-    ::utils::void_t<decltype(
-        Result::Parse(std::declval<const ReplyPtr&>(),
-                      std::declval<const std::string&>()))>> {
-  static constexpr bool value =
-      std::is_same<decltype(Result::Parse(std::declval<const ReplyPtr&>(),
-                                          std::declval<const std::string&>())),
-                   ReplyType>::value;
-};
-
-template <typename Result, typename ReplyType = Result>
-std::enable_if_t<HasParseFunctionFromRedisReply<Result, ReplyType>::value,
+template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
+std::enable_if_t<impl::HasParseFunctionFromRedisReply<Result, ReplyType>::value,
                  ReplyType>
 Parse(const ReplyPtr& reply, const std::string& request_description,
       To<Result, ReplyType>) {
@@ -140,7 +140,7 @@ std::vector<T> Parse(const ReplyPtr& reply,
 const std::string& RequestDescription(const ReplyPtr& reply,
                                       const std::string& request_description);
 
-template <typename Result, typename ReplyType = Result>
+template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
 ReplyType ParseReply(const ReplyPtr& reply,
                      const std::string& request_description = {}) {
   return Parse(reply, RequestDescription(reply, request_description),

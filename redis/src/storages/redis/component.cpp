@@ -19,9 +19,10 @@
 #include <yaml_config/value.hpp>
 
 #include <storages/redis/client.hpp>
-#include <storages/redis/client_impl.hpp>
 #include <storages/redis/redis_config.hpp>
 #include <storages/redis/subscribe_client.hpp>
+
+#include "client_impl.hpp"
 #include "redis_secdist.hpp"
 
 namespace {

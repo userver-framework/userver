@@ -1,4 +1,4 @@
-#include <storages/redis/client_impl.hpp>
+#include "client_impl.hpp"
 
 #include <redis/sentinel.hpp>
 #include <utils/assert.hpp>
@@ -82,13 +82,13 @@ RequestDel ClientImpl::Del(std::vector<std::string> keys,
                   GetCommandControl(command_control)));
 }
 
-RequestEval ClientImpl::Eval(std::string script, std::vector<std::string> keys,
-                             std::vector<std::string> args,
-                             const CommandControl& command_control) {
+RequestEvalCommon ClientImpl::EvalCommon(
+    std::string script, std::vector<std::string> keys,
+    std::vector<std::string> args, const CommandControl& command_control) {
   UASSERT(!keys.empty());
   auto shard = ShardByKey(keys.at(0));
   size_t keys_size = keys.size();
-  return CreateRequest<RequestEval>(
+  return CreateRequest<RequestEvalCommon>(
       MakeRequest(CmdArgs{"eval", std::move(script), keys_size, std::move(keys),
                           std::move(args)},
                   shard, true, GetCommandControl(command_control)));

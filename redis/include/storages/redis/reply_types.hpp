@@ -6,6 +6,7 @@
 #include <redis/base.hpp>
 #include <redis/reply/expire_reply.hpp>
 #include <redis/reply/ttl_reply.hpp>
+#include <utils/void_t.hpp>
 
 #include <storages/redis/key_type.hpp>
 #include <storages/redis/scan_tag.hpp>
@@ -14,6 +15,27 @@ namespace storages {
 namespace redis {
 
 using ReplyPtr = ::redis::ReplyPtr;
+
+namespace impl {
+
+template <typename Result, typename = ::utils::void_t<>>
+struct DefaultReplyTypeHelper {
+  using type = Result;
+};
+
+template <typename Result>
+struct DefaultReplyTypeHelper<Result,
+                              ::utils::void_t<decltype(Result::Parse(
+                                  std::declval<const ReplyPtr&>(),
+                                  std::declval<const std::string&>()))>> {
+  using type = decltype(Result::Parse(std::declval<const ReplyPtr&>(),
+                                      std::declval<const std::string&>()));
+};
+
+template <typename Result>
+using DefaultReplyType = typename DefaultReplyTypeHelper<Result>::type;
+
+}  // namespace impl
 
 using ExpireReply = ::redis::ExpireReply;
 
@@ -70,51 +92,6 @@ template <>
 struct ScanReplyElem<ScanTag::kZscan> {
   using type = MemberScore;
 };
-
-template <ScanTag scan_tag>
-class ScanReplyTmpl final {
- public:
-  using ReplyElem = typename ScanReplyElem<scan_tag>::type;
-
-  static ScanReplyTmpl Parse(const ReplyPtr& reply,
-                             const std::string& request_description);
-
-  class Cursor final {
-   public:
-    Cursor() : Cursor(0) {}
-    uint64_t GetValue() const { return value_; }
-
-    friend class ScanReplyTmpl;
-
-   private:
-    explicit Cursor(uint64_t value) : value_(value) {}
-
-    uint64_t value_;
-  };
-
-  const Cursor& GetCursor() const { return cursor_; }
-
-  const std::vector<ReplyElem>& GetKeys() const { return keys_; }
-
-  std::vector<ReplyElem>& GetKeys() { return keys_; }
-
- private:
-  ScanReplyTmpl(Cursor cursor, std::vector<ReplyElem> keys)
-      : cursor_(cursor), keys_(std::move(keys)) {}
-
-  Cursor cursor_;
-  std::vector<ReplyElem> keys_;
-};
-
-extern template class ScanReplyTmpl<ScanTag::kScan>;
-extern template class ScanReplyTmpl<ScanTag::kSscan>;
-extern template class ScanReplyTmpl<ScanTag::kHscan>;
-extern template class ScanReplyTmpl<ScanTag::kZscan>;
-
-using ScanReply = ScanReplyTmpl<ScanTag::kScan>;
-using SscanReply = ScanReplyTmpl<ScanTag::kSscan>;
-using HscanReply = ScanReplyTmpl<ScanTag::kHscan>;
-using ZscanReply = ScanReplyTmpl<ScanTag::kZscan>;
 
 enum class SetReply { kSet, kNotSet };
 

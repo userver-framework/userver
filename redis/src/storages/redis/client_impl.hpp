@@ -1,8 +1,5 @@
 #pragma once
 
-/// @file storages/redis/client_impl.hpp
-/// @brief @copybrief storages::redis::ClientImpl
-
 #include <chrono>
 #include <memory>
 #include <string>
@@ -12,6 +9,8 @@
 
 #include <storages/redis/client.hpp>
 
+#include "scan_reply.hpp"
+
 namespace redis {
 class Sentinel;
 }  // namespace redis
@@ -19,7 +18,6 @@ class Sentinel;
 namespace storages {
 namespace redis {
 
-/// @class ClientImpl
 class ClientImpl final : public Client,
                          public std::enable_shared_from_this<ClientImpl> {
  public:
@@ -45,9 +43,10 @@ class ClientImpl final : public Client,
   RequestDel Del(std::vector<std::string> keys,
                  const CommandControl& command_control) override;
 
-  RequestEval Eval(std::string script, std::vector<std::string> keys,
-                   std::vector<std::string> args,
-                   const CommandControl& command_control) override;
+  RequestEvalCommon EvalCommon(std::string script,
+                               std::vector<std::string> keys,
+                               std::vector<std::string> args,
+                               const CommandControl& command_control) override;
 
   RequestExists Exists(std::string key,
                        const CommandControl& command_control) override;

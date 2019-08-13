@@ -22,7 +22,7 @@ namespace redis {
 // RequestDataBase <- RequestDataImpl
 // RequestDataBase <- MockRequestDataBase <- UserMockRequestData
 
-template <typename Result, typename ReplyType = Result>
+template <typename Result, typename ReplyType>
 class RequestDataBase {
  public:
   virtual ~RequestDataBase() = default;

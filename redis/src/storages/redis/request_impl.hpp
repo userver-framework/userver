@@ -10,14 +10,14 @@ namespace storages {
 namespace redis {
 namespace impl {
 
-template <typename Result, typename ReplyType = Result>
+template <typename Result, typename ReplyType = DefaultReplyType<Result>>
 Request<Result, ReplyType> CreateRequest(
     ::redis::Request&& request, Request<Result, ReplyType>* /* for ADL */) {
   return Request<Result, ReplyType>(
       std::make_unique<RequestDataImpl<Result, ReplyType>>(std::move(request)));
 }
 
-template <typename Result, typename ReplyType = Result>
+template <typename Result, typename ReplyType = DefaultReplyType<Result>>
 Request<Result, ReplyType> CreateDummyRequest(
     ReplyPtr&& reply, Request<Result, ReplyType>* /* for ADL */) {
   return Request<Result, ReplyType>(

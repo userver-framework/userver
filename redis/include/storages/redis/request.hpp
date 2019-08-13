@@ -19,7 +19,7 @@
 namespace storages {
 namespace redis {
 
-template <typename Result, typename ReplyType = Result>
+template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
 class USERVER_NODISCARD Request final {
  public:
   using Reply = ReplyType;
@@ -136,7 +136,7 @@ class ScanRequest final {
 using RequestAppend = Request<size_t>;
 using RequestDbsize = Request<size_t>;
 using RequestDel = Request<size_t>;
-using RequestEval = Request<::redis::ReplyData>;
+using RequestEvalCommon = Request<::redis::ReplyData>;
 using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
 using RequestGet = Request<boost::optional<std::string>>;
