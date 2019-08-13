@@ -34,6 +34,7 @@ class DeepCopyVisitor {
 
   ValueImpl::ParsedValue operator()(const ParsedDocument& src) const {
     ParsedDocument dest;
+    dest.reserve(src.size());
     for (const auto& [k, v] : src) {
       dest[k] = std::make_shared<ValueImpl>(*v);
     }
@@ -42,6 +43,7 @@ class DeepCopyVisitor {
 
   ValueImpl::ParsedValue operator()(const ParsedArray& src) const {
     ParsedArray dest;
+    dest.reserve(src.size());
     for (const auto& elem : src) {
       dest.push_back(std::make_shared<ValueImpl>(*elem));
     }
@@ -67,7 +69,7 @@ void ForEachValue(const uint8_t* data, size_t length, const Path& path,
                   Func&& func) {
   bson_iter_t it;
   if (!bson_iter_init_from_data(&it, data, length)) {
-    throw ParseException("malformed BSON at " + PathToString(path));
+    throw ParseException("malformed BSON at " + path.ToString());
   }
   while (bson_iter_next(&it)) {
     func(&it);
@@ -251,21 +253,19 @@ ValueImpl::ValueImpl(const Timestamp& value) : ValueImpl() {
   bson_value_.value.v_timestamp.increment = value.GetIncrement();
 }
 
-ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, Path path,
+ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
                      const bson_value_t& bson_value, uint32_t index)
     : storage_(std::move(storage)),
-      path_(std::move(path)),
+      path_(path.MakeChildPath(index)),
       bson_value_(bson_value) {
-  path_.push_back('[' + std::to_string(index) + ']');
   UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
 }
 
-ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, Path path,
-                     const bson_value_t& bson_value, std::string key)
+ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
+                     const bson_value_t& bson_value, const std::string& key)
     : storage_(std::move(storage)),
-      path_(std::move(path)),
+      path_(path.MakeChildPath(key)),
       bson_value_(bson_value) {
-  path_.push_back(std::move(key));
   UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
 }
 
@@ -335,7 +335,9 @@ ValueImplPtr ValueImpl::operator[](const std::string& name) {
 }
 
 ValueImplPtr ValueImpl::operator[](uint32_t index) {
-  if (IsNull()) throw OutOfBoundsException(index, 0, GetPath());
+  if (IsNull()) {
+    throw OutOfBoundsException(index, 0, path_.ToString());
+  }
 
   CheckIsArray();
   EnsureParsed();
@@ -411,7 +413,7 @@ uint32_t ValueImpl::GetSize() const {
   return boost::apply_visitor(Visitor(*this), parsed_value_);
 }
 
-std::string ValueImpl::GetPath() const { return PathToString(path_); }
+std::string ValueImpl::GetPath() const { return path_.ToString(); }
 
 ValueImpl::Iterator ValueImpl::Begin() {
   class Visitor {
@@ -505,15 +507,16 @@ void ValueImpl::EnsureParsed() {
                                           bson_iter_key_len(it));
             if (expected_key != actual_key) {
               throw ParseException(
-                  "malformed BSON array at " + GetPath() +
+                  "malformed BSON array at " + path_.ToString() +
                   ": index mismatch, expected=" + std::string(expected_key) +
                   ", got=" + std::string(actual_key));
             }
 
             const bson_value_t* iter_value = bson_iter_value(it);
             if (!iter_value) {
-              throw ParseException("malformed BSON element at " + GetPath() +
-                                   '[' + std::string(expected_key) + ']');
+              throw ParseException("malformed BSON element at " +
+                                   path_.ToString() + '[' +
+                                   std::string(expected_key) + ']');
             }
             parsed_array.push_back(
                 std::make_shared<ValueImpl>(EmplaceEnabler{}, storage_, path_,
@@ -531,8 +534,8 @@ void ValueImpl::EnsureParsed() {
             utils::string_view key(bson_iter_key(it), bson_iter_key_len(it));
             const bson_value_t* iter_value = bson_iter_value(it);
             if (!iter_value) {
-              throw ParseException("malformed BSON element at " + GetPath() +
-                                   '.' + std::string(key));
+              throw ParseException("malformed BSON element at " +
+                                   path_.ToString() + '.' + std::string(key));
             }
             auto [parsed_it, is_new] = parsed_doc.emplace(
                 std::string(key),
@@ -540,7 +543,7 @@ void ValueImpl::EnsureParsed() {
                                             *iter_value, std::string(key)));
             if (!is_new) {
               throw ParseException("duplicate key '" + std::string(key) +
-                                   "' at " + GetPath());
+                                   "' at " + path_.ToString());
             }
           });
       parsed_value_ = std::move(parsed_doc);
@@ -612,7 +615,7 @@ bool ValueImpl::operator!=(ValueImpl& rhs) { return !(*this == rhs); }
 
 void ValueImpl::CheckNotMissing() const {
   if (Type() == BSON_TYPE_EOD) {
-    throw MemberMissingException(GetPath());
+    throw MemberMissingException(path_.ToString());
   }
 }
 
@@ -620,7 +623,7 @@ void ValueImpl::CheckIsDocumentOrArray() const {
   CheckNotMissing();
   if (!IsDocument() && !IsArray()) {
     throw TypeMismatchException(bson_value_.value_type, BSON_TYPE_DOCUMENT,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
@@ -628,7 +631,7 @@ void ValueImpl::CheckIsDocument() const {
   CheckNotMissing();
   if (!IsDocument()) {
     throw TypeMismatchException(bson_value_.value_type, BSON_TYPE_DOCUMENT,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
@@ -636,7 +639,7 @@ void ValueImpl::CheckIsArray() const {
   CheckNotMissing();
   if (!IsArray()) {
     throw TypeMismatchException(bson_value_.value_type, BSON_TYPE_ARRAY,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
@@ -644,7 +647,7 @@ void ValueImpl::CheckInBounds(uint32_t idx) const {
   CheckIsArray();
   const auto size = GetSize();
   if (idx >= size) {
-    throw OutOfBoundsException(idx, size, GetPath());
+    throw OutOfBoundsException(idx, size, path_.ToString());
   }
 }
 

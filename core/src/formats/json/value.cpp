@@ -19,16 +19,14 @@ Value::Value(const NativeValuePtr& root, const Json::Value* value_ptr,
     : root_(root),
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       value_ptr_(const_cast<Json::Value*>(value_ptr)),
-      path_(path) {
-  path_.push_back(key);
-}
+      path_(path.MakeChildPath(key)) {}
 
 Value::Value(const NativeValuePtr& root, const Json::Value& val,
              const formats::json::Path& path, std::size_t index)
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    : root_(root), value_ptr_(const_cast<Json::Value*>(&val)), path_(path) {
-  path_.push_back('[' + std::to_string(index) + ']');
-}
+    : root_(root),
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+      value_ptr_(const_cast<Json::Value*>(&val)),
+      path_(path.MakeChildPath(index)) {}
 
 Value Value::operator[](const std::string& key) const {
   const Json::Value* child = nullptr;
@@ -84,35 +82,39 @@ bool Value::As<bool>() const {
   CheckNotMissing();
   if (IsBool()) return GetNative().asBool();
   throw TypeMismatchException(GetNative().type(), Json::booleanValue,
-                              GetPath());
+                              path_.ToString());
 }
 
 template <>
 int64_t Value::As<int64_t>() const {
   CheckNotMissing();
   if (IsInt64()) return GetNative().asInt64();
-  throw TypeMismatchException(GetNative().type(), Json::intValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::intValue,
+                              path_.ToString());
 }
 
 template <>
 uint64_t Value::As<uint64_t>() const {
   CheckNotMissing();
   if (IsUInt64()) return GetNative().asUInt64();
-  throw TypeMismatchException(GetNative().type(), Json::uintValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::uintValue,
+                              path_.ToString());
 }
 
 template <>
 double Value::As<double>() const {
   CheckNotMissing();
   if (IsDouble()) return GetNative().asDouble();
-  throw TypeMismatchException(GetNative().type(), Json::realValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::realValue,
+                              path_.ToString());
 }
 
 template <>
 std::string Value::As<std::string>() const {
   CheckNotMissing();
   if (IsString()) return GetNative().asString();
-  throw TypeMismatchException(GetNative().type(), Json::stringValue, GetPath());
+  throw TypeMismatchException(GetNative().type(), Json::stringValue,
+                              path_.ToString());
 }
 
 bool Value::HasMember(const char* key) const {
@@ -123,7 +125,7 @@ bool Value::HasMember(const std::string& key) const {
   return !IsMissing() && GetNative().isMember(key);
 }
 
-std::string Value::GetPath() const { return PathToString(path_); }
+std::string Value::GetPath() const { return path_.ToString(); }
 
 Value Value::Clone() const {
   Value v;
@@ -175,35 +177,35 @@ Json::Value& Value::GetNative() {
 
 void Value::CheckNotMissing() const {
   if (IsMissing()) {
-    throw MemberMissingException(GetPath());
+    throw MemberMissingException(path_.ToString());
   }
 }
 
 void Value::CheckArrayOrNull() const {
   if (!IsArray() && !IsNull()) {
     throw TypeMismatchException(GetNative().type(), Json::arrayValue,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
 void Value::CheckObjectOrNull() const {
   if (!IsObject() && !IsNull()) {
     throw TypeMismatchException(GetNative().type(), Json::objectValue,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
   if (!IsObject() && !IsArray() && !IsNull()) {
     throw TypeMismatchException(GetNative().type(), Json::objectValue,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
 void Value::CheckInBounds(std::size_t index) const {
   CheckArrayOrNull();
   if (!GetNative().isValidIndex(index)) {
-    throw OutOfBoundsException(index, GetSize(), GetPath());
+    throw OutOfBoundsException(index, GetSize(), path_.ToString());
   }
 }
 

@@ -141,6 +141,7 @@ formats::json::Value ValueBuilder::ExtractValue() {
   formats::json::Value v;
   v.GetNative() = std::move(value_.GetNative());
   v.path_ = std::move(value_.path_);
+  value_.path_ = common::Path{};
   return v;
 }
 

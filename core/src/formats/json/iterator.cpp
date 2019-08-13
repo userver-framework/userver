@@ -96,8 +96,7 @@ std::string Iterator<iter_traits>::GetName() const {
   const auto& name = iter_pimpl_->name();
   if (name.empty()) {
     throw TypeMismatchException(Json::ValueType::arrayValue,
-                                Json::ValueType::objectValue,
-                                PathToString(path_));
+                                Json::ValueType::objectValue, path_.ToString());
   }
   return name;
 }
@@ -107,8 +106,7 @@ uint32_t Iterator<iter_traits>::GetIndex() const {
   const auto index = iter_pimpl_->index();
   if (static_cast<Json::Int>(index) == -1) {
     throw TypeMismatchException(Json::ValueType::objectValue,
-                                Json::ValueType::arrayValue,
-                                PathToString(path_));
+                                Json::ValueType::arrayValue, path_.ToString());
   }
   return index;
 }

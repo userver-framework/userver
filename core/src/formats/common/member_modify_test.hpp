@@ -209,6 +209,7 @@ TYPED_TEST_P(MemberModify, IteratorOutlivesRoot) {
   {
     Value v = this->GetBuiltValue();
     it = v["key4"].begin();
+    EXPECT_EQ(it->GetPath(), "key4.[0]");
   }
   EXPECT_EQ((++it)->GetPath(), "key4.[1]");
 }

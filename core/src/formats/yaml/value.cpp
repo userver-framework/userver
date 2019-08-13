@@ -78,8 +78,7 @@ Value Value::MakeNonRoot(const YAML::Node& value,
                          const std::string& key) {
   Value ret{value};
   ret.is_root_ = false;
-  ret.path_ = path;
-  ret.path_.push_back(key);
+  ret.path_ = path.MakeChildPath(key);
   return ret;
 }
 
@@ -87,8 +86,7 @@ Value Value::MakeNonRoot(const YAML::Node& value,
                          const formats::yaml::Path& path, uint32_t index) {
   Value ret{value};
   ret.is_root_ = false;
-  ret.path_ = path;
-  ret.path_.push_back('[' + std::to_string(index) + ']');
+  ret.path_ = path.MakeChildPath(index);
   return ret;
 }
 
@@ -153,7 +151,7 @@ T Value::ValueAs() const {
   auto res = value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
   if (!ok) {
     throw TypeMismatchException(*value_pimpl_, compiler::GetTypeName<T>(),
-                                GetPath());
+                                path_.ToString());
   }
   return res;
 }
@@ -206,7 +204,7 @@ bool Value::HasMember(const std::string& key) const {
   return !IsMissing() && (*value_pimpl_)[key];
 }
 
-std::string Value::GetPath() const { return PathToString(path_); }
+std::string Value::GetPath() const { return path_.ToString(); }
 
 Value Value::Clone() const {
   Value v;
@@ -244,35 +242,35 @@ YAML::Node& Value::GetNative() {
 
 void Value::CheckNotMissing() const {
   if (IsMissing()) {
-    throw MemberMissingException(GetPath());
+    throw MemberMissingException(path_.ToString());
   }
 }
 
 void Value::CheckArrayOrNull() const {
   if (!IsArray() && !IsNull()) {
     throw TypeMismatchException(FromNative(GetNative().Type()), Type::kArray,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
 void Value::CheckObjectOrNull() const {
   if (!IsObject() && !IsNull()) {
     throw TypeMismatchException(FromNative(GetNative().Type()), Type::kObject,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
   if (!IsObject() && !IsArray() && !IsNull()) {
     throw TypeMismatchException(FromNative(GetNative().Type()), Type::kArray,
-                                GetPath());
+                                path_.ToString());
   }
 }
 
 void Value::CheckInBounds(std::size_t index) const {
   CheckArrayOrNull();
   if (!(*value_pimpl_)[index]) {
-    throw OutOfBoundsException(index, GetSize(), GetPath());
+    throw OutOfBoundsException(index, GetSize(), path_.ToString());
   }
 }
 

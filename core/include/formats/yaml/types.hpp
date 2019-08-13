@@ -23,7 +23,6 @@ namespace formats {
 namespace yaml {
 
 using formats::common::Path;
-using formats::common::PathToString;
 using formats::common::Type;
 
 class Value;

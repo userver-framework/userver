@@ -7,6 +7,7 @@
 #include <boost/variant.hpp>
 
 #include <formats/bson/types.hpp>
+#include <formats/common/path.hpp>
 
 namespace formats::bson::impl {
 
@@ -89,8 +90,10 @@ class ValueImpl {
   using ParsedValue =
       boost::variant<std::nullptr_t, ParsedDocument, ParsedArray>;
 
-  ValueImpl(EmplaceEnabler, Storage, Path, const bson_value_t&, uint32_t);
-  ValueImpl(EmplaceEnabler, Storage, Path, const bson_value_t&, std::string);
+  ValueImpl(EmplaceEnabler, Storage, const Path&, const bson_value_t&,
+            uint32_t);
+  ValueImpl(EmplaceEnabler, Storage, const Path&, const bson_value_t&,
+            const std::string&);
 
  private:
   friend class BsonBuilder;

@@ -27,7 +27,6 @@ using ParsedDocument = std::unordered_map<std::string, ValueImplPtr>;
 }  // namespace impl
 
 using formats::common::Path;
-using formats::common::PathToString;
 
 inline constexpr auto kNull = nullptr;
 

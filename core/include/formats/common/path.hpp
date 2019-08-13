@@ -9,13 +9,15 @@
 namespace formats::common {
 
 /// Document/array element path storage
-using Path = std::vector<std::string>;
+class Path {
+ public:
+  std::string ToString() const;
 
-/// @brief Converts provided Path into a human-readable representation
-/// @param path path to convert
-/// @param root empty path representation
-/// @param separator path tokens separator
-std::string PathToString(const Path& path, const std::string& root = "/",
-                         char separator = '.');
+  Path MakeChildPath(const std::string& key) const;
+  Path MakeChildPath(std::size_t index) const;
+
+ private:
+  std::string path_;
+};
 
 }  // namespace formats::common

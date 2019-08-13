@@ -19,7 +19,6 @@ namespace formats {
 namespace json {
 
 using formats::common::Path;
-using formats::common::PathToString;
 using formats::common::Type;
 
 using NativeValuePtr = std::shared_ptr<Json::Value>;
