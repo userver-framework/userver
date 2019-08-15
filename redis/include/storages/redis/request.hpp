@@ -140,6 +140,7 @@ using RequestEvalCommon = Request<::redis::ReplyData>;
 using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
 using RequestGet = Request<boost::optional<std::string>>;
+using RequestGetset = Request<boost::optional<std::string>>;
 using RequestHdel = Request<size_t>;
 using RequestHexists = Request<size_t>;
 using RequestHget = Request<boost::optional<std::string>>;

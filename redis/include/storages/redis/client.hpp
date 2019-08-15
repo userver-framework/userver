@@ -160,6 +160,9 @@ class Client {
   virtual RequestGet Get(std::string key, RetryNilFromMaster,
                          const CommandControl& command_control) = 0;
 
+  virtual RequestGetset Getset(std::string key, std::string value,
+                               const CommandControl& command_control) = 0;
+
   virtual RequestHdel Hdel(std::string key, std::string field,
                            const CommandControl& command_control) = 0;
 

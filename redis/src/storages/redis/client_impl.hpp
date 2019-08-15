@@ -31,6 +31,9 @@ class ClientImpl final : public Client,
 
   // redis commands:
 
+  RequestGetset Getset(std::string key, std::string value,
+                       const CommandControl& command_control) override;
+
   RequestAppend Append(std::string key, std::string value,
                        const CommandControl& command_control) override;
 

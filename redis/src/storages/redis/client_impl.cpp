@@ -49,6 +49,14 @@ ScanRequest<scan_tag> ClientImpl::ScanTmpl(
 
 // redis commands:
 
+RequestGetset ClientImpl::Getset(std::string key, std::string value,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestGetset>(
+      MakeRequest(CmdArgs{"getset", std::move(key), std::move(value)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
 RequestAppend ClientImpl::Append(std::string key, std::string value,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key);
