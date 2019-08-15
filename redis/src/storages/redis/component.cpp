@@ -6,10 +6,10 @@
 #include <components/statistics_storage.hpp>
 #include <formats/json/value_builder.hpp>
 #include <logging/log.hpp>
-#include <redis/reply.hpp>
 #include <redis/sentinel.hpp>
 #include <redis/subscribe_sentinel.hpp>
 #include <redis/thread_pools.hpp>
+#include <storages/redis/reply.hpp>
 #include <storages/secdist/component.hpp>
 #include <storages/secdist/exceptions.hpp>
 #include <storages/secdist/secdist.hpp>
@@ -49,7 +49,7 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   result["reconnects"] = stats.reconnects;
 
   for (size_t i = 0; i <= redis::REDIS_ERR_MAX; ++i)
-    errors[redis::Reply::StatusToString(i)] = stats.error_count[i];
+    errors[storages::redis::Reply::StatusToString(i)] = stats.error_count[i];
   utils::statistics::SolomonChildrenAreLabelValues(errors, "redis_error");
   result["errors"] = errors;
 

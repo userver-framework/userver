@@ -9,13 +9,11 @@
 #include <utils/void_t.hpp>
 
 #include <storages/redis/key_type.hpp>
+#include <storages/redis/reply_fwd.hpp>
 #include <storages/redis/scan_tag.hpp>
 
 namespace storages {
 namespace redis {
-
-using ReplyPtr = ::redis::ReplyPtr;
-
 namespace impl {
 
 template <typename Result, typename = ::utils::void_t<>>
@@ -24,11 +22,11 @@ struct DefaultReplyTypeHelper {
 };
 
 template <typename Result>
-struct DefaultReplyTypeHelper<Result,
-                              ::utils::void_t<decltype(Result::Parse(
-                                  std::declval<const ReplyPtr&>(),
-                                  std::declval<const std::string&>()))>> {
-  using type = decltype(Result::Parse(std::declval<const ReplyPtr&>(),
+struct DefaultReplyTypeHelper<
+    Result,
+    ::utils::void_t<decltype(Result::Parse(
+        std::declval<ReplyData>(), std::declval<const std::string&>()))>> {
+  using type = decltype(Result::Parse(std::declval<ReplyData>(),
                                       std::declval<const std::string&>()));
 };
 

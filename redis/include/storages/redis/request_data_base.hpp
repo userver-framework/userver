@@ -1,16 +1,9 @@
 #pragma once
 
-#include <memory>
 #include <string>
-#include <vector>
 
-#include <boost/optional.hpp>
-
+#include <storages/redis/reply_fwd.hpp>
 #include <storages/redis/scan_tag.hpp>
-
-namespace redis {
-class Reply;
-}  // namespace redis
 
 namespace storages {
 namespace redis {
@@ -31,7 +24,7 @@ class RequestDataBase {
 
   virtual ReplyType Get(const std::string& request_description = {}) = 0;
 
-  virtual std::shared_ptr<::redis::Reply> GetRaw() = 0;
+  virtual ReplyPtr GetRaw() = 0;
 };
 
 template <ScanTag scan_tag>

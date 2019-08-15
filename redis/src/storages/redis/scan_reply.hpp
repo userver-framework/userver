@@ -1,8 +1,7 @@
 #pragma once
 
-#include <redis/reply.hpp>
-
 #include <storages/redis/parse_reply.hpp>
+#include <storages/redis/reply.hpp>
 #include <storages/redis/reply_types.hpp>
 
 namespace storages {
@@ -13,7 +12,7 @@ class ScanReplyTmpl final {
  public:
   using ReplyElem = typename ScanReplyElem<scan_tag>::type;
 
-  static ScanReplyTmpl Parse(const ReplyPtr& reply,
+  static ScanReplyTmpl Parse(ReplyData&& reply_data,
                              const std::string& request_description);
 
   class Cursor final {
@@ -45,17 +44,13 @@ class ScanReplyTmpl final {
 
 template <ScanTag scan_tag>
 ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
-    const ReplyPtr& reply, const std::string& request_description) {
-  reply->ExpectArray(request_description);
-  const auto& request =
-      request_description.empty() ? reply->cmd : request_description;
+    ReplyData&& reply_data, const std::string& request_description) {
+  reply_data.ExpectArray(request_description);
 
-  const auto& data = reply->data;
-
-  const auto& top_array = data.GetArray();
+  auto& top_array = reply_data.GetArray();
   if (top_array.size() != 2) {
     throw ::redis::ParseReplyException(
-        "Unexpected reply size to '" + request +
+        "Unexpected reply size to '" + request_description +
         "' request: expected 2 elements, received " +
         std::to_string(top_array.size()));
   }
@@ -63,15 +58,17 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
   const auto& cursor_elem = top_array[0];
   if (!cursor_elem.IsString()) {
     throw ::redis::ParseReplyException(
-        "Unexpected format of reply to '" + request + "' request: expected " +
+        "Unexpected format of reply to '" + request_description +
+        "' request: expected " +
         ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kString) +
         " as first element, received " + cursor_elem.GetTypeString());
   }
 
-  const auto& keys_elem = top_array[1];
+  auto& keys_elem = top_array[1];
   if (!keys_elem.IsArray()) {
     throw ::redis::ParseReplyException(
-        "Unexpected format of reply to '" + request + "' request: expected " +
+        "Unexpected format of reply to '" + request_description +
+        "' request: expected " +
         ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kArray) +
         " as second element, received " + keys_elem.GetTypeString());
   }
@@ -81,11 +78,11 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
     cursor = std::stoul(cursor_elem.GetString());
   } catch (const std::exception& ex) {
     throw ::redis::ParseReplyException(
-        "Can't parse reply to '" + request +
+        "Can't parse reply to '" + request_description +
         "' request: " + "Can't parse cursor from " + cursor_elem.GetString());
   }
 
-  auto keys = ParseReplyDataArray(keys_elem, reply, request_description,
+  auto keys = ParseReplyDataArray(std::move(keys_elem), request_description,
                                   To<std::vector<ReplyElem>>{});
 
   return ScanReplyTmpl{Cursor{cursor}, std::move(keys)};

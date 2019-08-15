@@ -12,16 +12,11 @@
 
 #include <storages/redis/reply_types.hpp>
 
-namespace redis {
-class ReplyData;
-}  // namespace redis
-
 namespace storages {
 namespace redis {
 namespace impl {
 
-const ::redis::ReplyData& GetArrayData(const ReplyPtr& reply,
-                                       const std::string& request_description);
+ReplyData&& ExtractData(ReplyPtr& reply);
 
 template <typename Result, typename ReplyType, typename = ::utils::void_t<>>
 struct HasParseFunctionFromRedisReply {
@@ -31,14 +26,23 @@ struct HasParseFunctionFromRedisReply {
 template <typename Result, typename ReplyType>
 struct HasParseFunctionFromRedisReply<
     Result, ReplyType,
-    ::utils::void_t<decltype(
-        Result::Parse(std::declval<const ReplyPtr&>(),
-                      std::declval<const std::string&>()))>> {
+    ::utils::void_t<decltype(Result::Parse(
+        std::declval<ReplyData>(), std::declval<const std::string&>()))>> {
   static constexpr bool value =
-      std::is_same<decltype(Result::Parse(std::declval<const ReplyPtr&>(),
+      std::is_same<decltype(Result::Parse(std::declval<ReplyData>(),
                                           std::declval<const std::string&>())),
                    ReplyType>::value;
 };
+
+bool IsNil(const ReplyData& reply_data);
+
+void ExpectIsOk(const ReplyPtr& reply, const std::string& request_description);
+
+void ExpectArray(const ReplyData& reply_data,
+                 const std::string& request_description);
+
+const std::string& RequestDescription(const ReplyPtr& reply,
+                                      const std::string& request_description);
 
 }  // namespace impl
 
@@ -48,103 +52,100 @@ template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
 struct To {};
 
 std::vector<std::string> ParseReplyDataArray(
-    const ::redis::ReplyData& array_data, const ::redis::ReplyPtr& reply,
-    const std::string& request_description, To<std::vector<std::string>>);
+    ReplyData&& array_data, const std::string& request_description,
+    To<std::vector<std::string>>);
 
 std::vector<boost::optional<std::string>> ParseReplyDataArray(
-    const ::redis::ReplyData& array_data, const ::redis::ReplyPtr& reply,
-    const std::string& request_description,
+    ReplyData&& array_data, const std::string& request_description,
     To<std::vector<boost::optional<std::string>>>);
 
 std::vector<std::pair<std::string, std::string>> ParseReplyDataArray(
-    const ::redis::ReplyData& array_data, const ::redis::ReplyPtr& reply,
-    const std::string& request_description,
+    ReplyData&& array_data, const std::string& request_description,
     To<std::vector<std::pair<std::string, std::string>>>);
 
 std::vector<MemberScore> ParseReplyDataArray(
-    const ::redis::ReplyData& array_data, const ::redis::ReplyPtr& reply,
-    const std::string& request_description, To<std::vector<MemberScore>>);
+    ReplyData&& array_data, const std::string& request_description,
+    To<std::vector<MemberScore>>);
 
-std::string Parse(const ReplyPtr& reply, const std::string& request_description,
-                  To<std::string>);
+std::string Parse(ReplyData&& reply_data,
+                  const std::string& request_description, To<std::string>);
 
-boost::optional<std::string> Parse(const ReplyPtr& reply,
-                                   const std::string& request_description,
-                                   To<boost::optional<std::string>>);
-
-double Parse(const ReplyPtr& reply, const std::string& request_description,
+double Parse(ReplyData&& reply_data, const std::string& request_description,
              To<double>);
 
-boost::optional<double> Parse(const ReplyPtr& reply,
-                              const std::string& request_description,
-                              To<boost::optional<double>>);
-
-size_t Parse(const ReplyPtr& reply, const std::string& request_description,
+size_t Parse(ReplyData&& reply_data, const std::string& request_description,
              To<size_t>);
 
-bool Parse(const ReplyPtr& reply, const std::string& request_description,
+bool Parse(ReplyData&& reply_data, const std::string& request_description,
            To<size_t, bool>);
 
-int64_t Parse(const ReplyPtr& reply, const std::string& request_description,
+int64_t Parse(ReplyData&& reply_data, const std::string& request_description,
               To<int64_t>);
 
-HsetReply Parse(const ReplyPtr& reply, const std::string& request_description,
+HsetReply Parse(ReplyData&& reply_data, const std::string& request_description,
                 To<HsetReply>);
 
-PersistReply Parse(const ReplyPtr& reply,
+PersistReply Parse(ReplyData&& reply_data,
                    const std::string& request_description, To<PersistReply>);
 
-KeyType Parse(const ReplyPtr& reply, const std::string& request_description,
+KeyType Parse(ReplyData&& reply_data, const std::string& request_description,
               To<KeyType>);
 
-void Parse(const ReplyPtr& reply, const std::string& request_description,
+void Parse(ReplyData&& reply_data, const std::string& request_description,
            To<StatusOk, void>);
 
-bool Parse(const ReplyPtr& reply, const std::string& request_description,
+bool Parse(ReplyData&& reply_data, const std::string& request_description,
            To<boost::optional<StatusOk>, bool>);
 
-void Parse(const ReplyPtr& reply, const std::string& request_description,
+void Parse(ReplyData&& reply_data, const std::string& request_description,
            To<StatusPong, void>);
 
-SetReply Parse(const ReplyPtr& reply, const std::string& request_description,
+SetReply Parse(ReplyData&& reply_data, const std::string& request_description,
                To<SetReply>);
 
-std::unordered_set<std::string> Parse(const ReplyPtr& reply,
+std::unordered_set<std::string> Parse(ReplyData&& reply_data,
                                       const std::string& request_description,
                                       To<std::unordered_set<std::string>>);
 
 std::unordered_map<std::string, std::string> Parse(
-    const ReplyPtr& reply, const std::string& request_description,
+    ReplyData&& reply_data, const std::string& request_description,
     To<std::unordered_map<std::string, std::string>>);
 
-::redis::ReplyData Parse(const ReplyPtr& reply,
-                         const std::string& request_description,
-                         To<::redis::ReplyData>);
+ReplyData Parse(ReplyData&& reply_data, const std::string& request_description,
+                To<ReplyData>);
 
 template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
 std::enable_if_t<impl::HasParseFunctionFromRedisReply<Result, ReplyType>::value,
                  ReplyType>
-Parse(const ReplyPtr& reply, const std::string& request_description,
+Parse(ReplyData&& reply_data, const std::string& request_description,
       To<Result, ReplyType>) {
-  return Result::Parse(reply, request_description);
+  return Result::Parse(std::move(reply_data), request_description);
 }
 
 template <typename T>
-std::vector<T> Parse(const ReplyPtr& reply,
+std::vector<T> Parse(ReplyData&& reply_data,
                      const std::string& request_description,
                      To<std::vector<T>>) {
-  return ParseReplyDataArray(impl::GetArrayData(reply, request_description),
-                             reply, request_description, To<std::vector<T>>{});
+  impl::ExpectArray(reply_data, request_description);
+  return ParseReplyDataArray(std::move(reply_data), request_description,
+                             To<std::vector<T>>{});
 }
 
-const std::string& RequestDescription(const ReplyPtr& reply,
-                                      const std::string& request_description);
+template <typename T>
+boost::optional<T> Parse(ReplyData&& reply_data,
+                         const std::string& request_description,
+                         To<boost::optional<T>>) {
+  if (impl::IsNil(reply_data)) return boost::none;
+  return Parse(std::move(reply_data), request_description, To<T>{});
+}
 
 template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
-ReplyType ParseReply(const ReplyPtr& reply,
+ReplyType ParseReply(ReplyPtr reply,
                      const std::string& request_description = {}) {
-  return Parse(reply, RequestDescription(reply, request_description),
-               To<Result, ReplyType>{});
+  const auto& description =
+      impl::RequestDescription(reply, request_description);
+  impl::ExpectIsOk(reply, description);
+  return Parse(impl::ExtractData(reply), description, To<Result, ReplyType>{});
 }
 
 }  // namespace redis

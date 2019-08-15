@@ -68,7 +68,7 @@ class RequestDataImpl final : public RequestDataImplBase,
 
   ReplyType Get(const std::string& request_description = {}) override {
     auto reply = GetReply();
-    return ParseReply<Result, ReplyType>(reply, request_description);
+    return ParseReply<Result, ReplyType>(std::move(reply), request_description);
   }
 
   ReplyPtr GetRaw() override { return GetReply(); }
@@ -82,10 +82,11 @@ class DummyRequestDataImpl final : public RequestDataBase<Result, ReplyType> {
   void Wait() override {}
 
   ReplyType Get(const std::string& request_description = {}) override {
-    return ParseReply<Result, ReplyType>(reply_, request_description);
+    return ParseReply<Result, ReplyType>(std::move(reply_),
+                                         request_description);
   }
 
-  ReplyPtr GetRaw() override { return reply_; }
+  ReplyPtr GetRaw() override { return std::move(reply_); }
 
  private:
   ReplyPtr reply_;

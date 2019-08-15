@@ -1,7 +1,5 @@
 #include "request_data_impl.hpp"
 
-#include <redis/reply.hpp>
-
 namespace storages {
 namespace redis {
 

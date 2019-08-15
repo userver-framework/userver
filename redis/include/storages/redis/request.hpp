@@ -9,7 +9,6 @@
 #include <boost/optional.hpp>
 
 #include <redis/exception.hpp>
-#include <redis/reply.hpp>
 #include <utils/clang_format_workarounds.hpp>
 
 #include <storages/redis/reply_types.hpp>
@@ -35,9 +34,12 @@ class USERVER_NODISCARD Request final {
     return impl_->Get(request_description);
   }
 
-  ReplyPtr GetRaw() { return impl_->GetRaw(); }
+  template <typename T1, typename T2>
+  friend class RequestEval;
 
  private:
+  ReplyPtr GetRaw() { return impl_->GetRaw(); }
+
   std::unique_ptr<RequestDataBase<Result, ReplyType>> impl_;
 };
 
