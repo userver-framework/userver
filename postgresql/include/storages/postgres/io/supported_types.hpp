@@ -112,6 +112,11 @@
 //@}
 
 //@{
+/** @name JSON types */
+#include <storages/postgres/io/json_types.hpp>
+//@}
+
+//@{
 /** @name Stream text IO */
 #include <storages/postgres/io/stream_text_formatter.hpp>
 #include <storages/postgres/io/stream_text_parser.hpp>

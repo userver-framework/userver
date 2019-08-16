@@ -201,6 +201,7 @@ enum class PredefinedOids {
   kCid = 29,
   kOidVector = 30,
   kJson = 114,
+  kJsonArray = 199,  // Not in documentation
   kXml = 142,
   kPgNodeTree = 194,
   kPgDdlCommand = 32,
@@ -269,6 +270,7 @@ enum class PredefinedOids {
   kRegconfig = 3734,
   kRegdictionary = 3769,
   kJsonb = 3802,
+  kJsonbArray = 3807,  // Not in documentation
   kInt4Range = 3904,
   kRecord = 2249,
   kRecordArray = 2287,
@@ -357,6 +359,14 @@ struct ArrayType<PredefinedOids::kTimestamptz>
 template <>
 struct ArrayType<PredefinedOids::kNumeric>
     : PredefinedOid<PredefinedOids::kNumericArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kJson>
+    : PredefinedOid<PredefinedOids::kJsonArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kJsonb>
+    : PredefinedOid<PredefinedOids::kJsonbArray> {};
 //@}
 
 }  // namespace io
