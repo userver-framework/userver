@@ -9,6 +9,8 @@
 #include <formats/common/meta.hpp>
 #include <formats/parse/common.hpp>
 
+#include <utils/string_view.hpp>
+
 namespace formats {
 namespace json {
 
@@ -182,7 +184,7 @@ class Value final {
   friend class Iterator<IterTraits>;
   friend class ValueBuilder;
 
-  friend formats::json::Value FromString(const std::string&);
+  friend formats::json::Value FromString(utils::string_view);
   friend formats::json::Value FromStream(std::istream&);
   friend void Serialize(const formats::json::Value&, std::ostream&);
 };

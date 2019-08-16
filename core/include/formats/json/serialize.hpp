@@ -7,7 +7,7 @@
 namespace formats {
 namespace json {
 
-formats::json::Value FromString(const std::string& doc);
+formats::json::Value FromString(utils::string_view doc);
 formats::json::Value FromStream(std::istream& is);
 
 void Serialize(const formats::json::Value& doc, std::ostream& os);

@@ -1,6 +1,7 @@
 #include <formats/json/serialize.hpp>
 
 #include <array>
+#include <cstring>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -17,7 +18,7 @@ constexpr size_t kBufSize = 32 * 1024ull;
 namespace formats {
 namespace json {
 
-formats::json::Value FromString(const std::string& doc) {
+formats::json::Value FromString(utils::string_view doc) {
   if (doc.empty()) {
     throw ParseException("JSON document is empty");
   }

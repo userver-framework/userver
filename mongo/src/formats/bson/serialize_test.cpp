@@ -43,8 +43,8 @@ TEST(Serialize, FromJson) {
 }
 
 TEST(Serialize, ToCanonicalJson) {
-  auto json =
-      formats::json::FromString(formats::bson::ToCanonicalJsonString(kDoc));
+  auto json = formats::json::FromString(
+      formats::bson::ToCanonicalJsonString(kDoc).GetView());
 
   ASSERT_TRUE(json["string"].IsString());
   EXPECT_EQ("test", json["string"].As<std::string>());
@@ -59,8 +59,8 @@ TEST(Serialize, ToCanonicalJson) {
 }
 
 TEST(Serialize, ToRelaxedJson) {
-  auto json =
-      formats::json::FromString(formats::bson::ToRelaxedJsonString(kDoc));
+  auto json = formats::json::FromString(
+      formats::bson::ToRelaxedJsonString(kDoc).GetView());
 
   ASSERT_TRUE(json["string"].IsString());
   EXPECT_EQ("test", json["string"].As<std::string>());

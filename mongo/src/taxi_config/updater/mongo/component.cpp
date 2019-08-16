@@ -70,9 +70,9 @@ void TaxiConfigMongoUpdater::Update(
             std::max(seen_doc_update_time,
                      updated_field.As<std::chrono::system_clock::time_point>());
       }
-      mongo_docs.Set(
-          doc[config_db::kId].ConvertTo<std::string>(),
-          formats::json::FromString(formats::bson::ToLegacyJsonString(doc)));
+      mongo_docs.Set(doc[config_db::kId].ConvertTo<std::string>(),
+                     formats::json::FromString(
+                         formats::bson::ToLegacyJsonString(doc).GetView()));
     } catch (const std::exception& e) {
       stats.IncreaseDocumentsParseFailures(1);
     }
