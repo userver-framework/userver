@@ -7,6 +7,8 @@
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
+#include <storages/postgres/io/interval.hpp>
+#include <storages/postgres/io/transform_io.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
 #include <compiler/demangle.hpp>
@@ -16,6 +18,7 @@ namespace postgres {
 
 using ClockType = std::chrono::system_clock;
 using TimePoint = ClockType::time_point;
+using IntervalType = std::chrono::microseconds;
 
 TimePoint PostgresEpoch();
 
@@ -291,6 +294,45 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
   }
 };
 
+namespace detail {
+
+template <typename Rep, typename Period>
+struct DurationIntervalCvt {
+  using UserType = std::chrono::duration<Rep, Period>;
+  UserType operator()(const Interval& wire_val) const {
+    return std::chrono::duration_cast<UserType>(wire_val.GetDuration());
+  }
+  Interval operator()(const UserType& user_val) const {
+    return Interval{std::chrono::duration_cast<IntervalType>(user_val)};
+  }
+};
+
+}  // namespace detail
+
+namespace traits {
+
+/// @brief Binary formatter for std::chrono::duration
+template <typename Rep, typename Period>
+struct Output<std::chrono::duration<Rep, Period>,
+              DataFormat::kBinaryDataFormat> {
+  using type = TransformFormatter<std::chrono::duration<Rep, Period>,
+                                  io::detail::Interval,
+                                  io::detail::DurationIntervalCvt<Rep, Period>,
+                                  DataFormat::kBinaryDataFormat>;
+};
+
+/// @brief Binary parser for std::chrono::duration
+template <typename Rep, typename Period>
+struct Input<std::chrono::duration<Rep, Period>,
+             DataFormat::kBinaryDataFormat> {
+  using type =
+      TransformParser<std::chrono::duration<Rep, Period>, io::detail::Interval,
+                      io::detail::DurationIntervalCvt<Rep, Period>,
+                      DataFormat::kBinaryDataFormat>;
+};
+
+}  // namespace traits
+
 template <typename TimePointType>
 struct CppToSystemPg<postgres::detail::TimestampTz<TimePointType>>
     : PredefinedOid<PredefinedOids::kTimestamptz> {};
@@ -298,6 +340,10 @@ struct CppToSystemPg<postgres::detail::TimestampTz<TimePointType>>
 template <typename Duration>
 struct CppToSystemPg<std::chrono::time_point<ClockType, Duration>>
     : PredefinedOid<PredefinedOids::kTimestamp> {};
+
+template <typename Rep, typename Period>
+struct CppToSystemPg<std::chrono::duration<Rep, Period>>
+    : PredefinedOid<PredefinedOids::kInterval> {};
 
 }  // namespace io
 }  // namespace postgres

@@ -121,6 +121,7 @@ namespace postgres {
  *     - TransactionError
  *       - AlreadyInTransaction
  *       - NotInTransaction
+ *     - UnsupportedInterval
  *   - RuntimeError
  *     - ConnectionError
  *       - ClusterUnavailable
@@ -789,6 +790,15 @@ class InvalidEnumerationValue : public EnumerationError {
             "' for enum type '" + ::compiler::GetTypeName<Enum>()) {}
 };
 //@}
+
+/// PostgreSQL interval datatype contains months field, which cannot be
+/// converted to microseconds unambiguously
+class UnsupportedInterval : public LogicError {
+ public:
+  UnsupportedInterval()
+      : LogicError("PostgreSQL intervals containing months are not supported") {
+  }
+};
 
 //@{
 /** @name Misc exceptions */
