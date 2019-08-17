@@ -69,17 +69,23 @@ namespace components {
 ///     return doc["value"].As<ObjectType>();
 ///   }
 ///   // (default implementation calls doc.As<ObjectType>())
+///   // For using default implementation
+///   static constexpr bool kUseDefaultDeserializeObject = true;
 ///
 ///   // Optional function that overrides data retrieval operation
 ///   static storages::mongo::operations::Find GetFindOperation(
-///       cache::UpdateType type,
-///       const std::chrono::system_clock::time_point& last_update) {
+///      cache::UpdateType type,
+///      const std::chrono::system_clock::time_point& last_update,
+///      const std::chrono::system_clock::time_point& now,
+///      const std::chrono::system_clock::duration& correction) {
 ///     mongo::operations::Find find_op({});
 ///     find_op.SetOption(mongo::options::Projection{"key", "value"});
 ///     return find_op;
 ///   }
 ///   // (default implementation queries kMongoUpdateFieldName: {$gt: last_update}
-///   // for incremental updates)
+///   // for incremental updates, and {} for full updates)
+///   // For using default implementation
+///   static constexpr bool kUseDefaultFindOperation = true;
 ///
 ///   // Whether update part of the cache even if failed to parse some documents
 ///   static constexpr bool kAreInvalidDocumentsSkipped = false;
@@ -214,9 +220,13 @@ MongoCache<MongoCacheTraits>::DeserializeObject(
     const formats::bson::Document& doc) const {
   if constexpr (mongo_cache::impl::kHasDeserializeObject<MongoCacheTraits>) {
     return MongoCacheTraits::DeserializeObject(doc);
-  } else {
+  }
+  if constexpr (mongo_cache::impl::kHasDefaultDeserializeObject<
+                    MongoCacheTraits>) {
     return doc.As<typename MongoCacheTraits::ObjectType>();
   }
+  UASSERT_MSG(false,
+              "No deserialize operation defined but DeserializeObject invoked");
 }
 
 template <class MongoCacheTraits>
@@ -233,7 +243,9 @@ MongoCache<MongoCacheTraits>::GetFindOperation(
     if constexpr (mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {
       return MongoCacheTraits::GetFindOperation(type, last_update, now,
                                                 correction);
-    } else {
+    }
+    if constexpr (mongo_cache::impl::kHasDefaultFindOperation<
+                      MongoCacheTraits>) {
       bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
       if constexpr (mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
         if (type == cache::UpdateType::kIncremental) {
@@ -243,6 +255,8 @@ MongoCache<MongoCacheTraits>::GetFindOperation(
       }
       return sm::operations::Find(query_builder.ExtractValue());
     }
+    UASSERT_MSG(false,
+                "No find operation defined but GetFindOperation invoked");
   }();
 
   if (MongoCacheTraits::kIsSecondaryPreferred) {

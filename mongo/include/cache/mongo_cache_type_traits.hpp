@@ -59,12 +59,31 @@ template <typename T>
 constexpr bool kHasDeserializeObject = HasDeserializeObject<T>::value;
 
 template <typename T, typename = ::utils::void_t<>>
+struct HasDefaultDeserializeObject : std::false_type {};
+template <typename T>
+struct HasDefaultDeserializeObject<
+    T, ::utils::void_t<decltype(T::kUseDefaultDeserializeObject)>>
+    : meta::is_bool<std::decay_t<decltype(T::kUseDefaultDeserializeObject)>> {};
+template <typename T>
+constexpr bool kHasDefaultDeserializeObject =
+    HasDefaultDeserializeObject<T>::value;
+
+template <typename T, typename = ::utils::void_t<>>
 struct HasFindOperation : std::false_type {};
 template <typename T>
 struct HasFindOperation<T, ::utils::void_t<decltype(T::GetFindOperation)>>
     : std::true_type {};
 template <typename T>
 constexpr bool kHasFindOperation = HasFindOperation<T>::value;
+
+template <typename T, typename = ::utils::void_t<>>
+struct HasDefaultFindOperation : std::false_type {};
+template <typename T>
+struct HasDefaultFindOperation<
+    T, ::utils::void_t<decltype(T::kUseDefaultFindOperation)>>
+    : meta::is_bool<std::decay_t<decltype(T::kUseDefaultFindOperation)>> {};
+template <typename T>
+constexpr bool kHasDefaultFindOperation = HasDefaultFindOperation<T>::value;
 
 template <typename T, typename = ::utils::void_t<>>
 struct HasInvalidDocumentsSkipped : std::false_type {};
@@ -88,6 +107,12 @@ struct CheckTraits {
                 "Mongo cache traits must specify read preference");
   static_assert(kHasInvalidDocumentsSkipped<MongoCacheTraits>,
                 "Mongo cache traits must specify validation policy");
+  static_assert(kHasFindOperation<MongoCacheTraits> ||
+                    kHasDefaultFindOperation<MongoCacheTraits>,
+                "Mongo cache traits must specify find operation");
+  static_assert(kHasDeserializeObject<MongoCacheTraits> ||
+                    kHasDefaultDeserializeObject<MongoCacheTraits>,
+                "Mongo cache traits must specify deserialize object");
 };
 
 }  // namespace mongo_cache::impl
