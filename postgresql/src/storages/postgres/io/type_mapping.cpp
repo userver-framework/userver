@@ -38,6 +38,7 @@ TypeBufferCategory& TypeCategories() {
 
 const std::unordered_map<BufferCategory, std::string, BufferCategoryHash>
     kBufferCategoryToString{
+        {BufferCategory::kKeepCategory, "parent buffer category"},
         {BufferCategory::kNoParser, "no parser"},
         {BufferCategory::kVoid, "void result"},
         {BufferCategory::kPlainBuffer, "plain buffer"},

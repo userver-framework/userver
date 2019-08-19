@@ -19,33 +19,55 @@ inline constexpr FieldBuffer FieldBuffer::GetSubBuffer(
     throw InvalidInputBufferSize(
         len, ". Buffer remaininig size is " + std::to_string(length - offset));
   }
-  if (cat == BufferCategory::kNoParser) {
+  if (cat == BufferCategory::kKeepCategory) {
     cat = category;
   }
   return {is_null, format, cat, len, new_buffer_start};
 }
 
 template <typename T>
-std::size_t ReadRawBinary(const FieldBuffer& buffer, T& value,
-                          const TypeBufferCategory& categories) {
-  static constexpr auto size_len = sizeof(Integer);
-  Integer length{0};
-  ReadBinary(buffer.GetSubBuffer(0, size_len, BufferCategory::kPlainBuffer),
-             length);
-  if (length == kPgNullBufferSize) {
+std::size_t FieldBuffer::Read(T&& value, BufferCategory cat, std::size_t len) {
+  ReadBinary(GetSubBuffer(0, len, cat), std::forward<T>(value));
+  length -= len;
+  buffer += len;
+  return len;
+}
+
+template <typename T>
+std::size_t FieldBuffer::Read(T&& value, const TypeBufferCategory& categories,
+                              std::size_t len, BufferCategory cat) {
+  ReadBinary(GetSubBuffer(0, len, cat), std::forward<T>(value), categories);
+  length -= len;
+  buffer += len;
+  return len;
+}
+
+template <typename T>
+std::size_t FieldBuffer::ReadRaw(T&& value,
+                                 const TypeBufferCategory& categories,
+                                 BufferCategory cat) {
+  using ValueType = std::decay_t<T>;
+  Integer field_length{0};
+  auto consumed = Read(field_length, BufferCategory::kPlainBuffer);
+  if (field_length == kPgNullBufferSize) {
     // NULL value
-    traits::GetSetNull<T>::SetNull(value);
-    return size_len;
-  } else if (length < 0) {
+    traits::GetSetNull<ValueType>::SetNull(std::forward<T>(value));
+    return consumed;
+  } else if (field_length < 0) {
     // invalid length value
     throw InvalidInputBufferSize(0, "Negative buffer size value");
-  } else if (length == 0) {
-    traits::GetSetNull<T>::SetDefault(value);
-    return size_len;
+  } else if (field_length == 0) {
+    traits::GetSetNull<ValueType>::SetDefault(std::forward<T>(value));
+    return consumed;
   } else {
-    ReadBinary(buffer.GetSubBuffer(size_len, length), value, categories);
-    return length + size_len;
+    return consumed + Read(value, categories, field_length, cat);
   }
+}
+
+template <typename T>
+std::size_t ReadRawBinary(FieldBuffer buffer, T& value,
+                          const TypeBufferCategory& categories) {
+  return buffer.ReadRaw(value, categories);
 }
 
 namespace detail {

@@ -54,46 +54,37 @@ struct CompositeBinaryParser : BufferParserBase<T> {
 
   using BaseType::BaseType;
 
-  void operator()(const FieldBuffer& buffer,
-                  const TypeBufferCategory& categories) {
-    std::size_t offset{0};
-
+  void operator()(FieldBuffer buffer, const TypeBufferCategory& categories) {
     Integer field_count{0};
-    ReadBinary(
-        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
-        field_count);
-    offset += int_size;
+    buffer.Read(field_count, BufferCategory::kPlainBuffer);
 
     if (field_count != RowType::size) {
       throw CompositeSizeMismatch(field_count, RowType::size);
     }
 
-    ReadTuple(buffer.GetSubBuffer(offset), categories,
-              RowType::GetTuple(this->value), IndexSequence{});
+    ReadTuple(buffer, categories, RowType::GetTuple(this->value),
+              IndexSequence{});
   }
 
  private:
   static constexpr std::size_t int_size = sizeof(Integer);
 
   template <typename U>
-  void ReadField(const FieldBuffer& buffer, std::size_t& offset,
-                 const TypeBufferCategory& categories, U& val) const {
+  void ReadField(FieldBuffer& buffer, const TypeBufferCategory& categories,
+                 U& val) const {
     Integer field_type;
-    ReadBinary(
-        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
-        field_type);
-    offset += int_size;
+    buffer.Read(field_type, BufferCategory::kPlainBuffer);
     auto elem_category = GetTypeBufferCategory(categories, field_type);
-    offset += ReadRawBinary(
-        buffer.GetSubBuffer(offset, FieldBuffer::npos, elem_category), val,
-        categories);
+    if (elem_category == BufferCategory::kNoParser) {
+      throw LogicError{"Buffer category for oid " + std::to_string(field_type) +
+                       " is unknown"};
+    }
+    buffer.ReadRaw(val, categories, elem_category);
   }
   template <typename Tuple, std::size_t... Indexes>
-  void ReadTuple(const FieldBuffer& buffer,
-                 const TypeBufferCategory& categories, Tuple&& tuple,
-                 std::index_sequence<Indexes...>) const {
-    std::size_t offset{0};
-    (ReadField(buffer, offset, categories,
+  void ReadTuple(FieldBuffer& buffer, const TypeBufferCategory& categories,
+                 Tuple&& tuple, std::index_sequence<Indexes...>) const {
+    (ReadField(buffer, categories,
                std::get<Indexes>(std::forward<Tuple>(tuple))),
      ...);
   }

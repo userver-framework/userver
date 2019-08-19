@@ -122,7 +122,7 @@ struct NumericData {
   Digits digits;
 
   // Read from buffer
-  void ReadBuffer(const FieldBuffer& fb);
+  void ReadBuffer(FieldBuffer fb);
   // Get binary representation
   std::string GetBuffer() const;
   // Parse string
@@ -131,34 +131,17 @@ struct NumericData {
   std::string ToString() const;
 };
 
-void NumericData::ReadBuffer(const FieldBuffer& fb) {
-  constexpr std::size_t smallint_size = sizeof(Smallint);
-  std::size_t offset{0};
-
-  ReadBinary(
-      fb.GetSubBuffer(offset, smallint_size, BufferCategory::kPlainBuffer),
-      ndigits);
-  offset += smallint_size;
-
-  ReadBinary(
-      fb.GetSubBuffer(offset, smallint_size, BufferCategory::kPlainBuffer),
-      weight);
-  offset += smallint_size;
-
-  ReadBinary(
-      fb.GetSubBuffer(offset, smallint_size, BufferCategory::kPlainBuffer),
-      sign);
-  offset += smallint_size;
+void NumericData::ReadBuffer(FieldBuffer fb) {
+  fb.Read(ndigits);
+  fb.Read(weight);
+  fb.Read(sign);
 
   if (!(sign == kNumericPositive || sign == kNumericNegative ||
         sign == kNumericNan)) {
     throw InvalidBinaryBuffer{"Unexpected numeric sign value"};
   }
 
-  ReadBinary(
-      fb.GetSubBuffer(offset, smallint_size, BufferCategory::kPlainBuffer),
-      dscale);
-  offset += smallint_size;
+  fb.Read(dscale);
   if ((dscale & kDscaleMask) != dscale) {
     throw InvalidBinaryBuffer{"Invalid numeric dscale value"};
   }
@@ -166,10 +149,7 @@ void NumericData::ReadBuffer(const FieldBuffer& fb) {
   digits.reserve(ndigits);
   for (auto i = 0; i < ndigits; ++i) {
     Digit digit{0};
-    ReadBinary(
-        fb.GetSubBuffer(offset, smallint_size, BufferCategory::kPlainBuffer),
-        digit);
-    offset += smallint_size;
+    fb.Read(digit);
     if (digit < 0 || digit >= kBinEncodingBase) {
       throw InvalidBinaryBuffer{"Invalid binary digit value in numeric type"};
     }

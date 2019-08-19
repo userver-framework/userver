@@ -26,7 +26,8 @@ enum DataFormat { kTextDataFormat = 0, kBinaryDataFormat = 1 };
 ///
 /// Applied to binary parsers and deduced from field's data type.
 enum class BufferCategory {
-  kNoParser,  //!< kNoParser the data type doesn't have a parser defined
+  kKeepCategory = -1,  //!< kKeepCategory keep current buffer category
+  kNoParser = 0,  //!< kNoParser the data type doesn't have a parser defined
   kVoid,  //!< kVoid there won't be a buffer for this field, but the category is
           //!< required for correctly handling void results
   kPlainBuffer,      //!< kPlainBuffer the buffer is a single plain value
@@ -69,7 +70,21 @@ struct FieldBuffer {
   }
   constexpr FieldBuffer GetSubBuffer(
       std::size_t offset, std::size_t size = npos,
-      BufferCategory cat = BufferCategory::kNoParser) const;
+      BufferCategory cat = BufferCategory::kKeepCategory) const;
+
+  template <typename T>
+  std::size_t Read(T&& value,
+                   BufferCategory cat = BufferCategory::kKeepCategory,
+                   std::size_t length = sizeof(T));
+  template <typename T>
+  std::size_t Read(T&& value, const TypeBufferCategory& categories,
+                   std::size_t length = sizeof(T),
+                   BufferCategory cat = BufferCategory::kKeepCategory);
+
+  // Read 'raw' postgres buffer - first read the size, then read the value
+  template <typename T>
+  std::size_t ReadRaw(T&& value, const TypeBufferCategory& categories,
+                      BufferCategory cat = BufferCategory::kKeepCategory);
 };
 
 /// @brief Primary template for Postgre buffer parser.

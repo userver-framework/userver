@@ -211,6 +211,7 @@ enum class PredefinedOids {
   kBox = 603,
   kPolygon = 604,
   kLine = 628,
+  kLineArray = 629,
   kFloat4 = 700,
   kFloat8 = 701,
   kAbstime = 702,
@@ -218,6 +219,7 @@ enum class PredefinedOids {
   kTinterval = 704,
   kUnknown = 705,
   kCircle = 718,
+  kCircleArray = 719,  // Not in documentation
   kCash = 790,
   kMacaddr = 829,
   kInet = 869,
@@ -235,8 +237,13 @@ enum class PredefinedOids {
   kBphcarArray = 1014,   // Not in documentation
   kVarcharArray = 1015,  // Not in documentation
   kInt8Array = 1016,     // Not in documentation
+  kPointArray = 1017,    // Not in documentation
+  kLsegArray = 1018,     // Not in documentation
+  kPathArray = 1019,     // Not in documentation
+  kBoxArray = 1020,      // Not in documentation
   kFloat4Array = 1021,
-  kFloat8Array = 1022,  // Not in documentation
+  kFloat8Array = 1022,   // Not in documentation
+  kPolygonArray = 1027,  // Not in documentation
   kOidArray = 1028,
   kAclItem = 1033,
   kCstringArray = 1263,
@@ -366,9 +373,30 @@ struct ArrayType<PredefinedOids::kNumeric>
     : PredefinedOid<PredefinedOids::kNumericArray> {};
 
 template <>
+struct ArrayType<PredefinedOids::kPoint>
+    : PredefinedOid<PredefinedOids::kPointArray> {};
+template <>
+struct ArrayType<PredefinedOids::kLseg>
+    : PredefinedOid<PredefinedOids::kLsegArray> {};
+template <>
+struct ArrayType<PredefinedOids::kLine>
+    : PredefinedOid<PredefinedOids::kLineArray> {};
+template <>
+struct ArrayType<PredefinedOids::kBox>
+    : PredefinedOid<PredefinedOids::kBoxArray> {};
+template <>
+struct ArrayType<PredefinedOids::kPath>
+    : PredefinedOid<PredefinedOids::kPathArray> {};
+template <>
+struct ArrayType<PredefinedOids::kPolygon>
+    : PredefinedOid<PredefinedOids::kPolygonArray> {};
+template <>
+struct ArrayType<PredefinedOids::kCircle>
+    : PredefinedOid<PredefinedOids::kCircleArray> {};
+
+template <>
 struct ArrayType<PredefinedOids::kJson>
     : PredefinedOid<PredefinedOids::kJsonArray> {};
-
 template <>
 struct ArrayType<PredefinedOids::kJsonb>
     : PredefinedOid<PredefinedOids::kJsonbArray> {};

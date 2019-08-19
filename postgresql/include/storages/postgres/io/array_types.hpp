@@ -123,17 +123,13 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
 
   using BaseType::BaseType;
 
-  void operator()(const FieldBuffer& buffer,
-                  const TypeBufferCategory& categories) {
+  void operator()(FieldBuffer buffer, const TypeBufferCategory& categories) {
     using std::swap;
     static constexpr std::size_t int_size = sizeof(Integer);
-    std::size_t offset{0};
 
     // read dimension count
     Integer dim_count{0};
-    ReadBinary(
-        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
-        dim_count);
+    buffer.Read(dim_count, BufferCategory::kPlainBuffer);
     if (dim_count != static_cast<Integer>(dimensions) &&
         ForceReference(ElementMapping::init_)) {
       if (dim_count == 0) {
@@ -143,46 +139,32 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
       }
       throw DimensionMismatch{};
     }
-    offset += int_size;
 
     // read flags
     Integer flags{0};
-    ReadBinary(
-        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
-        flags);
+    buffer.Read(flags, BufferCategory::kPlainBuffer);
     // TODO check flags
-    offset += int_size;
 
     // read element oid
     Integer elem_oid{0};
-    ReadBinary(
-        buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
-        elem_oid);
+    buffer.Read(elem_oid, BufferCategory::kPlainBuffer);
     // TODO check elem_oid
     auto elem_category = GetTypeBufferCategory(categories, elem_oid);
-    offset += int_size;
 
     // read dimension data
     Dimensions on_the_wire;
     for (auto& dim : on_the_wire) {
       Integer dim_val, lbound;
-      ReadBinary(
-          buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
-          dim_val);
+      buffer.Read(dim_val, BufferCategory::kPlainBuffer);
       dim = dim_val;
-      offset += int_size;
-      ReadBinary(
-          buffer.GetSubBuffer(offset, int_size, BufferCategory::kPlainBuffer),
-          lbound);
-      offset += int_size;
+      buffer.Read(lbound, BufferCategory::kPlainBuffer);
     }
     if (!CheckDimensions(on_the_wire)) {
       throw DimensionMismatch{};
     }
     // read elements
     ValueType tmp;
-    ReadDimension(buffer.GetSubBuffer(offset), on_the_wire.begin(),
-                  elem_category, categories, tmp);
+    ReadDimension(buffer, on_the_wire.begin(), elem_category, categories, tmp);
     swap(this->value, tmp);
   }
 
@@ -216,13 +198,10 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     return true;
   }
   template <typename Element>
-  std::size_t ReadDimension(const FieldBuffer& buffer,
-                            DimensionConstIterator dim,
-                            BufferCategory elem_category,
-                            const TypeBufferCategory& categories,
-                            Element& elem) {
+  void ReadDimension(FieldBuffer& buffer, DimensionConstIterator dim,
+                     BufferCategory elem_category,
+                     const TypeBufferCategory& categories, Element& elem) {
     if constexpr (traits::kIsCompatibleContainer<Element>) {
-      std::size_t offset = 0;
       if constexpr (traits::kCanResize<Element>) {
         elem.resize(*dim);
       }
@@ -230,34 +209,25 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
       for (std::size_t i = 0; i < *dim; ++i) {
         if constexpr (1 < traits::kDimensionCount<Element>) {
           // read subdimensions
-          offset += ReadDimension(buffer.GetSubBuffer(offset), dim + 1,
-                                  elem_category, categories, *value++);
+          ReadDimension(buffer, dim + 1, elem_category, categories, *value++);
         } else {
-          offset += ReadRawBinary(
-              buffer.GetSubBuffer(offset, FieldBuffer::npos, elem_category),
-              *value++, categories);
+          buffer.ReadRaw(*value++, categories, elem_category);
         }
       }
-      return offset;
     }
   }
 
-  std::size_t ReadDimension(const FieldBuffer& buffer,
-                            DimensionConstIterator dim,
-                            BufferCategory elem_category,
-                            const TypeBufferCategory& categories,
-                            std::vector<bool>& elem) {
-    std::size_t offset = 0;
+  void ReadDimension(FieldBuffer& buffer, DimensionConstIterator dim,
+                     BufferCategory elem_category,
+                     const TypeBufferCategory& categories,
+                     std::vector<bool>& elem) {
     elem.resize(*dim);
     auto value = elem.begin();
     for (std::size_t i = 0; i < *dim; ++i) {
       bool val{false};
-      offset += ReadRawBinary(
-          buffer.GetSubBuffer(offset, FieldBuffer::npos, elem_category), val,
-          categories);
+      buffer.ReadRaw(val, categories, elem_category);
       *value++ = val;
     }
-    return offset;
   }
 };
 
