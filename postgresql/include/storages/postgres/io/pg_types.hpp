@@ -279,7 +279,6 @@ enum class PredefinedOids {
   kRegdictionary = 3769,
   kJsonb = 3802,
   kJsonbArray = 3807,  // Not in documentation
-  kInt4Range = 3904,
   kRecord = 2249,
   kRecordArray = 2287,
   kCstring = 2275,
@@ -295,7 +294,19 @@ enum class PredefinedOids {
   kAnyNonArray = 2776,
   kAnyEnum = 3500,
   kFdwHandler = 3115,
-  kAnyRange = 3831
+  kAnyRange = 3831,
+  kInt4Range = 3904,
+  kInt4RangeArray = 3905,         // Not in documentation
+  kNumRange = 3906,               // Not in documentation
+  kNumRangeArray = 3907,          // Not in documentation
+  kTimestampRange = 3908,         // Not in documentation
+  kTimestampRangeArray = 3909,    // Not in documentation
+  kTimestamptzRange = 3910,       // Not in documentation
+  kTimestamptzRangeArray = 3911,  // Not in documentation
+  kDateRange = 3912,              // Not in documentation
+  kDateRangeArray = 3913,         // Not in documentation
+  kInt8Range = 3926,              // Not in documentation
+  kInt8RangeArray = 3927,         // Not in documentation
 };
 
 template <PredefinedOids TypeOid>
@@ -371,6 +382,30 @@ struct ArrayType<PredefinedOids::kInterval>
 template <>
 struct ArrayType<PredefinedOids::kNumeric>
     : PredefinedOid<PredefinedOids::kNumericArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kInt4Range>
+    : PredefinedOid<PredefinedOids::kInt4RangeArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kNumRange>
+    : PredefinedOid<PredefinedOids::kNumRangeArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kTimestampRange>
+    : PredefinedOid<PredefinedOids::kTimestampRangeArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kTimestamptzRange>
+    : PredefinedOid<PredefinedOids::kTimestamptzRangeArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kDateRange>
+    : PredefinedOid<PredefinedOids::kDateRangeArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kInt8Range>
+    : PredefinedOid<PredefinedOids::kInt8RangeArray> {};
 
 template <>
 struct ArrayType<PredefinedOids::kPoint>

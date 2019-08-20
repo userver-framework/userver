@@ -14,9 +14,9 @@ class Flags final {
  public:
   using ValueType = std::underlying_type_t<Enum>;
 
-  constexpr Flags() : Flags(Enum::kNone) {}
-  /*implicit*/ constexpr Flags(Enum);
-  constexpr Flags(std::initializer_list<Enum>);
+  constexpr Flags() noexcept : Flags(Enum::kNone) {}
+  /*implicit*/ constexpr Flags(Enum) noexcept;
+  constexpr Flags(std::initializer_list<Enum>) noexcept;
 
   constexpr explicit operator bool() const;
 
@@ -103,11 +103,12 @@ template <typename Enum>
 bool operator!=(Enum, const AtomicFlags<Enum>&);
 
 template <typename Enum>
-constexpr Flags<Enum>::Flags(Enum value)
+constexpr Flags<Enum>::Flags(Enum value) noexcept
     : value_(static_cast<ValueType>(value)) {}
 
 template <typename Enum>
-constexpr Flags<Enum>::Flags(std::initializer_list<Enum> values) : Flags() {
+constexpr Flags<Enum>::Flags(std::initializer_list<Enum> values) noexcept
+    : Flags() {
   for (Enum value : values) {
     *this |= value;
   }

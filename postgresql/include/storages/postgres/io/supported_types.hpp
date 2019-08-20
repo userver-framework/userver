@@ -109,6 +109,7 @@
 #include <storages/postgres/io/array_types.hpp>
 #include <storages/postgres/io/composite_types.hpp>
 #include <storages/postgres/io/optional.hpp>
+#include <storages/postgres/io/range_types.hpp>
 //@}
 
 //@{
