@@ -58,7 +58,8 @@ std::enable_if_t<std::is_integral<T>::value && (sizeof(T) > 1), T> Parse(
 }
 
 template <class Value>
-auto Parse(const Value& n, To<std::chrono::seconds>) {
+std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(
+    const Value& n, To<std::chrono::seconds>) {
   std::chrono::seconds to;
   bool succeeded;
   if (n.IsInt64()) {
@@ -79,6 +80,12 @@ auto Parse(const Value& n, To<std::chrono::seconds>) {
   }
 
   return to;
+}
+
+template <typename Rep, typename Period>
+std::chrono::duration<Rep, Period> Parse(
+    int n, To<std::chrono::duration<Rep, Period>>) {
+  return std::chrono::duration<Rep, Period>{n};
 }
 
 template <class Value>
