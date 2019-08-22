@@ -436,6 +436,8 @@ void easy::set_telnet_options(std::shared_ptr<string_list> telnet_options,
   }
 }
 
+bool easy::has_post_data() const { return !post_fields_.empty() || form_; }
+
 void easy::handle_completion(const std::error_code& err) {
   LOG_TRACE() << "easy::handle_completion easy="
               << reinterpret_cast<long>(this);

@@ -62,6 +62,8 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   /// url if you don't specify request type with url
   std::shared_ptr<Request> url(const std::string& url);
+  /// data for POST request
+  std::shared_ptr<Request> data(std::string data);
   /// form for POST request
   std::shared_ptr<Request> form(const std::shared_ptr<Form>& form);
   /// Headers for request as map

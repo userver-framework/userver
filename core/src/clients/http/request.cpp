@@ -38,6 +38,26 @@ constexpr long kLeastBadHttpCodeForEB = 500;
 const std::string kTracingClientName = "external";
 
 const std::string kHeaderExpect = "Expect";
+
+std::string ToString(HttpMethod method) {
+  switch (method) {
+    case DELETE:
+      return "DELETE";
+    case GET:
+      return "GET";
+    case HEAD:
+      return "HEAD";
+    case POST:
+      return "POST";
+    case PUT:
+      return "PUT";
+    case PATCH:
+      return "PATCH";
+    case OPTIONS:
+      return "OPTIONS";
+  }
+}
+
 }  // namespace
 
 // RequestImpl definition
@@ -225,6 +245,12 @@ std::shared_ptr<Request> Request::retry(int retries, bool on_fails) {
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::data(std::string data) {
+  if (!data.empty()) easy().add_header(kHeaderExpect, "");
+  easy().set_post_fields(std::move(data));
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::form(const std::shared_ptr<Form>& form) {
   easy().set_http_post(form);
   easy().add_header(kHeaderExpect, "");
@@ -240,7 +266,8 @@ std::shared_ptr<Request> Request::headers(const Headers& headers) {
 std::shared_ptr<Request> Request::method(HttpMethod method) {
   switch (method) {
     case DELETE:
-      easy().set_custom_request("DELETE");
+    case OPTIONS:
+      easy().set_custom_request(ToString(method));
       break;
     case GET:
       easy().set_http_get(true);
@@ -248,19 +275,13 @@ std::shared_ptr<Request> Request::method(HttpMethod method) {
     case HEAD:
       easy().set_no_body(true);
       break;
+    // NOTE: set_post makes libcURL to read from stdin if no data is set
     case POST:
-      easy().set_post(true);
-      easy().add_header(kHeaderExpect, "");
-      break;
     case PUT:
-      easy().set_custom_request("PUT");
-      easy().add_header(kHeaderExpect, "");
-      break;
-    case OPTIONS:
-      easy().set_custom_request("OPTIONS");
-      break;
     case PATCH:
-      easy().set_custom_request("PATCH");
+      easy().set_custom_request(ToString(method));
+      // ensure a body as we should send Content-Length for this method
+      if (!easy().has_post_data()) data({});
       break;
   };
   return shared_from_this();
@@ -288,23 +309,17 @@ std::shared_ptr<Request> Request::post(const std::string& url,
 
 std::shared_ptr<Request> Request::post(const std::string& url,
                                        std::string data) {
-  auto shared_this = post()->url(url);
-  easy().set_post_fields(std::move(data));
-  return shared_this;
+  return this->url(url)->data(std::move(data))->post();
 }
 
 std::shared_ptr<Request> Request::put(const std::string& url,
                                       std::string data) {
-  auto shared_this = put()->url(url);
-  easy().set_post_fields(std::move(data));
-  return shared_this;
+  return this->url(url)->data(std::move(data))->put();
 }
 
 std::shared_ptr<Request> Request::patch(const std::string& url,
                                         std::string data) {
-  auto shared_this = patch()->url(url);
-  easy().set_post_fields(std::move(data));
-  return shared_this;
+  return this->url(url)->data(std::move(data))->patch();
 }
 
 std::shared_ptr<Request> Request::delete_method(const std::string& url) {
