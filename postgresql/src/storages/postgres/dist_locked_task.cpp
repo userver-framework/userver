@@ -42,8 +42,10 @@ std::string MakeReleaseQuery(const std::string& table) {
 DistLockedTask::DistLockedTask(ClusterPtr cluster, const std::string& table,
                                const std::string& lock_name,
                                WorkerFunc worker_func,
-                               const DistLockedTaskSettings& settings)
-    : storages::DistLockedTask(lock_name, std::move(worker_func), settings),
+                               const DistLockedTaskSettings& settings,
+                               Mode mode)
+    : storages::DistLockedTask(lock_name, std::move(worker_func), settings,
+                               mode),
       cluster_(std::move(cluster)),
       cc_(std::make_unique<CommandControl>(settings.prolong_critical_interval,
                                            settings.prolong_critical_interval)),

@@ -11,7 +11,8 @@ class DistLockedTask : public storages::DistLockedTask {
  public:
   DistLockedTask(ClusterPtr cluster, const std::string& table,
                  const std::string& lock_name, WorkerFunc worker_func,
-                 const DistLockedTaskSettings& settings);
+                 const DistLockedTaskSettings& settings,
+                 Mode mode = Mode::kLoop);
 
   void UpdateCommandControl(CommandControl cc);
 

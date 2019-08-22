@@ -31,9 +31,12 @@ std::chrono::milliseconds DistLockedTaskSettings::GetEffectiveWatchdogInterval()
 }
 
 DistLockedTask::DistLockedTask(std::string name, WorkerFunc worker_func,
-                               const DistLockedTaskSettings& settings)
+                               const DistLockedTaskSettings& settings,
+                               Mode mode)
     : name_(std::move(name)),
+      mode_(mode),
       worker_func_(std::move(worker_func)),
+      worker_ok_finished_count_{0},
       settings_(settings),
       locked_(false),
       locked_time_point_{},
@@ -81,6 +84,18 @@ void DistLockedTask::Stop() {
 bool DistLockedTask::IsRunning() const {
   std::unique_lock<engine::Mutex> lock(mutex_);
   return locker_task_.IsValid();
+}
+
+bool DistLockedTask::WaitForSingleRun(engine::Deadline deadline) {
+  const size_t cnt = worker_ok_finished_count_.load();
+  if (cnt > 0) return true;
+
+  std::unique_lock<engine::Mutex> lock(worker_mutex_);
+  return worker_finish_cv_.WaitUntil(lock, deadline, [this, cnt]() {
+    // returns true only if worker_func_ is successully completed
+    // (not cancelled)
+    return cnt != worker_ok_finished_count_.load();
+  });
 }
 
 boost::optional<std::chrono::steady_clock::duration>
@@ -170,6 +185,8 @@ void DistLockedTask::DoWatchdog() {
                        "task to avoid brain split";
         stats_.watchdog_triggers++;
         ChangeLockStatus(false);
+
+        if (IsSingleShotDone()) locker_task_.RequestCancel();
       } else {
         LOG_DEBUG() << "Watchdog found a valid locked timepoint ("
                     << deadline.time_since_epoch().count() << " < "
@@ -177,6 +194,10 @@ void DistLockedTask::DoWatchdog() {
       }
     }
   }
+}
+
+bool DistLockedTask::IsSingleShotDone() const {
+  return mode_ == Mode::kSingleShot && worker_ok_finished_count_ != 0;
 }
 
 DistLockedTaskSettings DistLockedTask::GetSettings() {
@@ -202,19 +223,25 @@ void DistLockedTask::ChangeLockStatus(bool locked) {
 
   if (!locked) {
     if (worker_task_.IsValid()) {
-      LOG_INFO() << "Cancelling worker task";
+      LOG_INFO() << "Finishing worker task";
       worker_task_.RequestCancel();
 
       // Synchronously wait for worker exit
       // We don't want to re-lock until current worker is dead for sure
       GetTask(worker_task_, "worker_task_");
-      LOG_INFO() << "Worker task is cancelled";
+      LOG_INFO() << "Worker task is finished in state: "
+                 << engine::Task::GetStateName(worker_task_.GetState());
+
+      // Notify waiting clients (@see WaitForSingleRun) that worker task is
+      // finished (client itself checks if it was normal completion)
+      worker_finish_cv_.NotifyAll();
     } else {
       LOG_INFO() << "Lock is lost, but worker is not running";
     }
-  } else {
+  } else if (!IsSingleShotDone()) {
     LOG_INFO() << "Acquired the lock, starting worker task";
-    worker_task_ = utils::CriticalAsync("lock-worker-" + name_, worker_func_);
+    worker_task_ = utils::CriticalAsync("lock-worker-" + name_,
+                                        [this]() { ExecuteWorkerFunc(); });
     LOG_INFO() << "Worker task is started";
   }
 }
@@ -228,6 +255,19 @@ void DistLockedTask::BrainSplit() {
   stats_.brain_splits++;
   ChangeLockStatus(false);
   OnBrainSplit();
+}
+
+void DistLockedTask::ExecuteWorkerFunc() {
+  worker_func_();
+  worker_ok_finished_count_++;
+  // Waiting clients (@see WaitForSingleRun) will be notified about completion
+  // when current task is finished (@see ChangeLockStatus)
+
+  if (mode_ == Mode::kSingleShot) {
+    std::unique_lock<engine::Mutex> lock(mutex_);
+    if (locker_task_.IsValid()) locker_task_.RequestCancel();
+    if (watchdog_task_.IsValid()) watchdog_task_.RequestCancel();
+  }
 }
 
 }  // namespace storages

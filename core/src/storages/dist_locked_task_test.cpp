@@ -5,6 +5,8 @@
 #include <logging/log.hpp>
 #include <storages/dist_locked_task.hpp>
 #include <utest/utest.hpp>
+#include <utils/async.hpp>
+#include <utils/datetime.hpp>
 #include <utils/mock_now.hpp>
 
 namespace {
@@ -21,8 +23,8 @@ storages::DistLockedTaskSettings CreateSettings() {
 
 class LockedTaskMock : public storages::DistLockedTask {
  public:
-  LockedTaskMock(DistLockedTask::WorkerFunc func)
-      : DistLockedTask("test", std::move(func), CreateSettings()) {}
+  LockedTaskMock(DistLockedTask::WorkerFunc func, Mode mode = Mode::kLoop)
+      : DistLockedTask("test", std::move(func), CreateSettings(), mode) {}
 
   void Allow(bool allowed) { allowed_ = allowed; }
 
@@ -47,7 +49,9 @@ class LockedTaskMock : public storages::DistLockedTask {
 
 class LockedTaskMockNoop : public LockedTaskMock {
  public:
-  LockedTaskMockNoop() : LockedTaskMock([this] { Work(); }) {}
+  LockedTaskMockNoop(Mode mode = Mode::kLoop, bool abort_on_cancel = false)
+      : LockedTaskMock([this] { Work(); }, mode),
+        abort_on_cancel_(abort_on_cancel) {}
 
   bool IsLocked() const { return is_locked_; }
 
@@ -56,6 +60,10 @@ class LockedTaskMockNoop : public LockedTaskMock {
     return cv_.WaitFor(lock, ms,
                        [locked, this] { return locked == IsLocked(); });
   }
+
+  void SetWorkLoopOn(bool val) { work_loop_on_.store(val); }
+  size_t GetStartedWorkCount() const { return work_start_count_.load(); }
+  size_t GetFinishedWorkCount() const { return work_finish_count_.load(); }
 
  private:
   void SetLocked(bool locked) {
@@ -67,26 +75,37 @@ class LockedTaskMockNoop : public LockedTaskMock {
   void Work() {
     LOG_DEBUG() << "work begin";
     SetLocked(true);
+    work_start_count_++;
     LOG_DEBUG() << "work begin after SetLocked(true)";
 
     try {
-      while (!engine::current_task::IsCancelRequested()) {
+      bool work_loop_on;
+      while ((work_loop_on = work_loop_on_) &&
+             !engine::current_task::IsCancelRequested()) {
         LOG_DEBUG() << "work loop";
         engine::InterruptibleSleepFor(std::chrono::milliseconds(50));
       }
+
+      if (work_loop_on && abort_on_cancel_)
+        engine::current_task::CancellationPoint();
     } catch (...) {
       SetLocked(false);
       throw;
     }
 
     LOG_DEBUG() << "work end";
+    work_finish_count_++;
     SetLocked(false);
     LOG_DEBUG() << "work end after SetLocked(false)";
   }
 
+  const bool abort_on_cancel_;
   std::atomic<bool> is_locked_{false};
+  std::atomic<bool> work_loop_on_{true};
   engine::Mutex mutex_;
   engine::ConditionVariable cv_;
+  std::atomic<size_t> work_start_count_{0};
+  std::atomic<size_t> work_finish_count_{0};
 };
 
 TEST(LockedTask, Noop) {
@@ -200,6 +219,76 @@ TEST(LockedTask, LockedByOther) {
 
         locked_task.LockedByOther(false);
         EXPECT_TRUE(locked_task.WaitForLocked(false, kMaxTestWaitTime));
+
+        locked_task.Stop();
+      },
+      3);
+}
+
+TEST(LockedTask, SingleShot) {
+  utils::datetime::MockNowUnset();
+
+  RunInCoro(
+      [] {
+        LockedTaskMockNoop locked_task(LockedTaskMockNoop::Mode::kSingleShot);
+        locked_task.Start();
+
+        locked_task.Allow(true);
+        EXPECT_EQ(0u, locked_task.GetFinishedWorkCount());
+        EXPECT_TRUE(locked_task.WaitForLocked(true, kAttemptTimeout));
+
+        locked_task.SetWorkLoopOn(false);
+        locked_task.Allow(false);
+        EXPECT_TRUE(locked_task.WaitForSingleRun(
+            engine::Deadline::FromDuration(kMaxTestWaitTime)));
+        EXPECT_EQ(1u, locked_task.GetFinishedWorkCount());
+
+        locked_task.Allow(true);
+        EXPECT_FALSE(locked_task.WaitForLocked(true, kAttemptTimeout));
+
+        locked_task.Stop();
+      },
+      3);
+}
+
+TEST(LockedTask, SingleShotFailOk) {
+  utils::datetime::MockNowUnset();
+
+  RunInCoro(
+      [] {
+        LockedTaskMockNoop locked_task(LockedTaskMockNoop::Mode::kSingleShot,
+                                       true);
+
+        auto settings = CreateSettings();
+        settings.prolong_attempt_interval +=
+            settings.prolong_interval;  // make watchdog fires
+        locked_task.UpdateSettings(settings);
+
+        locked_task.Start();
+
+        EXPECT_EQ(0u, locked_task.GetStartedWorkCount());
+        EXPECT_EQ(0u, locked_task.GetFinishedWorkCount());
+        locked_task.Allow(true);
+
+        EXPECT_TRUE(locked_task.WaitForLocked(true, kAttemptTimeout));
+        EXPECT_FALSE(
+            locked_task.WaitForSingleRun(engine::Deadline::FromDuration(
+                settings.prolong_interval + kAttemptTimeout)));
+        EXPECT_TRUE(locked_task.WaitForLocked(true, kAttemptTimeout));
+        EXPECT_TRUE(locked_task.WaitForLocked(false, kMaxTestWaitTime));
+
+        EXPECT_LT(1u, locked_task.GetStartedWorkCount());
+        EXPECT_EQ(0u, locked_task.GetFinishedWorkCount());
+
+        settings = CreateSettings();
+        locked_task.UpdateSettings(settings);
+        EXPECT_TRUE(locked_task.WaitForLocked(
+            true, settings.prolong_interval + kAttemptTimeout));
+
+        locked_task.SetWorkLoopOn(false);
+        EXPECT_TRUE(locked_task.WaitForSingleRun(
+            engine::Deadline::FromDuration(settings.prolong_interval)));
+        EXPECT_EQ(1u, locked_task.GetFinishedWorkCount());
 
         locked_task.Stop();
       },

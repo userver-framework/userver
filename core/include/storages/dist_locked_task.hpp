@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 
+#include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/task_with_result.hpp>
 
@@ -35,13 +36,20 @@ class DistLockedTask {
  public:
   using WorkerFunc = std::function<void()>;
 
+  /// Task execution mode
+  enum class Mode {
+    kLoop,       ///< execute worker func until external Stop requested
+    kSingleShot  ///< stops after first watchdog deafline
+  };
+
   /// Creates a DistLockedTask. worker_func is a callback that is started each
   /// time we've acquired the lock and is cancelled each time the lock is lost.
   /// worker_func must honour task cancellation and stop ASAP if it is
   /// cancelled, otherwise brain split is possible (IOW, two different users do
   /// work assuming both of them hold the lock, which is not true).
   explicit DistLockedTask(std::string name, WorkerFunc worker_func,
-                          const DistLockedTaskSettings& settings);
+                          const DistLockedTaskSettings& settings,
+                          Mode mode = Mode::kLoop);
 
   virtual ~DistLockedTask();
 
@@ -59,6 +67,10 @@ class DistLockedTask {
 
   /// @returns whether the DistLockedTask is started.
   bool IsRunning() const;
+
+  /// Waits until regular worker task is done
+  /// @returns false if timeout reached
+  bool WaitForSingleRun(engine::Deadline deadline);
 
   /// @returns for how long the lock is held (if held at all). Returns a value
   /// for some time in past, so don't expect the result to be very precise.
@@ -100,17 +112,24 @@ class DistLockedTask {
 
   void DoWatchdog();
 
+  bool IsSingleShotDone() const;
+
   DistLockedTaskSettings GetSettings();
 
   void ChangeLockStatus(bool locked);
 
   void BrainSplit();
 
+  void ExecuteWorkerFunc();
+
  private:
   const std::string name_;
+  const Mode mode_;
   WorkerFunc worker_func_;
 
   mutable engine::Mutex worker_mutex_;
+  mutable engine::ConditionVariable worker_finish_cv_;
+  std::atomic<size_t> worker_ok_finished_count_;
   engine::TaskWithResult<void> worker_task_;
 
   mutable engine::Mutex mutex_;
