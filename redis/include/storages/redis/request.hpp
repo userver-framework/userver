@@ -138,7 +138,8 @@ class ScanRequest final {
 using RequestAppend = Request<size_t>;
 using RequestDbsize = Request<size_t>;
 using RequestDel = Request<size_t>;
-using RequestEvalCommon = Request<::redis::ReplyData>;
+using RequestEvalCommon = Request<ReplyData>;
+using RequestExec = Request<ReplyData, void>;
 using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
 using RequestGet = Request<boost::optional<std::string>>;

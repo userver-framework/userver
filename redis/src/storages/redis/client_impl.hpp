@@ -8,6 +8,7 @@
 #include <redis/command_options.hpp>
 
 #include <storages/redis/client.hpp>
+#include <storages/redis/transaction.hpp>
 
 #include "scan_reply.hpp"
 
@@ -17,6 +18,8 @@ class Sentinel;
 
 namespace storages {
 namespace redis {
+
+class TransactionImpl;
 
 class ClientImpl final : public Client,
                          public std::enable_shared_from_this<ClientImpl> {
@@ -29,10 +32,17 @@ class ClientImpl final : public Client,
 
   const std::string& GetAnyKeyForShard(size_t shard_idx) const override;
 
-  // redis commands:
+  Request<ScanReplyTmpl<ScanTag::kScan>> MakeScanRequestNoKey(
+      size_t shard, ScanReply::Cursor cursor, ScanOptions options,
+      const CommandControl& command_control);
 
-  RequestGetset Getset(std::string key, std::string value,
-                       const CommandControl& command_control) override;
+  template <ScanTag scan_tag>
+  Request<ScanReplyTmpl<scan_tag>> MakeScanRequestWithKey(
+      std::string key, size_t shard,
+      typename ScanReplyTmpl<scan_tag>::Cursor cursor,
+      ScanOptionsTmpl<scan_tag> options, const CommandControl& command_control);
+
+  // redis commands:
 
   RequestAppend Append(std::string key, std::string value,
                        const CommandControl& command_control) override;
@@ -65,6 +75,9 @@ class ClientImpl final : public Client,
 
   RequestGet Get(std::string key, RetryNilFromMaster,
                  const CommandControl& command_control) override;
+
+  RequestGetset Getset(std::string key, std::string value,
+                       const CommandControl& command_control) override;
 
   RequestHdel Hdel(std::string key, std::string field,
                    const CommandControl& command_control) override;
@@ -151,6 +164,10 @@ class ClientImpl final : public Client,
   RequestMget Mget(std::vector<std::string> keys,
                    const CommandControl& command_control) override;
 
+  TransactionPtr Multi() override;
+
+  TransactionPtr Multi(Transaction::CheckShards check_shards) override;
+
   RequestPersist Persist(std::string key,
                          const CommandControl& command_control) override;
 
@@ -193,16 +210,6 @@ class ClientImpl final : public Client,
   ScanRequest<ScanTag::kScan> Scan(
       size_t shard, ScanOptions options,
       const CommandControl& command_control) override;
-
-  Request<ScanReplyTmpl<ScanTag::kScan>> MakeScanRequestNoKey(
-      size_t shard, ScanReply::Cursor cursor, ScanOptions options,
-      const CommandControl& command_control);
-
-  template <ScanTag scan_tag>
-  Request<ScanReplyTmpl<scan_tag>> MakeScanRequestWithKey(
-      std::string key, size_t shard,
-      typename ScanReplyTmpl<scan_tag>::Cursor cursor,
-      ScanOptionsTmpl<scan_tag> options, const CommandControl& command_control);
 
   template <ScanTag scan_tag>
   ScanRequest<scan_tag> ScanTmpl(std::string key,
@@ -345,11 +352,16 @@ class ClientImpl final : public Client,
   RequestZscore Zscore(std::string key, std::string member, RetryNilFromMaster,
                        const CommandControl& command_control) override;
 
+  // end of redis commands
+
+  friend class TransactionImpl;
+
  private:
   using CmdArgs = ::redis::CmdArgs;
 
   ::redis::Request MakeRequest(CmdArgs&& args, size_t shard, bool master,
-                               const CommandControl& command_control);
+                               const CommandControl& command_control,
+                               bool skip_status = false);
 
   CommandControl GetCommandControl(const CommandControl& cc) const;
 

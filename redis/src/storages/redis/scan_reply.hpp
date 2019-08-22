@@ -60,7 +60,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
     throw ::redis::ParseReplyException(
         "Unexpected format of reply to '" + request_description +
         "' request: expected " +
-        ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kString) +
+        ReplyData::TypeToString(ReplyData::Type::kString) +
         " as first element, received " + cursor_elem.GetTypeString());
   }
 
@@ -69,7 +69,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
     throw ::redis::ParseReplyException(
         "Unexpected format of reply to '" + request_description +
         "' request: expected " +
-        ::redis::ReplyData::TypeToString(::redis::ReplyData::Type::kArray) +
+        ReplyData::TypeToString(ReplyData::Type::kArray) +
         " as second element, received " + keys_elem.GetTypeString());
   }
 

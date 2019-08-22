@@ -4,6 +4,7 @@
 #include <utils/assert.hpp>
 
 #include "request_impl.hpp"
+#include "transaction_impl.hpp"
 
 namespace storages {
 namespace redis {
@@ -36,26 +37,28 @@ const std::string& ClientImpl::GetAnyKeyForShard(size_t shard_idx) const {
   return redis_client_->GetAnyKeyForShard(shard_idx);
 }
 
-template <ScanTag scan_tag>
-ScanRequest<scan_tag> ClientImpl::ScanTmpl(
-    std::string key, ScanOptionsTmpl<scan_tag> options,
+Request<ScanReplyTmpl<ScanTag::kScan>> ClientImpl::MakeScanRequestNoKey(
+    size_t shard, ScanReply::Cursor cursor, ScanOptions options,
     const CommandControl& command_control) {
-  auto shard = ShardByKey(key);
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-  return ScanRequest<scan_tag>(std::make_unique<RequestScanData<scan_tag>>(
-      shared_from_this(), std::move(key), shard, std::move(options),
-      command_control));
+  CmdArgs cmd_args{kScanCommandName<ScanTag::kScan>, cursor.GetValue(),
+                   options.ExtractMatch(), options.ExtractCount()};
+  return CreateRequest<Request<ScanReplyTmpl<ScanTag::kScan>>>(MakeRequest(
+      std::move(cmd_args), shard, false, GetCommandControl(command_control)));
+}
+
+template <ScanTag scan_tag>
+Request<ScanReplyTmpl<scan_tag>> ClientImpl::MakeScanRequestWithKey(
+    std::string key, size_t shard,
+    typename ScanReplyTmpl<scan_tag>::Cursor cursor,
+    ScanOptionsTmpl<scan_tag> options, const CommandControl& command_control) {
+  CmdArgs cmd_args{kScanCommandName<scan_tag>, std::move(key),
+                   cursor.GetValue(), options.ExtractMatch(),
+                   options.ExtractCount()};
+  return CreateRequest<Request<ScanReplyTmpl<scan_tag>>>(MakeRequest(
+      std::move(cmd_args), shard, false, GetCommandControl(command_control)));
 }
 
 // redis commands:
-
-RequestGetset ClientImpl::Getset(std::string key, std::string value,
-                                 const CommandControl& command_control) {
-  auto shard = ShardByKey(key);
-  return CreateRequest<RequestGetset>(
-      MakeRequest(CmdArgs{"getset", std::move(key), std::move(value)}, shard,
-                  true, GetCommandControl(command_control)));
-}
 
 RequestAppend ClientImpl::Append(std::string key, std::string value,
                                  const CommandControl& command_control) {
@@ -82,8 +85,7 @@ RequestDel ClientImpl::Del(std::string key,
 RequestDel ClientImpl::Del(std::vector<std::string> keys,
                            const CommandControl& command_control) {
   if (keys.empty())
-    return CreateDummyRequest<RequestDel>(
-        std::make_shared<::redis::Reply>("del", 0));
+    return CreateDummyRequest<RequestDel>(std::make_shared<Reply>("del", 0));
   auto shard = ShardByKey(keys.at(0));
   return CreateRequest<RequestDel>(
       MakeRequest(CmdArgs{"del", std::move(keys)}, shard, true,
@@ -114,7 +116,7 @@ RequestExists ClientImpl::Exists(std::vector<std::string> keys,
                                  const CommandControl& command_control) {
   if (keys.empty())
     return CreateDummyRequest<RequestExists>(
-        std::make_shared<::redis::Reply>("exists", 0));
+        std::make_shared<Reply>("exists", 0));
   auto shard = ShardByKey(keys.at(0));
   return CreateRequest<RequestExists>(
       MakeRequest(CmdArgs{"exists", std::move(keys)}, shard, false,
@@ -142,6 +144,14 @@ RequestGet ClientImpl::Get(std::string key, RetryNilFromMaster,
   return Get(std::move(key), command_control.MergeWith(kRetryNilFromMaster));
 }
 
+RequestGetset ClientImpl::Getset(std::string key, std::string value,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestGetset>(
+      MakeRequest(CmdArgs{"getset", std::move(key), std::move(value)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
 RequestHdel ClientImpl::Hdel(std::string key, std::string field,
                              const CommandControl& command_control) {
   auto shard = ShardByKey(key);
@@ -153,8 +163,7 @@ RequestHdel ClientImpl::Hdel(std::string key, std::string field,
 RequestHdel ClientImpl::Hdel(std::string key, std::vector<std::string> fields,
                              const CommandControl& command_control) {
   if (fields.empty())
-    return CreateDummyRequest<RequestHdel>(
-        std::make_shared<::redis::Reply>("hdel", 0));
+    return CreateDummyRequest<RequestHdel>(std::make_shared<Reply>("hdel", 0));
   auto shard = ShardByKey(key);
   return CreateRequest<RequestHdel>(
       MakeRequest(CmdArgs{"hdel", std::move(key), std::move(fields)}, shard,
@@ -230,7 +239,7 @@ RequestHmget ClientImpl::Hmget(std::string key, std::vector<std::string> fields,
                                const CommandControl& command_control) {
   if (fields.empty())
     return CreateDummyRequest<RequestHmget>(
-        std::make_shared<::redis::Reply>("hmget", ::redis::ReplyData::Array{}));
+        std::make_shared<Reply>("hmget", ReplyData::Array{}));
   auto shard = ShardByKey(key);
   return CreateRequest<RequestHmget>(
       MakeRequest(CmdArgs{"hmget", std::move(key), std::move(fields)}, shard,
@@ -242,8 +251,8 @@ RequestHmset ClientImpl::Hmset(
     std::vector<std::pair<std::string, std::string>> field_values,
     const CommandControl& command_control) {
   if (field_values.empty())
-    return CreateDummyRequest<RequestHmset>(std::make_shared<::redis::Reply>(
-        "hmset", ::redis::ReplyData::CreateStatus("OK")));
+    return CreateDummyRequest<RequestHmset>(
+        std::make_shared<Reply>("hmset", ReplyData::CreateStatus("OK")));
   auto shard = ShardByKey(key);
   return CreateRequest<RequestHmset>(
       MakeRequest(CmdArgs{"hmset", std::move(key), std::move(field_values)},
@@ -364,11 +373,19 @@ RequestMget ClientImpl::Mget(std::vector<std::string> keys,
                              const CommandControl& command_control) {
   if (keys.empty())
     return CreateDummyRequest<RequestMget>(
-        std::make_shared<::redis::Reply>("mget", ::redis::ReplyData::Array{}));
+        std::make_shared<Reply>("mget", ReplyData::Array{}));
   auto shard = ShardByKey(keys.at(0));
   return CreateRequest<RequestMget>(
       MakeRequest(CmdArgs{"mget", std::move(keys)}, shard, false,
                   GetCommandControl(command_control)));
+}
+
+TransactionPtr ClientImpl::Multi() {
+  return std::make_unique<TransactionImpl>(shared_from_this());
+}
+
+TransactionPtr ClientImpl::Multi(Transaction::CheckShards check_shards) {
+  return std::make_unique<TransactionImpl>(shared_from_this(), check_shards);
 }
 
 RequestPersist ClientImpl::Persist(std::string key,
@@ -464,8 +481,7 @@ RequestSadd ClientImpl::Sadd(std::string key, std::string member,
 RequestSadd ClientImpl::Sadd(std::string key, std::vector<std::string> members,
                              const CommandControl& command_control) {
   if (members.empty())
-    return CreateDummyRequest<RequestSadd>(
-        std::make_shared<::redis::Reply>("sadd", 0));
+    return CreateDummyRequest<RequestSadd>(std::make_shared<Reply>("sadd", 0));
   auto shard = ShardByKey(key);
   return CreateRequest<RequestSadd>(
       MakeRequest(CmdArgs{"sadd", std::move(key), std::move(members)}, shard,
@@ -486,25 +502,15 @@ ScanRequest<ScanTag::kScan> ClientImpl::Scan(
           shared_from_this(), shard, std::move(options), command_control));
 }
 
-Request<ScanReplyTmpl<ScanTag::kScan>> ClientImpl::MakeScanRequestNoKey(
-    size_t shard, ScanReply::Cursor cursor, ScanOptions options,
-    const CommandControl& command_control) {
-  CmdArgs cmd_args{kScanCommandName<ScanTag::kScan>, cursor.GetValue(),
-                   options.ExtractMatch(), options.ExtractCount()};
-  return CreateRequest<Request<ScanReplyTmpl<ScanTag::kScan>>>(MakeRequest(
-      std::move(cmd_args), shard, false, GetCommandControl(command_control)));
-}
-
 template <ScanTag scan_tag>
-Request<ScanReplyTmpl<scan_tag>> ClientImpl::MakeScanRequestWithKey(
-    std::string key, size_t shard,
-    typename ScanReplyTmpl<scan_tag>::Cursor cursor,
-    ScanOptionsTmpl<scan_tag> options, const CommandControl& command_control) {
-  CmdArgs cmd_args{kScanCommandName<scan_tag>, std::move(key),
-                   cursor.GetValue(), options.ExtractMatch(),
-                   options.ExtractCount()};
-  return CreateRequest<Request<ScanReplyTmpl<scan_tag>>>(MakeRequest(
-      std::move(cmd_args), shard, false, GetCommandControl(command_control)));
+ScanRequest<scan_tag> ClientImpl::ScanTmpl(
+    std::string key, ScanOptionsTmpl<scan_tag> options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+  return ScanRequest<scan_tag>(std::make_unique<RequestScanData<scan_tag>>(
+      shared_from_this(), std::move(key), shard, std::move(options),
+      command_control));
 }
 
 RequestScard ClientImpl::Scard(std::string key,
@@ -618,8 +624,7 @@ RequestSrem ClientImpl::Srem(std::string key, std::string member,
 RequestSrem ClientImpl::Srem(std::string key, std::vector<std::string> members,
                              const CommandControl& command_control) {
   if (members.empty())
-    return CreateDummyRequest<RequestSrem>(
-        std::make_shared<::redis::Reply>("srem", 0));
+    return CreateDummyRequest<RequestSrem>(std::make_shared<Reply>("srem", 0));
   auto shard = ShardByKey(key);
   return CreateRequest<RequestSrem>(
       MakeRequest(CmdArgs{"srem", std::move(key), std::move(members)}, shard,
@@ -798,8 +803,7 @@ RequestZrem ClientImpl::Zrem(std::string key, std::vector<std::string> members,
                              const CommandControl& command_control) {
   auto shard = ShardByKey(key);
   if (members.empty())
-    return CreateDummyRequest<RequestZrem>(
-        std::make_shared<::redis::Reply>("zrem", 0));
+    return CreateDummyRequest<RequestZrem>(std::make_shared<Reply>("zrem", 0));
   return CreateRequest<RequestZrem>(
       MakeRequest(CmdArgs{"zrem", std::move(key), std::move(members)}, shard,
                   true, GetCommandControl(command_control)));
@@ -832,11 +836,14 @@ RequestZscore ClientImpl::Zscore(std::string key, std::string member,
                 command_control.MergeWith(kRetryNilFromMaster));
 }
 
-::redis::Request ClientImpl::MakeRequest(
-    CmdArgs&& args, size_t shard, bool master,
-    const CommandControl& command_control) {
+// end of redis commands
+
+::redis::Request ClientImpl::MakeRequest(CmdArgs&& args, size_t shard,
+                                         bool master,
+                                         const CommandControl& command_control,
+                                         bool skip_status) {
   return redis_client_->MakeRequest(std::move(args), shard, master,
-                                    command_control);
+                                    command_control, skip_status);
 }
 
 CommandControl ClientImpl::GetCommandControl(const CommandControl& cc) const {
