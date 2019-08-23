@@ -3,6 +3,8 @@
 #include <chrono>
 #include <limits>
 
+#include <boost/numeric/conversion/cast.hpp>
+
 #include <compiler/demangle.hpp>
 #include <formats/common/meta.hpp>
 #include <formats/parse/to.hpp>
@@ -51,8 +53,10 @@ float Parse(const Value& value, To<float>) {
 }
 
 template <class Value, typename T>
-std::enable_if_t<std::is_integral<T>::value && (sizeof(T) > 1), T> Parse(
-    const Value& value, To<T>) {
+std::enable_if_t<common::kIsFormatValue<Value> && std::is_integral<T>::value &&
+                     (sizeof(T) > 1),
+                 T>
+Parse(const Value& value, To<T>) {
   using IntT = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
   return impl::NarrowToInt<T>(value.template As<IntT>(), value);
 }
@@ -86,6 +90,15 @@ template <typename Rep, typename Period>
 std::chrono::duration<Rep, Period> Parse(
     int n, To<std::chrono::duration<Rep, Period>>) {
   return std::chrono::duration<Rep, Period>{n};
+}
+
+/* signed <=> unsigned */
+template <typename T, typename U>
+std::enable_if_t<std::is_integral<T>::value && std::is_integral<U>::value &&
+                     sizeof(T) == sizeof(U),
+                 U>
+Parse(T n, To<U>) {
+  return boost::numeric_cast<U>(n);
 }
 
 template <class Value>
