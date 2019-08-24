@@ -111,6 +111,10 @@ std::string Sha256(const std::string& data, OutputEncoding encoding) {
   return CalculateHash<CryptoPP::SHA256>(data, encoding);
 }
 
+std::string Sha384(const std::string& data, OutputEncoding encoding) {
+  return CalculateHash<CryptoPP::SHA384>(data, encoding);
+}
+
 std::string Sha512(const std::string& data, OutputEncoding encoding) {
   return CalculateHash<CryptoPP::SHA512>(data, encoding);
 }
@@ -118,6 +122,11 @@ std::string Sha512(const std::string& data, OutputEncoding encoding) {
 std::string HmacSha512(const std::string& key, const std::string& message,
                        OutputEncoding encoding) {
   return CalculateHmac<CryptoPP::SHA512>(key, message, encoding);
+}
+
+std::string HmacSha384(const std::string& key, const std::string& message,
+                       OutputEncoding encoding) {
+  return CalculateHmac<CryptoPP::SHA384>(key, message, encoding);
 }
 
 std::string HmacSha256(const std::string& key, const std::string& message,

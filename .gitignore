@@ -13,3 +13,4 @@ static-analyzer-report
 .cproject
 .pydevproject
 .settings*
+.clangd

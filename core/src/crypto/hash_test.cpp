@@ -28,6 +28,21 @@ TEST(Crypto, Sha256) {
             crypto::hash::Sha256("test\n"));
 }
 
+TEST(Crypto, Sha384) {
+  EXPECT_EQ(
+      "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebf"
+      "e76f65fbd51ad2f14898b95b",
+      crypto::hash::Sha384({}));
+  EXPECT_EQ(
+      "768412320f7b0aa5812fce428dc4706b3cae50e02a64caa16a782249bfe8efc4b7ef1ccb"
+      "126255d196047dfedf17a0a9",
+      crypto::hash::Sha384("test"));
+  EXPECT_EQ(
+      "109bb6b5b6d5547c1ce03c7a8bd7d8f80c1cb0957f50c4f7fda04692079917e4f9cad52b"
+      "878f3d8234e1a170b154b72d",
+      crypto::hash::Sha384("test\n"));
+}
+
 TEST(Crypto, Sha512) {
   EXPECT_EQ(
       "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c"
@@ -70,6 +85,11 @@ TEST(Crypto, Hmac) {
   EXPECT_EQ("0c94515c15e5095b8a87a50ba0df3bf38ed05fe6",
             crypto::hash::HmacSha1("test", "test",
                                    crypto::hash::OutputEncoding::kHex));
+  EXPECT_EQ(
+      "b818f4664d0826b102b72cf2a687f558368f2152b15b83a7f389e48c335fc455282c61e9"
+      "7335dae370bac31a8196772d",
+      crypto::hash::HmacSha384("secret", "",
+                               crypto::hash::OutputEncoding::kHex));
 }
 
 TEST(Crypto, Blake2b128) {
