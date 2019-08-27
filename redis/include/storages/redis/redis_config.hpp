@@ -7,7 +7,11 @@
 namespace redis {
 CommandControl Parse(const formats::json::Value& elem,
                      formats::parse::To<CommandControl>);
-}
+
+CommandControl::Strategy Parse(const formats::json::Value& elem,
+                               formats::parse::To<CommandControl::Strategy>);
+
+}  // namespace redis
 
 namespace storages {
 namespace redis {

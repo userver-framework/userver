@@ -4,22 +4,16 @@
 
 namespace redis {
 
-redis::CommandControl::Strategy Parse(
+CommandControl::Strategy Parse(
     const formats::json::Value& elem,
     formats::parse::To<::redis::CommandControl::Strategy>) {
   auto strategy = elem.As<std::string>();
-  if (strategy == "every_dc") {
-    return redis::CommandControl::Strategy::kEveryDc;
-  } else if (strategy == "default") {
-    return redis::CommandControl::Strategy::kDefault;
-  } else if (strategy == "local_dc_conductor") {
-    return redis::CommandControl::Strategy::kLocalDcConductor;
-  } else if (strategy == "nearest_server_ping") {
-    return redis::CommandControl::Strategy::kNearestServerPing;
-  } else {
-    LOG_ERROR() << "Unknown strategy for redis::CommandControl::Strategy: "
-                << strategy << ", falling back to EveryDc";
-    return redis::CommandControl::Strategy::kEveryDc;
+  try {
+    return StrategyFromString(strategy);
+  } catch (const std::exception& e) {
+    LOG_ERROR() << "Failed to parse strategy (e.what()=" << e.what()
+                << "), falling back to EveryDC";
+    return CommandControl::Strategy::kEveryDc;
   }
 }
 
