@@ -1,6 +1,7 @@
 project-name: yandex-taxi-userver-mongo
 maintainers:
   - Common components
+description: MongoDB serialization helpers
 
 libraries:
   - libbson-static-1.0

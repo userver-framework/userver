@@ -1,6 +1,7 @@
 project-name: yandex-taxi-userver-core
 maintainers:
   - Common components
+description: userver core stuff
 
 libraries:
   - Boost::filesystem

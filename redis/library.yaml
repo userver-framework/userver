@@ -1,6 +1,7 @@
 project-name: yandex-taxi-userver-redis
 maintainers:
   - Common components
+description: Redis driver
 
 libraries:
   - Hiredis

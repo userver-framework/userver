@@ -1,6 +1,7 @@
 project-name: yandex-taxi-userver-postgresql
 maintainers:
   - Common components
+description: PostgreSQL driver
 
 libraries:
   - Boost::regex
