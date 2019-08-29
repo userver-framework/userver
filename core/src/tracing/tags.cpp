@@ -14,6 +14,10 @@ const std::string kHttpStatusCode = "meta_code";
 
 const std::string kAttempts = "attempts";
 
+const std::string kMaxAttempts = "max_attempts";
+
+const std::string kTimeoutMs = "timeout_ms";
+
 const std::string kErrorFlag = "error";
 
 const std::string kErrorMessage = "error_msg";

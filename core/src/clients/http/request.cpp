@@ -423,6 +423,8 @@ void Request::RequestImpl::on_completed(
   holder->AccountResponse(err);
 
   span.AddTag(tracing::kAttempts, holder->retry_.current);
+  span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);
+  span.AddTag(tracing::kTimeoutMs, holder->timeout_ms_);
 
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
