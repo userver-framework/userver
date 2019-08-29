@@ -28,6 +28,8 @@ class NWayLRU final {
 
   void Invalidate();
 
+  void InvalidateByKey(const T& key);
+
   /// Iterates over all items. May be slow for big caches.
   template <typename Function>
   void VisitAll(Function func) const;
@@ -77,6 +79,13 @@ boost::optional<U> NWayLRU<T, U>::Get(const T& key, Validator validator) {
   }
 
   return boost::none;
+}
+
+template <typename T, typename U>
+void NWayLRU<T, U>::InvalidateByKey(const T& key) {
+  auto& way = GetWay(key);
+  std::unique_lock<engine::Mutex> lock(way.mutex);
+  way.cache.Erase(key);
 }
 
 template <typename T, typename U>

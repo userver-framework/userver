@@ -74,3 +74,24 @@ TEST(ExpirableLruCache, DefaultNoExpire) {
     EXPECT_EQ(1, count);
   });
 }
+
+TEST(ExpirableLruCache, InvalidateByKey) {
+  RunInCoro([] {
+    cache::ExpirableLruCache<int, int> cache(1, 1);
+    int count = 0;
+
+    EXPECT_EQ(0, cache.Get(1, [&count](int) {
+      count++;
+      return 0;
+    }));
+    EXPECT_EQ(1, count);
+
+    cache.InvalidateByKey(1);
+
+    EXPECT_EQ(1, cache.Get(1, [&count](int) {
+      count++;
+      return 1;
+    }));
+    EXPECT_EQ(2, count);
+  });
+}

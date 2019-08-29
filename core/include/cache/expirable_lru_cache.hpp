@@ -30,6 +30,8 @@ class ExpirableLruCache final {
 
   void Invalidate();
 
+  void InvalidateByKey(const Key& key);
+
  private:
   bool IsExpired(std::chrono::steady_clock::time_point update_time,
                  std::chrono::steady_clock::time_point now) const;
@@ -95,7 +97,12 @@ size_t ExpirableLruCache<Key, Value>::GetSizeApproximate() const {
 
 template <typename Key, typename Value>
 void ExpirableLruCache<Key, Value>::Invalidate() {
-  return lru_.Invalidate();
+  lru_.Invalidate();
+}
+
+template <typename Key, typename Value>
+void ExpirableLruCache<Key, Value>::InvalidateByKey(const Key& key) {
+  lru_.InvalidateByKey(key);
 }
 
 template <typename Key, typename Value>
@@ -115,7 +122,9 @@ class LruCacheWrapper final {
       : cache_(std::move(cache)), update_func_(std::move(update_func)) {}
 
   /// Get cached value or evaluates if key is missing in cache
-  Value Get(const Key& key) const { return cache_->Get(key, update_func_); }
+  Value Get(const Key& key) { return cache_->Get(key, update_func_); }
+
+  void InvalidateByKey(const Key& key) { cache_->InvalidateByKey(key); }
 
   /// Get raw cache. For internal use.
   std::shared_ptr<Cache> GetCache() { return cache_; }
