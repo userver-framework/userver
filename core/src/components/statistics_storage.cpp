@@ -8,4 +8,8 @@ StatisticsStorage::StatisticsStorage(
 
 StatisticsStorage::~StatisticsStorage() = default;
 
+void StatisticsStorage::OnAllComponentsLoaded() {
+  storage_.StopRegisteringExtenders();
+}
+
 }  // namespace components

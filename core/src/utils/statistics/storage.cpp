@@ -69,6 +69,8 @@ Entry& Entry::operator=(Entry&& other) noexcept {
   return *this;
 }
 
+Storage::Storage() : may_register_extenders_(true) {}
+
 formats::json::ValueBuilder Storage::GetAsJson(
     const std::string& prefix, const StatisticsRequest& request) const {
   formats::json::ValueBuilder result;
@@ -88,7 +90,13 @@ formats::json::ValueBuilder Storage::GetAsJson(
   return result;
 }
 
+void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
+
 Entry Storage::RegisterExtender(std::string prefix, ExtenderFunc func) {
+  UASSERT_MSG(may_register_extenders_.load(),
+              "You may not register statistics extender outside of component "
+              "constructors");
+
   std::lock_guard<std::shared_timed_mutex> lock(mutex_);
   auto res = extender_funcs_.emplace(extender_funcs_.end(), std::move(prefix),
                                      std::move(func));

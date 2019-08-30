@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <list>
 #include <string>
@@ -45,15 +46,24 @@ class Entry final {
 
 class Storage final {
  public:
+  Storage();
+
+  Storage(const Storage&) = delete;
+
   // Creates new Json::Value and calls every registered extender func over it.
   formats::json::ValueBuilder GetAsJson(const std::string& prefix,
                                         const StatisticsRequest& request) const;
+
+  // Must be called from StatisticsStorage only. Don't call it from user
+  // components.
+  void StopRegisteringExtenders();
 
   [[nodiscard]] Entry RegisterExtender(std::string prefix, ExtenderFunc func);
 
   void UnregisterExtender(StorageIterator iterator) noexcept;
 
  private:
+  std::atomic<bool> may_register_extenders_;
   StorageData extender_funcs_;
   mutable std::shared_timed_mutex mutex_;
 };

@@ -16,6 +16,8 @@ class StatisticsStorage final : public LoggableComponentBase {
 
   ~StatisticsStorage() override;
 
+  void OnAllComponentsLoaded() override;
+
   utils::statistics::Storage& GetStorage() { return storage_; }
 
   const utils::statistics::Storage& GetStorage() const { return storage_; }
