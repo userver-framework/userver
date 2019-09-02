@@ -249,15 +249,20 @@ void easy::set_http_post(std::shared_ptr<form> form, std::error_code& ec) {
   }
 }
 
-void easy::add_header(const std::string& name, const std::string& value) {
+void easy::add_header(const std::string& name, const std::string& value,
+                      EmptyHeaderAction empty_header_action) {
   std::error_code ec;
-  add_header(name, value, ec);
+  add_header(name, value, ec, empty_header_action);
   throw_error(ec, "add_header");
 }
 
 void easy::add_header(const std::string& name, const std::string& value,
-                      std::error_code& ec) {
-  add_header(name + ": " + value, ec);
+                      std::error_code& ec,
+                      EmptyHeaderAction empty_header_action) {
+  if (empty_header_action == EmptyHeaderAction::kSend && value.empty())
+    add_header(name + ';', ec);
+  else
+    add_header(name + ": " + value, ec);
 }
 
 void easy::add_header(const std::string& header) {

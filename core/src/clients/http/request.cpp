@@ -246,14 +246,17 @@ std::shared_ptr<Request> Request::retry(int retries, bool on_fails) {
 }
 
 std::shared_ptr<Request> Request::data(std::string data) {
-  if (!data.empty()) easy().add_header(kHeaderExpect, "");
+  if (!data.empty())
+    easy().add_header(kHeaderExpect, "",
+                      curl::easy::EmptyHeaderAction::kDoNotSend);
   easy().set_post_fields(std::move(data));
   return shared_from_this();
 }
 
 std::shared_ptr<Request> Request::form(const std::shared_ptr<Form>& form) {
   easy().set_http_post(form);
-  easy().add_header(kHeaderExpect, "");
+  easy().add_header(kHeaderExpect, "",
+                    curl::easy::EmptyHeaderAction::kDoNotSend);
   return shared_from_this();
 }
 
