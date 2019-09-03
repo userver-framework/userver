@@ -22,8 +22,15 @@ formats::json::Value GetCacheStatisticsAsJson(
 
   auto& stats = cache.GetStatistics();
   builder[kStatisticsNameCurrentDocumentsCount] = cache.GetSizeApproximate();
-  builder[kStatisticsNameHits] = stats.hits.load();
-  builder[kStatisticsNameMisses] = stats.misses.load();
+  builder[kStatisticsNameHits] = stats.total.hits.load();
+  builder[kStatisticsNameMisses] = stats.total.misses.load();
+  builder[kStatisticsNameStale] = stats.total.stale.load();
+
+  auto s1min = stats.recent.GetStatsForPeriod();
+  double s1min_hits = s1min.hits.load();
+  auto s1min_total = s1min.hits.load() + s1min.misses.load();
+  builder[kStatisticsNameHitRatio]["1min"] =
+      s1min_hits / (s1min_total ? s1min_total : 1);
   return builder.ExtractValue();
 }
 

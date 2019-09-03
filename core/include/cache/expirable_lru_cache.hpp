@@ -3,12 +3,42 @@
 #include <cache/nway_lru_cache.hpp>
 #include <logging/log.hpp>
 #include <utils/datetime.hpp>
+#include <utils/statistics/recentperiod.hpp>
 
 namespace cache {
 
-struct ExpirableLruCacheStatistics {
+struct ExpirableLruCacheStatisticsBase {
   std::atomic<size_t> hits{0};
   std::atomic<size_t> misses{0};
+  std::atomic<size_t> stale{0};
+
+  ExpirableLruCacheStatisticsBase() = default;
+
+  ExpirableLruCacheStatisticsBase(const ExpirableLruCacheStatisticsBase& other)
+      : hits(other.hits.load()),
+        misses(other.misses.load()),
+        stale(other.stale.load()) {}
+
+  void Reset() {
+    hits = 0;
+    misses = 0;
+    stale = 0;
+  }
+
+  ExpirableLruCacheStatisticsBase& operator+=(
+      const ExpirableLruCacheStatisticsBase& other) {
+    hits += other.hits.load();
+    misses += other.misses.load();
+    stale += other.stale.load();
+    return *this;
+  }
+};
+
+struct ExpirableLruCacheStatistics {
+  ExpirableLruCacheStatisticsBase total;
+  utils::statistics::RecentPeriod<ExpirableLruCacheStatisticsBase,
+                                  ExpirableLruCacheStatisticsBase>
+      recent{std::chrono::seconds(5), std::chrono::seconds(60)};
 };
 
 template <typename Key, typename Value>
@@ -68,17 +98,24 @@ Value ExpirableLruCache<Key, Value>::Get(const Key& key,
                                          const UpdateValueFunc& update_func) {
   auto now = utils::datetime::SteadyNow();
   auto old_value = lru_.Get(key, [this, now](const MapValue& value) {
-    return !IsExpired(value.update_time, now);
+    auto expired = IsExpired(value.update_time, now);
+    if (expired) {
+      stats_.total.stale++;
+      stats_.recent.GetCurrentCounter().stale++;
+    }
+    return !expired;
   });
 
   if (old_value) {
-    stats_.hits++;
+    stats_.total.hits++;
+    stats_.recent.GetCurrentCounter().hits++;
     LOG_DEBUG() << "cache hit";
     return old_value->value;
   }
 
   LOG_DEBUG() << "cache miss";
-  stats_.misses++;
+  stats_.total.misses++;
+  stats_.recent.GetCurrentCounter().misses++;
   auto value = update_func(key);
   lru_.Put(key, {value, now});
   return value;

@@ -16,6 +16,8 @@ static const char* kStatisticsNameCurrentDocumentsCount =
 
 static const char* kStatisticsNameHits = "hits";
 static const char* kStatisticsNameMisses = "misses";
+static const char* kStatisticsNameStale = "stale";
+static const char* kStatisticsNameHitRatio = "hit_ratio";
 
 struct UpdateStatistics {
   std::atomic<size_t> update_attempt_count{0};
