@@ -8,10 +8,13 @@ message(STATUS "Userver version ${USERVER_VERSION}")
 include(CheckFunctionExists)
 check_function_exists("accept4" HAVE_ACCEPT4)
 
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/build_config.hpp.in
-  ${CMAKE_CURRENT_BINARY_DIR}/build_config.hpp
-  ESCAPE_QUOTES @ONLY)
+set(BUILD_CONFIG ${CMAKE_CURRENT_BINARY_DIR}/build_config.hpp)
+if(${CMAKE_SOURCE_DIR}/.git/HEAD IS_NEWER_THAN ${BUILD_CONFIG})
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/build_config.hpp.in
+    ${BUILD_CONFIG}
+    ESCAPE_QUOTES @ONLY)
+endif()
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
