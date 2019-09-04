@@ -3,6 +3,7 @@
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
+#include <storages/postgres/io/floating_point_types.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 #include <storages/postgres/io/type_traits.hpp>

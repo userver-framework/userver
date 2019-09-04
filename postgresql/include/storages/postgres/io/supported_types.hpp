@@ -38,8 +38,8 @@
 /// date              | N/A                                     |         |
 /// time              | N/A                                     |         |
 /// timetz            | N/A                                     |         |
-/// interval          | N/A (std::chrono::microseconds)         |         |
-/// bytea             | N/A (std::vector<std::uint8_t>)         |         |
+/// interval          | std::chrono::microseconds               |         |
+/// bytea             | container of one-byte type              |         |
 /// bit(n)            | N/A                                     |         |
 /// bit varying(n)    | N/A                                     |         |
 /// uuid              | N/A (boost::uuids::uuid)                |         |
