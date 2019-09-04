@@ -49,6 +49,10 @@ struct Input<formats::json::Value, DataFormat::kBinaryDataFormat> {
 };
 
 template <>
+struct ParserBufferCategory<io::detail::JsonParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
+
+template <>
 struct Output<formats::json::Value, DataFormat::kBinaryDataFormat> {
   using type = io::detail::JsonFormatter;
 };

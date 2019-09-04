@@ -266,6 +266,10 @@ struct Input<io::detail::Point, DataFormat::kBinaryDataFormat> {
 };
 
 template <>
+struct ParserBufferCategory<io::detail::PointParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
+
+template <>
 struct Output<io::detail::Point, DataFormat::kBinaryDataFormat> {
   using type = io::detail::PointFormatter;
 };
@@ -274,6 +278,10 @@ template <>
 struct Input<io::detail::LineSegment, DataFormat::kBinaryDataFormat> {
   using type = io::detail::LineSegmentParser;
 };
+
+template <>
+struct ParserBufferCategory<io::detail::LineSegmentParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
 struct Output<io::detail::LineSegment, DataFormat::kBinaryDataFormat> {
@@ -286,6 +294,10 @@ struct Input<io::detail::Line, DataFormat::kBinaryDataFormat> {
 };
 
 template <>
+struct ParserBufferCategory<io::detail::LineParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
+
+template <>
 struct Output<io::detail::Line, DataFormat::kBinaryDataFormat> {
   using type = io::detail::LineFormatter;
 };
@@ -294,6 +306,10 @@ template <>
 struct Input<io::detail::Box, DataFormat::kBinaryDataFormat> {
   using type = io::detail::BoxParser;
 };
+
+template <>
+struct ParserBufferCategory<io::detail::BoxParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
 struct Output<io::detail::Box, DataFormat::kBinaryDataFormat> {
@@ -306,6 +322,10 @@ struct Input<io::detail::Path, DataFormat::kBinaryDataFormat> {
 };
 
 template <>
+struct ParserBufferCategory<io::detail::PathParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
+
+template <>
 struct Output<io::detail::Path, DataFormat::kBinaryDataFormat> {
   using type = io::detail::PathFormatter;
 };
@@ -316,6 +336,10 @@ struct Input<io::detail::Polygon, DataFormat::kBinaryDataFormat> {
 };
 
 template <>
+struct ParserBufferCategory<io::detail::PolygonParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
+
+template <>
 struct Output<io::detail::Polygon, DataFormat::kBinaryDataFormat> {
   using type = io::detail::PolygonFormatter;
 };
@@ -324,6 +348,10 @@ template <>
 struct Input<io::detail::Circle, DataFormat::kBinaryDataFormat> {
   using type = io::detail::CircleParser;
 };
+
+template <>
+struct ParserBufferCategory<io::detail::CircleParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
 struct Output<io::detail::Circle, DataFormat::kBinaryDataFormat> {

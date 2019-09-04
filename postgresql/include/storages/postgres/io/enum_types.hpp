@@ -193,6 +193,10 @@ struct Input<T, F,
 };
 
 template <typename T, DataFormat F>
+struct ParserBufferCategory<io::detail::EnumParser<T, F>>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
+
+template <typename T, DataFormat F>
 struct Output<T, F,
               std::enable_if_t<!detail::kCustomFormatterDefined<T, F> &&
                                std::is_enum<T>() && IsMappedToUserType<T>()>> {
