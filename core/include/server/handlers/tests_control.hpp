@@ -1,8 +1,10 @@
 #pragma once
 
+#include <functional>
 #include <vector>
 
 #include <cache/cache_update_trait.hpp>
+#include <concurrent/variable.hpp>
 #include <engine/mutex.hpp>
 #include <server/handlers/http_handler_json_base.hpp>
 
@@ -27,8 +29,8 @@ class TestsControl final : public HttpHandlerJsonBase {
       request::RequestContext& context) const override;
 
  private:
-  components::CacheInvalidator& cache_invalidator_;
-  mutable engine::Mutex mutex_;
+  concurrent::Variable<std::reference_wrapper<components::CacheInvalidator>>
+      cache_invalidator_;
 };
 
 }  // namespace handlers

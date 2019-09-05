@@ -32,8 +32,8 @@ ComponentsLoadCancelledException::ComponentsLoadCancelledException(
 ComponentContext::TaskToComponentMapScope::TaskToComponentMapScope(
     ComponentContext& context, const std::string& component_name)
     : context_(context) {
-  std::lock_guard<engine::Mutex> lock(context_.component_mutex_);
-  auto res = context_.task_to_component_map_.emplace(
+  auto data = context_.shared_data_.Lock();
+  auto res = data->task_to_component_map.emplace(
       engine::current_task::GetCurrentTaskContext(), component_name);
   if (!res.second)
     throw std::runtime_error(
@@ -43,17 +43,15 @@ ComponentContext::TaskToComponentMapScope::TaskToComponentMapScope(
 }
 
 ComponentContext::TaskToComponentMapScope::~TaskToComponentMapScope() {
-  std::lock_guard<engine::Mutex> lock(context_.component_mutex_);
-  context_.task_to_component_map_.erase(
+  auto data = context_.shared_data_.Lock();
+  data->task_to_component_map.erase(
       engine::current_task::GetCurrentTaskContext());
 }
 
 ComponentContext::ComponentContext(
     const Manager& manager, TaskProcessorMap task_processor_map,
     const std::set<std::string>& loading_component_names)
-    : manager_(manager),
-      task_processor_map_(std::move(task_processor_map)),
-      print_adding_components_stopped_(false) {
+    : manager_(manager), task_processor_map_(std::move(task_processor_map)) {
   for (const auto& component_name : loading_component_names) {
     components_.emplace(
         std::piecewise_construct, std::tie(component_name),
@@ -242,23 +240,24 @@ ComponentBase* ComponentContext::DoFindComponent(
 
   {
     engine::TaskCancellationBlocker block_cancel;
-    std::unique_lock<engine::Mutex> lock(component_mutex_);
+    auto data = shared_data_.Lock();
     LOG_INFO() << "component " << name << " is not loaded yet, component "
-               << GetLoadingComponentName(lock) << " is waiting for it to load";
+               << GetLoadingComponentName(*data)
+               << " is waiting for it to load";
   }
 
   return component_info.WaitAndGetComponent();
 }
 
 void ComponentContext::AddDependency(const std::string& name) const {
-  std::unique_lock<engine::Mutex> lock(component_mutex_);
+  auto data = shared_data_.Lock();
 
-  const auto& current_component_name = GetLoadingComponentName(lock);
+  const auto& current_component_name = GetLoadingComponentName(*data);
   if (components_.at(current_component_name)->CheckItDependsOn(name)) return;
 
   LOG_INFO() << "Resolving dependency " << current_component_name << " -> "
              << name;
-  CheckForDependencyCycle(current_component_name, name, lock);
+  CheckForDependencyCycle(current_component_name, name, *data);
 
   components_.at(current_component_name)->AddItDependsOn(name);
   components_.at(name)->AddDependsOnIt(current_component_name);
@@ -267,14 +266,14 @@ void ComponentContext::AddDependency(const std::string& name) const {
 bool ComponentContext::FindDependencyPathDfs(
     const std::string& current, const std::string& target,
     std::set<std::string>& handled, std::vector<std::string>& dependency_path,
-    std::unique_lock<engine::Mutex>& lock) const {
+    const ProtectedData& data) const {
   handled.insert(current);
   bool found = (current == target);
 
   components_.at(current)->ForEachDependsOnIt([&](const std::string& name) {
     if (!found && !handled.count(name))
       found =
-          FindDependencyPathDfs(name, target, handled, dependency_path, lock);
+          FindDependencyPathDfs(name, target, handled, dependency_path, data);
   });
 
   if (found) dependency_path.push_back(current);
@@ -284,13 +283,12 @@ bool ComponentContext::FindDependencyPathDfs(
 
 void ComponentContext::CheckForDependencyCycle(
     const std::string& new_dependency_from,
-    const std::string& new_dependency_to,
-    std::unique_lock<engine::Mutex>& lock) const {
+    const std::string& new_dependency_to, const ProtectedData& data) const {
   std::set<std::string> handled;
   std::vector<std::string> dependency_chain;
 
   if (FindDependencyPathDfs(new_dependency_from, new_dependency_to, handled,
-                            dependency_chain, lock)) {
+                            dependency_chain, data)) {
     dependency_chain.push_back(new_dependency_to);
     LOG_ERROR() << "Found circular dependency between components: "
                 << boost::algorithm::join(dependency_chain, " -> ");
@@ -311,9 +309,9 @@ void ComponentContext::CancelComponentLifetimeStageSwitching() {
 }
 
 std::string ComponentContext::GetLoadingComponentName(
-    std::unique_lock<engine::Mutex>&) const {
+    const ProtectedData& data) const {
   try {
-    return task_to_component_map_.at(
+    return data.task_to_component_map.at(
         engine::current_task::GetCurrentTaskContext());
   } catch (const std::exception&) {
     throw std::runtime_error(
@@ -327,11 +325,12 @@ void ComponentContext::StartPrintAddingComponentsTask() {
           engine::impl::CriticalAsync([this]() {
             for (;;) {
               {
-                std::unique_lock<engine::Mutex> lock(component_mutex_);
+                auto data = shared_data_.UniqueLock();
                 print_adding_components_cv_.WaitFor(
-                    lock, kPrintAddingComponentsPeriod,
-                    [this]() { return print_adding_components_stopped_; });
-                if (print_adding_components_stopped_) return;
+                    data.GetLock(), kPrintAddingComponentsPeriod, [&data]() {
+                      return data->print_adding_components_stopped;
+                    });
+                if (data->print_adding_components_stopped) return;
               }
               PrintAddingComponents();
             }
@@ -341,8 +340,8 @@ void ComponentContext::StartPrintAddingComponentsTask() {
 void ComponentContext::StopPrintAddingComponentsTask() {
   LOG_DEBUG() << "Stopping adding components printing";
   {
-    std::lock_guard<engine::Mutex> lock(component_mutex_);
-    print_adding_components_stopped_ = true;
+    auto data = shared_data_.Lock();
+    data->print_adding_components_stopped = true;
   }
   print_adding_components_cv_.NotifyAll();
   print_adding_components_task_.reset();
@@ -351,8 +350,8 @@ void ComponentContext::StopPrintAddingComponentsTask() {
 void ComponentContext::PrintAddingComponents() const {
   std::vector<std::string> adding_components;
   {
-    std::lock_guard<engine::Mutex> lock(component_mutex_);
-    for (const auto& elem : task_to_component_map_) {
+    auto data = shared_data_.Lock();
+    for (const auto& elem : data->task_to_component_map) {
       adding_components.push_back(elem.second);
     }
   }

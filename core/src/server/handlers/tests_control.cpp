@@ -59,14 +59,14 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     }
   }
 
-  std::lock_guard<engine::Mutex> guard(mutex_);
+  auto cache_invalidator = cache_invalidator_.Lock();
 
   if (now)
     utils::datetime::MockNowSet(std::chrono::system_clock::from_time_t(now));
   else
     utils::datetime::MockNowUnset();
 
-  if (invalidate_caches) cache_invalidator_.InvalidateCaches();
+  if (invalidate_caches) cache_invalidator->get().InvalidateCaches();
 
   return formats::json::Value();
 }

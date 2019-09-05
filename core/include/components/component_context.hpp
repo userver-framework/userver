@@ -10,6 +10,7 @@
 
 #include <compiler/demangle.hpp>
 #include <components/component_base.hpp>
+#include <concurrent/variable.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/task_with_result.hpp>
@@ -80,9 +81,9 @@ class ComponentContext final {
   template <typename T>
   T& FindComponent(const std::string& name) const {
     if (components_.count(name) == 0) {
-      std::unique_lock<engine::Mutex> lock(component_mutex_);
+      auto data = shared_data_.Lock();
       throw std::runtime_error(
-          "Component '" + GetLoadingComponentName(lock) +
+          "Component '" + GetLoadingComponentName(*data) +
           "' requested component with non registered name '" + name +
           "' of type " + compiler::GetTypeName<T>());
     }
@@ -91,9 +92,9 @@ class ComponentContext final {
     T* ptr = dynamic_cast<T*>(component_base);
     UASSERT(ptr != nullptr);
     if (!ptr) {
-      std::unique_lock<engine::Mutex> lock(component_mutex_);
+      auto data = shared_data_.Lock();
       throw std::runtime_error(
-          "Component '" + GetLoadingComponentName(lock) +
+          "Component '" + GetLoadingComponentName(*data) +
           "' requested component with name '" + name + "' that is actually " +
           (component_base
                ? "has type " + compiler::GetTypeName(typeid(*component_base))
@@ -140,6 +141,8 @@ class ComponentContext final {
 
   enum class DependencyType { kNormal, kInverted };
 
+  struct ProtectedData;
+
   struct ComponentLifetimeStageSwitchingParams {
     ComponentLifetimeStageSwitchingParams(
         const impl::ComponentLifetimeStage& next_stage,
@@ -176,15 +179,15 @@ class ComponentContext final {
                              const std::string& target,
                              std::set<std::string>& handled,
                              std::vector<std::string>& dependency_path,
-                             std::unique_lock<engine::Mutex>&) const;
+                             const ProtectedData& data) const;
   void CheckForDependencyCycle(const std::string& new_dependency_from,
                                const std::string& new_dependency_to,
-                               std::unique_lock<engine::Mutex>&) const;
+                               const ProtectedData& data) const;
 
   void PrepareComponentLifetimeStageSwitching();
   void CancelComponentLifetimeStageSwitching();
 
-  std::string GetLoadingComponentName(std::unique_lock<engine::Mutex>&) const;
+  std::string GetLoadingComponentName(const ProtectedData&) const;
   void StartPrintAddingComponentsTask();
   void StopPrintAddingComponentsTask();
   void PrintAddingComponents() const;
@@ -195,11 +198,13 @@ class ComponentContext final {
   ComponentMap components_;
   std::atomic_flag components_load_cancelled_ = ATOMIC_FLAG_INIT;
 
-  mutable engine::Mutex component_mutex_;
-  std::unordered_map<engine::impl::TaskContext*, std::string>
-      task_to_component_map_;
+  struct ProtectedData {
+    std::unordered_map<engine::impl::TaskContext*, std::string>
+        task_to_component_map;
+    bool print_adding_components_stopped{false};
+  };
   engine::ConditionVariable print_adding_components_cv_;
-  bool print_adding_components_stopped_;
+  concurrent::Variable<ProtectedData> shared_data_;
   std::unique_ptr<engine::TaskWithResult<void>> print_adding_components_task_;
 };
 
