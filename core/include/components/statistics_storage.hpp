@@ -23,7 +23,7 @@ class StatisticsStorage final : public LoggableComponentBase {
 
   const utils::statistics::Storage& GetStorage() const { return storage_; }
 
-  utils::statistics::MetricsStorage& GetMetricsStorage() {
+  utils::statistics::MetricsStoragePtr GetMetricsStorage() {
     return metrics_storage_;
   }
 
@@ -32,7 +32,7 @@ class StatisticsStorage final : public LoggableComponentBase {
       const utils::statistics::StatisticsRequest&);
 
   utils::statistics::Storage storage_;
-  utils::statistics::MetricsStorage metrics_storage_;
+  utils::statistics::MetricsStoragePtr metrics_storage_;
   utils::statistics::Entry statistics_holder_;
 };
 

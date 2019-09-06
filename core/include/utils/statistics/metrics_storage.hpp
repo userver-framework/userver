@@ -12,7 +12,8 @@ class MetricsStorage final {
   /// Get metric data by type
   template <typename Metric>
   Metric& GetMetric(const MetricTag<Metric>&) {
-    return boost::any_cast<Metric&>(metrics_.at(typeid(Metric)).data_);
+    return *boost::any_cast<std::shared_ptr<Metric>&>(
+        metrics_.at(typeid(Metric)).data_);
   }
 
   formats::json::ValueBuilder DumpMetrics();
