@@ -31,7 +31,7 @@ void SetSubField(formats::json::ValueBuilder& object,
   } else {
     const auto field = std::move(fields.front());
     fields.pop_front();
-    auto subobj = object[field];
+    auto subobj = field.empty() ? object : object[field];
     SetSubField(subobj, std::move(fields), std::move(value));
   }
 }
