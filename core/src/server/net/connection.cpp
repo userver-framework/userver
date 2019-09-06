@@ -128,6 +128,13 @@ void Connection::ListenForRequests(Queue::Producer producer) {
     }
   } catch (const engine::io::IoCancelled&) {
     // go to finalization, do not pass Go, do not collect $200
+  } catch (const engine::io::IoSystemError& ex) {
+    auto log_level = ex.Code() == std::errc::connection_reset
+                         ? logging::Level::kWarning
+                         : logging::Level::kError;
+    LOG(log_level) << "I/O error while receiving from peer "
+                   << peer_socket_.Getpeername() << " on fd " << Fd() << ": "
+                   << ex;
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Error while receiving from peer "
                 << peer_socket_.Getpeername() << " on fd " << Fd() << ": "
@@ -185,8 +192,13 @@ void Connection::SendResponses(Queue::Consumer consumer) {
     if (peer_socket_) {
       try {
         response.SendResponse(peer_socket_);
+      } catch (const engine::io::IoSystemError& ex) {
+        auto log_level = ex.Code() == std::errc::broken_pipe
+                             ? logging::Level::kWarning
+                             : logging::Level::kError;
+        LOG(log_level) << "I/O error while sending data: " << ex;
       } catch (const std::exception& ex) {
-        LOG_ERROR() << "Error sending data: " << ex;
+        LOG_ERROR() << "Error while sending data: " << ex;
 
         send_failure_time_ = std::chrono::steady_clock::now();
         response.SetSendFailed(send_failure_time_);

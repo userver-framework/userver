@@ -150,7 +150,11 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
       IoSystemError ex(
           utils::impl::ToString("Error while ", context..., ", fd=", fd_),
           err_value);
-      LOG_ERROR() << ex;
+      auto log_level = logging::Level::kError;
+      if (err_value == ECONNRESET || err_value == EPIPE) {
+        log_level = logging::Level::kWarning;
+      }
+      LOG(log_level) << ex;
       if (pos != begin) {
         break;
       }
