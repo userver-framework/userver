@@ -2,7 +2,7 @@
 
 # params
 CLANG_FORMAT_VERSION=7
-SOURCE_REGEXP="(^|\./)(core|mongo|postgresql|redis|tests|examples|tools)/.+\.[ch]pp"
+SOURCE_REGEXP="(^|\./)(core|mongo|postgresql|redis|tests|examples|tools)/.+\.([ch]pp|inc)"
 
 # check clang-format
 CLANG_FORMAT=clang-format-$CLANG_FORMAT_VERSION
