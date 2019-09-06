@@ -72,6 +72,9 @@ macro(add_compile_options_if_supported)
   endforeach()
 endmacro()
 
+if (MACOS)
+    set(Boost_NO_BOOST_CMAKE ON)
+endif(MACOS)
 find_package(Boost REQUIRED)
 
 # all and extra do not enable theirs
@@ -88,7 +91,7 @@ if (NOT CLANG) # bug in clang https://llvm.org/bugs/show_bug.cgi?id=24979
 endif()
 if (CLANG)
   message (STATUS "boost: ${Boost_VERSION}")
-  if (MACOS AND ${Boost_VERSION} STRLESS "106800")
+  if (MACOS AND ${Boost_VERSION} VERSION_LESS "106800")
     message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
   endif()
 
@@ -99,7 +102,7 @@ if (CLANG)
   add_compile_options ("-Wno-braced-scalar-init")
 endif()
 
-if (${Boost_VERSION} STRLESS "106300")
+if (${Boost_VERSION} VERSION_LESS "106300")
   add_definitions("-DBOOST_NO_CXX17_STD_APPLY" "-DBOOST_NO_CXX17_STD_INVOKE")
 endif()
 
