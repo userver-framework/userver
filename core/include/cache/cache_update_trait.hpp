@@ -36,13 +36,17 @@ class CacheUpdateTrait {
   /* If no config is set, use static default (from config.yaml) */
   void SetConfig(const boost::optional<cache::CacheConfig>& config);
 
+ protected:
+  /// Can be called for force update. There is a mutex lock inside, so it's safe
+  /// to call this method in parallel with periodic cache updates or other force
+  /// updates.
+  void DoPeriodicUpdate();
+
  private:
   virtual void Update(cache::UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,
                       const std::chrono::system_clock::time_point& now,
                       cache::UpdateStatisticsScope& stats_scope) = 0;
-
-  void DoPeriodicUpdate();
 
   utils::PeriodicTask::Settings GetPeriodicTaskSettings() const;
 
