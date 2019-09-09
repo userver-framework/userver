@@ -16,7 +16,23 @@ extern const std::chrono::seconds kSubscriberErrorTimeout;
 
 class AsyncEventChannelBase {
  public:
-  using FunctionId = intptr_t;
+  class FunctionId final {
+   public:
+    template <typename Class>
+    explicit FunctionId(Class* obj) : ptr_(obj), type_index_(typeid(Class)) {}
+
+    FunctionId() : ptr_(nullptr), type_index_(typeid(void)) {}
+
+    explicit operator bool() const { return ptr_ != 0; }
+
+    bool operator==(const FunctionId& other) const {
+      return ptr_ == other.ptr_ && type_index_ == other.type_index_;
+    }
+
+   private:
+    void* ptr_;
+    std::type_index type_index_;
+  };
 
  protected:
   friend class AsyncEventSubscriberScope;
@@ -35,7 +51,7 @@ class AsyncEventSubscriberScope final {
 
   AsyncEventSubscriberScope(AsyncEventSubscriberScope&& scope) noexcept
       : channel_(scope.channel_), id_(scope.id_) {
-    scope.id_ = 0;
+    scope.id_ = {};
   }
 
   AsyncEventSubscriberScope& operator=(
@@ -48,7 +64,7 @@ class AsyncEventSubscriberScope final {
   void Unsubscribe() noexcept {
     if (id_) {
       channel_->RemoveListener(id_);
-      id_ = 0;
+      id_ = {};
     }
   }
 
@@ -65,7 +81,7 @@ class AsyncEventSubscriberScope final {
 
  private:
   AsyncEventChannelBase* channel_{nullptr};
-  FunctionId id_{0};
+  FunctionId id_;
 };
 
 /* AsyncEventChannel is a in-process pubsub with strict FIFO serialization. */
@@ -82,7 +98,10 @@ class AsyncEventChannel : public AsyncEventChannelBase {
     std::lock_guard<engine::Mutex> lock(mutex_);
 
     auto it = FindListener(id);
-    if (it != listeners_.end()) throw std::runtime_error("already subscribed");
+    if (it != listeners_.end()) {
+      UASSERT(false);
+      throw std::runtime_error("already subscribed");
+    }
 
     listeners_.emplace_back(id, std::move(name), std::move(func));
     return AsyncEventSubscriberScope(this, id);
@@ -91,15 +110,19 @@ class AsyncEventChannel : public AsyncEventChannelBase {
   template <class Class>
   [[nodiscard]] AsyncEventSubscriberScope AddListener(
       Class* obj, std::string name, void (Class::*func)(Args...)) {
-    return AddListener(reinterpret_cast<FunctionId>(obj), std::move(name),
-                       [obj, func](Args... args) { (obj->*func)(args...); });
+    return AddListener(FunctionId(obj), std::move(name),
+                       [obj, func](Args... args) {
+                         (obj->*func)(std::forward<Args>(args)...);
+                       });
   }
 
   template <class Class>
   [[nodiscard]] AsyncEventSubscriberScope AddListener(
       const Class* obj, std::string name, void (Class::*func)(Args...) const) {
-    return AddListener(reinterpret_cast<FunctionId>(obj), std::move(name),
-                       [obj, func](Args... args) { (obj->*func)(args...); });
+    return AddListener(FunctionId(obj), std::move(name),
+                       [obj, func](Args... args) {
+                         (obj->*func)(std::forward<Args>(args)...);
+                       });
   }
 
   void SendEvent(const Args&... args) const {
@@ -157,7 +180,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
     }
   }
 
-  struct Listener {
+  struct Listener final {
     Listener(FunctionId id, std::string name, Function function)
         : id(id), name(std::move(name)), function(std::move(function)) {}
 
