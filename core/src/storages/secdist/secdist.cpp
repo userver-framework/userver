@@ -4,8 +4,6 @@
 #include <fstream>
 #include <sstream>
 
-#include <boost/filesystem/operations.hpp>
-
 #include <compiler/demangle.hpp>
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
@@ -34,18 +32,16 @@ SecdistConfig::SecdistConfig(const std::string& path) {
   if (GetConfigFactories().empty()) return;
 
   formats::json::Value doc;
-  if (!boost::filesystem::exists(path)) {
-    // initialize as empty doc if file doesn't exist
+
+  std::ifstream json_stream(path);
+  try {
+    doc = formats::json::FromStream(json_stream);
+  } catch (const std::exception& e) {
+    LOG_WARNING() << "Cannot load secdist config. File '" << path
+                  << "' doesn't exist, unrechable or in invalid format:" << e;
+
     doc = formats::json::ValueBuilder(formats::json::Type::kObject)
               .ExtractValue();
-  } else {
-    std::ifstream json_stream(path);
-    try {
-      doc = formats::json::FromStream(json_stream);
-    } catch (const formats::json::Exception& e) {
-      throw InvalidSecdistJson(std::string("Cannot load secdist config: ") +
-                               e.what());
-    }
   }
 
   Init(doc);
