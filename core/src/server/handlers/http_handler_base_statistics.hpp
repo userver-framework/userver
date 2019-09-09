@@ -36,12 +36,19 @@ class HttpHandlerMethodStatistics final {
 
   void DecrementInFlight() { in_flight_--; }
 
+  void IncrementTooManyRequestsInFlight() { too_many_requests_in_flight_++; }
+
+  size_t GetTooManyRequestsInFlight() const {
+    return too_many_requests_in_flight_;
+  }
+
  private:
   utils::statistics::RecentPeriod<Percentile, Percentile,
                                   utils::datetime::SteadyClock>
       timings_;
   utils::statistics::HttpCodes reply_codes_{400, 401, 500};
   std::atomic<size_t> in_flight_{0};
+  std::atomic<size_t> too_many_requests_in_flight_{0};
 };
 
 class HttpHandlerStatistics final {

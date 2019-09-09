@@ -144,6 +144,7 @@ formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
 
   total["reply-codes"] = stats.FormatReplyCodes();
   total["in-flight"] = stats.GetInFlight();
+  total["too-many-requests-in-flight"] = stats.GetTooManyRequestsInFlight();
 
   total["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.GetTimings());
@@ -266,10 +267,21 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
                                            http_request.GetMethod());
 
-    request_processor.ProcessRequestStep(
-        kHandleRequestStep, [this, &response, &http_request, &context] {
-          response.SetData(HandleRequestThrow(http_request, context));
-        });
+    auto& total_statistics = handler_statistics_->GetTotalStatistics();
+    auto max_requests_in_flight = GetConfig().max_requests_in_flight;
+    auto requests_in_flight = total_statistics.GetInFlight();
+    if (max_requests_in_flight &&
+        (requests_in_flight > *max_requests_in_flight)) {
+      LOG_ERROR() << "Max requests in flight limit reached for handler '"
+                  << HandlerName() << "', limit=" << requests_in_flight;
+      total_statistics.IncrementTooManyRequestsInFlight();
+      response.SetStatus(http::HttpStatus::kTooManyRequests);
+    } else {
+      request_processor.ProcessRequestStep(
+          kHandleRequestStep, [this, &response, &http_request, &context] {
+            response.SetData(HandleRequestThrow(http_request, context));
+          });
+    }
 
     response.SetHeader(::http::headers::kXYaRequestId, span.GetLink());
     int response_code = static_cast<int>(response.GetStatus());

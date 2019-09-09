@@ -25,6 +25,7 @@ struct HandlerConfig {
   boost::optional<bool> parse_args_from_body;
   boost::optional<auth::HandlerAuthConfig> auth;
   boost::optional<UrlTrailingSlashOption> url_trailing_slash;
+  boost::optional<size_t> max_requests_in_flight;
 
   static HandlerConfig ParseFromYaml(
       const formats::yaml::Value& yaml, const std::string& full_path,
