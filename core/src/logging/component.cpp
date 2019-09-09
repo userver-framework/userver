@@ -26,7 +26,6 @@ namespace components {
 namespace {
 
 const std::chrono::seconds kDefaultFlushInterval{2};
-const std::chrono::milliseconds kRelaxPeriod{1000};
 
 }  // namespace
 
@@ -59,11 +58,6 @@ Logging::Logging(const ComponentConfig& config,
 
     if (is_default_logger) {
       logging::SetDefaultLogger(logger);
-      engine::impl::Async([logger] {
-        engine::SleepFor(std::chrono::milliseconds(kRelaxPeriod));
-        logging::SetDefaultLogger(logger);
-      })
-          .Detach();
     } else {
       auto insertion_result =
           loggers_.emplace(std::move(logger_name), std::move(logger));

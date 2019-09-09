@@ -6,13 +6,14 @@
 #include <boost/container/small_vector.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
+#include <engine/run_in_coro.hpp>
 #include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/spdlog.hpp>
+#include <rcu/rcu.hpp>
 #include <tracing/span.hpp>
 #include <utils/assert.hpp>
 #include <utils/string_view.hpp>
-#include <utils/swappingsmart.hpp>
 #include <utils/traceful_exception.hpp>
 #include "log_workaround.hpp"
 
@@ -58,7 +59,7 @@ class LogExtraValueVisitor final {
 };
 
 auto& DefaultLoggerInternal() {
-  static utils::SwappingSmart<Logger> default_logger_ptr(
+  static rcu::Variable<LoggerPtr> default_logger_ptr(
       MakeStderrLogger("default"));
   return default_logger_ptr;
 }
@@ -77,21 +78,20 @@ void UpdateLogLevelCache() {
 
 }  // namespace
 
-LoggerPtr DefaultLogger() { return DefaultLoggerInternal().Get(); }
+LoggerPtr DefaultLogger() { return *DefaultLoggerInternal().Read(); }
 
 LoggerPtr SetDefaultLogger(LoggerPtr logger) {
-  // FIXME: we have to do atomic exchange() and return the old value.
-  // SetDefaultLogger() is called only at startup, so mutex is OK here.
-  // Better solution in https://st.yandex-team.ru/TAXICOMMON-234
-  static std::mutex mutex;
-  std::unique_lock<std::mutex> lock(mutex);
+  if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr) {
+    RunInCoro([&logger] { logger = SetDefaultLogger(logger); }, 1);
+    return logger;
+  }
 
-  auto& default_logger = DefaultLoggerInternal();
-  auto old = default_logger.Get();
-  default_logger.Set(logger);
+  auto ptr = DefaultLoggerInternal().StartWrite();
+  swap(*ptr, logger);
+  ptr.Commit();
+
   UpdateLogLevelCache();
-
-  return old;
+  return logger;
 }
 
 void SetDefaultLoggerLevel(Level level) {
