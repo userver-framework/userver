@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cerrno>
 #include <stdexcept>
 #include <system_error>
 #include <vector>
@@ -129,9 +128,12 @@ void Connection::ListenForRequests(Queue::Producer producer) {
   } catch (const engine::io::IoCancelled&) {
     // go to finalization, do not pass Go, do not collect $200
   } catch (const engine::io::IoSystemError& ex) {
-    auto log_level = ex.Code() == std::errc::connection_reset
-                         ? logging::Level::kWarning
-                         : logging::Level::kError;
+    // working with raw values because std::errc compares error_category
+    // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)
+    auto log_level =
+        ex.Code().value() == static_cast<int>(std::errc::connection_reset)
+            ? logging::Level::kWarning
+            : logging::Level::kError;
     LOG(log_level) << "I/O error while receiving from peer "
                    << peer_socket_.Getpeername() << " on fd " << Fd() << ": "
                    << ex;
@@ -193,9 +195,12 @@ void Connection::SendResponses(Queue::Consumer consumer) {
       try {
         response.SendResponse(peer_socket_);
       } catch (const engine::io::IoSystemError& ex) {
-        auto log_level = ex.Code() == std::errc::broken_pipe
-                             ? logging::Level::kWarning
-                             : logging::Level::kError;
+        // working with raw values because std::errc compares error_category
+        // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)
+        auto log_level =
+            ex.Code().value() == static_cast<int>(std::errc::broken_pipe)
+                ? logging::Level::kWarning
+                : logging::Level::kError;
         LOG(log_level) << "I/O error while sending data: " << ex;
       } catch (const std::exception& ex) {
         LOG_ERROR() << "Error while sending data: " << ex;

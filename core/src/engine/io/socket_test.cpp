@@ -68,6 +68,7 @@ TEST(Socket, ConnectFail) {
       FAIL() << "Connection to 23/tcp succeeded";
     } catch (const io::IoSystemError& ex) {
       // oh come on, system and generic categories don't match =/
+      // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)
       EXPECT_EQ(static_cast<int>(std::errc::connection_refused),
                 ex.Code().value());
     }

@@ -72,7 +72,7 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);
   return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kPartial,
-                       deadline, "Recv from ", peername_);
+                       deadline, "Recv from", peername_);
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
@@ -82,7 +82,7 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);
   return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kWhole,
-                       deadline, "RecvAll from ", peername_);
+                       deadline, "RecvAll from", peername_);
 }
 
 size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
@@ -103,7 +103,7 @@ size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return dir.PerformIo(lock, send_func, const_cast<void*>(buf), len,
-                       impl::TransferMode::kWhole, deadline, "Send to ",
+                       impl::TransferMode::kWhole, deadline, "Send to",
                        peername_);
 }
 
