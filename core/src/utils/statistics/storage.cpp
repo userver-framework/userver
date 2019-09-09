@@ -4,44 +4,16 @@
 #include <string>
 #include <utility>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
+#include <utils/statistics/value_builder_helpers.hpp>
 
 namespace {
 
 const std::string kVersionField = "$version";
 constexpr int kVersion = 2;
-
-void UpdateFields(formats::json::ValueBuilder& object,
-                  formats::json::ValueBuilder value) {
-  for (auto it = value.begin(); it != value.end(); ++it) {
-    const auto& name = it.GetName();
-    object[name] = value[name];
-  }
-}
-
-void SetSubField(formats::json::ValueBuilder& object,
-                 std::list<std::string> fields,
-                 formats::json::ValueBuilder value) {
-  if (fields.empty()) {
-    UpdateFields(object, std::move(value));
-  } else {
-    const auto field = std::move(fields.front());
-    fields.pop_front();
-    auto subobj = field.empty() ? object : object[field];
-    SetSubField(subobj, std::move(fields), std::move(value));
-  }
-}
-
-void SetSubField(formats::json::ValueBuilder& object, const std::string& path,
-                 formats::json::ValueBuilder value) {
-  std::list<std::string> fields;
-  boost::split(fields, path, [](char c) { return c == '.'; });
-  SetSubField(object, std::move(fields), std::move(value));
-}
 
 }  // namespace
 
