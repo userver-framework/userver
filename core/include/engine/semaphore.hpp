@@ -26,10 +26,13 @@ class WaitList;
 ///   }).Detach();
 class Semaphore final {
  public:
+  using Counter = std::size_t;
+
   /// Creates a semaphore with predefined number of available locks
   /// @param max_simultaneous_locks initial number of available locks
-  explicit Semaphore(std::size_t max_simultaneous_locks);
-  ~Semaphore() = default;
+  explicit Semaphore(Counter max_simultaneous_locks);
+
+  ~Semaphore();
 
   Semaphore(Semaphore&&) = delete;
   Semaphore(const Semaphore&) = delete;
@@ -51,12 +54,20 @@ class Semaphore final {
   /// Returns an approximate number of available locks, use only for statistics.
   size_t RemainingApprox() const;
 
+  void unlock_shared_count(const Counter count);
+
+  bool try_lock_shared_count(const Counter count);
+
+  bool try_lock_shared_until_count(Deadline deadline, const Counter count);
+
  private:
-  bool LockFastPath();
-  bool LockSlowPath(Deadline);
+  bool LockFastPath(Counter count);
+  bool LockSlowPath(Deadline, Counter count);
 
   std::shared_ptr<impl::WaitList> lock_waiters_;
-  std::atomic<std::size_t> remaining_simultaneous_locks_;
+  std::atomic<Counter> remaining_simultaneous_locks_;
+  [[maybe_unused]] const Counter max_simultaneous_locks_;
+  bool is_multi_;
 };
 
 /// A replacement for std::shared_lock that accepts Deadline arguments

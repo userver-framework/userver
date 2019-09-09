@@ -87,8 +87,9 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
   try {
     LOG_INFO() << "Creating " << config.initial_size << " mongo connections";
     for (size_t i = 0; i < config.initial_size; ++i) {
-      in_use_semaphore_.lock_shared();  // compensate for unlock in Push
+      engine::SemaphoreLock lock(in_use_semaphore_);
       Push(Create());
+      lock.Release();
     }
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex;

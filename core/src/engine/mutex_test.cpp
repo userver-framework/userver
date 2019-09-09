@@ -2,11 +2,18 @@
 
 #include <engine/async.hpp>
 #include <engine/mutex.hpp>
+#include <engine/shared_mutex.hpp>
 #include <engine/sleep.hpp>
 
 #include <utest/utest.hpp>
 
-TEST(Mutex, LockUnlock) {
+template <class T>
+struct Mutex : public ::testing::Test {
+  using MutexType = T;
+};
+TYPED_TEST_CASE_P(Mutex);
+
+TYPED_TEST_P(Mutex, LockUnlock) {
   RunInCoro([] {
     engine::Mutex mutex;
     mutex.lock();
@@ -14,7 +21,7 @@ TEST(Mutex, LockUnlock) {
   });
 }
 
-TEST(Mutex, LockUnlockDouble) {
+TYPED_TEST_P(Mutex, LockUnlockDouble) {
   RunInCoro([] {
     engine::Mutex mutex;
     mutex.lock();
@@ -25,7 +32,7 @@ TEST(Mutex, LockUnlockDouble) {
   });
 }
 
-TEST(Mutex, WaitAndCancel) {
+TYPED_TEST_P(Mutex, WaitAndCancel) {
   RunInCoro([] {
     engine::Mutex mutex;
     std::unique_lock<engine::Mutex> lock(mutex);
@@ -46,7 +53,7 @@ TEST(Mutex, WaitAndCancel) {
   });
 }
 
-TEST(Mutex, TryLock) {
+TYPED_TEST_P(Mutex, TryLock) {
   RunInCoro([] {
     engine::Mutex mutex;
 
@@ -83,3 +90,11 @@ TEST(Mutex, TryLock) {
     EXPECT_TRUE(long_waiter.Get());
   });
 }
+
+REGISTER_TYPED_TEST_CASE_P(Mutex,
+
+                           LockUnlock, LockUnlockDouble, WaitAndCancel,
+                           TryLock);
+
+INSTANTIATE_TYPED_TEST_CASE_P(EngineMutex, Mutex, ::engine::Mutex);
+INSTANTIATE_TYPED_TEST_CASE_P(EngineSharedMutex, Mutex, ::engine::SharedMutex);

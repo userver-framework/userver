@@ -35,45 +35,62 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
 }  // namespace
 }  // namespace impl
 
-Semaphore::Semaphore(std::size_t max_simultaneous_locks)
+Semaphore::Semaphore(Counter max_simultaneous_locks)
     : lock_waiters_(std::make_shared<impl::WaitList>()),
-      remaining_simultaneous_locks_(max_simultaneous_locks) {
+      remaining_simultaneous_locks_(max_simultaneous_locks),
+      max_simultaneous_locks_(max_simultaneous_locks),
+      is_multi_(false) {
   UASSERT(max_simultaneous_locks > 0);
 }
 
-bool Semaphore::LockFastPath() {
+Semaphore::~Semaphore() {
+  UASSERT_MSG(
+      max_simultaneous_locks_ == remaining_simultaneous_locks_,
+      "Semaphore is destroyed while users still holding the lock (max=" +
+          std::to_string(max_simultaneous_locks_) +
+          ", current=" + std::to_string(remaining_simultaneous_locks_) + ")");
+}
+
+bool Semaphore::LockFastPath(const Counter count) {
+  UASSERT(count > 0);
+  UASSERT(count <= max_simultaneous_locks_);
+  if (count > 1) is_multi_ = true;
+
   LOG_TRACE() << "trying fast path";
   auto expected = remaining_simultaneous_locks_.load(std::memory_order_acquire);
-  if (expected == 0) expected = 1;
+  if (expected < count) expected = count;
 
   if (remaining_simultaneous_locks_.compare_exchange_strong(
-          expected, expected - 1, std::memory_order_relaxed)) {
+          expected, expected - count, std::memory_order_relaxed)) {
     LOG_TRACE() << "fast path succeeded";
     return true;
   }
   return false;
 }
 
-bool Semaphore::LockSlowPath(Deadline deadline) {
+bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
+  UASSERT(count > 0);
+  UASSERT(count <= max_simultaneous_locks_);
+
   LOG_TRACE() << "trying slow path";
 
   auto* current = current_task::GetCurrentTaskContext();
   impl::SemaphoreWaitPolicy wait_manager(lock_waiters_, current, deadline);
 
   auto expected = remaining_simultaneous_locks_.load(std::memory_order_relaxed);
-  if (expected == 0) expected = 1;
+  if (expected < count) expected = count;
 
   while (!remaining_simultaneous_locks_.compare_exchange_strong(
-      expected, expected - 1, std::memory_order_relaxed)) {
+      expected, expected - count, std::memory_order_relaxed)) {
     LOG_TRACE() << "iteration()";
-    if (expected > 0) {
+    if (expected > count) {
       // We may acquire the lock, but the `expected` before CAS had an
       // outdated value.
       continue;
     }
 
-    // `expected` is 0, expecting 1 to appear soon.
-    expected = 1;
+    // `expected` < count, expecting count to appear soon.
+    expected = count;
 
     LOG_TRACE() << "iteration() sleep";
     current->Sleep(&wait_manager);
@@ -92,22 +109,34 @@ void Semaphore::lock_shared() {
   try_lock_shared_until(Deadline{});
 }
 
-void Semaphore::unlock_shared() {
+void Semaphore::unlock_shared() { unlock_shared_count(1); }
+
+void Semaphore::unlock_shared_count(const Counter count) {
   LOG_TRACE() << "unlock_shared()";
-  remaining_simultaneous_locks_.fetch_add(1, std::memory_order_release);
+  remaining_simultaneous_locks_.fetch_add(count, std::memory_order_release);
 
   impl::WaitList::Lock lock{*lock_waiters_};
-  lock_waiters_->WakeupOne(lock);
+  if (is_multi_)
+    lock_waiters_->WakeupAll(lock);
+  else
+    lock_waiters_->WakeupOne(lock);
 }
 
-bool Semaphore::try_lock_shared() {
+bool Semaphore::try_lock_shared() { return try_lock_shared_count(1); }
+
+bool Semaphore::try_lock_shared_count(const Counter count) {
   LOG_TRACE() << "try_lock_shared()";
-  return LockFastPath();
+  return LockFastPath(count);
 }
 
 bool Semaphore::try_lock_shared_until(Deadline deadline) {
+  return try_lock_shared_until_count(deadline, 1);
+}
+
+bool Semaphore::try_lock_shared_until_count(Deadline deadline,
+                                            const Counter count) {
   LOG_TRACE() << "try_lock_shared_until()";
-  return LockFastPath() || LockSlowPath(deadline);
+  return LockFastPath(count) || LockSlowPath(deadline, count);
 }
 
 size_t Semaphore::RemainingApprox() const {
