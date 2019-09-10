@@ -25,7 +25,7 @@ formats::json::Value FromString(utils::string_view doc) {
 
   thread_local std::unique_ptr<Json::CharReader> reader([]() {
     Json::CharReaderBuilder builder;
-    builder["allowComments"] = false;
+    Json::CharReaderBuilder::strictMode(&builder.settings_);
     return builder.newCharReader();
   }());
   auto root = std::make_shared<Json::Value>();

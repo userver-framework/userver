@@ -118,11 +118,15 @@ std::string Value::As<std::string>() const {
 }
 
 bool Value::HasMember(const char* key) const {
-  return !IsMissing() && GetNative().isMember(key);
+  if (IsMissing()) return false;
+  CheckObjectOrNull();
+  return GetNative().isMember(key);
 }
 
 bool Value::HasMember(const std::string& key) const {
-  return !IsMissing() && GetNative().isMember(key);
+  if (IsMissing()) return false;
+  CheckObjectOrNull();
+  return GetNative().isMember(key);
 }
 
 std::string Value::GetPath() const { return path_.ToString(); }

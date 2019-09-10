@@ -41,7 +41,7 @@ struct Parsing : public ::testing::Test {};
 TYPED_TEST_CASE_P(Parsing);
 
 TYPED_TEST_P(Parsing, ContainersCtr) {
-  auto value = this->FromString("null");
+  auto value = this->FromString(R"({"null": null})")["null"];
 
   EXPECT_TRUE(value.template As<std::unordered_set<int>>().empty());
   EXPECT_TRUE(value.template As<std::vector<int>>().empty());
@@ -58,7 +58,7 @@ TYPED_TEST_P(Parsing, VectorInt) {
 }
 
 TYPED_TEST_P(Parsing, VectorIntNull) {
-  auto value = this->FromString("null");
+  auto value = this->FromString(R"({"null": null})")["null"];
   std::vector<int> v = value.template As<std::vector<int>>();
   EXPECT_EQ(std::vector<int>{}, v);
 }
@@ -76,7 +76,7 @@ TYPED_TEST_P(Parsing, VectorVectorInt) {
 }
 
 TYPED_TEST_P(Parsing, VectorVectorIntNull) {
-  auto value = this->FromString("null");
+  auto value = this->FromString(R"({"null": null})")["null"];
   std::vector<std::vector<int>> v =
       value.template As<std::vector<std::vector<int>>>();
   EXPECT_EQ(std::vector<std::vector<int>>{}, v);
