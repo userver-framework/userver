@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <limits>
 
 #include <boost/numeric/conversion/cast.hpp>
@@ -88,7 +89,7 @@ std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(
 
 template <typename Rep, typename Period>
 std::chrono::duration<Rep, Period> Parse(
-    Rep n, To<std::chrono::duration<Rep, Period>>) {
+    std::int64_t n, To<std::chrono::duration<Rep, Period>>) {
   return std::chrono::duration<Rep, Period>{n};
 }
 
