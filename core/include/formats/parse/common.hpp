@@ -88,7 +88,7 @@ std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(
 
 template <typename Rep, typename Period>
 std::chrono::duration<Rep, Period> Parse(
-    int n, To<std::chrono::duration<Rep, Period>>) {
+    Rep n, To<std::chrono::duration<Rep, Period>>) {
   return std::chrono::duration<Rep, Period>{n};
 }
 
