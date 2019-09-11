@@ -1,18 +1,13 @@
 #pragma once
 
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 
-#include <boost/numeric/conversion/cast.hpp>
-#include <boost/optional.hpp>
+#include <boost/optional/optional.hpp>
 
-#include <engine/mutex.hpp>
 #include <formats/json/serialize_container.hpp>
 #include <formats/json/value.hpp>
-#include <utils/meta.hpp>
-#include <yaml_config/value.hpp>
 
 namespace taxi_config {
 
@@ -116,6 +111,12 @@ class ValueDict final {
 
     return it->second;
   }
+
+  auto begin() const { return dict_.begin(); }
+
+  auto end() const { return dict_.end(); }
+
+  const std::string& GetName() const { return name_; }
 
  private:
   std::string name_;
