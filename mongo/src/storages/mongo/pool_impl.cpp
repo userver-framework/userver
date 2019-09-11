@@ -3,6 +3,8 @@
 #include <chrono>
 #include <limits>
 
+#include <bson/bson.h>
+
 #include <formats/bson.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo/exception.hpp>
@@ -26,6 +28,12 @@ int32_t CheckedTimeoutMs(const std::chrono::milliseconds& timeout,
   return timeout_ms;
 }
 
+bool HasRetryWrites(const UriPtr& uri) {
+  const bson_t* options = mongoc_uri_get_options(uri.get());
+  bson_iter_t it;
+  return bson_iter_init_find_case(&it, options, MONGOC_URI_RETRYWRITES);
+}
+
 UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
                std::chrono::milliseconds conn_timeout,
                std::chrono::milliseconds so_timeout) {
@@ -42,6 +50,14 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
   mongoc_uri_set_option_as_int32(
       uri.get(), MONGOC_URI_SOCKETTIMEOUTMS,
       CheckedTimeoutMs(so_timeout, MONGOC_URI_SOCKETTIMEOUTMS));
+
+  // TODO: mongoc 1.15 has changed default of retryWrites to true but it
+  // doesn't play well with mongos over standalone instance (testsuite)
+  // TAXICOMMON-1455
+  if (!HasRetryWrites(uri)) {
+    mongoc_uri_set_option_as_bool(uri.get(), MONGOC_URI_RETRYWRITES, false);
+  }
+
   return uri;
 }
 

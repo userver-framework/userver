@@ -31,7 +31,7 @@ constexpr size_t kBufferSize = 16 * 1024;
 
 constexpr int kCompatibleMajorVersion = 1;
 #if MONGOC_CHECK_VERSION(1, 14, 0)
-constexpr int kMaxCompatibleMinorVersion = 14;
+constexpr int kMaxCompatibleMinorVersion = 15;
 #else
 constexpr int kMaxCompatibleMinorVersion = 13;
 #endif
@@ -223,7 +223,11 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
   // from mongoc_client_default_stream_initiator
   // enable TLS if needed
   const char* mechanism = mongoc_uri_get_auth_mechanism(uri);
+#if MONGOC_CHECK_VERSION(1, 15, 0)
+  if (mongoc_uri_get_tls(uri) ||
+#else
   if (mongoc_uri_get_ssl(uri) ||
+#endif
       (mechanism && !std::strcmp(mechanism, "MONGODB-X509"))) {
     auto* ssl_opt = static_cast<mongoc_ssl_opt_t*>(user_data);
 
