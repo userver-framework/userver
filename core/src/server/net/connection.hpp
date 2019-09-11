@@ -13,7 +13,7 @@
 #include <server/request/request_base.hpp>
 
 #include <engine/io/socket.hpp>
-#include <engine/spsc_queue.hpp>
+#include <engine/mpsc_queue.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <server/http/http_request_handler.hpp>
@@ -50,7 +50,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
  private:
   using QueueItem = std::pair<std::shared_ptr<request::RequestBase>,
                               engine::TaskWithResult<void>>;
-  using Queue = engine::SpscQueue<std::unique_ptr<QueueItem>>;
+  using Queue = engine::MpscQueue<std::unique_ptr<QueueItem>>;
 
   bool IsRequestTasksEmpty() const;
 

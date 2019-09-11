@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include <engine/spsc_queue.hpp>
+#include <engine/mpsc_queue.hpp>
 #include <redis/subscribe_sentinel.hpp>
 
 namespace storages {
@@ -58,7 +58,7 @@ class SubscriptionQueue {
                        std::string pattern,
                        const ::redis::CommandControl& command_control);
 
-  using Queue = engine::SpscQueue<std::unique_ptr<Item>>;
+  using Queue = engine::MpscQueue<std::unique_ptr<Item>>;
 
   std::shared_ptr<Queue> queue_;
   typename Queue::Producer producer_;

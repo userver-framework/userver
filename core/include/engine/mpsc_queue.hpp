@@ -25,12 +25,12 @@ struct QueueHelper {
 
   static_assert(boost::has_trivial_destructor<T>::value,
                 "T has non-trivial destructor. Use "
-                "SpscQueue<std::unique_ptr<T>> instead of SpscQueue<T> or use "
+                "MpscQueue<std::unique_ptr<T>> instead of MpscQueue<T> or use "
                 "another T.");
 };
 
 /// This partial specialization is helper's raison d'être. It allows
-/// one to pass std::unique_ptr via SpscQueue
+/// one to pass std::unique_ptr via MpscQueue
 template <typename T>
 struct QueueHelper<std::unique_ptr<T>> {
   using LockFreeQueue = boost::lockfree::queue<T*>;
@@ -49,23 +49,24 @@ struct QueueHelper<std::unique_ptr<T>> {
 };
 }  // namespace impl
 
-/// Single producer, single consumer queue
+/// Multple producer, single consumer queue
 template <typename T>
-class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
+class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   using QueueHelper = impl::QueueHelper<T>;
 
  public:
-  ~SpscQueue();
+  ~MpscQueue();
 
-  SpscQueue(const SpscQueue&) = delete;
+  MpscQueue(const MpscQueue&) = delete;
 
-  SpscQueue(SpscQueue&&) = delete;
+  MpscQueue(MpscQueue&&) = delete;
 
-  static std::shared_ptr<SpscQueue> Create();
+  /// Create a new queue
+  static std::shared_ptr<MpscQueue> Create();
 
   class Producer final {
    public:
-    Producer(std::shared_ptr<SpscQueue<T>> queue) : queue_(std::move(queue)) {}
+    Producer(std::shared_ptr<MpscQueue<T>> queue) : queue_(std::move(queue)) {}
 
     Producer(const Producer&) = delete;
 
@@ -87,15 +88,15 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
     }
 
     /// Const access to source queue.
-    std::shared_ptr<const SpscQueue<T>> Queue() const { return {queue_}; }
+    std::shared_ptr<const MpscQueue<T>> Queue() const { return {queue_}; }
 
    private:
-    std::shared_ptr<SpscQueue<T>> queue_;
+    std::shared_ptr<MpscQueue<T>> queue_;
   };
 
   class Consumer final {
    public:
-    Consumer(std::shared_ptr<SpscQueue<T>> queue) : queue_(std::move(queue)) {}
+    Consumer(std::shared_ptr<MpscQueue<T>> queue) : queue_(std::move(queue)) {}
 
     Consumer(const Consumer&) = delete;
 
@@ -118,16 +119,20 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
     }
 
     /// Const access to source queue.
-    std::shared_ptr<const SpscQueue<T>> Queue() const { return {queue_}; }
+    std::shared_ptr<const MpscQueue<T>> Queue() const { return {queue_}; }
 
    private:
-    std::shared_ptr<SpscQueue<T>> queue_;
+    std::shared_ptr<MpscQueue<T>> queue_;
   };
 
-  /// Can be called only once
+  /// Can be called only once.
+  ///
+  /// Producer may outlive the queue and the consumer.
   Producer GetProducer();
 
-  /// Can be called only once
+  /// Can be called only once.
+  ///
+  /// Consumer may outlive the queue and the producer.
   Consumer GetConsumer();
 
   /// @brief Sets the limit on the queue size, pushes over this limit will block
@@ -143,7 +148,7 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
   class EmplaceEnabler {};
 
  public:
-  explicit SpscQueue(EmplaceEnabler) {}
+  explicit MpscQueue(EmplaceEnabler) {}
 
  private:
   bool Push(T&&);
@@ -178,12 +183,12 @@ class SpscQueue final : public std::enable_shared_from_this<SpscQueue<T>> {
 };
 
 template <typename T>
-std::shared_ptr<SpscQueue<T>> SpscQueue<T>::Create() {
-  return std::make_shared<SpscQueue<T>>(EmplaceEnabler{});
+std::shared_ptr<MpscQueue<T>> MpscQueue<T>::Create() {
+  return std::make_shared<MpscQueue<T>>(EmplaceEnabler{});
 }
 
 template <typename T>
-SpscQueue<T>::~SpscQueue() {
+MpscQueue<T>::~MpscQueue() {
   UASSERT(!consumer_is_alive_ || !consumer_is_created_);
   UASSERT(!producer_is_alive_ || !producer_is_created_);
   // Clear remaining items in queue. This will work for unique_ptr as well.
@@ -193,7 +198,7 @@ SpscQueue<T>::~SpscQueue() {
 }
 
 template <typename T>
-typename SpscQueue<T>::Producer SpscQueue<T>::GetProducer() {
+typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
   UASSERT(!this->producer_is_created_);
 #ifndef NDEBUG
   this->producer_is_created_ = true;
@@ -202,7 +207,7 @@ typename SpscQueue<T>::Producer SpscQueue<T>::GetProducer() {
 }
 
 template <typename T>
-typename SpscQueue<T>::Consumer SpscQueue<T>::GetConsumer() {
+typename MpscQueue<T>::Consumer MpscQueue<T>::GetConsumer() {
   UASSERT(!this->consumer_is_created_);
 #ifndef NDEBUG
   this->consumer_is_created_ = true;
@@ -211,24 +216,24 @@ typename SpscQueue<T>::Consumer SpscQueue<T>::GetConsumer() {
 }
 
 template <typename T>
-void SpscQueue<T>::SetMaxLength(size_t length) {
+void MpscQueue<T>::SetMaxLength(size_t length) {
   max_length_ = length;
   // It might result in a spurious wakeup, but it is race-free.
   nonfull_event_.Send();
 }
 
 template <typename T>
-size_t SpscQueue<T>::GetMaxLength() const {
+size_t MpscQueue<T>::GetMaxLength() const {
   return max_length_;
 }
 
 template <typename T>
-size_t SpscQueue<T>::Size() const {
+size_t MpscQueue<T>::Size() const {
   return size_;
 }
 
 template <typename T>
-bool SpscQueue<T>::PopNoblockNoConsumer(T& value) {
+bool MpscQueue<T>::PopNoblockNoConsumer(T& value) {
   UASSERT(!this->consumer_is_alive_ || !this->consumer_is_created_);
   if (QueueHelper::Pop(queue_, value)) {
     --size_;
@@ -238,7 +243,7 @@ bool SpscQueue<T>::PopNoblockNoConsumer(T& value) {
 }
 
 template <typename T>
-bool SpscQueue<T>::Push(T&& value) {
+bool MpscQueue<T>::Push(T&& value) {
   while (size_ >= max_length_ && consumer_is_alive_) {
     if (current_task::ShouldCancel()) return false;
 
@@ -248,13 +253,13 @@ bool SpscQueue<T>::Push(T&& value) {
 }
 
 template <typename T>
-bool SpscQueue<T>::PushNoblock(T&& value) {
+bool MpscQueue<T>::PushNoblock(T&& value) {
   if (size_ >= max_length_) return false;
   return DoPush(std::move(value));
 }
 
 template <typename T>
-bool SpscQueue<T>::DoPush(T&& value) {
+bool MpscQueue<T>::DoPush(T&& value) {
   if (!consumer_is_alive_) return false;
 
   ++size_;
@@ -264,7 +269,7 @@ bool SpscQueue<T>::DoPush(T&& value) {
 }
 
 template <typename T>
-bool SpscQueue<T>::Pop(T& value) {
+bool MpscQueue<T>::Pop(T& value) {
   while (!DoPop(value)) {
     if (!producer_is_alive_ || current_task::ShouldCancel()) {
       // Producer might have pushed smth in queue between .pop()
@@ -278,12 +283,12 @@ bool SpscQueue<T>::Pop(T& value) {
 }
 
 template <typename T>
-bool SpscQueue<T>::PopNoblock(T& value) {
+bool MpscQueue<T>::PopNoblock(T& value) {
   return DoPop(value);
 }
 
 template <typename T>
-bool SpscQueue<T>::DoPop(T& value) {
+bool MpscQueue<T>::DoPop(T& value) {
   if (QueueHelper::Pop(queue_, value)) {
     --size_;
     nonfull_event_.Send();
@@ -293,13 +298,13 @@ bool SpscQueue<T>::DoPop(T& value) {
 }
 
 template <typename T>
-void SpscQueue<T>::MarkConsumerIsDead() {
+void MpscQueue<T>::MarkConsumerIsDead() {
   consumer_is_alive_ = false;
   nonfull_event_.Send();
 }
 
 template <typename T>
-void SpscQueue<T>::MarkProducerIsDead() {
+void MpscQueue<T>::MarkProducerIsDead() {
   producer_is_alive_ = false;
   nonempty_event_.Send();
 }
