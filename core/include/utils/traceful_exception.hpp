@@ -7,7 +7,8 @@
 #include <string>
 #include <type_traits>
 
-#include <boost/lexical_cast.hpp>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <boost/stacktrace/stacktrace.hpp>
 
 namespace utils {
@@ -24,22 +25,26 @@ class TracefulException;
 /// instead
 class TracefulExceptionBase {
  public:
-  virtual ~TracefulExceptionBase() = default;
+  static constexpr size_t kInlineBufferSize = 100;
+  using MemoryBuffer = fmt::basic_memory_buffer<char, kInlineBufferSize>;
 
-  const std::string& Message() const noexcept { return message_; }
+  virtual ~TracefulExceptionBase() = default;
+  TracefulExceptionBase(TracefulExceptionBase&&) = default;
+
+  const MemoryBuffer& MessageBuffer() const noexcept { return message_buffer_; }
   const boost::stacktrace::stacktrace& Trace() const noexcept {
     return stacktrace_;
   }
 
   /// Stream-like interface for message extension
-  // TODO: TAXICOMMON-474
   template <typename Exception, typename T>
   friend typename std::enable_if<
       std::is_base_of<TracefulExceptionBase,
                       typename std::remove_reference<Exception>::type>::value,
       Exception&&>::type
   operator<<(Exception&& ex, const T& data) {
-    ex.message_ += boost::lexical_cast<std::string>(data);
+    fmt::format_to(ex.message_buffer_, "{}", data);
+    ex.EnsureNullTerminated();
     return std::forward<Exception>(ex);
   }
 
@@ -49,20 +54,30 @@ class TracefulExceptionBase {
   TracefulExceptionBase() = default;
 
   /// Initial message constructor, internal use only
-  explicit TracefulExceptionBase(std::string what)
-      : message_(std::move(what)) {}
+  explicit TracefulExceptionBase(const std::string& what) {
+    fmt::format_to(message_buffer_, "{}", what);
+    EnsureNullTerminated();
+  }
+
+  /// Initial message constructor, internal use only
+  explicit TracefulExceptionBase(const char* what) {
+    fmt::format_to(message_buffer_, "{}", what);
+    EnsureNullTerminated();
+  }
   /// @endcond
 
  private:
-  std::string message_;
+  void EnsureNullTerminated();
+
+  MemoryBuffer message_buffer_;
   boost::stacktrace::stacktrace stacktrace_;
 };
 
 class TracefulException : public std::exception, public TracefulExceptionBase {
  public:
   TracefulException() = default;
-  explicit TracefulException(std::string what)
-      : TracefulExceptionBase(std::move(what)) {}
+  explicit TracefulException(const std::string& what)
+      : TracefulExceptionBase(what) {}
 
   const char* what() const noexcept override;
 

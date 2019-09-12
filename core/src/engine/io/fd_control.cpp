@@ -87,7 +87,7 @@ bool Direction::Wait(Deadline deadline) {
   auto current = current_task::GetCurrentTaskContext();
 
   if (current->ShouldCancel()) {
-    throw IoCancelled("Wait " + ToString(kind_) + "able");
+    throw IoCancelled() << "Wait " << ToString(kind_) << "able";
   }
 
   impl::DirectionWaitStrategy wait_manager(deadline, waiters_, watcher_,

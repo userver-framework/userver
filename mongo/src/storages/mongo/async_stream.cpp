@@ -441,7 +441,7 @@ bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) noexcept {
   stream->is_timed_out_ = false;
 
   // XXX: mongoc peeks to get ECONNRESET
-  return !stream->socket_.IsOpen();
+  return !stream->socket_.IsValid();
 }
 
 // NOLINTNEXTLINE(bugprone-exception-escape)

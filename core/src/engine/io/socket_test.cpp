@@ -64,7 +64,8 @@ TEST(Socket, ConnectFail) {
     sa->sin6_port = 23;  // if you have telnet running, I have a few quesions...
 
     try {
-      io::Connect(io::Addr(addr_storage, SOCK_STREAM, 0), {});
+      [[maybe_unused]] auto telnet =
+          io::Connect(io::Addr(addr_storage, SOCK_STREAM, 0), {});
       FAIL() << "Connection to 23/tcp succeeded";
     } catch (const io::IoSystemError& ex) {
       // oh come on, system and generic categories don't match =/
@@ -91,7 +92,7 @@ TEST(Socket, ListenConnect) {
     EXPECT_EQ(old_reuseaddr,
               listener.socket.GetOption(SOL_SOCKET, SO_REUSEADDR));
 
-    EXPECT_THROW(listener.socket.Accept(
+    EXPECT_THROW([[maybe_unused]] auto socket = listener.socket.Accept(
                      Deadline::FromDuration(std::chrono::milliseconds(10))),
                  io::ConnectTimeout);
 
@@ -103,9 +104,9 @@ TEST(Socket, ListenConnect) {
     uint16_t second_client_port = 0;
     auto listen_task = engine::impl::Async([&] {
       auto first_client = listener.socket.Accept({});
-      EXPECT_TRUE(first_client.IsOpen());
+      EXPECT_TRUE(first_client.IsValid());
       auto second_client = listener.socket.Accept({});
-      EXPECT_TRUE(second_client.IsOpen());
+      EXPECT_TRUE(second_client.IsValid());
 
       EXPECT_EQ("::1", first_client.Getsockname().RemoteAddress());
       EXPECT_EQ("::1", first_client.Getpeername().RemoteAddress());
@@ -123,16 +124,16 @@ TEST(Socket, ListenConnect) {
       EXPECT_EQ(listener.port, GetPort(second_client.Getsockname()));
 
       char c = 0;
-      second_client.RecvSome(&c, 1, {});
+      ASSERT_EQ(1, second_client.RecvSome(&c, 1, {}));
       EXPECT_EQ('2', c);
-      first_client.RecvAll(&c, 1, {});
+      ASSERT_EQ(1, first_client.RecvAll(&c, 1, {}));
       EXPECT_EQ('1', c);
     });
 
     auto first_client = io::Connect(listener.addr, {});
-    EXPECT_TRUE(first_client.IsOpen());
+    EXPECT_TRUE(first_client.IsValid());
     auto second_client = io::Connect(listener.addr, {});
-    EXPECT_TRUE(second_client.IsOpen());
+    EXPECT_TRUE(second_client.IsValid());
 
     {
       std::unique_lock<engine::Mutex> lock(ports_mutex);
@@ -144,8 +145,8 @@ TEST(Socket, ListenConnect) {
     EXPECT_EQ(second_client_port, GetPort(second_client.Getsockname()));
     EXPECT_EQ(listener.port, GetPort(second_client.Getpeername()));
 
-    first_client.SendAll("1", 1, {});
-    second_client.SendAll("2", 1, {});
+    ASSERT_EQ(1, first_client.SendAll("1", 1, {}));
+    ASSERT_EQ(1, second_client.SendAll("2", 1, {}));
     listen_task.Get();
   });
 }
@@ -169,7 +170,7 @@ TEST(Socket, ReleaseReuse) {
 TEST(Socket, Closed) {
   RunInCoro([] {
     io::Socket closed_socket;
-    EXPECT_FALSE(closed_socket.IsOpen());
+    EXPECT_FALSE(closed_socket.IsValid());
     EXPECT_EQ(io::Socket::kInvalidFd, closed_socket.Fd());
     EXPECT_EQ(io::Socket::kInvalidFd, std::move(closed_socket).Release());
   });
@@ -208,14 +209,19 @@ TEST(Socket, Cancel) {
     };
 
     std::vector<char> buf(client_socket.GetOption(SOL_SOCKET, SO_SNDBUF) * 16);
-    EXPECT_PRED_FORMAT1(check_is_cancelling,
-                        [&] { client_socket.RecvSome(buf.data(), 1, {}); });
-    EXPECT_PRED_FORMAT1(check_is_cancelling,
-                        [&] { client_socket.RecvAll(buf.data(), 1, {}); });
     EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
-      client_socket.SendAll(buf.data(), buf.size(), {});
+      [[maybe_unused]] auto received =
+          client_socket.RecvSome(buf.data(), 1, {});
     });
-    EXPECT_PRED_FORMAT1(check_is_cancelling,
-                        [&] { listener.socket.Accept({}); });
+    EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
+      [[maybe_unused]] auto received = client_socket.RecvAll(buf.data(), 1, {});
+    });
+    EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
+      [[maybe_unused]] auto sent =
+          client_socket.SendAll(buf.data(), buf.size(), {});
+    });
+    EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
+      [[maybe_unused]] auto socket = listener.socket.Accept({});
+    });
   });
 }

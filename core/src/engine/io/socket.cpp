@@ -53,20 +53,20 @@ ConnectTimeout::ConnectTimeout()
 
 Socket::Socket(int fd) : fd_control_(impl::FdControl::Adopt(fd)) {}
 
-bool Socket::IsOpen() const { return !!fd_control_; }
+bool Socket::IsValid() const { return !!fd_control_; }
 
 bool Socket::WaitReadable(Deadline deadline) {
-  UASSERT(IsOpen());
+  UASSERT(IsValid());
   return fd_control_->Read().Wait(deadline);
 }
 
 bool Socket::WaitWriteable(Deadline deadline) {
-  UASSERT(IsOpen());
+  UASSERT(IsValid());
   return fd_control_->Write().Wait(deadline);
 }
 
 size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
-  if (!IsOpen()) {
+  if (!IsValid()) {
     throw IoError("Attempt to Recv from closed socket");
   }
   auto& dir = fd_control_->Read();
@@ -76,7 +76,7 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
-  if (!IsOpen()) {
+  if (!IsValid()) {
     throw IoError("Attempt to RecvAll from closed socket");
   }
   auto& dir = fd_control_->Read();
@@ -86,7 +86,7 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
 }
 
 size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
-  if (!IsOpen()) {
+  if (!IsValid()) {
     throw IoError("Attempt to Send to closed socket");
   }
   auto& dir = fd_control_->Write();
@@ -108,7 +108,7 @@ size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
 }
 
 Socket Socket::Accept(Deadline deadline) {
-  if (!IsOpen()) {
+  if (!IsValid()) {
     throw IoError("Attempt to Accept from closed socket");
   }
   auto& dir = fd_control_->Read();
@@ -137,7 +137,7 @@ Socket Socket::Accept(Deadline deadline) {
       case EWOULDBLOCK:
 #endif
         if (current_task::ShouldCancel()) {
-          throw IoCancelled("Accept");
+          throw IoCancelled() << "Accept";
         }
         WaitReadable(deadline);
         if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
@@ -173,20 +173,20 @@ void Socket::Close() { fd_control_.reset(); }
 int Socket::Fd() const { return fd_control_ ? fd_control_->Fd() : kInvalidFd; }
 
 const Addr& Socket::Getpeername() {
-  UASSERT(IsOpen());
+  UASSERT(IsValid());
   return MemoizeAddr(peername_, &::getpeername, *this,
                      "getting peer name, fd=", Fd());
 }
 
 const Addr& Socket::Getsockname() {
-  UASSERT(IsOpen());
+  UASSERT(IsValid());
   return MemoizeAddr(sockname_, &::getsockname, *this,
                      "getting socket name, fd=", Fd());
 }
 
 int Socket::Release() && noexcept {
   const int fd = Fd();
-  if (IsOpen()) {
+  if (IsValid()) {
     fd_control_->Invalidate();
     fd_control_.reset();
   }
@@ -203,7 +203,7 @@ Socket Connect(Addr addr, Deadline deadline) {
   err_value = errno;
   if (err_value == EINPROGRESS) {
     if (current_task::ShouldCancel()) {
-      throw IoCancelled("Connect");
+      throw IoCancelled() << "Connect";
     }
     socket.WaitWriteable(deadline);
     if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
@@ -214,10 +214,9 @@ Socket Connect(Addr addr, Deadline deadline) {
   }
 
   if (err_value) {
-    throw IoSystemError(
-        utils::impl::ToString("Error while establishing connection, fd=",
-                              socket.Fd(), ", addr=", addr),
-        err_value);
+    throw IoSystemError(err_value)
+        << "Error while establishing connection, fd=" << socket.Fd()
+        << ", addr=" << addr;
   }
   return socket;
 }
@@ -244,7 +243,7 @@ Socket Listen(Addr addr, int backlog) {
 }
 
 int Socket::GetOption(int layer, int optname) const {
-  UASSERT(IsOpen());
+  UASSERT(IsValid());
   int value = -1;
   socklen_t value_len = sizeof(value);
   utils::CheckSyscall(::getsockopt(Fd(), layer, optname, &value, &value_len),
@@ -255,7 +254,7 @@ int Socket::GetOption(int layer, int optname) const {
 }
 
 void Socket::SetOption(int layer, int optname, int optval) {
-  UASSERT(IsOpen());
+  UASSERT(IsValid());
   utils::CheckSyscall(
       ::setsockopt(Fd(), layer, optname, &optval, sizeof(optval)),
       "setting socket option ", layer, ',', optname, " to ", optval, " on fd ",

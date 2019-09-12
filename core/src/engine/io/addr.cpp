@@ -21,7 +21,8 @@ std::string Addr::RemoteAddress() const {
       if (!inet_ntop(AF_INET, &inet_addr->sin_addr, &remote_address[0],
                      remote_address.size())) {
         int err_value = errno;
-        throw IoSystemError("Cannot convert IPv4 address to string", err_value);
+        throw IoSystemError(err_value)
+            << "Cannot convert IPv4 address to string";
       }
     } break;
 
@@ -31,7 +32,8 @@ std::string Addr::RemoteAddress() const {
       if (!inet_ntop(AF_INET6, &inet6_addr->sin6_addr, &remote_address[0],
                      remote_address.size())) {
         int err_value = errno;
-        throw IoSystemError("Cannot convert IPv6 address to string", err_value);
+        throw IoSystemError(err_value)
+            << "Cannot convert IPv6 address to string";
       }
     } break;
 

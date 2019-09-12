@@ -74,7 +74,8 @@ void Client::ReadSome() {
 }
 
 void Client::WriteResponse() {
-  socket_.SendAll(resp_.data_to_send.data(), resp_.data_to_send.size(), {});
+  [[maybe_unused]] size_t sent =
+      socket_.SendAll(resp_.data_to_send.data(), resp_.data_to_send.size(), {});
 }
 
 }  // namespace

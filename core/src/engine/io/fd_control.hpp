@@ -14,7 +14,6 @@
 #include <engine/ev/watcher.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/wait_list.hpp>
-#include <utils/check_syscall.hpp>
 
 namespace engine {
 namespace io {
@@ -135,7 +134,7 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
         break;
       }
       if (current_task::ShouldCancel()) {
-        throw IoCancelled(utils::impl::ToString(context...));
+        throw(IoCancelled() << ... << context);
       }
       [[maybe_unused]] auto is_ready = Wait(deadline);
       if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
@@ -143,13 +142,14 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
         throw IoTimeout(/*bytes_transferred =*/pos - begin);
       }
       if (!IsValid()) {
-        throw IoError(utils::impl::ToString("Fd closed during ", context...));
+        throw((IoError() << "Fd closed during ") << ... << context);
       }
     } else {
       const auto err_value = errno;
-      IoSystemError ex(
-          utils::impl::ToString("Error while ", context..., ", fd=", fd_),
-          err_value);
+      IoSystemError ex(err_value);
+      ex << "Error while ";
+      (ex << ... << context);
+      ex << ", fd=" << fd_;
       auto log_level = logging::Level::kError;
       if (err_value == ECONNRESET || err_value == EPIPE) {
         log_level = logging::Level::kWarning;

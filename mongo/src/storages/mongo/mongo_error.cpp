@@ -140,42 +140,40 @@ bson_error_t* MongoError::GetNative() { return &value_; }
 
   switch (GetKind()) {
     case Kind::kNoError:
-      throw MongoException(std::move(prefix)) << "error not set";
+      throw MongoException() << prefix << "error not set";
 
     case Kind::kNetwork:
-      throw NetworkException(std::move(prefix)) << value_.message;
+      throw NetworkException() << prefix << value_.message;
 
     case Kind::kClusterUnavailable:
-      throw ClusterUnavailableException(std::move(prefix)) << value_.message;
+      throw ClusterUnavailableException() << prefix << value_.message;
 
     case Kind::kIncompatibleServer:
-      throw IncompatibleServerException(std::move(prefix)) << value_.message;
+      throw IncompatibleServerException() << prefix << value_.message;
 
     case Kind::kAuthentication:
-      throw AuthenticationException(std::move(prefix)) << value_.message;
+      throw AuthenticationException() << prefix << value_.message;
 
     case Kind::kQuery:
-      throw QueryException(std::move(prefix)) << value_.message;
+      throw QueryException() << prefix << value_.message;
 
     case Kind::kInvalidQueryArgument:
-      throw InvalidQueryArgumentException(std::move(prefix)) << value_.message;
+      throw InvalidQueryArgumentException() << prefix << value_.message;
 
     case Kind::kServer:
-      throw ServerException(value_.code, std::move(prefix)) << value_.message;
+      throw ServerException(value_.code) << prefix << value_.message;
 
     case Kind::kWriteConcern:
-      throw WriteConcernException(value_.code, std::move(prefix))
-          << value_.message;
+      throw WriteConcernException(value_.code) << prefix << value_.message;
 
     case Kind::kDuplicateKey:
-      throw DuplicateKeyException(value_.code, std::move(prefix))
-          << value_.message;
+      throw DuplicateKeyException(value_.code) << prefix << value_.message;
 
     case Kind::kOther:
     default:;  // go to generic throw
   }
-  throw MongoException(std::move(prefix))
-      << '[' << value_.domain << ',' << value_.code << "] " << value_.message;
+  throw MongoException() << prefix << '[' << value_.domain << ',' << value_.code
+                         << "] " << value_.message;
 }
 
 }  // namespace storages::mongo

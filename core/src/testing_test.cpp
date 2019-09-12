@@ -38,7 +38,8 @@ TEST(SimpleServer, ExampleTcpIpV4) {
     engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
     engine::io::Socket worksock = engine::io::Connect(addr, {});
-    worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {});
+    ASSERT_EQ(kOkRequest.size(),
+              worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
 
     std::string response;
     response.resize(100);
@@ -61,7 +62,8 @@ TEST(SimpleServer, ExampleTcpIpV6) {
     engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
     engine::io::Socket worksock = engine::io::Connect(addr, {});
-    worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {});
+    ASSERT_EQ(kOkRequest.size(),
+              worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
 
     std::string response;
     response.resize(100);
@@ -95,14 +97,16 @@ TEST(SimpleServer, ExampleTcpIpV4Twice) {
 
     engine::io::Socket worksock = engine::io::Connect(addr, {});
 
-    worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {});
+    ASSERT_EQ(kOkRequest.size(),
+              worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
     std::string response;
     response.resize(100);
     const auto size = worksock.RecvSome(&response[0], response.size(), {});
     response.resize(size);
     EXPECT_EQ(response, kOkResponse) << "Received " << response;
 
-    worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {});
+    ASSERT_EQ(kOkRequest.size(),
+              worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
     response.clear();
     response.resize(100);
     const auto size2 = worksock.RecvAll(&response[0], response.size(), {});

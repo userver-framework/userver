@@ -7,7 +7,7 @@
 namespace engine {
 namespace io {
 
-IoError::IoError() : std::runtime_error("generic I/O error") {}
+IoError::IoError() : utils::TracefulException("Generic I/O error") {}
 
 IoTimeout::IoTimeout() : IoTimeout(0) {}
 
@@ -15,15 +15,13 @@ IoTimeout::IoTimeout(size_t bytes_transferred)
     : IoError("I/O operation timed out"),
       bytes_transferred_(bytes_transferred) {}
 
-IoCancelled::IoCancelled(const std::string& context)
-    : IoError("Operation cancelled: " + context) {}
+IoCancelled::IoCancelled() : IoError("Operation cancelled: ") {}
 
-IoSystemError::IoSystemError(std::string message, int err_value)
-    : IoSystemError(std::move(message),
-                    std::error_code(err_value, std::system_category())) {}
+IoSystemError::IoSystemError(int err_value)
+    : IoSystemError(std::error_code(err_value, std::system_category())) {}
 
-IoSystemError::IoSystemError(std::string message, std::error_code code)
-    : IoError(std::move(message) + ": " + code.message()), code_(code) {}
+IoSystemError::IoSystemError(std::error_code code)
+    : IoError(code.message() + ": "), code_(code) {}
 
 }  // namespace io
 }  // namespace engine

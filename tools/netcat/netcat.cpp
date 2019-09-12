@@ -109,7 +109,10 @@ int main(int argc, char** argv) {
             LOG_INFO() << "Connecting to " << addr;
             worksock = engine::io::Connect(addr, {});
             while (std::cin.read(buf.data(), buf.size())) {
-              worksock.SendAll(buf.data(), std::cin.gcount(), {});
+              const size_t to_send = std::cin.gcount();
+              if (to_send != worksock.SendAll(buf.data(), to_send, {})) {
+                break;
+              }
             }
           }
           worksock.Close();

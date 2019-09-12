@@ -69,9 +69,6 @@ class ServerException : public QueryException {
  public:
   explicit ServerException(int code) : code_(code) {}
 
-  ServerException(int code, std::string message)
-      : QueryException(std::move(message)), code_(code) {}
-
   int Code() const { return code_; }
 
  private:
