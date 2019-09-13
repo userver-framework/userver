@@ -29,7 +29,7 @@ class TracefulExceptionBase {
   using MemoryBuffer = fmt::basic_memory_buffer<char, kInlineBufferSize>;
 
   virtual ~TracefulExceptionBase() = default;
-  TracefulExceptionBase(TracefulExceptionBase&&) = default;
+  TracefulExceptionBase(TracefulExceptionBase&&) noexcept;
 
   const MemoryBuffer& MessageBuffer() const noexcept { return message_buffer_; }
   const boost::stacktrace::stacktrace& Trace() const noexcept {
