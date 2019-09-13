@@ -5,6 +5,7 @@
 
 // this header must be included before any spdlog headers
 // to override spdlog's level names
+#include <boost/filesystem/operations.hpp>
 #include <logging/spdlog.hpp>
 
 #include <fmt/format.h>
@@ -86,6 +87,7 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
 }
 
 namespace {
+
 void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
   for (const auto& s : sinks) {
     auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
@@ -95,6 +97,20 @@ void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
     }
   }
 };
+
+void CreateLogDirectory(const std::string& logger_name,
+                        const std::string& file_path) {
+  try {
+    const auto dirname = boost::filesystem::path(file_path).parent_path();
+    boost::filesystem::create_directories(dirname);
+  } catch (const std::exception& e) {
+    auto msg = "Failed to create directory for log file of logger '" +
+               logger_name + "': " + e.what();
+    LOG_ERROR() << msg;
+    throw std::runtime_error(msg);
+  }
+}
+
 }  // namespace
 
 void Logging::OnLogRotate() {
@@ -141,6 +157,8 @@ std::shared_ptr<spdlog::logger> Logging::CreateLogger(
       logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
     overflow_policy = spdlog::async_overflow_policy::block;
   }
+
+  CreateLogDirectory(logger_name, logger_config.file_path);
 
   auto file_sink =
       std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
