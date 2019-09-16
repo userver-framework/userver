@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include <cinttypes>
 #include <system_error>
 
 namespace curl {
