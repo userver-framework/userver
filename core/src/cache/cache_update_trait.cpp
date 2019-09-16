@@ -8,10 +8,9 @@
 
 namespace components {
 
-void CacheUpdateTrait::UpdateFull() {
+void CacheUpdateTrait::Update(cache::UpdateType update_type) {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
 
-  auto update_type = cache::UpdateType::kFull;
   cache::UpdateStatisticsScope stats(GetStatistics(), update_type);
 
   Update(update_type, std::chrono::system_clock::time_point(),

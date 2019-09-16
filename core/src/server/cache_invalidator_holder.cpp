@@ -10,7 +10,9 @@ CacheInvalidatorHolder::CacheInvalidatorHolder(
     : cache_invalidator_{context.FindComponent<components::CacheInvalidator>()},
       cache_(cache) {
   cache_invalidator_.RegisterCacheInvalidator(
-      cache_, [cache = &cache_]() { cache->UpdateFull(); });
+      cache_, [cache = &cache_](cache::UpdateType update_type) {
+        cache->Update(update_type);
+      });
 }
 
 CacheInvalidatorHolder::~CacheInvalidatorHolder() {

@@ -1,6 +1,7 @@
 #include <server/handlers/tests_control.hpp>
 
 #include <cache/cache_invalidator.hpp>
+#include <cache/update_type.hpp>
 #include <clients/http/component.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_error.hpp>
@@ -40,10 +41,15 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   if (request.GetMethod() != http::HttpMethod::kPost) throw ClientError();
 
   bool invalidate_caches = false;
-  const formats::json::Value& value = request_body["invalidate_caches"];
-  if (value.IsBool()) {
-    invalidate_caches = value.As<bool>();
+  const auto& invalidate_caches_value = request_body["invalidate_caches"];
+  if (invalidate_caches_value.IsBool()) {
+    invalidate_caches = invalidate_caches_value.As<bool>();
   }
+
+  const auto& clean_update = request_body["cache_clean_update"];
+  cache::UpdateType update_type = clean_update.As<bool>(true)
+                                      ? cache::UpdateType::kFull
+                                      : cache::UpdateType::kIncremental;
 
   std::time_t now = 0;
   if (request_body.HasMember("now")) {
@@ -66,7 +72,9 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   else
     utils::datetime::MockNowUnset();
 
-  if (invalidate_caches) cache_invalidator->get().InvalidateCaches();
+  if (invalidate_caches) {
+    cache_invalidator->get().InvalidateCaches(update_type);
+  }
 
   return formats::json::Value();
 }

@@ -9,12 +9,12 @@ const std::string kCacheInvalidateSpanTag = "cache_invalidate";
 CacheInvalidator::CacheInvalidator(const components::ComponentConfig&,
                                    const components::ComponentContext&) {}
 
-void CacheInvalidator::InvalidateCaches() {
+void CacheInvalidator::InvalidateCaches(cache::UpdateType update_type) {
   std::lock_guard<engine::Mutex> lock(mutex_);
 
   for (auto& invalidator : cache_invalidators_) {
     tracing::Span span(kCacheInvalidateSpanTag);
-    invalidator.handler();
+    invalidator.handler(update_type);
   }
 
   for (auto& invalidator : invalidators_) {
@@ -24,7 +24,7 @@ void CacheInvalidator::InvalidateCaches() {
 }
 
 void CacheInvalidator::RegisterCacheInvalidator(
-    components::CacheUpdateTrait& owner, Callback&& handler) {
+    components::CacheUpdateTrait& owner, CallbackUpdateType&& handler) {
   std::lock_guard<engine::Mutex> lock(mutex_);
   cache_invalidators_.emplace_back(&owner, std::move(handler));
 }
@@ -35,7 +35,7 @@ void CacheInvalidator::UnregisterCacheInvalidator(
 }
 
 void CacheInvalidator::RegisterComponentInvalidator(
-    components::ComponentBase& owner, Callback&& handler) {
+    components::ComponentBase& owner, CallbackVoid&& handler) {
   std::lock_guard<engine::Mutex> lock(mutex_);
   invalidators_.emplace_back(&owner, std::move(handler));
 }
@@ -45,9 +45,9 @@ void CacheInvalidator::UnregisterComponentInvalidator(
   UnregisterInvalidatorGeneric(owner, invalidators_);
 }
 
-template <typename T>
+template <typename T, typename Callback>
 void CacheInvalidator::UnregisterInvalidatorGeneric(
-    T& owner, std::vector<Invalidator<T>>& invalidators) {
+    T& owner, std::vector<Invalidator<T, Callback>>& invalidators) {
   std::lock_guard<engine::Mutex> lock(mutex_);
 
   for (auto it = invalidators.begin(); it != invalidators.end(); ++it) {

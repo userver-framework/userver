@@ -15,7 +15,7 @@ namespace components {
 
 class CacheUpdateTrait {
  public:
-  void UpdateFull();
+  void Update(cache::UpdateType update_type);
 
  protected:
   CacheUpdateTrait(cache::CacheConfig&& config, const std::string& name);

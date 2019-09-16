@@ -2,6 +2,7 @@
 
 #include <cache/cache_invalidator.hpp>
 #include <cache/cache_update_trait.hpp>
+#include <cache/update_type.hpp>
 #include <components/component_context.hpp>
 
 namespace components {
