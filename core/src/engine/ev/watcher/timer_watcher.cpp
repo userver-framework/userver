@@ -1,6 +1,10 @@
 #include "timer_watcher.hpp"
 
+#include <cstdlib>
+#include <iostream>
+
 #include <engine/async.hpp>
+#include <utils/userver_experiment.hpp>
 
 namespace engine {
 namespace ev {
@@ -25,14 +29,26 @@ void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout,
   ev_timer_.Start();
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 void TimerWatcher::OnEventTimeout(struct ev_loop*, ev_timer* timer,
-                                  int events) {
+                                  int events) try {
   auto self = static_cast<TimerWatcher*>(timer->data);
   self->ev_timer_.Stop();
 
   if (events & EV_TIMER) {
-    self->CallTimeoutCb(std::error_code());
+    try {
+      self->CallTimeoutCb(std::error_code());
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "Uncaught exception in TimerWatcher callback: " << ex;
+    }
   }
+} catch (...) {
+  if (utils::IsUserverExperimentEnabled(
+          utils::UserverExperiment::kTaxicommon1479)) {
+    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
+    abort();
+  }
+  throw;
 }
 
 void TimerWatcher::CallTimeoutCb(std::error_code ec) {

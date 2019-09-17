@@ -1,10 +1,14 @@
 #include "thread.hpp"
 
+#include <chrono>
+#include <cstdlib>
+#include <iostream>
 #include <stdexcept>
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 #include <utils/thread_name.hpp>
+#include <utils/userver_experiment.hpp>
 
 namespace engine {
 namespace ev {
@@ -174,6 +178,17 @@ void Thread::WaitSyncRun() {
   auto func_future = func_promise_->get_future();
   func_promise_set_ = true;
   ev_async_send(loop_, &watch_update_);
+  if (utils::IsUserverExperimentEnabled(
+          utils::UserverExperiment::kTaxicommon1479)) {
+    static const auto kSyncExecTimeout = std::chrono::minutes{2};
+    if (func_future.wait_for(kSyncExecTimeout) == std::future_status::timeout) {
+      std::cerr << "Aborting due to sync exec timeout in ev thread: "
+                   "func_promise_set_="
+                << func_promise_set_ << ", func_promise_=" << !!func_promise_
+                << ", func_ptr_=" << !!func_ptr_ << '\n';
+      abort();
+    }
+  }
   func_future.get();
 }
 
@@ -188,10 +203,17 @@ void Thread::RunEvLoop() {
   ev_async_stop(loop_, &watch_break_);
 }
 
-void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) {
+void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) try {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   ev_thread->UpdateLoopWatcherImpl();
+} catch (...) {
+  if (utils::IsUserverExperimentEnabled(
+          utils::UserverExperiment::kTaxicommon1479)) {
+    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
+    abort();
+  }
+  throw;
 }
 
 void Thread::UpdateLoopWatcherImpl() {
@@ -235,10 +257,16 @@ void Thread::UpdateLoopWatcherImpl() {
   LOG_TRACE() << "exit";
 }
 
-void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) {
+void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) try {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   ev_thread->BreakLoopWatcherImpl();
+} catch (...) {
+  if (utils::IsUserverExperimentEnabled(
+          utils::UserverExperiment::kTaxicommon1479)) {
+    abort();
+  }
+  throw;
 }
 
 void Thread::BreakLoopWatcherImpl() {

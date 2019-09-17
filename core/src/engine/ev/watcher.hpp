@@ -2,7 +2,12 @@
 
 #include <ev.h>
 
+#include <chrono>
+#include <cstdlib>
+#include <iostream>
+
 #include <engine/future.hpp>
+#include <utils/userver_experiment.hpp>
 #include "thread_control.hpp"
 
 namespace engine {
@@ -121,6 +126,14 @@ void Watcher<EvType>::CallInEvLoop() {
     (this->*func)();
     promise->set_value();
   });
+  if (utils::IsUserverExperimentEnabled(
+          utils::UserverExperiment::kTaxicommon1479)) {
+    static const auto kSyncExecTimeout = std::chrono::minutes{2};
+    if (future.wait_for(kSyncExecTimeout) == std::future_status::timeout) {
+      std::cerr << "Aborting due to CallInEvLoop timeout in Watcher\n";
+      abort();
+    }
+  }
   future.get();
 }
 

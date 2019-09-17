@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include <formats/yaml/serialize.hpp>
+#include <utils/userver_experiment.hpp>
 #include <yaml_config/value.hpp>
 
 namespace components {
@@ -21,6 +22,7 @@ template <typename T>
 ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
   static const std::string kConfigVarsField = "config_vars";
   static const std::string kManagerConfigField = "components_manager";
+  static const std::string kUserverExperimentsField = "userver_experiments";
 
   formats::yaml::Value config_yaml;
   try {
@@ -37,6 +39,9 @@ ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
     config_vars_ptr = std::make_shared<yaml_config::VariableMap>(
         yaml_config::VariableMap::ParseFromFile(*config_vars_path));
   }
+
+  utils::ParseUserverExperiments(config_yaml[kUserverExperimentsField]);
+
   return ManagerConfig::ParseFromYaml(
       std::move(config_yaml), kManagerConfigField, std::move(config_vars_ptr));
 }

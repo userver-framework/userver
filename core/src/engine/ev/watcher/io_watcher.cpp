@@ -1,6 +1,10 @@
 #include "io_watcher.hpp"
 
+#include <cstdlib>
+#include <iostream>
+
 #include <engine/async.hpp>
+#include <utils/userver_experiment.hpp>
 
 namespace engine {
 namespace ev {
@@ -54,13 +58,25 @@ void IoWatcher::WriteAsync(Callback cb) {
   watcher_write_.Start();
 }
 
-void IoWatcher::OnEventRead(struct ev_loop*, ev_io* io, int events) {
+// NOLINTNEXTLINE(bugprone-exception-escape)
+void IoWatcher::OnEventRead(struct ev_loop*, ev_io* io, int events) try {
   auto self = static_cast<IoWatcher*>(io->data);
   self->watcher_read_.Stop();
 
   if (events & EV_READ) {
-    self->CallReadCb(std::error_code());
+    try {
+      self->CallReadCb(std::error_code());
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "Uncaught exception in IoWatcher read callback: " << ex;
+    }
   }
+} catch (...) {
+  if (utils::IsUserverExperimentEnabled(
+          utils::UserverExperiment::kTaxicommon1479)) {
+    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
+    abort();
+  }
+  throw;
 }
 
 void IoWatcher::CallReadCb(std::error_code ec) {
@@ -74,13 +90,25 @@ void IoWatcher::CallReadCb(std::error_code ec) {
   }
 }
 
-void IoWatcher::OnEventWrite(struct ev_loop*, ev_io* io, int events) {
+// NOLINTNEXTLINE(bugprone-exception-escape)
+void IoWatcher::OnEventWrite(struct ev_loop*, ev_io* io, int events) try {
   auto self = static_cast<IoWatcher*>(io->data);
   self->watcher_write_.Stop();
 
   if (events & EV_WRITE) {
-    self->CallWriteCb(std::error_code());
+    try {
+      self->CallWriteCb(std::error_code());
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "Uncaught exception in IoWatcher write callback: " << ex;
+    }
   }
+} catch (...) {
+  if (utils::IsUserverExperimentEnabled(
+          utils::UserverExperiment::kTaxicommon1479)) {
+    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
+    abort();
+  }
+  throw;
 }
 
 void IoWatcher::CallWriteCb(std::error_code ec) {
