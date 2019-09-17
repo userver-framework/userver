@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include <engine/future.hpp>
+#include <engine/task/cancel.hpp>
 #include <utils/userver_experiment.hpp>
 #include "thread_control.hpp"
 
@@ -129,6 +130,7 @@ void Watcher<EvType>::CallInEvLoop() {
   if (utils::IsUserverExperimentEnabled(
           utils::UserverExperiment::kTaxicommon1479)) {
     static const auto kSyncExecTimeout = std::chrono::minutes{2};
+    engine::TaskCancellationBlocker block_cancel;
     if (future.wait_for(kSyncExecTimeout) == std::future_status::timeout) {
       std::cerr << "Aborting due to CallInEvLoop timeout in Watcher\n";
       abort();

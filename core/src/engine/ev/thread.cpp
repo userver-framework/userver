@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 #include <utils/thread_name.hpp>
@@ -181,6 +182,7 @@ void Thread::WaitSyncRun() {
   if (utils::IsUserverExperimentEnabled(
           utils::UserverExperiment::kTaxicommon1479)) {
     static const auto kSyncExecTimeout = std::chrono::minutes{2};
+    engine::TaskCancellationBlocker block_cancel;
     if (func_future.wait_for(kSyncExecTimeout) == std::future_status::timeout) {
       std::cerr << "Aborting due to sync exec timeout in ev thread: "
                    "func_promise_set_="
@@ -264,6 +266,7 @@ void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) try {
 } catch (...) {
   if (utils::IsUserverExperimentEnabled(
           utils::UserverExperiment::kTaxicommon1479)) {
+    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
     abort();
   }
   throw;
