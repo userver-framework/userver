@@ -116,7 +116,7 @@ smart-clang-format:
 
 .PHONY: clang-tidy
 clang-tidy: cmake
-	@tools/run-clang-tidy-7 -p build -header-filter="/(core|mongo|postgresql|redis).*" -q -j$(NPROCS)
+	@tools/run-clang-tidy-7 -p build -header-filter="/(core|mongo|postgresql|redis).*" -q -j$(NPROCS) -checks='-misc-taxi-*'
 
 .PHONY: check-pep8
 check-pep8:
