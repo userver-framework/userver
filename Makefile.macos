@@ -6,4 +6,4 @@ ifeq ($(origin CXX),default)
 endif
 
 CMAKE_OPTS += -DICU_ROOT=/usr/local/opt/icu4c/ -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl
-
+CLANG_TIDY_BINARY = clang-tidy

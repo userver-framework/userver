@@ -26,6 +26,7 @@ SCAN_BUILD = scan-build-7
 SCAN_BUILD_OPTS = --force-analyze-debug-code --show-description --use-cc $(CC) --use-c++ $(CXX) -stats -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
 PYTHON3_BIN_DIR = $(wildcard /usr/lib/yandex/taxi-py3-2/bin/)
+CLANG_TIDY_BINARY ?= clang-tidy-7
 
 ifeq ($(CXX),clang++-7)
 ifeq ($(shell which llvm-symbolizer),)
@@ -116,7 +117,7 @@ smart-clang-format:
 
 .PHONY: clang-tidy
 clang-tidy: cmake
-	@tools/run-clang-tidy-7 -p build -header-filter="/(core|mongo|postgresql|redis).*" -q -j$(NPROCS) -checks='-misc-taxi-*'
+	@tools/run-clang-tidy-7 -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
 
 .PHONY: check-pep8
 check-pep8:
