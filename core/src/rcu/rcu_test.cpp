@@ -155,3 +155,31 @@ TEST(rcu, Lifetime) {
     EXPECT_EQ(1, Counted::counter);
   });
 }
+
+TEST(rcu, NoCopy) {
+  struct X {
+    X(X&&) = default;
+    X(const X&) = delete;
+    X& operator=(const X&) = delete;
+
+    bool operator==(const X& other) const {
+      return std::tie(x, y) == std::tie(other.x, other.y);
+    }
+
+    int x{};
+    bool y{};
+  };
+
+  RunInCoro([] {
+    rcu::Variable<X> ptr(X{1, false});
+
+    // Write
+    ptr.Assign(X{2, true});
+
+    // Won't compile if uncomment, no X::X(const X&)
+    // auto write_ptr = ptr.StartWrite();
+
+    auto reader = ptr.Read();
+    EXPECT_EQ((X{2, true}), *reader);
+  });
+}

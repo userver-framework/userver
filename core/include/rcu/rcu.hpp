@@ -199,9 +199,13 @@ class Variable final {
 
   /// Obtain a smart pointer which can be used to make changes to the
   /// current value and to set the Variable to the changed value.
+  /// @note it will not compile if `T` has no copy constructor,
+  ///       use Assign() instead.
   WritablePtr<T> StartWrite() { return WritablePtr<T>(*this); }
 
   /// Replaces Variable value with the provided one
+  /// @note it doesn't copy `T`, so it works for types without
+  ///       copy constructor
   void Assign(T new_value) {
     WritablePtr<T>(*this, std::move(new_value)).Commit();
   }
