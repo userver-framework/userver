@@ -28,6 +28,7 @@ void SharedMutex::DecWaitingWriters() {
    */
   auto writers_left =
       waiting_writers_count_.fetch_sub(1, std::memory_order_relaxed);
+  UASSERT_MSG(writers_left > 0, "unlock without lock");
   if (writers_left == 1) {
     engine::TaskCancellationBlocker blocker;
     std::lock_guard<Mutex> lock(waiting_writers_count_mutex_);
@@ -46,9 +47,7 @@ bool SharedMutex::try_lock_until(Deadline deadline) {
   return false;
 }
 
-bool SharedMutex::try_lock() {
-  return semaphore_.try_lock_shared_count(kWriterLock);
-}
+bool SharedMutex::try_lock() { return try_lock_until(Deadline::kPassed); }
 
 void SharedMutex::lock_shared() {
   WaitForNoWaitingWriters(Deadline{});

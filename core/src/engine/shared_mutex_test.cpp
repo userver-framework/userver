@@ -115,3 +115,29 @@ TEST(SharedMutex, WritersDontStarve) {
       },
       2);
 }
+
+TEST(SharedMutex, TryLock) {
+  RunInCoro([] {
+    engine::SharedMutex mutex;
+
+    for (int i = 0; i < 10; i++) {
+      ASSERT_TRUE(mutex.try_lock());
+      mutex.unlock();
+    }
+
+    {
+      // mutex must be free of writers
+      std::shared_lock<engine::SharedMutex> lock(mutex);
+    }
+  });
+}
+
+TEST(SharedMutex, TryLockFail) {
+  RunInCoro([] {
+    engine::SharedMutex mutex;
+
+    std::unique_lock<engine::SharedMutex> lock(mutex);
+    auto task = utils::Async("", [&mutex] { return mutex.try_lock(); });
+    EXPECT_FALSE(task.Get());
+  });
+}
