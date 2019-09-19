@@ -205,27 +205,27 @@ class StrongTypedef<Tag, T, Ops,
 #define UTILS_STRONG_TYPEDEF_REL_OP(OPERATOR)                                  \
   template <class Tag1, class T1, StrongTypedefOps Ops1, class Tag2, class T2, \
             StrongTypedefOps Ops2>                                             \
-  bool operator OPERATOR(const StrongTypedef<Tag1, T1, Ops1>&,                 \
-                         const StrongTypedef<Tag2, T2, Ops2>&) {               \
+  constexpr bool operator OPERATOR(const StrongTypedef<Tag1, T1, Ops1>&,       \
+                                   const StrongTypedef<Tag2, T2, Ops2>&) {     \
     static_assert(!sizeof(T1), "Comparing those StrongTypedefs is forbidden"); \
     return false;                                                              \
   }                                                                            \
                                                                                \
   template <class Tag, class T, StrongTypedefOps Ops>                          \
-  std::enable_if_t<Ops & StrongTypedefOps::kCompareStrong, bool>               \
+  constexpr std::enable_if_t<Ops & StrongTypedefOps::kCompareStrong, bool>     \
   operator OPERATOR(const StrongTypedef<Tag, T, Ops>& lhs,                     \
                     const StrongTypedef<Tag, T, Ops>& rhs) {                   \
     return lhs.GetUnderlying() OPERATOR rhs.GetUnderlying();                   \
   }                                                                            \
                                                                                \
   template <class Tag, class T, StrongTypedefOps Ops, class Other>             \
-  impl::strong_typedef::EnableTransparentCompare<Tag, T, Ops, Other>           \
+  constexpr impl::strong_typedef::EnableTransparentCompare<Tag, T, Ops, Other> \
   operator OPERATOR(const StrongTypedef<Tag, T, Ops>& lhs, const Other& rhs) { \
     return lhs.GetUnderlying() OPERATOR rhs;                                   \
   }                                                                            \
                                                                                \
   template <class Tag, class T, StrongTypedefOps Ops, class Other>             \
-  impl::strong_typedef::EnableTransparentCompare<Tag, T, Ops, Other>           \
+  constexpr impl::strong_typedef::EnableTransparentCompare<Tag, T, Ops, Other> \
   operator OPERATOR(const Other& lhs, const StrongTypedef<Tag, T, Ops>& rhs) { \
     return lhs OPERATOR rhs.GetUnderlying();                                   \
   }
