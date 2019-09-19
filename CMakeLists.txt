@@ -24,9 +24,15 @@ target_include_directories(
   yandex-taxi-backend-common-cpp
   PUBLIC
     core/include/
-    # TODO: flatbuffers should have public include in their CMakeLists.txt
-    backend-common-cpp/third_party/flatbuffers/include/
 )
+if(NOT FLATBUFFERS_EXTERNAL_ENABLED)
+  target_include_directories(
+    yandex-taxi-backend-common-cpp
+    PUBLIC
+      # TODO: flatbuffers should have public include in their CMakeLists.txt
+      backend-common-cpp/third_party/flatbuffers/include/
+  )
+endif()
 add_dependencies(yandex-taxi-backend-common-cpp spdlog_lib)
 
 add_subdirectory(core)
