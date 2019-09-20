@@ -92,6 +92,12 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// will be performed
   std::shared_ptr<Request> retry(int retries = 3, bool on_fails = true);
 
+  /// Set destination name in metric "httpclient.destinations.<name>".
+  /// If not set, defaults to HTTP path.  Should be called for all requests
+  /// with parameters in HTTP path.
+  std::shared_ptr<Request> SetDestinationMetricName(
+      const std::string& destination);
+
   /// Perform request async, after completing callack will be called
   /// or it can be waiting on a future.
   [[nodiscard]] ResponseFuture async_perform();
@@ -110,8 +116,6 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   /// Cancel request
   void Cancel() const;
-
-  void SetDestinationMetricName(const std::string& destination);
 
  private:
   class RequestImpl;

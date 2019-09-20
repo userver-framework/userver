@@ -338,8 +338,10 @@ std::shared_ptr<Response> Request::response() const {
 
 void Request::Cancel() const { pimpl_->Cancel(); }
 
-void Request::SetDestinationMetricName(const std::string& destination) {
+std::shared_ptr<Request> Request::SetDestinationMetricName(
+    const std::string& destination) {
   pimpl_->SetDestinationMetricName(destination);
+  return shared_from_this();
 }
 
 void Request::RequestImpl::SetDestinationMetricNameAuto(
