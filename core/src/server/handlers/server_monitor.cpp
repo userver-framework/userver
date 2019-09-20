@@ -20,11 +20,10 @@ const std::string& ServerMonitor::HandlerName() const {
 
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
-  const auto prefix = request.GetArg("prefix");
-
-  auto statistics_request = utils::statistics::StatisticsRequest();
+  utils::statistics::StatisticsRequest statistics_request;
+  statistics_request.prefix = request.GetArg("prefix");
   formats::json::ValueBuilder monitor_data =
-      statistics_storage_.GetStorage().GetAsJson(prefix, statistics_request);
+      statistics_storage_.GetStorage().GetAsJson(statistics_request);
 
   return formats::json::ToString(monitor_data.ExtractValue());
 }

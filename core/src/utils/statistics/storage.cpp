@@ -44,7 +44,7 @@ Entry& Entry::operator=(Entry&& other) noexcept {
 Storage::Storage() : may_register_extenders_(true) {}
 
 formats::json::ValueBuilder Storage::GetAsJson(
-    const std::string& prefix, const StatisticsRequest& request) const {
+    const StatisticsRequest& request) const {
   formats::json::ValueBuilder result;
   result[kVersionField] = kVersion;
 
@@ -52,8 +52,8 @@ formats::json::ValueBuilder Storage::GetAsJson(
 
   for (const auto& it : extender_funcs_) {
     const auto& func_prefix = it.first;
-    if (boost::algorithm::starts_with(func_prefix, prefix) ||
-        boost::algorithm::starts_with(prefix, func_prefix)) {
+    if (boost::algorithm::starts_with(func_prefix, request.prefix) ||
+        boost::algorithm::starts_with(request.prefix, func_prefix)) {
       LOG_DEBUG() << "Getting statistics for prefix=" << func_prefix;
       SetSubField(result, func_prefix, it.second(request));
     }
