@@ -3,11 +3,19 @@
 echo "Adding brew taxi-external tap"
 brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap.git
 
-echo "Installing required packages with brew"
-REQUIRED_PACKAGES="cppcheck fmt jemalloc libev http-parser yandex-taxi-mongo-c-driver yaml-cpp hiredis postgres openssl cryptopp cctz libyandex-taxi-graph"
+echo "Adding brew tap for mongo (testsuite)"
+brew tap mongodb/brew
 
-brew install boost
+echo "Update brew repos"
+brew update
+
+echo "Installing required packages with brew"
+REQUIRED_PACKAGES="boost cctz cmake cryptopp curl flatbuffers fmt grpc hiredis http-parser jemalloc libev libpq openssl protobuf rapidjson yaml-cpp yandex-taxi-mongo-c-driver"
 brew install $REQUIRED_PACKAGES
+
+# for tests and uservices
+EXTRA_PACKAGES="catboost-model-lib ccache clang-format-7 cmake geobase6 libyandex-taxi-graph2 postgres pugixml redis taxi-graph3-test-data ticket_parser2 mongodb-community@4.2"
+brew install $EXTRA_PACKAGES
 
 brew list jsoncpp > /dev/null 2>&1
 HAS_JSON_CPP=$?
