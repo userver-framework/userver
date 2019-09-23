@@ -10,6 +10,7 @@
 #include <storages/postgres/cluster.hpp>
 #include <storages/postgres/component.hpp>
 
+#include <utils/assert.hpp>
 #include <utils/strlen.hpp>
 #include <utils/void_t.hpp>
 
@@ -67,9 +68,7 @@ constexpr bool kHasName = HasName<T>::value;
 template <typename T, typename = ::utils::void_t<>>
 struct HasQuery : std::false_type {};
 template <typename T>
-struct HasQuery<T, ::utils::void_t<decltype(T::kQuery)>>
-    : std::integral_constant<bool, (T::kQuery != nullptr) &&
-                                       (::utils::StrLen(T::kQuery) > 0)> {};
+struct HasQuery<T, ::utils::void_t<decltype(T::kQuery)>> : std::true_type {};
 template <typename T>
 constexpr bool kHasQuery = HasQuery<T>::value;
 
@@ -284,6 +283,14 @@ PostgreCache<PostgreCachePolicy>::~PostgreCache() {
 template <typename PostgreCachePolicy>
 std::string PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
   using namespace std::string_literals;
+  if constexpr (std::is_same<decltype(PolicyType::kQuery), std::string>{}) {
+    UASSERT_MSG(!PolicyType::kQuery.empty(),
+                "kQuery member of cache policy must not be empty");
+  } else {
+    UASSERT_MSG(
+        PolicyType::kQuery != nullptr && utils::StrLen(PolicyType::kQuery) > 0,
+        "kQuery member of cache policy must not be empty");
+  }
   if constexpr (kIncrementalUpdates) {
     return PolicyType::kQuery + " where "s + PolicyType::kUpdatedField +
            " >= $1";

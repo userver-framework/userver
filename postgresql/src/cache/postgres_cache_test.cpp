@@ -33,7 +33,7 @@ struct PostgresExamplePolicy {
   // Data retrieve query.
   // Mandatory
   // The query should not contain any clauses after the `from` clause
-  static constexpr const char* kQuery =
+  static inline const std::string kQuery =
       "select id, bar, updated from test.my_data";
 
   // Name of the field containing timestamp of an object
