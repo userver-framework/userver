@@ -41,12 +41,7 @@ class Thread final {
   void IdleStopUnsafe(ev_idle& w);
   void IdleStop(ev_idle& w);
 
-  void RunInEvLoopSync(const std::function<void()>& func);
   // Callbacks passed to RunInEvLoopAsync() are serialized.
-  // But RunInEvLoopAsync() has no serialization with RunInEvLoopSync() -
-  // callback from RunInEvLoopSync() may be called before callback from
-  // RunInEvLoopAsync() even if RunInEvLoopAsync() was called before
-  // RunInEvLoopSync().
   void RunInEvLoopAsync(std::function<void()>&& func);
 
   bool IsInEvThread() const;
@@ -58,7 +53,6 @@ class Thread final {
   void Start();
 
   void StopEventLoop();
-  void WaitSyncRun();
   void RunEvLoop();
 
   static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int);
@@ -71,14 +65,10 @@ class Thread final {
   void AcquireImpl() noexcept;
   void ReleaseImpl() noexcept;
 
-  const std::function<void()>* func_ptr_;
-  std::unique_ptr<std::promise<void>> func_promise_;
-  std::atomic<bool> func_promise_set_;
   boost::lockfree::queue<std::function<void()>*> func_queue_;
 
   struct ev_loop* loop_;
   std::thread thread_;
-  std::mutex mutex_;
   std::mutex loop_mutex_;
   std::unique_lock<std::mutex> lock_;
   ev_async watch_update_{};

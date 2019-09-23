@@ -115,28 +115,7 @@ Watcher<EvType>::Send() {
 template <typename EvType>
 template <void (Watcher<EvType>::*func)()>
 void Watcher<EvType>::CallInEvLoop() {
-  if (IsInEvThread()) {
-    (this->*func)();
-    return;
-  }
-
-  // TODO: use WrappedCall
-  auto promise = std::make_shared<Promise<void>>();
-  auto future = promise->get_future();
-  RunInEvLoopAsync([this, promise = std::move(promise)] {
-    (this->*func)();
-    promise->set_value();
-  });
-  if (utils::IsUserverExperimentEnabled(
-          utils::UserverExperiment::kTaxicommon1479)) {
-    static const auto kSyncExecTimeout = std::chrono::minutes{2};
-    engine::TaskCancellationBlocker block_cancel;
-    if (future.wait_for(kSyncExecTimeout) == std::future_status::timeout) {
-      std::cerr << "Aborting due to CallInEvLoop timeout in Watcher\n";
-      abort();
-    }
-  }
-  future.get();
+  RunInEvLoopSync([this] { (this->*func)(); });
 }
 
 }  // namespace ev

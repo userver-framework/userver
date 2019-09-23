@@ -44,6 +44,7 @@ class WaitListLight final : public WaitListBase {
 #ifndef NDEBUG
   impl::TaskContext* owner_{nullptr};
 #endif
+  std::atomic<bool> in_wakeup_{false};
 };
 
 }  // namespace impl

@@ -10,8 +10,9 @@ namespace {
 class EventWaitStrategy final : public WaitStrategy {
  public:
   EventWaitStrategy(std::shared_ptr<impl::WaitListLight> waiters,
-                    const std::atomic<bool>& signaled, TaskContext* current)
-      : WaitStrategy({}),
+                    const std::atomic<bool>& signaled, TaskContext* current,
+                    Deadline deadline)
+      : WaitStrategy(deadline),
         waiters_(std::move(waiters)),
         is_signaled_(signaled),
         current_(current) {}
@@ -41,13 +42,18 @@ SingleConsumerEvent::SingleConsumerEvent()
 SingleConsumerEvent::~SingleConsumerEvent() = default;
 
 bool SingleConsumerEvent::WaitForEvent() {
+  return WaitForEventUntil(Deadline{});
+}
+
+bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   bool was_signaled = false;
   impl::TaskContext* const current = current_task::GetCurrentTaskContext();
   if (current->ShouldCancel()) return was_signaled;
 
   LOG_TRACE() << "WaitForEvent()";
   lock_waiters_->PinToCurrentTask();
-  impl::EventWaitStrategy wait_manager(lock_waiters_, is_signaled_, current);
+  impl::EventWaitStrategy wait_manager(lock_waiters_, is_signaled_, current,
+                                       deadline);
 
   while (!(was_signaled =
                is_signaled_.exchange(false, std::memory_order_acquire)) &&

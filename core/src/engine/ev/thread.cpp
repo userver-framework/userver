@@ -20,9 +20,7 @@ const size_t kInitFuncQueueCapacity = 64;
 }  // namespace
 
 Thread::Thread(const std::string& thread_name)
-    : func_ptr_(nullptr),
-      func_promise_set_{false},
-      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
+    :  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
@@ -34,7 +32,6 @@ Thread::Thread(const std::string& thread_name)
 Thread::~Thread() {
   StopEventLoop();
   UASSERT(loop_ == nullptr);
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
 }
 
 void Thread::AsyncStartUnsafe(ev_async& w) { ev_async_start(GetEvLoop(), &w); }
@@ -95,19 +92,6 @@ void Thread::IdleStopUnsafe(ev_idle& w) { ev_idle_stop(GetEvLoop(), &w); }
 
 void Thread::IdleStop(ev_idle& w) {
   SafeEvCall([this, &w]() { IdleStopUnsafe(w); });
-}
-
-void Thread::RunInEvLoopSync(const std::function<void()>& func) {
-  if (IsInEvThread()) {
-    func();
-    return;
-  }
-
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    func_ptr_ = &func;
-    WaitSyncRun();
-  }
 }
 
 void Thread::RunInEvLoopAsync(std::function<void()>&& func) {
@@ -171,29 +155,6 @@ void Thread::StopEventLoop() {
   loop_ = nullptr;
 }
 
-void Thread::WaitSyncRun() {
-  UASSERT(!IsInEvThread());
-  UASSERT(!func_promise_);
-  UASSERT(!func_promise_set_);
-  func_promise_ = std::make_unique<std::promise<void>>();
-  auto func_future = func_promise_->get_future();
-  func_promise_set_ = true;
-  ev_async_send(loop_, &watch_update_);
-  if (utils::IsUserverExperimentEnabled(
-          utils::UserverExperiment::kTaxicommon1479)) {
-    static const auto kSyncExecTimeout = std::chrono::minutes{2};
-    engine::TaskCancellationBlocker block_cancel;
-    if (func_future.wait_for(kSyncExecTimeout) == std::future_status::timeout) {
-      std::cerr << "Aborting due to sync exec timeout in ev thread: "
-                   "func_promise_set_="
-                << func_promise_set_ << ", func_promise_=" << !!func_promise_
-                << ", func_ptr_=" << !!func_ptr_ << '\n';
-      abort();
-    }
-  }
-  func_future.get();
-}
-
 void Thread::RunEvLoop() {
   while (is_running_) {
     AcquireImpl();
@@ -219,32 +180,9 @@ void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) try {
 }
 
 void Thread::UpdateLoopWatcherImpl() {
-  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() func_promise_set_="
-              << (func_promise_set_ ? 1 : 0)
-              << " func_queue_.empty()=" << func_queue_.empty();
-  if (func_promise_set_) {
-    UASSERT(!!func_promise_);
-    UASSERT(func_ptr_);
-    std::exception_ptr ex_ptr;
-    try {
-      (*func_ptr_)();
-    } catch (const std::exception& ex) {
-      ex_ptr = std::current_exception();
-    }
-    func_ptr_ = nullptr;
-    std::unique_ptr<std::promise<void>> func_promise = std::move(func_promise_);
-    func_promise_.reset();
-    func_promise_set_ = false;
-    try {
-      if (ex_ptr)
-        func_promise->set_exception(std::move(ex_ptr));
-      else
-        func_promise->set_value();
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "can't set value or exception: " << ex;
-    }
-  }
-  LOG_TRACE() << "func_promise set";
+  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() "
+                 "func_queue_.empty()="
+              << func_queue_.empty();
 
   std::function<void()>* pfunc;
   while (func_queue_.pop(pfunc)) {
@@ -262,6 +200,7 @@ void Thread::UpdateLoopWatcherImpl() {
 void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) try {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   ev_thread->BreakLoopWatcherImpl();
 } catch (...) {
   if (utils::IsUserverExperimentEnabled(

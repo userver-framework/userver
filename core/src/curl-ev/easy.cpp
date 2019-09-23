@@ -111,7 +111,7 @@ void easy::cancel() { cancel(request_counter_); }
 
 void easy::cancel(size_t request_num) {
   multi_->GetThreadControl().RunInEvLoopSync(
-      std::bind(&easy::do_ev_cancel, this, request_num));
+      [this, request_num] { do_ev_cancel(request_num); });
 }
 
 void easy::do_ev_cancel(size_t request_num) {
@@ -143,8 +143,8 @@ void easy::reset() {
   set_no_body(false);
   set_post(false);
 
-  multi_->GetThreadControl().RunInEvLoopSync(
-      std::bind(&easy::do_ev_reset, this));
+  multi_->GetThreadControl().RunInEvLoopSync([this] { do_ev_reset(); });
+
   LOG_TRACE() << "easy::reset finished " << reinterpret_cast<long>(this);
 }
 

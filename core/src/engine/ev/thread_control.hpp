@@ -48,17 +48,13 @@ class ThreadControl {
 
   void IdleStop(ev_idle& w) { thread_.IdleStop(w); }
 
-  void RunInEvLoopSync(const std::function<void()>& func) {
-    thread_.RunInEvLoopSync(func);
-  }
-
   void RunInEvLoopAsync(std::function<void()>&& func) {
     thread_.RunInEvLoopAsync(std::move(func));
   }
 
-  bool IsInEvThread() const { return thread_.IsInEvThread(); }
+  void RunInEvLoopSync(std::function<void()>&& func);
 
-  Thread& EvThread() const { return thread_; }
+  bool IsInEvThread() const { return thread_.IsInEvThread(); }
 
  private:
   Thread& thread_;

@@ -6,6 +6,8 @@
 #include <atomic>
 #include <memory>
 
+#include <engine/deadline.hpp>
+
 namespace engine {
 namespace impl {
 
@@ -32,6 +34,15 @@ class SingleConsumerEvent final {
   //  cancelled)
   [[nodiscard]] bool WaitForEvent();
 
+  template <typename Clock, typename Duration>
+  [[nodiscard]] bool WaitForEventFor(std::chrono::duration<Clock, Duration>);
+
+  template <typename Clock, typename Duration>
+  [[nodiscard]] bool WaitForEventUntil(
+      std::chrono::time_point<Clock, Duration>);
+
+  [[nodiscard]] bool WaitForEventUntil(Deadline);
+
   /// Set a signal flag and awake a coroutine that waits on it (if any).
   //  If the signal flag is already set, does nothing.
   void Send();
@@ -40,5 +51,17 @@ class SingleConsumerEvent final {
   std::shared_ptr<impl::WaitListLight> lock_waiters_;
   std::atomic<bool> is_signaled_;
 };
+
+template <typename Clock, typename Duration>
+bool SingleConsumerEvent::WaitForEventFor(
+    std::chrono::duration<Clock, Duration> duration) {
+  return WaitForEventUntil(Deadline::FromDuration(duration));
+}
+
+template <typename Clock, typename Duration>
+bool SingleConsumerEvent::WaitForEventUntil(
+    std::chrono::time_point<Clock, Duration> time_point) {
+  return WaitForEventUntil(Deadline::FromTimePoint(time_point));
+}
 
 }  // namespace engine

@@ -1,7 +1,9 @@
 #include "wait_list_light.hpp"
 
+#include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
 #include <utils/assert.hpp>
+#include <utils/scope_guard.hpp>
 
 namespace engine {
 namespace impl {
@@ -41,6 +43,9 @@ void WaitListLight::Append(WaitListBase::Lock&,
 
 void WaitListLight::WakeupOne(WaitListBase::Lock&) {
   LOG_TRACE() << "WakeupOne";
+  in_wakeup_ = true;
+  utils::ScopeGuard guard([this] { in_wakeup_ = false; });
+
   auto old = waiting_.exchange(nullptr);
   if (old) {
     LOG_TRACE() << "Waking up! use_count=" << old->use_count();
@@ -58,7 +63,22 @@ void WaitListLight::Remove(  //
 
   UASSERT(!old || old == ctx.get());
 
-  if (old) intrusive_ptr_release(old);
+  if (old) {
+    intrusive_ptr_release(old);
+  } else {
+    /*
+     * Race with WakeupOne()/WakeupAll() has fired. We have to wait until
+     * Wakeup*() in another thread has finished, otherwise Wakeup*() might awake
+     * the task too late (e.g. after the next Sleep()) which results in a
+     * spurious wakeup (very bad, not all sync primitives check for spurious
+     * wakeups, e.g. SleepFor()).
+     */
+
+    LOG_TRACE() << "Race with Wakeup*(), spinning";
+    while (in_wakeup_) {
+      std::this_thread::yield();
+    }
+  }
 }
 
 }  // namespace impl
