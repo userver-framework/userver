@@ -47,11 +47,15 @@ template <typename T>
 struct CachedData {
   impl::HazardPointerRecord<T>* hp{nullptr};
   const Variable<T>* variable{nullptr};
+  // ensures that `variable` points to the instance that filled the cache
+  uint64_t variable_epoch{0};
 };
 
 template <typename T>
 // NOLINTNEXTLINE(misc-definitions-in-headers)
 thread_local CachedData<T> cache;
+
+uint64_t GetNextEpoch() noexcept;
 
 }  // namespace impl
 
@@ -176,10 +180,13 @@ class USERVER_NODISCARD WritablePtr final {
 template <typename T>
 class Variable final {
  public:
-  explicit Variable(std::unique_ptr<T> ptr) : current_(ptr.release()) {}
+  explicit Variable(std::unique_ptr<T> ptr)
+      : epoch_(impl::GetNextEpoch()), current_(ptr.release()) {}
 
   template <typename... Args>
-  Variable(Args&&... args) : current_(new T(std::forward<Args>(args)...)) {}
+  Variable(Args&&... args)
+      : epoch_(impl::GetNextEpoch()),
+        current_(new T(std::forward<Args>(args)...)) {}
 
   ~Variable() {
     delete current_.load();
@@ -217,7 +224,7 @@ class Variable final {
     auto& cache = impl::cache<T>;
     auto* hp = cache.hp;
     T* ptr = nullptr;
-    if (hp && cache.variable == this) {
+    if (hp && cache.variable == this && cache.variable_epoch == epoch_) {
       if (hp->ptr.load() == nullptr &&
           hp->ptr.compare_exchange_strong(
               ptr, impl::HazardPointerRecord<T>::kUsed)) {
@@ -252,8 +259,9 @@ class Variable final {
     if (!hp) hp = MakeHazardPointerSlow();
 
     auto& cache = impl::cache<T>;
-    cache.variable = this;
     cache.hp = hp;
+    cache.variable = this;
+    cache.variable_epoch = epoch_;
     return *hp;
   }
 
@@ -299,6 +307,8 @@ class Variable final {
   }
 
  private:
+  const uint64_t epoch_;
+
   mutable std::atomic<impl::HazardPointerRecord<T>*> hp_record_head_{{nullptr}};
 
   engine::Mutex mutex_;  // for current_ changes and retire_list_head_ access

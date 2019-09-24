@@ -1,19 +1,21 @@
 #include <utest/utest.hpp>
 
+#include <boost/optional.hpp>
+
 #include <rcu/rcu.hpp>
 
 using X = std::pair<int, int>;
 
-TEST(rcu, Ctr) { rcu::Variable<X> ptr; }
+TEST(Rcu, Ctr) { rcu::Variable<X> ptr; }
 
-TEST(rcu, ReadInit) {
+TEST(Rcu, ReadInit) {
   rcu::Variable<X> ptr(1, 2);
 
   auto reader = ptr.Read();
   EXPECT_EQ(std::make_pair(1, 2), *reader);
 }
 
-TEST(rcu, ChangeRead) {
+TEST(Rcu, ChangeRead) {
   RunInCoro([] {
     rcu::Variable<X> ptr(1, 2);
 
@@ -28,7 +30,7 @@ TEST(rcu, ChangeRead) {
   });
 }
 
-TEST(rcu, ChangeCancelRead) {
+TEST(Rcu, ChangeCancelRead) {
   RunInCoro([] {
     rcu::Variable<X> ptr(1, 2);
 
@@ -42,7 +44,7 @@ TEST(rcu, ChangeCancelRead) {
   });
 }
 
-TEST(rcu, AssignRead) {
+TEST(Rcu, AssignRead) {
   RunInCoro([] {
     rcu::Variable<X> ptr(1, 2);
 
@@ -53,7 +55,7 @@ TEST(rcu, AssignRead) {
   });
 }
 
-TEST(rcu, ReadNotCommitted) {
+TEST(Rcu, ReadNotCommitted) {
   RunInCoro([] {
     rcu::Variable<X> ptr(1, 2);
 
@@ -76,7 +78,7 @@ TEST(rcu, ReadNotCommitted) {
   });
 }
 
-TEST(rcu, ReadCommitted) {
+TEST(Rcu, ReadCommitted) {
   RunInCoro([] {
     rcu::Variable<X> ptr(1, 2);
 
@@ -109,7 +111,7 @@ struct Counted {
 
 size_t Counted::counter = 0;
 
-TEST(rcu, Lifetime) {
+TEST(Rcu, Lifetime) {
   RunInCoro([] {
     EXPECT_EQ(0, Counted::counter);
 
@@ -156,7 +158,7 @@ TEST(rcu, Lifetime) {
   });
 }
 
-TEST(rcu, NoCopy) {
+TEST(Rcu, NoCopy) {
   struct X {
     X(X&&) = default;
     X(const X&) = delete;
@@ -181,5 +183,19 @@ TEST(rcu, NoCopy) {
 
     auto reader = ptr.Read();
     EXPECT_EQ((X{2, true}), *reader);
+  });
+}
+
+TEST(Rcu, HpCacheReuse) {
+  RunInCoro([] {
+    boost::optional<rcu::Variable<int>> vars;
+    vars.emplace(42);
+    EXPECT_EQ(42, *vars->Read());
+
+    vars.reset();
+
+    // caused UAF because of stale HP cache -- TAXICOMMON-1506
+    vars.emplace(666);
+    EXPECT_EQ(666, *vars->Read());
   });
 }
