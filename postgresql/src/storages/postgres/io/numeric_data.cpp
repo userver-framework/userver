@@ -215,7 +215,7 @@ void NumericData::Parse(const std::string& str) {
   }
 
   // cpp_dec_float outputs NaN in lower case
-  if (::utils::StrIcaseCmp{}(str, "nan")) {
+  if (::utils::StrIcaseEqual{}(str, "nan")) {
     sign = kNumericNan;
     return;
   }

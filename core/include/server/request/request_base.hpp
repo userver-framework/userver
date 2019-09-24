@@ -30,7 +30,6 @@ class RequestBase {
   void SetTaskCreateTime();
   void SetTaskStartTime();
   void SetResponseNotifyTime();
-  void SetCompleteNotifyTime();
   void SetStartSendResponseTime();
   void SetFinishSendResponseTime();
 
@@ -49,7 +48,6 @@ class RequestBase {
   std::chrono::steady_clock::time_point task_create_time_;
   std::chrono::steady_clock::time_point task_start_time_;
   std::chrono::steady_clock::time_point response_notify_time_;
-  std::chrono::steady_clock::time_point complete_notify_time_;
   std::chrono::steady_clock::time_point start_send_response_time_;
   std::chrono::steady_clock::time_point finish_send_response_time_;
 };

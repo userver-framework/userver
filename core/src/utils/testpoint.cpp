@@ -4,7 +4,7 @@
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
 #include <http/common_headers.hpp>
-#include <server/http/content_type.hpp>
+#include <http/content_type.hpp>
 #include <tracing/span.hpp>
 
 namespace utils {
@@ -49,7 +49,7 @@ void TestPoint::Notify(const std::string& name,
       http_client_->CreateRequest()
           ->post(url_, request_str)
           ->headers({{http::headers::kContentType,
-                      server::http::content_type::kApplicationJson}})
+                      http::content_type::kApplicationJson.ToString()}})
           ->timeout(timeout_)
           ->perform();
   response->raise_for_status();

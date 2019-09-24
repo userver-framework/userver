@@ -11,7 +11,11 @@
 namespace server {
 namespace handlers {
 
-enum class UrlTrailingSlashOption { kBoth, kStrictMatch };
+/// Defines matching behavior for paths with trailing slashes.
+enum class UrlTrailingSlashOption {
+  kBoth,         ///< ignore trailing slashes when matching paths
+  kStrictMatch,  ///< require exact match for trailing slashes in paths
+};
 
 struct HandlerConfig {
   std::string path;

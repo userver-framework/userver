@@ -2,11 +2,11 @@
 
 #include <formats/json/exception.hpp>
 #include <formats/json/serialize.hpp>
+#include <http/content_type.hpp>
 
 #include <server/handlers/exceptions.hpp>
 #include <server/handlers/json_error_builder.hpp>
 #include <server/handlers/legacy_json_error_builder.hpp>
-#include <server/http/content_type.hpp>
 #include <server/http/http_error.hpp>
 #include <server/http/http_status.hpp>
 
@@ -31,7 +31,7 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
       context.GetData<const formats::json::Value&>(kRequestDataName);
 
   auto& response = request.GetHttpResponse();
-  response.SetContentType(http::content_type::kApplicationJson);
+  response.SetContentType(::http::content_type::kApplicationJson);
 
   const auto& response_json = context.SetData<const formats::json::Value>(
       kResponseDataName,

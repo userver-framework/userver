@@ -8,7 +8,7 @@
 #include <build_config.hpp>
 #include <engine/io/socket.hpp>
 #include <http/common_headers.hpp>
-#include <server/http/content_type.hpp>
+#include <http/content_type.hpp>
 
 #include "http_request_impl.hpp"
 
@@ -18,6 +18,8 @@ const std::string kCrlf = "\r\n";
 const std::string kResponseHttpVersionPrefix = "HTTP/";
 const std::string kServerName =
     std::string(::http::headers::kServer) + ": taxi_userver/" USERVER_VERSION;
+
+const http::ContentType kDefaultContentType = "text/html; charset=utf-8";
 
 const std::string kClose = "close";
 const std::string kKeepAlive = "keep-alive";
@@ -84,8 +86,8 @@ void HttpResponse::SetHeader(std::string name, std::string value) {
   headers_.emplace(std::move(name), std::move(value));
 }
 
-void HttpResponse::SetContentType(std::string type) {
-  SetHeader(::http::headers::kContentType, std::move(type));
+void HttpResponse::SetContentType(const ::http::ContentType& type) {
+  SetHeader(::http::headers::kContentType, type.ToString());
 }
 
 void HttpResponse::SetContentEncoding(std::string encoding) {
@@ -136,8 +138,7 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
 
   os << "Date: " << time_str << kCrlf;
   if (headers_.find(::http::headers::kContentType) == headers_.end())
-    os << ::http::headers::kContentType << ": " << content_type::kTextHtml
-       << kCrlf;
+    os << ::http::headers::kContentType << ": " << kDefaultContentType << kCrlf;
   for (const auto& header : headers_)
     os << header.first << ": " << header.second << kCrlf;
   if (headers_.find(::http::headers::kConnection) == headers_.end())

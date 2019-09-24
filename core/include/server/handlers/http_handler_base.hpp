@@ -35,10 +35,7 @@ class HttpHandlerBase : public HandlerBase {
 
   void HandleRequest(const request::RequestBase& request,
                      request::RequestContext& context) const override;
-  void OnRequestComplete(const request::RequestBase& request,
-                         request::RequestContext& context) const override;
-
-  void HandleReadyRequest(const request::RequestBase& request) const final;
+  void ReportMalformedRequest(const request::RequestBase& request) const final;
 
   virtual const std::string& HandlerName() const = 0;
 

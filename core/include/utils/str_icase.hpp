@@ -1,38 +1,51 @@
 #pragma once
 
-#include <strings.h>
-#include <algorithm>
-#include <cctype>
-#include <stdexcept>
 #include <string>
+
+#include <utils/string_view.hpp>
 
 namespace utils {
 
 class StrIcaseHash final {
  public:
-  std::size_t operator()(const std::string& s) const {
-    std::size_t res = 0;
-    for (char c : s) {
-      if (!c) {
-        throw std::runtime_error(
-            "using StrIcaseHash for a string with '\\0' character");
-      }
-      res = res * 311 + tolower(c);
-    }
-    return res;
-  }
+  std::size_t operator()(const std::string& s) const;
 };
 
-class StrIcaseCmp final {
+class StrIcaseCompareThreeWay final {
  public:
-  bool operator()(const std::string& l, const std::string& r) const {
-    if (l.find('\0') != std::string::npos ||
-        r.find('\0') != std::string::npos) {
-      throw std::runtime_error(
-          "using StrIcaseCmp for a string with '\\0' character");
-    }
-    return l.size() == r.size() && !strncasecmp(l.data(), r.data(), l.size());
+  // TODO: std::weak_ordering
+  /// @returns integer <0 when `lhs < rhs`, >0 when `lhs > rhs` and 0 otherwise
+  /// @{
+  int operator()(const std::string& lhs, const std::string& rhs) const {
+    return (*this)(utils::string_view(lhs), utils::string_view(rhs));
   }
+
+  int operator()(utils::string_view lhs, utils::string_view rhs) const;
+  /// @}
+};
+
+class StrIcaseEqual final {
+ public:
+  bool operator()(const std::string& lhs, const std::string& rhs) const {
+    return (*this)(utils::string_view(lhs), utils::string_view(rhs));
+  }
+
+  bool operator()(utils::string_view lhs, utils::string_view rhs) const;
+
+ private:
+  StrIcaseCompareThreeWay icase_cmp_;
+};
+
+class StrIcaseLess final {
+ public:
+  bool operator()(const std::string& lhs, const std::string& rhs) const {
+    return (*this)(utils::string_view(lhs), utils::string_view(rhs));
+  }
+
+  bool operator()(utils::string_view lhs, utils::string_view rhs) const;
+
+ private:
+  StrIcaseCompareThreeWay icase_cmp_;
 };
 
 }  // namespace utils

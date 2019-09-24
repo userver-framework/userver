@@ -19,10 +19,6 @@ void RequestBase::SetResponseNotifyTime() {
   response_notify_time_ = std::chrono::steady_clock::now();
 }
 
-void RequestBase::SetCompleteNotifyTime() {
-  complete_notify_time_ = std::chrono::steady_clock::now();
-}
-
 void RequestBase::SetStartSendResponseTime() {
   start_send_response_time_ = std::chrono::steady_clock::now();
 }

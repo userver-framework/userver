@@ -9,8 +9,9 @@
 namespace server {
 namespace http {
 
-using HeadersMap = std::unordered_map<std::string, std::string,
-                                      utils::StrIcaseHash, utils::StrIcaseCmp>;
+using HeadersMap =
+    std::unordered_map<std::string, std::string, utils::StrIcaseHash,
+                       utils::StrIcaseEqual>;
 using CookiesMap = HeadersMap;
 
 using HeadersMapKeys = decltype(HeadersMap() | boost::adaptors::map_keys);

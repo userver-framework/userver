@@ -316,24 +316,7 @@ void HttpHandlerBase::ThrowUnsupportedHttpMethod(
                                     " is not allowed in " + HandlerName()});
 }
 
-void HttpHandlerBase::OnRequestComplete(
-    const request::RequestBase& request,
-    request::RequestContext& context) const {
-  try {
-    const http::HttpRequest http_request(
-        dynamic_cast<const http::HttpRequestImpl&>(request));
-    try {
-      OnRequestCompleteThrow(http_request, context);
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "exception in '" << HandlerName()
-                  << "' hander in on_request_complete: " << ex;
-    }
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << "unable to complete request: " << ex;
-  }
-}
-
-void HttpHandlerBase::HandleReadyRequest(
+void HttpHandlerBase::ReportMalformedRequest(
     const request::RequestBase& request) const {
   try {
     const auto& http_request_impl =

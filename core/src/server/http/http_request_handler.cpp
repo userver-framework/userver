@@ -28,9 +28,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
       dynamic_cast<const http::HttpRequestImpl&>(*request);
   LOG_TRACE() << "ready=" << http_request.GetResponse().IsReady();
   if (http_request.GetResponse().IsReady()) {
-    // Request is already handled, user handler must not be called
+    // Request is broken somehow, user handler must not be called
     request->SetTaskCreateTime();
-    return StartDummyTask(std::move(request));
+    return StartFailsafeTask(std::move(request));
   }
 
   if (new_request_hook_) new_request_hook_(request);
@@ -42,7 +42,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   if (!task_processor || !handler) {
     // No handler found, response status is already set
     // by HttpRequestConstructor::CheckStatus
-    return StartDummyTask(std::move(request));
+    return StartFailsafeTask(std::move(request));
   }
 
   auto payload = [request = std::move(request), handler] {
@@ -53,8 +53,6 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
 
     request->SetResponseNotifyTime();
     request->GetResponse().SetReady();
-    handler->OnRequestComplete(*request, context);
-    request->SetCompleteNotifyTime();
   };
 
   if (!is_monitor_) {
@@ -93,7 +91,7 @@ void HttpRequestHandler::SetNewRequestHook(NewRequestHook hook) {
   new_request_hook_ = std::move(hook);
 }
 
-engine::TaskWithResult<void> HttpRequestHandler::StartDummyTask(
+engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(
     std::shared_ptr<request::RequestBase> request) const {
   auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
   auto* handler = http_request.GetHttpHandler();
@@ -103,9 +101,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartDummyTask(
 
   return engine::impl::Async([request = std::move(request), handler]() {
     request->SetTaskStartTime();
-    if (handler) handler->HandleReadyRequest(*request);
+    if (handler) handler->ReportMalformedRequest(*request);
     request->SetResponseNotifyTime();
-    request->SetCompleteNotifyTime();
     request->GetResponse().SetReady();
   });
 }

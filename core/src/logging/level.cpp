@@ -49,7 +49,8 @@ static_assert(static_cast<spdlog::level::level_enum>(Level::kNone) ==
 
 namespace {
 
-std::unordered_map<std::string, Level, utils::StrIcaseHash, utils::StrIcaseCmp>
+std::unordered_map<std::string, Level, utils::StrIcaseHash,
+                   utils::StrIcaseEqual>
 InitLevelMap() {
   return {{"trace", Level::kTrace}, {"debug", Level::kDebug},
           {"info", Level::kInfo},   {"warning", Level::kWarning},

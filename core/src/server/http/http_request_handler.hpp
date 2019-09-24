@@ -35,7 +35,7 @@ class HttpRequestHandler final : public request::RequestHandlerBase {
   const HandlerInfoIndex& GetHandlerInfoIndex() const;
 
  private:
-  engine::TaskWithResult<void> StartDummyTask(
+  engine::TaskWithResult<void> StartFailsafeTask(
       std::shared_ptr<request::RequestBase> request) const;
 
  private:

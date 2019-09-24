@@ -6,6 +6,7 @@
 
 #include <boost/range/adaptor/map.hpp>
 
+#include <http/content_type.hpp>
 #include <server/http/http_response_cookie.hpp>
 #include <server/request/response_base.hpp>
 #include <utils/str_icase.hpp>
@@ -21,13 +22,13 @@ class HttpResponse final : public request::ResponseBase {
  public:
   using HeadersMap =
       std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                         utils::StrIcaseCmp>;
+                         utils::StrIcaseEqual>;
 
   using HeadersMapKeys = decltype(HeadersMap() | boost::adaptors::map_keys);
 
   using CookiesMap =
       std::unordered_map<std::string, Cookie, utils::StrIcaseHash,
-                         utils::StrIcaseCmp>;
+                         utils::StrIcaseEqual>;
 
   using CookiesMapKeys = decltype(CookiesMap() | boost::adaptors::map_keys);
 
@@ -38,7 +39,7 @@ class HttpResponse final : public request::ResponseBase {
       std::chrono::steady_clock::time_point failure_time) override;
 
   void SetHeader(std::string name, std::string value);
-  void SetContentType(std::string type);
+  void SetContentType(const ::http::ContentType& type);
   void SetContentEncoding(std::string encoding);
   void SetStatus(HttpStatus status);
   void ClearHeaders();

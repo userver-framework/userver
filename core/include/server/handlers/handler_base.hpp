@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file server/handlers/handler_base.hpp
+/// @brief @copybrief server::handlers::HandlerBase
+
 #include "handler_config.hpp"
 
 #include <components/component_config.hpp>
@@ -11,6 +14,7 @@
 namespace server {
 namespace handlers {
 
+/// Base class for request handlers.
 class HandlerBase : public components::ComponentBase {
  public:
   HandlerBase(const components::ComponentConfig& config,
@@ -18,17 +22,22 @@ class HandlerBase : public components::ComponentBase {
               bool is_monitor = false);
   ~HandlerBase() noexcept override = default;
 
+  /// Parses request, executes processing routines, and fills response
+  /// accordingly. Does not throw.
   virtual void HandleRequest(const request::RequestBase& request,
                              request::RequestContext& context) const = 0;
-  virtual void OnRequestComplete(const request::RequestBase& request,
-                                 request::RequestContext& context) const = 0;
 
-  virtual void HandleReadyRequest(const request::RequestBase&) const {}
+  /// Produces response to a request unrecognized by the protocol based on
+  /// provided generic response. Does not throw.
+  virtual void ReportMalformedRequest(const request::RequestBase&) const {}
 
+  /// Returns whether this is a monitoring handler.
   bool IsMonitor() const { return is_monitor_; }
 
+  /// Returns handler config.
   const HandlerConfig& GetConfig() const;
 
+  /// Returns whether the handler is enabled
   bool IsEnabled() const { return is_enabled_; }
 
  protected:
