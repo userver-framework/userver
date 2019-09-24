@@ -41,7 +41,7 @@ struct Listener {
       try {
         socket = io::Listen(addr);
         return;
-      } catch (const io::IoError&) {
+      } catch (const io::IoException&) {
         // retry
       }
     }
@@ -171,8 +171,8 @@ TEST(Socket, Closed) {
   RunInCoro([] {
     io::Socket closed_socket;
     EXPECT_FALSE(closed_socket.IsValid());
-    EXPECT_EQ(io::Socket::kInvalidFd, closed_socket.Fd());
-    EXPECT_EQ(io::Socket::kInvalidFd, std::move(closed_socket).Release());
+    EXPECT_EQ(io::kInvalidFd, closed_socket.Fd());
+    EXPECT_EQ(io::kInvalidFd, std::move(closed_socket).Release());
   });
 }
 

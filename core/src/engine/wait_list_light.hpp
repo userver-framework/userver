@@ -28,6 +28,8 @@ class WaitListLight final : public WaitListBase {
   void PinToCurrentTask();
   void PinToTask(impl::TaskContext& ctx);
 
+  bool IsEmpty(WaitListBase::Lock&) const override;
+
   /* NOTE: there is a TOCTOU race between Wakeup*() and condition
    * check+Append(), you have to recheck whether the condition is true just
    * after Append() returns in exec_after_asleep.

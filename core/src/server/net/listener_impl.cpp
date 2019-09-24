@@ -14,7 +14,7 @@
 #include <system_error>
 
 #include <engine/async.hpp>
-#include <engine/io/error.hpp>
+#include <engine/io/exception.hpp>
 #include <engine/io/socket.hpp>
 #include <engine/sleep.hpp>
 #include <fs/blocking/read.hpp>

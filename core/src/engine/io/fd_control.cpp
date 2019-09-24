@@ -32,6 +32,14 @@ int SetNonblock(int fd) {
   return fd;
 }
 
+int ReduceSigpipe(int fd) {
+#ifdef F_SETNOSIGPIPE
+  // may fail for all we care, SIGPIPE is ignored anyway
+  ::fcntl(fd, F_SETNOSIGPIPE, 1);
+#endif
+  return fd;
+}
+
 std::string ToString(Direction::Kind direction_kind) {
   switch (direction_kind) {
     case Direction::Kind::kRead:
@@ -96,8 +104,21 @@ bool Direction::Wait(Deadline deadline) {
                                            current);
   current->Sleep(&wait_manager);
 
-  return current->GetWakeupSource() ==
-         engine::impl::TaskContext::WakeupSource::kWaitList;
+  if (current->GetWakeupSource() ==
+      engine::impl::TaskContext::WakeupSource::kWaitList) {
+    return true;
+  }
+
+  // we need to stop watcher manually to avoid racy wakeups later
+  {
+    engine::impl::WaitList::Lock lock(*waiters_);
+    if (waiters_->IsEmpty(lock)) {
+      // locked queueing to avoid race w/ StartAsync in wait strategy
+      watcher_.StopAsync();
+    }
+  }
+
+  return false;
 }
 
 void Direction::Reset(int fd) {
@@ -144,6 +165,7 @@ FdControl::~FdControl() { Close(); }
 FdControlHolder FdControl::Adopt(int fd) {
   auto fd_control = std::make_shared<FdControl>();
   SetNonblock(fd);
+  ReduceSigpipe(fd);
   fd_control->read_.Reset(fd);
   fd_control->write_.Reset(fd);
   return fd_control;

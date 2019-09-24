@@ -30,6 +30,8 @@ void WaitListLight::PinToTask([[maybe_unused]] impl::TaskContext& ctx) {
 #endif
 }
 
+bool WaitListLight::IsEmpty(WaitListBase::Lock&) const { return waiting_; }
+
 void WaitListLight::Append(WaitListBase::Lock&,
                            boost::intrusive_ptr<impl::TaskContext> ctx) {
   LOG_TRACE() << "Appending, use_count=" << ctx->use_count();

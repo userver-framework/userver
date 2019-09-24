@@ -6,7 +6,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include <engine/io/error.hpp>
+#include <engine/io/exception.hpp>
 
 namespace engine {
 namespace io {

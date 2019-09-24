@@ -36,6 +36,8 @@ class WaitList final : public WaitListBase {
 
   ~WaitList() final;
 
+  bool IsEmpty(WaitListBase::Lock&) const override;
+
   void Append(WaitListBase::Lock&,
               boost::intrusive_ptr<impl::TaskContext>) override;
   void WakeupOne(WaitListBase::Lock&) override;

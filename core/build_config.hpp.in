@@ -1,3 +1,4 @@
 #cmakedefine USERVER_VERSION "@USERVER_VERSION@"
 
 #cmakedefine HAVE_ACCEPT4
+#cmakedefine HAVE_PIPE2

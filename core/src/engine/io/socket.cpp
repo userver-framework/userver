@@ -7,7 +7,7 @@
 #include <cerrno>
 #include <string>
 
-#include <engine/io/error.hpp>
+#include <engine/io/exception.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
@@ -49,7 +49,7 @@ Addr& MemoizeAddr(Addr& addr, decltype(&::getpeername) getter,
 }  // namespace
 
 ConnectTimeout::ConnectTimeout()
-    : IoError("connection establishment timed out") {}
+    : IoException("connection establishment timed out") {}
 
 Socket::Socket(int fd) : fd_control_(impl::FdControl::Adopt(fd)) {}
 
@@ -67,17 +67,17 @@ bool Socket::WaitWriteable(Deadline deadline) {
 
 size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
   if (!IsValid()) {
-    throw IoError("Attempt to Recv from closed socket");
+    throw IoException("Attempt to RecvSome from closed socket");
   }
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);
   return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kPartial,
-                       deadline, "Recv from", peername_);
+                       deadline, "RecvSome from", peername_);
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
   if (!IsValid()) {
-    throw IoError("Attempt to RecvAll from closed socket");
+    throw IoException("Attempt to RecvAll from closed socket");
   }
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);
@@ -87,7 +87,7 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
 
 size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
   if (!IsValid()) {
-    throw IoError("Attempt to Send to closed socket");
+    throw IoException("Attempt to SendAll to closed socket");
   }
   auto& dir = fd_control_->Write();
   impl::Direction::Lock lock(dir);
@@ -103,13 +103,13 @@ size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return dir.PerformIo(lock, send_func, const_cast<void*>(buf), len,
-                       impl::TransferMode::kWhole, deadline, "Send to",
+                       impl::TransferMode::kWhole, deadline, "SendAll to",
                        peername_);
 }
 
 Socket Socket::Accept(Deadline deadline) {
   if (!IsValid()) {
-    throw IoError("Attempt to Accept from closed socket");
+    throw IoException("Attempt to Accept from closed socket");
   }
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);

@@ -17,7 +17,7 @@
 #include <engine/async.hpp>
 #include <engine/deadline.hpp>
 #include <engine/io/addr.hpp>
-#include <engine/io/error.hpp>
+#include <engine/io/exception.hpp>
 #include <engine/io/socket.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <logging/log.hpp>
@@ -162,7 +162,7 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
         bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                        "%s", ex.what());
         return {};
-      } catch (const engine::io::IoError& ex) {
+      } catch (const engine::io::IoException& ex) {
         LOG_DEBUG() << "Cannot connect to " << host->host << " at "
                     << current_addr << ": " << ex;
       }
@@ -369,7 +369,7 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
   } catch (const engine::io::IoSystemError& io_sys) {
     error = io_sys.Code().value();
     bytes_sent = -1;
-  } catch (const engine::io::IoError& io_ex) {
+  } catch (const engine::io::IoException& io_ex) {
     error = EINVAL;
     bytes_sent = -1;
   }
@@ -412,7 +412,7 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
     recvd_total += timeout_ex.BytesTransferred();
   } catch (const engine::io::IoSystemError& io_sys) {
     error = io_sys.Code().value();
-  } catch (const engine::io::IoError& io_ex) {
+  } catch (const engine::io::IoException& io_ex) {
     error = EINVAL;
   }
   // return value logic from _mongoc_stream_socket_readv
@@ -468,7 +468,7 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
           } catch (const engine::io::IoTimeout&) {
             stream->is_timed_out_ = true;
             return 0;
-          } catch (const engine::io::IoError&) {
+          } catch (const engine::io::IoException&) {
             return POLLERR;
           }
         }));
@@ -483,7 +483,7 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
               } catch (const engine::io::IoTimeout&) {
                 stream->is_timed_out_ = true;
                 return 0;
-              } catch (const engine::io::IoError&) {
+              } catch (const engine::io::IoException&) {
                 return POLLERR;
               }
             }));

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file engine/io/addr.hpp
+/// @brief @copybrief engine::io::Addr
+
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -32,31 +35,31 @@ class AddrStorage final {
   // NOLINTNEXTLINE(hicpp-member-init,cppcoreguidelines-pro-type-member-init)
   AddrStorage() { ::memset(&data_, 0, sizeof(data_)); }
 
-  /// Domain-specific native socket address structure pointer.
+  /// @brief Domain-specific native socket address structure pointer.
   /// @warn No type checking is performed, user must ensure that only the
   /// correct domain is accessed.
-  /// @{
   template <typename T>
   T* As() {
     static_assert(sizeof(T) <= sizeof(data_), "Invalid socket address type");
     return reinterpret_cast<T*>(&data_);
   }
 
+  /// @brief Domain-specific native socket address structure pointer.
+  /// @warn No type checking is performed, user must ensure that only the
+  /// correct domain is accessed.
   template <typename T>
   const T* As() const {
     static_assert(sizeof(T) <= sizeof(data_), "Invalid socket address type");
     return reinterpret_cast<const T*>(&data_);
   }
-  /// @}
 
   /// Native socket address structure pointer.
-  /// @{
   struct sockaddr* Data() {
     return As<struct sockaddr>();
   }
 
+  /// Native socket address structure pointer.
   const struct sockaddr* Data() const { return As<struct sockaddr>(); }
-  /// @}
 
   /// Maximum supported native socket address structure size.
   socklen_t Size() const { return sizeof(data_); }
@@ -98,7 +101,8 @@ class Addr final {
   Addr(const AddrStorage& addr, int type, int protocol)
       : Addr(addr.Data(), type, protocol) {}
 
-  /// Constructs a socket address from the native socket address structure.
+  /// @brief Constructs a socket address from the native
+  /// socket address structure.
   /// @warn No type checking is performed.
   Addr(const void* addr, int type, int protocol)
       : type_(type), protocol_(protocol) {
@@ -120,7 +124,7 @@ class Addr final {
   /// `0` is accepted for most families (when family has only one protocol).
   int Protocol() const { return protocol_; }
 
-  /// Domain-specific native socket address structure pointer.
+  /// @brief Domain-specific native socket address structure pointer.
   /// @warn No type checking is performed, user must ensure that only the
   /// correct domain is accessed.
   template <typename T>
@@ -136,7 +140,7 @@ class Addr final {
     return engine::io::AddrStorage::Addrlen(domain_);
   }
 
-  /// Human-readable address representation.
+  /// @brief Human-readable address representation.
   /// @note Does not include port number.
   std::string RemoteAddress() const;
 

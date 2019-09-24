@@ -21,6 +21,8 @@ class WaitListBase {
 
   virtual ~WaitListBase() = default;
 
+  virtual bool IsEmpty(Lock&) const = 0;
+
   virtual void Append(Lock&, boost::intrusive_ptr<impl::TaskContext>) = 0;
   virtual void WakeupOne(Lock&) = 0;
   virtual void WakeupAll(Lock&) = 0;

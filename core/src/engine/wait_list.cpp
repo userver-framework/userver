@@ -44,6 +44,11 @@ WaitList::~WaitList() {
   UASSERT_MSG(waiting_contexts_->empty(), "Someone is waiting on the WaitList");
 }
 
+bool WaitList::IsEmpty([[maybe_unused]] WaitListBase::Lock& lock) const {
+  UASSERT(lock);
+  return waiting_contexts_->empty();
+}
+
 void WaitList::Append([[maybe_unused]] WaitListBase::Lock& lock,
                       boost::intrusive_ptr<impl::TaskContext> context) {
   UASSERT(lock);

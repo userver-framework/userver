@@ -7,6 +7,7 @@ message(STATUS "Userver version ${USERVER_VERSION}")
 
 include(CheckFunctionExists)
 check_function_exists("accept4" HAVE_ACCEPT4)
+check_function_exists("pipe2" HAVE_PIPE2)
 
 set(BUILD_CONFIG ${CMAKE_CURRENT_BINARY_DIR}/build_config.hpp)
 if(${CMAKE_SOURCE_DIR}/.git/HEAD IS_NEWER_THAN ${BUILD_CONFIG})

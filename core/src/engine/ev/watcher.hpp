@@ -44,7 +44,9 @@ class Watcher final : public ThreadControl {
 
   /* Asynchronously start ev_xxx. Must not block. */
   void StartAsync();
-  // no StopAsync(), you really might want to wait
+
+  /* Asynchronously stop ev_xxx. Beware of dangling references! */
+  void StopAsync();
 
   template <typename T = EvType>
   typename std::enable_if<std::is_same<T, ev_timer>::value, void>::type Again();
@@ -96,6 +98,11 @@ void Watcher<EvType>::Stop() {
 template <typename EvType>
 void Watcher<EvType>::StartAsync() {
   RunInEvLoopAsync([this] { StartImpl(); });
+}
+
+template <typename EvType>
+void Watcher<EvType>::StopAsync() {
+  RunInEvLoopAsync([this] { StopImpl(); });
 }
 
 template <typename EvType>

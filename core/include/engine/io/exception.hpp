@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file engine/io/exception.hpp
+/// @brief I/O exceptions
+
 #include <stdexcept>
 #include <system_error>
 
@@ -8,14 +11,14 @@
 namespace engine::io {
 
 /// Generic I/O error.
-class IoError : public utils::TracefulException {
+class IoException : public utils::TracefulException {
  public:
-  IoError();
+  IoException();
   using utils::TracefulException::TracefulException;
 };
 
 /// I/O timeout.
-class IoTimeout : public IoError {
+class IoTimeout : public IoException {
  public:
   IoTimeout();
   explicit IoTimeout(size_t bytes_transferred);
@@ -29,13 +32,13 @@ class IoTimeout : public IoError {
 
 /// Task cancellation during I/O.
 /// Context description is expected to be provided by user.
-class IoCancelled : public IoError {
+class IoCancelled : public IoException {
  public:
   IoCancelled();
 };
 
 /// Operating system I/O error.
-class IoSystemError : public IoError {
+class IoSystemError : public IoException {
  public:
   explicit IoSystemError(int err_value);
   explicit IoSystemError(std::error_code code);

@@ -4,7 +4,7 @@
 #include <cerrno>
 
 #include <engine/deadline.hpp>
-#include <engine/io/error.hpp>
+#include <engine/io/exception.hpp>
 #include <engine/io/fd_control_holder.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/cancel.hpp>
@@ -142,7 +142,7 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
         throw IoTimeout(/*bytes_transferred =*/pos - begin);
       }
       if (!IsValid()) {
-        throw((IoError() << "Fd closed during ") << ... << context);
+        throw((IoException() << "Fd closed during ") << ... << context);
       }
     } else {
       const auto err_value = errno;

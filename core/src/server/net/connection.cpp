@@ -9,7 +9,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <engine/async.hpp>
-#include <engine/io/error.hpp>
+#include <engine/io/exception.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_request_handler.hpp>
