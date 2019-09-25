@@ -35,13 +35,13 @@ void CacheInvalidator::UnregisterCacheInvalidator(
 }
 
 void CacheInvalidator::RegisterComponentInvalidator(
-    components::ComponentBase& owner, CallbackVoid&& handler) {
+    components::impl::ComponentBase& owner, CallbackVoid&& handler) {
   std::lock_guard<engine::Mutex> lock(mutex_);
   invalidators_.emplace_back(&owner, std::move(handler));
 }
 
 void CacheInvalidator::UnregisterComponentInvalidator(
-    components::ComponentBase& owner) {
+    components::impl::ComponentBase& owner) {
   UnregisterInvalidatorGeneric(owner, invalidators_);
 }
 

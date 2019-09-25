@@ -13,8 +13,8 @@
 #include <utils/statistics/metadata.hpp>
 #include <utils/swappingsmart.hpp>
 
-#include <components/component_base.hpp>
 #include <components/component_config.hpp>
+#include <components/loggable_component_base.hpp>
 #include "cache_config.hpp"
 #include "cache_update_trait.hpp"
 

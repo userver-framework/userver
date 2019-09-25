@@ -9,7 +9,7 @@
 
 namespace components {
 
-class CacheInvalidator final : public components::ComponentBase {
+class CacheInvalidator final : public components::impl::ComponentBase {
  public:
   static constexpr const char* kName = "cache-invalidator";
 
@@ -24,10 +24,10 @@ class CacheInvalidator final : public components::ComponentBase {
 
   void UnregisterCacheInvalidator(components::CacheUpdateTrait& owner);
 
-  void RegisterComponentInvalidator(components::ComponentBase& owner,
+  void RegisterComponentInvalidator(components::impl::ComponentBase& owner,
                                     CallbackVoid&& handler);
 
-  void UnregisterComponentInvalidator(components::ComponentBase& owner);
+  void UnregisterComponentInvalidator(components::impl::ComponentBase& owner);
 
   void InvalidateCaches(cache::UpdateType update_type);
 
@@ -42,7 +42,7 @@ class CacheInvalidator final : public components::ComponentBase {
   };
 
   using ComponentInvalidatorStruct =
-      Invalidator<components::ComponentBase, CallbackVoid>;
+      Invalidator<components::impl::ComponentBase, CallbackVoid>;
   using CacheInvalidatorStruct =
       Invalidator<components::CacheUpdateTrait, CallbackUpdateType>;
 

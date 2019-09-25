@@ -162,6 +162,9 @@ endif()
 target_include_directories(utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing
 )
+target_include_directories(utest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/
+)
 
 message("gtest: ${GTEST_LIBRARIES}")
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})

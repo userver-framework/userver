@@ -6,9 +6,9 @@
 #include <memory>
 #include <unordered_map>
 
-#include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/loggable_component_base.hpp>
 #include <formats/json/value.hpp>
 #include <storages/mongo/pool.hpp>
 #include <storages/mongo/pool_config.hpp>

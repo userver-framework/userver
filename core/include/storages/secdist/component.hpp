@@ -2,9 +2,9 @@
 
 #include <string>
 
-#include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/loggable_component_base.hpp>
 
 #include "secdist.hpp"
 

@@ -1,6 +1,5 @@
 #include <server/handlers/server_monitor.hpp>
 
-#include <components/component_base.hpp>
 #include <formats/json/serialize.hpp>
 
 namespace server {

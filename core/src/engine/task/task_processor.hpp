@@ -13,8 +13,8 @@
 #include <moodycamel/blockingconcurrentqueue.h>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
+#include <engine/task/task_processor_config.hpp>
 #include "task_counter.hpp"
-#include "task_processor_config.hpp"
 #include "task_processor_pools.hpp"
 
 namespace engine {
@@ -50,6 +50,9 @@ class TaskProcessor final {
 
   CoroPool& GetCoroPool() { return pools_->GetCoroPool(); }
   ev::ThreadPool& EventThreadPool() { return pools_->EventThreadPool(); }
+  std::shared_ptr<impl::TaskProcessorPools> GetTaskProcessorPools() {
+    return pools_;
+  }
   const std::string& Name() const { return config_.name; }
 
   impl::TaskCounter& GetTaskCounter() { return task_counter_; }

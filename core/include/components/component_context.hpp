@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <compiler/demangle.hpp>
-#include <components/component_base.hpp>
+#include <components/impl/component_base.hpp>
 #include <concurrent/variable.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
@@ -49,15 +49,15 @@ class ComponentContext final {
   using TaskProcessorPtrMap =
       std::unordered_map<std::string, engine::TaskProcessor*>;
   using ComponentFactory =
-      std::function<std::unique_ptr<components::ComponentBase>(
+      std::function<std::unique_ptr<components::impl::ComponentBase>(
           const components::ComponentContext&)>;
 
   ComponentContext(const Manager& manager, TaskProcessorMap,
                    const std::set<std::string>& loading_component_names);
   ~ComponentContext();
 
-  ComponentBase* AddComponent(const std::string& name,
-                              const ComponentFactory& factory);
+  impl::ComponentBase* AddComponent(const std::string& name,
+                                    const ComponentFactory& factory);
 
   void OnAllComponentsLoaded();
 
@@ -171,7 +171,7 @@ class ComponentContext final {
   void ProcessAllComponentLifetimeStageSwitchings(
       ComponentLifetimeStageSwitchingParams params);
 
-  ComponentBase* DoFindComponent(const std::string& name) const;
+  impl::ComponentBase* DoFindComponent(const std::string& name) const;
 
   void AddDependency(const std::string& name) const;
 

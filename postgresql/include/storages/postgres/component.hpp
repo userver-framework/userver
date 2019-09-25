@@ -6,9 +6,9 @@
 #include <chrono>
 #include <vector>
 
-#include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/loggable_component_base.hpp>
 #include <components/statistics_storage.hpp>
 #include <engine/mutex.hpp>
 #include <taxi_config/storage/component.hpp>

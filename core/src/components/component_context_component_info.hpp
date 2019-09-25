@@ -5,12 +5,11 @@
 #include <set>
 #include <string>
 
-#include <components/component_base.hpp>
+#include <components/impl/component_base.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
 
-namespace components {
-namespace impl {
+namespace components::impl {
 
 enum class ComponentLifetimeStage {
   kNull,
@@ -83,5 +82,4 @@ class ComponentInfo final {
   std::atomic<bool> on_loading_cancelled_called_{false};
 };
 
-}  // namespace impl
-}  // namespace components
+}  // namespace components::impl

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-#include <formats/yaml.hpp>
+#include <formats/yaml/value.hpp>
 
 #include <yaml_config/variable_map.hpp>
 

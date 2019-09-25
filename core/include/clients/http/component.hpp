@@ -4,7 +4,7 @@
 #error Use components::Http from clients/http.hpp instead
 #endif
 
-#include <components/component_base.hpp>
+#include <components/loggable_component_base.hpp>
 #include <taxi_config/config.hpp>
 
 #include <components/statistics_storage.hpp>

@@ -7,6 +7,7 @@
 #include <cache/cache_update_trait.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/loggable_component_base.hpp>
 #include <taxi_config/config.hpp>
 #include <utils/async_event_channel.hpp>
 #include <utils/swappingsmart.hpp>

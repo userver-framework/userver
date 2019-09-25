@@ -1,8 +1,8 @@
 #pragma once
 
-#include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/impl/component_base.hpp>
 #include <utils/statistics/storage.hpp>
 
 #include <taxi_config/storage/component.hpp>
@@ -15,7 +15,7 @@ namespace components {
 
 class Manager;
 
-class ManagerControllerComponent final : public ComponentBase {
+class ManagerControllerComponent final : public impl::ComponentBase {
  public:
   ManagerControllerComponent(const components::ComponentConfig& config,
                              const components::ComponentContext& context);

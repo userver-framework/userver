@@ -63,8 +63,8 @@ ComponentContext::ComponentContext(
 
 ComponentContext::~ComponentContext() = default;
 
-ComponentBase* ComponentContext::AddComponent(const std::string& name,
-                                              const ComponentFactory& factory) {
+impl::ComponentBase* ComponentContext::AddComponent(
+    const std::string& name, const ComponentFactory& factory) {
   TaskToComponentMapScope task_to_component_map_scope(*this, name);
 
   auto& component_info = *components_.at(name);
@@ -230,7 +230,7 @@ void ComponentContext::ProcessAllComponentLifetimeStageSwitchings(
         " cancelled but only StageSwitchingCancelledExceptions were caught");
 }
 
-ComponentBase* ComponentContext::DoFindComponent(
+impl::ComponentBase* ComponentContext::DoFindComponent(
     const std::string& name) const {
   AddDependency(name);
 

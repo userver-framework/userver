@@ -1,6 +1,6 @@
 #pragma once
 
-#include "component_base.hpp"
+#include "loggable_component_base.hpp"
 
 #include <components/manager.hpp>
 #include <utils/statistics/metrics_storage.hpp>

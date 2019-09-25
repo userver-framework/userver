@@ -5,10 +5,11 @@
 namespace server {
 namespace handlers {
 
-HandlerBase::HandlerBase(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& /*component_context*/, bool is_monitor)
-    : config_(HandlerConfig::ParseFromYaml(config.Yaml(), config.FullPath(),
+HandlerBase::HandlerBase(const components::ComponentConfig& config,
+                         const components::ComponentContext& context,
+                         bool is_monitor)
+    : LoggableComponentBase(config, context),
+      config_(HandlerConfig::ParseFromYaml(config.Yaml(), config.FullPath(),
                                            config.ConfigVarsPtr())),
       is_monitor_(is_monitor) {
   is_enabled_ =

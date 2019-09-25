@@ -1,9 +1,6 @@
 #pragma once
 
-namespace components {
-
-class ComponentContext;
-class ComponentConfig;
+namespace components::impl {
 
 /// Don't use it for application components, use LoggableComponentBase instead
 class ComponentBase {
@@ -43,10 +40,4 @@ class ComponentBase {
   virtual void OnAllComponentsAreStopping() {}
 };
 
-/// Base class for all application components, it depends on logger and tracer
-class LoggableComponentBase : public ComponentBase {
- public:
-  LoggableComponentBase(const ComponentConfig&, const ComponentContext&);
-};
-
-}  // namespace components
+}  // namespace components::impl

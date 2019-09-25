@@ -7,15 +7,15 @@
 
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/loggable_component_base.hpp>
 #include <server/handlers/exceptions.hpp>
 #include <server/request/request_base.hpp>
 #include <server/request/request_context.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 /// Base class for request handlers.
-class HandlerBase : public components::ComponentBase {
+class HandlerBase : public components::LoggableComponentBase {
  public:
   HandlerBase(const components::ComponentConfig& config,
               const components::ComponentContext& component_context,
@@ -55,5 +55,4 @@ class HandlerBase : public components::ComponentBase {
   bool is_enabled_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

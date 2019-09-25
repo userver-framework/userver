@@ -12,9 +12,9 @@
 #include <logging/component.hpp>
 #include <utils/statistics/storage.hpp>
 
-#include "component_base.hpp"
 #include "component_config.hpp"
 #include "component_context.hpp"
+#include "impl/component_base.hpp"
 
 namespace engine {
 namespace impl {
@@ -42,7 +42,8 @@ class Manager final {
   GetTaskProcessorPools() const;
 
   template <typename Component>
-  std::enable_if_t<std::is_base_of<components::ComponentBase, Component>::value>
+  std::enable_if_t<
+      std::is_base_of<components::impl::ComponentBase, Component>::value>
   AddComponent(const components::ComponentConfigMap& config_map,
                const std::string& name) {
     AddComponentImpl(config_map, name,
@@ -65,7 +66,7 @@ class Manager final {
   void AddComponents(const ComponentList& component_list);
   void AddComponentImpl(
       const components::ComponentConfigMap& config_map, const std::string& name,
-      std::function<std::unique_ptr<components::ComponentBase>(
+      std::function<std::unique_ptr<components::impl::ComponentBase>(
           const components::ComponentConfig&,
           const components::ComponentContext&)>
           factory);

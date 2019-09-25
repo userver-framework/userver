@@ -6,9 +6,9 @@
 #include <string>
 #include <unordered_map>
 
-#include <components/component_base.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/impl/component_base.hpp>
 
 #include <utils/periodic_task.hpp>
 
@@ -60,7 +60,7 @@ namespace components {
 
 // clang-format on
 
-class Logging final : public ComponentBase {
+class Logging final : public impl::ComponentBase {
  public:
   /// The default name of this component
   static constexpr const char* kName = "logging";

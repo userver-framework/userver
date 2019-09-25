@@ -1,6 +1,6 @@
 #pragma once
 
-#include <components/component_base.hpp>
+#include <components/loggable_component_base.hpp>
 
 namespace server {
 namespace handlers {
