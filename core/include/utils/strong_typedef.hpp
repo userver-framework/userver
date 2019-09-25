@@ -270,10 +270,11 @@ constexpr T UnderlyingValue(StrongTypedef<Tag, T, Ops>&& v) noexcept {
 // Hashing (STD)
 namespace std {
 
-template <class Tag, class T>
-struct hash<utils::StrongTypedef<Tag, T>> : hash<T> {
-  std::size_t operator()(const utils::StrongTypedef<Tag, T>& v) const noexcept(
-      noexcept(std::declval<const hash<T>&>()(std::declval<const T&>()))) {
+template <class Tag, class T, utils::StrongTypedefOps Ops>
+struct hash<utils::StrongTypedef<Tag, T, Ops>> : hash<T> {
+  std::size_t operator()(const utils::StrongTypedef<Tag, T, Ops>& v) const
+      noexcept(
+          noexcept(std::declval<const hash<T>&>()(std::declval<const T&>()))) {
     return hash<T>::operator()(v.GetUnderlying());
   }
 };
