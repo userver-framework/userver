@@ -2,7 +2,7 @@
 
 #include <cache/cache_config.hpp>
 #include <cache/expirable_lru_cache.hpp>
-#include <components/component_base.hpp>
+#include <components/loggable_component_base.hpp>
 #include <components/statistics_storage.hpp>
 #include <server/cache_invalidator_holder.hpp>
 #include <taxi_config/storage/component.hpp>
