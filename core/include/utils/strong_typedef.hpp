@@ -36,7 +36,7 @@ constexpr auto operator|(StrongTypedefOps op1, StrongTypedefOps op2) noexcept {
 /// Typical usage:
 ///   using MyString = utils::StrongTypedef<class MyStringTag, std::string>;
 /// Or:
-///   struct MyString final : utils::StrongTypedefId<MyString, std::string> {
+///   struct MyString final : utils::StrongTypedef<MyString, std::string> {
 ///     using StrongTypedef::StrongTypedef;
 ///   };
 ///
@@ -60,23 +60,9 @@ constexpr auto operator|(StrongTypedefOps op1, StrongTypedefOps op2) noexcept {
 ///   You can customize the operators that are avaialable by passing the third
 ///   argument of type StrongTypedefOps. See its docs for more info.
 template <class Tag, class T,
-          StrongTypedefOps Ops = StrongTypedefOps::kCompareTransparent,
+          StrongTypedefOps Ops = StrongTypedefOps::kCompareStrong,
           class /*Enable*/ = void>
 class StrongTypedef;  // Forward declaration
-
-/// Alias for creating strong typedef for Ids. Unlike StrongTypedef<Tag, T> by
-/// default has no comparison operators with underlaying type. That's the only
-/// difference.
-///
-/// Typical usage:
-///   using MyStringId = StrongTypedefForId<class MyStringIdTag, std::string>;
-/// Or:
-///   struct MyStringId final: StrongTypedefForId<MyStringId, std::string> {
-///     using StrongTypedef::StrongTypedef;
-///   };
-template <class Tag, class T>
-using StrongTypedefForId =
-    StrongTypedef<Tag, T, StrongTypedefOps::kCompareStrong>;
 
 // Helpers
 namespace impl::strong_typedef {
@@ -124,16 +110,13 @@ class StrongTypedef {
   StrongTypedef& operator=(const StrongTypedef&) = default;
   StrongTypedef& operator=(StrongTypedef&&) = default;
 
-  template <class Arg>
-  explicit constexpr StrongTypedef(Arg&& arg) noexcept(
-      noexcept(T(std::forward<Arg>(arg))))
-      : data_(std::forward<Arg>(arg)) {}
-
   constexpr StrongTypedef(impl::strong_typedef::InitializerList<T> lst)
       : data_(lst) {}
 
-  template <class... Args>
-  constexpr StrongTypedef(Args&&... args) noexcept(
+  template <
+      class... Args,
+      std::enable_if_t<std::is_constructible<T, Args...>::value, bool> = true>
+  explicit constexpr StrongTypedef(Args&&... args) noexcept(
       noexcept(T(std::forward<Args>(args)...)))
       : data_(std::forward<Args>(args)...) {}
 

@@ -24,7 +24,7 @@ bool OverloadResolutionLValue(const MyString&) { return true; }
 bool OverloadResolutionLValue(const MyString2&) { return false; }
 bool OverloadResolutionLValue(const std::string&) { return false; }
 
-using MyId = utils::StrongTypedefForId<class MyIdTag, int>;
+using MyId = utils::StrongTypedef<class MyIdTag, int>;
 
 // Comparison operators for StrongTypedef.Id* tests
 template <class T>

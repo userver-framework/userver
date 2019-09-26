@@ -61,9 +61,9 @@ TEST(StrongTypedef, StringStreamingAndLogging) {
 
 TEST(StrongTypedef, StringInContainer) {
   std::unordered_map<MyString, MyString> umap = {
-      {"Hello", "World"},
+      {MyString{"Hello"}, MyString{"World"}},
   };
-  EXPECT_EQ(umap["Hello"], "World");
+  EXPECT_EQ(umap[MyString{"Hello"}], "World");
 
   // Fails to compile (as expected):
   // std::unordered_map<std::string, std::string> umap2;
@@ -116,15 +116,15 @@ TEST(StrongTypedef, UnorderedMapFromStrongTypedefs) {
                            std::unordered_map<MyString, MySpecialInt> >;
 
   MyMap the_rings = {
-      {"Elven-kings", MySpecialInt{3}},
-      {"Dwarf-lords", MySpecialInt{7}},
-      {"Mortal Men", MySpecialInt{9}},
-      {"Dark Lord", MySpecialInt{1}},
+      {MyString{"Elven-kings"}, MySpecialInt{3}},
+      {MyString{"Dwarf-lords"}, MySpecialInt{7}},
+      {MyString{"Mortal Men"}, MySpecialInt{9}},
+      {MyString{"Dark Lord"}, MySpecialInt{1}},
   };
 
-  --the_rings["Dark Lord"].GetUnderlying();
-  EXPECT_EQ(the_rings["Dark Lord"], 0);
-  EXPECT_EQ(the_rings["Elven-kings"], 3);
+  --the_rings[MyString{"Dark Lord"}].GetUnderlying();
+  EXPECT_EQ(the_rings[MyString{"Dark Lord"}], 0);
+  EXPECT_EQ(the_rings[MyString{"Elven-kings"}], 3);
 }
 
 TEST(StrongTypedef, Variant) {
@@ -145,7 +145,7 @@ TEST(StrongTypedef, EmptyStruct) {
 }
 
 TEST(StrongTypedef, MyIntId) {
-  using MyIntId = utils::StrongTypedefForId<class MyIntIdTag, int>;
+  using MyIntId = utils::StrongTypedef<class MyIntIdTag, int>;
 
   MyIntId id1{123}, id2{456};
 
@@ -154,7 +154,7 @@ TEST(StrongTypedef, MyIntId) {
 }
 
 TEST(StrongTypedef, MyStringId) {
-  struct MyStringId final : utils::StrongTypedefForId<MyStringId, std::string> {
+  struct MyStringId final : utils::StrongTypedef<MyStringId, std::string> {
     using StrongTypedef::StrongTypedef;
   };
 
@@ -162,4 +162,49 @@ TEST(StrongTypedef, MyStringId) {
 
   EXPECT_NE(id1, id2);
   EXPECT_EQ(id1, MyStringId{id1});
+}
+
+TEST(StrongTypedef, NotConvertibleImplicitly) {
+  struct MyStringId final : utils::StrongTypedef<MyStringId, std::string> {
+    using StrongTypedef::StrongTypedef;
+  };
+
+  EXPECT_FALSE((std::is_convertible<MyString, MyString2>::value));
+  EXPECT_FALSE((std::is_convertible<MyString2, MyString>::value));
+  EXPECT_FALSE((std::is_convertible<MySpecialInt, MyString>::value));
+  EXPECT_FALSE((std::is_convertible<MyString, MySpecialInt>::value));
+  EXPECT_FALSE((std::is_convertible<MyString, int>::value));
+
+  EXPECT_FALSE((std::is_convertible<MyString, std::string>::value));
+  EXPECT_FALSE((std::is_convertible<MyString2, std::string>::value));
+  EXPECT_FALSE((std::is_convertible<MySpecialInt, int>::value));
+  EXPECT_FALSE((std::is_convertible<MyStringId, std::string>::value));
+}
+
+TEST(StrongTypedef, NotAssignableImplicitly) {
+  struct MyStringId final : utils::StrongTypedef<MyStringId, std::string> {
+    using StrongTypedef::StrongTypedef;
+  };
+
+  EXPECT_FALSE((std::is_assignable<MyString, MyString2>::value));
+  EXPECT_FALSE((std::is_assignable<MyString2, MyString>::value));
+  EXPECT_FALSE((std::is_assignable<MySpecialInt, MyString>::value));
+  EXPECT_FALSE((std::is_assignable<MyString, MySpecialInt>::value));
+  EXPECT_FALSE((std::is_assignable<MyString, int>::value));
+
+  EXPECT_FALSE((std::is_assignable<MyString, std::string>::value));
+  EXPECT_FALSE((std::is_assignable<MyString2, std::string>::value));
+  EXPECT_FALSE((std::is_assignable<MySpecialInt, int>::value));
+  EXPECT_FALSE((std::is_assignable<MyStringId, std::string>::value));
+
+  EXPECT_FALSE((std::is_assignable<MyString&, MyString2>::value));
+  EXPECT_FALSE((std::is_assignable<MyString2&, MyString>::value));
+  EXPECT_FALSE((std::is_assignable<MySpecialInt&, MyString>::value));
+  EXPECT_FALSE((std::is_assignable<MyString&, MySpecialInt>::value));
+  EXPECT_FALSE((std::is_assignable<MyString&, int>::value));
+
+  EXPECT_FALSE((std::is_assignable<MyString&, std::string>::value));
+  EXPECT_FALSE((std::is_assignable<MyString2&, std::string>::value));
+  EXPECT_FALSE((std::is_assignable<MySpecialInt&, int>::value));
+  EXPECT_FALSE((std::is_assignable<MyStringId&, std::string>::value));
 }

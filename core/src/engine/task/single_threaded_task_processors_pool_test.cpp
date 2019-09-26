@@ -20,12 +20,12 @@ using FourThreadIds = utils::StrongTypedef<class FourThreadIdsTag,
                                            std::array<std::thread::id, 4>>;
 
 FourThreadIds GetArrayOfThreadIds(Pool& pool) {
-  return std::array<std::thread::id, 4>{
+  return FourThreadIds{std::array<std::thread::id, 4>{
       GetThreadId(pool.At(0)),
       GetThreadId(pool.At(1)),
       GetThreadId(pool.At(2)),
       GetThreadId(pool.At(3)),
-  };
+  }};
 }
 
 std::ostream& operator<<(std::ostream& os, FourThreadIds v) {
