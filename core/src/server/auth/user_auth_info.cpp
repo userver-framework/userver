@@ -5,8 +5,7 @@
 
 #include <utils/assert.hpp>
 
-namespace server {
-namespace auth {
+namespace server::auth {
 
 namespace {
 
@@ -17,22 +16,26 @@ const std::string kRequestContextKeyUserAuthInfo = "auth::user_info";
 UserAuthInfo::UserAuthInfo(UserId default_id)
     : default_id_{default_id}, ids_{default_id} {}
 
-UserAuthInfo::UserAuthInfo(UserId default_id, Ticket user_ticket)
+UserAuthInfo::UserAuthInfo(UserId default_id, Ticket user_ticket, UserEnv env)
     : default_id_{default_id},
       ids_{default_id},
-      user_ticket_{std::move(user_ticket)} {}
-
-UserAuthInfo::UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes)
-    : default_id_(default_id),
-      ids_(std::move(ids)),
-      scopes_(std::move(scopes)) {}
+      user_ticket_{std::move(user_ticket)},
+      user_env_(env) {}
 
 UserAuthInfo::UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes,
-                           Ticket user_ticket)
+                           UserEnv env)
     : default_id_(default_id),
       ids_(std::move(ids)),
       scopes_(std::move(scopes)),
-      user_ticket_{std::move(user_ticket)} {}
+      user_env_(env) {}
+
+UserAuthInfo::UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes,
+                           Ticket user_ticket, UserEnv env)
+    : default_id_(default_id),
+      ids_(std::move(ids)),
+      scopes_(std::move(scopes)),
+      user_ticket_{std::move(user_ticket)},
+      user_env_(env) {}
 
 UserId UserAuthInfo::GetDefaultUserId() const { return default_id_; }
 
@@ -68,5 +71,4 @@ const UserAuthInfo& GetUserAuthInfo(
   return *pauth_info;
 }
 
-}  // namespace auth
-}  // namespace server
+}  // namespace server::auth
