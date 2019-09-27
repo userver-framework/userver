@@ -1,6 +1,7 @@
 #include "thread.hpp"
 
 #include <chrono>
+#include <csignal>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
@@ -8,8 +9,11 @@
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
+#include <utils/check_syscall.hpp>
 #include <utils/thread_name.hpp>
 #include <utils/userver_experiment.hpp>
+
+#include "child_process_map.hpp"
 
 namespace engine {
 namespace ev {
@@ -17,20 +21,48 @@ namespace {
 
 const size_t kInitFuncQueueCapacity = 64;
 
+std::atomic_flag& GetEvDefaultLoopFlag() {
+  static std::atomic_flag ev_default_loop_flag = ATOMIC_FLAG_INIT;
+  return ev_default_loop_flag;
+}
+
+void AcquireEvDefaultLoop(const std::string& thread_name) {
+  auto& ev_default_loop_flag = GetEvDefaultLoopFlag();
+  if (ev_default_loop_flag.test_and_set())
+    throw std::runtime_error(
+        "Trying to use more than one ev_default_loop, thread_name=" +
+        thread_name);
+  LOG_DEBUG() << "Acquire ev_default_loop for thread_name=" << thread_name;
+}
+
+void ReleaseEvDefaultLoop() {
+  auto& ev_default_loop_flag = GetEvDefaultLoopFlag();
+  LOG_DEBUG() << "Release ev_default_loop";
+  ev_default_loop_flag.clear();
+}
+
 }  // namespace
 
-Thread::Thread(const std::string& thread_name)
-    :  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
+Thread::Thread(const std::string& thread_name) : Thread(thread_name, false) {}
+
+Thread::Thread(const std::string& thread_name, UseDefaultEvLoop)
+    : Thread(thread_name, true) {}
+
+Thread::Thread(const std::string& thread_name, bool use_ev_default_loop)
+    : use_ev_default_loop_(use_ev_default_loop),
+      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
       is_running_(false) {
+  if (use_ev_default_loop_) AcquireEvDefaultLoop(thread_name);
   Start();
   utils::SetThreadName(thread_, thread_name);
 }
 
 Thread::~Thread() {
   StopEventLoop();
+  if (use_ev_default_loop_) ReleaseEvDefaultLoop();
   UASSERT(loop_ == nullptr);
 }
 
@@ -127,7 +159,8 @@ void Thread::SafeEvCall(const Func& func) {
 }
 
 void Thread::Start() {
-  loop_ = ev_loop_new(EVFLAG_AUTO);
+  loop_ = use_ev_default_loop_ ? ev_default_loop(EVFLAG_AUTO)
+                               : ev_loop_new(EVFLAG_AUTO);
   UASSERT(loop_);
   ev_set_userdata(loop_, this);
   ev_set_loop_release_cb(loop_, Release, Acquire);
@@ -144,6 +177,12 @@ void Thread::Start() {
   ev_set_priority(&watch_break_, EV_MAXPRI);
   ev_async_start(loop_, &watch_break_);
 
+  if (use_ev_default_loop_) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    ev_child_init(&watch_child_, ChildWatcher, 0, 0);
+    ev_child_start(loop_, &watch_child_);
+  }
+
   is_running_ = true;
   thread_ = std::thread([this] { RunEvLoop(); });
 }
@@ -151,7 +190,7 @@ void Thread::Start() {
 void Thread::StopEventLoop() {
   ev_async_send(loop_, &watch_break_);
   if (thread_.joinable()) thread_.join();
-  ev_loop_destroy(loop_);
+  if (!use_ev_default_loop_) ev_loop_destroy(loop_);
   loop_ = nullptr;
 }
 
@@ -164,6 +203,7 @@ void Thread::RunEvLoop() {
 
   ev_async_stop(loop_, &watch_update_);
   ev_async_stop(loop_, &watch_break_);
+  if (use_ev_default_loop_) ev_child_stop(loop_, &watch_child_);
 }
 
 void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) try {
@@ -215,6 +255,55 @@ void Thread::BreakLoopWatcherImpl() {
   is_running_ = false;
   UpdateLoopWatcherImpl();
   ev_break(loop_, EVBREAK_ALL);
+}
+
+void Thread::ChildWatcher(struct ev_loop* loop, ev_child* w, int) noexcept {
+  auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
+  UASSERT(ev_thread != nullptr);
+  try {
+    ev_thread->ChildWatcherImpl(w);
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "Exception in ChildWatcherImpl(): " << ex;
+  }
+}
+
+void Thread::ChildWatcherImpl(ev_child* w) {
+  auto child_process_info = ChildProcessMapGetOptional(w->rpid);
+  UASSERT(child_process_info);
+  if (!child_process_info) {
+    LOG_ERROR()
+        << "Got signal for thread with pid=" << w->rpid
+        << ", status=" << w->rstatus
+        << ", but thread with this pid was not found in child_process_map";
+    return;
+  }
+
+  auto process_status = subprocess::ChildProcessStatus{
+      w->rstatus,
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - child_process_info->start_time)};
+  if (process_status.IsExited() || process_status.IsSignaled()) {
+    LOG_INFO() << "Child process with pid=" << w->rpid << " was "
+               << (process_status.IsExited() ? "exited normally"
+                                             : "terminated by a signal");
+    child_process_info->status_promise.set_value(std::move(process_status));
+    ChildProcessMapErase(w->rpid);
+  } else {
+    if (WIFSTOPPED(w->rstatus)) {
+      LOG_WARNING() << "Child process with pid=" << w->rpid
+                    << " was stopped with signal=" << WSTOPSIG(w->rstatus);
+    } else {
+      bool continued = WIFCONTINUED(w->rstatus);
+      if (continued) {
+        LOG_WARNING() << "Child process with pid=" << w->rpid << " was resumed";
+      } else {
+        LOG_WARNING()
+            << "Child process with pid=" << w->rpid
+            << " was notified in ChildWatcher with unknown reason (w->rstatus="
+            << w->rstatus << ')';
+      }
+    }
+  }
 }
 
 void Thread::Acquire(struct ev_loop* loop) noexcept {

@@ -11,7 +11,7 @@ TEST(IoWatcher, DevNull) {
     engine::ev::Thread thread("test_thread");
     engine::ev::ThreadControl thread_control(thread);
 
-    int fd = open("/dev/null", O_RDONLY | O_NONBLOCK);
+    int fd = open("/dev/null", O_RDONLY | O_NONBLOCK | O_CLOEXEC);
     EXPECT_NE(-1, fd);
 
     std::mutex mutex;

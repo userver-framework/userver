@@ -15,7 +15,11 @@ namespace ev {
 
 class Thread final {
  public:
+  struct UseDefaultEvLoop {};
+  static constexpr UseDefaultEvLoop kUseDefaultEvLoop;
+
   explicit Thread(const std::string& thread_name);
+  Thread(const std::string& thread_name, UseDefaultEvLoop);
   ~Thread();
 
   struct ev_loop* GetEvLoop() const {
@@ -47,6 +51,8 @@ class Thread final {
   bool IsInEvThread() const;
 
  private:
+  Thread(const std::string& thread_name, bool use_ev_default_loop);
+
   template <typename Func>
   void SafeEvCall(const Func& func);
 
@@ -59,11 +65,15 @@ class Thread final {
   void UpdateLoopWatcherImpl();
   static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int);
   void BreakLoopWatcherImpl();
+  static void ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept;
+  void ChildWatcherImpl(ev_child* w);
 
   static void Acquire(struct ev_loop* loop) noexcept;
   static void Release(struct ev_loop* loop) noexcept;
   void AcquireImpl() noexcept;
   void ReleaseImpl() noexcept;
+
+  bool use_ev_default_loop_;
 
   boost::lockfree::queue<std::function<void()>*> func_queue_;
 
@@ -73,6 +83,7 @@ class Thread final {
   std::unique_lock<std::mutex> lock_;
   ev_async watch_update_{};
   ev_async watch_break_{};
+  ev_child watch_child_{};
   bool is_running_;
 };
 

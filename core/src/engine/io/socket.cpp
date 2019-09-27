@@ -25,10 +25,12 @@ namespace {
 Socket MakeSocket(const Addr& addr) {
   return Socket(utils::CheckSyscall(::socket(addr.Family(),
 #ifdef SOCK_NONBLOCK
-                                             addr.Type() | SOCK_NONBLOCK,
-#else
-                                             addr.Type(),
+                                             SOCK_NONBLOCK |
 #endif
+#ifdef SOCK_CLOEXEC
+                                                 SOCK_CLOEXEC |
+#endif
+                                                 addr.Type(),
                                              addr.Protocol()),
                                     "creating socket, addr=", addr));
 }
@@ -119,7 +121,8 @@ Socket Socket::Accept(Deadline deadline) {
 
 // MAC_COMPAT: no accept4
 #ifdef HAVE_ACCEPT4
-    int fd = ::accept4(dir.Fd(), buf.Data(), &len, SOCK_NONBLOCK);
+    int fd =
+        ::accept4(dir.Fd(), buf.Data(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 #else
     int fd = ::accept(dir.Fd(), buf.Data(), &len);
 #endif

@@ -1,7 +1,5 @@
 #include <taxi_config/updater/client/component.hpp>
 
-#include <fstream>
-
 #include <cache/update_type.hpp>
 #include <clients/http/component.hpp>
 #include <formats/json/serialize.hpp>

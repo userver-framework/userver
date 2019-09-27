@@ -22,11 +22,11 @@ namespace io {
 namespace impl {
 namespace {
 
-int SetNonblock(int fd) {
+int SetNonblockAndCloexec(int fd) {
   int oldflags = utils::CheckSyscall(::fcntl(fd, F_GETFL),
                                      "getting file status flags, fd=", fd);
-  if (!(oldflags & O_NONBLOCK)) {
-    utils::CheckSyscall(::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK),
+  if (!(oldflags & O_NONBLOCK) || !(oldflags & O_CLOEXEC)) {
+    utils::CheckSyscall(::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK | O_CLOEXEC),
                         "setting file status flags, fd=", fd);
   }
   return fd;
@@ -164,7 +164,8 @@ FdControl::~FdControl() { Close(); }
 
 FdControlHolder FdControl::Adopt(int fd) {
   auto fd_control = std::make_shared<FdControl>();
-  SetNonblock(fd);
+  // TODO: add conditional CLOEXEC set
+  SetNonblockAndCloexec(fd);
   ReduceSigpipe(fd);
   fd_control->read_.Reset(fd);
   fd_control->write_.Reset(fd);
