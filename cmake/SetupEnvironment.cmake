@@ -25,6 +25,9 @@ add_definitions(-DMOCK_NOW)
 # warnings
 add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
 
+# enable additional glibc checks (used in debian packaging)
+add_definitions(-D_FORTIFY_SOURCE=2)
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(MACOS found)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)

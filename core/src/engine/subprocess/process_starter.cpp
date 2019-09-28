@@ -7,6 +7,7 @@
 #include <csignal>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 
 #include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
@@ -31,8 +32,16 @@ void DoExecve(const std::string& command, const std::vector<std::string>& args,
               const EnvironmentVariables& env,
               const boost::optional<std::string>& stdout_file,
               const boost::optional<std::string>& stderr_file) {
-  if (stdout_file) freopen(stdout_file->c_str(), "at", stdout);
-  if (stderr_file) freopen(stderr_file->c_str(), "at", stderr);
+  if (stdout_file) {
+    if (!std::freopen(stdout_file->c_str(), "a", stdout)) {
+      utils::CheckSyscall(-1, "freopen stdout to ", *stdout_file);
+    }
+  }
+  if (stderr_file) {
+    if (!std::freopen(stderr_file->c_str(), "a", stderr)) {
+      utils::CheckSyscall(-1, "freopen stderr to ", *stdout_file);
+    }
+  }
   std::vector<char*> argv_ptrs;
   std::vector<std::string> envp_buf;
   std::vector<char*> envp_ptrs;
@@ -57,8 +66,6 @@ void DoExecve(const std::string& command, const std::vector<std::string>& args,
 
   utils::CheckSyscall(
       execve(command.c_str(), argv_ptrs.data(), envp_ptrs.data()), "execve");
-  // on success execve does not return
-  abort();
 }
 
 }  // namespace
@@ -109,7 +116,17 @@ ChildProcess ProcessStarter::Exec(
       }
     } else {
       // in child thread
-      DoExecve(command, args, env, stdout_file, stderr_file);
+      try {
+        try {
+          DoExecve(command, args, env, stdout_file, stderr_file);
+        } catch (const std::exception& ex) {
+          std::cerr << "Cannot execute child: " << ex.what();
+        }
+      } catch (...) {
+        // must not do anything in a child
+      }
+      // on success execve does not return
+      std::abort();
     }
   });
   return future.get();
