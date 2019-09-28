@@ -10,11 +10,11 @@ echo "Update brew repos"
 brew update
 
 echo "Installing required packages with brew"
-REQUIRED_PACKAGES="boost cctz cmake cryptopp curl flatbuffers fmt grpc hiredis http-parser jemalloc libev libpq openssl protobuf rapidjson yaml-cpp yandex-taxi-mongo-c-driver"
+REQUIRED_PACKAGES="boost cctz cmake cryptopp curl flatbuffers fmt grpc hiredis http-parser jemalloc libev postgres openssl protobuf rapidjson yaml-cpp yandex-taxi-mongo-c-driver libiconv python"
 brew install $REQUIRED_PACKAGES
 
 # for tests and uservices
-EXTRA_PACKAGES="catboost-model-lib ccache clang-format-7 cmake geobase6 libyandex-taxi-graph2 postgres pugixml redis taxi-graph3-test-data ticket_parser2 mongodb-community@4.2"
+EXTRA_PACKAGES="catboost-model-lib ccache clang-format-7 cmake geobase6 libyandex-taxi-graph2 pugixml redis taxi-graph3-test-data ticket_parser2 mongodb-community@4.2"
 brew install $EXTRA_PACKAGES
 
 brew list jsoncpp > /dev/null 2>&1
