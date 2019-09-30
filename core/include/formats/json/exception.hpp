@@ -43,5 +43,11 @@ class MemberMissingException : public Exception {
   explicit MemberMissingException(const std::string& path);
 };
 
+/// Conversion error
+class ConversionException : public Exception {
+ public:
+  using Exception::Exception;
+};
+
 }  // namespace json
 }  // namespace formats

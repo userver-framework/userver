@@ -116,6 +116,16 @@ class Value final {
   template <typename T, typename First, typename... Rest>
   T As(First&& default_arg, Rest&&... more_default_args) const;
 
+  /// @brief Extracts the specified type with relaxed type checks.
+  /// For example, `true` may be converted to 1.0.
+  template <typename T>
+  T ConvertTo() const;
+
+  /// Extracts the specified type with strict type checks, or constructs the
+  /// default value when the field is not present
+  template <typename T, typename First, typename... Rest>
+  T ConvertTo(First&& default_arg, Rest&&... more_default_args) const;
+
   /// @brief Returns true if *this holds a `key`.
   /// @throw Nothing.
   bool HasMember(const char* key) const;
@@ -225,6 +235,21 @@ double Value::As<double>() const;
 template <>
 std::string Value::As<std::string>() const;
 
+template <>
+bool Value::ConvertTo<bool>() const;
+
+template <>
+int64_t Value::ConvertTo<int64_t>() const;
+
+template <>
+uint64_t Value::ConvertTo<uint64_t>() const;
+
+template <>
+double Value::ConvertTo<double>() const;
+
+template <>
+std::string Value::ConvertTo<std::string>() const;
+
 template <typename T, typename First, typename... Rest>
 T Value::As(First&& default_arg, Rest&&... more_default_args) const {
   if (IsMissing()) {
@@ -232,6 +257,27 @@ T Value::As(First&& default_arg, Rest&&... more_default_args) const {
              std::forward<Rest>(more_default_args)...);
   }
   return As<T>();
+}
+
+template <typename T>
+T Value::ConvertTo() const {
+  static_assert(
+      formats::common::kHasConvertTo<Value, T>,
+      "There is no `Convert(const Value&, formats::parse::To<T>)` in "
+      "namespace of `T` or `formats::parse`."
+      ""
+      "Probably you have not provided a `Convert` function overload.");
+
+  return Convert(*this, formats::parse::To<T>{});
+}
+
+template <typename T, typename First, typename... Rest>
+T Value::ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
+  if (IsMissing() || IsNull()) {
+    return T(std::forward<First>(default_arg),
+             std::forward<Rest>(more_default_args)...);
+  }
+  return ConvertTo<T>();
 }
 
 inline Value Parse(const Value& value, parse::To<Value>) { return value; }

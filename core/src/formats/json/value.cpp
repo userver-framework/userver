@@ -4,8 +4,33 @@
 
 #include <json/value.h>
 
-namespace formats {
-namespace json {
+namespace formats::json {
+
+namespace {
+
+static_assert(std::numeric_limits<double>::radix == 2,
+              "Your compiler provides double with an unusual radix, please "
+              "contact userver support chat");
+static_assert(std::numeric_limits<double>::digits >=
+                  std::numeric_limits<int32_t>::digits,
+              "Your compiler provides unusually small double, please contact "
+              "userver support chat");
+static_assert(std::numeric_limits<double>::digits <
+                  std::numeric_limits<int64_t>::digits,
+              "Your compiler provides unusually large double, please contact "
+              "userver support chat");
+
+template <typename T>
+auto CheckedNotTooNegative(T x, const Value& value) {
+  if (x <= -1) {
+    throw ConversionException(
+        "Cannot convert to unsigned value from negative " + value.GetPath() +
+        '=' + std::to_string(x));
+  }
+  return x;
+};
+
+}  // namespace
 
 Value::Value() noexcept : value_ptr_(nullptr) {}
 
@@ -117,6 +142,74 @@ std::string Value::As<std::string>() const {
                               path_.ToString());
 }
 
+template <>
+bool Value::ConvertTo<bool>() const {
+  if (IsMissing() || IsNull()) return false;
+  if (IsBool()) return GetNative().asBool();
+  if (IsInt64()) return GetNative().asInt64();
+  if (IsUInt64()) return GetNative().asUInt64();
+  if (IsDouble())
+    return std::fabs(GetNative().asDouble()) >
+           std::numeric_limits<double>::epsilon();
+  if (IsString()) return !GetNative().asString().empty();
+  if (IsArray() || IsObject()) return GetSize();
+
+  throw TypeMismatchException(GetNative().type(), Json::booleanValue,
+                              path_.ToString());
+}
+
+template <>
+int64_t Value::ConvertTo<int64_t>() const {
+  if (IsMissing() || IsNull()) return 0;
+  if (IsBool()) return GetNative().asBool();
+  if (IsInt64()) return GetNative().asInt64();
+  if (IsUInt64()) return GetNative().asUInt64();
+  if (IsDouble()) return static_cast<int64_t>(GetNative().asDouble());
+
+  throw TypeMismatchException(GetNative().type(), Json::intValue,
+                              path_.ToString());
+}
+
+template <>
+uint64_t Value::ConvertTo<uint64_t>() const {
+  if (IsMissing() || IsNull()) return 0;
+  if (IsBool()) return GetNative().asBool();
+  if (IsInt64())
+    return static_cast<uint64_t>(
+        CheckedNotTooNegative(GetNative().asInt64(), *this));
+  if (IsUInt64()) return GetNative().asUInt64();
+  if (IsDouble())
+    return static_cast<uint64_t>(
+        CheckedNotTooNegative(GetNative().asDouble(), *this));
+
+  throw TypeMismatchException(GetNative().type(), Json::uintValue,
+                              path_.ToString());
+}
+
+template <>
+double Value::ConvertTo<double>() const {
+  if (IsDouble()) return As<double>();
+  return ConvertTo<int64_t>();
+}
+
+template <>
+std::string Value::ConvertTo<std::string>() const {
+  if (IsMissing() || IsNull()) return {};
+  if (IsString()) return As<std::string>();
+
+  if (IsBool()) return (GetNative().asBool() ? "true" : "false");
+
+  // Json::realValue == double only!
+  if (GetNative().type() == Json::realValue)
+    return std::to_string(GetNative().asDouble());
+
+  if (IsInt64()) return std::to_string(GetNative().asInt64());
+  if (IsUInt64()) return std::to_string(GetNative().asUInt64());
+
+  throw TypeMismatchException(GetNative().type(), Json::stringValue,
+                              path_.ToString());
+}
+
 bool Value::HasMember(const char* key) const {
   if (IsMissing()) return false;
   CheckObjectOrNull();
@@ -213,5 +306,4 @@ void Value::CheckInBounds(std::size_t index) const {
   }
 }
 
-}  // namespace json
-}  // namespace formats
+}  // namespace formats::json
