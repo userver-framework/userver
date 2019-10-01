@@ -25,9 +25,6 @@ add_definitions(-DMOCK_NOW)
 # warnings
 add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
 
-# enable additional glibc checks (used in debian packaging)
-add_definitions(-D_FORTIFY_SOURCE=2)
-
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(MACOS found)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
@@ -115,6 +112,9 @@ if (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test")
 else ()
   add_compile_options ("-O3")
   add_definitions ("-DNDEBUG")
+
+  # enable additional glibc checks (used in debian packaging, requires -O)
+  add_definitions(-D_FORTIFY_SOURCE=2)
 endif ()
 
 # pretty file name for logging
