@@ -218,6 +218,12 @@ RequestMget TransactionImpl::Mget(std::vector<std::string> keys) {
   return AddCmd<RequestMget>("mget", std::move(keys));
 }
 
+RequestMset TransactionImpl::Mset(
+    std::vector<std::pair<std::string, std::string>> key_values) {
+  UpdateShard(key_values);
+  return AddCmd<RequestMset>("mset", std::move(key_values));
+}
+
 RequestPersist TransactionImpl::Persist(std::string key) {
   UpdateShard(key);
   return AddCmd<RequestPersist>("persist", std::move(key));
@@ -508,6 +514,13 @@ void TransactionImpl::UpdateShard(const std::string& key) {
 void TransactionImpl::UpdateShard(const std::vector<std::string>& keys) {
   for (const auto& key : keys) {
     UpdateShard(key);
+  }
+}
+
+void TransactionImpl::UpdateShard(
+    const std::vector<std::pair<std::string, std::string>>& key_values) {
+  for (const auto& key_value : key_values) {
+    UpdateShard(key_value.first);
   }
 }
 

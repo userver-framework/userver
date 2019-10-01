@@ -185,6 +185,9 @@ class TransactionImpl final : public Transaction {
 
   RequestMget Mget(std::vector<std::string> keys) override;
 
+  RequestMset Mset(
+      std::vector<std::pair<std::string, std::string>> key_values) override;
+
   RequestPersist Persist(std::string key) override;
 
   RequestPexpire Pexpire(std::string key,
@@ -298,6 +301,8 @@ class TransactionImpl final : public Transaction {
  private:
   void UpdateShard(const std::string& key);
   void UpdateShard(const std::vector<std::string>& keys);
+  void UpdateShard(
+      const std::vector<std::pair<std::string, std::string>>& key_values);
   void UpdateShard(size_t shard);
 
   template <typename Result, typename ReplyType>

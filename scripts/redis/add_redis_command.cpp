@@ -248,6 +248,10 @@ void process_client_impl_cpp_file()
 			add_dummy_request(params[0].name, decl_command);
 			decl_command += "  auto shard = ShardByKey(keys.at(0));\n";
 		}
+		else if (params[0].name == "key_values") {
+			add_dummy_request(params[0].name, decl_command);
+			decl_command += "  auto shard = ShardByKey(key_values.at(0).first);\n";
+		}
 		else {
 			cerr << "can't determine shard by params" << endl;
 			abort();
@@ -256,6 +260,7 @@ void process_client_impl_cpp_file()
 	for (const auto &param : params) {
 		if (param.name == "shard") continue;
 		if (param.name == "keys") continue;
+		if (param.name == "key_values") continue;
 		if (param.type.find("vector") == string::npos) continue;
 		if (param.name == "members") continue;
 		if (param.name == "fields") continue;
@@ -409,10 +414,10 @@ void process_transaction_impl_cpp_file()
 			}
 			decl_command += "  UpdateShard(key);\n";
 		}
-		else if (params[0].name == "keys") {
+		else if (params[0].name == "keys" || params[0].name == "key_values") {
 			// TODO: add assert or dummy request
 //			add_dummy_request(params[0].name, decl_command);
-			decl_command += "  UpdateShard(keys);\n";
+			decl_command += "  UpdateShard(" + params[0].name + ");\n";
 		}
 		else {
 			cerr << "can't determine shard by params" << endl;

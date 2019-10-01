@@ -70,6 +70,8 @@
 
 ./add_redis_command mget 'std::vector<boost::optional<std::string>>' 'std::vector<std::string> keys'
 
+./add_redis_command mset 'StatusOk, void' 'std::vector<std::pair<std::string, std::string>> key_values'
+
 ./add_redis_command persist 'PersistReply' 'std::string key'
 # enum class PersistReply { kTimeoutRemoved, kKeyOrTimeoutNotFound };
 

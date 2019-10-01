@@ -119,6 +119,9 @@ class Transaction {
 
   virtual RequestMget Mget(std::vector<std::string> keys) = 0;
 
+  virtual RequestMset Mset(
+      std::vector<std::pair<std::string, std::string>> key_values) = 0;
+
   virtual RequestPersist Persist(std::string key) = 0;
 
   virtual RequestPexpire Pexpire(std::string key,

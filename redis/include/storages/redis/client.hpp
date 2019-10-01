@@ -180,6 +180,10 @@ class Client {
   virtual RequestMget Mget(std::vector<std::string> keys,
                            const CommandControl& command_control) = 0;
 
+  virtual RequestMset Mset(
+      std::vector<std::pair<std::string, std::string>> key_values,
+      const CommandControl& command_control) = 0;
+
   virtual TransactionPtr Multi() = 0;
 
   virtual TransactionPtr Multi(Transaction::CheckShards check_shards) = 0;

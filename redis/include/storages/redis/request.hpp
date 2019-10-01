@@ -167,6 +167,7 @@ using RequestLpush = Request<size_t>;
 using RequestLrange = Request<std::vector<std::string>>;
 using RequestLtrim = Request<StatusOk, void>;
 using RequestMget = Request<std::vector<boost::optional<std::string>>>;
+using RequestMset = Request<StatusOk, void>;
 using RequestPersist = Request<PersistReply>;
 using RequestPexpire = Request<ExpireReply>;
 using RequestPing = Request<StatusPong, void>;

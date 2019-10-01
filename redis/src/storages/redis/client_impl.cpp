@@ -380,6 +380,18 @@ RequestMget ClientImpl::Mget(std::vector<std::string> keys,
                   GetCommandControl(command_control)));
 }
 
+RequestMset ClientImpl::Mset(
+    std::vector<std::pair<std::string, std::string>> key_values,
+    const CommandControl& command_control) {
+  if (key_values.empty())
+    return CreateDummyRequest<RequestMset>(std::make_shared<::redis::Reply>(
+        "mset", ::redis::ReplyData::CreateStatus("OK")));
+  auto shard = ShardByKey(key_values.at(0).first);
+  return CreateRequest<RequestMset>(
+      MakeRequest(CmdArgs{"mset", std::move(key_values)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 TransactionPtr ClientImpl::Multi() {
   return std::make_unique<TransactionImpl>(shared_from_this());
 }

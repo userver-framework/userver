@@ -164,6 +164,9 @@ class ClientImpl final : public Client,
   RequestMget Mget(std::vector<std::string> keys,
                    const CommandControl& command_control) override;
 
+  RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values,
+                   const CommandControl& command_control) override;
+
   TransactionPtr Multi() override;
 
   TransactionPtr Multi(Transaction::CheckShards check_shards) override;
