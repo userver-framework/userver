@@ -26,6 +26,7 @@ namespace http {
 
 class EasyWrapper;
 class DestinationStatistics;
+struct TestsuiteConfig;
 
 class Client {
  public:
@@ -51,6 +52,8 @@ class Client {
   void SetDestinationMetricsAutoMaxSize(size_t max_size);
 
   const http::DestinationStatistics& GetDestinationStatistics() const;
+
+  void SetTestsuiteConfig(const TestsuiteConfig& config);
 
  private:
   explicit Client(size_t io_threads);
@@ -82,6 +85,9 @@ class Client {
   using IdleQueue =
       moodycamel::ConcurrentQueue<IdleQueueValue, IdleQueueTraits>;
   utils::FastPimpl<IdleQueue, kIdleQueueSize, kIdleQueueAlignment> idle_queue_;
+
+  // Testsuite support
+  std::shared_ptr<const TestsuiteConfig> testsuite_config_;
 };
 
 }  // namespace http

@@ -19,6 +19,7 @@ enum HttpMethod { DELETE, GET, HEAD, POST, PUT, PATCH, OPTIONS };
 class Form;
 class RequestStats;
 class DestinationStatistics;
+struct TestsuiteConfig;
 
 /// Class for creating and performing new http requests
 class Request final : public std::enable_shared_from_this<Request> {
@@ -97,6 +98,10 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// with parameters in HTTP path.
   std::shared_ptr<Request> SetDestinationMetricName(
       const std::string& destination);
+
+  /// Set testuite related settings.
+  std::shared_ptr<Request> SetTestsuiteConfig(
+      const std::shared_ptr<const TestsuiteConfig>& config);
 
   /// Perform request async, after completing callack will be called
   /// or it can be waiting on a future.

@@ -1,6 +1,7 @@
 #include <clients/http/client.hpp>
 
 #include <clients/http/destination_statistics.hpp>
+#include <clients/http/testsuite.hpp>
 #include <curl-ev/multi.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <logging/log.hpp>
@@ -64,23 +65,31 @@ Client::~Client() {
 }
 
 std::shared_ptr<Request> Client::CreateRequest() {
+  std::shared_ptr<Request> request;
+
   auto easy = TryDequeueIdle();
   if (easy) {
     auto idx = FindMultiIndex(easy->GetMulti());
     auto wrapper = std::make_shared<EasyWrapper>(std::move(easy), *this);
-    return std::make_shared<Request>(std::move(wrapper),
-                                     statistics_[idx].CreateRequestStats(),
-                                     destination_statistics_);
+    request = std::make_shared<Request>(std::move(wrapper),
+                                        statistics_[idx].CreateRequestStats(),
+                                        destination_statistics_);
+  } else {
+    thread_local unsigned int rand_state = 0;
+    int i = rand_r(&rand_state) % multis_.size();
+    auto& multi = multis_[i];
+    auto wrapper = std::make_shared<EasyWrapper>(
+        std::make_shared<curl::easy>(*multi), *this);
+    request = std::make_shared<Request>(std::move(wrapper),
+                                        statistics_[i].CreateRequestStats(),
+                                        destination_statistics_);
   }
 
-  thread_local unsigned int rand_state = 0;
-  int i = rand_r(&rand_state) % multis_.size();
-  auto& multi = multis_[i];
-  auto wrapper = std::make_shared<EasyWrapper>(
-      std::make_shared<curl::easy>(*multi), *this);
-  return std::make_shared<Request>(std::move(wrapper),
-                                   statistics_[i].CreateRequestStats(),
-                                   destination_statistics_);
+  if (testsuite_config_) {
+    request->SetTestsuiteConfig(testsuite_config_);
+  }
+
+  return request;
 }
 
 void Client::SetMaxPipelineLength(size_t max_pipeline_length) {
@@ -171,6 +180,11 @@ std::shared_ptr<curl::easy> Client::TryDequeueIdle() noexcept {
     return {};
   }
   return result;
+}
+
+void Client::SetTestsuiteConfig(const TestsuiteConfig& config) {
+  LOG_INFO() << "http client: configured for testsuite";
+  testsuite_config_ = std::make_shared<const TestsuiteConfig>(config);
 }
 
 }  // namespace http

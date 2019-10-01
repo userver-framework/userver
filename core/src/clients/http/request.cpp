@@ -7,7 +7,9 @@
 #include <string>
 
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/range/adaptor/map.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <clients/http/destination_statistics.hpp>
@@ -15,6 +17,7 @@
 #include <clients/http/form.hpp>
 #include <clients/http/response_future.hpp>
 #include <clients/http/statistics.hpp>
+#include <clients/http/testsuite.hpp>
 #include <curl-ev/easy.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <http/common_headers.hpp>
@@ -56,6 +59,32 @@ std::string ToString(HttpMethod method) {
     case OPTIONS:
       return "OPTIONS";
   }
+}
+
+const std::map<std::string, std::error_code> kTestsuiteActions = {
+    {"timeout", {curl::errc::easy::operation_timedout}},
+    {"network", {curl::errc::easy::could_not_connect}}};
+const std::string kTestsuiteSupportedErrors =
+    boost::algorithm::join(boost::adaptors::keys(kTestsuiteActions), ",");
+
+std::error_code TestsuiteResponseHook(const Response& response,
+                                      tracing::Span& span) {
+  if (response.status_code() == 599) {
+    const auto& headers = response.headers();
+    const auto it = headers.find("X-Testsuite-Error");
+
+    if (headers.end() != it) {
+      LOG_INFO() << "Mockserver faked error of type " << it->second << span;
+
+      const auto error_it = kTestsuiteActions.find(it->second);
+      if (error_it != kTestsuiteActions.end()) {
+        return error_it->second;
+      }
+      UASSERT_MSG(false,
+                  std::string("Unsupported X-Testsuite-Error: ") + it->second);
+    }
+  }
+  return {};
 }
 
 }  // namespace
@@ -101,6 +130,8 @@ class Request::RequestImpl
 
   void SetDestinationMetricName(const std::string& destination);
 
+  void SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config);
+
   std::shared_ptr<EasyWrapper> easy_wrapper() { return easy_; }
 
   curl::easy& easy() { return easy_->Easy(); }
@@ -135,6 +166,8 @@ class Request::RequestImpl
 
   std::shared_ptr<DestinationStatistics> dest_stats_;
   std::string destination_metric_name_;
+
+  std::shared_ptr<const TestsuiteConfig> testsuite_config_;
 
   /// response
   std::shared_ptr<Response> response_;
@@ -344,6 +377,12 @@ std::shared_ptr<Request> Request::SetDestinationMetricName(
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::SetTestsuiteConfig(
+    const std::shared_ptr<const TestsuiteConfig>& config) {
+  pimpl_->SetTestsuiteConfig(config);
+  return shared_from_this();
+}
+
 void Request::RequestImpl::SetDestinationMetricNameAuto(
     std::string destination) {
   destination_metric_name_ = std::move(destination);
@@ -411,6 +450,11 @@ void Request::RequestImpl::SetDestinationMetricName(
   dest_req_stats_ = dest_stats_->GetStatisticsForDestination(destination);
 }
 
+void Request::RequestImpl::SetTestsuiteConfig(
+    const std::shared_ptr<const TestsuiteConfig>& config) {
+  testsuite_config_ = config;
+}
+
 size_t Request::RequestImpl::on_header(void* ptr, size_t size, size_t nmemb,
                                        void* userdata) {
   auto* self = static_cast<Request::RequestImpl*>(userdata);
@@ -421,9 +465,15 @@ size_t Request::RequestImpl::on_header(void* ptr, size_t size, size_t nmemb,
 
 void Request::RequestImpl::on_completed(
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    std::shared_ptr<Request::RequestImpl> holder, const std::error_code& err) {
+    std::shared_ptr<Request::RequestImpl> holder,
+    const std::error_code& orig_err) {
+  auto err = orig_err;
   auto& span = *holder->span_;
   LOG_DEBUG() << "Request::RequestImpl::on_completed(1)" << span;
+
+  if (holder->testsuite_config_) {
+    if (!err) err = TestsuiteResponseHook(*holder->response(), span);
+  }
 
   holder->AccountResponse(err);
 
@@ -555,6 +605,11 @@ Request::RequestImpl::async_perform() {
   easy().add_header(::http::headers::kXYaTraceId, span_->GetTraceId());
   easy().add_header(::http::headers::kXYaRequestId, span_->GetLink());
   span_->AddTag(tracing::kHttpUrl, easy().get_effective_url());
+
+  if (testsuite_config_) {
+    easy().add_header("X-Testsuite-Supported-Errors",
+                      kTestsuiteSupportedErrors);
+  }
 
   // Span is local to a Request, it is not related to current coroutine
   span_->DetachFromCoroStack();

@@ -10,6 +10,7 @@
 #include <clients/http/config.hpp>
 #include <clients/http/destination_statistics_json.hpp>
 #include <clients/http/statistics.hpp>
+#include <clients/http/testsuite.hpp>
 
 namespace components {
 
@@ -29,6 +30,10 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   http_client_->SetDestinationMetricsAutoMaxSize(
       component_config.ParseInt("destination-metrics-auto-max-size",
                                 kDestinationMetricsAutoMaxSizeDefault));
+
+  if (component_config.ParseBool("testsuite-enabled", false)) {
+    http_client_->SetTestsuiteConfig({});
+  }
 
   OnConfigUpdate(config);
 
