@@ -2,9 +2,11 @@
 
 #include <unistd.h>
 
+#include <csignal>
 #include <cstring>
 
 #include <components/manager.hpp>
+#include <fs/blocking/read.hpp>
 #include <logging/config.hpp>
 #include <logging/log.hpp>
 #include <logging/logger.hpp>
@@ -39,6 +41,24 @@ class LogScope final {
 
 bool IsDaemon() { return getppid() == 1; }
 
+bool IsTraced() {
+  static const std::string kTracerField = "TracerPid:\t";
+
+  try {
+    // /proc is only available on linux,
+    // on macos this will always throw and return false.
+    const std::string proc_status =
+        fs::blocking::ReadFileContents("/proc/self/status");
+    auto tracer_pos = proc_status.find(kTracerField);
+    if (tracer_pos != std::string::npos) {
+      return proc_status[tracer_pos + kTracerField.size()] != '0';
+    }
+  } catch (const std::exception&) {
+    // ignore
+  }
+  return false;
+}
+
 enum class RunMode { kNormal, kOnce };
 
 void DoRun(const std::string& config_path, const ComponentList& component_list,
@@ -68,8 +88,15 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
 
   for (;;) {
     auto signum = signal_catcher.Catch();
-    if (signum == SIGINT || signum == SIGTERM || signum == SIGQUIT) {
+    if (signum == SIGTERM || signum == SIGQUIT) {
       break;
+    } else if (signum == SIGINT) {
+      if (IsTraced()) {
+        // SIGINT is masked and cannot be used
+        std::raise(SIGTRAP);
+      } else {
+        break;
+      }
     } else if (signum == SIGHUP) {
       if (!IsDaemon()) {
         // This is a real HUP
