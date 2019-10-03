@@ -8,9 +8,11 @@
 #include <cstdint>
 #include <string>
 
+#include <formats/bson/document.hpp>
 #include <formats/bson/iterator.hpp>
 #include <formats/bson/types.hpp>
 #include <formats/bson/value.hpp>
+#include <formats/common/meta.hpp>
 #include <formats/common/type.hpp>
 
 namespace formats::bson {
@@ -42,8 +44,11 @@ class ValueBuilder {
   /// @{
   /// Efficiently constructs a copy of an existing value
   ValueBuilder(const Value&);
+  ValueBuilder(const Document&);
   // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   ValueBuilder(Value&&);
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+  ValueBuilder(Document&&);
   /// @}
 
   /// @name Concrete type constructors
@@ -72,6 +77,10 @@ class ValueBuilder {
   /* implicit */ ValueBuilder(unsigned long long);
 #endif
   /// @}
+
+  /// Universal constructor using Serialize
+  template <typename T>
+  ValueBuilder(const T& t);
 
   /// @brief Retrieves or creates document field by name
   /// @throws TypeMismatchException if value is not a document or `null`
@@ -115,5 +124,19 @@ class ValueBuilder {
 
   impl::ValueImplPtr impl_;
 };
+
+template <typename T>
+ValueBuilder::ValueBuilder(const T& t)
+    : ValueBuilder(
+          Serialize(t, formats::serialize::To<formats::bson::Value>())) {
+  static_assert(
+      formats::common::kHasSerializeTo<Value, T>,
+      "There is no `Serialize(const T&, formats::serialize::To<bson::Value>)` "
+      "in namespace of `T` or `formats::serizalize`. "
+      ""
+      "Probably you forgot to include the "
+      "<formats/serialize/serialize_container.hpp> or you "
+      "have not provided a `Serialize` function overload.");
+}
 
 }  // namespace formats::bson

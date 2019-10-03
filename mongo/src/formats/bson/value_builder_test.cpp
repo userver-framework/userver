@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <formats/bson.hpp>
+#include <formats/serialize/common_containers.hpp>
 
 namespace fb = formats::bson;
 
@@ -332,4 +336,25 @@ TEST(BsonValueBuilder, PredefType) {
     EXPECT_THROW(fb::Document(arr_builder.ExtractValue()),
                  fb::TypeMismatchException);
   }
+}
+
+TEST(BsonValueBuilder, Serialize) {
+  const std::vector<int> test_vector{1, 3, 2, 4};
+  const std::unordered_map<std::string, int> test_map{{"one", 1}, {"two", 2}};
+
+  fb::ValueBuilder builder;
+  builder["arr"] = test_vector;
+  builder["doc"] = test_map;
+  const auto value = builder.ExtractValue();
+
+  ASSERT_TRUE(value["arr"].IsArray());
+  ASSERT_EQ(test_vector.size(), value["arr"].GetSize());
+  for (size_t i = 0; i < test_vector.size(); ++i) {
+    EXPECT_EQ(test_vector[i], value["arr"][i].As<int>());
+  }
+
+  ASSERT_TRUE(value["doc"].IsObject());
+  EXPECT_EQ(2, value["doc"].GetSize());
+  EXPECT_EQ(1, value["doc"]["one"].As<int>(-1));
+  EXPECT_EQ(2, value["doc"]["two"].As<int>(-1));
 }

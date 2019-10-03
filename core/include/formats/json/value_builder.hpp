@@ -111,7 +111,7 @@ ValueBuilder::ValueBuilder(const T& t)
   static_assert(
       formats::common::kHasSerializeTo<Value, T>,
       "There is no `Serialize(const T&, formats::serialize::To<json::Value>)` "
-      " in namespace of `T` or `formats::serizalize`."
+      "in namespace of `T` or `formats::serizalize`. "
       ""
       "Probably you forgot to include the "
       "<formats/serialize/serialize_container.hpp> or you "

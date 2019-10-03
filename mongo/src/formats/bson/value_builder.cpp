@@ -56,6 +56,9 @@ ValueBuilder::ValueBuilder(const formats::bson::Value& value) {
   Assign(value.impl_);
 }
 
+ValueBuilder::ValueBuilder(const Document& document)
+    : ValueBuilder(static_cast<const Value&>(document)) {}
+
 ValueBuilder::ValueBuilder(formats::bson::Value&& value) {
   value.CheckNotMissing();
   if (value.impl_.use_count() == 1) {
@@ -64,6 +67,9 @@ ValueBuilder::ValueBuilder(formats::bson::Value&& value) {
     Assign(value.impl_);
   }
 }
+
+ValueBuilder::ValueBuilder(Document&& document)
+    : ValueBuilder(static_cast<Value&&>(document)) {}
 
 ValueBuilder::ValueBuilder(std::nullptr_t) : ValueBuilder() {}
 ValueBuilder::ValueBuilder(bool value)
