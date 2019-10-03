@@ -67,6 +67,19 @@ const std::map<std::string, std::error_code> kTestsuiteActions = {
 const std::string kTestsuiteSupportedErrors =
     boost::algorithm::join(boost::adaptors::keys(kTestsuiteActions), ",");
 
+[[noreturn]] void AbortOnUnsupportedTestsuiteError(const std::string& error) {
+  auto trace = boost::stacktrace::stacktrace();
+  std::string trace_msg = boost::stacktrace::to_string(trace);
+
+  std::cerr
+      << "Unsupported mockserver protocol X-Testsuite-Error header value: "
+      << error
+      << ". Try to update submodules and recompile project first. If it does "
+         "not help please contact testsuite support team. Stacktrace: \n"
+      << trace_msg << "\n";
+  std::abort();
+}
+
 std::error_code TestsuiteResponseHook(const Response& response,
                                       tracing::Span& span) {
   if (response.status_code() == 599) {
@@ -80,8 +93,8 @@ std::error_code TestsuiteResponseHook(const Response& response,
       if (error_it != kTestsuiteActions.end()) {
         return error_it->second;
       }
-      UASSERT_MSG(false,
-                  std::string("Unsupported X-Testsuite-Error: ") + it->second);
+
+      AbortOnUnsupportedTestsuiteError(it->second);
     }
   }
   return {};
