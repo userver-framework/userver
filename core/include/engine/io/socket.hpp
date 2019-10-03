@@ -23,7 +23,7 @@ class ConnectTimeout : public IoException {
 };
 
 /// Socket representation.
-class USERVER_NODISCARD Socket final {
+class USERVER_NODISCARD Socket final : public ReadableBase {
  public:
   /// Constructs an invalid socket.
   Socket() = default;
@@ -36,15 +36,15 @@ class USERVER_NODISCARD Socket final {
   explicit operator bool() const { return IsValid(); }
 
   /// Whether the socket is valid.
-  bool IsValid() const;
+  bool IsValid() const override;
 
   /// Suspends current task until the socket has data available.
-  bool WaitReadable(Deadline);
+  bool WaitReadable(Deadline) override;
 
   /// Suspends current task until the socket can accept more data.
   bool WaitWriteable(Deadline);
 
-  /// Receives at least one bytes from the socket.
+  /// Receives at least one byte from the socket.
   [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);
 
   /// @brief Receives exactly len bytes from the socket.
@@ -81,6 +81,19 @@ class USERVER_NODISCARD Socket final {
 
   /// Sets a socket option.
   void SetOption(int layer, int optname, int optval);
+
+  /// Receives at least one byte from the socket.
+  [[nodiscard]] size_t ReadSome(void* buf, size_t len,
+                                Deadline deadline) override {
+    return RecvSome(buf, len, deadline);
+  }
+
+  /// @brief Receives exactly len bytes from the socket.
+  /// @note Can return less than len if socket is closed by peer.
+  [[nodiscard]] size_t ReadAll(void* buf, size_t len,
+                               Deadline deadline) override {
+    return RecvAll(buf, len, deadline);
+  }
 
  private:
   impl::FdControlHolder fd_control_;

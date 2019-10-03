@@ -16,20 +16,22 @@ class FdControl;
 }  // namespace impl
 
 /// Reading end of an unidirectional pipe
-class PipeReader final {
+class PipeReader final : public ReadableBase {
  public:
   /// Whether the reading end of the pipe is valid.
-  bool IsValid() const;
+  bool IsValid() const override;
 
   /// Suspends current task until the pipe has data available.
-  bool WaitReadable(Deadline);
+  bool WaitReadable(Deadline) override;
 
   /// Receives at least one bytes from the pipe.
-  [[nodiscard]] size_t ReadSome(void* buf, size_t len, Deadline deadline);
+  [[nodiscard]] size_t ReadSome(void* buf, size_t len,
+                                Deadline deadline) override;
 
   /// Receives exactly len bytes from the pipe.
   /// @note Can return less than len if pipe is closed by peer.
-  [[nodiscard]] size_t ReadAll(void* buf, size_t len, Deadline deadline);
+  [[nodiscard]] size_t ReadAll(void* buf, size_t len,
+                               Deadline deadline) override;
 
   /// File descriptor corresponding to the read end of the pipe.
   int Fd() const;
