@@ -135,6 +135,9 @@ const std::string kTracingTypeRequest = "request";
 const std::string kTracingBody = "body";
 const std::string kTracingUri = "uri";
 
+const std::string kUserAgentTag = "useragent";
+const std::string kAcceptLanguageTag = "acceptlang";
+
 }  // namespace
 
 formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
@@ -258,6 +261,18 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       log_extra.Extend(kTracingBody, GetRequestBodyForLoggingChecked(
                                          http_request, context, body));
       log_extra.Extend(kTracingUri, http_request.GetUrl());
+
+      const auto& user_agent =
+          http_request.GetHeader(::http::headers::kUserAgent);
+      if (!user_agent.empty()) {
+        log_extra.Extend(kUserAgentTag, user_agent);
+      }
+      const auto& accept_language =
+          http_request.GetHeader(::http::headers::kAcceptLanguage);
+      if (!accept_language.empty()) {
+        log_extra.Extend(kAcceptLanguageTag, accept_language);
+      }
+
       LOG_INFO()
           << "start handling"
           // NOLINTNEXTLINE(bugprone-use-after-move,hicpp-invalid-access-moved)
