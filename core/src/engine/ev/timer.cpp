@@ -1,12 +1,9 @@
 #include "timer.hpp"
 
-#include <cstdlib>
-#include <iostream>
 #include <mutex>
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
-#include <utils/userver_experiment.hpp>
 
 namespace engine {
 namespace ev {
@@ -21,7 +18,7 @@ class Timer::TimerImpl final
   void Stop();
 
  private:
-  static void OnTimer(struct ev_loop*, ev_timer* w, int);
+  static void OnTimer(struct ev_loop*, ev_timer* w, int) noexcept;
   void DoOnTimer();
   void Init();
 
@@ -48,17 +45,10 @@ void Timer::TimerImpl::Start() {
   });
 }
 
-void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) try {
+void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) noexcept {
   auto* ev_timer = static_cast<TimerImpl*>(w->data);
   UASSERT(ev_timer != nullptr);
   ev_timer->DoOnTimer();
-} catch (...) {
-  if (utils::IsUserverExperimentEnabled(
-          utils::UserverExperiment::kTaxicommon1479)) {
-    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
-    abort();
-  }
-  throw;
 }
 
 void Timer::TimerImpl::DoOnTimer() {

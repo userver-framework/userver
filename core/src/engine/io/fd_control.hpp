@@ -68,7 +68,7 @@ class Direction final {
   // does not notify
   void Invalidate();
 
-  static void IoWatcherCb(struct ev_loop*, ev_io*, int);
+  static void IoWatcherCb(struct ev_loop*, ev_io*, int) noexcept;
 
   int fd_;
   const Kind kind_;

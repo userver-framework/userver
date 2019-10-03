@@ -61,9 +61,9 @@ class Thread final {
   void StopEventLoop();
   void RunEvLoop();
 
-  static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int);
+  static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
   void UpdateLoopWatcherImpl();
-  static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int);
+  static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
   void BreakLoopWatcherImpl();
   static void ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept;
   void ChildWatcherImpl(ev_child* w);

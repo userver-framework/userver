@@ -39,8 +39,9 @@ class IoWatcher {
   void Stop();
   void Loop();
 
-  static void OnEventRead(struct ev_loop* loop, ev_io* io, int events);
-  static void OnEventWrite(struct ev_loop* loop, ev_io* io, int events);
+  static void OnEventRead(struct ev_loop* loop, ev_io* io, int events) noexcept;
+  static void OnEventWrite(struct ev_loop* loop, ev_io* io,
+                           int events) noexcept;
 
   void CallReadCb(std::error_code ec);
   void CallWriteCb(std::error_code ec);

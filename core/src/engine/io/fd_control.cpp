@@ -4,7 +4,6 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -15,7 +14,6 @@
 
 #include <engine/task/task_context.hpp>
 #include <utils/assert.hpp>
-#include <utils/userver_experiment.hpp>
 
 namespace engine {
 namespace io {
@@ -142,18 +140,11 @@ void Direction::Invalidate() {
 }
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
-void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) try {
+void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
   auto self = static_cast<Direction*>(watcher->data);
   // Watcher::Stop() from ev loop should execute synchronously w/o waiting
   self->StopWatcher();
   self->WakeupWaiters();
-} catch (...) {
-  if (utils::IsUserverExperimentEnabled(
-          utils::UserverExperiment::kTaxicommon1479)) {
-    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
-    abort();
-  }
-  throw;
 }
 
 FdControl::FdControl()

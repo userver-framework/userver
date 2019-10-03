@@ -4,7 +4,8 @@ namespace engine {
 namespace ev {
 
 template <>
-void Watcher<ev_async>::Init(void (*cb)(struct ev_loop*, ev_async*, int)) {
+void Watcher<ev_async>::Init(void (*cb)(struct ev_loop*, ev_async*,
+                                        int) noexcept) {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&w_, cb);
 }
@@ -24,14 +25,14 @@ void Watcher<ev_async>::StopImpl() {
 }
 
 template <>
-void Watcher<ev_io>::Init(void (*cb)(struct ev_loop*, ev_io*, int), int fd,
-                          int events) {
+void Watcher<ev_io>::Init(void (*cb)(struct ev_loop*, ev_io*, int) noexcept,
+                          int fd, int events) {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_io_init(&w_, cb, fd, events);
 }
 
 template <>
-void Watcher<ev_io>::Init(void (*cb)(struct ev_loop*, ev_io*, int)) {
+void Watcher<ev_io>::Init(void (*cb)(struct ev_loop*, ev_io*, int) noexcept) {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_init(&w_, cb);
 }
@@ -57,7 +58,8 @@ void Watcher<ev_io>::StopImpl() {
 }
 
 template <>
-void Watcher<ev_timer>::Init(void (*cb)(struct ev_loop*, ev_timer*, int),
+void Watcher<ev_timer>::Init(void (*cb)(struct ev_loop*, ev_timer*,
+                                        int) noexcept,
                              ev_tstamp after, ev_tstamp repeat) {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_init(&w_, cb, after, repeat);
@@ -92,7 +94,8 @@ void Watcher<ev_timer>::AgainImpl() {
 }
 
 template <>
-void Watcher<ev_idle>::Init(void (*cb)(struct ev_loop*, ev_idle*, int)) {
+void Watcher<ev_idle>::Init(void (*cb)(struct ev_loop*, ev_idle*,
+                                       int) noexcept) {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_idle_init(&w_, cb);
 }

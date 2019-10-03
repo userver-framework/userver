@@ -21,7 +21,8 @@ class TimerWatcher final {
   void SingleshotAsync(std::chrono::milliseconds timeout, Callback cb);
 
  private:
-  static void OnEventTimeout(struct ev_loop* loop, ev_timer* timer, int events);
+  static void OnEventTimeout(struct ev_loop* loop, ev_timer* timer,
+                             int events) noexcept;
   void CallTimeoutCb(std::error_code ec);
 
  private:

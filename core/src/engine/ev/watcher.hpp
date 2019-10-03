@@ -2,13 +2,7 @@
 
 #include <ev.h>
 
-#include <chrono>
-#include <cstdlib>
-#include <iostream>
-
 #include <engine/future.hpp>
-#include <engine/task/cancel.hpp>
-#include <utils/userver_experiment.hpp>
 #include "thread_control.hpp"
 
 namespace engine {
@@ -22,13 +16,13 @@ class Watcher final : public ThreadControl {
   // NOLINTNEXTLINE(bugprone-exception-escape)
   ~Watcher() override;
 
-  void Init(void (*cb)(struct ev_loop*, ev_async*, int));
-  void Init(void (*cb)(struct ev_loop*, ev_io*, int));
-  void Init(void (*cb)(struct ev_loop*, ev_io*, int), int fd,
+  void Init(void (*cb)(struct ev_loop*, ev_async*, int) noexcept);
+  void Init(void (*cb)(struct ev_loop*, ev_io*, int) noexcept);
+  void Init(void (*cb)(struct ev_loop*, ev_io*, int) noexcept, int fd,
             int events);  // TODO: use utils::Flags for events
-  void Init(void (*cb)(struct ev_loop*, ev_timer*, int), ev_tstamp after,
-            ev_tstamp repeat);
-  void Init(void (*cb)(struct ev_loop*, ev_idle*, int));
+  void Init(void (*cb)(struct ev_loop*, ev_timer*, int) noexcept,
+            ev_tstamp after, ev_tstamp repeat);
+  void Init(void (*cb)(struct ev_loop*, ev_idle*, int) noexcept);
 
   template <typename T = EvType>
   typename std::enable_if<std::is_same<T, ev_io>::value, void>::type Set(

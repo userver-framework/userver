@@ -2,8 +2,6 @@
 
 #include <chrono>
 #include <csignal>
-#include <cstdlib>
-#include <iostream>
 #include <stdexcept>
 
 #include <engine/task/cancel.hpp>
@@ -11,7 +9,6 @@
 #include <utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 #include <utils/thread_name.hpp>
-#include <utils/userver_experiment.hpp>
 
 #include "child_process_map.hpp"
 
@@ -206,17 +203,10 @@ void Thread::RunEvLoop() {
   if (use_ev_default_loop_) ev_child_stop(loop_, &watch_child_);
 }
 
-void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) try {
+void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) noexcept {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   ev_thread->UpdateLoopWatcherImpl();
-} catch (...) {
-  if (utils::IsUserverExperimentEnabled(
-          utils::UserverExperiment::kTaxicommon1479)) {
-    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
-    abort();
-  }
-  throw;
 }
 
 void Thread::UpdateLoopWatcherImpl() {
@@ -237,18 +227,11 @@ void Thread::UpdateLoopWatcherImpl() {
   LOG_TRACE() << "exit";
 }
 
-void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) try {
+void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) noexcept {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   ev_thread->BreakLoopWatcherImpl();
-} catch (...) {
-  if (utils::IsUserverExperimentEnabled(
-          utils::UserverExperiment::kTaxicommon1479)) {
-    std::cerr << "Uncaught exception in " << __PRETTY_FUNCTION__;
-    abort();
-  }
-  throw;
 }
 
 void Thread::BreakLoopWatcherImpl() {
