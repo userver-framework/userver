@@ -1,5 +1,5 @@
 find_package_required_version(libmongoc-static-1.0
-    "libyandex-taxi-mongo-c-driver-dev" 1.14.0)
+    "libyandex-taxi-mongo-c-driver-dev" 1.15.0)
 
 if (MONGOC_STATIC_LIBRARIES AND NOT TARGET libmongoc-static-1.0)
   add_library(libmongoc-static-1.0 INTERFACE)

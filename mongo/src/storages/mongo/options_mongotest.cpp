@@ -316,9 +316,6 @@ TEST(Options, WriteConcern) {
     EXPECT_THROW(
         coll.InsertOne({}, options::WriteConcern{static_cast<size_t>(-1)}),
         InvalidQueryArgumentException);
-    EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{1}.SetTimeout(
-                                        std::chrono::milliseconds::max())),
-                 InvalidQueryArgumentException);
     EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{10}),
                  ServerException);
     EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{"test"}),

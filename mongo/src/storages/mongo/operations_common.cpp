@@ -48,10 +48,6 @@ WriteConcernPtr MakeWriteConcern(const options::WriteConcern& wc_option) {
         << " of write concern nodes count is too high";
   }
   auto timeout_ms = wc_option.Timeout().count();
-  if (timeout_ms > std::numeric_limits<int32_t>::max()) {
-    throw InvalidQueryArgumentException("Value ")
-        << timeout_ms << "ms of write concern timeout is too high";
-  }
 
   WriteConcernPtr write_concern(mongoc_write_concern_new());
 
@@ -64,7 +60,7 @@ WriteConcernPtr MakeWriteConcern(const options::WriteConcern& wc_option) {
     } else {
       mongoc_write_concern_set_w(write_concern.get(), wc_option.NodesCount());
     }
-    mongoc_write_concern_set_wtimeout(write_concern.get(), timeout_ms);
+    mongoc_write_concern_set_wtimeout_int64(write_concern.get(), timeout_ms);
   }
 
   if (wc_option.Journal()) {
