@@ -246,6 +246,7 @@ def main():
       make_absolute(entry['file'], entry['directory'])
       for entry in database
       if (not 'test.cpp' in entry['file'] and
+          not entry['file'].endswith('pb.cc') and
           not 'benchmark.cpp' in entry['file'] and
           not 'backend-common-cpp' in entry['file'] and
           not '/tools/' in entry['file'])

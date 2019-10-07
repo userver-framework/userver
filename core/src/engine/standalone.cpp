@@ -1,10 +1,13 @@
 #include <engine/standalone.hpp>
 
+#include <engine/async.hpp>
 #include <engine/coro/pool_config.hpp>
 #include <engine/ev/thread_pool_config.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_processor_pools.hpp>
+
+#include <tracing/span.hpp>
 
 namespace engine {
 namespace impl {
@@ -50,6 +53,32 @@ TaskProcessorHolder::TaskProcessorHolder(TaskProcessorHolder&&) noexcept =
 
 TaskProcessorHolder& TaskProcessorHolder::operator=(
     TaskProcessorHolder&&) noexcept = default;
+
+void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb) {
+  std::mutex mutex;
+  std::condition_variable cv;
+  std::atomic_bool done{false};
+  std::exception_ptr ex;
+
+  auto cb = [&user_cb, &mutex, &done, &cv, &ex]() {
+    try {
+      tracing::Span span("span", tracing::ReferenceType::kChild,
+                         logging::Level::kNone);
+      user_cb();
+    } catch (const std::exception&) {
+      ex = std::current_exception();
+    }
+
+    std::lock_guard<std::mutex> lock(mutex);
+    done = true;
+    cv.notify_all();
+  };
+  engine::impl::Async(tp, std::move(cb)).Detach();
+
+  std::unique_lock<std::mutex> lock(mutex);
+  cv.wait(lock, [&done]() { return done.load(); });
+  if (ex) std::rethrow_exception(ex);
+}
 
 }  // namespace impl
 }  // namespace engine

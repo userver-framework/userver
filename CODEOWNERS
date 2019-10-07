@@ -25,6 +25,8 @@
 
 /postgresql/ @ser-fedorov
 
+/gprc/ @ser-fedorov
+
 /redis/ @dzhuk @segoon
 
 /uboost_coro/ @bugaevskiy @antoshkka
