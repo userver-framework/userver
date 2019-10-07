@@ -132,6 +132,17 @@ struct DataCacheContainer<T, ::utils::void_t<typename T::CacheContainer>> {
 template <typename T>
 using DataCacheContainerType = typename DataCacheContainer<T>::type;
 
+template <typename T, typename = utils::void_t<>>
+struct HasCustomUpdated : std::false_type {};
+
+template <typename T>
+struct HasCustomUpdated<T, utils::void_t<decltype(T::GetLastKnownUpdated(
+                               std::declval<DataCacheContainerType<T>>()))>>
+    : std::true_type {};
+
+template <typename T>
+constexpr bool kHasCustomUpdated = HasCustomUpdated<T>::value;
+
 // Cluster host type policy
 template <typename T, typename = ::utils::void_t<>>
 struct PostgresClusterType
@@ -208,6 +219,8 @@ class PostgreCache final
 
  private:
   using CachedData = std::shared_ptr<DataType>;
+
+  auto GetLastUpdated(std::chrono::system_clock::time_point last_update) const;
 
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
@@ -300,6 +313,16 @@ std::string PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
 }
 
 template <typename PostgreCachePolicy>
+auto PostgreCache<PostgreCachePolicy>::GetLastUpdated(
+    std::chrono::system_clock::time_point last_update) const {
+  if constexpr (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy>) {
+    return PostgreCachePolicy::GetLastKnownUpdated(this->Get());
+  } else {
+    return last_update - correction_;
+  }
+}
+
+template <typename PostgreCachePolicy>
 void PostgreCache<PostgreCachePolicy>::Update(
     cache::UpdateType type,
     const std::chrono::system_clock::time_point& last_update,
@@ -323,7 +346,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
     auto res = cluster->Execute(
         kClusterHostType,
         pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-        query, last_update - correction_);
+        query, GetLastUpdated(last_update));
     stats_scope.IncreaseDocumentsReadCount(res.Size());
     CacheResults(res, data_cache, stats_scope);
     changes += res.Size();
@@ -366,5 +389,4 @@ PostgreCache<PostgreCachePolicy>::GetData(cache::UpdateType type) {
   }
   return std::make_shared<DataType>();
 }
-
 }  // namespace components

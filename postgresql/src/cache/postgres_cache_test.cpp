@@ -86,9 +86,52 @@ static_assert(pg_cache::detail::kPostgresClusterType<PostgresExamplePolicy2> ==
                   pg::ClusterHostType::kSyncSlave,
               "");
 
+struct MyStructureWithRevision {
+  int id;
+  std::string bar;
+  std::chrono::system_clock::time_point updated;
+  int32_t revision;
+
+  int get_id() const { return id; }
+};
+
+class UserSpecificCache {
+ public:
+  void insert(std::pair<int, MyStructureWithRevision>&& item) {
+    latest_revision_ = std::max(latest_revision_, item.second.revision);
+  }
+  size_t size() const { return 0; }
+
+  int GetLatestRevision() const { return latest_revision_; }
+
+ private:
+  int latest_revision_ = 0;
+};
+
+struct PostgresExamplePolicy3 {
+  using ValueType = MyStructureWithRevision;
+  static constexpr const char* kName = "my-pg-cache";
+  static constexpr const char* kQuery =
+      "select id, bar, revision from test.my_data";
+  using CacheContainer = UserSpecificCache;
+  static constexpr const char* kUpdatedField = "revision";
+  static constexpr auto kKeyMember = &MyStructureWithRevision::get_id;
+
+  // Function to get last known revision/time
+  // Optional
+  // If one wants to get cache updates not based on updated time, but, for
+  // example, based on revision > known_revision, this method should be used
+  static int32_t GetLastKnownUpdated(const UserSpecificCache& container) {
+    return container.GetLatestRevision();
+  }
+};
+
+static_assert(pg_cache::detail::kHasCustomUpdated<PostgresExamplePolicy3>);
+
 // Instantiation test
 using MyCache1 = PostgreCache<PostgresExamplePolicy>;
 using MyCache2 = PostgreCache<PostgresExamplePolicy2>;
+using MyCache3 = PostgreCache<PostgresExamplePolicy3>;
 
 static_assert(MyCache1::kIncrementalUpdates, "");
 static_assert(!MyCache2::kIncrementalUpdates, "");
