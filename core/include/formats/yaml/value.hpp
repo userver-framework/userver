@@ -190,7 +190,7 @@ class Value final {
 
   bool is_root_{false};
 
-  static constexpr std::size_t kNativeNodeSize = 32;
+  static constexpr std::size_t kNativeNodeSize = 64;
   static constexpr std::size_t kNativeAlignment = alignof(void*);
   utils::FastPimpl<YAML::Node, kNativeNodeSize, kNativeAlignment> value_pimpl_;
   formats::yaml::Path path_;
