@@ -97,6 +97,7 @@ boost::optional<std::nullptr_t> Parse(const Value&,
                                       To<boost::optional<std::nullptr_t>>) {
   static_assert(!sizeof(Value),
                 "optional<nullptr_t> is forbidden, check IsNull() instead");
+  return nullptr;
 }
 
 template <class Value, typename T>
@@ -160,6 +161,7 @@ boost::optional<std::nullptr_t> Convert(const Value&,
                                         To<boost::optional<std::nullptr_t>>) {
   static_assert(!sizeof(Value),
                 "optional<nullptr_t> is forbidden, check IsNull() instead");
+  return nullptr;
 }
 
 }  // namespace formats::parse
