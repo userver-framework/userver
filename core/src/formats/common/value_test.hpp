@@ -135,6 +135,14 @@ TYPED_TEST_P(Parsing, UserProvidedCommonParser) {
   EXPECT_EQ(converted2.i, 42);
 }
 
+TYPED_TEST_P(Parsing, ChronoDoubleSeconds) {
+  auto value = this->FromString("[10.1]")[0];
+
+  auto converted = value.template As<std::chrono::duration<double>>();
+  EXPECT_DOUBLE_EQ(converted.count(),
+                   std::chrono::duration<double>{10.1}.count());
+}
+
 TYPED_TEST_P(Parsing, ChronoSeconds) {
   auto value = this->FromString("[\"10h\"]")[0];
 
@@ -195,7 +203,7 @@ REGISTER_TYPED_TEST_CASE_P(Parsing,
                            OptionalInt, OptionalVectorInt, Int, UInt,
                            IntOverflow, UserProvidedCommonParser,
 
-                           ChronoSeconds,
+                           ChronoDoubleSeconds, ChronoSeconds,
 
                            VariantOk1, VariantOk2, VariantAmbiguous,
                            VariantUnambiguous

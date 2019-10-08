@@ -62,6 +62,13 @@ Parse(const Value& value, To<T>) {
   return impl::NarrowToInt<T>(value.template As<IntT>(), value);
 }
 
+template <typename Value, typename Period>
+std::enable_if_t<common::kIsFormatValue<Value>,
+                 std::chrono::duration<double, Period>>
+Parse(const Value& n, To<std::chrono::duration<double, Period>>) {
+  return std::chrono::duration<double, Period>(n.template As<double>());
+}
+
 template <class Value>
 std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(
     const Value& n, To<std::chrono::seconds>) {
