@@ -13,7 +13,7 @@ find_program(
 
 function(generate_grpc_files)
   set(options)
-  set(one_value_args CPP_FILES GENERATED_INCLUDES)
+  set(one_value_args CPP_FILES GENERATED_INCLUDES SOURCE_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
 
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
@@ -40,8 +40,9 @@ function(generate_grpc_files)
     if(NOT IS_ABSOLUTE ${proto_file})
       set(var_name ${proto_file})
       find_path(${var_name} ${proto_file}
-        PATHS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}
-        PATH_SUFFIXES proto schemas/proto
+        PATHS ${GEN_RPC_SOURCE_PATH}/proto      # For out-of source generated targets
+              ${CMAKE_CURRENT_SOURCE_DIR}/proto # For manually added targets
+              ${CMAKE_SOURCE_DIR}schemas/proto  # For potentially shared proto files
         DOC "Root path for proto file ${proto_file}"
         NO_DEFAULT_PATH)
       set(root_path ${${var_name}})
