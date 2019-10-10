@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <vector>
 
 #include <cache/cache_update_trait.hpp>
@@ -31,6 +32,13 @@ class CacheInvalidator final : public components::impl::ComponentBase {
 
   void InvalidateCaches(cache::UpdateType update_type);
 
+  void RegisterPeriodicTask(const std::string& name, utils::PeriodicTask& task);
+
+  void UnregisterPeriodicTask(const std::string& name,
+                              utils::PeriodicTask& task);
+
+  bool RunPeriodicTask(const std::string& name);
+
  private:
   template <typename T, typename Callback>
   struct Invalidator {
@@ -54,6 +62,8 @@ class CacheInvalidator final : public components::impl::ComponentBase {
 
   std::vector<CacheInvalidatorStruct> cache_invalidators_;
   std::vector<ComponentInvalidatorStruct> invalidators_;
+
+  std::unordered_map<std::string, utils::PeriodicTask&> periodic_tasks_;
 };
 
 }  // namespace components

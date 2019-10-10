@@ -29,6 +29,9 @@ class TestsControl final : public HttpHandlerJsonBase {
       request::RequestContext& context) const override;
 
  private:
+  formats::json::Value ActionRunPeriodicTask(
+      const formats::json::Value& request_body) const;
+
   concurrent::Variable<std::reference_wrapper<components::CacheInvalidator>>
       cache_invalidator_;
 };

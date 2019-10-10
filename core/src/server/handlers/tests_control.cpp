@@ -40,6 +40,15 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     request::RequestContext&) const {
   if (request.GetMethod() != http::HttpMethod::kPost) throw ClientError();
 
+  if (request_body.HasMember("action")) {
+    const auto action = request_body["action"].As<std::string>();
+    if (action == "run_periodic_task") {
+      return ActionRunPeriodicTask(request_body);
+    }
+    LOG_ERROR() << "unknown tests/control action " << action;
+    throw ClientError();
+  }
+
   bool invalidate_caches = false;
   const auto& invalidate_caches_value = request_body["invalidate_caches"];
   if (invalidate_caches_value.IsBool()) {
@@ -77,6 +86,22 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   }
 
   return formats::json::Value();
+}
+
+formats::json::Value TestsControl::ActionRunPeriodicTask(
+    const formats::json::Value& request_body) const {
+  const auto task_name = request_body["name"].As<std::string>();
+
+  auto cache_invalidator = cache_invalidator_.Lock();
+
+  LOG_INFO() << "Running periodic task " << task_name;
+  bool status = cache_invalidator->get().RunPeriodicTask(task_name);
+  LOG_INFO() << "Periodic task " << task_name << " finished with status "
+             << status;
+
+  formats::json::ValueBuilder result;
+  result["status"] = status;
+  return result.ExtractValue();
 }
 
 }  // namespace handlers

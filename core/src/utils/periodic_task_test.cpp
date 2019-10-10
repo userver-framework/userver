@@ -287,9 +287,48 @@ TEST(PeriodicTask, SynchronizeDebug) {
     EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
                                 [&simple]() { return simple.GetCount() > 0; }));
 
-    task.SynchronizeDebug();
+    bool status = task.SynchronizeDebug();
+    EXPECT_TRUE(status);
     EXPECT_GE(simple.GetCount(), 1);
 
+    task.Stop();
+  });
+}
+
+TEST(PeriodicTask, SynchronizeDebugFailure) {
+  RunInCoro([] {
+    SimpleTaskData simple;
+
+    simple.throw_exception = true;
+
+    auto period = std::chrono::milliseconds(40000);  // some big value
+    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+
+    EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
+                                [&simple]() { return simple.GetCount() > 0; }));
+
+    bool status = task.SynchronizeDebug();
+    EXPECT_FALSE(status);
+    EXPECT_GE(simple.GetCount(), 1);
+
+    task.Stop();
+  });
+}
+
+TEST(PeriodicTask, SynchronizeDebugSpan) {
+  RunInCoro([] {
+    tracing::Span span(__func__);
+    SimpleTaskData simple;
+    std::string task_link;
+
+    auto period = std::chrono::milliseconds(40000);  // some big value
+    utils::PeriodicTask task("task", period, [&task_link] {
+      task_link = tracing::Span::CurrentSpan().GetLink();
+    });
+
+    bool status = task.SynchronizeDebug(true);
+    EXPECT_TRUE(status);
+    EXPECT_EQ(task_link, span.GetLink());
     task.Stop();
   });
 }

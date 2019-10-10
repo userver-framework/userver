@@ -10,6 +10,10 @@
 #include <utils/assert.hpp>
 #include <utils/flags.hpp>
 
+namespace components {
+class ComponentContext;
+};
+
 namespace utils {
 
 /**
@@ -82,10 +86,7 @@ class PeriodicTask final {
    * method, you have to explicitly stop PeriodicTask in ~X() as after ~X()
    * exits the object is destroyed and using X's 'this' in callback is UB.
    */
-  ~PeriodicTask() {
-    UASSERT(!IsRunning());
-    Stop();
-  }
+  ~PeriodicTask();
 
   void Stop() noexcept;
 
@@ -94,11 +95,19 @@ class PeriodicTask final {
   /// Force next DoStep() iteration. It is guaranteed that there is at least one
   /// call to DoStep() during SynchronizeDebug() execution. DoStep() is executed
   /// as usual in the PeriodicTask's task (NOT in current task).
-  void SynchronizeDebug();
+  /// @param preserve_span run periodic task current span if true. It's here for
+  /// backward compatibility with existing tests. Will be removed in
+  /// TAXIDATA-1499.
+  /// @returns true if task was successfully executed.
+  bool SynchronizeDebug(bool preserve_span = false);
 
   /// Checks if a periodic task (not a single iteration only) is running.
   /// It may be in a callback execution or sleeping between callbacks.
   bool IsRunning() const;
+
+  /// Make this periodic task available for testsuite. Testsuite provides a way
+  /// to call it directly from testcase.
+  void RegisterInTestsuite(const components::ComponentContext& context);
 
  private:
   void SleepUntil(engine::Deadline::TimePoint tp);
@@ -113,7 +122,7 @@ class PeriodicTask final {
 
   std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
 
-  void WaitForFirstStep();
+  bool WaitForFirstStep();
 
  private:
   std::string name_;
@@ -126,6 +135,11 @@ class PeriodicTask final {
   engine::ConditionVariable start_cv_;
   engine::Mutex start_mutex_;
   std::atomic<bool> started_;
+  bool callback_succeeded_;
+
+  class TestsuiteHolder;
+  std::unique_ptr<TestsuiteHolder> testsuite_holder_;
+  boost::optional<tracing::Span> testsuite_oneshot_span_;
 };
 
 }  // namespace utils

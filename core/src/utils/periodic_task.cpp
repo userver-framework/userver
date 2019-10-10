@@ -1,5 +1,6 @@
 #include <utils/periodic_task.hpp>
 
+#include <cache/cache_invalidator.hpp>
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
@@ -8,16 +9,49 @@
 
 namespace utils {
 
+class PeriodicTask::TestsuiteHolder {
+ public:
+  TestsuiteHolder(components::CacheInvalidator& cache_invalidator,
+                  std::string name, PeriodicTask& task)
+      : cache_invalidator_(cache_invalidator),
+        name_(std::move(name)),
+        task_(task) {
+    cache_invalidator_.RegisterPeriodicTask(name_, task_);
+  }
+  TestsuiteHolder(const TestsuiteHolder&) = delete;
+  TestsuiteHolder(TestsuiteHolder&&) = delete;
+  TestsuiteHolder& operator=(const TestsuiteHolder&) = delete;
+  TestsuiteHolder& operator=(TestsuiteHolder&&) = delete;
+
+  ~TestsuiteHolder() {
+    cache_invalidator_.UnregisterPeriodicTask(name_, task_);
+  }
+
+ private:
+  components::CacheInvalidator& cache_invalidator_;
+  std::string name_;
+  PeriodicTask& task_;
+};
+
 PeriodicTask::PeriodicTask()
-    : settings_(std::chrono::seconds(1)), started_(false) {}
+    : settings_(std::chrono::seconds(1)),
+      started_(false),
+      callback_succeeded_(false) {}
 
 PeriodicTask::PeriodicTask(std::string name, Settings settings,
                            Callback callback)
     : name_(std::move(name)),
       callback_(std::move(callback)),
       settings_(std::move(settings)),
-      started_(false) {
+      started_(false),
+      callback_succeeded_(false) {
   DoStart();
+}
+
+PeriodicTask::~PeriodicTask() {
+  UASSERT(!IsRunning());
+  testsuite_holder_.reset();
+  Stop();
 }
 
 void PeriodicTask::Start(std::string name, Settings settings,
@@ -38,12 +72,14 @@ void PeriodicTask::DoStart() {
   }
 }
 
-void PeriodicTask::WaitForFirstStep() {
+bool PeriodicTask::WaitForFirstStep() {
   if (settings_.Read()->flags & Flags::kNow) {
     std::unique_lock<engine::Mutex> lock(start_mutex_);
     [[maybe_unused]] auto cv_status =
         start_cv_.Wait(lock, [&] { return started_.load(); });
+    return callback_succeeded_;
   }
+  return false;
 }
 
 void PeriodicTask::Stop() noexcept {
@@ -63,8 +99,8 @@ void PeriodicTask::SetSettings(Settings settings) {
   settings_.Assign(std::move(settings));
 }
 
-void PeriodicTask::SynchronizeDebug() {
-  if (!IsRunning()) return;
+bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
+  if (!IsRunning()) return false;
 
   Stop();  // to freely access name_, settings_, callback_
 
@@ -75,9 +111,17 @@ void PeriodicTask::SynchronizeDebug() {
   auto settings = *settings_.Read();
   settings.flags |= Flags::kNow;
 
+  if (preserve_span) {
+    tracing::Span span("periodic-synchronize-debug-call");
+    span.DetachFromCoroStack();
+    testsuite_oneshot_span_.emplace(std::move(span));
+  } else {
+    testsuite_oneshot_span_ = boost::none;
+  }
+
   Start(std::move(name_), settings, std::move(callback_));
 
-  WaitForFirstStep();
+  return WaitForFirstStep();
 }
 
 bool PeriodicTask::IsRunning() const { return task_.IsValid(); }
@@ -123,11 +167,19 @@ bool PeriodicTask::DoStep() {
 }
 
 bool PeriodicTask::Step() {
+  boost::optional<tracing::Span> span = std::move(testsuite_oneshot_span_);
+
+  if (span) {
+    span->AttachToCoroStack();
+    testsuite_oneshot_span_ = boost::none;
+  }
+
   auto result = DoStep();
 
   if (!started_) {
     std::unique_lock<engine::Mutex> lock(start_mutex_);
     started_ = true;
+    callback_succeeded_ = result;
     start_cv_.NotifyAll();
   }
 
@@ -142,6 +194,12 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
   const auto ms = std::uniform_int_distribution<int64_t>(
       (period - distribution).count(), (period + distribution).count())(rand_);
   return std::chrono::milliseconds(ms);
+}
+
+void PeriodicTask::RegisterInTestsuite(
+    const components::ComponentContext& context) {
+  testsuite_holder_ = std::make_unique<TestsuiteHolder>(
+      context.FindComponent<components::CacheInvalidator>(), name_, *this);
 }
 
 }  // namespace utils
