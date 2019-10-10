@@ -29,7 +29,7 @@ TEST(HttpServerMock, Ctr) {
           };
         });
 
-    auto http_client_ptr = clients::http::Client::Create(1);
+    auto http_client_ptr = clients::http::Client::Create("", 1);
     clients::http::Headers headers{
         {"a", "value1"},
         {"header", "value2"},

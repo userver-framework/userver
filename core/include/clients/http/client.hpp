@@ -31,7 +31,8 @@ struct TestsuiteConfig;
 class Client {
  public:
   /* Use this method to create Client */
-  static std::shared_ptr<Client> Create(size_t io_threads);
+  static std::shared_ptr<Client> Create(const std::string& thread_name_prefix,
+                                        size_t io_threads);
 
   Client(const Client&) = delete;
   Client(Client&&) = delete;
@@ -56,7 +57,7 @@ class Client {
   void SetTestsuiteConfig(const TestsuiteConfig& config);
 
  private:
-  explicit Client(size_t io_threads);
+  explicit Client(const std::string& thread_name_prefix, size_t io_threads);
 
   InstanceStatistics GetMultiStatistics(size_t n) const;
 

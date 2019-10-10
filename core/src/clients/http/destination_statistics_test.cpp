@@ -26,7 +26,7 @@ static HttpResponse Callback(int code, const HttpRequest& request) {
 TEST(DestinationStatistics, Empty) {
   TestInCoro([] {
     std::shared_ptr<clients::http::Client> client =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     EXPECT_EQ(client->GetDestinationStatistics().begin(),
               client->GetDestinationStatistics().end());
@@ -38,7 +38,7 @@ TEST(DestinationStatistics, Ok) {
     const testing::SimpleServer http_server{
         [](const HttpRequest& request) { return Callback(200, request); }};
     std::shared_ptr<clients::http::Client> client =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     auto url = http_server.GetBaseUrl();
 
@@ -74,7 +74,7 @@ TEST(DestinationStatistics, Multiple) {
     const testing::SimpleServer http_server2{
         [](const HttpRequest& request) { return Callback(500, request); }};
     std::shared_ptr<clients::http::Client> client =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     client->SetDestinationMetricsAutoMaxSize(100);
 

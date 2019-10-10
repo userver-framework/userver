@@ -217,7 +217,7 @@ TEST(HttpClient, PostEcho) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&echo_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     const auto res = http_client_ptr->CreateRequest()
                          ->post(http_server.GetBaseUrl(), kTestData)
@@ -236,7 +236,7 @@ TEST(HttpClient, CancelPre) {
     auto task = utils::Async("test", [] {
       const testing::SimpleServer http_server{&echo_callback};
       std::shared_ptr<clients::http::Client> http_client_ptr =
-          clients::http::Client::Create(kHttpIoThreads);
+          clients::http::Client::Create("", kHttpIoThreads);
 
       engine::current_task::GetCurrentTaskContext()->RequestCancel(
           engine::Task::CancellationReason::kUserRequest);
@@ -254,7 +254,7 @@ TEST(HttpClient, CancelPost) {
     auto task = utils::Async("test", [] {
       const testing::SimpleServer http_server{&echo_callback};
       std::shared_ptr<clients::http::Client> http_client_ptr =
-          clients::http::Client::Create(kHttpIoThreads);
+          clients::http::Client::Create("", kHttpIoThreads);
 
       const auto request = http_client_ptr->CreateRequest()
                                ->post(http_server.GetBaseUrl(), kTestData)
@@ -275,7 +275,7 @@ TEST(HttpClient, PostShutdownWithPendingRequest) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&sleep_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
@@ -295,7 +295,7 @@ TEST(HttpClient, PostShutdownWithPendingRequestHuge) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&sleep_callback};
     const std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     std::string request = kTestData;
     for (unsigned i = 0; i < 20; ++i) {
@@ -318,7 +318,7 @@ TEST(HttpClient, PutEcho) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&echo_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     const auto res = http_client_ptr->CreateRequest()
                          ->put(http_server.GetBaseUrl(), kTestData)
@@ -336,7 +336,7 @@ TEST(HttpClient, PutValidateHeader) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&put_validate_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     const auto res = http_client_ptr->CreateRequest()
                          ->put(http_server.GetBaseUrl(), kTestData)
@@ -354,7 +354,7 @@ TEST(HttpClient, PutShutdownWithPendingRequest) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&sleep_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
@@ -374,7 +374,7 @@ TEST(HttpClient, PutShutdownWithPendingRequestHuge) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&sleep_callback};
     const std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     std::string request = kTestData;
     for (unsigned i = 0; i < 20; ++i) {
@@ -397,7 +397,7 @@ TEST(HttpClient, PutShutdownWithHugeResponse) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&huge_data_callback};
     const std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
@@ -417,7 +417,7 @@ TEST(HttpClient, MethodsMix) {
 
     const validating_shared_callback callback{};
     const testing::SimpleServer http_server{callback};
-    const auto http_client = clients::http::Client::Create(kHttpIoThreads);
+    const auto http_client = clients::http::Client::Create("", kHttpIoThreads);
 
     const RequestMethodTestData tests[] = {
         {"PUT", kTestData, &Request::put},
@@ -447,7 +447,7 @@ TEST(HttpClient, Headers) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&header_validate_callback};
     std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     for (unsigned i = 0; i < kRepetitions; ++i) {
       const auto response = http_client_ptr->CreateRequest()
@@ -469,7 +469,7 @@ TEST(HttpClient, Headers) {
 
 TEST(HttpClient, HeadersAndWhitespaces) {
   TestInCoro([] {
-    auto http_client_ptr = clients::http::Client::Create(kHttpIoThreads);
+    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
 
     const std::string header_data = kTestData;
     const std::string header_values[] = {

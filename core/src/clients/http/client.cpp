@@ -20,20 +20,24 @@ const std::string kIoThreadName = "curl";
 
 }  // namespace
 
-std::shared_ptr<Client> Client::Create(size_t io_threads) {
+std::shared_ptr<Client> Client::Create(const std::string& thread_name_prefix,
+                                       size_t io_threads) {
   struct EmplaceEnabler : public Client {
-    EmplaceEnabler(size_t io_threads) : Client(io_threads) {}
+    EmplaceEnabler(const std::string& thread_name_prefix, size_t io_threads)
+        : Client(thread_name_prefix, io_threads) {}
   };
-  return std::make_shared<EmplaceEnabler>(io_threads);
+  return std::make_shared<EmplaceEnabler>(thread_name_prefix, io_threads);
 }
 
-Client::Client(size_t io_threads)
+Client::Client(const std::string& thread_name_prefix, size_t io_threads)
     : destination_statistics_(std::make_shared<DestinationStatistics>()),
       statistics_(io_threads),
       idle_queue_() {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
-  ev_config.thread_name = kIoThreadName;
+  ev_config.thread_name =
+      kIoThreadName +
+      (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
   thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
 
   multis_.reserve(io_threads);

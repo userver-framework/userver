@@ -112,7 +112,7 @@ TEST(CurlFormTest, MultipartFileWithContentType) {
     const testing::SimpleServer http_server{&validating_callback1};
 
     std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     auto form = std::make_shared<clients::http::Form>();
     form->add_buffer(kKey, kFileNameTxt,
@@ -135,7 +135,7 @@ TEST(CurlFormTest, FilesWithContentType) {
     const testing::SimpleServer http_server{&validating_callback2};
 
     std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create(kHttpIoThreads);
+        clients::http::Client::Create("", kHttpIoThreads);
 
     auto form = std::make_shared<clients::http::Form>();
     form->add_buffer(kKey, kFileNameTxt,

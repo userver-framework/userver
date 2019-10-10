@@ -26,7 +26,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   const auto& http_config = config->Get<clients::http::Config>();
   size_t threads = http_config.threads;
 
-  http_client_ = clients::http::Client::Create(threads);
+  auto thread_name_prefix =
+      component_config.ParseString("thread-name-prefix", "");
+  http_client_ = clients::http::Client::Create(thread_name_prefix, threads);
   http_client_->SetDestinationMetricsAutoMaxSize(
       component_config.ParseInt("destination-metrics-auto-max-size",
                                 kDestinationMetricsAutoMaxSizeDefault));
@@ -42,10 +44,13 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
 
   try {
+    auto stats_name =
+        "httpclient" +
+        (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
     auto& storage =
         context.FindComponent<components::StatisticsStorage>().GetStorage();
     statistics_holder_ = storage.RegisterExtender(
-        "httpclient",
+        stats_name,
         [this](const utils::statistics::StatisticsRequest& /*request*/) {
           return ExtendStatistics();
         });

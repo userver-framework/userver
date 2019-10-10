@@ -4,7 +4,7 @@
 namespace utest {
 
 std::shared_ptr<clients::http::Client> CreateHttpClient() {
-  return clients::http::Client::Create(1);
+  return clients::http::Client::Create("", 1);
 }
 
 }  // namespace utest

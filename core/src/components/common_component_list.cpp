@@ -22,6 +22,7 @@ ComponentList CommonComponentList() {
       .Append<components::StatisticsStorage>()
       .Append<components::TaxiConfig>()
       .Append<components::HttpClient>()
+      .Append<components::HttpClient>("http-client-statistics")
       .Append<components::TaxiConfigClientUpdater>();
 }
 
