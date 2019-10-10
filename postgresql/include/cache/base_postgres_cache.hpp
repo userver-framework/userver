@@ -19,6 +19,8 @@
 
 namespace components {
 
+// clang-format off
+
 /// @page pg_cache Caching Component for PostgreSQL
 ///
 /// @par Configuration
@@ -40,6 +42,19 @@ namespace components {
 /// code snippet for documentation.
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Example
+///
+/// Policy may have static function GetLastKnownUpdated. It should be used
+/// when new entries from database are taken via revision, identifier, or
+/// anything else, but not timestamp of the last update.
+/// If this function is supplied, new entries are taken from db with condition
+/// 'WHERE kUpdatedField > GetLastKnownUpdated(cache_container)'.
+/// Otherwise, condition is
+/// 'WHERE kUpdatedField > last_update - correction_'.
+/// See the following code snippet for an example of usage
+///
+/// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Updated Example
+
+// clang-format on
 
 namespace pg_cache::detail {
 
@@ -173,6 +188,12 @@ struct PolicyChecker {
   static_assert(kHasQuery<PostgreCachePolicy>,
                 "The PosgreSQL cache policy must contain a static member "
                 "`kQuery` with a select statement");
+  // TODO: fix in TAXICOMMON-1575
+  static_assert(
+      !std::is_same<std::remove_const_t<decltype(PostgreCachePolicy::kQuery)>,
+                    std::string>::value,
+      "kQuery as string is not supported yet. Static variables would be "
+      "initialized in the wrong order.");
   static_assert(
       kHasUpdateField<PostgreCachePolicy>,
       "The PosgreSQL cache policy must contain a static member "
@@ -220,7 +241,8 @@ class PostgreCache final
  private:
   using CachedData = std::shared_ptr<DataType>;
 
-  auto GetLastUpdated(std::chrono::system_clock::time_point last_update) const;
+  auto GetLastUpdated(std::chrono::system_clock::time_point last_update,
+                      const DataType& cache) const;
 
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
@@ -296,7 +318,8 @@ PostgreCache<PostgreCachePolicy>::~PostgreCache() {
 template <typename PostgreCachePolicy>
 std::string PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
   using namespace std::string_literals;
-  if constexpr (std::is_same<decltype(PolicyType::kQuery), std::string>{}) {
+  if constexpr (std::is_same<std::remove_const_t<decltype(PolicyType::kQuery)>,
+                             std::string>{}) {
     UASSERT_MSG(!PolicyType::kQuery.empty(),
                 "kQuery member of cache policy must not be empty");
   } else {
@@ -314,9 +337,10 @@ std::string PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
 
 template <typename PostgreCachePolicy>
 auto PostgreCache<PostgreCachePolicy>::GetLastUpdated(
-    std::chrono::system_clock::time_point last_update) const {
+    std::chrono::system_clock::time_point last_update,
+    const DataType& cache) const {
   if constexpr (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy>) {
-    return PostgreCachePolicy::GetLastKnownUpdated(this->Get());
+    return PostgreCachePolicy::GetLastKnownUpdated(cache);
   } else {
     return last_update - correction_;
   }
@@ -346,7 +370,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
     auto res = cluster->Execute(
         kClusterHostType,
         pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-        query, GetLastUpdated(last_update));
+        query, GetLastUpdated(last_update, *data_cache));
     stats_scope.IncreaseDocumentsReadCount(res.Size());
     CacheResults(res, data_cache, stats_scope);
     changes += res.Size();

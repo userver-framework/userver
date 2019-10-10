@@ -33,7 +33,7 @@ struct PostgresExamplePolicy {
   // Data retrieve query.
   // Mandatory
   // The query should not contain any clauses after the `from` clause
-  static inline const std::string kQuery =
+  static inline constexpr const char* kQuery =
       "select id, bar, updated from test.my_data";
 
   // Name of the field containing timestamp of an object
@@ -86,6 +86,8 @@ static_assert(pg_cache::detail::kPostgresClusterType<PostgresExamplePolicy2> ==
                   pg::ClusterHostType::kSyncSlave,
               "");
 
+// Example of custom updated in cache
+/*! [Pg Cache Policy Custom Updated Example] */
 struct MyStructureWithRevision {
   int id;
   std::string bar;
@@ -125,6 +127,7 @@ struct PostgresExamplePolicy3 {
     return container.GetLatestRevision();
   }
 };
+/*! [Pg Cache Policy Custom Updated Example] */
 
 static_assert(pg_cache::detail::kHasCustomUpdated<PostgresExamplePolicy3>);
 
