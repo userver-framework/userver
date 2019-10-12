@@ -56,7 +56,8 @@ multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
 
 multi::multi(engine::ev::ThreadControl& thread_control)
     : pimpl_(std::make_unique<Impl>(thread_control, *this)),
-      thread_control_(thread_control) {
+      thread_control_(thread_control),
+      connect_ratelimit_(SIZE_MAX, std::chrono::nanoseconds(1)) {
   LOG_TRACE() << "multi::multi";
 
   handle_ = native::curl_multi_init();
@@ -115,6 +116,14 @@ void multi::socket_cleanup(native::curl_socket_t s) {
     pimpl_->sockets_.erase(it);
   }
 }
+
+void multi::SetConnectRatelimit(
+    size_t max_size, utils::TokenBucket::Duration token_update_interval) {
+  connect_ratelimit_.SetMaxSize(max_size);
+  connect_ratelimit_.SetUpdateInterval(token_update_interval);
+}
+
+bool multi::MayAcquireConnection() { return connect_ratelimit_.Obtain(); }
 
 void multi::add_handle(native::CURL* native_easy) {
   std::error_code ec(native::curl_multi_add_handle(handle_, native_easy));

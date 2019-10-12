@@ -13,9 +13,11 @@ class MultiStatistics final {
 
   void mark_open_socket();
   void mark_close_socket();
+  void mark_socket_ratelimited();
 
   long long open_socket_total() const;
   long long close_socket_total() const;
+  long long socket_ratelimited_total() const;
 
   utils::statistics::BusyStorage& get_busy_storage();
   const utils::statistics::BusyStorage& get_busy_storage() const;
@@ -23,6 +25,7 @@ class MultiStatistics final {
  private:
   std::atomic_llong open_{0};
   std::atomic_llong close_{0};
+  std::atomic_llong ratelimited_{0};
   utils::statistics::BusyStorage busy_storage_;
 };
 

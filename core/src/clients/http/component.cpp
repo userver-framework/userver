@@ -33,7 +33,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       component_config.ParseInt("destination-metrics-auto-max-size",
                                 kDestinationMetricsAutoMaxSizeDefault));
 
-  if (component_config.ParseBool("testsuite-enabled", false)) {
+  auto testsuite_enabled =
+      component_config.ParseBool("testsuite-enabled", false);
+  if (testsuite_enabled) {
     http_client_->SetTestsuiteConfig({});
   }
 
@@ -81,6 +83,10 @@ void HttpClient::OnConfigUpdate(
   const auto& http_client_config =
       config->template Get<clients::http::Config>();
   http_client_->SetConnectionPoolSize(http_client_config.connection_pool_size);
+
+  http_client_->SetConnectRatelimit(
+      http_client_config.connect_throttle_max_size_,
+      http_client_config.connect_throttle_update_interval_);
 }
 
 formats::json::Value HttpClient::ExtendStatistics() {

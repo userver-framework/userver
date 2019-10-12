@@ -257,7 +257,8 @@ class CURLASIO_API easy final : public std::enable_shared_from_this<easy> {
 
   // network options
 
-  IMPLEMENT_CURL_OPTION_STRING(set_url, native::CURLOPT_URL);
+  void set_url(const char* url);
+  IMPLEMENT_CURL_OPTION_STRING(do_set_url, native::CURLOPT_URL);
   IMPLEMENT_CURL_OPTION(set_protocols, native::CURLOPT_PROTOCOLS, long);
   IMPLEMENT_CURL_OPTION(set_redir_protocols, native::CURLOPT_REDIR_PROTOCOLS,
                         long);
@@ -691,6 +692,7 @@ class CURLASIO_API easy final : public std::enable_shared_from_this<easy> {
   std::shared_ptr<share> share_;
   std::shared_ptr<string_list> telnet_options_;
   progress_callback_t progress_callback_;
+  std::string url_;
   LocalTimings timings_;
 };
 }  // namespace curl

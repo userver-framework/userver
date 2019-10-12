@@ -8,6 +8,8 @@
 
 #include <utility>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <curl-ev/easy.hpp>
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/form.hpp>
@@ -131,6 +133,7 @@ void easy::do_ev_cancel(size_t request_num) {
 void easy::reset() {
   LOG_TRACE() << "easy::reset start " << reinterpret_cast<long>(this);
 
+  url_.clear();
   post_fields_.clear();
   form_.reset();
   if (headers_) headers_->clear();
@@ -196,6 +199,11 @@ void easy::set_progress_callback(progress_callback_t progress_callback) {
   set_no_progress(false);
   set_xferinfo_function(&easy::xferinfo_function);
   set_xferinfo_data(this);
+}
+
+void easy::set_url(const char* url) {
+  url_ = url;
+  do_set_url(url);
 }
 
 void easy::set_post_fields(const std::string& post_fields) {
@@ -592,6 +600,19 @@ native::curl_socket_t easy::opensocket(void* clientp,
   easy* self = static_cast<easy*>(clientp);
   multi* multi_handle = self->multi_;
   native::curl_socket_t s = -1;
+
+  bool check_throttle = boost::algorithm::istarts_with(self->url_, "https:");
+  if (check_throttle) {
+    if (multi_handle && !multi_handle->MayAcquireConnection()) {
+      LOG_WARNING() << "Socket creation throttled";
+      multi_handle->Statistics().mark_socket_ratelimited();
+      return CURL_SOCKET_BAD;
+    } else {
+      LOG_DEBUG() << "not throttled";
+    }
+  } else {
+    LOG_DEBUG() << "skip throttle check";
+  }
 
   // NOLINTNEXTLINE(hicpp-multiway-paths-covered)
   switch (purpose) {

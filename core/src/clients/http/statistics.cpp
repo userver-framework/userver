@@ -128,6 +128,7 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats) {
 
   json["sockets"]["open"] = stats.multi.socket_open;
   json["sockets"]["close"] = stats.multi.socket_close;
+  json["sockets"]["throttled"] = stats.multi.socket_ratelimit;
   json["sockets"]["active"] =
       stats.multi.socket_open - stats.multi.socket_close;
 

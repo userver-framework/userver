@@ -31,12 +31,13 @@ class RequestStats final {
 };
 
 struct MultiStats {
-  long long socket_open{0}, socket_close{0};
+  long long socket_open{0}, socket_close{0}, socket_ratelimit{0};
   double current_load{0};
 
   MultiStats& operator+=(const MultiStats& other) {
     socket_open += other.socket_open;
     socket_close += other.socket_close;
+    socket_ratelimit += other.socket_ratelimit;
     current_load += other.current_load;
     return *this;
   }

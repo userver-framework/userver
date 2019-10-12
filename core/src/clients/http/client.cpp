@@ -139,6 +139,7 @@ InstanceStatistics Client::GetMultiStatistics(size_t n) const {
   s.multi.socket_close = multi_stats.close_socket_total();
   s.multi.socket_open = multi_stats.open_socket_total();
   s.multi.current_load = multi_stats.get_busy_storage().GetCurrentLoad();
+  s.multi.socket_ratelimit = multi_stats.socket_ratelimited_total();
   return s;
 }
 
@@ -189,6 +190,13 @@ std::shared_ptr<curl::easy> Client::TryDequeueIdle() noexcept {
 void Client::SetTestsuiteConfig(const TestsuiteConfig& config) {
   LOG_INFO() << "http client: configured for testsuite";
   testsuite_config_ = std::make_shared<const TestsuiteConfig>(config);
+}
+
+void Client::SetConnectRatelimit(
+    size_t max_size, utils::TokenBucket::Duration token_update_interval) {
+  for (auto& multi : multis_) {
+    multi->SetConnectRatelimit(max_size, token_update_interval);
+  }
 }
 
 }  // namespace http

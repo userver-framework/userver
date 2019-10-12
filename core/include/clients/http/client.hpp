@@ -9,6 +9,7 @@
 
 #include <moodycamel/concurrentqueue_fwd.h>
 #include <utils/fast_pimpl.hpp>
+#include <utils/token_bucket.hpp>
 
 namespace curl {
 class multi;
@@ -55,6 +56,9 @@ class Client {
   const http::DestinationStatistics& GetDestinationStatistics() const;
 
   void SetTestsuiteConfig(const TestsuiteConfig& config);
+
+  void SetConnectRatelimit(size_t max_size,
+                           utils::TokenBucket::Duration token_update_interval);
 
  private:
   explicit Client(const std::string& thread_name_prefix, size_t io_threads);
