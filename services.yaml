@@ -2,3 +2,6 @@ linters:
   disable-paths-wildcards:
     # python2
     - scripts/postgres/pg_sql_codes.py
+  package-dirs:
+    - .
+    - submodules/codegen
