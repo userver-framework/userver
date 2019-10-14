@@ -25,8 +25,10 @@ class Repository:
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--build-dir', required=True)
+        parser.add_argument('--log-level', default='WARNING')
         self.args = parser.parse_args(argv)
 
+        plugin_manager.init_logger(self.args.log_level)
         self.build_dir = self.args.build_dir
 
     def register_plugins(self, manager: plugin_manager.ScopeManager) -> None:

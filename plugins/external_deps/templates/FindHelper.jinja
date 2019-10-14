@@ -47,9 +47,9 @@ if(NOT {{ package_name or name }}_FOUND)
 {% else %}
   message(FATAL_ERROR 
     "Could not find `{{ name }}` package."
-{% if debian_name %}
-    " Debian: sudo apt update && sudo apt install {{ debian_name }}"
-{% endif %} {# if debian_name #}
+{% if debian_names %}
+    " Debian: sudo apt update && sudo apt install {{ ' '.join(debian_names) }}"
+{% endif %} {# if debian_names #}
 {% if formula_name %}
     " MacOS: brew install {{ formula_name }}"
 {% endif %} {# if formula_name #}

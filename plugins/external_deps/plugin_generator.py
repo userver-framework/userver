@@ -10,7 +10,7 @@ class RepositoryGenerator:
     config_schema = voluptuous.Schema({
         voluptuous.Required('name'): str,
         'package-name': str,
-        'debian-name': str,
+        'debian-names': [str],
         'formula-name': str,
         'version': voluptuous.Any(str, int),
         'includes': {
@@ -71,7 +71,7 @@ class RepositoryGenerator:
                 manager.renderer.get_template('FindHelper.jinja').render({
                     'name': key,
                     'package_name': value.get('package-name'),
-                    'debian_name': value.get('debian-name'),
+                    'debian_names': value.get('debian-names'),
                     'formula_name': value.get('formula-name'),
                     'version': value.get('version'),
                     'includes': value.get('includes'),
