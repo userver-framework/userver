@@ -11,8 +11,9 @@
 #include <utils/flags.hpp>
 
 namespace components {
+class CacheInvalidator;
 class ComponentContext;
-};
+}  // namespace components
 
 namespace utils {
 
@@ -107,6 +108,8 @@ class PeriodicTask final {
 
   /// Make this periodic task available for testsuite. Testsuite provides a way
   /// to call it directly from testcase.
+  void RegisterInTestsuite(components::CacheInvalidator& cache_invalidator);
+  // Will be removed soon see TAXIDATA-1508
   void RegisterInTestsuite(const components::ComponentContext& context);
 
  private:

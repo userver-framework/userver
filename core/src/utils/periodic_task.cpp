@@ -197,9 +197,14 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
 }
 
 void PeriodicTask::RegisterInTestsuite(
+    components::CacheInvalidator& cache_invalidator) {
+  testsuite_holder_ =
+      std::make_unique<TestsuiteHolder>(cache_invalidator, name_, *this);
+}
+
+void PeriodicTask::RegisterInTestsuite(
     const components::ComponentContext& context) {
-  testsuite_holder_ = std::make_unique<TestsuiteHolder>(
-      context.FindComponent<components::CacheInvalidator>(), name_, *this);
+  RegisterInTestsuite(context.FindComponent<components::CacheInvalidator>());
 }
 
 }  // namespace utils
