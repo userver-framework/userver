@@ -202,9 +202,4 @@ void PeriodicTask::RegisterInTestsuite(
       std::make_unique<TestsuiteHolder>(cache_invalidator, name_, *this);
 }
 
-void PeriodicTask::RegisterInTestsuite(
-    const components::ComponentContext& context) {
-  RegisterInTestsuite(context.FindComponent<components::CacheInvalidator>());
-}
-
 }  // namespace utils
