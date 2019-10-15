@@ -73,6 +73,8 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   utils::statistics::SolomonChildrenAreLabelValues(errors, "postgresql_error");
   errors["query-exec"] = stats.transaction.error_execute_total;
   errors["query-timeout"] = stats.transaction.execute_timeout;
+  errors["duplicate-prepared-statement"] =
+      stats.transaction.duplicate_prepared_statements;
   errors["connection"] = stats.connection.error_total;
   errors["pool"] = stats.pool_exhaust_errors;
   errors["queue"] = stats.queue_size_errors;

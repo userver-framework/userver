@@ -34,6 +34,11 @@ struct TransactionStatistics {
   Counter error_execute_total = 0;
   /// Timeout while executing query
   Counter execute_timeout = 0;
+  /// Duplicate prepared statements
+  /// This is not a hard error, the prepared statements are quite reusable due
+  /// to pretty uniqueness of names. Nevertheless we would like to see them to
+  /// diagnose certain kinds of problems
+  Counter duplicate_prepared_statements = 0;
 
   // TODO pick reasonable resolution for transaction
   // execution times

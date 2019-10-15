@@ -122,6 +122,8 @@ void ConnectionPoolImpl::AccountConnectionStats(
   stats_.transaction.bin_reply_total += conn_stats.bin_reply_total;
   stats_.transaction.error_execute_total += conn_stats.error_execute_total;
   stats_.transaction.execute_timeout += conn_stats.execute_timeout;
+  stats_.transaction.duplicate_prepared_statements +=
+      conn_stats.duplicate_prepared_statements;
 
   stats_.transaction.total_percentile.GetCurrentCounter().Account(
       std::chrono::duration_cast<std::chrono::milliseconds>(

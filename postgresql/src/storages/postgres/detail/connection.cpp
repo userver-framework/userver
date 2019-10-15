@@ -133,6 +133,7 @@ Connection::Statistics::Statistics() noexcept
       bin_reply_total(0),
       error_execute_total(0),
       execute_timeout(0),
+      duplicate_prepared_statements(0),
       sum_query_duration(0) {}
 
 struct Connection::Impl {
@@ -408,14 +409,13 @@ struct Connection::Impl {
       try {
         conn_wrapper_.WaitResult(deadline, scope);
       } catch (const DuplicatePreparedStatement& e) {
-        LOG_ERROR()
-            << "Looks like your pg_bouncer doesn't clean up connections "
-               "upon returning them to the pool. Please set pg_bouncer's "
-               "pooling mode to `session` and `server_reset_query` parameter "
-               "to `DISCARD ALL`. Please see documentation here "
-               "https://nda.ya.ru/3UXMpu";
-        span.AddTag(tracing::kErrorFlag, true);
-        throw;
+        // As we have a pretty unique hash for a statement, we can safely use
+        // it. This situation might happen when `SendPrepare` times out and we
+        // erase the statement from `prepared_` map.
+        LOG_DEBUG() << "Statement `" << statement
+                    << "` was already prepared, there was possibly a timeout "
+                       "while preparing, see log above.";
+        ++stats_.duplicate_prepared_statements;
       } catch (const std::exception&) {
         prepared_.erase(query_hash);
         span.AddTag(tracing::kErrorFlag, true);

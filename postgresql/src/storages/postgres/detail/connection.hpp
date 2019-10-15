@@ -67,6 +67,9 @@ class Connection {
     Counter error_execute_total;
     /// Timeout while executing
     Counter execute_timeout;
+    /// Number of duplicate prepared statements errors,
+    /// probably caused by timeout while preparing
+    Counter duplicate_prepared_statements;
 
     /// Transaction initiation time (includes wait in pool)
     SteadyClock::time_point trx_start_time;
