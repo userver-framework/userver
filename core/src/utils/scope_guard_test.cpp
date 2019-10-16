@@ -1,4 +1,9 @@
 #include <utest/utest.hpp>
+
+#ifndef NDEBUG
+#define NDEBUG  // for ExceptionSuppression test
+#endif
+
 #include <utils/scope_guard.hpp>
 
 TEST(ScopeGuard, Dtr) {
@@ -29,4 +34,23 @@ TEST(ScopeGuard, Exception) {
   } catch (const std::runtime_error&) {
   }
   EXPECT_EQ(x, 1);
+}
+
+TEST(ScopeGuard, ExceptionPropagation) {
+  struct TestException : std::exception {};
+
+  EXPECT_THROW([] { utils::ScopeGuard guard{[] { throw TestException{}; }}; }(),
+               TestException);
+}
+
+TEST(ScopeGuard, ExceptionSuppression) {
+  struct TestExceptionInner : std::exception {};
+  struct TestExceptionOuter : std::exception {};
+
+  EXPECT_THROW(
+      [] {
+        utils::ScopeGuard guard{[] { throw TestExceptionInner{}; }};
+        throw TestExceptionOuter{};
+      }(),
+      TestExceptionOuter);
 }

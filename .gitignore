@@ -14,3 +14,4 @@ static-analyzer-report
 .pydevproject
 .settings*
 .clangd
+.vscode
