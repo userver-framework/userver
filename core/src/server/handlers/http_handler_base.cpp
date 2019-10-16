@@ -228,7 +228,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
 
     if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
     span.AddNonInheritableTag(tracing::kHttpMetaType,
-                              http_request.GetRequestPath());
+                              GetMetaType(http_request));
     span.AddNonInheritableTag(tracing::kType, kTracingTypeResponse);
     span.AddNonInheritableTag(tracing::kHttpMethod,
                               http_request.GetMethodStr());
@@ -396,6 +396,11 @@ std::string HttpHandlerBase::GetResponseDataForLogging(
     const std::string& response_data) const {
   size_t limit = GetConfig().response_data_size_log_limit;
   return GetTruncatedBodyForLogging(response_data, limit);
+}
+
+std::string HttpHandlerBase::GetMetaType(
+    const http::HttpRequest& request) const {
+  return request.GetRequestPath();
 }
 
 std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(

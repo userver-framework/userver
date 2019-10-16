@@ -86,6 +86,8 @@ class HttpHandlerBase : public HandlerBase {
   virtual void ParseRequestData(const http::HttpRequest&,
                                 request::RequestContext&) const {}
 
+  virtual std::string GetMetaType(const http::HttpRequest&) const;
+
  private:
   std::string GetRequestBodyForLoggingChecked(
       const http::HttpRequest& request, request::RequestContext& context,
