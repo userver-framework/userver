@@ -41,7 +41,7 @@ class Client {
 
   std::shared_ptr<Request> CreateRequest();
 
-  /// Providing CreateNonSignedRequest() function for the clinets::Http alias.
+  /// Providing CreateNonSignedRequest() function for the clients::Http alias.
   std::shared_ptr<Request> CreateNotSignedRequest() { return CreateRequest(); }
 
   void SetMaxPipelineLength(size_t max_pipeline_length);

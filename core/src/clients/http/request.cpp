@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -33,7 +34,7 @@ namespace http {
 namespace {
 /// Maximum number of redirects
 constexpr long kMaxRedirectCount = 10;
-/// Max number of retries during calculating timeoutt
+/// Max number of retries during calculating timeout
 constexpr int kMaxRetryInTimeout = 5;
 /// Base time for exponential backoff algorithm
 constexpr long kEBBaseTime = 25;
@@ -69,16 +70,10 @@ const std::map<std::string, std::error_code> kTestsuiteActions = {
 const std::string kTestsuiteSupportedErrors =
     boost::algorithm::join(boost::adaptors::keys(kTestsuiteActions), ",");
 
-[[noreturn]] void AbortOnUnsupportedTestsuiteError(const std::string& error) {
+[[noreturn]] void AbortWithStacktrace() {
   auto trace = boost::stacktrace::stacktrace();
   std::string trace_msg = boost::stacktrace::to_string(trace);
-
-  std::cerr
-      << "Unsupported mockserver protocol X-Testsuite-Error header value: "
-      << error
-      << ". Try to update submodules and recompile project first. If it does "
-         "not help please contact testsuite support team. Stacktrace: \n"
-      << trace_msg << "\n";
+  std::cerr << "Stacktrace: " << trace_msg << "\n";
   std::abort();
 }
 
@@ -96,7 +91,12 @@ std::error_code TestsuiteResponseHook(const Response& response,
         return error_it->second;
       }
 
-      AbortOnUnsupportedTestsuiteError(it->second);
+      std::cerr
+          << "Unsupported mockserver protocol X-Testsuite-Error header value: "
+          << it->second
+          << ". Try to update submodules and recompile project first. If it "
+             "does not help please contact testsuite support team.\n";
+      AbortWithStacktrace();
     }
   }
   return {};
@@ -172,6 +172,8 @@ class Request::RequestImpl
   void perform_request(curl::easy::handler_type handler);
 
   void AccountResponse(std::error_code err);
+
+  void ApplyTestsuiteConfig();
 
  private:
   /// curl handler wrapper
@@ -621,10 +623,7 @@ Request::RequestImpl::async_perform() {
   easy().add_header(::http::headers::kXYaRequestId, span_->GetLink());
   span_->AddTag(tracing::kHttpUrl, easy().get_effective_url());
 
-  if (testsuite_config_) {
-    easy().add_header("X-Testsuite-Supported-Errors",
-                      kTestsuiteSupportedErrors);
-  }
+  ApplyTestsuiteConfig();
 
   // Span is local to a Request, it is not related to current coroutine
   span_->DetachFromCoroStack();
@@ -662,6 +661,39 @@ void Request::RequestImpl::perform_request(curl::easy::handler_type handler) {
 
   // perform request
   easy().async_perform(std::move(handler));
+}
+
+void Request::RequestImpl::ApplyTestsuiteConfig() {
+  if (!testsuite_config_) {
+    return;
+  }
+
+  const auto& prefixes = testsuite_config_->allowed_url_prefixes;
+  if (!prefixes.empty()) {
+    std::string effective_url = easy().get_effective_url();
+    std::string url = effective_url;
+    // the if branch below will be removed with TAXIDATA-1489
+    if (!boost::starts_with(url, "http://") &&
+        !boost::starts_with(url, "https://")) {
+      url.insert(0, "http://");
+    }
+    if (std::find_if(prefixes.begin(), prefixes.end(),
+                     [&url](const std::string& prefix) {
+                       return boost::starts_with(url, prefix);
+                     }) == prefixes.end()) {
+      std::cerr << effective_url << " is forbidden by testsuite config, "
+                << "url_with_schema=" << url << " allowed prefixes=\n"
+                << boost::algorithm::join(prefixes, "\n") << "\n";
+      AbortWithStacktrace();
+    }
+  }
+
+  const auto& timeout = testsuite_config_->http_request_timeout;
+  if (timeout) {
+    set_timeout(std::chrono::milliseconds(*timeout).count());
+  }
+
+  easy().add_header("X-Testsuite-Supported-Errors", kTestsuiteSupportedErrors);
 }
 
 }  // namespace http

@@ -107,13 +107,13 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// or it can be waiting on a future.
   [[nodiscard]] ResponseFuture async_perform();
 
-  /// Calls async_perform and wait for timeout_ms on a future. Deafult time
+  /// Calls async_perform and wait for timeout_ms on a future. Default time
   /// for waiting will be timeout value if it was setted. If error occured it
   /// will be thrown as exception.
 
   [[nodiscard]] std::shared_ptr<Response> perform();
 
-  /// Get curl hadler for specific settings
+  /// Get curl handler for specific settings
   curl::easy& easy();
   const curl::easy& easy() const;
   /// Get Response class

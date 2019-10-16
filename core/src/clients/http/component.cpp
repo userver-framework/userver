@@ -1,3 +1,5 @@
+#include <boost/algorithm/string.hpp>
+
 #include <clients/http/component.hpp>
 
 #include <components/component_config.hpp>
@@ -16,7 +18,7 @@ namespace components {
 
 namespace {
 const auto kDestinationMetricsAutoMaxSizeDefault = 100;
-}
+}  // namespace
 
 HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
@@ -36,7 +38,15 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   auto testsuite_enabled =
       component_config.ParseBool("testsuite-enabled", false);
   if (testsuite_enabled) {
-    http_client_->SetTestsuiteConfig({});
+    const auto& timeout =
+        component_config.ParseOptionalDuration("testsuite-timeout");
+    auto prefixes_lines =
+        component_config.ParseString("testsuite-allowed-url-prefixes", "");
+    std::vector<std::string> prefixes;
+    // TODO replace splitting string by config.Parse<std::vector<std::string>>
+    // as soon as https://st.yandex-team.ru/TAXICOMMON-1599 gets fixed
+    boost::split(prefixes, prefixes_lines, boost::is_any_of(" \t\r\n"));
+    http_client_->SetTestsuiteConfig({prefixes, timeout});
   }
 
   OnConfigUpdate(config);
