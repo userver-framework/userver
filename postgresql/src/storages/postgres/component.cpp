@@ -104,8 +104,10 @@ formats::json::ValueBuilder ClusterStatisticsToJson(
   utils::statistics::SolomonChildrenAreLabelValues(
       cluster, "postgresql_cluster_host_type");
   auto master = cluster["master"];
+  master = {formats::json::Type::kObject};
   AddInstanceStatistics(stats->master, master);
   auto sync_slave = cluster["sync_slave"];
+  sync_slave = {formats::json::Type::kObject};
   AddInstanceStatistics(stats->sync_slave, sync_slave);
   auto slaves = cluster["slaves"];
   slaves = {formats::json::Type::kObject};
