@@ -8,6 +8,15 @@
 
 namespace utils {
 
+#if OPENSSL_VERSION_NUMBER >= 0x010100000L
+
+// OpenSSL >= 1.1 has builtin threading support
+OpensslLock::OpensslLock() = default;
+void OpensslLock::Init() {}
+void OpensslLock::LockingFunction(int, int, const char*, int) {}
+
+#else
+
 void OpensslLock::LockingFunction(int mode, int n, const char*, int) {
   static std::vector<std::mutex> mutexes(CRYPTO_num_locks());
 
@@ -28,5 +37,7 @@ OpensslLock::OpensslLock() {
 }
 
 void OpensslLock::Init() { [[maybe_unused]] static OpensslLock lock; }
+
+#endif
 
 }  // namespace utils
