@@ -14,6 +14,7 @@ namespace cache {
 enum class AllowedUpdateTypes {
   kFullAndIncremental,
   kOnlyFull,
+  kOnlyIncremental,
 };
 
 struct CacheConfig {

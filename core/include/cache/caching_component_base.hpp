@@ -4,6 +4,7 @@
 #include <memory>
 #include <mutex>
 
+#include <cache/cache_invalidator.hpp>
 #include <cache/cache_statistics.hpp>
 #include <components/statistics_storage.hpp>
 #include <engine/condition_variable.hpp>
@@ -28,7 +29,7 @@ namespace components {
 /// You need to override CacheUpdateTrait::Update
 /// then call CacheUpdateTrait::StartPeriodicUpdates after setup
 /// and CacheUpdateTrait::StopPeriodicUpdates before teardown.
-/// 
+///
 /// Caching components must be configured in service config (see options below)
 /// and may be reconfigured dynamically via TaxiConfig.
 ///
@@ -40,6 +41,7 @@ namespace components {
 /// update-jitter | max. amount of time by which interval may be adjusted for requests desynchronization | update_interval / 10
 /// full-update-interval | interval between full updates | --
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
+/// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in CacheInvalidator component config | --
 ///
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
@@ -48,6 +50,10 @@ namespace components {
 ///    has passed and UpdateType::kFull is triggered.
 ///  * `only-full`: only `update-interval` must be specified. UpdateType::kFull
 ///    will be triggered each `update-interval` (adjusted by jitter).
+///
+/// ### testsuite-force-periodic-update
+///  use it to enable periodic cache update for a component in testsuite environment
+///  where testsuite-periodic-update-enabled from CacheInvalidator config is false
 ///
 /// By default, update types are guessed based on update intervals presence.
 /// If both `update-interval` and `full-update-interval` are present,
@@ -83,11 +89,24 @@ class CachingComponentBase
 
   void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
 
+  bool IsPeriodicUpdateEnabled() const override {
+    return periodic_update_enabled_;
+  }
+
+  // This will be removed with TAXIDATA-1333.
+  // We introduced a change that must be supported in both Userver and Uservices
+  // so the tests for Userver against unmodified Uservices wont pass.
+  bool IsLegacyInvalidateLogicEnabled() const override {
+    return legacy_invalidate_logic_enabled_;
+  }
+
  private:
   utils::statistics::Entry statistics_holder_;
   utils::SwappingSmart<const T> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
   server::CacheInvalidatorHolder cache_invalidator_holder_;
+  bool periodic_update_enabled_;
+  bool legacy_invalidate_logic_enabled_;
   const std::string name_;
 };
 
@@ -99,6 +118,11 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       utils::AsyncEventChannel<const std::shared_ptr<const T>&>(name),
       CacheUpdateTrait(cache::CacheConfig(config), name),
       cache_invalidator_holder_(*this, context),
+      periodic_update_enabled_(
+          context.FindComponent<CacheInvalidator>().IsPeriodicUpdateEnabled(
+              config, name)),
+      legacy_invalidate_logic_enabled_(context.FindComponent<CacheInvalidator>()
+                                           .IsLegacyInvalidateLogicEnabled()),
       name_(name) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();

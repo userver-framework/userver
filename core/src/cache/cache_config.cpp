@@ -48,6 +48,8 @@ AllowedUpdateTypes ParseUpdateMode(const components::ComponentConfig& config) {
     return AllowedUpdateTypes::kFullAndIncremental;
   } else if (*update_types_str == "only-full") {
     return AllowedUpdateTypes::kOnlyFull;
+  } else if (*update_types_str == "only-incremental") {
+    return AllowedUpdateTypes::kOnlyIncremental;
   }
 
   throw std::logic_error("Invalid update types '" + *update_types_str +
@@ -83,11 +85,13 @@ CacheConfig::CacheConfig(const components::ComponentConfig& config)
       }
       break;
     case AllowedUpdateTypes::kOnlyFull:
+    case AllowedUpdateTypes::kOnlyIncremental:
       if (full_update_interval.count()) {
-        throw std::logic_error(
-            kFullUpdateInterval +
-            " config field should not be used for only-full updated cache '" +
-            config.Name() + "'. Please rename it to " + kUpdateInterval + '.');
+        throw std::logic_error(kFullUpdateInterval +
+                               " config field only be used with "
+                               "full-and-incremental updated cache '" +
+                               config.Name() + "'. Please rename it to " +
+                               kUpdateInterval + '.');
       }
       if (!update_interval.count()) {
         throw std::logic_error(kUpdateInterval + " is not set for cache '" +

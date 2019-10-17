@@ -5,10 +5,17 @@ namespace components {
 
 namespace {
 const std::string kCacheInvalidateSpanTag = "cache_invalidate";
+const std::string kLegacyInvalidateLogic = "legacy-invalidate-logic";
+const std::string kPeriodicUpdateEnabled = "testsuite-periodic-update-enabled";
+const std::string kForcePeriodicUpdate = "testsuite-force-periodic-update";
 }  // namespace
 
-CacheInvalidator::CacheInvalidator(const components::ComponentConfig&,
-                                   const components::ComponentContext&) {}
+CacheInvalidator::CacheInvalidator(const components::ComponentConfig& config,
+                                   const components::ComponentContext&)
+    : periodic_update_enabled_(
+          config.ParseOptionalBool(kPeriodicUpdateEnabled)),
+      legacy_invalidate_logic_enabled_(
+          config.ParseBool(kLegacyInvalidateLogic, true)) {}
 
 void CacheInvalidator::InvalidateCaches(cache::UpdateType update_type) {
   std::lock_guard<engine::Mutex> lock(mutex_);
@@ -100,6 +107,30 @@ bool CacheInvalidator::RunPeriodicTask(const std::string& name) {
     throw std::runtime_error(error_msg);
   }
   return it->second.SynchronizeDebug(true);
+}
+
+bool CacheInvalidator::IsPeriodicUpdateEnabled(
+    const ComponentConfig& cache_component_config,
+    const std::string& cache_component_name) const {
+  const auto& force_periodic_update =
+      cache_component_config.ParseOptionalBool(kForcePeriodicUpdate);
+  bool enabled;
+  std::string reason;
+  if (force_periodic_update) {
+    enabled = *force_periodic_update;
+    reason = "config";
+  } else if (periodic_update_enabled_) {
+    enabled = *periodic_update_enabled_;
+    reason = std::string(kName) + " config";
+  } else {
+    enabled = true;
+    reason = "default";
+  }
+
+  auto state = enabled ? "enabled" : "disabled";
+  LOG_DEBUG() << cache_component_name << " periodic update is " << state
+              << " by " << reason;
+  return enabled;
 }
 
 }  // namespace components

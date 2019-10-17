@@ -39,6 +39,13 @@ class CacheInvalidator final : public components::impl::ComponentBase {
 
   bool RunPeriodicTask(const std::string& name);
 
+  bool IsPeriodicUpdateEnabled(const ComponentConfig& cache_component_config,
+                               const std::string& cache_component_name) const;
+
+  bool IsLegacyInvalidateLogicEnabled() const {
+    return legacy_invalidate_logic_enabled_;
+  }
+
  private:
   template <typename T, typename Callback>
   struct Invalidator {
@@ -64,6 +71,8 @@ class CacheInvalidator final : public components::impl::ComponentBase {
   std::vector<ComponentInvalidatorStruct> invalidators_;
 
   std::unordered_map<std::string, utils::PeriodicTask&> periodic_tasks_;
+  boost::optional<bool> periodic_update_enabled_;
+  bool legacy_invalidate_logic_enabled_;
 };
 
 }  // namespace components
