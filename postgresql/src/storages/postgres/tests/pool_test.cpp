@@ -172,7 +172,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
                            pg::TimeoutDuration{1000}});
 
     {
-      auto const& stats = pool->GetStatistics();
+      const auto& stats = pool->GetStatistics();
       EXPECT_EQ(0, stats.connection.open_total);
       EXPECT_EQ(1, stats.connection.active);
       EXPECT_EQ(0, stats.connection.error_total);
@@ -191,7 +191,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
           << "Connection is left in an unusable state";
     }
     {
-      auto const& stats = pool->GetStatistics();
+      const auto& stats = pool->GetStatistics();
       EXPECT_EQ(1, stats.connection.open_total);
       EXPECT_EQ(1, stats.connection.active);
       EXPECT_EQ(1, stats.connection.used);
@@ -210,7 +210,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
       EXPECT_NO_THROW(trx.Commit()) << "Connection is left in a usable state";
     }
     {
-      auto const& stats = pool->GetStatistics();
+      const auto& stats = pool->GetStatistics();
       EXPECT_EQ(1, stats.connection.open_total);
       EXPECT_EQ(1, stats.connection.active);
       EXPECT_EQ(0, stats.connection.used);

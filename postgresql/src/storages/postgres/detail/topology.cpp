@@ -98,14 +98,14 @@ class ClusterTopology::ClusterDescriptionVisitor {
  public:
   ClusterDescriptionVisitor(ClusterTopology& topology) : topology_{topology} {}
 
-  DSNList operator()(DSNList const& dsn_list) const {
+  DSNList operator()(const DSNList& dsn_list) const {
     if (dsn_list.empty()) {
       throw InvalidConfig("Empty DSN list specified for PostgreSQL cluster");
     }
     return dsn_list;
   }
 
-  DSNList operator()(ClusterDescription::PredefinedRoles const& roles) const {
+  DSNList operator()(const ClusterDescription::PredefinedRoles& roles) const {
     HostsByType hosts_by_type;
     std::set<std::string> dsns;
     if (!roles.master_dsn_.empty()) {

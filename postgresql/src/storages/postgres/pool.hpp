@@ -38,7 +38,7 @@ class ConnectionPool {
   ConnectionPool(ConnectionPool&&) noexcept;
   ConnectionPool& operator=(ConnectionPool&&) noexcept;
 
-  std::string const& GetDsn() const;
+  const std::string& GetDsn() const;
 
   /// Get idle connection from pool
   /// If no idle connection and `max_size` is not reached - create a new

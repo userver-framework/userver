@@ -7,6 +7,7 @@
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/options.hpp>
+#include <storages/postgres/portal.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 #include <storages/postgres/result_set.hpp>
 
@@ -148,7 +149,7 @@ class Transaction {
   /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
   /// InvalidParameterType
   template <typename... Args>
-  ResultSet Execute(const std::string& statement, Args const&... args) {
+  ResultSet Execute(const std::string& statement, const Args&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
     return DoExecute(statement, params, {});
@@ -160,11 +161,32 @@ class Transaction {
   /// InvalidParameterType
   template <typename... Args>
   ResultSet Execute(CommandControl statement_cmd_ctl,
-                    const std::string& statement, Args const&... args) {
+                    const std::string& statement, const Args&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
     return DoExecute(statement, params, std::move(statement_cmd_ctl));
   }
+
+  /// Create a portal for fetching results of a statement with arbitrary
+  /// parameters.
+  template <typename... Args>
+  Portal MakePortal(const std::string& statement, const Args&... args) {
+    detail::QueryParameters params;
+    params.Write(GetConnectionUserTypes(), args...);
+    return MakePortal(PortalName{}, statement, params, {});
+  }
+
+  /// Create a portal for fetching results of a statement with arbitrary
+  /// parameters and per-statement command control.
+  template <typename... Args>
+  Portal MakePortal(CommandControl statement_cmd_ctl,
+                    const std::string& statement, const Args&... args) {
+    detail::QueryParameters params;
+    params.Write(GetConnectionUserTypes(), args...);
+    return MakePortal(PortalName{}, statement, params,
+                      std::move(statement_cmd_ctl));
+  }
+
   /// Set a connection parameter
   /// https://www.postgresql.org/docs/current/sql-set.html
   /// The parameter is set for this transaction only
@@ -186,6 +208,10 @@ class Transaction {
   ResultSet DoExecute(const std::string& statement,
                       const detail::QueryParameters& params,
                       OptionalCommandControl statement_cmd_ctl);
+  Portal MakePortal(const PortalName&, const std::string& statement,
+                    const detail::QueryParameters& params,
+                    OptionalCommandControl statement_cmd_ctl);
+
   const UserTypes& GetConnectionUserTypes() const;
 
  private:

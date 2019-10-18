@@ -373,28 +373,9 @@ struct Connection::Impl {
     return ExecuteCommand(statement, params, deadline);
   }
 
-  ResultSet ExecuteCommand(const std::string& statement,
-                           const detail::QueryParameters& params,
-                           engine::Deadline deadline) {
-    if (settings_.prepared_statements ==
-        ConnectionSettings::kNoPreparedStatements) {
-      return ExecuteCommandNoPrepare(statement, params, deadline);
-    }
-    tracing::Span span{scopes::kQuery};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
-    span.AddTag(tracing::kDatabaseStatement, statement);
-    if (deadline.IsReached()) {
-      ++stats_.execute_timeout;
-      LOG_ERROR()
-          << "Deadline was reached before starting to execute statement `"
-          << statement << "`";
-      throw ConnectionTimeoutError{"Deadline reached before executing"};
-    }
-    auto scope = span.CreateScopeTime();
-    TimeoutDuration network_timeout =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            deadline.TimeLeft());
-    CountExecute count_execute(stats_);
+  std::pair<std::string, io::DataFormat> PrepareStatement(
+      const std::string& statement, const detail::QueryParameters& params,
+      engine::Deadline deadline, tracing::Span& span, ScopeTime& scope) {
     auto query_hash = QueryHash(statement, params);
     std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
 
@@ -430,12 +411,33 @@ struct Connection::Impl {
           res.GetRowDescription().BestReplyFormat(db_types_);
       ++stats_.parse_total;
     }
-    // Get field descriptions from the prepare result and use them to
-    // build text/binary format description
-    auto fmt = prepared_[query_hash];
-    LOG_TRACE() << "Use "
-                << (fmt == io::DataFormat::kTextDataFormat ? "text" : "binary")
-                << " format for reply";
+    return {statement_name, prepared_[query_hash]};
+  }
+
+  ResultSet ExecuteCommand(const std::string& statement,
+                           const detail::QueryParameters& params,
+                           engine::Deadline deadline) {
+    if (settings_.prepared_statements ==
+        ConnectionSettings::kNoPreparedStatements) {
+      return ExecuteCommandNoPrepare(statement, params, deadline);
+    }
+    tracing::Span span{scopes::kQuery};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, statement);
+    if (deadline.IsReached()) {
+      ++stats_.execute_timeout;
+      LOG_ERROR()
+          << "Deadline was reached before starting to execute statement";
+      throw ConnectionTimeoutError{"Deadline reached before executing"};
+    }
+    auto scope = span.CreateScopeTime();
+    TimeoutDuration network_timeout =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline.TimeLeft());
+    CountExecute count_execute(stats_);
+
+    auto [statement_name, fmt] =
+        PrepareStatement(statement, params, deadline, span, scope);
 
     scope.Reset(scopes::kExec);
     conn_wrapper_.SendPreparedQuery(statement_name, params, scope, fmt);
@@ -474,8 +476,7 @@ struct Connection::Impl {
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
       LOG_ERROR()
-          << "Deadline was reached before starting to execute statement `"
-          << statement << "`";
+          << "Deadline was reached before starting to execute statement";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
     auto scope = span.CreateScopeTime();
@@ -504,6 +505,71 @@ struct Connection::Impl {
         engine::Deadline::FromDuration(CurrentNetworkTimeout()), scope);
     FillBufferCategories(res);
     return res;
+  }
+
+  void PortalBind(const std::string& statement, const std::string& portal_name,
+                  const detail::QueryParameters& params,
+                  OptionalCommandControl statement_cmd_ctl) {
+    if (settings_.prepared_statements ==
+        ConnectionSettings::kNoPreparedStatements) {
+      LOG_ERROR()
+          << "Portals without prepared statements are currently unsupported";
+      throw LogicError{
+          "Prepared statements shouldn't be turned off while using portals"};
+    }  // TODO Prepare unnamed query instead
+
+    CheckBusy();
+    TimeoutDuration network_timeout = !!statement_cmd_ctl
+                                          ? statement_cmd_ctl->network
+                                          : CurrentNetworkTimeout();
+    auto deadline = engine::Deadline::FromDuration(network_timeout);
+    SetStatementTimeout(std::move(statement_cmd_ctl));
+
+    tracing::Span span{scopes::kQuery};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, statement);
+    if (deadline.IsReached()) {
+      ++stats_.execute_timeout;
+      LOG_ERROR()
+          << "Deadline was reached before starting to execute statement";
+      throw ConnectionTimeoutError{"Deadline reached before executing"};
+    }
+    auto scope = span.CreateScopeTime();
+    CountExecute count_execute(stats_);
+
+    auto [statement_name, fmt] =
+        PrepareStatement(statement, params, deadline, span, scope);
+
+    scope.Reset(scopes::kBind);
+    conn_wrapper_.SendPortalBind(statement_name, portal_name, params, scope,
+                                 fmt);
+    conn_wrapper_.ConsumeInput(deadline);
+  }
+
+  ResultSet PortalExecute(const std::string& portal_name, std::uint32_t n_rows,
+                          OptionalCommandControl statement_cmd_ctl) {
+    TimeoutDuration network_timeout = !!statement_cmd_ctl
+                                          ? statement_cmd_ctl->network
+                                          : CurrentNetworkTimeout();
+
+    auto deadline = engine::Deadline::FromDuration(network_timeout);
+    SetStatementTimeout(std::move(statement_cmd_ctl));
+
+    tracing::Span span{scopes::kQuery};
+    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    if (deadline.IsReached()) {
+      ++stats_.execute_timeout;
+      // TODO Portal name function, logging 'unnamed portal' for an empty name
+      LOG_ERROR() << "Deadline was reached before starting to execute portal `"
+                  << portal_name << "`";
+      throw ConnectionTimeoutError{"Deadline reached before executing"};
+    }
+    auto scope = span.CreateScopeTime(scopes::kExec);
+    CountExecute count_execute(stats_);
+    conn_wrapper_.SendPortalExecute(portal_name, n_rows, scope);
+
+    return WaitResult(portal_name, deadline, network_timeout, count_execute,
+                      span, scope, io::DataFormat::kBinaryDataFormat);
   }
 
   ResultSet WaitResult(const std::string& statement, engine::Deadline deadline,
@@ -715,6 +781,21 @@ ResultSet Connection::ExperimentalExecute(
     const std::string& statement, io::DataFormat reply_format,
     const detail::QueryParameters& params) {
   return pimpl_->ExperimentalExecute(statement, reply_format, params);
+}
+
+void Connection::PortalBind(const std::string& statement,
+                            const std::string& portal_name,
+                            const detail::QueryParameters& params,
+                            OptionalCommandControl statement_cmd_ctl) {
+  pimpl_->PortalBind(statement, portal_name, params,
+                     std::move(statement_cmd_ctl));
+}
+
+ResultSet Connection::PortalExecute(const std::string& portal_name,
+                                    std::uint32_t n_rows,
+                                    OptionalCommandControl statement_cmd_ctl) {
+  return pimpl_->PortalExecute(portal_name, n_rows,
+                               std::move(statement_cmd_ctl));
 }
 
 void Connection::Begin(const TransactionOptions& options,

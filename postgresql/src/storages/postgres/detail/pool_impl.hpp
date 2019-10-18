@@ -33,7 +33,7 @@ class ConnectionPoolImpl
       CommandControl default_cmd_ctl);
   ~ConnectionPoolImpl();
 
-  std::string const& GetDsn() const { return dsn_; }
+  const std::string& GetDsn() const { return dsn_; }
 
   [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
   void Release(Connection* connection);

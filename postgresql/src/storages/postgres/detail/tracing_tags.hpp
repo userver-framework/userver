@@ -14,6 +14,8 @@ const std::string kGetConnectData = "pg_get_conn_data";
 const std::string kQuery = "pg_query";
 /// Prepare query, driver level
 const std::string kPrepare = "pg_prepare";
+/// Bind portal, driver level
+const std::string kBind = "pg_bind";
 /// Execute query, driver level
 const std::string kExec = "pg_exec";
 
@@ -34,5 +36,9 @@ const std::string kLibpqSendPrepare = "libpq_send_prepare";
 const std::string kLibpqSendDescribePrepared = "libpq_send_describe_prepared";
 /// libpq send query prepared stage
 const std::string kLibpqSendQueryPrepared = "libpq_send_query_prepared";
+/// libpq-missing send bind portal
+const std::string kPqSendPortalBind = "pq_send_portal_bind";
+/// libpq-missing send execute portal
+const std::string kPqSendPortalExecute = "pq_send_portal_execute";
 
 }  // namespace storages::postgres::scopes

@@ -36,7 +36,7 @@ class ResultWrapper {
   std::string CommandStatus() const;
   std::size_t RowsAffected() const;
 
-  std::size_t IndexOfName(std::string const& name) const;
+  std::size_t IndexOfName(const std::string& name) const;
 
   FieldDescription GetFieldDescription(std::size_t col) const;
   io::DataFormat GetFieldFormat(std::size_t col) const;

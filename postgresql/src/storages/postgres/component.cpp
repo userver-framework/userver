@@ -200,7 +200,7 @@ Postgres::Postgres(const ComponentConfig& config,
   // Start all clusters here
   LOG_DEBUG() << "Start " << cluster_desc_.size() << " shards for " << db_name_;
   std::vector<engine::TaskWithResult<void>> tasks;
-  for (auto const& cluster_desc : cluster_desc_) {
+  for (const auto& cluster_desc : cluster_desc_) {
     auto cluster =
         std::make_shared<pg::Cluster>(cluster_desc, *bg_task_processor_,
                                       pool_settings_, conn_settings_, cmd_ctl);

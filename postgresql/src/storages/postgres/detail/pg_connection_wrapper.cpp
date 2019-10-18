@@ -5,6 +5,9 @@
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/message.hpp>
 
+#include <pq_portal_funcs.h>
+#include <pq_workaround.h>
+
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 
@@ -276,7 +279,7 @@ void PGConnectionWrapper::Flush(Deadline deadline) {
 }
 
 void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
-  while (PQisBusy(conn_)) {
+  while (PQXisBusy(conn_)) {
     if (!WaitSocketReadable(deadline)) {
       PGCW_LOG_ERROR()
           << "Timeout while consuming input from PostgreSQL connection socket";
@@ -292,7 +295,7 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline, ScopeTime& scope) {
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(deadline);
-  while (auto pg_res = PQgetResult(conn_)) {
+  while (auto pg_res = PQXgetResult(conn_)) {
     if (handle) {
       // TODO Decide about the severity of this situation
       PGCW_LOG_DEBUG()
@@ -308,7 +311,7 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(deadline);
-  while (auto pg_res = PQgetResult(conn_)) {
+  while (auto pg_res = PQXgetResult(conn_)) {
     handle = MakeResultHandle(pg_res);
     ConsumeInput(deadline);
   }
@@ -383,10 +386,12 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
         PGCW_LOG_WARNING() << "Fatal error occured: " << msg.GetMessage()
                            << msg.GetLogExtra();
       }
+      LOG_DEBUG() << "Ready to throw";
       msg.ThrowException();
       break;
     }
   }
+  LOG_DEBUG() << "Result checked";
   return ResultSet{wrapper};
 }
 
@@ -463,6 +468,39 @@ void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
                             params.ParamFormatsBuffer(),
                             static_cast<int>(reply_format)));
   }
+  UpdateLastUse();
+}
+
+void PGConnectionWrapper::SendPortalBind(const std::string& statement_name,
+                                         const std::string& portal_name,
+                                         const QueryParameters& params,
+                                         ScopeTime& scope,
+                                         io::DataFormat reply_format) {
+  scope.Reset(scopes::kPqSendPortalBind);
+  if (params.Empty()) {
+    CheckError<CommandError>(
+        "PQXSendPortalBind",
+        PQXSendPortalBind(conn_, statement_name.c_str(), portal_name.c_str(), 0,
+                          nullptr, nullptr, nullptr,
+                          static_cast<int>(reply_format)));
+  } else {
+    CheckError<CommandError>(
+        "PQXSendPortalBind",
+        PQXSendPortalBind(
+            conn_, statement_name.c_str(), portal_name.c_str(), params.Size(),
+            params.ParamBuffers(), params.ParamLengthsBuffer(),
+            params.ParamFormatsBuffer(), static_cast<int>(reply_format)));
+  }
+  UpdateLastUse();
+}
+
+void PGConnectionWrapper::SendPortalExecute(const std::string& portal_name,
+                                            std::uint32_t n_rows,
+                                            ScopeTime& scope) {
+  scope.Reset(scopes::kPqSendPortalExecute);
+  CheckError<CommandError>(
+      "PQXSendPortalExecute",
+      PQXSendPortalExecute(conn_, portal_name.c_str(), n_rows));
   UpdateLastUse();
 }
 

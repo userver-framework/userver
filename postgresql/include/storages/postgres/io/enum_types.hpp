@@ -117,7 +117,7 @@ class EnumerationMap {
 
   static MapsPair MapLiterals() {
     MapsPair maps;
-    for (auto const& enumerator : enumerators) {
+    for (const auto& enumerator : enumerators) {
       maps.first.insert(
           std::make_pair(enumerator.enumerator, enumerator.literal));
       maps.second.insert(

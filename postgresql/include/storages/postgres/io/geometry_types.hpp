@@ -201,7 +201,7 @@ struct PathFormatter : BufferFormatterBase<Path> {
     WriteBinary(types, buffer, value.is_closed);
     Integer points_no = value.points.size();
     WriteBinary(types, buffer, points_no);
-    for (auto const& p : value.points) {
+    for (const auto& p : value.points) {
       WriteBinary(types, buffer, p);
     }
   }
@@ -229,7 +229,7 @@ struct PolygonFormatter : BufferFormatterBase<Polygon> {
   void operator()(const UserTypes& types, Buffer& buffer) const {
     Integer points_no = value.points.size();
     WriteBinary(types, buffer, points_no);
-    for (auto const& p : value.points) {
+    for (const auto& p : value.points) {
       WriteBinary(types, buffer, p);
     }
   }

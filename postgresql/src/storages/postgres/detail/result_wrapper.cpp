@@ -146,7 +146,8 @@ io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row,
 }
 
 std::string ResultWrapper::GetErrorMessage() const {
-  return {PQresultErrorMessage(handle_.get())};
+  auto msg = PQresultErrorMessage(handle_.get());
+  return {msg ? msg : "no error message"};
 }
 
 std::string ResultWrapper::GetDetailErrorMessage() const {
@@ -168,8 +169,8 @@ std::string ResultWrapper::GetSqlCode() const {
 }
 
 SqlState ResultWrapper::GetSqlState() const {
-  return SqlStateFromString(
-      PQresultErrorField(handle_.get(), PG_DIAG_SQLSTATE));
+  auto msg = PQresultErrorField(handle_.get(), PG_DIAG_SQLSTATE);
+  return msg ? SqlStateFromString(msg) : SqlState::kUnknownState;
 }
 
 std::string ResultWrapper::GetMessageSchema() const {

@@ -137,7 +137,7 @@ std::string MakeDsnNick(const std::string& conninfo, bool escape) {
   std::array<const char*, 4> keys = {"user", "host", "port", "dbname"};
   std::array<char, 3> delims = {'@', ':', '/'};
   for (size_t i = 0; i < keys.size(); ++i) {
-    auto const& key = keys[i];
+    const auto& key = keys[i];
     if (opt_dict[key].empty()) {
       continue;
     }

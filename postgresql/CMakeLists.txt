@@ -9,6 +9,8 @@ find_package_components_required(ICU "libicu-dev" uc i18n)
     
 find_package(HelperPostgreSQL)
 
+add_subdirectory(pq-extra)
+
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
@@ -43,6 +45,7 @@ target_link_libraries(${PROJECT_NAME}
     yandex-taxi-userver-core
   PRIVATE
     yandex-taxi-userver-uboost-coro # uses TaskProcessor
+    yandex-taxi-pq-extra
     PostgreSQL
     ICU::uc
     ICU::i18n

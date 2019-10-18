@@ -50,7 +50,7 @@ class ClusterTopology {
   HostAvailabilityChanges CheckTopology();
   void OperationFailed(const std::string& dsn);
 
-  DSNList const& GetDsnList() const { return dsns_; }
+  const DSNList& GetDsnList() const { return dsns_; }
 
   // TODO Move constants to config
   // Topology check interval. Should be no less than kMinCheckDuration

@@ -66,6 +66,16 @@ class PGConnectionWrapper {
       const std::string& name, const QueryParameters& params, ScopeTime&,
       io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
 
+  /// @brief Wrapper for PQXSendPortalBind
+  void SendPortalBind(
+      const std::string& statement_name, const std::string& portal_name,
+      const QueryParameters& params, ScopeTime&,
+      io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
+
+  /// @brief Wrapper for PQXSendPortalExecute
+  void SendPortalExecute(const std::string& portal_name, std::uint32_t n_rows,
+                         ScopeTime&);
+
   /// @brief Wait for query result
   /// Will return result or throw an exception
   ResultSet WaitResult(Deadline deadline, ScopeTime&);
@@ -80,6 +90,8 @@ class PGConnectionWrapper {
   void LogNotice(PGresult const*);
 
   TimeoutDuration GetIdleDuration() const;
+
+  void ConsumeInput(Deadline deadline);
 
  private:
   PGTransactionStatusType GetTransactionStatus() const;
@@ -99,7 +111,6 @@ class PGConnectionWrapper {
   [[nodiscard]] bool WaitSocketReadable(Deadline deadline);
 
   void Flush(Deadline deadline);
-  void ConsumeInput(Deadline deadline);
 
   ResultSet MakeResult(ResultHandle&& handle);
 

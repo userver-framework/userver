@@ -495,7 +495,7 @@ class Row {
   std::tuple<T...> As(const std::initializer_list<size_type>& indexes) const;
   //@}
 
-  size_type IndexOfName(std::string const&) const;
+  size_type IndexOfName(const std::string&) const;
 
  protected:
   friend class ResultSet;

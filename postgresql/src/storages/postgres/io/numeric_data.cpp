@@ -126,7 +126,7 @@ struct NumericData {
   // Get binary representation
   std::string GetBuffer() const;
   // Parse string
-  void Parse(std::string const&);
+  void Parse(const std::string&);
   // Output to string
   std::string ToString() const;
 };

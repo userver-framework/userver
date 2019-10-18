@@ -92,7 +92,7 @@ struct CommandControl {
     return {network, s};
   }
 
-  bool operator==(CommandControl const& rhs) const {
+  bool operator==(const CommandControl& rhs) const {
     return network == rhs.network && statement == rhs.statement;
   }
 

@@ -20,7 +20,7 @@ ConnectionPool::ConnectionPool(ConnectionPool&&) noexcept = default;
 
 ConnectionPool& ConnectionPool::operator=(ConnectionPool&&) noexcept = default;
 
-std::string const& ConnectionPool::GetDsn() const { return pimpl_->GetDsn(); }
+const std::string& ConnectionPool::GetDsn() const { return pimpl_->GetDsn(); }
 
 detail::ConnectionPtr ConnectionPool::GetConnection(engine::Deadline deadline) {
   return pimpl_->Acquire(deadline);

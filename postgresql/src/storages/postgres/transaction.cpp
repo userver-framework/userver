@@ -47,6 +47,19 @@ ResultSet Transaction::DoExecute(const std::string& statement,
   return conn_->Execute(statement, params, std::move(statement_cmd_ctl));
 }
 
+Portal Transaction::MakePortal(const PortalName& portal_name,
+                               const std::string& statement,
+                               const detail::QueryParameters& params,
+                               OptionalCommandControl statement_cmd_ctl) {
+  if (!conn_) {
+    LOG_ERROR() << "Make portal called after transaction finished"
+                << logging::LogExtra::Stacktrace();
+    throw NotInTransaction("Transaction handle is not valid");
+  }
+  return Portal{conn_.get(), portal_name, statement, params,
+                std::move(statement_cmd_ctl)};
+}
+
 void Transaction::SetParameter(const std::string& param_name,
                                const std::string& value) {
   if (!conn_) {
