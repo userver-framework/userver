@@ -4,6 +4,7 @@
 #include <boost/variant/variant.hpp>
 
 #include <compiler/demangle.hpp>
+#include <formats/parse/to.hpp>
 
 namespace formats::parse {
 
