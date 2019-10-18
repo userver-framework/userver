@@ -35,6 +35,8 @@ namespace components {
 ///                                   default value 1 second
 /// * update-correction - incremental update window adjustment,
 ///                       default value 0
+/// * chunk-size - number of rows to request from PostgreSQL. default value 0,
+///                all rows are fetched in one request.
 ///
 /// @par Cache policy
 ///
@@ -263,6 +265,7 @@ class PostgreCache final
   const std::chrono::system_clock::duration correction_;
   const std::chrono::milliseconds full_update_timeout_;
   const std::chrono::milliseconds incremental_update_timeout_;
+  const std::size_t chunk_size_;
 };
 
 template <typename PostgreCachePolicy>
@@ -276,7 +279,8 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
                                pg_cache::detail::kDefaultFullUpdateTimeout)},
       incremental_update_timeout_{config.ParseDuration(
           "incremental-update-op-timeout",
-          pg_cache::detail::kDefaultIncrementalUpdateTimeout)} {
+          pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
+      chunk_size_{config.ParseUint64("chunk-size", 0)} {
   if (BaseType::AllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
@@ -367,13 +371,28 @@ void PostgreCache<PostgreCachePolicy>::Update(
   size_t changes = 0;
   // Iterate clusters
   for (auto cluster : clusters_) {
-    auto res = cluster->Execute(
-        kClusterHostType,
-        pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-        query, GetLastUpdated(last_update, *data_cache));
-    stats_scope.IncreaseDocumentsReadCount(res.Size());
-    CacheResults(res, data_cache, stats_scope);
-    changes += res.Size();
+    if (chunk_size_ > 0) {
+      auto trx = cluster->Begin(
+          kClusterHostType, pg::Transaction::RO,
+          pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff});
+      auto portal =
+          trx.MakePortal(query, GetLastUpdated(last_update, *data_cache));
+      while (portal) {
+        auto res = portal.Fetch(chunk_size_);
+        stats_scope.IncreaseDocumentsReadCount(res.Size());
+        CacheResults(res, data_cache, stats_scope);
+        changes += res.Size();
+      }
+      trx.Commit();
+    } else {
+      auto res = cluster->Execute(
+          kClusterHostType,
+          pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
+          query, GetLastUpdated(last_update, *data_cache));
+      stats_scope.IncreaseDocumentsReadCount(res.Size());
+      CacheResults(res, data_cache, stats_scope);
+      changes += res.Size();
+    }
   }
   if (changes > 0 || type == cache::UpdateType::kFull) {
     // Set current cache
