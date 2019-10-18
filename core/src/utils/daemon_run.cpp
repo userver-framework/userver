@@ -44,11 +44,11 @@ int DoDaemonMain(int argc, char** argv,
     components::Run(config_path, components_list, init_log_path);
     return 0;
   } catch (const std::exception& ex) {
-    std::cerr << FILENAME << ':' << __LINE__
-              << " Unhandled exception: " << ex.what() << '\n';
+    std::cerr << "Unhandled exception in components::Run: " << ex.what()
+              << '\n';
     return 1;
   } catch (...) {
-    std::cerr << FILENAME << ':' << __LINE__ << " Non-standard exception: "
+    std::cerr << "Non-standard exception in components::Run: "
               << boost::current_exception_diagnostic_information() << '\n';
     return 1;
   }

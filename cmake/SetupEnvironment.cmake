@@ -117,9 +117,6 @@ else ()
   add_definitions(-D_FORTIFY_SOURCE=2)
 endif ()
 
-# pretty file name for logging
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFILENAME='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
-
 enable_testing ()
 
 set (CMAKE_INSTALL_DO_STRIP "NO")

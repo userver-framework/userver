@@ -76,6 +76,23 @@ void UpdateLogLevelCache() {
   GetShouldLogCache()[static_cast<int>(Level::kNone)] = false;
 }
 
+// For IDE parsing
+#if !defined(LOG_PATH_BASE)
+#define LOG_PATH_BASE ""
+#endif
+
+const char* StripPathBase(const char* path) {
+  static const char* kLogPathBase = LOG_PATH_BASE;
+
+  auto* base_ptr = kLogPathBase;
+  auto* path_stripped = path;
+  while (*base_ptr == *path_stripped && *base_ptr) {
+    ++base_ptr;
+    ++path_stripped;
+  }
+  return *base_ptr ? path : path_stripped;
+}
+
 }  // namespace
 
 LoggerPtr DefaultLogger() { return *DefaultLoggerInternal().Read(); }
@@ -109,6 +126,8 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
                      const char* func) noexcept
     : pimpl_(std::move(logger), level) {
   [[maybe_unused]] const auto initial_capacity = pimpl_->Capacity();
+
+  path = StripPathBase(path);
 
   // The following functions actually never throw if the assertions at the
   // bottom hold.

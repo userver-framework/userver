@@ -175,7 +175,7 @@ void LogFlush();
 }  // namespace logging
 
 #define DO_LOG_TO(logger, lvl) \
-  ::logging::LogHelper(logger, lvl, FILENAME, __LINE__, __func__).AsLvalue()
+  ::logging::LogHelper(logger, lvl, __FILE__, __LINE__, __func__).AsLvalue()
 
 /// @brief Builds a stream and evaluates a message for the default logger
 /// if lvl matches the verbosity, otherwise the message is not evaluated

@@ -1,3 +1,5 @@
+#include <logging/log_message_test.hpp>
+
 #include <gtest/gtest.h>
 
 #include <memory>
@@ -141,4 +143,61 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
     LOG(::logging::Level::kNone) << "test";
   else
     FAIL() << "Logging affected the else statement";
+}
+
+namespace {
+
+void CheckModulePath(const std::string& message, const std::string& expected) {
+  static const std::string kUservicesUserverRoot = "userver/";
+
+  auto module_pos = message.find("module=");
+  ASSERT_NE(std::string::npos, module_pos) << "no module logged";
+  auto path_pos = message.find("( " + expected + ':', module_pos);
+  if (path_pos == std::string::npos) {
+    path_pos =
+        message.find("( " + kUservicesUserverRoot + expected + ':', module_pos);
+  }
+  auto delim_pos = message.find('\t', module_pos);
+  ASSERT_LT(path_pos, delim_pos)
+      << "module mismatch, expected path '" << expected << "', found '"
+      << message.substr(module_pos, delim_pos - module_pos) << '\'';
+}
+
+}  // namespace
+
+TEST_F(LoggingTest, CppModulePath) {
+  LOG_CRITICAL();
+  logging::LogFlush();
+
+  CheckModulePath(sstream.str(), "core/src/logging/log_message_test.cpp");
+}
+
+TEST_F(LoggingTest, HppModulePath) {
+  LoggingHeaderFunction();
+  logging::LogFlush();
+
+  CheckModulePath(sstream.str(), "core/src/logging/log_message_test.hpp");
+}
+
+TEST_F(LoggingTest, ExternalModulePath) {
+  static const std::string kPath = "/somewhere_else/src/test.cpp";
+
+  logging::LogHelper(logging::DefaultLogger(), logging::Level::kCritical,
+                     kPath.c_str(), __LINE__, __func__);
+  logging::LogFlush();
+
+  CheckModulePath(sstream.str(), kPath);
+}
+
+TEST_F(LoggingTest, PartialPrefixModulePath) {
+  static const std::string kRealPath = __FILE__;
+  static const std::string kPath =
+      kRealPath.substr(0, kRealPath.find('/', 1) + 1) +
+      "somewhere_else/src/test.cpp";
+
+  logging::LogHelper(logging::DefaultLogger(), logging::Level::kCritical,
+                     kPath.c_str(), __LINE__, __func__);
+  logging::LogFlush();
+
+  CheckModulePath(sstream.str(), kPath);
 }
