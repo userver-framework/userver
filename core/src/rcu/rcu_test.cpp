@@ -2,17 +2,23 @@
 
 #include <boost/optional.hpp>
 
+#include <engine/sleep.hpp>
+#include <engine/standalone.hpp>
 #include <rcu/rcu.hpp>
 
 using X = std::pair<int, int>;
 
-TEST(Rcu, Ctr) { rcu::Variable<X> ptr; }
+TEST(Rcu, Ctr) {
+  RunInCoro([] { rcu::Variable<X> ptr; });
+}
 
 TEST(Rcu, ReadInit) {
-  rcu::Variable<X> ptr(1, 2);
+  RunInCoro([] {
+    rcu::Variable<X> ptr(1, 2);
 
-  auto reader = ptr.Read();
-  EXPECT_EQ(std::make_pair(1, 2), *reader);
+    auto reader = ptr.Read();
+    EXPECT_EQ(std::make_pair(1, 2), *reader);
+  });
 }
 
 TEST(Rcu, ChangeRead) {
@@ -152,6 +158,7 @@ TEST(Rcu, Lifetime) {
 
       writer->value = 10;
       writer.Commit();
+      engine::Yield();
       EXPECT_EQ(1, Counted::counter);
     }
     EXPECT_EQ(1, Counted::counter);
@@ -197,5 +204,39 @@ TEST(Rcu, HpCacheReuse) {
     // caused UAF because of stale HP cache -- TAXICOMMON-1506
     vars.emplace(666);
     EXPECT_EQ(666, *vars->Read());
+  });
+}
+
+TEST(Rcu, AsyncGc) {
+  RunInCoro([] {
+    class X {
+     public:
+      X() : task_context_(engine::current_task::GetCurrentTaskContext()) {}
+
+      X(X&& other) : task_context_(other.task_context_) {
+        other.task_context_ = nullptr;
+      }
+
+      X& operator=(const X&) = delete;
+
+      ~X() {
+        EXPECT_NE(engine::current_task::GetCurrentTaskContext(), task_context_);
+      }
+
+     private:
+      engine::impl::TaskContext* task_context_;
+    };
+
+    rcu::Variable<std::unique_ptr<X>> var{std::make_unique<X>()};
+
+    {
+      auto read_ptr = var.Read();
+      var.Assign(std::make_unique<X>());
+    }
+    var.Assign(std::unique_ptr<X>());
+
+    engine::Yield();
+    engine::Yield();
+    engine::Yield();
   });
 }

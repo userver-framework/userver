@@ -7,8 +7,10 @@
 #include <list>
 #include <set>
 
+#include <engine/async.hpp>
 #include <engine/mutex.hpp>
 #include <logging/log.hpp>
+#include <rcu/impl/wait_token_storage.hpp>
 #include <utils/assert.hpp>
 #include <utils/clang_format_workarounds.hpp>
 
@@ -199,6 +201,9 @@ class Variable final {
       delete hp;
       hp = next;
     }
+
+    // Make sure all data is deleted after return from dtr
+    wait_token_storage_.WaitForAllTokens();
   }
 
   /// Obtain a smart pointer which can be used to read the current value.
@@ -290,6 +295,7 @@ class Variable final {
       retire_list_head_.push_back(std::move(old_ptr));
     } else {
       LOG_TRACE() << "Retire, not used ptr=" << old_ptr.get();
+      DeleteAsync(std::move(old_ptr));
     }
 
     ScanRetiredList(hazard_ptrs);
@@ -301,9 +307,21 @@ class Variable final {
       auto current = rit++;
       if (hazard_ptrs.count(current->get()) == 0) {
         // *current is not used by anyone, may delete it
+        DeleteAsync(std::move(*current));
         retire_list_head_.erase(current);
       }
     }
+  }
+
+  void DeleteAsync(std::unique_ptr<T> ptr) {
+    // Kill garbage asynchronously as T::~T() might be very slow
+    engine::impl::CriticalAsync(
+        [ptr = std::move(ptr),
+         token = wait_token_storage_.GetToken()]() mutable {
+          // Make sure *ptr is deleted before token is destroyed
+          ptr.reset();
+        })
+        .Detach();
   }
 
  private:
@@ -315,6 +333,7 @@ class Variable final {
   // may be read without mutex_ locked, but must be changed with held mutex_
   std::atomic<T*> current_;
   std::list<std::unique_ptr<T>> retire_list_head_;
+  impl::WaitTokenStorage wait_token_storage_;
 
   friend class ReadablePtr<T>;
   friend class WritablePtr<T>;

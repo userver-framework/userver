@@ -57,7 +57,14 @@ class TaskProcessorHolder final {
   std::unique_ptr<TaskProcessor> task_processor_;
 };
 
+class TaskContext;
+
 void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb);
 
 }  // namespace impl
+
+namespace current_task {
+impl::TaskContext* GetCurrentTaskContext();
+}
+
 }  // namespace engine

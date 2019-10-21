@@ -17,7 +17,7 @@ namespace utils {
  *  handler's exception, if thrown, will be silenced and written into log
  *  to avoid std::terminate
  */
-class ScopeGuard {
+class ScopeGuard final {
  public:
   using Callback = std::function<void()>;
   explicit ScopeGuard(Callback callback) : callback_(std::move(callback)) {}
