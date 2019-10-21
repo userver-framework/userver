@@ -22,8 +22,8 @@ const std::string kResponseDataName = "__response_json";
 
 HttpHandlerJsonBase::HttpHandlerJsonBase(
     const components::ComponentConfig& config,
-    const components::ComponentContext& component_context)
-    : HttpHandlerBase(config, component_context) {}
+    const components::ComponentContext& component_context, bool is_monitor)
+    : HttpHandlerBase(config, component_context, is_monitor) {}
 
 std::string HttpHandlerJsonBase::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext& context) const {

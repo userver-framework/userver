@@ -12,7 +12,8 @@ namespace handlers {
 class HttpHandlerJsonBase : public HttpHandlerBase {
  public:
   HttpHandlerJsonBase(const components::ComponentConfig& config,
-                      const components::ComponentContext& component_context);
+                      const components::ComponentContext& component_context,
+                      bool is_monitor = false);
 
   std::string HandleRequestThrow(const http::HttpRequest& request,
                                  request::RequestContext& context) const final;

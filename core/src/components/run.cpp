@@ -5,6 +5,8 @@
 #include <csignal>
 #include <cstring>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <components/manager.hpp>
 #include <fs/blocking/read.hpp>
 #include <logging/config.hpp>
@@ -12,6 +14,7 @@
 #include <logging/logger.hpp>
 #include <utils/assert.hpp>
 #include <utils/ignore_signal_scope.hpp>
+#include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
 #include "manager_config.hpp"
@@ -41,6 +44,17 @@ class LogScope final {
 
 bool IsDaemon() { return getppid() == 1; }
 
+void HandleJemallocSettings() {
+  static const std::string kJemallocEnabledPath =
+      "/var/run/yandex/userver-jemalloc-profile-enabled-on-start";
+  if (!boost::filesystem::exists(kJemallocEnabledPath)) return;
+
+  auto ec = utils::jemalloc::cmd::ProfActivate();
+  if (ec) {
+    LOG_ERROR() << "Failed to activate jemalloc profiler: " << ec.message();
+  }
+}
+
 bool IsTraced() {
   static const std::string kTracerField = "TracerPid:\t";
 
@@ -63,6 +77,7 @@ enum class RunMode { kNormal, kOnce };
 
 void DoRun(const std::string& config_path, const ComponentList& component_list,
            const std::string& init_log_path, RunMode run_mode) {
+  HandleJemallocSettings();
   LogScope log_scope{init_log_path};
 
   LOG_INFO() << "Parsing configs";

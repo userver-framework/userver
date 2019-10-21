@@ -12,7 +12,7 @@ namespace handlers {
 InspectRequests::InspectRequests(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context)
-    : HttpHandlerJsonBase(config, component_context),
+    : HttpHandlerJsonBase(config, component_context, /* is_monitor = */ false),
       view_(component_context.FindComponent<components::Server>()
                 .GetServer()
                 .GetRequestsView()) {}
