@@ -49,12 +49,13 @@ find_package(Boost REQUIRED COMPONENTS program_options filesystem locale thread)
 # backend-common-cpp deps
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
-find_package(ExternalProjectGTest REQUIRED)
-find_package(ExternalProjectGBench REQUIRED)
+find_package(Helpergtest REQUIRED)
+find_package(Helpergmock REQUIRED)
+find_package(Helpergbench REQUIRED)
 find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev libnghttp2-dev libgcrypt11-dev libkrb5-dev")
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
-find_package_required(YamlCpp "libyaml-cpp-dev")
+find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
 find_package_required(Fmt "libfmt-dev")
 
@@ -170,7 +171,6 @@ target_include_directories(utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
 )
 
-message("gtest: ${GTEST_LIBRARIES}")
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
@@ -182,10 +182,9 @@ add_google_tests(${PROJECT_NAME}_unittest)
 
 
 add_library(ubench ${LIBUBENCH_SOURCES})
-target_include_directories(ubench PUBLIC ${GBENCH_INCLUDE_DIRS})
 target_include_directories(ubench SYSTEM PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
 target_compile_definitions(ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-target_link_libraries(ubench PUBLIC ${GBENCH_LIBRARIES})
+target_link_libraries(ubench PUBLIC libbenchmark)
 if (NOT MACOS)
     target_link_libraries(ubench
         PUBLIC

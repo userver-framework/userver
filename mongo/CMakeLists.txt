@@ -57,5 +57,12 @@ if(NOT USERVICES)
   add_executable(${PROJECT_NAME}_mongotest ${MONGO_TEST_SOURCES})
   set_target_properties(${PROJECT_NAME}_mongotest PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(${PROJECT_NAME}_mongotest utest ${PROJECT_NAME})
-  add_google_tests_with_mongo(${PROJECT_NAME}_mongotest)
+  add_test(${PROJECT_NAME}_mongotest
+    env
+      ${CMAKE_BINARY_DIR}/testsuite/taxi-env
+      --services=mongo
+      run --
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_mongotest
+      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml
+)
 endif(NOT USERVICES)

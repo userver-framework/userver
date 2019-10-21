@@ -1,0 +1,14 @@
+name: LibEv
+helper-prefix: false
+
+includes:
+  names:
+    - ev.h
+
+libraries:
+  names:
+    - ev
+
+debian-names:
+  - libev-dev
+formula-name: libev

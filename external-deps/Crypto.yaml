@@ -1,0 +1,13 @@
+name: Crypto
+helper-prefix: false
+
+debian-names:
+  - libssl-dev
+formula-name: openssl
+
+libraries:
+  names:
+    - crypto
+
+includes:
+  enabled: false

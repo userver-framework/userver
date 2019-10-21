@@ -1,0 +1,7 @@
+name: PostgreSQL
+version: 10
+
+debian-names:
+  - libpq-dev
+  - postgresql-server-dev-10
+formula-name: postgres

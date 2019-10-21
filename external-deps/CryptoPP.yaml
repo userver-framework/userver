@@ -1,0 +1,19 @@
+name: CryptoPP
+helper-prefix: false
+
+includes:
+  names:
+    - cryptopp/cryptlib.h
+  path-suffixes:
+    - include
+
+libraries:
+  names:
+    - cryptlib
+    - cryptopp
+  path-suffixes:
+    - lib
+
+debian-names:
+  - libcrypto++-dev
+formula-name: cryptopp

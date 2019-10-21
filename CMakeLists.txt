@@ -2,14 +2,16 @@ cmake_minimum_required(VERSION 3.12)
 cmake_policy(SET CMP0025 NEW)
 project(userver)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH
+  ${CMAKE_MODULE_PATH}
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake_generated
+)
 
 include(UserverCodegen)
-include(IgnoreVars)
 include(SetupEnvironment)
 include(AddGoogleTests)
 include(CheckSubmodule)
-include(CompileFbSchema)
 include(Sanitizers)
 include(FindPackageRequired)
 
@@ -20,7 +22,7 @@ init_debian_depends()
 check_submodule(${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp CMakeLists.txt)
 add_subdirectory(backend-common-cpp)
 
-find_package(ExternalProjectSpdlog)
+find_package(Helperspdlog)
 target_include_directories(
   yandex-taxi-backend-common-cpp
   PUBLIC
@@ -36,7 +38,7 @@ if(NOT FLATBUFFERS_EXTERNAL_ENABLED)
 endif()
 add_dependencies(yandex-taxi-backend-common-cpp spdlog_lib)
 
-add_subdirectory(core)
+add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory(uboost_coro)
 
 set(YANDEX_TAXI_USERVER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "")
@@ -47,9 +49,8 @@ if(NOT USERVICES)
   add_subdirectory(tools/httpclient)
   add_subdirectory(tools/netcat)
 
-  find_package(Helperyandex-taxi-userver-core)
-  find_package(Helperyandex-taxi-userver-mongo)
-  find_package(Helperyandex-taxi-userver-postgresql)
-  find_package(Helperyandex-taxi-userver-redis)
-  find_package(Helperyandex-taxi-userver-grpc)
+  add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
+  add_subdirectory(postgresql "${CMAKE_BINARY_DIR}/userver/postgresql")
+  add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
+  add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
 endif(NOT USERVICES)

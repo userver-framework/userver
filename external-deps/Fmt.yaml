@@ -1,0 +1,14 @@
+name: Fmt
+helper-prefix: false
+
+includes:
+  names:
+    - fmt/format.h
+
+libraries:
+  names:
+    - fmt
+
+debian-names:
+  - libfmt-dev
+formula-name: fmt

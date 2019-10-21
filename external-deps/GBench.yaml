@@ -1,0 +1,21 @@
+name: gbench
+type: external-project
+
+source:
+  dir: submodules/google-benchmark
+
+build-args:
+  names:
+    - BENCHMARK_ENABLE_GTEST_TESTS=OFF
+    - BENCHMARK_ENABLE_TESTING=OFF
+
+targets:
+  - name: libbenchmark
+    libs:
+      - src/libbenchmark.a
+
+  - name: libbenchmark_main
+    libs:
+      - src/libbenchmark_main.a
+    depends:
+      - libbenchmark
