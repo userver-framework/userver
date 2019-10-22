@@ -8,6 +8,8 @@ const std::string kCacheInvalidateSpanTag = "cache_invalidate";
 const std::string kLegacyInvalidateLogic = "legacy-invalidate-logic";
 const std::string kPeriodicUpdateEnabled = "testsuite-periodic-update-enabled";
 const std::string kForcePeriodicUpdate = "testsuite-force-periodic-update";
+
+const std::string kConfigCacheName = "taxi-config-client-updater";
 }  // namespace
 
 CacheInvalidator::CacheInvalidator(const components::ComponentConfig& config,
@@ -34,7 +36,13 @@ void CacheInvalidator::InvalidateCaches(cache::UpdateType update_type) {
 void CacheInvalidator::RegisterCacheInvalidator(
     components::CacheUpdateTrait& owner, CallbackUpdateType&& handler) {
   std::lock_guard<engine::Mutex> lock(mutex_);
-  cache_invalidators_.emplace_back(&owner, std::move(handler));
+  // Hack to ensure that config is invalidated first, see TAXIDATA-1543
+  if (owner.GetName() == kConfigCacheName) {
+    cache_invalidators_.insert(cache_invalidators_.begin(),
+                               {&owner, std::move(handler)});
+  } else {
+    cache_invalidators_.emplace_back(&owner, std::move(handler));
+  }
 }
 
 void CacheInvalidator::UnregisterCacheInvalidator(

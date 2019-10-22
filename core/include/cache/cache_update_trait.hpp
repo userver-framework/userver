@@ -17,6 +17,8 @@ class CacheUpdateTrait {
  public:
   void Update(cache::UpdateType update_type);
 
+  std::string GetName() const { return name_; }
+
  protected:
   CacheUpdateTrait(cache::CacheConfig&& config, const std::string& name);
   virtual ~CacheUpdateTrait();
