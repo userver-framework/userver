@@ -60,14 +60,11 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
                                       ? cache::UpdateType::kFull
                                       : cache::UpdateType::kIncremental;
 
-  std::time_t now = 0;
+  boost::optional<std::chrono::system_clock::time_point> now;
   if (request_body.HasMember("now")) {
     const formats::json::Value& value = request_body["now"];
     if (value.IsString()) {
-      now = std::chrono::duration_cast<std::chrono::seconds>(
-                utils::datetime::Stringtime(value.As<std::string>())
-                    .time_since_epoch())
-                .count();
+      now = utils::datetime::Stringtime(value.As<std::string>());
     } else {
       LOG_ERROR() << "'now' argument must be a string";
       throw ClientError();
@@ -77,7 +74,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   auto cache_invalidator = cache_invalidator_.Lock();
 
   if (now)
-    utils::datetime::MockNowSet(std::chrono::system_clock::from_time_t(now));
+    utils::datetime::MockNowSet(*now);
   else
     utils::datetime::MockNowUnset();
 
