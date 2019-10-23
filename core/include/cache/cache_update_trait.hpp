@@ -46,11 +46,6 @@ class CacheUpdateTrait {
 
   virtual bool IsPeriodicUpdateEnabled() const { return true; }
 
-  // This will be removed with TAXIDATA-1333.
-  // We introduced a change that must be supported in both Userver and Uservices
-  // so the tests for Userver against unmodified Uservices wont pass.
-  virtual bool IsLegacyInvalidateLogicEnabled() const { return true; }
-
  private:
   void DoUpdate(cache::UpdateType type);
 

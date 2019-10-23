@@ -14,22 +14,7 @@ void CacheUpdateTrait::Update(cache::UpdateType update_type) {
     update_type = cache::UpdateType::kFull;
   }
 
-  // This will be removed with TAXIDATA-1333.
-  // We introduced a change that must be supported in both Userver and Uservices
-  // so the tests for Userver against unmodified Uservices wont pass.
-  if (IsLegacyInvalidateLogicEnabled()) {
-    const auto update_type_str =
-        update_type == cache::UpdateType::kFull ? "full" : "incremental";
-
-    cache::UpdateStatisticsScope stats(GetStatistics(), update_type);
-    LOG_INFO() << "Updating cache type=" << update_type_str
-               << " name=" << name_;
-    Update(update_type, std::chrono::system_clock::time_point(),
-           std::chrono::system_clock::now(), stats);
-    LOG_INFO() << "Updated cache type=" << update_type_str << " name=" << name_;
-  } else {
-    DoUpdate(update_type);
-  }
+  DoUpdate(update_type);
 }
 
 CacheUpdateTrait::CacheUpdateTrait(cache::CacheConfig&& config,

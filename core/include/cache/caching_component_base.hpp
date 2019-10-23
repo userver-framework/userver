@@ -93,20 +93,12 @@ class CachingComponentBase
     return periodic_update_enabled_;
   }
 
-  // This will be removed with TAXIDATA-1333.
-  // We introduced a change that must be supported in both Userver and Uservices
-  // so the tests for Userver against unmodified Uservices wont pass.
-  bool IsLegacyInvalidateLogicEnabled() const override {
-    return legacy_invalidate_logic_enabled_;
-  }
-
  private:
   utils::statistics::Entry statistics_holder_;
   utils::SwappingSmart<const T> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
   server::CacheInvalidatorHolder cache_invalidator_holder_;
   bool periodic_update_enabled_;
-  bool legacy_invalidate_logic_enabled_;
   const std::string name_;
 };
 
@@ -121,8 +113,6 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       periodic_update_enabled_(
           context.FindComponent<CacheInvalidator>().IsPeriodicUpdateEnabled(
               config, name)),
-      legacy_invalidate_logic_enabled_(context.FindComponent<CacheInvalidator>()
-                                           .IsLegacyInvalidateLogicEnabled()),
       name_(name) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();

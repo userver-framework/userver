@@ -5,7 +5,6 @@ namespace components {
 
 namespace {
 const std::string kCacheInvalidateSpanTag = "cache_invalidate";
-const std::string kLegacyInvalidateLogic = "legacy-invalidate-logic";
 const std::string kPeriodicUpdateEnabled = "testsuite-periodic-update-enabled";
 const std::string kForcePeriodicUpdate = "testsuite-force-periodic-update";
 
@@ -15,9 +14,7 @@ const std::string kConfigCacheName = "taxi-config-client-updater";
 CacheInvalidator::CacheInvalidator(const components::ComponentConfig& config,
                                    const components::ComponentContext&)
     : periodic_update_enabled_(
-          config.ParseOptionalBool(kPeriodicUpdateEnabled)),
-      legacy_invalidate_logic_enabled_(
-          config.ParseBool(kLegacyInvalidateLogic, true)) {}
+          config.ParseOptionalBool(kPeriodicUpdateEnabled)) {}
 
 void CacheInvalidator::InvalidateCaches(cache::UpdateType update_type) {
   std::lock_guard<engine::Mutex> lock(mutex_);
