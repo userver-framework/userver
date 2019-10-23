@@ -114,6 +114,12 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
   DoUpdate(update_type);
 }
 
+void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
+  UASSERT_MSG(is_running_.load(), "Cache " + name_ +
+                                      " has been constructed without calling "
+                                      "StartPeriodicUpdates(), call it in ctr");
+}
+
 void CacheUpdateTrait::DoUpdate(cache::UpdateType update_type) {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto update_type_str =

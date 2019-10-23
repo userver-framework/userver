@@ -94,6 +94,8 @@ class CachingComponentBase
   }
 
  private:
+  void OnAllComponentsLoaded() override;
+
   utils::statistics::Entry statistics_holder_;
   utils::SwappingSmart<const T> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
@@ -197,6 +199,11 @@ template <typename T>
 void CachingComponentBase<T>::OnConfigUpdate(
     const std::shared_ptr<const taxi_config::Config>& cfg) {
   SetConfig(cfg->Get<cache::CacheConfigSet>().GetConfig(name_));
+}
+
+template <typename T>
+void CachingComponentBase<T>::OnAllComponentsLoaded() {
+  AssertPeriodicUpdateStarted();
 }
 
 }  // namespace components

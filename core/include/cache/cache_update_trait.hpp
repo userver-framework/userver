@@ -46,6 +46,8 @@ class CacheUpdateTrait {
 
   virtual bool IsPeriodicUpdateEnabled() const { return true; }
 
+  void AssertPeriodicUpdateStarted();
+
  private:
   void DoUpdate(cache::UpdateType type);
 
