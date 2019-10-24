@@ -108,6 +108,11 @@ ValueBuilder ValueBuilder::operator[](std::size_t index) {
           value_.path_, index};
 }
 
+void ValueBuilder::Remove(const std::string& key) {
+  value_.CheckObject();
+  value_.GetNative().removeMember(key);
+}
+
 ValueBuilder::iterator ValueBuilder::begin() {
   value_.CheckObjectOrArrayOrNull();
   return {value_.root_, value_.GetNative().begin(), value_.path_};

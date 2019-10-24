@@ -55,6 +55,7 @@ class ValueImpl {
   ValueImplPtr GetOrInsert(const std::string& key);
   void Resize(uint32_t size);
   void PushBack(ValueImplPtr);
+  void Remove(const std::string& key);
 
   uint32_t GetSize() const;
   std::string GetPath() const;

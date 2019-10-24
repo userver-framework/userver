@@ -91,6 +91,10 @@ class ValueBuilder {
   /// @throws OutOfBoundsException if index is invalid for the array
   ValueBuilder operator[](uint32_t index);
 
+  /// @brief Remove key from object. If key is missing nothing happens.
+  /// @throw `TypeMismatchException` if value is not an object.
+  void Remove(const std::string& key);
+
   /// @brief Returns an iterator to the first array element/document field
   /// @throws TypeMismatchException if value is not a document, array or `null`
   iterator begin();

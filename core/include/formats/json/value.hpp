@@ -152,6 +152,9 @@ class Value final {
   /// @throw `TypeMismatchException` if `*this` is not a map or Null.
   void CheckObjectOrNull() const;
 
+  /// @throw `TypeMismatchException` if `*this` is not a map.
+  void CheckObject() const;
+
   /// @throw `TypeMismatchException` if `*this` is not a map, array or Null.
   void CheckObjectOrArrayOrNull() const;
 

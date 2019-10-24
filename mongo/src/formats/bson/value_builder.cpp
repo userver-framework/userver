@@ -129,6 +129,8 @@ ValueBuilder ValueBuilder::operator[](uint32_t index) {
   return ValueBuilder((*impl_)[index]);
 }
 
+void ValueBuilder::Remove(const std::string& key) { impl_->Remove(key); }
+
 ValueBuilder::iterator ValueBuilder::begin() {
   return {*impl_, impl_->Begin()};
 }

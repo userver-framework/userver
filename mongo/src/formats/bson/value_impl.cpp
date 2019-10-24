@@ -388,6 +388,12 @@ void ValueImpl::PushBack(ValueImplPtr impl) {
   boost::get<ParsedArray>(parsed_value_).push_back(std::move(impl));
 }
 
+void ValueImpl::Remove(const std::string& key) {
+  CheckIsDocument();
+  EnsureParsed();
+  boost::get<ParsedDocument>(parsed_value_).erase(key);
+}
+
 uint32_t ValueImpl::GetSize() const {
   class Visitor {
    public:

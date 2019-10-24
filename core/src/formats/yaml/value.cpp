@@ -260,6 +260,13 @@ void Value::CheckObjectOrNull() const {
   }
 }
 
+void Value::CheckObject() const {
+  if (!IsObject()) {
+    throw TypeMismatchException(FromNative(GetNative().Type()), Type::kObject,
+                                path_.ToString());
+  }
+}
+
 void Value::CheckObjectOrArrayOrNull() const {
   if (!IsObject() && !IsArray() && !IsNull()) {
     throw TypeMismatchException(FromNative(GetNative().Type()), Type::kArray,

@@ -60,6 +60,10 @@ class ValueBuilder final {
   /// @throw `OutOfBoundsException` if index is greater than size.
   ValueBuilder operator[](std::size_t index);
 
+  /// @brief Remove key from object. If key is missing nothing happens.
+  /// @throw `TypeMismatchException` if value is not an object.
+  void Remove(const std::string& key);
+
   iterator begin();
   iterator end();
 

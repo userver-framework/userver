@@ -104,6 +104,11 @@ ValueBuilder ValueBuilder::operator[](std::size_t index) {
   return MakeNonRoot(value_.GetNative()[index], value_.path_, index);
 }
 
+void ValueBuilder::Remove(const std::string& key) {
+  value_.CheckObject();
+  value_.GetNative().remove(key);
+}
+
 ValueBuilder::iterator ValueBuilder::begin() {
   value_.CheckObjectOrArrayOrNull();
   return {value_.GetNative().begin(), value_.GetNative().IsSequence() ? 0 : -1,
