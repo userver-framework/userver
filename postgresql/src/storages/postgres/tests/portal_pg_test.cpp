@@ -41,17 +41,21 @@ POSTGRE_TEST_P(PortalLowLevelBindExec) {
   auto expectedCount = cnt.Front().As<pg::Bigint>();
   EXPECT_LT(0, expectedCount);
 
-  EXPECT_NO_THROW(conn->PortalBind(kGetPostgresTypesSQL, kPortalName, {}, {}));
+  pg::detail::Connection::StatementId stmt_id;
+  EXPECT_NO_THROW(
+      stmt_id = conn->PortalBind(kGetPostgresTypesSQL, kPortalName, {}, {}));
 
   // Select some number that is less than actual size of the table
   std::size_t chunkSize = expectedCount / 5;
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->PortalExecute(kPortalName, chunkSize, {}));
+  EXPECT_NO_THROW(res =
+                      conn->PortalExecute(stmt_id, kPortalName, chunkSize, {}));
   EXPECT_EQ(chunkSize, res.Size());
   auto fetched = res.Size();
   // Now fetch other chunks
   while (res.Size() == chunkSize) {
-    EXPECT_NO_THROW(res = conn->PortalExecute(kPortalName, chunkSize, {}));
+    EXPECT_NO_THROW(
+        res = conn->PortalExecute(stmt_id, kPortalName, chunkSize, {}));
     fetched += res.Size();
   }
 

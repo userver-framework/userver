@@ -1,5 +1,8 @@
 #include <storages/postgres/detail/result_wrapper.hpp>
 
+#include <fmt/format.h>
+#include <boost/algorithm/string/join.hpp>
+
 #include <logging/log.hpp>
 
 #ifndef PG_DIAG_SEVERITY_NONLOCALIZED
@@ -27,26 +30,43 @@ constexpr std::pair<const char*, int> kExtraErrorFields[]{
     {"pg_datatype", PG_DIAG_DATATYPE_NAME},
     {"pg_constraint", PG_DIAG_CONSTRAINT_NAME}};
 
+struct CurrentContext {
+  CurrentContext(std::vector<std::string>& context, std::string&& ctx)
+      : context_{context} {
+    context_.emplace_back(std::move(ctx));
+  }
+  ~CurrentContext() { context_.pop_back(); }
+
+ private:
+  std::vector<std::string>& context_;
+};
+
 void AddTypeBufferCategories(Oid data_type, const UserTypes& types,
-                             io::TypeBufferCategory& cats) {
+                             io::TypeBufferCategory& cats,
+                             std::vector<std::string>& context) {
   if (cats.count(data_type)) {
     return;
   }
   auto cat = types.GetBufferCategory(data_type);
   if (cat == io::BufferCategory::kNoParser) {
-    throw UnknownBufferCategory(data_type);
+    throw UnknownBufferCategory(boost::join(context, " "), data_type);
   }
   cats.insert(std::make_pair(data_type, cat));
   if (cat == io::BufferCategory::kArrayBuffer) {
     // Recursively add buffer category for array element
     auto elem_oid = types.FindElementOid(data_type);
-    AddTypeBufferCategories(elem_oid, types, cats);
+    CurrentContext ctx{context, "array element"};
+    AddTypeBufferCategories(elem_oid, types, cats, context);
   } else if (cat == io::BufferCategory::kCompositeBuffer) {
     // Recursively add buffer categories for data members
     const auto& type_desc = types.GetCompositeDescription(data_type);
+    auto type_name = types.FindName(data_type);
+    CurrentContext ctx{context, fmt::format("type `{}`", type_name.ToString())};
     auto n_fields = type_desc.Size();
     for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
-      AddTypeBufferCategories(type_desc[f_no].type, types, cats);
+      CurrentContext ctx{context,
+                         fmt::format("field `{}`", type_desc[f_no].name)};
+      AddTypeBufferCategories(type_desc[f_no].type, types, cats, context);
     }
   }
 }
@@ -58,7 +78,11 @@ void ResultWrapper::FillBufferCategories(const UserTypes& types) {
   auto n_fields = FieldCount();
   for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
     auto data_type = GetFieldTypeOid(f_no);
-    AddTypeBufferCategories(data_type, types, buffer_categories_);
+
+    std::vector<std::string> context{
+        fmt::format("result set field `{}`", GetFieldName(f_no))};
+
+    AddTypeBufferCategories(data_type, types, buffer_categories_, context);
   }
 }
 
@@ -99,10 +123,19 @@ std::size_t ResultWrapper::IndexOfName(const std::string& name) const {
   return n;
 }
 
+std::string ResultWrapper::GetFieldName(std::size_t col) const {
+  auto name = PQfname(handle_.get(), col);
+  if (name) {
+    return {name};
+  }
+  throw ResultSetError{"Column with index " + std::to_string(col) +
+                       " doesn't have a name in result set description"};
+}
+
 FieldDescription ResultWrapper::GetFieldDescription(std::size_t col) const {
   return {col,
           GetFieldTypeOid(col),
-          std::string{PQfname(handle_.get(), col)},
+          GetFieldName(col),
           GetFieldFormat(col),
           PQftable(handle_.get(), col),
           PQftablecol(handle_.get(), col),

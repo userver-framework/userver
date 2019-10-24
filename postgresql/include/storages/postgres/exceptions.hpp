@@ -635,10 +635,13 @@ class InvalidParserCategory : public ResultSetError {
 
 /// @brief While checking result set types, failed to determine the buffer
 /// category for a type oid.
+/// The context string is formed by the ResultSet and will have the form
+/// of 'result set field `foo` type `my_schema.bar` field `baz` array element'
 class UnknownBufferCategory : public ResultSetError {
  public:
-  UnknownBufferCategory(Oid type_oid)
-      : ResultSetError("Failed to find buffer category for type oid " +
+  UnknownBufferCategory(const std::string& context, Oid type_oid)
+      : ResultSetError("Query " + context +
+                       " doesn't have a parser. Type oid is " +
                        std::to_string(type_oid)),
         type_oid{type_oid} {};
 

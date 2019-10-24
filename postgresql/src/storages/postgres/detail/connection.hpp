@@ -13,6 +13,7 @@
 #include <storages/postgres/detail/time_types.hpp>
 
 #include <utils/size_guard.hpp>
+#include <utils/strong_typedef.hpp>
 
 namespace storages {
 namespace postgres {
@@ -37,6 +38,10 @@ class Connection {
     kTransaction  //!< Parameter will be in effect until the transaction is
                   //!< finished
   };
+
+  /// Strong typedef for IDs assigned to prepared statements
+  using StatementId =
+      ::utils::StrongTypedef<struct StatementIdTag, std::size_t>;
 
   /// @brief Statistics storage
   /// @note Should be reset after every transaction execution
@@ -178,11 +183,12 @@ class Connection {
                    OptionalCommandControl{statement_cmd_ctl});
   }
 
-  void PortalBind(const std::string& statement, const std::string& portal_name,
-                  const detail::QueryParameters& params,
-                  OptionalCommandControl);
-  ResultSet PortalExecute(const std::string& portal_name, std::uint32_t n_rows,
-                          OptionalCommandControl);
+  StatementId PortalBind(const std::string& statement,
+                         const std::string& portal_name,
+                         const detail::QueryParameters& params,
+                         OptionalCommandControl);
+  ResultSet PortalExecute(StatementId, const std::string& portal_name,
+                          std::uint32_t n_rows, OptionalCommandControl);
 
   /// Try to return connection to idle state discarding all results.
   /// If there is a transaction in progress - roll it back.

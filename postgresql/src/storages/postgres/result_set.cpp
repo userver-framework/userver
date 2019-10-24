@@ -228,5 +228,9 @@ ResultSet::reference ResultSet::At(size_type index) const {
 void ResultSet::FillBufferCategories(const UserTypes& types) {
   pimpl_->FillBufferCategories(types);
 }
+
+void ResultSet::SetBufferCategoriesFrom(const ResultSet& dsc) {
+  pimpl_->SetTypeBufferCategories(dsc.pimpl_->GetTypeBufferCategories());
+}
 }  // namespace postgres
 }  // namespace storages

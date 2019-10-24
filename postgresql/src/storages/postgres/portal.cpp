@@ -6,58 +6,81 @@
 
 namespace storages::postgres {
 
-namespace {
+struct Portal::Impl {
+  detail::Connection* conn_{nullptr};
+  OptionalCommandControl cmd_ctl_;
+  detail::Connection::StatementId statement_id_;
+  PortalName name_;
+  std::size_t fetched_so_far_{0};
+  bool done_{false};
 
-const std::string kEmptyPortalName{};
+  Impl(detail::Connection* conn, const PortalName& name,
+       const std::string& statement, const detail::QueryParameters& params,
+       OptionalCommandControl cmd_ctl)
+      : conn_{conn}, cmd_ctl_{std::move(cmd_ctl)}, name_{name} {
+    if (conn_) {
+      Bind(statement, params);
+    }
+  }
 
-}  // namespace
+  Impl(Impl&& rhs) noexcept = default;
+  Impl& operator=(Impl&& rhs) noexcept {
+    Impl{std::move(rhs)}.Swap(*this);
+    return *this;
+  }
+
+  void Swap(Impl& rhs) noexcept {
+    using std::swap;
+    swap(conn_, rhs.conn_);
+    swap(cmd_ctl_, rhs.cmd_ctl_);
+    swap(statement_id_, rhs.statement_id_);
+    swap(name_, rhs.name_);
+    swap(fetched_so_far_, rhs.fetched_so_far_);
+    swap(done_, rhs.done_);
+  }
+
+  void Bind(const std::string& statement,
+            const detail::QueryParameters& params) {
+    statement_id_ =
+        conn_->PortalBind(statement, name_.GetUnderlying(), params, cmd_ctl_);
+  }
+  ResultSet Fetch(std::uint32_t n_rows) {
+    if (!done_) {
+      auto res = conn_->PortalExecute(statement_id_, name_.GetUnderlying(),
+                                      n_rows, cmd_ctl_);
+      auto fetched = res.Size();
+      if (fetched != n_rows) {
+        done_ = true;
+      }
+      fetched_so_far_ += fetched;
+      return res;
+    } else {
+      // TODO Specific exception
+      throw RuntimeError{"Portal is done, no more data to fetch"};
+    }
+  }
+};
 
 Portal::Portal(detail::Connection* conn, const std::string& statement,
                const detail::QueryParameters& params,
                OptionalCommandControl cmd_ctl)
-    : conn_{conn}, cmd_ctl_{std::move(cmd_ctl)} {
-  // Allow nullptr here for tests
-  if (conn_) {
-    Bind(statement, params);
-  }
-}
+    : pimpl_(conn, PortalName{}, statement, params, std::move(cmd_ctl)) {}
 
 Portal::Portal(detail::Connection* conn, const PortalName& name,
                const std::string& statement,
                const detail::QueryParameters& params,
                OptionalCommandControl cmd_ctl)
-    : conn_{conn}, cmd_ctl_{std::move(cmd_ctl)}, name_{name} {
-  // Allow nullptr here for tests
-  if (conn_) {
-    Bind(statement, params);
-  }
-}
+    : pimpl_(conn, name, statement, params, std::move(cmd_ctl)) {}
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Portal::Portal(Portal&&) noexcept = default;
 Portal::~Portal() = default;
 
-// std::string doesn't provide a noexcept move assignment
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-Portal& Portal::operator=(Portal&&) = default;
+Portal& Portal::operator=(Portal&&) noexcept = default;
 
-void Portal::Bind(const std::string& statement,
-                  const detail::QueryParameters& params) {
-  conn_->PortalBind(statement, name_.GetUnderlying(), params, cmd_ctl_);
-}
+ResultSet Portal::Fetch(std::uint32_t n_rows) { return pimpl_->Fetch(n_rows); }
 
-ResultSet Portal::Fetch(std::uint32_t n_rows) {
-  if (!done_) {
-    auto res = conn_->PortalExecute(name_.GetUnderlying(), n_rows, cmd_ctl_);
-    auto fetched = res.Size();
-    if (fetched != n_rows) {
-      done_ = true;
-    }
-    fetched_so_far_ += fetched;
-    return res;
-  } else {
-    // TODO Specific exception
-    throw RuntimeError{"Portal is done, no more data to fetch"};
-  }
-}
+bool Portal::Done() const { return pimpl_->done_; }
+std::size_t Portal::FetchedSoFar() const { return pimpl_->fetched_so_far_; }
 
 }  // namespace storages::postgres

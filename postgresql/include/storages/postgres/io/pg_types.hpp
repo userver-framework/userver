@@ -59,6 +59,7 @@ struct DBTypeName {
 
   bool Empty() const { return name.empty(); }
   std::size_t GetHash() const;
+  std::string ToString() const;
 };
 
 /// @brief Description of a PostgreSQL type.

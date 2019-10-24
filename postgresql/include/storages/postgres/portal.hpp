@@ -11,6 +11,7 @@
 #include <storages/postgres/postgres_fwd.hpp>
 #include <storages/postgres/result_set.hpp>
 
+#include <utils/fast_pimpl.hpp>
 #include <utils/strong_typedef.hpp>
 
 namespace storages::postgres {
@@ -27,8 +28,7 @@ class Portal {
          OptionalCommandControl cmd_ctl = {});
 
   Portal(Portal&&) noexcept;
-  // no noexcept here as std::string doesn't provide one
-  Portal& operator=(Portal&&);
+  Portal& operator=(Portal&&) noexcept;
 
   Portal(const Portal&) = delete;
   Portal& operator=(const Portal&) = delete;
@@ -37,20 +37,17 @@ class Portal {
 
   ResultSet Fetch(std::uint32_t n_rows);
 
-  bool Done() const { return done_; }
-  std::size_t FetchedSoFar() const { return fetched_so_far_; }
+  bool Done() const;
+  std::size_t FetchedSoFar() const;
 
-  explicit operator bool() const { return !done_; }
-
- private:
-  void Bind(const std::string& statement, const detail::QueryParameters&);
+  explicit operator bool() const { return !Done(); }
 
  private:
-  detail::Connection* conn_{nullptr};
-  OptionalCommandControl cmd_ctl_;
-  PortalName name_;
-  std::size_t fetched_so_far_{0};
-  bool done_{false};
+  static constexpr std::size_t kImplSize = 88;
+  static constexpr std::size_t kImplAlign = 8;
+
+  struct Impl;
+  ::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };
 
 }  // namespace storages::postgres

@@ -137,7 +137,15 @@ Connection::Statistics::Statistics() noexcept
       sum_query_duration(0) {}
 
 struct Connection::Impl {
-  using PreparedStatements = std::unordered_map<std::size_t, io::DataFormat>;
+  struct PreparedStatementInfo {
+    StatementId id{};
+    std::string statement;
+    std::string statement_name;
+    io::DataFormat format{io::DataFormat::kBinaryDataFormat};
+    ResultSet description{nullptr};
+  };
+  using PreparedStatements =
+      std::unordered_map<StatementId, PreparedStatementInfo>;
 
   Connection::Statistics stats_;
   PGConnectionWrapper conn_wrapper_;
@@ -373,20 +381,25 @@ struct Connection::Impl {
     return ExecuteCommand(statement, params, deadline);
   }
 
-  std::pair<std::string, io::DataFormat> PrepareStatement(
+  const PreparedStatementInfo& PrepareStatement(
       const std::string& statement, const detail::QueryParameters& params,
       engine::Deadline deadline, tracing::Span& span, ScopeTime& scope) {
     auto query_hash = QueryHash(statement, params);
+    StatementId query_id{query_hash};
     std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
 
-    if (prepared_.count(query_hash)) {
+    if (prepared_.count(query_id)) {
       LOG_TRACE() << "Query " << statement << " is already prepared.";
+      return prepared_[query_id];
     } else {
       scope.Reset(scopes::kPrepare);
       LOG_TRACE() << "Query " << statement << " is not yet prepared";
       conn_wrapper_.SendPrepare(statement_name, statement, params, scope);
       // Mark the statement prepared as soon as the send works correctly
-      prepared_.emplace(query_hash, io::kBinaryDataFormat);
+      prepared_.insert(
+          {query_id,
+           {query_id, statement, statement_name,
+            io::DataFormat::kBinaryDataFormat, ResultSet{nullptr}}});
       try {
         conn_wrapper_.WaitResult(deadline, scope);
       } catch (const DuplicatePreparedStatement& e) {
@@ -398,20 +411,21 @@ struct Connection::Impl {
                        "while preparing, see log above.";
         ++stats_.duplicate_prepared_statements;
       } catch (const std::exception&) {
-        prepared_.erase(query_hash);
+        prepared_.erase(query_id);
         span.AddTag(tracing::kErrorFlag, true);
         throw;
       }
 
       conn_wrapper_.SendDescribePrepared(statement_name, scope);
+      auto& info = prepared_[query_id];
       auto res = conn_wrapper_.WaitResult(deadline, scope);
       FillBufferCategories(res);
+      info.description = res;
       // And now mark with actual protocol format
-      prepared_[query_hash] =
-          res.GetRowDescription().BestReplyFormat(db_types_);
+      info.format = res.GetRowDescription().BestReplyFormat(db_types_);
       ++stats_.parse_total;
+      return info;
     }
-    return {statement_name, prepared_[query_hash]};
   }
 
   ResultSet ExecuteCommand(const std::string& statement,
@@ -436,13 +450,15 @@ struct Connection::Impl {
             deadline.TimeLeft());
     CountExecute count_execute(stats_);
 
-    auto [statement_name, fmt] =
+    auto const& prepared_info =
         PrepareStatement(statement, params, deadline, span, scope);
 
     scope.Reset(scopes::kExec);
-    conn_wrapper_.SendPreparedQuery(statement_name, params, scope, fmt);
+    conn_wrapper_.SendPreparedQuery(prepared_info.statement_name, params, scope,
+                                    prepared_info.format);
+    // TODO Use prepared statement description
     return WaitResult(statement, deadline, network_timeout, count_execute, span,
-                      scope, fmt);
+                      scope, prepared_info.format, prepared_info.description);
   }
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
@@ -464,7 +480,8 @@ struct Connection::Impl {
     auto scope = span.CreateScopeTime(scopes::kExec);
     conn_wrapper_.SendQuery(statement, scope);
     return WaitResult(statement, deadline, network_timeout, count_execute, span,
-                      scope, io::DataFormat::kTextDataFormat);
+                      scope, io::DataFormat::kTextDataFormat,
+                      ResultSet{nullptr});
   }
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement,
@@ -487,7 +504,8 @@ struct Connection::Impl {
     conn_wrapper_.SendQuery(statement, params, scope,
                             io::DataFormat::kBinaryDataFormat);
     return WaitResult(statement, deadline, network_timeout, count_execute, span,
-                      scope, io::DataFormat::kBinaryDataFormat);
+                      scope, io::DataFormat::kBinaryDataFormat,
+                      ResultSet{nullptr});
   }
 
   /// A separate method from ExecuteCommand as the method will be transformed
@@ -507,9 +525,10 @@ struct Connection::Impl {
     return res;
   }
 
-  void PortalBind(const std::string& statement, const std::string& portal_name,
-                  const detail::QueryParameters& params,
-                  OptionalCommandControl statement_cmd_ctl) {
+  StatementId PortalBind(const std::string& statement,
+                         const std::string& portal_name,
+                         const detail::QueryParameters& params,
+                         OptionalCommandControl statement_cmd_ctl) {
     if (settings_.prepared_statements ==
         ConnectionSettings::kNoPreparedStatements) {
       LOG_ERROR()
@@ -537,16 +556,18 @@ struct Connection::Impl {
     auto scope = span.CreateScopeTime();
     CountExecute count_execute(stats_);
 
-    auto [statement_name, fmt] =
+    auto& prepared_info =
         PrepareStatement(statement, params, deadline, span, scope);
 
     scope.Reset(scopes::kBind);
-    conn_wrapper_.SendPortalBind(statement_name, portal_name, params, scope,
-                                 fmt);
+    conn_wrapper_.SendPortalBind(prepared_info.statement_name, portal_name,
+                                 params, scope, prepared_info.format);
     conn_wrapper_.ConsumeInput(deadline);
+    return prepared_info.id;
   }
 
-  ResultSet PortalExecute(const std::string& portal_name, std::uint32_t n_rows,
+  ResultSet PortalExecute(StatementId statement_id,
+                          const std::string& portal_name, std::uint32_t n_rows,
                           OptionalCommandControl statement_cmd_ctl) {
     TimeoutDuration network_timeout = !!statement_cmd_ctl
                                           ? statement_cmd_ctl->network
@@ -555,8 +576,14 @@ struct Connection::Impl {
     auto deadline = engine::Deadline::FromDuration(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
 
+    UASSERT_MSG(prepared_.count(statement_id),
+                "Portal execute uses statement id that is absent in prepared "
+                "statements");
+    auto& prepared_info = prepared_[statement_id];
+
     tracing::Span span{scopes::kQuery};
     span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    span.AddTag(tracing::kDatabaseStatement, prepared_info.statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
       // TODO Portal name function, logging 'unnamed portal' for an empty name
@@ -568,17 +595,23 @@ struct Connection::Impl {
     CountExecute count_execute(stats_);
     conn_wrapper_.SendPortalExecute(portal_name, n_rows, scope);
 
-    return WaitResult(portal_name, deadline, network_timeout, count_execute,
-                      span, scope, io::DataFormat::kBinaryDataFormat);
+    return WaitResult(
+        prepared_info.statement, deadline, network_timeout, count_execute, span,
+        scope, io::DataFormat::kBinaryDataFormat, prepared_info.description);
   }
 
   ResultSet WaitResult(const std::string& statement, engine::Deadline deadline,
                        TimeoutDuration network_timeout,
                        CountExecute& count_execute, tracing::Span& span,
-                       ScopeTime& scope, io::DataFormat fmt) {
+                       ScopeTime& scope, io::DataFormat fmt,
+                       const ResultSet& description) {
     try {
       auto res = conn_wrapper_.WaitResult(deadline, scope);
-      FillBufferCategories(res);
+      if (!description.IsEmpty()) {
+        res.SetBufferCategoriesFrom(description);
+      } else {
+        FillBufferCategories(res);
+      }
       count_execute.AccountResult(res, fmt);
       return res;
     } catch (const InvalidSqlStatementName& e) {
@@ -783,18 +816,19 @@ ResultSet Connection::ExperimentalExecute(
   return pimpl_->ExperimentalExecute(statement, reply_format, params);
 }
 
-void Connection::PortalBind(const std::string& statement,
-                            const std::string& portal_name,
-                            const detail::QueryParameters& params,
-                            OptionalCommandControl statement_cmd_ctl) {
-  pimpl_->PortalBind(statement, portal_name, params,
-                     std::move(statement_cmd_ctl));
+Connection::StatementId Connection::PortalBind(
+    const std::string& statement, const std::string& portal_name,
+    const detail::QueryParameters& params,
+    OptionalCommandControl statement_cmd_ctl) {
+  return pimpl_->PortalBind(statement, portal_name, params,
+                            std::move(statement_cmd_ctl));
 }
 
-ResultSet Connection::PortalExecute(const std::string& portal_name,
+ResultSet Connection::PortalExecute(StatementId statement_id,
+                                    const std::string& portal_name,
                                     std::uint32_t n_rows,
                                     OptionalCommandControl statement_cmd_ctl) {
-  return pimpl_->PortalExecute(portal_name, n_rows,
+  return pimpl_->PortalExecute(statement_id, portal_name, n_rows,
                                std::move(statement_cmd_ctl));
 }
 

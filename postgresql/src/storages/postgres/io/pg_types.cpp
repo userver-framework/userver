@@ -12,6 +12,12 @@ std::size_t DBTypeName::GetHash() const {
   return seed;
 }
 
+std::string DBTypeName::ToString() const {
+  std::string res{schema};
+  res += "." + std::string{name};
+  return res;
+}
+
 std::size_t DBTypeDescription::GetNameHash() const {
   auto seed = utils::StrHash(schema);
   boost::hash_combine(seed, utils::StrHash(name));

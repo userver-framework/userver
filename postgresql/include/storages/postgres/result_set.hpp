@@ -273,9 +273,10 @@ class Field {
     return As<T>();
   }
   //@}
+  const io::TypeBufferCategory& GetTypeBufferCategories() const;
+
  private:
   io::FieldBuffer GetBuffer() const;
-  const io::TypeBufferCategory& GetTypeBufferCategories() const;
 
  protected:
   friend class Row;
@@ -624,6 +625,7 @@ class ResultSet {
  private:
   friend class detail::Connection;
   void FillBufferCategories(const UserTypes& types);
+  void SetBufferCategoriesFrom(const ResultSet&);
 
  private:
   template <typename T, typename Tag>

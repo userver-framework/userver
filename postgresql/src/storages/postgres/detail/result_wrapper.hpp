@@ -33,11 +33,15 @@ class ResultWrapper {
   const io::TypeBufferCategory& GetTypeBufferCategories() const {
     return buffer_categories_;
   }
+  void SetTypeBufferCategories(const io::TypeBufferCategory& cats) {
+    buffer_categories_ = cats;
+  }
   std::string CommandStatus() const;
   std::size_t RowsAffected() const;
 
   std::size_t IndexOfName(const std::string& name) const;
 
+  std::string GetFieldName(std::size_t col) const;
   FieldDescription GetFieldDescription(std::size_t col) const;
   io::DataFormat GetFieldFormat(std::size_t col) const;
   Oid GetFieldTypeOid(std::size_t col) const;
