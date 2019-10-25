@@ -1,4 +1,5 @@
 #include <logging/logging_test.hpp>
+#include <tracing/noop.hpp>
 #include <tracing/span.hpp>
 #include <utest/utest.hpp>
 
@@ -132,5 +133,20 @@ TEST_F(Span, LowerLocalLogLevel) {
 
     logging::LogFlush();
     EXPECT_NE(std::string::npos, sstream.str().find("logged_span"));
+  });
+}
+
+TEST_F(Span, ConstructFromTracer) {
+  RunInCoro([this] {
+    auto tracer = tracing::MakeNoopTracer();
+
+    tracing::Span span(tracer, "name", nullptr, tracing::ReferenceType::kChild);
+    span.SetLink("some_link");
+
+    LOG_INFO() << "tracerlog";
+    logging::LogFlush();
+    EXPECT_NE(std::string::npos, sstream.str().find("tracerlog"));
+
+    EXPECT_EQ(tracing::Span::CurrentSpanUnchecked(), &span);
   });
 }

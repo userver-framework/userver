@@ -133,7 +133,9 @@ Span::Span(TracerPtr tracer, const std::string& name, const Span* parent,
            ReferenceType reference_type, logging::Level log_level)
     : pimpl_(std::make_unique<Impl>(std::move(tracer), name,
                                     parent ? parent->pimpl_.get() : nullptr,
-                                    reference_type, log_level)) {}
+                                    reference_type, log_level)) {
+  pimpl_->span_ = this;
+}
 
 Span::Span(const std::string& name, ReferenceType reference_type,
            logging::Level log_level)
