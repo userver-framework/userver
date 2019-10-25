@@ -69,7 +69,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 if(NOT SANITIZE)
   find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
   target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
+  # disabled in https://st.yandex-team.ru/TAXICOMMON-1623
+  if (NOT MACOS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
+  endif(NOT MACOS)
 endif(NOT SANITIZE)
 
 target_link_libraries(${PROJECT_NAME}
