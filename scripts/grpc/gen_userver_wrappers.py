@@ -24,9 +24,10 @@ def generate_code(jinja_env, request, response):
         proto_file = request.proto_file[-1]
         data = {
             'source_file': proto_file.name,
-            'includes': ['"{}"'.format(proto_file.name.replace(
-                    '.proto', '.grpc.pb.h')),
-                    '<clients/grpc/service.hpp>'],
+            'includes': [
+                '"{}"'.format(proto_file.name.replace('.proto', '.grpc.pb.h')),
+                '<clients/grpc/service.hpp>',
+            ],
             'namespace': grpc_to_cpp_name(proto_file.package),
             'services': [],
         }
@@ -49,7 +50,8 @@ def main():
 
     jinja_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(
-            os.path.dirname(os.path.abspath(__file__))),
+            os.path.dirname(os.path.abspath(__file__)),
+        ),
         trim_blocks=True,
         lstrip_blocks=True,
     )

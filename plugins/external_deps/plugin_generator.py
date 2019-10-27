@@ -8,74 +8,62 @@ from codegen import utils
 FIND_HELPER_TYPE = 'find-helper'
 EXTERNAL_PROJECT_TYPE = 'external-project'
 
-EXTERNAL_DEPS_TYPE = [
-    FIND_HELPER_TYPE,
-    EXTERNAL_PROJECT_TYPE,
-]
+EXTERNAL_DEPS_TYPE = [FIND_HELPER_TYPE, EXTERNAL_PROJECT_TYPE]
 
 
 class RepositoryGenerator:
-    config_schema = voluptuous.Schema({
-        voluptuous.Required('name'): str,
-        'type': voluptuous.Any(None, *EXTERNAL_DEPS_TYPE),
-        'package-name': str,
-        'debian-names': [str],
-        'formula-name': str,
-        'version': voluptuous.Any(str, int),
-        'helper-prefix': bool,
-        'includes': {
-            'enabled': bool,
-            'variable': str,
-            'path-suffixes': list,
-            'names': list,
-
-        },
-        'libraries': {
-            'enabled': bool,
-            'variable': str,
-            'path-suffixes': list,
-            'names': list,
-        },
-        'programs': {
-            'enabled': bool,
-            'variable': str,
-            'path-suffixes': list,
-            'names': list,
-        },
-        'fail-message': str,
-        'virtual': bool,
-        'compile-definitions': {
-            'names': list,
-        },
-        'source': {
-            'repository': str,
-            'tag': str,
-            'dir': str,
-        },
-        'build-args': {
-            'names': list,
-        },
-        'depends': [str],
-        'use-destdir': bool,
-        'commands': {
-            'list-separator': str,
-            'patch': str,
-            'download': str,
-            'install': str,
-            'update': str,
-        },
-        'log': {
-            'download': bool,
-            'configure': bool,
-            'build': bool,
-        },
-        'targets': [{
-            'name': str,
-            'includes': [str],
-            'libs': [str],
+    config_schema = voluptuous.Schema(
+        {
+            voluptuous.Required('name'): str,
+            'type': voluptuous.Any(None, *EXTERNAL_DEPS_TYPE),
+            'package-name': str,
+            'debian-names': [str],
+            'formula-name': str,
+            'version': voluptuous.Any(str, int),
+            'helper-prefix': bool,
+            'includes': {
+                'enabled': bool,
+                'variable': str,
+                'path-suffixes': list,
+                'names': list,
+            },
+            'libraries': {
+                'enabled': bool,
+                'variable': str,
+                'path-suffixes': list,
+                'names': list,
+            },
+            'programs': {
+                'enabled': bool,
+                'variable': str,
+                'path-suffixes': list,
+                'names': list,
+            },
+            'fail-message': str,
+            'virtual': bool,
+            'compile-definitions': {'names': list},
+            'source': {'repository': str, 'tag': str, 'dir': str},
+            'build-args': {'names': list},
             'depends': [str],
-        }],
-    })
+            'use-destdir': bool,
+            'commands': {
+                'list-separator': str,
+                'patch': str,
+                'download': str,
+                'install': str,
+                'update': str,
+            },
+            'log': {'download': bool, 'configure': bool, 'build': bool},
+            'targets': [
+                {
+                    'name': str,
+                    'includes': [str],
+                    'libs': [str],
+                    'depends': [str],
+                },
+            ],
+        },
+    )
 
     def __init__(self, config: dict) -> None:
         self.dependencies: dict = {}
@@ -108,39 +96,36 @@ class RepositoryGenerator:
             if fail_message:
                 fail_message = fail_message.replace('\n', ' ')
 
-            filename = (
-                'Find{}{}.cmake'.format(
-                    'Helper' if value.get('helper-prefix', True) else '',
-                    key,
-                )
+            filename = 'Find{}{}.cmake'.format(
+                'Helper' if value.get('helper-prefix', True) else '', key,
             )
             if value.get('type', FIND_HELPER_TYPE) == FIND_HELPER_TYPE:
                 manager.write(
                     os.path.join(cmake_generated_path, filename),
-                    manager.renderer.get_template('FindHelper.jinja').render({
-                        'name': key,
-                        'package_name': value.get('package-name'),
-                        'debian_names': value.get('debian-names'),
-                        'formula_name': value.get('formula-name'),
-                        'version': value.get('version'),
-                        'includes': value.get('includes'),
-                        'libraries': value.get('libraries'),
-                        'programs': value.get('programs'),
-                        'fail_message': fail_message,
-                        'virtual': value.get('virtual', False),
-                        'compile_definitions': value.get(
-                            'compile-definitions',
-                        ),
-                    }),
+                    manager.renderer.get_template('FindHelper.jinja').render(
+                        {
+                            'name': key,
+                            'package_name': value.get('package-name'),
+                            'debian_names': value.get('debian-names'),
+                            'formula_name': value.get('formula-name'),
+                            'version': value.get('version'),
+                            'includes': value.get('includes'),
+                            'libraries': value.get('libraries'),
+                            'programs': value.get('programs'),
+                            'fail_message': fail_message,
+                            'virtual': value.get('virtual', False),
+                            'compile_definitions': value.get(
+                                'compile-definitions',
+                            ),
+                        },
+                    ),
                 )
             elif value.get('type') == EXTERNAL_PROJECT_TYPE:
                 if 'repository' in value.get('source', {}):
                     commands = value.setdefault('commands', {})
                     if 'install' not in commands:
                         value['use-destdir'] = True
-                        commands['install'] = (
-                            'make DESTDIR=${DESTDIR} install'
-                        )
+                        commands['install'] = 'make DESTDIR=${DESTDIR} install'
 
                     log = value.setdefault('log', {})
                     if 'configure' not in log:
@@ -155,17 +140,19 @@ class RepositoryGenerator:
                     os.path.join(cmake_generated_path, filename),
                     manager.renderer.get_template(
                         'FindExternalProject.jinja',
-                    ).render({
-                        'name': key,
-                        'source': value.get('source', {}),
-                        'build_args': value.get('build-args', []),
-                        'use_destdir': value.get('use-destdir', False),
-                        'commands': value.get('commands', {}),
-                        'log': value.get('log', {}),
-                        'compile_definitions': value.get(
-                            'compile-definitions',
-                        ),
-                        'targets': value.get('targets', {}),
-                        'depends': value.get('depends', []),
-                    }),
+                    ).render(
+                        {
+                            'name': key,
+                            'source': value.get('source', {}),
+                            'build_args': value.get('build-args', []),
+                            'use_destdir': value.get('use-destdir', False),
+                            'commands': value.get('commands', {}),
+                            'log': value.get('log', {}),
+                            'compile_definitions': value.get(
+                                'compile-definitions',
+                            ),
+                            'targets': value.get('targets', {}),
+                            'depends': value.get('depends', []),
+                        },
+                    ),
                 )

@@ -35,8 +35,7 @@ class Repository:
         manager.add_plugins_path(os.path.join(self.root_dir, 'plugins'))
 
         manager.add_params(
-            root_dir=self.root_dir,
-            root_build_dir=self.build_dir,
+            root_dir=self.root_dir, root_build_dir=self.build_dir,
         )
 
     def __repr__(self) -> str:

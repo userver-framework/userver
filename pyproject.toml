@@ -1,0 +1,2 @@
+[tool.black]
+exclude='^/scripts/postgres/pg_sql_codes\.py$'

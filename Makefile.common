@@ -131,6 +131,14 @@ smart-check-pep8:
 teamcity-check-pep8:
 	@${PYTHON3_BIN_DIR}check-pep8 --teamcity $(CMAKE_DIR)
 
+.PHONY: taxi-black
+taxi-black:
+	@taxi-black .
+
+.PHONY: smart-taxi-black
+smart-taxi-black:
+	@taxi-black --smart .
+
 .PHONY: docs
 docs:
 	@(cat doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -

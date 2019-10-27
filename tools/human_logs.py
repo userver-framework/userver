@@ -22,15 +22,18 @@ class Colors:
     BG_BLACK = '\033[40m'
 
     # No bright red color, no close colors, no too dark colors
-    __NICE_COLORS = ['\033[38;5;{}m'.format(x) for x in itertools.chain(
-        range(1, 7),
-        range(10, 15),
-        range(38, 51, 2),
-        range(75, 87, 2),
-        range(112, 123, 3),
-        range(128, 195, 3),
-        range(200, 231, 3),
-    )]
+    __NICE_COLORS = [
+        '\033[38;5;{}m'.format(x)
+        for x in itertools.chain(
+            range(1, 7),
+            range(10, 15),
+            range(38, 51, 2),
+            range(75, 87, 2),
+            range(112, 123, 3),
+            range(128, 195, 3),
+            range(200, 231, 3),
+        )
+    ]
 
     @staticmethod
     def colorize(value, active_color=DEFAULT):
@@ -49,8 +52,9 @@ class HumanLogs:
         Colors.BRIGHT_RED,
     )
 
-    def __init__(self, highlights, ignores, filename,
-                 no_file_stores, verbosity):
+    def __init__(
+            self, highlights, ignores, filename, no_file_stores, verbosity,
+    ):
         self.i = 0
         self.highlights = highlights
         self.ignores = ignores
@@ -105,25 +109,27 @@ class HumanLogs:
         remains = ''
         if level_indx > self.verbosity_indx:
             remains = (
-                x for x in values if (
-                    x not in self.ignores and values[x] != ''
-                )
+                x
+                for x in values
+                if (x not in self.ignores and values[x] != '')
             )
             remains = '\t'.join(x + '=' + values[x] for x in sorted(remains))
 
         if level == 'WARNING':
             level = 'WARN'
 
-        sys.stdout.write(fmt.format(
-            i=self.i,
-            level_color=HumanLogs.LOG_LEVEL_COLORS[level_indx],
-            level=level[:5],
-            text_color=text_color,
-            text=text,
-            module=module,
-            remains=remains,
-            **vars(Colors),
-        ))
+        sys.stdout.write(
+            fmt.format(
+                i=self.i,
+                level_color=HumanLogs.LOG_LEVEL_COLORS[level_indx],
+                level=level[:5],
+                text_color=text_color,
+                text=text,
+                module=module,
+                remains=remains,
+                **vars(Colors),
+            ),
+        )
         sys.stdout.flush()
 
     def process_file(self, input_file):
@@ -199,33 +205,38 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        '-hl', '--highlights',
+        '-hl',
+        '--highlights',
         nargs='+',
         default=['coro_id'],
         help='Fields to highlight',
     )
     parser.add_argument(
-        '-ign', '--ignores',
+        '-ign',
+        '--ignores',
         nargs='+',
         default=['link', 'timestamp', 'timezone'],
         help='Fields to not output',
     )
     parser.add_argument(
-        '-f', '--file',
+        '-f',
+        '--file',
         default='full_logs.txt',
         help='File path to store full logs',
     )
     parser.add_argument(
-        '-x', '--no-file-stores',
+        '-x',
+        '--no-file-stores',
         action='store_true',
         help='Do not store full logs into a separate file',
     )
     parser.add_argument(
-        '-v', '--verbosity',
+        '-v',
+        '--verbosity',
         choices=HumanLogs.LOG_LEVELS,
         default='WARNING',
         help='Print unimportant fields if log level is'
-             ' greater than this value',
+        ' greater than this value',
     )
     parser.add_argument(
         'input',
