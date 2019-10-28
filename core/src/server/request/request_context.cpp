@@ -4,47 +4,48 @@
 #include <stdexcept>
 #include <unordered_map>
 
-namespace server {
-namespace request {
+namespace server::request {
 
 class RequestContext::Impl final {
  public:
-  boost::any& SetUserAnyData(boost::any&& data);
-  boost::any& GetUserAnyData();
-  boost::any* GetUserAnyDataOptional();
+  utils::AnyMovable& SetUserAnyData(utils::AnyMovable&& data);
+  utils::AnyMovable& GetUserAnyData();
+  utils::AnyMovable* GetUserAnyDataOptional();
   void EraseUserAnyData();
 
-  boost::any& SetAnyData(std::string&& name, boost::any&& data);
-  boost::any& GetAnyData(const std::string& name);
-  boost::any* GetAnyDataOptional(const std::string& name);
+  utils::AnyMovable& SetAnyData(std::string&& name, utils::AnyMovable&& data);
+  utils::AnyMovable& GetAnyData(const std::string& name);
+  utils::AnyMovable* GetAnyDataOptional(const std::string& name);
   void EraseAnyData(const std::string& name);
 
  private:
-  std::unique_ptr<boost::any> user_data_;
-  std::unordered_map<std::string, boost::any> named_datum_;
+  utils::AnyMovable user_data_;
+  std::unordered_map<std::string, utils::AnyMovable> named_datum_;
 };
 
-boost::any& RequestContext::Impl::SetUserAnyData(boost::any&& data) {
-  if (user_data_)
+utils::AnyMovable& RequestContext::Impl::SetUserAnyData(
+    utils::AnyMovable&& data) {
+  if (!user_data_.IsEmpty())
     throw std::runtime_error("Data is already stored in RequestContext");
-  user_data_ = std::make_unique<boost::any>(std::move(data));
-  return *user_data_;
+  user_data_ = std::move(data);
+  return user_data_;
 }
 
-boost::any& RequestContext::Impl::GetUserAnyData() {
-  if (!user_data_) throw std::runtime_error("No data stored in RequestContext");
-  return *user_data_;
+utils::AnyMovable& RequestContext::Impl::GetUserAnyData() {
+  if (user_data_.IsEmpty())
+    throw std::runtime_error("No data stored in RequestContext");
+  return user_data_;
 }
 
-boost::any* RequestContext::Impl::GetUserAnyDataOptional() {
-  if (!user_data_) return nullptr;
-  return user_data_.get();
+utils::AnyMovable* RequestContext::Impl::GetUserAnyDataOptional() {
+  if (user_data_.IsEmpty()) return nullptr;
+  return &user_data_;
 }
 
-void RequestContext::Impl::EraseUserAnyData() { user_data_.reset(); }
+void RequestContext::Impl::EraseUserAnyData() { user_data_.Clear(); }
 
-boost::any& RequestContext::Impl::SetAnyData(std::string&& name,
-                                             boost::any&& data) {
+utils::AnyMovable& RequestContext::Impl::SetAnyData(std::string&& name,
+                                                    utils::AnyMovable&& data) {
   auto res = named_datum_.emplace(std::move(name), std::move(data));
   if (!res.second) {
     throw std::runtime_error("Data with name '" + res.first->first +
@@ -53,7 +54,7 @@ boost::any& RequestContext::Impl::SetAnyData(std::string&& name,
   return res.first->second;
 }
 
-boost::any& RequestContext::Impl::GetAnyData(const std::string& name) {
+utils::AnyMovable& RequestContext::Impl::GetAnyData(const std::string& name) {
   auto it = named_datum_.find(name);
   if (it == named_datum_.end()) {
     throw std::runtime_error("Data with name '" + name +
@@ -62,7 +63,8 @@ boost::any& RequestContext::Impl::GetAnyData(const std::string& name) {
   return it->second;
 }
 
-boost::any* RequestContext::Impl::GetAnyDataOptional(const std::string& name) {
+utils::AnyMovable* RequestContext::Impl::GetAnyDataOptional(
+    const std::string& name) {
   auto it = named_datum_.find(name);
   if (it == named_datum_.end()) return nullptr;
   return &it->second;
@@ -79,27 +81,30 @@ RequestContext::RequestContext() = default;
 
 RequestContext::~RequestContext() = default;
 
-boost::any& RequestContext::SetUserAnyData(boost::any&& data) {
+utils::AnyMovable& RequestContext::SetUserAnyData(utils::AnyMovable&& data) {
   return impl_->SetUserAnyData(std::move(data));
 }
 
-boost::any& RequestContext::GetUserAnyData() { return impl_->GetUserAnyData(); }
+utils::AnyMovable& RequestContext::GetUserAnyData() {
+  return impl_->GetUserAnyData();
+}
 
-boost::any* RequestContext::GetUserAnyDataOptional() {
+utils::AnyMovable* RequestContext::GetUserAnyDataOptional() {
   return impl_->GetUserAnyDataOptional();
 }
 
 void RequestContext::EraseUserAnyData() { return impl_->EraseUserAnyData(); }
 
-boost::any& RequestContext::SetAnyData(std::string&& name, boost::any&& data) {
+utils::AnyMovable& RequestContext::SetAnyData(std::string&& name,
+                                              utils::AnyMovable&& data) {
   return impl_->SetAnyData(std::move(name), std::move(data));
 }
 
-boost::any& RequestContext::GetAnyData(const std::string& name) {
+utils::AnyMovable& RequestContext::GetAnyData(const std::string& name) {
   return impl_->GetAnyData(name);
 }
 
-boost::any* RequestContext::GetAnyDataOptional(const std::string& name) {
+utils::AnyMovable* RequestContext::GetAnyDataOptional(const std::string& name) {
   return impl_->GetAnyDataOptional(name);
 }
 
@@ -107,5 +112,4 @@ void RequestContext::EraseAnyData(const std::string& name) {
   return impl_->EraseAnyData(name);
 }
 
-}  // namespace request
-}  // namespace server
+}  // namespace server::request

@@ -4,12 +4,11 @@
 
 #include <string>
 
-#include <boost/any.hpp>
+#include <utils/any_movable.hpp>
 
 #include <utils/fast_pimpl.hpp>
 
-namespace server {
-namespace request {
+namespace server::request {
 
 /// It can store request-specific data during request processing.
 /// For example: you can store some data in `HandleRequestThrow()` method
@@ -82,14 +81,14 @@ class RequestContext final {
   static constexpr auto kPimplSize = 56 + 8;
 #endif
 
-  boost::any& SetUserAnyData(boost::any&& data);
-  boost::any& GetUserAnyData();
-  boost::any* GetUserAnyDataOptional();
+  utils::AnyMovable& SetUserAnyData(utils::AnyMovable&& data);
+  utils::AnyMovable& GetUserAnyData();
+  utils::AnyMovable* GetUserAnyDataOptional();
   void EraseUserAnyData();
 
-  boost::any& SetAnyData(std::string&& name, boost::any&& data);
-  boost::any& GetAnyData(const std::string& name);
-  boost::any* GetAnyDataOptional(const std::string& name);
+  utils::AnyMovable& SetAnyData(std::string&& name, utils::AnyMovable&& data);
+  utils::AnyMovable& GetAnyData(const std::string& name);
+  utils::AnyMovable* GetAnyDataOptional(const std::string& name);
   void EraseAnyData(const std::string& name);
 
   utils::FastPimpl<Impl, kPimplSize, 8, true> impl_;
@@ -97,18 +96,18 @@ class RequestContext final {
 
 template <typename Data>
 Data& RequestContext::SetUserData(Data data) {
-  return boost::any_cast<Data&>(SetUserAnyData(std::move(data)));
+  return utils::AnyMovableCast<Data&>(SetUserAnyData(std::move(data)));
 }
 
 template <typename Data, typename... Args>
 Data& RequestContext::EmplaceUserData(Args&&... args) {
-  return boost::any_cast<Data&>(
+  return utils::AnyMovableCast<Data&>(
       SetUserAnyData(Data(std::forward<Args>(args)...)));
 }
 
 template <typename Data>
 Data& RequestContext::GetUserData() {
-  return boost::any_cast<Data&>(GetUserAnyData());
+  return utils::AnyMovableCast<Data&>(GetUserAnyData());
 }
 
 template <typename Data>
@@ -120,7 +119,7 @@ const Data& RequestContext::GetUserData() const {
 template <typename Data>
 std::remove_reference_t<Data>* RequestContext::GetUserDataOptional() {
   auto* data = GetUserAnyDataOptional();
-  return data ? &boost::any_cast<Data&>(*data) : nullptr;
+  return data ? &utils::AnyMovableCast<Data&>(*data) : nullptr;
 }
 
 template <typename Data>
@@ -134,18 +133,19 @@ inline void RequestContext::EraseUserData() { EraseUserAnyData(); }
 
 template <typename Data>
 Data& RequestContext::SetData(std::string name, Data data) {
-  return boost::any_cast<Data&>(SetAnyData(std::move(name), std::move(data)));
+  return utils::AnyMovableCast<Data&>(
+      SetAnyData(std::move(name), std::move(data)));
 }
 
 template <typename Data, typename... Args>
 Data& RequestContext::EmplaceData(std::string name, Args&&... args) {
-  return boost::any_cast<Data&>(
+  return utils::AnyMovableCast<Data&>(
       SetAnyData(std::move(name), Data(std::forward<Args>(args)...)));
 }
 
 template <typename Data>
 Data& RequestContext::GetData(const std::string& name) {
-  return boost::any_cast<Data&>(GetAnyData(name));
+  return utils::AnyMovableCast<Data&>(GetAnyData(name));
 }
 
 template <typename Data>
@@ -158,7 +158,7 @@ template <typename Data>
 std::remove_reference_t<Data>* RequestContext::GetDataOptional(
     const std::string& name) {
   auto* data = GetAnyDataOptional(name);
-  return data ? &boost::any_cast<Data&>(*data) : nullptr;
+  return data ? &utils::AnyMovableCast<Data&>(*data) : nullptr;
 }
 
 template <typename Data>
@@ -172,5 +172,4 @@ inline void RequestContext::EraseData(const std::string& name) {
   EraseAnyData(name);
 }
 
-}  // namespace request
-}  // namespace server
+}  // namespace server::request
