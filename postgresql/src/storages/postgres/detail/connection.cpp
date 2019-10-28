@@ -713,6 +713,11 @@ struct Connection::Impl {
     }
   }
 
+  bool WaitWhileBusy(TimeoutDuration timeout) {
+    auto deadline = engine::Deadline::FromDuration(timeout);
+    return conn_wrapper_.TryConsumeInput(deadline);
+  }
+
   bool IsConnected() const {
     return GetConnectionState() > ConnectionState::kOffline;
   }
@@ -851,6 +856,10 @@ void Connection::Start(SteadyClock::time_point&& start_time) {
 void Connection::Finish() { pimpl_->Finish(); }
 
 void Connection::Cleanup(TimeoutDuration timeout) { pimpl_->Cleanup(timeout); }
+
+bool Connection::WaitWhileBusy(TimeoutDuration timeout) {
+  return pimpl_->WaitWhileBusy(timeout);
+}
 
 TimeoutDuration Connection::GetIdleDuration() const {
   return pimpl_->GetIdleDuration();

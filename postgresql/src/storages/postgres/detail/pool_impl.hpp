@@ -12,6 +12,7 @@
 #include <rcu/rcu.hpp>
 #include <utils/periodic_task.hpp>
 #include <utils/size_guard.hpp>
+#include <utils/token_bucket.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
@@ -66,7 +67,9 @@ class ConnectionPoolImpl
   Connection* Pop(engine::Deadline);
 
   void Clear();
+
   void DeleteConnection(Connection* connection);
+  void DeleteBrokenConnection(Connection* connection);
 
   void AccountConnectionStats(Connection::Statistics stats);
 
@@ -92,6 +95,7 @@ class ConnectionPoolImpl
   std::atomic<size_t> wait_count_;
   rcu::Variable<CommandControl> default_cmd_ctl_;
   RecentCounter recent_conn_errors_;
+  ::utils::TokenBucket cancel_limit_;
 };
 
 }  // namespace detail

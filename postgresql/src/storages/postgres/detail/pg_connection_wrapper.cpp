@@ -278,15 +278,22 @@ void PGConnectionWrapper::Flush(Deadline deadline) {
   }
 }
 
-void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
+bool PGConnectionWrapper::TryConsumeInput(Deadline deadline) {
   while (PQXisBusy(conn_)) {
     if (!WaitSocketReadable(deadline)) {
-      PGCW_LOG_ERROR()
-          << "Timeout while consuming input from PostgreSQL connection socket";
-      throw ConnectionTimeoutError("Timed out while consuming input");
+      return false;
     }
     CheckError<CommandError>("PQconsumeInput", PQconsumeInput(conn_));
     UpdateLastUse();
+  }
+  return true;
+}
+
+void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
+  if (!TryConsumeInput(deadline)) {
+    PGCW_LOG_ERROR()
+        << "Timeout while consuming input from PostgreSQL connection socket";
+    throw ConnectionTimeoutError("Timed out while consuming input");
   }
 }
 

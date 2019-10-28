@@ -80,8 +80,14 @@ class PGConnectionWrapper {
   /// Will return result or throw an exception
   ResultSet WaitResult(Deadline deadline, ScopeTime&);
 
+  /// Consume input from connection
+  void ConsumeInput(Deadline deadline);
   /// Consume all input discarding all result sets
   void DiscardInput(Deadline deadline);
+
+  /// Consume input while the connection is busy.
+  /// If the connection still busy, return false
+  bool TryConsumeInput(Deadline deadline);
 
   /// @brief Get extra log information
   /// Used for internal needs
@@ -90,8 +96,6 @@ class PGConnectionWrapper {
   void LogNotice(PGresult const*);
 
   TimeoutDuration GetIdleDuration() const;
-
-  void ConsumeInput(Deadline deadline);
 
  private:
   PGTransactionStatusType GetTransactionStatus() const;

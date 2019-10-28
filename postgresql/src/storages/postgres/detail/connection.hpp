@@ -197,6 +197,10 @@ class Connection {
   /// to destroy the connection.
   void Cleanup(TimeoutDuration timeout);
 
+  /// Wait while database connection is busy
+  /// If the connection is still busy, return false
+  bool WaitWhileBusy(TimeoutDuration timeout);
+
   /// @brief Set session parameter
   /// Parameters documentation
   /// https://www.postgresql.org/docs/current/sql-set.html

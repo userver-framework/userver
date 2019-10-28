@@ -198,8 +198,15 @@ TEST_P(PostgrePool, ConnectionCleanup) {
       EXPECT_EQ(0, stats.connection.drop_total);
       EXPECT_EQ(0, stats.connection.error_total);
     }
-    pool->SetDefaultCommandControl(
-        pg::CommandControl{pg::TimeoutDuration{1000}, pg::TimeoutDuration{10}});
+  });
+}
+
+TEST_P(PostgrePool, QueryCancel) {
+  RunInCoro([this] {
+    auto pool = std::make_unique<pg::ConnectionPool>(
+        dsn_, GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+        kCachePreparedStatements,
+        pg::CommandControl{pg::TimeoutDuration{100}, pg::TimeoutDuration{10}});
     {
       pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
       EXPECT_NO_THROW(trx = pool->Begin({}, MakeDeadline()))

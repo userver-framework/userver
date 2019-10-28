@@ -15,6 +15,11 @@ namespace {
 constexpr std::size_t kRecentErrorThreshold = 2;
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
+constexpr std::size_t kCancelRate = 2;
+constexpr std::chrono::seconds kCancelPeriod{1};
+
+constexpr std::chrono::seconds kCleanupTimeout{10};
+
 constexpr std::chrono::seconds kPingInterval{30};
 constexpr std::chrono::seconds kMaxIdleDuration{15};
 constexpr const char* kPingTaskName = "pg_ping";
@@ -50,7 +55,8 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
       queue_{settings.max_size},
       size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
-      default_cmd_ctl_{default_cmd_ctl} {}
+      default_cmd_ctl_{default_cmd_ctl},
+      cancel_limit_{kCancelRate, kCancelPeriod} {}
 
 ConnectionPoolImpl::~ConnectionPoolImpl() {
   StopPingTask();
@@ -163,11 +169,8 @@ void ConnectionPoolImpl::Release(Connection* connection) {
     return;
   }
 
-  // TODO: determine connection states that are allowed here
   if (!connection->IsConnected()) {
-    ++stats_.connection.error_total;
-    LOG_WARNING() << "Released connection in closed state. Deleting...";
-    DeleteConnection(connection);
+    DeleteBrokenConnection(connection);
   } else {
     // Connection cleanup is done asynchronously while returning control to the
     // user
@@ -175,11 +178,24 @@ void ConnectionPoolImpl::Release(Connection* connection) {
                                  dec_cnt = std::move(dg)] {
       LOG_WARNING()
           << "Released connection in busy state. Trying to clean up...";
-      auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
+      do {
+        if (connection->WaitWhileBusy(kCleanupTimeout)) {
+          LOG_DEBUG() << "Successfully finished waiting for a dirty connection "
+                         "to clean up itself";
+          shared_this->AccountConnectionStats(connection->GetStatsAndReset());
+          shared_this->Push(connection);
+          return;
+        }
+        if (!connection->IsConnected()) {
+          shared_this->DeleteBrokenConnection(connection);
+          return;
+        }
+      } while (!shared_this->cancel_limit_.Obtain());
+
       try {
-        connection->Cleanup(cmd_ctl->network * 10);
+        connection->Cleanup(kCleanupTimeout);
         if (connection->IsIdle()) {
-          LOG_DEBUG() << "Succesfully cleaned up dirty connection";
+          LOG_DEBUG() << "Successfully cleaned up a dirty connection";
           shared_this->AccountConnectionStats(connection->GetStatsAndReset());
           shared_this->Push(connection);
           return;
@@ -333,6 +349,12 @@ void ConnectionPoolImpl::Clear() {
 void ConnectionPoolImpl::DeleteConnection(Connection* connection) {
   delete connection;
   ++stats_.connection.drop_total;
+}
+
+void ConnectionPoolImpl::DeleteBrokenConnection(Connection* connection) {
+  ++stats_.connection.error_total;
+  LOG_WARNING() << "Released connection in closed state. Deleting...";
+  DeleteConnection(connection);
 }
 
 void ConnectionPoolImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
