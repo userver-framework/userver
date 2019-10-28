@@ -60,6 +60,10 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
          !current->ShouldCancel()) {
     LOG_TRACE() << "iteration()";
     current->Sleep(&wait_manager);
+    if (current->GetWakeupSource() ==
+        impl::TaskContext::WakeupSource::kDeadlineTimer) {
+      return false;
+    }
   }
   LOG_TRACE() << "exit";
 

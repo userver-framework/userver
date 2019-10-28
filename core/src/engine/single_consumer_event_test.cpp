@@ -77,6 +77,14 @@ TEST(SingleConsumerEvent, SendAndWait) {
   });
 }
 
+TEST(SingleConsumerEvent, WaitFailed) {
+  RunInCoro([] {
+    engine::SingleConsumerEvent event;
+
+    EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::kPassed));
+  });
+}
+
 TEST(SingleConsumerEvent, SendAndWait2) {
   RunInCoro([] {
     engine::SingleConsumerEvent event;
