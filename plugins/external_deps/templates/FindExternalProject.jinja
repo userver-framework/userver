@@ -7,6 +7,12 @@ set(DESTDIR "${CMAKE_CURRENT_BINARY_DIR}/lib/{{ name }}_install")
 {% endif %} {# if use_destdir #}
 
 if (NOT TARGET {{ name }})
+  if (CMAKE_BUILD_TYPE MATCHES "Test")
+    set(CURRENT_CMAKE_BUILD_TYPE "Debug")
+  else ()
+    set(CURRENT_CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE})
+  endif ()
+
   ExternalProject_Add(
     {{ name }}
 {% if source.repository %}
@@ -26,6 +32,7 @@ if (NOT TARGET {{ name }})
       -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
       -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
       -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
+      -DCMAKE_BUILD_TYPE=${CURRENT_CMAKE_BUILD_TYPE}
 {% if build_args.names %}
 {% for arg in build_args.names %}
       -D{{ arg }}
