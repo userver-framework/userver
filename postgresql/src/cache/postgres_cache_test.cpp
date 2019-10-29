@@ -31,8 +31,8 @@ struct PostgresExamplePolicy {
   static constexpr auto kKeyMember = &MyStructure::id;
 
   // Data retrieve query.
-  // Mandatory
-  // The query should not contain any clauses after the `from` clause
+  // The query should not contain any clauses after the `from` clause.
+  // Either `kQuery` or `GetQuery` static member function must be defined.
   static inline constexpr const char* kQuery =
       "select id, bar, updated from test.my_data";
 
@@ -131,10 +131,42 @@ struct PostgresExamplePolicy3 {
 
 static_assert(pg_cache::detail::kHasCustomUpdated<PostgresExamplePolicy3>);
 
+/*! [Pg Cache Policy GetQuery Example] */
+struct PostgresExamplePolicy4 {
+  static constexpr const char* kName = "my-pg-cache";
+
+  // Object type
+  // Mandatory
+  using ValueType = MyStructure;
+
+  // A member by which the object must be identified in cache.
+  // Mandatory
+  // Pointer-to-member in the object.
+  // It can be either a pointer to data member or a pointer to function member,
+  // that accepts no arguments and returns the key.
+  static constexpr auto kKeyMember = &MyStructure::id;
+
+  // Data retrieve query.
+  // The query should not contain any clauses after the `from` clause.
+  // Either `kQuery` or `GetQuery` static member function must be defined.
+  static std::string GetQuery() {
+    return "select id, bar, updated from test.my_data";
+  }
+
+  // Name of the field containing timestamp of an object
+  // Mandatory
+  // To turn off incremental updates, set the value to `nullptr`
+  static constexpr const char* kUpdatedField = "updated";
+};
+/*! [Pg Cache Policy GetQuery Example] */
+
+static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy4>, "");
+
 // Instantiation test
 using MyCache1 = PostgreCache<PostgresExamplePolicy>;
 using MyCache2 = PostgreCache<PostgresExamplePolicy2>;
 using MyCache3 = PostgreCache<PostgresExamplePolicy3>;
+using MyCache4 = PostgreCache<PostgresExamplePolicy4>;
 
 static_assert(MyCache1::kIncrementalUpdates, "");
 static_assert(!MyCache2::kIncrementalUpdates, "");

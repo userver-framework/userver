@@ -45,6 +45,12 @@ namespace components {
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Example
 ///
+/// The query can be a std::string. But due to non-guaranteed order of static
+/// data members initialization, std::string should be returned from a static
+/// member function, please see the following code snippet.
+///
+/// @snippet cache/postgres_cache_test.cpp Pg Cache Policy GetQuery Example
+///
 /// Policy may have static function GetLastKnownUpdated. It should be used
 /// when new entries from database are taken via revision, identifier, or
 /// anything else, but not timestamp of the last update.
@@ -88,6 +94,15 @@ template <typename T>
 struct HasQuery<T, ::utils::void_t<decltype(T::kQuery)>> : std::true_type {};
 template <typename T>
 constexpr bool kHasQuery = HasQuery<T>::value;
+
+// Component GetQuery in policy
+template <typename T, typename = ::utils::void_t<>>
+struct HasGetQuery : std::false_type {};
+template <typename T>
+struct HasGetQuery<T, ::utils::void_t<decltype(T::GetQuery())>>
+    : std::true_type {};
+template <typename T>
+constexpr bool kHasGetQuery = HasGetQuery<T>::value;
 
 // Update field
 template <typename T, typename = ::utils::void_t<>>
@@ -187,15 +202,15 @@ struct PolicyChecker {
       kHasKeyMember<PostgreCachePolicy>,
       "The PostgreSQL cache policy must contain a static member `kKeyMember` "
       "with a pointer to a data or a function member with the object's key");
-  static_assert(kHasQuery<PostgreCachePolicy>,
-                "The PosgreSQL cache policy must contain a static member "
-                "`kQuery` with a select statement");
-  // TODO: fix in TAXICOMMON-1575
-  static_assert(
-      !std::is_same<std::remove_const_t<decltype(PostgreCachePolicy::kQuery)>,
-                    std::string>::value,
-      "kQuery as string is not supported yet. Static variables would be "
-      "initialized in the wrong order.");
+  static_assert(kHasQuery<PostgreCachePolicy> ||
+                    kHasGetQuery<PostgreCachePolicy>,
+                "The PosgreSQL cache policy must contain a static data member "
+                "`kQuery` with a select statement or a static member function "
+                "`GetQuery` returning the query");
+  static_assert(!(kHasQuery<PostgreCachePolicy> &&
+                  kHasGetQuery<PostgreCachePolicy>),
+                "The PosgreSQL cache policy must define `kQuery` or "
+                "`GetQuery`, not both");
   static_assert(
       kHasUpdateField<PostgreCachePolicy>,
       "The PosgreSQL cache policy must contain a static member "
@@ -206,6 +221,14 @@ struct PolicyChecker {
                     storages::postgres::ClusterHostType::kAny,
                 "`Any` cluster host type cannot be used for caching component, "
                 "please be more specific");
+
+  static auto GetQuery() {
+    if constexpr (kHasGetQuery<PostgreCachePolicy>) {
+      return PostgreCachePolicy::GetQuery();
+    } else {
+      return PostgreCachePolicy::kQuery;
+    }
+  }
 
   using BaseType =
       CachingComponentBase<DataCacheContainerType<PostgreCachePolicy>>;
@@ -227,8 +250,8 @@ class PostgreCache final
   using PolicyType = PostgreCachePolicy;
   using ValueType = pg_cache::detail::ValueType<PolicyType>;
   using DataType = pg_cache::detail::DataCacheContainerType<PolicyType>;
-  using BaseType =
-      typename pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType;
+  using PolicyCheckerType = pg_cache::detail::PolicyChecker<PostgreCachePolicy>;
+  using BaseType = typename PolicyCheckerType::BaseType;
 
   // Calculated constants
   constexpr static bool kIncrementalUpdates =
@@ -255,10 +278,8 @@ class PostgreCache final
   void CacheResults(storages::postgres::ResultSet res, CachedData data_cache,
                     cache::UpdateStatisticsScope& stats_scope);
 
+  static std::string GetAllQuery();
   static std::string GetDeltaQuery();
-
-  static inline const std::string kAllQuery = PolicyType::kQuery;
-  static inline const std::string kDeltaQuery = GetDeltaQuery();
 
   std::vector<storages::postgres::ClusterPtr> clusters_;
 
@@ -308,8 +329,8 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
     clusters_[i] = pg_cluster_comp.GetClusterForShard(i);
   }
 
-  LOG_INFO() << "Cache " << kName << " full update query `" << kAllQuery
-             << "` incremental update query `" << kDeltaQuery << "`";
+  LOG_INFO() << "Cache " << kName << " full update query `" << GetAllQuery()
+             << "` incremental update query `" << GetDeltaQuery() << "`";
 
   this->StartPeriodicUpdates();
 }
@@ -320,22 +341,20 @@ PostgreCache<PostgreCachePolicy>::~PostgreCache() {
 }
 
 template <typename PostgreCachePolicy>
+std::string PostgreCache<PostgreCachePolicy>::GetAllQuery() {
+  std::string query = PolicyCheckerType::GetQuery();
+  UASSERT_MSG(!query.empty(), "Query body of cache policy must not be empty");
+  return query;
+}
+
+template <typename PostgreCachePolicy>
 std::string PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
   using namespace std::string_literals;
-  if constexpr (std::is_same<std::remove_const_t<decltype(PolicyType::kQuery)>,
-                             std::string>{}) {
-    UASSERT_MSG(!PolicyType::kQuery.empty(),
-                "kQuery member of cache policy must not be empty");
-  } else {
-    UASSERT_MSG(
-        PolicyType::kQuery != nullptr && utils::StrLen(PolicyType::kQuery) > 0,
-        "kQuery member of cache policy must not be empty");
-  }
+  const auto query = GetAllQuery();
   if constexpr (kIncrementalUpdates) {
-    return PolicyType::kQuery + " where "s + PolicyType::kUpdatedField +
-           " >= $1";
+    return query + " where "s + PolicyType::kUpdatedField + " >= $1";
   } else {
-    return PolicyType::kQuery;
+    return query;
   }
 }
 
@@ -360,8 +379,8 @@ void PostgreCache<PostgreCachePolicy>::Update(
   if constexpr (!kIncrementalUpdates) {
     type = cache::UpdateType::kFull;
   }
-  const std::string& query =
-      (type == cache::UpdateType::kFull) ? kAllQuery : kDeltaQuery;
+  const std::string query =
+      (type == cache::UpdateType::kFull) ? GetAllQuery() : GetDeltaQuery();
   const std::chrono::milliseconds timeout = (type == cache::UpdateType::kFull)
                                                 ? full_update_timeout_
                                                 : incremental_update_timeout_;
