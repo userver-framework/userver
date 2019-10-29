@@ -179,7 +179,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
       LOG_WARNING()
           << "Released connection in busy state. Trying to clean up...";
       do {
-        if (connection->WaitWhileBusy(kCleanupTimeout)) {
+        if (connection->Cleanup(kCleanupTimeout)) {
           LOG_DEBUG() << "Successfully finished waiting for a dirty connection "
                          "to clean up itself";
           shared_this->AccountConnectionStats(connection->GetStatsAndReset());
@@ -193,7 +193,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
       } while (!shared_this->cancel_limit_.Obtain());
 
       try {
-        connection->Cleanup(kCleanupTimeout);
+        connection->CancelAndCleanup(kCleanupTimeout);
         if (connection->IsIdle()) {
           LOG_DEBUG() << "Successfully cleaned up a dirty connection";
           shared_this->AccountConnectionStats(connection->GetStatsAndReset());

@@ -190,16 +190,21 @@ class Connection {
   ResultSet PortalExecute(StatementId, const std::string& portal_name,
                           std::uint32_t n_rows, OptionalCommandControl);
 
+  /// Send cancel to the database backend
   /// Try to return connection to idle state discarding all results.
   /// If there is a transaction in progress - roll it back.
   /// For usage in connection pools.
   /// Will do nothing if connection failed, it's responsibility of the pool
   /// to destroy the connection.
-  void Cleanup(TimeoutDuration timeout);
+  void CancelAndCleanup(TimeoutDuration timeout);
 
   /// Wait while database connection is busy
+  /// For usage in transaction pools, before an attempt to cancel
   /// If the connection is still busy, return false
-  bool WaitWhileBusy(TimeoutDuration timeout);
+  /// If the connection is in TranActive state return false
+  /// If the connection is in TranIdle or TranError - rollback transaction and
+  /// return true
+  bool Cleanup(TimeoutDuration timeout);
 
   /// @brief Set session parameter
   /// Parameters documentation

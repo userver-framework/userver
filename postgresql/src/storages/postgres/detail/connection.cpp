@@ -682,40 +682,54 @@ struct Connection::Impl {
   }
   void Finish() { stats_.trx_end_time = SteadyClock::now(); }
 
-  void Cleanup(TimeoutDuration timeout) {
+  void CancelAndCleanup(TimeoutDuration timeout) {
     auto deadline = engine::Deadline::FromDuration(timeout);
-    {
+
+    auto state = GetConnectionState();
+    if (state == ConnectionState::kOffline) {
+      return;
+    }
+    if (GetConnectionState() == ConnectionState::kTranActive) {
+      auto cancel = conn_wrapper_.Cancel();
+      // May throw on timeout
+      try {
+        conn_wrapper_.DiscardInput(deadline);
+      } catch (const std::exception&) {
+        // Consume error, we will throw later if we detect transaction is
+        // busy
+      }
+      cancel.WaitUntil(deadline);
+    }
+
+    // We might need more timeout here
+    // We are no more bound with SLA, user has his exception.
+    // It's better to keep this connection alive than recreating it, because
+    // reconnecting impacts the pgbouncer badly
+    Cleanup(timeout);
+  }
+
+  bool Cleanup(TimeoutDuration timeout) {
+    auto deadline = engine::Deadline::FromDuration(timeout);
+    if (conn_wrapper_.TryConsumeInput(deadline)) {
       auto state = GetConnectionState();
       if (state == ConnectionState::kOffline) {
-        return;
+        return false;
       }
-      if (GetConnectionState() == ConnectionState::kTranActive) {
-        auto cancel = conn_wrapper_.Cancel();
-        // May throw on timeout
-        try {
-          conn_wrapper_.DiscardInput(deadline);
-        } catch (const std::exception&) {
-          // Consume error, we will throw later if we detect transaction is
-          // busy
-        }
-        cancel.WaitUntil(deadline);
-      }
-    }
-    {
-      auto state = GetConnectionState();
       if (state == ConnectionState::kTranActive) {
-        throw ConnectionTimeoutError("Timeout while cleaning up connection");
+        return false;
       }
       if (state > ConnectionState::kIdle) {
         Rollback();
       }
-      SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
+      // We might need more timeout here
+      // We are no more bound with SLA, user has his exception.
+      // We need to try and save the connection without canceling current query
+      // not to kill the pgbouncer
+      SetConnectionStatementTimeout(default_cmd_ctl_.statement,
+                                    engine::Deadline::FromDuration(timeout));
+      return true;
     }
-  }
-
-  bool WaitWhileBusy(TimeoutDuration timeout) {
-    auto deadline = engine::Deadline::FromDuration(timeout);
-    return conn_wrapper_.TryConsumeInput(deadline);
+    return false;
   }
 
   bool IsConnected() const {
@@ -855,10 +869,12 @@ void Connection::Start(SteadyClock::time_point&& start_time) {
 
 void Connection::Finish() { pimpl_->Finish(); }
 
-void Connection::Cleanup(TimeoutDuration timeout) { pimpl_->Cleanup(timeout); }
+void Connection::CancelAndCleanup(TimeoutDuration timeout) {
+  pimpl_->CancelAndCleanup(timeout);
+}
 
-bool Connection::WaitWhileBusy(TimeoutDuration timeout) {
-  return pimpl_->WaitWhileBusy(timeout);
+bool Connection::Cleanup(TimeoutDuration timeout) {
+  return pimpl_->Cleanup(timeout);
 }
 
 TimeoutDuration Connection::GetIdleDuration() const {
