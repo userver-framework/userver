@@ -1,12 +1,12 @@
 #pragma once
 
-#include <cache/cache_invalidator.hpp>
 #include <cache/cache_update_trait.hpp>
+#include <cache/testsuite_support.hpp>
 #include <cache/update_type.hpp>
 #include <components/component_context.hpp>
 
 namespace components {
-class CacheInvalidator;
+class TestsuiteSupport;
 }  // namespace components
 
 namespace server {
@@ -19,7 +19,7 @@ class CacheInvalidatorHolder final {
   ~CacheInvalidatorHolder();
 
  private:
-  components::CacheInvalidator& cache_invalidator_;
+  components::TestsuiteSupport& testsuite_support_;
   components::CacheUpdateTrait& cache_;
 };
 
@@ -29,21 +29,21 @@ class ComponentInvalidatorHolder final {
   ComponentInvalidatorHolder(T& component,
                              const components::ComponentContext& context,
                              void (T::*invalidate_method)())
-      : cache_invalidator_{context
-                               .FindComponent<components::CacheInvalidator>()},
+      : testsuite_support_{context
+                               .FindComponent<components::TestsuiteSupport>()},
         component_(component) {
-    cache_invalidator_.RegisterComponentInvalidator(
+    testsuite_support_.RegisterComponentInvalidator(
         component_, [component = &component_, invalidate_method]() {
           (component->*invalidate_method)();
         });
   }
 
   ~ComponentInvalidatorHolder() {
-    cache_invalidator_.UnregisterComponentInvalidator(component_);
+    testsuite_support_.UnregisterComponentInvalidator(component_);
   }
 
  private:
-  components::CacheInvalidator& cache_invalidator_;
+  components::TestsuiteSupport& testsuite_support_;
   T& component_;
 };
 

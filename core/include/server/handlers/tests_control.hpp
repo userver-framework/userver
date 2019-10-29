@@ -9,7 +9,7 @@
 #include <server/handlers/http_handler_json_base.hpp>
 
 namespace components {
-class CacheInvalidator;
+class TestsuiteSupport;
 }  // namespace components
 
 namespace server {
@@ -32,8 +32,8 @@ class TestsControl final : public HttpHandlerJsonBase {
   formats::json::Value ActionRunPeriodicTask(
       const formats::json::Value& request_body) const;
 
-  concurrent::Variable<std::reference_wrapper<components::CacheInvalidator>>
-      cache_invalidator_;
+  concurrent::Variable<std::reference_wrapper<components::TestsuiteSupport>>
+      testsuite_support_;
 };
 
 }  // namespace handlers

@@ -1,6 +1,6 @@
 #include <server/handlers/tests_control.hpp>
 
-#include <cache/cache_invalidator.hpp>
+#include <cache/testsuite_support.hpp>
 #include <cache/update_type.hpp>
 #include <clients/http/component.hpp>
 #include <logging/log.hpp>
@@ -16,8 +16,8 @@ TestsControl::TestsControl(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context)
     : HttpHandlerJsonBase(config, component_context),
-      cache_invalidator_(
-          component_context.FindComponent<components::CacheInvalidator>()) {
+      testsuite_support_(
+          component_context.FindComponent<components::TestsuiteSupport>()) {
   auto testpoint_url = config.ParseOptionalString("testpoint-url");
   if (testpoint_url) {
     auto& http_client =
@@ -71,7 +71,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     }
   }
 
-  auto cache_invalidator = cache_invalidator_.Lock();
+  auto testsuite_support = testsuite_support_.Lock();
 
   if (now)
     utils::datetime::MockNowSet(*now);
@@ -79,7 +79,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     utils::datetime::MockNowUnset();
 
   if (invalidate_caches) {
-    cache_invalidator->get().InvalidateCaches(update_type);
+    testsuite_support->get().InvalidateCaches(update_type);
   }
 
   return formats::json::Value();
@@ -89,10 +89,10 @@ formats::json::Value TestsControl::ActionRunPeriodicTask(
     const formats::json::Value& request_body) const {
   const auto task_name = request_body["name"].As<std::string>();
 
-  auto cache_invalidator = cache_invalidator_.Lock();
+  auto testsuite_support = testsuite_support_.Lock();
 
   LOG_INFO() << "Running periodic task " << task_name;
-  bool status = cache_invalidator->get().RunPeriodicTask(task_name);
+  bool status = testsuite_support->get().RunPeriodicTask(task_name);
   LOG_INFO() << "Periodic task " << task_name << " finished with status "
              << status;
 

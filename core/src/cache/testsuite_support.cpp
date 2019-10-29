@@ -1,4 +1,4 @@
-#include <cache/cache_invalidator.hpp>
+#include <cache/testsuite_support.hpp>
 #include <utils/periodic_task.hpp>
 
 namespace components {
@@ -11,12 +11,12 @@ const std::string kForcePeriodicUpdate = "testsuite-force-periodic-update";
 const std::string kConfigCacheName = "taxi-config-client-updater";
 }  // namespace
 
-CacheInvalidator::CacheInvalidator(const components::ComponentConfig& config,
+TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
                                    const components::ComponentContext&)
     : periodic_update_enabled_(
           config.ParseOptionalBool(kPeriodicUpdateEnabled)) {}
 
-void CacheInvalidator::InvalidateCaches(cache::UpdateType update_type) {
+void TestsuiteSupport::InvalidateCaches(cache::UpdateType update_type) {
   std::lock_guard<engine::Mutex> lock(mutex_);
 
   for (auto& invalidator : cache_invalidators_) {
@@ -30,7 +30,7 @@ void CacheInvalidator::InvalidateCaches(cache::UpdateType update_type) {
   }
 }
 
-void CacheInvalidator::RegisterCacheInvalidator(
+void TestsuiteSupport::RegisterCacheInvalidator(
     components::CacheUpdateTrait& owner, CallbackUpdateType&& handler) {
   std::lock_guard<engine::Mutex> lock(mutex_);
   // Hack to ensure that config is invalidated first, see TAXIDATA-1543
@@ -42,24 +42,24 @@ void CacheInvalidator::RegisterCacheInvalidator(
   }
 }
 
-void CacheInvalidator::UnregisterCacheInvalidator(
+void TestsuiteSupport::UnregisterCacheInvalidator(
     components::CacheUpdateTrait& owner) {
   UnregisterInvalidatorGeneric(owner, cache_invalidators_);
 }
 
-void CacheInvalidator::RegisterComponentInvalidator(
+void TestsuiteSupport::RegisterComponentInvalidator(
     components::impl::ComponentBase& owner, CallbackVoid&& handler) {
   std::lock_guard<engine::Mutex> lock(mutex_);
   invalidators_.emplace_back(&owner, std::move(handler));
 }
 
-void CacheInvalidator::UnregisterComponentInvalidator(
+void TestsuiteSupport::UnregisterComponentInvalidator(
     components::impl::ComponentBase& owner) {
   UnregisterInvalidatorGeneric(owner, invalidators_);
 }
 
 template <typename T, typename Callback>
-void CacheInvalidator::UnregisterInvalidatorGeneric(
+void TestsuiteSupport::UnregisterInvalidatorGeneric(
     T& owner, std::vector<Invalidator<T, Callback>>& invalidators) {
   std::lock_guard<engine::Mutex> lock(mutex_);
 
@@ -72,7 +72,7 @@ void CacheInvalidator::UnregisterInvalidatorGeneric(
   }
 }
 
-void CacheInvalidator::RegisterPeriodicTask(const std::string& name,
+void TestsuiteSupport::RegisterPeriodicTask(const std::string& name,
                                             utils::PeriodicTask& task) {
   std::lock_guard<engine::Mutex> lock(mutex_);
 
@@ -84,7 +84,7 @@ void CacheInvalidator::RegisterPeriodicTask(const std::string& name,
   periodic_tasks_.emplace(name, task);
 }
 
-void CacheInvalidator::UnregisterPeriodicTask(const std::string& name,
+void TestsuiteSupport::UnregisterPeriodicTask(const std::string& name,
                                               utils::PeriodicTask& task) {
   std::lock_guard<engine::Mutex> lock(mutex_);
   auto it = periodic_tasks_.find(name);
@@ -103,13 +103,13 @@ void CacheInvalidator::UnregisterPeriodicTask(const std::string& name,
   }
 }
 
-bool CacheInvalidator::RunPeriodicTask(const std::string& name) {
+bool TestsuiteSupport::RunPeriodicTask(const std::string& name) {
   auto& task = FindPeriodicTask(name);
   std::lock_guard<engine::Mutex> lock(periodic_task_mutex_);
   return task.SynchronizeDebug(true);
 }
 
-utils::PeriodicTask& CacheInvalidator::FindPeriodicTask(
+utils::PeriodicTask& TestsuiteSupport::FindPeriodicTask(
     const std::string& name) {
   std::lock_guard<engine::Mutex> lock(mutex_);
   auto it = periodic_tasks_.find(name);
@@ -121,7 +121,7 @@ utils::PeriodicTask& CacheInvalidator::FindPeriodicTask(
   return it->second;
 }
 
-bool CacheInvalidator::IsPeriodicUpdateEnabled(
+bool TestsuiteSupport::IsPeriodicUpdateEnabled(
     const ComponentConfig& cache_component_config,
     const std::string& cache_component_name) const {
   const auto& force_periodic_update =

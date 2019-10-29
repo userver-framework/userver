@@ -10,11 +10,11 @@
 
 namespace components {
 
-class CacheInvalidator final : public components::impl::ComponentBase {
+class TestsuiteSupport final : public components::impl::ComponentBase {
  public:
-  static constexpr const char* kName = "cache-invalidator";
+  static constexpr const char* kName = "testsuite-support";
 
-  CacheInvalidator(const components::ComponentConfig& component_config,
+  TestsuiteSupport(const components::ComponentConfig& component_config,
                    const components::ComponentContext& component_context);
 
   using CallbackVoid = utils::PeriodicTask::Callback;

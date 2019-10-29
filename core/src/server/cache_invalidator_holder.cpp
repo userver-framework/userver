@@ -1,22 +1,22 @@
 #include <server/cache_invalidator_holder.hpp>
 
-#include <cache/cache_invalidator.hpp>
+#include <cache/testsuite_support.hpp>
 
 namespace server {
 
 CacheInvalidatorHolder::CacheInvalidatorHolder(
     components::CacheUpdateTrait& cache,
     const components::ComponentContext& context)
-    : cache_invalidator_{context.FindComponent<components::CacheInvalidator>()},
+    : testsuite_support_{context.FindComponent<components::TestsuiteSupport>()},
       cache_(cache) {
-  cache_invalidator_.RegisterCacheInvalidator(
+  testsuite_support_.RegisterCacheInvalidator(
       cache_, [cache = &cache_](cache::UpdateType update_type) {
         cache->Update(update_type);
       });
 }
 
 CacheInvalidatorHolder::~CacheInvalidatorHolder() {
-  cache_invalidator_.UnregisterCacheInvalidator(cache_);
+  testsuite_support_.UnregisterCacheInvalidator(cache_);
 }
 
 }  // namespace server

@@ -1,6 +1,6 @@
 #include <utils/periodic_task.hpp>
 
-#include <cache/cache_invalidator.hpp>
+#include <cache/testsuite_support.hpp>
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
@@ -11,12 +11,12 @@ namespace utils {
 
 class PeriodicTask::TestsuiteHolder {
  public:
-  TestsuiteHolder(components::CacheInvalidator& cache_invalidator,
+  TestsuiteHolder(components::TestsuiteSupport& testsuite_support,
                   std::string name, PeriodicTask& task)
-      : cache_invalidator_(cache_invalidator),
+      : testsuite_support_(testsuite_support),
         name_(std::move(name)),
         task_(task) {
-    cache_invalidator_.RegisterPeriodicTask(name_, task_);
+    testsuite_support_.RegisterPeriodicTask(name_, task_);
   }
   TestsuiteHolder(const TestsuiteHolder&) = delete;
   TestsuiteHolder(TestsuiteHolder&&) = delete;
@@ -24,11 +24,11 @@ class PeriodicTask::TestsuiteHolder {
   TestsuiteHolder& operator=(TestsuiteHolder&&) = delete;
 
   ~TestsuiteHolder() {
-    cache_invalidator_.UnregisterPeriodicTask(name_, task_);
+    testsuite_support_.UnregisterPeriodicTask(name_, task_);
   }
 
  private:
-  components::CacheInvalidator& cache_invalidator_;
+  components::TestsuiteSupport& testsuite_support_;
   std::string name_;
   PeriodicTask& task_;
 };
@@ -197,9 +197,9 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
 }
 
 void PeriodicTask::RegisterInTestsuite(
-    components::CacheInvalidator& cache_invalidator) {
+    components::TestsuiteSupport& testsuite_support) {
   testsuite_holder_ =
-      std::make_unique<TestsuiteHolder>(cache_invalidator, name_, *this);
+      std::make_unique<TestsuiteHolder>(testsuite_support, name_, *this);
 }
 
 }  // namespace utils

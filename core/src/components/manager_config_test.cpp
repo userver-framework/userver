@@ -15,7 +15,7 @@ components_manager:
       fcm-send-base-url: $fcm_send_base_url
       fcm-subscribe-base-url: $fcm_subscribe_base_url
     auth-checker-settings: null
-    cache-invalidator: null
+    testsuite-support: null
     device-notify-stat: null
     handler-inspect-requests:
       path: /service/inspect-requests

@@ -11,7 +11,7 @@
 #include <utils/flags.hpp>
 
 namespace components {
-class CacheInvalidator;
+class TestsuiteSupport;
 class ComponentContext;
 }  // namespace components
 
@@ -108,7 +108,7 @@ class PeriodicTask final {
 
   /// Make this periodic task available for testsuite. Testsuite provides a way
   /// to call it directly from testcase.
-  void RegisterInTestsuite(components::CacheInvalidator& cache_invalidator);
+  void RegisterInTestsuite(components::TestsuiteSupport& testsuite_support);
 
  private:
   void SleepUntil(engine::Deadline::TimePoint tp);

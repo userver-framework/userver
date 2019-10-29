@@ -4,8 +4,8 @@
 #include <memory>
 #include <mutex>
 
-#include <cache/cache_invalidator.hpp>
 #include <cache/cache_statistics.hpp>
+#include <cache/testsuite_support.hpp>
 #include <components/statistics_storage.hpp>
 #include <engine/condition_variable.hpp>
 #include <server/cache_invalidator_holder.hpp>
@@ -41,7 +41,7 @@ namespace components {
 /// update-jitter | max. amount of time by which interval may be adjusted for requests desynchronization | update_interval / 10
 /// full-update-interval | interval between full updates | --
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
-/// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in CacheInvalidator component config | --
+/// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
 ///
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
@@ -53,7 +53,7 @@ namespace components {
 ///
 /// ### testsuite-force-periodic-update
 ///  use it to enable periodic cache update for a component in testsuite environment
-///  where testsuite-periodic-update-enabled from CacheInvalidator config is false
+///  where testsuite-periodic-update-enabled from TestsuiteSupport config is false
 ///
 /// By default, update types are guessed based on update intervals presence.
 /// If both `update-interval` and `full-update-interval` are present,
@@ -113,7 +113,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       CacheUpdateTrait(cache::CacheConfig(config), name),
       cache_invalidator_holder_(*this, context),
       periodic_update_enabled_(
-          context.FindComponent<CacheInvalidator>().IsPeriodicUpdateEnabled(
+          context.FindComponent<TestsuiteSupport>().IsPeriodicUpdateEnabled(
               config, name)),
       name_(name) {
   auto& storage =

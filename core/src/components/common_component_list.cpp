@@ -1,6 +1,6 @@
 #include <components/common_component_list.hpp>
 
-#include <cache/cache_invalidator.hpp>
+#include <cache/testsuite_support.hpp>
 #include <clients/http/component.hpp>
 #include <components/manager_controller_component.hpp>
 #include <components/statistics_storage.hpp>
@@ -18,7 +18,7 @@ ComponentList CommonComponentList() {
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()
       .Append<components::Secdist>()
-      .Append<components::CacheInvalidator>()
+      .Append<components::TestsuiteSupport>()
       .Append<components::StatisticsStorage>()
       .Append<components::TaxiConfig>()
       .Append<components::HttpClient>()
