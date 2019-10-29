@@ -104,6 +104,13 @@ void CacheInvalidator::UnregisterPeriodicTask(const std::string& name,
 }
 
 bool CacheInvalidator::RunPeriodicTask(const std::string& name) {
+  auto& task = FindPeriodicTask(name);
+  std::lock_guard<engine::Mutex> lock(periodic_task_mutex_);
+  return task.SynchronizeDebug(true);
+}
+
+utils::PeriodicTask& CacheInvalidator::FindPeriodicTask(
+    const std::string& name) {
   std::lock_guard<engine::Mutex> lock(mutex_);
   auto it = periodic_tasks_.find(name);
   if (it == periodic_tasks_.end()) {
@@ -111,7 +118,7 @@ bool CacheInvalidator::RunPeriodicTask(const std::string& name) {
     UASSERT_MSG(false, error_msg);
     throw std::runtime_error(error_msg);
   }
-  return it->second.SynchronizeDebug(true);
+  return it->second;
 }
 
 bool CacheInvalidator::IsPeriodicUpdateEnabled(

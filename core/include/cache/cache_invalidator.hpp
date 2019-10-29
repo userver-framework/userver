@@ -61,7 +61,10 @@ class CacheInvalidator final : public components::impl::ComponentBase {
   void UnregisterInvalidatorGeneric(
       T& owner, std::vector<Invalidator<T, Callback>>& invalidators);
 
+  utils::PeriodicTask& FindPeriodicTask(const std::string& name);
+
   engine::Mutex mutex_;
+  engine::Mutex periodic_task_mutex_;
 
   std::vector<CacheInvalidatorStruct> cache_invalidators_;
   std::vector<ComponentInvalidatorStruct> invalidators_;
