@@ -72,9 +72,11 @@ void Transaction::SetParameter(const std::string& param_name,
 }
 
 void Transaction::Commit() {
-  auto conn = std::move(conn_);
-  if (conn) {
-    conn->Commit();
+  if (conn_) {
+    conn_->Commit();
+    // in case of exception inside commit let it fly and don't release the
+    // connection holder to allow for rolling back later
+    conn_ = detail::ConnectionPtr{nullptr};
   } else {
     LOG_ERROR() << "Commit after transaction finished"
                 << logging::LogExtra::Stacktrace();
