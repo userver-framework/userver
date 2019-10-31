@@ -670,19 +670,12 @@ void Request::RequestImpl::ApplyTestsuiteConfig() {
 
   const auto& prefixes = testsuite_config_->allowed_url_prefixes;
   if (!prefixes.empty()) {
-    std::string effective_url = easy().get_effective_url();
-    std::string url = effective_url;
-    // the if branch below will be removed with TAXIDATA-1489
-    if (!boost::starts_with(url, "http://") &&
-        !boost::starts_with(url, "https://")) {
-      url.insert(0, "http://");
-    }
+    std::string url = easy().get_effective_url();
     if (std::find_if(prefixes.begin(), prefixes.end(),
                      [&url](const std::string& prefix) {
                        return boost::starts_with(url, prefix);
                      }) == prefixes.end()) {
-      std::cerr << effective_url << " is forbidden by testsuite config, "
-                << "url_with_schema=" << url << " allowed prefixes=\n"
+      std::cerr << url << " forbidden by testsuite config, allowed prefixes=\n"
                 << boost::algorithm::join(prefixes, "\n") << "\n";
       AbortWithStacktrace();
     }
