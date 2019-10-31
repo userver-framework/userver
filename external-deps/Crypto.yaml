@@ -6,8 +6,9 @@ debian-names:
 formula-name: openssl
 
 libraries:
-  names:
-    - crypto
+  find:
+    - names:
+        - crypto
 
 includes:
   enabled: false

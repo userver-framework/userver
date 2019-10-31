@@ -8,9 +8,10 @@ libraries:
   enabled: false
 
 programs:
-  names:
-    - git
-    - eg
-  path-suffixes:
-    - Git/cmd
-    - Git/bin
+  find:
+    - names:
+        - git
+        - eg
+      path-suffixes:
+        - Git/cmd
+        - Git/bin

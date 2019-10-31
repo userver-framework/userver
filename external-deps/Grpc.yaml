@@ -1,0 +1,34 @@
+name: Grpc
+helper-prefix: false
+
+debian-names:
+  - libyandex-taxi-grpc-dev
+  - libyandex-taxi-grpc7
+  - libyandex-taxi-grpc++-dev
+  - libyandex-taxi-grpc++1
+  - yandex-taxi-protobuf-compiler-grpc
+
+formula-name: grpc
+
+libraries:
+  find:
+    - names:
+        - grpc
+    - names:
+        - grpc++
+    - names:
+        - gpr
+    - names:
+        - yandex-taxi-cares
+        - cares
+    - names:
+        - address_sorting
+
+includes:
+  find:
+    - names:
+        - grpc/grpc.h
+    - names:
+        - google/protobuf/port_def.inc
+      path-suffixes:
+        - yandex-taxi-proto3

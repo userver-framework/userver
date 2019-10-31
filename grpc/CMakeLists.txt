@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 project(yandex-taxi-userver-grpc)
 
 find_package(Grpc REQUIRED)
+find_package(Protobuf REQUIRED)
 include(GrpcTargets)
 
 file(GLOB_RECURSE PROTOS ${CMAKE_CURRENT_SOURCE_DIR}/*.proto)
@@ -56,6 +57,7 @@ target_link_libraries(${PROJECT_NAME}_unittest PUBLIC
   utest
   ${PROJECT_NAME}
   $<TARGET_PROPERTY:Grpc,INTERFACE_LINK_LIBRARIES>
+  Protobuf
   PRIVATE ${PROJECT_NAME}_unittest_proto
 )
 add_google_tests(${PROJECT_NAME}_unittest)

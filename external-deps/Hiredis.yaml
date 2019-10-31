@@ -2,12 +2,14 @@ name: Hiredis
 version: 0.13.3
 
 includes:
-  names:
-    - hiredis/hiredis.h
+  find:
+    - names:
+        - hiredis/hiredis.h
 
 libraries:
-  names:
-    - hiredis
+  find:
+    - names:
+        - hiredis
 
 debian-names:
   - libhiredis-dev

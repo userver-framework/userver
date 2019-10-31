@@ -24,20 +24,17 @@ class RepositoryGenerator:
             'includes': {
                 'enabled': bool,
                 'variable': str,
-                'path-suffixes': list,
-                'names': list,
+                'find': [{'path-suffixes': list, 'names': list}],
             },
             'libraries': {
                 'enabled': bool,
                 'variable': str,
-                'path-suffixes': list,
-                'names': list,
+                'find': [{'path-suffixes': list, 'names': list}],
             },
             'programs': {
                 'enabled': bool,
                 'variable': str,
-                'path-suffixes': list,
-                'names': list,
+                'find': [{'path-suffixes': list, 'names': list}],
             },
             'fail-message': str,
             'virtual': bool,
@@ -62,6 +59,7 @@ class RepositoryGenerator:
                     'depends': [str],
                 },
             ],
+            'checks': [{'expression': str, 'error': str}],
         },
     )
 
@@ -117,6 +115,7 @@ class RepositoryGenerator:
                             'compile_definitions': value.get(
                                 'compile-definitions',
                             ),
+                            'checks': value.get('checks'),
                         },
                     ),
                 )
