@@ -165,6 +165,7 @@ using RequestLlen = Request<size_t>;
 using RequestLpop = Request<boost::optional<std::string>>;
 using RequestLpush = Request<size_t>;
 using RequestLrange = Request<std::vector<std::string>>;
+using RequestLrem = Request<size_t>;
 using RequestLtrim = Request<StatusOk, void>;
 using RequestMget = Request<std::vector<boost::optional<std::string>>>;
 using RequestMset = Request<StatusOk, void>;

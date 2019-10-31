@@ -115,6 +115,9 @@ class Transaction {
   virtual RequestLrange Lrange(std::string key, int64_t start,
                                int64_t stop) = 0;
 
+  virtual RequestLrem Lrem(std::string key, int64_t count,
+                           std::string element) = 0;
+
   virtual RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop) = 0;
 
   virtual RequestMget Mget(std::vector<std::string> keys) = 0;

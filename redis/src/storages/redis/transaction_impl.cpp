@@ -207,6 +207,12 @@ RequestLrange TransactionImpl::Lrange(std::string key, int64_t start,
   return AddCmd<RequestLrange>("lrange", std::move(key), start, stop);
 }
 
+RequestLrem TransactionImpl::Lrem(std::string key, int64_t count,
+                                  std::string element) {
+  UpdateShard(key);
+  return AddCmd<RequestLrem>("lrem", std::move(key), count, std::move(element));
+}
+
 RequestLtrim TransactionImpl::Ltrim(std::string key, int64_t start,
                                     int64_t stop) {
   UpdateShard(key);

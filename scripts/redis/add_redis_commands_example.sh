@@ -66,6 +66,8 @@
 
 ./add_redis_command lrange 'std::vector<std::string>' 'std::string key, int64_t start, int64_t stop'
 
+./add_redis_command lrem 'size_t' 'std::string key, int64_t count, std::string element'
+
 ./add_redis_command ltrim 'StatusOk, void' 'std::string key, int64_t start, int64_t stop'
 
 ./add_redis_command mget 'std::vector<boost::optional<std::string>>' 'std::vector<std::string> keys'
@@ -163,4 +165,3 @@
 ./add_redis_command zrem 'size_t' 'std::string key, std::vector<std::string> members'
 
 ./add_redis_command zscore 'boost::optional<double>' 'std::string key, std::string member'
-

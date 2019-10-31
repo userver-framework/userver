@@ -174,6 +174,9 @@ class Client {
   virtual RequestLrange Lrange(std::string key, int64_t start, int64_t stop,
                                const CommandControl& command_control) = 0;
 
+  virtual RequestLrem Lrem(std::string key, int64_t count, std::string element,
+                           const CommandControl& command_control) = 0;
+
   virtual RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop,
                              const CommandControl& command_control) = 0;
 

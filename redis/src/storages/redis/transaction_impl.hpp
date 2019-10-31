@@ -181,6 +181,9 @@ class TransactionImpl final : public Transaction {
 
   RequestLrange Lrange(std::string key, int64_t start, int64_t stop) override;
 
+  RequestLrem Lrem(std::string key, int64_t count,
+                   std::string element) override;
+
   RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop) override;
 
   RequestMget Mget(std::vector<std::string> keys) override;

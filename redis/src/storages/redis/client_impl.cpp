@@ -361,6 +361,15 @@ RequestLrange ClientImpl::Lrange(std::string key, int64_t start, int64_t stop,
                   GetCommandControl(command_control)));
 }
 
+RequestLrem ClientImpl::Lrem(std::string key, int64_t count,
+                             std::string element,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key);
+  return CreateRequest<RequestLrem>(
+      MakeRequest(CmdArgs{"lrem", std::move(key), count, std::move(element)},
+                  shard, true, GetCommandControl(command_control)));
+}
+
 RequestLtrim ClientImpl::Ltrim(std::string key, int64_t start, int64_t stop,
                                const CommandControl& command_control) {
   auto shard = ShardByKey(key);
