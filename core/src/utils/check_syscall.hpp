@@ -17,8 +17,8 @@ std::string ToString(const Args&... args) {
 
 }  // namespace impl
 
-template <typename... Context>
-inline int CheckSyscall(int ret, const Context&... context) {
+template <typename Ret, typename... Context>
+inline Ret CheckSyscall(Ret ret, const Context&... context) {
   if (ret == -1) {
     // avoid losing errno due to message generation
     const auto err_value = errno;

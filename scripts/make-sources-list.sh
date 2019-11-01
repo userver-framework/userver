@@ -8,7 +8,7 @@ if [ ! -e "/etc/lsb-release" ]; then
 fi
 source /etc/lsb-release
 
-OUTPUT_FILE="/etc/apt/sources_list.d/yandex.list"
+OUTPUT_FILE="/etc/apt/sources.list.d/yandex.list"
 TEE_ARGS=
 
 echo "Going to generate ${OUTPUT_FILE} for ${DISTRIB_CODENAME}."
@@ -37,7 +37,7 @@ fi
 
 echo "Writing ${OUTPUT_FILE} (sudo required)."
 
-tee ${TEE_ARGS} "${OUTPUT_FILE}" >/dev/null <<EOF
+sudo tee ${TEE_ARGS} "${OUTPUT_FILE}" >/dev/null <<EOF
 deb http://yandex-taxi-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-taxi-${DISTRIB_CODENAME} stable/all/
 deb http://yandex-taxi-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-taxi-${DISTRIB_CODENAME} stable/\$(ARCH)/
 deb http://yandex-taxi-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-taxi-${DISTRIB_CODENAME} prestable/all/

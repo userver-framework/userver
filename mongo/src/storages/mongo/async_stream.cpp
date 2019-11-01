@@ -7,7 +7,9 @@
 #include <sys/socket.h>
 
 #include <array>
+#include <atomic>
 #include <cerrno>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -19,10 +21,13 @@
 #include <engine/io/addr.hpp>
 #include <engine/io/exception.hpp>
 #include <engine/io/socket.hpp>
+#include <engine/task/local_variable.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <logging/log.hpp>
-#include <storages/mongo/wrappers.hpp>
 #include <utils/assert.hpp>
+
+#include <engine/io/poller.hpp>
+#include <storages/mongo/wrappers.hpp>
 
 namespace storages::mongo::impl {
 namespace {
@@ -68,6 +73,7 @@ class AsyncStream : public mongoc_stream_t {
   static bool TimedOut(mongoc_stream_t*) noexcept;
   static bool ShouldRetry(mongoc_stream_t*) noexcept;
 
+  const uint64_t epoch_;
   engine::io::Socket socket_;
   bool is_timed_out_;
 
@@ -190,6 +196,32 @@ engine::io::Socket Connect(const mongoc_host_list_t* host, int32_t timeout_ms,
   return {};
 }
 
+uint64_t GetNextStreamEpoch() {
+  static std::atomic<uint64_t> current_epoch{0};
+  return current_epoch++;
+}
+
+// We need to reset the poller because of fd reuse and to wipe stale events.
+// This operation syncs on ev loops so we want it to be done
+// as rarely as possible.
+//
+// mongoc uses poll only on freshly made streams, we use that knowledge
+// to only reset poller when a new poll cycle begins.
+class PollerDispenser {
+ public:
+  engine::io::Poller& Get(uint64_t current_epoch) {
+    if (seen_epoch_ < current_epoch) {
+      poller_.Reset();
+      seen_epoch_ = current_epoch;
+    }
+    return poller_;
+  }
+
+ private:
+  uint64_t seen_epoch_{0};
+  engine::io::Poller poller_;
+};
+
 }  // namespace
 
 void CheckAsyncStreamCompatible() {
@@ -248,7 +280,8 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
-    : socket_(std::move(socket)),
+    : epoch_(GetNextStreamEpoch()),
+      socket_(std::move(socket)),
       is_timed_out_(false),
       send_buffer_bytes_used_(0) {
   type = kStreamType;
@@ -437,66 +470,67 @@ bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) noexcept {
 // NOLINTNEXTLINE(bugprone-exception-escape)
 ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
                           int32_t timeout_ms) noexcept {
-  LOG_TRACE() << "Polling async streams";
+  static engine::TaskLocalVariable<PollerDispenser> poller_dispenser;
+
+  LOG_TRACE() << "Polling " << nstreams << " async streams";
+
+  if (!nstreams) return 0;
+
+  if (engine::current_task::ShouldCancel()) {
+    // mark all streams as errored out, mongoc tend to ignore poll errors
+    for (size_t i = 0; i < nstreams; ++i) streams[i].revents = POLLERR;
+    return nstreams;
+  }
 
   const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
 
-  // XXX: it'd be nice to have WaitAny or FdControl::Poll for this, really
-  std::vector<engine::TaskWithResult<int>> waiters;
-  try {
-    for (size_t i = 0; i < nstreams; ++i) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-      auto* stream = static_cast<AsyncStream*>(streams[i].stream);
-      stream->is_timed_out_ = false;
-      if (streams[i].events & POLLOUT) {
-        waiters.push_back(engine::impl::Async([deadline, stream] {
-          try {
-            stream->socket_.WaitWriteable(deadline);
-            return POLLOUT;
-          } catch (const engine::io::IoCancelled&) {
-            return POLLERR;
-          } catch (const engine::io::IoTimeout&) {
-            stream->is_timed_out_ = true;
-            return 0;
-          } catch (const engine::io::IoException&) {
-            return POLLERR;
-          }
-        }));
-      } else {
-        waiters.push_back(
-            engine::impl::Async([deadline, stream, events = streams[i].events] {
-              try {
-                stream->socket_.WaitReadable(deadline);
-                return POLLIN & events;
-              } catch (const engine::io::IoCancelled&) {
-                return POLLERR;
-              } catch (const engine::io::IoTimeout&) {
-                stream->is_timed_out_ = true;
-                return 0;
-              } catch (const engine::io::IoException&) {
-                return POLLERR;
-              }
-            }));
-      }
+  uint64_t current_epoch = 0;
+  std::vector<int> stream_fds(nstreams);
+  for (size_t i = 0; i < nstreams; ++i) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto* stream = static_cast<const AsyncStream*>(streams[i].stream);
+    current_epoch = std::max(current_epoch, stream->epoch_);
+    stream_fds[i] = stream->socket_.Fd();
+  }
+  auto& poller = poller_dispenser->Get(current_epoch);
+
+  for (size_t i = 0; i < nstreams; ++i) {
+    if (streams[i].events & POLLOUT) {
+      poller.AddWrite(stream_fds[i]);
+    } else if (streams[i].events) {
+      poller.AddRead(stream_fds[i]);
     }
-  } catch (const std::exception&) {
-    // only Async may fail here
-    errno = ENOMEM;
-    return -1;
+    streams[i].revents = 0;
   }
 
   ssize_t ready = 0;
-  for (size_t i = 0; i < nstreams; ++i) {
-    try {
-      streams[i].revents = waiters[i].Get();
-    } catch (const engine::TaskCancelledException&) {
-      streams[i].revents = POLLERR;
-    } catch (const engine::WaitInterruptedException&) {
-      errno = EINVAL;
-      return -1;
+  try {
+    engine::io::Poller::Event poller_event;
+    for (bool has_more = poller.NextEvent(poller_event, deadline); has_more;
+         has_more = poller.NextEventNoblock(poller_event)) {
+      for (size_t i = 0; i < nstreams; ++i) {
+        if (stream_fds[i] == poller_event.fd) {
+          ready += !streams[i].revents;
+          switch (poller_event.type) {
+            case engine::io::Poller::Event::kError:
+              streams[i].revents |= POLLERR;
+              break;
+            case engine::io::Poller::Event::kRead:
+              streams[i].revents |= streams[i].events & POLLIN;
+              break;
+            case engine::io::Poller::Event::kWrite:
+              streams[i].revents |= streams[i].events & POLLOUT;
+              break;
+          }
+          break;
+        }
+      }
     }
-    ready += !!streams[i].revents;
+  } catch (const std::exception&) {
+    errno = EINVAL;
+    return -1;
   }
+
   return ready;
 }
 

@@ -5,6 +5,7 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <engine/deadline.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/task/cancel.hpp>
 #include <utils/assert.hpp>
@@ -78,8 +79,11 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
 
     /// Push element into queue. May block if queue is full, but the consumer is
     /// alive.
-    /// @returns whether the consumer was alive and push succeeded.
-    bool Push(T&& value) { return queue_->Push(std::move(value)); }
+    /// @returns whether the consumer was alive and push succeeded
+    /// before the deadline.
+    bool Push(T&& value, Deadline deadline = {}) {
+      return queue_->Push(std::move(value), deadline);
+    }
 
     /// Try to push element into queue without blocking.
     /// @returns whether the consumer was alive and push succeeded.
@@ -108,9 +112,12 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
 
     /// Pop element from queue. May block if queue is empty, but the producer is
     /// alive.
-    /// @returns whether something was popped.
-    /// @note `false` is returned only when the producer is no longer alive.
-    [[nodiscard]] bool Pop(T& value) { return queue_->Pop(value); }
+    /// @returns whether something was popped before the deadline.
+    /// @note `false` can be returned before the deadline
+    /// when the producer is no longer alive.
+    [[nodiscard]] bool Pop(T& value, Deadline deadline = {}) {
+      return queue_->Pop(value, deadline);
+    }
 
     /// Try to pop element from queue without blocking.
     /// @return whether something was popped.
@@ -151,11 +158,11 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   explicit MpscQueue(EmplaceEnabler) {}
 
  private:
-  bool Push(T&&);
+  bool Push(T&&, Deadline);
   bool PushNoblock(T&&);
   bool DoPush(T&&);
 
-  bool Pop(T&);
+  bool Pop(T&, Deadline);
   bool PopNoblock(T&);
   bool DoPop(T&);
 
@@ -243,11 +250,12 @@ bool MpscQueue<T>::PopNoblockNoConsumer(T& value) {
 }
 
 template <typename T>
-bool MpscQueue<T>::Push(T&& value) {
+bool MpscQueue<T>::Push(T&& value, Deadline deadline) {
   while (size_ >= max_length_ && consumer_is_alive_) {
-    if (current_task::ShouldCancel()) return false;
+    if (deadline.IsReached() || current_task::ShouldCancel()) return false;
 
-    [[maybe_unused]] auto was_nonfull = nonfull_event_.WaitForEvent();
+    [[maybe_unused]] auto was_nonfull =
+        nonfull_event_.WaitForEventUntil(deadline);
   }
   return DoPush(std::move(value));
 }
@@ -269,15 +277,17 @@ bool MpscQueue<T>::DoPush(T&& value) {
 }
 
 template <typename T>
-bool MpscQueue<T>::Pop(T& value) {
+bool MpscQueue<T>::Pop(T& value, Deadline deadline) {
   while (!DoPop(value)) {
-    if (!producer_is_alive_ || current_task::ShouldCancel()) {
+    if (!producer_is_alive_ || deadline.IsReached() ||
+        current_task::ShouldCancel()) {
       // Producer might have pushed smth in queue between .pop()
       // and !producer_is_alive_ check. Check twice to avoid TOCTOU.
       return DoPop(value);
     }
 
-    [[maybe_unused]] auto was_nonempty = nonempty_event_.WaitForEvent();
+    [[maybe_unused]] auto was_nonempty =
+        nonempty_event_.WaitForEventUntil(deadline);
   }
   return true;
 }
