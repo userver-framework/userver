@@ -25,17 +25,6 @@ if(SANITIZE)
     target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
   endif()
 
-  if (USE_CCACHE)
-    find_program(CCACHE_EXECUTABLE ccache)
-    if (NOT CCACHE_EXECUTABLE)
-      message(FATAL_ERROR "failed to locate ccache executable")
-    endif()
-
-    # Forces the ccache to rebuild on blacklist file change
-    set(CMAKE_C_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${USERVER_BLACKLIST},${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
-    set(CMAKE_CXX_COMPILER_LAUNCHER CCACHE_EXTRAFILES=${USERVER_BLACKLIST},${SANITIZE_BLACKLIST} ${CCACHE_EXECUTABLE})
-  endif()
-
   set(SANITIZE_PENDING ${SANITIZE})
   separate_arguments(SANITIZE_PENDING)
   list(REMOVE_DUPLICATES SANITIZE_PENDING)
