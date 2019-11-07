@@ -5,6 +5,8 @@
 #include <storages/postgres/tests/util_test.hpp>
 #include <storages/postgres/typed_result_set.hpp>
 
+#include <storages/postgres/io/boost_multiprecision.hpp>
+
 namespace pg = storages::postgres;
 
 namespace static_test {
@@ -59,7 +61,8 @@ static_assert(kRowCategory<std::string> == RowCategoryType::kNonRow, "");
 static_assert((kRowCategory<std::vector<std::string>> ==
                RowCategoryType::kNonRow),
               "");
-static_assert(kRowCategory<pg::Numeric> == RowCategoryType::kNonRow, "");
+static_assert(kRowCategory<pg::MultiPrecision<50>> == RowCategoryType::kNonRow,
+              "");
 
 static_assert(kRowCategory<MyTupleType> == RowCategoryType::kTuple, "");
 static_assert(kRowCategory<MyAggregateStruct> == RowCategoryType::kAggregate,

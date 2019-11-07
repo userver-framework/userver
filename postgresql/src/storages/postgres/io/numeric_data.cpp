@@ -1,8 +1,9 @@
-#include <storages/postgres/io/boost_multiprecision.hpp>
+#include <storages/postgres/io/numeric_data.hpp>
 
 #include <algorithm>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
 #include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
@@ -22,6 +23,27 @@ enum ValidSigns : std::uint16_t {
 };
 
 const Smallint kBinEncodingBase = 10000;
+const std::int64_t kPowersOfTen[]{1,
+                                  10,
+                                  100,
+                                  1'000,
+                                  10'000,
+                                  100'000,
+                                  1'000'000,
+                                  10'000'000,
+                                  100'000'000,
+                                  1'000'000'000,
+                                  10'000'000'000,
+                                  100'000'000'000,
+                                  1'000'000'000'000,
+                                  10'000'000'000'000,
+                                  100'000'000'000'000,
+                                  1'000'000'000'000'000,
+                                  10'000'000'000'000'000,
+                                  100'000'000'000'000'000,
+                                  1'000'000'000'000'000'000};
+
+const auto kMaxPowerOfTen = sizeof(kPowersOfTen) / sizeof(kPowersOfTen[0]) - 1;
 
 const std::uint16_t kDscaleMask = 0x3fff;
 
@@ -78,6 +100,29 @@ void ConvertDecimalToBinary(::utils::string_view dec_digits, int left_padding,
   }
 }
 
+/// Calculate number of decimal digits
+int Log10(std::int64_t number) {
+  for (auto p = 0U; p < kMaxPowerOfTen; ++p) {
+    if (number < kPowersOfTen[p]) {
+      return p;
+    }
+  }
+  return kMaxPowerOfTen;
+}
+
+void IntegralToBinary(std::int64_t integral_part, Smallint digits,
+                      std::vector<std::int16_t>& target) {
+  // Left pad
+  if (digits % kDigitWidth) {
+    digits += kDigitWidth - digits % kDigitWidth;
+  }
+  while (digits > 0) {
+    digits -= kDigitWidth;
+    target.push_back(integral_part / kPowersOfTen[digits]);
+    integral_part %= kPowersOfTen[digits];
+  }
+}
+
 /// @brief Class for reading/writing binary numeric data from/to PostgreSQL
 /// buffers.
 ///
@@ -129,6 +174,10 @@ struct NumericData {
   void Parse(const std::string&);
   // Output to string
   std::string ToString() const;
+  // Create buffer representation from an int64 value representation
+  void FromInt64(IntegralRepresentation);
+  // Output to int64 value
+  IntegralRepresentation ToInt64() const;
 };
 
 void NumericData::ReadBuffer(FieldBuffer fb) {
@@ -186,21 +235,24 @@ std::string NumericData::ToString() const {
     res.push_back('-');
   }
 
-  auto bd_pos = 0;
+  auto bin_digit_pos = 0;
   if (weight < 0) {
     res.push_back('0');
-    bd_pos = weight + 1;
+    bin_digit_pos = weight + 1;
   } else {
-    for (bd_pos = 0; bd_pos <= weight; ++bd_pos) {
-      auto dig = (bd_pos < ndigits) ? digits[bd_pos] : 0;
-      WriteDigit(res, dig, bd_pos == 0);
+    for (bin_digit_pos = 0; bin_digit_pos <= weight; ++bin_digit_pos) {
+      auto dig = (bin_digit_pos < ndigits) ? digits[bin_digit_pos] : 0;
+      WriteDigit(res, dig, bin_digit_pos == 0);
     }
   }
 
   if (dscale > 0) {
     res.push_back('.');
-    for (auto dec_pos = 0; dec_pos < dscale; ++bd_pos, dec_pos += kDigitWidth) {
-      auto dig = (0 <= bd_pos && bd_pos < ndigits) ? digits[bd_pos] : 0;
+    for (auto dec_pos = 0; dec_pos < dscale;
+         ++bin_digit_pos, dec_pos += kDigitWidth) {
+      auto dig = (0 <= bin_digit_pos && bin_digit_pos < ndigits)
+                     ? digits[bin_digit_pos]
+                     : 0;
       WriteDigit(res, dig, false);
     }
     // Truncate trailing zeros
@@ -317,6 +369,118 @@ void NumericData::Parse(const std::string& str) {
   ndigits = digits.size();
 }
 
+IntegralRepresentation NumericData::ToInt64() const {
+  const std::uint64_t int64_t_max = std::numeric_limits<std::int64_t>::max();
+  if (sign == kNumericNan) {
+    throw ValueIsNaN{
+        "PostgreSQL buffer for decimal/numeric contains a NaN value"};
+  }
+  IntegralRepresentation rep{0, dscale};
+  auto bin_dig_pos = 0;
+  if (weight < 0) {
+    bin_dig_pos = weight + 1;
+  } else {
+    for (bin_dig_pos = 0; bin_dig_pos <= weight; ++bin_dig_pos) {
+      auto dig = (bin_dig_pos < ndigits) ? digits[bin_dig_pos] : 0;
+      std::uint64_t new_val = (rep.value * kBinEncodingBase) + dig;
+      if (rep.value > static_cast<std::int64_t>(new_val) ||
+          new_val > int64_t_max) {
+        throw NumericOverflow{
+            "PosrgreSQL buffer contains a value that is too big to fit into "
+            "int64 + '" +
+            ToString() + "'"};
+      }
+      rep.value = static_cast<std::int64_t>(new_val);
+    }
+  }
+
+  if (dscale > 0) {
+    for (auto decimal_pos = 0; decimal_pos < dscale;
+         ++bin_dig_pos, decimal_pos += kDigitWidth) {
+      auto dig =
+          (0 <= bin_dig_pos && bin_dig_pos < ndigits) ? digits[bin_dig_pos] : 0;
+      // Truncation of trailing zeros happens only on the last iteration and is
+      // needed to avoid a possible overflow
+      auto truncate_count = kDigitWidth + decimal_pos - dscale;
+      auto power = kBinEncodingBase;
+      if (truncate_count > 0) {
+        power = kBinEncodingBase / kPowersOfTen[truncate_count];
+        dig /= kPowersOfTen[truncate_count];
+      }
+      std::uint64_t new_val = (rep.value * power) + dig;
+      if (rep.value > static_cast<std::int64_t>(new_val) ||
+          new_val > int64_t_max) {
+        throw NumericOverflow{
+            "PosrgreSQL buffer contains a value that is too big to fit into "
+            "int64 + '" +
+            ToString() + "'"};
+      }
+      rep.value = static_cast<std::int64_t>(new_val);
+    }
+  }
+  if (sign == kNumericNegative) {
+    rep.value *= -1;
+  }
+  return rep;
+}
+
+void NumericData::FromInt64(IntegralRepresentation rep) {
+  if (rep.fractional_digit_count < 0 ||
+      static_cast<std::int64_t>(kMaxPowerOfTen) < rep.fractional_digit_count) {
+    throw InvalidRepresentation{
+        "Number of digits after decimal point is invalid " +
+        std::to_string(rep.fractional_digit_count)};
+  }
+  if (rep.value == 0) return;
+
+  sign = rep.value < 0 ? kNumericNegative : kNumericPositive;
+  std::uint64_t abs_value = std::abs(rep.value);
+  std::int64_t integral_part =
+      abs_value / kPowersOfTen[rep.fractional_digit_count];
+  std::int64_t fractional_part =
+      abs_value % kPowersOfTen[rep.fractional_digit_count];
+
+  auto integral_digits = Log10(integral_part);
+  auto fractional_digits = rep.fractional_digit_count;
+
+  // Remove trailing zeros, but keeping the digit number divisible by binary
+  // digit width
+  while (fractional_part && fractional_part % 10 == 0 &&
+         fractional_digits % kDigitWidth != 0) {
+    fractional_part /= 10;
+    --fractional_digits;
+  }
+  // Here are the actual fractional digits
+  dscale = fractional_digits;
+  // Right pad fractional part to 4 digits boundary
+  if (fractional_digits % kDigitWidth) {
+    auto right_pad = kDigitWidth - (fractional_digits % kDigitWidth);
+    fractional_digits += right_pad;
+    fractional_part *= kPowersOfTen[right_pad];
+  }
+
+  std::int32_t dec_weight = integral_digits;
+  if (integral_part == 0) {
+    dec_weight = Log10(fractional_part) - fractional_digits - 1;
+  }
+
+  // Convert to binary digits
+  digits.reserve((integral_digits + fractional_digits) / kDigitWidth + 1);
+  if (dec_weight >= 0) {
+    weight = dec_weight / kDigitWidth;
+  } else {
+    weight = -((-dec_weight - 1) / kDigitWidth + 1);
+  }
+  if (weight >= 0) {
+    IntegralToBinary(integral_part, integral_digits, digits);
+  }
+  IntegralToBinary(fractional_part, fractional_digits, digits);
+
+  // Trim zero binary digits
+  boost::trim_if(digits, [](auto c) { return c == 0; });
+  ndigits = digits.size();
+}
+
 }  // namespace
 
 std::string NumericBufferToString(const FieldBuffer& buffer) {
@@ -328,6 +492,18 @@ std::string NumericBufferToString(const FieldBuffer& buffer) {
 std::string StringToNumericBuffer(const std::string& str_rep) {
   NumericData nd;
   nd.Parse(str_rep);
+  return nd.GetBuffer();
+}
+
+IntegralRepresentation NumericBufferToInt64(const FieldBuffer& buffer) {
+  NumericData nd;
+  nd.ReadBuffer(buffer);
+  return nd.ToInt64();
+}
+
+std::string Int64ToNumericBuffer(const IntegralRepresentation& rep) {
+  NumericData nd;
+  nd.FromInt64(rep);
   return nd.GetBuffer();
 }
 

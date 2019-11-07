@@ -114,6 +114,10 @@ namespace postgres {
  *     - ArrayError
  *       - DimensionMismatch
  *       - InvalidDimensions
+ *     - NumericError
+ *       - NumericOverflow
+ *       - ValueIsNaN
+ *       - InvalidRepresentation
  *     - InvalidInputFormat
  *     - EnumerationError
  *       - InvalidEnumerationLiteral
@@ -759,6 +763,29 @@ class InvalidDimensions : public ArrayError {
                    ". Expected " + std::to_string(expected)) {}
 };
 
+//@}
+
+//@{
+/** @name Numeric/decimal datatype errors */
+class NumericError : public LogicError {
+  using LogicError::LogicError;
+};
+
+/// Value in PostgreSQL binary buffer cannot be represented by a given C++ type
+class NumericOverflow : public NumericError {
+  using NumericError::NumericError;
+};
+
+/// PostgreSQL binary buffer contains NaN value, but the given C++ type doesn't
+/// support NaN value
+class ValueIsNaN : public NumericError {
+  using NumericError::NumericError;
+};
+
+/// Integral representation for a numeric contains invalid data
+class InvalidRepresentation : public NumericError {
+  using NumericError::NumericError;
+};
 //@}
 
 /// @brief Invalid format for input data.

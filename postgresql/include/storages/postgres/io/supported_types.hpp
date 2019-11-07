@@ -26,8 +26,8 @@
 /// boolean           | bool                                    | +       |
 /// real              | float                                   | +       |
 /// double precision  | double                                  | +       |
-/// numeric(p)        | boost::multiprecision::cpp_dec_float<P> | +       |
-/// decimal(p)        | boost::multiprecision::cpp_dec_float<P> | +       |
+/// numeric(p)        | decimal64::decimal<P>                   | +       |
+/// decimal(p)        | decimal64::decimal<P>                   | +       |
 /// money             | N/A                                     |         |
 /// text              | std::string                             | +       |
 /// char(n)           | std::string                             |         |
@@ -90,9 +90,9 @@
 
 //@{
 /** @name Data types */
-#include <storages/postgres/io/boost_multiprecision.hpp>
 #include <storages/postgres/io/bytea.hpp>
 #include <storages/postgres/io/chrono.hpp>
+#include <storages/postgres/io/decimal64.hpp>
 #include <storages/postgres/io/enum_types.hpp>
 #include <storages/postgres/io/floating_point_types.hpp>
 #include <storages/postgres/io/integral_types.hpp>

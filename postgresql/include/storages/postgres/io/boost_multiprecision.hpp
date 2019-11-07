@@ -2,6 +2,7 @@
 
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
+#include <storages/postgres/io/numeric_data.hpp>
 #include <storages/postgres/io/stream_text_parser.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
@@ -13,24 +14,14 @@ namespace storages {
 namespace postgres {
 
 template <std::size_t Precision = 50>
-using ArbitraryPrecision = boost::multiprecision::number<
+using MultiPrecision = boost::multiprecision::number<
     boost::multiprecision::cpp_dec_float<Precision>>;
-
-using Numeric = ArbitraryPrecision<50>;
 
 namespace io {
 
-namespace detail {
-
-std::string NumericBufferToString(const FieldBuffer& buffer);
-std::string StringToNumericBuffer(const std::string& str_rep);
-
-}  // namespace detail
-
 template <std::size_t Precision>
-struct BufferFormatter<ArbitraryPrecision<Precision>,
-                       DataFormat::kTextDataFormat> {
-  using Value = ArbitraryPrecision<Precision>;
+struct BufferFormatter<MultiPrecision<Precision>, DataFormat::kTextDataFormat> {
+  using Value = MultiPrecision<Precision>;
   const Value& value;
 
   BufferFormatter(const Value& val) : value{val} {}
@@ -51,9 +42,9 @@ struct BufferFormatter<ArbitraryPrecision<Precision>,
 };
 
 template <std::size_t Precision>
-struct BufferFormatter<ArbitraryPrecision<Precision>,
+struct BufferFormatter<MultiPrecision<Precision>,
                        DataFormat::kBinaryDataFormat> {
-  using Value = ArbitraryPrecision<Precision>;
+  using Value = MultiPrecision<Precision>;
   const Value& value;
 
   BufferFormatter(const Value& val) : value{val} {}
@@ -69,10 +60,9 @@ struct BufferFormatter<ArbitraryPrecision<Precision>,
 };
 
 template <std::size_t Precision>
-struct BufferParser<ArbitraryPrecision<Precision>,
-                    DataFormat::kBinaryDataFormat>
-    : detail::BufferParserBase<ArbitraryPrecision<Precision>> {
-  using BaseType = detail::BufferParserBase<ArbitraryPrecision<Precision>>;
+struct BufferParser<MultiPrecision<Precision>, DataFormat::kBinaryDataFormat>
+    : detail::BufferParserBase<MultiPrecision<Precision>> {
+  using BaseType = detail::BufferParserBase<MultiPrecision<Precision>>;
   using BaseType::BaseType;
   using NumberType = boost::multiprecision::cpp_dec_float<Precision>;
 
@@ -85,7 +75,7 @@ struct BufferParser<ArbitraryPrecision<Precision>,
 };
 
 template <std::size_t Precision>
-struct CppToSystemPg<ArbitraryPrecision<Precision>>
+struct CppToSystemPg<MultiPrecision<Precision>>
     : PredefinedOid<PredefinedOids::kNumeric> {};
 
 }  // namespace io
