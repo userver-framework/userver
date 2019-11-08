@@ -20,12 +20,12 @@ Task::Task(impl::TaskContextHolder&& context_holder)
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap);
 }
 
-Task::~Task() { Terminate(); }
+Task::~Task() { Terminate(CancellationReason::kAbandoned); }
 
 Task::Task(Task&&) noexcept = default;
 
 Task& Task::operator=(Task&& rhs) noexcept {
-  Terminate();
+  Terminate(CancellationReason::kAbandoned);
   context_ = std::move(rhs.context_);
   return *this;
 }
@@ -87,6 +87,10 @@ void Task::RequestCancel() {
   context_->RequestCancel(CancellationReason::kUserRequest);
 }
 
+void Task::SyncCancel() noexcept {
+  Terminate(CancellationReason::kUserRequest);
+}
+
 Task::CancellationReason Task::GetCancellationReason() const {
   UASSERT(context_);
   return context_->GetCancellationReason();
@@ -115,17 +119,16 @@ void Task::BlockingWait() const {
 }
 
 void Task::Invalidate() {
-  Terminate();
+  Terminate(CancellationReason::kAbandoned);
   context_.reset();
 }
 
-void Task::Terminate() noexcept {
+void Task::Terminate(CancellationReason reason) noexcept {
   if (context_ && !IsFinished()) {
-    // TODO: it is currently not possible to Wait() from outside of coro
-    // use std::promise + Detach() instead
-    // do it with caution though as you may get a deadlock
+    // We are not providing an implicit sync from outside
+    // because it's really easy to get a deadlock this way
     // e.g. between global event thread pool and task processor
-    context_->RequestCancel(Task::CancellationReason::kAbandoned);
+    context_->RequestCancel(reason);
 
     TaskCancellationBlocker cancel_blocker;
     while (!IsFinished()) Wait();

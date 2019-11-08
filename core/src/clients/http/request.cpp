@@ -233,7 +233,7 @@ Request::Request(std::shared_ptr<EasyWrapper> wrapper,
   pimpl_->follow_redirects(true);
   pimpl_->verify(true);
 
-  if (engine::current_task::IsCancelRequested()) {
+  if (engine::current_task::ShouldCancel()) {
     throw CancelException(
         "Failed to make HTTP request due to task cancellation");
   }

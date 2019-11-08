@@ -61,7 +61,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   QueueItem DequeueRequestTask();
 
-  void HandleQueueItem(QueueItem& item);
+  bool HandleQueueItem(QueueItem& item);
 
   void SendResponses(Queue::Consumer);
 
@@ -79,7 +79,6 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   const std::string remote_address_;
 
   std::shared_ptr<Queue> request_tasks_;
-  std::chrono::steady_clock::time_point send_failure_time_;
   engine::TaskWithResult<void> response_sender_task_;
 
   std::atomic<bool> is_accepting_requests_;

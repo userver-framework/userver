@@ -48,13 +48,20 @@ Connection::~Connection() {
   // Socket listener can be simply cancelled
   LOG_TRACE() << "Stopping socket listener for fd " << fd;
   UASSERT(socket_listener_.IsValid());
-  socket_listener_ = {};
+  socket_listener_.SyncCancel();
   LOG_TRACE() << "Stopped socket listener for fd " << fd;
 
-  // SendResponses() has to wait for all responses and send them out
-  LOG_TRACE() << "Waiting for request tasks queue to become empty for fd "
+  // RFC7230 does not specify rules for connections half-closed from
+  // client side. However, section 6 tells us that in most cases
+  // connections are closed after sending/receiving the last response.
+  // See also: https://github.com/httpwg/http-core/issues/22
+  //
+  // It is faster (and probably more efficient) for us
+  // to cancel currently processing and pending requests.
+  LOG_TRACE() << "Terminating requests processing (cancelling in-flight "
+                 "requests) for fd "
               << fd;
-  response_sender_task_.Wait();
+  response_sender_task_.SyncCancel();
 
   peer_socket_.Close();
 
@@ -166,32 +173,48 @@ bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
       request_ptr, request_handler_.StartRequestTask(request_ptr)));
 }
 
-void Connection::HandleQueueItem(QueueItem& item) {
+bool Connection::HandleQueueItem(QueueItem& item) {
+  auto& request = *item.first;
+  auto request_task = std::move(item.second);
+
+  if (engine::current_task::IsCancelRequested()) {
+    // We could've packed all remaining requests into a vector and cancel them
+    // in parallel. But pipelining is almost never used so why bother.
+    request_task.RequestCancel();
+  }
+
   try {
-    item.second.Get();
+    request_task.Get();
+  } catch (const engine::TaskCancelledException&) {
+    LOG_DEBUG() << "Request processing interrupted";
+    return false;
+  } catch (const engine::WaitInterruptedException&) {
+    LOG_DEBUG() << "Request processing interrupted";
+    return false;
   } catch (const std::exception& e) {
     LOG_WARNING() << "Request failed with unhandled exception: " << e;
-
-    item.first->MarkAsInternalServerError();
+    request.MarkAsInternalServerError();
   }
+  return true;
 }
 
 void Connection::SendResponses(Queue::Consumer consumer) {
   LOG_TRACE() << "Sending responses for fd " << Fd();
 
-  while (!engine::current_task::ShouldCancel()) {
-    std::unique_ptr<QueueItem> item;
-    if (!consumer.Pop(item)) break;
+  bool is_response_chain_valid = true;
+  std::unique_ptr<QueueItem> item;
+  while (consumer.Pop(item)) {
+    // start dropping responses only when response chain breaks
+    is_response_chain_valid &= HandleQueueItem(*item);
 
-    HandleQueueItem(*item);
     auto& request = *item->first;
     auto& response = request.GetResponse();
 
-    // the response is ready, so let's not drop it
+    // now we must complete processing
     engine::TaskCancellationBlocker block_cancel;
     UASSERT(!response.IsSent());
     request.SetStartSendResponseTime();
-    if (peer_socket_) {
+    if (is_response_chain_valid && peer_socket_) {
       try {
         response.SendResponse(peer_socket_);
       } catch (const engine::io::IoSystemError& ex) {
@@ -204,12 +227,10 @@ void Connection::SendResponses(Queue::Consumer consumer) {
         LOG(log_level) << "I/O error while sending data: " << ex;
       } catch (const std::exception& ex) {
         LOG_ERROR() << "Error while sending data: " << ex;
-
-        send_failure_time_ = std::chrono::steady_clock::now();
-        response.SetSendFailed(send_failure_time_);
+        response.SetSendFailed(std::chrono::steady_clock::now());
       }
     } else {
-      response.SetSendFailed(send_failure_time_);
+      response.SetSendFailed(std::chrono::steady_clock::now());
     }
     request.SetFinishSendResponseTime();
     --stats_->active_request_count;
@@ -218,6 +239,7 @@ void Connection::SendResponses(Queue::Consumer consumer) {
     request.WriteAccessLogs(request_handler_.LoggerAccess(),
                             request_handler_.LoggerAccessTskv(),
                             remote_address_);
+    item.reset();
   }
 
   LOG_TRACE() << "Stopping SendResponses()";

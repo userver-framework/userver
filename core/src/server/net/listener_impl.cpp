@@ -99,7 +99,7 @@ ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
 
 ListenerImpl::~ListenerImpl() {
   LOG_TRACE() << "Stopping socket listener task";
-  socket_listener_task_ = {};
+  socket_listener_task_.SyncCancel();
   LOG_TRACE() << "Stopped socket listener task";
 
   CloseConnections();

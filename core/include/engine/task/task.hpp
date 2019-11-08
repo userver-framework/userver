@@ -113,6 +113,11 @@ class USERVER_NODISCARD Task {
   /// Queues task cancellation request
   void RequestCancel();
 
+  /// @brief Cancels the task and suspends execution until it is finished.
+  /// Can be called from coroutine context only. For non-coroutine context use
+  /// RequestCancel() + BlockingWait().
+  void SyncCancel() noexcept;
+
   /// Gets task CancellationReason
   CancellationReason GetCancellationReason() const;
 
@@ -130,7 +135,7 @@ class USERVER_NODISCARD Task {
   void Invalidate();
 
  private:
-  void Terminate() noexcept;
+  void Terminate(CancellationReason) noexcept;
 
   boost::intrusive_ptr<impl::TaskContext> context_;
 };
