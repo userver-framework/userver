@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <unordered_map>
 
 #include <engine/deadline.hpp>
@@ -42,7 +43,9 @@ class Poller {
 
   MpscQueue<Event>::Consumer event_consumer_;
   MpscQueue<Event>::Producer event_producer_;
+  std::mutex read_watchers_mutex_;
   std::unordered_map<int, ev::Watcher<ev_io>> read_watchers_;
+  std::mutex write_watchers_mutex_;
   std::unordered_map<int, ev::Watcher<ev_io>> write_watchers_;
 };
 
