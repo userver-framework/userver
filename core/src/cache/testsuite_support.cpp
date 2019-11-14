@@ -7,8 +7,6 @@ namespace {
 const std::string kCacheInvalidateSpanTag = "cache_invalidate";
 const std::string kPeriodicUpdateEnabled = "testsuite-periodic-update-enabled";
 const std::string kForcePeriodicUpdate = "testsuite-force-periodic-update";
-
-const std::string kConfigCacheName = "taxi-config-client-updater";
 }  // namespace
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
@@ -33,13 +31,7 @@ void TestsuiteSupport::InvalidateCaches(cache::UpdateType update_type) {
 void TestsuiteSupport::RegisterCacheInvalidator(
     components::CacheUpdateTrait& owner, CallbackUpdateType&& handler) {
   std::lock_guard<engine::Mutex> lock(mutex_);
-  // Hack to ensure that config is invalidated first, see TAXIDATA-1543
-  if (owner.GetName() == kConfigCacheName) {
-    cache_invalidators_.insert(cache_invalidators_.begin(),
-                               {&owner, std::move(handler)});
-  } else {
-    cache_invalidators_.emplace_back(&owner, std::move(handler));
-  }
+  cache_invalidators_.emplace_back(&owner, std::move(handler));
 }
 
 void TestsuiteSupport::UnregisterCacheInvalidator(

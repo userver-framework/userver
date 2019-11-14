@@ -6,9 +6,8 @@ namespace server {
 
 CacheInvalidatorHolder::CacheInvalidatorHolder(
     components::CacheUpdateTrait& cache,
-    const components::ComponentContext& context)
-    : testsuite_support_{context.FindComponent<components::TestsuiteSupport>()},
-      cache_(cache) {
+    components::TestsuiteSupport& testsuite_support)
+    : testsuite_support_(testsuite_support), cache_(cache) {
   testsuite_support_.RegisterCacheInvalidator(
       cache_, [cache = &cache_](cache::UpdateType update_type) {
         cache->Update(update_type);

@@ -14,7 +14,7 @@ namespace server {
 class CacheInvalidatorHolder final {
  public:
   CacheInvalidatorHolder(components::CacheUpdateTrait& cache,
-                         const components::ComponentContext&);
+                         components::TestsuiteSupport& testsuite_support);
 
   ~CacheInvalidatorHolder();
 

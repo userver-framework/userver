@@ -1,4 +1,5 @@
 #include <cache/cache_update_trait.hpp>
+#include <server/cache_invalidator_holder.hpp>
 
 #include <engine/async.hpp>
 #include <logging/log.hpp>
@@ -17,13 +18,15 @@ void CacheUpdateTrait::Update(cache::UpdateType update_type) {
   DoUpdate(update_type);
 }
 
-CacheUpdateTrait::CacheUpdateTrait(cache::CacheConfig&& config,
-                                   const std::string& name)
+CacheUpdateTrait::CacheUpdateTrait(
+    cache::CacheConfig&& config,
+    components::TestsuiteSupport& testsuite_support, const std::string& name)
     // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     : static_config_(std::move(config)),
       config_(static_config_),
       name_(name),
-      is_running_(false) {}
+      is_running_(false),
+      testsuite_support_(testsuite_support) {}
 
 CacheUpdateTrait::~CacheUpdateTrait() {
   if (is_running_.load()) {
@@ -45,6 +48,13 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
   if (is_running_.exchange(true)) {
     return;
   }
+
+  // CacheInvalidatorHolder is created here to achieve that cache invalidators
+  // are registered in the order of cache component dependency.
+  // We exploit the fact that StartPeriodicUpdates is called at the end
+  // of all concrete cache component constructors.
+  cache_invalidator_holder_ = std::make_unique<server::CacheInvalidatorHolder>(
+      *this, testsuite_support_);
 
   try {
     tracing::Span span("first-update/" + name_);

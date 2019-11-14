@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <memory>
 #include <string>
 
 #include <cache/cache_statistics.hpp>
@@ -10,6 +11,10 @@
 #include <utils/periodic_task.hpp>
 
 #include "cache_config.hpp"
+
+namespace server {
+class CacheInvalidatorHolder;
+}  // namespace server
 
 namespace components {
 
@@ -20,7 +25,9 @@ class CacheUpdateTrait {
   std::string GetName() const { return name_; }
 
  protected:
-  CacheUpdateTrait(cache::CacheConfig&& config, const std::string& name);
+  CacheUpdateTrait(cache::CacheConfig&& config,
+                   components::TestsuiteSupport& testsuite_support,
+                   const std::string& name);
   virtual ~CacheUpdateTrait();
 
   cache::AllowedUpdateTypes AllowedUpdateTypes() const;
@@ -65,6 +72,8 @@ class CacheUpdateTrait {
   const std::string name_;
   std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
+  components::TestsuiteSupport& testsuite_support_;
+  std::unique_ptr<server::CacheInvalidatorHolder> cache_invalidator_holder_;
 
   std::chrono::system_clock::time_point last_update_;
   std::chrono::steady_clock::time_point last_full_update_;

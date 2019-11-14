@@ -3,12 +3,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include <cache/cache_update_trait.hpp>
 #include <cache/update_type.hpp>
+#include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <engine/mutex.hpp>
+#include <utils/periodic_task.hpp>
 
 namespace components {
+
+class CacheUpdateTrait;
 
 class TestsuiteSupport final : public components::impl::ComponentBase {
  public:

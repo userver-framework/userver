@@ -8,7 +8,6 @@
 #include <cache/testsuite_support.hpp>
 #include <components/statistics_storage.hpp>
 #include <engine/condition_variable.hpp>
-#include <server/cache_invalidator_holder.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <utils/async_event_channel.hpp>
 #include <utils/statistics/metadata.hpp>
@@ -116,7 +115,6 @@ class CachingComponentBase
   utils::statistics::Entry statistics_holder_;
   utils::SwappingSmart<const T> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
-  server::CacheInvalidatorHolder cache_invalidator_holder_;
   bool periodic_update_enabled_;
   const std::string name_;
 };
@@ -127,8 +125,9 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const std::string& name)
     : LoggableComponentBase(config, context),
       utils::AsyncEventChannel<const std::shared_ptr<const T>&>(name),
-      CacheUpdateTrait(cache::CacheConfig(config), name),
-      cache_invalidator_holder_(*this, context),
+      CacheUpdateTrait(cache::CacheConfig(config),
+                       context.FindComponent<components::TestsuiteSupport>(),
+                       name),
       periodic_update_enabled_(
           context.FindComponent<TestsuiteSupport>().IsPeriodicUpdateEnabled(
               config, name)),
