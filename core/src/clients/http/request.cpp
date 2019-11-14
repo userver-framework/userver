@@ -290,6 +290,8 @@ std::shared_ptr<Request> Request::http_version(http_version_t version) {
 }
 
 std::shared_ptr<Request> Request::retry(int retries, bool on_fails) {
+  UASSERT_MSG(retries >= 0, "retires < 0 (" + std::to_string(retries) +
+                                "), uninitialized variable?");
   if (retries <= 0) retries = 1;
   pimpl_->retry(retries, on_fails);
   return shared_from_this();
@@ -449,6 +451,8 @@ void Request::RequestImpl::http_version(http_version_t version) {
 }
 
 void Request::RequestImpl::set_timeout(long timeout_ms) {
+  UASSERT_MSG(timeout_ms >= 0, "timeout_ms < 0 (" + std::to_string(timeout_ms) +
+                                   "), uninitialized variable?");
   timeout_ms_ = timeout_ms;
   easy().set_timeout_ms(timeout_ms);
   easy().set_connect_timeout_ms(timeout_ms);
