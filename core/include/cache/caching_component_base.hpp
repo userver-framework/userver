@@ -21,6 +21,12 @@
 
 namespace components {
 
+class EmptyCacheError : public std::runtime_error {
+ public:
+  EmptyCacheError(const std::string& cache_name)
+      : std::runtime_error("Cache " + cache_name + " is empty") {}
+};
+
 // clang-format off
 
 /// @brief Base class for caching components
@@ -73,7 +79,13 @@ class CachingComponentBase
   ~CachingComponentBase() override;
 
   const std::string& Name() const;
+
+  /// @return cache contents. May be nullptr if and only if MayReturnNull()
+  /// returns true.
   std::shared_ptr<const T> Get() const;
+
+  /// @return cache contents. May be nullptr regardless of MayReturnNull().
+  std::shared_ptr<const T> GetUnsafe() const;
 
  protected:
   void Set(std::shared_ptr<const T> value_ptr);
@@ -92,6 +104,11 @@ class CachingComponentBase
   bool IsPeriodicUpdateEnabled() const override {
     return periodic_update_enabled_;
   }
+
+  /// Whether Get() is expected to return nullptr.
+  /// If MayReturnNull() returns true, Get() throws an exception instead of
+  /// returning nullptr.
+  virtual bool MayReturnNull() const { return true; }
 
  private:
   void OnAllComponentsLoaded() override;
@@ -149,6 +166,16 @@ const std::string& CachingComponentBase<T>::Name() const {
 
 template <typename T>
 std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
+  auto ptr = GetUnsafe();
+  if (!ptr && !MayReturnNull()) {
+    UASSERT_MSG(ptr, "Cache returned nullptr, go and fix your cache");
+    throw EmptyCacheError(Name());
+  }
+  return ptr;
+}
+
+template <typename T>
+std::shared_ptr<const T> CachingComponentBase<T>::GetUnsafe() const {
   return cache_.Get();
 }
 
