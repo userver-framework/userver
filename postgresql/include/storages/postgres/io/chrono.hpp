@@ -22,6 +22,15 @@ using IntervalType = std::chrono::microseconds;
 
 TimePoint PostgresEpoch();
 
+/// Constant equivalent to PostgreSQL 'infinity'::timestamp, a time point that
+/// is later than all other time points
+/// https://www.postgresql.org/docs/10/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
+const TimePoint kTimestampPositiveInfinity = TimePoint::max();
+/// Constant equivalent to PostgreSQL '-infinity'::timestamp, a time point that
+/// is earlier than all other time points
+/// https://www.postgresql.org/docs/10/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
+const TimePoint kTimestampNegativeInfinity = TimePoint::min();
+
 struct TimeZoneID {
   std::string id;
   std::string canonical_id;
@@ -245,10 +254,18 @@ struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buf) const {
     static const ValueType pg_epoch = PostgresEpoch();
-    auto tmp =
-        std::chrono::duration_cast<std::chrono::microseconds>(value - pg_epoch)
-            .count();
-    WriteBuffer<DataFormat::kBinaryDataFormat>(types, buf, tmp);
+    if (value == kTimestampPositiveInfinity) {
+      WriteBuffer<DataFormat::kBinaryDataFormat>(
+          types, buf, std::numeric_limits<Bigint>::max());
+    } else if (value == kTimestampNegativeInfinity) {
+      WriteBuffer<DataFormat::kBinaryDataFormat>(
+          types, buf, std::numeric_limits<Bigint>::min());
+    } else {
+      auto tmp = std::chrono::duration_cast<std::chrono::microseconds>(value -
+                                                                       pg_epoch)
+                     .count();
+      WriteBuffer<DataFormat::kBinaryDataFormat>(types, buf, tmp);
+    }
   }
 };
 
@@ -289,8 +306,14 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
     static const ValueType pg_epoch = PostgresEpoch();
     Bigint usec{0};
     ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, usec);
-    ValueType tmp = pg_epoch + std::chrono::microseconds{usec};
-    std::swap(tmp, this->value);
+    if (usec == std::numeric_limits<Bigint>::max()) {
+      this->value = kTimestampPositiveInfinity;
+    } else if (usec == std::numeric_limits<Bigint>::min()) {
+      this->value = kTimestampNegativeInfinity;
+    } else {
+      ValueType tmp = pg_epoch + std::chrono::microseconds{usec};
+      std::swap(tmp, this->value);
+    }
   }
 };
 

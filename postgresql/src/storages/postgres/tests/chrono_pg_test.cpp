@@ -247,4 +247,27 @@ POSTGRE_TEST_P(Timestamp) {
   }
 }
 
+POSTGRE_TEST_P(TimestampInfinity) {
+  ASSERT_TRUE(conn.get());
+  pg::ResultSet res{nullptr};
+
+  EXPECT_NO_THROW(res = conn->ExperimentalExecute(
+                      "select 'infinity'::timestamp, '-infinity'::timestamp",
+                      pg::io::DataFormat::kBinaryDataFormat));
+  pg::TimePoint pos_inf;
+  pg::TimePoint neg_inf;
+
+  EXPECT_NO_THROW(res.Front().To(pos_inf, neg_inf));
+  EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);
+  EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
+
+  EXPECT_NO_THROW(res = conn->ExperimentalExecute(
+                      "select $1, $2", pg::io::DataFormat::kBinaryDataFormat,
+                      pg::kTimestampPositiveInfinity,
+                      pg::kTimestampNegativeInfinity));
+  EXPECT_NO_THROW(res.Front().To(pos_inf, neg_inf));
+  EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);
+  EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
+}
+
 }  // namespace
