@@ -17,6 +17,7 @@ const std::string kFullUpdateIntervalMs = "full-update-interval-ms";
 const std::string kUpdateInterval = "update-interval";
 const std::string kUpdateJitter = "update-jitter";
 const std::string kFullUpdateInterval = "full-update-interval";
+const std::string kFirstUpdateFailOk = "first-update-fail-ok";
 
 const std::string kWays = "ways";
 const std::string kSize = "size";
@@ -65,7 +66,8 @@ CacheConfig::CacheConfig(const components::ComponentConfig& config)
       update_jitter(config.ParseDuration(kUpdateJitter,
                                          GetDefaultJitterMs(update_interval))),
       full_update_interval(config.ParseDuration(
-          kFullUpdateInterval, std::chrono::milliseconds::zero())) {
+          kFullUpdateInterval, std::chrono::milliseconds::zero())),
+      allow_first_update_failure(config.ParseBool(kFirstUpdateFailOk, false)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
@@ -108,7 +110,8 @@ CacheConfig::CacheConfig(std::chrono::milliseconds update_interval_,
     : allowed_update_types(AllowedUpdateTypes::kOnlyFull),
       update_interval(update_interval_),
       update_jitter(update_jitter_),
-      full_update_interval(full_update_interval_) {
+      full_update_interval(full_update_interval_),
+      allow_first_update_failure(false) {
   if (!full_update_interval.count()) {
     if (!update_interval.count()) {
       throw utils::impl::AttachTraceToException(

@@ -45,6 +45,7 @@ class EmptyCacheError : public std::runtime_error {
 /// update-interval | (*required*) interval between Update invocations | --
 /// update-jitter | max. amount of time by which interval may be adjusted for requests desynchronization | update_interval / 10
 /// full-update-interval | interval between full updates | --
+/// first-update-fail-ok | whether first update failure is non-fatal | false
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
 ///
@@ -107,7 +108,7 @@ class CachingComponentBase
   /// Whether Get() is expected to return nullptr.
   /// If MayReturnNull() returns true, Get() throws an exception instead of
   /// returning nullptr.
-  virtual bool MayReturnNull() const { return true; }
+  virtual bool MayReturnNull() const;
 
  private:
   void OnAllComponentsLoaded() override;
@@ -225,6 +226,15 @@ template <typename T>
 void CachingComponentBase<T>::OnConfigUpdate(
     const std::shared_ptr<const taxi_config::Config>& cfg) {
   SetConfig(cfg->Get<cache::CacheConfigSet>().GetConfig(name_));
+}
+
+template <typename T>
+bool CachingComponentBase<T>::MayReturnNull() const {
+  // TODO: remove in https://st.yandex-team.ru/TAXICOMMON-1663
+  if (IsFirstUpdateFailOk()) return false;
+
+  // TODO: set to false in https://st.yandex-team.ru/TAXICOMMON-1663
+  return true;
 }
 
 template <typename T>

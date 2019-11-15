@@ -64,7 +64,15 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
       // because some components require caches to be updated at least once
 
       // Force first update, do it synchronously
-      DoPeriodicUpdate();
+      try {
+        DoPeriodicUpdate();
+      } catch (const std::exception& e) {
+        bool fail = static_config_.allow_first_update_failure;
+        LOG_ERROR() << "Failed to update cache " << name_
+                    << " for the first time"
+                    << (fail ? "" : ", leaving it empty");
+        if (fail) throw;
+      }
     }
 
     if (IsPeriodicUpdateEnabled()) {
@@ -128,6 +136,10 @@ void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
   UASSERT_MSG(is_running_.load(), "Cache " + name_ +
                                       " has been constructed without calling "
                                       "StartPeriodicUpdates(), call it in ctr");
+}
+
+bool CacheUpdateTrait::IsFirstUpdateFailOk() const {
+  return static_config_.allow_first_update_failure;
 }
 
 void CacheUpdateTrait::DoUpdate(cache::UpdateType update_type) {

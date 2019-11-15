@@ -28,6 +28,7 @@ struct CacheConfig {
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
+  bool allow_first_update_failure;
 };
 
 struct LruCacheConfig {
