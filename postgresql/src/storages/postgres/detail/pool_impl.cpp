@@ -15,10 +15,11 @@ namespace {
 constexpr std::size_t kRecentErrorThreshold = 2;
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
-constexpr std::size_t kCancelRate = 2;
+// Part of max_pool that can be cancelled at once
+constexpr std::size_t kCancelRatio = 2;
 constexpr std::chrono::seconds kCancelPeriod{1};
 
-constexpr std::chrono::seconds kCleanupTimeout{10};
+constexpr std::chrono::seconds kCleanupTimeout{1};
 
 constexpr std::chrono::seconds kPingInterval{30};
 constexpr std::chrono::seconds kMaxIdleDuration{15};
@@ -56,7 +57,8 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
       size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl},
-      cancel_limit_{kCancelRate, kCancelPeriod} {}
+      cancel_limit_{std::max(1UL, settings.max_size / kCancelRatio),
+                    kCancelPeriod} {}
 
 ConnectionPoolImpl::~ConnectionPoolImpl() {
   StopPingTask();
@@ -178,7 +180,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
                                  dec_cnt = std::move(dg)] {
       LOG_WARNING()
           << "Released connection in busy state. Trying to clean up...";
-      do {
+      while (!shared_this->cancel_limit_.Obtain()) {
         if (connection->Cleanup(kCleanupTimeout)) {
           LOG_DEBUG() << "Successfully finished waiting for a dirty connection "
                          "to clean up itself";
@@ -190,7 +192,7 @@ void ConnectionPoolImpl::Release(Connection* connection) {
           shared_this->DeleteBrokenConnection(connection);
           return;
         }
-      } while (!shared_this->cancel_limit_.Obtain());
+      }
 
       try {
         connection->CancelAndCleanup(kCleanupTimeout);
