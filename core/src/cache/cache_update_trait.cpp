@@ -67,7 +67,7 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
       try {
         DoPeriodicUpdate();
       } catch (const std::exception& e) {
-        bool fail = static_config_.allow_first_update_failure;
+        bool fail = !static_config_.allow_first_update_failure;
         LOG_ERROR() << "Failed to update cache " << name_
                     << " for the first time"
                     << (fail ? "" : ", leaving it empty");
