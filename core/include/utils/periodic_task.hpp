@@ -91,6 +91,7 @@ class PeriodicTask final {
 
   void Stop() noexcept;
 
+  /// Set all settings except flags. All flags must be set at the start.
   void SetSettings(Settings settings);
 
   /// Force next DoStep() iteration. It is guaranteed that there is at least one

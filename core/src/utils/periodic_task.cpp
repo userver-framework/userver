@@ -96,7 +96,10 @@ void PeriodicTask::Stop() noexcept {
 }
 
 void PeriodicTask::SetSettings(Settings settings) {
-  settings_.Assign(std::move(settings));
+  auto writer = settings_.StartWrite();
+  settings.flags = writer->flags;
+  *writer = std::move(settings);
+  writer.Commit();
 }
 
 bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
