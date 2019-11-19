@@ -27,6 +27,16 @@ const auto kDoc = formats::bson::MakeDoc(
     "string", "test", "int", int64_t{1}, "double", 1.0, "inf",
     std::numeric_limits<double>::infinity(), "date", kTimePoint);
 
+const std::string kArrayJson = R"([
+  "test",
+  1,
+  1.0,
+  { "$date": "1970-01-01T00:00:00.001Z" }
+])";
+
+const auto kArray =
+    formats::bson::MakeArray("test", int64_t{1}, 1.0, kTimePoint);
+
 }  // namespace
 
 TEST(Serialize, FromJson) {
@@ -40,6 +50,22 @@ TEST(Serialize, FromJson) {
   ASSERT_TRUE(doc["date"].IsDateTime());
   EXPECT_EQ(kTimePoint,
             doc["date"].As<std::chrono::system_clock::time_point>());
+}
+
+TEST(Serialize, ArrayFromJson) {
+  EXPECT_THROW(formats::bson::ArrayFromJsonString(kJson),
+               formats::bson::ParseException);
+
+  auto array = formats::bson::ArrayFromJsonString(kArrayJson);
+  ASSERT_EQ(4, array.GetSize());
+  ASSERT_TRUE(array[0].IsString());
+  EXPECT_EQ("test", array[0].As<std::string>());
+  ASSERT_TRUE(array[1].IsInt32());
+  EXPECT_EQ(1, array[1].As<int>());
+  ASSERT_TRUE(array[2].IsDouble());
+  EXPECT_DOUBLE_EQ(1.0, array[2].As<double>());
+  ASSERT_TRUE(array[3].IsDateTime());
+  EXPECT_EQ(kTimePoint, array[3].As<std::chrono::system_clock::time_point>());
 }
 
 TEST(Serialize, ToCanonicalJson) {
@@ -91,4 +117,22 @@ TEST(Serialize, ToLegacyJson) {
   // EXPECT_TRUE(std::isinf(json["inf"].As<double>()));
   ASSERT_TRUE(json["date"]["$date"].IsInt64());
   EXPECT_EQ(1, json["date"]["$date"].As<int64_t>());
+}
+
+TEST(Serialize, ToArrayJson) {
+  EXPECT_THROW(formats::bson::ToArrayJsonString(kDoc),
+               formats::bson::TypeMismatchException);
+
+  auto json = formats::json::FromString(
+      formats::bson::ToArrayJsonString(kArray).GetView());
+
+  ASSERT_EQ(4, json.GetSize());
+  ASSERT_TRUE(json[0].IsString());
+  EXPECT_EQ("test", json[0].As<std::string>());
+  ASSERT_TRUE(json[1].IsInt());
+  EXPECT_EQ(1, json[1].As<int>());
+  ASSERT_TRUE(json[2].IsDouble());
+  EXPECT_DOUBLE_EQ(1.0, json[2].As<double>());
+  ASSERT_TRUE(json[3]["$date"].IsInt64());
+  EXPECT_EQ(1, json[3]["$date"].As<int64_t>());
 }

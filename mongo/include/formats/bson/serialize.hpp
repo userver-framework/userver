@@ -7,6 +7,7 @@
 #include <string>
 
 #include <formats/bson/document.hpp>
+#include <formats/bson/value.hpp>
 #include <utils/fast_pimpl.hpp>
 #include <utils/string_view.hpp>
 
@@ -21,6 +22,13 @@ class JsonString;
 /// conversion routines matching your schemas.
 /// @warning Stability of heuristics is not guaranteed, this is provided as-is.
 Document FromJsonString(utils::string_view json);
+
+/// Applies heuristics to convert JSON string to BSON array.
+/// As JSON have rather lax typing, some heuristics are applied to guess correct
+/// BSON types for values. It is strongly recommended to write your own
+/// conversion routines matching your schemas.
+/// @warning Stability of heuristics is not guaranteed, this is provided as-is.
+Value ArrayFromJsonString(utils::string_view json);
 
 /// Converts BSON to a canonical MongoDB Extended JSON format.
 /// @see
@@ -42,6 +50,10 @@ JsonString ToRelaxedJsonString(const formats::bson::Document&);
 ///  * dates are milliseconds since epoch;
 ///  * different format for binaries.
 JsonString ToLegacyJsonString(const formats::bson::Document&);
+
+/// Converts BSON array to a legacy libbson's JSON format, except the outermost
+/// element is encoded as a JSON array, rather than a JSON document.
+JsonString ToArrayJsonString(const formats::bson::Value&);
 
 namespace impl {
 class JsonStringImpl;

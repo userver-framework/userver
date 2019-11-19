@@ -164,6 +164,10 @@ class Value {
   /// @cond
   /// Same, for parsing capabilities
   void CheckObjectOrNull() const { CheckDocumentOrNull(); }
+
+  /// @brief Returns an array as its internal representation (BSON document),
+  /// internal use only
+  Document GetInternalArrayDocument() const;
   /// @endcond
 
  protected:

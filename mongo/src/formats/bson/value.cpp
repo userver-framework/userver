@@ -35,6 +35,17 @@ auto CheckedNotTooNegative(T x, const Value& value) {
   return x;
 };
 
+Document AsDocumentUnchecked(const impl::ValueImpl& value_impl) {
+  if (value_impl.IsStorageOwner()) {
+    return Document(value_impl.GetBson());
+  } else {
+    const auto& bson_value = value_impl.GetNative();
+    return Document(impl::MutableBson(bson_value->value.v_doc.data,
+                                      bson_value->value.v_doc.data_len)
+                        .Extract());
+  }
+}
+
 }  // namespace
 
 Value::Value() : impl_(std::make_shared<impl::ValueImpl>(nullptr)) {}
@@ -200,14 +211,7 @@ template <>
 Document Value::As<Document>() const {
   CheckNotMissing();
   impl_->CheckIsDocument();
-  if (impl_->IsStorageOwner()) {
-    return Document(impl_->GetBson());
-  } else {
-    const auto& bson_value = impl_->GetNative();
-    return Document(impl::MutableBson(bson_value->value.v_doc.data,
-                                      bson_value->value.v_doc.data_len)
-                        .Extract());
-  }
+  return AsDocumentUnchecked(*impl_);
 }
 
 template <>
@@ -275,6 +279,12 @@ void Value::CheckArrayOrNull() const {
 void Value::CheckDocumentOrNull() const {
   if (IsNull()) return;
   impl_->CheckIsDocument();
+}
+
+Document Value::GetInternalArrayDocument() const {
+  CheckNotMissing();
+  impl_->CheckIsArray();
+  return AsDocumentUnchecked(*impl_);
 }
 
 const impl::BsonHolder& Value::GetBson() const { return impl_->GetBson(); }

@@ -6,6 +6,7 @@
 
 #include <formats/bson/exception.hpp>
 
+#include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
 
 namespace formats::bson {
@@ -25,6 +26,7 @@ class JsonStringImpl {
 };
 
 }  // namespace impl
+
 namespace {
 
 JsonString ApplyConversionToString(const impl::BsonHolder& bson,
@@ -38,9 +40,7 @@ JsonString ApplyConversionToString(const impl::BsonHolder& bson,
   return JsonString(impl::JsonStringImpl(std::move(data), size));
 }
 
-}  // namespace
-
-Document FromJsonString(utils::string_view json) {
+impl::BsonHolder DoParseJsonString(utils::string_view json) {
   bson_error_t error;
   auto bson = impl::MutableBson::AdoptNative(bson_new_from_json(
       reinterpret_cast<const uint8_t*>(json.data()), json.size(), &error));
@@ -48,7 +48,20 @@ Document FromJsonString(utils::string_view json) {
     throw ConversionException("Error parsing BSON from JSON: ")
         << error.message;
   }
-  return Document(bson.Extract());
+  return bson.Extract();
+}
+
+}  // namespace
+
+Document FromJsonString(utils::string_view json) {
+  return Document(DoParseJsonString(json));
+}
+
+Value ArrayFromJsonString(utils::string_view json) {
+  auto value_impl = std::make_shared<impl::ValueImpl>(
+      DoParseJsonString(json), impl::ValueImpl::DocumentKind::kArray);
+  value_impl->EnsureParsed();  // force validation
+  return Value(std::move(value_impl));
 }
 
 JsonString ToCanonicalJsonString(const formats::bson::Document& doc) {
@@ -62,6 +75,11 @@ JsonString ToRelaxedJsonString(const formats::bson::Document& doc) {
 
 JsonString ToLegacyJsonString(const formats::bson::Document& doc) {
   return ApplyConversionToString(doc.GetBson(), &bson_as_json);
+}
+
+JsonString ToArrayJsonString(const formats::bson::Value& array) {
+  return ApplyConversionToString(array.GetInternalArrayDocument().GetBson(),
+                                 &bson_array_as_json);
 }
 
 JsonString::JsonString(impl::JsonStringImpl&& impl) : impl_(std::move(impl)) {}
