@@ -107,6 +107,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+  ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
   ${USERVER_THIRD_PARTY_DIRS}/boost-sync-event/include
   ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
 )

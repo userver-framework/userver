@@ -4,8 +4,6 @@
 
 #include <formats/json/types.hpp>
 
-#include <utils/fast_pimpl.hpp>
-
 namespace formats {
 namespace json {
 
@@ -19,8 +17,7 @@ class Iterator final {
   using reference = typename iter_traits::reference;
   using pointer = typename iter_traits::pointer;
 
-  Iterator(const NativeValuePtr& root,
-           const typename iter_traits::native_iter& iter,
+  Iterator(const NativeValuePtr& root, const impl::Value* container, int iter,
            const formats::json::Path& path);
   Iterator(const Iterator& other);
   Iterator(Iterator&& other) noexcept;
@@ -50,10 +47,10 @@ class Iterator final {
  private:
   NativeValuePtr root_;
 
-  static constexpr std::size_t kIterSize = 32;
-  static constexpr std::size_t kIterAlignment = 8;
-  utils::FastPimpl<typename iter_traits::native_iter, kIterSize, kIterAlignment>
-      iter_pimpl_;
+  /// Container being iterated
+  impl::Value* container_;
+  /// Position inside container being iterated
+  int iter_;
   formats::json::Path path_;
   // Temporary object replaced on every value access.
   mutable value_type value_;

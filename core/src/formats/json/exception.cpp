@@ -4,6 +4,9 @@
 #include <ostream>
 
 #include <json/value.h>
+#include <rapidjson/document.h>
+
+#include "exttypes.hpp"
 
 namespace {
 
@@ -21,25 +24,8 @@ std::string MsgForState(std::ios::iostate state, const char* stream) {
          '\'';
 }
 
-const char* NameForType(Json::ValueType expected) {
-#define RET_NAME(type)          \
-  if (Json::type == expected) { \
-    return #type;               \
-  }
-  RET_NAME(nullValue);
-  RET_NAME(intValue);
-  RET_NAME(uintValue);
-  RET_NAME(realValue);
-  RET_NAME(stringValue);
-  RET_NAME(booleanValue);
-  RET_NAME(arrayValue);
-  RET_NAME(objectValue);
-  return "ERROR";
-#undef RET_NAME
-}
-
-std::string MsgForType(Json::ValueType actual, Json::ValueType expected,
-                       const std::string& path) {
+template <typename TType>
+std::string MsgForType(TType actual, TType expected, const std::string& path) {
   return std::string("Field '") + path +
          "' is of a wrong type. Expected: " + NameForType(expected) +
          ", actual: " + NameForType(actual);
@@ -67,8 +53,8 @@ BadStreamException::BadStreamException(const std::ostream& os)
 
 TypeMismatchException::TypeMismatchException(int actual, int expected,
                                              const std::string& path)
-    : Exception(MsgForType(static_cast<Json::ValueType>(actual),
-                           static_cast<Json::ValueType>(expected), path)) {}
+    : Exception(MsgForType(static_cast<impl::Type>(actual),
+                           static_cast<impl::Type>(expected), path)) {}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            const std::string& path)

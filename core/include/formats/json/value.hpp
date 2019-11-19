@@ -2,11 +2,10 @@
 
 #include <type_traits>
 
+#include <formats/common/meta.hpp>
 #include <formats/json/exception.hpp>
 #include <formats/json/iterator.hpp>
 #include <formats/json/types.hpp>
-
-#include <formats/common/meta.hpp>
 #include <formats/parse/common.hpp>
 
 #include <utils/string_view.hpp>
@@ -19,7 +18,6 @@ class ValueBuilder;
 class Value final {
  public:
   struct IterTraits {
-    using native_iter = Json::ValueConstIterator;
     using value_type = formats::json::Value;
     using reference = formats::json::Value&;
     using pointer = formats::json::Value*;
@@ -175,23 +173,24 @@ class Value final {
   Value(NativeValuePtr&& root) noexcept;
   bool IsUniqueReference() const;
 
-  Value(const NativeValuePtr& root, const Json::Value* value_ptr,
+  Value(const NativeValuePtr& root, const impl::Value* value_ptr,
         const formats::json::Path& path, const std::string& key);
-  Value(const NativeValuePtr& root, const Json::Value& val,
+  Value(const NativeValuePtr& root, const impl::Value& val,
         const formats::json::Path& path, std::size_t index);
 
-  void SetNonRoot(const NativeValuePtr& root, const Json::Value& val,
+  void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
                   const formats::json::Path& path, const std::string& key);
-  void SetNonRoot(const NativeValuePtr& root, const Json::Value& val,
+  void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
                   const formats::json::Path& path, std::size_t index);
 
   void EnsureNotMissing();
-  const Json::Value& GetNative() const;
-  Json::Value& GetNative();
+  const impl::Value& GetNative() const;
+  impl::Value& GetNative();
+  int GetExtendedType() const;
 
  private:
   NativeValuePtr root_;
-  Json::Value* value_ptr_{nullptr};
+  impl::Value* value_ptr_{nullptr};
   formats::json::Path path_;
 
   friend class Iterator<IterTraits>;
@@ -200,6 +199,7 @@ class Value final {
   friend formats::json::Value FromString(utils::string_view);
   friend formats::json::Value FromStream(std::istream&);
   friend void Serialize(const formats::json::Value&, std::ostream&);
+  friend std::string ToString(const formats::json::Value&);
 };
 
 template <typename T>

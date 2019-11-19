@@ -35,6 +35,12 @@ inline std::ostream& operator<<(std::ostream& os, std::chrono::nanoseconds ns) {
 }
 }  // namespace std::chrono
 
+namespace formats::json {
+class Value;
+// for gtest-only
+std::ostream& operator<<(std::ostream&, const Value&);
+};  // namespace formats::json
+
 #ifdef __APPLE__
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name
 #else

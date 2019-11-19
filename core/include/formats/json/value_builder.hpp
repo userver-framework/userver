@@ -13,7 +13,6 @@ namespace json {
 class ValueBuilder final {
  public:
   struct IterTraits {
-    using native_iter = Json::ValueIterator;
     using value_type = formats::json::ValueBuilder;
     using reference = formats::json::ValueBuilder&;
     using pointer = formats::json::ValueBuilder*;
@@ -87,20 +86,20 @@ class ValueBuilder final {
   formats::json::Value ExtractValue();
 
  private:
-  ValueBuilder(const NativeValuePtr& root, const Json::Value& val,
+  ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
                const formats::json::Path& path, const std::string& key);
-  ValueBuilder(const NativeValuePtr& root, const Json::Value& val,
+  ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
                const formats::json::Path& path, std::size_t index);
 
   // For iterator interface compatibility
-  void SetNonRoot(const NativeValuePtr& root, const Json::Value& val,
+  void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
                   const formats::json::Path& path, const std::string& key);
-  void SetNonRoot(const NativeValuePtr& root, const Json::Value& val,
+  void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
                   const formats::json::Path& path, std::size_t index);
   std::string GetPath() const;
 
-  void Copy(Json::Value& to, const ValueBuilder& from);
-  void Move(Json::Value& to, ValueBuilder&& from);
+  void Copy(impl::Value& to, const ValueBuilder& from);
+  void Move(impl::Value& to, ValueBuilder&& from);
 
  private:
   formats::json::Value value_;
