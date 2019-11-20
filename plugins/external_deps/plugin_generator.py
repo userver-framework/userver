@@ -18,6 +18,7 @@ class RepositoryGenerator:
             'type': voluptuous.Any(None, *EXTERNAL_DEPS_TYPE),
             'package-name': str,
             'debian-names': [str],
+            'debian-binary-depends': [str],
             'formula-name': str,
             'version': voluptuous.Any(str, int),
             'helper-prefix': bool,
