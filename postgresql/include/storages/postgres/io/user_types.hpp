@@ -102,6 +102,9 @@ class UserTypes {
   void AddCompositeFields(CompositeFieldDefs&& defs);
 
   const CompositeTypeDescription& GetCompositeDescription(Oid) const;
+  /// Get type description by oid.
+  /// May return nullptr if the type was not loaded from the database
+  const DBTypeDescription* GetTypeDescription(Oid) const;
 
  private:
   using DescriptionSet =

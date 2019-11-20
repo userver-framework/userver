@@ -1,5 +1,7 @@
 #include <storages/postgres/result_set.hpp>
 
+#include <fmt/format.h>
+
 #include <logging/log.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/exceptions.hpp>
@@ -12,23 +14,28 @@ namespace postgres {
 //----------------------------------------------------------------------------
 // RowDescription implementation
 //----------------------------------------------------------------------------
-bool RowDescription::CanBeReadInBinary(const UserTypes& types) const {
+void RowDescription::CheckBinaryFormat(const UserTypes& types) const {
   for (std::size_t i = 0; i < res_->FieldCount(); ++i) {
     auto oid = res_->GetFieldTypeOid(i);
     if (!io::HasBinaryParser(static_cast<io::PredefinedOids>(oid)) &&
         !types.HasBinaryParser(oid)) {
-      LOG_DEBUG() << "PostgreSQL type oid " << oid
-                  << " doesn't have a binary parser";
-      return false;
+      auto desc = types.GetTypeDescription(oid);
+      std::string message;
+      if (desc) {
+        message = fmt::format(
+            "PostgreSQL result set field `{}` {} type {}.{} oid {} "
+            "doesn't have a binary parser",
+            res_->GetFieldName(i), ToString(desc->type_class), desc->schema,
+            desc->name, oid);
+      } else {
+        message = fmt::format(
+            "PostgreSQL result set field `{}` type with oid {} was not loaded "
+            "from database and doesn't have a binary parser",
+            res_->GetFieldName(i), oid);
+      }
+      throw NoBinaryParser{message};
     }
   }
-  return true;
-}
-
-io::DataFormat RowDescription::BestReplyFormat(
-    const UserTypes& user_types) const {
-  return CanBeReadInBinary(user_types) ? io::DataFormat::kBinaryDataFormat
-                                       : io::DataFormat::kTextDataFormat;
 }
 
 //----------------------------------------------------------------------------

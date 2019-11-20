@@ -24,4 +24,23 @@ std::size_t DBTypeDescription::GetNameHash() const {
   return seed;
 }
 
+std::string ToString(DBTypeDescription::TypeClass c) {
+  using TypeClass = DBTypeDescription::TypeClass;
+  switch (c) {
+    case TypeClass::kBase:
+      return "base";
+    case TypeClass::kComposite:
+      return "composite";
+    case TypeClass::kDomain:
+      return "domain";
+    case TypeClass::kEnum:
+      return "enumaration";
+    case TypeClass::kPseudo:
+      return "pseudo";
+    case TypeClass::kRange:
+      return "range";
+  }
+  return "unknown";
+}
+
 }  // namespace storages::postgres

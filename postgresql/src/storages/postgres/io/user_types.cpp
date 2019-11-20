@@ -203,6 +203,11 @@ const CompositeTypeDescription& UserTypes::GetCompositeDescription(
                       std::to_string(oid) + " not found"};
 }
 
+const DBTypeDescription* UserTypes::GetTypeDescription(Oid oid) const {
+  auto f = by_oid_.find(oid);
+  return f != by_oid_.end() ? &*f->second : nullptr;
+}
+
 namespace io {
 
 bool HasTextParser(DBTypeName name) { return TextParsers().count(name) > 0; }

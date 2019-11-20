@@ -104,6 +104,7 @@ namespace postgres {
  *       - InvalidParserCategory
  *       - InvalidTupleSizeRequested
  *       - NonSingleColumResultSet
+ *       - NoBinaryParser
  *       - NoValueParser
  *       - RowIndexOutOfBounds
  *       - TextParseFailure
@@ -662,6 +663,15 @@ class NoValueParser : public ResultSetError {
             type + " doesn't have " +
             (format == io::DataFormat::kBinaryDataFormat ? "binary" : "text") +
             " parser") {}
+};
+
+/// @brief A field in a result set doesn't have a binary parser.
+///
+/// This situation leads to result set being requested in text format.
+/// Exception will be thrown to client when text protocol will be deprecated in
+/// the driver.
+class NoBinaryParser : public ResultSetError {
+  using ResultSetError::ResultSetError;
 };
 
 /// @brief Buffer size is invalid for a fixed-size type.

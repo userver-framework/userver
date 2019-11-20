@@ -422,7 +422,14 @@ struct Connection::Impl {
       FillBufferCategories(res);
       info.description = res;
       // And now mark with actual protocol format
-      info.format = res.GetRowDescription().BestReplyFormat(db_types_);
+      try {
+        res.GetRowDescription().CheckBinaryFormat(db_types_);
+      } catch (const NoBinaryParser& e) {
+        // TODO When text format will be deprecated in the driver, let the
+        // exception fly to the client
+        LOG_WARNING() << e;
+        info.format = io::DataFormat::kTextDataFormat;
+      }
       ++stats_.parse_total;
       return info;
     }

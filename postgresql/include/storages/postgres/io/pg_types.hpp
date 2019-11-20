@@ -168,8 +168,9 @@ struct CompositeFieldDef {
   static CompositeFieldDef EmptyDef() { return {kInvalidOid, {}, kInvalidOid}; }
 };
 
-namespace io {
+std::string ToString(DBTypeDescription::TypeClass);
 
+namespace io {
 /// Oids are predefined for postgres fundamental types
 /// Constants can be found here
 /// https://github.com/postgres/postgres/blob/master/src/include/catalog/pg_type.dat
