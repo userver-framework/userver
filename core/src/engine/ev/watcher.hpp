@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <ev.h>
 
 #include <engine/future.hpp>
@@ -64,19 +66,20 @@ class Watcher final : public ThreadControl {
   void CallInEvLoop();
 
   EvType w_;
-  bool is_running_;
+  std::atomic<int> pending_async_ops_;
+  std::atomic<bool> is_running_;
 };
 
 template <typename EvType>
 template <typename Obj>
 Watcher<EvType>::Watcher(const ThreadControl& thread_control, Obj* data)
-    : ThreadControl(thread_control), is_running_(false) {
+    : ThreadControl(thread_control), pending_async_ops_(0), is_running_(false) {
   w_.data = static_cast<void*>(data);
 }
 
 template <typename EvType>
 Watcher<EvType>::~Watcher() {
-  if (is_running_) Stop();
+  Stop();
 }
 
 template <typename EvType>
@@ -86,17 +89,30 @@ void Watcher<EvType>::Start() {
 
 template <typename EvType>
 void Watcher<EvType>::Stop() {
+  if (!pending_async_ops_ && !is_running_) return;
+
   CallInEvLoop<&Watcher::StopImpl>();
 }
 
 template <typename EvType>
 void Watcher<EvType>::StartAsync() {
-  RunInEvLoopAsync([this] { StartImpl(); });
+  ++pending_async_ops_;
+  RunInEvLoopAsync([this] {
+    StartImpl();
+    --pending_async_ops_;
+  });
 }
 
 template <typename EvType>
 void Watcher<EvType>::StopAsync() {
-  RunInEvLoopAsync([this] { StopImpl(); });
+  // no fetch_add in predicate is fine
+  if (!pending_async_ops_ && !is_running_) return;
+
+  ++pending_async_ops_;
+  RunInEvLoopAsync([this] {
+    StopImpl();
+    --pending_async_ops_;
+  });
 }
 
 template <typename EvType>
