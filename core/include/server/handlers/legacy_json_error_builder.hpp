@@ -3,6 +3,7 @@
 #include <boost/optional.hpp>
 
 #include <formats/json/value.hpp>
+#include <http/content_type.hpp>
 
 #include <server/handlers/exceptions.hpp>
 #include <server/http/http_status.hpp>
@@ -26,6 +27,10 @@ class LegacyJsonErrorBuilder {
   const std::string& GetInternalMessage() const { return internal_message_; };
 
   const std::string& GetExternalBody() const { return json_error_body_; }
+
+  static const ::http::ContentType& GetContentType() {
+    return ::http::content_type::kApplicationJson;
+  }
 
  private:
   std::string internal_message_;

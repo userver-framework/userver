@@ -8,6 +8,7 @@
 #include <components/manager.hpp>
 #include <logging/level.hpp>
 #include <server/handlers/auth/auth_checker_base.hpp>
+#include <server/handlers/formatted_error_data.hpp>
 #include <server/handlers/handler_base.hpp>
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
@@ -48,7 +49,7 @@ class HttpHandlerBase : public HandlerBase {
   virtual logging::Level GetLogLevelForResponseStatus(
       http::HttpStatus status) const;
 
-  virtual std::string GetFormattedExternalErrorBody(
+  virtual FormattedErrorData GetFormattedExternalErrorBody(
       http::HttpStatus status, const std::string& error_code,
       std::string external_error_body) const;
 

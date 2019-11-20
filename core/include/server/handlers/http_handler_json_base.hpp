@@ -38,7 +38,7 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
                         request::RequestContext& context) const;
 
  private:
-  std::string GetFormattedExternalErrorBody(
+  FormattedErrorData GetFormattedExternalErrorBody(
       http::HttpStatus status, const std::string& error_code,
       std::string external_error_body) const final;
 };

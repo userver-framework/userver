@@ -71,6 +71,14 @@ std::vector<http::HttpMethod> InitAllowedMethods(const HandlerConfig& config) {
   return allowed_methods;
 }
 
+void SetFormattedErrorResponse(http::HttpResponse& http_response,
+                               FormattedErrorData&& formatted_error_data) {
+  http_response.SetData(std::move(formatted_error_data.external_body));
+  if (formatted_error_data.content_type) {
+    http_response.SetContentType(*std::move(formatted_error_data.content_type));
+  }
+}
+
 class RequestProcessor final {
  public:
   RequestProcessor(const HttpHandlerBase& handler,
@@ -107,17 +115,19 @@ class RequestProcessor final {
       if (ex.IsExternalErrorBodyFormatted()) {
         response.SetData(ex.GetExternalErrorBody());
       } else {
-        response.SetData(handler_.GetFormattedExternalErrorBody(
-            response.GetStatus(), ex.GetServiceCode(),
-            ex.GetExternalErrorBody()));
+        SetFormattedErrorResponse(response,
+                                  handler_.GetFormattedExternalErrorBody(
+                                      response.GetStatus(), ex.GetServiceCode(),
+                                      ex.GetExternalErrorBody()));
       }
       return true;
     } catch (const std::exception& ex) {
       LOG_ERROR() << "exception in '" << handler_.HandlerName()
                   << "' handler in " + step_name + ": " << ex;
       http_request_impl_.MarkAsInternalServerError();
-      response.SetData(handler_.GetFormattedExternalErrorBody(
-          response.GetStatus(), {}, response.GetData()));
+      SetFormattedErrorResponse(
+          response, handler_.GetFormattedExternalErrorBody(
+                        response.GetStatus(), {}, response.GetData()));
       return true;
     }
 
@@ -339,8 +349,9 @@ void HttpHandlerBase::ReportMalformedRequest(
     const http::HttpRequest http_request(http_request_impl);
     auto& response = http_request.GetHttpResponse();
 
-    response.SetData(GetFormattedExternalErrorBody(response.GetStatus(), {},
-                                                   response.GetData()));
+    SetFormattedErrorResponse(
+        response, GetFormattedExternalErrorBody(response.GetStatus(), {},
+                                                response.GetData()));
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle ready request: " << ex;
   }
@@ -363,10 +374,10 @@ logging::Level HttpHandlerBase::GetLogLevelForResponseStatus(
   return logging::Level::kInfo;
 }
 
-std::string HttpHandlerBase::GetFormattedExternalErrorBody(
+FormattedErrorData HttpHandlerBase::GetFormattedExternalErrorBody(
     http::HttpStatus, const std::string&,
     std::string external_error_body) const {
-  return external_error_body;
+  return {external_error_body};
 }
 
 void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,

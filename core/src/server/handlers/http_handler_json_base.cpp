@@ -49,15 +49,17 @@ const formats::json::Value* HttpHandlerJsonBase::GetResponseJson(
   return context.GetDataOptional<const formats::json::Value>(kResponseDataName);
 }
 
-std::string HttpHandlerJsonBase::GetFormattedExternalErrorBody(
+FormattedErrorData HttpHandlerJsonBase::GetFormattedExternalErrorBody(
     http::HttpStatus status, const std::string& error_code,
     std::string external_error_body) const {
   if (error_code.empty()) {
-    return LegacyJsonErrorBuilder(status, {}, external_error_body)
-        .GetExternalBody();
+    return {LegacyJsonErrorBuilder(status, {}, external_error_body)
+                .GetExternalBody(),
+            LegacyJsonErrorBuilder::GetContentType()};
   }
-  return JsonErrorBuilder(error_code, {}, external_error_body)
-      .GetExternalBody();
+  return {
+      JsonErrorBuilder(error_code, {}, external_error_body).GetExternalBody(),
+      JsonErrorBuilder::GetContentType()};
 }
 
 void HttpHandlerJsonBase::ParseRequestData(
