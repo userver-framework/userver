@@ -14,7 +14,7 @@ TEST(Semaphore, OnePass) {
     auto task = engine::impl::Async(
         [&s]() { std::shared_lock<engine::Semaphore> guard{s}; });
 
-    task.WaitFor(std::chrono::milliseconds(50));
+    task.WaitFor(kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
   });
 }
@@ -26,7 +26,7 @@ TEST(Semaphore, TwoPass) {
     auto task = engine::impl::Async(
         [&s]() { std::shared_lock<engine::Semaphore> guard2{s}; });
 
-    task.WaitFor(std::chrono::milliseconds(50));
+    task.WaitFor(kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
   });
 }
@@ -71,7 +71,7 @@ TEST(Semaphore, LocksUnlocks) {
     auto task = engine::impl::Async(multilocker);
     multilocker();
 
-    task.WaitFor(std::chrono::milliseconds(50));
+    task.WaitFor(kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
   });
 }
@@ -90,7 +90,7 @@ TEST(Semaphore, LocksUnlocksMT) {
         auto task = engine::impl::Async(multilocker);
         multilocker();
 
-        task.WaitFor(std::chrono::milliseconds(50));
+        task.WaitFor(kMaxTestWaitTime);
         EXPECT_TRUE(task.IsFinished());
       },
       2);
@@ -107,14 +107,16 @@ TEST(Semaphore, LocksUnlocksMtTourture) {
           }
         };
 
-        engine::TaskWithResult<void> tasks[] = {
+        constexpr std::size_t kTasksCount = 8;
+        engine::TaskWithResult<void> tasks[kTasksCount] = {
             engine::impl::Async(multilocker), engine::impl::Async(multilocker),
             engine::impl::Async(multilocker), engine::impl::Async(multilocker),
             engine::impl::Async(multilocker), engine::impl::Async(multilocker),
             engine::impl::Async(multilocker), engine::impl::Async(multilocker)};
 
+        const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
         for (auto& t : tasks) {
-          t.WaitFor(std::chrono::milliseconds(50));
+          t.WaitUntil(deadline);
           EXPECT_TRUE(t.IsFinished());
         }
       },
@@ -166,8 +168,7 @@ TEST(Semaphore, TryLock) {
                      .Get());
 
     auto long_waiter = engine::impl::Async([&sem] {
-      return !!std::shared_lock<engine::Semaphore>(sem,
-                                                   std::chrono::seconds(10));
+      return !!std::shared_lock<engine::Semaphore>(sem, kMaxTestWaitTime);
     });
     engine::Yield();
     EXPECT_FALSE(long_waiter.IsFinished());
