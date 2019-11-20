@@ -160,8 +160,11 @@ INSTANTIATE_TEST_CASE_P(
     ::testing::Values(
         DecIOTestData{"0", {0, 0}}, DecIOTestData{"1", {1, 0}},
         DecIOTestData{"-1", {-1, 0}}, DecIOTestData{"-1.01", {-101, 2}},
+        DecIOTestData{"1000", {1000, 0}}, DecIOTestData{"9999", {9999, 0}},
         DecIOTestData{"10000", {10000, 0}}, DecIOTestData{"0.1", {1, 1}},
         DecIOTestData{"0.001", {1, 3}}, DecIOTestData{"0.0001", {1, 4}},
+        DecIOTestData{"10000000", {10000000, 0}},
+        DecIOTestData{"99999999", {99999999, 0}},
         DecIOTestData{"0.00001", {1, 5}},
         DecIOTestData{"10000.00001", {1000000001, 5}}),
     TestDescription);
@@ -176,10 +179,13 @@ POSTGRE_TEST_P(DecimalRoundtrip) {
             io::GetBufferCategory(io::PredefinedOids::kNumeric));
 
   std::vector<Decimal> test_values{
-      Decimal{"0"},       Decimal{"0.0"},         Decimal{"-1.0"},
-      Decimal{"-0.01"},   Decimal{"0.01"},        Decimal{"0.000001"},
-      Decimal{"0.00001"}, Decimal{"0.000000001"}, Decimal{"10000"},
-      Decimal{"9999999"}, Decimal{"-100500"},     Decimal{"3.1415926535"}};
+      Decimal{"0"},           Decimal{"0.0"},     Decimal{"-1.0"},
+      Decimal{"-0.01"},       Decimal{"0.01"},    Decimal{"0.001"},
+      Decimal{"0.0001"},      Decimal{"0.00001"}, Decimal{"0.000001"},
+      Decimal{"0.000000001"}, Decimal{"10000"},   Decimal{"1000"},
+      Decimal{"4242"},        Decimal{"9999"},    Decimal{"10000000"},
+      Decimal{"99999999"},    Decimal{"9999999"}, Decimal{"-100500"},
+      Decimal{"3.1415926535"}};
 
   for (auto n : test_values) {
     EXPECT_NO_THROW(res = conn->Execute("select $1", n));

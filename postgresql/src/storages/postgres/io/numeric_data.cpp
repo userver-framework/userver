@@ -459,7 +459,7 @@ void NumericData::FromInt64(IntegralRepresentation rep) {
     fractional_part *= kPowersOfTen[right_pad];
   }
 
-  std::int32_t dec_weight = integral_digits;
+  std::int32_t dec_weight = integral_digits - 1;
   if (integral_part == 0) {
     dec_weight = Log10(fractional_part) - fractional_digits - 1;
   }
