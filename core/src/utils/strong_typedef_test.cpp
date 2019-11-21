@@ -5,23 +5,48 @@
 #include <string>
 #include <unordered_map>
 
+#include <boost/type_traits/has_equal_to.hpp>
 #include <boost/variant/variant.hpp>
 
 #include <gtest/gtest.h>
 
 namespace {
 
-using MyString = utils::StrongTypedef<class MyStringTag, std::string>;
-struct MyString2 final : utils::StrongTypedef<MyString2, std::string> {
+using MyString =
+    utils::StrongTypedef<class MyStringTag, std::string,
+                         utils::StrongTypedefOps::kCompareTransparent>;
+struct MyString2 final
+    : utils::StrongTypedef<MyString2, std::string,
+                           utils::StrongTypedefOps::kCompareTransparent> {
   using StrongTypedef::StrongTypedef;
 };
-using MySpecialInt = utils::StrongTypedef<class MySpecialIntTag, int>;
+using MySpecialInt =
+    utils::StrongTypedef<class MySpecialIntTag, int,
+                         utils::StrongTypedefOps::kCompareTransparent>;
 
 struct EmptyStruct {
   static constexpr bool kOk = true;
 };
 
 }  // namespace
+
+TEST(StrongTypedef, CompareStrong) {
+  struct IntTag {};
+  using Int = utils::StrongTypedef<IntTag, int,
+                                   utils::StrongTypedefOps::kCompareStrong>;
+  EXPECT_TRUE((boost::has_equal_to<Int, Int>::value));
+  EXPECT_FALSE((boost::has_equal_to<int, Int>::value));
+  EXPECT_FALSE((boost::has_equal_to<Int, int>::value));
+
+  struct StringTag {};
+  using String = utils::StrongTypedef<StringTag, std::string,
+                                      utils::StrongTypedefOps::kCompareStrong>;
+  EXPECT_TRUE((boost::has_equal_to<String, String>::value));
+  EXPECT_FALSE((boost::has_equal_to<int, String>::value));
+  EXPECT_FALSE((boost::has_equal_to<String, int>::value));
+  EXPECT_FALSE((boost::has_equal_to<std::string, String>::value));
+  EXPECT_FALSE((boost::has_equal_to<String, std::string>::value));
+}
 
 TEST(StrongTypedef, StringDefaultConstruction) {
   EXPECT_EQ("", MyString());

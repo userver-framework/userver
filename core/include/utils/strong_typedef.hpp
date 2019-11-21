@@ -85,7 +85,7 @@ using InitializerList = typename InitializerListImpl<T>::type;
 
 template <class Tag, class T, StrongTypedefOps Ops, class Other>
 using EnableTransparentCompare = std::enable_if_t<
-    Ops & StrongTypedefOps::kCompareTransparent &&
+    (Ops & StrongTypedefOps::kCompareTransparentOnly) &&
         !std::is_base_of<StrongTypedef<Tag, T, Ops>, Other>::value,
     bool>;
 
