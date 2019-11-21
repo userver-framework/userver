@@ -31,7 +31,7 @@ constexpr storages::postgres::ConnectionSettings kNoPreparedStatements{
     storages::postgres::ConnectionSettings::kNoPreparedStatements};
 
 inline engine::Deadline MakeDeadline() {
-  return engine::Deadline::FromDuration(kTestCmdCtl.network);
+  return engine::Deadline::FromDuration(kTestCmdCtl.execute);
 }
 
 inline storages::postgres::detail::ConnectionPtr MakeConnection(

@@ -14,10 +14,10 @@ CommandControl Parse(const formats::json::Value& elem,
   for (auto it = elem.begin(); it != elem.end(); ++it) {
     const auto& name = it.GetName();
     if (name == "network_timeout_ms") {
-      result.network = TimeoutDuration{it->As<int64_t>()};
-      if (result.network.count() <= 0) {
+      result.execute = TimeoutDuration{it->As<int64_t>()};
+      if (result.execute.count() <= 0) {
         throw InvalidConfig{"Invalid network_timeout_ms `" +
-                            std::to_string(result.network.count()) +
+                            std::to_string(result.execute.count()) +
                             "` in postgres CommandControl. The timeout must be "
                             "greater than 0."};
       }

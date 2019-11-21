@@ -202,7 +202,7 @@ struct Connection::Impl {
   void SetDefaultCommandControl(const CommandControl& cmd_ctl) {
     if (cmd_ctl != default_cmd_ctl_) {
       SetConnectionStatementTimeout(
-          cmd_ctl.statement, engine::Deadline::FromDuration(cmd_ctl.network));
+          cmd_ctl.statement, engine::Deadline::FromDuration(cmd_ctl.execute));
       default_cmd_ctl_ = cmd_ctl;
     }
   }
@@ -214,7 +214,7 @@ struct Connection::Impl {
     }
     transaction_cmd_ctl_ = cmd_ctl;
     SetStatementTimeout(cmd_ctl.statement,
-                        engine::Deadline::FromDuration(cmd_ctl.network));
+                        engine::Deadline::FromDuration(cmd_ctl.execute));
   }
 
   void ResetTransactionCommandControl() {
@@ -222,15 +222,15 @@ struct Connection::Impl {
     current_statement_timeout_ = default_cmd_ctl_.statement;
   }
 
-  TimeoutDuration CurrentNetworkTimeout() const {
+  TimeoutDuration CurrentExecuteTimeout() const {
     if (!!transaction_cmd_ctl_) {
-      return transaction_cmd_ctl_->network;
+      return transaction_cmd_ctl_->execute;
     }
-    return default_cmd_ctl_.network;
+    return default_cmd_ctl_.execute;
   }
 
   engine::Deadline MakeCurrentDeadline() const {
-    return engine::Deadline::FromDuration(CurrentNetworkTimeout());
+    return engine::Deadline::FromDuration(CurrentExecuteTimeout());
   }
 
   TimeoutDuration CurrentStatementTimeout() const {
@@ -276,15 +276,15 @@ struct Connection::Impl {
   void SetStatementTimeout(OptionalCommandControl cmd_ctl) {
     if (!!cmd_ctl) {
       SetConnectionStatementTimeout(
-          cmd_ctl->statement, engine::Deadline::FromDuration(cmd_ctl->network));
+          cmd_ctl->statement, engine::Deadline::FromDuration(cmd_ctl->execute));
     } else if (!!transaction_cmd_ctl_) {
       SetStatementTimeout(
           transaction_cmd_ctl_->statement,
-          engine::Deadline::FromDuration(transaction_cmd_ctl_->network));
+          engine::Deadline::FromDuration(transaction_cmd_ctl_->execute));
     } else {
       SetConnectionStatementTimeout(
           default_cmd_ctl_.statement,
-          engine::Deadline::FromDuration(default_cmd_ctl_.network));
+          engine::Deadline::FromDuration(default_cmd_ctl_.execute));
     }
   }
 
@@ -361,8 +361,8 @@ struct Connection::Impl {
                            OptionalCommandControl statement_cmd_ctl) {
     CheckBusy();
     TimeoutDuration network_timeout = !!statement_cmd_ctl
-                                          ? statement_cmd_ctl->network
-                                          : CurrentNetworkTimeout();
+                                          ? statement_cmd_ctl->execute
+                                          : CurrentExecuteTimeout();
     auto deadline = engine::Deadline::FromDuration(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
     return ExecuteCommand(statement, params, deadline);
@@ -374,8 +374,8 @@ struct Connection::Impl {
                            OptionalCommandControl statement_cmd_ctl) {
     CheckBusy();
     if (!!statement_cmd_ctl &&
-        deadline.TimeLeft() < statement_cmd_ctl->network) {
-      deadline = engine::Deadline::FromDuration(statement_cmd_ctl->network);
+        deadline.TimeLeft() < statement_cmd_ctl->execute) {
+      deadline = engine::Deadline::FromDuration(statement_cmd_ctl->execute);
     }
     SetStatementTimeout(std::move(statement_cmd_ctl));
     return ExecuteCommand(statement, params, deadline);
@@ -470,7 +470,7 @@ struct Connection::Impl {
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
     return ExecuteCommandNoPrepare(
-        statement, engine::Deadline::FromDuration(CurrentNetworkTimeout()));
+        statement, engine::Deadline::FromDuration(CurrentExecuteTimeout()));
   }
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement,
@@ -527,7 +527,7 @@ struct Connection::Impl {
     auto scope = span.CreateScopeTime();
     conn_wrapper_.SendQuery(statement, params, scope, reply_format);
     auto res = conn_wrapper_.WaitResult(
-        engine::Deadline::FromDuration(CurrentNetworkTimeout()), scope);
+        engine::Deadline::FromDuration(CurrentExecuteTimeout()), scope);
     FillBufferCategories(res);
     return res;
   }
@@ -546,8 +546,8 @@ struct Connection::Impl {
 
     CheckBusy();
     TimeoutDuration network_timeout = !!statement_cmd_ctl
-                                          ? statement_cmd_ctl->network
-                                          : CurrentNetworkTimeout();
+                                          ? statement_cmd_ctl->execute
+                                          : CurrentExecuteTimeout();
     auto deadline = engine::Deadline::FromDuration(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
 
@@ -577,8 +577,8 @@ struct Connection::Impl {
                           const std::string& portal_name, std::uint32_t n_rows,
                           OptionalCommandControl statement_cmd_ctl) {
     TimeoutDuration network_timeout = !!statement_cmd_ctl
-                                          ? statement_cmd_ctl->network
-                                          : CurrentNetworkTimeout();
+                                          ? statement_cmd_ctl->execute
+                                          : CurrentExecuteTimeout();
 
     auto deadline = engine::Deadline::FromDuration(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));

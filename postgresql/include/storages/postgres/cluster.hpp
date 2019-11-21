@@ -140,7 +140,7 @@ template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostType ht, const std::string& statement,
                            Args&&... args) {
   auto deadline =
-      engine::Deadline::FromDuration(GetDefaultCommandControl()->network);
+      engine::Deadline::FromDuration(GetDefaultCommandControl()->execute);
   auto ntrx = Start(ht, deadline);
   return ntrx.Execute(statement, std::forward<Args>(args)...);
 }
@@ -148,7 +148,7 @@ ResultSet Cluster::Execute(ClusterHostType ht, const std::string& statement,
 template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostType ht, CommandControl statement_cmd_ctl,
                            const std::string& statement, Args&&... args) {
-  auto deadline = engine::Deadline::FromDuration(statement_cmd_ctl.network);
+  auto deadline = engine::Deadline::FromDuration(statement_cmd_ctl.execute);
   auto ntrx = Start(ht, deadline);
   return ntrx.Execute(std::move(statement_cmd_ctl), statement,
                       std::forward<Args>(args)...);

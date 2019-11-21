@@ -73,27 +73,53 @@ constexpr inline bool operator==(const TransactionOptions& lhs,
 }
 const std::string& BeginStatement(const TransactionOptions&);
 
+/// A structure to control timeouts for PosrgreSQL queries
+///
+/// There are two parameters, `execute` and `statement`.
+///
+/// `execute` parameter controls the overall time the driver spends executing a
+/// query, that includes:
+/// * connecting to PostgreSQL server, if there are no connections available and
+///   connection pool still has space for new connections;
+/// * waiting for a connection to become idle if there are no idle connections
+///   and connection pool already has reached it's max size;
+/// * preparing a statement if the statement is run for the first time on the
+///   connection;
+/// * binding parameters and executing the statement;
+/// * waiting for the first results to arrive from the server. If the result set
+///   is big, only time to the first data packet is taken into account.
+///
+/// `statement` is rather straightforward, it's the PostgreSQL server-side
+/// parameter, and it controls the time the database backend can spend executing
+/// a single statement. It is very costly to change the statement timeout
+/// often, as it requires a roundtrip to the database to change the setting.
+/// @see https://www.postgresql.org/docs/10/runtime-config-client.html
+///
+/// In case of a timeout, either back-end or overall, the client gets an
+/// exception and the driver tries to clean up the connection for further reuse.
 struct CommandControl {
-  TimeoutDuration network;
+  /// Overall timeout for a command being executed
+  TimeoutDuration execute;
+  /// PostgreSQL server-side timeout
   TimeoutDuration statement;
 
   constexpr CommandControl() = default;
 
-  constexpr CommandControl(TimeoutDuration network, TimeoutDuration statement)
-      : network(network), statement(statement) {}
+  constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
+      : execute(execute), statement(statement) {}
 
-  constexpr CommandControl WithNetworkTimeout(TimeoutDuration n) const
+  constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const
       noexcept {
     return {n, statement};
   }
 
   constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const
       noexcept {
-    return {network, s};
+    return {execute, s};
   }
 
   bool operator==(const CommandControl& rhs) const {
-    return network == rhs.network && statement == rhs.statement;
+    return execute == rhs.execute && statement == rhs.statement;
   }
 
   bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }

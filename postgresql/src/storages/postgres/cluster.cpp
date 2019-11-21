@@ -28,8 +28,8 @@ Transaction Cluster::Begin(ClusterHostType ht,
                            const TransactionOptions& options,
                            OptionalCommandControl cmd_ctl) {
   TimeoutDuration timeout = cmd_ctl.is_initialized()
-                                ? cmd_ctl->network
-                                : GetDefaultCommandControl()->network;
+                                ? cmd_ctl->execute
+                                : GetDefaultCommandControl()->execute;
   auto deadline = engine::Deadline::FromDuration(timeout);
   return pimpl_->Begin(ht, options, deadline, cmd_ctl);
 }
