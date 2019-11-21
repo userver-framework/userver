@@ -27,8 +27,8 @@ bool IsValidAppName(const std::string& app_name) {
          utils::text::IsCString(app_name) && utils::text::IsUtf8(app_name);
 }
 
-void CheckTimeout(const std::chrono::milliseconds& timeout, const char* name,
-                  const std::string& pool_id) {
+void CheckDuration(const std::chrono::milliseconds& timeout, const char* name,
+                   const std::string& pool_id) {
   auto timeout_ms = timeout.count();
   if (timeout_ms < 0 || timeout_ms > std::numeric_limits<int32_t>::max()) {
     throw InvalidConfigException("Invalid ")
@@ -50,12 +50,17 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
       idle_limit(kDefaultIdleLimit),
       connecting_limit(component_config.Parse<size_t>("connecting_limit",
                                                       kDefaultConnectingLimit)),
+      local_threshold(
+          component_config.ParseOptionalDuration("local_threshold")),
       app_name(
           component_config.Parse<std::string>("appname", kDefaultAppName)) {
   const auto& pool_id = component_config.Name();
-  CheckTimeout(conn_timeout, "connection timeout", pool_id);
-  CheckTimeout(so_timeout, "socket timeout", pool_id);
-  CheckTimeout(queue_timeout, "queue wait timeout", pool_id);
+  CheckDuration(conn_timeout, "connection timeout", pool_id);
+  CheckDuration(so_timeout, "socket timeout", pool_id);
+  CheckDuration(queue_timeout, "queue wait timeout", pool_id);
+  if (local_threshold) {
+    CheckDuration(*local_threshold, "local threshold", pool_id);
+  }
 
   if (!max_size) {
     throw InvalidConfigException("invalid max pool size in ")

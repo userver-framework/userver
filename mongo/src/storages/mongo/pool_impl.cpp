@@ -18,8 +18,8 @@
 namespace storages::mongo::impl {
 namespace {
 
-int32_t CheckedTimeoutMs(const std::chrono::milliseconds& timeout,
-                         const char* name) {
+int32_t CheckedDurationMs(const std::chrono::milliseconds& timeout,
+                          const char* name) {
   auto timeout_ms = timeout.count();
   if (timeout_ms < 0 || timeout_ms > std::numeric_limits<int32_t>::max()) {
     throw InvalidConfigException("Bad value ")
@@ -35,8 +35,7 @@ bool HasRetryWrites(const UriPtr& uri) {
 }
 
 UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
-               std::chrono::milliseconds conn_timeout,
-               std::chrono::milliseconds so_timeout) {
+               const PoolConfig& config) {
   MongoError parse_error;
   UriPtr uri(
       mongoc_uri_new_with_error(uri_string.c_str(), parse_error.GetNative()));
@@ -46,10 +45,16 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
   }
   mongoc_uri_set_option_as_int32(
       uri.get(), MONGOC_URI_CONNECTTIMEOUTMS,
-      CheckedTimeoutMs(conn_timeout, MONGOC_URI_CONNECTTIMEOUTMS));
+      CheckedDurationMs(config.conn_timeout, MONGOC_URI_CONNECTTIMEOUTMS));
   mongoc_uri_set_option_as_int32(
       uri.get(), MONGOC_URI_SOCKETTIMEOUTMS,
-      CheckedTimeoutMs(so_timeout, MONGOC_URI_SOCKETTIMEOUTMS));
+      CheckedDurationMs(config.so_timeout, MONGOC_URI_SOCKETTIMEOUTMS));
+  if (config.local_threshold) {
+    mongoc_uri_set_option_as_int32(
+        uri.get(), MONGOC_URI_LOCALTHRESHOLDMS,
+        CheckedDurationMs(*config.local_threshold,
+                          MONGOC_URI_LOCALTHRESHOLDMS));
+  }
 
   // TODO: mongoc 1.15 has changed default of retryWrites to true but it
   // doesn't play well with mongos over standalone instance (testsuite)
@@ -90,7 +95,7 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
   static const GlobalInitializer kInitMongoc;
   CheckAsyncStreamCompatible();
 
-  uri_ = MakeUri(id_, uri_string, config.conn_timeout, config.so_timeout);
+  uri_ = MakeUri(id_, uri_string, config);
   const char* uri_database = mongoc_uri_get_database(uri_.get());
   if (!uri_database) {
     throw InvalidConfigException("MongoDB uri for pool '")

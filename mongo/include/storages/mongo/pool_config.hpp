@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <string>
 
+#include <boost/optional.hpp>
+
 #include <components/component_config.hpp>
 
 namespace storages::mongo {
@@ -51,6 +53,8 @@ class PoolConfig {
   size_t idle_limit;
   /// Establishing connections limit
   size_t connecting_limit;
+  /// Instance selection latency window override
+  boost::optional<std::chrono::milliseconds> local_threshold;
 
   /// Application name (sent to server)
   const std::string app_name;

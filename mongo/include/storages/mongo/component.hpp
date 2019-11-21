@@ -33,10 +33,11 @@ namespace components {
 ///   conn_timeout: 5s
 ///   so_timeout: 10s
 ///   queue_timeout: 1s
-///   initial_size: 4
+///   initial_size: 16
 ///   max_size: 128
 ///   idle_limit: 64
 ///   connecting_limit: 8
+///   local_threshold: 15ms
 /// ```
 /// You must specify one of `dbalias` or `dbconnection`.
 ///
@@ -49,10 +50,11 @@ namespace components {
 /// conn_timeout | connection timeout | 5s
 /// so_timeout | socket timeout | 10s
 /// queue_timeout | max connection queue wait time | 1s
-/// initial_size | number of connections created initially | 4
+/// initial_size | number of connections created initially | 16
 /// max_size | limit for total connections number | 128
 /// idle_limit | limit for idle connections number | 64
 /// connecting_limit | limit for establishing connections number | 8
+/// local_threshold | latency window for instance selection | mongodb default
 
 // clang-format on
 
@@ -86,10 +88,11 @@ class Mongo : public LoggableComponentBase {
 ///   conn_timeout: 5s
 ///   so_timeout: 10s
 ///   queue_timeout: 1s
-///   initial_size: 4
+///   initial_size: 16
 ///   max_size: 128
 ///   idle_limit: 64
 ///   connecting_limit: 8
+///   local_threshold: 15ms
 /// ```
 ///
 /// ## Available options:
@@ -99,10 +102,11 @@ class Mongo : public LoggableComponentBase {
 /// conn_timeout | connection timeout | 5s
 /// so_timeout | socket timeout | 10s
 /// queue_timeout | max connection queue wait time | 1s
-/// initial_size | number of connections created initially (per database) | 4
+/// initial_size | number of connections created initially (per database) | 16
 /// max_size | limit for total connections number (per database) | 128
 /// idle_limit | limit for idle connections number (per database) | 64
 /// connecting_limit | limit for establishing connections number (per database) | 8
+/// local_threshold | latency window for instance selection | mongodb default
 
 // clang-format on
 
