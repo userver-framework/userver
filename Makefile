@@ -1,6 +1,3 @@
-# NOTE: use Makefile.local for customization
--include Makefile.local
-
 include Makefile.common
 
 .PHONY: clean

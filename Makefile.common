@@ -1,5 +1,7 @@
+USERVER_ROOTDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+
 # NOTE: use Makefile.local for customization
--include Makefile.local
+-include $(USERVER_ROOTDIR)/Makefile.local
 
 KERNEL := $(shell uname -s)
 ifeq ($(KERNEL),Darwin)
