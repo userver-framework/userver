@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 
 #include <formats/json/value.hpp>
 #include <utils/datetime.hpp>
@@ -49,7 +50,7 @@ using Percentile =
                                   /*extra_bucket_size=*/100>;
 
 struct Statistics {
-  Statistics() = default;
+  Statistics();
 
   std::shared_ptr<RequestStats> CreateRequestStats() {
     return std::make_shared<RequestStats>(*this);
@@ -74,6 +75,8 @@ struct Statistics {
 
   void AccountError(ErrorGroup error);
 
+  void AccountStatus(int);
+
  private:
   std::atomic_llong easy_handles{0};
   std::atomic_llong last_time_to_start_us{0};
@@ -84,6 +87,10 @@ struct Statistics {
       {0, 0, 0, 0, 0, 0, 0}};
   std::atomic_llong retries{0};
 
+  static constexpr size_t kMinHttpStatus = 100;
+  static constexpr size_t kMaxHttpStatus = 600;
+  std::array<std::atomic_llong, kMaxHttpStatus - kMinHttpStatus> reply_status{};
+
   friend struct InstanceStatistics;
   friend class RequestStats;
 };
@@ -91,14 +98,9 @@ struct Statistics {
 struct InstanceStatistics {
   InstanceStatistics() = default;
 
-  InstanceStatistics(const Statistics& other)
-      : easy_handles(other.easy_handles.load()),
-        last_time_to_start_us(other.last_time_to_start_us.load()),
-        timings_percentile(other.timings_percentile.GetStatsForPeriod()),
-        retries(other.retries.load()) {
-    for (size_t i = 0; i < error_count.size(); i++)
-      error_count[i] = other.error_count[i].load(std::memory_order_relaxed);
-  }
+  static bool IsForcedStatusCode(int status);
+
+  InstanceStatistics(const Statistics& other);
 
   long long GetNotOkErrorCount() const;
 
@@ -112,6 +114,7 @@ struct InstanceStatistics {
   Percentile timings_percentile;
   std::array<long long, Statistics::kErrorGroupCount> error_count{
       {0, 0, 0, 0, 0, 0, 0}};
+  std::unordered_map<int, long long> reply_status;
   long long retries{0};
 
   MultiStats multi;

@@ -17,8 +17,9 @@ RequestStats::~RequestStats() { stats_.easy_handles--; }
 
 void RequestStats::Start() { start_time_ = std::chrono::steady_clock::now(); }
 
-void RequestStats::FinishOk([[maybe_unused]] int code, int attempts) {
+void RequestStats::FinishOk(int code, int attempts) {
   stats_.AccountError(Statistics::ErrorGroup::kOk);
+  stats_.AccountStatus(code);
   if (attempts > 1) stats_.retries += attempts - 1;
   StoreTiming();
 }
@@ -80,6 +81,11 @@ Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
   }
 }
 
+Statistics::Statistics() {
+  /* No way to init std::array<std::atomic<T>, N> w/o explicit default ctr :( */
+  for (auto& status : reply_status) status = 0;
+}
+
 const char* Statistics::ToString(ErrorGroup error) {
   switch (error) {
     case ErrorGroup::kOk:
@@ -105,6 +111,15 @@ void Statistics::AccountError(ErrorGroup error) {
   error_count[static_cast<int>(error)]++;
 }
 
+void Statistics::AccountStatus(int code) {
+  try {
+    reply_status.at(code - kMinHttpStatus)++;
+  } catch (const std::out_of_range&) {
+    LOG_WARNING() << "Non-standard HTTP status code: " << code
+                  << ", skipping statistics accounting";
+  }
+}
+
 formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats) {
   formats::json::ValueBuilder json;
   json["timings"]["1min"] =
@@ -119,6 +134,14 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats) {
   }
   utils::statistics::SolomonChildrenAreLabelValues(errors, "http_error");
   json["errors"] = errors;
+
+  formats::json::ValueBuilder statuses(formats::json::Type::kObject);
+  for (const auto& [code, count] : stats.reply_status) {
+    statuses[std::to_string(code)] = count;
+  }
+  utils::statistics::SolomonChildrenAreLabelValues(statuses, "http_code");
+  json["reply-statuses"] = std::move(statuses);
+
   json["retries"] = stats.retries;
   json["pending-requests"] = stats.easy_handles;
   json["last-time-to-start-us"] = stats.last_time_to_start_us;
@@ -149,6 +172,25 @@ formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats) {
   json["pool-total"] = StatisticsToJson(sum_stats);
   utils::statistics::SolomonSkip(json["pool-total"]);
   return json;
+}
+
+InstanceStatistics::InstanceStatistics(const Statistics& other)
+    : easy_handles(other.easy_handles.load()),
+      last_time_to_start_us(other.last_time_to_start_us.load()),
+      timings_percentile(other.timings_percentile.GetStatsForPeriod()),
+      retries(other.retries.load()) {
+  for (size_t i = 0; i < error_count.size(); i++)
+    error_count[i] = other.error_count[i].load();
+
+  for (size_t i = 0; i < other.reply_status.size(); i++) {
+    const auto& value = other.reply_status[i].load();
+    auto status = i + Statistics::kMinHttpStatus;
+    if (value || IsForcedStatusCode(status)) reply_status[status] = value;
+  }
+}
+
+bool InstanceStatistics::IsForcedStatusCode(int status) {
+  return status == 200 || status == 400 || status == 401 || status == 500;
 }
 
 long long InstanceStatistics::GetNotOkErrorCount() const {
