@@ -99,9 +99,26 @@ void ConnectionPoolImpl::Init() {
   }
 
   LOG_INFO() << "Creating " << settings_.min_size
-             << " PostgreSQL connections to " << DsnCutPassword(dsn_);
-  for (size_t i = 0; i < settings_.min_size; ++i) {
-    Connect(SharedSizeGuard{size_}).Detach();
+             << " PostgreSQL connections to " << DsnCutPassword(dsn_)
+             << (settings_.sync_start ? " sync" : " async");
+  if (!settings_.sync_start) {
+    for (size_t i = 0; i < settings_.min_size; ++i) {
+      Connect(SharedSizeGuard{size_}).Detach();
+    }
+  } else {
+    std::vector<engine::TaskWithResult<bool>> tasks;
+    tasks.reserve(settings_.min_size);
+    for (size_t i = 0; i < settings_.min_size; ++i) {
+      tasks.push_back(Connect(SharedSizeGuard{size_}));
+    }
+    for (auto& t : tasks) {
+      try {
+        t.Get();
+      } catch (const std::exception& e) {
+        LOG_ERROR() << "Failed to establish connection with PostgreSQL server "
+                    << DsnCutPassword(dsn_) << ": " << e;
+      }
+    }
   }
   LOG_INFO() << "Pool initialized";
   StartPingTask();

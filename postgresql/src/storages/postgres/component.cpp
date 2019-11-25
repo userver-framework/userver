@@ -182,6 +182,8 @@ Postgres::Postgres(const ComponentConfig& config,
       config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
   pool_settings_.max_queue_size =
       config.ParseUint64("max_queue_size", kDefaultMaxQueueSize);
+  pool_settings_.sync_start = config.ParseBool("sync-start", false);
+
   bool persistent_prepared_statements =
       config.ParseBool("persistent-prepared-statements", true);
   conn_settings_.prepared_statements =

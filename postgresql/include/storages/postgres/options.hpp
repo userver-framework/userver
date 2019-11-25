@@ -132,6 +132,7 @@ struct PoolSettings {
   size_t min_size = 0;
   size_t max_size = 0;
   size_t max_queue_size = 0;
+  bool sync_start = false;
 };
 
 struct ConnectionSettings {

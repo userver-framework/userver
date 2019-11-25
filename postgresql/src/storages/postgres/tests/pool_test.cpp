@@ -163,6 +163,30 @@ TEST_P(PostgrePool, ConnectionPtrWorks) {
   });
 }
 
+TEST_P(PostgrePool, AsyncMinPool) {
+  RunInCoro([this] {
+    auto pool = std::make_unique<pg::ConnectionPool>(
+        dsn_, GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+        kCachePreparedStatements, kTestCmdCtl);
+    const auto& stats = pool->GetStatistics();
+    EXPECT_EQ(0, stats.connection.open_total);
+    EXPECT_EQ(1, stats.connection.active);
+  });
+}
+
+TEST_P(PostgrePool, SyncMinPool) {
+  RunInCoro([this] {
+    auto pool = std::make_unique<pg::ConnectionPool>(
+        dsn_, GetTaskProcessor(),
+        pg::PoolSettings{1, 1, 10, /* sync_start */ true},
+        kCachePreparedStatements, kTestCmdCtl);
+
+    const auto& stats = pool->GetStatistics();
+    EXPECT_EQ(1, stats.connection.open_total);
+    EXPECT_EQ(1, stats.connection.active);
+  });
+}
+
 TEST_P(PostgrePool, ConnectionCleanup) {
   RunInCoro([this] {
     auto pool = std::make_unique<pg::ConnectionPool>(

@@ -102,6 +102,7 @@ namespace components {
 /// blocking_task_processor | name of task processor for background blocking operations | --
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | limit of connections count                                | 15
+/// sync-start              | perform initial connections synchronously                 | false
 /// persistent-prepared-statements | cache prepared statements or not                   | true
 
 // clang-format on
