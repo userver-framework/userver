@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include <engine/single_consumer_event.cpp>
+#include <engine/single_consumer_event.hpp>
 #include <engine/task/cancel.hpp>
 #include <utils/userver_experiment.hpp>
 
