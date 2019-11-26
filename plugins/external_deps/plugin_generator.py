@@ -12,7 +12,7 @@ EXTERNAL_DEPS_TYPE = [FIND_HELPER_TYPE, EXTERNAL_PROJECT_TYPE]
 
 
 class RepositoryGenerator:
-    config_schema = voluptuous.Schema(
+    lib_schema = voluptuous.Schema(
         {
             voluptuous.Required('name'): str,
             'type': voluptuous.Any(None, *EXTERNAL_DEPS_TYPE),
@@ -25,17 +25,23 @@ class RepositoryGenerator:
             'includes': {
                 'enabled': bool,
                 'variable': str,
-                'find': [{'path-suffixes': list, 'names': list}],
+                'find': [
+                    {'path-suffixes': list, 'paths': list, 'names': list},
+                ],
             },
             'libraries': {
                 'enabled': bool,
                 'variable': str,
-                'find': [{'path-suffixes': list, 'names': list}],
+                'find': [
+                    {'path-suffixes': list, 'paths': list, 'names': list},
+                ],
             },
             'programs': {
                 'enabled': bool,
                 'variable': str,
-                'find': [{'path-suffixes': list, 'names': list}],
+                'find': [
+                    {'path-suffixes': list, 'paths': list, 'names': list},
+                ],
             },
             'fail-message': str,
             'virtual': bool,
@@ -63,6 +69,15 @@ class RepositoryGenerator:
             'checks': [{'expression': str, 'error': str}],
         },
     )
+    config_schema = voluptuous.Schema(
+        voluptuous.Any(
+            {
+                voluptuous.Required('common-name'): str,
+                voluptuous.Required('partials'): list,
+            },
+            lib_schema,
+        ),
+    )
 
     def __init__(self, config: dict) -> None:
         self.dependencies: dict = {}
@@ -79,7 +94,14 @@ class RepositoryGenerator:
                 file_path = os.path.join(path, file_name)
                 config = utils.load_yaml(file_path)
                 self.config_schema(config)
-                self.dependencies[config['name']] = config
+                if 'common-name' in config:
+                    for partial in config.get('partials'):
+                        self.dependencies[partial['name']] = {
+                            'common-name': config['common-name'],
+                            **partial,
+                        }
+                else:
+                    self.dependencies[config['name']] = config
 
     def generate(self, manager: plugin_manager.GenerateManager) -> None:
         if not self.dependencies:
@@ -105,6 +127,7 @@ class RepositoryGenerator:
                         {
                             'name': key,
                             'package_name': value.get('package-name'),
+                            'common_name': value.get('common-name'),
                             'debian_names': value.get('debian-names'),
                             'formula_name': value.get('formula-name'),
                             'version': value.get('version'),

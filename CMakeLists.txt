@@ -36,7 +36,7 @@ if(NOT FLATBUFFERS_EXTERNAL_ENABLED)
       backend-common-cpp/third_party/flatbuffers/include/
   )
 endif()
-add_dependencies(yandex-taxi-backend-common-cpp spdlog_lib)
+add_dependencies(yandex-taxi-backend-common-cpp spdlog)
 
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory(uboost_coro)

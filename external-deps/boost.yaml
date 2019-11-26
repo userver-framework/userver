@@ -1,0 +1,120 @@
+common-name: Boost
+partials:
+  - name: filesystem
+    helper-prefix: false
+
+    includes:
+      find:
+        - names:
+            - boost/filesystem/config.hpp
+
+    libraries:
+      find:
+        - names:
+            - boost_filesystem
+
+    debian-names:
+      - libboost-filesystem-dev
+    formula-name: boost
+
+  - name: graph
+    helper-prefix: false
+
+    includes:
+      find:
+        - names:
+            - boost/graph/astar_search.hpp
+
+    libraries:
+      find:
+        - names:
+            - boost_graph
+
+    debian-names:
+      - libboost-graph-dev
+    formula-name: boost
+
+  - name: iostreams
+    helper-prefix: false
+
+    includes:
+      find:
+        - names:
+            - boost/iostreams/seek.hpp
+
+    libraries:
+      find:
+        - names:
+            - boost_iostreams
+
+    debian-names:
+      - libboost-iostreams-dev
+    formula-name: boost
+
+  - name: locale
+    helper-prefix: false
+
+    includes:
+      find:
+        - names:
+            - boost/locale/config.hpp
+
+    libraries:
+      find:
+        - names:
+            - boost_locale
+
+    debian-names:
+      - libboost-locale-dev
+    formula-name: boost
+
+  - name: program_options
+    helper-prefix: false
+
+    includes:
+      find:
+        - names:
+            - boost/program_options/config.hpp
+
+    libraries:
+      find:
+        - names:
+            - boost_program_options
+
+    debian-names:
+      - libboost-program-options-dev
+    formula-name: boost
+
+  - name: regex
+    helper-prefix: false
+
+    includes:
+      find:
+        - names:
+            - boost/regex/config.hpp
+
+    libraries:
+      find:
+        - names:
+            - boost_regex
+
+    debian-names:
+      - libboost-regex-dev
+    formula-name: boost
+
+  - name: thread
+    helper-prefix: false
+
+    includes:
+      find:
+        - names:
+            - boost/thread/mutex.hpp
+
+    libraries:
+      find:
+        - names:
+            - boost_thread
+
+    debian-names:
+      - libboost-thread-dev
+    formula-name: boost

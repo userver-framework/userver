@@ -1,0 +1,10 @@
+name: CurlYandex
+helper-prefix: false
+
+virtual: true
+
+libraries:
+  enabled: false
+
+includes:
+  enabled: false

@@ -13,6 +13,10 @@ find_{{ type }}({{ variable }}_{{ value.names|join('_')|replace('/', '_')|replac
     PATH_SUFFIXES
       {{ value['path-suffixes']|join(' ') }}
 {% endif %} {# if value['path-suffixes'] #}
+{% if value['paths'] %}
+    PATHS
+      {{ value['paths']|join(' ') }}
+{% endif %} {# if value['paths'] #}
 )
 list(APPEND {{ variable }} 
   {{ '${' }}{{ variable }}_{{ value.names|join('_')|replace('/', '_')|replace('.', '_') }}{{ '}'}}
@@ -38,9 +42,14 @@ include(FindPackageHandleStandardArgs)
 {{ cmake_find('program', programs_variable, programs) }}
 
 {% if not libraries.find|default(false) and not includes.find|default(false) and not programs.find|default(false) %}
-find_package({{ package_name or name }} {{ version or '' }} QUIET)
+find_package({{ common_name or package_name or name }} {{ version or '' }} QUIET
+{% if common_name %}
+    COMPONENTS {{ name }}
+{% endif %} {# if common_name #}
+)
 {% endif %} {# if not libraries.find.names|default(false) and not includes.names|default(false) #}
 
+{% if libraries.find|default(false) or includes.find|default(false) or programs.find|default(false) %}
 find_package_handle_standard_args(
   {{ package_name or name }}
     REQUIRED_VARS
@@ -53,8 +62,9 @@ mark_as_advanced(
   {{ includes_variable if includes.enabled|default(true) else '' }}
   {{ programs_variable if programs_enabled else '' }}
 )
+{% endif %} {# if not package_name #}
 
-if(NOT {{ package_name or name }}_FOUND)
+if(NOT {{ common_name or package_name or name }}_FOUND)
 {% if fail_message %}
   message(FATAL_ERROR "{{ fail_message|trim }} {{ 'Version: {}'.format(version) if version else '' }}")
 {% else %}
@@ -71,13 +81,20 @@ if(NOT {{ package_name or name }}_FOUND)
 {% endif %} {# if version #}
   )
 {% endif %} {# if fail_message #}
-endif(NOT {{ package_name or name }}_FOUND)
+endif(NOT {{ common_name or package_name or name }}_FOUND)
 
 {% endif %} {# if not virtual #}
 
-{% if libraries.enabled|default(true) or includes.enabled|default(true) or virtual  %}
+{% if common_name or libraries.enabled|default(true) or includes.enabled|default(true) or virtual  %}
+{#if (NOT TARGET {{ '{}::'.format(common_name) if common_name else '' }}{{ name }})#}
 if (NOT TARGET {{ name }})
-  add_library({{ name }} INTERFACE IMPORTED)
+  add_library({{ name }} INTERFACE IMPORTED GLOBAL)
+{% if common_name %}
+  if (TARGET {{ '{}::{}'.format(common_name, name) }})
+    target_link_libraries({{ name }} INTERFACE {{ '{}::{}'.format(common_name, name) }})
+{#    add_library({{ name }} ALIAS {{ '{}::{}'.format(common_name, name) }})#}
+  endif(TARGET {{ '{}::{}'.format(common_name, name) }})
+{% endif %} {# if common_name #}
 {% if includes.enabled|default(true) %}
   target_include_directories({{ name }} INTERFACE {{ '${' }}{{ includes_variable }}{{ '}'}})
 {% endif %} {# if includes.enabled|default(true) #}
@@ -91,5 +108,6 @@ if (NOT TARGET {{ name }})
 {% endfor %} {# for option in compile_definitions.names #}
   )
 {% endif %} {# if compile_definitions.names #}
+{#endif(NOT TARGET {{ '{}::'.format(common_name) if common_name else '' }}{{ name }})#}
 endif(NOT TARGET {{ name }})
 {% endif %}

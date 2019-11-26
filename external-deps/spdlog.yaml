@@ -18,4 +18,4 @@ compile-definitions:
     - SPDLOG_FMT_EXTERNAL=1
 
 targets:
-  - name: spdlog_lib
+  - name: spdlog

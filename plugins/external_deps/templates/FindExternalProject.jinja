@@ -14,7 +14,7 @@ if (NOT TARGET {{ name }})
   endif ()
 
   ExternalProject_Add(
-    {{ name }}
+    {{ name }}_external_project
 {% if source.repository %}
     GIT_REPOSITORY {{ source.repository }}
     TIMEOUT 10
@@ -51,7 +51,7 @@ if (NOT TARGET {{ name }})
     LOG_BUILD {{ log.build|default(true) }}
   )
 
-ExternalProject_Get_Property({{ name }} source_dir binary_dir)
+ExternalProject_Get_Property({{ name }}_external_project source_dir binary_dir)
 
 {% if use_destdir %}
 set({{ name }}_INCLUDE_DIRS ${DESTDIR}/usr/local/include)
@@ -69,7 +69,7 @@ add_dependencies({{ target.name }}
 {% if target.depends %}
   {{ target.depends|join(' ') }}
 {% else %}
-  {{ name }}
+  {{ name }}_external_project
 {% endif %} {# if target.depends #}
 )
 {% if compile_definitions.names %}
