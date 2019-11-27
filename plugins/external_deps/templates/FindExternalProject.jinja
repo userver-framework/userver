@@ -65,11 +65,10 @@ file(MAKE_DIRECTORY {{ '${' }}{{ name }}_INCLUDE_DIRS{{ '}'}})
 {% if targets %}
 {% for target in targets %}
 add_library({{ target.name }} INTERFACE IMPORTED GLOBAL)
-add_dependencies({{ target.name }} 
+add_dependencies({{ target.name }}
+  {{ name }}_external_project
 {% if target.depends %}
   {{ target.depends|join(' ') }}
-{% else %}
-  {{ name }}_external_project
 {% endif %} {# if target.depends #}
 )
 {% if compile_definitions.names %}
