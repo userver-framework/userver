@@ -18,7 +18,7 @@ class Iterator final {
   using pointer = typename iter_traits::pointer;
 
   Iterator(const NativeValuePtr& root, const impl::Value* container, int iter,
-           const formats::json::Path& path);
+           int depth);
   Iterator(const Iterator& other);
   Iterator(Iterator&& other) noexcept;
   Iterator& operator=(const Iterator& other);
@@ -51,7 +51,8 @@ class Iterator final {
   impl::Value* container_;
   /// Position inside container being iterated
   int iter_;
-  formats::json::Path path_;
+  /// Cached `depth_` of `container_`'s json value
+  int depth_;
   // Temporary object replaced on every value access.
   mutable value_type value_;
   mutable bool valid_;

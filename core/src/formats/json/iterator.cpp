@@ -3,6 +3,7 @@
 #include <formats/json/exception.hpp>
 #include <formats/json/value.hpp>
 #include <formats/json/value_builder.hpp>
+#include "json_tree.hpp"
 
 #include <rapidjson/document.h>
 
@@ -12,12 +13,12 @@ namespace json {
 template <typename iter_traits>
 Iterator<iter_traits>::Iterator(const NativeValuePtr& root,
                                 const impl::Value* container, int iter,
-                                const formats::json::Path& path)
+                                int depth)
     : root_(root),
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       container_(const_cast<impl::Value*>(container)),
       iter_(iter),
-      path_(path),
+      depth_(depth),
       valid_(false) {}
 
 template <typename iter_traits>
@@ -25,7 +26,7 @@ Iterator<iter_traits>::Iterator(const Iterator<iter_traits>& other)
     : root_(other.root_),
       container_(other.container_),
       iter_(other.iter_),
-      path_(other.path_),
+      depth_(other.depth_),
       valid_(false) {}
 
 template <typename iter_traits>
@@ -33,7 +34,7 @@ Iterator<iter_traits>::Iterator(Iterator<iter_traits>&& other) noexcept
     : root_(std::move(other.root_)),
       container_(other.container_),
       iter_(other.iter_),
-      path_(std::move(other.path_)),
+      depth_(other.depth_),
       valid_(false) {}
 
 template <typename iter_traits>
@@ -42,7 +43,7 @@ Iterator<iter_traits>& Iterator<iter_traits>::operator=(
   root_ = other.root_;
   container_ = other.container_;
   iter_ = other.iter_;
-  path_ = other.path_;
+  depth_ = other.depth_;
   valid_ = false;
   return *this;
 }
@@ -53,7 +54,7 @@ Iterator<iter_traits>& Iterator<iter_traits>::operator=(
   root_ = std::move(other.root_);
   container_ = other.container_;
   iter_ = other.iter_;
-  path_ = std::move(other.path_);
+  depth_ = other.depth_;
   valid_ = false;
   return *this;
 }
@@ -64,7 +65,7 @@ Iterator<iter_traits>::~Iterator() = default;
 template <typename iter_traits>
 Iterator<iter_traits> Iterator<iter_traits>::operator++(int) {
   valid_ = false;
-  return Iterator<iter_traits>(root_, container_, iter_++, path_);
+  return Iterator<iter_traits>(root_, container_, iter_++, depth_);
 }
 
 template <typename iter_traits>
@@ -109,8 +110,9 @@ std::string Iterator<iter_traits>::GetName() const {
                          key.GetString() + key.GetStringLength());
     }
     default:
-      throw TypeMismatchException(container_->GetType(), rapidjson::kObjectType,
-                                  path_.ToString());
+      throw TypeMismatchException(
+          container_->GetType(), rapidjson::kObjectType,
+          impl::MakePath(root_.get(), container_, depth_));
   }
 }
 
@@ -120,8 +122,9 @@ uint32_t Iterator<iter_traits>::GetIndex() const {
     case rapidjson::kArrayType:
       return iter_;
     default:
-      throw TypeMismatchException(container_->GetType(), rapidjson::kArrayType,
-                                  path_.ToString());
+      throw TypeMismatchException(
+          container_->GetType(), rapidjson::kArrayType,
+          impl::MakePath(root_.get(), container_, depth_));
   }
 }
 
@@ -133,11 +136,11 @@ void Iterator<iter_traits>::UpdateValue() const {
 
   switch (container_->GetType()) {
     case rapidjson::kArrayType:
-      value_.SetNonRoot(root_, container_->Begin()[iter_], path_, iter_);
+      value_.SetNonRoot(root_, container_->Begin()[iter_], depth_ + 1);
       break;
     case rapidjson::kObjectType:
-      value_.SetNonRoot(root_, container_->MemberBegin()[iter_].value, path_,
-                        GetName());
+      value_.SetNonRoot(root_, container_->MemberBegin()[iter_].value,
+                        depth_ + 1);
       break;
     default:;
   }

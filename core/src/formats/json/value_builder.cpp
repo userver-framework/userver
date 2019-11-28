@@ -96,13 +96,8 @@ ValueBuilder::ValueBuilder(formats::json::Value&& other) {
 }
 
 ValueBuilder::ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
-                           const formats::json::Path& path,
-                           const std::string& key)
-    : value_(root, &val, path, key) {}
-
-ValueBuilder::ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
-                           const formats::json::Path& path, std::size_t index)
-    : value_(root, val, path, index) {}
+                           int depth)
+    : value_(root, &val, depth) {}
 
 ValueBuilder ValueBuilder::operator[](const std::string& key) {
   value_.CheckObjectOrNull();
@@ -124,13 +119,13 @@ ValueBuilder ValueBuilder::operator[](const std::string& key) {
     newval = &std::prev(native.MemberEnd())->value;
   }
 
-  return {value_.root_, *newval, value_.path_, key};
+  return {value_.root_, *newval, value_.depth_ + 1};
 }
 
 ValueBuilder ValueBuilder::operator[](std::size_t index) {
   value_.CheckInBounds(index);
   return {value_.root_, value_.GetNative()[static_cast<int>(index)],
-          value_.path_, index};
+          value_.depth_ + 1};
 }
 
 void ValueBuilder::Remove(const std::string& key) {
@@ -140,13 +135,13 @@ void ValueBuilder::Remove(const std::string& key) {
 
 ValueBuilder::iterator ValueBuilder::begin() {
   value_.CheckObjectOrArrayOrNull();
-  return {value_.root_, &value_.GetNative(), 0, value_.path_};
+  return {value_.root_, &value_.GetNative(), 0, value_.depth_};
 }
 
 ValueBuilder::iterator ValueBuilder::end() {
   value_.CheckObjectOrArrayOrNull();
   return {value_.root_, &value_.GetNative(), static_cast<int>(GetSize()),
-          value_.path_};
+          value_.depth_};
 }
 
 std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
@@ -190,23 +185,14 @@ formats::json::Value ValueBuilder::ExtractValue() {
   // to keep path (needed for iterators)
   formats::json::Value v;
   v.GetNative() = std::move(value_.GetNative());
-  v.path_ = std::move(value_.path_);
+  v.depth_ = value_.depth_;
   value_ = Value{};
   return v;
 }
 
 void ValueBuilder::SetNonRoot(const NativeValuePtr& root,
-                              const impl::Value& val,
-                              const formats::json::Path& path,
-                              const std::string& key) {
-  value_.SetNonRoot(root, val, path, key);
-}
-
-void ValueBuilder::SetNonRoot(const NativeValuePtr& root,
-                              const impl::Value& val,
-                              const formats::json::Path& path,
-                              std::size_t index) {
-  value_.SetNonRoot(root, val, path, index);
+                              const impl::Value& val, int depth) {
+  value_.SetNonRoot(root, val, depth);
 }
 
 std::string ValueBuilder::GetPath() const { return value_.GetPath(); }

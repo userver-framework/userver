@@ -3,7 +3,6 @@
 #include <memory>
 #include <type_traits>
 
-#include <formats/common/path.hpp>
 #include <formats/common/type.hpp>
 #include <utils/void_t.hpp>
 
@@ -21,7 +20,6 @@ class GenericDocument;
 namespace formats {
 namespace json {
 
-using formats::common::Path;
 using formats::common::Type;
 
 class Value;

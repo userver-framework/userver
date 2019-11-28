@@ -173,15 +173,12 @@ class Value final {
   Value(NativeValuePtr&& root) noexcept;
   bool IsUniqueReference() const;
 
-  Value(const NativeValuePtr& root, const impl::Value* value_ptr,
-        const formats::json::Path& path, const std::string& key);
-  Value(const NativeValuePtr& root, const impl::Value& val,
-        const formats::json::Path& path, std::size_t index);
+  Value(const NativeValuePtr& root, const impl::Value* value_ptr, int depth);
+  Value(const NativeValuePtr& root, std::string&& detached_path);
 
   void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                  const formats::json::Path& path, const std::string& key);
-  void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                  const formats::json::Path& path, std::size_t index);
+                  int depth);
+  void SetNonRoot(const NativeValuePtr& root, std::string&& detached_path);
 
   void EnsureNotMissing();
   const impl::Value& GetNative() const;
@@ -191,7 +188,10 @@ class Value final {
  private:
   NativeValuePtr root_;
   impl::Value* value_ptr_{nullptr};
-  formats::json::Path path_;
+  /// Full path of node (only for missing nodes)
+  std::string detached_path_;
+  /// Depth of the node to ease recursive traversal in GetPath()
+  int depth_;
 
   friend class Iterator<IterTraits>;
   friend class ValueBuilder;

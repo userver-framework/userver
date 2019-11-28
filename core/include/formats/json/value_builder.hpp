@@ -86,16 +86,11 @@ class ValueBuilder final {
   formats::json::Value ExtractValue();
 
  private:
-  ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
-               const formats::json::Path& path, const std::string& key);
-  ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
-               const formats::json::Path& path, std::size_t index);
+  ValueBuilder(const NativeValuePtr& root, const impl::Value& val, int depth);
 
   // For iterator interface compatibility
   void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                  const formats::json::Path& path, const std::string& key);
-  void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                  const formats::json::Path& path, std::size_t index);
+                  int depth);
   std::string GetPath() const;
 
   void Copy(impl::Value& to, const ValueBuilder& from);

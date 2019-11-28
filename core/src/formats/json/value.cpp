@@ -5,7 +5,9 @@
 #include <formats/json/exception.hpp>
 #include <functional>
 
+#include <formats/common/path_impl.hpp>
 #include "exttypes.hpp"
+#include "json_tree.hpp"
 
 namespace formats::json {
 
@@ -54,29 +56,27 @@ bool IsNonOverflowingIntegral(const double val) {
 }
 }  // namespace
 
-Value::Value() noexcept : value_ptr_(nullptr) {}
+Value::Value() noexcept : value_ptr_(nullptr), depth_(0) {}
 
 Value::~Value() = default;
 
 Value::Value(NativeValuePtr&& root) noexcept
-    : root_(std::move(root)), value_ptr_(root_.get()) {}
+    : root_(std::move(root)), value_ptr_(root_.get()), depth_(0) {}
 
 Value::Value(const NativeValuePtr& root, const impl::Value* value_ptr,
-             const formats::json::Path& path, const std::string& key)
+             int depth)
     : root_(root),
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       value_ptr_(const_cast<impl::Value*>(value_ptr)),
-      path_(path.MakeChildPath(key)) {}
+      depth_(depth) {}
 
-Value::Value(const NativeValuePtr& root, const impl::Value& val,
-             const formats::json::Path& path, std::size_t index)
+Value::Value(const NativeValuePtr& root, std::string&& detached_path)
     : root_(root),
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-      value_ptr_(const_cast<impl::Value*>(&val)),
-      path_(path.MakeChildPath(index)) {}
+      value_ptr_(nullptr),
+      detached_path_(detached_path),
+      depth_(0) {}
 
 Value Value::operator[](const std::string& key) const {
-  const impl::Value* child = nullptr;
   if (!IsMissing()) {
     CheckObjectOrNull();
     if (IsObject()) {
@@ -84,26 +84,26 @@ Value Value::operator[](const std::string& key) const {
       auto object = GetNative().GetObject();
       auto it = object.FindMember(key);
       if (it != object.end()) {
-        child = &it->value;
+        return {root_, &it->value, depth_ + 1};
       }
     }
   }
-  return {root_, child, path_, key};
+  return {root_, formats::common::impl::MakeChildPath(GetPath(), key)};
 }
 
 Value Value::operator[](std::size_t index) const {
   CheckInBounds(index);
-  return {root_, GetNative()[static_cast<int>(index)], path_, index};
+  return {root_, &GetNative()[static_cast<int>(index)], depth_ + 1};
 }
 
 Value::const_iterator Value::begin() const {
   CheckObjectOrArrayOrNull();
-  return {root_, &GetNative(), 0, path_};
+  return {root_, &GetNative(), 0, depth_};
 }
 
 Value::const_iterator Value::end() const {
   CheckObjectOrArrayOrNull();
-  return {root_, &GetNative(), static_cast<int>(GetSize()), path_};
+  return {root_, &GetNative(), static_cast<int>(GetSize()), depth_};
 }
 
 std::size_t Value::GetSize() const {
@@ -172,8 +172,7 @@ bool Value::As<bool>() const {
   const auto& native = GetNative();
   if (native.IsTrue()) return true;
   if (native.IsFalse()) return false;
-  throw TypeMismatchException(GetExtendedType(), impl::booleanValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::booleanValue, GetPath());
 }
 
 template <>
@@ -186,8 +185,7 @@ int64_t Value::As<int64_t>() const {
     if (IsNonOverflowingIntegral<int64_t>(val))
       return static_cast<int64_t>(val);
   }
-  throw TypeMismatchException(GetExtendedType(), impl::intValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::intValue, GetPath());
 }
 
 template <>
@@ -200,8 +198,7 @@ uint64_t Value::As<uint64_t>() const {
     if (IsNonOverflowingIntegral<uint64_t>(val))
       return static_cast<uint64_t>(val);
   }
-  throw TypeMismatchException(GetExtendedType(), impl::uintValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::uintValue, GetPath());
 }
 
 template <>
@@ -211,8 +208,7 @@ double Value::As<double>() const {
   if (native.IsDouble()) return native.GetDouble();
   if (native.IsInt64()) return static_cast<double>(native.GetInt64());
   if (native.IsUint64()) return static_cast<double>(native.GetUint64());
-  throw TypeMismatchException(GetExtendedType(), impl::realValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::realValue, GetPath());
 }
 
 template <>
@@ -220,8 +216,7 @@ std::string Value::As<std::string>() const {
   CheckNotMissing();
   const auto& native = GetNative();
   if (native.IsString()) return native.GetString();
-  throw TypeMismatchException(GetExtendedType(), impl::stringValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::stringValue, GetPath());
 }
 
 template <>
@@ -239,8 +234,7 @@ bool Value::ConvertTo<bool>() const {
   if (native.IsArray()) return native.Size() != 0;
   if (native.IsObject()) return native.MemberCount() != 0;
 
-  throw TypeMismatchException(GetExtendedType(), impl::booleanValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::booleanValue, GetPath());
 }
 
 template <>
@@ -253,8 +247,7 @@ int64_t Value::ConvertTo<int64_t>() const {
   if (native.IsUint64()) return native.GetUint64();
   if (native.IsDouble()) return static_cast<int64_t>(native.GetDouble());
 
-  throw TypeMismatchException(GetExtendedType(), impl::intValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::intValue, GetPath());
 }
 
 template <>
@@ -271,8 +264,7 @@ uint64_t Value::ConvertTo<uint64_t>() const {
     return static_cast<uint64_t>(
         CheckedNotTooNegative(native.GetDouble(), *this));
 
-  throw TypeMismatchException(GetExtendedType(), impl::uintValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::uintValue, GetPath());
 }
 
 template <>
@@ -295,8 +287,7 @@ std::string Value::ConvertTo<std::string>() const {
   if (native.IsUint64()) return std::to_string(native.GetUint64());
   if (native.IsDouble()) return std::to_string(native.GetDouble());
 
-  throw TypeMismatchException(GetExtendedType(), impl::stringValue,
-                              path_.ToString());
+  throw TypeMismatchException(GetExtendedType(), impl::stringValue, GetPath());
 }
 
 bool Value::HasMember(const char* key) const {
@@ -311,7 +302,14 @@ bool Value::HasMember(const std::string& key) const {
   return IsObject() && GetNative().HasMember(key);
 }
 
-std::string Value::GetPath() const { return path_.ToString(); }
+std::string Value::GetPath() const {
+  if (value_ptr_ != nullptr) {
+    return impl::MakePath(root_.get(), value_ptr_, depth_);
+  } else {
+    return detached_path_.empty() ? formats::common::impl::kPathRoot
+                                  : detached_path_;
+  }
+}
 
 Value Value::Clone() const {
   auto result{std::make_shared<impl::Value>()};
@@ -320,14 +318,13 @@ Value Value::Clone() const {
 }
 
 void Value::SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                       const formats::json::Path& path,
-                       const std::string& key) {
-  *this = Value(root, &val, path, key);
+                       int depth) {
+  *this = Value(root, &val, depth);
 }
 
-void Value::SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                       const formats::json::Path& path, std::size_t index) {
-  *this = Value(root, val, path, index);
+void Value::SetNonRoot(const NativeValuePtr& root,
+                       std::string&& detached_path) {
+  *this = Value(root, std::move(detached_path));
 }
 
 // Value states
@@ -369,42 +366,41 @@ int Value::GetExtendedType() const {
 
 void Value::CheckNotMissing() const {
   if (IsMissing()) {
-    throw MemberMissingException(path_.ToString());
+    throw MemberMissingException(GetPath());
   }
 }
 
 void Value::CheckArrayOrNull() const {
   if (!IsArray() && !IsNull()) {
-    throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
-                                path_.ToString());
+    throw TypeMismatchException(GetExtendedType(), impl::arrayValue, GetPath());
   }
 }
 
 void Value::CheckObjectOrNull() const {
   if (!IsObject() && !IsNull()) {
     throw TypeMismatchException(GetExtendedType(), impl::objectValue,
-                                path_.ToString());
+                                GetPath());
   }
 }
 
 void Value::CheckObject() const {
   if (!IsObject()) {
     throw TypeMismatchException(GetExtendedType(), impl::objectValue,
-                                path_.ToString());
+                                GetPath());
   }
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
   if (!IsObject() && !IsArray() && !IsNull()) {
     throw TypeMismatchException(GetExtendedType(), impl::objectValue,
-                                path_.ToString());
+                                GetPath());
   }
 }
 
 void Value::CheckInBounds(std::size_t index) const {
   CheckArrayOrNull();
   if (index >= GetSize()) {
-    throw OutOfBoundsException(index, GetSize(), path_.ToString());
+    throw OutOfBoundsException(index, GetSize(), GetPath());
   }
 }
 }  // namespace formats::json
