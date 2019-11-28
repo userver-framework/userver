@@ -147,6 +147,7 @@ const std::string kTracingUri = "uri";
 
 const std::string kUserAgentTag = "useragent";
 const std::string kAcceptLanguageTag = "acceptlang";
+const std::string kMethodTag = "method";
 
 }  // namespace
 
@@ -271,6 +272,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
       log_extra.Extend(kTracingBody, GetRequestBodyForLoggingChecked(
                                          http_request, context, body));
       log_extra.Extend(kTracingUri, http_request.GetUrl());
+      log_extra.Extend(kMethodTag, http_request.GetMethodStr());
 
       const auto& user_agent =
           http_request.GetHeader(::http::headers::kUserAgent);
