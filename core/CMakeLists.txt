@@ -97,6 +97,9 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(USERVER_GLIBC_INCLUDE_FIXES_DIR
+  ${CMAKE_CURRENT_SOURCE_DIR}/glibc_include_fixes
+)
 set(
   USERVER_STANDALONE_ENGINE_INCLUDE_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/standalone_engine_include
@@ -104,6 +107,15 @@ set(
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIR}
+)
+target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
+  ${USERVER_GLIBC_INCLUDE_FIXES_DIR}
+)
+
+# The bug is only triggered with optimizations enabled -- TAXICOMMON-1729
+set_property(
+  SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/engine/errno_test.cpp
+  APPEND PROPERTY COMPILE_FLAGS -O2
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
