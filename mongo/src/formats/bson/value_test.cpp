@@ -5,11 +5,17 @@
 namespace fb = formats::bson;
 
 namespace {
-static const auto kDoc =
+
+const auto kDoc =
     fb::MakeDoc("arr", fb::MakeArray(1, "elem", fb::MinKey{}),      //
                 "doc", fb::MakeDoc("b", true, "i", 0, "d", -1.25),  //
                 "null", nullptr,                                    //
                 "bool", false);
+
+// Do not ever replicate this in your code.
+const auto kDuplicateFieldsDoc = fb::MakeDoc(
+    "a", "first", "b", "other", "a", "second", "a", "third", "c", "end");
+
 }  // namespace
 
 TEST(BsonValue, SubvalAccess) {
@@ -162,4 +168,26 @@ TEST(BsonValue, Default) {
   EXPECT_EQ("no", kDoc["nonexistent"].As<std::string>("nope", 2));
   EXPECT_THROW(kDoc["nonexistent"].As<int>(), fb::MemberMissingException);
   EXPECT_EQ(0, kDoc["nonexistent"].As<int>(0));
+}
+
+TEST(BsonValue, DuplicateFieldsForbid) {
+  auto doc_forbid = kDuplicateFieldsDoc;
+  // kForbid is expected to be the default
+  EXPECT_THROW(doc_forbid["a"], fb::ParseException);
+}
+
+TEST(BsonValue, DuplicateFieldsUseFirst) {
+  auto doc_use_first = kDuplicateFieldsDoc;
+  doc_use_first.SetDuplicateFieldsPolicy(
+      fb::Value::DuplicateFieldsPolicy::kUseFirst);
+  EXPECT_EQ("end", doc_use_first["c"].As<std::string>());
+  EXPECT_EQ("first", doc_use_first["a"].As<std::string>());
+}
+
+TEST(BsonValue, DuplicateFieldsUseLast) {
+  auto doc_use_last = kDuplicateFieldsDoc;
+  doc_use_last.SetDuplicateFieldsPolicy(
+      fb::Value::DuplicateFieldsPolicy::kUseLast);
+  EXPECT_EQ("end", doc_use_last["c"].As<std::string>());
+  EXPECT_EQ("third", doc_use_last["a"].As<std::string>());
 }

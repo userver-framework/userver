@@ -32,6 +32,10 @@ class Value {
   using ParseException = formats::bson::ConversionException;
   using Builder = ValueBuilder;
 
+  /// @brief Selectors for duplicate fields parsing behavior
+  /// @see SetDuplicateFieldsPolicy
+  enum class DuplicateFieldsPolicy { kForbid, kUseFirst, kUseLast };
+
   /// Constructs a `null` value
   Value();
 
@@ -149,6 +153,15 @@ class Value {
     }
     return ConvertTo<T>();
   }
+
+  /// @brief Changes parsing behavior when duplicate fields are encountered.
+  /// Should not be used normally.
+  /// @details Should be called before the first field access. Only affects
+  /// documents. Default policy is to throw an exception when duplicate fields
+  /// are encountered.
+  /// @warning At most one value will be read, all others will be discarded and
+  /// cannot be serialized back!
+  void SetDuplicateFieldsPolicy(DuplicateFieldsPolicy);
 
   /// Throws a MemberMissingException if the selected element does not exist
   void CheckNotMissing() const;

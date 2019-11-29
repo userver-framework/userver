@@ -158,14 +158,20 @@ bool operator==(const bson_value_t& lhs, const bson_value_t& rhs) {
 
 class ValueImpl::EmplaceEnabler {};
 
-ValueImpl::ValueImpl() : bson_value_(kDefaultBsonValue) {}
+ValueImpl::ValueImpl()
+    : bson_value_(kDefaultBsonValue),
+      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {}
 
-ValueImpl::ValueImpl(std::nullptr_t) : bson_value_(kDefaultBsonValue) {
+ValueImpl::ValueImpl(std::nullptr_t)
+    : bson_value_(kDefaultBsonValue),
+      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   bson_value_.value_type = BSON_TYPE_NULL;
 }
 
 ValueImpl::ValueImpl(BsonHolder bson, DocumentKind kind)
-    : storage_(std::move(bson)), bson_value_(kDefaultBsonValue) {
+    : storage_(std::move(bson)),
+      bson_value_(kDefaultBsonValue),
+      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   switch (kind) {
     case DocumentKind::kDocument:
       bson_value_.value_type = BSON_TYPE_DOCUMENT;
@@ -203,7 +209,9 @@ ValueImpl::ValueImpl(double value) : ValueImpl() {
 
 ValueImpl::ValueImpl(const char* value) : ValueImpl(std::string(value)) {}
 
-ValueImpl::ValueImpl(std::string value) : bson_value_(kDefaultBsonValue) {
+ValueImpl::ValueImpl(std::string value)
+    : bson_value_(kDefaultBsonValue),
+      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   if (!utils::text::IsUtf8(value)) {
     throw BsonException("BSON strings must be valid UTF-8");
   }
@@ -228,7 +236,9 @@ ValueImpl::ValueImpl(const Oid& value) : ValueImpl() {
 }
 
 ValueImpl::ValueImpl(Binary value)
-    : storage_(std::move(value).ToString()), bson_value_(kDefaultBsonValue) {
+    : storage_(std::move(value).ToString()),
+      bson_value_(kDefaultBsonValue),
+      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   bson_value_.value_type = BSON_TYPE_BINARY;
   bson_value_.value.v_binary.subtype = BSON_SUBTYPE_BINARY;
   UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
@@ -254,18 +264,24 @@ ValueImpl::ValueImpl(const Timestamp& value) : ValueImpl() {
 }
 
 ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
-                     const bson_value_t& bson_value, uint32_t index)
+                     const bson_value_t& bson_value,
+                     Value::DuplicateFieldsPolicy duplicate_fields_policy,
+                     uint32_t index)
     : storage_(std::move(storage)),
       path_(path.MakeChildPath(index)),
-      bson_value_(bson_value) {
+      bson_value_(bson_value),
+      duplicate_fields_policy_(duplicate_fields_policy) {
   UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
 }
 
 ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
-                     const bson_value_t& bson_value, const std::string& key)
+                     const bson_value_t& bson_value,
+                     Value::DuplicateFieldsPolicy duplicate_fields_policy,
+                     const std::string& key)
     : storage_(std::move(storage)),
       path_(path.MakeChildPath(key)),
-      bson_value_(bson_value) {
+      bson_value_(bson_value),
+      duplicate_fields_policy_(duplicate_fields_policy) {
   UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
 }
 
@@ -273,7 +289,8 @@ ValueImpl::ValueImpl(const ValueImpl& other)
     : storage_(other.storage_),
       bson_value_(other.bson_value_),
       parsed_value_(
-          boost::apply_visitor(DeepCopyVisitor{}, other.parsed_value_)) {
+          boost::apply_visitor(DeepCopyVisitor{}, other.parsed_value_)),
+      duplicate_fields_policy_(other.duplicate_fields_policy_) {
   UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
 }
 
@@ -295,6 +312,7 @@ ValueImpl& ValueImpl::operator=(ValueImpl&& rhs) noexcept {
   bson_value_ = rhs.bson_value_;
   UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
   parsed_value_ = std::move(rhs.parsed_value_);
+  duplicate_fields_policy_ = rhs.duplicate_fields_policy_;
   return *this;
 }
 
@@ -322,6 +340,13 @@ bool ValueImpl::IsStorageOwner() const {
 
 bson_type_t ValueImpl::Type() const { return bson_value_.value_type; }
 
+void ValueImpl::SetDuplicateFieldsPolicy(Value::DuplicateFieldsPolicy policy) {
+  if (duplicate_fields_policy_ != policy) {
+    parsed_value_ = nullptr;
+    duplicate_fields_policy_ = policy;
+  }
+}
+
 ValueImplPtr ValueImpl::operator[](const std::string& name) {
   if (!IsMissing() && !IsNull()) {
     CheckIsDocument();
@@ -331,7 +356,8 @@ ValueImplPtr ValueImpl::operator[](const std::string& name) {
     if (it != parsed_doc.end()) return it->second;
   }
   return std::make_shared<ValueImpl>(EmplaceEnabler{}, nullptr, path_,
-                                     kDefaultBsonValue, name);
+                                     kDefaultBsonValue,
+                                     duplicate_fields_policy_, name);
 }
 
 ValueImplPtr ValueImpl::operator[](uint32_t index) {
@@ -362,7 +388,8 @@ ValueImplPtr ValueImpl::GetOrInsert(const std::string& key) {
   EnsureParsed();
   return boost::get<ParsedDocument>(parsed_value_)
       .emplace(key, std::make_shared<ValueImpl>(EmplaceEnabler{}, nullptr,
-                                                path_, kDefaultBsonValue, key))
+                                                path_, kDefaultBsonValue,
+                                                duplicate_fields_policy_, key))
       .first->second;
 }
 
@@ -378,7 +405,8 @@ void ValueImpl::Resize(uint32_t new_size) {
   parsed_array.resize(new_size);
   for (auto size = old_size; size < new_size; ++size) {
     parsed_array[size] = std::make_shared<ValueImpl>(
-        EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, size);
+        EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue,
+        duplicate_fields_policy_, size);
   }
 }
 
@@ -524,9 +552,9 @@ void ValueImpl::EnsureParsed() {
                                    path_.ToString() + '[' +
                                    std::string(expected_key) + ']');
             }
-            parsed_array.push_back(
-                std::make_shared<ValueImpl>(EmplaceEnabler{}, storage_, path_,
-                                            *iter_value, indexer.Index()));
+            parsed_array.push_back(std::make_shared<ValueImpl>(
+                EmplaceEnabler{}, storage_, path_, *iter_value,
+                duplicate_fields_policy_, indexer.Index()));
             indexer.Advance();
           });
       parsed_value_ = std::move(parsed_array);
@@ -545,11 +573,23 @@ void ValueImpl::EnsureParsed() {
             }
             auto [parsed_it, is_new] = parsed_doc.emplace(
                 std::string(key),
-                std::make_shared<ValueImpl>(EmplaceEnabler{}, storage_, path_,
-                                            *iter_value, std::string(key)));
+                std::make_shared<ValueImpl>(
+                    EmplaceEnabler{}, storage_, path_, *iter_value,
+                    duplicate_fields_policy_, std::string(key)));
             if (!is_new) {
-              throw ParseException("duplicate key '" + std::string(key) +
-                                   "' at " + path_.ToString());
+              switch (duplicate_fields_policy_) {
+                case Value::DuplicateFieldsPolicy::kForbid:
+                  throw ParseException("duplicate key '" + std::string(key) +
+                                       "' at " + path_.ToString());
+                case Value::DuplicateFieldsPolicy::kUseFirst:
+                  // leave current value as is
+                  break;
+                case Value::DuplicateFieldsPolicy::kUseLast:
+                  // replace it
+                  parsed_it->second = std::make_shared<ValueImpl>(
+                      EmplaceEnabler{}, storage_, path_, *iter_value,
+                      duplicate_fields_policy_, std::string(key));
+              }
             }
           });
       parsed_value_ = std::move(parsed_doc);

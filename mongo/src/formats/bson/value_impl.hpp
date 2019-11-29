@@ -7,6 +7,7 @@
 #include <boost/variant.hpp>
 
 #include <formats/bson/types.hpp>
+#include <formats/bson/value.hpp>
 #include <formats/common/path.hpp>
 
 namespace formats::bson::impl {
@@ -46,6 +47,8 @@ class ValueImpl {
 
   bool IsStorageOwner() const;
   bson_type_t Type() const;
+
+  void SetDuplicateFieldsPolicy(Value::DuplicateFieldsPolicy);
 
   ValueImplPtr operator[](const std::string& name);
   ValueImplPtr operator[](uint32_t index);
@@ -92,9 +95,9 @@ class ValueImpl {
       boost::variant<std::nullptr_t, ParsedDocument, ParsedArray>;
 
   ValueImpl(EmplaceEnabler, Storage, const Path&, const bson_value_t&,
-            uint32_t);
+            Value::DuplicateFieldsPolicy, uint32_t);
   ValueImpl(EmplaceEnabler, Storage, const Path&, const bson_value_t&,
-            const std::string&);
+            Value::DuplicateFieldsPolicy, const std::string&);
 
  private:
   friend class BsonBuilder;
@@ -103,6 +106,7 @@ class ValueImpl {
   Path path_;
   bson_value_t bson_value_;
   ParsedValue parsed_value_;
+  Value::DuplicateFieldsPolicy duplicate_fields_policy_;
 };
 
 }  // namespace formats::bson::impl

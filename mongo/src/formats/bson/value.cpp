@@ -269,6 +269,10 @@ std::string Value::ConvertTo<std::string>() const {
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_UTF8, GetPath());
 }
 
+void Value::SetDuplicateFieldsPolicy(DuplicateFieldsPolicy policy) {
+  impl_->SetDuplicateFieldsPolicy(policy);
+}
+
 void Value::CheckNotMissing() const { impl_->CheckNotMissing(); }
 
 void Value::CheckArrayOrNull() const {
