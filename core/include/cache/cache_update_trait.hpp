@@ -55,8 +55,6 @@ class CacheUpdateTrait {
 
   void AssertPeriodicUpdateStarted();
 
-  bool IsFirstUpdateFailOk() const;
-
  private:
   void DoUpdate(cache::UpdateType type);
 

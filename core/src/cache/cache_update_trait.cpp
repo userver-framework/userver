@@ -138,10 +138,6 @@ void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
                                       "StartPeriodicUpdates(), call it in ctr");
 }
 
-bool CacheUpdateTrait::IsFirstUpdateFailOk() const {
-  return static_config_.allow_first_update_failure;
-}
-
 void CacheUpdateTrait::DoUpdate(cache::UpdateType update_type) {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto update_type_str =

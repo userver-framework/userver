@@ -230,11 +230,7 @@ void CachingComponentBase<T>::OnConfigUpdate(
 
 template <typename T>
 bool CachingComponentBase<T>::MayReturnNull() const {
-  // TODO: remove in https://st.yandex-team.ru/TAXICOMMON-1663
-  if (IsFirstUpdateFailOk()) return false;
-
-  // TODO: set to false in https://st.yandex-team.ru/TAXICOMMON-1663
-  return true;
+  return false;
 }
 
 template <typename T>
