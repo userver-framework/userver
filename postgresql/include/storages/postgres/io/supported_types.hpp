@@ -42,7 +42,7 @@
 /// bytea             | container of one-byte type              |         |
 /// bit(n)            | N/A                                     |         |
 /// bit varying(n)    | N/A                                     |         |
-/// uuid              | N/A (boost::uuids::uuid)                |         |
+/// uuid              | boost::uuids::uuid                      | +       |
 ///
 /// @warning The library doesn't provide support for C++ unsigned integral
 /// types intentionally as PostgreSQL doesn't provide unsigned types and
@@ -97,6 +97,7 @@
 #include <storages/postgres/io/floating_point_types.hpp>
 #include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/string_types.hpp>
+#include <storages/postgres/io/uuid.hpp>
 //@}
 
 //@{

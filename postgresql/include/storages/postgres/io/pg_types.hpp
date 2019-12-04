@@ -273,6 +273,7 @@ enum class PredefinedOids {
   kRegrole = 4096,
   kRegtypearray = 2211,
   kUuid = 2950,
+  kUuidArray = 2951,  // Not in documentation
   kLsn = 3220,
   kTsvector = 3614,
   kGtsvector = 3642,
@@ -384,6 +385,10 @@ struct ArrayType<PredefinedOids::kInterval>
 template <>
 struct ArrayType<PredefinedOids::kNumeric>
     : PredefinedOid<PredefinedOids::kNumericArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kUuid>
+    : PredefinedOid<PredefinedOids::kUuidArray> {};
 
 template <>
 struct ArrayType<PredefinedOids::kInt4Range>
