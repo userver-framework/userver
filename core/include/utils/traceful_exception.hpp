@@ -80,11 +80,6 @@ class TracefulException : public std::exception, public TracefulExceptionBase {
       : TracefulExceptionBase(what) {}
 
   const char* what() const noexcept override;
-
- private:
-#ifndef NDEBUG
-  mutable std::string what_buffer_;
-#endif  // NDEBUG
 };
 
 namespace impl {
