@@ -18,7 +18,8 @@ void rcu_read(benchmark::State& state) {
         rcu::Variable<int> ptr(std::make_unique<int>(1));
 
         for (auto _ : state) {
-          benchmark::DoNotOptimize(*ptr.Read());
+          auto rcu_ptr = ptr.Read();
+          benchmark::DoNotOptimize(*rcu_ptr);
         }
       },
       1);
@@ -37,7 +38,8 @@ void rcu_contention(benchmark::State& state) {
         for (int i = 0; i < state.range(0) - 2; i++)
           tasks.push_back(engine::impl::Async([&]() {
             while (run) {
-              benchmark::DoNotOptimize(*ptr.Read());
+              auto rcu_ptr = ptr.Read();
+              benchmark::DoNotOptimize(*rcu_ptr);
             }
           }));
 
@@ -53,7 +55,8 @@ void rcu_contention(benchmark::State& state) {
           }));
 
         for (auto _ : state) {
-          benchmark::DoNotOptimize(*ptr.Read());
+          auto rcu_ptr = ptr.Read();
+          benchmark::DoNotOptimize(*rcu_ptr);
         }
 
         run = false;

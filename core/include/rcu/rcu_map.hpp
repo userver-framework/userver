@@ -136,7 +136,8 @@ typename RcuMap<K, V>::ConstIterator RcuMap<K, V>::end() const {
 
 template <typename K, typename V>
 size_t RcuMap<K, V>::SizeApprox() const {
-  return rcu_.Read()->size();
+  auto ptr = rcu_.Read();
+  return ptr->size();
 }
 
 template <typename K, typename V>

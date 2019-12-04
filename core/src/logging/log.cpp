@@ -95,7 +95,7 @@ const char* StripPathBase(const char* path) {
 
 }  // namespace
 
-LoggerPtr DefaultLogger() { return *DefaultLoggerInternal().Read(); }
+LoggerPtr DefaultLogger() { return DefaultLoggerInternal().ReadCopy(); }
 
 LoggerPtr SetDefaultLogger(LoggerPtr logger) {
   if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr) {

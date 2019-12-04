@@ -97,9 +97,15 @@ class USERVER_NODISCARD ReadablePtr final {
     hp_record_.Release();
   }
 
-  const T& operator*() const { return *t_ptr_; }
+  const T& operator*() const& { return *t_ptr_; }
 
-  const T* operator->() const { return t_ptr_; }
+  /// Don't use *tmp for temporary value, store it to variable.
+  const T& operator*() && = delete;
+
+  const T* operator->() const& { return t_ptr_; }
+
+  /// Don't use tmp-> for temporary value, store it to variable.
+  const T* operator->() && = delete;
 
  private:
   T* t_ptr_;
@@ -161,9 +167,15 @@ class USERVER_NODISCARD WritablePtr final {
     var_.Retire(std::move(old_ptr), lock_);
   }
 
-  T& operator*() { return *ptr_; }
+  T& operator*() & { return *ptr_; }
 
-  T* operator->() { return ptr_.get(); }
+  /// Don't use *tmp for temporary value, store it to variable.
+  T& operator*() && = delete;
+
+  T* operator->() & { return ptr_.get(); }
+
+  /// Don't use tmp-> for temporary value, store it to variable.
+  T* operator->() && = delete;
 
  private:
   Variable<T>& var_;
@@ -208,6 +220,12 @@ class Variable final {
 
   /// Obtain a smart pointer which can be used to read the current value.
   ReadablePtr<T> Read() const { return ReadablePtr<T>(*this); }
+
+  /// Obtain a copy of contained value.
+  T ReadCopy() const {
+    auto ptr = Read();
+    return *ptr;
+  }
 
   /// Obtain a smart pointer which can be used to make changes to the
   /// current value and to set the Variable to the changed value.

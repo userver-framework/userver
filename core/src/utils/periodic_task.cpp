@@ -65,7 +65,8 @@ void PeriodicTask::Start(std::string name, Settings settings,
 
 void PeriodicTask::DoStart() {
   LOG_INFO() << "Starting PeriodicTask with name=" << name_;
-  if (settings_.Read()->flags & Flags::kCritical) {
+  auto settings_ptr = settings_.Read();
+  if (settings_ptr->flags & Flags::kCritical) {
     task_ = engine::impl::CriticalAsync(std::mem_fn(&PeriodicTask::Run), this);
   } else {
     task_ = engine::impl::Async(std::mem_fn(&PeriodicTask::Run), this);
@@ -73,7 +74,8 @@ void PeriodicTask::DoStart() {
 }
 
 bool PeriodicTask::WaitForFirstStep() {
-  if (settings_.Read()->flags & Flags::kNow) {
+  auto settings_ptr = settings_.Read();
+  if (settings_ptr->flags & Flags::kNow) {
     std::unique_lock<engine::Mutex> lock(start_mutex_);
     [[maybe_unused]] auto cv_status =
         start_cv_.Wait(lock, [&] { return started_.load(); });
@@ -111,7 +113,7 @@ bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
    * that calls SetSettings(). It should not happen in unittests,
    * other cases are not relevant here.
    */
-  auto settings = *settings_.Read();
+  auto settings = settings_.ReadCopy();
   settings.flags |= Flags::kNow;
 
   if (preserve_span) {
@@ -158,7 +160,8 @@ void PeriodicTask::Run() {
 }
 
 bool PeriodicTask::DoStep() {
-  const auto span_log_level = settings_.Read()->span_level;
+  auto settings_ptr = settings_.Read();
+  const auto span_log_level = settings_ptr->span_level;
   tracing::Span span(name_, tracing::ReferenceType::kChild, span_log_level);
   try {
     callback_();
@@ -191,9 +194,10 @@ bool PeriodicTask::Step() {
 
 std::chrono::milliseconds PeriodicTask::MutatePeriod(
     std::chrono::milliseconds period) {
-  if (!(settings_.Read()->flags & Flags::kChaotic)) return period;
+  auto settings_ptr = settings_.Read();
+  if (!(settings_ptr->flags & Flags::kChaotic)) return period;
 
-  const auto distribution = settings_.Read()->distribution;
+  const auto distribution = settings_ptr->distribution;
   const auto ms = std::uniform_int_distribution<int64_t>(
       (period - distribution).count(), (period + distribution).count())(rand_);
   return std::chrono::milliseconds(ms);

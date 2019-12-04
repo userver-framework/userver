@@ -197,13 +197,13 @@ TEST(Rcu, HpCacheReuse) {
   RunInCoro([] {
     boost::optional<rcu::Variable<int>> vars;
     vars.emplace(42);
-    EXPECT_EQ(42, *vars->Read());
+    EXPECT_EQ(42, vars->ReadCopy());
 
     vars.reset();
 
     // caused UAF because of stale HP cache -- TAXICOMMON-1506
     vars.emplace(666);
-    EXPECT_EQ(666, *vars->Read());
+    EXPECT_EQ(666, vars->ReadCopy());
   });
 }
 

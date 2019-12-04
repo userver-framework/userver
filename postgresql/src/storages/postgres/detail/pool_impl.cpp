@@ -129,7 +129,8 @@ ConnectionPtr ConnectionPoolImpl::Acquire(engine::Deadline deadline) {
   auto shared_this = shared_from_this();
   ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
   ++stats_.connection.used;
-  connection->SetDefaultCommandControl(*default_cmd_ctl_.Read());
+  auto cmd_ctl_ptr = default_cmd_ctl_.Read();
+  connection->SetDefaultCommandControl(*cmd_ctl_ptr);
   return connection;
 }
 

@@ -164,7 +164,8 @@ ClusterTopology::ClusterTopology(engine::TaskProcessor& bg_task_processor,
 ClusterTopology::~ClusterTopology() { StopRunningTasks(); }
 
 ClusterTopology::HostsByType ClusterTopology::GetHostsByType() const {
-  return *hosts_by_type_.Read();
+  auto ptr = hosts_by_type_.Read();
+  return *ptr;
 }
 
 void ClusterTopology::BuildIndexes() {

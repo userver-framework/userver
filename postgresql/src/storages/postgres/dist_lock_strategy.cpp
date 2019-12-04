@@ -58,15 +58,17 @@ void DistLockStrategy::UpdateCommandControl(CommandControl cc) {
 
 void DistLockStrategy::Acquire(std::chrono::milliseconds lock_time) {
   double timeout_seconds = lock_time.count() / 1000.0;
+  auto cc_ptr = cc_.Read();
   auto result =
-      cluster_->Execute(ClusterHostType::kMaster, *cc_.Read(), acquire_query_,
+      cluster_->Execute(ClusterHostType::kMaster, *cc_ptr, acquire_query_,
                         lock_name_, owner_, timeout_seconds);
 
   if (result.IsEmpty()) throw dist_lock::LockIsAcquiredByAnotherHostException();
 }
 
 void DistLockStrategy::Release() {
-  cluster_->Execute(ClusterHostType::kMaster, *cc_.Read(), release_query_,
+  auto cc_ptr = cc_.Read();
+  cluster_->Execute(ClusterHostType::kMaster, *cc_ptr, release_query_,
                     lock_name_, owner_);
 }
 
