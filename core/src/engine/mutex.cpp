@@ -15,6 +15,7 @@ class MutexWaitStrategy final : public WaitStrategy {
       : WaitStrategy(deadline),
         waiters_(waiters),
         current_(current),
+        waiter_token_(*waiters),
         lock_(*waiters) {}
 
   void AfterAsleep() override {
@@ -29,13 +30,14 @@ class MutexWaitStrategy final : public WaitStrategy {
  private:
   const std::shared_ptr<WaitList>& waiters_;
   TaskContext* const current_;
+  const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock lock_;
 };
 }  // namespace
 }  // namespace impl
 
 Mutex::Mutex()
-    : lock_waiters_(std::make_shared<impl::WaitList>()), owner_(nullptr) {}
+    : owner_(nullptr), lock_waiters_(std::make_shared<impl::WaitList>()) {}
 
 Mutex::~Mutex() { UASSERT(!owner_); }
 
@@ -74,8 +76,10 @@ void Mutex::unlock() {
       owner_.exchange(nullptr, std::memory_order_release);
   UASSERT(old_owner == current_task::GetCurrentTaskContext());
 
-  impl::WaitList::Lock lock(*lock_waiters_);
-  lock_waiters_->WakeupOne(lock);
+  if (lock_waiters_->GetCountOfSleepies()) {
+    impl::WaitList::Lock lock(*lock_waiters_);
+    lock_waiters_->WakeupOne(lock);
+  }
 }
 
 bool Mutex::try_lock() {

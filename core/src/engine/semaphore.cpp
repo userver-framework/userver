@@ -14,6 +14,7 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
       : WaitStrategy(deadline),
         waiters_(waiters),
         current_(current),
+        waiter_token_(*waiters_),
         lock_{*waiters_} {
     UASSERT(current_);
   }
@@ -30,6 +31,7 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
  private:
   const std::shared_ptr<impl::WaitList>& waiters_;
   TaskContext* const current_;
+  const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock lock_;
 };
 }  // namespace
@@ -115,11 +117,14 @@ void Semaphore::unlock_shared_count(const Counter count) {
   LOG_TRACE() << "unlock_shared()";
   remaining_simultaneous_locks_.fetch_add(count, std::memory_order_release);
 
-  impl::WaitList::Lock lock{*lock_waiters_};
-  if (is_multi_)
-    lock_waiters_->WakeupAll(lock);
-  else
-    lock_waiters_->WakeupOne(lock);
+  if (lock_waiters_->GetCountOfSleepies()) {
+    impl::WaitList::Lock lock{*lock_waiters_};
+    if (is_multi_) {
+      lock_waiters_->WakeupAll(lock);
+    } else {
+      lock_waiters_->WakeupOne(lock);
+    }
+  }
 }
 
 bool Semaphore::try_lock_shared() { return try_lock_shared_count(1); }

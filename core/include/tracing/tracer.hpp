@@ -22,6 +22,11 @@ class Tracer : public std::enable_shared_from_this<Tracer> {
   virtual void LogSpanContextTo(const Span::Impl& span,
                                 logging::LogHelper& log_helper) const = 0;
 
+  virtual void LogSpanContextTo(Span::Impl&& span,
+                                logging::LogHelper& log_helper) const {
+    LogSpanContextTo(span, log_helper);
+  }
+
  protected:
   virtual ~Tracer();
 };

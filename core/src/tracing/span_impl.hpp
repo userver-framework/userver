@@ -32,9 +32,13 @@ class Span::Impl
 
   void LogTo(logging::LogHelper& log_helper) &&;
 
-  const std::string& GetTraceId() const;
-  const std::string& GetSpanId() const;
-  const std::string& GetParentId() const;
+  const std::string& GetTraceId() const& { return trace_id_; }
+  const std::string& GetSpanId() const& { return span_id_; }
+  const std::string& GetParentId() const& { return parent_id_; }
+
+  std::string&& GetTraceId() && { return std::move(trace_id_); }
+  std::string&& GetSpanId() && { return std::move(parent_id_); }
+  std::string&& GetParentId() && { return std::move(span_id_); }
 
   ReferenceType GetReferenceType() const { return reference_type_; }
 
@@ -58,7 +62,7 @@ class Span::Impl
   const std::chrono::steady_clock::time_point start_steady_time_;
 
   std::string trace_id_;
-  const std::string span_id_;
+  std::string span_id_;
   std::string parent_id_;
   const ReferenceType reference_type_;
 

@@ -28,18 +28,27 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
   current_task_context_ptr = context;
 }
 
+// This MUST be a separate function! Putting the body of this function into
+// GetCurrentTaskContext() clobbers too many registers and compiler decides to
+// use stack memory in GetCurrentTaskContext(). This leads to slowdown
+// of GetCurrentTaskContext(). In particular Mutex::lock() slows down on ~25%.
+[[noreturn]] void ReportOutsideTheCoroutineCall() {
+  UASSERT_MSG(false,
+              "current_task::GetCurrentTaskContext() called outside coroutine");
+  LOG_ERROR()
+      << "current_task::GetCurrentTaskContext() called outside coroutine"
+      << logging::LogExtra::Stacktrace();
+  throw std::logic_error(
+      "current_task::GetCurrentTaskContext() called outside coroutine. "
+      "stacktrace:\n" +
+      to_string(boost::stacktrace::stacktrace{}));
+}
+
 }  // namespace
 
 impl::TaskContext* GetCurrentTaskContext() {
-  UASSERT(current_task_context_ptr);
   if (!current_task_context_ptr) {
-    LOG_ERROR()
-        << "current_task::GetCurrentTaskContext() called outside coroutine"
-        << logging::LogExtra::Stacktrace();
-    throw std::logic_error(
-        "current_task::GetCurrentTaskContext() called outside coroutine. "
-        "stacktrace:\n" +
-        to_string(boost::stacktrace::stacktrace{}));
+    ReportOutsideTheCoroutineCall();
   }
   return current_task_context_ptr;
 }

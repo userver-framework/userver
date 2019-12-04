@@ -39,7 +39,8 @@ TEST_F(LoggingTest, FloatingPoint) {
   oss << f;
 
   EXPECT_NE(std::string::npos, sstream.str().find(oss.str()))
-      << f << " was represented as " << sstream.str();
+      << f << " (oss=" << oss.str() << ") was represented as '" << sstream.str()
+      << "'";
   sstream.str({});
   oss.str({});
 
@@ -49,7 +50,8 @@ TEST_F(LoggingTest, FloatingPoint) {
   oss << d;
 
   EXPECT_NE(std::string::npos, sstream.str().find(oss.str()))
-      << d << " was represented as " << sstream.str();
+      << d << " (oss=" << oss.str() << ") was represented as '" << sstream.str()
+      << "'";
   sstream.str({});
   oss.str({});
 
@@ -59,7 +61,8 @@ TEST_F(LoggingTest, FloatingPoint) {
   oss << ld;
 
   EXPECT_NE(std::string::npos, sstream.str().find(oss.str()))
-      << ld << " was represented as " << sstream.str();
+      << ld << " (oss=" << oss.str() << ") was represented as '"
+      << sstream.str() << "'";
   sstream.str({});
   oss.str({});
 }

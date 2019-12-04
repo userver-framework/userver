@@ -12,17 +12,31 @@ const std::string kParentIdName = "parent_id";
 class NoopTracer final : public Tracer {
  public:
   void LogSpanContextTo(const Span::Impl&, logging::LogHelper&) const override;
+  void LogSpanContextTo(Span::Impl&&, logging::LogHelper&) const override;
+
+ private:
+  template <class SpanImpl>
+  void LogSpanContextToImpl(SpanImpl&&, logging::LogHelper&) const;
 };
 
 void NoopTracer::LogSpanContextTo(const Span::Impl& span,
                                   logging::LogHelper& log_helper) const {
-  const auto& trace_id_str = span.GetTraceId();
-  const auto& span_id_str = span.GetSpanId();
-  const auto& parent_id_str = span.GetParentId();
+  LogSpanContextToImpl(span, log_helper);
+}
 
-  logging::LogExtra result({{kTraceIdName, trace_id_str},
-                            {kSpanIdName, span_id_str},
-                            {kParentIdName, parent_id_str}});
+void NoopTracer::LogSpanContextTo(Span::Impl&& span,
+                                  logging::LogHelper& log_helper) const {
+  LogSpanContextToImpl(std::move(span), log_helper);
+}
+
+template <class SpanImpl>
+void NoopTracer::LogSpanContextToImpl(SpanImpl&& span,
+                                      logging::LogHelper& log_helper) const {
+  logging::LogExtra result;
+  result.Extend(kTraceIdName, std::forward<SpanImpl>(span).GetTraceId());
+  result.Extend(kSpanIdName, std::forward<SpanImpl>(span).GetSpanId());
+  result.Extend(kParentIdName, std::forward<SpanImpl>(span).GetParentId());
+
   log_helper << std::move(result);
 }
 

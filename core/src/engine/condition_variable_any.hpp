@@ -20,6 +20,7 @@ class CvWaitStrategy final : public WaitStrategy {
                  TaskContext& current, std::unique_lock<MutexType>& mutex_lock)
       : WaitStrategy(deadline),
         waiters_(std::move(waiters)),
+        waiter_token_(*waiters_),
         lock_(*waiters_),
         current_(current),
         mutex_lock_(mutex_lock) {}
@@ -40,6 +41,7 @@ class CvWaitStrategy final : public WaitStrategy {
 
  private:
   const std::shared_ptr<WaitList> waiters_;
+  const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock lock_;
   TaskContext& current_;
   std::unique_lock<MutexType>& mutex_lock_;
@@ -137,14 +139,18 @@ bool ConditionVariableAny<MutexType>::WaitUntil(
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyOne() {
-  WaitList::Lock lock(*waiters_);
-  waiters_->WakeupOne(lock);
+  if (waiters_->GetCountOfSleepies()) {
+    WaitList::Lock lock(*waiters_);
+    waiters_->WakeupOne(lock);
+  }
 }
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyAll() {
-  WaitList::Lock lock(*waiters_);
-  waiters_->WakeupAll(lock);
+  if (waiters_->GetCountOfSleepies()) {
+    WaitList::Lock lock(*waiters_);
+    waiters_->WakeupAll(lock);
+  }
 }
 
 }  // namespace impl

@@ -1,11 +1,12 @@
 #include <tracing/span.hpp>
 #include <tracing/span_impl.hpp>
 
+#include <type_traits>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/container/small_vector.hpp>
-#include <boost/format.hpp>
 
-#include <type_traits>
+#include <fmt/format.h>
 
 #include <engine/task/local_variable.hpp>
 #include <engine/task/task_context.hpp>
@@ -29,6 +30,34 @@ const std::string kStartTimestampAttrName = "start_timestamp";
 const std::string kReferenceType = "span_ref_type";
 const std::string kReferenceTypeChild = "child";
 const std::string kReferenceTypeFollows = "follows";
+
+std::string StartTsToString(std::chrono::system_clock::time_point start) {
+  const auto start_ts_epoch =
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          start.time_since_epoch())
+          .count();
+
+  // Avoiding `return fmt::format("{:.6}", float)` because it calls a slow
+  // snprintf or gives incorrect results with -DFMT_USE_GRISU=1:
+  // 3.1414999961853027 instead of 3.1415
+
+  constexpr std::size_t kBufferSize = 64;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+  std::array<char, kBufferSize> data;
+
+  // TODO: In C++17 with to_chars(float) uncomment the following lines:
+  // auto [out_it, errc] = std::to_chars(data.begin(), data.end(),
+  //                    start_ts_epoch * 0.000001, std::chars_format::fixed, 6);
+  // UASSERT(errc == 0);
+  // return std::string(data.data(), out_it - data.data());
+
+  const auto integral_part = start_ts_epoch / 1000000;
+  const auto fractional_part = start_ts_epoch % 1000000;
+  const auto format_result = fmt::format_to_n(
+      data.begin(), kBufferSize, "{}.{:0>6}", integral_part, fractional_part);
+  UASSERT(format_result.size <= kBufferSize);
+  return std::string(data.data(), format_result.out - data.data());
+}
 
 /* Maintain coro-local span stack to identify "current span" in O(1).
  * Use list instead of stack to avoid UB in case of "pop non-last item"
@@ -72,14 +101,6 @@ Span::Impl::~Impl() {
     return;
   }
 
-  const double start_ts =
-      start_system_time_.time_since_epoch().count() / 1000000000.0;
-
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-  std::array<char, 64> start_ts_str;
-  snprintf(start_ts_str.data(), start_ts_str.size(), "%.6lf", start_ts);
-  start_ts_str[start_ts_str.size() - 1] = 0;
-
   const auto steady_now = std::chrono::steady_clock::now();
   const auto duration = steady_now - start_steady_time_;
   const auto total_time_ms =
@@ -89,12 +110,15 @@ Span::Impl::~Impl() {
                              ? kReferenceTypeChild
                              : kReferenceTypeFollows;
 
-  logging::LogExtra result({{kStopWatchAttrName, name_},
-                            {kStartTimestampAttrName, start_ts_str.data()},
-                            {kTotalTimeAttrName, total_time_ms},
-                            {kTotalTimeSecondsAttrName, total_time_ms / 1000.0},
-                            {kReferenceType, ref_type},
-                            {kTimeUnitsAttrName, "ms"}});
+  logging::LogExtra result;
+
+  // Using result.Extend to move construct the keys and values.
+  result.Extend(kStopWatchAttrName, name_);
+  result.Extend(kTotalTimeAttrName, total_time_ms);
+  result.Extend(kTotalTimeSecondsAttrName, total_time_ms * 0.001);
+  result.Extend(kReferenceType, ref_type);
+  result.Extend(kTimeUnitsAttrName, "ms");
+  result.Extend(kStartTimestampAttrName, StartTsToString(start_system_time_));
 
   if (log_extra_local_) result.Extend(std::move(*log_extra_local_));
 
@@ -113,14 +137,8 @@ void Span::Impl::LogTo(logging::LogHelper& log_helper) const& {
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) && {
   log_helper << std::move(log_extra_inheritable);
-  tracer->LogSpanContextTo(*this, log_helper);
+  tracer->LogSpanContextTo(std::move(*this), log_helper);
 }
-
-const std::string& Span::Impl::GetTraceId() const { return trace_id_; }
-
-const std::string& Span::Impl::GetSpanId() const { return span_id_; }
-
-const std::string& Span::Impl::GetParentId() const { return parent_id_; }
 
 void Span::Impl::DetachFromCoroStack() { unlink(); }
 
