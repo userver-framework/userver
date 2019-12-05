@@ -110,23 +110,24 @@ void CacheUpdateTrait::SetConfig(
 void CacheUpdateTrait::DoPeriodicUpdate() {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
 
-  cache::UpdateType update_type;
-  switch (AllowedUpdateTypes()) {
-    case cache::AllowedUpdateTypes::kOnlyFull:
-      update_type = cache::UpdateType::kFull;
-      break;
-    case cache::AllowedUpdateTypes::kOnlyIncremental:
-      update_type = last_update_ == std::chrono::system_clock::time_point()
-                        ? cache::UpdateType::kFull  // first update
-                        : cache::UpdateType::kIncremental;
-      break;
-    case cache::AllowedUpdateTypes::kFullAndIncremental:
-      const auto steady_now = std::chrono::steady_clock::now();
-      update_type =
-          steady_now - last_full_update_ < config_.full_update_interval
-              ? cache::UpdateType::kIncremental
-              : cache::UpdateType::kFull;
-      break;
+  auto update_type = cache::UpdateType::kFull;
+  // first update is always full
+  if (last_update_ != std::chrono::system_clock::time_point{}) {
+    switch (AllowedUpdateTypes()) {
+      case cache::AllowedUpdateTypes::kOnlyFull:
+        update_type = cache::UpdateType::kFull;
+        break;
+      case cache::AllowedUpdateTypes::kOnlyIncremental:
+        update_type = cache::UpdateType::kIncremental;
+        break;
+      case cache::AllowedUpdateTypes::kFullAndIncremental:
+        const auto steady_now = std::chrono::steady_clock::now();
+        update_type =
+            steady_now - last_full_update_ < config_.full_update_interval
+                ? cache::UpdateType::kIncremental
+                : cache::UpdateType::kFull;
+        break;
+    }
   }
 
   DoUpdate(update_type);
