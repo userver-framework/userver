@@ -37,8 +37,8 @@ class Span::Impl
   const std::string& GetParentId() const& { return parent_id_; }
 
   std::string&& GetTraceId() && { return std::move(trace_id_); }
-  std::string&& GetSpanId() && { return std::move(parent_id_); }
-  std::string&& GetParentId() && { return std::move(span_id_); }
+  std::string&& GetSpanId() && { return std::move(span_id_); }
+  std::string&& GetParentId() && { return std::move(parent_id_); }
 
   ReferenceType GetReferenceType() const { return reference_type_; }
 
