@@ -36,6 +36,33 @@ static int getNotify(PGconn* conn);
 static int getCopyStart(PGconn* conn, ExecStatusType copytype);
 static int getReadyForQuery(PGconn* conn);
 
+#if PG_VERSION_NUM >= 120000
+// this function is static in upstream
+/*
+ * As above, and append conn->write_err_msg to whatever other error we have.
+ * This is used when we've detected a write failure and have exhausted our
+ * chances of reporting something else instead.
+ */
+static void pqSaveWriteError(PGconn* conn) {
+  /*
+   * Ensure conn->result is an error result, and add anything in
+   * conn->errorMessage to it.
+   */
+  pqSaveErrorResult(conn);
+
+  /*
+   * Now append write_err_msg to that.  If it's null because of previous
+   * strdup failure, do what we can.  (It's likely our machinations here are
+   * all getting OOM failures as well, but ...)
+   */
+  if (conn->write_err_msg && conn->write_err_msg[0] != '\0')
+    pqCatenateResultError(conn->result, conn->write_err_msg);
+  else
+    pqCatenateResultError(conn->result,
+                          libpq_gettext("write to server failed\n"));
+}
+#endif
+
 /*
  * This is a copy-paste of getParameterStatus from fe-protocol3.c
  *
@@ -506,6 +533,18 @@ PGresult* PQXgetResult(PGconn* conn) {
 
     /* Parse it. */
     parseInput(conn);
+
+#if PG_VERSION_NUM >= 120000
+    /*
+     * If we had a write error, but nothing above obtained a query result
+     * or detected a read error, report the write error.
+     */
+    if (conn->write_failed && conn->asyncStatus == PGASYNC_BUSY) {
+      pqSaveWriteError(conn);
+      conn->asyncStatus = PGASYNC_IDLE;
+      return pqPrepareAsyncResult(conn);
+    }
+#endif
   }
 
   /* Return the appropriate thing. */

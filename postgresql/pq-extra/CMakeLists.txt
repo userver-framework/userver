@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.8)
 
 project(yandex-taxi-pq-extra)
 
-# We need an .a libpq instead of the .so
-find_library(LIBPQ_ARCHIVE libpq.a)
-
 # We need libldap to statically link with libpq
 # There is no FindLdap.cmake and no package config files
 # for ldap library, so need to search for it by hand.
@@ -16,6 +13,8 @@ if(NOT LDAP_LIBRARY)
           "For Mac OS X please install `openldap`.")
 endif()
 
+find_package(HelperPostgreSQL)
+find_package(PostgreSQLInternal)
 find_package_required(OpenSSL "libssl-dev")
 find_package(GSSAPI REQUIRED)
 
@@ -36,7 +35,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
   PRIVATE
-    ${LIBPQ_ARCHIVE}
+    PostgreSQLInternal
     ${LDAP_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
@@ -45,4 +44,3 @@ target_link_libraries(${PROJECT_NAME}
 
 target_compile_options(
   ${PROJECT_NAME} PUBLIC -Wno-ignored-attributes)
-

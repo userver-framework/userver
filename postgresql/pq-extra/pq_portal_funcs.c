@@ -8,6 +8,11 @@
 
 #include <internal/libpq-int.h>
 
+#if PG_VERSION_NUM >= 120000
+// this function was removed in 12.0
+static void pqHandleSendFailure(PGconn* conn) { (void)conn; }
+#endif
+
 /*
  * Common startup code for PQsendQuery and sibling routines
  *

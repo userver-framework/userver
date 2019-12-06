@@ -10,7 +10,7 @@ echo "Update brew repos"
 brew update
 
 echo "Installing required packages with brew"
-REQUIRED_PACKAGES="boost cctz cmake cryptopp curl flatbuffers fmt grpc hiredis http-parser jemalloc libev postgres openssl protobuf rapidjson yaml-cpp yandex-taxi-mongo-c-driver libiconv python"
+REQUIRED_PACKAGES="coreutils boost cctz cmake cryptopp curl flatbuffers fmt grpc hiredis http-parser jemalloc libev postgres openssl protobuf rapidjson yaml-cpp yandex-taxi-mongo-c-driver libiconv python"
 brew install $REQUIRED_PACKAGES
 
 # for tests and uservices

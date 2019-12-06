@@ -5,6 +5,7 @@
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/message.hpp>
 
+#include <pg_config.h>
 #include <pq_portal_funcs.h>
 #include <pq_workaround.h>
 
@@ -54,6 +55,10 @@ const char* MsgForStatus(ConnStatusType status) {
       return "PQstatus: Checking connection to handle writes";
     case CONNECTION_CONSUME:
       return "PQstatus: Consuming remaining response messages on connection";
+#if PG_VERSION_NUM >= 120000
+    case CONNECTION_GSS_STARTUP:
+      return "PQstatus: Negotiating GSSAPI";
+#endif
   }
 }
 
