@@ -21,9 +21,12 @@ constexpr std::chrono::seconds kCancelPeriod{1};
 
 constexpr std::chrono::seconds kCleanupTimeout{1};
 
-constexpr std::chrono::seconds kPingInterval{30};
+constexpr std::chrono::seconds kMaintainInterval{30};
 constexpr std::chrono::seconds kMaxIdleDuration{15};
-constexpr const char* kPingTaskName = "pg_ping";
+constexpr const char* kMaintainTaskName = "pg_maintain";
+
+// Max idle connections that can be dropped in one run of maintenance task
+constexpr auto kIdleDropLimit = 1;
 
 }  // namespace
 
@@ -61,7 +64,7 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
                     kCancelPeriod} {}
 
 ConnectionPoolImpl::~ConnectionPoolImpl() {
-  StopPingTask();
+  StopMaintainTask();
   Clear();
 }
 
@@ -121,7 +124,7 @@ void ConnectionPoolImpl::Init() {
     }
   }
   LOG_INFO() << "Pool initialized";
-  StartPingTask();
+  StartMaintainTask();
 }
 
 ConnectionPtr ConnectionPoolImpl::Acquire(engine::Deadline deadline) {
@@ -385,19 +388,17 @@ void ConnectionPoolImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
   }
 }
 
-ConnectionPtr ConnectionPoolImpl::AcquireImmediate() {
-  auto shared_this = shared_from_this();
+Connection* ConnectionPoolImpl::AcquireImmediate() {
   Connection* conn = nullptr;
   if (queue_.pop(conn)) {
-    ConnectionPtr connection{conn, std::move(shared_this)};
     ++stats_.connection.used;
-    return connection;
+    return conn;
   }
   ++stats_.pool_exhaust_errors;
-  throw PoolError("No available connections found");
+  return nullptr;
 }
 
-void ConnectionPoolImpl::PingConnections() {
+void ConnectionPoolImpl::MaintainConnections() {
   // No point in doing database roundtrips if there are queries waiting for
   // connections
   if (wait_count_ > 0) {
@@ -409,15 +410,30 @@ void ConnectionPoolImpl::PingConnections() {
   LOG_DEBUG() << "Ping connection pool " << DsnCutPassword(dsn_);
   auto stale_connection = true;
   auto count = size_->load(std::memory_order_relaxed);
+  auto drop_left = kIdleDropLimit;
   while (count > 0 && stale_connection) {
     try {
-      auto conn = AcquireImmediate();
+      auto deleter = [this](Connection* c) { DeleteConnection(c); };
+      std::unique_ptr<Connection, decltype(deleter)> conn(AcquireImmediate(),
+                                                          deleter);
+      if (!conn) {
+        LOG_DEBUG() << "All connections to `" << DsnCutPassword(dsn_)
+                    << "` are busy";
+        break;
+      }
       stale_connection = conn->GetIdleDuration() >= kMaxIdleDuration;
-      conn->Ping();
-    } catch (const PoolError& e) {
-      LOG_DEBUG() << "All connections to `" << DsnCutPassword(dsn_)
-                  << "` are busy: " << e;
-      break;
+      if (count > settings_.min_size && drop_left > 0) {
+        --drop_left;
+        --stats_.connection.used;
+        LOG_DEBUG() << "Drop idle connection to `" << DsnCutPassword(dsn_)
+                    << '`';
+        // Close synchronously
+        conn->Close();
+      } else {
+        // Recapture the connection pointer to handle errors
+        ConnectionPtr capture{conn.release(), shared_from_this()};
+        capture->Ping();
+      }
     } catch (const RuntimeError& e) {
       LOG_ERROR() << "Exception while pinging connection to `"
                   << DsnCutPassword(dsn_) << "`: " << e;
@@ -428,14 +444,14 @@ void ConnectionPoolImpl::PingConnections() {
   // TODO Check and maintain minimum count of connections
 }
 
-void ConnectionPoolImpl::StartPingTask() {
+void ConnectionPoolImpl::StartMaintainTask() {
   using Flags = ::utils::PeriodicTask::Flags;
 
-  ping_task_.Start(kPingTaskName, {kPingInterval, Flags::kStrong},
-                   [this] { PingConnections(); });
+  ping_task_.Start(kMaintainTaskName, {kMaintainInterval, Flags::kStrong},
+                   [this] { MaintainConnections(); });
 }
 
-void ConnectionPoolImpl::StopPingTask() { ping_task_.Stop(); }
+void ConnectionPoolImpl::StopMaintainTask() { ping_task_.Stop(); }
 
 }  // namespace detail
 }  // namespace postgres

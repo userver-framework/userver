@@ -73,10 +73,10 @@ class ConnectionPoolImpl
 
   void AccountConnectionStats(Connection::Statistics stats);
 
-  ConnectionPtr AcquireImmediate();
-  void PingConnections();
-  void StartPingTask();
-  void StopPingTask();
+  Connection* AcquireImmediate();
+  void MaintainConnections();
+  void StartMaintainTask();
+  void StopMaintainTask();
 
  private:
   using RecentCounter = ::utils::statistics::RecentPeriod<
