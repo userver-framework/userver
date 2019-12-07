@@ -40,11 +40,22 @@ void HttpHandlerStatistics::Account(http::HttpMethod method, unsigned int code,
 }
 
 HttpHandlerStatisticsScope::HttpHandlerStatisticsScope(
-    HttpHandlerStatistics& stats, http::HttpMethod method)
-    : stats_(stats), method_(method) {
+    HttpHandlerStatistics& stats, http::HttpMethod method,
+    server::http::HttpResponse& response)
+    : stats_(stats),
+      method_(method),
+      start_time_(std::chrono::system_clock::now()),
+      response_(response) {
   stats_.GetTotalStatistics().IncrementInFlight();
   if (stats_.IsOkMethod(method))
     stats_.GetStatisticByMethod(method).IncrementInFlight();
+}
+
+HttpHandlerStatisticsScope::~HttpHandlerStatisticsScope() {
+  const auto finish_time = std::chrono::system_clock::now();
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      finish_time - start_time_);
+  Account(static_cast<int>(response_.GetStatus()), ms);
 }
 
 void HttpHandlerStatisticsScope::Account(unsigned int code,

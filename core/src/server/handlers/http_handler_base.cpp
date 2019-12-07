@@ -129,6 +129,11 @@ class RequestProcessor final {
           response, handler_.GetFormattedExternalErrorBody(
                         response.GetStatus(), {}, response.GetData()));
       return true;
+    } catch (...) {
+      LOG_WARNING() << "unknown exception in '" << handler_.HandlerName()
+                    << "' handler in " + step_name + " (task cancellation?)";
+      http_request_impl_.MarkAsInternalServerError();
+      throw;
     }
 
     return false;
@@ -221,7 +226,9 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
         dynamic_cast<const http::HttpRequestImpl&>(request);
     const http::HttpRequest http_request(http_request_impl);
     auto& response = http_request.GetHttpResponse();
-    const auto start_time = std::chrono::system_clock::now();
+
+    HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
+                                           http_request.GetMethod(), response);
 
     bool log_request = http_server_settings_.NeedLogRequest();
     bool log_request_headers = http_server_settings_.NeedLogRequestHeaders();
@@ -246,9 +253,14 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
 
     static const std::string kParseRequestDataStep = "parse_request_data";
     static const std::string kCheckAuthStep = "check_auth";
+    static const std::string kCheckRatelimitStep = "check_ratelimit";
     static const std::string kHandleRequestStep = "handle_request";
 
     RequestProcessor request_processor(*this, http_request_impl, http_request);
+
+    request_processor.ProcessRequestStep(
+        kCheckRatelimitStep,
+        [this, &http_request] { return CheckRatelimit(http_request); });
 
     request_processor.ProcessRequestStep(
         kCheckAuthStep,
@@ -291,24 +303,10 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
           << std::move(log_extra);
     }
 
-    HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
-                                           http_request.GetMethod());
-
-    auto& total_statistics = handler_statistics_->GetTotalStatistics();
-    auto max_requests_in_flight = GetConfig().max_requests_in_flight;
-    auto requests_in_flight = total_statistics.GetInFlight();
-    if (max_requests_in_flight &&
-        (requests_in_flight > *max_requests_in_flight)) {
-      LOG_ERROR() << "Max requests in flight limit reached for handler '"
-                  << HandlerName() << "', limit=" << requests_in_flight;
-      total_statistics.IncrementTooManyRequestsInFlight();
-      response.SetStatus(http::HttpStatus::kTooManyRequests);
-    } else {
-      request_processor.ProcessRequestStep(
-          kHandleRequestStep, [this, &response, &http_request, &context] {
-            response.SetData(HandleRequestThrow(http_request, context));
-          });
-    }
+    request_processor.ProcessRequestStep(
+        kHandleRequestStep, [this, &response, &http_request, &context] {
+          response.SetData(HandleRequestThrow(http_request, context));
+        });
 
     response.SetHeader(::http::headers::kXYaRequestId, span.GetLink());
     int response_code = static_cast<int>(response.GetStatus());
@@ -326,11 +324,6 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
                                                          response.GetData()));
     }
     span.AddNonInheritableTag(kTracingUri, http_request.GetUrl());
-
-    const auto finish_time = std::chrono::system_clock::now();
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        finish_time - start_time);
-    stats_scope.Account(static_cast<int>(response.GetStatus()), ms);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex;
   }
@@ -395,6 +388,26 @@ void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
   }
 
   auth::CheckAuth(auth_checkers_, http_request, context);
+}
+
+void HttpHandlerBase::CheckRatelimit(
+    const http::HttpRequest& http_request) const {
+  auto& statistics =
+      handler_statistics_->GetStatisticByMethod(http_request.GetMethod());
+  auto& total_statistics = handler_statistics_->GetTotalStatistics();
+
+  auto max_requests_in_flight = GetConfig().max_requests_in_flight;
+  auto requests_in_flight = statistics.GetInFlight();
+  if (max_requests_in_flight &&
+      (requests_in_flight > *max_requests_in_flight)) {
+    LOG_ERROR() << "Max requests in flight limit reached for handler '"
+                << HandlerName() << "', current=" << requests_in_flight
+                << " limit=" << *max_requests_in_flight;
+    statistics.IncrementTooManyRequestsInFlight();
+    total_statistics.IncrementTooManyRequestsInFlight();
+
+    throw ExceptionWithCode<HandlerErrorCode::kTooManyRequests>();
+  }
 }
 
 std::string HttpHandlerBase::GetRequestBodyForLogging(

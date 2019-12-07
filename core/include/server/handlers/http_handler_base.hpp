@@ -101,6 +101,8 @@ class HttpHandlerBase : public HandlerBase {
   void CheckAuth(const http::HttpRequest& http_request,
                  request::RequestContext& context) const;
 
+  void CheckRatelimit(const http::HttpRequest& http_request) const;
+
   static formats::json::ValueBuilder StatisticsToJson(
       const HttpHandlerMethodStatistics& stats);
 

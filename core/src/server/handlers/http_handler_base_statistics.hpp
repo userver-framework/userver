@@ -76,13 +76,18 @@ class HttpHandlerStatistics final {
 class HttpHandlerStatisticsScope final {
  public:
   HttpHandlerStatisticsScope(HttpHandlerStatistics& stats,
-                             http::HttpMethod method);
+                             http::HttpMethod method,
+                             server::http::HttpResponse& response);
 
-  void Account(unsigned int code, std::chrono::milliseconds ms);
+  ~HttpHandlerStatisticsScope();
 
  private:
+  void Account(unsigned int code, std::chrono::milliseconds ms);
+
   HttpHandlerStatistics& stats_;
   const http::HttpMethod method_;
+  const std::chrono::system_clock::time_point start_time_;
+  server::http::HttpResponse& response_;
 };
 
 }  // namespace handlers
