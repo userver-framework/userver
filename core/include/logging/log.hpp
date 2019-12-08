@@ -84,7 +84,12 @@ class LogHelper final {
     return *this;
   }
 
-  LogHelper& operator<<(LogExtra extra) {
+  LogHelper& operator<<(const LogExtra& extra) {
+    extra_.Extend(extra);
+    return *this;
+  }
+
+  LogHelper& operator<<(LogExtra&& extra) {
     extra_.Extend(std::move(extra));
     return *this;
   }
