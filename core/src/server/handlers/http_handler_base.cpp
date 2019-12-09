@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include <components/statistics_storage.hpp>
+#include <engine/task/cancel.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
 #include <http/common_headers.hpp>
@@ -79,15 +80,55 @@ void SetFormattedErrorResponse(http::HttpResponse& http_response,
   }
 }
 
+const std::string kTracingTypeResponse = "response";
+const std::string kTracingTypeRequest = "request";
+const std::string kTracingBody = "body";
+const std::string kTracingUri = "uri";
+
+const std::string kUserAgentTag = "useragent";
+const std::string kAcceptLanguageTag = "acceptlang";
+const std::string kMethodTag = "method";
+
 class RequestProcessor final {
  public:
   RequestProcessor(const HttpHandlerBase& handler,
                    const http::HttpRequestImpl& http_request_impl,
-                   const http::HttpRequest& http_request)
+                   const http::HttpRequest& http_request,
+                   request::RequestContext& context, bool log_request,
+                   bool log_request_headers)
       : handler_(handler),
         http_request_impl_(http_request_impl),
         http_request_(http_request),
-        process_finished_(false) {}
+        process_finished_(false),
+        context_(context),
+        log_request_(log_request),
+        log_request_headers_(log_request_headers) {}
+
+  ~RequestProcessor() {
+    try {
+      auto& span = tracing::Span::CurrentSpan();
+      auto& response = http_request_.GetHttpResponse();
+      response.SetHeader(::http::headers::kXYaRequestId, span.GetLink());
+      int response_code = static_cast<int>(response.GetStatus());
+      span.AddTag(tracing::kHttpStatusCode, response_code);
+      if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
+      span.SetLogLevel(
+          handler_.GetLogLevelForResponseStatus(response.GetStatus()));
+
+      if (log_request_) {
+        if (log_request_headers_) {
+          span.AddNonInheritableTag("response_headers",
+                                    GetHeadersLogString(response));
+        }
+        span.AddNonInheritableTag(
+            kTracingBody, handler_.GetResponseDataForLoggingChecked(
+                              http_request_, context_, response.GetData()));
+      }
+      span.AddNonInheritableTag(kTracingUri, http_request_.GetUrl());
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "can't finalize request processing: " << ex.what();
+    }
+  }
 
   template <typename Func>
   bool ProcessRequestStep(const std::string& step_name,
@@ -122,17 +163,24 @@ class RequestProcessor final {
       }
       return true;
     } catch (const std::exception& ex) {
-      LOG_ERROR() << "exception in '" << handler_.HandlerName()
-                  << "' handler in " + step_name + ": " << ex;
-      http_request_impl_.MarkAsInternalServerError();
-      SetFormattedErrorResponse(
-          response, handler_.GetFormattedExternalErrorBody(
-                        response.GetStatus(), {}, response.GetData()));
+      if (engine::current_task::ShouldCancel()) {
+        LOG_WARNING() << "request task cancelled, exception in '"
+                      << handler_.HandlerName()
+                      << "' handler in " + step_name + ": " << ex.what();
+        response.SetStatus(http::HttpStatus::kClientClosedRequest);
+      } else {
+        LOG_ERROR() << "exception in '" << handler_.HandlerName()
+                    << "' handler in " + step_name + ": " << ex;
+        http_request_impl_.MarkAsInternalServerError();
+        SetFormattedErrorResponse(
+            response, handler_.GetFormattedExternalErrorBody(
+                          response.GetStatus(), {}, response.GetData()));
+      }
       return true;
     } catch (...) {
       LOG_WARNING() << "unknown exception in '" << handler_.HandlerName()
                     << "' handler in " + step_name + " (task cancellation?)";
-      http_request_impl_.MarkAsInternalServerError();
+      response.SetStatus(http::HttpStatus::kClientClosedRequest);
       throw;
     }
 
@@ -143,16 +191,11 @@ class RequestProcessor final {
   const http::HttpRequestImpl& http_request_impl_;
   const http::HttpRequest& http_request_;
   bool process_finished_;
+
+  request::RequestContext& context_;
+  const bool log_request_;
+  const bool log_request_headers_;
 };
-
-const std::string kTracingTypeResponse = "response";
-const std::string kTracingTypeRequest = "request";
-const std::string kTracingBody = "body";
-const std::string kTracingUri = "uri";
-
-const std::string kUserAgentTag = "useragent";
-const std::string kAcceptLanguageTag = "acceptlang";
-const std::string kMethodTag = "method";
 
 }  // namespace
 
@@ -256,7 +299,9 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     static const std::string kCheckRatelimitStep = "check_ratelimit";
     static const std::string kHandleRequestStep = "handle_request";
 
-    RequestProcessor request_processor(*this, http_request_impl, http_request);
+    RequestProcessor request_processor(*this, http_request_impl, http_request,
+                                       context, log_request,
+                                       log_request_headers);
 
     request_processor.ProcessRequestStep(
         kCheckRatelimitStep,
@@ -307,23 +352,6 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
         kHandleRequestStep, [this, &response, &http_request, &context] {
           response.SetData(HandleRequestThrow(http_request, context));
         });
-
-    response.SetHeader(::http::headers::kXYaRequestId, span.GetLink());
-    int response_code = static_cast<int>(response.GetStatus());
-    span.AddTag(tracing::kHttpStatusCode, response_code);
-    if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
-    span.SetLogLevel(GetLogLevelForResponseStatus(response.GetStatus()));
-
-    if (log_request) {
-      if (log_request_headers) {
-        span.AddNonInheritableTag("response_headers",
-                                  GetHeadersLogString(response));
-      }
-      span.AddNonInheritableTag(
-          kTracingBody, GetResponseDataForLoggingChecked(http_request, context,
-                                                         response.GetData()));
-    }
-    span.AddNonInheritableTag(kTracingUri, http_request.GetUrl());
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex;
   }

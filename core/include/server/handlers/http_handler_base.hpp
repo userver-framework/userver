@@ -53,6 +53,10 @@ class HttpHandlerBase : public HandlerBase {
       http::HttpStatus status, const std::string& error_code,
       std::string external_error_body) const;
 
+  std::string GetResponseDataForLoggingChecked(
+      const http::HttpRequest& request, request::RequestContext& context,
+      const std::string& response_data) const;
+
  protected:
   [[noreturn]] void ThrowUnsupportedHttpMethod(
       const http::HttpRequest& request) const;
@@ -93,10 +97,6 @@ class HttpHandlerBase : public HandlerBase {
   std::string GetRequestBodyForLoggingChecked(
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& request_body) const;
-
-  std::string GetResponseDataForLoggingChecked(
-      const http::HttpRequest& request, request::RequestContext& context,
-      const std::string& response_data) const;
 
   void CheckAuth(const http::HttpRequest& http_request,
                  request::RequestContext& context) const;

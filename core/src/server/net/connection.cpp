@@ -120,7 +120,7 @@ void Connection::ListenForRequests(Queue::Producer producer) {
       size_t bytes_read = peer_socket_.RecvSome(buf.data(), buf.size(), {});
       if (!bytes_read) {
         LOG_TRACE() << "Peer " << peer_socket_.Getpeername() << " on fd "
-                    << Fd() << "closed connection";
+                    << Fd() << " closed connection";
         break;
       }
       LOG_TRACE() << "Received " << bytes_read << " byte(s) from "

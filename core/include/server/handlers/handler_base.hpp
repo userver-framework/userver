@@ -3,12 +3,11 @@
 /// @file server/handlers/handler_base.hpp
 /// @brief @copybrief server::handlers::HandlerBase
 
-#include "handler_config.hpp"
-
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/loggable_component_base.hpp>
 #include <server/handlers/exceptions.hpp>
+#include <server/handlers/handler_config.hpp>
 #include <server/request/request_base.hpp>
 #include <server/request/request_context.hpp>
 
