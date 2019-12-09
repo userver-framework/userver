@@ -18,6 +18,9 @@
 namespace storages::mongo::impl {
 namespace {
 
+const std::string kMaintenanceTaskName = "mongo_maintenance";
+constexpr size_t kIdleConnectionDropRate = 1;
+
 int32_t CheckedDurationMs(const std::chrono::milliseconds& timeout,
                           const char* name) {
   auto timeout_ms = timeout.count();
@@ -88,10 +91,12 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
     : id_(std::move(id)),
       app_name_(config.app_name),
       max_size_(config.max_size),
+      idle_limit_(config.idle_limit),
       queue_timeout_(config.queue_timeout),
+      size_(0),
       in_use_semaphore_(config.max_size),
       connecting_semaphore_(config.connecting_limit),
-      queue_(config.idle_limit) {
+      queue_(config.max_size) {
   static const GlobalInitializer kInitMongoc;
   CheckAsyncStreamCompatible();
 
@@ -115,9 +120,17 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex;
   }
+
+  maintenance_task_.Start(kMaintenanceTaskName,
+                          {config.maintenance_period,
+                           {utils::PeriodicTask::Flags::kStrong,
+                            utils::PeriodicTask::Flags::kCritical}},
+                          [this] { DoMaintenance(); });
 }
 
 PoolImpl::~PoolImpl() {
+  maintenance_task_.Stop();
+
   const ClientDeleter deleter;
   mongoc_client_t* client = nullptr;
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
@@ -128,7 +141,7 @@ size_t PoolImpl::InUseApprox() const {
   return max_size_ - in_use_semaphore_.RemainingApprox();
 }
 
-size_t PoolImpl::SizeApprox() const { return size_.Load(); }
+size_t PoolImpl::SizeApprox() const { return size_.load(); }
 
 size_t PoolImpl::MaxSize() const { return max_size_; }
 
@@ -141,16 +154,6 @@ stats::PoolStatistics& PoolImpl::GetStatistics() { return statistics_; }
 PoolImpl::BoundClientPtr PoolImpl::Acquire() {
   stats::ConnectionWaitStopwatch conn_wait_sw(statistics_.pool);
   return {Pop(), ClientPusher(this)};
-}
-
-void PoolImpl::Push(mongoc_client_t* client) noexcept {
-  UASSERT(client);
-  if (!queue_.bounded_push(client)) {
-    ClientDeleter()(client);
-    --size_;
-    ++statistics_.pool->closed;
-  }
-  in_use_semaphore_.unlock_shared();
 }
 
 mongoc_client_t* PoolImpl::Pop() {
@@ -186,6 +189,20 @@ mongoc_client_t* PoolImpl::Pop() {
   UASSERT(client);
   in_use_lock.Release();
   return client;
+}
+
+void PoolImpl::Push(mongoc_client_t* client) noexcept {
+  UASSERT(client);
+  if (!queue_.bounded_push(client)) Drop(client);
+  in_use_semaphore_.unlock_shared();
+}
+
+void PoolImpl::Drop(mongoc_client_t* client) noexcept {
+  if (!client) return;
+
+  ClientDeleter()(client);
+  --size_;
+  ++statistics_.pool->closed;
 }
 
 mongoc_client_t* PoolImpl::TryGetIdle() {
@@ -228,6 +245,16 @@ mongoc_client_t* PoolImpl::Create() {
   ping_sw.AccountSuccess();
   ++statistics_.pool->created;
   return client.release();
+}
+
+void PoolImpl::DoMaintenance() {
+  LOG_DEBUG() << "Starting mongo pool '" << id_ << "' maintenance";
+  for (auto idle_drop_left = kIdleConnectionDropRate;
+       idle_drop_left && size_.load() > idle_limit_; --idle_drop_left) {
+    LOG_TRACE() << "Trying to drop idle connection";
+    Drop(TryGetIdle());
+  }
+  LOG_DEBUG() << "Finished mongo pool '" << id_ << "' maintenance";
 }
 
 }  // namespace storages::mongo::impl

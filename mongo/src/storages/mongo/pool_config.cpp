@@ -21,6 +21,7 @@ constexpr size_t kTestInitialSize = 1;
 constexpr size_t kTestMaxSize = 16;
 constexpr size_t kTestIdleLimit = 4;
 constexpr size_t kTestConnectingLimit = 8;
+constexpr auto kTestMaintenancePeriod = std::chrono::seconds{1};
 
 bool IsValidAppName(const std::string& app_name) {
   return app_name.size() <= MONGOC_HANDSHAKE_APPNAME_MAX &&
@@ -52,6 +53,8 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
                                                       kDefaultConnectingLimit)),
       local_threshold(
           component_config.ParseOptionalDuration("local_threshold")),
+      maintenance_period(component_config.ParseDuration(
+          "maintenance_period", kDefaultMaintenancePeriod)),
       app_name(
           component_config.Parse<std::string>("appname", kDefaultAppName)) {
   const auto& pool_id = component_config.Name();
@@ -61,6 +64,7 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
   if (local_threshold) {
     CheckDuration(*local_threshold, "local threshold", pool_id);
   }
+  CheckDuration(maintenance_period, "pool maintenance period", pool_id);
 
   if (!max_size) {
     throw InvalidConfigException("invalid max pool size in ")
@@ -104,6 +108,7 @@ PoolConfig::PoolConfig(std::string app_name_)
       max_size(kTestMaxSize),
       idle_limit(kTestIdleLimit),
       connecting_limit(kTestConnectingLimit),
+      maintenance_period(kTestMaintenancePeriod),
       app_name(std::move(app_name_)) {
   if (!IsValidAppName(app_name)) {
     throw InvalidConfigException("Invalid appname in test pool config");

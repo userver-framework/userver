@@ -38,6 +38,7 @@ namespace components {
 ///   idle_limit: 64
 ///   connecting_limit: 8
 ///   local_threshold: 15ms
+///   maintenance_period: 15s
 /// ```
 /// You must specify one of `dbalias` or `dbconnection`.
 ///
@@ -55,6 +56,7 @@ namespace components {
 /// idle_limit | limit for idle connections number | 64
 /// connecting_limit | limit for establishing connections number | 8
 /// local_threshold | latency window for instance selection | mongodb default
+/// maintenance_period | pool maintenance period (idle connections pruning etc.) | 15s
 
 // clang-format on
 

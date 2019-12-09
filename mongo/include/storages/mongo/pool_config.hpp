@@ -30,6 +30,8 @@ class PoolConfig {
   static constexpr size_t kDefaultIdleLimit = 64;
   /// Default establishing connections limit
   static constexpr size_t kDefaultConnectingLimit = 8;
+  /// Default pool maintenance period
+  static constexpr auto kDefaultMaintenancePeriod = std::chrono::seconds{15};
 
   // Constructor for component use
   explicit PoolConfig(const components::ComponentConfig&);
@@ -55,6 +57,8 @@ class PoolConfig {
   size_t connecting_limit;
   /// Instance selection latency window override
   boost::optional<std::chrono::milliseconds> local_threshold;
+  /// Pool maintenance period
+  std::chrono::milliseconds maintenance_period;
 
   /// Application name (sent to server)
   const std::string app_name;

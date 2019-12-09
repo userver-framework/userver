@@ -14,7 +14,7 @@
 #include <storages/mongo/stats.hpp>
 #include <storages/mongo/wrappers.hpp>
 #include <utils/assert.hpp>
-#include <utils/statistics/relaxed_counter.hpp>
+#include <utils/periodic_task.hpp>
 
 namespace storages::mongo::impl {
 
@@ -48,11 +48,14 @@ class PoolImpl {
   BoundClientPtr Acquire();
 
  private:
-  void Push(mongoc_client_t*) noexcept;
   mongoc_client_t* Pop();
+  void Push(mongoc_client_t*) noexcept;
+  void Drop(mongoc_client_t*) noexcept;
 
   mongoc_client_t* TryGetIdle();
   mongoc_client_t* Create();
+
+  void DoMaintenance();
 
   const std::string id_;
   const std::string app_name_;
@@ -61,11 +64,13 @@ class PoolImpl {
   mongoc_ssl_opt_t ssl_opt_{};
 
   const size_t max_size_;
+  const size_t idle_limit_;
   const std::chrono::milliseconds queue_timeout_;
-  utils::statistics::RelaxedCounter<size_t> size_;
+  std::atomic<size_t> size_;
   engine::Semaphore in_use_semaphore_;
   engine::Semaphore connecting_semaphore_;
   boost::lockfree::queue<mongoc_client_t*> queue_;
+  utils::PeriodicTask maintenance_task_;
 
   stats::PoolStatistics statistics_;
 };
