@@ -67,9 +67,8 @@ void DocsMap::MergeFromOther(DocsMap&& other) {
   }
 }
 
-std::vector<std::string> DocsMap::GetRequestedNames() const {
-  return std::vector<std::string>(requested_names_.begin(),
-                                  requested_names_.end());
+const std::unordered_set<std::string>& DocsMap::GetRequestedNames() const {
+  return requested_names_;
 }
 
 std::string DocsMap::AsJsonString() const {

@@ -2,7 +2,6 @@
 
 #include <chrono>
 
-#include <clients/http/client.hpp>
 #include <taxi_config/value.hpp>
 
 namespace clients {
