@@ -48,10 +48,7 @@ void RequestsView::StartBackgroudWorker() {
   job_task_ = engine::impl::CriticalAsync([this]() { DoJob(); });
 }
 
-void RequestsView::StopBackgroundWorker() {
-  job_task_.RequestCancel();
-  job_task_.Wait();
-}
+void RequestsView::StopBackgroundWorker() { job_task_.SyncCancel(); }
 
 void RequestsView::GarbageCollect() {
   // Move all to-be-deleted items into delete_list

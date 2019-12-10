@@ -142,8 +142,7 @@ TEST(SingleConsumerEvent, Multithread) {
         EXPECT_GE(got.load(), 1);
         EXPECT_LE(got.load(), count);
         LOG_INFO() << "waiting";
-        task.RequestCancel();
-        task.Wait();
+        task.SyncCancel();
         LOG_INFO() << "waited";
       },
       threads);

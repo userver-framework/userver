@@ -83,7 +83,6 @@ TEST(Cancel, UnwindWorksInDtorSubtask) {
 
     detached_task.WaitFor(std::chrono::milliseconds(10));
     ASSERT_FALSE(detached_task.IsFinished());
-    detached_task.RequestCancel();
-    detached_task.Wait();
+    detached_task.SyncCancel();
   });
 }

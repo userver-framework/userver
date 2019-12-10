@@ -69,8 +69,7 @@ void SubscriptionTokenImpl::SetMaxQueueLength(size_t length) {
 
 void SubscriptionTokenImpl::Unsubscribe() {
   queue_->Unsubscribe();
-  subscriber_task_.RequestCancel();
-  subscriber_task_.Wait();
+  subscriber_task_.SyncCancel();
 }
 
 void SubscriptionTokenImpl::ProcessMessages() {
@@ -122,8 +121,7 @@ void PsubscriptionTokenImpl::SetMaxQueueLength(size_t length) {
 
 void PsubscriptionTokenImpl::Unsubscribe() {
   queue_->Unsubscribe();
-  subscriber_task_.RequestCancel();
-  subscriber_task_.Wait();
+  subscriber_task_.SyncCancel();
 }
 
 void PsubscriptionTokenImpl::ProcessMessages() {
