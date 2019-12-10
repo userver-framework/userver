@@ -15,12 +15,15 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <openssl/ssl.h>
+
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/error.hpp>
 #include <clients/http/form.hpp>
 #include <clients/http/response_future.hpp>
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
+#include <crypto/helpers.hpp>
 #include <curl-ev/easy.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <http/common_headers.hpp>
@@ -126,6 +129,8 @@ class Request::RequestImpl
   void ca_file(const std::string& dir_path);
   /// set CRL-file
   void crl_file(const std::string& file_path);
+  /// set certificate from memory
+  void client_cert(std::shared_ptr<crypto::EVP_PKEY> pkey);
   /// Set HTTP version
   void http_version(http_version_t version);
   /// set timeout value
@@ -164,6 +169,10 @@ class Request::RequestImpl
   /// header function curl callback
   static size_t on_header(void* ptr, size_t size, size_t nmemb, void* userdata);
 
+  /// certifiacte function curl callback
+  static curl::native::CURLcode on_certificate_request(void* curl, void* sslctx,
+                                                       void* userdata) noexcept;
+
   /// parse one header
   void parse_header(char* ptr, size_t size);
   /// simply run perform_request if there is now errors from timer
@@ -185,6 +194,8 @@ class Request::RequestImpl
   std::string destination_metric_name_;
 
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;
+
+  std::shared_ptr<crypto::EVP_PKEY> pkey_;
 
   /// response
   std::shared_ptr<Response> response_;
@@ -281,6 +292,13 @@ std::shared_ptr<Request> Request::ca_file(const std::string& dir_path) {
 
 std::shared_ptr<Request> Request::crl_file(const std::string& file_path) {
   pimpl_->crl_file(file_path);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::client_cert(
+    std::shared_ptr<crypto::EVP_PKEY> pkey) {
+  crypto::CheckIsPrivateKey(pkey.get());
+  pimpl_->client_cert(std::move(pkey));
   return shared_from_this();
 }
 
@@ -444,6 +462,12 @@ void Request::RequestImpl::crl_file(const std::string& file_path) {
   easy().set_crl_file(file_path.c_str());
 }
 
+void Request::RequestImpl::client_cert(std::shared_ptr<crypto::EVP_PKEY> pkey) {
+  pkey_ = std::move(pkey);
+  easy().set_ssl_ctx_function(&Request::RequestImpl::on_certificate_request);
+  easy().set_ssl_ctx_data(this);
+}
+
 void Request::RequestImpl::http_version(http_version_t version) {
   LOG_DEBUG() << "http_version";
   easy().set_http_version(version);
@@ -482,6 +506,22 @@ size_t Request::RequestImpl::on_header(void* ptr, size_t size, size_t nmemb,
   size_t data_size = size * nmemb;
   if (self) self->parse_header(static_cast<char*>(ptr), data_size);
   return data_size;
+}
+
+curl::native::CURLcode Request::RequestImpl::on_certificate_request(
+    void* /*curl*/, void* sslctx, void* userdata) noexcept {
+  auto* self = static_cast<Request::RequestImpl*>(userdata);
+
+  if (!self || !self->pkey_) {
+    return curl::native::CURLcode::CURLE_ABORTED_BY_CALLBACK;
+  }
+
+  const auto ssl = static_cast<SSL_CTX*>(sslctx);
+  if (SSL_CTX_use_PrivateKey(ssl, self->pkey_.get()) != 1) {
+    return curl::native::CURLcode::CURLE_SSL_CERTPROBLEM;
+  }
+
+  return curl::native::CURLcode::CURLE_OK;
 }
 
 void Request::RequestImpl::on_completed(

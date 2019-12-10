@@ -32,15 +32,15 @@ class Span::Impl
 
   void LogTo(logging::LogHelper& log_helper) &&;
 
-  const std::string& GetTraceId() const& { return trace_id_; }
-  const std::string& GetSpanId() const& { return span_id_; }
-  const std::string& GetParentId() const& { return parent_id_; }
+  const std::string& GetTraceId() const& noexcept { return trace_id_; }
+  const std::string& GetSpanId() const& noexcept { return span_id_; }
+  const std::string& GetParentId() const& noexcept { return parent_id_; }
 
-  std::string&& GetTraceId() && { return std::move(trace_id_); }
-  std::string&& GetSpanId() && { return std::move(span_id_); }
-  std::string&& GetParentId() && { return std::move(parent_id_); }
+  std::string GetTraceId() && noexcept { return std::move(trace_id_); }
+  std::string GetSpanId() && noexcept { return std::move(span_id_); }
+  std::string GetParentId() && noexcept { return std::move(parent_id_); }
 
-  ReferenceType GetReferenceType() const { return reference_type_; }
+  ReferenceType GetReferenceType() const noexcept { return reference_type_; }
 
   void DetachFromCoroStack();
   void AttachToCoroStack();

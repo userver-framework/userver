@@ -145,6 +145,8 @@ void easy::reset() {
   set_custom_request(nullptr);
   set_no_body(false);
   set_post(false);
+  set_ssl_ctx_data(nullptr);
+  set_ssl_ctx_function(nullptr);
 
   multi_->GetThreadControl().RunInEvLoopSync([this] { do_ev_reset(); });
 

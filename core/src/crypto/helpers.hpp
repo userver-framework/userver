@@ -37,10 +37,6 @@ std::string EnumValueToString(DigestSize bits);
 
 bool IsMatchingKeyCurve(EVP_PKEY*, DigestSize bits);
 
-std::shared_ptr<EVP_PKEY> LoadPrivateKeyFromString(utils::string_view key,
-                                                   utils::string_view password);
-
-std::shared_ptr<EVP_PKEY> LoadPublicKeyFromCert(utils::string_view cert);
-std::shared_ptr<EVP_PKEY> LoadPublicKeyFromString(utils::string_view key);
+void CheckIsPrivateKey(EVP_PKEY* key);
 
 }  // namespace crypto

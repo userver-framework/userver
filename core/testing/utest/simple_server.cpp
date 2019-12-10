@@ -166,8 +166,8 @@ SimpleServer::~SimpleServer() = default;
 
 unsigned short SimpleServer::GetPort() const { return pimpl_->GetPort(); }
 
-std::string SimpleServer::GetBaseUrl() const {
-  std::string url = "http://";
+std::string SimpleServer::GetBaseUrl(Schema type) const {
+  std::string url = type == Schema::kHttp ? "http://" : "https://";
   switch (pimpl_->GetProtocol()) {
     case kTcpIpV4:
       url += "127.0.0.1:";

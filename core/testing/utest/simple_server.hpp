@@ -50,7 +50,13 @@ class SimpleServer final {
   ~SimpleServer();
 
   Port GetPort() const;
-  std::string GetBaseUrl() const;
+
+  enum class Schema {
+    kHttp,
+    kHttps,
+  };
+
+  std::string GetBaseUrl(Schema type = Schema::kHttp) const;
 
  private:
   class Impl;

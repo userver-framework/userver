@@ -92,6 +92,7 @@ target_link_libraries(${PROJECT_NAME}
     Iconv::Iconv
     LibEv
     OpenSSL::Crypto
+    OpenSSL::SSL
     ZLIB::ZLIB
     spdlog
 )

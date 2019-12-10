@@ -6,6 +6,7 @@
 #include <clients/http/response.hpp>
 #include <clients/http/response_future.hpp>
 #include <clients/http/wrapper.hpp>
+#include <crypto/basic_types.hpp>
 
 namespace curl {
 class multi;
@@ -84,6 +85,8 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> ca_file(const std::string& dir_path);
   /// Set CRL-file
   std::shared_ptr<Request> crl_file(const std::string& file_path);
+  /// Set private client key for request
+  std::shared_ptr<Request> client_cert(std::shared_ptr<crypto::EVP_PKEY> pkey);
   /// Set HTTP version
   using http_version_t = curl::easy::http_version_t;
   std::shared_ptr<Request> http_version(http_version_t version);

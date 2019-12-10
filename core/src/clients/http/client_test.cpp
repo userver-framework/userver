@@ -1,6 +1,7 @@
 #include <clients/http/client.hpp>
 
 #include <fmt/format.h>
+#include <crypto/load_key.hpp>
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
@@ -20,6 +21,39 @@ constexpr char kTestHeader[] = "X-Test-Header";
 
 constexpr char kResponse200WithHeaderPattern[] =
     "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
+
+// Certifiacte for testing was generated via the following command:
+//   `openssl req -x509 -sha256 -nodes -newkey rsa:2048 -keyout priv.key -out
+//   cert.crt`
+constexpr const char* kPrivateKey =
+    R"(-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDgDpwuPbexxq9F
+01KIFQixBPnE3iU9aClP3XY2cc2nntfNbhByduhTjip96XJMnI6aXvI+6oKYy09Z
+03Z8HcWICGbMhfL6IKPE33WPZAdFIolnVl2jnjKv/mGdDnmeB0JxFbjOUoNCUaYC
+OF9R6rD0KBw9l037f4DujBaAbbhPXCaPZqY6jbnemwNqYQmIQfyD9I9URiDOrqCe
+UBHMbZsXxz5vCOrEkbisW22vjv4UcLVT0ZcE0bubmjy4hu4zVDtyPHig728xfsFg
+PgJE+O+uhNPJQ/IUX5o53Ga/+4ZWZZMhKsdpz6T1W4dNQK7CQUkA61xR659yJgJ+
+X15gLqJnAgMBAAECggEBAJK5XpN1fSbhCoR6V5Cf3Zo2vO2r380vueYAC9qpedhr
+z7xKeGDM92VIMxFTX7NFzqjOxmpnHfC7KxKSxQOQZ3umrNMAYNZlq3lQMGcfRReD
+/2D5kMaF4YGY3wl/oirXbC4r4GLUa/pxB3pquhklzI2G+r9mpv2sSJ1uhYnC0DC+
+2J/Y3HlcXaHmyHB0RAXkr8N8y8Jb1BdBvNhfCt4smY6q3YkGhAvAvNpNIA16kiWQ
+Y39YrUcWMUuNKVV58JxCrL6LbqFx+ejySmATzlBa44bFy+JM8Bgnqx00UWzNK54c
+YPVQmOY17m4Q/ojGx3qR7F5PJS0t66//wsgDSnOkSCkCgYEA/XgPmWdWNWnArk8Q
+qQ/orbAvw8D4K9C79dLISiVBjC2RcvlWOnFGLDjsVLlO36wdKcBuhoIGG0PFPk8M
+VAEOdRxw7bbwlW1W7M3jdxwRMu0R2f4CaASfUzdwQWrWuI0zbdczYVKTJPJCiVnl
+JPRlfrEXDNp2iRjDWmGXkYyV72sCgYEA4ktdKAYuy+74zLWka742c1N200BenVRt
+9pFcQHkMRDLa+fUlXAtUInbq7EGvpg6MxGHMgpTA09EOV44gUk4S4Bc4nhwzBj9q
+Sl3J/ELgKZhZLFc/7ShVkuWgdgtY4DXLc6cqjzDW0RmwxhuNyTQ9TPAivcgMyLia
+Ht76Bcx2w/UCgYB/W+5qpFPa7tJUQ4IZkNbXPyog8DtCuNVZBZqCNwoih1sILGS5
+ZOVfnxKQ17PcC71zly9yAq9Sz9CyKEIHi6haC/pqV3u3eYMt5Z4f4Uh7EEfiAxHu
+djQgOkD7fdV6Uei/jlxQ0I8DB3+LSFItKWg+KnlsifD5nim6pkLkbYGBFQKBgB01
+UwnWenXSG4T4sQdDHu4VyNGNjmjKPANGUdz0gtPOqJr4vGC8CZkFNl9WPyC04hB6
++xWjs5vjcPF2I8/bye3osWMfCqr0xnhg0LBhxWM5CdGCVXr76Me0Idj6r/cImoEM
+A59F04Rbx4haiBt/RaZHnIRYbOX/hc0URLs43999AoGAOhcqKE6lvwF20ZBYWmBl
+A7ydf/0yjGzv0Q9KStLURFaP0nel3xJw1GAOiPspHd4zyDFluyISNufZkmvd07VH
+hoqCwno+aCjjIzVkzm9IbKDDl7d8ya1WZHRPqpTTnKMNB+GyqE1QjTdZR2SZcf3+
+Hw1o7YbDFFQAQ9uqUWLwAOE=
+-----END PRIVATE KEY-----)";
 
 class RequestMethodTestData final {
  public:
@@ -497,6 +531,51 @@ TEST(HttpClient, HeadersAndWhitespaces) {
           << "Header value is '" << header_value << "'";
       EXPECT_EQ(response->headers()[kTestHeader], header_data)
           << "Header value is '" << header_value << "'";
+    }
+  });
+}
+
+// Make sure that certs are setuped and reset on the end of a request.
+//
+// Smoke test. Fails on MacOS with Segmentation fault while calling
+// Request::RequestImpl::on_certificate_request, probably because CURL library
+// was misconfigured and uses wrong version of OpenSSL.
+TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
+  TestInCoro([] {
+    auto pkey = crypto::LoadPrivateKeyFromString(kPrivateKey, "");
+    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    const testing::SimpleServer http_server{echo_callback};
+    const auto url = http_server.GetBaseUrl();
+    const auto ssl_url =
+        http_server.GetBaseUrl(testing::SimpleServer::Schema::kHttps);
+
+    // Running twice to make sure that after request without a cert the request
+    // with a cert succeeds and do not break other request types.
+    for (unsigned i = 0; i < 2; ++i) {
+      auto response_future = http_client_ptr->CreateRequest()
+                                 ->post(ssl_url)
+                                 ->timeout(std::chrono::milliseconds(100))
+                                 ->client_cert(pkey)
+                                 ->async_perform();
+
+      response_future.Wait();
+      EXPECT_THROW(response_future.Get(), std::exception)
+          << "SSL is not used by the server but the request succeeded";
+
+      const auto response = http_client_ptr->CreateRequest()
+                                ->post(url)
+                                ->timeout(std::chrono::milliseconds(100))
+                                ->client_cert(pkey)
+                                ->perform();
+
+      EXPECT_TRUE(response->IsOk());
+
+      const auto response2 = http_client_ptr->CreateRequest()
+                                 ->post(url)
+                                 ->timeout(std::chrono::milliseconds(100))
+                                 ->perform();  // No client cert
+
+      EXPECT_TRUE(response2->IsOk());
     }
   });
 }

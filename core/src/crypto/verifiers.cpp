@@ -6,8 +6,8 @@
 #include <openssl/rsa.h>
 
 #include <crypto/hash.hpp>
-
 #include <crypto/helpers.hpp>
+#include <crypto/load_key.hpp>
 
 namespace crypto {
 namespace {
