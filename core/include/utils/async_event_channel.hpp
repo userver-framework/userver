@@ -70,12 +70,8 @@ class AsyncEventSubscriberScope final {
 
   ~AsyncEventSubscriberScope() {
     if (id_) {
-      LOG_ERROR() << "Event subscriber has't unregistered itself, you have "
-                     "to store AsyncEventSubscriberScope and explicitly call "
-                     "Unsubscribe() when subscription is not needed.";
-      UASSERT_MSG(false,
-                  "Unsubscribe() is not called for AsyncEventSubscriberScope");
-      channel_->RemoveListener(id_);
+      LOG_DEBUG() << "Unsubscribing automatically";
+      Unsubscribe();
     }
   }
 

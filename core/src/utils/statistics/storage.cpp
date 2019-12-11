@@ -25,7 +25,12 @@ Entry::Entry(Entry&& other) noexcept
   other.storage_ = nullptr;
 }
 
-Entry::~Entry() { UASSERT(storage_ == nullptr); }
+Entry::~Entry() {
+  if (storage_) {
+    LOG_DEBUG() << "Unregistering automatically";
+  }
+  Unregister();
+}
 
 void Entry::Unregister() noexcept {
   if (storage_) {
