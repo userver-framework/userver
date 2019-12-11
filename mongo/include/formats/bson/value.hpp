@@ -39,6 +39,19 @@ class Value {
   /// Constructs a `null` value
   Value();
 
+  Value(const Value&) = default;
+  Value(Value&&) noexcept = default;
+  Value& operator=(const Value&) & = default;
+  Value& operator=(Value&&) & noexcept = default;
+
+  template <class T>
+  Value& operator=(T&&) && {
+    static_assert(false && sizeof(T),
+                  "You're assigning to a temporary formats::bson::Value! Use "
+                  "formats::bson::ValueBuilder for data modifications.");
+    return *this;
+  }
+
   /// @cond
   /// Constructor from implementation, internal use only
   explicit Value(impl::ValueImplPtr);

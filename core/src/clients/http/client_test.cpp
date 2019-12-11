@@ -549,12 +549,15 @@ TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
     const auto ssl_url =
         http_server.GetBaseUrl(testing::SimpleServer::Schema::kHttps);
 
+    // SSL is slow, setting big timeout to avoid test flapping
+    const auto kTimeout = std::chrono::seconds(1);
+
     // Running twice to make sure that after request without a cert the request
     // with a cert succeeds and do not break other request types.
     for (unsigned i = 0; i < 2; ++i) {
       auto response_future = http_client_ptr->CreateRequest()
                                  ->post(ssl_url)
-                                 ->timeout(std::chrono::milliseconds(100))
+                                 ->timeout(kTimeout)
                                  ->client_cert(pkey)
                                  ->async_perform();
 
@@ -564,7 +567,7 @@ TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
 
       const auto response = http_client_ptr->CreateRequest()
                                 ->post(url)
-                                ->timeout(std::chrono::milliseconds(100))
+                                ->timeout(kTimeout)
                                 ->client_cert(pkey)
                                 ->perform();
 
@@ -572,7 +575,7 @@ TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
 
       const auto response2 = http_client_ptr->CreateRequest()
                                  ->post(url)
-                                 ->timeout(std::chrono::milliseconds(100))
+                                 ->timeout(kTimeout)
                                  ->perform();  // No client cert
 
       EXPECT_TRUE(response2->IsOk());

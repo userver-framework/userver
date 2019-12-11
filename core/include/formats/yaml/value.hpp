@@ -2,17 +2,15 @@
 
 #include <type_traits>
 
+#include <formats/common/meta.hpp>
+#include <formats/parse/common.hpp>
 #include <formats/yaml/exception.hpp>
 #include <formats/yaml/iterator.hpp>
 #include <formats/yaml/types.hpp>
 
-#include <formats/common/meta.hpp>
-#include <formats/parse/common.hpp>
-
 #include <utils/fast_pimpl.hpp>
 
-namespace formats {
-namespace yaml {
+namespace formats::yaml {
 
 class ValueBuilder;
 
@@ -40,6 +38,14 @@ class Value final {
   // NOLINTNEXTLINE(performance-noexcept-move-constructor,bugprone-exception-escape)
   Value& operator=(Value&&);
   Value& operator=(const Value&);
+
+  template <class T>
+  Value& operator=(T&&) && {
+    static_assert(false && sizeof(T),
+                  "You're assigning to a temporary formats::yaml::Value! Use "
+                  "formats::yaml::ValueBuilder for data modifications.");
+    return *this;
+  }
 
   ~Value();
 
@@ -243,5 +249,4 @@ T Value::As(First&& default_arg, Rest&&... more_default_args) const {
   return As<T>();
 }
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml

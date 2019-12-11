@@ -10,8 +10,7 @@
 
 #include <utils/string_view.hpp>
 
-namespace formats {
-namespace json {
+namespace formats::json {
 
 class ValueBuilder;
 
@@ -31,6 +30,20 @@ class Value final {
  public:
   /// @brief Constructs a Value that holds a Null.
   Value() noexcept;
+
+  Value(const Value&) = default;
+  Value(Value&&) noexcept = default;
+
+  Value& operator=(const Value&) & = default;
+  Value& operator=(Value&& other) & noexcept;
+
+  template <class T>
+  Value& operator=(T&&) && {
+    static_assert(false && sizeof(T),
+                  "You're assigning to a temporary formats::json::Value! Use "
+                  "formats::json::ValueBuilder for data modifications.");
+    return *this;
+  }
 
   ~Value();
 
@@ -285,5 +298,4 @@ T Value::ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
 
 inline Value Parse(const Value& value, parse::To<Value>) { return value; }
 
-}  // namespace json
-}  // namespace formats
+}  // namespace formats::json

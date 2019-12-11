@@ -58,6 +58,18 @@ bool IsNonOverflowingIntegral(const double val) {
 
 Value::Value() noexcept : value_ptr_(nullptr), depth_(0) {}
 
+// We have to explicitly define the move constructor because of the clang-7
+// bogus error message:
+// "error: exception specification of explicitly defaulted move assignment
+// operator does not match the calculated one"
+Value& Value::operator=(Value&& other) & noexcept {
+  root_ = std::move(other.root_);
+  value_ptr_ = other.value_ptr_;
+  detached_path_ = std::move(other.detached_path_);
+  depth_ = other.depth_;
+  return *this;
+}
+
 Value::~Value() = default;
 
 Value::Value(NativeValuePtr&& root) noexcept
