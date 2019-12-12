@@ -14,10 +14,12 @@ TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
     : periodic_update_enabled_(
           config.ParseOptionalBool(kPeriodicUpdateEnabled)) {}
 
-void TestsuiteSupport::InvalidateCaches(cache::UpdateType update_type) {
+void TestsuiteSupport::InvalidateCaches(cache::UpdateType update_type,
+                                        const std::vector<std::string>& names) {
   std::lock_guard<engine::Mutex> lock(mutex_);
 
   for (auto& invalidator : cache_invalidators_) {
+    if (!DoesInvalidatorMatch(invalidator, names)) continue;
     tracing::Span span(kCacheInvalidateSpanTag);
     invalidator.handler(update_type);
   }
@@ -135,6 +137,16 @@ bool TestsuiteSupport::IsPeriodicUpdateEnabled(
   LOG_DEBUG() << cache_component_name << " periodic update is " << state
               << " by " << reason;
   return enabled;
+}
+
+bool TestsuiteSupport::DoesInvalidatorMatch(
+    const CacheInvalidatorStruct& invalidator,
+    const std::vector<std::string>& names) const {
+  if (names.empty()) {
+    return true;
+  }
+  return std::find(names.begin(), names.end(), invalidator.owner->GetName()) !=
+         names.end();
 }
 
 }  // namespace components

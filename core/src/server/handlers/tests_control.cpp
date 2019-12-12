@@ -79,7 +79,9 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     utils::datetime::MockNowUnset();
 
   if (invalidate_caches) {
-    testsuite_support->get().InvalidateCaches(update_type);
+    const auto names = request_body["names"].As<std::vector<std::string>>(
+        std::vector<std::string>());
+    testsuite_support->get().InvalidateCaches(update_type, names);
   }
 
   return formats::json::Value();

@@ -17,6 +17,7 @@ class CacheInvalidatorHolder;
 }  // namespace server
 
 namespace components {
+class TestsuiteSupport;
 
 class CacheUpdateTrait {
  public:

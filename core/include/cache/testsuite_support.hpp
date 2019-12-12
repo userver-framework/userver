@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <cache/cache_update_trait.hpp>
 #include <cache/update_type.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
@@ -33,7 +34,8 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
 
   void UnregisterComponentInvalidator(components::impl::ComponentBase& owner);
 
-  void InvalidateCaches(cache::UpdateType update_type);
+  void InvalidateCaches(cache::UpdateType update_type,
+                        const std::vector<std::string>& names);
 
   void RegisterPeriodicTask(const std::string& name, utils::PeriodicTask& task);
 
@@ -65,6 +67,9 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
       T& owner, std::vector<Invalidator<T, Callback>>& invalidators);
 
   utils::PeriodicTask& FindPeriodicTask(const std::string& name);
+
+  bool DoesInvalidatorMatch(const CacheInvalidatorStruct& invalidator,
+                            const std::vector<std::string>& names) const;
 
   engine::Mutex mutex_;
   engine::Mutex periodic_task_mutex_;
