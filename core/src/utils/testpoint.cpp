@@ -26,8 +26,9 @@ void TestPoint::Setup(clients::http::Client& http_client,
   is_initialized_ = true;  // seq_cst for http_client_+timeout_
 }
 
-void TestPoint::Notify(const std::string& name,
-                       const formats::json::Value& json) {
+void TestPoint::Notify(
+    const std::string& name, const formats::json::Value& json,
+    const std::function<void(const formats::json::Value&)>& callback) {
   if (!is_initialized_) return;
 
   tracing::Span span("testpoint");
@@ -53,6 +54,11 @@ void TestPoint::Notify(const std::string& name,
           ->timeout(timeout_)
           ->perform();
   response->raise_for_status();
+
+  if (callback) {
+    auto doc = formats::json::FromString(response->body());
+    callback(doc["data"]);
+  }
 }
 
 bool TestPoint::IsEnabled() const { return is_initialized_; }

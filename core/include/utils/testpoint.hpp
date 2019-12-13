@@ -24,7 +24,9 @@ class TestPoint final {
   void Setup(clients::http::Client& http_client, const std::string& url,
              std::chrono::milliseconds timeout);
 
-  void Notify(const std::string& name, const formats::json::Value& json);
+  void Notify(
+      const std::string& name, const formats::json::Value& json,
+      const std::function<void(const formats::json::Value&)>& callback = {});
 
   bool IsEnabled() const;
 
@@ -39,12 +41,13 @@ class TestPoint final {
 /// (e.g. in testsuite), otherwise does nothing.
 /// See https://wiki.yandex-team.ru/taxi/backend/testsuite/#testpoint for more
 /// info.
-#define TESTPOINT(name, json)                     \
+#define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, {})
+#define TESTPOINT_CALLBACK(name, json, callback)  \
   do {                                            \
     auto& tp = ::utils::TestPoint::GetInstance(); \
     if (!tp.IsEnabled()) break;                   \
                                                   \
-    tp.Notify(name, json);                        \
+    tp.Notify(name, json, callback);              \
   } while (0)
 
 }  // namespace utils
