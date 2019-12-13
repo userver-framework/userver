@@ -162,10 +162,63 @@ def run_tidy(args, tmpdir, build_path, queue, failed_files):
                                      args.extra_arg, args.extra_arg_before,
                                      args.quiet, args.config)
     sys.stdout.write(' '.join(invocation) + '\n')
-    return_code = subprocess.call(invocation)
+    if args.enable_teamcity:
+        return_code = call_with_tc_output(invocation, name)
+    else:
+        return_code = subprocess.call(invocation)
     if return_code != 0:
       failed_files.append(name)
     queue.task_done()
+
+
+def call_with_tc_output(command, filename):
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+    output, _ = proc.communicate()
+    return_code = proc.returncode
+    if return_code != 0:
+        filename = os.path.relpath(filename)
+        report_teamcity_test_problem(output, filename)
+
+    return return_code
+
+
+def report_teamcity_test_problem(problem_message, filename):
+    send_teamcity_multiattribute_message(
+        'testStarted', name=filename, captureStandardOutput='true',
+    )
+    send_teamcity_multiattribute_message(
+        'testFailed', name=filename, message=problem_message,
+    )
+    send_teamcity_multiattribute_message('testFinished', name=filename)
+
+
+def _send_teamcity_message(message_name, value):
+    print('##teamcity[%s %s]' % (message_name, value))
+
+
+def send_teamcity_multiattribute_message(message_name, **attributes):
+    value = ' '.join(
+        '%s=\'%s\'' % (name, escape_teamcity_message_value(value))
+        for name, value in attributes.items()
+    )
+    _send_teamcity_message(message_name, value)
+
+
+def escape_teamcity_message_value(value):
+    """
+    Escape string to be correctly interpreted by teamcity.
+    Unicode symbols are not supported
+    :param value: string message
+    :return: escaped value
+    """
+    return (
+        value.replace('|', '||')
+        .replace('\n', '|n')
+        .replace('\r', '|r')
+        .replace('\'', '|\'')
+        .replace('[', '|[')
+        .replace(']', '|]')
+    )
 
 
 def main():
@@ -219,6 +272,9 @@ def main():
                       'command line.')
   parser.add_argument('-quiet', action='store_true',
                       help='Run clang-tidy in quiet mode')
+  parser.add_argument('-enable-teamcity', action='store_true',
+                      help='Enable output adaptation to teamcity tests')
+
   args = parser.parse_args()
 
   db_path = 'compile_commands.json'

@@ -121,6 +121,10 @@ smart-clang-format:
 clang-tidy: cmake
 	@tools/run-clang-tidy-7 -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
 
+.PHONY: teamcity-clang-tidy
+teamcity-clang-tidy: cmake
+	@tools/run-clang-tidy-7 -enable-teamcity -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
+
 .PHONY: check-pep8
 check-pep8:
 	@${PYTHON3_BIN_DIR}check-pep8 --watchers $(CMAKE_DIR)
