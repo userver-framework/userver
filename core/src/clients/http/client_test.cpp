@@ -55,6 +55,9 @@ hoqCwno+aCjjIzVkzm9IbKDDl7d8ya1WZHRPqpTTnKMNB+GyqE1QjTdZR2SZcf3+
 Hw1o7YbDFFQAQ9uqUWLwAOE=
 -----END PRIVATE KEY-----)";
 
+constexpr char kResponse301WithHeaderPattern[] =
+    "HTTP/1.1 301 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
+
 class RequestMethodTestData final {
  public:
   using Request = clients::http::Request;
@@ -240,6 +243,19 @@ struct Response200WithHeader {
   HttpResponse operator()(const HttpRequest&) const {
     return {
         fmt::format(kResponse200WithHeaderPattern, header),
+        HttpResponse::kWriteAndClose,
+    };
+  }
+};
+
+struct Response301WithHeader {
+  const std::string location;
+  const std::string header;
+
+  HttpResponse operator()(const HttpRequest&) const {
+    return {
+        fmt::format(kResponse301WithHeaderPattern,
+                    "Location: " + location + "\r\n" + header),
         HttpResponse::kWriteAndClose,
     };
   }
@@ -580,5 +596,25 @@ TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
 
       EXPECT_TRUE(response2->IsOk());
     }
+  });
+}
+
+TEST(HttpClient, RedirectHeaders) {
+  TestInCoro([] {
+    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+
+    const testing::SimpleServer http_server_final{
+        Response200WithHeader{"xxx: good"}};
+
+    const testing::SimpleServer http_server_redirect{
+        Response301WithHeader{http_server_final.GetBaseUrl(), "xxx: bad"}};
+
+    const auto response = http_client_ptr->CreateRequest()
+                              ->post(http_server_redirect.GetBaseUrl())
+                              ->timeout(std::chrono::milliseconds(1000))
+                              ->perform();
+
+    EXPECT_TRUE(response->IsOk());
+    EXPECT_EQ(response->headers()["xxx"], "good");
   });
 }

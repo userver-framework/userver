@@ -105,6 +105,11 @@ std::error_code TestsuiteResponseHook(const Response& response,
   return {};
 }
 
+// Not a strict check, but OK for non-header line check
+bool IsHttpStatusLineStart(const char* ptr, size_t size) {
+  return (size > 5 && memcmp(ptr, "HTTP/", 5) == 0);
+}
+
 }  // namespace
 
 // RequestImpl definition
@@ -640,8 +645,16 @@ void Request::RequestImpl::parse_header(char* ptr, size_t size) {
   if (ptr == end) return;
   *end = '\0';
 
-  const char* col_pos = strchr(ptr, ':');
-  if (col_pos == nullptr) return;
+  const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
+  if (col_pos == nullptr) {
+    if (IsHttpStatusLineStart(ptr, size)) {
+      for (auto& [k, v] : response_->headers())
+        LOG_INFO() << "drop header " << k << "=" << v;
+      // In case of redirect drop 1st response headers
+      response_->headers().clear();
+    }
+    return;
+  }
 
   std::string key(ptr, col_pos - ptr);
 
