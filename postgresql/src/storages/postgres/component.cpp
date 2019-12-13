@@ -149,9 +149,6 @@ Postgres::Postgres(const ComponentConfig& config,
       database_{std::make_shared<storages::postgres::Database>()} {
   namespace pg = storages::postgres;
   TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
-  config_subscription_ =
-      cfg.AddListener(this, "postgres", &Postgres::OnConfigUpdate);
-  OnConfigUpdate(cfg.Get());
   auto cmd_ctl = GetCommandControlConfig(cfg.Get());
 
   const auto dbalias = config.ParseString("dbalias", {});
@@ -209,6 +206,10 @@ Postgres::Postgres(const ComponentConfig& config,
     database_->clusters_.push_back(cluster);
     tasks.push_back(cluster->DiscoverTopology());
   }
+
+  config_subscription_ =
+      cfg.AddListener(this, "postgres", &Postgres::OnConfigUpdate);
+  OnConfigUpdate(cfg.Get());
 
   // Wait for topology discovery
   LOG_DEBUG() << "Wait for initial topology discovery";
