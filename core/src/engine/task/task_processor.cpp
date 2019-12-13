@@ -75,7 +75,8 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
       LOG_WARNING() << "failed to enqueue task: task_queue_ size=" << queue_size
                     << " >= "
                     << "task_queue_size_threshold="
-                    << max_task_queue_wait_length_;
+                    << max_task_queue_wait_length_
+                    << " task_processor=" << Name();
       HandleOverload(*context);
     }
   }
