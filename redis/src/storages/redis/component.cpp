@@ -36,12 +36,17 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
       errors(formats::json::Type::kObject),
       states(formats::json::Type::kObject);
 
+  // request/reply sizes are almost useless (were never actually used for
+  // diagnostics/postmortem analysis), but cost much in Solomon
+#if 0
   result["request-sizes"]["1min"] =
       utils::statistics::PercentileToJson(stats.request_size_percentile);
   utils::statistics::SolomonSkip(result["request-sizes"]["1min"]);
   result["reply-sizes"]["1min"] =
       utils::statistics::PercentileToJson(stats.reply_size_percentile);
   utils::statistics::SolomonSkip(result["reply-sizes"]["1min"]);
+#endif
+
   result["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.timings_percentile);
   utils::statistics::SolomonSkip(result["timings"]["1min"]);
