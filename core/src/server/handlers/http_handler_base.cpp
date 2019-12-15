@@ -24,6 +24,10 @@
 
 #include "auth/auth_checker.hpp"
 
+// "request" is redundant: https://st.yandex-team.ru/TAXICOMMON-1793
+// set to 1 if you need server metrics
+#define INCLUDE_SERVER_HTTP_METRICS 0
+
 namespace server {
 namespace handlers {
 namespace {
@@ -483,7 +487,11 @@ formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder result;
   result["handler"] = FormatStatistics(*handler_statistics_);
+
+#if INCLUDE_SERVER_HTTP_METRICS
   result["request"] = FormatStatistics(*request_statistics_);
+#endif
+
   return result;
 }
 
