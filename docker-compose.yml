@@ -1,40 +1,20 @@
 version: "2.3"
 
 services:
-    taxi-userver-tests:
+    taxi-userver-clang-tidy:
         image: registry.yandex.net/taxi/taxi-integration-xenial-base
-        privileged: true
         environment:
         - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
         - CC
-        - CCACHE_DIR=/taxi/ccache
-        - CCACHE_HASHDIR
-        - CCACHE_NOHASHDIR
-        - CCACHE_PREFIX
-        - CCACHE_SIZE
+        - CLANG_TIDY_BINARY
         - CMAKE_OPTS
-        - CORES_DIR=/taxi/userver/cores
         - CXX
-        - DISTCC_HOSTS
         - IS_TEAMCITY
-        - NPROCS
-        - PULL_REQUEST_TYPE
         - LANG=ru_RU.UTF-8
+        - NPROCS
         volumes:
         - .:/taxi/userver:rw
         - ./tools/dockertest:/taxi/tools:rw
-        - ../../docker-integration-tests-cache:/taxi/ccache:rw
-        - ${TC_CORES_DIR:-./cores}:/taxi/userver/cores:rw
         working_dir: /taxi/userver/
-        command: /taxi/tools/userver-tests.sh
-        networks:
-            - taxi_net
-networks:
-    taxi_net:
-        driver: bridge
-        enable_ipv6: true
-        ipam:
-            driver: default
-            config:
-            - subnet: 172.16.240.0/24
-            - subnet: 2001:3984:3989:0000:3::/80
+        command: /taxi/tools/userver-clang-tidy.sh
+        network_mode: "none"
