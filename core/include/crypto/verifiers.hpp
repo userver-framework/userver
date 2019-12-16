@@ -6,6 +6,7 @@
 
 #include <crypto/basic_types.hpp>
 #include <crypto/exception.hpp>
+#include <crypto/public_key.hpp>
 #include <utils/string_view.hpp>
 
 namespace crypto {
@@ -62,7 +63,7 @@ class DsaVerifier final : public Verifier {
               utils::string_view raw_signature) const override;
 
  private:
-  std::shared_ptr<EVP_PKEY> pkey_;
+  PublicKey pkey_;
 };
 
 /// @name Verifies RSASSA signature using SHA-2 and PKCS1 padding.

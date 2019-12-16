@@ -146,14 +146,9 @@ bool IsMatchingKeyCurve(EVP_PKEY* pkey, DigestSize bits) {
                        CurveNidByDigestSize(bits);
 }
 
-void CheckIsPrivateKey(EVP_PKEY* key) {
-  // Documentation tells us that there is a nullptr check in `i2d_PrivateKey`.
-  // See "If ppout is not NULL, it writes ..." at the
-  // https://www.openssl.org/docs/man1.1.0/man3/i2d_PKCS8_PRIV_KEY_INFO.html
-  const auto ret_value = ::i2d_PrivateKey(key, nullptr);
-  if (ret_value <= 0) {
-    throw CryptoException(crypto::FormatSslError("Not a private key"));
-  }
+std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
+    utils::string_view str) {
+  return {::BIO_new_mem_buf(str.data(), str.size()), &::BIO_free_all};
 }
 
 }  // namespace crypto

@@ -6,6 +6,7 @@
 
 #include <crypto/basic_types.hpp>
 #include <crypto/exception.hpp>
+#include <crypto/private_key.hpp>
 #include <utils/string_view.hpp>
 
 namespace crypto {
@@ -63,7 +64,7 @@ class DsaSigner final : public Signer {
       std::initializer_list<utils::string_view> data) const override;
 
  private:
-  std::shared_ptr<EVP_PKEY> pkey_;
+  PrivateKey pkey_;
 };
 
 /// @name Outputs RSASSA signature using SHA-2 and PKCS1 padding.

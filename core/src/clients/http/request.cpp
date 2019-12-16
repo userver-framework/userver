@@ -134,8 +134,8 @@ class Request::RequestImpl
   void ca_file(const std::string& dir_path);
   /// set CRL-file
   void crl_file(const std::string& file_path);
-  /// set certificate from memory
-  void client_cert(std::shared_ptr<crypto::EVP_PKEY> pkey);
+  /// set private key and certificate from memory
+  void client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert);
   /// Set HTTP version
   void http_version(http_version_t version);
   /// set timeout value
@@ -200,7 +200,8 @@ class Request::RequestImpl
 
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;
 
-  std::shared_ptr<crypto::EVP_PKEY> pkey_;
+  crypto::PrivateKey pkey_;
+  crypto::Certificate cert_;
 
   /// response
   std::shared_ptr<Response> response_;
@@ -300,10 +301,9 @@ std::shared_ptr<Request> Request::crl_file(const std::string& file_path) {
   return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::client_cert(
-    std::shared_ptr<crypto::EVP_PKEY> pkey) {
-  crypto::CheckIsPrivateKey(pkey.get());
-  pimpl_->client_cert(std::move(pkey));
+std::shared_ptr<Request> Request::client_key_cert(crypto::PrivateKey pkey,
+                                                  crypto::Certificate cert) {
+  pimpl_->client_key_cert(std::move(pkey), std::move(cert));
   return shared_from_this();
 }
 
@@ -467,8 +467,13 @@ void Request::RequestImpl::crl_file(const std::string& file_path) {
   easy().set_crl_file(file_path.c_str());
 }
 
-void Request::RequestImpl::client_cert(std::shared_ptr<crypto::EVP_PKEY> pkey) {
+void Request::RequestImpl::client_key_cert(crypto::PrivateKey pkey,
+                                           crypto::Certificate cert) {
+  YTX_INVARIANT(pkey, "No private key");
+  YTX_INVARIANT(cert, "No certificate");
+
   pkey_ = std::move(pkey);
+  cert_ = std::move(cert);
   easy().set_ssl_ctx_function(&Request::RequestImpl::on_certificate_request);
   easy().set_ssl_ctx_data(this);
 }
@@ -515,15 +520,23 @@ size_t Request::RequestImpl::on_header(void* ptr, size_t size, size_t nmemb,
 
 curl::native::CURLcode Request::RequestImpl::on_certificate_request(
     void* /*curl*/, void* sslctx, void* userdata) noexcept {
+  const auto ssl = static_cast<SSL_CTX*>(sslctx);
   auto* self = static_cast<Request::RequestImpl*>(userdata);
 
-  if (!self || !self->pkey_) {
+  if (!self) {
     return curl::native::CURLcode::CURLE_ABORTED_BY_CALLBACK;
   }
 
-  const auto ssl = static_cast<SSL_CTX*>(sslctx);
-  if (SSL_CTX_use_PrivateKey(ssl, self->pkey_.get()) != 1) {
-    return curl::native::CURLcode::CURLE_SSL_CERTPROBLEM;
+  if (self->cert_) {
+    if (::SSL_CTX_use_certificate(ssl, self->cert_.GetNative()) != 1) {
+      return curl::native::CURLcode::CURLE_SSL_CERTPROBLEM;
+    }
+  }
+
+  if (self->pkey_) {
+    if (::SSL_CTX_use_PrivateKey(ssl, self->pkey_.GetNative()) != 1) {
+      return curl::native::CURLcode::CURLE_SSL_CERTPROBLEM;
+    }
   }
 
   return curl::native::CURLcode::CURLE_OK;
@@ -712,6 +725,9 @@ Request::RequestImpl::async_perform() {
 }
 
 void Request::RequestImpl::perform_request(curl::easy::handler_type handler) {
+  UASSERT_MSG(!cert_ || pkey_,
+              "Setting certificate is useless without setting private key");
+
   response_ = std::make_shared<Response>(easy_);
   // set place for response body
   easy().set_sink(&(response_->sink_stream()));

@@ -1,7 +1,8 @@
 #include <clients/http/client.hpp>
 
 #include <fmt/format.h>
-#include <crypto/load_key.hpp>
+#include <crypto/certificate.hpp>
+#include <crypto/private_key.hpp>
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
@@ -23,37 +24,43 @@ constexpr char kResponse200WithHeaderPattern[] =
     "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
 
 // Certifiacte for testing was generated via the following command:
-//   `openssl req -x509 -sha256 -nodes -newkey rsa:2048 -keyout priv.key -out
+//   `openssl req -x509 -sha256 -nodes -newkey rsa:1024 -keyout priv.key -out
 //   cert.crt`
 constexpr const char* kPrivateKey =
     R"(-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDgDpwuPbexxq9F
-01KIFQixBPnE3iU9aClP3XY2cc2nntfNbhByduhTjip96XJMnI6aXvI+6oKYy09Z
-03Z8HcWICGbMhfL6IKPE33WPZAdFIolnVl2jnjKv/mGdDnmeB0JxFbjOUoNCUaYC
-OF9R6rD0KBw9l037f4DujBaAbbhPXCaPZqY6jbnemwNqYQmIQfyD9I9URiDOrqCe
-UBHMbZsXxz5vCOrEkbisW22vjv4UcLVT0ZcE0bubmjy4hu4zVDtyPHig728xfsFg
-PgJE+O+uhNPJQ/IUX5o53Ga/+4ZWZZMhKsdpz6T1W4dNQK7CQUkA61xR659yJgJ+
-X15gLqJnAgMBAAECggEBAJK5XpN1fSbhCoR6V5Cf3Zo2vO2r380vueYAC9qpedhr
-z7xKeGDM92VIMxFTX7NFzqjOxmpnHfC7KxKSxQOQZ3umrNMAYNZlq3lQMGcfRReD
-/2D5kMaF4YGY3wl/oirXbC4r4GLUa/pxB3pquhklzI2G+r9mpv2sSJ1uhYnC0DC+
-2J/Y3HlcXaHmyHB0RAXkr8N8y8Jb1BdBvNhfCt4smY6q3YkGhAvAvNpNIA16kiWQ
-Y39YrUcWMUuNKVV58JxCrL6LbqFx+ejySmATzlBa44bFy+JM8Bgnqx00UWzNK54c
-YPVQmOY17m4Q/ojGx3qR7F5PJS0t66//wsgDSnOkSCkCgYEA/XgPmWdWNWnArk8Q
-qQ/orbAvw8D4K9C79dLISiVBjC2RcvlWOnFGLDjsVLlO36wdKcBuhoIGG0PFPk8M
-VAEOdRxw7bbwlW1W7M3jdxwRMu0R2f4CaASfUzdwQWrWuI0zbdczYVKTJPJCiVnl
-JPRlfrEXDNp2iRjDWmGXkYyV72sCgYEA4ktdKAYuy+74zLWka742c1N200BenVRt
-9pFcQHkMRDLa+fUlXAtUInbq7EGvpg6MxGHMgpTA09EOV44gUk4S4Bc4nhwzBj9q
-Sl3J/ELgKZhZLFc/7ShVkuWgdgtY4DXLc6cqjzDW0RmwxhuNyTQ9TPAivcgMyLia
-Ht76Bcx2w/UCgYB/W+5qpFPa7tJUQ4IZkNbXPyog8DtCuNVZBZqCNwoih1sILGS5
-ZOVfnxKQ17PcC71zly9yAq9Sz9CyKEIHi6haC/pqV3u3eYMt5Z4f4Uh7EEfiAxHu
-djQgOkD7fdV6Uei/jlxQ0I8DB3+LSFItKWg+KnlsifD5nim6pkLkbYGBFQKBgB01
-UwnWenXSG4T4sQdDHu4VyNGNjmjKPANGUdz0gtPOqJr4vGC8CZkFNl9WPyC04hB6
-+xWjs5vjcPF2I8/bye3osWMfCqr0xnhg0LBhxWM5CdGCVXr76Me0Idj6r/cImoEM
-A59F04Rbx4haiBt/RaZHnIRYbOX/hc0URLs43999AoGAOhcqKE6lvwF20ZBYWmBl
-A7ydf/0yjGzv0Q9KStLURFaP0nel3xJw1GAOiPspHd4zyDFluyISNufZkmvd07VH
-hoqCwno+aCjjIzVkzm9IbKDDl7d8ya1WZHRPqpTTnKMNB+GyqE1QjTdZR2SZcf3+
-Hw1o7YbDFFQAQ9uqUWLwAOE=
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKTQ8X1VKk8h83n3
+eJNoZbXca1qMlFxs3fAcJJmRV/ceFvd9esM8KOzXCemcKZNVi1tyUPt+LXk/Po1i
+3COTlU/+EUHO+ISgImtVdjjcE9+hLiPFINcnID2rWWNJ1pyRjqV26fj6oQMCyAW+
+7ZdQivH/XtPGNwlGudsZrvxu44VvAgMBAAECgYA4uPxTkSr1fw7HjCcAPG68zzZX
+PIiW4pTjXRwvifkHQGDRHmtQo/TFxiBQOQGKBmfmugoq87r8voptqHdw+wropj4Z
+qdekZAWXhm8u7kYRG2Q7ZTEgRwQGCeau0hCQ5j+DU3oTM2HttEv1/CsousJrePqw
+0Th/LZMUskPKGBREUQJBANmLCm2zfc9GtuQ3wqzhbpDRh3NilSJOwUK3+WOR/UfW
+4Yx7Tpr5ZZr8j9Ah+kWB64p77rffErRrEZjH89jLW+kCQQDB87vemsYCz1alOBcT
+xn+e7PlfmH2yGIlcJg2mNyZvVqjEPwh4ubqBHtier2jm6AoVhX9lEM4nOoY0i5f2
+H3eXAkEA16asvNjtA7f+/7eDBawn1enP04NLgYn+rSwBTkJfiYKrbn6iCqDmp0Bt
+NA8qsRK8szhuCdpaCX4GIKU+xo+5WQJACJ+vwMwc9c8GST5fOE/hKM3coLWFEUAq
+C2DdxoA5Q0YVJvSuib+oXUlj1Fp0TaAPorlW2sWOhQwDH579WMI5bQJACCDhAqpU
+BP99plWnEh4Z1EtTw3Byikn1h0exRvGtO2rnlRXVRzLnsXBX/pn7xyAHP5jPTDFN
++LfCitjxvZmWsQ==
 -----END PRIVATE KEY-----)";
+
+constexpr const char* kCertificate =
+    R"(-----BEGIN CERTIFICATE-----
+MIICgDCCAemgAwIBAgIJANin/30HHMYLMA0GCSqGSIb3DQEBCwUAMFkxCzAJBgNV
+BAYTAlJVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQxEjAQBgNVBAMMCWxvY2FsaG9zdDAeFw0xOTEyMTIwODIx
+MjhaFw0zMzA4MjAwODIxMjhaMFkxCzAJBgNVBAYTAlJVMRMwEQYDVQQIDApTb21l
+LVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxEjAQBgNV
+BAMMCWxvY2FsaG9zdDCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEApNDxfVUq
+TyHzefd4k2hltdxrWoyUXGzd8BwkmZFX9x4W9316wzwo7NcJ6Zwpk1WLW3JQ+34t
+eT8+jWLcI5OVT/4RQc74hKAia1V2ONwT36EuI8Ug1ycgPatZY0nWnJGOpXbp+Pqh
+AwLIBb7tl1CK8f9e08Y3CUa52xmu/G7jhW8CAwEAAaNQME4wHQYDVR0OBBYEFFmN
+gh59kCf1PClm3I30jR9/mQO6MB8GA1UdIwQYMBaAFFmNgh59kCf1PClm3I30jR9/
+mQO6MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQELBQADgYEAAGt9Vo5bM3WHTLza
+Jd+x3JbeCAMqz831yCAp2kpssNa0rRNfC3QX3GEKWGMjxgUKpS/9V8tHH/K3jI+K
+57DUESC0/NBo4r76JIjMga4i7W7Eh5XD1jnPdfvSGumBIks2UMJV7FaZHwUjr4fP
+g3n5Bom64kOrAWOk2xcpd0Pm00o=
+-----END CERTIFICATE-----)";
 
 constexpr char kResponse301WithHeaderPattern[] =
     "HTTP/1.1 301 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
@@ -558,7 +565,8 @@ TEST(HttpClient, HeadersAndWhitespaces) {
 // was misconfigured and uses wrong version of OpenSSL.
 TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
   TestInCoro([] {
-    auto pkey = crypto::LoadPrivateKeyFromString(kPrivateKey, "");
+    auto pkey = crypto::PrivateKey::LoadFromString(kPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kCertificate);
     auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
     const testing::SimpleServer http_server{echo_callback};
     const auto url = http_server.GetBaseUrl();
@@ -574,27 +582,28 @@ TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
       auto response_future = http_client_ptr->CreateRequest()
                                  ->post(ssl_url)
                                  ->timeout(kTimeout)
-                                 ->client_cert(pkey)
+                                 ->client_key_cert(pkey, cert)
                                  ->async_perform();
 
       response_future.Wait();
       EXPECT_THROW(response_future.Get(), std::exception)
-          << "SSL is not used by the server but the request succeeded";
+          << "SSL is not used by the server but the request with private key "
+             "succeeded";
 
-      const auto response = http_client_ptr->CreateRequest()
-                                ->post(url)
-                                ->timeout(kTimeout)
-                                ->client_cert(pkey)
-                                ->perform();
+      auto response = http_client_ptr->CreateRequest()
+                          ->post(url)
+                          ->timeout(kTimeout)
+                          ->client_key_cert(pkey, cert)
+                          ->perform();
 
       EXPECT_TRUE(response->IsOk());
 
-      const auto response2 = http_client_ptr->CreateRequest()
-                                 ->post(url)
-                                 ->timeout(kTimeout)
-                                 ->perform();  // No client cert
+      response = http_client_ptr->CreateRequest()
+                     ->post(url)
+                     ->timeout(kTimeout)
+                     ->perform();
 
-      EXPECT_TRUE(response2->IsOk());
+      EXPECT_TRUE(response->IsOk());
     }
   });
 }

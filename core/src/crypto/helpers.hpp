@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include <openssl/bio.h>
 #include <openssl/evp.h>
 
 #include <crypto/basic_types.hpp>
@@ -37,6 +38,7 @@ std::string EnumValueToString(DigestSize bits);
 
 bool IsMatchingKeyCurve(EVP_PKEY*, DigestSize bits);
 
-void CheckIsPrivateKey(EVP_PKEY* key);
+std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
+    utils::string_view str);
 
 }  // namespace crypto

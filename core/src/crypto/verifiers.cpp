@@ -7,7 +7,6 @@
 
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
-#include <crypto/load_key.hpp>
 
 namespace crypto {
 namespace {
@@ -78,17 +77,17 @@ template class HmacShaVerifier<DigestSize::k512>;
 template <DsaType type, DigestSize bits>
 DsaVerifier<type, bits>::DsaVerifier(const std::string& key)
     : Verifier(EnumValueToString(type) + EnumValueToString(bits)),
-      pkey_(LoadPublicKeyFromString(key)) {
+      pkey_(PublicKey::LoadFromString(key)) {
   if constexpr (type == DsaType::kEc) {
-    if (EVP_PKEY_base_id(pkey_.get()) != EVP_PKEY_EC) {
+    if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_EC) {
       throw VerificationError("Non-EC key supplied for " + Name() +
                               " verifier");
     }
-    if (!IsMatchingKeyCurve(pkey_.get(), bits)) {
+    if (!IsMatchingKeyCurve(pkey_.GetNative(), bits)) {
       throw VerificationError("Key curve mismatch for " + Name() + " verifier");
     }
   } else {
-    if (EVP_PKEY_base_id(pkey_.get()) != EVP_PKEY_RSA) {
+    if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_RSA) {
       throw VerificationError("Non-RSA key supplied for " + Name() +
                               " verifier");
     }
@@ -102,7 +101,7 @@ void DsaVerifier<type, bits>::Verify(
   EvpMdCtx ctx;
   EVP_PKEY_CTX* pkey_ctx = nullptr;
   if (1 != EVP_DigestVerifyInit(ctx.Get(), &pkey_ctx, GetShaMdByEnum(bits),
-                                nullptr, pkey_.get())) {
+                                nullptr, pkey_.GetNative())) {
     throw VerificationError(
         FormatSslError("Failed to verify: EVP_DigestVerifyInit"));
   }

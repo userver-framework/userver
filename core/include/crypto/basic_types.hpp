@@ -6,12 +6,14 @@
 
 /// @cond
 struct evp_pkey_st;
+struct x509_st;
 /// @endcond
 
 namespace crypto {
 
 /// @cond
 using EVP_PKEY = struct evp_pkey_st;
+using X509 = struct x509_st;
 /// @endcond
 
 /// SHA digest size in bits

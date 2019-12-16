@@ -9,7 +9,6 @@
 
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
-#include <crypto/load_key.hpp>
 
 namespace crypto {
 namespace {
@@ -88,16 +87,16 @@ template <DsaType type, DigestSize bits>
 DsaSigner<type, bits>::DsaSigner(const std::string& key,
                                  const std::string& password)
     : Signer(EnumValueToString(type) + EnumValueToString(bits)),
-      pkey_(LoadPrivateKeyFromString(key, password)) {
+      pkey_(PrivateKey::LoadFromString(key, password)) {
   if constexpr (type == DsaType::kEc) {
-    if (EVP_PKEY_base_id(pkey_.get()) != EVP_PKEY_EC) {
+    if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_EC) {
       throw SignError("Non-EC key supplied for " + Name() + " signer");
     }
-    if (!IsMatchingKeyCurve(pkey_.get(), bits)) {
+    if (!IsMatchingKeyCurve(pkey_.GetNative(), bits)) {
       throw SignError("Key curve mismatch for " + Name() + " signer");
     }
   } else {
-    if (EVP_PKEY_base_id(pkey_.get()) != EVP_PKEY_RSA) {
+    if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_RSA) {
       throw SignError("Non-RSA key supplied for " + Name() + " signer");
     }
   }
@@ -109,7 +108,7 @@ std::string DsaSigner<type, bits>::Sign(
   EvpMdCtx ctx;
   EVP_PKEY_CTX* pkey_ctx = nullptr;
   if (1 != EVP_DigestSignInit(ctx.Get(), &pkey_ctx, GetShaMdByEnum(bits),
-                              nullptr, pkey_.get())) {
+                              nullptr, pkey_.GetNative())) {
     throw SignError(FormatSslError("Failed to sign: EVP_DigestSignInit"));
   }
 
