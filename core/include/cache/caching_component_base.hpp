@@ -8,10 +8,10 @@
 #include <cache/testsuite_support.hpp>
 #include <components/statistics_storage.hpp>
 #include <engine/condition_variable.hpp>
+#include <rcu/rcu.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <utils/async_event_channel.hpp>
 #include <utils/statistics/metadata.hpp>
-#include <utils/swappingsmart.hpp>
 
 #include <components/component_config.hpp>
 #include <components/loggable_component_base.hpp>
@@ -114,7 +114,7 @@ class CachingComponentBase
   void OnAllComponentsLoaded() override;
 
   utils::statistics::Entry statistics_holder_;
-  utils::SwappingSmart<const T> cache_;
+  rcu::Variable<std::shared_ptr<const T>> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
   bool periodic_update_enabled_;
   const std::string name_;
@@ -176,12 +176,13 @@ std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
 
 template <typename T>
 std::shared_ptr<const T> CachingComponentBase<T>::GetUnsafe() const {
-  return cache_.Get();
+  auto ptr = cache_.Read();
+  return *ptr;
 }
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::shared_ptr<const T> value_ptr) {
-  cache_.Set(value_ptr);
+  cache_.Assign(value_ptr);
   this->SendEvent(Get());
 }
 
@@ -198,7 +199,7 @@ void CachingComponentBase<T>::Emplace(Args&&... args) {
 
 template <typename T>
 void CachingComponentBase<T>::Clear() {
-  cache_.Clear();
+  cache_.Assign(std::make_shared<const T>());
 }
 
 template <typename T>
