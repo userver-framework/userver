@@ -40,11 +40,14 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
-    $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
 )
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+)
 target_link_libraries(${PROJECT_NAME}_unittest utest ${PROJECT_NAME})
 add_google_tests(${PROJECT_NAME}_unittest)
 

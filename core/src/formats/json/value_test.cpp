@@ -4,6 +4,7 @@
 #include <formats/json/serialize.hpp>
 #include <formats/json/serialize_container.hpp>
 #include <formats/json/value.hpp>
+#include <formats/json/value_builder.hpp>
 
 #include <formats/common/value_test.hpp>
 
@@ -32,4 +33,13 @@ TEST(FormatsJson, ParsingInvalidRootType) {
 
   ASSERT_THROW(FromString(R"({"field": 'string'})"), ParseException);
   ASSERT_THROW(FromString("{}{}"), ParseException);
+}
+
+TEST(FormatsJson, ParseNanInf) {
+  using formats::json::FromString;
+  using ParseException = formats::json::Value::ParseException;
+
+  ASSERT_THROW(FromString(R"({"field": NaN})"), ParseException);
+  ASSERT_THROW(FromString(R"({"field": Inf})"), ParseException);
+  ASSERT_THROW(FromString(R"({"field": -Inf})"), ParseException);
 }

@@ -2,8 +2,10 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
+#include <formats/bson/exception.hpp>
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
+#include <formats/common/validations.hpp>
 #include <utils/assert.hpp>
 
 namespace formats::bson {
@@ -85,7 +87,8 @@ ValueBuilder::ValueBuilder(uint64_t value)
     : impl_(std::make_shared<impl::ValueImpl>(
           boost::numeric_cast<int64_t>(value))) {}
 ValueBuilder::ValueBuilder(double value)
-    : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+    : impl_(std::make_shared<impl::ValueImpl>(
+          formats::common::validate_float<BsonException>(value))) {}
 ValueBuilder::ValueBuilder(const char* value)
     : ValueBuilder(std::string(value)) {}
 ValueBuilder::ValueBuilder(std::string value)

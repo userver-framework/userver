@@ -1,5 +1,6 @@
 #include <formats/json/value_builder.hpp>
 
+#include <formats/common/validations.hpp>
 #include <formats/json/exception.hpp>
 
 #include <rapidjson/allocators.h>
@@ -63,9 +64,11 @@ ValueBuilder::ValueBuilder(int64_t t)
     : value_(std::make_shared<impl::Value>(t)) {}
 
 ValueBuilder::ValueBuilder(float t)
-    : value_(std::make_shared<impl::Value>(t)) {}
+    : value_(std::make_shared<impl::Value>(
+          formats::common::validate_float<Exception>(t))) {}
 ValueBuilder::ValueBuilder(double t)
-    : value_(std::make_shared<impl::Value>(t)) {}
+    : value_(std::make_shared<impl::Value>(
+          formats::common::validate_float<Exception>(t))) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   Copy(value_.GetNative(), other);

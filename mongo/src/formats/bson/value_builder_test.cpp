@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <formats/bson.hpp>
+#include <formats/common/value_builder_test.hpp>
 #include <formats/serialize/common_containers.hpp>
 
 namespace fb = formats::bson;
@@ -358,3 +359,13 @@ TEST(BsonValueBuilder, Serialize) {
   EXPECT_EQ(1, value["doc"]["one"].As<int>(-1));
   EXPECT_EQ(2, value["doc"]["two"].As<int>(-1));
 }
+
+template <>
+struct Instantiation<formats::bson::ValueBuilder> : public ::testing::Test {
+  using ValueBuilder = formats::bson::ValueBuilder;
+
+  using Exception = formats::bson::BsonException;
+};
+
+INSTANTIATE_TYPED_TEST_CASE_P(FormatsBson, Instantiation,
+                              formats::bson::ValueBuilder);
