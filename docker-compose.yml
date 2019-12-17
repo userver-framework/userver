@@ -17,4 +17,3 @@ services:
         - ./tools/dockertest:/taxi/tools:rw
         working_dir: /taxi/userver/
         command: /taxi/tools/userver-clang-tidy.sh
-        network_mode: "none"
