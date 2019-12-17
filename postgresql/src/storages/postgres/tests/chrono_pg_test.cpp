@@ -22,36 +22,17 @@ static_assert((io::traits::HasParser<std::chrono::system_clock::time_point,
 
 }  // namespace static_test
 
+namespace storages::postgres {
+
+void PrintTo(const TimePointTz& ts, std::ostream* os) {
+  *os << ts.GetUnderlying().time_since_epoch().count();
+}
+
+}  // namespace storages::postgres
+
 namespace {
 
 const pg::UserTypes types;
-
-TEST(PostgreIO, Chrono) {
-  {
-    auto now = std::chrono::system_clock::now();
-    pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, now));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
-    std::chrono::system_clock::time_point tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, tgt));
-    EXPECT_EQ(now, tgt) << "Parse buffer "
-                        << std::string{buffer.begin(), buffer.end()};
-  }
-  {
-    auto now = std::chrono::system_clock::now();
-    pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, now));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
-    pg::TimePoint tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, tgt));
-    EXPECT_EQ(now, tgt) << "Parse buffer "
-                        << std::string{buffer.begin(), buffer.end()};
-  }
-}
 
 template <typename Duration>
 std::string FormatToTZ(
@@ -92,6 +73,58 @@ pg::TimePoint ParseUTC(const ::std::string& value) {
     return ::testing::AssertionFailure()
            << "∆ between " << FormatToLocal(lhs) << " and "
            << FormatToLocal(rhs) << " is " << diff.count() << "µs";
+  }
+}
+
+TEST(PostgreIO, Chrono) {
+  {
+    auto now = std::chrono::system_clock::now();
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(
+        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, now));
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
+    pg::TimePoint tgt;
+    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, tgt));
+    EXPECT_EQ(now, tgt) << "Parse buffer "
+                        << std::string{buffer.begin(), buffer.end()};
+  }
+  {
+    auto now = std::chrono::system_clock::now();
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(
+        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, now));
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
+    pg::TimePoint tgt;
+    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, tgt));
+    EXPECT_EQ(now, tgt) << "Parse buffer "
+                        << std::string{buffer.begin(), buffer.end()};
+  }
+}
+
+TEST(PostgreIO, ChronoTz) {
+  {
+    auto now = pg::TimePointTz{std::chrono::system_clock::now()};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(
+        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, now));
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+    pg::TimePointTz tgt;
+    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt));
+    EXPECT_TRUE(EqualToMicroseconds(now.GetUnderlying(), tgt.GetUnderlying()));
+  }
+  {
+    auto now = pg::TimePointTz{std::chrono::system_clock::now()};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(
+        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, now));
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+    pg::TimePointTz tgt;
+    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt));
+    EXPECT_TRUE(EqualToMicroseconds(now.GetUnderlying(), tgt.GetUnderlying()));
   }
 }
 

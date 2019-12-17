@@ -12,12 +12,18 @@
 #include <storages/postgres/io/type_mapping.hpp>
 
 #include <compiler/demangle.hpp>
+#include <utils/strong_typedef.hpp>
 
 namespace storages {
 namespace postgres {
 
 using ClockType = std::chrono::system_clock;
 using TimePoint = ClockType::time_point;
+/// Strong typedef for chrono time_point to be used in conjunction with
+/// timestamptz
+using TimePointTz =
+    ::utils::StrongTypedef<struct TimestampWithTz, TimePoint,
+                           ::utils::StrongTypedefOps::kCompareTransparent>;
 using IntervalType = std::chrono::microseconds;
 
 TimePoint PostgresEpoch();
@@ -317,6 +323,32 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
   }
 };
 
+///@brief Binary formatter for TimePointTz
+template <>
+struct BufferFormatter<TimePointTz, DataFormat::kBinaryDataFormat>
+    : detail::BufferFormatterBase<TimePointTz> {
+  using BaseType = detail::BufferFormatterBase<TimePointTz>;
+  using BaseType::BaseType;
+
+  template <typename Buffer>
+  void operator()(const UserTypes& types, Buffer& buf) const {
+    WriteBinary(types, buf, TimestampTz(value.GetUnderlying()));
+  }
+};
+
+/// @brief Binary parser for TimePointTz
+template <>
+struct BufferParser<TimePointTz, DataFormat::kBinaryDataFormat>
+    : detail::BufferParserBase<TimePointTz> {
+  using BaseType = detail::BufferParserBase<TimePointTz>;
+  using BaseType::BaseType;
+
+  void operator()(const FieldBuffer& buffer) {
+    TimePointTz::UnderlyingType& ts = value.GetUnderlying();
+    ReadBinary(buffer, TimestampTz(ts));
+  }
+};
+
 namespace detail {
 
 template <typename Rep, typename Period>
@@ -358,6 +390,10 @@ struct Input<std::chrono::duration<Rep, Period>,
 
 template <typename TimePointType>
 struct CppToSystemPg<postgres::detail::TimestampTz<TimePointType>>
+    : PredefinedOid<PredefinedOids::kTimestamptz> {};
+
+template <>
+struct CppToSystemPg<TimePointTz>
     : PredefinedOid<PredefinedOids::kTimestamptz> {};
 
 template <typename Duration>
