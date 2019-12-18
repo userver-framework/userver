@@ -3,6 +3,7 @@ version: "2.3"
 services:
     taxi-userver-clang-tidy:
         image: registry.yandex.net/taxi/taxi-integration-xenial-base
+        network_mode: bridge
         environment:
         - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
         - CC
@@ -17,3 +18,28 @@ services:
         - ./tools/dockertest:/taxi/tools:rw
         working_dir: /taxi/userver/
         command: /taxi/tools/userver-clang-tidy.sh
+
+    taxi-userver-bionic:
+        image: registry.yandex.net/taxi/taxi-bionic-base
+        container_name: taxi-userver-bionic
+        entrypoint: /taxi/userver/tools/dockertest/run_as_user.sh
+        network_mode: bridge
+        environment:
+            - CC
+            - CXX
+            - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
+            - BUILD_TYPE=${BUILD_TYPE:-Release}
+            - CCACHE_DIR=/taxi/ccache
+            - CCACHE_HASHDIR
+            - CCACHE_NOHASHDIR
+            - CCACHE_PREFIX
+            - CCACHE_SIZE
+            - CMAKE_OPTS=${CMAKE_OPTS}
+            - DISTCC_HOSTS
+            - IS_TEAMCITY
+            - NPROCS
+            - LANG=ru_RU.UTF-8
+        volumes:
+            - .:/taxi/userver:rw
+            - ${CCACHE_DIR:-~/.ccache}:/taxi/ccache:rw
+        working_dir: /taxi/userver
