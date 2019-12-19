@@ -77,6 +77,25 @@ struct HasValueType<T, ::utils::void_t<typename T::ValueType>>
 template <typename T>
 constexpr bool kHasValueType = HasValueType<T>::value;
 
+template <typename T, typename = ::utils::void_t<>>
+struct HasRawValueType : std::false_type {};
+template <typename T>
+struct HasRawValueType<T, ::utils::void_t<typename T::RawValueType>>
+    : std::true_type {};
+template <typename T>
+constexpr bool kHasRawValueType = HasRawValueType<T>::value;
+
+template <typename T, bool HasRawValueType>
+struct RawValueTypeImpl {
+  using Type = typename T::RawValueType;
+};
+template <typename T>
+struct RawValueTypeImpl<T, false> {
+  using Type = typename T::ValueType;
+};
+template <typename T>
+using RawValueType = typename RawValueTypeImpl<T, kHasRawValueType<T>>::Type;
+
 // Component name in policy
 template <typename T, typename = ::utils::void_t<>>
 struct HasName : std::false_type {};
@@ -249,6 +268,7 @@ class PostgreCache final
   // Type aliases
   using PolicyType = PostgreCachePolicy;
   using ValueType = pg_cache::detail::ValueType<PolicyType>;
+  using RawValueType = pg_cache::detail::RawValueType<PolicyType>;
   using DataType = pg_cache::detail::DataCacheContainerType<PolicyType>;
   using PolicyCheckerType = pg_cache::detail::PolicyChecker<PostgreCachePolicy>;
   using BaseType = typename PolicyCheckerType::BaseType;
@@ -426,12 +446,20 @@ template <typename PostgreCachePolicy>
 void PostgreCache<PostgreCachePolicy>::CacheResults(
     storages::postgres::ResultSet res, CachedData data_cache,
     cache::UpdateStatisticsScope& stats_scope) {
-  auto values = res.AsSetOf<ValueType>();
+  auto values = res.AsSetOf<RawValueType>();
   for (auto p = values.begin(); p != values.end(); ++p) {
     try {
-      auto value = *p;
-      auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
-      data_cache->insert({std::move(key), std::move(value)});
+      if constexpr (pg_cache::detail::kHasRawValueType<PolicyType>) {
+        auto value = Convert(
+            std::move(*p),
+            formats::parse::To<pg_cache::detail::ValueType<PolicyType>>());
+        auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
+        data_cache->insert({std::move(key), std::move(value)});
+      } else {
+        auto value = *p;
+        auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
+        data_cache->insert({std::move(key), std::move(value)});
+      }
     } catch (const storages::postgres::Error& e) {
       stats_scope.IncreaseDocumentsParseFailures(1);
       LOG_ERROR() << "Error parsing data row in cache '" << kName << "' to '"
