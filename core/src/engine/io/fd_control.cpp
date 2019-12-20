@@ -20,11 +20,21 @@ namespace io {
 namespace impl {
 namespace {
 
-int SetNonblockAndCloexec(int fd) {
+int SetNonblock(int fd) {
   int oldflags = utils::CheckSyscall(::fcntl(fd, F_GETFL),
                                      "getting file status flags, fd=", fd);
-  if (!(oldflags & O_NONBLOCK) || !(oldflags & O_CLOEXEC)) {
-    utils::CheckSyscall(::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK | O_CLOEXEC),
+  if (!(oldflags & O_NONBLOCK)) {
+    utils::CheckSyscall(::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK),
+                        "setting file status flags, fd=", fd);
+  }
+  return fd;
+}
+
+int SetCloexec(int fd) {
+  int oldflags = utils::CheckSyscall(::fcntl(fd, F_GETFD),
+                                     "getting file status flags, fd=", fd);
+  if (!(oldflags & FD_CLOEXEC)) {
+    utils::CheckSyscall(::fcntl(fd, F_SETFD, oldflags | FD_CLOEXEC),
                         "setting file status flags, fd=", fd);
   }
   return fd;
@@ -156,7 +166,8 @@ FdControl::~FdControl() { Close(); }
 FdControlHolder FdControl::Adopt(int fd) {
   auto fd_control = std::make_shared<FdControl>();
   // TODO: add conditional CLOEXEC set
-  SetNonblockAndCloexec(fd);
+  SetCloexec(fd);
+  SetNonblock(fd);
   ReduceSigpipe(fd);
   fd_control->read_.Reset(fd);
   fd_control->write_.Reset(fd);
