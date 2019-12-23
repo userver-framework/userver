@@ -460,7 +460,7 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
         auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
         data_cache->insert({std::move(key), std::move(value)});
       }
-    } catch (const storages::postgres::Error& e) {
+    } catch (const std::exception& e) {
       stats_scope.IncreaseDocumentsParseFailures(1);
       LOG_ERROR() << "Error parsing data row in cache '" << kName << "' to '"
                   << compiler::GetTypeName<ValueType>() << "': " << e.what();
