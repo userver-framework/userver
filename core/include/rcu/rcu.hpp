@@ -4,6 +4,7 @@
 /// @brief Implementation of hazard pointer
 
 #include <atomic>
+#include <cstdlib>
 #include <list>
 #include <set>
 
@@ -79,33 +80,33 @@ class USERVER_NODISCARD ReadablePtr final {
       // t_ptr_ 2) Retire() will read new t_ptr_ value as it does RMW
       hp_record_.ptr.store(t_ptr_, std::memory_order_relaxed);
     } while (t_ptr_ != ptr.GetCurrent());
-
-    LOG_TRACE() << "Start reading ptr=" << t_ptr_;
   }
 
   ReadablePtr(ReadablePtr<T>&& other) noexcept
       : t_ptr_(other.t_ptr_), hp_record_(other.hp_record_) {
     other.t_ptr_ = nullptr;
-
-    LOG_TRACE() << "Continue reading ptr=" << t_ptr_;
   }
 
   ~ReadablePtr() {
     if (!t_ptr_) return;
-
-    LOG_TRACE() << "Stop reading ptr=" << t_ptr_;
     hp_record_.Release();
   }
 
   const T& operator*() const& { return *t_ptr_; }
 
-  /// Don't use *tmp for temporary value, store it to variable.
-  const T& operator*() && = delete;
+  const T& operator*() && {
+    static_assert(false && sizeof(T),
+                  "Don't use *tmp for temporary value, store it to variable");
+    std::abort();
+  }
 
   const T* operator->() const& { return t_ptr_; }
 
-  /// Don't use tmp-> for temporary value, store it to variable.
-  const T* operator->() && = delete;
+  const T* operator->() && {
+    static_assert(false && sizeof(T),
+                  "Don't use tmp-> for temporary value, store it to variable");
+    std::abort();
+  }
 
  private:
   T* t_ptr_;
