@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <limits>
 
-#include <boost/numeric/conversion/cast.hpp>
-
 #include <compiler/demangle.hpp>
 #include <formats/common/meta.hpp>
 #include <formats/parse/to.hpp>
@@ -92,21 +90,6 @@ std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(
   }
 
   return to;
-}
-
-template <typename Rep, typename Period>
-std::chrono::duration<Rep, Period> Parse(
-    std::int64_t n, To<std::chrono::duration<Rep, Period>>) {
-  return std::chrono::duration<Rep, Period>{n};
-}
-
-/* signed <=> unsigned */
-template <typename T, typename U>
-std::enable_if_t<std::is_integral<T>::value && std::is_integral<U>::value &&
-                     sizeof(T) == sizeof(U),
-                 U>
-Parse(T n, To<U>) {
-  return boost::numeric_cast<U>(n);
 }
 
 template <class Value>
