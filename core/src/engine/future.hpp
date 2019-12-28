@@ -66,6 +66,7 @@ class Promise {
 
   Future<T> get_future();
 
+  // WARN: These functions will return after future.get(), ensure ownership!
   void set_value(const T&);
   void set_value(T&&);
   void set_exception(std::exception_ptr ex);

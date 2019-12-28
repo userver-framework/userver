@@ -81,9 +81,11 @@ ChildProcess ProcessStarter::Exec(
     const boost::optional<std::string>& stderr_file) {
   tracing::Span span("ProcessStarter::Exec");
   span.AddTag("command", command);
-  Promise<ChildProcess> promise;
-  auto future = promise.get_future();
-  thread_control_.RunInEvLoopAsync([&]() {
+  // future.get() will return earlier than promise.set_*(), we must transfer
+  // ownership to std::function, hence shared_ptr
+  auto promise_ptr = std::make_shared<Promise<ChildProcess>>();
+  auto future = promise_ptr->get_future();
+  thread_control_.RunInEvLoopAsync([&, promise_ptr = std::move(promise_ptr)] {
     LOG_DEBUG() << "do fork() + execve(), command=" << command << ", args=["
                 << (args.empty() ? "" : '\'' + boost::join(args, "' '") + '\'')
                 << "], env=["
@@ -105,14 +107,15 @@ ChildProcess ProcessStarter::Exec(
       auto res = ChildProcessMapSet(
           pid, ev::ChildProcessMapValue(std::move(exec_result_promise)));
       if (res.second) {
-        promise.set_value(ChildProcess{std::make_unique<ChildProcessImpl>(
+        promise_ptr->set_value(ChildProcess{std::make_unique<ChildProcessImpl>(
             pid, res.first->status_promise.get_future())});
       } else {
         std::string msg = "process with pid=" + std::to_string(pid) +
                           " already exists in child_process_map";
         LOG_ERROR() << msg << ", send SIGKILL";
         ChildProcessImpl(pid, Future<ChildProcessStatus>{}).SendSignal(SIGKILL);
-        promise.set_exception(std::make_exception_ptr(std::runtime_error(msg)));
+        promise_ptr->set_exception(
+            std::make_exception_ptr(std::runtime_error(msg)));
       }
     } else {
       // in child thread
