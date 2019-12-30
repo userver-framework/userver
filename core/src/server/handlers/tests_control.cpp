@@ -1,13 +1,13 @@
 #include <server/handlers/tests_control.hpp>
 
-#include <cache/testsuite_support.hpp>
 #include <cache/update_type.hpp>
 #include <clients/http/component.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_error.hpp>
+#include <testsuite/testpoint.hpp>
+#include <testsuite/testsuite_support.hpp>
 #include <utils/datetime.hpp>
 #include <utils/mock_now.hpp>
-#include <utils/testpoint.hpp>
 
 namespace server {
 namespace handlers {
@@ -25,7 +25,7 @@ TestsControl::TestsControl(
             .GetHttpClient();
     auto testpoint_timeout =
         config.ParseDuration("testpoint-timeout", std::chrono::seconds(1));
-    auto& tp = utils::TestPoint::GetInstance();
+    auto& tp = testsuite::impl::TestPoint::GetInstance();
     tp.Setup(http_client, *testpoint_url, testpoint_timeout);
   }
 }
@@ -79,9 +79,13 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     utils::datetime::MockNowUnset();
 
   if (invalidate_caches) {
-    const auto names = request_body["names"].As<std::vector<std::string>>(
-        std::vector<std::string>());
-    testsuite_support->get().InvalidateCaches(update_type, names);
+    auto names = request_body["names"];
+    if (names.IsMissing()) {
+      testsuite_support->get().InvalidateEverything(update_type);
+    } else {
+      testsuite_support->get().InvalidateCaches(
+          update_type, names.As<std::vector<std::string>>());
+    }
   }
 
   return formats::json::Value();
@@ -94,7 +98,9 @@ formats::json::Value TestsControl::ActionRunPeriodicTask(
   auto testsuite_support = testsuite_support_.Lock();
 
   LOG_INFO() << "Running periodic task " << task_name;
-  bool status = testsuite_support->get().RunPeriodicTask(task_name);
+  bool status =
+      testsuite_support->get().GetPeriodicTaskControl().RunPeriodicTask(
+          task_name);
   LOG_INFO() << "Periodic task " << task_name << " finished with status "
              << status;
 

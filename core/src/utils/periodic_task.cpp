@@ -1,37 +1,13 @@
 #include <utils/periodic_task.hpp>
 
-#include <cache/testsuite_support.hpp>
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
+#include <testsuite/testsuite_support.hpp>
 #include <tracing/tracer.hpp>
 
 namespace utils {
-
-class PeriodicTask::TestsuiteHolder {
- public:
-  TestsuiteHolder(components::TestsuiteSupport& testsuite_support,
-                  std::string name, PeriodicTask& task)
-      : testsuite_support_(testsuite_support),
-        name_(std::move(name)),
-        task_(task) {
-    testsuite_support_.RegisterPeriodicTask(name_, task_);
-  }
-  TestsuiteHolder(const TestsuiteHolder&) = delete;
-  TestsuiteHolder(TestsuiteHolder&&) = delete;
-  TestsuiteHolder& operator=(const TestsuiteHolder&) = delete;
-  TestsuiteHolder& operator=(TestsuiteHolder&&) = delete;
-
-  ~TestsuiteHolder() {
-    testsuite_support_.UnregisterPeriodicTask(name_, task_);
-  }
-
- private:
-  components::TestsuiteSupport& testsuite_support_;
-  std::string name_;
-  PeriodicTask& task_;
-};
 
 PeriodicTask::PeriodicTask()
     : settings_(std::chrono::seconds(1)),
@@ -50,7 +26,7 @@ PeriodicTask::PeriodicTask(std::string name, Settings settings,
 
 PeriodicTask::~PeriodicTask() {
   UASSERT(!IsRunning());
-  testsuite_holder_.reset();
+  registration_holder_ = boost::none;
   Stop();
 }
 
@@ -204,9 +180,8 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
 }
 
 void PeriodicTask::RegisterInTestsuite(
-    components::TestsuiteSupport& testsuite_support) {
-  testsuite_holder_ =
-      std::make_unique<TestsuiteHolder>(testsuite_support, name_, *this);
+    testsuite::PeriodicTaskControl& periodic_task_control) {
+  registration_holder_.emplace(periodic_task_control, name_, *this);
 }
 
 }  // namespace utils

@@ -1,4 +1,4 @@
-#include <utils/testpoint.hpp>
+#include <testsuite/testpoint.hpp>
 
 #include <clients/http/client.hpp>
 #include <formats/json/serialize.hpp>
@@ -6,8 +6,9 @@
 #include <http/common_headers.hpp>
 #include <http/content_type.hpp>
 #include <tracing/span.hpp>
+#include <utils/assert.hpp>
 
-namespace utils {
+namespace testsuite::impl {
 
 TestPoint& TestPoint::GetInstance() {
   static TestPoint tp;
@@ -63,4 +64,4 @@ void TestPoint::Notify(
 
 bool TestPoint::IsEnabled() const { return is_initialized_; }
 
-}  // namespace utils
+}  // namespace testsuite::impl

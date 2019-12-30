@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file testsuite/testpoint.hpp
+/// @brief @copybrief TESTPOINT
+
 #include <atomic>
 #include <chrono>
 #include <string>
@@ -7,13 +10,11 @@
 #include <formats/json/value.hpp>
 #include <utils/assert.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 class Client;
-}
-}  // namespace clients
+}  // namespace clients::http
 
-namespace utils {
+namespace testsuite::impl {
 
 // Don't use TestPoint directly, use TESTPOINT(name, json) instead
 class TestPoint final {
@@ -37,17 +38,17 @@ class TestPoint final {
   std::chrono::milliseconds timeout_;
 };
 
-/// Send testpoint notification if testpoint support is enabled
-/// (e.g. in testsuite), otherwise does nothing.
-/// See https://wiki.yandex-team.ru/taxi/backend/testsuite/#testpoint for more
-/// info.
-#define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, {})
-#define TESTPOINT_CALLBACK(name, json, callback)  \
-  do {                                            \
-    auto& tp = ::utils::TestPoint::GetInstance(); \
-    if (!tp.IsEnabled()) break;                   \
-                                                  \
-    tp.Notify(name, json, callback);              \
-  } while (0)
+}  // namespace testsuite::impl
 
-}  // namespace utils
+/// @brief Send testpoint notification if testpoint support is enabled
+/// (e.g. in testsuite), otherwise does nothing.
+/// @see https://wiki.yandex-team.ru/taxi/backend/testsuite/#testpoint
+#define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, {})
+
+#define TESTPOINT_CALLBACK(name, json, callback)            \
+  do {                                                      \
+    auto& tp = ::testsuite::impl::TestPoint::GetInstance(); \
+    if (!tp.IsEnabled()) break;                             \
+                                                            \
+    tp.Notify(name, json, callback);                        \
+  } while (0)

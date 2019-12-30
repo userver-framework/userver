@@ -6,14 +6,10 @@
 #include <engine/deadline.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <rcu/rcu.hpp>
+#include <testsuite/periodic_task_control.hpp>
 #include <tracing/span.hpp>
 #include <utils/assert.hpp>
 #include <utils/flags.hpp>
-
-namespace components {
-class TestsuiteSupport;
-class ComponentContext;
-}  // namespace components
 
 namespace utils {
 
@@ -109,7 +105,8 @@ class PeriodicTask final {
 
   /// Make this periodic task available for testsuite. Testsuite provides a way
   /// to call it directly from testcase.
-  void RegisterInTestsuite(components::TestsuiteSupport& testsuite_support);
+  void RegisterInTestsuite(
+      testsuite::PeriodicTaskControl& periodic_task_control);
 
  private:
   void SleepUntil(engine::Deadline::TimePoint tp);
@@ -139,8 +136,8 @@ class PeriodicTask final {
   std::atomic<bool> started_;
   bool callback_succeeded_;
 
-  class TestsuiteHolder;
-  std::unique_ptr<TestsuiteHolder> testsuite_holder_;
+  boost::optional<testsuite::PeriodicTaskRegistrationHolder>
+      registration_holder_;
   boost::optional<tracing::Span> testsuite_oneshot_span_;
 };
 

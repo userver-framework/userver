@@ -1,32 +1,32 @@
 #include <cache/cache_update_trait.hpp>
-#include <server/cache_invalidator_holder.hpp>
 
 #include <engine/async.hpp>
 #include <logging/log.hpp>
+#include <testsuite/cache_control.hpp>
 #include <tracing/tracer.hpp>
 
-namespace components {
+namespace cache {
 
-void CacheUpdateTrait::Update(cache::UpdateType update_type) {
+void CacheUpdateTrait::Update(UpdateType update_type) {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
 
-  if (AllowedUpdateTypes() == cache::AllowedUpdateTypes::kOnlyFull &&
-      update_type == cache::UpdateType::kIncremental) {
-    update_type = cache::UpdateType::kFull;
+  if (AllowedUpdateTypes() == AllowedUpdateTypes::kOnlyFull &&
+      update_type == UpdateType::kIncremental) {
+    update_type = UpdateType::kFull;
   }
 
   DoUpdate(update_type);
 }
 
-CacheUpdateTrait::CacheUpdateTrait(
-    cache::CacheConfig&& config,
-    components::TestsuiteSupport& testsuite_support, const std::string& name)
+CacheUpdateTrait::CacheUpdateTrait(CacheConfig&& config,
+                                   testsuite::CacheControl& cache_control,
+                                   const std::string& name)
     // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     : static_config_(std::move(config)),
       config_(static_config_),
       name_(name),
       is_running_(false),
-      testsuite_support_(testsuite_support) {}
+      cache_control_(cache_control) {}
 
 CacheUpdateTrait::~CacheUpdateTrait() {
   if (is_running_.load()) {
@@ -40,7 +40,7 @@ CacheUpdateTrait::~CacheUpdateTrait() {
   }
 }
 
-cache::AllowedUpdateTypes CacheUpdateTrait::AllowedUpdateTypes() const {
+AllowedUpdateTypes CacheUpdateTrait::AllowedUpdateTypes() const {
   return config_.allowed_update_types;
 }
 
@@ -53,8 +53,9 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
   // are registered in the order of cache component dependency.
   // We exploit the fact that StartPeriodicUpdates is called at the end
   // of all concrete cache component constructors.
-  cache_invalidator_holder_ = std::make_unique<server::CacheInvalidatorHolder>(
-      *this, testsuite_support_);
+  cache_invalidator_holder_ =
+      std::make_unique<testsuite::CacheInvalidatorHolder>(cache_control_,
+                                                          *this);
 
   try {
     tracing::Span span("first-update/" + name_);
@@ -100,8 +101,7 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
   }
 }
 
-void CacheUpdateTrait::SetConfig(
-    const boost::optional<cache::CacheConfig>& config) {
+void CacheUpdateTrait::SetConfig(const boost::optional<CacheConfig>& config) {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
   config_ = config.value_or(static_config_);
   update_task_.SetSettings(GetPeriodicTaskSettings());
@@ -110,22 +110,22 @@ void CacheUpdateTrait::SetConfig(
 void CacheUpdateTrait::DoPeriodicUpdate() {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
 
-  auto update_type = cache::UpdateType::kFull;
+  auto update_type = UpdateType::kFull;
   // first update is always full
   if (last_update_ != std::chrono::system_clock::time_point{}) {
     switch (AllowedUpdateTypes()) {
-      case cache::AllowedUpdateTypes::kOnlyFull:
-        update_type = cache::UpdateType::kFull;
+      case AllowedUpdateTypes::kOnlyFull:
+        update_type = UpdateType::kFull;
         break;
-      case cache::AllowedUpdateTypes::kOnlyIncremental:
-        update_type = cache::UpdateType::kIncremental;
+      case AllowedUpdateTypes::kOnlyIncremental:
+        update_type = UpdateType::kIncremental;
         break;
-      case cache::AllowedUpdateTypes::kFullAndIncremental:
+      case AllowedUpdateTypes::kFullAndIncremental:
         const auto steady_now = std::chrono::steady_clock::now();
         update_type =
             steady_now - last_full_update_ < config_.full_update_interval
-                ? cache::UpdateType::kIncremental
-                : cache::UpdateType::kFull;
+                ? UpdateType::kIncremental
+                : UpdateType::kFull;
         break;
     }
   }
@@ -139,12 +139,12 @@ void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
                                       "StartPeriodicUpdates(), call it in ctr");
 }
 
-void CacheUpdateTrait::DoUpdate(cache::UpdateType update_type) {
+void CacheUpdateTrait::DoUpdate(UpdateType update_type) {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto update_type_str =
-      update_type == cache::UpdateType::kFull ? "full" : "incremental";
+      update_type == UpdateType::kFull ? "full" : "incremental";
 
-  cache::UpdateStatisticsScope stats(GetStatistics(), update_type);
+  UpdateStatisticsScope stats(GetStatistics(), update_type);
   LOG_INFO() << "Updating cache update_type=" << update_type_str
              << " name=" << name_;
 
@@ -154,7 +154,7 @@ void CacheUpdateTrait::DoUpdate(cache::UpdateType update_type) {
              << " name=" << name_;
 
   last_update_ = system_now;
-  if (update_type == cache::UpdateType::kFull) {
+  if (update_type == UpdateType::kFull) {
     last_full_update_ = steady_now;
   }
 }
@@ -167,4 +167,4 @@ utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings()
                                         utils::PeriodicTask::Flags::kCritical});
 }
 
-}  // namespace components
+}  // namespace cache

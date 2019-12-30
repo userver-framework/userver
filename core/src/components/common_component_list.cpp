@@ -1,6 +1,5 @@
 #include <components/common_component_list.hpp>
 
-#include <cache/testsuite_support.hpp>
 #include <clients/http/component.hpp>
 #include <components/manager_controller_component.hpp>
 #include <components/statistics_storage.hpp>
@@ -9,6 +8,7 @@
 #include <storages/secdist/component.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <taxi_config/updater/client/component.hpp>
+#include <testsuite/testsuite_support.hpp>
 
 namespace components {
 

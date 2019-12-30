@@ -1,11 +1,14 @@
 #pragma once
 
+/// @file cache/lru_cache_component_base.hpp
+/// @brief @copybrief components::LruCacheComponent
+
 #include <cache/cache_config.hpp>
 #include <cache/expirable_lru_cache.hpp>
 #include <components/loggable_component_base.hpp>
 #include <components/statistics_storage.hpp>
-#include <server/cache_invalidator_holder.hpp>
 #include <taxi_config/storage/component.hpp>
+#include <testsuite/testsuite_support.hpp>
 #include <utils/async_event_channel.hpp>
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/storage.hpp>
@@ -36,6 +39,25 @@ formats::json::Value GetCacheStatisticsAsJson(
 
 }  // namespace impl
 
+// clang-format off
+
+/// @brief Base class for LRU-cache components
+///
+/// Provides facilities for creating LRU caches.
+/// You need to override LruCacheComponent::DoGetByKey to handle cache misses.
+///
+/// Caching components must be configured in service config (see options below)
+/// and may be reconfigured dynamically via TaxiConfig.
+///
+/// ## Available options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// size | overall cache size limit | --
+/// ways | number of ways for associative cache | --
+/// lifetime | TTL for cache entries (0 is unlimited) | 0
+/// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
+
+// clang-format on
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Equal = std::equal_to<Key>>
 class LruCacheComponent : public components::LoggableComponentBase {
@@ -74,8 +96,7 @@ class LruCacheComponent : public components::LoggableComponentBase {
   const LruCacheConfigStatic static_config_;
   std::shared_ptr<Cache> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
-  server::ComponentInvalidatorHolder<LruCacheComponent<Key, Value, Hash, Equal>>
-      invalidator_holder_;
+  testsuite::ComponentInvalidatorHolder invalidator_holder_;
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -88,8 +109,9 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
       cache_(std::make_shared<Cache>(static_config_.ways,
                                      static_config_.GetWaySize())),
       invalidator_holder_(
-          *this, context,
-          &LruCacheComponent<Key, Value, Hash, Equal>::DropCache) {
+          context.FindComponent<components::TestsuiteSupport>()
+              .GetComponentControl(),
+          *this, &LruCacheComponent<Key, Value, Hash, Equal>::DropCache) {
   cache_->UpdateMaxLifetime(static_config_.config.lifetime);
 
   auto& storage =

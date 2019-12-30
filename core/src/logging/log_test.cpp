@@ -11,6 +11,7 @@ TEST_F(LoggingTest, SwitchToTraceWorks) {
   LOG_TRACE() << "test";
   ::logging::SetDefaultLoggerLevel(::logging::Level::kTrace);
   LOG_TRACE() << "test";
+  ::logging::SetDefaultLoggerLevel(::logging::Level::kInfo);
 
   logging::LogFlush();
   const auto log_contents = sstream.str();

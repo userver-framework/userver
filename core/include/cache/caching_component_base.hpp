@@ -1,15 +1,19 @@
 #pragma once
 
+/// @file cache/caching_component_base.hpp
+/// @brief @copybrief components::CachingComponentBase
+
 #include <atomic>
 #include <memory>
 #include <mutex>
 
 #include <cache/cache_statistics.hpp>
-#include <cache/testsuite_support.hpp>
 #include <components/statistics_storage.hpp>
 #include <engine/condition_variable.hpp>
 #include <rcu/rcu.hpp>
 #include <taxi_config/storage/component.hpp>
+#include <testsuite/cache_control.hpp>
+#include <testsuite/testsuite_support.hpp>
 #include <utils/async_event_channel.hpp>
 #include <utils/statistics/metadata.hpp>
 
@@ -71,7 +75,7 @@ template <typename T>
 class CachingComponentBase
     : public LoggableComponentBase,
       public utils::AsyncEventChannel<const std::shared_ptr<const T>&>,
-      protected CacheUpdateTrait {
+      protected cache::CacheUpdateTrait {
  public:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
                        const std::string& name);
@@ -126,12 +130,14 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const std::string& name)
     : LoggableComponentBase(config, context),
       utils::AsyncEventChannel<const std::shared_ptr<const T>&>(name),
-      CacheUpdateTrait(cache::CacheConfig(config),
-                       context.FindComponent<components::TestsuiteSupport>(),
-                       name),
-      periodic_update_enabled_(
-          context.FindComponent<TestsuiteSupport>().IsPeriodicUpdateEnabled(
-              config, name)),
+      cache::CacheUpdateTrait(
+          cache::CacheConfig(config),
+          context.FindComponent<components::TestsuiteSupport>()
+              .GetCacheControl(),
+          name),
+      periodic_update_enabled_(context.FindComponent<TestsuiteSupport>()
+                                   .GetCacheControl()
+                                   .IsPeriodicUpdateEnabled(config, name)),
       name_(name) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();

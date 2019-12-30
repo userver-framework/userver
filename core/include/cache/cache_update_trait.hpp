@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file cache/cache_update_trait.hpp
+/// @brief @copybrief cache::CacheUpdateTrait
+
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -12,39 +15,47 @@
 
 #include "cache_config.hpp"
 
-namespace server {
+namespace testsuite {
+class CacheControl;
 class CacheInvalidatorHolder;
-}  // namespace server
+}  // namespace testsuite
 
-namespace components {
-class TestsuiteSupport;
+namespace cache {
 
+/// Base class for periodically updated caches
 class CacheUpdateTrait {
  public:
-  void Update(cache::UpdateType update_type);
+  /// Forces cache update of specified type
+  void Update(UpdateType update_type);
 
   std::string GetName() const { return name_; }
 
  protected:
-  CacheUpdateTrait(cache::CacheConfig&& config,
-                   components::TestsuiteSupport& testsuite_support,
+  CacheUpdateTrait(CacheConfig&& config, testsuite::CacheControl& cache_control,
                    const std::string& name);
   virtual ~CacheUpdateTrait();
 
-  cache::AllowedUpdateTypes AllowedUpdateTypes() const;
+  /// Update types configured for the cache
+  AllowedUpdateTypes AllowedUpdateTypes() const;
 
+  /// Periodic update flags
   enum class Flag {
     kNone = 0,
-    kNoFirstUpdate = 1 << 0,
+    kNoFirstUpdate = 1 << 0,  ///< Disable initial update on start
   };
 
+  /// Starts periodic updates
   void StartPeriodicUpdates(utils::Flags<Flag> flags = {});
+
+  /// @brief Stops periodic updates
+  /// @warning Should be called in destructor of derived class.
   void StopPeriodicUpdates();
 
-  cache::Statistics& GetStatistics() { return statistics_; }
+  Statistics& GetStatistics() { return statistics_; }
 
-  /* If no config is set, use static default (from config.yaml) */
-  void SetConfig(const boost::optional<cache::CacheConfig>& config);
+  /// @brief Updates cache config
+  /// @note If no config is set, uses static default (from config.yaml).
+  void SetConfig(const boost::optional<CacheConfig>& config);
 
  protected:
   /// Can be called for force update. There is a mutex lock inside, so it's safe
@@ -57,27 +68,27 @@ class CacheUpdateTrait {
   void AssertPeriodicUpdateStarted();
 
  private:
-  void DoUpdate(cache::UpdateType type);
+  void DoUpdate(UpdateType type);
 
-  virtual void Update(cache::UpdateType type,
+  virtual void Update(UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,
                       const std::chrono::system_clock::time_point& now,
-                      cache::UpdateStatisticsScope& stats_scope) = 0;
+                      UpdateStatisticsScope& stats_scope) = 0;
 
   utils::PeriodicTask::Settings GetPeriodicTaskSettings() const;
 
-  cache::Statistics statistics_;
+  Statistics statistics_;
   engine::Mutex update_mutex_;
-  const cache::CacheConfig static_config_;
-  cache::CacheConfig config_;
+  const CacheConfig static_config_;
+  CacheConfig config_;
   const std::string name_;
   std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
-  components::TestsuiteSupport& testsuite_support_;
-  std::unique_ptr<server::CacheInvalidatorHolder> cache_invalidator_holder_;
+  testsuite::CacheControl& cache_control_;
+  std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;
 
   std::chrono::system_clock::time_point last_update_;
   std::chrono::steady_clock::time_point last_full_update_;
 };
 
-}  // namespace components
+}  // namespace cache
