@@ -42,7 +42,8 @@ class ClusterTopology {
   ClusterTopology(engine::TaskProcessor& bg_task_processor,
                   const ClusterDescription& desc,
                   ConnectionSettings conn_settings,
-                  CommandControl default_cmd_ctl);
+                  CommandControl default_cmd_ctl,
+                  const error_injection::Settings& ei_settings);
 
   ~ClusterTopology();
 
@@ -160,6 +161,7 @@ class ClusterTopology {
   bool initial_check_;
 
   CommandControl default_cmd_ctl_;
+  const error_injection::Settings& ei_settings_;
 };
 
 using ClusterTopologyPtr = std::unique_ptr<ClusterTopology>;

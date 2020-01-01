@@ -8,6 +8,7 @@
 #include <storages/postgres/transaction.hpp>
 
 #include <engine/task/task_processor.hpp>
+#include <error_injection/settings.hpp>
 #include <logging/log_extra.hpp>
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/detail/time_types.hpp>
@@ -111,9 +112,11 @@ class Connection {
   static std::unique_ptr<Connection> Connect(
       const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
       uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
+      const error_injection::Settings& ei_settings,
       SizeGuard&& size_guard = SizeGuard{});
 
   CommandControl GetDefaultCommandControl() const;
+
   void SetDefaultCommandControl(const CommandControl& cmd_ctl);
 
   /// Close the connection

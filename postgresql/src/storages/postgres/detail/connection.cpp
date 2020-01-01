@@ -12,6 +12,7 @@
 #include <utils/uuid4.hpp>
 
 #include <engine/async.hpp>
+#include <error_injection/hook.hpp>
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/detail/tracing_tags.hpp>
@@ -157,15 +158,17 @@ struct Connection::Impl {
   CommandControl default_cmd_ctl_;
   OptionalCommandControl transaction_cmd_ctl_;
   TimeoutDuration current_statement_timeout_{};
+  const error_injection::Settings ei_settings_;
 
   std::string uuid_;
 
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
        ConnectionSettings settings, CommandControl default_cmd_ctl,
-       SizeGuard&& size_guard)
+       const error_injection::Settings& ei_settings, SizeGuard&& size_guard)
       : conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
         settings_{settings},
         default_cmd_ctl_{default_cmd_ctl},
+        ei_settings_(ei_settings),
         uuid_{::utils::generators::GenerateUuid()} {}
 
   void Close() { conn_wrapper_.Close().Wait(); }
@@ -387,6 +390,9 @@ struct Connection::Impl {
     auto query_hash = QueryHash(statement, params);
     StatementId query_id{query_hash};
     std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
+
+    error_injection::Hook ei_hook(ei_settings_, deadline);
+    ei_hook.PreHook<ConnectionTimeoutError, CommandError>();
 
     if (prepared_.count(query_id)) {
       LOG_TRACE() << "Query " << statement << " is already prepared.";
@@ -765,11 +771,12 @@ struct Connection::Impl {
 std::unique_ptr<Connection> Connection::Connect(
     const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
     uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
-    SizeGuard&& size_guard) {
+    const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
   std::unique_ptr<Connection> conn(new Connection());
 
-  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, settings,
-                                        default_cmd_ctl, std::move(size_guard));
+  conn->pimpl_ =
+      std::make_unique<Impl>(bg_task_processor, id, settings, default_cmd_ctl,
+                             ei_settings, std::move(size_guard));
   conn->pimpl_->AsyncConnect(conninfo);
 
   return conn;

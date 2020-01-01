@@ -9,6 +9,7 @@
 #include <engine/condition_variable.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
+#include <error_injection/settings.hpp>
 #include <rcu/rcu.hpp>
 #include <utils/periodic_task.hpp>
 #include <utils/size_guard.hpp>
@@ -31,7 +32,8 @@ class ConnectionPoolImpl
   static std::shared_ptr<ConnectionPoolImpl> Create(
       const std::string& dsn, engine::TaskProcessor& bg_task_processor,
       PoolSettings pool_settings, ConnectionSettings conn_settings,
-      CommandControl default_cmd_ctl);
+      CommandControl default_cmd_ctl,
+      const error_injection::Settings& ei_settings);
   ~ConnectionPoolImpl();
 
   const std::string& GetDsn() const { return dsn_; }
@@ -52,7 +54,8 @@ class ConnectionPoolImpl
   ConnectionPoolImpl(const std::string& dsn,
                      engine::TaskProcessor& bg_task_processor,
                      PoolSettings settings, ConnectionSettings conn_settings,
-                     CommandControl default_cmd_ctl);
+                     CommandControl default_cmd_ctl,
+                     const error_injection::Settings& ei_settings);
 
  private:
   using SizeGuard = ::utils::SizeGuard<std::atomic<size_t>>;
@@ -94,6 +97,7 @@ class ConnectionPoolImpl
   SharedCounter size_;
   std::atomic<size_t> wait_count_;
   rcu::Variable<CommandControl> default_cmd_ctl_;
+  const error_injection::Settings ei_settings_;
   RecentCounter recent_conn_errors_;
   ::utils::TokenBucket cancel_limit_;
 };

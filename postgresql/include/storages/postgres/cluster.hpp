@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <engine/task/task_with_result.hpp>
+#include <error_injection/settings_fwd.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/detail/non_transaction.hpp>
@@ -83,7 +84,8 @@ class Cluster {
   /// request
   Cluster(const ClusterDescription& cluster_desc,
           engine::TaskProcessor& bg_task_processor, PoolSettings pool_settings,
-          ConnectionSettings conn_settings, CommandControl cmd_ctl);
+          ConnectionSettings conn_settings, CommandControl cmd_ctl,
+          const error_injection::Settings& ei_settings);
   ~Cluster();
 
   /// Get cluster statistics
@@ -124,6 +126,7 @@ class Cluster {
   //@}
 
   void SetDefaultCommandControl(CommandControl);
+
   SharedCommandControl GetDefaultCommandControl() const;
 
  private:

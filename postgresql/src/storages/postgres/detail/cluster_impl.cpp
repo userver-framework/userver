@@ -42,18 +42,21 @@ ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
                          engine::TaskProcessor& bg_task_processor,
                          PoolSettings pool_settings,
                          ConnectionSettings conn_settings,
-                         CommandControl default_cmd_ctl)
+                         CommandControl default_cmd_ctl,
+                         const error_injection::Settings& ei_settings)
     : ClusterImpl(bg_task_processor, pool_settings, conn_settings,
-                  default_cmd_ctl) {
-  topology_ = std::make_unique<ClusterTopology>(
-      bg_task_processor_, cluster_desc, conn_settings, default_cmd_ctl);
+                  default_cmd_ctl, ei_settings) {
+  topology_ = std::make_unique<ClusterTopology>(bg_task_processor_,
+                                                cluster_desc, conn_settings,
+                                                default_cmd_ctl, ei_settings);
   InitPools(topology_->GetDsnList());
 }
 
 ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
                          PoolSettings pool_settings,
                          ConnectionSettings conn_settings,
-                         CommandControl default_cmd_ctl)
+                         CommandControl default_cmd_ctl,
+                         const error_injection::Settings& ei_settings)
     : bg_task_processor_(bg_task_processor),
       host_ind_(0),
       pool_settings_(pool_settings),
@@ -61,6 +64,7 @@ ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
       default_cmd_ctl_(
           // NOLINTNEXTLINE(hicpp-move-const-arg)
           std::make_shared<const CommandControl>(std::move(default_cmd_ctl))),
+      ei_settings_(ei_settings),
       update_lock_ ATOMIC_FLAG_INIT {}
 
 ClusterImpl::~ClusterImpl() { StopPeriodicUpdates(); }
@@ -95,7 +99,7 @@ void ClusterImpl::InitPools(const DSNList& dsn_list) {
     host_pools.insert(std::make_pair(
         dsn, std::make_shared<ConnectionPool>(dsn, bg_task_processor_,
                                               pool_settings_, conn_settings_,
-                                              *cmd_ctl)));
+                                              *cmd_ctl, ei_settings_)));
   }
 
   // NOLINTNEXTLINE(hicpp-move-const-arg)
@@ -124,8 +128,8 @@ void ClusterImpl::CheckTopology() {
       case ClusterTopology::HostAvailability::kOnline:
         if (!host_pools[dsn]) {
           host_pools[dsn] = std::make_shared<ConnectionPool>(
-              dsn, bg_task_processor_, pool_settings_, conn_settings_,
-              *cmd_ctl);
+              dsn, bg_task_processor_, pool_settings_, conn_settings_, *cmd_ctl,
+              ei_settings_);
           LOG_DEBUG() << "Added pool for host=" << HostAndPortFromDsn(dsn)
                       << " to the map";
         }

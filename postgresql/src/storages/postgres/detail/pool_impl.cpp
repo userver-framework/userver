@@ -47,11 +47,11 @@ struct Stopwatch {
   SteadyClock::time_point start_;
 };
 
-ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
-                                       engine::TaskProcessor& bg_task_processor,
-                                       PoolSettings settings,
-                                       ConnectionSettings conn_settings,
-                                       CommandControl default_cmd_ctl)
+ConnectionPoolImpl::ConnectionPoolImpl(
+    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
+    PoolSettings settings, ConnectionSettings conn_settings,
+    CommandControl default_cmd_ctl,
+    const error_injection::Settings& ei_settings)
     : dsn_{dsn},
       settings_{settings},
       conn_settings_{conn_settings},
@@ -60,6 +60,7 @@ ConnectionPoolImpl::ConnectionPoolImpl(const std::string& dsn,
       size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl},
+      ei_settings_(ei_settings),
       cancel_limit_{std::max(1UL, settings.max_size / kCancelRatio),
                     kCancelPeriod} {}
 
@@ -71,7 +72,8 @@ ConnectionPoolImpl::~ConnectionPoolImpl() {
 std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
     const std::string& dsn, engine::TaskProcessor& bg_task_processor,
     PoolSettings pool_settings, ConnectionSettings conn_settings,
-    CommandControl default_cmd_ctl) {
+    CommandControl default_cmd_ctl,
+    const error_injection::Settings& ei_settings) {
   // structure to call constructor of ConnectionPoolImpl that shouldn't be
   // accessible in public interface
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
@@ -80,13 +82,15 @@ std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
                         engine::TaskProcessor& bg_task_processor,
                         PoolSettings pool_settings,
                         ConnectionSettings conn_settings,
-                        CommandControl default_cmd_ctl)
+                        CommandControl default_cmd_ctl,
+                        const error_injection::Settings& ei_settings)
         : ConnectionPoolImpl(dsn, bg_task_processor, pool_settings,
-                             conn_settings, default_cmd_ctl) {}
+                             conn_settings, default_cmd_ctl, ei_settings) {}
   };
 
   auto impl = std::make_shared<ImplForConstruction>(
-      dsn, bg_task_processor, pool_settings, conn_settings, default_cmd_ctl);
+      dsn, bg_task_processor, pool_settings, conn_settings, default_cmd_ctl,
+      ei_settings);
   impl->Init();
   return impl;
 }
@@ -273,7 +277,8 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
           auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
           connection = Connection::Connect(
               shared_this->dsn_, shared_this->bg_task_processor_, conn_id,
-              shared_this->conn_settings_, *cmd_ctl, std::move(sg));
+              shared_this->conn_settings_, *cmd_ctl, shared_this->ei_settings_,
+              std::move(sg));
         } catch (const ConnectionTimeoutError&) {
           // No problem if it's connection error
           ++shared_this->stats_.connection.error_timeout;

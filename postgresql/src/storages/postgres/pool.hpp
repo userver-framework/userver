@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <engine/deadline.hpp>
+#include <error_injection/settings_fwd.hpp>
 
 #include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
@@ -32,7 +33,8 @@ class ConnectionPool {
   ConnectionPool(const std::string& dsn,
                  engine::TaskProcessor& bg_task_processor,
                  PoolSettings pool_settings, ConnectionSettings conn_settings,
-                 CommandControl default_cmd_ctl);
+                 CommandControl default_cmd_ctl,
+                 const error_injection::Settings& ei_settings);
   ~ConnectionPool();
 
   ConnectionPool(ConnectionPool&&) noexcept;

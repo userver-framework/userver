@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include <engine/task/task_processor.hpp>
+#include <error_injection/settings.hpp>
 #include <utils/periodic_task.hpp>
 #include <utils/swappingsmart.hpp>
 
@@ -25,7 +26,8 @@ class ClusterImpl {
   ClusterImpl(const ClusterDescription& cluster_desc,
               engine::TaskProcessor& bg_task_processor,
               PoolSettings pool_settings, ConnectionSettings conn_settings,
-              CommandControl default_cmd_ctl);
+              CommandControl default_cmd_ctl,
+              const error_injection::Settings& ei_settings);
   ~ClusterImpl();
 
   ClusterStatisticsPtr GetStatistics() const;
@@ -49,7 +51,8 @@ class ClusterImpl {
 
   ClusterImpl(engine::TaskProcessor& bg_task_processor,
               PoolSettings pool_settings, ConnectionSettings conn_settings,
-              CommandControl default_cmd_ctl);
+              CommandControl default_cmd_ctl,
+              const error_injection::Settings& ei_settings);
 
   void InitPools(const DSNList& dsn_list);
   void StartPeriodicUpdates();
@@ -76,6 +79,7 @@ class ClusterImpl {
   PoolSettings pool_settings_;
   ConnectionSettings conn_settings_;
   ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
+  const error_injection::Settings& ei_settings_;
   std::atomic_flag update_lock_;
 };
 

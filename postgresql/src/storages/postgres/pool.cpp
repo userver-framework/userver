@@ -1,5 +1,6 @@
 #include <storages/postgres/pool.hpp>
 
+#include <error_injection/settings.hpp>
 #include <storages/postgres/detail/pool_impl.hpp>
 
 namespace storages {
@@ -9,9 +10,11 @@ ConnectionPool::ConnectionPool(const std::string& dsn,
                                engine::TaskProcessor& bg_task_processor,
                                PoolSettings pool_settings,
                                ConnectionSettings conn_settings,
-                               CommandControl default_cmd_ctl) {
-  pimpl_ = detail::ConnectionPoolImpl::Create(
-      dsn, bg_task_processor, pool_settings, conn_settings, default_cmd_ctl);
+                               CommandControl default_cmd_ctl,
+                               const error_injection::Settings& ei_settings) {
+  pimpl_ = detail::ConnectionPoolImpl::Create(dsn, bg_task_processor,
+                                              pool_settings, conn_settings,
+                                              default_cmd_ctl, ei_settings);
 }
 
 ConnectionPool::~ConnectionPool() = default;

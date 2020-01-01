@@ -139,7 +139,8 @@ class ClusterTopology::ClusterDescriptionVisitor {
 ClusterTopology::ClusterTopology(engine::TaskProcessor& bg_task_processor,
                                  const ClusterDescription& desc,
                                  ConnectionSettings conn_settings,
-                                 CommandControl default_cmd_ctl)
+                                 CommandControl default_cmd_ctl,
+                                 const error_injection::Settings& ei_settings)
     : bg_task_processor_(bg_task_processor),
       check_duration_(std::chrono::duration_cast<std::chrono::milliseconds>(
                           kUpdateInterval) *
@@ -147,7 +148,8 @@ ClusterTopology::ClusterTopology(engine::TaskProcessor& bg_task_processor,
       conn_settings_{conn_settings},
       hosts_by_type_(),
       initial_check_(true),
-      default_cmd_ctl_{default_cmd_ctl} {
+      default_cmd_ctl_{default_cmd_ctl},
+      ei_settings_(ei_settings) {
   if (check_duration_ < kMinCheckDuration) {
     check_duration_ = kMinCheckDuration;
     LOG_WARNING() << "Too short topology update interval specified. Topology "
@@ -210,7 +212,7 @@ void ClusterTopology::StopRunningTasks() {
 ClusterTopology::ConnectionTask ClusterTopology::Connect(std::string dsn) {
   return engine::impl::Async([this, dsn = std::move(dsn)] {
     return Connection::Connect(dsn, bg_task_processor_, kConnectionId,
-                               conn_settings_, default_cmd_ctl_);
+                               conn_settings_, default_cmd_ctl_, ei_settings_);
   });
 }
 

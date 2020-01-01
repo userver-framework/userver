@@ -3,6 +3,7 @@
 #include <components/manager.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_config.hpp>
+#include <error_injection/settings.hpp>
 #include <formats/json/value_builder.hpp>
 #include <logging/log.hpp>
 #include <storages/secdist/component.hpp>
@@ -192,6 +193,12 @@ Postgres::Postgres(const ComponentConfig& config,
       config.ParseString("blocking_task_processor");
   bg_task_processor_ = &context.GetTaskProcessor(task_processor_name);
 
+  error_injection::Settings ei_settings;
+  auto ei_settings_opt =
+      config.Parse<boost::optional<error_injection::Settings>>(
+          "error-injection");
+  if (ei_settings_opt) ei_settings = *ei_settings_opt;
+
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       kStatisticsName,
       std::bind(&Postgres::ExtendStatistics, this, std::placeholders::_1));
@@ -199,10 +206,10 @@ Postgres::Postgres(const ComponentConfig& config,
   // Start all clusters here
   LOG_DEBUG() << "Start " << cluster_desc_.size() << " shards for " << db_name_;
   std::vector<engine::TaskWithResult<void>> tasks;
-  for (const auto& cluster_desc : cluster_desc_) {
-    auto cluster =
-        std::make_shared<pg::Cluster>(cluster_desc, *bg_task_processor_,
-                                      pool_settings_, conn_settings_, cmd_ctl);
+  for (auto const& cluster_desc : cluster_desc_) {
+    auto cluster = std::make_shared<pg::Cluster>(
+        cluster_desc, *bg_task_processor_, pool_settings_, conn_settings_,
+        cmd_ctl, ei_settings);
     database_->clusters_.push_back(cluster);
     tasks.push_back(cluster->DiscoverTopology());
   }
