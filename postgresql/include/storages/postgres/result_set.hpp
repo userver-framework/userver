@@ -302,7 +302,7 @@ class Field {
   size_type ReadNullable(const io::FieldBuffer& buffer, T&& val,
                          std::false_type) const {
     if (buffer.is_null) {
-      throw FieldValueIsNull{field_index_};
+      throw FieldValueIsNull{field_index_, val};
     } else {
       Read(buffer, std::forward<T>(val));
     }
@@ -623,6 +623,8 @@ class ResultSet {
   /// For more information see @ref psql_typed_results
   template <typename Container>
   Container AsContainer() const;
+  template <typename Container>
+  Container AsContainer(RowTag) const;
   //@}
  private:
   friend class detail::Connection;
@@ -736,7 +738,8 @@ void Row::To(T&& val, FieldTag) const {
     throw InvalidTupleSizeRequested{Size(), 1};
   }
   if (Size() > 1) {
-    throw NonSingleColumResultSet{Size()};
+    throw NonSingleColumResultSet{
+        Size(), "As<" + compiler::GetTypeName<T>() + ">(kRowTag)"};
   }
   At(0).To(std::forward<T>(val));
 }
@@ -835,7 +838,8 @@ auto ResultSet::AsSetOf(FieldTag) const {
   static_assert(io::traits::kIsMappedToPg<ValueType>,
                 "This type is not mapped to a PostgreSQL type");
   if (FieldCount() > 1) {
-    throw NonSingleColumResultSet{FieldCount()};
+    throw NonSingleColumResultSet{
+        FieldCount(), "AsSetOf<" + compiler::GetTypeName<T>() + ">(kRowTag)"};
   }
   return TypedResultSet<T, FieldTag>{*this};
 }
@@ -848,6 +852,18 @@ Container ResultSet::AsContainer() const {
     c.reserve(Size());
   }
   auto res = AsSetOf<ValueType>();
+  std::copy(res.begin(), res.end(), io::traits::Inserter(c));
+  return c;
+}
+
+template <typename Container>
+Container ResultSet::AsContainer(RowTag) const {
+  using ValueType = typename Container::value_type;
+  Container c;
+  if constexpr (io::traits::kCanReserve<Container>) {
+    c.reserve(Size());
+  }
+  auto res = AsSetOf<ValueType>(kRowTag);
   std::copy(res.begin(), res.end(), io::traits::Inserter(c));
   return c;
 }

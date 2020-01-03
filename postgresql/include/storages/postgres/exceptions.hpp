@@ -613,9 +613,11 @@ class FieldNameDoesntExist : public ResultSetError {
 /// requested.
 class FieldValueIsNull : public ResultSetError {
  public:
-  FieldValueIsNull(std::size_t field_index)
-      : ResultSetError("Field #" + std::to_string(field_index) +
-                       " value is null") {}
+  template <typename T>
+  FieldValueIsNull(std::size_t field_index, const T&)
+      : ResultSetError("Field #" + std::to_string(field_index) + " type " +
+                       compiler::GetTypeName<T>() +
+                       " value is null, forgot boost::optional?") {}
 };
 
 /// @brief A value of a non-nullable type requested to be set null.
@@ -714,11 +716,13 @@ class InvalidTupleSizeRequested : public ResultSetError {
 /// contains more than one column.
 class NonSingleColumResultSet : public ResultSetError {
  public:
-  NonSingleColumResultSet(std::size_t actual_size)
-      : ResultSetError("The result set contains " +
+  NonSingleColumResultSet(std::size_t actual_size, const std::string& func)
+      : ResultSetError("Parsing the row consisting of " +
                        std::to_string(actual_size) +
-                       " columns. If it is OK, please use row interface to "
-                       "access the first column object") {}
+                       " columns as T is ambiguous as it can be uses both for "
+                       "single column type and for a row. " +
+                       "Please use " + func + "(kRowTag) or " + func +
+                       "(FieldTag) to resolve the ambiguity.") {}
 };
 
 /// @brief A row was requested to be parsed based on field names/indexed,
