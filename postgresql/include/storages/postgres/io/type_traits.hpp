@@ -38,7 +38,7 @@ template <typename T>
 constexpr bool kIsMappedToArray = IsMappedToArray<T>::value;
 
 /// @brief Detect if the C++ type is mapped to a Postgres type.
-template <typename T>
+template <typename T, typename = ::utils::void_t<>>
 struct IsMappedToPg
     : BoolConstant<kIsMappedToUserType<T> || kIsMappedToSystemType<T> ||
                    kIsMappedToArray<T>> {};
@@ -46,7 +46,7 @@ template <typename T>
 constexpr bool kIsMappedToPg = IsMappedToPg<T>::value;
 
 /// @brief Mark C++ mapping a special case for disambiguation.
-template <typename T>
+template <typename T, typename = ::utils::void_t<>>
 struct IsSpecialMapping : std::false_type {};
 template <typename T>
 constexpr bool kIsSpecialMapping = IsSpecialMapping<T>::value;

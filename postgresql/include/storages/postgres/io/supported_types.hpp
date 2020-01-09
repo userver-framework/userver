@@ -34,7 +34,7 @@
 /// varchar(n)        | std::string                             |         |
 /// "char"            | char                                    | +       |
 /// timestamp         | std::chrono::system_clock::time_point   | +       |
-/// timestamptz       | std::chrono::system_clock::time_point   | +       |
+/// timestamptz       | storages::postgres::TimePointTz         | +       |
 /// date              | N/A                                     |         |
 /// time              | N/A                                     |         |
 /// timetz            | N/A                                     |         |
@@ -43,6 +43,8 @@
 /// bit(n)            | N/A                                     |         |
 /// bit varying(n)    | N/A                                     |         |
 /// uuid              | boost::uuids::uuid                      | +       |
+/// json              | formats::json::Value                    | +       |
+/// jsonb             | formats::json::Value                    |         |
 ///
 /// @warning The library doesn't provide support for C++ unsigned integral
 /// types intentionally as PostgreSQL doesn't provide unsigned types and
@@ -65,19 +67,33 @@
 ///
 /// For more information please see @ref pg_user_types.
 ///
+/// @par C++ strong typedefs
+///
+/// The driver provides support for C++ strong typedef idiom. For more
+/// information see @ref pg_strong_typedef
+///
+/// @par PostgreSQL ranges
+///
+/// PostgreSQL range type support is provided by `storages::postgres::Range`
+/// template.
+///
+/// @par Geometry types
+///
+/// For geometry types the driver provides parsing/formatting from/to
+/// on-the-wire representation. The types provided do not define any calculus.
+///
+/// @par Bytea
+///
+/// See @pg_bytea
+///
 /// @par PostgreSQL types not covered above
 ///
 /// The types not covered above or marked as N/A in the table of fundamental
 /// types will be eventually supported later, on request from the driver's
 /// users.
 ///
-/// - Range types https://st.yandex-team.ru/TAXICOMMON-372
-/// - UUID https://st.yandex-team.ru/TAXICOMMON-373
 /// - Bit string https://st.yandex-team.ru/TAXICOMMON-374
-/// - Bytea https://st.yandex-team.ru/TAXICOMMON-375
-/// - Geometric types https://st.yandex-team.ru/TAXICOMMON-376
 /// - Network types https://st.yandex-team.ru/TAXICOMMON-377
-/// - JSON types - not planned yet.
 ///
 
 //@{
@@ -111,6 +127,7 @@
 #include <storages/postgres/io/composite_types.hpp>
 #include <storages/postgres/io/optional.hpp>
 #include <storages/postgres/io/range_types.hpp>
+#include <storages/postgres/io/strong_typedef.hpp>
 //@}
 
 //@{
