@@ -1,5 +1,10 @@
 #pragma once
 
+/// @file storages/redis/mock_client_base_test.hpp
+/// @brief @copybrief storages::redis::MockClientBase
+
+#include <utest/utest.hpp>
+
 #include <chrono>
 #include <memory>
 #include <string>
@@ -8,39 +13,41 @@
 #include <redis/command_options.hpp>
 
 #include <storages/redis/client.hpp>
+#include <storages/redis/mock_request_test.hpp>
+#include <storages/redis/mock_transaction_impl_base_test.hpp>
 #include <storages/redis/transaction.hpp>
-
-#include "scan_reply.hpp"
-
-namespace redis {
-class Sentinel;
-}  // namespace redis
 
 namespace storages {
 namespace redis {
 
-class TransactionImpl;
-
-class ClientImpl final : public Client,
-                         public std::enable_shared_from_this<ClientImpl> {
+/// Base class for mocked redis clients in unit tests.
+/// Please create clients with `std::make_shared`.
+/// Otherwise `Multi()` command will not work in mocked client.
+/// You should override methods for redis commands used in test.
+/// In overriden methods you can use `CreateMockRequest*` helpers.
+/// Examples (for `Hget` command):
+/// `return storages::redis::CreateMockRequest<
+///    storages::redis::RequestHget>(std::string{"value"});`
+/// `return storages::redis::CreateMockRequest<
+///    storages::redis::RequestHget>(boost::none);`
+/// Mocking timeout error from redis server:
+/// `return storages::redis::CreateMockRequestTimeout<
+///    storages::redis::RequestHget>();`
+/// For *scan commands use `CreateMockRequestScan` helper:
+/// `return storages::redis::CreateMockRequestScan<
+///    storages::redis::ScanTag::kScan>({"keya", "keyb", "keyc"});`
+class MockClientBase : public Client,
+                       public std::enable_shared_from_this<MockClientBase> {
  public:
-  explicit ClientImpl(std::shared_ptr<::redis::Sentinel> sentinel);
+  MockClientBase();
+
+  virtual ~MockClientBase();
 
   size_t ShardsCount() const override;
 
   size_t ShardByKey(const std::string& key) const override;
 
   const std::string& GetAnyKeyForShard(size_t shard_idx) const override;
-
-  Request<ScanReplyTmpl<ScanTag::kScan>> MakeScanRequestNoKey(
-      size_t shard, ScanReply::Cursor cursor, ScanOptions options,
-      const CommandControl& command_control);
-
-  template <ScanTag scan_tag>
-  Request<ScanReplyTmpl<scan_tag>> MakeScanRequestWithKey(
-      std::string key, size_t shard,
-      typename ScanReplyTmpl<scan_tag>::Cursor cursor,
-      ScanOptionsTmpl<scan_tag> options, const CommandControl& command_control);
 
   // redis commands:
 
@@ -161,10 +168,6 @@ class ClientImpl final : public Client,
   RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values,
                    const CommandControl& command_control) override;
 
-  TransactionPtr Multi() override;
-
-  TransactionPtr Multi(Transaction::CheckShards check_shards) override;
-
   RequestPersist Persist(std::string key,
                          const CommandControl& command_control) override;
 
@@ -201,11 +204,6 @@ class ClientImpl final : public Client,
   ScanRequest<ScanTag::kScan> Scan(
       size_t shard, ScanOptions options,
       const CommandControl& command_control) override;
-
-  template <ScanTag scan_tag>
-  ScanRequest<scan_tag> ScanTmpl(std::string key,
-                                 ScanOptionsTmpl<scan_tag> options,
-                                 const CommandControl& command_control);
 
   RequestScard Scard(std::string key,
                      const CommandControl& command_control) override;
@@ -336,21 +334,40 @@ class ClientImpl final : public Client,
 
   // end of redis commands
 
-  friend class TransactionImpl;
+  TransactionPtr Multi() override final;
+
+  TransactionPtr Multi(Transaction::CheckShards check_shards) override final;
+
+  class MockTransactionImplCreatorBase {
+   public:
+    virtual ~MockTransactionImplCreatorBase() = default;
+
+    virtual std::unique_ptr<MockTransactionImplBase> operator()() const = 0;
+  };
+
+  template <typename MockTransactionImpl>
+  void SetMockTransactionImplType() {
+    mock_transaction_impl_creator_ =
+        std::make_unique<MockTransactionImplCreator<MockTransactionImpl>>();
+  }
+
+  void SetMockTransactionImplCreator(
+      std::unique_ptr<MockTransactionImplCreatorBase>
+          mock_transaction_impl_creator) {
+    mock_transaction_impl_creator_ = std::move(mock_transaction_impl_creator);
+  }
 
  private:
-  using CmdArgs = ::redis::CmdArgs;
+  template <typename MockTransactionImpl>
+  class MockTransactionImplCreator : public MockTransactionImplCreatorBase {
+   public:
+    std::unique_ptr<MockTransactionImplBase> operator()() const override {
+      return std::make_unique<MockTransactionImpl>();
+    }
+  };
 
-  ::redis::Request MakeRequest(CmdArgs&& args, size_t shard, bool master,
-                               const CommandControl& command_control,
-                               bool skip_status = false);
-
-  CommandControl GetCommandControl(const CommandControl& cc) const;
-
-  size_t GetPublishShard(PubShard policy);
-
-  std::shared_ptr<::redis::Sentinel> redis_client_;
-  std::atomic<int> publish_shard_{0};
+  std::unique_ptr<MockTransactionImplCreatorBase>
+      mock_transaction_impl_creator_;
 };
 
 }  // namespace redis

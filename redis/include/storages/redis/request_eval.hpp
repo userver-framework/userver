@@ -5,6 +5,7 @@
 
 namespace storages {
 namespace redis {
+
 template <typename ScriptResult,
           typename ReplyType = impl::DefaultReplyType<ScriptResult>>
 class USERVER_NODISCARD RequestEval final {

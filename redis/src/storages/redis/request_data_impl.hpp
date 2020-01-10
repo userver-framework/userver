@@ -167,7 +167,11 @@ typename RequestScanData<scan_tag>::ReplyElem RequestScanData<scan_tag>::Get() {
 template <ScanTag scan_tag>
 typename RequestScanData<scan_tag>::ReplyElem&
 RequestScanData<scan_tag>::Current() {
-  CheckReply();
+  if (Eof())
+    throw RequestScan::GetAfterEofException(
+        "Trying to call Current() after eof");
+  UASSERT(reply_);
+  UASSERT(reply_keys_index_ < reply_->GetKeys().size());
   return reply_->GetKeys()[reply_keys_index_];
 }
 

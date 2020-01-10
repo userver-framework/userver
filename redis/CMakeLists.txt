@@ -5,6 +5,11 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
 )
 
+file(GLOB_RECURSE UNIT_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
+)
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
+
 file(GLOB_RECURSE REDIS_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*_redistest.cpp
 )
@@ -69,6 +74,24 @@ target_include_directories(
     ${SPDLOG_INCLUDE_DIRS}
 )
 add_google_tests(${REDIS_COMMON}_unittest)
+
+add_library(${PROJECT_NAME}_utest STATIC ${UNIT_TEST_SOURCES})
+set_target_properties(${PROJECT_NAME}_utest PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(
+  ${PROJECT_NAME}_utest
+  PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_include_directories (${PROJECT_NAME}_utest SYSTEM PRIVATE
+  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+)
+target_link_libraries(${PROJECT_NAME}_utest
+  utest
+  yandex-taxi-userver-core
+  ${REDIS_COMMON}
+)
 
 # XXX: testsuite doesn't support parallel builds
 if(NOT USERVICES)

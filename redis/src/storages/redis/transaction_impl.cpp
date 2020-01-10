@@ -1,11 +1,14 @@
 #include <storages/redis/transaction_impl.hpp>
 
+#include <storages/redis/transaction_subrequest_data_impl.hpp>
+
 #include "client_impl.hpp"
 #include "request_exec_data_impl.hpp"
 
 namespace storages {
 namespace redis {
 namespace {
+
 RequestExec CreateExecRequest(
     ::redis::Request&& request,
     std::vector<TransactionImpl::ResultPromise>&& result_promises) {
@@ -552,7 +555,7 @@ Request<Result, ReplyType> TransactionImpl::DoAddCmd(
     To<Request<Result, ReplyType>> to) {
   engine::Promise<ReplyType> promise;
   Request<Result, ReplyType> request(
-      std::make_unique<TransactionSubrequestDataImpl<Result, ReplyType>>(
+      std::make_unique<impl::TransactionSubrequestDataImpl<Result, ReplyType>>(
           promise.get_future()));
   result_promises_.emplace_back(std::move(promise), to);
   return request;

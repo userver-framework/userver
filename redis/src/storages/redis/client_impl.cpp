@@ -139,11 +139,6 @@ RequestGet ClientImpl::Get(std::string key,
                   GetCommandControl(command_control)));
 }
 
-RequestGet ClientImpl::Get(std::string key, RetryNilFromMaster,
-                           const CommandControl& command_control) {
-  return Get(std::move(key), command_control.MergeWith(kRetryNilFromMaster));
-}
-
 RequestGetset ClientImpl::Getset(std::string key, std::string value,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key);
@@ -184,13 +179,6 @@ RequestHget ClientImpl::Hget(std::string key, std::string field,
   return CreateRequest<RequestHget>(
       MakeRequest(CmdArgs{"hget", std::move(key), std::move(field)}, shard,
                   false, GetCommandControl(command_control)));
-}
-
-RequestHget ClientImpl::Hget(std::string key, std::string field,
-                             RetryNilFromMaster,
-                             const CommandControl& command_control) {
-  return Hget(std::move(key), std::move(field),
-              command_control.MergeWith(kRetryNilFromMaster));
 }
 
 RequestHgetall ClientImpl::Hgetall(std::string key,
@@ -257,11 +245,6 @@ RequestHmset ClientImpl::Hmset(
   return CreateRequest<RequestHmset>(
       MakeRequest(CmdArgs{"hmset", std::move(key), std::move(field_values)},
                   shard, true, GetCommandControl(command_control)));
-}
-
-ScanRequest<ScanTag::kHscan> ClientImpl::Hscan(
-    std::string key, const CommandControl& command_control) {
-  return Hscan(std::move(key), {}, command_control);
 }
 
 ScanRequest<ScanTag::kHscan> ClientImpl::Hscan(
@@ -440,12 +423,6 @@ RequestPingMessage ClientImpl::Ping(size_t shard, std::string message,
 }
 
 void ClientImpl::Publish(std::string channel, std::string message,
-                         const CommandControl& command_control) {
-  return Publish(std::move(channel), std::move(message), command_control,
-                 PubShard::kZeroShard);
-}
-
-void ClientImpl::Publish(std::string channel, std::string message,
                          const CommandControl& command_control,
                          PubShard policy) {
   auto shard = GetPublishShard(policy);
@@ -507,11 +484,6 @@ RequestSadd ClientImpl::Sadd(std::string key, std::vector<std::string> members,
   return CreateRequest<RequestSadd>(
       MakeRequest(CmdArgs{"sadd", std::move(key), std::move(members)}, shard,
                   true, GetCommandControl(command_control)));
-}
-
-ScanRequest<ScanTag::kScan> ClientImpl::Scan(
-    size_t shard, const CommandControl& command_control) {
-  return Scan(shard, {}, command_control);
 }
 
 ScanRequest<ScanTag::kScan> ClientImpl::Scan(
@@ -650,11 +622,6 @@ RequestSrem ClientImpl::Srem(std::string key, std::vector<std::string> members,
   return CreateRequest<RequestSrem>(
       MakeRequest(CmdArgs{"srem", std::move(key), std::move(members)}, shard,
                   true, GetCommandControl(command_control)));
-}
-
-ScanRequest<ScanTag::kSscan> ClientImpl::Sscan(
-    std::string key, const CommandControl& command_control) {
-  return Sscan(std::move(key), {}, command_control);
 }
 
 ScanRequest<ScanTag::kSscan> ClientImpl::Sscan(
@@ -831,11 +798,6 @@ RequestZrem ClientImpl::Zrem(std::string key, std::vector<std::string> members,
 }
 
 ScanRequest<ScanTag::kZscan> ClientImpl::Zscan(
-    std::string key, const CommandControl& command_control) {
-  return Zscan(std::move(key), {}, command_control);
-}
-
-ScanRequest<ScanTag::kZscan> ClientImpl::Zscan(
     std::string key, ScanOptionsTmpl<ScanTag::kZscan> options,
     const CommandControl& command_control) {
   return ScanTmpl<ScanTag::kZscan>(std::move(key), std::move(options),
@@ -848,13 +810,6 @@ RequestZscore ClientImpl::Zscore(std::string key, std::string member,
   return CreateRequest<RequestZscore>(
       MakeRequest(CmdArgs{"zscore", std::move(key), std::move(member)}, shard,
                   false, GetCommandControl(command_control)));
-}
-
-RequestZscore ClientImpl::Zscore(std::string key, std::string member,
-                                 RetryNilFromMaster,
-                                 const CommandControl& command_control) {
-  return Zscore(std::move(key), std::move(member),
-                command_control.MergeWith(kRetryNilFromMaster));
 }
 
 // end of redis commands

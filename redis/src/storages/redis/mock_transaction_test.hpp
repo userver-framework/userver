@@ -1,79 +1,24 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
 #include <engine/future.hpp>
-#include <redis/base.hpp>
 
-#include <storages/redis/client.hpp>
+#include <storages/redis/mock_transaction_impl_base_test.hpp>
 #include <storages/redis/transaction.hpp>
-
-#include "request_data_impl.hpp"
 
 namespace storages {
 namespace redis {
 
-class ClientImpl;
+class MockClientBase;
 
-class TransactionImpl final : public Transaction {
+class MockTransaction final : public Transaction {
  public:
-  explicit TransactionImpl(std::shared_ptr<ClientImpl> client,
-                           CheckShards check_shards = CheckShards::kSame);
+  MockTransaction(std::shared_ptr<MockClientBase> client,
+                  std::unique_ptr<MockTransactionImplBase> impl,
+                  CheckShards check_shards = CheckShards::kSame);
+
+  ~MockTransaction();
 
   RequestExec Exec(const CommandControl& command_control) override;
-
-  class ResultPromise {
-   public:
-    template <typename Result, typename ReplyType>
-    ResultPromise(engine::Promise<ReplyType>&& promise,
-                  To<Request<Result, ReplyType>>)
-        : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(
-              std::move(promise))) {}
-    ResultPromise(ResultPromise&& other) = default;
-
-    void ProcessReply(ReplyData&& reply_data,
-                      const std::string& request_description) {
-      impl_->ProcessReply(std::move(reply_data), request_description);
-    }
-
-   private:
-    class ResultPromiseImplBase {
-     public:
-      virtual ~ResultPromiseImplBase() = default;
-
-      virtual void ProcessReply(ReplyData&& reply_data,
-                                const std::string& request_description) = 0;
-    };
-
-    template <typename Result, typename ReplyType>
-    class ResultPromiseImpl : public ResultPromiseImplBase {
-     public:
-      ResultPromiseImpl(engine::Promise<ReplyType>&& promise)
-          : promise_(std::move(promise)) {}
-
-      void ProcessReply(ReplyData&& reply_data,
-                        const std::string& request_description) override {
-        try {
-          if constexpr (std::is_same<ReplyType, void>::value) {
-            Parse(std::move(reply_data), request_description,
-                  To<Result, ReplyType>{});
-            promise_.set_value();
-          } else {
-            promise_.set_value(Parse(std::move(reply_data), request_description,
-                                     To<Result, ReplyType>{}));
-          }
-        } catch (const std::exception&) {
-          promise_.set_exception(std::current_exception());
-        }
-      }
-
-     private:
-      engine::Promise<ReplyType> promise_;
-    };
-
-    std::unique_ptr<ResultPromiseImplBase> impl_;
-  };
 
   // redis commands:
 
@@ -266,6 +211,9 @@ class TransactionImpl final : public Transaction {
   // end of redis commands
 
  private:
+  class ResultPromise;
+  class MockRequestExecDataImpl;
+
   void UpdateShard(const std::string& key);
   void UpdateShard(const std::vector<std::string>& keys);
   void UpdateShard(
@@ -273,18 +221,18 @@ class TransactionImpl final : public Transaction {
   void UpdateShard(size_t shard);
 
   template <typename Result, typename ReplyType>
-  Request<Result, ReplyType> DoAddCmd(To<Request<Result, ReplyType>>);
+  Request<Result, ReplyType> AddSubrequest(
+      Request<Result, ReplyType>&& subrequest);
 
-  template <typename Request, typename... Args>
-  Request AddCmd(std::string command, Args&&... args);
+  RequestExec CreateMockExecRequest();
 
-  std::shared_ptr<ClientImpl> client_;
+  std::shared_ptr<MockClientBase> client_;
   const CheckShards check_shards_;
 
-  boost::optional<size_t> shard_;
+  std::unique_ptr<MockTransactionImplBase> impl_;
 
-  ::redis::CmdArgs cmd_args_;
-  std::vector<ResultPromise> result_promises_;
+  boost::optional<size_t> shard_;
+  std::vector<std::unique_ptr<ResultPromise>> result_promises_;
 };
 
 }  // namespace redis

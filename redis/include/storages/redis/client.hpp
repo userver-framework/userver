@@ -82,9 +82,6 @@ class Client {
   virtual RequestGet Get(std::string key,
                          const CommandControl& command_control) = 0;
 
-  virtual RequestGet Get(std::string key, RetryNilFromMaster,
-                         const CommandControl& command_control) = 0;
-
   virtual RequestGetset Getset(std::string key, std::string value,
                                const CommandControl& command_control) = 0;
 
@@ -98,10 +95,6 @@ class Client {
                                  const CommandControl& command_control) = 0;
 
   virtual RequestHget Hget(std::string key, std::string field,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestHget Hget(std::string key, std::string field,
-                           RetryNilFromMaster,
                            const CommandControl& command_control) = 0;
 
   // use Hscan in case of a big hash
@@ -130,9 +123,6 @@ class Client {
       std::string key,
       std::vector<std::pair<std::string, std::string>> field_values,
       const CommandControl& command_control) = 0;
-
-  virtual RequestHscan Hscan(std::string key,
-                             const CommandControl& command_control) = 0;
 
   virtual RequestHscan Hscan(std::string key, HscanOptions options,
                              const CommandControl& command_control) = 0;
@@ -204,9 +194,6 @@ class Client {
                                   const CommandControl& command_control) = 0;
 
   virtual void Publish(std::string channel, std::string message,
-                       const CommandControl& command_control) = 0;
-
-  virtual void Publish(std::string channel, std::string message,
                        const CommandControl& command_control,
                        PubShard policy) = 0;
 
@@ -226,9 +213,6 @@ class Client {
                            const CommandControl& command_control) = 0;
 
   virtual RequestSadd Sadd(std::string key, std::vector<std::string> members,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestScan Scan(size_t shard,
                            const CommandControl& command_control) = 0;
 
   virtual RequestScan Scan(size_t shard, ScanOptions options,
@@ -283,9 +267,6 @@ class Client {
 
   virtual RequestSrem Srem(std::string key, std::vector<std::string> members,
                            const CommandControl& command_control) = 0;
-
-  virtual RequestSscan Sscan(std::string key,
-                             const CommandControl& command_control) = 0;
 
   virtual RequestSscan Sscan(std::string key, SscanOptions options,
                              const CommandControl& command_control) = 0;
@@ -359,20 +340,33 @@ class Client {
   virtual RequestZrem Zrem(std::string key, std::vector<std::string> members,
                            const CommandControl& command_control) = 0;
 
-  virtual RequestZscan Zscan(std::string key,
-                             const CommandControl& command_control) = 0;
-
   virtual RequestZscan Zscan(std::string key, ZscanOptions options,
                              const CommandControl& command_control) = 0;
 
   virtual RequestZscore Zscore(std::string key, std::string member,
                                const CommandControl& command_control) = 0;
 
-  virtual RequestZscore Zscore(std::string key, std::string member,
-                               RetryNilFromMaster,
-                               const CommandControl& command_control) = 0;
-
   // end of redis commands
+
+  RequestGet Get(std::string key, RetryNilFromMaster,
+                 const CommandControl& command_control);
+
+  RequestHget Hget(std::string key, std::string field, RetryNilFromMaster,
+                   const CommandControl& command_control);
+
+  RequestZscore Zscore(std::string key, std::string member, RetryNilFromMaster,
+                       const CommandControl& command_control);
+
+  void Publish(std::string channel, std::string message,
+               const CommandControl& command_control);
+
+  RequestScan Scan(size_t shard, const CommandControl& command_control);
+
+  RequestHscan Hscan(std::string key, const CommandControl& command_control);
+
+  RequestSscan Sscan(std::string key, const CommandControl& command_control);
+
+  RequestZscan Zscan(std::string key, const CommandControl& command_control);
 
  protected:
   virtual RequestEvalCommon EvalCommon(

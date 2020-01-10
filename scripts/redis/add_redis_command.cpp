@@ -19,9 +19,15 @@ const string client_filename = add_path(userver_path, "redis/include/storages/re
 const string client_impl_hpp_filename = add_path(userver_path, "redis/src/storages/redis/client_impl.hpp");
 const string client_impl_cpp_filename = add_path(userver_path, "redis/src/storages/redis/client_impl.cpp");
 const string request_filename = add_path(userver_path, "redis/include/storages/redis/request.hpp");
-const string transaction_filename = add_path(userver_path, "redis/include/storages/redis/transaction.hpp");
+const string transaction_hpp_filename = add_path(userver_path, "redis/include/storages/redis/transaction.hpp");
 const string transaction_impl_hpp_filename = add_path(userver_path, "redis/src/storages/redis/transaction_impl.hpp");
 const string transaction_impl_cpp_filename = add_path(userver_path, "redis/src/storages/redis/transaction_impl.cpp");
+const string mock_client_base_test_hpp_filename = add_path(userver_path, "redis/include/storages/redis/mock_client_base_test.hpp");
+const string mock_client_base_test_cpp_filename = add_path(userver_path, "redis/src/storages/redis/mock_client_base_test.cpp");
+const string mock_transaction_test_hpp_filename = add_path(userver_path, "redis/src/storages/redis/mock_transaction_test.hpp");
+const string mock_transaction_test_cpp_filename = add_path(userver_path, "redis/src/storages/redis/mock_transaction_test.cpp");
+const string mock_transaction_impl_base_test_hpp_filename = add_path(userver_path, "redis/include/storages/redis/mock_transaction_impl_base_test.hpp");
+const string mock_transaction_impl_base_test_cpp_filename = add_path(userver_path, "redis/src/storages/redis/mock_transaction_impl_base_test.cpp");
 
 const string tmp_filename = "/tmp/add_redis_command_tmp.txt";
 
@@ -29,6 +35,7 @@ const string redis_commands_str = "redis commands:";
 const string redis_commands_end_str = "end of redis commands";
 const string delim = "\n\n";
 const string equal_zero = ") = 0;";
+const string not_equal_zero = ");";
 const string override_ending = ") override;";
 const string big_a_z = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -74,6 +81,7 @@ void write_file(const string &filename, const std::string &data)
 		int call_res = system(("diff -u " + filename + " " + new_file_tmp + " >" + tmp_filename).c_str());
 		cerr << "call_res=" << call_res << endl;
 		auto diff = read_file(tmp_filename);
+		if (diff.empty()) return;
 		if (diff.substr(0, 3) != "---") fail("can't parse diff.\n" + diff);
 		auto nl = diff.find('\n');
 		if (nl == string::npos) fail("can't parse diff.\n" + diff);
@@ -155,6 +163,29 @@ void process_file(const string &client_filename, const string &decl_command)
 	write_file(client_filename_full, client_file);
 }
 
+string gen_first_line_cpp(
+	const string &class_name, bool add_command_control,
+	bool comment_param_names
+) {
+	string decl_command = "Request" + command_cc + ' ' + class_name + "::" + command_cc + '(';
+	bool first = true;
+	for (const auto &param : params) {
+		if (first) first = false;
+		else decl_command += ", ";
+		decl_command += param.type + ' ';
+		if (comment_param_names) decl_command += "/*";
+		decl_command += param.name;
+		if (comment_param_names) decl_command += "*/";
+	}
+	if (add_command_control) {
+		if (first) first = false;
+		else decl_command += ", ";
+		decl_command += "const CommandControl& command_control";
+	}
+	decl_command += ") {\n";
+	return decl_command;
+}
+
 void process_client_file()
 {
 	cerr << "--- " << __func__ << " ---" << endl;
@@ -212,16 +243,8 @@ void add_dummy_request(const string &param_name, string &decl_command)
 	decl_command += "));\n";
 }
 
-void process_client_impl_cpp_file()
+bool is_shard_found()
 {
-	cerr << "--- " << __func__ << " ---" << endl;
-
-	static const string decl_ending = "\n}";
-
-	string decl_command = "Request" + command_cc + " ClientImpl::" + command_cc + '(';
-	for (const auto &param : params) {
-		decl_command += param.type + ' ' + param.name + ", ";
-	}
 	bool shard_found = false;
 	for (const auto &param : params) {
 		if (param.name == "shard") {
@@ -229,7 +252,17 @@ void process_client_impl_cpp_file()
 			break;
 		}
 	}
-	decl_command += "const CommandControl& command_control) {\n";
+	return shard_found;
+}
+
+void process_client_impl_cpp_file()
+{
+	cerr << "--- " << __func__ << " ---" << endl;
+
+	static const string decl_ending = "\n}";
+
+	string decl_command = gen_first_line_cpp("ClientImpl", true, false);
+	bool shard_found = is_shard_found();
 	if (!shard_found) {
 		if (params[0].name == "key") {
 			for (const auto &param : params) {
@@ -348,7 +381,7 @@ void process_request_file()
 	write_file(request_filename_full, request_file);
 }
 
-void process_transaction_file()
+void process_transaction_hpp_file(const std::string &transaction_filename, bool add_equal_zero)
 {
 	cerr << "--- " << __func__ << " ---" << endl;
 
@@ -359,12 +392,13 @@ void process_transaction_file()
 		else decl_command += ", ";
 		decl_command += param.type + ' ' + param.name;
 	}
-	decl_command += equal_zero;
+	if (add_equal_zero) decl_command += equal_zero;
+	else decl_command += not_equal_zero;
 
 	process_file(transaction_filename, decl_command);
 }
 
-void process_transaction_impl_hpp_file()
+void process_transaction_impl_hpp_file(const std::string &transaction_filename)
 {
 	cerr << "--- " << __func__ << " ---" << endl;
 
@@ -377,28 +411,13 @@ void process_transaction_impl_hpp_file()
 	}
 	decl_command += override_ending;
 
-	process_file(transaction_impl_hpp_filename, decl_command);
+	process_file(transaction_filename, decl_command);
 }
 
-void process_transaction_impl_cpp_file()
+string gen_update_shard()
 {
-	cerr << "--- " << __func__ << " ---" << endl;
-
-	string decl_command = "Request" + command_cc + " TransactionImpl::" + command_cc + '(';
-	bool first = true;
-	for (const auto &param : params) {
-		if (first) first = false;
-		else decl_command += ", ";
-		decl_command += param.type + ' ' + param.name;
-	}
-	bool shard_found = false;
-	for (const auto &param : params) {
-		if (param.name == "shard") {
-			shard_found = true;
-			break;
-		}
-	}
-	decl_command += ") {\n";
+	string decl_command;
+	bool shard_found = is_shard_found();
 	if (!shard_found) {
 		if (params[0].name == "key") {
 			for (const auto &param : params) {
@@ -427,6 +446,15 @@ void process_transaction_impl_cpp_file()
 	else {
 		decl_command += "  UpdateShard(shard);\n";
 	}
+	return decl_command;
+}
+
+void process_transaction_impl_cpp_file()
+{
+	cerr << "--- " << __func__ << " ---" << endl;
+
+	string decl_command = gen_first_line_cpp("TransactionImpl", false, false);
+	decl_command += gen_update_shard();
 	decl_command += "  return AddCmd<Request" + command_cc + ">(\"" + command + '"';
 	for (const auto &param : params) {
 		if (param.name == "shard") continue;
@@ -447,6 +475,81 @@ void process_transaction_impl_cpp_file()
 	decl_command += ");\n}";
 
 	process_file(transaction_impl_cpp_filename, decl_command);
+}
+
+void process_mock_client_base_test_hpp_file()
+{
+	cerr << "--- " << __func__ << " ---" << endl;
+
+	string decl_command = "  Request" + command_cc + ' ' + command_cc + '(';
+	for (const auto &param : params) {
+		decl_command += param.type + ' ' + param.name + ", ";
+	}
+	decl_command += "const CommandControl& command_control" + override_ending;
+
+	process_file(mock_client_base_test_hpp_filename, decl_command);
+}
+
+void process_mock_client_base_test_cpp_file()
+{
+	cerr << "--- " << __func__ << " ---" << endl;
+
+	static const string decl_ending = "\n}";
+
+	string decl_command = "Request" + command_cc + " MockClientBase::" + command_cc + '(';
+	for (const auto &param : params) {
+		decl_command += param.type + " /*" + param.name + "*/, ";
+	}
+	decl_command += "const CommandControl& /*command_control*/) {\n";
+	decl_command += "  UASSERT_MSG(false, \"redis method not mocked\");\n";
+	decl_command += "  return Request" + command_cc + "{nullptr};";
+	decl_command += decl_ending;
+
+	process_file(mock_client_base_test_cpp_filename, decl_command);
+}
+
+void process_mock_transaction_test_cpp_file()
+{
+	cerr << "--- " << __func__ << " ---" << endl;
+
+	static const string decl_ending = "\n}";
+
+	string decl_command = gen_first_line_cpp("MockTransaction", false, false);
+	decl_command += gen_update_shard();
+	decl_command += "  return AddSubrequest(impl_->" + command_cc + '(';
+	bool first = true;
+	for (const auto &param : params) {
+		if (first) first = false;
+		else decl_command += ", ";
+		if (need_move(param.type)) {
+			decl_command += "std::move(" + param.name + ')';
+			if (param.type.find("chrono") != string::npos) {
+				cerr << "not implemented (move + chrono)" << endl;
+				abort();
+			}
+		}
+		else {
+			decl_command += param.name;
+		}
+	}
+	decl_command += "));";
+	decl_command += decl_ending;
+
+	process_file(mock_transaction_test_cpp_filename, decl_command);
+}
+
+void process_mock_transaction_impl_base_test_cpp_file()
+{
+	cerr << "--- " << __func__ << " ---" << endl;
+
+	static const string decl_ending = "\n}";
+
+	string decl_command = gen_first_line_cpp("MockTransactionImplBase", false, true);
+	decl_command += "  UASSERT_MSG(false, \"redis method not mocked\");\n";
+	decl_command += "  return Request" + command_cc + "{nullptr};";
+	decl_command += decl_ending;
+
+	process_file(mock_transaction_impl_base_test_cpp_filename, decl_command);
 }
 
 void print_params(const vector<param_t> &params)
@@ -557,9 +660,15 @@ int main(int argc, char **argv)
 	process_client_impl_hpp_file();
 	process_client_impl_cpp_file();
 	process_request_file();
-	process_transaction_file();
-	process_transaction_impl_hpp_file();
+	process_transaction_hpp_file(transaction_hpp_filename, true);
+	process_transaction_impl_hpp_file(transaction_impl_hpp_filename);
 	process_transaction_impl_cpp_file();
+	process_mock_client_base_test_hpp_file();
+	process_mock_client_base_test_cpp_file();
+	process_transaction_impl_hpp_file(mock_transaction_test_hpp_filename);
+	process_mock_transaction_test_cpp_file();
+	process_transaction_hpp_file(mock_transaction_impl_base_test_hpp_filename, false);
+	process_mock_transaction_impl_base_test_cpp_file();
 
 	return 0;
 }
