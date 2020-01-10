@@ -79,7 +79,7 @@ class ClusterImpl {
   PoolSettings pool_settings_;
   ConnectionSettings conn_settings_;
   ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
-  const error_injection::Settings& ei_settings_;
+  const error_injection::Settings ei_settings_;
   std::atomic_flag update_lock_;
 };
 

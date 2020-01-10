@@ -161,7 +161,7 @@ class ClusterTopology {
   bool initial_check_;
 
   CommandControl default_cmd_ctl_;
-  const error_injection::Settings& ei_settings_;
+  const error_injection::Settings ei_settings_;
 };
 
 using ClusterTopologyPtr = std::unique_ptr<ClusterTopology>;
