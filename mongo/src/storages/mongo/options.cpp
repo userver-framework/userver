@@ -1,7 +1,11 @@
 #include <storages/mongo/options.hpp>
 
+#include <formats/bson/inline.hpp>
+#include <formats/bson/value_builder.hpp>
 #include <storages/mongo/exception.hpp>
 #include <utils/text.hpp>
+
+#include <storages/mongo/operations_common.hpp>
 
 namespace storages::mongo::options {
 
@@ -63,74 +67,67 @@ WriteConcern& WriteConcern::SetJournal(bool value) {
   return *this;
 }
 
-Projection::Projection()
-    : builder_(formats::bson::ValueBuilder::Type::kObject) {}
-
-Projection::Projection(std::initializer_list<std::string> fields_to_include)
-    : Projection() {
+Projection::Projection(
+    std::initializer_list<utils::string_view> fields_to_include) {
   for (const auto& field : fields_to_include) Include(field);
 }
 
-Projection::Projection(formats::bson::Document doc)
-    : builder_(std::move(doc)) {}
-
-Projection& Projection::Include(const std::string& field) {
-  builder_[field] = true;
+Projection& Projection::Include(utils::string_view field) {
+  impl::EnsureBuilder(projection_builder_).Append(field, true);
   return *this;
 }
 
-Projection& Projection::Exclude(const std::string& field) {
-  builder_[field] = false;
+Projection& Projection::Exclude(utils::string_view field) {
+  impl::EnsureBuilder(projection_builder_).Append(field, false);
   return *this;
 }
 
-Projection& Projection::Slice(const std::string& field, int32_t limit,
+Projection& Projection::Slice(utils::string_view field, int32_t limit,
                               int32_t skip) {
   static const std::string kSliceOp = "$slice";
-  formats::bson::ValueBuilder slice;
+  formats::bson::Value slice;
   if (!skip) {
-    slice[kSliceOp] = limit;
+    slice = formats::bson::MakeDoc(kSliceOp, limit);
   } else {
     if (limit < 0) {
       throw InvalidQueryArgumentException("Cannot use negative slice limit ")
           << limit << " with nonzero skip " << skip << " in projection";
     }
-    slice[kSliceOp].PushBack(skip);
-    slice[kSliceOp].PushBack(limit);
+    slice =
+        formats::bson::MakeDoc(kSliceOp, formats::bson::MakeArray(skip, limit));
   }
 
-  builder_[field] = std::move(slice);
+  impl::EnsureBuilder(projection_builder_).Append(field, slice);
   return *this;
 }
 
-Projection& Projection::ElemMatch(const std::string& field,
-                                  formats::bson::Document pred) {
+Projection& Projection::ElemMatch(utils::string_view field,
+                                  const formats::bson::Document& pred) {
   static const std::string kElemMatchOp = "$elemMatch";
-  formats::bson::ValueBuilder elem_match;
-  elem_match[kElemMatchOp] = std::move(pred);
-
-  builder_[field] = std::move(elem_match);
+  impl::EnsureBuilder(projection_builder_)
+      .Append(field, formats::bson::MakeDoc(kElemMatchOp, pred));
   return *this;
 }
 
-bool Projection::IsEmpty() const { return builder_.GetSize() == 0; }
-
-formats::bson::Document Projection::Extract() && {
-  return builder_.ExtractValue();
+const bson_t* Projection::GetProjectionBson() const {
+  return impl::GetNative(projection_builder_);
 }
 
-Sort::Sort(Order order) : order_(std::move(order)) {}
-
-Sort::Sort(std::initializer_list<Order::value_type> order) {
+Sort::Sort(
+    std::initializer_list<std::pair<utils::string_view, Direction>> order) {
   for (auto& [field, direction] : order) By(field, direction);
 }
 
-Sort& Sort::By(std::string field, Direction direction) {
-  order_.emplace_back(std::move(field), direction);
+Sort& Sort::By(utils::string_view field, Direction direction) {
+  impl::EnsureBuilder(sort_builder_)
+      .Append(field,
+              direction == options::Sort::Direction::kAscending ? 1 : -1);
   return *this;
 }
 
-const Sort::Order& Sort::GetOrder() const { return order_; }
+const bson_t* Sort::GetSortBson() const {
+  return impl::GetNative(sort_builder_);
+}
 
 Hint::Hint(std::string index_name)
     : value_(

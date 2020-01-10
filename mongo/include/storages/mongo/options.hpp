@@ -6,14 +6,17 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <boost/optional.hpp>
 
+#include <formats/bson/bson_builder.hpp>
 #include <formats/bson/document.hpp>
-#include <formats/bson/value_builder.hpp>
+#include <formats/bson/value.hpp>
+#include <utils/string_view.hpp>
 
 /// Collection operation options
 namespace storages::mongo::options {
@@ -142,28 +145,24 @@ class Limit {
 };
 
 /// @brief Selects fields to be returned
-/// @note `_id` field is always included by default
+/// @note `_id` field is always included by default, order might be significant
 /// @see
 /// https://docs.mongodb.com/manual/tutorial/project-fields-from-query-results/
 class Projection {
  public:
   /// Creates a default projection including all fields
-  Projection();
+  Projection() = default;
 
   /// Creates a projection including only specified fields
-  Projection(std::initializer_list<std::string> fields_to_include);
-
-  /// @brief Adopts an existing projection document
-  /// @warning No client-side checks are performed.
-  explicit Projection(formats::bson::Document);
+  Projection(std::initializer_list<utils::string_view> fields_to_include);
 
   /// Includes a field into the projection
-  Projection& Include(const std::string& field);
+  Projection& Include(utils::string_view field);
 
   /// @brief Excludes a field from the projection
   /// @warning Projection cannot have a mix of inclusion and exclusion.
   /// Only the `_id` field can always be excluded.
-  Projection& Exclude(const std::string& field);
+  Projection& Exclude(utils::string_view field);
 
   /// @brief Setups an array slice in the projection
   /// @param field name of the array field to slice
@@ -174,25 +173,23 @@ class Projection {
   /// @note `limit < 0, skip == 0` is equivalent to `limit' = -limit, skip' =
   /// limit`.
   /// @warning Cannot be applied to views.
-  Projection& Slice(const std::string& field, int32_t limit, int32_t skip = 0);
+  Projection& Slice(utils::string_view field, int32_t limit, int32_t skip = 0);
 
   /// @brief Matches the first element of an array satisfying a predicate
   /// @param field name of the array to search
   /// @param pred predicate to apply to elements
   /// @note Array field will be absent from the result if no elements match.
   /// @note Empty document as a predicate will only match empty documents.
-  Projection& ElemMatch(const std::string& field, formats::bson::Document pred);
+  Projection& ElemMatch(utils::string_view field,
+                        const formats::bson::Document& pred);
 
   /// @cond
-  /// Returns whether none of projections are set
-  bool IsEmpty() const;
-
-  /// Retrieves projection document
-  formats::bson::Document Extract() &&;
+  /// Projection specification BSON access
+  const bson_t* GetProjectionBson() const;
   /// @endcond
 
  private:
-  formats::bson::ValueBuilder builder_;
+  boost::optional<formats::bson::impl::BsonBuilder> projection_builder_;
 };
 
 /// Sorts the results
@@ -202,24 +199,23 @@ class Sort {
     kAscending,
     kDescending,
   };
-  using Order = std::vector<std::pair<std::string, Direction>>;
 
   /// Creates an empty ordering specification
   Sort() = default;
 
   /// Stores the specified ordering specification
-  Sort(std::initializer_list<Order::value_type>);
-
-  /// Stores the specified ordering specification
-  explicit Sort(Order);
+  Sort(std::initializer_list<std::pair<utils::string_view, Direction>>);
 
   /// Appends a field to the ordering specification
-  Sort& By(std::string field, Direction direction);
+  Sort& By(utils::string_view field, Direction direction);
 
-  const Order& GetOrder() const;
+  /// @cond
+  /// Sort specification BSON access
+  const bson_t* GetSortBson() const;
+  /// @endcond
 
  private:
-  Order order_;
+  boost::optional<formats::bson::impl::BsonBuilder> sort_builder_;
 };
 
 /// @brief Specifies an index to use for the query

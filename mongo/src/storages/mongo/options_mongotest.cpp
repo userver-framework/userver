@@ -196,11 +196,23 @@ TEST(Options, Projection) {
       EXPECT_EQ(2, (*doc)["arr"][0].As<int>());
     }
     {
-      auto doc =
-          coll.FindOne({}, options::Projection{MakeDoc("b", 1, "_id", 0)});
+      auto doc = coll.FindOne({}, options::Projection{"doc", "doc.b"});
       ASSERT_TRUE(doc);
-      EXPECT_EQ(1, doc->GetSize());
-      EXPECT_TRUE((*doc)["b"].IsString());
+      EXPECT_EQ(2, doc->GetSize());
+      EXPECT_TRUE(doc->HasMember("_id"));
+      ASSERT_TRUE((*doc)["doc"].IsDocument());
+      EXPECT_EQ(1, (*doc)["doc"].GetSize());
+      EXPECT_TRUE((*doc)["doc"]["b"].IsInt32());
+    }
+    {
+      auto doc = coll.FindOne({}, options::Projection{"doc.b", "doc"});
+      ASSERT_TRUE(doc);
+      EXPECT_EQ(2, doc->GetSize());
+      EXPECT_TRUE(doc->HasMember("_id"));
+      ASSERT_TRUE((*doc)["doc"].IsDocument());
+      EXPECT_EQ(2, (*doc)["doc"].GetSize());
+      EXPECT_TRUE((*doc)["doc"]["a"].IsNull());
+      EXPECT_TRUE((*doc)["doc"]["b"].IsInt32());
     }
   });
 }

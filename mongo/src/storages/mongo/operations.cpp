@@ -63,16 +63,6 @@ impl::ReadPrefsPtr MakeReadPrefs(const options::ReadPreference& option) {
   return read_prefs;
 }
 
-formats::bson::impl::BsonHolder MakeSortBson(const options::Sort& sort) {
-  // order is significant here, so we build BSON directly
-  formats::bson::impl::BsonBuilder builder;
-  for (const auto& [field, direction] : sort.GetOrder()) {
-    builder.Append(field,
-                   direction == options::Sort::Direction::kAscending ? 1 : -1);
-  }
-  return builder.Extract();
-}
-
 void AppendReadConcern(formats::bson::impl::BsonBuilder& builder,
                        options::ReadConcern level) {
   impl::ReadConcernPtr read_concern(mongoc_read_concern_new());
@@ -338,18 +328,19 @@ void Find::SetOption(options::Limit limit) {
 }
 
 void Find::SetOption(options::Projection projection) {
-  if (projection.IsEmpty()) return;
+  const bson_t* projection_bson = projection.GetProjectionBson();
+  if (!projection_bson) return;
 
   static const std::string kOptionName = "projection";
-  impl::EnsureBuilder(impl_->options)
-      .Append(kOptionName, std::move(projection).Extract());
+  impl::EnsureBuilder(impl_->options).Append(kOptionName, projection_bson);
 }
 
 void Find::SetOption(const options::Sort& sort) {
-  if (sort.GetOrder().empty()) return;
+  const bson_t* sort_bson = sort.GetSortBson();
+  if (!sort_bson) return;
 
   static const std::string kOptionName = "sort";
-  impl::EnsureBuilder(impl_->options).Append(kOptionName, MakeSortBson(sort));
+  impl::EnsureBuilder(impl_->options).Append(kOptionName, sort_bson);
 }
 
 void Find::SetOption(const options::Hint& hint) {
@@ -579,15 +570,14 @@ void FindAndModify::SetOption(options::RetryDuplicateKey) {
 
 void FindAndModify::SetOption(const options::Sort& sort) {
   if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(),
-                                            MakeSortBson(sort).get())) {
+                                            sort.GetSortBson())) {
     throw MongoException("Cannot set sort");
   }
 }
 
 void FindAndModify::SetOption(options::Projection projection) {
-  const auto projection_doc = std::move(projection).Extract();
   if (!mongoc_find_and_modify_opts_set_fields(impl_->options.get(),
-                                              projection_doc.GetBson().get())) {
+                                              projection.GetProjectionBson())) {
     throw MongoException("Cannot set projection");
   }
 }
@@ -639,15 +629,14 @@ FindAndRemove& FindAndRemove::operator=(FindAndRemove&&) = default;
 
 void FindAndRemove::SetOption(const options::Sort& sort) {
   if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(),
-                                            MakeSortBson(sort).get())) {
+                                            sort.GetSortBson())) {
     throw MongoException("Cannot set sort");
   }
 }
 
 void FindAndRemove::SetOption(options::Projection projection) {
-  const auto projection_doc = std::move(projection).Extract();
   if (!mongoc_find_and_modify_opts_set_fields(impl_->options.get(),
-                                              projection_doc.GetBson().get())) {
+                                              projection.GetProjectionBson())) {
     throw MongoException("Cannot set projection");
   }
 }

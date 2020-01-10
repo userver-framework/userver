@@ -166,16 +166,16 @@ BsonBuilder& BsonBuilder::Append(utils::string_view key,
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key,
-                                 const BsonHolder& doc) {
-  bson_append_document(bson_->Get(), key.data(), key.size(), doc.get());
-  return *this;
-}
-
 BsonBuilder& BsonBuilder::Append(utils::string_view key, const Value& value) {
   value.impl_->CheckNotMissing();
   bson_append_value(bson_->Get(), key.data(), key.size(),
                     value.impl_->GetNative());
+  return *this;
+}
+
+BsonBuilder& BsonBuilder::Append(utils::string_view key,
+                                 const bson_t* sub_bson) {
+  bson_append_document(bson_->Get(), key.data(), key.size(), sub_bson);
   return *this;
 }
 

@@ -50,9 +50,9 @@ class BsonBuilder {
   BsonBuilder& Append(utils::string_view key, MaxKey);
   BsonBuilder& Append(utils::string_view key, const Timestamp&);
 
-  BsonBuilder& Append(utils::string_view key, const BsonHolder&);
-
   BsonBuilder& Append(utils::string_view key, const Value&);
+
+  BsonBuilder& Append(utils::string_view key, const bson_t*);
 
   const bson_t* Get() const;
   bson_t* Get();
