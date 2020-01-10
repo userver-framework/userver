@@ -17,6 +17,7 @@ static const char* kStatisticsNameCurrentDocumentsCount =
 static const char* kStatisticsNameHits = "hits";
 static const char* kStatisticsNameMisses = "misses";
 static const char* kStatisticsNameStale = "stale";
+static const char* kStatisticsNameBackground = "background-updates";
 static const char* kStatisticsNameHitRatio = "hit_ratio";
 
 struct UpdateStatistics {

@@ -31,11 +31,18 @@ struct CacheConfig {
   bool allow_first_update_failure;
 };
 
+enum class BackgroundUpdateMode {
+  kEnabled,
+  kDisabled,
+};
+
 struct LruCacheConfig {
-  LruCacheConfig(size_t size, std::chrono::milliseconds lifetime);
+  LruCacheConfig(size_t size, std::chrono::milliseconds lifetime,
+                 BackgroundUpdateMode background_update);
 
   size_t size;
   std::chrono::milliseconds lifetime;
+  BackgroundUpdateMode background_update;
 };
 
 struct LruCacheConfigStatic {

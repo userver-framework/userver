@@ -4,7 +4,7 @@
 
 #include <engine/single_consumer_event.hpp>
 
-namespace rcu::impl {
+namespace utils::impl {
 
 // Gives out tokens and waits for all given-out tokens death
 class WaitTokenStorage final {
@@ -28,4 +28,4 @@ class WaitTokenStorage final {
   Token token_;
 };
 
-}  // namespace rcu::impl
+}  // namespace utils::impl

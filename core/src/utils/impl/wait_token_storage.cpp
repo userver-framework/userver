@@ -1,9 +1,9 @@
-#include <rcu/impl/wait_token_storage.hpp>
+#include <utils/impl/wait_token_storage.hpp>
 
 #include <engine/task/cancel.hpp>
 #include <engine/task/task_context.hpp>
 
-namespace rcu::impl {
+namespace utils::impl {
 
 class WaitTokenStorage::SafeScopeGuard final {
  public:
@@ -48,4 +48,4 @@ void WaitTokenStorage::WaitForAllTokens() {
   }
 }
 
-}  // namespace rcu::impl
+}  // namespace utils::impl

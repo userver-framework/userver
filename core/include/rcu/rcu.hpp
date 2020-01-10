@@ -11,9 +11,9 @@
 #include <engine/async.hpp>
 #include <engine/mutex.hpp>
 #include <logging/log.hpp>
-#include <rcu/impl/wait_token_storage.hpp>
 #include <utils/assert.hpp>
 #include <utils/clang_format_workarounds.hpp>
+#include <utils/impl/wait_token_storage.hpp>
 
 /// Read-Cope-Update variable
 /// @see Based on ideas from
@@ -352,7 +352,7 @@ class Variable final {
   // may be read without mutex_ locked, but must be changed with held mutex_
   std::atomic<T*> current_;
   std::list<std::unique_ptr<T>> retire_list_head_;
-  impl::WaitTokenStorage wait_token_storage_;
+  utils::impl::WaitTokenStorage wait_token_storage_;
 
   friend class ReadablePtr<T>;
   friend class WritablePtr<T>;

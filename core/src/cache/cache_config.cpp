@@ -22,6 +22,7 @@ const std::string kFirstUpdateFailOk = "first-update-fail-ok";
 const std::string kWays = "ways";
 const std::string kSize = "size";
 const std::string kLifetime = "lifetime";
+const std::string kBackgroundUpdate = "background-update";
 
 const std::string kLifetimeMs = "lifetime-ms";
 
@@ -127,14 +128,18 @@ LruCacheConfigStatic::LruCacheConfigStatic(
     const components::ComponentConfig& component_config)
     : config(component_config.ParseUint64(kSize),
              component_config.ParseDuration(kLifetime,
-                                            std::chrono::milliseconds::zero())),
+                                            std::chrono::milliseconds::zero()),
+             component_config.ParseBool(kBackgroundUpdate, false)
+                 ? BackgroundUpdateMode::kEnabled
+                 : BackgroundUpdateMode::kDisabled),
       ways(component_config.ParseUint64(kWays)) {
   if (ways <= 0) throw std::runtime_error("cache-ways is non-positive");
   if (config.size <= 0) throw std::runtime_error("cache-size is non-positive");
 }
 
-LruCacheConfig::LruCacheConfig(size_t size, std::chrono::milliseconds lifetime)
-    : size(size), lifetime(lifetime) {}
+LruCacheConfig::LruCacheConfig(size_t size, std::chrono::milliseconds lifetime,
+                               BackgroundUpdateMode background_update)
+    : size(size), lifetime(lifetime), background_update(background_update) {}
 
 size_t LruCacheConfigStatic::GetWaySize() const {
   auto way_size = config.size / ways;
@@ -193,7 +198,10 @@ CacheConfig CacheConfigSet::ParseConfig(const formats::json::Value& json) {
 
 LruCacheConfig CacheConfigSet::ParseLruConfig(
     const formats::json::Value& json) {
-  return LruCacheConfig(json[kSize].As<size_t>(), JsonToMs(json[kLifetimeMs]));
+  return LruCacheConfig(json[kSize].As<size_t>(), JsonToMs(json[kLifetimeMs]),
+                        json[kBackgroundUpdate].As<bool>(false)
+                            ? BackgroundUpdateMode::kEnabled
+                            : BackgroundUpdateMode::kDisabled);
 }
 
 bool CacheConfigSet::IsConfigEnabled() { return !ConfigName().empty(); }

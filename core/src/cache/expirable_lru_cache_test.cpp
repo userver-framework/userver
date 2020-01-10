@@ -1,6 +1,7 @@
 #include <utest/utest.hpp>
 
 #include <cache/expirable_lru_cache.hpp>
+#include <engine/sleep.hpp>
 #include <utils/mock_now.hpp>
 
 TEST(ExpirableLruCache, Hit) {
@@ -25,7 +26,7 @@ TEST(ExpirableLruCache, Hit) {
 TEST(ExpirableLruCache, Expire) {
   RunInCoro([] {
     cache::ExpirableLruCache<int, int> cache(1, 1);
-    cache.UpdateMaxLifetime(std::chrono::seconds(2));
+    cache.SetMaxLifetime(std::chrono::seconds(2));
 
     int count = 0;
     utils::datetime::MockNowSet(std::chrono::system_clock::now());
@@ -93,5 +94,32 @@ TEST(ExpirableLruCache, InvalidateByKey) {
       return 1;
     }));
     EXPECT_EQ(2, count);
+  });
+}
+
+TEST(ExpirableLruCache, BackgroundUpdate) {
+  RunInCoro([] {
+    cache::ExpirableLruCache<int, int> cache(1, 1);
+    cache.SetMaxLifetime(std::chrono::seconds(3));
+    cache.SetBackgroundUpdate(cache::BackgroundUpdateMode::kEnabled);
+    utils::datetime::MockNowSet(std::chrono::system_clock::now());
+
+    EXPECT_EQ(0, cache.Get(1, [](int) { return 0; }));
+
+    EXPECT_EQ(0, cache.Get(1, [](int) { return 1; }));
+
+    engine::Yield();
+    engine::Yield();
+
+    EXPECT_EQ(0, cache.Get(1, [](int) { return 2; }));
+
+    utils::datetime::MockSleep(std::chrono::seconds(2));
+
+    EXPECT_EQ(0, cache.Get(1, [](int) { return 3; }));
+
+    engine::Yield();
+    engine::Yield();
+
+    EXPECT_EQ(3, cache.Get(1, [](int) { return 4; }));
   });
 }

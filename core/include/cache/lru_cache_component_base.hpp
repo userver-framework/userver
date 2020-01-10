@@ -28,6 +28,7 @@ formats::json::Value GetCacheStatisticsAsJson(
   builder[kStatisticsNameHits] = stats.total.hits.load();
   builder[kStatisticsNameMisses] = stats.total.misses.load();
   builder[kStatisticsNameStale] = stats.total.stale.load();
+  builder[kStatisticsNameBackground] = stats.total.background_updates.load();
 
   auto s1min = stats.recent.GetStatsForPeriod();
   double s1min_hits = s1min.hits.load();
@@ -112,7 +113,8 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
           context.FindComponent<components::TestsuiteSupport>()
               .GetComponentControl(),
           *this, &LruCacheComponent<Key, Value, Hash, Equal>::DropCache) {
-  cache_->UpdateMaxLifetime(static_config_.config.lifetime);
+  cache_->SetMaxLifetime(static_config_.config.lifetime);
+  cache_->SetBackgroundUpdate(static_config_.config.background_update);
 
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
@@ -183,8 +185,9 @@ void LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate(
 template <typename Key, typename Value, typename Hash, typename Equal>
 void LruCacheComponent<Key, Value, Hash, Equal>::UpdateConfig(
     const LruCacheConfigStatic& config) {
-  cache_->UpdateWaySize(config.GetWaySize());
-  cache_->UpdateMaxLifetime(config.config.lifetime);
+  cache_->SetWaySize(config.GetWaySize());
+  cache_->SetMaxLifetime(config.config.lifetime);
+  cache_->SetBackgroundUpdate(config.config.background_update);
 }
 
 }  // namespace cache
