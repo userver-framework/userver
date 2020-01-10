@@ -14,7 +14,7 @@ REQUIRED_PACKAGES="coreutils boost cctz cmake cryptopp curl flatbuffers fmt grpc
 brew install $REQUIRED_PACKAGES
 
 # for tests and uservices
-EXTRA_PACKAGES="catboost-model-lib ccache clang-format-7 cmake geobase6 libyandex-taxi-graph pugixml redis taxi-graph3-test-data ticket_parser2 mongodb-community@4.2 libyandex-taxi-v8 libpng"
+EXTRA_PACKAGES="catboost-model-lib ccache clang-format-7 cmake geobase6 libyandex-taxi-graph pugixml redis taxi-graph3-test-data ticket_parser2 mongodb-community@4.2 libyandex-taxi-v8 libpng persqueue-wrapper"
 brew install $EXTRA_PACKAGES
 
 brew list jsoncpp > /dev/null 2>&1
