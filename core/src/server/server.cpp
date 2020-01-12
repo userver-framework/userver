@@ -56,10 +56,6 @@ void ServerImpl::PortInfo::Stop() {
   listeners_.clear();
   LOG_TRACE() << "Stopped listeners";
 
-  LOG_TRACE() << "Stopping request handlers";
-  request_handler_.reset();
-  LOG_TRACE() << "Stopped request handlers";
-
   if (endpoint_info_) {
     // Connections are closing asynchronously.
     // So we need to wait until they close.
@@ -72,6 +68,10 @@ void ServerImpl::PortInfo::Stop() {
       engine::SleepFor(std::chrono::milliseconds(sleep_ms));
     }
   }
+
+  LOG_TRACE() << "Stopping request handlers";
+  request_handler_.reset();
+  LOG_TRACE() << "Stopped request handlers";
 }
 
 void ServerImpl::PortInfo::Start() {
