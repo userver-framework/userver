@@ -446,7 +446,7 @@ template <typename PostgreCachePolicy>
 void PostgreCache<PostgreCachePolicy>::CacheResults(
     storages::postgres::ResultSet res, CachedData data_cache,
     cache::UpdateStatisticsScope& stats_scope) {
-  auto values = res.AsSetOf<RawValueType>();
+  auto values = res.AsSetOf<RawValueType>(storages::postgres::kRowTag);
   for (auto p = values.begin(); p != values.end(); ++p) {
     try {
       if constexpr (pg_cache::detail::kHasRawValueType<PolicyType>) {

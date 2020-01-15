@@ -716,13 +716,15 @@ class InvalidTupleSizeRequested : public ResultSetError {
 /// contains more than one column.
 class NonSingleColumResultSet : public ResultSetError {
  public:
-  NonSingleColumResultSet(std::size_t actual_size, const std::string& func)
-      : ResultSetError("Parsing the row consisting of " +
-                       std::to_string(actual_size) +
-                       " columns as T is ambiguous as it can be uses both for "
-                       "single column type and for a row. " +
-                       "Please use " + func + "(kRowTag) or " + func +
-                       "(FieldTag) to resolve the ambiguity.") {}
+  NonSingleColumResultSet(std::size_t actual_size, const std::string& type_name,
+                          const std::string& func)
+      : ResultSetError(
+            "Parsing the row consisting of " + std::to_string(actual_size) +
+            " columns as " + type_name +
+            " is ambiguous as it can be uses both for "
+            "single column type and for a row. " +
+            "Please use " + func + "<" + type_name + ">(kRowTag) or " + func +
+            "<" + type_name + ">(kFieldTag) to resolve the ambiguity.") {}
 };
 
 /// @brief A row was requested to be parsed based on field names/indexed,

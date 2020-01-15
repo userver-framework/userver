@@ -738,8 +738,7 @@ void Row::To(T&& val, FieldTag) const {
     throw InvalidTupleSizeRequested{Size(), 1};
   }
   if (Size() > 1) {
-    throw NonSingleColumResultSet{
-        Size(), "As<" + compiler::GetTypeName<T>() + ">(kRowTag)"};
+    throw NonSingleColumResultSet{Size(), compiler::GetTypeName<T>(), "As"};
   }
   At(0).To(std::forward<T>(val));
 }
@@ -838,8 +837,8 @@ auto ResultSet::AsSetOf(FieldTag) const {
   static_assert(io::traits::kIsMappedToPg<ValueType>,
                 "This type is not mapped to a PostgreSQL type");
   if (FieldCount() > 1) {
-    throw NonSingleColumResultSet{
-        FieldCount(), "AsSetOf<" + compiler::GetTypeName<T>() + ">(kRowTag)"};
+    throw NonSingleColumResultSet{FieldCount(), compiler::GetTypeName<T>(),
+                                  "AsSetOf"};
   }
   return TypedResultSet<T, FieldTag>{*this};
 }
