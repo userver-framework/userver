@@ -9,7 +9,6 @@
 
 #include <cache/cache_statistics.hpp>
 #include <components/statistics_storage.hpp>
-#include <engine/condition_variable.hpp>
 #include <rcu/rcu.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <testsuite/cache_control.hpp>
@@ -80,8 +79,6 @@ class CachingComponentBase
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
                        const std::string& name);
 
-  ~CachingComponentBase() override;
-
   const std::string& Name() const;
 
   /// @return cache contents. May be nullptr if and only if MayReturnNull()
@@ -92,7 +89,7 @@ class CachingComponentBase
   std::shared_ptr<const T> GetUnsafe() const;
 
  protected:
-  void Set(std::shared_ptr<const T> value_ptr);
+  void Set(std::unique_ptr<const T> value_ptr);
   void Set(T&& value);
 
   template <typename... Args>
@@ -145,24 +142,13 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       "cache." + name_, std::bind(&CachingComponentBase<T>::ExtendStatistics,
                                   this, std::placeholders::_1));
 
-  try {
-    if (config.ParseBool("config-settings", true) &&
-        cache::CacheConfigSet::IsConfigEnabled()) {
-      auto& taxi_config = context.FindComponent<components::TaxiConfig>();
-      OnConfigUpdate(taxi_config.Get());
-      config_subscription_ = taxi_config.AddListener(
-          this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
-    }
-  } catch (...) {
-    statistics_holder_.Unregister();
-    throw;
+  if (config.ParseBool("config-settings", true) &&
+      cache::CacheConfigSet::IsConfigEnabled()) {
+    auto& taxi_config = context.FindComponent<components::TaxiConfig>();
+    OnConfigUpdate(taxi_config.Get());
+    config_subscription_ = taxi_config.AddListener(
+        this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
   }
-}
-
-template <typename T>
-CachingComponentBase<T>::~CachingComponentBase() {
-  statistics_holder_.Unregister();
-  config_subscription_.Unsubscribe();
 }
 
 template <typename T>
@@ -187,8 +173,19 @@ std::shared_ptr<const T> CachingComponentBase<T>::GetUnsafe() const {
 }
 
 template <typename T>
-void CachingComponentBase<T>::Set(std::shared_ptr<const T> value_ptr) {
-  cache_.Assign(value_ptr);
+void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
+  constexpr auto deleter = [](const T* raw_ptr) {
+    std::unique_ptr<const T> ptr{raw_ptr};
+
+    engine::impl::CriticalAsync([ptr = std::move(ptr)]() mutable {
+      // Kill garbage asynchronously as T::~T() might be very slow
+      ptr.reset();
+    })
+        .Detach();
+  };
+
+  std::shared_ptr<const T> new_value(value_ptr.release(), deleter);
+  cache_.Assign(std::move(new_value));
   this->SendEvent(Get());
 }
 
@@ -200,12 +197,12 @@ void CachingComponentBase<T>::Set(T&& value) {
 template <typename T>
 template <typename... Args>
 void CachingComponentBase<T>::Emplace(Args&&... args) {
-  Set(std::make_shared<T>(std::forward<Args>(args)...));
+  Set(std::make_unique<T>(std::forward<Args>(args)...));
 }
 
 template <typename T>
 void CachingComponentBase<T>::Clear() {
-  cache_.Assign(std::make_shared<const T>());
+  cache_.Assign(std::make_unique<const T>());
 }
 
 template <typename T>

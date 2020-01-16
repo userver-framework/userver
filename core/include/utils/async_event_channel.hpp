@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <shared_mutex>
 
 #include <engine/mutex.hpp>
 #include <logging/log.hpp>

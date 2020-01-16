@@ -119,7 +119,7 @@ class MongoCache
       const std::chrono::system_clock::time_point& now,
       const std::chrono::system_clock::duration& correction);
 
-  std::shared_ptr<typename MongoCacheTraits::DataType> GetData(
+  std::unique_ptr<typename MongoCacheTraits::DataType> GetData(
       cache::UpdateType type);
 
   const storages::mongo::CollectionsPtr mongo_collections_;
@@ -210,8 +210,9 @@ void MongoCache<MongoCacheTraits>::Update(
     }
   }
 
-  this->Set(new_cache);
-  stats_scope.Finish(new_cache->size());
+  const auto size = new_cache->size();
+  this->Set(std::move(new_cache));
+  stats_scope.Finish(size);
 }
 
 template <class MongoCacheTraits>
@@ -266,12 +267,12 @@ MongoCache<MongoCacheTraits>::GetFindOperation(
 }
 
 template <class MongoCacheTraits>
-std::shared_ptr<typename MongoCacheTraits::DataType>
+std::unique_ptr<typename MongoCacheTraits::DataType>
 MongoCache<MongoCacheTraits>::GetData(cache::UpdateType type) {
   if (type == cache::UpdateType::kIncremental)
-    return std::make_shared<typename MongoCacheTraits::DataType>(*this->Get());
+    return std::make_unique<typename MongoCacheTraits::DataType>(*this->Get());
   else
-    return std::make_shared<typename MongoCacheTraits::DataType>();
+    return std::make_unique<typename MongoCacheTraits::DataType>();
 }
 
 }  // namespace components

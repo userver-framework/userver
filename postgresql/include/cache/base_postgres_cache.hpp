@@ -284,7 +284,7 @@ class PostgreCache final
   ~PostgreCache();
 
  private:
-  using CachedData = std::shared_ptr<DataType>;
+  using CachedData = std::unique_ptr<DataType>;
 
   auto GetLastUpdated(std::chrono::system_clock::time_point last_update,
                       const DataType& cache) const;
@@ -294,8 +294,8 @@ class PostgreCache final
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope& stats_scope) override;
 
-  CachedData GetData(cache::UpdateType type);
-  void CacheResults(storages::postgres::ResultSet res, CachedData data_cache,
+  CachedData GetDataSnapshot(cache::UpdateType type);
+  void CacheResults(storages::postgres::ResultSet res, CachedData& data_cache,
                     cache::UpdateStatisticsScope& stats_scope);
 
   static std::string GetAllQuery();
@@ -406,7 +406,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
                                                 : incremental_update_timeout_;
 
   // COPY current cached data
-  auto data_cache = GetData(type);
+  auto data_cache = GetDataSnapshot(type);
   size_t changes = 0;
   // Iterate clusters
   for (auto cluster : clusters_) {
@@ -444,7 +444,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
 
 template <typename PostgreCachePolicy>
 void PostgreCache<PostgreCachePolicy>::CacheResults(
-    storages::postgres::ResultSet res, CachedData data_cache,
+    storages::postgres::ResultSet res, CachedData& data_cache,
     cache::UpdateStatisticsScope& stats_scope) {
   auto values = res.AsSetOf<RawValueType>(storages::postgres::kRowTag);
   for (auto p = values.begin(); p != values.end(); ++p) {
@@ -470,13 +470,13 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
 
 template <typename PostgreCachePolicy>
 typename PostgreCache<PostgreCachePolicy>::CachedData
-PostgreCache<PostgreCachePolicy>::GetData(cache::UpdateType type) {
+PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type) {
   if (type == cache::UpdateType::kIncremental) {
     auto data = this->Get();
     if (data) {
-      return std::make_shared<DataType>(*data);
+      return std::make_unique<DataType>(*data);
     }
   }
-  return std::make_shared<DataType>();
+  return std::make_unique<DataType>();
 }
 }  // namespace components

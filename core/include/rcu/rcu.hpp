@@ -92,23 +92,26 @@ class USERVER_NODISCARD ReadablePtr final {
     hp_record_.Release();
   }
 
-  const T& operator*() const& { return *t_ptr_; }
-
-  const T& operator*() && {
-    static_assert(false && sizeof(T),
-                  "Don't use *tmp for temporary value, store it to variable");
-    std::abort();
+  const T* Get() const& {
+    UASSERT(t_ptr_);
+    return t_ptr_;
   }
 
-  const T* operator->() const& { return t_ptr_; }
+  const T* Get() && { return GetOnRvalue(); }
 
-  const T* operator->() && {
-    static_assert(false && sizeof(T),
-                  "Don't use tmp-> for temporary value, store it to variable");
-    std::abort();
-  }
+  const T* operator->() const& { return Get(); }
+  const T* operator->() && { return GetOnRvalue(); }
+
+  const T& operator*() const& { return *Get(); }
+  const T& operator*() && { return *GetOnRvalue(); }
 
  private:
+  const T* GetOnRvalue() {
+    static_assert(false && sizeof(T),
+                  "Don't use temporary ReadablePtr, store it to a variable");
+    std::abort();
+  }
+
   T* t_ptr_;
   impl::HazardPointerRecord<T>& hp_record_;
 };
@@ -143,6 +146,13 @@ class USERVER_NODISCARD WritablePtr final {
                 << " with custom initial value";
   }
 
+  WritablePtr(Variable<T>& var, std::unique_ptr<T> initial_value)
+      : var_(var), lock_(var.mutex_), ptr_(std::move(initial_value)) {
+    UASSERT(ptr_ != nullptr);
+    LOG_TRACE() << "Start writing ptr=" << ptr_.get()
+                << " with custom initial value";
+  }
+
   WritablePtr(WritablePtr<T>&& other) noexcept
       : var_(other.var_),
         lock_(std::move(other.lock_)),
@@ -168,17 +178,26 @@ class USERVER_NODISCARD WritablePtr final {
     var_.Retire(std::move(old_ptr), lock_);
   }
 
-  T& operator*() & { return *ptr_; }
+  T* Get() & {
+    UASSERT(ptr_);
+    return ptr_.get();
+  }
 
-  /// Don't use *tmp for temporary value, store it to variable.
-  T& operator*() && = delete;
+  T* Get() && { return GetOnRvalue(); }
 
-  T* operator->() & { return ptr_.get(); }
+  T* operator->() & { return Get(); }
+  T* operator->() && { return GetOnRvalue(); }
 
-  /// Don't use tmp-> for temporary value, store it to variable.
-  T* operator->() && = delete;
+  T& operator*() & { return *Get(); }
+  T& operator*() && { return *GetOnRvalue(); }
 
  private:
+  T* GetOnRvalue() {
+    static_assert(false && sizeof(T),
+                  "Don't use temporary WritablePtr, store it to a variable");
+    std::abort();
+  }
+
   Variable<T>& var_;
   std::unique_lock<engine::Mutex> lock_;
   std::unique_ptr<T> ptr_;
@@ -196,7 +215,9 @@ template <typename T>
 class Variable final {
  public:
   explicit Variable(std::unique_ptr<T> ptr)
-      : epoch_(impl::GetNextEpoch()), current_(ptr.release()) {}
+      : epoch_(impl::GetNextEpoch()), current_(ptr.release()) {
+    UASSERT(current_);
+  }
 
   template <typename... Args>
   Variable(Args&&... args)
