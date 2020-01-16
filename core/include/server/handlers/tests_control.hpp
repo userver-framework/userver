@@ -31,6 +31,8 @@ class TestsControl final : public HttpHandlerJsonBase {
  private:
   formats::json::Value ActionRunPeriodicTask(
       const formats::json::Value& request_body) const;
+  formats::json::Value ActionSuspendPeriodicTasks(
+      const formats::json::Value& request_body) const;
 
   concurrent::Variable<std::reference_wrapper<components::TestsuiteSupport>>
       testsuite_support_;

@@ -18,6 +18,7 @@ namespace testsuite {
 class PeriodicTaskControl final {
  public:
   bool RunPeriodicTask(const std::string& name);
+  void SuspendPeriodicTasks(const std::vector<std::string>& names);
 
  private:
   friend class PeriodicTaskRegistrationHolder;

@@ -1,6 +1,7 @@
 #include <testsuite/periodic_task_control.hpp>
 
 #include <stdexcept>
+#include <unordered_set>
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
@@ -45,6 +46,22 @@ bool PeriodicTaskControl::RunPeriodicTask(const std::string& name) {
   static engine::Mutex run_task_mutex;
   std::lock_guard lock(run_task_mutex);
   return task.SynchronizeDebug(true);
+}
+
+void PeriodicTaskControl::SuspendPeriodicTasks(
+    const std::vector<std::string>& names) {
+  std::unordered_set<std::string> to_suspend;
+  to_suspend.insert(names.cbegin(), names.cend());
+
+  for (const auto& entry : periodic_tasks_) {
+    const auto& name = entry.first;
+    auto& task = entry.second;
+    if (to_suspend.count(name)) {
+      task.SuspendDebug();
+    } else {
+      task.ResumeDebug();
+    }
+  }
 }
 
 utils::PeriodicTask& PeriodicTaskControl::FindPeriodicTask(

@@ -20,7 +20,7 @@ class PeriodicTask final {
  public:
   enum class Flags {
     kNone = 0,
-    /// Immediatelly call a function
+    /// Immediately call a function
     kNow = 1 << 0,
     /// Account function call time as a part of wait period
     kStrong = 1 << 1,
@@ -99,6 +99,15 @@ class PeriodicTask final {
   /// @returns true if task was successfully executed.
   bool SynchronizeDebug(bool preserve_span = false);
 
+  /// Skip Step() calls from loop until ResumeDebug() is called. If DoStep()
+  /// is executing, wait its completion, for a potentially long time.
+  /// The purpose is to control task execution from tests.
+  void SuspendDebug();
+
+  /// Stop skipping Step() calls from loop. Returns without waiting for
+  /// DoStep() call. The purpose is to control task execution from tests.
+  void ResumeDebug();
+
   /// Checks if a periodic task (not a single iteration only) is running.
   /// It may be in a callback execution or sleeping between callbacks.
   bool IsRunning() const;
@@ -109,6 +118,8 @@ class PeriodicTask final {
       testsuite::PeriodicTaskControl& periodic_task_control);
 
  private:
+  enum class SuspendState { kRunning, kSuspended };
+
   void SleepUntil(engine::Deadline::TimePoint tp);
 
   void DoStart();
@@ -117,11 +128,11 @@ class PeriodicTask final {
 
   bool Step();
 
+  bool StepDebug(bool preserve_span);
+
   bool DoStep();
 
   std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
-
-  bool WaitForFirstStep();
 
  private:
   std::string name_;
@@ -131,14 +142,11 @@ class PeriodicTask final {
   std::minstd_rand rand_;  // default seed is OK
 
   // For kNow only
-  engine::ConditionVariable start_cv_;
-  engine::Mutex start_mutex_;
-  std::atomic<bool> started_;
-  bool callback_succeeded_;
+  engine::Mutex step_mutex_;
+  std::atomic<SuspendState> suspend_state_;
 
   boost::optional<testsuite::PeriodicTaskRegistrationHolder>
       registration_holder_;
-  boost::optional<tracing::Span> testsuite_oneshot_span_;
 };
 
 }  // namespace utils

@@ -44,6 +44,8 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     const auto action = request_body["action"].As<std::string>();
     if (action == "run_periodic_task") {
       return ActionRunPeriodicTask(request_body);
+    } else if (action == "suspend_periodic_tasks") {
+      return ActionSuspendPeriodicTasks(request_body);
     }
     LOG_ERROR() << "unknown tests/control action " << action;
     throw ClientError();
@@ -107,6 +109,16 @@ formats::json::Value TestsControl::ActionRunPeriodicTask(
   formats::json::ValueBuilder result;
   result["status"] = status;
   return result.ExtractValue();
+}
+
+formats::json::Value TestsControl::ActionSuspendPeriodicTasks(
+    const formats::json::Value& request_body) const {
+  auto testsuite_support = testsuite_support_.Lock();
+  const auto& suspended_periodic_tasks =
+      request_body["names"].As<std::vector<std::string>>();
+  testsuite_support->get().GetPeriodicTaskControl().SuspendPeriodicTasks(
+      suspended_periodic_tasks);
+  return formats::json::Value();
 }
 
 }  // namespace handlers

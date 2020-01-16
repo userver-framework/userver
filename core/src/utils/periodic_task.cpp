@@ -4,23 +4,20 @@
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
-#include <testsuite/testsuite_support.hpp>
 #include <tracing/tracer.hpp>
 
 namespace utils {
 
 PeriodicTask::PeriodicTask()
     : settings_(std::chrono::seconds(1)),
-      started_(false),
-      callback_succeeded_(false) {}
+      suspend_state_(SuspendState::kRunning) {}
 
 PeriodicTask::PeriodicTask(std::string name, Settings settings,
                            Callback callback)
     : name_(std::move(name)),
       callback_(std::move(callback)),
       settings_(std::move(settings)),
-      started_(false),
-      callback_succeeded_(false) {
+      suspend_state_(SuspendState::kRunning) {
   DoStart();
 }
 
@@ -49,17 +46,6 @@ void PeriodicTask::DoStart() {
   }
 }
 
-bool PeriodicTask::WaitForFirstStep() {
-  auto settings_ptr = settings_.Read();
-  if (settings_ptr->flags & Flags::kNow) {
-    std::unique_lock<engine::Mutex> lock(start_mutex_);
-    [[maybe_unused]] auto cv_status =
-        start_cv_.Wait(lock, [&] { return started_.load(); });
-    return callback_succeeded_;
-  }
-  return false;
-}
-
 void PeriodicTask::Stop() noexcept {
   if (IsRunning()) {
     LOG_INFO() << "Stopping PeriodicTask with name=" << name_;
@@ -68,8 +54,6 @@ void PeriodicTask::Stop() noexcept {
     // Do not call `Wait()` here, because it may throw.
     task_ = engine::TaskWithResult<void>();
     LOG_INFO() << "Stopped PeriodicTask with name=" << name_;
-
-    started_ = false;
   }
 }
 
@@ -81,28 +65,11 @@ void PeriodicTask::SetSettings(Settings settings) {
 }
 
 bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
-  if (!IsRunning()) return false;
-
-  Stop();  // to freely access name_, settings_, callback_
-
-  /* There is a race between current task and a potential task
-   * that calls SetSettings(). It should not happen in unittests,
-   * other cases are not relevant here.
-   */
-  auto settings = settings_.ReadCopy();
-  settings.flags |= Flags::kNow;
-
-  if (preserve_span) {
-    tracing::Span span("periodic-synchronize-debug-call");
-    span.DetachFromCoroStack();
-    testsuite_oneshot_span_.emplace(std::move(span));
-  } else {
-    testsuite_oneshot_span_ = boost::none;
+  if (!IsRunning()) {
+    return false;
   }
 
-  Start(std::move(name_), settings, std::move(callback_));
-
-  return WaitForFirstStep();
+  return StepDebug(preserve_span);
 }
 
 bool PeriodicTask::IsRunning() const { return task_.IsValid(); }
@@ -121,9 +88,7 @@ void PeriodicTask::Run() {
 
   while (!engine::current_task::ShouldCancel()) {
     const auto before = clock::now();
-
-    auto no_exception = Step();
-
+    bool no_exception = Step();
     auto settings = settings_.Read();
     auto period = settings->period;
     const auto exception_period = settings->exception_period.value_or(period);
@@ -149,23 +114,26 @@ bool PeriodicTask::DoStep() {
 }
 
 bool PeriodicTask::Step() {
-  boost::optional<tracing::Span> span = std::move(testsuite_oneshot_span_);
+  std::lock_guard<engine::Mutex> lock_step(step_mutex_);
 
-  if (span) {
-    span->AttachToCoroStack();
-    testsuite_oneshot_span_ = boost::none;
+  if (suspend_state_.load() == SuspendState::kSuspended) {
+    LOG_INFO() << "Skipping suspended PeriodicTask with name=" << name_;
+    return true;
   }
 
-  auto result = DoStep();
+  return DoStep();
+}
 
-  if (!started_) {
-    std::unique_lock<engine::Mutex> lock(start_mutex_);
-    started_ = true;
-    callback_succeeded_ = result;
-    start_cv_.NotifyAll();
+bool PeriodicTask::StepDebug(bool preserve_span) {
+  std::lock_guard<engine::Mutex> lock_step(step_mutex_);
+
+  boost::optional<tracing::Span> testsuite_oneshot_span;
+  if (preserve_span) {
+    tracing::Span span("periodic-synchronize-debug-call");
+    testsuite_oneshot_span.emplace(std::move(span));
   }
 
-  return result;
+  return DoStep();
 }
 
 std::chrono::milliseconds PeriodicTask::MutatePeriod(
@@ -177,6 +145,22 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
   const auto ms = std::uniform_int_distribution<int64_t>(
       (period - distribution).count(), (period + distribution).count())(rand_);
   return std::chrono::milliseconds(ms);
+}
+
+void PeriodicTask::SuspendDebug() {
+  // step_mutex_ waits, for a potentially long time, for Step() call completion
+  std::lock_guard<engine::Mutex> lock_step(step_mutex_);
+  auto prior_state = suspend_state_.exchange(SuspendState::kSuspended);
+  if (prior_state != SuspendState::kSuspended) {
+    LOG_DEBUG() << "Periodic task " << name_ << " suspended";
+  }
+}
+
+void PeriodicTask::ResumeDebug() {
+  auto prior_state = suspend_state_.exchange(SuspendState::kRunning);
+  if (prior_state != SuspendState::kRunning) {
+    LOG_DEBUG() << "Periodic task " << name_ << " resumed";
+  }
 }
 
 void PeriodicTask::RegisterInTestsuite(
