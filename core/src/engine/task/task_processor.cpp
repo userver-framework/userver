@@ -2,8 +2,6 @@
 
 #include <mutex>
 
-#include <boost/sync/support/std_chrono.hpp>
-
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 #include <utils/thread_name.hpp>

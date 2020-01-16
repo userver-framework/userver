@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/cluster_types.hpp
+/// @brief Cluster properties
+
 #include <iosfwd>
 #include <vector>
 

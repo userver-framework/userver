@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/array_types.hpp
+/// @brief Arrays I/O support
+
 #include <array>
 #include <vector>
 

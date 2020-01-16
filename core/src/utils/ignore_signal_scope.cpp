@@ -2,8 +2,8 @@
 
 #include <cstring>
 
+#include <utils/check_syscall.hpp>
 #include <utils/strerror.hpp>
-#include "check_syscall.hpp"
 
 namespace utils {
 

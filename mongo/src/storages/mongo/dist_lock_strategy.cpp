@@ -1,7 +1,7 @@
 #include <storages/mongo/dist_lock_strategy.hpp>
 
-#include <blocking/system/get_hostname.hpp>
 #include <formats/bson.hpp>
+#include <hostinfo/blocking/get_hostname.hpp>
 #include <logging/log.hpp>
 #include <storages/mongo/exception.hpp>
 
@@ -21,7 +21,7 @@ const std::string kOwner = "o";
 
 DistLockStrategy::DistLockStrategy(Collection collection, std::string lock_name)
     : DistLockStrategy(std::move(collection), std::move(lock_name),
-                       blocking::system::GetRealHostName()) {}
+                       hostinfo::blocking::GetRealHostName()) {}
 
 DistLockStrategy::DistLockStrategy(Collection collection, std::string lock_name,
                                    std::string owner)

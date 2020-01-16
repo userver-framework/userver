@@ -26,6 +26,7 @@ find_package(Helperspdlog)
 target_include_directories(
   yandex-taxi-backend-common-cpp
   PUBLIC
+    shared/include/
     core/include/
 )
 if(NOT FLATBUFFERS_EXTERNAL_ENABLED)
@@ -46,6 +47,7 @@ set(YANDEX_TAXI_USERVER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL 
 if(NOT USERVICES)
   add_subdirectory(testsuite)
   add_subdirectory(tools/engine)
+  add_subdirectory(tools/json2yaml)
   add_subdirectory(tools/httpclient)
   add_subdirectory(tools/netcat)
 
@@ -53,4 +55,5 @@ if(NOT USERVICES)
   add_subdirectory(postgresql "${CMAKE_BINARY_DIR}/userver/postgresql")
   add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
   add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
+  add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
 endif(NOT USERVICES)

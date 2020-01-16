@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/database.hpp
+/// @brief @copybrief storages::postgres::Database
+
 #include <vector>
 
 #include <storages/postgres/options.hpp>

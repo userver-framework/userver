@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/floating_point_types.hpp
+/// @brief Floating point I/O support
+
 #include <boost/endian/arithmetic.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/integral_types.hpp>

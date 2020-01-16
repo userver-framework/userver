@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file cache/base_postgres_cache.hpp
+/// @brief Caching Component for PostgreSQL
+
 #include <chrono>
 #include <type_traits>
 #include <unordered_map>

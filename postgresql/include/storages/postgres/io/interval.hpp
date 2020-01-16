@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/interval.hpp
+/// @brief Time intervals I/O support
+
 #include <chrono>
 
 #include <storages/postgres/exceptions.hpp>

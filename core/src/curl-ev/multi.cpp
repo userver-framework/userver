@@ -14,11 +14,11 @@
 #include <curl-ev/multi.hpp>
 #include <curl-ev/socket_info.hpp>
 
+#include <crypto/openssl_lock.hpp>
 #include <engine/ev/thread.hpp>
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <engine/task/task_processor.hpp>
-#include <utils/openssl_lock.hpp>
 
 namespace curl {
 
@@ -49,7 +49,7 @@ multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
                           std::bind(&multi::handle_async, &object)),
       timer_(thread_control),
       still_running_(0) {
-  utils::OpensslLock::Init();
+  crypto::impl::OpensslLock::Init();
 
   initref_ = initialization::ensure_initialization();
 }

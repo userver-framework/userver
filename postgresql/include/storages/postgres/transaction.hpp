@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/transaction.hpp
+/// @brief Transactions
+
 #include <memory>
 #include <string>
 

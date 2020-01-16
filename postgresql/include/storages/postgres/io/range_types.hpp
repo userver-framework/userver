@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/range_type.hpp
+/// @brief Ranges I/O support
+
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>

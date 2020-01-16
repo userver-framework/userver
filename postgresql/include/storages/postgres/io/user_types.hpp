@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/user_types.hpp
+/// @brief User types I/O support
+
 #include <unordered_map>
 #include <unordered_set>
 

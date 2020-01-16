@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/enum_types.hpp
+/// @brief Enum I/O support
+
 #include <unordered_map>
 
 #include <storages/postgres/io/buffer_io.hpp>

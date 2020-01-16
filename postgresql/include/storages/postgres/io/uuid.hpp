@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/uuid.hpp
+/// @brief UUID I/O support
+
 #include <boost/uuid/uuid.hpp>
 
 #include <storages/postgres/io/buffer_io.hpp>

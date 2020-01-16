@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/null.hpp
+/// @brief NULL type
+
 #include <storages/postgres/io/nullable_traits.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>

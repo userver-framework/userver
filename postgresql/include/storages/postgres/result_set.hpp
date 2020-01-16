@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/result_set.hpp
+/// @brief Result accessors
+
 #include <initializer_list>
 #include <limits>
 #include <memory>

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/pg_types.hpp
+/// @brief Postgres-specific types I/O support
+
 #include <cstdint>
 #include <storages/postgres/detail/db_data_type_name.hpp>
 #include <string>

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/dist_lock_strategy.hpp
+/// @brief @copybrief storages::postgres::DistLockStrategy
+
 #include <dist_lock/dist_lock_settings.hpp>
 #include <dist_lock/dist_lock_strategy.hpp>
 #include <engine/deadline.hpp>
@@ -9,6 +12,7 @@
 namespace storages {
 namespace postgres {
 
+/// Postgres distributed locking strategy
 class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
  public:
   DistLockStrategy(ClusterPtr cluster, const std::string& table,

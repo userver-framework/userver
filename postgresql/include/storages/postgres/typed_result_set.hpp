@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/typed_result_set.hpp
+/// @brief Typed PostgreSQL results
+
 #include <storages/postgres/detail/typed_rows.hpp>
 #include <storages/postgres/result_set.hpp>
 

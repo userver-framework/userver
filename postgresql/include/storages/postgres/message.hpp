@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/message.hpp
+/// @brief Database messages
+
 #include <boost/optional.hpp>
 #include <string>
 

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/boost_multiprecision.hpp
+/// @brief boost::multiprecision I/O support
+
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/numeric_data.hpp>

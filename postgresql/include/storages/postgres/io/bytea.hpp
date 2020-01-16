@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/bytea.hpp
+/// @brief Bytea I/O support
+
 #include <string>
 #include <vector>
 

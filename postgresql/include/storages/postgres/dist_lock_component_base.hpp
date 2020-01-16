@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/dist_lock_component_base.hpp
+/// @brief @copybrief storages::postgres::DistLockComponentBase
+
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/loggable_component_base.hpp>
@@ -10,6 +13,7 @@
 namespace storages {
 namespace postgres {
 
+/// Base class for postgres-based distlock worker components
 class DistLockComponentBase : public components::LoggableComponentBase {
  public:
   DistLockComponentBase(const components::ComponentConfig&,

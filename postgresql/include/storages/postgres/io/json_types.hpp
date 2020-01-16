@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/json_types.hpp
+/// @brief JSON I/O support
+
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/stream.hpp>
 

@@ -1,9 +1,9 @@
 #include <storages/postgres/dist_lock_strategy.hpp>
 
-#include <storages/postgres/cluster.hpp>
-
 #include <fmt/format.h>
-#include <blocking/system/get_hostname.hpp>
+
+#include <hostinfo/blocking/get_hostname.hpp>
+#include <storages/postgres/cluster.hpp>
 
 namespace storages {
 namespace postgres {
@@ -48,7 +48,7 @@ DistLockStrategy::DistLockStrategy(ClusterPtr cluster, const std::string& table,
       acquire_query_(MakeAcquireQuery(table)),
       release_query_(MakeReleaseQuery(table)),
       lock_name_(lock_name),
-      owner_(blocking::system::GetRealHostName()) {}
+      owner_(hostinfo::blocking::GetRealHostName()) {}
 
 void DistLockStrategy::UpdateCommandControl(CommandControl cc) {
   auto cc_ptr = cc_.StartWrite();

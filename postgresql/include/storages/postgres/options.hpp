@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/options.hpp
+/// @brief Options
+
 #include <iosfwd>
 #include <string>
 

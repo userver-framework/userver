@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/strong_typedef.hpp
+/// @brief StrongTypedef I/O support
+
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>

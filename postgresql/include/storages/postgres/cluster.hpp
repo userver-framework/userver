@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/cluster.hpp
+/// @brief @copybrief storages::postgres::Cluster
+
 #include <memory>
 
 #include <engine/task/task_with_result.hpp>

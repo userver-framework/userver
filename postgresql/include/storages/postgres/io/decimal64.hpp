@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/decimal.hpp
+/// @brief Decimal64 I/O support
+
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/numeric_data.hpp>

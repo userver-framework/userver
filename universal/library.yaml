@@ -1,0 +1,35 @@
+project-name: yandex-taxi-userver-universal
+maintainers:
+  - Common components
+description: Parts of userver that can be used independently
+
+libraries:
+  - Boost::filesystem
+  - Boost::locale
+  - Boost::program_options
+  - Boost::thread
+  - CryptoPP
+  - Fmt
+  - Iconv::Iconv
+  - OpenSSL::Crypto
+  - Threads::Threads
+  - ZLIB::ZLIB
+  - libyamlcpp
+  - yandex-taxi-backend-common-cpp
+
+debian:
+  build_dependencies:
+    - clang-7
+    - libboost-filesystem-dev
+    - libboost-locale-dev
+    - libboost-program-options-dev
+    - libboost-thread-dev
+    - libcctz-dev
+    - libcrypto++-dev
+    - libfmt-dev
+    - libgcrypt11-dev
+    - libssl-dev
+    - libyaml-cpp-dev
+    - libyandex-taxi-jemalloc-dev
+    - lld-7
+    - zlib1g-dev

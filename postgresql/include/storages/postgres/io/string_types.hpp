@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/string_types.hpp
+/// @brief Strings I/O support
+
 #include <cstring>
 #include <string>
 

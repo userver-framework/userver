@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/bytea.hpp
+/// @brief Timestamp I/O support
+
 #include <chrono>
 
 #include <cctz/time_zone.h>

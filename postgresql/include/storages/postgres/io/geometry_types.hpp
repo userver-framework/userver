@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/geometry_types.hpp
+/// @brief Geometry I/O support
+
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>

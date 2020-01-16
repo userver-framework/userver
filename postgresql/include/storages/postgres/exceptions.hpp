@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/exceptions.hpp
+/// @brief Postgres errors
+
 #include <stdexcept>
 
 #include <storages/postgres/dsn.hpp>

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/integral_types.hpp
+/// @brief Integral types I/O support
+
 #include <boost/endian/conversion.hpp>
 
 #include <storages/postgres/exceptions.hpp>

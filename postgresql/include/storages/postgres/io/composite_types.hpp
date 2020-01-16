@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/composite_types.hpp
+/// @brief Composite types I/O support
+
 #include <boost/pfr/precise.hpp>
 #include <utility>
 

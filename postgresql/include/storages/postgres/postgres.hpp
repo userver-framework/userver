@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file
+/// @file storages/postgres/postgres.hpp
 /// This file is mainly for documentation purposes and inclusion of all headers
 /// that are required for work with PostgreSQL µserver component.
 

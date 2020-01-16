@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/io/optional.hpp
+/// @brief Optional values I/O support
+
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/nullable_traits.hpp>

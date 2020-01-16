@@ -18,12 +18,17 @@ if(${CMAKE_SOURCE_DIR}/.git/HEAD IS_NEWER_THAN ${BUILD_CONFIG})
 endif()
 
 file(GLOB_RECURSE SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
+)
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/src/*_test.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
+)
 
 file(GLOB_RECURSE LIBUTEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp
@@ -34,11 +39,12 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${LIBUTEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*_benchmark.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_benchmark.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 )
 file(GLOB_RECURSE LIBUBENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/benchmark/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/benchmark/*.hpp
 )
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
 
@@ -97,7 +103,10 @@ target_link_libraries(${PROJECT_NAME}
     spdlog
 )
 
-set(USERVER_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(USERVER_PUBLIC_INCLUDE_DIRS
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
+)
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/glibc_include_fixes
 )
@@ -107,7 +116,7 @@ set(
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${USERVER_PUBLIC_INCLUDE_DIR}
+  ${USERVER_PUBLIC_INCLUDE_DIRS}
 )
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
   ${USERVER_GLIBC_INCLUDE_FIXES_DIR}
@@ -121,13 +130,13 @@ set_property(
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
-  ${USERVER_THIRD_PARTY_DIRS}/boost-sync-event/include
   ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
 )
 
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/src/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
 )

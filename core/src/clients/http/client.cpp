@@ -1,16 +1,15 @@
 #include <clients/http/client.hpp>
 
-#include <clients/http/destination_statistics.hpp>
-#include <clients/http/testsuite.hpp>
-#include <curl-ev/multi.hpp>
-#include <engine/ev/thread_pool.hpp>
-#include <logging/log.hpp>
+#include <cstdlib>
 
 #include <moodycamel/concurrentqueue.h>
 
-#include <cstdlib>
-
-#include <utils/openssl_lock.hpp>
+#include <clients/http/destination_statistics.hpp>
+#include <clients/http/testsuite.hpp>
+#include <crypto/openssl_lock.hpp>
+#include <curl-ev/multi.hpp>
+#include <engine/ev/thread_pool.hpp>
+#include <logging/log.hpp>
 
 namespace clients {
 namespace http {

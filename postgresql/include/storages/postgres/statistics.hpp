@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/statistics.hpp
+/// @brief Statistics helpers
+
 #include <vector>
 
 #include <storages/postgres/detail/time_types.hpp>

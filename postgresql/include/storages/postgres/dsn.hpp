@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/postgres/dsn.hpp
+/// @brief DSN manipulation helpers
+
 #include <string>
 #include <vector>
 
