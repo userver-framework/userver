@@ -14,6 +14,17 @@
 namespace fs {
 namespace blocking {
 
+void CreateDirectories(const std::string& path) {
+  boost::system::error_code errc;
+  boost::filesystem::create_directories(path, errc);
+  if (!!errc)
+    throw std::system_error(
+        // static_cast is valid because both boost::error_code and std::errc map
+        // to the same `errno` constants
+        std::make_error_code(static_cast<std::errc>(errc.value())),
+        "Failed to create directories under '" + path + "'");
+}
+
 void RewriteFileContents(const std::string& path, const std::string& contents) {
   auto fd = FileDescriptor::OpenFile(
       path, utils::Flags<FileDescriptor::OpenMode>() |

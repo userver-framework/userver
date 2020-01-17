@@ -10,6 +10,14 @@
 namespace fs {
 namespace blocking {
 
+/// @brief Create directory and all necessary parent elements. Condition when
+/// path already exists and is a directory treated as "success" and no exception
+/// is thrown.
+/// @param path directory to create
+/// @throws std::runtime_error if an error occured while creating directories
+/// while creating directories
+void CreateDirectories(const std::string& path);
+
 /// @brief Rewrite file contents synchronously
 /// @param path file to rewrite
 /// @param contents new file contents

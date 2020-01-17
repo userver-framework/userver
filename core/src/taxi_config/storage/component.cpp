@@ -123,6 +123,9 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
     using perms = boost::filesystem::perms;
     auto mode = perms::owner_read | perms::owner_write | perms::group_read |
                 perms::others_read;
+    fs::CreateDirectories(
+        fs_task_processor_,
+        boost::filesystem::path(fs_cache_path_).parent_path().string());
     fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_,
                                       contents, mode);
 

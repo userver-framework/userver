@@ -5,6 +5,11 @@
 
 namespace fs {
 
+void CreateDirectories(engine::TaskProcessor& async_tp,
+                       const std::string& path) {
+  engine::impl::Async(async_tp, &fs::blocking::CreateDirectories, path).Get();
+}
+
 void RewriteFileContents(engine::TaskProcessor& async_tp,
                          const std::string& path, std::string contents) {
   engine::impl::Async(async_tp, &fs::blocking::RewriteFileContents, path,
