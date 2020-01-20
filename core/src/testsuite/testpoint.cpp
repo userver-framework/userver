@@ -16,13 +16,15 @@ TestPoint& TestPoint::GetInstance() {
 }
 
 void TestPoint::Setup(clients::http::Client& http_client,
-                      const std::string& url,
-                      std::chrono::milliseconds timeout) {
+                      const std::string& url, std::chrono::milliseconds timeout,
+                      bool skip_unregistered_testpoints) {
   UASSERT(!is_initialized_);
 
   http_client_ = &http_client;
   url_ = url;
   timeout_ = timeout;
+  skip_unregistered_testpoints_ = skip_unregistered_testpoints;
+  registered_paths_.Assign({});
 
   is_initialized_ = true;  // seq_cst for http_client_+timeout_
 }
@@ -63,5 +65,21 @@ void TestPoint::Notify(
 }
 
 bool TestPoint::IsEnabled() const { return is_initialized_; }
+
+void TestPoint::RegisterPaths(const std::vector<std::string>& paths) {
+  if (skip_unregistered_testpoints_) {
+    std::unordered_set<std::string> paths_set(paths.cbegin(), paths.cend());
+    registered_paths_.Assign(std::move(paths_set));
+  }
+}
+
+bool TestPoint::IsRegisteredPath(const std::string& path) const {
+  if (skip_unregistered_testpoints_) {
+    const auto& paths_set = registered_paths_.Read();
+    return paths_set->count(path) > 0;
+  } else {
+    return true;
+  }
+}
 
 }  // namespace testsuite::impl

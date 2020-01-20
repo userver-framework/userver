@@ -19,6 +19,8 @@ TestsControl::TestsControl(
       testsuite_support_(
           component_context.FindComponent<components::TestsuiteSupport>()) {
   auto testpoint_url = config.ParseOptionalString("testpoint-url");
+  auto skip_unregistered_testpoints =
+      config.ParseBool("skip-unregistered-testpoints", false);
   if (testpoint_url) {
     auto& http_client =
         component_context.FindComponent<components::HttpClient>()
@@ -26,7 +28,8 @@ TestsControl::TestsControl(
     auto testpoint_timeout =
         config.ParseDuration("testpoint-timeout", std::chrono::seconds(1));
     auto& tp = testsuite::impl::TestPoint::GetInstance();
-    tp.Setup(http_client, *testpoint_url, testpoint_timeout);
+    tp.Setup(http_client, *testpoint_url, testpoint_timeout,
+             skip_unregistered_testpoints);
   }
 }
 
@@ -88,6 +91,12 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
       testsuite_support->get().InvalidateCaches(
           update_type, names.As<std::vector<std::string>>());
     }
+  }
+
+  const auto& testpoints = request_body["testpoints"];
+  if (!testpoints.IsMissing()) {
+    auto& tp = ::testsuite::impl::TestPoint::GetInstance();
+    tp.RegisterPaths(testpoints.As<std::vector<std::string>>());
   }
 
   return formats::json::Value();
