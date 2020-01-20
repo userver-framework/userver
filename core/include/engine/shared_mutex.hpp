@@ -6,6 +6,7 @@
 
 namespace engine {
 
+/// std::shared_mutex replacement for asynchronous tasks
 class SharedMutex final {
  public:
   SharedMutex();

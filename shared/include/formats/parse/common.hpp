@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file formats/parse/common.hpp
+/// @brief Parsers and converters for std::chrono::seconds,
+/// std::chrono::system_clock::time_point and integral types
+
 #include <chrono>
 #include <cstdint>
 #include <limits>
@@ -10,6 +14,7 @@
 #include <utils/datetime.hpp>
 #include <utils/string_to_duration.hpp>
 
+/// Generic parsers and converters
 namespace formats::parse {
 namespace impl {
 

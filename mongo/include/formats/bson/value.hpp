@@ -24,7 +24,10 @@ class ValueImpl;
 class Document;
 class ValueBuilder;
 
-/// BSON value
+/// @brief Non-mutable BSON value representation.
+///
+/// Class provides non mutable access BSON value. For modification and
+/// construction of new BSON values use formats::bson::ValueBuilder.
 class Value {
  public:
   using const_iterator = Iterator<Value>;

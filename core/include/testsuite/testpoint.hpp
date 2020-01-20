@@ -54,6 +54,9 @@ class TestPoint final {
 /// @see https://wiki.yandex-team.ru/taxi/backend/testsuite/#testpoint
 #define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, {})
 
+/// @brief Send testpoint notification and receive data. Works only if
+/// testpoint support is enabled (e.g. in testsuite), otherwise does nothing.
+/// @see https://nda.ya.ru/3VssMp
 #define TESTPOINT_CALLBACK(name, json, callback)            \
   do {                                                      \
     auto& tp = ::testsuite::impl::TestPoint::GetInstance(); \

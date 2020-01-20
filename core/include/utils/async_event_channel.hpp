@@ -79,7 +79,7 @@ class AsyncEventSubscriberScope final {
   FunctionId id_;
 };
 
-/* AsyncEventChannel is a in-process pubsub with strict FIFO serialization. */
+/// AsyncEventChannel is a in-process pubsub with strict FIFO serialization.
 template <typename... Args>
 class AsyncEventChannel : public AsyncEventChannelBase {
  public:

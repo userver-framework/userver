@@ -5,8 +5,12 @@
 namespace utils {
 
 // TODO use std::conjunciton/disjunction when they are available in the library
+
+/// Implementation of std::conjunciton (logical AND)
 template <typename... T>
 struct And;
+
+/// @cond
 template <typename T, typename U, typename... V>
 struct And<T, U, V...> {
  private:
@@ -23,9 +27,13 @@ struct And<std::integral_constant<T, A>, std::integral_constant<T, B>>
     : std::integral_constant<T, B && A> {};
 template <typename T, T A>
 struct And<std::integral_constant<T, A>> : std::integral_constant<T, A> {};
+/// @endcond
 
+/// Implementation of std::disjunction (logical OR)
 template <typename... T>
 struct Or;
+
+/// @cond
 template <typename T, typename U, typename... V>
 struct Or<T, U, V...> {
  private:
@@ -41,5 +49,5 @@ struct Or<std::integral_constant<T, A>, std::integral_constant<T, B>>
     : std::integral_constant<T, B || A> {};
 template <typename T, T A>
 struct Or<std::integral_constant<T, A>> : std::integral_constant<T, A> {};
-
+/// @endcond
 }  // namespace utils

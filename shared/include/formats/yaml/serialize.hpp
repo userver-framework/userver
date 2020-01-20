@@ -4,8 +4,7 @@
 
 #include <formats/yaml/value.hpp>
 
-namespace formats {
-namespace yaml {
+namespace formats::yaml {
 
 formats::yaml::Value FromString(const std::string& doc);
 formats::yaml::Value FromStream(std::istream& is);
@@ -17,5 +16,4 @@ namespace blocking {
 formats::yaml::Value FromFile(const std::string& path);
 }
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml

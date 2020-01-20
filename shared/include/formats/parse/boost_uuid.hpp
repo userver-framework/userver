@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file formats/parse/boost_uuid.hpp
+/// @brief boost::uuids::uuid parser for any format
+
 #include <string>
 
 #include <boost/optional.hpp>

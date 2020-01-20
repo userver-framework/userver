@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file formats/serialize/common_containers.hpp
+/// @brief Serializers for standard containers and optional
+
 #include <vector>
 
 #include <boost/optional.hpp>
@@ -8,6 +11,7 @@
 #include <formats/serialize/to.hpp>
 #include <utils/meta.hpp>
 
+/// Common serializers
 namespace formats::serialize {
 
 // Serialize() for std::vector, std::set, std::unordered_set

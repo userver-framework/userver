@@ -1,5 +1,11 @@
 #pragma once
 
+/// @file formats/parse/variant.hpp
+/// @brief Ineffective but generic parser for variant type
+///
+/// Parsing is performed for each of the N alternatives in variant, N-1
+/// exceptions is thrown and catched during the parsing.
+
 #include <boost/optional.hpp>
 #include <boost/variant/variant.hpp>
 

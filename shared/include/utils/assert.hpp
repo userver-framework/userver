@@ -1,12 +1,15 @@
 #pragma once
 
+/// @file utils/assert.hpp
+/// @brief Assertion macros UASSERT, UASSERT_MSG, YTX_INVARIANT
+
 #include <string>
 
 #include <fmt/format.h>
 
 #include <utils/traceful_exception.hpp>
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(DOXYGEN)
 
 #define UASSERT(expr)                                                   \
   do {                                                                  \
@@ -31,10 +34,16 @@ namespace utils {
 
 #else  // NDEBUG
 
+/// @brief Assertion macro that aborts execution in DEBUG builds and does
+/// nothing in release builds
+///
+/// @hideinitializer
 #define UASSERT(expr) \
   do {                \
   } while (0)
 
+/// Assertion macro for that aborts execution in DEBUG builds with a message
+/// `msg` and does nothing in release builds
 #define UASSERT_MSG(expr, msg) \
   do {                         \
   } while (0)
@@ -49,6 +58,9 @@ class InvariantError : public TracefulException {
 
 [[noreturn]] void LogAndThrowInvariantError(const std::string& error);
 
+/// @brief Asserts in debug builds, throws utils::InvariantError in release
+///
+/// @hideinitializer
 #define YTX_INVARIANT(condition, message)                                     \
   do {                                                                        \
     if (!(condition)) {                                                       \

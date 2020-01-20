@@ -66,7 +66,7 @@ struct TypeNameHelper<std::chrono::system_clock::time_point> {
 
 }  // namespace detail
 
-/// Returns a (better) human-readable representation of provided type name.
+/// @brief Returns a human-readable representation of provided type name.
 ///
 /// GetTypeName(typeidT)) outputs the type, not the alias. For std::chrono
 /// functions it gives unreadable results:

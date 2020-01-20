@@ -6,6 +6,7 @@
 
 namespace logging {
 
+/// Contains functions that cache stacktrace results
 namespace stacktrace_cache {
 
 /// Get cached frame name

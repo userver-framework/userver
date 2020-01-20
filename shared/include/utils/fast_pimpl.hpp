@@ -10,8 +10,8 @@
 namespace utils {
 
 /**
- * FastPimpl implements fast pimpl idiom. Pimpl required an additional memory
- * allocation for creation and a pointer dereference for each data access.
+ * @brief FastPimpl implements pimpl idiom without dynamic allocation.
+ *
  * FastPimpl doesn't require either memory allocation or indirect memory access.
  * But you have to manually set object size when you instantiate FastPimpl.
  */

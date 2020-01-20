@@ -17,6 +17,10 @@ namespace formats::json {
 
 class ValueBuilder;
 
+/// @brief Non-mutable JSON value representation.
+///
+/// Class provides non mutable access JSON value. For modification and
+/// construction of new JSON values use formats::json::ValueBuilder.
 class Value final {
  public:
   struct IterTraits {
@@ -51,30 +55,30 @@ class Value final {
   ~Value();
 
   /// @brief Access member by key for read.
-  /// @throw `TypeMismatchException` if not object or null value.
+  /// @throw TypeMismatchException if not object or null value.
   Value operator[](const std::string& key) const;
   /// @brief Access array member by index for read.
-  /// @throw `TypeMismatchException` if not array value.
-  /// @throw `OutOfBoundsException` if index is greater or equal
+  /// @throw TypeMismatchException if not array value.
+  /// @throw OutOfBoundsException if index is greater or equal
   /// than size.
   Value operator[](std::size_t index) const;
 
   /// @brief Returns an iterator to the beginning of the held array or map.
-  /// @throw `TypeMismatchException` is the value of *this is not a map, array
+  /// @throw TypeMismatchException is the value of *this is not a map, array
   /// or Null.
   const_iterator begin() const;
 
   /// @brief Returns an iterator to the end of the held array or map.
-  /// @throw `TypeMismatchException` is the value of *this is not a map, array
+  /// @throw TypeMismatchException is the value of *this is not a map, array
   /// or Null.
   const_iterator end() const;
 
   /// @brief Returns array size or object members count.
-  /// @throw `TypeMismatchException` if not array or object value.
+  /// @throw TypeMismatchException if not array or object value.
   std::size_t GetSize() const;
 
   /// @brief Compares values.
-  /// @throw `MemberMissingException` if `*this` or `other` is missing.
+  /// @throw MemberMissingException if `*this` or `other` is missing.
   bool operator==(const Value& other) const;
   bool operator!=(const Value& other) const;
 
@@ -154,25 +158,25 @@ class Value final {
   /// @brief Returns new value that is an exact copy if the existing one
   /// but references different memory (a deep copy of a *this). The returned
   /// value is a root value with path '/'.
-  /// @throws `MemberMissingException` id `this->IsMissing()`.
+  /// @throws MemberMissingException id `this->IsMissing()`.
   Value Clone() const;
 
-  /// @throw `MemberMissingException` if `this->IsMissing()`.
+  /// @throw MemberMissingException if `this->IsMissing()`.
   void CheckNotMissing() const;
 
-  /// @throw `MemberMissingException` if `*this` is not an array or Null.
+  /// @throw MemberMissingException if `*this` is not an array or Null.
   void CheckArrayOrNull() const;
 
-  /// @throw `TypeMismatchException` if `*this` is not a map or Null.
+  /// @throw TypeMismatchException if `*this` is not a map or Null.
   void CheckObjectOrNull() const;
 
-  /// @throw `TypeMismatchException` if `*this` is not a map.
+  /// @throw TypeMismatchException if `*this` is not a map.
   void CheckObject() const;
 
-  /// @throw `TypeMismatchException` if `*this` is not a map, array or Null.
+  /// @throw TypeMismatchException if `*this` is not a map, array or Null.
   void CheckObjectOrArrayOrNull() const;
 
-  /// @throw `TypeMismatchException` if `*this` is not a map, array or Null;
+  /// @throw TypeMismatchException if `*this` is not a map, array or Null;
   /// `OutOfBoundsException` if `index >= this->GetSize()`.
   void CheckInBounds(std::size_t index) const;
 
@@ -232,7 +236,7 @@ T Value::As() const {
         "`T` or `formats::parse`."
         ""
         "Probably you forgot to include the "
-        "<formats/json/serialize_container.hpp> or you "
+        "<formats/parse/common_containers.hpp> or you "
         "have not provided a `ParseJson` or `Parse` function overload.");
 
     return Parse(*this, formats::parse::To<T>{});

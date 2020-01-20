@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+/// Blocking functions for getting information about hosts
 namespace hostinfo::blocking {
 
 /// @brief Reads Conductor groups from conductor-hostinfo file.

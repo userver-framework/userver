@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/periodic_task.hpp
+/// @brief @copybrief utils::PeriodicTask
+
 #include <random>
 
 #include <engine/condition_variable.hpp>

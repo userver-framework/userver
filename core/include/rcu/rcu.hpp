@@ -15,7 +15,8 @@
 #include <utils/clang_format_workarounds.hpp>
 #include <utils/impl/wait_token_storage.hpp>
 
-/// Read-Cope-Update variable
+/// @brief Read-Copy-Update
+///
 /// @see Based on ideas from
 /// http://www.drdobbs.com/lock-free-data-structures-with-hazard-po/184401890
 /// with modified API
@@ -203,6 +204,12 @@ class USERVER_NODISCARD WritablePtr final {
   std::unique_ptr<T> ptr_;
 };
 
+/// @brief Read-Copy-Update variable
+///
+/// @see Based on ideas from
+/// http://www.drdobbs.com/lock-free-data-structures-with-hazard-po/184401890
+/// with modified API.
+///
 /// A variable with MT-access pattern "very often reads, seldom writes". It is
 /// specially optimized for reads. On read, one obtains a ReaderPtr<T> from it
 /// and uses the obtained value as long as it wants to. On write, one obtains a

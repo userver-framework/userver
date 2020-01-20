@@ -5,14 +5,15 @@
 
 #include <chrono>
 
-#include <boost/numeric/conversion/cast.hpp>
-
 #include <formats/common/meta.hpp>
 #include <formats/json/value.hpp>
 
-namespace formats {
-namespace json {
+namespace formats::json {
 
+/// @brief Builder for JSON.
+///
+/// Class provides methods for building JSON. For read only access to the
+/// existing JSON values use formats::json::Value.
 class ValueBuilder final {
  public:
   struct IterTraits {
@@ -24,7 +25,7 @@ class ValueBuilder final {
   using iterator = Iterator<IterTraits>;
 
  public:
-  /// Constructs a valueBuilder that holds kNull
+  /// Constructs a ValueBuilder that holds kNull
   ValueBuilder() noexcept = default;
 
   /// Constructs a valueBuilder that holds default value for provided `type`.
@@ -51,8 +52,9 @@ class ValueBuilder final {
   ValueBuilder(float t);
   ValueBuilder(double t);
 
+  /// Universal constructor using Serialize
   template <typename T>
-  ValueBuilder(const T& t);
+  ValueBuilder(const T& t) : ValueBuilder(DoSerialize(t)) {}
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
@@ -99,6 +101,9 @@ class ValueBuilder final {
   void Copy(impl::Value& to, const ValueBuilder& from);
   void Move(impl::Value& to, ValueBuilder&& from);
 
+  template <typename T>
+  static Value DoSerialize(const T& t);
+
  private:
   formats::json::Value value_;
 
@@ -106,33 +111,28 @@ class ValueBuilder final {
 };
 
 template <typename T>
-ValueBuilder::ValueBuilder(const T& t)
-    : ValueBuilder(
-          Serialize(t, formats::serialize::To<formats::json::Value>())) {
+Value ValueBuilder::DoSerialize(const T& t) {
   static_assert(
       formats::common::kHasSerializeTo<Value, T>,
       "There is no `Serialize(const T&, formats::serialize::To<json::Value>)` "
       "in namespace of `T` or `formats::serizalize`. "
       ""
       "Probably you forgot to include the "
-      "<formats/serialize/serialize_container.hpp> or you "
+      "<formats/serialize/common_containers.hpp> or you "
       "have not provided a `Serialize` function overload.");
+
+  return Serialize(t, formats::serialize::To<Value>());
 }
 
-}  // namespace json
-
-namespace serialize {
-
 template <typename T>
-std::enable_if_t<std::is_integral<T>::value, ::formats::json::Value> Serialize(
-    T value, To<::formats::json::Value>) {
+std::enable_if_t<std::is_integral<T>::value && sizeof(T) <= sizeof(int64_t),
+                 Value>
+Serialize(T value, formats::serialize::To<Value>) {
   using Type = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
-  return json::ValueBuilder(boost::numeric_cast<Type>(value)).ExtractValue();
+  return json::ValueBuilder(static_cast<Type>(value)).ExtractValue();
 }
 
 json::Value Serialize(std::chrono::system_clock::time_point tp,
-                      To<::formats::json::Value>);
+                      formats::serialize::To<Value>);
 
-}  // namespace serialize
-
-}  // namespace formats
+}  // namespace formats::json

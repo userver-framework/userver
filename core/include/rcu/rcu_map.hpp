@@ -19,7 +19,7 @@ class MissingKeyException : public utils::TracefulException {
   using utils::TracefulException::TracefulException;
 };
 
-/// Map-like structure allowing RCU keyset updates.
+/// @brief Map-like structure allowing RCU keyset updates.
 ///
 /// Only keyset changes are thread-safe in scope of this class.
 /// Values are stored in `shared_ptr`s and are not copied during keyset change.

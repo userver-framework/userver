@@ -10,6 +10,7 @@
 namespace fs {
 
 /// @brief blocking function and classes to work with filesystem
+///
 /// Use these with caution as they block current thread.  It is probably OK to
 /// use them during startup (on component load), but don't use them after server
 /// start in the main TaskProcessor. Use asynchronous alternatives from `fs`

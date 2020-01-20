@@ -10,9 +10,10 @@
 
 #include <boost/any.hpp>  // for boost::bad_any_cast
 
+/// Utilities
 namespace utils {
 
-/// Replacement for boost::any and std::any that does not require
+/// @brief Replacement for boost::any and std::any that does not require
 /// copy-constructor from a held type.
 ///
 /// Usage example:

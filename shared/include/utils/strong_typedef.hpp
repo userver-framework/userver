@@ -34,7 +34,7 @@ constexpr auto operator|(StrongTypedefOps op1, StrongTypedefOps op2) noexcept {
                           utils::UnderlyingValue(op2)};
 }
 
-/// Strong typedef.
+/// @brief Strong typedef for a type T.
 ///
 /// Typical usage:
 ///   using MyString = utils::StrongTypedef<class MyStringTag, std::string>;
@@ -156,6 +156,7 @@ class StrongTypedef {
   T data_{};
 };
 
+/// @cond
 // Strong typedef for arithmetic types. Slightly better than
 // `enum class C: type{}` because has optimized logging and transparent
 // comparison operators by default.
@@ -185,6 +186,8 @@ class StrongTypedef<Tag, T, Ops,
  private:
   T data_{};
 };
+
+/// @endcond
 
 // Relational operators
 

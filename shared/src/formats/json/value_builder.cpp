@@ -11,8 +11,7 @@
 #include <utils/assert.hpp>
 #include <utils/datetime.hpp>
 
-namespace formats {
-namespace json {
+namespace formats::json {
 
 namespace {
 rapidjson::Type ToNativeType(Type type) {
@@ -212,17 +211,11 @@ void ValueBuilder::Move(impl::Value& to, ValueBuilder&& from) {
   }
 }
 
-}  // namespace json
-
-namespace serialize {
-
-json::Value Serialize(std::chrono::system_clock::time_point tp,
-                      To<::formats::json::Value>) {
+Value Serialize(std::chrono::system_clock::time_point tp,
+                ::formats::serialize::To<Value>) {
   json::ValueBuilder builder =
       utils::datetime::Timestring(tp, "UTC", utils::datetime::kRfc3339Format);
   return builder.ExtractValue();
 }
 
-}  // namespace serialize
-
-}  // namespace formats
+}  // namespace formats::json

@@ -21,7 +21,8 @@ class TaskLocalVariableAny {
   const size_t coro_variable_index_;
 };
 
-/* TaskLocalVariable is a per-coroutine variable of arbitrary type.
+/** @brief TaskLocalVariable is a per-coroutine variable of arbitrary type.
+ *
  * It is an alternative to thread_local, but per-coro instead of per-thread.
  * Every variable instance is allocated in heap.
  *

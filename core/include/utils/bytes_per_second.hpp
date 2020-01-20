@@ -6,6 +6,7 @@
 
 namespace utils {
 
+/// Data type that represents `bytes per second` unit
 enum class BytesPerSecond : long long {};
 
 constexpr long long ToLongLong(BytesPerSecond x) {

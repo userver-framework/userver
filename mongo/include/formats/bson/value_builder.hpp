@@ -17,7 +17,10 @@
 
 namespace formats::bson {
 
-/// BSON value builder
+/// @brief Builder for BSON.
+///
+/// Class provides methods for building BSON. For read only access to the
+/// existing BSON values use formats::bson::Value.
 class ValueBuilder {
  public:
   using iterator = Iterator<ValueBuilder>;
@@ -80,7 +83,7 @@ class ValueBuilder {
 
   /// Universal constructor using Serialize
   template <typename T>
-  ValueBuilder(const T& t);
+  ValueBuilder(const T& t) : ValueBuilder(DoSerialize(t)) {}
 
   /// @brief Retrieves or creates document field by name
   /// @throws TypeMismatchException if value is not a document or `null`
@@ -126,21 +129,24 @@ class ValueBuilder {
   void Assign(const impl::ValueImplPtr&);
   void Assign(impl::ValueImplPtr&&);
 
+  template <typename T>
+  static Value DoSerialize(const T& t);
+
   impl::ValueImplPtr impl_;
 };
 
 template <typename T>
-ValueBuilder::ValueBuilder(const T& t)
-    : ValueBuilder(
-          Serialize(t, formats::serialize::To<formats::bson::Value>())) {
+Value ValueBuilder::DoSerialize(const T& t) {
   static_assert(
       formats::common::kHasSerializeTo<Value, T>,
       "There is no `Serialize(const T&, formats::serialize::To<bson::Value>)` "
       "in namespace of `T` or `formats::serizalize`. "
       ""
       "Probably you forgot to include the "
-      "<formats/serialize/serialize_container.hpp> or you "
+      "<formats/serialize/common_containers.hpp> or you "
       "have not provided a `Serialize` function overload.");
+
+  return Serialize(t, formats::serialize::To<Value>());
 }
 
 }  // namespace formats::bson

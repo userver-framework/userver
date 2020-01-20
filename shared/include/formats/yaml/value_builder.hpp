@@ -3,11 +3,15 @@
 /// @file formats/yaml/value_builder.hpp
 /// @brief @copybrief formats::yaml::ValueBuilder
 
+#include <formats/serialize/to.hpp>
 #include <formats/yaml/value.hpp>
 
-namespace formats {
-namespace yaml {
+namespace formats::yaml {
 
+/// @brief Builder for YAML.
+///
+/// Class provides methods for building YAML. For read only access to the
+/// existing YAML values use formats::yaml::Value.
 class ValueBuilder final {
  public:
   struct IterTraits {
@@ -54,6 +58,10 @@ class ValueBuilder final {
 #endif
   ValueBuilder(float t);
   ValueBuilder(double t);
+
+  /// Universal constructor using Serialize
+  template <typename T>
+  ValueBuilder(const T& t) : ValueBuilder(DoSerialize(t)) {}
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
@@ -108,11 +116,36 @@ class ValueBuilder final {
   void Move(ValueBuilder&& from);
   void NodeDataAssign(const formats::yaml::Value& from);
 
+  template <typename T>
+  static Value DoSerialize(const T& t);
+
  private:
   formats::yaml::Value value_;
 
   friend class Iterator<IterTraits>;
 };
 
-}  // namespace yaml
-}  // namespace formats
+template <typename T>
+Value ValueBuilder::DoSerialize(const T& t) {
+  static_assert(
+      formats::common::kHasSerializeTo<Value, T>,
+      "There is no `Serialize(const T&, formats::serialize::To<yaml::Value>)` "
+      "in namespace of `T` or `formats::serizalize`. "
+      ""
+      "Probably you forgot to include the "
+      "<formats/serialize/common_containers.hpp> or you "
+      "have not provided a `Serialize` function overload.");
+
+  return Serialize(t, formats::serialize::To<Value>());
+}
+
+template <typename T>
+std::enable_if_t<std::is_integral<T>::value && sizeof(T) <= sizeof(long long),
+                 Value>
+Serialize(T value, formats::serialize::To<Value>) {
+  using Type = std::conditional_t<std::is_signed<T>::value, long long,
+                                  unsigned long long>;
+  return yaml::ValueBuilder(static_cast<Type>(value)).ExtractValue();
+}
+
+}  // namespace formats::yaml
