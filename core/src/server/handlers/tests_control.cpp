@@ -43,6 +43,12 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     request::RequestContext&) const {
   if (request.GetMethod() != http::HttpMethod::kPost) throw ClientError();
 
+  const auto& testpoints = request_body["testpoints"];
+  if (!testpoints.IsMissing()) {
+    auto& tp = ::testsuite::impl::TestPoint::GetInstance();
+    tp.RegisterPaths(testpoints.As<std::vector<std::string>>());
+  }
+
   if (request_body.HasMember("action")) {
     const auto action = request_body["action"].As<std::string>();
     if (action == "run_periodic_task") {
@@ -91,12 +97,6 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
       testsuite_support->get().InvalidateCaches(
           update_type, names.As<std::vector<std::string>>());
     }
-  }
-
-  const auto& testpoints = request_body["testpoints"];
-  if (!testpoints.IsMissing()) {
-    auto& tp = ::testsuite::impl::TestPoint::GetInstance();
-    tp.RegisterPaths(testpoints.As<std::vector<std::string>>());
   }
 
   return formats::json::Value();
