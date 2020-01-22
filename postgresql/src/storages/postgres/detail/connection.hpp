@@ -129,6 +129,7 @@ class Connection {
   Statistics GetStatsAndReset();
 
   bool IsReadOnly() const;
+  bool CheckReadOnly(engine::Deadline) const;
   /// Get current connection state
   ConnectionState GetState() const;
   /// Check if the connection is active

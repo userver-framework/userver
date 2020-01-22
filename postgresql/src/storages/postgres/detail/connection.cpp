@@ -192,14 +192,18 @@ struct Connection::Impl {
     scope.Reset(scopes::kGetConnectData);
     // We cannot handle exceptions here, so we let them got to the caller
     // Detect if the connection is read only.
-    auto res = ExecuteCommandNoPrepare("show transaction_read_only", deadline);
-    if (!res.IsEmpty()) {
-      res.Front().To(read_only_);
-    }
+    CheckReadOnly(deadline);
     ExecuteCommandNoPrepare("discard all", deadline);
     SetLocalTimezone(deadline);
     SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
     LoadUserTypes(deadline);
+  }
+
+  void CheckReadOnly(engine::Deadline deadline) {
+    auto res = ExecuteCommandNoPrepare("show transaction_read_only", deadline);
+    if (!res.IsEmpty()) {
+      res.Front().To(read_only_);
+    }
   }
 
   void SetDefaultCommandControl(const CommandControl& cmd_ctl) {
@@ -795,6 +799,10 @@ void Connection::SetDefaultCommandControl(const CommandControl& cmd_ctl) {
 }
 
 bool Connection::IsReadOnly() const { return pimpl_->read_only_; }
+bool Connection::CheckReadOnly(engine::Deadline deadline) const {
+  pimpl_->CheckReadOnly(deadline);
+  return pimpl_->read_only_;
+}
 
 ConnectionState Connection::GetState() const {
   return pimpl_->GetConnectionState();

@@ -11,13 +11,6 @@ namespace detail {
 
 namespace {
 
-constexpr const char* kPeriodicTaskName = "pg_topology";
-
-std::string HostAndPortFromDsn(const std::string& dsn) {
-  auto options = OptionsFromDsn(dsn);
-  return options.host + ':' + options.port;
-}
-
 struct TryLockGuard {
   TryLockGuard(std::atomic_flag& lock) : lock_(lock) {
     lock_acquired_ = !lock_.test_and_set(std::memory_order_acq_rel);
@@ -38,7 +31,7 @@ struct TryLockGuard {
 
 }  // namespace
 
-ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
+ClusterImpl::ClusterImpl(const DSNList& dsns,
                          engine::TaskProcessor& bg_task_processor,
                          PoolSettings pool_settings,
                          ConnectionSettings conn_settings,
@@ -46,9 +39,8 @@ ClusterImpl::ClusterImpl(const ClusterDescription& cluster_desc,
                          const error_injection::Settings& ei_settings)
     : ClusterImpl(bg_task_processor, pool_settings, conn_settings,
                   default_cmd_ctl, ei_settings) {
-  topology_ = std::make_unique<ClusterTopology>(bg_task_processor_,
-                                                cluster_desc, conn_settings,
-                                                default_cmd_ctl, ei_settings);
+  topology_ = std::make_unique<QuorumCommitCluster>(
+      bg_task_processor_, dsns, conn_settings, default_cmd_ctl, ei_settings);
   InitPools(topology_->GetDsnList());
 }
 
@@ -67,27 +59,7 @@ ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
       ei_settings_(ei_settings),
       update_lock_ ATOMIC_FLAG_INIT {}
 
-ClusterImpl::~ClusterImpl() { StopPeriodicUpdates(); }
-
-engine::TaskWithResult<void> ClusterImpl::DiscoverTopology() {
-  return engine::impl::Async([this] {
-    CheckTopology();
-    StartPeriodicUpdates();
-  });
-}
-
-void ClusterImpl::StartPeriodicUpdates() {
-  using ::utils::PeriodicTask;
-  using Flags = ::utils::PeriodicTask::Flags;
-
-  // TODO remove ugly constant
-  PeriodicTask::Settings settings(ClusterTopology::kUpdateInterval,
-                                  {Flags::kNow, Flags::kStrong});
-  periodic_task_.Start(kPeriodicTaskName, settings,
-                       [this] { CheckTopology(); });
-}
-
-void ClusterImpl::StopPeriodicUpdates() { periodic_task_.Stop(); }
+ClusterImpl::~ClusterImpl() = default;
 
 void ClusterImpl::InitPools(const DSNList& dsn_list) {
   HostPoolByDsn host_pools;
@@ -105,40 +77,6 @@ void ClusterImpl::InitPools(const DSNList& dsn_list) {
   // NOLINTNEXTLINE(hicpp-move-const-arg)
   host_pools_.Set(std::move(host_pools));
   LOG_DEBUG() << "Pools initialized";
-}
-
-void ClusterImpl::CheckTopology() {
-  TryLockGuard lock(update_lock_);
-  if (!lock.LockAcquired()) {
-    LOG_DEBUG() << "Already checking cluster topology";
-    return;
-  }
-
-  // Copy pools first
-  auto host_pools = *host_pools_.Get();
-  const auto hosts_availability = topology_->CheckTopology();
-  auto cmd_ctl = default_cmd_ctl_.Get();
-  for (const auto& [dsn, avail] : hosts_availability) {
-    switch (avail) {
-      case ClusterTopology::HostAvailability::kOffline:
-        LOG_DEBUG() << "Host=" << HostAndPortFromDsn(dsn)
-                    << " became unavailable";
-        break;
-      case ClusterTopology::HostAvailability::kPreOnline:
-      case ClusterTopology::HostAvailability::kOnline:
-        if (!host_pools[dsn]) {
-          host_pools[dsn] = std::make_shared<ConnectionPool>(
-              dsn, bg_task_processor_, pool_settings_, conn_settings_, *cmd_ctl,
-              ei_settings_);
-          LOG_DEBUG() << "Added pool for host=" << HostAndPortFromDsn(dsn)
-                      << " to the map";
-        }
-        break;
-    }
-  }
-  // Set pools atomically
-  // NOLINTNEXTLINE(hicpp-move-const-arg)
-  host_pools_.Set(std::move(host_pools));
 }
 
 ClusterImpl::ConnectionPoolPtr ClusterImpl::GetPool(
@@ -245,7 +183,7 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
   auto host_type = ht;
   if (options.IsReadOnly()) {
     if (host_type == ClusterHostType::kAny) {
-      host_type = ClusterHostType::kSyncSlave;
+      host_type = ClusterHostType::kSlave;
     }
   } else {
     if (host_type == ClusterHostType::kAny) {
@@ -256,12 +194,7 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
   }
 
   auto pool = FindPool(host_type);
-  try {
-    return pool->Begin(options, deadline, cmd_ctl);
-  } catch (const ConnectionError&) {
-    topology_->OperationFailed(pool->GetDsn());
-    throw;
-  }
+  return pool->Begin(options, deadline, cmd_ctl);
 }
 
 NonTransaction ClusterImpl::Start(ClusterHostType host_type,
@@ -272,12 +205,7 @@ NonTransaction ClusterImpl::Start(ClusterHostType host_type,
   LOG_TRACE() << "Requested single statement on the host of " << host_type
               << " type";
   auto pool = FindPool(host_type);
-  try {
-    return pool->Start(deadline);
-  } catch (const ConnectionError&) {
-    topology_->OperationFailed(pool->GetDsn());
-    throw;
-  }
+  return pool->Start(deadline);
 }
 
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {

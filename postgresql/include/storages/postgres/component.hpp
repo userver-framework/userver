@@ -14,8 +14,8 @@
 #include <taxi_config/storage/component.hpp>
 #include <utils/statistics/storage.hpp>
 
-#include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/database.hpp>
+#include <storages/postgres/dsn.hpp>
 
 namespace engine {
 class TaskProcessor;
@@ -162,7 +162,7 @@ class Postgres : public LoggableComponentBase {
   storages::postgres::PoolSettings pool_settings_;
   storages::postgres::ConnectionSettings conn_settings_;
   engine::TaskProcessor* bg_task_processor_ = nullptr;
-  storages::postgres::ShardedClusterDescription cluster_desc_;
+  std::vector<storages::postgres::DSNList> cluster_desc_;
   storages::postgres::DatabasePtr database_;
 };
 

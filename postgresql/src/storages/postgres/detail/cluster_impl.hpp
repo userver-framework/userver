@@ -11,7 +11,7 @@
 
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/detail/non_transaction.hpp>
-#include <storages/postgres/detail/topology.hpp>
+#include <storages/postgres/detail/quorum_commit.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/pool.hpp>
 #include <storages/postgres/statistics.hpp>
@@ -23,8 +23,7 @@ namespace detail {
 
 class ClusterImpl {
  public:
-  ClusterImpl(const ClusterDescription& cluster_desc,
-              engine::TaskProcessor& bg_task_processor,
+  ClusterImpl(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
               PoolSettings pool_settings, ConnectionSettings conn_settings,
               CommandControl default_cmd_ctl,
               const error_injection::Settings& ei_settings);
@@ -36,9 +35,6 @@ class ClusterImpl {
                     engine::Deadline deadline, OptionalCommandControl = {});
 
   NonTransaction Start(ClusterHostType host_type, engine::Deadline deadline);
-
-  // The task returned MUST NOT outlive the ClusterImpl object
-  engine::TaskWithResult<void> DiscoverTopology();
 
   void SetDefaultCommandControl(CommandControl);
   SharedCommandControl GetDefaultCommandControl() const {
@@ -55,14 +51,11 @@ class ClusterImpl {
               const error_injection::Settings& ei_settings);
 
   void InitPools(const DSNList& dsn_list);
-  void StartPeriodicUpdates();
-  void StopPeriodicUpdates();
-  void CheckTopology();
   ConnectionPoolPtr GetPool(const std::string& dsn) const;
   ConnectionPoolPtr FindPool(ClusterHostType ht);
 
  private:
-  ClusterTopologyPtr topology_;
+  QuorumCommitTopologyPtr topology_;
   engine::TaskProcessor& bg_task_processor_;
   ::utils::PeriodicTask periodic_task_;
   // This variable should never be used directly as it may be modified

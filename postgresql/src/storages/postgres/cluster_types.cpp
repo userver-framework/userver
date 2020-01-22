@@ -15,6 +15,7 @@ const char* ToStringRaw(const ClusterHostType& ht) {
     return "ClusterHostType::" #kType
 
   switch (ht) {
+    CHT_TO_STR(kUnknown);
     CHT_TO_STR(kMaster);
     CHT_TO_STR(kSyncSlave);
     CHT_TO_STR(kSlave);
@@ -31,15 +32,6 @@ std::ostream& operator<<(std::ostream& os, const ClusterHostType& ht) {
 }
 
 std::string ToString(const ClusterHostType& ht) { return ToStringRaw(ht); }
-
-ClusterDescription::ClusterDescription(DSNList multi_host_dsn)
-    : description_{std::move(multi_host_dsn)} {}
-
-ClusterDescription::ClusterDescription(const std::string& master_dsn,
-                                       const std::string& sync_slave_dsn,
-                                       DSNList slave_dsns)
-    : description_{
-          PredefinedRoles{master_dsn, sync_slave_dsn, std::move(slave_dsns)}} {}
 
 }  // namespace postgres
 }  // namespace storages

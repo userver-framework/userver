@@ -158,8 +158,7 @@ Postgres::Postgres(const ComponentConfig& config,
     const auto dsn_string = config.ParseString("dbconnection");
     const auto options = pg::OptionsFromDsn(dsn_string);
     db_name_ = options.dbname;
-    cluster_desc_.push_back(
-        pg::ClusterDescription(pg::SplitByHost(dsn_string)));
+    cluster_desc_.push_back(pg::SplitByHost(dsn_string));
   } else {
     try {
       auto& secdist = context.FindComponent<Secdist>();
@@ -205,26 +204,17 @@ Postgres::Postgres(const ComponentConfig& config,
 
   // Start all clusters here
   LOG_DEBUG() << "Start " << cluster_desc_.size() << " shards for " << db_name_;
-  std::vector<engine::TaskWithResult<void>> tasks;
-  for (auto const& cluster_desc : cluster_desc_) {
-    auto cluster = std::make_shared<pg::Cluster>(
-        cluster_desc, *bg_task_processor_, pool_settings_, conn_settings_,
-        cmd_ctl, ei_settings);
+  for (const auto& dsns : cluster_desc_) {
+    auto cluster =
+        std::make_shared<pg::Cluster>(dsns, *bg_task_processor_, pool_settings_,
+                                      conn_settings_, cmd_ctl, ei_settings);
     database_->clusters_.push_back(cluster);
-    tasks.push_back(cluster->DiscoverTopology());
   }
 
   config_subscription_ =
       cfg.AddListener(this, "postgres", &Postgres::OnConfigUpdate);
   OnConfigUpdate(cfg.Get());
 
-  // Wait for topology discovery
-  LOG_DEBUG() << "Wait for initial topology discovery";
-  for (auto& t : tasks) {
-    // An exception in topology discovery at this stage should prevent starting
-    // the component
-    t.Get();
-  }
   LOG_DEBUG() << "Component ready";
 }
 

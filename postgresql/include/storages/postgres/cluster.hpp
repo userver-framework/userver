@@ -77,7 +77,7 @@ using ClusterImplPtr = std::unique_ptr<ClusterImpl>;
 class Cluster {
  public:
   /// Cluster constructor
-  /// @param cluster_desc Cluster configuration description
+  /// @param dsns List of DSNs to connect to
   /// @param bg_task_processor task processor for blocking connection operations
   /// @param pool_settings settings for connection pools
   /// @param conn_settings settings for individual connections
@@ -85,10 +85,9 @@ class Cluster {
   /// @note When `max_connection_pool_size` is reached, and no idle connections
   /// available, `PoolError` is thrown for every new connection
   /// request
-  Cluster(const ClusterDescription& cluster_desc,
-          engine::TaskProcessor& bg_task_processor, PoolSettings pool_settings,
-          ConnectionSettings conn_settings, CommandControl cmd_ctl,
-          const error_injection::Settings& ei_settings);
+  Cluster(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
+          PoolSettings pool_settings, ConnectionSettings conn_settings,
+          CommandControl cmd_ctl, const error_injection::Settings& ei_settings);
   ~Cluster();
 
   /// Get cluster statistics
@@ -136,9 +135,6 @@ class Cluster {
   detail::NonTransaction Start(ClusterHostType ht, engine::Deadline deadline);
 
  private:
-  friend class components::Postgres;
-  engine::TaskWithResult<void> DiscoverTopology();
-
   detail::ClusterImplPtr pimpl_;
 };
 

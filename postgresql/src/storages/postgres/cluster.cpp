@@ -5,14 +5,13 @@
 namespace storages {
 namespace postgres {
 
-Cluster::Cluster(const ClusterDescription& cluster_desc,
-                 engine::TaskProcessor& bg_task_processor,
+Cluster::Cluster(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
                  PoolSettings pool_settings, ConnectionSettings conn_settings,
                  CommandControl cmd_ctl,
                  const error_injection::Settings& ei_settings) {
-  pimpl_ = std::make_unique<detail::ClusterImpl>(
-      cluster_desc, bg_task_processor, pool_settings, conn_settings, cmd_ctl,
-      ei_settings);
+  pimpl_ = std::make_unique<detail::ClusterImpl>(dsns, bg_task_processor,
+                                                 pool_settings, conn_settings,
+                                                 cmd_ctl, ei_settings);
 }
 
 Cluster::~Cluster() = default;
@@ -39,10 +38,6 @@ Transaction Cluster::Begin(ClusterHostType ht,
 detail::NonTransaction Cluster::Start(ClusterHostType ht,
                                       engine::Deadline deadline) {
   return pimpl_->Start(ht, deadline);
-}
-
-engine::TaskWithResult<void> Cluster::DiscoverTopology() {
-  return pimpl_->DiscoverTopology();
 }
 
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
