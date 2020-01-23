@@ -107,6 +107,7 @@ namespace postgres {
  *       - InvalidParserCategory
  *       - InvalidTupleSizeRequested
  *       - NonSingleColumResultSet
+ *       - NonSingleRowResultSet
  *       - NoBinaryParser
  *       - NoValueParser
  *       - RowIndexOutOfBounds
@@ -728,6 +729,15 @@ class NonSingleColumResultSet : public ResultSetError {
             "single column type and for a row. " +
             "Please use " + func + "<" + type_name + ">(kRowTag) or " + func +
             "<" + type_name + ">(kFieldTag) to resolve the ambiguity.") {}
+};
+
+/// @brief A result set containing a single row was expected
+class NonSingleRowResultSet : public ResultSetError {
+ public:
+  explicit NonSingleRowResultSet(std::size_t actual_size)
+      : ResultSetError(
+            "A single row result set was expected. Actual result set size is " +
+            std::to_string(actual_size)) {}
 };
 
 /// @brief A row was requested to be parsed based on field names/indexed,

@@ -628,6 +628,16 @@ class ResultSet {
   Container AsContainer() const;
   template <typename Container>
   Container AsContainer(RowTag) const;
+
+  /// @brief Extract first row into user type.
+  /// A single row result set is expected, will throw an exception when result
+  /// set size != 1
+  template <typename T>
+  auto AsSingleRow() const;
+  template <typename T>
+  auto AsSingleRow(RowTag) const;
+  template <typename T>
+  auto AsSingleRow(FieldTag) const;
   //@}
  private:
   friend class detail::Connection;
@@ -868,6 +878,34 @@ Container ResultSet::AsContainer(RowTag) const {
   auto res = AsSetOf<ValueType>(kRowTag);
   std::copy(res.begin(), res.end(), io::traits::Inserter(c));
   return c;
+}
+
+template <typename T>
+auto ResultSet::AsSingleRow() const {
+  using ValueType = std::decay_t<T>;
+  if constexpr (io::traits::kIsCompositeType<ValueType>) {
+    return AsSingleRow<T>(kFieldTag);
+  } else if constexpr (io::traits::kIsRowType<ValueType>) {
+    return AsSingleRow<T>(kRowTag);
+  } else {
+    return AsSingleRow<T>(kFieldTag);
+  }
+}
+
+template <typename T>
+auto ResultSet::AsSingleRow(RowTag) const {
+  if (Size() != 1) {
+    throw NonSingleRowResultSet{Size()};
+  }
+  return Front().As<T>(kRowTag);
+}
+
+template <typename T>
+auto ResultSet::AsSingleRow(FieldTag) const {
+  if (Size() != 1) {
+    throw NonSingleRowResultSet{Size()};
+  }
+  return Front().As<T>(kFieldTag);
 }
 
 }  // namespace postgres

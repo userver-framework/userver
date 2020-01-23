@@ -125,6 +125,23 @@ POSTGRE_TEST_P(TypedResult) {
 
   auto tuple_set = res.AsContainer<std::set<MyTuple>>();
   EXPECT_EQ(res.Size(), tuple_set.size());
+
+  EXPECT_NO_THROW(res.AsSingleRow<MyStruct>());
+  EXPECT_NO_THROW(res.AsSingleRow<MyClass>());
+  EXPECT_NO_THROW(res.AsSingleRow<MyTuple>());
+}
+
+POSTGRE_TEST_P(EmptyTypedResult) {
+  using MyTuple = static_test::MyTupleType;
+  using MyStruct = static_test::MyAggregateStruct;
+  using MyClass = static_test::MyIntrusiveClass;
+
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  auto empty_res =
+      conn->Execute("select $1, $2, $3 limit 0", 42, "foobar", 3.14);
+  EXPECT_THROW(empty_res.AsSingleRow<MyStruct>(), pg::NonSingleRowResultSet);
+  EXPECT_THROW(empty_res.AsSingleRow<MyClass>(), pg::NonSingleRowResultSet);
+  EXPECT_THROW(empty_res.AsSingleRow<MyTuple>(), pg::NonSingleRowResultSet);
 }
 
 }  // namespace
