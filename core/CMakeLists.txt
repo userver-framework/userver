@@ -117,6 +117,7 @@ set(
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIRS}
+  ${USERVER_THIRD_PARTY_DIRS}/decimal64/include
 )
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
   ${USERVER_GLIBC_INCLUDE_FIXES_DIR}
