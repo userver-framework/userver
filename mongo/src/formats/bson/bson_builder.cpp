@@ -221,6 +221,10 @@ void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
 const bson_t* BsonBuilder::Get() const { return bson_->Get(); }
 bson_t* BsonBuilder::Get() { return bson_->Get(); }
 
-BsonHolder BsonBuilder::Extract() { return bson_->Extract(); }
+BsonHolder BsonBuilder::Extract() {
+  // Presumably FP -- TAXICOMMON-1916
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+  return bson_->Extract();
+}
 
 }  // namespace formats::bson::impl
