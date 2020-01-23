@@ -11,13 +11,14 @@
 #include <engine/coro/pool.hpp>
 #include <engine/deadline.hpp>
 #include <engine/ev/thread_control.hpp>
+#include <engine/task/counted_coroutine_ptr.hpp>
+#include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/local_storage.hpp>
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
+#include <engine/task/task_counter.hpp>
 #include <engine/wait_list_light.hpp>
 #include <utils/flags.hpp>
-#include "cxxabi_eh_globals.hpp"
-#include "task_counter.hpp"
 
 namespace engine {
 
@@ -54,7 +55,6 @@ class WaitStrategy {
 
 class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
  public:
-  using CoroutinePtr = coro::Pool<TaskContext>::CoroutinePtr;
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
   using CoroId = uint64_t;
   using TaskId = uint64_t;
@@ -136,9 +136,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // C++ ABI support, not to be used by anyone
   EhGlobals* GetEhGlobals() { return &eh_globals_; }
 
-  TaskId GetTaskId() const { return reinterpret_cast<uint64_t>(this); }
+  TaskId GetTaskId() const { return reinterpret_cast<TaskId>(this); }
 
-  CoroId GetCoroId() const { return reinterpret_cast<CoroId>(coro_.get()); }
+  CoroId GetCoroId() const { return coro_.Id(); }
 
   std::chrono::steady_clock::time_point GetQueueWaitTimepoint() const {
     return task_queue_wait_timepoint_;
@@ -181,7 +181,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
  private:
   [[maybe_unused]] const uint64_t magic_;
   TaskProcessor& task_processor_;
-  const TaskCounter::Token task_counter_token_;
+  TaskCounter::Token task_counter_token_;
   const bool is_critical_;
   EhGlobals eh_globals_;
   Payload payload_;
@@ -205,7 +205,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   utils::AtomicFlags<SleepStateFlags> sleep_state_;
   WakeupSource wakeup_source_;
 
-  CoroutinePtr coro_;
+  CountedCoroutinePtr coro_;
   TaskPipe* task_pipe_;
   YieldReason yield_reason_;
 

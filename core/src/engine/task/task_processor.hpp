@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -13,9 +14,10 @@
 #include <moodycamel/blockingconcurrentqueue.h>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
+#include <engine/task/counted_coroutine_ptr.hpp>
+#include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
-#include "task_counter.hpp"
-#include "task_processor_pools.hpp"
+#include <engine/task/task_processor_pools.hpp>
 
 namespace engine {
 namespace impl {
@@ -40,15 +42,14 @@ struct TaskProcessorSettings {
 
 class TaskProcessor final {
  public:
-  using CoroPool = impl::TaskProcessorPools::CoroPool;
-
   TaskProcessor(TaskProcessorConfig, std::shared_ptr<impl::TaskProcessorPools>);
   ~TaskProcessor();
 
   void Schedule(impl::TaskContext*);
   void Adopt(boost::intrusive_ptr<impl::TaskContext>&&);
 
-  CoroPool& GetCoroPool() { return pools_->GetCoroPool(); }
+  impl::CountedCoroutinePtr GetCoroutine();
+
   ev::ThreadPool& EventThreadPool() { return pools_->EventThreadPool(); }
   std::shared_ptr<impl::TaskProcessorPools> GetTaskProcessorPools() {
     return pools_;

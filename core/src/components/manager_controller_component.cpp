@@ -58,6 +58,7 @@ formats::json::ValueBuilder ManagerControllerComponent::GetTaskProcessorStats(
 
   const auto current = counter.GetCurrentValue();
   const auto created = counter.GetCreatedTasks();
+  const auto running = counter.GetRunningTasks();
   const auto cancelled = counter.GetCancelledTasks();
   const auto queued = task_processor.GetTaskQueueSize();
 
@@ -66,6 +67,7 @@ formats::json::ValueBuilder ManagerControllerComponent::GetTaskProcessorStats(
   formats::json::ValueBuilder json_tasks(formats::json::Type::kObject);
   json_tasks["created"] = created;
   json_tasks["alive"] = current;
+  json_tasks["running"] = running;
   json_tasks["queued"] = queued;
   json_tasks["finished"] = created - current;
   json_tasks["cancelled"] = cancelled;

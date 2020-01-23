@@ -15,10 +15,10 @@ class TaskCounter final {
   class Token final {
    public:
     explicit Token(TaskCounter& counter) : counter_(counter) {
-      ++counter_.value_;
+      ++counter_.tasks_alive_;
       ++counter_.tasks_created_;
     }
-    ~Token() { --counter_.value_; }
+    ~Token() { --counter_.tasks_alive_; }
 
     Token(const Token&) = delete;
     Token(Token&&) = delete;
@@ -29,19 +29,46 @@ class TaskCounter final {
     TaskCounter& counter_;
   };
 
-  ~TaskCounter() { UASSERT(!value_); }
+  class CoroToken final {
+   public:
+    explicit CoroToken(TaskCounter& counter) : counter_(&counter) {
+      ++counter_->tasks_running_;
+    }
+    ~CoroToken() {
+      if (counter_) --counter_->tasks_running_;
+    }
+
+    CoroToken(const CoroToken&) = delete;
+
+    CoroToken(CoroToken&& other) noexcept
+        : counter_(std::exchange(other.counter_, nullptr)) {}
+
+    CoroToken& operator=(const CoroToken&) = delete;
+
+    CoroToken& operator=(CoroToken&& rhs) noexcept {
+      counter_ = std::exchange(rhs.counter_, nullptr);
+      return *this;
+    }
+
+   private:
+    TaskCounter* counter_;
+  };
+
+  ~TaskCounter() { UASSERT(!tasks_alive_); }
 
   template <typename Rep, typename Period>
   void WaitForExhaustion(
       const std::chrono::duration<Rep, Period>& check_period) const {
-    while (value_ > 0) {
+    while (tasks_alive_ > 0) {
       std::this_thread::sleep_for(check_period);
     }
   }
 
-  size_t GetCurrentValue() const { return value_; }
+  size_t GetCurrentValue() const { return tasks_alive_; }
 
   size_t GetCreatedTasks() const { return tasks_created_; }
+
+  size_t GetRunningTasks() const { return tasks_running_; }
 
   size_t GetCancelledTasks() const { return tasks_cancelled_; }
 
@@ -78,8 +105,9 @@ class TaskCounter final {
 #endif  // USERVER_PROFILER
 
  private:
-  std::atomic<size_t> value_{0};
+  std::atomic<size_t> tasks_alive_{0};
   std::atomic<size_t> tasks_created_{0};
+  std::atomic<size_t> tasks_running_{0};
   std::atomic<size_t> tasks_cancelled_{0};
   std::atomic<size_t> tasks_switch_fast_{0};
   std::atomic<size_t> tasks_switch_slow_{0};

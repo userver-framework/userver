@@ -62,7 +62,7 @@ impl::TaskContext* GetCurrentTaskContextUnchecked() {
 namespace impl {
 namespace {
 
-std::string GetTaskIdString(const impl::TaskContext* task) {
+std::string GetTaskIdString(const TaskContext* task) {
   return std::to_string(task ? task->GetTaskId() : 0);
 }
 
@@ -100,27 +100,6 @@ TaskContext::LocalStorageGuard::LocalStorageGuard(TaskContext& context)
 
 TaskContext::LocalStorageGuard::~LocalStorageGuard() {
   context_.local_storage_ = nullptr;
-}
-
-TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
-    utils::Flags<SleepStateFlags> sleep_state) {
-  static constexpr std::pair<utils::Flags<SleepStateFlags>, WakeupSource> l[] =
-      {{{SleepStateFlags::kWakeupByWaitList}, WakeupSource::kWaitList},
-       {{SleepStateFlags::kWakeupByDeadlineTimer},
-        WakeupSource::kDeadlineTimer},
-       {{SleepStateFlags::kWakeupByBootstrap}, WakeupSource::kBootstrap}};
-  for (auto it : l)
-    if (sleep_state & it.first) return it.second;
-
-  if ((sleep_state & SleepStateFlags::kWakeupByCancelRequest) &&
-      !(sleep_state & SleepStateFlags::kNonCancellable))
-    return WakeupSource::kCancelRequest;
-
-  LOG_ERROR() << "Cannot find valid wakeup source"
-              << logging::LogExtra::Stacktrace();
-  throw std::logic_error("Cannot find valid wakeup source, stacktrace:\n" +
-                         to_string(boost::stacktrace::stacktrace{}) +
-                         "\nvalue = " + std::to_string(sleep_state.GetValue()));
 }
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
@@ -222,7 +201,7 @@ void TaskContext::DoStep() {
   utils::Flags<SleepStateFlags> clear_flags{SleepStateFlags::kSleeping};
   if (!coro_) {
     // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
-    coro_ = task_processor_.GetCoroPool().GetCoroutine();
+    coro_ = task_processor_.GetCoroutine();
     clear_flags |= SleepStateFlags::kWakeupByBootstrap;
   }
   // Do non-atomic fetch_and() - we don't care about lost spurious
@@ -249,8 +228,7 @@ void TaskContext::DoStep() {
     case YieldReason::kTaskCancelled:
     case YieldReason::kTaskComplete:
       // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
-      task_processor_.GetCoroPool().PutCoroutine(std::move(coro_));
-      coro_.reset();
+      std::move(coro_).ReturnToPool();
       {
         auto new_state = (yield_reason_ == YieldReason::kTaskComplete)
                              ? Task::State::kCompleted
@@ -470,6 +448,26 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
 bool TaskContext::HasLocalStorage() const { return local_storage_ != nullptr; }
 
 LocalStorage& TaskContext::GetLocalStorage() { return *local_storage_; }
+
+TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
+    utils::Flags<SleepStateFlags> sleep_state) {
+  static constexpr std::pair<utils::Flags<SleepStateFlags>, WakeupSource> l[] =
+      {{{SleepStateFlags::kWakeupByWaitList}, WakeupSource::kWaitList},
+       {{SleepStateFlags::kWakeupByDeadlineTimer},
+        WakeupSource::kDeadlineTimer},
+       {{SleepStateFlags::kWakeupByBootstrap}, WakeupSource::kBootstrap}};
+  for (auto it : l)
+    if (sleep_state & it.first) return it.second;
+
+  if ((sleep_state & SleepStateFlags::kWakeupByCancelRequest) &&
+      !(sleep_state & SleepStateFlags::kNonCancellable))
+    return WakeupSource::kCancelRequest;
+
+  UASSERT_MSG(false, "Cannot find valid wakeup source");
+  throw std::logic_error("Cannot find valid wakeup source, stacktrace:\n" +
+                         to_string(boost::stacktrace::stacktrace{}) +
+                         "\nvalue = " + std::to_string(sleep_state.GetValue()));
+}
 
 void TaskContext::SetState(Task::State new_state) {
   auto old_state = Task::State::kNew;

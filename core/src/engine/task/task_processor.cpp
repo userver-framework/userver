@@ -50,21 +50,6 @@ TaskProcessor::~TaskProcessor() {
   UASSERT(task_counter_.GetCurrentValue() == 0);
 }
 
-void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
-  static constexpr size_t kTaskTimestampFrequency = 16;
-  thread_local size_t task_count = 0;
-  if (task_count++ == kTaskTimestampFrequency) {
-    task_count = 0;
-    context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
-  } else {
-    /* Don't call clock_gettime() too often.
-     * This leads to killing some innocent tasks on overload, up to
-     * +(kTaskTimestampFrequency-1), we may sacrifice them.
-     */
-    context->SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
-  }
-}
-
 void TaskProcessor::Schedule(impl::TaskContext* context) {
   UASSERT(context);
   if (max_task_queue_wait_length_ && !context->IsCritical()) {
@@ -110,6 +95,10 @@ void TaskProcessor::Adopt(
   UASSERT(result.second);
 }
 
+impl::CountedCoroutinePtr TaskProcessor::GetCoroutine() {
+  return {pools_->GetCoroPool().GetCoroutine(), *this};
+}
+
 std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const {
   return config_.profiler_threshold;
 }
@@ -137,6 +126,65 @@ void TaskProcessor::SetTaskTraceLogger(::logging::LoggerPtr logger) {
 ::logging::LoggerPtr TaskProcessor::GetTraceLogger() const {
   if (!task_trace_logger_set_) return ::logging::DefaultLogger();
   return task_trace_logger_;
+}
+
+impl::TaskContext* TaskProcessor::DequeueTask() {
+  impl::TaskContext* buf = nullptr;
+
+  /* Current thread handles only a single TaskProcessor, so it's safe to store
+   * a token for the task processor in a thread-local variable.
+   */
+  thread_local moodycamel::ConsumerToken token(task_queue_);
+
+  task_queue_.wait_dequeue(token, buf);
+  GetTaskCounter().AccountTaskSwitchSlow();
+
+  if (!buf) {
+    // return "stop" token back
+    task_queue_.enqueue(nullptr);
+  }
+
+  return buf;
+}
+
+void TaskProcessor::ProcessTasks() noexcept {
+  while (true) {
+    // wrapping instance referenced in EnqueueTask
+    boost::intrusive_ptr<impl::TaskContext> context(DequeueTask(),
+                                                    /* add_ref =*/false);
+    if (!context) break;
+
+    CheckWaitTime(*context);
+
+    bool has_failed = false;
+    try {
+      context->DoStep();
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "uncaught exception from DoStep: " << ex;
+      has_failed = true;
+    }
+    // has_failed is not observable from Adopt()
+    // and breaks IsDetached-IsFinished latch
+    if (has_failed || (context->IsDetached() && context->IsFinished())) {
+      std::lock_guard<std::mutex> lock(detached_contexts_mutex_);
+      detached_contexts_.erase(context);
+    }
+  }
+}
+
+void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
+  static constexpr size_t kTaskTimestampFrequency = 16;
+  thread_local size_t task_count = 0;
+  if (task_count++ == kTaskTimestampFrequency) {
+    task_count = 0;
+    context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
+  } else {
+    /* Don't call clock_gettime() too often.
+     * This leads to killing some innocent tasks on overload, up to
+     * +(kTaskTimestampFrequency-1), we may sacrifice them.
+     */
+    context->SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
+  }
 }
 
 void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
@@ -180,50 +228,6 @@ void TaskProcessor::HandleOverload(impl::TaskContext& context) {
       LOG_TRACE() << "Task with task_id=" << context.GetTaskId()
                   << " was waiting in queue for too long, but it is marked "
                      "as critical, not cancelling.";
-    }
-  }
-}
-
-impl::TaskContext* TaskProcessor::DequeueTask() {
-  impl::TaskContext* buf = nullptr;
-
-  /* Current thread handles only a single TaskProcessor, so it's safe to store
-   * a token for the task processor in a thread-local variable.
-   */
-  thread_local moodycamel::ConsumerToken token(task_queue_);
-
-  task_queue_.wait_dequeue(token, buf);
-  GetTaskCounter().AccountTaskSwitchSlow();
-
-  if (!buf) {
-    // return "stop" token back
-    task_queue_.enqueue(nullptr);
-  }
-
-  return buf;
-}
-
-void TaskProcessor::ProcessTasks() noexcept {
-  while (true) {
-    // wrapping instance referenced in EnqueueTask
-    boost::intrusive_ptr<impl::TaskContext> context(DequeueTask(),
-                                                    /* add_ref =*/false);
-    if (!context) break;
-
-    CheckWaitTime(*context);
-
-    bool has_failed = false;
-    try {
-      context->DoStep();
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "uncaught exception from DoStep: " << ex;
-      has_failed = true;
-    }
-    // has_failed is not observable from Adopt()
-    // and breaks IsDetached-IsFinished latch
-    if (has_failed || (context->IsDetached() && context->IsFinished())) {
-      std::lock_guard<std::mutex> lock(detached_contexts_mutex_);
-      detached_contexts_.erase(context);
     }
   }
 }
