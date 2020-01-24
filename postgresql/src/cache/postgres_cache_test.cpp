@@ -46,7 +46,7 @@ struct PostgresExamplePolicy {
   // It can be of any map type. The default is unordered_map, it is not
   // necessary to declare the DataType alias if you are OK with unordered_map.
   // The key type must match the type of kKeyMember.
-  using DataType = std::unordered_map<int, MyStructure>;
+  using CacheContainer = std::unordered_map<int, MyStructure>;
 
   // @brief Cluster host to use when retrieving data
   // Optional
