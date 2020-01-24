@@ -11,6 +11,8 @@
 #include <utils/underlying_value.hpp>
 #include <utils/void_t.hpp>
 
+#include <formats/common/meta.hpp>
+
 namespace logging {
 class LogHelper;  // Forward declaration
 }
@@ -252,6 +254,25 @@ constexpr decltype(auto) UnderlyingValue(
 template <class Tag, class T, StrongTypedefOps Ops>
 constexpr T UnderlyingValue(StrongTypedef<Tag, T, Ops>&& v) noexcept {
   return std::move(v).GetUnderlying();
+}
+
+// Serialization
+
+template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
+          typename ValueType>
+std::enable_if_t<::formats::common::kIsFormatValue<ValueType>,
+                 StrongTypedef<Tag, T, Ops, Enable>>
+Parse(const ValueType& source,
+      formats::parse::To<StrongTypedef<Tag, T, Ops, Enable>>) {
+  using StrongTypedefType = StrongTypedef<Tag, T, Ops, Enable>;
+  return StrongTypedefType{source.template As<T>()};
+}
+
+template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
+          typename TargetType>
+inline TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
+                            formats::serialize::To<TargetType>) {
+  return typename TargetType::Builder(object.GetUnderlying()).ExtractValue();
 }
 
 }  // namespace utils
