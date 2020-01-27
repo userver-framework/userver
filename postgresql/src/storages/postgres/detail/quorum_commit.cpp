@@ -13,6 +13,7 @@
 #include <logging/log.hpp>
 #include <rcu/rcu.hpp>
 #include <utils/periodic_task.hpp>
+#include <utils/scope_guard.hpp>
 
 namespace storages::postgres::detail {
 
@@ -175,6 +176,11 @@ CheckStatus HostStatus::RunCheck(engine::TaskProcessor& tp,
                                  ConnectionSettings settings,
                                  CommandControl default_cmd_ctl,
                                  const error_injection::Settings& ei_settings) {
+  ::utils::ScopeGuard role_check_guard([this] {
+    role = ClusterHostType::kUnknown;
+    connection.reset();
+  });
+
   if (!connection) {
     try {
       connection = Connection::Connect(dsn, tp, kConnectionId, settings,
@@ -182,7 +188,6 @@ CheckStatus HostStatus::RunCheck(engine::TaskProcessor& tp,
     } catch (const ConnectionError& e) {
       LOG_ERROR() << "Failed to connect to " << DsnCutPassword(dsn) << ": "
                   << e;
-      role = ClusterHostType::kUnknown;
       return {this, std::chrono::microseconds{0}};
     }
   }
@@ -199,15 +204,10 @@ CheckStatus HostStatus::RunCheck(engine::TaskProcessor& tp,
       LOG_DEBUG() << res.Size() << " sync slaves detected";
       status.detected_sync_slaves = res.AsContainer<std::vector<std::string>>();
     }
+    role_check_guard.Release();
     return status;
-  } catch (const ConnectionFailed& e) {
+  } catch (const ConnectionError& e) {
     LOG_ERROR() << "Broken connection with " << DsnCutPassword(dsn) << ": "
-                << e;
-    role = ClusterHostType::kUnknown;
-    // Drop the connection
-    connection.reset(nullptr);
-  } catch (const Error& e) {
-    LOG_ERROR() << "A failure while checking whether a connection is read only:"
                 << e;
   }
   return {this, std::chrono::microseconds{0}};
