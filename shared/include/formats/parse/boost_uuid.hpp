@@ -6,7 +6,6 @@
 #include <string>
 
 #include <boost/optional.hpp>
-#include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/uuid.hpp>
 
 #include <formats/common/meta.hpp>

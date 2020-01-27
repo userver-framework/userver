@@ -1,7 +1,7 @@
 #pragma once
 
-#include <algorithm>
 #include <chrono>
+#include <utility>
 
 #include <engine/mutex.hpp>
 #include <logging/log.hpp>
@@ -185,9 +185,12 @@ class AsyncEventChannel : public AsyncEventChannelBase {
   };
 
   typename std::vector<Listener>::iterator FindListener(FunctionId id) {
-    return std::find_if(
-        listeners_.begin(), listeners_.end(),
-        [id](const Listener& listener) { return listener.id == id; });
+    // not using std::find_if to avoid incusion of <algorithm> in a header file
+    const auto end = listeners_.end();
+    for (auto it = listeners_.begin(); it != end; ++it) {
+      if (it->id == id) return it;
+    }
+    return end;
   }
 
   const std::string name_;
