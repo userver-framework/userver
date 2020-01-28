@@ -40,7 +40,7 @@ ClusterImpl::ClusterImpl(const DSNList& dsns,
     : ClusterImpl(bg_task_processor, pool_settings, conn_settings,
                   default_cmd_ctl, ei_settings) {
   topology_ = std::make_unique<QuorumCommitCluster>(
-      bg_task_processor_, dsns, conn_settings, default_cmd_ctl, ei_settings);
+      bg_task_processor_, dsns, conn_settings, default_cmd_ctl, ei_settings_);
   InitPools(topology_->GetDsnList());
 }
 
