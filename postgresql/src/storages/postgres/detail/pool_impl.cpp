@@ -205,7 +205,23 @@ void ConnectionPoolImpl::Release(Connection* connection) {
                                  dec_cnt = std::move(dg)] {
       LOG_WARNING()
           << "Released connection in busy state. Trying to clean up...";
-      while (!shared_this->cancel_limit_.Obtain()) {
+      if (shared_this->cancel_limit_.Obtain()) {
+        try {
+          connection->CancelAndCleanup(kCleanupTimeout);
+          if (connection->IsIdle()) {
+            LOG_DEBUG() << "Successfully cleaned up a dirty connection";
+            shared_this->AccountConnectionStats(connection->GetStatsAndReset());
+            shared_this->Push(connection);
+            return;
+          }
+        } catch (const std::exception& e) {
+          LOG_WARNING() << "Exception while cleaning up a dirty connection: "
+                        << e;
+        }
+      } else {
+        // Too many connections are cancelling ATM, we cannot afford running
+        // many synchronous calls and/or keep precious connections hanging.
+        // Assume a router with sane connection management logic is in place.
         if (connection->Cleanup(kCleanupTimeout)) {
           LOG_DEBUG() << "Successfully finished waiting for a dirty connection "
                          "to clean up itself";
@@ -217,19 +233,6 @@ void ConnectionPoolImpl::Release(Connection* connection) {
           shared_this->DeleteBrokenConnection(connection);
           return;
         }
-      }
-
-      try {
-        connection->CancelAndCleanup(kCleanupTimeout);
-        if (connection->IsIdle()) {
-          LOG_DEBUG() << "Successfully cleaned up a dirty connection";
-          shared_this->AccountConnectionStats(connection->GetStatsAndReset());
-          shared_this->Push(connection);
-          return;
-        }
-      } catch (const std::exception& e) {
-        LOG_WARNING() << "Exception while cleaning up a dirty connection: "
-                      << e;
       }
       LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
       ++shared_this->stats_.connection.error_total;

@@ -75,7 +75,7 @@ const TimeZoneID& LocalTimezoneID();
  * // Read as timestamp
  * res[0].To(now);
  * // Send as timestamp with time zone, in time zone passed as the second
- * // argument, defaults to UTC
+ * // argument, defaults to local TZ
  * res = trx.Execute("select $1", pg::TimestampTz(now, cctz::utc_time_zone()));
  * // Read as timestamp with time zone
  * res[0].To(pg::TimestampTz(now, cctz::utc_time_zone());
