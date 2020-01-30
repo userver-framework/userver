@@ -20,6 +20,7 @@ libraries:
 debian:
   build_dependencies:
     - clang-7
+    - libstdc++-dev (>= 7)
     - libboost-filesystem-dev
     - libboost-locale-dev
     - libboost-program-options-dev

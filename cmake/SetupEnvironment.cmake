@@ -72,6 +72,14 @@ macro(add_compile_options_if_supported)
   endforeach()
 endmacro()
 
+# check stdlib is recent enough
+include(CheckIncludeFileCXX)
+CHECK_INCLUDE_FILE_CXX(variant HAS_CXX17_VARIANT)
+message(STATUS "variant: ${HAS_CXX17_VARIANT}")
+if(NOT HAS_CXX17_VARIANT)
+  message(FATAL_ERROR "You have an outdated standard C++ library. Try installing libstdc++-7-dev and see https://nda.ya.ru/t/hIZTqQ803VtYBV")
+endif(NOT HAS_CXX17_VARIANT)
+
 if (MACOS)
     set(Boost_NO_BOOST_CMAKE ON)
 endif(MACOS)
@@ -100,10 +108,6 @@ if (CLANG)
 
   add_compile_options ("-Wno-missing-braces") # -Wmissing-braces is buggy in some versions on clang
   add_compile_options ("-Wno-braced-scalar-init")
-endif()
-
-if (${Boost_VERSION} VERSION_LESS "106300")
-  add_definitions("-DBOOST_NO_CXX17_STD_APPLY" "-DBOOST_NO_CXX17_STD_INVOKE")
 endif()
 
 # build type specific
