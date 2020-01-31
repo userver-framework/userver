@@ -21,9 +21,8 @@ Transaction::Transaction(detail::ConnectionPtr&& conn,
 Transaction::Transaction(Transaction&&) noexcept = default;
 Transaction::~Transaction() {
   if (conn_ && conn_->IsInTransaction()) {
-    LOG_ERROR() << "Transaction handle is destroyed without implicitly "
-                   "committing or rolling back"
-                << logging::LogExtra::Stacktrace();
+    LOG_INFO() << "Transaction handle is destroyed without an explicit "
+                  "commit or rollback, rolling back automatically";
     try {
       conn_->Rollback();
     } catch (const std::exception& e) {
