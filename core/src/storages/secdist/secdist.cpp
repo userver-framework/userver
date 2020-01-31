@@ -11,8 +11,7 @@
 #include <storages/secdist/exceptions.hpp>
 #include <yaml_config/value.hpp>
 
-namespace storages {
-namespace secdist {
+namespace storages::secdist {
 
 namespace {
 
@@ -37,11 +36,9 @@ SecdistConfig::SecdistConfig(const std::string& path) {
   try {
     doc = formats::json::FromStream(json_stream);
   } catch (const std::exception& e) {
-    LOG_WARNING() << "Cannot load secdist config. File '" << path
-                  << "' doesn't exist, unrechable or in invalid format:" << e;
-
-    doc = formats::json::ValueBuilder(formats::json::Type::kObject)
-              .ExtractValue();
+    throw SecdistError(
+        "Cannot load secdist config. File '" + path +
+        "' doesn't exist, unrechable or in invalid format:" + e.what());
   }
 
   Init(doc);
@@ -70,5 +67,4 @@ const boost::any& SecdistConfig::Get(const std::type_index& type,
   }
 }
 
-}  // namespace secdist
-}  // namespace storages
+}  // namespace storages::secdist
