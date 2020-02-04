@@ -43,6 +43,17 @@ TEST(Task, EarlyCancel) {
   });
 }
 
+TEST(Task, EarlyCancelCritical) {
+  RunInCoro([] {
+    auto task = engine::impl::CriticalAsync([] { return true; });
+    task.RequestCancel();
+    task.WaitFor(std::chrono::milliseconds(100));
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
+    EXPECT_TRUE(task.Get());
+  });
+}
+
 TEST(Task, Cancel) {
   RunInCoro([] {
     auto task = engine::impl::Async([] {

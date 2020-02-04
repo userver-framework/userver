@@ -167,6 +167,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   static WakeupSource GetPrimaryWakeupSource(
       utils::Flags<SleepStateFlags> sleep_state);
 
+  bool WasStartedAsCritical() const;
   void SetState(Task::State);
 
   void Schedule();

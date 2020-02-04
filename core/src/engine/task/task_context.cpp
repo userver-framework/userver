@@ -136,7 +136,7 @@ TaskContext::~TaskContext() noexcept {
 bool TaskContext::IsCritical() const {
   // running tasks must not be susceptible to overload
   // e.g. we might need to run coroutine to cancel it
-  return is_critical_ || coro_;
+  return WasStartedAsCritical() || coro_;
 }
 
 void TaskContext::SetDetached() {
@@ -414,10 +414,12 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
 
     context->ProfilerStartExecution();
 
-    // it is important to destroy payload here as someone may want
-    // to synchronize in its dtor (e.g. lambda closure)
-    if (context->IsCancelRequested()) {
+    // We only let tasks ran with CriticalAsync enter function body, others
+    // get terminated ASAP.
+    if (context->IsCancelRequested() && !context->WasStartedAsCritical()) {
       context->SetCancellable(false);
+      // It is important to destroy payload here as someone may want
+      // to synchronize in its dtor (e.g. lambda closure).
       {
         LocalStorageGuard local_storage_guard(*context);
         context->payload_ = {};
@@ -468,6 +470,8 @@ TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
                          to_string(boost::stacktrace::stacktrace{}) +
                          "\nvalue = " + std::to_string(sleep_state.GetValue()));
 }
+
+bool TaskContext::WasStartedAsCritical() const { return is_critical_; }
 
 void TaskContext::SetState(Task::State new_state) {
   auto old_state = Task::State::kNew;
