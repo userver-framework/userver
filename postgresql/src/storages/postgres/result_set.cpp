@@ -1,5 +1,7 @@
 #include <storages/postgres/result_set.hpp>
 
+#include <string_view>
+
 #include <fmt/format.h>
 
 #include <logging/log.hpp>
@@ -10,6 +12,27 @@
 
 namespace storages {
 namespace postgres {
+
+namespace {
+
+// Placeholders for: field name, type class (composite, enum etc), schema, type
+// name and oid
+const std::string_view kKnownTypeErrorMessageTemplate =
+    "PostgreSQL result set field `{}` {} type {}.{} oid {} doesn't have a "
+    "binary parser. There is no C++ type mapped to this database type, "
+    "probably you forgot to declare cpp to pg mapping. Please see here "
+    "https://nda.ya.ru/t/73eL7pJj3Vtid3 how to do it. The other reason that "
+    "can cause sun an error is that you modified the mapping to use other "
+    "postgres type and forgot to run migration scripts.";
+
+// Placeholders for: field name and oid
+const std::string_view kUnknownTypeErrorMessageTemplate =
+    "PostgreSQL result set field `{}` type with oid {} was NOT loaded from "
+    "database. The type was not loaded due to a migration script creating "
+    "the type and probably altering a table was run while service up, the only "
+    "way to fix this is to restart the service.";
+
+}  // namespace
 
 //----------------------------------------------------------------------------
 // RowDescription implementation
@@ -22,16 +45,12 @@ void RowDescription::CheckBinaryFormat(const UserTypes& types) const {
       auto desc = types.GetTypeDescription(oid);
       std::string message;
       if (desc) {
-        message = fmt::format(
-            "PostgreSQL result set field `{}` {} type {}.{} oid {} "
-            "doesn't have a binary parser",
-            res_->GetFieldName(i), ToString(desc->type_class), desc->schema,
-            desc->name, oid);
+        message = fmt::format(kKnownTypeErrorMessageTemplate,
+                              res_->GetFieldName(i), ToString(desc->type_class),
+                              desc->schema, desc->name, oid);
       } else {
-        message = fmt::format(
-            "PostgreSQL result set field `{}` type with oid {} was not loaded "
-            "from database and doesn't have a binary parser",
-            res_->GetFieldName(i), oid);
+        message = fmt::format(kUnknownTypeErrorMessageTemplate,
+                              res_->GetFieldName(i), oid);
       }
       throw NoBinaryParser{message};
     }
