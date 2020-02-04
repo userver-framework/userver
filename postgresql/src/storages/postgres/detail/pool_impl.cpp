@@ -5,6 +5,7 @@
 #include <logging/log.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/exceptions.hpp>
+#include <utils/size_guard.hpp>
 
 namespace storages {
 namespace postgres {
@@ -57,7 +58,6 @@ ConnectionPoolImpl::ConnectionPoolImpl(
       conn_settings_{conn_settings},
       bg_task_processor_{bg_task_processor},
       queue_{settings.max_size},
-      size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl},
       ei_settings_(ei_settings),
@@ -67,6 +67,7 @@ ConnectionPoolImpl::ConnectionPoolImpl(
 ConnectionPoolImpl::~ConnectionPoolImpl() {
   StopMaintainTask();
   Clear();
+  conn_token_storage_.WaitForAllTokens();
 }
 
 std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
@@ -110,13 +111,13 @@ void ConnectionPoolImpl::Init() {
              << (settings_.sync_start ? " sync" : " async");
   if (!settings_.sync_start) {
     for (size_t i = 0; i < settings_.min_size; ++i) {
-      Connect(SharedSizeGuard{size_}).Detach();
+      Connect(conn_token_storage_.GetToken()).Detach();
     }
   } else {
     std::vector<engine::TaskWithResult<bool>> tasks;
     tasks.reserve(settings_.min_size);
     for (size_t i = 0; i < settings_.min_size; ++i) {
-      tasks.push_back(Connect(SharedSizeGuard{size_}));
+      tasks.push_back(Connect(conn_token_storage_.GetToken()));
     }
     for (auto& t : tasks) {
       try {
@@ -242,8 +243,12 @@ void ConnectionPoolImpl::Release(Connection* connection) {
   }
 }
 
+size_t ConnectionPoolImpl::SizeApprox() const {
+  return conn_token_storage_.AliveTokensApprox();
+}
+
 const InstanceStatistics& ConnectionPoolImpl::GetStatistics() const {
-  stats_.connection.active = size_->load(std::memory_order_relaxed);
+  stats_.connection.active = SizeApprox();
   stats_.connection.waiting = wait_count_.load(std::memory_order_relaxed);
   stats_.connection.maximum = settings_.max_size;
   return stats_;
@@ -268,47 +273,47 @@ NonTransaction ConnectionPoolImpl::Start(engine::Deadline deadline) {
 }
 
 engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
-    SharedSizeGuard&& size_guard) {
-  return engine::impl::Async(
-      [shared_this = shared_from_this(), sg = std::move(size_guard)]() mutable {
-        LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
-                    << sg.GetValue();
-        const uint32_t conn_id = ++shared_this->stats_.connection.open_total;
-        std::unique_ptr<Connection> connection;
-        Stopwatch st{shared_this->stats_.connection_percentile};
-        try {
-          auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
-          connection = Connection::Connect(
-              shared_this->dsn_, shared_this->bg_task_processor_, conn_id,
-              shared_this->conn_settings_, *cmd_ctl, shared_this->ei_settings_,
-              std::move(sg));
-        } catch (const ConnectionTimeoutError&) {
-          // No problem if it's connection error
-          ++shared_this->stats_.connection.error_timeout;
-          ++shared_this->stats_.connection.error_total;
-          ++shared_this->stats_.connection.drop_total;
-          ++shared_this->recent_conn_errors_.GetCurrentCounter();
-          return false;
-        } catch (const ConnectionError&) {
-          // No problem if it's connection error
-          ++shared_this->stats_.connection.error_total;
-          ++shared_this->stats_.connection.drop_total;
-          ++shared_this->recent_conn_errors_.GetCurrentCounter();
-          return false;
-        } catch (const Error& ex) {
-          ++shared_this->stats_.connection.error_total;
-          ++shared_this->stats_.connection.drop_total;
-          LOG_ERROR() << "Connection creation failed with error: " << ex;
-          throw;
-        }
-        LOG_TRACE() << "PostgreSQL connection created";
+    ConnToken&& conn_token) {
+  return engine::impl::Async([shared_this = shared_from_this(),
+                              conn_token = std::move(conn_token)]() mutable {
+    LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
+                << shared_this->SizeApprox();
+    const uint32_t conn_id = ++shared_this->stats_.connection.open_total;
+    std::unique_ptr<Connection> connection;
+    Stopwatch st{shared_this->stats_.connection_percentile};
+    try {
+      auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
+      connection = Connection::Connect(
+          shared_this->dsn_, shared_this->bg_task_processor_, conn_id,
+          shared_this->conn_settings_, *cmd_ctl, shared_this->ei_settings_,
+          std::move(conn_token));
+    } catch (const ConnectionTimeoutError&) {
+      // No problem if it's connection error
+      ++shared_this->stats_.connection.error_timeout;
+      ++shared_this->stats_.connection.error_total;
+      ++shared_this->stats_.connection.drop_total;
+      ++shared_this->recent_conn_errors_.GetCurrentCounter();
+      return false;
+    } catch (const ConnectionError&) {
+      // No problem if it's connection error
+      ++shared_this->stats_.connection.error_total;
+      ++shared_this->stats_.connection.drop_total;
+      ++shared_this->recent_conn_errors_.GetCurrentCounter();
+      return false;
+    } catch (const Error& ex) {
+      ++shared_this->stats_.connection.error_total;
+      ++shared_this->stats_.connection.drop_total;
+      LOG_ERROR() << "Connection creation failed with error: " << ex;
+      throw;
+    }
+    LOG_TRACE() << "PostgreSQL connection created";
 
-        // Clean up the statistics and not account it
-        [[maybe_unused]] const auto& stats = connection->GetStatsAndReset();
+    // Clean up the statistics and not account it
+    [[maybe_unused]] const auto& stats = connection->GetStatsAndReset();
 
-        shared_this->Push(connection.release());
-        return true;
-      });
+    shared_this->Push(connection.release());
+    return true;
+  });
 }
 
 void ConnectionPoolImpl::Push(Connection* connection) {
@@ -333,7 +338,7 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
     return connection;
   }
 
-  SizeGuard wg(wait_count_);
+  ::utils::SizeGuard wg(wait_count_);
   if (wg.GetValue() > settings_.max_queue_size) {
     ++stats_.queue_size_errors;
     throw PoolError("Wait queue size exceeded");
@@ -344,14 +349,15 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
   LOG_DEBUG() << "No idle connections, try to get one in " << timeout.count()
               << "ms";
   {
-    SharedSizeGuard sg(size_);
-    if (sg.GetValue() <= settings_.max_size) {
+    // TODO: revert to a more robust SizeGuard impl after TAXICOMMON-1932
+    auto conn_token = conn_token_storage_.GetToken();
+    if (SizeApprox() <= settings_.max_size) {
       // Checking errors is more expensive than incrementing an atomic, so we
       // check it only if we can start a new connection.
       if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
           kRecentErrorThreshold) {
         // Create a new connection
-        Connect(std::move(sg)).Detach();
+        Connect(std::move(conn_token)).Detach();
       } else {
         LOG_DEBUG() << "Too many connection errors in recent period";
       }
@@ -417,7 +423,7 @@ void ConnectionPoolImpl::MaintainConnections() {
 
   LOG_DEBUG() << "Ping connection pool " << DsnCutPassword(dsn_);
   auto stale_connection = true;
-  auto count = size_->load(std::memory_order_relaxed);
+  auto count = SizeApprox();
   auto drop_left = kIdleDropLimit;
   while (count > 0 && stale_connection) {
     try {

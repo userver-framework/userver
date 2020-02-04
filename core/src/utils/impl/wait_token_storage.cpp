@@ -35,6 +35,10 @@ std::shared_ptr<WaitTokenStorage::SafeScopeGuard> WaitTokenStorage::GetToken() {
   return token_;
 }
 
+long WaitTokenStorage::AliveTokensApprox() const {
+  return token_.use_count() - 1;
+}
+
 void WaitTokenStorage::WaitForAllTokens() {
   token_.reset();
   if (engine::current_task::GetCurrentTaskContextUnchecked()) {

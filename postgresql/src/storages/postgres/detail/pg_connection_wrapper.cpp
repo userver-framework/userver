@@ -74,9 +74,9 @@ void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
 }  // namespace
 
 PGConnectionWrapper::PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
-                                         SizeGuard&& size_guard)
+                                         ConnToken&& conn_token)
     : bg_task_processor_{tp},
-      size_guard_{std::move(size_guard)},
+      conn_token_{std::move(conn_token)},
       last_use_{std::chrono::steady_clock::now()} {
   // TODO add SSL initialization
   log_extra_.Extend("conn_id", id);
@@ -123,7 +123,7 @@ engine::Task PGConnectionWrapper::Close() {
   // NOLINTNEXTLINE(cppcoreguidelines-slicing)
   return engine::impl::CriticalAsync(
       bg_task_processor_, [tmp_conn, socket = std::move(tmp_sock),
-                           sg = std::move(size_guard_)]() mutable {
+                           conn_token = std::move(conn_token_)]() mutable {
         if (tmp_conn != nullptr) {
           PQfinish(tmp_conn);
         }

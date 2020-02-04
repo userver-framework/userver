@@ -164,8 +164,8 @@ struct Connection::Impl {
 
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
        ConnectionSettings settings, CommandControl default_cmd_ctl,
-       const error_injection::Settings& ei_settings, SizeGuard&& size_guard)
-      : conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
+       const error_injection::Settings& ei_settings, ConnToken&& token)
+      : conn_wrapper_{bg_task_processor, id, std::move(token)},
         settings_{settings},
         default_cmd_ctl_{default_cmd_ctl},
         ei_settings_(ei_settings),
@@ -775,12 +775,12 @@ struct Connection::Impl {
 std::unique_ptr<Connection> Connection::Connect(
     const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
     uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
-    const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
+    const error_injection::Settings& ei_settings, ConnToken&& token) {
   std::unique_ptr<Connection> conn(new Connection());
 
   conn->pimpl_ =
       std::make_unique<Impl>(bg_task_processor, id, settings, default_cmd_ctl,
-                             ei_settings, std::move(size_guard));
+                             ei_settings, std::move(token));
   conn->pimpl_->AsyncConnect(conninfo);
 
   return conn;

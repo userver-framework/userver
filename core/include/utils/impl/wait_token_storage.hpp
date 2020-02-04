@@ -20,6 +20,9 @@ class WaitTokenStorage final {
 
   Token GetToken();
 
+  /// Approximate number of currently alive tokens or -1 if storage is finalized
+  long AliveTokensApprox() const;
+
   /// Wait until all given-out tokens are dead
   void WaitForAllTokens();
 

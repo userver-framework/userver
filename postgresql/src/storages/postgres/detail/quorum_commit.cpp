@@ -183,8 +183,9 @@ CheckStatus HostStatus::RunCheck(engine::TaskProcessor& tp,
 
   if (!connection) {
     try {
-      connection = Connection::Connect(dsn, tp, kConnectionId, settings,
-                                       default_cmd_ctl, ei_settings);
+      connection =
+          Connection::Connect(dsn, tp, kConnectionId, settings, default_cmd_ctl,
+                              ei_settings, Connection::ConnToken{});
     } catch (const ConnectionError& e) {
       LOG_ERROR() << "Failed to connect to " << DsnCutPassword(dsn) << ": "
                   << e;

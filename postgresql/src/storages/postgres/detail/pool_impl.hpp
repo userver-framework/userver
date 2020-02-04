@@ -11,8 +11,8 @@
 #include <engine/task/task_with_result.hpp>
 #include <error_injection/settings.hpp>
 #include <rcu/rcu.hpp>
+#include <utils/impl/wait_token_storage.hpp>
 #include <utils/periodic_task.hpp>
-#include <utils/size_guard.hpp>
 #include <utils/token_bucket.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
@@ -41,7 +41,9 @@ class ConnectionPoolImpl
   [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
   void Release(Connection* connection);
 
+  size_t SizeApprox() const;
   const InstanceStatistics& GetStatistics() const;
+
   [[nodiscard]] Transaction Begin(const TransactionOptions& options,
                                   engine::Deadline deadline,
                                   OptionalCommandControl trx_cmd_ctl = {});
@@ -58,13 +60,11 @@ class ConnectionPoolImpl
                      const error_injection::Settings& ei_settings);
 
  private:
-  using SizeGuard = ::utils::SizeGuard<std::atomic<size_t>>;
-  using SharedCounter = std::shared_ptr<std::atomic<size_t>>;
-  using SharedSizeGuard = ::utils::SizeGuard<SharedCounter>;
+  using ConnToken = ::utils::impl::WaitTokenStorage::Token;
 
   void Init();
 
-  [[nodiscard]] engine::TaskWithResult<bool> Connect(SharedSizeGuard&&);
+  [[nodiscard]] engine::TaskWithResult<bool> Connect(ConnToken&&);
 
   void Push(Connection* connection);
   Connection* Pop(engine::Deadline);
@@ -94,7 +94,7 @@ class ConnectionPoolImpl
   engine::Mutex wait_mutex_;
   engine::ConditionVariable conn_available_;
   boost::lockfree::queue<Connection*> queue_;
-  SharedCounter size_;
+  ::utils::impl::WaitTokenStorage conn_token_storage_;
   std::atomic<size_t> wait_count_;
   rcu::Variable<CommandControl> default_cmd_ctl_;
   const error_injection::Settings ei_settings_;
