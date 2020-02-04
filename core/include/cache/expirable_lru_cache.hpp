@@ -104,7 +104,8 @@ class ExpirableLruCache final {
 template <typename Key, typename Value, typename Hash, typename Equal>
 ExpirableLruCache<Key, Value, Hash, Equal>::ExpirableLruCache(
     size_t ways, size_t way_size, const Hash& hash, const Equal& equal)
-    : lru_(ways, way_size, hash, equal), mutex_set_(ways) {}
+    : lru_(ways, way_size, hash, equal),
+      mutex_set_{ways, way_size, hash, equal} {}
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 ExpirableLruCache<Key, Value, Hash, Equal>::~ExpirableLruCache() {

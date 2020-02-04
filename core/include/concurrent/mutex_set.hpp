@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -15,6 +16,9 @@ namespace impl {
 
 template <typename T, typename Hash, typename Equal>
 struct MutexDatum {
+  explicit MutexDatum(size_t way_size, const Hash& hash = Hash{},
+                      const Equal& equal = Equal{})
+      : set{way_size, hash, equal} {}
   ~MutexDatum() {
     UASSERT_MSG(set.empty(),
                 "MutexDatum is destroyed while someone is holding the lock");
@@ -58,7 +62,8 @@ template <typename Key = std::string, typename Hash = std::hash<Key>,
           typename Equal = std::equal_to<Key>>
 class MutexSet final {
  public:
-  explicit MutexSet(size_t ways = 1);
+  explicit MutexSet(size_t ways = 1, size_t way_size = 1,
+                    const Hash& hash = Hash{}, const Equal& equal = Equal{});
 
   /// Get the mutex-like object for a key. Coroutine-safe.
   /// @note the returned object holds a reference to MutexSet, so make sure
@@ -66,16 +71,24 @@ class MutexSet final {
   ItemMutex<Key, Hash, Equal> GetMutexForKey(const Key& key);
 
  private:
-  std::vector<impl::MutexDatum<Key, Hash, Equal>> mutex_data_;
+  std::vector<std::unique_ptr<impl::MutexDatum<Key, Hash, Equal>>> mutex_data_;
 };
 
 template <typename Key, typename Hash, typename Equal>
-MutexSet<Key, Hash, Equal>::MutexSet(size_t ways) : mutex_data_(ways) {}
+MutexSet<Key, Hash, Equal>::MutexSet(size_t ways, size_t way_size,
+                                     const Hash& hash, const Equal& equal) {
+  mutex_data_.reserve(ways);
+  for (size_t i = 0; i < ways; ++i) {
+    mutex_data_.emplace_back(
+        std::make_unique<impl::MutexDatum<Key, Hash, Equal>>(way_size, hash,
+                                                             equal));
+  }
+}
 
 template <typename Key, typename Hash, typename Equal>
 ItemMutex<Key, Hash, Equal> MutexSet<Key, Hash, Equal>::GetMutexForKey(
     const Key& key) {
-  auto& md = mutex_data_[Hash()(key) % mutex_data_.size()];
+  auto& md = *mutex_data_[Hash()(key) % mutex_data_.size()];
   return ItemMutex<Key, Hash, Equal>(md, key);
 }
 
