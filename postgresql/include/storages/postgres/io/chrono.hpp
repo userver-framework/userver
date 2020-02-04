@@ -1,20 +1,18 @@
 #pragma once
 
-/// @file storages/postgres/io/bytea.hpp
+/// @file storages/postgres/io/chrono.hpp
 /// @brief Timestamp I/O support
-
-#include <chrono>
 
 #include <cctz/time_zone.h>
 
+#include <chrono>
+#include <compiler/demangle.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/interval.hpp>
 #include <storages/postgres/io/transform_io.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
-
-#include <compiler/demangle.hpp>
 #include <utils/strong_typedef.hpp>
 
 namespace storages {
@@ -323,32 +321,6 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
       ValueType tmp = pg_epoch + std::chrono::microseconds{usec};
       std::swap(tmp, this->value);
     }
-  }
-};
-
-///@brief Binary formatter for TimePointTz
-template <>
-struct BufferFormatter<TimePointTz, DataFormat::kBinaryDataFormat>
-    : detail::BufferFormatterBase<TimePointTz> {
-  using BaseType = detail::BufferFormatterBase<TimePointTz>;
-  using BaseType::BaseType;
-
-  template <typename Buffer>
-  void operator()(const UserTypes& types, Buffer& buf) const {
-    WriteBinary(types, buf, TimestampTz(value.GetUnderlying()));
-  }
-};
-
-/// @brief Binary parser for TimePointTz
-template <>
-struct BufferParser<TimePointTz, DataFormat::kBinaryDataFormat>
-    : detail::BufferParserBase<TimePointTz> {
-  using BaseType = detail::BufferParserBase<TimePointTz>;
-  using BaseType::BaseType;
-
-  void operator()(const FieldBuffer& buffer) {
-    TimePointTz::UnderlyingType& ts = value.GetUnderlying();
-    ReadBinary(buffer, TimestampTz(ts));
   }
 };
 

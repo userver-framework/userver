@@ -280,6 +280,29 @@ POSTGRE_TEST_P(Timestamp) {
   }
 }
 
+POSTGRE_TEST_P(TimestampTz) {
+  ASSERT_TRUE(conn.get());
+  // Make sure we use a time zone different from UTC
+  const auto tz_name = "Europe/Moscow";
+  TemporaryTZ tmp_tz{tz_name};
+  ASSERT_NO_THROW(conn->SetParameter(
+      "TimeZone", tz_name, pg::detail::Connection::ParameterScope::kSession));
+
+  pg::TimePointTz now{std::chrono::system_clock::now()};
+  pg::ResultSet res{nullptr};
+
+  EXPECT_NO_THROW(res = conn->Execute("select $1, $1::text", now));
+
+  auto [tptz, str] = res.Front().As<pg::TimePointTz, std::string>();
+  auto tp = ParseUTC(str);
+  EXPECT_EQ(tp, utils::UnderlyingValue(tptz))
+      << "Expect " << str << " to be equal to "
+      << FormatToLocal(utils::UnderlyingValue(tptz));
+  EXPECT_TRUE(EqualToMicroseconds(tp, utils::UnderlyingValue(now)));
+  EXPECT_TRUE(EqualToMicroseconds(utils::UnderlyingValue(tptz),
+                                  utils::UnderlyingValue(now)));
+}
+
 POSTGRE_TEST_P(TimestampInfinity) {
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};
