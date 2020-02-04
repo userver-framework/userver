@@ -1,6 +1,9 @@
-#include <gtest/gtest.h>
-
 #include <utils/encoding/tskv.hpp>
+
+#include "tskv_testdata_bin.hpp"
+
+#include <gtest/gtest.h>
+#include <algorithm>
 
 TEST(tskv, NoEscapeQuote) {
   const auto str = "{ \"tasks\" : [  ] }";
@@ -10,4 +13,22 @@ TEST(tskv, NoEscapeQuote) {
     utils::encoding::EncodeTskv(result, str, mode);
     EXPECT_EQ(str, result);
   }
+}
+
+TEST(tskv, TAXICOMMON_1362) {
+  const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
+  std::string result;
+  utils::encoding::EncodeTskv(result, str, sizeof(tskv_test::data_bin),
+                              utils::encoding::EncodeTskvMode::kValue);
+  EXPECT_TRUE(result.find("PNG") != std::string::npos) << "Result: " << result;
+
+  EXPECT_TRUE(result.find(tskv_test::ascii_part) != std::string::npos)
+      << "Result: " << result;
+
+  EXPECT_EQ(0, std::count(result.begin(), result.end(), '\n'))
+      << "Result: " << result;
+  EXPECT_EQ(0, std::count(result.begin(), result.end(), '\t'))
+      << "Result: " << result;
+  EXPECT_EQ(0, std::count(result.begin(), result.end(), '\0'))
+      << "Result: " << result;
 }

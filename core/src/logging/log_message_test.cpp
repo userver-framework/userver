@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include <logging/logging_test.hpp>
+#include <utils/encoding/tskv_testdata_bin.hpp>
 #include <utils/traceful_exception.hpp>
 
 TEST_F(LoggingTest, TskvEncode) {
@@ -203,4 +204,51 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
   logging::LogFlush();
 
   CheckModulePath(sstream.str(), kPath);
+}
+
+TEST_F(LoggingTest, LogExtra_TAXICOMMON_1362) {
+  const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
+  std::string input(str, str + sizeof(tskv_test::data_bin));
+
+  LOG_CRITICAL() << input;
+  logging::LogFlush();
+  std::string result = sstream.str();
+
+  ASSERT_GT(result.size(), 1);
+  EXPECT_EQ(result.back(), '\n');
+  result.pop_back();
+
+  EXPECT_TRUE(result.find(tskv_test::ascii_part) != std::string::npos)
+      << "Result: " << result;
+
+  const auto png_pos = result.find("PNG");
+  EXPECT_TRUE(png_pos != std::string::npos) << "Result: " << result;
+
+  EXPECT_EQ(0, std::count(result.begin() + png_pos, result.end(), '\n'))
+      << "Result: " << result;
+  EXPECT_EQ(0, std::count(result.begin() + png_pos, result.end(), '\t'))
+      << "Result: " << result;
+  EXPECT_EQ(0, std::count(result.begin() + png_pos, result.end(), '\0'))
+      << "Result: " << result;
+}
+
+TEST_F(LoggingTest, TAXICOMMON_1362) {
+  const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
+  std::string input(str, str + sizeof(tskv_test::data_bin));
+
+  LOG_CRITICAL() << logging::LogExtra{{"body", input}};
+  logging::LogFlush();
+  std::string result = sstream.str();
+
+  const auto ascii_pos = result.find(tskv_test::ascii_part);
+  EXPECT_TRUE(ascii_pos != std::string::npos) << "Result: " << result;
+
+  const auto body_pos = result.find("body=");
+  EXPECT_TRUE(body_pos != std::string::npos) << "Result: " << result;
+
+  auto begin = result.begin() + body_pos;
+  auto end = result.begin() + ascii_pos;
+  EXPECT_EQ(0, std::count(begin, end, '\n')) << "Result: " << result;
+  EXPECT_EQ(0, std::count(begin, end, '\t')) << "Result: " << result;
+  EXPECT_EQ(0, std::count(begin, end, '\0')) << "Result: " << result;
 }
