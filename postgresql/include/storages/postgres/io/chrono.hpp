@@ -13,6 +13,8 @@
 #include <storages/postgres/io/interval.hpp>
 #include <storages/postgres/io/transform_io.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
+#include <string>
+#include <utils/datetime.hpp>
 #include <utils/strong_typedef.hpp>
 
 namespace storages {
@@ -142,6 +144,11 @@ detail::TimestampTz<const std::chrono::time_point<ClockType, Duration>>
 TimestampTz(const std::chrono::time_point<ClockType, Duration>& val) {
   return {val, cctz::local_time_zone()};
 }
+
+std::string Timestring(
+    TimePointTz tp,
+    const std::string& timezone = ::utils::datetime::kDefaultTimezone,
+    const std::string& format = ::utils::datetime::kDefaultFormat);
 
 namespace io {
 

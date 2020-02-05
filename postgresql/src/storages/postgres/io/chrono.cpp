@@ -65,5 +65,10 @@ const TimeZoneID& LocalTimezoneID() {
   return tz;
 }
 
+std::string Timestring(TimePointTz tp, const std::string& timezone,
+                       const std::string& format) {
+  return ::utils::datetime::Timestring(UnderlyingValue(tp), timezone, format);
+}
+
 }  // namespace postgres
 }  // namespace storages
