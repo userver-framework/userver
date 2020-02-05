@@ -168,4 +168,9 @@ void PeriodicTask::RegisterInTestsuite(
   registration_holder_.emplace(periodic_task_control, name_, *this);
 }
 
+PeriodicTask::Settings PeriodicTask::GetCurrentSettings() const {
+  auto settings_ptr = settings_.Read();
+  return *settings_ptr;
+}
+
 }  // namespace utils

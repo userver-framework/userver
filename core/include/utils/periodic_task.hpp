@@ -120,6 +120,9 @@ class PeriodicTask final {
   void RegisterInTestsuite(
       testsuite::PeriodicTaskControl& periodic_task_control);
 
+  /// Get current settings. Note that they might become stale very quickly.
+  Settings GetCurrentSettings() const;
+
  private:
   enum class SuspendState { kRunning, kSuspended };
 
