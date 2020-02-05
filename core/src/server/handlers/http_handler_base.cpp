@@ -28,8 +28,7 @@
 // set to 1 if you need server metrics
 #define INCLUDE_SERVER_HTTP_METRICS 0
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 namespace {
 
 template <typename HeadersHolder>
@@ -161,9 +160,7 @@ class RequestProcessor final {
         response.SetData(ex.GetExternalErrorBody());
       } else {
         SetFormattedErrorResponse(response,
-                                  handler_.GetFormattedExternalErrorBody(
-                                      response.GetStatus(), ex.GetServiceCode(),
-                                      ex.GetExternalErrorBody()));
+                                  handler_.GetFormattedExternalErrorBody(ex));
       }
       return true;
     } catch (const std::exception& ex) {
@@ -176,9 +173,11 @@ class RequestProcessor final {
         LOG_ERROR() << "exception in '" << handler_.HandlerName()
                     << "' handler in " + step_name + ": " << ex;
         http_request_impl_.MarkAsInternalServerError();
-        SetFormattedErrorResponse(
-            response, handler_.GetFormattedExternalErrorBody(
-                          response.GetStatus(), {}, response.GetData()));
+        SetFormattedErrorResponse(response,
+                                  handler_.GetFormattedExternalErrorBody({
+                                      ExternalBody{response.GetData()},
+                                      HandlerErrorCode::kServerSideError,
+                                  }));
       }
       return true;
     } catch (...) {
@@ -377,8 +376,9 @@ void HttpHandlerBase::ReportMalformedRequest(
     auto& response = http_request.GetHttpResponse();
 
     SetFormattedErrorResponse(
-        response, GetFormattedExternalErrorBody(response.GetStatus(), {},
-                                                response.GetData()));
+        response,
+        GetFormattedExternalErrorBody({ExternalBody{response.GetData()},
+                                       HandlerErrorCode::kRequestParseError}));
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle ready request: " << ex;
   }
@@ -402,9 +402,8 @@ logging::Level HttpHandlerBase::GetLogLevelForResponseStatus(
 }
 
 FormattedErrorData HttpHandlerBase::GetFormattedExternalErrorBody(
-    http::HttpStatus, const std::string&,
-    std::string external_error_body) const {
-  return {external_error_body};
+    const CustomHandlerException& exc) const {
+  return {exc.GetExternalErrorBody()};
 }
 
 void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
@@ -514,5 +513,4 @@ formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
   return result;
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

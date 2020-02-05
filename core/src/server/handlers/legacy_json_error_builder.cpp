@@ -6,8 +6,7 @@
 #include <server/handlers/exceptions.hpp>
 #include <server/http/http_error.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(const CustomHandlerException& ex)
     : LegacyJsonErrorBuilder(http::GetHttpStatus(ex.GetCode()), ex.what(),
@@ -37,5 +36,4 @@ LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(
 
 static_assert(impl::kHasInternalMessage<LegacyJsonErrorBuilder>);
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

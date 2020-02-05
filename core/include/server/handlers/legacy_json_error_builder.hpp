@@ -8,10 +8,9 @@
 #include <server/handlers/exceptions.hpp>
 #include <server/http/http_status.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
-/// Legacy JSON error message builder.
+/// Legacy JSON error message builder that returns "code" as an integer.
 /// Consider using JsonErrorBuilder instead
 class LegacyJsonErrorBuilder {
  public:
@@ -37,5 +36,4 @@ class LegacyJsonErrorBuilder {
   std::string json_error_body_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

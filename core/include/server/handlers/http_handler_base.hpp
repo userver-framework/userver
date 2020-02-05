@@ -8,6 +8,7 @@
 #include <components/manager.hpp>
 #include <logging/level.hpp>
 #include <server/handlers/auth/auth_checker_base.hpp>
+#include <server/handlers/exceptions.hpp>
 #include <server/handlers/formatted_error_data.hpp>
 #include <server/handlers/handler_base.hpp>
 #include <server/http/http_request.hpp>
@@ -19,8 +20,7 @@ namespace components {
 class StatisticsStorage;
 }  // namespace components
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 class HttpHandlerStatistics;
 class HttpHandlerMethodStatistics;
@@ -50,8 +50,7 @@ class HttpHandlerBase : public HandlerBase {
       http::HttpStatus status) const;
 
   virtual FormattedErrorData GetFormattedExternalErrorBody(
-      http::HttpStatus status, const std::string& error_code,
-      std::string external_error_body) const;
+      const CustomHandlerException& exc) const;
 
   std::string GetResponseDataForLoggingChecked(
       const http::HttpRequest& request, request::RequestContext& context,
@@ -123,5 +122,4 @@ class HttpHandlerBase : public HandlerBase {
   boost::optional<logging::Level> log_level_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

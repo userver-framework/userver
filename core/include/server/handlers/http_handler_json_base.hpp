@@ -4,8 +4,7 @@
 
 #include <server/handlers/http_handler_base.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 /// Convenient base for handlers that accept requests with body in
 /// json format.
@@ -39,9 +38,7 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
 
  private:
   FormattedErrorData GetFormattedExternalErrorBody(
-      http::HttpStatus status, const std::string& error_code,
-      std::string external_error_body) const final;
+      const CustomHandlerException& exc) const final;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

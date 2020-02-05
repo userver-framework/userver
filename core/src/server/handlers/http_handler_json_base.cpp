@@ -10,8 +10,7 @@
 #include <server/http/http_error.hpp>
 #include <server/http/http_status.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 namespace {
 
@@ -50,16 +49,14 @@ const formats::json::Value* HttpHandlerJsonBase::GetResponseJson(
 }
 
 FormattedErrorData HttpHandlerJsonBase::GetFormattedExternalErrorBody(
-    http::HttpStatus status, const std::string& error_code,
-    std::string external_error_body) const {
-  if (error_code.empty()) {
-    return {LegacyJsonErrorBuilder(status, {}, external_error_body)
-                .GetExternalBody(),
+    const CustomHandlerException& exc) const {
+  if (exc.GetServiceCode().empty()) {
+    // Legacy format has no "service codes", only HTTP codes.
+    return {LegacyJsonErrorBuilder(exc).GetExternalBody(),
             LegacyJsonErrorBuilder::GetContentType()};
   }
-  return {
-      JsonErrorBuilder(error_code, {}, external_error_body).GetExternalBody(),
-      JsonErrorBuilder::GetContentType()};
+  return {JsonErrorBuilder(exc).GetExternalBody(),
+          JsonErrorBuilder::GetContentType()};
 }
 
 void HttpHandlerJsonBase::ParseRequestData(
@@ -77,5 +74,4 @@ void HttpHandlerJsonBase::ParseRequestData(
   context.SetData<const formats::json::Value>(kRequestDataName, request_json);
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

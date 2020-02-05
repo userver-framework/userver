@@ -6,8 +6,7 @@
 #include <server/handlers/exceptions.hpp>
 #include <utils/assert.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 JsonErrorBuilder::JsonErrorBuilder(const CustomHandlerException& ex)
     : JsonErrorBuilder(
@@ -37,5 +36,4 @@ JsonErrorBuilder::JsonErrorBuilder(
   json_error_body_ = formats::json::ToString(response_json.ExtractValue());
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers
