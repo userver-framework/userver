@@ -42,8 +42,6 @@ add_dependencies(yandex-taxi-backend-common-cpp spdlog)
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory(uboost_coro)
 
-set(YANDEX_TAXI_USERVER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "")
-
 if(NOT USERVICES)
   add_subdirectory(testsuite)
   add_subdirectory(tools/engine)

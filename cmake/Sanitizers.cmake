@@ -4,8 +4,6 @@ if (TARGET sanitize-target)
     return()
 endif()
 
-include(SetupEnvironment) # required for CCACHE_EXECUTABLE and CMAKE_*_COMPILER_LAUNCHER
-
 SET(SANITIZE_ENUM "mem, addr, thread, ub")
 set(SANITIZE "" CACHE STRING "Clang sanitizer, possible values: ${SANITIZE_ENUM}")
 if (NOT CLANG AND SANITIZE)

@@ -2,6 +2,44 @@ cmake_minimum_required(VERSION 3.12)
 
 project(yandex-taxi-userver-universal)
 
+if(NOT TARGET yandex-taxi-userver-core)
+  # minimal setup
+  cmake_policy(SET CMP0025 NEW)
+  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+    set(CLANG found)
+  endif()
+
+  set(CMAKE_MODULE_PATH
+    ${CMAKE_MODULE_PATH}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../cmake
+    ${CMAKE_BINARY_DIR}/cmake_generated
+  )
+
+  add_definitions(-DUSERVER_UNIVERSAL)
+
+  # backend-common-cpp
+  # TODO: remove after TAXICOMMON-1949
+  set(DISABLE_STACKTRACE ON CACHE BOOL "" FORCE)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp ${CMAKE_CURRENT_BINARY_DIR}/backend-common-cpp)
+
+  target_include_directories(
+    yandex-taxi-backend-common-cpp
+    PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/include
+  )
+  set_property(TARGET yandex-taxi-backend-common-cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
+  set_property(TARGET yandex-taxi-jsoncpp PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+  # external-deps codegen
+  set(userver_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
+  include(UserverCodegen)
+
+  # local modules
+  include(AddGoogleTests)
+  include(FindPackageRequired)
+  include(Sanitizers)
+endif(NOT TARGET yandex-taxi-userver-core)
+
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.hpp
@@ -38,7 +76,10 @@ find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  LINKER_LANGUAGE CXX
+  POSITION_INDEPENDENT_CODE ON
+)
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if(NOT SANITIZE)
