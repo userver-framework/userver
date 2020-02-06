@@ -4,6 +4,10 @@ project(yandex-taxi-userver-universal)
 
 if(NOT TARGET yandex-taxi-userver-core)
   # minimal setup
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(MACOS found)
+  endif()
+
   cmake_policy(SET CMP0025 NEW)
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
     set(CLANG found)

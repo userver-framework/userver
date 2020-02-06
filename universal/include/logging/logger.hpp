@@ -3,6 +3,7 @@
 // TODO: remove this after TAXICOMMON-1949
 
 #include <any>
+#include <cerrno>
 #include <initializer_list>
 #include <string>
 #include <utility>
