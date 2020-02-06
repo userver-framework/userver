@@ -5,15 +5,14 @@
 namespace storages::postgres::io {
 
 template <>
-struct PgToCpp<PredefinedOids::kJsonb, formats::json::Value>
-    : detail::PgToCppPredefined<PredefinedOids::kJsonb, formats::json::Value> {
-};
+struct PgToCpp<PredefinedOids::kJson, formats::json::Value>
+    : detail::PgToCppPredefined<PredefinedOids::kJson, formats::json::Value> {};
 
 namespace {
 
 const bool kReference = detail::ForceReference(
     CppToPg<formats::json::Value>::init_,
-    PgToCpp<PredefinedOids::kJsonb, formats::json::Value>::init_);
+    PgToCpp<PredefinedOids::kJson, formats::json::Value>::init_);
 
 }  // namespace
 

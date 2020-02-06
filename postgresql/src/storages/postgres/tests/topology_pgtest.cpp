@@ -5,7 +5,7 @@
 #include <storages/postgres/detail/quorum_commit.hpp>
 #include <storages/postgres/exceptions.hpp>
 
-#include <storages/postgres/tests/util_test.hpp>
+#include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace pg = storages::postgres;
 

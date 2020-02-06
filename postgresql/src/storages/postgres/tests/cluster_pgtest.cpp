@@ -1,4 +1,4 @@
-#include <storages/postgres/tests/util_test.hpp>
+#include <storages/postgres/tests/util_pgtest.hpp>
 
 #include <gtest/gtest.h>
 
@@ -102,7 +102,7 @@ TEST_P(PostgreCluster, SingleQuery) {
   });
 }
 
-TEST_P(PostgreCluster, TransactionTimouts) {
+TEST_P(PostgreCluster, TransactionTimeouts) {
   RunInCoro([this] {
     auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
 

@@ -3,6 +3,8 @@
 /// @file storages/postgres/io/json_types.hpp
 /// @brief JSON I/O support
 
+#include <type_traits>
+
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/stream.hpp>
 
@@ -15,10 +17,18 @@
 #include <storages/postgres/io/user_types.hpp>
 
 #include <formats/json.hpp>
+#include <utils/strong_typedef.hpp>
 
-namespace storages::postgres::io {
+namespace storages::postgres {
 
+using PlainJson =
+    ::utils::StrongTypedef<struct PlainJsonTag, formats::json::Value,
+                           ::utils::StrongTypedefOps::kCompareTransparent>;
+
+namespace io {
 namespace detail {
+
+constexpr char kJsonbVersion = 1;
 
 struct JsonParser : BufferParserBase<formats::json::Value> {
   using BaseType = BufferParserBase<formats::json::Value>;
@@ -27,8 +37,9 @@ struct JsonParser : BufferParserBase<formats::json::Value> {
   void operator()(const FieldBuffer& buffer);
 };
 
-struct JsonFormatter : BufferFormatterBase<formats::json::Value> {
-  using BaseType = BufferFormatterBase<formats::json::Value>;
+template <typename JsonValue>
+struct JsonFormatter : BufferFormatterBase<JsonValue> {
+  using BaseType = BufferFormatterBase<JsonValue>;
   using BaseType::BaseType;
 
   template <typename Buffer>
@@ -36,9 +47,13 @@ struct JsonFormatter : BufferFormatterBase<formats::json::Value> {
     using sink_type = boost::iostreams::back_insert_device<Buffer>;
     using stream_type = boost::iostreams::stream<sink_type>;
 
+    if constexpr (!std::is_same_v<PlainJson, JsonValue>) {
+      buffer.push_back(kJsonbVersion);
+    }
     sink_type sink{buffer};
     stream_type os{sink};
-    formats::json::Serialize(value, os);
+    formats::json::Serialize(
+        static_cast<const formats::json::Value&>(this->value), os);
   }
 };
 
@@ -57,13 +72,22 @@ struct ParserBufferCategory<io::detail::JsonParser>
 
 template <>
 struct Output<formats::json::Value, DataFormat::kBinaryDataFormat> {
-  using type = io::detail::JsonFormatter;
+  using type = io::detail::JsonFormatter<formats::json::Value>;
+};
+
+template <>
+struct Output<PlainJson, DataFormat::kBinaryDataFormat> {
+  using type = io::detail::JsonFormatter<PlainJson>;
 };
 
 }  // namespace traits
 
 template <>
 struct CppToSystemPg<formats::json::Value>
-    : PredefinedOid<PredefinedOids::kJson> {};
+    : PredefinedOid<PredefinedOids::kJsonb> {};
 
-}  // namespace storages::postgres::io
+template <>
+struct CppToSystemPg<PlainJson> : PredefinedOid<PredefinedOids::kJson> {};
+
+}  // namespace io
+}  // namespace storages::postgres

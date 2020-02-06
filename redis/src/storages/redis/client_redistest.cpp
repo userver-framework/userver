@@ -21,7 +21,7 @@ const std::string kRedisSettingsJson = R"({
         },
         "password": "",
         "sentinels": [{"host": "localhost", "port": 26379}],
-        "shards": [{"name": "test_master"}]
+        "shards": [{"name": "test_master0"}]
     }
   }
 })";

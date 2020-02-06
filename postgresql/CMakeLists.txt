@@ -21,6 +21,11 @@ file(GLOB_RECURSE UNIT_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
+file(GLOB_RECURSE PG_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_pgtest.cpp
+)
+list(REMOVE_ITEM SOURCES ${PG_TEST_SOURCES})
+
 file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 )
@@ -76,3 +81,22 @@ target_include_directories(${PROJECT_NAME}_benchmark
     SYSTEM PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+# XXX: testsuite doesn't support parallel builds
+if(NOT USERVICES)
+  add_executable(${PROJECT_NAME}_pgtest ${PG_TEST_SOURCES})
+  target_include_directories (${PROJECT_NAME}_pgtest SYSTEM PRIVATE
+      $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
+  set_target_properties(${PROJECT_NAME}_pgtest PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(${PROJECT_NAME}_pgtest utest ${PROJECT_NAME})
+  add_test(${PROJECT_NAME}_pgtest
+    env
+      POSTGRES_TEST_DSN=postgresql://testsuite@localhost:5433/postgres
+      ${CMAKE_BINARY_DIR}/testsuite/taxi-env
+      --services=postgresql
+      run --
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_pgtest
+      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_pgtest.xml
+)
+endif(NOT USERVICES)

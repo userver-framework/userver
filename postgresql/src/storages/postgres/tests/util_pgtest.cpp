@@ -1,4 +1,4 @@
-#include <storages/postgres/tests/util_test.hpp>
+#include <storages/postgres/tests/util_pgtest.hpp>
 
 #include <libpq-fe.h>
 
@@ -90,6 +90,4 @@ engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
   return engine::current_task::GetCurrentTaskContext()->GetTaskProcessor();
 }
 
-INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreConnection,
-                        ::testing::ValuesIn(GetDsnListFromEnv()),
-                        DsnListToString);
+INSTANTIATE_POSTGRE_CASE_P(PostgreConnection);

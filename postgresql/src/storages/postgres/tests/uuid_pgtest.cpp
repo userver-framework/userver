@@ -4,7 +4,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <storages/postgres/tests/test_buffers.hpp>
-#include <storages/postgres/tests/util_test.hpp>
+#include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace {
 

@@ -7,22 +7,26 @@
 #include <vector>
 
 #include <logging/log.hpp>
-#include <logging/spdlog.hpp>
+#include <logging/logger.hpp>
 
 #include <spdlog/sinks/stdout_sinks.h>
 
+#include <engine/async.hpp>
 #include <engine/task/task.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/dsn.hpp>
+#include <utils/scope_guard.hpp>
 
 #include <utest/utest.hpp>
 
-constexpr static const char* kPostgresDsn = "POSTGRES_DSN_TEST";
+constexpr static const char* kPostgresDsn = "POSTGRES_TEST_DSN";
+constexpr static const char* kPostgresLog = "POSTGRES_TEST_LOG";
 constexpr uint32_t kConnectionId = 0;
 
 constexpr storages::postgres::CommandControl kTestCmdCtl{
-    storages::postgres::TimeoutDuration{100},
+    // TODO: lower execute timeout after TAXICOMMON-1313
+    storages::postgres::TimeoutDuration{1000},
     storages::postgres::TimeoutDuration{50}};
 
 constexpr storages::postgres::ConnectionSettings kCachePreparedStatements{
@@ -67,25 +71,20 @@ inline void PrintBuffer(std::ostream& os, const std::string& buffer) {
 class PostgreSQLBase : public ::testing::Test {
  protected:
   void SetUp() override {
-    // TODO Check env if logging is requested
-    old_ = logging::SetDefaultLogger(MakeCerrLogger());
-    logging::SetDefaultLoggerLevel(logging::Level::kDebug);
+    if (std::getenv(kPostgresLog)) {
+      old_ = logging::SetDefaultLogger(
+          logging::MakeStderrLogger("cerr", logging::Level::kDebug));
+    }
     ReadParam();
   }
 
   void TearDown() override {
     if (old_) {
-      logging::SetDefaultLogger(old_);
-      old_.reset();
+      logging::SetDefaultLogger(std::move(old_));
     }
   }
 
   virtual void ReadParam() = 0;
-
-  static logging::LoggerPtr MakeCerrLogger() {
-    static logging::LoggerPtr cerr_logger = spdlog::stderr_logger_mt("cerr");
-    return cerr_logger;
-  }
 
   static engine::TaskProcessor& GetTaskProcessor();
 
@@ -104,21 +103,24 @@ class PostgreConnection
   void RunConnectionTest(
       std::function<void(storages::postgres::detail::ConnectionPtr)> func) {
     RunInCoro([this, func] {
+      // force connection cleanup to avoid leaving detached tasks behind
+      utils::ScopeGuard sync_with_bg(
+          [this] { engine::impl::Async(GetTaskProcessor(), [] {}).Wait(); });
       func(MakeConnection(dsn_list_[0], GetTaskProcessor()));
     });
   }
   storages::postgres::DSNList dsn_list_;
 };
 
-#define POSTGRE_TEST_P(test_name)                                              \
-  class GTEST_TEST_CLASS_NAME_(PostgreConnection, test_name)                   \
-      : public PostgreConnection {                                             \
+#define POSTGRE_CASE_TEST_P(test_case_name, test_name)                         \
+  class GTEST_TEST_CLASS_NAME_(test_case_name, test_name)                      \
+      : public test_case_name {                                                \
    public:                                                                     \
-    GTEST_TEST_CLASS_NAME_(PostgreConnection, test_name)() {}                  \
+    GTEST_TEST_CLASS_NAME_(test_case_name, test_name)() {}                     \
     virtual void TestBody() {                                                  \
       RunConnectionTest(std::bind(                                             \
-          &GTEST_TEST_CLASS_NAME_(PostgreConnection, test_name)::test_name,    \
-          this, std::placeholders::_1));                                       \
+          &GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::test_name, this, \
+          std::placeholders::_1));                                             \
     }                                                                          \
     void test_name(storages::postgres::detail::ConnectionPtr conn);            \
                                                                                \
@@ -126,21 +128,29 @@ class PostgreConnection
     static int AddToRegistry() {                                               \
       ::testing::UnitTest::GetInstance()                                       \
           ->parameterized_test_registry()                                      \
-          .GetTestCasePatternHolder<PostgreConnection>(                        \
-              "PostgreConnection",                                             \
+          .GetTestCasePatternHolder<test_case_name>(                           \
+              #test_case_name,                                                 \
               ::testing::internal::CodeLocation(__FILE__, __LINE__))           \
           ->AddTestPattern(                                                    \
-              "PostgreConnection", #test_name,                                 \
+              #test_case_name, #test_name,                                     \
               new ::testing::internal::TestMetaFactory<GTEST_TEST_CLASS_NAME_( \
-                  PostgreConnection, test_name)>());                           \
+                  test_case_name, test_name)>());                              \
       return 0;                                                                \
     }                                                                          \
     static int gtest_registering_dummy_ GTEST_ATTRIBUTE_UNUSED_;               \
-    GTEST_DISALLOW_COPY_AND_ASSIGN_(GTEST_TEST_CLASS_NAME_(PostgreConnection,  \
+    GTEST_DISALLOW_COPY_AND_ASSIGN_(GTEST_TEST_CLASS_NAME_(test_case_name,     \
                                                            test_name));        \
   };                                                                           \
-  int GTEST_TEST_CLASS_NAME_(PostgreConnection,                                \
+  int GTEST_TEST_CLASS_NAME_(test_case_name,                                   \
                              test_name)::gtest_registering_dummy_ =            \
-      GTEST_TEST_CLASS_NAME_(PostgreConnection, test_name)::AddToRegistry();   \
-  void GTEST_TEST_CLASS_NAME_(PostgreConnection, test_name)::test_name(        \
+      GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::AddToRegistry();      \
+  void GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::test_name(           \
       storages::postgres::detail::ConnectionPtr conn)
+
+#define INSTANTIATE_POSTGRE_CASE_P(test_case_name)                  \
+  INSTANTIATE_TEST_CASE_P(/*empty*/, test_case_name,                \
+                          ::testing::ValuesIn(GetDsnListFromEnv()), \
+                          DsnListToString)
+
+#define POSTGRE_TEST_P(test_name) \
+  POSTGRE_CASE_TEST_P(PostgreConnection, test_name)

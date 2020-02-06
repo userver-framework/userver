@@ -2,7 +2,7 @@
 #include <list>
 #include <set>
 
-#include <storages/postgres/tests/util_test.hpp>
+#include <storages/postgres/tests/util_pgtest.hpp>
 #include <storages/postgres/typed_result_set.hpp>
 
 #include <storages/postgres/io/boost_multiprecision.hpp>

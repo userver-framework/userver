@@ -6,5 +6,4 @@ export PYTHONPATH
 
 exec @TESTSUITE_PYTHON_BINARY@ -m taxi_tests.environment.main   \
      --build-dir=@CMAKE_BINARY_DIR@             \
-     --testsuite-dir=@CMAKE_CURRENT_SOURCE_DIR@ \
      "$@"

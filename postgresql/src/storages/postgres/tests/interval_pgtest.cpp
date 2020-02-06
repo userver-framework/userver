@@ -1,5 +1,5 @@
 #include <storages/postgres/io/chrono.hpp>
-#include <storages/postgres/tests/util_test.hpp>
+#include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;

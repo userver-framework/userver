@@ -43,8 +43,8 @@
 /// bit(n)            | N/A                                     |         |
 /// bit varying(n)    | N/A                                     |         |
 /// uuid              | boost::uuids::uuid                      | +       |
-/// json              | formats::json::Value                    | +       |
-/// jsonb             | formats::json::Value                    |         |
+/// json              | formats::json::Value                    |         |
+/// jsonb             | formats::json::Value                    | +       |
 ///
 /// @warning The library doesn't provide support for C++ unsigned integral
 /// types intentionally as PostgreSQL doesn't provide unsigned types and

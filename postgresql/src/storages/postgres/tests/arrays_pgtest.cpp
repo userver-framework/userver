@@ -1,7 +1,7 @@
 #include <storages/postgres/io/array_types.hpp>
 #include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
-#include <storages/postgres/tests/util_test.hpp>
+#include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;

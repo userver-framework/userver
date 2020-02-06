@@ -1,6 +1,6 @@
 #include <storages/postgres/detail/db_data_type_name.hpp>
 #include <storages/postgres/io/enum_types.hpp>
-#include <storages/postgres/tests/util_test.hpp>
+#include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;
