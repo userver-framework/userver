@@ -18,12 +18,15 @@ enum class ClusterHostType {
   kMaster = 0x01,
   /// Connect to cluster's sync slave. May fallback to master. Can be used only
   /// for read only transactions.
-  kSyncSlave = 0x02,
+  /// @deprecated Not available for clusters with quorum commit, must be
+  /// replaced with either kSlave or kMaster.
+  kSyncSlave [[deprecated("Not available for clusters with quorum commit")]] =
+      0x02,
   /// Connect to one of cluster's slaves. May fallback to sync
   /// slave.  Can be used only for read only transactions.
   kSlave = 0x04,
   /// Any available
-  kAny = kMaster | kSyncSlave | kSlave
+  kAny = kMaster | kSlave
 };
 
 inline ClusterHostType Fallback(ClusterHostType ht) {

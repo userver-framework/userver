@@ -127,8 +127,8 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
       if (pool != host_pools.end()) {
         slave_desc.stats = pool->second->GetStatistics();
         host_pools.erase(pool);
+        cluster_stats->slaves.push_back(std::move(slave_desc));
       }
-      cluster_stats->slaves.push_back(std::move(slave_desc));
     }
   }
   if (!host_pools.empty()) {

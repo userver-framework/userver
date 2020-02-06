@@ -160,6 +160,11 @@ void QuorumCommitCluster::Impl::RunDiscovery() {
   DSNList by_rtt;
   for (auto& hs : check_statuses) {
     by_type[hs.host->role].push_back(hs.host->dsn);
+    // Always allow using sync slaves for slave requests, mainly for transition
+    // purposes -- TAXICOMMON-2006
+    if (hs.host->role == ClusterHostType::kSyncSlave) {
+      by_type[ClusterHostType::kSlave].push_back(hs.host->dsn);
+    }
     by_rtt.push_back(hs.host->dsn);
   }
   hosts_by_type.Assign(std::move(by_type));

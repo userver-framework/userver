@@ -63,7 +63,7 @@ struct PostgresExamplePolicy2 {
       "select id, bar, updated from test.my_data";
   static constexpr const char* kUpdatedField = "";  // Intentionally left blank
   static constexpr auto kKeyMember = &MyStructure::get_id;
-  static constexpr auto kClusterHostType = pg::ClusterHostType::kSyncSlave;
+  static constexpr auto kClusterHostType = pg::ClusterHostType::kSlave;
 };
 
 static_assert(pg_cache::detail::kHasName<PostgresExamplePolicy>, "");
@@ -83,7 +83,7 @@ static_assert(pg_cache::detail::kPostgresClusterType<PostgresExamplePolicy> ==
                   pg::ClusterHostType::kSlave,
               "");
 static_assert(pg_cache::detail::kPostgresClusterType<PostgresExamplePolicy2> ==
-                  pg::ClusterHostType::kSyncSlave,
+                  pg::ClusterHostType::kSlave,
               "");
 
 // Example of custom updated in cache
@@ -172,7 +172,6 @@ static_assert(MyCache1::kIncrementalUpdates, "");
 static_assert(!MyCache2::kIncrementalUpdates, "");
 
 static_assert(MyCache1::kClusterHostType == pg::ClusterHostType::kSlave, "");
-static_assert(MyCache2::kClusterHostType == pg::ClusterHostType::kSyncSlave,
-              "");
+static_assert(MyCache2::kClusterHostType == pg::ClusterHostType::kSlave, "");
 
 }  // namespace components::test
