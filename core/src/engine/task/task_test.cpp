@@ -43,6 +43,25 @@ TEST(Task, EarlyCancel) {
   });
 }
 
+TEST(Task, EarlyCancelResourceCleanup) {
+  RunInCoro([] {
+    auto shared = std::make_shared<int>(1);
+    std::weak_ptr<int> weak = shared;
+
+    // Unlike `engine::TaskWithResult` the `engine::Task` frees resources on
+    // finish
+    engine::Task task = engine::impl::Async([shared = std::move(shared)] {
+      ADD_FAILURE() << "Cancelled task has started";
+    });
+
+    task.RequestCancel();
+    task.WaitFor(std::chrono::milliseconds(100));
+    EXPECT_FALSE(weak.lock());
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_EQ(engine::Task::State::kCancelled, task.GetState());
+  });
+}
+
 TEST(Task, EarlyCancelCritical) {
   RunInCoro([] {
     auto task = engine::impl::CriticalAsync([] { return true; });
@@ -65,6 +84,28 @@ TEST(Task, Cancel) {
     task.RequestCancel();
     task.WaitFor(std::chrono::milliseconds(100));
     EXPECT_TRUE(task.IsFinished());
+    EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
+  });
+}
+
+TEST(Task, SyncCancel) {
+  RunInCoro([] {
+    auto task = engine::impl::Async([] {
+      engine::InterruptibleSleepFor(std::chrono::seconds(10));
+      EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    });
+    engine::Yield();
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_TRUE(task.IsValid());
+
+    task.SyncCancel();
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_TRUE(task.IsValid());
+    EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
+
+    task.SyncCancel();
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_TRUE(task.IsValid());
     EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
   });
 }

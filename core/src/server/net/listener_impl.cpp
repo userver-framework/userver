@@ -1,11 +1,6 @@
 #include "listener_impl.hpp"
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include <cstdint>
 #include <cstring>
@@ -20,62 +15,10 @@
 #include <fs/blocking/read.hpp>
 #include <fs/blocking/write.hpp>
 #include <logging/log.hpp>
+#include <server/net/create_socket.hpp>
 #include <utils/assert.hpp>
 
-namespace server {
-namespace net {
-
-namespace {
-engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
-  engine::io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<struct sockaddr_un>();
-  sa->sun_family = AF_UNIX;
-
-  if (path.size() >= sizeof(sa->sun_path))
-    throw std::runtime_error("unix socket path is too long (" + path + ")");
-  if (path.empty())
-    throw std::runtime_error(
-        "unix socket path is empty, abstract sockets are not supported");
-  if (path[0] != '/')
-    throw std::runtime_error("unix socket path must be absolute (" + path +
-                             ")");
-  std::strncpy(sa->sun_path, path.c_str(), sizeof(sa->sun_path));
-
-  /* Use blocking API here, it is not critical as CreateUnixSocket() is called
-   * on startup only */
-
-  if (fs::blocking::GetFileType(path) ==
-      boost::filesystem::file_type::socket_file)
-    fs::blocking::RemoveSingleFile(path);
-
-  auto socket = engine::io::Listen(
-      engine::io::Addr(addr_storage, SOCK_STREAM, 0), backlog);
-
-  auto perms = static_cast<boost::filesystem::perms>(0666);
-  fs::blocking::Chmod(path, perms);
-  return socket;
-}
-
-engine::io::Socket CreateIpv6Socket(uint16_t port, int backlog) {
-  engine::io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<struct sockaddr_in6>();
-  sa->sin6_family = AF_INET6;
-  // NOLINTNEXTLINE(hicpp-no-assembler)
-  sa->sin6_port = htons(port);
-  sa->sin6_addr = in6addr_any;
-
-  return engine::io::Listen(engine::io::Addr(addr_storage, SOCK_STREAM, 0),
-                            backlog);
-}
-
-engine::io::Socket CreateSocket(const ListenerConfig& config) {
-  if (config.unix_socket_path.empty())
-    return CreateIpv6Socket(config.port, config.backlog);
-  else
-    return CreateUnixSocket(config.unix_socket_path, config.backlog);
-}
-
-}  // namespace
+namespace server::net {
 
 ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
                            std::shared_ptr<EndpointInfo> endpoint_info)
@@ -137,7 +80,7 @@ void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
     peer_socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
 
   LOG_TRACE() << "Creating connection for fd " << fd;
-  auto connection_ptr = std::make_shared<Connection>(
+  auto connection_ptr = Connection::Create(
       task_processor_, endpoint_info_->listener_config.connection_config,
       std::move(peer_socket), endpoint_info_->request_handler, stats_);
   connection_ptr->SetCloseCb([endpoint_info = endpoint_info_]() {
@@ -172,5 +115,4 @@ void ListenerImpl::CloseConnections() {
   }
 }
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net

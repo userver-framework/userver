@@ -160,8 +160,13 @@ void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
 FdControl::FdControl()
     : read_(Direction::Kind::kRead), write_(Direction::Kind::kWrite) {}
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
-FdControl::~FdControl() { Close(); }
+FdControl::~FdControl() {
+  try {
+    Close();
+  } catch (const std::exception& e) {
+    LOG_ERROR() << "Exception while destructing: " << e;
+  }
+}
 
 FdControlHolder FdControl::Adopt(int fd) {
   auto fd_control = std::make_shared<FdControl>();

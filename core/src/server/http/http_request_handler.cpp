@@ -17,10 +17,23 @@ HttpRequestHandler::HttpRequestHandler(
     const boost::optional<std::string>& logger_access_component,
     const boost::optional<std::string>& logger_access_tskv_component,
     bool is_monitor)
-    : request::RequestHandlerBase(component_context, logger_access_component,
-                                  logger_access_tskv_component),
-      add_handler_disabled_(false),
-      is_monitor_(is_monitor) {}
+    : add_handler_disabled_(false), is_monitor_(is_monitor) {
+  auto& logging_component =
+      component_context.FindComponent<components::Logging>();
+
+  if (logger_access_component && !logger_access_component->empty()) {
+    logger_access_ = logging_component.GetLogger(*logger_access_component);
+  } else {
+    LOG_INFO() << "Access log is disabled";
+  }
+
+  if (logger_access_tskv_component && !logger_access_tskv_component->empty()) {
+    logger_access_tskv_ =
+        logging_component.GetLogger(*logger_access_tskv_component);
+  } else {
+    LOG_INFO() << "Access_tskv log is disabled";
+  }
+}
 
 engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     std::shared_ptr<request::RequestBase> request) const {

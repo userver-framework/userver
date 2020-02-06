@@ -2,6 +2,7 @@
 
 #include <atomic>
 
+#include <server/http/http_request_handler.hpp>
 #include <server/net/connection.hpp>
 
 #include "listener_config.hpp"

@@ -13,6 +13,10 @@
 #include <stdexcept>
 #include <string>
 
+namespace logging {
+class LogHelper;
+}
+
 namespace engine::io {
 
 /// Communication domain
@@ -152,6 +156,12 @@ class Addr final {
 };
 
 /// Outputs human-readable address representation, including port number.
+std::string ToString(const Addr&);
+
+/// Outputs human-readable address representation, including port number.
 std::ostream& operator<<(std::ostream&, const Addr&);
+
+/// Outputs human-readable address representation, including port number.
+logging::LogHelper& operator<<(logging::LogHelper&, const Addr&);
 
 }  // namespace engine::io

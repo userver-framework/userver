@@ -6,15 +6,14 @@
 #include <engine/mutex.hpp>
 #include <engine/task/task_processor.hpp>
 #include <server/handlers/handler_base.hpp>
+#include <server/http/request_handler_base.hpp>
 #include <server/request/request_base.hpp>
-#include <server/request/request_handler_base.hpp>
 
 #include "handler_info_index.hpp"
 
-namespace server {
-namespace http {
+namespace server::http {
 
-class HttpRequestHandler final : public request::RequestHandlerBase {
+class HttpRequestHandler final : public RequestHandlerBase {
  public:
   HttpRequestHandler(
       const components::ComponentContext& component_context,
@@ -32,13 +31,23 @@ class HttpRequestHandler final : public request::RequestHandlerBase {
   void DisableAddHandler();
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
-  const HandlerInfoIndex& GetHandlerInfoIndex() const;
+  const HandlerInfoIndex& GetHandlerInfoIndex() const override;
+
+  const logging::LoggerPtr& LoggerAccess() const noexcept override {
+    return logger_access_;
+  }
+  const logging::LoggerPtr& LoggerAccessTskv() const noexcept override {
+    return logger_access_tskv_;
+  }
 
  private:
   engine::TaskWithResult<void> StartFailsafeTask(
       std::shared_ptr<request::RequestBase> request) const;
 
  private:
+  logging::LoggerPtr logger_access_;
+  logging::LoggerPtr logger_access_tskv_;
+
   // handler_infos_mutex_ is used for pushing handlers into handler_info_index_
   // before server start. After start handler_info_index_ is read only and
   // synchronization is not needed.
@@ -50,5 +59,4 @@ class HttpRequestHandler final : public request::RequestHandlerBase {
   NewRequestHook new_request_hook_;
 };
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

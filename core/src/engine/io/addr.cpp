@@ -2,14 +2,17 @@
 
 #include <arpa/inet.h>
 
-#include <iostream>
+#include <ostream>
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include <engine/io/exception.hpp>
+#include <fmt/format.h>
 
-namespace engine {
-namespace io {
+#include <engine/io/exception.hpp>
+#include <logging/log.hpp>
+#include <utils/assert.hpp>
+
+namespace engine::io {
 
 std::string Addr::RemoteAddress() const {
   std::string remote_address;
@@ -41,36 +44,43 @@ std::string Addr::RemoteAddress() const {
       remote_address = As<struct sockaddr_un>()->sun_path;
       break;
 
-    default:
+    case AddrDomain::kInvalid:
+      remote_address = "[invalid]";
+      break;
+
+    case AddrDomain::kUnspecified:
       remote_address = "[unknown address]";
+      break;
   }
   boost::algorithm::trim_right_if(remote_address, [](char c) { return !c; });
   return remote_address;
 }
 
-std::ostream& operator<<(std::ostream& os, const Addr& addr) {
+std::string ToString(const Addr& addr) {
   switch (addr.Domain()) {
     case AddrDomain::kInet: {
-      const auto* inet_addr = addr.As<struct sockaddr_in>();
       // NOLINTNEXTLINE(hicpp-no-assembler)
-      os << addr.RemoteAddress() << ':' << ntohs(inet_addr->sin_port);
-    } break;
+      const auto port = ntohs(addr.As<struct sockaddr_in>()->sin_port);
+      return fmt::format("{}:{}", addr.RemoteAddress(), port);
+    }
 
     case AddrDomain::kInet6: {
-      const auto* inet6_addr = addr.As<struct sockaddr_in6>();
       // NOLINTNEXTLINE(hicpp-no-assembler)
-      os << '[' << addr.RemoteAddress() << "]:" << ntohs(inet6_addr->sin6_port);
-    } break;
-
-    case AddrDomain::kUnix:
-      os << addr.As<struct sockaddr_un>()->sun_path;
-      break;
+      const auto port = ntohs(addr.As<struct sockaddr_in6>()->sin6_port);
+      return fmt::format("[{}]:{}", addr.RemoteAddress(), port);
+    }
 
     default:
-      os << "[unknown address]";
+      return addr.RemoteAddress();
   }
-  return os;
 }
 
-}  // namespace io
-}  // namespace engine
+std::ostream& operator<<(std::ostream& os, const Addr& addr) {
+  return os << ToString(addr);
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const Addr& addr) {
+  return lh << ToString(addr);
+}
+
+}  // namespace engine::io

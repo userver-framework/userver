@@ -84,7 +84,6 @@ class FdControl final {
   static FdControlHolder Adopt(int fd);
 
   FdControl();
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   ~FdControl();
 
   explicit operator bool() const { return IsValid(); }
