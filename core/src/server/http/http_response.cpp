@@ -108,7 +108,7 @@ void HttpResponse::SetCookie(Cookie cookie) {
 void HttpResponse::ClearCookies() { cookies_.clear(); }
 
 HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
-  return headers_ | boost::adaptors::map_keys;
+  return HttpResponse::HeadersMapKeys{headers_};
 }
 
 const std::string& HttpResponse::GetHeader(
@@ -117,7 +117,7 @@ const std::string& HttpResponse::GetHeader(
 }
 
 HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const {
-  return cookies_ | boost::adaptors::map_keys;
+  return HttpResponse::CookiesMapKeys{cookies_};
 }
 
 const Cookie& HttpResponse::GetCookie(const std::string& cookie_name) const {

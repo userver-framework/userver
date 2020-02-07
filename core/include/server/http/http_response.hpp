@@ -4,17 +4,15 @@
 #include <string>
 #include <unordered_map>
 
-#include <boost/range/adaptor/map.hpp>
-
 #include <http/content_type.hpp>
 #include <server/http/http_response_cookie.hpp>
 #include <server/request/response_base.hpp>
+#include <utils/projecting_view.hpp>
 #include <utils/str_icase.hpp>
 
 #include "http_status.hpp"
 
-namespace server {
-namespace http {
+namespace server::http {
 
 class HttpRequestImpl;
 
@@ -24,13 +22,13 @@ class HttpResponse final : public request::ResponseBase {
       std::unordered_map<std::string, std::string, utils::StrIcaseHash,
                          utils::StrIcaseEqual>;
 
-  using HeadersMapKeys = decltype(HeadersMap() | boost::adaptors::map_keys);
+  using HeadersMapKeys = decltype(utils::MakeKeysView(HeadersMap()));
 
   using CookiesMap =
       std::unordered_map<std::string, Cookie, utils::StrIcaseHash,
                          utils::StrIcaseEqual>;
 
-  using CookiesMapKeys = decltype(CookiesMap() | boost::adaptors::map_keys);
+  using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
 
   explicit HttpResponse(const HttpRequestImpl& request);
   ~HttpResponse() override;
@@ -71,5 +69,4 @@ class HttpResponse final : public request::ResponseBase {
   CookiesMap cookies_;
 };
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http
