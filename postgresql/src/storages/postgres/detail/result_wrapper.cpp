@@ -123,7 +123,7 @@ std::size_t ResultWrapper::IndexOfName(const std::string& name) const {
   return n;
 }
 
-std::string ResultWrapper::GetFieldName(std::size_t col) const {
+std::string_view ResultWrapper::GetFieldName(std::size_t col) const {
   auto name = PQfname(handle_.get(), col);
   if (name) {
     return {name};
@@ -135,7 +135,7 @@ std::string ResultWrapper::GetFieldName(std::size_t col) const {
 FieldDescription ResultWrapper::GetFieldDescription(std::size_t col) const {
   return {col,
           GetFieldTypeOid(col),
-          GetFieldName(col),
+          std::string{GetFieldName(col)},
           GetFieldFormat(col),
           PQftable(handle_.get(), col),
           PQftablecol(handle_.get(), col),

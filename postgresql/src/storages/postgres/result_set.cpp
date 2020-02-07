@@ -64,6 +64,10 @@ FieldDescription Field::Description() const {
   return res_->GetFieldDescription(field_index_);
 }
 
+std::string_view Field::Name() const {
+  return res_->GetFieldName(field_index_);
+}
+
 bool Field::IsNull() const {
   return res_->IsFieldNull(row_index_, field_index_);
 }

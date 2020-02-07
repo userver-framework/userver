@@ -227,8 +227,7 @@ class Field {
   //@{
   /** @name Field metadata */
   /// Field name as named in query
-  /// TODO Replace with string_view
-  std::string Name() const;
+  std::string_view Name() const;
   FieldDescription Description() const;
 
   io::DataFormat GetDataFormat() const;
@@ -305,7 +304,7 @@ class Field {
   size_type ReadNullable(const io::FieldBuffer& buffer, T&& val,
                          std::false_type) const {
     if (buffer.is_null) {
-      throw FieldValueIsNull{field_index_, val};
+      throw FieldValueIsNull{field_index_, Name(), val};
     } else {
       Read(buffer, std::forward<T>(val));
     }

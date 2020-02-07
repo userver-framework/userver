@@ -4,6 +4,9 @@
 /// @brief Postgres errors
 
 #include <stdexcept>
+#include <string_view>
+
+#include <fmt/format.h>
 
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/io/traits.hpp>
@@ -618,10 +621,12 @@ class FieldNameDoesntExist : public ResultSetError {
 class FieldValueIsNull : public ResultSetError {
  public:
   template <typename T>
-  FieldValueIsNull(std::size_t field_index, const T&)
-      : ResultSetError("Field #" + std::to_string(field_index) + " type " +
-                       compiler::GetTypeName<T>() +
-                       " value is null, forgot boost::optional?") {}
+  FieldValueIsNull(std::size_t field_index, std::string_view field_name,
+                   const T&)
+      : ResultSetError(fmt::format("Field #{} name `{}` C++ type `{}` value is "
+                                   "null, forgot `boost::optional`?",
+                                   field_index, field_name,
+                                   compiler::GetTypeName<T>())) {}
 };
 
 /// @brief A value of a non-nullable type requested to be set null.

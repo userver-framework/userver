@@ -2,6 +2,7 @@
 
 #include <libpq-fe.h>
 #include <memory>
+#include <string_view>
 
 #include <storages/postgres/postgres_fwd.hpp>
 
@@ -41,7 +42,7 @@ class ResultWrapper {
 
   std::size_t IndexOfName(const std::string& name) const;
 
-  std::string GetFieldName(std::size_t col) const;
+  std::string_view GetFieldName(std::size_t col) const;
   FieldDescription GetFieldDescription(std::size_t col) const;
   io::DataFormat GetFieldFormat(std::size_t col) const;
   Oid GetFieldTypeOid(std::size_t col) const;
