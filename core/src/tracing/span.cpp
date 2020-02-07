@@ -14,6 +14,11 @@
 #include <utils/assert.hpp>
 #include <utils/uuid4.hpp>
 
+#define DO_LOG_TO_NO_SPAN(logger, lvl)                            \
+  ::logging::LogHelper(logger, lvl, __FILE__, __LINE__, __func__, \
+                       ::logging::LogHelper::Mode::kNoSpan)       \
+      .AsLvalue()
+
 namespace tracing {
 
 namespace {
@@ -91,8 +96,6 @@ Span::Impl::Impl(TracerPtr tracer, const std::string& name,
 }
 
 Span::Impl::~Impl() {
-  DetachFromCoroStack();
-
   /* We must honour default log level, but use span's level from ourselves,
    * not the previous span's.
    */
@@ -126,7 +129,7 @@ Span::Impl::~Impl() {
     result.Extend(time_storage_->GetLogs());
   }
 
-  DO_LOG_TO(::logging::DefaultLogger(), log_level_)
+  DO_LOG_TO_NO_SPAN(::logging::DefaultLogger(), log_level_)
       << std::move(result) << std::move(*this);
 }
 

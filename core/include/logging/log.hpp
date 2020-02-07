@@ -38,13 +38,17 @@ Level GetDefaultLoggerLevel();
 /// operator.
 class LogHelper final {
  public:
-  /// @brief Constructs LogHelper
+  enum class Mode { kDefault, kNoSpan };
+
+  /// @brief Constructs LogHelper with span logging
   /// @param level message log level
   /// @param path path of the source file that generated the message
   /// @param line line of the source file that generated the message
   /// @param func name of the function that generated the message
+  /// @param mode logging mode - with or without span
   LogHelper(LoggerPtr logger, Level level, const char* path, int line,
-            const char* func) noexcept;
+            const char* func, Mode mode = Mode::kDefault) noexcept;
+
   ~LogHelper();
 
   LogHelper(LogHelper&&) = delete;

@@ -1,3 +1,5 @@
+#include <boost/algorithm/string.hpp>
+
 #include <logging/logging_test.hpp>
 #include <tracing/noop.hpp>
 #include <tracing/span.hpp>
@@ -148,5 +150,51 @@ TEST_F(Span, ConstructFromTracer) {
     EXPECT_NE(std::string::npos, sstream.str().find("tracerlog"));
 
     EXPECT_EQ(tracing::Span::CurrentSpanUnchecked(), &span);
+  });
+}
+
+TEST_F(Span, ForeignSpan) {
+  RunInCoro([this] {
+    auto tracer = tracing::MakeNoopTracer();
+
+    tracing::Span local_span(tracer, "local", nullptr,
+                             tracing::ReferenceType::kChild);
+    local_span.SetLink("local_link");
+
+    {
+      tracing::Span foreign_span(tracer, "foreign", nullptr,
+                                 tracing::ReferenceType::kChild);
+      foreign_span.SetLink("foreign_link");
+
+      auto st = foreign_span.CreateScopeTime("from_foreign_span");
+    }
+
+    LOG_INFO() << "tracerlog";
+
+    logging::LogFlush();
+
+    auto logs_raw = sstream.str();
+
+    std::vector<std::string> logs;
+    boost::algorithm::split(logs, logs_raw, boost::is_any_of("\n"));
+
+    bool found_sw = false;
+    bool found_tr = false;
+
+    for (const auto& log : logs) {
+      if (log.find("stopwatch_name=foreign") != std::string::npos) {
+        found_sw = true;
+        EXPECT_NE(std::string::npos, log.find("link=foreign_link"));
+      }
+
+      // check unlink
+      if (log.find("tracerlog") != std::string::npos) {
+        found_tr = true;
+        EXPECT_NE(std::string::npos, log.find("link=local_link"));
+      }
+    }
+
+    EXPECT_TRUE(found_sw);
+    EXPECT_TRUE(found_tr);
   });
 }

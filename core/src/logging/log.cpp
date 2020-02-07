@@ -123,7 +123,7 @@ Level GetDefaultLoggerLevel() {
 std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
 LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
-                     const char* func) noexcept
+                     const char* func, Mode mode) noexcept
     : pimpl_(std::move(logger), level) {
   [[maybe_unused]] const auto initial_capacity = pimpl_->Capacity();
 
@@ -131,7 +131,9 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
 
   // The following functions actually never throw if the assertions at the
   // bottom hold.
-  NOTHROW_CALL_CONSTRUCTOR(path, line, LogSpan())
+  if (mode != Mode::kNoSpan) {
+    NOTHROW_CALL_CONSTRUCTOR(path, line, LogSpan())
+  }
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogModule(path, line, func))
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogIds())
 
