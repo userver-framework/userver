@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 
 project(yandex-taxi-userver-universal)
 
+option(USE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
+
 if(NOT TARGET yandex-taxi-userver-core)
   # minimal setup
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -86,14 +88,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if(NOT SANITIZE)
+if(USE_JEMALLOC AND NOT SANITIZE)
   find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
   target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   # disabled in https://st.yandex-team.ru/TAXICOMMON-1623
   if (NOT MACOS)
     target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
   endif(NOT MACOS)
-endif(NOT SANITIZE)
+endif(USE_JEMALLOC AND NOT SANITIZE)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
