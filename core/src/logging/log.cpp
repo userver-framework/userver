@@ -189,7 +189,7 @@ void LogHelper::AppendLogExtra() {
       Put(item.first);
     }
     Put(utils::encoding::kTskvKeyValueSeparator);
-    boost::apply_visitor(visitor, item.second.GetValue());
+    std::visit(visitor, item.second.GetValue());
   }
 }
 

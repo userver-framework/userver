@@ -2,9 +2,9 @@
 
 #include <chrono>
 #include <memory>
+#include <variant>
 
 #include <bson/bson.h>
-#include <boost/variant.hpp>
 
 #include <formats/bson/types.hpp>
 #include <formats/bson/value.hpp>
@@ -18,8 +18,8 @@ class ValueImpl {
  public:
   enum class DocumentKind { kDocument, kArray };
 
-  using Iterator = boost::variant<ParsedDocument::const_iterator,
-                                  ParsedArray::const_iterator>;
+  using Iterator =
+      std::variant<ParsedArray::const_iterator, ParsedDocument::const_iterator>;
 
   ValueImpl();
   explicit ValueImpl(BsonHolder, DocumentKind = DocumentKind::kDocument);
@@ -78,7 +78,7 @@ class ValueImpl {
   void SyncBsonValue();
 
   const bson_value_t* GetNative() const { return &bson_value_; }
-  const BsonHolder& GetBson() const { return boost::get<BsonHolder>(storage_); }
+  const BsonHolder& GetBson() const { return std::get<BsonHolder>(storage_); }
 
   void CheckNotMissing() const;
   void CheckIsDocumentOrArray() const;
@@ -90,9 +90,8 @@ class ValueImpl {
   class EmplaceEnabler;
 
  public:
-  using Storage = boost::variant<std::nullptr_t, BsonHolder, std::string>;
-  using ParsedValue =
-      boost::variant<std::nullptr_t, ParsedDocument, ParsedArray>;
+  using Storage = std::variant<std::nullptr_t, BsonHolder, std::string>;
+  using ParsedValue = std::variant<std::nullptr_t, ParsedDocument, ParsedArray>;
 
   ValueImpl(EmplaceEnabler, Storage, const Path&, const bson_value_t&,
             Value::DuplicateFieldsPolicy, uint32_t);

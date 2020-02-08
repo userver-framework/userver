@@ -25,7 +25,7 @@ class IsNullptrVisitor {
 
 template <typename Variant>
 bool IsNullptr(const Variant& variant) {
-  return boost::apply_visitor(IsNullptrVisitor{}, variant);
+  return std::visit(IsNullptrVisitor{}, variant);
 }
 
 class DeepCopyVisitor {
@@ -217,7 +217,7 @@ ValueImpl::ValueImpl(std::string value)
   }
   storage_ = std::move(value);
   bson_value_.value_type = BSON_TYPE_UTF8;
-  UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
+  UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
 ValueImpl::ValueImpl(const std::chrono::system_clock::time_point& value)
@@ -241,7 +241,7 @@ ValueImpl::ValueImpl(Binary value)
       duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   bson_value_.value_type = BSON_TYPE_BINARY;
   bson_value_.value.v_binary.subtype = BSON_SUBTYPE_BINARY;
-  UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
+  UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
 ValueImpl::ValueImpl(const Decimal128& value) : ValueImpl() {
@@ -271,7 +271,7 @@ ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
       path_(path.MakeChildPath(index)),
       bson_value_(bson_value),
       duplicate_fields_policy_(duplicate_fields_policy) {
-  UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
+  UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
 ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
@@ -282,16 +282,15 @@ ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
       path_(path.MakeChildPath(key)),
       bson_value_(bson_value),
       duplicate_fields_policy_(duplicate_fields_policy) {
-  UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
+  UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
 ValueImpl::ValueImpl(const ValueImpl& other)
     : storage_(other.storage_),
       bson_value_(other.bson_value_),
-      parsed_value_(
-          boost::apply_visitor(DeepCopyVisitor{}, other.parsed_value_)),
+      parsed_value_(std::visit(DeepCopyVisitor{}, other.parsed_value_)),
       duplicate_fields_policy_(other.duplicate_fields_policy_) {
-  UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
+  UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
@@ -310,7 +309,7 @@ ValueImpl& ValueImpl::operator=(ValueImpl&& rhs) noexcept {
 
   storage_ = std::move(rhs.storage_);
   bson_value_ = rhs.bson_value_;
-  UpdateStringPointers(bson_value_, boost::get<std::string>(&storage_));
+  UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
   parsed_value_ = std::move(rhs.parsed_value_);
   duplicate_fields_policy_ = rhs.duplicate_fields_policy_;
   return *this;
@@ -335,7 +334,7 @@ bool ValueImpl::IsStorageOwner() const {
   };
 
   CheckNotMissing();
-  return boost::apply_visitor(Visitor(*this), storage_);
+  return std::visit(Visitor(*this), storage_);
 }
 
 bson_type_t ValueImpl::Type() const { return bson_value_.value_type; }
@@ -351,7 +350,7 @@ ValueImplPtr ValueImpl::operator[](const std::string& name) {
   if (!IsMissing() && !IsNull()) {
     CheckIsDocument();
     EnsureParsed();
-    const auto& parsed_doc = boost::get<ParsedDocument>(parsed_value_);
+    const auto& parsed_doc = std::get<ParsedDocument>(parsed_value_);
     auto it = parsed_doc.find(name);
     if (it != parsed_doc.end()) return it->second;
   }
@@ -368,7 +367,7 @@ ValueImplPtr ValueImpl::operator[](uint32_t index) {
   CheckIsArray();
   EnsureParsed();
   CheckInBounds(index);
-  return boost::get<ParsedArray>(parsed_value_)[index];
+  return std::get<ParsedArray>(parsed_value_)[index];
 }
 
 bool ValueImpl::HasMember(const std::string& name) {
@@ -376,7 +375,7 @@ bool ValueImpl::HasMember(const std::string& name) {
 
   CheckIsDocument();
   EnsureParsed();
-  return boost::get<ParsedDocument>(parsed_value_).count(name);
+  return std::get<ParsedDocument>(parsed_value_).count(name);
 }
 
 ValueImplPtr ValueImpl::GetOrInsert(const std::string& key) {
@@ -386,7 +385,7 @@ ValueImplPtr ValueImpl::GetOrInsert(const std::string& key) {
   }
   CheckIsDocument();
   EnsureParsed();
-  return boost::get<ParsedDocument>(parsed_value_)
+  return std::get<ParsedDocument>(parsed_value_)
       .emplace(key, std::make_shared<ValueImpl>(EmplaceEnabler{}, nullptr,
                                                 path_, kDefaultBsonValue,
                                                 duplicate_fields_policy_, key))
@@ -400,7 +399,7 @@ void ValueImpl::Resize(uint32_t new_size) {
   }
   CheckIsArray();
   EnsureParsed();
-  auto& parsed_array = boost::get<ParsedArray>(parsed_value_);
+  auto& parsed_array = std::get<ParsedArray>(parsed_value_);
   const auto old_size = parsed_array.size();
   parsed_array.resize(new_size);
   for (auto size = old_size; size < new_size; ++size) {
@@ -413,13 +412,13 @@ void ValueImpl::Resize(uint32_t new_size) {
 void ValueImpl::PushBack(ValueImplPtr impl) {
   if (IsMissing() || IsNull()) Resize(0);
   EnsureParsed();
-  boost::get<ParsedArray>(parsed_value_).push_back(std::move(impl));
+  std::get<ParsedArray>(parsed_value_).push_back(std::move(impl));
 }
 
 void ValueImpl::Remove(const std::string& key) {
   CheckIsDocument();
   EnsureParsed();
-  boost::get<ParsedDocument>(parsed_value_).erase(key);
+  std::get<ParsedDocument>(parsed_value_).erase(key);
 }
 
 uint32_t ValueImpl::GetSize() const {
@@ -444,7 +443,7 @@ uint32_t ValueImpl::GetSize() const {
 
   if (IsNull()) return 0;
   CheckIsDocumentOrArray();
-  return boost::apply_visitor(Visitor(*this), parsed_value_);
+  return std::visit(Visitor(*this), parsed_value_);
 }
 
 std::string ValueImpl::GetPath() const { return path_.ToString(); }
@@ -467,7 +466,7 @@ ValueImpl::Iterator ValueImpl::Begin() {
   if (IsNull()) return {};
   CheckIsDocumentOrArray();
   EnsureParsed();
-  return boost::apply_visitor(Visitor{}, parsed_value_);
+  return std::visit(Visitor{}, parsed_value_);
 }
 
 ValueImpl::Iterator ValueImpl::End() {
@@ -488,7 +487,7 @@ ValueImpl::Iterator ValueImpl::End() {
   if (IsNull()) return {};
   CheckIsDocumentOrArray();
   EnsureParsed();
-  return boost::apply_visitor(Visitor{}, parsed_value_);
+  return std::visit(Visitor{}, parsed_value_);
 }
 
 bool ValueImpl::IsMissing() const { return Type() == BSON_TYPE_EOD; }
@@ -618,7 +617,7 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
 
   EnsureParsed();
   rhs.EnsureParsed();
-  UASSERT(parsed_value_.which() == rhs.parsed_value_.which());
+  UASSERT(parsed_value_.index() == rhs.parsed_value_.index());
 
   class Visitor {
    public:
@@ -630,8 +629,8 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
     }
 
     bool operator()(const ParsedDocument&) const {
-      const auto& lhs_doc = boost::get<ParsedDocument>(lhs_.parsed_value_);
-      const auto& rhs_doc = boost::get<ParsedDocument>(rhs_.parsed_value_);
+      const auto& lhs_doc = std::get<ParsedDocument>(lhs_.parsed_value_);
+      const auto& rhs_doc = std::get<ParsedDocument>(rhs_.parsed_value_);
       if (lhs_doc.size() != rhs_doc.size()) return false;
       for (const auto& [k, v] : lhs_doc) {
         auto rhs_it = rhs_doc.find(k);
@@ -641,8 +640,8 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
     }
 
     bool operator()(const ParsedArray&) const {
-      const auto& lhs_arr = boost::get<ParsedArray>(lhs_.parsed_value_);
-      const auto& rhs_arr = boost::get<ParsedArray>(rhs_.parsed_value_);
+      const auto& lhs_arr = std::get<ParsedArray>(lhs_.parsed_value_);
+      const auto& rhs_arr = std::get<ParsedArray>(rhs_.parsed_value_);
       if (lhs_arr.size() != rhs_arr.size()) return false;
       for (size_t i = 0; i < lhs_arr.size(); ++i) {
         if (*lhs_arr[i] != *rhs_arr[i]) return false;
@@ -654,7 +653,7 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
     const ValueImpl& lhs_;
     const ValueImpl& rhs_;
   };
-  return boost::apply_visitor(Visitor(*this, rhs), parsed_value_);
+  return std::visit(Visitor(*this, rhs), parsed_value_);
 }
 
 bool ValueImpl::operator!=(ValueImpl& rhs) { return !(*this == rhs); }

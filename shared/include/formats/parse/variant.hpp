@@ -1,13 +1,15 @@
 #pragma once
 
 /// @file formats/parse/variant.hpp
-/// @brief Ineffective but generic parser for variant type
+/// @brief Ineffective but generic parser for std::variant type
 ///
 /// Parsing is performed for each of the N alternatives in variant, N-1
 /// exceptions is thrown and catched during the parsing.
 
+#include <typeinfo>
+#include <variant>
+
 #include <boost/optional.hpp>
-#include <boost/variant/variant.hpp>
 
 #include <compiler/demangle.hpp>
 #include <formats/parse/to.hpp>
@@ -32,11 +34,11 @@ template <class ParseException, typename Variant>
 }
 
 namespace impl {
-
 template <class T, class Value, typename Result>
 void ParseVariantSingle(const Value& value, boost::optional<Result>& result) {
   if (result) {
-    std::type_index old_type = result->type();
+    const auto old_type = std::visit(
+        [](const auto& v) -> std::type_index { return typeid(v); }, *result);
     try {
       value.template As<T>();
     } catch (const std::exception&) {
@@ -57,14 +59,14 @@ void ParseVariantSingle(const Value& value, boost::optional<Result>& result) {
 }  // namespace impl
 
 template <class Value, typename... Types>
-boost::variant<Types...> Parse(const Value& value,
-                               formats::parse::To<boost::variant<Types...>>) {
-  boost::optional<boost::variant<Types...>> result;
+std::variant<Types...> Parse(const Value& value,
+                             formats::parse::To<std::variant<Types...>>) {
+  boost::optional<std::variant<Types...>> result;
   (impl::ParseVariantSingle<Types>(value, result), ...);
 
   if (!result) {
     ThrowVariantParseException<typename Value::ParseException,
-                               boost::variant<Types...>>(value.GetPath());
+                               std::variant<Types...>>(value.GetPath());
   }
 
   return std::move(*result);

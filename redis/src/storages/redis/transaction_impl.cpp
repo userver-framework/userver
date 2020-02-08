@@ -1,5 +1,7 @@
 #include <storages/redis/transaction_impl.hpp>
 
+#include <sstream>
+
 #include <storages/redis/transaction_subrequest_data_impl.hpp>
 
 #include "client_impl.hpp"

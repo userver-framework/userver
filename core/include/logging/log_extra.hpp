@@ -4,10 +4,11 @@
 /// @brief @copybrief logging::LogExtra
 
 #include <initializer_list>
+#include <string>
 #include <utility>
+#include <variant>
 
 #include <boost/container/container_fwd.hpp>
-#include <boost/variant.hpp>
 
 #include <utils/fast_pimpl.hpp>
 
@@ -22,9 +23,8 @@ class LogHelper;
 /// Extra tskv fields storage
 class LogExtra final {
  public:
-  using Value =
-      boost::variant<std::string, int, long, long long, unsigned int,
-                     unsigned long, unsigned long long, float, double>;
+  using Value = std::variant<std::string, int, long, long long, unsigned int,
+                             unsigned long, unsigned long long, float, double>;
   using Key = std::string;
   using Pair = std::pair<Key, Value>;
 

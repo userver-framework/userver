@@ -43,7 +43,7 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
    private:
     BsonBuilder& builder_;
   };
-  boost::apply_visitor(Visitor(*this), value.parsed_value_);
+  std::visit(Visitor(*this), value.parsed_value_);
 }
 
 BsonBuilder::~BsonBuilder() = default;
@@ -214,8 +214,8 @@ void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
     const bson_value_t* bson_value_;
   };
   if (value.IsMissing()) return;
-  boost::apply_visitor(Visitor(*this, dest, key, &value.bson_value_),
-                       value.parsed_value_);
+  std::visit(Visitor(*this, dest, key, &value.bson_value_),
+             value.parsed_value_);
 }
 
 const bson_t* BsonBuilder::Get() const { return bson_->Get(); }

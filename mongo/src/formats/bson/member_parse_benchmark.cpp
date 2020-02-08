@@ -78,7 +78,7 @@ class Requirements {
   using ChildSeat = std::vector<short>;
   struct ChildSeats : std::vector<ChildSeat> {};  // Ugly! For testing only!
 
-  using Value = boost::variant<bool, short, ChildSeats>;
+  using Value = std::variant<bool, short, ChildSeats>;
 
   Requirements() = default;
 

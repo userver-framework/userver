@@ -257,7 +257,7 @@ void Span::SetLink(std::string link) {
 
 std::string Span::GetLink() const {
   const auto& value = pimpl_->log_extra_inheritable.GetValue(kLinkTag);
-  const auto s = boost::get<std::string>(&value);
+  const auto s = std::get_if<std::string>(&value);
   if (s)
     return *s;
   else

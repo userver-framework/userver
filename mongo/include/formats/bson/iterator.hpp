@@ -6,9 +6,8 @@
 #include <iterator>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
-
-#include <boost/variant.hpp>
 
 #include <formats/bson/types.hpp>
 
@@ -26,8 +25,8 @@ class Iterator {
   using pointer = ValueType*;
 
   /// @cond
-  using NativeIter = boost::variant<impl::ParsedArray::const_iterator,
-                                    impl::ParsedDocument::const_iterator>;
+  using NativeIter = std::variant<impl::ParsedArray::const_iterator,
+                                  impl::ParsedDocument::const_iterator>;
 
   class ArrowProxy {
    public:

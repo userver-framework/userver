@@ -5,8 +5,7 @@
 #include <formats/bson/value_builder.hpp>
 #include <formats/bson/value_impl.hpp>
 
-namespace formats {
-namespace bson {
+namespace formats::bson {
 
 template <typename ValueType>
 Iterator<ValueType>::ArrowProxy::ArrowProxy(ValueType value)
@@ -25,7 +24,7 @@ Iterator<ValueType> Iterator<ValueType>::operator++(int) {
 
 template <typename ValueType>
 Iterator<ValueType>& Iterator<ValueType>::operator++() {
-  boost::apply_visitor([](auto& it) { ++it; }, it_);
+  std::visit([](auto& it) { ++it; }, it_);
   return *this;
 }
 
@@ -42,7 +41,7 @@ ValueType Iterator<ValueType>::operator*() const {
       return it->second;
     }
   };
-  return ValueType(boost::apply_visitor(Visitor{}, it_));
+  return ValueType(std::visit(Visitor{}, it_));
 }
 
 template <typename ValueType>
@@ -79,7 +78,7 @@ std::string Iterator<ValueType>::GetName() const {
    private:
     const impl::ValueImpl& iterable_;
   };
-  return boost::apply_visitor(Visitor(*iterable_), it_);
+  return std::visit(Visitor(*iterable_), it_);
 }
 
 template <typename ValueType>
@@ -90,7 +89,7 @@ uint32_t Iterator<ValueType>::GetIndex() const {
 
     uint32_t operator()(impl::ParsedArray::const_iterator it) const {
       return it -
-             boost::get<impl::ParsedArray::const_iterator>(iterable_.Begin());
+             std::get<impl::ParsedArray::const_iterator>(iterable_.Begin());
     }
 
     uint32_t operator()(impl::ParsedDocument::const_iterator) const {
@@ -101,12 +100,11 @@ uint32_t Iterator<ValueType>::GetIndex() const {
    private:
     impl::ValueImpl& iterable_;
   };
-  return boost::apply_visitor(Visitor(*iterable_), it_);
+  return std::visit(Visitor(*iterable_), it_);
 }
 
 // Template instantiations
 template class Iterator<Value>;
 template class Iterator<ValueBuilder>;
 
-}  // namespace bson
-}  // namespace formats
+}  // namespace formats::bson

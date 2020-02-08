@@ -2,10 +2,9 @@
 
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 #include <boost/type_traits/has_equal_to.hpp>
-#include <boost/variant/get.hpp>
-#include <boost/variant/variant.hpp>
 
 #include <logging/log.hpp>
 
@@ -154,12 +153,11 @@ TEST(StrongTypedef, UnorderedMapFromStrongTypedefs) {
 }
 
 TEST(StrongTypedef, Variant) {
-  using MyVariant =
-      utils::StrongTypedef<class MyvariantTag,
-                           boost::variant<MySpecialInt, MyString> >;
+  using MyVariant = utils::StrongTypedef<class MyvariantTag,
+                                         std::variant<MySpecialInt, MyString> >;
 
   MyVariant v{MySpecialInt{10}};
-  EXPECT_EQ(boost::get<MySpecialInt>(v.GetUnderlying()), 10);
+  EXPECT_EQ(std::get<MySpecialInt>(v.GetUnderlying()), 10);
 }
 
 TEST(StrongTypedef, EmptyStruct) {

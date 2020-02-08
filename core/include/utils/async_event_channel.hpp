@@ -1,7 +1,9 @@
 #pragma once
 
 #include <chrono>
+#include <typeindex>
 #include <utility>
+#include <vector>
 
 #include <engine/mutex.hpp>
 #include <logging/log.hpp>
