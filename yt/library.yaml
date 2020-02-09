@@ -1,0 +1,11 @@
+project-name: yandex-taxi-userver-yt
+maintainers:
+  - Common components
+description: Yt component
+
+libraries:
+  - yandex-taxi-userver-core
+
+debian:
+  build_dependencies:
+    - libyandex-taxi-yt-wrapper-dev

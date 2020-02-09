@@ -1,0 +1,15 @@
+name: YtWrapper
+helper-prefix: false
+
+includes:
+  find:
+    - names:
+        - yandex/taxi/yt-wrapper/ytlib.h
+
+libraries:
+  find:
+    - names:
+        - yandex-taxi-yt-wrapper
+
+debian-names:
+  - libyandex-taxi-yt-wrapper-dev
