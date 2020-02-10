@@ -34,7 +34,7 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
 
  protected:
   void ParseRequestData(const http::HttpRequest& request,
-                        request::RequestContext& context) const;
+                        request::RequestContext& context) const override;
 
  private:
   FormattedErrorData GetFormattedExternalErrorBody(

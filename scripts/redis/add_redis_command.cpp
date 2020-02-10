@@ -263,7 +263,10 @@ void process_client_impl_cpp_file()
 
 	string decl_command = gen_first_line_cpp("ClientImpl", true, false);
 	bool shard_found = is_shard_found();
-	if (!shard_found) {
+	if (shard_found) {
+		decl_command += "  CheckShard(shard, command_control);\n";
+	}
+	else {
 		if (params[0].name == "key") {
 			for (const auto &param : params) {
 				if (
@@ -275,15 +278,15 @@ void process_client_impl_cpp_file()
 					add_dummy_request(param.name, decl_command);
 				}
 			}
-			decl_command += "  auto shard = ShardByKey(key);\n";
+			decl_command += "  auto shard = ShardByKey(key, command_control);\n";
 		}
 		else if (params[0].name == "keys") {
 			add_dummy_request(params[0].name, decl_command);
-			decl_command += "  auto shard = ShardByKey(keys.at(0));\n";
+			decl_command += "  auto shard = ShardByKey(keys.at(0), command_control);\n";
 		}
 		else if (params[0].name == "key_values") {
 			add_dummy_request(params[0].name, decl_command);
-			decl_command += "  auto shard = ShardByKey(key_values.at(0).first);\n";
+			decl_command += "  auto shard = ShardByKey(key_values.at(0).first, command_control);\n";
 		}
 		else {
 			cerr << "can't determine shard by params" << endl;

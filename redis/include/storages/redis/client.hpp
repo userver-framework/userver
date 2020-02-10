@@ -35,7 +35,11 @@ class Client {
 
   virtual size_t ShardByKey(const std::string& key) const = 0;
 
+  void CheckShardIdx(size_t shard_idx) const;
+
   virtual const std::string& GetAnyKeyForShard(size_t shard_idx) const = 0;
+
+  virtual std::shared_ptr<Client> GetClientForShard(size_t shard_idx) = 0;
 
   // redis commands:
 

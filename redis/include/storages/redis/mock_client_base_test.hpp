@@ -49,6 +49,8 @@ class MockClientBase : public Client,
 
   const std::string& GetAnyKeyForShard(size_t shard_idx) const override;
 
+  std::shared_ptr<Client> GetClientForShard(size_t shard_idx) override;
+
   // redis commands:
 
   RequestAppend Append(std::string key, std::string value,
@@ -348,14 +350,18 @@ class MockClientBase : public Client,
   template <typename MockTransactionImpl>
   void SetMockTransactionImplType() {
     mock_transaction_impl_creator_ =
-        std::make_unique<MockTransactionImplCreator<MockTransactionImpl>>();
+        std::make_shared<MockTransactionImplCreator<MockTransactionImpl>>();
   }
 
   void SetMockTransactionImplCreator(
-      std::unique_ptr<MockTransactionImplCreatorBase>
+      std::shared_ptr<MockTransactionImplCreatorBase>
           mock_transaction_impl_creator) {
     mock_transaction_impl_creator_ = std::move(mock_transaction_impl_creator);
   }
+
+  MockClientBase(std::shared_ptr<MockTransactionImplCreatorBase>
+                     mock_transaction_impl_creator,
+                 boost::optional<size_t> force_shard_idx);
 
  private:
   template <typename MockTransactionImpl>
@@ -366,8 +372,9 @@ class MockClientBase : public Client,
     }
   };
 
-  std::unique_ptr<MockTransactionImplCreatorBase>
+  std::shared_ptr<MockTransactionImplCreatorBase>
       mock_transaction_impl_creator_;
+  boost::optional<size_t> force_shard_idx_;
 };
 
 }  // namespace redis

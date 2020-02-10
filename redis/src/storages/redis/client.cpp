@@ -9,6 +9,10 @@ std::string CreateTmpKey(const std::string& key, std::string prefix) {
   return ::redis::Sentinel::CreateTmpKey(key, std::move(prefix));
 }
 
+void Client::CheckShardIdx(size_t shard_idx) const {
+  ::redis::Sentinel::CheckShardIdx(shard_idx, ShardsCount());
+}
+
 RequestGet Client::Get(std::string key, RetryNilFromMaster,
                        const CommandControl& command_control) {
   return Get(std::move(key), command_control.MergeWith(kRetryNilFromMaster));

@@ -95,11 +95,14 @@ MockTransaction::MockTransaction(std::shared_ptr<MockClientBase> client,
 
 MockTransaction::~MockTransaction() = default;
 
-RequestExec MockTransaction::Exec(const CommandControl& /*command_control*/) {
+RequestExec MockTransaction::Exec(const CommandControl& command_control) {
   if (!shard_) {
     throw EmptyTransactionException(
         "Can't determine shard. Empty transaction?");
   }
+  if (command_control.force_shard_idx)
+    shard_ = *command_control.force_shard_idx;
+  client_->CheckShardIdx(*shard_);
   return CreateMockExecRequest();
 }
 

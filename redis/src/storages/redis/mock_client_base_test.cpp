@@ -12,6 +12,12 @@ MockClientBase::MockClientBase()
           std::make_unique<
               MockTransactionImplCreator<MockTransactionImplBase>>()) {}
 
+MockClientBase::MockClientBase(std::shared_ptr<MockTransactionImplCreatorBase>
+                                   mock_transaction_impl_creator,
+                               boost::optional<size_t> force_shard_idx)
+    : mock_transaction_impl_creator_(std::move(mock_transaction_impl_creator)),
+      force_shard_idx_(force_shard_idx) {}
+
 MockClientBase::~MockClientBase() = default;
 
 size_t MockClientBase::ShardsCount() const { return 1; }
@@ -27,6 +33,11 @@ const std::string& MockClientBase::GetAnyKeyForShard(
               "you should override GetAnyKeyForShard() method if you use it "
               "with ShardsCount() > 1");
   return kKey;
+}
+
+std::shared_ptr<Client> MockClientBase::GetClientForShard(size_t shard_idx) {
+  return std::make_shared<MockClientBase>(mock_transaction_impl_creator_,
+                                          shard_idx);
 }
 
 // redis commands:
