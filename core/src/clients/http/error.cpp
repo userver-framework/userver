@@ -8,9 +8,11 @@ namespace http {
 BaseCodeException::BaseCodeException(std::error_code ec, const std::string& msg)
     : BaseException(msg + ", curl error: " + ec.message()), ec_(ec) {}
 
-std::exception_ptr PrepareException(std::error_code ec) {
+std::exception_ptr PrepareException(std::error_code ec,
+                                    const std::string& url) {
   if (ec.category() != curl::errc::get_easy_category())
-    return std::make_exception_ptr(BaseCodeException(ec, "Unknown exception"));
+    return std::make_exception_ptr(
+        BaseCodeException(ec, "Unknown exception (" + url + ")"));
 
   switch (ec.value()) {
     case curl::errc::easy::could_not_resovle_host:

@@ -208,6 +208,8 @@ void easy::set_url(const char* url) {
   do_set_url(url);
 }
 
+const std::string& easy::get_url() const { return url_; }
+
 void easy::set_post_fields(const std::string& post_fields) {
   std::error_code ec;
   set_post_fields(post_fields, ec);

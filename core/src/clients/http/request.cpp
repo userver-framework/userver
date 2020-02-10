@@ -566,7 +566,8 @@ void Request::RequestImpl::on_completed(
     span.AddTag(tracing::kErrorMessage, err.message());
     span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
 
-    holder->promise_.set_exception(PrepareException(err));
+    holder->promise_.set_exception(
+        PrepareException(err, holder->easy().get_url()));
   } else {
     span.AddTag(tracing::kHttpStatusCode, holder->response()->status_code());
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);

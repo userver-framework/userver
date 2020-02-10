@@ -113,7 +113,7 @@ class HttpServerException : public HttpException {
 };
 
 /// map error_code to exceptions
-std::exception_ptr PrepareException(std::error_code ec);
+std::exception_ptr PrepareException(std::error_code ec, const std::string& url);
 
 }  // namespace http
 }  // namespace clients

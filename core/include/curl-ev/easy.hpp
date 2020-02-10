@@ -258,6 +258,7 @@ class CURLASIO_API easy final : public std::enable_shared_from_this<easy> {
   // network options
 
   void set_url(const char* url);
+  const std::string& get_url() const;
   IMPLEMENT_CURL_OPTION_STRING(do_set_url, native::CURLOPT_URL);
   IMPLEMENT_CURL_OPTION(set_protocols, native::CURLOPT_PROTOCOLS, long);
   IMPLEMENT_CURL_OPTION(set_redir_protocols, native::CURLOPT_REDIR_PROTOCOLS,
