@@ -8,6 +8,7 @@
 
 #include <engine/io/socket.hpp>
 #include <engine/mpsc_queue.hpp>
+#include <engine/single_consumer_event.hpp>
 #include <engine/task/task.hpp>
 #include <engine/task/task_processor.hpp>
 #include <server/http/request_handler_base.hpp>
@@ -73,6 +74,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   const std::string remote_address_;
 
   std::shared_ptr<Queue> request_tasks_;
+  engine::SingleConsumerEvent response_sender_launched_event_;
   engine::Task response_sender_task_;
 
   bool is_accepting_requests_;

@@ -77,6 +77,7 @@ void Connection::Start() {
         self->Shutdown();
       },
       shared_from_this(), std::move(socket_listener));
+  response_sender_launched_event_.Send();
 
   LOG_TRACE() << "Started socket listener for fd " << Fd();
 }
@@ -114,8 +115,13 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
   using RequestBasePtr = std::shared_ptr<request::RequestBase>;
 
   try {
-    utils::ScopeGuard send_stopper(
-        [this]() { response_sender_task_.RequestCancel(); });
+    utils::ScopeGuard send_stopper([this]() {
+      // do not request cancel unless we're sure it's in valid state
+      // this task can only normally be cancelled from response sender
+      if (response_sender_launched_event_.WaitForEvent()) {
+        response_sender_task_.RequestCancel();
+      }
+    });
 
     request_tasks_->SetMaxLength(config_.requests_queue_size_threshold);
 
