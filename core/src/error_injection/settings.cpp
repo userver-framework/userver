@@ -38,7 +38,7 @@ Settings Settings::ParseFromYaml(
   yaml_config::ParseInto(settings.possible_verdicts, yaml, "verdicts",
                          full_path, config_vars_ptr);
 
-  LOG_ERROR() << "enabled = " << settings.enabled
+  LOG_DEBUG() << "enabled = " << settings.enabled
               << " probability = " << settings.probability;
 
   return settings;
