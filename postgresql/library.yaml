@@ -16,6 +16,8 @@ debian:
     - libicu-dev
     - libpq-dev
     - postgresql-server-dev-10
+    - libldap2-dev
+    - python3-yandex-pgmigrate
 
 configs:
   names:

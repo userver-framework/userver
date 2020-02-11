@@ -34,3 +34,4 @@ debian:
     - libyandex-taxi-jemalloc-dev
     - lld-7
     - zlib1g-dev
+    - clang-format-7
