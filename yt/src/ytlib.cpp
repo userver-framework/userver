@@ -1,6 +1,7 @@
 #include <yt/ytlib.hpp>
 
 #include <stdexcept>
+#include <utility>
 #include <variant>
 
 #include <engine/async.hpp>
@@ -103,8 +104,11 @@ formats::json::ValueBuilder MapBuilder::Extract() { return std::move(object); }
 
 class Builder {
  public:
-  template <typename T>
-  Builder(T&& val) : builder(std::move(val)) {}
+  Builder(const Builder&) = delete;
+  Builder(Builder&& other) = default;
+  Builder(PrimitiveBuilder&& val) noexcept : builder(std::move(val)) {}
+  Builder(ArrayBuilder&& val) noexcept : builder(std::move(val)) {}
+  Builder(MapBuilder&& val) noexcept : builder(std::move(val)) {}
 
   void Accept(formats::json::ValueBuilder&& val) {
     std::visit([&](auto& b) { b.Accept(std::move(val)); }, builder);
@@ -151,60 +155,80 @@ struct JsonBuilder : public NTaxi::YT::IYsonConsumer {
 
 JsonBuilder::JsonBuilder() { stack.emplace_back(PrimitiveBuilder{}); }
 
-bool JsonBuilder::AcceptString(const char* data, int len) noexcept {
+bool JsonBuilder::AcceptString(const char* data, int len) noexcept try {
   stack.back().Accept({std::string(data, len)});
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::AcceptInt64(int64_t val) noexcept {
+bool JsonBuilder::AcceptInt64(int64_t val) noexcept try {
   stack.back().Accept({val});
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::AcceptUint64(uint64_t val) noexcept {
+bool JsonBuilder::AcceptUint64(uint64_t val) noexcept try {
   stack.back().Accept({val});
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::AcceptDouble(double val) noexcept {
+bool JsonBuilder::AcceptDouble(double val) noexcept try {
   stack.back().Accept({val});
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::AcceptBool(bool val) noexcept {
+bool JsonBuilder::AcceptBool(bool val) noexcept try {
   stack.back().Accept({val});
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::BeginMap() noexcept {
+bool JsonBuilder::BeginMap() noexcept try {
   stack.emplace_back(MapBuilder{});
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::EndMap() noexcept {
+bool JsonBuilder::EndMap() noexcept try {
   formats::json::ValueBuilder object = stack.back().Extract();
   stack.pop_back();
   if (stack.empty()) return false;
   stack.back().Accept(std::move(object));
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::AcceptKey(const char* key, int len) noexcept {
+bool JsonBuilder::AcceptKey(const char* key, int len) noexcept try {
   stack.back().SetKey(key, len);
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::BeginList() noexcept {
+bool JsonBuilder::BeginList() noexcept try {
   stack.emplace_back(ArrayBuilder{});
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
-bool JsonBuilder::EndList() noexcept {
+bool JsonBuilder::EndList() noexcept try {
   formats::json::ValueBuilder array = stack.back().Extract();
   stack.pop_back();
   if (stack.empty()) return false;
   stack.back().Accept(std::move(array));
   return true;
+} catch (std::exception&) {
+  return false;
 }
 
 formats::json::Value JsonBuilder::ExtractValue() {
@@ -296,8 +320,9 @@ void GlobalShutdown() { NTaxi::YT::GlobalShutdown(); }
 /***************************************************/
 /*                      Row                        */
 /***************************************************/
-Row::Row() = default;
-Row::Row(Row&&) noexcept = default;
+Row::Row() : row_{0, nullptr} {}
+Row::Row(Row&& other) noexcept
+    : row_{std::exchange(other.row_, {0, nullptr})} {}
 Row::~Row() = default;
 int Row::Size() const { return row_.columns; }
 
@@ -324,7 +349,7 @@ template std::optional<formats::json::Value> Row::Get(int) const;
 /***************************************************/
 /*                   ReadCursor                    */
 /***************************************************/
-ReadCursor::ReadCursor(ReadCursor&&) = default;
+ReadCursor::ReadCursor(ReadCursor&&) noexcept = default;
 ReadCursor::~ReadCursor() = default;
 ReadCursor::ReadCursor(std::shared_ptr<NTaxi::YT::TReadCursor> cursor)
     : cursor_(cursor) {}
@@ -351,7 +376,7 @@ bool ReadCursor::Next(Row* row) {
 /***************************************************/
 /*                     Client                      */
 /***************************************************/
-Client::Client(Client&&) = default;
+Client::Client(Client&&) noexcept = default;
 Client::~Client() = default;
 Client::Client(std::shared_ptr<NTaxi::YT::TClient> client) : client_(client) {}
 
@@ -382,7 +407,7 @@ ReadCursor Client::ReadTable(
 /***************************************************/
 /*                   Connection                    */
 /***************************************************/
-Connection::Connection(Connection&&) = default;
+Connection::Connection(Connection&&) noexcept = default;
 Connection::~Connection() = default;
 
 Connection::Connection(const std::string& url)

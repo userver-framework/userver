@@ -21,7 +21,7 @@ target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME}
-  INTERFACE
+  PUBLIC
     yandex-taxi-userver-core
     YtWrapper
 )

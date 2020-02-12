@@ -51,7 +51,7 @@ class ReadCursor {
  public:
   ReadCursor() = delete;
   ReadCursor(const ReadCursor&) = delete;
-  ReadCursor(ReadCursor&&);
+  ReadCursor(ReadCursor&&) noexcept;
   ~ReadCursor();
 
   // note: string-based data will become inaccessible once you call Next again
@@ -67,7 +67,7 @@ class Client {
  public:
   Client() = delete;
   Client(const Client&) = delete;
-  Client(Client&&);
+  Client(Client&&) noexcept;
   ~Client();
 
   ReadCursor ReadTable(
@@ -86,7 +86,7 @@ class Connection {
   Connection() = delete;
   explicit Connection(const std::string& url);
   Connection(const Connection&) = delete;
-  Connection(Connection&&);
+  Connection(Connection&&) noexcept;
   ~Connection();
 
   Client CreateClient(const std::string& token);
