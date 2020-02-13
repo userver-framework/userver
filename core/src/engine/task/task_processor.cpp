@@ -166,8 +166,10 @@ void TaskProcessor::ProcessTasks() noexcept {
     // has_failed is not observable from Adopt()
     // and breaks IsDetached-IsFinished latch
     if (has_failed || (context->IsDetached() && context->IsFinished())) {
-      std::lock_guard<std::mutex> lock(detached_contexts_mutex_);
-      detached_contexts_.erase(context);
+      // node with TaskContext is destructed outside of the critical section:
+      std::unique_lock<std::mutex> lock(detached_contexts_mutex_);
+      [[maybe_unused]] auto node = detached_contexts_.extract(context);
+      lock.unlock();
     }
   }
 }

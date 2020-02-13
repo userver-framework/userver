@@ -57,13 +57,15 @@ void LRU<T, U, Hash, Eq>::Put(const T& key, U value) {
   } else {
     if (map_.size() >= max_size_) {
       auto& pair = list_.front();
-      map_.erase(pair.first);
+      auto node = map_.extract(pair.first);
 
       auto list_it = list_.begin();
       pair.first = key;
       pair.second = std::move(value);
       list_.splice(list_.end(), list_, list_it);
-      map_.emplace(key, list_it);
+      node.key() = key;
+      node.mapped() = list_it;
+      map_.insert(std::move(node));
     } else {
       auto new_it =
           list_.insert(list_.end(), std::make_pair(key, std::move(value)));
