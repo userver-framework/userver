@@ -16,6 +16,7 @@
 #include <storages/postgres/pool.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
+#include <testsuite/postgres_control.hpp>
 
 namespace storages {
 namespace postgres {
@@ -26,15 +27,16 @@ class ClusterImpl {
   ClusterImpl(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
               PoolSettings pool_settings, ConnectionSettings conn_settings,
               CommandControl default_cmd_ctl,
+              const testsuite::PostgresControl& testsuite_pg_ctl,
               const error_injection::Settings& ei_settings);
   ~ClusterImpl();
 
   ClusterStatisticsPtr GetStatistics() const;
 
   Transaction Begin(ClusterHostType ht, const TransactionOptions& options,
-                    engine::Deadline deadline, OptionalCommandControl = {});
+                    OptionalCommandControl = {});
 
-  NonTransaction Start(ClusterHostType host_type, engine::Deadline deadline);
+  NonTransaction Start(ClusterHostType host_type);
 
   void SetDefaultCommandControl(CommandControl);
   SharedCommandControl GetDefaultCommandControl() const {
@@ -48,6 +50,7 @@ class ClusterImpl {
   ClusterImpl(engine::TaskProcessor& bg_task_processor,
               PoolSettings pool_settings, ConnectionSettings conn_settings,
               CommandControl default_cmd_ctl,
+              const testsuite::PostgresControl& testsuite_pg_ctl,
               const error_injection::Settings& ei_settings);
 
   void InitPools(const DSNList& dsn_list);
@@ -72,6 +75,7 @@ class ClusterImpl {
   PoolSettings pool_settings_;
   ConnectionSettings conn_settings_;
   ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
+  testsuite::PostgresControl testsuite_pg_ctl_;
   const error_injection::Settings ei_settings_;
   std::atomic_flag update_lock_;
 };

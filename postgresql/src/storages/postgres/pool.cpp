@@ -6,15 +6,15 @@
 namespace storages {
 namespace postgres {
 
-ConnectionPool::ConnectionPool(const std::string& dsn,
-                               engine::TaskProcessor& bg_task_processor,
-                               PoolSettings pool_settings,
-                               ConnectionSettings conn_settings,
-                               CommandControl default_cmd_ctl,
-                               const error_injection::Settings& ei_settings) {
-  pimpl_ = detail::ConnectionPoolImpl::Create(dsn, bg_task_processor,
-                                              pool_settings, conn_settings,
-                                              default_cmd_ctl, ei_settings);
+ConnectionPool::ConnectionPool(
+    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
+    PoolSettings pool_settings, ConnectionSettings conn_settings,
+    CommandControl default_cmd_ctl,
+    const testsuite::PostgresControl& testsuite_pg_ctl,
+    const error_injection::Settings& ei_settings) {
+  pimpl_ = detail::ConnectionPoolImpl::Create(
+      dsn, bg_task_processor, pool_settings, conn_settings, default_cmd_ctl,
+      testsuite_pg_ctl, ei_settings);
 }
 
 ConnectionPool::~ConnectionPool() = default;

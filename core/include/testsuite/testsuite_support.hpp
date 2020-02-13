@@ -14,6 +14,7 @@
 #include <testsuite/cache_control.hpp>
 #include <testsuite/component_control.hpp>
 #include <testsuite/periodic_task_control.hpp>
+#include <testsuite/postgres_control.hpp>
 #include <utils/periodic_task.hpp>
 
 /// Testsuite integration
@@ -51,6 +52,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::CacheControl& GetCacheControl();
   testsuite::ComponentControl& GetComponentControl();
   testsuite::PeriodicTaskControl& GetPeriodicTaskControl();
+  const testsuite::PostgresControl& GetPostgresControl();
 
   void InvalidateEverything(cache::UpdateType update_type);
 
@@ -63,6 +65,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::CacheControl cache_control_;
   testsuite::ComponentControl component_control_;
   testsuite::PeriodicTaskControl periodic_task_control_;
+  testsuite::PostgresControl postgres_control_;
 };
 
 }  // namespace components

@@ -18,6 +18,8 @@
 #include <storages/postgres/postgres_config.hpp>
 #include <storages/postgres/postgres_secdist.hpp>
 #include <storages/postgres/statistics.hpp>
+#include <testsuite/postgres_control.hpp>
+#include <testsuite/testsuite_support.hpp>
 
 namespace {
 
@@ -137,7 +139,6 @@ formats::json::ValueBuilder PostgresStatisticsToJson(
                                                    "postgresql_database_shard");
   return result;
 }
-
 }  // namespace
 
 namespace components {
@@ -204,10 +205,15 @@ Postgres::Postgres(const ComponentConfig& config,
 
   // Start all clusters here
   LOG_DEBUG() << "Start " << cluster_desc_.size() << " shards for " << db_name_;
+
+  const auto& testsuite_pg_ctl =
+      context.FindComponent<components::TestsuiteSupport>()
+          .GetPostgresControl();
+
   for (const auto& dsns : cluster_desc_) {
-    auto cluster =
-        std::make_shared<pg::Cluster>(dsns, *bg_task_processor_, pool_settings_,
-                                      conn_settings_, cmd_ctl, ei_settings);
+    auto cluster = std::make_shared<pg::Cluster>(
+        dsns, *bg_task_processor_, pool_settings_, conn_settings_, cmd_ctl,
+        testsuite_pg_ctl, ei_settings);
     database_->clusters_.push_back(cluster);
   }
 

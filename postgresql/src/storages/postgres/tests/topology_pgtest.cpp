@@ -34,7 +34,7 @@ TEST_P(PostgreTopology, RunTest) {
     error_injection::Settings ei_settings;
     pg::detail::QuorumCommitCluster qcc(GetTaskProcessor(), dsns,
                                         pg::ConnectionSettings{}, kTestCmdCtl,
-                                        ei_settings);
+                                        {}, ei_settings);
     auto hosts = qcc.GetHostsByType();
 
     EXPECT_EQ(1, hosts.count(pg::ClusterHostType::kMaster));

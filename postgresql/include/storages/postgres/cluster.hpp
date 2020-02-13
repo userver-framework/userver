@@ -13,6 +13,7 @@
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
+#include <testsuite/postgres_control.hpp>
 
 /// @page pg_topology µPg: Cluster topology discovery
 ///
@@ -87,7 +88,9 @@ class Cluster {
   /// request
   Cluster(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
           PoolSettings pool_settings, ConnectionSettings conn_settings,
-          CommandControl cmd_ctl, const error_injection::Settings& ei_settings);
+          CommandControl cmd_ctl,
+          const testsuite::PostgresControl& testsuite_pg_ctl,
+          const error_injection::Settings& ei_settings);
   ~Cluster();
 
   /// Get cluster statistics
@@ -132,7 +135,7 @@ class Cluster {
   SharedCommandControl GetDefaultCommandControl() const;
 
  private:
-  detail::NonTransaction Start(ClusterHostType ht, engine::Deadline deadline);
+  detail::NonTransaction Start(ClusterHostType ht);
 
  private:
   detail::ClusterImplPtr pimpl_;
@@ -141,17 +144,14 @@ class Cluster {
 template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostType ht, const std::string& statement,
                            Args&&... args) {
-  auto deadline =
-      engine::Deadline::FromDuration(GetDefaultCommandControl()->execute);
-  auto ntrx = Start(ht, deadline);
+  auto ntrx = Start(ht);
   return ntrx.Execute(statement, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostType ht, CommandControl statement_cmd_ctl,
                            const std::string& statement, Args&&... args) {
-  auto deadline = engine::Deadline::FromDuration(statement_cmd_ctl.execute);
-  auto ntrx = Start(ht, deadline);
+  auto ntrx = Start(ht);
   return ntrx.Execute(std::move(statement_cmd_ctl), statement,
                       std::forward<Args>(args)...);
 }

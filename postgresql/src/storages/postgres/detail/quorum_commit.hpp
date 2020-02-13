@@ -3,6 +3,7 @@
 #include <error_injection/settings.hpp>
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/options.hpp>
+#include <testsuite/postgres_control.hpp>
 
 #include <engine/task/task_processor.hpp>
 
@@ -18,6 +19,7 @@ class QuorumCommitCluster {
   QuorumCommitCluster(engine::TaskProcessor& bg_task_processor,
                       const DSNList& dsns, ConnectionSettings conn_settings,
                       CommandControl default_cmd_ctl,
+                      const testsuite::PostgresControl& testsuite_pg_ctl,
                       const error_injection::Settings& ei_settings);
 
   ~QuorumCommitCluster();
@@ -30,10 +32,10 @@ class QuorumCommitCluster {
   struct Impl;
   // MAC_COMPAT
 #ifdef _LIBCPP_VERSION
-  static constexpr std::size_t kImplSize = 608;
+  static constexpr std::size_t kImplSize = 632;
   static constexpr std::size_t kImplAlign = 16;
 #else
-  static constexpr std::size_t kImplSize = 592;
+  static constexpr std::size_t kImplSize = 616;
   static constexpr std::size_t kImplAlign = 8;
 #endif
   ::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;

@@ -53,6 +53,7 @@ struct HostStatus {
 
   CheckStatus RunCheck(engine::TaskProcessor& tp, ConnectionSettings settings,
                        CommandControl default_cmd_ctl,
+                       const testsuite::PostgresControl& testsuite_pg_ctl,
                        const error_injection::Settings& ei_settings);
 };
 
@@ -61,6 +62,7 @@ struct HostStatus {
 struct QuorumCommitCluster::Impl {
   Impl(engine::TaskProcessor& bg_task_processor, const DSNList& dsns,
        ConnectionSettings conn_settings, CommandControl default_cmd_ctl,
+       const testsuite::PostgresControl& testsuite_pg_ctl,
        const error_injection::Settings& ei_settings);
   ~Impl();
 
@@ -68,6 +70,8 @@ struct QuorumCommitCluster::Impl {
 
   void StartPeriodicTask();
   void StopPeriodicTask();
+
+  engine::Deadline MakeDeadline(TimeoutDuration duration) const;
 
   /// Background task processor passed to connection objects
   engine::TaskProcessor& bg_task_processor;
@@ -78,6 +82,7 @@ struct QuorumCommitCluster::Impl {
   /// Individual connection settings
   ConnectionSettings conn_settings;
   CommandControl default_cmd_ctl;
+  testsuite::PostgresControl testsuite_pg_ctl_;
   const error_injection::Settings& ei_settings;
 
   ::utils::PeriodicTask discovery_task;
@@ -89,16 +94,17 @@ struct QuorumCommitCluster::Impl {
   rcu::Variable<DSNList> hosts_by_rtt;
 };
 
-QuorumCommitCluster::Impl::Impl(engine::TaskProcessor& bg_task_processor,
-                                const DSNList& dsns,
-                                ConnectionSettings conn_settings,
-                                CommandControl default_cmd_ctl,
-                                const error_injection::Settings& ei_settings)
+QuorumCommitCluster::Impl::Impl(
+    engine::TaskProcessor& bg_task_processor, const DSNList& dsns,
+    ConnectionSettings conn_settings, CommandControl default_cmd_ctl,
+    const testsuite::PostgresControl& testsuite_pg_ctl,
+    const error_injection::Settings& ei_settings)
     : bg_task_processor{bg_task_processor},
       dsns_{dsns},
       host_states{dsns.begin(), dsns.end()},
       conn_settings{conn_settings},
       default_cmd_ctl{default_cmd_ctl},
+      testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings{ei_settings} {
   RunDiscovery();
   StartPeriodicTask();
@@ -121,7 +127,7 @@ void QuorumCommitCluster::Impl::RunDiscovery() {
     tasks.emplace_back(engine::impl::Async(
         [this](HostStatus& hs) {
           return hs.RunCheck(bg_task_processor, conn_settings, default_cmd_ctl,
-                             ei_settings);
+                             testsuite_pg_ctl_, ei_settings);
         },
         std::ref(hs)));
   }
@@ -177,10 +183,11 @@ HostStatus::~HostStatus() {
   }
 }
 
-CheckStatus HostStatus::RunCheck(engine::TaskProcessor& tp,
-                                 ConnectionSettings settings,
-                                 CommandControl default_cmd_ctl,
-                                 const error_injection::Settings& ei_settings) {
+CheckStatus HostStatus::RunCheck(
+    engine::TaskProcessor& tp, ConnectionSettings settings,
+    CommandControl default_cmd_ctl,
+    const testsuite::PostgresControl& testsuite_pg_ctl,
+    const error_injection::Settings& ei_settings) {
   ::utils::ScopeGuard role_check_guard([this] {
     role = ClusterHostType::kUnknown;
     connection.reset();
@@ -188,16 +195,16 @@ CheckStatus HostStatus::RunCheck(engine::TaskProcessor& tp,
 
   if (!connection) {
     try {
-      connection =
-          Connection::Connect(dsn, tp, kConnectionId, settings, default_cmd_ctl,
-                              ei_settings, Connection::ConnToken{});
+      connection = Connection::Connect(dsn, tp, kConnectionId, settings,
+                                       default_cmd_ctl, testsuite_pg_ctl,
+                                       ei_settings, Connection::ConnToken{});
     } catch (const ConnectionError& e) {
       LOG_ERROR() << "Failed to connect to " << DsnCutPassword(dsn) << ": "
                   << e;
       return {this, std::chrono::microseconds{0}};
     }
   }
-  auto deadline = engine::Deadline::FromDuration(kCheckTimeout);
+  auto deadline = testsuite_pg_ctl.MakeExecuteDeadline(kCheckTimeout);
   auto start = std::chrono::system_clock::now();
   try {
     auto ro = connection->CheckReadOnly(deadline);
@@ -222,9 +229,10 @@ CheckStatus HostStatus::RunCheck(engine::TaskProcessor& tp,
 QuorumCommitCluster::QuorumCommitCluster(
     engine::TaskProcessor& bg_task_processor, const DSNList& dsns,
     ConnectionSettings conn_settings, CommandControl default_cmd_ctl,
+    const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings)
     : pimpl_(bg_task_processor, dsns, conn_settings, default_cmd_ctl,
-             ei_settings){};
+             testsuite_pg_ctl, ei_settings){};
 
 QuorumCommitCluster::~QuorumCommitCluster() = default;
 

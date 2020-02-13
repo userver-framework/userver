@@ -6,6 +6,7 @@
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/result_set.hpp>
 #include <storages/postgres/transaction.hpp>
+#include <testsuite/postgres_control.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <error_injection/settings.hpp>
@@ -112,6 +113,7 @@ class Connection {
   static std::unique_ptr<Connection> Connect(
       const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
       uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
+      const testsuite::PostgresControl& testsuite_pg_ctl,
       const error_injection::Settings& ei_settings, ConnToken&& token);
 
   CommandControl GetDefaultCommandControl() const;

@@ -30,7 +30,7 @@ pg::Cluster CreateCluster(
     size_t max_size,
     pg::ConnectionSettings conn_settings = kCachePreparedStatements) {
   return pg::Cluster({dsn}, bg_task_processor, {0, max_size, max_size},
-                     conn_settings, kTestCmdCtl, {});
+                     conn_settings, kTestCmdCtl, {}, {});
 }
 
 }  // namespace

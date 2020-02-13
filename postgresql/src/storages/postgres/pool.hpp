@@ -9,6 +9,7 @@
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
+#include <testsuite/postgres_control.hpp>
 
 namespace engine {
 class TaskProcessor;
@@ -34,6 +35,7 @@ class ConnectionPool {
                  engine::TaskProcessor& bg_task_processor,
                  PoolSettings pool_settings, ConnectionSettings conn_settings,
                  CommandControl default_cmd_ctl,
+                 const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings);
   ~ConnectionPool();
 

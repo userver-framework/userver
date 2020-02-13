@@ -8,10 +8,11 @@ namespace postgres {
 Cluster::Cluster(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
                  PoolSettings pool_settings, ConnectionSettings conn_settings,
                  CommandControl cmd_ctl,
+                 const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings) {
-  pimpl_ = std::make_unique<detail::ClusterImpl>(dsns, bg_task_processor,
-                                                 pool_settings, conn_settings,
-                                                 cmd_ctl, ei_settings);
+  pimpl_ = std::make_unique<detail::ClusterImpl>(
+      dsns, bg_task_processor, pool_settings, conn_settings, cmd_ctl,
+      testsuite_pg_ctl, ei_settings);
 }
 
 Cluster::~Cluster() = default;
@@ -28,16 +29,11 @@ Transaction Cluster::Begin(const TransactionOptions& options,
 Transaction Cluster::Begin(ClusterHostType ht,
                            const TransactionOptions& options,
                            OptionalCommandControl cmd_ctl) {
-  TimeoutDuration timeout = cmd_ctl.is_initialized()
-                                ? cmd_ctl->execute
-                                : GetDefaultCommandControl()->execute;
-  auto deadline = engine::Deadline::FromDuration(timeout);
-  return pimpl_->Begin(ht, options, deadline, cmd_ctl);
+  return pimpl_->Begin(ht, options, cmd_ctl);
 }
 
-detail::NonTransaction Cluster::Start(ClusterHostType ht,
-                                      engine::Deadline deadline) {
-  return pimpl_->Start(ht, deadline);
+detail::NonTransaction Cluster::Start(ClusterHostType ht) {
+  return pimpl_->Start(ht);
 }
 
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {

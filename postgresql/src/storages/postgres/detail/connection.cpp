@@ -156,6 +156,7 @@ struct Connection::Impl {
   ConnectionSettings settings_;
 
   CommandControl default_cmd_ctl_;
+  testsuite::PostgresControl testsuite_pg_ctl_;
   OptionalCommandControl transaction_cmd_ctl_;
   TimeoutDuration current_statement_timeout_{};
   const error_injection::Settings ei_settings_;
@@ -164,10 +165,12 @@ struct Connection::Impl {
 
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
        ConnectionSettings settings, CommandControl default_cmd_ctl,
+       const testsuite::PostgresControl& testsuite_pg_ctl,
        const error_injection::Settings& ei_settings, ConnToken&& token)
       : conn_wrapper_{bg_task_processor, id, std::move(token)},
         settings_{settings},
         default_cmd_ctl_{default_cmd_ctl},
+        testsuite_pg_ctl_{testsuite_pg_ctl},
         ei_settings_(ei_settings),
         uuid_{::utils::generators::GenerateUuid()} {}
 
@@ -185,7 +188,7 @@ struct Connection::Impl {
     tracing::Span span{scopes::kConnect};
     span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
     auto scope = span.CreateScopeTime();
-    auto deadline = engine::Deadline::FromDuration(kConnectTimeout);
+    auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(kConnectTimeout);
     // While connecting there are several network roundtrips, so give them
     // some allowance.
     conn_wrapper_.AsyncConnect(conninfo, deadline, scope);
@@ -209,7 +212,8 @@ struct Connection::Impl {
   void SetDefaultCommandControl(const CommandControl& cmd_ctl) {
     if (cmd_ctl != default_cmd_ctl_) {
       SetConnectionStatementTimeout(
-          cmd_ctl.statement, engine::Deadline::FromDuration(cmd_ctl.execute));
+          cmd_ctl.statement,
+          testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
       default_cmd_ctl_ = cmd_ctl;
     }
   }
@@ -221,12 +225,13 @@ struct Connection::Impl {
     }
     transaction_cmd_ctl_ = cmd_ctl;
     SetStatementTimeout(cmd_ctl.statement,
-                        engine::Deadline::FromDuration(cmd_ctl.execute));
+                        testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
   }
 
   void ResetTransactionCommandControl() {
     transaction_cmd_ctl_.reset();
-    current_statement_timeout_ = default_cmd_ctl_.statement;
+    current_statement_timeout_ =
+        testsuite_pg_ctl_.MakeStatementTimeout(default_cmd_ctl_.statement);
   }
 
   TimeoutDuration CurrentExecuteTimeout() const {
@@ -237,14 +242,7 @@ struct Connection::Impl {
   }
 
   engine::Deadline MakeCurrentDeadline() const {
-    return engine::Deadline::FromDuration(CurrentExecuteTimeout());
-  }
-
-  TimeoutDuration CurrentStatementTimeout() const {
-    if (!!transaction_cmd_ctl_) {
-      return transaction_cmd_ctl_->statement;
-    }
-    return default_cmd_ctl_.statement;
+    return testsuite_pg_ctl_.MakeExecuteDeadline(CurrentExecuteTimeout());
   }
 
   /// @brief Set local timezone. If the timezone is invalid, catch the
@@ -265,6 +263,7 @@ struct Connection::Impl {
 
   void SetConnectionStatementTimeout(TimeoutDuration timeout,
                                      engine::Deadline deadline) {
+    timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
     if (current_statement_timeout_ != timeout) {
       SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
                    ParameterScope::kSession, deadline);
@@ -273,6 +272,7 @@ struct Connection::Impl {
   }
 
   void SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
+    timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
     if (current_statement_timeout_ != timeout) {
       SetParameter(kStatementTimeoutParameter, std::to_string(timeout.count()),
                    ParameterScope::kTransaction, deadline);
@@ -283,15 +283,16 @@ struct Connection::Impl {
   void SetStatementTimeout(OptionalCommandControl cmd_ctl) {
     if (!!cmd_ctl) {
       SetConnectionStatementTimeout(
-          cmd_ctl->statement, engine::Deadline::FromDuration(cmd_ctl->execute));
+          cmd_ctl->statement,
+          testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl->execute));
     } else if (!!transaction_cmd_ctl_) {
       SetStatementTimeout(
           transaction_cmd_ctl_->statement,
-          engine::Deadline::FromDuration(transaction_cmd_ctl_->execute));
+          testsuite_pg_ctl_.MakeExecuteDeadline(transaction_cmd_ctl_->execute));
     } else {
       SetConnectionStatementTimeout(
           default_cmd_ctl_.statement,
-          engine::Deadline::FromDuration(default_cmd_ctl_.execute));
+          testsuite_pg_ctl_.MakeExecuteDeadline(default_cmd_ctl_.execute));
     }
   }
 
@@ -367,10 +368,10 @@ struct Connection::Impl {
                            const detail::QueryParameters& params,
                            OptionalCommandControl statement_cmd_ctl) {
     CheckBusy();
-    TimeoutDuration network_timeout = !!statement_cmd_ctl
+    TimeoutDuration execute_timeout = !!statement_cmd_ctl
                                           ? statement_cmd_ctl->execute
                                           : CurrentExecuteTimeout();
-    auto deadline = engine::Deadline::FromDuration(network_timeout);
+    auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(execute_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
     return ExecuteCommand(statement, params, deadline);
   }
@@ -382,7 +383,8 @@ struct Connection::Impl {
     CheckBusy();
     if (!!statement_cmd_ctl &&
         deadline.TimeLeft() < statement_cmd_ctl->execute) {
-      deadline = engine::Deadline::FromDuration(statement_cmd_ctl->execute);
+      deadline =
+          testsuite_pg_ctl_.MakeExecuteDeadline(statement_cmd_ctl->execute);
     }
     SetStatementTimeout(std::move(statement_cmd_ctl));
     return ExecuteCommand(statement, params, deadline);
@@ -480,7 +482,8 @@ struct Connection::Impl {
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
     return ExecuteCommandNoPrepare(
-        statement, engine::Deadline::FromDuration(CurrentExecuteTimeout()));
+        statement,
+        testsuite_pg_ctl_.MakeExecuteDeadline(CurrentExecuteTimeout()));
   }
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement,
@@ -537,7 +540,7 @@ struct Connection::Impl {
     auto scope = span.CreateScopeTime();
     conn_wrapper_.SendQuery(statement, params, scope, reply_format);
     auto res = conn_wrapper_.WaitResult(
-        engine::Deadline::FromDuration(CurrentExecuteTimeout()), scope);
+        testsuite_pg_ctl_.MakeExecuteDeadline(CurrentExecuteTimeout()), scope);
     FillBufferCategories(res);
     return res;
   }
@@ -558,7 +561,7 @@ struct Connection::Impl {
     TimeoutDuration network_timeout = !!statement_cmd_ctl
                                           ? statement_cmd_ctl->execute
                                           : CurrentExecuteTimeout();
-    auto deadline = engine::Deadline::FromDuration(network_timeout);
+    auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
 
     tracing::Span span{scopes::kQuery};
@@ -590,7 +593,7 @@ struct Connection::Impl {
                                           ? statement_cmd_ctl->execute
                                           : CurrentExecuteTimeout();
 
-    auto deadline = engine::Deadline::FromDuration(network_timeout);
+    auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
     SetStatementTimeout(std::move(statement_cmd_ctl));
 
     UASSERT_MSG(prepared_.count(statement_id),
@@ -700,7 +703,7 @@ struct Connection::Impl {
   void Finish() { stats_.trx_end_time = SteadyClock::now(); }
 
   void CancelAndCleanup(TimeoutDuration timeout) {
-    auto deadline = engine::Deadline::FromDuration(timeout);
+    auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
 
     auto state = GetConnectionState();
     if (state == ConnectionState::kOffline) {
@@ -726,7 +729,7 @@ struct Connection::Impl {
   }
 
   bool Cleanup(TimeoutDuration timeout) {
-    auto deadline = engine::Deadline::FromDuration(timeout);
+    auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
     if (conn_wrapper_.TryConsumeInput(deadline)) {
       auto state = GetConnectionState();
       if (state == ConnectionState::kOffline) {
@@ -742,8 +745,7 @@ struct Connection::Impl {
       // We are no more bound with SLA, user has his exception.
       // We need to try and save the connection without canceling current query
       // not to kill the pgbouncer
-      SetConnectionStatementTimeout(default_cmd_ctl_.statement,
-                                    engine::Deadline::FromDuration(timeout));
+      SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
       return true;
     }
     return false;
@@ -775,12 +777,13 @@ struct Connection::Impl {
 std::unique_ptr<Connection> Connection::Connect(
     const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
     uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
+    const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings, ConnToken&& token) {
   std::unique_ptr<Connection> conn(new Connection());
 
   conn->pimpl_ =
       std::make_unique<Impl>(bg_task_processor, id, settings, default_cmd_ctl,
-                             ei_settings, std::move(token));
+                             testsuite_pg_ctl, ei_settings, std::move(token));
   conn->pimpl_->AsyncConnect(conninfo);
 
   return conn;

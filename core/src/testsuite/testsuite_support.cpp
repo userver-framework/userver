@@ -7,6 +7,8 @@ namespace components {
 namespace {
 
 const std::string kPeriodicUpdateEnabled = "testsuite-periodic-update-enabled";
+const std::string kPostgresExecuteTimeout = "testsuite-pg-execute-timeout";
+const std::string kPostgresStatementTimeout = "testsuite-pg-statement-timeout";
 
 testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
     const boost::optional<bool>& config_value) {
@@ -16,12 +18,22 @@ testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
                        : PeriodicUpdatesMode::kDisabled;
 }
 
+testsuite::PostgresControl ParsePostgresControl(
+    const components::ComponentConfig& config) {
+  return testsuite::PostgresControl(
+      config.ParseDuration(kPostgresExecuteTimeout,
+                           std::chrono::milliseconds::zero()),
+      config.ParseDuration(kPostgresStatementTimeout,
+                           std::chrono::milliseconds::zero()));
+}
+
 }  // namespace
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
                                    const components::ComponentContext&)
     : cache_control_(ParsePeriodicUpdatesMode(
-          config.ParseOptionalBool(kPeriodicUpdateEnabled))) {}
+          config.ParseOptionalBool(kPeriodicUpdateEnabled))),
+      postgres_control_(ParsePostgresControl(config)) {}
 
 testsuite::CacheControl& TestsuiteSupport::GetCacheControl() {
   return cache_control_;
@@ -33,6 +45,10 @@ testsuite::ComponentControl& TestsuiteSupport::GetComponentControl() {
 
 testsuite::PeriodicTaskControl& TestsuiteSupport::GetPeriodicTaskControl() {
   return periodic_task_control_;
+}
+
+const testsuite::PostgresControl& TestsuiteSupport::GetPostgresControl() {
+  return postgres_control_;
 }
 
 void TestsuiteSupport::InvalidateEverything(cache::UpdateType update_type) {

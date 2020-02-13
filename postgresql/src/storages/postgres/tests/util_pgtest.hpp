@@ -47,7 +47,7 @@ inline storages::postgres::detail::ConnectionPtr MakeConnection(
 
   EXPECT_NO_THROW(
       conn = pg::detail::Connection::Connect(dsn, task_processor, kConnectionId,
-                                             settings, kTestCmdCtl, {}, {}))
+                                             settings, kTestCmdCtl, {}, {}, {}))
       << "Connect to correct DSN";
   if (!conn) {
     ADD_FAILURE() << "Expected non-empty connection pointer";

@@ -36,11 +36,13 @@ ClusterImpl::ClusterImpl(const DSNList& dsns,
                          PoolSettings pool_settings,
                          ConnectionSettings conn_settings,
                          CommandControl default_cmd_ctl,
+                         const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
     : ClusterImpl(bg_task_processor, pool_settings, conn_settings,
-                  default_cmd_ctl, ei_settings) {
+                  default_cmd_ctl, testsuite_pg_ctl, ei_settings) {
   topology_ = std::make_unique<QuorumCommitCluster>(
-      bg_task_processor_, dsns, conn_settings, default_cmd_ctl, ei_settings_);
+      bg_task_processor_, dsns, conn_settings, default_cmd_ctl,
+      testsuite_pg_ctl, ei_settings_);
   InitPools(topology_->GetDsnList());
 }
 
@@ -48,6 +50,7 @@ ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
                          PoolSettings pool_settings,
                          ConnectionSettings conn_settings,
                          CommandControl default_cmd_ctl,
+                         const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
     : bg_task_processor_(bg_task_processor),
       host_ind_(0),
@@ -56,6 +59,7 @@ ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
       default_cmd_ctl_(
           // NOLINTNEXTLINE(hicpp-move-const-arg)
           std::make_shared<const CommandControl>(std::move(default_cmd_ctl))),
+      testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_(ei_settings),
       update_lock_ ATOMIC_FLAG_INIT {}
 
@@ -69,9 +73,9 @@ void ClusterImpl::InitPools(const DSNList& dsn_list) {
   auto cmd_ctl = default_cmd_ctl_.Get();
   for (const auto& dsn : dsn_list) {
     host_pools.insert(std::make_pair(
-        dsn, std::make_shared<ConnectionPool>(dsn, bg_task_processor_,
-                                              pool_settings_, conn_settings_,
-                                              *cmd_ctl, ei_settings_)));
+        dsn, std::make_shared<ConnectionPool>(
+                 dsn, bg_task_processor_, pool_settings_, conn_settings_,
+                 *cmd_ctl, testsuite_pg_ctl_, ei_settings_)));
   }
 
   // NOLINTNEXTLINE(hicpp-move-const-arg)
@@ -177,7 +181,6 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostType ht) {
 
 Transaction ClusterImpl::Begin(ClusterHostType ht,
                                const TransactionOptions& options,
-                               engine::Deadline deadline,
                                OptionalCommandControl cmd_ctl) {
   LOG_TRACE() << "Requested transaction on the host of " << ht << " type";
   auto host_type = ht;
@@ -194,17 +197,22 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
   }
 
   auto pool = FindPool(host_type);
+  TimeoutDuration timeout = cmd_ctl.is_initialized()
+                                ? cmd_ctl->execute
+                                : GetDefaultCommandControl()->execute;
+  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
   return pool->Begin(options, deadline, cmd_ctl);
 }
 
-NonTransaction ClusterImpl::Start(ClusterHostType host_type,
-                                  engine::Deadline deadline) {
+NonTransaction ClusterImpl::Start(ClusterHostType host_type) {
   if (host_type == ClusterHostType::kAny) {
     throw LogicError("Cannot use any host for execution of a single statement");
   }
   LOG_TRACE() << "Requested single statement on the host of " << host_type
               << " type";
   auto pool = FindPool(host_type);
+  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(
+      GetDefaultCommandControl()->execute);
   return pool->Start(deadline);
 }
 

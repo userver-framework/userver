@@ -21,6 +21,7 @@
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
+#include <testsuite/postgres_control.hpp>
 
 namespace storages {
 namespace postgres {
@@ -33,6 +34,7 @@ class ConnectionPoolImpl
       const std::string& dsn, engine::TaskProcessor& bg_task_processor,
       PoolSettings pool_settings, ConnectionSettings conn_settings,
       CommandControl default_cmd_ctl,
+      const testsuite::PostgresControl& testsuite_pg_ctl,
       const error_injection::Settings& ei_settings);
   ~ConnectionPoolImpl();
 
@@ -57,6 +59,7 @@ class ConnectionPoolImpl
                      engine::TaskProcessor& bg_task_processor,
                      PoolSettings settings, ConnectionSettings conn_settings,
                      CommandControl default_cmd_ctl,
+                     const testsuite::PostgresControl& testsuite_pg_ctl,
                      const error_injection::Settings& ei_settings);
 
  private:
@@ -97,6 +100,7 @@ class ConnectionPoolImpl
   ::utils::impl::WaitTokenStorage conn_token_storage_;
   std::atomic<size_t> wait_count_;
   rcu::Variable<CommandControl> default_cmd_ctl_;
+  testsuite::PostgresControl testsuite_pg_ctl_;
   const error_injection::Settings ei_settings_;
   RecentCounter recent_conn_errors_;
   ::utils::TokenBucket cancel_limit_;
