@@ -277,7 +277,7 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
     if constexpr (traits::kIsCompatibleContainer<Element>) {
       *dim = element.size();
       if (!element.empty()) {
-        CalculateDimensions(dim + 1, element.front());
+        CalculateDimensions(dim + 1, *element.begin());
       }  // TODO else logic error?
     }
   }
@@ -428,5 +428,126 @@ struct IsFixedSizeContainer<std::array<T, Size>> : std::true_type {};
 // TODO Add more containers
 
 }  // namespace traits
+
+namespace detail {
+
+/// A helper data type to write a container chunk to postgresql array buffer
+/// Mimics container interface (type aliases + begin/end)
+template <typename Container>
+class ContainerChunk {
+ public:
+  static_assert(
+      traits::IsCompatibleContainer<Container>{},
+      "Only containers explicitly declared as compatible are supported");
+
+  using value_type = typename Container::value_type;
+  using const_iterator_type = typename Container::const_iterator;
+
+  ContainerChunk(const_iterator_type begin, std::size_t size)
+      : begin_{begin}, end_{std::next(begin, size)}, size_{size} {}
+
+  std::size_t size() const { return size_; }
+  bool empty() const { return begin_ == end_; }
+
+  const_iterator_type begin() const { return begin_; }
+  const_iterator_type cbegin() const { return begin_; }
+
+  const_iterator_type end() const { return end_; }
+  const_iterator_type cend() const { return end_; }
+
+ private:
+  const_iterator_type begin_;
+  const_iterator_type end_;
+  std::size_t size_;
+};
+
+/// Utility class to iterate chunks of input array
+template <typename Container>
+class ContainerSplitter {
+ public:
+  static_assert(
+      traits::IsCompatibleContainer<Container>{},
+      "Only containers explicitly declared as compatible are supported");
+
+  using value_type = ContainerChunk<Container>;
+
+  class ChunkIterator {
+   public:
+    using UnderlyingIterator = typename Container::const_iterator;
+    ChunkIterator(const Container& container, UnderlyingIterator current,
+                  std::size_t chunk_elements)
+        : container_{container},
+          chunk_size_{chunk_elements},
+          tail_size_{std::distance(current, container_.end())},
+          current_{current} {}
+
+    bool operator==(const ChunkIterator& rhs) const {
+      return current_ == rhs.current_;
+    }
+
+    bool operator!=(const ChunkIterator& rhs) const { return !(*this == rhs); }
+
+    value_type operator*() const { return {current_, NextStep()}; }
+
+    ChunkIterator& operator++() {
+      auto step = NextStep();
+      std::advance(current_, step);
+      tail_size_ -= step;
+      return *this;
+    }
+
+    ChunkIterator operator++(int) {
+      ChunkIterator tmp{*this};
+      ++(*this);
+      return tmp;
+    }
+
+   private:
+    std::size_t NextStep() const { return std::min(chunk_size_, tail_size_); }
+
+    const Container& container_;
+    const std::size_t chunk_size_;
+    std::size_t tail_size_;
+    UnderlyingIterator current_;
+  };
+
+  ContainerSplitter(const Container& container, std::size_t chunk_elements)
+      : container_{container}, chunk_size_{chunk_elements} {}
+
+  std::size_t size() const {
+    auto sz = container_.size();
+    return sz / chunk_size_ + (sz % chunk_size_ ? 1 : 0);
+  }
+  bool empty() const { return container_.empty(); }
+
+  ChunkIterator begin() const {
+    return {container_, container_.begin(), chunk_size_};
+  }
+
+  ChunkIterator end() const {
+    return {container_, container_.end(), chunk_size_};
+  }
+
+  std::size_t ChunkSize() const { return chunk_size_; }
+  const Container& GetContainer() const { return container_; }
+
+ private:
+  const Container& container_;
+  const std::size_t chunk_size_;
+};
+
+}  // namespace detail
+
+namespace traits {
+template <typename Container>
+struct IsCompatibleContainer<io::detail::ContainerChunk<Container>>
+    : IsCompatibleContainer<Container> {};
+}  // namespace traits
+
+template <typename Container>
+detail::ContainerSplitter<Container> SplitContainer(
+    const Container& container, std::size_t chunk_elements) {
+  return {container, chunk_elements};
+}
 
 }  // namespace storages::postgres::io

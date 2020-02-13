@@ -131,6 +131,9 @@ class Transaction {
   static constexpr TransactionOptions Deferrable{
       TransactionOptions::Deferrable()};
   //@}
+
+  static constexpr std::size_t kDefaultRowsInChunk = 1024;
+
  public:
   explicit Transaction(detail::ConnectionPtr&& conn,
                        const TransactionOptions& = RW,
@@ -169,6 +172,24 @@ class Transaction {
     params.Write(GetConnectionUserTypes(), args...);
     return DoExecute(statement, params, std::move(statement_cmd_ctl));
   }
+
+  /// Execute statement that uses an array of arguments splitting that array in
+  /// chunks and executing the statement with a chunk of arguments.
+  ///
+  /// Useful for statements that unnest their arguments to avoid the need to
+  /// increase timeouts due to data amount growth.
+  template <typename Container>
+  void ExecuteBulk(const std::string& statement, const Container& args,
+                   std::size_t chunk_rows = kDefaultRowsInChunk);
+  /// Execute statement that uses an array of arguments splitting that array in
+  /// chunks and executing the statement with a chunk of arguments.
+  ///
+  /// Useful for statements that unnest their arguments to avoid the need to
+  /// increase timeouts due to data amount growth.
+  template <typename Container>
+  void ExecuteBulk(CommandControl statement_cmd_ctl,
+                   const std::string& statement, const Container& args,
+                   std::size_t chunk_rows = kDefaultRowsInChunk);
 
   /// Create a portal for fetching results of a statement with arbitrary
   /// parameters.
@@ -220,6 +241,25 @@ class Transaction {
  private:
   detail::ConnectionPtr conn_;
 };
+
+template <typename Container>
+void Transaction::ExecuteBulk(const std::string& statement,
+                              const Container& args, std::size_t chunk_rows) {
+  auto split = io::SplitContainer(args, chunk_rows);
+  for (auto&& chunk : split) {
+    Execute(statement, chunk);
+  }
+}
+
+template <typename Container>
+void Transaction::ExecuteBulk(CommandControl statement_cmd_ctl,
+                              const std::string& statement,
+                              const Container& args, std::size_t chunk_rows) {
+  auto split = io::SplitContainer(args, chunk_rows);
+  for (auto&& chunk : split) {
+    Execute(statement_cmd_ctl, statement, chunk);
+  }
+}
 
 }  // namespace postgres
 }  // namespace storages

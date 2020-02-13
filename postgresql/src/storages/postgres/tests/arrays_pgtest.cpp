@@ -127,6 +127,9 @@ static_assert(tt::kTypeBufferCategory<vector_of_arrays> ==
                   io::BufferCategory::kArrayBuffer,
               "");
 
+static_assert(tt::kIsMappedToPg<io::detail::ContainerChunk<one_dim_vector>>,
+              "");
+
 }  // namespace static_test
 
 namespace {
@@ -350,6 +353,68 @@ POSTGRE_TEST_P(ArrayOfBool) {
   std::vector<bool> tgt;
   EXPECT_NO_THROW(res[0][0].To(tgt));
   EXPECT_EQ(src, tgt);
+}
+
+void CheckSplit(const io::detail::ContainerSplitter<std::vector<int>>& split) {
+  const auto& data = split.GetContainer();
+
+  EXPECT_EQ(data.empty(), split.empty());
+  auto expected_chunks = data.size() / split.ChunkSize() +
+                         (data.size() % split.ChunkSize() ? 1 : 0);
+  EXPECT_EQ(expected_chunks, split.size());
+
+  std::size_t elem_cnt{0};
+  std::size_t chunk_cnt{0};
+
+  for (auto chunk : split) {
+    ++chunk_cnt;
+    elem_cnt += chunk.size();
+  }
+
+  EXPECT_EQ(data.size(), elem_cnt);
+  EXPECT_EQ(expected_chunks, chunk_cnt);
+}
+
+TEST(PostgreIO, SplitContainer) {
+  std::vector<int> data(1000, 42);
+  CheckSplit(io::SplitContainer(data, 10));
+  data.push_back(42);
+  CheckSplit(io::SplitContainer(data, 10));
+  data.resize(9);
+  CheckSplit(io::SplitContainer(data, 10));
+  data.clear();
+  CheckSplit(io::SplitContainer(data, 10));
+}
+
+POSTGRE_TEST_P(ChunkedContainer) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+
+  conn->Execute("create temporary table chunked_array_test(v integer)");
+  std::vector<int> data(1001, 42);
+  auto split = io::SplitContainer(data, 100);
+  for (auto chunk : split) {
+    EXPECT_NO_THROW(conn->Execute(
+        "insert into chunked_array_test select * from unnest($1)", chunk));
+  }
+
+  auto res = conn->Execute("select count(*) from chunked_array_test");
+  EXPECT_EQ(data.size(), res.Front().As<pg::Bigint>(pg::kFieldTag));
+}
+
+POSTGRE_TEST_P(TransactionChunkedContainer) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+
+  conn->Execute("create temporary table chunked_array_test(v integer)");
+  std::vector<int> data(1001, 42);
+
+  pg::Transaction trx(std::move(conn), pg::TransactionOptions{});
+  EXPECT_NO_THROW(trx.ExecuteBulk(
+      "insert into chunked_array_test select * from unnest($1)", data, 100));
+
+  auto res = trx.Execute("select count(*) from chunked_array_test");
+  EXPECT_EQ(data.size(), res.Front().As<pg::Bigint>(pg::kFieldTag));
+
+  trx.Commit();
 }
 
 }  // namespace
