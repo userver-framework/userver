@@ -112,6 +112,15 @@ TEST(PostgreDSN, EscapeHostName) {
             "host_name_with_numbers130_dots_and_dashes");
 }
 
+TEST(PostgreDSN, QuotedOptions) {
+  const auto dsn = R"( options='-c \'backslash=\\\'')";
+
+  std::vector<std::string> split_dsn;
+  EXPECT_NO_THROW(split_dsn = pg::SplitByHost(dsn));
+  ASSERT_EQ(split_dsn.size(), 1);
+  EXPECT_EQ(split_dsn.front(), dsn);
+}
+
 class Mask
     : public ::testing::TestWithParam<std::pair<std::string, std::string>> {};
 

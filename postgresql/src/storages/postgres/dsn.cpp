@@ -75,6 +75,35 @@ HostAndPort ParseDSNOptions(
   return hap;
 }
 
+std::string QuoteOptionValue(const char* value) {
+  size_t len_with_escapes = 0;
+  bool needs_quoting = false;
+  for (const char* p = value; *p; ++p) {
+    if (*p == ' ' || *p == '\'' || *p == '\\') {
+      needs_quoting = true;
+      if (*p != ' ') ++len_with_escapes;
+    }
+    ++len_with_escapes;
+  }
+  if (!needs_quoting) return std::string(value, len_with_escapes);
+
+  std::string quoted;
+  quoted.reserve(len_with_escapes + 2);
+  quoted += '\'';
+  for (const char* p = value; *p; ++p) {
+    switch (*p) {
+      case '\\':
+      case '\'':
+        quoted += '\\';
+        [[fallthrough]];
+      default:
+        quoted += *p;
+    }
+  }
+  quoted += '\'';
+  return quoted;
+}
+
 }  // namespace
 
 DSNList SplitByHost(const std::string& conninfo) {
@@ -82,7 +111,7 @@ DSNList SplitByHost(const std::string& conninfo) {
   const auto hap = ParseDSNOptions(conninfo, [&options](PQconninfoOption* opt) {
     // Ignore target_session_attrs
     if (std::strcmp(opt->keyword, "target_session_attrs") != 0) {
-      options << " " << opt->keyword << "=" << opt->val;
+      options << " " << opt->keyword << "=" << QuoteOptionValue(opt->val);
     }
   });
 
@@ -94,8 +123,7 @@ DSNList SplitByHost(const std::string& conninfo) {
     if (ports.size() > 1)
       throw InvalidDSN{DsnMaskPassword(conninfo), "Invalid port options count"};
     if (!ports.empty()) {
-      options << " "
-              << "port=" << ports.front();
+      options << " port=" << ports.front();
     }
     res.push_back(options.str());
   } else {
