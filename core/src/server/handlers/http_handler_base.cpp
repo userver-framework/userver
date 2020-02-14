@@ -145,6 +145,8 @@ class RequestProcessor final {
   template <typename Func>
   bool DoProcessRequestStep(const std::string& step_name,
                             const Func& process_step_func) {
+    const auto scope_time =
+        tracing::Span::CurrentSpan().CreateScopeTime("http_" + step_name);
     auto& response = http_request_.GetHttpResponse();
 
     try {

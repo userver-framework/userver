@@ -16,6 +16,7 @@ namespace {
 
 const std::string kRequestDataName = "__request_json";
 const std::string kResponseDataName = "__response_json";
+const std::string kSerializeJson = "serialize_json";
 
 }  // namespace
 
@@ -35,6 +36,9 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
   const auto& response_json = context.SetData<const formats::json::Value>(
       kResponseDataName,
       HandleRequestJsonThrow(request, request_json, context));
+
+  const auto scope_time =
+      tracing::Span::CurrentSpan().CreateScopeTime(kSerializeJson);
   return formats::json::ToString(response_json);
 }
 
