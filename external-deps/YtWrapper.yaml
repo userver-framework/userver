@@ -13,3 +13,4 @@ libraries:
 
 debian-names:
   - libyandex-taxi-yt-wrapper-dev
+formula-name: yt-wrapper
