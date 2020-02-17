@@ -5,6 +5,8 @@
 #include <storages/postgres/detail/is_in_namespace.hpp>
 #include <storages/postgres/io/type_traits.hpp>
 
+#include <utils/strong_typedef.hpp>
+
 namespace storages::postgres {
 
 struct RowTag {};
@@ -48,6 +50,12 @@ constexpr bool DetectIsSuitableRowType() {
 template <typename T>
 struct IsSuitableRowType : BoolConstant<detail::DetectIsSuitableRowType<T>()> {
 };
+
+template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
+          typename Enable>
+struct IsSuitableRowType<::utils::StrongTypedef<Tag, T, Ops, Enable>>
+    : IsSuitableRowType<T> {};
+
 template <typename T>
 constexpr bool kIsSuitableRowType = IsSuitableRowType<T>::value;
 
@@ -72,6 +80,11 @@ struct RowCategory
                   IsSuitableRowType<T>::value,
                   RowCategoryConstant<RowCategoryType::kAggregate>,
                   RowCategoryConstant<RowCategoryType::kNonRow>>>> {};
+
+template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
+          typename Enable>
+struct RowCategory<::utils::StrongTypedef<Tag, T, Ops, Enable>>
+    : RowCategory<T> {};
 
 template <typename T>
 constexpr RowCategoryType kRowCategory = RowCategory<T>::value;

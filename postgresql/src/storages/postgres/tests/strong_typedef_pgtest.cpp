@@ -160,6 +160,12 @@ POSTGRE_TEST_P(StringStrongTypedef) {
   static_test::StringTypedef str{"test"};
   EXPECT_NO_THROW(res = conn->Execute("select $1", str));
   EXPECT_EQ(str, res[0][0].As<static_test::StringTypedef>());
+  // Row interface
+  EXPECT_EQ(str, res[0].As<static_test::StringTypedef>());
+  // Single row interface
+  EXPECT_EQ(str, res.AsSingleRow<static_test::StringTypedef>());
+  // As container interface
+  EXPECT_EQ(str, res.AsContainer<std::vector<static_test::StringTypedef>>()[0]);
 }
 
 POSTGRE_TEST_P(IntStrongTypedef) {
@@ -169,6 +175,12 @@ POSTGRE_TEST_P(IntStrongTypedef) {
   static_test::IntTypedef i{42};
   EXPECT_NO_THROW(res = conn->Execute("select $1", i));
   EXPECT_EQ(i, res[0][0].As<static_test::IntTypedef>());
+  // Row interface
+  EXPECT_EQ(i, res[0].As<static_test::IntTypedef>());
+  // Single row interface
+  EXPECT_EQ(i, res.AsSingleRow<static_test::IntTypedef>());
+  // As container interface
+  EXPECT_EQ(i, res.AsContainer<std::vector<static_test::IntTypedef>>()[0]);
 }
 
 POSTGRE_TEST_P(IntEnumStrongTypedef) {
@@ -178,6 +190,13 @@ POSTGRE_TEST_P(IntEnumStrongTypedef) {
   static_test::EnumStrongTypedef i{42};
   EXPECT_NO_THROW(res = conn->Execute("select $1", i));
   EXPECT_EQ(i, res[0][0].As<static_test::EnumStrongTypedef>());
+  // Row interface
+  EXPECT_EQ(i, res[0].As<static_test::EnumStrongTypedef>());
+  // Single row interface
+  EXPECT_EQ(i, res.AsSingleRow<static_test::EnumStrongTypedef>());
+  // As container interface
+  EXPECT_EQ(i,
+            res.AsContainer<std::vector<static_test::EnumStrongTypedef>>()[0]);
 }
 
 }  // namespace
