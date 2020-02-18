@@ -9,6 +9,7 @@
 
 #include <boost/optional.hpp>
 #include <map>
+#include <optional>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
@@ -104,6 +105,22 @@ boost::optional<std::nullptr_t> Parse(const Value&,
 }
 
 template <class Value, typename T>
+std::optional<T> Parse(const Value& value, To<std::optional<T>>) {
+  if (value.IsMissing() || value.IsNull()) {
+    return std::nullopt;
+  }
+  return value.template As<T>();
+}
+
+template <class Value>
+std::optional<std::nullptr_t> Parse(const Value&,
+                                    To<std::optional<std::nullptr_t>>) {
+  static_assert(!sizeof(Value),
+                "optional<nullptr_t> is forbidden, check IsNull() instead");
+  return nullptr;
+}
+
+template <class Value, typename T>
 std::unordered_set<T> Convert(const Value& value, To<std::unordered_set<T>>) {
   if (value.IsMissing()) {
     return {};
@@ -162,6 +179,22 @@ boost::optional<T> Convert(const Value& value, To<boost::optional<T>>) {
 template <class Value>
 boost::optional<std::nullptr_t> Convert(const Value&,
                                         To<boost::optional<std::nullptr_t>>) {
+  static_assert(!sizeof(Value),
+                "optional<nullptr_t> is forbidden, check IsNull() instead");
+  return nullptr;
+}
+
+template <class Value, typename T>
+std::optional<T> Convert(const Value& value, To<std::optional<T>>) {
+  if (value.IsMissing() || value.IsNull()) {
+    return std::nullopt;
+  }
+  return value.template ConvertTo<T>();
+}
+
+template <class Value>
+std::optional<std::nullptr_t> Convert(const Value&,
+                                      To<std::optional<std::nullptr_t>>) {
   static_assert(!sizeof(Value),
                 "optional<nullptr_t> is forbidden, check IsNull() instead");
   return nullptr;

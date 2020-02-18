@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/optional.hpp>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -82,23 +83,42 @@ TYPED_TEST_P(Parsing, VectorVectorIntNull) {
   EXPECT_EQ(std::vector<std::vector<int>>{}, v);
 }
 
-TYPED_TEST_P(Parsing, OptionalIntNone) {
+TYPED_TEST_P(Parsing, BoostOptionalIntNone) {
   auto value = this->FromString("{}")["nonexisting"];
   boost::optional<int> v = value.template As<boost::optional<int>>();
   EXPECT_EQ(boost::none, v);
 }
 
-TYPED_TEST_P(Parsing, OptionalInt) {
+TYPED_TEST_P(Parsing, BoostOptionalInt) {
   auto value = this->FromString("[1]")[0];
   boost::optional<int> v = value.template As<boost::optional<int>>();
   EXPECT_EQ(1, v);
 }
 
-TYPED_TEST_P(Parsing, OptionalVectorInt) {
+TYPED_TEST_P(Parsing, BoostOptionalVectorInt) {
   auto value = this->FromString("{}")["nonexisting"];
   boost::optional<std::vector<int>> v =
       value.template As<boost::optional<std::vector<int>>>();
   EXPECT_EQ(boost::none, v);
+}
+
+TYPED_TEST_P(Parsing, OptionalIntNone) {
+  auto value = this->FromString("{}")["nonexisting"];
+  std::optional<int> v = value.template As<std::optional<int>>();
+  EXPECT_EQ(std::nullopt, v);
+}
+
+TYPED_TEST_P(Parsing, OptionalInt) {
+  auto value = this->FromString("[1]")[0];
+  std::optional<int> v = value.template As<std::optional<int>>();
+  EXPECT_EQ(1, v);
+}
+
+TYPED_TEST_P(Parsing, OptionalVectorInt) {
+  auto value = this->FromString("{}")["nonexisting"];
+  std::optional<std::vector<int>> v =
+      value.template As<std::optional<std::vector<int>>>();
+  EXPECT_EQ(std::nullopt, v);
 }
 
 TYPED_TEST_P(Parsing, Int) {
@@ -198,10 +218,13 @@ REGISTER_TYPED_TEST_CASE_P(Parsing,
 
                            ContainersCtr, VectorInt, VectorIntNull,
                            VectorIntErrorObj, VectorVectorInt,
-                           VectorVectorIntNull, OptionalIntNone,
+                           VectorVectorIntNull,
 
-                           OptionalInt, OptionalVectorInt, Int, UInt,
-                           IntOverflow, UserProvidedCommonParser,
+                           BoostOptionalIntNone, BoostOptionalInt,
+                           BoostOptionalVectorInt, OptionalIntNone, OptionalInt,
+                           OptionalVectorInt,
+
+                           Int, UInt, IntOverflow, UserProvidedCommonParser,
 
                            ChronoDoubleSeconds, ChronoSeconds,
 

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <optional>
 
 #include <boost/optional.hpp>
 
@@ -255,6 +256,7 @@ TYPED_TEST_P(Conversion, Containers) {
                    .empty()));
   EXPECT_TRUE(value["n"].template ConvertTo<std::vector<int>>().empty());
   EXPECT_FALSE(value["n"].template ConvertTo<boost::optional<std::string>>());
+  EXPECT_FALSE(value["n"].template ConvertTo<std::optional<std::string>>());
 }
 
 REGISTER_TYPED_TEST_CASE_P(Conversion,
