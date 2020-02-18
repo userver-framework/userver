@@ -6,7 +6,9 @@
 #include <boost/version.hpp>
 #include <string>
 
-#ifdef __cpp_lib_string_view
+// MAC_COMPAT: libc++ on mac overrides <version> with older revision w/o macros
+#if defined(__cpp_lib_string_view) || \
+    (defined(__APPLE__) && (_LIBCPP_STD_VER > 14))
 
 #include <string_view>
 namespace utils {
