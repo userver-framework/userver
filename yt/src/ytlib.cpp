@@ -318,6 +318,40 @@ void GlobalInit(int pool_size) {
 void GlobalShutdown() { NTaxi::YT::GlobalShutdown(); }
 
 /***************************************************/
+/*              Operation descriptors              */
+/***************************************************/
+namespace options {
+Path::Path(std::string path) : path_(std::move(path)) {}
+Path::Path(Path&& other) noexcept : path_(std::exchange(other.path_, {})) {}
+}  // namespace options
+
+namespace operations {
+Exists::Exists(std::string path) : path_(std::move(path)) {}
+Exists::Exists(Exists&& other) noexcept = default;
+void Exists::Set(options::Path path) { path_ = std::move(path.path_); }
+
+CreateDirectory::CreateDirectory(std::string path)
+    : path_(std::move(path)), recursive_(false), force_(false) {}
+CreateDirectory::CreateDirectory(CreateDirectory&& other) noexcept
+    : path_(std::exchange(other.path_, std::string{})),
+      recursive_(std::exchange(other.recursive_, false)),
+      force_(std::exchange(other.force_, false)) {}
+void CreateDirectory::Set(options::Path path) { path_ = std::move(path.path_); }
+void CreateDirectory::Set(const options::Recursive) { recursive_ = true; }
+void CreateDirectory::Set(const options::Force) { force_ = true; }
+
+Remove::Remove(std::string path)
+    : path_(std::move(path)), recursive_(false), force_(false) {}
+Remove::Remove(Remove&& other) noexcept
+    : path_(std::exchange(other.path_, {})),
+      recursive_(std::exchange(other.recursive_, false)),
+      force_(std::exchange(other.force_, false)) {}
+void Remove::Set(options::Path path) { path_ = std::move(path.path_); }
+void Remove::Set(const options::Recursive) { recursive_ = true; }
+void Remove::Set(const options::Force) { force_ = true; }
+}  // namespace operations
+
+/***************************************************/
 /*                      Row                        */
 /***************************************************/
 Row::Row() : row_{0, nullptr} {}
@@ -404,6 +438,37 @@ ReadCursor Client::ReadTable(
           .Get());
 }
 
+bool Client::Execute(operations::Exists operation) {
+  return engine::impl::Async(
+             *gYtProcessor->Get(),
+             [client = client_, operation = std::move(operation)]() {
+               return client->Exists(operation.path_.c_str()).value();
+             })
+      .Get();
+}
+
+void Client::Execute(operations::CreateDirectory operation) {
+  engine::impl::Async(*gYtProcessor->Get(),
+                      [client = client_, operation = std::move(operation)]() {
+                        client
+                            ->CreateDirectory(operation.path_.c_str(),
+                                              operation.recursive_,
+                                              operation.force_)
+                            .value();
+                      })
+      .Get();
+}
+
+void Client::Execute(operations::Remove operation) {
+  engine::impl::Async(*gYtProcessor->Get(),
+                      [client = client_, operation = std::move(operation)]() {
+                        client
+                            ->Remove(operation.path_.c_str(),
+                                     operation.recursive_, operation.force_)
+                            .value();
+                      })
+      .Get();
+}
 /***************************************************/
 /*                   Connection                    */
 /***************************************************/
