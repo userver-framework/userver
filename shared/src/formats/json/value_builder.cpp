@@ -32,6 +32,36 @@ rapidjson::Type ToNativeType(Type type) {
 
 // use c runtime malloc/free for value builders
 rapidjson::CrtAllocator g_crt_allocator;
+
+enum class MemberDuplicate {
+  kCheck,
+  kNoCheck,
+};
+
+impl::Value* AddMember(Value& value, impl::Value& native,
+                       const std::string& key,
+                       MemberDuplicate member_duplicate) {
+  value.CheckObjectOrNull();
+
+  impl::Value* newval = nullptr;
+
+  if (native.IsNull()) {
+    native.SetObject();
+  } else if (member_duplicate == MemberDuplicate::kCheck) {
+    auto it = native.FindMember(key);
+    newval = it != native.MemberEnd() ? &it->value : nullptr;
+  }
+
+  if (newval == nullptr) {
+    // create new member if key is not found
+    native.AddMember(impl::Value(key, g_crt_allocator), impl::Value(),
+                     g_crt_allocator);
+    newval = &std::prev(native.MemberEnd())->value;
+  }
+
+  return newval;
+}
+
 }  // namespace
 
 ValueBuilder::ValueBuilder(Type type)
@@ -102,25 +132,8 @@ ValueBuilder::ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
     : value_(root, &val, depth) {}
 
 ValueBuilder ValueBuilder::operator[](const std::string& key) {
-  value_.CheckObjectOrNull();
-
-  auto& native = value_.GetNative();
-  impl::Value* newval = nullptr;
-
-  if (native.IsNull()) {
-    native.SetObject();
-  } else {
-    auto it = native.FindMember(key);
-    newval = it != native.MemberEnd() ? &it->value : nullptr;
-  }
-
-  if (newval == nullptr) {
-    // create new member if key is not found
-    native.AddMember(impl::Value(key, g_crt_allocator), impl::Value(),
-                     g_crt_allocator);
-    newval = &std::prev(native.MemberEnd())->value;
-  }
-
+  auto newval =
+      AddMember(value_, value_.GetNative(), key, MemberDuplicate::kCheck);
   return {value_.root_, *newval, value_.depth_ + 1};
 }
 
@@ -128,6 +141,12 @@ ValueBuilder ValueBuilder::operator[](std::size_t index) {
   value_.CheckInBounds(index);
   return {value_.root_, value_.GetNative()[static_cast<int>(index)],
           value_.depth_ + 1};
+}
+
+void ValueBuilder::EmplaceNocheck(const std::string& key, ValueBuilder value) {
+  auto newval =
+      AddMember(value_, value_.GetNative(), key, MemberDuplicate::kNoCheck);
+  ValueBuilder{value_.root_, *newval, value_.depth_ + 1} = std::move(value);
 }
 
 void ValueBuilder::Remove(const std::string& key) {

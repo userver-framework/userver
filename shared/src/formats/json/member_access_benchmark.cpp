@@ -95,3 +95,33 @@ void json_path_long_and_deeply_nested(benchmark::State& state) {
   }
 }
 BENCHMARK(json_path_long_and_deeply_nested);
+
+formats::json::ValueBuilder Build(size_t count) {
+  formats::json::ValueBuilder builder;
+  for (size_t i = 0; i < count; i++) builder[std::to_string(i)] = i;
+  return builder;
+}
+
+void json_object_append(benchmark::State& state) {
+  const auto size = state.range(0);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(Build(size));
+  }
+}
+BENCHMARK(json_object_append)->RangeMultiplier(2)->Range(1, 128);
+
+formats::json::ValueBuilder BuildNocheck(size_t count) {
+  formats::json::ValueBuilder builder;
+  for (size_t i = 0; i < count; i++) {
+    builder.EmplaceNocheck(std::to_string(i), i);
+  }
+  return builder;
+}
+
+void json_object_append_nocheck(benchmark::State& state) {
+  const auto size = state.range(0);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(BuildNocheck(size));
+  }
+}
+BENCHMARK(json_object_append_nocheck)->RangeMultiplier(2)->Range(1, 128);

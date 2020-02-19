@@ -64,6 +64,10 @@ class ValueBuilder final {
   /// @throw `OutOfBoundsException` if index is greater than size.
   ValueBuilder operator[](std::size_t index);
 
+  /// @brief Emplaces new member w/o a check whether the key already exists.
+  /// @throw `TypeMismatchException` if not object or null value.
+  void EmplaceNocheck(const std::string& key, ValueBuilder value);
+
   /// @brief Remove key from object. If key is missing nothing happens.
   /// @throw `TypeMismatchException` if value is not an object.
   void Remove(const std::string& key);
