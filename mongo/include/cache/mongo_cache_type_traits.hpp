@@ -95,6 +95,16 @@ template <typename T>
 constexpr bool kHasInvalidDocumentsSkipped =
     HasInvalidDocumentsSkipped<T>::value;
 
+template <typename>
+struct ClassByMemberPointer {};
+template <typename T, typename C>
+struct ClassByMemberPointer<T C::*> {
+  using type = C;
+};
+template <typename CollectionPtr>
+using CollectionsType =
+    typename ClassByMemberPointer<std::remove_cv_t<CollectionPtr>>::type;
+
 template <typename MongoCacheTraits>
 struct CheckTraits {
   static_assert(kHasCollectionsField<MongoCacheTraits>,
