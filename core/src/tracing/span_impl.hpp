@@ -46,6 +46,8 @@ class Span::Impl
   void AttachToCoroStack();
 
  private:
+  void LogOpenTracing() const;
+
   logging::Level log_level_;
   boost::optional<logging::Level> local_log_level_;
 

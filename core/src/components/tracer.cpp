@@ -1,13 +1,20 @@
 #include <components/tracer.hpp>
 #include <logging/component.hpp>
 #include <tracing/noop.hpp>
+#include <tracing/opentracing.hpp>
 #include <tracing/tracer.hpp>
 
 namespace components {
 
 Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
-  context.FindComponent<Logging>();
-
+  auto& logging_component = context.FindComponent<Logging>();
+  try {
+    auto opentracing_logger = logging_component.GetLogger("opentracing");
+    tracing::SetOpentracingLogger(opentracing_logger);
+    LOG_INFO() << "Opentracing enabled.";
+  } catch (const std::exception& exception) {
+    LOG_INFO() << "Opentracing logger not set: " << exception;
+  }
   tracing::TracerPtr tracer;
 
   auto tracer_type = config.ParseString("tracer");
