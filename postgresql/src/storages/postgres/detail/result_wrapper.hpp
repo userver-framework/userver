@@ -56,6 +56,7 @@ class ResultWrapper {
   /** @name Message result */
   // TODO Consider splitting these methods into a separate class
   std::string GetErrorMessage() const;
+  std::string GetPrimaryErrorMessage() const;
   std::string GetDetailErrorMessage() const;
   std::string GetMessageSeverityString() const;
   Message::Severity GetMessageSeverity() const;

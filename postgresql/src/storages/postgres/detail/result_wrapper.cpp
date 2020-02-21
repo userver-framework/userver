@@ -183,9 +183,12 @@ std::string ResultWrapper::GetErrorMessage() const {
   return {msg ? msg : "no error message"};
 }
 
+std::string ResultWrapper::GetPrimaryErrorMessage() const {
+  return GetMessageField(PG_DIAG_MESSAGE_PRIMARY);
+}
+
 std::string ResultWrapper::GetDetailErrorMessage() const {
   return GetMessageField(PG_DIAG_MESSAGE_DETAIL);
-  ;
 }
 
 std::string ResultWrapper::GetMessageSeverityString() const {

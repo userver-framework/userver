@@ -285,6 +285,18 @@ POSTGRE_TEST_P(StatementTimout) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
+POSTGRE_TEST_P(CachedPlanChange) {
+  // this only works with english messages, better than nothing
+  conn->Execute("SET lc_messages = 'en_US.UTF-8'");
+  conn->Execute("CREATE TEMPORARY TABLE plan_change_test ( a integer )");
+  EXPECT_NO_THROW(conn->Execute("SELECT * FROM plan_change_test"));
+  conn->Execute("ALTER TABLE plan_change_test ALTER a TYPE bigint");
+  EXPECT_THROW(conn->Execute("SELECT * FROM plan_change_test"),
+               pg::FeatureNotSupported);
+  // broken plan should not be reused anymore
+  EXPECT_NO_THROW(conn->Execute("SELECT * FROM plan_change_test"));
+}
+
 }  // namespace
 
 TEST_P(PostgreConnection, Connect) {

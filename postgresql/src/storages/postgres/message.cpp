@@ -27,6 +27,10 @@ Message::Message(detail::ResultWrapperPtr res) : res_{res} {}
 
 std::string Message::GetMessage() const { return res_->GetErrorMessage(); }
 
+std::string Message::GetPrimary() const {
+  return res_->GetPrimaryErrorMessage();
+}
+
 std::string Message::GetDetail() const { return res_->GetDetailErrorMessage(); }
 
 Message::Severity Message::GetSeverity() const {

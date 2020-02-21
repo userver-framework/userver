@@ -30,6 +30,10 @@ namespace {
 
 const char* const kStatementTimeoutParameter = "statement_timeout";
 
+// we hope lc_messages is en_US, we don't control it anyway
+const std::string kBadCachedPlanErrorMessage =
+    "cached plan must not change result type";
+
 std::size_t QueryHash(const std::string& statement,
                       const QueryParameters& params) {
   auto res = params.TypeHash();
@@ -153,6 +157,7 @@ struct Connection::Impl {
   PreparedStatements prepared_;
   UserTypes db_types_;
   bool read_only_ = true;
+  bool is_discard_prepared_pending_ = false;
   ConnectionSettings settings_;
 
   CommandControl default_cmd_ctl_;
@@ -194,9 +199,9 @@ struct Connection::Impl {
     conn_wrapper_.AsyncConnect(conninfo, deadline, scope);
     scope.Reset(scopes::kGetConnectData);
     // We cannot handle exceptions here, so we let them got to the caller
-    // Detect if the connection is read only.
-    CheckReadOnly(deadline);
     ExecuteCommandNoPrepare("discard all", deadline);
+    SetParameter("client_encoding", "UTF8", ParameterScope::kSession, deadline);
+    CheckReadOnly(deadline);
     SetLocalTimezone(deadline);
     SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
     LoadUserTypes(deadline);
@@ -206,6 +211,16 @@ struct Connection::Impl {
     auto res = ExecuteCommandNoPrepare("show transaction_read_only", deadline);
     if (!res.IsEmpty()) {
       res.Front().To(read_only_);
+    }
+  }
+
+  void DiscardOldPreparedStatements(engine::Deadline deadline) {
+    // do not try to do anything in transaction as it may already be broken
+    if (is_discard_prepared_pending_ && !IsInTransaction()) {
+      LOG_DEBUG() << "Discarding prepared statements";
+      prepared_.clear();
+      ExecuteCommandNoPrepare("DEALLOCATE ALL", deadline);
+      is_discard_prepared_pending_ = false;
     }
   }
 
@@ -454,6 +469,7 @@ struct Connection::Impl {
         ConnectionSettings::kNoPreparedStatements) {
       return ExecuteCommandNoPrepare(statement, params, deadline);
     }
+    DiscardOldPreparedStatements(deadline);
     tracing::Span span{scopes::kQuery};
     span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
     span.AddTag(tracing::kDatabaseStatement, statement);
@@ -475,7 +491,6 @@ struct Connection::Impl {
     scope.Reset(scopes::kExec);
     conn_wrapper_.SendPreparedQuery(prepared_info.statement_name, params, scope,
                                     prepared_info.format);
-    // TODO Use prepared statement description
     return WaitResult(statement, deadline, network_timeout, count_execute, span,
                       scope, prepared_info.format, prepared_info.description);
   }
@@ -500,13 +515,14 @@ struct Connection::Impl {
     auto scope = span.CreateScopeTime(scopes::kExec);
     conn_wrapper_.SendQuery(statement, scope);
     return WaitResult(statement, deadline, network_timeout, count_execute, span,
-                      scope, io::DataFormat::kTextDataFormat,
+                      scope, io::DataFormat::kBinaryDataFormat,
                       ResultSet{nullptr});
   }
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement,
                                     const QueryParameters& params,
                                     engine::Deadline deadline) {
+    CheckBusy();
     tracing::Span span{scopes::kQuery};
     span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
     span.AddTag(tracing::kDatabaseStatement, statement);
@@ -654,6 +670,15 @@ struct Connection::Impl {
                   << current_statement_timeout_.count() << "ms";
       span.AddTag(tracing::kErrorFlag, true);
       throw;
+    } catch (const FeatureNotSupported& e) {
+      // yes, this is the only way to discern this error
+      if (e.GetServerMessage().GetPrimary() == kBadCachedPlanErrorMessage) {
+        LOG_WARNING() << "Scheduling prepared statements invalidation due to "
+                         "cached plan change";
+        is_discard_prepared_pending_ = true;
+      }
+      span.AddTag(tracing::kErrorFlag, true);
+      throw;
     } catch (const std::exception&) {
       span.AddTag(tracing::kErrorFlag, true);
       throw;
@@ -666,6 +691,8 @@ struct Connection::Impl {
     if (IsInTransaction()) {
       throw AlreadyInTransaction();
     }
+    DiscardOldPreparedStatements(
+        testsuite_pg_ctl_.MakeExecuteDeadline(CurrentExecuteTimeout()));
     stats_.trx_start_time = trx_start_time;
     stats_.work_start_time = SteadyClock::now();
     ++stats_.trx_total;

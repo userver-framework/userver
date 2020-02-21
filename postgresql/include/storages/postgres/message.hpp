@@ -31,6 +31,7 @@ class Message {
   explicit Message(detail::ResultWrapperPtr);
 
   std::string GetMessage() const;
+  std::string GetPrimary() const;
   std::string GetDetail() const;
   Severity GetSeverity() const;
   std::string GetSeverityString() const;
