@@ -157,6 +157,8 @@ class Request::RequestImpl
 
   void SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config);
 
+  void DisableReplyDecoding();
+
   std::shared_ptr<EasyWrapper> easy_wrapper() { return easy_; }
 
   curl::easy& easy() { return easy_->Easy(); }
@@ -221,6 +223,7 @@ class Request::RequestImpl
   } retry_;
 
   boost::optional<tracing::Span> span_;
+  bool disable_reply_decoding_;
 };
 
 // Module functions
@@ -425,6 +428,11 @@ std::shared_ptr<Request> Request::SetTestsuiteConfig(
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::DisableReplyDecoding() {
+  pimpl_->DisableReplyDecoding();
+  return shared_from_this();
+}
+
 void Request::RequestImpl::SetDestinationMetricNameAuto(
     std::string destination) {
   destination_metric_name_ = std::move(destination);
@@ -439,7 +447,8 @@ Request::RequestImpl::RequestImpl(
     : easy_(std::move(wrapper)),
       stats_(std::move(req_stats)),
       dest_stats_(std::move(dest_stats)),
-      timeout_ms_(0) {
+      timeout_ms_(0),
+      disable_reply_decoding_(false) {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
 }
@@ -508,6 +517,10 @@ void Request::RequestImpl::SetDestinationMetricName(
 void Request::RequestImpl::SetTestsuiteConfig(
     const std::shared_ptr<const TestsuiteConfig>& config) {
   testsuite_config_ = config;
+}
+
+void Request::RequestImpl::DisableReplyDecoding() {
+  disable_reply_decoding_ = true;
 }
 
 size_t Request::RequestImpl::on_header(void* ptr, size_t size, size_t nmemb,
@@ -703,8 +716,13 @@ Request::RequestImpl::async_perform() {
   easy().set_header_function(&Request::RequestImpl::on_header);
   easy().set_header_data(this);
 
-  // set autodecooding for gzip and deflate
-  easy().set_accept_encoding("gzip,deflate");
+  if (disable_reply_decoding_) {
+    // don't autodecode replies
+    easy().set_accept_encoding(nullptr);
+  } else {
+    // set autodecoding for gzip and deflate
+    easy().set_accept_encoding("gzip,deflate");
+  }
 
   if (!dest_req_stats_) {
     dest_req_stats_ =

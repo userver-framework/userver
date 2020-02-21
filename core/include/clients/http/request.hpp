@@ -108,6 +108,10 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> SetTestsuiteConfig(
       const std::shared_ptr<const TestsuiteConfig>& config);
 
+  /// Disable autodecoding of received replies.
+  /// Useful to proxy replies 'as is'.
+  std::shared_ptr<Request> DisableReplyDecoding();
+
   /// Perform request async, after completing callack will be called
   /// or it can be waiting on a future.
   [[nodiscard]] ResponseFuture async_perform();
