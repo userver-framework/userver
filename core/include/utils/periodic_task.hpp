@@ -3,6 +3,7 @@
 /// @file utils/periodic_task.hpp
 /// @brief @copybrief utils::PeriodicTask
 
+#include <optional>
 #include <random>
 
 #include <engine/condition_variable.hpp>
@@ -66,7 +67,7 @@ class PeriodicTask final {
     std::chrono::milliseconds period;
     std::chrono::milliseconds distribution;
     /// Used instead of period in case of exception, if set.
-    boost::optional<std::chrono::milliseconds> exception_period;
+    std::optional<std::chrono::milliseconds> exception_period;
     utils::Flags<Flags> flags;
     logging::Level span_level;
   };
@@ -151,8 +152,7 @@ class PeriodicTask final {
   engine::Mutex step_mutex_;
   std::atomic<SuspendState> suspend_state_;
 
-  boost::optional<testsuite::PeriodicTaskRegistrationHolder>
-      registration_holder_;
+  std::optional<testsuite::PeriodicTaskRegistrationHolder> registration_holder_;
 };
 
 }  // namespace utils

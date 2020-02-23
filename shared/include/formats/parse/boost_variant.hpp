@@ -16,7 +16,7 @@ namespace formats::parse {
 namespace impl {
 template <class T, class Value, typename Result>
 void ParseBoostVariantSingle(const Value& value,
-                             boost::optional<Result>& result) {
+                             std::optional<Result>& result) {
   if (result) {
     std::type_index old_type = result->type();
     try {
@@ -41,7 +41,7 @@ void ParseBoostVariantSingle(const Value& value,
 template <class Value, typename... Types>
 boost::variant<Types...> Parse(const Value& value,
                                formats::parse::To<boost::variant<Types...>>) {
-  boost::optional<boost::variant<Types...>> result;
+  std::optional<boost::variant<Types...>> result;
   (impl::ParseBoostVariantSingle<Types>(value, result), ...);
 
   if (!result) {

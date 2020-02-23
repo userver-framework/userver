@@ -1,5 +1,7 @@
 #include <formats/parse/boost_uuid.hpp>
 
+#include <algorithm>
+
 namespace formats::parse::detail {
 
 namespace {

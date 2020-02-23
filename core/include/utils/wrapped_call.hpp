@@ -5,8 +5,10 @@
 
 #include <exception>
 #include <memory>
+#include <optional>
 #include <tuple>
 
+#include <logging/log.hpp>
 #include <utils/assert.hpp>
 #include <utils/result_store.hpp>
 
@@ -75,12 +77,12 @@ inline void WrappedCall<void>::DoPerform() {
 template <typename T>
 class OptionalSetNoneGuard final {
  public:
-  OptionalSetNoneGuard(boost::optional<T>& o) : o_(o) {}
+  OptionalSetNoneGuard(std::optional<T>& o) noexcept : o_(o) {}
 
-  ~OptionalSetNoneGuard() { o_ = boost::none; }
+  ~OptionalSetNoneGuard() { o_ = std::nullopt; }
 
  private:
-  boost::optional<T>& o_;
+  std::optional<T>& o_;
 };
 
 // Stores passed arguments and function. Invokes function later with argument
@@ -98,6 +100,21 @@ class WrappedCallImpl final
       : BaseType(&WrappedCallImpl::Call),
         f_(std::forward<Function>(f)),
         args_(std::make_tuple(std::forward<Args>(args)...)) {}
+
+  ~WrappedCallImpl() noexcept {
+    try {
+      args_.reset();
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception while destroying arguments of Async: " << e;
+      UASSERT(false);
+    }
+    try {
+      f_.reset();
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception while destroying Async function: " << e;
+      UASSERT(false);
+    }
+  }
 
  private:
   static ResultType Call(BaseType* self) {
@@ -128,8 +145,8 @@ class WrappedCallImpl final
   using StoredFunction =
       std::conditional_t<std::is_function<UnrefFunction>::value, UnrefFunction*,
                          UnrefFunction>;
-  boost::optional<StoredFunction> f_;
-  boost::optional<decltype(std::make_tuple(std::declval<Args>()...))> args_;
+  std::optional<StoredFunction> f_;
+  std::optional<decltype(std::make_tuple(std::declval<Args>()...))> args_;
 };
 
 }  // namespace impl

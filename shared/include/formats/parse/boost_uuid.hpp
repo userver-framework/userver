@@ -3,9 +3,9 @@
 /// @file formats/parse/boost_uuid.hpp
 /// @brief boost::uuids::uuid parser for any format
 
+#include <optional>
 #include <string>
 
-#include <boost/optional.hpp>
 #include <boost/uuid/uuid.hpp>
 
 #include <formats/common/meta.hpp>
@@ -29,7 +29,7 @@ boost::uuids::uuid ParseString(std::string const& str);
 template <typename Value>
 std::enable_if_t<common::kIsFormatValue<Value>, boost::uuids::uuid> Parse(
     const Value& value, To<boost::uuids::uuid>) {
-  boost::optional<std::string> str;
+  std::optional<std::string> str;
   try {
     str = value.template As<std::string>();
     return detail::ParseString(*str);

@@ -3,7 +3,7 @@
 #include <chrono>
 #include <optional>
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <formats/common/type.hpp>
 #include <formats/parse/common_containers.hpp>

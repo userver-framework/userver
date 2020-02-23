@@ -6,10 +6,9 @@
 /// Parsing is performed for each of the N alternatives in variant, N-1
 /// exceptions is thrown and catched during the parsing.
 
+#include <optional>
 #include <typeinfo>
 #include <variant>
-
-#include <boost/optional.hpp>
 
 #include <compiler/demangle.hpp>
 #include <formats/parse/to.hpp>
@@ -35,7 +34,7 @@ template <class ParseException, typename Variant>
 
 namespace impl {
 template <class T, class Value, typename Result>
-void ParseVariantSingle(const Value& value, boost::optional<Result>& result) {
+void ParseVariantSingle(const Value& value, std::optional<Result>& result) {
   if (result) {
     const auto old_type = std::visit(
         [](const auto& v) -> std::type_index { return typeid(v); }, *result);
@@ -61,7 +60,7 @@ void ParseVariantSingle(const Value& value, boost::optional<Result>& result) {
 template <class Value, typename... Types>
 std::variant<Types...> Parse(const Value& value,
                              formats::parse::To<std::variant<Types...>>) {
-  boost::optional<std::variant<Types...>> result;
+  std::optional<std::variant<Types...>> result;
   (impl::ParseVariantSingle<Types>(value, result), ...);
 
   if (!result) {

@@ -87,12 +87,14 @@ TYPED_TEST_P(Parsing, BoostOptionalIntNone) {
   auto value = this->FromString("{}")["nonexisting"];
   boost::optional<int> v = value.template As<boost::optional<int>>();
   EXPECT_EQ(boost::none, v);
+  EXPECT_FALSE(value.template As<std::optional<int>>());
 }
 
 TYPED_TEST_P(Parsing, BoostOptionalInt) {
   auto value = this->FromString("[1]")[0];
   boost::optional<int> v = value.template As<boost::optional<int>>();
   EXPECT_EQ(1, v);
+  EXPECT_EQ(1, value.template As<std::optional<int>>());
 }
 
 TYPED_TEST_P(Parsing, BoostOptionalVectorInt) {
@@ -100,6 +102,7 @@ TYPED_TEST_P(Parsing, BoostOptionalVectorInt) {
   boost::optional<std::vector<int>> v =
       value.template As<boost::optional<std::vector<int>>>();
   EXPECT_EQ(boost::none, v);
+  EXPECT_FALSE(value.template As<std::optional<std::vector<int>>>());
 }
 
 TYPED_TEST_P(Parsing, OptionalIntNone) {

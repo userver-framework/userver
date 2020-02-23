@@ -23,7 +23,7 @@ PeriodicTask::PeriodicTask(std::string name, Settings settings,
 
 PeriodicTask::~PeriodicTask() {
   UASSERT(!IsRunning());
-  registration_holder_ = boost::none;
+  registration_holder_ = std::nullopt;
   Stop();
 }
 

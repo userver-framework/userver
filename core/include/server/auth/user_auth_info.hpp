@@ -1,8 +1,7 @@
 #pragma once
 
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <server/request/request_context.hpp>
 #include <utils/non_loggable.hpp>
@@ -33,8 +32,8 @@ class UserAuthInfo final {
 
   UserId GetDefaultUserId() const;
   const UserIds& GetUserIds() const;
-  const boost::optional<UserScopes>& GetUserScopesOptional() const;
-  const boost::optional<Ticket>& GetTicketOptional() const;
+  const std::optional<UserScopes>& GetUserScopesOptional() const;
+  const std::optional<Ticket>& GetTicketOptional() const;
   UserEnv GetUserEnv() const { return user_env_; }
   UserProvider GetUserProvider() const { return user_provider_; }
 
@@ -45,8 +44,8 @@ class UserAuthInfo final {
 
   UserId default_id_;
   UserIds ids_;
-  boost::optional<UserScopes> scopes_;
-  boost::optional<Ticket> user_ticket_;
+  std::optional<UserScopes> scopes_;
+  std::optional<Ticket> user_ticket_;
   UserEnv user_env_;
   UserProvider user_provider_;
 };

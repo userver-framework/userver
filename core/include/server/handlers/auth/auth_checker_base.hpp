@@ -1,18 +1,15 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <server/auth/user_auth_info.hpp>
 #include <server/handlers/exceptions.hpp>
 #include <server/http/http_request.hpp>
 #include <server/request/request_context.hpp>
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 
 struct AuthCheckResult {
   enum class Status {
@@ -24,9 +21,9 @@ struct AuthCheckResult {
   };
 
   Status status{Status::kOk};
-  boost::optional<std::string> reason{};
-  boost::optional<std::string> ext_reason{};
-  boost::optional<HandlerErrorCode> code{};
+  std::optional<std::string> reason{};
+  std::optional<std::string> ext_reason{};
+  std::optional<HandlerErrorCode> code{};
 };
 
 const std::string& GetDefaultReasonForStatus(AuthCheckResult::Status status);
@@ -49,6 +46,4 @@ class AuthCheckerBase {
 
 using AuthCheckerBasePtr = std::shared_ptr<AuthCheckerBase>;
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth

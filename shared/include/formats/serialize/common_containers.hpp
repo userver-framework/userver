@@ -3,6 +3,7 @@
 /// @file formats/serialize/common_containers.hpp
 /// @brief Serializers for standard containers and optional
 
+#include <optional>
 #include <vector>
 
 #include <boost/optional.hpp>
@@ -38,6 +39,13 @@ std::enable_if_t<meta::is_map<T>::value, Value> Serialize(const T& value,
 
 template <typename T, typename Value>
 Value Serialize(const boost::optional<T>& value, To<Value>) {
+  if (!value) return {};
+
+  return typename Value::Builder(*value).ExtractValue();
+}
+
+template <typename T, typename Value>
+Value Serialize(const std::optional<T>& value, To<Value>) {
   if (!value) return {};
 
   return typename Value::Builder(*value).ExtractValue();

@@ -4,6 +4,7 @@
 /// @brief @copybrief utils::ResultStore
 
 #include <exception>
+#include <optional>
 #include <stdexcept>
 
 #include <boost/optional.hpp>
@@ -30,7 +31,7 @@ class ResultStore final {
 
  private:
   // variant here would require a specialization for exception_ptr
-  boost::optional<T> value_;
+  std::optional<T> value_;
   std::exception_ptr exception_;
 };
 

@@ -50,11 +50,11 @@ UserId UserAuthInfo::GetDefaultUserId() const { return default_id_; }
 
 const UserIds& UserAuthInfo::GetUserIds() const { return ids_; }
 
-const boost::optional<UserScopes>& UserAuthInfo::GetUserScopesOptional() const {
+const std::optional<UserScopes>& UserAuthInfo::GetUserScopesOptional() const {
   return scopes_;
 }
 
-const boost::optional<UserAuthInfo::Ticket>& UserAuthInfo::GetTicketOptional()
+const std::optional<UserAuthInfo::Ticket>& UserAuthInfo::GetTicketOptional()
     const {
   return user_ticket_;
 }
