@@ -10,7 +10,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <tracing/span.hpp>
-#include <utils/impl/wait_token_storage.hpp>
+#include <utils/size_guard.hpp>
 
 namespace storages {
 namespace postgres {
@@ -21,11 +21,11 @@ class PGConnectionWrapper {
   using Deadline = engine::Deadline;
   using Duration = Deadline::TimePoint::clock::duration;
   using ResultHandle = detail::ResultWrapper::ResultHandle;
-  using ConnToken = ::utils::impl::WaitTokenStorage::Token;
+  using SizeGuard = ::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
  public:
   PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
-                      ConnToken&& conn_token);
+                      SizeGuard&& size_guard);
   ~PGConnectionWrapper();
 
   PGConnectionWrapper(const PGConnectionWrapper&) = delete;
@@ -131,7 +131,7 @@ class PGConnectionWrapper {
   PGconn* conn_ = nullptr;
   engine::io::Socket socket_;
   logging::LogExtra log_extra_;
-  ConnToken conn_token_;
+  SizeGuard size_guard_;
   std::chrono::steady_clock::time_point last_use_;
 };
 

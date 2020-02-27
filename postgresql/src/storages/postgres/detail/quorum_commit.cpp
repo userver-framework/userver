@@ -195,9 +195,9 @@ CheckStatus HostStatus::RunCheck(
 
   if (!connection) {
     try {
-      connection = Connection::Connect(dsn, tp, kConnectionId, settings,
-                                       default_cmd_ctl, testsuite_pg_ctl,
-                                       ei_settings, Connection::ConnToken{});
+      connection =
+          Connection::Connect(dsn, tp, kConnectionId, settings, default_cmd_ctl,
+                              testsuite_pg_ctl, ei_settings);
     } catch (const ConnectionError& e) {
       LOG_ERROR() << "Failed to connect to " << DsnCutPassword(dsn) << ": "
                   << e;

@@ -14,7 +14,7 @@
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 
-#include <utils/impl/wait_token_storage.hpp>
+#include <utils/size_guard.hpp>
 #include <utils/strong_typedef.hpp>
 
 namespace storages {
@@ -91,7 +91,7 @@ class Connection {
     SteadyClock::duration sum_query_duration;
   };
 
-  using ConnToken = ::utils::impl::WaitTokenStorage::Token;
+  using SizeGuard = ::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
  public:
   Connection(const Connection&) = delete;
@@ -114,7 +114,8 @@ class Connection {
       const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
       uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
       const testsuite::PostgresControl& testsuite_pg_ctl,
-      const error_injection::Settings& ei_settings, ConnToken&& token);
+      const error_injection::Settings& ei_settings,
+      SizeGuard&& size_guard = SizeGuard{});
 
   CommandControl GetDefaultCommandControl() const;
 

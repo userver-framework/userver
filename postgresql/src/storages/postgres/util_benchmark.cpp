@@ -34,8 +34,7 @@ void PgConnection::SetUp(benchmark::State&) {
     RunInCoro([this, conninfo] {
       conn_ = detail::Connection::Connect(
           conninfo, GetTaskProcessor(), kConnectionId,
-          {ConnectionSettings::kCachePreparedStatements}, kBenchCmdCtl, {}, {},
-          {});
+          {ConnectionSettings::kCachePreparedStatements}, kBenchCmdCtl, {}, {});
     });
   }
 }

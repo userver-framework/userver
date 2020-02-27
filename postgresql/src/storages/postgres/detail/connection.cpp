@@ -171,8 +171,8 @@ struct Connection::Impl {
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
        ConnectionSettings settings, CommandControl default_cmd_ctl,
        const testsuite::PostgresControl& testsuite_pg_ctl,
-       const error_injection::Settings& ei_settings, ConnToken&& token)
-      : conn_wrapper_{bg_task_processor, id, std::move(token)},
+       const error_injection::Settings& ei_settings, SizeGuard&& size_guard)
+      : conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
         settings_{settings},
         default_cmd_ctl_{default_cmd_ctl},
         testsuite_pg_ctl_{testsuite_pg_ctl},
@@ -819,12 +819,12 @@ std::unique_ptr<Connection> Connection::Connect(
     const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
     uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    const error_injection::Settings& ei_settings, ConnToken&& token) {
+    const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
   std::unique_ptr<Connection> conn(new Connection());
 
-  conn->pimpl_ =
-      std::make_unique<Impl>(bg_task_processor, id, settings, default_cmd_ctl,
-                             testsuite_pg_ctl, ei_settings, std::move(token));
+  conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, settings,
+                                        default_cmd_ctl, testsuite_pg_ctl,
+                                        ei_settings, std::move(size_guard));
   conn->pimpl_->AsyncConnect(conninfo);
 
   return conn;
