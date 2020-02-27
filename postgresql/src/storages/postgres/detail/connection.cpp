@@ -191,12 +191,12 @@ struct Connection::Impl {
 
   void AsyncConnect(const std::string& conninfo) {
     tracing::Span span{scopes::kConnect};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
     auto scope = span.CreateScopeTime();
     auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(kConnectTimeout);
     // While connecting there are several network roundtrips, so give them
     // some allowance.
     conn_wrapper_.AsyncConnect(conninfo, deadline, scope);
+    conn_wrapper_.FillSpanTags(span);
     scope.Reset(scopes::kGetConnectData);
     // We cannot handle exceptions here, so we let them got to the caller
     ExecuteCommandNoPrepare("discard all", deadline);
@@ -208,9 +208,27 @@ struct Connection::Impl {
   }
 
   void CheckReadOnly(engine::Deadline deadline) {
-    auto res = ExecuteCommandNoPrepare("show transaction_read_only", deadline);
-    if (!res.IsEmpty()) {
-      res.Front().To(read_only_);
+    auto is_in_recovery =
+        ExecuteCommandNoPrepare("SELECT pg_is_in_recovery()", deadline);
+    if (!is_in_recovery.IsEmpty()) {
+      is_in_recovery.Front().To(read_only_);
+    } else {
+      LOG_WARNING() << "Cannot determine host recovery state, falling back to "
+                       "read-only operation";
+      read_only_ = true;
+    }
+
+    if (!read_only_) {
+      // Additional check for writability
+      auto is_writable =
+          ExecuteCommandNoPrepare("SHOW transaction_read_only", deadline);
+      if (!is_writable.IsEmpty()) {
+        is_writable.Front().To(read_only_);
+        if (read_only_) {
+          LOG_WARNING() << "Primary host is not writable, possibly due to "
+                           "insufficient disk space";
+        }
+      }
     }
   }
 
@@ -330,10 +348,6 @@ struct Connection::Impl {
       // TODO Decide about rethrowing
       throw;
     }
-  }
-
-  const logging::LogExtra& GetLogExtra() const {
-    return conn_wrapper_.GetLogExtra();
   }
 
   ConnectionState GetConnectionState() const {
@@ -471,7 +485,7 @@ struct Connection::Impl {
     }
     DiscardOldPreparedStatements(deadline);
     tracing::Span span{scopes::kQuery};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    conn_wrapper_.FillSpanTags(span);
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
@@ -505,7 +519,7 @@ struct Connection::Impl {
                                     engine::Deadline deadline) {
     CheckBusy();
     tracing::Span span{scopes::kQuery};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    conn_wrapper_.FillSpanTags(span);
     span.AddTag(tracing::kDatabaseStatement, statement);
     CountExecute count_execute(stats_);
     TimeoutDuration network_timeout =
@@ -524,7 +538,7 @@ struct Connection::Impl {
                                     engine::Deadline deadline) {
     CheckBusy();
     tracing::Span span{scopes::kQuery};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    conn_wrapper_.FillSpanTags(span);
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
@@ -551,7 +565,7 @@ struct Connection::Impl {
                                 io::DataFormat reply_format,
                                 const detail::QueryParameters& params) {
     tracing::Span span{"pg_experimental_execute"};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    conn_wrapper_.FillSpanTags(span);
     span.AddTag(tracing::kDatabaseStatement, statement);
     auto scope = span.CreateScopeTime();
     conn_wrapper_.SendQuery(statement, params, scope, reply_format);
@@ -581,7 +595,7 @@ struct Connection::Impl {
     SetStatementTimeout(std::move(statement_cmd_ctl));
 
     tracing::Span span{scopes::kQuery};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    conn_wrapper_.FillSpanTags(span);
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
@@ -618,7 +632,7 @@ struct Connection::Impl {
     auto& prepared_info = prepared_[statement_id];
 
     tracing::Span span{scopes::kQuery};
-    span.AddTag(tracing::kDatabaseType, tracing::kDatabasePostgresType);
+    conn_wrapper_.FillSpanTags(span);
     span.AddTag(tracing::kDatabaseStatement, prepared_info.statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
@@ -875,10 +889,6 @@ void Connection::ReloadUserTypes() {
 
 const UserTypes& Connection::GetUserTypes() const {
   return pimpl_->GetUserTypes();
-}
-
-const logging::LogExtra& Connection::GetLogExtra() const {
-  return pimpl_->GetLogExtra();
 }
 
 ResultSet Connection::ExperimentalExecute(

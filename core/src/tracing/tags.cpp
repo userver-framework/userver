@@ -34,4 +34,6 @@ const std::string kDatabaseInstance = "db.instance";
 
 const std::string kDatabaseStatement = "db.statement";
 
+const std::string kPeerAddress = "peer.address";
+
 }  // namespace tracing

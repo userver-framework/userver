@@ -89,9 +89,8 @@ class PGConnectionWrapper {
   /// If the connection still busy, return false
   bool TryConsumeInput(Deadline deadline);
 
-  /// @brief Get extra log information
-  /// Used for internal needs
-  const logging::LogExtra& GetLogExtra() const;
+  /// @brief Fills current span with connection info
+  void FillSpanTags(tracing::Span&) const;
 
   void LogNotice(PGresult const*);
 

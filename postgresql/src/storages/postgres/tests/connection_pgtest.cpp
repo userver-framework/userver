@@ -304,8 +304,8 @@ TEST_P(PostgreConnection, Connect) {
     EXPECT_THROW(pg::detail::Connection::Connect(
                      "psql://", GetTaskProcessor(), kConnectionId,
                      kCachePreparedStatements, kTestCmdCtl, {}, {}, {}),
-                 pg::ConnectionFailed)
-        << "Fail to connect with invalid DSN";
+                 pg::InvalidDSN)
+        << "Connected with invalid DSN";
 
     {
       pg::detail::ConnectionPtr conn =

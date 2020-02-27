@@ -3,6 +3,7 @@
 #include <logging/log.hpp>
 #include <logging/log_extra.hpp>
 #include <tracing/tracer_fwd.hpp>
+#include <utils/internal_tag_fwd.hpp>
 #include <utils/prof.hpp>
 
 namespace tracing {
@@ -81,10 +82,6 @@ class Span final {
 
   std::string GetLink() const;
 
-  /** A hack function that returns internals, it might be deleted in future
-   * versions. Don't use it! */
-  logging::LogExtra& GetInheritableLogExtra();
-
   const std::string& GetTraceId() const;
   const std::string& GetSpanId() const;
   const std::string& GetParentId() const;
@@ -96,18 +93,14 @@ class Span final {
 
   class Impl;
 
+  /// @cond
+  void AddTags(const logging::LogExtra&, utils::InternalTag);
+  /// @endcond
+
  private:
   std::unique_ptr<Impl> pimpl_;
 };
 
+logging::LogHelper& operator<<(logging::LogHelper& lh, const Span& span);
+
 }  // namespace tracing
-
-namespace logging {
-
-LogHelper& operator<<(LogHelper& lh, const tracing::Span& span);
-
-LogHelper& operator<<(LogHelper& lh, tracing::Span::Impl&& span_impl);
-
-LogHelper& operator<<(LogHelper& lh, const tracing::Span::Impl& span_impl);
-
-}  // namespace logging

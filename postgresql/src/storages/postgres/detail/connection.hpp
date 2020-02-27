@@ -220,10 +220,6 @@ class Connection {
   void ReloadUserTypes();
   const UserTypes& GetUserTypes() const;
 
-  /// @brief Get extra log information
-  /// Used for internal needs
-  const logging::LogExtra& GetLogExtra() const;
-
   //@{
   /** @name Command sending interface for experimenting */
   /// Separate method for experimenting with PostgreSQL protocol and parsing

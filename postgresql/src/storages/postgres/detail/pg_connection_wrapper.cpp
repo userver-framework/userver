@@ -10,7 +10,9 @@
 #include <pq_workaround.h>
 
 #include <logging/log.hpp>
+#include <tracing/tags.hpp>
 #include <utils/assert.hpp>
+#include <utils/internal_tag.hpp>
 
 #define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
 #define PGCW_LOG_DEBUG() LOG_DEBUG() << log_extra_
@@ -76,10 +78,11 @@ void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
 PGConnectionWrapper::PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
                                          ConnToken&& conn_token)
     : bg_task_processor_{tp},
+      log_extra_{{tracing::kDatabaseType, tracing::kDatabasePostgresType},
+                 {"pg_conn_id", id}},
       conn_token_{std::move(conn_token)},
       last_use_{std::chrono::steady_clock::now()} {
   // TODO add SSL initialization
-  log_extra_.Extend("conn_id", id);
 }
 
 PGConnectionWrapper::~PGConnectionWrapper() { Close().Detach(); }
@@ -164,6 +167,12 @@ engine::Task PGConnectionWrapper::Cancel() {
 void PGConnectionWrapper::AsyncConnect(const std::string& conninfo,
                                        Deadline deadline, ScopeTime& scope) {
   PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(conninfo);
+
+  auto options = OptionsFromDsn(conninfo);
+  log_extra_.Extend(tracing::kDatabaseInstance, std::move(options.dbname));
+  log_extra_.Extend(tracing::kPeerAddress,
+                    std::move(options.host) + ':' + options.port);
+
   scope.Reset(scopes::kLibpqConnect);
   StartAsyncConnect(conninfo);
   scope.Reset(scopes::kLibpqWaitConnectFinish);
@@ -213,10 +222,6 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
     throw ConnectionFailed{conninfo, "Invalid socket handle"};
   }
   socket_ = engine::io::Socket(socket);
-
-  const auto options = OptionsFromDsn(conninfo);
-  log_extra_.Extend("host", options.host + ':' + options.port);
-  log_extra_.Extend("dbname", options.dbname);
 
   if (kVerboseErrors) {
     PQsetErrorVerbosity(conn_, PQERRORS_VERBOSE);
@@ -329,8 +334,8 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   }
 }
 
-const logging::LogExtra& PGConnectionWrapper::GetLogExtra() const {
-  return log_extra_;
+void PGConnectionWrapper::FillSpanTags(tracing::Span& span) const {
+  span.AddTags(log_extra_, ::utils::InternalTag{});
 }
 
 ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {

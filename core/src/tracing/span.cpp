@@ -11,6 +11,7 @@
 #include <tracing/tracer.hpp>
 #include <type_traits>
 #include <utils/assert.hpp>
+#include <utils/internal_tag.hpp>
 #include <utils/uuid4.hpp>
 
 #define DO_LOG_TO_NO_SPAN(logger, lvl)                            \
@@ -87,6 +88,12 @@ std::string GenerateSpanId() {
   std::uniform_int_distribution<unsigned long long> dist;
   auto random_value = dist(engine);
   return fmt::format("{:016x}", random_value);
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh,
+                               tracing::Span::Impl&& span_impl) {
+  std::move(span_impl).LogTo(lh);
+  return lh;
 }
 
 }  // namespace
@@ -290,6 +297,10 @@ void Span::AddTag(std::string key, logging::LogExtra::Value value) {
   pimpl_->log_extra_inheritable.Extend(std::move(key), std::move(value));
 }
 
+void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
+  pimpl_->log_extra_inheritable.Extend(log_extra);
+}
+
 void Span::AddTagFrozen(std::string key, logging::LogExtra::Value value) {
   pimpl_->log_extra_inheritable.Extend(std::move(key), std::move(value),
                                        logging::LogExtra::ExtendType::kFrozen);
@@ -306,10 +317,6 @@ std::string Span::GetLink() const {
     return *s;
   else
     return {};
-}
-
-logging::LogExtra& Span::GetInheritableLogExtra() {
-  return pimpl_->log_extra_inheritable;
 }
 
 void Span::LogTo(logging::LogHelper& log_helper) const& {
@@ -333,23 +340,10 @@ static_assert(!std::is_copy_assignable<Span>::value,
 static_assert(!std::is_move_assignable<Span>::value,
               "tracing::Span must not be move assignable");
 
-}  // namespace tracing
-
-namespace logging {
-
-LogHelper& operator<<(LogHelper& lh, const tracing::Span& span) {
+logging::LogHelper& operator<<(logging::LogHelper& lh,
+                               const tracing::Span& span) {
   span.LogTo(lh);
   return lh;
 }
 
-LogHelper& operator<<(LogHelper& lh, const tracing::Span::Impl& span_impl) {
-  span_impl.LogTo(lh);
-  return lh;
-}
-
-LogHelper& operator<<(LogHelper& lh, tracing::Span::Impl&& span_impl) {
-  std::move(span_impl).LogTo(lh);
-  return lh;
-}
-
-}  // namespace logging
+}  // namespace tracing
