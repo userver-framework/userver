@@ -33,6 +33,9 @@ struct ManagerConfig;
 
 class Manager final {
  public:
+  using TaskProcessorsMap =
+      std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
+
   Manager(std::unique_ptr<ManagerConfig>&& config,
           const ComponentList& component_list);
   ~Manager();
@@ -40,6 +43,7 @@ class Manager final {
   const ManagerConfig& GetConfig() const;
   const std::shared_ptr<engine::impl::TaskProcessorPools>&
   GetTaskProcessorPools() const;
+  const TaskProcessorsMap& GetTaskProcessorsMap() const;
 
   template <typename Component>
   std::enable_if_t<
@@ -60,9 +64,7 @@ class Manager final {
   std::chrono::milliseconds GetLoadDuration() const;
 
  private:
-  void CreateComponentContext(
-      components::ComponentContext::TaskProcessorMap&& task_processors,
-      const ComponentList& component_list);
+  void CreateComponentContext(const ComponentList& component_list);
   void AddComponents(const ComponentList& component_list);
   void AddComponentImpl(
       const components::ComponentConfigMap& config_map, const std::string& name,
@@ -75,6 +77,7 @@ class Manager final {
  private:
   std::unique_ptr<const ManagerConfig> config_;
   std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools_;
+  TaskProcessorsMap task_processors_map_;
 
   mutable std::shared_timed_mutex context_mutex_;
   std::unique_ptr<components::ComponentContext> component_context_;

@@ -1,7 +1,9 @@
 #include <components/manager.hpp>
 
+#include <chrono>
 #include <future>
 #include <stdexcept>
+#include <thread>
 #include <type_traits>
 
 #include <components/component_list.hpp>
@@ -53,25 +55,21 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
   task_processor_pools_ = std::make_shared<engine::impl::TaskProcessorPools>(
       config_->coro_pool, config_->event_thread_pool);
 
-  components::ComponentContext::TaskProcessorMap task_processors;
   for (const auto& processor_config : config_->task_processors) {
-    task_processors.emplace(processor_config.name,
-                            std::make_unique<engine::TaskProcessor>(
-                                processor_config, task_processor_pools_));
+    task_processors_map_.emplace(processor_config.name,
+                                 std::make_unique<engine::TaskProcessor>(
+                                     processor_config, task_processor_pools_));
   }
   const auto default_task_processor_it =
-      task_processors.find(config_->default_task_processor);
-  if (default_task_processor_it == task_processors.end()) {
+      task_processors_map_.find(config_->default_task_processor);
+  if (default_task_processor_it == task_processors_map_.end()) {
     throw std::runtime_error(
         "Cannot start components manager: missing default task processor");
   }
   default_task_processor_ = default_task_processor_it->second.get();
-  RunInCoro(*default_task_processor_,
-            [this, task_processors = std::move(task_processors),
-             &component_list]() mutable {
-              CreateComponentContext(std::move(task_processors),
-                                     component_list);
-            });
+  RunInCoro(*default_task_processor_, [this, &component_list]() {
+    CreateComponentContext(component_list);
+  });
 
   LOG_INFO() << "Started components manager";
 }
@@ -86,6 +84,17 @@ Manager::~Manager() {
   }
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
+  LOG_TRACE() << "Initiating task processors shutdown";
+  for (auto& [name, task_processor] : task_processors_map_) {
+    task_processor->InitiateShutdown();
+  }
+  LOG_TRACE() << "Waiting for all coroutines to become idle";
+  while (task_processor_pools_->GetCoroPool().GetStats().active_coroutines) {
+    std::this_thread::sleep_for(std::chrono::milliseconds{10});
+  }
+  LOG_TRACE() << "Stopping task processors";
+  task_processors_map_.clear();
+  LOG_TRACE() << "Stopped task processors";
   LOG_TRACE() << "Stopping task processor pools";
   UASSERT(task_processor_pools_.use_count() == 1);
   task_processor_pools_.reset();
@@ -98,6 +107,10 @@ const ManagerConfig& Manager::GetConfig() const { return *config_; }
 const std::shared_ptr<engine::impl::TaskProcessorPools>&
 Manager::GetTaskProcessorPools() const {
   return task_processor_pools_;
+}
+
+const Manager::TaskProcessorsMap& Manager::GetTaskProcessorsMap() const {
+  return task_processors_map_;
 }
 
 void Manager::OnLogRotate() {
@@ -114,9 +127,7 @@ std::chrono::milliseconds Manager::GetLoadDuration() const {
   return load_duration_;
 }
 
-void Manager::CreateComponentContext(
-    components::ComponentContext::TaskProcessorMap&& task_processors,
-    const ComponentList& component_list) {
+void Manager::CreateComponentContext(const ComponentList& component_list) {
   std::set<std::string> loading_component_names;
   for (const auto& adder : component_list) {
     auto [it, inserted] =
@@ -129,7 +140,7 @@ void Manager::CreateComponentContext(
     }
   }
   component_context_ = std::make_unique<components::ComponentContext>(
-      *this, std::move(task_processors), loading_component_names);
+      *this, loading_component_names);
 
   AddComponents(component_list);
 }

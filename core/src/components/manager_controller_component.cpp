@@ -22,8 +22,7 @@ namespace components {
 ManagerControllerComponent::ManagerControllerComponent(
     const components::ComponentConfig&,
     const components::ComponentContext& context)
-    : components_manager_(context.GetManager()),
-      task_processor_map_(context.GetTaskProcessorsMap()) {
+    : components_manager_(context.GetManager()) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
 
@@ -37,8 +36,8 @@ ManagerControllerComponent::ManagerControllerComponent(
       [this](const auto& request) { return ExtendStatistics(request); });
 
   auto& logger_component = context.FindComponent<components::Logging>();
-  for (auto& it : context.GetTaskProcessorsMap()) {
-    auto* task_processor = it.second;
+  for (const auto& [name, task_processor] :
+       components_manager_.GetTaskProcessorsMap()) {
     const auto& logger_name = task_processor->GetTaskTraceLoggerName();
     if (!logger_name.empty()) {
       auto logger = logger_component.GetLogger(logger_name);
@@ -101,9 +100,8 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
 
   formats::json::ValueBuilder json_task_processors(
       formats::json::Type::kObject);
-  for (const auto& tp_item : task_processor_map_) {
-    const auto& name = tp_item.first;
-    const auto& task_processor = tp_item.second;
+  for (const auto& [name, task_processor] :
+       components_manager_.GetTaskProcessorsMap()) {
     json_task_processors[name] = GetTaskProcessorStats(*task_processor);
   }
   utils::statistics::SolomonChildrenAreLabelValues(json_task_processors,
@@ -139,8 +137,9 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
 void ManagerControllerComponent::OnConfigUpdate(const TaxiConfigPtr& cfg) {
   auto config = cfg->Get<ManagerControllerTaxiConfig>();
 
-  for (const auto& it : task_processor_map_) {
-    it.second->SetSettings(config.default_settings);
+  for (const auto& [name, task_processor] :
+       components_manager_.GetTaskProcessorsMap()) {
+    task_processor->SetSettings(config.default_settings);
   }
 }
 

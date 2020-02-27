@@ -45,6 +45,8 @@ class TaskProcessor final {
   TaskProcessor(TaskProcessorConfig, std::shared_ptr<impl::TaskProcessorPools>);
   ~TaskProcessor();
 
+  void InitiateShutdown();
+
   void Schedule(impl::TaskContext*);
   void Adopt(boost::intrusive_ptr<impl::TaskContext>&&);
 

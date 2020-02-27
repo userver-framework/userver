@@ -44,15 +44,11 @@ class ComponentsLoadCancelledException : public std::runtime_error {
 
 class ComponentContext final {
  public:
-  using TaskProcessorMap =
-      std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
-  using TaskProcessorPtrMap =
-      std::unordered_map<std::string, engine::TaskProcessor*>;
   using ComponentFactory =
       std::function<std::unique_ptr<components::impl::ComponentBase>(
           const components::ComponentContext&)>;
 
-  ComponentContext(const Manager& manager, TaskProcessorMap,
+  ComponentContext(const Manager& manager,
                    const std::set<std::string>& loading_component_names);
   ~ComponentContext();
 
@@ -118,8 +114,6 @@ class ComponentContext final {
   }
 
   engine::TaskProcessor& GetTaskProcessor(const std::string& name) const;
-
-  TaskProcessorPtrMap GetTaskProcessorsMap() const;
 
   const Manager& GetManager() const;
 
@@ -193,7 +187,6 @@ class ComponentContext final {
   void PrintAddingComponents() const;
 
   const Manager& manager_;
-  TaskProcessorMap task_processor_map_;
 
   ComponentMap components_;
   std::atomic_flag components_load_cancelled_ = ATOMIC_FLAG_INIT;

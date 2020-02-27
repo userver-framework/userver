@@ -4,6 +4,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 
+#include <components/manager.hpp>
 #include <engine/task/cancel.hpp>
 #include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
@@ -49,9 +50,9 @@ ComponentContext::TaskToComponentMapScope::~TaskToComponentMapScope() {
 }
 
 ComponentContext::ComponentContext(
-    const Manager& manager, TaskProcessorMap task_processor_map,
+    const Manager& manager,
     const std::set<std::string>& loading_component_names)
-    : manager_(manager), task_processor_map_(std::move(task_processor_map)) {
+    : manager_(manager) {
   for (const auto& component_name : loading_component_names) {
     components_.emplace(
         std::piecewise_construct, std::tie(component_name),
@@ -110,21 +111,13 @@ void ComponentContext::ClearComponents() {
 
 engine::TaskProcessor& ComponentContext::GetTaskProcessor(
     const std::string& name) const {
-  auto it = task_processor_map_.find(name);
-  if (it == task_processor_map_.cend()) {
+  const auto& task_processor_map = manager_.GetTaskProcessorsMap();
+  auto it = task_processor_map.find(name);
+  if (it == task_processor_map.cend()) {
     throw std::runtime_error("Failed to find task processor with name: " +
                              name);
   }
   return *it->second;
-}
-
-ComponentContext::TaskProcessorPtrMap ComponentContext::GetTaskProcessorsMap()
-    const {
-  TaskProcessorPtrMap result;
-  for (const auto& it : task_processor_map_)
-    result.emplace(it.first, it.second.get());
-
-  return result;
 }
 
 const Manager& ComponentContext::GetManager() const { return manager_; }

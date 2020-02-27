@@ -36,7 +36,6 @@ class ManagerControllerComponent final : public impl::ComponentBase {
 
  private:
   const components::Manager& components_manager_;
-  components::ComponentContext::TaskProcessorPtrMap task_processor_map_;
   utils::statistics::Entry statistics_holder_;
   utils::AsyncEventSubscriberScope config_subscription_;
 };
