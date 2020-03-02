@@ -38,13 +38,13 @@ namespace storages::postgres::io {
 ///
 /// @par Examples from tests
 ///
-/// @snippet storages/postgres/tests/composite_types_pg_test.cpp User type declaration
+/// @snippet storages/postgres/tests/composite_types_pgtest.cpp User type declaration
 ///
 /// @warning The type mapping specialisation **must** be accessible at the
 /// points where parsing/formatting of the C++ type is instantiated. The
 /// header where the C++ type is declared is an appropriate place to do it.
 ///
-/// @snippet storages/postgres/tests/composite_types_pg_test.cpp User type mapping
+/// @snippet storages/postgres/tests/composite_types_pgtest.cpp User type mapping
 // clang-format on
 
 namespace detail {

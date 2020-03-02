@@ -24,10 +24,10 @@ namespace storages::postgres::io {
 /// list of PostgreSQL literals mapped to the enumeration values.
 ///
 /// For example, if we have a C++ enumeration declared as follows:
-/// @snippet storages/postgres/tests/enums_pg_test.cpp C++ enum type
+/// @snippet storages/postgres/tests/enums_pgtest.cpp C++ enum type
 /// and a PostgreSQL enum type:
 /// @code
-/// create type __pg_test.rainbow as enum (
+/// create type __pgtest.rainbow as enum (
 ///  'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet'
 /// )
 /// @endcode
@@ -41,7 +41,7 @@ namespace storages::postgres::io {
 /// points where parsing/formatting of the C++ type is instantiated. The
 /// header where the C++ type is declared is an appropriate place to do it.
 ///
-/// @snippet storages/postgres/tests/enums_pg_test.cpp C++ to Pg mapping
+/// @snippet storages/postgres/tests/enums_pgtest.cpp C++ to Pg mapping
 ///
 /// The specialisation of CppToUserPg derives from EnumMappingBase for it to
 /// provide type aliases for EnumeratorList and EnumType. EnumType is an alias

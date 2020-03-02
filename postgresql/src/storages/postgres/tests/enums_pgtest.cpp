@@ -8,24 +8,24 @@ namespace tt = io::traits;
 
 namespace {
 
-const std::string kCreateTestSchema = "create schema if not exists __pg_test";
-const std::string kDropTestSchema = "drop schema if exists __pg_test cascade";
+const std::string kCreateTestSchema = "create schema if not exists __pgtest";
+const std::string kDropTestSchema = "drop schema if exists __pgtest cascade";
 
 /*! [Enum type DDL] */
 const std::string kCreateAnEnumType = R"~(
-create type __pg_test.rainbow as enum (
+create type __pgtest.rainbow as enum (
   'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet'
 ))~";
 /*! [Enum type DDL] */
 
 const std::string kSelectEnumValues = R"~(
-select  'red'::__pg_test.rainbow as red,
-        'orange'::__pg_test.rainbow as orange,
-        'yellow'::__pg_test.rainbow as yellow,
-        'green'::__pg_test.rainbow as green,
-        'cyan'::__pg_test.rainbow as cyan,
-        'blue'::__pg_test.rainbow as blue,
-        'violet'::__pg_test.rainbow as violet
+select  'red'::__pgtest.rainbow as red,
+        'orange'::__pgtest.rainbow as orange,
+        'yellow'::__pgtest.rainbow as yellow,
+        'green'::__pgtest.rainbow as green,
+        'cyan'::__pgtest.rainbow as cyan,
+        'blue'::__pgtest.rainbow as blue,
+        'violet'::__pgtest.rainbow as violet
 )~";
 
 /*! [C++ enum type] */
@@ -44,7 +44,7 @@ namespace storages::postgres::io {
 // This specialisation MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<Rainbow> : EnumMappingBase<Rainbow> {
-  static constexpr DBTypeName postgres_name = "__pg_test.rainbow";
+  static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
   static constexpr EnumeratorList enumerators{
       {EnumType::kRed,    "red"},
       {EnumType::kOrange, "orange"},
@@ -63,7 +63,7 @@ namespace storages::postgres::io {
 
 template <>
 struct CppToUserPg<RainbowRO> : EnumMappingBase<RainbowRO> {
-  static constexpr DBTypeName postgres_name = "__pg_test.rainbow";
+  static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
   static constexpr EnumeratorList enumerators{
       {EnumType::kRed, "red"},       {EnumType::kOrange, "orange"},
       {EnumType::kYellow, "yellow"}, {EnumType::kGreen, "green"},

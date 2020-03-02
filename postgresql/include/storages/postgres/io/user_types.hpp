@@ -33,7 +33,7 @@ namespace io {
 ///
 /// @par C++ type
 ///
-/// @snippet storages/postgres/tests/user_types_pg_test.cpp User type
+/// @snippet storages/postgres/tests/user_types_pgtest.cpp User type
 ///
 /// @par Declaring C++ type to PostgreSQL type mapping
 ///
@@ -41,7 +41,7 @@ namespace io {
 /// points where parsing/formatting of the C++ type is instantiated. The
 /// header where the C++ type is declared is an appropriate place to do it.
 ///
-/// @snippet storages/postgres/tests/user_types_pg_test.cpp User type mapping
+/// @snippet storages/postgres/tests/user_types_pgtest.cpp User type mapping
 ///
 /// A connection gets the data types' definitions after connect and uses the
 /// definitions to map C++ types to PostgreSQL type oids.

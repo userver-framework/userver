@@ -7,13 +7,13 @@ namespace tt = io::traits;
 
 namespace {
 
-constexpr const char* const kSchemaName = "__pg_test";
-const std::string kCreateTestSchema = "create schema if not exists __pg_test";
-const std::string kDropTestSchema = "drop schema if exists __pg_test cascade";
+constexpr const char* const kSchemaName = "__pgtest";
+const std::string kCreateTestSchema = "create schema if not exists __pgtest";
+const std::string kDropTestSchema = "drop schema if exists __pgtest cascade";
 
 constexpr pg::DBTypeName kCompositeName{kSchemaName, "foobar"};
 const std::string kCreateACompositeType = R"~(
-create type __pg_test.foobar as (
+create type __pgtest.foobar as (
   i integer,
   s text,
   d double precision,
@@ -22,14 +22,14 @@ create type __pg_test.foobar as (
 ))~";
 
 const std::string kCreateCompositeOfComposites = R"~(
-create type __pg_test.foobars as (
-  f __pg_test.foobar[]
+create type __pgtest.foobars as (
+  f __pgtest.foobar[]
 ))~";
 
 }  // namespace
 
 /*! [User type declaration] */
-namespace pg_test {
+namespace pgtest {
 
 struct FooBar {
   int i;
@@ -80,7 +80,7 @@ struct NoUseInWrite {
   std::vector<std::string> v;
 };
 
-}  // namespace pg_test
+}  // namespace pgtest
 /*! [User type declaration] */
 
 /*! [User type mapping] */
@@ -88,25 +88,25 @@ namespace storages::postgres::io {
 
 // This specialisation MUST go to the header together with the mapped type
 template <>
-struct CppToUserPg<pg_test::FooBar> {
+struct CppToUserPg<pgtest::FooBar> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
 // This specialisation MUST go to the header together with the mapped type
 template <>
-struct CppToUserPg<pg_test::FooClass> {
+struct CppToUserPg<pgtest::FooClass> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
 // This specialisation MUST go to the header together with the mapped type
 template <>
-struct CppToUserPg<pg_test::FooTuple> {
+struct CppToUserPg<pgtest::FooTuple> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
 template <>
-struct CppToUserPg<pg_test::BunchOfFoo> {
-  static constexpr DBTypeName postgres_name = "__pg_test.foobars";
+struct CppToUserPg<pgtest::BunchOfFoo> {
+  static constexpr DBTypeName postgres_name = "__pgtest.foobars";
 };
 
 }  // namespace storages::postgres::io
@@ -117,7 +117,7 @@ namespace storages::postgres::io {
 // This mapping is separate from the others as it shouldn't get to the code
 // snippet for generating documentation.
 template <>
-struct CppToUserPg<pg_test::NoUseInWrite> {
+struct CppToUserPg<pgtest::NoUseInWrite> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
@@ -126,35 +126,35 @@ struct CppToUserPg<pg_test::NoUseInWrite> {
 namespace static_test {
 
 static_assert((io::traits::TupleHasParsers<
-                  pg_test::FooTuple, io::DataFormat::kBinaryDataFormat>::value),
+                  pgtest::FooTuple, io::DataFormat::kBinaryDataFormat>::value),
               "");
 static_assert((tt::detail::CompositeHasParsers<
-                  pg_test::FooTuple, io::DataFormat::kBinaryDataFormat>::value),
+                  pgtest::FooTuple, io::DataFormat::kBinaryDataFormat>::value),
               "");
 static_assert((tt::detail::CompositeHasParsers<
-                  pg_test::FooBar, io::DataFormat::kBinaryDataFormat>::value),
+                  pgtest::FooBar, io::DataFormat::kBinaryDataFormat>::value),
               "");
 static_assert((tt::detail::CompositeHasParsers<
-                  pg_test::FooClass, io::DataFormat::kBinaryDataFormat>::value),
+                  pgtest::FooClass, io::DataFormat::kBinaryDataFormat>::value),
               "");
 
 static_assert((!tt::detail::CompositeHasParsers<
                   int, io::DataFormat::kBinaryDataFormat>::value),
               "");
 
-static_assert(tt::kHasAnyParser<pg_test::BunchOfFoo>, "");
-static_assert(tt::kHasAnyFormatter<pg_test::BunchOfFoo>, "");
+static_assert(tt::kHasAnyParser<pgtest::BunchOfFoo>, "");
+static_assert(tt::kHasAnyFormatter<pgtest::BunchOfFoo>, "");
 
-static_assert(tt::kTypeBufferCategory<pg_test::FooTuple> ==
+static_assert(tt::kTypeBufferCategory<pgtest::FooTuple> ==
                   io::BufferCategory::kCompositeBuffer,
               "");
-static_assert(tt::kTypeBufferCategory<pg_test::FooBar> ==
+static_assert(tt::kTypeBufferCategory<pgtest::FooBar> ==
                   io::BufferCategory::kCompositeBuffer,
               "");
-static_assert(tt::kTypeBufferCategory<pg_test::FooClass> ==
+static_assert(tt::kTypeBufferCategory<pgtest::FooClass> ==
                   io::BufferCategory::kCompositeBuffer,
               "");
-static_assert(tt::kTypeBufferCategory<pg_test::BunchOfFoo> ==
+static_assert(tt::kTypeBufferCategory<pgtest::BunchOfFoo> ==
                   io::BufferCategory::kCompositeBuffer,
               "");
 
@@ -193,13 +193,13 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   // The datatypes are expected to be automatically reloaded
   EXPECT_NO_THROW(
       res = conn->Execute("select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
-                          "ARRAY['a', 'b', 'c'])::__pg_test.foobar"));
+                          "ARRAY['a', 'b', 'c'])::__pgtest.foobar"));
   std::vector<int> expected_vector{-1, 0, 1};
 
   ASSERT_FALSE(res.IsEmpty());
   ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
 
-  pg_test::FooBar fb;
+  pgtest::FooBar fb;
   EXPECT_NO_THROW(res[0].To(fb));
   EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ(42, fb.i);
@@ -207,14 +207,14 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_EQ(3.14, fb.d);
   EXPECT_EQ(expected_vector, fb.a);
 
-  pg_test::FooTuple ft;
+  pgtest::FooTuple ft;
   EXPECT_NO_THROW(res[0].To(ft));
   EXPECT_EQ(42, std::get<0>(ft));
   EXPECT_EQ("foobar", std::get<1>(ft));
   EXPECT_EQ(3.14, std::get<2>(ft));
   EXPECT_EQ(expected_vector, std::get<3>(ft));
 
-  pg_test::FooClass fc;
+  pgtest::FooClass fc;
   EXPECT_NO_THROW(res[0].To(fc));
   EXPECT_EQ(42, fc.GetI());
   EXPECT_EQ("foobar", fc.GetS());
@@ -225,38 +225,38 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", ft));
   EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fc));
 
-  using FooVector = std::vector<pg_test::FooBar>;
+  using FooVector = std::vector<pgtest::FooBar>;
   EXPECT_NO_THROW(
       res = conn->Execute("select $1 as array_of_foo", FooVector{fb, fb, fb}));
 
   ASSERT_FALSE(res.IsEmpty());
   ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
-  EXPECT_THROW(res[0][0].As<pg_test::FooBar>(), pg::InvalidParserCategory);
+  EXPECT_THROW(res[0][0].As<pgtest::FooBar>(), pg::InvalidParserCategory);
   EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
 
-  pg_test::BunchOfFoo bf{{fb, fb, fb}};
+  pgtest::BunchOfFoo bf{{fb, fb, fb}};
   res = conn->Execute("select $1 as bunch", bf);
   EXPECT_NO_THROW(res = conn->Execute("select $1 as bunch", bf));
   ASSERT_FALSE(res.IsEmpty());
   ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
-  pg_test::BunchOfFoo bf1;
+  pgtest::BunchOfFoo bf1;
   EXPECT_NO_THROW(res[0].To(bf1));
   EXPECT_EQ(bf, bf1);
-  EXPECT_EQ(bf, res[0].As<pg_test::BunchOfFoo>());
+  EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>());
 
   // Unwrapping composite structure to a row
   EXPECT_NO_THROW(res = conn->Execute("select $1.*", bf));
   ASSERT_FALSE(res.IsEmpty());
   EXPECT_NO_THROW(res[0].To(bf1, pg::kRowTag));
   EXPECT_EQ(bf, bf1);
-  EXPECT_EQ(bf, res[0].As<pg_test::BunchOfFoo>(pg::kRowTag));
+  EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>(pg::kRowTag));
 
   EXPECT_ANY_THROW(res[0][0].To(bf1));
 
   // Using a mapped type only for reading
   EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fb));
-  EXPECT_NO_THROW(res.AsContainer<std::vector<pg_test::NoUseInWrite>>())
+  EXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
       << "A type that is not used for writing query parameter buffers must be"
          "available for reading";
 
@@ -276,15 +276,15 @@ POSTGRE_TEST_P(OptionalCompositeTypeRoundtrip) {
 
   EXPECT_NO_THROW(
       res = conn->Execute("select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
-                          "ARRAY['a', 'b', 'c'])::__pg_test.foobar"));
+                          "ARRAY['a', 'b', 'c'])::__pgtest.foobar"));
   {
-    auto fo = res.Front().As<pg_test::FooBarOpt>();
+    auto fo = res.Front().As<pgtest::FooBarOpt>();
     EXPECT_TRUE(!!fo) << "Non-empty optional result expected";
   }
 
-  EXPECT_NO_THROW(res = conn->Execute("select null::__pg_test.foobar"));
+  EXPECT_NO_THROW(res = conn->Execute("select null::__pgtest.foobar"));
   {
-    auto fo = res.Front().As<pg_test::FooBarOpt>();
+    auto fo = res.Front().As<pgtest::FooBarOpt>();
     EXPECT_TRUE(!fo) << "Empty optional result expected";
   }
 

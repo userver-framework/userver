@@ -6,50 +6,50 @@ namespace io = pg::io;
 
 namespace {
 
-const std::string kCreateTestSchema = "create schema if not exists __pg_test";
-const std::string kDropTestSchema = "drop schema if exists __pg_test cascade";
+const std::string kCreateTestSchema = "create schema if not exists __pgtest";
+const std::string kDropTestSchema = "drop schema if exists __pgtest cascade";
 
-constexpr pg::DBTypeName kEnumName = "__pg_test.rainbow";
+constexpr pg::DBTypeName kEnumName = "__pgtest.rainbow";
 const std::string kCreateAnEnumType = R"~(
-create type __pg_test.rainbow as enum (
+create type __pgtest.rainbow as enum (
   'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet'
 ))~";
 
-constexpr pg::DBTypeName kCompositeName = "__pg_test.foobar";
+constexpr pg::DBTypeName kCompositeName = "__pgtest.foobar";
 const std::string kCreateACompositeType = R"~(
-create type __pg_test.foobar as (
+create type __pgtest.foobar as (
   i integer,
   s text,
   d double precision
 ))~";
 
-constexpr pg::DBTypeName kRangeName = "__pg_test.timerange";
+constexpr pg::DBTypeName kRangeName = "__pgtest.timerange";
 const std::string kCreateARangeType = R"~(
-create type __pg_test.timerange as range(
+create type __pgtest.timerange as range(
   subtype = time
 ))~";
 
-constexpr pg::DBTypeName kDomainName = "__pg_test.dom";
+constexpr pg::DBTypeName kDomainName = "__pgtest.dom";
 const std::string kCreateADomain = R"~(
-create domain __pg_test.dom as text default 'foobar' not null)~";
+create domain __pgtest.dom as text default 'foobar' not null)~";
 
 }  // namespace
 
 /*! [User type] */
-namespace pg_test {
+namespace pgtest {
 struct FooBar {
   pg::Integer i;
   std::string s;
   double d;
 };
-}  // namespace pg_test
+}  // namespace pgtest
 /*! [User type] */
 /*! [User type mapping] */
 namespace storages::postgres::io {
 // This specialisation MUST go to the header together with the mapped type
 template <>
-struct CppToUserPg<pg_test::FooBar> {
-  static constexpr DBTypeName postgres_name = "__pg_test.foobar";
+struct CppToUserPg<pgtest::FooBar> {
+  static constexpr DBTypeName postgres_name = "__pgtest.foobar";
 };
 }  // namespace storages::postgres::io
 /*! [User type mapping] */
@@ -84,7 +84,7 @@ POSTGRE_TEST_P(LoadUserTypes) {
   EXPECT_EQ(0, user_types.FindOid(kCompositeName)) << "Find composite type oid";
   EXPECT_EQ(0, user_types.FindOid(kRangeName)) << "Find range type oid";
 
-  EXPECT_EQ(0, pg::io::CppToPg<pg_test::FooBar>::GetOid(user_types))
+  EXPECT_EQ(0, pg::io::CppToPg<pgtest::FooBar>::GetOid(user_types))
       << "The type is not in the database yet";
 
   ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
@@ -105,7 +105,7 @@ POSTGRE_TEST_P(LoadUserTypes) {
   EXPECT_NE(0, user_types.FindOid(kRangeName)) << "Find range type oid";
   EXPECT_NE(0, user_types.FindOid(kDomainName)) << "Find domain type oid";
 
-  EXPECT_NE(0, io::CppToPg<pg_test::FooBar>::GetOid(user_types))
+  EXPECT_NE(0, io::CppToPg<pgtest::FooBar>::GetOid(user_types))
       << "The type has been created in the database and can be mapped";
 
   auto enum_oid = user_types.FindOid(kEnumName);
@@ -117,7 +117,7 @@ POSTGRE_TEST_P(LoadUserTypes) {
     auto base_oid = user_types.FindBaseOid(kDomainName);
     EXPECT_NE(0, domain_oid);
     EXPECT_NE(0, base_oid);
-    EXPECT_NO_THROW(res = conn->Execute("select 'foo'::__pg_test.dom"));
+    EXPECT_NO_THROW(res = conn->Execute("select 'foo'::__pgtest.dom"));
     auto field = res[0][0];
     EXPECT_EQ(base_oid, field.GetTypeOid());
     EXPECT_EQ(io::DataFormat::kBinaryDataFormat, field.GetDataFormat());
@@ -125,14 +125,14 @@ POSTGRE_TEST_P(LoadUserTypes) {
   {
     // misc domains
     CheckDomainExpectations(
-        conn, "create domain __pg_test.int_dom as integer not null",
-        "select 1::__pg_test.int_dom");
+        conn, "create domain __pgtest.int_dom as integer not null",
+        "select 1::__pgtest.int_dom");
     CheckDomainExpectations(conn,
-                            "create domain __pg_test.real_dom as real not null",
-                            "select 1::__pg_test.real_dom");
+                            "create domain __pgtest.real_dom as real not null",
+                            "select 1::__pgtest.real_dom");
     CheckDomainExpectations(
-        conn, "create domain __pg_test.ts_dom as timestamp not null",
-        "select current_timestamp::__pg_test.ts_dom");
+        conn, "create domain __pgtest.ts_dom as timestamp not null",
+        "select current_timestamp::__pgtest.ts_dom");
   }
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";

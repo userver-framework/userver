@@ -27,10 +27,10 @@ namespace storages::postgres::io {
 /// underlying type.
 ///
 /// Using `::utils::StrongTypedef` example:
-/// @snippet storages/postgres/tests/strong_typedef_pg_test.cpp Strong typedef
+/// @snippet storages/postgres/tests/strong_typedef_pgtest.cpp Strong typedef
 ///
 /// Using `enum class` example:
-/// @snippet storages/postgres/tests/strong_typedef_pg_test.cpp Enum typedef
+/// @snippet storages/postgres/tests/strong_typedef_pgtest.cpp Enum typedef
 
 namespace traits {
 

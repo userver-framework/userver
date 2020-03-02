@@ -190,7 +190,7 @@ POSTGRE_TEST_P(QueryErrors) {
       create temporary table dependent(
         id integer references pgtest(id) on delete restrict)
       )~";
-  const std::string insert_pg_test =
+  const std::string insert_pgtest =
       "insert into pgtest(id, nn_val, check_val) values ($1, $2, $3)";
 
   EXPECT_THROW(res = conn->Execute("elect"), pg::SyntaxError);
@@ -199,12 +199,12 @@ POSTGRE_TEST_P(QueryErrors) {
 
   EXPECT_NO_THROW(conn->Execute(temp_table));
   EXPECT_NO_THROW(conn->Execute(dependent_table));
-  EXPECT_THROW(conn->Execute(insert_pg_test, 1, pg::null<int>, pg::null<int>),
+  EXPECT_THROW(conn->Execute(insert_pgtest, 1, pg::null<int>, pg::null<int>),
                pg::NotNullViolation);
-  EXPECT_NO_THROW(conn->Execute(insert_pg_test, 1, 1, pg::null<int>));
-  EXPECT_THROW(conn->Execute(insert_pg_test, 1, 1, pg::null<int>),
+  EXPECT_NO_THROW(conn->Execute(insert_pgtest, 1, 1, pg::null<int>));
+  EXPECT_THROW(conn->Execute(insert_pgtest, 1, 1, pg::null<int>),
                pg::UniqueViolation);
-  EXPECT_THROW(conn->Execute(insert_pg_test, 2, 1, 0), pg::CheckViolation);
+  EXPECT_THROW(conn->Execute(insert_pgtest, 2, 1, 0), pg::CheckViolation);
   EXPECT_THROW(conn->Execute("insert into dependent values(3)"),
                pg::ForeignKeyViolation);
   EXPECT_NO_THROW(conn->Execute("insert into dependent values(1)"));

@@ -28,7 +28,7 @@ namespace storages::postgres::io {
 /// level of depth have different sizes.
 ///
 /// Example of invalid dimensions from tests:
-/// @snippet storages/postgres/tests/arrays_pg_test.cpp Invalid dimensions
+/// @snippet storages/postgres/tests/arrays_pgtest.cpp Invalid dimensions
 ///
 /// @par Currently supported containers
 /// - std::vector
