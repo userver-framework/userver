@@ -60,6 +60,7 @@ class ValueImpl {
   void PushBack(ValueImplPtr);
   void Remove(const std::string& key);
 
+  bool IsEmpty() const;
   uint32_t GetSize() const;
   std::string GetPath() const;
 

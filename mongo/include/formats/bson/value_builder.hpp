@@ -106,6 +106,11 @@ class ValueBuilder {
   /// @throws TypeMismatchException if value is not a document, array or `null`
   iterator end();
 
+  /// @brief Returns whether the document/array is empty
+  /// @throws TypeMismatchException if value is not a document, array or `null`
+  /// @note Returns `true` for `null`.
+  bool IsEmpty() const;
+
   /// @brief Returns the number of elements in a document/array
   /// @throws TypeMismatchException if value is not a document, array or `null`
   /// @note Returns 0 for `null`.

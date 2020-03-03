@@ -421,6 +421,29 @@ void ValueImpl::Remove(const std::string& key) {
   std::get<ParsedDocument>(parsed_value_).erase(key);
 }
 
+bool ValueImpl::IsEmpty() const {
+  class Visitor {
+   public:
+    Visitor(const ValueImpl& value) : value_(value) {}
+
+    bool operator()(std::nullptr_t) const {
+      constexpr uint32_t kEmptyDocSize = 5;
+      return value_.bson_value_.value.v_doc.data_len == kEmptyDocSize;
+    }
+
+    bool operator()(const ParsedArray& arr) const { return arr.empty(); }
+    bool operator()(const ParsedDocument& doc) const { return doc.empty(); }
+
+   private:
+    const ValueImpl& value_;
+  };
+
+  if (IsNull()) return true;
+  CheckIsDocumentOrArray();
+  // do not parse here
+  return std::visit(Visitor(*this), parsed_value_);
+}
+
 uint32_t ValueImpl::GetSize() const {
   class Visitor {
    public:

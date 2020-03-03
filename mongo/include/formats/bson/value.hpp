@@ -84,6 +84,11 @@ class Value {
   /// @throws TypeMismatchException if value is not a document, array or `null`
   const_iterator end() const;
 
+  /// @brief Returns whether the document/array is empty
+  /// @throws TypeMismatchException if value is not a document, array or `null`
+  /// @note Returns `true` for `null`.
+  bool IsEmpty() const;
+
   /// @brief Returns the number of elements in a document/array
   /// @throws TypeMismatchException if value is not a document, array or `null`
   /// @note May require linear time before the first element access.

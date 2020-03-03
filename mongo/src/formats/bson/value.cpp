@@ -65,6 +65,7 @@ bool Value::HasMember(const std::string& name) const {
 Value::const_iterator Value::begin() const { return {*impl_, impl_->Begin()}; }
 Value::const_iterator Value::end() const { return {*impl_, impl_->End()}; }
 
+bool Value::IsEmpty() const { return impl_->IsEmpty(); }
 uint32_t Value::GetSize() const { return impl_->GetSize(); }
 std::string Value::GetPath() const { return impl_->GetPath(); }
 

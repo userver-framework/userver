@@ -13,6 +13,7 @@ namespace fb = formats::bson;
 
 TEST(BsonValueBuilder, Default) {
   fb::ValueBuilder b;
+  EXPECT_TRUE(b.IsEmpty());
   EXPECT_EQ(0, b.GetSize());
 
   auto val = b.ExtractValue();
@@ -144,31 +145,38 @@ TEST(BsonValueBuilder, Timestamp) {
 
 TEST(BsonValueBuilder, Array) {
   fb::ValueBuilder builder;
+  EXPECT_TRUE(builder.IsEmpty());
   EXPECT_EQ(0, builder.GetSize());
 
   builder.PushBack(123);
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(1, builder.GetSize());
   {
     auto val = fb::ValueBuilder(builder).ExtractValue();
+    EXPECT_FALSE(val.IsEmpty());
     ASSERT_EQ(1, val.GetSize());
     ASSERT_TRUE(val[0].IsInt32());
     EXPECT_EQ(123, val[0].As<int>());
   }
 
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(1, builder.GetSize());
   builder[0] = "str";
   {
     auto val = fb::ValueBuilder(builder).ExtractValue();
+    EXPECT_FALSE(val.IsEmpty());
     ASSERT_EQ(1, val.GetSize());
     ASSERT_TRUE(val[0].IsString());
     EXPECT_EQ("str", val[0].As<std::string>());
   }
 
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(1, builder.GetSize());
   builder.Resize(2);
   builder[1]["test"] = 0.5;
   {
     auto val = fb::ValueBuilder(builder).ExtractValue();
+    EXPECT_FALSE(val.IsEmpty());
     ASSERT_EQ(2, val.GetSize());
     ASSERT_TRUE(val[0].IsString());
     EXPECT_EQ("str", val[0].As<std::string>());
@@ -177,12 +185,14 @@ TEST(BsonValueBuilder, Array) {
     EXPECT_DOUBLE_EQ(0.5, val[1]["test"].As<double>());
   }
 
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(2, builder.GetSize());
   for (auto it = builder.begin(); it != builder.end(); ++it) {
     *it = size_t{it.GetIndex()};
   }
   {
     auto val = fb::ValueBuilder(builder).ExtractValue();
+    EXPECT_FALSE(val.IsEmpty());
     ASSERT_EQ(2, val.GetSize());
     for (auto it = val.begin(); it != val.end(); ++it) {
       ASSERT_TRUE(it->IsInt64());
@@ -190,39 +200,48 @@ TEST(BsonValueBuilder, Array) {
     }
   }
 
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(2, builder.GetSize());
   builder.Resize(0);
   auto val = builder.ExtractValue();
   ASSERT_TRUE(val.IsArray());
+  EXPECT_TRUE(val.IsEmpty());
   ASSERT_EQ(0, val.GetSize());
 }
 
 TEST(BsonValueBuilder, Document) {
   fb::ValueBuilder builder;
+  EXPECT_TRUE(builder.IsEmpty());
   EXPECT_EQ(0, builder.GetSize());
 
   builder["first"] = 123;
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(1, builder.GetSize());
   {
     auto val = fb::ValueBuilder(builder).ExtractValue();
+    EXPECT_FALSE(val.IsEmpty());
     EXPECT_EQ(1, val.GetSize());
     ASSERT_TRUE(val["first"].IsInt32());
     EXPECT_EQ(123, val["first"].As<int>());
   }
 
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(1, builder.GetSize());
   builder["first"] = "str";
   {
     auto val = fb::ValueBuilder(builder).ExtractValue();
+    EXPECT_FALSE(val.IsEmpty());
     EXPECT_EQ(1, val.GetSize());
     ASSERT_TRUE(val["first"].IsString());
     EXPECT_EQ("str", val["first"].As<std::string>());
   }
 
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(1, builder.GetSize());
   builder["second"]["test"] = 0.5;
   {
     auto val = fb::ValueBuilder(builder).ExtractValue();
+    EXPECT_FALSE(val.IsEmpty());
     EXPECT_EQ(2, val.GetSize());
     ASSERT_TRUE(val["first"].IsString());
     EXPECT_EQ("str", val["first"].As<std::string>());
@@ -231,12 +250,14 @@ TEST(BsonValueBuilder, Document) {
     EXPECT_DOUBLE_EQ(0.5, val["second"]["test"].As<double>());
   }
 
+  EXPECT_FALSE(builder.IsEmpty());
   ASSERT_EQ(2, builder.GetSize());
   for (auto it = builder.begin(); it != builder.end(); ++it) {
     *it = it.GetName();
   }
   {
     auto val = fb::ValueBuilder(builder).ExtractValue();
+    EXPECT_FALSE(val.IsEmpty());
     EXPECT_EQ(2, val.GetSize());
     for (auto it = val.begin(); it != val.end(); ++it) {
       ASSERT_TRUE(it->IsString());
@@ -253,6 +274,7 @@ TEST(BsonValueBuilder, MutateDocument) {
                   "doc", fb::MakeDoc("b", true, "i", 0, "d", -1.25));
 
   fb::ValueBuilder builder(kDoc);
+  EXPECT_FALSE(builder.IsEmpty());
   EXPECT_EQ(2, builder.GetSize());
 
   builder["arr"][0] = builder["doc"]["i"];
@@ -270,9 +292,11 @@ TEST(BsonValueBuilder, MutateDocument) {
   builder["doc"]["aa"][0] = false;
 
   auto val = builder.ExtractValue();
+  EXPECT_FALSE(val.IsEmpty());
   EXPECT_EQ(2, val.GetSize());
 
   ASSERT_TRUE(val["arr"].IsArray());
+  EXPECT_FALSE(val["arr"].IsEmpty());
   ASSERT_EQ(4, val["arr"].GetSize());
 
   ASSERT_TRUE(val["arr"][0].IsInt32());
@@ -286,6 +310,7 @@ TEST(BsonValueBuilder, MutateDocument) {
   EXPECT_EQ("last", val["arr"][3].As<std::string>());
 
   ASSERT_TRUE(val["doc"].IsDocument());
+  EXPECT_FALSE(val["doc"].IsEmpty());
   EXPECT_EQ(6, val["doc"].GetSize());
 
   ASSERT_TRUE(val["doc"]["b"].IsBool());
@@ -302,10 +327,12 @@ TEST(BsonValueBuilder, MutateDocument) {
   EXPECT_EQ(2, val["doc"]["u"].As<int>());
 
   ASSERT_TRUE(val["doc"]["a"].IsArray());
+  EXPECT_FALSE(val["doc"]["a"].IsEmpty());
   ASSERT_EQ(1, val["doc"]["a"].GetSize());
   ASSERT_TRUE(val["doc"]["a"][0].As<bool>());
 
   ASSERT_TRUE(val["doc"]["aa"].IsArray());
+  EXPECT_FALSE(val["doc"]["aa"].IsEmpty());
   ASSERT_EQ(1, val["doc"]["aa"].GetSize());
   ASSERT_FALSE(val["doc"]["aa"][0].As<bool>());
 }
@@ -315,6 +342,7 @@ TEST(BsonValueBuilder, UnsetFieldsAreSkipped) {
   builder["set"] = 1;
   builder["unset"];
   auto val = builder.ExtractValue();
+  EXPECT_FALSE(val.IsEmpty());
   EXPECT_EQ(1, val.GetSize());
   EXPECT_TRUE(val.HasMember("set"));
   EXPECT_FALSE(val.HasMember("unset"));
@@ -323,6 +351,7 @@ TEST(BsonValueBuilder, UnsetFieldsAreSkipped) {
 TEST(BsonValueBuilder, PredefType) {
   {
     fb::ValueBuilder doc_builder(fb::ValueBuilder::Type::kObject);
+    EXPECT_TRUE(doc_builder.IsEmpty());
     EXPECT_EQ(0, doc_builder.GetSize());
     EXPECT_THROW(doc_builder.Resize(0), fb::TypeMismatchException);
     EXPECT_NO_THROW(doc_builder["a"] = 1);
@@ -331,6 +360,7 @@ TEST(BsonValueBuilder, PredefType) {
 
   {
     fb::ValueBuilder arr_builder(fb::ValueBuilder::Type::kArray);
+    EXPECT_TRUE(arr_builder.IsEmpty());
     EXPECT_EQ(0, arr_builder.GetSize());
     EXPECT_THROW(arr_builder["a"], fb::TypeMismatchException);
     EXPECT_NO_THROW(arr_builder.PushBack(1));
@@ -349,12 +379,14 @@ TEST(BsonValueBuilder, Serialize) {
   const auto value = builder.ExtractValue();
 
   ASSERT_TRUE(value["arr"].IsArray());
+  EXPECT_EQ(test_vector.empty(), value["arr"].IsEmpty());
   ASSERT_EQ(test_vector.size(), value["arr"].GetSize());
   for (size_t i = 0; i < test_vector.size(); ++i) {
     EXPECT_EQ(test_vector[i], value["arr"][i].As<int>());
   }
 
   ASSERT_TRUE(value["doc"].IsObject());
+  EXPECT_FALSE(value["doc"].IsEmpty());
   EXPECT_EQ(2, value["doc"].GetSize());
   EXPECT_EQ(1, value["doc"]["one"].As<int>(-1));
   EXPECT_EQ(2, value["doc"]["two"].As<int>(-1));

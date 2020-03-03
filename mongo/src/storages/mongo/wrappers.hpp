@@ -65,12 +65,27 @@ struct ReadConcernDeleter {
 using ReadConcernPtr =
     std::unique_ptr<mongoc_read_concern_t, ReadConcernDeleter>;
 
-struct ReadPrefsDeleter {
-  void operator()(mongoc_read_prefs_t* read_prefs) const noexcept {
-    mongoc_read_prefs_destroy(read_prefs);
-  }
+class ReadPrefsPtr {
+ public:
+  ReadPrefsPtr() = default;
+  explicit ReadPrefsPtr(mongoc_read_mode_t);
+  ~ReadPrefsPtr();
+
+  ReadPrefsPtr(const ReadPrefsPtr&);
+  ReadPrefsPtr(ReadPrefsPtr&&) noexcept;
+  ReadPrefsPtr& operator=(const ReadPrefsPtr&);
+  ReadPrefsPtr& operator=(ReadPrefsPtr&&) noexcept;
+
+  explicit operator bool() const;
+
+  const mongoc_read_prefs_t* Get() const;
+  mongoc_read_prefs_t* Get();
+
+  void Reset() noexcept;
+
+ private:
+  mongoc_read_prefs_t* read_prefs_{nullptr};
 };
-using ReadPrefsPtr = std::unique_ptr<mongoc_read_prefs_t, ReadPrefsDeleter>;
 
 struct StreamDeleter {
   void operator()(mongoc_stream_t* stream) const noexcept {

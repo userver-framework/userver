@@ -7,6 +7,7 @@
 #include <boost/optional.hpp>
 
 #include <formats/bson/document.hpp>
+#include <formats/bson/value.hpp>
 #include <storages/mongo/bulk.hpp>
 #include <storages/mongo/cursor.hpp>
 #include <storages/mongo/operations.hpp>
@@ -101,6 +102,11 @@ class Collection {
   template <typename... Options>
   operations::Bulk MakeUnorderedBulk(Options&&... options);
 
+  /// @brief Executes an aggregation pipeline
+  /// @param pipeline an array of aggregation operations
+  template <typename... Options>
+  Cursor Aggregate(formats::bson::Value pipeline, Options&&... options);
+
   /// @name Prepared operation executors
   /// @{
   size_t Execute(const operations::Count&) const;
@@ -114,6 +120,7 @@ class Collection {
   WriteResult Execute(const operations::FindAndModify&);
   WriteResult Execute(const operations::FindAndRemove&);
   WriteResult Execute(operations::Bulk&&);
+  Cursor Execute(const operations::Aggregate&);
   /// @}
  private:
   std::shared_ptr<impl::CollectionImpl> impl_;
@@ -247,6 +254,14 @@ operations::Bulk Collection::MakeUnorderedBulk(Options&&... options) {
   operations::Bulk bulk(operations::Bulk::Mode::kUnordered);
   (bulk.SetOption(std::forward<Options>(options)), ...);
   return bulk;
+}
+
+template <typename... Options>
+Cursor Collection::Aggregate(formats::bson::Value pipeline,
+                             Options&&... options) {
+  operations::Aggregate aggregate(std::move(pipeline));
+  (aggregate.SetOption(std::forward<Options>(options)), ...);
+  return Execute(aggregate);
 }
 
 }  // namespace storages::mongo

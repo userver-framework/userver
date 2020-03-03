@@ -69,6 +69,15 @@ TEST(Collection, Read) {
         EXPECT_EQ(7, sum);
       }
       {
+        auto cursor = coll.Aggregate(MakeArray(MakeDoc(
+            "$group", MakeDoc("_id", nullptr, "count", MakeDoc("$sum", 1),
+                              "sum", MakeDoc("$sum", "$x")))));
+        auto doc = *cursor.begin();
+        EXPECT_EQ(++cursor.begin(), cursor.end());
+        EXPECT_EQ(4, doc["count"].As<int>());
+        EXPECT_EQ(7, doc["sum"].As<int>());
+      }
+      {
         Document prev;
         for (const auto& doc : coll.Find(kFilter)) {
           EXPECT_EQ(1, doc["x"].As<int>());
@@ -496,5 +505,30 @@ TEST(Collection, FindAndModify) {
                        options::WriteConcern::kUnacknowledged);
     EXPECT_EQ(1, coll.CountApprox());
     EXPECT_EQ(1, coll.Count(MakeDoc("_id", 1)));
+  });
+}
+
+TEST(Collection, AggregateOut) {
+  RunInCoro([] {
+    auto pool = MakeTestPool();
+    auto in_coll = pool.GetCollection("aggregate_in");
+
+    in_coll.InsertMany({MakeDoc("_id", 1, "x", 0), MakeDoc("_id", 2, "x", 1),
+                        MakeDoc("_id", 3, "x", 2)});
+
+    auto cursor = in_coll.Aggregate(
+        MakeArray(MakeDoc("$match", MakeDoc("_id", MakeDoc("$gte", 2))),
+                  MakeDoc("$addFields", MakeDoc("check", true)),
+                  MakeDoc("$out", "aggregate_out")),
+        options::ReadPreference::kSecondaryPreferred,
+        options::WriteConcern::kMajority);
+    EXPECT_FALSE(cursor);
+
+    auto out_coll = pool.GetCollection("aggregate_out");
+    EXPECT_EQ(2, out_coll.CountApprox());
+    for (const auto& doc : out_coll.Find({})) {
+      EXPECT_EQ(doc["_id"].As<int>(), doc["x"].As<int>() + 1);
+      EXPECT_TRUE(doc["check"].As<bool>());
+    }
   });
 }

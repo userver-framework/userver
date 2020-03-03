@@ -118,6 +118,17 @@ Value::const_iterator Value::end() const {
   return {root_, &GetNative(), static_cast<int>(GetSize()), depth_};
 }
 
+bool Value::IsEmpty() const {
+  CheckObjectOrArrayOrNull();
+  if (IsArray()) {
+    return GetNative().GetArray().Empty();
+  } else if (IsObject()) {
+    return GetNative().GetObject().ObjectEmpty();
+  } else {
+    return true;  // nulls are "empty arrays"
+  }
+}
+
 std::size_t Value::GetSize() const {
   CheckObjectOrArrayOrNull();
   if (IsArray()) {

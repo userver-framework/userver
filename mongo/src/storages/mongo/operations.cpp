@@ -48,15 +48,15 @@ const char* ToNativeReadConcernLevel(options::ReadConcern level) {
 }
 
 impl::ReadPrefsPtr MakeReadPrefs(options::ReadPreference::Mode mode) {
-  return impl::ReadPrefsPtr(mongoc_read_prefs_new(ToNativeReadMode(mode)));
+  return impl::ReadPrefsPtr(ToNativeReadMode(mode));
 }
 
 impl::ReadPrefsPtr MakeReadPrefs(const options::ReadPreference& option) {
   auto read_prefs = MakeReadPrefs(option.GetMode());
   for (const auto& tag : option.GetTags()) {
-    mongoc_read_prefs_add_tag(read_prefs.get(), tag.GetBson().get());
+    mongoc_read_prefs_add_tag(read_prefs.Get(), tag.GetBson().get());
   }
-  if (!mongoc_read_prefs_is_valid(read_prefs.get())) {
+  if (!mongoc_read_prefs_is_valid(read_prefs.Get())) {
     throw InvalidQueryArgumentException(
         "Provided read preference is not valid");
   }
@@ -114,6 +114,26 @@ void AppendLimit(formats::bson::impl::BsonBuilder& builder,
 
   static const std::string kOptionName = "limit";
   AppendUint64Option(builder, kOptionName, limit.Value());
+}
+
+void AppendHint(formats::bson::impl::BsonBuilder& builder,
+                const options::Hint& hint) {
+  static const std::string kOptionName = "hint";
+  builder.Append(kOptionName, hint.Value());
+}
+
+void AppendComment(formats::bson::impl::BsonBuilder& builder,
+                   const options::Comment& comment) {
+  if (comment.Value().empty()) return;
+
+  static const std::string kOptionName = "comment";
+  builder.Append(kOptionName, comment.Value());
+}
+
+void AppendMaxServerTime(formats::bson::impl::BsonBuilder& builder,
+                         const options::MaxServerTime& max_server_time) {
+  static const std::string kOptionName = "maxTimeMS";
+  builder.Append(kOptionName, max_server_time.Value().count());
 }
 
 void EnableFlag(const impl::FindAndModifyOptsPtr& fam_options,
@@ -199,23 +219,12 @@ const std::string kDefaultWriteConcernDesc = "default";
 Count::Count(formats::bson::Document filter) : impl_(std::move(filter)) {}
 Count::~Count() = default;
 
-Count::Count(const Count& other) : impl_(other.impl_->filter) {
-  impl_->read_prefs_desc = other.impl_->read_prefs_desc;
-  impl_->read_prefs.reset(
-      mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
-  impl_->options = other.impl_->options;
-
-  if (!impl_->filter.GetSize()) {
-    impl_->use_new_count = false;
-  }
-}
-
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+Count::Count(const Count& other) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Count::Count(Count&&) noexcept = default;
-// NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
-Count& Count::operator=(const Count& rhs) { return *this = Count(rhs); }
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-Count& Count::operator=(Count&&) = default;
+Count& Count::operator=(const Count& rhs) = default;
+Count& Count::operator=(Count&&) noexcept = default;
 
 void Count::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
@@ -248,23 +257,11 @@ CountApprox::CountApprox() = default;
 CountApprox::~CountApprox() = default;
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-CountApprox::CountApprox(const CountApprox& other) {
-  impl_->read_prefs_desc = other.impl_->read_prefs_desc;
-  impl_->read_prefs.reset(
-      mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
-  impl_->options = other.impl_->options;
-}
-
+CountApprox::CountApprox(const CountApprox& other) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 CountApprox::CountApprox(CountApprox&&) noexcept = default;
-
-CountApprox& CountApprox::operator=(const CountApprox& rhs) {
-  // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
-  return *this = CountApprox(rhs);
-}
-
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-CountApprox& CountApprox::operator=(CountApprox&&) = default;
+CountApprox& CountApprox::operator=(const CountApprox& rhs) = default;
+CountApprox& CountApprox::operator=(CountApprox&&) noexcept = default;
 
 void CountApprox::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
@@ -291,19 +288,12 @@ void CountApprox::SetOption(options::Limit limit) {
 Find::Find(formats::bson::Document filter) : impl_(std::move(filter)) {}
 Find::~Find() = default;
 
-Find::Find(const Find& other) : impl_(other.impl_->filter) {
-  impl_->read_prefs_desc = other.impl_->read_prefs_desc;
-  impl_->read_prefs.reset(
-      mongoc_read_prefs_copy(other.impl_->read_prefs.get()));
-  impl_->options = other.impl_->options;
-}
-
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+Find::Find(const Find& other) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Find::Find(Find&&) noexcept = default;
-// NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
-Find& Find::operator=(const Find& rhs) { return *this = Find(rhs); }
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-Find& Find::operator=(Find&&) = default;
+Find& Find::operator=(const Find& rhs) = default;
+Find& Find::operator=(Find&&) noexcept = default;
 
 void Find::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeReadPrefs(read_prefs);
@@ -344,8 +334,7 @@ void Find::SetOption(const options::Sort& sort) {
 }
 
 void Find::SetOption(const options::Hint& hint) {
-  static const std::string kOptionName = "hint";
-  impl::EnsureBuilder(impl_->options).Append(kOptionName, hint.Value());
+  AppendHint(impl::EnsureBuilder(impl_->options), hint);
 }
 
 void Find::SetOption(options::AllowPartialResults) {
@@ -364,14 +353,11 @@ void Find::SetOption(options::Tailable) {
 }
 
 void Find::SetOption(const options::Comment& comment) {
-  static const std::string kOptionName = "comment";
-  impl::EnsureBuilder(impl_->options).Append(kOptionName, comment.Value());
+  AppendComment(impl::EnsureBuilder(impl_->options), comment);
 }
 
 void Find::SetOption(const options::MaxServerTime& max_server_time) {
-  static const std::string kOptionName = "maxTimeMS";
-  impl::EnsureBuilder(impl_->options)
-      .Append(kOptionName, max_server_time.Value().count());
+  AppendMaxServerTime(impl::EnsureBuilder(impl_->options), max_server_time);
 }
 
 InsertOne::InsertOne(formats::bson::Document document)
@@ -384,8 +370,7 @@ InsertOne::InsertOne(const InsertOne&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertOne::InsertOne(InsertOne&&) noexcept = default;
 InsertOne& InsertOne::operator=(const InsertOne&) = default;
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-InsertOne& InsertOne::operator=(InsertOne&&) = default;
+InsertOne& InsertOne::operator=(InsertOne&&) noexcept = default;
 
 void InsertOne::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
@@ -414,8 +399,7 @@ InsertMany::InsertMany(const InsertMany&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 InsertMany::InsertMany(InsertMany&&) noexcept = default;
 InsertMany& InsertMany::operator=(const InsertMany&) = default;
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-InsertMany& InsertMany::operator=(InsertMany&&) = default;
+InsertMany& InsertMany::operator=(InsertMany&&) noexcept = default;
 
 void InsertMany::Append(formats::bson::Document document) {
   impl_->documents.push_back(std::move(document));
@@ -451,8 +435,7 @@ ReplaceOne::ReplaceOne(const ReplaceOne&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ReplaceOne::ReplaceOne(ReplaceOne&&) noexcept = default;
 ReplaceOne& ReplaceOne::operator=(const ReplaceOne&) = default;
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-ReplaceOne& ReplaceOne::operator=(ReplaceOne&&) = default;
+ReplaceOne& ReplaceOne::operator=(ReplaceOne&&) noexcept = default;
 
 void ReplaceOne::SetOption(options::Upsert) {
   impl::AppendUpsert(impl::EnsureBuilder(impl_->options));
@@ -483,8 +466,7 @@ Update::Update(const Update&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Update::Update(Update&&) noexcept = default;
 Update& Update::operator=(const Update&) = default;
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-Update& Update::operator=(Update&&) = default;
+Update& Update::operator=(Update&&) noexcept = default;
 
 void Update::SetOption(options::Upsert) {
   impl::AppendUpsert(impl::EnsureBuilder(impl_->options));
@@ -522,8 +504,7 @@ Delete::Delete(const Delete&) = default;
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Delete::Delete(Delete&&) noexcept = default;
 Delete& Delete::operator=(const Delete&) = default;
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-Delete& Delete::operator=(Delete&&) = default;
+Delete& Delete::operator=(Delete&&) noexcept = default;
 
 void Delete::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
@@ -553,8 +534,7 @@ FindAndModify::~FindAndModify() = default;
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 FindAndModify::FindAndModify(FindAndModify&&) noexcept = default;
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-FindAndModify& FindAndModify::operator=(FindAndModify&&) = default;
+FindAndModify& FindAndModify::operator=(FindAndModify&&) noexcept = default;
 
 void FindAndModify::SetOption(options::ReturnNew) {
   EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_RETURN_NEW);
@@ -624,8 +604,7 @@ FindAndRemove::~FindAndRemove() = default;
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 FindAndRemove::FindAndRemove(FindAndRemove&&) noexcept = default;
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-FindAndRemove& FindAndRemove::operator=(FindAndRemove&&) = default;
+FindAndRemove& FindAndRemove::operator=(FindAndRemove&&) noexcept = default;
 
 void FindAndRemove::SetOption(const options::Sort& sort) {
   if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(),
@@ -671,6 +650,62 @@ void FindAndRemove::SetOption(const options::MaxServerTime& max_server_time) {
                                                    value_ms)) {
     throw MongoException("Cannot set max server time");
   }
+}
+
+Aggregate::Aggregate(formats::bson::Value pipeline)
+    : impl_(std::move(pipeline)) {
+  if (!impl_->pipeline.IsArray()) {
+    throw InvalidQueryArgumentException("Aggregation pipeline is not an array");
+  }
+  if (impl_->pipeline.IsEmpty()) {
+    throw InvalidQueryArgumentException(
+        "Provided aggregation pipeline is empty");
+  }
+}
+
+Aggregate::~Aggregate() = default;
+
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+Aggregate::Aggregate(const Aggregate& other) = default;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+Aggregate::Aggregate(Aggregate&&) noexcept = default;
+Aggregate& Aggregate::operator=(const Aggregate& rhs) = default;
+Aggregate& Aggregate::operator=(Aggregate&&) noexcept = default;
+
+void Aggregate::SetOption(const options::ReadPreference& read_prefs) {
+  impl_->read_prefs = MakeReadPrefs(read_prefs);
+  impl_->read_prefs_desc = MakeReadPrefsDescription(read_prefs);
+}
+
+void Aggregate::SetOption(options::ReadPreference::Mode mode) {
+  impl_->read_prefs = MakeReadPrefs(mode);
+  impl_->read_prefs_desc = MakeReadPrefsDescription(mode);
+}
+
+void Aggregate::SetOption(options::ReadConcern level) {
+  AppendReadConcern(impl::EnsureBuilder(impl_->options), level);
+}
+
+void Aggregate::SetOption(const options::WriteConcern& write_concern) {
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
+}
+
+void Aggregate::SetOption(options::WriteConcern::Level level) {
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
+}
+
+void Aggregate::SetOption(const options::Hint& hint) {
+  AppendHint(impl::EnsureBuilder(impl_->options), hint);
+}
+
+void Aggregate::SetOption(const options::Comment& comment) {
+  AppendComment(impl::EnsureBuilder(impl_->options), comment);
+}
+
+void Aggregate::SetOption(const options::MaxServerTime& max_server_time) {
+  AppendMaxServerTime(impl::EnsureBuilder(impl_->options), max_server_time);
 }
 
 }  // namespace storages::mongo::operations

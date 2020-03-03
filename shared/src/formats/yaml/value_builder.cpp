@@ -127,6 +127,8 @@ ValueBuilder::iterator ValueBuilder::end() {
           value_.path_};
 }
 
+bool ValueBuilder::IsEmpty() const { return value_.IsEmpty(); }
+
 std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 
 void ValueBuilder::Resize(std::size_t size) {

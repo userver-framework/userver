@@ -42,6 +42,7 @@ TYPED_TEST_P(MemberModify, ArrayResize) {
   using OutOfBoundsException = typename TestFixture::OutOfBoundsException;
 
   this->builder_["key4"].Resize(4);
+  EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
   EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 4);
 
   this->builder_["key4"][3] = 4;
@@ -51,6 +52,7 @@ TYPED_TEST_P(MemberModify, ArrayResize) {
 
   this->builder_["key4"].Resize(1);
 
+  EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
   EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 1);
   EXPECT_EQ(this->GetBuiltValue()["key4"][0].template As<int>(), 1);
   EXPECT_THROW(this->GetBuiltValue()["key4"][2], OutOfBoundsException);
@@ -61,9 +63,11 @@ TYPED_TEST_P(MemberModify, ArrayFromNull) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
 
   this->builder_ = ValueBuilder();
+  EXPECT_TRUE(this->GetBuiltValue().IsEmpty());
   EXPECT_EQ(this->GetBuiltValue().GetSize(), 0);
 
   this->builder_.Resize(1);
+  EXPECT_FALSE(this->GetBuiltValue().IsEmpty());
   EXPECT_EQ(this->GetBuiltValue().GetSize(), 1);
 
   this->builder_[0] = 0;
@@ -81,6 +85,7 @@ TYPED_TEST_P(MemberModify, ArrayPushBack) {
   for (auto i = 0; i < size; ++i) {
     this->builder_.PushBack(i);
   }
+  EXPECT_EQ(this->GetBuiltValue().IsEmpty(), !size);
   EXPECT_EQ(this->GetBuiltValue().GetSize(), size);
 
   for (auto i = 0; i < size; ++i) {
@@ -90,6 +95,7 @@ TYPED_TEST_P(MemberModify, ArrayPushBack) {
 
 TYPED_TEST_P(MemberModify, PushBackFromExisting) {
   this->builder_["key4"].PushBack(this->builder_["key1"]);
+  EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
   EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 4);
   EXPECT_EQ(this->GetBuiltValue()["key4"][3].template As<int>(), 1);
   EXPECT_EQ(this->GetBuiltValue()["key1"].template As<int>(), 1);
@@ -130,8 +136,20 @@ TYPED_TEST_P(MemberModify, ObjectIteratorModify) {
   }
 }
 
+TYPED_TEST_P(MemberModify, MemberEmpty) {
+  EXPECT_FALSE(this->builder_.IsEmpty());
+}
+
 TYPED_TEST_P(MemberModify, MemberCount) {
   EXPECT_EQ(this->builder_.GetSize(), 5);
+}
+
+TYPED_TEST_P(MemberModify, NonArrayThrowIsEmpty) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+  using TypeMismatchException = typename TestFixture::TypeMismatchException;
+
+  ValueBuilder bld(true);
+  EXPECT_THROW(bld.IsEmpty(), TypeMismatchException);
 }
 
 TYPED_TEST_P(MemberModify, NonArrayThrowGetSize) {
@@ -157,6 +175,7 @@ TYPED_TEST_P(MemberModify, ArrayIteratorRead) {
   for (auto i = 0; i < size; ++i, ++it) {
     EXPECT_EQ(it->template As<int>(), i) << "Failed at index " << i;
   }
+  EXPECT_EQ(this->builder_.IsEmpty(), !size);
   EXPECT_EQ(this->builder_.GetSize(), size);
 }
 
@@ -187,6 +206,7 @@ TYPED_TEST_P(MemberModify, ArrayIteratorModify) {
       EXPECT_EQ(it->template As<int>(), i + offset) << "Failed at index " << i;
     }
   }
+  EXPECT_EQ(this->builder_.IsEmpty(), !size);
   EXPECT_EQ(this->builder_.GetSize(), size);
 }
 
@@ -303,10 +323,10 @@ REGISTER_TYPED_TEST_CASE_P(
     CheckNestedArrayChange, ArrayResize, ArrayFromNull, ArrayPushBack,
 
     PushBackFromExisting, PushBackWrongTypeThrows, ExtractFromSubBuilderThrows,
-    ObjectIteratorModify, MemberCount,
+    ObjectIteratorModify, MemberEmpty, MemberCount,
 
-    NonArrayThrowGetSize, ArrayIteratorRead, ArrayIteratorModify,
-    CreateSpecificType, IteratorOutlivesRoot,
+    NonArrayThrowIsEmpty, NonArrayThrowGetSize, ArrayIteratorRead,
+    ArrayIteratorModify, CreateSpecificType, IteratorOutlivesRoot,
 
     SubdocOutlivesRoot, MoveValueBuilder, CheckSubobjectChange, TypeCheckMinMax,
     CannotBuildFromMissing);

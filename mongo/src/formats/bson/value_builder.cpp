@@ -140,6 +140,8 @@ ValueBuilder::iterator ValueBuilder::begin() {
 
 ValueBuilder::iterator ValueBuilder::end() { return {*impl_, impl_->End()}; }
 
+bool ValueBuilder::IsEmpty() const { return impl_->IsEmpty(); }
+
 uint32_t ValueBuilder::GetSize() const { return impl_->GetSize(); }
 
 void ValueBuilder::Resize(uint32_t size) { impl_->Resize(size); }

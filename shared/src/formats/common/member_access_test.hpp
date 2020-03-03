@@ -118,6 +118,7 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4Index) {
       }
 
       EXPECT_TRUE(it->IsArray()) << "Array iteration damaged the iterator";
+      EXPECT_FALSE(it->IsEmpty()) << "Array iteration damaged the iterator";
       EXPECT_EQ(it->GetSize(), 3) << "Array iteration damaged the iterator";
     } else {
       EXPECT_FALSE(it->IsArray());
@@ -144,6 +145,7 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
       }
 
       EXPECT_TRUE(it->IsArray()) << "Array iteration damaged the iterator";
+      EXPECT_FALSE(it->IsEmpty()) << "Array iteration damaged the iterator";
       EXPECT_EQ(it->GetSize(), 3) << "Array iteration damaged the iterator";
     } else {
       EXPECT_FALSE(it->IsArray());
@@ -176,6 +178,7 @@ TYPED_TEST_P(MemberAccess, Algorithms) {
   ++it;
   ++it;
   EXPECT_EQ(it.GetName(), "key4");
+  EXPECT_FALSE(it->IsEmpty());
   EXPECT_EQ(it->GetSize(), 3);
 
   EXPECT_EQ(it_new.GetName(), "key3");
@@ -252,6 +255,12 @@ TYPED_TEST_P(MemberAccess, MemberPathsByIterator) {
   auto arr_it = it->begin();
   EXPECT_EQ((arr_it++)->GetPath(), "key4.[0]");
   EXPECT_EQ((++arr_it)->GetPath(), "key4.[2]");
+}
+
+TYPED_TEST_P(MemberAccess, MemberEmpty) {
+  EXPECT_FALSE(this->doc_.IsEmpty()) << "Map is not empty when it should be";
+  EXPECT_FALSE(this->doc_["key4"].IsEmpty())
+      << "Array is not empty when it should be";
 }
 
 TYPED_TEST_P(MemberAccess, MemberCount) {
@@ -419,8 +428,8 @@ REGISTER_TYPED_TEST_CASE_P(
     IterateMembersAndCheckKey4IndexPostincrement, Algorithms,
 
     CheckPrimitiveTypes, CheckPrimitiveTypeExceptions, MemberPaths,
-    MemberPathsByIterator, MemberCount, HasMember, CopyMoveSubobject,
-    IteratorOnNull,
+    MemberPathsByIterator, MemberEmpty, MemberCount, HasMember,
+    CopyMoveSubobject, IteratorOnNull,
 
     IteratorOnMissingThrows, CloneValues, CreateEmptyAndAccess, Subfield,
     ValueAssignment, ConstFunctionsOnMissing, AsWithDefault,

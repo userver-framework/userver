@@ -119,6 +119,11 @@ Value::const_iterator Value::end() const {
       path_};
 }
 
+bool Value::IsEmpty() const {
+  CheckObjectOrArrayOrNull();
+  return value_pimpl_->begin() == value_pimpl_->end();
+}
+
 std::size_t Value::GetSize() const {
   CheckObjectOrArrayOrNull();
   return value_pimpl_->size();

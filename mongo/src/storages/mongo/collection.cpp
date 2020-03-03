@@ -48,7 +48,7 @@ size_t Collection::Execute(const operations::Count& count_op) const {
     count = mongoc_collection_count_documents(
         collection.get(), count_op.impl_->filter.GetBson().get(),
         impl::GetNative(count_op.impl_->options),
-        count_op.impl_->read_prefs.get(), nullptr, error.GetNative());
+        count_op.impl_->read_prefs.Get(), nullptr, error.GetNative());
   } else {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
@@ -57,7 +57,7 @@ size_t Collection::Execute(const operations::Count& count_op) const {
         count_op.impl_->filter.GetBson().get(),  //
         0, 0,  // skip and limit are set in options
         impl::GetNative(count_op.impl_->options),
-        count_op.impl_->read_prefs.get(), error.GetNative());
+        count_op.impl_->read_prefs.Get(), error.GetNative());
 #pragma clang diagnostic pop
   }
   if (count < 0) {
@@ -80,7 +80,7 @@ size_t Collection::Execute(
       stats_ptr, stats::ReadOperationStatistics::kCountApprox);
   auto count = mongoc_collection_estimated_document_count(
       collection.get(), impl::GetNative(count_approx_op.impl_->options),
-      count_approx_op.impl_->read_prefs.get(), nullptr, error.GetNative());
+      count_approx_op.impl_->read_prefs.Get(), nullptr, error.GetNative());
   if (count < 0) {
     count_approx_sw.AccountError(error.GetKind());
     error.Throw("Error counting documents");
@@ -98,7 +98,7 @@ Cursor Collection::Execute(const operations::Find& find_op) const {
   impl::CursorPtr native_cursor(mongoc_collection_find_with_opts(
       collection.get(), find_op.impl_->filter.GetBson().get(),
       impl::GetNative(find_op.impl_->options),
-      find_op.impl_->read_prefs.get()));
+      find_op.impl_->read_prefs.Get()));
   return Cursor(impl::CursorImpl(std::move(client), std::move(native_cursor),
                                  std::move(stats_ptr)));
 }
@@ -357,6 +357,22 @@ WriteResult Collection::Execute(operations::Bulk&& bulk_op) {
     }
   }
   return write_result.Extract();
+}
+
+Cursor Collection::Execute(const operations::Aggregate& aggregate_op) {
+  auto span = impl_->MakeSpan("mongo_aggregate");
+  auto [client, collection] = impl_->GetNativeCollection();
+  // TODO: this is not quite correct for aggregations with "$out"/"$merge"
+  auto stats_ptr = impl_->GetCollectionStatistics()
+                       .read[aggregate_op.impl_->read_prefs_desc];
+
+  auto pipeline_doc = aggregate_op.impl_->pipeline.GetInternalArrayDocument();
+  impl::CursorPtr native_cursor(mongoc_collection_aggregate(
+      collection.get(), MONGOC_QUERY_NONE, pipeline_doc.GetBson().get(),
+      impl::GetNative(aggregate_op.impl_->options),
+      aggregate_op.impl_->read_prefs.Get()));
+  return Cursor(impl::CursorImpl(std::move(client), std::move(native_cursor),
+                                 std::move(stats_ptr)));
 }
 
 }  // namespace storages::mongo

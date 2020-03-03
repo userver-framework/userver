@@ -216,8 +216,7 @@ mongoc_client_t* PoolImpl::Create() {
   // "admin" is an internal mongodb database and always exists/accessible
   static const char* kPingDatabase = "admin";
   static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
-  static const ReadPrefsPtr kPingReadPrefs(
-      mongoc_read_prefs_new(MONGOC_READ_NEAREST));
+  static const ReadPrefsPtr kPingReadPrefs(MONGOC_READ_NEAREST);
 
   LOG_DEBUG() << "Creating mongo connection";
 
@@ -236,7 +235,7 @@ mongoc_client_t* PoolImpl::Create() {
                                     stats::PoolConnectStatistics::kPing);
   if (!mongoc_client_command_simple(
           client.get(), kPingDatabase, kPingCommand.GetBson().get(),
-          kPingReadPrefs.get(), nullptr, error.GetNative())) {
+          kPingReadPrefs.Get(), nullptr, error.GetNative())) {
     ping_sw.AccountError(error.GetKind());
     error.Throw("Couldn't create a connection in mongo pool '" + id_ + '\'');
   }

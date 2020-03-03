@@ -73,6 +73,10 @@ class Value final {
   /// or Null.
   const_iterator end() const;
 
+  /// @brief Returns whether the array or object is empty.
+  /// @throw TypeMismatchException if not array or object value.
+  bool IsEmpty() const;
+
   /// @brief Returns array size or object members count.
   /// @throw TypeMismatchException if not array or object value.
   std::size_t GetSize() const;

@@ -32,6 +32,7 @@ TEST(BsonValue, SubvalAccess) {
 TEST(BsonValue, Array) {
   ASSERT_TRUE(kDoc["arr"].IsArray());
   const auto& arr = kDoc["arr"];
+  EXPECT_FALSE(arr.IsEmpty());
   ASSERT_EQ(3, arr.GetSize());
 
   EXPECT_EQ(1, arr[0].As<int>());
@@ -98,6 +99,14 @@ TEST(BsonValue, Document) {
   test_doc(kDoc["doc"].As<fb::Document>());
 }
 
+TEST(BsonValue, Empty) {
+  EXPECT_FALSE(kDoc.IsEmpty());
+  EXPECT_FALSE(kDoc["arr"].IsEmpty());
+  EXPECT_FALSE(kDoc["doc"].IsEmpty());
+  EXPECT_TRUE(kDoc["null"].IsEmpty());
+  EXPECT_THROW(kDoc["bool"].IsEmpty(), fb::TypeMismatchException);
+}
+
 TEST(BsonValue, Size) {
   EXPECT_EQ(4, kDoc.GetSize());
   EXPECT_EQ(3, kDoc["arr"].GetSize());
@@ -152,6 +161,7 @@ TEST(BsonValue, Null) {
   fb::Value null;
   EXPECT_TRUE(null.IsNull());
   EXPECT_EQ(kDoc["null"], null);
+  EXPECT_TRUE(null.IsEmpty());
   EXPECT_EQ(0, null.GetSize());
   EXPECT_EQ(null.begin(), null.end());
   EXPECT_NO_THROW(null.HasMember("f"));

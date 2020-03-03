@@ -4,6 +4,7 @@
 /// @brief Collection operation models
 
 #include <formats/bson/document.hpp>
+#include <formats/bson/value.hpp>
 #include <storages/mongo/options.hpp>
 #include <utils/fast_pimpl.hpp>
 
@@ -23,8 +24,7 @@ class Count {
   Count(const Count&);
   Count(Count&&) noexcept;
   Count& operator=(const Count&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  Count& operator=(Count&&);
+  Count& operator=(Count&&) noexcept;
 
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
@@ -52,8 +52,7 @@ class CountApprox {
   CountApprox(const CountApprox&);
   CountApprox(CountApprox&&) noexcept;
   CountApprox& operator=(const CountApprox&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  CountApprox& operator=(CountApprox&&);
+  CountApprox& operator=(CountApprox&&) noexcept;
 
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
@@ -80,8 +79,7 @@ class Find {
   Find(const Find&);
   Find(Find&&) noexcept;
   Find& operator=(const Find&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  Find& operator=(Find&&);
+  Find& operator=(Find&&) noexcept;
 
   void SetOption(const options::ReadPreference&);
   void SetOption(options::ReadPreference::Mode);
@@ -115,8 +113,7 @@ class InsertOne {
   InsertOne(const InsertOne&);
   InsertOne(InsertOne&&) noexcept;
   InsertOne& operator=(const InsertOne&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  InsertOne& operator=(InsertOne&&);
+  InsertOne& operator=(InsertOne&&) noexcept;
 
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
@@ -142,8 +139,7 @@ class InsertMany {
   InsertMany(const InsertMany&);
   InsertMany(InsertMany&&) noexcept;
   InsertMany& operator=(const InsertMany&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  InsertMany& operator=(InsertMany&&);
+  InsertMany& operator=(InsertMany&&) noexcept;
 
   void Append(formats::bson::Document document);
 
@@ -172,8 +168,7 @@ class ReplaceOne {
   ReplaceOne(const ReplaceOne&);
   ReplaceOne(ReplaceOne&&) noexcept;
   ReplaceOne& operator=(const ReplaceOne&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  ReplaceOne& operator=(ReplaceOne&&);
+  ReplaceOne& operator=(ReplaceOne&&) noexcept;
 
   void SetOption(options::Upsert);
   void SetOption(options::WriteConcern::Level);
@@ -202,8 +197,7 @@ class Update {
   Update(const Update&);
   Update(Update&&) noexcept;
   Update& operator=(const Update&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  Update& operator=(Update&&);
+  Update& operator=(Update&&) noexcept;
 
   void SetOption(options::Upsert);
   void SetOption(options::RetryDuplicateKey);
@@ -232,8 +226,7 @@ class Delete {
   Delete(const Delete&);
   Delete(Delete&&) noexcept;
   Delete& operator=(const Delete&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  Delete& operator=(Delete&&);
+  Delete& operator=(Delete&&) noexcept;
 
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
@@ -259,8 +252,7 @@ class FindAndModify {
   FindAndModify(const FindAndModify&) = delete;
   FindAndModify(FindAndModify&&) noexcept;
   FindAndModify& operator=(const FindAndModify&) = delete;
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  FindAndModify& operator=(FindAndModify&&);
+  FindAndModify& operator=(FindAndModify&&) noexcept;
 
   void SetOption(options::ReturnNew);
   void SetOption(options::Upsert);
@@ -290,8 +282,7 @@ class FindAndRemove {
   FindAndRemove(const FindAndRemove&) = delete;
   FindAndRemove(FindAndRemove&&) noexcept;
   FindAndRemove& operator=(const FindAndRemove&) = delete;
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  FindAndRemove& operator=(FindAndRemove&&);
+  FindAndRemove& operator=(FindAndRemove&&) noexcept;
 
   void SetOption(const options::Sort&);
   void SetOption(options::Projection);
@@ -304,6 +295,36 @@ class FindAndRemove {
 
   class Impl;
   static constexpr size_t kSize = 56;
+  static constexpr size_t kAlignment = 8;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
+};
+
+/// Runs an aggregation pipeline
+class Aggregate {
+ public:
+  explicit Aggregate(formats::bson::Value pipeline);
+  ~Aggregate();
+
+  Aggregate(const Aggregate&);
+  Aggregate(Aggregate&&) noexcept;
+  Aggregate& operator=(const Aggregate&);
+  Aggregate& operator=(Aggregate&&) noexcept;
+
+  void SetOption(const options::ReadPreference&);
+  void SetOption(options::ReadPreference::Mode);
+  void SetOption(options::ReadConcern);
+  void SetOption(const options::WriteConcern&);
+  void SetOption(options::WriteConcern::Level);
+  void SetOption(const options::Hint&);
+  void SetOption(const options::Comment&);
+  void SetOption(const options::MaxServerTime&);
+
+ private:
+  friend class ::storages::mongo::Collection;
+
+  class Impl;
+  static constexpr size_t kSize = 104;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;

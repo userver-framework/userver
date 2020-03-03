@@ -7,6 +7,8 @@
 
 #include <formats/bson/bson_builder.hpp>
 #include <formats/bson/document.hpp>
+#include <formats/bson/exception.hpp>
+#include <formats/bson/value.hpp>
 #include <storages/mongo/bulk.hpp>
 #include <storages/mongo/operations.hpp>
 
@@ -138,6 +140,18 @@ class Bulk::Impl {
   std::string write_concern_desc{kDefaultWriteConcernDesc};
   Mode mode;
   bool should_throw{true};
+};
+
+class Aggregate::Impl {
+ public:
+  explicit Impl(formats::bson::Value pipeline_)
+      : pipeline(std::move(pipeline_)) {}
+
+  formats::bson::Value pipeline;
+  std::string read_prefs_desc{kDefaultReadPrefDesc};
+  impl::ReadPrefsPtr read_prefs;
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  boost::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 }  // namespace storages::mongo::operations

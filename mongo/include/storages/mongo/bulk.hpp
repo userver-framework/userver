@@ -24,8 +24,7 @@ class Bulk {
   Bulk(const Bulk&) = delete;
   Bulk(Bulk&&) noexcept;
   Bulk& operator=(const Bulk&) = delete;
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
-  Bulk& operator=(Bulk&&);
+  Bulk& operator=(Bulk&&) noexcept;
 
   bool IsEmpty() const;
 
