@@ -108,12 +108,15 @@ formats::json::Value TestsControl::ActionRunPeriodicTask(
 
   auto testsuite_support = testsuite_support_.Lock();
 
-  LOG_INFO() << "Running periodic task " << task_name;
+  LOG_INFO() << "Executing periodic task " << task_name << " once";
   bool status =
       testsuite_support->get().GetPeriodicTaskControl().RunPeriodicTask(
           task_name);
-  LOG_INFO() << "Periodic task " << task_name << " finished with status "
-             << status;
+  if (status) {
+    LOG_INFO() << "Periodic task " << task_name << " completed successfully";
+  } else {
+    LOG_ERROR() << "Periodic task " << task_name << " failed";
+  }
 
   formats::json::ValueBuilder result;
   result["status"] = status;
