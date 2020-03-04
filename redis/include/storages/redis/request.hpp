@@ -37,6 +37,9 @@ class USERVER_NODISCARD Request final {
   template <typename T1, typename T2>
   friend class RequestEval;
 
+  template <ScanTag scan_tag>
+  friend class RequestScanData;
+
  private:
   ReplyPtr GetRaw() { return impl_->GetRaw(); }
 

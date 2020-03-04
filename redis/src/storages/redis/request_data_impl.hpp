@@ -185,7 +185,10 @@ template <ScanTag scan_tag>
 void RequestScanData<scan_tag>::CheckReply() {
   while (!eof_ && (!reply_ || reply_keys_index_ == reply_->GetKeys().size())) {
     if (request_) {
-      auto scan_reply = request_->Get(this->request_description_);
+      auto scan_reply_raw = request_->GetRaw();
+      command_control_.force_server_id = scan_reply_raw->server_id;
+      auto scan_reply = ParseReply<ScanReply>(std::move(scan_reply_raw),
+                                              this->request_description_);
       if (reply_)
         *reply_ = std::move(scan_reply);
       else
