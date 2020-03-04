@@ -231,6 +231,11 @@ class Variable final {
       : epoch_(impl::GetNextEpoch()),
         current_(new T(std::forward<Args>(args)...)) {}
 
+  Variable(const Variable&) = delete;
+  Variable(Variable&&) = delete;
+  Variable& operator=(const Variable&) = delete;
+  Variable& operator=(Variable&&) = delete;
+
   ~Variable() {
     delete current_.load();
 
