@@ -12,6 +12,7 @@
 #include <formats/common/meta.hpp>
 #include <formats/parse/to.hpp>
 #include <utils/datetime.hpp>
+#include <utils/datetime/from_string_saturating.hpp>
 #include <utils/string_to_duration.hpp>
 
 /// Generic parsers and converters
@@ -100,8 +101,8 @@ std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(
 template <class Value>
 std::chrono::system_clock::time_point Parse(
     const Value& n, To<std::chrono::system_clock::time_point>) {
-  return utils::datetime::Stringtime(n.template As<std::string>(), "UTC",
-                                     utils::datetime::kRfc3339Format);
+  return utils::datetime::FromRfc3339StringSaturating(
+      n.template As<std::string>());
 }
 
 template <class Value>
