@@ -5,6 +5,7 @@
 
 #include <exception>
 #include <memory>
+#include <optional>
 #include <ostream>
 
 #include <boost/system/error_code.hpp>
@@ -168,6 +169,15 @@ inline LogHelper& operator<<(LogHelper& lh, void* value) {
 
 inline LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
   lh << ec.category().name() << ':' << ec.value();
+  return lh;
+}
+
+template <typename T>
+inline LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) {
+  if (value)
+    lh << *value;
+  else
+    lh << "(none)";
   return lh;
 }
 
