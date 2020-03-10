@@ -212,6 +212,7 @@ formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
   total["reply-codes"] = stats.FormatReplyCodes();
   total["in-flight"] = stats.GetInFlight();
   total["too-many-requests-in-flight"] = stats.GetTooManyRequestsInFlight();
+  total["rate-limit-reached"] = stats.GetRateLimitReached();
 
   total["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.GetTimings());
@@ -243,26 +244,33 @@ HttpHandlerBase::HttpHandlerBase(
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
 
-  if (IsEnabled()) {
-    auto& server_component =
-        component_context.FindComponent<components::Server>();
-
-    engine::TaskProcessor& task_processor =
-        component_context.GetTaskProcessor(GetConfig().task_processor);
-    try {
-      server_component.AddHandler(*this, task_processor);
-    } catch (const std::exception& ex) {
-      throw std::runtime_error(std::string("can't add handler to server: ") +
-                               ex.what());
-    }
-    /// TODO: unable to add prefix metadata ATM
-    const auto graphite_path = "http.by-path." +
-                               utils::graphite::EscapeName(GetConfig().path) +
-                               ".by-handler." + config.Name();
-    statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
-        graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
-                                 std::placeholders::_1));
+  if (!IsEnabled()) {
+    return;
   }
+
+  if (GetConfig().max_requests_per_second) {
+    rate_limit_.emplace(*GetConfig().max_requests_per_second,
+                        std::chrono::seconds(1));
+  }
+
+  auto& server_component =
+      component_context.FindComponent<components::Server>();
+
+  engine::TaskProcessor& task_processor =
+      component_context.GetTaskProcessor(GetConfig().task_processor);
+  try {
+    server_component.AddHandler(*this, task_processor);
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(std::string("can't add handler to server: ") +
+                             ex.what());
+  }
+  /// TODO: unable to add prefix metadata ATM
+  const auto graphite_path = "http.by-path." +
+                             utils::graphite::EscapeName(GetConfig().path) +
+                             ".by-handler." + config.Name();
+  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
+      graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
+                               std::placeholders::_1));
 }
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
@@ -428,6 +436,18 @@ void HttpHandlerBase::CheckRatelimit(
   auto& statistics =
       handler_statistics_->GetStatisticByMethod(http_request.GetMethod());
   auto& total_statistics = handler_statistics_->GetTotalStatistics();
+
+  if (rate_limit_) {
+    const bool success = rate_limit_->Obtain();
+    if (!success) {
+      LOG_ERROR() << "Max rate limit reached for handler '" << HandlerName()
+                  << "', limit=" << GetConfig().max_requests_per_second;
+      statistics.IncrementRateLimitReached();
+      total_statistics.IncrementRateLimitReached();
+
+      throw ExceptionWithCode<HandlerErrorCode::kTooManyRequests>();
+    }
+  }
 
   auto max_requests_in_flight = GetConfig().max_requests_in_flight;
   auto requests_in_flight = statistics.GetInFlight();

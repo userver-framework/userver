@@ -42,6 +42,10 @@ class HttpHandlerMethodStatistics final {
     return too_many_requests_in_flight_;
   }
 
+  void IncrementRateLimitReached() { rate_limit_reached_++; }
+
+  size_t GetRateLimitReached() const { return rate_limit_reached_; }
+
  private:
   utils::statistics::RecentPeriod<Percentile, Percentile,
                                   utils::datetime::SteadyClock>
@@ -49,6 +53,7 @@ class HttpHandlerMethodStatistics final {
   utils::statistics::HttpCodes reply_codes_{400, 401, 500};
   std::atomic<size_t> in_flight_{0};
   std::atomic<size_t> too_many_requests_in_flight_{0};
+  std::atomic<size_t> rate_limit_reached_{0};
 };
 
 class HttpHandlerStatistics final {

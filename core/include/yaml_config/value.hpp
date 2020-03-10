@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -85,6 +86,24 @@ struct ParseOptionalHelper<boost::optional<T>> {
   }
 };
 
+template <typename T>
+struct ParseOptionalHelper<std::optional<T>> {
+  static std::optional<T> ParseOptional(const formats::yaml::Value& obj,
+                                        const std::string& name,
+                                        const std::string& full_path,
+                                        const VariableMapPtr& config_vars_ptr) {
+    return ParseValue(obj, name, full_path, config_vars_ptr,
+                      &impl::Parse<T, std::string>, &ParseOptional);
+  }
+
+  std::optional<T> operator()(const formats::yaml::Value& obj,
+                              const std::string& name,
+                              const std::string& full_path,
+                              const VariableMapPtr& config_vars_ptr) const {
+    return ParseOptional(obj, name, full_path, config_vars_ptr);
+  }
+};
+
 }  // namespace impl
 
 template <typename T>
@@ -145,13 +164,15 @@ auto ParseValue(const formats::yaml::Value& obj, const std::string& name,
                 const std::string& full_path,
                 const VariableMapPtr& config_vars_ptr, ElemParser parse_elem,
                 ConfigVarParser parse_config_var)
-    -> boost::optional<decltype(parse_elem(obj, name, full_path,
-                                           config_vars_ptr))> {
+    -> decltype(parse_config_var(obj, name, full_path, config_vars_ptr)) {
+  using ResultType =
+      decltype(parse_config_var(obj, name, full_path, config_vars_ptr));
+  using ParseElemType =
+      decltype(parse_elem(obj, name, full_path, config_vars_ptr));
+
   static_assert(
-      std::is_same<boost::optional<decltype(
-                       parse_elem(obj, name, full_path, config_vars_ptr))>,
-                   decltype(parse_config_var(obj, name, full_path,
-                                             config_vars_ptr))>::value,
+      std::is_same<boost::optional<ParseElemType>, ResultType>::value ||
+          std::is_same<std::optional<ParseElemType>, ResultType>::value,
       "inconsistent result types of ElemParser and ConfigVarParser");
 
   if (obj.IsMissing()) return {};

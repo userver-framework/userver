@@ -1,5 +1,6 @@
 #include <server/handlers/handler_config.hpp>
 
+#include <formats/parse/common_containers.hpp>
 #include <yaml_config/value.hpp>
 
 namespace server {
@@ -54,13 +55,16 @@ HandlerConfig HandlerConfig::ParseFromYaml(
                                            ? *request_body_size_log_limit
                                            : kLogRequestDataSizeDefaultLimit;
 
-  boost::optional<size_t> response_data_size_log_limit;
+  std::optional<size_t> response_data_size_log_limit;
   yaml_config::ParseInto(response_data_size_log_limit, yaml,
                          "response_data_size_log_limit", full_path,
                          config_vars_ptr);
   config.response_data_size_log_limit = response_data_size_log_limit
                                             ? *response_data_size_log_limit
                                             : kLogRequestDataSizeDefaultLimit;
+
+  yaml_config::ParseInto(config.max_requests_per_second, yaml,
+                         "max_requests_per_second", full_path, config_vars_ptr);
 
   return config;
 }

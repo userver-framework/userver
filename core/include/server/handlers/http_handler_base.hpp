@@ -2,6 +2,7 @@
 
 /// @file server/handlers/http_handler_base.hpp
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,6 +16,7 @@
 #include <server/http/http_response.hpp>
 #include <server/request/request_base.hpp>
 #include <server_settings/http_server_settings_base_component.hpp>
+#include <utils/token_bucket.hpp>
 
 namespace components {
 class StatisticsStorage;
@@ -120,6 +122,7 @@ class HttpHandlerBase : public HandlerBase {
   std::vector<auth::AuthCheckerBasePtr> auth_checkers_;
 
   boost::optional<logging::Level> log_level_;
+  mutable std::optional<utils::TokenBucket> rate_limit_;
 };
 
 }  // namespace server::handlers

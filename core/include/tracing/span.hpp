@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/optional.hpp>
+
 #include <logging/log.hpp>
 #include <logging/log_extra.hpp>
 #include <tracing/tracer_fwd.hpp>
