@@ -18,9 +18,9 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
       max_task_queue_wait_length_(0),
       task_trace_logger_{nullptr} {
-  LOG_TRACE() << "creating task_processor " << Name() << " "
-              << "worker_threads=" << config_.worker_threads
-              << " thread_name=" << config_.thread_name;
+  LOG_INFO() << "creating task_processor " << Name() << " "
+             << "worker_threads=" << config_.worker_threads
+             << " thread_name=" << config_.thread_name;
   workers_.reserve(config_.worker_threads);
   for (auto i = config_.worker_threads; i > 0; --i) {
     workers_.emplace_back([this] { ProcessTasks(); });

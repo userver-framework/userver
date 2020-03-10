@@ -19,6 +19,8 @@ namespace {
 
 const std::string kEngineMonitorDataName = "engine";
 
+const auto kMaxCpu = 32;
+
 template <typename Func>
 auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
   if (auto* task_context =
@@ -35,6 +37,40 @@ auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
   auto future = task.get_future();
   engine::impl::CriticalAsync(task_processor, std::move(task)).Detach();
   return future.get();
+}
+
+std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
+  const char* cpu_limit_c_str = std::getenv("CPU_LIMIT");
+  if (cpu_limit_c_str) {
+    std::string cpu_limit(cpu_limit_c_str);
+    LOG_INFO() << "CPU_LIMIT='" << cpu_limit << "'";
+
+    try {
+      size_t end{0};
+      auto cpu_f = std::stod(cpu_limit, &end);
+      if (cpu_limit.substr(end) == "c") {
+        auto cpu = std::lround(cpu_f);
+        if (cpu > 0 && cpu < kMaxCpu) {
+          // TODO: hack for https://st.yandex-team.ru/TAXICOMMON-2132
+          if (cpu < 3) cpu = 3;
+
+          LOG_INFO() << "Using CPU limit from env CPU_LIMIT (" << cpu
+                     << ") for worker_threads "
+                     << "of task processor '" << tp_name
+                     << "', ignoring config value ";
+          return cpu;
+        }
+      }
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Failed to parse CPU_LIMIT: " << e;
+    }
+    LOG_ERROR() << "CPU_LIMIT env is invalid (" << cpu_limit
+                << "), ignoring it";
+  } else {
+    LOG_INFO() << "CPU_LIMIT env is unset, ignoring it";
+  }
+
+  return {};
 }
 
 }  // namespace
@@ -55,7 +91,18 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
   task_processor_pools_ = std::make_shared<engine::impl::TaskProcessorPools>(
       config_->coro_pool, config_->event_thread_pool);
 
-  for (const auto& processor_config : config_->task_processors) {
+  for (auto processor_config : config_->task_processors) {
+    if (processor_config.should_guess_cpu_limit) {
+      if (config_->default_task_processor == processor_config.name) {
+        auto guess_cpu = GuessCpuLimit(processor_config.name);
+        if (guess_cpu) {
+          processor_config.worker_threads = *guess_cpu;
+        }
+      } else {
+        LOG_ERROR() << "guess-cpu-limit is set for non-default task processor ("
+                    << processor_config.name << "), ignoring it";
+      }
+    }
     task_processors_map_.emplace(processor_config.name,
                                  std::make_unique<engine::TaskProcessor>(
                                      processor_config, task_processor_pools_));

@@ -13,6 +13,7 @@ namespace engine {
 struct TaskProcessorConfig {
   std::string name;
 
+  bool should_guess_cpu_limit{false};
   size_t worker_threads{6};
   std::string thread_name;
   std::chrono::microseconds profiler_threshold{0};

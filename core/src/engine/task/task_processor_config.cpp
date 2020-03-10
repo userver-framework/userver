@@ -37,6 +37,11 @@ TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
         task_trace_yaml, "logger", tt_full_path, config_vars_ptr);
   }
 
+  if (yaml.HasMember("guess-cpu-limit")) {
+    config.should_guess_cpu_limit = yaml_config::ParseBool(
+        yaml, "guess-cpu-limit", full_path, config_vars_ptr);
+  }
+
   return config;
 }
 
