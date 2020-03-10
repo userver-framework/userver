@@ -2,18 +2,17 @@ name: gtest
 type: external-project
 
 source:
-  dir: submodules/googletest
+    dir: submodules/googletest
 
 build-args:
-  names:
-    - BUILD_GTEST=ON
-    - BUILD_GMOCK=OFF
+    names:
+      - BUILD_GTEST=ON
+      - BUILD_GMOCK=OFF
 
 targets:
   - name: libgtest
-    libs: 
+    libs:
       - googletest/libgtest.a
+      - googletest/libgtest_main.a
     includes:
       - googletest/include
-    libs:
-      - googletest/libgtest_main.a

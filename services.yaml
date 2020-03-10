@@ -1,7 +1,10 @@
 linters:
     disable-paths-wildcards:
-    # python2
+      # python2
       - scripts/postgres/pg_sql_codes.py
     package-dirs:
       - .
       - submodules/codegen
+    jsonfmt:
+        disable-paths-wildcards:
+          - .mypy_cache/*
