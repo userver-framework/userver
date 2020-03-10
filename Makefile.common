@@ -145,6 +145,28 @@ taxi-black:
 smart-taxi-black:
 	@taxi-black --smart .
 
+.PHONY: taxi-yamlfmt
+taxi-yamlfmt:
+	@taxi-yamlfmt .
+
+.PHONY: smart-taxi-yamlfmt
+smart-taxi-yamlfmt:
+	@taxi-yamlfmt --smart -- .
+
+.PHONY: taxi-jsonfmt
+taxi-jsonfmt:
+	@taxi-jsonfmt .
+
+.PHONY: smart-taxi-jsonfmt
+smart-taxi-jsonfmt:
+	@taxi-jsonfmt --smart -- .
+
+.PHONY: format
+format: clang-format taxi-black taxi-yamlfmt taxi-jsonfmt
+
+.PHONY: smart-format
+smart-format: smart-clang-format smart-taxi-black smart-taxi-yamlfmt smart-taxi-jsonfmt
+
 .PHONY: docs
 docs:
 	@(cat doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -
