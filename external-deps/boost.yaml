@@ -4,14 +4,14 @@ partials:
     helper-prefix: false
 
     includes:
-      find:
-        - names:
-            - boost/filesystem/config.hpp
+        find:
+          - names:
+              - boost/filesystem/config.hpp
 
     libraries:
-      find:
-        - names:
-            - boost_filesystem
+        find:
+          - names:
+              - boost_filesystem
 
     debian-names:
       - libboost-filesystem-dev
@@ -21,14 +21,14 @@ partials:
     helper-prefix: false
 
     includes:
-      find:
-        - names:
-            - boost/graph/astar_search.hpp
+        find:
+          - names:
+              - boost/graph/astar_search.hpp
 
     libraries:
-      find:
-        - names:
-            - boost_graph
+        find:
+          - names:
+              - boost_graph
 
     debian-names:
       - libboost-graph-dev
@@ -38,14 +38,14 @@ partials:
     helper-prefix: false
 
     includes:
-      find:
-        - names:
-            - boost/iostreams/seek.hpp
+        find:
+          - names:
+              - boost/iostreams/seek.hpp
 
     libraries:
-      find:
-        - names:
-            - boost_iostreams
+        find:
+          - names:
+              - boost_iostreams
 
     debian-names:
       - libboost-iostreams-dev
@@ -55,14 +55,14 @@ partials:
     helper-prefix: false
 
     includes:
-      find:
-        - names:
-            - boost/locale/config.hpp
+        find:
+          - names:
+              - boost/locale/config.hpp
 
     libraries:
-      find:
-        - names:
-            - boost_locale
+        find:
+          - names:
+              - boost_locale
 
     debian-names:
       - libboost-locale-dev
@@ -72,14 +72,14 @@ partials:
     helper-prefix: false
 
     includes:
-      find:
-        - names:
-            - boost/program_options/config.hpp
+        find:
+          - names:
+              - boost/program_options/config.hpp
 
     libraries:
-      find:
-        - names:
-            - boost_program_options
+        find:
+          - names:
+              - boost_program_options
 
     debian-names:
       - libboost-program-options-dev
@@ -89,14 +89,14 @@ partials:
     helper-prefix: false
 
     includes:
-      find:
-        - names:
-            - boost/regex/config.hpp
+        find:
+          - names:
+              - boost/regex/config.hpp
 
     libraries:
-      find:
-        - names:
-            - boost_regex
+        find:
+          - names:
+              - boost_regex
 
     debian-names:
       - libboost-regex-dev
@@ -106,14 +106,14 @@ partials:
     helper-prefix: false
 
     includes:
-      find:
-        - names:
-            - boost/thread/mutex.hpp
+        find:
+          - names:
+              - boost/thread/mutex.hpp
 
     libraries:
-      find:
-        - names:
-            - boost_thread
+        find:
+          - names:
+              - boost_thread
 
     debian-names:
       - libboost-thread-dev

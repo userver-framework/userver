@@ -11,14 +11,14 @@ libraries:
   - yandex-taxi-userver-core
 
 debian:
-  build_dependencies:
-    - libboost-regex-dev
-    - libicu-dev
-    - libpq-dev
-    - postgresql-server-dev-10
-    - libldap2-dev
-    - python3-yandex-pgmigrate
+    build_dependencies:
+      - libboost-regex-dev
+      - libicu-dev
+      - libpq-dev
+      - postgresql-server-dev-10
+      - libldap2-dev
+      - python3-yandex-pgmigrate
 
 configs:
-  names:
-  - POSTGRES_DEFAULT_COMMAND_CONTROL
+    names:
+      - POSTGRES_DEFAULT_COMMAND_CONTROL

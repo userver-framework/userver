@@ -11,14 +11,14 @@ debian-names:
 formula-name: protobuf
 
 libraries:
-  find:
-    - names:
-        - yandex-taxi-protobuf
-        - protobuf # For Mac
+    find:
+      - names:
+          - yandex-taxi-protobuf
+          - protobuf # For Mac
 
 includes:
-  find:
-    - names:
-        - google/protobuf/port_def.inc
-      path-suffixes:
-        - yandex-taxi-proto3
+    find:
+      - names:
+          - google/protobuf/port_def.inc
+        path-suffixes:
+          - yandex-taxi-proto3

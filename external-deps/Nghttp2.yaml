@@ -2,14 +2,14 @@ name: Nghttp2
 helper-prefix: false
 
 includes:
-  find:
-    - names:
-        - nghttp2/nghttp2.h
+    find:
+      - names:
+          - nghttp2/nghttp2.h
 
 libraries:
-  find:
-    - names:
-        - nghttp2
+    find:
+      - names:
+          - nghttp2
 
 debian-names:
   - libnghttp2-dev

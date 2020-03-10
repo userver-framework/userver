@@ -2,10 +2,10 @@ name: libbson-static-1.0
 version: 1.15.0
 
 includes:
-  variable: BSON_STATIC_INCLUDE_DIRS
+    variable: BSON_STATIC_INCLUDE_DIRS
 
 libraries:
-  variable: BSON_STATIC_LIBRARIES
+    variable: BSON_STATIC_LIBRARIES
 
 debian-names:
   - libyandex-taxi-mongo-c-driver-dev

@@ -2,14 +2,14 @@ name: LibEv
 helper-prefix: false
 
 includes:
-  find:
-    - names:
-        - ev.h
+    find:
+      - names:
+          - ev.h
 
 libraries:
-  find:
-    - names:
-        - ev
+    find:
+      - names:
+          - ev
 
 debian-names:
   - libev-dev

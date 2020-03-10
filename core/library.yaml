@@ -21,35 +21,35 @@ libraries:
   - yandex-taxi-backend-common-cpp
 
 debian:
-  build_dependencies:
-    - clang-7
-    - libstdc++-7-dev
-    - libboost-filesystem-dev
-    - libboost-locale-dev
-    - libboost-program-options-dev
-    - libboost-thread-dev
-    - libcctz-dev
-    - libcrypto++-dev
-    - libev-dev
-    - libfmt-dev
-    - libgcrypt11-dev
-    - libhttp-parser-dev
-    - libkrb5-dev
-    - libnghttp2-dev
-    - libssl-dev
-    - libyaml-cpp-dev
-    - libyandex-taxi-curl4-openssl-dev
-    - libyandex-taxi-jemalloc-dev
-    - lld-7
-    - zlib1g-dev
-    - clang-format-7
+    build_dependencies:
+      - clang-7
+      - libstdc++-7-dev
+      - libboost-filesystem-dev
+      - libboost-locale-dev
+      - libboost-program-options-dev
+      - libboost-thread-dev
+      - libcctz-dev
+      - libcrypto++-dev
+      - libev-dev
+      - libfmt-dev
+      - libgcrypt11-dev
+      - libhttp-parser-dev
+      - libkrb5-dev
+      - libnghttp2-dev
+      - libssl-dev
+      - libyaml-cpp-dev
+      - libyandex-taxi-curl4-openssl-dev
+      - libyandex-taxi-jemalloc-dev
+      - lld-7
+      - zlib1g-dev
+      - clang-format-7
 
 configs:
-  names:
-    - HTTP_CLIENT_CONNECTION_POOL_SIZE
-    - HTTP_CLIENT_CONNECT_THROTTLE
-    - HTTP_CLIENT_THREADS
-    - USERVER_CHECK_AUTH_IN_HANDLERS
-    - USERVER_LOG_REQUEST
-    - USERVER_LOG_REQUEST_HEADERS
-    - USERVER_TASK_PROCESSOR_QOS
+    names:
+      - HTTP_CLIENT_CONNECTION_POOL_SIZE
+      - HTTP_CLIENT_CONNECT_THROTTLE
+      - HTTP_CLIENT_THREADS
+      - USERVER_CHECK_AUTH_IN_HANDLERS
+      - USERVER_LOG_REQUEST
+      - USERVER_LOG_REQUEST_HEADERS
+      - USERVER_TASK_PROCESSOR_QOS

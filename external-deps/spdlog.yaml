@@ -2,20 +2,20 @@ name: spdlog
 type: external-project
 
 source:
-  dir: submodules/spdlog
+    dir: submodules/spdlog
 
 commands:
-  patch: pwd
+    patch: pwd
 
 build-args:
-  names:
-    - SPDLOG_BUILD_EXAMPLES=OFF
-    - SPDLOG_BUILD_TESTING=OFF
-    - SPDLOG_BUILD_BENCH=OFF
+    names:
+      - SPDLOG_BUILD_EXAMPLES=OFF
+      - SPDLOG_BUILD_TESTING=OFF
+      - SPDLOG_BUILD_BENCH=OFF
 
 compile-definitions:
-  names:
-    - SPDLOG_FMT_EXTERNAL=1
+    names:
+      - SPDLOG_FMT_EXTERNAL=1
 
 targets:
   - name: spdlog

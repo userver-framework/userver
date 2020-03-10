@@ -7,5 +7,5 @@ libraries:
   - yandex-taxi-userver-core
 
 debian:
-  build_dependencies:
-    - libyandex-taxi-yt-wrapper-dev
+    build_dependencies:
+      - libyandex-taxi-yt-wrapper-dev

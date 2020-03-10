@@ -2,12 +2,12 @@ name: gmock
 type: external-project
 
 source:
-  dir: submodules/googletest
+    dir: submodules/googletest
 
 build-args:
-  names:
-    - BUILD_GTEST=OFF
-    - BUILD_GMOCK=ON
+    names:
+      - BUILD_GTEST=OFF
+      - BUILD_GMOCK=ON
 
 targets:
   - name: libgmock

@@ -4,19 +4,19 @@ helper-prefix: false
 checks:
   - expression: SANITIZE
     error: >-
-      jemalloc is not compatible with sanitizers, 
-      please skip it for SANITIZE-enabled builds
+        jemalloc is not compatible with sanitizers,  please skip it for SANITIZE-enabled
+        builds
 
 debian-names:
   - libyandex-taxi-jemalloc-dev
 formula-name: jemalloc
 
 libraries:
-  find:
-    - names:
-        - jemalloc
+    find:
+      - names:
+          - jemalloc
 
 includes:
-  find:
-    - names:
-        - jemalloc/jemalloc.h
+    find:
+      - names:
+          - jemalloc/jemalloc.h

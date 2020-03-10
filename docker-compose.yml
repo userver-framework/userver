@@ -5,17 +5,17 @@ services:
         image: registry.yandex.net/taxi/taxi-integration-xenial-base
         network_mode: bridge
         environment:
-        - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
-        - CC
-        - CLANG_TIDY_BINARY
-        - CMAKE_OPTS
-        - CXX
-        - IS_TEAMCITY
-        - LANG=ru_RU.UTF-8
-        - NPROCS
+          - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
+          - CC
+          - CLANG_TIDY_BINARY
+          - CMAKE_OPTS
+          - CXX
+          - IS_TEAMCITY
+          - LANG=ru_RU.UTF-8
+          - NPROCS
         volumes:
-        - .:/taxi/userver:rw
-        - ./tools/dockertest:/taxi/tools:rw
+          - .:/taxi/userver:rw
+          - ./tools/dockertest:/taxi/tools:rw
         working_dir: /taxi/userver/
         command: /taxi/tools/userver-clang-tidy.sh
 
@@ -25,21 +25,21 @@ services:
         entrypoint: /taxi/userver/tools/dockertest/run_as_user.sh
         network_mode: bridge
         environment:
-            - CC
-            - CXX
-            - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
-            - BUILD_TYPE=${BUILD_TYPE:-Release}
-            - CCACHE_DIR=/taxi/ccache
-            - CCACHE_HASHDIR
-            - CCACHE_NOHASHDIR
-            - CCACHE_PREFIX
-            - CCACHE_SIZE
-            - CMAKE_OPTS=${CMAKE_OPTS}
-            - DISTCC_HOSTS
-            - IS_TEAMCITY
-            - NPROCS
-            - LANG=ru_RU.UTF-8
+          - CC
+          - CXX
+          - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CCACHE_DIR=/taxi/ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE
+          - CMAKE_OPTS=${CMAKE_OPTS}
+          - DISTCC_HOSTS
+          - IS_TEAMCITY
+          - NPROCS
+          - LANG=ru_RU.UTF-8
         volumes:
-            - .:/taxi/userver:rw
-            - ${CCACHE_DIR:-~/.ccache}:/taxi/ccache:rw
+          - .:/taxi/userver:rw
+          - ${CCACHE_DIR:-~/.ccache}:/taxi/ccache:rw
         working_dir: /taxi/userver

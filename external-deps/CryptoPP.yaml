@@ -2,19 +2,19 @@ name: CryptoPP
 helper-prefix: false
 
 includes:
-  find:
-    - names:
-        - cryptopp/cryptlib.h
-      path-suffixes:
-        - include
+    find:
+      - names:
+          - cryptopp/cryptlib.h
+        path-suffixes:
+          - include
 
 libraries:
-  find:
-    - names:
-        - cryptlib
-        - cryptopp
-      path-suffixes:
-        - lib
+    find:
+      - names:
+          - cryptlib
+          - cryptopp
+        path-suffixes:
+          - lib
 
 debian-names:
   - libcrypto++-dev

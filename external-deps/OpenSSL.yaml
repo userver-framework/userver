@@ -9,7 +9,7 @@ partials:
     formula-name: openssl
 
     libraries:
-      enabled: false
+        enabled: false
 
     includes:
-      enabled: false
+        enabled: false

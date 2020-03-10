@@ -2,15 +2,15 @@ name: Iconv::Iconv
 helper-prefix: false
 
 includes:
-  find:
-    - names:
-        - iconv.h
+    find:
+      - names:
+          - iconv.h
 
 libraries:
-  find:
-    - names:
-        - iconv
-        - libiconv
+    find:
+      - names:
+          - iconv
+          - libiconv
 
 debian-names:
   - libc6-dev

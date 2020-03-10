@@ -18,20 +18,20 @@ libraries:
   - yandex-taxi-backend-common-cpp
 
 debian:
-  build_dependencies:
-    - clang-7
-    - libstdc++-7-dev
-    - libboost-filesystem-dev
-    - libboost-locale-dev
-    - libboost-program-options-dev
-    - libboost-thread-dev
-    - libcctz-dev
-    - libcrypto++-dev
-    - libfmt-dev
-    - libgcrypt11-dev
-    - libssl-dev
-    - libyaml-cpp-dev
-    - libyandex-taxi-jemalloc-dev
-    - lld-7
-    - zlib1g-dev
-    - clang-format-7
+    build_dependencies:
+      - clang-7
+      - libstdc++-7-dev
+      - libboost-filesystem-dev
+      - libboost-locale-dev
+      - libboost-program-options-dev
+      - libboost-thread-dev
+      - libcctz-dev
+      - libcrypto++-dev
+      - libfmt-dev
+      - libgcrypt11-dev
+      - libssl-dev
+      - libyaml-cpp-dev
+      - libyandex-taxi-jemalloc-dev
+      - lld-7
+      - zlib1g-dev
+      - clang-format-7

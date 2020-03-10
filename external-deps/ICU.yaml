@@ -3,10 +3,10 @@ partials:
   - name: i18n
 
     libraries:
-      enabled: false
+        enabled: false
 
     includes:
-      enabled: false
+        enabled: false
 
     debian-names:
       - libicu-dev
@@ -15,10 +15,10 @@ partials:
   - name: uc
 
     libraries:
-      enabled: false
+        enabled: false
 
     includes:
-      enabled: false
+        enabled: false
 
     debian-names:
       - libicu-dev

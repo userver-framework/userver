@@ -2,19 +2,19 @@ name: libyamlcpp
 helper-prefix: false
 
 includes:
-  find:
-    - names:
-        - yaml-cpp/yaml.h
-        - yaml-cpp/node.h
-      path-suffixes:
-        - include
+    find:
+      - names:
+          - yaml-cpp/yaml.h
+          - yaml-cpp/node.h
+        path-suffixes:
+          - include
 
 libraries:
-  find:
-    - names:
-        - yaml-cpp
-      path-suffixes:
-        - lib
+    find:
+      - names:
+          - yaml-cpp
+        path-suffixes:
+          - lib
 
 debian-names:
   - libyaml-cpp-dev

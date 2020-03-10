@@ -9,5 +9,5 @@ libraries:
   - yandex-taxi-userver-core
 
 debian:
-  build_dependencies:
-    - libyandex-taxi-mongo-c-driver-dev
+    build_dependencies:
+      - libyandex-taxi-mongo-c-driver-dev

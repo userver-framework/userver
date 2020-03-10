@@ -2,16 +2,16 @@ name: Git
 helper-prefix: false
 
 includes:
-  enabled: false
+    enabled: false
 
 libraries:
-  enabled: false
+    enabled: false
 
 programs:
-  find:
-    - names:
-        - git
-        - eg
-      path-suffixes:
-        - Git/cmd
-        - Git/bin
+    find:
+      - names:
+          - git
+          - eg
+        path-suffixes:
+          - Git/cmd
+          - Git/bin

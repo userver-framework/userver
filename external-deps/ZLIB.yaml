@@ -2,17 +2,17 @@ name: ZLIB::ZLIB
 helper-prefix: false
 
 includes:
-  find:
-    - names:
-        - zlib.h
+    find:
+      - names:
+          - zlib.h
 
 libraries:
-  find:
-    - names:
-        - z
-        - zlib
-        - zdll
-        - zlib1
+    find:
+      - names:
+          - z
+          - zlib
+          - zdll
+          - zlib1
 
 debian-names:
   - zlib1g-dev

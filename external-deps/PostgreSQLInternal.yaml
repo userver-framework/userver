@@ -3,22 +3,22 @@ name: PostgreSQLInternal
 helper-prefix: false
 
 includes:
-  find:
-    - names:
-      - internal/postgres_fe.h
-      path-suffixes:
-      - postgresql
+    find:
+      - names:
+          - internal/postgres_fe.h
+        path-suffixes:
+          - postgresql
 
 libraries:
-  find:
-    - names:
-      - libpq.a
-    - names:
-      - libpgcommon.a
-      - libpq.a
-    - names:
-      - libpgport.a
-      - libpq.a
+    find:
+      - names:
+          - libpq.a
+      - names:
+          - libpgcommon.a
+          - libpq.a
+      - names:
+          - libpgport.a
+          - libpq.a
 
 debian-names:
   - libpq-dev
