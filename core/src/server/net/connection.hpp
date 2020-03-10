@@ -75,6 +75,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   std::shared_ptr<Queue> request_tasks_;
   engine::SingleConsumerEvent response_sender_launched_event_;
+  engine::SingleConsumerEvent response_sender_assigned_event_;
   engine::Task response_sender_task_;
 
   bool is_accepting_requests_;

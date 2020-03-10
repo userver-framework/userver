@@ -8,6 +8,7 @@
 
 #include <engine/async.hpp>
 #include <engine/io/exception.hpp>
+#include <engine/single_consumer_event.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_request_parser.hpp>
@@ -70,6 +71,9 @@ void Connection::Start() {
       task_processor_,
       [](std::shared_ptr<Connection> self, auto socket_listener) {
         auto consumer = self->request_tasks_->GetConsumer();
+        [[maybe_unused]] bool ok =
+            self->response_sender_assigned_event_.WaitForEvent();
+        UASSERT(ok);
         self->ProcessResponses(consumer);
 
         socket_listener.SyncCancel();
@@ -78,6 +82,7 @@ void Connection::Start() {
       },
       shared_from_this(), std::move(socket_listener));
   response_sender_launched_event_.Send();
+  response_sender_assigned_event_.Send();
 
   LOG_TRACE() << "Started socket listener for fd " << Fd();
 }

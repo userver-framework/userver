@@ -46,15 +46,16 @@ bool SingleConsumerEvent::WaitForEvent() {
 }
 
 bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
-  bool was_signaled = false;
   impl::TaskContext* const current = current_task::GetCurrentTaskContext();
-  if (current->ShouldCancel()) return was_signaled;
+  if (current->ShouldCancel())
+    return is_signaled_.exchange(false, std::memory_order_acquire);
 
   LOG_TRACE() << "WaitForEvent()";
   lock_waiters_->PinToCurrentTask();
   impl::EventWaitStrategy wait_manager(lock_waiters_, is_signaled_, current,
                                        deadline);
 
+  bool was_signaled = false;
   while (!(was_signaled =
                is_signaled_.exchange(false, std::memory_order_acquire)) &&
          !current->ShouldCancel()) {
