@@ -7,6 +7,31 @@
 
 namespace engine::io {
 
+namespace {
+
+void ConcurrentStop(int fd, std::mutex& mutex, Poller::WatchersMap& watchers) {
+  std::unique_lock lock(mutex);
+  auto watcher = watchers.extract(fd);
+  if (!watcher) return;
+  lock.unlock();
+
+  watcher.mapped().Stop();
+
+  // Concurrent invocation of Poller::Reset() may have finished at this point.
+  // In that case `watchers` will have either:
+  // 1) a useless watcher that isn't watched and removed on next Poller::Reset()
+  // 2) watcher for an closed and opened `fd` (in that case libev automatically
+  // adds fd to epoll watch list )
+
+  lock.lock();
+  watchers.insert(std::move(watcher));
+  lock.unlock();
+
+  // destroying watcher
+}
+
+}  // namespace
+
 Poller::Poller() : Poller(MpscQueue<Event>::Create()) {}
 
 Poller::Poller(const std::shared_ptr<MpscQueue<Event>>& queue)
@@ -68,23 +93,11 @@ bool Poller::NextEventNoblock(Event& buf) {
 }
 
 void Poller::StopRead(int fd) {
-  std::unique_lock lock(read_watchers_mutex_);
-  auto it = read_watchers_.find(fd);
-  if (it == read_watchers_.end()) return;
-  auto& watcher = it->second;
-  lock.unlock();
-
-  watcher.Stop();
+  ConcurrentStop(fd, read_watchers_mutex_, read_watchers_);
 }
 
 void Poller::StopWrite(int fd) {
-  std::unique_lock lock(write_watchers_mutex_);
-  auto it = write_watchers_.find(fd);
-  if (it == write_watchers_.end()) return;
-  auto& watcher = it->second;
-  lock.unlock();
-
-  watcher.Stop();
+  ConcurrentStop(fd, write_watchers_mutex_, write_watchers_);
 }
 
 void Poller::IoEventCb(struct ev_loop*, ev_io* watcher, int revents) noexcept {

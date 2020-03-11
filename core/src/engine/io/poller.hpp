@@ -15,6 +15,8 @@ namespace engine::io {
 // Reports HUP as readiness (libev limitation)
 class Poller {
  public:
+  using WatchersMap = std::unordered_map<int, ev::Watcher<ev_io>>;
+
   struct Event {
     int fd{kInvalidFd};
     enum { kError = -1, kRead, kWrite } type{kError};
@@ -44,9 +46,9 @@ class Poller {
   MpscQueue<Event>::Consumer event_consumer_;
   MpscQueue<Event>::Producer event_producer_;
   std::mutex read_watchers_mutex_;
-  std::unordered_map<int, ev::Watcher<ev_io>> read_watchers_;
+  WatchersMap read_watchers_;
   std::mutex write_watchers_mutex_;
-  std::unordered_map<int, ev::Watcher<ev_io>> write_watchers_;
+  WatchersMap write_watchers_;
 };
 
 }  // namespace engine::io
