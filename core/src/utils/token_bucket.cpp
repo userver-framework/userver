@@ -6,12 +6,12 @@
 
 namespace utils {
 
-TokenBucket::TokenBucket(size_t max_size, Duration token_update_interval)
+TokenBucket::TokenBucket(size_t max_size, Duration single_token_update_interval)
     : max_size_(max_size),
-      token_update_interval_(std::chrono::seconds(1) /* not used */),
+      single_token_update_interval_(std::chrono::seconds(1) /* not used */),
       tokens_(1 /* not used */),
       last_update_tp_(GetNow()) {
-  SetUpdateInterval(token_update_interval);
+  SetUpdateInterval(single_token_update_interval);
   SetMaxSize(max_size);
   tokens_ = max_size;
 }
@@ -23,18 +23,18 @@ void TokenBucket::SetMaxSize(size_t max_size) {
   max_size_ = max_size;
 }
 
-void TokenBucket::SetUpdateInterval(Duration token_update_interval) {
-  if (token_update_interval.count() < 0) {
+void TokenBucket::SetUpdateInterval(Duration single_token_update_interval) {
+  if (single_token_update_interval.count() < 0) {
     throw std::runtime_error(
         "TokenBucket token_update_interval must be non-negative");
   }
-  token_update_interval_ = token_update_interval;
+  single_token_update_interval_ = single_token_update_interval;
 }
 
 bool TokenBucket::Obtain() {
   Update();
 
-  if (token_update_interval_.load().count() == 0) {
+  if (single_token_update_interval_.load().count() == 0) {
     // No limit
     return true;
   }
@@ -56,7 +56,7 @@ void TokenBucket::Update() {
   }
 
   const auto max_size = max_size_.load();
-  const auto token_update_interval = token_update_interval_.load();
+  const auto token_update_interval = single_token_update_interval_.load();
   if (token_update_interval.count() == 0) return;
 
   auto tokens_to_add = (now - update_tp) / token_update_interval;

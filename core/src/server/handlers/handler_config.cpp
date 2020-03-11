@@ -3,8 +3,7 @@
 #include <formats/parse/common_containers.hpp>
 #include <yaml_config/value.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 namespace {
 
 const std::string kUrlTrailingSlashBoth = "both";
@@ -47,7 +46,7 @@ HandlerConfig HandlerConfig::ParseFromYaml(
   yaml_config::ParseInto(config.max_requests_in_flight, yaml,
                          "max_requests_in_flight", full_path, config_vars_ptr);
 
-  boost::optional<size_t> request_body_size_log_limit;
+  std::optional<size_t> request_body_size_log_limit;
   yaml_config::ParseInto(request_body_size_log_limit, yaml,
                          "request_body_size_log_limit", full_path,
                          config_vars_ptr);
@@ -66,8 +65,14 @@ HandlerConfig HandlerConfig::ParseFromYaml(
   yaml_config::ParseInto(config.max_requests_per_second, yaml,
                          "max_requests_per_second", full_path, config_vars_ptr);
 
+  if (config.max_requests_per_second &&
+      config.max_requests_per_second.value() <= 0) {
+    throw std::runtime_error(
+        "max_requests_per_second should be greater than 0, current value is " +
+        std::to_string(config.max_requests_per_second.value()));
+  }
+
   return config;
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

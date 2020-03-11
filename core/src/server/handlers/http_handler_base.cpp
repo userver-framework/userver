@@ -249,8 +249,15 @@ HttpHandlerBase::HttpHandlerBase(
   }
 
   if (GetConfig().max_requests_per_second) {
-    rate_limit_.emplace(*GetConfig().max_requests_per_second,
-                        std::chrono::seconds(1));
+    const auto max_rps = *GetConfig().max_requests_per_second;
+    UASSERT_MSG(
+        max_rps > 0,
+        "max_requests_per_second option was not verified in config parsing");
+    const auto token_update_interval =
+        utils::TokenBucket::Duration{std::chrono::seconds(1)} / max_rps;
+    if (token_update_interval > utils::TokenBucket::Duration::zero()) {
+      rate_limit_.emplace(max_rps, token_update_interval);
+    }
   }
 
   auto& server_component =
