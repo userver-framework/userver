@@ -156,7 +156,7 @@ class EnumerationMap {
   }
 };
 
-template <typename Enum, DataFormat F>
+template <typename Enum>
 struct EnumParser : BufferParserBase<Enum> {
   using BaseType = BufferParserBase<Enum>;
   using EnumMap = EnumerationMap<Enum>;
@@ -165,12 +165,12 @@ struct EnumParser : BufferParserBase<Enum> {
 
   void operator()(const FieldBuffer& buffer) {
     ::utils::string_view literal;
-    ReadBuffer<F>(buffer, literal);
+    io::ReadBuffer(buffer, literal);
     this->value = EnumMap::GetEnumerator(literal);
   }
 };
 
-template <typename Enum, DataFormat F>
+template <typename Enum>
 struct EnumFormatter : BufferFormatterBase<Enum> {
   using BaseType = BufferFormatterBase<Enum>;
   using EnumMap = EnumerationMap<Enum>;
@@ -180,7 +180,7 @@ struct EnumFormatter : BufferFormatterBase<Enum> {
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
     auto literal = EnumMap::GetLiteral(this->value);
-    WriteBuffer<F>(types, buffer, literal);
+    io::WriteBuffer(types, buffer, literal);
   }
 };
 
@@ -188,22 +188,22 @@ struct EnumFormatter : BufferFormatterBase<Enum> {
 
 namespace traits {
 
-template <typename T, DataFormat F>
-struct Input<T, F,
-             std::enable_if_t<!detail::kCustomParserDefined<T, F> &&
+template <typename T>
+struct Input<T,
+             std::enable_if_t<!detail::kCustomParserDefined<T> &&
                               std::is_enum<T>() && IsMappedToUserType<T>()>> {
-  using type = io::detail::EnumParser<T, F>;
+  using type = io::detail::EnumParser<T>;
 };
 
-template <typename T, DataFormat F>
-struct ParserBufferCategory<io::detail::EnumParser<T, F>>
+template <typename T>
+struct ParserBufferCategory<io::detail::EnumParser<T>>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
-template <typename T, DataFormat F>
-struct Output<T, F,
-              std::enable_if_t<!detail::kCustomFormatterDefined<T, F> &&
+template <typename T>
+struct Output<T,
+              std::enable_if_t<!detail::kCustomFormatterDefined<T> &&
                                std::is_enum<T>() && IsMappedToUserType<T>()>> {
-  using type = io::detail::EnumFormatter<T, F>;
+  using type = io::detail::EnumFormatter<T>;
 };
 
 }  // namespace traits

@@ -70,7 +70,6 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   query["parsed"] = stats.transaction.parse_total;
   query["executed"] = stats.transaction.execute_total;
   query["replies"] = stats.transaction.reply_total;
-  query["binary-replies"] = stats.transaction.bin_reply_total;
 
   auto errors = instance["errors"];
   utils::statistics::SolomonChildrenAreLabelValues(errors, "postgresql_error");

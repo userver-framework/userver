@@ -1,8 +1,6 @@
 #include <storages/postgres/io/field_buffer.hpp>
 #include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/optional.hpp>
-#include <storages/postgres/io/stream_text_formatter.hpp>
-#include <storages/postgres/io/stream_text_parser.hpp>
 #include <storages/postgres/io/string_types.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
@@ -16,14 +14,14 @@ namespace static_test {
 using optional_int = boost::optional<int>;
 using optional_string = boost::optional<std::string>;
 
-static_assert(tt::kIsMappedToPg<optional_int>, "");
-static_assert(tt::kIsMappedToPg<optional_string>, "");
+static_assert(tt::kIsMappedToPg<optional_int>);
+static_assert(tt::kIsMappedToPg<optional_string>);
 
 using std_optional_int = std::optional<int>;
 using std_optional_string = std::optional<std::string>;
 
-static_assert(tt::kIsMappedToPg<std_optional_int>, "");
-static_assert(tt::kIsMappedToPg<std_optional_string>, "");
+static_assert(tt::kIsMappedToPg<std_optional_int>);
+static_assert(tt::kIsMappedToPg<std_optional_string>);
 
 }  // namespace static_test
 
@@ -37,8 +35,7 @@ TEST(PostgreIO, BoostOptional) {
     pg::test::Buffer buffer;
     optional_int null;
     EXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+    auto fb = pg::test::MakeFieldBuffer(buffer);
     optional_int tgt;
     EXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
     EXPECT_TRUE(!tgt) << "Unexpected value '" << *tgt << "' instead of null ";
@@ -78,8 +75,7 @@ TEST(PostgreIO, StdOptional) {
     pg::test::Buffer buffer;
     optional_int null;
     EXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+    auto fb = pg::test::MakeFieldBuffer(buffer);
     optional_int tgt;
     EXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
     EXPECT_TRUE(!tgt) << "Unexpected value '" << *tgt << "' instead of null ";

@@ -74,8 +74,8 @@ struct CppToUserPg<RainbowRO> : EnumMappingBase<RainbowRO> {
 namespace traits {
 
 // To ensure it is never written to a buffer
-template <DataFormat F>
-struct HasFormatter<RainbowRO, F> : std::false_type {};
+template <>
+struct HasFormatter<RainbowRO> : std::false_type {};
 
 }  // namespace traits
 
@@ -83,13 +83,11 @@ struct HasFormatter<RainbowRO, F> : std::false_type {};
 
 namespace static_test {
 
-static_assert(tt::IsMappedToPg<Rainbow>(), "");
-static_assert(io::detail::EnumerationMap<Rainbow>::size == 7, "");
+static_assert(tt::IsMappedToPg<Rainbow>());
+static_assert(io::detail::EnumerationMap<Rainbow>::size == 7);
 
-static_assert(tt::kHasBinaryParser<Rainbow>, "");
-static_assert(tt::kHasBinaryFormatter<Rainbow>, "");
-static_assert(tt::kHasTextParser<Rainbow>, "");
-static_assert(tt::kHasTextFormatter<Rainbow>, "");
+static_assert(tt::kHasParser<Rainbow>);
+static_assert(tt::kHasFormatter<Rainbow>);
 
 }  // namespace static_test
 
@@ -117,13 +115,7 @@ POSTGRE_TEST_P(EnumRoundtrip) {
   const auto& user_types = conn->GetUserTypes();
   EXPECT_NE(0, io::CppToPg<Rainbow>::GetOid(user_types));
 
-  EXPECT_NO_THROW(res = conn->ExperimentalExecute(
-                      kSelectEnumValues, io::DataFormat::kBinaryDataFormat));
-  for (auto f : res.Front()) {
-    EXPECT_NO_THROW(f.As<Rainbow>());
-  }
-  EXPECT_NO_THROW(res = conn->ExperimentalExecute(
-                      kSelectEnumValues, io::DataFormat::kTextDataFormat));
+  EXPECT_NO_THROW(res = conn->ExperimentalExecute(kSelectEnumValues));
   for (auto f : res.Front()) {
     EXPECT_NO_THROW(f.As<Rainbow>());
   }

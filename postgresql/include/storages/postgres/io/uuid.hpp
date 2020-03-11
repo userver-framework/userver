@@ -12,7 +12,7 @@
 namespace storages::postgres::io {
 
 template <>
-struct BufferFormatter<boost::uuids::uuid, DataFormat::kBinaryDataFormat>
+struct BufferFormatter<boost::uuids::uuid>
     : detail::BufferFormatterBase<boost::uuids::uuid> {
   using BaseType = detail::BufferFormatterBase<boost::uuids::uuid>;
   using BaseType::BaseType;
@@ -24,7 +24,7 @@ struct BufferFormatter<boost::uuids::uuid, DataFormat::kBinaryDataFormat>
 };
 
 template <>
-struct BufferParser<boost::uuids::uuid, DataFormat::kBinaryDataFormat>
+struct BufferParser<boost::uuids::uuid>
     : detail::BufferParserBase<boost::uuids::uuid> {
   using BaseType = detail::BufferParserBase<boost::uuids::uuid>;
   using BaseType::BaseType;

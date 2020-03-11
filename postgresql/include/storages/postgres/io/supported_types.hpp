@@ -136,12 +136,6 @@
 //@}
 
 //@{
-/** @name Stream text IO */
-#include <storages/postgres/io/stream_text_formatter.hpp>
-#include <storages/postgres/io/stream_text_parser.hpp>
-//@}
-
-//@{
 /** @name User type registry */
 #include <storages/postgres/io/user_types.hpp>
 //@}

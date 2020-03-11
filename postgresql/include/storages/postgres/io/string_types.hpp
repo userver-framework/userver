@@ -20,27 +20,7 @@ namespace io {
 //@{
 /** @name const char* formatting */
 template <>
-struct BufferFormatter<const char*, DataFormat::kTextDataFormat> {
-  const char* value;
-
-  explicit BufferFormatter(const char* val) : value{val} {}
-
-  template <typename Buffer>
-  void operator()(const UserTypes&, Buffer& buf) const {
-    auto sz = std::strlen(value);
-    WriteN(buf, value, sz);
-  }
-
-  template <typename Buffer>
-  static void WriteN(Buffer& buf, const char* c, std::size_t n) {
-    buf.reserve(buf.size() + n);
-    std::copy(c, c + n, std::back_inserter(buf));
-    if (n == 0 || buf.back() != '\0') buf.push_back('\0');
-  }
-};
-
-template <>
-struct BufferFormatter<const char*, DataFormat::kBinaryDataFormat> {
+struct BufferFormatter<const char*> {
   const char* value;
 
   explicit BufferFormatter(const char* val) : value{val} {}
@@ -65,9 +45,9 @@ struct BufferFormatter<const char*, DataFormat::kBinaryDataFormat> {
 
 //@{
 /** @name char[N] formatting */
-template <std::size_t N, DataFormat F>
-struct BufferFormatter<char[N], F> {
-  using CharFormatter = BufferFormatter<const char*, F>;
+template <std::size_t N>
+struct BufferFormatter<char[N]> {
+  using CharFormatter = BufferFormatter<const char*>;
   const char* value;
 
   explicit BufferFormatter(const char* val) : value{val} {}
@@ -82,9 +62,9 @@ struct BufferFormatter<char[N], F> {
 
 //@{
 /** @name std::string I/O */
-template <DataFormat F>
-struct BufferFormatter<std::string, F> {
-  using CharFormatter = BufferFormatter<const char*, F>;
+template <>
+struct BufferFormatter<std::string> {
+  using CharFormatter = BufferFormatter<const char*>;
   const std::string& value;
 
   explicit BufferFormatter(const std::string& val) : value{val} {}
@@ -95,16 +75,7 @@ struct BufferFormatter<std::string, F> {
 };
 
 template <>
-struct BufferParser<std::string, DataFormat::kTextDataFormat> {
-  std::string& value;
-
-  explicit BufferParser(std::string& val) : value{val} {}
-
-  void operator()(const FieldBuffer& buffer);
-};
-
-template <>
-struct BufferParser<std::string, DataFormat::kBinaryDataFormat> {
+struct BufferParser<std::string> {
   std::string& value;
 
   explicit BufferParser(std::string& val) : value{val} {}
@@ -115,11 +86,11 @@ struct BufferParser<std::string, DataFormat::kBinaryDataFormat> {
 
 //@{
 /** @name string_view I/O */
-template <DataFormat F>
-struct BufferFormatter<::utils::string_view, F>
+template <>
+struct BufferFormatter<::utils::string_view>
     : detail::BufferFormatterBase<::utils::string_view> {
   using BaseType = detail::BufferFormatterBase<::utils::string_view>;
-  using CharFormatter = BufferFormatter<const char*, F>;
+  using CharFormatter = BufferFormatter<const char*>;
 
   using BaseType::BaseType;
 
@@ -129,8 +100,8 @@ struct BufferFormatter<::utils::string_view, F>
   }
 };
 
-template <DataFormat F>
-struct BufferParser<::utils::string_view, F>
+template <>
+struct BufferParser<::utils::string_view>
     : detail::BufferParserBase<::utils::string_view> {
   using BaseType = detail::BufferParserBase<::utils::string_view>;
   using BaseType::BaseType;
@@ -146,7 +117,7 @@ struct BufferParser<::utils::string_view, F>
 //@{
 /** @name char I/O */
 template <>
-struct BufferFormatter<char, DataFormat::kBinaryDataFormat> {
+struct BufferFormatter<char> {
   char value;
 
   explicit BufferFormatter(char val) : value{val} {}
@@ -157,14 +128,7 @@ struct BufferFormatter<char, DataFormat::kBinaryDataFormat> {
 };
 
 template <>
-struct BufferFormatter<char, DataFormat::kTextDataFormat>
-    : BufferFormatter<char, DataFormat::kBinaryDataFormat> {
-  using BaseType = BufferFormatter<char, DataFormat::kBinaryDataFormat>;
-  using BaseType::BaseType;
-};
-
-template <>
-struct BufferParser<char, DataFormat::kBinaryDataFormat> {
+struct BufferParser<char> {
   char& value;
 
   explicit BufferParser(char& val) : value{val} {}
@@ -175,13 +139,6 @@ struct BufferParser<char, DataFormat::kBinaryDataFormat> {
     }
     value = *buffer.buffer;
   }
-};
-
-template <>
-struct BufferParser<char, DataFormat::kTextDataFormat>
-    : BufferParser<char, DataFormat::kBinaryDataFormat> {
-  using BaseType = BufferParser<char, DataFormat::kBinaryDataFormat>;
-  using BaseType::BaseType;
 };
 //@}
 

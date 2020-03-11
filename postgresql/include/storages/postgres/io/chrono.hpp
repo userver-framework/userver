@@ -3,9 +3,11 @@
 /// @file storages/postgres/io/chrono.hpp
 /// @brief Timestamp I/O support
 
+#include <chrono>
+#include <string>
+
 #include <cctz/time_zone.h>
 
-#include <chrono>
 #include <compiler/demangle.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
@@ -13,7 +15,6 @@
 #include <storages/postgres/io/interval.hpp>
 #include <storages/postgres/io/transform_io.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
-#include <string>
 #include <utils/datetime.hpp>
 #include <utils/strong_typedef.hpp>
 
@@ -152,30 +153,10 @@ std::string Timestring(
 
 namespace io {
 
-/// @brief Text formatter for timestamptz.
-template <typename TimePointType>
-struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
-                       DataFormat::kTextDataFormat> {
-  using ValueType = postgres::detail::TimestampTz<TimePointType>;
-  ValueType value;
-
-  explicit BufferFormatter(const ValueType& val) : value{val} {}
-
-  template <typename Buffer>
-  void operator()(const UserTypes&, Buffer& buf) const {
-    static const std::string format = "%Y-%m-%d %H:%M:%E*S%Ez";
-    auto str = cctz::format(format, value.value, value.tz);
-    buf.reserve(buf.size() + str.size() + 1);
-    std::copy(str.begin(), str.end(), std::back_inserter(buf));
-    buf.push_back('\0');
-  }
-};
-
 /// @brief Binary formatter for timestamptz.
 /// PostgreSQL expects timestamptz in UTC when in binary format.
 template <typename TimePointType>
-struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
-                       DataFormat::kBinaryDataFormat> {
+struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>> {
   using ValueType = postgres::detail::TimestampTz<TimePointType>;
   ValueType value;
 
@@ -185,31 +166,7 @@ struct BufferFormatter<postgres::detail::TimestampTz<TimePointType>,
   void operator()(const UserTypes& types, Buffer& buf) const {
     auto lookup = value.tz.lookup(value.value);
     auto val = value.value - std::chrono::seconds{lookup.offset};
-    WriteBuffer<DataFormat::kBinaryDataFormat>(types, buf, val);
-  }
-};
-
-/// @brief Text parser for timestamptz.
-template <typename Duration>
-struct BufferParser<
-    postgres::detail::TimestampTz<std::chrono::time_point<ClockType, Duration>>,
-    DataFormat::kTextDataFormat>
-    : detail::BufferParserBase<postgres::detail::TimestampTz<
-          std::chrono::time_point<ClockType, Duration>>&&> {
-  using BaseType = detail::BufferParserBase<postgres::detail::TimestampTz<
-      std::chrono::time_point<ClockType, Duration>>&&>;
-  using ValueType = typename BaseType::ValueType;
-  using BaseType::BaseType;
-
-  void operator()(const FieldBuffer& buffer) {
-    static const std::string format = "%Y-%m-%d %H:%M:%E*S%Ez";
-    std::string timestr = buffer.ToString();
-    typename ValueType::TimePointType tmp;
-    if (cctz::parse(format, timestr, this->value.tz, &tmp)) {
-      std::swap(tmp, this->value.value);
-    } else {
-      throw TextParseFailure{::compiler::GetTypeName<ValueType>(), timestr};
-    }
+    io::WriteBuffer(types, buf, val);
   }
 };
 
@@ -217,8 +174,7 @@ struct BufferParser<
 ///
 template <typename Duration>
 struct BufferParser<
-    postgres::detail::TimestampTz<std::chrono::time_point<ClockType, Duration>>,
-    DataFormat::kBinaryDataFormat>
+    postgres::detail::TimestampTz<std::chrono::time_point<ClockType, Duration>>>
     : detail::BufferParserBase<postgres::detail::TimestampTz<
           std::chrono::time_point<ClockType, Duration>>&&> {
   using BaseType = detail::BufferParserBase<postgres::detail::TimestampTz<
@@ -229,36 +185,14 @@ struct BufferParser<
   void operator()(const FieldBuffer& buffer) {
     auto lookup = this->value.tz.lookup(this->value.value);
     typename ValueType::TimePointType tmp;
-    ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, tmp);
+    io::ReadBuffer(buffer, tmp);
     this->value.value = tmp + std::chrono::seconds{lookup.offset};
-  }
-};
-
-/// @brief Text formatter for std::chrono::time_point.
-template <typename Duration>
-struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
-                       DataFormat::kTextDataFormat> {
-  using ValueType = std::chrono::time_point<ClockType, Duration>;
-
-  const ValueType& value;
-
-  explicit BufferFormatter(const ValueType& val) : value{val} {}
-
-  template <typename Buffer>
-  void operator()(const UserTypes&, Buffer& buf) const {
-    static const std::string format = "%Y-%m-%d %H:%M:%E*S";
-    const auto tz = cctz::local_time_zone();
-    auto str = cctz::format(format, value, tz);
-    buf.reserve(buf.size() + str.size() + 1);
-    std::copy(str.begin(), str.end(), std::back_inserter(buf));
-    buf.push_back('\0');
   }
 };
 
 /// @brief Binary formatter for std::chrono::time_point.
 template <typename Duration>
-struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
-                       DataFormat::kBinaryDataFormat> {
+struct BufferFormatter<std::chrono::time_point<ClockType, Duration>> {
   using ValueType = std::chrono::time_point<ClockType, Duration>;
 
   const ValueType& value;
@@ -267,49 +201,24 @@ struct BufferFormatter<std::chrono::time_point<ClockType, Duration>,
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buf) const {
-    static const ValueType pg_epoch = PostgresEpoch();
+    static const ValueType pg_epoch =
+        std::chrono::time_point_cast<Duration>(PostgresEpoch());
     if (value == kTimestampPositiveInfinity) {
-      WriteBuffer<DataFormat::kBinaryDataFormat>(
-          types, buf, std::numeric_limits<Bigint>::max());
+      io::WriteBuffer(types, buf, std::numeric_limits<Bigint>::max());
     } else if (value == kTimestampNegativeInfinity) {
-      WriteBuffer<DataFormat::kBinaryDataFormat>(
-          types, buf, std::numeric_limits<Bigint>::min());
+      io::WriteBuffer(types, buf, std::numeric_limits<Bigint>::min());
     } else {
       auto tmp = std::chrono::duration_cast<std::chrono::microseconds>(value -
                                                                        pg_epoch)
                      .count();
-      WriteBuffer<DataFormat::kBinaryDataFormat>(types, buf, tmp);
-    }
-  }
-};
-
-/// @brief Text parser for std::chrono::time_point.
-template <typename Duration>
-struct BufferParser<std::chrono::time_point<ClockType, Duration>,
-                    DataFormat::kTextDataFormat>
-    : detail::BufferParserBase<std::chrono::time_point<ClockType, Duration>> {
-  using BaseType =
-      detail::BufferParserBase<std::chrono::time_point<ClockType, Duration>>;
-  using ValueType = typename BaseType::ValueType;
-  using BaseType::BaseType;
-
-  void operator()(const FieldBuffer& buffer) {
-    static const std::string format = "%Y-%m-%d %H:%M:%E*S";
-    const auto tz = cctz::local_time_zone();
-    std::string timestr = buffer.ToString();
-    ValueType tmp;
-    if (cctz::parse(format, timestr, tz, &tmp)) {
-      std::swap(tmp, this->value);
-    } else {
-      throw TextParseFailure{::compiler::GetTypeName<ValueType>(), timestr};
+      io::WriteBuffer(types, buf, tmp);
     }
   }
 };
 
 /// @brief Binary parser for std::chrono::time_point.
 template <typename Duration>
-struct BufferParser<std::chrono::time_point<ClockType, Duration>,
-                    DataFormat::kBinaryDataFormat>
+struct BufferParser<std::chrono::time_point<ClockType, Duration>>
     : detail::BufferParserBase<std::chrono::time_point<ClockType, Duration>> {
   using BaseType =
       detail::BufferParserBase<std::chrono::time_point<ClockType, Duration>>;
@@ -317,9 +226,10 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>,
   using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
-    static const ValueType pg_epoch = PostgresEpoch();
+    static const ValueType pg_epoch =
+        std::chrono::time_point_cast<Duration>(PostgresEpoch());
     Bigint usec{0};
-    ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, usec);
+    io::ReadBuffer(buffer, usec);
     if (usec == std::numeric_limits<Bigint>::max()) {
       this->value = kTimestampPositiveInfinity;
     } else if (usec == std::numeric_limits<Bigint>::min()) {
@@ -350,22 +260,18 @@ namespace traits {
 
 /// @brief Binary formatter for std::chrono::duration
 template <typename Rep, typename Period>
-struct Output<std::chrono::duration<Rep, Period>,
-              DataFormat::kBinaryDataFormat> {
+struct Output<std::chrono::duration<Rep, Period>> {
   using type = TransformFormatter<std::chrono::duration<Rep, Period>,
                                   io::detail::Interval,
-                                  io::detail::DurationIntervalCvt<Rep, Period>,
-                                  DataFormat::kBinaryDataFormat>;
+                                  io::detail::DurationIntervalCvt<Rep, Period>>;
 };
 
 /// @brief Binary parser for std::chrono::duration
 template <typename Rep, typename Period>
-struct Input<std::chrono::duration<Rep, Period>,
-             DataFormat::kBinaryDataFormat> {
+struct Input<std::chrono::duration<Rep, Period>> {
   using type =
       TransformParser<std::chrono::duration<Rep, Period>, io::detail::Interval,
-                      io::detail::DurationIntervalCvt<Rep, Period>,
-                      DataFormat::kBinaryDataFormat>;
+                      io::detail::DurationIntervalCvt<Rep, Period>>;
 };
 
 }  // namespace traits

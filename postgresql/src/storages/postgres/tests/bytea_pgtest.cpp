@@ -8,12 +8,12 @@ namespace tt = io::traits;
 
 namespace static_test {
 
-static_assert(tt::kIsByteaCompatible<std::string>, "");
-static_assert(tt::kIsByteaCompatible<::utils::string_view>, "");
-static_assert(tt::kIsByteaCompatible<std::vector<char>>, "");
-static_assert(tt::kIsByteaCompatible<std::vector<unsigned char>>, "");
-static_assert(!tt::kIsByteaCompatible<std::vector<bool>>, "");
-static_assert(!tt::kIsByteaCompatible<std::vector<int>>, "");
+static_assert(tt::kIsByteaCompatible<std::string>);
+static_assert(tt::kIsByteaCompatible<::utils::string_view>);
+static_assert(tt::kIsByteaCompatible<std::vector<char>>);
+static_assert(tt::kIsByteaCompatible<std::vector<unsigned char>>);
+static_assert(!tt::kIsByteaCompatible<std::vector<bool>>);
+static_assert(!tt::kIsByteaCompatible<std::vector<int>>);
 
 }  // namespace static_test
 
@@ -29,57 +29,45 @@ TEST(PostgreIO, Bytea) {
   {
     pg::test::Buffer buffer;
     std::string bin_str{kFooBar};
-    EXPECT_NO_THROW(io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(
-        types, buffer, pg::Bytea(bin_str)));
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
-                                  io::BufferCategory::kPlainBuffer);
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
     std::string tgt_str;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(
-        fb, pg::Bytea(tgt_str)));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }
   {
     pg::test::Buffer buffer;
     ::utils::string_view bin_str{kFooBar.data(), kFooBar.size()};
-    EXPECT_NO_THROW(io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(
-        types, buffer, pg::Bytea(bin_str)));
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
-                                  io::BufferCategory::kPlainBuffer);
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
     ::utils::string_view tgt_str;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(
-        fb, pg::Bytea(tgt_str)));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }
   {
     pg::test::Buffer buffer;
     std::vector<char> bin_str{kFooBar.begin(), kFooBar.end()};
-    EXPECT_NO_THROW(io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(
-        types, buffer, pg::Bytea(bin_str)));
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
-                                  io::BufferCategory::kPlainBuffer);
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
     std::vector<char> tgt_str;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(
-        fb, pg::Bytea(tgt_str)));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }
   {
     pg::test::Buffer buffer;
     std::vector<unsigned char> bin_str{kFooBar.begin(), kFooBar.end()};
-    EXPECT_NO_THROW(io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(
-        types, buffer, pg::Bytea(bin_str)));
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
-                                  io::BufferCategory::kPlainBuffer);
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
     std::vector<unsigned char> tgt_str;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(
-        fb, pg::Bytea(tgt_str)));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }
 }

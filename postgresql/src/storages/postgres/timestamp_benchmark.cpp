@@ -7,7 +7,6 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/io/chrono.hpp>
-#include <storages/postgres/io/force_text.hpp>
 #include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
 
@@ -38,18 +37,6 @@ void CctzTimestampParse(benchmark::State& state) {
   }
 }
 
-void PgTimestampTextFormat(benchmark::State& state) {
-  namespace pg = storages::postgres;
-  namespace io = pg::io;
-
-  auto tp = std::chrono::system_clock::now();
-  pg::test::Buffer buffer;
-  for (auto _ : state) {
-    io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, tp);
-    buffer.clear();
-  }
-}
-
 void PgTimestampBinaryFormat(benchmark::State& state) {
   namespace pg = storages::postgres;
   namespace io = pg::io;
@@ -57,20 +44,8 @@ void PgTimestampBinaryFormat(benchmark::State& state) {
   auto tp = std::chrono::system_clock::now();
   pg::test::Buffer buffer;
   for (auto _ : state) {
-    io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, tp);
+    io::WriteBuffer(types, buffer, tp);
     buffer.clear();
-  }
-}
-
-void PgTimestampTextParse(benchmark::State& state) {
-  namespace pg = storages::postgres;
-  namespace io = pg::io;
-  auto tp = std::chrono::system_clock::now();
-  pg::test::Buffer buffer;
-  io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, tp);
-  auto fp = pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
-  for (auto _ : state) {
-    io::ReadBuffer<io::DataFormat::kTextDataFormat>(fp, tp);
   }
 }
 
@@ -79,19 +54,16 @@ void PgTimestampBinaryParse(benchmark::State& state) {
   namespace io = pg::io;
   auto tp = std::chrono::system_clock::now();
   pg::test::Buffer buffer;
-  io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, tp);
-  auto fp =
-      pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
+  io::WriteBuffer(types, buffer, tp);
+  auto fp = pg::test::MakeFieldBuffer(buffer);
   for (auto _ : state) {
-    io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fp, tp);
+    io::ReadBuffer(fp, tp);
   }
 }
 
 BENCHMARK(CctzTimestampFormat);
 BENCHMARK(CctzTimestampParse);
-BENCHMARK(PgTimestampTextFormat);
 BENCHMARK(PgTimestampBinaryFormat);
-BENCHMARK(PgTimestampTextParse);
 BENCHMARK(PgTimestampBinaryParse);
 
 BENCHMARK_F(PgConnection, TimestampBinaryRoundtrip)(benchmark::State& state) {
@@ -104,27 +76,7 @@ BENCHMARK_F(PgConnection, TimestampBinaryRoundtrip)(benchmark::State& state) {
     RunInCoro([this, &state] {
       auto tp = std::chrono::system_clock::now();
       for (auto _ : state) {
-        auto res = conn_->ExperimentalExecute(
-            "select $1", io::DataFormat::kBinaryDataFormat, tp);
-        res.Front().To(tp);
-      }
-    });
-  }
-}
-
-BENCHMARK_F(PgConnection, TimestampTextRoundtrip)(benchmark::State& state) {
-  namespace pg = storages::postgres;
-  namespace io = pg::io;
-  auto connected = IsConnectionValid();
-  if (!connected) {
-    state.SkipWithError("Database not connected");
-  } else {
-    RunInCoro([this, &state] {
-      auto tp = std::chrono::system_clock::now();
-      for (auto _ : state) {
-        auto res = conn_->ExperimentalExecute("select $1",
-                                              io::DataFormat::kTextDataFormat,
-                                              pg::ForceTextFormat(tp));
+        auto res = conn_->ExperimentalExecute("select $1", tp);
         res.Front().To(tp);
       }
     });

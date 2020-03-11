@@ -112,9 +112,7 @@ namespace postgres {
  *       - NonSingleColumResultSet
  *       - NonSingleRowResultSet
  *       - NoBinaryParser
- *       - NoValueParser
  *       - RowIndexOutOfBounds
- *       - TextParseFailure
  *       - TypeCannotBeNull
  *       - UnknownBufferCategory
  *     - UserTypeError
@@ -664,23 +662,7 @@ class UnknownBufferCategory : public ResultSetError {
   const Oid type_oid;
 };
 
-/// @brief A field was requested to be parsed to a type that doesn't have an
-/// appropriate parser.
-/// This condition can be detected only at runtime.
-class NoValueParser : public ResultSetError {
- public:
-  NoValueParser(const std::string& type, io::DataFormat format)
-      : ResultSetError(
-            type + " doesn't have " +
-            (format == io::DataFormat::kBinaryDataFormat ? "binary" : "text") +
-            " parser") {}
-};
-
 /// @brief A field in a result set doesn't have a binary parser.
-///
-/// This situation leads to result set being requested in text format.
-/// Exception will be thrown to client when text protocol will be deprecated in
-/// the driver.
 class NoBinaryParser : public ResultSetError {
   using ResultSetError::ResultSetError;
 };
@@ -700,15 +682,6 @@ class InvalidBinaryBuffer : public ResultSetError {
  public:
   InvalidBinaryBuffer(const std::string& message)
       : ResultSetError("Invalid binary buffer: " + message) {}
-};
-
-/// @brief Text buffer failed to parse to a requested type.
-/// Can occur when a wrong field type is requested for reply or the data Postgre
-/// text format doen't match text format in C++.
-class TextParseFailure : public ResultSetError {
- public:
-  TextParseFailure(const std::string& type, const std::string& buffer)
-      : ResultSetError("Cannot parse `" + buffer + "` as " + type) {}
 };
 
 /// @brief A tuple was requested to be parsed out of a row that doesn't have

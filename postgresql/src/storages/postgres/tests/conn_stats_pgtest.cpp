@@ -37,7 +37,6 @@ POSTGRE_CASE_TEST_P(PostgreStats, StatsResetAfterGet) {
   EXPECT_EQ(0, stats.parse_total);
   EXPECT_EQ(0, stats.execute_total);
   EXPECT_EQ(0, stats.reply_total);
-  EXPECT_EQ(0, stats.bin_reply_total);
   EXPECT_EQ(0, stats.error_execute_total);
   EXPECT_EQ(0, stats.trx_start_time.time_since_epoch().count());
   EXPECT_EQ(0, stats.trx_end_time.time_since_epoch().count());
@@ -54,7 +53,6 @@ POSTGRE_CASE_TEST_P(PostgreStats, TransactionStartTime) {
   EXPECT_EQ(0, stats.out_of_trx);
   EXPECT_EQ(0, stats.execute_total);
   EXPECT_EQ(0, stats.reply_total);
-  EXPECT_EQ(0, stats.bin_reply_total);
   EXPECT_EQ(0, stats.error_execute_total);
   EXPECT_EQ(0, stats.trx_start_time.time_since_epoch().count());
   EXPECT_EQ(0, stats.trx_end_time.time_since_epoch().count());
@@ -78,7 +76,6 @@ POSTGRE_CASE_TEST_P(PostgreStats, TransactionExecuted) {
   EXPECT_EQ(1, stats.parse_total);
   EXPECT_EQ(3, stats.execute_total);
   EXPECT_EQ(1, stats.reply_total);
-  EXPECT_EQ(1, stats.bin_reply_total);
   EXPECT_EQ(0, stats.error_execute_total);
   EXPECT_GT(stats.trx_start_time, time_start);
   EXPECT_GT(stats.trx_end_time, time_start);
@@ -102,7 +99,6 @@ POSTGRE_CASE_TEST_P(PostgreStats, TransactionFailed) {
   EXPECT_EQ(0, stats.parse_total);
   EXPECT_EQ(3, stats.execute_total);
   EXPECT_EQ(0, stats.reply_total);
-  EXPECT_EQ(0, stats.bin_reply_total);
   EXPECT_EQ(1, stats.error_execute_total);
   EXPECT_GT(stats.trx_start_time, time_start);
   EXPECT_GT(stats.trx_end_time, time_start);
@@ -128,7 +124,6 @@ POSTGRE_CASE_TEST_P(PostgreStats, TransactionMultiExecutions) {
   EXPECT_EQ(1, stats.parse_total);
   EXPECT_EQ(exec_count + 2, stats.execute_total);
   EXPECT_EQ(exec_count, stats.reply_total);
-  EXPECT_EQ(exec_count, stats.bin_reply_total);
   EXPECT_EQ(0, stats.error_execute_total);
 }
 
@@ -147,7 +142,6 @@ POSTGRE_CASE_TEST_P(PostgreStats, SingleQuery) {
   EXPECT_EQ(1, stats.parse_total);
   EXPECT_EQ(1, stats.execute_total);
   EXPECT_EQ(1, stats.reply_total);
-  EXPECT_EQ(1, stats.bin_reply_total);
   EXPECT_EQ(0, stats.error_execute_total);
 }
 

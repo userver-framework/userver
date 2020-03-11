@@ -10,9 +10,6 @@
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
-#include <storages/postgres/io/stream_text_formatter.hpp>
-#include <storages/postgres/io/stream_text_parser.hpp>
-
 namespace storages {
 namespace postgres {
 namespace io {
@@ -101,14 +98,12 @@ struct IntegralBinaryFormatter {
 //@{
 /** @name 2 byte integer */
 template <>
-struct BufferParser<Smallint, DataFormat::kBinaryDataFormat>
-    : detail::IntegralBinaryParser<Smallint> {
+struct BufferParser<Smallint> : detail::IntegralBinaryParser<Smallint> {
   explicit BufferParser(Smallint& val) : IntegralBinaryParser(val) {}
 };
 
 template <>
-struct BufferFormatter<Smallint, DataFormat::kBinaryDataFormat>
-    : detail::IntegralBinaryFormatter<Smallint> {
+struct BufferFormatter<Smallint> : detail::IntegralBinaryFormatter<Smallint> {
   explicit BufferFormatter(Smallint val) : IntegralBinaryFormatter(val) {}
 };
 //@}
@@ -116,14 +111,12 @@ struct BufferFormatter<Smallint, DataFormat::kBinaryDataFormat>
 //@{
 /** @name 4 byte integer */
 template <>
-struct BufferParser<Integer, DataFormat::kBinaryDataFormat>
-    : detail::IntegralBinaryParser<Integer> {
+struct BufferParser<Integer> : detail::IntegralBinaryParser<Integer> {
   explicit BufferParser(Integer& val) : IntegralBinaryParser(val) {}
 };
 
 template <>
-struct BufferFormatter<Integer, DataFormat::kBinaryDataFormat>
-    : detail::IntegralBinaryFormatter<Integer> {
+struct BufferFormatter<Integer> : detail::IntegralBinaryFormatter<Integer> {
   explicit BufferFormatter(Integer val) : IntegralBinaryFormatter(val) {}
 };
 //@}
@@ -131,14 +124,12 @@ struct BufferFormatter<Integer, DataFormat::kBinaryDataFormat>
 //@{
 /** @name 8 byte integer */
 template <>
-struct BufferParser<Bigint, DataFormat::kBinaryDataFormat>
-    : detail::IntegralBinaryParser<Bigint> {
+struct BufferParser<Bigint> : detail::IntegralBinaryParser<Bigint> {
   explicit BufferParser(Bigint& val) : IntegralBinaryParser(val) {}
 };
 
 template <>
-struct BufferFormatter<Bigint, DataFormat::kBinaryDataFormat>
-    : detail::IntegralBinaryFormatter<Bigint> {
+struct BufferFormatter<Bigint> : detail::IntegralBinaryFormatter<Bigint> {
   explicit BufferFormatter(Bigint val) : IntegralBinaryFormatter(val) {}
 };
 //@}
@@ -146,41 +137,19 @@ struct BufferFormatter<Bigint, DataFormat::kBinaryDataFormat>
 //@{
 /** @name boolean */
 template <>
-struct BufferParser<bool, DataFormat::kBinaryDataFormat> {
-  bool& value;
-  explicit BufferParser(bool& val) : value{val} {}
-  void operator()(const FieldBuffer& buf) {
-    if (buf.length != 1) {
-      throw InvalidInputBufferSize{buf.length, "for boolean type"};
-    }
-    value = *buf.buffer != 0;
-  }
-};
-
-template <>
-struct BufferParser<bool, DataFormat::kTextDataFormat> {
+struct BufferParser<bool> {
   bool& value;
   explicit BufferParser(bool& val) : value{val} {}
   void operator()(const FieldBuffer& buf);
 };
 
 template <>
-struct BufferFormatter<bool, DataFormat::kBinaryDataFormat> {
+struct BufferFormatter<bool> {
   bool value;
   explicit BufferFormatter(bool val) : value(val) {}
   template <typename Buffer>
   void operator()(const UserTypes&, Buffer& buf) const {
     buf.push_back(value ? 1 : 0);
-  }
-};
-
-template <>
-struct BufferFormatter<bool, DataFormat::kTextDataFormat> {
-  bool value;
-  explicit BufferFormatter(bool val) : value(val) {}
-  template <typename Buffer>
-  void operator()(const UserTypes&, Buffer& buf) const {
-    buf.push_back(value ? 't' : 'f');
   }
 };
 //@}

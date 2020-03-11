@@ -16,11 +16,10 @@ namespace storages::postgres::io {
 
 namespace detail {
 
-template <template <typename> class Optional, typename T, DataFormat F,
-          bool Categories>
+template <template <typename> class Optional, typename T, bool Categories>
 struct OptionalValueParser : BufferParserBase<Optional<T>> {
   using BaseType = BufferParserBase<Optional<T>>;
-  using ValueParser = typename traits::IO<T, F>::ParserType;
+  using ValueParser = typename traits::IO<T>::ParserType;
 
   using BaseType::BaseType;
 
@@ -31,11 +30,10 @@ struct OptionalValueParser : BufferParserBase<Optional<T>> {
   }
 };
 
-template <template <typename> class Optional, typename T, DataFormat F>
-struct OptionalValueParser<Optional, T, F, true>
-    : BufferParserBase<Optional<T>> {
+template <template <typename> class Optional, typename T>
+struct OptionalValueParser<Optional, T, true> : BufferParserBase<Optional<T>> {
   using BaseType = BufferParserBase<Optional<T>>;
-  using ValueParser = typename traits::IO<T, F>::ParserType;
+  using ValueParser = typename traits::IO<T>::ParserType;
 
   using BaseType::BaseType;
 
@@ -47,10 +45,10 @@ struct OptionalValueParser<Optional, T, F, true>
   }
 };
 
-template <template <typename> class Optional, typename T, DataFormat F>
+template <template <typename> class Optional, typename T>
 struct OptionalValueFormatter : BufferFormatterBase<Optional<T>> {
   using BaseType = BufferFormatterBase<Optional<T>>;
-  using ValueFormatter = typename traits::IO<T, F>::FormatterType;
+  using ValueFormatter = typename traits::IO<T>::FormatterType;
 
   using BaseType::BaseType;
 
@@ -65,44 +63,42 @@ struct OptionalValueFormatter : BufferFormatterBase<Optional<T>> {
 }  // namespace detail
 
 /// Parser specialisation for boost::optional
-template <typename T, DataFormat F>
-struct BufferParser<boost::optional<T>, F,
-                    std::enable_if_t<traits::kHasParser<T, F>>>
-    : detail::OptionalValueParser<boost::optional, T, F,
+template <typename T>
+struct BufferParser<boost::optional<T>, std::enable_if_t<traits::kHasParser<T>>>
+    : detail::OptionalValueParser<boost::optional, T,
                                   detail::kParserRequiresTypeCategories<T>> {
   using BaseType =
-      detail::OptionalValueParser<boost::optional, T, F,
+      detail::OptionalValueParser<boost::optional, T,
                                   detail::kParserRequiresTypeCategories<T>>;
   using BaseType::BaseType;
 };
 
 /// Formatter specialisation for boost::optional
-template <typename T, DataFormat F>
-struct BufferFormatter<boost::optional<T>, F,
-                       std::enable_if_t<traits::kHasFormatter<T, F>>>
-    : detail::OptionalValueFormatter<boost::optional, T, F> {
-  using BaseType = detail::OptionalValueFormatter<boost::optional, T, F>;
+template <typename T>
+struct BufferFormatter<boost::optional<T>,
+                       std::enable_if_t<traits::kHasFormatter<T>>>
+    : detail::OptionalValueFormatter<boost::optional, T> {
+  using BaseType = detail::OptionalValueFormatter<boost::optional, T>;
   using BaseType::BaseType;
 };
 
 /// Parser specialisation for std::optional
-template <typename T, DataFormat F>
-struct BufferParser<std::optional<T>, F,
-                    std::enable_if_t<traits::kHasParser<T, F>>>
-    : detail::OptionalValueParser<std::optional, T, F,
+template <typename T>
+struct BufferParser<std::optional<T>, std::enable_if_t<traits::kHasParser<T>>>
+    : detail::OptionalValueParser<std::optional, T,
                                   detail::kParserRequiresTypeCategories<T>> {
   using BaseType =
-      detail::OptionalValueParser<std::optional, T, F,
+      detail::OptionalValueParser<std::optional, T,
                                   detail::kParserRequiresTypeCategories<T>>;
   using BaseType::BaseType;
 };
 
 /// Formatter specialisation for std::optional
-template <typename T, DataFormat F>
-struct BufferFormatter<std::optional<T>, F,
-                       std::enable_if_t<traits::kHasFormatter<T, F>>>
-    : detail::OptionalValueFormatter<std::optional, T, F> {
-  using BaseType = detail::OptionalValueFormatter<std::optional, T, F>;
+template <typename T>
+struct BufferFormatter<std::optional<T>,
+                       std::enable_if_t<traits::kHasFormatter<T>>>
+    : detail::OptionalValueFormatter<std::optional, T> {
+  using BaseType = detail::OptionalValueFormatter<std::optional, T>;
   using BaseType::BaseType;
 };
 
@@ -136,10 +132,8 @@ template <typename T>
 struct IsSpecialMapping<boost::optional<T>> : IsMappedToPg<T> {};
 
 template <typename T>
-struct ParserBufferCategory<
-    BufferParser<boost::optional<T>, DataFormat::kBinaryDataFormat>>
-    : ParserBufferCategory<
-          typename traits::IO<T, DataFormat::kBinaryDataFormat>::ParserType> {};
+struct ParserBufferCategory<BufferParser<boost::optional<T>>>
+    : ParserBufferCategory<typename traits::IO<T>::ParserType> {};
 
 /// Nullability traits for std::optional
 template <typename T>
@@ -159,10 +153,8 @@ template <typename T>
 struct IsSpecialMapping<std::optional<T>> : IsMappedToPg<T> {};
 
 template <typename T>
-struct ParserBufferCategory<
-    BufferParser<std::optional<T>, DataFormat::kBinaryDataFormat>>
-    : ParserBufferCategory<
-          typename traits::IO<T, DataFormat::kBinaryDataFormat>::ParserType> {};
+struct ParserBufferCategory<BufferParser<std::optional<T>>>
+    : ParserBufferCategory<typename traits::IO<T>::ParserType> {};
 
 }  // namespace traits
 

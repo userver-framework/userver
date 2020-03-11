@@ -41,7 +41,6 @@ TEST_P(PostgrePoolStats, EmptyPool) {
     EXPECT_EQ(stats.transaction.parse_total, 0);
     EXPECT_EQ(stats.transaction.execute_total, 0);
     EXPECT_EQ(stats.transaction.reply_total, 0);
-    EXPECT_EQ(stats.transaction.bin_reply_total, 0);
     EXPECT_EQ(stats.transaction.error_execute_total, 0);
     EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_exhaust_errors, 0);
@@ -135,7 +134,6 @@ TEST_P(PostgrePoolStats, RunTransactions) {
     EXPECT_GE(stats.transaction.parse_total, 1);
     EXPECT_EQ(stats.transaction.execute_total, query_exec_count);
     EXPECT_EQ(stats.transaction.reply_total, trx_count * exec_count);
-    EXPECT_EQ(stats.transaction.bin_reply_total, trx_count * exec_count);
     EXPECT_EQ(stats.transaction.error_execute_total, 0);
     EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_exhaust_errors, 0);

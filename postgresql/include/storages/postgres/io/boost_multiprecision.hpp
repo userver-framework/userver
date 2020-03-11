@@ -6,11 +6,8 @@
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/numeric_data.hpp>
-#include <storages/postgres/io/stream_text_parser.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
-#include <boost/iostreams/device/back_inserter.hpp>
-#include <boost/iostreams/stream.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
 namespace storages {
@@ -23,30 +20,7 @@ using MultiPrecision = boost::multiprecision::number<
 namespace io {
 
 template <std::size_t Precision>
-struct BufferFormatter<MultiPrecision<Precision>, DataFormat::kTextDataFormat> {
-  using Value = MultiPrecision<Precision>;
-  const Value& value;
-
-  BufferFormatter(const Value& val) : value{val} {}
-
-  template <typename Buffer>
-  void operator()(const UserTypes&, Buffer& buf) const {
-    using sink_type = boost::iostreams::back_insert_device<Buffer>;
-    using stream_type = boost::iostreams::stream<sink_type>;
-
-    {
-      sink_type sink{buf};
-      stream_type os{sink};
-      os << std::setprecision(std::numeric_limits<Value>::digits10)
-         << std::fixed << value;
-    }
-    if (buf.empty() || buf.back() != '\0') buf.push_back('\0');
-  }
-};
-
-template <std::size_t Precision>
-struct BufferFormatter<MultiPrecision<Precision>,
-                       DataFormat::kBinaryDataFormat> {
+struct BufferFormatter<MultiPrecision<Precision>> {
   using Value = MultiPrecision<Precision>;
   const Value& value;
 
@@ -63,7 +37,7 @@ struct BufferFormatter<MultiPrecision<Precision>,
 };
 
 template <std::size_t Precision>
-struct BufferParser<MultiPrecision<Precision>, DataFormat::kBinaryDataFormat>
+struct BufferParser<MultiPrecision<Precision>>
     : detail::BufferParserBase<MultiPrecision<Precision>> {
   using BaseType = detail::BufferParserBase<MultiPrecision<Precision>>;
   using BaseType::BaseType;

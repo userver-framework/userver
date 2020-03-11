@@ -63,14 +63,11 @@ void CheckDomainExpectations(pg::detail::ConnectionPtr& conn,
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(res = conn->Execute(check_statement)) << check_statement;
   ASSERT_FALSE(res.IsEmpty());
-  EXPECT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
 }
 
 POSTGRE_TEST_P(LoadUserTypes) {
-  EXPECT_TRUE(io::HasBinaryParser(kCompositeName))
+  EXPECT_TRUE(io::HasParser(kCompositeName))
       << "Binary parser for composite is registered";
-  EXPECT_FALSE(io::HasTextParser(kCompositeName))
-      << "Text parser for composite is not registered";
 
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
@@ -120,7 +117,6 @@ POSTGRE_TEST_P(LoadUserTypes) {
     EXPECT_NO_THROW(res = conn->Execute("select 'foo'::__pgtest.dom"));
     auto field = res[0][0];
     EXPECT_EQ(base_oid, field.GetTypeOid());
-    EXPECT_EQ(io::DataFormat::kBinaryDataFormat, field.GetDataFormat());
   }
   {
     // misc domains

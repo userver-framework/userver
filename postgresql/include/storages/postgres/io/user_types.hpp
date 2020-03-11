@@ -97,8 +97,7 @@ class UserTypes {
   Oid FindBaseOid(Oid) const;
   Oid FindBaseOid(DBTypeName) const;
 
-  bool HasBinaryParser(Oid) const;
-  bool HasTextParser(Oid) const;
+  bool HasParser(Oid) const;
   io::BufferCategory GetBufferCategory(Oid) const;
 
   void AddType(DBTypeDescription&& desc);
@@ -132,6 +131,8 @@ constexpr DBTypeName kPgUserTypeName = CppToUserPg<T>::postgres_name;
 
 template <typename T>
 struct CppToUserPgImpl {
+  static_assert(io::traits::kHasParser<T>, "Type has no parser");
+
   using Mapping = CppToUserPg<T>;
   static constexpr DBTypeName postgres_name = kPgUserTypeName<T>;
   static const detail::RegisterUserTypeParser init_;
@@ -148,9 +149,7 @@ struct CppToUserPgImpl {
 template <typename T>
 const RegisterUserTypeParser CppToUserPgImpl<T>::init_ =
     RegisterUserTypeParser::Register(kPgUserTypeName<T>,
-                                     ::compiler::GetTypeName<T>(),
-                                     io::traits::kHasTextParser<T>,
-                                     io::traits::kHasBinaryParser<T>);
+                                     ::compiler::GetTypeName<T>());
 }  // namespace io::detail
 
 }  // namespace storages::postgres

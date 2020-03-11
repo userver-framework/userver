@@ -68,8 +68,6 @@ class Connection {
     Counter execute_total;
     /// Total number of replies
     Counter reply_total;
-    /// Number of replies in binary format
-    Counter bin_reply_total;
     /// Error during query execution
     Counter error_execute_total;
     /// Timeout while executing
@@ -225,16 +223,14 @@ class Connection {
   /** @name Command sending interface for experimenting */
   /// Separate method for experimenting with PostgreSQL protocol and parsing
   /// Not visible to users of PostgreSQL driver
-  ResultSet ExperimentalExecute(
-      const std::string& statement,
-      io::DataFormat reply_format = io::DataFormat::kTextDataFormat,
-      const detail::QueryParameters& = {});
+  ResultSet ExperimentalExecute(const std::string& statement,
+                                const detail::QueryParameters& = {});
   template <typename... T>
   ResultSet ExperimentalExecute(const std::string& statement,
-                                io::DataFormat reply_format, const T&... args) {
+                                const T&... args) {
     detail::QueryParameters params;
     params.Write(GetUserTypes(), args...);
-    return ExperimentalExecute(statement, reply_format, params);
+    return ExperimentalExecute(statement, params);
   }
   //@}
   //@}

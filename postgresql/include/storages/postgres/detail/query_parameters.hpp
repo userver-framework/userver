@@ -50,7 +50,7 @@ class QueryParameters {
   void WriteNullable(const UserTypes& types, const T& arg, std::true_type) {
     using NullDetector = io::traits::GetSetNull<T>;
     if (NullDetector::IsNull(arg)) {
-      param_formats.push_back(0);
+      param_formats.push_back(io::kPgBinaryDataFormat);
       param_lengths.push_back(io::kPgNullBufferSize);
       param_buffers.push_back(nullptr);
     } else {
@@ -60,12 +60,10 @@ class QueryParameters {
 
   template <typename T>
   void WriteNullable(const UserTypes& types, const T& arg, std::false_type) {
-    using FormatterTraits = io::traits::BestFormatter<T>;
-
-    param_formats.push_back(FormatterTraits::value);
+    param_formats.push_back(io::kPgBinaryDataFormat);
     parameters.push_back({});
     auto& buffer = parameters.back();
-    io::WriteBuffer<FormatterTraits::value>(types, buffer, arg);
+    io::WriteBuffer(types, buffer, arg);
     auto size = buffer.size();
     param_lengths.push_back(size);
     if (size == 0) {

@@ -26,51 +26,48 @@ struct CharToEnum : BufferParserBase<Enum> {
 }  // namespace detail
 
 template <>
-struct BufferParser<DBTypeDescription::TypeClass, DataFormat::kBinaryDataFormat>
+struct BufferParser<DBTypeDescription::TypeClass>
     : detail::CharToEnum<DBTypeDescription::TypeClass> {
   using BaseType = detail::CharToEnum<DBTypeDescription::TypeClass>;
   using BaseType::BaseType;
 };
 
 template <>
-struct BufferParser<DBTypeDescription::TypeCategory,
-                    DataFormat::kBinaryDataFormat>
+struct BufferParser<DBTypeDescription::TypeCategory>
     : detail::CharToEnum<DBTypeDescription::TypeCategory> {
   using BaseType = detail::CharToEnum<DBTypeDescription::TypeCategory>;
   using BaseType::BaseType;
 };
 
 template <>
-struct BufferParser<Oid, DataFormat::kBinaryDataFormat>
-    : detail::BufferParserBase<Oid> {
+struct BufferParser<Oid> : detail::BufferParserBase<Oid> {
   using BufferParserBase::BufferParserBase;
 
   void operator()(const FieldBuffer& buffer) {
     Integer tmp;
-    ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, tmp);
+    io::ReadBuffer(buffer, tmp);
     value = tmp;
   }
 };
 
 template <>
-struct BufferParser<std::uint16_t, DataFormat::kBinaryDataFormat>
-    : detail::BufferParserBase<std::uint16_t> {
+struct BufferParser<std::uint16_t> : detail::BufferParserBase<std::uint16_t> {
   using BufferParserBase::BufferParserBase;
 
   void operator()(const FieldBuffer& buffer) {
     Smallint tmp;
-    ReadBuffer<DataFormat::kBinaryDataFormat>(buffer, tmp);
+    io::ReadBuffer(buffer, tmp);
     value = static_cast<std::uint16_t>(tmp);
   }
 };
 
 template <>
-struct BufferFormatter<std::uint16_t, DataFormat::kBinaryDataFormat>
+struct BufferFormatter<std::uint16_t>
     : detail::BufferFormatterBase<std::uint16_t> {
   using BufferFormatterBase::BufferFormatterBase;
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buf) const {
-    WriteBinary(types, buf, static_cast<std::int16_t>(value));
+    io::WriteBuffer(types, buf, static_cast<std::int16_t>(value));
   }
 };
 

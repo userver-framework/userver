@@ -93,7 +93,7 @@ namespace io {
 
 template <typename ByteContainer>
 struct BufferFormatter<
-    postgres::detail::Bytea<ByteContainer>, DataFormat::kBinaryDataFormat,
+    postgres::detail::Bytea<ByteContainer>,
     traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
     : detail::BufferFormatterBase<postgres::detail::Bytea<ByteContainer>> {
   using BaseType =
@@ -109,7 +109,7 @@ struct BufferFormatter<
 
 template <typename ByteContainer>
 struct BufferParser<
-    postgres::detail::Bytea<ByteContainer>, DataFormat::kBinaryDataFormat,
+    postgres::detail::Bytea<ByteContainer>,
     traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
     : detail::BufferParserBase<postgres::detail::Bytea<ByteContainer>&&> {
   using BaseType =

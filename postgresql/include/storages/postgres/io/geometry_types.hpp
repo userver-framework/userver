@@ -110,8 +110,8 @@ struct PointFormatter : BufferFormatterBase<Point> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    WriteBinary(types, buffer, value.x);
-    WriteBinary(types, buffer, value.y);
+    io::WriteBuffer(types, buffer, value.x);
+    io::WriteBuffer(types, buffer, value.y);
   }
 };
 
@@ -131,8 +131,8 @@ struct LineSegmentFormatter : BufferFormatterBase<LineSegment> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    WriteBinary(types, buffer, value.ends[0]);
-    WriteBinary(types, buffer, value.ends[1]);
+    io::WriteBuffer(types, buffer, value.ends[0]);
+    io::WriteBuffer(types, buffer, value.ends[1]);
   }
 };
 
@@ -153,9 +153,9 @@ struct LineFormatter : BufferFormatterBase<Line> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    WriteBinary(types, buffer, value.a);
-    WriteBinary(types, buffer, value.b);
-    WriteBinary(types, buffer, value.c);
+    io::WriteBuffer(types, buffer, value.a);
+    io::WriteBuffer(types, buffer, value.b);
+    io::WriteBuffer(types, buffer, value.c);
   }
 };
 
@@ -175,8 +175,8 @@ struct BoxFormatter : BufferFormatterBase<Box> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    WriteBinary(types, buffer, value.corners[0]);
-    WriteBinary(types, buffer, value.corners[1]);
+    io::WriteBuffer(types, buffer, value.corners[0]);
+    io::WriteBuffer(types, buffer, value.corners[1]);
   }
 };
 
@@ -201,11 +201,11 @@ struct PathFormatter : BufferFormatterBase<Path> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    WriteBinary(types, buffer, value.is_closed);
+    io::WriteBuffer(types, buffer, value.is_closed);
     Integer points_no = value.points.size();
-    WriteBinary(types, buffer, points_no);
+    io::WriteBuffer(types, buffer, points_no);
     for (const auto& p : value.points) {
-      WriteBinary(types, buffer, p);
+      io::WriteBuffer(types, buffer, p);
     }
   }
 };
@@ -231,9 +231,9 @@ struct PolygonFormatter : BufferFormatterBase<Polygon> {
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
     Integer points_no = value.points.size();
-    WriteBinary(types, buffer, points_no);
+    io::WriteBuffer(types, buffer, points_no);
     for (const auto& p : value.points) {
-      WriteBinary(types, buffer, p);
+      io::WriteBuffer(types, buffer, p);
     }
   }
 };
@@ -254,8 +254,8 @@ struct CircleFormatter : BufferFormatterBase<Circle> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    WriteBinary(types, buffer, value.center);
-    WriteBinary(types, buffer, value.radius);
+    io::WriteBuffer(types, buffer, value.center);
+    io::WriteBuffer(types, buffer, value.radius);
   }
 };
 
@@ -264,7 +264,7 @@ struct CircleFormatter : BufferFormatterBase<Circle> {
 namespace traits {
 
 template <>
-struct Input<io::detail::Point, DataFormat::kBinaryDataFormat> {
+struct Input<io::detail::Point> {
   using type = io::detail::PointParser;
 };
 
@@ -273,12 +273,12 @@ struct ParserBufferCategory<io::detail::PointParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
-struct Output<io::detail::Point, DataFormat::kBinaryDataFormat> {
+struct Output<io::detail::Point> {
   using type = io::detail::PointFormatter;
 };
 
 template <>
-struct Input<io::detail::LineSegment, DataFormat::kBinaryDataFormat> {
+struct Input<io::detail::LineSegment> {
   using type = io::detail::LineSegmentParser;
 };
 
@@ -287,12 +287,12 @@ struct ParserBufferCategory<io::detail::LineSegmentParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
-struct Output<io::detail::LineSegment, DataFormat::kBinaryDataFormat> {
+struct Output<io::detail::LineSegment> {
   using type = io::detail::LineSegmentFormatter;
 };
 
 template <>
-struct Input<io::detail::Line, DataFormat::kBinaryDataFormat> {
+struct Input<io::detail::Line> {
   using type = io::detail::LineParser;
 };
 
@@ -301,12 +301,12 @@ struct ParserBufferCategory<io::detail::LineParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
-struct Output<io::detail::Line, DataFormat::kBinaryDataFormat> {
+struct Output<io::detail::Line> {
   using type = io::detail::LineFormatter;
 };
 
 template <>
-struct Input<io::detail::Box, DataFormat::kBinaryDataFormat> {
+struct Input<io::detail::Box> {
   using type = io::detail::BoxParser;
 };
 
@@ -315,12 +315,12 @@ struct ParserBufferCategory<io::detail::BoxParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
-struct Output<io::detail::Box, DataFormat::kBinaryDataFormat> {
+struct Output<io::detail::Box> {
   using type = io::detail::BoxFormatter;
 };
 
 template <>
-struct Input<io::detail::Path, DataFormat::kBinaryDataFormat> {
+struct Input<io::detail::Path> {
   using type = io::detail::PathParser;
 };
 
@@ -329,12 +329,12 @@ struct ParserBufferCategory<io::detail::PathParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
-struct Output<io::detail::Path, DataFormat::kBinaryDataFormat> {
+struct Output<io::detail::Path> {
   using type = io::detail::PathFormatter;
 };
 
 template <>
-struct Input<io::detail::Polygon, DataFormat::kBinaryDataFormat> {
+struct Input<io::detail::Polygon> {
   using type = io::detail::PolygonParser;
 };
 
@@ -343,12 +343,12 @@ struct ParserBufferCategory<io::detail::PolygonParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
-struct Output<io::detail::Polygon, DataFormat::kBinaryDataFormat> {
+struct Output<io::detail::Polygon> {
   using type = io::detail::PolygonFormatter;
 };
 
 template <>
-struct Input<io::detail::Circle, DataFormat::kBinaryDataFormat> {
+struct Input<io::detail::Circle> {
   using type = io::detail::CircleParser;
 };
 
@@ -357,7 +357,7 @@ struct ParserBufferCategory<io::detail::CircleParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
-struct Output<io::detail::Circle, DataFormat::kBinaryDataFormat> {
+struct Output<io::detail::Circle> {
   using type = io::detail::CircleFormatter;
 };
 

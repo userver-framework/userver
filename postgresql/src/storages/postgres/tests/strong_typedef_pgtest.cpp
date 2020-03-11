@@ -61,9 +61,9 @@ static_assert(
     std::is_same<io::CppToPg<StringTypedef>::Mapping,
                  io::CppToSystemPg<std::string>>::value,
     "Strong typedef must have the same mapping as the underlying type");
-static_assert(kHasBinaryParser<StringTypedef>,
+static_assert(kHasParser<StringTypedef>,
               "Strong typedef to a defined type must have a parser");
-static_assert(kHasBinaryFormatter<StringTypedef>,
+static_assert(kHasFormatter<StringTypedef>,
               "Strong typedef to a defined type must have a formatter");
 static_assert(!kIsNullable<StringTypedef>,
               "Strong typedef must derive nullability from underlying type");
@@ -74,9 +74,9 @@ static_assert(
     std::is_same<io::CppToPg<OptStringTypedef>::Mapping,
                  io::CppToSystemPg<std::string>>::value,
     "Strong typedef must have the same mapping as the underlying type");
-static_assert(kHasBinaryParser<OptStringTypedef>,
+static_assert(kHasParser<OptStringTypedef>,
               "Strong typedef to a defined type must have a parser");
-static_assert(kHasBinaryFormatter<OptStringTypedef>,
+static_assert(kHasFormatter<OptStringTypedef>,
               "Strong typedef to a defined type must have a formatter");
 static_assert(kIsNullable<OptStringTypedef>,
               "Strong typedef must derive nullability from underlying type");
@@ -87,9 +87,9 @@ static_assert(
     std::is_same<io::CppToPg<IntTypedef>::Mapping,
                  io::CppToSystemPg<pg::Integer>>::value,
     "Strong typedef must have the same mapping as the underlying type");
-static_assert(kHasBinaryParser<IntTypedef>,
+static_assert(kHasParser<IntTypedef>,
               "Strong typedef to a defined type must have a parser");
-static_assert(kHasBinaryFormatter<IntTypedef>,
+static_assert(kHasFormatter<IntTypedef>,
               "Strong typedef to a defined type must have a formatter");
 static_assert(!kIsNullable<IntTypedef>,
               "Strong typedef must derive nullability from underlying type");
@@ -100,30 +100,21 @@ static_assert(
     std::is_same<io::CppToPg<UserTypedef>::Mapping,
                  io::CppToUserPg<UserType>>::value,
     "Strong typedef must have the same mapping as the underlying type");
-static_assert(kHasBinaryParser<UserTypedef>,
+static_assert(kHasParser<UserTypedef>,
               "Strong typedef to a defined type must have a parser");
-static_assert(kHasBinaryFormatter<UserTypedef>,
+static_assert(kHasFormatter<UserTypedef>,
               "Strong typedef to a defined type must have a formatter");
 static_assert(!kIsNullable<UserTypedef>,
               "Strong typedef must derive nullability from underlying type");
 
 // Check mapping calculation doesn't break hand-mapped types
-static_assert(kIsMappedToPg<pg::TimePointTz>, "");
+static_assert(kIsMappedToPg<pg::TimePointTz>);
 static_assert(std::is_same<io::CppToPg<pg::TimePointTz>::Mapping,
-                           io::CppToSystemPg<pg::TimePointTz>>::value,
-              "");
-static_assert(
-    std::is_same<
-        IO<pg::TimePointTz, io::DataFormat::kBinaryDataFormat>::ParserType,
-        io::BufferParser<pg::TimePointTz,
-                         io::DataFormat::kBinaryDataFormat>>::value,
-    "");
-static_assert(
-    std::is_same<
-        IO<pg::TimePointTz, io::DataFormat::kBinaryDataFormat>::FormatterType,
-        io::BufferFormatter<pg::TimePointTz,
-                            io::DataFormat::kBinaryDataFormat>>::value,
-    "");
+                           io::CppToSystemPg<pg::TimePointTz>>::value);
+static_assert(std::is_same<IO<pg::TimePointTz>::ParserType,
+                           io::BufferParser<pg::TimePointTz>>::value);
+static_assert(std::is_same<IO<pg::TimePointTz>::FormatterType,
+                           io::BufferFormatter<pg::TimePointTz>>::value);
 
 static_assert(!CanUseEnumAsStrongTypedef<std::string>(), "not an enum");
 static_assert(!CanUseEnumAsStrongTypedef<int>(), "not an enum");
@@ -142,9 +133,9 @@ static_assert(CanUseEnumAsStrongTypedef<EnumStrongTypedef>(),
               "a strong typedef");
 static_assert(kIsMappedToPg<EnumStrongTypedef>,
               "A valid enum strong typedef must have a parser");
-static_assert(kHasBinaryParser<EnumStrongTypedef>,
+static_assert(kHasParser<EnumStrongTypedef>,
               "A valid enum strong typedef must have a parser");
-static_assert(kHasBinaryFormatter<EnumStrongTypedef>,
+static_assert(kHasFormatter<EnumStrongTypedef>,
               "A valid enum strong typedef must have a formatter");
 static_assert(!kIsNullable<EnumStrongTypedef>,
               "Strong typedef must derive nullability from underlying type");

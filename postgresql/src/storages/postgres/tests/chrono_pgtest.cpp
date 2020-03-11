@@ -1,26 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <storages/postgres/io/chrono.hpp>
-#include <storages/postgres/io/force_text.hpp>
 #include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;
-
-namespace static_test {
-
-static_assert(
-    (io::traits::HasFormatter<std::chrono::system_clock::time_point,
-                              io::DataFormat::kTextDataFormat>::value == true),
-    "");
-static_assert((io::traits::HasParser<std::chrono::system_clock::time_point,
-                                     io::DataFormat::kTextDataFormat>::value ==
-               true),
-              "");
-
-}  // namespace static_test
 
 namespace storages::postgres {
 
@@ -77,55 +63,28 @@ pg::TimePoint ParseUTC(const ::std::string& value) {
 }
 
 TEST(PostgreIO, Chrono) {
-  {
-    auto now = std::chrono::system_clock::now();
-    pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, now));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
-    pg::TimePoint tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, tgt));
-    EXPECT_EQ(now, tgt) << "Parse buffer "
-                        << std::string{buffer.begin(), buffer.end()};
-  }
-  {
-    auto now = std::chrono::system_clock::now();
-    pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, now));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
-    pg::TimePoint tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, tgt));
-    EXPECT_EQ(now, tgt) << "Parse buffer "
-                        << std::string{buffer.begin(), buffer.end()};
-  }
+  // postgres only supports microsecond resolution
+  auto now = std::chrono::time_point_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now());
+  pg::test::Buffer buffer;
+  EXPECT_NO_THROW(io::WriteBuffer(types, buffer, now));
+  auto fb = pg::test::MakeFieldBuffer(buffer);
+  pg::TimePoint tgt;
+  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+  EXPECT_EQ(now, tgt) << "Parse buffer "
+                      << std::string{buffer.begin(), buffer.end()}
+                      << ", expected: " << now.time_since_epoch().count()
+                      << ", got: " << tgt.time_since_epoch().count();
 }
 
 TEST(PostgreIO, ChronoTz) {
-  {
-    auto now = pg::TimePointTz{std::chrono::system_clock::now()};
-    pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, now));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
-    pg::TimePointTz tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt));
-    EXPECT_TRUE(EqualToMicroseconds(now.GetUnderlying(), tgt.GetUnderlying()));
-  }
-  {
-    auto now = pg::TimePointTz{std::chrono::system_clock::now()};
-    pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, now));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat);
-    pg::TimePointTz tgt;
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt));
-    EXPECT_TRUE(EqualToMicroseconds(now.GetUnderlying(), tgt.GetUnderlying()));
-  }
+  auto now = pg::TimePointTz{std::chrono::system_clock::now()};
+  pg::test::Buffer buffer;
+  EXPECT_NO_THROW(io::WriteBuffer(types, buffer, now));
+  auto fb = pg::test::MakeFieldBuffer(buffer);
+  pg::TimePointTz tgt;
+  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+  EXPECT_TRUE(EqualToMicroseconds(now.GetUnderlying(), tgt.GetUnderlying()));
 }
 
 // RAII class to set TZ environment variable. Not for use with threads.
@@ -181,12 +140,7 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
       "create temp table tstest(fmt text, notz timestamp, tz timestamptz)"));
   for (auto src : timepoints) {
     EXPECT_NO_THROW(conn->ExperimentalExecute(
-        "insert into tstest(fmt, notz, tz) values ($1, $2, $3)",
-        pg::io::DataFormat::kTextDataFormat, "txt", pg::ForceTextFormat(src),
-        pg::ForceTextFormat(pg::TimestampTz(src))));
-    EXPECT_NO_THROW(conn->ExperimentalExecute(
-        "insert into tstest(fmt, notz, tz) values ($1, $2, $3)",
-        pg::io::DataFormat::kBinaryDataFormat, "bin", src,
+        "insert into tstest(fmt, notz, tz) values ($1, $2, $3)", "bin", src,
         pg::TimestampTz(src)));
     std::string select_timezones = R"~(
         select fmt, notz, tz, notz at time zone current_setting('TIMEZONE'),
@@ -224,35 +178,22 @@ POSTGRE_TEST_P(Timestamp) {
 
   pg::ResultSet res{nullptr};
   auto now = std::chrono::system_clock::now();
-  EXPECT_NO_THROW(res = conn->ExperimentalExecute(
-                      "select $1::timestamp, $2::timestamptz",
-                      pg::io::DataFormat::kTextDataFormat,
-                      pg::ForceTextFormat(now),
-                      pg::ForceTextFormat(pg::TimestampTz(now))));
   pg::TimePoint tp;
   pg::TimePoint tptz;
-  res.Front().To(tp, pg::TimestampTz(tptz));
 
-  EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "Text reply format, no tz";
-  EXPECT_TRUE(EqualToMicroseconds(tptz, now)) << "Text reply format, with tz";
-  EXPECT_TRUE(EqualToMicroseconds(tp, tptz)) << "Text reply format";
+  EXPECT_NO_THROW(
+      res = conn->ExperimentalExecute("select $1::timestamp, $2::timestamptz",
+                                      now, pg::TimestampTz(now)));
+
+  EXPECT_NO_THROW(res.Front().To(tp, pg::TimestampTz(tptz)));
+  EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "Binary reply format, no tz";
+  EXPECT_TRUE(EqualToMicroseconds(tptz, now)) << "Binary reply format, with tz";
+  EXPECT_TRUE(EqualToMicroseconds(tp, tptz)) << "Binary reply format";
 
   tp = pg::TimePoint{};
   tptz = pg::TimePoint{};
   EXPECT_FALSE(EqualToMicroseconds(tp, now)) << "After reset";
   EXPECT_FALSE(EqualToMicroseconds(tptz, now)) << "After reset";
-
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select $1::timestamp, $2::timestamptz",
-                                      pg::io::DataFormat::kBinaryDataFormat,
-                                      now, pg::TimestampTz(now)));
-
-  EXPECT_EQ(pg::io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
-  EXPECT_EQ(pg::io::DataFormat::kBinaryDataFormat, res[0][1].GetDataFormat());
-  EXPECT_NO_THROW(res.Front().To(tp, pg::TimestampTz(tptz)));
-  EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "Binary reply format, no tz";
-  EXPECT_TRUE(EqualToMicroseconds(tptz, now)) << "Binary reply format, with tz";
-  EXPECT_TRUE(EqualToMicroseconds(tp, tptz)) << "Binary reply format";
 
   const char* timezones[]{
       "",
@@ -308,8 +249,7 @@ POSTGRE_TEST_P(TimestampInfinity) {
   pg::ResultSet res{nullptr};
 
   EXPECT_NO_THROW(res = conn->ExperimentalExecute(
-                      "select 'infinity'::timestamp, '-infinity'::timestamp",
-                      pg::io::DataFormat::kBinaryDataFormat));
+                      "select 'infinity'::timestamp, '-infinity'::timestamp"));
   pg::TimePoint pos_inf;
   pg::TimePoint neg_inf;
 
@@ -318,8 +258,7 @@ POSTGRE_TEST_P(TimestampInfinity) {
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
 
   EXPECT_NO_THROW(res = conn->ExperimentalExecute(
-                      "select $1, $2", pg::io::DataFormat::kBinaryDataFormat,
-                      pg::kTimestampPositiveInfinity,
+                      "select $1, $2", pg::kTimestampPositiveInfinity,
                       pg::kTimestampNegativeInfinity));
   EXPECT_NO_THROW(res.Front().To(pos_inf, neg_inf));
   EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);

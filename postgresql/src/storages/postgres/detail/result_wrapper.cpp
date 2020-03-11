@@ -3,6 +3,8 @@
 #include <fmt/format.h>
 #include <boost/algorithm/string/join.hpp>
 
+#include <storages/postgres/io/traits.hpp>
+
 #include <logging/log.hpp>
 
 #ifndef PG_DIAG_SEVERITY_NONLOCALIZED
@@ -136,7 +138,6 @@ FieldDescription ResultWrapper::GetFieldDescription(std::size_t col) const {
   return {col,
           GetFieldTypeOid(col),
           std::string{GetFieldName(col)},
-          GetFieldFormat(col),
           PQftable(handle_.get(), col),
           PQftablecol(handle_.get(), col),
           PQfsize(handle_.get(), col),
@@ -145,10 +146,6 @@ FieldDescription ResultWrapper::GetFieldDescription(std::size_t col) const {
 
 bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const {
   return PQgetisnull(handle_.get(), row, col);
-}
-
-io::DataFormat ResultWrapper::GetFieldFormat(std::size_t col) const {
-  return static_cast<io::DataFormat>(PQfformat(handle_.get(), col));
 }
 
 Oid ResultWrapper::GetFieldTypeOid(std::size_t col) const {
@@ -172,8 +169,13 @@ std::size_t ResultWrapper::GetFieldLength(std::size_t row,
 
 io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row,
                                               std::size_t col) const {
-  return io::FieldBuffer{IsFieldNull(row, col), GetFieldFormat(col),
-                         GetFieldBufferCategory(col), GetFieldLength(row, col),
+  if (PQfformat(handle_.get(), col) != io::kPgBinaryDataFormat) {
+    throw ResultSetError{"Column with index " + std::to_string(col) +
+                         " has text format" +
+                         to_string(boost::stacktrace::stacktrace{})};
+  }
+  return io::FieldBuffer{IsFieldNull(row, col), GetFieldBufferCategory(col),
+                         GetFieldLength(row, col),
                          reinterpret_cast<const std::uint8_t*>(
                              PQgetvalue(handle_.get(), row, col))};
 }

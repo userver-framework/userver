@@ -32,20 +32,13 @@ const bool kReference = detail::ForceReference(
     PgToCpp<PredefinedOids::kXid, Oid>::init_,
     PgToCpp<PredefinedOids::kCid, Oid>::init_);
 
-bool IsTrueLiteral(const std::string& lit) {
-  static const std::unordered_set<std::string> kTrueLiterals{
-      "TRUE", "t", "true", "y", "yes", "on", "1"};
-  return kTrueLiterals.count(lit);
-}
-
-const std::unordered_set<std::string> kFalseLiterals{
-    "FALSE", "f", "false", "n", "no", "off", "0"};
-
 }  // namespace
 
-void BufferParser<bool, DataFormat::kTextDataFormat>::operator()(
-    const FieldBuffer& buf) {
-  value = IsTrueLiteral(buf.ToString());
+void BufferParser<bool>::operator()(const FieldBuffer& buf) {
+  if (buf.length != 1) {
+    throw InvalidInputBufferSize{buf.length, "for boolean type"};
+  }
+  value = *buf.buffer != 0;
 }
 
 }  // namespace storages::postgres::io

@@ -62,7 +62,7 @@ struct JsonFormatter : BufferFormatterBase<JsonValue> {
 namespace traits {
 
 template <>
-struct Input<formats::json::Value, DataFormat::kBinaryDataFormat> {
+struct Input<formats::json::Value> {
   using type = io::detail::JsonParser;
 };
 
@@ -71,12 +71,12 @@ struct ParserBufferCategory<io::detail::JsonParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
-struct Output<formats::json::Value, DataFormat::kBinaryDataFormat> {
+struct Output<formats::json::Value> {
   using type = io::detail::JsonFormatter<formats::json::Value>;
 };
 
 template <>
-struct Output<PlainJson, DataFormat::kBinaryDataFormat> {
+struct Output<PlainJson> {
   using type = io::detail::JsonFormatter<PlainJson>;
 };
 

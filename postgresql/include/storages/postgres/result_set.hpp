@@ -181,8 +181,6 @@ struct FieldDescription {
   /// @brief The field name.
   // TODO string_view
   std::string name;
-  /// @brief Data format of the field (text/binary).
-  io::DataFormat data_format;
   /// @brief If the field can be identified as a column of a specific table,
   /// the object ID of the table; otherwise zero.
   Oid table_oid;
@@ -230,7 +228,6 @@ class Field {
   std::string_view Name() const;
   FieldDescription Description() const;
 
-  io::DataFormat GetDataFormat() const;
   Oid GetTypeOid() const;
   //@}
 
@@ -314,36 +311,11 @@ class Field {
   template <typename T>
   void Read(const io::FieldBuffer& buffer, T&& val) const {
     using ValueType = typename std::decay<T>::type;
-    static_assert(io::traits::kHasAnyParser<ValueType>,
+    static_assert(io::traits::kHasParser<ValueType>,
                   "Type doesn't have any parsers defined");
-    if (buffer.format == io::DataFormat::kTextDataFormat) {
-      ReadText(buffer, std::forward<T>(val));
-    } else {
-      ReadBinary(buffer, std::forward<T>(val));
-    }
+    io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
   }
 
-  template <typename T>
-  void ReadText(const io::FieldBuffer& buffer, T&& val) const {
-    using ValueType = typename std::decay<T>::type;
-    if constexpr (io::traits::kHasTextParser<ValueType>) {
-      io::ReadText(buffer, std::forward<T>(val));
-    } else {
-      throw NoValueParser{::compiler::GetTypeName<T>(),
-                          io::DataFormat::kTextDataFormat};
-    }
-  }
-
-  template <typename T>
-  void ReadBinary(const io::FieldBuffer& buffer, T&& val) const {
-    using ValueType = typename std::decay<T>::type;
-    if constexpr (io::traits::kHasBinaryParser<ValueType>) {
-      io::ReadBinary(buffer, std::forward<T>(val), GetTypeBufferCategories());
-    } else {
-      throw NoValueParser{::compiler::GetTypeName<T>(),
-                          io::DataFormat::kBinaryDataFormat};
-    }
-  }
   //@{
   /** @name Iteration support */
   bool IsValid() const;

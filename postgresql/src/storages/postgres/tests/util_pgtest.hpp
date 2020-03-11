@@ -45,6 +45,8 @@ inline storages::postgres::detail::ConnectionPtr MakeConnection(
   namespace pg = storages::postgres;
   std::unique_ptr<pg::detail::Connection> conn;
 
+  pg::detail::Connection::Connect(dsn, task_processor, kConnectionId, settings,
+                                  kTestCmdCtl, {}, {});
   EXPECT_NO_THROW(
       conn = pg::detail::Connection::Connect(dsn, task_processor, kConnectionId,
                                              settings, kTestCmdCtl, {}, {}))

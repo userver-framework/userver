@@ -31,8 +31,6 @@ struct TransactionStatistics {
   Counter execute_total = 0;
   /// Total number of replies
   Counter reply_total = 0;
-  /// Number of replies in binary format
-  Counter bin_reply_total = 0;
   /// Error during query execution
   Counter error_execute_total = 0;
   /// Timeout while executing query
@@ -132,7 +130,6 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     transaction.parse_total = stats.transaction.parse_total;
     transaction.execute_total = stats.transaction.execute_total;
     transaction.reply_total = stats.transaction.reply_total;
-    transaction.bin_reply_total = stats.transaction.bin_reply_total;
     transaction.error_execute_total = stats.transaction.error_execute_total;
     transaction.execute_timeout = stats.transaction.execute_timeout;
     transaction.total_percentile.Add(

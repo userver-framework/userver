@@ -9,7 +9,6 @@
 #include <storages/postgres/pool.hpp>
 
 #include <storages/postgres/io/chrono.hpp>
-#include <storages/postgres/io/force_text.hpp>
 
 namespace pg = storages::postgres;
 
@@ -19,16 +18,11 @@ struct no_input_operator {};
 static_assert(pg::io::traits::HasInputOperator<no_input_operator>::value ==
                   false,
               "Test input metafunction");
-static_assert(pg::io::traits::HasInputOperator<int>::value == true,
+static_assert(pg::io::traits::HasInputOperator<int>::value,
               "Test input metafunction");
-static_assert(
-    (pg::io::traits::HasParser<no_input_operator,
-                               pg::io::DataFormat::kTextDataFormat>::value ==
-     false),
-    "Test has parser metafunction");
-static_assert((pg::io::traits::HasParser<
-                   int, pg::io::DataFormat::kTextDataFormat>::value == true),
+static_assert(!pg::io::traits::kHasParser<no_input_operator>,
               "Test has parser metafunction");
+static_assert(pg::io::traits::kHasParser<int>, "Test has parser metafunction");
 
 }  // namespace static_test
 

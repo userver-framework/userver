@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <storages/postgres/detail/query_parameters.hpp>
-#include <storages/postgres/io/force_text.hpp>
 #include <storages/postgres/io/user_types.hpp>
 
 namespace pg = storages::postgres;
@@ -15,14 +14,12 @@ struct __no_output_operator {};
 static_assert(!HasOutputOperator<__no_output_operator>::value,
               "Test output metafunction");
 static_assert(HasOutputOperator<int>::value, "Test output metafunction");
-static_assert(!kHasTextFormatter<__no_output_operator>,
+static_assert(!kHasFormatter<__no_output_operator>,
               "Test has formatter metafuction");
 
-static_assert(
-    (pg::io::traits::HasFormatter<boost::optional<int>,
-                                  pg::io::DataFormat::kTextDataFormat>::value ==
-     true),
-    "Test has formatter metafuction");
+static_assert((pg::io::traits::HasFormatter<boost::optional<int>>::value ==
+               true),
+              "Test has formatter metafuction");
 
 }  // namespace static_test
 
@@ -52,23 +49,19 @@ TEST(PostgreIO, OutputString) {
   std::string str{"foo"};
 
   params.Write(types, "foo");
-  params.Write(types, pg::ForceTextFormat("foo"));
   params.Write(types, c_str);
   params.Write(types, str);
 
-  EXPECT_EQ(4, params.Size());
+  EXPECT_EQ(3, params.Size());
 
   EXPECT_EQ(1, params.ParamFormatsBuffer()[0]) << "Binary format";
   EXPECT_EQ(3, params.ParamLengthsBuffer()[0]) << "No zero terminator";
 
-  EXPECT_EQ(0, params.ParamFormatsBuffer()[1]) << "Text format";
-  EXPECT_EQ(4, params.ParamLengthsBuffer()[1]) << "Zero terminator";
+  EXPECT_EQ(1, params.ParamFormatsBuffer()[1]) << "Binary format";
+  EXPECT_EQ(3, params.ParamLengthsBuffer()[1]) << "No zero terminator";
 
   EXPECT_EQ(1, params.ParamFormatsBuffer()[2]) << "Binary format";
   EXPECT_EQ(3, params.ParamLengthsBuffer()[2]) << "No zero terminator";
-
-  EXPECT_EQ(1, params.ParamFormatsBuffer()[3]) << "Binary format";
-  EXPECT_EQ(3, params.ParamLengthsBuffer()[3]) << "No zero terminator";
 }
 
 TEST(PostgreIO, OutputFloat) {

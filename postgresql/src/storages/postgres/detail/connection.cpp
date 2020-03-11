@@ -56,13 +56,8 @@ struct CountExecute {
     stats_.last_execute_finish = now;
   }
 
-  void AccountResult(const ResultSet& res, io::DataFormat format) {
-    if (res.FieldCount()) {
-      ++stats_.reply_total;
-      if (format == io::DataFormat::kBinaryDataFormat) {
-        ++stats_.bin_reply_total;
-      }
-    }
+  void AccountResult(const ResultSet& res) {
+    if (res.FieldCount()) ++stats_.reply_total;
     completed_ = true;
   }
 
@@ -135,7 +130,6 @@ Connection::Statistics::Statistics() noexcept
       parse_total(0),
       execute_total(0),
       reply_total(0),
-      bin_reply_total(0),
       error_execute_total(0),
       execute_timeout(0),
       duplicate_prepared_statements(0),
@@ -146,7 +140,6 @@ struct Connection::Impl {
     StatementId id{};
     std::string statement;
     std::string statement_name;
-    io::DataFormat format{io::DataFormat::kBinaryDataFormat};
     ResultSet description{nullptr};
   };
   using PreparedStatements =
@@ -220,8 +213,8 @@ struct Connection::Impl {
 
     if (!read_only_) {
       // Additional check for writability
-      auto is_writable =
-          ExecuteCommandNoPrepare("SHOW transaction_read_only", deadline);
+      auto is_writable = ExecuteCommandNoPrepare(
+          "SELECT current_setting('transaction_read_only')::bool", deadline);
       if (!is_writable.IsEmpty()) {
         is_writable.Front().To(read_only_);
         if (read_only_) {
@@ -439,8 +432,7 @@ struct Connection::Impl {
       // Mark the statement prepared as soon as the send works correctly
       prepared_.insert(
           {query_id,
-           {query_id, statement, statement_name,
-            io::DataFormat::kBinaryDataFormat, ResultSet{nullptr}}});
+           {query_id, statement, statement_name, ResultSet{nullptr}}});
       try {
         conn_wrapper_.WaitResult(deadline, scope);
       } catch (const DuplicatePreparedStatement& e) {
@@ -462,15 +454,8 @@ struct Connection::Impl {
       auto res = conn_wrapper_.WaitResult(deadline, scope);
       FillBufferCategories(res);
       info.description = res;
-      // And now mark with actual protocol format
-      try {
-        res.GetRowDescription().CheckBinaryFormat(db_types_);
-      } catch (const NoBinaryParser& e) {
-        // TODO When text format will be deprecated in the driver, let the
-        // exception fly to the client
-        LOG_WARNING() << e;
-        info.format = io::DataFormat::kTextDataFormat;
-      }
+      // Ensure we've got binary format established
+      res.GetRowDescription().CheckBinaryFormat(db_types_);
       ++stats_.parse_total;
       return info;
     }
@@ -503,10 +488,10 @@ struct Connection::Impl {
         PrepareStatement(statement, params, deadline, span, scope);
 
     scope.Reset(scopes::kExec);
-    conn_wrapper_.SendPreparedQuery(prepared_info.statement_name, params, scope,
-                                    prepared_info.format);
+    conn_wrapper_.SendPreparedQuery(prepared_info.statement_name, params,
+                                    scope);
     return WaitResult(statement, deadline, network_timeout, count_execute, span,
-                      scope, prepared_info.format, prepared_info.description);
+                      scope, prepared_info.description);
   }
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement) {
@@ -529,8 +514,7 @@ struct Connection::Impl {
     auto scope = span.CreateScopeTime(scopes::kExec);
     conn_wrapper_.SendQuery(statement, scope);
     return WaitResult(statement, deadline, network_timeout, count_execute, span,
-                      scope, io::DataFormat::kBinaryDataFormat,
-                      ResultSet{nullptr});
+                      scope, ResultSet{nullptr});
   }
 
   ResultSet ExecuteCommandNoPrepare(const std::string& statement,
@@ -551,24 +535,21 @@ struct Connection::Impl {
         std::chrono::duration_cast<std::chrono::milliseconds>(
             deadline.TimeLeft());
     CountExecute count_execute(stats_);
-    conn_wrapper_.SendQuery(statement, params, scope,
-                            io::DataFormat::kBinaryDataFormat);
+    conn_wrapper_.SendQuery(statement, params, scope);
     return WaitResult(statement, deadline, network_timeout, count_execute, span,
-                      scope, io::DataFormat::kBinaryDataFormat,
-                      ResultSet{nullptr});
+                      scope, ResultSet{nullptr});
   }
 
   /// A separate method from ExecuteCommand as the method will be transformed
   /// to parse-bind-execute pipeline. This method is for experimenting with
   /// PostreSQL protocol and is intentionally separate from usual path method.
   ResultSet ExperimentalExecute(const std::string& statement,
-                                io::DataFormat reply_format,
                                 const detail::QueryParameters& params) {
     tracing::Span span{"pg_experimental_execute"};
     conn_wrapper_.FillSpanTags(span);
     span.AddTag(tracing::kDatabaseStatement, statement);
     auto scope = span.CreateScopeTime();
-    conn_wrapper_.SendQuery(statement, params, scope, reply_format);
+    conn_wrapper_.SendQuery(statement, params, scope);
     auto res = conn_wrapper_.WaitResult(
         testsuite_pg_ctl_.MakeExecuteDeadline(CurrentExecuteTimeout()), scope);
     FillBufferCategories(res);
@@ -611,7 +592,7 @@ struct Connection::Impl {
 
     scope.Reset(scopes::kBind);
     conn_wrapper_.SendPortalBind(prepared_info.statement_name, portal_name,
-                                 params, scope, prepared_info.format);
+                                 params, scope);
     conn_wrapper_.ConsumeInput(deadline);
     return prepared_info.id;
   }
@@ -645,16 +626,14 @@ struct Connection::Impl {
     CountExecute count_execute(stats_);
     conn_wrapper_.SendPortalExecute(portal_name, n_rows, scope);
 
-    return WaitResult(
-        prepared_info.statement, deadline, network_timeout, count_execute, span,
-        scope, io::DataFormat::kBinaryDataFormat, prepared_info.description);
+    return WaitResult(prepared_info.statement, deadline, network_timeout,
+                      count_execute, span, scope, prepared_info.description);
   }
 
   ResultSet WaitResult(const std::string& statement, engine::Deadline deadline,
                        TimeoutDuration network_timeout,
                        CountExecute& count_execute, tracing::Span& span,
-                       ScopeTime& scope, io::DataFormat fmt,
-                       const ResultSet& description) {
+                       ScopeTime& scope, const ResultSet& description) {
     try {
       auto res = conn_wrapper_.WaitResult(deadline, scope);
       if (!description.IsEmpty()) {
@@ -662,7 +641,7 @@ struct Connection::Impl {
       } else {
         FillBufferCategories(res);
       }
-      count_execute.AccountResult(res, fmt);
+      count_execute.AccountResult(res);
       return res;
     } catch (const InvalidSqlStatementName& e) {
       LOG_ERROR() << "Looks like your pg_bouncer is not in 'session' mode. "
@@ -892,9 +871,8 @@ const UserTypes& Connection::GetUserTypes() const {
 }
 
 ResultSet Connection::ExperimentalExecute(
-    const std::string& statement, io::DataFormat reply_format,
-    const detail::QueryParameters& params) {
-  return pimpl_->ExperimentalExecute(statement, reply_format, params);
+    const std::string& statement, const detail::QueryParameters& params) {
+  return pimpl_->ExperimentalExecute(statement, params);
 }
 
 Connection::StatementId Connection::PortalBind(

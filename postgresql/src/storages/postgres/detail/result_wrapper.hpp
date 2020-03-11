@@ -44,7 +44,6 @@ class ResultWrapper {
 
   std::string_view GetFieldName(std::size_t col) const;
   FieldDescription GetFieldDescription(std::size_t col) const;
-  io::DataFormat GetFieldFormat(std::size_t col) const;
   Oid GetFieldTypeOid(std::size_t col) const;
   io::BufferCategory GetFieldBufferCategory(std::size_t col) const;
   bool IsFieldNull(std::size_t row, std::size_t col) const;

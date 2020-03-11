@@ -51,8 +51,7 @@ class PGConnectionWrapper {
 
   /// @brief Wrapper for PQsendQueryParams
   void SendQuery(const std::string& statement, const QueryParameters& params,
-                 ScopeTime&,
-                 io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
+                 ScopeTime&);
 
   /// @brief Wrapper for PQsendPrepare
   void SendPrepare(const std::string& name, const std::string& statement,
@@ -62,15 +61,13 @@ class PGConnectionWrapper {
   void SendDescribePrepared(const std::string& name, ScopeTime&);
 
   /// @brief Wrapper for PQsendQueryPrepared
-  void SendPreparedQuery(
-      const std::string& name, const QueryParameters& params, ScopeTime&,
-      io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
+  void SendPreparedQuery(const std::string& name, const QueryParameters& params,
+                         ScopeTime&);
 
   /// @brief Wrapper for PQXSendPortalBind
-  void SendPortalBind(
-      const std::string& statement_name, const std::string& portal_name,
-      const QueryParameters& params, ScopeTime&,
-      io::DataFormat reply_format = io::DataFormat::kTextDataFormat);
+  void SendPortalBind(const std::string& statement_name,
+                      const std::string& portal_name,
+                      const QueryParameters& params, ScopeTime&);
 
   /// @brief Wrapper for PQXSendPortalExecute
   void SendPortalExecute(const std::string& portal_name, std::uint32_t n_rows,

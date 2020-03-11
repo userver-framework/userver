@@ -21,7 +21,7 @@ struct MyAggregateStruct {
   double double_member;
 };
 
-static_assert(boost::pfr::tuple_size_v<MyAggregateStruct> == 3, "");
+static_assert(boost::pfr::tuple_size_v<MyAggregateStruct> == 3);
 
 class MyIntrusiveClass {
   int int_member_;
@@ -57,25 +57,19 @@ class MyPolymorphicInrospected : public MyPolymorphicBase {
   }
 };
 
-static_assert(kRowCategory<std::string> == RowCategoryType::kNonRow, "");
-static_assert((kRowCategory<std::vector<std::string>> ==
-               RowCategoryType::kNonRow),
-              "");
-static_assert(kRowCategory<pg::MultiPrecision<50>> == RowCategoryType::kNonRow,
-              "");
+static_assert(kRowCategory<std::string> == RowCategoryType::kNonRow);
+static_assert(kRowCategory<std::vector<std::string>> ==
+              RowCategoryType::kNonRow);
+static_assert(kRowCategory<pg::MultiPrecision<50>> == RowCategoryType::kNonRow);
 
-static_assert(kRowCategory<MyTupleType> == RowCategoryType::kTuple, "");
-static_assert(kRowCategory<MyAggregateStruct> == RowCategoryType::kAggregate,
-              "");
+static_assert(kRowCategory<MyTupleType> == RowCategoryType::kTuple);
+static_assert(kRowCategory<MyAggregateStruct> == RowCategoryType::kAggregate);
 static_assert(kRowCategory<MyIntrusiveClass> ==
-                  RowCategoryType::kIntrusiveIntrospection,
-              "");
-static_assert(kRowCategory<MyPolymorphicBase> == RowCategoryType::kNonRow, "");
-static_assert(kRowCategory<MyPolymorphicDerived> == RowCategoryType::kNonRow,
-              "");
+              RowCategoryType::kIntrusiveIntrospection);
+static_assert(kRowCategory<MyPolymorphicBase> == RowCategoryType::kNonRow);
+static_assert(kRowCategory<MyPolymorphicDerived> == RowCategoryType::kNonRow);
 static_assert(kRowCategory<MyPolymorphicInrospected> ==
-                  RowCategoryType::kIntrusiveIntrospection,
-              "");
+              RowCategoryType::kIntrusiveIntrospection);
 
 }  // namespace static_test
 

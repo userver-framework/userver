@@ -48,7 +48,7 @@ struct Interval {
 }  // namespace detail
 
 template <>
-struct BufferParser<detail::Interval, DataFormat::kBinaryDataFormat>
+struct BufferParser<detail::Interval>
     : detail::BufferParserBase<detail::Interval> {
   using BaseType = detail::BufferParserBase<detail::Interval>;
   using ValueType = typename BaseType::ValueType;
@@ -58,24 +58,24 @@ struct BufferParser<detail::Interval, DataFormat::kBinaryDataFormat>
   void operator()(const FieldBuffer& buffer) {
     ValueType tmp;
     std::size_t offset = 0;
-    ReadBinary(buffer.GetSubBuffer(offset, sizeof(Bigint),
-                                   BufferCategory::kPlainBuffer),
-               tmp.microseconds);
+    io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Bigint),
+                                       BufferCategory::kPlainBuffer),
+                   tmp.microseconds);
     offset += sizeof(Bigint);
-    ReadBinary(buffer.GetSubBuffer(offset, sizeof(Integer),
-                                   BufferCategory::kPlainBuffer),
-               tmp.days);
+    io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Integer),
+                                       BufferCategory::kPlainBuffer),
+                   tmp.days);
     offset += sizeof(Integer);
-    ReadBinary(buffer.GetSubBuffer(offset, sizeof(Integer),
-                                   BufferCategory::kPlainBuffer),
-               tmp.months);
+    io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Integer),
+                                       BufferCategory::kPlainBuffer),
+                   tmp.months);
 
     std::swap(this->value, tmp);
   }
 };
 
 template <>
-struct BufferFormatter<detail::Interval, DataFormat::kBinaryDataFormat>
+struct BufferFormatter<detail::Interval>
     : detail::BufferFormatterBase<detail::Interval> {
   using BaseType = detail::BufferFormatterBase<detail::Interval>;
 
@@ -83,9 +83,9 @@ struct BufferFormatter<detail::Interval, DataFormat::kBinaryDataFormat>
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    WriteBinary(types, buffer, this->value.microseconds);
-    WriteBinary(types, buffer, this->value.days);
-    WriteBinary(types, buffer, this->value.months);
+    io::WriteBuffer(types, buffer, this->value.microseconds);
+    io::WriteBuffer(types, buffer, this->value.days);
+    io::WriteBuffer(types, buffer, this->value.months);
   }
 };
 

@@ -211,19 +211,18 @@ struct AddTupleConstRef<std::tuple<T...>> {
       std::add_const_t<std::add_lvalue_reference_t<std::decay_t<T>>>...>;
 };
 
-template <typename T, DataFormat F, template <typename, DataFormat> class Pred,
+template <typename T, template <typename> class Pred,
           template <typename...> class LogicOp = ::utils::And>
 struct TupleIOTrait : std::false_type {};
-template <typename... T, DataFormat F,
-          template <typename, DataFormat> class Pred,
+template <typename... T, template <typename> class Pred,
           template <typename...> class LogicOp>
-struct TupleIOTrait<std::tuple<T...>, F, Pred, LogicOp>
-    : LogicOp<typename Pred<std::decay_t<T>, F>::type...>::type {};
+struct TupleIOTrait<std::tuple<T...>, Pred, LogicOp>
+    : LogicOp<typename Pred<std::decay_t<T>>::type...>::type {};
 
-template <typename T, DataFormat F>
-struct TupleHasParsers : TupleIOTrait<T, F, HasParser> {};
-template <typename T, DataFormat F>
-struct TupleHasFormatters : TupleIOTrait<T, F, HasFormatter> {};
+template <typename T>
+struct TupleHasParsers : TupleIOTrait<T, HasParser> {};
+template <typename T>
+struct TupleHasFormatters : TupleIOTrait<T, HasFormatter> {};
 
 //@}
 

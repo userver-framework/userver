@@ -125,38 +125,24 @@ struct CppToUserPg<pgtest::NoUseInWrite> {
 
 namespace static_test {
 
-static_assert((io::traits::TupleHasParsers<
-                  pgtest::FooTuple, io::DataFormat::kBinaryDataFormat>::value),
-              "");
-static_assert((tt::detail::CompositeHasParsers<
-                  pgtest::FooTuple, io::DataFormat::kBinaryDataFormat>::value),
-              "");
-static_assert((tt::detail::CompositeHasParsers<
-                  pgtest::FooBar, io::DataFormat::kBinaryDataFormat>::value),
-              "");
-static_assert((tt::detail::CompositeHasParsers<
-                  pgtest::FooClass, io::DataFormat::kBinaryDataFormat>::value),
-              "");
+static_assert(io::traits::TupleHasParsers<pgtest::FooTuple>::value);
+static_assert(tt::detail::CompositeHasParsers<pgtest::FooTuple>::value);
+static_assert(tt::detail::CompositeHasParsers<pgtest::FooBar>::value);
+static_assert(tt::detail::CompositeHasParsers<pgtest::FooClass>::value);
 
-static_assert((!tt::detail::CompositeHasParsers<
-                  int, io::DataFormat::kBinaryDataFormat>::value),
-              "");
+static_assert(!tt::detail::CompositeHasParsers<int>::value);
 
-static_assert(tt::kHasAnyParser<pgtest::BunchOfFoo>, "");
-static_assert(tt::kHasAnyFormatter<pgtest::BunchOfFoo>, "");
+static_assert(tt::kHasParser<pgtest::BunchOfFoo>);
+static_assert(tt::kHasFormatter<pgtest::BunchOfFoo>);
 
 static_assert(tt::kTypeBufferCategory<pgtest::FooTuple> ==
-                  io::BufferCategory::kCompositeBuffer,
-              "");
+              io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::FooBar> ==
-                  io::BufferCategory::kCompositeBuffer,
-              "");
+              io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::FooClass> ==
-                  io::BufferCategory::kCompositeBuffer,
-              "");
+              io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::BunchOfFoo> ==
-                  io::BufferCategory::kCompositeBuffer,
-              "");
+              io::BufferCategory::kCompositeBuffer);
 
 }  // namespace static_test
 
@@ -197,7 +183,6 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   std::vector<int> expected_vector{-1, 0, 1};
 
   ASSERT_FALSE(res.IsEmpty());
-  ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
 
   pgtest::FooBar fb;
   EXPECT_NO_THROW(res[0].To(fb));
@@ -230,7 +215,6 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
       res = conn->Execute("select $1 as array_of_foo", FooVector{fb, fb, fb}));
 
   ASSERT_FALSE(res.IsEmpty());
-  ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
   EXPECT_THROW(res[0][0].As<pgtest::FooBar>(), pg::InvalidParserCategory);
   EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
@@ -239,7 +223,6 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   res = conn->Execute("select $1 as bunch", bf);
   EXPECT_NO_THROW(res = conn->Execute("select $1 as bunch", bf));
   ASSERT_FALSE(res.IsEmpty());
-  ASSERT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
   pgtest::BunchOfFoo bf1;
   EXPECT_NO_THROW(res[0].To(bf1));
   EXPECT_EQ(bf, bf1);

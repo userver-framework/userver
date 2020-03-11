@@ -23,112 +23,94 @@ using three_dim_array = std::array<two_dim_array, kDimThree>;
 
 using vector_of_arrays = std::vector<two_dim_array>;
 
-static_assert(!tt::kIsCompatibleContainer<int>, "");
+static_assert(!tt::kIsCompatibleContainer<int>);
 
-static_assert(tt::kIsCompatibleContainer<one_dim_vector>, "");
-static_assert(tt::kIsCompatibleContainer<two_dim_vector>, "");
-static_assert(tt::kIsCompatibleContainer<three_dim_vector>, "");
+static_assert(tt::kIsCompatibleContainer<one_dim_vector>);
+static_assert(tt::kIsCompatibleContainer<two_dim_vector>);
+static_assert(tt::kIsCompatibleContainer<three_dim_vector>);
 
-static_assert(tt::kIsCompatibleContainer<one_dim_array>, "");
-static_assert(tt::kIsCompatibleContainer<two_dim_array>, "");
-static_assert(tt::kIsCompatibleContainer<three_dim_array>, "");
+static_assert(tt::kIsCompatibleContainer<one_dim_array>);
+static_assert(tt::kIsCompatibleContainer<two_dim_array>);
+static_assert(tt::kIsCompatibleContainer<three_dim_array>);
 
-static_assert(tt::kIsCompatibleContainer<vector_of_arrays>, "");
+static_assert(tt::kIsCompatibleContainer<vector_of_arrays>);
 
-static_assert(tt::kDimensionCount<one_dim_vector> == 1, "");
-static_assert(tt::kDimensionCount<two_dim_vector> == 2, "");
-static_assert(tt::kDimensionCount<three_dim_vector> == 3, "");
+static_assert(tt::kDimensionCount<one_dim_vector> == 1);
+static_assert(tt::kDimensionCount<two_dim_vector> == 2);
+static_assert(tt::kDimensionCount<three_dim_vector> == 3);
 
-static_assert(tt::kDimensionCount<one_dim_array> == 1, "");
-static_assert(tt::kDimensionCount<two_dim_array> == 2, "");
-static_assert(tt::kDimensionCount<three_dim_array> == 3, "");
+static_assert(tt::kDimensionCount<one_dim_array> == 1);
+static_assert(tt::kDimensionCount<two_dim_array> == 2);
+static_assert(tt::kDimensionCount<three_dim_array> == 3);
 
-static_assert(tt::kDimensionCount<vector_of_arrays> == 3, "");
+static_assert(tt::kDimensionCount<vector_of_arrays> == 3);
 
-static_assert(
-    (std::is_same<tt::ContainerFinalElement<one_dim_vector>::type, int>::value),
-    "");
-static_assert(
-    (std::is_same<tt::ContainerFinalElement<two_dim_vector>::type, int>::value),
-    "");
-static_assert((std::is_same<tt::ContainerFinalElement<three_dim_vector>::type,
-                            int>::value),
-              "");
+static_assert((
+    std::is_same<tt::ContainerFinalElement<one_dim_vector>::type, int>::value));
+static_assert((
+    std::is_same<tt::ContainerFinalElement<two_dim_vector>::type, int>::value));
+static_assert(std::is_same<tt::ContainerFinalElement<three_dim_vector>::type,
+                           int>::value);
 
 static_assert(
-    (std::is_same<tt::ContainerFinalElement<one_dim_array>::type, int>::value),
-    "");
+    (std::is_same<tt::ContainerFinalElement<one_dim_array>::type, int>::value));
 static_assert(
-    (std::is_same<tt::ContainerFinalElement<two_dim_array>::type, int>::value),
-    "");
-static_assert((std::is_same<tt::ContainerFinalElement<three_dim_array>::type,
-                            int>::value),
-              "");
+    (std::is_same<tt::ContainerFinalElement<two_dim_array>::type, int>::value));
+static_assert(
+    std::is_same<tt::ContainerFinalElement<three_dim_array>::type, int>::value);
 
-static_assert((std::is_same<tt::ContainerFinalElement<vector_of_arrays>::type,
-                            int>::value),
-              "");
+static_assert(std::is_same<tt::ContainerFinalElement<vector_of_arrays>::type,
+                           int>::value);
 
-static_assert(!tt::kHasFixedDimensions<one_dim_vector>, "");
-static_assert(!tt::kHasFixedDimensions<two_dim_vector>, "");
-static_assert(!tt::kHasFixedDimensions<three_dim_vector>, "");
+static_assert(!tt::kHasFixedDimensions<one_dim_vector>);
+static_assert(!tt::kHasFixedDimensions<two_dim_vector>);
+static_assert(!tt::kHasFixedDimensions<three_dim_vector>);
 
-static_assert(tt::kHasFixedDimensions<one_dim_array>, "");
-static_assert(tt::kHasFixedDimensions<two_dim_array>, "");
-static_assert(tt::kHasFixedDimensions<three_dim_array>, "");
+static_assert(tt::kHasFixedDimensions<one_dim_array>);
+static_assert(tt::kHasFixedDimensions<two_dim_array>);
+static_assert(tt::kHasFixedDimensions<three_dim_array>);
 
-static_assert(!tt::kHasFixedDimensions<vector_of_arrays>, "");
+static_assert(!tt::kHasFixedDimensions<vector_of_arrays>);
 
-static_assert((std::is_same<std::integer_sequence<std::size_t, kDimOne>,
-                            tt::FixedDimensions<one_dim_array>::type>::value),
-              "");
+static_assert(std::is_same<std::integer_sequence<std::size_t, kDimOne>,
+                           tt::FixedDimensions<one_dim_array>::type>::value);
 static_assert(
     (std::is_same<std::integer_sequence<std::size_t, kDimTwo, kDimOne>,
-                  tt::FixedDimensions<two_dim_array>::type>::value),
-    "");
-static_assert((std::is_same<std::integer_sequence<std::size_t, kDimThree,
-                                                  kDimTwo, kDimOne>,
-                            tt::FixedDimensions<three_dim_array>::type>::value),
-              "");
+                  tt::FixedDimensions<two_dim_array>::type>::value));
+static_assert(std::is_same<
+              std::integer_sequence<std::size_t, kDimThree, kDimTwo, kDimOne>,
+              tt::FixedDimensions<three_dim_array>::type>::value);
 
-static_assert(tt::kIsMappedToPg<one_dim_vector>, "");
-static_assert(tt::kIsMappedToPg<two_dim_vector>, "");
-static_assert(tt::kIsMappedToPg<three_dim_vector>, "");
+static_assert(tt::kIsMappedToPg<one_dim_vector>);
+static_assert(tt::kIsMappedToPg<two_dim_vector>);
+static_assert(tt::kIsMappedToPg<three_dim_vector>);
 
-static_assert(tt::kIsMappedToPg<one_dim_array>, "");
-static_assert(tt::kIsMappedToPg<two_dim_array>, "");
-static_assert(tt::kIsMappedToPg<three_dim_array>, "");
+static_assert(tt::kIsMappedToPg<one_dim_array>);
+static_assert(tt::kIsMappedToPg<two_dim_array>);
+static_assert(tt::kIsMappedToPg<three_dim_array>);
 
-static_assert(tt::kIsMappedToPg<vector_of_arrays>, "");
+static_assert(tt::kIsMappedToPg<vector_of_arrays>);
 
-static_assert(tt::kHasAnyParser<one_dim_vector>, "");
+static_assert(tt::kHasParser<one_dim_vector>);
 
 static_assert(tt::kTypeBufferCategory<one_dim_vector> ==
-                  io::BufferCategory::kArrayBuffer,
-              "");
+              io::BufferCategory::kArrayBuffer);
 static_assert(tt::kTypeBufferCategory<two_dim_vector> ==
-                  io::BufferCategory::kArrayBuffer,
-              "");
+              io::BufferCategory::kArrayBuffer);
 static_assert(tt::kTypeBufferCategory<three_dim_vector> ==
-                  io::BufferCategory::kArrayBuffer,
-              "");
+              io::BufferCategory::kArrayBuffer);
 
 static_assert(tt::kTypeBufferCategory<one_dim_array> ==
-                  io::BufferCategory::kArrayBuffer,
-              "");
+              io::BufferCategory::kArrayBuffer);
 static_assert(tt::kTypeBufferCategory<two_dim_array> ==
-                  io::BufferCategory::kArrayBuffer,
-              "");
+              io::BufferCategory::kArrayBuffer);
 static_assert(tt::kTypeBufferCategory<three_dim_array> ==
-                  io::BufferCategory::kArrayBuffer,
-              "");
+              io::BufferCategory::kArrayBuffer);
 
 static_assert(tt::kTypeBufferCategory<vector_of_arrays> ==
-                  io::BufferCategory::kArrayBuffer,
-              "");
+              io::BufferCategory::kArrayBuffer);
 
-static_assert(tt::kIsMappedToPg<io::detail::ContainerChunk<one_dim_vector>>,
-              "");
+static_assert(tt::kIsMappedToPg<io::detail::ContainerChunk<one_dim_vector>>);
 
 }  // namespace static_test
 
@@ -161,98 +143,74 @@ TEST(PostgreIO, Arrays) {
   {
     static_test::one_dim_vector src{1, 2, 3};
     pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, src));
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     EXPECT_FALSE(buffer.empty());
     // PrintBuffer(buffer);
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
-                                  io::BufferCategory::kArrayBuffer);
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
     static_test::one_dim_vector tgt;
-    EXPECT_NO_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt, categories));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
     EXPECT_EQ(src, tgt);
 
     static_test::one_dim_array a1;
-    EXPECT_NO_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a1, categories));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, a1, categories));
 
     static_test::two_dim_array a2;
-    EXPECT_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a2, categories),
-        pg::DimensionMismatch);
+    EXPECT_THROW(io::ReadBuffer(fb, a2, categories), pg::DimensionMismatch);
 
     static_test::three_dim_array a3;
-    EXPECT_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a3, categories),
-        pg::DimensionMismatch);
+    EXPECT_THROW(io::ReadBuffer(fb, a3, categories), pg::DimensionMismatch);
   }
   {
     static_test::two_dim_vector src{{1, 2, 3}, {4, 5, 6}};
     pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, src));
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     EXPECT_FALSE(buffer.empty());
     // PrintBuffer(buffer);
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
-                                  io::BufferCategory::kArrayBuffer);
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
     static_test::two_dim_vector tgt;
-    EXPECT_NO_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt, categories));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
     EXPECT_EQ(src, tgt);
 
     static_test::two_dim_array a2;
-    EXPECT_NO_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a2, categories));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, a2, categories));
 
     static_test::one_dim_array a1;
-    EXPECT_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a1, categories),
-        pg::DimensionMismatch);
+    EXPECT_THROW(io::ReadBuffer(fb, a1, categories), pg::DimensionMismatch);
     static_test::three_dim_array a3;
-    EXPECT_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, a3, categories),
-        pg::DimensionMismatch);
+    EXPECT_THROW(io::ReadBuffer(fb, a3, categories), pg::DimensionMismatch);
   }
   {
     using test_array = static_test::three_dim_array;
     test_array src{{1, 2, 3, 4, 5, 6}};
     pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, src));
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     EXPECT_FALSE(buffer.empty());
     // PrintBuffer(buffer);
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
-                                  io::BufferCategory::kArrayBuffer);
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
     test_array tgt;
-    EXPECT_NO_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt, categories));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
     EXPECT_EQ(src, tgt);
   }
   {
     using test_array = static_test::vector_of_arrays;
     test_array src{{1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 6}};
     pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, src));
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     EXPECT_FALSE(buffer.empty());
     auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kBinaryDataFormat,
-                                  io::BufferCategory::kArrayBuffer);
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
     test_array tgt;
-    EXPECT_NO_THROW(
-        io::ReadBuffer<io::DataFormat::kBinaryDataFormat>(fb, tgt, categories));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
     EXPECT_EQ(src, tgt);
   }
   {
     /*! [Invalid dimensions] */
     static_test::two_dim_vector src{{1, 2, 3}, {4, 5}};
     pg::test::Buffer buffer;
-    EXPECT_THROW(
-        io::WriteBuffer<io::DataFormat::kBinaryDataFormat>(types, buffer, src),
-        pg::InvalidDimensions);
+    EXPECT_THROW(io::WriteBuffer(types, buffer, src), pg::InvalidDimensions);
     /*! [Invalid dimensions] */
   }
 }

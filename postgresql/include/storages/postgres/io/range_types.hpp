@@ -257,9 +257,7 @@ struct RangeBinaryParser : BufferParserBase<Range<T>> {
   using BaseType = BufferParserBase<Range<T>>;
   using ValueType = typename BaseType::ValueType;
   using ElementType = T;
-  using ElementParser =
-      typename traits::IO<ElementType,
-                          DataFormat::kBinaryDataFormat>::ParserType;
+  using ElementParser = typename traits::IO<ElementType>::ParserType;
 
   static constexpr BufferCategory element_buffer_category =
       traits::kParserBufferCategory<ElementParser>;
@@ -327,14 +325,14 @@ struct RangeBinaryFormatter : BufferFormatterBase<Range<T>> {
       }
     }
     char wire_range_flags = static_cast<char>(range_flags.GetValue());
-    WriteBinary(types, buffer, wire_range_flags);
+    io::WriteBuffer(types, buffer, wire_range_flags);
     if (!this->value.Empty()) {
       // Write lower/upper bounds
       if (this->value.HasLowerBound()) {
-        WriteRawBinary(types, buffer, this->value.GetLowerBound());
+        io::WriteRawBinary(types, buffer, this->value.GetLowerBound());
       }
       if (this->value.HasUpperBound()) {
-        WriteRawBinary(types, buffer, this->value.GetUpperBound());
+        io::WriteRawBinary(types, buffer, this->value.GetUpperBound());
       }
     }
   }
@@ -345,8 +343,7 @@ struct RangeBinaryFormatter : BufferFormatterBase<Range<T>> {
 namespace traits {
 
 template <typename T>
-struct Input<Range<T>, DataFormat::kBinaryDataFormat,
-             std::enable_if_t<kHasBinaryParser<T>>> {
+struct Input<Range<T>, std::enable_if_t<kHasParser<T>>> {
   using type = io::detail::RangeBinaryParser<T>;
 };
 
@@ -355,8 +352,7 @@ struct ParserBufferCategory<io::detail::RangeBinaryParser<T>>
     : std::integral_constant<BufferCategory, BufferCategory::kRangeBuffer> {};
 
 template <typename T>
-struct Output<Range<T>, DataFormat::kBinaryDataFormat,
-              std::enable_if_t<kHasBinaryFormatter<T>>> {
+struct Output<Range<T>, std::enable_if_t<kHasFormatter<T>>> {
   using type = io::detail::RangeBinaryFormatter<T>;
 };
 

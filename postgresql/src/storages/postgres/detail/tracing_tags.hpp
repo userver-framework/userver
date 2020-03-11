@@ -26,8 +26,6 @@ const std::string kLibpqConnect = "libpq_async_connect";
 const std::string kLibpqWaitConnectFinish = "libpq_wait_connect_finish";
 /// libpq wait result stage
 const std::string kLibpqWaitResult = "libpq_wait_result";
-/// libpq send query stage
-const std::string kLibpqSendQuery = "libpq_send_query";
 /// libpq send query params stage
 const std::string kLibpqSendQueryParams = "libpq_send_query_params";
 /// libpq send prepare stage

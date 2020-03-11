@@ -3,6 +3,7 @@
 #include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/message.hpp>
 
 #include <pg_config.h>
@@ -26,6 +27,7 @@ namespace postgres {
 namespace detail {
 
 namespace {
+
 /// Size of error message buffer for PQcancel
 /// 256 bytes is recommended in libpq documentation
 /// https://www.postgresql.org/docs/10/static/libpq-cancel.html
@@ -414,30 +416,28 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
 
 void PGConnectionWrapper::SendQuery(const std::string& statement,
                                     ScopeTime& scope) {
-  scope.Reset(scopes::kLibpqSendQuery);
-  CheckError<CommandError>("PQsendQuery `" + statement + "`",
-                           PQsendQuery(conn_, statement.c_str()));
+  scope.Reset(scopes::kLibpqSendQueryParams);
+  CheckError<CommandError>(
+      "PQsendQueryParams `" + statement + "`",
+      PQsendQueryParams(conn_, statement.c_str(), 0, nullptr, nullptr, nullptr,
+                        nullptr, io::kPgBinaryDataFormat));
   UpdateLastUse();
 }
 
 void PGConnectionWrapper::SendQuery(const std::string& statement,
                                     const QueryParameters& params,
-                                    ScopeTime& scope,
-                                    io::DataFormat reply_format) {
-  scope.Reset(scopes::kLibpqSendQueryParams);
+                                    ScopeTime& scope) {
   if (params.Empty()) {
-    CheckError<CommandError>(
-        "PQsendQueryParams",
-        PQsendQueryParams(conn_, statement.c_str(), 0, nullptr, nullptr,
-                          nullptr, nullptr, static_cast<int>(reply_format)));
-  } else {
-    CheckError<CommandError>(
-        "PQsendQueryParams",
-        PQsendQueryParams(
-            conn_, statement.c_str(), params.Size(), params.ParamTypesBuffer(),
-            params.ParamBuffers(), params.ParamLengthsBuffer(),
-            params.ParamFormatsBuffer(), static_cast<int>(reply_format)));
+    SendQuery(statement, scope);
+    return;
   }
+  scope.Reset(scopes::kLibpqSendQueryParams);
+  CheckError<CommandError>(
+      "PQsendQueryParams",
+      PQsendQueryParams(conn_, statement.c_str(), params.Size(),
+                        params.ParamTypesBuffer(), params.ParamBuffers(),
+                        params.ParamLengthsBuffer(),
+                        params.ParamFormatsBuffer(), io::kPgBinaryDataFormat));
   UpdateLastUse();
 }
 
@@ -469,21 +469,20 @@ void PGConnectionWrapper::SendDescribePrepared(const std::string& name,
 
 void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
                                             const QueryParameters& params,
-                                            ScopeTime& scope,
-                                            io::DataFormat reply_format) {
+                                            ScopeTime& scope) {
   scope.Reset(scopes::kLibpqSendQueryPrepared);
   if (params.Empty()) {
     CheckError<CommandError>(
         "PQsendQueryPrepared",
         PQsendQueryPrepared(conn_, name.c_str(), 0, nullptr, nullptr, nullptr,
-                            static_cast<int>(reply_format)));
+                            io::kPgBinaryDataFormat));
   } else {
     CheckError<CommandError>(
         "PQsendQueryPrepared",
         PQsendQueryPrepared(conn_, name.c_str(), params.Size(),
                             params.ParamBuffers(), params.ParamLengthsBuffer(),
                             params.ParamFormatsBuffer(),
-                            static_cast<int>(reply_format)));
+                            io::kPgBinaryDataFormat));
   }
   UpdateLastUse();
 }
@@ -491,22 +490,20 @@ void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
 void PGConnectionWrapper::SendPortalBind(const std::string& statement_name,
                                          const std::string& portal_name,
                                          const QueryParameters& params,
-                                         ScopeTime& scope,
-                                         io::DataFormat reply_format) {
+                                         ScopeTime& scope) {
   scope.Reset(scopes::kPqSendPortalBind);
   if (params.Empty()) {
     CheckError<CommandError>(
         "PQXSendPortalBind",
         PQXSendPortalBind(conn_, statement_name.c_str(), portal_name.c_str(), 0,
-                          nullptr, nullptr, nullptr,
-                          static_cast<int>(reply_format)));
+                          nullptr, nullptr, nullptr, io::kPgBinaryDataFormat));
   } else {
     CheckError<CommandError>(
         "PQXSendPortalBind",
         PQXSendPortalBind(
             conn_, statement_name.c_str(), portal_name.c_str(), params.Size(),
             params.ParamBuffers(), params.ParamLengthsBuffer(),
-            params.ParamFormatsBuffer(), static_cast<int>(reply_format)));
+            params.ParamFormatsBuffer(), io::kPgBinaryDataFormat));
   }
   UpdateLastUse();
 }

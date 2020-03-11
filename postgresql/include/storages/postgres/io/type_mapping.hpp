@@ -20,10 +20,8 @@ struct CppToPg;
 template <PredefinedOids oid, typename T>
 struct PgToCpp;
 
-/// Find out if a text parser for a predefined Postgres type was registered.
-bool HasTextParser(PredefinedOids);
-/// Find out if a binary parser for a predefined Postgres type was registered.
-bool HasBinaryParser(PredefinedOids);
+/// Find out if a parser for a predefined Postgres type was registered.
+bool HasParser(PredefinedOids);
 /// Find out if predefined Postgres types are mapped to the same cpp type
 bool MappedToSameType(PredefinedOids, PredefinedOids);
 /// Get array element oid for a predefined type
@@ -31,8 +29,7 @@ PredefinedOids GetArrayElementOid(PredefinedOids);
 /// Get the buffer category for a predefined type
 BufferCategory GetBufferCategory(PredefinedOids);
 
-bool HasTextParser(DBTypeName);
-bool HasBinaryParser(DBTypeName);
+bool HasParser(DBTypeName);
 
 namespace detail {
 
@@ -46,16 +43,13 @@ struct RegisterPredefinedOidParser {
   static RegisterPredefinedOidParser Register(PredefinedOids type_oid,
                                               PredefinedOids array_oid,
                                               BufferCategory category,
-                                              std::string&& cpp_name,
-                                              bool text_parser,
-                                              bool bin_parser);
+                                              std::string cpp_name);
 };
 
 // note: implementation is in user_types.cpp
 struct RegisterUserTypeParser {
   static RegisterUserTypeParser Register(const DBTypeName&,
-                                         std::string&& cpp_name,
-                                         bool text_parser, bool bin_parser);
+                                         std::string cpp_name);
   const DBTypeName postgres_name;
 };
 
@@ -72,11 +66,14 @@ struct CppToSystemPgImpl {
   static_assert(array_oid != PredefinedOids::kInvalid,
                 "Array type oid is invalid");
 
+  // We cannot perform a static check for parser presence here as there are
+  // types that should not have one, e.g. char[N]. All parser checks will be
+  // performed at runtime.
+
   static const inline RegisterPredefinedOidParser init_ =
-      RegisterPredefinedOidParser::Register(
-          type_oid, array_oid, io::traits::kTypeBufferCategory<T>,
-          ::compiler::GetTypeName<T>(), io::traits::kHasTextParser<T>,
-          io::traits::kHasBinaryParser<T>);
+      RegisterPredefinedOidParser::Register(type_oid, array_oid,
+                                            io::traits::kTypeBufferCategory<T>,
+                                            ::compiler::GetTypeName<T>());
 
   static constexpr Oid GetOid(const UserTypes&) {
     ForceReference(init_);
@@ -104,11 +101,12 @@ struct PgToCppPredefined {
   static_assert(array_oid != PredefinedOids::kInvalid,
                 "Array type oid is invalid");
 
+  // See above on parser presence checks.
+
   static const inline RegisterPredefinedOidParser init_ =
-      RegisterPredefinedOidParser::Register(
-          type_oid, array_oid, io::traits::kTypeBufferCategory<T>,
-          ::compiler::GetTypeName<T>(), io::traits::kHasTextParser<T>,
-          io::traits::kHasBinaryParser<T>);
+      RegisterPredefinedOidParser::Register(type_oid, array_oid,
+                                            io::traits::kTypeBufferCategory<T>,
+                                            ::compiler::GetTypeName<T>());
 };
 
 }  // namespace detail

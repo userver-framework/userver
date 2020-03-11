@@ -66,25 +66,20 @@ struct PostgresExamplePolicy2 {
   static constexpr auto kClusterHostType = pg::ClusterHostType::kSlave;
 };
 
-static_assert(pg_cache::detail::kHasName<PostgresExamplePolicy>, "");
-static_assert(pg_cache::detail::kHasQuery<PostgresExamplePolicy>, "");
-static_assert(pg_cache::detail::kHasKeyMember<PostgresExamplePolicy>, "");
+static_assert(pg_cache::detail::kHasName<PostgresExamplePolicy>);
+static_assert(pg_cache::detail::kHasQuery<PostgresExamplePolicy>);
+static_assert(pg_cache::detail::kHasKeyMember<PostgresExamplePolicy>);
 
-static_assert(
-    (std::is_same<pg_cache::detail::KeyMemberType<PostgresExamplePolicy>,
-                  int>{}),
-    "");
+static_assert((std::is_same<
+               pg_cache::detail::KeyMemberType<PostgresExamplePolicy>, int>{}));
 static_assert(
     (std::is_same<pg_cache::detail::KeyMemberType<PostgresExamplePolicy2>,
-                  int>{}),
-    "");
+                  int>{}));
 
 static_assert(pg_cache::detail::kPostgresClusterType<PostgresExamplePolicy> ==
-                  pg::ClusterHostType::kSlave,
-              "");
+              pg::ClusterHostType::kSlave);
 static_assert(pg_cache::detail::kPostgresClusterType<PostgresExamplePolicy2> ==
-                  pg::ClusterHostType::kSlave,
-              "");
+              pg::ClusterHostType::kSlave);
 
 // Example of custom updated in cache
 /*! [Pg Cache Policy Custom Updated Example] */
@@ -160,7 +155,7 @@ struct PostgresExamplePolicy4 {
 };
 /*! [Pg Cache Policy GetQuery Example] */
 
-static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy4>, "");
+static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy4>);
 
 // Instantiation test
 using MyCache1 = PostgreCache<PostgresExamplePolicy>;
@@ -168,10 +163,10 @@ using MyCache2 = PostgreCache<PostgresExamplePolicy2>;
 using MyCache3 = PostgreCache<PostgresExamplePolicy3>;
 using MyCache4 = PostgreCache<PostgresExamplePolicy4>;
 
-static_assert(MyCache1::kIncrementalUpdates, "");
-static_assert(!MyCache2::kIncrementalUpdates, "");
+static_assert(MyCache1::kIncrementalUpdates);
+static_assert(!MyCache2::kIncrementalUpdates);
 
-static_assert(MyCache1::kClusterHostType == pg::ClusterHostType::kSlave, "");
-static_assert(MyCache2::kClusterHostType == pg::ClusterHostType::kSlave, "");
+static_assert(MyCache1::kClusterHostType == pg::ClusterHostType::kSlave);
+static_assert(MyCache2::kClusterHostType == pg::ClusterHostType::kSlave);
 
 }  // namespace components::test

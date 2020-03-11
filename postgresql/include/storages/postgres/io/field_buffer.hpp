@@ -22,12 +22,12 @@ inline constexpr FieldBuffer FieldBuffer::GetSubBuffer(
   if (cat == BufferCategory::kKeepCategory) {
     cat = category;
   }
-  return {is_null, format, cat, len, new_buffer_start};
+  return {is_null, cat, len, new_buffer_start};
 }
 
 template <typename T>
 std::size_t FieldBuffer::Read(T&& value, BufferCategory cat, std::size_t len) {
-  ReadBinary(GetSubBuffer(0, len, cat), std::forward<T>(value));
+  io::ReadBuffer(GetSubBuffer(0, len, cat), std::forward<T>(value));
   length -= len;
   buffer += len;
   return len;
@@ -36,7 +36,7 @@ std::size_t FieldBuffer::Read(T&& value, BufferCategory cat, std::size_t len) {
 template <typename T>
 std::size_t FieldBuffer::Read(T&& value, const TypeBufferCategory& categories,
                               std::size_t len, BufferCategory cat) {
-  ReadBinary(GetSubBuffer(0, len, cat), std::forward<T>(value), categories);
+  io::ReadBuffer(GetSubBuffer(0, len, cat), std::forward<T>(value), categories);
   length -= len;
   buffer += len;
   return len;
@@ -87,15 +87,12 @@ struct FormatterAcceptsReplacementOid<
 template <typename T, typename Buffer>
 void WriteRawBinary(const UserTypes& types, Buffer& buffer, const T& value,
                     Oid replace_oid = kInvalidOid) {
-  static_assert(
-      (traits::HasFormatter<T, DataFormat::kBinaryDataFormat>::value == true),
-      "Type doesn't have a binary formatter");
+  static_assert(traits::kHasFormatter<T>, "Type doesn't have a formatter");
   static constexpr auto size_len = sizeof(Integer);
   if (traits::GetSetNull<T>::IsNull(value)) {
-    WriteBinary(types, buffer, kPgNullBufferSize);
+    io::WriteBuffer(types, buffer, kPgNullBufferSize);
   } else {
-    using BufferFormatter =
-        typename traits::IO<T, DataFormat::kBinaryDataFormat>::FormatterType;
+    using BufferFormatter = typename traits::IO<T>::FormatterType;
     using AcceptsReplacementOid =
         detail::FormatterAcceptsReplacementOid<BufferFormatter, Buffer>;
     auto len_start = buffer.size();
@@ -104,11 +101,10 @@ void WriteRawBinary(const UserTypes& types, Buffer& buffer, const T& value,
     if constexpr (AcceptsReplacementOid{}) {
       BufferFormatter{value}(types, buffer, replace_oid);
     } else {
-      WriteBuffer<DataFormat::kBinaryDataFormat>(types, buffer, value);
+      io::WriteBuffer(types, buffer, value);
     }
     Integer bytes = buffer.size() - size_before;
-    BufferWriter<DataFormat::kBinaryDataFormat>(bytes)(buffer.begin() +
-                                                       len_start);
+    BufferWriter(bytes)(buffer.begin() + len_start);
   }
 }
 

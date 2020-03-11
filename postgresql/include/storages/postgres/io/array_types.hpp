@@ -253,16 +253,16 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
   void operator()(const UserTypes& types, Buffer& buffer,
                   Oid replace_oid = kInvalidOid) const {
     // Write number of dimensions
-    WriteBinary(types, buffer, static_cast<Integer>(dimensions));
+    io::WriteBuffer(types, buffer, static_cast<Integer>(dimensions));
     // Write flags
-    WriteBinary(types, buffer, static_cast<Integer>(0));
+    io::WriteBuffer(types, buffer, static_cast<Integer>(0));
     // Write element type oid
     auto elem_type_oid = ElementMapping::GetOid(types);
     if (replace_oid != kInvalidOid &&
         replace_oid != ArrayMapping::GetOid(types)) {
       elem_type_oid = types.FindElementOid(replace_oid);
     }
-    WriteBinary(types, buffer, static_cast<Integer>(elem_type_oid));
+    io::WriteBuffer(types, buffer, static_cast<Integer>(elem_type_oid));
     Dimensions dims = GetDimensions();
     // Write data per dimension
     WriteDimensionData(types, buffer, dims);
@@ -295,8 +295,8 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
   void WriteDimensionData(const UserTypes& types, Buffer& buffer,
                           const Dimensions& dims) const {
     for (auto dim : dims) {
-      WriteBinary(types, buffer, static_cast<Integer>(dim));
-      WriteBinary(types, buffer, static_cast<Integer>(1));  // lbound
+      io::WriteBuffer(types, buffer, static_cast<Integer>(dim));
+      io::WriteBuffer(types, buffer, static_cast<Integer>(1));  // lbound
     }
   }
 
@@ -314,7 +314,7 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
     } else {
       // this is the final dimension
       for (const auto& sub : element) {
-        WriteRawBinary(types, buffer, sub);
+        io::WriteRawBinary(types, buffer, sub);
       }
     }
   }
@@ -326,7 +326,7 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
       throw InvalidDimensions{*dim, element.size()};
     }
     for (bool sub : element) {
-      WriteRawBinary(types, buffer, sub);
+      io::WriteRawBinary(types, buffer, sub);
     }
   }
 };
@@ -363,29 +363,29 @@ constexpr bool IsElementMappedToSystem() {
   }
 }
 
-template <typename Container, DataFormat F>
+template <typename Container>
 constexpr bool EnableArrayParser() {
   if constexpr (!traits::kIsCompatibleContainer<Container>) {
     return false;
   } else {
     using ElementType = typename traits::ContainerFinalElement<Container>::type;
-    return traits::kHasParser<ElementType, F>;
+    return traits::kHasParser<ElementType>;
   }
 }
-template <typename Container, DataFormat F>
-constexpr bool kEnableArrayParser = EnableArrayParser<Container, F>();
+template <typename Container>
+constexpr bool kEnableArrayParser = EnableArrayParser<Container>();
 
-template <typename Container, DataFormat F>
+template <typename Container>
 constexpr bool EnableArrayFormatter() {
   if constexpr (!traits::kIsCompatibleContainer<Container>) {
     return false;
   } else {
     using ElementType = typename traits::ContainerFinalElement<Container>::type;
-    return traits::kHasFormatter<ElementType, F>;
+    return traits::kHasFormatter<ElementType>;
   }
 }
-template <typename Container, DataFormat F>
-constexpr bool kEnableArrayFormatter = EnableArrayFormatter<Container, F>();
+template <typename Container>
+constexpr bool kEnableArrayFormatter = EnableArrayFormatter<Container>();
 
 }  // namespace detail
 
@@ -396,18 +396,14 @@ struct CppToPg<T, std::enable_if_t<traits::detail::EnableContainerMapping<T>()>>
 namespace traits {
 
 template <typename T>
-struct Input<T, DataFormat::kBinaryDataFormat,
-             std::enable_if_t<!detail::kCustomBinaryParserDefined<T> &&
-                              io::detail::kEnableArrayParser<
-                                  T, DataFormat::kBinaryDataFormat>>> {
+struct Input<T, std::enable_if_t<!detail::kCustomParserDefined<T> &&
+                                 io::detail::kEnableArrayParser<T>>> {
   using type = io::detail::ArrayBinaryParser<T>;
 };
 
 template <typename T>
-struct Output<T, DataFormat::kBinaryDataFormat,
-              std::enable_if_t<!detail::kCustomBinaryFormatterDefined<T> &&
-                               io::detail::kEnableArrayFormatter<
-                                   T, DataFormat::kBinaryDataFormat>>> {
+struct Output<T, std::enable_if_t<!detail::kCustomFormatterDefined<T> &&
+                                  io::detail::kEnableArrayFormatter<T>>> {
   using type = io::detail::ArrayBinaryFormatter<T>;
 };
 

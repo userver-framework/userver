@@ -209,12 +209,12 @@ void NumericData::ReadBuffer(FieldBuffer fb) {
 std::string NumericData::GetBuffer() const {
   static const UserTypes types;
   std::string buff;
-  WriteBinary(types, buff, ndigits);
-  WriteBinary(types, buff, weight);
-  WriteBinary(types, buff, sign);
-  WriteBinary(types, buff, dscale);
+  io::WriteBuffer(types, buff, ndigits);
+  io::WriteBuffer(types, buff, weight);
+  io::WriteBuffer(types, buff, sign);
+  io::WriteBuffer(types, buff, dscale);
   for (auto dgt : digits) {
-    WriteBinary(types, buff, dgt);
+    io::WriteBuffer(types, buff, dgt);
   }
   return buff;
 }

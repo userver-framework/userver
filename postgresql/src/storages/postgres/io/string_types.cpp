@@ -29,13 +29,7 @@ const bool kReference = detail::ForceReference(
 
 }  // namespace
 
-void BufferParser<std::string, DataFormat::kTextDataFormat>::operator()(
-    const FieldBuffer& buffer) {
-  buffer.ToString().swap(value);
-}
-
-void BufferParser<std::string, DataFormat::kBinaryDataFormat>::operator()(
-    const FieldBuffer& buffer) {
+void BufferParser<std::string>::operator()(const FieldBuffer& buffer) {
   buffer.ToString().swap(value);
 }
 

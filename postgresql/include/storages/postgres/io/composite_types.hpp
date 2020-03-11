@@ -111,7 +111,7 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
       throw CompositeSizeMismatch{type_desc.Size(), size};
     }
     // Number of fields
-    WriteBinary(types, buffer, static_cast<Integer>(size));
+    io::WriteBuffer(types, buffer, static_cast<Integer>(size));
     WriteTuple(types, type_desc, buffer, RowType::GetTuple(this->value),
                IndexSequence{});
   }
@@ -135,8 +135,8 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
                       << field_type;
       }
     }
-    WriteBinary(types, buffer, field_type);
-    WriteRawBinary(types, buffer, val, field_type);
+    io::WriteBuffer(types, buffer, field_type);
+    io::WriteRawBinary(types, buffer, val, field_type);
   }
   template <typename Buffer, typename Tuple, std::size_t... Indexes>
   void WriteTuple(const UserTypes& types,
@@ -154,54 +154,49 @@ namespace traits {
 
 namespace detail {
 
-template <typename T, DataFormat F>
+template <typename T>
 constexpr bool DetectCompositeParsers() {
   if constexpr (kIsRowType<T>) {
-    return TupleHasParsers<typename io::RowType<T>::TupleType, F>::value;
+    return TupleHasParsers<typename io::RowType<T>::TupleType>::value;
   }
   return false;
 }
 
-template <typename T, DataFormat F>
+template <typename T>
 constexpr bool DetectCompositeFormatters() {
   if constexpr (kIsRowType<T>) {
-    return TupleHasFormatters<typename io::RowType<T>::TupleType, F>::value;
+    return TupleHasFormatters<typename io::RowType<T>::TupleType>::value;
   }
   return false;
 }
 
-template <typename T, DataFormat F>
+template <typename T>
 struct CompositeHasParsers
-    : std::integral_constant<bool, DetectCompositeParsers<T, F>()> {};
-template <typename T, DataFormat F>
-constexpr bool kCompositeHasParsers = CompositeHasParsers<T, F>::value;
+    : std::integral_constant<bool, DetectCompositeParsers<T>()> {};
+template <typename T>
+constexpr bool kCompositeHasParsers = CompositeHasParsers<T>::value;
 
-template <typename T, DataFormat F>
+template <typename T>
 struct CompositeHasFormatters
-    : std::integral_constant<bool, DetectCompositeFormatters<T, F>()> {};
-template <typename T, DataFormat F>
-constexpr bool kCompositeHasFormatters = CompositeHasFormatters<T, F>::value;
+    : std::integral_constant<bool, DetectCompositeFormatters<T>()> {};
+template <typename T>
+constexpr bool kCompositeHasFormatters = CompositeHasFormatters<T>::value;
 
 }  // namespace detail
 
 template <typename T>
-struct Input<T, DataFormat::kBinaryDataFormat,
-             std::enable_if_t<!detail::kCustomBinaryParserDefined<T> &&
-                              kIsMappedToUserType<T> && kIsRowType<T>>> {
-  static_assert(
-      (detail::kCompositeHasParsers<T, DataFormat::kBinaryDataFormat> == true),
-      "Not all composite type members have binary parsers");
+struct Input<T, std::enable_if_t<!detail::kCustomParserDefined<T> &&
+                                 kIsMappedToUserType<T> && kIsRowType<T>>> {
+  static_assert(detail::kCompositeHasParsers<T>,
+                "Not all composite type members have parsers");
   using type = io::detail::CompositeBinaryParser<T>;
 };
 
 template <typename T>
-struct Output<T, DataFormat::kBinaryDataFormat,
-              std::enable_if_t<!detail::kCustomBinaryFormatterDefined<T> &&
-                               kIsMappedToUserType<T> && kIsRowType<T>>> {
-  static_assert(
-      (detail::kCompositeHasFormatters<T, DataFormat::kBinaryDataFormat> ==
-       true),
-      "Not all composite type members have binary formatters");
+struct Output<T, std::enable_if_t<!detail::kCustomFormatterDefined<T> &&
+                                  kIsMappedToUserType<T> && kIsRowType<T>>> {
+  static_assert(detail::kCompositeHasFormatters<T>,
+                "Not all composite type members have formatters");
   using type = io::detail::CompositeBinaryFormatter<T>;
 };
 

@@ -79,13 +79,11 @@ struct FloatingPointBinaryFormatter {
 //@{
 /** @name 4 byte floating point */
 template <>
-struct BufferParser<float, DataFormat::kBinaryDataFormat>
-    : detail::FloatingPointBinaryParser<float> {
+struct BufferParser<float> : detail::FloatingPointBinaryParser<float> {
   explicit BufferParser(float& val) : FloatingPointBinaryParser(val) {}
 };
 template <>
-struct BufferFormatter<float, DataFormat::kBinaryDataFormat>
-    : detail::FloatingPointBinaryFormatter<float> {
+struct BufferFormatter<float> : detail::FloatingPointBinaryFormatter<float> {
   explicit BufferFormatter(float val) : FloatingPointBinaryFormatter(val) {}
 };
 //@}
@@ -93,13 +91,11 @@ struct BufferFormatter<float, DataFormat::kBinaryDataFormat>
 //@{
 /** @name 8 byte floating point */
 template <>
-struct BufferParser<double, DataFormat::kBinaryDataFormat>
-    : detail::FloatingPointBinaryParser<double> {
+struct BufferParser<double> : detail::FloatingPointBinaryParser<double> {
   explicit BufferParser(double& val) : FloatingPointBinaryParser(val) {}
 };
 template <>
-struct BufferFormatter<double, DataFormat::kBinaryDataFormat>
-    : detail::FloatingPointBinaryFormatter<double> {
+struct BufferFormatter<double> : detail::FloatingPointBinaryFormatter<double> {
   explicit BufferFormatter(double val) : FloatingPointBinaryFormatter(val) {}
 };
 //@}

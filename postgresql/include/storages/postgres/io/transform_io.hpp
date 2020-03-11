@@ -10,21 +10,20 @@ namespace storages::postgres::io {
 namespace detail {
 
 template <typename UserType, typename WireType, typename Converter,
-          DataFormat F, bool Categories>
+          bool Categories>
 struct TransformParserBase : BufferParserBase<UserType> {
   using BaseType = BufferParserBase<UserType>;
   using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
     WireType tmp;
-    ReadBuffer<F>(buffer, tmp);
+    io::ReadBuffer(buffer, tmp);
     this->value = Converter{}(tmp);
   }
 };
 
-template <typename UserType, typename WireType, typename Converter,
-          DataFormat F>
-struct TransformParserBase<UserType, WireType, Converter, F, true>
+template <typename UserType, typename WireType, typename Converter>
+struct TransformParserBase<UserType, WireType, Converter, true>
     : BufferParserBase<UserType> {
   using BaseType = BufferParserBase<UserType>;
   using BaseType::BaseType;
@@ -32,26 +31,24 @@ struct TransformParserBase<UserType, WireType, Converter, F, true>
   void operator()(const FieldBuffer& buffer,
                   const TypeBufferCategory& categories) {
     WireType tmp;
-    ReadBuffer<F>(buffer, tmp, categories);
+    io::ReadBuffer(buffer, tmp, categories);
     this->value = Converter{}(tmp);
   }
 };
 
 }  // namespace detail
 
-template <typename UserType, typename WireType, typename Converter,
-          DataFormat F>
+template <typename UserType, typename WireType, typename Converter>
 struct TransformParser : detail::TransformParserBase<
-                             UserType, WireType, Converter, F,
+                             UserType, WireType, Converter,
                              detail::kParserRequiresTypeCategories<WireType>> {
   using BaseType = detail::TransformParserBase<
-      UserType, WireType, Converter, F,
+      UserType, WireType, Converter,
       detail::kParserRequiresTypeCategories<WireType>>;
   using BaseType::BaseType;
 };
 
-template <typename UserType, typename WireType, typename Converter,
-          DataFormat F>
+template <typename UserType, typename WireType, typename Converter>
 struct TransformFormatter : detail::BufferFormatterBase<UserType> {
   using BaseType = detail::BufferFormatterBase<UserType>;
   using BaseType::BaseType;
@@ -59,7 +56,7 @@ struct TransformFormatter : detail::BufferFormatterBase<UserType> {
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
     WireType tmp = Converter{}(this->value);
-    WriteBuffer<F>(types, buffer, tmp);
+    io::WriteBuffer(types, buffer, tmp);
   }
 };
 }  // namespace storages::postgres::io

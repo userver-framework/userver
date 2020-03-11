@@ -43,7 +43,7 @@ template <typename T>
 struct CppToPg<Null<T>> : CppToPg<T> {};
 
 template <typename T>
-struct BufferFormatter<Null<T>, DataFormat::kBinaryDataFormat> {
+struct BufferFormatter<Null<T>> {
   explicit BufferFormatter(const Null<T>&) {}
 
   template <typename Buffer>

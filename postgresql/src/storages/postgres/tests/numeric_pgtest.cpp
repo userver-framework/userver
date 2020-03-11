@@ -18,12 +18,10 @@ using namespace io::traits;
 
 using Numeric = pg::MultiPrecision<50>;
 
-static_assert(kHasTextFormatter<Numeric>, "");
-static_assert(kHasTextParser<Numeric>, "");
-static_assert(kHasBinaryParser<Numeric>, "");
-static_assert(kIsMappedToPg<Numeric>, "");
-static_assert(kTypeBufferCategory<Numeric> == io::BufferCategory::kPlainBuffer,
-              "");
+static_assert(kHasFormatter<Numeric>);
+static_assert(kHasParser<Numeric>);
+static_assert(kIsMappedToPg<Numeric>);
+static_assert(kTypeBufferCategory<Numeric> == io::BufferCategory::kPlainBuffer);
 
 }  // namespace static_test
 
@@ -36,23 +34,19 @@ TEST(PostgreIO, Numeric) {
   {
     Numeric src{"3.14"};
     pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, src));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    auto fb = pg::test::MakeFieldBuffer(buffer);
     Numeric tgt{0};
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, tgt));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
     EXPECT_EQ(src, tgt);
   }
   {
     Numeric src = boost::math::sin_pi(Numeric{1});
     pg::test::Buffer buffer;
-    EXPECT_NO_THROW(
-        io::WriteBuffer<io::DataFormat::kTextDataFormat>(types, buffer, src));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::DataFormat::kTextDataFormat);
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    auto fb = pg::test::MakeFieldBuffer(buffer);
     Numeric tgt{0};
-    EXPECT_NO_THROW(io::ReadBuffer<io::DataFormat::kTextDataFormat>(fb, tgt));
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
     EXPECT_EQ(0, src.compare(tgt))
         << "Number written to the buffer "
         << std::setprecision(std::numeric_limits<Numeric>::digits10) << src
@@ -67,10 +61,9 @@ TEST_P(PostgreNumericIO, ParseString) {
   auto str_buf = io::detail::StringToNumericBuffer(str_rep);
   EXPECT_FALSE(str_buf.empty());
   Numeric num{str_rep.c_str()};
-  auto fb =
-      pg::test::MakeFieldBuffer(str_buf, io::DataFormat::kBinaryDataFormat);
+  auto fb = pg::test::MakeFieldBuffer(str_buf);
   Numeric tgt;
-  EXPECT_NO_THROW(io::ReadBinary(fb, tgt));
+  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
   if (str_rep != "nan")
     EXPECT_EQ(num, tgt) << "Expected " << num << " parsed " << tgt;
 }
@@ -105,7 +98,6 @@ POSTGRE_TEST_P(NumericRoundtrip) {
   for (auto n : test_values) {
     EXPECT_NO_THROW(res = conn->Execute("select $1", n));
     Numeric v;
-    EXPECT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
     EXPECT_NO_THROW(v = res[0][0].As<Numeric>());
     EXPECT_EQ(n, v) << n << " is not equal to " << v;
   }
@@ -123,8 +115,7 @@ TEST_P(PostgreDecimalIO, BufferIO) {
 
   auto buffer_str = pg::io::detail::StringToNumericBuffer(params.first);
   // pg::test::Buffer buffer{buffer_str.begin(), buffer_str.end()};
-  auto fb =
-      pg::test::MakeFieldBuffer(buffer_str, io::DataFormat::kBinaryDataFormat);
+  auto fb = pg::test::MakeFieldBuffer(buffer_str);
   auto parsed = pg::io::detail::NumericBufferToInt64(fb);
 
   EXPECT_EQ(expected.value, parsed.value);
@@ -134,8 +125,7 @@ TEST_P(PostgreDecimalIO, BufferIO) {
   EXPECT_EQ(buffer_str, buffer_str2)
       << "Formatted binary postgres buffers are equal";
 
-  fb =
-      pg::test::MakeFieldBuffer(buffer_str2, io::DataFormat::kBinaryDataFormat);
+  fb = pg::test::MakeFieldBuffer(buffer_str2);
   auto parsed_str = pg::io::detail::NumericBufferToString(fb);
   EXPECT_EQ(expected_str, parsed_str)
       << "The number string parsed out of the binary buffer is equal to the "
@@ -190,7 +180,6 @@ POSTGRE_TEST_P(DecimalRoundtrip) {
   for (auto n : test_values) {
     EXPECT_NO_THROW(res = conn->Execute("select $1", n));
     Decimal v;
-    EXPECT_EQ(io::DataFormat::kBinaryDataFormat, res[0][0].GetDataFormat());
     EXPECT_NO_THROW(v = res[0][0].As<Decimal>());
     EXPECT_EQ(n, v) << n << " is not equal to " << v;
   }

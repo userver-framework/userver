@@ -1,4 +1,5 @@
 #include <storages/postgres/io/bytea.hpp>
+#include <storages/postgres/io/string_types.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres::io {

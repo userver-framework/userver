@@ -9,12 +9,7 @@ namespace {
 
 using ParserMap = std::unordered_multimap<DBTypeName, std::string>;
 
-ParserMap& BinaryParsers() {
-  static ParserMap parsers_;
-  return parsers_;
-}
-
-ParserMap& TextParsers() {
+ParserMap& Parsers() {
   static ParserMap parsers_;
   return parsers_;
 }
@@ -128,18 +123,10 @@ Oid UserTypes::FindBaseOid(DBTypeName name) const {
   return FindBaseOid(oid);
 }
 
-bool UserTypes::HasBinaryParser(Oid oid) const {
+bool UserTypes::HasParser(Oid oid) const {
   auto name = FindBaseName(oid);
   if (!name.Empty()) {
-    return io::HasBinaryParser(name);
-  }
-  return false;
-}
-
-bool UserTypes::HasTextParser(Oid oid) const {
-  auto name = FindBaseName(oid);
-  if (!name.Empty()) {
-    return io::HasTextParser(name);
+    return io::HasParser(name);
   }
   return false;
 }
@@ -210,26 +197,13 @@ const DBTypeDescription* UserTypes::GetTypeDescription(Oid oid) const {
 
 namespace io {
 
-bool HasTextParser(DBTypeName name) { return TextParsers().count(name) > 0; }
-
-bool HasBinaryParser(DBTypeName name) {
-  return BinaryParsers().count(name) > 0;
-}
+bool HasParser(DBTypeName name) { return Parsers().count(name) > 0; }
 
 namespace detail {
 
 RegisterUserTypeParser RegisterUserTypeParser::Register(
-    const DBTypeName& pg_name, std::string&& cpp_name, bool text_parser,
-    bool bin_parser) {
-  auto both = text_parser && bin_parser;
-  if (both) {
-    TextParsers().insert(std::make_pair(pg_name, cpp_name));
-    BinaryParsers().insert(std::make_pair(pg_name, std::move(cpp_name)));
-  } else if (text_parser) {
-    TextParsers().insert(std::make_pair(pg_name, std::move(cpp_name)));
-  } else if (bin_parser) {
-    BinaryParsers().insert(std::make_pair(pg_name, std::move(cpp_name)));
-  }
+    const DBTypeName& pg_name, std::string cpp_name) {
+  Parsers().emplace(pg_name, std::move(cpp_name));
   return {pg_name};
 }
 

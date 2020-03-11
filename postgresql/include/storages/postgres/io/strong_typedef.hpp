@@ -98,8 +98,7 @@ using EnableIfCanUseEnumAsStrongTypedef =
 
 template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
           typename Enable>
-struct BufferFormatter<::utils::StrongTypedef<Tag, T, Ops, Enable>,
-                       DataFormat::kBinaryDataFormat>
+struct BufferFormatter<::utils::StrongTypedef<Tag, T, Ops, Enable>>
     : detail::BufferFormatterBase<::utils::StrongTypedef<Tag, T, Ops, Enable>> {
   using BaseType =
       detail::BufferFormatterBase<::utils::StrongTypedef<Tag, T, Ops, Enable>>;
@@ -107,14 +106,13 @@ struct BufferFormatter<::utils::StrongTypedef<Tag, T, Ops, Enable>,
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buf) const {
-    WriteBinary(types, buf, this->value.GetUnderlying());
+    io::WriteBuffer(types, buf, this->value.GetUnderlying());
   }
 };
 
 template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
           typename Enable>
-struct BufferParser<::utils::StrongTypedef<Tag, T, Ops, Enable>,
-                    DataFormat::kBinaryDataFormat>
+struct BufferParser<::utils::StrongTypedef<Tag, T, Ops, Enable>>
     : detail::BufferParserBase<::utils::StrongTypedef<Tag, T, Ops, Enable>> {
   using BaseType =
       detail::BufferParserBase<::utils::StrongTypedef<Tag, T, Ops, Enable>>;
@@ -123,7 +121,7 @@ struct BufferParser<::utils::StrongTypedef<Tag, T, Ops, Enable>,
 
   void operator()(const FieldBuffer& buffer) {
     typename ValueType::UnderlyingType& v = this->value.GetUnderlying();
-    ReadBinary(buffer, v);
+    io::ReadBuffer(buffer, v);
   }
 };
 
@@ -144,7 +142,7 @@ struct EnumStrongTypedefFormatter : BufferFormatterBase<T> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buf) const {
-    WriteBinary(types, buf, ::utils::UnderlyingValue(this->value));
+    io::WriteBuffer(types, buf, ::utils::UnderlyingValue(this->value));
   }
 };
 
@@ -158,7 +156,7 @@ struct EnumStrongTypedefParser : BufferParserBase<T> {
 
   void operator()(const FieldBuffer& buffer) {
     UnderlyingType v;
-    ReadBinary(buffer, v);
+    io::ReadBuffer(buffer, v);
     this->value = static_cast<ValueType>(v);
   }
 };
@@ -168,14 +166,12 @@ struct EnumStrongTypedefParser : BufferParserBase<T> {
 namespace traits {
 
 template <typename T>
-struct Output<T, DataFormat::kBinaryDataFormat,
-              EnableIfCanUseEnumAsStrongTypedef<T>> {
+struct Output<T, EnableIfCanUseEnumAsStrongTypedef<T>> {
   using type = io::detail::EnumStrongTypedefFormatter<T>;
 };
 
 template <typename T>
-struct Input<T, DataFormat::kBinaryDataFormat,
-             EnableIfCanUseEnumAsStrongTypedef<T>> {
+struct Input<T, EnableIfCanUseEnumAsStrongTypedef<T>> {
   using type = io::detail::EnumStrongTypedefParser<T>;
 };
 

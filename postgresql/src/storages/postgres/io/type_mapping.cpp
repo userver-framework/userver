@@ -16,12 +16,7 @@ using OidToOid = std::unordered_map<PredefinedOids, PredefinedOids>;
 
 char const* const kVoidLiteral = "void";
 
-ParserList& BinaryParsers() {
-  static ParserList parsers_{{PredefinedOids::kVoid, kVoidLiteral}};
-  return parsers_;
-}
-
-ParserList& TextParsers() {
+ParserList& Parsers() {
   static ParserList parsers_{{PredefinedOids::kVoid, kVoidLiteral}};
   return parsers_;
 }
@@ -70,8 +65,7 @@ namespace detail {
 
 RegisterPredefinedOidParser RegisterPredefinedOidParser::Register(
     PredefinedOids type_oid, PredefinedOids array_oid, BufferCategory category,
-    std::string&& cpp_name, bool text_parser, bool bin_parser) {
-  auto both = text_parser && bin_parser;
+    std::string cpp_name) {
   ArrayToElement().insert(std::make_pair(array_oid, type_oid));
   // No use registering no category for a type - this is default.
   if (category != BufferCategory::kNoParser) {
@@ -80,37 +74,23 @@ RegisterPredefinedOidParser RegisterPredefinedOidParser::Register(
     TypeCategories().insert(std::make_pair(static_cast<Oid>(array_oid),
                                            BufferCategory::kArrayBuffer));
   }
-  if (both) {
-    TextParsers().insert(std::make_pair(type_oid, cpp_name));
-    TextParsers().insert(std::make_pair(array_oid, cpp_name));
-    BinaryParsers().insert(std::make_pair(type_oid, cpp_name));
-    BinaryParsers().insert(std::make_pair(array_oid, std::move(cpp_name)));
-  } else if (text_parser) {
-    TextParsers().insert(std::make_pair(type_oid, cpp_name));
-    TextParsers().insert(std::make_pair(array_oid, std::move(cpp_name)));
-  } else if (bin_parser) {
-    BinaryParsers().insert(std::make_pair(type_oid, cpp_name));
-    BinaryParsers().insert(std::make_pair(array_oid, std::move(cpp_name)));
-  }
+  Parsers().emplace(type_oid, cpp_name);
+  Parsers().emplace(array_oid, std::move(cpp_name));
   return {};
 }
 
 }  // namespace detail
 
-bool HasTextParser(PredefinedOids type_oid) {
-  return TextParsers().count(type_oid) > 0;
-}
-
-bool HasBinaryParser(PredefinedOids type_oid) {
-  return BinaryParsers().count(type_oid) > 0;
+bool HasParser(PredefinedOids type_oid) {
+  return Parsers().find(type_oid) != Parsers().end();
 }
 
 bool MappedToSameType(PredefinedOids lhs, PredefinedOids rhs) {
-  auto lhs_range = BinaryParsers().equal_range(lhs);
+  auto lhs_range = Parsers().equal_range(lhs);
   if (lhs_range.first == lhs_range.second) {
     return false;
   }
-  auto rhs_range = BinaryParsers().equal_range(rhs);
+  auto rhs_range = Parsers().equal_range(rhs);
   if (rhs_range.first == rhs_range.second) {
     return false;
   }

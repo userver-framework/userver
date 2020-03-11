@@ -40,8 +40,8 @@ const std::string_view kUnknownTypeErrorMessageTemplate =
 void RowDescription::CheckBinaryFormat(const UserTypes& types) const {
   for (std::size_t i = 0; i < res_->FieldCount(); ++i) {
     auto oid = res_->GetFieldTypeOid(i);
-    if (!io::HasBinaryParser(static_cast<io::PredefinedOids>(oid)) &&
-        !types.HasBinaryParser(oid)) {
+    if (!io::HasParser(static_cast<io::PredefinedOids>(oid)) &&
+        !types.HasParser(oid)) {
       auto desc = types.GetTypeDescription(oid);
       std::string message;
       if (desc) {
@@ -78,10 +78,6 @@ io::FieldBuffer Field::GetBuffer() const {
 
 const io::TypeBufferCategory& Field::GetTypeBufferCategories() const {
   return res_->GetTypeBufferCategories();
-}
-
-io::DataFormat Field::GetDataFormat() const {
-  return res_->GetFieldFormat(field_index_);
 }
 
 Oid Field::GetTypeOid() const { return res_->GetFieldTypeOid(field_index_); }

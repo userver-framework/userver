@@ -8,16 +8,12 @@
 #include <storages/postgres/io/numeric_data.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
-#include <boost/iostreams/device/back_inserter.hpp>
-#include <boost/iostreams/stream.hpp>
-
 #include <decimal64/decimal64.hpp>
 
 namespace storages::postgres::io {
 
 template <int Prec, typename RoundPolicy>
-struct BufferFormatter<decimal64::decimal<Prec, RoundPolicy>,
-                       DataFormat::kBinaryDataFormat>
+struct BufferFormatter<decimal64::decimal<Prec, RoundPolicy>>
     : detail::BufferFormatterBase<decimal64::decimal<Prec, RoundPolicy>> {
   using BaseType =
       detail::BufferFormatterBase<decimal64::decimal<Prec, RoundPolicy>>;
@@ -34,8 +30,7 @@ struct BufferFormatter<decimal64::decimal<Prec, RoundPolicy>,
 };
 
 template <int Prec, typename RoundPolicy>
-struct BufferParser<decimal64::decimal<Prec, RoundPolicy>,
-                    DataFormat::kBinaryDataFormat>
+struct BufferParser<decimal64::decimal<Prec, RoundPolicy>>
     : detail::BufferParserBase<decimal64::decimal<Prec, RoundPolicy>> {
   using BaseType =
       detail::BufferParserBase<decimal64::decimal<Prec, RoundPolicy>>;
