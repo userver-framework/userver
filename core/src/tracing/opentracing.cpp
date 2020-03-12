@@ -9,11 +9,6 @@ auto& OpentracingLoggerInternal() {
   static rcu::Variable<logging::LoggerPtr> opentracing_logger_ptr;
   return opentracing_logger_ptr;
 }
-
-auto& OpentracingLoggerSet() {
-  static std::atomic<bool> opentracing_set(false);
-  return opentracing_set;
-}
 }  // namespace
 
 logging::LoggerPtr OpentracingLogger() {
@@ -25,17 +20,8 @@ void SetOpentracingLogger(logging::LoggerPtr logger) {
     RunInCoro([&logger] { SetOpentracingLogger(logger); }, 1);
     return;
   }
-  if (!logger) {
-    // prevent writing logs into nullptr
-    OpentracingLoggerSet() = false;
-  }
+
   OpentracingLoggerInternal().Assign(logger);
-
-  if (logger) {
-    OpentracingLoggerSet() = true;
-  }
 }
-
-bool IsOpentracingLoggerActivated() { return OpentracingLoggerSet(); }
 
 }  // namespace tracing

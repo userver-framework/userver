@@ -1,11 +1,61 @@
 #include <boost/algorithm/string.hpp>
 
+#include <formats/json/serialize.hpp>
 #include <logging/logging_test.hpp>
 #include <tracing/noop.hpp>
+#include <tracing/opentracing.hpp>
 #include <tracing/span.hpp>
 #include <utest/utest.hpp>
 
 class Span : public LoggingTest {};
+
+class OpentracingSpan : public Span {
+ protected:
+  void SetUp() override {
+    opentracing_sstream.str(std::string());
+    opentracing_logger_ = MakeStreamLogger(opentracing_sstream);
+    tracing::SetOpentracingLogger(opentracing_logger_);
+    Span::SetUp();
+  }
+
+  void TearDown() override {
+    Span::TearDown();
+    if (opentracing_logger_) {
+      tracing::SetOpentracingLogger({});
+      opentracing_logger_.reset();
+    }
+  }
+
+  void FlushOpentracing() { opentracing_logger_->flush(); }
+
+  static void CheckTagFormat(const formats::json::Value& tag) {
+    EXPECT_TRUE(tag.HasMember("key"));
+    EXPECT_TRUE(tag.HasMember("value"));
+    EXPECT_TRUE(tag.HasMember("type"));
+  }
+
+  static void CheckTagTypeAndValue(const formats::json::Value& tag,
+                                   const std::string& type,
+                                   const std::string& value) {
+    EXPECT_EQ(type, tag["type"].As<std::string>());
+    EXPECT_EQ(value, tag["value"].As<std::string>());
+  }
+
+  static formats::json::Value GetTagsJson(const std::string& log_output) {
+    auto tags_start = log_output.find("tags=");
+    if (tags_start == std::string::npos) return {};
+    tags_start += 5;
+    auto tags_str = log_output.substr(tags_start);
+    auto const tags_end = tags_str.find(']');
+    if (tags_end == std::string::npos) return {};
+    return formats::json::FromString(tags_str.substr(0, tags_end + 1));
+  }
+
+  std::ostringstream opentracing_sstream;
+
+ private:
+  logging::LoggerPtr opentracing_logger_;
+};
 
 TEST_F(Span, Ctr) {
   RunInCoro([this] {
@@ -63,6 +113,59 @@ TEST_F(Span, NonInheritTag) {
     logging::LogFlush();
 
     EXPECT_EQ(std::string::npos, sstream.str().find("k=v"));
+  });
+}
+
+TEST_F(OpentracingSpan, Tags) {
+  RunInCoro([this] {
+    {
+      tracing::Span span("span_name");
+      span.AddTag("k", "v");
+      span.AddTag("meta_code", 200);
+      span.AddTag("error", false);
+      span.AddTag("method", "POST");
+      span.AddTag("db.type", "postgres");
+      span.AddTag("db.statement", "SELECT * ");
+      span.AddTag("peer.address", "127.0.0.1:8080");
+      span.AddTag("http.url", "http://example.com/example");
+    }
+    FlushOpentracing();
+    auto log_str = opentracing_sstream.str();
+    EXPECT_EQ(std::string::npos, log_str.find("k=v"));
+    EXPECT_NE(std::string::npos, log_str.find("http.status_code"));
+    EXPECT_NE(std::string::npos, log_str.find("error"));
+    EXPECT_NE(std::string::npos, log_str.find("http.method"));
+    EXPECT_NE(std::string::npos, log_str.find("db.type"));
+    EXPECT_NE(std::string::npos, log_str.find("db.statement"));
+    EXPECT_NE(std::string::npos, log_str.find("peer.address"));
+    EXPECT_NE(std::string::npos, log_str.find("http.url"));
+  });
+}
+
+TEST_F(OpentracingSpan, TagFormat) {
+  RunInCoro([this] {
+    {
+      tracing::Span span("span_name");
+      span.AddTag("meta_code", 200);
+      span.AddTag("error", false);
+      span.AddTag("method", "POST");
+    }
+    FlushOpentracing();
+    auto tags = GetTagsJson(opentracing_sstream.str());
+    EXPECT_EQ(3, tags.GetSize());
+    for (const auto& tag : tags) {
+      CheckTagFormat(tag);
+      const auto key = tag["key"].As<std::string>();
+      if (key == "http.status_code") {
+        CheckTagTypeAndValue(tag, "int64", "200");
+      } else if (key == "error") {
+        CheckTagTypeAndValue(tag, "bool", "0");
+      } else if (key == "http.method") {
+        CheckTagTypeAndValue(tag, "string", "POST");
+      } else {
+        FAIL() << "Got unknown key in tags: " << key;
+      }
+    }
   });
 }
 

@@ -10,5 +10,4 @@ logging::LoggerPtr OpentracingLogger();
 /// Atomically replaces span logger
 void SetOpentracingLogger(logging::LoggerPtr);
 
-bool IsOpentracingLoggerActivated();
 }  // namespace tracing

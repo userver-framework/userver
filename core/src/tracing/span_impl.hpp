@@ -8,6 +8,15 @@
 
 #include <tracing/tracer.hpp>
 
+#define DO_LOG_TO_NO_SPAN(logger, lvl)                            \
+  ::logging::LogHelper(logger, lvl, __FILE__, __LINE__, __func__, \
+                       ::logging::LogHelper::Mode::kNoSpan)       \
+      .AsLvalue()
+
+namespace formats::json {
+class ValueBuilder;
+}
+
 namespace tracing {
 
 class Span;
@@ -47,6 +56,8 @@ class Span::Impl
 
  private:
   void LogOpenTracing() const;
+  static void AddOpentracingTags(formats::json::ValueBuilder& output,
+                                 const logging::LogExtra& input);
 
   logging::Level log_level_;
   boost::optional<logging::Level> local_log_level_;

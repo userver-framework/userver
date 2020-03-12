@@ -10,7 +10,7 @@ class LoggingTest : public ::testing::Test {
  protected:
   void SetUp() override {
     sstream.str(std::string());
-    old_ = logging::SetDefaultLogger(MakeStreamLogger());
+    old_ = logging::SetDefaultLogger(MakeStreamLogger(sstream));
   }
   void TearDown() override {
     if (old_) {
@@ -18,10 +18,10 @@ class LoggingTest : public ::testing::Test {
       old_.reset();
     }
   }
-  logging::LoggerPtr MakeStreamLogger() {
+  logging::LoggerPtr MakeStreamLogger(std::ostream& stream) const {
     std::ostringstream os;
     os << this;
-    auto sink = std::make_shared<spdlog::sinks::ostream_sink_st>(sstream);
+    auto sink = std::make_shared<spdlog::sinks::ostream_sink_st>(stream);
     return std::make_shared<spdlog::logger>(os.str(), sink);
   }
   std::ostringstream sstream;
