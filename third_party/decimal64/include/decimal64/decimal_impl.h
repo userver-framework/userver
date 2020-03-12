@@ -1319,9 +1319,9 @@ void toStream(const decimal_type& arg, StreamType& output) {
 namespace details {
 
 /// Extract values from stream ready to be packed to decimal
-template <typename StreamType>
-bool parse_unpacked(StreamType& input, int& sign, int64& before, int64& after,
-                    int& decimalDigits) {
+template <typename charT, typename traits>
+bool parse_unpacked(std::basic_istream<charT, traits>& input, int& sign,
+                    int64& before, int64& after, int& decimalDigits) {
   using namespace std;
 
   enum StateEnum {
@@ -1352,12 +1352,14 @@ bool parse_unpacked(StreamType& input, int& sign, int64& before, int64& after,
   int error = 0;
   int digitsCount = 0;
   int afterDigitCount = 0;
-  char c;
 
   while ((input) &&
          (state != IN_END))  // loop while extraction from file is possible
   {
-    c = static_cast<char>(input.get());
+    const auto c = input.get();
+    if (c == traits::eof()) {
+      break;
+    }
 
     switch (state) {
       case IN_SIGN:
@@ -1404,15 +1406,12 @@ bool parse_unpacked(StreamType& input, int& sign, int64& before, int64& after,
         break;
       case IN_AFTER_DEC:
         if ((c >= '0') && (c <= '9')) {
-          after = 10 * after + static_cast<int>(c - '0');
-          afterDigitCount++;
-          if (afterDigitCount >= DEC_NAMESPACE::max_decimal_points)
-            state = IN_END;
+          if (afterDigitCount < DEC_NAMESPACE::max_decimal_points) {
+            after = 10 * after + static_cast<int>(c - '0');
+            afterDigitCount++;
+          }
         } else {
           state = IN_END;
-          if (digitsCount == 0) {
-            error = ERR_NO_DIGITS;
-          }
         }
         break;
       default:
@@ -1422,6 +1421,13 @@ bool parse_unpacked(StreamType& input, int& sign, int64& before, int64& after,
     }  // switch state
   }    // while stream good & not end
 
+  if (state == IN_END) {
+    input.unget();
+  }
+  if (error >= 0 && digitsCount == 0 && afterDigitCount == 0) {
+    error = ERR_NO_DIGITS;
+  }
+
   decimalDigits = afterDigitCount;
 
   if (error >= 0) {
@@ -1429,7 +1435,6 @@ bool parse_unpacked(StreamType& input, int& sign, int64& before, int64& after,
       before = -before;
       after = -after;
     }
-
   } else {
     before = after = 0;
   }
@@ -1551,9 +1556,13 @@ T fromString(const std::string& str) {
 }
 
 template <typename T>
-void fromString(const std::string& str, T& out) {
+bool fromString(const std::string& str, T& out) {
   std::istringstream is(str);
-  is >> out;
+  if (!fromStream(is, out)) {
+    return false;
+  }
+  is >> std::ws;
+  return is.eof();
 }
 
 }  // namespace DEC_NAMESPACE
