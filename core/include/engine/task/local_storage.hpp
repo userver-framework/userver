@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 #include <boost/container/small_vector.hpp>
@@ -22,9 +23,9 @@ class LocalStorage final {
     T* ptr = static_cast<T*>(GetGeneric(key));
     if (ptr) return ptr;
 
-    ptr = new T();
-    SetGeneric(key, ptr, &LocalStorage::Deleter<T>);
-    return ptr;
+    auto new_ptr = std::make_unique<T>();
+    SetGeneric(key, new_ptr.get(), &LocalStorage::Deleter<T>);
+    return new_ptr.release();
   }
 
  private:
