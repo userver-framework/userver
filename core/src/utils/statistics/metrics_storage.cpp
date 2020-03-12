@@ -3,6 +3,7 @@
 
 #include <formats/json/serialize.hpp>
 #include <utils/assert.hpp>
+#include <utils/statistics/value_builder_helpers.hpp>
 
 namespace utils::statistics {
 
@@ -18,20 +19,11 @@ std::unordered_map<std::type_index, impl::MetricInfo>& GetRegisteredMetrics() {
   return map;
 }
 
-void ValidateNoSuchMetricPath(const std::string& path) {
-  for (const auto& [_, mi] : GetRegisteredMetrics()) {
-    if (mi.path == path)
-      throw std::runtime_error(
-          "Two metrics with the same path are registered: " + path);
-  }
-}
-
 }  // namespace
 
 void RegisterMetricInfo(std::type_index ti, MetricInfo&& metric_info) {
   UASSERT(!registration_finished_);
 
-  ValidateNoSuchMetricPath(metric_info.path);
   GetRegisteredMetrics()[ti] = std::move(metric_info);
 }
 
@@ -44,8 +36,13 @@ formats::json::ValueBuilder MetricsStorage::DumpMetrics() {
 
   formats::json::ValueBuilder builder(formats::json::Type::kObject);
   for (auto& [_, metric_info] : metrics_) {
-    builder[metric_info.path] = metric_info.dump_func(metric_info.data_);
     LOG_DEBUG() << "dumping custom metric " << metric_info.path;
+    auto metric = metric_info.dump_func(metric_info.data_).ExtractValue();
+    if (metric.IsObject()) {
+      SetSubField(builder, metric_info.path, std::move(metric));
+    } else {
+      builder[metric_info.path] = std::move(metric);
+    }
   }
   return builder;
 }
