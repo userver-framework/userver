@@ -161,11 +161,19 @@ taxi-jsonfmt:
 smart-taxi-jsonfmt:
 	@taxi-jsonfmt --smart -- .
 
+.PHONY: taxi-eolfmt
+taxi-eolfmt:
+	@taxi-eolfmt .
+
+.PHONY: smart-taxi-eolfmt
+smart-taxi-eolfmt:
+	@taxi-eolfmt --smart -- .
+
 .PHONY: format
-format: clang-format taxi-black taxi-yamlfmt taxi-jsonfmt
+format: clang-format taxi-eolfmt taxi-black taxi-yamlfmt taxi-jsonfmt
 
 .PHONY: smart-format
-smart-format: smart-clang-format smart-taxi-black smart-taxi-yamlfmt smart-taxi-jsonfmt
+smart-format: smart-clang-format smart-taxi-eolfmt smart-taxi-black smart-taxi-yamlfmt smart-taxi-jsonfmt
 
 .PHONY: docs
 docs:
