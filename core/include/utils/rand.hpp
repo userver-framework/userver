@@ -19,10 +19,7 @@ class Random {
   std::mt19937 gen_;
 };
 
-inline Random& GetRandom() {
-  thread_local Random random;
-  return random;
-}
+Random& GetRandom();
 
 }  // namespace impl
 

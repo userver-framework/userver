@@ -3,10 +3,11 @@
 #include <stdexcept>
 
 #include <logging/log.hpp>
+#include <utils/rand.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/reply.hpp>
-#include "rand.hpp"
+
 #include "subscription_rebalance_scheduler.hpp"
 
 namespace ph = std::placeholders;
