@@ -35,6 +35,10 @@ ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
                 break;
               } catch (const std::exception& ex) {
                 LOG_ERROR() << "can't accept connection: " << ex;
+
+                // If we're out of files, allow other coroutines to close old
+                // connections
+                engine::Yield();
               }
             }
           },
