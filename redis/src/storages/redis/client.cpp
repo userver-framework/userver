@@ -1,6 +1,6 @@
 #include <storages/redis/client.hpp>
 
-#include <redis/sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 namespace storages {
 namespace redis {

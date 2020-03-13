@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-#include <redis/base.hpp>
+#include <storages/redis/impl/base.hpp>
 
 #include <storages/redis/subscription_token.hpp>
 

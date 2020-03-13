@@ -7,7 +7,7 @@
 #include <engine/task/task_processor_pools.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
-#include <utils/statistics/aggregate_values_format_json.hpp>
+#include <utils/statistics/aggregated_values.hpp>
 #include <utils/statistics/metadata.hpp>
 
 #include <taxi_config/value.hpp>

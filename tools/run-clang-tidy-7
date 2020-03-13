@@ -304,7 +304,7 @@ def main():
       if (not 'test.cpp' in entry['file'] and
           not entry['file'].endswith('pb.cc') and
           not 'benchmark.cpp' in entry['file'] and
-          not 'backend-common-cpp' in entry['file'] and
+          not '/boost_stacktrace/' in entry['file'] and
           not '/tools/' in entry['file'])
   ]
 
@@ -340,6 +340,7 @@ def main():
     # Wait for all threads to be done.
     task_queue.join()
     if len(failed_files):
+      print('Failed files:', *failed_files, sep='\n  ')
       return_code = 1
 
   except KeyboardInterrupt:

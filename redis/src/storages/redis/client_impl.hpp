@@ -6,8 +6,8 @@
 
 #include <boost/optional.hpp>
 
-#include <redis/base.hpp>
-#include <redis/command_options.hpp>
+#include <storages/redis/impl/base.hpp>
+#include <storages/redis/impl/command_options.hpp>
 
 #include <storages/redis/client.hpp>
 #include <storages/redis/transaction.hpp>

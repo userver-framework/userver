@@ -3,6 +3,7 @@
 #include <clients/http/client.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
+#include <logging/log.hpp>
 
 namespace clients {
 namespace taxi_config {

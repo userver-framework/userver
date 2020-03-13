@@ -3,7 +3,7 @@
 #ifdef JEMALLOC_ENABLED
 #include <jemalloc/jemalloc.h>
 #else
-#include <errno.h>
+#include <cerrno>
 #endif
 
 namespace utils::jemalloc {

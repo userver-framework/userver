@@ -54,6 +54,9 @@ class ThreadControl {
 
   void RunInEvLoopSync(std::function<void()>&& func);
 
+  // For redis
+  void RunInEvLoopBlocking(std::function<void()>&& func);
+
   bool IsInEvThread() const { return thread_.IsInEvThread(); }
 
  private:

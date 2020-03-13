@@ -3,7 +3,6 @@
 #include <istream>
 #include <ostream>
 
-#include <json/value.h>
 #include <rapidjson/document.h>
 
 #include "exttypes.hpp"

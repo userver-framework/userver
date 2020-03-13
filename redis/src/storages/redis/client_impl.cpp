@@ -1,6 +1,6 @@
 #include "client_impl.hpp"
 
-#include <redis/sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 #include <utils/assert.hpp>
 
 #include "request_impl.hpp"

@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 
-#include <redis/base.hpp>
-#include <redis/reply/expire_reply.hpp>
-#include <redis/reply/ttl_reply.hpp>
+#include <storages/redis/impl/base.hpp>
+#include <storages/redis/impl/reply/expire_reply.hpp>
+#include <storages/redis/impl/reply/ttl_reply.hpp>
 #include <utils/void_t.hpp>
 
 #include <storages/redis/key_type.hpp>

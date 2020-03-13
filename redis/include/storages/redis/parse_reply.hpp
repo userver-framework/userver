@@ -7,7 +7,7 @@
 
 #include <boost/optional.hpp>
 
-#include <redis/types.hpp>
+#include <storages/redis/impl/types.hpp>
 #include <utils/void_t.hpp>
 
 #include <storages/redis/reply_types.hpp>

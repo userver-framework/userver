@@ -18,7 +18,6 @@ libraries:
   - Threads::Threads
   - ZLIB::ZLIB
   - libyamlcpp
-  - yandex-taxi-backend-common-cpp
 
 debian:
     build_dependencies:

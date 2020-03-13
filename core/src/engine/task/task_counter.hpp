@@ -5,7 +5,7 @@
 #include <thread>
 
 #include <utils/assert.hpp>
-#include <utils/statistics.hpp>
+#include <utils/statistics/aggregated_values.hpp>
 
 namespace engine {
 namespace impl {
@@ -116,7 +116,7 @@ class TaskCounter final {
   std::atomic<size_t> tasks_overload_{0};
 
 #ifdef USERVER_PROFILER
-  statistics::AggregatedValues<25> task_processor_profiler_timings_;
+  utils::statistics::AggregatedValues<25> task_processor_profiler_timings_;
 #endif
 };
 

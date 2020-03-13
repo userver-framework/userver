@@ -2,6 +2,7 @@
 
 #include <curl-ev/error_code.hpp>
 
+#include <logging/log.hpp>
 #include <utils/statistics/common.hpp>
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>

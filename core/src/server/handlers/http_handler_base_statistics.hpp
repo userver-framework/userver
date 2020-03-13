@@ -7,7 +7,7 @@
 
 #include <server/handlers/http_handler_base.hpp>
 #include <server/http/handler_methods.hpp>
-#include <utils/statistics.hpp>
+#include <utils/statistics/aggregated_values.hpp>
 #include <utils/statistics/http_codes.hpp>
 #include <utils/statistics/percentile.hpp>
 #include <utils/statistics/recentperiod.hpp>

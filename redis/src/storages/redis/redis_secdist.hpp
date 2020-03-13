@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <redis/secdist_redis.hpp>
+#include <storages/redis/impl/secdist_redis.hpp>
 
 #include <formats/json/value.hpp>
 

@@ -23,18 +23,9 @@ if(NOT TARGET yandex-taxi-userver-core)
 
   add_definitions(-DUSERVER_UNIVERSAL)
 
-  # backend-common-cpp
-  # TODO: remove after TAXICOMMON-1949
-  set(DISABLE_STACKTRACE ON CACHE BOOL "" FORCE)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp ${CMAKE_CURRENT_BINARY_DIR}/backend-common-cpp)
-
-  target_include_directories(
-    yandex-taxi-backend-common-cpp
-    PUBLIC
-      ${CMAKE_CURRENT_SOURCE_DIR}/include
-  )
-  set_property(TARGET yandex-taxi-backend-common-cpp PROPERTY POSITION_INDEPENDENT_CODE ON)
-  set_property(TARGET yandex-taxi-jsoncpp PROPERTY POSITION_INDEPENDENT_CODE ON)
+  # boost.stacktrace
+  add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/boost_stacktrace ${CMAKE_CURRENT_BINARY_DIR}/boost_stacktrace)
+  set_property(TARGET yandex-taxi-stacktrace PROPERTY POSITION_INDEPENDENT_CODE ON)
 
   # external-deps codegen
   set(userver_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -66,8 +57,7 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES})
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options filesystem locale thread)
-# backend-common-cpp deps
+find_package(Boost REQUIRED COMPONENTS program_options filesystem thread)
 find_package_required(ZLIB "zlib1g-dev")
 find_package(Helpergtest REQUIRED)
 find_package(Helpergmock REQUIRED)
@@ -77,6 +67,7 @@ find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
 find_package_required(Fmt "libfmt-dev")
+find_package_required(cctz "libcctz-dev")
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)
@@ -103,12 +94,12 @@ target_link_libraries(${PROJECT_NAME}
     sanitize-target
     libyamlcpp
     Fmt
-    yandex-taxi-backend-common-cpp
+    cctz::cctz
+    yandex-taxi-stacktrace
   PRIVATE
     Boost::filesystem
     Boost::program_options
     CryptoPP
-    Iconv::Iconv
     OpenSSL::Crypto
     OpenSSL::SSL
     ZLIB::ZLIB
@@ -148,24 +139,10 @@ target_link_libraries(${PROJECT_NAME}_unittest
   PUBLIC
     libgtest
     libgmock
+    ${PROJECT_NAME}
   PRIVATE
     Boost::program_options
 )
-if (NOT MACOS)
-  target_link_libraries(${PROJECT_NAME}_unittest
-    PUBLIC
-      -Wl,--start-group
-        ${PROJECT_NAME}
-      -Wl,--end-group
-    PRIVATE
-      atomic
-  )
-else()
-  target_link_libraries(${PROJECT_NAME}_unittest
-    PUBLIC
-      ${PROJECT_NAME}
-  )
-endif()
 add_google_tests(${PROJECT_NAME}_unittest)
 
 
@@ -173,19 +150,8 @@ add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
 target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
-target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC libbenchmark)
-if (NOT MACOS)
-  target_link_libraries(${PROJECT_NAME}_benchmark
-    PUBLIC
-      -Wl,--start-group
-        ${PROJECT_NAME}
-      -Wl,--end-group
-    PRIVATE
-      atomic
-  )
-else()
-  target_link_libraries(${PROJECT_NAME}_benchmark
-    PUBLIC
-      ${PROJECT_NAME}
-  )
-endif()
+target_link_libraries(${PROJECT_NAME}_benchmark
+  PUBLIC
+    libbenchmark
+    ${PROJECT_NAME}
+)

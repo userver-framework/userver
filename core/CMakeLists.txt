@@ -25,7 +25,6 @@ file(GLOB_RECURSE SOURCES
 )
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/src/*_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
 )
@@ -38,7 +37,6 @@ file(GLOB_RECURSE LIBUTEST_SOURCES
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${LIBUTEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/*_benchmark.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_benchmark.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 )
@@ -52,18 +50,19 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options filesystem locale thread)
-# backend-common-cpp deps
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 find_package(Helpergtest REQUIRED)
 find_package(Helpergmock REQUIRED)
 find_package(Helpergbench REQUIRED)
+find_package(Helperspdlog REQUIRED)
 find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev libnghttp2-dev libgcrypt11-dev libkrb5-dev")
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
 find_package_required(Fmt "libfmt-dev")
+find_package_required(cctz "libcctz-dev")
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)
@@ -84,11 +83,13 @@ endif(NOT SANITIZE)
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
+    Boost::locale
     sanitize-target
-    yandex-taxi-backend-common-cpp
     libyamlcpp
     Fmt
+    cctz::cctz
     CurlYandex
+    yandex-taxi-stacktrace
   PRIVATE
     yandex-taxi-userver-uboost-coro
     Boost::filesystem
@@ -102,6 +103,10 @@ target_link_libraries(${PROJECT_NAME}
     ZLIB::ZLIB
     spdlog
 )
+
+if (NOT MACOS)
+  target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
+endif()
 
 set(USERVER_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -170,28 +175,10 @@ target_link_libraries(utest
   PUBLIC
     libgtest
     libgmock
+    ${LIBSTANDALONE_ENGINE}
   PRIVATE
     Boost::program_options
 )
-if (NOT MACOS)
-    target_link_libraries(utest
-      PUBLIC
-        -Wl,--start-group
-	    ${LIBSTANDALONE_ENGINE}
-            yandex-taxi-backend-common-cpp
-        -Wl,--end-group
-    )
-    target_link_libraries(utest PRIVATE
-      atomic
-    )
-else()
-    target_link_libraries(utest
-      PUBLIC
-	    ${LIBSTANDALONE_ENGINE}
-            yandex-taxi-backend-common-cpp
-    )
-endif()
-
 target_include_directories(utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing
 )
@@ -212,23 +199,11 @@ add_google_tests(${PROJECT_NAME}_unittest)
 add_library(ubench ${LIBUBENCH_SOURCES})
 target_include_directories(ubench SYSTEM PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
 target_compile_definitions(ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-target_link_libraries(ubench PUBLIC libbenchmark)
-if (NOT MACOS)
-    target_link_libraries(ubench
-        PUBLIC
-            atomic
-            -Wl,--start-group
-	        ${LIBSTANDALONE_ENGINE}
-                yandex-taxi-backend-common-cpp
-            -Wl,--end-group
-    )
-else()
-    target_link_libraries(ubench
-        PUBLIC
-	    ${LIBSTANDALONE_ENGINE}
-            yandex-taxi-backend-common-cpp
-    )
-endif()
+target_link_libraries(ubench
+  PUBLIC
+    libbenchmark
+    ${LIBSTANDALONE_ENGINE}
+)
 
 add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
 set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)

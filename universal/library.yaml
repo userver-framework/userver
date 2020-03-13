@@ -5,7 +5,6 @@ description: Parts of userver that can be used independently
 
 libraries:
   - Boost::filesystem
-  - Boost::locale
   - Boost::program_options
   - Boost::thread
   - CryptoPP
@@ -15,14 +14,12 @@ libraries:
   - Threads::Threads
   - ZLIB::ZLIB
   - libyamlcpp
-  - yandex-taxi-backend-common-cpp
 
 debian:
     build_dependencies:
       - clang-7
       - libstdc++-7-dev
       - libboost-filesystem-dev
-      - libboost-locale-dev
       - libboost-program-options-dev
       - libboost-thread-dev
       - libcctz-dev

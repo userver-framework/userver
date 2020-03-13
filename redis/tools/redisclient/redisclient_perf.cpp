@@ -5,8 +5,8 @@
 #include <engine/async.hpp>
 #include <engine/standalone.hpp>
 #include <logging/log.hpp>
-#include <redis/reply.hpp>
-#include <redis/sentinel.hpp>
+#include <storages/redis/impl/reply.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 #include <engine/task/task_processor.hpp>
 

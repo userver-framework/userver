@@ -1,5 +1,7 @@
 #include "request_data_impl.hpp"
 
+#include <logging/log.hpp>
+
 namespace storages {
 namespace redis {
 

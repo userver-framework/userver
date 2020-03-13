@@ -5,8 +5,8 @@
 
 #include <boost/optional.hpp>
 
-#include <redis/base.hpp>
-#include <redis/request.hpp>
+#include <storages/redis/impl/base.hpp>
+#include <storages/redis/impl/request.hpp>
 #include <utils/assert.hpp>
 
 #include <storages/redis/client.hpp>

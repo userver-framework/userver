@@ -273,7 +273,7 @@ std::unordered_map<std::string, std::string> Parse(
 }
 
 ReplyData Parse(ReplyData&& reply_data, const std::string&, To<ReplyData>) {
-  return reply_data;
+  return std::move(reply_data);
 }
 
 }  // namespace redis

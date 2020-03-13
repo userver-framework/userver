@@ -8,7 +8,7 @@
 
 #include <boost/optional.hpp>
 
-#include <redis/exception.hpp>
+#include <storages/redis/impl/exception.hpp>
 #include <utils/clang_format_workarounds.hpp>
 
 #include <storages/redis/reply_types.hpp>

@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 
-#include <redis/base.hpp>
+#include <storages/redis/impl/base.hpp>
 
 #include <storages/redis/command_options.hpp>
 #include <storages/redis/request.hpp>

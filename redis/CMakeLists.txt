@@ -5,6 +5,11 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
 )
 
+file(GLOB_RECURSE UTESTLIB_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp
+)
+list(REMOVE_ITEM SOURCES ${UTESTLIB_SOURCES})
+
 file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
 )
@@ -16,18 +21,27 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
 find_package(HelperHiredis)
+find_package(Boost REQUIRED COMPONENTS thread)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-set(REDIS_COMMON yandex-taxi-backend-common-cpp-redis)
+# for libev
+set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/redis.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/sentinel_impl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/subscription_rebalance_scheduler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/ev_thread/thread.cpp
+    PROPERTIES COMPILE_FLAGS -fno-strict-aliasing
+)
+target_compile_options (${PROJECT_NAME} PRIVATE -Wno-old-style-cast)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     yandex-taxi-userver-core
-    ${REDIS_COMMON}
     Hiredis
   PRIVATE
+    Boost::thread
     yandex-taxi-userver-uboost-coro # uses Future
 )
 target_include_directories(
@@ -41,56 +55,37 @@ target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
     $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
 )
 
-add_subdirectory(../backend-common-cpp/redis ${CMAKE_CURRENT_BINARY_DIR}/backend-common-cpp-redis/)
-target_include_directories(
-  ${REDIS_COMMON}
-  PUBLIC
-    ../core/include/
-  PRIVATE
-    ../core/src/
-    ../uboost_coro/include/
-    ${SPDLOG_INCLUDE_DIRS}
-)
-
-file(GLOB_RECURSE REDIS_COMMON_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/redis/src/*_test.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../backend-common-cpp/src/testing/*_test.cpp
-)
-
-add_executable(${REDIS_COMMON}_unittest ${REDIS_COMMON_TEST_SOURCES})
-set_target_properties(${REDIS_COMMON}_unittest PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(${REDIS_COMMON}_unittest
+add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(${PROJECT_NAME}_unittest
   utest
-  yandex-taxi-userver-core
-  ${REDIS_COMMON}
-  Hiredis
+  ${PROJECT_NAME}
 )
 target_include_directories(
-  ${REDIS_COMMON}_unittest
+  ${PROJECT_NAME}_unittest
   PUBLIC
-    ../core/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
-    ../core/src/
-    ${SPDLOG_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-add_google_tests(${REDIS_COMMON}_unittest)
+target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+)
+add_google_tests(${PROJECT_NAME}_unittest)
 
-add_library(${PROJECT_NAME}_utest STATIC ${UNIT_TEST_SOURCES})
+add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
 set_target_properties(${PROJECT_NAME}_utest PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(
   ${PROJECT_NAME}_utest
   PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/testing
 )
 target_include_directories (${PROJECT_NAME}_utest SYSTEM PRIVATE
   $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_utest
   utest
-  yandex-taxi-userver-core
-  ${REDIS_COMMON}
+  ${PROJECT_NAME}
 )
 
 # XXX: testsuite doesn't support parallel builds

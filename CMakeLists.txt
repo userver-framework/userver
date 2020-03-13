@@ -19,27 +19,8 @@ set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTER
 
 init_debian_depends()
 
-check_submodule(${CMAKE_CURRENT_SOURCE_DIR}/backend-common-cpp CMakeLists.txt)
-add_subdirectory(backend-common-cpp)
-
-find_package(Helperspdlog)
-target_include_directories(
-  yandex-taxi-backend-common-cpp
-  PUBLIC
-    shared/include/
-    core/include/
-)
-if(NOT FLATBUFFERS_EXTERNAL_ENABLED)
-  target_include_directories(
-    yandex-taxi-backend-common-cpp
-    PUBLIC
-      # TODO: flatbuffers should have public include in their CMakeLists.txt
-      backend-common-cpp/third_party/flatbuffers/include/
-  )
-endif()
-add_dependencies(yandex-taxi-backend-common-cpp spdlog)
-
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
+add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
 add_subdirectory(uboost_coro)
 
 if(NOT USERVICES)

@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <engine/future.hpp>
-#include <redis/base.hpp>
+#include <storages/redis/impl/base.hpp>
 
 #include <storages/redis/client.hpp>
 #include <storages/redis/transaction.hpp>
