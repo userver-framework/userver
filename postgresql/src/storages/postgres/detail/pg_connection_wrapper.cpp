@@ -178,7 +178,7 @@ void PGConnectionWrapper::AsyncConnect(const std::string& conninfo,
   scope.Reset(scopes::kLibpqConnect);
   StartAsyncConnect(conninfo);
   scope.Reset(scopes::kLibpqWaitConnectFinish);
-  WaitConnectionFinish(deadline);
+  WaitConnectionFinish(deadline, conninfo);
   PGCW_LOG_DEBUG() << "Connected to " << DsnCutPassword(conninfo);
 }
 
@@ -217,20 +217,15 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
     PGCW_LOG_TRACE() << msg_for_status;
   }
 
-  const auto socket = PQsocket(conn_);
-  if (socket < 0) {
-    PGCW_LOG_ERROR() << "Invalid PostgreSQL socket " << socket
-                     << " while connecting";
-    throw ConnectionFailed{conninfo, "Invalid socket handle"};
-  }
-  socket_ = engine::io::Socket(socket);
+  RefreshSocket(conninfo);
 
   if (kVerboseErrors) {
     PQsetErrorVerbosity(conn_, PQERRORS_VERBOSE);
   }
 }
 
-void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline) {
+void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
+                                               const std::string& conninfo) {
   auto poll_res = PGRES_POLLING_WRITING;
   auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
       deadline.TimeLeft());
@@ -249,7 +244,6 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline) {
           PGCW_LOG_ERROR() << "Timeout while polling PostgreSQL connection "
                               "socket, timeout was "
                            << timeout.count() << "ms";
-          ;
           throw ConnectionTimeoutError("Timed out while polling connection");
         }
         break;
@@ -266,7 +260,27 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline) {
     }
     poll_res = PQconnectPoll(conn_);
     PGCW_LOG_TRACE() << MsgForStatus(PQstatus(conn_));
+
+    // Libpq may reopen sockets during PQconnectPoll while trying different
+    // security/encryption schemes (SSL, GSS etc.). We must keep track of the
+    // current socket to avoid polling the wrong one in the future.
+    RefreshSocket(conninfo);
   }
+}
+
+void PGConnectionWrapper::RefreshSocket(const std::string& conninfo) {
+  const auto fd = PQsocket(conn_);
+  if (fd < 0) {
+    PGCW_LOG_ERROR() << "Invalid PostgreSQL socket " << fd;
+    throw ConnectionFailed{conninfo, "Invalid socket handle"};
+  }
+  if (fd == socket_.Fd()) return;
+
+  if (socket_.IsValid()) {
+    auto old_fd = std::move(socket_).Release();
+    PGCW_LOG_DEBUG() << "Released abandoned PostgreSQL socket " << old_fd;
+  }
+  socket_ = engine::io::Socket(fd);
 }
 
 bool PGConnectionWrapper::WaitSocketReadable(Deadline deadline) {

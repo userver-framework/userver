@@ -34,7 +34,7 @@ std::string ToString(DBTypeDescription::TypeClass c) {
     case TypeClass::kDomain:
       return "domain";
     case TypeClass::kEnum:
-      return "enumaration";
+      return "enumeration";
     case TypeClass::kPseudo:
       return "pseudo";
     case TypeClass::kRange:

@@ -98,15 +98,15 @@ class PGConnectionWrapper {
 
   void StartAsyncConnect(const std::string& conninfo);
 
-  /// @param deadline
   /// @throws ConnectionTimeoutError if was awakened by the deadline
-  void WaitConnectionFinish(Deadline deadline);
+  void WaitConnectionFinish(Deadline deadline, const std::string& conninfo);
 
-  /// @param deadline
+  /// @throws ConnectionFailed if conn_ does not correspond to a socket
+  void RefreshSocket(const std::string& conninfo);
+
   /// @return true if wait was successful, false if was awakened by the deadline
   [[nodiscard]] bool WaitSocketWriteable(Deadline deadline);
 
-  /// @param deadline
   /// @return true if wait was successful, false if was awakened by the deadline
   [[nodiscard]] bool WaitSocketReadable(Deadline deadline);
 

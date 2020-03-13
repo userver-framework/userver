@@ -146,7 +146,6 @@ TYPED_TEST_P(Conversion, Int32) {
     } else {
       EXPECT_ANY_THROW(elem.template ConvertTo<size_t>())
           << "ethalon=" << ethalon;
-      ;
     }
     EXPECT_DOUBLE_EQ(ethalon, elem.template ConvertTo<double>());
     EXPECT_EQ(std::to_string(ethalon), elem.template ConvertTo<std::string>());
@@ -182,7 +181,6 @@ TYPED_TEST_P(Conversion, Int64) {
     } else {
       EXPECT_ANY_THROW(elem.template ConvertTo<size_t>())
           << "ethalon=" << ethalon;
-      ;
     }
     EXPECT_DOUBLE_EQ(ethalon, elem.template ConvertTo<double>());
     EXPECT_EQ(std::to_string(ethalon), elem.template ConvertTo<std::string>());

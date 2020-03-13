@@ -197,7 +197,6 @@ POSTGRE_TEST_P(Int4RangeRoundtripTest) {
     EXPECT_NO_THROW(res.Front()[0].To(r));
     EXPECT_EQ(test.expected, r)
         << "Expect equality for " << test.description << " range";
-    ;
   }
 }
 
@@ -239,7 +238,6 @@ POSTGRE_TEST_P(Int8RangeRoundtripTest) {
     EXPECT_NO_THROW(res.Front()[0].To(r));
     EXPECT_EQ(test.expected, r)
         << "Expect equality for " << test.description << " range";
-    ;
   }
 }
 
