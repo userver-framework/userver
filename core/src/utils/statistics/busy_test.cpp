@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 #include <condition_variable>
 #include <functional>
@@ -130,32 +130,37 @@ TEST(Busy, TwoThreads) {
 
   std::mutex m;
   std::condition_variable cv;
-  std::atomic<bool> should_stop{false};
-  std::atomic<bool> initialized[2] = {{false}};
+  bool should_stop = false;
+  bool is_initialized[2] = {false, false};
   {
-    auto cb = [&storage, &m, &cv,
-               &should_stop](std::atomic<bool>& initialized) {
+    auto cb = [&storage, &m, &cv, &should_stop, &is_initialized](size_t idx) {
       std::unique_lock<std::mutex> lock(m);
       utils::statistics::BusyMarker marker(storage);
 
-      initialized = true;
+      is_initialized[idx] = true;
       cv.notify_all();
 
-      cv.wait(lock, [&should_stop]() { return should_stop.load(); });
+      ASSERT_TRUE(cv.wait_for(lock, kMaxTestWaitTime,
+                              [&should_stop]() { return should_stop; }));
     };
 
     std::future<void> f[2];
     for (size_t i = 0; i < 2; i++) {
-      f[i] = std::async(std::launch::async,
-                        std::bind(cb, std::ref(initialized[i])));
+      f[i] = std::async(std::launch::async, std::bind(cb, i));
 
       std::unique_lock<std::mutex> lock(m);
-      cv.wait(lock, [&initialized, &i]() { return initialized[i].load(); });
+      ASSERT_TRUE(cv.wait_for(lock, kMaxTestWaitTime, [&is_initialized, i] {
+        return is_initialized[i];
+      }));
     }
 
     MockSleep(std::chrono::seconds(1));
-    should_stop = true;
-    cv.notify_all();
+    {
+      std::unique_lock<std::mutex> lock(m);
+      should_stop = true;
+      cv.notify_all();
+    }
+    for (auto& fut : f) fut.get();
   }
   EXPECT_FLOAT_EQ(1.0 / 5, storage.GetCurrentLoad());
 }
