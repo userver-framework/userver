@@ -28,7 +28,7 @@ void CreateDirectories(engine::TaskProcessor& async_tp,
 /// @param contents new file contents
 /// @throws std::runtime_error if failed to overwrite
 void RewriteFileContents(engine::TaskProcessor& async_tp,
-                         const std::string& path, std::string contents);
+                         const std::string& path, std::string_view contents);
 
 /// @brief Renames existing file
 /// @param async_tp TaskProcessor for synchronous waiting

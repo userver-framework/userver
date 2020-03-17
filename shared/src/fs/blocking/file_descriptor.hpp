@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include <string>
+#include <string_view>
 
 #include <utils/flags.hpp>
 
@@ -33,7 +34,7 @@ class FileDescriptor final {
 
   void FSync();
   void Close();
-  void Write(const std::string& contents);
+  void Write(std::string_view contents);
 
   std::string ReadContents();
 

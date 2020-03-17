@@ -116,8 +116,8 @@ void FileDescriptor::Close() {
   }
 }
 
-void FileDescriptor::Write(const std::string& contents) {
-  const char* buffer = contents.c_str();
+void FileDescriptor::Write(std::string_view contents) {
+  const char* buffer = contents.data();
   size_t len = contents.size();
   while (len > 0) {
     ssize_t s = write(fd_, buffer, len);

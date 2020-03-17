@@ -11,9 +11,9 @@ void CreateDirectories(engine::TaskProcessor& async_tp,
 }
 
 void RewriteFileContents(engine::TaskProcessor& async_tp,
-                         const std::string& path, std::string contents) {
+                         const std::string& path, std::string_view contents) {
   engine::impl::Async(async_tp, &fs::blocking::RewriteFileContents, path,
-                      std::move(contents))
+                      contents)
       .Get();
 }
 

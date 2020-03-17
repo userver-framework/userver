@@ -4,6 +4,7 @@
 /// @brief Functions for synchronous (blocking) file write operations
 
 #include <string>
+#include <string_view>
 
 #include <boost/filesystem/operations.hpp>
 
@@ -23,7 +24,7 @@ void CreateDirectories(const std::string& path);
 /// @param contents new file contents
 /// @throws std::runtime_error if failed to overwrite
 /// @see fs::RewriteFileContents
-void RewriteFileContents(const std::string& path, const std::string& contents);
+void RewriteFileContents(const std::string& path, std::string_view contents);
 
 /// @brief flushes directory contents on disk using sync(2)
 /// @param path directory to flush

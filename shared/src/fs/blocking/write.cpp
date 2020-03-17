@@ -25,7 +25,7 @@ void CreateDirectories(const std::string& path) {
         "Failed to create directories under '" + path + "'");
 }
 
-void RewriteFileContents(const std::string& path, const std::string& contents) {
+void RewriteFileContents(const std::string& path, std::string_view contents) {
   auto fd = FileDescriptor::OpenFile(
       path, utils::Flags<FileDescriptor::OpenMode>() |
                 FileDescriptor::OpenMode::kWrite |
