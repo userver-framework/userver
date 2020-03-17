@@ -15,9 +15,7 @@
 #include <engine/task/task_context.hpp>
 #include <utils/assert.hpp>
 
-namespace engine {
-namespace io {
-namespace impl {
+namespace engine::io::impl {
 namespace {
 
 int SetNonblock(int fd) {
@@ -72,10 +70,18 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
   void AfterAsleep() override {
     waiters_->Append(lock_, current_);
     lock_.Release();
+
     watcher_.StartAsync();
   }
 
-  void BeforeAwake() override {}
+  void BeforeAwake() override {
+    // we need to stop watcher manually to avoid racy wakeups later
+    engine::impl::WaitList::Lock lock(*waiters_);
+    if (waiters_->IsEmpty(lock)) {
+      // locked queueing to avoid race w/ StartAsync in wait strategy
+      watcher_.StopAsync();
+    }
+  }
 
   std::shared_ptr<engine::impl::WaitListBase> GetWaitList() override {
     return waiters_;
@@ -99,6 +105,8 @@ Direction::Direction(Kind kind)
   watcher_.Init(&IoWatcherCb);
 }
 
+Direction::~Direction() = default;
+
 bool Direction::Wait(Deadline deadline) {
   UASSERT(IsValid());
 
@@ -112,21 +120,8 @@ bool Direction::Wait(Deadline deadline) {
                                            current);
   current->Sleep(&wait_manager);
 
-  if (current->GetWakeupSource() ==
-      engine::impl::TaskContext::WakeupSource::kWaitList) {
-    return true;
-  }
-
-  // we need to stop watcher manually to avoid racy wakeups later
-  {
-    engine::impl::WaitList::Lock lock(*waiters_);
-    if (waiters_->IsEmpty(lock)) {
-      // locked queueing to avoid race w/ StartAsync in wait strategy
-      watcher_.StopAsync();
-    }
-  }
-
-  return false;
+  return (current->GetWakeupSource() ==
+          engine::impl::TaskContext::WakeupSource::kWaitList);
 }
 
 void Direction::Reset(int fd) {
@@ -137,7 +132,10 @@ void Direction::Reset(int fd) {
   is_valid_ = true;
 }
 
-void Direction::StopWatcher() { watcher_.Stop(); }
+void Direction::StopWatcher() {
+  UASSERT(is_valid_);
+  watcher_.Stop();
+}
 
 void Direction::WakeupWaiters() {
   engine::impl::WaitList::Lock lock(*waiters_);
@@ -151,10 +149,18 @@ void Direction::Invalidate() {
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
+  UASSERT(watcher->active);
+  UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
+
   auto self = static_cast<Direction*>(watcher->data);
-  // Watcher::Stop() from ev loop should execute synchronously w/o waiting
-  self->StopWatcher();
   self->WakeupWaiters();
+
+  // Watcher::Stop() from ev loop should execute synchronously w/o waiting.
+  //
+  // Should be the last call, because after it the destructor of watcher_ is
+  // allowed to return from Stop() without waiting (because of the
+  // `!pending_async_ops_ && !is_running_`).
+  self->watcher_.Stop();
 }
 
 FdControl::FdControl()
@@ -185,7 +191,9 @@ void FdControl::Close() {
 
   const auto fd = Fd();
   if (::close(fd) == -1) {
-    std::error_code ec(errno, std::system_category());
+    const auto error_code = errno;
+    std::error_code ec(error_code, std::system_category());
+    UASSERT_MSG(!error_code, "Failed to close fd=" + std::to_string(fd));
     LOG_ERROR() << "Cannot close fd " << fd << ": " << ec.message();
   }
 
@@ -198,6 +206,4 @@ void FdControl::Invalidate() {
   write_.Invalidate();
 }
 
-}  // namespace impl
-}  // namespace io
-}  // namespace engine
+}  // namespace engine::io::impl

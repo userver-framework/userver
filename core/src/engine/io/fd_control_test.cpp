@@ -18,9 +18,12 @@ class Pipe final {
  public:
   Pipe() { utils::CheckSyscall(::pipe(fd_), "creating pipe"); }
   ~Pipe() {
-    ::close(fd_[0]);
-    ::close(fd_[1]);
+    if (fd_[0] != -1) ::close(fd_[0]);
+    if (fd_[1] != -1) ::close(fd_[1]);
   }
+
+  int ExtractIn() { return std::exchange(fd_[0], -1); }
+  int ExtractOut() { return std::exchange(fd_[1], -1); }
 
   int In() { return fd_[0]; }
   int Out() { return fd_[1]; }
@@ -43,6 +46,7 @@ using Deadline = engine::Deadline;
 using FdControl = io::impl::FdControl;
 
 constexpr std::chrono::milliseconds kReadTimeout{10};
+constexpr unsigned kRepetitions = 1000;
 
 }  // namespace
 
@@ -81,7 +85,7 @@ TEST(FdControl, Wait) {
     Pipe pipe;
     std::array<char, 16> buf;
 
-    auto read_control = FdControl::Adopt(pipe.In());
+    auto read_control = FdControl::Adopt(pipe.ExtractIn());
     auto& read_dir = read_control->Read();
     EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
     EXPECT_TRUE(HasTimedOut());
@@ -90,9 +94,76 @@ TEST(FdControl, Wait) {
     EXPECT_TRUE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
     EXPECT_FALSE(HasTimedOut());
 
-    EXPECT_EQ(::read(pipe.In(), buf.data(), buf.size()), 1);
+    EXPECT_EQ(::read(read_dir.Fd(), buf.data(), buf.size()), 1);
     EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
     EXPECT_TRUE(HasTimedOut());
+  });
+}
+
+TEST(FdControl, Waits) {
+  RunInCoro([] {
+    Pipe pipe;
+    auto write_control = FdControl::Adopt(pipe.ExtractOut());
+    auto& write_dir = write_control->Write();
+
+    for (unsigned i = 0; i < kRepetitions; ++i) {
+      [[maybe_unused]] auto result = write_dir.Wait(Deadline::Passed());
+    }
+  });
+}
+
+TEST(FdControl, Destructions) {
+  RunInCoro([] {
+    for (unsigned i = 0; i < kRepetitions; ++i) {
+      Pipe pipe;
+      [[maybe_unused]] auto write_control = FdControl::Adopt(pipe.ExtractOut());
+    }
+  });
+}
+
+TEST(FdControl, DestructionAfterWait) {
+  RunInCoro([] {
+    for (unsigned i = 0; i < kRepetitions; ++i) {
+      Pipe pipe;
+
+      auto write_control = FdControl::Adopt(pipe.ExtractOut());
+      auto& write_dir = write_control->Write();
+      [[maybe_unused]] auto result = write_dir.Wait(Deadline::Passed());
+    }
+  });
+}
+
+TEST(FdControl, DestructionNoData) {
+  RunInCoro([] {
+    for (unsigned i = 0; i < kRepetitions; ++i) {
+      Pipe pipe;
+
+      auto read_control = FdControl::Adopt(pipe.ExtractIn());
+      auto& read_dir = read_control->Read();
+      auto write_control = FdControl::Adopt(pipe.ExtractOut());
+      auto& write_dir = write_control->Write();
+
+      [[maybe_unused]] auto result0 = write_dir.Wait(Deadline::Passed());
+      [[maybe_unused]] auto result1 = read_dir.Wait(Deadline::Passed());
+    }
+  });
+}
+
+TEST(FdControl, DestructionWithData) {
+  RunInCoro([] {
+    for (unsigned i = 0; i < kRepetitions; ++i) {
+      Pipe pipe;
+      std::array<char, 16> buf;
+
+      auto read_control = FdControl::Adopt(pipe.ExtractIn());
+      auto& read_dir = read_control->Read();
+      auto write_control = FdControl::Adopt(pipe.ExtractOut());
+      auto& write_dir = write_control->Write();
+
+      CheckedWrite(write_dir.Fd(), buf.data(), 1);
+      [[maybe_unused]] auto result0 = write_dir.Wait(Deadline::Passed());
+      [[maybe_unused]] auto result1 = read_dir.Wait(Deadline::Passed());
+    }
   });
 }
 
@@ -100,7 +171,7 @@ TEST(FdControl, PartialTransfer) {
   RunInCoro([] {
     Pipe pipe;
 
-    auto read_control = FdControl::Adopt(pipe.In());
+    auto read_control = FdControl::Adopt(pipe.ExtractIn());
     auto& read_dir = read_control->Read();
 
     std::array<char, 16> buf;
@@ -126,7 +197,7 @@ TEST(FdControl, WholeTransfer) {
       [] {
         Pipe pipe;
 
-        auto read_control = FdControl::Adopt(pipe.In());
+        auto read_control = FdControl::Adopt(pipe.ExtractIn());
         auto& read_dir = read_control->Read();
 
         std::array<char, 16> buf;

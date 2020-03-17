@@ -17,10 +17,10 @@ class Deadline final {
   using TimePoint = Clock::time_point;
 
   /// Creates an unreachable deadline
-  Deadline() = default;
+  constexpr Deadline() = default;
 
   /// Returns whether the deadline can be reached
-  bool IsReachable() const { return value_ != TimePoint{}; }
+  constexpr bool IsReachable() const { return value_ != TimePoint{}; }
 
   /// Returns whether the deadline is reached
   bool IsReached() const {
@@ -51,15 +51,17 @@ class Deadline final {
 
   /// @cond
   /// Specialization for the native time point type
-  static Deadline FromTimePoint(const TimePoint& time_point) {
+  constexpr static Deadline FromTimePoint(const TimePoint& time_point) {
     return Deadline(time_point);
   }
   /// @endcond
 
   static constexpr TimePoint kPassed = TimePoint::min();
 
+  constexpr static Deadline Passed() { return Deadline{kPassed}; }
+
  private:
-  explicit Deadline(TimePoint value) : value_(value) {}
+  constexpr explicit Deadline(TimePoint value) : value_(value) {}
 
   TimePoint value_;
 };

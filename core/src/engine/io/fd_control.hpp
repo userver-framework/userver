@@ -43,6 +43,7 @@ class Direction final {
   Direction(Direction&&) = delete;
   Direction& operator=(const Direction&) = delete;
   Direction& operator=(Direction&&) = delete;
+  ~Direction();
 
   explicit operator bool() const { return IsValid(); }
   bool IsValid() const { return is_valid_; }

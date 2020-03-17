@@ -1,7 +1,9 @@
 #include "watcher.hpp"
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
+namespace {
+[[maybe_unused]] bool IsFdValid(int fd) { return ::fcntl(fd, F_GETFD) != -1; }
+}  // namespace
 
 template <>
 void Watcher<ev_async>::Init(void (*cb)(struct ev_loop*, ev_async*,
@@ -47,6 +49,7 @@ template <>
 void Watcher<ev_io>::StartImpl() {
   if (is_running_) return;
   is_running_ = true;
+  UASSERT_MSG(IsFdValid(w_.fd), "Invalid fd=" + std::to_string(w_.fd));
   ev_io_start(GetEvLoop(), &w_);
 }
 
@@ -54,6 +57,7 @@ template <>
 void Watcher<ev_io>::StopImpl() {
   if (!is_running_) return;
   is_running_ = false;
+  UASSERT_MSG(IsFdValid(w_.fd), "Invalid fd=" + std::to_string(w_.fd));
   ev_io_stop(GetEvLoop(), &w_);
 }
 
@@ -114,5 +118,4 @@ void Watcher<ev_idle>::StopImpl() {
   ev_idle_stop(GetEvLoop(), &w_);
 }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

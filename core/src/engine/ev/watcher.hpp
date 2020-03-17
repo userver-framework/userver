@@ -7,8 +7,7 @@
 #include <engine/future.hpp>
 #include "thread_control.hpp"
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 template <typename EvType>
 class Watcher final : public ThreadControl {
@@ -132,8 +131,12 @@ Watcher<EvType>::Send() {
 template <typename EvType>
 template <void (Watcher<EvType>::*func)()>
 void Watcher<EvType>::CallInEvLoop() {
+  // We need pending_async_ops_ here to make sure that ~Watcher() does not
+  // return as long as we are calling Watcher::Stop or Watcher::Start from ev
+  // thread.
+  ++pending_async_ops_;
   RunInEvLoopSync([this] { (this->*func)(); });
+  --pending_async_ops_;
 }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev
