@@ -605,9 +605,10 @@ native::curl_socket_t easy::opensocket(void* clientp,
   multi* multi_handle = self->multi_;
   native::curl_socket_t s = -1;
 
-  bool check_throttle = boost::algorithm::istarts_with(self->url_, "https:");
-  if (check_throttle) {
-    if (multi_handle && !multi_handle->MayAcquireConnection()) {
+  if (multi_handle) {
+    bool is_https = boost::algorithm::istarts_with(self->url_, "https:");
+    if ((is_https && !multi_handle->MayAcquireConnectionHttps()) ||
+        (!is_https && !multi_handle->MayAcquireConnectionHttp())) {
       LOG_WARNING() << "Socket creation throttled";
       multi_handle->Statistics().mark_socket_ratelimited();
       return CURL_SOCKET_BAD;

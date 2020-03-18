@@ -57,8 +57,11 @@ class Client {
 
   void SetTestsuiteConfig(const TestsuiteConfig& config);
 
-  void SetConnectRatelimit(size_t max_size,
-                           utils::TokenBucket::Duration token_update_interval);
+  void SetConnectRatelimitHttp(
+      size_t max_size, utils::TokenBucket::Duration token_update_interval);
+
+  void SetConnectRatelimitHttps(
+      size_t max_size, utils::TokenBucket::Duration token_update_interval);
 
  private:
   explicit Client(const std::string& thread_name_prefix, size_t io_threads);

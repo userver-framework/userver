@@ -88,10 +88,15 @@ class CURLASIO_API multi final {
 
   MultiStatistics& Statistics() { return statistics_; }
 
-  void SetConnectRatelimit(size_t max_size,
-                           utils::TokenBucket::Duration token_update_interval);
+  void SetConnectRatelimitHttp(
+      size_t max_size, utils::TokenBucket::Duration token_update_interval);
 
-  bool MayAcquireConnection();
+  void SetConnectRatelimitHttps(
+      size_t max_size, utils::TokenBucket::Duration token_update_interval);
+
+  bool MayAcquireConnectionHttp();
+
+  bool MayAcquireConnectionHttps();
 
   enum pipelining_mode_t { pipe_nothing, pipe_http1, pipe_multiplex };
   IMPLEMENT_CURL_MOPTION_ENUM(set_pipelining, native::CURLMOPT_PIPELINING,
@@ -146,6 +151,7 @@ class CURLASIO_API multi final {
   native::CURLM* handle_;
   engine::ev::ThreadControl& thread_control_;
   MultiStatistics statistics_;
-  utils::TokenBucket connect_ratelimit_;
+  utils::TokenBucket connect_ratelimit_http_;
+  utils::TokenBucket connect_ratelimit_https_;
 };
 }  // namespace curl

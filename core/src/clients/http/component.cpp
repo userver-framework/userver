@@ -94,9 +94,12 @@ void HttpClient::OnConfigUpdate(
       config->template Get<clients::http::Config>();
   http_client_->SetConnectionPoolSize(http_client_config.connection_pool_size);
 
-  http_client_->SetConnectRatelimit(
-      http_client_config.connect_throttle_max_size_,
-      http_client_config.connect_throttle_update_interval_);
+  http_client_->SetConnectRatelimitHttp(
+      http_client_config.http_connect_throttle_max_size_,
+      http_client_config.http_connect_throttle_update_interval_);
+  http_client_->SetConnectRatelimitHttps(
+      http_client_config.https_connect_throttle_max_size_,
+      http_client_config.https_connect_throttle_update_interval_);
 }
 
 formats::json::Value HttpClient::ExtendStatistics() {

@@ -191,10 +191,17 @@ void Client::SetTestsuiteConfig(const TestsuiteConfig& config) {
   testsuite_config_ = std::make_shared<const TestsuiteConfig>(config);
 }
 
-void Client::SetConnectRatelimit(
+void Client::SetConnectRatelimitHttp(
     size_t max_size, utils::TokenBucket::Duration token_update_interval) {
   for (auto& multi : multis_) {
-    multi->SetConnectRatelimit(max_size, token_update_interval);
+    multi->SetConnectRatelimitHttp(max_size, token_update_interval);
+  }
+}
+
+void Client::SetConnectRatelimitHttps(
+    size_t max_size, utils::TokenBucket::Duration token_update_interval) {
+  for (auto& multi : multis_) {
+    multi->SetConnectRatelimitHttps(max_size, token_update_interval);
   }
 }
 
