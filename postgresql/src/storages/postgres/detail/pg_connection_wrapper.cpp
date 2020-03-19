@@ -129,12 +129,17 @@ engine::Task PGConnectionWrapper::Close() {
   return engine::impl::CriticalAsync(
       bg_task_processor_, [tmp_conn, socket = std::move(tmp_sock),
                            sg = std::move(size_guard_)]() mutable {
-        if (tmp_conn != nullptr) {
-          PQfinish(tmp_conn);
-        }
-
         if (socket) {
           [[maybe_unused]] int fd = std::move(socket).Release();
+        }
+
+        // We must call `PQfinish` only after we do the `socket.Release()`.
+        // Otherwise `PQfinish` closes the file descriptor fd but we keep
+        // listening for that fd in the `socket` variable, and if `fd` number is
+        // reused we may accidentally receive alien events.
+
+        if (tmp_conn != nullptr) {
+          PQfinish(tmp_conn);
         }
       });
 }
