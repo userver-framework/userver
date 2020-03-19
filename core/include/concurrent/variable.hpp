@@ -1,9 +1,8 @@
 #pragma once
 
 #include <mutex>
+#include <optional>
 #include <shared_mutex>  // for shared_lock
-
-#include <boost/optional/optional.hpp>
 
 #include <engine/mutex.hpp>
 
@@ -17,20 +16,27 @@ class LockedPtr final {
   using Mutex = typename Lock::mutex_type;
 
   LockedPtr(Mutex& mutex, Data& data) : lock_(mutex), data_(data) {}
+  LockedPtr(Lock&& lock, Data& data) : lock_(std::move(lock)), data_(data) {}
 
   Data& operator*() & { return data_; }
 
   /// Don't use *tmp for temporary value, store it to variable.
-  Data& operator*() && = delete;
+  Data& operator*() && { return *GetOnRvalue(); }
 
   Data* operator->() & { return &data_; }
 
   /// Don't use tmp-> for temporary value, store it to variable.
-  Data* operator->() && = delete;
+  Data* operator->() && { return GetOnRvalue(); }
 
   Lock& GetLock() { return lock_; }
 
  private:
+  const Data* GetOnRvalue() {
+    static_assert(false && sizeof(Data),
+                  "Don't use temporary LockedPtr, store it to a variable");
+    std::abort();
+  }
+
   Lock lock_;
   Data& data_;
 };
@@ -51,13 +57,26 @@ class Variable final {
     return {mutex_, data_};
   }
 
-  boost::optional<LockedPtr<std::unique_lock<Mutex>, const Data>> UniqueLock(
+  std::optional<LockedPtr<std::unique_lock<Mutex>, const Data>> UniqueLock(
       std::try_to_lock_t) const {
     std::unique_lock<Mutex> lock(mutex_, std::try_to_lock);
-    if (lock)
-      return {std::move(lock), data_};
-    else
-      return boost::none;
+    if (lock) {
+      return LockedPtr<std::unique_lock<Mutex>, const Data>{std::move(lock),
+                                                            data_};
+    } else {
+      return std::nullopt;
+    }
+  }
+
+  std::optional<LockedPtr<std::unique_lock<Mutex>, const Data>> UniqueLock(
+      std::chrono::milliseconds try_duration) const {
+    std::unique_lock<Mutex> lock(mutex_, try_duration);
+    if (lock) {
+      return LockedPtr<std::unique_lock<Mutex>, const Data>{std::move(lock),
+                                                            data_};
+    } else {
+      return std::nullopt;
+    }
   }
 
   LockedPtr<std::shared_lock<Mutex>, const Data> SharedLock() const {
