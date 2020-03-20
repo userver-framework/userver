@@ -5,7 +5,9 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <engine/condition_variable.hpp>
 #include <engine/deadline.hpp>
+#include <engine/mutex.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/task/cancel.hpp>
 #include <utils/assert.hpp>
@@ -173,12 +175,15 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   /// Can be called only if Consumer is dead to release all queued items
   bool PopNoblockNoConsumer(T&);
 
+  void WaitForQueueNonfullUntil(Deadline deadline);
+
  private:
   // Resolves to boost::lockfree::queue<T> except for std::unique_ptr<T>
   // specialization. In that case, resolves to boost::lockfree::queue<T*>
   typename QueueHelper::LockFreeQueue queue_{1};
   engine::SingleConsumerEvent nonempty_event_;
-  engine::SingleConsumerEvent nonfull_event_;
+  engine::Mutex nonfull_mutex_;
+  engine::ConditionVariable nonfull_cv_;
 #ifndef NDEBUG
   std::atomic<bool> consumer_is_created_{false};
   std::atomic<bool> producer_is_created_{false};
@@ -224,9 +229,10 @@ typename MpscQueue<T>::Consumer MpscQueue<T>::GetConsumer() {
 
 template <typename T>
 void MpscQueue<T>::SetMaxLength(size_t length) {
+  std::unique_lock lock(nonfull_mutex_);
   max_length_ = length;
   // It might result in a spurious wakeup, but it is race-free.
-  nonfull_event_.Send();
+  nonfull_cv_.NotifyAll();
 }
 
 template <typename T>
@@ -250,13 +256,19 @@ bool MpscQueue<T>::PopNoblockNoConsumer(T& value) {
 }
 
 template <typename T>
-bool MpscQueue<T>::Push(T&& value, Deadline deadline) {
-  while (size_ >= max_length_ && consumer_is_alive_) {
-    if (deadline.IsReached() || current_task::ShouldCancel()) return false;
-
-    [[maybe_unused]] auto was_nonfull =
-        nonfull_event_.WaitForEventUntil(deadline);
+void MpscQueue<T>::WaitForQueueNonfullUntil(Deadline deadline) {
+  if (size_ >= max_length_ && consumer_is_alive_) {
+    std::unique_lock lock(nonfull_mutex_);
+    [[maybe_unused]] auto status = nonfull_cv_.WaitUntil(
+        lock, deadline,
+        [this] { return (size_ < max_length_ || !consumer_is_alive_); });
   }
+}
+
+template <typename T>
+bool MpscQueue<T>::Push(T&& value, Deadline deadline) {
+  WaitForQueueNonfullUntil(deadline);
+  if (deadline.IsReached() || current_task::ShouldCancel()) return false;
   return DoPush(std::move(value));
 }
 
@@ -300,8 +312,9 @@ bool MpscQueue<T>::PopNoblock(T& value) {
 template <typename T>
 bool MpscQueue<T>::DoPop(T& value) {
   if (QueueHelper::Pop(queue_, value)) {
+    std::unique_lock lock(nonfull_mutex_);
     --size_;
-    nonfull_event_.Send();
+    nonfull_cv_.NotifyAll();
     return true;
   }
   return false;
@@ -310,7 +323,8 @@ bool MpscQueue<T>::DoPop(T& value) {
 template <typename T>
 void MpscQueue<T>::MarkConsumerIsDead() {
   consumer_is_alive_ = false;
-  nonfull_event_.Send();
+  std::unique_lock lock(nonfull_mutex_);
+  nonfull_cv_.NotifyAll();
 }
 
 template <typename T>

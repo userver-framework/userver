@@ -88,108 +88,120 @@ TYPED_TEST(MpscQueueFixture, Ctr) {
 }
 
 TYPED_TEST(MpscQueueFixture, Consume) {
-  auto queue = engine::MpscQueue<TypeParam>::Create();
-  auto consumer = queue->GetConsumer();
-  auto producer = queue->GetProducer();
+  RunInCoro([this] {
+    auto queue = engine::MpscQueue<TypeParam>::Create();
+    auto consumer = queue->GetConsumer();
+    auto producer = queue->GetProducer();
 
-  EXPECT_TRUE(producer.Push(this->Wrap(1)));
-  EXPECT_EQ(1, queue->Size());
+    EXPECT_TRUE(producer.Push(this->Wrap(1)));
+    EXPECT_EQ(1, queue->Size());
 
-  TypeParam value;
-  EXPECT_TRUE(consumer.Pop(value));
-  EXPECT_EQ(1, this->Unwrap(value));
-  EXPECT_EQ(0, queue->Size());
+    TypeParam value;
+    EXPECT_TRUE(consumer.Pop(value));
+    EXPECT_EQ(1, this->Unwrap(value));
+    EXPECT_EQ(0, queue->Size());
+  });
 }
 
 TYPED_TEST(MpscQueueFixture, ConsumeMany) {
-  auto queue = engine::MpscQueue<TypeParam>::Create();
-  auto consumer = queue->GetConsumer();
-  auto producer = queue->GetProducer();
+  RunInCoro([this] {
+    auto queue = engine::MpscQueue<TypeParam>::Create();
+    auto consumer = queue->GetConsumer();
+    auto producer = queue->GetProducer();
 
-  auto constexpr N = 100;
+    auto constexpr N = 100;
 
-  for (int i = 0; i < N; i++) {
-    auto value = this->Wrap(i);
-    EXPECT_TRUE(producer.Push(std::move(value)));
-    EXPECT_EQ(i + 1, queue->Size());
-  }
+    for (int i = 0; i < N; i++) {
+      auto value = this->Wrap(i);
+      EXPECT_TRUE(producer.Push(std::move(value)));
+      EXPECT_EQ(i + 1, queue->Size());
+    }
 
-  for (int i = 0; i < N; i++) {
-    TypeParam value;
-    EXPECT_TRUE(consumer.Pop(value));
-    EXPECT_EQ(i, this->Unwrap(value));
-    EXPECT_EQ(N - i - 1, queue->Size());
-  }
+    for (int i = 0; i < N; i++) {
+      TypeParam value;
+      EXPECT_TRUE(consumer.Pop(value));
+      EXPECT_EQ(i, this->Unwrap(value));
+      EXPECT_EQ(N - i - 1, queue->Size());
+    }
+  });
 }
 
 TYPED_TEST(MpscQueueFixture, ProducerIsDead) {
-  auto queue = engine::MpscQueue<TypeParam>::Create();
-  auto consumer = queue->GetConsumer();
+  RunInCoro([] {
+    auto queue = engine::MpscQueue<TypeParam>::Create();
+    auto consumer = queue->GetConsumer();
 
-  TypeParam value;
-  boost::ignore_unused(queue->GetProducer());
-  EXPECT_FALSE(consumer.Pop(value));
+    TypeParam value;
+    boost::ignore_unused(queue->GetProducer());
+    EXPECT_FALSE(consumer.Pop(value));
+  });
 }
 
 TYPED_TEST(MpscQueueFixture, ConsumerIsDead) {
-  auto queue = engine::MpscQueue<TypeParam>::Create();
-  auto producer = queue->GetProducer();
+  RunInCoro([this] {
+    auto queue = engine::MpscQueue<TypeParam>::Create();
+    auto producer = queue->GetProducer();
 
-  boost::ignore_unused(queue->GetConsumer());
-  EXPECT_FALSE(producer.Push(this->Wrap(0)));
+    boost::ignore_unused(queue->GetConsumer());
+    EXPECT_FALSE(producer.Push(this->Wrap(0)));
+  });
 }
 
 TYPED_TEST(MpscQueueFixture, QueueDestroyed) {
-  // This test tests that producer and consumer keep queue alive
-  // even if initial shared_ptr is released
-  // The real-world scenario is actually simple:
-  // struct S {
-  //   MpscQueue::Producer producer_;
-  //   shared_ptr<MpscQueue> queue_;
-  // };
-  //
-  // Default destructor will destroy queue_ before producer_, and if producer
-  // doesn't keep queue alive, assert will be thrown.
-  //
-  {
-    auto queue = engine::MpscQueue<TypeParam>::Create();
-    auto producer = queue->GetProducer();
-    // Release queue. If destructor is actually called, it will throw assert
-    queue = nullptr;
-  }
-  {
-    auto queue = engine::MpscQueue<TypeParam>::Create();
-    auto consumer = queue->GetConsumer();
-    // Release queue. If destructor is actually called, it will throw assert
-    queue = nullptr;
-  }
+  RunInCoro([] {
+    // This test tests that producer and consumer keep queue alive
+    // even if initial shared_ptr is released
+    // The real-world scenario is actually simple:
+    // struct S {
+    //   MpscQueue::Producer producer_;
+    //   shared_ptr<MpscQueue> queue_;
+    // };
+    //
+    // Default destructor will destroy queue_ before producer_, and if producer
+    // doesn't keep queue alive, assert will be thrown.
+    //
+    {
+      auto queue = engine::MpscQueue<TypeParam>::Create();
+      auto producer = queue->GetProducer();
+      // Release queue. If destructor is actually called, it will throw assert
+      queue = nullptr;
+    }
+    {
+      auto queue = engine::MpscQueue<TypeParam>::Create();
+      auto consumer = queue->GetConsumer();
+      // Release queue. If destructor is actually called, it will throw assert
+      queue = nullptr;
+    }
+  });
 }
 
 TYPED_TEST(MpscQueueFixture, QueueCleanUp) {
-  EXPECT_TRUE(this->CheckMemoryOk());
-  // This test tests that if MpscQueue object is destroyed while
-  // some data is inside, then all data is correctly destroyed as well.
-  // This is targeted mostly at std::unique_ptr specialization, to make sure
-  // that remaining pointers inside queue are correctly deleted.
-  auto queue = engine::MpscQueue<TypeParam>::Create();
-  {
-    auto producer = queue->GetProducer();
-    EXPECT_TRUE(producer.Push(this->Wrap(1)));
-    EXPECT_TRUE(producer.Push(this->Wrap(2)));
-    EXPECT_TRUE(producer.Push(this->Wrap(3)));
-  }
-  // Objects in queue must still be alive
-  if (this->HasMemoryLeakCheck()) {
-    EXPECT_FALSE(this->CheckMemoryOk());
-  }
+  RunInCoro([this] {
+    EXPECT_TRUE(this->CheckMemoryOk());
+    // This test tests that if MpscQueue object is destroyed while
+    // some data is inside, then all data is correctly destroyed as well.
+    // This is targeted mostly at std::unique_ptr specialization, to make sure
+    // that remaining pointers inside queue are correctly deleted.
+    auto queue = engine::MpscQueue<TypeParam>::Create();
+    {
+      auto producer = queue->GetProducer();
+      EXPECT_TRUE(producer.Push(this->Wrap(1)));
+      EXPECT_TRUE(producer.Push(this->Wrap(2)));
+      EXPECT_TRUE(producer.Push(this->Wrap(3)));
+    }
+    // Objects in queue must still be alive
+    if (this->HasMemoryLeakCheck()) {
+      EXPECT_FALSE(this->CheckMemoryOk());
+    }
 
-  // Producer is deat at this point. 'queue' variable is the only one
-  // holding MpscQueue alive. Destroying it and checking that there is no
-  // memory leak
-  queue = nullptr;
+    // Producer is deat at this point. 'queue' variable is the only one
+    // holding MpscQueue alive. Destroying it and checking that there is no
+    // memory leak
+    queue = nullptr;
 
-  // Every object in queue must have been destroyed
-  EXPECT_TRUE(this->CheckMemoryOk());
+    // Every object in queue must have been destroyed
+    EXPECT_TRUE(this->CheckMemoryOk());
+  });
 }
 
 TYPED_TEST(MpscQueueFixture, Block) {
@@ -253,5 +265,41 @@ TYPED_TEST(MpscQueueFixture, Noblock) {
     }
 
     consumer_task.Get();
+  });
+}
+
+TEST(MpscQueue, BlockMulti) {
+  RunInCoro([] {
+    auto queue = engine::MpscQueue<int>::Create();
+    queue->SetMaxLength(0);
+    auto producer = queue->GetProducer();
+    auto consumer = queue->GetConsumer();
+
+    auto task1 = engine::impl::Async([&]() { producer.Push(1); });
+    auto task2 = engine::impl::Async([&]() { producer.Push(1); });
+
+    engine::Yield();
+    engine::Yield();
+    engine::Yield();
+    engine::Yield();
+
+    // task is blocked
+
+    int value{0};
+    bool ok = consumer.PopNoblock(value);
+    ASSERT_FALSE(ok);
+
+    queue->SetMaxLength(2);
+
+    ok = consumer.Pop(value);
+    EXPECT_TRUE(ok);
+    EXPECT_EQ(value, 1);
+
+    ok = consumer.Pop(value);
+    EXPECT_TRUE(ok);
+    EXPECT_EQ(value, 1);
+
+    ok = consumer.PopNoblock(value);
+    EXPECT_FALSE(ok);
   });
 }
