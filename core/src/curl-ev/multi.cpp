@@ -22,6 +22,10 @@
 
 namespace curl {
 
+namespace {
+const auto kDefaultTokens = 1000000;
+}
+
 using easy_set_type = std::set<easy*>;
 using BusyMarker = ::utils::statistics::BusyMarker;
 
@@ -57,8 +61,8 @@ multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
 multi::multi(engine::ev::ThreadControl& thread_control)
     : pimpl_(std::make_unique<Impl>(thread_control, *this)),
       thread_control_(thread_control),
-      connect_ratelimit_http_(SIZE_MAX, std::chrono::nanoseconds(1)),
-      connect_ratelimit_https_(SIZE_MAX, std::chrono::nanoseconds(1)) {
+      connect_ratelimit_http_(kDefaultTokens, std::chrono::nanoseconds(1)),
+      connect_ratelimit_https_(kDefaultTokens, std::chrono::nanoseconds(1)) {
   LOG_TRACE() << "multi::multi";
 
   handle_ = native::curl_multi_init();
@@ -130,12 +134,26 @@ void multi::SetConnectRatelimitHttp(
   connect_ratelimit_http_.SetUpdateInterval(token_update_interval);
 }
 
-bool multi::MayAcquireConnectionHttp() {
-  return connect_ratelimit_http_.Obtain();
+namespace {
+void WarnThrottled(const std::string& url, const utils::TokenBucket& tb) {
+  LOG_WARNING() << "Socket creation throttled (url=" << url
+                << ", rate=" << tb.GetRatePs()
+                << "/sec"
+                // << ", tokens=" << tb.GetTokensApprox()
+                << ")";
+}
+}  // namespace
+
+bool multi::MayAcquireConnectionHttp(const std::string& url) {
+  bool ok = connect_ratelimit_http_.Obtain();
+  if (!ok) WarnThrottled(url, connect_ratelimit_http_);
+  return ok;
 }
 
-bool multi::MayAcquireConnectionHttps() {
-  return connect_ratelimit_https_.Obtain();
+bool multi::MayAcquireConnectionHttps(const std::string& url) {
+  bool ok = connect_ratelimit_https_.Obtain();
+  if (!ok) WarnThrottled(url, connect_ratelimit_https_);
+  return ok;
 }
 
 void multi::add_handle(native::CURL* native_easy) {

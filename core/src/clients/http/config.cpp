@@ -15,7 +15,7 @@ Config::Config(const DocsMap& docs_map)
               .As<size_t>()),
       http_connect_throttle_max_size_(
           docs_map.Get("HTTP_CLIENT_CONNECT_THROTTLE")["http-max-size"]
-              .As<size_t>(100)),
+              .As<size_t>(1000)),
       http_connect_throttle_update_interval_(
           docs_map
               .Get("HTTP_CLIENT_CONNECT_THROTTLE")

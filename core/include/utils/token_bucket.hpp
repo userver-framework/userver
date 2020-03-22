@@ -26,6 +26,12 @@ class TokenBucket final {
   /// Add 1 token each token_update_interval
   void SetUpdateInterval(Duration single_token_update_interval);
 
+  /// Get rate (tokens per second)
+  double GetRatePs() const;
+
+  /// Get current token count (might be inaccurate as the result is stale)
+  size_t GetTokensApprox() const;
+
  private:
   void Update();
 

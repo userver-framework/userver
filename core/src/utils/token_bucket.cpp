@@ -6,14 +6,22 @@
 
 namespace utils {
 
+namespace {
+void SetMinAtomic(std::atomic<size_t>& dest, size_t value) {
+  size_t old = dest.load();
+  while (old > value) {
+    dest.compare_exchange_weak(old, value);
+  }
+}
+}  // namespace
+
 TokenBucket::TokenBucket(size_t max_size, Duration single_token_update_interval)
     : max_size_(max_size),
       single_token_update_interval_(std::chrono::seconds(1) /* not used */),
-      tokens_(1 /* not used */),
+      tokens_(max_size),
       last_update_tp_(GetNow()) {
   SetUpdateInterval(single_token_update_interval);
   SetMaxSize(max_size);
-  tokens_ = max_size;
 }
 
 void TokenBucket::SetMaxSize(size_t max_size) {
@@ -21,6 +29,7 @@ void TokenBucket::SetMaxSize(size_t max_size) {
     throw std::runtime_error("TokenBucket max_size must be positive");
   }
   max_size_ = max_size;
+  SetMinAtomic(tokens_, max_size);
 }
 
 void TokenBucket::SetUpdateInterval(Duration single_token_update_interval) {
@@ -30,6 +39,18 @@ void TokenBucket::SetUpdateInterval(Duration single_token_update_interval) {
   }
   single_token_update_interval_ = single_token_update_interval;
 }
+
+double TokenBucket::GetRatePs() const {
+  Duration a = std::chrono::seconds(1);
+  Duration b = single_token_update_interval_.load();
+
+  if (b.count())
+    return a.count() * 1.0 / b.count();
+  else
+    return 0;
+}
+
+size_t TokenBucket::GetTokensApprox() const { return tokens_.load(); }
 
 bool TokenBucket::Obtain() {
   Update();
@@ -67,7 +88,13 @@ void TokenBucket::Update() {
   Duration new_update_tp;
   if (tokens + tokens_to_add >= max_size) {
     new_update_tp = now;
-    tokens_to_add = max_size - tokens;
+
+    if (max_size < tokens) {
+      // Possible while updating max_size
+      tokens_to_add = 0;
+    } else {
+      tokens_to_add = max_size - tokens;
+    }
   } else {
     new_update_tp = update_tp + token_update_interval * tokens_to_add;
   }

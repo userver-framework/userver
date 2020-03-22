@@ -94,9 +94,9 @@ class CURLASIO_API multi final {
   void SetConnectRatelimitHttps(
       size_t max_size, utils::TokenBucket::Duration token_update_interval);
 
-  bool MayAcquireConnectionHttp();
+  bool MayAcquireConnectionHttp(const std::string& url);
 
-  bool MayAcquireConnectionHttps();
+  bool MayAcquireConnectionHttps(const std::string& url);
 
   enum pipelining_mode_t { pipe_nothing, pipe_http1, pipe_multiplex };
   IMPLEMENT_CURL_MOPTION_ENUM(set_pipelining, native::CURLMOPT_PIPELINING,

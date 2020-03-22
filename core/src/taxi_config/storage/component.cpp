@@ -56,6 +56,10 @@ std::shared_ptr<const taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap()
   return bootstrap_config_;
 }
 
+std::shared_ptr<const taxi_config::Config> TaxiConfig::GetNoblock() const {
+  return cache_.Get();
+}
+
 void TaxiConfig::DoSetConfig(
     const std::shared_ptr<const taxi_config::DocsMap>& value_ptr) {
   auto config = std::make_shared<taxi_config::Config>(*value_ptr);

@@ -34,6 +34,9 @@ class TaxiConfig : public LoggableComponentBase,
   /// (either up-to-date config or bootstrap config)
   std::shared_ptr<const taxi_config::BootstrapConfig> GetBootstrap() const;
 
+  /// Get config, never blocks, may return nullptr
+  std::shared_ptr<const taxi_config::Config> GetNoblock() const;
+
   /// Set up-to-date config. Must be used by config updaters only
   /// (e.g. config client).
   void SetConfig(std::shared_ptr<const taxi_config::DocsMap> value_ptr);

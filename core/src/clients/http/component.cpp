@@ -24,8 +24,8 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
     : LoggableComponentBase(component_config, context),
       taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
-  auto config = taxi_config_component_.GetBootstrap();
-  const auto& http_config = config->Get<clients::http::Config>();
+  auto booststrap_config = taxi_config_component_.GetBootstrap();
+  const auto& http_config = booststrap_config->Get<clients::http::Config>();
   size_t threads = http_config.threads;
 
   auto thread_name_prefix =
@@ -49,11 +49,17 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     http_client_->SetTestsuiteConfig({prefixes, timeout});
   }
 
-  OnConfigUpdate(config);
-
   subscriber_scope_ = taxi_config_component_.AddListener(
       this, "http_client",
       &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
+
+  // Use up-to-date config if available, a bootstrap config otherwise
+  // The next OnConfigUpdate() will read taxi_config::Config with a delay anyway
+  auto taxi_config = taxi_config_component_.GetNoblock();
+  if (taxi_config)
+    OnConfigUpdate(taxi_config);
+  else
+    OnConfigUpdate(booststrap_config);
 
   try {
     auto stats_name =
