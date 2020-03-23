@@ -23,6 +23,7 @@ class Poller {
   };
 
   Poller();
+  ~Poller();
 
   Poller(const Poller&) = delete;
   Poller(Poller&&) = delete;
@@ -40,6 +41,7 @@ class Poller {
 
   void StopRead(int fd);
   void StopWrite(int fd);
+  void ResetWatchers();
 
   static void IoEventCb(struct ev_loop*, ev_io*, int) noexcept;
 

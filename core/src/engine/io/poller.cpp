@@ -11,28 +11,25 @@ namespace {
 
 void ConcurrentStop(int fd, std::mutex& mutex, Poller::WatchersMap& watchers) {
   std::unique_lock lock(mutex);
-  auto watcher = watchers.extract(fd);
-  if (!watcher) return;
+  const auto it = watchers.find(fd);
+  if (it == watchers.end()) return;
+  auto& watcher = it->second;
   lock.unlock();
 
-  watcher.mapped().Stop();
-
-  // Concurrent invocation of Poller::Reset() may have finished at this point.
-  // In that case `watchers` will have either:
-  // 1) a useless watcher that isn't watched and removed on next Poller::Reset()
-  // 2) watcher for an closed and opened `fd` (in that case libev automatically
-  // adds fd to epoll watch list )
-
-  lock.lock();
-  watchers.insert(std::move(watcher));
-  lock.unlock();
-
-  // destroying watcher
+  // After `watcher.Stop();` mutexes, watchers and Poller may be destroyed.
+  // But not before the Stop() call!
+  watcher.Stop();
 }
 
 }  // namespace
 
 Poller::Poller() : Poller(MpscQueue<Event>::Create()) {}
+
+Poller::~Poller() {
+  // ResetWatchers() acquires a lock and avoids race between watchers.find(fd);
+  // and WatchersMap destruction.
+  ResetWatchers();
+}
 
 Poller::Poller(const std::shared_ptr<MpscQueue<Event>>& queue)
     : event_consumer_(queue->GetConsumer()),
@@ -65,18 +62,7 @@ void Poller::AddWrite(int fd) {
 }
 
 void Poller::Reset() {
-  // destroy watchers without lock to avoid deadlocking with callback
-  std::unordered_map<int, ev::Watcher<ev_io>> watchers_buffer;
-  {
-    std::lock_guard read_lock(read_watchers_mutex_);
-    read_watchers_.swap(watchers_buffer);
-  }
-  watchers_buffer.clear();
-  {
-    std::lock_guard write_lock(write_watchers_mutex_);
-    write_watchers_.swap(watchers_buffer);
-  }
-  watchers_buffer.clear();
+  ResetWatchers();
 
   Event buf;
   while (event_consumer_.PopNoblock(buf))
@@ -100,7 +86,25 @@ void Poller::StopWrite(int fd) {
   ConcurrentStop(fd, write_watchers_mutex_, write_watchers_);
 }
 
+void Poller::ResetWatchers() {
+  // destroy watchers without lock to avoid deadlocking with callback
+  std::unordered_map<int, ev::Watcher<ev_io>> watchers_buffer;
+  {
+    std::lock_guard read_lock(read_watchers_mutex_);
+    read_watchers_.swap(watchers_buffer);
+  }
+  watchers_buffer.clear();
+  {
+    std::lock_guard write_lock(write_watchers_mutex_);
+    write_watchers_.swap(watchers_buffer);
+  }
+  watchers_buffer.clear();
+}
+
 void Poller::IoEventCb(struct ev_loop*, ev_io* watcher, int revents) noexcept {
+  UASSERT(watcher->active);
+  UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
+
   auto* poller = static_cast<Poller*>(watcher->data);
   auto event_type = Event::kError;
   if (revents & EV_ERROR) {
