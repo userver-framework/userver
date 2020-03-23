@@ -31,11 +31,15 @@ class RcuMap final {
   template <typename ValueType>
   class IteratorImpl;
 
+  template <typename ValuePtrType>
+  struct InsertReturnTypeImpl;
+
   using ValuePtr = std::shared_ptr<Value>;
   using Iterator = IteratorImpl<ValuePtr>;
   using ConstValuePtr = std::shared_ptr<const Value>;
   using ConstIterator = IteratorImpl<ConstValuePtr>;
   using Snapshot = std::unordered_map<Key, ConstValuePtr>;
+  using InsertReturnType = InsertReturnTypeImpl<ValuePtr>;
 
   RcuMap() = default;
 
@@ -65,6 +69,33 @@ class RcuMap final {
   /// default-creates one
   const ValuePtr operator[](const Key&);
 
+  /// @brief Inserts a new element into the container if there is no element
+  /// with the key in the container.
+  /// Returns a pair consisting of a pointer to the inserted element, or the
+  /// already-existing element if no insertion happened, and a bool denoting
+  /// whether the insertion took place.
+  InsertReturnType Insert(const Key& key, ValuePtr value);
+
+  /// @brief Inserts a new element into the container constructed in-place with
+  /// the given args if there is no element with the key in the container.
+  /// Returns a pair consisting of a pointer to the inserted element, or the
+  /// already-existing element if no insertion happened, and a bool denoting
+  /// whether the insertion took place.
+  template <typename... Args>
+  InsertReturnType Emplace(const Key& key, Args&&... args);
+
+  /// @brief If a key equivalent to `key` already exists in the container, does
+  /// nothing.
+  /// Otherwise, behaves like `Emplace` except that the element is constructed
+  /// as `std::make_shared<Value>(std::piecewise_construct,
+  /// std::forward_as_tuple(key),
+  /// std::forward_as_tuple(std::forward<Args>(args)...))`.
+  /// Returns a pair consisting of a pointer to the inserted element, or the
+  /// already-existing element if no insertion happened, and a bool denoting
+  /// whether the insertion took place.
+  template <typename... Args>
+  InsertReturnType TryEmplace(const Key& key, Args&&... args);
+
   // TODO: add multiple keys in one txn?
 
   /// @brief Returns a readonly value pointer by its key or an empty pointer
@@ -84,12 +115,17 @@ class RcuMap final {
   /// Resets the map to an empty state
   void Clear();
 
+  /// Replace current data by data from `new_map`.
+  void Assign(std::unordered_map<Key, ValuePtr> new_map);
+
   /// @brief Returns a readonly copy of the map
   /// @note Equivalent to `{begin(), end()}` construct, preferable
   /// for long-running operations.
   Snapshot GetSnapshot() const;
 
  private:
+  InsertReturnType DoInsert(const Key& key, ValuePtr value);
+
   using MapType = std::unordered_map<Key, ValuePtr>;
 
   rcu::Variable<MapType> rcu_;
@@ -122,6 +158,13 @@ class RcuMap<K, V>::IteratorImpl final {
   std::shared_ptr<ReadablePtr<MapType>> ptr_;
   typename MapType::const_iterator it_;
   value_type current_;
+};
+
+template <typename K, typename V>
+template <typename ValuePtrType>
+struct RcuMap<K, V>::InsertReturnTypeImpl {
+  ValuePtrType value;
+  bool inserted;
 };
 
 template <typename K, typename V>
@@ -178,6 +221,55 @@ const typename RcuMap<K, V>::ValuePtr RcuMap<K, V>::operator[](const K& key) {
 }
 
 template <typename K, typename V>
+typename RcuMap<K, V>::InsertReturnType RcuMap<K, V>::Insert(
+    const K& key, typename RcuMap<K, V>::ValuePtr value) {
+  InsertReturnType result{Get(key), false};
+  if (result.value) return result;
+
+  return DoInsert(key, std::move(value));
+}
+
+template <typename K, typename V>
+template <typename... Args>
+typename RcuMap<K, V>::InsertReturnType RcuMap<K, V>::Emplace(const K& key,
+                                                              Args&&... args) {
+  InsertReturnType result{Get(key), false};
+  if (result.value) return result;
+
+  return DoInsert(key, std::make_shared<V>(std::forward<Args>(args)...));
+}
+
+template <typename K, typename V>
+typename RcuMap<K, V>::InsertReturnType RcuMap<K, V>::DoInsert(
+    const K& key, typename RcuMap<K, V>::ValuePtr value) {
+  auto txn = rcu_.StartWrite();
+  auto insertion_result = txn->emplace(key, std::move(value));
+  InsertReturnType result{insertion_result.first->second,
+                          insertion_result.second};
+  if (result.inserted) txn.Commit();
+  return result;
+}
+
+template <typename K, typename V>
+template <typename... Args>
+typename RcuMap<K, V>::InsertReturnType RcuMap<K, V>::TryEmplace(
+    const K& key, Args&&... args) {
+  InsertReturnType result{Get(key), false};
+  if (!result.value) {
+    auto txn = rcu_.StartWrite();
+    auto insertion_result = txn->try_emplace(key, nullptr);
+    if (insertion_result.second) {
+      insertion_result.first->second =
+          std::make_shared<V>(std::forward<Args>(args)...);
+      txn.Commit();
+      result.inserted = true;
+    }
+    result.value = insertion_result.first->second;
+  }
+  return result;
+}
+
+template <typename K, typename V>
 const typename RcuMap<K, V>::ValuePtr RcuMap<K, V>::Get(const K& key) {
   auto snapshot = rcu_.Read();
   auto it = snapshot->find(key);
@@ -210,6 +302,12 @@ typename RcuMap<K, V>::ValuePtr RcuMap<K, V>::Pop(const K& key) {
 template <typename K, typename V>
 void RcuMap<K, V>::Clear() {
   rcu_.Assign({});
+}
+
+template <typename K, typename V>
+void RcuMap<K, V>::Assign(
+    std::unordered_map<K, typename RcuMap<K, V>::ValuePtr> new_map) {
+  rcu_.Assign(std::move(new_map));
 }
 
 template <typename K, typename V>

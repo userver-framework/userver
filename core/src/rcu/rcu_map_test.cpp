@@ -49,6 +49,31 @@ TEST(RcuMap, Modify) {
     EXPECT_EQ(2, *map.Pop("any"));
     EXPECT_FALSE(map.Erase("any"));
     EXPECT_FALSE(map.Pop("any"));
+
+    EXPECT_TRUE(map.Insert("any", std::make_shared<int>(3)).inserted);
+    EXPECT_FALSE(map.Insert("any", std::make_shared<int>(0)).inserted);
+    EXPECT_EQ(*map.Insert("any", std::make_shared<int>(0)).value, 3);
+    EXPECT_EQ(*cmap["any"], 3);
+    EXPECT_EQ(*map.Pop("any"), 3);
+
+    EXPECT_TRUE(map.Emplace("any", 4).inserted);
+    EXPECT_FALSE(map.Emplace("any", 0).inserted);
+    EXPECT_EQ(*map.Emplace("any", 0).value, 4);
+    EXPECT_EQ(*cmap["any"], 4);
+    EXPECT_EQ(*map.Pop("any"), 4);
+
+    EXPECT_TRUE(map.TryEmplace("any", 4).inserted);
+    EXPECT_FALSE(map.TryEmplace("any", 0).inserted);
+    EXPECT_EQ(*map.TryEmplace("any", 0).value, 4);
+    EXPECT_EQ(*cmap["any"], 4);
+    EXPECT_EQ(*map.Pop("any"), 4);
+
+    EXPECT_NO_THROW(*map["any"] = 0);
+    EXPECT_NO_THROW(
+        map.Assign(std::unordered_map<std::string, std::shared_ptr<int>>{
+            {"any", std::make_shared<int>(5)}}));
+    EXPECT_EQ(*cmap["any"], 5);
+    EXPECT_EQ(*map.Pop("any"), 5);
   });
 }
 
