@@ -16,18 +16,18 @@ namespace impl {
 template <typename MutexType>
 class CvWaitStrategy final : public WaitStrategy {
  public:
-  CvWaitStrategy(Deadline deadline, std::shared_ptr<WaitList> waiters,
-                 TaskContext& current, std::unique_lock<MutexType>& mutex_lock)
+  CvWaitStrategy(Deadline deadline, WaitList& waiters, TaskContext& current,
+                 std::unique_lock<MutexType>& mutex_lock)
       : WaitStrategy(deadline),
-        waiters_(std::move(waiters)),
-        waiter_token_(*waiters_),
-        lock_(*waiters_),
+        waiters_(waiters),
+        waiter_token_(waiters_),
+        lock_(waiters_),
         current_(current),
         mutex_lock_(mutex_lock) {}
 
   void AfterAsleep() override {
     UASSERT(&current_ == current_task::GetCurrentTaskContext());
-    waiters_->Append(lock_, &current_);
+    waiters_.Append(lock_, &current_);
     lock_.Release();
     mutex_lock_.unlock();
   }
@@ -37,10 +37,10 @@ class CvWaitStrategy final : public WaitStrategy {
     mutex_lock_.lock();
   }
 
-  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+  WaitListBase* GetWaitList() override { return &waiters_; }
 
  private:
-  const std::shared_ptr<WaitList> waiters_;
+  WaitList& waiters_;
   const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock lock_;
   TaskContext& current_;
@@ -53,9 +53,9 @@ class ConditionVariableAny {
   ConditionVariableAny();
 
   ConditionVariableAny(const ConditionVariableAny&) = delete;
-  ConditionVariableAny(ConditionVariableAny&&) noexcept = default;
+  ConditionVariableAny(ConditionVariableAny&&) = delete;
   ConditionVariableAny& operator=(const ConditionVariableAny&) = delete;
-  ConditionVariableAny& operator=(ConditionVariableAny&&) noexcept = default;
+  ConditionVariableAny& operator=(ConditionVariableAny&&) = delete;
 
   [[nodiscard]] CvStatus Wait(std::unique_lock<MutexType>&);
 
@@ -71,12 +71,11 @@ class ConditionVariableAny {
   void NotifyAll();
 
  private:
-  std::shared_ptr<WaitList> waiters_;
+  WaitList waiters_;
 };
 
 template <typename MutexType>
-ConditionVariableAny<MutexType>::ConditionVariableAny()
-    : waiters_(std::make_shared<WaitList>()) {}
+ConditionVariableAny<MutexType>::ConditionVariableAny() : waiters_() {}
 
 template <typename MutexType>
 CvStatus ConditionVariableAny<MutexType>::Wait(
@@ -139,17 +138,17 @@ bool ConditionVariableAny<MutexType>::WaitUntil(
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyOne() {
-  if (waiters_->GetCountOfSleepies()) {
-    WaitList::Lock lock(*waiters_);
-    waiters_->WakeupOne(lock);
+  if (waiters_.GetCountOfSleepies()) {
+    WaitList::Lock lock(waiters_);
+    waiters_.WakeupOne(lock);
   }
 }
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyAll() {
-  if (waiters_->GetCountOfSleepies()) {
-    WaitList::Lock lock(*waiters_);
-    waiters_->WakeupAll(lock);
+  if (waiters_.GetCountOfSleepies()) {
+    WaitList::Lock lock(waiters_);
+    waiters_.WakeupAll(lock);
   }
 }
 

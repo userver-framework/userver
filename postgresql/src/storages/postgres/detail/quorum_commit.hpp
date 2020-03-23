@@ -32,10 +32,10 @@ class QuorumCommitCluster {
   struct Impl;
   // MAC_COMPAT
 #ifdef _LIBCPP_VERSION
-  static constexpr std::size_t kImplSize = 632;
+  static constexpr std::size_t kImplSize = 944;
   static constexpr std::size_t kImplAlign = 16;
 #else
-  static constexpr std::size_t kImplSize = 616;
+  static constexpr std::size_t kImplSize = 832;
   static constexpr std::size_t kImplAlign = 8;
 #endif
   ::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;

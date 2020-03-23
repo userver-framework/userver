@@ -6,13 +6,10 @@
 #include <shared_mutex>  // for std locks
 
 #include <engine/deadline.hpp>
+#include <engine/wait_list_fwd.hpp>
 #include <utils/assert.hpp>
 
 namespace engine {
-
-namespace impl {
-class WaitList;
-}  // namespace impl
 
 /// Class that allows `max_simultaneous_locks` concurrent accesses to the
 /// critical section.
@@ -64,7 +61,7 @@ class Semaphore final {
   bool LockFastPath(Counter count);
   bool LockSlowPath(Deadline, Counter count);
 
-  std::shared_ptr<impl::WaitList> lock_waiters_;
+  impl::FastPimplWaitList lock_waiters_;
   std::atomic<Counter> remaining_simultaneous_locks_;
   [[maybe_unused]] const Counter max_simultaneous_locks_;
   bool is_multi_;

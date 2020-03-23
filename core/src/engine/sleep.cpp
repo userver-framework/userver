@@ -16,7 +16,7 @@ class CommonSleepWaitStrategy final : public WaitStrategy {
 
   void BeforeAwake() override {}
 
-  std::shared_ptr<WaitListBase> GetWaitList() override { return {}; }
+  WaitListBase* GetWaitList() override { return {}; }
 };
 }  // namespace
 }  // namespace impl

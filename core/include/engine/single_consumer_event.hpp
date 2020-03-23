@@ -7,14 +7,9 @@
 #include <memory>
 
 #include <engine/deadline.hpp>
+#include <engine/wait_list_fwd.hpp>
 
 namespace engine {
-namespace impl {
-
-class TaskContext;
-class WaitListLight;
-
-}  // namespace impl
 
 /// Event for a single awaiter, multiple signal coroutines
 class SingleConsumerEvent final {
@@ -48,7 +43,7 @@ class SingleConsumerEvent final {
   void Send();
 
  private:
-  std::shared_ptr<impl::WaitListLight> lock_waiters_;
+  impl::FastPimplWaitListLight lock_waiters_;
   std::atomic<bool> is_signaled_;
 };
 

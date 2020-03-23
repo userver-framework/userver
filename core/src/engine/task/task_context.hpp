@@ -17,7 +17,8 @@
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
 #include <engine/task/task_counter.hpp>
-#include <engine/wait_list_light.hpp>
+#include <engine/wait_list_base.hpp>
+#include <engine/wait_list_fwd.hpp>
 #include <utils/flags.hpp>
 
 namespace engine {
@@ -44,7 +45,7 @@ class WaitStrategy {
 
   Deadline GetDeadline() const { return deadline_; }
 
-  virtual std::shared_ptr<WaitListBase> GetWaitList() = 0;
+  virtual WaitListBase* GetWaitList() = 0;
 
  protected:
   WaitStrategy(Deadline deadline) : deadline_(deadline) {}
@@ -191,7 +192,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   std::atomic<bool> is_detached_;
   bool is_cancellable_;
   std::atomic<Task::CancellationReason> cancellation_reason_;
-  std::shared_ptr<WaitListLight> finish_waiters_;
+  mutable FastPimplWaitListLight finish_waiters_;
 
   // () if not defined
   std::chrono::steady_clock::time_point task_queue_wait_timepoint_;

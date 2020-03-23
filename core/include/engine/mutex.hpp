@@ -9,14 +9,9 @@
 #include <mutex>  // for std locks
 
 #include <engine/deadline.hpp>
+#include <engine/wait_list_fwd.hpp>
 
 namespace engine {
-namespace impl {
-
-class TaskContext;
-class WaitList;
-
-}  // namespace impl
 
 /// std::mutex replacement for asynchronous tasks
 class Mutex final {
@@ -46,7 +41,7 @@ class Mutex final {
   bool LockSlowPath(impl::TaskContext*, Deadline);
 
   std::atomic<impl::TaskContext*> owner_;
-  const std::shared_ptr<impl::WaitList> lock_waiters_;
+  impl::FastPimplWaitList lock_waiters_;
 };
 
 template <typename Rep, typename Period>

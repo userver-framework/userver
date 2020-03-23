@@ -12,6 +12,7 @@
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
+#include <engine/wait_list_light.hpp>
 
 namespace engine {
 namespace current_task {
@@ -109,7 +110,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_detached_(false),
       is_cancellable_(true),
       cancellation_reason_(Task::CancellationReason::kNone),
-      finish_waiters_(std::make_shared<WaitListLight>()),
+      finish_waiters_(),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_manager_(nullptr),
       sleep_state_(SleepStateFlags::kSleeping),
@@ -146,24 +147,24 @@ namespace impl {
 
 class LockedWaitStrategy final : public WaitStrategy {
  public:
-  LockedWaitStrategy(Deadline deadline, std::shared_ptr<WaitListLight> waiters,
+  LockedWaitStrategy(Deadline deadline, WaitListLight& waiters,
                      TaskContext& current, const TaskContext& target)
       : WaitStrategy(deadline),
-        waiters_(std::move(waiters)),
+        waiters_(waiters),
         current_(current),
         target_(target) {}
 
   void AfterAsleep() override {
-    waiters_->Append(lock_, &current_);
-    if (target_.IsFinished()) waiters_->WakeupOne(lock_);
+    waiters_.Append(lock_, &current_);
+    if (target_.IsFinished()) waiters_.WakeupOne(lock_);
   }
 
   void BeforeAwake() override {}
 
-  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+  WaitListBase* GetWaitList() override { return &waiters_; }
 
  private:
-  const std::shared_ptr<WaitListLight> waiters_;
+  WaitListLight& waiters_;
   WaitListLight::Lock lock_;
   TaskContext& current_;
   const TaskContext& target_;
@@ -182,7 +183,7 @@ void TaskContext::WaitUntil(Deadline deadline) const {
     throw WaitInterruptedException(current->cancellation_reason_);
   }
 
-  impl::LockedWaitStrategy wait_manager(deadline, finish_waiters_, *current,
+  impl::LockedWaitStrategy wait_manager(deadline, *finish_waiters_, *current,
                                         *this);
   current->Sleep(&wait_manager);
 

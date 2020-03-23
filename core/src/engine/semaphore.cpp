@@ -2,6 +2,7 @@
 
 #include <engine/task/cancel.hpp>
 #include "task/task_context.hpp"
+#include "wait_list.hpp"
 
 namespace engine {
 
@@ -9,27 +10,27 @@ namespace impl {
 namespace {
 class SemaphoreWaitPolicy final : public WaitStrategy {
  public:
-  SemaphoreWaitPolicy(const std::shared_ptr<impl::WaitList>& waiters,
-                      TaskContext* current, Deadline deadline)
+  SemaphoreWaitPolicy(impl::WaitList& waiters, TaskContext* current,
+                      Deadline deadline)
       : WaitStrategy(deadline),
         waiters_(waiters),
         current_(current),
-        waiter_token_(*waiters_),
-        lock_{*waiters_} {
+        waiter_token_(waiters_),
+        lock_{waiters_} {
     UASSERT(current_);
   }
 
   void AfterAsleep() override {
-    waiters_->Append(lock_, current_);
+    waiters_.Append(lock_, current_);
     lock_.Release();
   }
 
   void BeforeAwake() override { lock_.Acquire(); }
 
-  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+  WaitListBase* GetWaitList() override { return &waiters_; }
 
  private:
-  const std::shared_ptr<impl::WaitList>& waiters_;
+  impl::WaitList& waiters_;
   TaskContext* const current_;
   const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock lock_;
@@ -38,7 +39,7 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
 }  // namespace impl
 
 Semaphore::Semaphore(Counter max_simultaneous_locks)
-    : lock_waiters_(std::make_shared<impl::WaitList>()),
+    : lock_waiters_(),
       remaining_simultaneous_locks_(max_simultaneous_locks),
       max_simultaneous_locks_(max_simultaneous_locks),
       is_multi_(false) {
@@ -77,7 +78,7 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
   LOG_TRACE() << "trying slow path";
 
   auto* current = current_task::GetCurrentTaskContext();
-  impl::SemaphoreWaitPolicy wait_manager(lock_waiters_, current, deadline);
+  impl::SemaphoreWaitPolicy wait_manager(*lock_waiters_, current, deadline);
 
   auto expected = remaining_simultaneous_locks_.load(std::memory_order_relaxed);
   if (expected < count) expected = count;

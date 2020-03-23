@@ -9,25 +9,25 @@ namespace impl {
 namespace {
 class EventWaitStrategy final : public WaitStrategy {
  public:
-  EventWaitStrategy(std::shared_ptr<impl::WaitListLight> waiters,
+  EventWaitStrategy(impl::WaitListLight& waiters,
                     const std::atomic<bool>& signaled, TaskContext* current,
                     Deadline deadline)
       : WaitStrategy(deadline),
-        waiters_(std::move(waiters)),
+        waiters_(waiters),
         is_signaled_(signaled),
         current_(current) {}
 
   void AfterAsleep() override {
-    waiters_->Append(lock_, current_);
-    if (is_signaled_) waiters_->WakeupOne(lock_);
+    waiters_.Append(lock_, current_);
+    if (is_signaled_) waiters_.WakeupOne(lock_);
   }
 
   void BeforeAwake() override {}
 
-  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+  WaitListBase* GetWaitList() override { return &waiters_; }
 
  private:
-  std::shared_ptr<impl::WaitListLight> waiters_;
+  impl::WaitListLight& waiters_;
   const std::atomic<bool>& is_signaled_;
   TaskContext* const current_;
   WaitListLight::Lock lock_;
@@ -36,8 +36,7 @@ class EventWaitStrategy final : public WaitStrategy {
 }  // namespace impl
 
 SingleConsumerEvent::SingleConsumerEvent()
-    : lock_waiters_(std::make_shared<impl::WaitListLight>()),
-      is_signaled_(false) {}
+    : lock_waiters_(), is_signaled_(false) {}
 
 SingleConsumerEvent::~SingleConsumerEvent() = default;
 
@@ -46,18 +45,22 @@ bool SingleConsumerEvent::WaitForEvent() {
 }
 
 bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
+  if (is_signaled_.exchange(false, std::memory_order_acquire)) {
+    return true;  // optimistic path
+  }
+
   impl::TaskContext* const current = current_task::GetCurrentTaskContext();
   if (current->ShouldCancel())
-    return is_signaled_.exchange(false, std::memory_order_acquire);
+    return is_signaled_.exchange(false, std::memory_order_relaxed);
 
   LOG_TRACE() << "WaitForEvent()";
   lock_waiters_->PinToCurrentTask();
-  impl::EventWaitStrategy wait_manager(lock_waiters_, is_signaled_, current,
+  impl::EventWaitStrategy wait_manager(*lock_waiters_, is_signaled_, current,
                                        deadline);
 
   bool was_signaled = false;
   while (!(was_signaled =
-               is_signaled_.exchange(false, std::memory_order_acquire)) &&
+               is_signaled_.exchange(false, std::memory_order_relaxed)) &&
          !current->ShouldCancel()) {
     LOG_TRACE() << "iteration()";
     current->Sleep(&wait_manager);

@@ -10,25 +10,24 @@ namespace impl {
 namespace {
 class MutexWaitStrategy final : public WaitStrategy {
  public:
-  MutexWaitStrategy(const std::shared_ptr<WaitList>& waiters,
-                    TaskContext* current, Deadline deadline)
+  MutexWaitStrategy(WaitList& waiters, TaskContext* current, Deadline deadline)
       : WaitStrategy(deadline),
         waiters_(waiters),
         current_(current),
-        waiter_token_(*waiters),
-        lock_(*waiters) {}
+        waiter_token_(waiters),
+        lock_(waiters) {}
 
   void AfterAsleep() override {
-    waiters_->Append(lock_, current_);
+    waiters_.Append(lock_, current_);
     lock_.Release();
   }
 
   void BeforeAwake() override { lock_.Acquire(); }
 
-  std::shared_ptr<WaitListBase> GetWaitList() override { return waiters_; }
+  WaitListBase* GetWaitList() override { return &waiters_; }
 
  private:
-  const std::shared_ptr<WaitList>& waiters_;
+  WaitList& waiters_;
   TaskContext* const current_;
   const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock lock_;
@@ -36,8 +35,7 @@ class MutexWaitStrategy final : public WaitStrategy {
 }  // namespace
 }  // namespace impl
 
-Mutex::Mutex()
-    : owner_(nullptr), lock_waiters_(std::make_shared<impl::WaitList>()) {}
+Mutex::Mutex() : owner_(nullptr), lock_waiters_() {}
 
 Mutex::~Mutex() { UASSERT(!owner_); }
 
@@ -50,7 +48,7 @@ bool Mutex::LockFastPath(impl::TaskContext* current) {
 bool Mutex::LockSlowPath(impl::TaskContext* current, Deadline deadline) {
   impl::TaskContext* expected = nullptr;
 
-  impl::MutexWaitStrategy wait_manager(lock_waiters_, current, deadline);
+  impl::MutexWaitStrategy wait_manager(*lock_waiters_, current, deadline);
   while (!owner_.compare_exchange_strong(expected, current,
                                          std::memory_order_relaxed)) {
     if (expected == current) {

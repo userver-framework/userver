@@ -13,6 +13,7 @@
 #include <utils/check_syscall.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <engine/wait_list.hpp>
 #include <utils/assert.hpp>
 
 namespace engine::io::impl {
@@ -57,18 +58,17 @@ std::string ToString(Direction::Kind direction_kind) {
 
 class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
  public:
-  DirectionWaitStrategy(Deadline deadline,
-                        std::shared_ptr<engine::impl::WaitList> waiters,
+  DirectionWaitStrategy(Deadline deadline, engine::impl::WaitList& waiters,
                         ev::Watcher<ev_io>& watcher,
                         engine::impl::TaskContext* current)
       : WaitStrategy(deadline),
-        waiters_(std::move(waiters)),
-        lock_(*waiters_),
+        waiters_(waiters),
+        lock_(waiters_),
         watcher_(watcher),
         current_(current) {}
 
   void AfterAsleep() override {
-    waiters_->Append(lock_, current_);
+    waiters_.Append(lock_, current_);
     lock_.Release();
 
     watcher_.StartAsync();
@@ -76,19 +76,17 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
 
   void BeforeAwake() override {
     // we need to stop watcher manually to avoid racy wakeups later
-    engine::impl::WaitList::Lock lock(*waiters_);
-    if (waiters_->IsEmpty(lock)) {
+    engine::impl::WaitList::Lock lock(waiters_);
+    if (waiters_.IsEmpty(lock)) {
       // locked queueing to avoid race w/ StartAsync in wait strategy
       watcher_.StopAsync();
     }
   }
 
-  std::shared_ptr<engine::impl::WaitListBase> GetWaitList() override {
-    return waiters_;
-  }
+  engine::impl::WaitListBase* GetWaitList() override { return &waiters_; }
 
  private:
-  const std::shared_ptr<engine::impl::WaitList> waiters_;
+  engine::impl::WaitList& waiters_;
   engine::impl::WaitList::Lock lock_;
   ev::Watcher<ev_io>& watcher_;
   engine::impl::TaskContext* const current_;
@@ -100,7 +98,7 @@ Direction::Direction(Kind kind)
     : fd_(-1),
       kind_(kind),
       is_valid_(false),
-      waiters_(std::make_shared<engine::impl::WaitList>()),
+      waiters_(),
       watcher_(current_task::GetEventThread(), this) {
   watcher_.Init(&IoWatcherCb);
 }
@@ -116,7 +114,7 @@ bool Direction::Wait(Deadline deadline) {
     throw IoCancelled() << "Wait " << ToString(kind_) << "able";
   }
 
-  impl::DirectionWaitStrategy wait_manager(deadline, waiters_, watcher_,
+  impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
                                            current);
   current->Sleep(&wait_manager);
 

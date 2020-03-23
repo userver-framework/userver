@@ -13,7 +13,7 @@
 
 #include <engine/ev/watcher.hpp>
 #include <engine/task/task_context.hpp>
-#include <engine/wait_list.hpp>
+#include <engine/wait_list_fwd.hpp>
 
 namespace engine {
 namespace io {
@@ -75,7 +75,7 @@ class Direction final {
   const Kind kind_;
   std::atomic<bool> is_valid_;
   Mutex mutex_;
-  std::shared_ptr<engine::impl::WaitList> waiters_;
+  engine::impl::FastPimplWaitList waiters_;
   ev::Watcher<ev_io> watcher_;
 };
 
