@@ -107,7 +107,7 @@ class CachingComponentBase
   }
 
   /// Whether Get() is expected to return nullptr.
-  /// If MayReturnNull() returns true, Get() throws an exception instead of
+  /// If MayReturnNull() returns false, Get() throws an exception instead of
   /// returning nullptr.
   virtual bool MayReturnNull() const;
 
