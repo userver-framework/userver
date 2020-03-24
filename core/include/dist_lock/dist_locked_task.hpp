@@ -44,18 +44,21 @@ class DistLockedTask final : public engine::Task {
   /// and is cancelled when the lock is lost.
   /// @param settings distributed lock settings
   /// @param strategy distributed locking strategy
+  /// @param mode distributed lock waiting mode
   /// @note `worker_func` must honour task cancellation and stop ASAP when
   /// it is cancelled, otherwise brain split is possible (IOW, two different
   /// users do work assuming both of them hold the lock, which is not true).
   DistLockedTask(std::string name, WorkerFunc worker_func,
                  std::shared_ptr<DistLockStrategyBase> strategy,
-                 const DistLockSettings& settings = {});
+                 const DistLockSettings& settings = {},
+                 DistLockWaitingMode mode = DistLockWaitingMode::kWait);
 
   /// Creates a DistLockedTask to be run in a specific engine::TaskProcessor
   DistLockedTask(engine::TaskProcessor& task_processor, std::string name,
                  WorkerFunc worker_func,
                  std::shared_ptr<DistLockStrategyBase> strategy,
-                 const DistLockSettings& settings = {});
+                 const DistLockSettings& settings = {},
+                 DistLockWaitingMode mode = DistLockWaitingMode::kWait);
 
   /// Returns for how long the lock is held (if held at all). Returned value
   /// may be less than the real duration.
@@ -63,7 +66,8 @@ class DistLockedTask final : public engine::Task {
       const;
 
  private:
-  DistLockedTask(engine::TaskProcessor&, std::shared_ptr<impl::Locker>);
+  DistLockedTask(engine::TaskProcessor&, std::shared_ptr<impl::Locker>,
+                 DistLockWaitingMode);
 
   std::shared_ptr<impl::Locker> locker_ptr_;
 };

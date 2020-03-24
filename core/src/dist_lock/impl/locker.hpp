@@ -33,7 +33,7 @@ class Locker final {
 
   const Statistics& GetStatistics() const;
 
-  void Run(LockerMode);
+  void Run(LockerMode, dist_lock::DistLockWaitingMode);
 
  private:
   class LockGuard;

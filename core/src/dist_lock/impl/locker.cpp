@@ -71,7 +71,7 @@ boost::optional<std::chrono::steady_clock::duration> Locker::GetLockedDuration()
 
 const Statistics& Locker::GetStatistics() const { return stats_; }
 
-void Locker::Run(LockerMode mode) {
+void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode) {
   tracing::Span span(LockerName(name_));
   LockGuard lock_guard(*this);
   engine::TaskWithResult<void> watchdog_task;
@@ -107,6 +107,7 @@ void Locker::Run(LockerMode mode) {
         LOG_DEBUG() << "Terminated watchdog task";
         ExchangeLockState(false, utils::datetime::SteadyNow());
       }
+      if (waiting_mode == dist_lock::DistLockWaitingMode::kNoWait) break;
     } catch (const std::exception& ex) {
       stats_.failures++;
       LOG_WARNING() << "Lock acquisition failed: " << ex;
@@ -178,8 +179,8 @@ void Locker::RunWatchdog() {
       break;
     } else {
       LOG_DEBUG() << "Watchdog found a valid locked timepoint ("
-                  << deadline.time_since_epoch().count() << " < "
-                  << now.time_since_epoch().count() << ")";
+                  << now.time_since_epoch().count() << " < "
+                  << deadline.time_since_epoch().count() << ")";
     }
 
     try {

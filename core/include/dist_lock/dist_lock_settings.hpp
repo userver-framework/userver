@@ -27,4 +27,10 @@ struct DistLockSettings {
   std::chrono::milliseconds worker_func_restart_delay{100};
 };
 
+/// Distributed lock waiting mode
+enum class DistLockWaitingMode {
+  kWait,    ///< waits until distlock becomes free
+  kNoWait,  ///< doesn't wait for distlock if it is occupied
+};
+
 }  // namespace dist_lock

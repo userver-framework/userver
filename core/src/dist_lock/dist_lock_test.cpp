@@ -284,3 +284,51 @@ TEST(LockedTask, Fail) {
       },
       3);
 }
+
+TEST(LockedTask, NoWait) {
+  RunInCoro(
+      [] {
+        auto settings = MakeSettings();
+
+        auto strategy = MakeMockStrategy();
+        strategy->LockedByOther(true);
+
+        DistLockWorkload work(true);
+        dist_lock::DistLockedTask locked_task(
+            kWorkerName, [&] { work.Work(); }, strategy, settings,
+            dist_lock::DistLockWaitingMode::kNoWait);
+
+        engine::InterruptibleSleepFor(3 * settings.prolong_interval);
+
+        EXPECT_EQ(1, strategy->GetAttemptsCount());
+
+        EXPECT_TRUE(locked_task.IsFinished());
+        EXPECT_EQ(0u, work.GetStartedWorkCount());
+        EXPECT_EQ(0u, work.GetFinishedWorkCount());
+      },
+      3);
+}
+
+TEST(LockedTask, NoWaitAquire) {
+  RunInCoro(
+      [] {
+        auto strategy = MakeMockStrategy();
+        DistLockWorkload work;
+
+        EXPECT_EQ(0u, work.GetFinishedWorkCount());
+        strategy->Allow(true);
+
+        dist_lock::DistLockedTask locked_task(
+            kWorkerName, [&] { work.Work(); }, strategy, MakeSettings(),
+            dist_lock::DistLockWaitingMode::kNoWait);
+
+        EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
+
+        work.SetWorkLoopOn(false);
+        locked_task.WaitFor(kMaxTestWaitTime);
+
+        EXPECT_TRUE(locked_task.GetState() == engine::Task::State::kCompleted);
+        EXPECT_EQ(1u, work.GetFinishedWorkCount());
+      },
+      3);
+}
