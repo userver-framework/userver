@@ -9,17 +9,19 @@ TEST(ConcurrentVariable, Ctr) {
 
 TEST(ConcurrentVariable, UniqueLock) {
   RunInCoro([] {
-    concurrent::Variable<int> variable{42};
+    concurrent::Variable<int> variable{41};
     auto lock = variable.UniqueLock();
+    *lock = 42;
     ASSERT_EQ(*lock, 42);
   });
 }
 
 TEST(ConcurrentVariable, UniqueLockTry) {
   RunInCoro([] {
-    concurrent::Variable<int> variable{42};
+    concurrent::Variable<int> variable{41};
     auto lock = variable.UniqueLock(std::try_to_lock);
     ASSERT_TRUE(lock);
+    **lock = 42;
     ASSERT_EQ(**lock, 42);
 
     auto lock2 = variable.UniqueLock(std::try_to_lock);
@@ -29,7 +31,36 @@ TEST(ConcurrentVariable, UniqueLockTry) {
 
 TEST(ConcurrentVariable, UniqueLockWaitTimeout) {
   RunInCoro([] {
-    concurrent::Variable<int> variable{42};
+    concurrent::Variable<int> variable{41};
+    auto lock = variable.UniqueLock(std::try_to_lock);
+    ASSERT_TRUE(lock);
+    **lock = 42;
+    ASSERT_EQ(**lock, 42);
+
+    auto task = utils::Async("test", [&variable] {
+      auto lock2 = variable.UniqueLock(std::chrono::milliseconds(1));
+      ASSERT_FALSE(lock2);
+    });
+
+    task.Get();
+  });
+}
+
+TEST(ConcurrentVariable, UniqueLockTryConst) {
+  RunInCoro([] {
+    const concurrent::Variable<int> variable{42};
+    auto lock = variable.UniqueLock(std::try_to_lock);
+    ASSERT_TRUE(lock);
+    ASSERT_EQ(**lock, 42);
+
+    auto lock2 = variable.UniqueLock(std::try_to_lock);
+    ASSERT_FALSE(lock2);
+  });
+}
+
+TEST(ConcurrentVariable, UniqueLockWaitTimeoutConst) {
+  RunInCoro([] {
+    const concurrent::Variable<int> variable{42};
     auto lock = variable.UniqueLock(std::try_to_lock);
     ASSERT_TRUE(lock);
     ASSERT_EQ(**lock, 42);

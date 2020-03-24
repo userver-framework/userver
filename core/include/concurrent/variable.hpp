@@ -59,24 +59,22 @@ class Variable final {
 
   std::optional<LockedPtr<std::unique_lock<Mutex>, const Data>> UniqueLock(
       std::try_to_lock_t) const {
-    std::unique_lock<Mutex> lock(mutex_, std::try_to_lock);
-    if (lock) {
-      return LockedPtr<std::unique_lock<Mutex>, const Data>{std::move(lock),
-                                                            data_};
-    } else {
-      return std::nullopt;
-    }
+    return DoUniqueLock(*this, std::try_to_lock);
+  }
+
+  std::optional<LockedPtr<std::unique_lock<Mutex>, Data>> UniqueLock(
+      std::try_to_lock_t) {
+    return DoUniqueLock(*this, std::try_to_lock);
   }
 
   std::optional<LockedPtr<std::unique_lock<Mutex>, const Data>> UniqueLock(
       std::chrono::milliseconds try_duration) const {
-    std::unique_lock<Mutex> lock(mutex_, try_duration);
-    if (lock) {
-      return LockedPtr<std::unique_lock<Mutex>, const Data>{std::move(lock),
-                                                            data_};
-    } else {
-      return std::nullopt;
-    }
+    return DoUniqueLock(*this, try_duration);
+  }
+
+  std::optional<LockedPtr<std::unique_lock<Mutex>, Data>> UniqueLock(
+      std::chrono::milliseconds try_duration) {
+    return DoUniqueLock(*this, try_duration);
   }
 
   LockedPtr<std::shared_lock<Mutex>, const Data> SharedLock() const {
@@ -104,6 +102,20 @@ class Variable final {
  private:
   mutable Mutex mutex_;
   Data data_;
+
+  /// We need this function to work around const/non-const methods. This
+  /// helper accepts concurrent variables as template parameter and thus
+  /// will accept both const and non-const vars. And Data typename will
+  /// resolve to const/non-const accordingly.
+  template <typename VariableType, typename... StdUniqueLockArgs>
+  static auto DoUniqueLock(VariableType& concurrent_variable,
+                           StdUniqueLockArgs&&... args) {
+    std::unique_lock<Mutex> lock(concurrent_variable.mutex_,
+                                 std::forward<StdUniqueLockArgs>(args)...);
+    return lock ? std::optional{LockedPtr{std::move(lock),
+                                          concurrent_variable.data_}}
+                : std::nullopt;
+  }
 };
 
 }  // namespace concurrent
