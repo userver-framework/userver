@@ -607,8 +607,11 @@ native::curl_socket_t easy::opensocket(void* clientp,
 
   if (multi_handle) {
     bool is_https = boost::algorithm::istarts_with(self->url_, "https:");
-    if ((is_https && !multi_handle->MayAcquireConnectionHttps(self->url_)) ||
-        (!is_https && !multi_handle->MayAcquireConnectionHttp(self->url_))) {
+    if ((is_https && !multi_handle->MayAcquireConnectionHttps(self->url_))
+        // TODO: https://st.yandex-team.ru/TAXICOMMON-2004
+        // || (!is_https &&
+        // !multi_handle->MayAcquireConnectionHttp(self->url_))
+    ) {
       multi_handle->Statistics().mark_socket_ratelimited();
       return CURL_SOCKET_BAD;
     } else {
