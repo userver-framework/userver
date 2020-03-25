@@ -20,6 +20,12 @@
 
 namespace logging {
 
+namespace impl {
+
+struct Noop {};
+
+}  // namespace impl
+
 /// Returns default logger
 LoggerPtr DefaultLogger();
 
@@ -105,6 +111,11 @@ class LogHelper final {
 
   /// Outputs value in a hex mode with the fixed length representation.
   void PutHex(const void* value);
+
+  /// @cond
+  // For internal use only!
+  operator impl::Noop() const noexcept { return {}; }
+  /// @endcond
 
  private:
   enum class Encode { kNone, kValue, kKeyReplacePeriod };
@@ -200,10 +211,9 @@ void LogFlush();
 /// if lvl matches the verbosity, otherwise the message is not evaluated
 /// @hideinitializer
 #define LOG_TO(logger, lvl)                                                   \
-  for (bool logging_internal_should_log_variable = ::logging::ShouldLog(lvl); \
-       logging_internal_should_log_variable;                                  \
-       logging_internal_should_log_variable = false)                          \
-  DO_LOG_TO(logger, lvl)
+  __builtin_expect(!::logging::ShouldLog(lvl), lvl < ::logging::Level::kInfo) \
+      ? ::logging::impl::Noop{}                                               \
+      : DO_LOG_TO(logger, lvl)
 
 #define LOG(lvl) LOG_TO(::logging::DefaultLogger(), lvl)
 
