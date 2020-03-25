@@ -77,19 +77,49 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
 
 namespace components {
 
+Manager::TaskProcessorsStorage::TaskProcessorsStorage(
+    std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools)
+    : task_processor_pools_(std::move(task_processor_pools)) {}
+
+Manager::TaskProcessorsStorage::~TaskProcessorsStorage() {
+  if (task_processor_pools_) Reset();
+}
+
+void Manager::TaskProcessorsStorage::Reset() noexcept {
+  LOG_TRACE() << "Initiating task processors shutdown";
+  for (auto& [name, task_processor] : task_processors_map_) {
+    task_processor->InitiateShutdown();
+  }
+  LOG_TRACE() << "Waiting for all coroutines to become idle";
+  while (task_processor_pools_->GetCoroPool().GetStats().active_coroutines) {
+    std::this_thread::sleep_for(std::chrono::milliseconds{10});
+  }
+  LOG_TRACE() << "Stopping task processors";
+  task_processors_map_.clear();
+  LOG_TRACE() << "Stopped task processors";
+  LOG_TRACE() << "Stopping task processor pools";
+  UASSERT(task_processor_pools_.use_count() == 1);
+  task_processor_pools_.reset();
+  LOG_TRACE() << "Stopped task processor pools";
+}
+
+void Manager::TaskProcessorsStorage::Add(
+    std::string name, std::unique_ptr<engine::TaskProcessor>&& task_processor) {
+  task_processors_map_.emplace(std::move(name), std::move(task_processor));
+}
+
 Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
                  const ComponentList& component_list)
     : config_(std::move(config)),
+      task_processors_storage_(
+          std::make_shared<engine::impl::TaskProcessorPools>(
+              config_->coro_pool, config_->event_thread_pool)),
       components_cleared_(false),
       default_task_processor_(nullptr),
       start_time_(std::chrono::steady_clock::now()),
       logging_component_(nullptr),
       load_duration_{0} {
   LOG_INFO() << "Starting components manager";
-
-  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
-  task_processor_pools_ = std::make_shared<engine::impl::TaskProcessorPools>(
-      config_->coro_pool, config_->event_thread_pool);
 
   for (auto processor_config : config_->task_processors) {
     if (processor_config.should_guess_cpu_limit) {
@@ -103,13 +133,16 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
                     << processor_config.name << "), ignoring it";
       }
     }
-    task_processors_map_.emplace(processor_config.name,
-                                 std::make_unique<engine::TaskProcessor>(
-                                     processor_config, task_processor_pools_));
+    task_processors_storage_.Add(
+        processor_config.name,
+        std::make_unique<engine::TaskProcessor>(
+            processor_config,
+            task_processors_storage_.GetTaskProcessorPools()));
   }
+  const auto& task_processors_map = task_processors_storage_.GetMap();
   const auto default_task_processor_it =
-      task_processors_map_.find(config_->default_task_processor);
-  if (default_task_processor_it == task_processors_map_.end()) {
+      task_processors_map.find(config_->default_task_processor);
+  if (default_task_processor_it == task_processors_map.end()) {
     throw std::runtime_error(
         "Cannot start components manager: missing default task processor");
   }
@@ -131,21 +164,7 @@ Manager::~Manager() {
   }
   component_context_.reset();
   LOG_TRACE() << "Stopped component context";
-  LOG_TRACE() << "Initiating task processors shutdown";
-  for (auto& [name, task_processor] : task_processors_map_) {
-    task_processor->InitiateShutdown();
-  }
-  LOG_TRACE() << "Waiting for all coroutines to become idle";
-  while (task_processor_pools_->GetCoroPool().GetStats().active_coroutines) {
-    std::this_thread::sleep_for(std::chrono::milliseconds{10});
-  }
-  LOG_TRACE() << "Stopping task processors";
-  task_processors_map_.clear();
-  LOG_TRACE() << "Stopped task processors";
-  LOG_TRACE() << "Stopping task processor pools";
-  UASSERT(task_processor_pools_.use_count() == 1);
-  task_processor_pools_.reset();
-  LOG_TRACE() << "Stopped task processor_pools";
+  task_processors_storage_.Reset();
   LOG_INFO() << "Stopped components manager";
 }
 
@@ -153,11 +172,11 @@ const ManagerConfig& Manager::GetConfig() const { return *config_; }
 
 const std::shared_ptr<engine::impl::TaskProcessorPools>&
 Manager::GetTaskProcessorPools() const {
-  return task_processor_pools_;
+  return task_processors_storage_.GetTaskProcessorPools();
 }
 
 const Manager::TaskProcessorsMap& Manager::GetTaskProcessorsMap() const {
-  return task_processors_map_;
+  return task_processors_storage_.GetMap();
 }
 
 void Manager::OnLogRotate() {

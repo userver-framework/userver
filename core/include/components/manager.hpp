@@ -64,6 +64,30 @@ class Manager final {
   std::chrono::milliseconds GetLoadDuration() const;
 
  private:
+  class TaskProcessorsStorage {
+   public:
+    explicit TaskProcessorsStorage(
+        std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools);
+    ~TaskProcessorsStorage();
+
+    void Reset() noexcept;
+
+    using Map = TaskProcessorsMap;
+
+    const Map& GetMap() const { return task_processors_map_; }
+    const std::shared_ptr<engine::impl::TaskProcessorPools>&
+    GetTaskProcessorPools() const {
+      return task_processor_pools_;
+    }
+
+    void Add(std::string name,
+             std::unique_ptr<engine::TaskProcessor>&& task_processor);
+
+   private:
+    std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools_;
+    Map task_processors_map_;
+  };
+
   void CreateComponentContext(const ComponentList& component_list);
   void AddComponents(const ComponentList& component_list);
   void AddComponentImpl(
@@ -76,8 +100,7 @@ class Manager final {
 
  private:
   std::unique_ptr<const ManagerConfig> config_;
-  std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools_;
-  TaskProcessorsMap task_processors_map_;
+  TaskProcessorsStorage task_processors_storage_;
 
   mutable std::shared_timed_mutex context_mutex_;
   std::unique_ptr<components::ComponentContext> component_context_;
