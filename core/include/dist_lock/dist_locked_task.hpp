@@ -12,7 +12,7 @@
 
 #include <dist_lock/dist_lock_settings.hpp>
 #include <dist_lock/dist_lock_strategy.hpp>
-#include <engine/task/task.hpp>
+#include <engine/task/task_with_result.hpp>
 
 namespace engine {
 
@@ -30,7 +30,7 @@ class Locker;
 /// A task that tries to acquire a distributed lock and runs user callback once
 /// while the lock is held.
 /// @see AlwaysBusyDistLockStrategy
-class DistLockedTask final : public engine::Task {
+class DistLockedTask final : public engine::TaskWithResult<void> {
  public:
   using WorkerFunc = std::function<void()>;
 

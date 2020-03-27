@@ -1,6 +1,6 @@
 #include <dist_lock/dist_locked_task.hpp>
 
-#include <engine/task/task_context_holder.hpp>
+#include <engine/async.hpp>
 
 #include <dist_lock/impl/locker.hpp>
 
@@ -30,8 +30,8 @@ DistLockedTask::DistLockedTask(engine::TaskProcessor& task_processor,
 DistLockedTask::DistLockedTask(engine::TaskProcessor& task_processor,
                                std::shared_ptr<impl::Locker> locker_ptr,
                                DistLockWaitingMode mode)
-    : Task(engine::impl::TaskContextHolder::MakeContext(
-          task_processor, engine::Task::Importance::kNormal,
+    : TaskWithResult(engine::impl::Async(
+          task_processor,
           [locker_ptr, mode] {
             locker_ptr->Run(impl::LockerMode::kOneshot, mode);
           })),
