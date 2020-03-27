@@ -14,8 +14,7 @@
 #include <storages/postgres/postgres_fwd.hpp>
 #include <storages/postgres/result_set.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 /// @page pg_transactions µPg: Transactions
 ///
@@ -138,7 +137,7 @@ class Transaction {
   explicit Transaction(detail::ConnectionPtr&& conn,
                        const TransactionOptions& = RW,
                        OptionalCommandControl trx_cmd_ctl = {},
-                       detail::SteadyClock::time_point&& trx_start_time =
+                       detail::SteadyClock::time_point trx_start_time =
                            detail::SteadyClock::now());
 
   Transaction(Transaction&&) noexcept;
@@ -261,5 +260,4 @@ void Transaction::ExecuteBulk(CommandControl statement_cmd_ctl,
   }
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

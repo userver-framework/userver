@@ -15,7 +15,6 @@
 #include <utils/statistics/storage.hpp>
 
 #include <storages/postgres/database.hpp>
-#include <storages/postgres/dsn.hpp>
 
 namespace engine {
 class TaskProcessor;
@@ -159,10 +158,6 @@ class Postgres : public LoggableComponentBase {
   utils::statistics::Entry statistics_holder_;
 
   std::string db_name_;
-  storages::postgres::PoolSettings pool_settings_;
-  storages::postgres::ConnectionSettings conn_settings_;
-  engine::TaskProcessor* bg_task_processor_ = nullptr;
-  std::vector<storages::postgres::DSNList> cluster_desc_;
   storages::postgres::DatabasePtr database_;
 };
 

@@ -6,9 +6,7 @@
 #include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/exceptions.hpp>
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 namespace {
 
@@ -28,8 +26,6 @@ constexpr const char* kMaintainTaskName = "pg_maintain";
 // Max idle connections that can be dropped in one run of maintenance task
 constexpr auto kIdleDropLimit = 1;
 
-}  // namespace
-
 struct Stopwatch {
   using Accumulator = ::utils::statistics::RecentPeriod<Percentile, Percentile,
                                                         detail::SteadyClock>;
@@ -47,23 +43,27 @@ struct Stopwatch {
   SteadyClock::time_point start_;
 };
 
+}  // namespace
+
+class ConnectionPoolImpl::EmplaceEnabler {};
+
 ConnectionPoolImpl::ConnectionPoolImpl(
-    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-    PoolSettings settings, ConnectionSettings conn_settings,
-    CommandControl default_cmd_ctl,
+    EmplaceEnabler, Dsn dsn, engine::TaskProcessor& bg_task_processor,
+    const PoolSettings& settings, const ConnectionSettings& conn_settings,
+    const CommandControl& default_cmd_ctl,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    const error_injection::Settings& ei_settings)
-    : dsn_{dsn},
+    error_injection::Settings ei_settings)
+    : dsn_{std::move(dsn)},
       settings_{settings},
       conn_settings_{conn_settings},
       bg_task_processor_{bg_task_processor},
-      queue_{settings.max_size},
+      queue_{settings_.max_size},
       size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl},
       testsuite_pg_ctl_{testsuite_pg_ctl},
-      ei_settings_(ei_settings),
-      cancel_limit_{std::max(1UL, settings.max_size / kCancelRatio),
+      ei_settings_(std::move(ei_settings)),
+      cancel_limit_{std::max(1UL, settings_.max_size / kCancelRatio),
                     kCancelPeriod} {}
 
 ConnectionPoolImpl::~ConnectionPoolImpl() {
@@ -72,37 +72,22 @@ ConnectionPoolImpl::~ConnectionPoolImpl() {
 }
 
 std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
-    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-    PoolSettings pool_settings, ConnectionSettings conn_settings,
-    CommandControl default_cmd_ctl,
+    Dsn dsn, engine::TaskProcessor& bg_task_processor,
+    const PoolSettings& pool_settings, const ConnectionSettings& conn_settings,
+    const CommandControl& default_cmd_ctl,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    const error_injection::Settings& ei_settings) {
-  // structure to call constructor of ConnectionPoolImpl that shouldn't be
-  // accessible in public interface
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
-  struct ImplForConstruction : ConnectionPoolImpl {
-    ImplForConstruction(const std::string& dsn,
-                        engine::TaskProcessor& bg_task_processor,
-                        PoolSettings pool_settings,
-                        ConnectionSettings conn_settings,
-                        CommandControl default_cmd_ctl,
-                        const testsuite::PostgresControl& testsuite_pg_ctl,
-                        const error_injection::Settings& ei_settings)
-        : ConnectionPoolImpl(dsn, bg_task_processor, pool_settings,
-                             conn_settings, default_cmd_ctl, testsuite_pg_ctl,
-                             ei_settings) {}
-  };
-
-  auto impl = std::make_shared<ImplForConstruction>(
-      dsn, bg_task_processor, pool_settings, conn_settings, default_cmd_ctl,
-      testsuite_pg_ctl, ei_settings);
+    error_injection::Settings ei_settings) {
+  auto impl = std::make_shared<ConnectionPoolImpl>(
+      EmplaceEnabler{}, std::move(dsn), bg_task_processor, pool_settings,
+      conn_settings, default_cmd_ctl, testsuite_pg_ctl, std::move(ei_settings));
+  // Init() uses shared_from_this for connections and cannot be called from ctor
   impl->Init();
   return impl;
 }
 
 void ConnectionPoolImpl::Init() {
-  if (dsn_.empty()) {
-    throw InvalidConfig("PostgreSQL DSN is empty");
+  if (dsn_.GetUnprotectedRawValue().empty()) {
+    throw InvalidConfig("PostgreSQL Dsn is empty");
   }
 
   if (settings_.min_size > settings_.max_size) {
@@ -259,9 +244,7 @@ Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options,
   auto trx_start_time = detail::SteadyClock::now();
   auto conn = Acquire(deadline);
   UASSERT(conn);
-  return Transaction{std::move(conn), options, trx_cmd_ctl,
-                     // NOLINTNEXTLINE(hicpp-move-const-arg)
-                     std::move(trx_start_time)};
+  return Transaction{std::move(conn), options, trx_cmd_ctl, trx_start_time};
 }
 
 NonTransaction ConnectionPoolImpl::Start(engine::Deadline deadline) {
@@ -364,8 +347,10 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
   {
     std::unique_lock<engine::Mutex> lock{wait_mutex_};
     // Wait for a connection
-    if (conn_available_.WaitUntil(lock, deadline,
-                                  [&] { return queue_.pop(connection); })) {
+    if (conn_available_.WaitUntil(lock, deadline, [&] {
+          // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
+          return queue_.pop(connection);
+        })) {
       return connection;
     }
   }
@@ -465,6 +450,4 @@ void ConnectionPoolImpl::StartMaintainTask() {
 
 void ConnectionPoolImpl::StopMaintainTask() { ping_task_.Stop(); }
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

@@ -15,8 +15,7 @@
 
 #include <libpq-fe.h>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 namespace {
 
@@ -32,13 +31,14 @@ std::vector<std::string> SplitString(const char* str, char delim = ',') {
 using OptionsHandle =
     std::unique_ptr<PQconninfoOption, decltype(&PQconninfoFree)>;
 
-OptionsHandle MakeDSNOptions(const std::string& conninfo) {
+OptionsHandle MakeDSNOptions(const Dsn& dsn) {
   char* errmsg = nullptr;
-  OptionsHandle opts{PQconninfoParse(conninfo.c_str(), &errmsg),
-                     &PQconninfoFree};
+  OptionsHandle opts{
+      PQconninfoParse(dsn.GetUnprotectedRawValue().c_str(), &errmsg),
+      &PQconninfoFree};
 
   if (errmsg) {
-    InvalidDSN err{DsnMaskPassword(conninfo), errmsg};
+    InvalidDSN err{DsnMaskPassword(dsn), errmsg};
     PQfreemem(errmsg);
     throw std::move(err);
   }
@@ -53,11 +53,10 @@ struct HostAndPort {
 };
 
 HostAndPort ParseDSNOptions(
-    const std::string& conninfo,
-    std::function<void(PQconninfoOption*)> other_opt_builder =
-        [](PQconninfoOption*) {}) {
+    const Dsn& dsn, std::function<void(PQconninfoOption*)> other_opt_builder =
+                        [](PQconninfoOption*) {}) {
   HostAndPort hap;
-  auto opts = MakeDSNOptions(conninfo);
+  auto opts = MakeDSNOptions(dsn);
 
   auto opt = opts.get();
   while (opt != nullptr && opt->keyword != nullptr) {
@@ -106,9 +105,9 @@ std::string QuoteOptionValue(const char* value) {
 
 }  // namespace
 
-DSNList SplitByHost(const std::string& conninfo) {
+DsnList SplitByHost(const Dsn& dsn) {
   std::ostringstream options;
-  const auto hap = ParseDSNOptions(conninfo, [&options](PQconninfoOption* opt) {
+  const auto hap = ParseDSNOptions(dsn, [&options](PQconninfoOption* opt) {
     // Ignore target_session_attrs
     if (std::strcmp(opt->keyword, "target_session_attrs") != 0) {
       options << " " << opt->keyword << "=" << QuoteOptionValue(opt->val);
@@ -117,18 +116,18 @@ DSNList SplitByHost(const std::string& conninfo) {
 
   const auto& hosts = hap.hosts;
   const auto& ports = hap.ports;
-  DSNList res;
+  DsnList res;
   if (hosts.empty()) {
     // default host, just return the options string
     if (ports.size() > 1)
-      throw InvalidDSN{DsnMaskPassword(conninfo), "Invalid port options count"};
+      throw InvalidDSN{DsnMaskPassword(dsn), "Invalid port options count"};
     if (!ports.empty()) {
       options << " port=" << ports.front();
     }
-    res.push_back(options.str());
+    res.push_back(Dsn{options.str()});
   } else {
     if (ports.size() > 1 && ports.size() != hosts.size()) {
-      throw InvalidDSN{DsnMaskPassword(conninfo), "Invalid port options count"};
+      throw InvalidDSN{DsnMaskPassword(dsn), "Invalid port options count"};
     }
     for (auto host = hosts.begin(); host != hosts.end(); ++host) {
       std::ostringstream os;
@@ -139,21 +138,20 @@ DSNList SplitByHost(const std::string& conninfo) {
         os << " port=" << ports[host - hosts.begin()];
       }
       os << options.str();
-      res.push_back(os.str());
+      res.push_back(Dsn{os.str()});
     }
   }
 
   return res;
 }
 
-std::string MakeDsnNick(const std::string& conninfo, bool escape) {
+std::string MakeDsnNick(const Dsn& dsn, bool escape) {
   std::map<std::string, std::string> opt_dict{{"host", kPostgreSQLDefaultHost},
                                               {"port", kPostgreSQLDefaultPort}};
 
-  const auto hap =
-      ParseDSNOptions(conninfo, [&opt_dict](PQconninfoOption* opt) {
-        opt_dict[opt->keyword] = opt->val;
-      });
+  const auto hap = ParseDSNOptions(dsn, [&opt_dict](PQconninfoOption* opt) {
+    opt_dict[opt->keyword] = opt->val;
+  });
 
   const auto& hosts = hap.hosts;
   if (!hosts.empty()) opt_dict["host"] = hosts.front();
@@ -187,23 +185,33 @@ std::string MakeDsnNick(const std::string& conninfo, bool escape) {
   return dsn_str;
 }
 
-DsnOptions OptionsFromDsn(const std::string& conninfo) {
+DsnOptions OptionsFromDsn(const Dsn& dsn) {
   DsnOptions options;
-  const auto hap = ParseDSNOptions(conninfo, [&options](PQconninfoOption* opt) {
+  const auto hap = ParseDSNOptions(dsn, [&options](PQconninfoOption* opt) {
     std::string keyword = opt->keyword;
     if (options.dbname.empty() && keyword == "dbname") {
       options.dbname = opt->val;
     }
   });
   options.host = hap.hosts.empty() ? kPostgreSQLDefaultHost : hap.hosts.front();
-  options.port = hap.ports.empty() ? kPostgreSQLDefaultPort : hap.ports.front();
+  if (!hap.ports.empty()) options.port = hap.ports.front();
   return options;
 }
 
-std::string DsnCutPassword(const std::string& conninfo) {
+std::string GetHostPort(const Dsn& dsn) {
+  auto options = OptionsFromDsn(dsn);
+  std::string host_port = std::move(options.host);
+  if (!options.port.empty()) {
+    host_port += ':';
+    host_port += options.port;
+  }
+  return host_port;
+}
+
+std::string DsnCutPassword(const Dsn& dsn) {
   OptionsHandle opts = {nullptr, &PQconninfoFree};
   try {
-    opts = MakeDSNOptions(conninfo);
+    opts = MakeDSNOptions(dsn);
   } catch (const InvalidDSN&) {
     return {};
   }
@@ -221,13 +229,14 @@ std::string DsnCutPassword(const std::string& conninfo) {
   return cleared;
 }
 
-std::string DsnMaskPassword(const std::string& conninfo) {
+std::string DsnMaskPassword(const Dsn& dsn) {
   static const std::string pg_url_start = "postgresql://";
-  static const std::string replace = "${1}123456$2";
-  if (boost::starts_with(conninfo, pg_url_start)) {
+  static const std::string replace = "${1}***$2";
+  if (boost::starts_with(dsn.GetUnprotectedRawValue(), pg_url_start)) {
     static const boost::regex url_re("^(postgresql://[^:]*:)[^@]+(@)");
     static const boost::regex option_re("\\b(password=)[^&]+");
-    auto masked = boost::regex_replace(conninfo, url_re, replace);
+    auto masked =
+        boost::regex_replace(dsn.GetUnprotectedRawValue(), url_re, replace);
     masked = boost::regex_replace(masked, option_re, replace);
     return masked;
   } else {
@@ -242,7 +251,8 @@ std::string DsnMaskPassword(const std::string& conninfo) {
           )
         )~",
         boost::regex_constants::mod_x);
-    auto masked = boost::regex_replace(conninfo, option_re, replace);
+    auto masked =
+        boost::regex_replace(dsn.GetUnprotectedRawValue(), option_re, replace);
     return masked;
   }
 }
@@ -255,5 +265,4 @@ std::string EscapeHostName(const std::string& hostname, char escape_char) {
   return escaped;
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

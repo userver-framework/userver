@@ -10,13 +10,13 @@
 
 namespace pg = storages::postgres;
 
-std::vector<std::string> GetDsnFromEnv() {
+std::vector<pg::Dsn> GetDsnFromEnv() {
   const auto* dsn_list_env = std::getenv(kPostgresDsn);
-  return dsn_list_env ? std::vector<std::string>{std::string(dsn_list_env)}
-                      : std::vector<std::string>();
+  return dsn_list_env ? std::vector<pg::Dsn>{pg::Dsn{dsn_list_env}}
+                      : std::vector<pg::Dsn>{};
 }
 
-std::vector<pg::DSNList> GetDsnListFromEnv() {
+std::vector<pg::DsnList> GetDsnListsFromEnv() {
   auto* conn_list_env = std::getenv(kPostgresDsn);
   if (!conn_list_env) {
     return {};
@@ -26,17 +26,19 @@ std::vector<pg::DSNList> GetDsnListFromEnv() {
   boost::split(conn_list, conn_list_env, [](char c) { return c == ';'; },
                boost::token_compress_on);
 
-  std::vector<pg::DSNList> dsns_list;
-  std::transform(conn_list.begin(), conn_list.end(),
-                 std::back_inserter(dsns_list), pg::SplitByHost);
-  return dsns_list;
+  std::vector<pg::DsnList> dsn_lists;
+  dsn_lists.reserve(conn_list.size());
+  for (auto conn : conn_list) {
+    dsn_lists.push_back(pg::SplitByHost(pg::Dsn{std::move(conn)}));
+  }
+  return dsn_lists;
 }
 
-std::string DsnToString(const ::testing::TestParamInfo<std::string>& info) {
+std::string DsnToString(const ::testing::TestParamInfo<pg::Dsn>& info) {
   return pg::MakeDsnNick(info.param, true);
 }
 
-std::string DsnListToString(const ::testing::TestParamInfo<pg::DSNList>& info) {
+std::string DsnListToString(const ::testing::TestParamInfo<pg::DsnList>& info) {
   if (info.param.empty()) {
     return {};
   }

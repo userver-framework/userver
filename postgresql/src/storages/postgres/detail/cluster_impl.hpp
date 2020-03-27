@@ -2,11 +2,10 @@
 
 #include <atomic>
 #include <memory>
-#include <unordered_map>
+#include <vector>
 
 #include <engine/task/task_processor.hpp>
 #include <error_injection/settings.hpp>
-#include <utils/periodic_task.hpp>
 #include <utils/swappingsmart.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
@@ -18,15 +17,14 @@
 #include <storages/postgres/transaction.hpp>
 #include <testsuite/postgres_control.hpp>
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 class ClusterImpl {
  public:
-  ClusterImpl(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
-              PoolSettings pool_settings, ConnectionSettings conn_settings,
-              CommandControl default_cmd_ctl,
+  ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+              const PoolSettings& pool_settings,
+              const ConnectionSettings& conn_settings,
+              const CommandControl& default_cmd_ctl,
               const testsuite::PostgresControl& testsuite_pg_ctl,
               const error_injection::Settings& ei_settings);
   ~ClusterImpl();
@@ -45,41 +43,17 @@ class ClusterImpl {
 
  private:
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
-  using HostPoolByDsn = std::unordered_map<std::string, ConnectionPoolPtr>;
 
-  ClusterImpl(engine::TaskProcessor& bg_task_processor,
-              PoolSettings pool_settings, ConnectionSettings conn_settings,
-              CommandControl default_cmd_ctl,
-              const testsuite::PostgresControl& testsuite_pg_ctl,
-              const error_injection::Settings& ei_settings);
-
-  void InitPools(const DSNList& dsn_list);
-  ConnectionPoolPtr GetPool(const std::string& dsn) const;
   ConnectionPoolPtr FindPool(ClusterHostType ht);
 
  private:
-  QuorumCommitTopologyPtr topology_;
+  QuorumCommitTopology topology_;
   engine::TaskProcessor& bg_task_processor_;
-  ::utils::PeriodicTask periodic_task_;
-  // This variable should never be used directly as it may be modified
-  // concurrently.
-  // Obtain needed pool with GetPool call.
-  // Don't try to modify the variable from two different places as it may result
-  // in lost updates.
-  // Places of direct usage:
-  // - InitPools - pool initialization (before use)
-  // - GetPool - get needed pool with atomicity guarantees
-  // - CheckTopology - single place of modification
-  ::utils::SwappingSmart<const HostPoolByDsn> host_pools_;
-  std::atomic<uint32_t> host_ind_;
-  PoolSettings pool_settings_;
-  ConnectionSettings conn_settings_;
+  std::vector<ConnectionPoolPtr> host_pools_;
+  std::atomic<uint32_t> rr_host_idx_;
   ::utils::SwappingSmart<const CommandControl> default_cmd_ctl_;
   testsuite::PostgresControl testsuite_pg_ctl_;
-  const error_injection::Settings ei_settings_;
   std::atomic_flag update_lock_;
 };
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

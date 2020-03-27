@@ -1,7 +1,7 @@
 #pragma once
 
+#include <functional>
 #include <iosfwd>
-#include <utility>
 
 #include <formats/parse/to.hpp>
 
@@ -47,4 +47,51 @@ NonLoggable<T> Parse(const Value& v, formats::parse::To<NonLoggable<T>>) {
   return NonLoggable<T>{v.template As<T>()};
 }
 
+template <class T>
+bool operator==(const NonLoggable<T>& lhs, const NonLoggable<T>& rhs) {
+  return lhs.GetUnprotectedRawValue() == rhs.GetUnprotectedRawValue();
+}
+
+template <class T>
+bool operator!=(const NonLoggable<T>& lhs, const NonLoggable<T>& rhs) {
+  return !(lhs.GetUnprotectedRawValue() == rhs.GetUnprotectedRawValue());
+}
+
+template <class T>
+bool operator<(const NonLoggable<T>& lhs, const NonLoggable<T>& rhs) {
+  return lhs.GetUnprotectedRawValue() < rhs.GetUnprotectedRawValue();
+}
+
+template <class T>
+bool operator>(const NonLoggable<T>& lhs, const NonLoggable<T>& rhs) {
+  return rhs.GetUnprotectedRawValue() < lhs.GetUnprotectedRawValue();
+}
+
+template <class T>
+bool operator<=(const NonLoggable<T>& lhs, const NonLoggable<T>& rhs) {
+  return !(rhs.GetUnprotectedRawValue() < lhs.GetUnprotectedRawValue());
+}
+
+template <class T>
+bool operator>=(const NonLoggable<T>& lhs, const NonLoggable<T>& rhs) {
+  return !(lhs.GetUnprotectedRawValue() < rhs.GetUnprotectedRawValue());
+}
+
+template <class T>
+std::size_t hash_value(const NonLoggable<T>& value) {
+  return hash_value(value.GetUnprotectedRawValue());
+}
+
 }  // namespace utils
+
+namespace std {
+
+template <class T>
+struct hash<utils::NonLoggable<T>> : hash<T> {
+  std::size_t operator()(const utils::NonLoggable<T>& value) const noexcept(
+      noexcept(std::declval<const hash<T>>()(std::declval<const T&>()))) {
+    return hash<T>::operator()(value.GetUnprotectedRawValue());
+  }
+};
+
+}  // namespace std

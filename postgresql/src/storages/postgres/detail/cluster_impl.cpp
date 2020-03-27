@@ -5,9 +5,7 @@
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 namespace {
 
@@ -31,134 +29,116 @@ struct TryLockGuard {
 
 }  // namespace
 
-ClusterImpl::ClusterImpl(const DSNList& dsns,
-                         engine::TaskProcessor& bg_task_processor,
-                         PoolSettings pool_settings,
-                         ConnectionSettings conn_settings,
-                         CommandControl default_cmd_ctl,
+ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+                         const PoolSettings& pool_settings,
+                         const ConnectionSettings& conn_settings,
+                         const CommandControl& default_cmd_ctl,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
-    : ClusterImpl(bg_task_processor, pool_settings, conn_settings,
-                  default_cmd_ctl, testsuite_pg_ctl, ei_settings) {
-  topology_ = std::make_unique<QuorumCommitCluster>(
-      bg_task_processor_, dsns, conn_settings, default_cmd_ctl,
-      testsuite_pg_ctl, ei_settings_);
-  InitPools(topology_->GetDsnList());
-}
-
-ClusterImpl::ClusterImpl(engine::TaskProcessor& bg_task_processor,
-                         PoolSettings pool_settings,
-                         ConnectionSettings conn_settings,
-                         CommandControl default_cmd_ctl,
-                         const testsuite::PostgresControl& testsuite_pg_ctl,
-                         const error_injection::Settings& ei_settings)
-    : bg_task_processor_(bg_task_processor),
-      host_ind_(0),
-      pool_settings_(pool_settings),
-      conn_settings_{conn_settings},
-      default_cmd_ctl_(
-          // NOLINTNEXTLINE(hicpp-move-const-arg)
-          std::make_shared<const CommandControl>(std::move(default_cmd_ctl))),
-      testsuite_pg_ctl_{testsuite_pg_ctl},
-      ei_settings_(ei_settings),
-      update_lock_ ATOMIC_FLAG_INIT {}
-
-ClusterImpl::~ClusterImpl() = default;
-
-void ClusterImpl::InitPools(const DSNList& dsn_list) {
-  HostPoolByDsn host_pools;
-  host_pools.reserve(dsn_list.size());
+    : topology_(bg_task_processor, std::move(dsns), conn_settings,
+                default_cmd_ctl, testsuite_pg_ctl, ei_settings),
+      bg_task_processor_(bg_task_processor),
+      rr_host_idx_(0),
+      default_cmd_ctl_(std::make_shared<const CommandControl>(default_cmd_ctl)),
+      testsuite_pg_ctl_(testsuite_pg_ctl),
+      update_lock_ ATOMIC_FLAG_INIT {
+  const auto& dsn_list = topology_.GetDsnList();
+  host_pools_.reserve(dsn_list.size());
 
   LOG_DEBUG() << "Starting pools initialization";
-  auto cmd_ctl = default_cmd_ctl_.Get();
   for (const auto& dsn : dsn_list) {
-    host_pools.insert(std::make_pair(
-        dsn, std::make_shared<ConnectionPool>(
-                 dsn, bg_task_processor_, pool_settings_, conn_settings_,
-                 *cmd_ctl, testsuite_pg_ctl_, ei_settings_)));
+    host_pools_.push_back(std::make_shared<ConnectionPool>(
+        dsn, bg_task_processor_, pool_settings, conn_settings, default_cmd_ctl,
+        testsuite_pg_ctl_, ei_settings));
   }
-
-  // NOLINTNEXTLINE(hicpp-move-const-arg)
-  host_pools_.Set(std::move(host_pools));
   LOG_DEBUG() << "Pools initialized";
 }
 
-ClusterImpl::ConnectionPoolPtr ClusterImpl::GetPool(
-    const std::string& dsn) const {
-  // Operate on the same extracted pool map to guarantee atomicity
-  // Obtain and keep shared pointer to prolong lifetime of the pool map object
-  const auto host_pools_ptr = host_pools_.Get();
-  auto it_find = host_pools_ptr->find(dsn);
-  return it_find == host_pools_ptr->end() ? nullptr : it_find->second;
-}
+ClusterImpl::~ClusterImpl() = default;
 
 ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
   auto cluster_stats = std::make_unique<ClusterStatistics>();
-  auto hosts_by_type = topology_->GetHostsByType();
-  // Copy all pools
-  auto host_pools = *host_pools_.Get();
+  const auto& dsns = topology_.GetDsnList();
+  std::vector<int8_t> is_host_pool_seen(dsns.size(), 0);
+  auto dsn_indices_by_type = topology_.GetDsnIndicesByType();
+
+  UASSERT(host_pools_.size() == dsns.size());
 
   // TODO remove code duplication
-  const auto& master_dsns = hosts_by_type[ClusterHostType::kMaster];
-  if (!master_dsns.empty()) {
-    auto dsn = master_dsns[0];
-    cluster_stats->master.dsn = dsn;
-    auto pool = host_pools.find(dsn);
-    if (pool != host_pools.end()) {
-      cluster_stats->master.stats = pool->second->GetStatistics();
-      host_pools.erase(pool);
-    }
+  auto master_dsn_indices_it =
+      dsn_indices_by_type->find(ClusterHostType::kMaster);
+  if (master_dsn_indices_it != dsn_indices_by_type->end() &&
+      !master_dsn_indices_it->second.empty()) {
+    auto dsn_index = master_dsn_indices_it->second.front();
+    UASSERT(dsn_index < dsns.size());
+    cluster_stats->master.host_port = GetHostPort(dsns[dsn_index]);
+    const auto& pool = host_pools_[dsn_index];
+    cluster_stats->master.stats = pool->GetStatistics();
+    is_host_pool_seen[dsn_index] = 1;
   }
 
-  const auto& sync_slave_dsns = hosts_by_type[ClusterHostType::kSyncSlave];
-  if (!sync_slave_dsns.empty()) {
-    auto dsn = sync_slave_dsns[0];
-    cluster_stats->sync_slave.dsn = dsn;
-    auto pool = host_pools.find(dsn);
-    if (pool != host_pools.end()) {
-      cluster_stats->sync_slave.stats = pool->second->GetStatistics();
-      host_pools.erase(pool);
-    }
+  auto sync_slave_dsn_indices_it =
+      dsn_indices_by_type->find(ClusterHostType::kSyncSlave);
+  if (sync_slave_dsn_indices_it != dsn_indices_by_type->end() &&
+      !sync_slave_dsn_indices_it->second.empty()) {
+    auto dsn_index = sync_slave_dsn_indices_it->second.front();
+    UASSERT(dsn_index < dsns.size());
+    cluster_stats->sync_slave.host_port = GetHostPort(dsns[dsn_index]);
+    UASSERT(dsn_index < host_pools_.size());
+    const auto& pool = host_pools_[dsn_index];
+    cluster_stats->sync_slave.stats = pool->GetStatistics();
+    is_host_pool_seen[dsn_index] = 1;
   }
 
-  const auto& slaves_dsns = hosts_by_type[ClusterHostType::kSlave];
-  if (!slaves_dsns.empty()) {
-    cluster_stats->slaves.reserve(slaves_dsns.size());
-    for (auto&& dsn : slaves_dsns) {
+  auto slaves_dsn_indices_it =
+      dsn_indices_by_type->find(ClusterHostType::kSlave);
+  if (slaves_dsn_indices_it != dsn_indices_by_type->end() &&
+      !slaves_dsn_indices_it->second.empty()) {
+    cluster_stats->slaves.reserve(slaves_dsn_indices_it->second.size());
+    for (auto dsn_index : slaves_dsn_indices_it->second) {
+      if (is_host_pool_seen[dsn_index]) continue;
+
       InstanceStatsDescriptor slave_desc;
-      slave_desc.dsn = dsn;
-      auto pool = host_pools.find(dsn);
-      if (pool != host_pools.end()) {
-        slave_desc.stats = pool->second->GetStatistics();
-        host_pools.erase(pool);
-        cluster_stats->slaves.push_back(std::move(slave_desc));
-      }
+      UASSERT(dsn_index < dsns.size());
+      slave_desc.host_port = GetHostPort(dsns[dsn_index]);
+      UASSERT(dsn_index < host_pools_.size());
+      const auto& pool = host_pools_[dsn_index];
+      slave_desc.stats = pool->GetStatistics();
+      is_host_pool_seen[dsn_index] = 1;
+
+      cluster_stats->slaves.push_back(std::move(slave_desc));
     }
   }
-  if (!host_pools.empty()) {
-    cluster_stats->unknown.reserve(host_pools.size());
-    for (const auto& pool : host_pools) {
-      InstanceStatsDescriptor desc;
-      desc.dsn = pool.first;
-      desc.stats = pool.second->GetStatistics();
-      cluster_stats->unknown.push_back(std::move(desc));
-    }
+  for (size_t i = 0; i < is_host_pool_seen.size(); ++i) {
+    if (is_host_pool_seen[i]) continue;
+
+    InstanceStatsDescriptor desc;
+    UASSERT(i < dsns.size());
+    desc.host_port = GetHostPort(dsns[i]);
+    UASSERT(i < host_pools_.size());
+    const auto& pool = host_pools_[i];
+    desc.stats = pool->GetStatistics();
+
+    cluster_stats->unknown.push_back(std::move(desc));
   }
   return cluster_stats;
 }
 
 ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostType ht) {
   auto host_type = ht;
-  auto hosts_by_type = topology_->GetHostsByType();
+  auto dsn_indices_by_type = topology_.GetDsnIndicesByType();
+  auto dsn_indices_it = dsn_indices_by_type->find(host_type);
   while (host_type != ClusterHostType::kMaster &&
-         hosts_by_type[host_type].empty()) {
+         (dsn_indices_it == dsn_indices_by_type->end() ||
+          dsn_indices_it->second.empty())) {
     auto fb = Fallback(host_type);
     LOG_WARNING() << "There is no pool for host type " << ToString(host_type)
                   << ", falling back to " << ToString(fb);
     host_type = fb;
+    dsn_indices_it = dsn_indices_by_type->find(host_type);
   }
-  const auto& host_dsns = hosts_by_type[host_type];
-  if (host_dsns.empty()) {
+  if (dsn_indices_it == dsn_indices_by_type->end() ||
+      dsn_indices_it->second.empty()) {
     LOG_WARNING() << "Pool for host type (requested: " << ToString(ht)
                   << ", picked " << ToString(host_type) << ") is not available";
     throw ClusterUnavailable("Pool for host type (passed: " + ToString(ht) +
@@ -166,15 +146,14 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostType ht) {
                              ") is not available");
   }
 
-  const auto& dsn =
-      host_dsns[host_ind_.fetch_add(1, std::memory_order_relaxed) %
-                host_dsns.size()];
+  auto dsn_index =
+      dsn_indices_it
+          ->second[rr_host_idx_.fetch_add(1, std::memory_order_relaxed) %
+                   dsn_indices_it->second.size()];
   LOG_TRACE() << "Starting transaction on the host of " << host_type << " type";
 
-  auto pool = GetPool(dsn);
-  if (!pool) {
-    throw ClusterUnavailable("Host not found for given DSN: " + dsn);
-  }
+  UASSERT(dsn_index < host_pools_.size());
+  auto pool = host_pools_.at(dsn_index);
   pool->SetDefaultCommandControl(*default_cmd_ctl_.Get());
   return pool;
 }
@@ -217,11 +196,7 @@ NonTransaction ClusterImpl::Start(ClusterHostType host_type) {
 }
 
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
-  default_cmd_ctl_.Set(
-      // NOLINTNEXTLINE(hicpp-move-const-arg)
-      std::make_shared<const CommandControl>(std::move(cmd_ctl)));
+  default_cmd_ctl_.Set(std::make_shared<const CommandControl>(cmd_ctl));
 }
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

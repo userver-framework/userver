@@ -9,12 +9,11 @@
 #include <logging/log_extra.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
+#include <storages/postgres/dsn.hpp>
 #include <tracing/span.hpp>
 #include <utils/size_guard.hpp>
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 class PGConnectionWrapper {
  public:
@@ -34,11 +33,10 @@ class PGConnectionWrapper {
   ConnectionState GetConnectionState() const;
 
   /// @brief Asynchronously connect PG instance.
+  ///
   /// Start asynchronous connection and wait for it's completion (suspending
   /// current couroutine)
-  /// @param conninfo Connection string
-  /// @param
-  void AsyncConnect(const std::string& conninfo, Deadline deadline, ScopeTime&);
+  void AsyncConnect(const Dsn& dsn, Deadline deadline, ScopeTime&);
 
   /// @brief Close the connection on a background task processor.
   [[nodiscard]] engine::Task Close();
@@ -96,13 +94,13 @@ class PGConnectionWrapper {
  private:
   PGTransactionStatusType GetTransactionStatus() const;
 
-  void StartAsyncConnect(const std::string& conninfo);
+  void StartAsyncConnect(const Dsn& dsn);
 
   /// @throws ConnectionTimeoutError if was awakened by the deadline
-  void WaitConnectionFinish(Deadline deadline, const std::string& conninfo);
+  void WaitConnectionFinish(Deadline deadline, const Dsn& dsn);
 
   /// @throws ConnectionFailed if conn_ does not correspond to a socket
-  void RefreshSocket(const std::string& conninfo);
+  void RefreshSocket(const Dsn& dsn);
 
   /// @return true if wait was successful, false if was awakened by the deadline
   [[nodiscard]] bool WaitSocketWriteable(Deadline deadline);
@@ -132,6 +130,4 @@ class PGConnectionWrapper {
   std::chrono::steady_clock::time_point last_use_;
 };
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

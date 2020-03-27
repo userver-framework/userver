@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 
 #include <engine/run_in_coro.hpp>
+#include <formats/json/serialize.hpp>
 #include <logging/log.hpp>
 #include <utils/mock_now.hpp>
 
@@ -51,6 +52,12 @@ class ResetMockNowListener : public ::testing::EmptyTestEventListener {
 };
 
 }  // namespace
+
+namespace formats::json {
+
+void PrintTo(const Value& json, std::ostream* out) { Serialize(json, *out); }
+
+}  // namespace formats::json
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

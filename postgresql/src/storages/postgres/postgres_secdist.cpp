@@ -7,26 +7,24 @@
 
 #include <logging/log.hpp>
 
-namespace storages {
-namespace postgres {
-namespace secdist {
+namespace storages::postgres::secdist {
 
 namespace {
 
-DSNList DsnListFromJson(const formats::json::Value& elem) {
+DsnList DsnListFromJson(const formats::json::Value& elem) {
   auto hosts = elem["hosts"];
   storages::secdist::CheckIsArray(hosts, "hosts");
-  std::set<std::string> dsn_set;
+  std::set<Dsn> dsn_set;
   for (auto host_it = hosts.begin(); host_it != hosts.end(); ++host_it) {
     if (!host_it->IsString()) {
       storages::secdist::ThrowInvalidSecdistType(
           "hosts[" + std::to_string(host_it.GetIndex()) + ']', "a string");
     }
-    auto dsn = host_it->As<std::string>();
+    Dsn dsn{host_it->As<std::string>()};
     auto multihost = storages::postgres::SplitByHost(dsn);
     if (multihost.empty()) {
       throw storages::secdist::SecdistError(
-          DsnMaskPassword(dsn) + " doesn't seem as a valid PostgreSQL DSN");
+          DsnMaskPassword(dsn) + " doesn't seem as a valid PostgreSQL Dsn");
     }
     dsn_set.insert(multihost.begin(), multihost.end());
   }
@@ -77,7 +75,7 @@ PostgresSettings::PostgresSettings(const formats::json::Value& doc) {
   }
 }
 
-std::vector<DSNList> PostgresSettings::GetShardedClusterDescription(
+std::vector<DsnList> PostgresSettings::GetShardedClusterDescription(
     const std::string& dbalias) const {
   auto it = sharded_cluster_descs_.find(dbalias);
 
@@ -92,6 +90,4 @@ std::vector<DSNList> PostgresSettings::GetShardedClusterDescription(
   return it->second;
 }
 
-}  // namespace secdist
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::secdist

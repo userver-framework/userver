@@ -134,11 +134,6 @@ std::string ToString(const formats::json::Value& doc) {
                      buffer.GetString() + buffer.GetLength());
 }
 
-std::ostream& operator<<(std::ostream& out, const Value& json) {
-  Serialize(json, out);
-  return out;
-}
-
 namespace blocking {
 
 formats::json::Value FromFile(const std::string& path) {

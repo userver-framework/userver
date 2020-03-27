@@ -62,8 +62,7 @@ namespace components {
 class Postgres;
 }  // namespace components
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 namespace detail {
 
@@ -83,12 +82,15 @@ class Cluster {
   /// @param pool_settings settings for connection pools
   /// @param conn_settings settings for individual connections
   /// @param cmd_ctl command execution options
+  /// @param testsuite_pg_ctl command execution options customizer for testsuite
+  /// @param ei_settings error injection settings
   /// @note When `max_connection_pool_size` is reached, and no idle connections
   /// available, `PoolError` is thrown for every new connection
   /// request
-  Cluster(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
-          PoolSettings pool_settings, ConnectionSettings conn_settings,
-          CommandControl cmd_ctl,
+  Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+          const PoolSettings& pool_settings,
+          const ConnectionSettings& conn_settings,
+          const CommandControl& cmd_ctl,
           const testsuite::PostgresControl& testsuite_pg_ctl,
           const error_injection::Settings& ei_settings);
   ~Cluster();
@@ -156,5 +158,4 @@ ResultSet Cluster::Execute(ClusterHostType ht, CommandControl statement_cmd_ctl,
                       std::forward<Args>(args)...);
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

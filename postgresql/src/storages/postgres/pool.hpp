@@ -13,14 +13,13 @@
 
 namespace engine {
 class TaskProcessor;
-}
+}  // namespace engine
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 namespace detail {
 class ConnectionPoolImpl;
-}
+}  // namespace detail
 
 /// PostgreSQL client connection pool
 class ConnectionPool {
@@ -31,18 +30,18 @@ class ConnectionPool {
   /// @param initial_size initial (minimum) idle connections count
   /// @param max_size maximum idle connections count
   /// @param default_cmd_ctl default settings for operations
-  ConnectionPool(const std::string& dsn,
-                 engine::TaskProcessor& bg_task_processor,
-                 PoolSettings pool_settings, ConnectionSettings conn_settings,
-                 CommandControl default_cmd_ctl,
+  /// @param testsuite_pg_ctl operation settings customizer for testsuite
+  /// @param ei_settings error injection settings
+  ConnectionPool(Dsn dsn, engine::TaskProcessor& bg_task_processor,
+                 const PoolSettings& pool_settings,
+                 const ConnectionSettings& conn_settings,
+                 const CommandControl& default_cmd_ctl,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
-                 const error_injection::Settings& ei_settings);
+                 error_injection::Settings ei_settings);
   ~ConnectionPool();
 
   ConnectionPool(ConnectionPool&&) noexcept;
   ConnectionPool& operator=(ConnectionPool&&) noexcept;
-
-  const std::string& GetDsn() const;
 
   /// Get idle connection from pool
   /// If no idle connection and `max_size` is not reached - create a new
@@ -65,5 +64,4 @@ class ConnectionPool {
   std::shared_ptr<detail::ConnectionPoolImpl> pimpl_;
 };
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

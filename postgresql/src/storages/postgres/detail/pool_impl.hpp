@@ -23,22 +23,30 @@
 #include <storages/postgres/transaction.hpp>
 #include <testsuite/postgres_control.hpp>
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 class ConnectionPoolImpl
     : public std::enable_shared_from_this<ConnectionPoolImpl> {
+  class EmplaceEnabler;
+
  public:
-  static std::shared_ptr<ConnectionPoolImpl> Create(
-      const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-      PoolSettings pool_settings, ConnectionSettings conn_settings,
-      CommandControl default_cmd_ctl,
-      const testsuite::PostgresControl& testsuite_pg_ctl,
-      const error_injection::Settings& ei_settings);
+  ConnectionPoolImpl(EmplaceEnabler, Dsn dsn,
+                     engine::TaskProcessor& bg_task_processor,
+                     const PoolSettings& settings,
+                     const ConnectionSettings& conn_settings,
+                     const CommandControl& default_cmd_ctl,
+                     const testsuite::PostgresControl& testsuite_pg_ctl,
+                     error_injection::Settings ei_settings);
+
   ~ConnectionPoolImpl();
 
-  const std::string& GetDsn() const { return dsn_; }
+  static std::shared_ptr<ConnectionPoolImpl> Create(
+      Dsn dsn, engine::TaskProcessor& bg_task_processor,
+      const PoolSettings& pool_settings,
+      const ConnectionSettings& conn_settings,
+      const CommandControl& default_cmd_ctl,
+      const testsuite::PostgresControl& testsuite_pg_ctl,
+      error_injection::Settings ei_settings);
 
   [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
   void Release(Connection* connection);
@@ -51,14 +59,6 @@ class ConnectionPoolImpl
   [[nodiscard]] NonTransaction Start(engine::Deadline deadline);
 
   void SetDefaultCommandControl(CommandControl);
-
- protected:
-  ConnectionPoolImpl(const std::string& dsn,
-                     engine::TaskProcessor& bg_task_processor,
-                     PoolSettings settings, ConnectionSettings conn_settings,
-                     CommandControl default_cmd_ctl,
-                     const testsuite::PostgresControl& testsuite_pg_ctl,
-                     const error_injection::Settings& ei_settings);
 
  private:
   using SizeGuard = ::utils::SizeGuard<std::atomic<size_t>>;
@@ -89,7 +89,7 @@ class ConnectionPoolImpl
       ::utils::statistics::RelaxedCounter<size_t>, size_t>;
 
   mutable InstanceStatistics stats_;
-  std::string dsn_;
+  Dsn dsn_;
   PoolSettings settings_;
   ConnectionSettings conn_settings_;
   engine::TaskProcessor& bg_task_processor_;
@@ -106,6 +106,4 @@ class ConnectionPoolImpl
   ::utils::TokenBucket cancel_limit_;
 };
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

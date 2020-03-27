@@ -4,20 +4,18 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/dsn.hpp>
 
-namespace storages {
-namespace postgres {
-namespace bench {
+namespace storages::postgres::bench {
 
 namespace {
 
-std::string GetDsnFromEnv() {
+Dsn GetDsnFromEnv() {
   auto* conn_list_env = std::getenv(kPostgresDsn);
   if (!conn_list_env) {
-    return {};
+    return Dsn{{}};
   }
-  auto by_host = SplitByHost(conn_list_env);
+  auto by_host = SplitByHost(Dsn{conn_list_env});
   if (by_host.empty()) {
-    return {};
+    return Dsn{{}};
   }
   return by_host[0];
 }
@@ -29,11 +27,11 @@ PgConnection::PgConnection() = default;
 PgConnection::~PgConnection() = default;
 
 void PgConnection::SetUp(benchmark::State&) {
-  auto conninfo = GetDsnFromEnv();
-  if (!conninfo.empty()) {
-    RunInCoro([this, conninfo] {
+  auto dsn = GetDsnFromEnv();
+  if (!dsn.GetUnprotectedRawValue().empty()) {
+    RunInCoro([this, dsn] {
       conn_ = detail::Connection::Connect(
-          conninfo, GetTaskProcessor(), kConnectionId,
+          dsn, GetTaskProcessor(), kConnectionId,
           {ConnectionSettings::kCachePreparedStatements}, kBenchCmdCtl, {}, {});
     });
   }
@@ -53,6 +51,4 @@ engine::TaskProcessor& PgConnection::GetTaskProcessor() {
   return engine::current_task::GetCurrentTaskContext()->GetTaskProcessor();
 }
 
-}  // namespace bench
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::bench

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string>
 
+#include <storages/postgres/dsn.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/result_set.hpp>
 #include <storages/postgres/transaction.hpp>
@@ -17,8 +18,7 @@
 #include <utils/size_guard.hpp>
 #include <utils/strong_typedef.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 enum class ConnectionState {
   kOffline,     //!< Not connected
@@ -96,21 +96,23 @@ class Connection {
   Connection(Connection&&) = delete;
   ~Connection();
   // clang-format off
-  /// Connect to database using conninfo string
+  /// Connect to database using DSN
   ///
   /// Will suspend current coroutine
   ///
-  /// @param conninfo Connection string, @see https://www.postgresql.org/docs/10/static/libpq-connect.html#LIBPQ-CONNSTRING
+  /// @param dsn DSN, @see https://www.postgresql.org/docs/10/static/libpq-connect.html#LIBPQ-CONNSTRING
   /// @param bg_task_processor task processor for blocking operations
   /// @param id host-wide unique id for connection identification in logs
   /// @param conn_settings the connection settings
   /// @param default_cmd_ctl default parameters for operations
+  /// @param testsuite_pg_ctl operation parameters customizer for testsuite
+  /// @param ei_settings error injection settings
   /// @param size_guard structure to track the size of owning connection pool
   /// @throws ConnectionFailed, ConnectionTimeoutError
   // clang-format on
   static std::unique_ptr<Connection> Connect(
-      const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
-      uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
+      const Dsn& dsn, engine::TaskProcessor& bg_task_processor, uint32_t id,
+      ConnectionSettings settings, CommandControl default_cmd_ctl,
       const testsuite::PostgresControl& testsuite_pg_ctl,
       const error_injection::Settings& ei_settings,
       SizeGuard&& size_guard = SizeGuard{});
@@ -145,7 +147,7 @@ class Connection {
   /// Suspends coroutine for execution
   /// @throws AlreadyInTransaction
   void Begin(const TransactionOptions& options,
-             SteadyClock::time_point&& trx_start_time,
+             SteadyClock::time_point trx_start_time,
              OptionalCommandControl trx_cmd_ctl = {});
   /// Commit current transaction
   /// Suspends coroutine for execution
@@ -157,7 +159,7 @@ class Connection {
   void Rollback();
 
   /// Mark start time of non-transaction execution, for stats
-  void Start(SteadyClock::time_point&& start_time);
+  void Start(SteadyClock::time_point start_time);
   /// Mark non-transaction execution finished, for stats
   void Finish();
   //@}
@@ -249,5 +251,4 @@ class Connection {
 };
 
 }  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

@@ -26,7 +26,7 @@ void CheckTransaction(pg::Transaction trx) {
 }
 
 pg::Cluster CreateCluster(
-    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
+    const pg::Dsn& dsn, engine::TaskProcessor& bg_task_processor,
     size_t max_size,
     pg::ConnectionSettings conn_settings = kCachePreparedStatements) {
   return pg::Cluster({dsn}, bg_task_processor, {0, max_size, max_size},
@@ -36,12 +36,7 @@ pg::Cluster CreateCluster(
 }  // namespace
 
 class PostgreCluster : public PostgreSQLBase,
-                       public ::testing::WithParamInterface<std::string> {
-  void ReadParam() override { dsn_ = GetParam(); }
-
- protected:
-  std::string dsn_;
-};
+                       public ::testing::WithParamInterface<pg::Dsn> {};
 
 INSTANTIATE_TEST_CASE_P(
     /*empty*/, PostgreCluster, ::testing::ValuesIn(GetDsnFromEnv()),
@@ -49,7 +44,7 @@ INSTANTIATE_TEST_CASE_P(
 
 TEST_P(PostgreCluster, ClusterSyncSlaveRW) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
 
     EXPECT_THROW(
         cluster.Begin(pg::ClusterHostType::kSyncSlave, pg::Transaction::RW),
@@ -59,7 +54,7 @@ TEST_P(PostgreCluster, ClusterSyncSlaveRW) {
 
 TEST_P(PostgreCluster, ClusterAsyncSlaveRW) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
 
     EXPECT_THROW(
         cluster.Begin(pg::ClusterHostType::kSlave, pg::Transaction::RW),
@@ -69,7 +64,7 @@ TEST_P(PostgreCluster, ClusterAsyncSlaveRW) {
 
 TEST_P(PostgreCluster, ClusterEmptyPool) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 0);
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 0);
 
     EXPECT_THROW(cluster.Begin({}), pg::PoolError);
   });
@@ -77,7 +72,7 @@ TEST_P(PostgreCluster, ClusterEmptyPool) {
 
 TEST_P(PostgreCluster, ClusterTransaction) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
 
     CheckTransaction(cluster.Begin({}));
   });
@@ -85,7 +80,7 @@ TEST_P(PostgreCluster, ClusterTransaction) {
 
 TEST_P(PostgreCluster, SingleQuery) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
 
     EXPECT_THROW(cluster.Execute(pg::ClusterHostType::kAny, "select 1"),
                  pg::LogicError);
@@ -104,7 +99,7 @@ TEST_P(PostgreCluster, SingleQuery) {
 
 TEST_P(PostgreCluster, TransactionTimeouts) {
   RunInCoro([this] {
-    auto cluster = CreateCluster(dsn_, GetTaskProcessor(), 1);
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
 
     {
       // Default transaction timeout

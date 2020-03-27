@@ -2,16 +2,16 @@
 
 #include <storages/postgres/detail/cluster_impl.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
-Cluster::Cluster(const DSNList& dsns, engine::TaskProcessor& bg_task_processor,
-                 PoolSettings pool_settings, ConnectionSettings conn_settings,
-                 CommandControl cmd_ctl,
+Cluster::Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+                 const PoolSettings& pool_settings,
+                 const ConnectionSettings& conn_settings,
+                 const CommandControl& cmd_ctl,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings) {
   pimpl_ = std::make_unique<detail::ClusterImpl>(
-      dsns, bg_task_processor, pool_settings, conn_settings, cmd_ctl,
+      std::move(dsns), bg_task_processor, pool_settings, conn_settings, cmd_ctl,
       testsuite_pg_ctl, ei_settings);
 }
 
@@ -44,5 +44,4 @@ SharedCommandControl Cluster::GetDefaultCommandControl() const {
   return pimpl_->GetDefaultCommandControl();
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

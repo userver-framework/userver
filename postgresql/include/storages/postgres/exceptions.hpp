@@ -14,8 +14,7 @@
 
 #include <compiler/demangle.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 /**
  * @page pg_errors µPg: Postgres errors
@@ -201,11 +200,11 @@ class ConnectionError : public RuntimeError {
 /// @brief Exception is thrown when a single connection fails to connect
 class ConnectionFailed : public ConnectionError {
  public:
-  explicit ConnectionFailed(const std::string& conninfo)
-      : ConnectionError(DsnCutPassword(conninfo) +
+  explicit ConnectionFailed(const Dsn& dsn)
+      : ConnectionError(DsnCutPassword(dsn) +
                         " Failed to connect to PostgreSQL server") {}
-  ConnectionFailed(const std::string& conninfo, const std::string& message)
-      : ConnectionError(DsnCutPassword(conninfo) + ' ' + message) {}
+  ConnectionFailed(const Dsn& dsn, const std::string& message)
+      : ConnectionError(DsnCutPassword(dsn) + ' ' + message) {}
 };
 
 /// @brief Connection error reported by PostgreSQL server.
@@ -855,5 +854,4 @@ class NotImplemented : public LogicError {
 
 //@}
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

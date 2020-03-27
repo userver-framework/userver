@@ -5,6 +5,9 @@
 #include <chrono>
 #include <functional>
 
+#include <utils/non_loggable.hpp>
+#include <utils/strong_typedef.hpp>
+
 void RunInCoro(std::function<void()>, size_t worker_threads = 1);
 
 inline void TestInCoro(std::function<void()> callback,
@@ -14,32 +17,47 @@ inline void TestInCoro(std::function<void()> callback,
 
 inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
 
+// gtest-specific serializers
 namespace std::chrono {
 
-inline std::ostream& operator<<(std::ostream& os, std::chrono::seconds s) {
-  return os << s.count() << "s";
+inline void PrintTo(std::chrono::seconds s, std::ostream* os) {
+  *os << s.count() << "s";
 }
 
-inline std::ostream& operator<<(std::ostream& os,
-                                std::chrono::milliseconds ms) {
-  return os << ms.count() << "ms";
+inline void PrintTo(std::chrono::milliseconds ms, std::ostream* os) {
+  *os << ms.count() << "ms";
 }
 
-inline std::ostream& operator<<(std::ostream& os,
-                                std::chrono::microseconds us) {
-  return os << us.count() << "us";
+inline void PrintTo(std::chrono::microseconds us, std::ostream* os) {
+  *os << us.count() << "us";
 }
 
-inline std::ostream& operator<<(std::ostream& os, std::chrono::nanoseconds ns) {
-  return os << ns.count() << "ns";
+inline void PrintTo(std::chrono::nanoseconds ns, std::ostream* os) {
+  *os << ns.count() << "ns";
 }
 }  // namespace std::chrono
 
 namespace formats::json {
+
 class Value;
-// for gtest-only
-std::ostream& operator<<(std::ostream&, const Value&);
-};  // namespace formats::json
+
+void PrintTo(const Value&, std::ostream*);
+
+}  // namespace formats::json
+
+namespace utils {
+
+template <typename T>
+void PrintTo(const NonLoggable<T>& val, std::ostream* os) {
+  ::testing::internal::UniversalTersePrint(val.GetUnprotectedRawValue(), os);
+}
+
+template <class Tag, class T, StrongTypedefOps Ops>
+void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
+  ::testing::internal::UniversalTersePrint(v.GetUnderlying(), os);
+}
+
+}  // namespace utils
 
 #ifdef __APPLE__
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name

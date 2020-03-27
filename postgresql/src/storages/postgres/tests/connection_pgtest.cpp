@@ -296,14 +296,14 @@ POSTGRE_TEST_P(CachedPlanChange) {
 TEST_P(PostgreConnection, Connect) {
   RunInCoro([this] {
     EXPECT_THROW(pg::detail::Connection::Connect(
-                     "psql://", GetTaskProcessor(), kConnectionId,
+                     pg::Dsn{"psql://"}, GetTaskProcessor(), kConnectionId,
                      kCachePreparedStatements, kTestCmdCtl, {}, {}),
                  pg::InvalidDSN)
         << "Connected with invalid DSN";
 
     {
       pg::detail::ConnectionPtr conn =
-          MakeConnection(dsn_list_[0], GetTaskProcessor());
+          MakeConnection(GetParam()[0], GetTaskProcessor());
       CheckConnection(std::move(conn));
     }
   });
@@ -312,7 +312,7 @@ TEST_P(PostgreConnection, Connect) {
 TEST_P(PostgreConnection, NoPreparedStatements) {
   RunInCoro([this] {
     EXPECT_NO_THROW(pg::detail::Connection::Connect(
-        dsn_list_[0], GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
+        GetParam()[0], GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
         kTestCmdCtl, {}, {}));
   });
 }

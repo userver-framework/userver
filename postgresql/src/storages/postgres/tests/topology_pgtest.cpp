@@ -9,22 +9,17 @@
 
 namespace pg = storages::postgres;
 
-std::vector<std::string> GetClusterFromEnv() {
+std::vector<pg::Dsn> GetClusterFromEnv() {
   const auto* cluster_dsn = std::getenv("POSTGRES_CLUSTER_TEST");
-  return cluster_dsn ? std::vector<std::string>{{cluster_dsn}}
-                     : std::vector<std::string>{};
+  return cluster_dsn ? std::vector<pg::Dsn>{pg::Dsn{cluster_dsn}}
+                     : std::vector<pg::Dsn>{};
 }
 
 class PostgreTopology : public PostgreSQLBase,
-                        public ::testing::WithParamInterface<std::string> {
-  void ReadParam() override { conn_string_ = GetParam(); };
-
- protected:
-  std::string conn_string_;
-};
+                        public ::testing::WithParamInterface<pg::Dsn> {};
 
 TEST_P(PostgreTopology, RunTest) {
-  auto dsns = pg::SplitByHost(conn_string_);
+  auto dsns = pg::SplitByHost(GetParam());
   ASSERT_FALSE(dsns.empty());
 
   if (dsns.size() < 2) {
@@ -32,17 +27,17 @@ TEST_P(PostgreTopology, RunTest) {
   }
   RunInCoro([&dsns] {
     error_injection::Settings ei_settings;
-    pg::detail::QuorumCommitCluster qcc(GetTaskProcessor(), dsns,
-                                        pg::ConnectionSettings{}, kTestCmdCtl,
-                                        {}, ei_settings);
-    auto hosts = qcc.GetHostsByType();
+    pg::detail::QuorumCommitTopology qcc(GetTaskProcessor(), dsns,
+                                         pg::ConnectionSettings{}, kTestCmdCtl,
+                                         {}, ei_settings);
+    auto hosts = qcc.GetDsnIndicesByType();
 
-    EXPECT_EQ(1, hosts.count(pg::ClusterHostType::kMaster));
+    EXPECT_EQ(1, hosts->count(pg::ClusterHostType::kMaster));
     if (dsns.size() > 1) {
-      EXPECT_LT(0, hosts.count(pg::ClusterHostType::kSyncSlave));
+      EXPECT_LT(0, hosts->count(pg::ClusterHostType::kSyncSlave));
       // Should detect slaves
-      EXPECT_EQ(1, hosts.count(pg::ClusterHostType::kSlave));
-      EXPECT_LT(0, hosts.at(pg::ClusterHostType::kSlave).size());
+      EXPECT_EQ(1, hosts->count(pg::ClusterHostType::kSlave));
+      EXPECT_LT(0, hosts->at(pg::ClusterHostType::kSlave).size());
     }
   });
 }

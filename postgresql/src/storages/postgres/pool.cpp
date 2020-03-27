@@ -3,18 +3,17 @@
 #include <error_injection/settings.hpp>
 #include <storages/postgres/detail/pool_impl.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 ConnectionPool::ConnectionPool(
-    const std::string& dsn, engine::TaskProcessor& bg_task_processor,
-    PoolSettings pool_settings, ConnectionSettings conn_settings,
-    CommandControl default_cmd_ctl,
+    Dsn dsn, engine::TaskProcessor& bg_task_processor,
+    const PoolSettings& pool_settings, const ConnectionSettings& conn_settings,
+    const CommandControl& default_cmd_ctl,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    const error_injection::Settings& ei_settings) {
+    error_injection::Settings ei_settings) {
   pimpl_ = detail::ConnectionPoolImpl::Create(
-      dsn, bg_task_processor, pool_settings, conn_settings, default_cmd_ctl,
-      testsuite_pg_ctl, ei_settings);
+      std::move(dsn), bg_task_processor, pool_settings, conn_settings,
+      default_cmd_ctl, testsuite_pg_ctl, std::move(ei_settings));
 }
 
 ConnectionPool::~ConnectionPool() = default;
@@ -22,8 +21,6 @@ ConnectionPool::~ConnectionPool() = default;
 ConnectionPool::ConnectionPool(ConnectionPool&&) noexcept = default;
 
 ConnectionPool& ConnectionPool::operator=(ConnectionPool&&) noexcept = default;
-
-const std::string& ConnectionPool::GetDsn() const { return pimpl_->GetDsn(); }
 
 detail::ConnectionPtr ConnectionPool::GetConnection(engine::Deadline deadline) {
   return pimpl_->Acquire(deadline);
@@ -47,5 +44,4 @@ void ConnectionPool::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl);
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

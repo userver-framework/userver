@@ -89,15 +89,9 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
 void AddInstanceStatistics(
     const storages::postgres::InstanceStatsDescriptor& desc,
     formats::json::ValueBuilder& parent) {
-  if (desc.dsn.empty()) {
-    return;
+  if (!desc.host_port.empty()) {
+    parent[desc.host_port] = InstanceStatisticsToJson(desc.stats);
   }
-  const auto options = storages::postgres::OptionsFromDsn(desc.dsn);
-  auto hostname = options.host;
-  if (!options.port.empty()) {
-    hostname += ':' + options.port;
-  }
-  parent[hostname] = InstanceStatisticsToJson(desc.stats);
 }
 
 formats::json::ValueBuilder ClusterStatisticsToJson(
@@ -154,17 +148,18 @@ Postgres::Postgres(const ComponentConfig& config,
 
   const auto dbalias = config.ParseString("dbalias", {});
 
+  std::vector<pg::DsnList> cluster_desc;
   if (dbalias.empty()) {
-    const auto dsn_string = config.ParseString("dbconnection");
-    const auto options = pg::OptionsFromDsn(dsn_string);
+    const pg::Dsn dsn{config.ParseString("dbconnection")};
+    const auto options = pg::OptionsFromDsn(dsn);
     db_name_ = options.dbname;
-    cluster_desc_.push_back(pg::SplitByHost(dsn_string));
+    cluster_desc.push_back(pg::SplitByHost(dsn));
   } else {
     try {
       auto& secdist = context.FindComponent<Secdist>();
-      cluster_desc_ = secdist.Get()
-                          .Get<pg::secdist::PostgresSettings>()
-                          .GetShardedClusterDescription(dbalias);
+      cluster_desc = secdist.Get()
+                         .Get<pg::secdist::PostgresSettings>()
+                         .GetShardedClusterDescription(dbalias);
       db_name_ = dbalias;
     } catch (const storages::secdist::SecdistError& ex) {
       LOG_ERROR() << "Failed to load Postgres config for dbalias " << dbalias
@@ -173,24 +168,24 @@ Postgres::Postgres(const ComponentConfig& config,
     }
   }
 
-  pool_settings_.min_size =
+  storages::postgres::PoolSettings pool_settings;
+  pool_settings.min_size =
       config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
-  pool_settings_.max_size =
+  pool_settings.max_size =
       config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
-  pool_settings_.max_queue_size =
+  pool_settings.max_queue_size =
       config.ParseUint64("max_queue_size", kDefaultMaxQueueSize);
-  pool_settings_.sync_start = config.ParseBool("sync-start", false);
+  pool_settings.sync_start = config.ParseBool("sync-start", false);
 
-  bool persistent_prepared_statements =
-      config.ParseBool("persistent-prepared-statements", true);
-  conn_settings_.prepared_statements =
-      persistent_prepared_statements
+  storages::postgres::ConnectionSettings conn_settings;
+  conn_settings.prepared_statements =
+      config.ParseBool("persistent-prepared-statements", true)
           ? pg::ConnectionSettings::kCachePreparedStatements
           : pg::ConnectionSettings::kNoPreparedStatements;
 
   const auto task_processor_name =
       config.ParseString("blocking_task_processor");
-  bg_task_processor_ = &context.GetTaskProcessor(task_processor_name);
+  auto* bg_task_processor = &context.GetTaskProcessor(task_processor_name);
 
   error_injection::Settings ei_settings;
   auto ei_settings_opt =
@@ -203,16 +198,16 @@ Postgres::Postgres(const ComponentConfig& config,
       std::bind(&Postgres::ExtendStatistics, this, std::placeholders::_1));
 
   // Start all clusters here
-  LOG_DEBUG() << "Start " << cluster_desc_.size() << " shards for " << db_name_;
+  LOG_DEBUG() << "Start " << cluster_desc.size() << " shards for " << db_name_;
 
   const auto& testsuite_pg_ctl =
       context.FindComponent<components::TestsuiteSupport>()
           .GetPostgresControl();
 
-  for (const auto& dsns : cluster_desc_) {
+  for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(
-        dsns, *bg_task_processor_, pool_settings_, conn_settings_, cmd_ctl,
-        testsuite_pg_ctl, ei_settings);
+        std::move(dsns), *bg_task_processor, pool_settings, conn_settings,
+        cmd_ctl, testsuite_pg_ctl, ei_settings);
     database_->clusters_.push_back(cluster);
   }
 

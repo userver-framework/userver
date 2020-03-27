@@ -6,15 +6,18 @@
 #include <string>
 #include <vector>
 
-namespace storages {
-namespace postgres {
+#include <utils/non_loggable.hpp>
 
-using DSNList = std::vector<std::string>;
-DSNList SplitByHost(const std::string& conninfo);
+namespace storages::postgres {
+
+using Dsn = ::utils::NonLoggable<std::string>;
+using DsnList = std::vector<Dsn>;
+
+DsnList SplitByHost(const Dsn& dsn);
 
 /// Create a string <user>@<host>:<port>/<dbname> of a single-host DSN
 /// or escape all the punctuation with _ for test
-std::string MakeDsnNick(const std::string& conninfo, bool escape);
+std::string MakeDsnNick(const Dsn& dsn, bool escape);
 
 struct DsnOptions {
   std::string host;
@@ -24,14 +27,16 @@ struct DsnOptions {
 
 /// Read options from a DSN
 /// First unique option is used if found, otherwise default is taken
-DsnOptions OptionsFromDsn(const std::string& conninfo);
+DsnOptions OptionsFromDsn(const Dsn& dsn);
+
+/// Return <host>[:<port>] string for a single-host DSN
+std::string GetHostPort(const Dsn& dsn);
 
 /// Return DSN string without 'password' field
-std::string DsnCutPassword(const std::string& conninfo);
+std::string DsnCutPassword(const Dsn& dsn);
 /// Return DSN string with password contents masked
-std::string DsnMaskPassword(const std::string& conninfo);
+std::string DsnMaskPassword(const Dsn& dsn);
 
 std::string EscapeHostName(const std::string& hostname, char escape_char = '_');
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

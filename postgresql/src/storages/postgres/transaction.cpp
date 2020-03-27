@@ -5,17 +5,15 @@
 
 #include <logging/log.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 Transaction::Transaction(detail::ConnectionPtr&& conn,
                          const TransactionOptions& options,
                          OptionalCommandControl trx_cmd_ctl,
-                         detail::SteadyClock::time_point&& trx_start_time)
+                         detail::SteadyClock::time_point trx_start_time)
     : conn_{std::move(conn)} {
   if (conn_) {
-    // NOLINTNEXTLINE(hicpp-move-const-arg)
-    conn_->Begin(options, std::move(trx_start_time), trx_cmd_ctl);
+    conn_->Begin(options, trx_start_time, trx_cmd_ctl);
   }
 }
 Transaction::Transaction(Transaction&&) noexcept = default;
@@ -102,5 +100,4 @@ const UserTypes& Transaction::GetConnectionUserTypes() const {
   return conn_->GetUserTypes();
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 #include <cctype>
 #include <cstdlib>
@@ -17,8 +17,6 @@
 #include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <utils/scope_guard.hpp>
-
-#include <utest/utest.hpp>
 
 constexpr static const char* kPostgresDsn = "POSTGRES_TEST_DSN";
 constexpr static const char* kPostgresLog = "POSTGRES_TEST_LOG";
@@ -39,7 +37,7 @@ inline engine::Deadline MakeDeadline() {
 }
 
 inline storages::postgres::detail::ConnectionPtr MakeConnection(
-    const std::string& dsn, engine::TaskProcessor& task_processor,
+    const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
     storages::postgres::ConnectionSettings settings =
         kCachePreparedStatements) {
   namespace pg = storages::postgres;
@@ -57,12 +55,13 @@ inline storages::postgres::detail::ConnectionPtr MakeConnection(
   return pg::detail::ConnectionPtr(std::move(conn));
 }
 
-std::vector<std::string> GetDsnFromEnv();
-std::vector<storages::postgres::DSNList> GetDsnListFromEnv();
+std::vector<storages::postgres::Dsn> GetDsnFromEnv();
+std::vector<storages::postgres::DsnList> GetDsnListsFromEnv();
 
-std::string DsnToString(const ::testing::TestParamInfo<std::string>& info);
+std::string DsnToString(
+    const ::testing::TestParamInfo<storages::postgres::Dsn>& info);
 std::string DsnListToString(
-    const ::testing::TestParamInfo<storages::postgres::DSNList>& info);
+    const ::testing::TestParamInfo<storages::postgres::DsnList>& info);
 
 void PrintBuffer(std::ostream&, const std::uint8_t* buffer, std::size_t size);
 inline void PrintBuffer(std::ostream& os, const std::string& buffer) {
@@ -77,7 +76,6 @@ class PostgreSQLBase : public ::testing::Test {
       old_ = logging::SetDefaultLogger(
           logging::MakeStderrLogger("cerr", logging::Level::kDebug));
     }
-    ReadParam();
   }
 
   void TearDown() override {
@@ -85,8 +83,6 @@ class PostgreSQLBase : public ::testing::Test {
       logging::SetDefaultLogger(std::move(old_));
     }
   }
-
-  virtual void ReadParam() = 0;
 
   static engine::TaskProcessor& GetTaskProcessor();
 
@@ -98,9 +94,7 @@ class PostgreSQLBase : public ::testing::Test {
 
 class PostgreConnection
     : public PostgreSQLBase,
-      public ::testing::WithParamInterface<storages::postgres::DSNList> {
-  void ReadParam() override { dsn_list_ = GetParam(); }
-
+      public ::testing::WithParamInterface<storages::postgres::DsnList> {
  protected:
   void RunConnectionTest(
       std::function<void(storages::postgres::detail::ConnectionPtr)> func) {
@@ -108,10 +102,9 @@ class PostgreConnection
       // force connection cleanup to avoid leaving detached tasks behind
       utils::ScopeGuard sync_with_bg(
           [this] { engine::impl::Async(GetTaskProcessor(), [] {}).Wait(); });
-      func(MakeConnection(dsn_list_[0], GetTaskProcessor()));
+      func(MakeConnection(GetParam()[0], GetTaskProcessor()));
     });
   }
-  storages::postgres::DSNList dsn_list_;
 };
 
 #define POSTGRE_CASE_TEST_P(test_case_name, test_name)                         \
@@ -149,9 +142,9 @@ class PostgreConnection
   void GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::test_name(           \
       storages::postgres::detail::ConnectionPtr conn)
 
-#define INSTANTIATE_POSTGRE_CASE_P(test_case_name)                  \
-  INSTANTIATE_TEST_CASE_P(/*empty*/, test_case_name,                \
-                          ::testing::ValuesIn(GetDsnListFromEnv()), \
+#define INSTANTIATE_POSTGRE_CASE_P(test_case_name)                   \
+  INSTANTIATE_TEST_CASE_P(/*empty*/, test_case_name,                 \
+                          ::testing::ValuesIn(GetDsnListsFromEnv()), \
                           DsnListToString)
 
 #define POSTGRE_TEST_P(test_name) \

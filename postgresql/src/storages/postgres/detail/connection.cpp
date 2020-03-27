@@ -22,9 +22,7 @@
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 namespace {
 
@@ -182,13 +180,13 @@ struct Connection::Impl {
     return std::exchange(stats_, Connection::Statistics{});
   }
 
-  void AsyncConnect(const std::string& conninfo) {
+  void AsyncConnect(const Dsn& dsn) {
     tracing::Span span{scopes::kConnect};
     auto scope = span.CreateScopeTime();
     auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(kConnectTimeout);
     // While connecting there are several network roundtrips, so give them
     // some allowance.
-    conn_wrapper_.AsyncConnect(conninfo, deadline, scope);
+    conn_wrapper_.AsyncConnect(dsn, deadline, scope);
     conn_wrapper_.FillSpanTags(span);
     scope.Reset(scopes::kGetConnectData);
     // We cannot handle exceptions here, so we let them got to the caller
@@ -679,7 +677,7 @@ struct Connection::Impl {
   }
 
   void Begin(const TransactionOptions& options,
-             SteadyClock::time_point&& trx_start_time,
+             SteadyClock::time_point trx_start_time,
              OptionalCommandControl trx_cmd_ctl = {}) {
     if (IsInTransaction()) {
       throw AlreadyInTransaction();
@@ -713,7 +711,7 @@ struct Connection::Impl {
     ResetTransactionCommandControl();
   }
 
-  void Start(SteadyClock::time_point&& start_time) {
+  void Start(SteadyClock::time_point start_time) {
     ++stats_.trx_total;
     ++stats_.out_of_trx;
     stats_.trx_start_time = start_time;
@@ -795,8 +793,8 @@ struct Connection::Impl {
 };  // Connection::Impl
 
 std::unique_ptr<Connection> Connection::Connect(
-    const std::string& conninfo, engine::TaskProcessor& bg_task_processor,
-    uint32_t id, ConnectionSettings settings, CommandControl default_cmd_ctl,
+    const Dsn& dsn, engine::TaskProcessor& bg_task_processor, uint32_t id,
+    ConnectionSettings settings, CommandControl default_cmd_ctl,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
   std::unique_ptr<Connection> conn(new Connection());
@@ -804,7 +802,7 @@ std::unique_ptr<Connection> Connection::Connect(
   conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, settings,
                                         default_cmd_ctl, testsuite_pg_ctl,
                                         ei_settings, std::move(size_guard));
-  conn->pimpl_->AsyncConnect(conninfo);
+  conn->pimpl_->AsyncConnect(dsn);
 
   return conn;
 }
@@ -892,19 +890,17 @@ ResultSet Connection::PortalExecute(StatementId statement_id,
 }
 
 void Connection::Begin(const TransactionOptions& options,
-                       SteadyClock::time_point&& trx_start_time,
+                       SteadyClock::time_point trx_start_time,
                        OptionalCommandControl trx_cmd_ctl) {
-  // NOLINTNEXTLINE(hicpp-move-const-arg)
-  pimpl_->Begin(options, std::move(trx_start_time), std::move(trx_cmd_ctl));
+  pimpl_->Begin(options, trx_start_time, std::move(trx_cmd_ctl));
 }
 
 void Connection::Commit() { pimpl_->Commit(); }
 
 void Connection::Rollback() { pimpl_->Rollback(); }
 
-void Connection::Start(SteadyClock::time_point&& start_time) {
-  // NOLINTNEXTLINE(hicpp-move-const-arg)
-  pimpl_->Start(std::move(start_time));
+void Connection::Start(SteadyClock::time_point start_time) {
+  pimpl_->Start(start_time);
 }
 
 void Connection::Finish() { pimpl_->Finish(); }
@@ -923,6 +919,4 @@ TimeoutDuration Connection::GetIdleDuration() const {
 
 void Connection::Ping() { pimpl_->Ping(); }
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

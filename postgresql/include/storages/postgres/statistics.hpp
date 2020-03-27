@@ -11,8 +11,7 @@
 #include <utils/statistics/recentperiod.hpp>
 #include <utils/statistics/relaxed_counter.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 /// @brief Template transaction statistics storage
 template <typename Counter, typename Accumulator>
@@ -154,8 +153,8 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
 
 /// @brief Instance statistics with description
 struct InstanceStatsDescriptor {
-  /// DSN of an instance
-  std::string dsn;
+  /// host[:port] of an instance
+  std::string host_port;
   /// Statistics of an instance
   InstanceStatisticsNonatomic stats;
 };
@@ -174,5 +173,4 @@ struct ClusterStatistics {
 
 using ClusterStatisticsPtr = std::unique_ptr<ClusterStatistics>;
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

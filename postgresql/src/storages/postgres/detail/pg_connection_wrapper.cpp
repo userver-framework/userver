@@ -22,9 +22,7 @@
 #define PGCW_LOG_ERROR() LOG_ERROR() << log_extra_
 #define PGCW_LOG(level) LOG(level) << log_extra_
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 namespace {
 
@@ -171,45 +169,44 @@ engine::Task PGConnectionWrapper::Cancel() {
       });
 }
 
-void PGConnectionWrapper::AsyncConnect(const std::string& conninfo,
-                                       Deadline deadline, ScopeTime& scope) {
-  PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(conninfo);
+void PGConnectionWrapper::AsyncConnect(const Dsn& dsn, Deadline deadline,
+                                       ScopeTime& scope) {
+  PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(dsn);
 
-  auto options = OptionsFromDsn(conninfo);
+  auto options = OptionsFromDsn(dsn);
   log_extra_.Extend(tracing::kDatabaseInstance, std::move(options.dbname));
   log_extra_.Extend(tracing::kPeerAddress,
                     std::move(options.host) + ':' + options.port);
 
   scope.Reset(scopes::kLibpqConnect);
-  StartAsyncConnect(conninfo);
+  StartAsyncConnect(dsn);
   scope.Reset(scopes::kLibpqWaitConnectFinish);
-  WaitConnectionFinish(deadline, conninfo);
-  PGCW_LOG_DEBUG() << "Connected to " << DsnCutPassword(conninfo);
+  WaitConnectionFinish(deadline, dsn);
+  PGCW_LOG_DEBUG() << "Connected to " << DsnCutPassword(dsn);
 }
 
-void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
+void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
   if (conn_) {
     PGCW_LOG_ERROR()
         << "Attempt to connect a connection that is already connected"
         << logging::LogExtra::Stacktrace();
-    throw ConnectionFailed{conninfo, "Already connected"};
+    throw ConnectionFailed{dsn, "Already connected"};
   }
 
-  conn_ = PQconnectStart(conninfo.c_str());
+  conn_ = PQconnectStart(dsn.GetUnprotectedRawValue().c_str());
   if (!conn_) {
     // The only reason the pointer cannot be null is that libpq failed
     // to allocate memory for the structure
     PGCW_LOG_ERROR() << "libpq failed to allocate a PGconn structure"
                      << logging::LogExtra::Stacktrace();
-    throw ConnectionFailed{conninfo, "Failed to allocate PGconn structure"};
+    throw ConnectionFailed{dsn, "Failed to allocate PGconn structure"};
   }
 
   PQsetNoticeReceiver(conn_, &NoticeReceiver, this);
 
   if (PQsetnonblocking(conn_, 1)) {
     PGCW_LOG_ERROR() << "libpq failed to set non-blocking connection mode";
-    throw ConnectionFailed{conninfo,
-                           "Failed to set non-blocking connection mode"};
+    throw ConnectionFailed{dsn, "Failed to set non-blocking connection mode"};
   }
 
   const auto status = PQstatus(conn_);
@@ -217,12 +214,12 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
   if (CONNECTION_BAD == status) {
     const std::string msg = msg_for_status;
     PGCW_LOG_ERROR() << msg;
-    CloseWithError(ConnectionFailed{conninfo, msg});
+    CloseWithError(ConnectionFailed{dsn, msg});
   } else {
     PGCW_LOG_TRACE() << msg_for_status;
   }
 
-  RefreshSocket(conninfo);
+  RefreshSocket(dsn);
 
   if (kVerboseErrors) {
     PQsetErrorVerbosity(conn_, PQERRORS_VERBOSE);
@@ -230,7 +227,7 @@ void PGConnectionWrapper::StartAsyncConnect(const std::string& conninfo) {
 }
 
 void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
-                                               const std::string& conninfo) {
+                                               const Dsn& dsn) {
   auto poll_res = PGRES_POLLING_WRITING;
   auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
       deadline.TimeLeft());
@@ -269,15 +266,15 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
     // Libpq may reopen sockets during PQconnectPoll while trying different
     // security/encryption schemes (SSL, GSS etc.). We must keep track of the
     // current socket to avoid polling the wrong one in the future.
-    RefreshSocket(conninfo);
+    RefreshSocket(dsn);
   }
 }
 
-void PGConnectionWrapper::RefreshSocket(const std::string& conninfo) {
+void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
   const auto fd = PQsocket(conn_);
   if (fd < 0) {
     PGCW_LOG_ERROR() << "Invalid PostgreSQL socket " << fd;
-    throw ConnectionFailed{conninfo, "Invalid socket handle"};
+    throw ConnectionFailed{dsn, "Invalid socket handle"};
   }
   if (fd == socket_.Fd()) return;
 
@@ -563,6 +560,4 @@ TimeoutDuration PGConnectionWrapper::GetIdleDuration() const {
       std::chrono::steady_clock::now() - last_use_);
 }
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

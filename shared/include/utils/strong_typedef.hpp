@@ -270,9 +270,14 @@ Parse(const ValueType& source,
 
 template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
           typename TargetType>
-inline TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
-                            formats::serialize::To<TargetType>) {
+TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
+                     formats::serialize::To<TargetType>) {
   return typename TargetType::Builder(object.GetUnderlying()).ExtractValue();
+}
+
+template <class Tag, class T, StrongTypedefOps Ops>
+std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {
+  return hash_value(v.GetUnderlying());
 }
 
 }  // namespace utils
@@ -284,7 +289,7 @@ template <class Tag, class T, utils::StrongTypedefOps Ops>
 struct hash<utils::StrongTypedef<Tag, T, Ops>> : hash<T> {
   std::size_t operator()(const utils::StrongTypedef<Tag, T, Ops>& v) const
       noexcept(
-          noexcept(std::declval<const hash<T>&>()(std::declval<const T&>()))) {
+          noexcept(std::declval<const hash<T>>()(std::declval<const T&>()))) {
     return hash<T>::operator()(v.GetUnderlying());
   }
 };
