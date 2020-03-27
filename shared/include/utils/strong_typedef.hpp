@@ -8,10 +8,11 @@
 #include <type_traits>
 #include <utility>
 
-#include <utils/underlying_value.hpp>
-#include <utils/void_t.hpp>
+#include <boost/functional/hash_fwd.hpp>
 
 #include <formats/common/meta.hpp>
+#include <utils/underlying_value.hpp>
+#include <utils/void_t.hpp>
 
 namespace logging {
 class LogHelper;  // Forward declaration
@@ -277,7 +278,7 @@ TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
 
 template <class Tag, class T, StrongTypedefOps Ops>
 std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {
-  return hash_value(v.GetUnderlying());
+  return boost::hash<T>{}(v.GetUnderlying());
 }
 
 }  // namespace utils

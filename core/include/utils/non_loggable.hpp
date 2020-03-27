@@ -3,6 +3,8 @@
 #include <functional>
 #include <iosfwd>
 
+#include <boost/functional/hash_fwd.hpp>
+
 #include <formats/parse/to.hpp>
 
 namespace logging {
@@ -79,7 +81,7 @@ bool operator>=(const NonLoggable<T>& lhs, const NonLoggable<T>& rhs) {
 
 template <class T>
 std::size_t hash_value(const NonLoggable<T>& value) {
-  return hash_value(value.GetUnprotectedRawValue());
+  return boost::hash<T>{}(value.GetUnprotectedRawValue());
 }
 
 }  // namespace utils
