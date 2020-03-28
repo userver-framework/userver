@@ -57,7 +57,10 @@ void Connection::SetCloseCb(CloseCb close_cb) {
 void Connection::Start() {
   LOG_TRACE() << "Starting socket listener for fd " << Fd();
 
-  auto socket_listener =
+  // TODO TAXICOMMON-1993 Remove slicing once the issues with payload lifetime
+  // in cancelled TaskWithResult are resolved
+  engine::Task socket_listener =
+      // NOLINTNEXTLINE(cppcoreguidelines-slicing)
       engine::impl::Async(task_processor_,
                           [this](Queue::Producer producer) {
                             ListenForRequests(std::move(producer));
