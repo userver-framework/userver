@@ -30,9 +30,9 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
                              ex.what());
   }
 
+  config_client_ = std::make_unique<clients::taxi_config::Client>(
+      component_context.FindComponent<HttpClient>().GetHttpClient(), config);
   try {
-    config_client_ = std::make_unique<clients::taxi_config::Client>(
-        component_context.FindComponent<HttpClient>().GetHttpClient(), config);
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
     LOG_ERROR() << "Config client updater initialization failed: " << e;
