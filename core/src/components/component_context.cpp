@@ -49,6 +49,18 @@ ComponentContext::TaskToComponentMapScope::~TaskToComponentMapScope() {
       engine::current_task::GetCurrentTaskContext());
 }
 
+ComponentContext::SearchingComponentScope::SearchingComponentScope(
+    const ComponentContext& context, const std::string& component_name)
+    : context_(context), component_name_(component_name) {
+  auto data = context_.shared_data_.Lock();
+  data->searching_components.insert(component_name);
+}
+
+ComponentContext::SearchingComponentScope::~SearchingComponentScope() {
+  auto data = context_.shared_data_.Lock();
+  data->searching_components.erase(component_name_);
+}
+
 ComponentContext::ComponentContext(
     const Manager& manager,
     const std::set<std::string>& loading_component_names)
@@ -231,13 +243,16 @@ impl::ComponentBase* ComponentContext::DoFindComponent(
   auto component = component_info.GetComponent();
   if (component) return component;
 
+  std::string this_component_name;
+
   {
     engine::TaskCancellationBlocker block_cancel;
     auto data = shared_data_.Lock();
+    this_component_name = GetLoadingComponentName(*data);
     LOG_INFO() << "component " << name << " is not loaded yet, component "
-               << GetLoadingComponentName(*data)
-               << " is waiting for it to load";
+               << this_component_name << " is waiting for it to load";
   }
+  SearchingComponentScope finder(*this, this_component_name);
 
   return component_info.WaitAndGetComponent();
 }
@@ -342,13 +357,19 @@ void ComponentContext::StopPrintAddingComponentsTask() {
 
 void ComponentContext::PrintAddingComponents() const {
   std::vector<std::string> adding_components;
+  std::vector<std::string> busy_components;
+
   {
     auto data = shared_data_.Lock();
     for (const auto& elem : data->task_to_component_map) {
-      adding_components.push_back(elem.second);
+      const auto& name = elem.second;
+      adding_components.push_back(name);
+      if (data->searching_components.count(name) == 0)
+        busy_components.push_back(name);
     }
   }
-  LOG_INFO() << "still adding components: ["
+  LOG_INFO() << "still adding components, busy: ["
+             << boost::algorithm::join(busy_components, ", ") << "], loading: ["
              << boost::algorithm::join(adding_components, ", ") << ']';
 }
 

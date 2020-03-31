@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <compiler/demangle.hpp>
@@ -130,6 +131,17 @@ class ComponentContext final {
     ComponentContext& context_;
   };
 
+  class SearchingComponentScope final {
+   public:
+    SearchingComponentScope(const ComponentContext& context,
+                            const std::string& component_name);
+    ~SearchingComponentScope();
+
+   private:
+    const ComponentContext& context_;
+    std::string component_name_;
+  };
+
   using ComponentMap =
       std::unordered_map<std::string, std::unique_ptr<impl::ComponentInfo>>;
 
@@ -194,6 +206,7 @@ class ComponentContext final {
   struct ProtectedData {
     std::unordered_map<engine::impl::TaskContext*, std::string>
         task_to_component_map;
+    mutable std::unordered_set<std::string> searching_components;
     bool print_adding_components_stopped{false};
   };
   engine::ConditionVariable print_adding_components_cv_;
