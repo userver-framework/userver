@@ -90,7 +90,10 @@ formats::json::Value FromString(utils::string_view doc) {
   }
 
   impl::Document json;
-  rapidjson::ParseResult ok = json.Parse(&doc[0], doc.size());
+  rapidjson::ParseResult ok =
+      json.Parse<rapidjson::kParseDefaultFlags |
+                 rapidjson::kParseIterativeFlag |
+                 rapidjson::kParseFullPrecisionFlag>(doc.data(), doc.size());
   if (!ok) {
     throw ParseException(fmt::format("JSON parse error: {} (at offset {})",
                                      rapidjson::GetParseError_En(ok.Code()),
@@ -107,7 +110,10 @@ formats::json::Value FromStream(std::istream& is) {
 
   rapidjson::IStreamWrapper in(is);
   impl::Document json;
-  rapidjson::ParseResult ok = json.ParseStream(in);
+  rapidjson::ParseResult ok =
+      json.ParseStream<rapidjson::kParseDefaultFlags |
+                       rapidjson::kParseIterativeFlag |
+                       rapidjson::kParseFullPrecisionFlag>(in);
   if (!ok) {
     throw ParseException(fmt::format("JSON parse error: {} (at offset {})",
                                      rapidjson::GetParseError_En(ok.Code()),

@@ -1,9 +1,12 @@
 #include <formats/json/value.hpp>
 
+#include <cmath>
+#include <functional>
+#include <limits>
+
 #include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
 #include <formats/json/exception.hpp>
-#include <functional>
 
 #include <formats/common/path_impl.hpp>
 #include "exttypes.hpp"
@@ -42,13 +45,12 @@ bool IsIntegral(const double val) {
   return modf(val, &integral_part) == 0.0;
 }
 
+constexpr int64_t kMaxIntDouble = 1L << std::numeric_limits<double>::digits;
+
 template <typename Int>
 bool IsNonOverflowingIntegral(const double val) {
   if constexpr (sizeof(Int) >= sizeof(double)) {
-    // to avoid overflow problems of integers wider that double's mantissa we
-    // require "strict less than" check on upper boundary
-    return val >= std::numeric_limits<Int>::min() &&
-           val < std::numeric_limits<Int>::max() && IsIntegral(val);
+    return val > -kMaxIntDouble && val < kMaxIntDouble && IsIntegral(val);
   } else {
     return val >= std::numeric_limits<Int>::min() &&
            val <= std::numeric_limits<Int>::max() && IsIntegral(val);
