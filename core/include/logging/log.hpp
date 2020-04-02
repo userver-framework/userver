@@ -204,17 +204,25 @@ void LogFlush();
 
 }  // namespace logging
 
+/// @brief Builds a stream and evaluates a message for the logger.
+/// @hideinitializer
 #define DO_LOG_TO(logger, lvl) \
   ::logging::LogHelper(logger, lvl, __FILE__, __LINE__, __func__).AsLvalue()
 
-/// @brief Builds a stream and evaluates a message for the default logger
-/// if lvl matches the verbosity, otherwise the message is not evaluated
+// static_cast<int> below are workarounds for clangs -Wtautological-compare
+
+/// @brief If lvl matches the verbosity then builds a stream and evaluates a
+/// message for the logger.
 /// @hideinitializer
-#define LOG_TO(logger, lvl)                                                   \
-  __builtin_expect(!::logging::ShouldLog(lvl), lvl < ::logging::Level::kInfo) \
-      ? ::logging::impl::Noop{}                                               \
+#define LOG_TO(logger, lvl)                                              \
+  __builtin_expect(                                                      \
+      !::logging::ShouldLog(lvl),                                        \
+      static_cast<int>(lvl) < static_cast<int>(::logging::Level::kInfo)) \
+      ? ::logging::impl::Noop{}                                          \
       : DO_LOG_TO(logger, lvl)
 
+/// @brief If lvl matches the verbosity then builds a stream and evaluates a
+/// message for the default logger.
 #define LOG(lvl) LOG_TO(::logging::DefaultLogger(), lvl)
 
 #define LOG_TRACE() LOG(::logging::Level::kTrace)
