@@ -3,6 +3,7 @@
 /// @file formats/serialize/common_containers.hpp
 /// @brief Serializers for standard containers and optional
 
+#include <array>
 #include <optional>
 #include <vector>
 
@@ -17,7 +18,9 @@ namespace formats::serialize {
 
 // Serialize() for std::vector, std::set, std::unordered_set
 template <typename T, typename Value>
-std::enable_if_t<meta::is_vector<T>::value || meta::is_set<T>::value, Value>
+std::enable_if_t<meta::is_vector<T>::value || meta::is_array<T>::value ||
+                     meta::is_set<T>::value,
+                 Value>
 Serialize(const T& value, To<Value>) {
   typename Value::Builder builder(formats::common::Type::kArray);
   for (const auto& item : value) {

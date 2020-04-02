@@ -7,6 +7,7 @@
 
 #include <formats/common/type.hpp>
 #include <formats/parse/common_containers.hpp>
+#include <formats/serialize/common_containers.hpp>
 
 template <class T>
 struct Conversion : public ::testing::Test {};
@@ -257,7 +258,35 @@ TYPED_TEST_P(Conversion, Containers) {
   EXPECT_FALSE(value["n"].template ConvertTo<std::optional<std::string>>());
 }
 
+TYPED_TEST_P(Conversion, ContainersSerialize) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+  using Value = typename TestFixture::Value;
+  using Exception = typename TestFixture::Exception;
+
+  ValueBuilder invb;
+  std::vector ref_vector{1, 2, 3};
+  invb["v"] = ref_vector;
+  std::array ref_array{1, 2, 3};
+  invb["a"] = ref_array;
+  std::unordered_map<std::string, int> ref_umap;
+  ref_umap["one"] = 1;
+  ref_umap["two"] = 2;
+  invb["d"] = ref_umap;
+
+  auto inval = invb.ExtractValue();
+  auto test_umap =
+      inval["d"].template ConvertTo<std::unordered_map<std::string, int>>();
+
+  EXPECT_EQ(ref_vector, inval["v"].template ConvertTo<std::vector<int>>());
+  EXPECT_EQ(ref_umap, test_umap);
+
+  // No ConvertTo<std::array>, check by hand
+  for (size_t i = 0; i < ref_vector.size(); ++i) {
+    EXPECT_EQ(ref_vector[i], inval["a"][i].template As<int>());
+  }
+}
+
 REGISTER_TYPED_TEST_CASE_P(Conversion,
 
                            Missing, Null, Bool, Double, Int32, Int64, Utf8,
-                           Containers);
+                           Containers, ContainersSerialize);

@@ -19,7 +19,11 @@ template <template <typename...> class Template, typename T>
 struct is_instantiation_of : std::false_type {};
 
 template <template <typename...> class Template, typename... Args>
-struct is_instantiation_of<Template, Template<Args...> > : std::true_type {};
+struct is_instantiation_of<Template, Template<Args...>> : std::true_type {};
+
+template <template <typename...> class Template, typename... Args>
+inline constexpr bool is_instantiation_of_v =
+    is_instantiation_of<Template, Args...>::value;
 
 template <class T>
 struct is_duration : is_instantiation_of<std::chrono::duration, T> {};
@@ -28,17 +32,26 @@ template <class T>
 struct is_vector : is_instantiation_of<std::vector, T> {};
 
 template <class T>
-struct is_set {
+struct is_array {
+  template <typename X, size_t V>
+  static constexpr auto check_is_array(const std::array<X, V>&)
+      -> std::true_type;
+  static constexpr auto check_is_array(...) -> std::false_type;
+
   static constexpr bool value =
-      is_instantiation_of<std::set, T>::value ||
-      is_instantiation_of<std::unordered_set, T>::value;
+      decltype(check_is_array(std::declval<T>()))::value;
+};
+
+template <class T>
+struct is_set {
+  static constexpr bool value = is_instantiation_of_v<std::set, T> ||
+                                is_instantiation_of_v<std::unordered_set, T>;
 };
 
 template <class T>
 struct is_map {
-  static constexpr bool value =
-      is_instantiation_of<std::unordered_map, T>::value ||
-      is_instantiation_of<std::map, T>::value;
+  static constexpr bool value = is_instantiation_of_v<std::unordered_map, T> ||
+                                is_instantiation_of_v<std::map, T>;
 };
 
 }  // namespace meta
