@@ -65,6 +65,7 @@ class ValueBuilder final {
   ValueBuilder operator[](std::size_t index);
 
   /// @brief Emplaces new member w/o a check whether the key already exists.
+  /// @warn May create invalid JSON with duplicate key.
   /// @throw `TypeMismatchException` if not object or null value.
   void EmplaceNocheck(const std::string& key, ValueBuilder value);
 
