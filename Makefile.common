@@ -139,11 +139,11 @@ teamcity-check-pep8:
 
 .PHONY: taxi-black
 taxi-black:
-	@taxi-black .
+	@taxi-black --quiet .
 
 .PHONY: smart-taxi-black
 smart-taxi-black:
-	@taxi-black --smart .
+	@taxi-black --smart --quiet .
 
 .PHONY: taxi-yamlfmt
 taxi-yamlfmt:
