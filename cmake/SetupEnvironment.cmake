@@ -28,6 +28,8 @@ add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(MACOS found)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
+  # disable pkg-config as it's borked by homebrew -- TAXICOMMON-2264
+  set(PKG_CONFIG_EXECUTABLE "")
 endif()
 
 include(SetupLinker)
