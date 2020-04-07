@@ -17,7 +17,9 @@ HttpRequestHandler::HttpRequestHandler(
     const boost::optional<std::string>& logger_access_component,
     const boost::optional<std::string>& logger_access_tskv_component,
     bool is_monitor)
-    : add_handler_disabled_(false), is_monitor_(is_monitor) {
+    : add_handler_disabled_(false),
+      is_monitor_(is_monitor),
+      rate_limit_(1, std::chrono::seconds(0)) {
   auto& logging_component =
       component_context.FindComponent<components::Logging>();
 
@@ -57,6 +59,12 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     // by HttpRequestConstructor::CheckStatus
     return StartFailsafeTask(std::move(request));
   }
+  if (!rate_limit_.Obtain()) {
+    http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
+    http_request.GetHttpResponse().SetReady();
+    LOG_ERROR() << "Request throttled (congestion control)";
+    return StartFailsafeTask(std::move(request));
+  }
 
   auto payload = [request = std::move(request), handler] {
     request->SetTaskStartTime();
@@ -73,7 +81,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   } else {
     return engine::impl::CriticalAsync(*task_processor, std::move(payload));
   }
-}
+}  // namespace http
 
 void HttpRequestHandler::DisableAddHandler() { add_handler_disabled_ = true; }
 
@@ -118,6 +126,16 @@ engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(
     request->SetResponseNotifyTime();
     request->GetResponse().SetReady();
   });
+}
+
+void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
+  if (rps) {
+    rate_limit_.SetMaxSize(*rps);
+    rate_limit_.SetUpdateInterval(
+        utils::TokenBucket::Duration{std::chrono::seconds(1)} / *rps);
+  } else {
+    rate_limit_.SetUpdateInterval(utils::TokenBucket::Duration(0));
+  }
 }
 
 }  // namespace http

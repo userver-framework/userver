@@ -11,6 +11,8 @@ engine::TaskProcessorSettings ParseTaskProcessorSettings(
   settings.wait_queue_time_limit =
       std::chrono::microseconds(overload_doc["time_limit_us"].As<int64_t>());
   settings.wait_queue_length_limit = overload_doc["length_limit"].As<int64_t>();
+  settings.sensor_wait_queue_time_limit = std::chrono::microseconds(
+      overload_doc["sensor_time_limit_us"].As<int64_t>(3000));
   const auto action = overload_doc["action"].As<std::string>();
 
   using oa = engine::TaskProcessorSettings::OverloadAction;

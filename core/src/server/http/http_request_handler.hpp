@@ -8,6 +8,7 @@
 #include <server/handlers/handler_base.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/request/request_base.hpp>
+#include <utils/token_bucket.hpp>
 
 #include "handler_info_index.hpp"
 
@@ -40,6 +41,8 @@ class HttpRequestHandler final : public RequestHandlerBase {
     return logger_access_tskv_;
   }
 
+  void SetRpsRatelimit(std::optional<size_t> rps);
+
  private:
   engine::TaskWithResult<void> StartFailsafeTask(
       std::shared_ptr<request::RequestBase> request) const;
@@ -57,6 +60,7 @@ class HttpRequestHandler final : public RequestHandlerBase {
   std::atomic<bool> add_handler_disabled_;
   bool is_monitor_;
   NewRequestHook new_request_hook_;
+  mutable utils::TokenBucket rate_limit_;
 };
 
 }  // namespace server::http

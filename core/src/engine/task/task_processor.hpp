@@ -35,6 +35,7 @@ struct TaskContextPtrHash {
 struct TaskProcessorSettings {
   size_t wait_queue_length_limit{0};
   std::chrono::microseconds wait_queue_time_limit{0};
+  std::chrono::microseconds sensor_wait_queue_time_limit{0};
 
   enum class OverloadAction { kCancel, kIgnore };
   OverloadAction overload_action{OverloadAction::kIgnore};
@@ -67,6 +68,7 @@ class TaskProcessor final {
   size_t GetWorkerCount() const { return workers_.size(); }
 
   void SetSettings(const TaskProcessorSettings& settings) {
+    sensor_task_queue_wait_time_ = settings.sensor_wait_queue_time_limit;
     max_task_queue_wait_time_ = settings.wait_queue_time_limit;
     max_task_queue_wait_length_ = settings.wait_queue_length_limit;
     overload_action_ = settings.overload_action;
@@ -105,6 +107,7 @@ class TaskProcessor final {
 
   moodycamel::BlockingConcurrentQueue<impl::TaskContext*> task_queue_;
 
+  std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{};
   std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{};
   std::atomic<size_t> max_task_queue_wait_length_{0};
   TaskProcessorSettings::OverloadAction overload_action_{

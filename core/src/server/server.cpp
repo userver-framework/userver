@@ -179,6 +179,8 @@ formats::json::Value Server::GetMonitorData(
   return json_data.ExtractValue();
 }
 
+net::Stats Server::GetServerStats() const { return pimpl->GetServerStats(); }
+
 void Server::AddHandler(const handlers::HttpHandlerBase& handler,
                         engine::TaskProcessor& task_processor) {
   (handler.IsMonitor() ? pimpl->monitor_port_info_.request_handler_
@@ -196,6 +198,10 @@ void Server::Start() {
 void Server::Stop() { pimpl->Stop(); }
 
 RequestsView& Server::GetRequestsView() { return *pimpl->requests_view_; }
+
+void Server::SetRpsRatelimit(std::optional<size_t> rps) {
+  pimpl->main_port_info_.request_handler_->SetRpsRatelimit(rps);
+}
 
 net::Stats ServerImpl::GetServerStats() const {
   net::Stats summary;

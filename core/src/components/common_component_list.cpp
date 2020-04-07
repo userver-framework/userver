@@ -4,6 +4,7 @@
 #include <components/manager_controller_component.hpp>
 #include <components/statistics_storage.hpp>
 #include <components/tracer.hpp>
+#include <congestion_control/component.hpp>
 #include <logging/component.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <taxi_config/updater/client/component.hpp>
@@ -19,6 +20,7 @@ ComponentList CommonComponentList() {
       .Append<components::TestsuiteSupport>()
       .Append<components::StatisticsStorage>()
       .Append<components::TaxiConfig>()
+      .Append<congestion_control::Component>()
       .Append<components::HttpClient>()
       .Append<components::HttpClient>("http-client-statistics")
       .Append<components::TaxiConfigClientUpdater>();

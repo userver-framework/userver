@@ -5,13 +5,14 @@
 
 namespace utils {
 
-/// Thread safe ratelimit
+/// Thread safe ratelimiter
 class TokenBucket final {
  public:
   using Duration = std::chrono::steady_clock::duration;
 
   /// Start with max_size tokens and add 1 token each
   /// single_token_update_interval up to max_size.
+  /// Zero duration means "no limit".
   TokenBucket(size_t max_size, Duration single_token_update_interval);
 
   TokenBucket(const TokenBucket&) = delete;
@@ -23,7 +24,8 @@ class TokenBucket final {
   /// Set max token count
   void SetMaxSize(size_t max_size);
 
-  /// Add 1 token each token_update_interval
+  /// Add 1 token each token_update_interval.
+  /// Zero duration means "no limit".
   void SetUpdateInterval(Duration single_token_update_interval);
 
   /// Get rate (tokens per second)

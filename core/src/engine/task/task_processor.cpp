@@ -179,15 +179,15 @@ void TaskProcessor::ProcessTasks() noexcept {
 }
 
 void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
-  static constexpr size_t kTaskTimestampFrequency = 16;
+  static constexpr size_t kTaskTimestampInterval = 4;
   thread_local size_t task_count = 0;
-  if (task_count++ == kTaskTimestampFrequency) {
+  if (task_count++ == kTaskTimestampInterval) {
     task_count = 0;
     context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
   } else {
     /* Don't call clock_gettime() too often.
      * This leads to killing some innocent tasks on overload, up to
-     * +(kTaskTimestampFrequency-1), we may sacrifice them.
+     * +(kTaskTimestampInterval-1), we may sacrifice them.
      */
     context->SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
   }
@@ -195,7 +195,9 @@ void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
 
 void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
   const auto max_wait_time = max_task_queue_wait_time_.load();
-  if (max_wait_time.count() == 0) {
+  const auto sensor_wait_time = sensor_task_queue_wait_time_.load();
+
+  if (max_wait_time.count() == 0 && sensor_wait_time.count() == 0) {
     task_queue_wait_time_overloaded_ = false;
     return;
   }
@@ -207,7 +209,10 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
         std::chrono::duration_cast<std::chrono::microseconds>(wait_time);
     LOG_TRACE() << "queue wait time = " << wait_time_us.count() << "us";
 
-    task_queue_wait_time_overloaded_ = wait_time >= max_wait_time;
+    task_queue_wait_time_overloaded_ =
+        max_wait_time.count() && wait_time >= max_wait_time;
+    if (sensor_wait_time.count() && wait_time >= sensor_wait_time)
+      GetTaskCounter().AccountTaskOverloadSensor();
   } else {
     // no info, let's pretend this task has the same queue wait time as the
     // previous one

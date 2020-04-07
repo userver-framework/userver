@@ -84,9 +84,9 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
 
   auto testsuite_support = testsuite_support_.Lock();
 
-  if (now)
+  if (now) {
     utils::datetime::MockNowSet(*now);
-  else
+  } else
     utils::datetime::MockNowUnset();
 
   if (invalidate_caches) {

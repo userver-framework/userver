@@ -12,6 +12,10 @@ class TaskProcessor;
 
 namespace server {
 
+namespace net {
+struct Stats;
+}
+
 class RequestsView;
 
 class ServerImpl;
@@ -28,6 +32,8 @@ class Server final {
   formats::json::Value GetMonitorData(
       utils::statistics::StatisticsRequest) const;
 
+  net::Stats GetServerStats() const;
+
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
 
@@ -36,6 +42,8 @@ class Server final {
   void Stop();
 
   RequestsView& GetRequestsView();
+
+  void SetRpsRatelimit(std::optional<size_t> rps);
 
  private:
   std::unique_ptr<ServerImpl> pimpl;
