@@ -55,6 +55,11 @@ class ExpirableLruCache final {
  public:
   using UpdateValueFunc = std::function<Value(const Key&)>;
 
+  enum class ReadMode {
+    kSkipCache,
+    kUseCache,
+  };
+
   ExpirableLruCache(size_t ways, size_t way_size, const Hash& hash = Hash(),
                     const Equal& equal = Equal());
 
@@ -66,7 +71,8 @@ class ExpirableLruCache final {
 
   void SetBackgroundUpdate(BackgroundUpdateMode background_update);
 
-  Value Get(const Key& key, const UpdateValueFunc& update_func);
+  Value Get(const Key& key, const UpdateValueFunc& update_func,
+            ReadMode read_mode = ReadMode::kUseCache);
 
   const ExpirableLruCacheStatistics& GetStatistics() const;
 
@@ -131,7 +137,7 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::SetBackgroundUpdate(
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
-    const Key& key, const UpdateValueFunc& update_func) {
+    const Key& key, const UpdateValueFunc& update_func, ReadMode read_mode) {
   auto now = utils::datetime::SteadyNow();
   auto old_value = lru_.Get(key);
 
@@ -165,7 +171,7 @@ Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
     return old_value->value;
 
   auto value = update_func(key);
-  lru_.Put(key, {value, now});
+  if (read_mode == ReadMode::kUseCache) lru_.Put(key, {value, now});
   return value;
 }
 
@@ -236,12 +242,15 @@ template <typename Key, typename Value, typename Hash = std::hash<Key>,
 class LruCacheWrapper final {
  public:
   using Cache = ExpirableLruCache<Key, Value, Hash, Equal>;
+  using ReadMode = typename Cache::ReadMode;
   LruCacheWrapper(std::shared_ptr<Cache> cache,
                   typename Cache::UpdateValueFunc update_func)
       : cache_(std::move(cache)), update_func_(std::move(update_func)) {}
 
   /// Get cached value or evaluates if key is missing in cache
-  Value Get(const Key& key) { return cache_->Get(key, update_func_); }
+  Value Get(const Key& key, ReadMode read_mode = ReadMode::kUseCache) {
+    return cache_->Get(key, update_func_, read_mode);
+  }
 
   void InvalidateByKey(const Key& key) { cache_->InvalidateByKey(key); }
 

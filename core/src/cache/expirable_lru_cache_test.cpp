@@ -23,6 +23,31 @@ TEST(ExpirableLruCache, Hit) {
   });
 }
 
+TEST(ExpirableLruCache, NoCache) {
+  RunInCoro([] {
+    using Cache = cache::ExpirableLruCache<int, int>;
+    const auto read_mode = Cache::ReadMode::kSkipCache;
+    Cache cache(1, 1);
+    int count = 0;
+
+    EXPECT_EQ(0, cache.Get(1,
+                           [&count](int) {
+                             count++;
+                             return 0;
+                           },
+                           read_mode));
+    EXPECT_EQ(1, count);
+
+    EXPECT_EQ(-1, cache.Get(1,
+                            [&count](int) {
+                              count++;
+                              return -1;
+                            },
+                            read_mode));
+    EXPECT_EQ(2, count);
+  });
+}
+
 TEST(ExpirableLruCache, Expire) {
   RunInCoro([] {
     cache::ExpirableLruCache<int, int> cache(1, 1);
