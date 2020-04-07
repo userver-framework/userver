@@ -1,13 +1,11 @@
 #pragma once
 
-//#include <boost/signals2/signal.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-//#include "local_dc_hostlist_holder.hpp"
 #include <storages/redis/impl/redis_stats.hpp>
 #include "redis.hpp"
 
@@ -75,7 +73,7 @@ class Shard {
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool);
   bool ProcessStateUpdate();
   bool SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array);
-  bool IsConnectedToAllServersDebug();
+  bool IsConnectedToAllServersDebug(bool allow_empty);
   ShardStatistics GetStatistics() const;
   size_t InstancesSize() const;
   const std::string& ShardName() const;
@@ -99,7 +97,6 @@ class Shard {
       std::chrono::steady_clock::now();
   bool destroying_ = false;
 
-  // std::function<void(Redis::State state)> state_change_callback;
   const std::function<void(bool ready)> ready_change_callback_;
 
   boost::signals2::signal<void(ServerId, Redis::State)>

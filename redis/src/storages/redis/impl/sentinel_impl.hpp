@@ -1,6 +1,9 @@
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <map>
+#include <mutex>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -8,12 +11,15 @@
 
 #include <boost/signals2/signal.hpp>
 
+#include <engine/condition_variable_any.hpp>
+#include <engine/deadline.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <utils/swappingsmart.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
+#include <storages/redis/impl/wait_connected_mode.hpp>
 #include "ev_wrapper.hpp"
 #include "keys_for_shards.hpp"
 #include "keyshard_impl.hpp"
@@ -42,7 +48,9 @@ class SentinelImpl {
   GetAvailableServersWeighted(size_t shard_idx, bool with_master,
                               const CommandControl& cc = {}) const;
 
-  void WaitConnectedDebug();
+  void WaitConnectedDebug(bool allow_empty_slaves);
+
+  void WaitConnectedOnce(RedisWaitConnected wait_connected);
 
   void ForceUpdateHosts();
 
@@ -119,6 +127,24 @@ class SentinelImpl {
     mutable std::mutex mutex_;
   };
 
+  class ConnectedStatus {
+   public:
+    void SetMasterReady();
+    void SetSlaveReady();
+
+    bool WaitReady(engine::Deadline deadline, WaitConnectedMode mode);
+
+   private:
+    template <typename Pred>
+    bool Wait(engine::Deadline deadline, const Pred& pred);
+
+    std::mutex mutex_;
+    std::atomic<bool> master_ready_{false};
+    std::atomic<bool> slave_ready_{false};
+
+    engine::impl::ConditionVariableAny<std::mutex> cv_;
+  };
+
   void GenerateKeysForShards(size_t max_len = 4);
   void AsyncCommandFailed(const SentinelCommand& scommand);
 
@@ -157,6 +183,7 @@ class SentinelImpl {
 
   std::string shard_group_name_;
   std::vector<std::string> init_shards_;
+  std::vector<std::unique_ptr<ConnectedStatus>> connected_statuses_;
   std::vector<ConnectionInfo> conns_;
   ReadyChangeCallback ready_callback_;
 

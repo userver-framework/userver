@@ -70,7 +70,13 @@ Sentinel::~Sentinel() {
   UASSERT(!impl_);
 }
 
-void Sentinel::WaitConnectedDebug() { impl_->WaitConnectedDebug(); }
+void Sentinel::WaitConnectedDebug(bool allow_empty_slaves) {
+  impl_->WaitConnectedDebug(allow_empty_slaves);
+}
+
+void Sentinel::WaitConnectedOnce(RedisWaitConnected wait_connected) {
+  impl_->WaitConnectedOnce(wait_connected);
+}
 
 void Sentinel::ForceUpdateHosts() { impl_->ForceUpdateHosts(); }
 

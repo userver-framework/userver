@@ -52,6 +52,7 @@ class SubscribeSentinel : protected Sentinel {
   using Sentinel::Restart;
   using Sentinel::SetConfigDefaultCommandControl;
   using Sentinel::WaitConnectedDebug;
+  using Sentinel::WaitConnectedOnce;
 
  private:
   struct Stopper {

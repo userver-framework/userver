@@ -8,6 +8,7 @@
 #include <string>
 
 #include <storages/redis/impl/base.hpp>
+#include <storages/redis/impl/wait_connected_mode.hpp>
 
 #include <storages/redis/command_options.hpp>
 #include <storages/redis/request.hpp>
@@ -40,6 +41,9 @@ class Client {
   virtual const std::string& GetAnyKeyForShard(size_t shard_idx) const = 0;
 
   virtual std::shared_ptr<Client> GetClientForShard(size_t shard_idx) = 0;
+
+  virtual void WaitConnectedOnce(
+      ::redis::RedisWaitConnected wait_connected) = 0;
 
   // redis commands:
 

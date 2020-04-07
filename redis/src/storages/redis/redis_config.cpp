@@ -62,4 +62,18 @@ CommandControl::Strategy Parse(
   return response;
 }
 
+WaitConnectedMode Parse(const formats::json::Value& elem,
+                        formats::parse::To<WaitConnectedMode> to) {
+  return Parse(elem.As<std::string>(), to);
+}
+
+RedisWaitConnected Parse(const formats::json::Value& elem,
+                         formats::parse::To<RedisWaitConnected>) {
+  RedisWaitConnected result;
+  result.mode = elem["mode"].As<WaitConnectedMode>();
+  result.throw_on_fail = elem["throw_on_fail"].As<bool>();
+  result.timeout = std::chrono::milliseconds{elem["timeout-ms"].As<int>()};
+  return result;
+}
+
 }  // namespace redis

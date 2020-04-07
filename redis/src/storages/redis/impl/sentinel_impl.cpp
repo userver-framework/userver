@@ -8,6 +8,7 @@
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 
+#include <storages/redis/impl/exception.hpp>
 #include <storages/redis/impl/reply.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 
@@ -42,7 +43,10 @@ SentinelImpl::SentinelImpl(
       track_slaves_(track_slaves),
       key_shard_(std::move(key_shard)) {
   UASSERT(loop_ != nullptr);
-  for (size_t i = 0; i < init_shards_.size(); ++i) shards_[init_shards_[i]] = i;
+  for (size_t i = 0; i < init_shards_.size(); ++i) {
+    shards_[init_shards_[i]] = i;
+    connected_statuses_.push_back(std::make_unique<ConnectedStatus>());
+  }
   client_name_ = client_name;
   password_ = password;
 
@@ -74,7 +78,7 @@ SentinelImpl::GetAvailableServersWeighted(size_t shard_idx, bool with_master,
   return result;
 }
 
-void SentinelImpl::WaitConnectedDebug() {
+void SentinelImpl::WaitConnectedDebug(bool allow_empty_slaves) {
   static const auto timeout = std::chrono::milliseconds(50);
 
   for (;; std::this_thread::sleep_for(timeout)) {
@@ -82,10 +86,30 @@ void SentinelImpl::WaitConnectedDebug() {
 
     bool connected_all = true;
     for (const auto& shard : master_shards_)
-      connected_all = connected_all && shard->IsConnectedToAllServersDebug();
+      connected_all =
+          connected_all && shard->IsConnectedToAllServersDebug(false);
     for (const auto& shard : slaves_shards_)
-      connected_all = connected_all && shard->IsConnectedToAllServersDebug();
+      connected_all = connected_all &&
+                      shard->IsConnectedToAllServersDebug(allow_empty_slaves);
     if (connected_all) return;
+  }
+}
+
+void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
+  auto deadline = engine::Deadline::FromDuration(wait_connected.timeout);
+
+  for (size_t i = 0; i < connected_statuses_.size(); ++i) {
+    auto& shard = *connected_statuses_[i];
+    if (!shard.WaitReady(deadline, wait_connected.mode)) {
+      std::string msg = "Failed to connect to redis shard " + init_shards_[i] +
+                        " in " +
+                        std::to_string(wait_connected.timeout.count()) +
+                        " ms, mode=" + ToString(wait_connected.mode);
+      if (wait_connected.throw_on_fail)
+        throw ClientNotConnectedException(msg);
+      else
+        LOG_ERROR() << msg << ", starting with not ready Redis client";
+    }
   }
 }
 
@@ -129,8 +153,14 @@ void SentinelImpl::InitShards(
     };
     auto object = std::make_shared<Shard>(std::move(shard_options));
     object->SignalInstanceStateChange().connect(
-        [this](ServerId, Redis::State state) {
+        [this, i, master](ServerId, Redis::State state) {
           if (state != Redis::State::kInit) ev_async_send(loop_, &watch_state_);
+          if (state == Redis::State::kConnected) {
+            if (master)
+              connected_statuses_[i]->SetMasterReady();
+            else
+              connected_statuses_[i]->SetSlaveReady();
+          }
         });
     shard_objects.emplace_back(std::move(object));
     ++i;
@@ -746,6 +776,49 @@ void SentinelImpl::ShardInfo::UpdateHostPortToShard(
     std::lock_guard<std::mutex> lock(mutex_);
     host_port_to_shard_.swap(host_port_to_shard_new);
   }
+}
+
+void SentinelImpl::ConnectedStatus::SetMasterReady() {
+  if (!master_ready_.exchange(true)) {
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+    }
+    cv_.NotifyAll();
+  }
+}
+
+void SentinelImpl::ConnectedStatus::SetSlaveReady() {
+  if (!slave_ready_.exchange(true)) {
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+    }
+    cv_.NotifyAll();
+  }
+}
+
+bool SentinelImpl::ConnectedStatus::WaitReady(engine::Deadline deadline,
+                                              WaitConnectedMode mode) {
+  switch (mode) {
+    case WaitConnectedMode::kNoWait:
+      return true;
+    case WaitConnectedMode::kMaster:
+      return Wait(deadline, [this] { return master_ready_.load(); });
+    case WaitConnectedMode::kSlave:
+      return Wait(deadline, [this] { return slave_ready_.load(); });
+    case WaitConnectedMode::kMasterOrSlave:
+      return Wait(deadline, [this] { return master_ready_ || slave_ready_; });
+    case WaitConnectedMode::kMasterAndSlave:
+      return Wait(deadline, [this] { return master_ready_ && slave_ready_; });
+  }
+  throw std::runtime_error("unknown mode: " +
+                           std::to_string(static_cast<int>(mode)));
+}
+
+template <typename Pred>
+bool SentinelImpl::ConnectedStatus::Wait(engine::Deadline deadline,
+                                         const Pred& pred) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  return cv_.WaitUntil(lock, deadline, pred);
 }
 
 }  // namespace redis

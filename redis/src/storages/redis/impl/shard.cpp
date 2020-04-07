@@ -33,11 +33,11 @@ Shard::GetAvailableServersWeighted(
   return server_weights;
 }
 
-bool Shard::IsConnectedToAllServersDebug() {
+bool Shard::IsConnectedToAllServersDebug(bool allow_empty) {
   std::lock_guard<boost::shared_mutex> lock(mutex_);
   for (const auto& inst : instances_)
     if (inst.instance->GetState() != Redis::State::kConnected) return false;
-  return true;
+  return allow_empty || !instances_.empty();
 }
 
 std::vector<unsigned char> Shard::GetAvailableServers(

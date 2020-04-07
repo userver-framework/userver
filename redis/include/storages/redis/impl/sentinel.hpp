@@ -12,6 +12,7 @@
 #include <storages/redis/impl/command_options.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
 #include <storages/redis/impl/request.hpp>
+#include <storages/redis/impl/wait_connected_mode.hpp>
 #include "keyshard.hpp"
 #include "secdist_redis.hpp"
 #include "thread_pools.hpp"
@@ -50,7 +51,18 @@ class Sentinel {
   virtual ~Sentinel();
 
   // Wait until connections to all servers are up
-  void WaitConnectedDebug();
+  void WaitConnectedDebug(bool allow_empty_slaves = false);
+
+  // Wait until connections to all shards are up first time.
+  // mode == kNoWait: do not wait.
+  // mode == kMaster: for each shard need a connection to its master.
+  // mode == kSlave: for each shard need a connection to at least one of its
+  // slaves.
+  // mode == kMasterOrSlave: for each shard need a connection to its master or
+  // at least one of its slaves.
+  // mode == kMasterAndSlave: for each shard need a connection to its master and
+  // at least one of its slaves.
+  void WaitConnectedOnce(RedisWaitConnected wait_connected);
 
   void ForceUpdateHosts();
 

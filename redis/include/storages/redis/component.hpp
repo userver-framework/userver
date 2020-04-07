@@ -6,6 +6,7 @@
 
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <storages/redis/impl/wait_connected_mode.hpp>
 #include <utils/statistics/storage.hpp>
 
 #include <taxi_config/storage/component.hpp>
@@ -36,11 +37,13 @@ class Redis : public LoggableComponentBase {
   static constexpr const char* kName = "redis";
 
   std::shared_ptr<storages::redis::Client> GetClient(
-      const std::string& name) const;
+      const std::string& name,
+      ::redis::RedisWaitConnected wait_connected = {}) const;
   [[deprecated("use GetClient()")]] std::shared_ptr<redis::Sentinel> Client(
       const std::string& name) const;
   std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient(
-      const std::string& name) const;
+      const std::string& name,
+      ::redis::RedisWaitConnected wait_connected = {}) const;
 
  private:
   using TaxiConfigPtr = std::shared_ptr<const taxi_config::Config>;

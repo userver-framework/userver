@@ -295,10 +295,11 @@ Redis::Redis(const ComponentConfig& config,
 }
 
 std::shared_ptr<storages::redis::Client> Redis::GetClient(
-    const std::string& name) const {
+    const std::string& name, ::redis::RedisWaitConnected wait_connected) const {
   auto it = clients_.find(name);
   if (it == clients_.end())
     throw std::runtime_error(name + " redis client not found");
+  it->second->WaitConnectedOnce(wait_connected);
   return it->second;
 }
 
@@ -310,10 +311,11 @@ std::shared_ptr<redis::Sentinel> Redis::Client(const std::string& name) const {
 }
 
 std::shared_ptr<storages::redis::SubscribeClient> Redis::GetSubscribeClient(
-    const std::string& name) const {
+    const std::string& name, ::redis::RedisWaitConnected wait_connected) const {
   auto it = subscribe_clients_.find(name);
   if (it == subscribe_clients_.end())
     throw std::runtime_error(name + " redis subscribe-client not found");
+  it->second->WaitConnectedOnce(wait_connected);
   return it->second;
 }
 
@@ -346,6 +348,12 @@ void Redis::Connect(const ComponentConfig& config,
     }
   }
 
+  auto cfg = config_.Get();
+  const auto& redis_config = cfg->Get<storages::redis::Config>();
+  for (auto& sentinel_it : sentinels_) {
+    sentinel_it.second->WaitConnectedOnce(redis_config.redis_wait_connected);
+  }
+
   auto subscribe_redis_groups =
       yaml_config::Parse<std::vector<SubscribeRedisGroup>>(
           config.Yaml(), "subscribe_groups", config.FullPath(),
@@ -361,6 +369,16 @@ void Redis::Connect(const ComponentConfig& config,
                               std::move(client)));
     else
       LOG_WARNING() << "skip subscribe-redis client for " << redis_group.db;
+  }
+
+  auto redis_wait_connected_subscribe = redis_config.redis_wait_connected.Get();
+  if (redis_wait_connected_subscribe.mode !=
+      ::redis::WaitConnectedMode::kNoWait)
+    redis_wait_connected_subscribe.mode =
+        ::redis::WaitConnectedMode::kMasterOrSlave;
+  for (auto& subscribe_client_it : subscribe_clients_) {
+    subscribe_client_it.second->WaitConnectedOnce(
+        redis_wait_connected_subscribe);
   }
 }
 

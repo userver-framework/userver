@@ -7,6 +7,7 @@
 #include <string>
 
 #include <storages/redis/impl/base.hpp>
+#include <storages/redis/impl/wait_connected_mode.hpp>
 
 #include <storages/redis/subscription_token.hpp>
 
@@ -41,6 +42,8 @@ class SubscribeClient {
   SubscriptionToken Psubscribe(
       std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
       const ::redis::CommandControl& command_control = {});
+
+  void WaitConnectedOnce(::redis::RedisWaitConnected wait_connected);
 
   // For internal usage, don't use it
   ::redis::SubscribeSentinel& GetNative() const;

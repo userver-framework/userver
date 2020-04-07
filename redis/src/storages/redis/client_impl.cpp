@@ -28,6 +28,10 @@ ClientImpl::ClientImpl(std::shared_ptr<::redis::Sentinel> sentinel,
                        boost::optional<size_t> force_shard_idx)
     : redis_client_(std::move(sentinel)), force_shard_idx_(force_shard_idx) {}
 
+void ClientImpl::WaitConnectedOnce(::redis::RedisWaitConnected wait_connected) {
+  redis_client_->WaitConnectedOnce(wait_connected);
+}
+
 size_t ClientImpl::ShardsCount() const { return redis_client_->ShardsCount(); }
 
 size_t ClientImpl::ShardByKey(const std::string& key) const {

@@ -1,5 +1,7 @@
 #include <storages/redis/subscribe_client.hpp>
 
+#include <storages/redis/impl/subscribe_sentinel.hpp>
+
 namespace storages {
 namespace redis {
 
@@ -19,6 +21,11 @@ SubscriptionToken SubscribeClient::Psubscribe(
     const ::redis::CommandControl& command_control) {
   return {*redis_client_, std::move(pattern), std::move(on_pmessage_cb),
           command_control};
+}
+
+void SubscribeClient::WaitConnectedOnce(
+    ::redis::RedisWaitConnected wait_connected) {
+  redis_client_->WaitConnectedOnce(wait_connected);
 }
 
 ::redis::SubscribeSentinel& SubscribeClient::GetNative() const {

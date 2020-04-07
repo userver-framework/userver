@@ -43,6 +43,8 @@ class MockClientBase : public Client,
 
   virtual ~MockClientBase();
 
+  void WaitConnectedOnce(::redis::RedisWaitConnected wait_connected) override;
+
   size_t ShardsCount() const override;
 
   size_t ShardByKey(const std::string& key) const override;

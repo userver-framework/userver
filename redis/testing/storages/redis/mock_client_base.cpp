@@ -20,6 +20,8 @@ MockClientBase::MockClientBase(std::shared_ptr<MockTransactionImplCreatorBase>
 
 MockClientBase::~MockClientBase() = default;
 
+void MockClientBase::WaitConnectedOnce(::redis::RedisWaitConnected) {}
+
 size_t MockClientBase::ShardsCount() const { return 1; }
 
 size_t MockClientBase::ShardByKey(const std::string& /*key*/) const {

@@ -50,6 +50,7 @@ void SentinelTest::CreateSentinelClient() {
   sentinel_client_ = redis::Sentinel::CreateSentinel(thread_pools_, settings,
                                                      "test_shard_group_name",
                                                      "test_client_name", {""});
+  sentinel_client_->WaitConnectedDebug(slaves_.empty());
 
   for (const auto& sentinel : sentinels_) {
     EXPECT_TRUE(sentinel->WaitForFirstPingReply(kSmallPeriod));
@@ -120,6 +121,7 @@ void SentinelShardTest::CreateSentinelClient() {
   sentinel_client_ = redis::Sentinel::CreateSentinel(thread_pools_, settings,
                                                      "test_shard_group_name",
                                                      "test_client_name", {""});
+  sentinel_client_->WaitConnectedDebug(slaves_.empty());
 
   for (const auto& sentinel : sentinels_) {
     EXPECT_TRUE(sentinel->WaitForFirstPingReply(kSmallPeriod));

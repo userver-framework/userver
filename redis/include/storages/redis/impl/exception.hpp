@@ -43,4 +43,10 @@ class ParseConfigException : public Exception {
   using Exception::Exception;
 };
 
+/// Cannot connect to some redis server shard
+class ClientNotConnectedException : public Exception {
+ public:
+  using Exception::Exception;
+};
+
 }  // namespace redis

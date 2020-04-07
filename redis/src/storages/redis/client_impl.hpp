@@ -29,6 +29,8 @@ class ClientImpl final : public Client,
   explicit ClientImpl(std::shared_ptr<::redis::Sentinel> sentinel,
                       boost::optional<size_t> force_shard_idx = boost::none);
 
+  void WaitConnectedOnce(::redis::RedisWaitConnected wait_connected) override;
+
   size_t ShardsCount() const override;
 
   size_t ShardByKey(const std::string& key) const override;
