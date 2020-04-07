@@ -4,6 +4,22 @@
 {% set programs_variable = programs.variable|default('%s_EXECUTABLE'|format(name)) %}
 {% set programs_enabled = programs and programs.enabled|default(true) %}
 
+{% set full_error_message = '' %}
+{% if fail_message %}
+  {% set full_error_message = fail_message|trim %}
+{% else %}
+  {% set full_error_message = "Could not find `{}` package.".format(name) %}
+{% if debian_names %}
+    {% set full_error_message = full_error_message + " Debian: sudo apt update && sudo apt install " + ' '.join(debian_names) %}
+{% endif %} {# if debian_names #}
+{% if formula_name %}
+    {% set full_error_message = full_error_message + " MacOS: brew install {}".format(formula_name) %}
+{% endif %} {# if formula_name #}
+{% endif %} {# if fail_message #}
+{% if version %}
+    {% set full_error_message = full_error_message + ' Version: {}'.format(version) %}
+{% endif %} {# if version #}
+
 {% macro cmake_find(type, variable, values) %}
 {% if values.find|default(false) %}
 {% for value in values.find %}
@@ -56,6 +72,8 @@ find_package_handle_standard_args(
       {{ libraries_variable if libraries.enabled|default(true) else '' }}
       {{ includes_variable if includes.enabled|default(true) else '' }}
       {{ programs_variable if programs_enabled else '' }}
+    FAIL_MESSAGE
+      "{{ full_error_message }}"
 )
 mark_as_advanced(
   {{ libraries_variable if libraries.enabled|default(true) else '' }}
@@ -65,22 +83,7 @@ mark_as_advanced(
 {% endif %} {# if not package_name #}
 
 if(NOT {{ common_name or package_name or name }}_FOUND)
-{% if fail_message %}
-  message(FATAL_ERROR "{{ fail_message|trim }} {{ 'Version: {}'.format(version) if version else '' }}")
-{% else %}
-  message(FATAL_ERROR 
-    "Could not find `{{ name }}` package."
-{% if debian_names %}
-    " Debian: sudo apt update && sudo apt install {{ ' '.join(debian_names) }}"
-{% endif %} {# if debian_names #}
-{% if formula_name %}
-    " MacOS: brew install {{ formula_name }}"
-{% endif %} {# if formula_name #}
-{% if version %}
-    " {{ 'Version: {}'.format(version) }}"
-{% endif %} {# if version #}
-  )
-{% endif %} {# if fail_message #}
+  message(FATAL_ERROR "{{ full_error_message }}")
 endif(NOT {{ common_name or package_name or name }}_FOUND)
 
 {% endif %} {# if not virtual #}
