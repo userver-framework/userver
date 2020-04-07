@@ -17,6 +17,8 @@ extern const std::chrono::seconds kSubscriberErrorTimeout;
 
 class AsyncEventChannelBase {
  public:
+  virtual ~AsyncEventChannelBase() = default;
+
   class FunctionId final {
    public:
     template <typename Class>
