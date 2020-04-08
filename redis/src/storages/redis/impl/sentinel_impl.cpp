@@ -101,10 +101,11 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
   for (size_t i = 0; i < connected_statuses_.size(); ++i) {
     auto& shard = *connected_statuses_[i];
     if (!shard.WaitReady(deadline, wait_connected.mode)) {
-      std::string msg = "Failed to connect to redis shard " + init_shards_[i] +
-                        " in " +
-                        std::to_string(wait_connected.timeout.count()) +
-                        " ms, mode=" + ToString(wait_connected.mode);
+      std::string msg =
+          "Failed to connect to redis, shard_group_name=" + shard_group_name_ +
+          ", shard=" + init_shards_[i] + " in " +
+          std::to_string(wait_connected.timeout.count()) +
+          " ms, mode=" + ToString(wait_connected.mode);
       if (wait_connected.throw_on_fail)
         throw ClientNotConnectedException(msg);
       else
