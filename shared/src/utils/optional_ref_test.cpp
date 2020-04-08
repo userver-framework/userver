@@ -2,6 +2,14 @@
 
 #include <gtest/gtest.h>
 
+namespace {
+struct TestImplicit {};
+bool TestConstImplicitConversion(utils::OptionalRef<const TestImplicit>) {
+  return true;
+}
+bool TestImplicitConversion(utils::OptionalRef<TestImplicit>) { return true; }
+}  // namespace
+
 TEST(OptionalRef, Constructions) {
   using utils::OptionalRef;
 
@@ -109,4 +117,18 @@ TEST(OptionalRef, BaseDerived) {
   EXPECT_TRUE(cb1 != cb2);
   EXPECT_TRUE(cb1 == b1);
   EXPECT_TRUE(cb2 != b1);
+}
+
+TEST(OptionalRef, ImplicitConversion) {
+  TestImplicit test;
+  const TestImplicit const_test{};
+
+  EXPECT_TRUE(TestConstImplicitConversion(const_test));
+  EXPECT_TRUE(TestConstImplicitConversion(test));
+
+  EXPECT_TRUE(TestImplicitConversion(test));
+
+  using non_const_optional_ref = void (*)(utils::OptionalRef<TestImplicit>);
+  static_assert(
+      !std::is_invocable<non_const_optional_ref, const TestImplicit&>::value);
 }

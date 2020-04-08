@@ -29,7 +29,7 @@ class OptionalRef {
   constexpr OptionalRef(const OptionalRef&) noexcept = default;
   constexpr OptionalRef& operator=(const OptionalRef&) noexcept = delete;
 
-  explicit constexpr OptionalRef(T& other) noexcept : data_(&other) {}
+  constexpr OptionalRef(T& other) noexcept : data_(&other) {}
 
   // Forming a reference to a temporary is forbidden
   explicit constexpr OptionalRef(const T&&) = delete;
