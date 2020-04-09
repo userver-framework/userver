@@ -42,6 +42,13 @@ static_assert((MONGOC_MAJOR_VERSION) == kCompatibleMajorVersion &&
               "Check mongoc_stream_t structure compatibility with "
               "version " MONGOC_VERSION_S);
 
+void SetWatcher(engine::io::Poller::WatcherPtr& old_watcher,
+                engine::io::Poller::WatcherPtr new_watcher) {
+  if (old_watcher == new_watcher) return;
+  if (old_watcher) old_watcher->Stop();
+  old_watcher = std::move(new_watcher);
+}
+
 class AsyncStream : public mongoc_stream_t {
  public:
   static constexpr int kStreamType = 0x53755459;
@@ -75,6 +82,8 @@ class AsyncStream : public mongoc_stream_t {
 
   const uint64_t epoch_;
   engine::io::Socket socket_;
+  engine::io::Poller::WatcherPtr read_watcher_;
+  engine::io::Poller::WatcherPtr write_watcher_;
   bool is_timed_out_;
 
   size_t send_buffer_bytes_used_;
@@ -337,6 +346,8 @@ void AsyncStream::Destroy(mongoc_stream_t* stream) noexcept {
   auto* self = static_cast<AsyncStream*>(stream);
   LOG_TRACE() << "Destroying async stream " << self;
 
+  Close(stream);
+
   delete self;
 }
 
@@ -346,6 +357,8 @@ int AsyncStream::Close(mongoc_stream_t* stream) noexcept {
   LOG_TRACE() << "Closing async stream " << self;
   self->is_timed_out_ = false;
 
+  SetWatcher(self->read_watcher_, {});
+  SetWatcher(self->write_watcher_, {});
   try {
     self->socket_.Close();
   } catch (const std::exception&) {
@@ -495,10 +508,12 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
   auto& poller = poller_dispenser->Get(current_epoch);
 
   for (size_t i = 0; i < nstreams; ++i) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto* stream = static_cast<AsyncStream*>(streams[i].stream);
     if (streams[i].events & POLLOUT) {
-      poller.AddWrite(stream_fds[i]);
+      SetWatcher(stream->write_watcher_, poller.AddWrite(stream_fds[i]));
     } else if (streams[i].events) {
-      poller.AddRead(stream_fds[i]);
+      SetWatcher(stream->read_watcher_, poller.AddRead(stream_fds[i]));
     }
     streams[i].revents = 0;
   }

@@ -15,7 +15,9 @@ namespace engine::io {
 // Reports HUP as readiness (libev limitation)
 class Poller {
  public:
-  using WatchersMap = std::unordered_map<int, ev::Watcher<ev_io>>;
+  using WatcherPtr = std::shared_ptr<ev::Watcher<ev_io>>;
+  using WatcherWeakPtr = std::weak_ptr<ev::Watcher<ev_io>>;
+  using WatchersMap = std::unordered_map<int, WatcherWeakPtr>;
 
   struct Event {
     int fd{kInvalidFd};
@@ -30,8 +32,8 @@ class Poller {
 
   void Reset();
 
-  void AddRead(int fd);
-  void AddWrite(int fd);
+  [[nodiscard]] WatcherPtr AddRead(int fd);
+  [[nodiscard]] WatcherPtr AddWrite(int fd);
 
   bool NextEvent(Event&, Deadline);
   bool NextEventNoblock(Event&);

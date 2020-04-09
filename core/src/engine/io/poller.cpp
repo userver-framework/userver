@@ -13,12 +13,19 @@ void ConcurrentStop(int fd, std::mutex& mutex, Poller::WatchersMap& watchers) {
   std::unique_lock lock(mutex);
   const auto it = watchers.find(fd);
   if (it == watchers.end()) return;
-  auto& watcher = it->second;
+  auto watcher = it->second.lock();
   lock.unlock();
 
   // After `watcher.Stop();` mutexes, watchers and Poller may be destroyed.
   // But not before the Stop() call!
-  watcher.Stop();
+  if (watcher) watcher->Stop();
+}
+
+void StopWatchers(Poller::WatchersMap& watchers) {
+  for (auto& watcher_it : watchers) {
+    auto watcher = watcher_it.second.lock();
+    if (watcher) watcher->Stop();
+  }
 }
 
 }  // namespace
@@ -35,30 +42,34 @@ Poller::Poller(const std::shared_ptr<MpscQueue<Event>>& queue)
     : event_consumer_(queue->GetConsumer()),
       event_producer_(queue->GetProducer()) {}
 
-void Poller::AddRead(int fd) {
+Poller::WatcherPtr Poller::AddRead(int fd) {
   std::unique_lock lock(read_watchers_mutex_);
-  auto [it, was_inserted] = read_watchers_.emplace(
-      std::piecewise_construct, std::make_tuple(fd),
-      std::make_tuple(std::ref(current_task::GetEventThread()), this));
-  auto& watcher = it->second;
-  lock.unlock();
-  if (was_inserted) {
-    watcher.Init(&IoEventCb, fd, EV_READ);
+  auto& watcher_ptr = read_watchers_[fd];
+  auto watcher = watcher_ptr.lock();
+  if (!watcher) {
+    watcher = std::make_shared<ev::Watcher<ev_io>>(
+        current_task::GetEventThread(), this);
+    watcher->Init(&IoEventCb, fd, EV_READ);
+    watcher_ptr = watcher;
   }
-  watcher.StartAsync();
+  lock.unlock();
+  watcher->StartAsync();
+  return watcher;
 }
 
-void Poller::AddWrite(int fd) {
+Poller::WatcherPtr Poller::AddWrite(int fd) {
   std::unique_lock lock(write_watchers_mutex_);
-  auto [it, was_inserted] = write_watchers_.emplace(
-      std::piecewise_construct, std::make_tuple(fd),
-      std::make_tuple(std::ref(current_task::GetEventThread()), this));
-  auto& watcher = it->second;
-  lock.unlock();
-  if (was_inserted) {
-    watcher.Init(&IoEventCb, fd, EV_WRITE);
+  auto& watcher_ptr = write_watchers_[fd];
+  auto watcher = watcher_ptr.lock();
+  if (!watcher) {
+    watcher = std::make_shared<ev::Watcher<ev_io>>(
+        current_task::GetEventThread(), this);
+    watcher->Init(&IoEventCb, fd, EV_WRITE);
+    watcher_ptr = watcher;
   }
-  watcher.StartAsync();
+  lock.unlock();
+  watcher->StartAsync();
+  return watcher;
 }
 
 void Poller::Reset() {
@@ -88,16 +99,18 @@ void Poller::StopWrite(int fd) {
 
 void Poller::ResetWatchers() {
   // destroy watchers without lock to avoid deadlocking with callback
-  std::unordered_map<int, ev::Watcher<ev_io>> watchers_buffer;
+  WatchersMap watchers_buffer;
   {
     std::lock_guard read_lock(read_watchers_mutex_);
     read_watchers_.swap(watchers_buffer);
   }
+  StopWatchers(watchers_buffer);
   watchers_buffer.clear();
   {
     std::lock_guard write_lock(write_watchers_mutex_);
     write_watchers_.swap(watchers_buffer);
   }
+  StopWatchers(watchers_buffer);
   watchers_buffer.clear();
 }
 

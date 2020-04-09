@@ -54,7 +54,7 @@ TEST(Poller, ReadEvent) {
   RunInCoro([] {
     Pipe pipe;
     Poller poller;
-    poller.AddRead(pipe.In());
+    auto watcher = poller.AddRead(pipe.In());
 
     Poller::Event event{};
     WriteOne(pipe.Out());
@@ -70,7 +70,7 @@ TEST(Poller, TimedOutReadEvent) {
   RunInCoro([] {
     Pipe pipe;
     Poller poller;
-    poller.AddRead(pipe.In());
+    auto watcher = poller.AddRead(pipe.In());
 
     Poller::Event event{};
     EXPECT_FALSE(poller.NextEvent(event, engine::Deadline::Passed()));
@@ -81,7 +81,7 @@ TEST(Poller, WriteEvent) {
   RunInCoro([] {
     Pipe pipe;
     Poller poller;
-    poller.AddWrite(pipe.Out());
+    auto watcher = poller.AddWrite(pipe.Out());
 
     Poller::Event event{};
     const bool res = poller.NextEvent(event, engine::Deadline::Passed());
@@ -96,7 +96,7 @@ TEST(Poller, DestroyActiveReadEvent) {
   RunInCoro([] {
     Pipe pipe;
     Poller poller;
-    poller.AddRead(pipe.In());
+    auto watcher = poller.AddRead(pipe.In());
 
     WriteOne(pipe.Out());
 
@@ -108,7 +108,7 @@ TEST(Poller, ResetActiveReadEvent) {
   RunInCoro([] {
     Pipe pipe;
     Poller poller;
-    poller.AddRead(pipe.In());
+    auto watcher = poller.AddRead(pipe.In());
 
     WriteOne(pipe.Out());
 
@@ -120,7 +120,7 @@ TEST(Poller, ReadWriteAsync) {
   RunInCoro([] {
     Pipe pipe;
     Poller poller;
-    poller.AddRead(pipe.In());
+    auto watcher = poller.AddRead(pipe.In());
 
     auto task = engine::impl::Async([&]() {
       Poller::Event event{};
@@ -144,7 +144,7 @@ TEST(Poller, ReadWriteTorture) {
     for (unsigned i = 0; i < kRepetitions; ++i) {
       auto task = engine::impl::Async([&]() {
         Poller poller;
-        poller.AddRead(pipe.In());
+        auto watcher = poller.AddRead(pipe.In());
         Poller::Event event{};
         EXPECT_TRUE(poller.NextEvent(
             event, engine::Deadline::FromDuration(kReadTimeout)));
@@ -169,7 +169,8 @@ TEST(Poller, ReadWriteMultipleTorture) {
     for (unsigned i = 0; i < kRepetitions; ++i) {
       auto task = engine::impl::Async([&]() {
         Poller poller;
-        for (auto& pipe : pipes) poller.AddRead(pipe.In());
+        std::vector<Poller::WatcherPtr> watchers;
+        for (auto& pipe : pipes) watchers.push_back(poller.AddRead(pipe.In()));
 
         Poller::Event event{};
 
