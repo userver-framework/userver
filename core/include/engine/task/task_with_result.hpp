@@ -57,7 +57,7 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
   /// and no TaskCancellationBlockers are present.
   /// @throws TaskCancelledException
-  ///   if no result is available becase the task was cancelled
+  ///   if no result is available because the task was cancelled
   T Get() noexcept(false) {
     UASSERT(wrapped_call_ptr_);
     Wait();
