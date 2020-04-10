@@ -256,6 +256,7 @@ enum class PredefinedOids {
   kVarchar = 1043,
   kDate = 1082,
   kTime = 1083,
+  kTimeArray = 1183,  // Not in documentation
   kTimestamp = 1114,
   kTimestampArray = 1115,  // Not in documentation
   kTimestamptz = 1184,
@@ -373,6 +374,10 @@ struct ArrayType<PredefinedOids::kBpchar>
 template <>
 struct ArrayType<PredefinedOids::kVarchar>
     : PredefinedOid<PredefinedOids::kVarcharArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kTime>
+    : PredefinedOid<PredefinedOids::kTimeArray> {};
 
 template <>
 struct ArrayType<PredefinedOids::kTimestamp>

@@ -152,11 +152,11 @@ constexpr std::chrono::duration<Rep, Period> NormalizeTimeOfDay(
 template <typename Ratio>
 constexpr std::size_t kDecimalPositions = 0;
 template <>
-constexpr std::size_t kDecimalPositions<std::milli> = 3;
+inline constexpr std::size_t kDecimalPositions<std::milli> = 3;
 template <>
-constexpr std::size_t kDecimalPositions<std::micro> = 6;
+inline constexpr std::size_t kDecimalPositions<std::micro> = 6;
 template <>
-constexpr std::size_t kDecimalPositions<std::nano> = 9;
+inline constexpr const std::size_t kDecimalPositions<std::nano> = 9;
 
 constexpr std::intmax_t MissingDigits(std::size_t n) {
   // As we support resolutions up to nano, all wee need is up to 10^9
@@ -350,22 +350,22 @@ class TimeOfDayParser {
 };
 
 /// Format string used for format key `%H`, two-digit 24-hour left-padded by 0
-constexpr auto kLongHourFormat = "{0:0>#2d}";
+inline constexpr auto kLongHourFormat = "{0:0>#2d}";
 /// Format string used for minutes, key `%M`, no variations
-constexpr auto kMinutesFormat = "{1:0>#2d}";
+inline constexpr auto kMinutesFormat = "{1:0>#2d}";
 /// Format string used for seconds, key `%S`, no variations
-constexpr auto kSecondsFormat = "{2:0>#2d}";
+inline constexpr auto kSecondsFormat = "{2:0>#2d}";
 /// Format string for subseconds, keys not yet assigned
-constexpr auto kSubsecondsFormat = "{3}";
+inline constexpr auto kSubsecondsFormat = "{3}";
 
 template <typename Ratio>
 constexpr auto kSubsecondsPreformat = ".0";
 template <>
-constexpr auto kSubsecondsPreformat<std::milli> = ".{:0>#3d}";
+inline constexpr auto kSubsecondsPreformat<std::milli> = ".{:0>#3d}";
 template <>
-constexpr auto kSubsecondsPreformat<std::micro> = ".{:0>#6d}";
+inline constexpr auto kSubsecondsPreformat<std::micro> = ".{:0>#6d}";
 template <>
-constexpr auto kSubsecondsPreformat<std::nano> = ".{:0>#9d}";
+inline constexpr auto kSubsecondsPreformat<std::nano> = ".{:0>#9d}";
 
 // Default format for formatting is HH:MM:SS
 template <typename Ratio>
@@ -374,13 +374,13 @@ constexpr std::array<std::string_view, 5> kDefaultFormat{
 
 // Default format for formatting with minutes resolution is HH:MM
 template <>
-constexpr std::array<std::string_view, 3> kDefaultFormat<std::ratio<60, 1>>{
-    {kLongHourFormat, ":", kMinutesFormat}};
+inline constexpr std::array<std::string_view, 3>
+    kDefaultFormat<std::ratio<60, 1>>{{kLongHourFormat, ":", kMinutesFormat}};
 
 // Default format for formatting with hours resolution is HH:MM
 template <>
-constexpr std::array<std::string_view, 3> kDefaultFormat<std::ratio<3600, 1>>{
-    {kLongHourFormat, ":", kMinutesFormat}};
+inline constexpr std::array<std::string_view, 3>
+    kDefaultFormat<std::ratio<3600, 1>>{{kLongHourFormat, ":", kMinutesFormat}};
 
 }  // namespace detail
 

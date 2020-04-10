@@ -36,7 +36,7 @@
 /// timestamp         | std::chrono::system_clock::time_point   | +       |
 /// timestamptz       | storages::postgres::TimePointTz         | +       |
 /// date              | N/A                                     |         |
-/// time              | N/A                                     |         |
+/// time              | utils::datetime::TimeOfDay<>            | +       |
 /// timetz            | N/A                                     |         |
 /// interval          | std::chrono::microseconds               |         |
 /// bytea             | container of one-byte type              |         |
@@ -113,6 +113,7 @@
 #include <storages/postgres/io/floating_point_types.hpp>
 #include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/string_types.hpp>
+#include <storages/postgres/io/time_of_day.hpp>
 #include <storages/postgres/io/uuid.hpp>
 //@}
 
