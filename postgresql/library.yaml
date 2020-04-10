@@ -5,15 +5,12 @@ description: PostgreSQL driver
 
 libraries:
   - Boost::regex
-  - ICU::i18n
-  - ICU::uc
   - PostgreSQL
   - yandex-taxi-userver-core
 
 debian:
     build_dependencies:
       - libboost-regex-dev
-      - libicu-dev
       - libpq-dev
       - postgresql-server-dev-10
       - libldap2-dev

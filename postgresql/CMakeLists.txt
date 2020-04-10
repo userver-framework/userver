@@ -54,8 +54,6 @@ target_link_libraries(${PROJECT_NAME}
     yandex-taxi-userver-uboost-coro # uses TaskProcessor
     yandex-taxi-pq-extra
     PostgreSQL
-    ICU::uc
-    ICU::i18n
     Boost::regex
 )
 

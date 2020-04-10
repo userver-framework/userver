@@ -193,7 +193,6 @@ struct Connection::Impl {
     ExecuteCommandNoPrepare("discard all", deadline);
     SetParameter("client_encoding", "UTF8", ParameterScope::kSession, deadline);
     CheckReadOnly(deadline);
-    SetLocalTimezone(deadline);
     SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
     LoadUserTypes(deadline);
   }
@@ -267,22 +266,6 @@ struct Connection::Impl {
 
   engine::Deadline MakeCurrentDeadline() const {
     return testsuite_pg_ctl_.MakeExecuteDeadline(CurrentExecuteTimeout());
-  }
-
-  /// @brief Set local timezone. If the timezone is invalid, catch the
-  /// exception and log error.
-  void SetLocalTimezone(engine::Deadline deadline) {
-    const auto& tz = LocalTimezoneID();
-    LOG_TRACE() << "Try and set pg timezone id " << tz.id << " canonical id "
-                << tz.canonical_id;
-    const auto& tz_id = tz.canonical_id.empty() ? tz.id : tz.canonical_id;
-    try {
-      SetParameter("TimeZone", tz_id, ParameterScope::kSession, deadline);
-    } catch (const DataException&) {
-      // No need to log the DataException message, it has been already logged
-      // by connection wrapper.
-      LOG_ERROR() << "Invalid value for time zone " << tz_id;
-    }  // Let all other exceptions be propagated to the caller
   }
 
   void SetConnectionStatementTimeout(TimeoutDuration timeout,

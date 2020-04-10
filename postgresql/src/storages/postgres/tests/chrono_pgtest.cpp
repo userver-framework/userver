@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <cctz/time_zone.h>
+
 #include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
@@ -141,29 +143,33 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
   for (auto src : timepoints) {
     EXPECT_NO_THROW(conn->ExperimentalExecute(
         "insert into tstest(fmt, notz, tz) values ($1, $2, $3)", "bin", src,
-        pg::TimestampTz(src)));
+        pg::TimePointTz(src)));
     std::string select_timezones = R"~(
-        select fmt, notz, tz, notz at time zone current_setting('TIMEZONE'),
-          notz at time zone 'UTC', current_setting('TIMEZONE')
+        select fmt, notz, tz, tz at time zone current_setting('TIMEZONE'),
+          tz at time zone 'UTC', current_setting('TIMEZONE')
         from tstest
-        where notz at time zone current_setting('TIMEZONE') <> tz)~";
+        where notz <> tz at time zone 'UTC')~";
     pg::ResultSet res{nullptr};
+    res = conn->Execute(select_timezones);
     EXPECT_NO_THROW(res = conn->Execute(select_timezones));
     EXPECT_EQ(0, res.Size())
         << "There should be no records that differ. " << tmp_tz;
     for (auto r : res) {
       std::string fmt, tz_setting;
-      pg::TimePoint tp, tptz, tp_curr_tz, tp_utc;
-      r.To(fmt, tp, pg::TimestampTz(tptz), pg::TimestampTz(tp_curr_tz),
-           pg::TimestampTz(tp_utc), tz_setting);
+      pg::TimePoint tp, tptz, tp_utc;
+      pg::TimePointTz tp_curr_tz;
+      r.To(fmt, tp, tptz, tp_curr_tz, tp_utc, tz_setting);
       EXPECT_TRUE(EqualToMicroseconds(tp, tptz))
+          << "Should be seen equal locally. " << tmp_tz;
+      EXPECT_TRUE(EqualToMicroseconds(utils::UnderlyingValue(tp_curr_tz), tptz))
           << "Should be seen equal locally. " << tmp_tz;
       ADD_FAILURE() << fmt
                     << ": According to server timestamp without time zone "
                     << FormatToLocal(tp)
                     << " is different from timestamp with time zone "
-                    << FormatToLocal(tptz) << " Timestamp without tz at "
-                    << tz_setting << " = " << FormatToLocal(tp_curr_tz)
+                    << FormatToLocal(tptz) << " Timestamp with tz at "
+                    << tz_setting << " = "
+                    << FormatToLocal(utils::UnderlyingValue(tp_curr_tz))
                     << ", at UTC " << FormatToLocal(tp_utc) << " " << tmp_tz;
     }
     EXPECT_NO_THROW(conn->Execute("delete from tstest"));
@@ -173,30 +179,30 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
 
 POSTGRE_TEST_P(Timestamp) {
   ASSERT_TRUE(conn.get());
-  // static const auto utc = cctz::utc_time_zone();
-  // static const auto local_tz = cctz::local_time_zone();
 
   pg::ResultSet res{nullptr};
   auto now = std::chrono::system_clock::now();
   pg::TimePoint tp;
-  pg::TimePoint tptz;
+  pg::TimePointTz tptz;
 
   EXPECT_NO_THROW(
       res = conn->ExperimentalExecute("select $1::timestamp, $2::timestamptz",
-                                      now, pg::TimestampTz(now)));
+                                      now, pg::TimePointTz(now)));
 
-  EXPECT_NO_THROW(res.Front().To(tp, pg::TimestampTz(tptz)));
-  EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "Binary reply format, no tz";
-  EXPECT_TRUE(EqualToMicroseconds(tptz, now)) << "Binary reply format, with tz";
-  EXPECT_TRUE(EqualToMicroseconds(tp, tptz)) << "Binary reply format";
+  EXPECT_NO_THROW(res.Front().To(tp, tptz));
+  EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "no tz";
+  EXPECT_TRUE(EqualToMicroseconds(utils::UnderlyingValue(tptz), now))
+      << "with tz";
+  EXPECT_TRUE(EqualToMicroseconds(tp, utils::UnderlyingValue(tptz)));
 
   tp = pg::TimePoint{};
-  tptz = pg::TimePoint{};
+  tptz = pg::TimePointTz{};
   EXPECT_FALSE(EqualToMicroseconds(tp, now)) << "After reset";
-  EXPECT_FALSE(EqualToMicroseconds(tptz, now)) << "After reset";
+  EXPECT_FALSE(EqualToMicroseconds(utils::UnderlyingValue(tptz), now))
+      << "After reset";
 
   const char* timezones[]{
-      "",
+      "",  // local
       "Europe/Moscow",
       "Europe/London",
       "Europe/Paris",
@@ -223,8 +229,8 @@ POSTGRE_TEST_P(Timestamp) {
 
 POSTGRE_TEST_P(TimestampTz) {
   ASSERT_TRUE(conn.get());
-  // Make sure we use a time zone different from UTC
-  const auto tz_name = "Europe/Moscow";
+  // Make sure we use a time zone different from UTC and MSK
+  const auto tz_name = "Asia/Yekaterinburg";
   TemporaryTZ tmp_tz{tz_name};
   ASSERT_NO_THROW(conn->SetParameter(
       "TimeZone", tz_name, pg::detail::Connection::ParameterScope::kSession));
