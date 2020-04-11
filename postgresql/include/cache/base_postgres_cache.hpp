@@ -13,8 +13,8 @@
 #include <storages/postgres/cluster.hpp>
 #include <storages/postgres/component.hpp>
 
+#include <utils/algo.hpp>
 #include <utils/assert.hpp>
-#include <utils/strlen.hpp>
 #include <utils/void_t.hpp>
 
 #include <compiler/demangle.hpp>

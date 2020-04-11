@@ -2,8 +2,8 @@
 
 #include <utility>
 
+#include <utils/algo.hpp>
 #include <utils/string_view.hpp>
-#include <utils/strlen.hpp>
 
 namespace storages::postgres::utils {
 

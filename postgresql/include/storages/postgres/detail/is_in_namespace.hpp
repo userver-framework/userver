@@ -3,7 +3,7 @@
 #include <boost/current_function.hpp>
 #include <type_traits>
 
-#include <utils/strlen.hpp>
+#include <utils/algo.hpp>
 
 namespace storages::postgres::detail {
 

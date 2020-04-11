@@ -13,8 +13,8 @@
 
 #include <storages/postgres/detail/string_hash.hpp>
 
+#include <utils/algo.hpp>
 #include <utils/string_view.hpp>
-#include <utils/strlen.hpp>
 
 namespace storages::postgres::io {
 

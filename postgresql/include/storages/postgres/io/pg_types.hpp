@@ -7,8 +7,8 @@
 #include <storages/postgres/detail/db_data_type_name.hpp>
 #include <string>
 
+#include <utils/algo.hpp>
 #include <utils/string_view.hpp>
-#include <utils/strlen.hpp>
 
 namespace storages::postgres {
 
