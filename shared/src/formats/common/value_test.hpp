@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <formats/parse/time_of_day.hpp>
 #include <formats/parse/to.hpp>
 #include <formats/parse/variant.hpp>
 
@@ -217,21 +218,47 @@ TYPED_TEST_P(Parsing, VariantUnambiguous) {
   EXPECT_EQ(1, converted.index());
 }
 
-REGISTER_TYPED_TEST_CASE_P(Parsing,
+TYPED_TEST_P(Parsing, TimeOfDayCorrect) {
+  using Minutes = utils::datetime::TimeOfDay<std::chrono::minutes>;
 
-                           ContainersCtr, VectorInt, VectorIntNull,
-                           VectorIntErrorObj, VectorVectorInt,
-                           VectorVectorIntNull,
+  auto json = this->FromString(R"~(["6:30"])~")[0];
+  const auto value = json.template As<Minutes>();
+  EXPECT_EQ(Minutes{"06:30"}, value);
+}
 
-                           BoostOptionalIntNone, BoostOptionalInt,
-                           BoostOptionalVectorInt, OptionalIntNone, OptionalInt,
-                           OptionalVectorInt,
+TYPED_TEST_P(Parsing, TimeOfDayIncorrect) {
+  using Minutes = utils::datetime::TimeOfDay<std::chrono::minutes>;
+  using ParseException = typename TestFixture::ParseException;
 
-                           Int, UInt, IntOverflow, UserProvidedCommonParser,
+  EXPECT_THROW(this->FromString(R"~(["6"])~")[0].template As<Minutes>(),
+               ParseException);
+  EXPECT_THROW(this->FromString(R"~(["6:"])~")[0].template As<Minutes>(),
+               ParseException);
+  EXPECT_THROW(this->FromString(R"~(["6:60"])~")[0].template As<Minutes>(),
+               ParseException);
+}
 
-                           ChronoDoubleSeconds, ChronoSeconds,
+TYPED_TEST_P(Parsing, TimeOfDayNormalized) {
+  using Minutes = utils::datetime::TimeOfDay<std::chrono::minutes>;
 
-                           VariantOk1, VariantOk2, VariantAmbiguous,
-                           VariantUnambiguous
+  auto json = this->FromString(R"~(["25:30"])~")[0];
+  const auto value = json.template As<Minutes>();
+  EXPECT_EQ(Minutes{"01:30"}, value);
+}
 
-);
+REGISTER_TYPED_TEST_CASE_P(
+    Parsing,
+
+    ContainersCtr, VectorInt, VectorIntNull, VectorIntErrorObj, VectorVectorInt,
+    VectorVectorIntNull,
+
+    BoostOptionalIntNone, BoostOptionalInt, BoostOptionalVectorInt,
+    OptionalIntNone, OptionalInt, OptionalVectorInt,
+
+    Int, UInt, IntOverflow, UserProvidedCommonParser,
+
+    ChronoDoubleSeconds, ChronoSeconds,
+
+    VariantOk1, VariantOk2, VariantAmbiguous, VariantUnambiguous,
+
+    TimeOfDayCorrect, TimeOfDayIncorrect, TimeOfDayNormalized);

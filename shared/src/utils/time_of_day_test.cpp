@@ -1,6 +1,6 @@
-#include <utest/utest.hpp>
-
 #include <utils/time_of_day.hpp>
+
+#include <gtest/gtest.h>
 
 namespace utils::datetime::test {
 
@@ -116,6 +116,13 @@ TEST(TimeOfDay, StringConstruct) {
     EXPECT_EQ(20, tod.Minutes().count());
     EXPECT_EQ(30, tod.Seconds().count());
     EXPECT_EQ(1, tod.Subseconds().count());
+  }
+  {
+    Mins tod{"25:45"};
+    EXPECT_EQ(1, tod.Hours().count());
+    EXPECT_EQ(45, tod.Minutes().count());
+    EXPECT_EQ(0, tod.Seconds().count());
+    EXPECT_EQ(0, tod.Subseconds().count());
   }
 }
 

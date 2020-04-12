@@ -277,8 +277,8 @@ class TimeOfDayParser {
                       str)};
     AssignCurrentPosition(str);
 
-    return std::chrono::duration_cast<DurationType>(hours_ + minutes_ +
-                                                    seconds_ + subseconds_);
+    return NormalizeTimeOfDay<Rep, Period>(hours_ + minutes_ + seconds_ +
+                                           subseconds_);
   }
 
  private:
