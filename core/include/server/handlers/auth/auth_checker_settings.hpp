@@ -1,29 +1,25 @@
 #pragma once
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <formats/json/value.hpp>
 
 #include "auth_checker_apikey_settings.hpp"
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 
 class AuthCheckerSettings final {
  public:
   explicit AuthCheckerSettings(const formats::json::Value& doc);
 
-  const boost::optional<ApiKeysMap>& GetApiKeysMap() const {
+  const std::optional<ApiKeysMap>& GetApiKeysMap() const {
     return apikeys_map_;
   }
 
  private:
   void ParseApikeys(const formats::json::Value& apikeys_map);
 
-  boost::optional<ApiKeysMap> apikeys_map_;
+  std::optional<ApiKeysMap> apikeys_map_;
 };
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth

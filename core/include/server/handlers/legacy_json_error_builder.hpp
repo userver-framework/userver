@@ -1,7 +1,5 @@
 #pragma once
 
-#include <boost/optional.hpp>
-
 #include <formats/json/value.hpp>
 #include <http/content_type.hpp>
 
@@ -18,10 +16,12 @@ class LegacyJsonErrorBuilder {
 
   explicit LegacyJsonErrorBuilder(const CustomHandlerException& ex);
 
-  LegacyJsonErrorBuilder(
-      http::HttpStatus status, std::string internal_message,
-      std::string external_error_body,
-      boost::optional<const formats::json::Value&> details = boost::none);
+  LegacyJsonErrorBuilder(http::HttpStatus status, std::string internal_message,
+                         std::string external_error_body);
+
+  LegacyJsonErrorBuilder(http::HttpStatus status, std::string internal_message,
+                         std::string external_error_body,
+                         const formats::json::Value& details);
 
   const std::string& GetInternalMessage() const { return internal_message_; };
 

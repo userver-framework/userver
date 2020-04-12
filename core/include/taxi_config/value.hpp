@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -95,18 +96,29 @@ class ValueDict final {
     return it->second;
   }
 
+  // TODO: remove after TAXICOMMON-2028
+  const ValueType& operator[](const char* key) const {
+    return (*this)[std::string(key)];
+  }
+
+  // TODO: remove after TAXICOMMON-2028
   const ValueType& operator[](const boost::optional<std::string>& key) const {
+    if (key) return (*this)[*key];
+    return GetDefaultValue();
+  }
+
+  const ValueType& operator[](const std::optional<std::string>& key) const {
     if (key) return (*this)[*key];
     return GetDefaultValue();
   }
 
   const ValueType& Get(const std::string& key) const { return (*this)[key]; }
 
-  boost::optional<ValueType> GetOptional(const std::string& key) const {
+  std::optional<ValueType> GetOptional(const std::string& key) const {
     auto it = dict_.find(key);
     if (it == dict_.end()) {
       it = dict_.find(kValueDictDefaultName);
-      if (it == dict_.end()) return boost::none;
+      if (it == dict_.end()) return std::nullopt;
     }
 
     return it->second;

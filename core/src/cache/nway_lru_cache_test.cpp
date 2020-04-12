@@ -24,7 +24,7 @@ TEST(NWayLRU, Set) {
 
     EXPECT_EQ(2, cache.Get(2));
     EXPECT_EQ(1, cache.GetSize());
-    EXPECT_EQ(boost::none, cache.Get(1));
+    EXPECT_FALSE(cache.Get(1).has_value());
   });
 }
 
@@ -37,13 +37,13 @@ TEST(NWayLRU, GetExpired) {
     EXPECT_EQ(1, cache.Get(1));
     EXPECT_EQ(2, cache.GetSize());
 
-    EXPECT_EQ(boost::none, cache.Get(1, [](int) { return false; }));
+    EXPECT_FALSE(cache.Get(1, [](int) { return false; }).has_value());
     EXPECT_EQ(1, cache.GetSize());
 
-    EXPECT_EQ(boost::none, cache.Get(2, [](int) { return false; }));
+    EXPECT_FALSE(cache.Get(2, [](int) { return false; }).has_value());
     EXPECT_EQ(0, cache.GetSize());
 
-    EXPECT_EQ(boost::none, cache.Get(1));
+    EXPECT_FALSE(cache.Get(1).has_value());
     EXPECT_EQ(0, cache.GetSize());
   });
 }

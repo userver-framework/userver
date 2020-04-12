@@ -28,7 +28,7 @@ void AuthCheckerSettings::ParseApikeys(
   if (!apikeys_map.IsObject())
     throw std::runtime_error("cannot parse " + kApikeys + ", object expected");
 
-  apikeys_map_ = boost::make_optional<ApiKeysMap>({});
+  apikeys_map_ = std::make_optional<ApiKeysMap>({});
 
   for (auto elem = apikeys_map.begin(); elem != apikeys_map.end(); ++elem) {
     const std::string& apikey_type = elem.GetName();

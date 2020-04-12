@@ -1,9 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <cache/lru_cache.hpp>
 #include <engine/mutex.hpp>
@@ -20,9 +19,9 @@ class NWayLRU final {
   void Put(const T& key, U value);
 
   template <typename Validator>
-  boost::optional<U> Get(const T& key, Validator validator);
+  std::optional<U> Get(const T& key, Validator validator);
 
-  boost::optional<U> Get(const T& key) {
+  std::optional<U> Get(const T& key) {
     return Get(key, [](const U&) { return true; });
   }
 
@@ -76,8 +75,8 @@ void NWayLRU<T, U, Hash, Eq>::Put(const T& key, U value) {
 
 template <typename T, typename U, typename Hash, typename Eq>
 template <typename Validator>
-boost::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key,
-                                                Validator validator) {
+std::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key,
+                                              Validator validator) {
   auto& way = GetWay(key);
   std::unique_lock<engine::Mutex> lock(way.mutex);
   auto* value = way.cache.Get(key);
@@ -87,7 +86,7 @@ boost::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key,
     way.cache.Erase(key);
   }
 
-  return boost::none;
+  return std::nullopt;
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
