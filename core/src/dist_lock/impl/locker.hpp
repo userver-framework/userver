@@ -2,9 +2,8 @@
 
 #include <atomic>
 #include <functional>
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <dist_lock/dist_lock_settings.hpp>
 #include <dist_lock/dist_lock_strategy.hpp>
@@ -28,8 +27,7 @@ class Locker final {
   DistLockSettings GetSettings() const;
   void SetSettings(const DistLockSettings&);
 
-  boost::optional<std::chrono::steady_clock::duration> GetLockedDuration()
-      const;
+  std::optional<std::chrono::steady_clock::duration> GetLockedDuration() const;
 
   const Statistics& GetStatistics() const;
 

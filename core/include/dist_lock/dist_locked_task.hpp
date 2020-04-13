@@ -6,9 +6,8 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <dist_lock/dist_lock_settings.hpp>
 #include <dist_lock/dist_lock_strategy.hpp>
@@ -62,8 +61,7 @@ class DistLockedTask final : public engine::TaskWithResult<void> {
 
   /// Returns for how long the lock is held (if held at all). Returned value
   /// may be less than the real duration.
-  boost::optional<std::chrono::steady_clock::duration> GetLockedDuration()
-      const;
+  std::optional<std::chrono::steady_clock::duration> GetLockedDuration() const;
 
  private:
   DistLockedTask(engine::TaskProcessor&, std::shared_ptr<impl::Locker>,

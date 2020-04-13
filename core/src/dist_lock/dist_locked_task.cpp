@@ -37,7 +37,7 @@ DistLockedTask::DistLockedTask(engine::TaskProcessor& task_processor,
           })),
       locker_ptr_(std::move(locker_ptr)) {}
 
-boost::optional<std::chrono::steady_clock::duration>
+std::optional<std::chrono::steady_clock::duration>
 DistLockedTask::GetLockedDuration() const {
   return locker_ptr_->GetLockedDuration();
 }

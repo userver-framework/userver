@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <engine/coro/pool.hpp>
 #include <engine/task/task_counter.hpp>
@@ -38,7 +38,7 @@ class CountedCoroutinePtr final {
 
  private:
   CoroPool::CoroutinePtr coro_;
-  boost::optional<TaskCounter::CoroToken> token_;
+  std::optional<TaskCounter::CoroToken> token_;
   CoroPool* coro_pool_{nullptr};
 };
 

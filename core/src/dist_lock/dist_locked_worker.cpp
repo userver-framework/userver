@@ -63,7 +63,7 @@ bool DistLockedWorker::IsRunning() const {
   return locker_task_.IsValid();
 }
 
-boost::optional<std::chrono::steady_clock::duration>
+std::optional<std::chrono::steady_clock::duration>
 DistLockedWorker::GetLockedDuration() const {
   return locker_ptr_->GetLockedDuration();
 }

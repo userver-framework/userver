@@ -62,7 +62,7 @@ void Locker::SetSettings(const DistLockSettings& settings) {
   settings_ = settings;
 }
 
-boost::optional<std::chrono::steady_clock::duration> Locker::GetLockedDuration()
+std::optional<std::chrono::steady_clock::duration> Locker::GetLockedDuration()
     const {
   if (!is_locked_) return {};
   return std::chrono::steady_clock::now().time_since_epoch() -

@@ -25,7 +25,7 @@ void CountedCoroutinePtr::ReturnToPool() && {
   UASSERT(coro_pool_);
   if (coro_pool_) coro_pool_->PutCoroutine(std::move(coro_));
   coro_.reset();
-  token_ = boost::none;
+  token_ = std::nullopt;
 }
 
 }  // namespace engine::impl
