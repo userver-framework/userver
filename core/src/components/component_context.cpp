@@ -90,6 +90,10 @@ impl::ComponentBase* ComponentContext::AddComponent(
   return component_info.GetComponent();
 }
 
+void ComponentContext::RemoveComponent(const std::string& name) {
+  components_.erase(name);
+}
+
 void ComponentContext::OnAllComponentsLoaded() {
   StopPrintAddingComponentsTask();
   tracing::Span span(kOnAllComponentsLoadedRootName);

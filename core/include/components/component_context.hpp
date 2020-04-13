@@ -56,6 +56,8 @@ class ComponentContext final {
   impl::ComponentBase* AddComponent(const std::string& name,
                                     const ComponentFactory& factory);
 
+  void RemoveComponent(const std::string& name);
+
   void OnAllComponentsLoaded();
 
   void OnAllComponentsAreStopping();

@@ -224,6 +224,11 @@ void Manager::AddComponents(const ComponentList& component_list) {
           name + "', forgot to register in RegisterUserComponents()?");
     }
     component_config_map.emplace(name, component_config);
+
+    // Delete component from context to make FindComponentOptional() work
+    if (!component_config.ParseOptionalBool("load-enabled").value_or(true)) {
+      component_context_->RemoveComponent(name);
+    }
   }
 
   auto start_time = std::chrono::steady_clock::now();
