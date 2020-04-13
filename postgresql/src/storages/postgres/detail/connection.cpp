@@ -455,7 +455,7 @@ struct Connection::Impl {
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
-      LOG_ERROR()
+      LOG_WARNING()
           << "Deadline was reached before starting to execute statement";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
@@ -507,7 +507,7 @@ struct Connection::Impl {
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
-      LOG_ERROR()
+      LOG_WARNING()
           << "Deadline was reached before starting to execute statement";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
@@ -561,7 +561,7 @@ struct Connection::Impl {
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
-      LOG_ERROR()
+      LOG_WARNING()
           << "Deadline was reached before starting to execute statement";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
@@ -599,8 +599,9 @@ struct Connection::Impl {
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
       // TODO Portal name function, logging 'unnamed portal' for an empty name
-      LOG_ERROR() << "Deadline was reached before starting to execute portal `"
-                  << portal_name << "`";
+      LOG_WARNING()
+          << "Deadline was reached before starting to execute portal `"
+          << portal_name << "`";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
     auto scope = span.CreateScopeTime(scopes::kExec);
@@ -632,16 +633,16 @@ struct Connection::Impl {
       throw;
     } catch (const ConnectionTimeoutError& e) {
       ++stats_.execute_timeout;
-      LOG_ERROR() << "Statement `" << statement
-                  << "` network timeout error: " << e << ". "
-                  << "Network timout was " << network_timeout.count() << "ms";
+      LOG_WARNING() << "Statement `" << statement
+                    << "` network timeout error: " << e << ". "
+                    << "Network timout was " << network_timeout.count() << "ms";
       span.AddTag(tracing::kErrorFlag, true);
       throw;
     } catch (const QueryCanceled& e) {
       ++stats_.execute_timeout;
-      LOG_ERROR() << "Statement `" << statement << "` was canceled: " << e
-                  << ". Statement timeout was "
-                  << current_statement_timeout_.count() << "ms";
+      LOG_WARNING() << "Statement `" << statement << "` was canceled: " << e
+                    << ". Statement timeout was "
+                    << current_statement_timeout_.count() << "ms";
       span.AddTag(tracing::kErrorFlag, true);
       throw;
     } catch (const FeatureNotSupported& e) {

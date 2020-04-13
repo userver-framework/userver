@@ -285,7 +285,7 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
     } catch (const Error& ex) {
       ++shared_this->stats_.connection.error_total;
       ++shared_this->stats_.connection.drop_total;
-      LOG_ERROR() << "Connection creation failed with error: " << ex;
+      LOG_WARNING() << "Connection creation failed with error: " << ex;
       throw;
     }
     LOG_TRACE() << "PostgreSQL connection created";
@@ -432,8 +432,8 @@ void ConnectionPoolImpl::MaintainConnections() {
         capture->Ping();
       }
     } catch (const RuntimeError& e) {
-      LOG_ERROR() << "Exception while pinging connection to `"
-                  << DsnCutPassword(dsn_) << "`: " << e;
+      LOG_WARNING() << "Exception while pinging connection to `"
+                    << DsnCutPassword(dsn_) << "`: " << e;
     }
     --count;
   }

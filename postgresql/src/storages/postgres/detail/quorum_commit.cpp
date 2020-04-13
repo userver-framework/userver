@@ -214,8 +214,8 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
           dsn, bg_task_processor_, kConnectionId, conn_settings_,
           default_cmd_ctl_, testsuite_pg_ctl_, ei_settings_);
     } catch (const ConnectionError& e) {
-      LOG_ERROR() << "Failed to connect to " << DsnCutPassword(dsn) << ": "
-                  << e;
+      LOG_WARNING() << "Failed to connect to " << DsnCutPassword(dsn) << ": "
+                    << e;
       return;
     }
   }
@@ -233,8 +233,8 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
     }
     role_check_guard.Release();
   } catch (const ConnectionError& e) {
-    LOG_ERROR() << "Broken connection with " << DsnCutPassword(dsn) << ": "
-                << e;
+    LOG_WARNING() << "Broken connection with " << DsnCutPassword(dsn) << ": "
+                  << e;
   }
 }
 

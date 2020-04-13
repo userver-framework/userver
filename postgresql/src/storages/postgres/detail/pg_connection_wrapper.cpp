@@ -92,7 +92,7 @@ void PGConnectionWrapper::CheckError(const std::string& cmd,
                                      int pg_dispatch_result) {
   if (pg_dispatch_result == 0) {
     auto msg = PQerrorMessage(conn_);
-    PGCW_LOG_ERROR() << "libpq " << cmd << " error: " << msg;
+    PGCW_LOG_WARNING() << "libpq " << cmd << " error: " << msg;
     throw ExceptionType(cmd + " execution error: " + msg);
   }
 }
@@ -210,13 +210,12 @@ void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
   }
 
   const auto status = PQstatus(conn_);
-  const auto* msg_for_status = MsgForStatus(status);
   if (CONNECTION_BAD == status) {
-    const std::string msg = msg_for_status;
-    PGCW_LOG_ERROR() << msg;
+    const std::string msg = MsgForStatus(status);
+    PGCW_LOG_WARNING() << msg;
     CloseWithError(ConnectionFailed{dsn, msg});
   } else {
-    PGCW_LOG_TRACE() << msg_for_status;
+    PGCW_LOG_TRACE() << MsgForStatus(status);
   }
 
   RefreshSocket(dsn);
@@ -235,17 +234,17 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
     switch (poll_res) {
       case PGRES_POLLING_READING:
         if (!WaitSocketReadable(deadline)) {
-          PGCW_LOG_ERROR() << "Timeout while polling PostgreSQL connection "
-                              "socket, timeout was "
-                           << timeout.count() << "ms";
+          PGCW_LOG_WARNING() << "Timeout while polling PostgreSQL connection "
+                                "socket, timeout was "
+                             << timeout.count() << "ms";
           throw ConnectionTimeoutError("Timed out while polling connection");
         }
         break;
       case PGRES_POLLING_WRITING:
         if (!WaitSocketWriteable(deadline)) {
-          PGCW_LOG_ERROR() << "Timeout while polling PostgreSQL connection "
-                              "socket, timeout was "
-                           << timeout.count() << "ms";
+          PGCW_LOG_WARNING() << "Timeout while polling PostgreSQL connection "
+                                "socket, timeout was "
+                             << timeout.count() << "ms";
           throw ConnectionTimeoutError("Timed out while polling connection");
         }
         break;
@@ -253,7 +252,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
         // This is an obsolete state, just ignore it
         break;
       case PGRES_POLLING_FAILED:
-        PGCW_LOG_ERROR() << " libpq polling failed";
+        PGCW_LOG_WARNING() << " libpq polling failed";
         CheckError<ConnectionError>("PQconnectPoll", 0);
         break;
       default:
@@ -299,7 +298,8 @@ void PGConnectionWrapper::Flush(Deadline deadline) {
       throw CommandError(PQerrorMessage(conn_));
     }
     if (!WaitSocketWriteable(deadline)) {
-      PGCW_LOG_ERROR() << "Timeout while flushing PostgreSQL connection socket";
+      PGCW_LOG_WARNING()
+          << "Timeout while flushing PostgreSQL connection socket";
       throw ConnectionTimeoutError("Timed out while flushing connection");
     }
     UpdateLastUse();
@@ -319,7 +319,7 @@ bool PGConnectionWrapper::TryConsumeInput(Deadline deadline) {
 
 void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
   if (!TryConsumeInput(deadline)) {
-    PGCW_LOG_ERROR()
+    PGCW_LOG_WARNING()
         << "Timeout while consuming input from PostgreSQL connection socket";
     throw ConnectionTimeoutError("Timed out while consuming input");
   }
@@ -405,9 +405,10 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
         case Message::Severity::kError:
         case Message::Severity::kFatal:
         case Message::Severity::kPanic:
-          PGCW_LOG_ERROR() << "Postgres " << msg.GetSeverityString()
-                           << " message (marked as non-fatal): "
-                           << msg.GetMessage() << msg.GetLogExtra();
+          PGCW_LOG_WARNING()
+              << "Postgres " << msg.GetSeverityString()
+              << " message (marked as non-fatal): " << msg.GetMessage()
+              << msg.GetLogExtra();
           break;
       }
       break;
