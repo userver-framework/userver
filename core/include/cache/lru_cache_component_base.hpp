@@ -91,6 +91,9 @@ class LruCacheComponent : public components::LoggableComponentBase {
 
   void UpdateConfig(const LruCacheConfigStatic& config);
 
+ protected:
+  std::shared_ptr<Cache> GetCacheRaw() { return cache_; }
+
  private:
   const std::string name_;
   utils::statistics::Entry statistics_holder_;
