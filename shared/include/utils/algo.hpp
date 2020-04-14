@@ -4,6 +4,7 @@
 /// @brief Small useful algorithms.
 
 #include <cstddef>
+#include <utility>
 
 namespace utils {
 
@@ -21,6 +22,18 @@ template <class Map, class Key>
 auto FindOrNullptr(Map& map, const Key& key) {
   const auto it = map.find(key);
   return (it == map.end() ? nullptr : &it->second);
+}
+
+/// Returns default value if no key in associative container. Otherwise returns
+/// pointer to value.
+template <class Map, class Key, class Default>
+typename Map::mapped_type FindOrDefault(Map& map, const Key& key,
+                                        Default&& def) {
+  const auto ptr = ::utils::FindOrNullptr(map, key);
+  if (!ptr) {
+    return {std::forward<Default>(def)};
+  }
+  return *ptr;
 }
 
 }  // namespace utils
