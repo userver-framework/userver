@@ -121,7 +121,7 @@ class HttpHandlerBase : public HandlerBase {
   std::unique_ptr<HttpHandlerStatistics> request_statistics_;
   std::vector<auth::AuthCheckerBasePtr> auth_checkers_;
 
-  boost::optional<logging::Level> log_level_;
+  std::optional<logging::Level> log_level_;
   mutable std::optional<utils::TokenBucket> rate_limit_;
 };
 

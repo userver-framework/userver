@@ -1,12 +1,10 @@
 #pragma once
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 struct TestsuiteConfig {
   std::vector<std::string> allowed_url_prefixes;
-  boost::optional<std::chrono::milliseconds> http_request_timeout;
+  std::optional<std::chrono::milliseconds> http_request_timeout;
 };
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

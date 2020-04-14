@@ -34,7 +34,7 @@ class Span::Impl
 
   TimeStorage& GetTimeStorage() {
     if (!time_storage_) time_storage_.emplace(name_);
-    return time_storage_.get();
+    return *time_storage_;
   }
 
   void LogTo(logging::LogHelper& log_helper) const&;
@@ -60,7 +60,7 @@ class Span::Impl
                                  const logging::LogExtra& input);
 
   logging::Level log_level_;
-  boost::optional<logging::Level> local_log_level_;
+  std::optional<logging::Level> local_log_level_;
 
   std::shared_ptr<Tracer> tracer;
   logging::LogExtra log_extra_inheritable;
@@ -68,8 +68,8 @@ class Span::Impl
   Span* span_;
   const std::string name_;
 
-  boost::optional<logging::LogExtra> log_extra_local_;
-  boost::optional<TimeStorage> time_storage_;
+  std::optional<logging::LogExtra> log_extra_local_;
+  std::optional<TimeStorage> time_storage_;
 
   const std::chrono::system_clock::time_point start_system_time_;
   const std::chrono::steady_clock::time_point start_steady_time_;

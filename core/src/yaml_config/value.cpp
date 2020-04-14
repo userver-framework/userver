@@ -66,30 +66,30 @@ std::string ParseString(const formats::yaml::Value& obj,
   return std::move(*optional);
 }
 
-boost::optional<int> ParseOptionalInt(const formats::yaml::Value& obj,
-                                      const std::string& name,
-                                      const std::string& full_path,
-                                      const VariableMapPtr& config_vars_ptr) {
+std::optional<int> ParseOptionalInt(const formats::yaml::Value& obj,
+                                    const std::string& name,
+                                    const std::string& full_path,
+                                    const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
                     &impl::Parse<int, std::string>, &ParseOptionalInt);
 }
 
-boost::optional<bool> ParseOptionalBool(const formats::yaml::Value& obj,
-                                        const std::string& name,
-                                        const std::string& full_path,
-                                        const VariableMapPtr& config_vars_ptr) {
+std::optional<bool> ParseOptionalBool(const formats::yaml::Value& obj,
+                                      const std::string& name,
+                                      const std::string& full_path,
+                                      const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
                     &impl::Parse<bool, std::string>, &ParseOptionalBool);
 }
 
-boost::optional<uint64_t> ParseOptionalUint64(
+std::optional<uint64_t> ParseOptionalUint64(
     const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
                     &impl::Parse<uint64_t, std::string>, &ParseOptionalUint64);
 }
 
-boost::optional<std::string> ParseOptionalString(
+std::optional<std::string> ParseOptionalString(
     const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,

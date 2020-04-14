@@ -1,9 +1,8 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 #include <unordered_map>
-
-#include <boost/optional.hpp>
 
 #include <components/component_config.hpp>
 #include <taxi_config/config.hpp>
@@ -61,10 +60,10 @@ class CacheConfigSet final {
   explicit CacheConfigSet(const taxi_config::DocsMap& docs_map);
 
   /// Get config for cache
-  boost::optional<CacheConfig> GetConfig(const std::string& cache_name) const;
+  std::optional<CacheConfig> GetConfig(const std::string& cache_name) const;
 
   /// Get config for LRU cache
-  boost::optional<LruCacheConfig> GetLruConfig(
+  std::optional<LruCacheConfig> GetLruConfig(
       const std::string& cache_name) const;
 
   static bool IsConfigEnabled();

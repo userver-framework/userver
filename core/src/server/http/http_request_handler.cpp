@@ -14,8 +14,8 @@ namespace http {
 
 HttpRequestHandler::HttpRequestHandler(
     const components::ComponentContext& component_context,
-    const boost::optional<std::string>& logger_access_component,
-    const boost::optional<std::string>& logger_access_tskv_component,
+    const std::optional<std::string>& logger_access_component,
+    const std::optional<std::string>& logger_access_tskv_component,
     bool is_monitor)
     : add_handler_disabled_(false),
       is_monitor_(is_monitor),

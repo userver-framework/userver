@@ -45,7 +45,7 @@ class HttpConnection {
   http_parser parser_{};
 
   HttpServerMock::HttpRequest http_request_;
-  boost::optional<HttpServerMock::HttpResponse> http_response_;
+  std::optional<HttpServerMock::HttpResponse> http_response_;
 
   std::string header_name_, header_value_;
   bool reading_header_name_{true};

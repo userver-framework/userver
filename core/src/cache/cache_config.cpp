@@ -174,17 +174,17 @@ CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
 }
 
 /// Get config for cache
-boost::optional<CacheConfig> CacheConfigSet::GetConfig(
+std::optional<CacheConfig> CacheConfigSet::GetConfig(
     const std::string& cache_name) const {
   auto it = configs_.find(cache_name);
-  if (it == configs_.end()) return boost::none;
+  if (it == configs_.end()) return std::nullopt;
   return it->second;
 }
 
-boost::optional<LruCacheConfig> CacheConfigSet::GetLruConfig(
+std::optional<LruCacheConfig> CacheConfigSet::GetLruConfig(
     const std::string& cache_name) const {
   auto it = lru_configs_.find(cache_name);
-  if (it == lru_configs_.end()) return boost::none;
+  if (it == lru_configs_.end()) return std::nullopt;
   return it->second;
 }
 

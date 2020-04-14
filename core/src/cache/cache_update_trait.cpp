@@ -101,6 +101,12 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
   }
 }
 
+void CacheUpdateTrait::SetConfig(const std::optional<CacheConfig>& config) {
+  std::lock_guard<engine::Mutex> lock(update_mutex_);
+  config_ = config.value_or(static_config_);
+  update_task_.SetSettings(GetPeriodicTaskSettings());
+}
+
 void CacheUpdateTrait::SetConfig(const boost::optional<CacheConfig>& config) {
   std::lock_guard<engine::Mutex> lock(update_mutex_);
   config_ = config.value_or(static_config_);

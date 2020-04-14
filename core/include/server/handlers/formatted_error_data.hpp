@@ -1,18 +1,15 @@
 #pragma once
 
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <http/content_type.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 struct FormattedErrorData {
   std::string external_body;
-  boost::optional<::http::ContentType> content_type{};
+  std::optional<::http::ContentType> content_type{};
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

@@ -1,12 +1,11 @@
 #pragma once
 
+#include <optional>
 #include <ostream>
 
 #include <logging/level.hpp>
 #include <logging/log.hpp>
 #include <logging/spdlog.hpp>
-
-#include <boost/optional/optional.hpp>
 
 namespace logging {
 
@@ -56,7 +55,7 @@ class LogHelper::Impl final {
   LoggerPtr logger_;
   spdlog::details::log_msg msg_;
   Encode encode_mode_;
-  boost::optional<LazyInitedStream> lazy_stream_;
+  std::optional<LazyInitedStream> lazy_stream_;
 };
 
 }  // namespace logging

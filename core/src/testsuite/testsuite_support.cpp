@@ -11,7 +11,7 @@ const std::string kPostgresExecuteTimeout = "testsuite-pg-execute-timeout";
 const std::string kPostgresStatementTimeout = "testsuite-pg-statement-timeout";
 
 testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
-    const boost::optional<bool>& config_value) {
+    const std::optional<bool>& config_value) {
   using PeriodicUpdatesMode = testsuite::CacheControl::PeriodicUpdatesMode;
   if (!config_value) return PeriodicUpdatesMode::kDefault;
   return *config_value ? PeriodicUpdatesMode::kEnabled

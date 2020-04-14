@@ -5,9 +5,8 @@
 
 #include <array>
 #include <atomic>
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 namespace logging {
 
@@ -30,8 +29,8 @@ Level LevelFromString(const std::string&);
 /// Returns a string representation of logging level
 std::string ToString(Level level);
 
-boost::optional<Level> OptionalLevelFromString(
-    const boost::optional<std::string>& level_name);
+std::optional<Level> OptionalLevelFromString(
+    const std::optional<std::string>& level_name);
 
 inline auto& GetShouldLogCache() noexcept {
   static std::array<std::atomic<bool>, kLevelMax + 1> values{

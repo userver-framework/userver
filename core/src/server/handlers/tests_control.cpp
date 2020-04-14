@@ -9,8 +9,7 @@
 #include <utils/datetime.hpp>
 #include <utils/mock_now.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 TestsControl::TestsControl(
     const components::ComponentConfig& config,
@@ -71,7 +70,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
                                       ? cache::UpdateType::kFull
                                       : cache::UpdateType::kIncremental;
 
-  boost::optional<std::chrono::system_clock::time_point> now;
+  std::optional<std::chrono::system_clock::time_point> now;
   if (request_body.HasMember("now")) {
     const formats::json::Value& value = request_body["now"];
     if (value.IsString()) {
@@ -133,5 +132,4 @@ formats::json::Value TestsControl::ActionSuspendPeriodicTasks(
   return formats::json::Value();
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

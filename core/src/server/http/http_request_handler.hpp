@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <components/component_context.hpp>
 #include <engine/mutex.hpp>
@@ -18,8 +18,8 @@ class HttpRequestHandler final : public RequestHandlerBase {
  public:
   HttpRequestHandler(
       const components::ComponentContext& component_context,
-      const boost::optional<std::string>& logger_access_component,
-      const boost::optional<std::string>& logger_access_tskv_component,
+      const std::optional<std::string>& logger_access_component,
+      const std::optional<std::string>& logger_access_tskv_component,
       bool is_monitor);
 
   using NewRequestHook =

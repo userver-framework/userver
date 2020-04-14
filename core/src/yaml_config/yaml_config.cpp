@@ -26,8 +26,7 @@ int YamlConfig::ParseInt(const std::string& name, int default_value) const {
       .value_or(default_value);
 }
 
-boost::optional<int> YamlConfig::ParseOptionalInt(
-    const std::string& name) const {
+std::optional<int> YamlConfig::ParseOptionalInt(const std::string& name) const {
   return yaml_config::ParseOptionalInt(yaml_, name, full_path_,
                                        config_vars_ptr_);
 }
@@ -42,7 +41,7 @@ bool YamlConfig::ParseBool(const std::string& name, bool default_value) const {
       .value_or(default_value);
 }
 
-boost::optional<bool> YamlConfig::ParseOptionalBool(
+std::optional<bool> YamlConfig::ParseOptionalBool(
     const std::string& name) const {
   return yaml_config::ParseOptionalBool(yaml_, name, full_path_,
                                         config_vars_ptr_);
@@ -59,7 +58,7 @@ uint64_t YamlConfig::ParseUint64(const std::string& name,
       .value_or(default_value);
 }
 
-boost::optional<uint64_t> YamlConfig::ParseOptionalUint64(
+std::optional<uint64_t> YamlConfig::ParseOptionalUint64(
     const std::string& name) const {
   return yaml_config::ParseOptionalUint64(yaml_, name, full_path_,
                                           config_vars_ptr_);
@@ -76,7 +75,7 @@ std::string YamlConfig::ParseString(const std::string& name,
       .value_or(default_value);
 }
 
-boost::optional<std::string> YamlConfig::ParseOptionalString(
+std::optional<std::string> YamlConfig::ParseOptionalString(
     const std::string& name) const {
   return yaml_config::ParseOptionalString(yaml_, name, full_path_,
                                           config_vars_ptr_);
@@ -96,7 +95,7 @@ std::chrono::milliseconds YamlConfig::ParseDuration(
   return default_value;
 }
 
-boost::optional<std::chrono::milliseconds> YamlConfig::ParseOptionalDuration(
+std::optional<std::chrono::milliseconds> YamlConfig::ParseOptionalDuration(
     const std::string& name) const {
   const auto val = ParseOptionalString(name);
   if (val) {

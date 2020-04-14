@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
-#include <boost/optional.hpp>
 #include <formats/yaml.hpp>
 
 #include <yaml_config/variable_map.hpp>
@@ -18,7 +18,7 @@ struct ListenerConfig {
   uint16_t port = 0;
   int backlog = 1024;  // truncated to net.core.somaxconn
   size_t max_connections = 32768;
-  boost::optional<size_t> shards;
+  std::optional<size_t> shards;
   std::string task_processor;
 
   static ListenerConfig ParseFromYaml(

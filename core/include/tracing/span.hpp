@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <logging/log.hpp>
 #include <logging/log_extra.hpp>
@@ -75,9 +75,9 @@ class Span final {
 
   logging::Level GetLogLevel() const;
 
-  void SetLocalLogLevel(boost::optional<logging::Level> log_level);
+  void SetLocalLogLevel(std::optional<logging::Level> log_level);
 
-  boost::optional<logging::Level> GetLocalLogLevel() const;
+  std::optional<logging::Level> GetLocalLogLevel() const;
 
   /** Set link. Can be called only once. */
   void SetLink(std::string link);

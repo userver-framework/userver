@@ -5,9 +5,8 @@
 
 #include <chrono>
 #include <cstddef>
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <components/component_config.hpp>
 
@@ -56,7 +55,7 @@ class PoolConfig {
   /// Establishing connections limit
   size_t connecting_limit;
   /// Instance selection latency window override
-  boost::optional<std::chrono::milliseconds> local_threshold;
+  std::optional<std::chrono::milliseconds> local_threshold;
   /// Pool maintenance period
   std::chrono::milliseconds maintenance_period;
 

@@ -242,11 +242,11 @@ void Span::SetLogLevel(logging::Level log_level) {
 
 logging::Level Span::GetLogLevel() const { return pimpl_->log_level_; }
 
-void Span::SetLocalLogLevel(boost::optional<logging::Level> log_level) {
+void Span::SetLocalLogLevel(std::optional<logging::Level> log_level) {
   pimpl_->local_log_level_ = log_level;
 }
 
-boost::optional<logging::Level> Span::GetLocalLogLevel() const {
+std::optional<logging::Level> Span::GetLocalLogLevel() const {
   return pimpl_->local_log_level_;
 }
 

@@ -91,12 +91,12 @@ std::string ToString(Level level) {
   return it->second;
 }
 
-boost::optional<Level> OptionalLevelFromString(
-    const boost::optional<std::string>& level_name) {
+std::optional<Level> OptionalLevelFromString(
+    const std::optional<std::string>& level_name) {
   if (level_name)
     return LevelFromString(*level_name);
   else
-    return boost::none;
+    return std::nullopt;
 }
 
 bool ShouldLogNospan(Level level) noexcept {

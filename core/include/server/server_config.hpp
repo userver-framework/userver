@@ -1,8 +1,8 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
-#include <boost/optional.hpp>
 #include <formats/yaml.hpp>
 
 #include <yaml_config/variable_map.hpp>
@@ -14,8 +14,8 @@ namespace server {
 struct ServerConfig {
   net::ListenerConfig listener;
   net::ListenerConfig monitor_listener;
-  boost::optional<std::string> logger_access;
-  boost::optional<std::string> logger_access_tskv;
+  std::optional<std::string> logger_access;
+  std::optional<std::string> logger_access_tskv;
 
   yaml_config::VariableMapPtr config_vars_ptr;
 

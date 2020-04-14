@@ -20,7 +20,7 @@ class JsonErrorBuilder {
 
   JsonErrorBuilder(const std::string& error_code, std::string internal_message,
                    const std::string& external_error_body,
-                   boost::optional<const formats::json::Value&> details = {});
+                   const formats::json::Value& = {});
 
   const std::string& GetInternalMessage() const { return internal_message_; };
 

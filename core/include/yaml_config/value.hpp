@@ -5,7 +5,7 @@
 #include <string>
 #include <type_traits>
 
-#include <boost/optional.hpp>
+#include <boost/optional/optional_fwd.hpp>
 #include <formats/yaml.hpp>
 
 #include <logging/log.hpp>
@@ -24,18 +24,18 @@ std::string GetFallbackName(const std::string& str);
 
 void CheckIsMap(const formats::yaml::Value& obj, const std::string& full_path);
 
-boost::optional<int> ParseOptionalInt(const formats::yaml::Value& obj,
+std::optional<int> ParseOptionalInt(const formats::yaml::Value& obj,
+                                    const std::string& name,
+                                    const std::string& full_path,
+                                    const VariableMapPtr& config_vars_ptr);
+std::optional<bool> ParseOptionalBool(const formats::yaml::Value& obj,
                                       const std::string& name,
                                       const std::string& full_path,
                                       const VariableMapPtr& config_vars_ptr);
-boost::optional<bool> ParseOptionalBool(const formats::yaml::Value& obj,
-                                        const std::string& name,
-                                        const std::string& full_path,
-                                        const VariableMapPtr& config_vars_ptr);
-boost::optional<uint64_t> ParseOptionalUint64(
+std::optional<uint64_t> ParseOptionalUint64(
     const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr);
-boost::optional<std::string> ParseOptionalString(
+std::optional<std::string> ParseOptionalString(
     const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr);
 
@@ -53,10 +53,10 @@ std::string ParseString(const formats::yaml::Value& obj,
                         const VariableMapPtr& config_vars_ptr);
 
 template <typename T>
-boost::optional<T> ParseOptional(const formats::yaml::Value& obj,
-                                 const std::string& name,
-                                 const std::string& full_path,
-                                 const VariableMapPtr& config_vars_ptr) {
+std::optional<T> ParseOptional(const formats::yaml::Value& obj,
+                               const std::string& name,
+                               const std::string& full_path,
+                               const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
                     &impl::Parse<T, std::string>, &ParseOptional<T>);
 }
@@ -78,29 +78,28 @@ struct ParseOptionalHelper {
 
 template <typename T>
 struct ParseOptionalHelper<boost::optional<T>> {
+  static boost::optional<T> ParseOptional(
+      const formats::yaml::Value& obj, const std::string& name,
+      const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+    return ParseValue(obj, name, full_path, config_vars_ptr,
+                      &impl::Parse<T, std::string>, &ParseOptional);
+  }
+
   boost::optional<T> operator()(const formats::yaml::Value& obj,
                                 const std::string& name,
                                 const std::string& full_path,
                                 const VariableMapPtr& config_vars_ptr) const {
-    return ParseOptional<T>(obj, name, full_path, config_vars_ptr);
+    return ParseOptional(obj, name, full_path, config_vars_ptr);
   }
 };
 
 template <typename T>
 struct ParseOptionalHelper<std::optional<T>> {
-  static std::optional<T> ParseOptional(const formats::yaml::Value& obj,
-                                        const std::string& name,
-                                        const std::string& full_path,
-                                        const VariableMapPtr& config_vars_ptr) {
-    return ParseValue(obj, name, full_path, config_vars_ptr,
-                      &impl::Parse<T, std::string>, &ParseOptional);
-  }
-
   std::optional<T> operator()(const formats::yaml::Value& obj,
                               const std::string& name,
                               const std::string& full_path,
                               const VariableMapPtr& config_vars_ptr) const {
-    return ParseOptional(obj, name, full_path, config_vars_ptr);
+    return ParseOptional<T>(obj, name, full_path, config_vars_ptr);
   }
 };
 
@@ -120,7 +119,7 @@ void ParseInto(T& result, const formats::yaml::Value& obj,
 }
 
 template <typename T>
-boost::optional<std::vector<T>> ParseOptionalArray(
+std::optional<std::vector<T>> ParseOptionalArray(
     const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr, &impl::ParseArray<T>,
@@ -139,7 +138,7 @@ std::vector<T> ParseArray(const formats::yaml::Value& obj,
 }
 
 template <typename T>
-boost::optional<std::vector<T>> ParseOptionalMapAsArray(
+std::optional<std::vector<T>> ParseOptionalMapAsArray(
     const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,

@@ -72,7 +72,7 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
   }
 
   auto user_idle_limit =
-      component_config.Parse<boost::optional<size_t>>("idle_limit");
+      component_config.Parse<std::optional<size_t>>("idle_limit");
   idle_limit = user_idle_limit ? *user_idle_limit
                                : std::min(kDefaultIdleLimit, max_size);
   if (idle_limit > max_size) {
@@ -81,7 +81,7 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
   }
 
   auto user_initial_size =
-      component_config.Parse<boost::optional<size_t>>("initial_size");
+      component_config.Parse<std::optional<size_t>>("initial_size");
   initial_size = user_initial_size ? *user_initial_size
                                    : std::min(kDefaultInitialSize, idle_limit);
   if (initial_size > idle_limit) {

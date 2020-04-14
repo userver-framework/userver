@@ -2,9 +2,8 @@
 
 #include <chrono>
 #include <cstdint>
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <formats/yaml.hpp>
 #include <yaml_config/value.hpp>
@@ -24,23 +23,22 @@ class YamlConfig {
 
   int ParseInt(const std::string& name) const;
   int ParseInt(const std::string& name, int default_value) const;
-  boost::optional<int> ParseOptionalInt(const std::string& name) const;
+  std::optional<int> ParseOptionalInt(const std::string& name) const;
   bool ParseBool(const std::string& name) const;
   bool ParseBool(const std::string& name, bool default_value) const;
-  boost::optional<bool> ParseOptionalBool(const std::string& name) const;
+  std::optional<bool> ParseOptionalBool(const std::string& name) const;
   uint64_t ParseUint64(const std::string& name) const;
   uint64_t ParseUint64(const std::string& name, uint64_t default_value) const;
-  boost::optional<uint64_t> ParseOptionalUint64(const std::string& name) const;
+  std::optional<uint64_t> ParseOptionalUint64(const std::string& name) const;
   std::string ParseString(const std::string& name) const;
   std::string ParseString(const std::string& name,
                           const std::string& default_value) const;
-  boost::optional<std::string> ParseOptionalString(
-      const std::string& name) const;
+  std::optional<std::string> ParseOptionalString(const std::string& name) const;
 
   std::chrono::milliseconds ParseDuration(const std::string& name) const;
   std::chrono::milliseconds ParseDuration(
       const std::string& name, std::chrono::milliseconds default_value) const;
-  boost::optional<std::chrono::milliseconds> ParseOptionalDuration(
+  std::optional<std::chrono::milliseconds> ParseOptionalDuration(
       const std::string& name) const;
 
   template <typename T>
@@ -50,14 +48,14 @@ class YamlConfig {
 
   template <typename T>
   T Parse(const std::string& name, const T& default_value) const {
-    return yaml_config::Parse<boost::optional<T>>(yaml_, name, full_path_,
-                                                  config_vars_ptr_)
+    return yaml_config::Parse<std::optional<T>>(yaml_, name, full_path_,
+                                                config_vars_ptr_)
         .value_or(default_value);
   }
 
   template <typename T>
   std::decay_t<T> Parse(const std::string& name, T&& default_value) const {
-    return yaml_config::Parse<boost::optional<std::decay_t<T>>>(
+    return yaml_config::Parse<std::optional<std::decay_t<T>>>(
                yaml_, name, full_path_, config_vars_ptr_)
         .value_or(std::forward<T>(default_value));
   }
