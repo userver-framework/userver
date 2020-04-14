@@ -29,6 +29,8 @@ SCAN_BUILD_OPTS = --force-analyze-debug-code --show-description --use-cc $(CC) -
 BUILD_CHECK_DIR ?= build-check
 PYTHON3_BIN_DIR = $(wildcard /usr/lib/yandex/taxi-py3-2/bin/)
 CLANG_TIDY_BINARY ?= clang-tidy-7
+CHANGED_DIRS ?= $(CMAKE_DIR)
+TEAMCITY_LINT_JOBS_COUNT ?= 10
 
 ifeq ($(CXX),clang++-7)
 ifeq ($(shell which llvm-symbolizer),)
@@ -135,7 +137,7 @@ smart-check-pep8:
 
 .PHONY: teamcity-check-pep8
 teamcity-check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 --teamcity $(CMAKE_DIR)
+	@${PYTHON3_BIN_DIR}check-pep8 --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
 .PHONY: taxi-black
 taxi-black:
