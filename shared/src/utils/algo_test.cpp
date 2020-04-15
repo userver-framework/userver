@@ -34,3 +34,14 @@ TEST(UtilsAlgo, FindOrDefaultMaps) {
   EXPECT_EQ(utils::FindOrDefault(m, "1", kFallback), 2);
   EXPECT_EQ(utils::FindOrDefault(um, "1", kFallback), 2);
 }
+
+TEST(UtilsAlgo, FindOptional) {
+  std::map<std::string, int> m = {{"1", 2}};
+  std::unordered_map<std::string, int> um = {{"1", 2}};
+
+  EXPECT_FALSE(utils::FindOptional(m, "2"));
+  EXPECT_FALSE(utils::FindOptional(um, "2"));
+
+  EXPECT_EQ(utils::FindOptional(m, "1"), 2);
+  EXPECT_EQ(utils::FindOptional(um, "1"), 2);
+}

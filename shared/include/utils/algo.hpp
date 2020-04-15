@@ -4,6 +4,7 @@
 /// @brief Small useful algorithms.
 
 #include <cstddef>
+#include <optional>
 #include <utility>
 
 namespace utils {
@@ -34,6 +35,18 @@ typename Map::mapped_type FindOrDefault(Map& map, const Key& key,
     return {std::forward<Default>(def)};
   }
   return *ptr;
+}
+
+/// Returns std::nullopt if no key in associative container. Otherwise returns
+/// std::optional with a copy of value
+template <class Map, class Key>
+std::optional<typename Map::mapped_type> FindOptional(Map& map,
+                                                      const Key& key) {
+  const auto ptr = ::utils::FindOrNullptr(map, key);
+  if (!ptr) {
+    return std::nullopt;
+  }
+  return {*ptr};
 }
 
 }  // namespace utils
