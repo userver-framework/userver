@@ -99,6 +99,7 @@ class UserTypes {
 
   bool HasParser(Oid) const;
   io::BufferCategory GetBufferCategory(Oid) const;
+  const io::TypeBufferCategory& GetTypeBufferCategories() const;
 
   void AddType(DBTypeDescription&& desc);
   void AddCompositeFields(CompositeFieldDefs&& defs);

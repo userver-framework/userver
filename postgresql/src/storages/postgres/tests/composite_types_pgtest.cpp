@@ -39,7 +39,7 @@ struct FooBar {
   std::vector<std::string> v;
 
   bool operator==(const FooBar& rhs) const {
-    return i == rhs.i && s == rhs.s && d == rhs.d && a == rhs.a;
+    return i == rhs.i && s == rhs.s && d == rhs.d && a == rhs.a && v == rhs.v;
   }
 };
 
@@ -53,12 +53,16 @@ class FooClass {
   std::vector<std::string> v;
 
  public:
+  FooClass() = default;
+  explicit FooClass(int x) : i(x), s(std::to_string(x)), d(x), a{i}, v{s} {}
+
   auto Introspect() { return std::tie(i, s, d, a, v); }
 
   auto GetI() const { return i; }
   auto GetS() const { return s; }
   auto GetD() const { return d; }
   auto GetA() const { return a; }
+  auto GetV() const { return v; }
 };
 
 using FooTuple = std::tuple<int, std::string, double, std::vector<int>,
@@ -73,6 +77,14 @@ struct BunchOfFoo {
 };
 
 struct NoUseInWrite {
+  int i;
+  std::string s;
+  double d;
+  std::vector<int> a;
+  std::vector<std::string> v;
+};
+
+struct NoUserMapping {
   int i;
   std::string s;
   double d;
@@ -129,11 +141,23 @@ static_assert(io::traits::TupleHasParsers<pgtest::FooTuple>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::FooTuple>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::FooBar>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::FooClass>::value);
+static_assert(tt::detail::CompositeHasParsers<pgtest::NoUseInWrite>::value);
+static_assert(tt::detail::CompositeHasParsers<pgtest::NoUserMapping>::value);
+
+static_assert(!tt::detail::CompositeHasParsers<int>::value);
+
+static_assert(io::traits::TupleHasFormatters<pgtest::FooTuple>::value);
+static_assert(tt::detail::CompositeHasFormatters<pgtest::FooTuple>::value);
+static_assert(tt::detail::CompositeHasFormatters<pgtest::FooBar>::value);
+static_assert(tt::detail::CompositeHasFormatters<pgtest::FooClass>::value);
 
 static_assert(!tt::detail::CompositeHasParsers<int>::value);
 
 static_assert(tt::kHasParser<pgtest::BunchOfFoo>);
 static_assert(tt::kHasFormatter<pgtest::BunchOfFoo>);
+
+static_assert(tt::kHasParser<pgtest::NoUserMapping>);
+static_assert(!tt::kHasFormatter<pgtest::NoUserMapping>);
 
 static_assert(tt::kTypeBufferCategory<pgtest::FooTuple> ==
               io::BufferCategory::kCompositeBuffer);
@@ -143,25 +167,14 @@ static_assert(tt::kTypeBufferCategory<pgtest::FooClass> ==
               io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::BunchOfFoo> ==
               io::BufferCategory::kCompositeBuffer);
+static_assert(tt::kTypeBufferCategory<pgtest::NoUseInWrite> ==
+              io::BufferCategory::kCompositeBuffer);
+static_assert(tt::kTypeBufferCategory<pgtest::NoUserMapping> ==
+              io::BufferCategory::kCompositeBuffer);
 
 }  // namespace static_test
 
 namespace {
-
-const pg::UserTypes types;
-
-pg::io::TypeBufferCategory GetTestTypeCategories() {
-  pg::io::TypeBufferCategory result;
-  using Oids = pg::io::PredefinedOids;
-  for (auto p_oid : {Oids::kInt2, Oids::kInt2Array, Oids::kInt4,
-                     Oids::kInt4Array, Oids::kInt8, Oids::kInt8Array}) {
-    auto oid = static_cast<pg::Oid>(p_oid);
-    result.insert(std::make_pair(oid, types.GetBufferCategory(oid)));
-  }
-  return result;
-}
-
-const pg::io::TypeBufferCategory categories = GetTestTypeCategories();
 
 POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
@@ -180,7 +193,8 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(
       res = conn->Execute("select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
                           "ARRAY['a', 'b', 'c'])::__pgtest.foobar"));
-  std::vector<int> expected_vector{-1, 0, 1};
+  const std::vector<int> expected_int_vector{-1, 0, 1};
+  const std::vector<std::string> expected_str_vector{"a", "b", "c"};
 
   ASSERT_FALSE(res.IsEmpty());
 
@@ -190,21 +204,24 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_EQ(42, fb.i);
   EXPECT_EQ("foobar", fb.s);
   EXPECT_EQ(3.14, fb.d);
-  EXPECT_EQ(expected_vector, fb.a);
+  EXPECT_EQ(expected_int_vector, fb.a);
+  EXPECT_EQ(expected_str_vector, fb.v);
 
   pgtest::FooTuple ft;
   EXPECT_NO_THROW(res[0].To(ft));
   EXPECT_EQ(42, std::get<0>(ft));
   EXPECT_EQ("foobar", std::get<1>(ft));
   EXPECT_EQ(3.14, std::get<2>(ft));
-  EXPECT_EQ(expected_vector, std::get<3>(ft));
+  EXPECT_EQ(expected_int_vector, std::get<3>(ft));
+  EXPECT_EQ(expected_str_vector, std::get<4>(ft));
 
   pgtest::FooClass fc;
   EXPECT_NO_THROW(res[0].To(fc));
   EXPECT_EQ(42, fc.GetI());
   EXPECT_EQ("foobar", fc.GetS());
   EXPECT_EQ(3.14, fc.GetD());
-  EXPECT_EQ(expected_vector, fc.GetA());
+  EXPECT_EQ(expected_int_vector, fc.GetA());
+  EXPECT_EQ(expected_str_vector, fc.GetV());
 
   EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fb));
   EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", ft));
@@ -220,7 +237,6 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
 
   pgtest::BunchOfFoo bf{{fb, fb, fb}};
-  res = conn->Execute("select $1 as bunch", bf);
   EXPECT_NO_THROW(res = conn->Execute("select $1 as bunch", bf));
   ASSERT_FALSE(res.IsEmpty());
   pgtest::BunchOfFoo bf1;
@@ -272,6 +288,149 @@ POSTGRE_TEST_P(OptionalCompositeTypeRoundtrip) {
   }
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+POSTGRE_TEST_P(CompositeTypeRoundtripAsRecord) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  pg::ResultSet res{nullptr};
+  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+
+  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+      << "Successfully create a composite type";
+  EXPECT_NO_THROW(conn->Execute(kCreateCompositeOfComposites))
+      << "Successfully create composite of composites";
+
+  EXPECT_NO_THROW(
+      res = conn->Execute(
+          "SELECT fb.* FROM (SELECT ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
+          "ARRAY['a', 'b', 'c'])::__pgtest.foobar) fb"));
+  const std::vector<int> expected_int_vector{-1, 0, 1};
+  const std::vector<std::string> expected_str_vector{"a", "b", "c"};
+
+  ASSERT_FALSE(res.IsEmpty());
+
+  pgtest::FooBar fb;
+  res[0].To(fb);
+  EXPECT_NO_THROW(res[0].To(fb));
+  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+  EXPECT_EQ(42, fb.i);
+  EXPECT_EQ("foobar", fb.s);
+  EXPECT_EQ(3.14, fb.d);
+  EXPECT_EQ(expected_int_vector, fb.a);
+  EXPECT_EQ(expected_str_vector, fb.v);
+
+  pgtest::FooTuple ft;
+  EXPECT_NO_THROW(res[0].To(ft));
+  EXPECT_EQ(42, std::get<0>(ft));
+  EXPECT_EQ("foobar", std::get<1>(ft));
+  EXPECT_EQ(3.14, std::get<2>(ft));
+  EXPECT_EQ(expected_int_vector, std::get<3>(ft));
+  EXPECT_EQ(expected_str_vector, std::get<4>(ft));
+
+  pgtest::FooClass fc;
+  EXPECT_NO_THROW(res[0].To(fc));
+  EXPECT_EQ(42, fc.GetI());
+  EXPECT_EQ("foobar", fc.GetS());
+  EXPECT_EQ(3.14, fc.GetD());
+  EXPECT_EQ(expected_int_vector, fc.GetA());
+  EXPECT_EQ(expected_str_vector, fc.GetV());
+
+  pgtest::NoUserMapping nm;
+  EXPECT_NO_THROW(res[0].To(nm));
+  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+  EXPECT_EQ(42, nm.i);
+  EXPECT_EQ("foobar", nm.s);
+  EXPECT_EQ(3.14, nm.d);
+  EXPECT_EQ(expected_int_vector, nm.a);
+  EXPECT_EQ(expected_str_vector, nm.v);
+
+  EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fb));
+  EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", ft));
+  EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fc));
+
+  using FooVector = std::vector<pgtest::FooBar>;
+  EXPECT_NO_THROW(res = conn->Execute("SELECT $1::record[] AS array_of_records",
+                                      FooVector{fb, fb, fb}));
+
+  ASSERT_FALSE(res.IsEmpty());
+  EXPECT_THROW(res[0][0].As<pgtest::FooBar>(), pg::InvalidParserCategory);
+  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+  EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
+
+  pgtest::BunchOfFoo bf{{fb, fb, fb}};
+  EXPECT_NO_THROW(res =
+                      conn->Execute("SELECT ROW($1.f::record[]) AS bunch", bf));
+  ASSERT_FALSE(res.IsEmpty());
+  pgtest::BunchOfFoo bf1;
+  EXPECT_NO_THROW(res[0].To(bf1));
+  EXPECT_EQ(bf, bf1);
+  EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>());
+
+  // Unwrapping composite structure to a row
+  EXPECT_NO_THROW(res = conn->Execute("select $1.f::record[]", bf));
+  ASSERT_FALSE(res.IsEmpty());
+  EXPECT_NO_THROW(res[0].To(bf1, pg::kRowTag));
+  EXPECT_EQ(bf, bf1);
+  EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>(pg::kRowTag));
+
+  EXPECT_ANY_THROW(res[0][0].To(bf1));
+
+  // Using a mapped type only for reading
+  EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fb));
+  EXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
+      << "A type that is not used for writing query parameter buffers must be"
+         "available for reading";
+
+  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+POSTGRE_TEST_P(OptionalCompositeTypeRoundtripAsRecord) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  pg::ResultSet res{nullptr};
+  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+
+  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+      << "Successfully create a composite type";
+
+  EXPECT_NO_THROW(
+      res = conn->Execute(
+          "SELECT fb.* FROM (SELECT ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
+          "ARRAY['a', 'b', 'c'])::__pgtest.foobar) fb"));
+  {
+    auto fo = res.Front().As<pgtest::FooBarOpt>();
+    EXPECT_TRUE(!!fo) << "Non-empty optional result expected";
+  }
+
+  EXPECT_NO_THROW(res = conn->Execute("select null::record"));
+  {
+    auto fo = res.Front().As<pgtest::FooBarOpt>();
+    EXPECT_TRUE(!fo) << "Empty optional result expected";
+  }
+
+  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+// Please never use this in your code, this is only to check type loaders
+POSTGRE_TEST_P(VariableRecordTypes) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(
+      res = conn->Execute("WITH test AS (SELECT unnest(ARRAY[1, 2]) a)"
+                          "SELECT CASE WHEN a = 1 THEN ROW(42)"
+                          "WHEN a = 2 THEN ROW('str'::text) "
+                          "END FROM test"));
+  ASSERT_EQ(2, res.Size());
+
+  EXPECT_EQ(42, std::get<0>(res[0].As<std::tuple<int>>()));
+  EXPECT_EQ("str", std::get<0>(res[1].As<std::tuple<std::string>>()));
 }
 
 }  // namespace

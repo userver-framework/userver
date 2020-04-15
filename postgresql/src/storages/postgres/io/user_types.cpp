@@ -132,14 +132,14 @@ bool UserTypes::HasParser(Oid oid) const {
 }
 
 io::BufferCategory UserTypes::GetBufferCategory(Oid oid) const {
-  auto cat = io::GetBufferCategory(static_cast<io::PredefinedOids>(oid));
-  if (cat != io::BufferCategory::kNoParser) {
-    return cat;
-  }
   if (auto f = buffer_categories_.find(oid); f != buffer_categories_.end()) {
     return f->second;
   }
   return io::BufferCategory::kNoParser;
+}
+
+const io::TypeBufferCategory& UserTypes::GetTypeBufferCategories() const {
+  return buffer_categories_;
 }
 
 void UserTypes::AddType(DBTypeDescription&& desc) {

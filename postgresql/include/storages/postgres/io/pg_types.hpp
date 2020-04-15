@@ -450,6 +450,10 @@ struct ArrayType<PredefinedOids::kJson>
 template <>
 struct ArrayType<PredefinedOids::kJsonb>
     : PredefinedOid<PredefinedOids::kJsonbArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kRecord>
+    : PredefinedOid<PredefinedOids::kRecordArray> {};
 //@}
 
 }  // namespace io

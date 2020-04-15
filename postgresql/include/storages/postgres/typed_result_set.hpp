@@ -42,18 +42,18 @@ namespace storages::postgres {
 /// The first option is to convert ResultSet's row to std::tuples.
 ///
 /// ```
-/// using my_row_type = std::tuple<int, string>;
+/// using MyRowType = std::tuple<int, string>;
 /// auto trx = ...;
 /// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.AsSetOf<my_row_type>();
+/// auto iteration = generic_result.AsSetOf<MyRowType>();
 /// for (auto row : iteration) {
-///   static_assert(std::is_same_v<decltype(row), my_row_type>,
+///   static_assert(std::is_same_v<decltype(row), MyRowType>,
 ///       "Iterate over tuples");
 ///   auto [a, b] = row;
 ///   std::cout << "a = " << a << "; b = " << b << "\n";
 /// }
 ///
-/// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
+/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
 /// ```
 ///
 /// @par Aggregate classes.
@@ -65,19 +65,19 @@ namespace storages::postgres {
 /// and no virtual functions.
 ///
 /// ```
-/// struct my_row_type {
+/// struct MyRowType {
 ///   int a;
 ///   std::string b;
 /// };
 /// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.AsSetOf<my_row_type>();
+/// auto iteration = generic_result.AsSetOf<MyRowType>();
 /// for (auto row : iteration) {
-///   static_assert(std::is_same_v<decltype(row), my_row_type>,
+///   static_assert(std::is_same_v<decltype(row), MyRowType>,
 ///       "Iterate over aggregate classes");
 ///   std::cout << "a = " << row.a << "; b = " << row.b << "\n";
 /// }
 ///
-/// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
+/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
 /// ```
 ///
 /// @par Non-aggregate classes.
@@ -88,11 +88,14 @@ namespace storages::postgres {
 /// member data fields. The class must be default constructible.
 ///
 /// ```
-/// class my_row_type {
+/// class MyRowType {
 ///  private:
 ///   int a_;
 ///   std::string b_;
 ///  public:
+///   MyRowType() = default; // default ctor is required
+///   explicit MyRowType(int x);
+///
 ///   auto Introspect() {
 ///     return std::tie(a_, b_);
 ///   }
@@ -101,14 +104,14 @@ namespace storages::postgres {
 /// };
 ///
 /// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.AsSetOf<my_row_type>();
+/// auto iteration = generic_result.AsSetOf<MyRowType>();
 /// for (auto row : iteration) {
-///   static_assert(std::is_same_v<decltype(row), my_row_type>,
+///   static_assert(std::is_same_v<decltype(row), MyRowType>,
 ///       "Iterate over non-aggregate classes");
 ///   std::cout << "a = " << row.GetA() << "; b = " << row.GetB() << "\n";
 /// }
 ///
-/// auto data = geric_result.AsContainer<std::vector<my_row_type>>();
+/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
 /// ```
 /// @par Single-column result set
 ///

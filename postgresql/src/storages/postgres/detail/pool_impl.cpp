@@ -2,6 +2,7 @@
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/exceptions.hpp>
@@ -310,6 +311,10 @@ void ConnectionPoolImpl::Push(Connection* connection) {
 }
 
 Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
+  if (engine::current_task::ShouldCancel()) {
+    throw PoolError("Task was cancelled before trying to get a connection");
+  }
+
   if (deadline.IsReached()) {
     ++stats_.connection.error_timeout;
     throw PoolError("Deadline reached before trying to get a connection");
@@ -328,7 +333,7 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
   // No connections found - create a new one if pool is not exhausted
   auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
       deadline.TimeLeft());
-  LOG_DEBUG() << "No idle connections, try to get one in " << timeout.count()
+  LOG_DEBUG() << "No idle connections, waiting for one for " << timeout.count()
               << "ms";
   {
     SharedSizeGuard sg(size_);
@@ -353,6 +358,10 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
         })) {
       return connection;
     }
+  }
+
+  if (engine::current_task::ShouldCancel()) {
+    throw PoolError("Task was cancelled while waiting for connection");
   }
 
   ++stats_.pool_exhaust_errors;

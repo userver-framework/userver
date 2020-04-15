@@ -124,7 +124,7 @@ pg::io::TypeBufferCategory GetTestTypeCategories() {
   for (auto p_oid : {Oids::kInt2, Oids::kInt2Array, Oids::kInt4,
                      Oids::kInt4Array, Oids::kInt8, Oids::kInt8Array}) {
     auto oid = static_cast<pg::Oid>(p_oid);
-    result.insert(std::make_pair(oid, types.GetBufferCategory(oid)));
+    result.insert(std::make_pair(oid, io::GetBufferCategory(p_oid)));
   }
   return result;
 }

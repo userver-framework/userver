@@ -38,9 +38,9 @@ namespace detail {
 template <typename T>
 constexpr bool DetectIsSuitableRowType() {
   using type = std::remove_cv_t<T>;
-  return std::is_class<type>::value && !std::is_empty<type>::value &&
-         std::is_standard_layout<type>::value &&
-         !std::is_polymorphic<type>::value && !std::is_union<type>::value &&
+  return std::is_class_v<type> && !std::is_empty_v<type> &&
+         std::is_standard_layout_v<type> && std::is_aggregate_v<type> &&
+         !std::is_polymorphic_v<type> && !std::is_union_v<type> &&
          !postgres::detail::IsInStdNamespace<type>::value &&
          !postgres::detail::IsInBoostNamespace<type>::value;
 }
@@ -93,7 +93,7 @@ template <typename T>
 constexpr bool kIsRowType = kRowCategory<T> != RowCategoryType::kNonRow;
 
 template <typename T>
-constexpr bool kIsCompositeType = kIsRowType<T>&& kIsMappedToUserType<T>;
+constexpr bool kIsCompositeType = kIsRowType<T>;
 
 template <typename T>
 constexpr bool kIsColumnType = kRowCategory<T> == RowCategoryType::kNonRow;

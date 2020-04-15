@@ -92,37 +92,41 @@ POSTGRE_TEST_P(TypedResult) {
 
   EXPECT_THROW(res.AsSetOf<int>(), pg::NonSingleColumResultSet);
 
-  auto tuples_res = res.AsSetOf<MyTuple>();
+  EXPECT_THROW(res.AsSetOf<MyTuple>(), pg::NonSingleColumResultSet);
+  EXPECT_THROW(res.AsSetOf<MyStruct>(), pg::NonSingleColumResultSet);
+  EXPECT_THROW(res.AsSetOf<MyClass>(), pg::NonSingleColumResultSet);
+
+  auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
   auto t = tuples_res[0];
   EXPECT_EQ(42, std::get<0>(t));
   EXPECT_EQ("foobar", std::get<1>(t));
   EXPECT_EQ(3.14, std::get<2>(t));
 
-  auto struct_res = res.AsSetOf<MyStruct>();
+  auto struct_res = res.AsSetOf<MyStruct>(pg::kRowTag);
   auto s = struct_res[0];
   EXPECT_EQ(42, s.int_member);
   EXPECT_EQ("foobar", s.string_member);
   EXPECT_EQ(3.14, s.double_member);
 
-  auto class_res = res.AsSetOf<MyClass>();
+  auto class_res = res.AsSetOf<MyClass>(pg::kRowTag);
   auto c = class_res[0];
   EXPECT_EQ(42, c.GetInt());
   EXPECT_EQ("foobar", c.GetString());
   EXPECT_EQ(3.14, c.GetDouble());
 
-  auto tuples = res.AsContainer<MyTuples>();
+  auto tuples = res.AsContainer<MyTuples>(pg::kRowTag);
   EXPECT_EQ(res.Size(), tuples.size());
-  auto structs = res.AsContainer<MyStructs>();
+  auto structs = res.AsContainer<MyStructs>(pg::kRowTag);
   EXPECT_EQ(res.Size(), structs.size());
-  auto classes = res.AsContainer<MyClasses>();
+  auto classes = res.AsContainer<MyClasses>(pg::kRowTag);
   EXPECT_EQ(res.Size(), classes.size());
 
-  auto tuple_set = res.AsContainer<std::set<MyTuple>>();
+  auto tuple_set = res.AsContainer<std::set<MyTuple>>(pg::kRowTag);
   EXPECT_EQ(res.Size(), tuple_set.size());
 
-  EXPECT_NO_THROW(res.AsSingleRow<MyStruct>());
-  EXPECT_NO_THROW(res.AsSingleRow<MyClass>());
-  EXPECT_NO_THROW(res.AsSingleRow<MyTuple>());
+  EXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
+  EXPECT_NO_THROW(res.AsSingleRow<MyClass>(pg::kRowTag));
+  EXPECT_NO_THROW(res.AsSingleRow<MyTuple>(pg::kRowTag));
 }
 
 POSTGRE_TEST_P(EmptyTypedResult) {

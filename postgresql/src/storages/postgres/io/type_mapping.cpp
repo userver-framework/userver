@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <storages/postgres/exceptions.hpp>
+#include <utils/algo.hpp>
 
 namespace storages::postgres::io {
 
@@ -27,7 +28,8 @@ OidToOid& ArrayToElement() {
 }
 
 TypeBufferCategory& TypeCategories() {
-  static TypeBufferCategory cats_;
+  static TypeBufferCategory cats_{
+      {static_cast<Oid>(PredefinedOids::kVoid), BufferCategory::kVoid}};
   return cats_;
 }
 
@@ -55,10 +57,11 @@ const std::string& ToString(BufferCategory val) {
 
 BufferCategory GetTypeBufferCategory(const TypeBufferCategory& categories,
                                      Oid type_oid) {
-  if (auto f = categories.find(type_oid); f != categories.end()) {
-    return f->second;
-  }
-  return BufferCategory::kNoParser;
+  auto cat = io::GetBufferCategory(static_cast<io::PredefinedOids>(type_oid));
+  return cat != BufferCategory::kNoParser
+             ? cat
+             : ::utils::FindOrDefault(categories, type_oid,
+                                      BufferCategory::kNoParser);
 }
 
 namespace detail {
@@ -107,9 +110,6 @@ bool MappedToSameType(PredefinedOids lhs, PredefinedOids rhs) {
 }
 
 BufferCategory GetBufferCategory(PredefinedOids oid) {
-  if (oid == PredefinedOids::kVoid) {
-    return BufferCategory::kVoid;
-  }
   const auto& cats = TypeCategories();
   if (auto f = cats.find(static_cast<Oid>(oid)); f != cats.end()) {
     return f->second;

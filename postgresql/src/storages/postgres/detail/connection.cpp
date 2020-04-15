@@ -306,9 +306,9 @@ struct Connection::Impl {
   void LoadUserTypes(engine::Deadline deadline) {
     try {
       auto types = ExecuteCommand(deadline, kGetUserTypesSQL)
-                       .AsSetOf<DBTypeDescription>();
+                       .AsSetOf<DBTypeDescription>(kRowTag);
       auto attribs = ExecuteCommand(deadline, kGetCompositeAttribsSQL)
-                         .AsContainer<UserTypes::CompositeFieldDefs>();
+                         .AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
       // End of definitions marker, to simplify processing
       attribs.push_back(CompositeFieldDef::EmptyDef());
       UserTypes db_types;

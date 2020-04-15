@@ -11,9 +11,7 @@
 #define PG_DIAG_SEVERITY_NONLOCALIZED 'V'
 #endif
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 namespace {
 
@@ -49,9 +47,12 @@ void AddTypeBufferCategories(Oid data_type, const UserTypes& types,
   if (cats.count(data_type)) {
     return;
   }
-  auto cat = types.GetBufferCategory(data_type);
+  auto cat = io::GetBufferCategory(static_cast<io::PredefinedOids>(data_type));
   if (cat == io::BufferCategory::kNoParser) {
-    throw UnknownBufferCategory(boost::join(context, " "), data_type);
+    cat = types.GetBufferCategory(data_type);
+    if (cat == io::BufferCategory::kNoParser) {
+      throw UnknownBufferCategory(boost::join(context, " "), data_type);
+    }
   }
   cats.insert(std::make_pair(data_type, cat));
   if (cat == io::BufferCategory::kArrayBuffer) {
@@ -60,6 +61,14 @@ void AddTypeBufferCategories(Oid data_type, const UserTypes& types,
     CurrentContext ctx{context, "array element"};
     AddTypeBufferCategories(elem_oid, types, cats, context);
   } else if (cat == io::BufferCategory::kCompositeBuffer) {
+    if (data_type == static_cast<Oid>(io::PredefinedOids::kRecord)) {
+      // record is opaque and doesn't have a description
+      // load buffer categories for all user types
+      const auto& user_categories = types.GetTypeBufferCategories();
+      cats.insert(user_categories.begin(), user_categories.end());
+      return;
+    }
+
     // Recursively add buffer categories for data members
     const auto& type_desc = types.GetCompositeDescription(data_type);
     auto type_name = types.FindName(data_type);
@@ -243,6 +252,4 @@ logging::LogExtra ResultWrapper::GetMessageLogExtra() const {
   return log_extra;
 }
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

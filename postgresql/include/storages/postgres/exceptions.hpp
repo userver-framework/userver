@@ -702,7 +702,7 @@ class NonSingleColumResultSet : public ResultSetError {
       : ResultSetError(
             "Parsing the row consisting of " + std::to_string(actual_size) +
             " columns as " + type_name +
-            " is ambiguous as it can be uses both for "
+            " is ambiguous as it can be used both for "
             "single column type and for a row. " +
             "Please use " + func + "<" + type_name + ">(kRowTag) or " + func +
             "<" + type_name + ">(kFieldTag) to resolve the ambiguity.") {}

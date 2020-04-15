@@ -18,8 +18,7 @@
 #include <compiler/demangle.hpp>
 #include <logging/log.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 /// @page pg_process_results µPg: Working with result sets
 ///
@@ -715,7 +714,9 @@ void Row::To(T&& val, RowTag) const {
 template <typename T>
 void Row::To(T&& val, FieldTag) const {
   using ValueType = std::decay_t<T>;
-  static_assert(io::traits::kIsMappedToPg<ValueType>,
+  // composite types can be parsed without an explicit mapping
+  static_assert(io::traits::kIsMappedToPg<ValueType> ||
+                    io::traits::kIsCompositeType<ValueType>,
                 "This type is not mapped to a PostgreSQL type");
   // Read the first field into the type
   if (Size() < 1) {
@@ -818,7 +819,9 @@ auto ResultSet::AsSetOf(RowTag) const {
 template <typename T>
 auto ResultSet::AsSetOf(FieldTag) const {
   using ValueType = std::decay_t<T>;
-  static_assert(io::traits::kIsMappedToPg<ValueType>,
+  // composite types can be parsed without an explicit mapping
+  static_assert(io::traits::kIsMappedToPg<ValueType> ||
+                    io::traits::kIsCompositeType<ValueType>,
                 "This type is not mapped to a PostgreSQL type");
   if (FieldCount() > 1) {
     throw NonSingleColumResultSet{FieldCount(), compiler::GetTypeName<T>(),
@@ -879,7 +882,6 @@ auto ResultSet::AsSingleRow(FieldTag) const {
   return Front().As<T>(kFieldTag);
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres
 
 #include <storages/postgres/typed_result_set.hpp>

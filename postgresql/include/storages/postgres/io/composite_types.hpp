@@ -49,6 +49,8 @@ namespace storages::postgres::io {
 
 namespace detail {
 
+void InitRecordParser();
+
 template <typename T>
 struct CompositeBinaryParser : BufferParserBase<T> {
   using BaseType = BufferParserBase<T>;
@@ -58,6 +60,10 @@ struct CompositeBinaryParser : BufferParserBase<T> {
   using BaseType::BaseType;
 
   void operator()(FieldBuffer buffer, const TypeBufferCategory& categories) {
+    if constexpr (!traits::kIsMappedToUserType<T>) {
+      InitRecordParser();
+    }
+
     Integer field_count{0};
     buffer.Read(field_count, BufferCategory::kPlainBuffer);
 
@@ -185,8 +191,8 @@ constexpr bool kCompositeHasFormatters = CompositeHasFormatters<T>::value;
 }  // namespace detail
 
 template <typename T>
-struct Input<T, std::enable_if_t<!detail::kCustomParserDefined<T> &&
-                                 kIsMappedToUserType<T> && kIsRowType<T>>> {
+struct Input<
+    T, std::enable_if_t<!detail::kCustomParserDefined<T> && kIsRowType<T>>> {
   static_assert(detail::kCompositeHasParsers<T>,
                 "Not all composite type members have parsers");
   using type = io::detail::CompositeBinaryParser<T>;
