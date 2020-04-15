@@ -61,7 +61,7 @@ find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
-find_package_required(Fmt "libfmt-dev")
+find_package_required(Fmt "libfmt-dev (>= 6.1.1)")
 find_package_required(cctz "libcctz-dev (>= 2.3-1+taxi1)")
 
 find_package_required_version(Http_Parser
