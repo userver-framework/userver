@@ -123,6 +123,11 @@ POSTGRE_TEST_P(LoadUserTypes) {
     CheckDomainExpectations(
         conn, "create domain __pgtest.int_dom as integer not null",
         "select 1::__pgtest.int_dom");
+    EXPECT_NO_THROW(
+        conn->Execute("create temp table int_dom_table("
+                      "v __pgtest.int_dom)"));
+    EXPECT_NO_THROW(
+        conn->Execute("insert into int_dom_table(v) values ($1)", 100500));
     CheckDomainExpectations(conn,
                             "create domain __pgtest.real_dom as real not null",
                             "select 1::__pgtest.real_dom");

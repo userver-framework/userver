@@ -131,7 +131,8 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
     const auto& field_desc = type_desc[index];
     if (field_type != field_desc.type) {
       if (io::MappedToSameType(static_cast<PredefinedOids>(field_type),
-                               static_cast<PredefinedOids>(field_desc.type))) {
+                               static_cast<PredefinedOids>(
+                                   types.FindDomainBaseOid(field_desc.type)))) {
         field_type = field_desc.type;
       } else {
         LOG_WARNING() << "Type mismatch for " << PgMapping::postgres_name.schema

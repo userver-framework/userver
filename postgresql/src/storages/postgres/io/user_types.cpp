@@ -123,6 +123,19 @@ Oid UserTypes::FindBaseOid(DBTypeName name) const {
   return FindBaseOid(oid);
 }
 
+Oid UserTypes::FindDomainBaseOid(Oid oid) const {
+  using TypeClass = DBTypeDescription::TypeClass;
+  auto desc = GetTypeDescription(oid);
+  if (desc) {
+    // We have a type description
+    if (desc->type_class == TypeClass::kDomain) {
+      return FindDomainBaseOid(desc->base_type);
+    }
+    return desc->oid;
+  }
+  return oid;
+}
+
 bool UserTypes::HasParser(Oid oid) const {
   auto name = FindBaseName(oid);
   if (!name.Empty()) {

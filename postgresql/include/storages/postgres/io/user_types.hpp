@@ -93,9 +93,12 @@ class UserTypes {
   /// For the rest of types returns the name for the oid if found.
   DBTypeName FindBaseName(Oid) const;
   /// Find base oid for a domain or element type for an array.
-  /// For the rest of types returns the name for the oid if found.
+  /// For the rest of types returns the oid itself.
   Oid FindBaseOid(Oid) const;
   Oid FindBaseOid(DBTypeName) const;
+  /// Find base oid for a domain.
+  /// For the rest of types returns the oid itself.
+  Oid FindDomainBaseOid(Oid) const;
 
   bool HasParser(Oid) const;
   io::BufferCategory GetBufferCategory(Oid) const;

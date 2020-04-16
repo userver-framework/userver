@@ -26,6 +26,15 @@ create type __pgtest.foobars as (
   f __pgtest.foobar[]
 ))~";
 
+const std::string kCreateDomain = R"~(
+create domain __pgtest.positive as integer check(value > 0)
+)~";
+
+const std::string kCreateCompositeWithDomain = R"~(
+create type __pgtest.with_domain as (
+    v __pgtest.positive
+))~";
+
 }  // namespace
 
 /*! [User type declaration] */
@@ -92,6 +101,10 @@ struct NoUserMapping {
   std::vector<std::string> v;
 };
 
+struct WithDomain {
+  int v;
+};
+
 }  // namespace pgtest
 /*! [User type declaration] */
 
@@ -126,11 +139,16 @@ struct CppToUserPg<pgtest::BunchOfFoo> {
 
 namespace storages::postgres::io {
 
-// This mapping is separate from the others as it shouldn't get to the code
+// These mappings are separate from the others as it shouldn't get to the code
 // snippet for generating documentation.
 template <>
 struct CppToUserPg<pgtest::NoUseInWrite> {
   static constexpr DBTypeName postgres_name = kCompositeName;
+};
+
+template <>
+struct CppToUserPg<pgtest::WithDomain> {
+  static constexpr DBTypeName postgres_name = "__pgtest.with_domain";
 };
 
 }  // namespace storages::postgres::io
@@ -288,6 +306,27 @@ POSTGRE_TEST_P(OptionalCompositeTypeRoundtrip) {
   }
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+POSTGRE_TEST_P(CompositeTypeWithDomainRoundtrip) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  pg::ResultSet res{nullptr};
+  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+
+  ASSERT_NO_THROW(conn->Execute(kCreateDomain)) << "Create domain";
+  ASSERT_NO_THROW(conn->Execute(kCreateCompositeWithDomain))
+      << "Create composite";
+  // Auto reload doesn't work for outgoing types
+  ASSERT_NO_THROW(conn->ReloadUserTypes());
+
+  EXPECT_NO_THROW(res = conn->Execute("select $1::__pgtest.with_domain",
+                                      pgtest::WithDomain{1}));
+  EXPECT_NO_THROW(res.AsSingleRow<pgtest::WithDomain>(pg::kFieldTag));
+  auto v = res.AsSingleRow<pgtest::WithDomain>(pg::kFieldTag);
+  EXPECT_EQ(1, v.v);
 }
 
 POSTGRE_TEST_P(CompositeTypeRoundtripAsRecord) {
