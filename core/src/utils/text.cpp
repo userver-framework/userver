@@ -19,14 +19,14 @@ std::string Trim(std::string&& str) {
   return std::move(str);
 }
 
-std::vector<std::string> Split(const std::string& str, const std::string& sep) {
+std::vector<std::string> Split(std::string_view str, std::string_view sep) {
   std::vector<std::string> result;
   boost::algorithm::split(result, str, boost::algorithm::is_any_of(sep),
                           boost::token_compress_on);
   return result;
 }
 
-std::string Join(const std::vector<std::string>& strs, const std::string& sep) {
+std::string Join(const std::vector<std::string>& strs, std::string_view sep) {
   return boost::algorithm::join(strs, sep);
 }
 
@@ -54,17 +54,18 @@ std::string Format(double value, unsigned int ndigits) {
   return res.str();
 }
 
-std::string Capitalize(const std::string& str, const std::string& locale) {
-  return boost::locale::to_title(str, GetLocale(locale));
+std::string Capitalize(std::string_view str, const std::string& locale) {
+  return boost::locale::to_title(str.data(), str.data() + str.size(),
+                                 GetLocale(locale));
 }
 
-std::string RemoveQuotes(const std::string& str) {
+std::string RemoveQuotes(std::string_view str) {
   if (str.empty()) return std::string();
-  if (str.front() != '"' || str.back() != '"') return str;
-  return str.substr(1, str.size() - 2);
+  if (str.front() != '"' || str.back() != '"') return std::string{str};
+  return std::string{str.substr(1, str.size() - 2)};
 }
 
-bool IsAscii(const std::string& text) {
+bool IsAscii(std::string_view text) noexcept {
   return std::all_of(text.cbegin(), text.cend(),
                      [](int c) { return (c >= 0 && c <= 127); });
 }
@@ -131,7 +132,7 @@ constexpr unsigned char kMinFirstByteValueFor4ByteCodePoint =
 
 template <std::size_t Rows, std::size_t Columns>
 bool IsValidBytes(const unsigned char* bytes,
-                  const InclusiveRange (&range)[Rows][Columns]) {
+                  const InclusiveRange (&range)[Rows][Columns]) noexcept {
   for (std::size_t row = 0; row < Rows; ++row) {
     bool valid = true;
     for (std::size_t column = 0; column < Columns; ++column) {
@@ -154,7 +155,7 @@ bool IsValidBytes(const unsigned char* bytes,
 
 }  // namespace
 
-unsigned CodePointLengthByFirstByte(unsigned char c) {
+unsigned CodePointLengthByFirstByte(unsigned char c) noexcept {
   if (c < kMinFirstByteValueFor2ByteCodePoint) {
     return 1;
   } else if (c < kMinFirstByteValueFor3ByteCodePoint) {
@@ -166,7 +167,8 @@ unsigned CodePointLengthByFirstByte(unsigned char c) {
   return 4;
 }
 
-bool IsWellFormedCodePoint(const unsigned char* bytes, std::size_t length) {
+bool IsWellFormedCodePoint(const unsigned char* bytes,
+                           std::size_t length) noexcept {
   UASSERT(bytes);
   UASSERT(length != 0);
 
@@ -191,7 +193,7 @@ bool IsWellFormedCodePoint(const unsigned char* bytes, std::size_t length) {
   return false;
 }
 
-bool IsValid(const unsigned char* bytes, std::size_t length) {
+bool IsValid(const unsigned char* bytes, std::size_t length) noexcept {
   for (size_t i = 0; i < length; ++i) {
     if (!IsWellFormedCodePoint(bytes + i, length - i)) {
       return false;
@@ -203,7 +205,7 @@ bool IsValid(const unsigned char* bytes, std::size_t length) {
   return true;
 }
 
-std::size_t GetCodePointsCount(const std::string& text) {
+std::size_t GetCodePointsCount(std::string_view text) {
   const auto* const bytes = reinterpret_cast<const unsigned char*>(text.data());
   const auto size = text.size();
   std::size_t count = 0;
@@ -244,14 +246,14 @@ void TrimTruncatedEnding(std::string& str) {
 
 }  // namespace utf8
 
-bool IsUtf8(const std::string& text) {
+bool IsUtf8(std::string_view text) noexcept {
   const auto* const bytes = reinterpret_cast<const unsigned char*>(text.data());
   const auto size = text.size();
 
   return utf8::IsValid(bytes, size);
 }
 
-bool IsPrintable(const std::string& text, bool ascii_only) {
+bool IsPrintable(std::string_view text, bool ascii_only) noexcept {
   if (ascii_only) {
     return std::all_of(text.cbegin(), text.cend(),
                        [](int c) { return (c >= 32 && c <= 126); });
@@ -262,11 +264,11 @@ bool IsPrintable(const std::string& text, bool ascii_only) {
          });
 }
 
-bool IsCString(const std::string& text) {
+bool IsCString(std::string_view text) noexcept {
   return text.find('\0') == std::string::npos;
 }
 
-std::string CamelCaseToSnake(const std::string& camel) {
+std::string CamelCaseToSnake(std::string_view camel) {
   std::string snake;
 
   if (!camel.empty()) {
