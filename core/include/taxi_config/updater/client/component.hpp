@@ -59,7 +59,7 @@ class TaxiConfigClientUpdater
   const bool load_only_my_values_;
   const bool store_enabled_;
 
-  std::unique_ptr<clients::taxi_config::Client> config_client_;
+  clients::taxi_config::Client& config_client_;
 
   // for atomic updates of cached data
   engine::Mutex update_config_mutex_;

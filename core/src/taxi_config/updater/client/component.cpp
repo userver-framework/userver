@@ -4,6 +4,7 @@
 #include <clients/http/component.hpp>
 #include <formats/json/serialize.hpp>
 #include <fs/blocking/read.hpp>
+#include <taxi_config/configs/component.hpp>
 #include <utils/string_to_duration.hpp>
 
 namespace components {
@@ -14,13 +15,10 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
     : CachingComponentBase(component_config, component_context, kName),
       taxi_config_(component_context.FindComponent<TaxiConfig>()),
       load_only_my_values_(component_config.ParseBool("load-only-my-values")),
-      store_enabled_(component_config.ParseBool("store-enabled")) {
-  clients::taxi_config::ClientConfig config;
-  config.timeout =
-      utils::StringToDuration(component_config.ParseString("http-timeout"));
-  config.retries = component_config.ParseInt("http-retries");
-  config.config_url = component_config.ParseString("config-url");
-
+      store_enabled_(component_config.ParseBool("store-enabled")),
+      config_client_(
+          component_context.FindComponent<components::TaxiConfigClient>()
+              .GetClient()) {
   auto fallback_config_contents = fs::blocking::ReadFileContents(
       component_config.ParseString("fallback-path"));
   try {
@@ -30,8 +28,6 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
                              ex.what());
   }
 
-  config_client_ = std::make_unique<clients::taxi_config::Client>(
-      component_context.FindComponent<HttpClient>().GetHttpClient(), config);
   try {
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
@@ -110,7 +106,7 @@ void TaxiConfigClientUpdater::Update(
     cache::UpdateStatisticsScope& stats) {
   auto additional_docs_map_keys = additional_docs_map_keys_.Lock();
   if (update_type == cache::UpdateType::kFull) {
-    auto reply = config_client_->FetchDocsMap(
+    auto reply = config_client_.FetchDocsMap(
         boost::none, GetDocsMapKeysToFetch(*additional_docs_map_keys));
     auto& docs_map = reply.docs_map;
 
@@ -135,7 +131,7 @@ void TaxiConfigClientUpdater::Update(
     server_timestamp_ = reply.timestamp;
   } else {
     // kIncremental
-    auto reply = config_client_->FetchDocsMap(
+    auto reply = config_client_.FetchDocsMap(
         server_timestamp_, GetDocsMapKeysToFetch(*additional_docs_map_keys));
     auto& docs_map = reply.docs_map;
 
@@ -169,7 +165,7 @@ void TaxiConfigClientUpdater::Update(
 
 void TaxiConfigClientUpdater::UpdateAdditionalKeys(
     const std::vector<std::string>& keys) {
-  auto reply = config_client_->FetchDocsMap(boost::none, keys);
+  auto reply = config_client_.FetchDocsMap(boost::none, keys);
   auto& combined = reply.docs_map;
 
   {
