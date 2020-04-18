@@ -52,7 +52,19 @@ struct FooBar {
   }
 };
 
-using FooBarOpt = boost::optional<FooBar>;
+struct FooBarWithOptionalFields {
+  std::optional<int> i;
+  std::optional<std::string> s;
+  std::optional<double> d;
+  std::vector<int> a;
+  std::vector<std::string> v;
+
+  bool operator==(const FooBarWithOptionalFields& rhs) const {
+    return i == rhs.i && s == rhs.s && d == rhs.d && a == rhs.a && v == rhs.v;
+  }
+};
+
+using FooBarOpt = std::optional<FooBar>;
 
 class FooClass {
   int i;
@@ -147,6 +159,11 @@ struct CppToUserPg<pgtest::NoUseInWrite> {
 };
 
 template <>
+struct CppToUserPg<pgtest::FooBarWithOptionalFields> {
+  static constexpr DBTypeName postgres_name = kCompositeName;
+};
+
+template <>
 struct CppToUserPg<pgtest::WithDomain> {
   static constexpr DBTypeName postgres_name = "__pgtest.with_domain";
 };
@@ -158,6 +175,8 @@ namespace static_test {
 static_assert(io::traits::TupleHasParsers<pgtest::FooTuple>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::FooTuple>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::FooBar>::value);
+static_assert(
+    tt::detail::CompositeHasParsers<pgtest::FooBarWithOptionalFields>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::FooClass>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::NoUseInWrite>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::NoUserMapping>::value);
@@ -180,6 +199,8 @@ static_assert(!tt::kHasFormatter<pgtest::NoUserMapping>);
 static_assert(tt::kTypeBufferCategory<pgtest::FooTuple> ==
               io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::FooBar> ==
+              io::BufferCategory::kCompositeBuffer);
+static_assert(tt::kTypeBufferCategory<pgtest::FooBarWithOptionalFields> ==
               io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::FooClass> ==
               io::BufferCategory::kCompositeBuffer);
@@ -276,6 +297,27 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
       << "A type that is not used for writing query parameter buffers must be"
          "available for reading";
+
+  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+POSTGRE_TEST_P(CompositeWithOptionalFieldsRoundtrip) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  pg::ResultSet res{nullptr};
+  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+
+  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+      << "Successfully create a composite type";
+  // Auto reload doesn't work for outgoing types
+  ASSERT_NO_THROW(conn->ReloadUserTypes());
+
+  pgtest::FooBarWithOptionalFields fb;
+  EXPECT_NO_THROW(res = conn->Execute("select $1", fb));
+  EXPECT_EQ(fb,
+            res.AsSingleRow<pgtest::FooBarWithOptionalFields>(pg::kFieldTag));
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }

@@ -23,6 +23,14 @@ struct MyAggregateStruct {
 
 static_assert(boost::pfr::tuple_size_v<MyAggregateStruct> == 3);
 
+struct MyStructWithOptional {
+  std::optional<int> int_member;
+  std::optional<std::string> string_member;
+  std::optional<double> double_member;
+};
+
+static_assert(boost::pfr::tuple_size_v<MyStructWithOptional> == 3);
+
 class MyIntrusiveClass {
   int int_member_;
   std::string string_member_;
@@ -127,6 +135,16 @@ POSTGRE_TEST_P(TypedResult) {
   EXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
   EXPECT_NO_THROW(res.AsSingleRow<MyClass>(pg::kRowTag));
   EXPECT_NO_THROW(res.AsSingleRow<MyTuple>(pg::kRowTag));
+}
+
+POSTGRE_TEST_P(OptionalFields) {
+  using MyStruct = static_test::MyStructWithOptional;
+
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+
+  EXPECT_NO_THROW(res = conn->Execute("select 1, 'aa', null"));
+  EXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
 }
 
 POSTGRE_TEST_P(EmptyTypedResult) {
