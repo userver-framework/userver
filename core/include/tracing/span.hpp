@@ -84,6 +84,8 @@ class Span final {
 
   std::string GetLink() const;
 
+  std::string GetParentLink() const;
+
   const std::string& GetTraceId() const;
   const std::string& GetSpanId() const;
   const std::string& GetParentId() const;
@@ -98,6 +100,9 @@ class Span final {
   /// @cond
   void AddTags(const logging::LogExtra&, utils::InternalTag);
   /// @endcond
+
+ private:
+  std::string GetTag(const std::string& tag) const;
 
  private:
   std::unique_ptr<Impl> pimpl_;

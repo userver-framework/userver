@@ -18,6 +18,7 @@ namespace tracing {
 namespace {
 
 const std::string kLinkTag = "link";
+const std::string kParentLinkTag = "parent_link";
 using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
 const std::string kStopWatchAttrName = "stopwatch_name";
@@ -258,6 +259,15 @@ void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
   pimpl_->log_extra_inheritable.Extend(log_extra);
 }
 
+std::string Span::GetTag(const std::string& tag) const {
+  const auto& value = pimpl_->log_extra_inheritable.GetValue(tag);
+  const auto s = std::get_if<std::string>(&value);
+  if (s)
+    return *s;
+  else
+    return {};
+}
+
 void Span::AddTagFrozen(std::string key, logging::LogExtra::Value value) {
   pimpl_->log_extra_inheritable.Extend(std::move(key), std::move(value),
                                        logging::LogExtra::ExtendType::kFrozen);
@@ -267,14 +277,9 @@ void Span::SetLink(std::string link) {
   AddTagFrozen(kLinkTag, std::move(link));
 }
 
-std::string Span::GetLink() const {
-  const auto& value = pimpl_->log_extra_inheritable.GetValue(kLinkTag);
-  const auto s = std::get_if<std::string>(&value);
-  if (s)
-    return *s;
-  else
-    return {};
-}
+std::string Span::GetLink() const { return GetTag(kLinkTag); }
+
+std::string Span::GetParentLink() const { return GetTag(kParentLinkTag); }
 
 void Span::LogTo(logging::LogHelper& log_helper) const& {
   pimpl_->LogTo(log_helper);
