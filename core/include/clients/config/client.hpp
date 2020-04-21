@@ -17,6 +17,8 @@ struct ClientConfig {
   std::chrono::milliseconds timeout{0};
   int retries{1};
   std::string config_url;
+  std::string stage_name;
+  bool use_uconfigs;
 };
 
 class Client final {

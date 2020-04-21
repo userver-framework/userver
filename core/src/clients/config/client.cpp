@@ -7,6 +7,9 @@
 
 namespace clients {
 namespace taxi_config {
+namespace {
+const std::string kConfigsValues = "/configs/values";
+}  // namespace
 
 Client::Client(clients::http::Client& http_client, const ClientConfig& config)
     : config_(config), http_client_(http_client) {}
@@ -16,7 +19,7 @@ Client::~Client() = default;
 std::string Client::FetchConfigsValues(const std::string& body) {
   auto timeout_ms = config_.timeout.count();
   auto retries = config_.retries;
-  auto url = config_.config_url + "/configs/values";
+  auto url = config_.config_url + kConfigsValues;
 
   auto reply = http_client_.CreateRequest()
                    ->post(url, body)
@@ -42,6 +45,10 @@ Client::Reply Client::FetchDocsMap(
 
   if (last_update) {
     body_builder["updated_since"] = *last_update;
+  }
+
+  if (config_.use_uconfigs) {
+    body_builder["stage_name"] = config_.stage_name;
   }
 
   auto request_body = formats::json::ToString(body_builder.ExtractValue());
