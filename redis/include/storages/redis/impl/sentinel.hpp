@@ -5,6 +5,7 @@
 
 #include <boost/signals2.hpp>
 
+#include <testsuite/testsuite_support.hpp>
 #include <utils/swappingsmart.hpp>
 
 #include <storages/redis/impl/base.hpp>
@@ -47,6 +48,7 @@ class Sentinel {
            const std::string& password, ReadyChangeCallback ready_callback,
            std::unique_ptr<KeyShard>&& key_shard = nullptr,
            CommandControl command_control = command_control_init,
+           const testsuite::RedisControl& testsuite_redis_control = {},
            bool track_masters = true, bool track_slaves = true);
   virtual ~Sentinel();
 
@@ -69,12 +71,14 @@ class Sentinel {
   static std::shared_ptr<redis::Sentinel> CreateSentinel(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
-      const std::string& client_name, KeyShardFactory key_shard_factory);
+      const std::string& client_name, KeyShardFactory key_shard_factory,
+      const testsuite::RedisControl& testsuite_redis_control);
   static std::shared_ptr<redis::Sentinel> CreateSentinel(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
       const std::string& client_name, ReadyChangeCallback ready_callback,
-      KeyShardFactory key_shard_factory);
+      KeyShardFactory key_shard_factory,
+      const testsuite::RedisControl& testsuite_redis_control);
 
   void Restart();
 
@@ -569,6 +573,7 @@ class Sentinel {
   CommandControl secdist_default_command_control_;
   utils::SwappingSmart<CommandControl> config_default_command_control_;
   std::atomic_int publish_shard_{0};
+  testsuite::RedisControl testsuite_redis_control_;
 };
 
 }  // namespace redis

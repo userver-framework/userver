@@ -18,6 +18,8 @@
 #include <utils/statistics/percentile_format_json.hpp>
 #include <yaml_config/value.hpp>
 
+#include <testsuite/testsuite_support.hpp>
+
 #include <storages/redis/client.hpp>
 #include <storages/redis/redis_config.hpp>
 #include <storages/redis/subscribe_client.hpp>
@@ -277,7 +279,10 @@ Redis::Redis(const ComponentConfig& config,
       config_(component_context.FindComponent<TaxiConfig>()),
       statistics_storage_(
           component_context.FindComponent<components::StatisticsStorage>()) {
-  Connect(config, component_context);
+  const auto& testsuite_redis_control =
+      component_context.FindComponent<components::TestsuiteSupport>()
+          .GetRedisControl();
+  Connect(config, component_context, testsuite_redis_control);
 
   OnConfigUpdate(config_.Get());
   config_subscription_ =
@@ -320,7 +325,8 @@ std::shared_ptr<storages::redis::SubscribeClient> Redis::GetSubscribeClient(
 }
 
 void Redis::Connect(const ComponentConfig& config,
-                    const ComponentContext& component_context) {
+                    const ComponentContext& component_context,
+                    const testsuite::RedisControl& testsuite_redis_control) {
   auto& secdist_component = component_context.FindComponent<Secdist>();
 
   const RedisPools& redis_pools = RedisPools::ParseFromYaml(
@@ -336,13 +342,15 @@ void Redis::Connect(const ComponentConfig& config,
   for (const RedisGroup& redis_group : redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 
-    auto client = redis::Sentinel::CreateSentinel(
+    auto sentinel = redis::Sentinel::CreateSentinel(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
-        redis::KeyShardFactory{redis_group.sharding_strategy});
-    if (client) {
-      sentinels_.emplace(redis_group.db, client);
-      clients_.emplace(redis_group.db,
-                       std::make_shared<storages::redis::ClientImpl>(client));
+        redis::KeyShardFactory{redis_group.sharding_strategy},
+        testsuite_redis_control);
+    if (sentinel) {
+      sentinels_.emplace(redis_group.db, sentinel);
+      const auto& client =
+          std::make_shared<storages::redis::ClientImpl>(sentinel);
+      clients_.emplace(redis_group.db, client);
     } else {
       LOG_WARNING() << "skip redis client for " << redis_group.db;
     }
@@ -361,12 +369,13 @@ void Redis::Connect(const ComponentConfig& config,
   for (const auto& redis_group : subscribe_redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 
-    auto client = redis::SubscribeSentinel::Create(
-        thread_pools_, settings, redis_group.config_name, redis_group.db);
-    if (client)
+    auto sentinel = redis::SubscribeSentinel::Create(
+        thread_pools_, settings, redis_group.config_name, redis_group.db,
+        testsuite_redis_control);
+    if (sentinel)
       subscribe_clients_.emplace(
           redis_group.db, std::make_shared<storages::redis::SubscribeClient>(
-                              std::move(client)));
+                              std::move(sentinel)));
     else
       LOG_WARNING() << "skip subscribe-redis client for " << redis_group.db;
   }

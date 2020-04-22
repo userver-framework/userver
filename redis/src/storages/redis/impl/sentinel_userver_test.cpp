@@ -14,7 +14,7 @@ class DummySentinel {
     settings.sentinels.emplace_back("localhost", 0);
 
     sentinel_ = redis::Sentinel::CreateSentinel(thread_pools_, settings,
-                                                "group", "client", {""});
+                                                "group", "client", {""}, {});
     EXPECT_NE(sentinel_.get(), nullptr);
   }
 

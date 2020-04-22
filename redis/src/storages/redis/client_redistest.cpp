@@ -35,7 +35,7 @@ std::shared_ptr<storages::redis::Client> GetClient() {
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel =
       redis::Sentinel::CreateSentinel(std::move(thread_pools), settings, "none",
-                                      "pub", redis::KeyShardFactory{""});
+                                      "pub", redis::KeyShardFactory{""}, {});
   sentinel->WaitConnectedDebug();
 
   return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));

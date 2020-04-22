@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <storages/redis/impl/sentinel.hpp>
+#include <testsuite/testsuite_support.hpp>
 #include "subscription_storage.hpp"
 
 namespace redis {
@@ -19,17 +20,20 @@ class SubscribeSentinel : protected Sentinel {
                     ReadyChangeCallback ready_callback,
                     std::unique_ptr<KeyShard>&& key_shard = nullptr,
                     CommandControl command_control = command_control_init,
+                    const testsuite::RedisControl& testsuite_redis_control = {},
                     bool track_masters = true, bool track_slaves = true);
   virtual ~SubscribeSentinel();
 
   static std::shared_ptr<SubscribeSentinel> Create(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
-      const std::string& client_name);
+      const std::string& client_name,
+      const testsuite::RedisControl& testsuite_redis_control);
   static std::shared_ptr<SubscribeSentinel> Create(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
-      const std::string& client_name, ReadyChangeCallback ready_callback);
+      const std::string& client_name, ReadyChangeCallback ready_callback,
+      const testsuite::RedisControl& testsuite_redis_control);
 
   SubscriptionToken Subscribe(
       const std::string& channel,

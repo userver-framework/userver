@@ -8,6 +8,7 @@
 #include <engine/ev/thread_control.hpp>
 #include <engine/task/cancel.hpp>
 #include <engine/task/task_context.hpp>
+#include <testsuite/testsuite_support.hpp>
 #include <utils/assert.hpp>
 
 #include <storages/redis/impl/exception.hpp>
@@ -36,10 +37,12 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
                    const std::string& password,
                    ReadyChangeCallback ready_callback,
                    std::unique_ptr<KeyShard>&& key_shard,
-                   CommandControl command_control, bool track_masters,
-                   bool track_slaves)
+                   CommandControl command_control,
+                   const testsuite::RedisControl& testsuite_redis_control,
+                   bool track_masters, bool track_slaves)
     : thread_pools_(thread_pools),
-      secdist_default_command_control_(command_control) {
+      secdist_default_command_control_(command_control),
+      testsuite_redis_control_(testsuite_redis_control) {
   config_default_command_control_.Set(
       std::make_shared<CommandControl>(secdist_default_command_control_));
 
@@ -75,7 +78,7 @@ void Sentinel::WaitConnectedDebug(bool allow_empty_slaves) {
 }
 
 void Sentinel::WaitConnectedOnce(RedisWaitConnected wait_connected) {
-  impl_->WaitConnectedOnce(wait_connected);
+  impl_->WaitConnectedOnce(wait_connected.MergeWith(testsuite_redis_control_));
 }
 
 void Sentinel::ForceUpdateHosts() { impl_->ForceUpdateHosts(); }
@@ -83,7 +86,8 @@ void Sentinel::ForceUpdateHosts() { impl_->ForceUpdateHosts(); }
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
-    const std::string& client_name, KeyShardFactory key_shard_factory) {
+    const std::string& client_name, KeyShardFactory key_shard_factory,
+    const testsuite::RedisControl& testsuite_redis_control) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
                            bool master, bool ready) {
     LOG_INFO() << "redis: ready_callback:"
@@ -93,7 +97,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
   };
   return CreateSentinel(thread_pools, settings, std::move(shard_group_name),
                         client_name, std::move(ready_callback),
-                        std::move(key_shard_factory));
+                        std::move(key_shard_factory), testsuite_redis_control);
 }
 
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
@@ -101,7 +105,8 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const secdist::RedisSettings& settings, std::string shard_group_name,
     const std::string& client_name,
     Sentinel::ReadyChangeCallback ready_callback,
-    KeyShardFactory key_shard_factory) {
+    KeyShardFactory key_shard_factory,
+    const testsuite::RedisControl& testsuite_redis_control) {
   const std::string& password = settings.password;
 
   const std::vector<std::string>& shards = settings.shards;
@@ -129,7 +134,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
         password, std::move(ready_callback), key_shard_factory(shards.size()),
-        command_control, true, true);
+        command_control, testsuite_redis_control, true, true);
   }
 
   return client;
@@ -1307,7 +1312,8 @@ void Sentinel::OnPsubscribeReply(const PmessageCallback pmessage_callback,
 CommandControl Sentinel::GetCommandControl(const CommandControl& cc) const {
   return secdist_default_command_control_
       .MergeWith(*config_default_command_control_.Get())
-      .MergeWith(cc);
+      .MergeWith(cc)
+      .MergeWith(testsuite_redis_control_);
 }
 
 void Sentinel::SetConfigDefaultCommandControl(

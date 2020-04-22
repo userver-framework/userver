@@ -4,6 +4,7 @@
 #include <string>
 
 #include <formats/parse/to.hpp>
+#include <testsuite/redis_control.hpp>
 
 namespace redis {
 
@@ -26,6 +27,8 @@ struct RedisWaitConnected {
   WaitConnectedMode mode{WaitConnectedMode::kNoWait};
   bool throw_on_fail{false};
   std::chrono::milliseconds timeout{kRedisWaitConnectedDefaultTimeout};
+
+  RedisWaitConnected MergeWith(const testsuite::RedisControl& t) const;
 };
 
 }  // namespace redis

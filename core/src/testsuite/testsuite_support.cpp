@@ -10,6 +10,10 @@ const std::string kPeriodicUpdateEnabled = "testsuite-periodic-update-enabled";
 const std::string kPostgresExecuteTimeout = "testsuite-pg-execute-timeout";
 const std::string kPostgresStatementTimeout = "testsuite-pg-statement-timeout";
 
+const std::string kRedisConnectTimeout = "testsuite-redis-timeout-connect";
+const std::string kRedisTimeoutSingle = "testsuite-redis-timeout-single";
+const std::string kRedisTimeoutAll = "testsuite-redis-timeout-all";
+
 testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
     const std::optional<bool>& config_value) {
   using PeriodicUpdatesMode = testsuite::CacheControl::PeriodicUpdatesMode;
@@ -27,13 +31,25 @@ testsuite::PostgresControl ParsePostgresControl(
                            std::chrono::milliseconds::zero()));
 }
 
+testsuite::RedisControl ParseRedisControl(
+    const components::ComponentConfig& config) {
+  return testsuite::RedisControl{
+      config.ParseDuration(kRedisConnectTimeout,
+                           std::chrono::milliseconds::zero()),
+      config.ParseDuration(kRedisTimeoutSingle,
+                           std::chrono::milliseconds::zero()),
+      config.ParseDuration(kRedisTimeoutAll, std::chrono::milliseconds::zero()),
+  };
+}
+
 }  // namespace
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
                                    const components::ComponentContext&)
     : cache_control_(ParsePeriodicUpdatesMode(
           config.ParseOptionalBool(kPeriodicUpdateEnabled))),
-      postgres_control_(ParsePostgresControl(config)) {}
+      postgres_control_(ParsePostgresControl(config)),
+      redis_control_(ParseRedisControl(config)) {}
 
 testsuite::CacheControl& TestsuiteSupport::GetCacheControl() {
   return cache_control_;
@@ -49,6 +65,10 @@ testsuite::PeriodicTaskControl& TestsuiteSupport::GetPeriodicTaskControl() {
 
 const testsuite::PostgresControl& TestsuiteSupport::GetPostgresControl() {
   return postgres_control_;
+}
+
+const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() {
+  return redis_control_;
 }
 
 void TestsuiteSupport::InvalidateEverything(cache::UpdateType update_type) {

@@ -9,6 +9,8 @@
 #include <storages/redis/impl/wait_connected_mode.hpp>
 #include <utils/statistics/storage.hpp>
 
+#include <testsuite/testsuite_support.hpp>
+
 #include <taxi_config/storage/component.hpp>
 
 namespace redis {
@@ -50,7 +52,8 @@ class Redis : public LoggableComponentBase {
   void OnConfigUpdate(const TaxiConfigPtr& cfg);
 
   void Connect(const ComponentConfig& config,
-               const ComponentContext& component_context);
+               const ComponentContext& component_context,
+               const testsuite::RedisControl& testsuite_redis_control);
 
   formats::json::Value ExtendStatisticsRedis(
       const utils::statistics::StatisticsRequest& /*request*/);

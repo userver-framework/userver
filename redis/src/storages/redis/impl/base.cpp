@@ -156,6 +156,14 @@ CommandControl CommandControl::MergeWith(const CommandControl& b) const {
   return res;
 }
 
+CommandControl CommandControl::MergeWith(
+    const testsuite::RedisControl& t) const {
+  CommandControl res(*this);
+  res.timeout_single = std::max(t.min_timeout_single, res.timeout_single);
+  res.timeout_all = std::max(t.min_timeout_all, res.timeout_all);
+  return res;
+}
+
 std::string CommandControl::ToString() const {
   std::stringstream ss;
   ss << "timeouts: " << timeout_single.count() << ' ' << timeout_all.count()

@@ -8,6 +8,7 @@
 #include <boost/optional.hpp>
 
 #include <storages/redis/impl/types.hpp>
+#include <testsuite/redis_control.hpp>
 
 namespace storages {
 namespace redis {
@@ -190,6 +191,7 @@ struct CommandControl {
                      std::chrono::milliseconds(0));
 
   CommandControl MergeWith(const CommandControl& b) const;
+  CommandControl MergeWith(const testsuite::RedisControl&) const;
 
   std::string ToString() const;
 

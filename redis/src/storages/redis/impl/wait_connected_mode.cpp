@@ -31,4 +31,10 @@ WaitConnectedMode Parse(const std::string& str,
   throw std::runtime_error("can't parse WaitConnectedMode from '" + str + '\'');
 }
 
+RedisWaitConnected RedisWaitConnected::MergeWith(
+    const testsuite::RedisControl& t) const {
+  RedisWaitConnected result(*this);
+  result.timeout = std::max(t.min_timeout_connect, result.timeout);
+  return result;
+}
 }  // namespace redis
