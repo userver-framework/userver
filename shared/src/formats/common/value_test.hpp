@@ -236,14 +236,16 @@ TYPED_TEST_P(Parsing, TimeOfDayIncorrect) {
                ParseException);
   EXPECT_THROW(this->FromString(R"~(["6:60"])~")[0].template As<Minutes>(),
                ParseException);
+  EXPECT_THROW(this->FromString(R"~(["24:01"])~")[0].template As<Minutes>(),
+               ParseException);
 }
 
 TYPED_TEST_P(Parsing, TimeOfDayNormalized) {
   using Minutes = utils::datetime::TimeOfDay<std::chrono::minutes>;
 
-  auto json = this->FromString(R"~(["25:30"])~")[0];
+  auto json = this->FromString(R"~(["24:00"])~")[0];
   const auto value = json.template As<Minutes>();
-  EXPECT_EQ(Minutes{"01:30"}, value);
+  EXPECT_EQ(Minutes{"00:00"}, value);
 }
 
 REGISTER_TYPED_TEST_CASE_P(

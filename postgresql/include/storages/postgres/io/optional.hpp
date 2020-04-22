@@ -16,7 +16,8 @@ namespace storages::postgres::io {
 
 namespace detail {
 
-template <template <typename> class Optional, typename T, bool Categories>
+template <template <typename> class Optional, typename T,
+          bool Categories = false>
 struct OptionalValueParser : BufferParserBase<Optional<T>> {
   using BaseType = BufferParserBase<Optional<T>>;
   using ValueParser = typename traits::IO<T>::ParserType;

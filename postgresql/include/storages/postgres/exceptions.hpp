@@ -131,6 +131,7 @@ namespace storages::postgres {
  *       - AlreadyInTransaction
  *       - NotInTransaction
  *     - UnsupportedInterval
+ *     - BoundedRangeError
  *   - RuntimeError
  *     - ConnectionError
  *       - ClusterUnavailable
@@ -834,6 +835,14 @@ class UnsupportedInterval : public LogicError {
   UnsupportedInterval()
       : LogicError("PostgreSQL intervals containing months are not supported") {
   }
+};
+
+/// PostgreSQL range type has at least one end unbound
+class BoundedRangeError : public LogicError {
+ public:
+  BoundedRangeError(const std::string& message)
+      : LogicError("PostgreSQL range violates bounded range invariant: " +
+                   message) {}
 };
 
 //@{

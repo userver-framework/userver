@@ -17,7 +17,7 @@ namespace io {
 /// In PosgtgreSQL the following kinds of user types are available:
 ///   - composite (row) types, see @ref pg_composite_types
 ///   - enumerations, see @ref pg_enum
-///   - ranges, not implemented yet
+///   - ranges, see @ref pg_range_types
 ///   - domains
 ///
 /// Domains are essentially some data types with database constraints applied

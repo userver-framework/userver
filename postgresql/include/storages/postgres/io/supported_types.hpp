@@ -45,6 +45,14 @@
 /// uuid              | boost::uuids::uuid                      | +       |
 /// json              | formats::json::Value                    |         |
 /// jsonb             | formats::json::Value                    | +       |
+/// int4range         | storages::postgres::IntegerRange        |         |
+///                   | storages::postgres::BoundedIntegerRange |         |
+/// int8range         | storages::postgres::BigintRange         |         |
+///                   | storages::postgres::BoundedBigintRange  |         |
+/// numrange          | N/A                                     |         |
+/// tsrange           | N/A                                     |         |
+/// tstzrange         | N/A                                     |         |
+/// daterange         | N/A                                     |         |
 ///
 /// @warning The library doesn't provide support for C++ unsigned integral
 /// types intentionally as PostgreSQL doesn't provide unsigned types and

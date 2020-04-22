@@ -19,14 +19,15 @@ namespace utils::datetime {
 ///
 /// This type is time-zone ignorant.
 ///
-/// Valid time range is from 00:00:00.0 to 24:00:00.0
+/// Valid time range is from [00:00:00.0, 24:00:00.0)
 ///
 /// Available construction:
 ///
 /// from duration (since midnight, the value will be normalized, e.g. 25:00 will
-/// become 01:00)
+/// become 01:00, 24:00 will become 00:00)
 ///
-/// from string representation HH:MM[:SS[.s]]
+/// from string representation HH:MM[:SS[.s]], accepted range is from 00:00 to
+/// 24:00
 ///
 /// construction from int in form 1300 as a static member function
 ///
@@ -277,8 +278,12 @@ class TimeOfDayParser {
                       str)};
     AssignCurrentPosition(str);
 
-    return NormalizeTimeOfDay<Rep, Period>(hours_ + minutes_ + seconds_ +
-                                           subseconds_);
+    auto sum = hours_ + minutes_ + seconds_ + subseconds_;
+    if (sum > kTwentyFourHours<Rep, Period>) {
+      throw std::runtime_error(fmt::format(
+          "TimeOfDay value {} is out of range [00:00, 24:00)", str));
+    }
+    return NormalizeTimeOfDay<Rep, Period>(sum);
   }
 
  private:
@@ -291,7 +296,7 @@ class TimeOfDayParser {
           throw std::runtime_error{fmt::format(
               "Not enough digits for hours in TimeOfDay string `{}`", str)};
         if (current_number_ > 24)
-          std::runtime_error{fmt::format(
+          throw std::runtime_error{fmt::format(
               "Invalid value for hours in TimeOfDay string `{}`", str)};
         hours_ = std::chrono::hours{current_number_};
         break;

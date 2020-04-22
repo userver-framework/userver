@@ -225,7 +225,44 @@ POSTGRE_TEST_P(Int8RangeRoundtripTest) {
 
   for (const auto& test : test_data) {
     EXPECT_NO_THROW(res = conn->Execute("select '" + test.select_expression +
-                                        "'::int4range, '" + test.description +
+                                        "'::int8range, '" + test.description +
+                                        "'"))
+        << "Select " << test.description << " range from database";
+    EXPECT_NO_THROW(res.Front()[0].To(r))
+        << "Parse " << test.select_expression << " value";
+    EXPECT_EQ(test.expected, r)
+        << "Expect equality for " << test.description << " range";
+
+    EXPECT_NO_THROW(res = conn->Execute("select $1", test.expected))
+        << "Roundtrip select " << test.description << " range";
+    EXPECT_NO_THROW(res.Front()[0].To(r));
+    EXPECT_EQ(test.expected, r)
+        << "Expect equality for " << test.description << " range";
+  }
+}
+
+POSTGRE_TEST_P(BoundedInt8RangeRoundtripTest) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+  std::string invalid_ranges[]{"empty", "(,)", "[0,)", "(,0]", "(0,)", "(,0)"};
+  for (const auto& test : invalid_ranges) {
+    EXPECT_NO_THROW(res = conn->Execute("select '" + test + "'::int8range"));
+    EXPECT_THROW(res.AsSingleRow<pg::BoundedBigintRange>(),
+                 pg::BoundedRangeError);
+  }
+  TestData<pg::BoundedBigintRange> test_data[]{
+      {"[0,2)", "lower-inclusive", pg::BoundedBigintRange(0L, 2L)},
+      {"(0, 2)", "non-inclusive",
+       pg::BoundedBigintRange(0L, 2L, pg::RangeBound::kNone)},
+      {"(0, 2]", "upper-inclusive",
+       pg::BoundedBigintRange(0L, 2L, pg::RangeBound::kUpper)},
+      {"[0, 2]", "both-inclusive",
+       pg::BoundedBigintRange(0L, 2L, pg::RangeBound::kBoth)},
+  };
+  for (const auto& test : test_data) {
+    pg::BoundedBigintRange r;
+    EXPECT_NO_THROW(res = conn->Execute("select '" + test.select_expression +
+                                        "'::int8range, '" + test.description +
                                         "'"))
         << "Select " << test.description << " range from database";
     EXPECT_NO_THROW(res.Front()[0].To(r))

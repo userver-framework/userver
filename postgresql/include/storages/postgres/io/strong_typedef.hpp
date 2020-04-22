@@ -110,19 +110,46 @@ struct BufferFormatter<::utils::StrongTypedef<Tag, T, Ops, Enable>>
   }
 };
 
-template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
-          typename Enable>
-struct BufferParser<::utils::StrongTypedef<Tag, T, Ops, Enable>>
-    : detail::BufferParserBase<::utils::StrongTypedef<Tag, T, Ops, Enable>> {
-  using BaseType =
-      detail::BufferParserBase<::utils::StrongTypedef<Tag, T, Ops, Enable>>;
-  using ValueType = typename BaseType::ValueType;
+namespace detail {
+template <typename StrongTypedef, bool Categories = false>
+struct StrongTypedefParser : BufferParserBase<StrongTypedef> {
+  using BaseType = BufferParserBase<StrongTypedef>;
+  using UnderlyingType = typename StrongTypedef::UnderlyingType;
+
   using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
-    typename ValueType::UnderlyingType& v = this->value.GetUnderlying();
+    UnderlyingType& v = this->value.GetUnderlying();
     io::ReadBuffer(buffer, v);
   }
+};
+
+template <typename StrongTypedef>
+struct StrongTypedefParser<StrongTypedef, true>
+    : BufferParserBase<StrongTypedef> {
+  using BaseType = BufferParserBase<StrongTypedef>;
+  using UnderlyingType = typename StrongTypedef::UnderlyingType;
+
+  using BaseType::BaseType;
+
+  void operator()(const FieldBuffer& buffer,
+                  const TypeBufferCategory& categories) {
+    UnderlyingType& v = this->value.GetUnderlying();
+    io::ReadBuffer(buffer, v, categories);
+  }
+};
+
+}  // namespace detail
+
+template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
+          typename Enable>
+struct BufferParser<::utils::StrongTypedef<Tag, T, Ops, Enable>>
+    : detail::StrongTypedefParser<::utils::StrongTypedef<Tag, T, Ops, Enable>,
+                                  detail::kParserRequiresTypeCategories<T>> {
+  using BaseType =
+      detail::StrongTypedefParser<::utils::StrongTypedef<Tag, T, Ops, Enable>,
+                                  detail::kParserRequiresTypeCategories<T>>;
+  using BaseType::BaseType;
 };
 
 // StrongTypedef template mapping specialisation
@@ -132,6 +159,16 @@ struct CppToPg<::utils::StrongTypedef<Tag, T, Ops, Enable>,
                std::enable_if_t<!traits::kIsStrongTypedefDirectlyMapped<
                                     Tag, T, Ops, Enable> &&
                                 traits::kIsMappedToPg<T>>> : CppToPg<T> {};
+
+namespace traits {
+
+template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
+          typename Enable>
+struct ParserBufferCategory<
+    BufferParser<::utils::StrongTypedef<Tag, T, Ops, Enable>>>
+    : ParserBufferCategory<typename traits::IO<T>::ParserType> {};
+
+}  // namespace traits
 
 namespace detail {
 

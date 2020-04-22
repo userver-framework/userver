@@ -1,6 +1,10 @@
 #include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
+#include <utils/strong_typedef.hpp>
+#include <utils/time_of_day.hpp>
+#include <utils/underlying_value.hpp>
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 
@@ -53,6 +57,36 @@ struct CppToUserPg<pgtest::FooBar> {
 };
 }  // namespace storages::postgres::io
 /*! [User type mapping] */
+
+/*! [Time range] */
+namespace pgtest {
+
+template <typename Duration>
+using TimeRange =
+    utils::StrongTypedef<struct MyTimeTag,
+                         pg::Range<utils::datetime::TimeOfDay<Duration>>>;
+
+template <typename Duration>
+using BoundedTimeRange = utils::StrongTypedef<
+    struct MyTimeTag, pg::BoundedRange<utils::datetime::TimeOfDay<Duration>>>;
+
+}  // namespace pgtest
+/*! [Time range] */
+/*! [Range type mapping]*/
+namespace storages::postgres::io {
+
+template <typename Duration>
+struct CppToUserPg<pgtest::TimeRange<Duration>> {
+  static constexpr DBTypeName postgres_name = kRangeName;
+};
+
+template <typename Duration>
+struct CppToUserPg<pgtest::BoundedTimeRange<Duration>> {
+  static constexpr DBTypeName postgres_name = kRangeName;
+};
+
+}  // namespace storages::postgres::io
+/*! [Range type mapping]*/
 
 namespace {
 
@@ -135,6 +169,39 @@ POSTGRE_TEST_P(LoadUserTypes) {
         conn, "create domain __pgtest.ts_dom as timestamp not null",
         "select current_timestamp::__pgtest.ts_dom");
   }
+
+  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+POSTGRE_TEST_P(UserDefinedRange) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  using Seconds = utils::datetime::TimeOfDay<std::chrono::seconds>;
+  using TimeRange = pgtest::TimeRange<std::chrono::seconds>;
+  using BoundedTimeRange = pgtest::BoundedTimeRange<std::chrono::seconds>;
+  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateARangeType)) << "Create range type";
+  ASSERT_NO_THROW(conn->ReloadUserTypes());
+
+  conn->Execute("select '[00:00:01, 00:00:02]'::__pgtest.timerange");
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(
+      res = conn->Execute("select $1",
+                          TimeRange{Seconds{std::chrono::seconds{1}},
+                                    Seconds{std::chrono::seconds{2}}}));
+  BoundedTimeRange tr;
+  EXPECT_NO_THROW(tr = res.AsSingleRow<BoundedTimeRange>());
+  EXPECT_EQ(Seconds(std::chrono::seconds{1}),
+            utils::UnderlyingValue(tr).GetLowerBound());
+  EXPECT_EQ(Seconds(std::chrono::seconds{2}),
+            utils::UnderlyingValue(tr).GetUpperBound());
+  EXPECT_TRUE(utils::UnderlyingValue(tr).IsLowerBoundIncluded())
+      << "By default a range is lower-bound inclusive";
+  ;
+  EXPECT_FALSE(utils::UnderlyingValue(tr).IsUpperBoundIncluded())
+      << "By default a range is upper-bound exclusive";
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }

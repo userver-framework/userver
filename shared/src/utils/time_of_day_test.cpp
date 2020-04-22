@@ -89,6 +89,9 @@ TEST(TimeOfDay, StringConstruct) {
   EXPECT_THROW(Milli{"1:15:a"}, std::runtime_error) << "Unexpected chars";
   EXPECT_THROW(Milli{"1:15:2a"}, std::runtime_error) << "Unexpected chars";
   EXPECT_THROW(Milli{"1:15:20.a"}, std::runtime_error) << "Unexpected chars";
+
+  EXPECT_THROW(Milli{"25:00"}, std::runtime_error) << "Out of range";
+  EXPECT_THROW(Milli{"24:01"}, std::runtime_error) << "Out of range";
   {
     Milli tod{"1:30"};
     EXPECT_EQ(1, tod.Hours().count());
@@ -118,9 +121,9 @@ TEST(TimeOfDay, StringConstruct) {
     EXPECT_EQ(1, tod.Subseconds().count());
   }
   {
-    Mins tod{"25:45"};
-    EXPECT_EQ(1, tod.Hours().count());
-    EXPECT_EQ(45, tod.Minutes().count());
+    Mins tod{"24:00"};
+    EXPECT_EQ(0, tod.Hours().count());
+    EXPECT_EQ(0, tod.Minutes().count());
     EXPECT_EQ(0, tod.Seconds().count());
     EXPECT_EQ(0, tod.Subseconds().count());
   }
