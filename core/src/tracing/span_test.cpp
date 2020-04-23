@@ -142,6 +142,19 @@ TEST_F(OpentracingSpan, Tags) {
   });
 }
 
+TEST_F(OpentracingSpan, FromTracerWithServiceName) {
+  RunInCoro([this] {
+    auto tracer = tracing::MakeNoopTracer("test_service");
+    {
+      tracing::Span span(tracer, "span_name", nullptr,
+                         tracing::ReferenceType::kChild);
+    }
+    FlushOpentracing();
+    auto log_str = opentracing_sstream.str();
+    EXPECT_NE(std::string::npos, log_str.find("service_name=test_service"));
+  });
+}
+
 TEST_F(OpentracingSpan, TagFormat) {
   RunInCoro([this] {
     {
@@ -243,7 +256,7 @@ TEST_F(Span, LowerLocalLogLevel) {
 
 TEST_F(Span, ConstructFromTracer) {
   RunInCoro([this] {
-    auto tracer = tracing::MakeNoopTracer();
+    auto tracer = tracing::MakeNoopTracer("test_service");
 
     tracing::Span span(tracer, "name", nullptr, tracing::ReferenceType::kChild);
     span.SetLink("some_link");
@@ -258,7 +271,7 @@ TEST_F(Span, ConstructFromTracer) {
 
 TEST_F(Span, ForeignSpan) {
   RunInCoro([this] {
-    auto tracer = tracing::MakeNoopTracer();
+    auto tracer = tracing::MakeNoopTracer("test_service");
 
     tracing::Span local_span(tracer, "local", nullptr,
                              tracing::ReferenceType::kChild);

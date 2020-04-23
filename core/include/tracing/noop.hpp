@@ -3,6 +3,6 @@
 
 namespace tracing {
 
-TracerPtr MakeNoopTracer();
+TracerPtr MakeNoopTracer(const std::string& service_name);
 
 }  // namespace tracing

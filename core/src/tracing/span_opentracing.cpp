@@ -48,6 +48,7 @@ const std::string kOperationName = "operation_name";
 const std::string kTraceId = "trace_id";
 const std::string kParentId = "parent_id";
 const std::string kSpanId = "span_id";
+const std::string kServiceName = "service_name";
 
 const std::string kStartTime = "start_time";
 const std::string kStartTimeMillis = "start_time_millis";
@@ -69,6 +70,9 @@ void Span::Impl::LogOpenTracing() const {
                         start_system_time_.time_since_epoch())
                         .count();
 
+  if (tracer) {
+    jaeger_span.Extend(jaeger::kServiceName, tracer->GetServiceName());
+  }
   jaeger_span.Extend(jaeger::kTraceId, trace_id_);
   jaeger_span.Extend(jaeger::kParentId, parent_id_);
   jaeger_span.Extend(jaeger::kSpanId, span_id_);

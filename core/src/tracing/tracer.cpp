@@ -11,7 +11,9 @@ namespace tracing {
 namespace {
 
 auto& GlobalTracer() {
-  static utils::SwappingSmart<Tracer> tracer(tracing::MakeNoopTracer());
+  static const std::string kEmptyServiceName;
+  static utils::SwappingSmart<Tracer> tracer(
+      tracing::MakeNoopTracer(kEmptyServiceName));
   return tracer;
 }
 
@@ -24,6 +26,8 @@ void Tracer::SetTracer(std::shared_ptr<Tracer> tracer) {
 }
 
 std::shared_ptr<Tracer> Tracer::GetTracer() { return GlobalTracer().Get(); }
+
+const std::string& Tracer::GetServiceName() const { return service_name_; }
 
 Span Tracer::CreateSpanWithoutParent(const std::string& name) {
   auto span = Span(shared_from_this(), name, nullptr, ReferenceType::kChild);

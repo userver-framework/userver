@@ -10,7 +10,7 @@ namespace {
 void tracing_noop_ctr(benchmark::State& state) {
   RunInCoro(
       [&] {
-        auto tracer = tracing::MakeNoopTracer();
+        auto tracer = tracing::MakeNoopTracer("test_service");
 
         for (auto _ : state)
           benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
@@ -31,7 +31,7 @@ void tracing_opentracing_ctr(benchmark::State& state) {
   logging::LoggerPtr logger = logging::MakeNullLogger("opentracing");
   RunInCoro(
       [&] {
-        auto tracer = tracing::MakeNoopTracer();
+        auto tracer = tracing::MakeNoopTracer("test_service");
         tracing::SetOpentracingLogger(logger);
         for (auto _ : state) {
           benchmark::DoNotOptimize(GetSpanWithOpentracingHttpTags(tracer));

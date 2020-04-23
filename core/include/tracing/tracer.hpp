@@ -13,6 +13,8 @@ class Tracer : public std::enable_shared_from_this<Tracer> {
 
   static TracerPtr GetTracer();
 
+  const std::string& GetServiceName() const;
+
   Span CreateSpanWithoutParent(const std::string& name);
 
   Span CreateSpan(const std::string& name, const Span& parent,
@@ -28,7 +30,13 @@ class Tracer : public std::enable_shared_from_this<Tracer> {
   }
 
  protected:
+  explicit Tracer(const std::string& service_name)
+      : service_name_(service_name) {}
+
   virtual ~Tracer();
+
+ private:
+  const std::string service_name_;
 };
 
 }  // namespace tracing

@@ -11,6 +11,7 @@ const std::string kParentIdName = "parent_id";
 
 class NoopTracer final : public Tracer {
  public:
+  NoopTracer(const std::string& service_name) : Tracer(service_name) {}
   void LogSpanContextTo(const Span::Impl&, logging::LogHelper&) const override;
   void LogSpanContextTo(Span::Impl&&, logging::LogHelper&) const override;
 
@@ -40,8 +41,8 @@ void NoopTracer::LogSpanContextToImpl(SpanImpl&& span,
   log_helper << std::move(result);
 }
 
-tracing::TracerPtr MakeNoopTracer() {
-  return std::make_shared<tracing::NoopTracer>();
+tracing::TracerPtr MakeNoopTracer(const std::string& service_name) {
+  return std::make_shared<tracing::NoopTracer>(service_name);
 }
 
 }  // namespace tracing
