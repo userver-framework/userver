@@ -4,10 +4,6 @@ project(yandex-taxi-userver-postgresql)
 
 find_package(Boost REQUIRED regex)
 
-# For time zones in pg driver
-find_package(Helperuc)
-find_package(Helperi18n)
-
 find_package(HelperPostgreSQL)
 
 add_subdirectory(pq-extra)

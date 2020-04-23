@@ -11,7 +11,7 @@
 **TBA**
 
 ## Разработка
-Код должен соответствовать [Google C++ Style Guide](https://google.github.io/styleguide/cppguide) с [изменениями](https://wiki.yandex-team.ru/users/sermp/backend-cpp-codestyle/).
+Код должен соответствовать [Google C++ Style Guide](https://h.yandex-team.ru/?https%3A//google.github.io/styleguide/cppguide) с [изменениями](https://wiki.yandex-team.ru/users/sermp/backend-cpp-codestyle/).
 Код на Python должен соответствовать [Taxi Python Codestyle](https://wiki.yandex-team.ru/taxi/backend/codestyle/).
 Перед коммитом необходимо прогнать clang-format.
 
@@ -23,9 +23,14 @@
 ### Сборка
 
 Для сборки требуются:
-  * Ubuntu Xenial c подключенным репозиторием xenial-updates/universe
+  * ОС:
+    * Ubuntu Xenial c подключенным репозиторием xenial-updates/universe
+    * Ubuntu Bionic c подключенным репозиторием bionic-updates/universe
+    * MacOS 10.15 с установленными [Xcode](https://h.yandex-team.ru/?https%3A//apps.apple.com/us/app/xcode/id497799835) и [Homebrew](https://h.yandex-team.ru/?https%3A//brew.sh)
   * clang-7
   * clang-format-7
+
+Минимальный набор зависимостей можно установить запуском скрипта `scripts/ubuntu-install-prerequisites.sh` для Ubuntu и `scripts/mac-os-install-prerequisites.sh` для MacOS.
 
 В `Makefile` определены цели:
   * `all`/`build` -- выполняет сборку всего кода в директории
