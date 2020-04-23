@@ -13,6 +13,7 @@
 #include <rcu/rcu.hpp>
 #include <tracing/span.hpp>
 #include <utils/assert.hpp>
+#include <utils/datetime.hpp>
 #include <utils/string_view.hpp>
 #include <utils/traceful_exception.hpp>
 #include "log_workaround.hpp"
@@ -309,6 +310,11 @@ LogHelper::EncodingGuard::EncodingGuard(LogHelper& lh, Encode mode) noexcept
 
 LogHelper::EncodingGuard::~EncodingGuard() {
   lh.pimpl_->SetEncoding(Encode::kNone);
+}
+
+LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp) {
+  lh << utils::datetime::Timestring(tp);
+  return lh;
 }
 
 void LogFlush() { DefaultLogger()->flush(); }

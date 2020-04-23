@@ -3,6 +3,7 @@
 /// @file logging/log.hpp
 /// @brief Logging helpers
 
+#include <chrono>
 #include <exception>
 #include <memory>
 #include <optional>
@@ -198,6 +199,8 @@ inline LogHelper& operator<<(LogHelper& lh, Result (*)(Args...)) {
                 "Outputing functions or std::ostream formatters is forbidden");
   return lh;
 }
+
+LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp);
 
 /// Forces flush of default logger message queue
 void LogFlush();
