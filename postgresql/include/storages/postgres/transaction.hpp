@@ -147,29 +147,30 @@ class Transaction {
   Transaction& operator=(const Transaction&) = delete;
 
   ~Transaction();
-  //@{
-  /** @name Query execution */
-  /// Execute statement with arbitrary parameters
+  /// @name Query execution
+  /// @{
+  /// Execute statement with arbitrary parameters.
+  ///
   /// Suspends coroutine for execution
   /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
   /// InvalidParameterType
   template <typename... Args>
   ResultSet Execute(const std::string& statement, const Args&... args) {
-    detail::QueryParameters params;
-    params.Write(GetConnectionUserTypes(), args...);
-    return DoExecute(statement, params, {});
+    return Execute(OptionalCommandControl{}, statement, args...);
   }
+
   /// Execute statement with arbitrary parameters and per-statement command
   /// control.
+  ///
   /// Suspends coroutine for execution
   /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
   /// InvalidParameterType
   template <typename... Args>
-  ResultSet Execute(CommandControl statement_cmd_ctl,
+  ResultSet Execute(OptionalCommandControl statement_cmd_ctl,
                     const std::string& statement, const Args&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
-    return DoExecute(statement, params, std::move(statement_cmd_ctl));
+    return DoExecute(statement, params, statement_cmd_ctl);
   }
 
   /// Execute statement that uses an array of arguments splitting that array in
@@ -180,6 +181,7 @@ class Transaction {
   template <typename Container>
   void ExecuteBulk(const std::string& statement, const Container& args,
                    std::size_t chunk_rows = kDefaultRowsInChunk);
+
   /// Execute statement that uses an array of arguments splitting that array in
   /// chunks and executing the statement with a chunk of arguments.
   ///

@@ -1,7 +1,7 @@
 #include <storages/postgres/detail/connection_ptr.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/detail/pool_impl.hpp>
+#include <storages/postgres/detail/pool.hpp>
 
 namespace storages {
 namespace postgres {
@@ -11,7 +11,7 @@ ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection>&& conn)
     : conn_(std::move(conn)) {}
 
 ConnectionPtr::ConnectionPtr(Connection* conn,
-                             std::shared_ptr<ConnectionPoolImpl>&& pool)
+                             std::shared_ptr<ConnectionPool>&& pool)
     : pool_(std::move(pool)), conn_(conn) {
   UASSERT_MSG(pool_, "This constructor requires non-empty parent pool");
 }
@@ -39,7 +39,7 @@ Connection& ConnectionPtr::operator*() const {
 Connection* ConnectionPtr::operator->() const noexcept { return conn_.get(); }
 
 void ConnectionPtr::Reset(std::unique_ptr<Connection> conn,
-                          std::shared_ptr<ConnectionPoolImpl> pool) {
+                          std::shared_ptr<ConnectionPool> pool) {
   Release();
   conn_ = std::move(conn);
   pool_ = std::move(pool);

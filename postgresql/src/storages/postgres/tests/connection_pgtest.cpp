@@ -6,7 +6,6 @@
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/null.hpp>
-#include <storages/postgres/pool.hpp>
 
 #include <storages/postgres/io/chrono.hpp>
 

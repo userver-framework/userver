@@ -119,7 +119,7 @@ class Connection {
 
   CommandControl GetDefaultCommandControl() const;
 
-  void SetDefaultCommandControl(const CommandControl& cmd_ctl);
+  void SetDefaultCommandControl(CommandControl cmd_ctl);
 
   /// Close the connection
   /// TODO When called from another thread/coroutine will wait for current
@@ -171,15 +171,14 @@ class Connection {
   ResultSet Execute(const std::string& statement,
                     const detail::QueryParameters& = {},
                     OptionalCommandControl statement_cmd_ctl = {});
-  ResultSet Execute(const std::string& statement,
-                    const detail::QueryParameters&, engine::Deadline,
-                    OptionalCommandControl statement_cmd_ctl);
+
   template <typename... T>
   ResultSet Execute(const std::string& statement, const T&... args) {
     detail::QueryParameters params;
     params.Write(GetUserTypes(), args...);
     return Execute(statement, params);
   }
+
   template <typename... T>
   ResultSet Execute(CommandControl statement_cmd_ctl,
                     const std::string& statement, const T&... args) {

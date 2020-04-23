@@ -1,18 +1,19 @@
 #include <storages/postgres/cluster.hpp>
 
 #include <storages/postgres/detail/cluster_impl.hpp>
+#include <storages/postgres/detail/pg_impl_types.hpp>
 
 namespace storages::postgres {
 
 Cluster::Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
                  const PoolSettings& pool_settings,
                  const ConnectionSettings& conn_settings,
-                 const CommandControl& cmd_ctl,
+                 const CommandControl& default_cmd_ctl,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings) {
   pimpl_ = std::make_unique<detail::ClusterImpl>(
-      std::move(dsns), bg_task_processor, pool_settings, conn_settings, cmd_ctl,
-      testsuite_pg_ctl, ei_settings);
+      std::move(dsns), bg_task_processor, pool_settings, conn_settings,
+      default_cmd_ctl, testsuite_pg_ctl, ei_settings);
 }
 
 Cluster::~Cluster() = default;
@@ -32,16 +33,23 @@ Transaction Cluster::Begin(ClusterHostType ht,
   return pimpl_->Begin(ht, options, cmd_ctl);
 }
 
-detail::NonTransaction Cluster::Start(ClusterHostType ht) {
-  return pimpl_->Start(ht);
+detail::NonTransaction Cluster::Start(ClusterHostType ht,
+                                      OptionalCommandControl cmd_ctl) {
+  return pimpl_->Start(ht, cmd_ctl);
 }
 
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
-  pimpl_->SetDefaultCommandControl(cmd_ctl);
+  pimpl_->SetDefaultCommandControl(cmd_ctl,
+                                   detail::DefaultCommandControlSource::kUser);
 }
 
-SharedCommandControl Cluster::GetDefaultCommandControl() const {
+CommandControl Cluster::GetDefaultCommandControl() const {
   return pimpl_->GetDefaultCommandControl();
+}
+
+void Cluster::ApplyGlobalCommandControlUpdate(CommandControl cmd_ctl) {
+  pimpl_->SetDefaultCommandControl(
+      cmd_ctl, detail::DefaultCommandControlSource::kGlobalConfig);
 }
 
 }  // namespace storages::postgres

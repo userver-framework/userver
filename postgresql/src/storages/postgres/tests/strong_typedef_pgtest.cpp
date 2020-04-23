@@ -11,7 +11,7 @@ namespace static_test {
 using StringTypedef = utils::StrongTypedef<struct TestTypedef, std::string>;
 // This strong typedef will be nullable
 using OptStringTypedef =
-    utils::StrongTypedef<struct TestTypedef, boost::optional<std::string>>;
+    utils::StrongTypedef<struct TestTypedef, std::optional<std::string>>;
 using IntTypedef = utils::StrongTypedef<struct TestTypedef, pg::Integer>;
 /*! [Strong typedef] */
 

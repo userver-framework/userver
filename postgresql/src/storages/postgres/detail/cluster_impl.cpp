@@ -38,18 +38,18 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
     : topology_(bg_task_processor, std::move(dsns), conn_settings,
                 default_cmd_ctl, testsuite_pg_ctl, ei_settings),
       bg_task_processor_(bg_task_processor),
-      rr_host_idx_(0),
-      default_cmd_ctl_(std::make_shared<const CommandControl>(default_cmd_ctl)),
-      testsuite_pg_ctl_(testsuite_pg_ctl),
-      update_lock_ ATOMIC_FLAG_INIT {
+      rr_host_idx_(0) {
   const auto& dsn_list = topology_.GetDsnList();
-  host_pools_.reserve(dsn_list.size());
+  if (dsn_list.empty()) {
+    throw ClusterError("Cannot create a cluster from an empty DSN list");
+  }
 
   LOG_DEBUG() << "Starting pools initialization";
+  host_pools_.reserve(dsn_list.size());
   for (const auto& dsn : dsn_list) {
-    host_pools_.push_back(std::make_shared<ConnectionPool>(
+    host_pools_.push_back(ConnectionPool::Create(
         dsn, bg_task_processor_, pool_settings, conn_settings, default_cmd_ctl,
-        testsuite_pg_ctl_, ei_settings));
+        testsuite_pg_ctl, ei_settings));
   }
   LOG_DEBUG() << "Pools initialized";
 }
@@ -153,9 +153,7 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostType ht) {
   LOG_TRACE() << "Starting transaction on the host of " << host_type << " type";
 
   UASSERT(dsn_index < host_pools_.size());
-  auto pool = host_pools_.at(dsn_index);
-  pool->SetDefaultCommandControl(*default_cmd_ctl_.Get());
-  return pool;
+  return host_pools_.at(dsn_index);
 }
 
 Transaction ClusterImpl::Begin(ClusterHostType ht,
@@ -175,28 +173,29 @@ Transaction ClusterImpl::Begin(ClusterHostType ht,
     }
   }
 
-  auto pool = FindPool(host_type);
-  TimeoutDuration timeout = cmd_ctl.is_initialized()
-                                ? cmd_ctl->execute
-                                : GetDefaultCommandControl()->execute;
-  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
-  return pool->Begin(options, deadline, cmd_ctl);
+  return FindPool(host_type)->Begin(options, cmd_ctl);
 }
 
-NonTransaction ClusterImpl::Start(ClusterHostType host_type) {
+NonTransaction ClusterImpl::Start(ClusterHostType host_type,
+                                  OptionalCommandControl cmd_ctl) {
   if (host_type == ClusterHostType::kAny) {
     throw LogicError("Cannot use any host for execution of a single statement");
   }
   LOG_TRACE() << "Requested single statement on the host of " << host_type
               << " type";
-  auto pool = FindPool(host_type);
-  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(
-      GetDefaultCommandControl()->execute);
-  return pool->Start(deadline);
+  return FindPool(host_type)->Start(cmd_ctl);
 }
 
-void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
-  default_cmd_ctl_.Set(std::make_shared<const CommandControl>(cmd_ctl));
+void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl,
+                                           DefaultCommandControlSource source) {
+  for (const auto& pool_ptr : host_pools_) {
+    pool_ptr->SetDefaultCommandControl(cmd_ctl, source);
+  }
+}
+
+CommandControl ClusterImpl::GetDefaultCommandControl() const {
+  UASSERT(!host_pools_.empty());
+  return host_pools_.front()->GetDefaultCommandControl();
 }
 
 }  // namespace storages::postgres::detail

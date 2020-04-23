@@ -4,8 +4,6 @@
 #include <functional>
 #include <memory>
 
-#include <boost/optional.hpp>
-
 namespace storages {
 namespace postgres {
 

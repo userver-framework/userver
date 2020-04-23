@@ -5,9 +5,9 @@
 #include <engine/async.hpp>
 #include <engine/standalone.hpp>
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/detail/pool.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/pool.hpp>
 
 namespace pg = storages::postgres;
 
@@ -21,10 +21,11 @@ INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePoolStats,
 
 TEST_P(PostgrePoolStats, EmptyPool) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(GetParam(), GetTaskProcessor(), {0, 10, 10},
-                            kCachePreparedStatements, kTestCmdCtl, {}, {});
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetParam(), GetTaskProcessor(), {0, 10, 10}, kCachePreparedStatements,
+        kTestCmdCtl, {}, {});
 
-    const auto& stats = pool.GetStatistics();
+    const auto& stats = pool->GetStatistics();
     EXPECT_EQ(stats.connection.open_total, 0);
     EXPECT_EQ(stats.connection.drop_total, 0);
     EXPECT_EQ(stats.connection.active, 0);
@@ -54,12 +55,12 @@ TEST_P(PostgrePoolStats, EmptyPool) {
 TEST_P(PostgrePoolStats, MinPoolSize) {
   RunInCoro([this] {
     const auto min_pool_size = 2;
-    pg::ConnectionPool pool(GetParam(), GetTaskProcessor(),
-                            {min_pool_size, 10, 10}, kCachePreparedStatements,
-                            kTestCmdCtl, {}, {});
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetParam(), GetTaskProcessor(), {min_pool_size, 10, 10},
+        kCachePreparedStatements, kTestCmdCtl, {}, {});
 
     // We can't check all the counters as some of them are used for internal ops
-    const auto& stats = pool.GetStatistics();
+    const auto& stats = pool->GetStatistics();
     EXPECT_LE(stats.connection.open_total, min_pool_size);
     EXPECT_EQ(stats.connection.drop_total, 0);
     EXPECT_LE(stats.connection.active, min_pool_size);
@@ -85,8 +86,9 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
 
 TEST_P(PostgrePoolStats, RunTransactions) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(GetParam(), GetTaskProcessor(), {1, 10, 10},
-                            kCachePreparedStatements, kTestCmdCtl, {}, {});
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
+        kTestCmdCtl, {}, {});
 
     const auto trx_count = 5;
     const auto exec_count = 10;
@@ -96,7 +98,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
       auto task = engine::impl::Async([&pool] {
         pg::detail::ConnectionPtr conn(nullptr);
 
-        EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
+        EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
             << "Obtained connection from pool";
         ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
@@ -118,7 +120,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
 
     const auto query_exec_count = trx_count * (exec_count + /*begin-commit*/ 2);
     const auto duration_min = pg::detail::SteadyClock::duration::min();
-    const auto& stats = pool.GetStatistics();
+    const auto& stats = pool->GetStatistics();
     EXPECT_GE(stats.connection.open_total, 1);
     EXPECT_EQ(stats.connection.drop_total, 0);
     EXPECT_GE(stats.connection.active, 1);
@@ -147,14 +149,15 @@ TEST_P(PostgrePoolStats, RunTransactions) {
 
 TEST_P(PostgrePoolStats, ConnUsed) {
   RunInCoro([this] {
-    pg::ConnectionPool pool(GetParam(), GetTaskProcessor(), {1, 10, 10},
-                            kCachePreparedStatements, kTestCmdCtl, {}, {});
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
+        kTestCmdCtl, {}, {});
     pg::detail::ConnectionPtr conn(nullptr);
 
-    EXPECT_NO_THROW(conn = pool.GetConnection(MakeDeadline()))
+    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
         << "Obtained connection from pool";
 
-    const auto& stats = pool.GetStatistics();
+    const auto& stats = pool->GetStatistics();
     EXPECT_EQ(stats.connection.used, 1);
   });
 }

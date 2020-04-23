@@ -1,4 +1,4 @@
-#include <storages/postgres/detail/pool_impl.hpp>
+#include <storages/postgres/detail/pool.hpp>
 
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
@@ -46,9 +46,9 @@ struct Stopwatch {
 
 }  // namespace
 
-class ConnectionPoolImpl::EmplaceEnabler {};
+class ConnectionPool::EmplaceEnabler {};
 
-ConnectionPoolImpl::ConnectionPoolImpl(
+ConnectionPool::ConnectionPool(
     EmplaceEnabler, Dsn dsn, engine::TaskProcessor& bg_task_processor,
     const PoolSettings& settings, const ConnectionSettings& conn_settings,
     const CommandControl& default_cmd_ctl,
@@ -62,23 +62,24 @@ ConnectionPoolImpl::ConnectionPoolImpl(
       size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
       default_cmd_ctl_{default_cmd_ctl},
+      has_user_default_cc_{false},
       testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_(std::move(ei_settings)),
       cancel_limit_{std::max(1UL, settings_.max_size / kCancelRatio),
                     kCancelPeriod} {}
 
-ConnectionPoolImpl::~ConnectionPoolImpl() {
+ConnectionPool::~ConnectionPool() {
   StopMaintainTask();
   Clear();
 }
 
-std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
+std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     Dsn dsn, engine::TaskProcessor& bg_task_processor,
     const PoolSettings& pool_settings, const ConnectionSettings& conn_settings,
     const CommandControl& default_cmd_ctl,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings) {
-  auto impl = std::make_shared<ConnectionPoolImpl>(
+  auto impl = std::make_shared<ConnectionPool>(
       EmplaceEnabler{}, std::move(dsn), bg_task_processor, pool_settings,
       conn_settings, default_cmd_ctl, testsuite_pg_ctl, std::move(ei_settings));
   // Init() uses shared_from_this for connections and cannot be called from ctor
@@ -86,7 +87,7 @@ std::shared_ptr<ConnectionPoolImpl> ConnectionPoolImpl::Create(
   return impl;
 }
 
-void ConnectionPoolImpl::Init() {
+void ConnectionPool::Init() {
   if (dsn_.GetUnprotectedRawValue().empty()) {
     throw InvalidConfig("PostgreSQL Dsn is empty");
   }
@@ -122,18 +123,16 @@ void ConnectionPoolImpl::Init() {
   StartMaintainTask();
 }
 
-ConnectionPtr ConnectionPoolImpl::Acquire(engine::Deadline deadline) {
+ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
   // Obtain smart pointer first to prolong lifetime of this object
   auto shared_this = shared_from_this();
   ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
   ++stats_.connection.used;
-  auto cmd_ctl_ptr = default_cmd_ctl_.Read();
-  connection->SetDefaultCommandControl(*cmd_ctl_ptr);
+  connection->SetDefaultCommandControl(GetDefaultCommandControl());
   return connection;
 }
 
-void ConnectionPoolImpl::AccountConnectionStats(
-    Connection::Statistics conn_stats) {
+void ConnectionPool::AccountConnectionStats(Connection::Statistics conn_stats) {
   auto now = SteadyClock::now();
 
   stats_.transaction.total += conn_stats.trx_total;
@@ -170,7 +169,7 @@ void ConnectionPoolImpl::AccountConnectionStats(
           .count());
 }
 
-void ConnectionPoolImpl::Release(Connection* connection) {
+void ConnectionPool::Release(Connection* connection) {
   UASSERT(connection);
   using DecGuard =
       ::utils::SizeGuard<::utils::statistics::RelaxedCounter<uint32_t>>;
@@ -232,30 +231,63 @@ void ConnectionPoolImpl::Release(Connection* connection) {
   }
 }
 
-const InstanceStatistics& ConnectionPoolImpl::GetStatistics() const {
+const InstanceStatistics& ConnectionPool::GetStatistics() const {
   stats_.connection.active = size_->load(std::memory_order_relaxed);
   stats_.connection.waiting = wait_count_.load(std::memory_order_relaxed);
   stats_.connection.maximum = settings_.max_size;
   return stats_;
 }
 
-Transaction ConnectionPoolImpl::Begin(const TransactionOptions& options,
-                                      engine::Deadline deadline,
-                                      OptionalCommandControl trx_cmd_ctl) {
-  auto trx_start_time = detail::SteadyClock::now();
+Transaction ConnectionPool::Begin(const TransactionOptions& options,
+                                  OptionalCommandControl trx_cmd_ctl) {
+  const auto trx_start_time = detail::SteadyClock::now();
+  const auto deadline =
+      testsuite_pg_ctl_.MakeExecuteDeadline(GetExecuteTimeout(trx_cmd_ctl));
   auto conn = Acquire(deadline);
   UASSERT(conn);
   return Transaction{std::move(conn), options, trx_cmd_ctl, trx_start_time};
 }
 
-NonTransaction ConnectionPoolImpl::Start(engine::Deadline deadline) {
-  auto start_time = detail::SteadyClock::now();
+NonTransaction ConnectionPool::Start(OptionalCommandControl cmd_ctl) {
+  const auto start_time = detail::SteadyClock::now();
+  const auto deadline =
+      testsuite_pg_ctl_.MakeExecuteDeadline(GetExecuteTimeout(cmd_ctl));
   auto conn = Acquire(deadline);
   UASSERT(conn);
-  return NonTransaction{std::move(conn), deadline, start_time};
+  return NonTransaction{std::move(conn), start_time};
 }
 
-engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
+TimeoutDuration ConnectionPool::GetExecuteTimeout(
+    OptionalCommandControl cmd_ctl) {
+  if (cmd_ctl) return cmd_ctl->execute;
+
+  const auto read_ptr = default_cmd_ctl_.Read();
+  return read_ptr->execute;
+}
+
+void ConnectionPool::SetDefaultCommandControl(
+    CommandControl cmd_ctl, DefaultCommandControlSource source) {
+  auto writer = default_cmd_ctl_.StartWrite();
+  // source must be checked under lock to avoid races
+  switch (source) {
+    case DefaultCommandControlSource::kGlobalConfig:
+      if (has_user_default_cc_) return;
+      break;
+    case DefaultCommandControlSource::kUser:
+      has_user_default_cc_ = true;
+      break;
+  }
+  if (*writer != cmd_ctl) {
+    *writer = cmd_ctl;
+    writer.Commit();
+  }
+}
+
+CommandControl ConnectionPool::GetDefaultCommandControl() const {
+  return default_cmd_ctl_.ReadCopy();
+}
+
+engine::TaskWithResult<bool> ConnectionPool::Connect(
     SharedSizeGuard&& size_guard) {
   return engine::impl::Async([shared_this = shared_from_this(),
                               sg = std::move(size_guard)]() mutable {
@@ -299,7 +331,7 @@ engine::TaskWithResult<bool> ConnectionPoolImpl::Connect(
   });
 }
 
-void ConnectionPoolImpl::Push(Connection* connection) {
+void ConnectionPool::Push(Connection* connection) {
   if (queue_.push(connection)) {
     conn_available_.NotifyOne();
     return;
@@ -310,7 +342,7 @@ void ConnectionPoolImpl::Push(Connection* connection) {
   DeleteConnection(connection);
 }
 
-Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
+Connection* ConnectionPool::Pop(engine::Deadline deadline) {
   if (engine::current_task::ShouldCancel()) {
     throw PoolError("Task was cancelled before trying to get a connection");
   }
@@ -368,33 +400,25 @@ Connection* ConnectionPoolImpl::Pop(engine::Deadline deadline) {
   throw PoolError("No available connections found");
 }
 
-void ConnectionPoolImpl::Clear() {
+void ConnectionPool::Clear() {
   Connection* connection = nullptr;
   while (queue_.pop(connection)) {
     delete connection;
   }
 }
 
-void ConnectionPoolImpl::DeleteConnection(Connection* connection) {
+void ConnectionPool::DeleteConnection(Connection* connection) {
   delete connection;
   ++stats_.connection.drop_total;
 }
 
-void ConnectionPoolImpl::DeleteBrokenConnection(Connection* connection) {
+void ConnectionPool::DeleteBrokenConnection(Connection* connection) {
   ++stats_.connection.error_total;
   LOG_WARNING() << "Released connection in closed state. Deleting...";
   DeleteConnection(connection);
 }
 
-void ConnectionPoolImpl::SetDefaultCommandControl(CommandControl cmd_ctl) {
-  auto writer = default_cmd_ctl_.StartWrite();
-  if (*writer != cmd_ctl) {
-    *writer = cmd_ctl;
-    writer.Commit();
-  }
-}
-
-Connection* ConnectionPoolImpl::AcquireImmediate() {
+Connection* ConnectionPool::AcquireImmediate() {
   Connection* conn = nullptr;
   if (queue_.pop(conn)) {
     ++stats_.connection.used;
@@ -404,7 +428,7 @@ Connection* ConnectionPoolImpl::AcquireImmediate() {
   return nullptr;
 }
 
-void ConnectionPoolImpl::MaintainConnections() {
+void ConnectionPool::MaintainConnections() {
   // No point in doing database roundtrips if there are queries waiting for
   // connections
   if (wait_count_ > 0) {
@@ -450,13 +474,13 @@ void ConnectionPoolImpl::MaintainConnections() {
   // TODO Check and maintain minimum count of connections
 }
 
-void ConnectionPoolImpl::StartMaintainTask() {
+void ConnectionPool::StartMaintainTask() {
   using Flags = ::utils::PeriodicTask::Flags;
 
   ping_task_.Start(kMaintainTaskName, {kMaintainInterval, Flags::kStrong},
                    [this] { MaintainConnections(); });
 }
 
-void ConnectionPoolImpl::StopMaintainTask() { ping_task_.Stop(); }
+void ConnectionPool::StopMaintainTask() { ping_task_.Stop(); }
 
 }  // namespace storages::postgres::detail

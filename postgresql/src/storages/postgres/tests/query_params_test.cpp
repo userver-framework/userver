@@ -17,8 +17,7 @@ static_assert(HasOutputOperator<int>::value, "Test output metafunction");
 static_assert(!kHasFormatter<__no_output_operator>,
               "Test has formatter metafuction");
 
-static_assert((pg::io::traits::HasFormatter<boost::optional<int>>::value ==
-               true),
+static_assert(kHasFormatter<std::optional<int>>,
               "Test has formatter metafuction");
 
 }  // namespace static_test

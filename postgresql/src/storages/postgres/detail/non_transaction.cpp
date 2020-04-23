@@ -1,15 +1,16 @@
 #include <storages/postgres/detail/non_transaction.hpp>
 
-#include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/exceptions.hpp>
+
+#include <storages/postgres/detail/connection.hpp>
 
 #include <logging/log.hpp>
 
 namespace storages::postgres::detail {
 
-NonTransaction::NonTransaction(ConnectionPtr&& conn, engine::Deadline deadline,
+NonTransaction::NonTransaction(ConnectionPtr&& conn,
                                detail::SteadyClock::time_point start_time)
-    : conn_{std::move(conn)}, deadline_{deadline} {
+    : conn_{std::move(conn)} {
   conn_->Start(start_time);
 }
 
@@ -21,8 +22,7 @@ NonTransaction& NonTransaction::operator=(NonTransaction&&) noexcept = default;
 ResultSet NonTransaction::DoExecute(const std::string& statement,
                                     const detail::QueryParameters& params,
                                     OptionalCommandControl statement_cmd_ctl) {
-  return conn_->Execute(statement, params, deadline_,
-                        std::move(statement_cmd_ctl));
+  return conn_->Execute(statement, params, std::move(statement_cmd_ctl));
 }
 
 const UserTypes& NonTransaction::GetConnectionUserTypes() const {

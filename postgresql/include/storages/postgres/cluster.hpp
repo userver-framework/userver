@@ -81,7 +81,7 @@ class Cluster {
   /// @param bg_task_processor task processor for blocking connection operations
   /// @param pool_settings settings for connection pools
   /// @param conn_settings settings for individual connections
-  /// @param cmd_ctl command execution options
+  /// @param default_cmd_ctl default command execution options
   /// @param testsuite_pg_ctl command execution options customizer for testsuite
   /// @param ei_settings error injection settings
   /// @note When `max_connection_pool_size` is reached, and no idle connections
@@ -90,7 +90,7 @@ class Cluster {
   Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
           const PoolSettings& pool_settings,
           const ConnectionSettings& conn_settings,
-          const CommandControl& cmd_ctl,
+          const CommandControl& default_cmd_ctl,
           const testsuite::PostgresControl& testsuite_pg_ctl,
           const error_injection::Settings& ei_settings);
   ~Cluster();
@@ -123,21 +123,28 @@ class Cluster {
   /// @note ClusterHostType::kAny cannot be used here
   template <typename... Args>
   ResultSet Execute(ClusterHostType, const std::string& statement,
-                    Args&&... args);
+                    const Args&... args);
   /// Execute a statement at host of specified type with specific command
   /// control settings.
   /// @note ClusterHostType::kAny cannot be used here
   template <typename... Args>
-  ResultSet Execute(ClusterHostType, CommandControl,
-                    const std::string& statement, Args&&... args);
+  ResultSet Execute(ClusterHostType, OptionalCommandControl,
+                    const std::string& statement, const Args&... args);
   //@}
 
+  /// Replaces globally updated command control with a static user-provided one
   void SetDefaultCommandControl(CommandControl);
 
-  SharedCommandControl GetDefaultCommandControl() const;
+  /// Returns current default command control
+  CommandControl GetDefaultCommandControl() const;
+
+  /// @cond
+  /// Updates default command control from global config (if not set by user)
+  void ApplyGlobalCommandControlUpdate(CommandControl);
+  /// @endcond
 
  private:
-  detail::NonTransaction Start(ClusterHostType ht);
+  detail::NonTransaction Start(ClusterHostType, OptionalCommandControl);
 
  private:
   detail::ClusterImplPtr pimpl_;
@@ -145,17 +152,16 @@ class Cluster {
 
 template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostType ht, const std::string& statement,
-                           Args&&... args) {
-  auto ntrx = Start(ht);
-  return ntrx.Execute(statement, std::forward<Args>(args)...);
+                           const Args&... args) {
+  return Execute(ht, OptionalCommandControl{}, statement, args...);
 }
 
 template <typename... Args>
-ResultSet Cluster::Execute(ClusterHostType ht, CommandControl statement_cmd_ctl,
-                           const std::string& statement, Args&&... args) {
-  auto ntrx = Start(ht);
-  return ntrx.Execute(std::move(statement_cmd_ctl), statement,
-                      std::forward<Args>(args)...);
+ResultSet Cluster::Execute(ClusterHostType ht,
+                           OptionalCommandControl statement_cmd_ctl,
+                           const std::string& statement, const Args&... args) {
+  auto ntrx = Start(ht, statement_cmd_ctl);
+  return ntrx.Execute(statement_cmd_ctl, statement, args...);
 }
 
 }  // namespace storages::postgres

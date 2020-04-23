@@ -3,22 +3,17 @@
 #include <cstddef>
 #include <memory>
 
-namespace storages {
-namespace postgres {
-
-class ConnectionPool;
-
-namespace detail {
+namespace storages::postgres::detail {
 
 class Connection;
-class ConnectionPoolImpl;
+class ConnectionPool;
 
 /// Pointer-like class that controls lifetime of a parent pool by keeping smart
 /// pointer to it.
 class ConnectionPtr {
  public:
   explicit ConnectionPtr(std::unique_ptr<Connection>&& conn);
-  ConnectionPtr(Connection* conn, std::shared_ptr<ConnectionPoolImpl>&& pool);
+  ConnectionPtr(Connection* conn, std::shared_ptr<ConnectionPool>&& pool);
   ~ConnectionPtr();
 
   ConnectionPtr(ConnectionPtr&&) noexcept;
@@ -32,13 +27,11 @@ class ConnectionPtr {
 
  private:
   void Reset(std::unique_ptr<Connection> conn,
-             std::shared_ptr<ConnectionPoolImpl> pool);
+             std::shared_ptr<ConnectionPool> pool);
   void Release();
 
-  std::shared_ptr<ConnectionPoolImpl> pool_;
+  std::shared_ptr<ConnectionPool> pool_;
   std::unique_ptr<Connection> conn_;
 };
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

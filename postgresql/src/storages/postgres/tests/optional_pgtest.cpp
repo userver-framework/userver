@@ -11,8 +11,8 @@ namespace tt = io::traits;
 
 namespace static_test {
 
-using optional_int = boost::optional<int>;
-using optional_string = boost::optional<std::string>;
+using optional_int = std::optional<int>;
+using optional_string = std::optional<std::string>;
 
 static_assert(tt::kIsMappedToPg<optional_int>);
 static_assert(tt::kIsMappedToPg<optional_string>);
@@ -30,7 +30,7 @@ namespace {
 const pg::UserTypes types;
 
 TEST(PostgreIO, BoostOptional) {
-  using optional_int = boost::optional<int>;
+  using optional_int = std::optional<int>;
   {
     pg::test::Buffer buffer;
     optional_int null;
@@ -44,8 +44,8 @@ TEST(PostgreIO, BoostOptional) {
 }
 
 POSTGRE_TEST_P(BoostOptionalRoundtrip) {
-  using optional_int = boost::optional<int>;
-  using optional_string = boost::optional<std::string>;
+  using optional_int = std::optional<int>;
+  using optional_string = std::optional<std::string>;
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 

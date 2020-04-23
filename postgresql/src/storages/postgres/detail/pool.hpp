@@ -11,36 +11,37 @@
 #include <engine/task/task_with_result.hpp>
 #include <error_injection/settings.hpp>
 #include <rcu/rcu.hpp>
+#include <testsuite/postgres_control.hpp>
 #include <utils/periodic_task.hpp>
 #include <utils/size_guard.hpp>
 #include <utils/token_bucket.hpp>
 
-#include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
-#include <testsuite/postgres_control.hpp>
+
+#include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/detail/pg_impl_types.hpp>
 
 namespace storages::postgres::detail {
 
-class ConnectionPoolImpl
-    : public std::enable_shared_from_this<ConnectionPoolImpl> {
+class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   class EmplaceEnabler;
 
  public:
-  ConnectionPoolImpl(EmplaceEnabler, Dsn dsn,
-                     engine::TaskProcessor& bg_task_processor,
-                     const PoolSettings& settings,
-                     const ConnectionSettings& conn_settings,
-                     const CommandControl& default_cmd_ctl,
-                     const testsuite::PostgresControl& testsuite_pg_ctl,
-                     error_injection::Settings ei_settings);
+  ConnectionPool(EmplaceEnabler, Dsn dsn,
+                 engine::TaskProcessor& bg_task_processor,
+                 const PoolSettings& settings,
+                 const ConnectionSettings& conn_settings,
+                 const CommandControl& default_cmd_ctl,
+                 const testsuite::PostgresControl& testsuite_pg_ctl,
+                 error_injection::Settings ei_settings);
 
-  ~ConnectionPoolImpl();
+  ~ConnectionPool();
 
-  static std::shared_ptr<ConnectionPoolImpl> Create(
+  static std::shared_ptr<ConnectionPool> Create(
       Dsn dsn, engine::TaskProcessor& bg_task_processor,
       const PoolSettings& pool_settings,
       const ConnectionSettings& conn_settings,
@@ -53,12 +54,12 @@ class ConnectionPoolImpl
 
   const InstanceStatistics& GetStatistics() const;
   [[nodiscard]] Transaction Begin(const TransactionOptions& options,
-                                  engine::Deadline deadline,
                                   OptionalCommandControl trx_cmd_ctl = {});
 
-  [[nodiscard]] NonTransaction Start(engine::Deadline deadline);
+  [[nodiscard]] NonTransaction Start(OptionalCommandControl cmd_ctl = {});
 
-  void SetDefaultCommandControl(CommandControl);
+  void SetDefaultCommandControl(CommandControl, DefaultCommandControlSource);
+  CommandControl GetDefaultCommandControl() const;
 
  private:
   using SizeGuard = ::utils::SizeGuard<std::atomic<size_t>>;
@@ -66,6 +67,8 @@ class ConnectionPoolImpl
   using SharedSizeGuard = ::utils::SizeGuard<SharedCounter>;
 
   void Init();
+
+  TimeoutDuration GetExecuteTimeout(OptionalCommandControl);
 
   [[nodiscard]] engine::TaskWithResult<bool> Connect(SharedSizeGuard&&);
 
@@ -100,6 +103,7 @@ class ConnectionPoolImpl
   SharedCounter size_;
   std::atomic<size_t> wait_count_;
   rcu::Variable<CommandControl> default_cmd_ctl_;
+  bool has_user_default_cc_;
   testsuite::PostgresControl testsuite_pg_ctl_;
   const error_injection::Settings ei_settings_;
   RecentCounter recent_conn_errors_;

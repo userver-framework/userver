@@ -5,7 +5,6 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/pool.hpp>
 
 namespace pg = storages::postgres;
 

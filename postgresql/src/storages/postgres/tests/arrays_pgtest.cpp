@@ -255,7 +255,7 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
     EXPECT_EQ(src, tgt);
   }
   {
-    using nullable_type = boost::optional<std::string>;
+    using nullable_type = std::optional<std::string>;
     using test_array = std::vector<nullable_type>;
     test_array src{
         {}, nullable_type{"foo"}, nullable_type{"bar"}, nullable_type{""}};
@@ -265,10 +265,10 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
     EXPECT_NO_THROW(res[0][0].To(tgt));
     EXPECT_THROW(res[0][0].As<nullable_type>(), pg::InvalidParserCategory);
     ASSERT_EQ(4, tgt.size());
-    EXPECT_FALSE(tgt[0].is_initialized());
-    EXPECT_TRUE(tgt[1].is_initialized());
-    EXPECT_TRUE(tgt[2].is_initialized());
-    EXPECT_TRUE(tgt[3].is_initialized());
+    EXPECT_FALSE(tgt[0].has_value());
+    EXPECT_TRUE(tgt[1].has_value());
+    EXPECT_TRUE(tgt[2].has_value());
+    EXPECT_TRUE(tgt[3].has_value());
     EXPECT_EQ(src, tgt);
     std::vector<std::string> tgt2;
     EXPECT_THROW(res[0][0].To(tgt2), pg::TypeCannotBeNull);

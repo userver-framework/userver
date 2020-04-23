@@ -4,6 +4,7 @@
 /// @brief Options
 
 #include <iosfwd>
+#include <optional>
 #include <string>
 
 #include <storages/postgres/postgres_fwd.hpp>
@@ -98,6 +99,8 @@ const std::string& BeginStatement(const TransactionOptions&);
 /// often, as it requires a roundtrip to the database to change the setting.
 /// @see https://www.postgresql.org/docs/10/runtime-config-client.html
 ///
+/// `execute` timeout should always be greater than the `statement` timeout!
+///
 /// In case of a timeout, either back-end or overall, the client gets an
 /// exception and the driver tries to clean up the connection for further reuse.
 struct CommandControl {
@@ -128,8 +131,7 @@ struct CommandControl {
   bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
 };
 
-using OptionalCommandControl = boost::optional<CommandControl>;
-using SharedCommandControl = std::shared_ptr<const CommandControl>;
+using OptionalCommandControl = std::optional<CommandControl>;
 
 struct PoolSettings {
   size_t min_size = 0;

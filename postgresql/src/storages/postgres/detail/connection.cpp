@@ -232,7 +232,7 @@ struct Connection::Impl {
     }
   }
 
-  void SetDefaultCommandControl(const CommandControl& cmd_ctl) {
+  void SetDefaultCommandControl(CommandControl cmd_ctl) {
     if (cmd_ctl != default_cmd_ctl_) {
       SetConnectionStatementTimeout(
           cmd_ctl.statement,
@@ -799,7 +799,7 @@ CommandControl Connection::GetDefaultCommandControl() const {
   return pimpl_->default_cmd_ctl_;
 }
 
-void Connection::SetDefaultCommandControl(const CommandControl& cmd_ctl) {
+void Connection::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl);
 }
 
@@ -830,13 +830,6 @@ ResultSet Connection::Execute(const std::string& statement,
                               OptionalCommandControl statement_cmd_ctl) {
   return pimpl_->ExecuteCommand(statement, params,
                                 std::move(statement_cmd_ctl));
-}
-
-ResultSet Connection::Execute(const std::string& statement,
-                              const detail::QueryParameters& params,
-                              engine::Deadline deadline,
-                              OptionalCommandControl statement_cmd_ctl) {
-  return pimpl_->ExecuteCommand(statement, params, deadline, statement_cmd_ctl);
 }
 
 void Connection::SetParameter(const std::string& param,

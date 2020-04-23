@@ -1,5 +1,7 @@
 #include <storages/postgres/component.hpp>
 
+#include <optional>
+
 #include <components/manager.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_config.hpp>
@@ -189,8 +191,7 @@ Postgres::Postgres(const ComponentConfig& config,
 
   error_injection::Settings ei_settings;
   auto ei_settings_opt =
-      config.Parse<boost::optional<error_injection::Settings>>(
-          "error-injection");
+      config.Parse<std::optional<error_injection::Settings>>("error-injection");
   if (ei_settings_opt) ei_settings = *ei_settings_opt;
 
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
@@ -261,7 +262,10 @@ storages::postgres::CommandControl Postgres::GetCommandControlConfig(
 }
 
 void Postgres::OnConfigUpdate(const TaxiConfigPtr& cfg) {
-  SetDefaultCommandControl(GetCommandControlConfig(cfg));
+  const auto cmd_ctl = GetCommandControlConfig(cfg);
+  for (const auto& cluster : database_->clusters_) {
+    cluster->ApplyGlobalCommandControlUpdate(cmd_ctl);
+  }
 }
 
 }  // namespace components
