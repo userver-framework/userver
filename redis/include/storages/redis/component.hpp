@@ -22,6 +22,7 @@ namespace storages {
 namespace redis {
 class Client;
 class SubscribeClient;
+class SubscribeClientImpl;
 }  // namespace redis
 }  // namespace storages
 
@@ -66,7 +67,7 @@ class Redis : public LoggableComponentBase {
   std::unordered_map<std::string, std::shared_ptr<storages::redis::Client>>
       clients_;
   std::unordered_map<std::string,
-                     std::shared_ptr<storages::redis::SubscribeClient>>
+                     std::shared_ptr<storages::redis::SubscribeClientImpl>>
       subscribe_clients_;
 
   TaxiConfig& config_;

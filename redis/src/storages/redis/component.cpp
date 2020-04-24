@@ -26,6 +26,7 @@
 
 #include "client_impl.hpp"
 #include "redis_secdist.hpp"
+#include "subscribe_client_impl.hpp"
 
 namespace {
 
@@ -321,7 +322,7 @@ std::shared_ptr<storages::redis::SubscribeClient> Redis::GetSubscribeClient(
   if (it == subscribe_clients_.end())
     throw std::runtime_error(name + " redis subscribe-client not found");
   it->second->WaitConnectedOnce(wait_connected);
-  return it->second;
+  return std::static_pointer_cast<storages::redis::SubscribeClient>(it->second);
 }
 
 void Redis::Connect(const ComponentConfig& config,
@@ -374,8 +375,9 @@ void Redis::Connect(const ComponentConfig& config,
         testsuite_redis_control);
     if (sentinel)
       subscribe_clients_.emplace(
-          redis_group.db, std::make_shared<storages::redis::SubscribeClient>(
-                              std::move(sentinel)));
+          redis_group.db,
+          std::make_shared<storages::redis::SubscribeClientImpl>(
+              std::move(sentinel)));
     else
       LOG_WARNING() << "skip subscribe-redis client for " << redis_group.db;
   }
