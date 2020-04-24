@@ -4,6 +4,10 @@ project(yandex-taxi-userver-universal)
 
 option(USE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
 
+set(UNIVERSAL_THIRD_PARTY_DIR
+  ${CMAKE_CURRENT_SOURCE_DIR}/../third_party
+)
+
 if(NOT TARGET yandex-taxi-userver-core)
   # minimal setup
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -113,11 +117,6 @@ set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${UNIVERSAL_PUBLIC_INCLUDE_DIRS}
 )
-
-set(UNIVERSAL_THIRD_PARTY_DIR
-  ${CMAKE_CURRENT_SOURCE_DIR}/../third_party
-)
-
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${UNIVERSAL_THIRD_PARTY_DIR}/rapidjson/include
