@@ -29,7 +29,10 @@ if(NOT TARGET yandex-taxi-userver-core)
 
   # boost.stacktrace
   add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/boost_stacktrace ${CMAKE_CURRENT_BINARY_DIR}/boost_stacktrace)
-  set_property(TARGET yandex-taxi-stacktrace PROPERTY POSITION_INDEPENDENT_CODE ON)
+  set_target_properties(yandex-taxi-stacktrace PROPERTIES
+    CXX_EXTENSIONS OFF
+    POSITION_INDEPENDENT_CODE ON
+  )
 
   # external-deps codegen
   set(userver_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -79,6 +82,9 @@ find_package_required_version(Http_Parser
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES
   LINKER_LANGUAGE CXX
+  CXX_STANDARD 17
+  CXX_STANDARD_REQUIRED ON
+  CXX_EXTENSIONS OFF
   POSITION_INDEPENDENT_CODE ON
 )
 
