@@ -13,7 +13,7 @@ namespace crypto::base64 {
 namespace {
 
 template <typename Base64Encoder>
-std::string Base64Encode(utils::string_view data, Pad pad) {
+std::string Base64Encode(std::string_view data, Pad pad) {
   std::string response;
   try {
     Base64Encoder encoder(new CryptoPP::StringSink(response));
@@ -30,7 +30,7 @@ std::string Base64Encode(utils::string_view data, Pad pad) {
 }
 
 template <typename Base64Decoder>
-std::string Base64Decode(utils::string_view data) {
+std::string Base64Decode(std::string_view data) {
   std::string response;
   try {
     Base64Decoder decoder(new CryptoPP::StringSink(response));
@@ -44,19 +44,19 @@ std::string Base64Decode(utils::string_view data) {
 
 }  // namespace
 
-std::string Base64Encode(utils::string_view data, Pad pad) {
+std::string Base64Encode(std::string_view data, Pad pad) {
   return Base64Encode<CryptoPP::Base64Encoder>(data, pad);
 }
 
-std::string Base64Decode(utils::string_view data) {
+std::string Base64Decode(std::string_view data) {
   return Base64Decode<CryptoPP::Base64Decoder>(data);
 }
 
-std::string Base64UrlEncode(utils::string_view data, Pad pad) {
+std::string Base64UrlEncode(std::string_view data, Pad pad) {
   return Base64Encode<CryptoPP::Base64URLEncoder>(data, pad);
 }
 
-std::string Base64UrlDecode(utils::string_view data) {
+std::string Base64UrlDecode(std::string_view data) {
   return Base64Decode<CryptoPP::Base64URLDecoder>(data);
 }
 

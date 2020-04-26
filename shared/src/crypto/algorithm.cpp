@@ -8,8 +8,7 @@ using CryptoPP::byte;
 
 namespace crypto::algorithm {
 
-bool AreStringsEqualConstTime(utils::string_view str1,
-                              utils::string_view str2) {
+bool AreStringsEqualConstTime(std::string_view str1, std::string_view str2) {
   if (str1.size() != str2.size()) return false;
   return CryptoPP::VerifyBufsEqual(reinterpret_cast<const byte*>(str1.data()),
                                    reinterpret_cast<const byte*>(str2.data()),

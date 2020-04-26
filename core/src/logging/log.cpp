@@ -14,7 +14,6 @@
 #include <tracing/span.hpp>
 #include <utils/assert.hpp>
 #include <utils/datetime.hpp>
-#include <utils/string_view.hpp>
 #include <utils/traceful_exception.hpp>
 #include "log_workaround.hpp"
 
@@ -285,7 +284,7 @@ void LogHelper::PutSigned(long long value) {
   PutUnsigned(value_as_unsigned);
 }
 
-void LogHelper::Put(utils::string_view value) {
+void LogHelper::Put(std::string_view value) {
   pimpl_->xsputn(value.data(), value.size());
 }
 
@@ -295,7 +294,7 @@ void LogHelper::PutException(const std::exception& ex) {
   const auto* traceful = dynamic_cast<const utils::TracefulExceptionBase*>(&ex);
   if (traceful) {
     const auto& message_buffer = traceful->MessageBuffer();
-    Put(utils::string_view(message_buffer.data(), message_buffer.size()));
+    Put(std::string_view(message_buffer.data(), message_buffer.size()));
     extra_.Extend(impl::MakeLogExtraStacktrace(
         traceful->Trace(), impl::LogExtraStacktraceFlags::kFrozen));
   } else {

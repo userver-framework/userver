@@ -5,11 +5,11 @@
 
 #include <iosfwd>
 #include <string>
+#include <string_view>
 
 #include <formats/bson/document.hpp>
 #include <formats/bson/value.hpp>
 #include <utils/fast_pimpl.hpp>
-#include <utils/string_view.hpp>
 
 namespace formats::bson {
 
@@ -21,14 +21,14 @@ class JsonString;
 /// BSON types for values. It is strongly recommended to write your own
 /// conversion routines matching your schemas.
 /// @warning Stability of heuristics is not guaranteed, this is provided as-is.
-Document FromJsonString(utils::string_view json);
+Document FromJsonString(std::string_view json);
 
 /// Applies heuristics to convert JSON string to BSON array.
 /// As JSON have rather lax typing, some heuristics are applied to guess correct
 /// BSON types for values. It is strongly recommended to write your own
 /// conversion routines matching your schemas.
 /// @warning Stability of heuristics is not guaranteed, this is provided as-is.
-Value ArrayFromJsonString(utils::string_view json);
+Value ArrayFromJsonString(std::string_view json);
 
 /// Converts BSON to a canonical MongoDB Extended JSON format.
 /// @see
@@ -73,7 +73,7 @@ class JsonString {
   std::string ToString() const;
 
   /// Returns a view of the string
-  utils::string_view GetView() const;
+  std::string_view GetView() const;
 
   const char* Data() const;
   size_t Size() const;

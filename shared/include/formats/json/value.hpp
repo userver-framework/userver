@@ -3,6 +3,7 @@
 /// @file formats/json/value.hpp
 /// @brief @copybrief formats::json::Value
 
+#include <string_view>
 #include <type_traits>
 
 #include <formats/common/meta.hpp>
@@ -10,8 +11,6 @@
 #include <formats/json/iterator.hpp>
 #include <formats/json/types.hpp>
 #include <formats/parse/common.hpp>
-
-#include <utils/string_view.hpp>
 
 namespace formats::json {
 
@@ -220,7 +219,7 @@ class Value final {
   friend class Iterator<IterTraits>;
   friend class ValueBuilder;
 
-  friend formats::json::Value FromString(utils::string_view);
+  friend formats::json::Value FromString(std::string_view);
   friend formats::json::Value FromStream(std::istream&);
   friend void Serialize(const formats::json::Value&, std::ostream&);
   friend std::string ToString(const formats::json::Value&);

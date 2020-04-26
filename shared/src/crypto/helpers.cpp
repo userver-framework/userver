@@ -100,12 +100,12 @@ const EVP_MD* GetShaMdByEnum(DigestSize bits) {
 }
 
 // TODO: remove after finishing the https://st.yandex-team.ru/TAXICOMMON-1754
-std::string InitListToString(std::initializer_list<utils::string_view> data) {
+std::string InitListToString(std::initializer_list<std::string_view> data) {
   std::string combined_value;
 
   const auto combined_value_size =
       std::accumulate(data.begin(), data.end(), std::size_t{0},
-                      [](std::size_t len, utils::string_view value) {
+                      [](std::size_t len, std::string_view value) {
                         return len + value.size();
                       });
 
@@ -147,7 +147,7 @@ bool IsMatchingKeyCurve(EVP_PKEY* pkey, DigestSize bits) {
 }
 
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
-    utils::string_view str) {
+    std::string_view str) {
   return {::BIO_new_mem_buf(str.data(), str.size()), &::BIO_free_all};
 }
 

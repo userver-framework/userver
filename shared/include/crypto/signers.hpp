@@ -6,11 +6,11 @@
 #include <initializer_list>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include <crypto/basic_types.hpp>
 #include <crypto/exception.hpp>
 #include <crypto/private_key.hpp>
-#include <utils/string_view.hpp>
 
 namespace crypto {
 
@@ -21,7 +21,7 @@ class Signer : public NamedAlgo {
   virtual ~Signer();
 
   virtual std::string Sign(
-      std::initializer_list<utils::string_view> data) const = 0;
+      std::initializer_list<std::string_view> data) const = 0;
 };
 
 /// "none" algorithm signer
@@ -29,8 +29,7 @@ class SignerNone final : public Signer {
  public:
   SignerNone();
 
-  std::string Sign(
-      std::initializer_list<utils::string_view> data) const override;
+  std::string Sign(std::initializer_list<std::string_view> data) const override;
 };
 
 /// HMAC-SHA signer
@@ -41,8 +40,7 @@ class HmacShaSigner final : public Signer {
   explicit HmacShaSigner(std::string secret);
   virtual ~HmacShaSigner();
 
-  std::string Sign(
-      std::initializer_list<utils::string_view> data) const override;
+  std::string Sign(std::initializer_list<std::string_view> data) const override;
 
  private:
   std::string secret_;
@@ -63,8 +61,7 @@ class DsaSigner final : public Signer {
   explicit DsaSigner(const std::string& privkey,
                      const std::string& password = {});
 
-  std::string Sign(
-      std::initializer_list<utils::string_view> data) const override;
+  std::string Sign(std::initializer_list<std::string_view> data) const override;
 
  private:
   PrivateKey pkey_;

@@ -9,7 +9,7 @@ namespace tt = io::traits;
 namespace static_test {
 
 static_assert(tt::kIsByteaCompatible<std::string>);
-static_assert(tt::kIsByteaCompatible<::utils::string_view>);
+static_assert(tt::kIsByteaCompatible<std::string_view>);
 static_assert(tt::kIsByteaCompatible<std::vector<char>>);
 static_assert(tt::kIsByteaCompatible<std::vector<unsigned char>>);
 static_assert(!tt::kIsByteaCompatible<std::vector<bool>>);
@@ -39,12 +39,12 @@ TEST(PostgreIO, Bytea) {
   }
   {
     pg::test::Buffer buffer;
-    ::utils::string_view bin_str{kFooBar.data(), kFooBar.size()};
+    std::string_view bin_str{kFooBar.data(), kFooBar.size()};
     EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
-    ::utils::string_view tgt_str;
+    std::string_view tgt_str;
     EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }

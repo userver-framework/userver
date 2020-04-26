@@ -25,8 +25,8 @@ Verifier::~Verifier() = default;
 ///
 
 VerifierNone::VerifierNone() : Verifier("none") {}
-void VerifierNone::Verify(std::initializer_list<utils::string_view> /*encoded*/,
-                          utils::string_view raw_signature) const {
+void VerifierNone::Verify(std::initializer_list<std::string_view> /*encoded*/,
+                          std::string_view raw_signature) const {
   if (!raw_signature.empty()) throw VerificationError("Signature is not empty");
 }
 
@@ -45,12 +45,12 @@ HmacShaVerifier<bits>::~HmacShaVerifier() {
 
 template <DigestSize bits>
 void HmacShaVerifier<bits>::Verify(
-    std::initializer_list<utils::string_view> encoded,
-    utils::string_view raw_signature) const {
+    std::initializer_list<std::string_view> encoded,
+    std::string_view raw_signature) const {
   const auto hmac = GetHmacFuncByEnum(bits);
   std::string signature;
   if (encoded.size() <= 1) {
-    utils::string_view single_value{};
+    std::string_view single_value{};
     if (encoded.size() == 1) {
       single_value = *encoded.begin();
     }
@@ -99,8 +99,8 @@ DsaVerifier<type, bits>::DsaVerifier(const std::string& key)
 
 template <DsaType type, DigestSize bits>
 void DsaVerifier<type, bits>::Verify(
-    std::initializer_list<utils::string_view> encoded,
-    utils::string_view raw_signature) const {
+    std::initializer_list<std::string_view> encoded,
+    std::string_view raw_signature) const {
   EvpMdCtx ctx;
   EVP_PKEY_CTX* pkey_ctx = nullptr;
   if (1 != EVP_DigestVerifyInit(ctx.Get(), &pkey_ctx, GetShaMdByEnum(bits),

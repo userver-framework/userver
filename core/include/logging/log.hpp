@@ -8,12 +8,12 @@
 #include <memory>
 #include <optional>
 #include <ostream>
+#include <string_view>
 
 #include <boost/system/error_code.hpp>
 
 #include <utils/encoding/hex.hpp>
 #include <utils/encoding/tskv.hpp>
-#include <utils/string_view.hpp>
 
 #include "level.hpp"
 #include "log_extra.hpp"
@@ -73,7 +73,7 @@ class LogHelper final {
     EncodingGuard guard{*this, encode ? Encode::kValue : Encode::kNone};
 
     constexpr bool is_char_like =
-        std::is_constructible<utils::string_view, T>::value ||
+        std::is_constructible<std::string_view, T>::value ||
         std::is_same<char, T>::value || std::is_same<signed char, T>::value ||
         std::is_same<unsigned char, T>::value;
 
@@ -141,7 +141,7 @@ class LogHelper final {
   void PutFloatingPoint(long double value);
   void PutUnsigned(unsigned long long value);
   void PutSigned(long long value);
-  void Put(utils::string_view value);
+  void Put(std::string_view value);
   void Put(char value);
   void PutException(const std::exception& ex);
 

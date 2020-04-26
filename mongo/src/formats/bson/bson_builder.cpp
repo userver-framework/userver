@@ -55,27 +55,27 @@ BsonBuilder::BsonBuilder(BsonBuilder&&) noexcept = default;
 BsonBuilder& BsonBuilder::operator=(const BsonBuilder&) = default;
 BsonBuilder& BsonBuilder::operator=(BsonBuilder&&) noexcept = default;
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, std::nullptr_t) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, std::nullptr_t) {
   bson_append_null(bson_->Get(), key.data(), key.size());
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, bool value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, bool value) {
   bson_append_bool(bson_->Get(), key.data(), key.size(), value);
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, int32_t value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, int32_t value) {
   bson_append_int32(bson_->Get(), key.data(), key.size(), value);
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, int64_t value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, int64_t value) {
   bson_append_int64(bson_->Get(), key.data(), key.size(), value);
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, uint64_t value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, uint64_t value) {
   if (value > std::numeric_limits<int64_t>::max()) {
     throw BsonException("The value ")
         << value << " of '" << key << "' is too high for BSON";
@@ -84,33 +84,32 @@ BsonBuilder& BsonBuilder::Append(utils::string_view key, uint64_t value) {
 }
 
 #ifdef _LIBCPP_VERSION
-BsonBuilder& BsonBuilder::Append(utils::string_view key, long value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, long value) {
 #else
-BsonBuilder& BsonBuilder::Append(utils::string_view key, long long value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, long long value) {
 #endif
   return Append(key, int64_t{value});
 }
 
 #ifdef _LIBCPP_VERSION
-BsonBuilder& BsonBuilder::Append(utils::string_view key, unsigned long value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, unsigned long value) {
 #else
-BsonBuilder& BsonBuilder::Append(utils::string_view key,
+BsonBuilder& BsonBuilder::Append(std::string_view key,
                                  unsigned long long value) {
 #endif
   return Append(key, uint64_t{value});
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, double value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, double value) {
   bson_append_double(bson_->Get(), key.data(), key.size(), value);
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, const char* value) {
-  return Append(key, utils::string_view(value));
+BsonBuilder& BsonBuilder::Append(std::string_view key, const char* value) {
+  return Append(key, std::string_view(value));
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key,
-                                 utils::string_view value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, std::string_view value) {
   if (!utils::text::utf8::IsValid(
           reinterpret_cast<const unsigned char*>(value.data()), value.size())) {
     throw BsonException("BSON strings must be valid UTF-8");
@@ -121,8 +120,7 @@ BsonBuilder& BsonBuilder::Append(utils::string_view key,
 }
 
 BsonBuilder& BsonBuilder::Append(
-    utils::string_view key,
-    const std::chrono::system_clock::time_point& value) {
+    std::string_view key, const std::chrono::system_clock::time_point& value) {
   int64_t ms_since_epoch =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           value.time_since_epoch())
@@ -131,59 +129,57 @@ BsonBuilder& BsonBuilder::Append(
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, const Oid& value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, const Oid& value) {
   bson_append_oid(bson_->Get(), key.data(), key.size(), value.GetNative());
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, const Binary& value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, const Binary& value) {
   bson_append_binary(bson_->Get(), key.data(), key.size(), BSON_SUBTYPE_BINARY,
                      value.Data(), value.Size());
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key,
+BsonBuilder& BsonBuilder::Append(std::string_view key,
                                  const Decimal128& value) {
   bson_append_decimal128(bson_->Get(), key.data(), key.size(),
                          value.GetNative());
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, MinKey) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, MinKey) {
   bson_append_minkey(bson_->Get(), key.data(), key.size());
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, MaxKey) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, MaxKey) {
   bson_append_maxkey(bson_->Get(), key.data(), key.size());
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key,
-                                 const Timestamp& value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, const Timestamp& value) {
   bson_append_timestamp(bson_->Get(), key.data(), key.size(),
                         value.GetTimestamp(), value.GetIncrement());
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key, const Value& value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, const Value& value) {
   value.impl_->CheckNotMissing();
   bson_append_value(bson_->Get(), key.data(), key.size(),
                     value.impl_->GetNative());
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(utils::string_view key,
-                                 const bson_t* sub_bson) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, const bson_t* sub_bson) {
   bson_append_document(bson_->Get(), key.data(), key.size(), sub_bson);
   return *this;
 }
 
-void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
+void BsonBuilder::AppendInto(bson_t* dest, std::string_view key,
                              const ValueImpl& value) {
   class Visitor {
    public:
-    Visitor(BsonBuilder& builder, bson_t* dest, utils::string_view key,
+    Visitor(BsonBuilder& builder, bson_t* dest, std::string_view key,
             const bson_value_t* bson_value)
         : builder_(builder), dest_(dest), key_(key), bson_value_(bson_value) {}
 
@@ -210,7 +206,7 @@ void BsonBuilder::AppendInto(bson_t* dest, utils::string_view key,
    private:
     BsonBuilder& builder_;
     bson_t* dest_;
-    utils::string_view key_;
+    std::string_view key_;
     const bson_value_t* bson_value_;
   };
   if (value.IsMissing()) return;

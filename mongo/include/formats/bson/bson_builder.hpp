@@ -5,11 +5,11 @@
 
 #include <chrono>
 #include <cstddef>
+#include <string_view>
 
 #include <formats/bson/types.hpp>
 #include <formats/bson/value.hpp>
 #include <utils/fast_pimpl.hpp>
-#include <utils/string_view.hpp>
 
 namespace formats::bson::impl {
 
@@ -26,33 +26,33 @@ class BsonBuilder {
   BsonBuilder& operator=(const BsonBuilder&);
   BsonBuilder& operator=(BsonBuilder&&) noexcept;
 
-  BsonBuilder& Append(utils::string_view key, std::nullptr_t);
-  BsonBuilder& Append(utils::string_view key, bool);
-  BsonBuilder& Append(utils::string_view key, int32_t);
-  BsonBuilder& Append(utils::string_view key, int64_t);
-  BsonBuilder& Append(utils::string_view key, uint64_t);
+  BsonBuilder& Append(std::string_view key, std::nullptr_t);
+  BsonBuilder& Append(std::string_view key, bool);
+  BsonBuilder& Append(std::string_view key, int32_t);
+  BsonBuilder& Append(std::string_view key, int64_t);
+  BsonBuilder& Append(std::string_view key, uint64_t);
 #ifdef _LIBCPP_VERSION
-  BsonBuilder& Append(utils::string_view key, long);
-  BsonBuilder& Append(utils::string_view key, unsigned long);
+  BsonBuilder& Append(std::string_view key, long);
+  BsonBuilder& Append(std::string_view key, unsigned long);
 #else
-  BsonBuilder& Append(utils::string_view key, long long);
-  BsonBuilder& Append(utils::string_view key, unsigned long long);
+  BsonBuilder& Append(std::string_view key, long long);
+  BsonBuilder& Append(std::string_view key, unsigned long long);
 #endif
-  BsonBuilder& Append(utils::string_view key, double);
-  BsonBuilder& Append(utils::string_view key, const char*);
-  BsonBuilder& Append(utils::string_view key, utils::string_view);
-  BsonBuilder& Append(utils::string_view key,
+  BsonBuilder& Append(std::string_view key, double);
+  BsonBuilder& Append(std::string_view key, const char*);
+  BsonBuilder& Append(std::string_view key, std::string_view);
+  BsonBuilder& Append(std::string_view key,
                       const std::chrono::system_clock::time_point&);
-  BsonBuilder& Append(utils::string_view key, const Oid&);
-  BsonBuilder& Append(utils::string_view key, const Binary&);
-  BsonBuilder& Append(utils::string_view key, const Decimal128&);
-  BsonBuilder& Append(utils::string_view key, MinKey);
-  BsonBuilder& Append(utils::string_view key, MaxKey);
-  BsonBuilder& Append(utils::string_view key, const Timestamp&);
+  BsonBuilder& Append(std::string_view key, const Oid&);
+  BsonBuilder& Append(std::string_view key, const Binary&);
+  BsonBuilder& Append(std::string_view key, const Decimal128&);
+  BsonBuilder& Append(std::string_view key, MinKey);
+  BsonBuilder& Append(std::string_view key, MaxKey);
+  BsonBuilder& Append(std::string_view key, const Timestamp&);
 
-  BsonBuilder& Append(utils::string_view key, const Value&);
+  BsonBuilder& Append(std::string_view key, const Value&);
 
-  BsonBuilder& Append(utils::string_view key, const bson_t*);
+  BsonBuilder& Append(std::string_view key, const bson_t*);
 
   const bson_t* Get() const;
   bson_t* Get();
@@ -60,7 +60,7 @@ class BsonBuilder {
   BsonHolder Extract();
 
  private:
-  void AppendInto(bson_t*, utils::string_view key, const ValueImpl&);
+  void AppendInto(bson_t*, std::string_view key, const ValueImpl&);
 
   static constexpr size_t kSize = 8;
   static constexpr size_t kAlignment = 8;

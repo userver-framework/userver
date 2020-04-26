@@ -3,12 +3,13 @@
 /// @file formats/bson/inline.hpp
 /// @brief Inline value builders
 
+#include <string_view>
+
 #include <formats/bson/bson_builder.hpp>
 #include <formats/bson/document.hpp>
 #include <formats/bson/types.hpp>
 #include <formats/bson/value.hpp>
 #include <utils/fast_pimpl.hpp>
-#include <utils/string_view.hpp>
 
 namespace formats::bson {
 
@@ -24,7 +25,7 @@ namespace impl {
 
 class InlineDocBuilder {
  public:
-  using Key = utils::string_view;
+  using Key = std::string_view;
 
   Document Build();
 
@@ -52,7 +53,7 @@ class InlineArrayBuilder {
   }
 
  private:
-  utils::string_view GetKey();
+  std::string_view GetKey();
 
   class Helper;
   static constexpr size_t kSize = 20;

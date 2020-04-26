@@ -19,7 +19,7 @@ Value InlineArrayBuilder::Build() {
                                            ValueImpl::DocumentKind::kArray));
 }
 
-utils::string_view InlineArrayBuilder::GetKey() {
+std::string_view InlineArrayBuilder::GetKey() {
   auto key = helper_->GetKey();
   helper_->Advance();
   return key;

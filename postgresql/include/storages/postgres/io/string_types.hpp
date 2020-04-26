@@ -5,13 +5,12 @@
 
 #include <cstring>
 #include <string>
+#include <string_view>
 
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
-
-#include <utils/string_view.hpp>
 
 namespace storages {
 namespace postgres {
@@ -87,9 +86,9 @@ struct BufferParser<std::string> {
 //@{
 /** @name string_view I/O */
 template <>
-struct BufferFormatter<::utils::string_view>
-    : detail::BufferFormatterBase<::utils::string_view> {
-  using BaseType = detail::BufferFormatterBase<::utils::string_view>;
+struct BufferFormatter<std::string_view>
+    : detail::BufferFormatterBase<std::string_view> {
+  using BaseType = detail::BufferFormatterBase<std::string_view>;
   using CharFormatter = BufferFormatter<const char*>;
 
   using BaseType::BaseType;
@@ -101,9 +100,9 @@ struct BufferFormatter<::utils::string_view>
 };
 
 template <>
-struct BufferParser<::utils::string_view>
-    : detail::BufferParserBase<::utils::string_view> {
-  using BaseType = detail::BufferParserBase<::utils::string_view>;
+struct BufferParser<std::string_view>
+    : detail::BufferParserBase<std::string_view> {
+  using BaseType = detail::BufferParserBase<std::string_view>;
   using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {

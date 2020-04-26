@@ -19,7 +19,7 @@ int NoPasswordCb(char* /*buf*/, int /*size*/, int /*rwflag*/, void*) {
 
 }  // namespace
 
-Certificate Certificate::LoadFromString(utils::string_view certificate) {
+Certificate Certificate::LoadFromString(std::string_view certificate) {
   impl::OpensslLock::Init();
 
   if (!boost::starts_with(certificate, "-----BEGIN CERTIFICATE-----")) {

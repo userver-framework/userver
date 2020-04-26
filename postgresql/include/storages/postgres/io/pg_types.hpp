@@ -4,11 +4,12 @@
 /// @brief Postgres-specific types I/O support
 
 #include <cstdint>
-#include <storages/postgres/detail/db_data_type_name.hpp>
 #include <string>
+#include <string_view>
+
+#include <storages/postgres/detail/db_data_type_name.hpp>
 
 #include <utils/algo.hpp>
-#include <utils/string_view.hpp>
 
 namespace storages::postgres {
 
@@ -31,12 +32,11 @@ using Float8 = double;
 
 /// @brief Identity for a PostgreSQL type name
 struct DBTypeName {
-  const ::utils::string_view schema;
-  const ::utils::string_view name;
+  const std::string_view schema;
+  const std::string_view name;
 
   constexpr DBTypeName() : schema{}, name{} {}
-  explicit constexpr DBTypeName(
-      std::pair<::utils::string_view, ::utils::string_view> n)
+  explicit constexpr DBTypeName(std::pair<std::string_view, std::string_view> n)
       : schema(n.first), name(n.second) {}
   /// Implicit constructor from a string literal, to enable declarations like
   /// @code

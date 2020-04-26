@@ -3,6 +3,7 @@
 /// @file storages/postgres/io/enum_types.hpp
 /// @brief Enum I/O support
 
+#include <string_view>
 #include <unordered_map>
 
 #include <storages/postgres/io/buffer_io.hpp>
@@ -14,7 +15,6 @@
 #include <storages/postgres/detail/string_hash.hpp>
 
 #include <utils/algo.hpp>
-#include <utils/string_view.hpp>
 
 namespace storages::postgres::io {
 
@@ -55,7 +55,7 @@ namespace detail {
 template <typename Enum>
 struct Enumerator {
   Enum enumerator;
-  ::utils::string_view literal;
+  std::string_view literal;
 
   constexpr Enumerator(Enum en, const char* lit)
       : enumerator{en}, literal{lit, ::utils::StrLen(lit)} {}
@@ -99,7 +99,7 @@ class EnumerationMap {
                 "CppToUserPg for an enumeration must contain a static "
                 "`enumerators` member");
 
-  using StringType = ::utils::string_view;
+  using StringType = std::string_view;
   using EnumType = Enum;
   using MappingType = CppToUserPg<EnumType>;
   using EnumeratorType = Enumerator<EnumType>;
@@ -164,7 +164,7 @@ struct EnumParser : BufferParserBase<Enum> {
   using BaseType::BaseType;
 
   void operator()(const FieldBuffer& buffer) {
-    ::utils::string_view literal;
+    std::string_view literal;
     io::ReadBuffer(buffer, literal);
     this->value = EnumMap::GetEnumerator(literal);
   }

@@ -25,24 +25,24 @@ const std::string kQualityParamName = "q";
 
 const std::string kTokenAny = "*";
 
-utils::string_view LtrimOws(utils::string_view view) {
+std::string_view LtrimOws(std::string_view view) {
   const auto first_pchar_pos = view.find_first_not_of(kOwsChars);
-  if (first_pchar_pos != utils::string_view::npos) {
+  if (first_pchar_pos != std::string_view::npos) {
     view.remove_prefix(first_pchar_pos);
   }
   return view;
 }
 
-utils::string_view RtrimOws(utils::string_view view) {
+std::string_view RtrimOws(std::string_view view) {
   const auto last_pchar_pos = view.find_last_not_of(kOwsChars);
-  if (last_pchar_pos != utils::string_view::npos) {
+  if (last_pchar_pos != std::string_view::npos) {
     view.remove_suffix(view.size() - (last_pchar_pos + 1));
   }
 
   return view;
 }
 
-int ParseQuality(utils::string_view param_value) {
+int ParseQuality(std::string_view param_value) {
   static constexpr size_t kFullPrecisionLength = 5;  // "1.000"
 
   if (!param_value.empty() && param_value.size() <= kFullPrecisionLength) {
@@ -77,7 +77,7 @@ int ParseQuality(utils::string_view param_value) {
 
 }  // namespace
 
-ContentType::ContentType(utils::string_view unparsed) : quality_(kMaxQuality) {
+ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
   auto delim_pos = unparsed.find('/');
   if (delim_pos == std::string::npos) {
     throw MalformedContentType("Invalid media type: '" + std::string(unparsed) +
@@ -108,7 +108,7 @@ ContentType::ContentType(utils::string_view unparsed) : quality_(kMaxQuality) {
       throw MalformedContentType("Malformed parameter in content type");
     }
     auto param_name = LtrimOws(unparsed.substr(0, param_name_end));
-    if (param_name.find_first_of(kOwsChars) != utils::string_view::npos) {
+    if (param_name.find_first_of(kOwsChars) != std::string_view::npos) {
       throw MalformedContentType("Malformed parameter name in content type: '" +
                                  std::string(param_name) + '\'');
     }
@@ -133,10 +133,10 @@ ContentType::ContentType(utils::string_view unparsed) : quality_(kMaxQuality) {
 }
 
 ContentType::ContentType(const std::string& media_range)
-    : ContentType(utils::string_view(media_range)) {}
+    : ContentType(std::string_view(media_range)) {}
 
 ContentType::ContentType(const char* media_range)
-    : ContentType(utils::string_view(media_range)) {}
+    : ContentType(std::string_view(media_range)) {}
 
 std::string ContentType::MediaType() const {
   return fmt::format("{}/{}", TypeToken(), SubtypeToken());

@@ -2,13 +2,13 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
 #include <crypto/basic_types.hpp>
 #include <crypto/hash.hpp>
-#include <utils/string_view.hpp>
 
 namespace crypto {
 
@@ -31,7 +31,7 @@ class EvpMdCtx {
 decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits);
 const EVP_MD* GetShaMdByEnum(DigestSize bits);
 
-std::string InitListToString(std::initializer_list<utils::string_view> data);
+std::string InitListToString(std::initializer_list<std::string_view> data);
 
 std::string EnumValueToString(DsaType type);
 std::string EnumValueToString(DigestSize bits);
@@ -39,6 +39,6 @@ std::string EnumValueToString(DigestSize bits);
 bool IsMatchingKeyCurve(EVP_PKEY*, DigestSize bits);
 
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
-    utils::string_view str);
+    std::string_view str);
 
 }  // namespace crypto

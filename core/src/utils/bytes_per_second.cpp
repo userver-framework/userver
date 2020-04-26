@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 #include <stdexcept>
-#include <utils/string_view.hpp>
 
 #include <boost/algorithm/string/case_conv.hpp>
 

@@ -21,7 +21,7 @@ int NoPasswordCb(char* /*buf*/, int /*size*/, int /*rwflag*/, void*) {
 
 }  // namespace
 
-PublicKey PublicKey::LoadFromString(utils::string_view key) {
+PublicKey PublicKey::LoadFromString(std::string_view key) {
   impl::OpensslLock::Init();
 
   if (boost::starts_with(key, "-----BEGIN CERTIFICATE-----")) {

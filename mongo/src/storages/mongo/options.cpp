@@ -68,21 +68,21 @@ WriteConcern& WriteConcern::SetJournal(bool value) {
 }
 
 Projection::Projection(
-    std::initializer_list<utils::string_view> fields_to_include) {
+    std::initializer_list<std::string_view> fields_to_include) {
   for (const auto& field : fields_to_include) Include(field);
 }
 
-Projection& Projection::Include(utils::string_view field) {
+Projection& Projection::Include(std::string_view field) {
   impl::EnsureBuilder(projection_builder_).Append(field, true);
   return *this;
 }
 
-Projection& Projection::Exclude(utils::string_view field) {
+Projection& Projection::Exclude(std::string_view field) {
   impl::EnsureBuilder(projection_builder_).Append(field, false);
   return *this;
 }
 
-Projection& Projection::Slice(utils::string_view field, int32_t limit,
+Projection& Projection::Slice(std::string_view field, int32_t limit,
                               int32_t skip) {
   static const std::string kSliceOp = "$slice";
   formats::bson::Value slice;
@@ -101,7 +101,7 @@ Projection& Projection::Slice(utils::string_view field, int32_t limit,
   return *this;
 }
 
-Projection& Projection::ElemMatch(utils::string_view field,
+Projection& Projection::ElemMatch(std::string_view field,
                                   const formats::bson::Document& pred) {
   static const std::string kElemMatchOp = "$elemMatch";
   impl::EnsureBuilder(projection_builder_)
@@ -114,11 +114,11 @@ const bson_t* Projection::GetProjectionBson() const {
 }
 
 Sort::Sort(
-    std::initializer_list<std::pair<utils::string_view, Direction>> order) {
+    std::initializer_list<std::pair<std::string_view, Direction>> order) {
   for (auto& [field, direction] : order) By(field, direction);
 }
 
-Sort& Sort::By(utils::string_view field, Direction direction) {
+Sort& Sort::By(std::string_view field, Direction direction) {
   impl::EnsureBuilder(sort_builder_)
       .Append(field,
               direction == options::Sort::Direction::kAscending ? 1 : -1);

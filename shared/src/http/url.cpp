@@ -6,7 +6,7 @@ namespace http {
  * https://github.yandex-team.ru/InfraComponents/fastcgi-daemon2/blob/master/library/util.cpp
  */
 
-std::string UrlEncode(utils::string_view input_string) {
+std::string UrlEncode(std::string_view input_string) {
   std::string result;
   result.reserve(3 * input_string.size());
 
@@ -40,7 +40,7 @@ std::string UrlEncode(utils::string_view input_string) {
   return result;
 }
 
-std::string UrlDecode(utils::string_view range) {
+std::string UrlDecode(std::string_view range) {
   std::string result;
   for (const char *i = range.begin(), *end = range.end(); i != end; ++i) {
     switch (*i) {
@@ -83,19 +83,19 @@ std::string DoMakeQuery(T begin, T end) {
 }
 
 template <typename T>
-std::string MakeUrl(utils::string_view path, T begin, T end) {
+std::string MakeUrl(std::string_view path, T begin, T end) {
   return std::string(path) + '?' + DoMakeQuery(begin, end);
 }
 
 }  // namespace
 
-std::string MakeUrl(utils::string_view path, const Args& query_args) {
+std::string MakeUrl(std::string_view path, const Args& query_args) {
   return MakeUrl(path, query_args.begin(), query_args.end());
 }
 
 std::string MakeUrl(
-    utils::string_view path,
-    std::initializer_list<std::pair<utils::string_view, utils::string_view>>
+    std::string_view path,
+    std::initializer_list<std::pair<std::string_view, std::string_view>>
         query_args) {
   return MakeUrl(path, query_args.begin(), query_args.end());
 }
@@ -105,7 +105,7 @@ std::string MakeQuery(const Args& query_args) {
 }
 
 std::string MakeQuery(
-    std::initializer_list<std::pair<utils::string_view, utils::string_view>>
+    std::initializer_list<std::pair<std::string_view, std::string_view>>
         query_args) {
   return DoMakeQuery(query_args.begin(), query_args.end());
 }

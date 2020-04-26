@@ -4,14 +4,13 @@
 /// @brief Bytea I/O support
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
-
-#include <utils/string_view.hpp>
 
 namespace storages::postgres {
 
@@ -44,7 +43,7 @@ struct IsByteaCompatible : std::false_type {};
 template <>
 struct IsByteaCompatible<std::string> : std::true_type {};
 template <>
-struct IsByteaCompatible<::utils::string_view> : std::true_type {};
+struct IsByteaCompatible<std::string_view> : std::true_type {};
 template <typename... VectorArgs>
 struct IsByteaCompatible<std::vector<char, VectorArgs...>> : std::true_type {};
 template <typename... VectorArgs>
@@ -119,8 +118,8 @@ struct BufferParser<
 
   void operator()(const FieldBuffer& buffer) {
     if constexpr (std::is_same<typename ByteaType::BytesType,
-                               ::utils::string_view>{}) {
-      this->value.bytes = ::utils::string_view{
+                               std::string_view>{}) {
+      this->value.bytes = std::string_view{
           reinterpret_cast<const char*>(buffer.buffer), buffer.length};
     } else {
       this->value.bytes.resize(buffer.length);

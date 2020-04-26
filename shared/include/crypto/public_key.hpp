@@ -4,9 +4,9 @@
 /// @brief @copybrief crypto::PublicKey
 
 #include <memory>
+#include <string_view>
 
 #include <crypto/basic_types.hpp>
-#include <utils/string_view.hpp>
 
 namespace crypto {
 
@@ -27,7 +27,7 @@ class PublicKey {
   /// PublicKey variable.
   ///
   /// @throw crypto::KeyParseError if failed to load the key.
-  static PublicKey LoadFromString(utils::string_view key);
+  static PublicKey LoadFromString(std::string_view key);
 
   /// Extracts PublicKey from certificate.
   ///

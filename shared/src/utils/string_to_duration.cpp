@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 #include <stdexcept>
-#include <utils/string_view.hpp>
+#include <string_view>
 
 namespace utils {
 
@@ -36,7 +36,7 @@ std::chrono::milliseconds StringToDuration(const std::string& data) {
     throw std::logic_error("StringToDuration: '" + data + "' is negative");
   }
 
-  const utils::string_view remained{data.c_str() + parsed_size};
+  const std::string_view remained{data.c_str() + parsed_size};
 
   if (remained.empty() || remained == "s") {
     return checked_convert(std::chrono::seconds{new_to}, data);

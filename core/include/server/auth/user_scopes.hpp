@@ -2,10 +2,10 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <formats/parse/to.hpp>
-#include <utils/string_view.hpp>
 
 namespace server {
 namespace auth {
@@ -28,19 +28,19 @@ inline bool operator!=(const UserScope& lhs, const UserScope& rhs) {
   return lhs.GetValue() != rhs.GetValue();
 }
 
-inline bool operator==(const UserScope& lhs, utils::string_view rhs) {
+inline bool operator==(const UserScope& lhs, std::string_view rhs) {
   return lhs.GetValue() == rhs;
 }
 
-inline bool operator==(utils::string_view lhs, const UserScope& rhs) {
+inline bool operator==(std::string_view lhs, const UserScope& rhs) {
   return lhs == rhs.GetValue();
 }
 
-inline bool operator!=(const UserScope& lhs, utils::string_view rhs) {
+inline bool operator!=(const UserScope& lhs, std::string_view rhs) {
   return lhs.GetValue() != rhs;
 }
 
-inline bool operator!=(utils::string_view lhs, const UserScope& rhs) {
+inline bool operator!=(std::string_view lhs, const UserScope& rhs) {
   return lhs == rhs.GetValue();
 }
 

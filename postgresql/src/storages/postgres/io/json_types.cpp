@@ -1,6 +1,6 @@
 #include <storages/postgres/io/json_types.hpp>
 
-#include <utils/string_view.hpp>
+#include <string_view>
 
 namespace storages::postgres::io {
 
@@ -29,7 +29,7 @@ void JsonParser::operator()(const FieldBuffer& buffer) {
     --length;
   }
 
-  ::utils::string_view json_string(start, length);
+  std::string_view json_string(start, length);
   value = formats::json::FromString(json_string);
 }
 

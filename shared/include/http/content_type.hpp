@@ -6,8 +6,7 @@
 #include <iosfwd>
 #include <stdexcept>
 #include <string>
-
-#include <utils/string_view.hpp>
+#include <string_view>
 
 namespace http {
 
@@ -22,7 +21,7 @@ class ContentType {
   /// Constructor from a single content-type/media-range header value
   /// as per RFC7231.
   /// @{
-  /* implicit */ ContentType(utils::string_view);
+  /* implicit */ ContentType(std::string_view);
   /* implicit */ ContentType(const std::string&);
   /* implicit */ ContentType(const char*);
   /// @}

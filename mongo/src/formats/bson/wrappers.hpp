@@ -2,12 +2,12 @@
 
 #include <array>
 #include <memory>
+#include <string_view>
 
 #include <bson/bson.h>
 
 #include <formats/bson/exception.hpp>
 #include <formats/bson/types.hpp>
-#include <utils/string_view.hpp>
 
 namespace formats::bson::impl {
 
@@ -89,7 +89,7 @@ class ArrayIndexer {
 
   uint32_t Index() const { return idx_; }
 
-  utils::string_view GetKey() {
+  std::string_view GetKey() {
     const char* key = nullptr;
     const auto len =
         bson_uint32_to_string(idx_, &key, buf_.data(), buf_.size());

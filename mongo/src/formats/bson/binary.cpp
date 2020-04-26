@@ -8,7 +8,7 @@
 
 namespace formats::bson {
 
-Document FromBinaryString(utils::string_view binary) {
+Document FromBinaryString(std::string_view binary) {
   impl::MutableBson native(reinterpret_cast<const uint8_t*>(binary.data()),
                            binary.size());
 
@@ -41,8 +41,8 @@ std::string BsonString::ToString() const {
   return std::string(reinterpret_cast<const char*>(Data()), Size());
 }
 
-utils::string_view BsonString::GetView() const {
-  return utils::string_view(reinterpret_cast<const char*>(Data()), Size());
+std::string_view BsonString::GetView() const {
+  return std::string_view(reinterpret_cast<const char*>(Data()), Size());
 }
 
 const uint8_t* BsonString::Data() const { return bson_get_data(impl_.get()); }

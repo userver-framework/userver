@@ -40,7 +40,7 @@ JsonString ApplyConversionToString(const impl::BsonHolder& bson,
   return JsonString(impl::JsonStringImpl(std::move(data), size));
 }
 
-impl::BsonHolder DoParseJsonString(utils::string_view json) {
+impl::BsonHolder DoParseJsonString(std::string_view json) {
   bson_error_t error;
   auto bson = impl::MutableBson::AdoptNative(bson_new_from_json(
       reinterpret_cast<const uint8_t*>(json.data()), json.size(), &error));
@@ -53,11 +53,11 @@ impl::BsonHolder DoParseJsonString(utils::string_view json) {
 
 }  // namespace
 
-Document FromJsonString(utils::string_view json) {
+Document FromJsonString(std::string_view json) {
   return Document(DoParseJsonString(json));
 }
 
-Value ArrayFromJsonString(utils::string_view json) {
+Value ArrayFromJsonString(std::string_view json) {
   auto value_impl = std::make_shared<impl::ValueImpl>(
       DoParseJsonString(json), impl::ValueImpl::DocumentKind::kArray);
   value_impl->EnsureParsed();  // force validation
@@ -89,8 +89,8 @@ std::string JsonString::ToString() const {
   return std::string(impl_->Data(), impl_->Size());
 }
 
-utils::string_view JsonString::GetView() const {
-  return utils::string_view(impl_->Data(), impl_->Size());
+std::string_view JsonString::GetView() const {
+  return std::string_view(impl_->Data(), impl_->Size());
 }
 
 const char* JsonString::Data() const { return impl_->Data(); }

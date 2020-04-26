@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -16,7 +17,6 @@
 #include <formats/bson/bson_builder.hpp>
 #include <formats/bson/document.hpp>
 #include <formats/bson/value.hpp>
-#include <utils/string_view.hpp>
 
 /// Collection operation options
 namespace storages::mongo::options {
@@ -154,15 +154,15 @@ class Projection {
   Projection() = default;
 
   /// Creates a projection including only specified fields
-  Projection(std::initializer_list<utils::string_view> fields_to_include);
+  Projection(std::initializer_list<std::string_view> fields_to_include);
 
   /// Includes a field into the projection
-  Projection& Include(utils::string_view field);
+  Projection& Include(std::string_view field);
 
   /// @brief Excludes a field from the projection
   /// @warning Projection cannot have a mix of inclusion and exclusion.
   /// Only the `_id` field can always be excluded.
-  Projection& Exclude(utils::string_view field);
+  Projection& Exclude(std::string_view field);
 
   /// @brief Setups an array slice in the projection
   /// @param field name of the array field to slice
@@ -173,14 +173,14 @@ class Projection {
   /// @note `limit < 0, skip == 0` is equivalent to `limit' = -limit, skip' =
   /// limit`.
   /// @warning Cannot be applied to views.
-  Projection& Slice(utils::string_view field, int32_t limit, int32_t skip = 0);
+  Projection& Slice(std::string_view field, int32_t limit, int32_t skip = 0);
 
   /// @brief Matches the first element of an array satisfying a predicate
   /// @param field name of the array to search
   /// @param pred predicate to apply to elements
   /// @note Array field will be absent from the result if no elements match.
   /// @note Empty document as a predicate will only match empty documents.
-  Projection& ElemMatch(utils::string_view field,
+  Projection& ElemMatch(std::string_view field,
                         const formats::bson::Document& pred);
 
   /// @cond
@@ -204,10 +204,10 @@ class Sort {
   Sort() = default;
 
   /// Stores the specified ordering specification
-  Sort(std::initializer_list<std::pair<utils::string_view, Direction>>);
+  Sort(std::initializer_list<std::pair<std::string_view, Direction>>);
 
   /// Appends a field to the ordering specification
-  Sort& By(utils::string_view field, Direction direction);
+  Sort& By(std::string_view field, Direction direction);
 
   /// @cond
   /// Sort specification BSON access

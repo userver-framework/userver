@@ -19,10 +19,10 @@ std::size_t StrIcaseHash::operator()(const std::string& s) const {
   return res;
 }
 
-int StrIcaseCompareThreeWay::operator()(utils::string_view lhs,
-                                        utils::string_view rhs) const {
-  if (lhs.find('\0') != utils::string_view::npos ||
-      rhs.find('\0') != utils::string_view::npos) {
+int StrIcaseCompareThreeWay::operator()(std::string_view lhs,
+                                        std::string_view rhs) const {
+  if (lhs.find('\0') != std::string_view::npos ||
+      rhs.find('\0') != std::string_view::npos) {
     throw std::runtime_error(
         "cannot case-insensitively compare strings with '\\0' character");
   }
@@ -37,14 +37,14 @@ int StrIcaseCompareThreeWay::operator()(utils::string_view lhs,
   return cmp_result;
 }
 
-bool StrIcaseEqual::operator()(utils::string_view lhs,
-                               utils::string_view rhs) const {
+bool StrIcaseEqual::operator()(std::string_view lhs,
+                               std::string_view rhs) const {
   if (lhs.size() != rhs.size()) return false;
   return icase_cmp_(lhs, rhs) == 0;
 }
 
-bool StrIcaseLess::operator()(utils::string_view lhs,
-                              utils::string_view rhs) const {
+bool StrIcaseLess::operator()(std::string_view lhs,
+                              std::string_view rhs) const {
   return icase_cmp_(lhs, rhs) < 0;
 }
 

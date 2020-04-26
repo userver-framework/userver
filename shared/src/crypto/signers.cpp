@@ -41,7 +41,7 @@ Signer::~Signer() = default;
 
 SignerNone::SignerNone() : Signer("none") {}
 std::string SignerNone::Sign(
-    std::initializer_list<utils::string_view> /*data*/) const {
+    std::initializer_list<std::string_view> /*data*/) const {
   return {};
 }
 
@@ -60,11 +60,11 @@ HmacShaSigner<bits>::~HmacShaSigner() {
 
 template <DigestSize bits>
 std::string HmacShaSigner<bits>::Sign(
-    std::initializer_list<utils::string_view> data) const {
+    std::initializer_list<std::string_view> data) const {
   const auto hmac = GetHmacFuncByEnum(bits);
 
   if (data.size() <= 1) {
-    utils::string_view single_value{};
+    std::string_view single_value{};
     if (data.size()) {
       single_value = *data.begin();
     }
@@ -107,7 +107,7 @@ DsaSigner<type, bits>::DsaSigner(const std::string& key,
 
 template <DsaType type, DigestSize bits>
 std::string DsaSigner<type, bits>::Sign(
-    std::initializer_list<utils::string_view> data) const {
+    std::initializer_list<std::string_view> data) const {
   EvpMdCtx ctx;
   EVP_PKEY_CTX* pkey_ctx = nullptr;
   if (1 != EVP_DigestSignInit(ctx.Get(), &pkey_ctx, GetShaMdByEnum(bits),

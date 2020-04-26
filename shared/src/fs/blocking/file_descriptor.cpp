@@ -9,7 +9,6 @@
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
-#include <utils/string_view.hpp>
 
 namespace fs {
 namespace blocking {

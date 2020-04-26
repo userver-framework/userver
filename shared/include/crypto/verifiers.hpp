@@ -6,11 +6,11 @@
 #include <initializer_list>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include <crypto/basic_types.hpp>
 #include <crypto/exception.hpp>
 #include <crypto/public_key.hpp>
-#include <utils/string_view.hpp>
 
 namespace crypto {
 
@@ -20,8 +20,8 @@ class Verifier : public NamedAlgo {
   explicit Verifier(const std::string& name);
   virtual ~Verifier();
 
-  virtual void Verify(std::initializer_list<utils::string_view> encoded,
-                      utils::string_view raw_signature) const = 0;
+  virtual void Verify(std::initializer_list<std::string_view> encoded,
+                      std::string_view raw_signature) const = 0;
 };
 
 /// "none" algorithm verifier
@@ -29,8 +29,8 @@ class VerifierNone final : public Verifier {
  public:
   VerifierNone();
 
-  void Verify(std::initializer_list<utils::string_view> encoded,
-              utils::string_view raw_signature) const override;
+  void Verify(std::initializer_list<std::string_view> encoded,
+              std::string_view raw_signature) const override;
 };
 
 /// HMAC-SHA verifier
@@ -41,8 +41,8 @@ class HmacShaVerifier final : public Verifier {
   explicit HmacShaVerifier(std::string secret);
   virtual ~HmacShaVerifier();
 
-  void Verify(std::initializer_list<utils::string_view> encoded,
-              utils::string_view raw_signature) const override;
+  void Verify(std::initializer_list<std::string_view> encoded,
+              std::string_view raw_signature) const override;
 
  private:
   std::string secret_;
@@ -62,8 +62,8 @@ class DsaVerifier final : public Verifier {
   /// Constructor from a PEM-encoded public key or a X509 certificate
   explicit DsaVerifier(const std::string& pubkey);
 
-  void Verify(std::initializer_list<utils::string_view> encoded,
-              utils::string_view raw_signature) const override;
+  void Verify(std::initializer_list<std::string_view> encoded,
+              std::string_view raw_signature) const override;
 
  private:
   PublicKey pkey_;

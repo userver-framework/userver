@@ -11,7 +11,6 @@
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 #include <utils/assert.hpp>
-#include <utils/string_view.hpp>
 
 #include <formats/json/exception.hpp>
 #include <formats/json/value.hpp>
@@ -21,7 +20,7 @@ namespace formats {
 namespace json {
 
 namespace {
-utils::string_view AsStringView(const impl::Value& jval) {
+std::string_view AsStringView(const impl::Value& jval) {
   return {jval.GetString(), jval.GetStringLength()};
 }
 
@@ -40,9 +39,9 @@ void CheckKeyUniqueness(const impl::Value* root) {
       const int count = value->MemberCount();
       const auto begin = value->MemberBegin();
       for (int i = 1; i < count; i++) {
-        const utils::string_view i_key = AsStringView(begin[i].name);
+        const std::string_view i_key = AsStringView(begin[i].name);
         for (int j = 0; j < i; j++) {
-          const utils::string_view j_key = AsStringView(begin[j].name);
+          const std::string_view j_key = AsStringView(begin[j].name);
           if (i_key == j_key)
             // TODO: add object path to message in TAXICOMMON-1658
             throw ParseException("Duplicate key: " + std::string(i_key) +
@@ -84,7 +83,7 @@ NativeValuePtr EnsureValid(impl::Document&& json) {
 }
 }  // namespace
 
-formats::json::Value FromString(utils::string_view doc) {
+formats::json::Value FromString(std::string_view doc) {
   if (doc.empty()) {
     throw ParseException("JSON document is empty");
   }

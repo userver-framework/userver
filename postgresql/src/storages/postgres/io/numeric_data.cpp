@@ -1,6 +1,8 @@
 #include <storages/postgres/io/numeric_data.hpp>
 
 #include <algorithm>
+#include <string_view>
+
 #include <boost/algorithm/string/trim.hpp>
 
 #include <storages/postgres/exceptions.hpp>
@@ -10,7 +12,6 @@
 #include <storages/postgres/io/user_types.hpp>
 
 #include <utils/str_icase.hpp>
-#include <utils/string_view.hpp>
 
 namespace storages::postgres::io::detail {
 
@@ -70,7 +71,7 @@ void WriteDigit(std::string& res, std::uint16_t bin_dgt,
 
 // Get a digit from the string representation, checking index range
 // and if the char is a digit
-std::int16_t GetBinDigit(::utils::string_view str, int idx) {
+std::int16_t GetBinDigit(std::string_view str, int idx) {
   if (idx < 0 || static_cast<std::int64_t>(str.size()) <= idx) {
     return 0;
   }
@@ -82,7 +83,7 @@ std::int16_t GetBinDigit(::utils::string_view str, int idx) {
   return c - '0';
 }
 
-std::int16_t GetPaddedDigit(::utils::string_view str, int idx) {
+std::int16_t GetPaddedDigit(std::string_view str, int idx) {
   std::int16_t val = 0;
   for (auto i = 0U; i < kDigitWidth; ++i) {
     val *= 10;
@@ -91,7 +92,7 @@ std::int16_t GetPaddedDigit(::utils::string_view str, int idx) {
   return val;
 }
 
-void ConvertDecimalToBinary(::utils::string_view dec_digits, int left_padding,
+void ConvertDecimalToBinary(std::string_view dec_digits, int left_padding,
                             std::vector<std::int16_t>& target) {
   for (auto dec_pos = left_padding;
        dec_pos < static_cast<std::int32_t>(dec_digits.size());
@@ -304,13 +305,13 @@ void NumericData::Parse(const std::string& str) {
     int_part_end = dec_point_pos;
   }
 
-  ::utils::string_view integral_part{str.data() + start_pos,
-                                     int_part_end - start_pos};
+  std::string_view integral_part{str.data() + start_pos,
+                                 int_part_end - start_pos};
   // TODO Check if size is reasonable
   std::int32_t dec_weight = integral_part.size() - 1;
   std::uint16_t dec_scale{0};
 
-  ::utils::string_view fractional_part{};
+  std::string_view fractional_part{};
   if (dec_point_pos != std::string::npos) {
     auto frac_part_begin = dec_point_pos + 1;
     auto frac_part_end = str.size();

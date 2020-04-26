@@ -123,7 +123,7 @@ POSTGRE_TEST_P(EnumRoundtrip) {
   for (const auto& en : EnumMap::enumerators) {
     EXPECT_NO_THROW(res = conn->Execute("select $1", en.enumerator));
     EXPECT_EQ(en.enumerator, res[0][0].As<Rainbow>());
-    EXPECT_EQ(en.literal, res[0][0].As<::utils::string_view>());
+    EXPECT_EQ(en.literal, res[0][0].As<std::string_view>());
     // Test the data type that is used for reading only
     EXPECT_NO_THROW(res[0][0].As<RainbowRO>())
         << "Read a datatype that is never written to a Pg buffer";

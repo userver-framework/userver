@@ -14,7 +14,7 @@ namespace {
 int StringViewPasswordCb(char* buf, int size, int /*rwflag*/, void* str_vptr) {
   if (!str_vptr || !buf || size < 0) return -1;
 
-  auto* password = static_cast<const utils::string_view*>(str_vptr);
+  auto* password = static_cast<const std::string_view*>(str_vptr);
   if (password->size() > static_cast<size_t>(size)) return -1;
   std::memcpy(buf, password->data(), password->size());
   return password->size();
@@ -22,13 +22,13 @@ int StringViewPasswordCb(char* buf, int size, int /*rwflag*/, void* str_vptr) {
 
 }  // namespace
 
-PrivateKey PrivateKey::LoadFromString(utils::string_view key) {
-  utils::string_view empty_password{};
+PrivateKey PrivateKey::LoadFromString(std::string_view key) {
+  std::string_view empty_password{};
   return LoadFromString(key, empty_password);
 }
 
-PrivateKey PrivateKey::LoadFromString(utils::string_view key,
-                                      utils::string_view password) {
+PrivateKey PrivateKey::LoadFromString(std::string_view key,
+                                      std::string_view password) {
   impl::OpensslLock::Init();
 
   auto privkey_bio = MakeBioString(key);

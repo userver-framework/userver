@@ -4,9 +4,9 @@
 /// @brief @copybrief crypto::PrivateKey
 
 #include <memory>
+#include <string_view>
 
 #include <crypto/basic_types.hpp>
-#include <utils/string_view.hpp>
 
 namespace crypto {
 
@@ -25,15 +25,15 @@ class PrivateKey {
   /// PrivateKey variable.
   ///
   /// @throw crypto::KeyParseError if failed to load the key.
-  static PrivateKey LoadFromString(utils::string_view key,
-                                   utils::string_view password);
+  static PrivateKey LoadFromString(std::string_view key,
+                                   std::string_view password);
 
   /// Accepts a string that contains a private key (not protected with
   /// password), checks the key and password, loads it into OpenSSL structures
   /// and returns as a PrivateKey variable.
   ///
   /// @throw crypto::KeyParseError if failed to load the key.
-  static PrivateKey LoadFromString(utils::string_view key);
+  static PrivateKey LoadFromString(std::string_view key);
 
  private:
   explicit PrivateKey(std::shared_ptr<NativeType> pkey)

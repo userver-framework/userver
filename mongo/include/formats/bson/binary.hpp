@@ -4,10 +4,10 @@
 /// @brief Binary representation helpers
 
 #include <string>
+#include <string_view>
 
 #include <formats/bson/document.hpp>
 #include <formats/bson/types.hpp>
-#include <utils/string_view.hpp>
 
 namespace formats::bson {
 
@@ -15,7 +15,7 @@ namespace formats::bson {
 class BsonString;
 
 /// Recovers a BSON document from its binary form
-Document FromBinaryString(utils::string_view binary);
+Document FromBinaryString(std::string_view binary);
 
 /// Dumps a bson document to a binary string
 BsonString ToBinaryString(const formats::bson::Document&);
@@ -37,7 +37,7 @@ class BsonString {
   std::string ToString() const;
 
   /// Returns a view of the binary
-  utils::string_view GetView() const;
+  std::string_view GetView() const;
 
   const uint8_t* Data() const;
   size_t Size() const;
