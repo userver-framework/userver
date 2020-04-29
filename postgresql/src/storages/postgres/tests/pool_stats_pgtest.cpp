@@ -16,11 +16,11 @@ namespace {
 class PostgrePoolStats : public PostgreSQLBase,
                          public ::testing::WithParamInterface<pg::Dsn> {};
 
-INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePoolStats,
-                        ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
+INSTANTIATE_TEST_SUITE_P(/*empty*/, PostgrePoolStats,
+                         ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
 
 TEST_P(PostgrePoolStats, EmptyPool) {
-  RunInCoro([this] {
+  RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {0, 10, 10}, kCachePreparedStatements,
         kTestCmdCtl, {}, {});
@@ -53,7 +53,7 @@ TEST_P(PostgrePoolStats, EmptyPool) {
 }
 
 TEST_P(PostgrePoolStats, MinPoolSize) {
-  RunInCoro([this] {
+  RunInCoro([] {
     const auto min_pool_size = 2;
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {min_pool_size, 10, 10},
@@ -85,7 +85,7 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
 }
 
 TEST_P(PostgrePoolStats, RunTransactions) {
-  RunInCoro([this] {
+  RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
         kTestCmdCtl, {}, {});
@@ -148,7 +148,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
 }
 
 TEST_P(PostgrePoolStats, ConnUsed) {
-  RunInCoro([this] {
+  RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
         kTestCmdCtl, {}, {});

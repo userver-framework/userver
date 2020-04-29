@@ -12,4 +12,4 @@ struct Conversion<formats::json::Value> : public ::testing::Test {
   using Exception = formats::json::Exception;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsJson, Conversion, formats::json::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Conversion, formats::json::Value);

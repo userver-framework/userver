@@ -68,7 +68,7 @@ TEST_P(PostgreNumericIO, ParseString) {
     EXPECT_EQ(num, tgt) << "Expected " << num << " parsed " << tgt;
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PostgreIO, PostgreNumericIO,
     ::testing::Values("0", "nan", ".0", ".1", "-.5", "10", "100", "1000",
                       "1000000", "100000.0000001", ".001", "0.0001",
@@ -78,8 +78,7 @@ INSTANTIATE_TEST_CASE_P(
                       "000000000000000000000000",
                       "0."
                       "00000000100000000000000000000000000000000000000000000000"
-                      "000000000000000000000000"),
-    /**/);
+                      "000000000000000000000000"));
 
 POSTGRE_TEST_P(NumericRoundtrip) {
   ASSERT_TRUE(conn.get());
@@ -145,7 +144,7 @@ std::string TestDescription(
 
 // ATTN: Don't use zero fractional part in this test, or reverse buffer
 // conversion test will fail
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PostgreIO, PostgreDecimalIO,
     ::testing::Values(
         DecIOTestData{"0", {0, 0}}, DecIOTestData{"1", {1, 0}},

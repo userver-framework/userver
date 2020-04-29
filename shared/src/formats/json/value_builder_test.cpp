@@ -12,5 +12,5 @@ struct Instantiation<formats::json::ValueBuilder> : public ::testing::Test {
   using Exception = formats::json::Exception;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsJson, Instantiation,
-                              formats::json::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Instantiation,
+                               formats::json::ValueBuilder);

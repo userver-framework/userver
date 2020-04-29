@@ -11,7 +11,7 @@
 
 template <class T>
 struct Conversion : public ::testing::Test {};
-TYPED_TEST_CASE_P(Conversion);
+TYPED_TEST_SUITE_P(Conversion);
 
 TYPED_TEST_P(Conversion, Missing) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
@@ -286,7 +286,7 @@ TYPED_TEST_P(Conversion, ContainersSerialize) {
   }
 }
 
-REGISTER_TYPED_TEST_CASE_P(Conversion,
+REGISTER_TYPED_TEST_SUITE_P(Conversion,
 
-                           Missing, Null, Bool, Double, Int32, Int64, Utf8,
-                           Containers, ContainersSerialize);
+                            Missing, Null, Bool, Double, Int32, Int64, Utf8,
+                            Containers, ContainersSerialize);

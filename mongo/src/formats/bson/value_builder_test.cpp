@@ -399,5 +399,5 @@ struct Instantiation<formats::bson::ValueBuilder> : public ::testing::Test {
   using Exception = formats::bson::BsonException;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsBson, Instantiation,
-                              formats::bson::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, Instantiation,
+                               formats::bson::ValueBuilder);

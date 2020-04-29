@@ -40,7 +40,7 @@ testing_namespace2::TestType Parse(const Value& val,
 template <class T>
 struct Parsing : public ::testing::Test {};
 
-TYPED_TEST_CASE_P(Parsing);
+TYPED_TEST_SUITE_P(Parsing);
 
 TYPED_TEST_P(Parsing, ContainersCtr) {
   auto value = this->FromString(R"({"null": null})")["null"];
@@ -248,7 +248,7 @@ TYPED_TEST_P(Parsing, TimeOfDayNormalized) {
   EXPECT_EQ(Minutes{"00:00"}, value);
 }
 
-REGISTER_TYPED_TEST_CASE_P(
+REGISTER_TYPED_TEST_SUITE_P(
     Parsing,
 
     ContainersCtr, VectorInt, VectorIntNull, VectorIntErrorObj, VectorVectorInt,

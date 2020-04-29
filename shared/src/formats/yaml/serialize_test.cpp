@@ -23,4 +23,5 @@ struct Serialization<formats::yaml::Value> : public ::testing::Test {
   constexpr static auto FromStream = formats::yaml::FromStream;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsYaml, Serialization, formats::yaml::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Serialization,
+                               formats::yaml::Value);

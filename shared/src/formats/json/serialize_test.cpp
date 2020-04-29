@@ -24,4 +24,5 @@ struct Serialization<formats::json::Value> : public ::testing::Test {
   constexpr static auto FromStream = formats::json::FromStream;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsJson, Serialization, formats::json::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Serialization,
+                               formats::json::Value);

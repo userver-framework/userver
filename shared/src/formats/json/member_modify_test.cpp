@@ -39,4 +39,4 @@ struct MemberModify<formats::json::Value> : public ::testing::Test {
   constexpr static auto FromString = formats::json::FromString;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsJson, MemberModify, formats::json::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, MemberModify, formats::json::Value);

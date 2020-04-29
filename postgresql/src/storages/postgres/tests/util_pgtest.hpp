@@ -142,10 +142,10 @@ class PostgreConnection
   void GTEST_TEST_CLASS_NAME_(test_case_name, test_name)::test_name(           \
       storages::postgres::detail::ConnectionPtr conn)
 
-#define INSTANTIATE_POSTGRE_CASE_P(test_case_name)                   \
-  INSTANTIATE_TEST_CASE_P(/*empty*/, test_case_name,                 \
-                          ::testing::ValuesIn(GetDsnListsFromEnv()), \
-                          DsnListToString)
+#define INSTANTIATE_POSTGRE_CASE_P(test_case_name)                    \
+  INSTANTIATE_TEST_SUITE_P(/*empty*/, test_case_name,                 \
+                           ::testing::ValuesIn(GetDsnListsFromEnv()), \
+                           DsnListToString)
 
 #define POSTGRE_TEST_P(test_name) \
   POSTGRE_CASE_TEST_P(PostgreConnection, test_name)

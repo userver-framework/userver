@@ -29,7 +29,7 @@ struct MemberAccess<formats::json::Value> : public ::testing::Test {
   using MemberMissingException = formats::json::MemberMissingException;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsJson, MemberAccess, formats::json::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, MemberAccess, formats::json::Value);
 
 struct FormatsJsonSpecificMemberAccess
     : public MemberAccess<formats::json::Value> {};

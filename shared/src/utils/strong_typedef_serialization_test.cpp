@@ -12,6 +12,16 @@
 
 #include <gtest/gtest.h>
 
+namespace utils {
+
+template <class Tag, class T, utils::StrongTypedefOps Ops>
+static void PrintTo(const utils::StrongTypedef<Tag, T, Ops>& v,
+                    std::ostream* os) {
+  ::testing::internal::UniversalTersePrint(v.GetUnderlying(), os);
+}
+
+}  // namespace utils
+
 struct IntTag {};
 struct OptionalIntTag {};
 using IntTypedef = utils::StrongTypedef<IntTag, int>;

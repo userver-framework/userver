@@ -4,7 +4,7 @@
 
 template <class T>
 struct MemberAccess : public ::testing::Test {};
-TYPED_TEST_CASE_P(MemberAccess);
+TYPED_TEST_SUITE_P(MemberAccess);
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBrakets) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
@@ -416,7 +416,7 @@ TYPED_TEST_P(MemberAccess, RootAndPathOfCloned) {
   EXPECT_EQ(this->doc_["key4"].GetPath(), "key4");
 }
 
-REGISTER_TYPED_TEST_CASE_P(
+REGISTER_TYPED_TEST_SUITE_P(
     MemberAccess,
 
     ChildBySquareBrakets, ChildBySquareBraketsTwice,

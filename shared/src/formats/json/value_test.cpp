@@ -14,7 +14,7 @@ struct Parsing<formats::json::Value> : public ::testing::Test {
   using ParseException = formats::json::Value::ParseException;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsJson, Parsing, formats::json::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Parsing, formats::json::Value);
 
 TEST(FormatsJson, ParsingInvalidRootType) {
   using formats::json::FromString;

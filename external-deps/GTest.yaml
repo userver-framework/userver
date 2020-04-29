@@ -7,12 +7,20 @@ source:
 build-args:
     names:
       - BUILD_GTEST=ON
-      - BUILD_GMOCK=OFF
+      - BUILD_GMOCK=ON
+      - CMAKE_BUILD_TYPE=Release
 
 targets:
   - name: libgtest
     libs:
-      - googletest/libgtest.a
-      - googletest/libgtest_main.a
+      - lib/libgtest.a
+      - lib/libgtest_main.a
     includes:
       - googletest/include
+  - name: libgmock
+    libs:
+      - lib/libgmock.a
+    includes:
+      - googlemock/include
+    depends:
+      - libgtest

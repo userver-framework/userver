@@ -30,7 +30,7 @@ std::string PrintMethodsDataTestName(
   return res;
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     /**/, HttpRequestParser,
     ::testing::Values(
         MethodsData{"DELETE", HttpMethod::kDelete, HttpMethod::kDelete},
@@ -51,7 +51,7 @@ INSTANTIATE_TEST_CASE_P(
     PrintMethodsDataTestName);
 
 TEST_P(HttpRequestParser, Methods) {
-  RunInCoro([this]() {
+  RunInCoro([]() {
     server::http::HandlerInfoIndex handler_info_index;
     server::request::RequestConfig request_config({}, "<test_config>", {});
     const auto& param = GetParam();

@@ -309,7 +309,7 @@ TEST_P(PostgreConnection, Connect) {
 }
 
 TEST_P(PostgreConnection, NoPreparedStatements) {
-  RunInCoro([this] {
+  RunInCoro([] {
     EXPECT_NO_THROW(pg::detail::Connection::Connect(
         GetParam()[0], GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
         kTestCmdCtl, {}, {}));

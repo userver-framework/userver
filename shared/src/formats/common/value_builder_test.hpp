@@ -8,7 +8,7 @@ namespace {
 
 template <class T>
 struct Instantiation : public ::testing::Test {};
-TYPED_TEST_CASE_P(Instantiation);
+TYPED_TEST_SUITE_P(Instantiation);
 
 template <typename Float, typename ValueBuilder, typename Exception>
 void TestNanInfInstantiation() {
@@ -42,4 +42,4 @@ TYPED_TEST_P(Instantiation, NanInf) {
   }
 }
 
-REGISTER_TYPED_TEST_CASE_P(Instantiation, NanInf);
+REGISTER_TYPED_TEST_SUITE_P(Instantiation, NanInf);

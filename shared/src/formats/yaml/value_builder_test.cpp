@@ -12,5 +12,5 @@ struct Instantiation<formats::yaml::ValueBuilder> : public ::testing::Test {
   using Exception = formats::yaml::Exception;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsYaml, Instantiation,
-                              formats::yaml::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Instantiation,
+                               formats::yaml::ValueBuilder);

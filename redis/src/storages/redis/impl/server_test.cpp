@@ -146,13 +146,12 @@ TEST(Redis, PingFail) {
 class RedisDisconnectingReplies : public ::testing::TestWithParam<const char*> {
 };
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     /**/, RedisDisconnectingReplies,
     ::testing::Values("MASTERDOWN Link with MASTER is down and "
                       "slave-serve-stale-data is set to 'no'.",
                       "LOADING Redis is loading the dataset in memory",
-                      "READONLY You can't write against a read only slave"),
-    /**/);
+                      "READONLY You can't write against a read only slave"));
 
 TEST_P(RedisDisconnectingReplies, X) {
   MockRedisServer server;

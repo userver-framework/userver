@@ -4,7 +4,7 @@
 
 template <class T>
 struct MemberModify : public ::testing::Test {};
-TYPED_TEST_CASE_P(MemberModify);
+TYPED_TEST_SUITE_P(MemberModify);
 
 TYPED_TEST_P(MemberModify, BuildNewValueEveryTime) {
   EXPECT_FALSE(this->GetBuiltValue().DebugIsReferencingSameMemory(
@@ -315,7 +315,7 @@ TYPED_TEST_P(MemberModify, CannotBuildFromMissing) {
   EXPECT_THROW(bld = v["missing_key"], MemberMissingException);
 }
 
-REGISTER_TYPED_TEST_CASE_P(
+REGISTER_TYPED_TEST_SUITE_P(
     MemberModify,
 
     BuildNewValueEveryTime, CheckPrimitiveTypesChange, CheckNestedTypesChange,

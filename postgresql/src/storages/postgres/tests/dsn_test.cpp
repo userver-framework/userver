@@ -18,12 +18,11 @@ TEST_P(Fail, InvalidDSN) {
   EXPECT_THROW(pg::SplitByHost(GetParam()), pg::InvalidDSN);
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PostgreDSN, Fail,
     ::testing::Values("postgresql//",
                       "host=localhost foo=bar"  // unknown parameter
-                      ),
-    /**/);
+                      ));
 
 struct TestData {
   pg::Dsn original_dsn;
@@ -71,7 +70,7 @@ TEST_P(Split, HostPort) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PostgreDSN, Split,
     ::testing::Values(
         TestData{pg::Dsn{""}, 1, "localhost", "", ""},
@@ -120,8 +119,7 @@ INSTANTIATE_TEST_CASE_P(
         TestData{pg::Dsn{"postgresql:///dbname?host=/var/lib/postgresql"}, 1,
                  "/var/lib/postgresql", "", "dbname"},
         TestData{pg::Dsn{"postgresql://%2Fvar%2Flib%2Fpostgresql/dbname"}, 1,
-                 "/var/lib/postgresql", "", "dbname"}),
-    /**/);
+                 "/var/lib/postgresql", "", "dbname"}));
 
 TEST(PostgreDSN, DsnCutPassword) {
   auto dsn_cut = pg::DsnCutPassword(pg::Dsn{
@@ -159,7 +157,7 @@ TEST_P(Mask, MaskDSN) {
   EXPECT_EQ(param.second, pg::DsnMaskPassword(param.first));
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     PostgreDSN, Mask,
     ::testing::Values(
         std::make_pair(pg::Dsn{""}, ""),
@@ -220,7 +218,6 @@ INSTANTIATE_TEST_CASE_P(
         std::make_pair(pg::Dsn{"postgresql://user@localhost/"
                                "somedb?password=p%24wd&application_name=myapp"},
                        "postgresql://user@localhost/"
-                       "somedb?password=***&application_name=myapp")),
-    /**/);
+                       "somedb?password=***&application_name=myapp")));
 
 }  // namespace

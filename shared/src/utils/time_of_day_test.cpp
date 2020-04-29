@@ -15,7 +15,7 @@ template <typename T>
 struct TimeOfDayTest : ::testing::Test {};
 using TimeOfDayTypes = ::testing::Types<Hours, Mins, Secs, Milli, Micro, Nano>;
 
-TYPED_TEST_CASE(TimeOfDayTest, TimeOfDayTypes);
+TYPED_TEST_SUITE(TimeOfDayTest, TimeOfDayTypes);
 
 TYPED_TEST(TimeOfDayTest, DefaultConstruct) {
   EXPECT_NO_THROW(TypeParam{});

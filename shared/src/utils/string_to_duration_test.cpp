@@ -20,7 +20,7 @@ using TestData = std::initializer_list<data_t>;
 
 class StringToDuration : public ::testing::TestWithParam<data_t> {};
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     /*no prefix*/, StringToDuration,
     ::testing::ValuesIn(TestData{
         {"milliseconds", "103ms", std::chrono::milliseconds(103)},

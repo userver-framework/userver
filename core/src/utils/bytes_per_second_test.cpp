@@ -20,7 +20,7 @@ using TestData = std::initializer_list<data_t>;
 
 class StringToBytesPerSecond : public ::testing::TestWithParam<data_t> {};
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     /*no prefix*/, StringToBytesPerSecond,
     ::testing::ValuesIn(TestData{
         {"bytes", "103B/s", 103},

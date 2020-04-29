@@ -42,8 +42,8 @@ static void PrintTo(const CommandControl& cmd_ctl, std::ostream* os) {
 class PostgrePool : public PostgreSQLBase,
                     public ::testing::WithParamInterface<pg::Dsn> {};
 
-INSTANTIATE_TEST_CASE_P(/*empty*/, PostgrePool,
-                        ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
+INSTANTIATE_TEST_SUITE_P(/*empty*/, PostgrePool,
+                         ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
 
 TEST_P(PostgrePool, ConnectionPool) {
   RunInCoro([this] {
@@ -114,7 +114,7 @@ TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
 }
 
 TEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
-  RunInCoro([this] {
+  RunInCoro([] {
     EXPECT_THROW(pg::detail::ConnectionPool::Create(
                      GetParam(), GetTaskProcessor(), {2, 1, 10},
                      kCachePreparedStatements, kTestCmdCtl, {}, {}),
@@ -124,7 +124,7 @@ TEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
 }
 
 TEST_P(PostgrePool, PoolTransaction) {
-  RunInCoro([this] {
+  RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
         kTestCmdCtl, {}, {});
@@ -176,7 +176,7 @@ TEST_P(PostgrePool, ConnectionPtrWorks) {
 }
 
 TEST_P(PostgrePool, AsyncMinPool) {
-  RunInCoro([this] {
+  RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
         kCachePreparedStatements, kTestCmdCtl, testsuite::PostgresControl{},
@@ -188,7 +188,7 @@ TEST_P(PostgrePool, AsyncMinPool) {
 }
 
 TEST_P(PostgrePool, SyncMinPool) {
-  RunInCoro([this] {
+  RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(),
         pg::PoolSettings{1, 1, 10, /* sync_start */ true},
@@ -202,7 +202,7 @@ TEST_P(PostgrePool, SyncMinPool) {
 }
 
 TEST_P(PostgrePool, ConnectionCleanup) {
-  RunInCoro([this] {
+  RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
         kCachePreparedStatements,
@@ -239,7 +239,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
 }
 
 TEST_P(PostgrePool, QueryCancel) {
-  RunInCoro([this] {
+  RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
         kCachePreparedStatements,
@@ -265,7 +265,7 @@ TEST_P(PostgrePool, QueryCancel) {
 }
 
 TEST_P(PostgrePool, DefaultCmdCtl) {
-  RunInCoro([this] {
+  RunInCoro([] {
     using Source = pg::detail::DefaultCommandControlSource;
     const pg::CommandControl custom_cmd_ctl{std::chrono::seconds{2},
                                             std::chrono::seconds{1}};

@@ -42,5 +42,5 @@ TEST_P(PostgreTopology, RunTest) {
   });
 }
 
-INSTANTIATE_TEST_CASE_P(/*empty*/, PostgreTopology,
-                        ::testing::ValuesIn(GetClusterFromEnv()), DsnToString);
+INSTANTIATE_TEST_SUITE_P(/*empty*/, PostgreTopology,
+                         ::testing::ValuesIn(GetClusterFromEnv()), DsnToString);

@@ -80,7 +80,7 @@ class MpscQueueFixture : public ::testing::Test {
 using MpscTestTypes =
     testing::Types<int, std::unique_ptr<int>, std::unique_ptr<RefCountData>>;
 
-TYPED_TEST_CASE(MpscQueueFixture, MpscTestTypes);
+TYPED_TEST_SUITE(MpscQueueFixture, MpscTestTypes);
 
 TYPED_TEST(MpscQueueFixture, Ctr) {
   auto queue = engine::MpscQueue<TypeParam>::Create();

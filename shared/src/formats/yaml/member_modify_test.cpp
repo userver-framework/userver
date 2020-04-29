@@ -44,4 +44,4 @@ struct MemberModify<formats::yaml::Value> : public ::testing::Test {
   constexpr static auto FromString = formats::yaml::FromString;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsYaml, MemberModify, formats::yaml::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, MemberModify, formats::yaml::Value);

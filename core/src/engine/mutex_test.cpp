@@ -11,7 +11,7 @@ template <class T>
 struct Mutex : public ::testing::Test {
   using MutexType = T;
 };
-TYPED_TEST_CASE_P(Mutex);
+TYPED_TEST_SUITE_P(Mutex);
 
 TYPED_TEST_P(Mutex, LockUnlock) {
   RunInCoro([] {
@@ -91,10 +91,10 @@ TYPED_TEST_P(Mutex, TryLock) {
   });
 }
 
-REGISTER_TYPED_TEST_CASE_P(Mutex,
+REGISTER_TYPED_TEST_SUITE_P(Mutex,
 
-                           LockUnlock, LockUnlockDouble, WaitAndCancel,
-                           TryLock);
+                            LockUnlock, LockUnlockDouble, WaitAndCancel,
+                            TryLock);
 
-INSTANTIATE_TYPED_TEST_CASE_P(EngineMutex, Mutex, ::engine::Mutex);
-INSTANTIATE_TYPED_TEST_CASE_P(EngineSharedMutex, Mutex, ::engine::SharedMutex);
+INSTANTIATE_TYPED_TEST_SUITE_P(EngineMutex, Mutex, ::engine::Mutex);
+INSTANTIATE_TYPED_TEST_SUITE_P(EngineSharedMutex, Mutex, ::engine::SharedMutex);

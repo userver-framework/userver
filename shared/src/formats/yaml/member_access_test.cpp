@@ -35,7 +35,7 @@ struct MemberAccess<formats::yaml::Value> : public ::testing::Test {
   using MemberMissingException = formats::yaml::MemberMissingException;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsYaml, MemberAccess, formats::yaml::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, MemberAccess, formats::yaml::Value);
 
 struct FormatsYamlSpecificMemberAccess
     : public MemberAccess<formats::yaml::Value> {};

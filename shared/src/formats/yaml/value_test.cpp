@@ -10,4 +10,4 @@ struct Parsing<formats::yaml::Value> : public ::testing::Test {
   using ParseException = formats::yaml::Value::ParseException;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(FormatsYaml, Parsing, formats::yaml::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Parsing, formats::yaml::Value);

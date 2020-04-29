@@ -64,7 +64,7 @@ class CustomHandlerExceptionTest : public ::testing::Test {
 
 using ErrorTypes = ::testing::Types<ClientError, Unauthorized, ResourceNotFound,
                                     InternalServerError>;
-TYPED_TEST_CASE(CustomHandlerExceptionTest, ErrorTypes);
+TYPED_TEST_SUITE(CustomHandlerExceptionTest, ErrorTypes);
 
 TYPED_TEST(CustomHandlerExceptionTest, AllDefault) {
   using ErrorType = typename TestFixture::ErrorType;

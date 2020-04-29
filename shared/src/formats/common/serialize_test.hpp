@@ -5,7 +5,7 @@
 
 template <class T>
 struct Serialization : public ::testing::Test {};
-TYPED_TEST_CASE_P(Serialization);
+TYPED_TEST_SUITE_P(Serialization);
 
 TYPED_TEST_P(Serialization, StringToString) {
   auto&& doc = this->FromString(this->kDoc);
@@ -53,8 +53,8 @@ TYPED_TEST_P(Serialization, EmptyDocException) {
   EXPECT_THROW(this->FromString(""), ParseException);
 }
 
-REGISTER_TYPED_TEST_CASE_P(Serialization,
+REGISTER_TYPED_TEST_SUITE_P(Serialization,
 
-                           StringToString, StreamToString, StringToStream,
-                           StreamReadException, StreamWriteException,
-                           ParsingException, EmptyDocException);
+                            StringToString, StreamToString, StringToStream,
+                            StreamReadException, StreamWriteException,
+                            ParsingException, EmptyDocException);
