@@ -27,7 +27,8 @@ constexpr const char* kMaintainTaskName = "pg_maintain";
 // Max idle connections that can be dropped in one run of maintenance task
 constexpr auto kIdleDropLimit = 1;
 
-struct Stopwatch {
+class Stopwatch {
+ public:
   using Accumulator = ::utils::statistics::RecentPeriod<Percentile, Percentile,
                                                         detail::SteadyClock>;
   explicit Stopwatch(Accumulator& acc)
@@ -331,6 +332,30 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
   });
 }
 
+void ConnectionPool::TryCreateConnectionAsync() {
+  SharedSizeGuard sg(size_);
+  if (sg.GetValue() <= settings_.max_size) {
+    // Checking errors is more expensive than incrementing an atomic, so we
+    // check it only if we can start a new connection.
+    if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
+        kRecentErrorThreshold) {
+      // Create a new connection
+      Connect(std::move(sg)).Detach();
+    } else {
+      LOG_DEBUG() << "Too many connection errors in recent period";
+    }
+  }
+}
+
+void ConnectionPool::CheckMinPoolSizeUnderflow() {
+  auto count = size_->load(std::memory_order_relaxed);
+  if (count < settings_.min_size) {
+    LOG_DEBUG() << "Current pool size is less than min_size (" << count << " < "
+                << settings_.min_size << "). Create new connection.";
+    TryCreateConnectionAsync();
+  }
+}
+
 void ConnectionPool::Push(Connection* connection) {
   if (queue_.push(connection)) {
     conn_available_.NotifyOne();
@@ -367,20 +392,8 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
       deadline.TimeLeft());
   LOG_DEBUG() << "No idle connections, waiting for one for " << timeout.count()
               << "ms";
-  {
-    SharedSizeGuard sg(size_);
-    if (sg.GetValue() <= settings_.max_size) {
-      // Checking errors is more expensive than incrementing an atomic, so we
-      // check it only if we can start a new connection.
-      if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
-          kRecentErrorThreshold) {
-        // Create a new connection
-        Connect(std::move(sg)).Detach();
-      } else {
-        LOG_DEBUG() << "Too many connection errors in recent period";
-      }
-    }
-  }
+  TryCreateConnectionAsync();
+
   {
     std::unique_lock<engine::Mutex> lock{wait_mutex_};
     // Wait for a connection
@@ -471,7 +484,8 @@ void ConnectionPool::MaintainConnections() {
     --count;
   }
 
-  // TODO Check and maintain minimum count of connections
+  // Check and maintain minimum count of connections
+  CheckMinPoolSizeUnderflow();
 }
 
 void ConnectionPool::StartMaintainTask() {

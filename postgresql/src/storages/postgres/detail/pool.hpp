@@ -72,6 +72,9 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   [[nodiscard]] engine::TaskWithResult<bool> Connect(SharedSizeGuard&&);
 
+  void TryCreateConnectionAsync();
+  void CheckMinPoolSizeUnderflow();
+
   void Push(Connection* connection);
   Connection* Pop(engine::Deadline);
 
