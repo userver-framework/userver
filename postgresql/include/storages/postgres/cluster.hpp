@@ -23,8 +23,9 @@
 /// master and `true` for every other host type.
 /// - Some hosts are in sync slave mode. This may be determined by executing
 /// 'show synchronous_standby_names' on the master.
-/// Slave names returned by this statement are escaped host names where every
-/// non-letter and non-digit are replaced with '_'.
+/// See
+/// https://www.postgresql.org/docs/current/runtime-config-replication.html#GUC-SYNCHRONOUS-STANDBY-NAMES
+/// for more information.
 ///
 /// @par PgaaS sync slaves lag
 /// By default, PgaaS synchronous slaves are working with 'synchronous_commit'
@@ -32,27 +33,16 @@
 /// master and thus is not truly 'synchronous' from the reader's POV,
 /// but things may change with time.
 ///
-/// @par Algorithm
-/// Every topology update runs for at most 80% of timer update interval, but no
-/// less than kMinCheckDuration.
-/// Topology check is done in CheckTopology method in two phases:
-/// - host check routine which collects relevant info about host states and
-/// roles is executed
-/// - update routine which actualizes host states is called
-/// All the processing is done single-thread, and CheckTopology method is not
-/// designed to support multi-threaded calls, so synchronization must be
-/// guaranteed outside.
-/// Check routine consists of the following stages:
-/// - reconnect/wait for connection to become available
-/// - availability check (joint with master detection)
-/// - sync slaves detection (only for master host)
-/// Every stage, including connection to the host, may fail and thus cause
-/// reconnect again and again.
-/// The core of check process is task multiplexing that allows to simultaneously
-/// track different tasks representing different stages.
-/// During checks the info about hosts is stored into changes.last_check_type
-/// variable.
-/// The info is then actualized later during second phase of topology check.
+/// @par Implementation
+/// Topology update runs every second.
+///
+/// Every host is assighed a connection with special ID (4100200300).
+/// Using this connection we check for host availability, writability
+/// (master detection) and perform RTT measurements.
+///
+/// After the initial check we know about master presence and RTT for each host.
+/// Master host is queried about synchronous replication status. We use this
+/// info to identify synchronous slaves and to detect "quorum commit" presence.
 
 namespace engine {
 class TaskProcessor;
@@ -100,37 +90,44 @@ class Cluster {
   /// The statistics object is too big to fit on stack
   ClusterStatisticsPtr GetStatistics() const;
 
-  //@{
-  /** @name Transaction start */
+  /// @name Transaction start
+  /// @{
+
   /// Start a transaction in any available connection depending on transaction
-  /// options. If the transaction is RW, will start transaction in a connection
+  /// options.
+  ///
+  /// If the transaction is RW, will start transaction in a connection
   /// to master. If the transaction is RO, will start trying connections
   /// starting with slaves.
   /// @throws ClusterUnavailable if no hosts are available
   Transaction Begin(const TransactionOptions&, OptionalCommandControl = {});
-  /// Start a transaction in a connection to a specific cluster part
-  /// If specified host type is not available, may fall back to other host type,
-  /// @see ClusterHostType.
-  /// If the transaction is RW, only master connection will be used.
-  /// @throws ClusterUnavailable if no hosts are available
-  Transaction Begin(ClusterHostType, const TransactionOptions&,
-                    OptionalCommandControl = {});
-  //@}
 
-  //@{
-  /** @name Single-statement query in an auto-commit transaction */
-  /// Execute a statement at host of specified type.
-  /// @note ClusterHostType::kAny cannot be used here
+  /// Start a transaction in a connection with specified host selection rules.
+  ///
+  /// If the requested host role is not available, may fall back to another
+  /// host role, see ClusterHostType.
+  /// If the transaction is RW, only master connection can be used.
+  /// @throws ClusterUnavailable if no hosts are available
+  Transaction Begin(ClusterHostTypeFlags, const TransactionOptions&,
+                    OptionalCommandControl = {});
+  /// @}
+
+  /// @name Single-statement query in an auto-commit transaction
+  /// @{
+
+  /// @brief Execute a statement at host of specified type.
+  /// @note You must specify at least one role from ClusterHostType here
   template <typename... Args>
-  ResultSet Execute(ClusterHostType, const std::string& statement,
+  ResultSet Execute(ClusterHostTypeFlags, const std::string& statement,
                     const Args&... args);
-  /// Execute a statement at host of specified type with specific command
+
+  /// @brief Execute a statement with specified host selection rules and command
   /// control settings.
-  /// @note ClusterHostType::kAny cannot be used here
+  /// @note You must specify at least one role from ClusterHostType here
   template <typename... Args>
-  ResultSet Execute(ClusterHostType, OptionalCommandControl,
+  ResultSet Execute(ClusterHostTypeFlags, OptionalCommandControl,
                     const std::string& statement, const Args&... args);
-  //@}
+  /// @}
 
   /// Replaces globally updated command control with a static user-provided one
   void SetDefaultCommandControl(CommandControl);
@@ -144,23 +141,23 @@ class Cluster {
   /// @endcond
 
  private:
-  detail::NonTransaction Start(ClusterHostType, OptionalCommandControl);
+  detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 
  private:
   detail::ClusterImplPtr pimpl_;
 };
 
 template <typename... Args>
-ResultSet Cluster::Execute(ClusterHostType ht, const std::string& statement,
-                           const Args&... args) {
-  return Execute(ht, OptionalCommandControl{}, statement, args...);
+ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
+                           const std::string& statement, const Args&... args) {
+  return Execute(flags, OptionalCommandControl{}, statement, args...);
 }
 
 template <typename... Args>
-ResultSet Cluster::Execute(ClusterHostType ht,
+ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
                            OptionalCommandControl statement_cmd_ctl,
                            const std::string& statement, const Args&... args) {
-  auto ntrx = Start(ht, statement_cmd_ctl);
+  auto ntrx = Start(flags, statement_cmd_ctl);
   return ntrx.Execute(statement_cmd_ctl, statement, args...);
 }
 

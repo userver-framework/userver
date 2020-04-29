@@ -49,7 +49,7 @@ struct HostState {
   // called `application_name`
   std::string app_name;
 
-  ClusterHostType role = ClusterHostType::kUnknown;
+  ClusterHostType role = ClusterHostType::kNone;
   Rtt roundtrip_time{kUnknownRtt};
   std::vector<std::string> detected_sync_slaves;
 };
@@ -67,7 +67,7 @@ class QuorumCommitTopology::Impl {
 
   const DsnList& GetDsnList() const;
   rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const;
-  rcu::ReadablePtr<DsnIndices> GetDsnIndicesByRoundtripTime() const;
+  rcu::ReadablePtr<DsnIndices> GetAliveDsnIndices() const;
 
   void RunDiscovery();
 
@@ -90,11 +90,11 @@ class QuorumCommitTopology::Impl {
   /// Host states array
   std::vector<HostState> host_states_;
 
-  /// Currently determined host types exposed to the client
+  /// Currently determined host types exposed to the client, ordered by rtt
   rcu::Variable<DsnIndicesByType> dsn_indices_by_type_;
 
-  /// Currently accessible hosts by roundtrip time
-  rcu::Variable<DsnIndices> dsn_indices_by_rtt_;
+  /// Currently accessible hosts
+  rcu::Variable<DsnIndices> alive_dsn_indices_;
 
   ::utils::PeriodicTask discovery_task_;
 };
@@ -126,8 +126,8 @@ QuorumCommitTopology::Impl::GetDsnIndicesByType() const {
 }
 
 rcu::ReadablePtr<QuorumCommitTopology::DsnIndices>
-QuorumCommitTopology::Impl::GetDsnIndicesByRoundtripTime() const {
-  return dsn_indices_by_rtt_.Read();
+QuorumCommitTopology::Impl::GetAliveDsnIndices() const {
+  return alive_dsn_indices_.Read();
 }
 
 void QuorumCommitTopology::Impl::RunDiscovery() {
@@ -143,7 +143,7 @@ void QuorumCommitTopology::Impl::RunDiscovery() {
     const auto& status = host_states_[i];
     LOG_DEBUG() << status.app_name << " is " << status.role << " rtt "
                 << status.roundtrip_time.count() << "us";
-    if (status.role != ClusterHostType::kUnknown) {
+    if (status.role != ClusterHostType::kNone) {
       alive_dsn_indices.push_back(i);
     }
   }
@@ -183,7 +183,7 @@ void QuorumCommitTopology::Impl::RunDiscovery() {
     }
   }
   dsn_indices_by_type_.Assign(std::move(dsn_indices_by_type));
-  dsn_indices_by_rtt_.Assign(alive_dsn_indices);
+  alive_dsn_indices_.Assign(alive_dsn_indices);
 }
 
 void QuorumCommitTopology::Impl::StartPeriodicTask() {
@@ -203,7 +203,7 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
 
   ::utils::ScopeGuard role_check_guard([&state] {
     state.connection.reset();
-    state.role = ClusterHostType::kUnknown;
+    state.role = ClusterHostType::kNone;
     state.roundtrip_time = kUnknownRtt;
     state.detected_sync_slaves.clear();
   });
@@ -259,8 +259,8 @@ QuorumCommitTopology::GetDsnIndicesByType() const {
 }
 
 rcu::ReadablePtr<QuorumCommitTopology::DsnIndices>
-QuorumCommitTopology::GetDsnIndicesByRoundtripTime() const {
-  return pimpl_->GetDsnIndicesByRoundtripTime();
+QuorumCommitTopology::GetAliveDsnIndices() const {
+  return pimpl_->GetAliveDsnIndices();
 }
 
 }  // namespace storages::postgres::detail

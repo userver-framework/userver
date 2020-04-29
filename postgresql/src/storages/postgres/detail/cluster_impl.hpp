@@ -32,10 +32,10 @@ class ClusterImpl {
 
   ClusterStatisticsPtr GetStatistics() const;
 
-  Transaction Begin(ClusterHostType, const TransactionOptions&,
+  Transaction Begin(ClusterHostTypeFlags, const TransactionOptions&,
                     OptionalCommandControl);
 
-  NonTransaction Start(ClusterHostType, OptionalCommandControl);
+  NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 
   void SetDefaultCommandControl(CommandControl, DefaultCommandControlSource);
   CommandControl GetDefaultCommandControl() const;
@@ -43,7 +43,7 @@ class ClusterImpl {
  private:
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
 
-  ConnectionPoolPtr FindPool(ClusterHostType ht);
+  ConnectionPoolPtr FindPool(ClusterHostTypeFlags);
 
  private:
   QuorumCommitTopology topology_;

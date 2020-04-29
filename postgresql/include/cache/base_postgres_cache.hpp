@@ -199,17 +199,21 @@ constexpr bool kHasCustomUpdated = HasCustomUpdated<T>::value;
 
 // Cluster host type policy
 template <typename T, typename = ::utils::void_t<>>
-struct PostgresClusterType
-    : std::integral_constant<storages::postgres::ClusterHostType,
-                             storages::postgres::ClusterHostType::kSlave> {};
-template <typename T>
-struct PostgresClusterType<T, ::utils::void_t<decltype(T::kClusterHostType)>>
-    : std::integral_constant<storages::postgres::ClusterHostType,
-                             T::kClusterHostType> {};
+struct PostgresClusterHostTypeFlags {
+  constexpr static storages::postgres::ClusterHostTypeFlags value{
+      storages::postgres::ClusterHostType::kSlave};
+};
 
 template <typename T>
-constexpr storages::postgres::ClusterHostType kPostgresClusterType =
-    PostgresClusterType<T>::value;
+struct PostgresClusterHostTypeFlags<
+    T, ::utils::void_t<decltype(T::kClusterHostType)>> {
+  constexpr static storages::postgres::ClusterHostTypeFlags value{
+      T::kClusterHostType};
+};
+
+template <typename T>
+constexpr auto kPostgresClusterHostTypeFlags =
+    PostgresClusterHostTypeFlags<T>::value;
 
 template <typename PostgreCachePolicy>
 struct PolicyChecker {
@@ -239,9 +243,9 @@ struct PolicyChecker {
       "`kUpdatedField`. If you don't want to use incremental updates, "
       "please set its value to `nullptr`");
 
-  static_assert(kPostgresClusterType<PostgreCachePolicy> !=
-                    storages::postgres::ClusterHostType::kAny,
-                "`Any` cluster host type cannot be used for caching component, "
+  static_assert(kPostgresClusterHostTypeFlags<PostgreCachePolicy> &
+                    storages::postgres::kClusterHostRolesMask,
+                "Cluster host role must be specified for caching component, "
                 "please be more specific");
 
   static auto GetQuery() {
@@ -279,8 +283,8 @@ class PostgreCache final
   // Calculated constants
   constexpr static bool kIncrementalUpdates =
       pg_cache::detail::kWantIncrementalUpdates<PolicyType>;
-  constexpr static storages::postgres::ClusterHostType kClusterHostType =
-      pg_cache::detail::kPostgresClusterType<PolicyType>;
+  constexpr static auto kClusterHostTypeFlags =
+      pg_cache::detail::kPostgresClusterHostTypeFlags<PolicyType>;
   constexpr static auto kName = PolicyType::kName;
 
   PostgreCache(const ComponentConfig&, const ComponentContext&);
@@ -415,7 +419,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
   for (auto cluster : clusters_) {
     if (chunk_size_ > 0) {
       auto trx = cluster->Begin(
-          kClusterHostType, pg::Transaction::RO,
+          kClusterHostTypeFlags, pg::Transaction::RO,
           pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff});
       auto portal =
           trx.MakePortal(query, GetLastUpdated(last_update, *data_cache));
@@ -428,7 +432,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
       trx.Commit();
     } else {
       auto res = cluster->Execute(
-          kClusterHostType,
+          kClusterHostTypeFlags,
           pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
           query, GetLastUpdated(last_update, *data_cache));
       stats_scope.IncreaseDocumentsReadCount(res.Size());

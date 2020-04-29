@@ -25,7 +25,7 @@ constexpr uint32_t kConnectionId = 0;
 constexpr storages::postgres::CommandControl kTestCmdCtl{
     // TODO: lower execute timeout after TAXICOMMON-1313
     storages::postgres::TimeoutDuration{1000},
-    storages::postgres::TimeoutDuration{50}};
+    storages::postgres::TimeoutDuration{500}};
 
 constexpr storages::postgres::ConnectionSettings kCachePreparedStatements{
     storages::postgres::ConnectionSettings::kCachePreparedStatements};

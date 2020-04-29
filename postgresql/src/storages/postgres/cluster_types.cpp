@@ -1,37 +1,66 @@
 #include <storages/postgres/cluster_types.hpp>
 
-#include <iostream>
+#include <fmt/format.h>
 
+#include <logging/log.hpp>
 #include <storages/postgres/dsn.hpp>
+#include <storages/postgres/exceptions.hpp>
+#include <utils/assert.hpp>
+#include <utils/underlying_value.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 namespace {
 
-const char* ToStringRaw(const ClusterHostType& ht) {
-#define CHT_TO_STR(kType)      \
-  case ClusterHostType::kType: \
-    return "ClusterHostType::" #kType
-
+const char* ToStringRaw(ClusterHostType ht) {
   switch (ht) {
-    CHT_TO_STR(kUnknown);
-    CHT_TO_STR(kMaster);
-    CHT_TO_STR(kSyncSlave);
-    CHT_TO_STR(kSlave);
-    CHT_TO_STR(kAny);
-  }
+    case ClusterHostType::kNone:
+      return "default";
 
-#undef CHT_TO_STR
+    case ClusterHostType::kMaster:
+      return "master";
+    case ClusterHostType::kSyncSlave:
+      return "sync slave";
+    case ClusterHostType::kSlave:
+      return "slave";
+
+    case ClusterHostType::kRoundRobin:
+      return "round-robin";
+    case ClusterHostType::kNearest:
+      return "nearest";
+  }
+  const auto msg = fmt::format("invalid host type {} in ToStringRaw",
+                               ::utils::UnderlyingValue(ht));
+  UASSERT_MSG(false, msg);
+  throw LogicError(msg);
 }
 
 }  // namespace
 
-std::ostream& operator<<(std::ostream& os, const ClusterHostType& ht) {
+std::string ToString(ClusterHostType ht) { return ToStringRaw(ht); }
+
+std::string ToString(ClusterHostTypeFlags flags) {
+  std::string result;
+
+  for (const auto role : {ClusterHostType::kMaster, ClusterHostType::kSyncSlave,
+                          ClusterHostType::kSlave, ClusterHostType::kRoundRobin,
+                          ClusterHostType::kNearest}) {
+    if (flags & role) {
+      if (!result.empty()) result += '|';
+      result += ToStringRaw(role);
+    }
+  }
+  if (result.empty()) result = ToStringRaw(ClusterHostType::kNone);
+  return result;
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& os, ClusterHostType ht) {
   return os << ToStringRaw(ht);
 }
 
-std::string ToString(const ClusterHostType& ht) { return ToStringRaw(ht); }
+logging::LogHelper& operator<<(logging::LogHelper& os,
+                               ClusterHostTypeFlags flags) {
+  return os << ToString(flags);
+}
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

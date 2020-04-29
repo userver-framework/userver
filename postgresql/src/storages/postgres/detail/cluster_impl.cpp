@@ -1,5 +1,7 @@
 #include <storages/postgres/detail/cluster_impl.hpp>
 
+#include <fmt/format.h>
+
 #include <engine/async.hpp>
 
 #include <storages/postgres/dsn.hpp>
@@ -26,6 +28,46 @@ struct TryLockGuard {
   std::atomic_flag& lock_;
   bool lock_acquired_;
 };
+
+ClusterHostType Fallback(ClusterHostType ht) {
+  switch (ht) {
+    case ClusterHostType::kMaster:
+      throw ClusterError("Cannot fallback from master");
+    case ClusterHostType::kSyncSlave:
+    case ClusterHostType::kSlave:
+      return ClusterHostType::kMaster;
+    case ClusterHostType::kNone:
+    case ClusterHostType::kRoundRobin:
+    case ClusterHostType::kNearest:
+      throw ClusterError("Invalid ClusterHostType value for fallback " +
+                         ToString(ht));
+  }
+}
+
+size_t SelectDsnIndex(const QuorumCommitTopology::DsnIndices& indices,
+                      ClusterHostTypeFlags flags,
+                      std::atomic<uint32_t>& rr_host_idx) {
+  UASSERT(!indices.empty());
+  if (indices.empty()) {
+    throw ClusterError("Cannot select host from an empty list");
+  }
+
+  const auto strategy_flags = flags & kClusterHostStrategyMask;
+  LOG_TRACE() << "Applying " << strategy_flags << " strategy";
+
+  size_t idx_pos = 0;
+  if (!strategy_flags || strategy_flags == ClusterHostType::kRoundRobin) {
+    if (indices.size() != 1) {
+      idx_pos =
+          rr_host_idx.fetch_add(1, std::memory_order_relaxed) % indices.size();
+    }
+  } else if (strategy_flags != ClusterHostType::kNearest) {
+    throw LogicError(
+        fmt::format("Invalid strategy requested: {}, ensure only one is used",
+                    ToString(strategy_flags)));
+  }
+  return indices[idx_pos];
+}
 
 }  // namespace
 
@@ -124,66 +166,77 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
   return cluster_stats;
 }
 
-ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostType ht) {
-  auto host_type = ht;
-  auto dsn_indices_by_type = topology_.GetDsnIndicesByType();
-  auto dsn_indices_it = dsn_indices_by_type->find(host_type);
-  while (host_type != ClusterHostType::kMaster &&
-         (dsn_indices_it == dsn_indices_by_type->end() ||
-          dsn_indices_it->second.empty())) {
-    auto fb = Fallback(host_type);
-    LOG_WARNING() << "There is no pool for host type " << ToString(host_type)
-                  << ", falling back to " << ToString(fb);
-    host_type = fb;
-    dsn_indices_it = dsn_indices_by_type->find(host_type);
-  }
-  if (dsn_indices_it == dsn_indices_by_type->end() ||
-      dsn_indices_it->second.empty()) {
-    LOG_WARNING() << "Pool for host type (requested: " << ToString(ht)
-                  << ", picked " << ToString(host_type) << ") is not available";
-    throw ClusterUnavailable("Pool for host type (passed: " + ToString(ht) +
-                             ", picked: " + ToString(host_type) +
-                             ") is not available");
-  }
+ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(
+    ClusterHostTypeFlags flags) {
+  LOG_TRACE() << "Looking for pool: " << flags;
 
-  auto dsn_index =
-      dsn_indices_it
-          ->second[rr_host_idx_.fetch_add(1, std::memory_order_relaxed) %
-                   dsn_indices_it->second.size()];
-  LOG_TRACE() << "Starting transaction on the host of " << host_type << " type";
+  size_t dsn_index = -1;
+  const auto role_flags = flags & kClusterHostRolesMask;
+
+  UASSERT_MSG(role_flags, "No roles specified");
+  UASSERT_MSG(!(role_flags & ClusterHostType::kSyncSlave) ||
+                  role_flags == ClusterHostType::kSyncSlave,
+              "kSyncSlave cannot be combined with other roles");
+
+  if ((role_flags & ClusterHostType::kMaster) &&
+      (role_flags & ClusterHostType::kSlave)) {
+    LOG_TRACE() << "Starting transaction on " << role_flags;
+    auto alive_dsn_indices = topology_.GetAliveDsnIndices();
+    dsn_index = SelectDsnIndex(*alive_dsn_indices, flags, rr_host_idx_);
+  } else {
+    auto host_role = static_cast<ClusterHostType>(role_flags.GetValue());
+    auto dsn_indices_by_type = topology_.GetDsnIndicesByType();
+    auto dsn_indices_it = dsn_indices_by_type->find(host_role);
+    while (host_role != ClusterHostType::kMaster &&
+           (dsn_indices_it == dsn_indices_by_type->end() ||
+            dsn_indices_it->second.empty())) {
+      auto fb = Fallback(host_role);
+      LOG_WARNING() << "There is no pool for " << host_role
+                    << ", falling back to " << fb;
+      host_role = fb;
+      dsn_indices_it = dsn_indices_by_type->find(host_role);
+    }
+
+    if (dsn_indices_it == dsn_indices_by_type->end() ||
+        dsn_indices_it->second.empty()) {
+      throw ClusterUnavailable(
+          fmt::format("Pool for {} (requested: {}) is not available",
+                      ToString(host_role), ToString(role_flags)));
+    }
+    LOG_TRACE() << "Starting transaction on " << host_role;
+    dsn_index = SelectDsnIndex(dsn_indices_it->second, flags, rr_host_idx_);
+  }
 
   UASSERT(dsn_index < host_pools_.size());
   return host_pools_.at(dsn_index);
 }
 
-Transaction ClusterImpl::Begin(ClusterHostType ht,
+Transaction ClusterImpl::Begin(ClusterHostTypeFlags flags,
                                const TransactionOptions& options,
                                OptionalCommandControl cmd_ctl) {
-  LOG_TRACE() << "Requested transaction on the host of " << ht << " type";
-  auto host_type = ht;
+  LOG_TRACE() << "Requested transaction on " << flags;
+  const auto role_flags = flags & kClusterHostRolesMask;
   if (options.IsReadOnly()) {
-    if (host_type == ClusterHostType::kAny) {
-      host_type = ClusterHostType::kSlave;
+    if (!role_flags) {
+      flags |= ClusterHostType::kSlave;
     }
   } else {
-    if (host_type == ClusterHostType::kAny) {
-      host_type = ClusterHostType::kMaster;
-    } else if (host_type != ClusterHostType::kMaster) {
+    if (role_flags && !(role_flags & ClusterHostType::kMaster)) {
       throw ClusterUnavailable("Cannot start RW-transaction on a slave");
     }
+    flags = ClusterHostType::kMaster | flags.Clear(kClusterHostRolesMask);
   }
-
-  return FindPool(host_type)->Begin(options, cmd_ctl);
+  return FindPool(flags)->Begin(options, cmd_ctl);
 }
 
-NonTransaction ClusterImpl::Start(ClusterHostType host_type,
+NonTransaction ClusterImpl::Start(ClusterHostTypeFlags flags,
                                   OptionalCommandControl cmd_ctl) {
-  if (host_type == ClusterHostType::kAny) {
-    throw LogicError("Cannot use any host for execution of a single statement");
+  if (!(flags & kClusterHostRolesMask)) {
+    throw LogicError(
+        "Host role must be specified for execution of a single statement");
   }
-  LOG_TRACE() << "Requested single statement on the host of " << host_type
-              << " type";
-  return FindPool(host_type)->Start(cmd_ctl);
+  LOG_TRACE() << "Requested single statement on " << flags;
+  return FindPool(flags)->Start(cmd_ctl);
 }
 
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl,

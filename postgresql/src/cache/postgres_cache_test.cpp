@@ -48,10 +48,10 @@ struct PostgresExamplePolicy {
   // The key type must match the type of kKeyMember.
   using CacheContainer = std::unordered_map<int, MyStructure>;
 
-  // @brief Cluster host to use when retrieving data
+  // @brief Cluster host selection flags to use when retrieving data
   // Optional
-  // Default value is pg::ClusterHostType::kSlave, pg::ClusterHostType::kAny is
-  // prohibited
+  // Default value is pg::ClusterHostType::kSlave, at least one cluster role
+  // must be present in flags.
   static constexpr auto kClusterHostType = pg::ClusterHostType::kSlave;
 };
 /*! [Pg Cache Policy Example] */
@@ -76,10 +76,12 @@ static_assert(
     (std::is_same<pg_cache::detail::KeyMemberType<PostgresExamplePolicy2>,
                   int>{}));
 
-static_assert(pg_cache::detail::kPostgresClusterType<PostgresExamplePolicy> ==
-              pg::ClusterHostType::kSlave);
-static_assert(pg_cache::detail::kPostgresClusterType<PostgresExamplePolicy2> ==
-              pg::ClusterHostType::kSlave);
+static_assert(
+    pg_cache::detail::kPostgresClusterHostTypeFlags<PostgresExamplePolicy> ==
+    pg::ClusterHostType::kSlave);
+static_assert(
+    pg_cache::detail::kPostgresClusterHostTypeFlags<PostgresExamplePolicy2> ==
+    pg::ClusterHostType::kSlave);
 
 // Example of custom updated in cache
 /*! [Pg Cache Policy Custom Updated Example] */
@@ -166,7 +168,7 @@ using MyCache4 = PostgreCache<PostgresExamplePolicy4>;
 static_assert(MyCache1::kIncrementalUpdates);
 static_assert(!MyCache2::kIncrementalUpdates);
 
-static_assert(MyCache1::kClusterHostType == pg::ClusterHostType::kSlave);
-static_assert(MyCache2::kClusterHostType == pg::ClusterHostType::kSlave);
+static_assert(MyCache1::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
+static_assert(MyCache2::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 
 }  // namespace components::test

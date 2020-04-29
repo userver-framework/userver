@@ -6,6 +6,7 @@
 #include <error_injection/settings.hpp>
 #include <rcu/rcu.hpp>
 #include <storages/postgres/cluster_types.hpp>
+#include <storages/postgres/dsn.hpp>
 #include <storages/postgres/options.hpp>
 #include <testsuite/postgres_control.hpp>
 #include <utils/fast_pimpl.hpp>
@@ -30,8 +31,10 @@ class QuorumCommitTopology {
   ~QuorumCommitTopology();
 
   const DsnList& GetDsnList() const;
+
+  /// Following methods return indices ordered by RTT
   rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const;
-  rcu::ReadablePtr<DsnIndices> GetDsnIndicesByRoundtripTime() const;
+  rcu::ReadablePtr<DsnIndices> GetAliveDsnIndices() const;
 
  private:
   class Impl;

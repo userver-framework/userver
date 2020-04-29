@@ -13,16 +13,28 @@ namespace pg = storages::postgres;
 
 namespace {
 
-void CheckTransaction(pg::Transaction trx) {
+enum class CheckTxnType { kRw, kRo };
+
+void CheckTransaction(pg::Transaction trx, CheckTxnType txn_type) {
   pg::ResultSet res{nullptr};
 
   // TODO Check idle connection count before and after begin
-  EXPECT_NO_THROW(res = trx.Execute("select 1"));
+  EXPECT_NO_THROW(res = trx.Execute(
+                      "SELECT current_setting('transaction_read_only')::bool"));
   EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
+  EXPECT_EQ(txn_type == CheckTxnType::kRo, res.AsSingleRow<bool>());
   // TODO Check idle connection count before and after commit
   EXPECT_NO_THROW(trx.Commit());
   EXPECT_THROW(trx.Commit(), pg::NotInTransaction);
   EXPECT_NO_THROW(trx.Rollback());
+}
+
+void CheckRoTransaction(pg::Transaction trx) {
+  CheckTransaction(std::move(trx), CheckTxnType::kRo);
+}
+
+void CheckRwTransaction(pg::Transaction trx) {
+  CheckTransaction(std::move(trx), CheckTxnType::kRw);
 }
 
 pg::Cluster CreateCluster(
@@ -41,26 +53,6 @@ class PostgreCluster : public PostgreSQLBase,
 INSTANTIATE_TEST_SUITE_P(/*empty*/, PostgreCluster,
                          ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
 
-TEST_P(PostgreCluster, ClusterSyncSlaveRW) {
-  RunInCoro([] {
-    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
-
-    EXPECT_THROW(
-        cluster.Begin(pg::ClusterHostType::kSyncSlave, pg::Transaction::RW),
-        pg::ClusterUnavailable);
-  });
-}
-
-TEST_P(PostgreCluster, ClusterAsyncSlaveRW) {
-  RunInCoro([] {
-    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
-
-    EXPECT_THROW(
-        cluster.Begin(pg::ClusterHostType::kSlave, pg::Transaction::RW),
-        pg::ClusterUnavailable);
-  });
-}
-
 TEST_P(PostgreCluster, ClusterEmptyPool) {
   RunInCoro([] {
     auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 0);
@@ -69,11 +61,161 @@ TEST_P(PostgreCluster, ClusterEmptyPool) {
   });
 }
 
-TEST_P(PostgreCluster, ClusterTransaction) {
+TEST_P(PostgreCluster, ClusterSlaveRW) {
   RunInCoro([] {
     auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
 
-    CheckTransaction(cluster.Begin({}));
+    EXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSlave, {}),
+                 pg::ClusterUnavailable);
+    EXPECT_THROW(
+        cluster.Begin(pg::ClusterHostType::kSlave, pg::Transaction::RW),
+        pg::ClusterUnavailable);
+    EXPECT_THROW(cluster.Begin({pg::ClusterHostType::kSlave,
+                                pg::ClusterHostType::kRoundRobin},
+                               {}),
+                 pg::ClusterUnavailable);
+    EXPECT_THROW(cluster.Begin({pg::ClusterHostType::kSlave,
+                                pg::ClusterHostType::kRoundRobin},
+                               pg::Transaction::RW),
+                 pg::ClusterUnavailable);
+    EXPECT_THROW(
+        cluster.Begin(
+            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest}, {}),
+        pg::ClusterUnavailable);
+    EXPECT_THROW(cluster.Begin({pg::ClusterHostType::kSlave,
+                                pg::ClusterHostType::kNearest},
+                               pg::Transaction::RW),
+                 pg::ClusterUnavailable);
+  });
+}
+
+TEST_P(PostgreCluster, ClusterSyncSlaveRW) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    EXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSyncSlave, {}),
+                 pg::ClusterUnavailable);
+    EXPECT_THROW(
+        cluster.Begin(pg::ClusterHostType::kSyncSlave, pg::Transaction::RW),
+        pg::ClusterUnavailable);
+  });
+}
+
+TEST_P(PostgreCluster, ClusterMasterRW) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    CheckRwTransaction(cluster.Begin({}));
+    CheckRwTransaction(cluster.Begin(pg::Transaction::RW));
+    CheckRwTransaction(cluster.Begin(pg::ClusterHostType::kMaster, {}));
+    CheckRwTransaction(
+        cluster.Begin(pg::ClusterHostType::kMaster, pg::Transaction::RW));
+  });
+}
+
+TEST_P(PostgreCluster, ClusterAnyRW) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    CheckRwTransaction(cluster.Begin(
+        {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave}, {}));
+    CheckRwTransaction(cluster.Begin(
+        {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave},
+        pg::Transaction::RW));
+    CheckRwTransaction(cluster.Begin(
+        {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave,
+         pg::ClusterHostType::kRoundRobin},
+        {}));
+    CheckRwTransaction(cluster.Begin(
+        {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave,
+         pg::ClusterHostType::kRoundRobin},
+        pg::Transaction::RW));
+    CheckRwTransaction(cluster.Begin(
+        {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave,
+         pg::ClusterHostType::kNearest},
+        {}));
+    CheckRwTransaction(cluster.Begin(
+        {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave,
+         pg::ClusterHostType::kNearest},
+        pg::Transaction::RW));
+
+    EXPECT_THROW(
+        cluster.Begin(
+            {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave,
+             pg::ClusterHostType::kRoundRobin, pg::ClusterHostType::kNearest},
+            {}),
+        pg::LogicError);
+    EXPECT_THROW(
+        cluster.Begin(
+            {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave,
+             pg::ClusterHostType::kRoundRobin, pg::ClusterHostType::kNearest},
+            pg::Transaction::RW),
+        pg::LogicError);
+  });
+}
+
+TEST_P(PostgreCluster, ClusterSlaveRO) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    CheckRoTransaction(cluster.Begin(pg::Transaction::RO));
+    CheckRoTransaction(
+        cluster.Begin(pg::ClusterHostType::kSlave, pg::Transaction::RO));
+    CheckRoTransaction(cluster.Begin(
+        {pg::ClusterHostType::kSlave, pg::ClusterHostType::kRoundRobin},
+        pg::Transaction::RO));
+    CheckRoTransaction(cluster.Begin(
+        {pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest},
+        pg::Transaction::RO));
+
+    EXPECT_THROW(cluster.Begin({pg::ClusterHostType::kSlave,
+                                pg::ClusterHostType::kRoundRobin,
+                                pg::ClusterHostType::kNearest},
+                               pg::Transaction::RO),
+                 pg::LogicError);
+  });
+}
+
+TEST_P(PostgreCluster, ClusterSyncSlaveRO) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    CheckRoTransaction(
+        cluster.Begin(pg::ClusterHostType::kSyncSlave, pg::Transaction::RO));
+  });
+}
+
+TEST_P(PostgreCluster, ClusterMasterRO) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    CheckRoTransaction(
+        cluster.Begin(pg::ClusterHostType::kMaster, pg::Transaction::RO));
+  });
+}
+
+TEST_P(PostgreCluster, ClusterAnyRO) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    CheckRoTransaction(cluster.Begin(
+        {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster},
+        pg::Transaction::RO));
+    CheckRoTransaction(cluster.Begin(
+        {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster,
+         pg::ClusterHostType::kRoundRobin},
+        pg::Transaction::RO));
+    CheckRoTransaction(cluster.Begin(
+        {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster,
+         pg::ClusterHostType::kNearest},
+        pg::Transaction::RO));
+
+    EXPECT_THROW(
+        cluster.Begin(
+            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster,
+             pg::ClusterHostType::kRoundRobin, pg::ClusterHostType::kNearest},
+            pg::Transaction::RO),
+        pg::LogicError);
   });
 }
 
@@ -81,8 +223,8 @@ TEST_P(PostgreCluster, SingleQuery) {
   RunInCoro([] {
     auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
 
-    EXPECT_THROW(cluster.Execute(pg::ClusterHostType::kAny, "select 1"),
-                 pg::LogicError);
+    EXPECT_THROW(cluster.Execute({}, "select 1"), pg::LogicError);
+
     pg::ResultSet res{nullptr};
     EXPECT_NO_THROW(
         res = cluster.Execute(pg::ClusterHostType::kMaster, "select 1"));
@@ -93,6 +235,58 @@ TEST_P(PostgreCluster, SingleQuery) {
     EXPECT_NO_THROW(
         res = cluster.Execute(pg::ClusterHostType::kSlave, "select 1"));
     EXPECT_EQ(1, res.Size());
+    EXPECT_NO_THROW(res = cluster.Execute({pg::ClusterHostType::kMaster,
+                                           pg::ClusterHostType::kSlave},
+                                          "select 1"));
+    EXPECT_EQ(1, res.Size());
+  });
+}
+
+TEST_P(PostgreCluster, HostSelectionSingleQuery) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    EXPECT_THROW(
+        cluster.Execute({pg::ClusterHostType::kRoundRobin}, "select 1"),
+        pg::LogicError);
+    EXPECT_THROW(cluster.Execute({pg::ClusterHostType::kNearest}, "select 1"),
+                 pg::LogicError);
+    EXPECT_THROW(cluster.Execute({pg::ClusterHostType::kNearest,
+                                  pg::ClusterHostType::kRoundRobin},
+                                 "select 1"),
+                 pg::LogicError);
+
+    pg::ResultSet res{nullptr};
+    EXPECT_NO_THROW(res = cluster.Execute({pg::ClusterHostType::kSlave,
+                                           pg::ClusterHostType::kRoundRobin},
+                                          "select 1"));
+    EXPECT_EQ(1, res.Size());
+    EXPECT_NO_THROW(res = cluster.Execute({pg::ClusterHostType::kSlave,
+                                           pg::ClusterHostType::kNearest},
+                                          "select 1"));
+    EXPECT_EQ(1, res.Size());
+    EXPECT_NO_THROW(res = cluster.Execute({pg::ClusterHostType::kSlave,
+                                           pg::ClusterHostType::kMaster,
+                                           pg::ClusterHostType::kRoundRobin},
+                                          "select 1"));
+    EXPECT_EQ(1, res.Size());
+    EXPECT_NO_THROW(res = cluster.Execute({pg::ClusterHostType::kSlave,
+                                           pg::ClusterHostType::kMaster,
+                                           pg::ClusterHostType::kNearest},
+                                          "select 1"));
+    EXPECT_EQ(1, res.Size());
+
+    EXPECT_THROW(cluster.Execute({pg::ClusterHostType::kSlave,
+                                  pg::ClusterHostType::kRoundRobin,
+                                  pg::ClusterHostType::kNearest},
+                                 "select 1"),
+                 pg::LogicError);
+    EXPECT_THROW(
+        cluster.Execute(
+            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster,
+             pg::ClusterHostType::kRoundRobin, pg::ClusterHostType::kNearest},
+            "select 1"),
+        pg::LogicError);
   });
 }
 
@@ -101,17 +295,31 @@ TEST_P(PostgreCluster, TransactionTimeouts) {
     auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
 
     {
-      // Default transaction timeout
+      // Default transaction no timeout
       auto trx = cluster.Begin(pg::Transaction::RW);
-      EXPECT_ANY_THROW(trx.Execute("select pg_sleep(0.2)"));
+      EXPECT_NO_THROW(trx.Execute("select pg_sleep(0.1)"));
       trx.Rollback();
     }
     {
+      // Default transaction timeout
+      auto trx = cluster.Begin(pg::Transaction::RW);
+      EXPECT_THROW(trx.Execute("select pg_sleep(10)"), pg::QueryCanceled);
+      trx.Rollback();
+    }
+    {
+      // Custom transaction no timeout
+      auto trx = cluster.Begin(
+          pg::Transaction::RW,
+          kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{250}));
+      EXPECT_NO_THROW(trx.Execute("select pg_sleep(0.1)"));
+      trx.Commit();
+    }
+    {
       // Custom transaction timeout
-      auto trx = cluster.Begin(pg::Transaction::RW,
-                               pg::CommandControl{pg::TimeoutDuration{1000},
-                                                  pg::TimeoutDuration{500}});
-      EXPECT_NO_THROW(trx.Execute("select pg_sleep(0.2)"));
+      auto trx = cluster.Begin(
+          pg::Transaction::RW,
+          kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{50}));
+      EXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCanceled);
       trx.Commit();
     }
   });

@@ -3,16 +3,21 @@
 /// @file storages/postgres/cluster_types.hpp
 /// @brief Cluster properties
 
-#include <iosfwd>
+#include <string>
 
-#include <storages/postgres/exceptions.hpp>
+#include <utils/flags.hpp>
 
-namespace storages {
-namespace postgres {
+namespace logging {
+class LogHelper;
+}  // namespace logging
+
+namespace storages::postgres {
 
 enum class ClusterHostType {
-  /// No host role detected yet
-  kUnknown = 0x00,
+  /// @name Cluster roles
+  /// @{
+  /// No host role detected yet.
+  kNone = 0x00,
   /// Connect to cluster's master. Only this connection may be
   /// used for read-write transactions.
   kMaster = 0x01,
@@ -22,30 +27,35 @@ enum class ClusterHostType {
   /// replaced with either kSlave or kMaster.
   kSyncSlave [[deprecated("Not available for clusters with quorum commit")]] =
       0x02,
-  /// Connect to one of cluster's slaves. May fallback to sync
-  /// slave.  Can be used only for read only transactions.
+  /// Connect to one of cluster's slaves. May fallback to master. Can be used
+  /// only for read only transactions.
   kSlave = 0x04,
-  /// Any available
-  kAny = kMaster | kSlave
+  /// @}
+
+  /// @name Host selection strategies
+  /// @{
+
+  /// Chooses a host using the round-robin algorithm
+  kRoundRobin = 0x08,
+
+  /// Chooses a host with the lowest RTT
+  kNearest = 0x10,
+  /// @}
 };
 
-inline ClusterHostType Fallback(ClusterHostType ht) {
-  switch (ht) {
-    case ClusterHostType::kMaster:
-      throw ClusterError("Cannot fallback from master");
-    case ClusterHostType::kSyncSlave:
-      return ClusterHostType::kMaster;
-    case ClusterHostType::kSlave:
-      return ClusterHostType::kSyncSlave;
-    case ClusterHostType::kUnknown:
-    case ClusterHostType::kAny:
-      throw ClusterError("Invalid ClusterHostType value for fallback " +
-                         std::to_string(static_cast<int>(ht)));
-  }
-}
+using ClusterHostTypeFlags = ::utils::Flags<ClusterHostType>;
 
-std::ostream& operator<<(std::ostream&, const ClusterHostType&);
-std::string ToString(const ClusterHostType& ht);
+constexpr ClusterHostTypeFlags kClusterHostRolesMask{
+    ClusterHostType::kMaster, ClusterHostType::kSyncSlave,
+    ClusterHostType::kSlave};
+
+constexpr ClusterHostTypeFlags kClusterHostStrategyMask{
+    ClusterHostType::kRoundRobin, ClusterHostType::kNearest};
+
+std::string ToString(ClusterHostType);
+std::string ToString(ClusterHostTypeFlags);
+logging::LogHelper& operator<<(logging::LogHelper&, ClusterHostType);
+logging::LogHelper& operator<<(logging::LogHelper&, ClusterHostTypeFlags);
 
 struct ClusterHostTypeHash {
   size_t operator()(ClusterHostType ht) const noexcept {
@@ -53,5 +63,4 @@ struct ClusterHostTypeHash {
   }
 };
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

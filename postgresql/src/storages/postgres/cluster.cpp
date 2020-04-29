@@ -24,18 +24,18 @@ ClusterStatisticsPtr Cluster::GetStatistics() const {
 
 Transaction Cluster::Begin(const TransactionOptions& options,
                            OptionalCommandControl cmd_ctl) {
-  return Begin(ClusterHostType::kAny, options, cmd_ctl);
+  return Begin({}, options, cmd_ctl);
 }
 
-Transaction Cluster::Begin(ClusterHostType ht,
+Transaction Cluster::Begin(ClusterHostTypeFlags flags,
                            const TransactionOptions& options,
                            OptionalCommandControl cmd_ctl) {
-  return pimpl_->Begin(ht, options, cmd_ctl);
+  return pimpl_->Begin(flags, options, cmd_ctl);
 }
 
-detail::NonTransaction Cluster::Start(ClusterHostType ht,
+detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags,
                                       OptionalCommandControl cmd_ctl) {
-  return pimpl_->Start(ht, cmd_ctl);
+  return pimpl_->Start(flags, cmd_ctl);
 }
 
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
