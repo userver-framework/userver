@@ -31,10 +31,10 @@ int32_t CheckedDurationMs(const std::chrono::milliseconds& timeout,
   return timeout_ms;
 }
 
-bool HasRetryWrites(const UriPtr& uri) {
+bool HasOption(const UriPtr& uri, const char* opt) {
   const bson_t* options = mongoc_uri_get_options(uri.get());
   bson_iter_t it;
-  return bson_iter_init_find_case(&it, options, MONGOC_URI_RETRYWRITES);
+  return bson_iter_init_find_case(&it, options, opt);
 }
 
 UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
@@ -59,10 +59,16 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
                           MONGOC_URI_LOCALTHRESHOLDMS));
   }
 
+  // Don't retry operation with single threaded mongo topology
+  // It does usleep() in mongoc_topology_select_server_id()
+  if (!HasOption(uri, MONGOC_URI_RETRYREADS)) {
+    mongoc_uri_set_option_as_bool(uri.get(), MONGOC_URI_RETRYREADS, false);
+  }
+
   // TODO: mongoc 1.15 has changed default of retryWrites to true but it
   // doesn't play well with mongos over standalone instance (testsuite)
   // TAXICOMMON-1455
-  if (!HasRetryWrites(uri)) {
+  if (!HasOption(uri, MONGOC_URI_RETRYWRITES)) {
     mongoc_uri_set_option_as_bool(uri.get(), MONGOC_URI_RETRYWRITES, false);
   }
 
