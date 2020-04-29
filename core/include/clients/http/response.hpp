@@ -9,11 +9,12 @@
 #include <curl-ev/easy.hpp>
 #include <curl-ev/local_timings.hpp>
 
+#include <utils/str_icase.hpp>
+
 #include "error.hpp"
 #include "wrapper.hpp"
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 /// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 enum Status : uint16_t {
@@ -40,7 +41,8 @@ enum Status : uint16_t {
 std::ostream& operator<<(std::ostream& os, Status s);
 
 /// Headers class
-using Headers = std::unordered_map<std::string, std::string>;
+using Headers = std::unordered_map<std::string, std::string,
+                                   utils::StrIcaseHash, utils::StrIcaseEqual>;
 
 /// Class that will be returned for successful request
 class Response final {
@@ -88,8 +90,7 @@ class Response final {
   std::shared_ptr<EasyWrapper> easy_;
 };
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http
 
 namespace curl {
 std::basic_ostream<char, std::char_traits<char>>& operator<<(

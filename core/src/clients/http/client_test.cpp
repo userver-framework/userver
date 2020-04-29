@@ -19,6 +19,7 @@ constexpr char kTestData[] = "Test Data";
 constexpr unsigned kRepetitions = 200;
 
 constexpr char kTestHeader[] = "X-Test-Header";
+constexpr char kTestHeaderMixedCase[] = "x-TEST-headeR";
 
 constexpr char kResponse200WithHeaderPattern[] =
     "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
@@ -506,12 +507,15 @@ TEST(HttpClient, Headers) {
     std::shared_ptr<clients::http::Client> http_client_ptr =
         clients::http::Client::Create("", kHttpIoThreads);
 
+    clients::http::Headers headers;
+    headers.emplace(kTestHeader, "test");
+    headers.emplace(kTestHeaderMixedCase, "notest");  // should be ignored
+
     for (unsigned i = 0; i < kRepetitions; ++i) {
       const auto response = http_client_ptr->CreateRequest()
                                 ->post(http_server.GetBaseUrl(), kTestData)
                                 ->retry(1)
-                                ->headers({std::pair<const char*, const char*>{
-                                    kTestHeader, "test"}})
+                                ->headers(headers)
                                 ->verify(true)
                                 ->http_version(curl::easy::http_version_1_1)
                                 ->timeout(std::chrono::milliseconds(100))
@@ -552,7 +556,11 @@ TEST(HttpClient, HeadersAndWhitespaces) {
           << "Header value is '" << header_value << "'";
       ASSERT_TRUE(response->headers().count(kTestHeader))
           << "Header value is '" << header_value << "'";
+      ASSERT_TRUE(response->headers().count(kTestHeaderMixedCase))
+          << "Header value is '" << header_value << "'";
       EXPECT_EQ(response->headers()[kTestHeader], header_data)
+          << "Header value is '" << header_value << "'";
+      EXPECT_EQ(response->headers()[kTestHeaderMixedCase], header_data)
           << "Header value is '" << header_value << "'";
     }
   });
@@ -625,5 +633,6 @@ TEST(HttpClient, RedirectHeaders) {
 
     EXPECT_TRUE(response->IsOk());
     EXPECT_EQ(response->headers()["xxx"], "good");
+    EXPECT_EQ(response->headers()["XXX"], "good");
   });
 }
