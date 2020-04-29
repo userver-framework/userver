@@ -49,4 +49,7 @@ class QuorumCommitTopology {
   ::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };
 
+/// Returns sync slave names (disregarding availability)
+std::vector<std::string> ParseSyncStandbyNames(std::string_view value);
+
 }  // namespace storages::postgres::detail

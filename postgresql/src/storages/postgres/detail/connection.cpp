@@ -210,10 +210,10 @@ struct Connection::Impl {
 
     if (!read_only_) {
       // Additional check for writability
-      auto is_writable = ExecuteCommandNoPrepare(
+      auto is_not_writable = ExecuteCommandNoPrepare(
           "SELECT current_setting('transaction_read_only')::bool", deadline);
-      if (!is_writable.IsEmpty()) {
-        is_writable.Front().To(read_only_);
+      if (!is_not_writable.IsEmpty()) {
+        is_not_writable.Front().To(read_only_);
         if (read_only_) {
           LOG_WARNING() << "Primary host is not writable, possibly due to "
                            "insufficient disk space";
