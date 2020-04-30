@@ -274,6 +274,11 @@ class Variable final {
     WritablePtr<T>(*this, std::move(new_value)).Commit();
   }
 
+  // Replaces Variable value with the value, provided by unique_ptr
+  void AssignPtr(std::unique_ptr<T> new_value) {
+    WritablePtr<T>(*this, std::move(new_value)).Commit();
+  }
+
  private:
   T* GetCurrent() const { return current_.load(); }
 

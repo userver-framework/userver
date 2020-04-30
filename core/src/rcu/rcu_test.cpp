@@ -61,6 +61,18 @@ TEST(Rcu, AssignRead) {
   });
 }
 
+TEST(Rcu, AssignFromUniquePtr) {
+  RunInCoro([] {
+    rcu::Variable<X> ptr(1, 2);
+    auto new_value = std::make_unique<X>(3, 4);
+
+    ptr.AssignPtr(std::move(new_value));
+
+    auto reader = ptr.Read();
+    EXPECT_EQ(std::make_pair(3, 4), *reader);
+  });
+}
+
 TEST(Rcu, ReadNotCommitted) {
   RunInCoro([] {
     rcu::Variable<X> ptr(1, 2);
