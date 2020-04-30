@@ -118,6 +118,7 @@ endif()
 # build type specific
 if (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test")
   add_compile_options ("-O0")
+  add_definitions ("-D_GLIBCXX_ASSERTIONS")
 else ()
   add_compile_options ("-O3")
   add_definitions ("-DNDEBUG")
