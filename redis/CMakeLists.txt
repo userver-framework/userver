@@ -55,23 +55,6 @@ target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
     $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
 )
 
-add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(${PROJECT_NAME}_unittest
-  utest
-  ${PROJECT_NAME}
-)
-target_include_directories(
-  ${PROJECT_NAME}_unittest
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
-  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
-)
-add_google_tests(${PROJECT_NAME}_unittest)
 
 add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
 set_target_properties(${PROJECT_NAME}_utest PROPERTIES LINKER_LANGUAGE CXX)
@@ -87,6 +70,25 @@ target_link_libraries(${PROJECT_NAME}_utest
   utest
   ${PROJECT_NAME}
 )
+
+add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(${PROJECT_NAME}_unittest
+  utest
+  ${PROJECT_NAME}_utest
+  ${PROJECT_NAME}
+)
+target_include_directories(
+  ${PROJECT_NAME}_unittest
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+)
+add_google_tests(${PROJECT_NAME}_unittest)
 
 # XXX: testsuite doesn't support parallel builds
 if(NOT USERVICES)

@@ -30,6 +30,8 @@ namespace redis {
 /// Some messages may be lost (it's a redis limitation).
 /// @note The first callback execution can happen before `Subscribe()` or
 /// `Psubscribe()` return as it happens in a separate task.
+/// @note a good GMock-based mock for this class can be found here:
+/// storages/redis/mock_subscribe_client.hpp
 class SubscribeClient {
  public:
   virtual ~SubscribeClient() = default;

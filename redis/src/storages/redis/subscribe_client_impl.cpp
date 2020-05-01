@@ -1,6 +1,7 @@
 #include "subscribe_client_impl.hpp"
 
 #include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <storages/redis/subscription_token_impl.hpp>
 
 namespace storages {
 namespace redis {
@@ -12,15 +13,17 @@ SubscribeClientImpl::SubscribeClientImpl(
 SubscriptionToken SubscribeClientImpl::Subscribe(
     std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
     const ::redis::CommandControl& command_control) {
-  return {*redis_client_, std::move(channel), std::move(on_message_cb),
-          command_control};
+  return {std::make_unique<SubscriptionTokenImpl>(
+      *redis_client_, std::move(channel), std::move(on_message_cb),
+      command_control)};
 }
 
 SubscriptionToken SubscribeClientImpl::Psubscribe(
     std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
     const ::redis::CommandControl& command_control) {
-  return {*redis_client_, std::move(pattern), std::move(on_pmessage_cb),
-          command_control};
+  return {std::make_unique<PsubscriptionTokenImpl>(
+      *redis_client_, std::move(pattern), std::move(on_pmessage_cb),
+      command_control)};
 }
 
 void SubscribeClientImpl::WaitConnectedOnce(

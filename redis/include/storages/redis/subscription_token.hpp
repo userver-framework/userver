@@ -12,7 +12,20 @@ class SubscribeSentinel;
 namespace storages {
 namespace redis {
 
-class SubscriptionTokenImplBase;
+/// You can inherit from this class to provide your own subscription
+/// token implementation. Although it is useful only in mocks and tests.
+/// All standard implementations for redis and so on are provided by userver and
+/// there is no need to manually create instances of this interface.
+/// A good GMock-based mock is here:
+/// storages/redis/mock_subscribe_client.hpp
+class SubscriptionTokenImplBase {
+ public:
+  virtual ~SubscriptionTokenImplBase() = default;
+
+  virtual void SetMaxQueueLength(size_t length) = 0;
+
+  virtual void Unsubscribe() = 0;
+};
 
 class SubscriptionToken {
  public:
@@ -23,19 +36,27 @@ class SubscriptionToken {
                          const std::string& message)>;
 
   SubscriptionToken();
-  SubscriptionToken(::redis::SubscribeSentinel& subscribe_sentinel,
-                    std::string channel, OnMessageCb on_message_cb,
-                    const ::redis::CommandControl& command_control);
-  SubscriptionToken(::redis::SubscribeSentinel& subscribe_sentinel,
-                    std::string pattern, OnPmessageCb on_pmessage_cb,
-                    const ::redis::CommandControl& command_control);
+  SubscriptionToken(SubscriptionToken&&) noexcept;
+
+  /// This constructor can be used in tests/mocks to create your own
+  /// subscription token
+  SubscriptionToken(
+      std::unique_ptr<SubscriptionTokenImplBase>&& implementation);
+
   ~SubscriptionToken();
 
   SubscriptionToken& operator=(SubscriptionToken&&) noexcept;
 
   void SetMaxQueueLength(size_t length);
 
+  /// Unsubscribe from the channel. This method is synchronous, once it
+  /// returned, no new calls to callback will be made.
   void Unsubscribe();
+
+  /// Checks that token is not empty. Empty token has no implementation
+  /// inside. This method is mostly useful in unit tests. All methods
+  /// of this class works correctly on empty tokens.
+  bool IsEmpty() const noexcept { return impl_ == nullptr; }
 
  private:
   std::unique_ptr<SubscriptionTokenImplBase> impl_;
