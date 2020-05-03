@@ -83,7 +83,7 @@ void HttpResponse::SetSendFailed(
 void HttpResponse::SetHeader(std::string name, std::string value) {
   CheckHeaderName(name);
   CheckHeaderValue(value);
-  headers_.emplace(std::move(name), std::move(value));
+  headers_[std::move(name)] = std::move(value);
 }
 
 void HttpResponse::SetContentType(const ::http::ContentType& type) {
