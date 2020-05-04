@@ -4,7 +4,9 @@
 /// @brief Helper functions for interoperation of boost and std optionals
 
 #include <optional>
+#include <string>
 
+#include <fmt/format.h>
 #include <boost/optional.hpp>
 
 namespace utils {
@@ -19,6 +21,29 @@ template <class T>
 std::optional<T> ToStdOptional(boost::optional<T>&& from) {
   if (!from) return {};
   return std::move(*from);
+}
+
+// TODO: Remove after TAXICOMMON-2028
+template <class T>
+std::optional<T> ToStdOptional(std::optional<T>&& from) {
+  return std::move(from);
+}
+
+// TODO: Remove after TAXICOMMON-2028
+template <class T>
+std::optional<T> ToStdOptional(const std::optional<T>& from) {
+  return from;
+}
+
+// TODO: Remove after TAXICOMMON-2028
+template <class T>
+std::string ToString(const boost::optional<T>& from) {
+  return from ? fmt::format(" {}", *from) : "--";
+}
+
+template <class T>
+std::string ToString(const std::optional<T>& from) {
+  return from ? fmt::format(" {}", *from) : "--";
 }
 
 template <class T>
