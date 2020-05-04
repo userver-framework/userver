@@ -10,19 +10,59 @@ echo "Update brew repos"
 brew update
 
 echo "Installing required packages with brew"
-REQUIRED_PACKAGES="coreutils boost cctz cmake cryptopp curl flatbuffers fmt grpc hiredis http-parser jemalloc libev postgres openssl protobuf rapidjson yaml-cpp yandex-taxi-mongo-c-driver libiconv python"
+REQUIRED_PACKAGES=" \
+  boost \
+  ccache \
+  clang-format-7 \
+  cmake \
+  coreutils \
+  cryptopp \
+  curl \
+  flatbuffers \
+  fmt \
+  git \
+  grpc \
+  hiredis \
+  http-parser \
+  jemalloc \
+  libev \
+  libiconv \
+  openssl \
+  postgres \
+  protobuf \
+  python \
+  rapidjson \
+  svn \
+  yaml-cpp \
+  yandex-taxi-mongo-c-driver \
+"
 brew install $REQUIRED_PACKAGES
 
+# this has bad cmake file in bottle
+brew install -s cctz
+
 # for tests and uservices
-EXTRA_PACKAGES="catboost-model-lib ccache clang-format-7 cmake libyandex-taxi-graph pugixml redis taxi-graph3-test-data ticket_parser2 mongodb-community@4.2 libyandex-taxi-v8 libpng persqueue-wrapper"
+EXTRA_PACKAGES=" \
+  android-protector3-legacy \
+  catboost-model-lib \
+  icu4c \
+  libpng \
+  libyandex-taxi-graph \
+  libyandex-taxi-v8 \
+  matrixnetmock \
+  mongodb-community@4.2 \
+  persqueue-wrapper \
+  pugixml \
+  redis \
+  taxi-graph3-test-data \
+  ticket_parser2 \
+  yt-wrapper \
+"
 brew install $EXTRA_PACKAGES
 brew install geobase6 --with-geodata
 
-PYTHON_DEPS="pycryptodome yandex-pgmigrate"
+PYTHON_DEPS=" \
+  pycryptodome \
+  yandex-pgmigrate \
+"
 pip3 install $PYTHON_DEPS
-
-brew list jsoncpp > /dev/null 2>&1
-HAS_JSON_CPP=$?
-if [ $HAS_JSON_CPP -eq 0 ]; then
-  echo "jsoncpp installed with brew is incompatible with userver (it has it's own). Please remove it"
-fi
