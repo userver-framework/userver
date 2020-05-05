@@ -5,6 +5,7 @@
 
 #include <logging/level.hpp>
 #include <logging/log.hpp>
+#include <logging/log_extra.hpp>
 #include <logging/spdlog.hpp>
 
 namespace logging {
@@ -24,6 +25,8 @@ class LogHelper::Impl final {
   bool IsStreamInitialized() const noexcept { return !!lazy_stream_; }
   std::ostream& Stream() { return GetLazyInitedStream().ostr; }
   std::streambuf* StreamBuf() { return &GetLazyInitedStream().sbuf; }
+
+  LogExtra& GetLogExtra() { return extra_; }
 
   std::streamsize xsputn(const char_type* s, std::streamsize n);
   int_type overflow(int_type c);
@@ -56,6 +59,7 @@ class LogHelper::Impl final {
   spdlog::details::log_msg msg_;
   Encode encode_mode_;
   std::optional<LazyInitedStream> lazy_stream_;
+  LogExtra extra_;
 };
 
 }  // namespace logging

@@ -2,8 +2,9 @@
 
 #include <atomic>
 #include <iostream>
+#include <type_traits>
+#include <vector>
 
-#include <boost/container/small_vector.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
 #include <engine/run_in_coro.hpp>
@@ -15,12 +16,12 @@
 #include <utils/assert.hpp>
 #include <utils/datetime.hpp>
 #include <utils/traceful_exception.hpp>
-#include "log_workaround.hpp"
 
 #include <boost/stacktrace/detail/to_dec_array.hpp>
 #include <boost/stacktrace/detail/to_hex_array.hpp>
 
-#include "log_helper_impl.hpp"
+#include <logging/log_helper_impl.hpp>
+#include <logging/log_workaround.hpp>
 
 #define NOTHROW_CALL_BASE(ERROR_PREFIX, FUNCTION)                             \
   try {                                                                       \
@@ -93,6 +94,52 @@ const char* StripPathBase(const char* path) {
   return *base_ptr ? path : path_stripped;
 }
 
+template <typename T>
+class ThreadLocalMemPool {
+ public:
+  static constexpr size_t kMaxSize = 1000;
+
+  template <typename... Args>
+  static std::unique_ptr<T> Pop(Args&&... args) {
+    auto& pool = GetPool();
+    if (pool.empty()) {
+      // https://bugs.llvm.org/show_bug.cgi?id=38176
+      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+      return std::make_unique<T>(std::forward<Args>(args)...);
+    }
+
+    auto& raw = pool.back();
+    // if ctor throws, memory remains in pool
+    new (raw.get()) T(std::forward<Args>(args)...);
+    // arm dtor, transfer ownership (noexcept)
+    std::unique_ptr<T> obj(reinterpret_cast<T*>(raw.release()));
+    // prune pool
+    pool.pop_back();
+    return obj;
+  }
+
+  static void Push(std::unique_ptr<T> obj) {
+    auto& pool = GetPool();
+    if (pool.size() >= kMaxSize) return;
+
+    // disarm dtor, transfer ownership (noexcept)
+    std::unique_ptr<StorageType> raw(
+        reinterpret_cast<StorageType*>(obj.release()));
+    // call dtor (might throw)
+    reinterpret_cast<T*>(raw.get())->~T();
+    // store into pool (may throw on container allocation)
+    pool.push_back(std::move(raw));
+  }
+
+ private:
+  using StorageType = std::aligned_storage_t<sizeof(T), alignof(T)>;
+
+  static auto& GetPool() {
+    thread_local std::vector<std::unique_ptr<StorageType>> pool_;
+    return pool_;
+  }
+};
+
 }  // namespace
 
 LoggerPtr DefaultLogger() { return DefaultLoggerInternal().ReadCopy(); }
@@ -124,7 +171,7 @@ std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
 LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
                      const char* func, Mode mode) noexcept
-    : pimpl_(std::move(logger), level) {
+    : pimpl_(ThreadLocalMemPool<Impl>::Pop(std::move(logger), level)) {
   [[maybe_unused]] const auto initial_capacity = pimpl_->Capacity();
 
   path = StripPathBase(path);
@@ -153,7 +200,10 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
       "functions.");
 }
 
-LogHelper::~LogHelper() { DoLog(); }
+LogHelper::~LogHelper() {
+  DoLog();
+  ThreadLocalMemPool<Impl>::Push(std::move(pimpl_));
+}
 
 void LogHelper::DoLog() noexcept {
   NOTHROW_CALL_GENERIC(AppendLogExtra())
@@ -176,7 +226,7 @@ void LogHelper::DoLog() noexcept {
 }
 
 void LogHelper::AppendLogExtra() {
-  const auto& items = extra_.extra_;
+  const auto& items = pimpl_->GetLogExtra().extra_;
   if (items->empty()) return;
 
   LogExtraValueVisitor visitor(*this);
@@ -237,6 +287,16 @@ void LogHelper::LogSpan() {
   if (span) *this << *span;
 }
 
+LogHelper& LogHelper::operator<<(const LogExtra& extra) {
+  pimpl_->GetLogExtra().Extend(extra);
+  return *this;
+}
+
+LogHelper& LogHelper::operator<<(LogExtra&& extra) {
+  pimpl_->GetLogExtra().Extend(std::move(extra));
+  return *this;
+}
+
 // TODO: use std::to_chars in all the Put* functions.
 void LogHelper::PutHexShort(unsigned long long value) {
   using boost::stacktrace::detail::to_hex_array_bytes;
@@ -295,7 +355,7 @@ void LogHelper::PutException(const std::exception& ex) {
   if (traceful) {
     const auto& message_buffer = traceful->MessageBuffer();
     Put(std::string_view(message_buffer.data(), message_buffer.size()));
-    extra_.Extend(impl::MakeLogExtraStacktrace(
+    pimpl_->GetLogExtra().Extend(impl::MakeLogExtraStacktrace(
         traceful->Trace(), impl::LogExtraStacktraceFlags::kFrozen));
   } else {
     Put(ex.what());

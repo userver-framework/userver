@@ -12,12 +12,11 @@
 
 #include <boost/system/error_code.hpp>
 
+#include <logging/level.hpp>
+#include <logging/log_extra.hpp>
+#include <logging/logger.hpp>
 #include <utils/encoding/hex.hpp>
 #include <utils/encoding/tskv.hpp>
-
-#include "level.hpp"
-#include "log_extra.hpp"
-#include "logger.hpp"
 
 namespace logging {
 
@@ -96,15 +95,11 @@ class LogHelper final {
     return *this;
   }
 
-  LogHelper& operator<<(const LogExtra& extra) {
-    extra_.Extend(extra);
-    return *this;
-  }
+  /// Extends internal LogExtra
+  LogHelper& operator<<(const LogExtra& extra);
 
-  LogHelper& operator<<(LogExtra&& extra) {
-    extra_.Extend(std::move(extra));
-    return *this;
-  }
+  /// Extends internal LogExtra
+  LogHelper& operator<<(LogExtra&& extra);
 
   /// Outputs value in a hex mode with the shortest representation, just like
   /// std::to_chars does.
@@ -148,14 +143,7 @@ class LogHelper final {
   std::ostream& Stream();
 
   class Impl;
-#ifdef _LIBCPP_VERSION
-  static constexpr std::size_t kStreamImplSize = 856;
-#else
-  static constexpr std::size_t kStreamImplSize = 968;
-#endif
-  utils::FastPimpl<Impl, kStreamImplSize, 8, true> pimpl_;
-
-  LogExtra extra_;
+  std::unique_ptr<Impl> pimpl_;
 };
 
 inline LogHelper& operator<<(LogHelper& lh, std::error_code ec) {
