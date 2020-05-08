@@ -83,6 +83,13 @@ ValueBuilder::ValueBuilder(const char* str)
 ValueBuilder::ValueBuilder(const std::string& str)
     : value_(std::make_shared<impl::Value>(str, g_crt_allocator)) {}
 
+ValueBuilder::ValueBuilder(std::string_view str)
+    : value_(std::make_shared<impl::Value>()) {
+  // GenericValue ctor has an invalid type for size
+  value_.GetNative().SetString(rapidjson::StringRef(str.data(), str.size()),
+                               g_crt_allocator);
+}
+
 ValueBuilder::ValueBuilder(int t) : value_(std::make_shared<impl::Value>(t)) {}
 ValueBuilder::ValueBuilder(unsigned int t)
     : value_(std::make_shared<impl::Value>(t)) {}
@@ -93,10 +100,10 @@ ValueBuilder::ValueBuilder(int64_t t)
 
 ValueBuilder::ValueBuilder(float t)
     : value_(std::make_shared<impl::Value>(
-          formats::common::validate_float<Exception>(t))) {}
+          formats::common::ValidateFloat<Exception>(t))) {}
 ValueBuilder::ValueBuilder(double t)
     : value_(std::make_shared<impl::Value>(
-          formats::common::validate_float<Exception>(t))) {}
+          formats::common::ValidateFloat<Exception>(t))) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   Copy(value_.GetNative(), other);

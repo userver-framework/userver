@@ -119,8 +119,8 @@ BsonBuilder& BsonBuilder::Append(std::string_view key, std::string_view value) {
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(
-    std::string_view key, const std::chrono::system_clock::time_point& value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key,
+                                 std::chrono::system_clock::time_point value) {
   int64_t ms_since_epoch =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           value.time_since_epoch())

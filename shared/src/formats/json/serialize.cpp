@@ -99,7 +99,7 @@ formats::json::Value FromString(std::string_view doc) {
                                      ok.Offset()));
   }
 
-  return EnsureValid(std::move(json));
+  return Value{EnsureValid(std::move(json))};
 }
 
 formats::json::Value FromStream(std::istream& is) {
@@ -119,7 +119,7 @@ formats::json::Value FromStream(std::istream& is) {
                                      ok.Offset()));
   }
 
-  return EnsureValid(std::move(json));
+  return Value{EnsureValid(std::move(json))};
 }
 
 void Serialize(const formats::json::Value& doc, std::ostream& os) {

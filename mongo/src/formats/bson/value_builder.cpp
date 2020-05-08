@@ -1,6 +1,8 @@
 #include <formats/bson/value_builder.hpp>
 
-#include <boost/numeric/conversion/cast.hpp>
+#include <limits>
+
+#include <fmt/format.h>
 
 #include <formats/bson/exception.hpp>
 #include <formats/bson/value_impl.hpp>
@@ -9,6 +11,16 @@
 #include <utils/assert.hpp>
 
 namespace formats::bson {
+namespace {
+
+int64_t ToInt64(uint64_t value) {
+  if (value > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+    throw BsonException(fmt::format("Value {} is too large for BSON", value));
+  }
+  return static_cast<int64_t>(value);
+}
+
+}  // namespace
 
 ValueBuilder::ValueBuilder() : ValueBuilder(Type::kNull) {}
 
@@ -74,37 +86,53 @@ ValueBuilder::ValueBuilder(Document&& document)
     : ValueBuilder(static_cast<Value&&>(document)) {}
 
 ValueBuilder::ValueBuilder(std::nullptr_t) : ValueBuilder() {}
+
 ValueBuilder::ValueBuilder(bool value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+
 ValueBuilder::ValueBuilder(int32_t value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+
 ValueBuilder::ValueBuilder(uint32_t value)
-    : impl_(std::make_shared<impl::ValueImpl>(
-          boost::numeric_cast<int64_t>(value))) {}
+    : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
+
 ValueBuilder::ValueBuilder(int64_t value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+
 ValueBuilder::ValueBuilder(uint64_t value)
-    : impl_(std::make_shared<impl::ValueImpl>(
-          boost::numeric_cast<int64_t>(value))) {}
+    : impl_(std::make_shared<impl::ValueImpl>(ToInt64(value))) {}
+
 ValueBuilder::ValueBuilder(double value)
     : impl_(std::make_shared<impl::ValueImpl>(
-          formats::common::validate_float<BsonException>(value))) {}
+          formats::common::ValidateFloat<BsonException>(value))) {}
+
 ValueBuilder::ValueBuilder(const char* value)
     : ValueBuilder(std::string(value)) {}
+
 ValueBuilder::ValueBuilder(std::string value)
     : impl_(std::make_shared<impl::ValueImpl>(std::move(value))) {}
+
+ValueBuilder::ValueBuilder(std::string_view value)
+    : ValueBuilder(std::string(value)) {}
+
 ValueBuilder::ValueBuilder(const std::chrono::system_clock::time_point& value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+
 ValueBuilder::ValueBuilder(const Oid& value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+
 ValueBuilder::ValueBuilder(Binary value)
     : impl_(std::make_shared<impl::ValueImpl>(std::move(value))) {}
+
 ValueBuilder::ValueBuilder(const Decimal128& value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+
 ValueBuilder::ValueBuilder(MinKey value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+
 ValueBuilder::ValueBuilder(MaxKey value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+
 ValueBuilder::ValueBuilder(const Timestamp& value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
 

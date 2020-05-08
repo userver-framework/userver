@@ -1,16 +1,19 @@
 #include <gtest/gtest.h>
 
 #include <formats/json/exception.hpp>
+#include <formats/json/inline.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
 
 #include <formats/common/member_modify_test.hpp>
 
 namespace {
-constexpr const char* kDoc =
-    "{\"key1\":1,\"key2\":\"val\",\"key3\":{\"sub\":-1},\"key4\":[1,2,3],"
-    "\"key5\":10.5}";
-}
+
+const auto kDoc = formats::json::MakeObject(
+    "key1", 1, "key2", "val", "key3", formats::json::MakeObject("sub", -1),
+    "key4", formats::json::MakeArray(1, 2, 3), "key5", 10.5);
+
+}  // namespace
 
 template <>
 struct MemberModify<formats::json::ValueBuilder> : public ::testing::Test {
@@ -21,7 +24,7 @@ struct MemberModify<formats::json::ValueBuilder> : public ::testing::Test {
           formats::json::ValueBuilder>,
       "ValueBuilder iterators are assignable");
 
-  MemberModify() : builder_(formats::json::FromString(kDoc)) {}
+  MemberModify() : builder_(kDoc) {}
 
   formats::json::Value GetValue(formats::json::ValueBuilder& bld) {
     auto v = bld.ExtractValue();

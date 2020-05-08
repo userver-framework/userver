@@ -63,7 +63,7 @@ Value::Value() noexcept : value_ptr_(nullptr), depth_(0) {}
 
 Value::~Value() = default;
 
-Value::Value(NativeValuePtr&& root) noexcept
+Value::Value(NativeValuePtr root) noexcept
     : root_(std::move(root)), value_ptr_(root_.get()), depth_(0) {}
 
 Value::Value(EmplaceEnabler, const NativeValuePtr& root,

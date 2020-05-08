@@ -13,6 +13,10 @@
 #include <formats/parse/common.hpp>
 
 namespace formats::json {
+namespace impl {
+class InlineObjectBuilder;
+class InlineArrayBuilder;
+}  // namespace impl
 
 class ValueBuilder;
 
@@ -195,7 +199,7 @@ class Value final {
  private:
   class EmplaceEnabler {};
 
-  Value(NativeValuePtr&& root) noexcept;
+  explicit Value(NativeValuePtr root) noexcept;
   bool IsUniqueReference() const;
 
  public:
@@ -223,6 +227,8 @@ class Value final {
 
   friend class Iterator<IterTraits>;
   friend class ValueBuilder;
+  friend class impl::InlineObjectBuilder;
+  friend class impl::InlineArrayBuilder;
 
   friend formats::json::Value FromString(std::string_view);
   friend formats::json::Value FromStream(std::istream&);

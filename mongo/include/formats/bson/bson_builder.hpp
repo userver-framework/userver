@@ -42,7 +42,7 @@ class BsonBuilder {
   BsonBuilder& Append(std::string_view key, const char*);
   BsonBuilder& Append(std::string_view key, std::string_view);
   BsonBuilder& Append(std::string_view key,
-                      const std::chrono::system_clock::time_point&);
+                      std::chrono::system_clock::time_point);
   BsonBuilder& Append(std::string_view key, const Oid&);
   BsonBuilder& Append(std::string_view key, const Binary&);
   BsonBuilder& Append(std::string_view key, const Decimal128&);

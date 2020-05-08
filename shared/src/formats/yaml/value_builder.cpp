@@ -55,10 +55,10 @@ ValueBuilder::ValueBuilder(unsigned long long t) : value_(YAML::Node(t)) {}
 #endif
 
 ValueBuilder::ValueBuilder(float t)
-    : value_(YAML::Node(formats::common::validate_float<Exception>(t))) {}
+    : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t))) {}
 
 ValueBuilder::ValueBuilder(double t)
-    : value_(YAML::Node(formats::common::validate_float<Exception>(t))) {}
+    : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t))) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   Copy(other);

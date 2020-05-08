@@ -3,16 +3,19 @@
 #include <sstream>
 
 #include <formats/json/exception.hpp>
+#include <formats/json/inline.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
 
 #include <formats/common/member_access_test.hpp>
 
 namespace {
-constexpr const char* kDoc =
-    "{\"key1\":1,\"key2\":\"val\",\"key3\":{\"sub\":-1},\"key4\":[1,2,3],"
-    "\"key5\":10.5,\"key6\":false}";
-}
+
+const auto kDoc = formats::json::MakeObject(
+    "key1", 1, "key2", "val", "key3", formats::json::MakeObject("sub", -1),
+    "key4", formats::json::MakeArray(1, 2, 3), "key5", 10.5, "key6", false);
+
+}  // namespace
 
 template <>
 struct MemberAccess<formats::json::Value> : public ::testing::Test {
@@ -22,7 +25,7 @@ struct MemberAccess<formats::json::Value> : public ::testing::Test {
                     formats::json::Value>,
                 "Value iterators are not assignable");
 
-  MemberAccess() : doc_(formats::json::FromString(kDoc)) {}
+  MemberAccess() : doc_(kDoc) {}
   formats::json::Value doc_;
 
   using ValueBuilder = formats::json::ValueBuilder;

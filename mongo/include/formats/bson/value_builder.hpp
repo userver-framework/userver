@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include <formats/bson/document.hpp>
 #include <formats/bson/iterator.hpp>
@@ -65,6 +66,7 @@ class ValueBuilder {
   /* implicit */ ValueBuilder(double);
   /* implicit */ ValueBuilder(const char*);
   /* implicit */ ValueBuilder(std::string);
+  /* implicit */ ValueBuilder(std::string_view);
   /* implicit */ ValueBuilder(const std::chrono::system_clock::time_point&);
   /* implicit */ ValueBuilder(const Oid&);
   /* implicit */ ValueBuilder(Binary);

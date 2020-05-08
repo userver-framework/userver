@@ -4,6 +4,7 @@
 /// @brief @copybrief formats::json::ValueBuilder
 
 #include <chrono>
+#include <string_view>
 
 #include <formats/common/meta.hpp>
 #include <formats/json/value.hpp>
@@ -45,6 +46,7 @@ class ValueBuilder final {
   ValueBuilder(bool t);
   ValueBuilder(const char* str);
   ValueBuilder(const std::string& str);
+  ValueBuilder(std::string_view str);
   ValueBuilder(int t);
   ValueBuilder(unsigned int t);
   ValueBuilder(uint64_t t);
