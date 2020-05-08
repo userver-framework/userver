@@ -102,19 +102,24 @@ class ValueBuilder final {
   formats::yaml::Value ExtractValue();
 
  private:
+  class EmplaceEnabler {};
+
+ public:
+  /// @cond
+  ValueBuilder(EmplaceEnabler, const YAML::Node& value,
+               const formats::yaml::Path& path, const std::string& key);
+
+  ValueBuilder(EmplaceEnabler, const YAML::Node& value,
+               const formats::yaml::Path& path, size_t index);
+  /// @endcond
+
+ private:
   static ValueBuilder MakeNonRoot(const YAML::Node& val,
                                   const formats::yaml::Path& path,
                                   const std::string& key);
   static ValueBuilder MakeNonRoot(const YAML::Node& val,
                                   const formats::yaml::Path& path,
-                                  std::size_t index);
-
-  // For iterator interface compatibility
-  void SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
-                  const std::string& key);
-  void SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
-                  std::size_t index);
-  std::string GetPath() const;
+                                  size_t index);
 
   void Copy(const ValueBuilder& from);
   void Move(ValueBuilder&& from);

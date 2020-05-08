@@ -6,11 +6,12 @@
 
 #include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
+
 #include <formats/json/exception.hpp>
 
 #include <formats/common/path_impl.hpp>
-#include "exttypes.hpp"
-#include "json_tree.hpp"
+#include <formats/json/exttypes.hpp>
+#include <formats/json/json_tree.hpp>
 
 namespace formats::json {
 
@@ -60,22 +61,14 @@ bool IsNonOverflowingIntegral(const double val) {
 
 Value::Value() noexcept : value_ptr_(nullptr), depth_(0) {}
 
-// We have to explicitly define the move constructor because of the clang-7
-// bogus error message:
-// "error: exception specification of explicitly defaulted move assignment
-// operator does not match the calculated one"
-Value& Value::operator=(Value&& other) & noexcept {
-  root_ = std::move(other.root_);
-  value_ptr_ = other.value_ptr_;
-  detached_path_ = std::move(other.detached_path_);
-  depth_ = other.depth_;
-  return *this;
-}
-
 Value::~Value() = default;
 
 Value::Value(NativeValuePtr&& root) noexcept
     : root_(std::move(root)), value_ptr_(root_.get()), depth_(0) {}
+
+Value::Value(EmplaceEnabler, const NativeValuePtr& root,
+             const impl::Value& value, int depth)
+    : Value(root, &value, depth) {}
 
 Value::Value(const NativeValuePtr& root, const impl::Value* value_ptr,
              int depth)
@@ -340,16 +333,6 @@ Value Value::Clone() const {
   auto result{std::make_shared<impl::Value>()};
   result->CopyFrom(GetNative(), g_crt_allocator);
   return Value{std::move(result)};
-}
-
-void Value::SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                       int depth) {
-  *this = Value(root, &val, depth);
-}
-
-void Value::SetNonRoot(const NativeValuePtr& root,
-                       std::string&& detached_path) {
-  *this = Value(root, std::move(detached_path));
 }
 
 // Value states

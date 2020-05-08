@@ -13,7 +13,14 @@ constexpr const char* kDoc =
 }
 
 template <>
-struct MemberModify<formats::json::Value> : public ::testing::Test {
+struct MemberModify<formats::json::ValueBuilder> : public ::testing::Test {
+  // XXX: not working from base class in clang-7 (decltype?)
+  static_assert(
+      std::is_assignable_v<
+          decltype(*std::declval<formats::json::ValueBuilder>().begin()),
+          formats::json::ValueBuilder>,
+      "ValueBuilder iterators are assignable");
+
   MemberModify() : builder_(formats::json::FromString(kDoc)) {}
 
   formats::json::Value GetValue(formats::json::ValueBuilder& bld) {
@@ -39,4 +46,5 @@ struct MemberModify<formats::json::Value> : public ::testing::Test {
   constexpr static auto FromString = formats::json::FromString;
 };
 
-INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, MemberModify, formats::json::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, MemberModify,
+                               formats::json::ValueBuilder);

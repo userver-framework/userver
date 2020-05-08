@@ -24,8 +24,8 @@ class Value final {
  public:
   struct IterTraits {
     using value_type = formats::json::Value;
-    using reference = formats::json::Value&;
-    using pointer = formats::json::Value*;
+    using reference = const formats::json::Value&;
+    using pointer = const formats::json::Value*;
   };
 
   using const_iterator = Iterator<IterTraits>;
@@ -41,7 +41,7 @@ class Value final {
   Value(Value&&) noexcept = default;
 
   Value& operator=(const Value&) & = default;
-  Value& operator=(Value&& other) & noexcept;
+  Value& operator=(Value&& other) & noexcept = default;
 
   template <class T>
   Value& operator=(T&&) && {
@@ -193,15 +193,20 @@ class Value final {
   }
 
  private:
+  class EmplaceEnabler {};
+
   Value(NativeValuePtr&& root) noexcept;
   bool IsUniqueReference() const;
 
+ public:
+  /// @cond
+  Value(EmplaceEnabler, const NativeValuePtr& root,
+        const impl::Value& value_ptr, int depth);
+  /// @endcond
+
+ private:
   Value(const NativeValuePtr& root, const impl::Value* value_ptr, int depth);
   Value(const NativeValuePtr& root, std::string&& detached_path);
-
-  void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                  int depth);
-  void SetNonRoot(const NativeValuePtr& root, std::string&& detached_path);
 
   void EnsureNotMissing();
   const impl::Value& GetNative() const;

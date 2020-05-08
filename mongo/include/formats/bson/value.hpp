@@ -30,7 +30,7 @@ class ValueBuilder;
 /// construction of new BSON values use formats::bson::ValueBuilder.
 class Value {
  public:
-  using const_iterator = Iterator<Value>;
+  using const_iterator = Iterator<const Value>;
   using Exception = formats::bson::BsonException;
   using ParseException = formats::bson::ConversionException;
   using Builder = ValueBuilder;

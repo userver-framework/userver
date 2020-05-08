@@ -4,11 +4,11 @@
 /// @brief @copybrief formats::json::Iterator
 
 #include <iterator>
+#include <optional>
 
 #include <formats/json/types.hpp>
 
-namespace formats {
-namespace json {
+namespace formats::json {
 
 /// @brief Iterator for `formats::json::Value`
 template <typename iter_traits>
@@ -57,9 +57,7 @@ class Iterator final {
   /// Cached `depth_` of `container_`'s json value
   int depth_;
   // Temporary object replaced on every value access.
-  mutable value_type value_;
-  mutable bool valid_;
+  mutable std::optional<value_type> current_;
 };
 
-}  // namespace json
-}  // namespace formats
+}  // namespace formats::json

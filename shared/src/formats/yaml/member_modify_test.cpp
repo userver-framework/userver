@@ -18,7 +18,14 @@ key5: 10.5
 }
 
 template <>
-struct MemberModify<formats::yaml::Value> : public ::testing::Test {
+struct MemberModify<formats::yaml::ValueBuilder> : public ::testing::Test {
+  // XXX: not working from base class in clang-7 (decltype?)
+  static_assert(
+      std::is_assignable_v<
+          decltype(*std::declval<formats::yaml::ValueBuilder>().begin()),
+          formats::yaml::ValueBuilder>,
+      "ValueBuilder iterators are assignable");
+
   MemberModify() : builder_(formats::yaml::FromString(kDoc)) {}
 
   formats::yaml::Value GetValue(formats::yaml::ValueBuilder& bld) {
@@ -44,4 +51,5 @@ struct MemberModify<formats::yaml::Value> : public ::testing::Test {
   constexpr static auto FromString = formats::yaml::FromString;
 };
 
-INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, MemberModify, formats::yaml::Value);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, MemberModify,
+                               formats::yaml::ValueBuilder);

@@ -18,6 +18,10 @@ const auto kDuplicateFieldsDoc = fb::MakeDoc(
 
 }  // namespace
 
+static_assert(!std::is_assignable_v<
+                  decltype(*std::declval<fb::Value>().begin()), fb::Value>,
+              "Value iterators are not assignable");
+
 TEST(BsonValue, SubvalAccess) {
   EXPECT_TRUE(kDoc["missing"].IsMissing());
   EXPECT_TRUE(kDoc["arr"].IsArray());

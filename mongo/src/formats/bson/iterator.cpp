@@ -8,12 +8,32 @@
 namespace formats::bson {
 
 template <typename ValueType>
-Iterator<ValueType>::ArrowProxy::ArrowProxy(ValueType value)
-    : value_(std::move(value)) {}
-
-template <typename ValueType>
 Iterator<ValueType>::Iterator(impl::ValueImpl& iterable, NativeIter it)
     : iterable_(&iterable), it_(std::move(it)) {}
+
+template <typename ValueType>
+Iterator<ValueType>::Iterator(const Iterator& other)
+    : iterable_(other.iterable_), it_(other.it_) {}
+
+template <typename ValueType>
+Iterator<ValueType>::Iterator(Iterator&& other) noexcept
+    : iterable_(other.iterable_), it_(std::move(other.it_)) {}
+
+template <typename ValueType>
+Iterator<ValueType>& Iterator<ValueType>::operator=(const Iterator& other) {
+  iterable_ = other.iterable_;
+  it_ = other.it_;
+  current_.reset();
+  return *this;
+}
+
+template <typename ValueType>
+Iterator<ValueType>& Iterator<ValueType>::operator=(Iterator&& other) noexcept {
+  iterable_ = other.iterable_;
+  it_ = std::move(other.it_);
+  current_.reset();
+  return *this;
+}
 
 template <typename ValueType>
 Iterator<ValueType> Iterator<ValueType>::operator++(int) {
@@ -24,30 +44,20 @@ Iterator<ValueType> Iterator<ValueType>::operator++(int) {
 
 template <typename ValueType>
 Iterator<ValueType>& Iterator<ValueType>::operator++() {
+  current_.reset();
   std::visit([](auto& it) { ++it; }, it_);
   return *this;
 }
 
 template <typename ValueType>
-ValueType Iterator<ValueType>::operator*() const {
-  class Visitor {
-   public:
-    impl::ValueImplPtr operator()(impl::ParsedArray::const_iterator it) const {
-      return *it;
-    }
-
-    impl::ValueImplPtr operator()(
-        impl::ParsedDocument::const_iterator it) const {
-      return it->second;
-    }
-  };
-  return ValueType(std::visit(Visitor{}, it_));
+typename Iterator<ValueType>::reference Iterator<ValueType>::operator*() const {
+  UpdateValue();
+  return *current_;
 }
 
 template <typename ValueType>
-typename Iterator<ValueType>::ArrowProxy Iterator<ValueType>::operator->()
-    const {
-  return ArrowProxy(**this);
+typename Iterator<ValueType>::pointer Iterator<ValueType>::operator->() const {
+  return &**this;
 }
 
 template <typename ValueType>
@@ -103,8 +113,26 @@ uint32_t Iterator<ValueType>::GetIndex() const {
   return std::visit(Visitor(*iterable_), it_);
 }
 
+template <typename ValueType>
+void Iterator<ValueType>::UpdateValue() const {
+  if (current_) return;
+
+  class Visitor {
+   public:
+    impl::ValueImplPtr operator()(impl::ParsedArray::const_iterator it) const {
+      return *it;
+    }
+
+    impl::ValueImplPtr operator()(
+        impl::ParsedDocument::const_iterator it) const {
+      return it->second;
+    }
+  };
+  current_.emplace(std::visit(Visitor{}, it_));
+}
+
 // Template instantiations
-template class Iterator<Value>;
+template class Iterator<const Value>;
 template class Iterator<ValueBuilder>;
 
 }  // namespace formats::bson

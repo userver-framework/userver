@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -10,6 +11,11 @@
 #include <formats/serialize/common_containers.hpp>
 
 namespace fb = formats::bson;
+
+static_assert(
+    std::is_assignable_v<decltype(*std::declval<fb::ValueBuilder>().begin()),
+                         fb::ValueBuilder>,
+    "ValueBuilder iterators are assignable");
 
 TEST(BsonValueBuilder, Default) {
   fb::ValueBuilder b;

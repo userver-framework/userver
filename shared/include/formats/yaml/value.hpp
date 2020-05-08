@@ -10,7 +10,6 @@
 #include <formats/yaml/exception.hpp>
 #include <formats/yaml/iterator.hpp>
 #include <formats/yaml/types.hpp>
-
 #include <utils/fast_pimpl.hpp>
 
 namespace formats::yaml {
@@ -26,8 +25,8 @@ class Value final {
   struct IterTraits {
     using native_iter = YAML::const_iterator;
     using value_type = formats::yaml::Value;
-    using reference = formats::yaml::Value&;
-    using pointer = formats::yaml::Value*;
+    using reference = const formats::yaml::Value&;
+    using pointer = const formats::yaml::Value*;
   };
 
   using const_iterator = Iterator<IterTraits>;
@@ -184,19 +183,25 @@ class Value final {
   bool DebugIsReferencingSameMemory(const Value& other) const;
 
  private:
+  class EmplaceEnabler {};
+
+ public:
+  /// @cond
+  Value(EmplaceEnabler, const YAML::Node& value,
+        const formats::yaml::Path& path, const std::string& key);
+
+  Value(EmplaceEnabler, const YAML::Node& value,
+        const formats::yaml::Path& path, size_t index);
+  /// @endcond
+
+ private:
   Value(const YAML::Node& root) noexcept;
 
   static Value MakeNonRoot(const YAML::Node& value,
                            const formats::yaml::Path& path,
                            const std::string& key);
   static Value MakeNonRoot(const YAML::Node& val,
-                           const formats::yaml::Path& path, uint32_t index);
-
-  void SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
-                  const std::string& key);
-
-  void SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
-                  uint32_t index);
+                           const formats::yaml::Path& path, size_t index);
 
   const YAML::Node& GetNative() const;
   YAML::Node& GetNative();
@@ -208,7 +213,7 @@ class Value final {
   template <class T>
   T ValueAs() const;
 
-  bool is_root_{false};
+  bool is_root_;
 
   static constexpr std::size_t kNativeNodeSize = 64;
   static constexpr std::size_t kNativeAlignment = alignof(void*);

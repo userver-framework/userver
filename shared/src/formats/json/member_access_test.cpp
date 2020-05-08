@@ -16,6 +16,12 @@ constexpr const char* kDoc =
 
 template <>
 struct MemberAccess<formats::json::Value> : public ::testing::Test {
+  // XXX: not working from base class in clang-7 (decltype?)
+  static_assert(!std::is_assignable_v<
+                    decltype(*std::declval<formats::json::Value>().begin()),
+                    formats::json::Value>,
+                "Value iterators are not assignable");
+
   MemberAccess() : doc_(formats::json::FromString(kDoc)) {}
   formats::json::Value doc_;
 

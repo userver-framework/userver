@@ -100,12 +100,16 @@ class ValueBuilder final {
   formats::json::Value ExtractValue();
 
  private:
-  ValueBuilder(const NativeValuePtr& root, const impl::Value& val, int depth);
+  class EmplaceEnabler {};
 
-  // For iterator interface compatibility
-  void SetNonRoot(const NativeValuePtr& root, const impl::Value& val,
-                  int depth);
-  std::string GetPath() const;
+ public:
+  /// @cond
+  ValueBuilder(EmplaceEnabler, const NativeValuePtr& root,
+               const impl::Value& val, int depth);
+  /// @endcond
+
+ private:
+  ValueBuilder(const NativeValuePtr& root, const impl::Value& val, int depth);
 
   void Copy(impl::Value& to, const ValueBuilder& from);
   void Move(impl::Value& to, ValueBuilder&& from);

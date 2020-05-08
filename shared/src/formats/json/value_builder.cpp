@@ -1,13 +1,12 @@
 #include <formats/json/value_builder.hpp>
 
-#include <formats/common/validations.hpp>
-#include <formats/json/exception.hpp>
-
 #include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
+#include <formats/common/validations.hpp>
+#include <formats/json/exception.hpp>
 #include <utils/assert.hpp>
 #include <utils/datetime.hpp>
 
@@ -127,6 +126,10 @@ ValueBuilder::ValueBuilder(formats::json::Value&& other) {
     value_.GetNative().CopyFrom(other.GetNative(), g_crt_allocator);
 }
 
+ValueBuilder::ValueBuilder(EmplaceEnabler, const NativeValuePtr& root,
+                           const impl::Value& val, int depth)
+    : ValueBuilder(root, val, depth) {}
+
 ValueBuilder::ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
                            int depth)
     : value_(root, &val, depth) {}
@@ -212,13 +215,6 @@ formats::json::Value ValueBuilder::ExtractValue() {
   value_ = Value{};
   return v;
 }
-
-void ValueBuilder::SetNonRoot(const NativeValuePtr& root,
-                              const impl::Value& val, int depth) {
-  value_.SetNonRoot(root, val, depth);
-}
-
-std::string ValueBuilder::GetPath() const { return value_.GetPath(); }
 
 void ValueBuilder::Copy(impl::Value& to, const ValueBuilder& from) {
   to.CopyFrom(from.value_.GetNative(), g_crt_allocator);

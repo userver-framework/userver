@@ -1,14 +1,12 @@
 #include <formats/yaml/value.hpp>
 
-#include <formats/yaml/exception.hpp>
-
-#include <compiler/demangle.hpp>
-#include <utils/assert.hpp>
-
 #include <yaml-cpp/yaml.h>
 
-namespace formats {
-namespace yaml {
+#include <compiler/demangle.hpp>
+#include <formats/yaml/exception.hpp>
+#include <utils/assert.hpp>
+
+namespace formats::yaml {
 
 namespace {
 
@@ -73,21 +71,23 @@ Value::~Value() = default;
 Value::Value(const YAML::Node& root) noexcept
     : is_root_(true), value_pimpl_(root) {}
 
+Value::Value(EmplaceEnabler, const YAML::Node& value,
+             const formats::yaml::Path& path, const std::string& key)
+    : is_root_(false), value_pimpl_(value), path_(path.MakeChildPath(key)) {}
+
+Value::Value(EmplaceEnabler, const YAML::Node& value,
+             const formats::yaml::Path& path, size_t index)
+    : is_root_(false), value_pimpl_(value), path_(path.MakeChildPath(index)) {}
+
 Value Value::MakeNonRoot(const YAML::Node& value,
                          const formats::yaml::Path& path,
                          const std::string& key) {
-  Value ret{value};
-  ret.is_root_ = false;
-  ret.path_ = path.MakeChildPath(key);
-  return ret;
+  return {EmplaceEnabler{}, value, path, key};
 }
 
 Value Value::MakeNonRoot(const YAML::Node& value,
-                         const formats::yaml::Path& path, uint32_t index) {
-  Value ret{value};
-  ret.is_root_ = false;
-  ret.path_ = path.MakeChildPath(index);
-  return ret;
+                         const formats::yaml::Path& path, size_t index) {
+  return {EmplaceEnabler{}, value, path, index};
 }
 
 Value Value::operator[](const std::string& key) const {
@@ -217,18 +217,6 @@ Value Value::Clone() const {
   return v;
 }
 
-void Value::SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
-                       const std::string& key) {
-  UASSERT_MSG(val, "Assigining a missing node");
-  *this = MakeNonRoot(val, path, key);
-}
-
-void Value::SetNonRoot(const YAML::Node& val, const formats::yaml::Path& path,
-                       uint32_t index) {
-  UASSERT_MSG(val, "Assigining a missing node");
-  *this = MakeNonRoot(val, path, index);
-}
-
 bool Value::IsRoot() const noexcept { return is_root_; }
 
 bool Value::DebugIsReferencingSameMemory(const Value& other) const {
@@ -286,5 +274,4 @@ void Value::CheckInBounds(std::size_t index) const {
   }
 }
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml

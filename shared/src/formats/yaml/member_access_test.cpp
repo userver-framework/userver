@@ -22,6 +22,12 @@ key6: false
 
 template <>
 struct MemberAccess<formats::yaml::Value> : public ::testing::Test {
+  // XXX: not working from base class in clang-7 (decltype?)
+  static_assert(!std::is_assignable_v<
+                    decltype(*std::declval<formats::yaml::Value>().begin()),
+                    formats::yaml::Value>,
+                "Value iterators are not assignable");
+
   inline MemberAccess() : doc_(formats::yaml::FromString(kDoc)) {}
   formats::yaml::Value doc_;
 

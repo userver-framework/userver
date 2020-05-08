@@ -1,14 +1,12 @@
 #include <formats/yaml/value_builder.hpp>
 
-#include <formats/yaml/exception.hpp>
-
-#include <formats/common/validations.hpp>
-#include <utils/assert.hpp>
-
 #include <yaml-cpp/yaml.h>
 
-namespace formats {
-namespace yaml {
+#include <formats/common/validations.hpp>
+#include <formats/yaml/exception.hpp>
+#include <utils/assert.hpp>
+
+namespace formats::yaml {
 
 namespace {
 
@@ -81,20 +79,25 @@ ValueBuilder::ValueBuilder(formats::yaml::Value&& other) {
   NodeDataAssign(other);
 }
 
+ValueBuilder::ValueBuilder(EmplaceEnabler, const YAML::Node& value,
+                           const formats::yaml::Path& path,
+                           const std::string& key)
+    : value_(Value::EmplaceEnabler{}, value, path, key) {}
+
+ValueBuilder::ValueBuilder(EmplaceEnabler, const YAML::Node& value,
+                           const formats::yaml::Path& path, size_t index)
+    : value_(Value::EmplaceEnabler{}, value, path, index) {}
+
 ValueBuilder ValueBuilder::MakeNonRoot(const YAML::Node& val,
                                        const formats::yaml::Path& path,
                                        const std::string& key) {
-  ValueBuilder ret;
-  ret.value_ = Value::MakeNonRoot(val, path, key);
-  return ret;
+  return {EmplaceEnabler{}, val, path, key};
 }
 
 ValueBuilder ValueBuilder::MakeNonRoot(const YAML::Node& val,
                                        const formats::yaml::Path& path,
-                                       std::size_t index) {
-  ValueBuilder ret;
-  ret.value_ = Value::MakeNonRoot(val, path, index);
-  return ret;
+                                       size_t index) {
+  return {EmplaceEnabler{}, val, path, index};
 }
 
 ValueBuilder ValueBuilder::operator[](const std::string& key) {
@@ -174,20 +177,6 @@ formats::yaml::Value ValueBuilder::ExtractValue() {
   return v;
 }
 
-void ValueBuilder::SetNonRoot(const YAML::Node& val,
-                              const formats::yaml::Path& path,
-                              const std::string& key) {
-  value_.SetNonRoot(val, path, key);
-}
-
-void ValueBuilder::SetNonRoot(const YAML::Node& val,
-                              const formats::yaml::Path& path,
-                              std::size_t index) {
-  value_.SetNonRoot(val, path, index);
-}
-
-std::string ValueBuilder::GetPath() const { return value_.GetPath(); }
-
 void ValueBuilder::NodeDataAssign(const formats::yaml::Value& from) {
   if (from.IsMissing()) {
     throw MemberMissingException(from.GetPath());
@@ -205,5 +194,4 @@ void ValueBuilder::Move(ValueBuilder&& from) {
   from.value_ = YAML::Node();
 }
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml

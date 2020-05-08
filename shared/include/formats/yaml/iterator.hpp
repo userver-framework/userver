@@ -4,13 +4,12 @@
 /// @brief @copybrief formats::yaml::Iterator
 
 #include <iterator>
+#include <optional>
 
 #include <formats/yaml/types.hpp>
-
 #include <utils/fast_pimpl.hpp>
 
-namespace formats {
-namespace yaml {
+namespace formats::yaml {
 
 /// @brief Iterator for `formats::yaml::Value`
 template <typename iter_traits>
@@ -57,9 +56,7 @@ class Iterator final {
   formats::yaml::Path path_;
   // Temporary object replaced on every value access.
   mutable int index_;
-  mutable value_type value_;
-  mutable bool valid_;
+  mutable std::optional<value_type> current_;
 };
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml
