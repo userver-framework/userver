@@ -95,11 +95,13 @@ using EnableTransparentCompare = std::enable_if_t<
         !std::is_base_of<StrongTypedef<Tag, T, Ops>, Other>::value,
     bool>;
 
+struct StrongTypedefTag {};
+
 }  // namespace impl::strong_typedef
 
 // Generic implementation for classes
 template <class Tag, class T, StrongTypedefOps Ops, class /*Enable*/>
-class StrongTypedef {
+class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
   static_assert(!std::is_reference<T>::value);
   static_assert(!std::is_pointer<T>::value);
 
@@ -164,8 +166,8 @@ class StrongTypedef {
 // `enum class C: type{}` because has optimized logging and transparent
 // comparison operators by default.
 template <class Tag, class T, StrongTypedefOps Ops>
-class StrongTypedef<Tag, T, Ops,
-                    std::enable_if_t<std::is_arithmetic<T>::value>> {
+class StrongTypedef<Tag, T, Ops, std::enable_if_t<std::is_arithmetic<T>::value>>
+    : public impl::strong_typedef::StrongTypedefTag {
   static_assert(!std::is_reference<Tag>::value);
   static_assert(!std::is_pointer<Tag>::value);
 
@@ -274,6 +276,36 @@ template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
 TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
                      formats::serialize::To<TargetType>) {
   return typename TargetType::Builder(object.GetUnderlying()).ExtractValue();
+}
+
+// Explicit casting
+template <typename T>
+struct IsStrongTypedef
+    : std::is_base_of<impl::strong_typedef::StrongTypedefTag, T> {};
+
+/// Explicitly cast from one strong typedef to another, to replace constructions
+/// `SomeStrongTydef{::utils::UnderlyingValue(another_strong_val)}` with
+/// `::utils::StrongCast<SomeStrongTydef>(another_strong_val)`
+template <typename Target, typename Tag, typename T, StrongTypedefOps Ops,
+          typename Enable>
+constexpr Target StrongCast(const StrongTypedef<Tag, T, Ops, Enable>& src) {
+  static_assert(IsStrongTypedef<Target>{},
+                "Expected strong typedef as target type");
+  static_assert(std::is_convertible_v<T, typename Target::UnderlyingType>,
+                "Source strong typedef underlying type must be convertible to "
+                "target's underlying type");
+  return Target{src.GetUnderlying()};
+}
+
+template <typename Target, typename Tag, typename T, StrongTypedefOps Ops,
+          typename Enable>
+constexpr Target StrongCast(StrongTypedef<Tag, T, Ops, Enable>&& src) {
+  static_assert(IsStrongTypedef<Target>{},
+                "Expected strong typedef as target type");
+  static_assert(std::is_convertible_v<T, typename Target::UnderlyingType>,
+                "Source strong typedef underlying type must be convertible to "
+                "target's underlying type");
+  return Target{std::move(src).GetUnderlying()};
 }
 
 template <class Tag, class T, StrongTypedefOps Ops>

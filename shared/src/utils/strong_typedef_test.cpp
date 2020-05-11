@@ -232,3 +232,11 @@ TEST(StrongTypedef, NotAssignableImplicitly) {
   EXPECT_FALSE((std::is_assignable<MySpecialInt&, int>::value));
   EXPECT_FALSE((std::is_assignable<MyStringId&, std::string>::value));
 }
+
+TEST(StrongTypedef, StrongCast) {
+  EXPECT_TRUE((utils::IsStrongTypedef<MyString>::value));
+  EXPECT_TRUE((utils::IsStrongTypedef<MyString2>::value));
+  MyString ms{"string"};
+  auto ms2 = utils::StrongCast<MyString2>(ms);
+  EXPECT_EQ(ms.GetUnderlying(), ms2.GetUnderlying());
+}
