@@ -1,21 +1,73 @@
-#!/bin/bash -e
+#!/bin/bash
+
+err_failure() {
+  echo "Prerequisites installation failed!"
+  [ -z "${USERVER_FORCE}" ] && exit 1
+}
+trap err_failure ERR
+
+warn_held_packages() {
+  local held
+  held=$({ printf '%s\n' "$@"; apt-mark showhold; } | sort | uniq -d)
+  for pkg in $held; do
+    echo "WARN: The following package is on hold and will not be upgraded: ${pkg}"
+  done
+}
+
+skip_held_packages() {
+  { printf '%s\n' "$@"; apt-mark showhold | sed p; } | sort | uniq -u
+}
 
 CURRENT_DISTRIB=bionic
 SCRIPTS_PATH=$(dirname "$(realpath "$0")")
 YANDEX_ARCHIVE_KEY_ID=7FCD11186050CD1A
 
-ESSENTIAL_PACKAGES="git make cmake clang++-7 libstdc++-7-dev lld-7 clang-format-7 taxi-deps-py3-2"
-USERVER_BUILDDEPS=" \
-  libssl-dev libyandex-taxi-jemalloc-dev zlib1g-dev \
-  libboost-filesystem-dev libboost-locale-dev libboost-program-options-dev libboost-regex-dev libboost-thread-dev \
-  libcctz-dev libcrypto++-dev libev-dev libfmt-dev libhttp-parser-dev libyaml-cpp-dev \
-  libgcrypt11-dev libkrb5-dev libnghttp2-dev libyandex-taxi-curl4-openssl-dev \
-  libhiredis-dev \
-  libyandex-taxi-mongo-c-driver-dev \
-  libpq-dev postgresql-server-dev-10 libldap2-dev \
-  libyandex-taxi-grpc++-dev libyandex-taxi-c-ares-dev yandex-taxi-protobuf-compiler-grpc \
+ESSENTIAL_PACKAGES=" \
+  clang-7 \
+  clang-format-7 \
+  cmake \
+  git \
+  libstdc++-7-dev \
+  lld-7 \
+  make \
+  taxi-deps-py3-2 \
 "
-OPTIONAL_PACKAGES="ccache redis-server mongodb postgresql-10"
+
+USERVER_BUILDDEPS=" \
+  libboost-filesystem-dev \
+  libboost-locale-dev \
+  libboost-program-options-dev \
+  libboost-regex-dev \
+  libboost-thread-dev \
+  libcctz-dev \
+  libcrypto++-dev \
+  libev-dev \
+  libfmt-dev \
+  libgcrypt11-dev \
+  libhiredis-dev \
+  libhttp-parser-dev \
+  libkrb5-dev \
+  libldap2-dev \
+  libnghttp2-dev \
+  libpq-dev \
+  libssl-dev \
+  libyaml-cpp-dev \
+  libyandex-taxi-c-ares-dev \
+  libyandex-taxi-curl4-openssl-dev \
+  libyandex-taxi-grpc++-dev \
+  libyandex-taxi-jemalloc-dev \
+  libyandex-taxi-mongo-c-driver-dev \
+  postgresql-server-dev-10 \
+  yandex-taxi-protobuf-compiler-grpc \
+  zlib1g-dev \
+"
+
+OPTIONAL_PACKAGES=" \
+  ccache \
+  mongodb \
+  postgresql-10 \
+  redis-server \
+"
 
 # issue sudo token to not remind of it in every message
 if ! sudo -n /bin/true; then
@@ -55,14 +107,16 @@ echo "Installing essential packages"
 sudo apt update
 
 # install packages required for cmake/codegen
-sudo apt install -y ${ESSENTIAL_PACKAGES}
+warn_held_packages ${ESSENTIAL_PACKAGES}
+sudo apt install -y $(skip_held_packages ${ESSENTIAL_PACKAGES})
 
 # TODO: use codegen to make package list
 
 echo "Installing common build dependencies"
 
 # install userver build dependencies
-sudo apt install -y ${USERVER_BUILDDEPS}
+warn_held_packages ${USERVER_BUILDDEPS}
+sudo apt install -y $(skip_held_packages ${USERVER_BUILDDEPS})
 
 echo
-echo "For better experience you might want to install packages: ${OPTIONAL_PACKAGES}, but they are optional."
+echo "For better experience you might want to install packages:" ${OPTIONAL_PACKAGES} ", but they are optional."
