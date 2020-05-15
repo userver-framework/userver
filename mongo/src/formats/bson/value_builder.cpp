@@ -172,6 +172,10 @@ bool ValueBuilder::IsEmpty() const { return impl_->IsEmpty(); }
 
 uint32_t ValueBuilder::GetSize() const { return impl_->GetSize(); }
 
+bool ValueBuilder::HasMember(const std::string& name) const {
+  return impl_->HasMember(name);
+}
+
 void ValueBuilder::Resize(uint32_t size) { impl_->Resize(size); }
 
 void ValueBuilder::PushBack(ValueBuilder&& elem) {

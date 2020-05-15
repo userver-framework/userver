@@ -86,6 +86,14 @@ class ValueBuilder final {
   /// @throw `TypeMismatchException` if not array or object value.
   std::size_t GetSize() const;
 
+  /// @brief Returns true if value holds a `key`.
+  /// @throw Nothing.
+  bool HasMember(const char* key) const;
+
+  /// @brief Returns true if value holds a `key`.
+  /// @throw Nothing.
+  bool HasMember(const std::string& key) const;
+
   /// @brief Resize the array value or convert null value
   /// into an array of requested size.
   /// @throw `TypeMismatchException` if not array or null value.

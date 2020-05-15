@@ -134,6 +134,14 @@ bool ValueBuilder::IsEmpty() const { return value_.IsEmpty(); }
 
 std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 
+bool ValueBuilder::HasMember(const char* key) const {
+  return value_.HasMember(key);
+}
+
+bool ValueBuilder::HasMember(const std::string& key) const {
+  return value_.HasMember(key);
+}
+
 void ValueBuilder::Resize(std::size_t size) {
   value_.CheckArrayOrNull();
 

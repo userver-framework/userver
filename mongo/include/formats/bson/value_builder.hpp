@@ -118,6 +118,11 @@ class ValueBuilder {
   /// @note Returns 0 for `null`.
   uint32_t GetSize() const;
 
+  /// @brief Checks whether the document has a field
+  /// @param name field name
+  /// @throws TypeMismatchExcepiton if value is not a document or `null`
+  bool HasMember(const std::string& name) const;
+
   /// @brief Creates or resizes the array
   /// @param size new size
   /// @throws TypeMismatchException if value is not an array or `null`

@@ -152,11 +152,11 @@ class Value final {
   T ConvertTo(First&& default_arg, Rest&&... more_default_args) const;
 
   /// @brief Returns true if *this holds a `key`.
-  /// @throw Nothing.
+  /// @throw TypeMismatchException if `*this` is not a map or Null.
   bool HasMember(const char* key) const;
 
   /// @brief Returns true if *this holds a `key`.
-  /// @throw Nothing.
+  /// @throw TypeMismatchException if `*this` is not a map or Null.
   bool HasMember(const std::string& key) const;
 
   /// @brief Returns full path to this value.
