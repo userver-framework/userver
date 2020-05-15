@@ -51,7 +51,7 @@ WriteConcern::WriteConcern(std::string tag)
 bool WriteConcern::IsMajority() const { return is_majority_; }
 size_t WriteConcern::NodesCount() const { return nodes_count_; }
 const std::string& WriteConcern::Tag() const { return tag_; }
-const boost::optional<bool>& WriteConcern::Journal() const { return journal_; }
+std::optional<bool> WriteConcern::Journal() const { return journal_; }
 
 const std::chrono::milliseconds& WriteConcern::Timeout() const {
   return timeout_;

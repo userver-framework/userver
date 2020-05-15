@@ -84,19 +84,19 @@ size_t KeyShardTaximeterCrc32::ShardByKey(const std::string& key) const {
 
 size_t KeyShardGpsStorageDriver::ShardByKey(const std::string& key) const {
   const auto path = Parse(key);
-  const auto& driver_id = path.get_value_or(key);
+  const auto& driver_id = path.value_or(key);
   boost::crc_32_type crc{};
   return boost::for_each(driver_id, crc)() % shard_count_;
 }
 
-boost::optional<std::string> KeyShardGpsStorageDriver::Parse(
+std::optional<std::string> KeyShardGpsStorageDriver::Parse(
     const std::string& s) {
   // TODO: this copies geotracks implementation
   // need use sime single function for this, but unsure how to get dependencies
   // right
   std::vector<std::string> parts;
   boost::algorithm::split(parts, s, boost::is_any_of("/"));
-  if (parts.size() != 5) return boost::none;
+  if (parts.size() != 5) return std::nullopt;
   return parts[2];  // data/db/driver_id/data/bucket
 }
 

@@ -5,7 +5,7 @@
 namespace redis {
 
 struct ScanReply {
-  boost::optional<ScanCursor> cursor;
+  std::optional<ScanCursor> cursor;
   std::vector<std::string> keys;
 
   static ScanReply parse(ReplyPtr reply);

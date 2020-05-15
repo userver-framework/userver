@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include <storages/redis/impl/base.hpp>
 #include <storages/redis/impl/command_options.hpp>
@@ -247,7 +247,7 @@ class Transaction {
   std::shared_ptr<Sentinel> sentinel_;
   const CheckShards check_shards_;
   CmdArgs cmd_args_;
-  boost::optional<size_t> shard_;
+  std::optional<size_t> shard_;
 };
 
 }  // namespace redis

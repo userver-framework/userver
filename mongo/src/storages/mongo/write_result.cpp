@@ -89,7 +89,7 @@ std::unordered_map<size_t, formats::bson::Value> WriteResult::UpsertedIds()
   return upserted_ids;
 }
 
-boost::optional<formats::bson::Document> WriteResult::FoundDocument() const {
+std::optional<formats::bson::Document> WriteResult::FoundDocument() const {
   auto doc = value_["value"];
   if (!doc.IsDocument()) return {};
   return doc.As<formats::bson::Document>();

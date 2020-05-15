@@ -1,8 +1,7 @@
 #pragma once
 
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <storages/redis/impl/base.hpp>
 #include <storages/redis/impl/command_options.hpp>
@@ -52,9 +51,9 @@ class ScanOptionsBase {
     size_t value_;
   };
 
-  boost::optional<Match> ExtractMatch() { return std::move(pattern_); }
+  std::optional<Match> ExtractMatch() { return std::move(pattern_); }
 
-  boost::optional<Count> ExtractCount() { return std::move(count_); }
+  std::optional<Count> ExtractCount() { return std::move(count_); }
 
  private:
   void Apply(Match pattern) {
@@ -69,8 +68,8 @@ class ScanOptionsBase {
     count_ = count;
   }
 
-  boost::optional<Match> pattern_;
-  boost::optional<Count> count_;
+  std::optional<Match> pattern_;
+  std::optional<Count> count_;
 };
 
 // strong typedef
@@ -85,9 +84,9 @@ using HscanOptions = ScanOptionsTmpl<ScanTag::kHscan>;
 using ZscanOptions = ScanOptionsTmpl<ScanTag::kZscan>;
 
 void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
-            boost::optional<ScanOptionsBase::Match> arg);
+            std::optional<ScanOptionsBase::Match> arg);
 void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
-            boost::optional<ScanOptionsBase::Count> arg);
+            std::optional<ScanOptionsBase::Count> arg);
 
 }  // namespace redis
 }  // namespace storages

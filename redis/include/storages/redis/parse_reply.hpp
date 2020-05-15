@@ -1,11 +1,10 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <storages/redis/impl/types.hpp>
 #include <utils/void_t.hpp>
@@ -55,9 +54,9 @@ std::vector<std::string> ParseReplyDataArray(
     ReplyData&& array_data, const std::string& request_description,
     To<std::vector<std::string>>);
 
-std::vector<boost::optional<std::string>> ParseReplyDataArray(
+std::vector<std::optional<std::string>> ParseReplyDataArray(
     ReplyData&& array_data, const std::string& request_description,
-    To<std::vector<boost::optional<std::string>>>);
+    To<std::vector<std::optional<std::string>>>);
 
 std::vector<std::pair<std::string, std::string>> ParseReplyDataArray(
     ReplyData&& array_data, const std::string& request_description,
@@ -95,7 +94,7 @@ void Parse(ReplyData&& reply_data, const std::string& request_description,
            To<StatusOk, void>);
 
 bool Parse(ReplyData&& reply_data, const std::string& request_description,
-           To<boost::optional<StatusOk>, bool>);
+           To<std::optional<StatusOk>, bool>);
 
 void Parse(ReplyData&& reply_data, const std::string& request_description,
            To<StatusPong, void>);
@@ -132,10 +131,10 @@ std::vector<T> Parse(ReplyData&& reply_data,
 }
 
 template <typename T>
-boost::optional<T> Parse(ReplyData&& reply_data,
-                         const std::string& request_description,
-                         To<boost::optional<T>>) {
-  if (impl::IsNil(reply_data)) return boost::none;
+std::optional<T> Parse(ReplyData&& reply_data,
+                       const std::string& request_description,
+                       To<std::optional<T>>) {
+  if (impl::IsNil(reply_data)) return std::nullopt;
   return Parse(std::move(reply_data), request_description, To<T>{});
 }
 

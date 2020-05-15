@@ -48,7 +48,7 @@ ScanReply ScanReply::parse(ReplyPtr reply) {
   }
 
   ScanReply result;
-  result.cursor = cursor == 0 ? boost::none : boost::make_optional(cursor);
+  result.cursor = cursor == 0 ? std::nullopt : std::make_optional(cursor);
   result.keys = std::move(keys);
   return result;
 }

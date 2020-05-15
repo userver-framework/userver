@@ -7,12 +7,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <formats/bson/bson_builder.hpp>
 #include <formats/bson/document.hpp>
@@ -92,7 +91,7 @@ class WriteConcern {
   bool IsMajority() const;
   size_t NodesCount() const;
   const std::string& Tag() const;
-  const boost::optional<bool>& Journal() const;
+  std::optional<bool> Journal() const;
   const std::chrono::milliseconds& Timeout() const;
 
   /// Sets write concern timeout, `0` means no timeout
@@ -104,7 +103,7 @@ class WriteConcern {
  private:
   size_t nodes_count_;
   bool is_majority_;
-  boost::optional<bool> journal_;
+  std::optional<bool> journal_;
   std::string tag_;
   std::chrono::milliseconds timeout_;
 };
@@ -189,7 +188,7 @@ class Projection {
   /// @endcond
 
  private:
-  boost::optional<formats::bson::impl::BsonBuilder> projection_builder_;
+  std::optional<formats::bson::impl::BsonBuilder> projection_builder_;
 };
 
 /// Sorts the results
@@ -215,7 +214,7 @@ class Sort {
   /// @endcond
 
  private:
-  boost::optional<formats::bson::impl::BsonBuilder> sort_builder_;
+  std::optional<formats::bson::impl::BsonBuilder> sort_builder_;
 };
 
 /// @brief Specifies an index to use for the query

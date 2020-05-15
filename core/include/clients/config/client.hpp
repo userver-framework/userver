@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 
 #include <taxi_config/value.hpp>
 
@@ -36,7 +37,7 @@ class Client final {
 
   Reply DownloadFullDocsMap();
 
-  Reply FetchDocsMap(const boost::optional<Timestamp>& last_update,
+  Reply FetchDocsMap(const std::optional<Timestamp>& last_update,
                      const std::vector<std::string>& fields_to_load);
 
  private:

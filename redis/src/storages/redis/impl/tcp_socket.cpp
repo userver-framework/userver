@@ -10,7 +10,7 @@
 
 namespace redis {
 
-boost::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd) {
+std::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd) {
 // MAC_COMPAT
 #ifdef TCP_INFO
   int optname = TCP_INFO;
@@ -23,7 +23,7 @@ boost::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd) {
   if (getsockopt(fd, IPPROTO_TCP, optname, &ti, &tisize) == -1) {
     const auto err_value = errno;
     LOG_ERROR() << "getsockopt failed: " << strerror(err_value);
-    return boost::none;
+    return std::nullopt;
   }
 // MAC_COMPAT
 #ifdef TCP_INFO

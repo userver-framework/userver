@@ -231,7 +231,7 @@ class MockTransaction final : public Transaction {
 
   std::unique_ptr<MockTransactionImplBase> impl_;
 
-  boost::optional<size_t> shard_;
+  std::optional<size_t> shard_;
   std::vector<std::unique_ptr<ResultPromise>> result_promises_;
 };
 

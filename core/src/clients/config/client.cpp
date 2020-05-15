@@ -33,7 +33,7 @@ std::string Client::FetchConfigsValues(const std::string& body) {
 }
 
 Client::Reply Client::FetchDocsMap(
-    const boost::optional<Timestamp>& last_update,
+    const std::optional<Timestamp>& last_update,
     const std::vector<std::string>& fields_to_load) {
   formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
 
@@ -68,7 +68,7 @@ Client::Reply Client::FetchDocsMap(
 }
 
 Client::Reply Client::DownloadFullDocsMap() {
-  return FetchDocsMap(boost::none, {});
+  return FetchDocsMap(std::nullopt, {});
 }
 
 }  // namespace taxi_config

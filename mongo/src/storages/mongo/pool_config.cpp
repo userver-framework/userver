@@ -1,10 +1,9 @@
 #include <storages/mongo/pool_config.hpp>
 
+#include <optional>
 #include <string>
 
 #include <mongoc/mongoc.h>
-
-#include <boost/optional.hpp>
 
 #include <storages/mongo/exception.hpp>
 #include <utils/text.hpp>

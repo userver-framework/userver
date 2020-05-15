@@ -25,7 +25,7 @@ const std::string kScanCommandName<ScanTag::kZscan> = "zscan";
 }  // namespace
 
 ClientImpl::ClientImpl(std::shared_ptr<::redis::Sentinel> sentinel,
-                       boost::optional<size_t> force_shard_idx)
+                       std::optional<size_t> force_shard_idx)
     : redis_client_(std::move(sentinel)), force_shard_idx_(force_shard_idx) {}
 
 void ClientImpl::WaitConnectedOnce(::redis::RedisWaitConnected wait_connected) {
@@ -46,7 +46,7 @@ std::shared_ptr<Client> ClientImpl::GetClientForShard(size_t shard_idx) {
   return std::make_shared<ClientImpl>(redis_client_, shard_idx);
 }
 
-boost::optional<size_t> ClientImpl::GetForcedShardIdx() const {
+std::optional<size_t> ClientImpl::GetForcedShardIdx() const {
   return force_shard_idx_;
 }
 
@@ -871,7 +871,7 @@ size_t ClientImpl::ShardByKey(const std::string& key,
 }
 
 void ClientImpl::CheckShard(size_t shard,
-                            boost::optional<size_t> force_shard_idx) const {
+                            std::optional<size_t> force_shard_idx) const {
   if (force_shard_idx && *force_shard_idx != shard)
     throw ::redis::InvalidArgumentException(
         "forced shard idx != shard from command (" +

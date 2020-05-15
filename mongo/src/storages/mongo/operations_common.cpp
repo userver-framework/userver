@@ -12,7 +12,7 @@
 namespace storages::mongo::impl {
 
 formats::bson::impl::BsonBuilder& EnsureBuilder(
-    boost::optional<formats::bson::impl::BsonBuilder>& optional_builder) {
+    std::optional<formats::bson::impl::BsonBuilder>& optional_builder) {
   if (!optional_builder) {
     optional_builder.emplace();
   }
@@ -20,7 +20,7 @@ formats::bson::impl::BsonBuilder& EnsureBuilder(
 }
 
 const bson_t* GetNative(
-    const boost::optional<formats::bson::impl::BsonBuilder>& builder) {
+    const std::optional<formats::bson::impl::BsonBuilder>& builder) {
   return builder ? builder->Get() : nullptr;
 }
 

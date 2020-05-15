@@ -73,17 +73,17 @@ std::vector<std::string> ParseReplyDataArray(
   return result;
 }
 
-std::vector<boost::optional<std::string>> ParseReplyDataArray(
+std::vector<std::optional<std::string>> ParseReplyDataArray(
     ReplyData&& array_data, const std::string& request_description,
-    To<std::vector<boost::optional<std::string>>>) {
+    To<std::vector<std::optional<std::string>>>) {
   const auto& array = array_data.GetArray();
-  std::vector<boost::optional<std::string>> result;
+  std::vector<std::optional<std::string>> result;
   result.reserve(array.size());
 
   for (size_t elem_idx = 0; elem_idx < array.size(); ++elem_idx) {
     const auto& elem = array[elem_idx];
     if (elem.IsNil()) {
-      result.emplace_back(boost::none);
+      result.emplace_back(std::nullopt);
       continue;
     }
     result.emplace_back(
@@ -221,7 +221,7 @@ void Parse(ReplyData&& reply_data, const std::string& request_description,
 }
 
 bool Parse(ReplyData&& reply_data, const std::string& request_description,
-           To<boost::optional<StatusOk>, bool>) {
+           To<std::optional<StatusOk>, bool>) {
   if (reply_data.IsNil()) return false;
   reply_data.ExpectStatusEqualTo(kOk, request_description);
   return true;

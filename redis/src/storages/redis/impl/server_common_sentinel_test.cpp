@@ -17,7 +17,7 @@ SentinelTest::SentinelTest(size_t sentinel_count, size_t master_count,
 
 SentinelTest::MockRedisServerArray SentinelTest::InitServerArray(
     size_t size, const std::string& description,
-    boost::optional<int> magic_value_add) {
+    std::optional<int> magic_value_add) {
   MockRedisServerArray servers;
   for (size_t i = 0; i < size; i++) {
     servers.emplace_back(std::make_unique<MockRedisServer>(description + '-' +
@@ -83,7 +83,7 @@ std::vector<std::string> SentinelShardTest::InitRedisNames(
 
 SentinelShardTest::MockRedisServerArray SentinelShardTest::InitServerArray(
     size_t size, const std::string& description,
-    boost::optional<int> magic_value_add) {
+    std::optional<int> magic_value_add) {
   MockRedisServerArray servers;
   for (size_t i = 0; i < size; i++) {
     servers.emplace_back(std::make_unique<MockRedisServer>(description + '-' +

@@ -1,7 +1,7 @@
 #pragma once
 #include <storages/redis/impl/keyshard.hpp>
 
-#include <boost/optional.hpp>
+#include <optional>
 #include <utils/encoding.hpp>
 
 namespace redis {
@@ -45,7 +45,7 @@ class KeyShardGpsStorageDriver : public redis::KeyShard {
   bool IsGenerateKeysForShardsEnabled() const override { return false; }
 
  private:
-  static boost::optional<std::string> Parse(const std::string& s);
+  static std::optional<std::string> Parse(const std::string& s);
 
   size_t shard_count_ = 0;
 };

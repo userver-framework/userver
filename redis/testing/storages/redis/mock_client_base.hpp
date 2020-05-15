@@ -29,7 +29,7 @@ namespace redis {
 /// `return storages::redis::CreateMockRequest<
 ///    storages::redis::RequestHget>(std::string{"value"});`
 /// `return storages::redis::CreateMockRequest<
-///    storages::redis::RequestHget>(boost::none);`
+///    storages::redis::RequestHget>(std::nullopt);`
 /// Mocking timeout error from redis server:
 /// `return storages::redis::CreateMockRequestTimeout<
 ///    storages::redis::RequestHget>();`
@@ -363,7 +363,7 @@ class MockClientBase : public Client,
 
   MockClientBase(std::shared_ptr<MockTransactionImplCreatorBase>
                      mock_transaction_impl_creator,
-                 boost::optional<size_t> force_shard_idx);
+                 std::optional<size_t> force_shard_idx);
 
  private:
   template <typename MockTransactionImpl>
@@ -376,7 +376,7 @@ class MockClientBase : public Client,
 
   std::shared_ptr<MockTransactionImplCreatorBase>
       mock_transaction_impl_creator_;
-  boost::optional<size_t> force_shard_idx_;
+  std::optional<size_t> force_shard_idx_;
 };
 
 }  // namespace redis

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <formats/bson/bson_builder.hpp>
 #include <formats/bson/document.hpp>
@@ -24,7 +24,7 @@ class ReplaceOne::Impl {
 
   formats::bson::Document selector;
   formats::bson::Document replacement;
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class Update::Impl {
@@ -38,7 +38,7 @@ class Update::Impl {
   Mode mode;
   formats::bson::Document selector;
   formats::bson::Document update;
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class Delete::Impl {

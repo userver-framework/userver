@@ -3,8 +3,6 @@
 #include <memory>
 #include <string>
 
-#include <boost/optional.hpp>
-
 #include <storages/redis/impl/base.hpp>
 #include <storages/redis/impl/request.hpp>
 #include <utils/assert.hpp>

@@ -14,7 +14,7 @@ MockClientBase::MockClientBase()
 
 MockClientBase::MockClientBase(std::shared_ptr<MockTransactionImplCreatorBase>
                                    mock_transaction_impl_creator,
-                               boost::optional<size_t> force_shard_idx)
+                               std::optional<size_t> force_shard_idx)
     : mock_transaction_impl_creator_(std::move(mock_transaction_impl_creator)),
       force_shard_idx_(force_shard_idx) {}
 

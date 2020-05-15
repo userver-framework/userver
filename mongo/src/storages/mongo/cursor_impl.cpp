@@ -35,7 +35,7 @@ const formats::bson::Document& CursorImpl::Current() const {
 void CursorImpl::Next() {
   if (!IsValid()) throw std::logic_error("Advancing cursor past the end");
 
-  current_ = boost::none;
+  current_ = std::nullopt;
   if (!HasMore()) {
     UASSERT(!cursor_ && !client_);
     return;

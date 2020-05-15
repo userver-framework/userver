@@ -1,9 +1,8 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <formats/bson/bson_builder.hpp>
 #include <formats/bson/document.hpp>
@@ -26,7 +25,7 @@ class Count::Impl {
   formats::bson::Document filter;
   std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::ReadPrefsPtr read_prefs;
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
   bool use_new_count{true};
 };
 
@@ -34,7 +33,7 @@ class CountApprox::Impl {
  public:
   std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::ReadPrefsPtr read_prefs;
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class Find::Impl {
@@ -44,7 +43,7 @@ class Find::Impl {
   formats::bson::Document filter;
   std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::ReadPrefsPtr read_prefs;
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class InsertOne::Impl {
@@ -54,7 +53,7 @@ class InsertOne::Impl {
 
   formats::bson::Document document;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
 
@@ -67,7 +66,7 @@ class InsertMany::Impl {
 
   std::vector<formats::bson::Document> documents;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
 
@@ -80,7 +79,7 @@ class ReplaceOne::Impl {
   formats::bson::Document selector;
   formats::bson::Document replacement;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
 
@@ -98,7 +97,7 @@ class Update::Impl {
   formats::bson::Document selector;
   formats::bson::Document update;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class Delete::Impl {
@@ -110,7 +109,7 @@ class Delete::Impl {
   bool should_throw{true};  // moved here for size optimization
   formats::bson::Document selector;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class FindAndModify::Impl {
@@ -151,7 +150,7 @@ class Aggregate::Impl {
   std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::ReadPrefsPtr read_prefs;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
-  boost::optional<formats::bson::impl::BsonBuilder> options;
+  std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 }  // namespace storages::mongo::operations

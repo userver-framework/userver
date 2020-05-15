@@ -2,10 +2,9 @@
 
 #include <atomic>
 #include <chrono>
+#include <optional>
 #include <string>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <storages/redis/impl/types.hpp>
 #include <testsuite/redis_control.hpp>
@@ -175,7 +174,7 @@ struct CommandControl {
   std::chrono::milliseconds max_ping_latency = std::chrono::milliseconds(0);
   bool force_request_to_master = false;
   bool account_in_statistics = true;
-  boost::optional<size_t> force_shard_idx;
+  std::optional<size_t> force_shard_idx;
 
   /* If set, the user wants a specific Redis instance to handle the command.
    * Sentinel may not redirect the command to other instances.
@@ -202,7 +201,7 @@ struct CommandControl {
 
  private:
   CommandControl MergeWith(RetryNilFromMaster) const;
-  boost::optional<bool> force_retries_to_master_on_nil_reply;
+  std::optional<bool> force_retries_to_master_on_nil_reply;
 };
 
 CommandControl::Strategy StrategyFromString(const std::string& s);

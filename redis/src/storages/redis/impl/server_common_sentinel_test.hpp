@@ -30,9 +30,9 @@ class SentinelTest {
   const std::string& RedisName() const { return redis_name_; }
 
  private:
-  MockRedisServerArray InitServerArray(
-      size_t size, const std::string& description,
-      boost::optional<int> magic_value_add = {});
+  MockRedisServerArray InitServerArray(size_t size,
+                                       const std::string& description,
+                                       std::optional<int> magic_value_add = {});
   void InitSentinelServers();
   void CreateSentinelClient();
 
@@ -70,9 +70,9 @@ class SentinelShardTest {
 
  private:
   std::vector<std::string> InitRedisNames(size_t shard_count) const;
-  MockRedisServerArray InitServerArray(
-      size_t size, const std::string& description,
-      boost::optional<int> magic_value_add = {});
+  MockRedisServerArray InitServerArray(size_t size,
+                                       const std::string& description,
+                                       std::optional<int> magic_value_add = {});
   void InitSentinelServers(size_t shard_count);
   void CreateSentinelClient();
 

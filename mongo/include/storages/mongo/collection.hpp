@@ -1,10 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <type_traits>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <formats/bson/document.hpp>
 #include <formats/bson/value.hpp>
@@ -41,8 +40,8 @@ class Collection {
 
   /// Retrieves a single document from the collection
   template <typename... Options>
-  boost::optional<formats::bson::Document> FindOne(
-      formats::bson::Document filter, Options&&... options) const;
+  std::optional<formats::bson::Document> FindOne(formats::bson::Document filter,
+                                                 Options&&... options) const;
 
   /// Inserts a single document into the collection
   template <typename... Options>
@@ -150,7 +149,7 @@ Cursor Collection::Find(formats::bson::Document filter,
 }
 
 template <typename... Options>
-boost::optional<formats::bson::Document> Collection::FindOne(
+std::optional<formats::bson::Document> Collection::FindOne(
     formats::bson::Document filter, Options&&... options) const {
   static_assert(
       !(std::is_same<std::decay_t<Options>, options::Limit>::value || ...),

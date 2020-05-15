@@ -2,9 +2,8 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 #include <storages/redis/impl/base.hpp>
 #include <storages/redis/impl/command_options.hpp>
@@ -27,7 +26,7 @@ class ClientImpl final : public Client,
                          public std::enable_shared_from_this<ClientImpl> {
  public:
   explicit ClientImpl(std::shared_ptr<::redis::Sentinel> sentinel,
-                      boost::optional<size_t> force_shard_idx = boost::none);
+                      std::optional<size_t> force_shard_idx = std::nullopt);
 
   void WaitConnectedOnce(::redis::RedisWaitConnected wait_connected) override;
 
@@ -39,7 +38,7 @@ class ClientImpl final : public Client,
 
   std::shared_ptr<Client> GetClientForShard(size_t shard_idx) override;
 
-  boost::optional<size_t> GetForcedShardIdx() const;
+  std::optional<size_t> GetForcedShardIdx() const;
 
   Request<ScanReplyTmpl<ScanTag::kScan>> MakeScanRequestNoKey(
       size_t shard, ScanReply::Cursor cursor, ScanOptions options,
@@ -360,13 +359,13 @@ class ClientImpl final : public Client,
 
   size_t ShardByKey(const std::string& key, const CommandControl& cc) const;
 
-  void CheckShard(size_t shard, boost::optional<size_t> force_shard_idx) const;
+  void CheckShard(size_t shard, std::optional<size_t> force_shard_idx) const;
 
   void CheckShard(size_t shard, const CommandControl& cc) const;
 
   std::shared_ptr<::redis::Sentinel> redis_client_;
   std::atomic<int> publish_shard_{0};
-  const boost::optional<size_t> force_shard_idx_;
+  const std::optional<size_t> force_shard_idx_;
 };
 
 }  // namespace redis

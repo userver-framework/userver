@@ -107,7 +107,7 @@ void TaxiConfigClientUpdater::Update(
   auto additional_docs_map_keys = additional_docs_map_keys_.Lock();
   if (update_type == cache::UpdateType::kFull) {
     auto reply = config_client_.FetchDocsMap(
-        boost::none, GetDocsMapKeysToFetch(*additional_docs_map_keys));
+        std::nullopt, GetDocsMapKeysToFetch(*additional_docs_map_keys));
     auto& docs_map = reply.docs_map;
 
     stats.IncreaseDocumentsReadCount(docs_map.Size());
@@ -165,7 +165,7 @@ void TaxiConfigClientUpdater::Update(
 
 void TaxiConfigClientUpdater::UpdateAdditionalKeys(
     const std::vector<std::string>& keys) {
-  auto reply = config_client_.FetchDocsMap(boost::none, keys);
+  auto reply = config_client_.FetchDocsMap(std::nullopt, keys);
   auto& combined = reply.docs_map;
 
   {

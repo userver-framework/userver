@@ -1,11 +1,10 @@
 #pragma once
 
 #include <chrono>
-
-#include <boost/optional.hpp>
+#include <optional>
 
 namespace redis {
 
-boost::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd);
+std::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd);
 
 }  // namespace redis

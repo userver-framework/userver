@@ -1,10 +1,9 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <unordered_map>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <formats/bson/document.hpp>
 #include <formats/bson/value.hpp>
@@ -37,7 +36,7 @@ class WriteResult {
   std::unordered_map<size_t, formats::bson::Value> UpsertedIds() const;
 
   /// The document returned by FindAnd* operation if any
-  boost::optional<formats::bson::Document> FoundDocument() const;
+  std::optional<formats::bson::Document> FoundDocument() const;
 
   /// @brief Map of server errors by operation (document) index
   /// @see options::SuppressServerExceptions

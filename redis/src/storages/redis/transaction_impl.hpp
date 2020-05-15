@@ -281,7 +281,7 @@ class TransactionImpl final : public Transaction {
   std::shared_ptr<ClientImpl> client_;
   const CheckShards check_shards_;
 
-  boost::optional<size_t> shard_;
+  std::optional<size_t> shard_;
 
   ::redis::CmdArgs cmd_args_;
   std::vector<ResultPromise> result_promises_;

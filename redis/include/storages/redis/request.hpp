@@ -1,12 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <storages/redis/impl/exception.hpp>
 #include <utils/clang_format_workarounds.hpp>
@@ -145,17 +144,17 @@ using RequestEvalCommon = Request<ReplyData>;
 using RequestExec = Request<ReplyData, void>;
 using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
-using RequestGet = Request<boost::optional<std::string>>;
-using RequestGetset = Request<boost::optional<std::string>>;
+using RequestGet = Request<std::optional<std::string>>;
+using RequestGetset = Request<std::optional<std::string>>;
 using RequestHdel = Request<size_t>;
 using RequestHexists = Request<size_t>;
-using RequestHget = Request<boost::optional<std::string>>;
+using RequestHget = Request<std::optional<std::string>>;
 using RequestHgetall = Request<std::unordered_map<std::string, std::string>>;
 using RequestHincrby = Request<int64_t>;
 using RequestHincrbyfloat = Request<double>;
 using RequestHkeys = Request<std::vector<std::string>>;
 using RequestHlen = Request<size_t>;
-using RequestHmget = Request<std::vector<boost::optional<std::string>>>;
+using RequestHmget = Request<std::vector<std::optional<std::string>>>;
 using RequestHmset = Request<StatusOk, void>;
 using RequestHscan = ScanRequest<ScanTag::kHscan>;
 using RequestHset = Request<HsetReply>;
@@ -163,14 +162,14 @@ using RequestHsetnx = Request<size_t, bool>;
 using RequestHvals = Request<std::vector<std::string>>;
 using RequestIncr = Request<int64_t>;
 using RequestKeys = Request<std::vector<std::string>>;
-using RequestLindex = Request<boost::optional<std::string>>;
+using RequestLindex = Request<std::optional<std::string>>;
 using RequestLlen = Request<size_t>;
-using RequestLpop = Request<boost::optional<std::string>>;
+using RequestLpop = Request<std::optional<std::string>>;
 using RequestLpush = Request<size_t>;
 using RequestLrange = Request<std::vector<std::string>>;
 using RequestLrem = Request<size_t>;
 using RequestLtrim = Request<StatusOk, void>;
-using RequestMget = Request<std::vector<boost::optional<std::string>>>;
+using RequestMget = Request<std::vector<std::optional<std::string>>>;
 using RequestMset = Request<StatusOk, void>;
 using RequestPersist = Request<PersistReply>;
 using RequestPexpire = Request<ExpireReply>;
@@ -178,19 +177,19 @@ using RequestPing = Request<StatusPong, void>;
 using RequestPingMessage = Request<std::string>;
 using RequestPublish = Request<size_t>;
 using RequestRename = Request<StatusOk, void>;
-using RequestRpop = Request<boost::optional<std::string>>;
+using RequestRpop = Request<std::optional<std::string>>;
 using RequestRpush = Request<size_t>;
 using RequestSadd = Request<size_t>;
 using RequestScan = ScanRequest<ScanTag::kScan>;
 using RequestScard = Request<size_t>;
 using RequestSet = Request<StatusOk, void>;
-using RequestSetIfExist = Request<boost::optional<StatusOk>, bool>;
-using RequestSetIfNotExist = Request<boost::optional<StatusOk>, bool>;
+using RequestSetIfExist = Request<std::optional<StatusOk>, bool>;
+using RequestSetIfNotExist = Request<std::optional<StatusOk>, bool>;
 using RequestSetOptions = Request<SetReply>;
 using RequestSetex = Request<StatusOk, void>;
 using RequestSismember = Request<size_t>;
 using RequestSmembers = Request<std::unordered_set<std::string>>;
-using RequestSrandmember = Request<boost::optional<std::string>>;
+using RequestSrandmember = Request<std::optional<std::string>>;
 using RequestSrandmembers = Request<std::vector<std::string>>;
 using RequestSrem = Request<size_t>;
 using RequestSscan = ScanRequest<ScanTag::kSscan>;
@@ -199,13 +198,13 @@ using RequestTtl = Request<TtlReply>;
 using RequestType = Request<KeyType>;
 using RequestZadd = Request<size_t>;
 using RequestZaddIncr = Request<double>;
-using RequestZaddIncrExisting = Request<boost::optional<double>>;
+using RequestZaddIncrExisting = Request<std::optional<double>>;
 using RequestZcard = Request<size_t>;
 using RequestZrangebyscore = Request<std::vector<std::string>>;
 using RequestZrangebyscoreWithScores = Request<std::vector<MemberScore>>;
 using RequestZrem = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
-using RequestZscore = Request<boost::optional<double>>;
+using RequestZscore = Request<std::optional<double>>;
 
 }  // namespace redis
 }  // namespace storages

@@ -1,9 +1,8 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <storages/redis/impl/base.hpp>
 
@@ -53,9 +52,9 @@ ZaddOptions operator|(ZaddOptions::ReturnValue return_value,
                       ZaddOptions::Exist exist);
 
 struct ScanOptions {
-  boost::optional<ScanCursor> cursor;
-  boost::optional<std::string> pattern;
-  boost::optional<size_t> count;
+  std::optional<ScanCursor> cursor;
+  std::optional<std::string> pattern;
+  std::optional<size_t> count;
 };
 
 struct ScoreOptions {
@@ -63,8 +62,8 @@ struct ScoreOptions {
 };
 
 struct RangeOptions {
-  boost::optional<size_t> offset;
-  boost::optional<size_t> count;
+  std::optional<size_t> offset;
+  std::optional<size_t> count;
 };
 
 struct RangeScoreOptions {

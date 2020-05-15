@@ -1,8 +1,7 @@
 #pragma once
 
 #include <memory>
-
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <formats/bson/document.hpp>
 
@@ -25,7 +24,7 @@ class CursorImpl {
   void Next();
 
  private:
-  boost::optional<formats::bson::Document> current_;
+  std::optional<formats::bson::Document> current_;
   PoolImpl::BoundClientPtr client_;
   CursorPtr cursor_;
   std::shared_ptr<stats::ReadOperationStatistics> stats_ptr_;
