@@ -41,7 +41,7 @@ class SubscriptionStorage
     : public std::enable_shared_from_this<SubscriptionStorage> {
  public:
   SubscriptionStorage(const std::shared_ptr<ThreadPools>& thread_pools,
-                      size_t shards_count);
+                      size_t shards_count, bool is_cluster_mode);
   ~SubscriptionStorage();
 
   size_t GetShardCount() const { return shards_count_; }
@@ -143,13 +143,15 @@ class SubscriptionStorage
                                       size_t /*count*/) {}
 
   struct ShardChannelInfo {
-    explicit ShardChannelInfo(size_t shard_idx)
-        : fsm(std::make_shared<shard_subscriber::Fsm>(shard_idx)) {}
+    explicit ShardChannelInfo(size_t shard_idx, bool fake = false)
+        : fsm(fake ? nullptr
+                   : std::make_shared<shard_subscriber::Fsm>(shard_idx)) {}
 
     const FsmPtr fsm;
     PubsubChannelStatistics statistics;
 
     PubsubChannelStatistics GetStatistics() const {
+      if (!fsm) return {};
       PubsubChannelStatistics stats(statistics);
       stats.server_id = fsm->GetCurrentServerId();
       stats.subscription_timestamp = fsm->GetCurrentServerTimePoint();
@@ -191,10 +193,12 @@ class SubscriptionStorage
   using PcallbackMap = std::map<std::string, PChannelInfo>;
 
   size_t shards_count_;
+  const bool is_cluster_mode_;
   CommandCb subscribe_callback_;
   CommandCb unsubscribe_callback_;
 
   mutable std::mutex mutex_;
+  size_t shard_rotate_counter_;
   CallbackMap callback_map_;
   PcallbackMap pattern_callback_map_;
   SubscriptionId next_subscription_id_{1};

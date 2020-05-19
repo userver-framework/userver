@@ -6,6 +6,7 @@
 #include <components/statistics_storage.hpp>
 #include <formats/json/value_builder.hpp>
 #include <logging/log.hpp>
+#include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <storages/redis/impl/thread_pools.hpp>
@@ -217,6 +218,16 @@ template <typename RedisGroup>
   }
 }
 
+const std::string& GetShardingStrategy(
+    const testsuite::RedisControl& testsuite_redis_control,
+    const std::string& sharding_strategy) {
+  static const std::string kDefaultStrategy = ::redis::kKeyShardCrc32;
+  if (testsuite_redis_control.disable_cluster_mode &&
+      ::redis::IsClusterStrategy(sharding_strategy))
+    return kDefaultStrategy;
+  return sharding_strategy;
+}
+
 }  // namespace
 
 namespace components {
@@ -245,6 +256,7 @@ struct RedisGroup {
 struct SubscribeRedisGroup {
   std::string db;
   std::string config_name;
+  std::string sharding_strategy;
 
   static SubscribeRedisGroup ParseFromYaml(
       const formats::yaml::Value& yaml, const std::string& full_path,
@@ -254,6 +266,10 @@ struct SubscribeRedisGroup {
         yaml_config::ParseString(yaml, "db", full_path, config_vars_ptr);
     config.config_name = yaml_config::ParseString(yaml, "config_name",
                                                   full_path, config_vars_ptr);
+    config.sharding_strategy =
+        yaml_config::ParseOptionalString(yaml, "sharding_strategy", full_path,
+                                         config_vars_ptr)
+            .value_or("");
     return config;
   }
 };
@@ -345,7 +361,8 @@ void Redis::Connect(const ComponentConfig& config,
 
     auto sentinel = redis::Sentinel::CreateSentinel(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
-        redis::KeyShardFactory{redis_group.sharding_strategy},
+        redis::KeyShardFactory{GetShardingStrategy(
+            testsuite_redis_control, redis_group.sharding_strategy)},
         testsuite_redis_control);
     if (sentinel) {
       sentinels_.emplace(redis_group.db, sentinel);
@@ -370,9 +387,13 @@ void Redis::Connect(const ComponentConfig& config,
   for (const auto& redis_group : subscribe_redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 
+    bool is_cluster_mode =
+        ::redis::IsClusterStrategy(redis_group.sharding_strategy) &&
+        !testsuite_redis_control.disable_cluster_mode;
+
     auto sentinel = redis::SubscribeSentinel::Create(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
-        testsuite_redis_control);
+        is_cluster_mode, testsuite_redis_control);
     if (sentinel)
       subscribe_clients_.emplace(
           redis_group.db,

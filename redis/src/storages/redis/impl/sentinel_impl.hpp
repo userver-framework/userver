@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <map>
@@ -54,13 +55,13 @@ class SentinelImpl {
 
   void ForceUpdateHosts();
 
-  static constexpr size_t unknown_shard =
+  static constexpr size_t kUnknownShard =
       std::numeric_limits<std::size_t>::max();
 
   struct SentinelCommand {
     CommandPtr command;
     bool master = true;
-    size_t shard = unknown_shard;
+    size_t shard = kUnknownShard;
     std::chrono::steady_clock::time_point start;
 
     SentinelCommand() {}
@@ -81,6 +82,7 @@ class SentinelImpl {
   void Stop();
 
   std::vector<std::shared_ptr<const Shard>> GetMasterShards() const;
+  bool IsInClusterMode() const;
 
  private:
   static constexpr const std::chrono::milliseconds cluster_slots_timeout_ =
@@ -98,21 +100,20 @@ class SentinelImpl {
     };
 
     SlotInfo();
-    ~SlotInfo() = default;
 
     size_t ShardBySlot(size_t slot) const;
     void UpdateSlots(const std::vector<ShardInterval>& intervals);
+    bool IsInitialized() const;
+    bool WaitInitialized(engine::Deadline deadline);
 
    private:
-    struct SlotShard {
-      size_t bound;
-      size_t shard;
+    static constexpr size_t kHashSlots = 16384;
 
-      SlotShard(size_t bound, size_t shard) : bound(bound), shard(shard) {}
-    };
+    std::mutex mutex_;
+    engine::impl::ConditionVariableAny<std::mutex> cv_;
+    std::atomic<bool> is_initialized_{false};
 
-    std::vector<SlotShard> slot_shards_;
-    mutable std::mutex mutex_;
+    std::array<std::atomic<size_t>, kHashSlots> slot_to_shard_{};
   };
 
   class ShardInfo {
@@ -154,11 +155,13 @@ class SentinelImpl {
                               int revents) noexcept;
   static void OnModifyConnectionInfo(struct ev_loop*, ev_async* w,
                                      int revents) noexcept;
+  static void OnUpdateClusterSlotsRequested(struct ev_loop*, ev_async* w,
+                                            int revents) noexcept;
 
   void ProcessCreationOfShards(bool track, bool master,
                                std::vector<std::shared_ptr<Shard>>& shards);
 
-  void OnCheckTimerImpl();
+  void RefreshConnectionInfo(bool by_timer);
   void ReadSentinels();
   void CheckConnections();
   void UpdateInstancesImpl();
@@ -169,7 +172,9 @@ class SentinelImpl {
                          bool master);
   void EnqueueCommand(const SentinelCommand& command);
   size_t ParseMovedShard(const std::string& err_string);
+  void RequestUpdateClusterSlots();
   void UpdateClusterSlots(size_t shard);
+  void DoUpdateClusterSlots(ReplyPtr reply);
   void InitShards(const std::vector<std::string>& shards,
                   std::vector<std::shared_ptr<Shard>>& shard_objects,
                   const ReadyChangeCallback& ready_callback, bool master);
@@ -192,6 +197,7 @@ class SentinelImpl {
   ev_async watch_state_{};
   ev_async watch_update_{};
   ev_async watch_create_{};
+  ev_async watch_cluster_slots_{};
   ev_timer check_timer_{};
   mutable std::mutex sentinels_mutex_;
   std::vector<std::shared_ptr<Shard>> master_shards_;
@@ -206,6 +212,7 @@ class SentinelImpl {
   double check_interval_;
   bool track_masters_;
   bool track_slaves_;
+  std::atomic<bool> update_cluster_slots_flag_;
   SlotInfo slot_info_;
   std::vector<SentinelCommand> commands_;
   std::mutex command_mutex_;

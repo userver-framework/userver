@@ -7,8 +7,7 @@ namespace redis {
 
 struct Command : public std::enable_shared_from_this<Command> {
   Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
-          int counter, bool asking, size_t instance_idx,
-          const CommandPtr& parent);
+          int counter, bool asking, size_t instance_idx, bool redirected);
 
   Command(CmdArgs&& args, ReplyCallbackEx&& callback, CommandControl control,
           int counter, bool asking);
@@ -40,17 +39,18 @@ struct Command : public std::enable_shared_from_this<Command> {
 
  public:
   CommandControl control;
+  size_t instance_idx = 0;
   int counter = 0;
   bool asking = false;
-  size_t instance_idx = 0;
   bool executed = false;
+  bool redirected = false;
 };
 
 CommandPtr PrepareCommand(
     CmdArgs&& args, ReplyCallback callback,
     const CommandControl& command_control = command_control_init,
     int counter = 0, bool asking = false, size_t instance_idx = 0,
-    const CommandPtr& parent = CommandPtr());
+    bool redirected = false);
 
 CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallbackEx&& callback,
                           const CommandControl& command_control,

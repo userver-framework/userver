@@ -19,6 +19,7 @@ class SubscribeSentinel : protected Sentinel {
                     const std::string& client_name, const std::string& password,
                     ReadyChangeCallback ready_callback,
                     std::unique_ptr<KeyShard>&& key_shard = nullptr,
+                    bool is_cluster_mode = false,
                     CommandControl command_control = command_control_init,
                     const testsuite::RedisControl& testsuite_redis_control = {},
                     bool track_masters = true, bool track_slaves = true);
@@ -27,12 +28,13 @@ class SubscribeSentinel : protected Sentinel {
   static std::shared_ptr<SubscribeSentinel> Create(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
-      const std::string& client_name,
+      const std::string& client_name, bool is_cluster_mode,
       const testsuite::RedisControl& testsuite_redis_control);
   static std::shared_ptr<SubscribeSentinel> Create(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
       const std::string& client_name, ReadyChangeCallback ready_callback,
+      bool is_cluster_mode,
       const testsuite::RedisControl& testsuite_redis_control);
 
   SubscriptionToken Subscribe(

@@ -9,6 +9,7 @@
 #include <boost/crc.hpp>
 #include <boost/range/algorithm/for_each.hpp>
 
+#include <logging/log.hpp>
 #include <utils/assert.hpp>
 
 namespace redis {
@@ -101,14 +102,20 @@ std::optional<std::string> KeyShardGpsStorageDriver::Parse(
 }
 
 std::unique_ptr<redis::KeyShard> KeyShardFactory::operator()(size_t nshards) {
+  LOG_TRACE() << "Create KeyShard with type '" << type_ << '\'';
   if (type_ == "KeyShardGpsStorageDriver")
     return std::make_unique<redis::KeyShardGpsStorageDriver>(nshards);
   if (type_ == "KeyShardTaximeterCrc32")
     return std::make_unique<redis::KeyShardTaximeterCrc32>(nshards);
-  if (type_ == "KeyShardCrc32")
+  if (type_ == kKeyShardCrc32)
     return std::make_unique<redis::KeyShardCrc32>(nshards);
+  if (type_ == kRedisCluster) return nullptr;
 
   return std::make_unique<redis::KeyShardTaximeterCrc32>(nshards);
+}
+
+bool IsClusterStrategy(const std::string& type) {
+  return type == kRedisCluster;
 }
 
 }  // namespace redis

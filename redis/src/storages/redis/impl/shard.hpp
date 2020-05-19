@@ -45,6 +45,7 @@ class Shard {
   struct Options {
     std::string shard_name;
     std::string shard_group_name;
+    bool cluster_mode;
     bool read_only;
     std::function<void(bool ready)> ready_change_callback;
     std::vector<ConnectionInfo> connection_infos;
@@ -103,6 +104,7 @@ class Shard {
       signal_instance_state_change_;
 
   bool prev_connected_ = false;
+  const bool cluster_mode_ = false;
   const bool read_only_ = false;
 };
 

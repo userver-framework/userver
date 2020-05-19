@@ -5,6 +5,7 @@
 #include <engine/async.hpp>
 #include <engine/standalone.hpp>
 #include <logging/log.hpp>
+#include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/reply.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 
@@ -168,7 +169,7 @@ void Run(const Config& config) {
 
   auto sentinel = redis::Sentinel::CreateSentinel(
       redis_thread_pools, settings, "shard_group_name", "client_name",
-      redis::KeyShardFactory("KeyShardCrc32"), {});
+      redis::KeyShardFactory(redis::kKeyShardCrc32), {});
 
   Fire(*task_processor_holder, sentinel, config.requests_per_second,
        std::chrono::milliseconds(config.ms), std::chrono::milliseconds(1000));

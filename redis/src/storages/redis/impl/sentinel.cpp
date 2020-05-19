@@ -160,6 +160,9 @@ void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
   ThrowIfCancelled();
   if (command->control.force_request_to_master) master = true;
   if (command->control.force_shard_idx) {
+    if (impl_->IsInClusterMode())
+      throw InvalidArgumentException(
+          "force_shard_idx is not supported in RedisCluster mode");
     if (shard != *command->control.force_shard_idx)
       throw InvalidArgumentException(
           "shard index in argument differs from force_shard_idx in "
@@ -181,9 +184,16 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key,
   if (!impl_) return;
   ThrowIfCancelled();
   if (command->control.force_request_to_master) master = true;
-  size_t shard = command->control.force_shard_idx
-                     ? *command->control.force_shard_idx
-                     : impl_->ShardByKey(key);
+  size_t shard;
+  if (command->control.force_shard_idx) {
+    if (impl_->IsInClusterMode())
+      throw InvalidArgumentException(
+          "force_shard_idx is not supported in RedisCluster mode");
+    shard = *command->control.force_shard_idx;
+  } else {
+    shard = impl_->ShardByKey(key);
+  }
+
   CheckShardIdx(shard);
   try {
     impl_->AsyncCommand(

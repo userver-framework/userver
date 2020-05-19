@@ -92,7 +92,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
 
   RedisImpl(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
             const engine::ev::ThreadControl& thread_control, Redis& redis_obj,
-            bool read_only = false);
+            bool send_readonly = false);
   ~RedisImpl();
 
   void Connect(const std::string& host, int port, const std::string& password);
@@ -152,6 +152,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   void ProcessCommand(const CommandPtr& command);
 
   void Authenticate();
+  void SendReadOnly();
   void FreeCommands();
 
   void RunEvLoop();
@@ -205,7 +206,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   std::chrono::milliseconds ping_timeout_{4000};
   std::atomic<double> ping_latency_ms_{kInitialPingLatencyMs};
   logging::LogExtra log_extra_;
-  const bool read_only_ = false;
+  const bool send_readonly_ = false;
   Statistics statistics_;
   ServerId server_id_;
   bool attached_ = false;
@@ -239,11 +240,11 @@ const std::string& Redis::StateToString(State state) {
 }
 
 Redis::Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
-             bool read_only)
+             bool send_readonly)
     : thread_control_(thread_pool->NextThread()) {
   thread_control_.RunInEvLoopBlocking([&]() {
     impl_ = std::make_shared<RedisImpl>(thread_pool, thread_control_, *this,
-                                        read_only);
+                                        send_readonly);
   });
 }
 
@@ -289,11 +290,11 @@ std::string Redis::GetServerHost() const { return impl_->GetHost(); }
 Redis::RedisImpl::RedisImpl(
     const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
     const engine::ev::ThreadControl& thread_control, Redis& redis_obj,
-    bool read_only)
+    bool send_readonly)
     : redis_obj_(&redis_obj),
       ev_thread_control_(thread_control),
       thread_pool_(thread_pool),
-      read_only_(read_only),
+      send_readonly_(send_readonly),
       server_id_(ServerId::Generate()) {
   LOG_DEBUG() << "RedisImpl() server_id=" << GetServerId().GetId();
 }
@@ -768,12 +769,18 @@ void Redis::RedisImpl::OnDisconnectImpl(int status) {
 
 void Redis::RedisImpl::Authenticate() {
   if (password_.empty()) {
-    SetState(State::kConnected);
+    if (send_readonly_)
+      SendReadOnly();
+    else
+      SetState(State::kConnected);
   } else {
     ProcessCommand(PrepareCommand(
         CmdArgs{"AUTH", password_}, [this](const CommandPtr&, ReplyPtr reply) {
           if (*reply && reply->data.IsStatus()) {
-            SetState(State::kConnected);
+            if (send_readonly_)
+              SendReadOnly();
+            else
+              SetState(State::kConnected);
           } else {
             if (*reply) {
               LOG_ERROR() << log_extra_ << "AUTH failed: response type="
@@ -787,6 +794,27 @@ void Redis::RedisImpl::Authenticate() {
           }
         }));
   }
+}
+
+void Redis::RedisImpl::SendReadOnly() {
+  LOG_DEBUG() << "Send READONLY command to slave "
+              << GetServerId().GetDescription() << " in cluster mode";
+  ProcessCommand(PrepareCommand(CmdArgs{"READONLY"}, [this](const CommandPtr&,
+                                                            ReplyPtr reply) {
+    if (*reply && reply->data.IsStatus()) {
+      SetState(State::kConnected);
+    } else {
+      if (*reply) {
+        LOG_ERROR() << log_extra_ << "Sending READONLY failed: response type="
+                    << reply->data.GetTypeString()
+                    << " msg=" << reply->data.ToDebugString();
+      } else {
+        LOG_ERROR() << "Sending READONLY failed with status="
+                    << reply->StatusString() << log_extra_;
+      }
+      Disconnect();
+    }
+  }));
 }
 
 void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r,

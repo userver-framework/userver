@@ -47,8 +47,11 @@ void SubscriptionToken::Unsubscribe() {
 SubscriptionToken::~SubscriptionToken() { Unsubscribe(); }
 
 SubscriptionStorage::SubscriptionStorage(
-    const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count)
-    : shards_count_(shards_count) {
+    const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count,
+    bool is_cluster_mode)
+    : shards_count_(shards_count),
+      is_cluster_mode_(is_cluster_mode),
+      shard_rotate_counter_(utils::Rand() % shards_count_) {
   for (size_t shard_idx = 0; shard_idx < shards_count_; shard_idx++) {
     rebalance_schedulers_.emplace_back(
         std::make_unique<SubscriptionRebalanceScheduler>(
@@ -77,7 +80,7 @@ SubscriptionToken SubscriptionStorage::Subscribe(
   auto& map_iter = *insert_res.first;
   auto& channel_info = map_iter.second;
   auto& infos = channel_info.info;
-  channel_info.active_fsm_count = shards_count_;
+  channel_info.active_fsm_count = is_cluster_mode_ ? 1 : shards_count_;
 
   ChannelName channel_name;
   channel_name.channel = channel;
@@ -87,13 +90,17 @@ SubscriptionToken SubscriptionStorage::Subscribe(
     // new channel
     channel_info.control = control;
 
+    size_t selected_shard_idx =
+        is_cluster_mode_ ? shard_rotate_counter_++ % shards_count_ : 0;
     infos.reserve(shards_count_);
     for (size_t i = 0; i < shards_count_; ++i) {
-      infos.emplace_back(i);
-      ReadActions(infos.back().fsm, channel_name);
+      bool fake = is_cluster_mode_ && i != selected_shard_idx;
+      infos.emplace_back(i, fake);
+      if (!fake) ReadActions(infos.back().fsm, channel_name);
     }
   } else {
     for (auto& info : infos) {
+      if (!info.fsm) continue;
       shard_subscriber::Event event;
       event.type = shard_subscriber::Event::Type::kSubscribeRequested;
       info.fsm->OnEvent(event);
@@ -125,13 +132,17 @@ SubscriptionToken SubscriptionStorage::Psubscribe(
     // new channel
     channel_info.control = control;
 
+    size_t selected_shard_idx =
+        is_cluster_mode_ ? shard_rotate_counter_++ % shards_count_ : 0;
     infos.reserve(shards_count_);
     for (size_t i = 0; i < shards_count_; ++i) {
-      infos.emplace_back(i);
-      ReadActions(infos.back().fsm, channel_name);
+      bool fake = is_cluster_mode_ && i != selected_shard_idx;
+      infos.emplace_back(i, fake);
+      if (!fake) ReadActions(infos.back().fsm, channel_name);
     }
   } else {
     for (auto& info : infos) {
+      if (!info.fsm) continue;
       shard_subscriber::Event event;
       event.type = shard_subscriber::Event::Type::kSubscribeRequested;
       info.fsm->OnEvent(event);
@@ -209,7 +220,7 @@ void SubscriptionStorage::RebalanceGatherSubscriptions(RebalanceState& state) {
   for (const auto& channel_item : callback_map_) {
     const auto& channel_info = channel_item.second;
     const auto& fsm = channel_info.info[shard_idx].fsm;
-    if (!fsm->CanBeRebalanced()) {
+    if (!fsm || !fsm->CanBeRebalanced()) {
       continue;
     }
     ++total_connections;
@@ -219,7 +230,7 @@ void SubscriptionStorage::RebalanceGatherSubscriptions(RebalanceState& state) {
   for (const auto& pattern_item : pattern_callback_map_) {
     const auto& pattern_info = pattern_item.second;
     const auto& fsm = pattern_info.info[shard_idx].fsm;
-    if (!fsm->CanBeRebalanced()) {
+    if (!fsm || !fsm->CanBeRebalanced()) {
       continue;
     }
     ++total_connections;
@@ -325,14 +336,14 @@ PubsubShardStatistics SubscriptionStorage::GetShardStatistics(
       const auto& info = channel_info.info[shard_idx];
 
       const auto& name = channel_item.first;
-      shard_stats.by_channel.emplace(name, info.GetStatistics());
+      if (info.fsm) shard_stats.by_channel.emplace(name, info.GetStatistics());
     }
     for (const auto& pattern_item : pattern_callback_map_) {
       const auto& pattern_info = pattern_item.second;
       const auto& info = pattern_info.info[shard_idx];
 
       const auto& name = pattern_item.first;
-      shard_stats.by_channel.emplace(name, info.GetStatistics());
+      if (info.fsm) shard_stats.by_channel.emplace(name, info.GetStatistics());
     }
   }
   return shard_stats;
@@ -340,6 +351,7 @@ PubsubShardStatistics SubscriptionStorage::GetShardStatistics(
 
 void SubscriptionStorage::ReadActions(FsmPtr fsm,
                                       const ChannelName& channel_name) {
+  UASSERT(fsm);
   const auto actions = fsm->PopAllPendingActions();
   for (const auto& action : actions) {
     HandleChannelAction(fsm, action, channel_name);
@@ -349,6 +361,7 @@ void SubscriptionStorage::ReadActions(FsmPtr fsm,
 void SubscriptionStorage::HandleChannelAction(FsmPtr fsm,
                                               shard_subscriber::Action action,
                                               const ChannelName& channel_name) {
+  UASSERT(fsm);
   CommandPtr cmd;
   std::weak_ptr<shard_subscriber::Fsm> weak_fsm = fsm;
   const size_t shard = fsm->GetShard();
@@ -397,6 +410,7 @@ void SubscriptionStorage::HandleServerStateChanged(
     const std::shared_ptr<shard_subscriber::Fsm>& fsm,
     const ChannelName& channel_name, ServerId server_id,
     shard_subscriber::Event::Type event_type) {
+  UASSERT(fsm);
   shard_subscriber::Event event;
   event.type = event_type;
   event.server_id = server_id;
@@ -414,6 +428,7 @@ template <class Map>
 void SubscriptionStorage::DeleteChannel(Map& callback_map,
                                         const ChannelName& channel_name,
                                         const FsmPtr& fsm) {
+  UASSERT(fsm);
   const auto& channel = channel_name.channel;
   auto it = callback_map.find(channel);
   if (it == callback_map.end()) {
@@ -459,6 +474,7 @@ bool SubscriptionStorage::DoUnsubscribe(Map& callback_map,
 
           for (size_t i = 0; i < shards_count_; ++i) {
             auto& fsm = m.info[i].fsm;
+            if (!fsm) continue;
             fsm->OnEvent(event);
 
             ReadActions(fsm, channel_name);
@@ -583,6 +599,7 @@ void SubscriptionStorage::OnPmessage(ServerId server_id,
 void SubscriptionStorage::AccountMessage(ShardChannelInfo& sci,
                                          ServerId server_id,
                                          size_t message_size) {
+  UASSERT(sci.fsm);
   auto current_server_id = sci.fsm->GetCurrentServerId();
   if (current_server_id == server_id)
     sci.statistics.AccountMessage(message_size);

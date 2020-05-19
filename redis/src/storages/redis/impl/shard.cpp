@@ -9,6 +9,7 @@ Shard::Shard(Options options)
     : shard_name_(std::move(options.shard_name)),
       shard_group_name_(std::move(options.shard_group_name)),
       ready_change_callback_(std::move(options.ready_change_callback)),
+      cluster_mode_(options.cluster_mode),
       read_only_(options.read_only) {
   for (const auto& conn : options.connection_infos) {
     ConnectionInfoInt new_conn;
@@ -211,10 +212,12 @@ bool Shard::ProcessCreation(
     ConnectionStatus entry;
     entry.info = id;
 
-    entry.instance = std::make_shared<Redis>(redis_thread_pool, read_only_);
+    entry.instance =
+        std::make_shared<Redis>(redis_thread_pool, cluster_mode_ && read_only_);
     auto server_id = entry.instance->GetServerId();
     entry.instance->signal_state_change.connect(
         [this, server_id](Redis::State state) {
+          LOG_TRACE() << "Signaled server_id: " << server_id.GetDescription();
           signal_instance_state_change_(server_id, state);
         });
     entry.instance->Connect(entry.info);
@@ -242,6 +245,8 @@ bool Shard::ProcessStateUpdate() {
     for (auto info = clean_wait_.begin(); info != clean_wait_.end();) {
       switch (info->instance->GetState()) {
         case Redis::State::kConnected:
+          LOG_TRACE() << "Found kConnected instance: "
+                      << info->instance->GetServerId().GetDescription();
           instances_.emplace_back(std::move(*info));
           instances_changed = true;
           info = clean_wait_.erase(info);

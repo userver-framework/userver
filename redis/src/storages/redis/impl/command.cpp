@@ -5,14 +5,14 @@
 namespace redis {
 
 Command::Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
-                 int counter, bool asking, size_t instance_idx,
-                 const CommandPtr& /*parent*/)
+                 int counter, bool asking, size_t instance_idx, bool redirected)
     : args(std::move(args)),
       callback(std::move(callback)),
       control(control),
+      instance_idx(instance_idx),
       counter(counter),
       asking(asking),
-      instance_idx(instance_idx) {}
+      redirected(redirected) {}
 
 Command::Command(CmdArgs&& args, ReplyCallbackEx&& callback_,
                  CommandControl control, int counter, bool asking)
@@ -40,7 +40,7 @@ std::shared_ptr<Command> Command::Clone() const {
                                      control, counter, asking);
   } else {
     return std::make_shared<Command>(args.Clone(), callback, control, counter,
-                                     asking, instance_idx, CommandPtr());
+                                     asking, instance_idx, redirected);
   }
 }
 
@@ -52,11 +52,10 @@ Command::~Command() {
 
 CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallback callback,
                           const CommandControl& command_control, int counter,
-                          bool asking, size_t instance_idx,
-                          const CommandPtr& parent) {
+                          bool asking, size_t instance_idx, bool redirected) {
   return std::make_shared<Command>(std::move(args), std::move(callback),
                                    command_control, counter, asking,
-                                   instance_idx, parent);
+                                   instance_idx, redirected);
 }
 
 CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallbackEx&& callback,

@@ -50,4 +50,9 @@ class KeyShardGpsStorageDriver : public redis::KeyShard {
   size_t shard_count_ = 0;
 };
 
+inline constexpr char kRedisCluster[] = "RedisCluster";
+inline constexpr char kKeyShardCrc32[] = "KeyShardCrc32";
+
+bool IsClusterStrategy(const std::string& type);
+
 }  // namespace redis
