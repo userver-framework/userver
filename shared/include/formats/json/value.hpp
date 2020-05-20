@@ -38,7 +38,7 @@ class Value final {
   using Builder = ValueBuilder;
 
  public:
-  /// @brief Constructs a Value that holds a Null.
+  /// @brief Constructs a Value that holds a null.
   Value() noexcept;
 
   Value(const Value&) = default;
@@ -68,20 +68,21 @@ class Value final {
 
   /// @brief Returns an iterator to the beginning of the held array or map.
   /// @throw TypeMismatchException is the value of *this is not a map, array
-  /// or Null.
+  /// or null.
   const_iterator begin() const;
 
   /// @brief Returns an iterator to the end of the held array or map.
   /// @throw TypeMismatchException is the value of *this is not a map, array
-  /// or Null.
+  /// or null.
   const_iterator end() const;
 
   /// @brief Returns whether the array or object is empty.
-  /// @throw TypeMismatchException if not array or object value.
+  /// Returns true for null.
+  /// @throw TypeMismatchException if not array, object, or null.
   bool IsEmpty() const;
 
-  /// @brief Returns array size or object members count.
-  /// @throw TypeMismatchException if not array or object value.
+  /// @brief Returns array size, object members count, or 0 for null.
+  /// @throw TypeMismatchException if not array, object, or null.
   std::size_t GetSize() const;
 
   /// @brief Compares values.
@@ -94,7 +95,7 @@ class Value final {
   /// @throw Nothing.
   bool IsMissing() const noexcept;
 
-  /// @brief Returns true if *this holds a Null (Type::kNull).
+  /// @brief Returns true if *this holds a null (Type::kNull).
   /// @throw Nothing.
   bool IsNull() const;
 
@@ -152,11 +153,11 @@ class Value final {
   T ConvertTo(First&& default_arg, Rest&&... more_default_args) const;
 
   /// @brief Returns true if *this holds a `key`.
-  /// @throw TypeMismatchException if `*this` is not a map or Null.
+  /// @throw TypeMismatchException if `*this` is not a map or null.
   bool HasMember(const char* key) const;
 
   /// @brief Returns true if *this holds a `key`.
-  /// @throw TypeMismatchException if `*this` is not a map or Null.
+  /// @throw TypeMismatchException if `*this` is not a map or null.
   bool HasMember(const std::string& key) const;
 
   /// @brief Returns full path to this value.
@@ -171,19 +172,19 @@ class Value final {
   /// @throw MemberMissingException if `this->IsMissing()`.
   void CheckNotMissing() const;
 
-  /// @throw MemberMissingException if `*this` is not an array or Null.
+  /// @throw MemberMissingException if `*this` is not an array or null.
   void CheckArrayOrNull() const;
 
-  /// @throw TypeMismatchException if `*this` is not a map or Null.
+  /// @throw TypeMismatchException if `*this` is not a map or null.
   void CheckObjectOrNull() const;
 
   /// @throw TypeMismatchException if `*this` is not a map.
   void CheckObject() const;
 
-  /// @throw TypeMismatchException if `*this` is not a map, array or Null.
+  /// @throw TypeMismatchException if `*this` is not a map, array or null.
   void CheckObjectOrArrayOrNull() const;
 
-  /// @throw TypeMismatchException if `*this` is not a map, array or Null;
+  /// @throw TypeMismatchException if `*this` is not a map, array or null;
   /// `OutOfBoundsException` if `index >= this->GetSize()`.
   void CheckInBounds(std::size_t index) const;
 

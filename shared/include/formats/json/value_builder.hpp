@@ -87,11 +87,11 @@ class ValueBuilder final {
   std::size_t GetSize() const;
 
   /// @brief Returns true if value holds a `key`.
-  /// @throw `TypeMismatchException` if `*this` is not a map or Null.
+  /// @throw `TypeMismatchException` if `*this` is not a map or null.
   bool HasMember(const char* key) const;
 
   /// @brief Returns true if value holds a `key`.
-  /// @throw `TypeMismatchException` if `*this` is not a map or Null.
+  /// @throw `TypeMismatchException` if `*this` is not a map or null.
   bool HasMember(const std::string& key) const;
 
   /// @brief Resize the array value or convert null value
