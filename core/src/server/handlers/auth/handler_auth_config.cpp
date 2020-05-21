@@ -4,9 +4,7 @@
 
 #include <yaml_config/value.hpp>
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 
 HandlerAuthConfig::HandlerAuthConfig(
     formats::yaml::Value yaml, std::string full_path,
@@ -28,8 +26,8 @@ std::vector<std::string> HandlerAuthConfig::ParseTypes() {
   static const std::string kTypes = "types";
   static const std::string kType = "type";
 
-  auto types_opt = Parse<boost::optional<std::vector<std::string>>>(kTypes);
-  auto type_opt = Parse<boost::optional<std::string>>(kType);
+  auto types_opt = Parse<std::optional<std::vector<std::string>>>(kTypes);
+  auto type_opt = Parse<std::optional<std::string>>(kType);
 
   if (types_opt && type_opt) {
     throw std::runtime_error("invalid handler auth config: both fields '" +
@@ -43,6 +41,4 @@ std::vector<std::string> HandlerAuthConfig::ParseTypes() {
                            kTypes + "' and '" + kType + "' was found");
 }
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth

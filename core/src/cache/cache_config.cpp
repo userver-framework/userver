@@ -1,7 +1,5 @@
 #include <cache/cache_config.hpp>
 
-#include <boost/optional.hpp>
-
 #include <utils/assert.hpp>
 #include <utils/string_to_duration.hpp>
 #include <utils/traceful_exception.hpp>

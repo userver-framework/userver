@@ -8,6 +8,7 @@
 #include <boost/optional.hpp>
 
 #include <formats/bson.hpp>
+#include <formats/parse/boost_optional.hpp>
 
 namespace fb = formats::bson;
 using TimePoint = std::chrono::system_clock::time_point;
@@ -552,4 +553,5 @@ TEST(BsonExtraction, Containers) {
   EXPECT_TRUE((doc["n"].As<std::unordered_map<std::string, int>>().empty()));
   EXPECT_TRUE(doc["n"].As<std::vector<int>>().empty());
   EXPECT_FALSE(doc["n"].As<boost::optional<std::string>>());
+  EXPECT_FALSE(doc["n"].As<std::optional<std::string>>());
 }

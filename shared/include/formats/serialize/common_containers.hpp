@@ -7,8 +7,6 @@
 #include <optional>
 #include <vector>
 
-#include <boost/optional.hpp>
-
 #include <formats/common/type.hpp>
 #include <formats/serialize/to.hpp>
 #include <utils/meta.hpp>
@@ -38,13 +36,6 @@ std::enable_if_t<meta::is_map<T>::value, Value> Serialize(const T& value,
     builder[it->first] = it->second;
   }
   return builder.ExtractValue();
-}
-
-template <typename T, typename Value>
-Value Serialize(const boost::optional<T>& value, To<Value>) {
-  if (!value) return {};
-
-  return typename Value::Builder(*value).ExtractValue();
 }
 
 template <typename T, typename Value>

@@ -1,10 +1,9 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <engine/subprocess/child_process.hpp>
 #include <engine/subprocess/environment_variables.hpp>
@@ -28,8 +27,8 @@ class ProcessStarter {
       const std::string& command, const std::vector<std::string>& args,
       const EnvironmentVariables& env,
       // TODO: use something like pipes instead of path to files
-      const boost::optional<std::string>& stdout_file = boost::none,
-      const boost::optional<std::string>& stderr_file = boost::none);
+      const std::optional<std::string>& stdout_file = std::nullopt,
+      const std::optional<std::string>& stderr_file = std::nullopt);
 
   /// Variables from `env_update` will be added to current environment.
   /// Existing values will be replaced.
@@ -37,15 +36,15 @@ class ProcessStarter {
       const std::string& command, const std::vector<std::string>& args,
       EnvironmentVariablesUpdate env_update,
       // TODO: use something like pipes instead of path to files
-      const boost::optional<std::string>& stdout_file = boost::none,
-      const boost::optional<std::string>& stderr_file = boost::none);
+      const std::optional<std::string>& stdout_file = std::nullopt,
+      const std::optional<std::string>& stderr_file = std::nullopt);
 
   /// Exec subprocess using current environment.
   ChildProcess Exec(
       const std::string& command, const std::vector<std::string>& args,
       // TODO: use something like pipes instead of path to files
-      const boost::optional<std::string>& stdout_file = boost::none,
-      const boost::optional<std::string>& stderr_file = boost::none);
+      const std::optional<std::string>& stdout_file = std::nullopt,
+      const std::optional<std::string>& stderr_file = std::nullopt);
 
  private:
   ev::ThreadControl& thread_control_;

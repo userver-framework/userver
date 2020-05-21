@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <typeindex>
 
 #include <boost/any.hpp>

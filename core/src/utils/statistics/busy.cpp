@@ -1,7 +1,7 @@
 #include <utils/statistics/busy.hpp>
 
 #include <boost/lockfree/queue.hpp>
-#include <boost/optional.hpp>
+#include <optional>
 #include <vector>
 
 #include <logging/log.hpp>
@@ -45,7 +45,7 @@ struct BusyStorage::Impl {
   Impl(Duration epoch_duration, Duration history_period, size_t max_workers);
 
   mutable RecentPeriod<BusyCounter, BusyResult, Timer> recent_period;
-  std::vector<boost::optional<Timer::time_point>> start_work{boost::none};
+  std::vector<std::optional<Timer::time_point>> start_work{std::nullopt};
   boost::lockfree::queue<WorkerId> free_worker_ids;
 };
 
@@ -143,7 +143,7 @@ void BusyStorage::StopWork(WorkerId worker_id) {
   auto not_committed_load = GetNotCommittedLoad(worker_id);
   auto& value = pimpl->recent_period.GetCurrentCounter().value;
   value = value.load() + not_committed_load;
-  pimpl->start_work[worker_id] = boost::none;
+  pimpl->start_work[worker_id] = std::nullopt;
 
   const auto busy_storage_back = this_thread_busy_storages.back();
   if (busy_storage_back != this) {
@@ -175,7 +175,7 @@ Duration BusyStorage::GetNotCommittedLoad(WorkerId worker_id) const {
   if (!start_work) {
     return Duration(0);
   } else {
-    return utils::datetime::SteadyNow() - start_work.get();
+    return utils::datetime::SteadyNow() - *start_work;
   }
 }
 

@@ -9,6 +9,9 @@
 #include <formats/parse/common_containers.hpp>
 #include <formats/serialize/common_containers.hpp>
 
+#include <formats/parse/boost_optional.hpp>
+#include <formats/serialize/boost_optional.hpp>
+
 template <class T>
 struct Conversion : public ::testing::Test {};
 TYPED_TEST_SUITE_P(Conversion);

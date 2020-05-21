@@ -10,7 +10,7 @@
 #include <storages/postgres/io/nullable_traits.hpp>
 #include <storages/postgres/io/traits.hpp>
 
-#include <boost/optional.hpp>
+#include <boost/optional/optional_fwd.hpp>
 
 namespace storages::postgres::io {
 
@@ -123,7 +123,7 @@ template <typename T>
 struct GetSetNull<boost::optional<T>> {
   using ValueType = boost::optional<T>;
   inline static bool IsNull(const ValueType& v) { return !v; }
-  inline static void SetNull(ValueType& v) { v = boost::none; }
+  inline static void SetNull(ValueType& v) { v = ValueType{}; }
   inline static void SetDefault(ValueType& v) { v.emplace(); }
 };
 

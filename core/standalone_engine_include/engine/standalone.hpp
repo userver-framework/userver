@@ -11,10 +11,10 @@
 /// You should never have more than one instance of TaskProcessorPools in your
 /// applications. Otherwise you may experience spurious lockups.
 
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
-
-#include <boost/optional.hpp>
 
 namespace engine {
 
@@ -23,10 +23,10 @@ class TaskProcessor;
 namespace impl {
 
 struct TaskProcessorPoolsConfig {
-  boost::optional<size_t> initial_coro_pool_size;
-  boost::optional<size_t> max_coro_pool_size;
-  boost::optional<size_t> ev_threads_num;
-  boost::optional<std::string> ev_thread_name;
+  std::optional<size_t> initial_coro_pool_size;
+  std::optional<size_t> max_coro_pool_size;
+  std::optional<size_t> ev_threads_num;
+  std::optional<std::string> ev_thread_name;
 };
 
 class TaskProcessorPools;

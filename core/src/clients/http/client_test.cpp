@@ -115,7 +115,7 @@ using HttpResponse = testing::SimpleServer::Response;
 using HttpRequest = testing::SimpleServer::Request;
 using HttpCallback = testing::SimpleServer::OnRequest;
 
-static boost::optional<HttpResponse> process_100(const HttpRequest& request) {
+static std::optional<HttpResponse> process_100(const HttpRequest& request) {
   const bool requires_continue =
       (request.find("Expect: 100-continue") != std::string::npos);
 
@@ -126,7 +126,7 @@ static boost::optional<HttpResponse> process_100(const HttpRequest& request) {
         HttpResponse::kWriteAndContinue};
   }
 
-  return boost::none;
+  return std::nullopt;
 }
 
 static HttpResponse echo_callback(const HttpRequest& request) {

@@ -1,17 +1,15 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <server/handlers/http_handler_base.hpp>
 #include <server/http/http_method.hpp>
 
-namespace server {
-namespace http {
+namespace server::http {
 
 struct HandlerInfo {
   HandlerInfo(engine::TaskProcessor& task_processor,
@@ -27,9 +25,9 @@ struct MatchRequestResult {
 
   MatchRequestResult() = default;
   explicit MatchRequestResult(const HandlerInfo& handler_info)
-      : handler_info(handler_info) {}
-  boost::optional<const HandlerInfo&> handler_info;
+      : handler_info(&handler_info) {}
 
+  const HandlerInfo* handler_info = nullptr;
   size_t matched_path_length = 0;
   Status status = Status::kHandlerNotFound;
   std::vector<std::pair<std::string, std::string>> args_from_path;
@@ -51,5 +49,4 @@ class HandlerInfoIndex final {
   std::unique_ptr<HandlerInfoIndexImpl> impl_;
 };
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

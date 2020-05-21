@@ -1,5 +1,7 @@
 #include <taxi_config/config.hpp>
 
+#include <functional>
+
 #include <compiler/demangle.hpp>
 #include <utils/assert.hpp>
 

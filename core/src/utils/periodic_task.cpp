@@ -127,7 +127,7 @@ bool PeriodicTask::Step() {
 bool PeriodicTask::StepDebug(bool preserve_span) {
   std::lock_guard<engine::Mutex> lock_step(step_mutex_);
 
-  boost::optional<tracing::Span> testsuite_oneshot_span;
+  std::optional<tracing::Span> testsuite_oneshot_span;
   if (preserve_span) {
     tracing::Span span("periodic-synchronize-debug-call");
     testsuite_oneshot_span.emplace(std::move(span));

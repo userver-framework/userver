@@ -17,15 +17,14 @@ namespace server::handlers::auth::apikey {
 AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
                                      const AuthCheckerSettings& settings) {
   keys_by_method_.fill(nullptr);
-  auto apikey_type =
-      auth_config.Parse<boost::optional<std::string>>(kApiKeyType);
+  auto apikey_type = auth_config.Parse<std::optional<std::string>>(kApiKeyType);
   if (apikey_type) {
     const auto& keys_set = GetApiKeysByType(settings, *apikey_type);
     for (auto method : http::kHandlerMethods)
       keys_by_method_[static_cast<int>(method)] = &keys_set;
   }
   auto apikey_type_by_method =
-      auth_config.Parse<boost::optional<ApiKeyTypeByMethodSettings>>(
+      auth_config.Parse<std::optional<ApiKeyTypeByMethodSettings>>(
           kApiKeyTypeByMethod);
   if (apikey_type_by_method) {
     for (auto method : http::kHandlerMethods) {
@@ -109,7 +108,7 @@ AuthCheckerApiKey::ApiKeyTypeByMethodSettings::ParseFromYaml(
   ApiKeyTypeByMethodSettings settings;
   for (auto method : http::kHandlerMethods) {
     settings.apikey_type[static_cast<int>(method)] =
-        yaml_config::Parse<boost::optional<std::string>>(
+        yaml_config::Parse<std::optional<std::string>>(
             yaml, http::ToString(method), full_path, config_vars_ptr);
   }
   return settings;

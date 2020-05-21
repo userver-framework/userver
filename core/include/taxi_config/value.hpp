@@ -5,8 +5,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <boost/optional/optional.hpp>
-
 #include <formats/json/serialize_container.hpp>
 #include <formats/json/value.hpp>
 
@@ -99,12 +97,6 @@ class ValueDict final {
   // TODO: remove after TAXICOMMON-2028
   const ValueType& operator[](const char* key) const {
     return (*this)[std::string(key)];
-  }
-
-  // TODO: remove after TAXICOMMON-2028
-  const ValueType& operator[](const boost::optional<std::string>& key) const {
-    if (key) return (*this)[*key];
-    return GetDefaultValue();
   }
 
   const ValueType& operator[](const std::optional<std::string>& key) const {

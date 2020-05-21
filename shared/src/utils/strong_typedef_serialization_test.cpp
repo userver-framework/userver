@@ -2,6 +2,8 @@
 #include <formats/json/serialize_container.hpp>
 #include <formats/json/value.hpp>
 #include <formats/json/value_builder.hpp>
+#include <formats/parse/boost_optional.hpp>
+#include <formats/serialize/boost_optional.hpp>
 #include <formats/yaml/serialize.hpp>
 #include <formats/yaml/value.hpp>
 

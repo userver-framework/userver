@@ -30,8 +30,8 @@ namespace {
 
 void DoExecve(const std::string& command, const std::vector<std::string>& args,
               const EnvironmentVariables& env,
-              const boost::optional<std::string>& stdout_file,
-              const boost::optional<std::string>& stderr_file) {
+              const std::optional<std::string>& stdout_file,
+              const std::optional<std::string>& stderr_file) {
   if (stdout_file) {
     if (!std::freopen(stdout_file->c_str(), "a", stdout)) {
       utils::CheckSyscall(-1, "freopen stdout to ", *stdout_file);
@@ -77,8 +77,8 @@ ProcessStarter::ProcessStarter(TaskProcessor& task_processor)
 ChildProcess ProcessStarter::Exec(
     const std::string& command, const std::vector<std::string>& args,
     const EnvironmentVariables& env,
-    const boost::optional<std::string>& stdout_file,
-    const boost::optional<std::string>& stderr_file) {
+    const std::optional<std::string>& stdout_file,
+    const std::optional<std::string>& stderr_file) {
   tracing::Span span("ProcessStarter::Exec");
   span.AddTag("command", command);
   // future.get() will return earlier than promise.set_*(), we must transfer
@@ -138,8 +138,8 @@ ChildProcess ProcessStarter::Exec(
 ChildProcess ProcessStarter::Exec(
     const std::string& command, const std::vector<std::string>& args,
     EnvironmentVariablesUpdate env_update,
-    const boost::optional<std::string>& stdout_file,
-    const boost::optional<std::string>& stderr_file) {
+    const std::optional<std::string>& stdout_file,
+    const std::optional<std::string>& stderr_file) {
   return Exec(command, args,
               EnvironmentVariables{GetCurrentEnvironmentVariables()}.UpdateWith(
                   std::move(env_update)),
@@ -148,8 +148,8 @@ ChildProcess ProcessStarter::Exec(
 
 ChildProcess ProcessStarter::Exec(
     const std::string& command, const std::vector<std::string>& args,
-    const boost::optional<std::string>& stdout_file,
-    const boost::optional<std::string>& stderr_file) {
+    const std::optional<std::string>& stdout_file,
+    const std::optional<std::string>& stderr_file) {
   return Exec(command, args, EnvironmentVariablesUpdate{{}}, stdout_file,
               stderr_file);
 }

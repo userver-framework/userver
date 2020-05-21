@@ -14,8 +14,7 @@
 
 #include "handler_methods.hpp"
 
-namespace server {
-namespace http {
+namespace server::http {
 
 namespace {
 
@@ -76,8 +75,7 @@ class HandlerMethodIndex final {
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor,
                   std::vector<PathItem> wildcards);
-  boost::optional<const HandlerInfoData&> GetHandlerInfoData(
-      HttpMethod method) const;
+  const HandlerInfoData* GetHandlerInfoData(HttpMethod method) const;
 
  private:
   void AddHandlerInfoData(HttpMethod method,
@@ -103,13 +101,13 @@ void HandlerMethodIndex::AddHandler(const handlers::HttpHandlerBase& handler,
   }
 }
 
-boost::optional<const HandlerMethodIndex::HandlerInfoData&>
+const HandlerMethodIndex::HandlerInfoData*
 HandlerMethodIndex::GetHandlerInfoData(HttpMethod method) const {
   auto index = static_cast<size_t>(method);
   if (!IsAllowedMethod(index)) {
-    return boost::none;
+    return nullptr;
   }
-  return *pmethods_[index];
+  return pmethods_[index];
 }
 
 void HandlerMethodIndex::AddHandlerInfoData(
@@ -325,7 +323,7 @@ bool WildcardPathIndex::GetFromHandlerMethodIndex(
     return false;
   }
 
-  match_result.handler_info = handler_info_data->handler_info;
+  match_result.handler_info = &handler_info_data->handler_info;
   for (const auto& arg : handler_info_data->wildcards) {
     if (arg.index > path.size())
       throw std::logic_error(
@@ -410,7 +408,7 @@ bool FixedPathIndex::MatchRequest(HttpMethod method, const std::string& path,
     return false;
   }
 
-  match_result.handler_info = handler_info_data->handler_info;
+  match_result.handler_info = &handler_info_data->handler_info;
   match_result.matched_path_length = path.size();
   match_result.status = MatchRequestResult::Status::kOk;
   return true;
@@ -468,5 +466,4 @@ MatchRequestResult HandlerInfoIndex::MatchRequest(
   return impl_->MatchRequest(method, path);
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

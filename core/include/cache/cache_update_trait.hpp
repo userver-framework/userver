@@ -56,8 +56,6 @@ class CacheUpdateTrait {
   /// @brief Updates cache config
   /// @note If no config is set, uses static default (from config.yaml).
   void SetConfig(const std::optional<CacheConfig>& config);
-  // TODO: remove after TAXICOMMON-2028
-  void SetConfig(const boost::optional<CacheConfig>& config);
 
  protected:
   /// Can be called for force update. There is a mutex lock inside, so it's safe

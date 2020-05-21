@@ -7,8 +7,6 @@
 #include <optional>
 #include <stdexcept>
 
-#include <boost/optional.hpp>
-
 namespace utils {
 
 /// Simple value/exception store

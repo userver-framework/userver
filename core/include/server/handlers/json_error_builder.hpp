@@ -1,7 +1,5 @@
 #pragma once
 
-#include <boost/optional.hpp>
-
 #include <formats/json/value.hpp>
 #include <http/content_type.hpp>
 

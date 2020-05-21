@@ -1,11 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-#include <boost/optional.hpp>
 
 #include <compiler/demangle.hpp>
 #include <formats/yaml.hpp>
@@ -101,7 +100,7 @@ T Parse(const formats::yaml::Value& obj, const Field& field,
         const std::string& full_path, const VariableMapPtr& config_vars_ptr);
 
 template <typename T, typename Field>
-inline boost::optional<std::vector<T>> ParseOptionalArray(
+inline std::optional<std::vector<T>> ParseOptionalArray(
     const formats::yaml::Value& obj, const Field& field,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   const auto& value = obj[field];
@@ -134,7 +133,7 @@ inline std::vector<T> ParseArray(const formats::yaml::Value& obj,
 }
 
 template <typename T>
-inline boost::optional<std::vector<T>> ParseOptionalMapAsArray(
+inline std::optional<std::vector<T>> ParseOptionalMapAsArray(
     const formats::yaml::Value& obj, const std::string& name,
     const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
   const auto& value = obj[name];
@@ -196,11 +195,10 @@ struct ParseHelperOptional {
 };
 
 template <typename T, typename Field>
-struct ParseHelperOptional<boost::optional<T>, Field> {
-  boost::optional<T> operator()(const formats::yaml::Value& obj,
-                                const Field& field,
-                                const std::string& full_path,
-                                const VariableMapPtr& config_vars_ptr) const {
+struct ParseHelperOptional<std::optional<T>, Field> {
+  std::optional<T> operator()(const formats::yaml::Value& obj,
+                              const Field& field, const std::string& full_path,
+                              const VariableMapPtr& config_vars_ptr) const {
     const auto& value = obj[field];
     if (!value || value.IsNull()) {
       return {};

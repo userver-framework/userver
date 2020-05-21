@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 
 #include <formats/bson.hpp>
+#include <formats/parse/boost_optional.hpp>
 
 namespace fb = formats::bson;
 
@@ -420,4 +421,5 @@ TEST(BsonConversion, Containers) {
       (doc["n"].ConvertTo<std::unordered_map<std::string, int>>().empty()));
   EXPECT_TRUE(doc["n"].ConvertTo<std::vector<int>>().empty());
   EXPECT_FALSE(doc["n"].ConvertTo<boost::optional<std::string>>());
+  EXPECT_FALSE(doc["n"].ConvertTo<std::optional<std::string>>());
 }

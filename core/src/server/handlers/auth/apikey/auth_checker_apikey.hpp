@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <server/handlers/auth/auth_checker_base.hpp>
 #include <server/handlers/auth/auth_checker_factory.hpp>
 #include <server/handlers/auth/auth_checker_settings.hpp>
@@ -23,7 +25,7 @@ class AuthCheckerApiKey : public AuthCheckerBase {
 
  private:
   struct ApiKeyTypeByMethodSettings {
-    std::array<boost::optional<std::string>, http::kHandlerMethodsMax + 1>
+    std::array<std::optional<std::string>, http::kHandlerMethodsMax + 1>
         apikey_type;
 
     static ApiKeyTypeByMethodSettings ParseFromYaml(

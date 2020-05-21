@@ -1,10 +1,10 @@
 #pragma once
 
 #include <list>
+#include <optional>
 #include <string>
 
 #include <boost/intrusive/list.hpp>
-#include <boost/optional.hpp>
 
 #include <tracing/tracer.hpp>
 

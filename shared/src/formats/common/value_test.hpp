@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <formats/parse/boost_optional.hpp>
 #include <formats/parse/time_of_day.hpp>
 #include <formats/parse/to.hpp>
 #include <formats/parse/variant.hpp>
