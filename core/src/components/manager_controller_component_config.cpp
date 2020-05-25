@@ -38,8 +38,9 @@ ManagerControllerTaxiConfig::ManagerControllerTaxiConfig(
     : doc(docs_map.Get("USERVER_TASK_PROCESSOR_QOS")) {
   const auto& default_service = doc["default-service"];
 
-  for (auto it = default_service.begin(); it != default_service.end(); ++it)
-    settings[it.GetName()] = ParseTaskProcessorSettings(*it);
+  for (const auto& [name, value] : Items(default_service)) {
+    settings[name] = ParseTaskProcessorSettings(value);
+  }
   default_settings = settings.at("default-task-processor");
 }
 

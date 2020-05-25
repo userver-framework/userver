@@ -52,3 +52,8 @@ TEST_F(FormatsJsonSpecificMemberAccess, CheckPrimitiveTypes) {
   EXPECT_THROW(doc_["key5"].As<std::string>(), TypeMismatchException);
   EXPECT_THROW(doc_["key6"].As<std::string>(), TypeMismatchException);
 }
+
+TEST_F(FormatsJsonSpecificMemberAccess, Items) {
+  for ([[maybe_unused]] const auto& [key, value] : Items(doc_)) {
+  }
+}

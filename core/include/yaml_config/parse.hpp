@@ -143,11 +143,10 @@ inline std::optional<std::vector<T>> ParseOptionalMapAsArray(
 
   std::vector<T> parsed_array;
   parsed_array.reserve(value.GetSize());
-  for (auto it = value.begin(); it != value.end(); ++it) {
-    const auto elem_name = it.GetName();
+  for (const auto& [elem_name, yaml] : Items(value)) {
     auto parsed = T::ParseFromYaml(
         // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
-        *it, full_path + '.' + name + '.' + elem_name, config_vars_ptr);
+        yaml, full_path + '.' + name + '.' + elem_name, config_vars_ptr);
     parsed.SetName(elem_name);
     parsed_array.emplace_back(std::move(parsed));
   }

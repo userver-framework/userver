@@ -205,3 +205,8 @@ TEST(BsonValue, DuplicateFieldsUseLast) {
   EXPECT_EQ("end", doc_use_last["c"].As<std::string>());
   EXPECT_EQ("third", doc_use_last["a"].As<std::string>());
 }
+
+TEST(BsonValue, Items) {
+  for ([[maybe_unused]] const auto& [key, value] : Items(kDoc)) {
+  }
+}

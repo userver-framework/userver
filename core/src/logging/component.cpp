@@ -41,14 +41,13 @@ Logging::Logging(const ComponentConfig& config,
                                config.FullPath(), config.ConfigVarsPtr());
   fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
 
-  for (auto it = loggers.begin(); it != loggers.end(); ++it) {
-    auto logger_name = it.GetName();
+  for (const auto& [logger_name, logger_yaml] : Items(loggers)) {
     auto logger_full_path =
         fmt::format("{}.{}", loggers_full_path, logger_name);
     bool is_default_logger = logger_name == "default";
 
     auto logger_config = logging::LoggerConfig::ParseFromYaml(
-        *it, logger_full_path, config.ConfigVarsPtr());
+        logger_yaml, logger_full_path, config.ConfigVarsPtr());
     auto logger = CreateLogger(logger_name, logger_config, is_default_logger);
 
     logger->set_level(
@@ -60,8 +59,7 @@ Logging::Logging(const ComponentConfig& config,
     if (is_default_logger) {
       logging::SetDefaultLogger(logger);
     } else {
-      auto insertion_result =
-          loggers_.emplace(std::move(logger_name), std::move(logger));
+      auto insertion_result = loggers_.emplace(logger_name, std::move(logger));
       if (!insertion_result.second) {
         throw std::runtime_error("duplicate logger '" +
                                  insertion_result.first->first + '\'');

@@ -57,3 +57,8 @@ TEST_F(FormatsYamlSpecificMemberAccess, CheckPrimitiveTypes) {
   EXPECT_NO_THROW(doc_["key5"].As<std::string>());
   EXPECT_NO_THROW(doc_["key6"].As<std::string>());
 }
+
+TEST_F(FormatsYamlSpecificMemberAccess, Items) {
+  for ([[maybe_unused]] const auto& [key, value] : Items(doc_)) {
+  }
+}

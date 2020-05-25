@@ -72,6 +72,35 @@ TYPED_TEST_P(MemberAccess, IterateMemberNames) {
   }
 }
 
+TYPED_TEST_P(MemberAccess, Items) {
+  using formats::common::Items;
+  size_t ind = 1;
+  for (const auto& [key, value] : Items(this->doc_)) {
+    std::ostringstream os("key", std::ios::ate);
+    os << ind;
+    EXPECT_EQ(key, os.str()) << "Failed for index " << ind;
+
+    switch (ind) {
+      case 1:
+        EXPECT_EQ(value,
+                  (typename TestFixture::ValueBuilder{1}.ExtractValue()));
+        break;
+
+      case 2:
+        EXPECT_EQ(value,
+                  (typename TestFixture::ValueBuilder{"val"}.ExtractValue()));
+        break;
+
+      default:
+        break;
+    }
+
+    ++ind;
+  }
+
+  EXPECT_EQ(ind, 7);
+}
+
 TYPED_TEST_P(MemberAccess, IterateAndCheckValues) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
 
@@ -423,8 +452,9 @@ REGISTER_TYPED_TEST_SUITE_P(
     ChildBySquareBraketsMissing, ChildBySquareBraketsMissingTwice,
     ChildBySquareBraketsArray, ChildBySquareBraketsBounds,
 
-    IterateMemberNames, IterateAndCheckValues, IterateMembersAndCheckKey3,
-    IterateMembersAndCheckKey4, IterateMembersAndCheckKey4Index,
+    Items, IterateMemberNames, IterateAndCheckValues,
+    IterateMembersAndCheckKey3, IterateMembersAndCheckKey4,
+    IterateMembersAndCheckKey4Index,
     IterateMembersAndCheckKey4IndexPostincrement, Algorithms,
 
     CheckPrimitiveTypes, CheckPrimitiveTypeExceptions, MemberPaths,

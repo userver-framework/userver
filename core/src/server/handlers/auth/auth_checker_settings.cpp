@@ -30,12 +30,11 @@ void AuthCheckerSettings::ParseApikeys(
 
   apikeys_map_ = std::make_optional<ApiKeysMap>({});
 
-  for (auto elem = apikeys_map.begin(); elem != apikeys_map.end(); ++elem) {
-    const std::string& apikey_type = elem.GetName();
-    if (!elem->IsArray())
+  for (const auto& [apikey_type, elem] : Items(apikeys_map)) {
+    if (!elem.IsArray())
       throw std::runtime_error(
           fmt::format("cannot parse {}.{}, expected", kApikeys, apikey_type));
-    for (auto key = elem->begin(); key != elem->end(); ++key) {
+    for (auto key = elem.begin(); key != elem.end(); ++key) {
       if (key->IsString()) {
         (*apikeys_map_)[apikey_type].insert(key->As<std::string>());
       } else {

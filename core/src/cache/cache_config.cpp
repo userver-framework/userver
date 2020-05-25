@@ -157,16 +157,16 @@ CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
   const auto& config_name = ConfigName();
   if (!config_name.empty()) {
     auto caches_json = docs_map.Get(config_name);
-    for (auto it = caches_json.begin(); it != caches_json.end(); ++it) {
-      configs_.emplace(it.GetName(), ParseConfig(*it));
+    for (const auto& [name, value] : Items(caches_json)) {
+      configs_.emplace(name, ParseConfig(value));
     }
   }
 
   const auto& lru_config_name = LruConfigName();
   if (!lru_config_name.empty()) {
     auto lru_caches_json = docs_map.Get(lru_config_name);
-    for (auto it = lru_caches_json.begin(); it != lru_caches_json.end(); ++it) {
-      lru_configs_.emplace(it.GetName(), ParseLruConfig(*it));
+    for (const auto& [name, value] : Items(lru_caches_json)) {
+      lru_configs_.emplace(name, ParseLruConfig(value));
     }
   }
 }

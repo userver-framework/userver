@@ -6,6 +6,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <formats/common/items.hpp>
 #include <formats/common/meta.hpp>
 #include <formats/json/exception.hpp>
 #include <formats/json/iterator.hpp>
@@ -319,5 +320,16 @@ T Value::ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
 }
 
 inline Value Parse(const Value& value, parse::To<Value>) { return value; }
+
+/// @brief Wrapper for handy python-like iteration over a map
+///
+/// @code
+///   for (const auto& [name, value]: Items(map)) ...
+/// @endcode
+inline auto Items(const Value& value) {
+  return common::ItemsWrapper<Value>(value);
+}
+
+void Items(Value&& value) = delete;
 
 }  // namespace formats::json

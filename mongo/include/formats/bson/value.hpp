@@ -11,6 +11,7 @@
 #include <formats/bson/exception.hpp>
 #include <formats/bson/iterator.hpp>
 #include <formats/bson/types.hpp>
+#include <formats/common/items.hpp>
 #include <formats/common/meta.hpp>
 #include <formats/parse/common.hpp>
 #include <formats/parse/common_containers.hpp>
@@ -264,5 +265,16 @@ double Value::ConvertTo<double>() const;
 template <>
 std::string Value::ConvertTo<std::string>() const;
 /// @endcond
+
+/// @brief Wrapper for handy python-like iteration over a map
+///
+/// @code
+///   for (const auto& [name, value]: Items(map)) ...
+/// @endcode
+inline auto Items(const Value& value) {
+  return common::ItemsWrapper<Value>(value);
+}
+
+void Items(Value&& value) = delete;
 
 }  // namespace formats::bson
