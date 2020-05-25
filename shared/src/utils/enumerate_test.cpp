@@ -1,0 +1,166 @@
+#include <array>
+
+#include <gtest/gtest.h>
+
+#include <utils/enumerate.hpp>
+
+constexpr int ConstexprTest(std::array<int, 2> data) {
+  int result = 0;
+  for (auto [pos, elem] : utils::enumerate(data)) {
+    result += pos + elem;
+  }
+  return result;
+}
+
+static_assert(ConstexprTest({2, 3}) == 6,
+              "Constexpr test for enumerate failed");
+
+struct EnumerateFixture : public ::testing::Test {
+ public:
+  class CopyException : public std::exception {
+   public:
+    using std::exception::exception;
+  };
+
+  class MoveException : public std::exception {
+   public:
+    using std::exception::exception;
+  };
+
+  struct ContainerThrowsOnCopy {
+    ContainerThrowsOnCopy() = default;
+    ContainerThrowsOnCopy(ContainerThrowsOnCopy&&) { throw MoveException{}; }
+    ContainerThrowsOnCopy(const ContainerThrowsOnCopy&) {
+      throw CopyException{};
+    }
+    int* begin() { return nullptr; }
+    int* end() { return nullptr; }
+    const int* begin() const { return nullptr; }
+    const int* end() const { return nullptr; }
+  };
+
+  std::vector<int> CreateRValueData() { return std::vector<int>{1, 2, 3, 4}; }
+  std::vector<int> CreateRValueEmpty() { return std::vector<int>(); }
+};
+
+TEST_F(EnumerateFixture, Vector) {
+  std::vector<int> data{1, 2, 3, 4};
+
+  int current_pos = 0;
+
+  for (const auto& [pos, elem] : utils::enumerate(data)) {
+    EXPECT_EQ(pos, current_pos);
+    EXPECT_EQ(elem, data[current_pos]);
+
+    current_pos++;
+  }
+}
+
+TEST_F(EnumerateFixture, EmptyVector) {
+  std::vector<int> data;
+
+  for (const auto& [pos, elem] : utils::enumerate(data)) {
+    std::ignore = pos;
+    std::ignore = elem;
+    FAIL();  // We can't get here
+  }
+}
+
+TEST_F(EnumerateFixture, SingleElement) {
+  std::vector<int> data;
+  data.push_back(1);
+
+  int current_pos = 0;
+
+  for (const auto& [pos, elem] : utils::enumerate(data)) {
+    EXPECT_EQ(pos, current_pos);
+    EXPECT_EQ(elem, data[current_pos]);
+
+    current_pos++;
+  }
+}
+
+TEST_F(EnumerateFixture, RValue) {
+  std::vector<int> reference = CreateRValueData();
+  int current_pos = 0;
+  for (const auto& [pos, elem] : utils::enumerate(CreateRValueData())) {
+    EXPECT_EQ(pos, current_pos);
+    EXPECT_EQ(elem, reference[current_pos]);
+
+    current_pos++;
+  }
+}
+
+TEST_F(EnumerateFixture, EmptyRValue) {
+  for (const auto& [pos, elem] : utils::enumerate(CreateRValueEmpty())) {
+    std::ignore = pos;
+    std::ignore = elem;
+    FAIL();  // We can't get here
+  }
+}
+
+TEST_F(EnumerateFixture, Modification) {
+  std::vector<int> source{1, 2, 3};
+  const std::vector<int> target{2, 3, 4};
+
+  for (auto&& [pos, elem] : utils::enumerate(source)) {
+    ++elem;
+  }
+
+  for (const auto& [pos, reference_elem] : utils::enumerate(target)) {
+    EXPECT_EQ(source[pos], reference_elem);
+  }
+}
+
+TEST_F(EnumerateFixture, TestNoCopyLValue) {
+  ContainerThrowsOnCopy container;
+
+  try {
+    for (const auto& [pos, elem] : utils::enumerate(container)) {
+      std::ignore = pos;
+      std::ignore = elem;
+      FAIL() << "container should be empty";
+    }
+  } catch (const CopyException& e) {
+    FAIL() << "enumerate calls copy ctor for lvalue. should be only reference "
+              "init.";
+  } catch (const MoveException& e) {
+    FAIL() << "enumerate calls move ctor for lvalue. should be only reference "
+              "init.";
+  }
+}
+
+TEST_F(EnumerateFixture, TestNoCopyRValue) {
+  auto FuncReturnContainer = []() {
+    ContainerThrowsOnCopy container;
+    return container;
+  };
+
+  try {
+    for (const auto& [pos, elem] : utils::enumerate(FuncReturnContainer())) {
+      std::ignore = pos;
+      std::ignore = elem;
+      FAIL() << "container should be empty";
+    }
+  } catch (const CopyException& e) {
+    FAIL() << "enumerate calls copy ctor for rvalue. should be move";
+  } catch (const MoveException& e) {
+    SUCCEED();
+  }
+}
+
+TEST_F(EnumerateFixture, TestNoCopyElems) {
+  struct ThrowOnCopy {
+    ThrowOnCopy() = default;
+    ThrowOnCopy(const ThrowOnCopy&) { throw CopyException{}; };
+  };
+  std::array<ThrowOnCopy, 10> container{};
+  try {
+    for (auto [pos, elem] : utils::enumerate(container)) {
+      std::ignore = pos;
+      std::ignore = elem;
+    };
+  } catch (const CopyException&) {
+    FAIL() << "elem is copied, it is not reference";
+  }
+}
