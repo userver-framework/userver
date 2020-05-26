@@ -7,6 +7,8 @@
 #include <optional>
 #include <utility>
 
+#include <utils/checked_pointer.hpp>
+
 namespace utils {
 
 /// Constexpr usable strlen
@@ -47,6 +49,17 @@ std::optional<typename Map::mapped_type> FindOptional(Map& map,
     return std::nullopt;
   }
   return {*ptr};
+}
+
+/// Search a map for an element and return a checked pointer to the found
+/// element
+template <typename Map, typename Key>
+auto CheckedFind(Map& map, const Key& key)
+    -> decltype(MakeCheckedPtr(&map.find(key)->second)) {
+  if (auto f = map.find(key); f != map.end()) {
+    return MakeCheckedPtr(&f->second);
+  }
+  return nullptr;
 }
 
 }  // namespace utils
