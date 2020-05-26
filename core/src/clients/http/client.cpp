@@ -95,15 +95,11 @@ std::shared_ptr<Request> Client::CreateRequest() {
   return request;
 }
 
-void Client::SetMaxPipelineLength(size_t max_pipeline_length) {
+void Client::SetMultiplexingEnabled(bool enabled) {
   curl::multi::pipelining_mode_t mode =
-      max_pipeline_length > 1
-          ? static_cast<curl::multi::pipelining_mode_t>(
-                curl::multi::pipe_multiplex | curl::multi::pipe_http1)
-          : curl::multi::pipe_nothing;
+      enabled ? curl::multi::pipe_multiplex : curl::multi::pipe_nothing;
   for (auto& multi : multis_) {
     multi->set_pipelining(mode);
-    multi->set_max_pipeline_length(max_pipeline_length);
   }
 }
 

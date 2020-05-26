@@ -23,7 +23,7 @@ TEST(HttpServerMock, Ctr) {
                     request.query);
           EXPECT_EQ(kRequestBody, request.body);
           return testing::HttpServerMock::HttpResponse{
-              123,
+              287,
               {{"x", "y"}},
               kResponseBody,
           };
@@ -43,7 +43,7 @@ TEST(HttpServerMock, Ctr) {
               ->timeout(std::chrono::seconds(10))
               ->perform();
 
-      EXPECT_EQ(123, response->status_code());
+      EXPECT_EQ(287, response->status_code());
       EXPECT_EQ(kResponseBody, response->body());
       EXPECT_EQ((clients::http::Headers{{"x", "y"}, {"Content-Length", "13"}}),
                 response->headers());
