@@ -17,8 +17,10 @@ taxi_config::Config DoReadDefaultTaxiConfig(const std::string& filename) {
   return taxi_config::Config(docs_map);
 }
 
-const taxi_config::Config& ReadDefaultTaxiConfig(const std::string& filename) {
-  static const auto config = DoReadDefaultTaxiConfig(filename);
+std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
+    const std::string& filename) {
+  static const auto config = std::make_shared<const taxi_config::Config>(
+      DoReadDefaultTaxiConfig(filename));
   return config;
 }
 

@@ -6,14 +6,18 @@ namespace utest {
 namespace impl {
 
 // Internal function, don't use it directly, use DefaultTaxiConfig() instead
-const taxi_config::Config& ReadDefaultTaxiConfig(const std::string& filename);
+std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
+    const std::string& filename);
 
 }  // namespace impl
 
 /// Get taxi_config::Config with default values
 #ifdef DEFAULT_TAXI_CONFIG_FILENAME
+inline std::shared_ptr<const taxi_config::Config> GetDefaultTaxiConfigPtr() {
+  return impl::ReadDefaultTaxiConfigPtr(DEFAULT_TAXI_CONFIG_FILENAME);
+}
 inline const taxi_config::Config& GetDefaultTaxiConfig() {
-  return impl::ReadDefaultTaxiConfig(DEFAULT_TAXI_CONFIG_FILENAME);
+  return *GetDefaultTaxiConfigPtr();
 }
 #endif
 
