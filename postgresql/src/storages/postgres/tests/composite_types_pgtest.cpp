@@ -111,6 +111,28 @@ struct NoUserMapping {
   double d;
   std::vector<int> a;
   std::vector<std::string> v;
+
+  bool operator==(const NoUserMapping& rhs) const {
+    return i == rhs.i && s == rhs.s && d == rhs.d && a == rhs.a && v == rhs.v;
+  }
+  bool operator==(const FooBar& rhs) const {
+    return i == rhs.i && s == rhs.s && d == rhs.d && a == rhs.a && v == rhs.v;
+  }
+};
+
+struct NoUserMappingBunch {
+  std::vector<NoUserMapping> elements;
+
+  bool operator==(const NoUserMappingBunch& rhs) const {
+    return elements == rhs.elements;
+  }
+  bool operator==(const BunchOfFoo& rhs) const {
+    if (elements.size() != rhs.foobars.size()) return false;
+    for (size_t i = 0; i < elements.size(); ++i) {
+      if (!(elements[i] == rhs.foobars[i])) return false;
+    }
+    return true;
+  }
 };
 
 struct WithDomain {
@@ -295,7 +317,7 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   // Using a mapped type only for reading
   EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fb));
   EXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
-      << "A type that is not used for writing query parameter buffers must be"
+      << "A type that is not used for writing query parameter buffers must be "
          "available for reading";
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
@@ -445,10 +467,16 @@ POSTGRE_TEST_P(CompositeTypeRoundtripAsRecord) {
   EXPECT_NO_THROW(res =
                       conn->Execute("SELECT ROW($1.f::record[]) AS bunch", bf));
   ASSERT_FALSE(res.IsEmpty());
+
   pgtest::BunchOfFoo bf1;
   EXPECT_NO_THROW(res[0].To(bf1));
   EXPECT_EQ(bf, bf1);
   EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>());
+
+  pgtest::NoUserMappingBunch bnm;
+  EXPECT_NO_THROW(res[0].To(bnm));
+  EXPECT_EQ(bnm, bf);
+  EXPECT_EQ(bnm, res[0].As<pgtest::NoUserMappingBunch>());
 
   // Unwrapping composite structure to a row
   EXPECT_NO_THROW(res = conn->Execute("select $1.f::record[]", bf));
@@ -462,7 +490,7 @@ POSTGRE_TEST_P(CompositeTypeRoundtripAsRecord) {
   // Using a mapped type only for reading
   EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fb));
   EXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
-      << "A type that is not used for writing query parameter buffers must be"
+      << "A type that is not used for writing query parameter buffers must be "
          "available for reading";
 
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";

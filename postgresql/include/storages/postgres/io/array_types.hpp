@@ -9,6 +9,7 @@
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
+#include <storages/postgres/io/row_types.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 #include <storages/postgres/io/type_traits.hpp>
@@ -113,6 +114,17 @@ struct FixedDimensions
 
 namespace detail {
 
+template <typename Element>
+inline bool ForceInitElementMapping() {
+  // composite types can be parsed without an explicit mapping
+  if constexpr (io::traits::kIsMappedToPg<Element> ||
+                !io::traits::kIsCompositeType<Element>) {
+    return ForceReference(CppToPg<Element>::init_);
+  } else {
+    return true;
+  }
+}
+
 template <typename Container>
 struct ArrayBinaryParser : BufferParserBase<Container> {
   using BaseType = BufferParserBase<Container>;
@@ -134,7 +146,7 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     Integer dim_count{0};
     buffer.Read(dim_count, BufferCategory::kPlainBuffer);
     if (dim_count != static_cast<Integer>(dimensions) &&
-        ForceReference(ElementMapping::init_)) {
+        ForceInitElementMapping<ElementType>()) {
       if (dim_count == 0) {
         ValueType empty{};
         swap(this->value, empty);

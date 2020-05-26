@@ -622,7 +622,7 @@ class FieldValueIsNull : public ResultSetError {
   FieldValueIsNull(std::size_t field_index, std::string_view field_name,
                    const T&)
       : ResultSetError(fmt::format("Field #{} name `{}` C++ type `{}` value is "
-                                   "null, forgot `boost::optional`?",
+                                   "null, forgot `std::optional`?",
                                    field_index, field_name,
                                    compiler::GetTypeName<T>())) {}
 };
