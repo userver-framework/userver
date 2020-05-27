@@ -12,12 +12,13 @@
 #include <string>
 #include <vector>
 
+#include "config.hpp"
 #include "initialization.hpp"
 #include "native.hpp"
 
 namespace curl {
 
-class form {
+class CURLASIO_API form {
  public:
   form();
   form(const form&) = delete;

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "config.hpp"
 #include "error_code.hpp"
 #include "form.hpp"
 #include "initialization.hpp"
@@ -129,7 +130,7 @@ class multi;
 class share;
 class string_list;
 
-class easy final : public std::enable_shared_from_this<easy> {
+class CURLASIO_API easy final : public std::enable_shared_from_this<easy> {
  public:
   using handler_type = std::function<void(const std::error_code& err)>;
 
@@ -652,19 +653,19 @@ class easy final : public std::enable_shared_from_this<easy> {
   void cancel(size_t request_num);
 
   static size_t write_function(char* ptr, size_t size, size_t nmemb,
-                               void* userdata) noexcept;
+                               void* userdata);
   static size_t read_function(void* ptr, size_t size, size_t nmemb,
-                              void* userdata) noexcept;
+                              void* userdata);
   static int seek_function(void* instream, native::curl_off_t offset,
-                           int origin) noexcept;
+                           int origin);
   static int xferinfo_function(void* clientp, native::curl_off_t dltotal,
                                native::curl_off_t dlnow,
                                native::curl_off_t ultotal,
-                               native::curl_off_t ulnow) noexcept;
+                               native::curl_off_t ulnow);
   static native::curl_socket_t opensocket(
       void* clientp, native::curlsocktype purpose,
-      struct native::curl_sockaddr* address) noexcept;
-  static int closesocket(void* clientp, native::curl_socket_t item) noexcept;
+      struct native::curl_sockaddr* address);
+  static int closesocket(void* clientp, native::curl_socket_t item);
 
   // do_ev_* methods run in libev thread
   void do_ev_async_perform(handler_type handler, size_t request_num);

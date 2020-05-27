@@ -25,7 +25,7 @@ struct Config {
   size_t worker_threads = 1;
   size_t io_threads = 1;
   long timeout_ms = 1000;
-  bool multiplexing = false;
+  size_t pipeline_length = 1;
   size_t max_host_connections = 0;
   curl::easy::http_version_t http_version = curl::easy::http_version_1_1;
   std::string url_file;
@@ -67,7 +67,10 @@ Config ParseConfig(int argc, char* argv[]) {
       "io thread count")(
       "timeout,t",
       po::value(&config.timeout_ms)->default_value(config.timeout_ms),
-      "request timeout in ms")("multiplexing", "enable HTTP/2 multiplexing")(
+      "request timeout in ms")(
+      "pipeline",
+      po::value(&config.pipeline_length)->default_value(config.pipeline_length),
+      "HTTP pipeline length (0 for disable)")(
       "http-version,h", po::value<std::string>(),
       "http version, possible values: 1.0, 1.1, 2.0-prior")(
       "max-host-connections",
@@ -86,7 +89,8 @@ Config ParseConfig(int argc, char* argv[]) {
 
   if (vm.count("count")) config.count = vm["count"].as<size_t>();
   if (vm.count("url-file")) config.url_file = vm["url-file"].as<std::string>();
-  if (vm.count("multiplexing")) config.multiplexing = true;
+  if (vm.count("pipeline"))
+    config.pipeline_length = vm["pipeline"].as<size_t>();
   if (vm.count("max-host-connections"))
     config.max_host_connections = vm["max-host-connections"].as<size_t>();
   if (vm.count("http-version")) {
@@ -188,7 +192,8 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
   auto http_client = http::Client::Create("", config.io_threads);
   LOG_INFO() << "Client created";
 
-  http_client->SetMultiplexingEnabled(config.multiplexing);
+  if (config.pipeline_length > 1)
+    http_client->SetMaxPipelineLength(config.pipeline_length);
   if (config.max_host_connections > 0)
     http_client->SetMaxHostConnections(config.max_host_connections);
 
@@ -228,8 +233,7 @@ int main(int argc, char* argv[]) {
   LOG_WARNING() << "Starting using requests=" << config.count
                 << " coroutines=" << config.coroutines
                 << " timeout=" << config.timeout_ms << "ms";
-  LOG_WARNING() << "multiplexing ="
-                << (config.multiplexing ? "enabled" : "disabled")
+  LOG_WARNING() << "pipeline length =" << config.pipeline_length
                 << " max_host_connections=" << config.max_host_connections;
 
   const std::vector<std::string>& urls = ReadUrls(config);

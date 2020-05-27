@@ -164,7 +164,4 @@ std::ostream& operator<<(std::ostream&, const Addr&);
 /// Outputs human-readable address representation, including port number.
 logging::LogHelper& operator<<(logging::LogHelper&, const Addr&);
 
-/// Returns port number for domains that allow for one, otherwise -1
-int GetPort(const Addr&);
-
 }  // namespace engine::io

@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include "config.hpp"
+
 namespace curl {
 class initialization final {
  public:

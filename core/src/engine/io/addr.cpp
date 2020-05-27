@@ -58,11 +58,17 @@ std::string Addr::RemoteAddress() const {
 
 std::string ToString(const Addr& addr) {
   switch (addr.Domain()) {
-    case AddrDomain::kInet:
-      return fmt::format("{}:{}", addr.RemoteAddress(), GetPort(addr));
+    case AddrDomain::kInet: {
+      // NOLINTNEXTLINE(hicpp-no-assembler)
+      const auto port = ntohs(addr.As<struct sockaddr_in>()->sin_port);
+      return fmt::format("{}:{}", addr.RemoteAddress(), port);
+    }
 
-    case AddrDomain::kInet6:
-      return fmt::format("[{}]:{}", addr.RemoteAddress(), GetPort(addr));
+    case AddrDomain::kInet6: {
+      // NOLINTNEXTLINE(hicpp-no-assembler)
+      const auto port = ntohs(addr.As<struct sockaddr_in6>()->sin6_port);
+      return fmt::format("[{}]:{}", addr.RemoteAddress(), port);
+    }
 
     default:
       return addr.RemoteAddress();
@@ -75,21 +81,6 @@ std::ostream& operator<<(std::ostream& os, const Addr& addr) {
 
 logging::LogHelper& operator<<(logging::LogHelper& lh, const Addr& addr) {
   return lh << ToString(addr);
-}
-
-int GetPort(const Addr& addr) {
-  switch (addr.Domain()) {
-    case AddrDomain::kInet:
-      // NOLINTNEXTLINE(hicpp-no-assembler)
-      return ntohs(addr.As<struct sockaddr_in>()->sin_port);
-
-    case AddrDomain::kInet6:
-      // NOLINTNEXTLINE(hicpp-no-assembler)
-      return ntohs(addr.As<struct sockaddr_in6>()->sin6_port);
-
-    default:
-      return -1;
-  }
 }
 
 }  // namespace engine::io

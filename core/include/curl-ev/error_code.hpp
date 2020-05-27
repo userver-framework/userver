@@ -11,6 +11,7 @@
 
 #include <system_error>
 
+#include "config.hpp"
 #include "native.hpp"
 
 namespace curl {

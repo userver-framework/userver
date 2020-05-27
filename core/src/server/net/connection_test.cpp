@@ -1,9 +1,6 @@
 #include <server/net/connection.hpp>
 
-#include <fmt/format.h>
-
 #include <clients/http/client.hpp>
-#include <engine/io/addr.hpp>
 #include <engine/sleep.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/http_request_impl.hpp>
@@ -66,8 +63,7 @@ class TestHttprequestHandler : public server::http::RequestHandlerBase {
 };
 
 std::string HttpConnectionUriFromSocket(engine::io::Socket& sock) {
-  return fmt::format("http://localhost:{}",
-                     engine::io::GetPort(sock.Getsockname()));
+  return "http://" + ToString(sock.Getsockname()) + '/';
 }
 
 enum class ConnectionHeader {

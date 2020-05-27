@@ -6,9 +6,6 @@
         C++ wrapper for libcurl's easy interface
 */
 
-#include <sys/socket.h>
-#include <unistd.h>
-
 #include <utility>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -18,20 +15,17 @@
 #include <curl-ev/form.hpp>
 #include <curl-ev/multi.hpp>
 #include <curl-ev/share.hpp>
+#include <curl-ev/socket_info.hpp>
 #include <curl-ev/string_list.hpp>
 
 #include <engine/async.hpp>
-#include <logging/log.hpp>
 #include <server/net/listener_impl.hpp>
-#include <utils/strerror.hpp>
 
 // NOLINTNEXTLINE(google-build-using-namespace)
 using namespace curl;
 using BusyMarker = ::utils::statistics::BusyMarker;
 
 easy* easy::from_native(native::CURL* native_easy) {
-  if (!native_easy) return nullptr;
-
   easy* easy_handle;
   native::curl_easy_getinfo(native_easy, native::CURLINFO_PRIVATE,
                             &easy_handle);
@@ -496,22 +490,35 @@ void easy::init() {
 
 native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {
   std::error_code ec;
+  std::unique_ptr<socket_type> socket(
+      new socket_type(multi_->GetThreadControl()));
 
   LOG_TRACE() << "open_tcp_socket family=" << address->family;
 
-  int fd = socket(address->family, address->socktype, address->protocol);
-  if (fd == -1) {
-    const auto old_errno = errno;
-    LOG_ERROR() << "socket(2) failed with error: "
-                << utils::strerror(old_errno);
-    return CURL_SOCKET_BAD;
+  switch (address->family) {
+    case AF_INET:
+      socket->Open(socket_type::Domain::kIPv4);
+      break;
+
+    case AF_INET6:
+      socket->Open(socket_type::Domain::kIPv6);
+      break;
+
+    default:
+      return CURL_SOCKET_BAD;
   }
-  multi_->BindEasySocket(*this, fd);
-  return fd;
+
+  if (ec) {
+    return CURL_SOCKET_BAD;
+  } else {
+    auto si = std::make_shared<socket_info>(this, std::move(socket));
+    multi_->socket_register(si);
+    return si->socket->native_handle();
+  }
 }
 
 size_t easy::write_function(char* ptr, size_t size, size_t nmemb,
-                            void* userdata) noexcept {
+                            void* userdata) {
   easy* self = static_cast<easy*>(userdata);
   size_t actual_size = size * nmemb;
 
@@ -527,7 +534,7 @@ size_t easy::write_function(char* ptr, size_t size, size_t nmemb,
 }
 
 size_t easy::read_function(void* ptr, size_t size, size_t nmemb,
-                           void* userdata) noexcept {
+                           void* userdata) {
   // FIXME readsome doesn't work with TFTP (see cURL docs)
 
   easy* self = static_cast<easy*>(userdata);
@@ -549,8 +556,7 @@ size_t easy::read_function(void* ptr, size_t size, size_t nmemb,
   }
 }
 
-int easy::seek_function(void* instream, native::curl_off_t offset,
-                        int origin) noexcept {
+int easy::seek_function(void* instream, native::curl_off_t offset, int origin) {
   // TODO we could allow the user to define an offset which this library should
   // consider as position zero for uploading chunks of the file
   // alternatively do tellg() on the source stream when it is first passed to
@@ -587,14 +593,14 @@ int easy::seek_function(void* instream, native::curl_off_t offset,
 int easy::xferinfo_function(void* clientp, native::curl_off_t dltotal,
                             native::curl_off_t dlnow,
                             native::curl_off_t ultotal,
-                            native::curl_off_t ulnow) noexcept {
+                            native::curl_off_t ulnow) {
   easy* self = static_cast<easy*>(clientp);
   return self->progress_callback_(dltotal, dlnow, ultotal, ulnow) ? 0 : 1;
 }
 
-native::curl_socket_t easy::opensocket(
-    void* clientp, native::curlsocktype purpose,
-    struct native::curl_sockaddr* address) noexcept {
+native::curl_socket_t easy::opensocket(void* clientp,
+                                       native::curlsocktype purpose,
+                                       struct native::curl_sockaddr* address) {
   easy* self = static_cast<easy*>(clientp);
   multi* multi_handle = self->multi_;
   native::curl_socket_t s = -1;
@@ -649,16 +655,9 @@ native::curl_socket_t easy::opensocket(
   }
 }
 
-int easy::closesocket(void* clientp, native::curl_socket_t item) noexcept {
+int easy::closesocket(void* clientp, native::curl_socket_t item) {
   auto* multi_handle = static_cast<multi*>(clientp);
-  multi_handle->UnbindEasySocket(item);
-
-  int ret = close(item);
-  if (ret == -1) {
-    const auto old_errno = errno;
-    LOG_ERROR() << "close(2) failed with error: " << utils::strerror(old_errno);
-  }
-
+  multi_handle->socket_cleanup(item);
   multi_handle->Statistics().mark_close_socket();
   return 0;
 }
