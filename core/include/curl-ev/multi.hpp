@@ -14,7 +14,6 @@
 #include <set>
 
 #include <utils/token_bucket.hpp>
-#include "config.hpp"
 #include "error_code.hpp"
 #include "initialization.hpp"
 #include "multi_statistics.hpp"
@@ -66,10 +65,9 @@ class TimerWatcher;
 
 namespace curl {
 class easy;
-class socket_type;
 struct socket_info;
 
-class CURLASIO_API multi final {
+class multi final {
  public:
   using Callback = std::function<void()>;
   multi(engine::ev::ThreadControl& thread_control);
@@ -81,8 +79,8 @@ class CURLASIO_API multi final {
   void add(easy* easy_handle);
   void remove(easy* easy_handle);
 
-  void socket_register(std::shared_ptr<socket_info> si);
-  void socket_cleanup(native::curl_socket_t s);
+  void BindEasySocket(easy&, native::curl_socket_t);
+  void UnbindEasySocket(native::curl_socket_t);
 
   engine::ev::ThreadControl& GetThreadControl() { return thread_control_; }
 
@@ -98,17 +96,13 @@ class CURLASIO_API multi final {
 
   bool MayAcquireConnectionHttps(const std::string& url);
 
-  enum pipelining_mode_t { pipe_nothing, pipe_http1, pipe_multiplex };
+  enum pipelining_mode_t { pipe_nothing, pipe_multiplex };
   IMPLEMENT_CURL_MOPTION_ENUM(set_pipelining, native::CURLMOPT_PIPELINING,
                               pipelining_mode_t, long);
-  IMPLEMENT_CURL_MOPTION(set_max_pipeline_length,
-                         native::CURLMOPT_MAX_PIPELINE_LENGTH, size_t);
   IMPLEMENT_CURL_MOPTION(set_max_host_connections,
                          native::CURLMOPT_MAX_HOST_CONNECTIONS, size_t);
   IMPLEMENT_CURL_MOPTION(set_max_connections, native::CURLMOPT_MAXCONNECTS,
                          long);
-
-  using socket_info_ptr = std::shared_ptr<socket_info>;
 
  private:
   void add_handle(native::CURL* native_easy);
@@ -116,7 +110,6 @@ class CURLASIO_API multi final {
 
   void assign(native::curl_socket_t sockfd, void* user_data);
   void socket_action(native::curl_socket_t s, int event_bitmask);
-  socket_info_ptr register_cares_socket(native::curl_socket_t s);
 
   using socket_function_t = int (*)(native::CURL* native_easy,
                                     native::curl_socket_t s, int what,
@@ -129,22 +122,23 @@ class CURLASIO_API multi final {
   void set_timer_function(timer_function_t timer_function);
   void set_timer_data(void* timer_data);
 
-  void monitor_socket(socket_info_ptr si, int action);
+  void monitor_socket(socket_info* si, int action);
   void process_messages();
   bool still_running();
 
-  void start_read_op(socket_info_ptr si);
-  void handle_socket_read(std::error_code err, socket_info_ptr si);
-  void start_write_op(socket_info_ptr si);
-  void handle_socket_write(std::error_code err, socket_info_ptr si);
+  void start_read_op(socket_info* si);
+  void handle_socket_read(std::error_code err, socket_info* si);
+  void start_write_op(socket_info* si);
+  void handle_socket_write(std::error_code err, socket_info* si);
   void handle_timeout(const std::error_code& err);
   void handle_async();
 
-  socket_info_ptr get_socket_from_native(native::curl_socket_t native_socket);
+  socket_info* GetSocketInfo(native::curl_socket_t);
 
   static int socket(native::CURL* native_easy, native::curl_socket_t s,
-                    int what, void* userp, void* socketp);
-  static int timer(native::CURLM* native_multi, long timeout_ms, void* userp);
+                    int what, void* userp, void* socketp) noexcept;
+  static int timer(native::CURLM* native_multi, long timeout_ms,
+                   void* userp) noexcept;
 
   class Impl;
   std::unique_ptr<Impl> pimpl_;

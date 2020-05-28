@@ -19,6 +19,7 @@
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <engine/task/task_processor.hpp>
+#include <utils/assert.hpp>
 
 namespace curl {
 
@@ -29,16 +30,11 @@ const auto kDefaultTokens = 1000000;
 using easy_set_type = std::set<easy*>;
 using BusyMarker = ::utils::statistics::BusyMarker;
 
-using socket_map_type =
-    std::map<socket_type::native_handle_type, multi::socket_info_ptr>;
-
 class multi::Impl final {
  public:
   Impl(engine::ev::ThreadControl& thread_control, multi& object);
 
-  // typedef EvSocket socket_type;
-  socket_map_type sockets_;
-  socket_info_ptr get_socket_from_native(native::curl_socket_t native_socket);
+  std::vector<std::unique_ptr<socket_info>> socket_infos_;
 
   initialization::ptr initref_;
   engine::ev::AsyncWatcher timer_zero_watcher_;
@@ -106,20 +102,19 @@ void multi::remove(easy* easy_handle) {
   }
 }
 
-void multi::socket_register(std::shared_ptr<socket_info> si) {
-  socket_type::native_handle_type fd = si->socket->native_handle();
-  pimpl_->sockets_.insert(socket_map_type::value_type(fd, std::move(si)));
+void multi::BindEasySocket(easy& easy_handle, native::curl_socket_t s) {
+  auto si = GetSocketInfo(s);
+  UASSERT(!si->pending_read_op);
+  UASSERT(!si->pending_write_op);
+  UASSERT(!si->handle);
+  si->handle = &easy_handle;
 }
 
-void multi::socket_cleanup(native::curl_socket_t s) {
-  auto it = pimpl_->sockets_.find(s);
-
-  if (it != pimpl_->sockets_.end()) {
-    socket_info_ptr p = it->second;
-    monitor_socket(p, CURL_POLL_NONE);
-    p->socket.reset();
-    pimpl_->sockets_.erase(it);
-  }
+void multi::UnbindEasySocket(native::curl_socket_t s) {
+  auto si = GetSocketInfo(s);
+  UASSERT(!si->pending_read_op);
+  UASSERT(!si->pending_write_op);
+  si->handle = nullptr;
 }
 
 void multi::SetConnectRatelimitHttps(
@@ -205,11 +200,11 @@ void multi::set_timer_data(void* timer_data) {
   throw_error(ec, "set_timer_data");
 }
 
-void multi::monitor_socket(socket_info_ptr si, int action) {
+void multi::monitor_socket(socket_info* si, int action) {
   si->monitor_read = !!(action & CURL_POLL_IN);
   si->monitor_write = !!(action & CURL_POLL_OUT);
 
-  if (!si->socket) {
+  if (!si->watcher.HasFd()) {
     // If libcurl already requested destruction of the socket, then no further
     // action is required.
     return;
@@ -225,21 +220,13 @@ void multi::monitor_socket(socket_info_ptr si, int action) {
     start_write_op(si);
   }
 
-// The CancelIoEx API is only available on Windows Vista and up. On Windows XP,
-// the cancel operation therefore falls
-// back to CancelIo(), which only works in single-threaded environments and
-// depends on driver support, which is not always available.
-// Therefore, this code section is only enabled when explicitly targeting
-// Windows Vista and up or a non-Windows platform.
-// On Windows XP and previous versions, the I/O handler will be executed and
-// immediately return.
-#if !defined(BOOST_WINDOWS_API) || \
-    (defined(_WIN32_WINNT) && (_WIN32_WINNT >= 0x0600))
   if (action == CURL_POLL_NONE &&
       (si->pending_read_op || si->pending_write_op)) {
-    si->socket->cancel();
+    si->watcher.Cancel();
+    // in case watchers weren't active
+    si->pending_read_op = false;
+    si->pending_write_op = false;
   }
-#endif
 }
 
 void multi::process_messages() {
@@ -266,148 +253,123 @@ void multi::process_messages() {
 
 bool multi::still_running() { return (pimpl_->still_running_ > 0); }
 
-void multi::start_read_op(socket_info_ptr si) {
-  LOG_TRACE() << "start_read_op si=" << reinterpret_cast<long>(si.get());
+void multi::start_read_op(socket_info* si) {
+  LOG_TRACE() << "start_read_op si=" << si;
 
   si->pending_read_op = true;
-  if (!si->is_cares_socket()) si->handle->timings().mark_start_read();
+  if (si->IsEasySocket()) si->handle->timings().mark_start_read();
 
-  si->socket->ReadAsync(
+  si->watcher.ReadAsync(
       std::bind(&multi::handle_socket_read, this, std::placeholders::_1, si));
 }
 
-void multi::handle_socket_read(std::error_code err, socket_info_ptr si) {
-  LOG_TRACE() << "handle_socket_read si=" << reinterpret_cast<long>(si.get())
-              << " ec=" << err
-              << " socket=" << reinterpret_cast<long>(si->socket.get());
-  if (!si->socket) {
-    si->pending_read_op = false;
-    return;
-  }
-
+void multi::handle_socket_read(std::error_code err, socket_info* si) {
+  LOG_TRACE() << "handle_socket_read si=" << si << " ec=" << err
+              << " watcher=" << &si->watcher;
+  si->pending_read_op = false;
+  if (!si->watcher.HasFd()) return;
   if (!err) {
-    socket_action(si->orig_libcurl_socket, CURL_CSELECT_IN);
+    socket_action(si->watcher.GetFd(), CURL_CSELECT_IN);
     process_messages();
 
-    if (si->monitor_read)
-      start_read_op(si);
-    else
-      si->pending_read_op = false;
-  } else {
-    if (err != std::make_error_code(std::errc::operation_canceled)) {
-      socket_action(si->orig_libcurl_socket, CURL_CSELECT_ERR);
-      process_messages();
-    }
-
-    si->pending_read_op = false;
+    // read could've been already restarted by socket_action
+    if (si->monitor_read && !si->pending_read_op) start_read_op(si);
+  } else if (err != std::make_error_code(std::errc::operation_canceled)) {
+    socket_action(si->watcher.GetFd(), CURL_CSELECT_ERR);
+    process_messages();
   }
 }
 
-void multi::start_write_op(socket_info_ptr si) {
-  LOG_TRACE() << "start_write_op si=" << reinterpret_cast<long>(si.get());
-  if (!si->is_cares_socket()) si->handle->timings().mark_start_write();
+void multi::start_write_op(socket_info* si) {
+  LOG_TRACE() << "start_write_op si=" << si;
+  if (si->IsEasySocket()) si->handle->timings().mark_start_write();
   si->pending_write_op = true;
 
-  si->socket->WriteAsync(
+  si->watcher.WriteAsync(
       std::bind(&multi::handle_socket_write, this, std::placeholders::_1, si));
 }
 
-void multi::handle_socket_write(std::error_code err, socket_info_ptr si) {
-  LOG_TRACE() << "handle_socket_write si=" << reinterpret_cast<long>(si.get())
-              << " ec=" << err
-              << " socket=" << reinterpret_cast<long>(si->socket.get());
-  if (!si->socket) {
-    si->pending_write_op = false;
-    return;
-  }
+void multi::handle_socket_write(std::error_code err, socket_info* si) {
+  LOG_TRACE() << "handle_socket_write si=" << si << " ec=" << err
+              << " watcher=" << &si->watcher;
+  si->pending_write_op = false;
+  if (!si->watcher.HasFd()) return;
 
   BusyMarker busy(Statistics().get_busy_storage());
 
   if (!err) {
-    socket_action(si->orig_libcurl_socket, CURL_CSELECT_OUT);
+    socket_action(si->watcher.GetFd(), CURL_CSELECT_OUT);
     process_messages();
 
-    if (si->monitor_write)
-      start_write_op(si);
-    else
-      si->pending_write_op = false;
-  } else {
-    if (err != std::make_error_code(std::errc::operation_canceled)) {
-      socket_action(si->orig_libcurl_socket, CURL_CSELECT_ERR);
-      process_messages();
-    }
-
-    si->pending_write_op = false;
+    // write could've been already restarted by socket_action
+    if (si->monitor_write && !si->pending_write_op) start_write_op(si);
+  } else if (err != std::make_error_code(std::errc::operation_canceled)) {
+    socket_action(si->watcher.GetFd(), CURL_CSELECT_ERR);
+    process_messages();
   }
 }
 
 void multi::handle_timeout(const std::error_code& err) {
   if (!err) {
     BusyMarker busy(Statistics().get_busy_storage());
-    LOG_TRACE() << "handle_timeout " << reinterpret_cast<long long>(this);
+    LOG_TRACE() << "handle_timeout " << this;
     socket_action(CURL_SOCKET_TIMEOUT, 0);
     process_messages();
   }
 }
 
-multi::socket_info_ptr multi::get_socket_from_native(
-    native::curl_socket_t native_socket) {
-  auto it = pimpl_->sockets_.find(native_socket);
+socket_info* multi::GetSocketInfo(native::curl_socket_t fd) {
+  if (fd == -1) return {};
+  UASSERT(fd >= 0);
 
-  if (it != pimpl_->sockets_.end()) {
-    return it->second;
-  } else {
-    return socket_info_ptr();
+  if (pimpl_->socket_infos_.size() <= static_cast<size_t>(fd)) {
+    pimpl_->socket_infos_.resize(std::max(fd + 1, fd * 2));
   }
+
+  auto& si = pimpl_->socket_infos_[fd];
+  if (!si) {
+    si = std::make_unique<socket_info>(GetThreadControl());
+  }
+  return si.get();
 }
 
-int multi::socket(native::CURL* native_easy, native::curl_socket_t s, int what,
-                  void* userp, void* socketp) {
+// multi::assign() may throw when used on an invalid socket, shouldn't happen
+// NOLINTNEXTLINE(bugprone-exception-escape)
+int multi::socket(native::CURL*, native::curl_socket_t s, int what, void* userp,
+                  void* socketp) noexcept {
   auto* self = static_cast<multi*>(userp);
-  LOG_TRACE() << "socket multi=" << reinterpret_cast<long>(self)
-              << " what=" << what << " &si=" << reinterpret_cast<long>(socketp);
+  LOG_TRACE() << "socket multi=" << self << " what=" << what
+              << " si=" << socketp;
 
   if (what == CURL_POLL_REMOVE) {
     // stop listening for events
     if (socketp) {
-      auto si = static_cast<socket_info_ptr*>(socketp);
-
-      /*
-       * c-ares sockets call neither OPENSOCKET_FUNCTION nor
-       * CLOSESOCKET_FUNCTION, so we have to cleanup socket_info created in
-       * register_cares_socket()
-       */
-      if ((*si)->is_cares_socket())
-        self->socket_cleanup((*si)->socket->native_handle());
-
-      self->monitor_socket(*si, CURL_POLL_NONE);
-      delete si;
+      auto si = static_cast<socket_info*>(socketp);
+      self->monitor_socket(si, CURL_POLL_NONE);
+      self->assign(s, nullptr);
+      si->watcher.Release();
     }
   } else if (socketp) {
     // change direction
-    auto* si = static_cast<socket_info_ptr*>(socketp);
-    (*si)->handle = easy::from_native(native_easy);
-    self->monitor_socket(*si, what);
-  } else if (native_easy) {
-    // register the socket
-    socket_info_ptr si = self->get_socket_from_native(s);
-    if (!si) {
-      throw std::logic_error("si == nullptr");
-    }
-    si->handle = easy::from_native(native_easy);
-    self->assign(s, new socket_info_ptr(si));
+    auto* si = static_cast<socket_info*>(socketp);
     self->monitor_socket(si, what);
   } else {
-    throw std::invalid_argument("neither socketp nor native_easy were set");
+    // register the socket
+    auto* si = self->GetSocketInfo(s);
+    UASSERT(si);
+    UASSERT(!si->watcher.HasFd());
+    si->watcher.SetFd(s);
+    self->assign(s, si);
+    self->monitor_socket(si, what);
   }
 
   return 0;
 }
 
 int multi::timer(native::CURLM*, [[maybe_unused]] long timeout_ms,
-                 void* userp) {
+                 void* userp) noexcept {
   [[maybe_unused]] auto* self = static_cast<multi*>(userp);
-  LOG_TRACE() << "timer " << reinterpret_cast<long>(self) << " " << timeout_ms;
+  LOG_TRACE() << "timer " << self << " " << timeout_ms;
 
   const auto& pimpl = self->pimpl_;
 

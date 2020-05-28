@@ -44,7 +44,7 @@ class Client {
   /// Providing CreateNonSignedRequest() function for the clients::Http alias.
   std::shared_ptr<Request> CreateNotSignedRequest() { return CreateRequest(); }
 
-  void SetMaxPipelineLength(size_t max_pipeline_length);
+  void SetMultiplexingEnabled(bool enabled);
   void SetMaxHostConnections(size_t max_host_connections);
   void SetConnectionPoolSize(size_t connection_pool_size);
 

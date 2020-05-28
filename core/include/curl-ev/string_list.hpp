@@ -10,14 +10,12 @@
 
 #include <string>
 
-#include "config.hpp"
 #include "initialization.hpp"
 #include "native.hpp"
 
 namespace curl {
 
-class CURLASIO_API string_list
-    : public std::enable_shared_from_this<string_list> {
+class string_list : public std::enable_shared_from_this<string_list> {
  public:
   string_list();
   string_list(const string_list&) = delete;

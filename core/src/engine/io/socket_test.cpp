@@ -21,11 +21,6 @@ namespace {
 namespace io = engine::io;
 using Deadline = engine::Deadline;
 
-uint16_t GetPort(const io::Addr& addr) {
-  auto* sa = addr.As<struct sockaddr_in6>();
-  return sa ? sa->sin6_port : 0;
-}
-
 struct Listener {
   Listener() : port(0) {
     io::AddrStorage addr_storage;
@@ -35,7 +30,8 @@ struct Listener {
 
     int attempts = 100;
     while (attempts--) {
-      sa->sin6_port = port = htons(1024 + (rand() % (65536 - 1024)));
+      port = 1024 + (rand() % (65536 - 1024));
+      sa->sin6_port = htons(port);
       addr = io::Addr(addr_storage, SOCK_STREAM, 0);
 
       try {
