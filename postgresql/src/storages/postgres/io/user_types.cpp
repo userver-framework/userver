@@ -157,7 +157,7 @@ const io::TypeBufferCategory& UserTypes::GetTypeBufferCategories() const {
 
 void UserTypes::AddType(DBTypeDescription&& desc) {
   auto oid = desc.oid;
-  LOG_DEBUG() << "User type " << oid << " " << desc.schema << "." << desc.name
+  LOG_TRACE() << "User type " << oid << " " << desc.schema << "." << desc.name
               << " class: " << static_cast<char>(desc.type_class)
               << " category: " << static_cast<char>(desc.category);
 
@@ -184,7 +184,7 @@ void UserTypes::AddCompositeFields(CompositeFieldDefs&& defs) {
     // end
     if (p->owner != current) {
       // owner changed
-      LOG_DEBUG() << "Add " << p - start << " attributes to composite type "
+      LOG_TRACE() << "Add " << p - start << " attributes to composite type "
                   << current;
       composite_types_.insert(
           std::make_pair(current, CompositeTypeDescription{start, p}));
