@@ -25,7 +25,7 @@ std::set<std::string> SentinelParseFlags(const std::string& flags) {
 }
 
 bool ParseSentinelResponse(
-    const ReplyPtr& reply, bool allow_empty,
+    const CommandPtr& command, const ReplyPtr& reply, bool allow_empty,
     std::vector<std::map<std::string, std::string>>& res) {
   const auto& reply_data = reply->data;
   int status = reply->status;
@@ -41,7 +41,7 @@ bool ParseSentinelResponse(
          << " msg=" << reply_data.ToDebugString();
     }
     ss << " server=" << reply->server;
-    LOG_WARNING() << ss.str();
+    LOG_WARNING() << ss.str() << command->log_extra;
     return false;
   }
 
@@ -53,7 +53,8 @@ bool ParseSentinelResponse(
         if (!elem.IsString()) {
           LOG_ERROR() << "unexpected type of reply array element: "
                       << elem.GetTypeString() << " instead of "
-                      << ReplyData::TypeToString(ReplyData::Type::kString);
+                      << ReplyData::TypeToString(ReplyData::Type::kString)
+                      << command->log_extra;
           return false;
         }
       }
@@ -145,14 +146,15 @@ GetHostsContext::GenerateCallback() {
                    ph::_2);
 }
 
-void GetHostsContext::OnResponse(const CommandPtr&, const ReplyPtr& reply) {
+void GetHostsContext::OnResponse(const CommandPtr& command,
+                                 const ReplyPtr& reply) {
   bool need_process_responses = false;
   {
     std::unique_lock<std::mutex> lock(mutex_);
     response_got_++;
 
     SentinelResponse response;
-    if (ParseSentinelResponse(reply, allow_empty_, response)) {
+    if (ParseSentinelResponse(command, reply, allow_empty_, response)) {
       responses_parsed_++;
       for (auto& instance_response : response) {
         const auto& name = instance_response["name"];

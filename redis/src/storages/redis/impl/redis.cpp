@@ -156,8 +156,10 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   void FreeCommands();
 
   void RunEvLoop();
-  static void LogSocketErrorReply(const ReplyPtr& reply);
-  static void LogInstanceErrorReply(const ReplyPtr& reply);
+  static void LogSocketErrorReply(const CommandPtr& command,
+                                  const ReplyPtr& reply);
+  static void LogInstanceErrorReply(const CommandPtr& command,
+                                    const ReplyPtr& reply);
 
  private:
   struct SingleCommand {
@@ -426,11 +428,11 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
   reply->log_extra.Extend("redis_server", server_);
   reply->log_extra.Extend("reply_status", reply->status);
 
-  if (reply->IsLoggableError()) LogSocketErrorReply(reply);
+  if (reply->IsLoggableError()) LogSocketErrorReply(command, reply);
 
   bool need_disconnect = false;
   if (reply->IsUnusableInstanceError() || reply->IsReadonlyError()) {
-    LogInstanceErrorReply(reply);
+    LogInstanceErrorReply(command, reply);
     need_disconnect = true;
   }
 
@@ -449,16 +451,20 @@ void Redis::RedisImpl::InvokeCommandError(const CommandPtr& command,
   InvokeCommand(command, std::make_shared<Reply>(name, nullptr, status));
 }
 
-void Redis::RedisImpl::LogSocketErrorReply(const ReplyPtr& reply) {
+void Redis::RedisImpl::LogSocketErrorReply(const CommandPtr& command,
+                                           const ReplyPtr& reply) {
   LOG_WARNING() << "Request to Redis server " << reply->server
                 << " failed with status " << reply->status << " ("
-                << reply->StatusString() << ")" << reply->GetLogExtra();
+                << reply->StatusString() << ")" << reply->GetLogExtra()
+                << command->log_extra;
 }
 
-void Redis::RedisImpl::LogInstanceErrorReply(const ReplyPtr& reply) {
+void Redis::RedisImpl::LogInstanceErrorReply(const CommandPtr& command,
+                                             const ReplyPtr& reply) {
   LOG_ERROR() << "Request to Redis server " << reply->server
               << " failed with Redis error reply: "
-              << reply->data.ToDebugString() << reply->GetLogExtra();
+              << reply->data.ToDebugString() << reply->GetLogExtra()
+              << command->log_extra;
 }
 
 bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {

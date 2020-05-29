@@ -1,6 +1,7 @@
 #include <storages/redis/impl/command.hpp>
 
 #include <logging/log.hpp>
+#include <tracing/span.hpp>
 
 namespace redis {
 
@@ -8,6 +9,7 @@ Command::Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
                  int counter, bool asking, size_t instance_idx, bool redirected)
     : args(std::move(args)),
       callback(std::move(callback)),
+      log_extra(PrepareLogExtra()),
       control(control),
       instance_idx(instance_idx),
       counter(counter),
@@ -18,6 +20,7 @@ Command::Command(CmdArgs&& args, ReplyCallbackEx&& callback_,
                  CommandControl control, int counter, bool asking)
     : args(std::move(args)),
       callback_ex(std::move(callback_)),  // TODO: move!
+      log_extra(PrepareLogExtra()),
       control(control),
       counter(counter),
       asking(asking) {
@@ -41,6 +44,21 @@ std::shared_ptr<Command> Command::Clone() const {
   } else {
     return std::make_shared<Command>(args.Clone(), callback, control, counter,
                                      asking, instance_idx, redirected);
+  }
+}
+
+logging::LogExtra Command::PrepareLogExtra() {
+  const auto* span = tracing::Span::CurrentSpanUnchecked();
+  if (span) {
+    return {
+        {"trace_id", span->GetTraceId()},
+        {"parent_id", span->GetParentId()},
+        {"span_id", span->GetSpanId()},
+        {"link", span->GetLink()},
+    };
+  } else {
+    // Non-user requests (e.g. PING)
+    return {};
   }
 }
 

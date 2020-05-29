@@ -1,5 +1,7 @@
 #pragma once
 
+#include <logging/log_extra.hpp>
+
 #include <storages/redis/impl/base.hpp>
 #include <storages/redis/impl/types.hpp>
 
@@ -37,7 +39,10 @@ struct Command : public std::enable_shared_from_this<Command> {
   ReplyCallback callback;
   std::chrono::steady_clock::time_point start_handling_time;
 
+  static logging::LogExtra PrepareLogExtra();
+
  public:
+  logging::LogExtra log_extra;
   CommandControl control;
   size_t instance_idx = 0;
   int counter = 0;

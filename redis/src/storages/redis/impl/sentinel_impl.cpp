@@ -196,15 +196,17 @@ static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
     reply->server_id = command->control.force_server_id;
   LOG_DEBUG() << "redis_request( " << command->args.ToString()
               << " ):" << (reply->status == REDIS_OK ? '+' : '-') << ":"
-              << reply->time * 1000.0 << " cc: " << command->control.ToString();
+              << reply->time * 1000.0 << " cc: " << command->control.ToString()
+              << command->log_extra;
 
   try {
     command->Callback()(command, reply);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "exception in command->callback, cmd=" << reply->cmd << " "
-                  << ex.what();
+                  << ex.what() << command->log_extra;
   } catch (...) {
-    LOG_WARNING() << "exception in command->callback, cmd=" << reply->cmd;
+    LOG_WARNING() << "exception in command->callback, cmd=" << reply->cmd
+                  << command->log_extra;
   }
 }
 
@@ -264,16 +266,18 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
                 std::min(command_control.timeout_single, timeout_all);
             command_control.timeout_all = timeout_all;
             command_control.max_retries = retries_left;
-            AsyncCommand(SentinelCommand(
-                             PrepareCommand(
-                                 std::move(ccommand->args), command->Callback(),
-                                 command_control, command->counter + 1,
-                                 command->asking || error_ask, 0,
-                                 error_ask || error_moved),
-                             master || retry_to_master ||
-                                 (error_moved && shard == new_shard),
-                             new_shard, start),
-                         ccommand->instance_idx);
+
+            auto new_command = PrepareCommand(
+                std::move(ccommand->args), command->Callback(), command_control,
+                command->counter + 1, command->asking || error_ask, 0,
+                error_ask || error_moved);
+            new_command->log_extra = std::move(command->log_extra);
+            AsyncCommand(
+                SentinelCommand(new_command,
+                                master || retry_to_master ||
+                                    (error_moved && shard == new_shard),
+                                new_shard, start),
+                ccommand->instance_idx);
             return;
           }
         }

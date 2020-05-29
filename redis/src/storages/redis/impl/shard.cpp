@@ -172,7 +172,8 @@ bool Shard::AsyncCommand(CommandPtr command, size_t* pinstance_idx) {
     if (instance) {
       if (idx >= available_servers.size() || !available_servers[idx]) {
         LOG_WARNING() << "Failed to use Redis server according to the "
-                         "strategy, falling back to any server";
+                         "strategy, falling back to any server"
+                      << command->log_extra;
       }
       if (instance->AsyncCommand(command)) return true;
     }
@@ -180,7 +181,7 @@ bool Shard::AsyncCommand(CommandPtr command, size_t* pinstance_idx) {
 
   LOG_WARNING() << "No Redis server is ready for shard_group="
                 << shard_group_name_ << " shard=" << shard_name_
-                << " slave=" << read_only_;
+                << " slave=" << read_only_ << command->log_extra;
   return false;
 }
 
