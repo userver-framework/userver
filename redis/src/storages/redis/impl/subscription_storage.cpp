@@ -163,9 +163,11 @@ void SubscriptionStorage::Unsubscribe(SubscriptionId subscription_id) {
 }
 
 void SubscriptionStorage::Stop() {
-  std::unique_lock<std::mutex> lock(mutex_);
-  callback_map_.clear();
-  pattern_callback_map_.clear();
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+    callback_map_.clear();
+    pattern_callback_map_.clear();
+  }
   rebalance_schedulers_.clear();
 }
 

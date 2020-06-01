@@ -29,7 +29,8 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
     CheckIsObject(client_settings, "client_settings");
 
     ::secdist::RedisSettings settings;
-    settings.password = GetString(client_settings, "password");
+    settings.password =
+        ::redis::Password(GetString(client_settings, "password"));
 
     const auto& shards = client_settings["shards"];
     CheckIsArray(shards, "shards");

@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <engine/deadline.hpp>
 #include <engine/sleep.hpp>
 #include <formats/json/serialize.hpp>
 #include <storages/redis/redis_secdist.hpp>
@@ -19,9 +20,15 @@ const std::string kRedisSettingsJson = R"({
     "cluster-test": {
       "password": "",
       "sentinels": [
-        {"host": "localhost", "port": 7100},
-        {"host": "localhost", "port": 7101},
-        {"host": "localhost", "port": 7102}
+        {"host": "localhost", "port": 7000},
+        {"host": "localhost", "port": 7001},
+        {"host": "localhost", "port": 7002},
+        {"host": "localhost", "port": 7003},
+        {"host": "localhost", "port": 7004},
+        {"host": "localhost", "port": 7005},
+        {"host": "localhost", "port": 7006},
+        {"host": "localhost", "port": 7007},
+        {"host": "localhost", "port": 7008}
       ],
       "shards": [
         {"name": "master0"},
@@ -48,7 +55,11 @@ class TestSentinel {
         subscribe_sentinel_(redis::SubscribeSentinel::Create(
             thread_pools_, kRedisSettings.GetSettings("cluster-test"),
             "cluster-test", "cluster-test-client_name", true, {})) {
-    sentinel_->WaitConnectedDebug();
+    sentinel_->WaitConnectedOnce({redis::WaitConnectedMode::kMasterAndSlave,
+                                  false, std::chrono::milliseconds(2000)});
+    subscribe_sentinel_->WaitConnectedOnce(
+        {redis::WaitConnectedMode::kMasterAndSlave, false,
+         std::chrono::milliseconds(2000)});
   }
 
   std::shared_ptr<redis::Sentinel> GetSentinel() const { return sentinel_; }
@@ -76,7 +87,7 @@ redis::CommandControl kDefaultCc(std::chrono::milliseconds(300),
 }  // namespace
 
 // Tests are disabled because no local redis cluster is running by default.
-// See https://st.yandex-team.ru/TAXICOMMON-2397#5eb61160968f92029663522c for
+// See https://st.yandex-team.ru/TAXICOMMON-2440#5ecf09f0ffc9d004c04c43b1 for
 // details.
 TEST(DISABLED_SentinelCluster, SetGet) {
   RunInCoro([] {
@@ -87,14 +98,14 @@ TEST(DISABLED_SentinelCluster, SetGet) {
     const int add = 100;
 
     for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Set(kKeyNamePrefix + std::to_string(i),
-                               std::to_string(add + i));
+      auto req = sentinel->Set(MakeKey(i), std::to_string(add + i));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsStatus());
     }
 
     for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Get(kKeyNamePrefix + std::to_string(i), kDefaultCc);
+      auto req = sentinel->Get(MakeKey(i), kDefaultCc);
       auto reply = req.Get();
       ASSERT_TRUE(reply->IsOk());
       ASSERT_TRUE(reply->data.IsString());
@@ -102,9 +113,10 @@ TEST(DISABLED_SentinelCluster, SetGet) {
     }
 
     for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Del(kKeyNamePrefix + std::to_string(i));
+      auto req = sentinel->Del(MakeKey(i));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsInt());
     }
   });
 }
@@ -120,13 +132,15 @@ TEST(DISABLED_SentinelCluster, Mget) {
     for (size_t i = 0; i < kNumKeys; ++i) {
       auto req = sentinel->Set(MakeKey(i), std::to_string(add + i));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsStatus());
     }
 
     for (size_t i = 0; i < kNumKeys; ++i) {
       auto req = sentinel->Set(MakeKey2(i, add), std::to_string(add * 2 + i));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsStatus());
     }
 
     for (size_t i = 0; i < kNumKeys; ++i) {
@@ -136,25 +150,27 @@ TEST(DISABLED_SentinelCluster, Mget) {
       ASSERT_TRUE(reply->data.IsArray())
           << "type=" << reply->data.GetTypeString()
           << " msg=" << reply->data.ToDebugString();
-      ASSERT_TRUE(reply->data.GetArray().size() == 2);
+      const auto& array = reply->data.GetArray();
+      ASSERT_TRUE(array.size() == 2);
 
-      ASSERT_TRUE(reply->data.GetArray()[0].IsString());
-      EXPECT_EQ(reply->data.GetArray()[0].GetString(), std::to_string(add + i));
-      ASSERT_TRUE(reply->data.GetArray()[1].IsString());
-      EXPECT_EQ(reply->data.GetArray()[1].GetString(),
-                std::to_string(add * 2 + i));
+      ASSERT_TRUE(array[0].IsString());
+      EXPECT_EQ(array[0].GetString(), std::to_string(add + i));
+      ASSERT_TRUE(array[1].IsString());
+      EXPECT_EQ(array[1].GetString(), std::to_string(add * 2 + i));
     }
 
     for (size_t i = 0; i < kNumKeys; ++i) {
       auto req = sentinel->Del(MakeKey(i));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsInt());
     }
 
     for (size_t i = 0; i < kNumKeys; ++i) {
       auto req = sentinel->Del(MakeKey2(i, add));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsInt());
     }
   });
 }
@@ -173,7 +189,8 @@ TEST(DISABLED_SentinelCluster, MgetCrossSlot) {
     for (size_t i = 0; i < 2; ++i) {
       auto req = sentinel->Set(MakeKey(idx[i]), std::to_string(add + i));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsStatus());
     }
 
     {
@@ -188,7 +205,8 @@ TEST(DISABLED_SentinelCluster, MgetCrossSlot) {
     for (size_t i = 0; i < 2; ++i) {
       auto req = sentinel->Del(MakeKey(idx[i]));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsInt());
     }
   });
 }
@@ -223,12 +241,14 @@ TEST(DISABLED_SentinelCluster, Transaction) {
     {
       auto req = sentinel->Del(MakeKey(0));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsInt());
     }
     {
       auto req = sentinel->Del(MakeKey2(0, add));
       auto reply = req.Get();
-      EXPECT_TRUE(reply->IsOk());
+      ASSERT_TRUE(reply->IsOk());
+      EXPECT_TRUE(reply->data.IsInt());
     }
   });
 }
@@ -327,5 +347,62 @@ TEST(DISABLED_SentinelCluster, Subscribe) {
     engine::SleepFor(waiting_time);
 
     EXPECT_EQ(msg_counter, 3);
+  });
+}
+
+// for manual testing of CLUSTER FAILOVER
+TEST(DISABLED_SentinelCluster, LongWork) {
+  RunInCoro([] {
+    const auto kTestTime = std::chrono::seconds(30);
+    auto deadline = engine::Deadline::FromDuration(kTestTime);
+
+    TestSentinel test_sentinel;
+    auto sentinel = test_sentinel.GetSentinel();
+
+    const size_t kNumKeys = 10;
+    const int add = 100;
+
+    size_t num_write_errors = 0;
+    size_t num_read_errors = 0;
+
+    size_t iterations = 0;
+
+    while (!deadline.IsReached()) {
+      for (size_t i = 0; i < kNumKeys; ++i) {
+        auto req =
+            sentinel->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
+        auto reply = req.Get();
+        num_write_errors += !reply->IsOk() || !reply->data.IsStatus();
+        if (!reply->IsOk())
+          std::cerr << "Set failed with status " << reply->status << " ("
+                    << reply->StatusString() << ")";
+      }
+
+      for (size_t i = 0; i < kNumKeys; ++i) {
+        auto req = sentinel->Get(MakeKey(i), kDefaultCc);
+        auto reply = req.Get();
+        num_read_errors +=
+            !reply->IsOk() || (!reply->data.IsString() && !reply->data.IsNil());
+        if (!reply->IsOk())
+          std::cerr << "Get failed with status " << reply->status << " ("
+                    << reply->StatusString() << ")";
+      }
+
+      for (size_t i = 0; i < kNumKeys; ++i) {
+        auto req = sentinel->Del(MakeKey(i));
+        auto reply = req.Get();
+        num_write_errors += !reply->IsOk() || !reply->data.IsInt();
+        if (!reply->IsOk())
+          std::cerr << "Del failed with status " << reply->status << " ("
+                    << reply->StatusString() << ")";
+      }
+
+      ++iterations;
+      engine::SleepFor(std::chrono::milliseconds(10));
+    }
+
+    EXPECT_EQ(num_write_errors, 0);
+    EXPECT_EQ(num_read_errors, 0);
+    EXPECT_GT(iterations, 100);
   });
 }

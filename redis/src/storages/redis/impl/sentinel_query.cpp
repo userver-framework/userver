@@ -130,15 +130,44 @@ bool IsInstanceUp(const InstanceStatus& status, size_t sentinel_count) {
   return status.count_ok >= quorum;
 }
 
+bool ParseClusterSlotsResponse(const ReplyPtr& reply,
+                               ClusterSlotsResponse& res) {
+  UASSERT(reply);
+  LOG_TRACE() << "Got reply to CLUSTER SLOTS: " << reply->data.ToDebugString();
+  if (reply->status != REDIS_OK || !reply->data.IsArray()) return false;
+  for (const auto& reply_interval : reply->data.GetArray()) {
+    if (!reply_interval.IsArray()) return false;
+    const auto& array = reply_interval.GetArray();
+    if (array.size() < 3) return false;
+    if (!array[0].IsInt() || !array[1].IsInt()) return false;
+    for (size_t i = 2; i < array.size(); i++) {
+      if (!array[i].IsArray()) return false;
+      const auto& host_info_array = array[i].GetArray();
+      if (host_info_array.size() < 2) return false;
+      if (!host_info_array[0].IsString() || !host_info_array[1].IsInt())
+        return false;
+      ConnectionInfoInt conn_info;
+      conn_info.host = host_info_array[0].GetString();
+      conn_info.port = host_info_array[1].GetInt();
+      SlotInterval slot_interval(array[0].GetInt(), array[1].GetInt());
+      if (i == 2)
+        res[slot_interval].master = std::move(conn_info);
+      else
+        res[slot_interval].slaves.insert(std::move(conn_info));
+    }
+  }
+  return true;
+}
+
 }  // namespace
 
-GetHostsContext::GetHostsContext(bool allow_empty, const std::string& password,
+GetHostsContext::GetHostsContext(bool allow_empty, const Password& password,
                                  ProcessGetHostsRequestCb&& callback,
-                                 size_t response_max)
+                                 size_t expected_responses_cnt)
     : allow_empty_(allow_empty),
       password_(password),
       callback_(std::move(callback)),
-      response_max_(response_max) {}
+      expected_responses_cnt_(expected_responses_cnt) {}
 
 std::function<void(const CommandPtr&, const ReplyPtr& reply)>
 GetHostsContext::GenerateCallback() {
@@ -162,11 +191,8 @@ void GetHostsContext::OnResponse(const CommandPtr& command,
       }
     }
 
-    if (response_got_ >= response_max_) {
-      if (!process_responses_started_) {
-        process_responses_started_ = true;
-        need_process_responses = true;
-      }
+    if (response_got_ >= expected_responses_cnt_) {
+      need_process_responses = !process_responses_started_.test_and_set();
     }
   }
   if (need_process_responses) ProcessResponsesOnce();
@@ -194,7 +220,7 @@ void GetHostsContext::ProcessResponsesOnce() {
         UpdateInstanceStatus(response, status);
       }
 
-      if (IsInstanceUp(status, response_max_)) {
+      if (IsInstanceUp(status, expected_responses_cnt_)) {
         const auto& properties = group.second.front();
 
         try {
@@ -215,16 +241,16 @@ void GetHostsContext::ProcessResponsesOnce() {
     }
   }
 
-  callback_(res, response_max_, responses_parsed_);
+  callback_(res, expected_responses_cnt_, responses_parsed_);
 }
 
 void ProcessGetHostsRequest(GetHostsRequest request,
                             ProcessGetHostsRequestCb callback) {
-  const auto allow_empty_ = !request.master;
+  const auto allow_empty = !request.master;
 
   auto ids = request.sentinel_shard.GetAllInstancesServerId();
   auto context = std::make_shared<GetHostsContext>(
-      allow_empty_, request.password, std::move(callback), ids.size());
+      allow_empty, request.password, std::move(callback), ids.size());
 
   for (const auto& id : ids) {
     auto cmd =
@@ -232,6 +258,175 @@ void ProcessGetHostsRequest(GetHostsRequest request,
     cmd->control.force_server_id = id;
     request.sentinel_shard.AsyncCommand(cmd);
   }
+}
+
+void ProcessGetClusterHostsRequest(
+    std::shared_ptr<const std::vector<std::string>> shard_names,
+    GetClusterHostsRequest request, ProcessGetClusterHostsRequestCb callback) {
+  auto ids = request.sentinel_shard.GetAllInstancesServerId();
+  auto context = std::make_shared<GetClusterHostsContext>(
+      request.password, std::move(shard_names), std::move(callback),
+      ids.size());
+
+  for (const auto& id : ids) {
+    auto cmd =
+        PrepareCommand(request.command.Clone(), context->GenerateCallback());
+    cmd->control.force_server_id = id;
+    if (!request.sentinel_shard.AsyncCommand(cmd)) {
+      context->OnAsyncCommandFailed();
+    }
+  }
+}
+
+GetClusterHostsContext::GetClusterHostsContext(
+    Password password,
+    std::shared_ptr<const std::vector<std::string>> shard_names,
+    ProcessGetClusterHostsRequestCb&& callback, size_t expected_responses_cnt)
+    : password_(std::move(password)),
+      shard_names_(std::move(shard_names)),
+      callback_(std::move(callback)),
+      expected_responses_cnt_(expected_responses_cnt) {}
+
+std::function<void(const CommandPtr&, const ReplyPtr& reply)>
+GetClusterHostsContext::GenerateCallback() {
+  return std::bind(&GetClusterHostsContext::OnResponse, shared_from_this(),
+                   ph::_1, ph::_2);
+}
+
+void GetClusterHostsContext::OnAsyncCommandFailed() {
+  --expected_responses_cnt_;
+
+  ProcessResponses();
+}
+
+void GetClusterHostsContext::OnResponse(const CommandPtr&,
+                                        const ReplyPtr& reply) {
+  ClusterSlotsResponse response;
+  if (ParseClusterSlotsResponse(reply, response)) {
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      responses_by_id_[reply->server_id] = std::move(response);
+    }
+    responses_parsed_++;
+  }
+
+  response_got_++;
+
+  ProcessResponses();
+}
+
+void GetClusterHostsContext::ProcessResponses() {
+  if (response_got_ >= expected_responses_cnt_) {
+    if (!process_responses_started_.test_and_set()) ProcessResponsesOnce();
+  }
+}
+
+void GetClusterHostsContext::ProcessResponsesOnce() {
+  ClusterShardHostInfos res;
+
+  std::set<size_t> slot_bounds;
+  for (const auto& [_, response] : responses_by_id_) {
+    for (auto& [interval, _] : response) {
+      slot_bounds.insert(interval.slot_min);
+      slot_bounds.insert(interval.slot_max + 1);
+    }
+  }
+  if (slot_bounds.empty()) {
+    LOG_WARNING()
+        << "Failed to process CLUSTER SLOTS replies: responses_parsed="
+        << responses_parsed_ << ", no slots info found";
+  } else if (*slot_bounds.begin() != 0 ||
+             *std::prev(slot_bounds.end()) != kClusterHashSlots) {
+    LOG_ERROR() << "Failed to process CLUSTER SLOTS replies: slot bounds begin="
+                << *slot_bounds.begin()
+                << ", end=" << *std::prev(slot_bounds.end());
+  }
+
+  if (!slot_bounds.empty() && *slot_bounds.begin() == 0 &&
+      *std::prev(slot_bounds.end()) == kClusterHashSlots) {
+    size_t prev = 0;
+    std::map<ConnectionInfoInt, size_t> master_count;
+    struct ShardInfo {
+      ConnectionInfoInt master;
+      std::set<SlotInterval> slot_intervals;
+    };
+    std::map<std::set<ConnectionInfoInt>, ShardInfo> shard_infos;
+
+    for (size_t bound : slot_bounds) {
+      if (bound) {
+        SlotInterval interval{prev, bound - 1};
+        std::map<std::set<ConnectionInfoInt>, size_t> shard_stats;
+        for (const auto& [_, response] : responses_by_id_) {
+          auto it = response.upper_bound(interval);
+          if (it != response.begin()) {
+            --it;
+            auto hosts = it->second.slaves;
+            hosts.insert(it->second.master);
+            ++shard_stats[hosts];
+            ++master_count[it->second.master];
+          }
+        }
+
+        size_t max_count = 0;
+        // `best` - most popular set of hosts assigned to the current interval
+        // of hash slots among all host replies.
+        const std::set<ConnectionInfoInt>* best = nullptr;
+
+        for (const auto& stat : shard_stats) {
+          if (stat.second > max_count) {
+            max_count = stat.second;
+            best = &stat.first;
+          }
+        }
+        if (best) {
+          shard_infos[*best].slot_intervals.insert(interval);
+        }
+      }
+      prev = bound;
+    }
+
+    for (auto& shard_info : shard_infos) {
+      size_t max_count = 0;
+      const ConnectionInfoInt* master = nullptr;
+      for (const auto& host : shard_info.first) {
+        size_t current = master_count[host];
+        if (current > max_count) {
+          max_count = current;
+          master = &host;
+        }
+      }
+      UASSERT(master);
+      shard_info.second.master = *master;
+
+      ClusterShardHostInfo host_info;
+      host_info.master = shard_info.second.master;
+      for (const auto& slave : shard_info.first) {
+        if (slave != host_info.master) host_info.slaves.push_back(slave);
+      }
+      host_info.slot_intervals = std::move(shard_info.second.slot_intervals);
+      res.push_back(std::move(host_info));
+    }
+
+    size_t shard_index = 0;
+    if (res.size() > shard_names_->size()) {
+      LOG_ERROR() << "Too many shards found: " << res.size()
+                  << ", maximum: " << shard_names_->size();
+      res = {};
+    } else {
+      std::sort(res.begin(), res.end());
+      for (auto& shard_host_info : res) {
+        shard_host_info.master.password = password_;
+        shard_host_info.master.name = (*shard_names_)[shard_index];
+        for (auto& slave : shard_host_info.slaves) {
+          slave.password = password_;
+          slave.name = (*shard_names_)[shard_index];
+        }
+        ++shard_index;
+      }
+    }
+  }
+
+  callback_(res, expected_responses_cnt_, responses_parsed_);
 }
 
 }  // namespace redis

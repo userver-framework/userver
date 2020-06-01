@@ -32,7 +32,7 @@ class Redis {
   Redis(Redis&& o) = delete;
 
   void Connect(const ConnectionInfo& conn);
-  void Connect(const std::string& host, int port, const std::string& password);
+  void Connect(const std::string& host, int port, const Password& password);
 
   bool AsyncCommand(const CommandPtr& command);
   size_t GetRunningCommands() const;

@@ -18,6 +18,7 @@ class ConnectionInfoInt : public ConnectionInfo {
   bool operator==(const ConnectionInfoInt& o) const {
     return Fulltext() == o.Fulltext();
   }
+  bool operator!=(const ConnectionInfoInt& o) const { return !(*this == o); }
   bool operator<(const ConnectionInfoInt& o) const {
     return Fulltext() < o.Fulltext();
   }
@@ -80,6 +81,7 @@ class Shard {
   const std::string& ShardName() const;
   boost::signals2::signal<void(ServerId, Redis::State)>&
   SignalInstanceStateChange();
+  boost::signals2::signal<void(ServerId)>& SignalInstanceReady();
 
  private:
   std::set<ConnectionInfoInt> GetConnectionInfosToCreate() const;
@@ -102,6 +104,7 @@ class Shard {
 
   boost::signals2::signal<void(ServerId, Redis::State)>
       signal_instance_state_change_;
+  boost::signals2::signal<void(ServerId)> signal_instance_ready_;
 
   bool prev_connected_ = false;
   const bool cluster_mode_ = false;

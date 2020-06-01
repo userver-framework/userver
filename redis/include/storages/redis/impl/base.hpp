@@ -6,8 +6,10 @@
 #include <string>
 #include <vector>
 
-#include <storages/redis/impl/types.hpp>
 #include <testsuite/redis_control.hpp>
+#include <utils/non_loggable.hpp>
+
+#include <storages/redis/impl/types.hpp>
 
 namespace storages {
 namespace redis {
@@ -21,14 +23,16 @@ const int REDIS_ERR_TIMEOUT = 6;
 const int REDIS_ERR_NOT_READY = 7;
 const int REDIS_ERR_MAX = REDIS_ERR_NOT_READY + 1;
 
+using Password = utils::NonLoggable<std::string>;
+
 struct ConnectionInfo {
   std::string host = "localhost";
   int port = 26379;
-  std::string password;
+  Password password{std::string()};
 
   ConnectionInfo() {}
-  ConnectionInfo(std::string host, int port, std::string password)
-      : host(host), port(port), password(password) {}
+  ConnectionInfo(std::string host, int port, Password password)
+      : host(std::move(host)), port(port), password(std::move(password)) {}
 };
 
 struct Stat {

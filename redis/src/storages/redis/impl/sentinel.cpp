@@ -34,8 +34,7 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
                    const std::vector<std::string>& shards,
                    const std::vector<ConnectionInfo>& conns,
                    std::string shard_group_name, const std::string& client_name,
-                   const std::string& password,
-                   ReadyChangeCallback ready_callback,
+                   const Password& password, ReadyChangeCallback ready_callback,
                    std::unique_ptr<KeyShard>&& key_shard,
                    CommandControl command_control,
                    const testsuite::RedisControl& testsuite_redis_control,
@@ -107,7 +106,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     Sentinel::ReadyChangeCallback ready_callback,
     KeyShardFactory key_shard_factory,
     const testsuite::RedisControl& testsuite_redis_control) {
-  const std::string& password = settings.password;
+  const auto& password = settings.password;
 
   const std::vector<std::string>& shards = settings.shards;
   LOG_DEBUG() << "shards.size() = " << shards.size();
@@ -117,10 +116,15 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
   std::vector<redis::ConnectionInfo> conns;
   conns.reserve(settings.sentinels.size());
   LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
+  auto key_shard = key_shard_factory(shards.size());
   for (const auto& sentinel : settings.sentinels) {
     LOG_DEBUG() << "sentinel:  host = " << sentinel.host
                 << "  port = " << sentinel.port;
-    conns.emplace_back(sentinel.host, sentinel.port, "");
+    // SENTINEL MASTERS/SLAVES works without auth, sentinel has no AUTH command.
+    // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
+    // sentinels in cluster mode.
+    conns.emplace_back(sentinel.host, sentinel.port,
+                       (key_shard ? Password("") : password));
   }
   redis::CommandControl command_control = redis::command_control_init;
   LOG_DEBUG() << "redis command_control:"
@@ -133,7 +137,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
   if (!shards.empty() && !conns.empty()) {
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
-        password, std::move(ready_callback), key_shard_factory(shards.size()),
+        password, std::move(ready_callback), std::move(key_shard),
         command_control, testsuite_redis_control, true, true);
   }
 

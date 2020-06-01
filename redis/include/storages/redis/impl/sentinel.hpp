@@ -45,7 +45,7 @@ class Sentinel {
            const std::vector<std::string>& shards,
            const std::vector<ConnectionInfo>& conns,
            std::string shard_group_name, const std::string& client_name,
-           const std::string& password, ReadyChangeCallback ready_callback,
+           const Password& password, ReadyChangeCallback ready_callback,
            std::unique_ptr<KeyShard>&& key_shard = nullptr,
            CommandControl command_control = command_control_init,
            const testsuite::RedisControl& testsuite_redis_control = {},

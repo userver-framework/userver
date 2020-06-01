@@ -16,7 +16,7 @@ class SubscribeSentinel : protected Sentinel {
                     const std::vector<std::string>& shards,
                     const std::vector<ConnectionInfo>& conns,
                     std::string shard_group_name,
-                    const std::string& client_name, const std::string& password,
+                    const std::string& client_name, const Password& password,
                     ReadyChangeCallback ready_callback,
                     std::unique_ptr<KeyShard>&& key_shard = nullptr,
                     bool is_cluster_mode = false,

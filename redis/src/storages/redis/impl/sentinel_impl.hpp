@@ -40,7 +40,7 @@ class SentinelImpl {
                Sentinel& sentinel, const std::vector<std::string>& shards,
                const std::vector<ConnectionInfo>& conns,
                std::string shard_group_name, const std::string& client_name,
-               const std::string& password, ReadyChangeCallback ready_callback,
+               const Password& password, ReadyChangeCallback ready_callback,
                std::unique_ptr<KeyShard>&& key_shard, bool track_masters,
                bool track_slaves);
   ~SentinelImpl();
@@ -107,13 +107,11 @@ class SentinelImpl {
     bool WaitInitialized(engine::Deadline deadline);
 
    private:
-    static constexpr size_t kHashSlots = 16384;
-
     std::mutex mutex_;
     engine::impl::ConditionVariableAny<std::mutex> cv_;
     std::atomic<bool> is_initialized_{false};
 
-    std::array<std::atomic<size_t>, kHashSlots> slot_to_shard_{};
+    std::array<std::atomic<size_t>, kClusterHashSlots> slot_to_shard_{};
   };
 
   class ShardInfo {
@@ -161,8 +159,9 @@ class SentinelImpl {
   void ProcessCreationOfShards(bool track, bool master,
                                std::vector<std::shared_ptr<Shard>>& shards);
 
-  void RefreshConnectionInfo(bool by_timer);
+  void RefreshConnectionInfo();
   void ReadSentinels();
+  void ReadClusterHosts();
   void CheckConnections();
   void UpdateInstancesImpl();
   ConnInfoMap ConvertConnectionInfoVectorToMap(
@@ -172,7 +171,7 @@ class SentinelImpl {
                          bool master);
   void EnqueueCommand(const SentinelCommand& command);
   size_t ParseMovedShard(const std::string& err_string);
-  void RequestUpdateClusterSlots();
+  void RequestUpdateClusterSlots(size_t shard);
   void UpdateClusterSlots(size_t shard);
   void DoUpdateClusterSlots(ReplyPtr reply);
   void InitShards(const std::vector<std::string>& shards,
@@ -187,7 +186,7 @@ class SentinelImpl {
   engine::ev::ThreadControl ev_thread_control_;
 
   std::string shard_group_name_;
-  std::vector<std::string> init_shards_;
+  std::shared_ptr<const std::vector<std::string>> init_shards_;
   std::vector<std::unique_ptr<ConnectedStatus>> connected_statuses_;
   std::vector<ConnectionInfo> conns_;
   ReadyChangeCallback ready_callback_;
@@ -208,16 +207,16 @@ class SentinelImpl {
   std::map<std::string, size_t> shards_;
   ShardInfo shard_info_;
   std::string client_name_;
-  std::string password_;
+  Password password_{std::string()};
   double check_interval_;
   bool track_masters_;
   bool track_slaves_;
   std::atomic<bool> update_cluster_slots_flag_;
-  SlotInfo slot_info_;
   std::vector<SentinelCommand> commands_;
   std::mutex command_mutex_;
-  size_t current_slots_shard_ = 0;
+  std::atomic<size_t> current_slots_shard_ = 0;
   std::unique_ptr<KeyShard> key_shard_;
+  std::unique_ptr<SlotInfo> slot_info_;
   SentinelStatisticsInternal statistics_internal_;
   utils::SwappingSmart<KeysForShards> keys_for_shards_;
 };

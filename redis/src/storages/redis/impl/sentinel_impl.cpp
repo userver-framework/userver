@@ -27,13 +27,13 @@ SentinelImpl::SentinelImpl(
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     Sentinel& sentinel, const std::vector<std::string>& shards,
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
-    const std::string& client_name, const std::string& password,
+    const std::string& client_name, const Password& password,
     ReadyChangeCallback ready_callback, std::unique_ptr<KeyShard>&& key_shard,
     bool track_masters, bool track_slaves)
     : sentinel_obj_(sentinel),
       ev_thread_control_(sentinel_thread_control),
       shard_group_name_(std::move(shard_group_name)),
-      init_shards_(shards),
+      init_shards_(std::make_shared<const std::vector<std::string>>(shards)),
       conns_(conns),
       ready_callback_(std::move(ready_callback)),
       redis_thread_pool_(redis_thread_pool),
@@ -42,10 +42,11 @@ SentinelImpl::SentinelImpl(
       track_masters_(track_masters),
       track_slaves_(track_slaves),
       update_cluster_slots_flag_(false),
-      key_shard_(std::move(key_shard)) {
+      key_shard_(std::move(key_shard)),
+      slot_info_(IsInClusterMode() ? std::make_unique<SlotInfo>() : nullptr) {
   UASSERT(loop_ != nullptr);
-  for (size_t i = 0; i < init_shards_.size(); ++i) {
-    shards_[init_shards_[i]] = i;
+  for (size_t i = 0; i < init_shards_->size(); ++i) {
+    shards_[(*init_shards_)[i]] = i;
     connected_statuses_.push_back(std::make_unique<ConnectedStatus>());
   }
   client_name_ = client_name;
@@ -94,7 +95,7 @@ void SentinelImpl::WaitConnectedDebug(bool allow_empty_slaves) {
     for (const auto& shard : slaves_shards_)
       connected_all = connected_all &&
                       shard->IsConnectedToAllServersDebug(allow_empty_slaves);
-    if (connected_all && (!IsInClusterMode() || slot_info_.IsInitialized()))
+    if (connected_all && (!IsInClusterMode() || slot_info_->IsInitialized()))
       return;
   }
 }
@@ -107,7 +108,7 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
     if (!shard.WaitReady(deadline, wait_connected.mode)) {
       std::string msg =
           "Failed to connect to redis, shard_group_name=" + shard_group_name_ +
-          ", shard=" + init_shards_[i] + " in " +
+          ", shard=" + (*init_shards_)[i] + " in " +
           std::to_string(wait_connected.timeout.count()) +
           " ms, mode=" + ToString(wait_connected.mode);
       if (wait_connected.throw_on_fail)
@@ -117,7 +118,7 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
     }
   }
   if (IsInClusterMode()) {
-    if (!slot_info_.WaitInitialized(deadline)) {
+    if (!slot_info_->WaitInitialized(deadline)) {
       std::string msg = fmt::format(
           "Failed to init cluster slots for redis, shard_group_name={} in {} "
           "ms, mode={}",
@@ -134,8 +135,8 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
 void SentinelImpl::ForceUpdateHosts() { ev_async_send(loop_, &watch_create_); }
 
 void SentinelImpl::Init() {
-  InitShards(init_shards_, master_shards_, ready_callback_, /*master=*/true);
-  InitShards(init_shards_, slaves_shards_, ready_callback_, /*master=*/false);
+  InitShards(*init_shards_, master_shards_, ready_callback_, /*master=*/true);
+  InitShards(*init_shards_, slaves_shards_, ready_callback_, /*master=*/false);
 
   Shard::Options shard_options;
   shard_options.shard_name = "(sentinel)";
@@ -175,16 +176,17 @@ void SentinelImpl::InitShards(
     };
     auto object = std::make_shared<Shard>(std::move(shard_options));
     object->SignalInstanceStateChange().connect(
-        [this, i, master](ServerId, Redis::State state) {
+        [this](ServerId, Redis::State state) {
           if (state != Redis::State::kInit) ev_async_send(loop_, &watch_state_);
-          if (state == Redis::State::kConnected) {
-            LOG_TRACE() << "Signaled kConnected to sentinel: shard_idx=" << i;
-            if (master)
-              connected_statuses_[i]->SetMasterReady();
-            else
-              connected_statuses_[i]->SetSlaveReady();
-          }
         });
+    object->SignalInstanceReady().connect([this, i, master](ServerId) {
+      LOG_TRACE() << "Signaled kConnected to sentinel: shard_idx=" << i
+                  << ", master=" << master;
+      if (master)
+        connected_statuses_[i]->SetMasterReady();
+      else
+        connected_statuses_[i]->SetSlaveReady();
+    });
     shard_objects.emplace_back(std::move(object));
     ++i;
   }
@@ -232,7 +234,7 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
 
         bool error_ask = reply->data.IsErrorAsk();
         bool error_moved = reply->data.IsErrorMoved();
-        if (error_moved) RequestUpdateClusterSlots();
+        if (error_moved) RequestUpdateClusterSlots(shard);
         bool retry_to_master =
             !master && reply->data.IsNil() &&
             command->control.GetForceRetriesToMasterOnNilReply();
@@ -313,7 +315,7 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
 size_t SentinelImpl::ShardByKey(const std::string& key) const {
   UASSERT(!master_shards_.empty());
   size_t shard = key_shard_ ? key_shard_->ShardByKey(key)
-                            : slot_info_.ShardBySlot(HashSlot(key));
+                            : slot_info_->ShardBySlot(HashSlot(key));
   LOG_TRACE() << "key=" << key << " shard=" << shard;
   return shard;
 }
@@ -376,7 +378,7 @@ void SentinelImpl::AsyncCommandFailed(const SentinelCommand& scommand) {
 void SentinelImpl::OnCheckTimer(struct ev_loop*, ev_timer* w, int) noexcept {
   auto* impl = static_cast<SentinelImpl*>(w->data);
   UASSERT(impl != nullptr);
-  impl->RefreshConnectionInfo(true);
+  impl->RefreshConnectionInfo();
 }
 
 void SentinelImpl::ChangedState(struct ev_loop*, ev_async* w, int) noexcept {
@@ -396,18 +398,18 @@ void SentinelImpl::ProcessCreationOfShards(
   }
 }
 
-void SentinelImpl::RefreshConnectionInfo(bool by_timer) {
+void SentinelImpl::RefreshConnectionInfo() {
   try {
     sentinels_->ProcessCreation(redis_thread_pool_);
 
     ProcessCreationOfShards(track_masters_, true, master_shards_);
     ProcessCreationOfShards(track_slaves_, false, slaves_shards_);
-    ReadSentinels();
-    if (by_timer && IsInClusterMode() && slot_info_.IsInitialized()) {
-      RequestUpdateClusterSlots();
-    }
+    if (IsInClusterMode())
+      ReadClusterHosts();
+    else
+      ReadSentinels();
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "exception in check timer. " << ex.what();
+    LOG_WARNING() << "exception in RefreshConnectionInfo: " << ex.what();
   }
 
   /* FIXME: this should be called not every check_interval_,
@@ -459,7 +461,8 @@ std::vector<std::shared_ptr<const Shard>> SentinelImpl::GetMasterShards()
 
 bool SentinelImpl::IsInClusterMode() const { return !key_shard_; }
 
-void SentinelImpl::RequestUpdateClusterSlots() {
+void SentinelImpl::RequestUpdateClusterSlots(size_t shard) {
+  current_slots_shard_ = shard;
   ev_async_send(loop_, &watch_cluster_slots_);
 }
 
@@ -487,16 +490,15 @@ void SentinelImpl::DoUpdateClusterSlots(ReplyPtr reply) {
   std::vector<SlotInfo::ShardInterval> shard_intervals;
   shard_intervals.reserve(reply->data.GetArray().size());
   for (const ReplyData& reply_interval : reply->data.GetArray()) {
-    if (!reply_interval.IsArray()) continue;
+    if (!reply_interval.IsArray()) return;
     const std::vector<ReplyData>& array = reply_interval.GetArray();
-    if (array.size() < 3) continue;
-    if (!array[0].IsInt() || !array[1].IsInt()) continue;
+    if (array.size() < 3) return;
+    if (!array[0].IsInt() || !array[1].IsInt()) return;
     for (size_t i = 2; i < array.size(); i++) {
-      if (!array[i].IsArray()) continue;
+      if (!array[i].IsArray()) return;
       const std::vector<ReplyData>& host_info_array = array[i].GetArray();
-      if (host_info_array.size() < 2) continue;
-      if (!host_info_array[0].IsString() || !host_info_array[1].IsInt())
-        continue;
+      if (host_info_array.size() < 2) return;
+      if (!host_info_array[0].IsString() || !host_info_array[1].IsInt()) return;
       size_t shard = shard_info_.GetShard(host_info_array[0].GetString(),
                                           host_info_array[1].GetInt());
       if (shard != kUnknownShard) {
@@ -506,7 +508,7 @@ void SentinelImpl::DoUpdateClusterSlots(ReplyPtr reply) {
       }
     }
   }
-  slot_info_.UpdateSlots(shard_intervals);
+  slot_info_->UpdateSlots(shard_intervals);
 }
 
 void SentinelImpl::ReadSentinels() {
@@ -578,6 +580,58 @@ void SentinelImpl::ReadSentinels() {
       });
 }
 
+void SentinelImpl::ReadClusterHosts() {
+  ProcessGetClusterHostsRequest(
+      init_shards_, GetClusterHostsRequest(*sentinels_, password_),
+      [this](ClusterShardHostInfos shard_infos, size_t requests_sent,
+             size_t responses_parsed) {
+        if (!CheckQuorum(requests_sent, responses_parsed)) {
+          LOG_WARNING()
+              << "Too many 'cluster slots' requests failed: requests_sent="
+              << requests_sent << " responses_parsed=" << responses_parsed;
+          return;
+        }
+        if (shard_infos.empty()) return;
+
+        std::vector<SlotInfo::ShardInterval> shard_intervals;
+        for (const auto& shard_info : shard_infos) {
+          for (auto& interval : shard_info.slot_intervals) {
+            shard_intervals.emplace_back(interval.slot_min, interval.slot_max,
+                                         shards_[shard_info.master.name]);
+          }
+        }
+
+        ConnInfoByShard masters;
+        ConnInfoByShard slaves;
+        ShardInfo::HostPortToShardMap host_port_to_shard;
+
+        for (auto& shard_info : shard_infos) {
+          auto master_host_port =
+              std::make_pair(shard_info.master.host, shard_info.master.port);
+          host_port_to_shard[std::move(master_host_port)] =
+              shards_[shard_info.master.name];
+          masters.push_back(std::move(shard_info.master));
+          for (auto& slave_info : shard_info.slaves) {
+            auto slave_host_port =
+                std::make_pair(slave_info.host, slave_info.port);
+            host_port_to_shard[std::move(slave_host_port)] =
+                shards_[slave_info.name];
+            slaves.push_back(std::move(slave_info));
+          }
+        }
+        shard_info_.UpdateHostPortToShard(std::move(host_port_to_shard));
+
+        {
+          std::lock_guard<std::mutex> lock(sentinels_mutex_);
+          master_shards_info_.swap(masters);
+          slaves_shards_info_.swap(slaves);
+        }
+        ev_async_send(loop_, &watch_update_);
+
+        slot_info_->UpdateSlots(shard_intervals);
+      });
+}
+
 void SentinelImpl::UpdateInstances(struct ev_loop*, ev_async* w, int) noexcept {
   auto* impl = static_cast<SentinelImpl*>(w->data);
   UASSERT(impl != nullptr);
@@ -640,17 +694,14 @@ void SentinelImpl::OnModifyConnectionInfo(struct ev_loop*, ev_async* w,
                                           int) noexcept {
   auto* impl = static_cast<SentinelImpl*>(w->data);
   UASSERT(impl != nullptr);
-  impl->RefreshConnectionInfo(false);
+  impl->RefreshConnectionInfo();
 }
 
 void SentinelImpl::OnUpdateClusterSlotsRequested(struct ev_loop*, ev_async* w,
                                                  int) noexcept {
   auto* impl = static_cast<SentinelImpl*>(w->data);
   UASSERT(impl != nullptr);
-  impl->UpdateClusterSlots(impl->master_shards_.empty()
-                               ? 0
-                               : ++impl->current_slots_shard_ %
-                                     impl->master_shards_.size());
+  impl->UpdateClusterSlots(impl->current_slots_shard_);
 }
 
 void SentinelImpl::CheckConnections() {
@@ -661,8 +712,6 @@ void SentinelImpl::CheckConnections() {
           const auto& info = shards[shard_idx];
           if (info->ProcessStateUpdate()) {
             sentinel_obj_.signal_instances_changed(shard_idx, master);
-            if (IsInClusterMode() && !slot_info_.IsInitialized())
-              UpdateClusterSlots(shard_idx);
           }
         }
       };
@@ -749,7 +798,7 @@ size_t SentinelImpl::HashSlot(const std::string& key) {
 }
 
 SentinelImpl::SlotInfo::SlotInfo() {
-  for (size_t i = 0; i < kHashSlots; ++i) {
+  for (size_t i = 0; i < kClusterHashSlots; ++i) {
     slot_to_shard_[i] = kUnknownShard;
   }
 }

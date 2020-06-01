@@ -9,7 +9,8 @@ TEST(Sentinel, DISABLED_PublishPerformance) {
   auto thread_pools = std::make_shared<redis::ThreadPools>(
       redis::kDefaultSentinelThreadPoolSize,
       redis::kDefaultRedisThreadPoolSize);
-  Sentinel s(thread_pools, {""}, {}, "test_shard_group", "test", "",
+  Sentinel s(thread_pools, {""}, {}, "test_shard_group", "test",
+             redis::Password(""),
              [](size_t, const std::string&, bool, bool) {});
   auto start = std::chrono::high_resolution_clock::now();
   for (auto i = 0; i < 40000; ++i) {

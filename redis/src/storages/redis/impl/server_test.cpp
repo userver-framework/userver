@@ -45,7 +45,7 @@ TEST(Redis, NoPassword) {
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);
   auto redis =
       std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), false);
-  redis->Connect(kLocalhost, server.GetPort(), "");
+  redis->Connect(kLocalhost, server.GetPort(), redis::Password(""));
 
   EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
 }
@@ -58,7 +58,7 @@ TEST(Redis, Auth) {
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);
   auto redis =
       std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), false);
-  redis->Connect(kLocalhost, server.GetPort(), "password");
+  redis->Connect(kLocalhost, server.GetPort(), redis::Password("password"));
 
   EXPECT_TRUE(auth_handler->WaitForFirstReply(kSmallPeriod));
   EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
@@ -73,7 +73,7 @@ TEST(Redis, AuthFail) {
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);
   auto redis =
       std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), false);
-  redis->Connect(kLocalhost, server.GetPort(), "password");
+  redis->Connect(kLocalhost, server.GetPort(), redis::Password("password"));
 
   EXPECT_TRUE(auth_error_handler->WaitForFirstReply(kSmallPeriod));
   EXPECT_FOR(10, kWaitPeriod,
@@ -90,7 +90,7 @@ TEST(Redis, AuthTimeout) {
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);
   auto redis =
       std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), false);
-  redis->Connect(kLocalhost, server.GetPort(), "password");
+  redis->Connect(kLocalhost, server.GetPort(), redis::Password("password"));
 
   EXPECT_TRUE(
       auth_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
@@ -136,7 +136,7 @@ TEST(Redis, PingFail) {
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);
   auto redis =
       std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), false);
-  redis->Connect(kLocalhost, server.GetPort(), "");
+  redis->Connect(kLocalhost, server.GetPort(), redis::Password(""));
 
   EXPECT_TRUE(ping_error_handler->WaitForFirstReply(kSmallPeriod));
   EXPECT_NE_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
@@ -161,7 +161,7 @@ TEST_P(RedisDisconnectingReplies, X) {
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);
   auto redis =
       std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), false);
-  redis->Connect(kLocalhost, server.GetPort(), "");
+  redis->Connect(kLocalhost, server.GetPort(), redis::Password(""));
 
   EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
   EXPECT_EQ_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),

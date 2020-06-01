@@ -252,6 +252,7 @@ bool Shard::ProcessStateUpdate() {
           instances_changed = true;
           info = clean_wait_.erase(info);
           last_connected_time_ = std::chrono::steady_clock::now();
+          signal_instance_ready_(instances_.back().instance->GetServerId());
           break;
         case Redis::State::kDisconnecting:
         case Redis::State::kDisconnected:
@@ -329,6 +330,10 @@ const std::string& Shard::ShardName() const { return shard_name_; }
 boost::signals2::signal<void(ServerId, Redis::State)>&
 Shard::SignalInstanceStateChange() {
   return signal_instance_state_change_;
+}
+
+boost::signals2::signal<void(ServerId)>& Shard::SignalInstanceReady() {
+  return signal_instance_ready_;
 }
 
 std::set<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {

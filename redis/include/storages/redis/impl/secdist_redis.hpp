@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <storages/redis/impl/base.hpp>
+
 namespace secdist {
 
 struct RedisSettings {
@@ -17,7 +19,7 @@ struct RedisSettings {
 
   std::vector<std::string> shards;
   std::vector<HostPort> sentinels;
-  std::string password;
+  redis::Password password{std::string()};
 };
 
 }  // namespace secdist

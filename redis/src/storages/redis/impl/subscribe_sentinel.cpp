@@ -13,7 +13,7 @@ SubscribeSentinel::SubscribeSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const std::vector<std::string>& shards,
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
-    const std::string& client_name, const std::string& password,
+    const std::string& client_name, const Password& password,
     ReadyChangeCallback ready_callback, std::unique_ptr<KeyShard>&& key_shard,
     bool is_cluster_mode, CommandControl command_control,
     const testsuite::RedisControl& testsuite_redis_control, bool track_masters,
@@ -72,7 +72,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const std::string& client_name, ReadyChangeCallback ready_callback,
     bool is_cluster_mode,
     const testsuite::RedisControl& testsuite_redis_control) {
-  const std::string& password = settings.password;
+  const auto& password = settings.password;
 
   const std::vector<std::string>& shards = settings.shards;
   LOG_DEBUG() << "shards.size() = " << shards.size();
@@ -85,7 +85,11 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
   for (const auto& sentinel : settings.sentinels) {
     LOG_DEBUG() << "sentinel:  host = " << sentinel.host
                 << "  port = " << sentinel.port;
-    conns.emplace_back(sentinel.host, sentinel.port, "");
+    // SENTINEL MASTERS/SLAVES works without auth, sentinel has no AUTH command.
+    // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
+    // sentinels in cluster mode.
+    conns.emplace_back(sentinel.host, sentinel.port,
+                       (is_cluster_mode ? password : Password("")));
   }
   redis::CommandControl command_control = redis::command_control_init;
   LOG_DEBUG() << "redis command_control: timeout_single = "

@@ -95,7 +95,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
             bool send_readonly = false);
   ~RedisImpl();
 
-  void Connect(const std::string& host, int port, const std::string& password);
+  void Connect(const std::string& host, int port, const Password& password);
   void Disconnect();
 
   bool AsyncCommand(const CommandPtr& command);
@@ -191,7 +191,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   std::atomic<State> state_{State::kInit};
   std::string host_;
   std::string server_;
-  std::string password_;
+  Password password_{std::string()};
   size_t queue_count_ = 0;
   size_t sent_count_ = 0;
   size_t cmd_counter_ = 0;
@@ -263,7 +263,7 @@ void Redis::Connect(const ConnectionInfo& conn) {
 }
 
 void Redis::Connect(const std::string& host, int port,
-                    const std::string& password) {
+                    const Password& password) {
   impl_->Connect(host, port, password);
 }
 
@@ -337,7 +337,7 @@ void Redis::RedisImpl::Detach() {
 }
 
 void Redis::RedisImpl::Connect(const std::string& host, int port,
-                               const std::string& password) {
+                               const Password& password) {
   UASSERT(context_ == nullptr);
   UASSERT(state_ == State::kInit);
 
@@ -774,14 +774,15 @@ void Redis::RedisImpl::OnDisconnectImpl(int status) {
 }
 
 void Redis::RedisImpl::Authenticate() {
-  if (password_.empty()) {
+  if (password_.GetUnprotectedRawValue().empty()) {
     if (send_readonly_)
       SendReadOnly();
     else
       SetState(State::kConnected);
   } else {
     ProcessCommand(PrepareCommand(
-        CmdArgs{"AUTH", password_}, [this](const CommandPtr&, ReplyPtr reply) {
+        CmdArgs{"AUTH", password_.GetUnprotectedRawValue()},
+        [this](const CommandPtr&, ReplyPtr reply) {
           if (*reply && reply->data.IsStatus()) {
             if (send_readonly_)
               SendReadOnly();
