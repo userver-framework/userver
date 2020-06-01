@@ -17,14 +17,15 @@ class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
   DistLockStrategy(Collection collection, std::string lock_name,
                    std::string owner);
 
-  void Acquire(std::chrono::milliseconds lock_ttl) override;
+  void Acquire(std::chrono::milliseconds lock_ttl,
+               const std::string& locker_id) override;
 
-  void Release() override;
+  void Release(const std::string& locker_id) override;
 
  private:
   storages::mongo::Collection collection_;
   std::string lock_name_;
-  std::string owner_;
+  std::string owner_prefix_;
 };
 
 }  // namespace storages::mongo

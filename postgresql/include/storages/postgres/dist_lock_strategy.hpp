@@ -19,9 +19,10 @@ class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
                    const std::string& lock_name,
                    const dist_lock::DistLockSettings& settings);
 
-  void Acquire(std::chrono::milliseconds) override;
+  void Acquire(std::chrono::milliseconds lock_ttl,
+               const std::string& locker_id) override;
 
-  void Release() override;
+  void Release(const std::string& locker_id) override;
 
   void UpdateCommandControl(CommandControl cc);
 
@@ -31,7 +32,7 @@ class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
   const std::string acquire_query_;
   const std::string release_query_;
   const std::string lock_name_;
-  const std::string owner_;
+  const std::string owner_prefix_;
 };
 
 }  // namespace postgres

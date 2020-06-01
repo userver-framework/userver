@@ -1,6 +1,9 @@
 #include <dist_lock/impl/locker.hpp>
 
+#include <atomic>
 #include <stdexcept>
+
+#include <fmt/format.h>
 
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
@@ -10,6 +13,7 @@
 #include <utils/assert.hpp>
 #include <utils/async.hpp>
 #include <utils/datetime.hpp>
+#include <utils/rand.hpp>
 
 #include <dist_lock/impl/helpers.hpp>
 
@@ -17,6 +21,11 @@ namespace dist_lock::impl {
 namespace {
 
 class WorkerFuncFailedException : public std::exception {};
+
+std::string MakeLockerId(const std::string& name) {
+  static std::atomic<uint32_t> idx = utils::Rand();
+  return fmt::format("{}-{:x}", name, idx++);
+}
 
 }  // namespace
 
@@ -29,7 +38,7 @@ class Locker::LockGuard {
     engine::TaskCancellationBlocker cancel_blocker;
     try {
       if (locker_.ExchangeLockState(false, utils::datetime::SteadyNow())) {
-        locker_.strategy_->Release();
+        locker_.strategy_->Release(locker_.Id());
       }
     } catch (const std::exception& ex) {
       LOG_WARNING() << "Failed to release lock on stop: " << ex;
@@ -44,6 +53,7 @@ Locker::Locker(std::string name, std::shared_ptr<DistLockStrategyBase> strategy,
                const DistLockSettings& settings,
                std::function<void()> worker_func)
     : name_(std::move(name)),
+      id_(MakeLockerId(name_)),
       strategy_(std::move(strategy)),
       worker_func_(std::move(worker_func)),
       settings_(settings) {
@@ -51,6 +61,8 @@ Locker::Locker(std::string name, std::shared_ptr<DistLockStrategyBase> strategy,
 }
 
 const std::string& Locker::Name() const { return name_; }
+
+const std::string& Locker::Id() const { return id_; }
 
 DistLockSettings Locker::GetSettings() const {
   std::lock_guard<engine::Mutex> lock(settings_mutex_);
@@ -83,7 +95,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode) {
     const auto attempt_start = utils::datetime::SteadyNow();
 
     try {
-      strategy_->Acquire(settings.lock_ttl);
+      strategy_->Acquire(settings.lock_ttl, Id());
       stats_.successes++;
       if (!ExchangeLockState(true, attempt_start)) {
         LOG_DEBUG() << "Starting watchdog task";

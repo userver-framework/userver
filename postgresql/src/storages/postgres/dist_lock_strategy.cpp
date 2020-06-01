@@ -37,6 +37,10 @@ std::string MakeReleaseQuery(const std::string& table) {
   return fmt::format(kReleaseQueryFmt, table);
 }
 
+std::string MakeOwnerId(const std::string& prefix, const std::string& locker) {
+  return fmt::format("{}:{}", prefix, locker);
+}
+
 }  // namespace
 
 DistLockStrategy::DistLockStrategy(ClusterPtr cluster, const std::string& table,
@@ -48,7 +52,7 @@ DistLockStrategy::DistLockStrategy(ClusterPtr cluster, const std::string& table,
       acquire_query_(MakeAcquireQuery(table)),
       release_query_(MakeReleaseQuery(table)),
       lock_name_(lock_name),
-      owner_(hostinfo::blocking::GetRealHostName()) {}
+      owner_prefix_(hostinfo::blocking::GetRealHostName()) {}
 
 void DistLockStrategy::UpdateCommandControl(CommandControl cc) {
   auto cc_ptr = cc_.StartWrite();
@@ -56,20 +60,21 @@ void DistLockStrategy::UpdateCommandControl(CommandControl cc) {
   cc_ptr.Commit();
 }
 
-void DistLockStrategy::Acquire(std::chrono::milliseconds lock_time) {
-  double timeout_seconds = lock_time.count() / 1000.0;
+void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl,
+                               const std::string& locker_id) {
+  double timeout_seconds = lock_ttl.count() / 1000.0;
   auto cc_ptr = cc_.Read();
-  auto result =
-      cluster_->Execute(ClusterHostType::kMaster, *cc_ptr, acquire_query_,
-                        lock_name_, owner_, timeout_seconds);
+  auto result = cluster_->Execute(
+      ClusterHostType::kMaster, *cc_ptr, acquire_query_, lock_name_,
+      MakeOwnerId(owner_prefix_, locker_id), timeout_seconds);
 
   if (result.IsEmpty()) throw dist_lock::LockIsAcquiredByAnotherHostException();
 }
 
-void DistLockStrategy::Release() {
+void DistLockStrategy::Release(const std::string& locker_id) {
   auto cc_ptr = cc_.Read();
   cluster_->Execute(ClusterHostType::kMaster, *cc_ptr, release_query_,
-                    lock_name_, owner_);
+                    lock_name_, MakeOwnerId(owner_prefix_, locker_id));
 }
 
 }  // namespace postgres

@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <exception>
+#include <string>
 
 namespace dist_lock {
 
@@ -17,14 +18,21 @@ class DistLockStrategyBase {
   virtual ~DistLockStrategyBase() {}
 
   /// Acquires the distributed lock.
+  ///
+  /// @param lock_ttl The duration for which the lock must be held.
+  /// @param locker_id Globally unique ID of the locking entity.
   /// @throws LockIsAcqiredByAnotherHostError when the lock is busy
   /// @throws anything else when the locking fails, strategy is responsible for
   /// cleanup, Release won't be invoked.
-  virtual void Acquire(std::chrono::milliseconds) = 0;
+  virtual void Acquire(std::chrono::milliseconds lock_ttl,
+                       const std::string& locker_id) = 0;
 
   /// Releases the lock.
+  ///
+  /// @param locker_id Globally unique ID of the locking entity, must be the
+  /// same as in Acquire().
   /// @note Exceptions are ignored.
-  virtual void Release() = 0;
+  virtual void Release(const std::string& locker_id) = 0;
 };
 
 }  // namespace dist_lock

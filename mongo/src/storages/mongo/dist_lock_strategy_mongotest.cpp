@@ -35,8 +35,8 @@ TEST(DistLockTest, AcquireAndRelease) {
   RunInCoro([] {
     auto collection = MakeCollection("test_acquire_and_release");
     DistLockStrategy strategy(collection, "key_simple", "owner");
-    EXPECT_NO_THROW(strategy.Acquire(1s));
-    EXPECT_NO_THROW(strategy.Release());
+    EXPECT_NO_THROW(strategy.Acquire(1s, {}));
+    EXPECT_NO_THROW(strategy.Release({}));
   });
 }
 
@@ -46,8 +46,8 @@ TEST(DistLockTest, Prolong) {
   RunInCoro([] {
     auto collection = MakeCollection("test_prolong");
     DistLockStrategy strategy(collection, "key_prolong", "owner");
-    EXPECT_NO_THROW(strategy.Acquire(1s));
-    EXPECT_NO_THROW(strategy.Acquire(1s));
+    EXPECT_NO_THROW(strategy.Acquire(1s, {}));
+    EXPECT_NO_THROW(strategy.Acquire(1s, {}));
   });
 }
 
@@ -60,10 +60,12 @@ TEST(DistLockTest, TestOwner) {
     DistLockStrategy strategy1(collection, key, "owner1");
     DistLockStrategy strategy2(collection, key, "owner2");
 
-    EXPECT_NO_THROW(strategy1.Acquire(1s));
-    ASSERT_THROW(strategy2.Acquire(1s),
+    EXPECT_NO_THROW(strategy1.Acquire(1s, "first"));
+    EXPECT_THROW(strategy1.Acquire(1s, "second"),
                  dist_lock::LockIsAcquiredByAnotherHostException);
-    EXPECT_NO_THROW(strategy2.Release());
+    ASSERT_THROW(strategy2.Acquire(1s, {}),
+                 dist_lock::LockIsAcquiredByAnotherHostException);
+    EXPECT_NO_THROW(strategy2.Release("first"));
   });
 }
 
@@ -76,10 +78,10 @@ TEST(DistLockTest, Expire) {
     DistLockStrategy strategy1(collection, key, "owner1");
     DistLockStrategy strategy2(collection, key, "owner2");
 
-    EXPECT_NO_THROW(strategy1.Acquire(1s));
+    EXPECT_NO_THROW(strategy1.Acquire(1s, {}));
     utils::datetime::MockSleep(5s);
-    EXPECT_NO_THROW(strategy2.Acquire(1s));
-    EXPECT_THROW(strategy1.Acquire(1s),
+    EXPECT_NO_THROW(strategy2.Acquire(1s, {}));
+    EXPECT_THROW(strategy1.Acquire(1s, {}),
                  dist_lock::LockIsAcquiredByAnotherHostException);
   });
 }
@@ -93,10 +95,10 @@ TEST(DistLockTest, ReleaseAcquire) {
     DistLockStrategy strategy1(collection, key, "owner1");
     DistLockStrategy strategy2(collection, key, "owner2");
 
-    EXPECT_NO_THROW(strategy1.Acquire(1s));
-    EXPECT_NO_THROW(strategy2.Release());
-    EXPECT_NO_THROW(strategy1.Acquire(1s));
-    EXPECT_NO_THROW(strategy1.Release());
-    EXPECT_NO_THROW(strategy2.Acquire(1s));
+    EXPECT_NO_THROW(strategy1.Acquire(1s, {}));
+    EXPECT_NO_THROW(strategy2.Release({}));
+    EXPECT_NO_THROW(strategy1.Acquire(1s, {}));
+    EXPECT_NO_THROW(strategy1.Release({}));
+    EXPECT_NO_THROW(strategy2.Acquire(1s, {}));
   });
 }

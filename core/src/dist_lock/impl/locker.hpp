@@ -23,6 +23,7 @@ class Locker final {
          const DistLockSettings& settings, std::function<void()> worker_func);
 
   const std::string& Name() const;
+  const std::string& Id() const;
 
   DistLockSettings GetSettings() const;
   void SetSettings(const DistLockSettings&);
@@ -43,6 +44,7 @@ class Locker final {
   void RunWatchdog();
 
   const std::string name_;
+  const std::string id_;
   std::shared_ptr<DistLockStrategyBase> strategy_;
   std::function<void()> worker_func_;
 

@@ -1,5 +1,6 @@
 #include <utest/utest.hpp>
 
+#include <concurrent/variable.hpp>
 #include <dist_lock/dist_lock_settings.hpp>
 #include <dist_lock/dist_lock_strategy.hpp>
 #include <dist_lock/dist_locked_task.hpp>
@@ -28,22 +29,40 @@ dist_lock::DistLockSettings MakeSettings() {
 
 class MockDistLockStrategy : public dist_lock::DistLockStrategyBase {
  public:
-  void Acquire(std::chrono::milliseconds) override {
+  ~MockDistLockStrategy() { EXPECT_FALSE(IsLocked()); }
+
+  void Acquire(std::chrono::milliseconds,
+               const std::string& locker_id) override {
+    UASSERT(!locker_id.empty());
     attempts_++;
-    if (locked_) throw dist_lock::LockIsAcquiredByAnotherHostException();
+    auto locked_by = locked_by_var_.Lock();
+    if (!locked_by->empty() && *locked_by != locker_id)
+      throw dist_lock::LockIsAcquiredByAnotherHostException();
     if (!allowed_) throw std::runtime_error("not allowed");
+    *locked_by = locker_id;
   }
 
-  void Release() override {}
+  void Release(const std::string& locker_id) override {
+    auto locked_by = locked_by_var_.Lock();
+    if (*locked_by == locker_id) locked_by->clear();
+  }
+
+  bool IsLocked() {
+    auto locked_by = locked_by_var_.Lock();
+    return !locked_by->empty();
+  }
 
   void Allow(bool allowed) { allowed_ = allowed; }
 
-  void LockedByOther(bool locked) { locked_ = locked; }
+  void SetLockedBy(const std::string& whom) {
+    auto locked_by = locked_by_var_.Lock();
+    *locked_by = whom;
+  }
 
   size_t GetAttemptsCount() const { return attempts_; }
 
  private:
-  std::atomic<bool> locked_{false};
+  concurrent::Variable<std::string> locked_by_var_;
   std::atomic<bool> allowed_{false};
   std::atomic<size_t> attempts_{0};
 };
@@ -226,10 +245,10 @@ TEST(LockedWorker, LockedByOther) {
         strategy->Allow(true);
         EXPECT_TRUE(work.WaitForLocked(true, kMaxTestWaitTime));
 
-        strategy->LockedByOther(true);
+        strategy->SetLockedBy("me");
         EXPECT_TRUE(work.WaitForLocked(false, kMaxTestWaitTime));
 
-        strategy->LockedByOther(false);
+        strategy->Release("me");
         EXPECT_TRUE(work.WaitForLocked(false, kMaxTestWaitTime));
 
         locked_worker.Stop();
@@ -291,7 +310,7 @@ TEST(LockedTask, NoWait) {
         auto settings = MakeSettings();
 
         auto strategy = MakeMockStrategy();
-        strategy->LockedByOther(true);
+        strategy->SetLockedBy("me");
 
         DistLockWorkload work(true);
         dist_lock::DistLockedTask locked_task(
@@ -305,6 +324,7 @@ TEST(LockedTask, NoWait) {
         EXPECT_TRUE(locked_task.IsFinished());
         EXPECT_EQ(0u, work.GetStartedWorkCount());
         EXPECT_EQ(0u, work.GetFinishedWorkCount());
+        strategy->Release("me");
       },
       3);
 }
@@ -331,4 +351,35 @@ TEST(LockedTask, NoWaitAquire) {
         EXPECT_EQ(1u, work.GetFinishedWorkCount());
       },
       3);
+}
+
+TEST(LockedTask, MultipleWorkers) {
+  RunInCoro([] {
+    auto strategy = MakeMockStrategy();
+    DistLockWorkload work;
+
+    EXPECT_EQ(0, work.GetStartedWorkCount());
+    EXPECT_EQ(0, work.GetFinishedWorkCount());
+    strategy->Allow(true);
+
+    dist_lock::DistLockedTask first(kWorkerName, [&] { work.Work(); }, strategy,
+                                    MakeSettings());
+
+    EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
+    EXPECT_EQ(1, work.GetStartedWorkCount());
+
+    dist_lock::DistLockedTask second(kWorkerName, [&] { work.Work(); },
+                                     strategy, MakeSettings(),
+                                     dist_lock::DistLockWaitingMode::kNoWait);
+
+    second.WaitFor(kAttemptTimeout);
+    EXPECT_TRUE(second.GetState() == engine::Task::State::kCompleted);
+    EXPECT_EQ(1, work.GetStartedWorkCount());
+
+    work.SetWorkLoopOn(false);
+    first.WaitFor(kMaxTestWaitTime);
+    second.WaitFor(kMaxTestWaitTime);
+
+    EXPECT_EQ(1, work.GetFinishedWorkCount());
+  });
 }
