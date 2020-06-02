@@ -22,7 +22,7 @@ class PipeReader final : public ReadableBase {
   bool IsValid() const override;
 
   /// Suspends current task until the pipe has data available.
-  bool WaitReadable(Deadline) override;
+  [[nodiscard]] bool WaitReadable(Deadline) override;
 
   /// Receives at least one bytes from the pipe.
   [[nodiscard]] size_t ReadSome(void* buf, size_t len,
@@ -60,7 +60,7 @@ class PipeWriter final {
   bool IsValid() const;
 
   /// Suspends current task until the pipe can accept more data.
-  bool WaitWriteable(Deadline);
+  [[nodiscard]] bool WaitWriteable(Deadline);
 
   /// Sends exactly len bytes to the pipe.
   /// @note Can return less than len if pipe is closed by peer.

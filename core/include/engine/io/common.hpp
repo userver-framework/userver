@@ -22,7 +22,7 @@ class ReadableBase {
   virtual bool IsValid() const = 0;
 
   /// Suspends current task until the stream has data available.
-  virtual bool WaitReadable(Deadline) = 0;
+  [[nodiscard]] virtual bool WaitReadable(Deadline) = 0;
 
   /// Receives at least one byte from the stream.
   [[nodiscard]] virtual size_t ReadSome(void* buf, size_t len,

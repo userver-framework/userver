@@ -39,10 +39,10 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   bool IsValid() const override;
 
   /// Suspends current task until the socket has data available.
-  bool WaitReadable(Deadline) override;
+  [[nodiscard]] bool WaitReadable(Deadline) override;
 
   /// Suspends current task until the socket can accept more data.
-  bool WaitWriteable(Deadline);
+  [[nodiscard]] bool WaitWriteable(Deadline);
 
   /// Receives at least one byte from the socket.
   [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);

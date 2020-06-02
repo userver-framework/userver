@@ -47,15 +47,6 @@ int ReduceSigpipe(int fd) {
   return fd;
 }
 
-std::string ToString(Direction::Kind direction_kind) {
-  switch (direction_kind) {
-    case Direction::Kind::kRead:
-      return "read";
-    case Direction::Kind::kWrite:
-      return "write";
-  }
-}
-
 class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
  public:
   DirectionWaitStrategy(Deadline deadline, engine::impl::WaitList& waiters,
@@ -110,9 +101,7 @@ bool Direction::Wait(Deadline deadline) {
 
   auto current = current_task::GetCurrentTaskContext();
 
-  if (current->ShouldCancel()) {
-    throw IoCancelled() << "Wait " << ToString(kind_) << "able";
-  }
+  if (current->ShouldCancel()) return false;
 
   impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
                                            current);

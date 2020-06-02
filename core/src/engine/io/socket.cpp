@@ -14,7 +14,6 @@
 
 #include <build_config.hpp>
 #include <engine/io/fd_control.hpp>
-#include <engine/task/task_context.hpp>
 #include <utils/check_syscall.hpp>
 
 namespace engine {
@@ -139,12 +138,10 @@ Socket Socket::Accept(Deadline deadline) {
 #if EAGAIN != EWOULDBLOCK
       case EWOULDBLOCK:
 #endif
-        if (current_task::ShouldCancel()) {
-          throw IoCancelled() << "Accept";
-        }
-        WaitReadable(deadline);
-        if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
-            engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
+        if (!WaitReadable(deadline)) {
+          if (current_task::ShouldCancel()) {
+            throw IoCancelled() << "Accept";
+          }
           throw ConnectTimeout();
         }
         break;
@@ -205,12 +202,10 @@ Socket Connect(Addr addr, Deadline deadline) {
   }
   err_value = errno;
   if (err_value == EINPROGRESS) {
-    if (current_task::ShouldCancel()) {
-      throw IoCancelled() << "Connect";
-    }
-    socket.WaitWriteable(deadline);
-    if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
-        engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
+    if (!socket.WaitWriteable(deadline)) {
+      if (current_task::ShouldCancel()) {
+        throw IoCancelled() << "Connect";
+      }
       throw ConnectTimeout();
     }
     err_value = socket.GetOption(SOL_SOCKET, SO_ERROR);
