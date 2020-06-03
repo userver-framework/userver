@@ -343,7 +343,7 @@ TEST(ServerNetConnection, CancelMultipleInFlight) {
       EXPECT_TRUE(task.IsFinished());
 
       if (handler.asyncs_finished < kInFlightRequests) {
-        return;  // success, requests were canceled
+        return;  // success, requests were cancelled
       }
     }
 

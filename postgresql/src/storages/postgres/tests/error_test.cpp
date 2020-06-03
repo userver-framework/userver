@@ -779,9 +779,9 @@ TEST(PostgreError, SqlState) {
             pg::SqlStateFromString("57000"));
   EXPECT_EQ(pg::SqlStateClass::kOperatorIntervention,
             pg::GetSqlStateClass(pg::SqlState::kOperatorIntervention));
-  EXPECT_EQ(pg::SqlState::kQueryCanceled, pg::SqlStateFromString("57014"));
+  EXPECT_EQ(pg::SqlState::kQueryCancelled, pg::SqlStateFromString("57014"));
   EXPECT_EQ(pg::SqlStateClass::kOperatorIntervention,
-            pg::GetSqlStateClass(pg::SqlState::kQueryCanceled));
+            pg::GetSqlStateClass(pg::SqlState::kQueryCancelled));
   EXPECT_EQ(pg::SqlState::kAdminShutdown, pg::SqlStateFromString("57P01"));
   EXPECT_EQ(pg::SqlStateClass::kOperatorIntervention,
             pg::GetSqlStateClass(pg::SqlState::kAdminShutdown));

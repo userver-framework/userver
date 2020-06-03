@@ -40,10 +40,10 @@ class QuorumCommitTopology {
   class Impl;
   // MAC_COMPAT
 #ifdef _LIBCPP_VERSION
-  static constexpr std::size_t kImplSize = 976;
+  static constexpr std::size_t kImplSize = 984;
   static constexpr std::size_t kImplAlign = 16;
 #else
-  static constexpr std::size_t kImplSize = 864;
+  static constexpr std::size_t kImplSize = 872;
   static constexpr std::size_t kImplAlign = 8;
 #endif
   ::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;

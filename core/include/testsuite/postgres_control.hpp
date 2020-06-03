@@ -8,8 +8,11 @@ namespace testsuite {
 
 class PostgresControl {
  public:
+  enum class ReadonlyMaster { kNotExpected, kExpected };
+
   PostgresControl(std::chrono::milliseconds execute_timeout,
-                  std::chrono::milliseconds statement_timeout);
+                  std::chrono::milliseconds statement_timeout,
+                  ReadonlyMaster readonly_master);
 
   PostgresControl();
 
@@ -19,9 +22,12 @@ class PostgresControl {
   [[nodiscard]] std::chrono::milliseconds MakeStatementTimeout(
       std::chrono::milliseconds duration) const;
 
+  bool IsReadonlyMasterExpected() const;
+
  private:
   std::chrono::milliseconds execute_timeout_;
   std::chrono::milliseconds statement_timeout_;
+  bool is_readonly_master_expected_;
 };
 
 }  // namespace testsuite

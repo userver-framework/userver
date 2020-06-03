@@ -116,7 +116,7 @@ order by c.reltype, a.attnum)~";
 
 const std::string kPingStatement = "select 1 as ping";
 
-const TimeoutDuration kConnectTimeout{2000};
+const TimeoutDuration kConnectTimeout = std::chrono::seconds{2};
 
 }  // namespace
 
@@ -214,7 +214,7 @@ struct Connection::Impl {
           "SELECT current_setting('transaction_read_only')::bool", deadline);
       if (!is_not_writable.IsEmpty()) {
         is_not_writable.Front().To(read_only_);
-        if (read_only_) {
+        if (read_only_ && !testsuite_pg_ctl_.IsReadonlyMasterExpected()) {
           LOG_WARNING() << "Primary host is not writable, possibly due to "
                            "insufficient disk space";
         }
@@ -638,9 +638,9 @@ struct Connection::Impl {
                     << "Network timout was " << network_timeout.count() << "ms";
       span.AddTag(tracing::kErrorFlag, true);
       throw;
-    } catch (const QueryCanceled& e) {
+    } catch (const QueryCancelled& e) {
       ++stats_.execute_timeout;
-      LOG_WARNING() << "Statement `" << statement << "` was canceled: " << e
+      LOG_WARNING() << "Statement `" << statement << "` was cancelled: " << e
                     << ". Statement timeout was "
                     << current_statement_timeout_.count() << "ms";
       span.AddTag(tracing::kErrorFlag, true);

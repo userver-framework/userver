@@ -318,7 +318,7 @@ const std::unordered_map<std::string, SqlState> kCodeStrToState{
     //@{
     /** @name Class 57 — Operator Intervention */
     {"57000", SqlState::kOperatorIntervention},
-    {"57014", SqlState::kQueryCanceled},
+    {"57014", SqlState::kQueryCancelled},
     {"57P01", SqlState::kAdminShutdown},
     {"57P02", SqlState::kCrashShutdown},
     {"57P03", SqlState::kCannotConnectNow},

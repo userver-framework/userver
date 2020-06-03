@@ -402,7 +402,7 @@ enum class SqlState : std::int64_t {
   /** @name Class 57 — Operator Intervention */
   kOperatorIntervention = static_cast<std::int64_t>(
       SqlStateClass::kOperatorIntervention),  //!< 57000
-  kQueryCanceled,                             //!< 57014
+  kQueryCancelled,                            //!< 57014
   kAdminShutdown,                             //!< 57P01
   kCrashShutdown,                             //!< 57P02
   kCannotConnectNow,                          //!< 57P03

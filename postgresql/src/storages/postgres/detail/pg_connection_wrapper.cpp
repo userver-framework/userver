@@ -1,5 +1,6 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 
+#include <engine/task/cancel.hpp>
 #include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
@@ -234,18 +235,28 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
     switch (poll_res) {
       case PGRES_POLLING_READING:
         if (!WaitSocketReadable(deadline)) {
+          if (engine::current_task::ShouldCancel()) {
+            throw ConnectionInterrupted(
+                "Task cancelled while polling connection for reading");
+          }
           PGCW_LOG_WARNING() << "Timeout while polling PostgreSQL connection "
-                                "socket, timeout was "
+                                "socket for reading, timeout was "
                              << timeout.count() << "ms";
-          throw ConnectionTimeoutError("Timed out while polling connection");
+          throw ConnectionTimeoutError(
+              "Timed out while polling connection for reading");
         }
         break;
       case PGRES_POLLING_WRITING:
         if (!WaitSocketWriteable(deadline)) {
+          if (engine::current_task::ShouldCancel()) {
+            throw ConnectionInterrupted(
+                "Task cancelled while polling connection for writing");
+          }
           PGCW_LOG_WARNING() << "Timeout while polling PostgreSQL connection "
-                                "socket, timeout was "
+                                "socket for writing, timeout was "
                              << timeout.count() << "ms";
-          throw ConnectionTimeoutError("Timed out while polling connection");
+          throw ConnectionTimeoutError(
+              "Timed out while polling connection for writing");
         }
         break;
       case PGRES_POLLING_ACTIVE:
@@ -298,6 +309,9 @@ void PGConnectionWrapper::Flush(Deadline deadline) {
       throw CommandError(PQerrorMessage(conn_));
     }
     if (!WaitSocketWriteable(deadline)) {
+      if (engine::current_task::ShouldCancel()) {
+        throw ConnectionInterrupted("Task cancelled while flushing connection");
+      }
       PGCW_LOG_WARNING()
           << "Timeout while flushing PostgreSQL connection socket";
       throw ConnectionTimeoutError("Timed out while flushing connection");
@@ -319,6 +333,9 @@ bool PGConnectionWrapper::TryConsumeInput(Deadline deadline) {
 
 void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
   if (!TryConsumeInput(deadline)) {
+    if (engine::current_task::ShouldCancel()) {
+      throw ConnectionInterrupted("Task cancelled while consuming input");
+    }
     PGCW_LOG_WARNING()
         << "Timeout while consuming input from PostgreSQL connection socket";
     throw ConnectionTimeoutError("Timed out while consuming input");

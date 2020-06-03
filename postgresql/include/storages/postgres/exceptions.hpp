@@ -84,7 +84,7 @@ namespace storages::postgres {
  *     - ProgramLimitExceeded
  *     - ObjectNotInPrerequisiteState
  *     - OperatorIntervention
- *       - QueryCanceled
+ *       - QueryCancelled
  *       - AdminShutdown
  *       - CrashShutdown
  *       - CannotConnectNow
@@ -140,6 +140,7 @@ namespace storages::postgres {
  *       - ServerConnectionError (contains a message from server)
  *       - ConnectionTimeoutError
  *     - ConnectionBusy
+ *     - ConnectionInterrupted
  *     - PoolError
  *     - ClusterError
  *     - InvalidConfig
@@ -241,6 +242,11 @@ class ClusterError : public RuntimeError {
 /// @brief An attempt to make a query to server was made while there is another
 /// query in flight.
 class ConnectionBusy : public RuntimeError {
+  using RuntimeError::RuntimeError;
+};
+
+/// @brief A network operation was interrupted by task cancellation.
+class ConnectionInterrupted : public RuntimeError {
   using RuntimeError::RuntimeError;
 };
 
@@ -500,9 +506,12 @@ class OperatorIntervention : public ServerRuntimeError {
   using ServerRuntimeError::ServerRuntimeError;
 };
 
-class QueryCanceled : public OperatorIntervention {
+class QueryCancelled : public OperatorIntervention {
   using OperatorIntervention::OperatorIntervention;
 };
+
+using QueryCanceled [[deprecated("Use QueryCancelled instead")]] =
+    QueryCancelled;
 
 class AdminShutdown : public OperatorIntervention {
   using OperatorIntervention::OperatorIntervention;

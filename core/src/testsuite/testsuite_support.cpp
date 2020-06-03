@@ -7,8 +7,11 @@ namespace components {
 namespace {
 
 const std::string kPeriodicUpdateEnabled = "testsuite-periodic-update-enabled";
+
 const std::string kPostgresExecuteTimeout = "testsuite-pg-execute-timeout";
 const std::string kPostgresStatementTimeout = "testsuite-pg-statement-timeout";
+const std::string kPostgresReadonlyMasterExpected =
+    "testsuite-pg-readonly-master-expected";
 
 const std::string kRedisConnectTimeout = "testsuite-redis-timeout-connect";
 const std::string kRedisTimeoutSingle = "testsuite-redis-timeout-single";
@@ -30,7 +33,10 @@ testsuite::PostgresControl ParsePostgresControl(
       config.ParseDuration(kPostgresExecuteTimeout,
                            std::chrono::milliseconds::zero()),
       config.ParseDuration(kPostgresStatementTimeout,
-                           std::chrono::milliseconds::zero()));
+                           std::chrono::milliseconds::zero()),
+      config.ParseBool(kPostgresReadonlyMasterExpected, false)
+          ? testsuite::PostgresControl::ReadonlyMaster::kExpected
+          : testsuite::PostgresControl::ReadonlyMaster::kNotExpected);
 }
 
 testsuite::RedisControl ParseRedisControl(

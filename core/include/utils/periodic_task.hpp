@@ -31,10 +31,10 @@ class PeriodicTask final {
     /// Randomize wait period (+-25% by default)
     kChaotic = 1 << 2,
     /// Use `engine::Task::Importance::kCritical` flag
-    /// @note Although this periodic task cannot be canceled due to
-    /// system overload, it's canceled upon calling `Stop`.
+    /// @note Although this periodic task cannot be cancelled due to
+    /// system overload, it's cancelled upon calling `Stop`.
     /// Subtasks that may be spawned in the callback
-    /// are not critical by default and may be canceled as usual.
+    /// are not critical by default and may be cancelled as usual.
     kCritical = 1 << 4,
   };
 

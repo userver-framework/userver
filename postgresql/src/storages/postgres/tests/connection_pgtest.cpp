@@ -1,13 +1,12 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
-#include <gtest/gtest.h>
-
-#include <storages/postgres/detail/connection.hpp>
+#include <engine/single_consumer_event.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/null.hpp>
 
-#include <storages/postgres/io/chrono.hpp>
+#include <storages/postgres/detail/connection.hpp>
 
 namespace pg = storages::postgres;
 
@@ -259,22 +258,44 @@ POSTGRE_TEST_P(RAIITransaction) {
 
 POSTGRE_TEST_P(StatementTimout) {
   ASSERT_TRUE(conn.get());
-  pg::ResultSet res{nullptr};
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Network timeout
-  conn->SetDefaultCommandControl(
-      pg::CommandControl{pg::TimeoutDuration{10}, pg::TimeoutDuration{0}});
+  conn->SetDefaultCommandControl(pg::CommandControl{
+      std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
   EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
   EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
-  EXPECT_NO_THROW(conn->CancelAndCleanup(pg::TimeoutDuration{1000}));
+  EXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Query cancelled
-  conn->SetDefaultCommandControl(
-      pg::CommandControl{pg::TimeoutDuration{2000}, pg::TimeoutDuration{10}});
-  EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCanceled);
+  conn->SetDefaultCommandControl(pg::CommandControl{
+      std::chrono::seconds{2}, std::chrono::milliseconds{10}});
+  EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCancelled);
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  EXPECT_NO_THROW(conn->CancelAndCleanup(pg::TimeoutDuration{1000}));
+  EXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+}
+
+POSTGRE_TEST_P(QueryTaskCancel) {
+  ASSERT_TRUE(conn.get());
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+
+  conn->SetDefaultCommandControl(
+      pg::CommandControl{kMaxTestWaitTime, kMaxTestWaitTime});
+
+  engine::SingleConsumerEvent task_started;
+  auto task = engine::impl::Async([&] {
+    task_started.Send();
+    EXPECT_THROW(conn->Execute("select pg_sleep(1)"),
+                 pg::ConnectionInterrupted);
+  });
+  ASSERT_TRUE(task_started.WaitForEventFor(kMaxTestWaitTime));
+  task.RequestCancel();
+  task.WaitFor(kMaxTestWaitTime);
+  ASSERT_TRUE(task.IsFinished());
+
+  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
+  EXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 

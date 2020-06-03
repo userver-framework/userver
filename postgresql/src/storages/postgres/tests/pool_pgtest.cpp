@@ -206,7 +206,8 @@ TEST_P(PostgrePool, ConnectionCleanup) {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
         kCachePreparedStatements,
-        pg::CommandControl{pg::TimeoutDuration{100}, pg::TimeoutDuration{1000}},
+        pg::CommandControl{std::chrono::milliseconds{100},
+                           std::chrono::seconds{1}},
         testsuite::PostgresControl{}, error_injection::Settings{});
 
     {
@@ -243,13 +244,14 @@ TEST_P(PostgrePool, QueryCancel) {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
         kCachePreparedStatements,
-        pg::CommandControl{pg::TimeoutDuration{100}, pg::TimeoutDuration{10}},
+        pg::CommandControl{std::chrono::milliseconds{100},
+                           std::chrono::milliseconds{10}},
         testsuite::PostgresControl{}, error_injection::Settings{});
     {
       pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
       EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
 
-      EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCanceled)
+      EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled)
           << "Fail statement on timeout";
       EXPECT_NO_THROW(trx.Commit()) << "Connection is left in a usable state";
     }

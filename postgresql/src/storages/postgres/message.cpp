@@ -186,8 +186,8 @@ void Message::ThrowException() const {
     case SqlStateClass::kOperatorIntervention:
       // Be more specific here
       switch (state) {
-        case SqlState::kQueryCanceled:
-          throw QueryCanceled{*this};
+        case SqlState::kQueryCancelled:
+          throw QueryCancelled{*this};
         case SqlState::kAdminShutdown:
           throw AdminShutdown{*this};
         case SqlState::kCrashShutdown:

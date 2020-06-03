@@ -32,7 +32,7 @@ POSTGRE_TEST_P(NonTransactionStatementTimeout) {
 
   pg::CommandControl cc{std::chrono::milliseconds{300},
                         std::chrono::milliseconds{50}};
-  EXPECT_THROW(ntrx.Execute(cc, "SELECT pg_sleep(1)"), pg::QueryCanceled);
+  EXPECT_THROW(ntrx.Execute(cc, "SELECT pg_sleep(1)"), pg::QueryCancelled);
   // NOTE: connection may now be reused
   EXPECT_NO_THROW(ntrx.Execute("SELECT 1"));
 }

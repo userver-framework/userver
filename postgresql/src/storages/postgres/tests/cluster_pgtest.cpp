@@ -303,7 +303,7 @@ TEST_P(PostgreCluster, TransactionTimeouts) {
     {
       // Default transaction timeout
       auto trx = cluster.Begin(pg::Transaction::RW);
-      EXPECT_THROW(trx.Execute("select pg_sleep(10)"), pg::QueryCanceled);
+      EXPECT_THROW(trx.Execute("select pg_sleep(10)"), pg::QueryCancelled);
       trx.Rollback();
     }
     {
@@ -319,7 +319,7 @@ TEST_P(PostgreCluster, TransactionTimeouts) {
       auto trx = cluster.Begin(
           pg::Transaction::RW,
           kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{50}));
-      EXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCanceled);
+      EXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
       trx.Commit();
     }
   });

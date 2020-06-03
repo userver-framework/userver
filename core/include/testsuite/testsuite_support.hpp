@@ -40,6 +40,13 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// testsuite-periodic-update-enabled | whether caches update periodically | true
+/// testsuite-pg-execute-timeout | execute timeout override for postgres | -
+/// testsuite-pg-statement-timeout | statement timeout override for postgres | -
+/// testsuite-pg-readonly-master-expected | mutes readonly master detection warning | false
+/// testsuite-redis-timeout-connect | minimum connection timeout for redis | -
+/// testsuite-redis-timeout-single | minimum single shard timeout for redis | -
+/// testsuite-redis-timeout-all | minimum command timeout for redis | -
+/// testsuite-redis-disable-cluster-mode | disables cluster sharding strategy | false
 
 // clang-format on
 
