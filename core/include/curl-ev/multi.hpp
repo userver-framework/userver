@@ -29,40 +29,6 @@ class TimerWatcher;
 }  // namespace ev
 }  // namespace engine
 
-#define IMPLEMENT_CURL_MOPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)           \
-  inline void FUNCTION_NAME(bool enabled) {                                  \
-    std::error_code ec;                                                      \
-    FUNCTION_NAME(enabled, ec);                                              \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                            \
-  }                                                                          \
-  inline void FUNCTION_NAME(bool enabled, std::error_code& ec) {             \
-    ec = std::error_code(                                                    \
-        native::curl_multi_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L)); \
-  }
-
-#define IMPLEMENT_CURL_MOPTION(FUNCTION_NAME, OPTION_NAME, OPTION_TYPE)        \
-  inline void FUNCTION_NAME(OPTION_TYPE arg) {                                 \
-    std::error_code ec;                                                        \
-    FUNCTION_NAME(arg, ec);                                                    \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
-  }                                                                            \
-  inline void FUNCTION_NAME(OPTION_TYPE arg, std::error_code& ec) {            \
-    ec =                                                                       \
-        std::error_code(native::curl_multi_setopt(handle_, OPTION_NAME, arg)); \
-  }
-
-#define IMPLEMENT_CURL_MOPTION_ENUM(FUNCTION_NAME, OPTION_NAME, ENUM_TYPE, \
-                                    OPTION_TYPE)                           \
-  inline void FUNCTION_NAME(ENUM_TYPE arg) {                               \
-    std::error_code ec;                                                    \
-    FUNCTION_NAME(arg, ec);                                                \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
-  }                                                                        \
-  inline void FUNCTION_NAME(ENUM_TYPE arg, std::error_code& ec) {          \
-    ec = std::error_code(native::curl_multi_setopt(                        \
-        handle_, OPTION_NAME, static_cast<OPTION_TYPE>(arg)));             \
-  }
-
 namespace curl {
 class easy;
 struct socket_info;
@@ -96,13 +62,9 @@ class multi final {
 
   bool MayAcquireConnectionHttps(const std::string& url);
 
-  enum pipelining_mode_t { pipe_nothing, pipe_multiplex };
-  IMPLEMENT_CURL_MOPTION_ENUM(set_pipelining, native::CURLMOPT_PIPELINING,
-                              pipelining_mode_t, long);
-  IMPLEMENT_CURL_MOPTION(set_max_host_connections,
-                         native::CURLMOPT_MAX_HOST_CONNECTIONS, size_t);
-  IMPLEMENT_CURL_MOPTION(set_max_connections, native::CURLMOPT_MAXCONNECTS,
-                         long);
+  void SetMultiplexingEnabled(bool);
+  void SetMaxHostConnections(long);
+  void SetConnectionCacheSize(long);
 
  private:
   void add_handle(native::CURL* native_easy);
@@ -121,6 +83,8 @@ class multi final {
                                    void* userp);
   void set_timer_function(timer_function_t timer_function);
   void set_timer_data(void* timer_data);
+
+  void SetOptionAsync(native::CURLMoption, long);
 
   void monitor_socket(socket_info* si, int action);
   void process_messages();

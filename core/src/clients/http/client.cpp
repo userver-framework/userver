@@ -1,6 +1,7 @@
 #include <clients/http/client.hpp>
 
 #include <cstdlib>
+#include <limits>
 
 #include <moodycamel/concurrentqueue.h>
 
@@ -16,6 +17,12 @@ namespace http {
 namespace {
 
 const std::string kIoThreadName = "curl";
+
+// cURL accepts options as long, but we use size_t to avoid writing checks.
+// Clamp too high values to LONG_MAX, it shouldn't matter for these magnitudes.
+long ClampToLong(size_t value) {
+  return std::min<size_t>(value, std::numeric_limits<long>::max());
+}
 
 }  // namespace
 
@@ -96,21 +103,19 @@ std::shared_ptr<Request> Client::CreateRequest() {
 }
 
 void Client::SetMultiplexingEnabled(bool enabled) {
-  curl::multi::pipelining_mode_t mode =
-      enabled ? curl::multi::pipe_multiplex : curl::multi::pipe_nothing;
   for (auto& multi : multis_) {
-    multi->set_pipelining(mode);
+    multi->SetMultiplexingEnabled(enabled);
   }
 }
 
 void Client::SetMaxHostConnections(size_t max_host_connections) {
   for (auto& multi : multis_) {
-    multi->set_max_host_connections(max_host_connections);
+    multi->SetMaxHostConnections(ClampToLong(max_host_connections));
   }
 }
 
 void Client::SetConnectionPoolSize(size_t connection_pool_size) {
-  const size_t pool_size = connection_pool_size / multis_.size();
+  const auto pool_size = ClampToLong(connection_pool_size / multis_.size());
   if (pool_size * multis_.size() != connection_pool_size) {
     LOG_WARNING()
         << "SetConnectionPoolSize() rounded pool size for each multi ("
@@ -118,7 +123,7 @@ void Client::SetConnectionPoolSize(size_t connection_pool_size) {
         << pool_size << ")";
   }
   for (auto& multi : multis_) {
-    multi->set_max_connections(pool_size);
+    multi->SetConnectionCacheSize(pool_size);
   }
 }
 

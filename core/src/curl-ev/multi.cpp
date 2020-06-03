@@ -25,7 +25,21 @@ namespace curl {
 
 namespace {
 const auto kDefaultTokens = 1000000;
+
+const char* GetSetterName(native::CURLMoption option) {
+  switch (option) {
+    case native::CURLMOPT_PIPELINING:
+      return "SetMultiplexingEnabled";
+    case native::CURLMOPT_MAX_HOST_CONNECTIONS:
+      return "SetMaxHostConnections";
+    case native::CURLMOPT_MAXCONNECTS:
+      return "SetConnectionCacheSize";
+    default:
+      return "<unknown setter>";
+  }
 }
+
+}  // namespace
 
 using easy_set_type = std::set<easy*>;
 using BusyMarker = ::utils::statistics::BusyMarker;
@@ -81,6 +95,9 @@ multi::~multi() {
     easy* easy_handle = *it;
     easy_handle->cancel();
   }
+
+  // wait for async ops in loop
+  thread_control_.RunInEvLoopSync([] {});
 
   if (handle_) {
     native::curl_multi_cleanup(handle_);
@@ -151,6 +168,18 @@ bool multi::MayAcquireConnectionHttps(const std::string& url) {
   return ok;
 }
 
+void multi::SetMultiplexingEnabled(bool value) {
+  SetOptionAsync(native::CURLMOPT_PIPELINING, value ? 1 : 0);
+}
+
+void multi::SetMaxHostConnections(long value) {
+  SetOptionAsync(native::CURLMOPT_MAX_HOST_CONNECTIONS, value);
+}
+
+void multi::SetConnectionCacheSize(long value) {
+  SetOptionAsync(native::CURLMOPT_MAXCONNECTS, value);
+}
+
 void multi::add_handle(native::CURL* native_easy) {
   std::error_code ec(native::curl_multi_add_handle(handle_, native_easy));
   throw_error(ec, "add_handle");
@@ -198,6 +227,15 @@ void multi::set_timer_data(void* timer_data) {
   std::error_code ec(native::curl_multi_setopt(
       handle_, native::CURLMOPT_TIMERDATA, timer_data));
   throw_error(ec, "set_timer_data");
+}
+
+void multi::SetOptionAsync(native::CURLMoption option, long value) {
+  GetThreadControl().RunInEvLoopAsync([this, option, value] {
+    std::error_code ec(native::curl_multi_setopt(handle_, option, value));
+    if (ec) {
+      LOG_ERROR() << GetSetterName(option) << " failed: " << ec.message();
+    }
+  });
 }
 
 void multi::monitor_socket(socket_info* si, int action) {
