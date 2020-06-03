@@ -287,6 +287,13 @@ class MockClientBase : public Client,
   RequestZcard Zcard(std::string key,
                      const CommandControl& command_control) override;
 
+  RequestZrange Zrange(std::string key, int64_t start, int64_t stop,
+                       const CommandControl& command_control) override;
+
+  RequestZrangeWithScores ZrangeWithScores(
+      std::string key, int64_t start, int64_t stop,
+      const CommandControl& command_control) override;
+
   RequestZrangebyscore Zrangebyscore(
       std::string key, double min, double max,
       const CommandControl& command_control) override;
@@ -328,6 +335,10 @@ class MockClientBase : public Client,
 
   RequestZrem Zrem(std::string key, std::vector<std::string> members,
                    const CommandControl& command_control) override;
+
+  RequestZremrangebyrank Zremrangebyrank(
+      std::string key, int64_t start, int64_t stop,
+      const CommandControl& command_control) override;
 
   ScanRequest<ScanTag::kZscan> Zscan(
       std::string key, ZscanOptions options,

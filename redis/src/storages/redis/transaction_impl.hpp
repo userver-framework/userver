@@ -228,6 +228,11 @@ class TransactionImpl final : public Transaction {
 
   RequestZcard Zcard(std::string key) override;
 
+  RequestZrange Zrange(std::string key, int64_t start, int64_t stop) override;
+
+  RequestZrangeWithScores ZrangeWithScores(std::string key, int64_t start,
+                                           int64_t stop) override;
+
   RequestZrangebyscore Zrangebyscore(std::string key, double min,
                                      double max) override;
 
@@ -260,6 +265,9 @@ class TransactionImpl final : public Transaction {
   RequestZrem Zrem(std::string key, std::string member) override;
 
   RequestZrem Zrem(std::string key, std::vector<std::string> members) override;
+
+  RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start,
+                                         int64_t stop) override;
 
   RequestZscore Zscore(std::string key, std::string member) override;
 

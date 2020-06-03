@@ -520,6 +520,20 @@ RequestZcard MockClientBase::Zcard(std::string /*key*/,
   return RequestZcard{nullptr};
 }
 
+RequestZrange MockClientBase::Zrange(
+    std::string /*key*/, int64_t /*start*/, int64_t /*stop*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZrange{nullptr};
+}
+
+RequestZrangeWithScores MockClientBase::ZrangeWithScores(
+    std::string /*key*/, int64_t /*start*/, int64_t /*stop*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZrangeWithScores{nullptr};
+}
+
 RequestZrangebyscore MockClientBase::Zrangebyscore(
     std::string /*key*/, double /*min*/, double /*max*/,
     const CommandControl& /*command_control*/) {
@@ -591,6 +605,13 @@ RequestZrem MockClientBase::Zrem(std::string /*key*/,
                                  const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestZrem{nullptr};
+}
+
+RequestZremrangebyrank MockClientBase::Zremrangebyrank(
+    std::string /*key*/, int64_t /*start*/, int64_t /*stop*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZremrangebyrank{nullptr};
 }
 
 ScanRequest<ScanTag::kZscan> MockClientBase::Zscan(

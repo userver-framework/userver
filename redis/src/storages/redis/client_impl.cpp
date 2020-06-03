@@ -716,6 +716,24 @@ RequestZcard ClientImpl::Zcard(std::string key,
                   GetCommandControl(command_control)));
 }
 
+RequestZrange ClientImpl::Zrange(std::string key, int64_t start, int64_t stop,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestZrange>(
+      MakeRequest(CmdArgs{"zrange", std::move(key), start, stop}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
+RequestZrangeWithScores ClientImpl::ZrangeWithScores(
+    std::string key, int64_t start, int64_t stop,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  ::redis::ScoreOptions with_scores{true};
+  return CreateRequest<RequestZrangeWithScores>(
+      MakeRequest(CmdArgs{"zrange", std::move(key), start, stop, with_scores},
+                  shard, false, GetCommandControl(command_control)));
+}
+
 RequestZrangebyscore ClientImpl::Zrangebyscore(
     std::string key, double min, double max,
     const CommandControl& command_control) {
@@ -813,6 +831,15 @@ RequestZrem ClientImpl::Zrem(std::string key, std::vector<std::string> members,
   return CreateRequest<RequestZrem>(
       MakeRequest(CmdArgs{"zrem", std::move(key), std::move(members)}, shard,
                   true, GetCommandControl(command_control)));
+}
+
+RequestZremrangebyrank ClientImpl::Zremrangebyrank(
+    std::string key, int64_t start, int64_t stop,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestZremrangebyrank>(
+      MakeRequest(CmdArgs{"zremrangebyrank", std::move(key), start, stop},
+                  shard, true, GetCommandControl(command_control)));
 }
 
 ScanRequest<ScanTag::kZscan> ClientImpl::Zscan(

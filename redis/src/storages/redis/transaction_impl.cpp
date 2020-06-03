@@ -440,6 +440,21 @@ RequestZcard TransactionImpl::Zcard(std::string key) {
   return AddCmd<RequestZcard>("zcard", std::move(key));
 }
 
+RequestZrange TransactionImpl::Zrange(std::string key, int64_t start,
+                                      int64_t stop) {
+  UpdateShard(key);
+  return AddCmd<RequestZrange>("zrange", std::move(key), start, stop);
+}
+
+RequestZrangeWithScores TransactionImpl::ZrangeWithScores(std::string key,
+                                                          int64_t start,
+                                                          int64_t stop) {
+  UpdateShard(key);
+  ::redis::ScoreOptions with_scores{true};
+  return AddCmd<RequestZrangeWithScores>("zrange", std::move(key), start, stop,
+                                         with_scores);
+}
+
 RequestZrangebyscore TransactionImpl::Zrangebyscore(std::string key, double min,
                                                     double max) {
   UpdateShard(key);
@@ -517,6 +532,14 @@ RequestZrem TransactionImpl::Zrem(std::string key,
                                   std::vector<std::string> members) {
   UpdateShard(key);
   return AddCmd<RequestZrem>("zrem", std::move(key), std::move(members));
+}
+
+RequestZremrangebyrank TransactionImpl::Zremrangebyrank(std::string key,
+                                                        int64_t start,
+                                                        int64_t stop) {
+  UpdateShard(key);
+  return AddCmd<RequestZremrangebyrank>("zremrangebyrank", std::move(key),
+                                        start, stop);
 }
 
 RequestZscore TransactionImpl::Zscore(std::string key, std::string member) {

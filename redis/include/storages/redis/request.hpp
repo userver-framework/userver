@@ -200,9 +200,12 @@ using RequestZadd = Request<size_t>;
 using RequestZaddIncr = Request<double>;
 using RequestZaddIncrExisting = Request<std::optional<double>>;
 using RequestZcard = Request<size_t>;
+using RequestZrange = Request<std::vector<std::string>>;
+using RequestZrangeWithScores = Request<std::vector<MemberScore>>;
 using RequestZrangebyscore = Request<std::vector<std::string>>;
 using RequestZrangebyscoreWithScores = Request<std::vector<MemberScore>>;
 using RequestZrem = Request<size_t>;
+using RequestZremrangebyrank = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<std::optional<double>>;
 

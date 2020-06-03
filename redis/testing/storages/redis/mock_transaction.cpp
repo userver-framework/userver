@@ -490,6 +490,19 @@ RequestZcard MockTransaction::Zcard(std::string key) {
   return AddSubrequest(impl_->Zcard(std::move(key)));
 }
 
+RequestZrange MockTransaction::Zrange(std::string key, int64_t start,
+                                      int64_t stop) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Zrange(std::move(key), start, stop));
+}
+
+RequestZrangeWithScores MockTransaction::ZrangeWithScores(std::string key,
+                                                          int64_t start,
+                                                          int64_t stop) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->ZrangeWithScores(std::move(key), start, stop));
+}
+
 RequestZrangebyscore MockTransaction::Zrangebyscore(std::string key, double min,
                                                     double max) {
   UpdateShard(key);
@@ -559,6 +572,13 @@ RequestZrem MockTransaction::Zrem(std::string key,
                                   std::vector<std::string> members) {
   UpdateShard(key);
   return AddSubrequest(impl_->Zrem(std::move(key), std::move(members)));
+}
+
+RequestZremrangebyrank MockTransaction::Zremrangebyrank(std::string key,
+                                                        int64_t start,
+                                                        int64_t stop) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Zremrangebyrank(std::move(key), start, stop));
 }
 
 RequestZscore MockTransaction::Zscore(std::string key, std::string member) {

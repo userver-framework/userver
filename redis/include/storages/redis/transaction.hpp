@@ -203,6 +203,13 @@ class Transaction {
 
   virtual RequestZcard Zcard(std::string key) = 0;
 
+  virtual RequestZrange Zrange(std::string key, int64_t start,
+                               int64_t stop) = 0;
+
+  virtual RequestZrangeWithScores ZrangeWithScores(std::string key,
+                                                   int64_t start,
+                                                   int64_t stop) = 0;
+
   virtual RequestZrangebyscore Zrangebyscore(std::string key, double min,
                                              double max) = 0;
 
@@ -235,6 +242,9 @@ class Transaction {
 
   virtual RequestZrem Zrem(std::string key,
                            std::vector<std::string> members) = 0;
+
+  virtual RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start,
+                                                 int64_t stop) = 0;
 
   virtual RequestZscore Zscore(std::string key, std::string member) = 0;
 

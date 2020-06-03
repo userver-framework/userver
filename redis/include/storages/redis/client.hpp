@@ -306,6 +306,13 @@ class Client {
   virtual RequestZcard Zcard(std::string key,
                              const CommandControl& command_control) = 0;
 
+  virtual RequestZrange Zrange(std::string key, int64_t start, int64_t stop,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestZrangeWithScores ZrangeWithScores(
+      std::string key, int64_t start, int64_t stop,
+      const CommandControl& command_control) = 0;
+
   virtual RequestZrangebyscore Zrangebyscore(
       std::string key, double min, double max,
       const CommandControl& command_control) = 0;
@@ -347,6 +354,10 @@ class Client {
 
   virtual RequestZrem Zrem(std::string key, std::vector<std::string> members,
                            const CommandControl& command_control) = 0;
+
+  virtual RequestZremrangebyrank Zremrangebyrank(
+      std::string key, int64_t start, int64_t stop,
+      const CommandControl& command_control) = 0;
 
   virtual RequestZscan Zscan(std::string key, ZscanOptions options,
                              const CommandControl& command_control) = 0;

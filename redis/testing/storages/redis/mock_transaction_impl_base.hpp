@@ -164,6 +164,11 @@ class MockTransactionImplBase {
 
   virtual RequestZcard Zcard(std::string key);
 
+  virtual RequestZrange Zrange(std::string key, int64_t start, int64_t stop);
+
+  virtual RequestZrangeWithScores ZrangeWithScores(std::string key,
+                                                   int64_t start, int64_t stop);
+
   virtual RequestZrangebyscore Zrangebyscore(std::string key, double min,
                                              double max);
 
@@ -195,6 +200,9 @@ class MockTransactionImplBase {
   virtual RequestZrem Zrem(std::string key, std::string member);
 
   virtual RequestZrem Zrem(std::string key, std::vector<std::string> members);
+
+  virtual RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start,
+                                                 int64_t stop);
 
   virtual RequestZscore Zscore(std::string key, std::string member);
 

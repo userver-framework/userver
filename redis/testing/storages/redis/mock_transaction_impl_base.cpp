@@ -399,6 +399,19 @@ RequestZcard MockTransactionImplBase::Zcard(std::string /*key*/) {
   return RequestZcard{nullptr};
 }
 
+RequestZrange MockTransactionImplBase::Zrange(std::string /*key*/,
+                                              int64_t /*start*/,
+                                              int64_t /*stop*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZrange{nullptr};
+}
+
+RequestZrangeWithScores MockTransactionImplBase::ZrangeWithScores(
+    std::string /*key*/, int64_t /*start*/, int64_t /*stop*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZrangeWithScores{nullptr};
+}
+
 RequestZrangebyscore MockTransactionImplBase::Zrangebyscore(std::string /*key*/,
                                                             double /*min*/,
                                                             double /*max*/) {
@@ -462,6 +475,12 @@ RequestZrem MockTransactionImplBase::Zrem(
     std::string /*key*/, std::vector<std::string> /*members*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestZrem{nullptr};
+}
+
+RequestZremrangebyrank MockTransactionImplBase::Zremrangebyrank(
+    std::string /*key*/, int64_t /*start*/, int64_t /*stop*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZremrangebyrank{nullptr};
 }
 
 RequestZscore MockTransactionImplBase::Zscore(std::string /*key*/,

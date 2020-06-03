@@ -64,6 +64,8 @@ struct MemberScore final {
   bool operator==(const MemberScore& rhs) const {
     return member == rhs.member && score == rhs.score;
   }
+
+  bool operator!=(const MemberScore& rhs) const { return !(*this == rhs); }
 };
 
 enum class PersistReply { kKeyOrTimeoutNotFound, kTimeoutRemoved };

@@ -22,12 +22,12 @@ const string request_filename = add_path(userver_path, "redis/include/storages/r
 const string transaction_hpp_filename = add_path(userver_path, "redis/include/storages/redis/transaction.hpp");
 const string transaction_impl_hpp_filename = add_path(userver_path, "redis/src/storages/redis/transaction_impl.hpp");
 const string transaction_impl_cpp_filename = add_path(userver_path, "redis/src/storages/redis/transaction_impl.cpp");
-const string mock_client_base_test_hpp_filename = add_path(userver_path, "redis/include/storages/redis/mock_client_base_test.hpp");
-const string mock_client_base_test_cpp_filename = add_path(userver_path, "redis/src/storages/redis/mock_client_base_test.cpp");
-const string mock_transaction_test_hpp_filename = add_path(userver_path, "redis/src/storages/redis/mock_transaction_test.hpp");
-const string mock_transaction_test_cpp_filename = add_path(userver_path, "redis/src/storages/redis/mock_transaction_test.cpp");
-const string mock_transaction_impl_base_test_hpp_filename = add_path(userver_path, "redis/include/storages/redis/mock_transaction_impl_base_test.hpp");
-const string mock_transaction_impl_base_test_cpp_filename = add_path(userver_path, "redis/src/storages/redis/mock_transaction_impl_base_test.cpp");
+const string mock_client_base_test_hpp_filename = add_path(userver_path, "redis/testing/storages/redis/mock_client_base.hpp");
+const string mock_client_base_test_cpp_filename = add_path(userver_path, "redis/testing/storages/redis/mock_client_base.cpp");
+const string mock_transaction_test_hpp_filename = add_path(userver_path, "redis/testing/storages/redis/mock_transaction.hpp");
+const string mock_transaction_test_cpp_filename = add_path(userver_path, "redis/testing/storages/redis/mock_transaction.cpp");
+const string mock_transaction_impl_base_test_hpp_filename = add_path(userver_path, "redis/testing/storages/redis/mock_transaction_impl_base.hpp");
+const string mock_transaction_impl_base_test_cpp_filename = add_path(userver_path, "redis/testing/storages/redis/mock_transaction_impl_base.cpp");
 
 const string tmp_filename = "/tmp/add_redis_command_tmp.txt";
 

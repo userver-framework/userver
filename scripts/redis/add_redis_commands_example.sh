@@ -142,7 +142,10 @@
 
 ./add_redis_command zcard 'size_t' 'std::string key'
 
-#./add_redis_command zrange 'std::vector<std::string>' 'std::string key, int64_t start, int64_t stop'
+./add_redis_command zrange 'std::vector<std::string>' 'std::string key, int64_t start, int64_t stop'
+
+./add_redis_command zrangeWithScores 'std::vector<MemberScore>' 'std::string key, int64_t start, int64_t stop'
+# // "zrangeWithScores" -> "zrange" + ScoreOptions
 
 ./add_redis_command zrangebyscore 'std::vector<std::string>' 'std::string key, double min, double max'
 
@@ -163,5 +166,7 @@
 ./add_redis_command zrem 'size_t' 'std::string key, std::string member'
 
 ./add_redis_command zrem 'size_t' 'std::string key, std::vector<std::string> members'
+
+./add_redis_command zremrangebyrank 'size_t' 'std::string key, int64_t start, int64_t stop'
 
 ./add_redis_command zscore 'boost::optional<double>' 'std::string key, std::string member'
