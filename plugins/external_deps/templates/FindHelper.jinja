@@ -3,6 +3,7 @@
 {% set includes_variable = includes.variable|default('%s_INCLUDE_DIRS'|format(name)) %}
 {% set programs_variable = programs.variable|default('%s_EXECUTABLE'|format(name)) %}
 {% set programs_enabled = programs and programs.enabled|default(true) %}
+{% set current_package_name = package_name or name %}
 
 {% set full_error_message = '' %}
 {% if fail_message %}
@@ -57,8 +58,63 @@ include(FindPackageHandleStandardArgs)
 {{ cmake_find('path', includes_variable, includes) }}
 {{ cmake_find('program', programs_variable, programs) }}
 
+{% if version %}
+{% if debian_names %}
+if(UNIX AND NOT APPLE)
+  find_program(DPKG_QUERY_BIN dpkg-query)
+  if(DPKG_QUERY_BIN)
+    execute_process(
+      COMMAND dpkg-query --showformat={{ '\${' }}Version{{ '}' }} --show {{ debian_names[0] }}
+      OUTPUT_VARIABLE {{ current_package_name }}_version_output
+      ERROR_VARIABLE {{ current_package_name }}_version_error
+      RESULT_VARIABLE {{ current_package_name }}_version_result
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if({{ current_package_name }}_version_result EQUAL 0)
+      set({{ current_package_name }}_VERSION {{ '${' }}{{ current_package_name }}_version_output{{ '}' }})
+      message(STATUS "Installed version {{ debian_names[0] }}: {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}")
+    else()
+      message(WARNING "Failed execute dpkg-query: {{ '${' }}{{ current_package_name }}_version_error{{ '}'}}")
+    endif({{ current_package_name }}_version_result EQUAL 0)
+  endif(DPKG_QUERY_BIN)
+endif(UNIX AND NOT APPLE)
+{% endif %} {# if debian_names #}
+
+{% if formula_name %}
+if(APPLE)
+  find_program(BREW_BIN brew)
+  if(BREW_BIN)
+    execute_process(
+      COMMAND brew list --versions {{ formula_name }}
+      OUTPUT_VARIABLE {{ current_package_name }}_version_output
+      ERROR_VARIABLE {{ current_package_name }}_version_error
+      RESULT_VARIABLE {{ current_package_name }}_version_result
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if({{ current_package_name }}_version_result EQUAL 0)
+      if ({{ current_package_name }}_version_output MATCHES "^(.*) (.*)$")
+        set({{ current_package_name }}_VERSION ${CMAKE_MATCH_2})
+        message(STATUS "Installed version {{ formula_name }}: {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}")
+      else()
+        set({{ current_package_name }}_VERSION "NOT_FOUND")
+      endif()
+    else()
+      message(WARNING "Failed execute brew: {{ '${' }}{{ current_package_name }}_version_error{{ '}'}}")
+    endif({{ current_package_name }}_version_result EQUAL 0)
+  endif(BREW_BIN)
+endif(APPLE)
+{% endif %} {# if formula_name #}
+
+if(DPKG_QUERY_BIN OR BREW_BIN)
+  if({{ current_package_name }}_VERSION VERSION_LESS {{ version }})
+    message(FATAL_ERROR "{{ full_error_message }}")
+  endif({{ current_package_name }}_VERSION VERSION_LESS {{ version }})
+endif(DPKG_QUERY_BIN OR BREW_BIN)
+
+{% endif %} {# if version #}
+
 {% if not libraries.find|default(false) and not includes.find|default(false) and not programs.find|default(false) %}
-find_package({{ common_name or package_name or name }} {{ version or '' }} QUIET
+find_package({{ common_name or current_package_name }} {{ version or '' }} QUIET
 {% if common_name %}
     COMPONENTS {{ name }}
 {% endif %} {# if common_name #}
@@ -67,7 +123,7 @@ find_package({{ common_name or package_name or name }} {{ version or '' }} QUIET
 
 {% if libraries.find|default(false) or includes.find|default(false) or programs.find|default(false) %}
 find_package_handle_standard_args(
-  {{ package_name or name }}
+  {{ current_package_name }}
     REQUIRED_VARS
       {{ libraries_variable if libraries.enabled|default(true) else '' }}
       {{ includes_variable if includes.enabled|default(true) else '' }}
@@ -82,9 +138,9 @@ mark_as_advanced(
 )
 {% endif %} {# if not package_name #}
 
-if(NOT {{ common_name or package_name or name }}_FOUND)
+if(NOT {{ common_name or current_package_name }}_FOUND)
   message(FATAL_ERROR "{{ full_error_message }}")
-endif(NOT {{ common_name or package_name or name }}_FOUND)
+endif(NOT {{ common_name or current_package_name }}_FOUND)
 
 {% endif %} {# if not virtual #}
 
