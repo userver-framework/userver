@@ -510,9 +510,6 @@ class QueryCancelled : public OperatorIntervention {
   using OperatorIntervention::OperatorIntervention;
 };
 
-using QueryCanceled [[deprecated("Use QueryCancelled instead")]] =
-    QueryCancelled;
-
 class AdminShutdown : public OperatorIntervention {
   using OperatorIntervention::OperatorIntervention;
 };
