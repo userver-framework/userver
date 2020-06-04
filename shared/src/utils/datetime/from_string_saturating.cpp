@@ -14,11 +14,16 @@ bool TimePointOverflows(const std::string& timestring) {
   using Years = std::chrono::duration<std::int64_t,
                                       std::ratio<146097LL * 24 * 60 * 60, 400>>;
 
-  constexpr auto kMaxYear =
+  constexpr int kMaxRfc3339Year = 9999;
+  constexpr auto kMaxPlatformYear =
       std::chrono::duration_cast<Years>(
           std::chrono::system_clock::time_point::duration::max())
           .count() +
       1970;
+
+  constexpr auto kMaxYear =
+      (kMaxRfc3339Year < kMaxPlatformYear ? kMaxRfc3339Year
+                                          : static_cast<int>(kMaxPlatformYear));
 
   const auto years = std::stoll(timestring);
   return years >= kMaxYear;
