@@ -17,6 +17,7 @@ namespace formats::json {
 namespace impl {
 class InlineObjectBuilder;
 class InlineArrayBuilder;
+class StringBuilder;
 }  // namespace impl
 
 class ValueBuilder;
@@ -229,6 +230,7 @@ class Value final {
 
   friend class Iterator<IterTraits>;
   friend class ValueBuilder;
+  friend class impl::StringBuilder;
   friend class impl::InlineObjectBuilder;
   friend class impl::InlineArrayBuilder;
 

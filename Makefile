@@ -15,3 +15,6 @@ bionic-%:
 
 docker-bionic-pull:
 	docker pull registry.yandex.net/taxi/taxi-bionic-base
+
+build-release:
+	$(MAKE) build BUILD_TYPE=Release
