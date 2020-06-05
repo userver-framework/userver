@@ -94,7 +94,6 @@ class ValueDict final {
     return it->second;
   }
 
-  // TODO: remove after TAXICOMMON-2028
   const ValueType& operator[](const char* key) const {
     return (*this)[std::string(key)];
   }

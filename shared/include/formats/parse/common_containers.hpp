@@ -14,8 +14,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include <formats/parse/boost_optional.hpp>  // TODO: TAXICOMMON-2425
-
 namespace formats::parse {
 
 namespace impl {
