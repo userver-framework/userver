@@ -2,6 +2,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <formats/json/value.hpp>
@@ -91,6 +92,12 @@ std::enable_if_t<formats::common::kHasSerializeTo<::formats::json::Value, T> &&
                  void>
 WriteToStream(const T& value, StringBuilder& sw) {
   sw.WriteValue(Serialize(value, serialize::To<::formats::json::Value>{}));
+}
+
+template <typename... Types>
+void WriteToStream(const std::variant<Types...>& value, StringBuilder& sw) {
+  return std::visit([&sw](const auto& item) { WriteToStream(item, sw); },
+                    value);
 }
 
 }  // namespace formats::json::impl
