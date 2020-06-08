@@ -30,7 +30,7 @@ namespace components {
 /// mongo-taxi:
 ///   dbalias: taxi
 ///   appname: userver-sample
-///   conn_timeout: 250ms
+///   conn_timeout: 2s
 ///   so_timeout: 10s
 ///   queue_timeout: 1s
 ///   initial_size: 16
@@ -48,7 +48,7 @@ namespace components {
 /// dbalias | name of the database in secdist config (if available) | --
 /// dbconnection | connection string (used if no dbalias specified) | --
 /// appname | application name for the DB server | userver
-/// conn_timeout | connection timeout | 250ms
+/// conn_timeout | connection timeout | 2s
 /// so_timeout | socket timeout | 10s
 /// queue_timeout | max connection queue wait time | 1s
 /// initial_size | number of connections created initially | 16
@@ -87,7 +87,7 @@ class Mongo : public LoggableComponentBase {
 /// ```
 /// multi-mongo:
 ///   appname: userver-sample
-///   conn_timeout: 250ms
+///   conn_timeout: 2s
 ///   so_timeout: 10s
 ///   queue_timeout: 1s
 ///   initial_size: 16
@@ -101,7 +101,7 @@ class Mongo : public LoggableComponentBase {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// appname | application name for the DB server | userver
-/// conn_timeout | connection timeout | 250ms
+/// conn_timeout | connection timeout | 2s
 /// so_timeout | socket timeout | 10s
 /// queue_timeout | max connection queue wait time | 1s
 /// initial_size | number of connections created initially (per database) | 16

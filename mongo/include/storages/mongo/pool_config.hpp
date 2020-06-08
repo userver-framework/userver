@@ -16,7 +16,7 @@ namespace storages::mongo {
 class PoolConfig {
  public:
   /// Default connection timeout
-  static constexpr auto kDefaultConnTimeout = std::chrono::milliseconds{250};
+  static constexpr auto kDefaultConnTimeout = std::chrono::seconds{2};
   /// Default socket timeout
   static constexpr auto kDefaultSoTimeout = std::chrono::seconds{10};
   /// Default connection queue timeout
