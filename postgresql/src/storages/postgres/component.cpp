@@ -177,7 +177,7 @@ Postgres::Postgres(const ComponentConfig& config,
       config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
   pool_settings.max_queue_size =
       config.ParseUint64("max_queue_size", kDefaultMaxQueueSize);
-  pool_settings.sync_start = config.ParseBool("sync-start", false);
+  pool_settings.sync_start = config.ParseBool("sync-start", true);
 
   storages::postgres::ConnectionSettings conn_settings;
   conn_settings.prepared_statements =
