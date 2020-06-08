@@ -21,6 +21,8 @@ class Watchdog final {
 
   void Register(ControllerInfo ci);
 
+  void Stop();
+
  private:
   void Check();
 

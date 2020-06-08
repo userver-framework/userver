@@ -10,14 +10,18 @@ Watchdog::Watchdog()
         }
       }) {}
 
-Watchdog::~Watchdog() {
-  should_stop_ = true;
-  thread_.join();
-}
+Watchdog::~Watchdog() { Stop(); }
 
 void Watchdog::Register(ControllerInfo ci) {
   auto cis = cis_.Lock();
   cis->push_back(ci);
+}
+
+void Watchdog::Stop() {
+  should_stop_ = true;
+  if (thread_.joinable()) {
+    thread_.join();
+  }
 }
 
 void Watchdog::Check() {

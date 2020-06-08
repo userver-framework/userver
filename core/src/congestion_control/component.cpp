@@ -65,4 +65,6 @@ void Component::OnConfigUpdate(
   pimpl_->server_controller.SetEnabled(rps_cc.is_enabled);
 }
 
+void Component::OnAllComponentsAreStopping() { pimpl_->wd.Stop(); }
+
 }  // namespace congestion_control

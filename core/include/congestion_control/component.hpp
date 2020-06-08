@@ -20,6 +20,8 @@ class Component final : public components::LoggableComponentBase {
  private:
   void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
 
+  void OnAllComponentsAreStopping() override;
+
   struct Impl;
   utils::FastPimpl<Impl, 408, 8> pimpl_;
 };
