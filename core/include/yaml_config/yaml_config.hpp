@@ -41,6 +41,15 @@ class YamlConfig {
   std::optional<std::chrono::milliseconds> ParseOptionalDuration(
       const std::string& name) const;
 
+  /// @brief Access member by key for read.
+  /// @throw TypeMismatchException if not object or null value.
+  YamlConfig operator[](const std::string& key) const;
+
+  /// @brief Returns true if *this holds nothing. When `IsMissing()` returns
+  /// `true` any attempt to get the actual value or iterate over *this will
+  /// throw MemberMissingException.
+  bool IsMissing() const;
+
   template <typename T>
   T Parse(const std::string& name) const {
     return yaml_config::Parse<T>(yaml_, name, full_path_, config_vars_ptr_);

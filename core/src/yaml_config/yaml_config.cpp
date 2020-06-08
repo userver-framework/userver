@@ -105,4 +105,14 @@ std::optional<std::chrono::milliseconds> YamlConfig::ParseOptionalDuration(
   return {};
 }
 
+YamlConfig YamlConfig::operator[](const std::string& key) const {
+  if (!IsMissing()) {
+    yaml_.CheckObject();
+  }
+  return YamlConfig(yaml_[key], impl::PathAppend(full_path_, key),
+                    config_vars_ptr_);
+}
+
+bool YamlConfig::IsMissing() const { return yaml_.IsMissing(); }
+
 }  // namespace yaml_config

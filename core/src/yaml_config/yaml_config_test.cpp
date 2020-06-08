@@ -80,3 +80,50 @@ TEST(YamlConfig, PathsParseInto) {
   EXPECT_EQ(path_array_vm[0], "/hello/1");
   EXPECT_EQ(path_array_vm[1], "/path/2");
 }
+
+TEST(YamlConfig, Subconfig) {
+  auto vmap =
+      std::make_shared<yaml_config::VariableMap>(formats::yaml::FromString(R"(
+    string: hello
+    duration1: 10s
+    duration2: 10ms
+    duration3: 1
+    int: 42
+  )"));
+
+  auto node = formats::yaml::FromString(R"(
+    member: $string
+    subconfig:
+      duration1: $duration1
+      duration2: $duration2
+  )");
+
+  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
+  EXPECT_EQ(conf.ParseString("member"), "hello");
+  // Get subconfig
+  auto subconf = conf["subconfig"];
+  EXPECT_EQ(subconf.ParseDuration("duration1"), std::chrono::seconds(10));
+  EXPECT_EQ(subconf.ParseDuration("duration2"), std::chrono::milliseconds(10));
+
+  // Check missing
+  auto missing_subconf = conf["missing"];
+  EXPECT_TRUE(missing_subconf.IsMissing());
+}
+
+TEST(YamlConfig, SubconfigNotObject) {
+  auto vmap = std::make_shared<yaml_config::VariableMap>(
+      formats::yaml::ValueBuilder(formats::common::Type::kObject)
+          .ExtractValue());
+
+  auto node = formats::yaml::FromString(R"(
+    member: hello
+  )");
+
+  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
+  EXPECT_EQ(conf.ParseString("member"), "hello");
+  EXPECT_TRUE(conf.Yaml().IsObject());
+  // Get subconfig that is not an object
+  auto subconf = conf["member"];
+  // It must throw an exception
+  EXPECT_ANY_THROW(subconf["another"]);
+}
