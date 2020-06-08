@@ -6,6 +6,8 @@
 #include <formats/yaml/exception.hpp>
 #include <utils/assert.hpp>
 
+#include "exttypes.hpp"
+
 namespace formats::yaml {
 
 namespace {
@@ -24,21 +26,6 @@ struct IsConvertibleChecker {
     return {};
   }
 };
-
-Type FromNative(YAML::NodeType::value t) {
-  switch (t) {
-    case YAML::NodeType::Sequence:
-      return Type::kArray;
-    case YAML::NodeType::Map:
-      return Type::kObject;
-    case YAML::NodeType::Null:
-      return Type::kNull;
-    case YAML::NodeType::Scalar:
-      return Type::kObject;  // same as Map
-    case YAML::NodeType::Undefined:
-      throw std::logic_error("undefined node type should not be used");
-  }
-}
 
 auto MakeMissingNode() { return YAML::Node{}[0]; }
 
@@ -233,6 +220,12 @@ YAML::Node& Value::GetNative() {
   return *value_pimpl_;
 }
 
+// convert internal yaml type to implementation-specific type that
+// distinguishes between scalar and object
+int Value::GetExtendedType() const {
+  return impl::GetExtendedType(GetNative());
+}
+
 void Value::CheckNotMissing() const {
   if (IsMissing()) {
     throw MemberMissingException(path_.ToString());
@@ -241,28 +234,28 @@ void Value::CheckNotMissing() const {
 
 void Value::CheckArrayOrNull() const {
   if (!IsArray() && !IsNull()) {
-    throw TypeMismatchException(FromNative(GetNative().Type()), Type::kArray,
+    throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
                                 path_.ToString());
   }
 }
 
 void Value::CheckObjectOrNull() const {
   if (!IsObject() && !IsNull()) {
-    throw TypeMismatchException(FromNative(GetNative().Type()), Type::kObject,
+    throw TypeMismatchException(GetExtendedType(), impl::objectValue,
                                 path_.ToString());
   }
 }
 
 void Value::CheckObject() const {
   if (!IsObject()) {
-    throw TypeMismatchException(FromNative(GetNative().Type()), Type::kObject,
+    throw TypeMismatchException(GetExtendedType(), impl::objectValue,
                                 path_.ToString());
   }
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
   if (!IsObject() && !IsArray() && !IsNull()) {
-    throw TypeMismatchException(FromNative(GetNative().Type()), Type::kArray,
+    throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
                                 path_.ToString());
   }
 }

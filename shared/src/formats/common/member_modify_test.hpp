@@ -315,6 +315,28 @@ TYPED_TEST_P(MemberModify, CannotBuildFromMissing) {
   EXPECT_THROW(bld = v["missing_key"], MemberMissingException);
 }
 
+TYPED_TEST_P(MemberModify, IsCheckObjectValidFunction) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+  using TypeMismatchException = typename TestFixture::TypeMismatchException;
+  // This test is actually for abscence in CheckObject internal errors,
+  // and not that it returns true for objects and false for not-objects.
+  {
+    ValueBuilder builder{formats::common::Type::kObject};
+    EXPECT_NO_THROW(builder.ExtractValue().CheckObject());
+  }
+  {
+    // Check that scalar is not object
+    ValueBuilder builder{formats::common::Type::kObject};
+    builder["a"] = 3;
+    EXPECT_THROW(builder.ExtractValue()["a"].CheckObject(),
+                 TypeMismatchException);
+  }
+  {
+    ValueBuilder builder{formats::common::Type::kNull};
+    EXPECT_THROW(builder.ExtractValue().CheckObject(), TypeMismatchException);
+  }
+}
+
 REGISTER_TYPED_TEST_SUITE_P(
     MemberModify,
 
@@ -329,4 +351,6 @@ REGISTER_TYPED_TEST_SUITE_P(
     ArrayIteratorModify, CreateSpecificType, IteratorOutlivesRoot,
 
     SubdocOutlivesRoot, MoveValueBuilder, CheckSubobjectChange, TypeCheckMinMax,
-    CannotBuildFromMissing);
+    CannotBuildFromMissing,
+
+    IsCheckObjectValidFunction);

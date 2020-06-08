@@ -206,6 +206,7 @@ class Value final {
 
   const YAML::Node& GetNative() const;
   YAML::Node& GetNative();
+  int GetExtendedType() const;
 
  private:
   template <class T>

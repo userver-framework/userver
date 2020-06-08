@@ -7,6 +7,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "exttypes.hpp"
+
 namespace formats {
 namespace yaml {
 namespace {
@@ -37,7 +39,8 @@ const char* NameForType(Type expected) {
 #undef RET_NAME
 }
 
-std::string MsgForType(Type actual, Type expected, const std::string& path) {
+template <typename TType>
+std::string MsgForType(TType actual, TType expected, const std::string& path) {
   UASSERT(actual != expected);
 
   std::string ret =
@@ -77,6 +80,11 @@ BadStreamException::BadStreamException(const std::ostream& os)
 TypeMismatchException::TypeMismatchException(Type actual, Type expected,
                                              const std::string& path)
     : Exception(MsgForType(actual, expected, path)) {}
+
+TypeMismatchException::TypeMismatchException(int actual, int expected,
+                                             const std::string& path)
+    : Exception(MsgForType(static_cast<impl::Type>(actual),
+                           static_cast<impl::Type>(expected), path)) {}
 
 TypeMismatchException::TypeMismatchException(const YAML::Node& value,
                                              const std::string& expected_type,
