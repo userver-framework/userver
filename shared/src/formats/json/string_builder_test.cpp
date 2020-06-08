@@ -103,3 +103,21 @@ TEST(JsonStringBuilder, Value) {
 
   EXPECT_EQ(value, FromString(str));
 }
+
+TEST(JsonStringBuilder, String) {
+  StringBuilder sw;
+  WriteToStream(std::string("some string"), sw);
+  EXPECT_EQ(sw.GetString(), "\"some string\"");
+}
+
+TEST(JsonStringBuilder, CharP) {
+  StringBuilder sw;
+  WriteToStream("some string", sw);
+  EXPECT_EQ(sw.GetString(), "\"some string\"");
+}
+
+TEST(JsonStringBuilder, StringView) {
+  StringBuilder sw;
+  WriteToStream(std::string_view{"some string"}, sw);
+  EXPECT_EQ(sw.GetString(), "\"some string\"");
+}

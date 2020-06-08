@@ -61,6 +61,7 @@ void WriteToStream(bool value, StringBuilder& sw);
 void WriteToStream(int64_t value, StringBuilder& sw);
 void WriteToStream(uint64_t value, StringBuilder& sw);
 void WriteToStream(double value, StringBuilder& sw);
+void WriteToStream(const char* value, StringBuilder& sw);
 void WriteToStream(std::string_view value, StringBuilder& sw);
 void WriteToStream(const formats::json::Value& value, StringBuilder& sw);
 

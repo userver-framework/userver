@@ -57,6 +57,10 @@ void WriteToStream(uint64_t value, StringBuilder& sw) { sw.WriteUInt64(value); }
 
 void WriteToStream(double value, StringBuilder& sw) { sw.WriteDouble(value); }
 
+void WriteToStream(const char* value, StringBuilder& sw) {
+  WriteToStream(std::string_view{value}, sw);
+}
+
 void WriteToStream(std::string_view value, StringBuilder& sw) {
   sw.WriteString(value);
 }
