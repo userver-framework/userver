@@ -149,11 +149,23 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
     os << ::http::headers::kSetCookie << ": " << cookie.second.ToString()
        << kCrlf;
   os << kCrlf;
-  if (!is_head_request) os << data_;
+
+  static const auto kMinSeparateDataSize = 50000;  //  50Kb
+  bool separate_data_send = data_.size() > kMinSeparateDataSize;
+  if (!separate_data_send && !is_head_request) {
+    os << data_;
+  }
 
   const auto response_data = os.str();
   auto sent_bytes =
       socket.SendAll(response_data.data(), response_data.size(), {});
+
+  if (separate_data_send && sent_bytes == response_data.size() &&
+      !is_head_request) {
+    // If response is too big, copying is more expensive than +1 syscall
+    sent_bytes += socket.SendAll(data_.data(), data_.size(), {});
+  }
+
   SetSentTime(std::chrono::steady_clock::now());
   SetSent(sent_bytes);
 }
