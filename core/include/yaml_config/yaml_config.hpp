@@ -17,6 +17,10 @@ class YamlConfig {
   YamlConfig(formats::yaml::Value yaml, std::string full_path,
              VariableMapPtr config_vars_ptr);
 
+  static YamlConfig ParseFromYaml(
+      const formats::yaml::Value& yaml, const std::string& full_path,
+      const yaml_config::VariableMapPtr& config_vars_ptr);
+
   const formats::yaml::Value& Yaml() const;
   const std::string& FullPath() const;
   const VariableMapPtr& ConfigVarsPtr() const;
@@ -42,8 +46,12 @@ class YamlConfig {
       const std::string& name) const;
 
   /// @brief Access member by key for read.
-  /// @throw TypeMismatchException if not object or null value.
+  /// @throw TypeMismatchException if value is not missing and is not object.
   YamlConfig operator[](const std::string& key) const;
+
+  /// @brief Access member by index for read.
+  /// @throw TypeMismatchException if value is not missing and is not array.
+  YamlConfig operator[](size_t index) const;
 
   /// @brief Returns true if *this holds nothing. When `IsMissing()` returns
   /// `true` any attempt to get the actual value or iterate over *this will

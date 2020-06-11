@@ -52,13 +52,12 @@ std::string ParseString(const formats::yaml::Value& obj,
                         const std::string& name, const std::string& full_path,
                         const VariableMapPtr& config_vars_ptr);
 
-template <typename T>
+template <typename T, typename Field>
 std::optional<T> ParseOptional(const formats::yaml::Value& obj,
-                               const std::string& name,
-                               const std::string& full_path,
+                               const Field& field, const std::string& full_path,
                                const VariableMapPtr& config_vars_ptr) {
-  return ParseValue(obj, name, full_path, config_vars_ptr,
-                    &impl::Parse<T, std::string>, &ParseOptional<T>);
+  return ParseValue(obj, field, full_path, config_vars_ptr,
+                    &impl::Parse<T, Field>, &ParseOptional<T, std::string>);
 }
 
 namespace impl {
@@ -70,7 +69,7 @@ struct ParseOptionalHelper {
                const VariableMapPtr& config_vars_ptr) const {
     auto optional = ParseOptional<T>(obj, name, full_path, config_vars_ptr);
     if (!optional) {
-      throw ParseError(full_path, name, '\'' + name + "' object");
+      throw ParseError(full_path, name, "not missing value");
     }
     return std::move(*optional);
   }
@@ -158,16 +157,17 @@ std::vector<T> ParseMapAsArray(const formats::yaml::Value& obj,
   return std::move(*optional);
 }
 
-template <typename ElemParser, typename ConfigVarParser>
-auto ParseValue(const formats::yaml::Value& obj, const std::string& name,
+template <typename Field, typename ElemParser, typename ConfigVarParser>
+auto ParseValue(const formats::yaml::Value& obj, const Field& field,
                 const std::string& full_path,
                 const VariableMapPtr& config_vars_ptr, ElemParser parse_elem,
                 ConfigVarParser parse_config_var)
-    -> decltype(parse_config_var(obj, name, full_path, config_vars_ptr)) {
-  using ResultType =
-      decltype(parse_config_var(obj, name, full_path, config_vars_ptr));
+    -> decltype(parse_config_var(obj, std::declval<std::string>(), full_path,
+                                 config_vars_ptr)) {
+  using ResultType = decltype(parse_config_var(obj, std::declval<std::string>(),
+                                               full_path, config_vars_ptr));
   using ParseElemType =
-      decltype(parse_elem(obj, name, full_path, config_vars_ptr));
+      decltype(parse_elem(obj, field, full_path, config_vars_ptr));
 
   static_assert(
       std::is_same<boost::optional<ParseElemType>, ResultType>::value ||
@@ -175,7 +175,7 @@ auto ParseValue(const formats::yaml::Value& obj, const std::string& name,
       "inconsistent result types of ElemParser and ConfigVarParser");
 
   if (obj.IsMissing()) return {};
-  const auto& value = obj[name];
+  const auto& value = obj[field];
   if (value.IsMissing()) return {};
 
   if (impl::IsSubstitution(value)) {
@@ -185,12 +185,17 @@ auto ParseValue(const formats::yaml::Value& obj, const std::string& name,
                                          "<config_vars_ptr>", config_vars_ptr);
       if (res) return res;
     }
-    LOG_INFO() << "using default value for config variable '" << var_name
-               << '\'';
-    return ParseValue(obj, impl::GetFallbackName(name), full_path,
-                      config_vars_ptr, parse_elem, parse_config_var);
+    if constexpr (std::is_same_v<Field, size_t>) {
+      // no fallback for an array element with $substitution
+      return {};
+    } else {
+      LOG_INFO() << "using default value for config variable '" << var_name
+                 << '\'';
+      return ParseValue(obj, impl::GetFallbackName(field), full_path,
+                        config_vars_ptr, parse_elem, parse_config_var);
+    }
   }
-  return parse_elem(obj, name, full_path, config_vars_ptr);
+  return parse_elem(obj, field, full_path, config_vars_ptr);
 }
 
 }  // namespace yaml_config

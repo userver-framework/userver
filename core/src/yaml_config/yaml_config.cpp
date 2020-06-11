@@ -10,6 +10,12 @@ YamlConfig::YamlConfig(formats::yaml::Value yaml, std::string full_path,
       full_path_(std::move(full_path)),
       config_vars_ptr_(std::move(config_vars_ptr)) {}
 
+YamlConfig YamlConfig::ParseFromYaml(
+    const formats::yaml::Value& yaml, const std::string& full_path,
+    const yaml_config::VariableMapPtr& config_vars_ptr) {
+  return YamlConfig(yaml, full_path, config_vars_ptr);
+}
+
 const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
 const std::string& YamlConfig::FullPath() const { return full_path_; }
 const yaml_config::VariableMapPtr& YamlConfig::ConfigVarsPtr() const {
@@ -109,8 +115,27 @@ YamlConfig YamlConfig::operator[](const std::string& key) const {
   if (!IsMissing()) {
     yaml_.CheckObject();
   }
-  return YamlConfig(yaml_[key], impl::PathAppend(full_path_, key),
-                    config_vars_ptr_);
+  auto result_opt = yaml_config::ParseOptional<YamlConfig>(
+      yaml_, key, full_path_, config_vars_ptr_);
+  if (result_opt)
+    return std::move(*result_opt);
+  else
+    return YamlConfig(formats::yaml::Value()[impl::PathAppend(full_path_, key)],
+                      impl::PathAppend(full_path_, key), config_vars_ptr_);
+}
+
+YamlConfig YamlConfig::operator[](size_t index) const {
+  if (!IsMissing()) {
+    yaml_.CheckArray();
+  }
+  auto result_opt = yaml_config::ParseOptional<YamlConfig>(
+      yaml_, index, full_path_, config_vars_ptr_);
+  if (result_opt)
+    return std::move(*result_opt);
+  else
+    return YamlConfig(
+        formats::yaml::Value()[impl::PathAppend(full_path_, index)],
+        impl::PathAppend(full_path_, index), config_vars_ptr_);
 }
 
 bool YamlConfig::IsMissing() const { return yaml_.IsMissing(); }

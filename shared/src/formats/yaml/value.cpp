@@ -185,6 +185,7 @@ double Value::As<double>() const {
 template <>
 std::string Value::As<std::string>() const {
   CheckNotMissing();
+  CheckString();
   return value_pimpl_->Scalar();
 }
 
@@ -232,6 +233,13 @@ void Value::CheckNotMissing() const {
   }
 }
 
+void Value::CheckArray() const {
+  if (!IsArray()) {
+    throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
+                                path_.ToString());
+  }
+}
+
 void Value::CheckArrayOrNull() const {
   if (!IsArray() && !IsNull()) {
     throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
@@ -249,6 +257,13 @@ void Value::CheckObjectOrNull() const {
 void Value::CheckObject() const {
   if (!IsObject()) {
     throw TypeMismatchException(GetExtendedType(), impl::objectValue,
+                                path_.ToString());
+  }
+}
+
+void Value::CheckString() const {
+  if (!IsString()) {
+    throw TypeMismatchException(GetExtendedType(), impl::scalarValue,
                                 path_.ToString());
   }
 }

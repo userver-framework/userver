@@ -54,4 +54,7 @@ struct is_map {
                                 is_instantiation_of_v<std::map, T>;
 };
 
+template <class T>
+struct is_optional : is_instantiation_of<std::optional, T> {};
+
 }  // namespace meta

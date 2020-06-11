@@ -30,6 +30,8 @@ TEST(YamlConfig, VariableMap) {
     duration2: 10ms
     duration3: 1
     int: 42
+    elem0: str123
+    not_missing: xxx
   )"));
 
   auto node = formats::yaml::FromString(R"(
@@ -38,6 +40,19 @@ TEST(YamlConfig, VariableMap) {
     duration2: $duration2
     duration3: $duration3
     int: $int
+    array:
+      - $elem0
+      - str222
+    array_with_missing:
+      - $missing_elem
+      - str333
+      - $not_missing
+      - $missing_elem2
+    bad_array:
+      - str
+      - arr:
+        - aaa
+        - bbb
   )");
 
   yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
@@ -46,6 +61,99 @@ TEST(YamlConfig, VariableMap) {
   EXPECT_EQ(conf.ParseDuration("duration2"), std::chrono::milliseconds(10));
   EXPECT_EQ(conf.ParseDuration("duration3"), std::chrono::seconds(1));
   EXPECT_EQ(conf.ParseInt("int"), 42);
+  std::vector<std::string> expected_vec{"str123", "str222"};
+  EXPECT_EQ(conf.Parse<std::vector<std::string>>("array"), expected_vec);
+  EXPECT_THROW(conf.Parse<std::vector<std::string>>("bad_array"),
+               std::runtime_error);
+
+  std::vector<std::optional<std::string>> expected_vec_miss{
+      std::nullopt, std::optional<std::string>("str333"),
+      std::optional<std::string>("xxx"), std::nullopt};
+  EXPECT_EQ(
+      conf.Parse<std::vector<std::optional<std::string>>>("array_with_missing"),
+      expected_vec_miss);
+}
+
+TEST(YamlConfig, SquareBracketOperator) {
+  auto vmap =
+      std::make_shared<yaml_config::VariableMap>(formats::yaml::FromString(R"(
+    string: hello
+    duration1: 10s
+    duration2: 10ms
+    duration3: 1
+    int: 42
+    test2:
+      zzz: asd
+    test4: qwe
+  )"));
+
+  auto node = formats::yaml::FromString(R"(
+    root:
+      -  member1:  $int
+         duration: $duration1
+      -  member2:  $string
+         duration: $duration2
+         miss_val: $miss_val
+      - $test2
+      - $test3
+      - $test4
+      - str5
+  )");
+  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
+
+  auto root_array = conf["root"];
+  EXPECT_TRUE(root_array.Yaml().IsArray());
+
+  EXPECT_EQ(root_array[0].ParseInt("member1"), 42);
+  EXPECT_EQ(root_array[0].ParseDuration("duration"), std::chrono::seconds{10});
+
+  EXPECT_EQ(root_array[1].ParseString("member2"), "hello");
+  EXPECT_EQ(root_array[1].ParseDuration("duration"),
+            std::chrono::milliseconds{10});
+  EXPECT_TRUE(root_array[1]["miss_val"].IsMissing());
+  EXPECT_TRUE(root_array[1]["miss_val2"].IsMissing());
+  EXPECT_THROW(root_array[1]["miss_val"].Yaml().As<std::string>(),
+               formats::yaml::MemberMissingException);
+
+  EXPECT_TRUE(root_array[1]["miss_val"]["sub_val"].IsMissing());
+  EXPECT_TRUE(root_array[1]["miss_val2"]["sub_val"].IsMissing());
+  EXPECT_EQ(
+      root_array[1]["miss_val"].Parse<std::optional<std::string>>("sub_val"),
+      std::optional<std::string>{});
+  EXPECT_EQ(
+      root_array[1]["miss_val2"].Parse<std::optional<std::string>>("sub_val"),
+      std::optional<std::string>{});
+  EXPECT_EQ(root_array[1]["miss_val"].Parse<std::optional<std::string>>(
+                "sub_val", "def"),
+            "def");
+  EXPECT_EQ(root_array[1]["miss_val2"].Parse<std::optional<std::string>>(
+                "sub_val", "def"),
+            "def");
+  EXPECT_TRUE(root_array[1]["miss_val"][11].IsMissing());
+  EXPECT_TRUE(root_array[1]["miss_val2"][11].IsMissing());
+  EXPECT_EQ(root_array[1]["miss_val"][11].Parse<std::optional<std::string>>(
+                "sub_val", "def"),
+            "def");
+  EXPECT_EQ(root_array[1]["miss_val2"][11].Parse<std::optional<std::string>>(
+                "sub_val", "def"),
+            "def");
+  EXPECT_THROW(root_array[1]["miss_val"][11].Parse<std::string>("sub_val"),
+               std::runtime_error);
+  EXPECT_THROW(root_array[1]["miss_val2"][11].Parse<std::string>("sub_val"),
+               std::runtime_error);
+
+  EXPECT_EQ(root_array[2].ParseString("zzz"), "asd");
+
+  EXPECT_TRUE(root_array[3].Yaml().IsMissing());
+  EXPECT_THROW(root_array[3].Yaml().As<std::string>(),
+               formats::yaml::MemberMissingException);
+  EXPECT_EQ(root_array[3].Yaml().As<std::string>("dflt"), "dflt");
+
+  EXPECT_EQ(root_array[4].Yaml().As<std::string>(), "qwe");
+  EXPECT_EQ(root_array[5].Yaml().As<std::string>(), "str5");
+
+  EXPECT_THROW(root_array[99].ParseString("zzz"),
+               formats::yaml::OutOfBoundsException);
 }
 
 TEST(YamlConfig, PathsParseInto) {

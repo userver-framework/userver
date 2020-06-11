@@ -8,6 +8,7 @@
 
 #include <compiler/demangle.hpp>
 #include <formats/yaml.hpp>
+#include <utils/meta.hpp>
 #include <utils/void_t.hpp>
 
 #include "variable_map.hpp"
@@ -111,10 +112,21 @@ inline std::optional<std::vector<T>> ParseOptionalArray(
   std::vector<T> parsed_array;
   auto size = value.GetSize();
   parsed_array.reserve(size);
-  for (decltype(size) i = 0; i < size; ++i) {
-    // TODO: "$substitutions" are not supported for array elements yet
-    parsed_array.emplace_back(impl::Parse<T>(
-        value, i, PathAppend(full_path, field), config_vars_ptr));
+  if (size) {
+    auto value_path = PathAppend(full_path, field);
+    for (decltype(size) i = 0; i < size; ++i) {
+      auto elem = ParseValue(value, i, value_path, config_vars_ptr,
+                             &impl::Parse<T, size_t>,
+                             &impl::Parse<std::optional<T>, std::string>);
+      if (elem) {
+        parsed_array.emplace_back(std::move(*elem));
+      } else {
+        if constexpr (meta::is_optional<T>::value)
+          parsed_array.emplace_back(std::nullopt);
+        else
+          throw ParseError(value_path, i, "declared config_var element");
+      }
+    }
   }
   return parsed_array;
 }
@@ -199,7 +211,7 @@ struct ParseHelperOptional<std::optional<T>, Field> {
                               const Field& field, const std::string& full_path,
                               const VariableMapPtr& config_vars_ptr) const {
     const auto& value = obj[field];
-    if (!value || value.IsNull()) {
+    if (value.IsMissing() || value.IsNull()) {
       return {};
     }
     return Parse<T>(obj, field, full_path, config_vars_ptr);

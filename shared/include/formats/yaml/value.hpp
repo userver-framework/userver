@@ -160,6 +160,9 @@ class Value final {
   /// @throw MemberMissingException if `this->IsMissing()`.
   void CheckNotMissing() const;
 
+  /// @throw MemberMissingException if `*this` is not an array.
+  void CheckArray() const;
+
   /// @throw MemberMissingException if `*this` is not an array or Null.
   void CheckArrayOrNull() const;
 
@@ -168,6 +171,9 @@ class Value final {
 
   /// @throw TypeMismatchException if `*this` is not a map.
   void CheckObject() const;
+
+  /// @throw TypeMismatchException if `*this` is not convertable to std::string.
+  void CheckString() const;
 
   /// @throw TypeMismatchException if `*this` is not a map, array or Null.
   void CheckObjectOrArrayOrNull() const;
