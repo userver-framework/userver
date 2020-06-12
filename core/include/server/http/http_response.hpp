@@ -30,7 +30,8 @@ class HttpResponse final : public request::ResponseBase {
 
   using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
 
-  explicit HttpResponse(const HttpRequestImpl& request);
+  HttpResponse(const HttpRequestImpl& request,
+               request::ResponseDataAccounter& data_accounter);
   ~HttpResponse() override;
 
   void SetSendFailed(

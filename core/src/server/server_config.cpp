@@ -18,6 +18,9 @@ ServerConfig ServerConfig::ParseFromYaml(
       yaml, "logger_access", full_path, config_vars_ptr);
   config.logger_access_tskv = yaml_config::ParseOptionalString(
       yaml, "logger_access_tskv", full_path, config_vars_ptr);
+
+  config.max_response_size_in_flight = yaml_config::ParseOptionalUint64(
+      yaml, "max_response_size_in_flight", full_path, config_vars_ptr);
   return config;
 }
 

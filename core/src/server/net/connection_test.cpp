@@ -114,11 +114,12 @@ TEST(ServerNetConnection, EarlyCancel) {
             request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
         ASSERT_TRUE(peer.IsValid());
         auto stats = std::make_shared<net::Stats>();
+        server::request::ResponseDataAccounter data_accounter;
         TestHttprequestHandler handler;
 
         auto connection_ptr = net::Connection::Create(
             engine::current_task::GetTaskProcessor(), config.connection_config,
-            std::move(peer), handler, stats);
+            std::move(peer), handler, stats, data_accounter);
 
         connection_ptr->Start();
         // Immediately canceling the `socket_listener_` task without giving it
@@ -154,13 +155,14 @@ TEST(ServerNetConnection, EarlyTimeout) {
         request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
     ASSERT_TRUE(peer.IsValid());
     auto stats = std::make_shared<net::Stats>();
+    server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler;
 
     EXPECT_THROW(res.Get(), clients::http::TimeoutException);
 
     auto connection_ptr = net::Connection::Create(
         engine::current_task::GetTaskProcessor(), config.connection_config,
-        std::move(peer), handler, stats);
+        std::move(peer), handler, stats, data_accounter);
 
     connection_ptr->Start();
     std::weak_ptr<net::Connection> weak = connection_ptr;
@@ -188,11 +190,12 @@ TEST(ServerNetConnection, TimeoutWithTaskCancellation) {
         request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
     ASSERT_TRUE(peer.IsValid());
     auto stats = std::make_shared<net::Stats>();
+    server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler{TestHttprequestHandler::Behaviors::kHang};
 
     auto connection_ptr = net::Connection::Create(
         engine::current_task::GetTaskProcessor(), config.connection_config,
-        std::move(peer), handler, stats);
+        std::move(peer), handler, stats, data_accounter);
 
     connection_ptr->Start();
     std::weak_ptr<net::Connection> weak = connection_ptr;
@@ -242,11 +245,12 @@ TEST(ServerNetConnection, RemoteClosed) {
     auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
     ASSERT_TRUE(peer.IsValid());
     auto stats = std::make_shared<net::Stats>();
+    server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler;
 
     auto connection_ptr = net::Connection::Create(
         engine::current_task::GetTaskProcessor(), config.connection_config,
-        std::move(peer), handler, stats);
+        std::move(peer), handler, stats, data_accounter);
 
     connection_ptr->Start();
     std::weak_ptr<net::Connection> weak = connection_ptr;
@@ -277,11 +281,12 @@ TEST(ServerNetConnection, KeepAlive) {
     auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
     ASSERT_TRUE(peer.IsValid());
     auto stats = std::make_shared<net::Stats>();
+    server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler;
 
     auto connection_ptr = net::Connection::Create(
         engine::current_task::GetTaskProcessor(), config.connection_config,
-        std::move(peer), handler, stats);
+        std::move(peer), handler, stats, data_accounter);
 
     connection_ptr->Start();
     EXPECT_EQ(request.Get()->status_code(), 404);
@@ -311,11 +316,12 @@ TEST(ServerNetConnection, CancelMultipleInFlight) {
       auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
       ASSERT_TRUE(peer.IsValid());
       auto stats = std::make_shared<net::Stats>();
+      server::request::ResponseDataAccounter data_accounter;
       TestHttprequestHandler handler;
 
       auto connection_ptr = net::Connection::Create(
           engine::current_task::GetTaskProcessor(), config.connection_config,
-          std::move(peer), handler, stats);
+          std::move(peer), handler, stats, data_accounter);
 
       connection_ptr->Start();
       res.Wait();

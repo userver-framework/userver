@@ -48,6 +48,13 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     return StartFailsafeTask(std::move(request));
   }
 
+  if (http_request.GetResponse().IsLimitReached()) {
+    http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
+    http_request.GetHttpResponse().SetReady();
+    request->SetTaskCreateTime();
+    return StartFailsafeTask(std::move(request));
+  }
+
   if (new_request_hook_) new_request_hook_(request);
 
   request->SetTaskCreateTime();

@@ -36,7 +36,8 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   };
 
   HttpRequestConstructor(Config config,
-                         const HandlerInfoIndex& handler_info_index);
+                         const HandlerInfoIndex& handler_info_index,
+                         request::ResponseDataAccounter& data_accounter);
 
   void SetMethod(HttpMethod method);
   void SetHttpMajor(unsigned short http_major);

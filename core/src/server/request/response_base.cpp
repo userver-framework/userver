@@ -1,13 +1,30 @@
 #include <server/request/response_base.hpp>
 
+#include <utils/assert.hpp>
+
 namespace server {
 namespace request {
 
-void ResponseBase::SetData(std::string data) { data_ = std::move(data); }
+ResponseBase::ResponseBase(ResponseDataAccounter& data_accounter)
+    : data_accounter_(data_accounter) {}
+
+ResponseBase::~ResponseBase() noexcept { data_accounter_.Put(data_.size()); }
+
+void ResponseBase::SetData(std::string data) {
+  if (!data_.empty()) {
+    data_accounter_.Put(data_.size());
+  }
+  data_ = std::move(data);
+  data_accounter_.Get(data_.size());
+}
 
 void ResponseBase::SetReady() {
   ready_time_ = std::chrono::steady_clock::now();
   is_ready_ = true;
+}
+
+bool ResponseBase::IsLimitReached() const {
+  return data_accounter_.GetCurrentLevel() >= data_accounter_.GetMaxLevel();
 }
 
 void ResponseBase::SetSendFailed(

@@ -7,9 +7,11 @@ namespace server {
 namespace net {
 
 Listener::Listener(std::shared_ptr<EndpointInfo> endpoint_info,
-                   engine::TaskProcessor& task_processor)
+                   engine::TaskProcessor& task_processor,
+                   request::ResponseDataAccounter& data_accounter)
     : task_processor_(&task_processor),
-      endpoint_info_(std::move(endpoint_info)) {}
+      endpoint_info_(std::move(endpoint_info)),
+      data_accounter_(&data_accounter) {}
 
 Listener::~Listener() {
   if (!impl_) return;
@@ -20,7 +22,8 @@ Listener::~Listener() {
 }
 
 void Listener::Start() {
-  impl_ = std::make_unique<ListenerImpl>(*task_processor_, endpoint_info_);
+  impl_ = std::make_unique<ListenerImpl>(*task_processor_, endpoint_info_,
+                                         *data_accounter_);
 }
 
 Stats Listener::GetStats() const {

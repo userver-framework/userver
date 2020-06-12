@@ -22,8 +22,8 @@ class HttpRequestParser final : public request::RequestParser {
 
   HttpRequestParser(const HandlerInfoIndex& handler_info_index,
                     const request::RequestConfig& request_config,
-                    OnNewRequestCb&& on_new_request_cb,
-                    net::ParserStats& stats);
+                    OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
+                    request::ResponseDataAccounter& data_accounter);
 
   bool Parse(const char* data, size_t size) override;
 
@@ -63,6 +63,7 @@ class HttpRequestParser final : public request::RequestParser {
 
   static const http_parser_settings parser_settings;
   net::ParserStats& stats_;
+  request::ResponseDataAccounter& data_accounter_;
 };
 
 }  // namespace http

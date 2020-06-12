@@ -25,7 +25,7 @@ namespace http {
 
 class HttpRequestImpl final : public request::RequestBase {
  public:
-  HttpRequestImpl();
+  HttpRequestImpl(request::ResponseDataAccounter& data_accounter);
   ~HttpRequestImpl() override;
 
   const HttpMethod& GetMethod() const { return method_; }

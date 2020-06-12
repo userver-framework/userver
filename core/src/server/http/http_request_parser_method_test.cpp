@@ -57,6 +57,7 @@ TEST_P(HttpRequestParser, Methods) {
     const auto& param = GetParam();
     bool parsed = false;
     server::net::ParserStats stats;
+    server::request::ResponseDataAccounter data_accounter;
     server::http::HttpRequestParser parser(
         handler_info_index, request_config,
         [&param,
@@ -68,7 +69,7 @@ TEST_P(HttpRequestParser, Methods) {
           EXPECT_EQ(http_request_impl.GetOrigMethod(), param.orig_method);
           EXPECT_EQ(http_request.GetMethod(), param.method);
         },
-        stats);
+        stats, data_accounter);
 
     const std::string request =
         param.method_query + std::string(" / HTTP/1.1") + kCrlf + kCrlf;

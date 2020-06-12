@@ -14,7 +14,8 @@ namespace net {
 class Listener final {
  public:
   Listener(std::shared_ptr<EndpointInfo> endpoint_info,
-           engine::TaskProcessor& task_processor);
+           engine::TaskProcessor& task_processor,
+           request::ResponseDataAccounter& data_accounter);
   ~Listener();
 
   Listener(const Listener&) = delete;
@@ -29,6 +30,7 @@ class Listener final {
  private:
   engine::TaskProcessor* task_processor_;
   std::shared_ptr<EndpointInfo> endpoint_info_;
+  request::ResponseDataAccounter* data_accounter_;
 
   std::unique_ptr<ListenerImpl> impl_;
 };

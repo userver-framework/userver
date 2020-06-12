@@ -21,10 +21,12 @@
 namespace server::net {
 
 ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
-                           std::shared_ptr<EndpointInfo> endpoint_info)
+                           std::shared_ptr<EndpointInfo> endpoint_info,
+                           request::ResponseDataAccounter& data_accounter)
     : task_processor_(task_processor),
       endpoint_info_(std::move(endpoint_info)),
       stats_(std::make_shared<Stats>()),
+      data_accounter_(data_accounter),
       socket_listener_task_(engine::impl::CriticalAsync(
           task_processor_,
           [this](engine::io::Socket&& request_socket) {
@@ -86,7 +88,8 @@ void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
   LOG_TRACE() << "Creating connection for fd " << fd;
   auto connection_ptr = Connection::Create(
       task_processor_, endpoint_info_->listener_config.connection_config,
-      std::move(peer_socket), endpoint_info_->request_handler, stats_);
+      std::move(peer_socket), endpoint_info_->request_handler, stats_,
+      data_accounter_);
   connection_ptr->SetCloseCb([endpoint_info = endpoint_info_]() {
     --endpoint_info->connection_count;
   });

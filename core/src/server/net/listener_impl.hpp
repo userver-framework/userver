@@ -19,7 +19,8 @@ namespace net {
 class ListenerImpl final {
  public:
   ListenerImpl(engine::TaskProcessor& task_processor,
-               std::shared_ptr<EndpointInfo> endpoint_info);
+               std::shared_ptr<EndpointInfo> endpoint_info,
+               request::ResponseDataAccounter& data_accounter);
   ~ListenerImpl();
 
   Stats GetStats() const;
@@ -40,6 +41,7 @@ class ListenerImpl final {
   std::shared_ptr<EndpointInfo> endpoint_info_;
 
   std::shared_ptr<Stats> stats_;
+  request::ResponseDataAccounter& data_accounter_;
 
   engine::TaskWithResult<void> socket_listener_task_;
 

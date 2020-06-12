@@ -30,6 +30,7 @@ class ServerImpl final {
   struct PortInfo {
     std::unique_ptr<http::HttpRequestHandler> request_handler_;
     std::shared_ptr<net::EndpointInfo> endpoint_info_;
+    request::ResponseDataAccounter data_accounter_;
     std::vector<net::Listener> listeners_;
 
     void Start();
@@ -90,6 +91,10 @@ ServerImpl::ServerImpl(ServerConfig config,
 
   InitPortInfo(main_port_info_, config_, config_.listener, component_context,
                false);
+  if (config_.max_response_size_in_flight) {
+    main_port_info_.data_accounter_.SetMaxLevel(
+        *config_.max_response_size_in_flight);
+  }
   InitPortInfo(monitor_port_info_, config_, config_.monitor_listener,
                component_context, true);
 
@@ -138,7 +143,8 @@ void ServerImpl::InitPortInfo(
   size_t listener_shards = listener_config.shards ? *listener_config.shards
                                                   : event_thread_pool.size();
   while (listener_shards--) {
-    info.listeners_.emplace_back(info.endpoint_info_, task_processor);
+    info.listeners_.emplace_back(info.endpoint_info_, task_processor,
+                                 info.data_accounter_);
   }
 }
 

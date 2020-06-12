@@ -40,10 +40,11 @@ void StripDuplicateStartingSlashes(std::string& s) {
 }  // namespace
 
 HttpRequestConstructor::HttpRequestConstructor(
-    Config config, const HandlerInfoIndex& handler_info_index)
+    Config config, const HandlerInfoIndex& handler_info_index,
+    request::ResponseDataAccounter& data_accounter)
     : config_(config),
       handler_info_index_(handler_info_index),
-      request_(std::make_unique<HttpRequestImpl>()) {}
+      request_(std::make_unique<HttpRequestImpl>(data_accounter)) {}
 
 void HttpRequestConstructor::SetMethod(HttpMethod method) {
   request_->orig_method_ = method;

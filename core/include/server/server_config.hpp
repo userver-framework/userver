@@ -16,6 +16,7 @@ struct ServerConfig {
   net::ListenerConfig monitor_listener;
   std::optional<std::string> logger_access;
   std::optional<std::string> logger_access_tskv;
+  std::optional<size_t> max_response_size_in_flight;
 
   yaml_config::VariableMapPtr config_vars_ptr;
 

@@ -23,22 +23,26 @@ std::shared_ptr<Connection> Connection::Create(
     engine::TaskProcessor& task_processor, const ConnectionConfig& config,
     engine::io::Socket peer_socket,
     const http::RequestHandlerBase& request_handler,
-    std::shared_ptr<Stats> stats) {
-  return std::make_shared<Connection>(task_processor, config,
-                                      std::move(peer_socket), request_handler,
-                                      std::move(stats), EmplaceEnabler{});
+    std::shared_ptr<Stats> stats,
+    request::ResponseDataAccounter& data_accounter) {
+  return std::make_shared<Connection>(
+      task_processor, config, std::move(peer_socket), request_handler,
+      std::move(stats), data_accounter, EmplaceEnabler{});
 }
 
 Connection::Connection(engine::TaskProcessor& task_processor,
                        const ConnectionConfig& config,
                        engine::io::Socket peer_socket,
                        const http::RequestHandlerBase& request_handler,
-                       std::shared_ptr<Stats> stats, EmplaceEnabler)
+                       std::shared_ptr<Stats> stats,
+                       request::ResponseDataAccounter& data_accounter,
+                       EmplaceEnabler)
     : task_processor_(task_processor),
       config_(config),
       peer_socket_(std::move(peer_socket)),
       request_handler_(request_handler),
       stats_(std::move(stats)),
+      data_accounter_(data_accounter),
       remote_address_(peer_socket_.Getpeername().RemoteAddress()),
       request_tasks_(Queue::Create()),
       is_accepting_requests_(true),
@@ -140,7 +144,7 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
             is_accepting_requests_ = false;
           }
         },
-        stats_->parser_stats);
+        stats_->parser_stats, data_accounter_);
 
     std::vector<char> buf(config_.in_buffer_size);
     while (is_accepting_requests_) {

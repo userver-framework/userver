@@ -32,13 +32,15 @@ class Connection final : public std::enable_shared_from_this<Connection> {
       engine::TaskProcessor& task_processor, const ConnectionConfig& config,
       engine::io::Socket peer_socket,
       const http::RequestHandlerBase& request_handler,
-      std::shared_ptr<Stats> stats);
+      std::shared_ptr<Stats> stats,
+      request::ResponseDataAccounter& data_accounter);
 
   // Use Create instead of this constructor
   Connection(engine::TaskProcessor& task_processor,
              const ConnectionConfig& config, engine::io::Socket peer_socket,
              const http::RequestHandlerBase& request_handler,
-             std::shared_ptr<Stats> stats, EmplaceEnabler);
+             std::shared_ptr<Stats> stats,
+             request::ResponseDataAccounter& data_accounter, EmplaceEnabler);
 
   void SetCloseCb(CloseCb close_cb);
 
@@ -71,6 +73,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   engine::io::Socket peer_socket_;
   const http::RequestHandlerBase& request_handler_;
   const std::shared_ptr<Stats> stats_;
+  request::ResponseDataAccounter& data_accounter_;
   const std::string remote_address_;
 
   std::shared_ptr<Queue> request_tasks_;

@@ -50,10 +50,12 @@ const http_parser_settings HttpRequestParser::parser_settings = {
 HttpRequestParser::HttpRequestParser(
     const HandlerInfoIndex& handler_info_index,
     const request::RequestConfig& request_config,
-    OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats)
+    OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
+    request::ResponseDataAccounter& data_accounter)
     : handler_info_index_(handler_info_index),
       on_new_request_cb_(std::move(on_new_request_cb)),
-      stats_(stats) {
+      stats_(stats),
+      data_accounter_(data_accounter) {
   http_parser_init(&parser_, HTTP_REQUEST);
   parser_.data = this;
 
@@ -229,7 +231,7 @@ int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
 void HttpRequestParser::CreateRequestConstructor() {
   ++stats_.parsing_request_count;
   request_constructor_ = std::make_unique<HttpRequestConstructor>(
-      request_constructor_config_, handler_info_index_);
+      request_constructor_config_, handler_info_index_, data_accounter_);
   url_complete_ = false;
 }
 

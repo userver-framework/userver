@@ -1,7 +1,9 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <functional>
+#include <limits>
 #include <string>
 #include <unordered_map>
 
@@ -14,10 +16,26 @@ class Socket;
 namespace server {
 namespace request {
 
+class ResponseDataAccounter final {
+ public:
+  void Get(size_t size) { current_ += size; }
+  void Put(size_t size) { current_ -= size; }
+
+  size_t GetCurrentLevel() const { return current_; }
+
+  size_t GetMaxLevel() const { return max_; }
+
+  void SetMaxLevel(size_t size) { max_ = size; }
+
+ private:
+  std::atomic<size_t> current_{0};
+  std::atomic<size_t> max_{std::numeric_limits<size_t>::max()};
+};
+
 class ResponseBase {
  public:
-  ResponseBase() = default;
-  virtual ~ResponseBase() noexcept = default;
+  explicit ResponseBase(ResponseDataAccounter& data_accounter);
+  virtual ~ResponseBase() noexcept;
 
   void SetData(std::string data);
   const std::string& GetData() const { return data_; }
@@ -26,6 +44,7 @@ class ResponseBase {
   void SetReady();
   virtual void SetSendFailed(
       std::chrono::steady_clock::time_point failure_time);
+  bool IsLimitReached() const;
 
   bool IsReady() const { return is_ready_; }
   bool IsSent() const { return is_sent_; }
@@ -45,6 +64,7 @@ class ResponseBase {
   void SetSent(size_t bytes_sent);
   void SetSentTime(std::chrono::steady_clock::time_point sent_time);
 
+  ResponseDataAccounter& data_accounter_;
   std::string data_;
   std::chrono::steady_clock::time_point ready_time_;
   std::chrono::steady_clock::time_point sent_time_;

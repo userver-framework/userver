@@ -63,8 +63,8 @@ const std::vector<std::string> kEmptyVector{};
 namespace server {
 namespace http {
 
-HttpRequestImpl::HttpRequestImpl()
-    : response_(std::make_unique<HttpResponse>(*this)) {}
+HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
+    : response_(std::make_unique<HttpResponse>(*this, data_accounter)) {}
 
 HttpRequestImpl::~HttpRequestImpl() = default;
 

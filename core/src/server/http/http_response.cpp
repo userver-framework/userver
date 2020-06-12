@@ -69,8 +69,9 @@ void CheckHeaderValue(const std::string& value) {
 namespace server {
 namespace http {
 
-HttpResponse::HttpResponse(const HttpRequestImpl& request)
-    : request_(request) {}
+HttpResponse::HttpResponse(const HttpRequestImpl& request,
+                           request::ResponseDataAccounter& data_accounter)
+    : ResponseBase(data_accounter), request_(request) {}
 
 HttpResponse::~HttpResponse() = default;
 
