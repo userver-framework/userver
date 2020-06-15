@@ -1,5 +1,6 @@
 #include <clients/http/client.hpp>
 
+#include <chrono>
 #include <cstdlib>
 #include <limits>
 
@@ -11,12 +12,14 @@
 #include <curl-ev/multi.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <logging/log.hpp>
+#include <utils/async.hpp>
 
 namespace clients {
 namespace http {
 namespace {
 
 const std::string kIoThreadName = "curl";
+const auto kEasyReinitPeriod = std::chrono::minutes{1};
 
 // cURL accepts options as long, but we use size_t to avoid writing checks.
 // Clamp too high values to LONG_MAX, it shouldn't matter for these magnitudes.
@@ -26,19 +29,24 @@ long ClampToLong(size_t value) {
 
 }  // namespace
 
-std::shared_ptr<Client> Client::Create(const std::string& thread_name_prefix,
-                                       size_t io_threads) {
+std::shared_ptr<Client> Client::Create(
+    const std::string& thread_name_prefix, size_t io_threads,
+    engine::TaskProcessor& fs_task_processor) {
   struct EmplaceEnabler : public Client {
-    EmplaceEnabler(const std::string& thread_name_prefix, size_t io_threads)
-        : Client(thread_name_prefix, io_threads) {}
+    EmplaceEnabler(const std::string& thread_name_prefix, size_t io_threads,
+                   engine::TaskProcessor& fs_task_processor)
+        : Client(thread_name_prefix, io_threads, fs_task_processor) {}
   };
-  return std::make_shared<EmplaceEnabler>(thread_name_prefix, io_threads);
+  return std::make_shared<EmplaceEnabler>(thread_name_prefix, io_threads,
+                                          fs_task_processor);
 }
 
-Client::Client(const std::string& thread_name_prefix, size_t io_threads)
+Client::Client(const std::string& thread_name_prefix, size_t io_threads,
+               engine::TaskProcessor& fs_task_processor)
     : destination_statistics_(std::make_shared<DestinationStatistics>()),
       statistics_(io_threads),
-      idle_queue_() {
+      idle_queue_(),
+      fs_task_processor_(fs_task_processor) {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
   ev_config.thread_name =
@@ -46,13 +54,23 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads)
       (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
   thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
 
+  ReinitEasy();
+
   multis_.reserve(io_threads);
   for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
     multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr));
   }
+
+  easy_reinit_task_.Start(
+      "http_easy_reinit",
+      utils::PeriodicTask::Settings(kEasyReinitPeriod,
+                                    {utils::PeriodicTask::Flags::kCritical}),
+      [this] { ReinitEasy(); });
 }
 
 Client::~Client() {
+  easy_reinit_task_.Stop();
+
   // We have to destroy *this only when all the requests are finished, because
   // otherwise `multis_` and `thread_pool_` are destroyed and pending requests
   // cause UB (e.g. segfault).
@@ -88,8 +106,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
     thread_local unsigned int rand_state = 0;
     int i = rand_r(&rand_state) % multis_.size();
     auto& multi = multis_[i];
-    auto wrapper = std::make_shared<EasyWrapper>(
-        std::make_shared<curl::easy>(*multi), *this);
+    auto wrapper =
+        std::make_shared<EasyWrapper>(easy_.Get()->GetBound(*multi), *this);
     request = std::make_shared<Request>(std::move(wrapper),
                                         statistics_[i].CreateRequestStats(),
                                         destination_statistics_);
@@ -127,6 +145,12 @@ void Client::SetConnectionPoolSize(size_t connection_pool_size) {
   }
 }
 
+void Client::ReinitEasy() {
+  easy_.Set(utils::CriticalAsync(fs_task_processor_, "http_easy_reinit",
+                                 &curl::easy::Create)
+                .Get());
+}
+
 InstanceStatistics Client::GetMultiStatistics(size_t n) const {
   UASSERT(n < statistics_.size());
   InstanceStatistics s(statistics_[n]);
@@ -143,9 +167,9 @@ InstanceStatistics Client::GetMultiStatistics(size_t n) const {
   return s;
 }
 
-size_t Client::FindMultiIndex(const curl::multi& multi) const {
+size_t Client::FindMultiIndex(const curl::multi* multi) const {
   for (size_t i = 0; i < multis_.size(); i++) {
-    if (multis_[i].get() == &multi) return i;
+    if (multis_[i].get() == multi) return i;
   }
   UASSERT_MSG(false, "Unknown multi");
   throw std::logic_error("Unknown multi");

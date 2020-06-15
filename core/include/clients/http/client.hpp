@@ -9,17 +9,21 @@
 
 #include <moodycamel/concurrentqueue_fwd.h>
 #include <utils/fast_pimpl.hpp>
+#include <utils/periodic_task.hpp>
+#include <utils/swappingsmart.hpp>
 #include <utils/token_bucket.hpp>
 
 namespace curl {
+class easy;
 class multi;
 }  // namespace curl
 
 namespace engine {
 namespace ev {
-
 class ThreadPool;
 }  // namespace ev
+
+class TaskProcessor;
 }  // namespace engine
 
 namespace clients {
@@ -32,8 +36,9 @@ struct TestsuiteConfig;
 class Client {
  public:
   /* Use this method to create Client */
-  static std::shared_ptr<Client> Create(const std::string& thread_name_prefix,
-                                        size_t io_threads);
+  static std::shared_ptr<Client> Create(
+      const std::string& thread_name_prefix, size_t io_threads,
+      engine::TaskProcessor& fs_task_processor);
 
   Client(const Client&) = delete;
   Client(Client&&) = delete;
@@ -64,11 +69,14 @@ class Client {
       size_t max_size, utils::TokenBucket::Duration token_update_interval);
 
  private:
-  explicit Client(const std::string& thread_name_prefix, size_t io_threads);
+  explicit Client(const std::string& thread_name_prefix, size_t io_threads,
+                  engine::TaskProcessor& fs_task_processor);
+
+  void ReinitEasy();
 
   InstanceStatistics GetMultiStatistics(size_t n) const;
 
-  size_t FindMultiIndex(const curl::multi&) const;
+  size_t FindMultiIndex(const curl::multi*) const;
 
   // Functions for EasyWrapper that must be noexcept, as they are called from
   // the EasyWrapper destructor.
@@ -93,6 +101,10 @@ class Client {
   using IdleQueue =
       moodycamel::ConcurrentQueue<IdleQueueValue, IdleQueueTraits>;
   utils::FastPimpl<IdleQueue, kIdleQueueSize, kIdleQueueAlignment> idle_queue_;
+
+  engine::TaskProcessor& fs_task_processor_;
+  utils::SwappingSmart<const curl::easy> easy_;
+  utils::PeriodicTask easy_reinit_task_;
 
   // Testsuite support
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;

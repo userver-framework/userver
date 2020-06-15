@@ -135,11 +135,19 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   static easy* from_native(native::CURL* native_easy);
 
-  easy(multi& multi_handle);
+  // Creates an initialized but unbound easy, use GetBound() for usable
+  // instances. May block on resolver initialization.
+  static std::shared_ptr<const easy> Create();
+
+  easy(native::CURL*, multi*);
   easy(const easy&) = delete;
   ~easy();
 
-  const multi& GetMulti() const { return *multi_; }
+  // Makes a clone of an initialized easy, hopefully non-blocking (skips full
+  // resolver initialization).
+  std::shared_ptr<easy> GetBound(multi&) const;
+
+  const multi* GetMulti() const { return multi_; }
 
   inline native::CURL* native_handle() { return handle_; }
   engine::ev::ThreadControl& GetThreadControl();
@@ -647,7 +655,6 @@ class easy final : public std::enable_shared_from_this<easy> {
   static size_t header_function(void* ptr, size_t size, size_t nmemb,
                                 void* userdata);
 
-  void init();
   native::curl_socket_t open_tcp_socket(native::curl_sockaddr* address);
   void cancel(size_t request_num);
 

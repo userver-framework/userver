@@ -185,7 +185,7 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
   auto& tp = engine::current_task::GetTaskProcessor();
-  auto http_client = http::Client::Create("", config.io_threads);
+  auto http_client = http::Client::Create("", config.io_threads, tp);
   LOG_INFO() << "Client created";
 
   http_client->SetMultiplexingEnabled(config.multiplexing);

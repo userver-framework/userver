@@ -29,20 +29,11 @@
 using namespace curl;
 using BusyMarker = ::utils::statistics::BusyMarker;
 
-easy* easy::from_native(native::CURL* native_easy) {
-  easy* easy_handle;
-  native::curl_easy_getinfo(native_easy, native::CURLINFO_PRIVATE,
-                            &easy_handle);
-  return easy_handle;
-}
-
-engine::ev::ThreadControl& easy::GetThreadControl() {
-  return multi_->GetThreadControl();
-}
-
-easy::easy(multi& multi_handle)
-    : multi_(&multi_handle), multi_registered_(false) {
-  init();
+easy::easy(native::CURL* easy_handle, multi* multi_handle)
+    : handle_(easy_handle), multi_(multi_handle), multi_registered_(false) {
+  initref_ = initialization::ensure_initialization();
+  UASSERT(handle_);
+  set_private(this);
 }
 
 easy::~easy() {
@@ -52,6 +43,35 @@ easy::~easy() {
     native::curl_easy_cleanup(handle_);
     handle_ = nullptr;
   }
+}
+
+std::shared_ptr<const easy> easy::Create() {
+  auto* handle = native::curl_easy_init();
+  if (!handle) {
+    throw std::bad_alloc();
+  }
+
+  return std::make_shared<const easy>(handle, nullptr);
+}
+
+std::shared_ptr<easy> easy::GetBound(multi& multi_handle) const {
+  auto* cloned = native::curl_easy_duphandle(handle_);
+  if (!cloned) {
+    throw std::bad_alloc();
+  }
+
+  return std::make_shared<easy>(cloned, &multi_handle);
+}
+
+easy* easy::from_native(native::CURL* native_easy) {
+  easy* easy_handle;
+  native::curl_easy_getinfo(native_easy, native::CURLINFO_PRIVATE,
+                            &easy_handle);
+  return easy_handle;
+}
+
+engine::ev::ThreadControl& easy::GetThreadControl() {
+  return multi_->GetThreadControl();
 }
 
 void easy::async_perform(handler_type handler) {
@@ -116,8 +136,10 @@ void easy::do_ev_async_perform(handler_type handler, size_t request_num) {
 void easy::cancel() { cancel(request_counter_); }
 
 void easy::cancel(size_t request_num) {
-  multi_->GetThreadControl().RunInEvLoopSync(
-      [this, request_num] { do_ev_cancel(request_num); });
+  if (multi_) {
+    multi_->GetThreadControl().RunInEvLoopSync(
+        [this, request_num] { do_ev_cancel(request_num); });
+  }
 }
 
 void easy::do_ev_cancel(size_t request_num) {
@@ -152,7 +174,9 @@ void easy::reset() {
   set_ssl_ctx_data(nullptr);
   set_ssl_ctx_function(nullptr);
 
-  multi_->GetThreadControl().RunInEvLoopSync([this] { do_ev_reset(); });
+  if (multi_) {
+    multi_->GetThreadControl().RunInEvLoopSync([this] { do_ev_reset(); });
+  }
 
   LOG_TRACE() << "easy::reset finished " << reinterpret_cast<long>(this);
 }
@@ -479,17 +503,6 @@ void easy::handle_completion(const std::error_code& err) {
    * coro context.
    */
   handler(err);
-}
-
-void easy::init() {
-  initref_ = initialization::ensure_initialization();
-  handle_ = native::curl_easy_init();
-
-  if (!handle_) {
-    throw std::bad_alloc();
-  }
-
-  set_private(this);
 }
 
 native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {

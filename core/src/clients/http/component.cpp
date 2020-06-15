@@ -24,13 +24,16 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
     : LoggableComponentBase(component_config, context),
       taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
+  auto& fs_task_processor = context.GetTaskProcessor(
+      component_config.ParseString("fs-task-processor"));
   auto booststrap_config = taxi_config_component_.GetBootstrap();
   const auto& http_config = booststrap_config->Get<clients::http::Config>();
   size_t threads = http_config.threads;
 
   auto thread_name_prefix =
       component_config.ParseString("thread-name-prefix", "");
-  http_client_ = clients::http::Client::Create(thread_name_prefix, threads);
+  http_client_ = clients::http::Client::Create(thread_name_prefix, threads,
+                                               fs_task_processor);
   http_client_->SetDestinationMetricsAutoMaxSize(
       component_config.ParseInt("destination-metrics-auto-max-size",
                                 kDestinationMetricsAutoMaxSizeDefault));

@@ -1,12 +1,11 @@
 #include <clients/http/form.hpp>
 
 #include <clients/http/client.hpp>
+#include <utest/http_client.hpp>
 #include <utest/simple_server.hpp>
 #include <utest/utest.hpp>
 
 namespace {
-
-constexpr std::size_t kHttpIoThreads{1};
 
 using HttpResponse = testing::SimpleServer::Response;
 using HttpRequest = testing::SimpleServer::Request;
@@ -111,9 +110,7 @@ TEST(CurlFormTest, MultipartFileWithContentType) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&validating_callback1};
 
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
-
+    auto http_client_ptr = utest::CreateHttpClient();
     auto form = std::make_shared<clients::http::Form>();
     form->add_buffer(kKey, kFileNameTxt,
                      std::make_shared<std::string>(kTestData), kImageJpeg);
@@ -134,9 +131,7 @@ TEST(CurlFormTest, FilesWithContentType) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&validating_callback2};
 
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
-
+    auto http_client_ptr = utest::CreateHttpClient();
     auto form = std::make_shared<clients::http::Form>();
     form->add_buffer(kKey, kFileNameTxt,
                      std::make_shared<std::string>(kTestData), kImageJpeg);

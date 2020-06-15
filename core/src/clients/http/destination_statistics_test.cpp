@@ -1,3 +1,4 @@
+#include <utest/http_client.hpp>
 #include <utest/simple_server.hpp>
 #include <utest/utest.hpp>
 
@@ -5,10 +6,6 @@
 
 #include <clients/http/client.hpp>
 #include <clients/http/destination_statistics.hpp>
-
-namespace {
-constexpr size_t kHttpIoThreads{1};
-}
 
 using HttpResponse = testing::SimpleServer::Response;
 using HttpRequest = testing::SimpleServer::Request;
@@ -25,8 +22,7 @@ static HttpResponse Callback(int code, const HttpRequest& request) {
 
 TEST(DestinationStatistics, Empty) {
   TestInCoro([] {
-    std::shared_ptr<clients::http::Client> client =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto client = utest::CreateHttpClient();
 
     EXPECT_EQ(client->GetDestinationStatistics().begin(),
               client->GetDestinationStatistics().end());
@@ -37,8 +33,7 @@ TEST(DestinationStatistics, Ok) {
   TestInCoro([] {
     const testing::SimpleServer http_server{
         [](const HttpRequest& request) { return Callback(200, request); }};
-    std::shared_ptr<clients::http::Client> client =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto client = utest::CreateHttpClient();
 
     auto url = http_server.GetBaseUrl();
 
@@ -73,8 +68,7 @@ TEST(DestinationStatistics, Multiple) {
         [](const HttpRequest& request) { return Callback(200, request); }};
     const testing::SimpleServer http_server2{
         [](const HttpRequest& request) { return Callback(500, request); }};
-    std::shared_ptr<clients::http::Client> client =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto client = utest::CreateHttpClient();
 
     client->SetDestinationMetricsAutoMaxSize(100);
 

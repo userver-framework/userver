@@ -1,6 +1,7 @@
 #include <utest/utest.hpp>
 
 #include <clients/http/client.hpp>
+#include <engine/task/task.hpp>
 #include <logging/log.hpp>
 #include <utest/http_server_mock.hpp>
 
@@ -29,7 +30,8 @@ TEST(HttpServerMock, Ctr) {
           };
         });
 
-    auto http_client_ptr = clients::http::Client::Create("", 1);
+    auto http_client_ptr = clients::http::Client::Create(
+        "", 1, engine::current_task::GetTaskProcessor());
     clients::http::Headers headers{
         {"a", "value1"},
         {"header", "value2"},

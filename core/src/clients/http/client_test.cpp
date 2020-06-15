@@ -9,12 +9,12 @@
 #include <logging/log.hpp>
 #include <utils/async.hpp>
 
+#include <utest/http_client.hpp>
 #include <utest/simple_server.hpp>
 #include <utest/utest.hpp>
 
 namespace {
 
-constexpr std::size_t kHttpIoThreads{1};
 constexpr char kTestData[] = "Test Data";
 constexpr unsigned kRepetitions = 200;
 
@@ -274,8 +274,7 @@ struct Response301WithHeader {
 TEST(HttpClient, PostEcho) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&echo_callback};
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     const auto res = http_client_ptr->CreateRequest()
                          ->post(http_server.GetBaseUrl(), kTestData)
@@ -293,8 +292,7 @@ TEST(HttpClient, CancelPre) {
   TestInCoro([] {
     auto task = utils::Async("test", [] {
       const testing::SimpleServer http_server{&echo_callback};
-      std::shared_ptr<clients::http::Client> http_client_ptr =
-          clients::http::Client::Create("", kHttpIoThreads);
+      auto http_client_ptr = utest::CreateHttpClient();
 
       engine::current_task::GetCurrentTaskContext()->RequestCancel(
           engine::Task::CancellationReason::kUserRequest);
@@ -311,8 +309,7 @@ TEST(HttpClient, CancelPost) {
   TestInCoro([] {
     auto task = utils::Async("test", [] {
       const testing::SimpleServer http_server{&echo_callback};
-      std::shared_ptr<clients::http::Client> http_client_ptr =
-          clients::http::Client::Create("", kHttpIoThreads);
+      auto http_client_ptr = utest::CreateHttpClient();
 
       const auto request = http_client_ptr->CreateRequest()
                                ->post(http_server.GetBaseUrl(), kTestData)
@@ -332,8 +329,7 @@ TEST(HttpClient, CancelPost) {
 TEST(HttpClient, PostShutdownWithPendingRequest) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&sleep_callback};
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
@@ -352,8 +348,7 @@ TEST(HttpClient, PostShutdownWithPendingRequest) {
 TEST(HttpClient, PostShutdownWithPendingRequestHuge) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&sleep_callback};
-    const std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     std::string request = kTestData;
     for (unsigned i = 0; i < 20; ++i) {
@@ -375,8 +370,7 @@ TEST(HttpClient, PostShutdownWithPendingRequestHuge) {
 TEST(HttpClient, PutEcho) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&echo_callback};
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     const auto res = http_client_ptr->CreateRequest()
                          ->put(http_server.GetBaseUrl(), kTestData)
@@ -393,8 +387,7 @@ TEST(HttpClient, PutEcho) {
 TEST(HttpClient, PutValidateHeader) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&put_validate_callback};
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     const auto res = http_client_ptr->CreateRequest()
                          ->put(http_server.GetBaseUrl(), kTestData)
@@ -411,8 +404,7 @@ TEST(HttpClient, PutValidateHeader) {
 TEST(HttpClient, PutShutdownWithPendingRequest) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&sleep_callback};
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
@@ -431,8 +423,7 @@ TEST(HttpClient, PutShutdownWithPendingRequest) {
 TEST(HttpClient, PutShutdownWithPendingRequestHuge) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&sleep_callback};
-    const std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     std::string request = kTestData;
     for (unsigned i = 0; i < 20; ++i) {
@@ -454,8 +445,7 @@ TEST(HttpClient, PutShutdownWithPendingRequestHuge) {
 TEST(HttpClient, PutShutdownWithHugeResponse) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&huge_data_callback};
-    const std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     for (unsigned i = 0; i < kRepetitions; ++i)
       http_client_ptr->CreateRequest()
@@ -475,7 +465,7 @@ TEST(HttpClient, MethodsMix) {
 
     const validating_shared_callback callback{};
     const testing::SimpleServer http_server{callback};
-    const auto http_client = clients::http::Client::Create("", kHttpIoThreads);
+    const auto http_client = utest::CreateHttpClient();
 
     const RequestMethodTestData tests[] = {
         {"PUT", kTestData, &Request::put},
@@ -504,8 +494,7 @@ TEST(HttpClient, MethodsMix) {
 TEST(HttpClient, Headers) {
   TestInCoro([] {
     const testing::SimpleServer http_server{&header_validate_callback};
-    std::shared_ptr<clients::http::Client> http_client_ptr =
-        clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     clients::http::Headers headers;
     headers.emplace(kTestHeader, "test");
@@ -530,7 +519,7 @@ TEST(HttpClient, Headers) {
 
 TEST(HttpClient, HeadersAndWhitespaces) {
   TestInCoro([] {
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     const std::string header_data = kTestData;
     const std::string header_values[] = {
@@ -575,7 +564,7 @@ TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
   TestInCoro([] {
     auto pkey = crypto::PrivateKey::LoadFromString(kPrivateKey, "");
     auto cert = crypto::Certificate::LoadFromString(kCertificate);
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
     const testing::SimpleServer http_server{echo_callback};
     const auto url = http_server.GetBaseUrl();
     const auto ssl_url =
@@ -618,7 +607,7 @@ TEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
 
 TEST(HttpClient, RedirectHeaders) {
   TestInCoro([] {
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
 
     const testing::SimpleServer http_server_final{
         Response200WithHeader{"xxx: good"}};

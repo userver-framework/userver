@@ -1,11 +1,14 @@
 if(APPLE)
 # Apple has no yandex-taxi's curl, fall back to libcurl
 set(CURL_YANDEX_ENABLED_DEFAULT OFF)
+set(CURL_CARES_ENABLED_DEFAULT OFF)
 else(APPLE)
 set(CURL_YANDEX_ENABLED_DEFAULT ON)
+set(CURL_CARES_ENABLED_DEFAULT ON)
 endif(APPLE)
 
 set(CURL_YANDEX_ENABLED ${CURL_YANDEX_ENABLED_DEFAULT} CACHE BOOL "Whether to use libyandex-taxi-curl")
+set(CURL_CARES_ENABLED ${CURL_CARES_ENABLED_DEFAULT} CACHE BOOL "Whether to use libyandex-taxi-cares")
 message(STATUS "Using libyandex-taxi-curl status: ${CURL_YANDEX_ENABLED}")
 
 if(NOT CURL_YANDEX_ENABLED)

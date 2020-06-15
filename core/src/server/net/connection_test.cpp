@@ -10,13 +10,13 @@
 #include <server/http/request_handler_base.hpp>
 #include <server/net/create_socket.hpp>
 
+#include <utest/http_client.hpp>
 #include <utest/utest.hpp>
 
 namespace net = server::net;
 using engine::Deadline;
 
 namespace {
-constexpr std::size_t kHttpIoThreads = 1;
 constexpr std::chrono::seconds kAcceptTimeout{1};
 
 class TestHttprequestHandler : public server::http::RequestHandlerBase {
@@ -105,8 +105,7 @@ TEST(ServerNetConnection, EarlyCancel) {
         net::ListenerConfig config = CreateConfig();
         auto request_socket = net::CreateSocket(config);
 
-        auto http_client_ptr =
-            clients::http::Client::Create("", kHttpIoThreads);
+        auto http_client_ptr = utest::CreateHttpClient();
         auto request = CreateRequest(http_client_ptr, request_socket,
                                      ConnectionHeader::kKeepAlive);
 
@@ -147,7 +146,7 @@ TEST(ServerNetConnection, EarlyTimeout) {
     net::ListenerConfig config = CreateConfig();
     auto request_socket = net::CreateSocket(config);
 
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(http_client_ptr, request_socket,
                              ConnectionHeader::kKeepAlive);
 
@@ -182,7 +181,7 @@ TEST(ServerNetConnection, TimeoutWithTaskCancellation) {
     net::ListenerConfig config = CreateConfig();
     auto request_socket = net::CreateSocket(config);
 
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(http_client_ptr, request_socket,
                              ConnectionHeader::kKeepAlive);
 
@@ -216,7 +215,7 @@ TEST(ServerNetConnection, EarlyTeardown) {
     net::ListenerConfig config = CreateConfig();
     auto request_socket = net::CreateSocket(config);
 
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(http_client_ptr, request_socket,
                              ConnectionHeader::kClose);
 
@@ -238,7 +237,7 @@ TEST(ServerNetConnection, RemoteClosed) {
     net::ListenerConfig config = CreateConfig();
     auto request_socket = net::CreateSocket(config);
 
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
     auto request = CreateRequest(http_client_ptr, request_socket,
                                  ConnectionHeader::kClose);
 
@@ -271,7 +270,7 @@ TEST(ServerNetConnection, KeepAlive) {
     net::ListenerConfig config = CreateConfig();
     auto request_socket = net::CreateSocket(config);
 
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
     http_client_ptr->SetMaxHostConnections(1);
     http_client_ptr->SetConnectionPoolSize(1);
 
@@ -306,7 +305,7 @@ TEST(ServerNetConnection, CancelMultipleInFlight) {
     net::ListenerConfig config = CreateConfig();
     auto request_socket = net::CreateSocket(config);
 
-    auto http_client_ptr = clients::http::Client::Create("", kHttpIoThreads);
+    auto http_client_ptr = utest::CreateHttpClient();
     http_client_ptr->SetMaxHostConnections(1);
     http_client_ptr->SetConnectionPoolSize(1);
 
