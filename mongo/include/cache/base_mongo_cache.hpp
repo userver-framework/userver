@@ -184,7 +184,12 @@ void MongoCache<MongoCacheTraits>::Update(
     return;
   }
 
+  auto scope = tracing::Span::CurrentSpan().CreateScopeTime("copy_data");
   auto new_cache = GetData(type);
+
+  // No good way to identify whether cursor accesses DB or reads buffed data
+  scope.Reset("fetch_and_parse");
+
   for (const auto& doc : cursor) {
     stats_scope.IncreaseDocumentsReadCount(1);
 

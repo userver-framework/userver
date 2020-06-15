@@ -413,7 +413,11 @@ void PostgreCache<PostgreCachePolicy>::Update(
                                                 : incremental_update_timeout_;
 
   // COPY current cached data
+  auto scope = tracing::Span::CurrentSpan().CreateScopeTime("copy_data");
   auto data_cache = GetDataSnapshot(type);
+
+  scope.Reset("fetch");
+
   size_t changes = 0;
   // Iterate clusters
   for (auto cluster : clusters_) {
@@ -424,8 +428,11 @@ void PostgreCache<PostgreCachePolicy>::Update(
       auto portal =
           trx.MakePortal(query, GetLastUpdated(last_update, *data_cache));
       while (portal) {
+        scope.Reset("fetch");
         auto res = portal.Fetch(chunk_size_);
         stats_scope.IncreaseDocumentsReadCount(res.Size());
+
+        scope.Reset("parse");
         CacheResults(res, data_cache, stats_scope);
         changes += res.Size();
       }
@@ -436,6 +443,8 @@ void PostgreCache<PostgreCachePolicy>::Update(
           pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
           query, GetLastUpdated(last_update, *data_cache));
       stats_scope.IncreaseDocumentsReadCount(res.Size());
+
+      scope.Reset("parse");
       CacheResults(res, data_cache, stats_scope);
       changes += res.Size();
     }
