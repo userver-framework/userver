@@ -24,12 +24,40 @@ struct RpsCcConfig {
   Policy policy;
   bool is_enabled;
 };
+
+formats::json::Value FormatStats(const Controller& c) {
+  formats::json::ValueBuilder builder;
+  builder["is-enabled"] = c.IsEnabled() ? 1 : 0;
+
+  auto limit = c.GetLimit();
+  builder["is-activated"] = limit.load_limit ? 1 : 0;
+  if (limit.load_limit) {
+    builder["limit"] = *limit.load_limit;
+  }
+
+  const auto& stats = c.GetStats();
+  formats::json::ValueBuilder builder_stats;
+  builder_stats["no-limit"] = stats.no_limit.load();
+  builder_stats["not-overloaded-no-pressure"] =
+      stats.not_overload_no_pressure.load();
+  builder_stats["not-overloaded-under-pressure"] =
+      stats.not_overload_pressure.load();
+  builder_stats["overloaded-no-pressure"] = stats.overload_no_pressure.load();
+  builder_stats["overloaded-under-pressure"] = stats.overload_pressure.load();
+  builder["states"] = builder_stats.ExtractValue();
+  builder["current-state"] = stats.current_state.load();
+
+  return builder.ExtractValue();
+}
+
 }  // namespace
 
 struct Component::Impl {
   server::congestion_control::Sensor server_sensor;
   server::congestion_control::Limiter server_limiter;
   Controller server_controller;
+
+  utils::statistics::Entry statistics_holder_;
 
   // must go after all sensors/limiters
   Watchdog wd;
@@ -54,6 +82,12 @@ Component::Component(const components::ComponentConfig& config,
   auto& taxi_config = context.FindComponent<components::TaxiConfig>();
   pimpl_->config_subscription =
       taxi_config.AddListener(this, kName, &Component::OnConfigUpdate);
+
+  auto& storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+  pimpl_->statistics_holder_ = storage.RegisterExtender(
+      kName,
+      std::bind(&Component::ExtendStatistics, this, std::placeholders::_1));
 }
 
 Component::~Component() = default;
@@ -66,5 +100,12 @@ void Component::OnConfigUpdate(
 }
 
 void Component::OnAllComponentsAreStopping() { pimpl_->wd.Stop(); }
+
+formats::json::Value Component::ExtendStatistics(
+    const utils::statistics::StatisticsRequest& /*request*/) {
+  formats::json::ValueBuilder builder;
+  builder["rps"] = FormatStats(pimpl_->server_controller);
+  return builder.ExtractValue();
+}
 
 }  // namespace congestion_control

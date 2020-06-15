@@ -77,10 +77,10 @@ size_t Controller::CalcNewLimit(const Sensor::Data& data,
 void Controller::Feed(const Sensor::Data& data) {
   auto policy = policy_.Lock();
 
-  const auto is_overloaded_now = IsOverloadedNow(data, *policy);
+  const auto is_overloaded_pressure = IsOverloadedNow(data, *policy);
   const auto old_overloaded = state_.is_overloaded;
 
-  if (is_overloaded_now) {
+  if (is_overloaded_pressure) {
     state_.times_with_overload++;
     state_.times_wo_overload = 0;
   } else {
@@ -89,17 +89,37 @@ void Controller::Feed(const Sensor::Data& data) {
   }
 
   if (state_.is_overloaded) {
-    if (is_overloaded_now) {
+    if (is_overloaded_pressure) {
       state_.current_limit = CalcNewLimit(data, *policy);
-    } else if (state_.times_wo_overload > policy->down_count) {
-      state_.is_overloaded = false;
+
+      stats_.overload_pressure++;
+      stats_.current_state = 4;
+    } else {
+      if (state_.times_wo_overload > policy->down_count) {
+        state_.is_overloaded = false;
+      }
+
+      stats_.overload_no_pressure++;
+      stats_.current_state = 3;
     }
   } else {
-    if (!is_overloaded_now) {
-      if (state_.current_limit)
+    if (!is_overloaded_pressure) {
+      if (state_.current_limit) {
         state_.current_limit = CalcNewLimit(data, *policy);
-    } else if (state_.times_with_overload > policy->up_count) {
-      state_.is_overloaded = true;
+
+        stats_.not_overload_no_pressure++;
+        stats_.current_state = 1;
+      } else {
+        stats_.no_limit++;
+        stats_.current_state = 0;
+      }
+    } else {
+      if (state_.times_with_overload > policy->up_count) {
+        state_.is_overloaded = true;
+      }
+
+      stats_.not_overload_pressure++;
+      stats_.current_state = 2;
     }
   }
 
@@ -126,10 +146,12 @@ void Controller::Feed(const Sensor::Data& data) {
 
 Limit Controller::GetLimit() const {
   if (is_enabled_.load())
-    return limit_;
+    return GetLimitRaw();
   else
     return {};
 }
+
+Limit Controller::GetLimitRaw() const { return limit_; }
 
 void Controller::SetPolicy(const Policy& new_policy) {
   auto policy = policy_.Lock();
@@ -142,5 +164,9 @@ void Controller::SetEnabled(bool enabled) {
                   << (enabled ? "enabled" : "disabled");
   is_enabled_ = enabled;
 }
+
+bool Controller::IsEnabled() const { return is_enabled_; }
+
+const Stats& Controller::GetStats() const { return stats_; }
 
 }  // namespace congestion_control
