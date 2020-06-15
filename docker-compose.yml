@@ -43,3 +43,31 @@ services:
           - .:/taxi/userver:rw
           - ${CCACHE_DIR:-~/.ccache}:/taxi/ccache:rw
         working_dir: /taxi/userver
+
+    taxi-userver-tests:
+        image: registry.yandex.net/taxi/taxi-integration-xenial-base:${VERSION:-latest}
+        privileged: true
+        mem_limit: 40G
+        network_mode: bridge
+        environment:
+          - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
+          - CC
+          - CCACHE_DIR=/taxi/ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE
+          - CMAKE_OPTS
+          - CORES_DIR=/taxi/cores
+          - CONTAINER_NAME=taxi-userver-tests
+          - CXX
+          - IS_TEAMCITY
+          - NPROCS
+          - PULL_REQUEST_TYPE
+        volumes:
+          - .:/taxi/userver:rw
+          - ./tools/dockertest:/taxi/tools:ro
+          - ${CCACHE_DIR:-~/.ccache}:/taxi/ccache:rw
+          - ${TC_CORES_DIR:-./cores}:/taxi/cores:rw
+        working_dir: /taxi/userver/
+        command: /taxi/userver/tools/userver-tests.sh
