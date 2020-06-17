@@ -97,7 +97,7 @@ formats::json::ValueBuilder ShardStatisticsToJson(
   utils::statistics::SolomonChildrenAreLabelValues(insts, "redis_instance");
   utils::statistics::SolomonSkip(insts);
   result["instances"] = insts;
-  result["instances_count"] = insts.GetSize();
+  result["instances_count"] = shard_stats.instances.size();
 
   result["shard-total"] =
       InstanceStatisticsToJson(shard_stats.GetShardTotalStatistics(), false);
