@@ -6,6 +6,7 @@
 #include <string>
 
 #include <formats/yaml.hpp>
+#include <yaml_config/iterator.hpp>
 #include <yaml_config/value.hpp>
 
 #include "variable_map.hpp"
@@ -14,6 +15,14 @@ namespace yaml_config {
 
 class YamlConfig {
  public:
+  struct IterTraits {
+    using value_type = YamlConfig;
+    using reference = const YamlConfig&;
+    using pointer = const YamlConfig*;
+  };
+
+ public:
+  using const_iterator = Iterator<IterTraits>;
   YamlConfig(formats::yaml::Value yaml, std::string full_path,
              VariableMapPtr config_vars_ptr);
 
@@ -76,6 +85,15 @@ class YamlConfig {
                yaml_, name, full_path_, config_vars_ptr_)
         .value_or(std::forward<T>(default_value));
   }
+
+  /// These methods return iterators over YamlConfig content. Only for arrays
+  /// and objects.
+  /// @{
+  const_iterator begin() const;
+  const_iterator cbegin() const;
+  const_iterator end() const;
+  const_iterator cend() const;
+  /// @}
 
  private:
   formats::yaml::Value yaml_;

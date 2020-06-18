@@ -44,6 +44,9 @@ class Iterator final {
   /// @throws `TypeMismatchException` if iterated value is not an array
   uint32_t GetIndex() const;
 
+  /// @brief Returns whether iterator is over array or over object
+  Type GetIteratorType() const;
+
  private:
   void UpdateValue() const;
 

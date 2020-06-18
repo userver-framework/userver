@@ -140,4 +140,20 @@ YamlConfig YamlConfig::operator[](size_t index) const {
 
 bool YamlConfig::IsMissing() const { return yaml_.IsMissing(); }
 
+YamlConfig::const_iterator YamlConfig::begin() const {
+  return const_iterator{*this, yaml_.begin()};
+}
+
+YamlConfig::const_iterator YamlConfig::cbegin() const {
+  return const_iterator{*this, yaml_.begin()};
+}
+
+YamlConfig::const_iterator YamlConfig::end() const {
+  return const_iterator{*this, yaml_.end()};
+}
+
+YamlConfig::const_iterator YamlConfig::cend() const {
+  return const_iterator{*this, yaml_.end()};
+}
+
 }  // namespace yaml_config

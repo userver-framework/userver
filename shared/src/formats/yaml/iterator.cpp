@@ -111,6 +111,15 @@ uint32_t Iterator<iter_traits>::GetIndex() const {
 }
 
 template <typename iter_traits>
+Type Iterator<iter_traits>::GetIteratorType() const {
+  if (index_ == -1) {
+    return Type::kObject;
+  } else {
+    return Type::kArray;
+  }
+}
+
+template <typename iter_traits>
 void Iterator<iter_traits>::UpdateValue() const {
   if (current_) return;
 
