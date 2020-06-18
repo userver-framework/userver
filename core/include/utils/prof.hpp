@@ -110,6 +110,8 @@ class ScopeTime {
   /// Will return 0 if the timer is stopped
   TimeStorage::RealMilliseconds ElapsedTotal() const;
 
+  const std::string& CurrentScope() const { return scope_name_; }
+
  private:
   TimeStorage& ts_;
   PerfTimePoint start_;
