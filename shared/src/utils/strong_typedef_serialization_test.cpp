@@ -7,6 +7,8 @@
 #include <formats/yaml/serialize.hpp>
 #include <formats/yaml/value.hpp>
 
+#include <array>
+
 #include <boost/optional.hpp>
 #include <boost/optional/optional_io.hpp>
 
@@ -30,6 +32,31 @@ using IntTypedef = utils::StrongTypedef<IntTag, int>;
 
 using OptionalIntTypedef =
     utils::StrongTypedef<OptionalIntTag, boost::optional<int>>;
+
+namespace {
+
+struct NonStreamable {};
+
+struct MyNonStreamable final
+    : utils::StrongTypedef<MyNonStreamable, NonStreamable,
+                           utils::StrongTypedefOps::kCompareTransparent> {
+  using StrongTypedef::StrongTypedef;
+};
+
+}  // namespace
+
+namespace fmt {
+
+// fmt::format custoimization
+template <>
+struct formatter<NonStreamable> : formatter<const char*> {
+  template <typename FormatContext>
+  auto format(const NonStreamable& /*v*/, FormatContext& ctx) {
+    return formatter<const char*>::format("!!!", ctx);
+  }
+};
+
+}  // namespace fmt
 
 TEST(SerializeStrongTypedef, ParseInt) {
   auto json_object = formats::json::FromString(R"json({"data" : 10})json");
@@ -92,4 +119,16 @@ TEST(SerializeStrongTypedef, SerializeCycleOptionalIntNone) {
   auto test = json_object.As<OptionalIntTypedef>();
 
   EXPECT_EQ(reference, test);
+}
+
+TEST(SerializeStrongTypedef, Fmt) {
+  EXPECT_EQ("42", fmt::format("{}", IntTypedef{42}));
+  EXPECT_EQ("f", fmt::format("{:x}", IntTypedef{15}));
+  EXPECT_EQ("!!!", fmt::format("{}", MyNonStreamable{}));
+}
+
+TEST(SerializeStrongTypedef, FmtJoin) {
+  EXPECT_EQ(
+      "!!!,!!!",
+      fmt::format("{}", fmt::join(std::array<MyNonStreamable, 2>{}, ",")));
 }

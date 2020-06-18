@@ -8,6 +8,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <fmt/format.h>
+
 #include <boost/functional/hash_fwd.hpp>
 
 #include <formats/common/meta.hpp>
@@ -328,3 +330,18 @@ struct hash<utils::StrongTypedef<Tag, T, Ops>> : hash<T> {
 };
 
 }  // namespace std
+
+namespace fmt {
+
+// fmt::format custoimization
+template <class T>
+struct formatter<T, std::enable_if_t<::utils::IsStrongTypedef<T>{}, char>>
+    : formatter<typename T::UnderlyingType> {
+  template <typename FormatContext>
+  auto format(const T& v, FormatContext& ctx) {
+    return formatter<typename T::UnderlyingType>::format(v.GetUnderlying(),
+                                                         ctx);
+  }
+};
+
+}  // namespace fmt
