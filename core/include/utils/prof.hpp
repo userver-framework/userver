@@ -37,7 +37,10 @@ class TimeStorage {
   TimeStorage CreateChild();
   void PushLap(const std::string& key, double value);
 
+  /// Elapsed time since TimeStorage object creation
   RealMilliseconds Elapsed() const;
+  /// Accumulated time for a certain key. If the key is not there, returns 0
+  RealMilliseconds ElapsedTotal(const std::string& key) const;
   logging::LogExtra GetLogs();
 
  private:
@@ -93,6 +96,19 @@ class ScopeTime {
 
   /// Stops the timer without recording its value
   void Discard();
+
+  /// Returns time elapsed since last reset
+  /// Will return 0 if the timer is stopped
+  TimeStorage::RealMilliseconds ElapsedSinceReset() const;
+
+  /// Returns total time elapsed for a certain scope. If there is no record for
+  /// the scope, returns 0
+  TimeStorage::RealMilliseconds ElapsedTotal(
+      const std::string& scope_name) const;
+
+  /// Returns total time elapsed for current scope
+  /// Will return 0 if the timer is stopped
+  TimeStorage::RealMilliseconds ElapsedTotal() const;
 
  private:
   TimeStorage& ts_;

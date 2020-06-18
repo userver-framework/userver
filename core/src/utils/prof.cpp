@@ -48,6 +48,14 @@ TimeStorage::RealMilliseconds TimeStorage::Elapsed() const {
       PerfTimePoint::clock::now() - start_);
 }
 
+TimeStorage::RealMilliseconds TimeStorage::ElapsedTotal(
+    const std::string& key) const {
+  if (auto f = data_.find(key); f != data_.end()) {
+    return TimeStorage::RealMilliseconds{f->second};
+  }
+  return TimeStorage::RealMilliseconds{0};
+}
+
 logging::LogExtra TimeStorage::GetLogs() {
   const auto duration = Elapsed();
 
@@ -114,3 +122,20 @@ TimeStorage::RealMilliseconds ScopeTime::Reset(const std::string& scope_name) {
 }
 
 void ScopeTime::Discard() { scope_name_.clear(); }
+
+TimeStorage::RealMilliseconds ScopeTime::ElapsedSinceReset() const {
+  if (scope_name_.empty()) return TimeStorage::RealMilliseconds{0};
+  return std::chrono::duration_cast<real_milliseconds_t>(
+      PerfTimePoint::clock::now() - start_);
+}
+
+TimeStorage::RealMilliseconds ScopeTime::ElapsedTotal(
+    const std::string& scope_name) const {
+  const auto duration = ts_.ElapsedTotal(scope_name);
+  return scope_name_ == scope_name ? duration + ElapsedSinceReset() : duration;
+}
+
+TimeStorage::RealMilliseconds ScopeTime::ElapsedTotal() const {
+  if (scope_name_.empty()) return TimeStorage::RealMilliseconds{0};
+  return ts_.ElapsedTotal(scope_name_) + ElapsedSinceReset();
+}
