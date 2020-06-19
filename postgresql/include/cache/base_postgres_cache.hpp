@@ -15,6 +15,7 @@
 
 #include <utils/algo.hpp>
 #include <utils/assert.hpp>
+#include <utils/cpu_relax.hpp>
 #include <utils/void_t.hpp>
 
 #include <compiler/demangle.hpp>
@@ -265,7 +266,12 @@ constexpr std::chrono::milliseconds kDefaultFullUpdateTimeout =
 constexpr std::chrono::milliseconds kDefaultIncrementalUpdateTimeout =
     std::chrono::seconds{1};
 constexpr std::chrono::milliseconds kStatementTimeoutOff{0};
+constexpr TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
+constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
 
+const std::string kCopyStage = "copy_data";
+const std::string kFetchStage = "fetch";
+const std::string kParseStage = "parse";
 }  // namespace pg_cache::detail
 
 template <typename PostgreCachePolicy>
@@ -303,7 +309,8 @@ class PostgreCache final
 
   CachedData GetDataSnapshot(cache::UpdateType type);
   void CacheResults(storages::postgres::ResultSet res, CachedData& data_cache,
-                    cache::UpdateStatisticsScope& stats_scope);
+                    cache::UpdateStatisticsScope& stats_scope,
+                    ScopeTime& scope);
 
   static std::string GetAllQuery();
   static std::string GetDeltaQuery();
@@ -314,6 +321,7 @@ class PostgreCache final
   const std::chrono::milliseconds full_update_timeout_;
   const std::chrono::milliseconds incremental_update_timeout_;
   const std::size_t chunk_size_;
+  std::size_t cpu_relax_iterations_{0};
 };
 
 template <typename PostgreCachePolicy>
@@ -413,10 +421,11 @@ void PostgreCache<PostgreCachePolicy>::Update(
                                                 : incremental_update_timeout_;
 
   // COPY current cached data
-  auto scope = tracing::Span::CurrentSpan().CreateScopeTime("copy_data");
+  auto scope = tracing::Span::CurrentSpan().CreateScopeTime(
+      pg_cache::detail::kCopyStage);
   auto data_cache = GetDataSnapshot(type);
 
-  scope.Reset("fetch");
+  scope.Reset(pg_cache::detail::kFetchStage);
 
   size_t changes = 0;
   // Iterate clusters
@@ -428,12 +437,12 @@ void PostgreCache<PostgreCachePolicy>::Update(
       auto portal =
           trx.MakePortal(query, GetLastUpdated(last_update, *data_cache));
       while (portal) {
-        scope.Reset("fetch");
+        scope.Reset(pg_cache::detail::kFetchStage);
         auto res = portal.Fetch(chunk_size_);
         stats_scope.IncreaseDocumentsReadCount(res.Size());
 
-        scope.Reset("parse");
-        CacheResults(res, data_cache, stats_scope);
+        scope.Reset(pg_cache::detail::kParseStage);
+        CacheResults(res, data_cache, stats_scope, scope);
         changes += res.Size();
       }
       trx.Commit();
@@ -444,9 +453,21 @@ void PostgreCache<PostgreCachePolicy>::Update(
           query, GetLastUpdated(last_update, *data_cache));
       stats_scope.IncreaseDocumentsReadCount(res.Size());
 
-      scope.Reset("parse");
-      CacheResults(res, data_cache, stats_scope);
+      scope.Reset(pg_cache::detail::kParseStage);
+      CacheResults(res, data_cache, stats_scope, scope);
       changes += res.Size();
+    }
+  }
+  if (changes > 0) {
+    auto elapsed = scope.ElapsedTotal(pg_cache::detail::kParseStage);
+    if (elapsed > pg_cache::detail::kCpuRelaxThreshold) {
+      cpu_relax_iterations_ = static_cast<std::size_t>(
+          static_cast<double>(changes) /
+          (elapsed / pg_cache::detail::kCpuRelaxInterval));
+      LOG_TRACE() << "Elapsed time for " << kName << " " << elapsed.count()
+                  << " for " << changes
+                  << " data items is over threshold. Will relax CPU every "
+                  << cpu_relax_iterations_ << " iterations";
     }
   }
   if (changes > 0 || type == cache::UpdateType::kFull) {
@@ -461,9 +482,11 @@ void PostgreCache<PostgreCachePolicy>::Update(
 template <typename PostgreCachePolicy>
 void PostgreCache<PostgreCachePolicy>::CacheResults(
     storages::postgres::ResultSet res, CachedData& data_cache,
-    cache::UpdateStatisticsScope& stats_scope) {
+    cache::UpdateStatisticsScope& stats_scope, ScopeTime& scope) {
   auto values = res.AsSetOf<RawValueType>(storages::postgres::kRowTag);
+  utils::CpuRelax relax{cpu_relax_iterations_};
   for (auto p = values.begin(); p != values.end(); ++p) {
+    relax.Relax(scope);
     try {
       if constexpr (pg_cache::detail::kHasRawValueType<PolicyType>) {
         auto value = Convert(

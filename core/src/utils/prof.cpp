@@ -10,6 +10,8 @@ const std::string kStopWatchAttrName = "stopwatch_name";
 const std::string kTotalTimeAttrName = "total_time";
 const std::string kTimeUnitsAttrName = "stopwatch_units";
 const std::string kStartTimestampAttrName = "start_timestamp";
+
+const std::string kTimerSuffix = "_time";
 }  // namespace
 
 using real_milliseconds_t = TimeStorage::RealMilliseconds;
@@ -116,7 +118,7 @@ TimeStorage::RealMilliseconds ScopeTime::Reset() {
 
 TimeStorage::RealMilliseconds ScopeTime::Reset(const std::string& scope_name) {
   auto result = Reset();
-  scope_name_ = scope_name + "_time";
+  scope_name_ = scope_name + kTimerSuffix;
   start_ = PerfTimePoint::clock::now();
   return result;
 }
@@ -131,8 +133,9 @@ TimeStorage::RealMilliseconds ScopeTime::ElapsedSinceReset() const {
 
 TimeStorage::RealMilliseconds ScopeTime::ElapsedTotal(
     const std::string& scope_name) const {
-  const auto duration = ts_.ElapsedTotal(scope_name);
-  return scope_name_ == scope_name ? duration + ElapsedSinceReset() : duration;
+  const auto scope_key = scope_name + kTimerSuffix;
+  const auto duration = ts_.ElapsedTotal(scope_key);
+  return scope_name_ == scope_key ? duration + ElapsedSinceReset() : duration;
 }
 
 TimeStorage::RealMilliseconds ScopeTime::ElapsedTotal() const {
