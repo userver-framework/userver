@@ -1,9 +1,8 @@
 #pragma once
 
+#include <any>
 #include <functional>
 #include <typeindex>
-
-#include <boost/any.hpp>
 
 #include "value.hpp"
 
@@ -16,7 +15,7 @@ template <typename ConfigTag, typename T>
 class ConfigModule final {
  public:
   static const T& Get(const BaseConfig<ConfigTag>& config);
-  static boost::any Factory(const DocsMap& docs_map) { return T(docs_map); }
+  static std::any Factory(const DocsMap& docs_map) { return T(docs_map); }
   static void Unregister();
 
   static bool IsRegistered();
@@ -36,7 +35,7 @@ class BaseConfig final {
 
   template <typename T>
   static std::type_index Register(
-      std::function<boost::any(const DocsMap&)>&& factory) {
+      std::function<std::any(const DocsMap&)>&& factory) {
     DoRegister(typeid(T), std::move(factory));
     return typeid(T);
   }
@@ -47,16 +46,16 @@ class BaseConfig final {
   }
 
   static void DoRegister(const std::type_info& type,
-                         std::function<boost::any(const DocsMap&)>&& factory);
+                         std::function<std::any(const DocsMap&)>&& factory);
 
   static void Unregister(const std::type_info& type);
 
   static bool IsRegistered(const std::type_info& type);
 
  private:
-  const boost::any& Get(const std::type_index& type) const;
+  const std::any& Get(const std::type_index& type) const;
 
-  std::unordered_map<std::type_index, boost::any> extra_configs_;
+  std::unordered_map<std::type_index, std::any> extra_configs_;
 
   template <typename U, typename T>
   friend class ConfigModule;
@@ -73,7 +72,7 @@ using BootstrapConfig = BaseConfig<BootstrapConfigTag>;
 
 template <typename ConfigTag, typename T>
 const T& ConfigModule<ConfigTag, T>::Get(const BaseConfig<ConfigTag>& config) {
-  return boost::any_cast<const T&>(config.Get(type_));
+  return std::any_cast<const T&>(config.Get(type_));
 }
 
 template <typename ConfigTag, typename T>

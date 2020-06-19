@@ -1,5 +1,6 @@
 #pragma once
 
+#include <any>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -8,8 +9,6 @@
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
-
-#include <boost/any.hpp>
 
 #include <formats/json/value.hpp>
 
@@ -24,9 +23,7 @@ template <typename T>
 class SecdistModule final {
  public:
   static const T& Get(const SecdistConfig& config);
-  static boost::any Factory(const formats::json::Value& data) {
-    return T(data);
-  }
+  static std::any Factory(const formats::json::Value& data) { return T(data); }
 
  private:
   static std::size_t index_;
@@ -41,7 +38,7 @@ class SecdistConfig final {
 
   template <typename T>
   static std::size_t Register(
-      std::function<boost::any(const formats::json::Value&)>&& factory) {
+      std::function<std::any(const formats::json::Value&)>&& factory) {
     return Register(std::move(factory));
   }
 
@@ -54,21 +51,21 @@ class SecdistConfig final {
   void Init(const formats::json::Value& doc);
 
   static std::size_t Register(
-      std::function<boost::any(const formats::json::Value&)>&& factory);
-  const boost::any& Get(const std::type_index& type, std::size_t index) const;
+      std::function<std::any(const formats::json::Value&)>&& factory);
+  const std::any& Get(const std::type_index& type, std::size_t index) const;
 
   template <typename T>
   friend class detail::SecdistModule;
 
  private:
-  std::vector<boost::any> configs_;
+  std::vector<std::any> configs_;
 };
 
 namespace detail {
 
 template <typename T>
 const T& SecdistModule<T>::Get(const SecdistConfig& config) {
-  return boost::any_cast<const T&>(config.Get(typeid(T), index_));
+  return std::any_cast<const T&>(config.Get(typeid(T), index_));
 }
 
 template <typename T>

@@ -8,10 +8,10 @@
 namespace taxi_config {
 
 template <typename BaseConfigTag>
-std::unordered_map<std::type_index, std::function<boost::any(const DocsMap&)>>&
+std::unordered_map<std::type_index, std::function<std::any(const DocsMap&)>>&
 ExtraBaseConfigFactories() {
   static std::unordered_map<std::type_index,
-                            std::function<boost::any(const DocsMap&)>>
+                            std::function<std::any(const DocsMap&)>>
       factories;
   return factories;
 }
@@ -26,7 +26,7 @@ BaseConfig<ConfigTag>::BaseConfig(const DocsMap& docs_map) {
 template <typename ConfigTag>
 void BaseConfig<ConfigTag>::DoRegister(
     const std::type_info& type,
-    std::function<boost::any(const DocsMap&)>&& factory) {
+    std::function<std::any(const DocsMap&)>&& factory) {
   ExtraBaseConfigFactories<ConfigTag>()[type] = std::move(factory);
 }
 
@@ -44,8 +44,7 @@ void BaseConfig<ConfigTag>::Unregister(const std::type_info& type) {
 }
 
 template <typename ConfigTag>
-const boost::any& BaseConfig<ConfigTag>::Get(
-    const std::type_index& type) const {
+const std::any& BaseConfig<ConfigTag>::Get(const std::type_index& type) const {
   try {
     return extra_configs_.at(type);
   } catch (const std::out_of_range& ex) {

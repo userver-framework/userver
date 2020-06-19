@@ -29,13 +29,13 @@ class RequestContext final {
 
   /// @returns stored data
   /// @throws std::runtime_error if no data was stored
-  /// @throws boost::bad_any_cast if data of different type was stored
+  /// @throws std::bad_any_cast if data of different type was stored
   template <typename Data>
   Data& GetUserData();
 
   /// @returns stored data
   /// @throws std::runtime_error if no data was stored
-  /// @throws boost::bad_any_cast if data of different type was stored
+  /// @throws std::bad_any_cast if data of different type was stored
   template <typename Data>
   const Data& GetUserData() const;
 

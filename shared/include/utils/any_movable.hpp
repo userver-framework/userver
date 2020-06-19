@@ -3,12 +3,11 @@
 /// @file utils/any_movable.hpp
 /// @brief @copybrief utils::AnyMovable
 
+#include <any>  // for std::bad_any_cast
 #include <memory>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
-
-#include <boost/any.hpp>  // for boost::bad_any_cast
 
 /// Utilities
 namespace utils {
@@ -84,7 +83,7 @@ class AnyMovable {
   std::unique_ptr<HolderBase> content_;
 };
 
-class BadAnyMovableCast : public boost::bad_any_cast {
+class BadAnyMovableCast : public std::bad_any_cast {
  public:
   const char* what() const noexcept override {
     return "utils::bad_any_movable_cast: "

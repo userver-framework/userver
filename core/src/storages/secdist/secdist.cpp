@@ -15,9 +15,9 @@ namespace storages::secdist {
 
 namespace {
 
-std::vector<std::function<boost::any(const formats::json::Value&)>>&
+std::vector<std::function<std::any(const formats::json::Value&)>>&
 GetConfigFactories() {
-  static std::vector<std::function<boost::any(const formats::json::Value&)>>
+  static std::vector<std::function<std::any(const formats::json::Value&)>>
       factories;
   return factories;
 }
@@ -51,14 +51,14 @@ void SecdistConfig::Init(const formats::json::Value& doc) {
 }
 
 std::size_t SecdistConfig::Register(
-    std::function<boost::any(const formats::json::Value&)>&& factory) {
+    std::function<std::any(const formats::json::Value&)>&& factory) {
   auto& config_factories = GetConfigFactories();
   config_factories.emplace_back(std::move(factory));
   return config_factories.size() - 1;
 }
 
-const boost::any& SecdistConfig::Get(const std::type_index& type,
-                                     std::size_t index) const {
+const std::any& SecdistConfig::Get(const std::type_index& type,
+                                   std::size_t index) const {
   try {
     return configs_.at(index);
   } catch (const std::out_of_range&) {

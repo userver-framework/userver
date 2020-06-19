@@ -1,12 +1,11 @@
 #pragma once
 
+#include <any>
 #include <atomic>
 #include <functional>
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
-
-#include <boost/any.hpp>
 
 #include <formats/json/value.hpp>
 #include <formats/json/value_builder.hpp>
@@ -43,23 +42,23 @@ DumpMetric(const Metric&) {
 
 struct MetricInfo final {
   /* stores std::shared_ptr<T> as user type might be non-copyable (e.g.
-   * std::atomic). boost::any requires copy constructor.
+   * std::atomic). std::any requires copy constructor.
    */
-  boost::any data_;
+  std::any data_;
 
   std::string path;
-  std::function<formats::json::ValueBuilder(boost::any&)> dump_func;
+  std::function<formats::json::ValueBuilder(std::any&)> dump_func;
 };
 
 void RegisterMetricInfo(std::type_index ti, MetricInfo&& metric_info);
 
 template <typename Metric>
-formats::json::ValueBuilder DumpAnyMetric(boost::any& data) {
+formats::json::ValueBuilder DumpAnyMetric(std::any& data) {
   static_assert(HasDumpMetric<Metric>::value,
                 "There is no `DumpMetric(Metric& / const Metric&)` "
                 "in namespace of `Metric`.  "
                 "You have not provided a `DumpMetric` function overload.");
-  return DumpMetric(*boost::any_cast<std::shared_ptr<Metric>&>(data));
+  return DumpMetric(*std::any_cast<std::shared_ptr<Metric>&>(data));
 }
 
 template <typename Metric>

@@ -47,7 +47,7 @@ TEST(AnyMovable, CastingValue) {
   EXPECT_FALSE(a.IsEmpty());
 
   EXPECT_THROW(AnyMovableCast<int>(a), utils::BadAnyMovableCast);
-  EXPECT_THROW(AnyMovableCast<int>(a), boost::bad_any_cast);
+  EXPECT_THROW(AnyMovableCast<int>(a), std::bad_any_cast);
   EXPECT_THROW(AnyMovableCast<int>(a), std::exception);
 
   EXPECT_NO_THROW(AnyMovableCast<std::string>(a));
@@ -61,7 +61,7 @@ TEST(AnyMovable, CastingValue) {
 
   a = data;
   EXPECT_THROW(AnyMovableCast<std::string>(a), utils::BadAnyMovableCast);
-  EXPECT_THROW(AnyMovableCast<std::string>(a), boost::bad_any_cast);
+  EXPECT_THROW(AnyMovableCast<std::string>(a), std::bad_any_cast);
   EXPECT_THROW(AnyMovableCast<std::string>(a), std::exception);
 
   EXPECT_NO_THROW(AnyMovableCast<const char*>(a));
@@ -73,7 +73,7 @@ TEST(AnyMovable, CastingConstValue) {
   EXPECT_FALSE(a.IsEmpty());
 
   EXPECT_THROW(AnyMovableCast<int>(a), utils::BadAnyMovableCast);
-  EXPECT_THROW(AnyMovableCast<int>(a), boost::bad_any_cast);
+  EXPECT_THROW(AnyMovableCast<int>(a), std::bad_any_cast);
   EXPECT_THROW(AnyMovableCast<int>(a), std::exception);
 
   EXPECT_NO_THROW(AnyMovableCast<std::string>(a));
@@ -91,7 +91,7 @@ TEST(AnyMovable, NonMovable) {
   EXPECT_TRUE(!value);
 
   EXPECT_THROW(AnyMovableCast<std::string>(a), utils::BadAnyMovableCast);
-  EXPECT_THROW(AnyMovableCast<std::string>(a), boost::bad_any_cast);
+  EXPECT_THROW(AnyMovableCast<std::string>(a), std::bad_any_cast);
   EXPECT_THROW(AnyMovableCast<std::string>(a), std::exception);
 
   EXPECT_NO_THROW(AnyMovableCast<HeldType&>(a));
