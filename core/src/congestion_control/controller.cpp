@@ -44,7 +44,7 @@ bool Controller::IsOverloadedNow(const Sensor::Data& data,
                                  const Policy& policy) const {
   // Use on/off limits for anti-flap
   bool overload_limit =
-      state_.is_overloaded ? policy.overload_off : policy.overload_on;
+      state_.is_overloaded ? policy.down_count : policy.up_count;
   return data.overload_events_count > overload_limit;
 }
 
@@ -95,7 +95,7 @@ void Controller::Feed(const Sensor::Data& data) {
       stats_.overload_pressure++;
       stats_.current_state = 4;
     } else {
-      if (state_.times_wo_overload > policy->down_count) {
+      if (state_.times_wo_overload > policy->overload_off) {
         state_.is_overloaded = false;
       }
 
@@ -114,7 +114,7 @@ void Controller::Feed(const Sensor::Data& data) {
         stats_.current_state = 0;
       }
     } else {
-      if (state_.times_with_overload > policy->up_count) {
+      if (state_.times_with_overload > policy->overload_on) {
         state_.is_overloaded = true;
       }
 

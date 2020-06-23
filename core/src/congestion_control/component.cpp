@@ -62,26 +62,35 @@ struct Component::Impl {
   // must go after all sensors/limiters
   Watchdog wd;
   utils::AsyncEventSubscriberScope config_subscription;
+  bool fake_mode;
 
-  Impl(server::Server& server, engine::TaskProcessor& tp)
+  Impl(server::Server& server, engine::TaskProcessor& tp, bool fake_mode)
       : server_sensor(server, tp),
         server_limiter(server),
-        server_controller(kServerControllerName, {}) {}
+        server_controller(kServerControllerName, {}),
+        fake_mode(fake_mode) {}
 };
 
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
       pimpl_(context.FindComponent<components::Server>().GetServer(),
-             engine::current_task::GetTaskProcessor())
+             engine::current_task::GetTaskProcessor(),
+             config.ParseBool("fake-mode", false))
 
 {
+  if (pimpl_->fake_mode) {
+    LOG_WARNING() << "congestion_control is started in fake-mode, no RPS limit "
+                     "is enforced";
+  }
+
   pimpl_->wd.Register({pimpl_->server_sensor, pimpl_->server_limiter,
                        pimpl_->server_controller});
 
   auto& taxi_config = context.FindComponent<components::TaxiConfig>();
   pimpl_->config_subscription =
       taxi_config.AddListener(this, kName, &Component::OnConfigUpdate);
+  OnConfigUpdate(taxi_config.Get());
 
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
@@ -96,7 +105,9 @@ void Component::OnConfigUpdate(
     const std::shared_ptr<const taxi_config::Config>& cfg) {
   const auto& rps_cc = cfg->Get<RpsCcConfig>();
   pimpl_->server_controller.SetPolicy(rps_cc.policy);
-  pimpl_->server_controller.SetEnabled(rps_cc.is_enabled);
+
+  bool enabled = rps_cc.is_enabled && !pimpl_->fake_mode;
+  pimpl_->server_controller.SetEnabled(enabled);
 }
 
 void Component::OnAllComponentsAreStopping() { pimpl_->wd.Stop(); }
