@@ -52,6 +52,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
     http_request.GetHttpResponse().SetReady();
     request->SetTaskCreateTime();
+    LOG_ERROR() << "Request throttled (too many pending responses, "
+                   "limit via 'server.max_response_size_in_flight')";
     return StartFailsafeTask(std::move(request));
   }
 
@@ -69,7 +71,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   if (!rate_limit_.Obtain()) {
     http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
     http_request.GetHttpResponse().SetReady();
-    LOG_ERROR() << "Request throttled (congestion control)";
+    LOG_ERROR()
+        << "Request throttled (congestion control, "
+           "limit via USERVER_RPS_CCONTROL and USERVER_RPS_CCONTROL_ENABLED)";
     return StartFailsafeTask(std::move(request));
   }
 
