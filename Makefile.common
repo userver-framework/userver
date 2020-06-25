@@ -75,16 +75,7 @@ $(BUILD_DIR)/Makefile:
 build: build-all
 
 build-%: init
-ifeq ($(IS_TEAMCITY),1)
-	@ccache -z
-	$(MAKE) -j$(NPROCS) -C $(BUILD_DIR) $* \
-	; rc=$$? \
-	; CCACHE_HIT_RATE=$$(ccache -s | grep "cache hit rate" | grep -Eo '[0-9]+([.][0-9]+)?') \
-	; echo "##teamcity[buildStatisticValue key='Ccache Hit Rate' value='$$CCACHE_HIT_RATE']" \
-	; exit $$rc
-else
 	$(MAKE) -j$(NPROCS) -C $(BUILD_DIR) $*
-endif
 
 .PHONY: build-with-asan
 build-with-asan: cmake
