@@ -172,3 +172,63 @@ TEST(JsonStringParser, ArrayArrayInt) {
   state.ProcessInput(input);
   EXPECT_EQ(result, (std::vector<std::vector<int64_t>>{{1}, {}, {2, 3, 4}}));
 }
+
+template <class T>
+struct JsonStringParserMap : public ::testing::Test {
+  using Map = T;
+};
+
+using Maps = ::testing::Types<std::map<std::string, int>,
+                              std::unordered_map<std::string, int>>;
+TYPED_TEST_SUITE(JsonStringParserMap, Maps);
+
+TYPED_TEST(JsonStringParserMap, Map) {
+  using Map = typename TestFixture::Map;
+
+  IntParser int_parser;
+  MapParser<Map, IntParser> parser{int_parser};
+
+  Map result;
+  parser.Reset(result);
+  ParserState state;
+  state.PushParserNoKey(parser);
+  state.ProcessInput(R"({"key": 1, "other": 3})");
+  EXPECT_EQ(result, (Map{{"key", 1}, {"other", 3}}));
+}
+
+TYPED_TEST(JsonStringParserMap, Empty) {
+  using Map = typename TestFixture::Map;
+
+  IntParser int_parser;
+  MapParser<Map, IntParser> parser{int_parser};
+
+  Map result;
+  parser.Reset(result);
+  ParserState state;
+  state.PushParserNoKey(parser);
+  state.ProcessInput(R"({})");
+  EXPECT_EQ(result, (Map{}));
+}
+
+TYPED_TEST(JsonStringParserMap, Invalid) {
+  using Map = typename TestFixture::Map;
+
+  IntParser int_parser;
+  MapParser<Map, IntParser> parser{int_parser};
+
+  Map result;
+  parser.Reset(result);
+  ParserState state;
+  state.PushParserNoKey(parser);
+
+  EXPECT_THROW_TEXT(
+      state.ProcessInput(R"(123)"), ParseError,
+      "Parse error at pos 3, path '': object was expected, but integer found");
+
+  EXPECT_THROW_TEXT(
+      state.ProcessInput(R"({{"key": 1}})"), ParseError,
+      "Parse error at pos 1, path '': Missing a name for object member.");
+
+  EXPECT_THROW_TEXT(state.ProcessInput(R"(}{)"), ParseError,
+                    "Parse error at pos 0, path '': The document is empty.");
+}
