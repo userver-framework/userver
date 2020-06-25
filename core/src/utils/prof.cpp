@@ -77,7 +77,10 @@ logging::LogExtra TimeStorage::GetLogs() {
                             {kTimeUnitsAttrName, "ms"},
                             {kTotalTimeAttrName, duration.count()},
                             {kStartTimestampAttrName, start_ts_str}});
-  result.ExtendRange(data_.cbegin(), data_.cend());
+
+  for (const auto& [key, value] : data_) {
+    result.Extend(key + kTimerSuffix, value);
+  }
 
   return result;
 }
@@ -118,7 +121,7 @@ TimeStorage::RealMilliseconds ScopeTime::Reset() {
 
 TimeStorage::RealMilliseconds ScopeTime::Reset(const std::string& scope_name) {
   auto result = Reset();
-  scope_name_ = scope_name + kTimerSuffix;
+  scope_name_ = scope_name;
   start_ = PerfTimePoint::clock::now();
   return result;
 }
@@ -133,9 +136,8 @@ TimeStorage::RealMilliseconds ScopeTime::ElapsedSinceReset() const {
 
 TimeStorage::RealMilliseconds ScopeTime::ElapsedTotal(
     const std::string& scope_name) const {
-  const auto scope_key = scope_name + kTimerSuffix;
-  const auto duration = ts_.ElapsedTotal(scope_key);
-  return scope_name_ == scope_key ? duration + ElapsedSinceReset() : duration;
+  const auto duration = ts_.ElapsedTotal(scope_name);
+  return scope_name_ == scope_name ? duration + ElapsedSinceReset() : duration;
 }
 
 TimeStorage::RealMilliseconds ScopeTime::ElapsedTotal() const {
