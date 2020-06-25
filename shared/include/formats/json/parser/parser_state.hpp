@@ -35,7 +35,7 @@ class ParserState final {
   BaseParser& GetTopParser() const;
 
   struct Impl;
-  utils::FastPimpl<Impl, 536, 8> impl_;
+  utils::FastPimpl<Impl, 792, 8> impl_;
 
   friend class ParserHandler;
 };

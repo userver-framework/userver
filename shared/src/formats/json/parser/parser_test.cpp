@@ -20,7 +20,7 @@ TEST(JsonStringParser, Int64) {
   std::string input{"12345"};
 
   int64_t result{0};
-  IntParser int_parser;
+  Int64Parser int_parser;
   int_parser.Reset(result);
 
   ParserState state;
@@ -33,29 +33,9 @@ TEST(JsonStringParser, Int64) {
 TEST(JsonStringParser, Int64Overflow) {
   std::string input{std::to_string(-1ULL)};
 
-  EXPECT_THROW_TEXT((ParseToType<int64_t, IntParser>(input)), ParseError,
+  EXPECT_THROW_TEXT((ParseToType<int64_t, Int64Parser>(input)), ParseError,
                     "Parse error at pos 20, path '': bad "
                     "numeric conversion: positive overflow");
-}
-
-TEST(JsonStringParser, Int64MinMax) {
-  std::string input{"12345"};
-
-  int64_t result{0};
-  auto validator = MakeValidator<int64_t>([](int64_t value) {
-    if (value > 5) {
-      throw InternalParseError(
-          fmt::format("max value ({}) < value (({})", 5, value));
-    }
-  });
-  IntParser int_parser(validator);
-  int_parser.Reset(result);
-
-  ParserState state;
-  state.PushParserNoKey(int_parser);
-  EXPECT_THROW_TEXT(
-      state.ProcessInput(input), ParseError,
-      "Parse error at pos 5, path '': max value (5) < value ((12345)");
 }
 
 class EmptyObjectParser final : public BaseParser {
@@ -129,7 +109,7 @@ class IntObjectParser final : public BaseParser {
   std::string Expected() const override { return "'{'"; }
 
  private:
-  IntParser field_parser_;
+  Int64Parser field_parser_;
   IntObject* result_{nullptr};
   bool has_field_;
 };
@@ -167,8 +147,8 @@ TEST(JsonStringParser, ArrayInt) {
   std::string input("[1,2,3]");
   std::vector<int64_t> result{};
 
-  IntParser int_parser;
-  ArrayParser<int64_t, IntParser> parser(int_parser);
+  Int64Parser int_parser;
+  ArrayParser<int64_t, Int64Parser> parser(int_parser);
   parser.Reset(result);
 
   ParserState state;
@@ -177,46 +157,12 @@ TEST(JsonStringParser, ArrayInt) {
   EXPECT_EQ(result, (std::vector<int64_t>{1, 2, 3}));
 }
 
-TEST(JsonStringParser, ArrayIntLimit) {
-  IntParser int_parser;
-  auto validator = MakeValidator<std::vector<int64_t>>([](auto value) {
-    const auto size = value.size();
-    if (size > 2 || size < 1) {
-      throw InternalParseError("");
-    }
-  });
-  ArrayParser<int64_t, IntParser> parser(int_parser, validator);
-
-  for (int i = 0; i < 4; i++) {
-    std::string input{"["};
-    for (int j = 0; j < i; j++) {
-      if (j > 0) input += ',';
-      input += "1";
-    }
-    input += "]";
-
-    std::vector<int64_t> result{};
-    parser.Reset(result);
-
-    ParserState state;
-    state.PushParserNoKey(parser);
-    if (i == 0 || i == 3) {
-      EXPECT_THROW(state.ProcessInput(input), ParseError) << "length " << i;
-    } else {
-      EXPECT_NO_THROW(state.ProcessInput(input));
-      EXPECT_EQ(result.size(), i);
-      for (size_t j = 0; j < result.size(); j++)
-        EXPECT_EQ(result[j], 1) << "item " << j;
-    }
-  }
-}
-
 TEST(JsonStringParser, ArrayArrayInt) {
   std::string input("[[1],[],[2,3,4]]");
   std::vector<std::vector<int64_t>> result{};
 
-  IntParser int_parser;
-  using Subparser = ArrayParser<int64_t, IntParser>;
+  Int64Parser int_parser;
+  using Subparser = ArrayParser<int64_t, Int64Parser>;
   Subparser subparser(int_parser);
   ArrayParser<std::vector<int64_t>, Subparser> parser(subparser);
   parser.Reset(result);
@@ -225,57 +171,4 @@ TEST(JsonStringParser, ArrayArrayInt) {
   state.PushParserNoKey(parser);
   state.ProcessInput(input);
   EXPECT_EQ(result, (std::vector<std::vector<int64_t>>{{1}, {}, {2, 3, 4}}));
-}
-
-TEST(JsonStringParser, Enum) {
-  enum class Enum {
-    kFirst,
-    kSecond,
-  };
-
-  Enum enum_result;
-  std::string result;
-
-  auto validator =
-      MakeValidator<std::string>([&enum_result](const auto& value) {
-        if (value == "first")
-          enum_result = Enum::kFirst;
-        else if (value == "second")
-          enum_result = Enum::kSecond;
-        else
-          throw InternalParseError("");
-      });
-  StringParser parser(validator);
-  parser.Reset(result);
-
-  ParserState state;
-  state.PushParserNoKey(parser);
-
-  std::string input("\"first\"");
-  state.ProcessInput(input);
-  EXPECT_EQ(result, "first");
-  EXPECT_EQ(enum_result, Enum::kFirst);
-}
-
-enum class TestEnum {
-  kFirst,
-  kSecond,
-};
-
-TestEnum Parse(const std::string&, ::formats::parse::To<TestEnum>) {
-  return TestEnum::kFirst;
-}
-
-TEST(JsonStringParser, EnumConverter) {
-  TestEnum enum_result;
-
-  ParserConverter<TestEnum, StringParser> converter;
-  converter.Reset(enum_result);
-
-  ParserState state;
-  state.PushParserNoKey(converter);
-
-  std::string input("\"first\"");
-  state.ProcessInput(input);
-  EXPECT_EQ(enum_result, TestEnum::kFirst);
 }

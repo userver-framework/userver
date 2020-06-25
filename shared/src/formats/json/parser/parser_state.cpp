@@ -10,6 +10,7 @@
 
 #include <formats/json/parser/base_parser.hpp>
 #include <formats/json/parser/parser_handler.hpp>
+#include <logging/log.hpp>
 #include <utils/assert.hpp>
 
 namespace formats::json::parser {
@@ -18,32 +19,51 @@ struct ParserState::Impl {
   struct StackItem final {
     BaseParser* parser;
 
-    // document path item, e.g. "field" for object field name
-    // or 1 for array item number
-    std::variant<size_t, std::string_view> path_item;
+    size_t prev_stack_path_size;
   };
 
   // JSON in handlers is often 2-5 items in depth
   boost::container::small_vector<StackItem, 16> stack;
-  // TODO: manage path using std::visit in step
+
+  // document path items, e.g. "field" for object field name
+  // or "[2]" for array item number
+  std::string stack_path;
+
+  void PushParser(BaseParser& parser, std::string_view key,
+                  ParserState& parser_state);
 };
 
-ParserState::ParserState() : impl_() {}
+void ParserState::Impl::PushParser(BaseParser& parser, std::string_view key,
+                                   ParserState& parser_state) {
+  parser.SetState(parser_state);
+  auto prev_stack_path_size = stack_path.size();
+
+  if (!stack_path.empty()) {
+    stack_path += '.';
+  }
+  if (!key.empty()) {
+    stack_path += key;
+  }
+  stack.push_back({&parser, prev_stack_path_size});
+}
+
+ParserState::ParserState() : impl_() {
+  // expectation of "common" path length
+  impl_->stack_path.reserve(64);
+}
 
 ParserState::~ParserState() = default;
 
 void ParserState::PushParserNoKey(BaseParser& parser) {
-  PushParser(parser, "");
+  PushParser(parser, std::string_view{""});
 }
 
 void ParserState::PushParser(BaseParser& parser, std::string_view key) {
-  parser.SetState(*this);
-  impl_->stack.push_back({&parser, key});
+  impl_->PushParser(parser, key, *this);
 }
 
 void ParserState::PushParser(BaseParser& parser, size_t key) {
-  parser.SetState(*this);
-  impl_->stack.push_back({&parser, key});
+  impl_->PushParser(parser, fmt::format("[{}]", key), *this);
 }
 
 void ParserState::ProcessInput(std::string_view sw) {
@@ -66,7 +86,7 @@ void ParserState::ProcessInput(std::string_view sw) {
       if (reader.HasParseError()) {
         throw ParseError{
             reader.GetErrorOffset(),
-            GetCurrentPath(),
+            impl_->stack_path,
             rapidjson::GetParseError_En(reader.GetParseErrorCode()),
         };
       }
@@ -76,7 +96,7 @@ void ParserState::ProcessInput(std::string_view sw) {
   } catch (const std::exception& e) {
     throw ParseError{
         is.Tell(),
-        GetCurrentPath(),
+        impl_->stack_path,
         e.what(),
     };
   }
@@ -84,22 +104,6 @@ void ParserState::ProcessInput(std::string_view sw) {
   if (!stack.empty()) {
     throw ParseError(is.Tell(), "", "data is expected after the end of file");
   }
-}
-
-namespace {
-struct PathItemVisitor final {
-  std::string operator()(std::string_view sw) { return std::string{sw}; }
-  std::string operator()(size_t i) { return fmt::format("[{}]", i); }
-};
-}  // namespace
-
-std::string ParserState::GetCurrentPath() const {
-  std::string path;
-  for (const auto& [_parser, item] : impl_->stack) {
-    if (!path.empty()) path += '.';
-    path += std::visit(PathItemVisitor(), item);
-  }
-  return path;
 }
 
 BaseParser& ParserState::GetTopParser() const {
@@ -110,6 +114,10 @@ BaseParser& ParserState::GetTopParser() const {
 void ParserState::PopMe([[maybe_unused]] BaseParser& parser) {
   UASSERT(!impl_->stack.empty());
   UASSERT(&parser == impl_->stack.back().parser);
+
+  const auto& top = impl_->stack.back();
+  impl_->stack_path.resize(top.prev_stack_path_size);
+
   impl_->stack.pop_back();
 }
 

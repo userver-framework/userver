@@ -1,31 +1,49 @@
 #pragma once
 
 #include <formats/json/parser/typed_parser.hpp>
+#include <utils/meta.hpp>
 
 namespace formats::json::parser {
+
+namespace impl {
+
+template <typename Item>
+struct ItemStorageNonVector {
+  Item item;
+};
+
+template <typename Item>
+struct ItemStorageVector {};
+
+template <typename Item, typename Array>
+struct ItemStorage : public std::conditional_t<meta::is_vector<Array>::value,
+                                               ItemStorageVector<Item>,
+                                               ItemStorageNonVector<Item>> {};
+
+}  // namespace impl
 
 // Parser for array -> vector/set/unordered_set
 template <typename Item, typename ItemParser,
           typename Array = std::vector<Item>>
-class ArrayParser final : public TypedParser<Array> {
+class ArrayParser final : public TypedParser<Array>, public Subscriber {
  public:
-  explicit ArrayParser(
-      ItemParser& item_parser,
-      const BaseValidator<Array>& validator = kEmptyValidator<Array>)
-      : TypedParser<Array>(validator), item_parser_(item_parser) {}
+  explicit ArrayParser(ItemParser& item_parser) : item_parser_(item_parser) {}
 
   void Reset(Array& result) {
     index_ = 0;
     state_ = State::kStart;
     TypedParser<Array>::Reset(result);
 
-    /*
-     * Heuristics:
-     * STL impls have a small initial capacity of vector.
-     * It leads to multiple reallocations during inserts.
-     * We intentionally give up some maybe-unused space to lower realloc count.
-     */
-    result.reserve(16);
+    if constexpr (meta::is_vector<Array>::value) {
+      /*
+       * Heuristics:
+       * STL impls have a small initial capacity of vector.
+       * It leads to multiple reallocations during inserts.
+       * We intentionally give up some maybe-unused space to lower realloc
+       * count.
+       */
+      result.reserve(16);
+    }
   }
 
  protected:
@@ -62,7 +80,7 @@ class ArrayParser final : public TypedParser<Array> {
     PushParser();
     Parser().Bool(b);
   }
-  void Double(double d) {
+  void Double(double d) override {
     PushParser();
     Parser().Double(d);
   }
@@ -78,14 +96,26 @@ class ArrayParser final : public TypedParser<Array> {
   void PushParser() {
     if (state_ != State::kInside) this->Throw("array");
 
-    // TODO: non-vector
-    item_parser_.Reset(*this->result_->emplace(this->result_->end()));
+    if constexpr (meta::is_vector<Array>::value) {
+      this->item_parser_.Reset(*this->result_->emplace(this->result_->end()));
+    } else {
+      this->item_storage_.item = {};
+      this->item_parser_.Subscribe(*this);
+      this->item_parser_.Reset(this->item_storage_.item);
+    }
     this->parser_state_->PushParser(item_parser_, index_++);
   }
 
   std::string Expected() const override { return "array"; }
 
   BaseParser& Parser() { return item_parser_; }
+
+ protected:
+  void OnSend() override {
+    if constexpr (!meta::is_vector<Array>::value) {
+      this->result_->insert(std::move(this->item_storage_.item));
+    }
+  }
 
  private:
   ItemParser& item_parser_;
@@ -97,6 +127,8 @@ class ArrayParser final : public TypedParser<Array> {
   };
   size_t index_;
   State state_{State::kStart};
+  // TODO: C++20 [[no_unique_address]]
+  impl::ItemStorage<Item, Array> item_storage_;
 };
 
 }  // namespace formats::json::parser

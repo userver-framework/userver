@@ -46,9 +46,10 @@ void JsonParseArraySax(benchmark::State& state) {
   const auto input = BuildArray(state.range(0));
   for (auto _ : state) {
     std::vector<std::vector<int64_t>> result{};
-    using IntParser = formats::json::parser::IntParser;
-    IntParser int_parser;
-    using ArrayParser = formats::json::parser::ArrayParser<int64_t, IntParser>;
+    using Int64Parser = formats::json::parser::Int64Parser;
+    Int64Parser int_parser;
+    using ArrayParser =
+        formats::json::parser::ArrayParser<int64_t, Int64Parser>;
 
     ArrayParser array_parser(int_parser);
     formats::json::parser::ArrayParser<std::vector<int64_t>, ArrayParser>

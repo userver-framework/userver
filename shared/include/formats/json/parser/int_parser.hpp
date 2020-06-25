@@ -1,19 +1,32 @@
 #pragma once
 
+#include <boost/numeric/conversion/cast.hpp>
+
 #include <formats/json/parser/typed_parser.hpp>
 
 namespace formats::json::parser {
 
-class IntParser final : public TypedParser<int64_t> {
+template <typename T = int>
+class IntegralParser final : public TypedParser<T> {
  public:
-  using TypedParser::TypedParser;
+  using TypedParser<T>::TypedParser;
 
  protected:
-  void Int64(int64_t i) override;
+  void Int64(int64_t i) override {
+    this->SetResult(boost::numeric_cast<T>(i));
+    this->PopAndValidate();
+  }
 
-  void Uint64(uint64_t i) override;
+  void Uint64(uint64_t i) override {
+    this->SetResult(boost::numeric_cast<T>(i));
+    this->PopAndValidate();
+  }
 
-  std::string Expected() const override;
+  std::string Expected() const override { return "integer"; }
 };
+
+using IntParser = IntegralParser<int32_t>;
+using Int32Parser = IntegralParser<int32_t>;
+using Int64Parser = IntegralParser<int64_t>;
 
 }  // namespace formats::json::parser
