@@ -14,7 +14,7 @@
 /// Common serializers
 namespace formats::serialize {
 
-// Serialize() for std::vector, std::set, std::unordered_set
+/// Common containers serialization (vector/set)
 template <typename T, typename Value>
 std::enable_if_t<meta::is_vector<T>::value || meta::is_array<T>::value ||
                      meta::is_set<T>::value,
@@ -22,12 +22,13 @@ std::enable_if_t<meta::is_vector<T>::value || meta::is_array<T>::value ||
 Serialize(const T& value, To<Value>) {
   typename Value::Builder builder(formats::common::Type::kArray);
   for (const auto& item : value) {
-    builder.PushBack(item);
+    // explicit cast for vector<bool> shenanigans
+    builder.PushBack(static_cast<const typename T::value_type&>(item));
   }
   return builder.ExtractValue();
 }
 
-// Serialize() for std::map, std::unordered_map
+/// Mappings serialization
 template <typename T, typename Value>
 std::enable_if_t<meta::is_map<T>::value, Value> Serialize(const T& value,
                                                           To<Value>) {
@@ -38,6 +39,7 @@ std::enable_if_t<meta::is_map<T>::value, Value> Serialize(const T& value,
   return builder.ExtractValue();
 }
 
+/// std::optional serialization
 template <typename T, typename Value>
 Value Serialize(const std::optional<T>& value, To<Value>) {
   if (!value) return {};
