@@ -26,9 +26,8 @@ ManagerControllerComponent::ManagerControllerComponent(
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
 
-  auto& config = context.FindComponent<TaxiConfig>();
-  OnConfigUpdate(config.Get());
-  config_subscription_ = config.AddListener(
+  auto& config_component = context.FindComponent<TaxiConfig>();
+  config_subscription_ = config_component.UpdateAndListen(
       this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
 
   statistics_holder_ = storage.RegisterExtender(

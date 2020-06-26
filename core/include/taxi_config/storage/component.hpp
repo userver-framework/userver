@@ -43,6 +43,21 @@ class TaxiConfig : public LoggableComponentBase,
 
   void OnLoadingCancelled() override;
 
+  template <class Class>
+  [[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
+      const Class* obj, std::string name,
+      void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)
+          const) {
+    return UpdateAndListenImpl(obj, std::move(name), func);
+  }
+
+  template <class Class>
+  [[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
+      Class* obj, std::string name,
+      void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)) {
+    return UpdateAndListenImpl(obj, std::move(name), func);
+  }
+
  private:
   /// non-blocking check if config is available
   bool Has() const;
@@ -57,6 +72,20 @@ class TaxiConfig : public LoggableComponentBase,
       const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
 
  private:
+  template <class Class, class Function>
+  ::utils::AsyncEventSubscriberScope UpdateAndListenImpl(Class* obj,
+                                                         std::string name,
+                                                         Function func) {
+    // It is fine to loose update because in a few seconds we'll get a new one.
+    {
+      // Call func before AddListener to avoid concurrent invocation of func.
+      auto value = Get();
+      (obj->*func)(value);
+    }
+
+    return AddListener(obj, std::move(name), func);
+  }
+
   std::shared_ptr<const taxi_config::BootstrapConfig> bootstrap_config_;
   bool config_load_cancelled_;
 

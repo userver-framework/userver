@@ -301,9 +301,8 @@ Redis::Redis(const ComponentConfig& config,
           .GetRedisControl();
   Connect(config, component_context, testsuite_redis_control);
 
-  OnConfigUpdate(config_.Get());
   config_subscription_ =
-      config_.AddListener(this, "redis", &Redis::OnConfigUpdate);
+      config_.UpdateAndListen(this, "redis", &Redis::OnConfigUpdate);
 
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       kStatisticsName,

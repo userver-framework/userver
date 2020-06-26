@@ -23,7 +23,7 @@ TaxiConfig::~TaxiConfig() = default;
 
 std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
   auto ptr = cache_.Get();
-  if (ptr) return ptr;
+  if (ptr) return {ptr};
 
   LOG_TRACE() << "Wait started";
   bool was_loaded;
@@ -37,7 +37,7 @@ std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
 
   if (!was_loaded || config_load_cancelled_)
     throw ComponentsLoadCancelledException("config load cancelled");
-  return cache_.Get();
+  return {cache_.Get()};
 }
 
 void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
@@ -57,7 +57,7 @@ std::shared_ptr<const taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap()
 }
 
 std::shared_ptr<const taxi_config::Config> TaxiConfig::GetNoblock() const {
-  return cache_.Get();
+  return {cache_.Get()};
 }
 
 void TaxiConfig::DoSetConfig(

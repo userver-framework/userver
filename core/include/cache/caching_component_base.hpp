@@ -145,8 +145,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
   if (config.ParseBool("config-settings", true) &&
       cache::CacheConfigSet::IsConfigEnabled()) {
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
-    OnConfigUpdate(taxi_config.Get());
-    config_subscription_ = taxi_config.AddListener(
+    config_subscription_ = taxi_config.UpdateAndListen(
         this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
   }
 }

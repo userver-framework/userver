@@ -146,7 +146,7 @@ Postgres::Postgres(const ComponentConfig& config,
       database_{std::make_shared<storages::postgres::Database>()} {
   namespace pg = storages::postgres;
   TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
-  auto cmd_ctl = GetCommandControlConfig(cfg.Get());
+  auto cmd_ctl = GetCommandControlConfig(cfg);
 
   const auto dbalias = config.ParseString("dbalias", {});
 
@@ -213,8 +213,7 @@ Postgres::Postgres(const ComponentConfig& config,
   }
 
   config_subscription_ =
-      cfg.AddListener(this, "postgres", &Postgres::OnConfigUpdate);
-  OnConfigUpdate(cfg.Get());
+      cfg.UpdateAndListen(this, "postgres", &Postgres::OnConfigUpdate);
 
   LOG_DEBUG() << "Component ready";
 }
@@ -259,6 +258,12 @@ void Postgres::SetDefaultCommandControl(
 storages::postgres::CommandControl Postgres::GetCommandControlConfig(
     const TaxiConfigPtr& cfg) const {
   return cfg->Get<storages::postgres::Config>().default_command_control;
+}
+
+storages::postgres::CommandControl Postgres::GetCommandControlConfig(
+    const TaxiConfig& cfg) const {
+  auto conf = cfg.Get();
+  return GetCommandControlConfig(conf);
 }
 
 void Postgres::OnConfigUpdate(const TaxiConfigPtr& cfg) {

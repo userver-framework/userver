@@ -147,6 +147,9 @@ class Postgres : public LoggableComponentBase {
   using TaxiConfigPtr = std::shared_ptr<const taxi_config::Config>;
   storages::postgres::CommandControl GetCommandControlConfig(
       const TaxiConfigPtr& cfg) const;
+  storages::postgres::CommandControl GetCommandControlConfig(
+      const TaxiConfig& cfg) const;
+
   void OnConfigUpdate(const TaxiConfigPtr& cfg);
   /// Set default command control for all clusters managed by the component
   void SetDefaultCommandControl(storages::postgres::CommandControl);
