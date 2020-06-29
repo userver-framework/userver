@@ -74,7 +74,7 @@ struct GetSetNull<::utils::StrongTypedef<Tag, T, Ops, Enable>> {
     UnderlyingGetSet::SetNull(v.GetUnderlying());
   }
   inline static void SetDefault(ValueType& v) {
-    UnderlyingGetSet::SetNull(v.GetUnderlying());
+    UnderlyingGetSet::SetDefault(v.GetUnderlying());
   }
 };
 

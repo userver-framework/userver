@@ -1,4 +1,5 @@
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/io/array_types.hpp>
 #include <storages/postgres/io/strong_typedef.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
@@ -159,6 +160,24 @@ POSTGRE_TEST_P(StringStrongTypedef) {
   EXPECT_EQ(str, res.AsContainer<std::vector<static_test::StringTypedef>>()[0]);
 }
 
+POSTGRE_TEST_P(StringStrongTypedefArray) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+
+  using StringTypedefVector = std::vector<static_test::StringTypedef>;
+
+  StringTypedefVector str_vec{static_test::StringTypedef{"test"},
+                              static_test::StringTypedef{}};
+  EXPECT_NO_THROW(res = conn->Execute("select $1", str_vec));
+  EXPECT_EQ(str_vec, res[0][0].As<StringTypedefVector>());
+  // Row interface
+  EXPECT_EQ(str_vec, res[0].As<StringTypedefVector>());
+  // Single row interface
+  EXPECT_EQ(str_vec, res.AsSingleRow<StringTypedefVector>());
+  // As container interface
+  EXPECT_EQ(str_vec, res.AsContainer<std::vector<StringTypedefVector>>()[0]);
+}
+
 POSTGRE_TEST_P(IntStrongTypedef) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
@@ -172,6 +191,24 @@ POSTGRE_TEST_P(IntStrongTypedef) {
   EXPECT_EQ(i, res.AsSingleRow<static_test::IntTypedef>());
   // As container interface
   EXPECT_EQ(i, res.AsContainer<std::vector<static_test::IntTypedef>>()[0]);
+}
+
+POSTGRE_TEST_P(IntStrongTypedefArray) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+
+  using IntTypedefVector = std::vector<static_test::IntTypedef>;
+
+  IntTypedefVector i_vec{static_test::IntTypedef{42},
+                         static_test::IntTypedef{13}};
+  EXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
+  EXPECT_EQ(i_vec, res[0][0].As<IntTypedefVector>());
+  // Row interface
+  EXPECT_EQ(i_vec, res[0].As<IntTypedefVector>());
+  // Single row interface
+  EXPECT_EQ(i_vec, res.AsSingleRow<IntTypedefVector>());
+  // As container interface
+  EXPECT_EQ(i_vec, res.AsContainer<std::vector<IntTypedefVector>>()[0]);
 }
 
 POSTGRE_TEST_P(IntEnumStrongTypedef) {
@@ -188,6 +225,24 @@ POSTGRE_TEST_P(IntEnumStrongTypedef) {
   // As container interface
   EXPECT_EQ(i,
             res.AsContainer<std::vector<static_test::EnumStrongTypedef>>()[0]);
+}
+
+POSTGRE_TEST_P(IntEnumStrongTypedefArray) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+
+  using EnumTypedefVector = std::vector<static_test::EnumStrongTypedef>;
+
+  EnumTypedefVector i_vec{static_test::EnumStrongTypedef{42},
+                          static_test::EnumStrongTypedef{13}};
+  EXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
+  EXPECT_EQ(i_vec, res[0][0].As<EnumTypedefVector>());
+  // Row interface
+  EXPECT_EQ(i_vec, res[0].As<EnumTypedefVector>());
+  // Single row interface
+  EXPECT_EQ(i_vec, res.AsSingleRow<EnumTypedefVector>());
+  // As container interface
+  EXPECT_EQ(i_vec, res.AsContainer<std::vector<EnumTypedefVector>>()[0]);
 }
 
 }  // namespace
