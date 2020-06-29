@@ -22,6 +22,10 @@ class StringBuilder;
 
 class ValueBuilder;
 
+namespace parser {
+class JsonValueParser;
+}
+
 /// @brief Non-mutable JSON value representation.
 ///
 /// Class provides non mutable access JSON value. For modification and
@@ -233,6 +237,7 @@ class Value final {
   friend class impl::StringBuilder;
   friend class impl::InlineObjectBuilder;
   friend class impl::InlineArrayBuilder;
+  friend class parser::JsonValueParser;
 
   friend formats::json::Value FromString(std::string_view);
   friend formats::json::Value FromStream(std::istream&);

@@ -11,7 +11,7 @@ class MapParser final : public TypedParser<Map> {
 
   explicit MapParser(ValueParser& value_parser) : value_parser_(value_parser) {}
 
-  void Reset(Map& result) {
+  void Reset(Map& result) override {
     this->state_ = State::kStart;
     TypedParser<Map>::Reset(result);
   }

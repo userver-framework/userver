@@ -15,7 +15,7 @@ class Subscriber {
 template <typename T>
 class TypedParser : public BaseParser {
  public:
-  void Reset(T& result) { result_ = &result; }
+  virtual void Reset(T& result) { result_ = &result; }
 
   void Subscribe(Subscriber& subscriber) { subscriber_ = &subscriber; }
 

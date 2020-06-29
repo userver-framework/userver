@@ -29,7 +29,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber {
  public:
   explicit ArrayParser(ItemParser& item_parser) : item_parser_(item_parser) {}
 
-  void Reset(Array& result) {
+  void Reset(Array& result) override {
     index_ = 0;
     state_ = State::kStart;
     TypedParser<Array>::Reset(result);

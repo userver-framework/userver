@@ -25,6 +25,10 @@ class BaseParser {
   virtual void StartArray() { Throw("array"); }
   virtual void EndArray() { Throw("']'"); }
 
+  // Low-level variants of EndObject/EndArray
+  virtual void EndObject(size_t /* members */) { EndObject(); }
+  virtual void EndArray(size_t /* members */) { EndArray(); }
+
   void SetState(ParserState& state) { parser_state_ = &state; }
 
  protected:

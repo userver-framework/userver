@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <formats/json/parser/parser.hpp>
+#include <formats/json/serialize.hpp>
 
 // TODO: move to utest/*
 #define EXPECT_THROW_TEXT(code, exception_type, exc_text)                    \
@@ -231,4 +232,40 @@ TYPED_TEST(JsonStringParserMap, Invalid) {
 
   EXPECT_THROW_TEXT(state.ProcessInput(R"(}{)"), ParseError,
                     "Parse error at pos 0, path '': The document is empty.");
+}
+
+TEST(JsonStringParser, JsonValue) {
+  std::string input{};
+
+  std::string inputs[] = {
+      R"([1, "123", "", -2, 3.5, {"key": 1, "other": {"key2": 2}}, {}])",
+      R"({})",
+  };
+  for (const auto& input : inputs) {
+    auto value_str = formats::json::FromString(input);
+    auto value_sax = ParseToType<formats::json::Value, JsonValueParser>(input);
+    EXPECT_EQ(value_str, value_sax) << "input: " + input + ", str='" +
+                                           ToString(value_str) + "', sax='" +
+                                           ToString(value_sax) + "'";
+  }
+}
+
+TEST(JsonStringParser, JsonValueBad) {
+  std::string input{};
+
+  std::string inputs[] = {
+      R"({)",         //
+      R"()",          //
+      R"({}})",       //
+      R"(})",         //
+      R"({"key")",    //
+      R"({"key)",     //
+      R"({"key":1)",  //
+      R"([)",         //
+      R"(1 2)",       //
+  };
+  for (const auto& input : inputs) {
+    EXPECT_THROW((ParseToType<formats::json::Value, JsonValueParser>(input)),
+                 ParseError);
+  }
 }

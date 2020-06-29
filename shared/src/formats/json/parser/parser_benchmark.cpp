@@ -62,3 +62,33 @@ void JsonParseArraySax(benchmark::State& state) {
   }
 }
 BENCHMARK(JsonParseArraySax)->RangeMultiplier(4)->Range(1, 1024);
+
+std::string BuildObject(size_t level) {
+  if (level == 0) {
+    return R"({"k": 123, "v": 1.11, "s": "some string"})";
+  }
+
+  auto subobj = BuildObject(level - 1);
+
+  return fmt::format(R"({{"one": {}, "two": {}, "three": "string"}})", subobj,
+                     subobj);
+}
+
+void JsonParseValueDom(benchmark::State& state) {
+  const auto input = BuildObject(state.range(0));
+  for (auto _ : state) {
+    const auto res = formats::json::FromString(input);
+    benchmark::DoNotOptimize(res);
+  }
+}
+BENCHMARK(JsonParseValueDom)->RangeMultiplier(2)->Range(1, 16);
+
+void JsonParseValueSax(benchmark::State& state) {
+  const auto input = BuildObject(state.range(0));
+  for (auto _ : state) {
+    const auto res = formats::json::parser::ParseToType<
+        formats::json::Value, formats::json::parser::JsonValueParser>(input);
+    benchmark::DoNotOptimize(res);
+  }
+}
+BENCHMARK(JsonParseValueSax)->RangeMultiplier(2)->Range(1, 16);

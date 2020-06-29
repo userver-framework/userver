@@ -33,16 +33,16 @@ bool ParserHandler::StartObject() {
   parser_.StartObject();
   return true;
 }
-bool ParserHandler::EndObject(size_t) {
-  parser_.EndObject();
+bool ParserHandler::EndObject(size_t members) {
+  parser_.EndObject(members);
   return true;
 }
 bool ParserHandler::StartArray() {
   parser_.StartArray();
   return true;
 }
-bool ParserHandler::EndArray(size_t) {
-  parser_.EndArray();
+bool ParserHandler::EndArray(size_t members) {
+  parser_.EndArray(members);
   return true;
 }
 
