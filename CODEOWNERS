@@ -7,14 +7,13 @@
 
 /core/*/cache/ @segoon
 /core/*/clients/config/ @segoon
-/core/*/clients/http/ @segoon
-/core/*/crypto/ @bugaevskiy @segoon
-/core/*/curl-ev/ @segoon
+/core/*/clients/http/ @segoon @bugaevskiy
+/core/*/components/ @segoon @bugaevskiy
+/core/*/curl-ev/ @bugaevskiy
 /core/*/engine/ @bugaevskiy @segoon
-/core/*/formats/ @bugaevskiy
-/core/*/http/ @segoon
-/core/*/logging/ @antoshkka @segoon
-/core/*/server/ @dzhuk
+/core/*/fs/ @antoshkka
+/core/*/rcu/ @segoon
+/core/*/server/ @dzhuk @bugaevskiy @segoon
 /core/*/server_settings/ @segoon
 /core/*/storages/secdist/ @segoon
 /core/*/taxi_config/ @segoon
@@ -22,12 +21,17 @@
 /core/*/yaml_config/ @antoshkka
 
 /mongo/ @bugaevskiy
-
-/postgresql/ @ser-fedorov
-
-/gprc/ @ser-fedorov
-
+/postgresql/ @bugaevskiy
 /redis/ @dzhuk @segoon
+
+/shared/*/compiler/ @antoshkka
+/shared/*/crypto/ @bugaevskiy @segoon
+/shared/*/fs/ @antoshkka
+/shared/*/http/ @segoon @bugaevskiy
+
+/third_party/boost_stacktrace/ @antoshkka
+/third_party/decimal64/ @bugaevskiy
+/third_party/magic_get/ @ser-fedorov @antoshkka
 
 /uboost_coro/ @bugaevskiy @antoshkka
 
