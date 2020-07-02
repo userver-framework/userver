@@ -458,6 +458,9 @@ void PostgreCache<PostgreCachePolicy>::Update(
       changes += res.Size();
     }
   }
+
+  scope.Reset();
+
   if (changes > 0) {
     auto elapsed = scope.ElapsedTotal(pg_cache::detail::kParseStage);
     if (elapsed > pg_cache::detail::kCpuRelaxThreshold) {

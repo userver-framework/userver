@@ -143,6 +143,7 @@ void CacheUpdateTrait::DoUpdate(UpdateType update_type) {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto update_type_str =
       update_type == UpdateType::kFull ? "full" : "incremental";
+  tracing::Span::CurrentSpan().AddTag("update_type", update_type_str);
 
   UpdateStatisticsScope stats(GetStatistics(), update_type);
   LOG_INFO() << "Updating cache update_type=" << update_type_str

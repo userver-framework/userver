@@ -215,6 +215,8 @@ void MongoCache<MongoCacheTraits>::Update(
     }
   }
 
+  scope.Reset();
+
   const auto size = new_cache->size();
   this->Set(std::move(new_cache));
   stats_scope.Finish(size);
