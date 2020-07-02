@@ -263,18 +263,12 @@ void LogHelper::LogModule(const char* path, int line, const char* func) {
 void LogHelper::LogIds() {
   auto task = engine::current_task::GetCurrentTaskContextUnchecked();
   uint64_t task_id = task ? reinterpret_cast<uint64_t>(task) : 0;
-  uint64_t coro_id = task ? task->GetCoroId() : 0;
   auto thread_id = reinterpret_cast<void*>(pthread_self());
 
   Put(utils::encoding::kTskvPairsSeparator);
   Put("task_id");
   Put(utils::encoding::kTskvKeyValueSeparator);
   PutHexShort(task_id);
-
-  Put(utils::encoding::kTskvPairsSeparator);
-  Put("coro_id");
-  Put(utils::encoding::kTskvKeyValueSeparator);
-  PutHexShort(coro_id);
 
   Put(utils::encoding::kTskvPairsSeparator);
   Put("thread_id");

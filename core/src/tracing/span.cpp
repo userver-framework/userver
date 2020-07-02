@@ -23,7 +23,6 @@ using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
 const std::string kStopWatchAttrName = "stopwatch_name";
 const std::string kTotalTimeAttrName = "total_time";
-const std::string kTotalTimeSecondsAttrName = "delay";
 const std::string kTimeUnitsAttrName = "stopwatch_units";
 const std::string kStartTimestampAttrName = "start_timestamp";
 
@@ -126,7 +125,6 @@ Span::Impl::~Impl() {
   // Using result.Extend to move construct the keys and values.
   result.Extend(kStopWatchAttrName, name_);
   result.Extend(kTotalTimeAttrName, total_time_ms);
-  result.Extend(kTotalTimeSecondsAttrName, total_time_ms * 0.001);
   result.Extend(kReferenceType, ref_type);
   result.Extend(kTimeUnitsAttrName, "ms");
   result.Extend(kStartTimestampAttrName, StartTsToString(start_system_time_));
