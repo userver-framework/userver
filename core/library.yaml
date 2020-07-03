@@ -15,6 +15,7 @@ libraries:
   - Iconv::Iconv
   - LibEv
   - OpenSSL::Crypto
+  - OpenSSL::SSL
   - Threads::Threads
   - ZLIB::ZLIB
   - libyamlcpp

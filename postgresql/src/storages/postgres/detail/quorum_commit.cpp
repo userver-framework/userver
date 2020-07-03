@@ -9,6 +9,7 @@
 
 #include <storages/postgres/detail/connection.hpp>
 
+#include <crypto/openssl.hpp>
 #include <engine/deadline.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <logging/log.hpp>
@@ -138,6 +139,7 @@ QuorumCommitTopology::Impl::Impl(
       testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_{std::move(ei_settings)},
       host_states_{dsns_.begin(), dsns_.end()} {
+  crypto::impl::Openssl::Init();
   RunDiscovery();
   StartPeriodicTask();
 }

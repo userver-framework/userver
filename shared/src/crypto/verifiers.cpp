@@ -7,7 +7,7 @@
 
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
-#include <crypto/openssl_lock.hpp>
+#include <crypto/openssl.hpp>
 
 namespace crypto {
 namespace {
@@ -79,7 +79,7 @@ template <DsaType type, DigestSize bits>
 DsaVerifier<type, bits>::DsaVerifier(const std::string& key)
     : Verifier(EnumValueToString(type) + EnumValueToString(bits)),
       pkey_(PublicKey::LoadFromString(key)) {
-  impl::OpensslLock::Init();
+  impl::Openssl::Init();
 
   if constexpr (type == DsaType::kEc) {
     if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_EC) {

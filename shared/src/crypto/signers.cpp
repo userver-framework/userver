@@ -9,7 +9,7 @@
 
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
-#include <crypto/openssl_lock.hpp>
+#include <crypto/openssl.hpp>
 
 namespace crypto {
 namespace {
@@ -89,7 +89,7 @@ DsaSigner<type, bits>::DsaSigner(const std::string& key,
                                  const std::string& password)
     : Signer(EnumValueToString(type) + EnumValueToString(bits)),
       pkey_(PrivateKey::LoadFromString(key, password)) {
-  impl::OpensslLock::Init();
+  impl::Openssl::Init();
 
   if constexpr (type == DsaType::kEc) {
     if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_EC) {

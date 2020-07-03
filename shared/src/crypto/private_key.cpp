@@ -6,7 +6,7 @@
 #include <crypto/exception.hpp>
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
-#include <crypto/openssl_lock.hpp>
+#include <crypto/openssl.hpp>
 
 namespace crypto {
 namespace {
@@ -29,7 +29,7 @@ PrivateKey PrivateKey::LoadFromString(std::string_view key) {
 
 PrivateKey PrivateKey::LoadFromString(std::string_view key,
                                       std::string_view password) {
-  impl::OpensslLock::Init();
+  impl::Openssl::Init();
 
   auto privkey_bio = MakeBioString(key);
 

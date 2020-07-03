@@ -8,7 +8,7 @@
 #include <crypto/exception.hpp>
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
-#include <crypto/openssl_lock.hpp>
+#include <crypto/openssl.hpp>
 
 namespace crypto {
 namespace {
@@ -20,7 +20,7 @@ int NoPasswordCb(char* /*buf*/, int /*size*/, int /*rwflag*/, void*) {
 }  // namespace
 
 Certificate Certificate::LoadFromString(std::string_view certificate) {
-  impl::OpensslLock::Init();
+  impl::Openssl::Init();
 
   if (!boost::starts_with(certificate, "-----BEGIN CERTIFICATE-----")) {
     throw KeyParseError(FormatSslError("Not a certificate"));

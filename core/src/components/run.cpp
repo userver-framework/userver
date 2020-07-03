@@ -8,6 +8,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <components/manager.hpp>
+#include <crypto/openssl.hpp>
 #include <fs/blocking/read.hpp>
 #include <logging/config.hpp>
 #include <logging/log.hpp>
@@ -77,6 +78,7 @@ enum class RunMode { kNormal, kOnce };
 
 void DoRun(const std::string& config_path, const ComponentList& component_list,
            const std::string& init_log_path, RunMode run_mode) {
+  crypto::impl::Openssl::Init();
   HandleJemallocSettings();
   LogScope log_scope{init_log_path};
 

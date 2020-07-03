@@ -8,7 +8,7 @@
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/testsuite.hpp>
-#include <crypto/openssl_lock.hpp>
+#include <crypto/openssl.hpp>
 #include <curl-ev/multi.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <logging/log.hpp>

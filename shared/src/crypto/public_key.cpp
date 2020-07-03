@@ -10,7 +10,7 @@
 #include <crypto/exception.hpp>
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
-#include <crypto/openssl_lock.hpp>
+#include <crypto/openssl.hpp>
 
 namespace crypto {
 namespace {
@@ -22,7 +22,7 @@ int NoPasswordCb(char* /*buf*/, int /*size*/, int /*rwflag*/, void*) {
 }  // namespace
 
 PublicKey PublicKey::LoadFromString(std::string_view key) {
-  impl::OpensslLock::Init();
+  impl::Openssl::Init();
 
   if (boost::starts_with(key, "-----BEGIN CERTIFICATE-----")) {
     return LoadFromCertificate(Certificate::LoadFromString(key));
