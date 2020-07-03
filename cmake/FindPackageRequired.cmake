@@ -9,7 +9,7 @@ macro(find_package_required PACKAGE debpackage)
     if(NOT ${PACKAGE_UPPERCASE}_FOUND AND NOT ${PACKAGE}_FOUND)
         message(FATAL_ERROR
                 "Cmake module for ${PACKAGE} not found.\n"
-                "Please install '${debpackage}' package.")
+                "Please install '${debpackage}' package(s).")
     endif()
 endmacro()
 
@@ -20,7 +20,7 @@ macro(find_package_components_required PACKAGE debpackage)
     if(NOT ${PACKAGE_UPPERCASE}_FOUND AND NOT ${PACKAGE}_FOUND)
         message(FATAL_ERROR
                 "Cmake module for ${PACKAGE} not found.\n"
-                "Please install '${debpackage}' package.")
+                "Please install '${debpackage}' package(s).")
     endif()
 endmacro()
 
@@ -31,7 +31,7 @@ macro(find_package_required_version PACKAGE debpackage version)
     if(NOT ${PACKAGE_UPPERCASE}_FOUND AND NOT ${PACKAGE}_FOUND)
         message(FATAL_ERROR
                 "Cmake module for ${PACKAGE} version ${version} not found.\n"
-                "Please install '${debpackage}' package.")
+                "Please install '${debpackage}' package(s).")
     endif()
 endmacro()
 
@@ -41,6 +41,6 @@ macro(find_program_required PROGRAM debpackage)
     if(${BINARY} STREQUAL BINARY-NOTFOUND)
         message(FATAL_ERROR
                 "Program ${PROGRAM} not found in $PATH.\n"
-                "Please install '${debpackage}' package.")
+                "Please install '${debpackage}' package(s).")
     endif()
 endmacro()

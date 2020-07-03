@@ -1,5 +1,6 @@
 name: Hiredis
 version: 0.13.3
+helper-prefix: false
 
 includes:
     find:

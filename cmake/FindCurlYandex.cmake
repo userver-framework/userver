@@ -17,7 +17,10 @@ find_package(CURL REQUIRED)
 set(LIBCURL_YANDEX_LIBRARIES ${CURL_LIBRARIES})
 set(LIBCURL_YANDEX_INCLUDE_DIR ${CURL_INCLUDE_DIRS})
 set(LIBCURL_YANDEX_DEFINITIONS "")
-find_package_handle_standard_args(CURLYANDEX LIBCURL_YANDEX_LIBRARIES LIBCURL_YANDEX_INCLUDE_DIR)
+find_package_handle_standard_args(CurlYandex
+  REQUIRED_VARS LIBCURL_YANDEX_LIBRARIES LIBCURL_YANDEX_INCLUDE_DIR
+  # ignore version
+)
 
 else(NOT CURL_YANDEX_ENABLED)
 
@@ -28,20 +31,18 @@ find_path(
     "/usr/include/libyandex-taxi-curl/")
 find_library(LIBCURL_YANDEX yandex-taxi-curl)
 
-# We have to link against all these libraries as the static libyandex-taxi-curl.a
-# doesn't store information about its dependencies :(
-find_library(LIBGCRYPT gcrypt)
-if(NOT LIBGCRYPT)
-  message(FATAL_ERROR "Cannot find library gcrypt, try to install libgcrypt11-dev.")
-endif()
-find_library(LIBGSSAPI_LIBRARY gssapi_krb5)
-if(NOT LIBGSSAPI_LIBRARY)
-  message(FATAL_ERROR "Cannot find library gssapi_krb5, try to install libkrb5-dev.")
-endif()
-find_library(LIBKRB5_LIBRARY krb5)
-if(NOT LIBKRB5_LIBRARY)
-  message(FATAL_ERROR "Cannot find library krb5, try to install libkrb5-dev.")
-endif()
+# From FindCURL.cmake
+if(LIBCURL_YANDEX_INCLUDE_DIR)
+  file(STRINGS "${LIBCURL_YANDEX_INCLUDE_DIR}/curl/curlver.h"
+    curl_version_str
+    REGEX "^#define[\t ]+LIBCURL_VERSION[\t ]+\".*\""
+  )
+  string(REGEX REPLACE "^#define[\t ]+LIBCURL_VERSION[\t ]+\"([^\"]*)\".*" "\\1"
+    LIBCURL_YANDEX_VERSION_STRING
+    "${curl_version_str}"
+  )
+  unset(curl_version_str)
+endif(LIBCURL_YANDEX_INCLUDE_DIR)
 
 if (CURL_CARES_ENABLED)
 find_library(LIBCARES yandex-taxi-cares)
@@ -50,21 +51,26 @@ if(NOT LIBCARES)
 endif()
 endif (CURL_CARES_ENABLED)
 
+find_package(Brotli REQUIRED)
+find_package(Nghttp2 REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Crypto REQUIRED)
-find_package(Nghttp2 REQUIRED)
+find_package(ZLIB REQUIRED)
 
 set(LIBCURL_YANDEX_LIBRARIES
-	${LIBCURL_YANDEX}
-	${LIBCARES}
-	${LIBGCRYPT}
-	${LIBGSSAPI_LIBRARY}
-	${LIBKRB5_LIBRARY}
-	${Nghttp2_LIBRARIES}
-	${OPENSSL_LIBRARIES}
-	${Crypto_LIBRARIES})
+  ${LIBCURL_YANDEX}
+  ${LIBCARES}
+  ${Brotli_LIBRARIES}
+  ${Nghttp2_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+  ${Crypto_LIBRARIES}
+  ${ZLIB_LIBRARIES}
+)
 set(LIBCURL_YANDEX_DEFINITIONS -DCURL_STATICLIB=1)
-find_package_handle_standard_args(CURLYANDEX LIBCURL_YANDEX_LIBRARIES LIBCURL_YANDEX_INCLUDE_DIR)
+find_package_handle_standard_args(CurlYandex
+  REQUIRED_VARS LIBCURL_YANDEX_LIBRARIES LIBCURL_YANDEX_INCLUDE_DIR
+  VERSION_VAR LIBCURL_YANDEX_VERSION_STRING
+)
 mark_as_advanced(LIBCURL_YANDEX_LIBRARIES LIBCURL_YANDEX_INCLUDE_DIR)
 
 if(NOT LIBCURL_YANDEX_LIBRARIES OR NOT LIBCURL_YANDEX_INCLUDE_DIR)
@@ -78,5 +84,3 @@ if (LIBCURL_YANDEX_LIBRARIES AND NOT TARGET CurlYandex)
   target_link_libraries(CurlYandex INTERFACE ${LIBCURL_YANDEX_LIBRARIES})
   target_include_directories(CurlYandex INTERFACE ${LIBCURL_YANDEX_INCLUDE_DIR})
 endif()
-
-message(STATUS "Found LibCurl: ${LIBCURL_YANDEX_LIBRARIES}")

@@ -20,7 +20,7 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
-find_package(HelperHiredis)
+find_package(Hiredis)
 find_package(Boost REQUIRED COMPONENTS thread)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})

@@ -39,11 +39,11 @@ USERVER_BUILDDEPS=" \
   libboost-program-options-dev \
   libboost-regex-dev \
   libboost-thread-dev \
+  libbrotli-dev \
   libcctz-dev \
   libcrypto++-dev \
   libev-dev \
   libfmt-dev \
-  libgcrypt11-dev \
   libhiredis-dev \
   libhttp-parser-dev \
   libkrb5-dev \

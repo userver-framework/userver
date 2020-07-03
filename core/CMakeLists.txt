@@ -55,7 +55,9 @@ find_package_required(ZLIB "zlib1g-dev")
 find_package(Helpergtest REQUIRED)
 find_package(Helpergbench REQUIRED)
 find_package(Helperspdlog REQUIRED)
-find_package_required(CurlYandex "libyandex-taxi-curl4-openssl-dev libnghttp2-dev libgcrypt11-dev libkrb5-dev")
+find_package_required_version(CurlYandex
+  "libyandex-taxi-curl4-openssl-dev (>= 7.68.0-6)"
+  7.68.0)
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
