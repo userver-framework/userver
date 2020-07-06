@@ -22,6 +22,7 @@ class RepositoryGenerator:
             'formula-name': str,
             'version': voluptuous.Any(str, int),
             'helper-prefix': bool,
+            'extra-cmake-vars': {str: str},
             'includes': {
                 'enabled': bool,
                 'variable': str,
@@ -131,6 +132,9 @@ class RepositoryGenerator:
                             'debian_names': value.get('debian-names'),
                             'formula_name': value.get('formula-name'),
                             'version': value.get('version'),
+                            'extra_cmake_vars': value.get(
+                                'extra-cmake-vars', {},
+                            ),
                             'includes': value.get('includes'),
                             'libraries': value.get('libraries'),
                             'programs': value.get('programs'),

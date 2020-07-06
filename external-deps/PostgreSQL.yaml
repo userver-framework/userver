@@ -1,6 +1,9 @@
 name: PostgreSQL
 version: 10
 
+extra-cmake-vars:
+    PostgreSQL_ADDITIONAL_VERSIONS: '"12"'
+
 debian-names:
   - libpq-dev
   - postgresql-server-dev-10

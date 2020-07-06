@@ -5,6 +5,10 @@
 {% set programs_enabled = programs and programs.enabled|default(true) %}
 {% set current_package_name = package_name or name %}
 
+{% for var_name, var_value in extra_cmake_vars.items() %}
+set({{var_name}} {{var_value}})
+{% endfor %} {# extra_cmake_vars #}
+
 {% set full_error_message = '' %}
 {% if fail_message %}
   {% set full_error_message = fail_message|trim %}
@@ -35,7 +39,7 @@ find_{{ type }}({{ variable }}_{{ value.names|join('_')|replace('/', '_')|replac
       {{ value['paths']|join(' ') }}
 {% endif %} {# if value['paths'] #}
 )
-list(APPEND {{ variable }} 
+list(APPEND {{ variable }}
   {{ '${' }}{{ variable }}_{{ value.names|join('_')|replace('/', '_')|replace('.', '_') }}{{ '}'}}
 )
 {% endfor %} {# for value in values.find #}
@@ -162,7 +166,7 @@ if (NOT TARGET {{ name }})
 {% endif %} {# if libraries.enabled|default(true) #}
 {% if compile_definitions.names %}
   target_compile_definitions({{ name }} INTERFACE
-{%- for option in compile_definitions.names %}  
+{%- for option in compile_definitions.names %}
     {{ option }}
 {% endfor %} {# for option in compile_definitions.names #}
   )

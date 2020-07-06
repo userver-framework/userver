@@ -182,6 +182,9 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(
       (role_flags & ClusterHostType::kSlave)) {
     LOG_TRACE() << "Starting transaction on " << role_flags;
     auto alive_dsn_indices = topology_.GetAliveDsnIndices();
+    if (alive_dsn_indices->empty()) {
+      throw ClusterUnavailable("None of cluster hosts are available");
+    }
     dsn_index = SelectDsnIndex(*alive_dsn_indices, flags, rr_host_idx_);
   } else {
     auto host_role = static_cast<ClusterHostType>(role_flags.GetValue());
