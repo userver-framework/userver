@@ -35,19 +35,48 @@ std::string Client::FetchConfigsValues(const std::string& body) {
 Client::Reply Client::FetchDocsMap(
     const std::optional<Timestamp>& last_update,
     const std::vector<std::string>& fields_to_load) {
+  auto source = config_.use_uconfigs ? Source::kUconfigs : Source::kConfigs;
+  auto json_value = FetchConfigs(last_update, fields_to_load, source);
+  auto configs_json = json_value["configs"];
+
+  Reply reply;
+  reply.docs_map.Parse(formats::json::ToString(configs_json), true);
+
+  reply.timestamp = json_value["updated_at"].As<std::string>();
+  return reply;
+}
+
+Client::Reply Client::DownloadFullDocsMap() {
+  return FetchDocsMap(std::nullopt, {});
+}
+
+Client::JsonReply Client::FetchJson(
+    const std::optional<Timestamp>& last_update,
+    const std::unordered_set<std::string>& fields_to_load) {
+  auto json_value = FetchConfigs(last_update, fields_to_load, Source::kConfigs);
+  auto configs_json = json_value["configs"];
+
+  JsonReply reply;
+  reply.configs = configs_json;
+
+  reply.timestamp = json_value["updated_at"].As<std::string>();
+  return reply;
+}
+
+formats::json::Value Client::FetchConfigs(
+    const std::optional<Timestamp>& last_update,
+    formats::json::ValueBuilder&& fields_to_load, Source source) {
   formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
 
-  if (!fields_to_load.empty()) {
-    formats::json::ValueBuilder fields_builder(formats::json::Type::kArray);
-    for (const auto& field : fields_to_load) fields_builder.PushBack(field);
-    body_builder["ids"] = std::move(fields_builder);
+  if (!fields_to_load.IsEmpty()) {
+    body_builder["ids"] = std::move(fields_to_load);
   }
 
   if (last_update) {
     body_builder["updated_since"] = *last_update;
   }
 
-  if (config_.use_uconfigs) {
+  if (source == Source::kUconfigs) {
     body_builder["stage_name"] = config_.stage_name;
   }
 
@@ -56,19 +85,7 @@ Client::Reply Client::FetchDocsMap(
 
   auto json = FetchConfigsValues(request_body);
 
-  auto json_value = formats::json::FromString(json);
-  auto configs_json = json_value["configs"];
-
-  Reply reply;
-  reply.docs_map.Parse(formats::json::ToString(configs_json), true);
-
-  auto updated_at_json = json_value["updated_at"];
-  reply.timestamp = updated_at_json.As<std::string>();
-  return reply;
-}
-
-Client::Reply Client::DownloadFullDocsMap() {
-  return FetchDocsMap(std::nullopt, {});
+  return formats::json::FromString(json);
 }
 
 }  // namespace taxi_config

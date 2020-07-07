@@ -35,12 +35,26 @@ class Client final {
     Timestamp timestamp;
   };
 
+  struct JsonReply {
+    formats::json::Value configs;
+    Timestamp timestamp;
+  };
+
+  enum class Source { kConfigs, kUconfigs };
+
   Reply DownloadFullDocsMap();
 
   Reply FetchDocsMap(const std::optional<Timestamp>& last_update,
                      const std::vector<std::string>& fields_to_load);
 
+  JsonReply FetchJson(const std::optional<Timestamp>& last_update,
+                      const std::unordered_set<std::string>& fields_to_load);
+
  private:
+  formats::json::Value FetchConfigs(
+      const std::optional<Timestamp>& last_update,
+      formats::json::ValueBuilder&& fields_to_load, Source source);
+
   std::string FetchConfigsValues(const std::string& body);
 
  private:
