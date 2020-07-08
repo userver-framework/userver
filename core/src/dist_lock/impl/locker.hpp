@@ -20,7 +20,8 @@ enum class LockerMode {
 class Locker final {
  public:
   Locker(std::string name, std::shared_ptr<DistLockStrategyBase> strategy,
-         const DistLockSettings& settings, std::function<void()> worker_func);
+         const DistLockSettings& settings, std::function<void()> worker_func,
+         DistLockRetryMode retry_mode = DistLockRetryMode::kRetry);
 
   const std::string& Name() const;
   const std::string& Id() const;
@@ -50,6 +51,7 @@ class Locker final {
 
   mutable engine::Mutex settings_mutex_;
   DistLockSettings settings_;
+  const DistLockRetryMode retry_mode_;
 
   std::atomic<bool> is_locked_{false};
   std::atomic<std::chrono::steady_clock::duration> lock_refresh_since_epoch_{};

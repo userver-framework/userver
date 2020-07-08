@@ -5,7 +5,8 @@
 
 namespace dist_lock::impl {
 
-bool GetTask(engine::TaskWithResult<void>& task, const std::string& name) {
+bool GetTask(engine::TaskWithResult<void>& task, const std::string& name,
+             std::exception_ptr* exception_ptr) {
   try {
     engine::TaskCancellationBlocker cancel_blocker;
     if (task.IsValid()) {
@@ -16,6 +17,7 @@ bool GetTask(engine::TaskWithResult<void>& task, const std::string& name) {
     // Do nothing
   } catch (const std::exception& e) {
     LOG_ERROR() << "Unexpected exception on " << name << ".Get(): " << e;
+    if (exception_ptr) *exception_ptr = std::current_exception();
   }
   return false;
 }

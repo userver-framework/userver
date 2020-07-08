@@ -50,14 +50,16 @@ class DistLockedTask final : public engine::TaskWithResult<void> {
   DistLockedTask(std::string name, WorkerFunc worker_func,
                  std::shared_ptr<DistLockStrategyBase> strategy,
                  const DistLockSettings& settings = {},
-                 DistLockWaitingMode mode = DistLockWaitingMode::kWait);
+                 DistLockWaitingMode mode = DistLockWaitingMode::kWait,
+                 DistLockRetryMode retry_mode = DistLockRetryMode::kRetry);
 
   /// Creates a DistLockedTask to be run in a specific engine::TaskProcessor
   DistLockedTask(engine::TaskProcessor& task_processor, std::string name,
                  WorkerFunc worker_func,
                  std::shared_ptr<DistLockStrategyBase> strategy,
                  const DistLockSettings& settings = {},
-                 DistLockWaitingMode mode = DistLockWaitingMode::kWait);
+                 DistLockWaitingMode mode = DistLockWaitingMode::kWait,
+                 DistLockRetryMode retry_mode = DistLockRetryMode::kRetry);
 
   /// Returns for how long the lock is held (if held at all). Returned value
   /// may be less than the real duration.

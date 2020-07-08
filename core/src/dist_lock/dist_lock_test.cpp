@@ -277,6 +277,39 @@ TEST(LockedTask, Smoke) {
       3);
 }
 
+TEST(LockedTask, SingleAttempt) {
+  RunInCoro(
+      [] {
+        auto strategy = MakeMockStrategy();
+        DistLockWorkload work;
+        std::atomic<size_t> counter{0};
+        dist_lock::DistLockedTask locked_task(
+            kWorkerName,
+            [&] {
+              counter++;
+              throw std::runtime_error("123");
+            },
+            strategy, MakeSettings(), dist_lock::DistLockWaitingMode::kWait,
+            dist_lock::DistLockRetryMode::kSingleAttempt);
+
+        EXPECT_EQ(0u, work.GetFinishedWorkCount());
+        strategy->Allow(true);
+
+        locked_task.WaitFor(kMaxTestWaitTime);
+        ASSERT_TRUE(locked_task.IsFinished());
+        try {
+          locked_task.Get();
+          FAIL() << "Should have thrown";
+        } catch (const std::runtime_error& e) {
+          EXPECT_EQ(e.what(), std::string{"123"});
+        }
+        EXPECT_EQ(counter.load(), 1);
+
+        EXPECT_EQ(0u, work.GetFinishedWorkCount());
+      },
+      3);
+}
+
 TEST(LockedTask, Fail) {
   RunInCoro(
       [] {

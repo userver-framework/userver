@@ -20,7 +20,9 @@
 namespace dist_lock::impl {
 namespace {
 
-class WorkerFuncFailedException : public std::exception {};
+class WorkerFuncFailedException : public std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
 
 std::string MakeLockerId(const std::string& name) {
   static std::atomic<uint32_t> idx = utils::Rand();
@@ -51,12 +53,13 @@ class Locker::LockGuard {
 
 Locker::Locker(std::string name, std::shared_ptr<DistLockStrategyBase> strategy,
                const DistLockSettings& settings,
-               std::function<void()> worker_func)
+               std::function<void()> worker_func, DistLockRetryMode retry_mode)
     : name_(std::move(name)),
       id_(MakeLockerId(name_)),
       strategy_(std::move(strategy)),
       worker_func_(std::move(worker_func)),
-      settings_(settings) {
+      settings_(settings),
+      retry_mode_(retry_mode) {
   UASSERT(strategy_);
 }
 
@@ -137,9 +140,18 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode) {
       }
 
       if (watchdog_task.IsFinished()) {
-        worker_succeeded = GetTask(watchdog_task, WatchdogName(name_));
+        std::exception_ptr exception;
+        worker_succeeded =
+            GetTask(watchdog_task, WatchdogName(name_), &exception);
         if (!worker_succeeded || mode == LockerMode::kWorker) {
           lock_guard.TryUnlock();
+          if (retry_mode_ == DistLockRetryMode::kSingleAttempt) {
+            if (exception)
+              std::rethrow_exception(exception);
+            else
+              throw WorkerFuncFailedException{fmt::format(
+                  "worker name='{}' id='{}' task failed", name_, id_)};
+          }
           engine::InterruptibleSleepFor(settings.worker_func_restart_delay);
         }
       }
@@ -203,9 +215,15 @@ void Locker::RunWatchdog() {
   }
   LOG_INFO() << "Waiting for worker task";
   worker_task.RequestCancel();
-  if (!GetTask(worker_task, WorkerName(name_))) {
-    LOG_INFO() << "Worker task failed";
-    throw WorkerFuncFailedException{};
+
+  std::exception_ptr exception;
+  if (!GetTask(worker_task, WorkerName(name_), &exception)) {
+    LOG_WARNING() << "Worker task failed";
+    if (exception)
+      std::rethrow_exception(exception);
+    else
+      throw WorkerFuncFailedException{
+          fmt::format("worker name='{}' id='{}' task failed", name_, id_)};
   }
   LOG_INFO() << "Worker task completed";
 }

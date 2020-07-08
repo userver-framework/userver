@@ -33,4 +33,10 @@ enum class DistLockWaitingMode {
   kNoWait,  ///< doesn't wait for distlock if it is occupied
 };
 
+/// Distributed lock retry strategy
+enum class DistLockRetryMode {
+  kRetry,          ///< Retry on user exception/lock drop
+  kSingleAttempt,  ///< Don't retry on user exception/lock drop
+};
+
 }  // namespace dist_lock
