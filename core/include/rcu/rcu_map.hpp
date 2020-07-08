@@ -23,6 +23,8 @@ class MissingKeyException : public utils::TracefulException {
 ///
 /// Only keyset changes are thread-safe in scope of this class.
 /// Values are stored in `shared_ptr`s and are not copied during keyset change.
+/// The map itself is implemented as rcu::Variable, so every keyset change
+/// (e.g. insert or erase) triggers the whole map copying.
 /// @note No synchronization is provided for value access, it must be
 /// implemented by Value when necessary.
 template <typename Key, typename Value>
@@ -67,6 +69,7 @@ class RcuMap final {
 
   /// @brief Returns a modifiable value pointer by key if exists or
   /// default-creates one
+  /// @note Copies the whole map if the key doesn't exist.
   const ValuePtr operator[](const Key&);
 
   /// @brief Inserts a new element into the container if there is no element
@@ -74,6 +77,7 @@ class RcuMap final {
   /// Returns a pair consisting of a pointer to the inserted element, or the
   /// already-existing element if no insertion happened, and a bool denoting
   /// whether the insertion took place.
+  /// @note Copies the whole map if the key doesn't exist.
   InsertReturnType Insert(const Key& key, ValuePtr value);
 
   /// @brief Inserts a new element into the container constructed in-place with
@@ -81,6 +85,7 @@ class RcuMap final {
   /// Returns a pair consisting of a pointer to the inserted element, or the
   /// already-existing element if no insertion happened, and a bool denoting
   /// whether the insertion took place.
+  /// @note Copies the whole map if the key doesn't exist.
   template <typename... Args>
   InsertReturnType Emplace(const Key& key, Args&&... args);
 
@@ -106,10 +111,12 @@ class RcuMap final {
 
   /// @brief Removes a key from the map
   /// @returns whether the key was present
+  /// @note Copies the whole map, might be slow for large maps.
   bool Erase(const Key&);
 
   /// @brief Removes a key from the map returning its value
   /// @returs a value if the key was present, empty pointer otherwise
+  /// @note Copies the whole map, might be slow for large maps.
   ValuePtr Pop(const Key&);
 
   /// Resets the map to an empty state
