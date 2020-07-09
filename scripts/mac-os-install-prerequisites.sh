@@ -38,6 +38,11 @@ REQUIRED_PACKAGES=" \
 "
 brew install $REQUIRED_PACKAGES
 
+if ccache -p | grep max_size | grep -q default; then
+  echo "Configuring ccache"
+  ccache -M40G
+fi
+
 # this has bad cmake file in bottle
 brew install -s cctz
 

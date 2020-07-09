@@ -23,6 +23,7 @@ SCRIPTS_PATH=$(dirname "$(realpath "$0")")
 YANDEX_ARCHIVE_KEY_ID=7FCD11186050CD1A
 
 ESSENTIAL_PACKAGES=" \
+  ccache \
   clang-7 \
   clang-format-7 \
   cmake \
@@ -63,7 +64,6 @@ USERVER_BUILDDEPS=" \
 "
 
 OPTIONAL_PACKAGES=" \
-  ccache \
   mongodb \
   postgresql-10 \
   redis-server \
@@ -117,6 +117,11 @@ echo "Installing common build dependencies"
 # install userver build dependencies
 warn_held_packages ${USERVER_BUILDDEPS}
 sudo apt install -y $(skip_held_packages ${USERVER_BUILDDEPS})
+
+if ccache -p | grep max_size | grep -q default; then
+  echo "Configuring ccache"
+  ccache -M40G
+fi
 
 echo
 echo "For better experience you might want to install packages:" ${OPTIONAL_PACKAGES} ", but they are optional."
