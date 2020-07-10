@@ -224,11 +224,10 @@ TEST(ServerNetConnection, EarlyTeardown) {
     ASSERT_TRUE(peer.IsValid());
 
     EXPECT_THROW(res.Get(), clients::http::TimeoutException);
+    res.Cancel();
     peer.Close();
     request_socket.Close();
-
-    // TODO: TAXICOMMON-1958 - uncomment and deal with hangup:
-    // http_client_ptr.reset(); // tear-down
+    http_client_ptr.reset();
   });
 }
 

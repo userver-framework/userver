@@ -19,22 +19,20 @@ ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept {
   std::swap(easy_, other.easy_);
 }
 
-ResponseFuture::~ResponseFuture() {
-  if (future_->IsValid()) {
-    // TODO: log it?
-    easy_->Easy().cancel();
-  }
-}
+ResponseFuture::~ResponseFuture() { Cancel(); }
 
 ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept =
     default;
 
 void ResponseFuture::Cancel() {
-  easy_->Easy().cancel();
+  if (easy_) easy_->Easy().cancel();
   Detach();
 }
 
-void ResponseFuture::Detach() { *future_ = {}; }
+void ResponseFuture::Detach() {
+  *future_ = {};
+  easy_.reset();
+}
 
 std::future_status ResponseFuture::Wait() const {
   auto status = future_->wait_until(deadline_);
@@ -50,7 +48,7 @@ std::shared_ptr<Response> ResponseFuture::Get() {
   const auto future_status = Wait();
   if (future_status == std::future_status::ready) {
     auto response = future_->get();
-
+    easy_.reset();
     return response;
   }
 
