@@ -378,13 +378,10 @@ class Row {
   const_reverse_iterator rend() const { return crend(); }
   //@}
 
-  /// Access field by index
-  /// Using a field index outside of bounds is undefined behaviour
-  reference operator[](size_type index) const;
-  /// Checked field access by index.
+  /// @brief Field access by index
   /// @throws FieldIndexOutOfBounds if index is out of bounds
-  reference At(size_type index) const;
-  /// Access field by it's name
+  reference operator[](size_type index) const;
+  /// @brief Field access field by name
   /// @throws FieldNameDoesntExist if the result set doesn't contain
   ///         such a field
   reference operator[](const std::string& name) const;
@@ -557,21 +554,12 @@ class ResultSet {
   const_reverse_iterator rend() const { return crend(); }
   //@}
 
-  // TODO Check resultset is not empty
   reference Front() const;
   reference Back() const;
 
-  //@{
-  /** @name Random access interface */
-  /// Access a row by index
-  /// Accessing a row beyond the result set size is undefined behaviour
+  /// @brief Access a row by index
+  /// @throws RowIndexOutOfBounds if index is out of bounds
   reference operator[](size_type index) const;
-  /// Range-checked access to a row by index
-  /// Accessing a row beyond the result set size will throw an exception
-  /// @throws RowIndexOutOfBounds
-  reference At(size_type index) const;
-  //@}
-
   //@}
 
   //@{
@@ -725,7 +713,7 @@ void Row::To(T&& val, FieldTag) const {
   if (Size() > 1) {
     throw NonSingleColumResultSet{Size(), compiler::GetTypeName<T>(), "As"};
   }
-  At(0).To(std::forward<T>(val));
+  (*this)[0].To(std::forward<T>(val));
 }
 
 template <typename... T>

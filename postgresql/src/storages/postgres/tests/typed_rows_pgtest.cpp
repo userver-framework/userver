@@ -160,4 +160,30 @@ POSTGRE_TEST_P(EmptyTypedResult) {
   EXPECT_THROW(empty_res.AsSingleRow<MyTuple>(), pg::NonSingleRowResultSet);
 }
 
+POSTGRE_TEST_P(TypedResultOobAccess) {
+  using MyTuple = static_test::MyTupleType;
+  using MyStruct = static_test::MyAggregateStruct;
+  using MyClass = static_test::MyIntrusiveClass;
+
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+
+  EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
+
+  auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
+  ASSERT_EQ(1, tuples_res.Size());
+  EXPECT_NO_THROW(tuples_res[0]);
+  EXPECT_THROW(tuples_res[1], pg::RowIndexOutOfBounds);
+
+  auto struct_res = res.AsSetOf<MyStruct>(pg::kRowTag);
+  ASSERT_EQ(1, struct_res.Size());
+  EXPECT_NO_THROW(struct_res[0]);
+  EXPECT_THROW(struct_res[1], pg::RowIndexOutOfBounds);
+
+  auto class_res = res.AsSetOf<MyClass>(pg::kRowTag);
+  ASSERT_EQ(1, class_res.Size());
+  EXPECT_NO_THROW(class_res[0]);
+  EXPECT_THROW(class_res[1], pg::RowIndexOutOfBounds);
+}
+
 }  // namespace

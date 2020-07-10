@@ -180,20 +180,11 @@ class TypedResultSet {
   }
   const_reverse_iterator rend() const { return crend(); }
   //@}
-  //@{
-  /** @name Random access interface */
-  /// Access a row by index
-  /// Accessing a row beyond the result set size is undefined behaviour
+  /// @brief Access a row by index
+  /// @throws RowIndexOutOfBounds if index is out of bounds
   reference operator[](size_type index) const {
     return result_[index].template As<value_type>(kExtractTag);
   }
-  /// Range-checked access to a row by index
-  /// Accessing a row beyond the result set size will throw an exception
-  /// @throws RowIndexOutOfBounds
-  reference At(size_type index) const {
-    return result_.At(index).template As<value_type>(kExtractTag);
-  }
-  //@}
   //@}
  private:
   ResultSet result_;

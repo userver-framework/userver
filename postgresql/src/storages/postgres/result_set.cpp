@@ -151,10 +151,6 @@ Row::const_reverse_iterator Row::crend() const {
 }
 
 Row::reference Row::operator[](size_type index) const {
-  return reference(res_, row_index_, index);
-}
-
-Row::reference Row::At(size_type index) const {
   if (index >= Size()) throw FieldIndexOutOfBounds{index};
   return reference(res_, row_index_, index);
 }
@@ -236,17 +232,11 @@ ResultSet::const_reverse_iterator ResultSet::crend() const {
   return const_reverse_iterator(const_iterator(pimpl_, npos));
 }
 
-ResultSet::reference ResultSet::Front() const { return reference(pimpl_, 0); }
+ResultSet::reference ResultSet::Front() const { return (*this)[0]; }
 
-ResultSet::reference ResultSet::Back() const {
-  return reference(pimpl_, Size() - 1);
-}
+ResultSet::reference ResultSet::Back() const { return (*this)[Size() - 1]; }
 
 ResultSet::reference ResultSet::operator[](size_type index) const {
-  return reference(pimpl_, index);
-}
-
-ResultSet::reference ResultSet::At(size_type index) const {
   if (index >= Size()) throw RowIndexOutOfBounds{index};
   return reference(pimpl_, index);
 }
