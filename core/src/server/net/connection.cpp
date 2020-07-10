@@ -126,15 +126,15 @@ bool Connection::IsRequestTasksEmpty() const noexcept {
 void Connection::ListenForRequests(Queue::Producer producer) noexcept {
   using RequestBasePtr = std::shared_ptr<request::RequestBase>;
 
-  try {
-    utils::ScopeGuard send_stopper([this]() {
-      // do not request cancel unless we're sure it's in valid state
-      // this task can only normally be cancelled from response sender
-      if (response_sender_launched_event_.WaitForEvent()) {
-        response_sender_task_.RequestCancel();
-      }
-    });
+  utils::ScopeGuard send_stopper([this]() {
+    // do not request cancel unless we're sure it's in valid state
+    // this task can only normally be cancelled from response sender
+    if (response_sender_launched_event_.WaitForEvent()) {
+      response_sender_task_.RequestCancel();
+    }
+  });
 
+  try {
     request_tasks_->SetMaxLength(config_.requests_queue_size_threshold);
 
     http::HttpRequestParser request_parser(
@@ -148,7 +148,9 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
 
     std::vector<char> buf(config_.in_buffer_size);
     while (is_accepting_requests_) {
-      const auto bytes_read = peer_socket_.RecvSome(buf.data(), buf.size(), {});
+      auto deadline = engine::Deadline::FromDuration(config_.keepalive_timeout);
+      const auto bytes_read =
+          peer_socket_.RecvSome(buf.data(), buf.size(), deadline);
       if (!bytes_read) {
         LOG_TRACE() << "Peer " << peer_socket_.Getpeername() << " on fd "
                     << Fd() << " closed connection";
@@ -176,6 +178,9 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
 
     send_stopper.Release();
     LOG_TRACE() << "Gracefully stopping ListenForRequests()";
+  } catch (const engine::io::IoTimeout&) {
+    LOG_INFO() << "Closing idle connection on timeout";
+    send_stopper.Release();
   } catch (const engine::io::IoCancelled&) {
     LOG_TRACE() << "engine::io::IoCancelled thrown in ListenForRequests()";
   } catch (const engine::io::IoSystemError& ex) {
