@@ -8,6 +8,7 @@
 
 #include <components/component_list.hpp>
 #include <engine/async.hpp>
+#include <hostinfo/cpu_limit.hpp>
 #include <logging/log.hpp>
 #include <utils/async.hpp>
 
@@ -40,34 +41,21 @@ auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
 }
 
 std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
-  const char* cpu_limit_c_str = std::getenv("CPU_LIMIT");
-  if (cpu_limit_c_str) {
-    std::string cpu_limit(cpu_limit_c_str);
-    LOG_INFO() << "CPU_LIMIT='" << cpu_limit << "'";
+  auto cpu_f = ::hostinfo::CpuLimit();
+  if (!cpu_f) {
+    return {};
+  }
 
-    try {
-      size_t end{0};
-      auto cpu_f = std::stod(cpu_limit, &end);
-      if (cpu_limit.substr(end) == "c") {
-        auto cpu = std::lround(cpu_f);
-        if (cpu > 0 && cpu < kMaxCpu) {
-          // TODO: hack for https://st.yandex-team.ru/TAXICOMMON-2132
-          if (cpu < 3) cpu = 3;
+  auto cpu = std::lround(*cpu_f);
+  if (cpu > 0 && cpu < kMaxCpu) {
+    // TODO: hack for https://st.yandex-team.ru/TAXICOMMON-2132
+    if (cpu < 3) cpu = 3;
 
-          LOG_INFO() << "Using CPU limit from env CPU_LIMIT (" << cpu
-                     << ") for worker_threads "
-                     << "of task processor '" << tp_name
-                     << "', ignoring config value ";
-          return cpu;
-        }
-      }
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Failed to parse CPU_LIMIT: " << e;
-    }
-    LOG_ERROR() << "CPU_LIMIT env is invalid (" << cpu_limit
-                << "), ignoring it";
-  } else {
-    LOG_INFO() << "CPU_LIMIT env is unset, ignoring it";
+    LOG_INFO() << "Using CPU limit from env CPU_LIMIT (" << cpu
+               << ") for worker_threads "
+               << "of task processor '" << tp_name
+               << "', ignoring config value ";
+    return cpu;
   }
 
   return {};
