@@ -31,6 +31,8 @@ class FakeCache : public cache::CacheUpdateTrait {
     last_update_type_ = type;
   }
 
+  void Cleanup() override {}
+
   size_t updates_count_{0};
   cache::UpdateType last_update_type_{cache::UpdateType::kIncremental};
 };
@@ -43,7 +45,7 @@ TEST(CacheControl, Smoke) {
         testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
     FakeCache test_cache(
         cache::CacheConfig(std::chrono::seconds{1}, std::chrono::seconds{1},
-                           std::chrono::seconds{1}),
+                           std::chrono::seconds{1}, std::chrono::seconds{1}),
         cache_control);
 
     EXPECT_EQ(0, test_cache.UpdatesCount());

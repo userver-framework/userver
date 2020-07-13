@@ -252,3 +252,55 @@ TEST(Rcu, AsyncGc) {
     engine::Yield();
   });
 }
+
+TEST(Rcu, Cleanup) {
+  RunInCoro([] {
+    static std::atomic<size_t> count{0};
+    struct X {
+      X() { count++; }
+      X(X&&) { count++; }
+      X(const X&) { count++; }
+      ~X() { count--; }
+    };
+
+    rcu::Variable<X> ptr;
+
+    std::optional<rcu::ReadablePtr<X>> r;
+    EXPECT_EQ(count.load(), 1);
+
+    {
+      auto writer = ptr.StartWrite();
+      r.emplace(ptr.Read());
+      EXPECT_EQ(count.load(), 2);
+
+      writer.Commit();
+    }
+    EXPECT_EQ(count.load(), 2);
+
+    r.reset();
+    EXPECT_EQ(count.load(), 2);
+
+    ptr.Cleanup();
+
+    // For background delete
+    engine::Yield();
+    engine::Yield();
+
+    EXPECT_EQ(count.load(), 1);
+  });
+}
+
+TEST(Rcu, ParallelCleanup) {
+  RunInCoro([] {
+    rcu::Variable<int> ptr(1);
+
+    {
+      auto writer = ptr.StartWrite();
+
+      // should not freeze
+      ptr.Cleanup();
+
+      writer.Commit();
+    }
+  });
+}

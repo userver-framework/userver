@@ -79,6 +79,13 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
     if (IsPeriodicUpdateEnabled()) {
       update_task_.Start("update-task/" + name_, GetPeriodicTaskSettings(),
                          [this]() { DoPeriodicUpdate(); });
+      cleanup_task_.Start(
+          "cleanup-task/" + name_,
+          utils::PeriodicTask::Settings(config_.cleanup_interval), [this]() {
+            tracing::Span::CurrentSpan().SetLocalLogLevel(
+                logging::Level::kNone);
+            Cleanup();
+          });
     }
   } catch (...) {
     is_running_ = false;  // update_task_ is not started, don't check it in dtr
@@ -96,6 +103,15 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
       update_task_.Stop();
     } catch (const std::exception& ex) {
       LOG_ERROR() << "Exception in update task: " << ex << ". Component name '"
+                  << name_ << "'";
+    }
+  }
+
+  if (cleanup_task_.IsRunning()) {
+    try {
+      cleanup_task_.Stop();
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "Exception in cleanup task: " << ex << ". Component name '"
                   << name_ << "'";
     }
   }

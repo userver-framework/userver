@@ -279,6 +279,17 @@ class Variable final {
     WritablePtr<T>(*this, std::move(new_value)).Commit();
   }
 
+  void Cleanup() {
+    std::unique_lock lock(mutex_, std::try_to_lock);
+    if (!lock.owns_lock()) {
+      LOG_TRACE() << "Not cleaning up, someone else is holding the mutex lock";
+      // Someone is already changing the RCU
+      return;
+    }
+
+    ScanRetiredList(CollectHazardPtrs(lock));
+  }
+
  private:
   T* GetCurrent() const { return current_.load(); }
 
@@ -337,14 +348,10 @@ class Variable final {
     return hp;
   }
 
-  void Retire(std::unique_ptr<T> old_ptr, std::unique_lock<engine::Mutex>&) {
+  void Retire(std::unique_ptr<T> old_ptr,
+              std::unique_lock<engine::Mutex>& lock) {
     LOG_TRACE() << "Reting ptr=" << old_ptr.get();
-    std::set<T*> hazard_ptrs;
-
-    // Learn all currently used hazard pointers
-    for (auto* hp = hp_record_head_.load(); hp; hp = hp->next) {
-      hazard_ptrs.insert(impl::ReadAtomicRMW(hp->ptr));
-    }
+    auto hazard_ptrs = CollectHazardPtrs(lock);
 
     if (hazard_ptrs.count(old_ptr.get()) > 0) {
       // old_ptr is being used now, we may not delete it, delay deletion
@@ -368,6 +375,16 @@ class Variable final {
         retire_list_head_.erase(current);
       }
     }
+  }
+
+  std::set<T*> CollectHazardPtrs(std::unique_lock<engine::Mutex>&) {
+    std::set<T*> hazard_ptrs;
+
+    // Learn all currently used hazard pointers
+    for (auto* hp = hp_record_head_.load(); hp; hp = hp->next) {
+      hazard_ptrs.insert(impl::ReadAtomicRMW(hp->ptr));
+    }
+    return hazard_ptrs;
   }
 
   void DeleteAsync(std::unique_ptr<T> ptr) {

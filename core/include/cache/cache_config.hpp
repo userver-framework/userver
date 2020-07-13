@@ -21,12 +21,14 @@ struct CacheConfig {
 
   CacheConfig(std::chrono::milliseconds update_interval,
               std::chrono::milliseconds update_jitter,
-              std::chrono::milliseconds full_update_interval);
+              std::chrono::milliseconds full_update_interval,
+              std::chrono::milliseconds cleanup_interval);
 
   AllowedUpdateTypes allowed_update_types;
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
+  std::chrono::milliseconds cleanup_interval;
   bool allow_first_update_failure;
 };
 

@@ -50,6 +50,7 @@ class EmptyCacheError : public std::runtime_error {
 /// full-update-interval | interval between full updates | --
 /// first-update-fail-ok | whether first update failure is non-fatal | false
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
+/// additional-cleanup-interval | how often to run background RCU garbase collector | 10 seconds
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
 ///
 /// ### Update types
@@ -113,6 +114,8 @@ class CachingComponentBase
 
  private:
   void OnAllComponentsLoaded() override;
+
+  void Cleanup() override final;
 
   utils::statistics::Entry statistics_holder_;
   rcu::Variable<std::shared_ptr<const T>> cache_;
@@ -239,6 +242,11 @@ bool CachingComponentBase<T>::MayReturnNull() const {
 template <typename T>
 void CachingComponentBase<T>::OnAllComponentsLoaded() {
   AssertPeriodicUpdateStarted();
+}
+
+template <typename T>
+void CachingComponentBase<T>::Cleanup() {
+  cache_.Cleanup();
 }
 
 }  // namespace components

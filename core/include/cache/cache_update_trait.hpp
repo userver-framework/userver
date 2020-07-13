@@ -75,6 +75,8 @@ class CacheUpdateTrait {
                       const std::chrono::system_clock::time_point& now,
                       UpdateStatisticsScope& stats_scope) = 0;
 
+  virtual void Cleanup() = 0;
+
   utils::PeriodicTask::Settings GetPeriodicTaskSettings() const;
 
   Statistics statistics_;
@@ -84,6 +86,7 @@ class CacheUpdateTrait {
   const std::string name_;
   std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
+  utils::PeriodicTask cleanup_task_;
   testsuite::CacheControl& cache_control_;
   std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;
 

@@ -11,11 +11,13 @@ namespace {
 const std::string kUpdateIntervalMs = "update-interval-ms";
 const std::string kUpdateJitterMs = "update-jitter-ms";
 const std::string kFullUpdateIntervalMs = "full-update-interval-ms";
+const std::string kCleanupIntervalMs = "additional-cleanup-interval-ms";
 
 const std::string kUpdateInterval = "update-interval";
 const std::string kUpdateJitter = "update-jitter";
 const std::string kFullUpdateInterval = "full-update-interval";
 const std::string kFirstUpdateFailOk = "first-update-fail-ok";
+const std::string kCleanupInterval = "additional-cleanup-interval";
 
 const std::string kWays = "ways";
 const std::string kSize = "size";
@@ -66,6 +68,8 @@ CacheConfig::CacheConfig(const components::ComponentConfig& config)
                                          GetDefaultJitterMs(update_interval))),
       full_update_interval(config.ParseDuration(
           kFullUpdateInterval, std::chrono::milliseconds::zero())),
+      cleanup_interval(
+          config.ParseDuration(kCleanupInterval, std::chrono::seconds(10))),
       allow_first_update_failure(config.ParseBool(kFirstUpdateFailOk, false)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
@@ -103,13 +107,15 @@ CacheConfig::CacheConfig(const components::ComponentConfig& config)
   }
 }
 
-CacheConfig::CacheConfig(std::chrono::milliseconds update_interval_,
-                         std::chrono::milliseconds update_jitter_,
-                         std::chrono::milliseconds full_update_interval_)
+CacheConfig::CacheConfig(std::chrono::milliseconds update_interval,
+                         std::chrono::milliseconds update_jitter,
+                         std::chrono::milliseconds full_update_interval,
+                         std::chrono::milliseconds cleanup_interval)
     : allowed_update_types(AllowedUpdateTypes::kOnlyFull),
-      update_interval(update_interval_),
-      update_jitter(update_jitter_),
-      full_update_interval(full_update_interval_),
+      update_interval(update_interval),
+      update_jitter(update_jitter),
+      full_update_interval(full_update_interval),
+      cleanup_interval(cleanup_interval),
       allow_first_update_failure(false) {
   if (!full_update_interval.count()) {
     if (!update_interval.count()) {
@@ -187,9 +193,10 @@ std::optional<LruCacheConfig> CacheConfigSet::GetLruConfig(
 }
 
 CacheConfig CacheConfigSet::ParseConfig(const formats::json::Value& json) {
-  CacheConfig config(JsonToMs(json[kUpdateIntervalMs]),
-                     JsonToMs(json[kUpdateJitterMs]),
-                     JsonToMs(json[kFullUpdateIntervalMs]));
+  CacheConfig config(
+      JsonToMs(json[kUpdateIntervalMs]), JsonToMs(json[kUpdateJitterMs]),
+      JsonToMs(json[kFullUpdateIntervalMs]),
+      std::chrono::milliseconds{json[kCleanupIntervalMs].As<uint64_t>(10000)});
 
   return config;
 }
