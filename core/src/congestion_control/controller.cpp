@@ -77,6 +77,9 @@ size_t Controller::CalcNewLimit(const Sensor::Data& data,
 void Controller::Feed(const Sensor::Data& data) {
   auto policy = policy_.Lock();
 
+  const auto log_level =
+      IsEnabled() ? logging::Level::kError : logging::Level::kWarning;
+
   const auto is_overloaded_pressure = IsOverloadedNow(data, *policy);
   const auto old_overloaded = state_.is_overloaded;
 
@@ -129,17 +132,17 @@ void Controller::Feed(const Sensor::Data& data) {
 
   if (old_overloaded || state_.is_overloaded) {
     if (!old_overloaded)
-      LOG_ERROR() << "congestion_control '" << name_ << "' is activated";
+      LOG(log_level) << "congestion_control '" << name_ << "' is activated";
     if (!state_.is_overloaded)
-      LOG_ERROR() << "congestion_control '" << name_ << "' is deactivated";
+      LOG(log_level) << "congestion_control '" << name_ << "' is deactivated";
 
-    LOG_ERROR() << "congestion control '" << name_
-                << "' state: input load=" << data.current_load
-                << " input overloads=" << data.overload_events_count
-                << " => is_overloaded=" << state_.is_overloaded
-                << " current_limit=" << state_.current_limit
-                << " times_w=" << state_.times_with_overload
-                << " times_wo=" << state_.times_wo_overload;
+    LOG(log_level) << "congestion control '" << name_
+                   << "' state: input load=" << data.current_load
+                   << " input overloads=" << data.overload_events_count
+                   << " => is_overloaded=" << state_.is_overloaded
+                   << " current_limit=" << state_.current_limit
+                   << " times_w=" << state_.times_with_overload
+                   << " times_wo=" << state_.times_wo_overload;
   }
   limit_.load_limit = state_.current_limit;
 }
