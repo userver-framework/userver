@@ -1,8 +1,11 @@
 #include <dist_lock/dist_locked_task.hpp>
 
 #include <engine/async.hpp>
+#include <tracing/span.hpp>
 
+#include <dist_lock/impl/helpers.hpp>
 #include <dist_lock/impl/locker.hpp>
+#include <engine/task/cancel.hpp>
 
 namespace dist_lock {
 
@@ -32,12 +35,18 @@ DistLockedTask::DistLockedTask(engine::TaskProcessor& task_processor,
 DistLockedTask::DistLockedTask(engine::TaskProcessor& task_processor,
                                std::shared_ptr<impl::Locker> locker_ptr,
                                DistLockWaitingMode mode)
-    : TaskWithResult(engine::impl::Async(
-          task_processor,
-          [locker_ptr, mode] {
-            locker_ptr->Run(impl::LockerMode::kOneshot, mode);
-          })),
+    : TaskWithResult(locker_ptr->RunAsync(task_processor,
+                                          impl::LockerMode::kOneshot, mode)),
       locker_ptr_(std::move(locker_ptr)) {}
+
+DistLockedTask::~DistLockedTask() {
+  if (IsValid()) {
+    RequestCancel();
+
+    engine::TaskCancellationBlocker cancel_blocker;
+    Wait();
+  }
+}
 
 std::optional<std::chrono::steady_clock::duration>
 DistLockedTask::GetLockedDuration() const {

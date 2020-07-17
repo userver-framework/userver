@@ -8,7 +8,9 @@
 #include <dist_lock/dist_lock_settings.hpp>
 #include <dist_lock/dist_lock_strategy.hpp>
 #include <dist_lock/statistics.hpp>
+#include <engine/async.hpp>
 #include <engine/mutex.hpp>
+#include <tracing/span.hpp>
 
 namespace dist_lock::impl {
 
@@ -33,10 +35,13 @@ class Locker final {
 
   const Statistics& GetStatistics() const;
 
-  void Run(LockerMode, dist_lock::DistLockWaitingMode);
+  engine::TaskWithResult<void> RunAsync(engine::TaskProcessor& task_processor,
+                                        LockerMode, DistLockWaitingMode);
 
  private:
   class LockGuard;
+
+  void Run(LockerMode, dist_lock::DistLockWaitingMode, tracing::Span&& span);
 
   /// @returns previous state
   bool ExchangeLockState(bool is_locked,

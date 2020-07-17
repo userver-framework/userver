@@ -86,8 +86,9 @@ std::optional<std::chrono::steady_clock::duration> Locker::GetLockedDuration()
 
 const Statistics& Locker::GetStatistics() const { return stats_; }
 
-void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode) {
-  tracing::Span span(LockerName(name_));
+void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode,
+                 tracing::Span&& span) {
+  span.AttachToCoroStack();
   LockGuard lock_guard(*this);
   engine::TaskWithResult<void> watchdog_task;
   bool worker_succeeded = false;
@@ -161,6 +162,19 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode) {
   }
   if (watchdog_task.IsValid()) watchdog_task.RequestCancel();
   GetTask(watchdog_task, WatchdogName(name_));
+}
+
+engine::TaskWithResult<void> Locker::RunAsync(
+    engine::TaskProcessor& task_processor, LockerMode locker_mode,
+    DistLockWaitingMode waiting_mode) {
+  tracing::Span span(impl::LockerName(Name()));
+  span.DetachFromCoroStack();
+
+  return engine::impl::CriticalAsync(
+      task_processor,
+      [this, locker_mode, waiting_mode, span = std::move(span)]() mutable {
+        Run(locker_mode, waiting_mode, std::move(span));
+      });
 }
 
 bool Locker::ExchangeLockState(bool is_locked,

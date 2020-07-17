@@ -37,6 +37,8 @@ class DistLockedTask final : public engine::TaskWithResult<void> {
   /// Creates an invalid task.
   DistLockedTask() = default;
 
+  ~DistLockedTask();
+
   /// Creates a DistLockedTask.
   /// @param name name of the task
   /// @param worker_func a callback that is started once we've acquired the lock

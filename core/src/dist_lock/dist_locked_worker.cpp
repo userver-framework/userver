@@ -40,10 +40,9 @@ void DistLockedWorker::Start() {
   LOG_INFO() << "Starting DistLockedWorker " << Name();
 
   std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
-  // Locker creates its own Span in Run()
-  locker_task_ = engine::impl::CriticalAsync([this] {
-    locker_ptr_->Run(impl::LockerMode::kWorker, DistLockWaitingMode::kWait);
-  });
+  locker_task_ = locker_ptr_->RunAsync(engine::current_task::GetTaskProcessor(),
+                                       impl::LockerMode::kWorker,
+                                       DistLockWaitingMode::kWait);
 
   LOG_INFO() << "Started DistLockedWorker " << Name();
 }
