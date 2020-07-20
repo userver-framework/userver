@@ -1,150 +1,245 @@
+#include <string>
+
 #include <utest/utest.hpp>
 
 #include <cache/expirable_lru_cache.hpp>
 #include <engine/sleep.hpp>
 #include <utils/mock_now.hpp>
 
+namespace {
+
+using SimpleCacheKey = std::string;
+using SimpleCacheValue = int;
+using SimpleCache = cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue>;
+using SimpleWrapper = cache::LruCacheWrapper<SimpleCacheKey, SimpleCacheValue>;
+
+void EngineYield() {
+  engine::Yield();
+  engine::Yield();
+}
+
+class Counter {
+ public:
+  Counter(int value) : value_(value) {}
+
+  Counter() : Counter(0) {}
+
+  void Flush() { value_ = 0; }
+
+  bool operator==(const Counter& other) const { return value_ == other.value_; }
+
+  bool operator!=(const Counter& other) const { return !(*this == other); }
+
+  Counter& operator++() {
+    value_++;
+    return *this;
+  }
+
+  static const Counter& Zero() {
+    static const Counter counter(0);
+    return counter;
+  }
+
+  static const Counter& One() {
+    static const Counter counter(1);
+    return counter;
+  }
+
+ private:
+  std::atomic<int> value_;
+};
+
+std::function<SimpleCacheValue(SimpleCacheKey)> UpdateNever() {
+  return [](SimpleCacheKey) -> SimpleCacheValue {
+    ADD_FAILURE() << "Call of 'Update' should never happen";
+    return 0;
+  };
+}
+
+std::function<SimpleCacheValue(SimpleCacheKey)> UpdateValue(
+    std::shared_ptr<Counter> counter, SimpleCacheValue value) {
+  return [counter_ = std::move(counter),
+          value_ = std::move(value)](SimpleCacheKey) {
+    ++(*counter_);
+    return value_;
+  };
+}
+
+SimpleCache CreateSimpleCache() { return SimpleCache(1, 1); }
+
+std::shared_ptr<SimpleCache> CreateSimpleCachePtr() {
+  return std::make_shared<SimpleCache>(1, 1);
+}
+
+}  // namespace
+
 TEST(ExpirableLruCache, Hit) {
   RunInCoro([] {
-    cache::ExpirableLruCache<int, int> cache(1, 1);
-    int count = 0;
+    auto counter = std::make_shared<Counter>();
 
-    EXPECT_EQ(0, cache.Get(1, [&count](int) {
-      count++;
-      return 0;
-    }));
-    EXPECT_EQ(1, count);
+    auto cache = CreateSimpleCache();
+    const SimpleCacheKey key = "my-key";
 
-    EXPECT_EQ(0, cache.Get(1, [&count](int) {
-      count++;
-      return 0;
-    }));
-    EXPECT_EQ(1, count);
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
+
+    EXPECT_EQ(1, cache.Get(key, UpdateNever()));
+  });
+}
+
+TEST(ExpirableLruCache, HitOptional) {
+  RunInCoro([] {
+    auto counter = std::make_shared<Counter>();
+
+    auto cache = CreateSimpleCache();
+    SimpleCacheKey key = "my-key";
+
+    EXPECT_EQ(std::nullopt, cache.GetOptional(key, UpdateNever()));
+
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
+
+    EXPECT_EQ(std::make_optional(1), cache.GetOptional(key, UpdateNever()));
   });
 }
 
 TEST(ExpirableLruCache, NoCache) {
   RunInCoro([] {
-    using Cache = cache::ExpirableLruCache<int, int>;
-    const auto read_mode = Cache::ReadMode::kSkipCache;
-    Cache cache(1, 1);
-    int count = 0;
+    auto counter = std::make_shared<Counter>();
 
-    EXPECT_EQ(0, cache.Get(1,
-                           [&count](int) {
-                             count++;
-                             return 0;
-                           },
-                           read_mode));
-    EXPECT_EQ(1, count);
+    auto cache = CreateSimpleCache();
+    const auto read_mode = SimpleCache::ReadMode::kSkipCache;
 
-    EXPECT_EQ(-1, cache.Get(1,
-                            [&count](int) {
-                              count++;
-                              return -1;
-                            },
-                            read_mode));
-    EXPECT_EQ(2, count);
+    SimpleCacheKey key = "my-key";
+
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1), read_mode));
+    EXPECT_EQ(Counter::One(), *counter);
+
+    counter->Flush();
+    EXPECT_EQ(2, cache.Get(key, UpdateValue(counter, 2), read_mode));
+    EXPECT_EQ(Counter::One(), *counter);
   });
 }
 
 TEST(ExpirableLruCache, Expire) {
   RunInCoro([] {
-    cache::ExpirableLruCache<int, int> cache(1, 1);
-    cache.SetMaxLifetime(std::chrono::seconds(2));
+    auto counter = std::make_shared<Counter>();
 
-    int count = 0;
+    auto cache = CreateSimpleCache();
+    cache.SetMaxLifetime(std::chrono::seconds(2));
+    SimpleCacheKey key = "my-key";
+
     utils::datetime::MockNowSet(std::chrono::system_clock::now());
 
-    EXPECT_EQ(0, cache.Get(1, [&count](int) {
-      count++;
-      return 0;
-    }));
-    EXPECT_EQ(1, count);
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
 
-    EXPECT_EQ(0, cache.Get(1, [&count](int) {
-      count++;
-      return 0;
-    }));
-    EXPECT_EQ(1, count);
+    EXPECT_EQ(1, cache.Get(key, UpdateNever()));
 
     utils::datetime::MockSleep(std::chrono::seconds(3));
-    EXPECT_EQ(0, cache.Get(1, [&count](int) {
-      count++;
-      return 0;
-    }));
-    EXPECT_EQ(2, count);
+
+    counter->Flush();
+    EXPECT_EQ(2, cache.Get(key, UpdateValue(counter, 2)));
+    EXPECT_EQ(Counter::One(), *counter);
   });
 }
 
 TEST(ExpirableLruCache, DefaultNoExpire) {
   RunInCoro([] {
-    cache::ExpirableLruCache<int, int> cache(1, 1);
+    auto counter = std::make_shared<Counter>();
 
-    int count = 0;
+    auto cache = CreateSimpleCache();
+    SimpleCacheKey key = "key";
+
     utils::datetime::MockNowSet(std::chrono::system_clock::now());
 
-    EXPECT_EQ(0, cache.Get(1, [&count](int) {
-      count++;
-      return 0;
-    }));
-    EXPECT_EQ(1, count);
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
 
     for (int i = 0; i < 10; i++) {
       utils::datetime::MockSleep(std::chrono::seconds(2));
-      EXPECT_EQ(0, cache.Get(1, [&count](int) {
-        count++;
-        return 1;
-      }));
+      EXPECT_EQ(1, cache.Get(key, UpdateNever()));
     }
-    EXPECT_EQ(1, count);
   });
 }
 
 TEST(ExpirableLruCache, InvalidateByKey) {
   RunInCoro([] {
-    cache::ExpirableLruCache<int, int> cache(1, 1);
-    int count = 0;
+    auto counter = std::make_shared<Counter>();
 
-    EXPECT_EQ(0, cache.Get(1, [&count](int) {
-      count++;
-      return 0;
-    }));
-    EXPECT_EQ(1, count);
+    auto cache = CreateSimpleCache();
+    SimpleCacheKey key = "my-key";
 
-    cache.InvalidateByKey(1);
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
 
-    EXPECT_EQ(1, cache.Get(1, [&count](int) {
-      count++;
-      return 1;
-    }));
-    EXPECT_EQ(2, count);
+    cache.InvalidateByKey(key);
+
+    counter->Flush();
+    EXPECT_EQ(2, cache.Get(key, UpdateValue(counter, 2)));
+    EXPECT_EQ(Counter::One(), *counter);
   });
 }
 
 TEST(ExpirableLruCache, BackgroundUpdate) {
   RunInCoro([] {
-    cache::ExpirableLruCache<int, int> cache(1, 1);
+    auto counter = std::make_shared<Counter>();
+
+    auto cache = CreateSimpleCache();
     cache.SetMaxLifetime(std::chrono::seconds(3));
     cache.SetBackgroundUpdate(cache::BackgroundUpdateMode::kEnabled);
+
+    SimpleCacheKey key = "my-key";
+
     utils::datetime::MockNowSet(std::chrono::system_clock::now());
 
-    EXPECT_EQ(0, cache.Get(1, [](int) { return 0; }));
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+    EXPECT_EQ(Counter::One(), *counter);
 
-    EXPECT_EQ(0, cache.Get(1, [](int) { return 1; }));
+    EXPECT_EQ(1, cache.Get(key, UpdateNever()));
 
-    engine::Yield();
-    engine::Yield();
+    EngineYield();
 
-    EXPECT_EQ(0, cache.Get(1, [](int) { return 2; }));
+    EXPECT_EQ(1, cache.Get(key, UpdateNever()));
 
     utils::datetime::MockSleep(std::chrono::seconds(2));
 
-    EXPECT_EQ(0, cache.Get(1, [](int) { return 3; }));
+    counter->Flush();
+    EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 2)));
 
-    engine::Yield();
-    engine::Yield();
+    EngineYield();
 
-    EXPECT_EQ(3, cache.Get(1, [](int) { return 4; }));
+    EXPECT_EQ(Counter::One(), *counter);
+    EXPECT_EQ(2, cache.Get(key, UpdateNever()));
+  });
+}
+
+TEST(LruCacheWrapper, HitWrapper) {
+  RunInCoro([] {
+    auto counter = std::make_shared<Counter>();
+
+    auto cache_ptr = CreateSimpleCachePtr();
+    SimpleWrapper wrapper(cache_ptr, UpdateValue(counter, 1));
+
+    SimpleCacheKey key = "my-key";
+
+    counter->Flush();
+    EXPECT_EQ(std::nullopt, wrapper.GetOptional(key));
+    EXPECT_EQ(Counter::Zero(), *counter);
+
+    counter->Flush();
+    EXPECT_EQ(1, wrapper.Get(key));
+    EXPECT_EQ(Counter::One(), *counter);
+
+    counter->Flush();
+    EXPECT_EQ(std::make_optional(1), wrapper.GetOptional(key));
+    EXPECT_EQ(Counter::Zero(), *counter);
   });
 }

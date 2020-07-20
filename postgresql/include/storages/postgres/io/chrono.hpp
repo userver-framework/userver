@@ -73,7 +73,7 @@ const TimePoint kTimestampNegativeInfinity = TimePoint::min();
  * // Send as timestamp without time zone
  * auto res = trx.Execute("select $1", now);
  * // Send as timestamp with time zone
- * res = trx.Execute("select $1", pg::TimepointTz{now});
+ * res = trx.Execute("select $1", pg::TimePointTz{now});
  * // Read as timestamp
  * res[0].To(now);
  * @endcode
