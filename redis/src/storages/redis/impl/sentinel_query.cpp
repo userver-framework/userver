@@ -130,22 +130,32 @@ bool IsInstanceUp(const InstanceStatus& status, size_t sentinel_count) {
   return status.count_ok >= quorum;
 }
 
-bool ParseClusterSlotsResponse(const ReplyPtr& reply,
-                               ClusterSlotsResponse& res) {
+enum class ClusterSlotsResponseStatus {
+  kOk,
+  kFail,
+  kNonCluster,
+};
+
+ClusterSlotsResponseStatus ParseClusterSlotsResponse(
+    const ReplyPtr& reply, ClusterSlotsResponse& res) {
   UASSERT(reply);
   LOG_TRACE() << "Got reply to CLUSTER SLOTS: " << reply->data.ToDebugString();
-  if (reply->status != REDIS_OK || !reply->data.IsArray()) return false;
+  if (reply->IsUnknownCommandError())
+    return ClusterSlotsResponseStatus::kNonCluster;
+  if (reply->status != REDIS_OK || !reply->data.IsArray())
+    return ClusterSlotsResponseStatus::kFail;
   for (const auto& reply_interval : reply->data.GetArray()) {
-    if (!reply_interval.IsArray()) return false;
+    if (!reply_interval.IsArray()) return ClusterSlotsResponseStatus::kFail;
     const auto& array = reply_interval.GetArray();
-    if (array.size() < 3) return false;
-    if (!array[0].IsInt() || !array[1].IsInt()) return false;
+    if (array.size() < 3) return ClusterSlotsResponseStatus::kFail;
+    if (!array[0].IsInt() || !array[1].IsInt())
+      return ClusterSlotsResponseStatus::kFail;
     for (size_t i = 2; i < array.size(); i++) {
-      if (!array[i].IsArray()) return false;
+      if (!array[i].IsArray()) return ClusterSlotsResponseStatus::kFail;
       const auto& host_info_array = array[i].GetArray();
-      if (host_info_array.size() < 2) return false;
+      if (host_info_array.size() < 2) return ClusterSlotsResponseStatus::kFail;
       if (!host_info_array[0].IsString() || !host_info_array[1].IsInt())
-        return false;
+        return ClusterSlotsResponseStatus::kFail;
       ConnectionInfoInt conn_info;
       conn_info.host = host_info_array[0].GetString();
       conn_info.port = host_info_array[1].GetInt();
@@ -156,7 +166,7 @@ bool ParseClusterSlotsResponse(const ReplyPtr& reply,
         res[slot_interval].slaves.insert(std::move(conn_info));
     }
   }
-  return true;
+  return ClusterSlotsResponseStatus::kOk;
 }
 
 }  // namespace
@@ -302,12 +312,20 @@ void GetClusterHostsContext::OnAsyncCommandFailed() {
 void GetClusterHostsContext::OnResponse(const CommandPtr&,
                                         const ReplyPtr& reply) {
   ClusterSlotsResponse response;
-  if (ParseClusterSlotsResponse(reply, response)) {
-    {
-      std::unique_lock<std::mutex> lock(mutex_);
-      responses_by_id_[reply->server_id] = std::move(response);
+  switch (ParseClusterSlotsResponse(reply, response)) {
+    case ClusterSlotsResponseStatus::kOk: {
+      {
+        std::unique_lock<std::mutex> lock(mutex_);
+        responses_by_id_[reply->server_id] = std::move(response);
+      }
+      responses_parsed_++;
+      break;
     }
-    responses_parsed_++;
+    case ClusterSlotsResponseStatus::kFail:
+      break;
+    case ClusterSlotsResponseStatus::kNonCluster:
+      is_non_cluster_ = true;
+      break;
   }
 
   response_got_++;
@@ -316,13 +334,17 @@ void GetClusterHostsContext::OnResponse(const CommandPtr&,
 }
 
 void GetClusterHostsContext::ProcessResponses() {
-  if (response_got_ >= expected_responses_cnt_) {
+  if (response_got_ >= expected_responses_cnt_ || is_non_cluster_) {
     if (!process_responses_started_.test_and_set()) ProcessResponsesOnce();
   }
 }
 
 void GetClusterHostsContext::ProcessResponsesOnce() {
   ClusterShardHostInfos res;
+  if (is_non_cluster_) {
+    callback_(res, expected_responses_cnt_, responses_parsed_, is_non_cluster_);
+    return;
+  }
 
   std::set<size_t> slot_bounds;
   for (const auto& [_, response] : responses_by_id_) {
@@ -426,7 +448,7 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
     }
   }
 
-  callback_(res, expected_responses_cnt_, responses_parsed_);
+  callback_(res, expected_responses_cnt_, responses_parsed_, is_non_cluster_);
 }
 
 }  // namespace redis

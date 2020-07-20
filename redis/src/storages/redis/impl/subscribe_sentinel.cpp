@@ -21,23 +21,23 @@ SubscribeSentinel::SubscribeSentinel(
     : Sentinel(thread_pools, shards, conns, std::move(shard_group_name),
                client_name, password, ready_callback, std::move(key_shard),
                command_control, testsuite_redis_control, track_masters,
-               track_slaves),
+               track_slaves, true /* is_subscriber */),
       storage_(std::make_shared<SubscriptionStorage>(
           thread_pools, shards.size(), is_cluster_mode)),
       stopper_(std::make_shared<Stopper>()) {
-  storage_->SetCommandControl(GetCommandControl({}));
-  storage_->SetUnsubscribeCallback([this](size_t shard, CommandPtr cmd) {
-    AsyncCommand(cmd, false, shard);
-  });
-  storage_->SetSubscribeCallback([this](size_t shard, CommandPtr cmd) {
-    AsyncCommand(cmd, false, shard);
-  });
+  InitStorage();
   auto stopper = stopper_;
   signal_instances_changed.connect(
       [this, stopper](size_t shard_idx, bool /*master*/) {
         std::lock_guard<std::mutex> lock(stopper->mutex);
         if (stopper->stopped) return;
         RebalanceSubscriptions(shard_idx);
+      });
+  signal_not_in_cluster_mode.connect(
+      [this, stopper, thread_pools, shards_size = shards.size()]() {
+        std::lock_guard<std::mutex> lock(stopper->mutex);
+        if (stopper->stopped) return;
+        storage_->SwitchToNonClusterMode();
       });
 }
 
@@ -97,11 +97,13 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
               << "ms; timeout_all = " << command_control.timeout_all.count()
               << "ms; max_retries = " << command_control.max_retries;
 
-  return std::make_shared<SubscribeSentinel>(
+  auto subscribe_sentinel = std::make_shared<SubscribeSentinel>(
       thread_pools, shards, conns, std::move(shard_group_name), client_name,
       password, std::move(ready_callback),
       (is_cluster_mode ? nullptr : std::make_unique<KeyShardZero>()),
       is_cluster_mode, command_control, testsuite_redis_control, true, true);
+  subscribe_sentinel->Start();
+  return subscribe_sentinel;
 }
 
 SubscriptionToken SubscribeSentinel::Subscribe(
@@ -147,6 +149,16 @@ void SubscribeSentinel::SetConfigDefaultCommandControl(
 void SubscribeSentinel::SetRebalanceMinInterval(
     std::chrono::milliseconds interval) {
   storage_->SetRebalanceMinInterval(interval);
+}
+
+void SubscribeSentinel::InitStorage() {
+  storage_->SetCommandControl(GetCommandControl({}));
+  storage_->SetUnsubscribeCallback([this](size_t shard, CommandPtr cmd) {
+    AsyncCommand(cmd, false, shard);
+  });
+  storage_->SetSubscribeCallback([this](size_t shard, CommandPtr cmd) {
+    AsyncCommand(cmd, false, shard);
+  });
 }
 
 }  // namespace redis

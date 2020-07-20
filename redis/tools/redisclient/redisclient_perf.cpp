@@ -169,7 +169,7 @@ void Run(const Config& config) {
 
   auto sentinel = redis::Sentinel::CreateSentinel(
       redis_thread_pools, settings, "shard_group_name", "client_name",
-      redis::KeyShardFactory(redis::kKeyShardCrc32), {});
+      redis::KeyShardFactory(redis::KeyShardCrc32::kName), {});
 
   Fire(*task_processor_holder, sentinel, config.requests_per_second,
        std::chrono::milliseconds(config.ms), std::chrono::milliseconds(1000));

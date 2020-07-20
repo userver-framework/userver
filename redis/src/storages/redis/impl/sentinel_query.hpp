@@ -107,7 +107,7 @@ using ClusterShardHostInfos = std::vector<ClusterShardHostInfo>;
 
 using ProcessGetClusterHostsRequestCb =
     std::function<void(ClusterShardHostInfos shard_infos, size_t requests_sent,
-                       size_t responses_parsed)>;
+                       size_t responses_parsed, bool is_non_cluster_error)>;
 
 void ProcessGetClusterHostsRequest(
     std::shared_ptr<const std::vector<std::string>> shard_names,
@@ -147,6 +147,7 @@ class GetClusterHostsContext
   std::atomic<size_t> responses_parsed_{0};
   std::atomic_flag process_responses_started_{ATOMIC_FLAG_INIT};
   std::atomic<size_t> expected_responses_cnt_{0};
+  std::atomic<bool> is_non_cluster_{false};
 
   std::mutex mutex_;
   std::map<ServerId, ClusterSlotsResponse> responses_by_id_;

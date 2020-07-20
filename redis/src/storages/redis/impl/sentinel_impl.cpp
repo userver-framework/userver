@@ -9,6 +9,7 @@
 #include <utils/assert.hpp>
 
 #include <storages/redis/impl/exception.hpp>
+#include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/reply.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 
@@ -29,7 +30,7 @@ SentinelImpl::SentinelImpl(
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
     const std::string& client_name, const Password& password,
     ReadyChangeCallback ready_callback, std::unique_ptr<KeyShard>&& key_shard,
-    bool track_masters, bool track_slaves)
+    bool track_masters, bool track_slaves, bool is_subscriber)
     : sentinel_obj_(sentinel),
       ev_thread_control_(sentinel_thread_control),
       shard_group_name_(std::move(shard_group_name)),
@@ -42,7 +43,9 @@ SentinelImpl::SentinelImpl(
       track_masters_(track_masters),
       track_slaves_(track_slaves),
       update_cluster_slots_flag_(false),
+      cluster_mode_failed_(false),
       key_shard_(std::move(key_shard)),
+      is_subscriber_(is_subscriber),
       slot_info_(IsInClusterMode() ? std::make_unique<SlotInfo>() : nullptr) {
   UASSERT(loop_ != nullptr);
   for (size_t i = 0; i < init_shards_->size(); ++i) {
@@ -53,15 +56,7 @@ SentinelImpl::SentinelImpl(
   password_ = password;
 
   Init();
-  Start();
-  if (key_shard_) {
-    try {
-      if (key_shard_->IsGenerateKeysForShardsEnabled()) GenerateKeysForShards();
-    } catch (const std::exception& ex) {
-      LOG_ERROR() << "GenerateKeysForShards() failed: " << ex.what()
-                  << ", shard_group_name=" << shard_group_name_;
-    }
-  }
+  InitKeyShard();
   LOG_DEBUG() << "Created SentinelImpl, shard_group_name=" << shard_group_name_
               << ", cluster_mode=" << IsInClusterMode();
 }
@@ -154,6 +149,11 @@ void SentinelImpl::Init() {
                     << " state=" << Redis::StateToString(state);
         if (state != Redis::State::kInit) ev_async_send(loop_, &watch_state_);
       });
+  sentinels_->SignalNotInClusterMode().connect([this]() {
+    cluster_mode_failed_ = true;
+    ev_async_send(loop_, &watch_state_);
+    return;
+  });
 }
 
 constexpr const std::chrono::milliseconds SentinelImpl::cluster_slots_timeout_;
@@ -314,14 +314,15 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
 
 size_t SentinelImpl::ShardByKey(const std::string& key) const {
   UASSERT(!master_shards_.empty());
-  size_t shard = key_shard_ ? key_shard_->ShardByKey(key)
-                            : slot_info_->ShardBySlot(HashSlot(key));
+  auto key_shard = key_shard_.Get();
+  size_t shard = key_shard ? key_shard->ShardByKey(key)
+                           : slot_info_->ShardBySlot(HashSlot(key));
   LOG_TRACE() << "key=" << key << " shard=" << shard;
   return shard;
 }
 
 const std::string& SentinelImpl::GetAnyKeyForShard(size_t shard_idx) const {
-  if (!key_shard_)
+  if (IsInClusterMode())
     throw std::runtime_error(
         "GetAnyKeyForShard() is not supported in redis cluster mode");
   auto keys_for_shards = keys_for_shards_.Get();
@@ -360,8 +361,20 @@ void SentinelImpl::Start() {
   ev_thread_control_.TimerStart(check_timer_);
 }
 
+void SentinelImpl::InitKeyShard() {
+  auto key_shard = key_shard_.Get();
+  if (key_shard) {
+    try {
+      if (key_shard->IsGenerateKeysForShardsEnabled()) GenerateKeysForShards();
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "GenerateKeysForShards() failed: " << ex
+                  << ", shard_group_name=" << shard_group_name_;
+    }
+  }
+}
+
 void SentinelImpl::GenerateKeysForShards(size_t max_len) {
-  if (!key_shard_)
+  if (IsInClusterMode())
     throw std::runtime_error(
         "GenerateKeysForShards() is not supported in redis cluster mode");
   keys_for_shards_.Set(std::make_shared<KeysForShards>(
@@ -459,7 +472,7 @@ std::vector<std::shared_ptr<const Shard>> SentinelImpl::GetMasterShards()
   return {master_shards_.begin(), master_shards_.end()};
 }
 
-bool SentinelImpl::IsInClusterMode() const { return !key_shard_; }
+bool SentinelImpl::IsInClusterMode() const { return !key_shard_.Get(); }
 
 void SentinelImpl::RequestUpdateClusterSlots(size_t shard) {
   current_slots_shard_ = shard;
@@ -584,7 +597,12 @@ void SentinelImpl::ReadClusterHosts() {
   ProcessGetClusterHostsRequest(
       init_shards_, GetClusterHostsRequest(*sentinels_, password_),
       [this](ClusterShardHostInfos shard_infos, size_t requests_sent,
-             size_t responses_parsed) {
+             size_t responses_parsed, bool is_non_cluster_error) {
+        if (is_non_cluster_error) {
+          cluster_mode_failed_ = true;
+          ev_async_send(loop_, &watch_state_);
+          return;
+        }
         if (!CheckQuorum(requests_sent, responses_parsed)) {
           LOG_WARNING()
               << "Too many 'cluster slots' requests failed: requests_sent="
@@ -705,6 +723,36 @@ void SentinelImpl::OnUpdateClusterSlotsRequested(struct ev_loop*, ev_async* w,
 }
 
 void SentinelImpl::CheckConnections() {
+  if (cluster_mode_failed_) {
+    if (IsInClusterMode()) {
+      Stop();
+      for (auto& conn : conns_) {
+        // In a cluster mode we use masters and slaves as sentinels.
+        // So we need a password for such usage.
+        // When we switch to non-cluster mode we should connect to sentinels
+        // which has no auth with a password.
+        // TODO: Since redis 5.0.1 it is possible to set a password for
+        // sentinels.
+        // TODO: Add `sentinel_password` parameter to redis config and remove
+        // this password reset (https://st.yandex-team.ru/TAXICOMMON-2687).
+        conn.password = Password("");
+      }
+      LOG_WARNING() << "Failed to start in redis cluster mode for client="
+                    << client_name_ << ". Switch to "
+                    << (is_subscriber_ ? KeyShardZero::kName
+                                       : KeyShardCrc32::kName)
+                    << " sharding strategy (without redis cluster support).";
+      if (is_subscriber_)
+        key_shard_.Set(std::make_shared<KeyShardZero>());
+      else
+        key_shard_.Set(std::make_shared<KeyShardCrc32>(ShardsCount()));
+      Init();
+      Start();
+      InitKeyShard();
+      sentinel_obj_.signal_not_in_cluster_mode();
+      return;
+    }
+  }
   sentinels_->ProcessStateUpdate();
   auto process_shards =
       [this](const std::vector<std::shared_ptr<Shard>>& shards, bool master) {

@@ -107,7 +107,7 @@ std::unique_ptr<redis::KeyShard> KeyShardFactory::operator()(size_t nshards) {
     return std::make_unique<redis::KeyShardGpsStorageDriver>(nshards);
   if (type_ == "KeyShardTaximeterCrc32")
     return std::make_unique<redis::KeyShardTaximeterCrc32>(nshards);
-  if (type_ == kKeyShardCrc32)
+  if (type_ == KeyShardCrc32::kName)
     return std::make_unique<redis::KeyShardCrc32>(nshards);
   if (type_ == kRedisCluster) return nullptr;
 

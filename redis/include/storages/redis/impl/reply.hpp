@@ -138,6 +138,7 @@ class ReplyData final {
   inline bool IsError() const { return type_ == Type::kError; }
   bool IsUnusableInstanceError() const;
   bool IsReadonlyError() const;
+  bool IsUnknownCommandError() const;
 
   bool IsErrorMoved() const {
     return IsError() && !string_.compare(0, 6, "MOVED ");
@@ -253,6 +254,7 @@ class Reply final {
   bool IsLoggableError() const;
   bool IsUnusableInstanceError() const;
   bool IsReadonlyError() const;
+  bool IsUnknownCommandError() const;
   const std::string& StatusString() const;
   static const std::string& StatusToString(int status);
   const logging::LogExtra& GetLogExtra() const;

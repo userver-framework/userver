@@ -72,6 +72,8 @@ class SubscriptionStorage
 
   void DoRebalance(size_t shard_idx, ServerWeights weights);
 
+  void SwitchToNonClusterMode();
+
  private:
   struct ChannelName {
     ChannelName() = default;
@@ -147,7 +149,7 @@ class SubscriptionStorage
         : fsm(fake ? nullptr
                    : std::make_shared<shard_subscriber::Fsm>(shard_idx)) {}
 
-    const FsmPtr fsm;
+    FsmPtr fsm;
     PubsubChannelStatistics statistics;
 
     PubsubChannelStatistics GetStatistics() const {
@@ -193,7 +195,7 @@ class SubscriptionStorage
   using PcallbackMap = std::map<std::string, PChannelInfo>;
 
   size_t shards_count_;
-  const bool is_cluster_mode_;
+  bool is_cluster_mode_;
   CommandCb subscribe_callback_;
   CommandCb unsubscribe_callback_;
 

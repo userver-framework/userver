@@ -16,8 +16,6 @@ const std::string kPostgresReadonlyMasterExpected =
 const std::string kRedisConnectTimeout = "testsuite-redis-timeout-connect";
 const std::string kRedisTimeoutSingle = "testsuite-redis-timeout-single";
 const std::string kRedisTimeoutAll = "testsuite-redis-timeout-all";
-const std::string kRedisDisableClusterMode =
-    "testsuite-redis-disable-cluster-mode";
 
 testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
     const std::optional<bool>& config_value) {
@@ -47,7 +45,6 @@ testsuite::RedisControl ParseRedisControl(
       config.ParseDuration(kRedisTimeoutSingle,
                            std::chrono::milliseconds::zero()),
       config.ParseDuration(kRedisTimeoutAll, std::chrono::milliseconds::zero()),
-      config.ParseBool(kRedisDisableClusterMode, false),
   };
 }
 

@@ -218,16 +218,6 @@ template <typename RedisGroup>
   }
 }
 
-const std::string& GetShardingStrategy(
-    const testsuite::RedisControl& testsuite_redis_control,
-    const std::string& sharding_strategy) {
-  static const std::string kDefaultStrategy = ::redis::kKeyShardCrc32;
-  if (testsuite_redis_control.disable_cluster_mode &&
-      ::redis::IsClusterStrategy(sharding_strategy))
-    return kDefaultStrategy;
-  return sharding_strategy;
-}
-
 }  // namespace
 
 namespace components {
@@ -360,8 +350,7 @@ void Redis::Connect(const ComponentConfig& config,
 
     auto sentinel = redis::Sentinel::CreateSentinel(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
-        redis::KeyShardFactory{GetShardingStrategy(
-            testsuite_redis_control, redis_group.sharding_strategy)},
+        redis::KeyShardFactory{redis_group.sharding_strategy},
         testsuite_redis_control);
     if (sentinel) {
       sentinels_.emplace(redis_group.db, sentinel);
@@ -387,8 +376,7 @@ void Redis::Connect(const ComponentConfig& config,
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 
     bool is_cluster_mode =
-        ::redis::IsClusterStrategy(redis_group.sharding_strategy) &&
-        !testsuite_redis_control.disable_cluster_mode;
+        ::redis::IsClusterStrategy(redis_group.sharding_strategy);
 
     auto sentinel = redis::SubscribeSentinel::Create(
         thread_pools_, settings, redis_group.config_name, redis_group.db,

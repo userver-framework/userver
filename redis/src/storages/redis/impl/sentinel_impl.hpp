@@ -42,7 +42,7 @@ class SentinelImpl {
                std::string shard_group_name, const std::string& client_name,
                const Password& password, ReadyChangeCallback ready_callback,
                std::unique_ptr<KeyShard>&& key_shard, bool track_masters,
-               bool track_slaves);
+               bool track_slaves, bool is_subscriber);
   ~SentinelImpl();
 
   std::unordered_map<ServerId, size_t, ServerIdHasher>
@@ -144,6 +144,8 @@ class SentinelImpl {
     engine::impl::ConditionVariableAny<std::mutex> cv_;
   };
 
+  void InitKeyShard();
+
   void GenerateKeysForShards(size_t max_len = 4);
   void AsyncCommandFailed(const SentinelCommand& scommand);
 
@@ -212,10 +214,12 @@ class SentinelImpl {
   bool track_masters_;
   bool track_slaves_;
   std::atomic<bool> update_cluster_slots_flag_;
+  std::atomic<bool> cluster_mode_failed_;  // also false if not in cluster mode
   std::vector<SentinelCommand> commands_;
   std::mutex command_mutex_;
   std::atomic<size_t> current_slots_shard_ = 0;
-  std::unique_ptr<KeyShard> key_shard_;
+  utils::SwappingSmart<KeyShard> key_shard_;
+  bool is_subscriber_;
   std::unique_ptr<SlotInfo> slot_info_;
   SentinelStatisticsInternal statistics_internal_;
   utils::SwappingSmart<KeysForShards> keys_for_shards_;

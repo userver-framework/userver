@@ -214,6 +214,47 @@ void SubscriptionStorage::DoRebalance(size_t shard_idx, ServerWeights weights) {
   RebalanceMoveSubscriptions(state);
 }
 
+void SubscriptionStorage::SwitchToNonClusterMode() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  UASSERT(is_cluster_mode_);
+  is_cluster_mode_ = false;
+  LOG_INFO() << "SwitchToNonClusterMode for subscription storage";
+
+  for (auto& channel_item : callback_map_) {
+    auto& channel_info = channel_item.second;
+    if (channel_info.callbacks.empty()) continue;
+
+    auto& infos = channel_info.info;
+    ChannelName channel_name(channel_item.first, false);
+    for (size_t i = 0; i < shards_count_; ++i) {
+      if (!infos[i].fsm) {
+        ++channel_info.active_fsm_count;
+        infos[i].fsm = std::make_shared<shard_subscriber::Fsm>(i);
+        LOG_DEBUG() << "Create fsm for non-cluster: shard_idx=" << i
+                    << ", channel_name=" << channel_name.channel;
+        ReadActions(infos[i].fsm, channel_name);
+      }
+    }
+  }
+
+  for (auto& channel_item : pattern_callback_map_) {
+    auto& channel_info = channel_item.second;
+    if (channel_info.callbacks.empty()) continue;
+
+    auto& infos = channel_info.info;
+    ChannelName channel_name(channel_item.first, true);
+    for (size_t i = 0; i < shards_count_; ++i) {
+      if (!infos[i].fsm) {
+        ++channel_info.active_fsm_count;
+        infos[i].fsm = std::make_shared<shard_subscriber::Fsm>(i);
+        LOG_DEBUG() << "Create fsm for non-cluster: shard_idx=" << i
+                    << ", pattern_name=" << channel_name.channel;
+        ReadActions(infos[i].fsm, channel_name);
+      }
+    }
+  }
+}
+
 void SubscriptionStorage::RebalanceGatherSubscriptions(RebalanceState& state) {
   auto shard_idx = state.shard_idx;
   auto& subscriptions_by_server = state.subscriptions_by_server;

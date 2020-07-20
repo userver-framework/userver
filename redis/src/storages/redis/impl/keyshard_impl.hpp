@@ -8,6 +8,8 @@ namespace redis {
 
 class KeyShardZero : public KeyShard {
  public:
+  static constexpr char kName[] = "KeyShardZero";
+
   size_t ShardByKey(const std::string&) const override { return 0; }
   bool IsGenerateKeysForShardsEnabled() const override { return false; }
 };
@@ -15,6 +17,8 @@ class KeyShardZero : public KeyShard {
 class KeyShardCrc32 : public KeyShard {
  public:
   KeyShardCrc32(size_t shard_count) : shard_count_(shard_count) {}
+
+  static constexpr char kName[] = "KeyShardCrc32";
 
   size_t ShardByKey(const std::string& key) const override;
   bool IsGenerateKeysForShardsEnabled() const override { return true; }
@@ -51,7 +55,6 @@ class KeyShardGpsStorageDriver : public redis::KeyShard {
 };
 
 inline constexpr char kRedisCluster[] = "RedisCluster";
-inline constexpr char kKeyShardCrc32[] = "KeyShardCrc32";
 
 bool IsClusterStrategy(const std::string& type);
 

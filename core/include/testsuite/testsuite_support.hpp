@@ -46,7 +46,6 @@ namespace components {
 /// testsuite-redis-timeout-connect | minimum connection timeout for redis | -
 /// testsuite-redis-timeout-single | minimum single shard timeout for redis | -
 /// testsuite-redis-timeout-all | minimum command timeout for redis | -
-/// testsuite-redis-disable-cluster-mode | disables cluster sharding strategy | false
 
 // clang-format on
 

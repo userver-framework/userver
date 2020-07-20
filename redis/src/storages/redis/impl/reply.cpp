@@ -201,6 +201,16 @@ bool ReplyData::IsReadonlyError() const {
   return false;
 }
 
+bool ReplyData::IsUnknownCommandError() const {
+  if (IsError()) {
+    const auto& msg = GetError();
+
+    if (boost::starts_with(msg.c_str(), "ERR unknown command ")) return true;
+  }
+
+  return false;
+}
+
 void ReplyData::ExpectType(ReplyData::Type type,
                            const std::string& request_description) const {
   if (GetType() != type) ThrowUnexpectedReplyType(type, request_description);
@@ -265,6 +275,10 @@ bool Reply::IsUnusableInstanceError() const {
 }
 
 bool Reply::IsReadonlyError() const { return data.IsReadonlyError(); }
+
+bool Reply::IsUnknownCommandError() const {
+  return data.IsUnknownCommandError();
+}
 
 const std::string& Reply::StatusString() const {
   return StatusToString(status);

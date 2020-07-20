@@ -221,6 +221,8 @@ bool Shard::ProcessCreation(
           LOG_TRACE() << "Signaled server_id: " << server_id.GetDescription();
           signal_instance_state_change_(server_id, state);
         });
+    entry.instance->signal_not_in_cluster_mode.connect(
+        [this]() { signal_not_in_cluster_mode_(); });
     entry.instance->Connect(entry.info);
 
     add_clean_wait.push_back(std::move(entry));
@@ -330,6 +332,10 @@ const std::string& Shard::ShardName() const { return shard_name_; }
 boost::signals2::signal<void(ServerId, Redis::State)>&
 Shard::SignalInstanceStateChange() {
   return signal_instance_state_change_;
+}
+
+boost::signals2::signal<void()>& Shard::SignalNotInClusterMode() {
+  return signal_not_in_cluster_mode_;
 }
 
 boost::signals2::signal<void(ServerId)>& Shard::SignalInstanceReady() {

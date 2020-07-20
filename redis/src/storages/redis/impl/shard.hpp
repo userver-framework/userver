@@ -81,6 +81,7 @@ class Shard {
   const std::string& ShardName() const;
   boost::signals2::signal<void(ServerId, Redis::State)>&
   SignalInstanceStateChange();
+  boost::signals2::signal<void()>& SignalNotInClusterMode();
   boost::signals2::signal<void(ServerId)>& SignalInstanceReady();
 
  private:
@@ -104,6 +105,7 @@ class Shard {
 
   boost::signals2::signal<void(ServerId, Redis::State)>
       signal_instance_state_change_;
+  boost::signals2::signal<void()> signal_not_in_cluster_mode_;
   boost::signals2::signal<void(ServerId)> signal_instance_ready_;
 
   bool prev_connected_ = false;

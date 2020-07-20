@@ -38,7 +38,7 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
                    std::unique_ptr<KeyShard>&& key_shard,
                    CommandControl command_control,
                    const testsuite::RedisControl& testsuite_redis_control,
-                   bool track_masters, bool track_slaves)
+                   bool track_masters, bool track_slaves, bool is_subscriber)
     : thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control) {
@@ -63,7 +63,7 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
         *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
         shards, conns, std::move(shard_group_name), client_name, password,
         std::move(ready_callback_2), std::move(key_shard), track_masters,
-        track_slaves);
+        track_slaves, is_subscriber);
   });
 }
 
@@ -71,6 +71,8 @@ Sentinel::~Sentinel() {
   sentinel_thread_control_->RunInEvLoopBlocking([this]() { impl_.reset(); });
   UASSERT(!impl_);
 }
+
+void Sentinel::Start() { impl_->Start(); }
 
 void Sentinel::WaitConnectedDebug(bool allow_empty_slaves) {
   impl_->WaitConnectedDebug(allow_empty_slaves);
@@ -139,6 +141,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
         password, std::move(ready_callback), std::move(key_shard),
         command_control, testsuite_redis_control, true, true);
+    client->Start();
   }
 
   return client;

@@ -49,8 +49,11 @@ class Sentinel {
            std::unique_ptr<KeyShard>&& key_shard = nullptr,
            CommandControl command_control = command_control_init,
            const testsuite::RedisControl& testsuite_redis_control = {},
-           bool track_masters = true, bool track_slaves = true);
+           bool track_masters = true, bool track_slaves = true,
+           bool is_subscriber = false);
   virtual ~Sentinel();
+
+  void Start();
 
   // Wait until connections to all servers are up
   void WaitConnectedDebug(bool allow_empty_slaves = false);
@@ -107,6 +110,7 @@ class Sentinel {
 
   boost::signals2::signal<void(size_t shard, bool master)>
       signal_instances_changed;
+  boost::signals2::signal<void()> signal_not_in_cluster_mode;
 
   Request MakeRequest(CmdArgs&& args, const std::string& key,
                       bool master = true,

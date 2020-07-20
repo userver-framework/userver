@@ -790,6 +790,15 @@ void Redis::RedisImpl::Authenticate() {
               SetState(State::kConnected);
           } else {
             if (*reply) {
+              if (reply->IsUnknownCommandError()) {
+                LOG_WARNING() << log_extra_
+                              << "AUTH failed: unknown command `AUTH` - "
+                                 "possible when connecting to sentinel instead "
+                                 "of RedisCluster instance";
+                if (redis_obj_) redis_obj_->signal_not_in_cluster_mode();
+                Disconnect();
+                return;
+              }
               LOG_ERROR() << log_extra_ << "AUTH failed: response type="
                           << reply->data.GetTypeString()
                           << " msg=" << reply->data.ToDebugString();

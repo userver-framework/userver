@@ -66,6 +66,8 @@ class SubscribeSentinel : protected Sentinel {
     bool stopped{false};
   };
 
+  void InitStorage();
+
   std::shared_ptr<SubscriptionStorage> storage_;
   std::shared_ptr<Stopper> stopper_;
 };
