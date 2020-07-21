@@ -1,7 +1,11 @@
-#include <logging/log.hpp>
 #include <utils/statistics/metrics_storage.hpp>
 
+#include <functional>
+#include <typeindex>
+
+#include <boost/functional/hash.hpp>
 #include <formats/json/serialize.hpp>
+#include <logging/log.hpp>
 #include <utils/assert.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
 
@@ -14,17 +18,26 @@ namespace {
 /* MetricTag<T> may be registered only from global object ctr */
 std::atomic<bool> registration_finished_{false};
 
-std::unordered_map<std::type_index, impl::MetricInfo>& GetRegisteredMetrics() {
-  static std::unordered_map<std::type_index, impl::MetricInfo> map;
+MetricTagMap& GetRegisteredMetrics() {
+  static MetricTagMap map;
   return map;
 }
 
 }  // namespace
 
+size_t MetricKeyHash::operator()(const MetricKey& key) const noexcept {
+  auto seed = std::hash<std::type_index>()(key.idx);
+  boost::hash_combine(seed, std::hash<std::string>()(key.path));
+  return seed;
+}
+
 void RegisterMetricInfo(std::type_index ti, MetricInfo&& metric_info) {
   UASSERT(!registration_finished_);
 
-  GetRegisteredMetrics()[ti] = std::move(metric_info);
+  auto path = metric_info.path;
+  auto [_, ok] = GetRegisteredMetrics().emplace(MetricKey{ti, path},
+                                                std::move(metric_info));
+  UASSERT_MSG(ok, "duplicate MetricTag with path '" + path + "'");
 }
 
 }  // namespace impl
