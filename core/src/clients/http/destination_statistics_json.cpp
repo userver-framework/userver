@@ -10,7 +10,8 @@ formats::json::Value DestinationStatisticsToJson(
     const DestinationStatistics& stats) {
   formats::json::ValueBuilder json;
   for (const auto& [url, stat_ptr] : stats)
-    json[url] = StatisticsToJson(InstanceStatistics(*stat_ptr));
+    json[url] = StatisticsToJson(InstanceStatistics(*stat_ptr),
+                                 FormatMode::kModeDestination);
   return json.ExtractValue();
 }
 

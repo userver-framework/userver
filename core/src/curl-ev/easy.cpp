@@ -633,8 +633,10 @@ native::curl_socket_t easy::opensocket(
         case SOCK_STREAM:
           // Note to self: Why is address->protocol always set to zero?
           s = self->open_tcp_socket(address);
-          if (s != -1 && multi_handle)
+          if (s != -1 && multi_handle) {
             multi_handle->Statistics().mark_open_socket();
+            self->timings().mark_open_socket();
+          }
           return s;
 
         case SOCK_DGRAM:

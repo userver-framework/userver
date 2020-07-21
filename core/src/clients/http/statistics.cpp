@@ -45,6 +45,10 @@ void RequestStats::StoreTimeToStart(double seconds) {
   stats_.last_time_to_start_us = static_cast<int>(seconds * 1000 * 1000);
 }
 
+void RequestStats::AccountOpenSockets(size_t sockets) {
+  stats_.socket_open += sockets;
+}
+
 Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
   if (ec.category() != curl::errc::get_easy_category())
     return ErrorGroup::kUnknown;
@@ -121,7 +125,8 @@ void Statistics::AccountStatus(int code) {
   }
 }
 
-formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats) {
+formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats,
+                                             FormatMode format_mode) {
   formats::json::ValueBuilder json;
   json["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.timings_percentile)
@@ -145,16 +150,21 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats) {
 
   json["retries"] = stats.retries;
   json["pending-requests"] = stats.easy_handles;
-  json["last-time-to-start-us"] = stats.last_time_to_start_us;
-  json["event-loop-load"][utils::statistics::DurationToString(
-      utils::statistics::kDefaultMaxPeriod)] =
-      std::to_string(stats.multi.current_load);
 
+  if (format_mode == FormatMode::kModeAll) {
+    json["last-time-to-start-us"] = stats.last_time_to_start_us;
+    json["event-loop-load"][utils::statistics::DurationToString(
+        utils::statistics::kDefaultMaxPeriod)] =
+        std::to_string(stats.multi.current_load);
+
+    // Destinations may reuse sockets from other destination,
+    // it is very unjust to account active/closed sockets
+    json["sockets"]["close"] = stats.multi.socket_close;
+    json["sockets"]["throttled"] = stats.multi.socket_ratelimit;
+    json["sockets"]["active"] =
+        stats.multi.socket_open - stats.multi.socket_close;
+  }
   json["sockets"]["open"] = stats.multi.socket_open;
-  json["sockets"]["close"] = stats.multi.socket_close;
-  json["sockets"]["throttled"] = stats.multi.socket_ratelimit;
-  json["sockets"]["active"] =
-      stats.multi.socket_open - stats.multi.socket_close;
 
   return json;
 }
@@ -188,6 +198,8 @@ InstanceStatistics::InstanceStatistics(const Statistics& other)
     auto status = i + Statistics::kMinHttpStatus;
     if (value || IsForcedStatusCode(status)) reply_status[status] = value;
   }
+
+  multi.socket_open += other.socket_open;
 }
 
 bool InstanceStatistics::IsForcedStatusCode(int status) {

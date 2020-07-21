@@ -14,6 +14,8 @@ void LocalTimings::mark_start_write() { set(start_processing_ts_); }
 
 void LocalTimings::mark_complete() { set(complete_ts_); }
 
+void LocalTimings::mark_open_socket() { open_socket_count_++; }
+
 void LocalTimings::set(LocalTimings::time_point& ts) {
   static const time_point empty_;
   if (ts == empty_) {
@@ -28,6 +30,8 @@ double LocalTimings::time_to_connect() const {
 double LocalTimings::time_to_process() const {
   return double_seconds(complete_ts_ - start_processing_ts_);
 }
+
+size_t LocalTimings::open_socket_count() const { return open_socket_count_; }
 
 double LocalTimings::double_seconds(const time_point::duration& duration) {
   using double_seconds_duration = std::chrono::duration<double, std::ratio<1>>;

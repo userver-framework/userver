@@ -568,6 +568,10 @@ void Request::RequestImpl::on_completed(
   }
 
   holder->AccountResponse(err);
+  if (holder->dest_req_stats_) {
+    auto sockets = holder->easy().timings().open_socket_count();
+    holder->dest_req_stats_->AccountOpenSockets(sockets);
+  }
 
   span.AddTag(tracing::kAttempts, holder->retry_.current);
   span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);

@@ -23,6 +23,8 @@ class RequestStats final {
 
   void StoreTimeToStart(double seconds);
 
+  void AccountOpenSockets(size_t sockets);
+
  private:
   void StoreTiming();
 
@@ -86,6 +88,7 @@ struct Statistics {
   std::array<std::atomic_llong, kErrorGroupCount> error_count{
       {0, 0, 0, 0, 0, 0, 0}};
   std::atomic_llong retries{0};
+  std::atomic_llong socket_open{0};
 
   static constexpr size_t kMinHttpStatus = 100;
   static constexpr size_t kMaxHttpStatus = 600;
@@ -124,7 +127,14 @@ struct PoolStatistics {
   std::vector<InstanceStatistics> multi;
 };
 
-formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats);
+enum class FormatMode {
+  kModeAll,
+  kModeDestination,
+};
+
+formats::json::ValueBuilder StatisticsToJson(
+    const InstanceStatistics& stats,
+    FormatMode format_mode = FormatMode::kModeAll);
 
 formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats);
 
