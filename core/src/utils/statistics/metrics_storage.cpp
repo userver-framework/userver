@@ -35,8 +35,8 @@ void RegisterMetricInfo(std::type_index ti, MetricInfo&& metric_info) {
   UASSERT(!registration_finished_);
 
   auto path = metric_info.path;
-  auto [_, ok] = GetRegisteredMetrics().emplace(MetricKey{ti, path},
-                                                std::move(metric_info));
+  [[maybe_unused]] auto [_, ok] = GetRegisteredMetrics().emplace(
+      MetricKey{ti, path}, std::move(metric_info));
   UASSERT_MSG(ok, "duplicate MetricTag with path '" + path + "'");
 }
 
