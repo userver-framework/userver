@@ -107,10 +107,9 @@ HttpHandlerFlatbufBase<InputType, ReturnType>::GetRequestBodyForLogging(
     const std::string& request_body) const {
   size_t limit = GetConfig().request_body_size_log_limit;
   if (request_body.size() > limit)
-    return utils::encoding::ToHex(request_body.begin(),
-                                  request_body.begin() + limit) +
+    return utils::encoding::ToHex(request_body.data(), limit) +
            "...(truncated)";
-  return utils::encoding::ToHex(request_body.begin(), request_body.end());
+  return utils::encoding::ToHex(request_body);
 }
 
 template <typename InputType, typename ReturnType>
@@ -120,11 +119,10 @@ HttpHandlerFlatbufBase<InputType, ReturnType>::GetResponseDataForLogging(
     const std::string& response_data) const {
   size_t limit = GetConfig().response_data_size_log_limit;
   if (response_data.size() > limit)
-    return utils::encoding::ToHex(response_data.begin(),
-                                  response_data.begin() + limit) +
+    return utils::encoding::ToHex(response_data.data(), limit) +
            "...(truncated, total " + std::to_string(response_data.size()) +
            " bytes)";
-  return utils::encoding::ToHex(response_data.begin(), response_data.end());
+  return utils::encoding::ToHex(response_data);
 }
 
 template <typename InputType, typename ReturnType>
