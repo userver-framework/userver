@@ -203,13 +203,6 @@ void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
     throw ConnectionFailed{dsn, "Failed to allocate PGconn structure"};
   }
 
-  PQsetNoticeReceiver(conn_, &NoticeReceiver, this);
-
-  if (PQsetnonblocking(conn_, 1)) {
-    PGCW_LOG_ERROR() << "libpq failed to set non-blocking connection mode";
-    throw ConnectionFailed{dsn, "Failed to set non-blocking connection mode"};
-  }
-
   const auto status = PQstatus(conn_);
   if (CONNECTION_BAD == status) {
     const std::string msg = MsgForStatus(status);
@@ -220,6 +213,9 @@ void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
   }
 
   RefreshSocket(dsn);
+
+  // set this as early as possible to avoid dumping notices to stderr
+  PQsetNoticeReceiver(conn_, &NoticeReceiver, this);
 
   if (kVerboseErrors) {
     PQsetErrorVerbosity(conn_, PQERRORS_VERBOSE);
@@ -277,6 +273,12 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
     // security/encryption schemes (SSL, GSS etc.). We must keep track of the
     // current socket to avoid polling the wrong one in the future.
     RefreshSocket(dsn);
+  }
+
+  // fe-exec.c: Needs to be called only on a connected database connection.
+  if (PQsetnonblocking(conn_, 1)) {
+    PGCW_LOG_ERROR() << "libpq failed to set non-blocking connection mode";
+    throw ConnectionFailed{dsn, "Failed to set non-blocking connection mode"};
   }
 }
 
