@@ -38,14 +38,19 @@ namespace utils {
 /// nothing in release builds
 ///
 /// @hideinitializer
-#define UASSERT(expr) \
-  do {                \
+#define UASSERT(expr)      \
+  do {                     \
+    if (false && (expr)) { \
+    }                      \
   } while (0)
 
 /// Assertion macro for that aborts execution in DEBUG builds with a message
 /// `msg` and does nothing in release builds
 #define UASSERT_MSG(expr, msg) \
   do {                         \
+    if (false && (expr)) {     \
+      (void)(msg);             \
+    }                          \
   } while (0)
 
 #endif  // NDEBUG

@@ -201,8 +201,10 @@ std::shared_ptr<MpscQueue<T>> MpscQueue<T>::Create() {
 
 template <typename T>
 MpscQueue<T>::~MpscQueue() {
+#ifndef NDEBUG
   UASSERT(!consumer_is_alive_ || !consumer_is_created_);
   UASSERT(!producer_is_alive_ || !producer_is_created_);
+#endif
   // Clear remaining items in queue. This will work for unique_ptr as well.
   T value;
   while (PopNoblockNoConsumer(value)) {
@@ -211,8 +213,8 @@ MpscQueue<T>::~MpscQueue() {
 
 template <typename T>
 typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
-  UASSERT(!this->producer_is_created_);
 #ifndef NDEBUG
+  UASSERT(!this->producer_is_created_);
   this->producer_is_created_ = true;
 #endif
   return Producer(this->shared_from_this());
@@ -220,8 +222,8 @@ typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
 
 template <typename T>
 typename MpscQueue<T>::Consumer MpscQueue<T>::GetConsumer() {
-  UASSERT(!this->consumer_is_created_);
 #ifndef NDEBUG
+  UASSERT(!this->consumer_is_created_);
   this->consumer_is_created_ = true;
 #endif
   return Consumer(this->shared_from_this());
@@ -247,7 +249,9 @@ size_t MpscQueue<T>::Size() const {
 
 template <typename T>
 bool MpscQueue<T>::PopNoblockNoConsumer(T& value) {
+#ifndef NDEBUG
   UASSERT(!this->consumer_is_alive_ || !this->consumer_is_created_);
+#endif
   if (QueueHelper::Pop(queue_, value)) {
     --size_;
     return true;

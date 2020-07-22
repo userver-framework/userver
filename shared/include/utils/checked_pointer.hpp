@@ -44,8 +44,10 @@ class CheckedPtr {
     std::abort();
   }
   void CheckPointer() const {
+#ifndef NDEBUG
     UASSERT_MSG(checked_,
                 "CheckedPtr contents were not checked before dereferencing");
+#endif
     if (!ptr_) throw std::runtime_error{"Empty checked_pointer"};
   }
 #ifndef NDEBUG

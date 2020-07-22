@@ -24,8 +24,8 @@ void WaitListLight::PinToCurrentTask() {
 }
 
 void WaitListLight::PinToTask([[maybe_unused]] impl::TaskContext& ctx) {
-  UASSERT(!owner_ || owner_ == &ctx);
 #ifndef NDEBUG
+  UASSERT(!owner_ || owner_ == &ctx);
   owner_ = &ctx;
 #endif
 }
@@ -36,7 +36,9 @@ void WaitListLight::Append(WaitListBase::Lock&,
                            boost::intrusive_ptr<impl::TaskContext> ctx) {
   LOG_TRACE() << "Appending, use_count=" << ctx->use_count();
   UASSERT(!waiting_);
+#ifndef NDEBUG
   UASSERT(!owner_ || owner_ == ctx.get());
+#endif
 
   auto ptr = ctx.get();
   intrusive_ptr_add_ref(ptr);
