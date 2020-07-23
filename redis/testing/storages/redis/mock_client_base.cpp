@@ -254,6 +254,13 @@ RequestLpush MockClientBase::Lpush(std::string /*key*/,
   return RequestLpush{nullptr};
 }
 
+RequestLpushx MockClientBase::Lpushx(
+    std::string /*key*/, std::string /*element*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestLpushx{nullptr};
+}
+
 RequestLrange MockClientBase::Lrange(
     std::string /*key*/, int64_t /*start*/, int64_t /*stop*/,
     const CommandControl& /*command_control*/) {
@@ -342,6 +349,13 @@ RequestRpush MockClientBase::Rpush(std::string /*key*/,
                                    const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestRpush{nullptr};
+}
+
+RequestRpushx MockClientBase::Rpushx(
+    std::string /*key*/, std::string /*element*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestRpushx{nullptr};
 }
 
 RequestSadd MockClientBase::Sadd(std::string /*key*/, std::string /*member*/,

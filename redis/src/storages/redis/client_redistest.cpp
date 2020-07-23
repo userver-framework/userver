@@ -63,3 +63,17 @@ TEST(RedisClient, Lrem) {
     EXPECT_EQ(client->Llen("testlist", {}).Get(), 0);
   });
 }
+
+TEST(RedisClient, Lpushx) {
+  RunInCoro([] {
+    auto client = GetClient();
+    // Missing array - does nothing
+    EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 0);
+    EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 0);
+    // // Init list
+    EXPECT_EQ(client->Lpush("pushx_testlist", "a", {}).Get(), 1);
+    // // List exists - appends values
+    EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 2);
+    EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 3);
+  });
+}

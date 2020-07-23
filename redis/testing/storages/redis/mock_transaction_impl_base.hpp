@@ -79,6 +79,8 @@ class MockTransactionImplBase {
 
   virtual RequestLpush Lpush(std::string key, std::vector<std::string> values);
 
+  virtual RequestLpushx Lpushx(std::string key, std::string element);
+
   virtual RequestLrange Lrange(std::string key, int64_t start, int64_t stop);
 
   virtual RequestLrem Lrem(std::string key, int64_t count, std::string element);
@@ -106,6 +108,8 @@ class MockTransactionImplBase {
   virtual RequestRpush Rpush(std::string key, std::string value);
 
   virtual RequestRpush Rpush(std::string key, std::vector<std::string> values);
+
+  virtual RequestRpushx Rpushx(std::string key, std::string element);
 
   virtual RequestSadd Sadd(std::string key, std::string member);
 

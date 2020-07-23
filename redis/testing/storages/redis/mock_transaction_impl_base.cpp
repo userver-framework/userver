@@ -179,6 +179,12 @@ RequestLpush MockTransactionImplBase::Lpush(
   return RequestLpush{nullptr};
 }
 
+RequestLpushx MockTransactionImplBase::Lpushx(std::string /*key*/,
+                                              std::string /*element*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestLpushx{nullptr};
+}
+
 RequestLrange MockTransactionImplBase::Lrange(std::string /*key*/,
                                               int64_t /*start*/,
                                               int64_t /*stop*/) {
@@ -254,6 +260,12 @@ RequestRpush MockTransactionImplBase::Rpush(
     std::string /*key*/, std::vector<std::string> /*values*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestRpush{nullptr};
+}
+
+RequestRpushx MockTransactionImplBase::Rpushx(std::string /*key*/,
+                                              std::string /*element*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestRpushx{nullptr};
 }
 
 RequestSadd MockTransactionImplBase::Sadd(std::string /*key*/,

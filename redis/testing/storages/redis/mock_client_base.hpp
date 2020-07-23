@@ -157,6 +157,9 @@ class MockClientBase : public Client,
   RequestLpush Lpush(std::string key, std::vector<std::string> values,
                      const CommandControl& command_control) override;
 
+  RequestLpushx Lpushx(std::string key, std::string element,
+                       const CommandControl& command_control) override;
+
   RequestLrange Lrange(std::string key, int64_t start, int64_t stop,
                        const CommandControl& command_control) override;
 
@@ -198,6 +201,9 @@ class MockClientBase : public Client,
 
   RequestRpush Rpush(std::string key, std::vector<std::string> values,
                      const CommandControl& command_control) override;
+
+  RequestRpushx Rpushx(std::string key, std::string element,
+                       const CommandControl& command_control) override;
 
   RequestSadd Sadd(std::string key, std::string member,
                    const CommandControl& command_control) override;

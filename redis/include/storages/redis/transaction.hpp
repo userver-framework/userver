@@ -112,6 +112,8 @@ class Transaction {
   virtual RequestLpush Lpush(std::string key,
                              std::vector<std::string> values) = 0;
 
+  virtual RequestLpushx Lpushx(std::string key, std::string element) = 0;
+
   virtual RequestLrange Lrange(std::string key, int64_t start,
                                int64_t stop) = 0;
 
@@ -142,6 +144,8 @@ class Transaction {
 
   virtual RequestRpush Rpush(std::string key,
                              std::vector<std::string> values) = 0;
+
+  virtual RequestRpushx Rpushx(std::string key, std::string element) = 0;
 
   virtual RequestSadd Sadd(std::string key, std::string member) = 0;
 

@@ -143,6 +143,8 @@ class TransactionImpl final : public Transaction {
 
   RequestLpush Lpush(std::string key, std::vector<std::string> values) override;
 
+  RequestLpushx Lpushx(std::string key, std::string element) override;
+
   RequestLrange Lrange(std::string key, int64_t start, int64_t stop) override;
 
   RequestLrem Lrem(std::string key, int64_t count,
@@ -171,6 +173,8 @@ class TransactionImpl final : public Transaction {
   RequestRpush Rpush(std::string key, std::string value) override;
 
   RequestRpush Rpush(std::string key, std::vector<std::string> values) override;
+
+  RequestRpushx Rpushx(std::string key, std::string element) override;
 
   RequestSadd Sadd(std::string key, std::string member) override;
 

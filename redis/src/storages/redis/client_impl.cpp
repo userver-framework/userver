@@ -351,6 +351,14 @@ RequestLpush ClientImpl::Lpush(std::string key, std::vector<std::string> values,
                   true, GetCommandControl(command_control)));
 }
 
+RequestLpushx ClientImpl::Lpushx(std::string key, std::string element,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestLpushx>(
+      MakeRequest(CmdArgs{"lpushx", std::move(key), std::move(element)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
 RequestLrange ClientImpl::Lrange(std::string key, int64_t start, int64_t stop,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);
@@ -482,6 +490,14 @@ RequestRpush ClientImpl::Rpush(std::string key, std::vector<std::string> values,
   auto shard = ShardByKey(key, command_control);
   return CreateRequest<RequestRpush>(
       MakeRequest(CmdArgs{"rpush", std::move(key), std::move(values)}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestRpushx ClientImpl::Rpushx(std::string key, std::string element,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestRpushx>(
+      MakeRequest(CmdArgs{"rpushx", std::move(key), std::move(element)}, shard,
                   true, GetCommandControl(command_control)));
 }
 

@@ -169,6 +169,9 @@ class Client {
   virtual RequestLpush Lpush(std::string key, std::vector<std::string> values,
                              const CommandControl& command_control) = 0;
 
+  virtual RequestLpushx Lpushx(std::string key, std::string element,
+                               const CommandControl& command_control) = 0;
+
   virtual RequestLrange Lrange(std::string key, int64_t start, int64_t stop,
                                const CommandControl& command_control) = 0;
 
@@ -216,6 +219,9 @@ class Client {
 
   virtual RequestRpush Rpush(std::string key, std::vector<std::string> values,
                              const CommandControl& command_control) = 0;
+
+  virtual RequestRpushx Rpushx(std::string key, std::string element,
+                               const CommandControl& command_control) = 0;
 
   virtual RequestSadd Sadd(std::string key, std::string member,
                            const CommandControl& command_control) = 0;

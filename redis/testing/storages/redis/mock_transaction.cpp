@@ -274,6 +274,11 @@ RequestLpush MockTransaction::Lpush(std::string key,
   return AddSubrequest(impl_->Lpush(std::move(key), std::move(values)));
 }
 
+RequestLpushx MockTransaction::Lpushx(std::string key, std::string element) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Lpushx(std::move(key), std::move(element)));
+}
+
 RequestLrange MockTransaction::Lrange(std::string key, int64_t start,
                                       int64_t stop) {
   UpdateShard(key);
@@ -345,6 +350,11 @@ RequestRpush MockTransaction::Rpush(std::string key,
                                     std::vector<std::string> values) {
   UpdateShard(key);
   return AddSubrequest(impl_->Rpush(std::move(key), std::move(values)));
+}
+
+RequestRpushx MockTransaction::Rpushx(std::string key, std::string element) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Rpushx(std::move(key), std::move(element)));
 }
 
 RequestSadd MockTransaction::Sadd(std::string key, std::string member) {

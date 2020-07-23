@@ -219,6 +219,11 @@ RequestLpush TransactionImpl::Lpush(std::string key,
   return AddCmd<RequestLpush>("lpush", std::move(key), std::move(values));
 }
 
+RequestLpushx TransactionImpl::Lpushx(std::string key, std::string element) {
+  UpdateShard(key);
+  return AddCmd<RequestLpushx>("lpushx", std::move(key), std::move(element));
+}
+
 RequestLrange TransactionImpl::Lrange(std::string key, int64_t start,
                                       int64_t stop) {
   UpdateShard(key);
@@ -290,6 +295,11 @@ RequestRpush TransactionImpl::Rpush(std::string key,
                                     std::vector<std::string> values) {
   UpdateShard(key);
   return AddCmd<RequestRpush>("rpush", std::move(key), std::move(values));
+}
+
+RequestRpushx TransactionImpl::Rpushx(std::string key, std::string element) {
+  UpdateShard(key);
+  return AddCmd<RequestRpushx>("rpushx", std::move(key), std::move(element));
 }
 
 RequestSadd TransactionImpl::Sadd(std::string key, std::string member) {
