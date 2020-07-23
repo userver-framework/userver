@@ -64,6 +64,7 @@ services:
           - IS_TEAMCITY
           - NPROCS
           - PULL_REQUEST_TYPE
+          - MAKE_OPTS
         volumes:
           - .:/taxi/userver:rw
           - ./tools/dockertest:/taxi/tools:ro
