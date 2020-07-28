@@ -115,6 +115,7 @@ TEST(Rcu, ReadCommitted) {
   });
 }
 
+template <typename Tag>
 struct Counted {
   Counted() { counter++; }
   Counted(const Counted&) : Counted() {}
@@ -124,12 +125,11 @@ struct Counted {
 
   int value{1};
 
-  static size_t counter;
+  static inline size_t counter = 0;
 };
 
-size_t Counted::counter = 0;
-
 TEST(Rcu, Lifetime) {
+  using Counted = Counted<struct LifetimeTag>;
   RunInCoro([] {
     EXPECT_EQ(0, Counted::counter);
 
@@ -174,6 +174,61 @@ TEST(Rcu, Lifetime) {
       EXPECT_EQ(1, Counted::counter);
     }
     EXPECT_EQ(1, Counted::counter);
+  });
+}
+
+TEST(Rcu, ReadablePtrMoveAssign) {
+  using Counted = Counted<struct MoveAssignTag>;
+  RunInCoro([] {
+    EXPECT_EQ(0, Counted::counter);
+
+    rcu::Variable<Counted> ptr;
+    EXPECT_EQ(1, Counted::counter);
+
+    auto reader1 = ptr.Read();
+    EXPECT_EQ(1, Counted::counter);
+
+    {
+      auto writer = ptr.StartWrite();
+      writer->value = 10;
+      writer.Commit();
+      EXPECT_EQ(2, Counted::counter);
+    }
+
+    EXPECT_EQ(2, Counted::counter);
+    auto reader2 = ptr.Read();
+    EXPECT_EQ(2, Counted::counter);
+
+    {
+      auto writer = ptr.StartWrite();
+      writer->value = 15;
+      writer.Commit();
+      EXPECT_EQ(3, Counted::counter);
+    }
+
+    // state now:
+    // reader1 -> value 0
+    // reader2 -> value 10
+    // main    -> value 15
+
+    reader1 = ptr.Read();
+    reader2 = ptr.Read();
+    // Cleanup is done only on writing
+    // so we initiate another write operation
+    {
+      auto writer = ptr.StartWrite();
+      writer->value = 20;
+      writer.Commit();
+      engine::Yield();
+    }
+
+    // Expected state:
+    // reader1 -> value 15
+    // reader2 -> value 15
+    // main    -> value 20
+    EXPECT_EQ(2, Counted::counter);
+    EXPECT_EQ(15, reader1->value);
+    EXPECT_EQ(15, reader2->value);
   });
 }
 

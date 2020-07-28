@@ -27,19 +27,37 @@ class Variable;
 
 namespace impl {
 
+// Hazard pointer implementation. Pointers form a linked list. \p ptr points
+// to the data they 'hold', next - to the next element in a list.
+// kUsed is a filler value to show that hazard pointer is not free. Please see
+// comment to it. Please note, pointers do not form a linked list with
+// application-wide list, that is there is no 'static
+// std::atomic<HazardPointerRecord*> global_head' Every rcu::Variable has it's
+// own list of hazard pointers. Thus, move-assignment on hazard pointers is
+// difficult to implement.
 template <typename T>
 struct HazardPointerRecord {
+  // You see, objects are created 'filled', that is for the purposes of hazard
+  // pointer list, they contain value. This eliminates some race conditions,
+  // because these algorithms checks for ptr != nullptr (And kUsed is not
+  // nullptr). Obviously, this value can't be used, when dereferencing it points
+  // somewhere into kernel space and will cause SEGFAULT
   static T* const kUsed;
 
+  // Pointer to data
   std::atomic<T*> ptr = kUsed;
+  // Pointer to next element in linked list
   std::atomic<HazardPointerRecord*> next{{nullptr}};
 
+  // Simple operation that marks this hazard pointer as no longer used.
   void Release() { ptr = nullptr; }
 };
 
 template <typename T>
 T* const HazardPointerRecord<T>::kUsed = reinterpret_cast<T*>(1);
 
+// Essentialy equal to variable.load(), but with better performance
+// in hot path.
 template <typename T>
 T* ReadAtomicRMW(std::atomic<T*>& variable) {
   T* value = nullptr;
@@ -72,14 +90,19 @@ template <typename T>
 class USERVER_NODISCARD ReadablePtr final {
  public:
   explicit ReadablePtr(const Variable<T>& ptr)
-      : hp_record_(ptr.MakeHazardPointer()) {
+      : hp_record_(&ptr.MakeHazardPointer()) {
+    // This cycle guarantees that at the end of it both t_ptr_ and
+    // hp_record_->ptr will both be set to
+    // 1. something meaningful
+    // 2. and that this meaningful value was not removed between assigning to
+    //    t_ptr_ and storing  it in a hazard pointer
     do {
       t_ptr_ = ptr.GetCurrent();
 
       // std::memory_order_relaxed is OK here, there are 3 readers:
       // 1) MakeHazardPointer() doesn't care whether it reads old kUsed or new
       // t_ptr_ 2) Retire() will read new t_ptr_ value as it does RMW
-      hp_record_.ptr.store(t_ptr_, std::memory_order_relaxed);
+      hp_record_->ptr.store(t_ptr_, std::memory_order_relaxed);
     } while (t_ptr_ != ptr.GetCurrent());
   }
 
@@ -88,9 +111,53 @@ class USERVER_NODISCARD ReadablePtr final {
     other.t_ptr_ = nullptr;
   }
 
+  ReadablePtr& operator=(ReadablePtr<T>&& other) noexcept {
+    // What do we have here?
+    // 1. other may point to the same variable - or to a different one.
+    // 2. therefore it's hazard pointer may be part of the same list,
+    //    or of the different one.
+
+    // We can't move hazard pointers between different lists - there is simply
+    // no way to do this.
+    // We also can't simply swap two ptrs inside hazard pointers and leave it be
+    // - because if 'other' is from different Variable, then our ScanRetiredList
+    // won't find any more pointer to current T* and will destroy object, while
+    // 'other' is still holding a hazard pointer to it.
+    // The thing is, whole ReadablePtr is just a glofiried holder for
+    // hazard pointer + t_ptr_ just so that we don't have to load() atomics
+    // every time.
+    // so, lets just take pointer to hazard pointer inside other
+    UASSERT_MSG(this != &other, "Self assignment to RCU variable");
+    if (this == &other) {
+      // it is an error to assign to self. Do nothing in this case
+      return;
+    }
+
+    // Get rid of our current hp_record_
+    if (t_ptr_) {
+      hp_record_->Release();
+    }
+    // After that moment, the content of our hp_record_ can't be used -
+    // no more hp_record_->xyz calls, because it is probably already reused in
+    // some other ReadablePtr. Also, don't call t_ptr_, it is probably already
+    // freed. Just take values from other.
+    hp_record_ = other.hp_record_;
+    t_ptr_ = other.t_ptr_;
+
+    // Now, it won't do us any good if there were two glofiried things having
+    // pointer to same hp_record_. Kill the other one.
+    other.t_ptr_ = nullptr;
+    // We don't need to clean other.hp_record_, because other.t_ptr_ acts
+    // like a guard to it. As long as other.t_ptr_ is nullptr, nobody will
+    // use other.hp_record_
+
+    return *this;
+  }
+
   ~ReadablePtr() {
     if (!t_ptr_) return;
-    hp_record_.Release();
+    UASSERT(hp_record_ != nullptr);
+    hp_record_->Release();
   }
 
   const T* Get() const& {
@@ -113,8 +180,15 @@ class USERVER_NODISCARD ReadablePtr final {
     std::abort();
   }
 
+  // This is a pointer to actual data. If it is null, then we treat it as
+  // an indicator that this ReadablePtr is cleared and won't call
+  // any logic accosiated with hp_record_
   T* t_ptr_;
-  impl::HazardPointerRecord<T>& hp_record_;
+  // Our hazard pointer. It can be nullptr in some circumstances.
+  // Invariant is this: if t_ptr_ is not nullptr, then hp_record_ is also
+  // not nullptr and points to hazard pointer containing same T*.
+  // Thus it follows, that if t_ptr_ is nullptr, then hp_record_ is undefined.
+  impl::HazardPointerRecord<T>* hp_record_;
 };
 
 /// Smart pointer for rcu::Variable<T> for changing RCU value. It stores a
@@ -309,6 +383,8 @@ class Variable final {
   }
 
   impl::HazardPointerRecord<T>* MakeHazardPointerFast() const {
+    // Look for any hazard pointer with nullptr data ptr.
+    // Mark it with kUsed (to reserve it for ourselves) and return it.
     auto* hp = hp_record_head_.load();
     while (hp) {
       T* t_ptr = nullptr;
@@ -339,6 +415,7 @@ class Variable final {
   }
 
   impl::HazardPointerRecord<T>* MakeHazardPointerSlow() const {
+    // allocate new pointer, and add it to the list (atomically)
     auto hp = new impl::HazardPointerRecord<T>();
     impl::HazardPointerRecord<T>* old_hp;
     do {
@@ -365,6 +442,8 @@ class Variable final {
     ScanRetiredList(hazard_ptrs);
   }
 
+  // Scan retired list and for every object that has no more hazard_ptrs
+  // pointing at it, destroy it (asynchronously)
   void ScanRetiredList(const std::set<T*>& hazard_ptrs) {
     for (auto rit = retire_list_head_.begin();
          rit != retire_list_head_.end();) {
@@ -377,6 +456,8 @@ class Variable final {
     }
   }
 
+  // Returns all T*, that have hazard ptr pointing at them. Ocasionally nullptr
+  // might be in result as well.
   std::set<T*> CollectHazardPtrs(std::unique_lock<engine::Mutex>&) {
     std::set<T*> hazard_ptrs;
 
