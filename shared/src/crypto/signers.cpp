@@ -14,20 +14,35 @@
 namespace crypto {
 namespace {
 
-constexpr size_t GetEcdsaSignatureLength(DigestSize digest_size) {
-  size_t bits = 0;
+// OpenSSL generates ECDSA signatures in ASN.1/DER format, however RFC7518
+// specifies signature as a concatenation of zero-padded big-endian `(R, S)`
+// values.
+std::string ConvertEcSignature(const std::string& der_signature,
+                               DigestSize digest_size) {
+  size_t siglen = 0;
   switch (digest_size) {
     case DigestSize::k256:
-      bits = 256;
+      siglen = 256;
       break;
     case DigestSize::k384:
-      bits = 384;
+      siglen = 384;
       break;
     case DigestSize::k512:
-      bits = 521;  // not a typo
+      siglen = 521;  // not a typo
       break;
   }
-  return ((bits + CHAR_BIT - 1) / CHAR_BIT) * 2;
+  siglen = ((siglen + CHAR_BIT - 1) / CHAR_BIT) * 2;
+
+  std::string converted_signature(siglen, '\0');
+  if (siglen !=
+      CryptoPP::DSAConvertSignatureFormat(
+          reinterpret_cast<unsigned char*>(converted_signature.data()),
+          converted_signature.size(), CryptoPP::DSASignatureFormat::DSA_P1363,
+          reinterpret_cast<const unsigned char*>(der_signature.data()),
+          der_signature.size(), CryptoPP::DSASignatureFormat::DSA_DER)) {
+    throw SignError("Failed to sign: signature format conversion failed");
+  }
+  return converted_signature;
 }
 
 }  // namespace
@@ -55,7 +70,7 @@ HmacShaSigner<bits>::HmacShaSigner(std::string secret)
 
 template <DigestSize bits>
 HmacShaSigner<bits>::~HmacShaSigner() {
-  OPENSSL_cleanse(&secret_[0], secret_.size());
+  OPENSSL_cleanse(secret_.data(), secret_.size());
 }
 
 template <DigestSize bits>
@@ -109,7 +124,7 @@ template <DsaType type, DigestSize bits>
 std::string DsaSigner<type, bits>::Sign(
     std::initializer_list<std::string_view> data) const {
   EvpMdCtx ctx;
-  EVP_PKEY_CTX* pkey_ctx = nullptr;
+  EVP_PKEY_CTX* pkey_ctx = nullptr;  // non-owning
   if (1 != EVP_DigestSignInit(ctx.Get(), &pkey_ctx, GetShaMdByEnum(bits),
                               nullptr, pkey_.GetNative())) {
     throw SignError(FormatSslError("Failed to sign: EVP_DigestSignInit"));
@@ -136,30 +151,71 @@ std::string DsaSigner<type, bits>::Sign(
   }
 
   std::string signature(siglen, '\0');
-  if (1 != EVP_DigestSignFinal(ctx.Get(),
-                               reinterpret_cast<unsigned char*>(&signature[0]),
-                               &siglen)) {
+  if (1 != EVP_DigestSignFinal(
+               ctx.Get(), reinterpret_cast<unsigned char*>(signature.data()),
+               &siglen)) {
     throw SignError(FormatSslError("Failed to sign: EVP_DigestSignFinal"));
   }
   signature.resize(siglen);
 
   // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kEc) {
-    // OpenSSL generates ECDSA signatures in ASN.1/DER format, however RFC7518
-    // specifies signature as a concatenation of zero-padded big-endian `(R, S)`
-    // values.
-    std::string converted_signature(GetEcdsaSignatureLength(bits), '\0');
-    if (converted_signature.size() !=
-        CryptoPP::DSAConvertSignatureFormat(
-            reinterpret_cast<unsigned char*>(&converted_signature[0]),
-            converted_signature.size(), CryptoPP::DSASignatureFormat::DSA_P1363,
-            reinterpret_cast<const unsigned char*>(signature.data()),
-            signature.size(), CryptoPP::DSASignatureFormat::DSA_DER)) {
-      throw SignError("Failed to sign: signature format conversion failed");
-    }
-    signature = std::move(converted_signature);
+    return ConvertEcSignature(signature, bits);
+  }
+  return signature;
+}
+
+template <DsaType type, DigestSize bits>
+std::string DsaSigner<type, bits>::SignDigest(std::string_view digest) const {
+  if (digest.size() != GetDigestLength(bits)) {
+    throw SignError("Invalid digest size for " + Name() + " signer");
   }
 
+  std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> pkey_ctx(
+      EVP_PKEY_CTX_new(pkey_.GetNative(), nullptr), EVP_PKEY_CTX_free);
+  if (!pkey_ctx) {
+    throw SignError(FormatSslError("Failed to sign digest: EVP_PKEY_CTX_new"));
+  }
+  if (1 != EVP_PKEY_sign_init(pkey_ctx.get())) {
+    throw SignError(
+        FormatSslError("Failed to sign digest: EVP_PKEY_sign_init"));
+  }
+  if (EVP_PKEY_CTX_set_signature_md(pkey_ctx.get(), GetShaMdByEnum(bits)) <=
+      0) {
+    throw SignError(
+        FormatSslError("Failed to sign digest: EVP_PKEY_CTX_set_signature_md"));
+  }
+  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
+  if constexpr (type == DsaType::kRsaPss) {
+    if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx.get(), RSA_PKCS1_PSS_PADDING) <=
+        0) {
+      throw SignError(
+          FormatSslError("Failed to sign: EVP_PKEY_CTX_set_rsa_padding"));
+    }
+  }
+
+  size_t siglen = 0;
+  if (1 != EVP_PKEY_sign(pkey_ctx.get(), nullptr, &siglen,
+                         reinterpret_cast<const unsigned char*>(digest.data()),
+                         digest.size())) {
+    throw SignError(
+        FormatSslError("Failed to sign digest: EVP_PKEY_sign (size check)"));
+  }
+
+  std::string signature(siglen, '\0');
+  if (1 != EVP_PKEY_sign(pkey_ctx.get(),
+                         reinterpret_cast<unsigned char*>(signature.data()),
+                         &siglen,
+                         reinterpret_cast<const unsigned char*>(digest.data()),
+                         digest.size())) {
+    throw SignError(FormatSslError("Failed to sign digest: EVP_PKEY_sign"));
+  }
+  signature.resize(siglen);
+
+  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
+  if constexpr (type == DsaType::kEc) {
+    return ConvertEcSignature(signature, bits);
+  }
   return signature;
 }
 

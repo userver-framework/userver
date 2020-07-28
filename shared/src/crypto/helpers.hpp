@@ -28,6 +28,22 @@ class EvpMdCtx {
   EVP_MD_CTX* ctx_;
 };
 
+constexpr size_t GetDigestLength(DigestSize digest_size) {
+  size_t bits = 0;
+  switch (digest_size) {
+    case DigestSize::k256:
+      bits = 256;
+      break;
+    case DigestSize::k384:
+      bits = 384;
+      break;
+    case DigestSize::k512:
+      bits = 512;
+      break;
+  }
+  return (bits + CHAR_BIT - 1) / CHAR_BIT;
+}
+
 decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits);
 const EVP_MD* GetShaMdByEnum(DigestSize bits);
 

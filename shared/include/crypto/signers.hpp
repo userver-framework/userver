@@ -20,6 +20,7 @@ class Signer : public NamedAlgo {
   explicit Signer(const std::string& name);
   virtual ~Signer();
 
+  /// Signs a raw message, returning the signature
   virtual std::string Sign(
       std::initializer_list<std::string_view> data) const = 0;
 };
@@ -29,6 +30,7 @@ class SignerNone final : public Signer {
  public:
   SignerNone();
 
+  /// Signs a raw message, returning the signature
   std::string Sign(std::initializer_list<std::string_view> data) const override;
 };
 
@@ -40,6 +42,7 @@ class HmacShaSigner final : public Signer {
   explicit HmacShaSigner(std::string secret);
   virtual ~HmacShaSigner();
 
+  /// Signs a raw message, returning the signature
   std::string Sign(std::initializer_list<std::string_view> data) const override;
 
  private:
@@ -61,7 +64,11 @@ class DsaSigner final : public Signer {
   explicit DsaSigner(const std::string& privkey,
                      const std::string& password = {});
 
+  /// Signs a raw message, returning the signature
   std::string Sign(std::initializer_list<std::string_view> data) const override;
+
+  /// Signs a message digest, returning the signature
+  std::string SignDigest(std::string_view digest) const;
 
  private:
   PrivateKey pkey_;

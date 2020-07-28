@@ -20,7 +20,8 @@ class Verifier : public NamedAlgo {
   explicit Verifier(const std::string& name);
   virtual ~Verifier();
 
-  virtual void Verify(std::initializer_list<std::string_view> encoded,
+  /// Verifies a signature against the message
+  virtual void Verify(std::initializer_list<std::string_view> data,
                       std::string_view raw_signature) const = 0;
 };
 
@@ -29,7 +30,8 @@ class VerifierNone final : public Verifier {
  public:
   VerifierNone();
 
-  void Verify(std::initializer_list<std::string_view> encoded,
+  /// Verifies a signature against the message
+  void Verify(std::initializer_list<std::string_view> data,
               std::string_view raw_signature) const override;
 };
 
@@ -41,7 +43,8 @@ class HmacShaVerifier final : public Verifier {
   explicit HmacShaVerifier(std::string secret);
   virtual ~HmacShaVerifier();
 
-  void Verify(std::initializer_list<std::string_view> encoded,
+  /// Verifies a signature against the message
+  void Verify(std::initializer_list<std::string_view> data,
               std::string_view raw_signature) const override;
 
  private:
@@ -62,8 +65,14 @@ class DsaVerifier final : public Verifier {
   /// Constructor from a PEM-encoded public key or a X509 certificate
   explicit DsaVerifier(const std::string& pubkey);
 
-  void Verify(std::initializer_list<std::string_view> encoded,
+  /// Verifies a signature against the message
+  void Verify(std::initializer_list<std::string_view> data,
               std::string_view raw_signature) const override;
+
+  /// @brief Verifies a signature against the message digest
+  /// @warning Do not use this function when the raw message is available!
+  void VerifyDigest(std::string_view digest,
+                    std::string_view raw_signature) const;
 
  private:
   PublicKey pkey_;
