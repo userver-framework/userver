@@ -22,6 +22,11 @@ add_definitions ("-DPIC")
 add_definitions(-DUSERVER)
 add_definitions(-DMOCK_NOW)
 
+option(COMPILATION_TIME_TRACE "Generate clang compilation trace" OFF)
+if(COMPILATION_TIME_TRACE)
+  add_compile_options("-ftime-trace")
+endif()
+
 # warnings
 add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
 
