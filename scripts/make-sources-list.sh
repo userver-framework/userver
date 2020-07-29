@@ -60,19 +60,19 @@ deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} 
 deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} stable/\$(ARCH)/
 deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} prestable/all/
 deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} prestable/\$(ARCH)/
-deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} testing/all/
-deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} testing/\$(ARCH)/
-deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} unstable/all/
-deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} unstable/\$(ARCH)/
+#deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} testing/all/
+#deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} testing/\$(ARCH)/
+#deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} unstable/all/
+#deb http://yandex-${DISTRIB_CODENAME}.dist.yandex.ru/yandex-${DISTRIB_CODENAME} unstable/\$(ARCH)/
 
 deb http://common.dist.yandex.ru/common stable/all/
 deb http://common.dist.yandex.ru/common stable/\$(ARCH)/
 deb http://common.dist.yandex.ru/common prestable/all/
 deb http://common.dist.yandex.ru/common prestable/\$(ARCH)/
-deb http://common.dist.yandex.ru/common testing/all/
-deb http://common.dist.yandex.ru/common testing/\$(ARCH)/
-deb http://common.dist.yandex.ru/common unstable/all/
-deb http://common.dist.yandex.ru/common unstable/\$(ARCH)/
+#deb http://common.dist.yandex.ru/common testing/all/
+#deb http://common.dist.yandex.ru/common testing/\$(ARCH)/
+#deb http://common.dist.yandex.ru/common unstable/all/
+#deb http://common.dist.yandex.ru/common unstable/\$(ARCH)/
 EOF
 
 echo "All done."
