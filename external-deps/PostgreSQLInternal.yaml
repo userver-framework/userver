@@ -16,13 +16,13 @@ libraries:
       - names:
           - libpgcommon.a
         paths:
-          - /usr/lib/postgresql/10/lib
           - /usr/lib/postgresql/12/lib
+          - /usr/lib/postgresql/10/lib
       - names:
           - libpgport.a
         paths:
-          - /usr/lib/postgresql/10/lib
           - /usr/lib/postgresql/12/lib
+          - /usr/lib/postgresql/10/lib
 
 debian-names:
   - libpq-dev
