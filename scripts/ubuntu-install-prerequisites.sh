@@ -77,12 +77,10 @@ fi
 
 # ensure we have Yandex archive key installed
 if ! apt-key adv --list-keys "${YANDEX_ARCHIVE_KEY_ID}" >/dev/null 2>&1; then
-  echo "Installing Yandex APT GPG key"
-  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys "${YANDEX_ARCHIVE_KEY_ID}"
+  echo "Yandex APT GPG key is not installed!" >&2
+  echo "Environment is not set up, refer to the docs https://wiki.yandex-team.ru/taxi/backend/howtostart/ for more info" >&2
+  exit 1
 fi
-
-# now it's safe to install our sources.list
-"${SCRIPTS_PATH}/make-sources-list.sh"
 
 # sanity check
 source /etc/lsb-release
