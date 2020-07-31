@@ -4,7 +4,7 @@
 
 #include <boost/functional/hash.hpp>
 
-#include <cache/lru_cache.hpp>
+#include <cache/lru_map.hpp>
 
 namespace std {
 
@@ -22,7 +22,7 @@ namespace logging {
 namespace stacktrace_cache {
 
 std::string to_string(boost::stacktrace::frame frame) {
-  thread_local cache::LRU<boost::stacktrace::frame, std::string>
+  thread_local cache::LruMap<boost::stacktrace::frame, std::string>
       frame_name_cache(10000);
   auto* ptr = frame_name_cache.Get(frame);
   if (ptr) return *ptr;

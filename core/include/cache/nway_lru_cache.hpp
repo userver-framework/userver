@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 
-#include <cache/lru_cache.hpp>
+#include <cache/lru_map.hpp>
 #include <engine/mutex.hpp>
 
 namespace cache {
@@ -41,13 +41,13 @@ class NWayLRU final {
 
  private:
   struct Way {
-    Way(const Way& other) : cache(other.cache) {}
+    Way(Way&& other) noexcept : cache(std::move(other.cache)) {}
 
     // max_size is not used, will be reset by Resize() in NWayLRU::NWayLRU
     Way(const Hash& hash, const Equal& equal) : cache(1, hash, equal) {}
 
     mutable engine::Mutex mutex;
-    LRU<T, U, Hash, Equal> cache;
+    LruMap<T, U, Hash, Equal> cache;
   };
 
   Way& GetWay(const T& key);
@@ -59,7 +59,9 @@ class NWayLRU final {
 template <typename T, typename U, typename Hash, typename Eq>
 NWayLRU<T, U, Hash, Eq>::NWayLRU(size_t ways, size_t way_size, const Hash& hash,
                                  const Eq& equal)
-    : caches_(ways, Way(hash, equal)), hash_fn_(hash) {
+    : caches_(), hash_fn_(hash) {
+  caches_.reserve(ways);
+  for (size_t i = 0; i < ways; ++i) caches_.emplace_back(hash, equal);
   if (ways == 0) throw std::logic_error("Ways must be positive");
 
   for (auto& way : caches_) way.cache.SetMaxSize(way_size);
@@ -107,7 +109,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::Invalidate() {
   for (auto& way : caches_) {
     std::unique_lock<engine::Mutex> lock(way.mutex);
-    way.cache.Invalidate();
+    way.cache.Clear();
   }
 }
 

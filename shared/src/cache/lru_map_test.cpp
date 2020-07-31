@@ -1,8 +1,8 @@
-#include <utest/utest.hpp>
+#include <gtest/gtest.h>
 
-#include <cache/lru_cache.hpp>
+#include <cache/lru_map.hpp>
 
-using Lru = cache::LRU<int, int>;
+using Lru = cache::LruMap<int, int>;
 
 TEST(Lru, SetGet) {
   Lru cache(10);
@@ -46,6 +46,19 @@ TEST(Lru, OverflowUpdate) {
   cache.Put(2, 20);
   cache.Put(1, 11);
   cache.Put(3, 30);
+
+  EXPECT_EQ(11, cache.GetOr(1, -1));
+  EXPECT_EQ(-1, cache.GetOr(2, -1));
+  EXPECT_EQ(30, cache.GetOr(3, -1));
+}
+
+TEST(Lru, OverflowSetMaxSize) {
+  Lru cache(3);
+  cache.Put(1, 10);
+  cache.Put(2, 20);
+  cache.Put(1, 11);
+  cache.Put(3, 30);
+  cache.SetMaxSize(2);
 
   EXPECT_EQ(11, cache.GetOr(1, -1));
   EXPECT_EQ(-1, cache.GetOr(2, -1));
