@@ -70,10 +70,12 @@ class StringBuilder final : public serialize::SaxStream {
 };
 
 void WriteToStream(bool value, StringBuilder& sw);
-void WriteToStream(int64_t value, StringBuilder& sw);
-void WriteToStream(uint64_t value, StringBuilder& sw);
+void WriteToStream(long long value, StringBuilder& sw);
+void WriteToStream(unsigned long long value, StringBuilder& sw);
 void WriteToStream(int value, StringBuilder& sw);
 void WriteToStream(unsigned value, StringBuilder& sw);
+void WriteToStream(long value, StringBuilder& sw);
+void WriteToStream(unsigned long value, StringBuilder& sw);
 void WriteToStream(double value, StringBuilder& sw);
 void WriteToStream(const char* value, StringBuilder& sw);
 void WriteToStream(std::string_view value, StringBuilder& sw);

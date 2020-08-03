@@ -58,13 +58,21 @@ void StringBuilder::WriteValue(const ::formats::json::Value& value) {
 
 void WriteToStream(bool value, StringBuilder& sw) { sw.WriteBool(value); }
 
-void WriteToStream(int64_t value, StringBuilder& sw) { sw.WriteInt64(value); }
+void WriteToStream(long long value, StringBuilder& sw) { sw.WriteInt64(value); }
 
-void WriteToStream(uint64_t value, StringBuilder& sw) { sw.WriteUInt64(value); }
+void WriteToStream(unsigned long long value, StringBuilder& sw) {
+  sw.WriteUInt64(value);
+}
 
 void WriteToStream(int value, StringBuilder& sw) { sw.WriteInt64(value); }
 
 void WriteToStream(unsigned value, StringBuilder& sw) { sw.WriteUInt64(value); }
+
+void WriteToStream(long value, StringBuilder& sw) { sw.WriteInt64(value); }
+
+void WriteToStream(unsigned long value, StringBuilder& sw) {
+  sw.WriteUInt64(value);
+}
 
 void WriteToStream(double value, StringBuilder& sw) { sw.WriteDouble(value); }
 

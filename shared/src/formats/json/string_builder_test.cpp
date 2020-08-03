@@ -118,22 +118,6 @@ TEST(JsonStringBuilder, Double) {
   EXPECT_EQ("12.3", sw.GetString());
 }
 
-TEST(JsonStringBuilder, DoubleNan) {
-  StringBuilder sw;
-  EXPECT_THROW(WriteToStream(std::numeric_limits<double>::quiet_NaN(), sw),
-               std::runtime_error);
-  EXPECT_THROW(WriteToStream(std::numeric_limits<double>::signaling_NaN(), sw),
-               std::runtime_error);
-}
-
-// TEST(JsonStringBuilder, DoubleInf) {
-//  StringBuilder sw;
-//  EXPECT_THROW(WriteToStream(std::numeric_limits<double>::infinity(), sw),
-//               std::runtime_error);
-//  EXPECT_THROW(WriteToStream(-std::numeric_limits<double>::infinity(), sw),
-//               std::runtime_error);
-//}
-
 TEST(JsonStringBuilder, Object) {
   StringBuilder sw;
   {
@@ -166,33 +150,6 @@ TEST(JsonStringBuilder, RawValue) {
   EXPECT_EQ("[{1:2}]", sw.GetString());
 }
 
-TEST(JsonStringBuilder, VectorInt) {
-  std::vector<int> v = {1, 2, 3};
-  StringBuilder sw;
-
-  WriteToStream(v, sw);
-
-  EXPECT_EQ("[1,2,3]", sw.GetString());
-}
-
-TEST(JsonStringBuilder, VectorShort) {
-  std::vector<short> v = {1, 2, 3};
-  StringBuilder sw;
-
-  WriteToStream(v, sw);
-
-  EXPECT_EQ("[1,2,3]", sw.GetString());
-}
-
-TEST(JsonStringBuilder, VectorUnsignedShort) {
-  std::vector<unsigned short> v = {1, 2, 3};
-  StringBuilder sw;
-
-  WriteToStream(v, sw);
-
-  EXPECT_EQ("[1,2,3]", sw.GetString());
-}
-
 TEST(JsonStringBuilder, TestResponse) {
   testing::Response200 v{};
   StringBuilder sw;
@@ -201,29 +158,6 @@ TEST(JsonStringBuilder, TestResponse) {
 
   EXPECT_FALSE(sw.GetString().empty());
 }
-
-TEST(JsonStringBuilder, Float) {
-  StringBuilder sw;
-  WriteToStream(1.f, sw);
-
-  EXPECT_EQ("1.0", sw.GetString());
-}
-
-TEST(JsonStringBuilder, FloatNan) {
-  StringBuilder sw;
-  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::quiet_NaN(), sw),
-               std::runtime_error);
-  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::signaling_NaN(), sw),
-               std::runtime_error);
-}
-
-// TEST(JsonStringBuilder, FloatInf) {
-//  StringBuilder sw;
-//  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::infinity(), sw),
-//               std::runtime_error);
-//  EXPECT_THROW(WriteToStream(-std::numeric_limits<float>::infinity(), sw),
-//               std::runtime_error);
-//}
 
 TEST(JsonStringBuilder, Value) {
   ValueBuilder builder;
@@ -244,6 +178,13 @@ TEST(JsonStringBuilder, String) {
   EXPECT_EQ(sw.GetString(), "\"some string\"");
 }
 
+TEST(JsonStringBuilder, VectorBool) {
+  std::vector<bool> v = {true, false};
+  StringBuilder sw;
+  WriteToStream(v, sw);
+  EXPECT_EQ(sw.GetString(), "[true,false]");
+}
+
 TEST(JsonStringBuilder, CharP) {
   StringBuilder sw;
   WriteToStream("some string", sw);
@@ -261,3 +202,77 @@ TEST(JsonStringBuilder, Second) {
   WriteToStream(std::chrono::seconds{42}, sw);
   EXPECT_EQ(sw.GetString(), "42");
 }
+
+template <typename T>
+class JsonStringBuilderIntegralTypes : public ::testing::Test {};
+
+using StringBuilderIntegralTypes =
+    ::testing::Types<signed char, short, int, long, long long,
+
+                     unsigned char, unsigned short, unsigned int, unsigned long,
+                     unsigned long long,
+
+                     char>;
+TYPED_TEST_SUITE(JsonStringBuilderIntegralTypes, StringBuilderIntegralTypes);
+
+TYPED_TEST(JsonStringBuilderIntegralTypes, Value) {
+  TypeParam v = 42;
+
+  StringBuilder sw;
+
+  WriteToStream(v, sw);
+
+  EXPECT_EQ("42", sw.GetString());
+}
+
+TYPED_TEST(JsonStringBuilderIntegralTypes, Vector) {
+  std::vector<TypeParam> v = {1, 2, 3};
+
+  StringBuilder sw;
+
+  WriteToStream(v, sw);
+
+  EXPECT_EQ("[1,2,3]", sw.GetString());
+}
+
+template <typename T>
+class JsonStringBuilderFloatingTypes : public ::testing::Test {};
+
+using StringBuilderFloatingTypes = ::testing::Types<float, double>;
+TYPED_TEST_SUITE(JsonStringBuilderFloatingTypes, StringBuilderFloatingTypes);
+
+TYPED_TEST(JsonStringBuilderFloatingTypes, Value) {
+  TypeParam v = 2.0;
+
+  StringBuilder sw;
+
+  WriteToStream(v, sw);
+
+  EXPECT_EQ("2.0", sw.GetString());
+}
+
+TYPED_TEST(JsonStringBuilderFloatingTypes, Array) {
+  std::array<TypeParam, 2> v = {4.0, 2.0};
+
+  StringBuilder sw;
+
+  WriteToStream(v, sw);
+
+  EXPECT_EQ("[4.0,2.0]", sw.GetString());
+}
+
+TEST(JsonStringBuilderFloatingTypes, Nan) {
+  StringBuilder sw;
+  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::quiet_NaN(), sw),
+               std::runtime_error);
+  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::signaling_NaN(), sw),
+               std::runtime_error);
+}
+
+// TEST(JsonStringBuilderFloatingTypes, Inf) {
+//  StringBuilder sw;
+//  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::infinity(), sw),
+//               std::runtime_error);
+//  EXPECT_THROW(WriteToStream(-std::numeric_limits<float>::infinity(), sw),
+//               std::runtime_error);
+//}
