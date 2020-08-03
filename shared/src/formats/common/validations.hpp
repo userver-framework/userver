@@ -4,7 +4,7 @@
 
 namespace formats::common {
 
-/// common restrictions to floating type values constructable via ValueBuilders
+/// Common restrictions to floating type values serialization
 template <typename ExceptionType, typename Float>
 Float ValidateFloat(Float value) {
   if (std::isnan(value)) {

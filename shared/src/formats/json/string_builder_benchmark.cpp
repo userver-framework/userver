@@ -31,15 +31,15 @@ void JsonSerialize(benchmark::State& state) {
 }
 BENCHMARK(JsonSerialize)->RangeMultiplier(4)->Range(1, 1024);
 
-void Write(int level, impl::StringBuilder& sw) {
+void Write(int level, StringBuilder& sw) {
   if (level % 2) {
-    impl::StringBuilder::ArrayGuard guard(sw);
+    StringBuilder::ArrayGuard guard(sw);
     sw.WriteString("abc");
     sw.WriteInt64(123);
     sw.WriteNull();
     if (level > 0) Write(level - 1, sw);
   } else {
-    impl::StringBuilder::ObjectGuard guard(sw);
+    StringBuilder::ObjectGuard guard(sw);
 
     sw.Key("key");
     sw.WriteString("abc");
@@ -58,7 +58,7 @@ void Write(int level, impl::StringBuilder& sw) {
 }
 
 std::string WriteString(int level) {
-  impl::StringBuilder sw;
+  StringBuilder sw;
   Write(level, sw);
   return sw.GetString();
 }

@@ -14,4 +14,10 @@ Value Serialize(const utils::datetime::TimeOfDay<Duration>& value, To<Value>) {
   return typename Value::Builder(fmt::format("{}", value)).ExtractValue();
 }
 
+template <typename Value, typename Duration, typename StringBuilder>
+void WriteToStream(const utils::datetime::TimeOfDay<Duration>& value,
+                   StringBuilder& sw) {
+  WriteToStream(fmt::format("{}", value), sw);
+}
+
 }  // namespace formats::serialize

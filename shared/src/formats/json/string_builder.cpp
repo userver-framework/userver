@@ -1,10 +1,14 @@
 #include <formats/json/string_builder.hpp>
 
+#include <cmath>
+
+#include <formats/common/validations.hpp>
+
 #include <rapidjson/document.h>
 #include <rapidjson/memorybuffer.h>
 #include <rapidjson/writer.h>
 
-namespace formats::json::impl {
+namespace formats::json {
 
 struct StringBuilder::Impl {
   rapidjson::MemoryBuffer buffer;
@@ -35,7 +39,10 @@ void StringBuilder::WriteInt64(int64_t value) { impl_->writer.Int64(value); }
 
 void StringBuilder::WriteUInt64(uint64_t value) { impl_->writer.Uint64(value); }
 
-void StringBuilder::WriteDouble(double value) { impl_->writer.Double(value); }
+void StringBuilder::WriteDouble(double value) {
+  formats::common::ValidateFloat<std::runtime_error>(value);
+  impl_->writer.Double(value);
+}
 
 void StringBuilder::Key(std::string_view sw) {
   impl_->writer.Key(sw.data(), sw.size());
@@ -55,6 +62,10 @@ void WriteToStream(int64_t value, StringBuilder& sw) { sw.WriteInt64(value); }
 
 void WriteToStream(uint64_t value, StringBuilder& sw) { sw.WriteUInt64(value); }
 
+void WriteToStream(int value, StringBuilder& sw) { sw.WriteInt64(value); }
+
+void WriteToStream(unsigned value, StringBuilder& sw) { sw.WriteUInt64(value); }
+
 void WriteToStream(double value, StringBuilder& sw) { sw.WriteDouble(value); }
 
 void WriteToStream(const char* value, StringBuilder& sw) {
@@ -73,6 +84,13 @@ void WriteToStream(const std::string& value, StringBuilder& sw) {
   WriteToStream(std::string_view(value), sw);
 }
 
+void WriteToStream(std::chrono::system_clock::time_point tp,
+                   StringBuilder& sw) {
+  WriteToStream(
+      utils::datetime::Timestring(tp, "UTC", utils::datetime::kRfc3339Format),
+      sw);
+}
+
 StringBuilder::ObjectGuard::ObjectGuard(StringBuilder& sw) : sw_(sw) {
   sw_.impl_->writer.StartObject();
 }
@@ -85,4 +103,4 @@ StringBuilder::ArrayGuard::ArrayGuard(StringBuilder& sw) : sw_(sw) {
 
 StringBuilder::ArrayGuard::~ArrayGuard() { sw_.impl_->writer.EndArray(); }
 
-}  // namespace formats::json::impl
+}  // namespace formats::json

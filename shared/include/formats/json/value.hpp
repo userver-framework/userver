@@ -10,6 +10,7 @@
 #include <formats/common/meta.hpp>
 #include <formats/json/exception.hpp>
 #include <formats/json/iterator.hpp>
+#include <formats/json/string_builder_fwd.hpp>
 #include <formats/json/types.hpp>
 #include <formats/parse/common.hpp>
 
@@ -17,7 +18,6 @@ namespace formats::json {
 namespace impl {
 class InlineObjectBuilder;
 class InlineArrayBuilder;
-class StringBuilder;
 }  // namespace impl
 
 class ValueBuilder;
@@ -234,7 +234,7 @@ class Value final {
 
   friend class Iterator<IterTraits>;
   friend class ValueBuilder;
-  friend class impl::StringBuilder;
+  friend class StringBuilder;
   friend class impl::InlineObjectBuilder;
   friend class impl::InlineArrayBuilder;
   friend class parser::JsonValueParser;

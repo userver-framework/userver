@@ -1,23 +1,31 @@
 #pragma once
 
-#include <map>
-#include <unordered_map>
-#include <variant>
-#include <vector>
+#include <string>
+#include <string_view>
 
+#include <formats/json/string_builder_fwd.hpp>
 #include <formats/json/value.hpp>
 #include <formats/json/value_builder.hpp>
 #include <formats/serialize/to.hpp>
+#include <formats/serialize/write_to_stream.hpp>
 #include <utils/fast_pimpl.hpp>
-#include <utils/meta.hpp>
 
-namespace formats::json::impl {
+namespace formats::json {
 
-class StringBuilder final {
+/// SAX like builder of JSON string. Use with extreme caution and only in
+/// performance critical part of your code.
+///
+/// Prefer using WriteToStream function to add data to the StringBuilder.
+class StringBuilder final : public serialize::SaxStream {
  public:
+  // Required by the WriteToStream fallback to Serialize
+  using Value = ::formats::json::Value;
+
   StringBuilder();
   ~StringBuilder();
 
+  /// Construct this guard on new object start and its destructor will end the
+  /// object
   class ObjectGuard final {
    public:
     explicit ObjectGuard(StringBuilder& sw);
@@ -27,6 +35,8 @@ class StringBuilder final {
     StringBuilder& sw_;
   };
 
+  /// Construct this guard on new array start and its destructor will end the
+  /// array
   class ArrayGuard final {
    public:
     explicit ArrayGuard(StringBuilder& sw);
@@ -36,6 +46,7 @@ class StringBuilder final {
     StringBuilder& sw_;
   };
 
+  /// @return JSON string
   std::string GetString() const;
 
   void WriteNull();
@@ -45,12 +56,13 @@ class StringBuilder final {
   void WriteUInt64(uint64_t value);
   void WriteDouble(double value);
 
-  // For object only
+  /// ONLY for objects/dicts: write key
   void Key(std::string_view sw);
 
+  /// Appends raw data
   void WriteRawString(std::string_view value);
 
-  void WriteValue(const ::formats::json::Value& value);
+  void WriteValue(const Value& value);
 
  private:
   struct Impl;
@@ -60,45 +72,14 @@ class StringBuilder final {
 void WriteToStream(bool value, StringBuilder& sw);
 void WriteToStream(int64_t value, StringBuilder& sw);
 void WriteToStream(uint64_t value, StringBuilder& sw);
+void WriteToStream(int value, StringBuilder& sw);
+void WriteToStream(unsigned value, StringBuilder& sw);
 void WriteToStream(double value, StringBuilder& sw);
 void WriteToStream(const char* value, StringBuilder& sw);
 void WriteToStream(std::string_view value, StringBuilder& sw);
 void WriteToStream(const formats::json::Value& value, StringBuilder& sw);
-
 void WriteToStream(const std::string& value, StringBuilder& sw);
 
-template <typename T>
-std::enable_if_t<meta::is_vector<T>::value || meta::is_array<T>::value ||
-                     meta::is_set<T>::value,
-                 void>
-WriteToStream(const T& value, StringBuilder& sw) {
-  StringBuilder::ArrayGuard guard(sw);
-  for (const auto& item : value) WriteToStream(item, sw);
-}
+void WriteToStream(std::chrono::system_clock::time_point tp, StringBuilder& sw);
 
-template <typename T>
-std::enable_if_t<meta::is_map<T>::value, void> WriteToStream(
-    const T& value, StringBuilder& sw) {
-  StringBuilder::ObjectGuard guard(sw);
-  for (const auto& [key, value] : value) {
-    sw.Key(key);
-    WriteToStream(value, sw);
-  }
-}
-
-template <typename T>
-std::enable_if_t<formats::common::kHasSerializeTo<::formats::json::Value, T> &&
-                     !meta::is_vector<T>::value && !meta::is_set<T>::value &&
-                     !meta::is_map<T>::value,
-                 void>
-WriteToStream(const T& value, StringBuilder& sw) {
-  sw.WriteValue(Serialize(value, serialize::To<::formats::json::Value>{}));
-}
-
-template <typename... Types>
-void WriteToStream(const std::variant<Types...>& value, StringBuilder& sw) {
-  return std::visit([&sw](const auto& item) { WriteToStream(item, sw); },
-                    value);
-}
-
-}  // namespace formats::json::impl
+}  // namespace formats::json
