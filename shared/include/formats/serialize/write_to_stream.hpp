@@ -23,7 +23,10 @@ std::enable_if_t<meta::is_vector<T>::value || meta::is_array<T>::value ||
                  meta::is_set<T>::value>
 WriteToStream(const T& value, StringBuilder& sw) {
   typename StringBuilder::ArrayGuard guard(sw);
-  for (const auto& item : value) WriteToStream(item, sw);
+  for (const auto& item : value) {
+    // explicit cast for vector<bool> shenanigans
+    WriteToStream(static_cast<const typename T::value_type&>(item), sw);
+  }
 }
 
 /// Dict like types serialization
