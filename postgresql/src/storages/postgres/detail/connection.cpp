@@ -147,7 +147,8 @@ struct Connection::Impl {
   PGConnectionWrapper conn_wrapper_;
   PreparedStatements prepared_;
   UserTypes db_types_;
-  bool read_only_ = true;
+  bool is_in_recovery_ = true;
+  bool is_read_only_ = true;
   bool is_discard_prepared_pending_ = false;
   ConnectionSettings settings_;
 
@@ -192,32 +193,29 @@ struct Connection::Impl {
     // We cannot handle exceptions here, so we let them got to the caller
     ExecuteCommandNoPrepare("discard all", deadline);
     SetParameter("client_encoding", "UTF8", ParameterScope::kSession, deadline);
-    CheckReadOnly(deadline);
+    RefreshReplicaState(deadline);
     SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
     LoadUserTypes(deadline);
   }
 
-  void CheckReadOnly(engine::Deadline deadline) {
+  void RefreshReplicaState(engine::Deadline deadline) {
     auto is_in_recovery =
         ExecuteCommandNoPrepare("SELECT pg_is_in_recovery()", deadline);
     if (!is_in_recovery.IsEmpty()) {
-      is_in_recovery.Front().To(read_only_);
+      is_in_recovery.Front().To(is_in_recovery_);
     } else {
       LOG_WARNING() << "Cannot determine host recovery state, falling back to "
                        "read-only operation";
-      read_only_ = true;
+      is_in_recovery_ = true;
     }
+    is_read_only_ = is_in_recovery_;
 
-    if (!read_only_) {
+    if (!is_read_only_) {
       // Additional check for writability
-      auto is_not_writable = ExecuteCommandNoPrepare(
+      auto is_read_only = ExecuteCommandNoPrepare(
           "SELECT current_setting('transaction_read_only')::bool", deadline);
-      if (!is_not_writable.IsEmpty()) {
-        is_not_writable.Front().To(read_only_);
-        if (read_only_ && !testsuite_pg_ctl_.IsReadonlyMasterExpected()) {
-          LOG_WARNING() << "Primary host is not writable, possibly due to "
-                           "insufficient disk space";
-        }
+      if (!is_read_only.IsEmpty()) {
+        is_read_only.Front().To(is_read_only_);
       }
     }
   }
@@ -803,10 +801,10 @@ void Connection::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl);
 }
 
-bool Connection::IsReadOnly() const { return pimpl_->read_only_; }
-bool Connection::CheckReadOnly(engine::Deadline deadline) const {
-  pimpl_->CheckReadOnly(deadline);
-  return pimpl_->read_only_;
+bool Connection::IsInRecovery() const { return pimpl_->is_in_recovery_; }
+bool Connection::IsReadOnly() const { return pimpl_->is_read_only_; }
+void Connection::RefreshReplicaState(engine::Deadline deadline) const {
+  pimpl_->RefreshReplicaState(deadline);
 }
 
 ConnectionState Connection::GetState() const {

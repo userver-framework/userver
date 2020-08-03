@@ -72,13 +72,14 @@ size_t SelectDsnIndex(const QuorumCommitTopology::DsnIndices& indices,
 }  // namespace
 
 ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+                         const TopologySettings& topology_settings,
                          const PoolSettings& pool_settings,
                          const ConnectionSettings& conn_settings,
                          const CommandControl& default_cmd_ctl,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
-    : topology_(bg_task_processor, std::move(dsns), conn_settings,
-                default_cmd_ctl, testsuite_pg_ctl, ei_settings),
+    : topology_(bg_task_processor, std::move(dsns), topology_settings,
+                conn_settings, default_cmd_ctl, testsuite_pg_ctl, ei_settings),
       bg_task_processor_(bg_task_processor),
       rr_host_idx_(0) {
   const auto& dsn_list = topology_.GetDsnList();
@@ -103,10 +104,10 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
   const auto& dsns = topology_.GetDsnList();
   std::vector<int8_t> is_host_pool_seen(dsns.size(), 0);
   auto dsn_indices_by_type = topology_.GetDsnIndicesByType();
+  const auto& dsn_stats = topology_.GetDsnStatistics();
 
   UASSERT(host_pools_.size() == dsns.size());
 
-  // TODO remove code duplication
   auto master_dsn_indices_it =
       dsn_indices_by_type->find(ClusterHostType::kMaster);
   if (master_dsn_indices_it != dsn_indices_by_type->end() &&
@@ -114,8 +115,10 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     auto dsn_index = master_dsn_indices_it->second.front();
     UASSERT(dsn_index < dsns.size());
     cluster_stats->master.host_port = GetHostPort(dsns[dsn_index]);
-    const auto& pool = host_pools_[dsn_index];
-    cluster_stats->master.stats = pool->GetStatistics();
+    UASSERT(dsn_index < host_pools_.size());
+    UASSERT(dsn_index < dsn_stats.size());
+    cluster_stats->master.stats.Add(host_pools_[dsn_index]->GetStatistics(),
+                                    dsn_stats[dsn_index]);
     is_host_pool_seen[dsn_index] = 1;
   }
 
@@ -127,8 +130,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     UASSERT(dsn_index < dsns.size());
     cluster_stats->sync_slave.host_port = GetHostPort(dsns[dsn_index]);
     UASSERT(dsn_index < host_pools_.size());
-    const auto& pool = host_pools_[dsn_index];
-    cluster_stats->sync_slave.stats = pool->GetStatistics();
+    UASSERT(dsn_index < dsn_stats.size());
+    cluster_stats->sync_slave.stats.Add(host_pools_[dsn_index]->GetStatistics(),
+                                        dsn_stats[dsn_index]);
     is_host_pool_seen[dsn_index] = 1;
   }
 
@@ -144,8 +148,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
       UASSERT(dsn_index < dsns.size());
       slave_desc.host_port = GetHostPort(dsns[dsn_index]);
       UASSERT(dsn_index < host_pools_.size());
-      const auto& pool = host_pools_[dsn_index];
-      slave_desc.stats = pool->GetStatistics();
+      UASSERT(dsn_index < dsn_stats.size());
+      slave_desc.stats.Add(host_pools_[dsn_index]->GetStatistics(),
+                           dsn_stats[dsn_index]);
       is_host_pool_seen[dsn_index] = 1;
 
       cluster_stats->slaves.push_back(std::move(slave_desc));
@@ -158,8 +163,8 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     UASSERT(i < dsns.size());
     desc.host_port = GetHostPort(dsns[i]);
     UASSERT(i < host_pools_.size());
-    const auto& pool = host_pools_[i];
-    desc.stats = pool->GetStatistics();
+    UASSERT(i < dsn_stats.size());
+    desc.stats.Add(host_pools_[i]->GetStatistics(), dsn_stats[i]);
 
     cluster_stats->unknown.push_back(std::move(desc));
   }

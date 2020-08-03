@@ -3,14 +3,14 @@
 /// @file storages/postgres/options.hpp
 /// @brief Options
 
+#include <chrono>
 #include <iosfwd>
 #include <optional>
 #include <string>
 
 #include <storages/postgres/postgres_fwd.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 /*! [Isolation levels] */
 /// @brief SQL transaction isolation level
@@ -133,6 +133,10 @@ struct CommandControl {
 
 using OptionalCommandControl = std::optional<CommandControl>;
 
+struct TopologySettings {
+  std::chrono::milliseconds max_replication_lag{0};
+};
+
 struct PoolSettings {
   size_t min_size = 0;
   size_t max_size = 0;
@@ -148,5 +152,4 @@ struct ConnectionSettings {
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
 };
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

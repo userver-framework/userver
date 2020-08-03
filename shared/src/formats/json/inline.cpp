@@ -59,6 +59,10 @@ void InlineObjectBuilder::Append(std::string_view key, int64_t value) {
   json_->AddMember(WrapStringView(key), impl::Value{value}, g_allocator);
 }
 
+void InlineObjectBuilder::Append(std::string_view key, uint32_t value) {
+  json_->AddMember(WrapStringView(key), impl::Value{value}, g_allocator);
+}
+
 void InlineObjectBuilder::Append(std::string_view key, uint64_t value) {
   json_->AddMember(WrapStringView(key), impl::Value{value}, g_allocator);
 }

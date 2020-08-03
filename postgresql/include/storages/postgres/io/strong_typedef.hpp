@@ -6,6 +6,7 @@
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
+#include <storages/postgres/io/nullable_traits.hpp>
 
 #include <utils/strong_typedef.hpp>
 #include <utils/void_t.hpp>

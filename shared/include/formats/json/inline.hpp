@@ -52,6 +52,7 @@ class InlineObjectBuilder {
   void Append(std::string_view key, bool);
   void Append(std::string_view key, int32_t);
   void Append(std::string_view key, int64_t);
+  void Append(std::string_view key, uint32_t);
   void Append(std::string_view key, uint64_t);
 #ifdef _LIBCPP_VERSION
   void Append(std::string_view key, long);

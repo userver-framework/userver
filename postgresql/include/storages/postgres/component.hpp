@@ -34,6 +34,7 @@ namespace components {
 ///  postgres-taxi:
 ///    dbalias: taxi
 ///    blocking_task_processor: task-processor-name
+///    max_replication_lag: 60s
 ///    min_pool_size: 4
 ///    max_pool_size: 15
 ///    max_queue_size: 200
@@ -43,6 +44,11 @@ namespace components {
 /// in secdist.json
 ///
 /// You must specify `blocking_task_processor` as well.
+///
+/// `max_replication_lag` can be used to tune replication lag limit for replicas.
+/// Once the replica lag exceeds this value it will be automatically disabled.
+/// Note, however, that client-size lag detection is not precise in nature
+/// and can only provide the precision of couple seconds.
 ///
 /// ## Secdist format
 ///
@@ -99,6 +105,7 @@ namespace components {
 /// dbalias                 | name of the database in secdist config (if available)     | --
 /// dbconnection            | connection DSN string (used if no dbalias specified)      | --
 /// blocking_task_processor | name of task processor for background blocking operations | --
+/// max_replication_lag     | replication lag limit for usable slaves                   | 60s
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | limit of connections count                                | 15
 /// sync-start              | perform initial connections synchronously                 | false
@@ -108,6 +115,7 @@ namespace components {
 
 class Postgres : public LoggableComponentBase {
  public:
+  static constexpr auto kDefaultMaxReplicationLag = std::chrono::seconds{60};
   /// Default initial connection count
   static constexpr size_t kDefaultMinPoolSize = 4;
   /// Default connections limit

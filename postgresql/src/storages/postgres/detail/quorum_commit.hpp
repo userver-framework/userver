@@ -8,6 +8,7 @@
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/options.hpp>
+#include <storages/postgres/statistics.hpp>
 #include <testsuite/postgres_control.hpp>
 #include <utils/fast_pimpl.hpp>
 
@@ -23,6 +24,7 @@ class QuorumCommitTopology {
       std::unordered_map<ClusterHostType, DsnIndices, ClusterHostTypeHash>;
 
   QuorumCommitTopology(engine::TaskProcessor& bg_task_processor, DsnList dsns,
+                       const TopologySettings& topology_settings,
                        const ConnectionSettings& conn_settings,
                        const CommandControl& default_cmd_ctl,
                        const testsuite::PostgresControl& testsuite_pg_ctl,
@@ -36,17 +38,21 @@ class QuorumCommitTopology {
   rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const;
   rcu::ReadablePtr<DsnIndices> GetAliveDsnIndices() const;
 
+  // Returns statistics for each DSN in DsnList
+  const std::vector<decltype(InstanceStatistics::topology)>& GetDsnStatistics()
+      const;
+
  private:
   class Impl;
   // MAC_COMPAT
 #ifdef _LIBCPP_VERSION
-  static constexpr std::size_t kImplSize = 984;
+  static constexpr std::size_t kImplSize = 1008;
   static constexpr std::size_t kImplAlign = 16;
 #else
-  static constexpr std::size_t kImplSize = 872;
+  static constexpr std::size_t kImplSize = 904;
   static constexpr std::size_t kImplAlign = 8;
 #endif
-  ::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
+  ::utils::FastPimpl<Impl, kImplSize, kImplAlign, true> pimpl_;
 };
 
 /// Returns sync slave names (disregarding availability)

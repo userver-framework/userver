@@ -35,6 +35,7 @@ TEST(PostgreIO, IntegralParserRegistry) {
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kTid));
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kXid));
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kCid));
+  EXPECT_TRUE(io::HasParser(io::PredefinedOids::kLsn));
 }
 
 TEST(PostgreIO, Integral) {

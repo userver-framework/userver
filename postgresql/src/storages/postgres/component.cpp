@@ -84,6 +84,9 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   errors["queue"] = stats.queue_size_errors;
   errors["connection-timeout"] = stats.connection.error_timeout;
 
+  instance["roundtrip-time"] = stats.topology.roundtrip_time;
+  instance["replication-lag"] = stats.topology.replication_lag;
+
   utils::statistics::SolomonLabelValue(instance, "postgresql_instance");
   return instance;
 }
@@ -170,6 +173,10 @@ Postgres::Postgres(const ComponentConfig& config,
     }
   }
 
+  storages::postgres::TopologySettings topology_settings;
+  topology_settings.max_replication_lag =
+      config.ParseDuration("max_replication_lag", kDefaultMaxReplicationLag);
+
   storages::postgres::PoolSettings pool_settings;
   pool_settings.min_size =
       config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
@@ -207,8 +214,8 @@ Postgres::Postgres(const ComponentConfig& config,
 
   for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(
-        std::move(dsns), *bg_task_processor, pool_settings, conn_settings,
-        cmd_ctl, testsuite_pg_ctl, ei_settings);
+        std::move(dsns), *bg_task_processor, topology_settings, pool_settings,
+        conn_settings, cmd_ctl, testsuite_pg_ctl, ei_settings);
     database_->clusters_.push_back(cluster);
   }
 

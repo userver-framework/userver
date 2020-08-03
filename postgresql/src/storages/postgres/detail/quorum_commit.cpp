@@ -8,6 +8,8 @@
 #include <vector>
 
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/internal_pg_types.hpp>
+#include <storages/postgres/io/pg_type_parsers.hpp>
 
 #include <crypto/openssl.hpp>
 #include <engine/deadline.hpp>
@@ -18,6 +20,7 @@
 #include <utils/periodic_task.hpp>
 #include <utils/scope_guard.hpp>
 #include <utils/str_icase.hpp>
+#include <utils/strong_typedef.hpp>
 
 namespace storages::postgres::detail {
 
@@ -29,11 +32,20 @@ constexpr auto kDiscoveryInterval = std::chrono::seconds{1};
 using Rtt = std::chrono::microseconds;
 constexpr Rtt kUnknownRtt{-1};
 
+using ReplicationLag = std::chrono::milliseconds;
+
 // Special connection ID to ease detection in logs
 constexpr uint32_t kConnectionId = 4'100'200'300;
 constexpr const char* kDiscoveryTaskName = "pg_topology";
 
 const std::string kShowSyncStandbyNames = "SHOW synchronous_standby_names";
+
+// Master doesn't provide last xact timestamp without `track_commit_timestamp`
+// enabled, use current server time as an approximation.
+// Also note that all times here are sourced from the master.
+const std::string kGetMasterWalInfo = "SELECT pg_current_wal_lsn(), now()";
+const std::string kGetSlaveWalInfo =
+    "SELECT pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp()";
 
 struct HostState {
   explicit HostState(const Dsn& dsn)
@@ -44,6 +56,16 @@ struct HostState {
     if (connection) connection->Close();
   }
 
+  void Reset() noexcept {
+    connection.reset();
+    role = ClusterHostType::kNone;
+    is_readonly = true;
+    roundtrip_time = kUnknownRtt;
+    wal_lsn = kUnknownLsn;
+    current_xact_timestamp = {};
+    detected_sync_slaves.clear();
+  }
+
   std::unique_ptr<Connection> connection;
 
   const std::string host_port;
@@ -52,7 +74,10 @@ struct HostState {
   std::string app_name;
 
   ClusterHostType role = ClusterHostType::kNone;
+  bool is_readonly = true;
   Rtt roundtrip_time{kUnknownRtt};
+  Lsn wal_lsn{kUnknownLsn};
+  std::chrono::system_clock::time_point current_xact_timestamp;
   std::vector<std::string> detected_sync_slaves;
 };
 
@@ -86,6 +111,7 @@ size_t ParseSize(std::string_view token) {
 class QuorumCommitTopology::Impl {
  public:
   Impl(engine::TaskProcessor& bg_task_processor, DsnList dsns,
+       const TopologySettings& topology_settings,
        const ConnectionSettings& conn_settings,
        const CommandControl& default_cmd_ctl,
        const testsuite::PostgresControl& testsuite_pg_ctl,
@@ -95,6 +121,8 @@ class QuorumCommitTopology::Impl {
   const DsnList& GetDsnList() const;
   rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const;
   rcu::ReadablePtr<DsnIndices> GetAliveDsnIndices() const;
+  const std::vector<decltype(InstanceStatistics::topology)>& GetDsnStatistics()
+      const;
 
   void RunDiscovery();
 
@@ -108,7 +136,7 @@ class QuorumCommitTopology::Impl {
   engine::TaskProcessor& bg_task_processor_;
   /// All DSNs handled by this topology discovery component
   DsnList dsns_;
-  /// Individual connection settings
+  const TopologySettings topology_settings_;
   ConnectionSettings conn_settings_;
   CommandControl default_cmd_ctl_;
   testsuite::PostgresControl testsuite_pg_ctl_;
@@ -123,22 +151,28 @@ class QuorumCommitTopology::Impl {
   /// Currently accessible hosts
   rcu::Variable<DsnIndices> alive_dsn_indices_;
 
+  /// Public availability info
+  std::vector<decltype(InstanceStatistics::topology)> dsn_stats_;
+
   ::utils::PeriodicTask discovery_task_;
 };
 
 QuorumCommitTopology::Impl::Impl(
     engine::TaskProcessor& bg_task_processor, DsnList dsns,
+    const TopologySettings& topology_settings,
     const ConnectionSettings& conn_settings,
     const CommandControl& default_cmd_ctl,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings)
     : bg_task_processor_{bg_task_processor},
       dsns_{std::move(dsns)},
+      topology_settings_{topology_settings},
       conn_settings_{conn_settings},
       default_cmd_ctl_{default_cmd_ctl},
       testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_{std::move(ei_settings)},
-      host_states_{dsns_.begin(), dsns_.end()} {
+      host_states_{dsns_.begin(), dsns_.end()},
+      dsn_stats_(dsns_.size()) {
   crypto::impl::Openssl::Init();
   RunDiscovery();
   StartPeriodicTask();
@@ -158,39 +192,102 @@ QuorumCommitTopology::Impl::GetAliveDsnIndices() const {
   return alive_dsn_indices_.Read();
 }
 
+const std::vector<decltype(InstanceStatistics::topology)>&
+QuorumCommitTopology::Impl::GetDsnStatistics() const {
+  return dsn_stats_;
+}
+
 void QuorumCommitTopology::Impl::RunDiscovery() {
   std::vector<engine::TaskWithResult<void>> tasks;
   tasks.reserve(dsns_.size());
   for (DsnIndex i = 0; i < dsns_.size(); ++i) {
     tasks.emplace_back(engine::impl::Async([this, i] { RunCheck(i); }));
   }
-  UASSERT(tasks.size() == dsns_.size());
-  DsnIndices alive_dsn_indices;
-  for (DsnIndex i = 0; i < tasks.size(); ++i) {
-    tasks[i].Get();
-    const auto& status = host_states_[i];
-    LOG_DEBUG() << status.app_name << " is " << status.role << " rtt "
-                << status.roundtrip_time.count() << "us";
-    if (status.role != ClusterHostType::kNone) {
-      alive_dsn_indices.push_back(i);
+  for (auto& task : tasks) task.Get();
+
+  // Report states and find the master
+  HostState* master = nullptr;
+  std::chrono::system_clock::time_point max_slave_xact_timestamp;
+  for (DsnIndex i = 0; i < host_states_.size(); ++i) {
+    auto& state = host_states_[i];
+    LOG_DEBUG() << state.app_name << " is " << state.role << ": rtt "
+                << state.roundtrip_time.count() << "us, LSN " << state.wal_lsn
+                << ", last xact time " << state.current_xact_timestamp;
+    if (state.roundtrip_time != kUnknownRtt) {
+      dsn_stats_[i].roundtrip_time.GetCurrentCounter().Account(
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              state.roundtrip_time)
+              .count());
+    }
+    if (state.role == ClusterHostType::kMaster) {
+      master = &state;
+    } else if (state.role == ClusterHostType::kSlave) {
+      max_slave_xact_timestamp =
+          std::max(max_slave_xact_timestamp, state.current_xact_timestamp);
     }
   }
-  // At this stage alive indices can point only to two types of hosts -
-  // master and slave. The record for master can contain names of sync slaves
-  auto master = std::find_if(
-      host_states_.begin(), host_states_.end(),
-      [](const auto& s) { return s.role == ClusterHostType::kMaster; });
 
-  // O(N^2), seems OK for expected number of items
-  if (master != host_states_.end() && !master->detected_sync_slaves.empty()) {
-    for (const auto& ss_app_name : master->detected_sync_slaves) {
-      for (DsnIndex idx : alive_dsn_indices) {
-        auto& state = host_states_[idx];
-        if (::utils::StrIcaseEqual{}(state.app_name, ss_app_name)) {
-          LOG_DEBUG() << state.app_name << " is a sync slave";
-          state.role = ClusterHostType::kSyncSlave;
+  // At this stage alive indices can point only to two types of hosts -
+  // master and slaves. The record for master can contain names of sync
+  // slaves.
+  for (DsnIndex i = 0; i < host_states_.size(); ++i) {
+    auto& slave = host_states_[i];
+    if (slave.role != ClusterHostType::kSlave) continue;
+
+    // xact timestamp can become stale when there are no writes.
+    // - In normal case we compare against local slave time to avoid distributed
+    // clock issues.
+    // - In case slave replay LSN is not behind master's we can assume it's not
+    // lagging.
+    // - When the master is not available, no writes are possible and we compare
+    // against the latest known xact time.
+    const auto target_xact_timestamp =
+        master
+            ? (slave.wal_lsn < master->wal_lsn ? master->current_xact_timestamp
+                                               : slave.current_xact_timestamp)
+            : max_slave_xact_timestamp;
+    // Target should be ahead of current, but clamp to zero for extra safety.
+    auto slave_lag =
+        std::max(ReplicationLag::zero(),
+                 std::chrono::duration_cast<ReplicationLag>(
+                     target_xact_timestamp - slave.current_xact_timestamp));
+
+    dsn_stats_[i].replication_lag.GetCurrentCounter().Account(
+        std::chrono::duration_cast<std::chrono::milliseconds>(slave_lag)
+            .count());
+
+    if (slave_lag > topology_settings_.max_replication_lag) {
+      // Demote lagged slave
+      LOG_INFO() << "Disabling slave " << slave.app_name
+                 << " due to replication lag of " << slave_lag.count()
+                 << " ms (max "
+                 << topology_settings_.max_replication_lag.count() << " ms)";
+      slave.role = ClusterHostType::kNone;
+    } else if (master) {
+      // Check for sync slave
+      // O(N^2), seems OK for expected number of items
+      for (const auto& ss_app_name : master->detected_sync_slaves) {
+        if (::utils::StrIcaseEqual{}(slave.app_name, ss_app_name)) {
+          LOG_DEBUG() << slave.app_name << " is a sync slave";
+          slave.role = ClusterHostType::kSyncSlave;
         }
       }
+    }
+  }
+
+  // Demote readonly master to slave
+  if (master && master->is_readonly) {
+    if (!testsuite_pg_ctl_.IsReadonlyMasterExpected()) {
+      LOG_WARNING() << "Primary host is not writable, possibly due to "
+                       "insufficient disk space";
+    }
+    master->role = ClusterHostType::kSlave;
+  }
+
+  DsnIndices alive_dsn_indices;
+  for (DsnIndex i = 0; i < dsns_.size(); ++i) {
+    if (host_states_[i].role != ClusterHostType::kNone) {
+      alive_dsn_indices.push_back(i);
     }
   }
 
@@ -204,14 +301,14 @@ void QuorumCommitTopology::Impl::RunDiscovery() {
     const auto& state = host_states_[idx];
 
     dsn_indices_by_type[state.role].push_back(idx);
-    // Always allow using sync slaves for slave requests, mainly for transition
-    // purposes -- TAXICOMMON-2006
+    // Always allow using sync slaves for slave requests, mainly for
+    // transition purposes -- TAXICOMMON-2006
     if (state.role == ClusterHostType::kSyncSlave) {
       dsn_indices_by_type[ClusterHostType::kSlave].push_back(idx);
     }
   }
   dsn_indices_by_type_.Assign(std::move(dsn_indices_by_type));
-  alive_dsn_indices_.Assign(alive_dsn_indices);
+  alive_dsn_indices_.Assign(std::move(alive_dsn_indices));
 }
 
 void QuorumCommitTopology::Impl::StartPeriodicTask() {
@@ -229,12 +326,7 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
   const auto& dsn = dsns_[idx];
   auto& state = host_states_[idx];
 
-  ::utils::ScopeGuard role_check_guard([&state] {
-    state.connection.reset();
-    state.role = ClusterHostType::kNone;
-    state.roundtrip_time = kUnknownRtt;
-    state.detected_sync_slaves.clear();
-  });
+  ::utils::ScopeGuard role_check_guard([&state] { state.Reset(); });
 
   if (!state.connection) {
     try {
@@ -250,11 +342,18 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(kCheckTimeout);
   auto start = std::chrono::steady_clock::now();
   try {
-    auto ro = state.connection->CheckReadOnly(deadline);
-    state.role = ro ? ClusterHostType::kSlave : ClusterHostType::kMaster;
+    state.connection->RefreshReplicaState(deadline);
+    state.role = state.connection->IsInRecovery() ? ClusterHostType::kSlave
+                                                  : ClusterHostType::kMaster;
+    state.is_readonly = state.connection->IsReadOnly();
     state.roundtrip_time = std::chrono::duration_cast<Rtt>(
         std::chrono::steady_clock::now() - start);
-    if (state.role == ClusterHostType::kMaster) {
+    state.connection
+        ->Execute(state.connection->IsInRecovery() ? kGetSlaveWalInfo
+                                                   : kGetMasterWalInfo)
+        .Front()
+        .To(state.wal_lsn, state.current_xact_timestamp);
+    if (!state.connection->IsInRecovery()) {
       auto res = state.connection->Execute(kShowSyncStandbyNames);
       state.detected_sync_slaves =
           ParseSyncStandbyNames(res.AsSingleRow<std::string>());
@@ -270,12 +369,14 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
 
 QuorumCommitTopology::QuorumCommitTopology(
     engine::TaskProcessor& bg_task_processor, DsnList dsns,
+    const TopologySettings& topology_settings,
     const ConnectionSettings& conn_settings,
     const CommandControl& default_cmd_ctl,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings)
-    : pimpl_(bg_task_processor, std::move(dsns), conn_settings, default_cmd_ctl,
-             testsuite_pg_ctl, std::move(ei_settings)){};
+    : pimpl_(bg_task_processor, std::move(dsns), topology_settings,
+             conn_settings, default_cmd_ctl, testsuite_pg_ctl,
+             std::move(ei_settings)){};
 
 QuorumCommitTopology::~QuorumCommitTopology() = default;
 
@@ -291,6 +392,11 @@ QuorumCommitTopology::GetDsnIndicesByType() const {
 rcu::ReadablePtr<QuorumCommitTopology::DsnIndices>
 QuorumCommitTopology::GetAliveDsnIndices() const {
   return pimpl_->GetAliveDsnIndices();
+}
+
+const std::vector<decltype(InstanceStatistics::topology)>&
+QuorumCommitTopology::GetDsnStatistics() const {
+  return pimpl_->GetDsnStatistics();
 }
 
 std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {

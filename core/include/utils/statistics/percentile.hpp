@@ -24,7 +24,7 @@ namespace utils::statistics {
  * @see GetPercentile
  * @see Account
  */
-template <size_t M, typename Counter = unsigned int, size_t ExtraBuckets = 0,
+template <size_t M, typename Counter = uint32_t, size_t ExtraBuckets = 0,
           size_t ExtraBucketSize = 500>
 class Percentile final {
  public:
@@ -34,21 +34,26 @@ class Percentile final {
     count_ = 0;
   }
 
-  Percentile(
-      const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>& other) {
+  Percentile(const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>&
+                 other) noexcept {
+    *this = other;
+  }
+
+  Percentile& operator=(const Percentile& rhs) noexcept {
     size_t sum = 0;
     for (size_t i = 0; i < values_.size(); i++) {
-      const auto value = other.values_[i].load(std::memory_order_relaxed);
+      const auto value = rhs.values_[i].load(std::memory_order_relaxed);
       values_[i].store(value, std::memory_order_relaxed);
       sum += value;
     }
 
     for (size_t i = 0; i < extra_values_.size(); i++) {
-      const auto value = other.extra_values_[i].load(std::memory_order_relaxed);
+      const auto value = rhs.extra_values_[i].load(std::memory_order_relaxed);
       extra_values_[i].store(value, std::memory_order_relaxed);
       sum += value;
     }
     count_ = sum;
+    return *this;
   }
 
   /** \brief Account for another value. Value is truncated [0..M) and

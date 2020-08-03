@@ -279,6 +279,7 @@ enum class PredefinedOids {
   kUuid = 2950,
   kUuidArray = 2951,  // Not in documentation
   kLsn = 3220,
+  kLsnArray = 3221,
   kTsvector = 3614,
   kGtsvector = 3642,
   kTsquery = 3615,
@@ -360,6 +361,9 @@ struct ArrayType<PredefinedOids::kXid>
 template <>
 struct ArrayType<PredefinedOids::kCid>
     : PredefinedOid<PredefinedOids::kCidArray> {};
+template <>
+struct ArrayType<PredefinedOids::kLsn>
+    : PredefinedOid<PredefinedOids::kLsnArray> {};
 
 template <>
 struct ArrayType<PredefinedOids::kFloat4>

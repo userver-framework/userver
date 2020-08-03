@@ -1,6 +1,7 @@
 #pragma once
 
 #include <compiler/demangle.hpp>
+#include <storages/postgres/internal_pg_types.hpp>
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 
@@ -72,6 +73,19 @@ struct BufferFormatter<std::uint16_t>
 };
 
 template <>
+struct BufferParser<Lsn> : detail::BufferParserBase<Lsn> {
+  using BufferParserBase::BufferParserBase;
+
+  void operator()(const FieldBuffer& buffer) {
+    Bigint tmp;
+    io::ReadBuffer(buffer, tmp);
+    value.GetUnderlying() = tmp;
+  }
+};
+
+template <>
 struct CppToSystemPg<Oid> : PredefinedOid<PredefinedOids::kOid> {};
+template <>
+struct CppToSystemPg<Lsn> : PredefinedOid<PredefinedOids::kLsn> {};
 
 }  // namespace storages::postgres::io

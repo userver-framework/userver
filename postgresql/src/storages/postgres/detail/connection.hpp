@@ -130,8 +130,10 @@ class Connection {
   /// @note May only be called when connection is not in transaction
   Statistics GetStatsAndReset();
 
+  bool IsInRecovery() const;
   bool IsReadOnly() const;
-  bool CheckReadOnly(engine::Deadline) const;
+  void RefreshReplicaState(engine::Deadline) const;
+
   /// Get current connection state
   ConnectionState GetState() const;
   /// Check if the connection is active

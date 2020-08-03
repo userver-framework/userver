@@ -23,6 +23,7 @@ namespace storages::postgres::detail {
 class ClusterImpl {
  public:
   ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+              const TopologySettings& topology_settings,
               const PoolSettings& pool_settings,
               const ConnectionSettings& conn_settings,
               const CommandControl& default_cmd_ctl,

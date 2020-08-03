@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <type_traits>
 
@@ -30,11 +31,16 @@ class MinMaxAvg final {
 
   MinMaxAvg() noexcept : minimum_(0), maximum_(0), sum_(0), count_(0) {}
 
-  MinMaxAvg(MinMaxAvg&& other) noexcept
-      : minimum_(other.minimum_.load(std::memory_order_relaxed)),
-        maximum_(other.maximum_.load(std::memory_order_relaxed)),
-        sum_(other.sum_.load(std::memory_order_relaxed)),
-        count_(other.count_.load(std::memory_order_acquire)) {}
+  MinMaxAvg(const MinMaxAvg& other) noexcept { *this = other; }
+
+  MinMaxAvg& operator=(const MinMaxAvg& rhs) noexcept {
+    const auto count = rhs.count_.load(std::memory_order_acquire);
+    minimum_ = rhs.minimum_.load(std::memory_order_relaxed);
+    maximum_ = rhs.maximum_.load(std::memory_order_relaxed);
+    sum_ = rhs.sum_.load(std::memory_order_relaxed);
+    count_ = count;
+    return *this;
+  }
 
   Current GetCurrent() const {
     Current current;
@@ -64,7 +70,10 @@ class MinMaxAvg final {
     count_.fetch_add(1, std::memory_order_release);
   }
 
-  void Add(const MinMaxAvg& other) {
+  template <class Duration = std::chrono::seconds>
+  void Add(const MinMaxAvg& other,
+           [[maybe_unused]] Duration this_epoch_duration = Duration(),
+           [[maybe_unused]] Duration before_this_epoch_duration = Duration()) {
     T current_minimum = minimum_.load(std::memory_order_relaxed);
     while (current_minimum > other.minimum_.load(std::memory_order_relaxed) ||
            !count_.load(std::memory_order_relaxed)) {

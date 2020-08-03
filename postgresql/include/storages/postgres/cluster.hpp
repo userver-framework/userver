@@ -69,6 +69,7 @@ class Cluster {
   /// Cluster constructor
   /// @param dsns List of DSNs to connect to
   /// @param bg_task_processor task processor for blocking connection operations
+  /// @param topology_settings settings for host discovery
   /// @param pool_settings settings for connection pools
   /// @param conn_settings settings for individual connections
   /// @param default_cmd_ctl default command execution options
@@ -78,6 +79,7 @@ class Cluster {
   /// available, `PoolError` is thrown for every new connection
   /// request
   Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+          const TopologySettings& topology_settings,
           const PoolSettings& pool_settings,
           const ConnectionSettings& conn_settings,
           const CommandControl& default_cmd_ctl,
