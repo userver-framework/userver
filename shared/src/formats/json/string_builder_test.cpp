@@ -203,6 +203,18 @@ TEST(JsonStringBuilder, Second) {
   EXPECT_EQ(sw.GetString(), "42");
 }
 
+TEST(JsonStringBuilder, EmptyOptional) {
+  StringBuilder sw;
+  WriteToStream(std::optional<int>{}, sw);
+  EXPECT_EQ(sw.GetString(), "null");
+}
+
+TEST(JsonStringBuilder, FilledOptional) {
+  StringBuilder sw;
+  WriteToStream(std::optional<int>{42}, sw);
+  EXPECT_EQ(sw.GetString(), "42");
+}
+
 template <typename T>
 class JsonStringBuilderIntegralTypes : public ::testing::Test {};
 

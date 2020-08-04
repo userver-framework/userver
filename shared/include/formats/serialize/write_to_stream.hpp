@@ -50,7 +50,10 @@ void WriteToStream(const std::variant<Types...>& value, StringBuilder& sw) {
 /// std::optional serialization
 template <typename T, typename StringBuilder>
 void WriteToStream(const std::optional<T>& value, StringBuilder& sw) {
-  if (!value) return;
+  if (!value) {
+    sw.WriteNull();
+    return;
+  }
 
   WriteToStream(*value, sw);
 }
