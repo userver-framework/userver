@@ -496,11 +496,11 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
             std::move(*p),
             formats::parse::To<pg_cache::detail::ValueType<PolicyType>>());
         auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
-        data_cache->insert({std::move(key), std::move(value)});
+        data_cache->insert_or_assign(std::move(key), std::move(value));
       } else {
         auto value = *p;
         auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
-        data_cache->insert({std::move(key), std::move(value)});
+        data_cache->insert_or_assign(std::move(key), std::move(value));
       }
     } catch (const std::exception& e) {
       stats_scope.IncreaseDocumentsParseFailures(1);

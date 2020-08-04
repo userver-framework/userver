@@ -96,8 +96,8 @@ struct MyStructureWithRevision {
 
 class UserSpecificCache {
  public:
-  void insert(std::pair<int, MyStructureWithRevision>&& item) {
-    latest_revision_ = std::max(latest_revision_, item.second.revision);
+  void insert_or_assign(int, MyStructureWithRevision&& item) {
+    latest_revision_ = std::max(latest_revision_, item.revision);
   }
   size_t size() const { return 0; }
 
