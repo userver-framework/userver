@@ -29,7 +29,7 @@ namespace {
 
 /// Size of error message buffer for PQcancel
 /// 256 bytes is recommended in libpq documentation
-/// https://www.postgresql.org/docs/10/static/libpq-cancel.html
+/// https://www.postgresql.org/docs/12/static/libpq-cancel.html
 constexpr int kErrBufferSize = 256;
 // TODO move to config
 constexpr bool kVerboseErrors = false;
@@ -58,10 +58,8 @@ const char* MsgForStatus(ConnStatusType status) {
       return "PQstatus: Checking connection to handle writes";
     case CONNECTION_CONSUME:
       return "PQstatus: Consuming remaining response messages on connection";
-#if PG_VERSION_NUM >= 120000
     case CONNECTION_GSS_STARTUP:
       return "PQstatus: Negotiating GSSAPI";
-#endif
   }
 }
 

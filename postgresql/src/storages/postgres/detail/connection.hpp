@@ -100,7 +100,7 @@ class Connection {
   ///
   /// Will suspend current coroutine
   ///
-  /// @param dsn DSN, @see https://www.postgresql.org/docs/10/static/libpq-connect.html#LIBPQ-CONNSTRING
+  /// @param dsn DSN, @see https://www.postgresql.org/docs/12/static/libpq-connect.html#LIBPQ-CONNSTRING
   /// @param bg_task_processor task processor for blocking operations
   /// @param id host-wide unique id for connection identification in logs
   /// @param conn_settings the connection settings

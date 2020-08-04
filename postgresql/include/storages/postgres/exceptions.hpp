@@ -210,7 +210,7 @@ class ConnectionFailed : public ConnectionError {
 };
 
 /// @brief Connection error reported by PostgreSQL server.
-/// Doc: https://www.postgresql.org/docs/10/static/errcodes-appendix.html
+/// Doc: https://www.postgresql.org/docs/12/static/errcodes-appendix.html
 /// Class 08 - Connection exception
 class ServerConnectionError : public ServerError<ConnectionError> {
   using ServerError::ServerError;
@@ -315,7 +315,7 @@ class CardinalityViolation : public ServerLogicError {
 //@{
 /** @name Class 22 — Data Exception */
 /// @brief Base class for data exceptions
-/// Doc: https://www.postgresql.org/docs/10/static/errcodes-appendix.html
+/// Doc: https://www.postgresql.org/docs/12/static/errcodes-appendix.html
 class DataException : public ServerRuntimeError {
   using ServerRuntimeError::ServerRuntimeError;
 };
@@ -325,7 +325,7 @@ class DataException : public ServerRuntimeError {
 /** @name Class 23 — Integrity Constraint Violation */
 // TODO Shortcut accessors to respective message fields
 /// @brief Base class for integrity constraint violation errors.
-/// Doc: https://www.postgresql.org/docs/10/static/errcodes-appendix.html
+/// Doc: https://www.postgresql.org/docs/12/static/errcodes-appendix.html
 class IntegrityConstraintViolation : public ServerRuntimeError {
  public:
   using ServerRuntimeError::ServerRuntimeError;

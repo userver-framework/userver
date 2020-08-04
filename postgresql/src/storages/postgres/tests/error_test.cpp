@@ -231,6 +231,11 @@ TEST(PostgreError, SqlState) {
             pg::SqlStateFromString("22023"));
   EXPECT_EQ(pg::SqlStateClass::kDataException,
             pg::GetSqlStateClass(pg::SqlState::kInvalidParameterValue));
+  EXPECT_EQ(pg::SqlState::kInvalidPrecedingOrFollowingSize,
+            pg::SqlStateFromString("22013"));
+  EXPECT_EQ(
+      pg::SqlStateClass::kDataException,
+      pg::GetSqlStateClass(pg::SqlState::kInvalidPrecedingOrFollowingSize));
   EXPECT_EQ(pg::SqlState::kInvalidRegularExpression,
             pg::SqlStateFromString("2201B"));
   EXPECT_EQ(pg::SqlStateClass::kDataException,
@@ -340,6 +345,64 @@ TEST(PostgreError, SqlState) {
   EXPECT_EQ(
       pg::SqlStateClass::kDataException,
       pg::GetSqlStateClass(pg::SqlState::kInvalidXmlProcessingInstruction));
+  EXPECT_EQ(pg::SqlState::kDuplicateJsonObjectKeyValue,
+            pg::SqlStateFromString("22030"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kDuplicateJsonObjectKeyValue));
+  EXPECT_EQ(pg::SqlState::kInvalidJsonText, pg::SqlStateFromString("22032"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kInvalidJsonText));
+  EXPECT_EQ(pg::SqlState::kInvalidSqlJsonSubscript,
+            pg::SqlStateFromString("22033"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kInvalidSqlJsonSubscript));
+  EXPECT_EQ(pg::SqlState::kMoreThanOneSqlJsonItem,
+            pg::SqlStateFromString("22034"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kMoreThanOneSqlJsonItem));
+  EXPECT_EQ(pg::SqlState::kNoSqlJsonItem, pg::SqlStateFromString("22035"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kNoSqlJsonItem));
+  EXPECT_EQ(pg::SqlState::kNonNumericSqlJsonItem,
+            pg::SqlStateFromString("22036"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kNonNumericSqlJsonItem));
+  EXPECT_EQ(pg::SqlState::kNonUniqueKeysInAJsonObject,
+            pg::SqlStateFromString("22037"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kNonUniqueKeysInAJsonObject));
+  EXPECT_EQ(pg::SqlState::kSingletonSqlJsonItemRequired,
+            pg::SqlStateFromString("22038"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kSingletonSqlJsonItemRequired));
+  EXPECT_EQ(pg::SqlState::kSqlJsonArrayNotFound,
+            pg::SqlStateFromString("22039"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kSqlJsonArrayNotFound));
+  EXPECT_EQ(pg::SqlState::kSqlJsonMemberNotFound,
+            pg::SqlStateFromString("2203A"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kSqlJsonMemberNotFound));
+  EXPECT_EQ(pg::SqlState::kSqlJsonNumberNotFound,
+            pg::SqlStateFromString("2203B"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kSqlJsonNumberNotFound));
+  EXPECT_EQ(pg::SqlState::kSqlJsonObjectNotFound,
+            pg::SqlStateFromString("2203C"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kSqlJsonObjectNotFound));
+  EXPECT_EQ(pg::SqlState::kTooManyJsonArrayElements,
+            pg::SqlStateFromString("2203D"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kTooManyJsonArrayElements));
+  EXPECT_EQ(pg::SqlState::kTooManyJsonObjectMembers,
+            pg::SqlStateFromString("2203E"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kTooManyJsonObjectMembers));
+  EXPECT_EQ(pg::SqlState::kSqlJsonScalarRequired,
+            pg::SqlStateFromString("2203F"));
+  EXPECT_EQ(pg::SqlStateClass::kDataException,
+            pg::GetSqlStateClass(pg::SqlState::kSqlJsonScalarRequired));
   // Class 23 — Integrity Constraint Violation
   EXPECT_EQ(pg::SqlState::kIntegrityConstraintViolation,
             pg::SqlStateFromString("23000"));
@@ -774,6 +837,10 @@ TEST(PostgreError, SqlState) {
   EXPECT_EQ(pg::SqlState::kLockNotAvailable, pg::SqlStateFromString("55P03"));
   EXPECT_EQ(pg::SqlStateClass::kObjectNotInPrerequisiteState,
             pg::GetSqlStateClass(pg::SqlState::kLockNotAvailable));
+  EXPECT_EQ(pg::SqlState::kUnsafeNewEnumValueUsage,
+            pg::SqlStateFromString("55P04"));
+  EXPECT_EQ(pg::SqlStateClass::kObjectNotInPrerequisiteState,
+            pg::GetSqlStateClass(pg::SqlState::kUnsafeNewEnumValueUsage));
   // Class 57 — Operator Intervention
   EXPECT_EQ(pg::SqlState::kOperatorIntervention,
             pg::SqlStateFromString("57000"));

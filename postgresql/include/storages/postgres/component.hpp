@@ -96,7 +96,7 @@ namespace components {
 /// The `shard_number` parameter is required in both formats and must match the
 /// index of cluster description object in the alias array.
 ///
-/// Please see [PostgreSQL documentation](https://www.postgresql.org/docs/10/libpq-connect.html#LIBPQ-CONNSTRING)
+/// Please see [PostgreSQL documentation](https://www.postgresql.org/docs/12/libpq-connect.html#LIBPQ-CONNSTRING)
 /// on connection strings.
 ///
 /// ## Available options:

@@ -58,14 +58,14 @@ USERVER_BUILDDEPS=" \
   libyandex-taxi-grpc++-dev \
   libyandex-taxi-jemalloc-dev \
   libyandex-taxi-mongo-c-driver-dev \
-  postgresql-server-dev-10 \
+  postgresql-server-dev-12 \
   yandex-taxi-protobuf-compiler-grpc \
   zlib1g-dev \
 "
 
 OPTIONAL_PACKAGES=" \
   mongodb \
-  postgresql-10 \
+  postgresql-12 \
   redis-server \
 "
 

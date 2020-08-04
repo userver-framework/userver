@@ -8,11 +8,6 @@
 
 #include <internal/libpq-int.h>
 
-#if PG_VERSION_NUM >= 120000
-// this function was removed in 12.0
-static void pqHandleSendFailure(PGconn* conn) { (void)conn; }
-#endif
-
 /*
  * Common startup code for PQsendQuery and sibling routines
  *
@@ -92,19 +87,19 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
   /* Construct the Bind message */
   if (pqPutMsgStart('B', false, conn) < 0 || pqPuts(portal_name, conn) < 0 ||
       pqPuts(stmt_name, conn) < 0)
-    goto sendFailed;
+    return 0;
 
   /* Send parameter formats */
   if (n_params > 0 && param_formats) {
-    if (pqPutInt(n_params, 2, conn) < 0) goto sendFailed;
+    if (pqPutInt(n_params, 2, conn) < 0) return 0;
     for (int i = 0; i < n_params; ++i) {
-      if (pqPutInt(param_formats[i], 2, conn) < 0) goto sendFailed;
+      if (pqPutInt(param_formats[i], 2, conn) < 0) return 0;
     }
   } else {
-    if (pqPutInt(0, 2, conn) < 0) goto sendFailed;
+    if (pqPutInt(0, 2, conn) < 0) return 0;
   }
 
-  if (pqPutInt(n_params, 2, conn) < 0) goto sendFailed;
+  if (pqPutInt(n_params, 2, conn) < 0) return 0;
 
   /* Send parameters */
   for (int i = 0; i < n_params; ++i) {
@@ -118,7 +113,7 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
           // Format message buffer
           printfPQExpBuffer(&conn->errorMessage,
                             "length must be given for binary parameter\n");
-          goto sendFailed;
+          return 0;
         }
       } else {
         /* text parameter, do not use param_lengths */
@@ -126,20 +121,20 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
       }
       if (pqPutInt(nbytes, 4, conn) < 0 ||
           pqPutnchar(param_values[i], nbytes, conn) < 0)
-        goto sendFailed;
+        return 0;
     } else {
       /* take the param as NULL */
-      if (pqPutInt(-1, 4, conn) < 0) goto sendFailed;
+      if (pqPutInt(-1, 4, conn) < 0) return 0;
     }
   }
   /* Send result format */
   if (pqPutInt(1, 2, conn) < 0 || pqPutInt(result_format, 2, conn) < 0)
-    goto sendFailed;
-  if (pqPutMsgEnd(conn) < 0) goto sendFailed;
+    return 0;
+  if (pqPutMsgEnd(conn) < 0) return 0;
 
   /* construct the Sync message, not sure it is required */
   if (pqPutMsgStart('S', false, conn) < 0 || pqPutMsgEnd(conn) < 0)
-    goto sendFailed;
+    return 0;
 
   /* remember we are using extended query protocol */
   conn->queryclass = PGQUERY_EXTENDED;
@@ -151,15 +146,11 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
    * Give the data a push.  In nonblock mode, don't complain if we're unable
    * to send it all; PQgetResult() will do any additional flushing needed.
    */
-  if (pqFlush(conn) < 0) goto sendFailed;
+  if (pqFlush(conn) < 0) return 0;
 
   /* OK, it's launched! */
   conn->asyncStatus = PGASYNC_BUSY;
   return 1;
-
-sendFailed:
-  pqHandleSendFailure(conn);
-  return 0;
 }
 
 /*
@@ -183,16 +174,16 @@ int PQXSendPortalExecute(PGconn* conn, const char* portal_name, int n_rows) {
   /* construct the Describe Portal message */
   if (pqPutMsgStart('D', false, conn) < 0 || pqPutc('P', conn) < 0 ||
       pqPuts(portal_name, conn) < 0 || pqPutMsgEnd(conn) < 0)
-    goto sendFailed;
+    return 0;
 
   /* construct the Execute message */
   if (pqPutMsgStart('E', false, conn) < 0 || pqPuts(portal_name, conn) < 0 ||
       pqPutInt(n_rows, 4, conn) < 0 || pqPutMsgEnd(conn) < 0)
-    goto sendFailed;
+    return 0;
 
   /* construct the Sync message */
   if (pqPutMsgStart('S', false, conn) < 0 || pqPutMsgEnd(conn) < 0)
-    goto sendFailed;
+    return 0;
 
   /* remember we are using extended query protocol */
   conn->queryclass = PGQUERY_EXTENDED;
@@ -204,13 +195,9 @@ int PQXSendPortalExecute(PGconn* conn, const char* portal_name, int n_rows) {
    * Give the data a push.  In nonblock mode, don't complain if we're unable
    * to send it all; PQgetResult() will do any additional flushing needed.
    */
-  if (pqFlush(conn) < 0) goto sendFailed;
+  if (pqFlush(conn) < 0) return 0;
 
   /* OK, it's launched! */
   conn->asyncStatus = PGASYNC_BUSY;
   return 1;
-
-sendFailed:
-  pqHandleSendFailure(conn);
-  return 0;
 }

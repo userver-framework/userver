@@ -97,7 +97,7 @@ const std::string& BeginStatement(const TransactionOptions&);
 /// parameter, and it controls the time the database backend can spend executing
 /// a single statement. It is very costly to change the statement timeout
 /// often, as it requires a roundtrip to the database to change the setting.
-/// @see https://www.postgresql.org/docs/10/runtime-config-client.html
+/// @see https://www.postgresql.org/docs/12/runtime-config-client.html
 ///
 /// `execute` timeout should always be greater than the `statement` timeout!
 ///

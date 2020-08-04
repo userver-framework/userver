@@ -32,11 +32,11 @@ TimePoint PostgresEpoch();
 
 /// Constant equivalent to PostgreSQL 'infinity'::timestamp, a time point that
 /// is later than all other time points
-/// https://www.postgresql.org/docs/10/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
+/// https://www.postgresql.org/docs/12/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
 const TimePoint kTimestampPositiveInfinity = TimePoint::max();
 /// Constant equivalent to PostgreSQL '-infinity'::timestamp, a time point that
 /// is earlier than all other time points
-/// https://www.postgresql.org/docs/10/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
+/// https://www.postgresql.org/docs/12/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
 const TimePoint kTimestampNegativeInfinity = TimePoint::min();
 
 /**

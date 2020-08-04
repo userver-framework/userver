@@ -68,7 +68,7 @@ struct DBTypeName {
 /// @brief Description of a PostgreSQL type.
 /// The structure is selected from the pg_catalog.pg_type table (not all, only
 /// appropriate fields).
-/// See https://www.postgresql.org/docs/10/catalog-pg-type.html
+/// See https://www.postgresql.org/docs/12/catalog-pg-type.html
 struct DBTypeDescription {
   enum class TypeClass : char {
     kBase = 'b',
@@ -80,34 +80,34 @@ struct DBTypeDescription {
   };
   /// @brief PosgtreSQL type category.
   /// See
-  /// https://www.postgresql.org/docs/10/catalog-pg-type.html#CATALOG-TYPCATEGORY-TABLE
+  /// https://www.postgresql.org/docs/12/catalog-pg-type.html#CATALOG-TYPCATEGORY-TABLE
   enum class TypeCategory : char {
     kInvalid = 0,  //!< Invalid type category
-    kArray = 'A',  //!< https://www.postgresql.org/docs/10/arrays.html
+    kArray = 'A',  //!< https://www.postgresql.org/docs/12/arrays.html
     kBoolean =
-        'B',  //!< https://www.postgresql.org/docs/10/datatype-boolean.html
-    kComposite = 'C',  //!< https://www.postgresql.org/docs/10/rowtypes.html
+        'B',  //!< https://www.postgresql.org/docs/12/datatype-boolean.html
+    kComposite = 'C',  //!< https://www.postgresql.org/docs/12/rowtypes.html
     kDatetime =
-        'D',  //!< https://www.postgresql.org/docs/10/datatype-datetime.html
+        'D',  //!< https://www.postgresql.org/docs/12/datatype-datetime.html
     kEnumeration =
-        'E',  //!< https://www.postgresql.org/docs/10/datatype-enum.html
+        'E',  //!< https://www.postgresql.org/docs/12/datatype-enum.html
     kGeometric =
-        'G',  //!< https://www.postgresql.org/docs/10/datatype-geometric.html
+        'G',  //!< https://www.postgresql.org/docs/12/datatype-geometric.html
     kNetwork =
-        'I',  //!< https://www.postgresql.org/docs/10/datatype-net-types.html
+        'I',  //!< https://www.postgresql.org/docs/12/datatype-net-types.html
     kNumeric =
-        'N',  //!< https://www.postgresql.org/docs/10/datatype-numeric.html
+        'N',  //!< https://www.postgresql.org/docs/12/datatype-numeric.html
     kPseudotype =
-        'P',       //!< https://www.postgresql.org/docs/10/datatype-pseudo.html
-    kRange = 'R',  //!< https://www.postgresql.org/docs/10/rangetypes.html
+        'P',       //!< https://www.postgresql.org/docs/12/datatype-pseudo.html
+    kRange = 'R',  //!< https://www.postgresql.org/docs/12/rangetypes.html
     kString =
-        'S',  //!< https://www.postgresql.org/docs/10/datatype-character.html
+        'S',  //!< https://www.postgresql.org/docs/12/datatype-character.html
     kTimespan =
-        'T',      //!< https://www.postgresql.org/docs/10/datatype-datetime.html
+        'T',      //!< https://www.postgresql.org/docs/12/datatype-datetime.html
     kUser = 'U',  //!< User types, created by fourth form of create type
                   /// statement
-                  /// https://www.postgresql.org/docs/10/sql-createtype.html
-    kBitstring = 'V',  //!< https://www.postgresql.org/docs/10/datatype-bit.html
+                  /// https://www.postgresql.org/docs/12/sql-createtype.html
+    kBitstring = 'V',  //!< https://www.postgresql.org/docs/12/datatype-bit.html
     kUnknown = 'X'     //!< Unknown type category
   };
 

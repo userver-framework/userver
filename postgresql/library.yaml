@@ -12,7 +12,7 @@ debian:
     build_dependencies:
       - libboost-regex-dev
       - libpq-dev
-      - postgresql-server-dev-10
+      - postgresql-server-dev-12
       - libldap2-dev
       - python3-yandex-pgmigrate
 
