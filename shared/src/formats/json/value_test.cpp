@@ -106,3 +106,14 @@ TEST(FormatsJson, ParseNanInf) {
   ASSERT_THROW(FromString(R"({"field": Inf})"), ParseException);
   ASSERT_THROW(FromString(R"({"field": -Inf})"), ParseException);
 }
+
+TEST(FormatsJson, NulString) {
+  std::string i_contain_nuls = "test";
+  i_contain_nuls += '\x00';
+  i_contain_nuls += "test";
+
+  auto s = formats::json::ValueBuilder(i_contain_nuls)
+               .ExtractValue()
+               .As<std::string>();
+  ASSERT_EQ(i_contain_nuls, s);
+}
