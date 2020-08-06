@@ -80,6 +80,10 @@ formats::json::Value Client::FetchConfigs(
     body_builder["stage_name"] = config_.stage_name;
   }
 
+  if (config_.get_configs_overrides_for_service) {
+    body_builder["service"] = config_.service_name;
+  }
+
   auto request_body = formats::json::ToString(body_builder.ExtractValue());
   LOG_DEBUG() << "request body: " << request_body;
 

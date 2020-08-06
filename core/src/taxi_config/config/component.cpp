@@ -24,6 +24,9 @@ TaxiConfigClient::TaxiConfigClient(const ComponentConfig& config,
                                    const ComponentContext& context)
     : LoggableComponentBase(config, context) {
   clients::taxi_config::ClientConfig client_config;
+  client_config.service_name = config.ParseString("service-name");
+  client_config.get_configs_overrides_for_service =
+      config.ParseBool("get-configs-overrides-for-service", true);
   client_config.use_uconfigs = config.ParseBool("use-uconfigs", false);
   client_config.timeout =
       utils::StringToDuration(config.ParseString("http-timeout"));
@@ -34,6 +37,13 @@ TaxiConfigClient::TaxiConfigClient(const ComponentConfig& config,
   } else {
     client_config.config_url = config.ParseString("config-url");
   }
+
+  if (client_config.use_uconfigs &&
+      client_config.get_configs_overrides_for_service) {
+    throw std::logic_error(
+        "Cannot get configs overrides for service with `uconfigs` yet");
+  }
+
   config_client_ = std::make_unique<clients::taxi_config::Client>(
       context.FindComponent<HttpClient>().GetHttpClient(), client_config);
 }

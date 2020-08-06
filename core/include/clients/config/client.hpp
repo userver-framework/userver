@@ -15,6 +15,8 @@ namespace clients {
 namespace taxi_config {
 
 struct ClientConfig {
+  std::string service_name;
+  bool get_configs_overrides_for_service;
   std::chrono::milliseconds timeout{0};
   int retries{1};
   std::string config_url;
