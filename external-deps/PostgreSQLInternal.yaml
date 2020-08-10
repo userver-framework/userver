@@ -24,5 +24,6 @@ libraries:
 
 debian-names:
   - libpq-dev
+  - postgresql-12
   - postgresql-server-dev-12
 formula-name: postgres
