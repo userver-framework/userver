@@ -399,11 +399,12 @@ TEST(BsonValueBuilder, Serialize) {
 }
 
 template <>
-struct Instantiation<formats::bson::ValueBuilder> : public ::testing::Test {
+struct InstantiationDeathTest<formats::bson::ValueBuilder>
+    : public ::testing::Test {
   using ValueBuilder = formats::bson::ValueBuilder;
 
   using Exception = formats::bson::BsonException;
 };
 
-INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, Instantiation,
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, InstantiationDeathTest,
                                formats::bson::ValueBuilder);

@@ -6,11 +6,12 @@
 #include <formats/common/value_builder_test.hpp>
 
 template <>
-struct Instantiation<formats::yaml::ValueBuilder> : public ::testing::Test {
+struct InstantiationDeathTest<formats::yaml::ValueBuilder>
+    : public ::testing::Test {
   using ValueBuilder = formats::yaml::ValueBuilder;
 
   using Exception = formats::yaml::Exception;
 };
 
-INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Instantiation,
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, InstantiationDeathTest,
                                formats::yaml::ValueBuilder);

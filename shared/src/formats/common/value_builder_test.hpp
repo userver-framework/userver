@@ -7,20 +7,32 @@
 namespace {
 
 template <class T>
-struct Instantiation : public ::testing::Test {};
-TYPED_TEST_SUITE_P(Instantiation);
+struct InstantiationDeathTest : public ::testing::Test {};
+TYPED_TEST_SUITE_P(InstantiationDeathTest);
 
 template <typename Float, typename ValueBuilder, typename Exception>
 void TestNanInfInstantiation() {
+// In debug builds we UASSERT for Nan/Inf
+#ifdef NDEBUG
   ASSERT_THROW(ValueBuilder{std::numeric_limits<Float>::signaling_NaN()},
                Exception)
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
   ASSERT_THROW(ValueBuilder{std::numeric_limits<Float>::quiet_NaN()}, Exception)
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_NO_THROW(ValueBuilder{std::numeric_limits<Float>::infinity()})
+  ASSERT_THROW(ValueBuilder{std::numeric_limits<Float>::infinity()})
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_NO_THROW(ValueBuilder{-std::numeric_limits<Float>::infinity()})
+  ASSERT_THROW(ValueBuilder{-std::numeric_limits<Float>::infinity()})
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
+#else
+  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::signaling_NaN()}, "")
+      << "Assertion failed for type " << compiler::GetTypeName<Float>();
+  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::quiet_NaN()}, "")
+      << "Assertion failed for type " << compiler::GetTypeName<Float>();
+  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::infinity()}, "")
+      << "Assertion failed for type " << compiler::GetTypeName<Float>();
+  ASSERT_DEATH(ValueBuilder{-std::numeric_limits<Float>::infinity()}, "")
+      << "Assertion failed for type " << compiler::GetTypeName<Float>();
+#endif
 }
 }  // namespace
 
@@ -30,7 +42,7 @@ namespace formats::bson {
 class ValueBuilder;
 }  // namespace formats::bson
 
-TYPED_TEST_P(Instantiation, NanInf) {
+TYPED_TEST_P(InstantiationDeathTest, NanInf) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
   using Exception = typename TestFixture::Exception;
 
@@ -42,4 +54,4 @@ TYPED_TEST_P(Instantiation, NanInf) {
   }
 }
 
-REGISTER_TYPED_TEST_SUITE_P(Instantiation, NanInf);
+REGISTER_TYPED_TEST_SUITE_P(InstantiationDeathTest, NanInf);

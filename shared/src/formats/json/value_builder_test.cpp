@@ -6,11 +6,12 @@
 #include <formats/common/value_builder_test.hpp>
 
 template <>
-struct Instantiation<formats::json::ValueBuilder> : public ::testing::Test {
+struct InstantiationDeathTest<formats::json::ValueBuilder>
+    : public ::testing::Test {
   using ValueBuilder = formats::json::ValueBuilder;
 
   using Exception = formats::json::Exception;
 };
 
-INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Instantiation,
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, InstantiationDeathTest,
                                formats::json::ValueBuilder);

@@ -248,12 +248,13 @@ TYPED_TEST(JsonStringBuilderIntegralTypes, Vector) {
 }
 
 template <typename T>
-class JsonStringBuilderFloatingTypes : public ::testing::Test {};
+class JsonStringBuilderFloatingTypesAndDeathTest : public ::testing::Test {};
 
 using StringBuilderFloatingTypes = ::testing::Types<float, double>;
-TYPED_TEST_SUITE(JsonStringBuilderFloatingTypes, StringBuilderFloatingTypes);
+TYPED_TEST_SUITE(JsonStringBuilderFloatingTypesAndDeathTest,
+                 StringBuilderFloatingTypes);
 
-TYPED_TEST(JsonStringBuilderFloatingTypes, Value) {
+TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Value) {
   TypeParam v = 2.0;
 
   StringBuilder sw;
@@ -263,7 +264,7 @@ TYPED_TEST(JsonStringBuilderFloatingTypes, Value) {
   EXPECT_EQ("2.0", sw.GetString());
 }
 
-TYPED_TEST(JsonStringBuilderFloatingTypes, Array) {
+TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Array) {
   std::array<TypeParam, 2> v = {4.0, 2.0};
 
   StringBuilder sw;
@@ -273,18 +274,39 @@ TYPED_TEST(JsonStringBuilderFloatingTypes, Array) {
   EXPECT_EQ("[4.0,2.0]", sw.GetString());
 }
 
-TEST(JsonStringBuilderFloatingTypes, Nan) {
+TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Nan) {
   StringBuilder sw;
-  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::quiet_NaN(), sw),
+
+#ifdef NDEBUG
+  EXPECT_THROW(WriteToStream(std::numeric_limits<TypeParam>::quiet_NaN(), sw),
                std::runtime_error);
-  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::signaling_NaN(), sw),
-               std::runtime_error);
+
+  EXPECT_THROW(
+      WriteToStream(std::numeric_limits<TypeParam>::signaling_NaN(), sw),
+      std::runtime_error);
+
+#else
+  ASSERT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::quiet_NaN(), sw),
+               "nan");
+  ASSERT_DEATH(
+      WriteToStream(std::numeric_limits<TypeParam>::signaling_NaN(), sw),
+      "nan");
+#endif
 }
 
-// TEST(JsonStringBuilderFloatingTypes, Inf) {
-//  StringBuilder sw;
-//  EXPECT_THROW(WriteToStream(std::numeric_limits<float>::infinity(), sw),
-//               std::runtime_error);
-//  EXPECT_THROW(WriteToStream(-std::numeric_limits<float>::infinity(), sw),
-//               std::runtime_error);
-//}
+TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Inf) {
+  StringBuilder sw;
+
+#ifdef NDEBUG
+  EXPECT_THROW(WriteToStream(std::numeric_limits<TypeParam>::infinity(), sw),
+               std::runtime_error);
+  EXPECT_THROW(WriteToStream(-std::numeric_limits<TypeParam>::infinity(), sw),
+               std::runtime_error);
+
+#else
+  ASSERT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::infinity(), sw),
+               "inf");
+  ASSERT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::infinity(), sw),
+               "inf");
+#endif
+}
