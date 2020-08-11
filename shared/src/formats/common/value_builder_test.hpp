@@ -19,9 +19,9 @@ void TestNanInfInstantiation() {
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
   ASSERT_THROW(ValueBuilder{std::numeric_limits<Float>::quiet_NaN()}, Exception)
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_THROW(ValueBuilder{std::numeric_limits<Float>::infinity()})
+  ASSERT_THROW(ValueBuilder{std::numeric_limits<Float>::infinity()}, Exception)
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_THROW(ValueBuilder{-std::numeric_limits<Float>::infinity()})
+  ASSERT_THROW(ValueBuilder{-std::numeric_limits<Float>::infinity()}, Exception)
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
 #else
   ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::signaling_NaN()}, "")
