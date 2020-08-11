@@ -21,11 +21,6 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
    public:
     Visitor(BsonBuilder& builder) : builder_(builder) {}
 
-    void operator()(std::nullptr_t) const {
-      UASSERT(!"Attempt to build a document from primitive type");
-      throw std::logic_error("Attempt to build a document from primitive type");
-    }
-
     void operator()(const ParsedDocument& doc) const {
       for (const auto& [key, elem] : doc) {
         builder_.AppendInto(builder_.bson_->Get(), key, *elem);
@@ -43,7 +38,14 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
    private:
     BsonBuilder& builder_;
   };
-  std::visit(Visitor(*this), value.parsed_value_);
+
+  const auto* parsed_ptr = value.parsed_value_.load();
+  if (!parsed_ptr) {
+    UASSERT(!"Attempt to build a document from primitive type");
+    throw std::logic_error("Attempt to build a document from primitive type");
+  }
+
+  std::visit(Visitor(*this), *parsed_ptr);
 }
 
 BsonBuilder::~BsonBuilder() = default;
@@ -179,13 +181,8 @@ void BsonBuilder::AppendInto(bson_t* dest, std::string_view key,
                              const ValueImpl& value) {
   class Visitor {
    public:
-    Visitor(BsonBuilder& builder, bson_t* dest, std::string_view key,
-            const bson_value_t* bson_value)
-        : builder_(builder), dest_(dest), key_(key), bson_value_(bson_value) {}
-
-    void operator()(std::nullptr_t) const {
-      bson_append_value(dest_, key_.data(), key_.size(), bson_value_);
-    }
+    Visitor(BsonBuilder& builder, bson_t* dest, std::string_view key)
+        : builder_(builder), dest_(dest), key_(key) {}
 
     void operator()(const ParsedDocument& doc) const {
       SubdocBson subdoc_bson(dest_, key_.data(), key_.size());
@@ -207,11 +204,15 @@ void BsonBuilder::AppendInto(bson_t* dest, std::string_view key,
     BsonBuilder& builder_;
     bson_t* dest_;
     std::string_view key_;
-    const bson_value_t* bson_value_;
   };
   if (value.IsMissing()) return;
-  std::visit(Visitor(*this, dest, key, &value.bson_value_),
-             value.parsed_value_);
+
+  const auto* parsed_ptr = value.parsed_value_.load();
+  if (!parsed_ptr) {
+    bson_append_value(dest, key.data(), key.size(), &value.bson_value_);
+  } else {
+    std::visit(Visitor(*this, dest, key), *parsed_ptr);
+  }
 }
 
 const bson_t* BsonBuilder::Get() const { return bson_->Get(); }

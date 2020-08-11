@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <thread>
+
 #include <formats/bson.hpp>
 
 namespace {
@@ -41,6 +43,28 @@ TEST(Binary, Empty) {
 TEST(Binary, Smoke) {
   EXPECT_EQ(kDocBinary, formats::bson::ToBinaryString(kDoc).ToString());
   EXPECT_EQ(kDoc, formats::bson::FromBinaryString(kDocBinary));
+}
+
+TEST(Binary, Concurrent) {
+  constexpr unsigned kValues = 50000;
+
+  std::vector<formats::bson::Value> binary_values;
+  binary_values.reserve(kValues);
+  for (unsigned i = 0; i < kValues; ++i) {
+    binary_values.push_back(formats::bson::FromBinaryString(kDocBinary));
+  }
+
+  auto loop_through = [&binary_values]() {
+    for (auto& v : binary_values) {
+      for (const auto& [key, value] : Items(v)) {
+        EXPECT_TRUE(key.size() >= 3);
+      }
+    }
+  };
+
+  std::thread t1(loop_through);
+  loop_through();
+  t1.join();
 }
 
 TEST(Binary, Invalid) {

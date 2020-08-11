@@ -13,25 +13,33 @@ namespace {
 
 constexpr bson_value_t kDefaultBsonValue{BSON_TYPE_EOD, {}, {}};
 
-class IsNullptrVisitor {
- public:
-  bool operator()(std::nullptr_t) const { return true; }
+void RelaxedSetParsedValue(std::atomic<ValueImpl::ParsedValue*>& parsed_value,
+                           ValueImpl::ParsedValue&& value) {
+  UASSERT(parsed_value.load(std::memory_order_relaxed) == nullptr);
+  using ParsedValue = ValueImpl::ParsedValue;
+  parsed_value.store(new ParsedValue(std::move(value)),
+                     std::memory_order_relaxed);
+}
 
-  template <typename T>
-  bool operator()(const T&) const {
-    return false;
+void AtomicSetParsedValue(
+    std::atomic<ValueImpl::ParsedValue*>& parsed_value,
+    std::unique_ptr<ValueImpl::ParsedValue>&& desired) noexcept {
+  // More than one thread may be reading the bson::Value, so rarely we may have
+  // more than one thread at this point.
+  //
+  // To avoid locking, we allow all of the threads to do the decoding, but only
+  // the first succeeds. Concurrent work with bson::Value is very rare, so we
+  // assume the overhead is rare and negligible because of that.
+
+  ValueImpl::ParsedValue* expected = nullptr;
+  if (parsed_value.compare_exchange_strong(expected, desired.get())) {
+    // clang-tidy complains on just `desired.release();`
+    [[maybe_unused]] auto already_owned_by_parsed_value = desired.release();
   }
-};
-
-template <typename Variant>
-bool IsNullptr(const Variant& variant) {
-  return std::visit(IsNullptrVisitor{}, variant);
 }
 
 class DeepCopyVisitor {
  public:
-  ValueImpl::ParsedValue operator()(std::nullptr_t) const { return nullptr; }
-
   ValueImpl::ParsedValue operator()(const ParsedDocument& src) const {
     ParsedDocument dest;
     dest.reserve(src.size());
@@ -160,10 +168,14 @@ class ValueImpl::EmplaceEnabler {};
 
 ValueImpl::ValueImpl()
     : bson_value_(kDefaultBsonValue),
+      parsed_value_(nullptr),
       duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {}
+
+ValueImpl::~ValueImpl() { delete parsed_value_.load(); }
 
 ValueImpl::ValueImpl(std::nullptr_t)
     : bson_value_(kDefaultBsonValue),
+      parsed_value_(nullptr),
       duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   bson_value_.value_type = BSON_TYPE_NULL;
 }
@@ -171,6 +183,7 @@ ValueImpl::ValueImpl(std::nullptr_t)
 ValueImpl::ValueImpl(BsonHolder bson, DocumentKind kind)
     : storage_(std::move(bson)),
       bson_value_(kDefaultBsonValue),
+      parsed_value_(nullptr),
       duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   switch (kind) {
     case DocumentKind::kDocument:
@@ -211,6 +224,7 @@ ValueImpl::ValueImpl(const char* value) : ValueImpl(std::string(value)) {}
 
 ValueImpl::ValueImpl(std::string value)
     : bson_value_(kDefaultBsonValue),
+      parsed_value_(nullptr),
       duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   if (!utils::text::IsUtf8(value)) {
     throw BsonException("BSON strings must be valid UTF-8");
@@ -238,6 +252,7 @@ ValueImpl::ValueImpl(const Oid& value) : ValueImpl() {
 ValueImpl::ValueImpl(Binary value)
     : storage_(std::move(value).ToString()),
       bson_value_(kDefaultBsonValue),
+      parsed_value_(nullptr),
       duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
   bson_value_.value_type = BSON_TYPE_BINARY;
   bson_value_.value.v_binary.subtype = BSON_SUBTYPE_BINARY;
@@ -270,6 +285,7 @@ ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
     : storage_(std::move(storage)),
       path_(path.MakeChildPath(index)),
       bson_value_(bson_value),
+      parsed_value_(nullptr),
       duplicate_fields_policy_(duplicate_fields_policy) {
   UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
@@ -281,6 +297,7 @@ ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
     : storage_(std::move(storage)),
       path_(path.MakeChildPath(key)),
       bson_value_(bson_value),
+      parsed_value_(nullptr),
       duplicate_fields_policy_(duplicate_fields_policy) {
   UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
@@ -288,8 +305,14 @@ ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
 ValueImpl::ValueImpl(const ValueImpl& other)
     : storage_(other.storage_),
       bson_value_(other.bson_value_),
-      parsed_value_(std::visit(DeepCopyVisitor{}, other.parsed_value_)),
+      parsed_value_(nullptr),
       duplicate_fields_policy_(other.duplicate_fields_policy_) {
+  const auto* parsed_ptr = other.parsed_value_.load();
+  if (parsed_ptr) {
+    auto deep_copy = std::visit(DeepCopyVisitor{}, *parsed_ptr);
+    RelaxedSetParsedValue(parsed_value_, std::move(deep_copy));
+  }
+
   UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
@@ -310,7 +333,10 @@ ValueImpl& ValueImpl::operator=(ValueImpl&& rhs) noexcept {
   storage_ = std::move(rhs.storage_);
   bson_value_ = rhs.bson_value_;
   UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
-  parsed_value_ = std::move(rhs.parsed_value_);
+
+  delete parsed_value_.load();
+  parsed_value_ = rhs.parsed_value_.exchange(nullptr);
+
   duplicate_fields_policy_ = rhs.duplicate_fields_policy_;
   return *this;
 }
@@ -341,7 +367,7 @@ bson_type_t ValueImpl::Type() const { return bson_value_.value_type; }
 
 void ValueImpl::SetDuplicateFieldsPolicy(Value::DuplicateFieldsPolicy policy) {
   if (duplicate_fields_policy_ != policy) {
-    parsed_value_ = nullptr;
+    delete parsed_value_.exchange(nullptr);
     duplicate_fields_policy_ = policy;
   }
 }
@@ -350,7 +376,7 @@ ValueImplPtr ValueImpl::operator[](const std::string& name) {
   if (!IsMissing() && !IsNull()) {
     CheckIsDocument();
     EnsureParsed();
-    const auto& parsed_doc = std::get<ParsedDocument>(parsed_value_);
+    const auto& parsed_doc = std::get<ParsedDocument>(*parsed_value_.load());
     auto it = parsed_doc.find(name);
     if (it != parsed_doc.end()) return it->second;
   }
@@ -367,7 +393,7 @@ ValueImplPtr ValueImpl::operator[](uint32_t index) {
   CheckIsArray();
   EnsureParsed();
   CheckInBounds(index);
-  return std::get<ParsedArray>(parsed_value_)[index];
+  return std::get<ParsedArray>(*parsed_value_.load())[index];
 }
 
 bool ValueImpl::HasMember(const std::string& name) {
@@ -375,17 +401,17 @@ bool ValueImpl::HasMember(const std::string& name) {
 
   CheckIsDocument();
   EnsureParsed();
-  return std::get<ParsedDocument>(parsed_value_).count(name);
+  return std::get<ParsedDocument>(*parsed_value_.load()).count(name);
 }
 
 ValueImplPtr ValueImpl::GetOrInsert(const std::string& key) {
   if (IsMissing() || IsNull()) {
-    parsed_value_ = ParsedDocument();
+    RelaxedSetParsedValue(parsed_value_, ParsedDocument());
     bson_value_.value_type = BSON_TYPE_DOCUMENT;
   }
   CheckIsDocument();
   EnsureParsed();
-  return std::get<ParsedDocument>(parsed_value_)
+  return std::get<ParsedDocument>(*parsed_value_.load())
       .emplace(key, std::make_shared<ValueImpl>(EmplaceEnabler{}, nullptr,
                                                 path_, kDefaultBsonValue,
                                                 duplicate_fields_policy_, key))
@@ -394,12 +420,12 @@ ValueImplPtr ValueImpl::GetOrInsert(const std::string& key) {
 
 void ValueImpl::Resize(uint32_t new_size) {
   if (IsMissing() || IsNull()) {
-    parsed_value_ = ParsedArray();
+    RelaxedSetParsedValue(parsed_value_, ParsedArray());
     bson_value_.value_type = BSON_TYPE_ARRAY;
   }
   CheckIsArray();
   EnsureParsed();
-  auto& parsed_array = std::get<ParsedArray>(parsed_value_);
+  auto& parsed_array = std::get<ParsedArray>(*parsed_value_.load());
   const auto old_size = parsed_array.size();
   parsed_array.resize(new_size);
   for (auto size = old_size; size < new_size; ++size) {
@@ -412,61 +438,54 @@ void ValueImpl::Resize(uint32_t new_size) {
 void ValueImpl::PushBack(ValueImplPtr impl) {
   if (IsMissing() || IsNull()) Resize(0);
   EnsureParsed();
-  std::get<ParsedArray>(parsed_value_).push_back(std::move(impl));
+  std::get<ParsedArray>(*parsed_value_.load()).push_back(std::move(impl));
 }
 
 void ValueImpl::Remove(const std::string& key) {
   CheckIsDocument();
   EnsureParsed();
-  std::get<ParsedDocument>(parsed_value_).erase(key);
+  std::get<ParsedDocument>(*parsed_value_.load()).erase(key);
 }
 
 bool ValueImpl::IsEmpty() const {
   class Visitor {
    public:
-    Visitor(const ValueImpl& value) : value_(value) {}
-
-    bool operator()(std::nullptr_t) const {
-      constexpr uint32_t kEmptyDocSize = 5;
-      return value_.bson_value_.value.v_doc.data_len == kEmptyDocSize;
-    }
-
     bool operator()(const ParsedArray& arr) const { return arr.empty(); }
     bool operator()(const ParsedDocument& doc) const { return doc.empty(); }
-
-   private:
-    const ValueImpl& value_;
   };
 
   if (IsNull()) return true;
   CheckIsDocumentOrArray();
+
+  auto* parsed_ptr = parsed_value_.load();
+  if (!parsed_ptr) {
+    constexpr uint32_t kEmptyDocSize = 5;
+    return bson_value_.value.v_doc.data_len == kEmptyDocSize;
+  }
+
   // do not parse here
-  return std::visit(Visitor(*this), parsed_value_);
+  return std::visit(Visitor(), *parsed_ptr);
 }
 
 uint32_t ValueImpl::GetSize() const {
   class Visitor {
    public:
-    Visitor(const ValueImpl& value) : value_(value) {}
-
-    uint32_t operator()(std::nullptr_t) const {
-      uint32_t size = 0;
-      ForEachValue(value_.bson_value_.value.v_doc.data,
-                   value_.bson_value_.value.v_doc.data_len, value_.path_,
-                   [&size](bson_iter_t*) { ++size; });
-      return size;
-    }
-
     uint32_t operator()(const ParsedDocument& doc) const { return doc.size(); }
     uint32_t operator()(const ParsedArray& array) const { return array.size(); }
-
-   private:
-    const ValueImpl& value_;
   };
 
   if (IsNull()) return 0;
   CheckIsDocumentOrArray();
-  return std::visit(Visitor(*this), parsed_value_);
+
+  auto* parsed_ptr = parsed_value_.load();
+  if (!parsed_ptr) {
+    uint32_t size = 0;
+    ForEachValue(bson_value_.value.v_doc.data, bson_value_.value.v_doc.data_len,
+                 path_, [&size](bson_iter_t*) { ++size; });
+    return size;
+  }
+
+  return std::visit(Visitor(), *parsed_ptr);
 }
 
 std::string ValueImpl::GetPath() const { return path_.ToString(); }
@@ -474,11 +493,6 @@ std::string ValueImpl::GetPath() const { return path_.ToString(); }
 ValueImpl::Iterator ValueImpl::Begin() {
   class Visitor {
    public:
-    ValueImpl::Iterator operator()(std::nullptr_t) const {
-      UASSERT(false);
-      return {};
-    }
-
     ValueImpl::Iterator operator()(const ParsedArray& arr) const {
       return arr.cbegin();
     }
@@ -489,17 +503,12 @@ ValueImpl::Iterator ValueImpl::Begin() {
   if (IsNull()) return {};
   CheckIsDocumentOrArray();
   EnsureParsed();
-  return std::visit(Visitor{}, parsed_value_);
+  return std::visit(Visitor{}, *parsed_value_.load());
 }
 
 ValueImpl::Iterator ValueImpl::End() {
   class Visitor {
    public:
-    ValueImpl::Iterator operator()(std::nullptr_t) const {
-      UASSERT(false);
-      return {};
-    }
-
     ValueImpl::Iterator operator()(const ParsedArray& arr) const {
       return arr.cend();
     }
@@ -510,7 +519,7 @@ ValueImpl::Iterator ValueImpl::End() {
   if (IsNull()) return {};
   CheckIsDocumentOrArray();
   EnsureParsed();
-  return std::visit(Visitor{}, parsed_value_);
+  return std::visit(Visitor{}, *parsed_value_.load());
 }
 
 bool ValueImpl::IsMissing() const { return Type() == BSON_TYPE_EOD; }
@@ -520,7 +529,7 @@ bool ValueImpl::IsDocument() const { return Type() == BSON_TYPE_DOCUMENT; }
 
 void ValueImpl::EnsureParsed() {
   CheckNotMissing();
-  if (!IsNullptr(parsed_value_)) return;
+  if (parsed_value_.load() != nullptr) return;
 
   switch (bson_value_.value_type) {
     case BSON_TYPE_EOD:
@@ -553,7 +562,10 @@ void ValueImpl::EnsureParsed() {
       break;
 
     case BSON_TYPE_ARRAY: {
-      ParsedArray parsed_array;
+      auto data =
+          std::make_unique<ParsedValue>(std::in_place_type<ParsedArray>);
+      auto& parsed_array = std::get<ParsedArray>(*data);
+
       ForEachValue(
           bson_value_.value.v_doc.data, bson_value_.value.v_doc.data_len, path_,
           [this, &parsed_array,
@@ -579,11 +591,13 @@ void ValueImpl::EnsureParsed() {
                 duplicate_fields_policy_, indexer.Index()));
             indexer.Advance();
           });
-      parsed_value_ = std::move(parsed_array);
+      AtomicSetParsedValue(parsed_value_, std::move(data));
       break;
     }
     case BSON_TYPE_DOCUMENT: {
-      ParsedDocument parsed_doc;
+      auto data =
+          std::make_unique<ParsedValue>(std::in_place_type<ParsedDocument>);
+      auto& parsed_doc = std::get<ParsedDocument>(*data);
       ForEachValue(
           bson_value_.value.v_doc.data, bson_value_.value.v_doc.data_len, path_,
           [this, &parsed_doc](bson_iter_t* it) {
@@ -614,7 +628,7 @@ void ValueImpl::EnsureParsed() {
               }
             }
           });
-      parsed_value_ = std::move(parsed_doc);
+      AtomicSetParsedValue(parsed_value_, std::move(data));
       break;
     }
   }
@@ -622,7 +636,7 @@ void ValueImpl::EnsureParsed() {
 
 void ValueImpl::SyncBsonValue() {
   // either primitive type or was never touched
-  if (IsNullptr(parsed_value_)) return;
+  if (parsed_value_.load() == nullptr) return;
 
   UASSERT(IsDocument() || IsArray());
 
@@ -640,20 +654,13 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
 
   EnsureParsed();
   rhs.EnsureParsed();
-  UASSERT(parsed_value_.index() == rhs.parsed_value_.index());
 
   class Visitor {
    public:
-    Visitor(const ValueImpl& lhs, const ValueImpl& rhs)
-        : lhs_(lhs), rhs_(rhs) {}
+    explicit Visitor(const ValueImpl& rhs) : rhs_(*rhs.parsed_value_.load()) {}
 
-    bool operator()(std::nullptr_t) const {
-      return lhs_.bson_value_ == rhs_.bson_value_;
-    }
-
-    bool operator()(const ParsedDocument&) const {
-      const auto& lhs_doc = std::get<ParsedDocument>(lhs_.parsed_value_);
-      const auto& rhs_doc = std::get<ParsedDocument>(rhs_.parsed_value_);
+    bool operator()(const ParsedDocument& lhs_doc) const {
+      const auto& rhs_doc = std::get<ParsedDocument>(rhs_);
       if (lhs_doc.size() != rhs_doc.size()) return false;
       for (const auto& [k, v] : lhs_doc) {
         auto rhs_it = rhs_doc.find(k);
@@ -662,9 +669,8 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
       return true;
     }
 
-    bool operator()(const ParsedArray&) const {
-      const auto& lhs_arr = std::get<ParsedArray>(lhs_.parsed_value_);
-      const auto& rhs_arr = std::get<ParsedArray>(rhs_.parsed_value_);
+    bool operator()(const ParsedArray& lhs_arr) const {
+      const auto& rhs_arr = std::get<ParsedArray>(rhs_);
       if (lhs_arr.size() != rhs_arr.size()) return false;
       for (size_t i = 0; i < lhs_arr.size(); ++i) {
         if (*lhs_arr[i] != *rhs_arr[i]) return false;
@@ -673,10 +679,16 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
     }
 
    private:
-    const ValueImpl& lhs_;
-    const ValueImpl& rhs_;
+    const ParsedValue& rhs_;
   };
-  return std::visit(Visitor(*this, rhs), parsed_value_);
+  const auto* parsed_ptr = parsed_value_.load();
+  if (!parsed_ptr) {
+    UASSERT(!rhs.parsed_value_.load());
+    return bson_value_ == rhs.bson_value_;
+  }
+
+  UASSERT(parsed_ptr->index() == rhs.parsed_value_.load()->index());
+  return std::visit(Visitor(rhs), *parsed_ptr);
 }
 
 bool ValueImpl::operator!=(ValueImpl& rhs) { return !(*this == rhs); }

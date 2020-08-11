@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <variant>
@@ -22,6 +23,7 @@ class ValueImpl {
       std::variant<ParsedArray::const_iterator, ParsedDocument::const_iterator>;
 
   ValueImpl();
+  ~ValueImpl();
   explicit ValueImpl(BsonHolder, DocumentKind = DocumentKind::kDocument);
 
   explicit ValueImpl(std::nullptr_t);
@@ -92,7 +94,7 @@ class ValueImpl {
 
  public:
   using Storage = std::variant<std::nullptr_t, BsonHolder, std::string>;
-  using ParsedValue = std::variant<std::nullptr_t, ParsedDocument, ParsedArray>;
+  using ParsedValue = std::variant<ParsedDocument, ParsedArray>;
 
   ValueImpl(EmplaceEnabler, Storage, const Path&, const bson_value_t&,
             Value::DuplicateFieldsPolicy, uint32_t);
@@ -105,7 +107,7 @@ class ValueImpl {
   Storage storage_;
   Path path_;
   bson_value_t bson_value_;
-  ParsedValue parsed_value_;
+  std::atomic<ParsedValue*> parsed_value_;
   Value::DuplicateFieldsPolicy duplicate_fields_policy_;
 };
 
