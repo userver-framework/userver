@@ -1,10 +1,20 @@
 #include <utils/encoding/hex.hpp>
 
+#include <stdexcept>
+
 namespace utils::encoding {
 
 namespace detail {
 
-const std::string kXdigits{"0123456789abcdef"};
+static const char kXdigits[] = "0123456789abcdef";
+
+char ToHexChar(int num) {
+  if (num >= 16 || num < 0) {
+    throw std::runtime_error(std::to_string(num) +
+                             " is not convertible to hex char");
+  }
+  return detail::kXdigits[num];
+}
 
 /// Converts xDigit to its value. Undefined behaviour if
 /// xDigit is not one of "0123456789abcdef"

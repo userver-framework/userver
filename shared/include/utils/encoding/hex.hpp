@@ -5,15 +5,9 @@
 namespace utils {
 namespace encoding {
 
-namespace detail {
-// In C++20 it can be made constexpr
-extern const std::string kXdigits;
-
-}  // namespace detail
-
 /// Converts number to hex character. Number must be within range [0,16)
 /// @throws out_of_bounds exception if \p num is out of range
-inline char ToHexChar(int num) { return detail::kXdigits.at(num); }
+char ToHexChar(int num);
 
 /// Set of methods to calculate expected length of input after
 /// being encoded with hex algorithm
