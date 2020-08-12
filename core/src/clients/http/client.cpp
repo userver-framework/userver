@@ -135,10 +135,9 @@ void Client::SetMaxHostConnections(size_t max_host_connections) {
 void Client::SetConnectionPoolSize(size_t connection_pool_size) {
   const auto pool_size = ClampToLong(connection_pool_size / multis_.size());
   if (pool_size * multis_.size() != connection_pool_size) {
-    LOG_WARNING()
-        << "SetConnectionPoolSize() rounded pool size for each multi ("
-        << connection_pool_size << "/" << multis_.size() << " rounded to "
-        << pool_size << ")";
+    LOG_DEBUG() << "SetConnectionPoolSize() rounded pool size for each multi ("
+                << connection_pool_size << "/" << multis_.size()
+                << " rounded to " << pool_size << ")";
   }
   for (auto& multi : multis_) {
     multi->SetConnectionCacheSize(pool_size);
