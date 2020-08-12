@@ -4,7 +4,8 @@
 
 namespace curl {
 
-LocalTimings::LocalTimings() : created_ts_(std::chrono::steady_clock::now()) {}
+LocalTimings::LocalTimings()
+    : created_ts_(std::chrono::steady_clock::now()), open_socket_count_(0) {}
 
 void LocalTimings::mark_start_performing() { set(start_performing_ts_); }
 
@@ -32,6 +33,13 @@ double LocalTimings::time_to_process() const {
 }
 
 size_t LocalTimings::open_socket_count() const { return open_socket_count_; }
+
+void LocalTimings::reset() {
+  start_performing_ts_ = {};
+  start_processing_ts_ = {};
+  complete_ts_ = {};
+  open_socket_count_ = 0;
+}
 
 double LocalTimings::double_seconds(const time_point::duration& duration) {
   using double_seconds_duration = std::chrono::duration<double, std::ratio<1>>;

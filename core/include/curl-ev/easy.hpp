@@ -556,17 +556,6 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION(set_new_directory_perms,
                         native::CURLOPT_NEW_DIRECTORY_PERMS, long);
 
-  // telnet options
-
-  void add_telnet_option(const std::string& option, const std::string& value);
-  void add_telnet_option(const std::string& option, const std::string& value,
-                         std::error_code& ec);
-  void add_telnet_option(const std::string& telnet_option);
-  void add_telnet_option(const std::string& telnet_option, std::error_code& ec);
-  void set_telnet_options(std::shared_ptr<string_list> telnet_options);
-  void set_telnet_options(std::shared_ptr<string_list> telnet_options,
-                          std::error_code& ec);
-
   // getters
 
   IMPLEMENT_CURL_OPTION_GET_STRING(get_effective_url,
@@ -697,7 +686,6 @@ class easy final : public std::enable_shared_from_this<easy> {
   std::shared_ptr<string_list> http200_aliases_;
   std::shared_ptr<string_list> resolved_hosts_;
   std::shared_ptr<share> share_;
-  std::shared_ptr<string_list> telnet_options_;
   progress_callback_t progress_callback_;
   std::string url_;
   LocalTimings timings_;

@@ -166,7 +166,7 @@ void easy::reset() {
   if (http200_aliases_) http200_aliases_->clear();
   if (resolved_hosts_) resolved_hosts_->clear();
   share_.reset();
-  if (telnet_options_) telnet_options_->clear();
+  timings_.reset();
 
   set_custom_request(nullptr);
   set_no_body(false);
@@ -428,56 +428,6 @@ void easy::set_share(std::shared_ptr<share> share, std::error_code& ec) {
   } else {
     ec = std::error_code(
         native::curl_easy_setopt(handle_, native::CURLOPT_SHARE, NULL));
-  }
-}
-
-void easy::add_telnet_option(const std::string& telnet_option) {
-  std::error_code ec;
-  add_telnet_option(telnet_option, ec);
-  throw_error(ec, "add_telnet_option");
-}
-
-void easy::add_telnet_option(const std::string& telnet_option,
-                             std::error_code& ec) {
-  if (!telnet_options_) {
-    telnet_options_ = std::make_shared<string_list>();
-  }
-
-  telnet_options_->add(telnet_option);
-  ec = std::error_code(
-      native::curl_easy_setopt(handle_, native::CURLOPT_TELNETOPTIONS,
-                               telnet_options_->native_handle()));
-}
-
-void easy::add_telnet_option(const std::string& option,
-                             const std::string& value) {
-  std::error_code ec;
-  add_telnet_option(option, value, ec);
-  throw_error(ec, "add_telnet_option");
-}
-
-void easy::add_telnet_option(const std::string& option,
-                             const std::string& value, std::error_code& ec) {
-  add_telnet_option(option + "=" + value, ec);
-}
-
-void easy::set_telnet_options(std::shared_ptr<string_list> telnet_options) {
-  std::error_code ec;
-  set_telnet_options(std::move(telnet_options), ec);
-  throw_error(ec, "set_telnet_options");
-}
-
-void easy::set_telnet_options(std::shared_ptr<string_list> telnet_options,
-                              std::error_code& ec) {
-  telnet_options_ = std::move(telnet_options);
-
-  if (telnet_options_) {
-    ec = std::error_code(
-        native::curl_easy_setopt(handle_, native::CURLOPT_TELNETOPTIONS,
-                                 telnet_options_->native_handle()));
-  } else {
-    ec = std::error_code(
-        native::curl_easy_setopt(handle_, native::CURLOPT_TELNETOPTIONS, NULL));
   }
 }
 

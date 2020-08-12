@@ -18,14 +18,16 @@ class LocalTimings final {
 
   size_t open_socket_count() const;
 
+  void reset();
+
  private:
   using time_point = std::chrono::steady_clock::time_point;
 
-  time_point created_ts_;
+  const time_point created_ts_;
   time_point start_performing_ts_;
   time_point start_processing_ts_;
   time_point complete_ts_;
-  size_t open_socket_count_{0};
+  size_t open_socket_count_;
 
   static void set(time_point& ts);
   static double double_seconds(const time_point::duration& duration);

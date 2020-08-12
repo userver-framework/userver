@@ -199,7 +199,7 @@ InstanceStatistics::InstanceStatistics(const Statistics& other)
     if (value || IsForcedStatusCode(status)) reply_status[status] = value;
   }
 
-  multi.socket_open += other.socket_open;
+  multi.socket_open = other.socket_open;
 }
 
 bool InstanceStatistics::IsForcedStatusCode(int status) {
