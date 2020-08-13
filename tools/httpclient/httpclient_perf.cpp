@@ -68,7 +68,7 @@ Config ParseConfig(int argc, char* argv[]) {
       "timeout,t",
       po::value(&config.timeout_ms)->default_value(config.timeout_ms),
       "request timeout in ms")("multiplexing", "enable HTTP/2 multiplexing")(
-      "http-version,h", po::value<std::string>(),
+      "http-version,V", po::value<std::string>(),
       "http version, possible values: 1.0, 1.1, 2.0-prior")(
       "max-host-connections",
       po::value(&config.max_host_connections)
@@ -213,9 +213,9 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
               1);
 
   std::cerr << std::endl;
-  LOG_WARNING() << "counter = " << worker_context.counter.load()
-                << " sum response body size = " << worker_context.response_len
-                << " average RPS = " << rps;
+  LOG_CRITICAL() << "counter = " << worker_context.counter.load()
+                 << " sum response body size = " << worker_context.response_len
+                 << " average RPS = " << rps;
   http_client.reset();
 }
 
@@ -225,6 +225,8 @@ int main(int argc, char* argv[]) {
   if (!config.logfile.empty())
     logging::SetDefaultLogger(logging::MakeFileLogger(
         "default", config.logfile, logging::LevelFromString(config.log_level)));
+  else
+    logging::SetDefaultLoggerLevel(logging::LevelFromString(config.log_level));
   LOG_WARNING() << "Starting using requests=" << config.count
                 << " coroutines=" << config.coroutines
                 << " timeout=" << config.timeout_ms << "ms";

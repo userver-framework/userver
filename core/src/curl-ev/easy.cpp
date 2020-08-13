@@ -561,19 +561,18 @@ native::curl_socket_t easy::opensocket(
   native::curl_socket_t s = -1;
 
   if (multi_handle) {
-    bool is_https = boost::algorithm::istarts_with(self->url_, "https:");
-    if ((is_https && !multi_handle->MayAcquireConnectionHttps(self->url_))
-        // TODO: https://st.yandex-team.ru/TAXICOMMON-2004
-        // || (!is_https &&
-        // !multi_handle->MayAcquireConnectionHttp(self->url_))
-    ) {
+    bool is_https = boost::algorithm::istarts_with(self->url_, "https://");
+    bool is_under_ratelimit =
+        is_https ? multi_handle->MayAcquireConnectionHttps(self->url_)
+                 : multi_handle->MayAcquireConnectionHttp(self->url_);
+    if (is_under_ratelimit) {
+      LOG_TRACE() << "not throttled";
+    } else {
       multi_handle->Statistics().mark_socket_ratelimited();
       return CURL_SOCKET_BAD;
-    } else {
-      LOG_DEBUG() << "not throttled";
     }
   } else {
-    LOG_DEBUG() << "skip throttle check";
+    LOG_TRACE() << "skip throttle check";
   }
 
   // NOLINTNEXTLINE(hicpp-multiway-paths-covered)
