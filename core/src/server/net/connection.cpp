@@ -251,8 +251,12 @@ void Connection::HandleQueueItem(QueueItem& item) {
   try {
     request_task.Get();
   } catch (const engine::TaskCancelledException&) {
-    LOG_DEBUG() << "Request processing interrupted";
-    is_response_chain_valid_ = false;
+    LOG_ERROR() << "Handler task was cancelled";
+    auto& response = request.GetResponse();
+    if (!response.IsReady()) {
+      response.SetReady();
+      response.SetStatusServiceUnavailable();
+    }
   } catch (const engine::WaitInterruptedException&) {
     LOG_DEBUG() << "Request processing interrupted";
     is_response_chain_valid_ = false;
