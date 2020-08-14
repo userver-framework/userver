@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,6 +9,8 @@
 
 #include <boost/pfr/detail/config.hpp>
 #include <boost/pfr/detail/make_integer_sequence.hpp>
+#include <boost/pfr/detail/size_t_.hpp>
+#include <boost/pfr/detail/unsafe_declval.hpp>
 
 #include <climits>      // CHAR_BIT
 #include <type_traits>
@@ -24,35 +26,37 @@
 
 namespace boost { namespace pfr { namespace detail {
 
-///////////////////// General utility stuff
-template <std::size_t Index>
-using size_t_ = std::integral_constant<std::size_t, Index >;
-
 ///////////////////// Structure that can be converted to reference to anything
 struct ubiq_lref_constructor {
     std::size_t ignore;
-    template <class Type> constexpr operator Type&() const noexcept; // Undefined, allows initialization of reference fields (T& and const T&)
+    template <class Type> constexpr operator Type&() const noexcept {  // Allows initialization of reference fields (T& and const T&)
+        return detail::unsafe_declval<Type&>();
+    };
 };
 
 ///////////////////// Structure that can be converted to rvalue reference to anything
 struct ubiq_rref_constructor {
     std::size_t ignore;
-    template <class Type> constexpr operator Type&&() const noexcept; // Undefined, allows initialization of rvalue reference fields and move-only types
+    template <class Type> /*constexpr*/ operator Type&&() const noexcept {}; // Allows initialization of rvalue reference fields and move-only types
 };
 
-///////////////////// Structure that can be converted to reference to anything except reference to T
+
+#ifndef __cpp_lib_is_aggregate
+///////////////////// Hand-made is_aggregate_initializable_n<T> trait
+
+// Structure that can be converted to reference to anything except reference to T
 template <class T, bool IsCopyConstructible>
 struct ubiq_constructor_except {
+    std::size_t ignore;
     template <class Type> constexpr operator std::enable_if_t<!std::is_same<T, Type>::value, Type&> () const noexcept; // Undefined
 };
 
 template <class T>
 struct ubiq_constructor_except<T, false> {
+    std::size_t ignore;
     template <class Type> constexpr operator std::enable_if_t<!std::is_same<T, Type>::value, Type&&> () const noexcept; // Undefined
 };
 
-
-///////////////////// Hand-made is_aggregate_initializable_n<T> trait
 
 // `std::is_constructible<T, ubiq_constructor_except<T>>` consumes a lot of time, so we made a separate lazy trait for it.
 template <std::size_t N, class T> struct is_single_field_and_aggregate_initializable: std::false_type {};
@@ -61,7 +65,8 @@ template <class T> struct is_single_field_and_aggregate_initializable<1, T>: std
 > {};
 
 // Hand-made is_aggregate<T> trait:
-// Aggregates could be constructed from `decltype(ubiq_?ref_constructor{I})...` but report that there's no constructor from `decltype(ubiq_?ref_constructor{I})...`
+// Before C++20 aggregates could be constructed from `decltype(ubiq_?ref_constructor{I})...` but type traits report that
+// there's no constructor from `decltype(ubiq_?ref_constructor{I})...`
 // Special case for N == 1: `std::is_constructible<T, ubiq_?ref_constructor>` returns true if N == 1 and T is copy/move constructible.
 template <class T, std::size_t N>
 struct is_aggregate_initializable_n {
@@ -80,6 +85,8 @@ struct is_aggregate_initializable_n {
     ;
 };
 
+#endif // #ifndef __cpp_lib_is_aggregate
+
 ///////////////////// Helper for SFINAE on fields count
 template <class T, std::size_t... I, class /*Enable*/ = typename std::enable_if<std::is_copy_constructible<T>::value>::type>
 constexpr auto enable_if_constructible_helper(std::index_sequence<I...>) noexcept
@@ -92,53 +99,75 @@ constexpr auto enable_if_constructible_helper(std::index_sequence<I...>) noexcep
 template <class T, std::size_t N, class /*Enable*/ = decltype( enable_if_constructible_helper<T>(detail::make_index_sequence<N>()) ) >
 using enable_if_constructible_helper_t = std::size_t;
 
+///////////////////// Helpers for range size detection
+template <std::size_t Begin, std::size_t Last>
+using is_one_element_range = std::integral_constant<bool, Begin == Last>;
+
+using multi_element_range = std::false_type;
+using one_element_range = std::true_type;
+
 ///////////////////// Non greedy fields count search. Templates instantiation depth is log(sizeof(T)), templates instantiation count is log(sizeof(T)).
-template <class T, std::size_t N>
-constexpr std::size_t detect_fields_count(size_t_<N>, size_t_<N>, long) noexcept {
-    return N;
+template <class T, std::size_t Begin, std::size_t Middle>
+constexpr std::size_t detect_fields_count(detail::one_element_range, long) noexcept {
+    static_assert(
+        Begin == Middle,
+        "====================> Boost.PFR: Internal logic error."
+    );
+    return Begin;
 }
 
 template <class T, std::size_t Begin, std::size_t Middle>
-constexpr std::size_t detect_fields_count(size_t_<Begin>, size_t_<Middle>, int) noexcept;
+constexpr std::size_t detect_fields_count(detail::multi_element_range, int) noexcept;
 
 template <class T, std::size_t Begin, std::size_t Middle>
-constexpr auto detect_fields_count(size_t_<Begin>, size_t_<Middle>, long) noexcept
-    -> enable_if_constructible_helper_t<T, Middle>
+constexpr auto detect_fields_count(detail::multi_element_range, long) noexcept
+    -> detail::enable_if_constructible_helper_t<T, Middle>
 {
-    using next_t = size_t_<Middle + (Middle - Begin + 1) / 2>;
-    return detail::detect_fields_count<T>(size_t_<Middle>{}, next_t{}, 1L);
+    constexpr std::size_t next_v = Middle + (Middle - Begin + 1) / 2;
+    return detail::detect_fields_count<T, Middle, next_v>(detail::is_one_element_range<Middle, next_v>{}, 1L);
 }
 
 template <class T, std::size_t Begin, std::size_t Middle>
-constexpr std::size_t detect_fields_count(size_t_<Begin>, size_t_<Middle>, int) noexcept {
-    using next_t = size_t_<(Begin + Middle) / 2>;
-    return detail::detect_fields_count<T>(size_t_<Begin>{}, next_t{}, 1L);
+constexpr std::size_t detect_fields_count(detail::multi_element_range, int) noexcept {
+    constexpr std::size_t next_v = Begin + (Middle - Begin) / 2;
+    return detail::detect_fields_count<T, Begin, next_v>(detail::is_one_element_range<Begin, next_v>{}, 1L);
 }
 
 ///////////////////// Greedy search. Templates instantiation depth is log(sizeof(T)), templates instantiation count is log(sizeof(T))*T in worst case.
 template <class T, std::size_t N>
-constexpr auto detect_fields_count_greedy_remember(size_t_<N>, long) noexcept
-    -> enable_if_constructible_helper_t<T, N>
+constexpr auto detect_fields_count_greedy_remember(long) noexcept
+    -> detail::enable_if_constructible_helper_t<T, N>
 {
     return N;
 }
 
 template <class T, std::size_t N>
-constexpr std::size_t detect_fields_count_greedy_remember(size_t_<N>, int) noexcept {
+constexpr std::size_t detect_fields_count_greedy_remember(int) noexcept {
     return 0;
 }
 
-template <class T, std::size_t N>
-constexpr std::size_t detect_fields_count_greedy(size_t_<N>, size_t_<N>) noexcept {
-    return detail::detect_fields_count_greedy_remember<T>(size_t_<N>{}, 1L);
+template <class T, std::size_t Begin, std::size_t Last>
+constexpr std::size_t detect_fields_count_greedy(detail::one_element_range) noexcept {
+    static_assert(
+        Begin == Last,
+        "====================> Boost.PFR: Internal logic error."
+    );
+    return detail::detect_fields_count_greedy_remember<T, Begin>(1L);
 }
 
 template <class T, std::size_t Begin, std::size_t Last>
-constexpr std::size_t detect_fields_count_greedy(size_t_<Begin>, size_t_<Last>) noexcept {
+constexpr std::size_t detect_fields_count_greedy(detail::multi_element_range) noexcept {
     constexpr std::size_t middle = Begin + (Last - Begin) / 2;
-    constexpr std::size_t fields_count_big = detail::detect_fields_count_greedy<T>(size_t_<middle + 1>{}, size_t_<Last>{});
-    constexpr std::size_t fields_count_small = detail::detect_fields_count_greedy<T>(size_t_<Begin>{}, size_t_<fields_count_big ? Begin : middle>{});
-    return fields_count_big ? fields_count_big : fields_count_small;
+    constexpr std::size_t fields_count_big_range = detail::detect_fields_count_greedy<T, middle + 1, Last>(
+        detail::is_one_element_range<middle + 1, Last>{}
+    );
+
+    constexpr std::size_t small_range_begin = (fields_count_big_range ? 0 : Begin);
+    constexpr std::size_t small_range_last = (fields_count_big_range ? 0 : middle);
+    constexpr std::size_t fields_count_small_range = detail::detect_fields_count_greedy<T, small_range_begin, small_range_last>(
+        detail::is_one_element_range<small_range_begin, small_range_last>{}
+    );
+    return fields_count_big_range ? fields_count_big_range : fields_count_small_range;
 }
 
 ///////////////////// Choosing between array size, greedy and non greedy search.
@@ -153,7 +182,8 @@ template <class T, std::size_t N>
 constexpr auto detect_fields_count_dispatch(size_t_<N>, long, int) noexcept
     -> decltype(sizeof(T{}))
 {
-    return detail::detect_fields_count<T>(size_t_<0>{}, size_t_<N / 2 + 1>{}, 1L);
+    constexpr std::size_t middle = N / 2 + 1;
+    return detail::detect_fields_count<T, 0, middle>(detail::multi_element_range{}, 1L);
 }
 
 template <class T, std::size_t N>
@@ -161,7 +191,7 @@ constexpr std::size_t detect_fields_count_dispatch(size_t_<N>, int, int) noexcep
     // T is not default aggregate initialzable. It means that at least one of the members is not default constructible,
     // so we have to check all the aggregate initializations for T up to N parameters and return the bigest succeeded
     // (we can not use binary search for detecting fields count).
-    return detail::detect_fields_count_greedy<T>(size_t_<0>{}, size_t_<N>{});
+    return detail::detect_fields_count_greedy<T, 0, N>(detail::multi_element_range{});
 }
 
 ///////////////////// Returns non-flattened fields count
@@ -190,7 +220,7 @@ constexpr std::size_t fields_count() noexcept {
 #ifdef __cpp_lib_is_aggregate
     static_assert(
         std::is_aggregate<type>::value             // Does not return `true` for build in types.
-        || std::is_standard_layout<type>::value,   // Does not return `true` for structs that have non standard layout members.
+        || std::is_scalar<type>::value,
         "====================> Boost.PFR: Type must be aggregate initializable."
     );
 #endif
@@ -206,10 +236,12 @@ constexpr std::size_t fields_count() noexcept {
     constexpr std::size_t max_fields_count = (sizeof(type) * CHAR_BIT); // We multiply by CHAR_BIT because the type may have bitfields in T
     constexpr std::size_t result = detail::detect_fields_count_dispatch<type>(size_t_<max_fields_count>{}, 1L, 1L);
 
+#ifndef __cpp_lib_is_aggregate
     static_assert(
         is_aggregate_initializable_n<type, result>::value,
         "====================> Boost.PFR: Types with user specified constructors (non-aggregate initializable types) are not supported."
     );
+#endif
 
     static_assert(
         result != 0 || std::is_empty<type>::value || std::is_fundamental<type>::value || std::is_reference<type>::value,

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -241,7 +241,10 @@ template <class T> struct hash {
         ::boost::pfr::detail::for_each_field_dispatcher(
             x,
             [&result](const auto& lhs) {
-                result = detail::hash_impl<0, fields_count_val>::compute(lhs);
+                // We can not reuse `fields_count_val` in lambda because compilers had issues with
+                // passing constexpr variables into lambdas. Computing is again is the most portable solution.
+                constexpr std::size_t fields_count_val_lambda = boost::pfr::detail::fields_count<std::remove_reference_t<T>>();
+                result = detail::hash_impl<0, fields_count_val_lambda>::compute(lhs);
             },
             detail::make_index_sequence<fields_count_val>{}
         );

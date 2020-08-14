@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -16,7 +16,7 @@
 
 namespace boost { namespace pfr {
 
-/// \brief Has a static const member variable `value` that contains fields count in a \flattening{flattened} T.
+/// Has a static const member variable `value` that contains fields count in a \flattening{flattened} T.
 ///
 /// \b Example:
 /// \code
@@ -26,7 +26,7 @@ template <class T>
 using flat_tuple_size = boost::pfr::detail::size_t_<decltype(boost::pfr::detail::tie_as_flat_tuple(std::declval<T&>()))::size_v>;
 
 
-/// \brief `flat_tuple_size_v` is a template variable that contains fields count in a \flattening{flattened} T.
+/// `flat_tuple_size_v` is a template variable that contains fields count in a \flattening{flattened} T.
 ///
 /// \b Example:
 /// \code

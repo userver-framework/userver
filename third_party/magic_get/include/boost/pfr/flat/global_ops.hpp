@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -41,7 +41,7 @@ namespace boost { namespace pfr { namespace detail {
 
     template <class T, class U>
     using enable_flat_comparisons = std::enable_if_t<
-        std::is_same<T, U>::value && std::is_pod<T>::value,
+        std::is_same<T, U>::value && std::is_trivial<T>::value && std::is_standard_layout<T>::value,
         bool
     >;
 
@@ -96,19 +96,28 @@ namespace boost { namespace pfr { namespace detail {
     }
 
     template <class Char, class Traits, class T>
-    static std::enable_if_t<std::is_pod<T>::value, std::basic_ostream<Char, Traits>&> operator<<(std::basic_ostream<Char, Traits>& out, const T& value) {
+    static std::enable_if_t<
+        std::is_trivial<T>::value && std::is_standard_layout<T>::value,
+        std::basic_ostream<Char, Traits>&
+    > operator<<(std::basic_ostream<Char, Traits>& out, const T& value) {
         ::boost::pfr::flat_write(out, value);
         return out;
     }
 
     template <class Char, class Traits, class T>
-    static std::enable_if_t<std::is_pod<T>::value, std::basic_istream<Char, Traits>&> operator>>(std::basic_istream<Char, Traits>& in, T& value) {
+    static std::enable_if_t<
+        std::is_trivial<T>::value && std::is_standard_layout<T>::value,
+        std::basic_istream<Char, Traits>&
+    > operator>>(std::basic_istream<Char, Traits>& in, T& value) {
         ::boost::pfr::flat_read(in, value);
         return in;
     }
 
     template <class T>
-    static std::enable_if_t<std::is_pod<T>::value, std::size_t> hash_value(const T& value) noexcept {
+    static std::enable_if_t<
+        std::is_trivial<T>::value && std::is_standard_layout<T>::value,
+        std::size_t
+    > hash_value(const T& value) noexcept {
         return ::boost::pfr::flat_hash<T>{}(value);
     }
 #endif

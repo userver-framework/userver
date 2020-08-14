@@ -1,4 +1,5 @@
 // Copyright (c) 2018 Sergei Fedorov
+// Copyright (c) 2019-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,6 +12,7 @@
 
 #include <type_traits>
 #include <utility>
+#include <cstddef>
 
 namespace boost { namespace pfr { namespace detail {
 
@@ -24,8 +26,11 @@ namespace boost { namespace pfr { namespace detail {
 
 #ifdef BOOST_PFR_USE_MAKE_INTEGER_SEQ_BUILTIN
 
+using std::integer_sequence;
+
+// Clang unable to use namespace qualified std::integer_sequence in __make_integer_seq.
 template <typename T, T N>
-using make_integer_sequence = __make_integer_seq<std::integer_sequence, T, N>;
+using make_integer_sequence = __make_integer_seq<integer_sequence, T, N>;
 
 #undef BOOST_PFR_USE_MAKE_INTEGER_SEQ_BUILTIN
 

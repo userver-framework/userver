@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -21,7 +21,9 @@
 #endif
 
 #ifndef BOOST_PFR_USE_LOOPHOLE
-#   define BOOST_PFR_USE_LOOPHOLE 1
+#   if !defined(__clang_major__) || __clang_major__ < 8
+#       define BOOST_PFR_USE_LOOPHOLE 1
+#   endif
 #endif
 
 #ifndef BOOST_PFR_USE_CPP17
@@ -39,10 +41,23 @@
 // Assume that libstdc++ since GCC-7.3 does not have linear instantiation depth in std::make_integral_sequence
 #   if defined( __GLIBCXX__) && __GLIBCXX__ >= 20180101
 #       define BOOST_PFR_USE_STD_MAKE_INTEGRAL_SEQUENCE 1
+#   elif defined(_MSC_VER)
+#       define BOOST_PFR_USE_STD_MAKE_INTEGRAL_SEQUENCE 1
 //# elif other known working lib
 #   else
 #       define BOOST_PFR_USE_STD_MAKE_INTEGRAL_SEQUENCE 0
 #   endif
 #endif
+
+#if defined(__has_cpp_attribute)
+#   if __has_cpp_attribute(maybe_unused)
+#       define BOOST_PFR_MAYBE_UNUSED [[maybe_unused]]
+#   endif
+#endif
+
+#ifndef BOOST_PFR_MAYBE_UNUSED
+#   define BOOST_PFR_MAYBE_UNUSED
+#endif
+
 
 #endif // BOOST_PFR_DETAIL_CONFIG_HPP

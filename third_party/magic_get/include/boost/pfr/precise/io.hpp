@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -38,7 +38,7 @@ namespace boost { namespace pfr {
 /// \endcode
 template <class Char, class Traits, class T>
 void write(std::basic_ostream<Char, Traits>& out, const T& value) {
-    constexpr std::size_t fields_count_val = boost::pfr::detail::fields_count<std::remove_reference_t<T>>();
+    constexpr std::size_t fields_count_val = boost::pfr::detail::fields_count<T>();
     out << '{';
 #if BOOST_PFR_USE_CPP17
     detail::print_impl<0, fields_count_val>::print(out, detail::tie_as_tuple(value));
@@ -46,7 +46,10 @@ void write(std::basic_ostream<Char, Traits>& out, const T& value) {
     ::boost::pfr::detail::for_each_field_dispatcher(
         value,
         [&out](const auto& val) {
-            detail::print_impl<0, fields_count_val>::print(out, val);
+            // We can not reuse `fields_count_val` in lambda because compilers had issues with
+            // passing constexpr variables into lambdas. Computing is again is the most portable solution.
+            constexpr std::size_t fields_count_val_lambda = boost::pfr::detail::fields_count<T>();
+            detail::print_impl<0, fields_count_val_lambda>::print(out, val);
         },
         detail::make_index_sequence<fields_count_val>{}
     );
@@ -70,7 +73,7 @@ void write(std::basic_ostream<Char, Traits>& out, const T& value) {
 /// \endcode
 template <class Char, class Traits, class T>
 void read(std::basic_istream<Char, Traits>& in, T& value) {
-    constexpr std::size_t fields_count_val = boost::pfr::detail::fields_count<std::remove_reference_t<T>>();
+    constexpr std::size_t fields_count_val = boost::pfr::detail::fields_count<T>();
 
     const auto prev_exceptions = in.exceptions();
     in.exceptions( typename std::basic_istream<Char, Traits>::iostate(0) );
@@ -86,7 +89,10 @@ void read(std::basic_istream<Char, Traits>& in, T& value) {
     ::boost::pfr::detail::for_each_field_dispatcher(
         value,
         [&in](const auto& val) {
-            detail::read_impl<0, fields_count_val>::read(in, val);
+            // We can not reuse `fields_count_val` in lambda because compilers had issues with
+            // passing constexpr variables into lambdas. Computing is again is the most portable solution.
+            constexpr std::size_t fields_count_val_lambda = boost::pfr::detail::fields_count<T>();
+            detail::read_impl<0, fields_count_val_lambda>::read(in, val);
         },
         detail::make_index_sequence<fields_count_val>{}
     );

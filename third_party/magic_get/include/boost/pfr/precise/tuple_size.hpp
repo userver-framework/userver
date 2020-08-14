@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -18,7 +18,7 @@
 
 namespace boost { namespace pfr {
 
-/// \brief Has a static const member variable `value` that contains fields count in a T.
+/// Has a static const member variable `value` that contains fields count in a T.
 /// Works for any T that supports aggregate initialization even if T is not POD.
 /// \flattening{Flattens} only multidimensional arrays.
 ///
@@ -32,7 +32,7 @@ template <class T>
 using tuple_size = detail::size_t_< boost::pfr::detail::fields_count<T>() >;
 
 
-/// \brief `tuple_size_v` is a template variable that contains fields count in a T and
+/// `tuple_size_v` is a template variable that contains fields count in a T and
 /// works for any T that supports aggregate initialization even if T is not POD.
 /// \flattening{Flattens} only multidimensional arrays.
 ///

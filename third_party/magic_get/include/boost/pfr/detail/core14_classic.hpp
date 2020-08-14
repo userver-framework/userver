@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -32,6 +32,9 @@ namespace boost { namespace pfr { namespace detail {
 
 ///////////////////// General utility stuff
 
+template <std::size_t Index>
+using size_t_ = std::integral_constant<std::size_t, Index >;
+
 template <class T> struct identity{
     typedef T type;
 };
@@ -57,7 +60,7 @@ namespace typeid_conversions {
 
 constexpr std::size_t native_types_mask = 31;
 constexpr std::size_t bits_per_extension = 3;
-constexpr std::size_t extension_maks = (
+constexpr std::size_t extension_mask = (
     static_cast<std::size_t>((1 << bits_per_extension) - 1)
         << static_cast<std::size_t>(sizeof(std::size_t) * 8 - bits_per_extension)
 );
@@ -86,7 +89,7 @@ constexpr std::size_t native_ref_type = (
 );
 
 template <std::size_t Index, std::size_t Extension>
-using if_extension = std::enable_if_t< (Index & extension_maks) == Extension >*;
+using if_extension = std::enable_if_t< (Index & extension_mask) == Extension >*;
 
 ///////////////////// Helper functions
 template <std::size_t Unptr>
@@ -505,7 +508,10 @@ template <class T>
 constexpr auto internal_tuple_with_same_alignment() noexcept {
     typedef typename std::remove_cv<T>::type type;
 
-    static_assert(std::is_pod<type>::value, "====================> Boost.PFR: Type can not be used is flat_ functions, because it's not POD");
+    static_assert(
+        std::is_trivial<type>::value && std::is_standard_layout<type>::value,
+        "====================> Boost.PFR: Type can not be used is flat_ functions, because it's not POD"
+    );
     static_assert(!std::is_reference<type>::value, "====================> Boost.PFR: Not applyable");
     constexpr auto res = detail::as_flat_tuple_impl<type>(
         detail::make_index_sequence< decltype(detail::flat_array_of_type_ids<type>())::size() >()

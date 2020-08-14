@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -14,13 +14,12 @@
 #pragma once
 
 #include <boost/pfr/detail/config.hpp>
-
 #if !BOOST_PFR_USE_CPP17
 #   error C++17 is required for this header.
 #endif
 
 #include <boost/pfr/detail/sequence_tuple.hpp>
-#include <boost/pfr/detail/fields_count.hpp>
+#include <boost/pfr/detail/size_t_.hpp>
 
 namespace boost { namespace pfr { namespace detail {
 
@@ -1024,18 +1023,6 @@ constexpr auto tie_as_tuple(T& val, size_t_<100>) noexcept {
   );
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-template <class T>
-constexpr auto tie_as_tuple(T& val) noexcept {
-  static_assert(
-    !std::is_union<T>::value,
-    "====================> Boost.PFR: For safety reasons it is forbidden to reflect unions. See `Reflection of unions` section in the docs for more info."
-  );
-  typedef size_t_<fields_count<T>()> fields_count_tag;
-  return boost::pfr::detail::tie_as_tuple(val, fields_count_tag{});
-}
 
 }}} // namespace boost::pfr::detail
 

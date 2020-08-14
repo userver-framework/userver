@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -54,26 +54,26 @@
 /// std::size_t hash_value(const T& value) noexcept;
 /// \endcode
 
-#define BOOST_PFR_FLAT_FUNCTIONS_FOR(T)                                                                                           \
-    static inline bool operator==(const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_equal_to<T>{}(lhs, rhs);      }  \
-    static inline bool operator!=(const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_not_equal<T>{}(lhs, rhs);     }  \
-    static inline bool operator< (const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_less<T>{}(lhs, rhs);          }  \
-    static inline bool operator> (const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_greater<T>{}(lhs, rhs);       }  \
-    static inline bool operator<=(const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_less_equal<T>{}(lhs, rhs);    }  \
-    static inline bool operator>=(const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_greater_equal<T>{}(lhs, rhs); }  \
-    template <class Char, class Traits>                                                                                             \
-    static ::std::basic_ostream<Char, Traits>& operator<<(::std::basic_ostream<Char, Traits>& out, const T& value) {                \
-        ::boost::pfr::flat_write(out, value);                                                                                       \
-        return out;                                                                                                                 \
-    }                                                                                                                               \
-    template <class Char, class Traits>                                                                                             \
-    static ::std::basic_istream<Char, Traits>& operator>>(::std::basic_istream<Char, Traits>& in, T& value) {                       \
-        ::boost::pfr::flat_read(in, value);                                                                                         \
-        return in;                                                                                                                  \
-    }                                                                                                                               \
-    static inline std::size_t hash_value(const T& v) noexcept {                                                                     \
-        return ::boost::pfr::flat_hash<T>{}(v);                                                                                     \
-    }                                                                                                                               \
+#define BOOST_PFR_FLAT_FUNCTIONS_FOR(T)                                                                                                                    \
+    BOOST_PFR_MAYBE_UNUSED static inline bool operator==(const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_equal_to<T>{}(lhs, rhs);      }  \
+    BOOST_PFR_MAYBE_UNUSED static inline bool operator!=(const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_not_equal<T>{}(lhs, rhs);     }  \
+    BOOST_PFR_MAYBE_UNUSED static inline bool operator< (const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_less<T>{}(lhs, rhs);          }  \
+    BOOST_PFR_MAYBE_UNUSED static inline bool operator> (const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_greater<T>{}(lhs, rhs);       }  \
+    BOOST_PFR_MAYBE_UNUSED static inline bool operator<=(const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_less_equal<T>{}(lhs, rhs);    }  \
+    BOOST_PFR_MAYBE_UNUSED static inline bool operator>=(const T& lhs, const T& rhs) noexcept { return ::boost::pfr::flat_greater_equal<T>{}(lhs, rhs); }  \
+    template <class Char, class Traits>                                                                                                                    \
+    BOOST_PFR_MAYBE_UNUSED static ::std::basic_ostream<Char, Traits>& operator<<(::std::basic_ostream<Char, Traits>& out, const T& value) {                \
+        ::boost::pfr::flat_write(out, value);                                                                                                              \
+        return out;                                                                                                                                        \
+    }                                                                                                                                                      \
+    template <class Char, class Traits>                                                                                                                    \
+    BOOST_PFR_MAYBE_UNUSED static ::std::basic_istream<Char, Traits>& operator>>(::std::basic_istream<Char, Traits>& in, T& value) {                       \
+        ::boost::pfr::flat_read(in, value);                                                                                                                \
+        return in;                                                                                                                                         \
+    }                                                                                                                                                      \
+    BOOST_PFR_MAYBE_UNUSED static inline std::size_t hash_value(const T& v) noexcept {                                                                     \
+        return ::boost::pfr::flat_hash<T>{}(v);                                                                                                            \
+    }                                                                                                                                                      \
 /**/
 
 #endif // BOOST_PFR_FLAT_FUNCTIONS_FOR_HPP

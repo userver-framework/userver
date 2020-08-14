@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Antony Polukhin
+// Copyright (c) 2016-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -94,13 +94,19 @@ namespace boost { namespace pfr { namespace detail {
     }
 
     template <class Char, class Traits, class T>
-    static std::enable_if_t<std::is_pod<T>::value, std::basic_ostream<Char, Traits>&> operator<<(std::basic_ostream<Char, Traits>& out, const T& value) {
+    static std::enable_if_t<
+        std::is_trivial<T>::value && std::is_standard_layout<T>::value,
+        std::basic_ostream<Char, Traits>&
+    > operator<<(std::basic_ostream<Char, Traits>& out, const T& value) {
         ::boost::pfr::write(out, value);
         return out;
     }
 
     template <class Char, class Traits, class T>
-    static std::enable_if_t<std::is_pod<T>::value, std::basic_istream<Char, Traits>&> operator>>(std::basic_istream<Char, Traits>& in, T& value) {
+    static std::enable_if_t<
+        std::is_trivial<T>::value && std::is_standard_layout<T>::value,
+        std::basic_istream<Char, Traits>&
+    > operator>>(std::basic_istream<Char, Traits>& in, T& value) {
         ::boost::pfr::read(in, value);
         return in;
     }

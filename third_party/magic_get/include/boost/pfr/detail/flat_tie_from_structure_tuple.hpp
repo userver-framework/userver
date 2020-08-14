@@ -1,4 +1,5 @@
 // Copyright (c) 2018 Adam Butcher, Antony Polukhin
+// Copyright (c) 2019-2020 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -23,7 +24,8 @@ namespace boost { namespace pfr { namespace detail {
 template <typename... Elements>
 struct flat_tie_from_structure_tuple : std::tuple<Elements&...> {
     using base = std::tuple<Elements&...>;
-    using base::tuple;
+    using base::base;
+
     template <typename T>
     constexpr flat_tie_from_structure_tuple& operator= (T const& t) {
         base::operator=(
