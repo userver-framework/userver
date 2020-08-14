@@ -52,7 +52,7 @@ TEST(LruSet, OverflowUpdate) {
   EXPECT_EQ(true, cache.Has(3));
 }
 
-TEST(LruSet, OverflowSetMaxSize) {
+TEST(LruSet, OverflowSetMaxSizeShrink) {
   Lru cache(3);
   cache.Put(1);
   cache.Put(2);
@@ -63,6 +63,32 @@ TEST(LruSet, OverflowSetMaxSize) {
   EXPECT_EQ(true, cache.Has(1));
   EXPECT_EQ(false, cache.Has(2));
   EXPECT_EQ(true, cache.Has(3));
+}
+
+TEST(LruSet, OverflowSetMaxSizeExpand) {
+  Lru cache(3);
+  cache.Put(1);
+  cache.Put(2);
+  cache.Put(1);
+  cache.Put(3);
+  cache.SetMaxSize(5);
+  cache.Put(4);
+  cache.Put(5);
+
+  EXPECT_EQ(true, cache.Has(1));
+  EXPECT_EQ(true, cache.Has(2));
+  EXPECT_EQ(true, cache.Has(3));
+  EXPECT_EQ(true, cache.Has(4));
+  EXPECT_EQ(true, cache.Has(5));
+  EXPECT_EQ(false, cache.Has(6));
+
+  cache.Put(6);
+  EXPECT_EQ(false, cache.Has(1));
+  EXPECT_EQ(true, cache.Has(2));
+  EXPECT_EQ(true, cache.Has(3));
+  EXPECT_EQ(true, cache.Has(4));
+  EXPECT_EQ(true, cache.Has(5));
+  EXPECT_EQ(true, cache.Has(6));
 }
 
 TEST(LruSet, OverflowGet) {
