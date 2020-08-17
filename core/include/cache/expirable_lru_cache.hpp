@@ -79,6 +79,17 @@ class ExpirableLruCache final {
   std::optional<Value> GetOptional(const Key& key,
                                    const UpdateValueFunc& update_func);
 
+  /**
+   * GetOptional, but without expiry checks and value updates.
+   *
+   * Used during fallback in FallbackELruCache.
+   */
+  std::optional<Value> GetOptionalUnexpirable(const Key& key);
+
+  void Put(const Key& key, const Value& value);
+
+  void Put(const Key& key, Value&& value);
+
   const ExpirableLruCacheStatistics& GetStatistics() const;
 
   size_t GetSizeApproximate() const;
@@ -162,7 +173,6 @@ Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
   if (read_mode == ReadMode::kUseCache) {
     lru_.Put(key, {value, now});
   }
-
   return value;
 }
 
@@ -195,6 +205,39 @@ std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptional(
   stats_.recent.GetCurrentCounter().misses++;
 
   return std::nullopt;
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+std::optional<Value>
+ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnexpirable(
+    const Key& key) {
+  auto old_value = lru_.Get(key);
+
+  if (old_value) {
+    stats_.total.hits++;
+    stats_.recent.GetCurrentCounter().hits++;
+    LOG_DEBUG() << "cache hit";
+
+    return old_value->value;
+  }
+
+  LOG_DEBUG() << "cache miss";
+  stats_.total.misses++;
+  stats_.recent.GetCurrentCounter().misses++;
+
+  return std::nullopt;
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
+                                                     const Value& value) {
+  lru_.Put(key, {value, utils::datetime::SteadyNow()});
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
+                                                     Value&& value) {
+  lru_.Put(key, {std::move(value), utils::datetime::SteadyNow()});
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
