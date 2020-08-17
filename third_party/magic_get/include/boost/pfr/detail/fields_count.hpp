@@ -37,7 +37,9 @@ struct ubiq_lref_constructor {
 ///////////////////// Structure that can be converted to rvalue reference to anything
 struct ubiq_rref_constructor {
     std::size_t ignore;
-    template <class Type> /*constexpr*/ operator Type&&() const noexcept {}; // Allows initialization of rvalue reference fields and move-only types
+    template <class Type> /*constexpr*/ operator Type&&() const noexcept {  // Allows initialization of rvalue reference fields and move-only types
+        return detail::unsafe_declval<Type&&>();
+    };
 };
 
 

@@ -18,6 +18,7 @@
 #include <boost/pfr/detail/make_flat_tuple_of_references.hpp>
 #include <boost/pfr/detail/make_integer_sequence.hpp>
 #include <boost/pfr/detail/size_array.hpp>
+#include <boost/pfr/detail/size_t_.hpp>
 #include <boost/pfr/detail/rvalue_t.hpp>
 
 #ifdef __clang__
@@ -32,10 +33,7 @@ namespace boost { namespace pfr { namespace detail {
 
 ///////////////////// General utility stuff
 
-template <std::size_t Index>
-using size_t_ = std::integral_constant<std::size_t, Index >;
-
-template <class T> struct identity{
+template <class T> struct identity {
     typedef T type;
 };
 
