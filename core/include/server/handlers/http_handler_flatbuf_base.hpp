@@ -8,13 +8,17 @@
 
 #include <server/handlers/http_handler_base.hpp>
 #include <server/http/http_error.hpp>
-#include <utils/encoding/hex.hpp>
+#include <utils/log.hpp>
 
 namespace server {
 namespace handlers {
 
+namespace impl {
+
 const std::string kFlatbufRequestDataName = "__request_flatbuf";
 const std::string kFlatbufResponseDataName = "__response_flatbuf";
+
+}  // namespace impl
 
 template <typename InputType, typename ReturnType>
 class HttpHandlerFlatbufBase : public HttpHandlerBase {
@@ -72,10 +76,10 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext& context) const {
   const auto& input =
       context.GetData<const typename InputType::NativeTableType&>(
-          kFlatbufRequestDataName);
+          impl::kFlatbufRequestDataName);
 
   const auto& ret = context.SetData<const typename ReturnType::NativeTableType>(
-      kFlatbufResponseDataName,
+      impl::kFlatbufResponseDataName,
       HandleRequestFlatbufThrow(request, input, context));
 
   flatbuffers::FlatBufferBuilder fbb;
@@ -89,7 +93,7 @@ const typename InputType::NativeTableType*
 HttpHandlerFlatbufBase<InputType, ReturnType>::GetInputData(
     const request::RequestContext& context) const {
   return context.GetDataOptional<const typename InputType::NativeTableType>(
-      kFlatbufRequestDataName);
+      impl::kFlatbufRequestDataName);
 }
 
 template <typename InputType, typename ReturnType>
@@ -97,7 +101,7 @@ const typename ReturnType::NativeTableType*
 HttpHandlerFlatbufBase<InputType, ReturnType>::GetOutputData(
     const request::RequestContext& context) const {
   return context.GetDataOptional<const typename ReturnType::NativeTableType>(
-      kFlatbufResponseDataName);
+      impl::kFlatbufResponseDataName);
 }
 
 template <typename InputType, typename ReturnType>
@@ -106,10 +110,7 @@ HttpHandlerFlatbufBase<InputType, ReturnType>::GetRequestBodyForLogging(
     const http::HttpRequest&, request::RequestContext&,
     const std::string& request_body) const {
   size_t limit = GetConfig().request_body_size_log_limit;
-  if (request_body.size() > limit)
-    return utils::encoding::ToHex(request_body.data(), limit) +
-           "...(truncated)";
-  return utils::encoding::ToHex(request_body);
+  return utils::log::ToLimitedHex(request_body, limit);
 }
 
 template <typename InputType, typename ReturnType>
@@ -118,11 +119,7 @@ HttpHandlerFlatbufBase<InputType, ReturnType>::GetResponseDataForLogging(
     const http::HttpRequest&, request::RequestContext&,
     const std::string& response_data) const {
   size_t limit = GetConfig().response_data_size_log_limit;
-  if (response_data.size() > limit)
-    return utils::encoding::ToHex(response_data.data(), limit) +
-           "...(truncated, total " + std::to_string(response_data.size()) +
-           " bytes)";
-  return utils::encoding::ToHex(response_data);
+  return utils::log::ToLimitedHex(response_data, limit);
 }
 
 template <typename InputType, typename ReturnType>
@@ -141,7 +138,7 @@ void HttpHandlerFlatbufBase<InputType, ReturnType>::ParseRequestData(
   input_fbb->UnPackTo(&input);
 
   context.SetData<const typename InputType::NativeTableType>(
-      kFlatbufRequestDataName, std::move(input));
+      impl::kFlatbufRequestDataName, std::move(input));
 }
 
 }  // namespace handlers

@@ -11,10 +11,10 @@ using utils::text::RemoveQuotes;
 
 namespace {
 
-std::string ToHex(const std::string& str) {
+std::string ToHex(std::string_view view) {
   std::string result;
-  result.reserve(str.size() * 2);
-  boost::algorithm::hex(str.begin(), str.end(), std::back_inserter(result));
+  result.reserve(view.size() * 2);
+  boost::algorithm::hex(view.begin(), view.end(), std::back_inserter(result));
   boost::algorithm::to_lower(result);
   return result;
 }
@@ -64,10 +64,23 @@ TEST(TestIsUtf8, IsUtf8) {
 TEST(TestTrimUtf8Truncated, TrimTruncatedEnding) {
   auto test_trim = [](std::string test_str, const std::string expected) {
     auto test_str_orig = test_str;
+
+    auto test_view_str = test_str;
+    auto test_view = std::string_view{test_view_str};
+
     EXPECT_NO_THROW(utils::text::utf8::TrimTruncatedEnding(test_str))
         << "hex(test_str_orig): " << ToHex(test_str_orig);
     EXPECT_EQ(test_str, expected)
         << "hex(test_str_orig): " << ToHex(test_str_orig);
+
+    EXPECT_NO_THROW(utils::text::utf8::TrimViewTruncatedEnding(test_view))
+        << "hex(test_str_orig): " << ToHex(test_str_orig);
+    EXPECT_EQ(test_view, std::string_view{expected})
+        << "hex(test_str_orig): " << ToHex(test_str_orig);
+
+    // have to check, that TrimViewTruncatedEnding
+    // did not change the original string
+    EXPECT_EQ(test_view_str, test_str_orig);
   };
 
   test_trim("", "");

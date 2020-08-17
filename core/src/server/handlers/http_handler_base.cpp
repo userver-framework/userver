@@ -18,6 +18,7 @@
 #include <tracing/tags.hpp>
 #include <tracing/tracing.hpp>
 #include <utils/graphite.hpp>
+#include <utils/log.hpp>
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
 #include <utils/text.hpp>
@@ -38,18 +39,6 @@ std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
     json_headers[header_name] = headers_holder.GetHeader(header_name);
   }
   return formats::json::ToString(json_headers.ExtractValue());
-}
-
-/// @brief Return formatted for logging body truncated to limit length
-/// (handles utf-8 chars in the place of truncating)
-/// @param body original data
-/// @param limit requested maximum size
-std::string GetTruncatedBodyForLogging(const std::string& body, size_t limit) {
-  if (body.size() <= limit) return body;
-  std::string truncated = body.substr(0, limit);
-  utils::text::utf8::TrimTruncatedEnding(truncated);
-  return fmt::format("{}...(truncated, total {} bytes)", truncated,
-                     body.size());
 }
 
 std::vector<http::HttpMethod> InitAllowedMethods(const HandlerConfig& config) {
@@ -474,14 +463,14 @@ std::string HttpHandlerBase::GetRequestBodyForLogging(
     const http::HttpRequest&, request::RequestContext&,
     const std::string& request_body) const {
   size_t limit = GetConfig().request_body_size_log_limit;
-  return GetTruncatedBodyForLogging(request_body, limit);
+  return utils::log::ToLimitedUtf8(request_body, limit);
 }
 
 std::string HttpHandlerBase::GetResponseDataForLogging(
     const http::HttpRequest&, request::RequestContext&,
     const std::string& response_data) const {
   size_t limit = GetConfig().response_data_size_log_limit;
-  return GetTruncatedBodyForLogging(response_data, limit);
+  return utils::log::ToLimitedUtf8(response_data, limit);
 }
 
 std::string HttpHandlerBase::GetMetaType(

@@ -63,14 +63,18 @@ bool IsWellFormedCodePoint(const unsigned char* bytes,
 /// `bytes` must not be a nullptr, `length` must not be 0.
 bool IsValid(const unsigned char* bytes, std::size_t length) noexcept;
 
-// returns number of utf-8 code points, text must be in utf-8 encoding
-// @throws std::runtime_error if not a valid UTF8 text
+/// returns number of utf-8 code points, text must be in utf-8 encoding
+/// @throws std::runtime_error if not a valid UTF8 text
 std::size_t GetCodePointsCount(std::string_view text);
 
-// Removes the longest (possible empty) suffix of `str` which is a proper prefix
-// of some utf-8 multibyte character.
-// If `str` is not in utf-8 it may remove some suffix of length up to 3.
+/// Removes the longest (possible empty) suffix of `str` which is a proper
+/// prefix of some utf-8 multibyte character. If `str` is not in utf-8 it may
+/// remove some suffix of length up to 3.
 void TrimTruncatedEnding(std::string& str);
+
+/// @see void TrimTruncatedEnding(std::string& str)
+/// @warn this DOES NOT change the original string
+void TrimViewTruncatedEnding(std::string_view& view);
 
 }  // namespace utf8
 

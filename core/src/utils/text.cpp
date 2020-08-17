@@ -153,6 +153,42 @@ bool IsValidBytes(const unsigned char* bytes,
   return false;
 }
 
+size_t FindTruncatedEndingCorrectSize(std::string_view str) {
+  if (str.empty()) {
+    return str.size();
+  }
+
+  // check if `str` ends with 1-byte character
+  if (!(str.back() & 0x80)) {
+    return str.size();
+  }
+
+  // no symbol with a length > 4 => no proper prefix with a length > 3
+  size_t max_suffix_len = std::min(str.size(), 3ul);
+  for (size_t suffix_len = 1; suffix_len <= max_suffix_len; ++suffix_len) {
+    size_t pos = str.size() - suffix_len;
+
+    // first byte of a multibyte character
+    if ((str[pos] & 0xc0) == 0xc0) {
+      size_t expected_len = utf8::CodePointLengthByFirstByte(str[pos]);
+      // check if current suffix is a proper prefix of some multibyte character
+      if (expected_len > suffix_len) {
+        return str.size() - suffix_len;
+      } else {  // else character is not truncated or `str` was not in utf-8
+        return str.size();
+      }
+    }
+
+    // Check if current byte is a continuation byte of a multibyte character.
+    // If not then `str` is not a truncated utf-8 string.
+    if ((str[pos] & 0xc0) != 0x80) {
+      return str.size();
+    }
+  }
+
+  return str.size();
+}
+
 }  // namespace
 
 unsigned CodePointLengthByFirstByte(unsigned char c) noexcept {
@@ -219,28 +255,24 @@ std::size_t GetCodePointsCount(std::string_view text) {
 }
 
 void TrimTruncatedEnding(std::string& str) {
-  if (str.empty()) return;
+  size_t correct_size = FindTruncatedEndingCorrectSize(std::string_view{str});
+  UASSERT_MSG(correct_size <= str.size(),
+              "Function FindTruncatedEndingCorrectSize is broken: "
+              "'correct_size' cannot be greater than 'str'");
 
-  // check if `str` ends with 1-byte character
-  if (!(str.back() & 0x80)) return;
+  if (correct_size < str.size()) {
+    str.resize(correct_size);
+  }
+}
 
-  // no symbol with a length > 4 => no proper prefix with a length > 3
-  size_t max_suffix_len = std::min(str.size(), 3ul);
-  for (size_t suffix_len = 1; suffix_len <= max_suffix_len; ++suffix_len) {
-    size_t pos = str.size() - suffix_len;
+void TrimViewTruncatedEnding(std::string_view& view) {
+  size_t correct_size = FindTruncatedEndingCorrectSize(view);
+  UASSERT_MSG(correct_size <= view.size(),
+              "Function FindTruncatedEndingCorrectSize is broken: "
+              "'correct_size' cannot be greater than 'view'");
 
-    // first byte of a multibyte character
-    if ((str[pos] & 0xc0) == 0xc0) {
-      size_t expected_len = utf8::CodePointLengthByFirstByte(str[pos]);
-      // check if current suffix is a proper prefix of some multibyte character
-      if (expected_len > suffix_len) str.resize(str.size() - suffix_len);
-      // else character is not truncated or `str` was not in utf-8
-      return;
-    }
-
-    // Check if current byte is a continuation byte of a multibyte character.
-    // If not then `str` is not a truncated utf-8 string.
-    if ((str[pos] & 0xc0) != 0x80) return;
+  if (correct_size < view.size()) {
+    view = std::string_view{view.data(), correct_size};
   }
 }
 
