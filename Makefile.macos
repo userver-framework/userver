@@ -5,5 +5,5 @@ ifeq ($(origin CXX),default)
   CXX := clang++
 endif
 
-CMAKE_OPTS += -DICU_ROOT=/usr/local/opt/icu4c/ -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1
+override CMAKE_OPTS += -DICU_ROOT=/usr/local/opt/icu4c/ -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1
 CLANG_TIDY_BINARY = clang-tidy

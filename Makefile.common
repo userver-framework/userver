@@ -9,9 +9,17 @@ ifeq ($(KERNEL),Darwin)
   -include userver/Makefile.macos
 endif
 
+# CMAKE_OPTS is publicly available and can be specified on command line.
+# In this case it will override all modifications we're trying to apply here.
+# Cannot use `override` here as we need to pass values to sub-makes.
+# Copy the original value to our own variable and work with it instead.
+export CMAKE_OPTS_INTERNAL ?= $(CMAKE_OPTS)
+
 LTO_CACHE_FOLDER ?= $(HOME)/.ltocache
 ifneq ($(LTO_CACHE_FOLDER),)
-	CMAKE_OPTS += -DLTO_CACHE_FOLDER=$(LTO_CACHE_FOLDER)
+  ifeq ($(findstring LTO_CACHE_FOLDER=,$(CMAKE_OPTS_INTERNAL)),)
+    CMAKE_OPTS_INTERNAL += -DLTO_CACHE_FOLDER=$(LTO_CACHE_FOLDER)
+  endif
 endif
 BUILD_TYPE ?= Debug
 BUILD_DIR ?= build
@@ -69,27 +77,40 @@ $(BUILD_DIR)/Makefile:
 	@echo "Makefile: CC = ${CC} CXX = ${CXX}"
 	@mkdir -p $(BUILD_DIR)
 	@cd $(BUILD_DIR) && \
-      cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $(CMAKE_OPTS) $(CMAKE_DIR)
+      cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $(CMAKE_OPTS_INTERNAL) $(CMAKE_DIR)
 
 .PHONY: build
-build: build-all
+build: cmake
+	$(MAKE) -j$(NPROCS) -C $(BUILD_DIR) all
 
-build-%: init
-	$(MAKE) -j$(NPROCS) -C $(BUILD_DIR) $*
+build-yandex-taxi-%: cmake
+	$(MAKE) -j$(NPROCS) -C $(BUILD_DIR) yandex-taxi-$*
+
+# Checks cmake cache for variable value and reruns it when necessary.
+# (Lists current cmake variable values and greps the required ones.
+#  If any of the values is not present, cmake is forcibly rerun.)
+# $(1) -- variable name
+# $(2) -- values list
+ensure-cmake-var-values = ( \
+  cd $(BUILD_DIR) \
+  && cmake -N -L $(CMAKE_DIR) | grep '^$(1):.*=' | cut -d= -f2 \
+    $(foreach value,$(wordlist 2,$(words $(2)),$(2)),| grep $(value)) \
+    | grep -q $(firstword $(2)) \
+) || $(eval CMAKE_OPTS_INTERNAL += -DSANITIZE="$(2)") $(MAKE) -B cmake
 
 .PHONY: build-with-asan
-build-with-asan: cmake
-	@cd $(BUILD_DIR) && cmake -DSANITIZE="addr" $(CMAKE_DIR)
+build-with-asan:
+	$(call ensure-cmake-var-values,SANITIZE,addr)
 	@$(MAKE) all
 
 .PHONY: build-with-ubsan
-build-with-ubsan: cmake
-	@cd $(BUILD_DIR) && cmake -DSANITIZE="ub" $(CMAKE_DIR)
+build-with-ubsan:
+	$(call ensure-cmake-var-values,SANITIZE,ub)
 	@$(MAKE) all
 
 .PHONY: build-with-sanitizers
-build-with-sanitizers: cmake
-	@cd $(BUILD_DIR) && cmake -DSANITIZE="addr ub" $(CMAKE_DIR)
+build-with-sanitizers:
+	$(call ensure-cmake-var-values,SANITIZE,addr ub)
 	@$(MAKE) all
 
 .PHONY: clang-static-analyzer
