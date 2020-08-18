@@ -12,14 +12,10 @@ class IntegralParser final : public TypedParser<T> {
   using TypedParser<T>::TypedParser;
 
  protected:
-  void Int64(int64_t i) override {
-    this->SetResult(boost::numeric_cast<T>(i));
-    this->PopAndValidate();
-  }
+  void Int64(int64_t i) override { this->SetResult(boost::numeric_cast<T>(i)); }
 
   void Uint64(uint64_t i) override {
     this->SetResult(boost::numeric_cast<T>(i));
-    this->PopAndValidate();
   }
 
   std::string Expected() const override { return "integer"; }

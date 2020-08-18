@@ -25,12 +25,11 @@ class TypedParser : public BaseParser {
   void SetResult(T value) {
     UASSERT(result_);
     *result_ = std::move(value);
+    parser_state_->PopMe(*this);
     if (subscriber_) subscriber_->OnSend();
   }
 
   void Validate() const { UASSERT(result_); }
-
-  void PopAndValidate() { parser_state_->PopMe(*this); }
 
   T* result_{nullptr};
   Subscriber* subscriber_{nullptr};

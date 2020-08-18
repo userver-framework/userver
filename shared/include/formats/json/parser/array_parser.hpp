@@ -57,7 +57,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber {
   }
   void EndArray() override {
     if (state_ == State::kInside) {
-      this->PopAndValidate();
+      this->parser_state_->PopMe(*this);
       return;
     }
     // impossible?

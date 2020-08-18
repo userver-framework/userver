@@ -37,7 +37,7 @@ class MapParser final : public TypedParser<Map> {
 
   void EndObject() override {
     if (state_ == State::kInside) {
-      this->PopAndValidate();
+      this->parser_state_->PopMe(*this);
       return;
     }
     // impossible?

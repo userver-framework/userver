@@ -95,7 +95,6 @@ void JsonValueParser::MaybePopSelf() {
     auto root = std::make_shared<impl::Value>();
     root->Swap(impl_->raw_value_);
     this->SetResult(Value{std::move(root)});
-    PopAndValidate();
   }
 }
 
