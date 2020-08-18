@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/stacktrace/stacktrace.hpp>
 
 #include <components/manager.hpp>
 #include <crypto/openssl.hpp>
@@ -43,8 +44,6 @@ class LogScope final {
   logging::LoggerPtr old_default_logger_;
 };
 
-bool IsDaemon() { return getppid() == 1; }
-
 void HandleJemallocSettings() {
   static const std::string kJemallocEnabledPath =
       "/var/run/yandex/userver-jemalloc-profile-enabled-on-start";
@@ -55,6 +54,14 @@ void HandleJemallocSettings() {
     LOG_ERROR() << "Failed to activate jemalloc profiler: " << ec.message();
   }
 }
+
+void PreheatStacktraceCollector() {
+  // this loads debug info from disk, hopefully preventing this to occur later,
+  // e.g. in exception constructor
+  to_string(boost::stacktrace::stacktrace{});
+}
+
+bool IsDaemon() { return getppid() == 1; }
 
 bool IsTraced() {
   static const std::string kTracerField = "TracerPid:\t";
@@ -80,6 +87,7 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
            const std::string& init_log_path, RunMode run_mode) {
   crypto::impl::Openssl::Init();
   HandleJemallocSettings();
+  PreheatStacktraceCollector();
   LogScope log_scope{init_log_path};
 
   LOG_INFO() << "Parsing configs";
