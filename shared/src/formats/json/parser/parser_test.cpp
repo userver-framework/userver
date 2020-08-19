@@ -31,6 +31,23 @@ TEST(JsonStringParser, Int64) {
   EXPECT_EQ(result, 12345);
 }
 
+TEST(JsonStringParser, Double) {
+  EXPECT_DOUBLE_EQ((ParseToType<double, DoubleParser>("1.23")), 1.23);
+  EXPECT_DOUBLE_EQ((ParseToType<double, DoubleParser>("-20")), -20.0);
+  EXPECT_DOUBLE_EQ((ParseToType<double, DoubleParser>("0")), 0);
+  EXPECT_DOUBLE_EQ((ParseToType<double, DoubleParser>("123.456")), 123.456);
+
+  EXPECT_THROW_TEXT((ParseToType<double, DoubleParser>("123.456a")), ParseError,
+                    "Parse error at pos 7, path '': The document root must not "
+                    "be followed by other values.");
+  EXPECT_THROW_TEXT(
+      (ParseToType<double, DoubleParser>("[]")), ParseError,
+      "Parse error at pos 0, path '': number was expected, but array found");
+  EXPECT_THROW_TEXT(
+      (ParseToType<double, DoubleParser>("{}")), ParseError,
+      "Parse error at pos 0, path '': number was expected, but object found");
+}
+
 TEST(JsonStringParser, Int64Overflow) {
   std::string input{std::to_string(-1ULL)};
 
@@ -172,6 +189,20 @@ TEST(JsonStringParser, ArrayArrayInt) {
   state.PushParserNoKey(parser);
   state.ProcessInput(input);
   EXPECT_EQ(result, (std::vector<std::vector<int64_t>>{{1}, {}, {2, 3, 4}}));
+}
+
+TEST(JsonStringParser, ArrayBool) {
+  std::string input{"[true, false, true]"};
+  std::vector<bool> result;
+
+  BoolParser bool_parser;
+  ArrayParser<bool, BoolParser> parser(bool_parser);
+  parser.Reset(result);
+
+  ParserState state;
+  state.PushParserNoKey(parser);
+  state.ProcessInput(input);
+  EXPECT_EQ(result, (std::vector<bool>{true, false, true}));
 }
 
 template <class T>

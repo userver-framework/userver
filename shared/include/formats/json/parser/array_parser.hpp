@@ -16,9 +16,10 @@ template <typename Item>
 struct ItemStorageVector {};
 
 template <typename Item, typename Array>
-struct ItemStorage : public std::conditional_t<meta::is_vector<Array>::value,
-                                               ItemStorageVector<Item>,
-                                               ItemStorageNonVector<Item>> {};
+struct ItemStorage
+    : public std::conditional_t<
+          meta::is_vector<Array>::value && !std::is_same<Item, bool>::value,
+          ItemStorageVector<Item>, ItemStorageNonVector<Item>> {};
 
 }  // namespace impl
 
@@ -96,7 +97,8 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber {
   void PushParser() {
     if (state_ != State::kInside) this->Throw("array");
 
-    if constexpr (meta::is_vector<Array>::value) {
+    if constexpr (meta::is_vector<Array>::value &&
+                  !std::is_same<Item, bool>::value) {
       this->item_parser_.Reset(*this->result_->emplace(this->result_->end()));
     } else {
       this->item_storage_.item = {};
@@ -114,6 +116,8 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber {
   void OnSend() override {
     if constexpr (!meta::is_vector<Array>::value) {
       this->result_->insert(std::move(this->item_storage_.item));
+    } else if constexpr (std::is_same<Item, bool>::value) {
+      this->result_->push_back(std::move(this->item_storage_.item));
     }
   }
 
