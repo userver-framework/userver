@@ -117,6 +117,7 @@ target_link_libraries(${PROJECT_NAME}
 set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${USERVER_THIRD_PARTY_DIRS}/decimal64/include
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

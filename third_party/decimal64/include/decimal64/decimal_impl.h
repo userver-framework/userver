@@ -42,10 +42,13 @@
 //   as 1 for allowing to mix lower or equal precision types
 //   as 2 for automatic rounding when different precision is mixed
 
-#include <iomanip>
+#include <fmt/format.h>
+
 #include <iosfwd>
-#include <locale>
-#include <sstream>
+#include <limits>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 
 #ifndef DEC_TYPE_LEVEL
 #define DEC_TYPE_LEVEL 2
@@ -298,25 +301,25 @@ class dec_utils {
   }
 
   static int64 pow10(int n) {
-    static const int64 decimalFactorTable[] = {1,
-                                               10,
-                                               100,
-                                               1000,
-                                               10000,
-                                               100000,
-                                               1000000,
-                                               10000000,
-                                               100000000,
-                                               1000000000,
-                                               10000000000,
-                                               100000000000,
-                                               1000000000000,
-                                               10000000000000,
-                                               100000000000000,
-                                               1000000000000000,
-                                               10000000000000000,
-                                               100000000000000000,
-                                               1000000000000000000};
+    static constexpr int64 decimalFactorTable[] = {1,
+                                                   10,
+                                                   100,
+                                                   1000,
+                                                   10000,
+                                                   100000,
+                                                   1000000,
+                                                   10000000,
+                                                   100000000,
+                                                   1000000000,
+                                                   10000000000,
+                                                   100000000000,
+                                                   1000000000000,
+                                                   10000000000000,
+                                                   100000000000000,
+                                                   1000000000000000,
+                                                   10000000000000000,
+                                                   100000000000000000,
+                                                   1000000000000000000};
 
     if (n >= 0 && n <= max_decimal_points) {
       return decimalFactorTable[n];
@@ -654,7 +657,7 @@ class decimal {
   explicit decimal(int64 value, int64 precFactor) {
     initWithPrec(value, precFactor);
   }
-  explicit decimal(const std::string& value) { fromString(value, *this); }
+  explicit decimal(std::string_view value);
 
   ~decimal() {}
 
@@ -1061,7 +1064,8 @@ class decimal {
   /// Combines two parts (before and after decimal point) into decimal value.
   /// Both input values have to have the same sign for correct results.
   /// Does not perform any rounding or input validation - afterValue must be
-  /// less than 10^prec. \param[in] beforeValue value before decimal point
+  /// less than 10^prec.
+  /// \param[in] beforeValue value before decimal point
   /// \param[in] afterValue value after decimal point multiplied by 10^prec
   /// \result Returns *this
   decimal& pack(int64 beforeValue, int64 afterValue) {
@@ -1231,7 +1235,7 @@ decimal<Prec> decimal_cast(double arg) {
 }
 
 template <int Prec>
-decimal<Prec> decimal_cast(const std::string& arg) {
+decimal<Prec> decimal_cast(std::string_view arg) {
   decimal<Prec> result(arg);
   return result;
 }
@@ -1268,7 +1272,7 @@ decimal<Prec, RoundPolicy> decimal_cast(double arg) {
 }
 
 template <int Prec, typename RoundPolicy>
-decimal<Prec, RoundPolicy> decimal_cast(const std::string& arg) {
+decimal<Prec, RoundPolicy> decimal_cast(std::string_view arg) {
   decimal<Prec, RoundPolicy> result(arg);
   return result;
 }
@@ -1279,85 +1283,96 @@ decimal<Prec, RoundPolicy> decimal_cast(const char (&arg)[N]) {
   return result;
 }
 
-/// Exports decimal to stream
-/// Used format: {-}bbbb.aaaa where
-/// {-} is optional '-' sign character
-/// '.' is locale-dependent decimal point character
-/// bbbb is stream of digits before decimal point
-/// aaaa is stream of digits after decimal point
-template <class decimal_type, typename StreamType>
-void toStream(const decimal_type& arg, StreamType& output) {
-  using namespace std;
-
-  int64 before, after;
-  int sign;
-
-  arg.unpack(before, after);
-  sign = 1;
-
-  if (before < 0) {
-    sign = -1;
-    before = -before;
-  }
-
-  if (after < 0) {
-    sign = -1;
-    after = -after;
-  }
-
-  if (sign < 0) output << "-";
-
-  const char dec_point =
-      use_facet<numpunct<char> >(output.getloc()).decimal_point();
-  output << before;
-  if (arg.getDecimalPoints() > 0) {
-    output << dec_point;
-    output << setw(arg.getDecimalPoints()) << setfill('0') << right << after;
-  }
-}
-
 namespace details {
 
-/// Extract values from stream ready to be packed to decimal
-template <typename charT, typename traits>
-bool parse_unpacked(std::basic_istream<charT, traits>& input, int& sign,
-                    int64& before, int64& after, int& decimalDigits) {
-  using namespace std;
+template <typename CharT>
+char narrow(CharT c) {
+  // assume there are no decimal-related characters outside of `char` domain
+  return c >= std::numeric_limits<char>::min() &&
+                 c <= std::numeric_limits<char>::max()
+             ? static_cast<char>(c)
+             : 'a';
+}
+
+template <typename CharT>
+class StringCharSequence {
+ public:
+  explicit StringCharSequence(std::basic_string_view<CharT> sv)
+      : current_(sv.cbegin()), end_(sv.cend()) {}
+
+  /// on sequence end, returns '\0'
+  char get() { return current_ == end_ ? '\0' : narrow(*current_++); }
+
+  void unget() { --current_; }
+
+ private:
+  typename std::basic_string_view<CharT>::const_iterator current_;
+  typename std::basic_string_view<CharT>::const_iterator end_;
+};
+
+template <typename CharT, typename Traits>
+class StreamCharSequence {
+ public:
+  explicit StreamCharSequence(std::basic_istream<CharT, Traits>& in)
+      : in_(&in) {}
+
+  /// on sequence end, returns '\0'
+  char get() {
+    constexpr auto eof = std::basic_istream<CharT, Traits>::traits_type::eof();
+    if (!in_->good()) {
+      return '\0';
+    }
+    const auto c = in_->get();
+    return c == eof ? '\0' : narrow(c);
+  }
+
+  void unget() { in_->unget(); }
+
+ private:
+  std::basic_istream<CharT, Traits>* in_;
+};
+
+enum class ParsingMode { strict, allowSpaces, permissive };
+
+/// Extract values from a CharSequence ready to be packed to decimal
+template <typename CharSequence>
+[[nodiscard]] bool parseUnpacked(CharSequence input, int& sign, int64& before,
+                                 int64& after, int& decimalDigits,
+                                 ParsingMode mode) {
+  constexpr char decPoint = '.';
 
   enum StateEnum {
     IN_SIGN,
     IN_BEFORE_FIRST_DIG,
+    IN_LEADING_ZEROS,
     IN_BEFORE_DEC,
     IN_AFTER_DEC,
+    IN_IGNORING_AFTER_DEC,
     IN_END
-  } state = IN_SIGN;
-  const numpunct<char>* facet =
-      has_facet<numpunct<char> >(input.getloc())
-          ? &use_facet<numpunct<char> >(input.getloc())
-          : NULL;
-  const char dec_point = (facet != NULL) ? facet->decimal_point() : '.';
-  const bool thousands_grouping =
-      (facet != NULL) ? (!facet->grouping().empty()) : false;
-  const char thousands_sep = (facet != NULL) ? facet->thousands_sep() : ',';
+  };
+
   enum ErrorCodes {
     ERR_WRONG_CHAR = -1,
     ERR_NO_DIGITS = -2,
-    ERR_WRONG_STATE = -3,
-    ERR_STREAM_GET_ERROR = -4
+    ERR_OVERFLOW = -3,
+    ERR_WRONG_STATE = -4
+  };
+
+  const auto isSpace = [](char c) {
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v';
   };
 
   before = after = 0;
   sign = 1;
 
+  StateEnum state = IN_SIGN;
   int error = 0;
-  int digitsCount = 0;
+  int beforeDigitsCount = 0;
   int afterDigitCount = 0;
 
-  while ((input) &&
-         (state != IN_END))  // loop while extraction from file is possible
-  {
-    const auto c = input.get();
-    if (c == traits::eof()) {
+  while (state != IN_END) {
+    const char c = input.get();
+    if (c == '\0') {
       break;
     }
 
@@ -1368,48 +1383,82 @@ bool parse_unpacked(std::basic_istream<charT, traits>& input, int& sign,
           state = IN_BEFORE_FIRST_DIG;
         } else if (c == '+') {
           state = IN_BEFORE_FIRST_DIG;
-        } else if ((c >= '0') && (c <= '9')) {
+        } else if (c == '0') {
+          state = IN_LEADING_ZEROS;
+          beforeDigitsCount = 1;
+        } else if ((c >= '1') && (c <= '9')) {
           state = IN_BEFORE_DEC;
           before = static_cast<int>(c - '0');
-          digitsCount++;
-        } else if (c == dec_point) {
+          beforeDigitsCount = 1;
+        } else if (c == decPoint) {
           state = IN_AFTER_DEC;
-        } else if ((c != ' ') && (c != '\t')) {
+        } else if (isSpace(c) && mode != ParsingMode::strict) {
+          // skip
+        } else {
           state = IN_END;
           error = ERR_WRONG_CHAR;
         }
-        // else ignore char
         break;
       case IN_BEFORE_FIRST_DIG:
-        if ((c >= '0') && (c <= '9')) {
-          before = 10 * before + static_cast<int>(c - '0');
+        if (c == '0') {
+          state = IN_LEADING_ZEROS;
+          beforeDigitsCount = 1;
+        } else if ((c >= '1') && (c <= '9')) {
           state = IN_BEFORE_DEC;
-          digitsCount++;
-        } else if (c == dec_point) {
+          before = static_cast<int>(c - '0');
+          beforeDigitsCount = 1;
+        } else if (c == decPoint) {
           state = IN_AFTER_DEC;
         } else {
           state = IN_END;
           error = ERR_WRONG_CHAR;
         }
         break;
+      case IN_LEADING_ZEROS:
+        if (c == '0') {
+          // skip
+        } else if ((c >= '1') && (c <= '9')) {
+          state = IN_BEFORE_DEC;
+          before = static_cast<int>(c - '0');
+        } else if (c == decPoint) {
+          state = IN_AFTER_DEC;
+        } else {
+          state = IN_END;
+        }
+        break;
       case IN_BEFORE_DEC:
         if ((c >= '0') && (c <= '9')) {
-          before = 10 * before + static_cast<int>(c - '0');
-          digitsCount++;
-        } else if (c == dec_point) {
+          if (beforeDigitsCount < max_decimal_points) {
+            before = 10 * before + static_cast<int>(c - '0');
+            beforeDigitsCount++;
+          } else {
+            error = ERR_OVERFLOW;
+          }
+        } else if (c == decPoint) {
           state = IN_AFTER_DEC;
-        } else if (thousands_grouping && c == thousands_sep) {
-          ;  // ignore the char
         } else {
           state = IN_END;
         }
         break;
       case IN_AFTER_DEC:
         if ((c >= '0') && (c <= '9')) {
-          if (afterDigitCount < DEC_NAMESPACE::max_decimal_points) {
+          if (afterDigitCount < max_decimal_points) {
             after = 10 * after + static_cast<int>(c - '0');
             afterDigitCount++;
+          } else {
+            state = IN_IGNORING_AFTER_DEC;
+            if (c >= '5') {
+              // round half up
+              after++;
+            }
           }
+        } else {
+          state = IN_END;
+        }
+        break;
+      case IN_IGNORING_AFTER_DEC:
+        if ((c >= '0') && (c <= '9')) {
+          // skip
         } else {
           state = IN_END;
         }
@@ -1419,34 +1468,104 @@ bool parse_unpacked(std::basic_istream<charT, traits>& input, int& sign,
         state = IN_END;
         break;
     }  // switch state
-  }    // while stream good & not end
+  }  // while has more chars & not end
 
   if (state == IN_END) {
     input.unget();
+
+    if (error >= 0) {
+      switch (mode) {
+        case ParsingMode::strict:
+          error = ERR_WRONG_CHAR;
+          break;
+        case ParsingMode::allowSpaces:
+          while (true) {
+            const char c = input.get();
+            if (c == '\0') {
+              break;
+            } else if (!isSpace(c)) {
+              error = ERR_WRONG_CHAR;
+              input.unget();
+              break;
+            }
+          }
+          break;
+        case ParsingMode::permissive:
+          break;
+        default:
+          error = ERR_WRONG_STATE;
+          break;
+      }
+    }
   }
-  if (error >= 0 && digitsCount == 0 && afterDigitCount == 0) {
+
+  if (error >= 0 && beforeDigitsCount == 0 && afterDigitCount == 0) {
     error = ERR_NO_DIGITS;
   }
 
-  decimalDigits = afterDigitCount;
-
-  if (error >= 0) {
+  if (error < 0) {
+    sign = 0;
+    before = 0;
+    after = 0;
+    decimalDigits = 0;
+  } else {
     if (sign < 0) {
       before = -before;
       after = -after;
     }
-  } else {
-    before = after = 0;
+    decimalDigits = afterDigitCount;
   }
 
-  return (error >= 0);
+  return error >= 0;
 }  // function
 
-};  // namespace details
-// namespace
+/// Extract values from a CharSequence ready to be packed to decimal
+template <typename CharSequence, int Prec, typename RoundPolicy>
+[[nodiscard]] bool parse(CharSequence input, decimal<Prec, RoundPolicy>& output,
+           ParsingMode mode) {
+  int sign, afterDigits;
+  int64 before, after;
+  const bool success =
+      details::parseUnpacked(input, sign, before, after, afterDigits, mode);
 
-/// Converts stream of chars to decimal
-/// Handles the following formats ('.' is selected from locale info):
+  if (!success || before >= DecimalFactor<max_decimal_points - Prec>::value) {
+    output = decimal<Prec, RoundPolicy>(0);
+    return false;
+  }
+
+  if (afterDigits <= Prec) {
+    // direct mode
+    const int missingDigits = Prec - afterDigits;
+    const int64 factor = dec_utils<RoundPolicy>::pow10(missingDigits);
+    output.pack(before, after * factor);
+  } else {
+    // rounding mode
+    const int extraDigits = afterDigits - Prec;
+    const int64 factor = dec_utils<RoundPolicy>::pow10(extraDigits);
+    int64 roundedAfter;
+    RoundPolicy::div_rounded(roundedAfter, after, factor);
+    output.pack(before, roundedAfter);
+  }
+  return true;
+}  // function
+
+inline void checkParsingSuccess(bool success) {
+  if (!success) {
+    throw std::runtime_error("Could not convert the string to decimal");
+  }
+}
+
+}  // namespace details
+
+template <int Prec, class RoundPolicy>
+decimal<Prec, RoundPolicy>::decimal(std::string_view value) {
+  // swallow the error
+  static_cast<void>(details::parse(details::StringCharSequence(value), *this,
+                     details::ParsingMode::permissive));
+}
+
+/// Converts string to decimal
+/// Handles the following formats:
 /// \code
 /// 123
 /// -123
@@ -1459,110 +1578,96 @@ bool parse_unpacked(std::basic_istream<charT, traits>& input, int& sign,
 /// \endcode
 /// Spaces and tabs on the front are ignored.
 /// Performs rounding when provided value has higher precision than in output
-/// type. \param[in] input input stream \param[out] output decimal value, 0 on
-/// error \result Returns true if conversion succeeded
-template <typename decimal_type, typename StreamType>
-bool fromStream(StreamType& input, decimal_type& output) {
-  int sign, afterDigits;
-  int64 before, after;
-  bool result =
-      details::parse_unpacked(input, sign, before, after, afterDigits);
-  if (result) {
-    if (afterDigits <= decimal_type::decimal_points) {
-      // direct mode
-      int corrCnt = decimal_type::decimal_points - afterDigits;
-      while (corrCnt > 0) {
-        after *= 10;
-        --corrCnt;
-      }
-      output.pack(before, after);
-    } else {
-      // rounding mode
-      int corrCnt = afterDigits;
-      int64 decimalFactor = 1;
-      while (corrCnt > 0) {
-        before *= 10;
-        decimalFactor *= 10;
-        --corrCnt;
-      }
-      decimal_type temp(before + after, decimalFactor);
-      output = temp;
-    }
-  } else {
-    output = decimal_type(0);
-  }
-  return result;
+/// type.
+/// \param[input] input string
+/// \param[output] output decimal value, 0 on error
+/// \result Returns true if conversion succeeded
+template <int Prec, typename RoundPolicy>
+bool fromString(std::string_view input,
+                              decimal<Prec, RoundPolicy>& output) {
+  return details::parse(details::StringCharSequence(input), output,
+                        details::ParsingMode::allowSpaces);
 }
 
-/// Exports decimal to string
-/// Used format: {-}bbbb.aaaa where
-/// {-} is optional '-' sign character
-/// '.' is locale-dependent decimal point character
-/// bbbb is stream of digits before decimal point
-/// aaaa is stream of digits after decimal point
-template <int prec, typename roundPolicy>
-std::string& toString(const decimal<prec, roundPolicy>& arg,
-                      std::string& output) {
-  using namespace std;
-
-  ostringstream out;
-  toStream(arg, out);
-  output = out.str();
+/// Converts string to decimal
+/// Handles the following formats:
+/// \code
+/// 123
+/// -123
+/// 123.0
+/// -123.0
+/// 123.
+/// .123
+/// 0.
+/// -.123
+/// \endcode
+/// Spaces and tabs on the front are ignored.
+/// Performs rounding when provided value has higher precision than in output
+/// type.
+/// \param[str] input string
+/// \result Converted decimal
+/// \throws std::runtime_error if the string does not contain a decimal
+template <typename T>
+T fromString(std::string_view str) {
+  T output;
+  // swallow the error
+  static_cast<void>(fromString(str, output));
   return output;
 }
 
 /// Exports decimal to string
-/// Used format: {-}bbbb.aaaa where
-/// {-} is optional '-' sign character
-/// '.' is locale-dependent decimal point character
-/// bbbb is stream of digits before decimal point
-/// aaaa is stream of digits after decimal point
-template <int prec, typename roundPolicy>
-std::string toString(const decimal<prec, roundPolicy>& arg) {
-  std::string res;
-  toString(arg, res);
-  return res;
+/// Used format: {-}bbb.aaa where
+/// - {-} is optional '-' sign character
+/// - bbb is stream of digits before decimal point
+/// - aaa is stream of digits after decimal point
+template <int Prec, typename RoundPolicy>
+std::string toString(decimal<Prec, RoundPolicy> arg) {
+  int64 before, after;
+  arg.unpack(before, after);
+
+  if (Prec > 0) {
+    if (before < 0 || after < 0) {
+      return fmt::format(FMT_STRING("-{}.{:0{}}"), -before, -after, Prec);
+    } else {
+      return fmt::format(FMT_STRING("{}.{:0{}}"), before, after, Prec);
+    }
+  } else {
+    return fmt::format(FMT_STRING("{}"), before);
+  }
 }
 
 // input
-template <class charT, class traits, int prec, typename roundPolicy>
-std::basic_istream<charT, traits>& operator>>(
-    std::basic_istream<charT, traits>& is, decimal<prec, roundPolicy>& d) {
-  if (!fromStream(is, d)) d.setUnbiased(0);
-  return is;
+template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
+bool fromStream(std::basic_istream<CharT, Traits>& is,
+                              decimal<Prec, RoundPolicy>& d) {
+  const bool success = details::parse(details::StreamCharSequence(is), d,
+                                      details::ParsingMode::permissive);
+  if (!success) {
+    is.setstate(std::ios_base::failbit);
+  }
+  return success;
 }
 
 // output
-template <class charT, class traits, int prec, typename roundPolicy>
-std::basic_ostream<charT, traits>& operator<<(
-    std::basic_ostream<charT, traits>& os,
-    const decimal<prec, roundPolicy>& d) {
-  toStream(d, os);
+template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
+void toStream(std::basic_ostream<CharT, Traits>& os,
+              decimal<Prec, RoundPolicy> d) {
+  os << toString(d);
+}
+
+template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
+std::basic_istream<CharT, Traits>& operator>>(
+    std::basic_istream<CharT, Traits>& is, decimal<Prec, RoundPolicy>& d) {
+  fromStream(is, d);
+  return is;
+}
+
+template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
+std::basic_ostream<CharT, Traits>& operator<<(
+    std::basic_ostream<CharT, Traits>& os,
+    const decimal<Prec, RoundPolicy>& d) {
+  toStream(os, d);
   return os;
-}
-
-/// Imports decimal from string
-/// Used format: {-}bbbb.aaaa where
-/// {-} is optional '-' sign character
-/// '.' is locale-dependent decimal point character
-/// bbbb is stream of digits before decimal point
-/// aaaa is stream of digits after decimal point
-template <typename T>
-T fromString(const std::string& str) {
-  std::istringstream is(str);
-  T t;
-  is >> t;
-  return t;
-}
-
-template <typename T>
-bool fromString(const std::string& str, T& out) {
-  std::istringstream is(str);
-  if (!fromStream(is, out)) {
-    return false;
-  }
-  is >> std::ws;
-  return is.eof();
 }
 
 }  // namespace DEC_NAMESPACE
