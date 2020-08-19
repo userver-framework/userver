@@ -19,6 +19,7 @@
 #include <tracing/tracing.hpp>
 #include <utils/graphite.hpp>
 #include <utils/log.hpp>
+#include <utils/overloaded.hpp>
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
 #include <utils/text.hpp>
@@ -261,9 +262,17 @@ HttpHandlerBase::HttpHandlerBase(
                              ex.what());
   }
   /// TODO: unable to add prefix metadata ATM
-  const auto graphite_path = "http.by-path." +
-                             utils::graphite::EscapeName(GetConfig().path) +
-                             ".by-handler." + config.Name();
+
+  const auto graphite_subpath = std::visit(
+      utils::Overloaded{[](const std::string& path) {
+                          return "by-path." + utils::graphite::EscapeName(path);
+                        },
+                        [](FallbackHandler fallback) {
+                          return "by-fallback." + ToString(fallback);
+                        }},
+      GetConfig().path);
+  const auto graphite_path =
+      fmt::format("http.{}.by-handler.{}", graphite_subpath, config.Name());
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
                                std::placeholders::_1));

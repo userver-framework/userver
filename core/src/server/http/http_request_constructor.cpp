@@ -91,10 +91,17 @@ void HttpRequestConstructor::ParseUrl() {
 
   auto match_result = handler_info_index_.MatchRequest(
       request_->GetMethod(), request_->GetRequestPath());
-  const auto& handler_info = match_result.handler_info;
+  const auto* handler_info = match_result.handler_info;
 
   request_->SetMatchedPathLength(match_result.matched_path_length);
   request_->SetPathArgs(std::move(match_result.args_from_path));
+
+  if (!handler_info && request_->GetMethod() == HttpMethod::kOptions &&
+      match_result.status == MatchRequestResult::Status::kMethodNotAllowed) {
+    handler_info = handler_info_index_.GetFallbackHandler(
+        handlers::FallbackHandler::kImplicitOptions);
+    if (handler_info) match_result.status = MatchRequestResult::Status::kOk;
+  }
 
   if (handler_info) {
     UASSERT(match_result.status == MatchRequestResult::Status::kOk);

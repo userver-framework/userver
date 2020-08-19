@@ -4,6 +4,7 @@
 
 #include <components/component_context.hpp>
 #include <components/manager.hpp>
+#include <server/handlers/fallback_handlers.hpp>
 #include <server/handlers/http_handler_base.hpp>
 
 namespace engine {
@@ -14,6 +15,10 @@ namespace server {
 
 namespace net {
 struct Stats;
+}
+
+namespace http {
+class HttpRequestHandler;
 }
 
 class RequestsView;
@@ -36,6 +41,9 @@ class Server final {
 
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
+
+  const http::HttpRequestHandler& GetHttpRequestHandler(
+      bool is_monitor = false) const;
 
   void Start();
 

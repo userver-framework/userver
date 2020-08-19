@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <engine/task/task_processor.hpp>
+#include <server/handlers/fallback_handlers.hpp>
 #include <server/handlers/http_handler_base.hpp>
 #include <server/http/http_method.hpp>
 
@@ -40,6 +41,9 @@ class HandlerInfoIndex final {
 
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
+
+  const HandlerInfo* GetFallbackHandler(handlers::FallbackHandler) const;
+
   MatchRequestResult MatchRequest(HttpMethod method,
                                   const std::string& path) const;
 

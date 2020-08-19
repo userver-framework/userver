@@ -24,6 +24,11 @@ components_manager:
       path: /service/log-level/*
       method: GET,PUT
       task_processor: monitor-task-processor
+    handler-implicit-http-options:
+      as_fallback: implicit-http-options
+      task_processor: main-task-processor
+      auth_checkers:
+        type: tvm2
     handler-ping:
       path: /ping
       url_trailing_slash: strict-match
@@ -181,7 +186,7 @@ TEST(ManagerConfig, Basic) {
   EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
   EXPECT_EQ(mc.task_processors.size(), 5);
 
-  ASSERT_EQ(mc.components.size(), 26);
+  ASSERT_EQ(mc.components.size(), 27);
   EXPECT_EQ(mc.components.front().Name(), "api-firebase");
   EXPECT_EQ(mc.components.back().Name(), "worker-fallback-subscription-queue");
 }
@@ -204,6 +209,6 @@ TEST(ManagerConfig, HandlerConfig) {
       server::handlers::HandlerConfig::ParseFromYaml(it->Yaml(), it->FullPath(),
                                                      it->ConfigVarsPtr());
 
-  EXPECT_EQ(conf.path, "/tests/control");
+  EXPECT_EQ(std::get<std::string>(conf.path), "/tests/control");
   EXPECT_EQ(conf.task_processor, "main-task-processor");
 }

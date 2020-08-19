@@ -5,6 +5,7 @@
 
 #include <formats/yaml.hpp>
 #include <server/handlers/auth/handler_auth_config.hpp>
+#include <server/handlers/fallback_handlers.hpp>
 
 #include <yaml_config/variable_map.hpp>
 
@@ -18,7 +19,7 @@ enum class UrlTrailingSlashOption {
 };
 
 struct HandlerConfig {
-  std::string path;
+  std::variant<std::string, FallbackHandler> path;
   std::string task_processor;
   std::optional<std::string> method;
   std::optional<size_t> max_url_size;

@@ -2,6 +2,7 @@
 
 #include <server/component.hpp>
 #include <server/handlers/auth/auth_checker_settings_component.hpp>
+#include <server/handlers/implicit_options_http_handler.hpp>
 #include <server/handlers/inspect_requests.hpp>
 #include <server/handlers/jemalloc.hpp>
 #include <server/handlers/log_level.hpp>
@@ -18,6 +19,7 @@ components::ComponentList ServerCommonComponentList() {
       .Append<server::handlers::ServerMonitor>()
       .Append<server::handlers::LogLevel>()
       .Append<server::handlers::InspectRequests>()
+      .Append<server::handlers::ImplicitOptionsHttpHandler>()
       .Append<server::handlers::Jemalloc>()
       .Append<components::AuthCheckerSettings>();
 }

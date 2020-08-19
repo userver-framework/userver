@@ -4,6 +4,19 @@
 CLANG_FORMAT_VERSION=7
 SOURCE_REGEXP="(^|\./)(core|mongo|postgresql|redis|shared|tests|examples|tools)/.+\.([ch]pp|inc)"
 
+# check for GNU find and xargs
+if find --version 2>/dev/null | grep -q GNU; then
+  FIND="find . -regextype posix-egrep"
+else
+  FIND="find -E ."
+fi
+
+if xargs --version 2>/dev/null | grep -q GNU; then
+  XARGS="xargs -r"
+else
+  XARGS="xargs"
+fi
+
 # check clang-format
 CLANG_FORMAT=clang-format-$CLANG_FORMAT_VERSION
 if ! [ -x `command -v $CLANG_FORMAT || echo ERROR` ]; then
@@ -20,10 +33,10 @@ case $1 in
   '') # only changed
   git diff HEAD --name-only --diff-filter=ACMR | \
   grep -E "$SOURCE_REGEXP$" | \
-  xargs -t -r $CLANG_FORMAT -i
+  $XARGS $CLANG_FORMAT -i
   ;;
   -a|--all) # all sources
-  find . -type f -regextype posix-egrep -regex "$SOURCE_REGEXP" -exec \
+  $FIND -type f -regex "$SOURCE_REGEXP" -exec \
   $CLANG_FORMAT -i {} +
   ;;
   *) # error

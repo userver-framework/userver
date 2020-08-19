@@ -75,6 +75,7 @@ inline const char kLocation[] = "Location";
 inline const char kRetryAfter[] = "Retry-After";
 inline const char kVary[] = "Vary";
 inline const char kWarning[] = "Warning";
+inline const char kAccessControlAllowHeaders[] = "Access-Control-Allow-Headers";
 /// @}
 
 /// @name Validator Header Fields
@@ -119,6 +120,14 @@ inline constexpr char kXYandexUid[] = "X-Yandex-UID";
 
 // IP address of mobile client, not an IP address of single-hop client.
 inline constexpr char kXRemoteIp[] = "X-Remote-IP";
+/// @}
+
+/// @name Service Yandex.Taxi headers
+/// @{
+inline constexpr char kXYaTaxiAllowAuthRequest[] =
+    "X-YaTaxi-Allow-Auth-Request";
+inline constexpr char kXYaTaxiAllowAuthResponse[] =
+    "X-YaTaxi-Allow-Auth-Response";
 /// @}
 
 }  // namespace http::headers

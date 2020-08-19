@@ -194,6 +194,12 @@ void Server::AddHandler(const handlers::HttpHandlerBase& handler,
       ->AddHandler(handler, task_processor);
 }
 
+const http::HttpRequestHandler& Server::GetHttpRequestHandler(
+    bool is_monitor) const {
+  return is_monitor ? *pimpl->monitor_port_info_.request_handler_
+                    : *pimpl->main_port_info_.request_handler_;
+}
+
 void Server::Start() {
   LOG_INFO() << "Starting server";
   pimpl->main_port_info_.Start();
