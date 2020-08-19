@@ -44,6 +44,7 @@
 
 #include <fmt/format.h>
 
+#include <ios>
 #include <iosfwd>
 #include <limits>
 #include <stdexcept>
