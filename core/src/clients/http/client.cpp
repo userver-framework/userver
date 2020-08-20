@@ -14,8 +14,7 @@
 #include <logging/log.hpp>
 #include <utils/async.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 namespace {
 
 const std::string kIoThreadName = "curl";
@@ -46,7 +45,11 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads,
     : destination_statistics_(std::make_shared<DestinationStatistics>()),
       statistics_(io_threads),
       idle_queue_(),
-      fs_task_processor_(fs_task_processor) {
+      fs_task_processor_(fs_task_processor),
+      http_connect_ratelimit_(std::make_shared<utils::TokenBucket>(
+          -1UL, utils::TokenBucket::Duration::zero())),
+      https_connect_ratelimit_(std::make_shared<utils::TokenBucket>(
+          -1UL, utils::TokenBucket::Duration::zero())) {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
   ev_config.thread_name =
@@ -58,7 +61,9 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads,
 
   multis_.reserve(io_threads);
   for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
-    multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr));
+    multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr,
+                                                    http_connect_ratelimit_,
+                                                    https_connect_ratelimit_));
   }
 
   easy_reinit_task_.Start(
@@ -217,17 +222,14 @@ void Client::SetTestsuiteConfig(const TestsuiteConfig& config) {
 
 void Client::SetConnectRatelimitHttp(
     size_t max_size, utils::TokenBucket::Duration token_update_interval) {
-  for (auto& multi : multis_) {
-    multi->SetConnectRatelimitHttp(max_size, token_update_interval);
-  }
+  http_connect_ratelimit_->SetMaxSize(max_size);
+  http_connect_ratelimit_->SetUpdateInterval(token_update_interval);
 }
 
 void Client::SetConnectRatelimitHttps(
     size_t max_size, utils::TokenBucket::Duration token_update_interval) {
-  for (auto& multi : multis_) {
-    multi->SetConnectRatelimitHttps(max_size, token_update_interval);
-  }
+  https_connect_ratelimit_->SetMaxSize(max_size);
+  https_connect_ratelimit_->SetUpdateInterval(token_update_interval);
 }
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

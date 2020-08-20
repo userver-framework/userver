@@ -24,7 +24,6 @@
 namespace curl {
 
 namespace {
-const auto kDefaultTokens = 1000000;
 
 const char* GetSetterName(native::CURLMoption option) {
   switch (option) {
@@ -37,6 +36,14 @@ const char* GetSetterName(native::CURLMoption option) {
     default:
       return "<unknown setter>";
   }
+}
+
+void WarnThrottled(const std::string& url, const utils::TokenBucket& tb) {
+  LOG_WARNING() << "Socket creation throttled (url=" << url
+                << ", rate=" << tb.GetRatePs()
+                << "/sec"
+                // << ", tokens=" << tb.GetTokensApprox()
+                << ")";
 }
 
 }  // namespace
@@ -68,11 +75,13 @@ multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
   initref_ = initialization::ensure_initialization();
 }
 
-multi::multi(engine::ev::ThreadControl& thread_control)
+multi::multi(engine::ev::ThreadControl& thread_control,
+             std::shared_ptr<utils::TokenBucket> connect_ratelimit_http,
+             std::shared_ptr<utils::TokenBucket> connect_ratelimit_https)
     : pimpl_(std::make_unique<Impl>(thread_control, *this)),
       thread_control_(thread_control),
-      connect_ratelimit_http_(kDefaultTokens, std::chrono::nanoseconds(1)),
-      connect_ratelimit_https_(kDefaultTokens, std::chrono::nanoseconds(1)) {
+      connect_ratelimit_http_(std::move(connect_ratelimit_http)),
+      connect_ratelimit_https_(std::move(connect_ratelimit_https)) {
   LOG_TRACE() << "multi::multi";
 
   handle_ = native::curl_multi_init();
@@ -134,37 +143,15 @@ void multi::UnbindEasySocket(native::curl_socket_t s) {
   si->handle = nullptr;
 }
 
-void multi::SetConnectRatelimitHttps(
-    size_t max_size, utils::TokenBucket::Duration token_update_interval) {
-  connect_ratelimit_https_.SetMaxSize(max_size);
-  connect_ratelimit_https_.SetUpdateInterval(token_update_interval);
-}
-
-void multi::SetConnectRatelimitHttp(
-    size_t max_size, utils::TokenBucket::Duration token_update_interval) {
-  connect_ratelimit_http_.SetMaxSize(max_size);
-  connect_ratelimit_http_.SetUpdateInterval(token_update_interval);
-}
-
-namespace {
-void WarnThrottled(const std::string& url, const utils::TokenBucket& tb) {
-  LOG_WARNING() << "Socket creation throttled (url=" << url
-                << ", rate=" << tb.GetRatePs()
-                << "/sec"
-                // << ", tokens=" << tb.GetTokensApprox()
-                << ")";
-}
-}  // namespace
-
 bool multi::MayAcquireConnectionHttp(const std::string& url) {
-  bool ok = connect_ratelimit_http_.Obtain();
-  if (!ok) WarnThrottled(url, connect_ratelimit_http_);
+  bool ok = connect_ratelimit_http_->Obtain();
+  if (!ok) WarnThrottled(url, *connect_ratelimit_http_);
   return ok;
 }
 
 bool multi::MayAcquireConnectionHttps(const std::string& url) {
-  bool ok = connect_ratelimit_https_.Obtain();
-  if (!ok) WarnThrottled(url, connect_ratelimit_https_);
+  bool ok = connect_ratelimit_https_->Obtain();
+  if (!ok) WarnThrottled(url, *connect_ratelimit_https_);
   return ok;
 }
 

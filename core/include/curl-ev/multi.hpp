@@ -36,7 +36,9 @@ struct socket_info;
 class multi final {
  public:
   using Callback = std::function<void()>;
-  multi(engine::ev::ThreadControl& thread_control);
+  multi(engine::ev::ThreadControl& thread_control,
+        std::shared_ptr<utils::TokenBucket> connect_ratelimit_http,
+        std::shared_ptr<utils::TokenBucket> connect_ratelimit_https);
   multi(const multi&) = delete;
   ~multi();
 
@@ -51,12 +53,6 @@ class multi final {
   engine::ev::ThreadControl& GetThreadControl() { return thread_control_; }
 
   MultiStatistics& Statistics() { return statistics_; }
-
-  void SetConnectRatelimitHttp(
-      size_t max_size, utils::TokenBucket::Duration token_update_interval);
-
-  void SetConnectRatelimitHttps(
-      size_t max_size, utils::TokenBucket::Duration token_update_interval);
 
   bool MayAcquireConnectionHttp(const std::string& url);
 
@@ -109,7 +105,7 @@ class multi final {
   native::CURLM* handle_;
   engine::ev::ThreadControl& thread_control_;
   MultiStatistics statistics_;
-  utils::TokenBucket connect_ratelimit_http_;
-  utils::TokenBucket connect_ratelimit_https_;
+  std::shared_ptr<utils::TokenBucket> connect_ratelimit_http_;
+  std::shared_ptr<utils::TokenBucket> connect_ratelimit_https_;
 };
 }  // namespace curl

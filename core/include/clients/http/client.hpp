@@ -26,8 +26,7 @@ class ThreadPool;
 class TaskProcessor;
 }  // namespace engine
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 class EasyWrapper;
 class DestinationStatistics;
@@ -108,7 +107,9 @@ class Client {
 
   // Testsuite support
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;
+
+  std::shared_ptr<utils::TokenBucket> http_connect_ratelimit_;
+  std::shared_ptr<utils::TokenBucket> https_connect_ratelimit_;
 };
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http
