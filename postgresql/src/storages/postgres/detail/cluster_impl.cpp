@@ -144,7 +144,7 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     for (auto dsn_index : slaves_dsn_indices_it->second) {
       if (is_host_pool_seen[dsn_index]) continue;
 
-      InstanceStatsDescriptor slave_desc;
+      auto& slave_desc = cluster_stats->slaves.emplace_back();
       UASSERT(dsn_index < dsns.size());
       slave_desc.host_port = GetHostPort(dsns[dsn_index]);
       UASSERT(dsn_index < host_pools_.size());
@@ -152,14 +152,12 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
       slave_desc.stats.Add(host_pools_[dsn_index]->GetStatistics(),
                            dsn_stats[dsn_index]);
       is_host_pool_seen[dsn_index] = 1;
-
-      cluster_stats->slaves.push_back(std::move(slave_desc));
     }
   }
   for (size_t i = 0; i < is_host_pool_seen.size(); ++i) {
     if (is_host_pool_seen[i]) continue;
 
-    InstanceStatsDescriptor desc;
+    auto& desc = cluster_stats->unknown.emplace_back();
     UASSERT(i < dsns.size());
     desc.host_port = GetHostPort(dsns[i]);
     UASSERT(i < host_pools_.size());
