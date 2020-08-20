@@ -9,6 +9,8 @@
 
 #include <boost/pfr/detail/config.hpp>
 
+#include <type_traits>
+
 namespace boost { namespace pfr { namespace detail {
 ///////////////////// `value` is true if Detector<Tleft, Tright> does not compile (SFINAE)
     struct success{};
