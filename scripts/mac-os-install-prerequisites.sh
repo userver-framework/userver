@@ -1,7 +1,12 @@
 #!/bin/sh
 
+# to fix problem with inifinite messages
+# "The authenticity of host 'arcadia.yandex.ru (...)' can't be established."
+# run:
+# ssh-keyscan -t ecdsa arcadia.yandex.ru >> ~/.ssh/known_hosts
+
 echo "Adding brew taxi-external tap"
-brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap.git
+brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap
 
 echo "Adding brew tap for mongo (testsuite)"
 brew tap mongodb/brew
