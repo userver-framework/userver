@@ -853,7 +853,9 @@ void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply,
 
     ev_thread_control_.TimerStop(data->second->timer);
     pcommand = data->second.get();
-    auto reply = std::make_shared<Reply>(pcommand->cmd, redis_reply, REDIS_OK);
+    auto reply =
+        std::make_shared<Reply>(pcommand->cmd, redis_reply,
+                                redis_reply ? REDIS_OK : REDIS_ERR_NOT_READY);
 
     // After 'subscribe x' + 'unsubscribe x' + 'subscribe x' requests
     // 'unsubscribe' reply can be received as a reply to the second subscribe
