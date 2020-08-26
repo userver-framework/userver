@@ -38,18 +38,21 @@ DestinationStatistics::GetStatisticsForDestinationAuto(
   auto ptr = GetExistingStatisticsForDestination(destination);
   if (ptr) return ptr;
 
-  // create new item
-  if (current_auto_destinations_++ > max_auto_destinations_) {
-    current_auto_destinations_--;
-    // TODO: LOG_ERROR() and ratelimit
-    LOG_WARNING() << "Too many httpclient metrics destinations used ("
-                  << max_auto_destinations_
-                  << "), either increase "
-                     "components.http-client.destination-metrics-auto-max-size "
-                     "or explicitly set destination via "
-                     "Request::SetDestinationMetricName().";
-    return {};
-  }
+  // atomic [current++ iff current < max]
+  auto current_auto_destinations = current_auto_destinations_.load();
+  do {
+    if (current_auto_destinations >= max_auto_destinations_) {
+      LOG_WARNING()
+          << "Too many httpclient metrics destinations used ("
+          << max_auto_destinations_
+          << "), either increase "
+             "components.http-client.destination-metrics-auto-max-size "
+             "or explicitly set destination via "
+             "Request::SetDestinationMetricName().";
+      return {};
+    }
+  } while (!current_auto_destinations_.compare_exchange_strong(
+      current_auto_destinations, current_auto_destinations + 1));
 
   return CreateStatisticsForDestination(destination);
 }
