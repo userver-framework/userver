@@ -67,6 +67,9 @@ class YamlConfig {
   /// throw MemberMissingException.
   bool IsMissing() const;
 
+  /// @brief Returns true if *this holds 'null'.
+  bool IsNull() const;
+
   template <typename T>
   T Parse(const std::string& name) const {
     return yaml_config::Parse<T>(yaml_, name, full_path_, config_vars_ptr_);

@@ -140,6 +140,8 @@ YamlConfig YamlConfig::operator[](size_t index) const {
 
 bool YamlConfig::IsMissing() const { return yaml_.IsMissing(); }
 
+bool YamlConfig::IsNull() const { return yaml_.IsNull(); }
+
 YamlConfig::const_iterator YamlConfig::begin() const {
   return const_iterator{*this, yaml_.begin()};
 }
