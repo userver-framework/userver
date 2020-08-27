@@ -878,9 +878,9 @@ RequestZscore ClientImpl::Zscore(std::string key, std::string member,
 ::redis::Request ClientImpl::MakeRequest(CmdArgs&& args, size_t shard,
                                          bool master,
                                          const CommandControl& command_control,
-                                         bool skip_status) {
+                                         size_t replies_to_skip) {
   return redis_client_->MakeRequest(std::move(args), shard, master,
-                                    command_control, skip_status);
+                                    command_control, replies_to_skip);
 }
 
 CommandControl ClientImpl::GetCommandControl(const CommandControl& cc) const {

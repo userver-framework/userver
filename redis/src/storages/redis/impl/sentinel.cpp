@@ -252,12 +252,12 @@ SentinelStatistics Sentinel::GetStatistics() const {
 
 std::vector<Request> Sentinel::MakeRequests(
     CmdArgs&& args, bool master, const CommandControl& command_control,
-    bool skip_status) {
+    size_t replies_to_skip) {
   std::vector<Request> rslt;
 
   for (size_t shard = 0; shard < impl_->ShardsCount(); ++shard) {
-    rslt.push_back(
-        MakeRequest(args.Clone(), shard, master, command_control, skip_status));
+    rslt.push_back(MakeRequest(args.Clone(), shard, master, command_control,
+                               replies_to_skip));
   }
 
   return rslt;

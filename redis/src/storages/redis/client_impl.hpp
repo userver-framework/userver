@@ -368,7 +368,7 @@ class ClientImpl final : public Client,
 
   ::redis::Request MakeRequest(CmdArgs&& args, size_t shard, bool master,
                                const CommandControl& command_control,
-                               bool skip_status = false);
+                               size_t replies_to_skip = 0);
 
   CommandControl GetCommandControl(const CommandControl& cc) const;
 

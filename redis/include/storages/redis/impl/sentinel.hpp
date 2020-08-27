@@ -115,16 +115,16 @@ class Sentinel {
   Request MakeRequest(CmdArgs&& args, const std::string& key,
                       bool master = true,
                       const CommandControl& command_control = {},
-                      bool skip_status = false) {
+                      size_t replies_to_skip = 0) {
     return Request(*this, std::forward<CmdArgs>(args), key, master,
-                   command_control, skip_status);
+                   command_control, replies_to_skip);
   }
 
   Request MakeRequest(CmdArgs&& args, size_t shard, bool master = true,
                       const CommandControl& command_control = {},
-                      bool skip_status = false) {
+                      size_t replies_to_skip = 0) {
     return Request(*this, std::forward<CmdArgs>(args), shard, master,
-                   command_control, skip_status);
+                   command_control, replies_to_skip);
   }
 
   Request MakeRequest(CmdArgs&& args, size_t shard,
@@ -136,7 +136,7 @@ class Sentinel {
 
   std::vector<Request> MakeRequests(CmdArgs&& args, bool master = true,
                                     const CommandControl& command_control = {},
-                                    bool skip_status = false);
+                                    size_t replies_to_skip = 0);
 
   Request Append(const std::string& key, const std::string& value,
                  const CommandControl& command_control = CommandControl());

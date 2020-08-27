@@ -45,10 +45,12 @@ RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
   }
   client_->CheckShardIdx(*shard_);
   cmd_args_.Then("EXEC");
+  auto replies_to_skip = result_promises_.size() + 1;
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return CreateExecRequest(
       client_->MakeRequest(std::move(cmd_args_), *shard_, true,
-                           client_->GetCommandControl(command_control), true),
+                           client_->GetCommandControl(command_control),
+                           replies_to_skip),
       std::move(result_promises_));
 }
 
