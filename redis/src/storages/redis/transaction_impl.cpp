@@ -7,8 +7,7 @@
 #include "client_impl.hpp"
 #include "request_exec_data_impl.hpp"
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace {
 
 RequestExec CreateExecRequest(
@@ -603,7 +602,7 @@ void TransactionImpl::UpdateShard(size_t shard) {
 template <typename Result, typename ReplyType>
 Request<Result, ReplyType> TransactionImpl::DoAddCmd(
     To<Request<Result, ReplyType>> to) {
-  engine::Promise<ReplyType> promise;
+  engine::impl::BlockingPromise<ReplyType> promise;
   Request<Result, ReplyType> request(
       std::make_unique<impl::TransactionSubrequestDataImpl<Result, ReplyType>>(
           promise.get_future()));
@@ -618,5 +617,4 @@ Request TransactionImpl::AddCmd(std::string command, Args&&... args) {
   return request;
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

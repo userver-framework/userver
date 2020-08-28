@@ -3,16 +3,15 @@
 #include <string>
 #include <vector>
 
-#include <engine/future.hpp>
 #include <storages/redis/impl/base.hpp>
 
+#include <engine/blocking_future.hpp>
 #include <storages/redis/client.hpp>
 #include <storages/redis/transaction.hpp>
 
 #include "request_data_impl.hpp"
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 class ClientImpl;
 
@@ -26,7 +25,7 @@ class TransactionImpl final : public Transaction {
   class ResultPromise {
    public:
     template <typename Result, typename ReplyType>
-    ResultPromise(engine::Promise<ReplyType>&& promise,
+    ResultPromise(engine::impl::BlockingPromise<ReplyType>&& promise,
                   To<Request<Result, ReplyType>>)
         : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(
               std::move(promise))) {}
@@ -49,7 +48,7 @@ class TransactionImpl final : public Transaction {
     template <typename Result, typename ReplyType>
     class ResultPromiseImpl : public ResultPromiseImplBase {
      public:
-      ResultPromiseImpl(engine::Promise<ReplyType>&& promise)
+      ResultPromiseImpl(engine::impl::BlockingPromise<ReplyType>&& promise)
           : promise_(std::move(promise)) {}
 
       void ProcessReply(ReplyData&& reply_data,
@@ -69,7 +68,7 @@ class TransactionImpl final : public Transaction {
       }
 
      private:
-      engine::Promise<ReplyType> promise_;
+      engine::impl::BlockingPromise<ReplyType> promise_;
     };
 
     std::unique_ptr<ResultPromiseImplBase> impl_;
@@ -299,5 +298,4 @@ class TransactionImpl final : public Transaction {
   std::vector<ResultPromise> result_promises_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

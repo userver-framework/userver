@@ -4,19 +4,16 @@
 #include <stdexcept>
 #include <string>
 
-#include <engine/future.hpp>
-
+#include <engine/blocking_future.hpp>
 #include <storages/redis/transaction.hpp>
 
-namespace storages {
-namespace redis {
-namespace impl {
+namespace storages::redis::impl {
 
 template <typename Result, typename ReplyType>
 class TransactionSubrequestDataImpl final
     : public RequestDataBase<Result, ReplyType> {
  public:
-  TransactionSubrequestDataImpl(engine::Future<ReplyType> future)
+  TransactionSubrequestDataImpl(engine::impl::BlockingFuture<ReplyType> future)
       : future_(std::move(future)) {}
 
   void Wait() override {
@@ -45,9 +42,7 @@ class TransactionSubrequestDataImpl final
     }
   }
 
-  engine::Future<ReplyType> future_;
+  engine::impl::BlockingFuture<ReplyType> future_;
 };
 
-}  // namespace impl
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis::impl

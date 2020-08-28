@@ -6,11 +6,10 @@
 
 #include <utils/check_syscall.hpp>
 
-namespace engine {
-namespace subprocess {
+namespace engine::subprocess {
 
-ChildProcessImpl::ChildProcessImpl(int pid,
-                                   Future<ChildProcessStatus>&& status_future)
+ChildProcessImpl::ChildProcessImpl(
+    int pid, impl::BlockingFuture<ChildProcessStatus>&& status_future)
     : pid_(pid), status_future_(std::move(status_future)) {}
 
 void ChildProcessImpl::Wait() { status_future_.wait(); }
@@ -26,5 +25,4 @@ void ChildProcessImpl::SendSignal(int signum) {
   utils::CheckSyscall(kill(pid_, signum), "kill, pid=", pid_);
 }
 
-}  // namespace subprocess
-}  // namespace engine
+}  // namespace engine::subprocess

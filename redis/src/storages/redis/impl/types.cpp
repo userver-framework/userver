@@ -1,20 +1,20 @@
 #include <storages/redis/impl/types.hpp>
 
-#include <engine/future.hpp>
+#include <engine/blocking_future.hpp>
 #include <engine/task/cancel.hpp>
 
 #include <storages/redis/impl/exception.hpp>
 
 namespace redis {
 
-class ReplyPtrFutureImpl : public engine::Future<ReplyPtr> {
+class ReplyPtrFutureImpl : public engine::impl::BlockingFuture<ReplyPtr> {
  public:
   ReplyPtrFutureImpl() = default;
-  ReplyPtrFutureImpl(engine::Future<ReplyPtr>&& impl)
-      : engine::Future<ReplyPtr>(std::move(impl)) {}
+  ReplyPtrFutureImpl(engine::impl::BlockingFuture<ReplyPtr>&& impl)
+      : engine::impl::BlockingFuture<ReplyPtr>(std::move(impl)) {}
 };
 
-class ReplyPtrPromiseImpl : public engine::Promise<ReplyPtr> {};
+class ReplyPtrPromiseImpl : public engine::impl::BlockingPromise<ReplyPtr> {};
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ReplyPtrFuture::ReplyPtrFuture() = default;

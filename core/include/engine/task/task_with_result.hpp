@@ -6,6 +6,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include <engine/exception.hpp>
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
 #include <utils/assert.hpp>
@@ -15,19 +16,6 @@
 namespace engine {
 
 class TaskProcessor;
-
-/// Cancelled TaskWithResult access exception
-class TaskCancelledException : public std::runtime_error {
- public:
-  explicit TaskCancelledException(Task::CancellationReason reason)
-      : std::runtime_error("Task cancelled, reason=" + ToString(reason)),
-        reason_(reason) {}
-
-  Task::CancellationReason Reason() const { return reason_; }
-
- private:
-  const Task::CancellationReason reason_;
-};
 
 /// Asynchronous task with result
 template <typename T>
@@ -62,10 +50,10 @@ class USERVER_NODISCARD TaskWithResult : public Task {
     UASSERT(wrapped_call_ptr_);
     Wait();
     if (GetState() == State::kCancelled) {
-      throw TaskCancelledException(GetCancellationReason());
+      throw TaskCancelledException(CancellationReason());
     }
     Invalidate();
-    return wrapped_call_ptr_->Retrieve();
+    return std::exchange(wrapped_call_ptr_, nullptr)->Retrieve();
   }
 
  private:

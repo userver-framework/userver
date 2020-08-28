@@ -295,7 +295,7 @@ TEST(HttpClient, CancelPre) {
       auto http_client_ptr = utest::CreateHttpClient();
 
       engine::current_task::GetCurrentTaskContext()->RequestCancel(
-          engine::Task::CancellationReason::kUserRequest);
+          engine::TaskCancellationReason::kUserRequest);
 
       EXPECT_THROW(http_client_ptr->CreateRequest(),
                    clients::http::CancelException);
@@ -316,7 +316,7 @@ TEST(HttpClient, CancelPost) {
                                ->timeout(std::chrono::milliseconds(100));
 
       engine::current_task::GetCurrentTaskContext()->RequestCancel(
-          engine::Task::CancellationReason::kUserRequest);
+          engine::TaskCancellationReason::kUserRequest);
 
       auto future = request->async_perform();
       EXPECT_THROW(future.Wait(), clients::http::CancelException);

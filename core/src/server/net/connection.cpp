@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <engine/async.hpp>
+#include <engine/exception.hpp>
 #include <engine/io/exception.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/task/cancel.hpp>

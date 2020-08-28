@@ -4,8 +4,7 @@
 
 #include <ev.h>
 
-#include <engine/future.hpp>
-#include "thread_control.hpp"
+#include <engine/ev/thread_control.hpp>
 
 namespace engine::ev {
 

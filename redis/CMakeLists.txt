@@ -42,7 +42,7 @@ target_link_libraries(${PROJECT_NAME}
     Hiredis
   PRIVATE
     Boost::thread
-    yandex-taxi-userver-uboost-coro # uses Future
+    yandex-taxi-userver-uboost-coro # uses BlockingFuture
 )
 target_include_directories(
   ${PROJECT_NAME}

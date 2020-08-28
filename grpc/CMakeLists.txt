@@ -11,7 +11,6 @@ file(GLOB_RECURSE PROTOS ${CMAKE_CURRENT_SOURCE_DIR}/*.proto)
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
-  
 
 add_grpc_library(${PROJECT_NAME}_unittest_proto PROTOS ${PROTOS})
 
@@ -44,7 +43,7 @@ target_link_libraries(${PROJECT_NAME}
     yandex-taxi-userver-core
     Grpc
   PRIVATE
-    yandex-taxi-userver-uboost-coro # uses Future
+    yandex-taxi-userver-uboost-coro # uses BlockingFuture
 )
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})

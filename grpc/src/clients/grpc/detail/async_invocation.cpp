@@ -1,25 +1,25 @@
 #include <clients/grpc/detail/async_invocation.hpp>
 
-#include <engine/future.hpp>
+#include <engine/blocking_future.hpp>
 
 namespace clients::grpc::detail {
 
 struct FutureWrapperAny::Impl {
-  engine::Future<boost::any> future;
+  engine::impl::BlockingFuture<boost::any> future;
 };
 
 struct PromiseWrapperAny::Impl {
-  engine::Promise<boost::any> promise;
+  engine::impl::BlockingPromise<boost::any> promise;
 };
 
 // template <>
 struct FutureWrapper<void>::Impl {
-  engine::Future<void> future;
+  engine::impl::BlockingFuture<void> future;
 };
 
 // template <>
 struct PromiseWrapper<void>::Impl {
-  engine::Promise<void> promise;
+  engine::impl::BlockingPromise<void> promise;
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)

@@ -4,6 +4,7 @@
 #include <chrono>
 
 #include <engine/async.hpp>
+#include <engine/exception.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
 #include <engine/task/task.hpp>

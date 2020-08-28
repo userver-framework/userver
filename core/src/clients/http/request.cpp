@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 
+#include <openssl/ssl.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>
@@ -15,21 +16,21 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <openssl/ssl.h>
-
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/error.hpp>
 #include <clients/http/form.hpp>
 #include <clients/http/response_future.hpp>
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
-#include <crypto/helpers.hpp>
-#include <curl-ev/easy.hpp>
-#include <engine/ev/watcher/timer_watcher.hpp>
 #include <http/common_headers.hpp>
 #include <http/url.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
+
+#include <crypto/helpers.hpp>
+#include <curl-ev/easy.hpp>
+#include <engine/blocking_future.hpp>
+#include <engine/ev/watcher/timer_watcher.hpp>
 
 namespace clients {
 namespace http {
@@ -122,7 +123,7 @@ class Request::RequestImpl
               std::shared_ptr<DestinationStatistics> dest_stats);
 
   /// Perform async http request
-  engine::Future<std::shared_ptr<Response>> async_perform();
+  engine::impl::BlockingFuture<std::shared_ptr<Response>> async_perform();
 
   /// set redirect flags
   void follow_redirects(bool follow);
@@ -207,7 +208,7 @@ class Request::RequestImpl
 
   /// response
   std::shared_ptr<Response> response_;
-  engine::Promise<std::shared_ptr<Response>> promise_;
+  engine::impl::BlockingPromise<std::shared_ptr<Response>> promise_;
   /// timeout value
   long timeout_ms_;
   /// struct for reties
@@ -703,7 +704,7 @@ void Request::RequestImpl::parse_header(char* ptr, size_t size) {
   response_->headers().emplace(std::move(key), std::move(value));
 }
 
-engine::Future<std::shared_ptr<Response>>
+engine::impl::BlockingFuture<std::shared_ptr<Response>>
 Request::RequestImpl::async_perform() {
   span_.emplace(kTracingClientName);
   easy().add_header(::http::headers::kXYaSpanId, span_->GetSpanId());

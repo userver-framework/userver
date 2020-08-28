@@ -2,16 +2,15 @@
 
 #include <chrono>
 
-#include <engine/future.hpp>
-
+#include <engine/blocking_future.hpp>
 #include <engine/subprocess/child_process_status.hpp>
 
-namespace engine {
-namespace subprocess {
+namespace engine::subprocess {
 
 class ChildProcessImpl {
  public:
-  ChildProcessImpl(int pid, Future<ChildProcessStatus>&& status_future);
+  ChildProcessImpl(int pid,
+                   impl::BlockingFuture<ChildProcessStatus>&& status_future);
 
   int GetPid() const { return pid_; }
 
@@ -22,8 +21,7 @@ class ChildProcessImpl {
 
  private:
   int pid_;
-  Future<ChildProcessStatus> status_future_;
+  impl::BlockingFuture<ChildProcessStatus> status_future_;
 };
 
-}  // namespace subprocess
-}  // namespace engine
+}  // namespace engine::subprocess

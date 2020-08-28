@@ -50,13 +50,13 @@ TEST(TaskContext, WaitInterruptedReason) {
     auto long_task = engine::impl::Async(
         [] { engine::InterruptibleSleepFor(std::chrono::seconds{5}); });
     auto waiter = engine::impl::Async([&] {
-      auto reason = engine::Task::CancellationReason::kNone;
+      auto reason = engine::TaskCancellationReason::kNone;
       try {
         long_task.Get();
       } catch (const engine::WaitInterruptedException& ex) {
         reason = ex.Reason();
       }
-      EXPECT_EQ(engine::Task::CancellationReason::kUserRequest, reason);
+      EXPECT_EQ(engine::TaskCancellationReason::kUserRequest, reason);
     });
 
     engine::Yield();

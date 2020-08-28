@@ -6,6 +6,7 @@
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/timer.hpp>
+#include <engine/exception.hpp>
 #include <engine/task/cancel.hpp>
 #include <utils/assert.hpp>
 
@@ -109,7 +110,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       state_(Task::State::kNew),
       is_detached_(false),
       is_cancellable_(true),
-      cancellation_reason_(Task::CancellationReason::kNone),
+      cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_manager_(nullptr),
@@ -261,8 +262,8 @@ void TaskContext::DoStep() {
   }
 }
 
-void TaskContext::RequestCancel(Task::CancellationReason reason) {
-  auto expected = Task::CancellationReason::kNone;
+void TaskContext::RequestCancel(TaskCancellationReason reason) {
+  auto expected = TaskCancellationReason::kNone;
   if (cancellation_reason_.compare_exchange_strong(expected, reason)) {
     LOG_TRACE() << "task with task_id="
                 << GetTaskIdString(

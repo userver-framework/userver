@@ -11,6 +11,7 @@
 #include <engine/coro/pool.hpp>
 #include <engine/deadline.hpp>
 #include <engine/ev/thread_control.hpp>
+#include <engine/task/cancel.hpp>
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/local_storage.hpp>
@@ -105,12 +106,14 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   void DoStep();
 
   // normally non-blocking, causes wakeup
-  void RequestCancel(Task::CancellationReason);
-  Task::CancellationReason GetCancellationReason() const {
+  void RequestCancel(TaskCancellationReason);
+
+  TaskCancellationReason CancellationReason() const {
     return cancellation_reason_;
   }
+
   bool IsCancelRequested() const {
-    return cancellation_reason_ != Task::CancellationReason::kNone;
+    return cancellation_reason_ != TaskCancellationReason::kNone;
   }
 
   bool IsCancellable() const;
@@ -191,7 +194,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   std::atomic<Task::State> state_;
   std::atomic<bool> is_detached_;
   bool is_cancellable_;
-  std::atomic<Task::CancellationReason> cancellation_reason_;
+  std::atomic<TaskCancellationReason> cancellation_reason_;
   mutable FastPimplWaitListLight finish_waiters_;
 
   // () if not defined

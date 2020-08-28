@@ -3,6 +3,7 @@
 #include <poll.h>
 
 #include <engine/task/task.hpp>
+#include <logging/log.hpp>
 #include <utils/assert.hpp>
 
 namespace engine::io {

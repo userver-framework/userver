@@ -1,4 +1,9 @@
-#include "watcher.hpp"
+#include <engine/ev/watcher.hpp>
+
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <utils/assert.hpp>
 
 namespace engine::ev {
 namespace {

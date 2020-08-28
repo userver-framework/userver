@@ -1,7 +1,5 @@
 #pragma once
 
-#include <engine/future.hpp>
-
 #include <storages/redis/mock_transaction_impl_base.hpp>
 #include <storages/redis/transaction.hpp>
 

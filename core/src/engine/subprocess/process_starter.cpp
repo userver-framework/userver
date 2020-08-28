@@ -13,10 +13,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
+#include <engine/blocking_future.hpp>
 #include <engine/ev/child_process_map.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
-#include <engine/future.hpp>
 #include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
 #include <tracing/span.hpp>
@@ -24,8 +24,7 @@
 
 #include "child_process_impl.hpp"
 
-namespace engine {
-namespace subprocess {
+namespace engine::subprocess {
 namespace {
 
 void DoExecve(const std::string& command, const std::vector<std::string>& args,
@@ -83,7 +82,7 @@ ChildProcess ProcessStarter::Exec(
   span.AddTag("command", command);
   // future.get() will return earlier than promise.set_*(), we must transfer
   // ownership to std::function, hence shared_ptr
-  auto promise_ptr = std::make_shared<Promise<ChildProcess>>();
+  auto promise_ptr = std::make_shared<impl::BlockingPromise<ChildProcess>>();
   auto future = promise_ptr->get_future();
   thread_control_.RunInEvLoopAsync([&, promise_ptr = std::move(promise_ptr)] {
     LOG_DEBUG() << "do fork() + execve(), command=" << command << ", args=["
@@ -103,7 +102,7 @@ ChildProcess ProcessStarter::Exec(
       // in parent thread
       span.AddTag("child-process-pid", pid);
       LOG_DEBUG() << "Started child process with pid=" << pid;
-      Promise<ChildProcessStatus> exec_result_promise;
+      impl::BlockingPromise<ChildProcessStatus> exec_result_promise;
       auto res = ChildProcessMapSet(
           pid, ev::ChildProcessMapValue(std::move(exec_result_promise)));
       if (res.second) {
@@ -113,7 +112,8 @@ ChildProcess ProcessStarter::Exec(
         std::string msg = "process with pid=" + std::to_string(pid) +
                           " already exists in child_process_map";
         LOG_ERROR() << msg << ", send SIGKILL";
-        ChildProcessImpl(pid, Future<ChildProcessStatus>{}).SendSignal(SIGKILL);
+        ChildProcessImpl(pid, impl::BlockingFuture<ChildProcessStatus>{})
+            .SendSignal(SIGKILL);
         promise_ptr->set_exception(
             std::make_exception_ptr(std::runtime_error(msg)));
       }
@@ -154,5 +154,4 @@ ChildProcess ProcessStarter::Exec(
               stderr_file);
 }
 
-}  // namespace subprocess
-}  // namespace engine
+}  // namespace engine::subprocess

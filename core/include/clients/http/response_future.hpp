@@ -7,20 +7,19 @@
 #include <clients/http/response.hpp>
 #include <utils/fast_pimpl.hpp>
 
-namespace engine {
-
+namespace engine::impl {
 template <typename T>
-class Future;
-}  // namespace engine
+class BlockingFuture;
+}  // namespace engine::impl
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 class ResponseFuture final {
  public:
-  ResponseFuture(engine::Future<std::shared_ptr<Response>>&& future,
-                 std::chrono::milliseconds total_timeout,
-                 std::shared_ptr<EasyWrapper> easy);
+  ResponseFuture(
+      engine::impl::BlockingFuture<std::shared_ptr<Response>>&& future,
+      std::chrono::milliseconds total_timeout,
+      std::shared_ptr<EasyWrapper> easy);
 
   ResponseFuture(ResponseFuture&& other) noexcept;
 
@@ -43,12 +42,11 @@ class ResponseFuture final {
  private:
   static constexpr auto kFutureSize = 16;
   static constexpr auto kFutureAlignment = 8;
-  utils::FastPimpl<engine::Future<std::shared_ptr<Response>>, kFutureSize,
-                   kFutureAlignment, true>
+  utils::FastPimpl<engine::impl::BlockingFuture<std::shared_ptr<Response>>,
+                   kFutureSize, kFutureAlignment, true>
       future_;
   std::chrono::system_clock::time_point deadline_;
   std::shared_ptr<EasyWrapper> easy_;
 };
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

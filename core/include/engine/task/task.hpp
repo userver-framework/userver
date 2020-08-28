@@ -9,6 +9,8 @@
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <engine/deadline.hpp>
+#include <engine/exception.hpp>
+#include <engine/task/cancel.hpp>
 #include <utils/clang_format_workarounds.hpp>
 
 namespace engine {
@@ -42,15 +44,6 @@ class USERVER_NODISCARD Task {
     kSuspended,  ///< suspended, e.g. waiting for blocking call to complete
     kCancelled,  ///< exited user code because of external request
     kCompleted,  ///< exited user code with return or throw
-  };
-
-  /// Task cancellation reason
-  enum class CancellationReason {
-    kNone,         ///< Not cancelled
-    kUserRequest,  ///< User request
-    kOverload,     ///< Task processor overload
-    kAbandoned,    ///< Task destruction before finish
-    kShutdown,     ///< Task processor shutdown
   };
 
   /// @brief Default constructor
@@ -118,8 +111,8 @@ class USERVER_NODISCARD Task {
   /// RequestCancel() + BlockingWait().
   void SyncCancel() noexcept;
 
-  /// Gets task CancellationReason
-  CancellationReason GetCancellationReason() const;
+  /// Gets task cancellation reason
+  TaskCancellationReason CancellationReason() const;
 
   /// Waits for the task in non-coroutine context
   /// (e.g. non-TaskProcessor's std::thread).
@@ -135,27 +128,9 @@ class USERVER_NODISCARD Task {
   void Invalidate();
 
  private:
-  void Terminate(CancellationReason) noexcept;
+  void Terminate(TaskCancellationReason) noexcept;
 
   boost::intrusive_ptr<impl::TaskContext> context_;
-};
-
-/// Returns a string representation of a cancellation reason
-std::string ToString(Task::CancellationReason reason);
-
-/// Wait interruption exception
-class WaitInterruptedException : public std::runtime_error {
- public:
-  explicit WaitInterruptedException(Task::CancellationReason reason)
-      : std::runtime_error(
-            "Wait interrupted because of task cancellation, reason=" +
-            ToString(reason)),
-        reason_(reason) {}
-
-  Task::CancellationReason Reason() const { return reason_; }
-
- private:
-  const Task::CancellationReason reason_;
 };
 
 namespace current_task {

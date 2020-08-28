@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 
+#include <engine/exception.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
 #include <engine/task/task_with_result.hpp>

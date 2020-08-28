@@ -20,12 +20,12 @@ Task::Task(impl::TaskContextHolder&& context_holder)
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap);
 }
 
-Task::~Task() { Terminate(CancellationReason::kAbandoned); }
+Task::~Task() { Terminate(TaskCancellationReason::kAbandoned); }
 
 Task::Task(Task&&) noexcept = default;
 
 Task& Task::operator=(Task&& rhs) noexcept {
-  Terminate(CancellationReason::kAbandoned);
+  Terminate(TaskCancellationReason::kAbandoned);
   context_ = std::move(rhs.context_);
   return *this;
 }
@@ -84,16 +84,16 @@ void Task::Detach() && {
 
 void Task::RequestCancel() {
   UASSERT(context_);
-  context_->RequestCancel(CancellationReason::kUserRequest);
+  context_->RequestCancel(TaskCancellationReason::kUserRequest);
 }
 
 void Task::SyncCancel() noexcept {
-  Terminate(CancellationReason::kUserRequest);
+  Terminate(TaskCancellationReason::kUserRequest);
 }
 
-Task::CancellationReason Task::GetCancellationReason() const {
+TaskCancellationReason Task::CancellationReason() const {
   UASSERT(context_);
-  return context_->GetCancellationReason();
+  return context_->CancellationReason();
 }
 
 void Task::BlockingWait() const {
@@ -119,11 +119,11 @@ void Task::BlockingWait() const {
 }
 
 void Task::Invalidate() {
-  Terminate(CancellationReason::kAbandoned);
+  Terminate(TaskCancellationReason::kAbandoned);
   context_.reset();
 }
 
-void Task::Terminate(CancellationReason reason) noexcept {
+void Task::Terminate(TaskCancellationReason reason) noexcept {
   if (context_ && !IsFinished()) {
     // We are not providing an implicit sync from outside
     // because it's really easy to get a deadlock this way
@@ -133,27 +133,6 @@ void Task::Terminate(CancellationReason reason) noexcept {
     TaskCancellationBlocker cancel_blocker;
     while (!IsFinished()) Wait();
   }
-}
-
-std::string ToString(Task::CancellationReason reason) {
-  static const std::string kNone = "Not cancelled";
-  static const std::string kUserRequest = "User request";
-  static const std::string kOverload = "Task processor overload";
-  static const std::string kAbandoned = "Task destruction before finish";
-  static const std::string kShutdown = "Task processor shutdown";
-  switch (reason) {
-    case Task::CancellationReason::kNone:
-      return kNone;
-    case Task::CancellationReason::kUserRequest:
-      return kUserRequest;
-    case Task::CancellationReason::kOverload:
-      return kOverload;
-    case Task::CancellationReason::kAbandoned:
-      return kAbandoned;
-    case Task::CancellationReason::kShutdown:
-      return kShutdown;
-  }
-  return "unknown(" + std::to_string(static_cast<int>(reason)) + ')';
 }
 
 namespace current_task {

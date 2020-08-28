@@ -1,12 +1,11 @@
 #include <clients/http/response_future.hpp>
 
-#include <engine/future.hpp>
+#include <engine/blocking_future.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 ResponseFuture::ResponseFuture(
-    engine::Future<std::shared_ptr<Response>>&& future,
+    engine::impl::BlockingFuture<std::shared_ptr<Response>>&& future,
     std::chrono::milliseconds total_timeout, std::shared_ptr<EasyWrapper> easy)
     : future_(std::move(future)),
       deadline_(std::chrono::system_clock::now() + total_timeout),
@@ -55,5 +54,4 @@ std::shared_ptr<Response> ResponseFuture::Get() {
   throw TimeoutException("Future timeout");
 }
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

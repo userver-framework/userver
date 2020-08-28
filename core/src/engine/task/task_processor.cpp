@@ -49,7 +49,7 @@ void TaskProcessor::InitiateShutdown() {
   {
     std::lock_guard<std::mutex> lock(detached_contexts_mutex_);
     for (auto& context : detached_contexts_) {
-      context->RequestCancel(Task::CancellationReason::kShutdown);
+      context->RequestCancel(TaskCancellationReason::kShutdown);
     }
   }
 }
@@ -68,7 +68,7 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
     }
   }
   if (is_shutting_down_)
-    context->RequestCancel(Task::CancellationReason::kShutdown);
+    context->RequestCancel(TaskCancellationReason::kShutdown);
 
   SetTaskQueueWaitTimepoint(context);
 
@@ -233,7 +233,7 @@ void TaskProcessor::HandleOverload(impl::TaskContext& context) {
       LOG_WARNING() << "Task with task_id=" << context.GetTaskId()
                     << " was waiting in queue for too long, cancelling.";
 
-      context.RequestCancel(Task::CancellationReason::kOverload);
+      context.RequestCancel(TaskCancellationReason::kOverload);
       GetTaskCounter().AccountTaskCancelOverload();
     } else {
       LOG_TRACE() << "Task with task_id=" << context.GetTaskId()
