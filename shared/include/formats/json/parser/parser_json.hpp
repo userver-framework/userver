@@ -12,8 +12,6 @@ class JsonValueParser final : public TypedParser<Value> {
   JsonValueParser();
   ~JsonValueParser();
 
-  void Reset(Value& result) override;
-
   void Null() override;
   void Bool(bool) override;
   void Int64(int64_t) override;

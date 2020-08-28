@@ -5,35 +5,19 @@
 
 namespace formats::json::parser {
 
-namespace impl {
-
-template <typename Item>
-struct ItemStorageNonVector {
-  Item item;
-};
-
-template <typename Item>
-struct ItemStorageVector {};
-
-template <typename Item, typename Array>
-struct ItemStorage
-    : public std::conditional_t<
-          meta::is_vector<Array>::value && !std::is_same<Item, bool>::value,
-          ItemStorageVector<Item>, ItemStorageNonVector<Item>> {};
-
-}  // namespace impl
-
 // Parser for array -> vector/set/unordered_set
 template <typename Item, typename ItemParser,
           typename Array = std::vector<Item>>
-class ArrayParser final : public TypedParser<Array>, public Subscriber {
+class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
  public:
-  explicit ArrayParser(ItemParser& item_parser) : item_parser_(item_parser) {}
+  explicit ArrayParser(ItemParser& item_parser) : item_parser_(item_parser) {
+    this->item_parser_.Subscribe(*this);
+  }
 
-  void Reset(Array& result) override {
+  void Reset() override {
     index_ = 0;
     state_ = State::kStart;
-    TypedParser<Array>::Reset(result);
+    storage_.clear();
 
     if constexpr (meta::is_vector<Array>::value) {
       /*
@@ -43,7 +27,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber {
        * We intentionally give up some maybe-unused space to lower realloc
        * count.
        */
-      result.reserve(16);
+      storage_.reserve(16);
     }
   }
 
@@ -58,7 +42,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber {
   }
   void EndArray() override {
     if (state_ == State::kInside) {
-      this->parser_state_->PopMe(*this);
+      this->SetResult(std::move(storage_));
       return;
     }
     // impossible?
@@ -94,30 +78,23 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber {
     Parser().StartObject();
   }
 
-  void PushParser() {
-    if (state_ != State::kInside) this->Throw("array");
-
-    if constexpr (meta::is_vector<Array>::value &&
-                  !std::is_same<Item, bool>::value) {
-      this->item_parser_.Reset(*this->result_->emplace(this->result_->end()));
-    } else {
-      this->item_storage_.item = {};
-      this->item_parser_.Subscribe(*this);
-      this->item_parser_.Reset(this->item_storage_.item);
-    }
-    this->parser_state_->PushParser(item_parser_, index_++);
-  }
-
   std::string Expected() const override { return "array"; }
 
   BaseParser& Parser() { return item_parser_; }
 
  protected:
-  void OnSend() override {
+  void PushParser() {
+    if (state_ != State::kInside) this->Throw("array");
+
+    this->item_parser_.Reset();
+    this->parser_state_->PushParser(item_parser_, index_++);
+  }
+
+  void OnSend(Item&& item) override {
     if constexpr (!meta::is_vector<Array>::value) {
-      this->result_->insert(std::move(this->item_storage_.item));
-    } else if constexpr (std::is_same<Item, bool>::value) {
-      this->result_->push_back(std::move(this->item_storage_.item));
+      this->storage_.insert(std::move(item));
+    } else {
+      this->storage_.push_back(std::move(item));
     }
   }
 
@@ -131,8 +108,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber {
   };
   size_t index_;
   State state_{State::kStart};
-  // TODO: C++20 [[no_unique_address]]
-  impl::ItemStorage<Item, Array> item_storage_;
+  Array storage_;
 };
 
 }  // namespace formats::json::parser

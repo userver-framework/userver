@@ -54,7 +54,7 @@ void JsonParseArraySax(benchmark::State& state) {
     ArrayParser array_parser(int_parser);
     formats::json::parser::ArrayParser<std::vector<int64_t>, ArrayParser>
         parser(array_parser);
-    parser.Reset(result);
+    parser.Reset();
 
     formats::json::parser::ParserState state;
     state.PushParserNoKey(parser);

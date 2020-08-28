@@ -22,7 +22,9 @@ TEST(JsonStringParser, Int64) {
 
   int64_t result{0};
   Int64Parser int_parser;
-  int_parser.Reset(result);
+  SubscriberSink<int64_t> sink(result);
+  int_parser.Subscribe(sink);
+  int_parser.Reset();
 
   ParserState state;
   state.PushParserNoKey(int_parser);
@@ -95,12 +97,9 @@ bool operator==(const IntObject& lh, const IntObject& rh) {
   return lh.field == rh.field;
 }
 
-class IntObjectParser final : public BaseParser {
+class IntObjectParser final : public TypedParser<IntObject> {
  public:
-  void Reset(IntObject& obj) {
-    result_ = &obj;
-    has_field_ = false;
-  }
+  void Reset() override { has_field_ = false; }
 
  protected:
   void StartObject() override {}
@@ -108,7 +107,8 @@ class IntObjectParser final : public BaseParser {
   void Key(std::string_view key) override {
     if (key == "field") {
       has_field_ = true;
-      field_parser_.Reset(result_->field);
+      field_parser_.Reset();
+      field_parser_.Subscribe(field_sink_);
       parser_state_->PushParser(field_parser_, key);
     } else {
       throw InternalParseError("Bad field for IntObject ('" + std::string(key) +
@@ -120,15 +120,16 @@ class IntObjectParser final : public BaseParser {
     if (!has_field_) {
       throw InternalParseError("Missing required field 'field'");
     }
-    parser_state_->PopMe(*this);
+    SetResult(std::move(result_));
   }
 
   // Note: not strictly correct
   std::string Expected() const override { return "'{'"; }
 
  private:
+  IntObject result_;
   Int64Parser field_parser_;
-  IntObject* result_{nullptr};
+  SubscriberSink<int64_t> field_sink_{result_.field};
   bool has_field_;
 };
 
@@ -152,7 +153,9 @@ TEST(JsonStringParser, ArrayIntObjectNoField) {
   ArrayParser<IntObject, IntObjectParser> array_parser(obj_parser);
 
   std::vector<IntObject> result;
-  array_parser.Reset(result);
+  SubscriberSink<decltype(result)> sink(result);
+  array_parser.Reset();
+  array_parser.Subscribe(sink);
   ParserState state;
   state.PushParserNoKey(array_parser);
 
@@ -167,7 +170,9 @@ TEST(JsonStringParser, ArrayInt) {
 
   Int64Parser int_parser;
   ArrayParser<int64_t, Int64Parser> parser(int_parser);
-  parser.Reset(result);
+  SubscriberSink<decltype(result)> sink(result);
+  parser.Reset();
+  parser.Subscribe(sink);
 
   ParserState state;
   state.PushParserNoKey(parser);
@@ -183,7 +188,9 @@ TEST(JsonStringParser, ArrayArrayInt) {
   using Subparser = ArrayParser<int64_t, Int64Parser>;
   Subparser subparser(int_parser);
   ArrayParser<std::vector<int64_t>, Subparser> parser(subparser);
-  parser.Reset(result);
+  SubscriberSink<decltype(result)> sink(result);
+  parser.Reset();
+  parser.Subscribe(sink);
 
   ParserState state;
   state.PushParserNoKey(parser);
@@ -197,7 +204,9 @@ TEST(JsonStringParser, ArrayBool) {
 
   BoolParser bool_parser;
   ArrayParser<bool, BoolParser> parser(bool_parser);
-  parser.Reset(result);
+  SubscriberSink<decltype(result)> sink(result);
+  parser.Reset();
+  parser.Subscribe(sink);
 
   ParserState state;
   state.PushParserNoKey(parser);
@@ -221,7 +230,9 @@ TYPED_TEST(JsonStringParserMap, Map) {
   MapParser<Map, IntParser> parser{int_parser};
 
   Map result;
-  parser.Reset(result);
+  SubscriberSink<decltype(result)> sink(result);
+  parser.Reset();
+  parser.Subscribe(sink);
   ParserState state;
   state.PushParserNoKey(parser);
   state.ProcessInput(R"({"key": 1, "other": 3})");
@@ -235,7 +246,9 @@ TYPED_TEST(JsonStringParserMap, Empty) {
   MapParser<Map, IntParser> parser{int_parser};
 
   Map result;
-  parser.Reset(result);
+  SubscriberSink<decltype(result)> sink(result);
+  parser.Reset();
+  parser.Subscribe(sink);
   ParserState state;
   state.PushParserNoKey(parser);
   state.ProcessInput(R"({})");
@@ -249,7 +262,9 @@ TYPED_TEST(JsonStringParserMap, Invalid) {
   MapParser<Map, IntParser> parser{int_parser};
 
   Map result;
-  parser.Reset(result);
+  SubscriberSink<decltype(result)> sink(result);
+  parser.Reset();
+  parser.Subscribe(sink);
   ParserState state;
   state.PushParserNoKey(parser);
 

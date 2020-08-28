@@ -42,17 +42,4 @@ class BaseParser {
   ParserState* parser_state_{nullptr};
 };
 
-template <typename T, typename Parser>
-T ParseToType(std::string_view input) {
-  T result{};
-  Parser parser;
-  parser.Reset(result);
-
-  ParserState state;
-  state.PushParserNoKey(parser);
-  state.ProcessInput(input);
-
-  return result;
-}
-
 }  // namespace formats::json::parser

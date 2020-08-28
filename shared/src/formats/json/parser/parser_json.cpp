@@ -16,11 +16,6 @@ JsonValueParser::JsonValueParser() : impl_{} {}
 
 JsonValueParser::~JsonValueParser() = default;
 
-void JsonValueParser::Reset(Value& result) {
-  *impl_ = {};
-  TypedParser<Value>::Reset(result);
-}
-
 void JsonValueParser::Null() {
   if (!impl_->raw_value_.Null()) Throw(Expected());
   MaybePopSelf();
