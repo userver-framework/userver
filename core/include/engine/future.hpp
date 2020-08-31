@@ -241,7 +241,7 @@ void Promise<T>::set_exception(std::exception_ptr ex) {
 inline Promise<void>::Promise()
     : state_(std::make_shared<impl::FutureState<void>>()) {}
 
-inline Promise<void>::~Promise() noexcept {
+inline Promise<void>::~Promise() {
   if (state_ && !state_->IsReady()) {
     try {
       state_->SetException(std::make_exception_ptr(
