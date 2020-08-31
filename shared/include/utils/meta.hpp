@@ -57,4 +57,29 @@ struct is_map {
 template <class T>
 struct is_optional : is_instantiation_of<std::optional, T> {};
 
+/// Returns `true` if the type is a fundamental character type.
+/// `signed char` and `unsigned char` are not character types.
+template <typename T>
+struct is_character
+    : std::integral_constant<bool, std::is_same_v<T, char> ||
+                                       std::is_same_v<T, wchar_t> ||
+                                       std::is_same_v<T, char16_t> ||
+                                       std::is_same_v<T, char32_t>> {};
+
+template <typename T>
+inline constexpr bool is_character_v = is_character<T>::value;
+
+/// Returns `true` if the type is a true integer type (not `*char*` or `bool`).
+/// `signed char` and `unsigned char` are integer types.
+template <typename T>
+struct is_integer : std::integral_constant<bool, std::is_integral_v<T> &&
+                                                     !is_character_v<T> &&
+                                                     !std::is_same_v<T, bool>> {
+};
+
+/// Returns `true` if the type is a true integer type (not `*char*` or `bool`)
+/// `signed char` and `unsigned char` are integer types
+template <typename T>
+inline constexpr bool is_integer_v = is_integer<T>::value;
+
 }  // namespace meta
