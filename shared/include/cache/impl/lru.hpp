@@ -196,6 +196,10 @@ void LruBase<T, U, Hash, Eq>::SetMaxSize(size_t new_max_size) {
   UASSERT(new_max_size > 0);
   if (!new_max_size) ++new_max_size;
 
+  if (buckets_.size() == new_max_size) {
+    return;
+  }
+
   while (map_.size() > new_max_size) {
     ExtractNode(list_.begin());
   }
