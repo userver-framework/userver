@@ -1,7 +1,8 @@
-#include <gtest/gtest.h>
+#include <utils/decimal64.hpp>
 
-#include <decimal64/decimal64.hpp>
 #include <sstream>
+
+#include <gtest/gtest.h>
 
 using Dec4 = decimal64::decimal<4>;
 

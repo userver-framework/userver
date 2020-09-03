@@ -8,7 +8,7 @@
 #include <storages/postgres/io/numeric_data.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
-#include <decimal64/decimal64.hpp>
+#include <utils/decimal64.hpp>
 
 namespace storages::postgres::io {
 
@@ -39,8 +39,8 @@ struct BufferParser<decimal64::decimal<Prec, RoundPolicy>>
 
   void operator()(const FieldBuffer& buffer) {
     auto rep = detail::NumericBufferToInt64(buffer);
-    this->value = ValueType{rep.value, decimal64::dec_utils<RoundPolicy>::pow10(
-                                           rep.fractional_digit_count)};
+    this->value =
+        ValueType::FromFloatingPoint(rep.value, -rep.fractional_digit_count);
   }
 };
 

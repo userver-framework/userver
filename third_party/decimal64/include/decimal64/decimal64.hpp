@@ -1,4 +1,5 @@
 #pragma once
 
-#define DEC_NAMESPACE decimal64
-#include "decimal_impl.h"
+/// \file Deprecated header, include <utils/decimal64.hpp> instead
+
+#include "utils/decimal64.hpp"
