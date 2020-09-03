@@ -55,7 +55,7 @@ inline constexpr auto kMaxInt64 = std::numeric_limits<int64_t>::max();
 inline constexpr auto kMinInt64 = std::numeric_limits<int64_t>::min();
 
 template <typename T, typename R = void>
-using EnableIfInt = std::enable_if_t<meta::is_integer_v<T>, R>;
+using EnableIfInt = std::enable_if_t<meta::kIsInteger<T>, R>;
 
 template <int MaxExp>
 constexpr std::array<int64_t, MaxExp + 1> PowSeries(int64_t base) {
