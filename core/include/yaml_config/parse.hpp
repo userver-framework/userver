@@ -121,7 +121,7 @@ inline std::optional<std::vector<T>> ParseOptionalArray(
       if (elem) {
         parsed_array.emplace_back(std::move(*elem));
       } else {
-        if constexpr (meta::is_optional<T>::value)
+        if constexpr (meta::kIsOptional<T>)
           parsed_array.emplace_back(std::nullopt);
         else
           throw ParseError(value_path, i, "declared config_var element");

@@ -5,8 +5,6 @@
 
 #include <formats/parse/to.hpp>
 
-#include <utils/meta.hpp>
-
 #include <map>
 #include <optional>
 #include <set>
@@ -67,10 +65,9 @@ std::set<T> Parse(const Value& value, To<std::set<T>>) {
 }
 
 template <class Value, typename T>
-std::enable_if_t<meta::is_vector<T>::value, T> Parse(const Value& value,
-                                                     To<T>) {
-  return impl::ParseArray<T, typename T::value_type>(
-      value, &impl::AsExtractor<typename T::value_type, Value>);
+std::vector<T> Parse(const Value& value, To<std::vector<T>>) {
+  return impl::ParseArray<std::vector<T>, T>(value,
+                                             &impl::AsExtractor<T, Value>);
 }
 
 template <class Value, typename T>
@@ -122,13 +119,12 @@ std::set<T> Convert(const Value& value, To<std::set<T>>) {
 }
 
 template <class Value, typename T>
-std::enable_if_t<meta::is_vector<T>::value, T> Convert(const Value& value,
-                                                       To<T>) {
+std::vector<T> Convert(const Value& value, To<std::vector<T>>) {
   if (value.IsMissing()) {
     return {};
   }
-  return impl::ParseArray<T, typename T::value_type>(
-      value, &impl::ConvertToExtractor<typename T::value_type, Value>);
+  return impl::ParseArray<std::vector<T>, T>(
+      value, &impl::ConvertToExtractor<T, Value>);
 }
 
 template <class Value, typename T>

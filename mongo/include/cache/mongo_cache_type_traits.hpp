@@ -37,7 +37,7 @@ template <typename T, typename = ::utils::void_t<>>
 struct HasValidDataType : std::false_type {};
 template <typename T>
 struct HasValidDataType<T, ::utils::void_t<typename T::DataType>>
-    : meta::is_map<typename T::DataType> {};
+    : meta::IsMap<typename T::DataType> {};
 template <typename T>
 constexpr bool kHasValidDataType = HasValidDataType<T>::value;
 
@@ -46,7 +46,7 @@ struct HasSecondaryPreferred : std::false_type {};
 template <typename T>
 struct HasSecondaryPreferred<
     T, ::utils::void_t<decltype(T::kIsSecondaryPreferred)>>
-    : meta::is_bool<std::decay_t<decltype(T::kIsSecondaryPreferred)>> {};
+    : meta::IsBool<std::decay_t<decltype(T::kIsSecondaryPreferred)>> {};
 template <typename T>
 constexpr bool kHasSecondaryPreferred = HasSecondaryPreferred<T>::value;
 
@@ -63,7 +63,7 @@ struct HasDefaultDeserializeObject : std::false_type {};
 template <typename T>
 struct HasDefaultDeserializeObject<
     T, ::utils::void_t<decltype(T::kUseDefaultDeserializeObject)>>
-    : meta::is_bool<std::decay_t<decltype(T::kUseDefaultDeserializeObject)>> {};
+    : meta::IsBool<std::decay_t<decltype(T::kUseDefaultDeserializeObject)>> {};
 template <typename T>
 constexpr bool kHasDefaultDeserializeObject =
     HasDefaultDeserializeObject<T>::value;
@@ -81,7 +81,7 @@ struct HasDefaultFindOperation : std::false_type {};
 template <typename T>
 struct HasDefaultFindOperation<
     T, ::utils::void_t<decltype(T::kUseDefaultFindOperation)>>
-    : meta::is_bool<std::decay_t<decltype(T::kUseDefaultFindOperation)>> {};
+    : meta::IsBool<std::decay_t<decltype(T::kUseDefaultFindOperation)>> {};
 template <typename T>
 constexpr bool kHasDefaultFindOperation = HasDefaultFindOperation<T>::value;
 
@@ -90,7 +90,7 @@ struct HasInvalidDocumentsSkipped : std::false_type {};
 template <typename T>
 struct HasInvalidDocumentsSkipped<
     T, ::utils::void_t<decltype(T::kAreInvalidDocumentsSkipped)>>
-    : meta::is_bool<std::decay_t<decltype(T::kAreInvalidDocumentsSkipped)>> {};
+    : meta::IsBool<std::decay_t<decltype(T::kAreInvalidDocumentsSkipped)>> {};
 template <typename T>
 constexpr bool kHasInvalidDocumentsSkipped =
     HasInvalidDocumentsSkipped<T>::value;

@@ -40,7 +40,7 @@ template <typename T>
 T FromString(const std::string& str) {
   static_assert(!std::is_const_v<T> && !std::is_volatile_v<T>);
   static_assert(!std::is_reference_v<T>);
-  static_assert(meta::is_integer_v<T> || std::is_floating_point_v<T>);
+  static_assert(meta::kIsInteger<T> || std::is_floating_point_v<T>);
 
   if (str.empty()) {
     impl::ThrowFromStringException("empty string", str, typeid(T));
@@ -73,7 +73,7 @@ T FromString(const std::string& str) {
   if (end == str.data()) {
     impl::ThrowFromStringException("no number found", str, typeid(T));
   }
-  if constexpr (meta::is_integer_v<T>) {
+  if constexpr (meta::kIsInteger<T>) {
     if (result < std::numeric_limits<T>::min() ||
         result > std::numeric_limits<T>::max()) {
       impl::ThrowFromStringException("overflow", str, typeid(T));

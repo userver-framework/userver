@@ -19,7 +19,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
     state_ = State::kStart;
     storage_.clear();
 
-    if constexpr (meta::is_vector<Array>::value) {
+    if constexpr (meta::kIsVector<Array>) {
       /*
        * Heuristics:
        * STL impls have a small initial capacity of vector.
@@ -91,7 +91,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
   }
 
   void OnSend(Item&& item) override {
-    if constexpr (!meta::is_vector<Array>::value) {
+    if constexpr (!meta::kIsVector<Array>) {
       this->storage_.insert(std::move(item));
     } else {
       this->storage_.push_back(std::move(item));

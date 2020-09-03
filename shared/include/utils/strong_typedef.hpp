@@ -13,6 +13,7 @@
 #include <boost/functional/hash_fwd.hpp>
 
 #include <formats/common/meta.hpp>
+#include <utils/meta.hpp>
 #include <utils/underlying_value.hpp>
 #include <utils/void_t.hpp>
 
@@ -99,6 +100,10 @@ using EnableTransparentCompare = std::enable_if_t<
 
 struct StrongTypedefTag {};
 
+template <typename T, typename Void>
+using EnableIfRange =
+    std::enable_if_t<std::is_void_v<Void> && meta::kIsRange<T>>;
+
 }  // namespace impl::strong_typedef
 
 // Generic implementation for classes
@@ -123,9 +128,8 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
   constexpr StrongTypedef(impl::strong_typedef::InitializerList<T> lst)
       : data_(lst) {}
 
-  template <
-      class... Args,
-      std::enable_if_t<std::is_constructible<T, Args...>::value, bool> = true>
+  template <typename... Args,
+            typename = std::enable_if_t<std::is_constructible_v<T, Args...>>>
   explicit constexpr StrongTypedef(Args&&... args) noexcept(
       noexcept(T(std::forward<Args>(args)...)))
       : data_(std::forward<Args>(args)...) {}
@@ -138,12 +142,41 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
   constexpr T GetUnderlying() && noexcept { return std::move(data_); }
   constexpr T& GetUnderlying() & noexcept { return data_; }
 
-  auto begin() { return data_.begin(); }
-  auto end() { return data_.end(); }
-  auto begin() const { return data_.begin(); }
-  auto end() const { return data_.end(); }
-  auto cbegin() const { return data_.cbegin(); }
-  auto cend() const { return data_.cend(); }
+  template <typename Void = void,
+            typename = impl::strong_typedef::EnableIfRange<T, Void>>
+  auto begin() {
+    return data_.begin();
+  }
+
+  template <typename Void = void,
+            typename = impl::strong_typedef::EnableIfRange<T, Void>>
+  auto end() {
+    return data_.end();
+  }
+
+  template <typename Void = void,
+            typename = impl::strong_typedef::EnableIfRange<const T, Void>>
+  auto begin() const {
+    return data_.begin();
+  }
+
+  template <typename Void = void,
+            typename = impl::strong_typedef::EnableIfRange<const T, Void>>
+  auto end() const {
+    return data_.end();
+  }
+
+  template <typename Void = void,
+            typename = impl::strong_typedef::EnableIfRange<const T, Void>>
+  auto cbegin() const {
+    return data_.begin();
+  }
+
+  template <typename Void = void,
+            typename = impl::strong_typedef::EnableIfRange<const T, Void>>
+  auto cend() const {
+    return data_.end();
+  }
 
   auto size() const { return data_.size(); }
   auto empty() const { return data_.empty(); }
@@ -278,6 +311,13 @@ template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
 TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
                      formats::serialize::To<TargetType>) {
   return typename TargetType::Builder(object.GetUnderlying()).ExtractValue();
+}
+
+template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
+          typename StringBuilder>
+void WriteToStream(const StrongTypedef<Tag, T, Ops, Enable>& object,
+                   StringBuilder& sw) {
+  WriteToStream(object.GetUnderlying(), sw);
 }
 
 // Explicit casting

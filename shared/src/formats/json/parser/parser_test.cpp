@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <unordered_map>
+
 #include <formats/json/parser/parser.hpp>
 #include <formats/json/serialize.hpp>
 
@@ -281,8 +283,6 @@ TYPED_TEST(JsonStringParserMap, Invalid) {
 }
 
 TEST(JsonStringParser, JsonValue) {
-  std::string input{};
-
   std::string inputs[] = {
       R"([1, "123", "", -2, 3.5, {"key": 1, "other": {"key2": 2}}, {}])",
       R"({})",
@@ -297,8 +297,6 @@ TEST(JsonStringParser, JsonValue) {
 }
 
 TEST(JsonStringParser, JsonValueBad) {
-  std::string input{};
-
   std::string inputs[] = {
       R"({)",         //
       R"()",          //

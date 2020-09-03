@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <exception>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <ostream>
@@ -17,6 +18,7 @@
 #include <logging/logger.hpp>
 #include <utils/encoding/hex.hpp>
 #include <utils/encoding/tskv.hpp>
+#include <utils/meta.hpp>
 
 namespace logging {
 
@@ -24,7 +26,33 @@ namespace impl {
 
 struct Noop {};
 
+struct HexBase {
+  uint64_t value;
+
+  template <typename Unsigned,
+            typename = std::enable_if_t<std::is_unsigned_v<Unsigned>>>
+  explicit HexBase(Unsigned value) : value(value) {
+    static_assert(sizeof(Unsigned) <= sizeof(value));
+  }
+
+  template <typename T>
+  explicit HexBase(T* pointer) : HexBase(reinterpret_cast<uintptr_t>(pointer)) {
+    static_assert(sizeof(value) == sizeof(uintptr_t));
+  }
+};
+
 }  // namespace impl
+
+/// Formats value in a hex mode with the fixed length representation.
+struct Hex final : impl::HexBase {
+  using impl::HexBase::HexBase;
+};
+
+/// Formats value in a hex mode with the shortest representation, just like
+/// std::to_chars does.
+struct HexShort final : impl::HexBase {
+  using impl::HexBase::HexBase;
+};
 
 /// Returns default logger
 LoggerPtr DefaultLogger();
@@ -66,30 +94,33 @@ class LogHelper final {
   // Helper function that could be called on LogHelper&& to get LogHelper&.
   LogHelper& AsLvalue() noexcept { return *this; }
 
+  bool IsLimitReached() const;
+
   template <typename T>
   LogHelper& operator<<(const T& value) {
     constexpr bool encode = utils::encoding::TypeNeedsEncodeTskv<T>::value;
     EncodingGuard guard{*this, encode ? Encode::kValue : Encode::kNone};
 
-    constexpr bool is_char_like =
-        std::is_constructible<std::string_view, T>::value ||
-        std::is_same<char, T>::value || std::is_same<signed char, T>::value ||
-        std::is_same<unsigned char, T>::value;
-
-    if constexpr (is_char_like) {
+    if constexpr (std::is_same_v<T, char>) {
       Put(value);
-    } else if constexpr (std::is_floating_point<T>::value) {
+    } else if constexpr (std::is_constructible_v<std::string_view, T>) {
+      Put(value);
+    } else if constexpr (std::is_floating_point_v<T>) {
       PutFloatingPoint(value);
-    } else if constexpr (std::is_signed<T>::value) {
+    } else if constexpr (std::is_signed_v<T>) {
       PutSigned(value);
-    } else if constexpr (std::is_unsigned<T>::value) {
+    } else if constexpr (std::is_unsigned_v<T>) {  // `bool` falls here
       PutUnsigned(value);
-    } else if constexpr (std::is_base_of<std::exception, T>::value) {
+    } else if constexpr (std::is_base_of_v<std::exception, T>) {
       PutException(value);
-    } else {
-      // No operator<< overload for LogHelper and type T. You could provide one,
-      // to speed up logging of value.
+    } else if constexpr (meta::kIsOstreamWritable<T>) {
       Stream() << value;
+    } else if constexpr (meta::kIsRange<T>) {
+      PutRange(value);
+    } else {
+      static_assert(!sizeof(T),
+                    "Please implement logging for your type: "
+                    "LogHelper& operator<<(LogHelper& lh, const T& value)");
     }
 
     return *this;
@@ -101,12 +132,9 @@ class LogHelper final {
   /// Extends internal LogExtra
   LogHelper& operator<<(LogExtra&& extra);
 
-  /// Outputs value in a hex mode with the shortest representation, just like
-  /// std::to_chars does.
-  void PutHexShort(unsigned long long value);
+  LogHelper& operator<<(Hex hex);
 
-  /// Outputs value in a hex mode with the fixed length representation.
-  void PutHex(const void* value);
+  LogHelper& operator<<(HexShort hex);
 
   /// @cond
   // For internal use only!
@@ -140,6 +168,9 @@ class LogHelper final {
   void Put(char value);
   void PutException(const std::exception& ex);
 
+  template <typename T>
+  void PutRange(const T& range);
+
   std::ostream& Stream();
 
   class Impl;
@@ -153,18 +184,25 @@ inline LogHelper& operator<<(LogHelper& lh, std::error_code ec) {
 }
 
 template <typename T>
-inline LogHelper& operator<<(LogHelper& lh, const std::atomic<T>& value) {
+LogHelper& operator<<(LogHelper& lh, const std::atomic<T>& value) {
   return lh << value.load();
 }
 
-inline LogHelper& operator<<(LogHelper& lh, const void* value) {
-  lh.PutHex(value);
+template <typename T>
+LogHelper& operator<<(LogHelper& lh, const T* value) {
+  if (value == nullptr) {
+    lh << "(null)";
+  } else if constexpr (std::is_same_v<T, char>) {
+    lh << std::string_view(value);
+  } else {
+    lh << Hex{value};
+  }
   return lh;
 }
 
-inline LogHelper& operator<<(LogHelper& lh, void* value) {
-  lh.PutHex(value);
-  return lh;
+template <typename T>
+LogHelper& operator<<(LogHelper& lh, T* value) {
+  return lh << static_cast<const T*>(value);
 }
 
 inline LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
@@ -173,7 +211,7 @@ inline LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
 }
 
 template <typename T>
-inline LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) {
+LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) {
   if (value)
     lh << *value;
   else
@@ -182,13 +220,54 @@ inline LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) {
 }
 
 template <class Result, class... Args>
-inline LogHelper& operator<<(LogHelper& lh, Result (*)(Args...)) {
+LogHelper& operator<<(LogHelper& lh, Result (*)(Args...)) {
   static_assert(!sizeof(Result),
-                "Outputing functions or std::ostream formatters is forbidden");
+                "Outputting functions or std::ostream formatters is forbidden");
   return lh;
 }
 
 LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp);
+
+template <typename T, typename U>
+LogHelper& operator<<(LogHelper& lh, const std::pair<T, U>& pair) {
+  lh << pair.first << ": " << pair.second;
+  return lh;
+}
+
+template <typename T>
+void LogHelper::PutRange(const T& range) {
+  static_assert(meta::kIsRange<T>);
+  constexpr std::string_view kSeparator = ", ";
+  Put('[');
+
+  bool is_first = true;
+  auto curr = std::begin(range);
+  const auto end = std::end(range);
+
+  while (curr != end) {
+    if (IsLimitReached()) {
+      break;
+    }
+    if (is_first) {
+      is_first = false;
+    } else {
+      Put(kSeparator);
+    }
+    *this << *curr;
+    ++curr;
+  }
+
+  const auto extra_elements = std::distance(curr, end);
+
+  if (extra_elements != 0) {
+    if (!is_first) {
+      *this << ' ';
+    }
+    *this << "...(" << extra_elements << " more)";
+  }
+
+  Put(']');
+}
 
 /// Forces flush of default logger message queue
 void LogFlush();

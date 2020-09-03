@@ -5,6 +5,7 @@
 
 #include <array>
 #include <optional>
+#include <type_traits>
 #include <vector>
 
 #include <formats/common/type.hpp>
@@ -16,25 +17,22 @@ namespace formats::serialize {
 
 /// Common containers serialization (vector/set)
 template <typename T, typename Value>
-std::enable_if_t<meta::is_vector<T>::value || meta::is_array<T>::value ||
-                     meta::is_set<T>::value,
-                 Value>
-Serialize(const T& value, To<Value>) {
+std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T>, Value> Serialize(
+    const T& value, To<Value>) {
   typename Value::Builder builder(formats::common::Type::kArray);
   for (const auto& item : value) {
     // explicit cast for vector<bool> shenanigans
-    builder.PushBack(static_cast<const typename T::value_type&>(item));
+    builder.PushBack(static_cast<const meta::ValueType<T>&>(item));
   }
   return builder.ExtractValue();
 }
 
 /// Mappings serialization
 template <typename T, typename Value>
-std::enable_if_t<meta::is_map<T>::value, Value> Serialize(const T& value,
-                                                          To<Value>) {
+std::enable_if_t<meta::kIsMap<T>, Value> Serialize(const T& value, To<Value>) {
   typename Value::Builder builder(formats::common::Type::kObject);
-  for (auto it = value.begin(); it != value.end(); ++it) {
-    builder[it->first] = it->second;
+  for (const auto& [key, value] : value) {
+    builder[key] = value;
   }
   return builder.ExtractValue();
 }

@@ -17,9 +17,6 @@
 #include <utils/datetime.hpp>
 #include <utils/traceful_exception.hpp>
 
-#include <boost/stacktrace/detail/to_dec_array.hpp>
-#include <boost/stacktrace/detail/to_hex_array.hpp>
-
 #include <logging/log_helper_impl.hpp>
 #include <logging/log_workaround.hpp>
 
@@ -205,6 +202,11 @@ LogHelper::~LogHelper() {
   ThreadLocalMemPool<Impl>::Push(std::move(pimpl_));
 }
 
+bool LogHelper::IsLimitReached() const {
+  constexpr size_t kSizeLimit = 10000;
+  return pimpl_->Message().raw.size() >= kSizeLimit;
+}
+
 void LogHelper::DoLog() noexcept {
   NOTHROW_CALL_GENERIC(AppendLogExtra())
   if (pimpl_->IsStreamInitialized()) {
@@ -268,12 +270,12 @@ void LogHelper::LogIds() {
   Put(utils::encoding::kTskvPairsSeparator);
   Put("task_id");
   Put(utils::encoding::kTskvKeyValueSeparator);
-  PutHexShort(task_id);
+  *this << HexShort{task_id};
 
   Put(utils::encoding::kTskvPairsSeparator);
   Put("thread_id");
   Put(utils::encoding::kTskvKeyValueSeparator);
-  PutHex(thread_id);
+  *this << Hex{thread_id};
 }
 
 void LogHelper::LogSpan() {
@@ -292,27 +294,6 @@ LogHelper& LogHelper::operator<<(LogExtra&& extra) {
 }
 
 // TODO: use std::to_chars in all the Put* functions.
-void LogHelper::PutHexShort(unsigned long long value) {
-  using boost::stacktrace::detail::to_hex_array_bytes;
-  if (value == 0) {
-    Put('0');
-    return;
-  }
-
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-  std::array<char, sizeof(value) * 2> ret;
-  char* out = ret.data() + ret.size();
-  while (value) {
-    --out;
-    *out = to_hex_array_bytes[value & 0xFu];
-    value >>= 4;
-  }
-
-  Put({out, static_cast<std::size_t>(ret.data() + ret.size() - out)});
-}
-void LogHelper::PutHex(const void* value) {
-  Put(boost::stacktrace::detail::to_hex_array(value).data());
-}
 void LogHelper::PutFloatingPoint(float value) {
   format_to(pimpl_->Message().raw, "{}", value);
 }
@@ -323,19 +304,20 @@ void LogHelper::PutFloatingPoint(long double value) {
   format_to(pimpl_->Message().raw, "{}", value);
 }
 void LogHelper::PutUnsigned(unsigned long long value) {
-  Put(boost::stacktrace::detail::to_dec_array(value).data());
+  format_to(pimpl_->Message().raw, "{}", value);
 }
 void LogHelper::PutSigned(long long value) {
-  auto value_as_unsigned = static_cast<unsigned long long>(value);
+  format_to(pimpl_->Message().raw, "{}", value);
+}
 
-  if (value < 0) {
-    Put('-');
+LogHelper& LogHelper::operator<<(Hex hex) {
+  format_to(pimpl_->Message().raw, "0x{:016X}", hex.value);
+  return *this;
+}
 
-    // safe way to convert negative value to a positive
-    value_as_unsigned = 0u - value_as_unsigned;
-  }
-
-  PutUnsigned(value_as_unsigned);
+LogHelper& LogHelper::operator<<(HexShort hex) {
+  format_to(pimpl_->Message().raw, "{:X}", hex.value);
+  return *this;
 }
 
 void LogHelper::Put(std::string_view value) {

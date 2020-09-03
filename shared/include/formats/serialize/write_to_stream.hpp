@@ -11,34 +11,13 @@
 
 #include <utils/meta.hpp>
 
+#include <formats/common/meta.hpp>
+
 namespace formats::serialize {
 
 /// An ADL helper that allows searching for `WriteToStream` functions in
 /// namespace of the stream. Derive your SAX string builder from this type.
 struct SaxStream {};
-
-/// Array like types serialization
-template <typename T, typename StringBuilder>
-std::enable_if_t<meta::is_vector<T>::value || meta::is_array<T>::value ||
-                 meta::is_set<T>::value>
-WriteToStream(const T& value, StringBuilder& sw) {
-  typename StringBuilder::ArrayGuard guard(sw);
-  for (const auto& item : value) {
-    // explicit cast for vector<bool> shenanigans
-    WriteToStream(static_cast<const typename T::value_type&>(item), sw);
-  }
-}
-
-/// Dict like types serialization
-template <typename T, typename StringBuilder>
-std::enable_if_t<meta::is_map<T>::value> WriteToStream(const T& value,
-                                                       StringBuilder& sw) {
-  typename StringBuilder::ObjectGuard guard(sw);
-  for (const auto& [key, value] : value) {
-    sw.Key(key);
-    WriteToStream(value, sw);
-  }
-}
 
 /// Variant serialization
 template <typename... Types, typename StringBuilder>
@@ -66,22 +45,56 @@ namespace impl {
 template <class T, class StringBuilder>
 constexpr inline bool kIsSerializeAllowedInWriteToStream = true;
 
+// Array like types serialization
+template <typename T, typename StringBuilder>
+void WriteToStreamArray(const T& value, StringBuilder& sw) {
+  typename StringBuilder::ArrayGuard guard(sw);
+  for (const auto& item : value) {
+    // explicit cast for vector<bool> shenanigans
+    WriteToStream(static_cast<const meta::ValueType<T>&>(item), sw);
+  }
+}
+
+// Dict like types serialization
+template <typename T, typename StringBuilder>
+void WriteToStreamDict(const T& value, StringBuilder& sw) {
+  typename StringBuilder::ObjectGuard guard(sw);
+  for (const auto& [key, value] : value) {
+    sw.Key(key);
+    WriteToStream(value, sw);
+  }
+}
+
 }  // namespace impl
 
-/// Fall back to using formats::*::Serialize
+/// Handle ranges, fall back to using formats::*::Serialize
 ///
 /// The signature of this WriteToStream must remain the less specialized one, so
 /// that it is not preferred over other functions.
 template <typename T, typename StringBuilder>
-std::enable_if_t<!meta::is_vector<T>::value && !meta::is_array<T>::value &&
-                 !meta::is_set<T>::value && !meta::is_map<T>::value &&
-                 !std::is_arithmetic_v<T>>
-WriteToStream(const T& value, StringBuilder& sw) {
-  static_assert(impl::kIsSerializeAllowedInWriteToStream<T, StringBuilder>,
-                "SAX serialization fall back to Serialize call");
+std::enable_if_t<!std::is_arithmetic_v<T>> WriteToStream(const T& value,
+                                                         StringBuilder& sw) {
+  using Value = typename StringBuilder::Value;
 
-  using ToValue = serialize::To<typename StringBuilder::Value>;
-  sw.WriteValue(Serialize(value, ToValue{}));
+  if constexpr (meta::kIsMap<T>) {
+    impl::WriteToStreamDict(value, sw);
+  } else if constexpr (meta::kIsRange<T>) {
+    static_assert(!meta::kIsRecursiveRange<T>,
+                  "Trying to log a recursive range, which can be dangerous. "
+                  "(boost::filesystem::path?) Please implement WriteToStream "
+                  "for your type");
+    impl::WriteToStreamArray(value, sw);
+  } else if constexpr (common::kHasSerializeTo<Value, T>) {
+    static_assert(
+        !sizeof(T) ||
+            impl::kIsSerializeAllowedInWriteToStream<T, StringBuilder>,
+        "SAX serialization falls back to Serialize call, which is not "
+        "allowed. Please implement WriteToStream for your type");
+    sw.WriteValue(Serialize(value, serialize::To<Value>{}));
+  } else {
+    static_assert(!sizeof(T),
+                  "Please implement WriteToStream or Serialize for your type");
+  }
 }
 
 }  // namespace formats::serialize
