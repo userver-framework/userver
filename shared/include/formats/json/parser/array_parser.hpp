@@ -106,7 +106,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
     kStart,
     kInside,
   };
-  size_t index_;
+  size_t index_{0};
   State state_{State::kStart};
   Array storage_;
 };

@@ -8,6 +8,7 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/reader.h>
 
+#include <formats/common/path.hpp>
 #include <formats/json/parser/base_parser.hpp>
 #include <formats/json/parser/parser_handler.hpp>
 #include <logging/log.hpp>
@@ -63,7 +64,10 @@ void ParserState::PushParser(BaseParser& parser, std::string_view key) {
 }
 
 void ParserState::PushParser(BaseParser& parser, size_t key) {
-  impl_->PushParser(parser, fmt::format("[{}]", key), *this);
+  if (key < formats::common::kIndexCacheSize)
+    impl_->PushParser(parser, formats::common::kIndexCache[key], *this);
+  else
+    impl_->PushParser(parser, formats::common::GetIndexString(key), *this);
 }
 
 void ParserState::ProcessInput(std::string_view sw) {

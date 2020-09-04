@@ -1,8 +1,20 @@
 #include <formats/common/path.hpp>
 
+#include <fmt/format.h>
+
 #include <formats/common/path_impl.hpp>
 
 namespace formats::common {
+
+const std::array<std::string, kIndexCacheSize> kIndexCache = [] {
+  std::array<std::string, kIndexCacheSize> arr;
+  for (size_t i = 0; i < std::size(arr); i++) arr[i] = GetIndexString(i);
+  return arr;
+}();
+
+std::string GetIndexString(size_t index) {
+  return fmt::format(FMT_STRING("[{}]"), index);
+}
 
 Path::Path() = default;
 

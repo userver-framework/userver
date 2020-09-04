@@ -45,7 +45,7 @@ class TypedParser : public BaseParser {
   virtual void Reset(){};
 
  protected:
-  void SetResult(T value) {
+  void SetResult(T&& value) {
     parser_state_->PopMe(*this);
     if (subscriber_) subscriber_->OnSend(std::move(value));
   }

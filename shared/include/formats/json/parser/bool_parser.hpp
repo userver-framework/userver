@@ -9,7 +9,7 @@ class BoolParser final : public formats::json::parser::TypedParser<bool> {
   using formats::json::parser::TypedParser<bool>::TypedParser;
 
  protected:
-  void Bool(bool b) override { SetResult(b); }
+  void Bool(bool b) override { SetResult(bool(b)); }
 
   std::string Expected() const override { return "bool"; }
 };
