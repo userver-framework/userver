@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-using Dec4 = decimal64::decimal<4>;
+using Dec4 = decimal64::Decimal<4>;
 
 TEST(Decimal64, ToString) {
   ASSERT_EQ(decimal64::ToString(Dec4{"1000"}), "1000");
@@ -17,9 +17,9 @@ TEST(Decimal64, ToString) {
   ASSERT_EQ(decimal64::ToString(Dec4{"-20"}), "-20");
   ASSERT_EQ(decimal64::ToString(Dec4{"-0.1"}), "-0.1");
   ASSERT_EQ(decimal64::ToString(Dec4{"-0.0001"}), "-0.0001");
-  ASSERT_EQ(decimal64::ToString(decimal64::decimal<18>{"1"}), "1");
-  ASSERT_EQ(decimal64::ToString(decimal64::decimal<5>{"1"}), "1");
-  ASSERT_EQ(decimal64::ToString(decimal64::decimal<0>{"1"}), "1");
+  ASSERT_EQ(decimal64::ToString(decimal64::Decimal<18>{"1"}), "1");
+  ASSERT_EQ(decimal64::ToString(decimal64::Decimal<5>{"1"}), "1");
+  ASSERT_EQ(decimal64::ToString(decimal64::Decimal<0>{"1"}), "1");
 }
 
 TEST(Decimal64, ToStringTrailingZeros) {
@@ -33,11 +33,11 @@ TEST(Decimal64, ToStringTrailingZeros) {
   ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-20"}), "-20.0000");
   ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-0.1"}), "-0.1000");
   ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-0.0001"}), "-0.0001");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::decimal<18>{"1"}),
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::Decimal<18>{"1"}),
             "1.000000000000000000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::decimal<5>{"1"}),
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::Decimal<5>{"1"}),
             "1.00000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::decimal<0>{"1"}), "1");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::Decimal<0>{"1"}), "1");
 }
 
 TEST(Decimal64, DefaultValue) { ASSERT_EQ(Dec4{}, Dec4{0}); }
@@ -68,7 +68,7 @@ TEST(Decimal64, OperationsWithSign) {
 }
 
 TEST(Decimal64, MoneyExample) {
-  using Money = decimal64::decimal<4>;
+  using Money = decimal64::Decimal<4>;
 
   Money jpy_10k_to_rub{"5970.77"};
   Money value_rub{"10.00"};
@@ -77,14 +77,17 @@ TEST(Decimal64, MoneyExample) {
 }
 
 TEST(Decimal64, ConstexprSupport) {
+  [[maybe_unused]] constexpr Dec4 default_zero;
   [[maybe_unused]] constexpr Dec4 zero{0};
   [[maybe_unused]] constexpr Dec4 ten{10};
   [[maybe_unused]] constexpr Dec4 large_int{123456789876543};
+  [[maybe_unused]] constexpr Dec4 from_float{42.123456F};
+  [[maybe_unused]] constexpr Dec4 from_double{42.123456};
+  [[maybe_unused]] constexpr Dec4 from_long_double{42.123456L};
   [[maybe_unused]] constexpr Dec4 from_unbiased = Dec4::FromUnbiased(123);
   [[maybe_unused]] constexpr Dec4 from_unpacked = Dec4::FromUnpacked(123, 4567);
   [[maybe_unused]] constexpr Dec4 from_unpacked2 =
       Dec4::FromUnpacked(123, 4567, 8);
-  [[maybe_unused]] constexpr Dec4 from_floating =
-      Dec4::FromFloatingPoint(123, -5);
+  [[maybe_unused]] constexpr Dec4 from_floating = Dec4::FromBiased(123, 5);
   [[maybe_unused]] constexpr Dec4 from_fraction = Dec4::FromFraction(123, 456);
 }

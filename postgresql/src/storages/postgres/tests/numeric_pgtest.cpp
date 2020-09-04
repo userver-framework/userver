@@ -159,7 +159,7 @@ INSTANTIATE_TEST_SUITE_P(
     TestDescription);
 
 POSTGRE_TEST_P(DecimalRoundtrip) {
-  using Decimal = decimal64::decimal<10>;
+  using Decimal = decimal64::Decimal<10>;
 
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};

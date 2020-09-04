@@ -79,6 +79,7 @@ inline constexpr auto kPowSeries10 = PowSeries<kMaxDecimalDigits>(10);
 static_assert(kMaxInt64 / 10 < kPowSeries10[kMaxDecimalDigits]);
 
 constexpr bool IsMultOverflowPositive(int64_t value1, int64_t value2) {
+  UASSERT(value1 > 0 && value2 > 0);
   return value1 > impl::kMaxInt64 / value2 && value2 > impl::kMaxInt64 / value1;
 }
 
@@ -175,6 +176,28 @@ constexpr T Abs(T value) {
   return value >= T(0) ? value : -value;
 }
 
+// Needed because std::floor is not constexpr
+// Insignificantly less performant
+template <typename T>
+constexpr int64_t Floor(T value) {
+  if (static_cast<int64_t>(value) <= value) {  // whole or positive
+    return static_cast<int64_t>(value);
+  } else {
+    return static_cast<int64_t>(value) - 1;
+  }
+}
+
+// Needed because std::ceil is not constexpr
+// Insignificantly less performant
+template <typename T>
+constexpr int64_t Ceil(T value) {
+  if (static_cast<int64_t>(value) >= value) {  // whole or negative
+    return static_cast<int64_t>(value);
+  } else {
+    return static_cast<int64_t>(value) + 1;
+  }
+}
+
 }  // namespace impl
 
 constexpr int64_t Pow10(int exp) {
@@ -240,26 +263,22 @@ class DefRoundPolicy {
 class HalfDownRoundPolicy {
  public:
   template <class T>
-  static int64_t Round(T value) {
-    T val1;
-
+  static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
-      const T decimals = value - std::floor(value);
+      const T decimals = value - impl::Floor(value);
       if (decimals > 0.5) {
-        val1 = std::ceil(value);
+        return impl::Ceil(value);
       } else {
-        val1 = std::floor(value);
+        return impl::Floor(value);
       }
     } else {
-      const T decimals = std::ceil(value) - value;
+      const T decimals = impl::Ceil(value) - value;
       if (decimals < 0.5) {
-        val1 = std::ceil(value);
+        return impl::Ceil(value);
       } else {
-        val1 = std::floor(value);
+        return impl::Floor(value);
       }
     }
-
-    return static_cast<int64_t>(val1);
   }
 
   [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
@@ -291,26 +310,22 @@ class HalfDownRoundPolicy {
 class HalfUpRoundPolicy {
  public:
   template <class T>
-  static int64_t Round(T value) {
-    T val1;
-
+  static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
-      const T decimals = value - std::floor(value);
+      const T decimals = value - impl::Floor(value);
       if (decimals >= 0.5) {
-        val1 = std::ceil(value);
+        return impl::Ceil(value);
       } else {
-        val1 = std::floor(value);
+        return impl::Floor(value);
       }
     } else {
-      const T decimals = std::ceil(value) - value;
+      const T decimals = impl::Ceil(value) - value;
       if (decimals <= 0.5) {
-        val1 = std::ceil(value);
+        return impl::Ceil(value);
       } else {
-        val1 = std::floor(value);
+        return impl::Floor(value);
       }
     }
-
-    return static_cast<int64_t>(val1);
   }
 
   [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
@@ -349,40 +364,36 @@ class HalfUpRoundPolicy {
 class HalfEvenRoundPolicy {
  public:
   template <class T>
-  static int64_t Round(T value) {
-    T val1;
-
+  static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
-      const T decimals = value - std::floor(value);
+      const T decimals = value - impl::Floor(value);
       if (decimals > 0.5) {
-        val1 = std::ceil(value);
+        return impl::Ceil(value);
       } else if (decimals < 0.5) {
-        val1 = std::floor(value);
+        return impl::Floor(value);
       } else {
         const bool is_even = static_cast<int64_t>(value - decimals) % 2 == 0;
         if (is_even) {
-          val1 = std::floor(value);
+          return impl::Floor(value);
         } else {
-          val1 = std::ceil(value);
+          return impl::Ceil(value);
         }
       }
     } else {
-      const T decimals = std::abs(value + std::floor(std::abs(value)));
+      const T decimals = std::abs(value + impl::Floor(std::abs(value)));
       if (decimals > 0.5) {
-        val1 = std::floor(value);
+        return impl::Floor(value);
       } else if (decimals < 0.5) {
-        val1 = std::ceil(value);
+        return impl::Ceil(value);
       } else {
         const bool is_even = static_cast<int64_t>(value + decimals) % 2 == 0;
         if (is_even) {
-          val1 = std::ceil(value);
+          return impl::Ceil(value);
         } else {
-          val1 = std::floor(value);
+          return impl::Floor(value);
         }
       }
     }
-
-    return static_cast<int64_t>(val1);
   }
 
   [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
@@ -431,8 +442,8 @@ class HalfEvenRoundPolicy {
 class CeilingRoundPolicy {
  public:
   template <class T>
-  static int64_t Round(T value) {
-    return static_cast<int64_t>(std::ceil(value));
+  static constexpr int64_t Round(T value) {
+    return impl::Ceil(value);
   }
 
   [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
@@ -455,8 +466,8 @@ class CeilingRoundPolicy {
 class FloorRoundPolicy {
  public:
   template <class T>
-  static int64_t Round(T value) {
-    return static_cast<int64_t>(std::floor(value));
+  static constexpr int64_t Round(T value) {
+    return impl::Floor(value);
   }
 
   [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
@@ -485,11 +496,11 @@ using round_down_round_policy [[deprecated("Use RoundDownRoundPolicy")]] =
 class RoundUpRoundPolicy {
  public:
   template <class T>
-  static int64_t Round(T value) {
+  static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
-      return static_cast<int64_t>(std::ceil(value));
+      return impl::Ceil(value);
     } else {
-      return static_cast<int64_t>(std::floor(value));
+      return impl::Floor(value);
     }
   }
 
@@ -540,11 +551,11 @@ class Decimal {
   template <typename T, typename = impl::EnableIfInt<T>>
   constexpr explicit Decimal(T value) : Decimal(FromInteger(value)) {}
   constexpr explicit Decimal(long double value)
-      : Decimal(FromBuiltinFloatingPoint(value)) {}
+      : Decimal(FromFloatingPoint(value)) {}
   constexpr explicit Decimal(double value)
-      : Decimal(FromBuiltinFloatingPoint(value)) {}
-  constexpr explicit Decimal(float value)
-      : Decimal(FromBuiltinFloatingPoint(value)) {}
+      : Decimal(FromFloatingPoint(value)) {}
+  constexpr explicit Decimal(float value) : Decimal(FromFloatingPoint(value)) {}
+
   explicit Decimal(std::string_view value);
 
   static constexpr Decimal FromUnbiased(int64_t value) noexcept {
@@ -573,17 +584,17 @@ class Decimal {
   /// less than 10^prec.
   /// \param[in] before value before decimal point
   /// \param[in] after value after decimal point multiplied by 10^prec
-  /// \param[in] originalPrecision the number of decimal digits in after
+  /// \param[in] original_precision the number of decimal digits in after
   static constexpr Decimal FromUnpacked(int64_t before, int64_t after,
-                                        int originalPrecision) {
-    if (originalPrecision <= Prec) {
+                                        int original_precision) {
+    if (original_precision <= Prec) {
       // direct mode
-      const int missing_digits = Prec - originalPrecision;
+      const int missing_digits = Prec - original_precision;
       const int64_t factor = Pow10(missing_digits);
       return FromUnpacked(before, after * factor);
     } else {
       // rounding mode
-      const int extra_digits = originalPrecision - Prec;
+      const int extra_digits = original_precision - Prec;
       const int64_t factor = Pow10(extra_digits);
       int64_t rounded_after{};
       if (!RoundPolicy::DivRounded(rounded_after, after, factor)) {
@@ -593,20 +604,21 @@ class Decimal {
     }
   }
 
-  static constexpr Decimal FromFloatingPoint(int64_t mantissa, int exponent) {
-    const int exponent_for_pack = exponent + Prec;
+  static constexpr Decimal FromBiased(int64_t original_unbiased,
+                                      int original_precision) {
+    const int exponent_for_pack = Prec - original_precision;
 
-    if (exponent_for_pack < 0) {
+    if (exponent_for_pack >= 0) {
+      return FromUnbiased(original_unbiased * Pow10(exponent_for_pack));
+    } else {
       int64_t new_value{};
 
-      if (!RoundPolicy::DivRounded(new_value, mantissa,
+      if (!RoundPolicy::DivRounded(new_value, original_unbiased,
                                    Pow10(-exponent_for_pack))) {
         new_value = 0;
       }
 
       return FromUnbiased(new_value);
-    } else {
-      return FromUnbiased(mantissa * Pow10(exponent_for_pack));
     }
   }
 
@@ -628,47 +640,47 @@ class Decimal {
   }
 
   template <typename T, typename = impl::EnableIfInt<T>>
-  Decimal& operator=(T rhs) {
+  constexpr Decimal& operator=(T rhs) {
     return *this = Decimal{rhs};
   }
 
-  bool operator==(Decimal rhs) const { return value_ == rhs.value_; }
+  constexpr bool operator==(Decimal rhs) const { return value_ == rhs.value_; }
 
-  bool operator!=(Decimal rhs) const { return value_ != rhs.value_; }
+  constexpr bool operator!=(Decimal rhs) const { return value_ != rhs.value_; }
 
-  bool operator<(Decimal rhs) const { return value_ < rhs.value_; }
+  constexpr bool operator<(Decimal rhs) const { return value_ < rhs.value_; }
 
-  bool operator<=(Decimal rhs) const { return value_ <= rhs.value_; }
+  constexpr bool operator<=(Decimal rhs) const { return value_ <= rhs.value_; }
 
-  bool operator>(Decimal rhs) const { return value_ > rhs.value_; }
+  constexpr bool operator>(Decimal rhs) const { return value_ > rhs.value_; }
 
-  bool operator>=(Decimal rhs) const { return value_ >= rhs.value_; }
+  constexpr bool operator>=(Decimal rhs) const { return value_ >= rhs.value_; }
 
-  Decimal operator+(Decimal rhs) const {
+  constexpr Decimal operator+(Decimal rhs) const {
     Decimal result = *this;
     result.value_ += rhs.value_;
     return result;
   }
 
   template <int Prec2>
-  Decimal operator+(Decimal<Prec2, RoundPolicy> rhs) const {
+  constexpr Decimal operator+(Decimal<Prec2, RoundPolicy> rhs) const {
     Decimal result = *this;
     result += rhs;
     return result;
   }
 
-  Decimal& operator+=(Decimal rhs) {
+  constexpr Decimal& operator+=(Decimal rhs) {
     value_ += rhs.value_;
     return *this;
   }
 
   template <int Prec2>
-  Decimal& operator+=(Decimal<Prec2, RoundPolicy> rhs) {
+  constexpr Decimal& operator+=(Decimal<Prec2, RoundPolicy> rhs) {
     impl::CheckPrecCast<Prec2, Prec>();
     if constexpr (Prec2 <= Prec) {
       value_ += rhs.value_ * kPow10<Prec - Prec2>;
     } else {
-      int64_t val;
+      int64_t val{};
       if (!RoundPolicy::DivRounded(val, rhs.value_, kPow10<Prec2 - Prec>)) {
         val = 0;
       }
@@ -677,39 +689,39 @@ class Decimal {
     return *this;
   }
 
-  Decimal operator+() const { return *this; }
+  constexpr Decimal operator+() const { return *this; }
 
-  Decimal operator-() const {
+  constexpr Decimal operator-() const {
     Decimal result = *this;
     result.value_ = -result.value_;
     return result;
   }
 
-  Decimal operator-(Decimal rhs) const {
+  constexpr Decimal operator-(Decimal rhs) const {
     Decimal result = *this;
     result.value_ -= rhs.value_;
     return result;
   }
 
   template <int Prec2>
-  Decimal operator-(Decimal<Prec2, RoundPolicy> rhs) const {
+  constexpr Decimal operator-(Decimal<Prec2, RoundPolicy> rhs) const {
     Decimal result = *this;
     result -= rhs;
     return result;
   }
 
-  Decimal& operator-=(Decimal rhs) {
+  constexpr Decimal& operator-=(Decimal rhs) {
     value_ -= rhs.value_;
     return *this;
   }
 
   template <int Prec2>
-  Decimal& operator-=(Decimal<Prec2, RoundPolicy> rhs) {
+  constexpr Decimal& operator-=(Decimal<Prec2, RoundPolicy> rhs) {
     impl::CheckPrecCast<Prec2, Prec>();
     if (Prec2 <= Prec) {
       value_ -= rhs.value_ * kPow10<Prec - Prec2>;
     } else {
-      int64_t val;
+      int64_t val{};
       if (!RoundPolicy::DivRounded(val, rhs.value_, kPow10<Prec2 - Prec>)) {
         val = 0;
       }
@@ -719,78 +731,78 @@ class Decimal {
   }
 
   template <typename T, typename = impl::EnableIfInt<T>>
-  Decimal operator*(T rhs) const {
+  constexpr Decimal operator*(T rhs) const {
     Decimal result = *this;
     result.value_ *= rhs;
     return result;
   }
 
-  Decimal operator*(Decimal rhs) const {
+  constexpr Decimal operator*(Decimal rhs) const {
     Decimal result = *this;
     result *= rhs;
     return result;
   }
 
   template <int Prec2>
-  Decimal operator*(Decimal<Prec2, RoundPolicy> rhs) const {
+  constexpr Decimal operator*(Decimal<Prec2, RoundPolicy> rhs) const {
     Decimal result = *this;
     result *= rhs;
     return result;
   }
 
   template <typename T, typename = impl::EnableIfInt<T>>
-  Decimal& operator*=(T rhs) {
+  constexpr Decimal& operator*=(T rhs) {
     value_ *= rhs;
     return *this;
   }
 
-  Decimal& operator*=(Decimal rhs) {
+  constexpr Decimal& operator*=(Decimal rhs) {
     value_ = impl::MultDiv<RoundPolicy>(value_, rhs.value_, kPow10<Prec>);
     return *this;
   }
 
   template <int Prec2>
-  Decimal& operator*=(Decimal<Prec2, RoundPolicy> rhs) {
+  constexpr Decimal& operator*=(Decimal<Prec2, RoundPolicy> rhs) {
     impl::CheckPrecCast<Prec2, Prec>();
     value_ = impl::MultDiv<RoundPolicy>(value_, rhs.value_, kPow10<Prec2>);
     return *this;
   }
 
   template <typename T, typename = impl::EnableIfInt<T>>
-  Decimal operator/(T rhs) const {
+  constexpr Decimal operator/(T rhs) const {
     Decimal result = *this;
     result /= rhs;
     return result;
   }
 
-  Decimal operator/(Decimal rhs) const {
+  constexpr Decimal operator/(Decimal rhs) const {
     Decimal result = *this;
     result /= rhs;
     return result;
   }
 
   template <int Prec2>
-  Decimal operator/(Decimal<Prec2, RoundPolicy> rhs) const {
+  constexpr Decimal operator/(Decimal<Prec2, RoundPolicy> rhs) const {
     Decimal result = *this;
     result /= rhs;
     return result;
   }
 
   template <typename T, typename = impl::EnableIfInt<T>>
-  Decimal& operator/=(T rhs) {
+  constexpr Decimal& operator/=(T rhs) {
     if (!RoundPolicy::DivRounded(value_, value_, rhs)) {
       value_ = impl::MultDiv<RoundPolicy>(value_, 1, rhs);
     }
     return *this;
   }
 
-  Decimal& operator/=(Decimal rhs) {
+  constexpr Decimal& operator/=(Decimal rhs) {
     value_ = impl::MultDiv<RoundPolicy>(value_, kPow10<Prec>, rhs.value_);
     return *this;
   }
 
   template <int Prec2>
-  Decimal& operator/=(Decimal<Prec2, RoundPolicy> rhs) {
+  constexpr Decimal& operator/=(Decimal<Prec2, RoundPolicy> rhs) {
     impl::CheckPrecCast<Prec2, Prec>();
     value_ = impl::MultDiv<RoundPolicy>(value_, kPow10<Prec2>, rhs.value_);
     return *this;
@@ -800,13 +812,15 @@ class Decimal {
   /// -1 if value is < 0
   /// +1 if value is > 0
   /// 0  if value is 0
-  int Sign() const { return (value_ > 0) ? 1 : ((value_ < 0) ? -1 : 0); }
+  constexpr int Sign() const {
+    return (value_ > 0) ? 1 : ((value_ < 0) ? -1 : 0);
+  }
 
-  Decimal Abs() const { return FromUnbiased(impl::Abs(value_)); }
+  constexpr Decimal Abs() const { return FromUnbiased(impl::Abs(value_)); }
 
   /// returns value rounded to integer using active rounding policy
-  int64_t ToInteger() const {
-    int64_t result;
+  constexpr int64_t ToInteger() const {
+    int64_t result{};
     if (!RoundPolicy::DivRounded(result, value_, kDecimalFactor)) {
       result = 0;
     }
@@ -823,41 +837,28 @@ class Decimal {
 
   /// returns integer value = real_value * (10 ^ precision)
   /// use to load/store Decimal value in external memory
-  int64_t AsUnbiased() const { return value_; }
+  constexpr int64_t AsUnbiased() const { return value_; }
 
   /// Returns two parts: before and after decimal point
   /// For negative values both numbers are negative or zero.
-  UnpackedDecimal AsUnpacked() const {
+  constexpr UnpackedDecimal AsUnpacked() const {
     return {value_ / kDecimalFactor, value_ % kDecimalFactor};
   }
 
-  FloatingPointDecimal AsFloatingPoint() const {
-    int64_t value = value_;
-    int exp = -Prec;
-
-    if (value != 0) {
-      // normalize
-      while (value % 10 == 0) {
-        value /= 10;
-        exp++;
-      }
-    }
-
-    return {value, exp};
-  }
-
-  [[deprecated("Use FromFloatingPoint")]] constexpr explicit Decimal(
+  [[deprecated("Use FromBiased or FromFraction")]] constexpr explicit Decimal(
       int64_t nom, int64_t den)
       : Decimal(FromFraction(nom, den)) {}
 
-  [[deprecated(
-      "Assign from an explicitly constructed Decimal instead")]] Decimal&
+  [
+      [deprecated("Assign from an explicitly constructed Decimal "
+                  "instead")]] constexpr Decimal&
   operator=(double rhs) {
     return *this = Decimal{rhs};
   }
 
-  [[deprecated(
-      "Assign from an explicitly constructed Decimal instead")]] Decimal&
+  [
+      [deprecated("Assign from an explicitly constructed Decimal "
+                  "instead")]] constexpr Decimal&
   operator=(long double rhs) {
     return *this = Decimal{rhs};
   }
@@ -876,26 +877,28 @@ class Decimal {
 
   [[deprecated]] constexpr double getAsDouble() const { return ToDouble(); }
 
-  [[deprecated]] long double getAsXDouble() const { return ToLongDouble(); }
+  [[deprecated]] constexpr long double getAsXDouble() const {
+    return ToLongDouble();
+  }
 
-  [[deprecated]] int64_t getUnbiased() const { return AsUnbiased(); }
+  [[deprecated]] constexpr int64_t getUnbiased() const { return AsUnbiased(); }
 
-  [[deprecated]] void setUnbiased(int64_t value) {
+  [[deprecated]] constexpr void setUnbiased(int64_t value) {
     *this = FromUnbiased(value);
   }
 
-  [[deprecated]] int64_t getAsInteger() const { return ToInteger(); }
+  [[deprecated]] constexpr int64_t getAsInteger() const { return ToInteger(); }
 
-  [[deprecated("Use AsUnpacked")]] void unpack(int64_t& before,
-                                               int64_t& after_value) const {
+  [[deprecated("Use AsUnpacked")]] constexpr void unpack(
+      int64_t& before, int64_t& after_value) const {
     const auto unpacked = AsUnpacked();
     before = unpacked.before;
     after_value = unpacked.after;
   }
 
-  [[deprecated]] int sign() const { return Sign(); }
+  [[deprecated]] constexpr int sign() const { return Sign(); }
 
-  [[deprecated]] Decimal abs() const { return Abs(); }
+  [[deprecated]] constexpr Decimal abs() const { return Abs(); }
 
  private:
   template <typename T>
@@ -904,24 +907,23 @@ class Decimal {
   }
 
   template <typename T>
-  static constexpr Decimal FromBuiltinFloatingPoint(T value) {
-    const T int_part = std::floor(value);
+  static constexpr Decimal FromFloatingPoint(T value) {
+    const auto int_part = impl::Floor(value);
     const T frac_part = value - int_part;
     return FromUnpacked(
-        static_cast<int64_t>(int_part),
-        RoundPolicy::Round(static_cast<long double>(kDecimalFactor) *
-                           frac_part));
+        int_part, RoundPolicy::Round(static_cast<long double>(kDecimalFactor) *
+                                     frac_part));
   }
 
   int64_t value_;
 };
 
 template <int Prec, typename RoundPolicy = DefRoundPolicy>
-using decimal = Decimal<Prec, RoundPolicy>;
+using decimal [[deprecated("Use Decimal")]] = Decimal<Prec, RoundPolicy>;
 
-using decimal2 = Decimal<2>;
-using decimal4 = Decimal<4>;
-using decimal6 = Decimal<6>;
+using decimal2 [[deprecated("Use Decimal<2>")]] = Decimal<2>;
+using decimal4 [[deprecated("Use Decimal<4>")]] = Decimal<4>;
+using decimal6 [[deprecated("Use Decimal<6>")]] = Decimal<6>;
 
 namespace impl {
 
@@ -939,44 +941,44 @@ using EnableIfDecimal = std::enable_if_t<IsDecimal<T>::value, R>;
 /// Example of use:
 ///   c = decimal64::decimal_cast<6>(a * b);
 template <int Prec, int OldPrec, class Round>
-Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, Round> arg) {
-  return Decimal<Prec, Round>::FromFloatingPoint(arg.getUnbiased(), -OldPrec);
+constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, Round> arg) {
+  return Decimal<Prec, Round>::FromBiased(arg.AsUnbiased(), OldPrec);
 }
 
 template <int Prec, typename Round, int OldPrec, typename OldRound>
-Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, OldRound> arg) {
-  return Decimal<Prec, Round>::FromFloatingPoint(arg.getUnbiased(), -OldPrec);
+constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, OldRound> arg) {
+  return Decimal<Prec, Round>::FromBiased(arg.AsUnbiased(), OldPrec);
 }
 
 // Deprecated: omit `T` template parameter instead
 template <int Prec, class T, class Round>
-[[deprecated]] impl::EnableIfDecimal<T, Decimal<Prec, Round>> decimal_cast(
-    const T& arg) {
+[[deprecated]] constexpr impl::EnableIfDecimal<T, Decimal<Prec, Round>>
+decimal_cast(const T& arg) {
   return decimal_cast<Prec, Round>(arg);
 }
 
 template <int Prec, typename T>
-impl::EnableIfInt<T, Decimal<Prec>> decimal_cast(T arg) {
+constexpr impl::EnableIfInt<T, Decimal<Prec>> decimal_cast(T arg) {
   return Decimal<Prec>(arg);
 }
 
 template <int Prec, typename RoundPolicy, typename T>
-impl::EnableIfInt<T, Decimal<Prec, RoundPolicy>> decimal_cast(T arg) {
+constexpr impl::EnableIfInt<T, Decimal<Prec, RoundPolicy>> decimal_cast(T arg) {
   return Decimal<Prec, RoundPolicy>(arg);
 }
 
 template <int Prec, typename RoundPolicy = DefRoundPolicy>
-Decimal<Prec, RoundPolicy> decimal_cast(double arg) {
+constexpr Decimal<Prec, RoundPolicy> decimal_cast(double arg) {
   return Decimal<Prec, RoundPolicy>(arg);
 }
 
 template <int Prec, typename RoundPolicy = DefRoundPolicy>
-Decimal<Prec, RoundPolicy> decimal_cast(long double arg) {
+constexpr Decimal<Prec, RoundPolicy> decimal_cast(long double arg) {
   return Decimal<Prec, RoundPolicy>(arg);
 }
 
 template <int Prec, typename RoundPolicy = DefRoundPolicy>
-Decimal<Prec, RoundPolicy> decimal_cast(std::string_view arg) {
+constexpr Decimal<Prec, RoundPolicy> decimal_cast(std::string_view arg) {
   return Decimal<Prec, RoundPolicy>(arg);
 }
 

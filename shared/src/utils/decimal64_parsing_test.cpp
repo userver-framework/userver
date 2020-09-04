@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-using Dec4 = decimal64::decimal<4>;
+using Dec4 = decimal64::Decimal<4>;
 
 TEST(Decimal64, ConstructFromString) {
   ASSERT_EQ(Dec4{"10"}, Dec4{10});
@@ -22,11 +22,11 @@ TEST(Decimal64, ConstructFromString) {
   ASSERT_EQ(Dec4{"000000000000000000000000000000000.12"}, Dec4{0.12});
   ASSERT_EQ(Dec4{"12345678987654.3210"}.AsUnbiased(), 123456789876543210LL);
 
-  ASSERT_EQ(decimal64::decimal<18>{"0.987654321123456789"}.AsUnbiased(),
+  ASSERT_EQ(decimal64::Decimal<18>{"0.987654321123456789"}.AsUnbiased(),
             987654321123456789LL);
-  ASSERT_EQ(decimal64::decimal<18>{"0.0000000000000000126"}.AsUnbiased(), 13);
-  ASSERT_EQ(decimal64::decimal<18>{"0.0000000000000000125"}.AsUnbiased(), 13);
-  ASSERT_EQ(decimal64::decimal<18>{"0.0000000000000000124"}.AsUnbiased(), 12);
+  ASSERT_EQ(decimal64::Decimal<18>{"0.0000000000000000126"}.AsUnbiased(), 13);
+  ASSERT_EQ(decimal64::Decimal<18>{"0.0000000000000000125"}.AsUnbiased(), 13);
+  ASSERT_EQ(decimal64::Decimal<18>{"0.0000000000000000124"}.AsUnbiased(), 12);
 }
 
 TEST(Decimal64, ConstructFromStringDeprecated) {
@@ -135,11 +135,11 @@ TEST(Decimal64, FromString) {
   ASSERT_FALSE(decimal64::fromString("1,000.000", out));
 
   ASSERT_EQ(
-      decimal64::fromString<decimal64::decimal<18>>("0.987654321123456789")
+      decimal64::fromString<decimal64::Decimal<18>>("0.987654321123456789")
           .AsUnbiased(),
       987654321123456789LL);
   ASSERT_EQ(
-      decimal64::fromString<decimal64::decimal<18>>("0.0000000000000000126")
+      decimal64::fromString<decimal64::Decimal<18>>("0.0000000000000000126")
           .AsUnbiased(),
       13);
   ASSERT_FALSE(decimal64::fromString("1234567898765432.1012", out));
