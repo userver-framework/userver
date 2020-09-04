@@ -7,17 +7,37 @@
 using Dec4 = decimal64::decimal<4>;
 
 TEST(Decimal64, ToString) {
-  ASSERT_EQ(decimal64::toString(Dec4{"1000"}), "1000.0000");
-  ASSERT_EQ(decimal64::toString(Dec4{"0"}), "0.0000");
-  ASSERT_EQ(decimal64::toString(Dec4{"1"}), "1.0000");
-  ASSERT_EQ(decimal64::toString(Dec4{"1.1"}), "1.1000");
-  ASSERT_EQ(decimal64::toString(Dec4{"1.01"}), "1.0100");
-  ASSERT_EQ(decimal64::toString(Dec4{"1.001"}), "1.0010");
-  ASSERT_EQ(decimal64::toString(Dec4{"1.0001"}), "1.0001");
-  ASSERT_EQ(decimal64::toString(Dec4{"-20"}), "-20.0000");
-  ASSERT_EQ(decimal64::toString(Dec4{"-0.1"}), "-0.1000");
-  ASSERT_EQ(decimal64::toString(Dec4{"-0.0001"}), "-0.0001");
-  ASSERT_EQ(decimal64::toString(decimal64::decimal<5>{"1"}), "1.00000");
+  ASSERT_EQ(decimal64::ToString(Dec4{"1000"}), "1000");
+  ASSERT_EQ(decimal64::ToString(Dec4{"0"}), "0");
+  ASSERT_EQ(decimal64::ToString(Dec4{"1"}), "1");
+  ASSERT_EQ(decimal64::ToString(Dec4{"1.1"}), "1.1");
+  ASSERT_EQ(decimal64::ToString(Dec4{"1.01"}), "1.01");
+  ASSERT_EQ(decimal64::ToString(Dec4{"1.001"}), "1.001");
+  ASSERT_EQ(decimal64::ToString(Dec4{"1.0001"}), "1.0001");
+  ASSERT_EQ(decimal64::ToString(Dec4{"-20"}), "-20");
+  ASSERT_EQ(decimal64::ToString(Dec4{"-0.1"}), "-0.1");
+  ASSERT_EQ(decimal64::ToString(Dec4{"-0.0001"}), "-0.0001");
+  ASSERT_EQ(decimal64::ToString(decimal64::decimal<18>{"1"}), "1");
+  ASSERT_EQ(decimal64::ToString(decimal64::decimal<5>{"1"}), "1");
+  ASSERT_EQ(decimal64::ToString(decimal64::decimal<0>{"1"}), "1");
+}
+
+TEST(Decimal64, ToStringTrailingZeros) {
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1000"}), "1000.0000");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"0"}), "0.0000");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1"}), "1.0000");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1.1"}), "1.1000");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1.01"}), "1.0100");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1.001"}), "1.0010");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1.0001"}), "1.0001");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-20"}), "-20.0000");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-0.1"}), "-0.1000");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-0.0001"}), "-0.0001");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::decimal<18>{"1"}),
+            "1.000000000000000000");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::decimal<5>{"1"}),
+            "1.00000");
+  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::decimal<0>{"1"}), "1");
 }
 
 TEST(Decimal64, DefaultValue) { ASSERT_EQ(Dec4{}, Dec4{0}); }
@@ -53,5 +73,18 @@ TEST(Decimal64, MoneyExample) {
   Money jpy_10k_to_rub{"5970.77"};
   Money value_rub{"10.00"};
   Money value_jpy = value_rub * jpy_10k_to_rub / Money{"10000.00"};
-  ASSERT_EQ(decimal64::toString(value_jpy), "5.9708");
+  ASSERT_EQ(decimal64::ToString(value_jpy), "5.9708");
+}
+
+TEST(Decimal64, ConstexprSupport) {
+  [[maybe_unused]] constexpr Dec4 zero{0};
+  [[maybe_unused]] constexpr Dec4 ten{10};
+  [[maybe_unused]] constexpr Dec4 large_int{123456789876543};
+  [[maybe_unused]] constexpr Dec4 from_unbiased = Dec4::FromUnbiased(123);
+  [[maybe_unused]] constexpr Dec4 from_unpacked = Dec4::FromUnpacked(123, 4567);
+  [[maybe_unused]] constexpr Dec4 from_unpacked2 =
+      Dec4::FromUnpacked(123, 4567, 8);
+  [[maybe_unused]] constexpr Dec4 from_floating =
+      Dec4::FromFloatingPoint(123, -5);
+  [[maybe_unused]] constexpr Dec4 from_fraction = Dec4::FromFraction(123, 456);
 }

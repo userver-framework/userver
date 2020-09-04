@@ -169,6 +169,7 @@ constexpr int64_t MultDiv(int64_t value1, int64_t value2, int64_t divisor) {
   return result;
 }
 
+// Needed because std::abs is not constexpr
 template <typename T>
 constexpr T Abs(T value) {
   return value >= T(0) ? value : -value;
@@ -1229,6 +1230,66 @@ inline void CheckParsingSuccess(bool success) {
   }
 }
 
+enum class TrailingZerosMode { kLeave, kRemove };
+
+// Returns the number of zeros trimmed
+template <int Prec>
+int TrimTrailingZeros(int64_t& after) {
+  if constexpr (Prec == 0) {
+    return 0;
+  }
+  if (after == 0) {
+    return Prec;
+  }
+
+  int n_trimmed = 0;
+  if constexpr (Prec >= 9) {
+    if (after % 100000000 == 0) {
+      after /= 100000000;
+      n_trimmed += 8;
+    }
+  }
+  if constexpr (Prec >= 5) {
+    if (after % 10000 == 0) {
+      after /= 10000;
+      n_trimmed += 4;
+    }
+  }
+  if constexpr (Prec >= 3) {
+    if (after % 100 == 0) {
+      after /= 100;
+      n_trimmed += 2;
+    }
+  }
+  if (after % 10 == 0) {
+    after /= 10;
+    n_trimmed += 1;
+  }
+  return n_trimmed;
+}
+
+template <int Prec, typename RoundPolicy>
+std::string ToStringImpl(Decimal<Prec, RoundPolicy> dec,
+                         TrailingZerosMode mode) {
+  auto [before, after] = dec.AsUnpacked();
+  int after_digits = Prec;
+
+  if (mode == TrailingZerosMode::kRemove) {
+    after_digits -= TrimTrailingZeros<Prec>(after);
+  }
+
+  if (after_digits > 0) {
+    if (dec.Sign() == -1) {
+      return fmt::format(FMT_STRING("-{}.{:0{}}"), -before, -after,
+                         after_digits);
+    } else {
+      return fmt::format(FMT_STRING("{}.{:0{}}"), before, after, after_digits);
+    }
+  } else {
+    return fmt::format(FMT_STRING("{}"), before);
+  }
+}
+
 }  // namespace impl
 
 template <int Prec, class RoundPolicy>
@@ -1288,25 +1349,23 @@ T fromString(std::string_view str) {
   return output;
 }
 
-/// Exports Decimal to string
-/// Used format: {-}bbb.aaa where
-/// - {-} is optional '-' sign character
-/// - bbb is stream of digits before decimal point
-/// - aaa is stream of digits after decimal point
+/// Converts Decimal to a string. Trims any trailing zeros.
 template <int Prec, typename RoundPolicy>
-std::string toString(Decimal<Prec, RoundPolicy> arg) {
-  int64_t before, after;
-  arg.unpack(before, after);
+std::string ToString(Decimal<Prec, RoundPolicy> dec) {
+  return impl::ToStringImpl(dec, impl::TrailingZerosMode::kRemove);
+}
 
-  if (Prec > 0) {
-    if (before < 0 || after < 0) {
-      return fmt::format(FMT_STRING("-{}.{:0{}}"), -before, -after, Prec);
-    } else {
-      return fmt::format(FMT_STRING("{}.{:0{}}"), before, after, Prec);
-    }
-  } else {
-    return fmt::format(FMT_STRING("{}"), before);
-  }
+/// Converts Decimal to a string. Writes exactly Prec decimal digits, including
+/// trailing zeros if needed.
+template <int Prec, typename RoundPolicy>
+std::string ToStringTrailingZeros(Decimal<Prec, RoundPolicy> dec) {
+  return impl::ToStringImpl(dec, impl::TrailingZerosMode::kLeave);
+}
+
+template <int Prec, typename RoundPolicy>
+[[deprecated("Use ToStringTrailingZeros instead")]] std::string toString(
+    Decimal<Prec, RoundPolicy> dec) {
+  return ToStringTrailingZeros(dec);
 }
 
 // input
@@ -1325,7 +1384,7 @@ bool fromStream(std::basic_istream<CharT, Traits>& is,
 template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
 void toStream(std::basic_ostream<CharT, Traits>& os,
               Decimal<Prec, RoundPolicy> d) {
-  os << toString(d);
+  os << ToString(d);
 }
 
 template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
