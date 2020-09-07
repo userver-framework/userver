@@ -64,7 +64,7 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES})
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options filesystem thread)
+find_package(Boost REQUIRED COMPONENTS program_options filesystem thread regex)
 find_package_required(ZLIB "zlib1g-dev")
 find_package(Helpergtest REQUIRED)
 find_package(Helpergbench REQUIRED)
@@ -108,6 +108,7 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE
     Boost::filesystem
     Boost::program_options
+    Boost::regex
     CryptoPP
     OpenSSL::Crypto
     OpenSSL::SSL

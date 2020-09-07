@@ -8,6 +8,7 @@ libraries:
   - Boost::locale
   - Boost::program_options
   - Boost::thread
+  - Boost::regex
   - CryptoPP
   - CurlYandex
   - Fmt
