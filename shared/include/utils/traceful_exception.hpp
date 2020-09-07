@@ -9,7 +9,9 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <boost/stacktrace/stacktrace.hpp>
+#include <boost/stacktrace/stacktrace_fwd.hpp>
+
+#include <utils/fast_pimpl.hpp>
 
 namespace utils {
 namespace impl {
@@ -28,13 +30,11 @@ class TracefulExceptionBase {
   static constexpr size_t kInlineBufferSize = 100;
   using MemoryBuffer = fmt::basic_memory_buffer<char, kInlineBufferSize>;
 
-  virtual ~TracefulExceptionBase() = default;
+  virtual ~TracefulExceptionBase();
   TracefulExceptionBase(TracefulExceptionBase&&) noexcept;
 
-  const MemoryBuffer& MessageBuffer() const noexcept { return message_buffer_; }
-  const boost::stacktrace::stacktrace& Trace() const noexcept {
-    return stacktrace_;
-  }
+  const MemoryBuffer& MessageBuffer() const noexcept;
+  const boost::stacktrace::basic_stacktrace<>& Trace() const noexcept;
 
   /// Stream-like interface for message extension
   template <typename Exception, typename T>
@@ -43,7 +43,7 @@ class TracefulExceptionBase {
                       typename std::remove_reference<Exception>::type>::value,
       Exception&&>::type
   operator<<(Exception&& ex, const T& data) {
-    fmt::format_to(ex.message_buffer_, "{}", data);
+    fmt::format_to(ex.GetMessageBuffer(), "{}", data);
     ex.EnsureNullTerminated();
     return std::forward<Exception>(ex);
   }
@@ -51,26 +51,21 @@ class TracefulExceptionBase {
  protected:
   /// @cond
   /// Default constructor, internal use only
-  TracefulExceptionBase() = default;
+  TracefulExceptionBase();
 
   /// Initial message constructor, internal use only
-  explicit TracefulExceptionBase(const std::string& what) {
-    fmt::format_to(message_buffer_, "{}", what);
-    EnsureNullTerminated();
-  }
+  explicit TracefulExceptionBase(const std::string& what);
 
   /// Initial message constructor, internal use only
-  explicit TracefulExceptionBase(const char* what) {
-    fmt::format_to(message_buffer_, "{}", what);
-    EnsureNullTerminated();
-  }
-  /// @endcond
+  explicit TracefulExceptionBase(const char* what);
 
  private:
   void EnsureNullTerminated();
 
-  MemoryBuffer message_buffer_;
-  boost::stacktrace::stacktrace stacktrace_;
+  MemoryBuffer& GetMessageBuffer();
+
+  struct Impl;
+  utils::FastPimpl<Impl, 160, 8> impl_;
 };
 
 class TracefulException : public std::exception, public TracefulExceptionBase {

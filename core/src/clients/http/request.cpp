@@ -14,6 +14,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include <boost/stacktrace/stacktrace.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <clients/http/destination_statistics.hpp>

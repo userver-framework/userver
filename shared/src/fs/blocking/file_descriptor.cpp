@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <array>
 #include <system_error>
 
 #include <logging/log.hpp>

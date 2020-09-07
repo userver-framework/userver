@@ -1,4 +1,7 @@
 #pragma once
+
+#include <vector>
+
 #include <rapidjson/document.h>
 #include <formats/json/types.hpp>
 #include <utils/assert.hpp>

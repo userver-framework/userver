@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/stacktrace/stacktrace.hpp>
 
 #include <storages/postgres/io/traits.hpp>
 

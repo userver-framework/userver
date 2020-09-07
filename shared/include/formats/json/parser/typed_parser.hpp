@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <formats/json/parser/base_parser.hpp>
 #include <utils/assert.hpp>
 

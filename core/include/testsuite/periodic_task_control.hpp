@@ -4,6 +4,7 @@
 /// @brief @copybrief testsuite::PeriodicTaskControl
 
 #include <unordered_map>
+#include <vector>
 
 #include <engine/mutex.hpp>
 
