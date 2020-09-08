@@ -11,6 +11,8 @@ class StringParser final : public TypedParser<std::string> {
  protected:
   void String(std::string_view sw) override;
 
+  std::string GetPathItem() const override { return {}; }
+
   std::string Expected() const override;
 };
 

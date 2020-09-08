@@ -18,10 +18,7 @@ class ParserState final {
 
   ParserState& operator=(const ParserState&) = delete;
 
-  void PushParserNoKey(BaseParser& parser);
-
-  void PushParser(BaseParser& parser, std::string_view key);
-  void PushParser(BaseParser& parser, size_t key);
+  void PushParser(BaseParser& parser);
 
   void ProcessInput(std::string_view sw);
 

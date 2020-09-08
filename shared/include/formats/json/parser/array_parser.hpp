@@ -1,5 +1,6 @@
 #pragma once
 
+#include <formats/common/path.hpp>
 #include <formats/json/parser/typed_parser.hpp>
 #include <utils/meta.hpp>
 
@@ -87,7 +88,8 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
     if (state_ != State::kInside) this->Throw("array");
 
     this->item_parser_.Reset();
-    this->parser_state_->PushParser(item_parser_, index_++);
+    this->parser_state_->PushParser(item_parser_);
+    index_++;
   }
 
   void OnSend(Item&& item) override {
@@ -96,6 +98,10 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
     } else {
       this->storage_.push_back(std::move(item));
     }
+  }
+
+  std::string GetPathItem() const override {
+    return common::GetIndexString(index_ - 1);
   }
 
  private:

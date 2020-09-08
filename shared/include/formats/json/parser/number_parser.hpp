@@ -17,6 +17,8 @@ class NumberParser final : public formats::json::parser::TypedParser<Number> {
   void Double(double value) override { this->SetResult(double(value)); }
 
   std::string Expected() const override { return "number"; }
+
+  std::string GetPathItem() const override { return {}; }
 };
 
 using DoubleParser = NumberParser<double>;

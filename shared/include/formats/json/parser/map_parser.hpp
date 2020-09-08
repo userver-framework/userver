@@ -31,7 +31,7 @@ class MapParser final : public TypedParser<Map>,
     key_ = key;
     this->value_parser_.Reset();
     this->value_parser_.Subscribe(*this);
-    this->parser_state_->PushParser(this->value_parser_, key);
+    this->parser_state_->PushParser(this->value_parser_);
   }
 
   void EndObject() override {
@@ -57,6 +57,8 @@ class MapParser final : public TypedParser<Map>,
   void OnSend(Value&& value) override {
     this->result_.emplace(std::move(key_), std::move(value));
   }
+
+  std::string GetPathItem() const override { return key_; }
 
  private:
   enum class State {

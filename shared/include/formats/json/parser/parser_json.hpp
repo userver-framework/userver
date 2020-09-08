@@ -29,6 +29,8 @@ class JsonValueParser final : public TypedParser<Value> {
  private:
   void MaybePopSelf();
 
+  std::string GetPathItem() const override { return {}; }
+
   struct Impl;
   utils::FastPimpl<Impl, 127, 8> impl_;
 };

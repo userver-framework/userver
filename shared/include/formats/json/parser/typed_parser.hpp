@@ -64,7 +64,7 @@ T ParseToType(std::string_view input) {
   parser.Subscribe(sink);
 
   ParserState state;
-  state.PushParserNoKey(parser);
+  state.PushParser(parser);
   state.ProcessInput(input);
 
   return result;

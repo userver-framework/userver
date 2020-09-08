@@ -57,7 +57,7 @@ void JsonParseArraySax(benchmark::State& state) {
     parser.Reset();
 
     formats::json::parser::ParserState state;
-    state.PushParserNoKey(parser);
+    state.PushParser(parser);
     state.ProcessInput(input);
   }
 }

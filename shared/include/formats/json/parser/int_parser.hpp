@@ -17,6 +17,7 @@ class IntegralParser final : public TypedParser<T> {
   void Uint64(uint64_t i) override {
     this->SetResult(boost::numeric_cast<T>(i));
   }
+  std::string GetPathItem() const override { return {}; }
 
   std::string Expected() const override { return "integer"; }
 };

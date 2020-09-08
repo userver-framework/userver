@@ -31,6 +31,8 @@ class BaseParser {
 
   void SetState(ParserState& state) { parser_state_ = &state; }
 
+  virtual std::string GetPathItem() const = 0;
+
  protected:
   [[noreturn]] void Throw(const std::string& found) {
     throw InternalParseError(Expected() + " was expected, but " + found +
