@@ -60,6 +60,9 @@ class EmptyCacheError : public std::runtime_error {
 ///    has passed and UpdateType::kFull is triggered.
 ///  * `only-full`: only `update-interval` must be specified. UpdateType::kFull
 ///    will be triggered each `update-interval` (adjusted by jitter).
+///  * `only-incremental`: only `update-interval` must be specified. UpdateType::kFull is triggered
+///    on the first update, afterwards UpdateType::kIncremental will be triggered
+///    each `update-interval` (adjusted by jitter).
 ///
 /// ### testsuite-force-periodic-update
 ///  use it to enable periodic cache update for a component in testsuite environment
