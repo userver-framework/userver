@@ -39,6 +39,25 @@ void CheckModulePath(const std::string& message, const std::string& expected) {
       << message.substr(module_pos, delim_pos - module_pos) << '\'';
 }
 
+struct CountingStruct {
+  mutable uint64_t logged_count = 0;
+
+  friend logging::LogHelper& operator<<(
+      logging::LogHelper& lh, [[maybe_unused]] const CountingStruct& self) {
+    ++self.logged_count;
+    return lh << "(CountingStruct)";
+  }
+};
+
+template <int LogAttempts>
+int CountLimitedLoggedTimes() {
+  CountingStruct cs;
+  for (int i = 0; i < LogAttempts; ++i) {
+    LOG_LIMITED_CRITICAL() << cs;
+  }
+  return cs.logged_count;
+}
+
 }  // namespace
 
 TEST_F(LoggingTest, TskvEncode) {
@@ -300,4 +319,16 @@ TEST_F(LoggingTest, MapOverflow) {
 
 TEST_F(LoggingTest, FilesystemPath) {
   EXPECT_EQ(ToStringViaLogging(boost::filesystem::path("a/b/c")), "\"a/b/c\"");
+}
+
+TEST_F(LoggingTest, LogLimited) {
+  EXPECT_EQ(CountLimitedLoggedTimes<1>(), 1);
+  EXPECT_EQ(CountLimitedLoggedTimes<2>(), 2);
+  EXPECT_EQ(CountLimitedLoggedTimes<3>(), 2);
+  EXPECT_EQ(CountLimitedLoggedTimes<4>(), 3);
+  EXPECT_EQ(CountLimitedLoggedTimes<5>(), 3);
+  EXPECT_EQ(CountLimitedLoggedTimes<6>(), 3);
+  EXPECT_EQ(CountLimitedLoggedTimes<7>(), 3);
+  EXPECT_EQ(CountLimitedLoggedTimes<8>(), 4);
+  EXPECT_EQ(CountLimitedLoggedTimes<1024>(), 11);
 }

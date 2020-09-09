@@ -41,6 +41,16 @@ struct HexBase {
   }
 };
 
+class RateLimiter {
+ public:
+  RateLimiter() = default;
+  bool ShouldLog(Level level);
+
+ private:
+  uint64_t count_since_reset_ = 0;
+  std::chrono::steady_clock::time_point last_reset_time_{};
+};
+
 }  // namespace impl
 
 /// Formats value in a hex mode with the fixed length representation.
@@ -308,3 +318,39 @@ void LogFlush();
 #define LOG_WARNING_TO(logger) LOG_TO(logger, ::logging::Level::kWarning)
 #define LOG_ERROR_TO(logger) LOG_TO(logger, ::logging::Level::kError)
 #define LOG_CRITICAL_TO(logger) LOG_TO(logger, ::logging::Level::kCritical)
+
+/// @brief If lvl matches the verbosity then builds a stream and evaluates a
+/// message for the logger. Ignores log messages that occur too often.
+/// @hideinitializer
+#define LOG_LIMITED_TO(logger, lvl)               \
+  ![]() -> ::logging::impl::RateLimiter& {        \
+    thread_local ::logging::impl::RateLimiter rl; \
+    return rl;                                    \
+  }()                                             \
+                   .ShouldLog(lvl)                \
+               ? ::logging::impl::Noop{}          \
+               : DO_LOG_TO((logger), (lvl))
+
+/// @brief If lvl matches the verbosity then builds a stream and evaluates a
+/// message for the default logger. Ignores log messages that occur too often.
+#define LOG_LIMITED(lvl) LOG_LIMITED_TO(::logging::DefaultLogger(), lvl)
+
+#define LOG_LIMITED_TRACE() LOG_LIMITED(::logging::Level::kTrace)
+#define LOG_LIMITED_DEBUG() LOG_LIMITED(::logging::Level::kDebug)
+#define LOG_LIMITED_INFO() LOG_LIMITED(::logging::Level::kInfo)
+#define LOG_LIMITED_WARNING() LOG_LIMITED(::logging::Level::kWarning)
+#define LOG_LIMITED_ERROR() LOG_LIMITED(::logging::Level::kError)
+#define LOG_LIMITED_CRITICAL() LOG_LIMITED(::logging::Level::kCritical)
+
+#define LOG_LIMITED_TRACE_TO(logger) \
+  LOG_LIMITED_TO(logger, ::logging::Level::kTrace)
+#define LOG_LIMITED_DEBUG_TO(logger) \
+  LOG_LIMITED_TO(logger, ::logging::Level::kDebug)
+#define LOG_LIMITED_INFO_TO(logger) \
+  LOG_LIMITED_TO(logger, ::logging::Level::kInfo)
+#define LOG_LIMITED_WARNING_TO(logger) \
+  LOG_LIMITED_TO(logger, ::logging::Level::kWarning)
+#define LOG_LIMITED_ERROR_TO(logger) \
+  LOG_LIMITED_TO(logger, ::logging::Level::kError)
+#define LOG_LIMITED_CRITICAL_TO(logger) \
+  LOG_LIMITED_TO(logger, ::logging::Level::kCritical)

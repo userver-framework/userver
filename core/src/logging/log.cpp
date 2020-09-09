@@ -137,6 +137,8 @@ class ThreadLocalMemPool {
   }
 };
 
+inline bool IsPowerOf2(uint64_t n) { return (n & (n - 1)) == 0; }
+
 }  // namespace
 
 LoggerPtr DefaultLogger() { return DefaultLoggerInternal().ReadCopy(); }
@@ -353,5 +355,19 @@ LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp) {
 }
 
 void LogFlush() { DefaultLogger()->flush(); }
+
+bool impl::RateLimiter::ShouldLog(Level level) {
+  if (!logging::ShouldLog(level)) return false;
+
+  constexpr auto kResetInterval =
+      std::chrono::steady_clock::duration{std::chrono::seconds{1}};
+  const auto now = std::chrono::steady_clock::now();
+
+  if (now - last_reset_time_ >= kResetInterval) {
+    count_since_reset_ = 0;
+    last_reset_time_ = now;
+  }
+  return IsPowerOf2(++count_since_reset_);
+}
 
 }  // namespace logging
