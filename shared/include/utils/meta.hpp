@@ -34,8 +34,8 @@ template <typename T, typename = void>
 struct IsRange : std::false_type {};
 
 template <typename T>
-struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                              decltype(std::end(std::declval<T>()))>>
+struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())),
+                              decltype(std::end(std::declval<T&>()))>>
     : std::true_type {};
 
 template <typename T, typename = void>
@@ -77,8 +77,10 @@ template <typename T, typename = void>
 struct IsOstreamWritable : std::false_type {};
 
 template <typename T>
-struct IsOstreamWritable<T, std::void_t<decltype(std::declval<std::ostream&>()
-                                                 << std::declval<const T&>())>>
+struct IsOstreamWritable<
+    T,
+    std::void_t<decltype(std::declval<std::ostream&>()
+                         << std::declval<const std::remove_reference_t<T>&>())>>
     : std::true_type {};
 
 }  // namespace impl

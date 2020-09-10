@@ -1,0 +1,239 @@
+#include <utils/meta.hpp>
+
+#include <array>
+#include <memory>
+#include <optional>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include <gtest/gtest.h>
+#include <boost/filesystem/path.hpp>
+#include <boost/optional.hpp>
+
+#include <utils/strong_typedef.hpp>
+
+TEST(Meta, kIsBool) {
+  static_assert(meta::kIsBool<bool>);
+
+  static_assert(!meta::kIsBool<const bool>);
+  static_assert(!meta::kIsBool<bool&>);
+  static_assert(!meta::kIsBool<const bool&>);
+  static_assert(!meta::kIsBool<int>);
+  static_assert(!meta::kIsBool<int*>);
+  static_assert(!meta::kIsBool<std::reference_wrapper<bool>>);
+  static_assert(!meta::kIsBool<std::vector<int>>);
+  static_assert(!meta::kIsBool<void>);
+}
+
+template <typename T>
+struct Base {};
+
+struct Derived : Base<int> {};
+
+TEST(Meta, kIsInstantiationOf) {
+  static_assert(meta::kIsInstantiationOf<std::vector, std::vector<int>>);
+  static_assert(meta::kIsInstantiationOf<std::unordered_map,
+                                         std::unordered_map<std::string, int>>);
+
+  static_assert(!meta::kIsInstantiationOf<std::vector, int>);
+  static_assert(!meta::kIsInstantiationOf<Base, Derived>);
+  static_assert(!meta::kIsInstantiationOf<std::vector, const std::vector<int>>);
+  static_assert(!meta::kIsInstantiationOf<std::vector, std::vector<int>&>);
+  static_assert(
+      !meta::kIsInstantiationOf<std::vector, const std::vector<int>&>);
+  static_assert(!meta::kIsInstantiationOf<std::vector, void>);
+}
+
+template <typename T>
+struct NonStdAllocator : std::allocator<T> {
+  using std::allocator<T>::allocator;
+};
+
+TEST(Meta, kIsVector) {
+  static_assert(meta::kIsVector<std::vector<int>>);
+  static_assert(meta::kIsVector<std::vector<int, NonStdAllocator<int>>>);
+  static_assert(meta::kIsVector<std::vector<bool>>);
+
+  static_assert(!meta::kIsVector<const std::vector<int>>);
+  static_assert(!meta::kIsVector<std::vector<int>&>);
+  static_assert(!meta::kIsVector<const std::vector<int>&>);
+  static_assert(!meta::kIsVector<int>);
+  static_assert(!meta::kIsVector<void>);
+  static_assert(!meta::kIsVector<std::set<int>>);
+}
+
+struct MyRange {
+  std::vector<int> impl;
+
+  auto begin() { return impl.begin(); }
+  auto end() { return impl.end(); }
+};
+
+TEST(Meta, kIsRange) {
+  static_assert(meta::kIsRange<std::vector<int>>);
+  static_assert(meta::kIsRange<std::vector<bool>>);
+  static_assert(meta::kIsRange<std::vector<int, NonStdAllocator<int>>>);
+  static_assert(meta::kIsRange<std::set<int>>);
+  static_assert(meta::kIsRange<std::map<int, int>>);
+  static_assert(meta::kIsRange<std::array<int, 1>>);
+  static_assert(meta::kIsRange<std::string>);
+  static_assert(meta::kIsRange<std::wstring>);
+  static_assert(meta::kIsRange<int[1]>);
+  static_assert(meta::kIsRange<const char[42]>);
+  static_assert(meta::kIsRange<utils::StrongTypedef<class Tag, std::string>>);
+  static_assert(
+      meta::kIsRange<utils::StrongTypedef<class Tag, std::vector<int>>>);
+  static_assert(meta::kIsRange<const std::vector<int>>);
+  static_assert(meta::kIsRange<std::vector<int>&>);
+  static_assert(meta::kIsRange<const std::vector<int>&>);
+  static_assert(meta::kIsRange<MyRange>);
+  static_assert(meta::kIsRange<boost::filesystem::path>);
+
+  static_assert(!meta::kIsRange<const MyRange>);
+  static_assert(!meta::kIsRange<void>);
+  static_assert(!meta::kIsRange<int>);
+  static_assert(!meta::kIsRange<char*>);
+  static_assert(!meta::kIsRange<void>);
+  static_assert(!meta::kIsRange<utils::StrongTypedef<class Tag, int>>);
+}
+
+struct MyMap {
+  std::vector<std::pair<int, int>> impl;
+
+  using key_type = int;
+  using mapped_type = int;
+
+  auto begin() { return impl.begin(); }
+  auto end() { return impl.end(); }
+};
+
+TEST(Meta, kIsMap) {
+  static_assert(meta::kIsMap<std::map<int, int>>);
+  static_assert(meta::kIsMap<std::unordered_map<int, int>>);
+  static_assert(
+      meta::kIsMap<
+          std::unordered_map<int, int, std::hash<int>, std::equal_to<int>,
+                             NonStdAllocator<std::pair<const int, int>>>>);
+  static_assert(meta::kIsMap<MyMap>);
+
+  static_assert(!meta::kIsMap<const MyMap>);
+  static_assert(!meta::kIsMap<void>);
+  static_assert(!meta::kIsMap<int>);
+  static_assert(!meta::kIsMap<char*>);
+  static_assert(!meta::kIsMap<std::vector<int>>);
+  static_assert(!meta::kIsMap<std::array<int, 42>>);
+}
+
+TEST(Meta, ValueType) {
+  static_assert(std::is_same_v<meta::ValueType<std::vector<int>>, int>);
+  static_assert(std::is_same_v<meta::ValueType<const std::vector<int>>, int>);
+  static_assert(std::is_same_v<meta::ValueType<MyRange>, int>);
+  static_assert(std::is_same_v<meta::ValueType<std::vector<bool>>, bool>);
+  static_assert(std::is_same_v<meta::ValueType<std::map<int, int>>,
+                               std::pair<const int, int>>);
+  static_assert(std::is_same_v<meta::ValueType<const std::vector<int>>, int>);
+  static_assert(std::is_same_v<meta::ValueType<int(&)[5]>, int>);
+
+  // TODO TAXICOMMON-2880 fix
+  static_assert(std::is_same_v<meta::ValueType<boost::filesystem::path>, char>);
+  static_assert(std::is_same_v<decltype(*std::begin(
+                                   std::declval<boost::filesystem::path>())),
+                               const boost::filesystem::path&>);
+}
+
+TEST(Meta, kIsRecursiveRange) {
+  // TODO TAXICOMMON-2880 fix
+  static_assert(!meta::kIsRecursiveRange<boost::filesystem::path>);
+
+  static_assert(!meta::kIsRecursiveRange<bool>);
+  static_assert(
+      !meta::kIsRecursiveRange<std::vector<std::vector<std::vector<int>>>>);
+}
+
+TEST(Meta, kIsOptional) {
+  static_assert(meta::kIsOptional<std::optional<bool>>);
+
+  static_assert(!meta::kIsOptional<const std::optional<int>>);
+  static_assert(!meta::kIsOptional<std::optional<int>&>);
+  static_assert(!meta::kIsOptional<const std::optional<int>&>);
+  static_assert(!meta::kIsOptional<boost::optional<int>>);
+  static_assert(!meta::kIsOptional<int>);
+}
+
+TEST(Meta, kIsCharacter) {
+  static_assert(meta::kIsCharacter<char>);
+  static_assert(meta::kIsCharacter<wchar_t>);
+  static_assert(meta::kIsCharacter<char16_t>);
+  static_assert(meta::kIsCharacter<char32_t>);
+
+  static_assert(!meta::kIsCharacter<signed char>);
+  static_assert(!meta::kIsCharacter<unsigned char>);
+  static_assert(!meta::kIsCharacter<bool>);
+  static_assert(!meta::kIsCharacter<double>);
+  static_assert(!meta::kIsCharacter<void>);
+  static_assert(!meta::kIsCharacter<int>);
+  static_assert(!meta::kIsCharacter<int8_t>);
+  static_assert(!meta::kIsCharacter<uint8_t>);
+  static_assert(!meta::kIsCharacter<std::string>);
+  static_assert(!meta::kIsCharacter<std::string_view>);
+}
+
+TEST(Meta, kIsInteger) {
+  static_assert(meta::kIsInteger<int>);
+  static_assert(meta::kIsInteger<int8_t>);
+  static_assert(meta::kIsInteger<uint8_t>);
+  static_assert(meta::kIsInteger<int16_t>);
+  static_assert(meta::kIsInteger<uint16_t>);
+  static_assert(meta::kIsInteger<int32_t>);
+  static_assert(meta::kIsInteger<uint32_t>);
+  static_assert(meta::kIsInteger<int64_t>);
+  static_assert(meta::kIsInteger<uint64_t>);
+  static_assert(meta::kIsInteger<size_t>);
+  static_assert(meta::kIsInteger<ptrdiff_t>);
+  static_assert(meta::kIsInteger<signed char>);
+  static_assert(meta::kIsInteger<unsigned char>);
+
+  static_assert(!meta::kIsInteger<char>);
+  static_assert(!meta::kIsInteger<wchar_t>);
+  static_assert(!meta::kIsInteger<char16_t>);
+  static_assert(!meta::kIsInteger<char32_t>);
+  static_assert(!meta::kIsInteger<bool>);
+  static_assert(!meta::kIsInteger<double>);
+  static_assert(!meta::kIsInteger<void>);
+  static_assert(!meta::kIsInteger<std::string>);
+}
+
+struct NonWritable {};
+
+struct Writable {
+  friend std::ostream& operator<<(std::ostream& os,
+                                  [[maybe_unused]] const Writable& self) {
+    return os;
+  }
+};
+
+struct NonConstWritable {
+  friend std::ostream& operator<<(std::ostream& os,
+                                  [[maybe_unused]] NonConstWritable& self) {
+    return os;
+  }
+};
+
+TEST(Meta, kIsOstreamWritable) {
+  static_assert(meta::kIsOstreamWritable<int>);
+  static_assert(meta::kIsOstreamWritable<double>);
+  static_assert(meta::kIsOstreamWritable<std::string>);
+  static_assert(meta::kIsOstreamWritable<Writable>);
+  static_assert(meta::kIsOstreamWritable<Writable&>);
+  static_assert(meta::kIsOstreamWritable<const Writable&>);
+  static_assert(!meta::kIsOstreamWritable<NonConstWritable>);
+  static_assert(!meta::kIsOstreamWritable<NonConstWritable&>);
+  static_assert(!meta::kIsOstreamWritable<const NonConstWritable&>);
+  static_assert(!meta::kIsOstreamWritable<NonWritable>);
+  static_assert(!meta::kIsOstreamWritable<NonWritable&>);
+  static_assert(!meta::kIsOstreamWritable<const NonWritable&>);
+  static_assert(!meta::kIsOstreamWritable<std::vector<int>>);
+}
