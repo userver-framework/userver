@@ -329,6 +329,11 @@ void LogHelper::Put(std::string_view value) {
 void LogHelper::Put(char value) { pimpl_->xsputn(&value, 1); }
 
 void LogHelper::PutException(const std::exception& ex) {
+  if (!ShouldLog(Level::kDebug)) {
+    Put(ex.what());
+    return;
+  }
+
   const auto* traceful = dynamic_cast<const utils::TracefulExceptionBase*>(&ex);
   if (traceful) {
     const auto& message_buffer = traceful->MessageBuffer();

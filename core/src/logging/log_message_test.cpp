@@ -122,16 +122,29 @@ TEST_F(LoggingTest, PlainException) {
   EXPECT_EQ(ToStringViaLogging(std::runtime_error(kWhat)), kWhat);
 }
 
-TEST_F(LoggingTest, TracefulException) {
+TEST_F(LoggingTest, TracefulExceptionDebug) {
+  ::logging::SetDefaultLoggerLevel(::logging::Level::kDebug);
+
   LOG_CRITICAL() << utils::TracefulException("traceful exception");
 
   EXPECT_TRUE(LoggedTextContains("traceful exception"))
-      << "traceful exception missing its message";
+      << "traceful exception is missing its message";
   EXPECT_TRUE(LoggedTextContains("\tstacktrace="))
-      << "traceful exception missing its trace";
+      << "traceful exception is missing its trace";
+}
+
+TEST_F(LoggingTest, TracefulExceptionInfo) {
+  LOG_CRITICAL() << utils::TracefulException("traceful exception");
+
+  EXPECT_TRUE(LoggedTextContains("traceful exception"))
+      << "traceful exception is missing its message";
+  EXPECT_FALSE(LoggedTextContains("\tstacktrace="))
+      << "traceful exception should not have trace";
 }
 
 TEST_F(LoggingTest, AttachedException) {
+  ::logging::SetDefaultLoggerLevel(::logging::Level::kDebug);
+
   try {
     throw utils::impl::AttachTraceToException(
         std::logic_error("plain exception"))
