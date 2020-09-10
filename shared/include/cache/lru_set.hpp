@@ -42,7 +42,8 @@ class LruSet final {
   /// Call Function(const T&) for all items
   template <typename Function>
   void VisitAll(Function&& func) const {
-    impl_.VisitAll(std::forward<Function>(func));
+    impl_.VisitAll(
+        [&func](const auto& key, const auto& /*value*/) mutable { func(key); });
   }
 
   size_t GetSize() const { return impl_.GetSize(); }

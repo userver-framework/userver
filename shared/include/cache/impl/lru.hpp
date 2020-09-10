@@ -219,8 +219,8 @@ void LruBase<T, U, Hash, Eq>::Clear() noexcept {
 template <typename T, typename U, typename Hash, typename Eq>
 template <typename Function>
 void LruBase<T, U, Hash, Eq>::VisitAll(Function&& func) const {
-  for (const auto& [key, value] : map_) {
-    func(key, value.GetValue());
+  for (const auto& node : map_) {
+    func(node.GetKey(), node.GetValue());
   }
 }
 

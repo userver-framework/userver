@@ -102,3 +102,16 @@ TEST(LruSet, OverflowGet) {
   EXPECT_EQ(false, cache.Has(2));
   EXPECT_EQ(true, cache.Has(3));
 }
+
+TEST(LruSet, VisitAll) {
+  Lru cache(10);
+  cache.Put(1);
+  cache.Put(2);
+  cache.Put(3);
+
+  std::size_t sum_keys = 0;
+  // mutable - to test VisitAll compilation with non-const operator()
+  cache.VisitAll([&sum_keys](const auto& key) mutable { sum_keys += key; });
+
+  EXPECT_EQ(6, sum_keys);
+}

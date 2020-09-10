@@ -53,7 +53,7 @@ class LruMap final {
   /// Call Function(const T&, const U&) for all items
   template <typename Function>
   void VisitAll(Function&& func) const {
-    impl_.VisitAll(std::forward<Function>(func)(func));
+    impl_.VisitAll(std::forward<Function>(func));
   }
 
   size_t GetSize() const { return impl_.GetSize(); }
