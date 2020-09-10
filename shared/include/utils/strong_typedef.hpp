@@ -102,11 +102,26 @@ using EnableTransparentCompare = std::enable_if_t<
 
 struct StrongTypedefTag {};
 
+template <typename T>
+struct IsStrongTypedef
+    : std::is_base_of<impl::strong_typedef::StrongTypedefTag, T> {};
+
 template <typename T, typename Void>
 using EnableIfRange =
     std::enable_if_t<std::is_void_v<Void> && meta::kIsRange<T>>;
 
+template <typename T>
+constexpr void CheckIfAllowsLogging() {
+  static_assert(IsStrongTypedef<T>::value);
+
+  if constexpr (T::kOps & StrongTypedefOps::kNonLoggable) {
+    static_assert(!sizeof(T), "Trying to print a non-loggable StrongTypedef");
+  }
+}
+
 }  // namespace impl::strong_typedef
+
+using impl::strong_typedef::IsStrongTypedef;
 
 // Generic implementation for classes
 template <class Tag, class T, StrongTypedefOps Ops, class /*Enable*/>
@@ -289,16 +304,14 @@ UTILS_STRONG_TYPEDEF_REL_OP(>=)
 template <class Tag, class T, StrongTypedefOps Ops>
 std::ostream& operator<<(std::ostream& os,
                          const StrongTypedef<Tag, T, Ops>& v) {
-  static_assert(!(Ops & StrongTypedefOps::kNonLoggable),
-                "This StrongTypedef is marked as non-loggable");
+  impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, T, Ops>>();
   return os << v.GetUnderlying();
 }
 
 template <class Tag, class T, StrongTypedefOps Ops>
 logging::LogHelper& operator<<(logging::LogHelper& os,
                                const StrongTypedef<Tag, T, Ops>& v) {
-  static_assert(!(Ops & StrongTypedefOps::kNonLoggable),
-                "This StrongTypedef is marked as non-loggable");
+  impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, T, Ops>>();
   return os << v.GetUnderlying();
 }
 
@@ -330,8 +343,7 @@ template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
           typename TargetType>
 TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
                      formats::serialize::To<TargetType>) {
-  static_assert(!(Ops & StrongTypedefOps::kNonLoggable),
-                "This StrongTypedef is marked as non-loggable");
+  impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, T, Ops>>();
   return typename TargetType::Builder(object.GetUnderlying()).ExtractValue();
 }
 
@@ -339,15 +351,11 @@ template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
           typename StringBuilder>
 void WriteToStream(const StrongTypedef<Tag, T, Ops, Enable>& object,
                    StringBuilder& sw) {
-  static_assert(!(Ops & StrongTypedefOps::kNonLoggable),
-                "This StrongTypedef is marked as non-loggable");
+  impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, T, Ops>>();
   WriteToStream(object.GetUnderlying(), sw);
 }
 
 // Explicit casting
-template <typename T>
-struct IsStrongTypedef
-    : std::is_base_of<impl::strong_typedef::StrongTypedefTag, T> {};
 
 /// Explicitly cast from one strong typedef to another, to replace constructions
 /// `SomeStrongTydef{::utils::UnderlyingValue(another_strong_val)}` with
@@ -403,8 +411,7 @@ struct fmt::formatter<T, Char, std::enable_if_t<::utils::IsStrongTypedef<T>{}>>
     : fmt::formatter<typename T::UnderlyingType, Char> {
   template <typename FormatContext>
   auto format(const T& v, FormatContext& ctx) {
-    static_assert(!(T::kOps & utils::StrongTypedefOps::kNonLoggable),
-                  "This StrongTypedef is marked as non-loggable");
+    utils::impl::strong_typedef::CheckIfAllowsLogging<T>();
     return fmt::formatter<typename T::UnderlyingType, Char>::format(
         v.GetUnderlying(), ctx);
   }
