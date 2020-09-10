@@ -1,5 +1,6 @@
 #include "log_helper_impl.hpp"
 
+#include <utils/assert.hpp>
 #include <utils/encoding/tskv.hpp>
 
 namespace logging {
@@ -28,7 +29,8 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
 LogHelper::Impl::Impl(LoggerPtr logger, Level level) noexcept
     : logger_(std::move(logger)),
       msg_(&logger_->name(), static_cast<spdlog::level::level_enum>(level)),
-      encode_mode_{Encode::kNone} {}
+      encode_mode_{Encode::kNone},
+      initial_length_{0} {}
 
 std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
   switch (encode_mode_) {
@@ -82,6 +84,11 @@ LogHelper::Impl::LazyInitedStream& LogHelper::Impl::GetLazyInitedStream() {
   }
 
   return *lazy_stream_;
+}
+
+void LogHelper::Impl::MarkTextBegin() {
+  UASSERT_MSG(initial_length_ == 0, "MarkTextBegin must only be called once");
+  initial_length_ = msg_.raw.size();
 }
 
 }  // namespace logging

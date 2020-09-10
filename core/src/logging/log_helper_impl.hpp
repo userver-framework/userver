@@ -33,6 +33,9 @@ class LogHelper::Impl final {
 
   const LoggerPtr& GetLogger() const { return logger_; }
 
+  void MarkTextBegin();
+  size_t TextSize() const { return msg_.raw.size() - initial_length_; }
+
  private:
   class BufferStd final : public std::streambuf {
    public:
@@ -60,6 +63,7 @@ class LogHelper::Impl final {
   Encode encode_mode_;
   std::optional<LazyInitedStream> lazy_stream_;
   LogExtra extra_;
+  size_t initial_length_;
 };
 
 }  // namespace logging

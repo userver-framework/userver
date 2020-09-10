@@ -293,7 +293,7 @@ TEST_F(LoggingTest, RangeOverflow) {
   std::iota(range.begin(), range.end(), 0);
 
   LOG_CRITICAL() << range;
-  EXPECT_TRUE(LoggedTextContains("1832, 1833 ...(8166 more)]"))
+  EXPECT_TRUE(LoggedTextContains("1850, 1851 ...(8148 more)]"))
       << "Actual logged text: " << LoggedText();
 }
 
@@ -326,7 +326,7 @@ TEST_F(LoggingTest, MapOverflow) {
   LOG_CRITICAL() << map;
   EXPECT_TRUE(LoggedTextContains("[0: 0, 1: 1,"))
       << "Actual logged text: " << LoggedText();
-  EXPECT_TRUE(LoggedTextContains("1008: 1008, 1009: 1009 ...(8990 more)]"))
+  EXPECT_TRUE(LoggedTextContains("1017: 1017, 1018: 1018 ...(8981 more)]"))
       << "Actual logged text: " << LoggedText();
 }
 

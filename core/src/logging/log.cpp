@@ -183,8 +183,9 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogModule(path, line, func))
   NOTHROW_CALL_CONSTRUCTOR(path, line, LogIds())
 
-  LogTextKey();  // This member outputs only a key without value
-                 // This call must be the last in constructor
+  LogTextKey();
+  pimpl_->MarkTextBegin();
+  // Must not log further system info after this point
 
   UASSERT_MSG(
       !pimpl_->IsStreamInitialized(),
@@ -206,7 +207,7 @@ LogHelper::~LogHelper() {
 
 bool LogHelper::IsLimitReached() const {
   constexpr size_t kSizeLimit = 10000;
-  return pimpl_->Message().raw.size() >= kSizeLimit;
+  return pimpl_->TextSize() >= kSizeLimit;
 }
 
 void LogHelper::DoLog() noexcept {
