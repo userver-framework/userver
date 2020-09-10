@@ -6,11 +6,11 @@
 #include <string>
 #include <vector>
 
-#include <utils/non_loggable.hpp>
+#include <utils/strong_typedef.hpp>
 
 namespace storages::postgres {
 
-using Dsn = ::utils::NonLoggable<std::string>;
+using Dsn = ::utils::StrongNonLoggable<class DsnTag, std::string>;
 using DsnList = std::vector<Dsn>;
 
 DsnList SplitByHost(const Dsn& dsn);

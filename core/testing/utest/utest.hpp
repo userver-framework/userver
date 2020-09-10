@@ -47,11 +47,6 @@ void PrintTo(const Value&, std::ostream*);
 
 namespace utils {
 
-template <typename T>
-void PrintTo(const NonLoggable<T>& val, std::ostream* os) {
-  ::testing::internal::UniversalTersePrint(val.GetUnprotectedRawValue(), os);
-}
-
 template <class Tag, class T, StrongTypedefOps Ops>
 void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
   ::testing::internal::UniversalTersePrint(v.GetUnderlying(), os);

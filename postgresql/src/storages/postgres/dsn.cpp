@@ -33,9 +33,8 @@ using OptionsHandle =
 
 OptionsHandle MakeDSNOptions(const Dsn& dsn) {
   char* errmsg = nullptr;
-  OptionsHandle opts{
-      PQconninfoParse(dsn.GetUnprotectedRawValue().c_str(), &errmsg),
-      &PQconninfoFree};
+  OptionsHandle opts{PQconninfoParse(dsn.GetUnderlying().c_str(), &errmsg),
+                     &PQconninfoFree};
 
   if (errmsg) {
     InvalidDSN err{DsnMaskPassword(dsn), errmsg};
@@ -232,11 +231,10 @@ std::string DsnCutPassword(const Dsn& dsn) {
 std::string DsnMaskPassword(const Dsn& dsn) {
   static const std::string pg_url_start = "postgresql://";
   static const std::string replace = "${1}***$2";
-  if (boost::starts_with(dsn.GetUnprotectedRawValue(), pg_url_start)) {
+  if (boost::starts_with(dsn.GetUnderlying(), pg_url_start)) {
     static const boost::regex url_re("^(postgresql://[^:]*:)[^@]+(@)");
     static const boost::regex option_re("\\b(password=)[^&]+");
-    auto masked =
-        boost::regex_replace(dsn.GetUnprotectedRawValue(), url_re, replace);
+    auto masked = boost::regex_replace(dsn.GetUnderlying(), url_re, replace);
     masked = boost::regex_replace(masked, option_re, replace);
     return masked;
   } else {
@@ -251,8 +249,7 @@ std::string DsnMaskPassword(const Dsn& dsn) {
           )
         )~",
         boost::regex_constants::mod_x);
-    auto masked =
-        boost::regex_replace(dsn.GetUnprotectedRawValue(), option_re, replace);
+    auto masked = boost::regex_replace(dsn.GetUnderlying(), option_re, replace);
     return masked;
   }
 }

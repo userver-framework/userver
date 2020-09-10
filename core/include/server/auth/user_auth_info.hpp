@@ -4,7 +4,7 @@
 #include <string>
 
 #include <server/request/request_context.hpp>
-#include <utils/non_loggable.hpp>
+#include <utils/strong_typedef.hpp>
 
 #include <server/auth/user_env.hpp>
 #include <server/auth/user_id.hpp>
@@ -19,7 +19,7 @@ namespace server::auth {
 
 class UserAuthInfo final {
  public:
-  using Ticket = utils::NonLoggable<std::string>;
+  using Ticket = utils::StrongNonLoggable<class TicketTag, std::string>;
 
   UserAuthInfo(UserId default_id, UserEnv env, UserProvider provider);
   UserAuthInfo(UserId default_id, Ticket user_ticket, UserEnv env,

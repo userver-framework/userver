@@ -33,7 +33,7 @@ struct TestData {
 };
 
 void PrintTo(const TestData& td, std::ostream* os) {
-  *os << "TestData{original_dsn=`" << td.original_dsn.GetUnprotectedRawValue()
+  *os << "TestData{original_dsn=`" << td.original_dsn.GetUnderlying()
       << "`; dsn_params_count=" << td.dsn_params_count << "; host=`" << td.host
       << "`; port=`" << td.port << "`; dbname=`" << td.dbname << "`}";
 }
@@ -146,7 +146,7 @@ TEST(PostgreDSN, QuotedOptions) {
   pg::DsnList split_dsn;
   EXPECT_NO_THROW(split_dsn = pg::SplitByHost(pg::Dsn{dsn}));
   ASSERT_EQ(split_dsn.size(), 1);
-  EXPECT_EQ(split_dsn.front().GetUnprotectedRawValue(), dsn);
+  EXPECT_EQ(split_dsn.front().GetUnderlying(), dsn);
 }
 
 class Mask : public ::testing::TestWithParam<std::pair<pg::Dsn, std::string>> {

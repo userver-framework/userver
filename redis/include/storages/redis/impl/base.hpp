@@ -7,7 +7,7 @@
 #include <vector>
 
 #include <testsuite/redis_control.hpp>
-#include <utils/non_loggable.hpp>
+#include <utils/strong_typedef.hpp>
 
 #include <storages/redis/impl/types.hpp>
 
@@ -23,7 +23,7 @@ const int REDIS_ERR_TIMEOUT = 6;
 const int REDIS_ERR_NOT_READY = 7;
 const int REDIS_ERR_MAX = REDIS_ERR_NOT_READY + 1;
 
-using Password = utils::NonLoggable<std::string>;
+using Password = utils::StrongNonLoggable<class PasswordTag, std::string>;
 
 struct ConnectionInfo {
   std::string host = "localhost";

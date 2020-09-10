@@ -29,6 +29,8 @@ enum class StrongTypedefOps {
   kCompareStrong = 1,           /// Allow comparing two StrongTypedef<Tag, T>
   kCompareTransparentOnly = 2,  /// Allow comparing StrongTypedef<Tag, T> and T
   kCompareTransparent = 3,      /// Allow both of the above
+
+  kNonLoggable = 4,  /// Forbid logging and serializing for StrongTypedef
 };
 
 constexpr bool operator&(StrongTypedefOps op, StrongTypedefOps mask) noexcept {
@@ -118,6 +120,7 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
  public:
   using UnderlyingType = T;
   using TagType = Tag;
+  static constexpr StrongTypedefOps kOps = Ops;
 
   StrongTypedef() = default;
   StrongTypedef(const StrongTypedef&) = default;
@@ -192,6 +195,12 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
     return data_[std::forward<Arg>(i)];
   }
 
+  // TODO TAXICOMMON-2209: clean up in uservices and remove
+  [[deprecated("Use GetUnderlying")]] const T& GetUnprotectedRawValue() const
+      noexcept {
+    return GetUnderlying();
+  }
+
  private:
   T data_{};
 };
@@ -209,6 +218,7 @@ class StrongTypedef<Tag, T, Ops, std::enable_if_t<std::is_arithmetic<T>::value>>
  public:
   using UnderlyingType = T;
   using TagType = Tag;
+  static constexpr StrongTypedefOps kOps = Ops;
 
   StrongTypedef() = default;
   StrongTypedef(const StrongTypedef&) = default;
@@ -222,6 +232,12 @@ class StrongTypedef<Tag, T, Ops, std::enable_if_t<std::is_arithmetic<T>::value>>
   explicit constexpr operator T&() noexcept { return data_; }
   constexpr const T& GetUnderlying() const noexcept { return data_; }
   constexpr T& GetUnderlying() noexcept { return data_; }
+
+  // TODO TAXICOMMON-2209: clean up in uservices and remove
+  [[deprecated("Use GetUnderlying")]] const T& GetUnprotectedRawValue() const
+      noexcept {
+    return GetUnderlying();
+  }
 
  private:
   T data_{};
@@ -273,12 +289,16 @@ UTILS_STRONG_TYPEDEF_REL_OP(>=)
 template <class Tag, class T, StrongTypedefOps Ops>
 std::ostream& operator<<(std::ostream& os,
                          const StrongTypedef<Tag, T, Ops>& v) {
+  static_assert(!(Ops & StrongTypedefOps::kNonLoggable),
+                "This StrongTypedef is marked as non-loggable");
   return os << v.GetUnderlying();
 }
 
 template <class Tag, class T, StrongTypedefOps Ops>
 logging::LogHelper& operator<<(logging::LogHelper& os,
                                const StrongTypedef<Tag, T, Ops>& v) {
+  static_assert(!(Ops & StrongTypedefOps::kNonLoggable),
+                "This StrongTypedef is marked as non-loggable");
   return os << v.GetUnderlying();
 }
 
@@ -310,6 +330,8 @@ template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
           typename TargetType>
 TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
                      formats::serialize::To<TargetType>) {
+  static_assert(!(Ops & StrongTypedefOps::kNonLoggable),
+                "This StrongTypedef is marked as non-loggable");
   return typename TargetType::Builder(object.GetUnderlying()).ExtractValue();
 }
 
@@ -317,6 +339,8 @@ template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
           typename StringBuilder>
 void WriteToStream(const StrongTypedef<Tag, T, Ops, Enable>& object,
                    StringBuilder& sw) {
+  static_assert(!(Ops & StrongTypedefOps::kNonLoggable),
+                "This StrongTypedef is marked as non-loggable");
   WriteToStream(object.GetUnderlying(), sw);
 }
 
@@ -355,33 +379,33 @@ std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {
   return boost::hash<T>{}(v.GetUnderlying());
 }
 
+/// A StrongTypedef for data that MUST NOT be logged or outputted in some other
+/// way.
+template <class Tag, class T>
+using StrongNonLoggable = StrongTypedef<
+    Tag, T, StrongTypedefOps::kCompareStrong | StrongTypedefOps::kNonLoggable>;
+
 }  // namespace utils
 
-// Hashing (STD)
-namespace std {
-
+// std::hash support
 template <class Tag, class T, utils::StrongTypedefOps Ops>
-struct hash<utils::StrongTypedef<Tag, T, Ops>> : hash<T> {
+struct std::hash<utils::StrongTypedef<Tag, T, Ops>> : std::hash<T> {
   std::size_t operator()(const utils::StrongTypedef<Tag, T, Ops>& v) const
-      noexcept(
-          noexcept(std::declval<const hash<T>>()(std::declval<const T&>()))) {
-    return hash<T>::operator()(v.GetUnderlying());
+      noexcept(noexcept(
+          std::declval<const std::hash<T>>()(std::declval<const T&>()))) {
+    return std::hash<T>::operator()(v.GetUnderlying());
   }
 };
 
-}  // namespace std
-
-namespace fmt {
-
-// fmt::format custoimization
-template <class T>
-struct formatter<T, std::enable_if_t<::utils::IsStrongTypedef<T>{}, char>>
-    : formatter<typename T::UnderlyingType> {
+// fmt::format support
+template <class T, class Char>
+struct fmt::formatter<T, Char, std::enable_if_t<::utils::IsStrongTypedef<T>{}>>
+    : fmt::formatter<typename T::UnderlyingType, Char> {
   template <typename FormatContext>
   auto format(const T& v, FormatContext& ctx) {
-    return formatter<typename T::UnderlyingType>::format(v.GetUnderlying(),
-                                                         ctx);
+    static_assert(!(T::kOps & utils::StrongTypedefOps::kNonLoggable),
+                  "This StrongTypedef is marked as non-loggable");
+    return fmt::formatter<typename T::UnderlyingType, Char>::format(
+        v.GetUnderlying(), ctx);
   }
 };
-
-}  // namespace fmt

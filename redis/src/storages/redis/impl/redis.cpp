@@ -774,14 +774,14 @@ void Redis::RedisImpl::OnDisconnectImpl(int status) {
 }
 
 void Redis::RedisImpl::Authenticate() {
-  if (password_.GetUnprotectedRawValue().empty()) {
+  if (password_.GetUnderlying().empty()) {
     if (send_readonly_)
       SendReadOnly();
     else
       SetState(State::kConnected);
   } else {
     ProcessCommand(PrepareCommand(
-        CmdArgs{"AUTH", password_.GetUnprotectedRawValue()},
+        CmdArgs{"AUTH", password_.GetUnderlying()},
         [this](const CommandPtr&, ReplyPtr reply) {
           if (*reply && reply->data.IsStatus()) {
             if (send_readonly_)

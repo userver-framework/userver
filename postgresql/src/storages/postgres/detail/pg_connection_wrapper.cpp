@@ -192,7 +192,7 @@ void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
     throw ConnectionFailed{dsn, "Already connected"};
   }
 
-  conn_ = PQconnectStart(dsn.GetUnprotectedRawValue().c_str());
+  conn_ = PQconnectStart(dsn.GetUnderlying().c_str());
   if (!conn_) {
     // The only reason the pointer cannot be null is that libpq failed
     // to allocate memory for the structure

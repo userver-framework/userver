@@ -89,7 +89,7 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
 }
 
 void ConnectionPool::Init() {
-  if (dsn_.GetUnprotectedRawValue().empty()) {
+  if (dsn_.GetUnderlying().empty()) {
     throw InvalidConfig("PostgreSQL Dsn is empty");
   }
 

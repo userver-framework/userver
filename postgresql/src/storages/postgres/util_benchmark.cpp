@@ -28,7 +28,7 @@ PgConnection::~PgConnection() = default;
 
 void PgConnection::SetUp(benchmark::State&) {
   auto dsn = GetDsnFromEnv();
-  if (!dsn.GetUnprotectedRawValue().empty()) {
+  if (!dsn.GetUnderlying().empty()) {
     RunInCoro([this, dsn] {
       conn_ = detail::Connection::Connect(
           dsn, GetTaskProcessor(), kConnectionId,
