@@ -271,21 +271,44 @@ TEST_F(LoggingTest, CustomRanges) {
 
 TEST_F(LoggingTest, Maps) {
   const std::map<int, std::string> map1 = {{1, "a"}, {2, "b"}, {3, "c"}};
-  EXPECT_EQ(ToStringViaLogging(map1), "[1: a, 2: b, 3: c]");
+  EXPECT_EQ(ToStringViaLogging(map1), R"([1: "a", 2: "b", 3: "c"])");
 
   const std::unordered_map<int, std::string> map2 = {{42, "a"}};
-  EXPECT_EQ(ToStringViaLogging(map2), "[42: a]");
+  EXPECT_EQ(ToStringViaLogging(map2), R"([42: "a"])");
 }
+
+namespace logging {
+
+template <typename T, typename U>
+logging::LogHelper& operator<<(logging::LogHelper& lh,
+                               const std::pair<T, U>& value) {
+  lh << "(" << value.first << ", " << value.second << ")";
+  return lh;
+}
+
+}  // namespace logging
 
 TEST_F(LoggingTest, CustomMaps) {
   struct MyMap {
-    std::vector<std::pair<std::string, int>> impl;
+    std::vector<std::pair<const std::string, int>> impl;
+
+    using key_type [[maybe_unused]] = std::string;
+    using mapped_type [[maybe_unused]] = int;
+
     auto begin() const { return impl.begin(); }
     auto end() const { return impl.end(); }
   };
-  const MyMap map = {{{"b", 1}, {"a", 2}}};
+  const MyMap map{{{"b", 1}, {"a", 2}}};
+  EXPECT_EQ(ToStringViaLogging(map), R"(["b": 1, "a": 2])");
 
-  EXPECT_EQ(ToStringViaLogging(map), "[b: 1, a: 2]");
+  struct MyPseudoMap {
+    std::vector<std::pair<const std::string, int>> impl;
+
+    auto begin() const { return impl.begin(); }
+    auto end() const { return impl.end(); }
+  };
+  const MyPseudoMap pseudo_map{{{"b", 1}, {"a", 2}}};
+  EXPECT_EQ(ToStringViaLogging(pseudo_map), R"([(b, 1), (a, 2)])");
 }
 
 TEST_F(LoggingTest, RangeOverflow) {
@@ -293,7 +316,7 @@ TEST_F(LoggingTest, RangeOverflow) {
   std::iota(range.begin(), range.end(), 0);
 
   LOG_CRITICAL() << range;
-  EXPECT_TRUE(LoggedTextContains("1850, 1851 ...(8148 more)]"))
+  EXPECT_TRUE(LoggedTextContains("1850, 1851, ...8148 more"))
       << "Actual logged text: " << LoggedText();
 }
 
@@ -302,7 +325,7 @@ TEST_F(LoggingTest, ImmediateRangeOverflow) {
   std::vector<int> range{42};
 
   LOG_CRITICAL() << filler << range;
-  EXPECT_TRUE(LoggedTextContains("[...(1 more)]"))
+  EXPECT_TRUE(LoggedTextContains("[...1 more]"))
       << "Actual logged text: " << LoggedText();
 }
 
@@ -311,9 +334,9 @@ TEST_F(LoggingTest, NestedRangeOverflow) {
       {"1", "2", "3"}, {std::string(100000, 'A'), "4", "5"}, {"6", "7"}};
 
   LOG_CRITICAL() << range;
-  EXPECT_TRUE(LoggedTextContains("[[1, 2, 3], [AAA"))
+  EXPECT_TRUE(LoggedTextContains(R"([["1", "2", "3"], ["AAA)"))
       << "Actual logged text: " << LoggedText();
-  EXPECT_TRUE(LoggedTextContains("AAA ...(2 more)] ...(1 more)]"))
+  EXPECT_TRUE(LoggedTextContains(R"(AAA...", ...2 more], ...1 more])"))
       << "Actual logged text: " << LoggedText();
 }
 
@@ -326,12 +349,17 @@ TEST_F(LoggingTest, MapOverflow) {
   LOG_CRITICAL() << map;
   EXPECT_TRUE(LoggedTextContains("[0: 0, 1: 1,"))
       << "Actual logged text: " << LoggedText();
-  EXPECT_TRUE(LoggedTextContains("1017: 1017, 1018: 1018 ...(8981 more)]"))
+  EXPECT_TRUE(LoggedTextContains("1017: 1017, 1018: 1018, ...8981 more]"))
       << "Actual logged text: " << LoggedText();
 }
 
 TEST_F(LoggingTest, FilesystemPath) {
-  EXPECT_EQ(ToStringViaLogging(boost::filesystem::path("a/b/c")), "\"a/b/c\"");
+  EXPECT_EQ(ToStringViaLogging(boost::filesystem::path("a/b/c")), R"("a/b/c")");
+}
+
+TEST_F(LoggingTest, StringEscaping) {
+  std::vector<std::string> range{"", "A", "\"", "\\", "\n"};
+  EXPECT_EQ(ToStringViaLogging(range), R"(["", "A", "\\"", "\\\\", "\n"])");
 }
 
 TEST_F(LoggingTest, LogLimited) {

@@ -177,6 +177,13 @@ class LogHelper final {
   void Put(std::string_view value);
   void Put(char value);
   void PutException(const std::exception& ex);
+  void PutQuoted(std::string_view value);
+
+  template <typename T>
+  void PutRangeElement(const T& value);
+
+  template <typename T, typename U>
+  void PutMapElement(const std::pair<const T, U>& value);
 
   template <typename T>
   void PutRange(const T& range);
@@ -238,10 +245,20 @@ LogHelper& operator<<(LogHelper& lh, Result (*)(Args...)) {
 
 LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp);
 
+template <typename T>
+void LogHelper::PutRangeElement(const T& value) {
+  if constexpr (std::is_constructible_v<std::string_view, T>) {
+    PutQuoted(value);
+  } else {
+    *this << value;
+  }
+}
+
 template <typename T, typename U>
-LogHelper& operator<<(LogHelper& lh, const std::pair<T, U>& pair) {
-  lh << pair.first << ": " << pair.second;
-  return lh;
+void LogHelper::PutMapElement(const std::pair<const T, U>& value) {
+  PutRangeElement(value.first);
+  Put(": ");
+  PutRangeElement(value.second);
 }
 
 template <typename T>
@@ -263,7 +280,12 @@ void LogHelper::PutRange(const T& range) {
     } else {
       Put(kSeparator);
     }
-    *this << *curr;
+
+    if constexpr (meta::kIsMap<T>) {
+      PutMapElement(*curr);
+    } else {
+      PutRangeElement(*curr);
+    }
     ++curr;
   }
 
@@ -271,9 +293,9 @@ void LogHelper::PutRange(const T& range) {
 
   if (extra_elements != 0) {
     if (!is_first) {
-      *this << ' ';
+      *this << kSeparator;
     }
-    *this << "...(" << extra_elements << " more)";
+    *this << "..." << extra_elements << " more";
   }
 
   Put(']');

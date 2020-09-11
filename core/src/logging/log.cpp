@@ -137,7 +137,9 @@ class ThreadLocalMemPool {
   }
 };
 
-inline bool IsPowerOf2(uint64_t n) { return (n & (n - 1)) == 0; }
+constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
+
+constexpr bool IsPowerOf2(uint64_t n) { return (n & (n - 1)) == 0; }
 
 }  // namespace
 
@@ -205,8 +207,9 @@ LogHelper::~LogHelper() {
   ThreadLocalMemPool<Impl>::Push(std::move(pimpl_));
 }
 
+constexpr size_t kSizeLimit = 10000;
+
 bool LogHelper::IsLimitReached() const {
-  constexpr size_t kSizeLimit = 10000;
   return pimpl_->TextSize() >= kSizeLimit;
 }
 
@@ -344,6 +347,37 @@ void LogHelper::PutException(const std::exception& ex) {
   } else {
     Put(ex.what());
   }
+}
+
+void LogHelper::PutQuoted(std::string_view value) {
+  constexpr size_t kQuotesSize = 2;
+
+  const auto old_message_size = pimpl_->TextSize();
+  const auto allowed_size =
+      std::max(kSizeLimit, old_message_size + kQuotesSize) -
+      (old_message_size + kQuotesSize);
+  size_t used_size = 0;
+
+  Put('\"');
+
+  for (const char c : value) {
+    const bool needs_escaping = NeedsQuoteEscaping(c);
+    const size_t escaped_size = needs_escaping ? 2 : 1;
+
+    used_size += escaped_size;
+    if (used_size > allowed_size) break;
+
+    if (needs_escaping) {
+      Put('\\');
+    }
+    Put(c);
+  }
+
+  if (used_size > allowed_size) {
+    Put("...");
+  }
+
+  Put('\"');
 }
 
 LogHelper::EncodingGuard::EncodingGuard(LogHelper& lh, Encode mode) noexcept
