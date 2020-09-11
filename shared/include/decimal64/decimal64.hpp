@@ -855,6 +855,16 @@ class Decimal {
   int64_t value_;
 };
 
+namespace impl {
+
+template <typename T>
+struct IsDecimal : std::false_type {};
+
+template <int Prec, typename RoundPolicy>
+struct IsDecimal<Decimal<Prec, RoundPolicy>> : std::true_type {};
+
+}  // namespace impl
+
 /// Example of use:
 ///   c = decimal64::decimal_cast<6>(a * b);
 template <int Prec, int OldPrec, class Round>
@@ -892,6 +902,15 @@ constexpr Decimal<Prec, RoundPolicy> decimal_cast(std::string_view arg) {
   return Decimal<Prec, RoundPolicy>(arg);
 }
 
+class ParseError : public std::runtime_error {
+ public:
+  ParseError(std::string_view source, size_t pos)
+      : std::runtime_error(
+            fmt::format(FMT_STRING("Error while parsing Decimal from string "
+                                   "\"{}\", at position {}"),
+                        source, pos + 1)) {}
+};
+
 namespace impl {
 
 template <typename CharT>
@@ -903,16 +922,18 @@ template <typename CharT>
 class StringCharSequence {
  public:
   explicit StringCharSequence(std::basic_string_view<CharT> sv)
-      : current_(sv.cbegin()), end_(sv.cend()) {}
+      : current_(sv.data()), end_(sv.data() + sv.size()) {}
 
   // on sequence end, returns '\0'
   CharT Get() { return current_ == end_ ? CharT{'\0'} : *current_++; }
 
   void Unget() { --current_; }
 
+  const char* Position() const { return current_; }
+
  private:
-  typename std::basic_string_view<CharT>::const_iterator current_;
-  typename std::basic_string_view<CharT>::const_iterator end_;
+  const char* current_;
+  const char* end_;
 };
 
 template <typename CharT, typename Traits>
@@ -938,13 +959,13 @@ class StreamCharSequence {
   std::basic_istream<CharT, Traits>* in_;
 };
 
-enum class ParsingMode { kStrict, kAllowSpaces, kPermissive };
+enum class ParseTolerance { kStrict, kAllowSpaces, kPermissive };
 
 /// Extract values from a CharSequence ready to be packed to Decimal
 template <typename CharSequence>
 [[nodiscard]] bool ParseUnpacked(CharSequence input, int& sign, int64_t& before,
                                  int64_t& after, int& decimal_digits,
-                                 ParsingMode mode) {
+                                 ParseTolerance tolerance) {
   constexpr char dec_point = '.';
 
   enum class State {
@@ -989,7 +1010,7 @@ template <typename CharSequence>
           before_digits_count = 1;
         } else if (c == dec_point) {
           state = State::kAfterDec;
-        } else if (IsSpace(c) && mode != ParsingMode::kStrict) {
+        } else if (IsSpace(c) && tolerance != ParseTolerance::kStrict) {
           // skip
         } else {
           state = State::kEnd;
@@ -1071,11 +1092,11 @@ template <typename CharSequence>
     input.Unget();
 
     if (error == Error::kOk) {
-      switch (mode) {
-        case ParsingMode::kStrict:
+      switch (tolerance) {
+        case ParseTolerance::kStrict:
           error = Error::kWrongChar;
           break;
-        case ParsingMode::kAllowSpaces:
+        case ParseTolerance::kAllowSpaces:
           while (true) {
             const auto c = input.Get();
             if (c == '\0') {
@@ -1087,7 +1108,7 @@ template <typename CharSequence>
             }
           }
           break;
-        case ParsingMode::kPermissive:
+        case ParseTolerance::kPermissive:
           break;
         default:
           error = Error::kWrongState;
@@ -1117,16 +1138,31 @@ template <typename CharSequence>
   return error == Error::kOk;
 }
 
+/// Specifies how to treat the input containing more decimal digits than Prec
+enum ParseRounding {
+  /// Round according to the specified RoundPolicy
+  kAllow,
+
+  /// Treat rounding as an error, including trailing zeros beyond Prec
+  kProhibit
+};
+
 /// Extract values from a CharSequence ready to be packed to Decimal
 template <typename CharSequence, int Prec, typename RoundPolicy>
 [[nodiscard]] bool Parse(CharSequence input, Decimal<Prec, RoundPolicy>& output,
-                         ParsingMode mode) {
+                         ParseTolerance parse_tolerance,
+                         ParseRounding parse_rounding) {
   int sign, after_digits;
   int64_t before, after;
   const bool success =
-      ParseUnpacked(input, sign, before, after, after_digits, mode);
+      ParseUnpacked(input, sign, before, after, after_digits, parse_tolerance);
 
   if (!success || before >= kMaxInt64 / kPow10<Prec>) {
+    output = Decimal<Prec, RoundPolicy>(0);
+    return false;
+  }
+
+  if (parse_rounding == ParseRounding::kProhibit && after_digits > Prec) {
     output = Decimal<Prec, RoundPolicy>(0);
     return false;
   }
@@ -1136,10 +1172,22 @@ template <typename CharSequence, int Prec, typename RoundPolicy>
   return true;
 }
 
-inline void CheckParsingSuccess(bool success) {
+// TODO TAXICOMMON-2894
+// For Codegen only!
+template <typename T>
+T FromString(std::string_view input) {
+  static_assert(IsDecimal<T>::value);
+
+  impl::StringCharSequence source(input);
+  T result;
+  const bool success =
+      impl::Parse(source, result, impl::ParseTolerance::kStrict,
+                  impl::ParseRounding::kProhibit);
+
   if (!success) {
-    throw std::runtime_error("Could not convert the string to Decimal");
+    throw ParseError(input, source.Position() - input.data());
   }
+  return result;
 }
 
 enum class TrailingZerosMode { kLeave, kRemove };
@@ -1208,7 +1256,8 @@ template <int Prec, class RoundPolicy>
 Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
   // swallow the error
   static_cast<void>(impl::Parse(impl::StringCharSequence(value), *this,
-                                impl::ParsingMode::kPermissive));
+                                impl::ParseTolerance::kPermissive,
+                                impl::ParseRounding::kAllow));
 }
 
 /// Converts string to Decimal
@@ -1232,7 +1281,8 @@ Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
 template <int Prec, typename RoundPolicy>
 bool fromString(std::string_view input, Decimal<Prec, RoundPolicy>& output) {
   return impl::Parse(impl::StringCharSequence(input), output,
-                     impl::ParsingMode::kAllowSpaces);
+                     impl::ParseTolerance::kAllowSpaces,
+                     impl::ParseRounding::kAllow);
 }
 
 /// Converts string to Decimal
@@ -1279,7 +1329,8 @@ template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
 bool fromStream(std::basic_istream<CharT, Traits>& is,
                 Decimal<Prec, RoundPolicy>& d) {
   const bool success = impl::Parse(impl::StreamCharSequence(is), d,
-                                   impl::ParsingMode::kPermissive);
+                                   impl::ParseTolerance::kPermissive,
+                                   impl::ParseRounding::kAllow);
   if (!success) {
     is.setstate(std::ios_base::failbit);
   }

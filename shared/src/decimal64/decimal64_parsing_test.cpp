@@ -148,6 +148,27 @@ TEST(Decimal64, FromString) {
   ASSERT_FALSE(decimal64::fromString("-99999999999999999999999999", out));
 }
 
+TEST(Decimal64, FromStringStrict) {
+  ASSERT_EQ(decimal64::impl::FromString<Dec4>("42."), Dec4{"42.0"});
+  ASSERT_EQ(decimal64::impl::FromString<Dec4>(".42"), Dec4{"0.42"});
+
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>(""), decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("."), decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("#"), decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>(" 1"), decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("1 "), decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("1.."), decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("1a"), decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("1000000000000000"),
+               decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("1000000000000000000000"),
+               decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("1.23456"),
+               decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("1.23450"),
+               decimal64::ParseError);
+}
+
 TEST(Decimal64, FromStream) {
   Dec4 out;
   std::string remaining;
