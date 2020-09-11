@@ -210,11 +210,6 @@ constexpr int64_t Pow10(int exp) {
 template <int Exp>
 inline constexpr int64_t kPow10 = Pow10(Exp);
 
-// Use kPow10 instead
-template <int Prec>
-using DecimalFactor [[deprecated]] =
-    std::integral_constant<int64_t, kPow10<Prec>>;
-
 // no-rounding policy (decimal places stripped)
 class NullRoundPolicy {
  public:
@@ -488,9 +483,6 @@ class FloorRoundPolicy {
 
 // round towards zero = truncate
 class RoundDownRoundPolicy : public NullRoundPolicy {};
-
-using round_down_round_policy [[deprecated("Use RoundDownRoundPolicy")]] =
-    RoundDownRoundPolicy;
 
 // round away from zero
 class RoundUpRoundPolicy {
@@ -845,61 +837,6 @@ class Decimal {
     return {value_ / kDecimalFactor, value_ % kDecimalFactor};
   }
 
-  [[deprecated("Use FromBiased or FromFraction")]] constexpr explicit Decimal(
-      int64_t nom, int64_t den)
-      : Decimal(FromFraction(nom, den)) {}
-
-  [
-      [deprecated("Assign from an explicitly constructed Decimal "
-                  "instead")]] constexpr Decimal&
-  operator=(double rhs) {
-    return *this = Decimal{rhs};
-  }
-
-  [
-      [deprecated("Assign from an explicitly constructed Decimal "
-                  "instead")]] constexpr Decimal&
-  operator=(long double rhs) {
-    return *this = Decimal{rhs};
-  }
-
-  [[deprecated]] static constexpr int decimal_points = kDecimalPoints;
-
-  [[deprecated]] static constexpr int getDecimalPoints() {
-    return kDecimalPoints;
-  }
-
-  [[deprecated]] static constexpr int64_t getPrecFactor() {
-    return kDecimalFactor;
-  }
-
-  using round_policy_t [[deprecated]] = RoundPolicy;
-
-  [[deprecated]] constexpr double getAsDouble() const { return ToDouble(); }
-
-  [[deprecated]] constexpr long double getAsXDouble() const {
-    return ToLongDouble();
-  }
-
-  [[deprecated]] constexpr int64_t getUnbiased() const { return AsUnbiased(); }
-
-  [[deprecated]] constexpr void setUnbiased(int64_t value) {
-    *this = FromUnbiased(value);
-  }
-
-  [[deprecated]] constexpr int64_t getAsInteger() const { return ToInteger(); }
-
-  [[deprecated("Use AsUnpacked")]] constexpr void unpack(
-      int64_t& before, int64_t& after_value) const {
-    const auto unpacked = AsUnpacked();
-    before = unpacked.before;
-    after_value = unpacked.after;
-  }
-
-  [[deprecated]] constexpr int sign() const { return Sign(); }
-
-  [[deprecated]] constexpr Decimal abs() const { return Abs(); }
-
  private:
   template <typename T>
   static constexpr Decimal FromInteger(T value) {
@@ -918,26 +855,6 @@ class Decimal {
   int64_t value_;
 };
 
-template <int Prec, typename RoundPolicy = DefRoundPolicy>
-using decimal [[deprecated("Use Decimal")]] = Decimal<Prec, RoundPolicy>;
-
-using decimal2 [[deprecated("Use Decimal<2>")]] = Decimal<2>;
-using decimal4 [[deprecated("Use Decimal<4>")]] = Decimal<4>;
-using decimal6 [[deprecated("Use Decimal<6>")]] = Decimal<6>;
-
-namespace impl {
-
-template <typename T>
-struct IsDecimal : std::false_type {};
-
-template <int Prec, typename RoundPolicy>
-struct IsDecimal<Decimal<Prec, RoundPolicy>> : std::true_type {};
-
-template <typename T, typename R = void>
-using EnableIfDecimal = std::enable_if_t<IsDecimal<T>::value, R>;
-
-}  // namespace impl
-
 /// Example of use:
 ///   c = decimal64::decimal_cast<6>(a * b);
 template <int Prec, int OldPrec, class Round>
@@ -948,13 +865,6 @@ constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, Round> arg) {
 template <int Prec, typename Round, int OldPrec, typename OldRound>
 constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, OldRound> arg) {
   return Decimal<Prec, Round>::FromBiased(arg.AsUnbiased(), OldPrec);
-}
-
-// Deprecated: omit `T` template parameter instead
-template <int Prec, class T, class Round>
-[[deprecated]] constexpr impl::EnableIfDecimal<T, Decimal<Prec, Round>>
-decimal_cast(const T& arg) {
-  return decimal_cast<Prec, Round>(arg);
 }
 
 template <int Prec, typename T>
@@ -1362,12 +1272,6 @@ std::string ToString(Decimal<Prec, RoundPolicy> dec) {
 template <int Prec, typename RoundPolicy>
 std::string ToStringTrailingZeros(Decimal<Prec, RoundPolicy> dec) {
   return impl::ToStringImpl(dec, impl::TrailingZerosMode::kLeave);
-}
-
-template <int Prec, typename RoundPolicy>
-[[deprecated("Use ToStringTrailingZeros instead")]] std::string toString(
-    Decimal<Prec, RoundPolicy> dec) {
-  return ToStringTrailingZeros(dec);
 }
 
 // input
