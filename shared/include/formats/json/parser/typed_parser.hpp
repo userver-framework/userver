@@ -27,11 +27,14 @@ class SubscriberSink final : public Subscriber<T> {
 };
 
 template <typename T>
-class SubscriberSinkOptional final : public Subscriber<T> {
+class SubscriberSinkOptional final : public Subscriber<T>,
+                                     public Subscriber<std::optional<T>> {
  public:
   SubscriberSinkOptional(std::optional<T>& data) : data_(data) {}
 
   void OnSend(T&& value) override { data_ = std::move(value); }
+
+  void OnSend(std::optional<T>&& value) override { data_ = std::move(value); }
 
  private:
   std::optional<T>& data_;
