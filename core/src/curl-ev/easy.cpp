@@ -30,7 +30,10 @@ using namespace curl;
 using BusyMarker = ::utils::statistics::BusyMarker;
 
 easy::easy(native::CURL* easy_handle, multi* multi_handle)
-    : handle_(easy_handle), multi_(multi_handle), multi_registered_(false) {
+    : handle_(easy_handle),
+      multi_(multi_handle),
+      multi_registered_(false),
+      construct_ts_(std::chrono::steady_clock::now()) {
   initref_ = initialization::ensure_initialization();
   UASSERT(handle_);
   set_private(this);
@@ -98,7 +101,7 @@ void easy::do_ev_async_perform(handler_type handler, size_t request_num) {
 
   LOG_TRACE() << "easy::do_ev_async_perform start "
               << reinterpret_cast<long>(this);
-  timings_.mark_start_performing();
+  mark_start_performing();
   if (!multi_) {
     throw std::runtime_error(
         "attempt to perform async. operation without assigning a multi object");
@@ -166,7 +169,8 @@ void easy::reset() {
   if (http200_aliases_) http200_aliases_->clear();
   if (resolved_hosts_) resolved_hosts_->clear();
   share_.reset();
-  timings_.reset();
+  retries_count_ = 0;
+  sockets_opened_ = 0;
 
   set_custom_request(nullptr);
   set_no_body(false);
@@ -186,6 +190,13 @@ void easy::do_ev_reset() {
     native::curl_easy_reset(handle_);
   }
 }
+
+void easy::mark_start_performing() {
+  if (start_performing_ts_ == time_point{}) {
+    start_performing_ts_ = std::chrono::steady_clock::now();
+  }
+}
+void easy::mark_open_socket() { ++sockets_opened_; }
 
 void easy::set_source(std::shared_ptr<std::istream> source) {
   std::error_code ec;
@@ -437,7 +448,6 @@ void easy::handle_completion(const std::error_code& err) {
   LOG_TRACE() << "easy::handle_completion easy="
               << reinterpret_cast<long>(this);
 
-  timings_.mark_complete();
   if (sink_) {
     sink_->flush();
   }
@@ -453,6 +463,26 @@ void easy::handle_completion(const std::error_code& err) {
    * coro context.
    */
   handler(err);
+}
+
+void easy::mark_retry() { ++retries_count_; }
+
+LocalStats easy::get_local_stats() {
+  LocalStats stats;
+
+  stats.open_socket_count = sockets_opened_;
+  stats.retries_count = retries_count_;
+  stats.time_to_connect = std::chrono::microseconds(get_connect_time_t());
+  stats.time_to_process = std::chrono::microseconds(get_total_time_t());
+
+  return stats;
+}
+
+easy::time_point::duration easy::time_to_start() const {
+  if (start_performing_ts_ != time_point{}) {
+    return start_performing_ts_ - construct_ts_;
+  }
+  return {};
 }
 
 native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {
@@ -584,7 +614,7 @@ native::curl_socket_t easy::opensocket(
           s = self->open_tcp_socket(address);
           if (s != -1 && multi_handle) {
             multi_handle->Statistics().mark_open_socket();
-            self->timings().mark_open_socket();
+            self->mark_open_socket();
           }
           return s;
 

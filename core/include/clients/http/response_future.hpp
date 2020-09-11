@@ -7,6 +7,8 @@
 #include <clients/http/response.hpp>
 #include <utils/fast_pimpl.hpp>
 
+#include "wrapper.hpp"
+
 namespace engine::impl {
 template <typename T>
 class BlockingFuture;

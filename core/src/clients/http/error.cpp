@@ -3,8 +3,7 @@
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/local_stats.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 BaseCodeException::BaseCodeException(std::error_code ec, const std::string& msg,
                                      const curl::LocalStats& stats)
@@ -61,5 +60,4 @@ std::exception_ptr PrepareException(std::error_code ec, const std::string& url,
   }
 }
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

@@ -9,6 +9,8 @@
 #include <crypto/certificate.hpp>
 #include <crypto/private_key.hpp>
 
+#include "curl-ev/easy.hpp"
+
 namespace curl {
 class multi;
 }  // namespace curl

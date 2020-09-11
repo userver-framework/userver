@@ -287,15 +287,19 @@ TEST(HttpClient, PostEcho) {
     EXPECT_EQ(res->body(), kTestData);
 
     const auto stats = res->GetStats();
-    EXPECT_EQ(stats.retries_count(), 0);
-    EXPECT_GE(stats.open_socket_count(), 1);
-    EXPECT_GT(stats.time_to_process(), std::chrono::seconds(0));
-    EXPECT_GT(stats.time_to_connect(), std::chrono::seconds(0));
+    EXPECT_EQ(stats.retries_count, 0);
+    EXPECT_GE(stats.open_socket_count, 1);
+    EXPECT_GT(stats.time_to_process, std::chrono::seconds(0));
+    EXPECT_GT(stats.time_to_connect, std::chrono::seconds(0));
+
+    EXPECT_LT(stats.time_to_process, std::chrono::milliseconds(100));
+    EXPECT_LT(stats.time_to_connect, std::chrono::milliseconds(100));
   });
 }
 
 TEST(HttpClient, StatsOnTimeout) {
   TestInCoro([] {
+    const int kRetries = 5;
     const testing::SimpleServer http_server{&sleep_callback};
     auto http_client_ptr = utest::CreateHttpClient();
     const auto timeout = std::chrono::milliseconds(100);
@@ -303,15 +307,17 @@ TEST(HttpClient, StatsOnTimeout) {
     try {
       const auto res = http_client_ptr->CreateRequest()
                            ->post(http_server.GetBaseUrl(), kTestData)
-                           ->retry(5)
+                           ->retry(kRetries)
                            ->verify(true)
                            ->http_version(curl::easy::http_version_1_1)
                            ->timeout(timeout)
                            ->perform();
     } catch (const clients::http::BaseException& e) {
-      EXPECT_EQ(e.GetStats().retries_count(), 4);
-      EXPECT_EQ(e.GetStats().open_socket_count(), 5);
-      EXPECT_GE(e.GetStats().time_to_process(), timeout);
+      EXPECT_EQ(e.GetStats().retries_count, kRetries - 1);
+      EXPECT_EQ(e.GetStats().open_socket_count, kRetries);
+
+      EXPECT_GE(e.GetStats().time_to_process, timeout);
+      EXPECT_LT(e.GetStats().time_to_process, timeout * kRetries);
     }
   });
 }

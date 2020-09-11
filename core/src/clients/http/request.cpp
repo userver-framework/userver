@@ -72,6 +72,7 @@ std::string ToString(HttpMethod method) {
 const std::map<std::string, std::error_code> kTestsuiteActions = {
     {"timeout", {curl::errc::easy::operation_timedout}},
     {"network", {curl::errc::easy::could_not_connect}}};
+const std::string kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
 const std::string kTestsuiteSupportedErrors =
     boost::algorithm::join(boost::adaptors::keys(kTestsuiteActions), ",");
 
@@ -571,7 +572,7 @@ void Request::RequestImpl::on_completed(
 
   holder->AccountResponse(err);
   if (holder->dest_req_stats_) {
-    auto sockets = holder->easy().timings().open_socket_count();
+    const auto sockets = holder->easy().get_num_connects();
     holder->dest_req_stats_->AccountOpenSockets(sockets);
   }
 
@@ -586,9 +587,13 @@ void Request::RequestImpl::on_completed(
     span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
 
     holder->promise_.set_exception(PrepareException(
-        err, holder->easy().get_url(), holder->easy().timings()));
+        err, holder->easy().get_url(), holder->easy().get_local_stats()));
   } else {
     span.AddTag(tracing::kHttpStatusCode, holder->response()->status_code());
+    holder->response()->SetStatusCode(
+        static_cast<Status>(holder->easy().get_response_code()));
+    holder->response()->SetStats(holder->easy().get_local_stats());
+
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
 
     holder->promise_.set_value(holder->response_move());
@@ -601,18 +606,18 @@ void Request::RequestImpl::on_completed(
 void Request::RequestImpl::AccountResponse(std::error_code err) {
   const auto attempts = retry_.current;
 
-  stats_->StoreTimeToStart(
+  const auto time_to_start =
       std::chrono::duration_cast<std::chrono::microseconds>(
-          easy().timings().time_to_start()));
+          easy().time_to_start());
+
+  stats_->StoreTimeToStart(time_to_start);
   if (err)
     stats_->FinishEc(err, attempts);
   else
     stats_->FinishOk(easy().get_response_code(), attempts);
 
   if (dest_req_stats_) {
-    dest_req_stats_->StoreTimeToStart(
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            easy().timings().time_to_start()));
+    dest_req_stats_->StoreTimeToStart(time_to_start);
     if (err)
       dest_req_stats_->FinishEc(err, attempts);
     else
@@ -646,7 +651,7 @@ void Request::RequestImpl::on_retry(
                        1);
     // increase try
     ++holder->retry_.current;
-    holder->easy().timings().mark_retry();
+    holder->easy().mark_retry();
     // initialize timer
     holder->retry_.timer = std::make_unique<engine::ev::TimerWatcher>(
         holder->easy().GetThreadControl());
@@ -758,7 +763,7 @@ void Request::RequestImpl::perform_request(curl::easy::handler_type handler) {
   UASSERT_MSG(!cert_ || pkey_,
               "Setting certificate is useless without setting private key");
 
-  response_ = std::make_shared<Response>(easy_);
+  response_ = std::make_shared<Response>();
   // set place for response body
   easy().set_sink(&(response_->sink_stream()));
 
@@ -789,7 +794,7 @@ void Request::RequestImpl::ApplyTestsuiteConfig() {
     set_timeout(std::chrono::milliseconds(*timeout).count());
   }
 
-  easy().add_header("X-Testsuite-Supported-Errors", kTestsuiteSupportedErrors);
+  easy().add_header(kTestsuiteSupportedErrorsKey, kTestsuiteSupportedErrors);
 }
 
 }  // namespace http

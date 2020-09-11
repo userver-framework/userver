@@ -2,6 +2,8 @@
 
 #include <engine/blocking_future.hpp>
 
+#include "curl-ev/easy.hpp"
+
 namespace clients::http {
 
 ResponseFuture::ResponseFuture(
@@ -39,7 +41,7 @@ std::future_status ResponseFuture::Wait() const {
       engine::current_task::IsCancelRequested()) {
     throw CancelException(
         "HTTP response wait was aborted due to task cancellation",
-        easy_->Easy().timings());
+        easy_->Easy().get_local_stats());
   }
   return status;
 }
@@ -52,7 +54,7 @@ std::shared_ptr<Response> ResponseFuture::Get() {
     return response;
   }
 
-  throw TimeoutException("Future timeout", easy_->Easy().timings());
+  throw TimeoutException("Future timeout", easy_->Easy().get_local_stats());
 }
 
 }  // namespace clients::http

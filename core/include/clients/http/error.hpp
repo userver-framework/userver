@@ -6,8 +6,7 @@
 
 #include <curl-ev/local_stats.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 /// Exception with string
 class BaseException : public std::exception {
@@ -123,5 +122,4 @@ class HttpServerException : public HttpException {
 std::exception_ptr PrepareException(std::error_code ec, const std::string& url,
                                     const curl::LocalStats& stats);
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

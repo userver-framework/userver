@@ -1,18 +1,14 @@
 #pragma once
 
-#include <map>
-#include <memory>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 
-#include <curl-ev/easy.hpp>
 #include <curl-ev/local_stats.hpp>
 
 #include <utils/str_icase.hpp>
 
 #include "error.hpp"
-#include "wrapper.hpp"
 
 namespace clients::http {
 
@@ -47,7 +43,7 @@ using Headers = std::unordered_map<std::string, std::string,
 /// Class that will be returned for successful request
 class Response final {
  public:
-  Response(std::shared_ptr<EasyWrapper> easy) : easy_(std::move(easy)) {}
+  Response() = default;
 
   /// response stream
   std::ostringstream& sink_stream() { return response_stream_; }
@@ -67,25 +63,18 @@ class Response final {
 
   void raise_for_status() const;
 
-  curl::easy& easy();
-  const curl::easy& easy() const;
-
   /// returns statistics on request execution like const of opened sockets,
   /// connect time...
   curl::LocalStats GetStats() const;
 
+  void SetStats(const curl::LocalStats& stats) { stats_ = stats; }
+  void SetStatusCode(Status status_code) { status_code_ = status_code; }
+
  private:
   Headers headers_;
   std::ostringstream response_stream_;
-  std::shared_ptr<EasyWrapper> easy_;
+  Status status_code_;
+  curl::LocalStats stats_;
 };
 
 }  // namespace clients::http
-
-namespace curl {
-std::basic_ostream<char, std::char_traits<char>>& operator<<(
-    std::ostream& stream, const curl::easy& ceasy);
-}  // namespace curl
-
-std::ostream& operator<<(std::ostream& stream,
-                         const clients::http::Response& response);

@@ -282,7 +282,6 @@ void multi::start_read_op(socket_info* si) {
   LOG_TRACE() << "start_read_op si=" << si;
 
   si->pending_read_op = true;
-  if (si->IsEasySocket()) si->handle->timings().mark_start_read();
 
   si->watcher.ReadAsync(
       std::bind(&multi::handle_socket_read, this, std::placeholders::_1, si));
@@ -307,7 +306,6 @@ void multi::handle_socket_read(std::error_code err, socket_info* si) {
 
 void multi::start_write_op(socket_info* si) {
   LOG_TRACE() << "start_write_op si=" << si;
-  if (si->IsEasySocket()) si->handle->timings().mark_start_write();
   si->pending_write_op = true;
 
   si->watcher.WriteAsync(

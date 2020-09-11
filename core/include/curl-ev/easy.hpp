@@ -107,6 +107,15 @@ class ThreadControl;
     return info;                                                   \
   }
 
+#define IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(FUNCTION_NAME, OPTION_NAME) \
+  inline long FUNCTION_NAME() {                                          \
+    native::curl_off_t info;                                             \
+    std::error_code ec = std::error_code(                                \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info));         \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                        \
+    return info;                                                         \
+  }
+
 #define IMPLEMENT_CURL_OPTION_GET_LIST(FUNCTION_NAME, OPTION_NAME) \
   inline std::vector<std::string> FUNCTION_NAME() {                \
     struct native::curl_slist* info;                               \
@@ -132,6 +141,7 @@ class string_list;
 class easy final : public std::enable_shared_from_this<easy> {
  public:
   using handler_type = std::function<void(const std::error_code& err)>;
+  using time_point = std::chrono::steady_clock::time_point;
 
   static easy* from_native(native::CURL* native_easy);
 
@@ -566,10 +576,14 @@ class easy final : public std::enable_shared_from_this<easy> {
                                  native::CURLINFO_HTTP_CONNECTCODE);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_filetime, native::CURLINFO_FILETIME);
   IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_total_time, native::CURLINFO_TOTAL_TIME);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_total_time_t,
+                                       native::CURLINFO_TOTAL_TIME_T);
   IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_namelookup_time,
                                    native::CURLINFO_NAMELOOKUP_TIME);
   IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_connect_time,
                                    native::CURLINFO_CONNECT_TIME);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_connect_time_t,
+                                       native::CURLINFO_CONNECT_TIME_T);
   IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_appconnect_time,
                                    native::CURLINFO_APPCONNECT_TIME);
   IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_pretransfer_time,
@@ -638,7 +652,11 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   void handle_completion(const std::error_code& err);
 
-  LocalStats& timings() { return timings_; }
+  void mark_retry();
+
+  LocalStats get_local_stats();
+
+  time_point::duration time_to_start() const;
 
  private:
   static size_t header_function(void* ptr, size_t size, size_t nmemb,
@@ -667,9 +685,8 @@ class easy final : public std::enable_shared_from_this<easy> {
   void do_ev_cancel(size_t request_num);
   void do_ev_reset();
 
-  void StartTask();
-
-  void DoRun();
+  void mark_start_performing();
+  void mark_open_socket();
 
   initialization::ptr initref_;
   native::CURL* handle_{nullptr};
@@ -688,7 +705,11 @@ class easy final : public std::enable_shared_from_this<easy> {
   std::shared_ptr<share> share_;
   progress_callback_t progress_callback_;
   std::string url_;
-  LocalStats timings_;
+  std::size_t retries_count_{0};
+  std::size_t sockets_opened_{0};
+
+  time_point start_performing_ts_{};
+  const time_point construct_ts_;
 };
 }  // namespace curl
 
