@@ -23,7 +23,7 @@ class RequestStats final {
   void FinishOk(int code, int attempts);
   void FinishEc(std::error_code ec, int attempts);
 
-  void StoreTimeToStart(double seconds);
+  void StoreTimeToStart(std::chrono::microseconds micro_seconds);
 
   void AccountOpenSockets(size_t sockets);
 

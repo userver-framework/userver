@@ -51,28 +51,6 @@ Status Response::status_code() const {
   return static_cast<Status>(easy_->Easy().get_response_code());
 }
 
-double Response::total_time() const { return easy_->Easy().get_total_time(); }
-
-double Response::connect_time() const {
-  return easy_->Easy().get_connect_time();
-}
-
-double Response::name_lookup_time() const {
-  return easy_->Easy().get_namelookup_time();
-}
-
-double Response::appconnect_time() const {
-  return easy_->Easy().get_appconnect_time();
-}
-
-double Response::pretransfer_time() const {
-  return easy_->Easy().get_pretransfer_time();
-}
-
-double Response::starttransfer_time() const {
-  return easy_->Easy().get_starttransfer_time();
-}
-
 void Response::RaiseForStatus(long code) {
   if (400 <= code && code < 500)
     throw HttpClientException(code);
@@ -86,9 +64,7 @@ curl::easy& Response::easy() { return easy_->Easy(); }
 
 const curl::easy& Response::easy() const { return easy_->Easy(); }
 
-curl::LocalTimings Response::local_timings() const {
-  return easy_->Easy().timings();
-}
+curl::LocalStats Response::GetStats() const { return easy_->Easy().timings(); }
 
 }  // namespace http
 }  // namespace clients

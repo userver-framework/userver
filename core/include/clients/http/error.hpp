@@ -4,6 +4,8 @@
 #include <string>
 #include <system_error>
 
+#include <curl-ev/local_stats.hpp>
+
 namespace clients {
 namespace http {
 
@@ -11,19 +13,24 @@ namespace http {
 class BaseException : public std::exception {
  public:
   BaseException() = default;
-  explicit BaseException(std::string msg) : msg_(std::move(msg)) {}
+  BaseException(std::string msg, const curl::LocalStats& stats)
+      : msg_(std::move(msg)), stats_(stats) {}
   ~BaseException() override = default;
 
   const char* what() const noexcept override { return msg_.c_str(); }
 
+  const curl::LocalStats& GetStats() const { return stats_; }
+
  protected:
   std::string msg_;
+  curl::LocalStats stats_;
 };
 
 /// Exception with string and error_code
 class BaseCodeException : public BaseException {
  public:
-  BaseCodeException(std::error_code ec, const std::string& msg);
+  BaseCodeException(std::error_code ec, const std::string& msg,
+                    const curl::LocalStats& stats);
   ~BaseCodeException() override = default;
 
   const std::error_code& error_code() const noexcept { return ec_; }
@@ -113,7 +120,8 @@ class HttpServerException : public HttpException {
 };
 
 /// map error_code to exceptions
-std::exception_ptr PrepareException(std::error_code ec, const std::string& url);
+std::exception_ptr PrepareException(std::error_code ec, const std::string& url,
+                                    const curl::LocalStats& stats);
 
 }  // namespace http
 }  // namespace clients

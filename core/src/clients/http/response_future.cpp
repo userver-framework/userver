@@ -38,7 +38,8 @@ std::future_status ResponseFuture::Wait() const {
   if (status != std::future_status::ready &&
       engine::current_task::IsCancelRequested()) {
     throw CancelException(
-        "HTTP response wait was aborted due to task cancellation");
+        "HTTP response wait was aborted due to task cancellation",
+        easy_->Easy().timings());
   }
   return status;
 }
@@ -51,7 +52,7 @@ std::shared_ptr<Response> ResponseFuture::Get() {
     return response;
   }
 
-  throw TimeoutException("Future timeout");
+  throw TimeoutException("Future timeout", easy_->Easy().timings());
 }
 
 }  // namespace clients::http

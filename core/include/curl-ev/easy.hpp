@@ -18,7 +18,7 @@
 #include "error_code.hpp"
 #include "form.hpp"
 #include "initialization.hpp"
-#include "local_timings.hpp"
+#include "local_stats.hpp"
 
 namespace engine {
 namespace ev {
@@ -638,7 +638,7 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   void handle_completion(const std::error_code& err);
 
-  LocalTimings& timings() { return timings_; }
+  LocalStats& timings() { return timings_; }
 
  private:
   static size_t header_function(void* ptr, size_t size, size_t nmemb,
@@ -688,7 +688,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   std::shared_ptr<share> share_;
   progress_callback_t progress_callback_;
   std::string url_;
-  LocalTimings timings_;
+  LocalStats timings_;
 };
 }  // namespace curl
 

@@ -38,11 +38,11 @@ void RequestStats::StoreTiming() {
   stats_.timings_percentile.GetCurrentCounter().Account(ms);
 }
 
-void RequestStats::StoreTimeToStart(double seconds) {
+void RequestStats::StoreTimeToStart(std::chrono::microseconds micro_seconds) {
   /* There is a race between multiple easy handles, we don't care which of them
    * writes its time_to_start. If boost::asio pool is full, we'll see big
    * numbers anyway. */
-  stats_.last_time_to_start_us = static_cast<int>(seconds * 1000 * 1000);
+  stats_.last_time_to_start_us = micro_seconds.count();
 }
 
 void RequestStats::AccountOpenSockets(size_t sockets) {

@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 #include <curl-ev/easy.hpp>
-#include <curl-ev/local_timings.hpp>
+#include <curl-ev/local_stats.hpp>
 
 #include <utils/str_icase.hpp>
 
@@ -62,18 +62,6 @@ class Response final {
   Status status_code() const;
   /// check status code
   bool IsOk() const { return status_code() == Status::OK; }
-  /// total request time
-  double total_time() const;
-  /// connect time
-  double connect_time() const;
-
-  double name_lookup_time() const;
-
-  double appconnect_time() const;
-
-  double pretransfer_time() const;
-
-  double starttransfer_time() const;
 
   static void RaiseForStatus(long code);
 
@@ -82,7 +70,9 @@ class Response final {
   curl::easy& easy();
   const curl::easy& easy() const;
 
-  curl::LocalTimings local_timings() const;
+  /// returns statistics on request execution like const of opened sockets,
+  /// connect time...
+  curl::LocalStats GetStats() const;
 
  private:
   Headers headers_;
