@@ -4,7 +4,8 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
-#include <formats/json/types.hpp>
+
+#include <formats/json/impl/types.hpp>
 
 namespace formats::json::impl {
 enum Type {

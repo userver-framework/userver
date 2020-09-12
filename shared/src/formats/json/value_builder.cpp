@@ -5,10 +5,12 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#include <formats/common/validations.hpp>
 #include <formats/json/exception.hpp>
 #include <utils/assert.hpp>
 #include <utils/datetime.hpp>
+
+#include <formats/common/validations.hpp>
+#include <formats/json/impl/types_impl.hpp>
 
 namespace formats::json {
 
@@ -29,97 +31,79 @@ rapidjson::Type ToNativeType(Type type) {
   }
 }
 
-// use c runtime malloc/free for value builders
-rapidjson::CrtAllocator g_crt_allocator;
-
-enum class MemberDuplicate {
-  kCheck,
-  kNoCheck,
-};
-
-impl::Value* AddMember(Value& value, impl::Value& native,
-                       const std::string& key,
-                       MemberDuplicate member_duplicate) {
-  value.CheckObjectOrNull();
-
-  impl::Value* newval = nullptr;
-
-  if (native.IsNull()) {
-    native.SetObject();
-  } else if (member_duplicate == MemberDuplicate::kCheck) {
-    auto it = native.FindMember(key);
-    newval = it != native.MemberEnd() ? &it->value : nullptr;
-  }
-
-  if (newval == nullptr) {
-    // create new member if key is not found
-    native.AddMember(impl::Value(key, g_crt_allocator), impl::Value(),
-                     g_crt_allocator);
-    newval = &std::prev(native.MemberEnd())->value;
-  }
-
-  return newval;
-}
+::rapidjson::CrtAllocator g_allocator;
 
 }  // namespace
 
 ValueBuilder::ValueBuilder(Type type)
-    : value_(std::make_shared<impl::Value>(ToNativeType(type))) {}
+    : value_(impl::VersionedValuePtr::Create(ToNativeType(type))) {}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) {
-  Copy(value_.GetNative(), other);
+  Copy(value_->GetNative(), other);
 }
 
 // NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(ValueBuilder&& other) {
-  Move(value_.GetNative(), std::move(other));
+  Move(value_->GetNative(), std::move(other));
 }
 
-ValueBuilder::ValueBuilder(bool t) : value_(std::make_shared<impl::Value>(t)) {}
+ValueBuilder::ValueBuilder(bool t)
+    : value_(impl::VersionedValuePtr::Create(t)) {}
 
 ValueBuilder::ValueBuilder(const char* str)
-    : value_(std::make_shared<impl::Value>(str, g_crt_allocator)) {}
+    : value_(impl::VersionedValuePtr::Create(str, g_allocator)) {}
 
 ValueBuilder::ValueBuilder(const std::string& str)
-    : value_(std::make_shared<impl::Value>(str, g_crt_allocator)) {}
+    : value_(impl::VersionedValuePtr::Create(str, g_allocator)) {}
 
 ValueBuilder::ValueBuilder(std::string_view str)
-    : value_(std::make_shared<impl::Value>()) {
+    : value_(impl::VersionedValuePtr{}) {
   // GenericValue ctor has an invalid type for size
-  value_.GetNative().SetString(rapidjson::StringRef(str.data(), str.size()),
-                               g_crt_allocator);
+  value_->GetNative().SetString(rapidjson::StringRef(str.data(), str.size()),
+                                g_allocator);
 }
 
-ValueBuilder::ValueBuilder(int t) : value_(std::make_shared<impl::Value>(t)) {}
+ValueBuilder::ValueBuilder(int t)
+    : value_(impl::VersionedValuePtr::Create(t)) {}
+
 ValueBuilder::ValueBuilder(unsigned int t)
-    : value_(std::make_shared<impl::Value>(t)) {}
+    : value_(impl::VersionedValuePtr::Create(t)) {}
+
 ValueBuilder::ValueBuilder(uint64_t t)
-    : value_(std::make_shared<impl::Value>(t)) {}
+    : value_(impl::VersionedValuePtr::Create(t)) {}
+
 ValueBuilder::ValueBuilder(int64_t t)
-    : value_(std::make_shared<impl::Value>(t)) {}
+    : value_(impl::VersionedValuePtr::Create(t)) {}
 
 ValueBuilder::ValueBuilder(float t)
-    : value_(std::make_shared<impl::Value>(
+    : value_(impl::VersionedValuePtr::Create(
           formats::common::ValidateFloat<Exception>(t))) {}
+
 ValueBuilder::ValueBuilder(double t)
-    : value_(std::make_shared<impl::Value>(
+    : value_(impl::VersionedValuePtr::Create(
           formats::common::ValidateFloat<Exception>(t))) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
-  Copy(value_.GetNative(), other);
+  if ((value_->IsArray() || value_->IsObject()) && value_->GetSize() != 0) {
+    value_.OnMembersChange();
+  }
+  Copy(value_->GetNative(), other);
   return *this;
 }
 
 // NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder& ValueBuilder::operator=(ValueBuilder&& other) {
-  Move(value_.GetNative(), std::move(other));
+  if ((value_->IsArray() || value_->IsObject()) && value_->GetSize() != 0) {
+    value_.OnMembersChange();
+  }
+  Move(value_->GetNative(), std::move(other));
   return *this;
 }
 
 ValueBuilder::ValueBuilder(const formats::json::Value& other) {
   // As we have new native object created,
   // we fill it with the copy from other's native object.
-  value_.GetNative().CopyFrom(other.GetNative(), g_crt_allocator);
+  value_->GetNative().CopyFrom(other.GetNative(), g_allocator);
 }
 
 // NOLINTNEXTLINE(performance-noexcept-move-constructor)
@@ -127,120 +111,148 @@ ValueBuilder::ValueBuilder(formats::json::Value&& other) {
   // As we have new native object created,
   // we fill it with the other's native object.
   if (other.IsUniqueReference())
-    value_.GetNative() = std::move(other.GetNative());
+    value_->GetNative() = std::move(other.GetNative());
   else
     // rapidjson uses move semantics in assignment
-    value_.GetNative().CopyFrom(other.GetNative(), g_crt_allocator);
+    value_->GetNative().CopyFrom(other.GetNative(), g_allocator);
 }
 
-ValueBuilder::ValueBuilder(EmplaceEnabler, const NativeValuePtr& root,
-                           const impl::Value& val, int depth)
-    : ValueBuilder(root, val, depth) {}
+ValueBuilder::ValueBuilder(EmplaceEnabler,
+                           impl::MutableValueWrapper value) noexcept
+    : ValueBuilder(std::move(value)) {}
 
-ValueBuilder::ValueBuilder(const NativeValuePtr& root, const impl::Value& val,
-                           int depth)
-    : value_(root, &val, depth) {}
+ValueBuilder::ValueBuilder(impl::MutableValueWrapper value) noexcept
+    : value_(std::move(value)) {}
 
-ValueBuilder ValueBuilder::operator[](const std::string& key) {
-  auto newval =
-      AddMember(value_, value_.GetNative(), key, MemberDuplicate::kCheck);
-  return {value_.root_, *newval, value_.depth_ + 1};
+ValueBuilder ValueBuilder::operator[](std::string key) {
+  return ValueBuilder{value_.WrapMember(
+      std::move(key), AddMember(key, CheckMemberExists::kYes))};
 }
 
 ValueBuilder ValueBuilder::operator[](std::size_t index) {
-  value_.CheckInBounds(index);
-  return {value_.root_, value_.GetNative()[static_cast<int>(index)],
-          value_.depth_ + 1};
+  value_->CheckInBounds(index);
+  return ValueBuilder{value_.WrapElement(index)};
 }
 
 void ValueBuilder::EmplaceNocheck(const std::string& key, ValueBuilder value) {
-  auto newval =
-      AddMember(value_, value_.GetNative(), key, MemberDuplicate::kNoCheck);
-  ValueBuilder{value_.root_, *newval, value_.depth_ + 1} = std::move(value);
+  Move(AddMember(key, CheckMemberExists::kNo), std::move(value));
 }
 
 void ValueBuilder::Remove(const std::string& key) {
-  value_.CheckObject();
-  value_.GetNative().RemoveMember(key);
+  value_->CheckObject();
+  if (value_->GetNative().RemoveMember(key)) {
+    value_.OnMembersChange();
+  }
 }
 
 ValueBuilder::iterator ValueBuilder::begin() {
-  value_.CheckObjectOrArrayOrNull();
-  return {value_.root_, &value_.GetNative(), 0, value_.depth_};
+  value_->CheckObjectOrArrayOrNull();
+  return iterator{value_, 0};
 }
 
 ValueBuilder::iterator ValueBuilder::end() {
-  value_.CheckObjectOrArrayOrNull();
-  return {value_.root_, &value_.GetNative(), static_cast<int>(GetSize()),
-          value_.depth_};
+  value_->CheckObjectOrArrayOrNull();
+  return iterator{value_, static_cast<int>(GetSize())};
 }
 
-bool ValueBuilder::IsEmpty() const { return value_.IsEmpty(); }
+bool ValueBuilder::IsEmpty() const { return value_->IsEmpty(); }
 
-std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
+std::size_t ValueBuilder::GetSize() const { return value_->GetSize(); }
 
 bool ValueBuilder::HasMember(const char* key) const {
-  return value_.HasMember(key);
+  return value_->HasMember(key);
 }
 
 bool ValueBuilder::HasMember(const std::string& key) const {
-  return value_.HasMember(key);
+  return value_->HasMember(key);
 }
 
 void ValueBuilder::Resize(std::size_t size) {
-  value_.CheckArrayOrNull();
-  auto& native = value_.GetNative();
+  value_->CheckArrayOrNull();
+  auto& native = value_->GetNative();
+
   if (native.IsNull()) native.SetArray();
-  unsigned actual_size = native.Size();
-  if (actual_size < size) {
-    for (int count = size - actual_size; count != 0; count--)
-      native.PushBack(impl::Value{}, g_crt_allocator);
-  } else if (actual_size > size) {
-    for (int count = actual_size - size; count != 0; count--) native.PopBack();
+
+  if (size > native.Capacity()) {
+    native.Reserve(size, g_allocator);
+    value_.OnMembersChange();
+  }
+
+  for (size_t curr_size = native.Size(); curr_size > size; --curr_size) {
+    native.PopBack();
+  }
+  for (size_t curr_size = native.Size(); curr_size < size; ++curr_size) {
+    native.PushBack(impl::Value{}, g_allocator);
   }
 }
 
 void ValueBuilder::PushBack(ValueBuilder&& bld) {
-  value_.CheckArrayOrNull();
-  auto& native = value_.GetNative();
+  value_->CheckArrayOrNull();
+  auto& native = value_->GetNative();
   if (native.IsNull()) {
     native.SetArray();
   }
 
-  if (bld.value_.IsRoot()) {
-    native.PushBack(bld.value_.GetNative(),
-                    g_crt_allocator);  // PushBack is moving value via RawAssign
+  // notify wrapper when elements capacity (and thus location) changes
+  const auto checked_push_back = [this, &native](auto&& value) {
+    const auto old_capacity = native.Capacity();
+    native.PushBack(value, g_allocator);
+    if (old_capacity && old_capacity != native.Capacity()) {
+      value_.OnMembersChange();
+    }
+  };
+
+  if (bld.value_->IsRoot()) {
+    // PushBack is moving value via RawAssign
+    checked_push_back(bld.value_->GetNative());
   } else {
-    native.PushBack(impl::Value{}, g_crt_allocator);
+    checked_push_back(impl::Value{});
     Copy(*std::prev(native.End()), bld);
   }
 }
 
 formats::json::Value ValueBuilder::ExtractValue() {
-  if (!value_.IsRoot()) {
+  if (!value_->IsRoot()) {
     throw Exception("Extract should be called only from the root builder");
   }
-
-  // Create underlying native object first,
-  // then fill it with actual data and don't forget
-  // to keep path (needed for iterators)
-  formats::json::Value v;
-  v.GetNative() = std::move(value_.GetNative());
-  v.depth_ = value_.depth_;
-  value_ = Value{};
-  return v;
+  // reset to a known good state
+  return std::exchange(value_, impl::MutableValueWrapper{}).ExtractValue();
 }
 
 void ValueBuilder::Copy(impl::Value& to, const ValueBuilder& from) {
-  to.CopyFrom(from.value_.GetNative(), g_crt_allocator);
+  to.CopyFrom(from.value_->GetNative(), g_allocator);
 }
 
 void ValueBuilder::Move(impl::Value& to, ValueBuilder&& from) {
-  if (from.value_.IsRoot()) {
-    to = std::move(from.value_.GetNative());
+  if (from.value_->IsRoot()) {
+    to = std::move(from.value_->GetNative());
   } else {
     Copy(to, from);
   }
+}
+
+impl::Value& ValueBuilder::AddMember(const std::string& key,
+                                     CheckMemberExists check_exists) {
+  value_->CheckObjectOrNull();
+  auto& native = value_->GetNative();
+
+  if (native.IsNull()) {
+    native.SetObject();
+  } else if (check_exists == CheckMemberExists::kYes) {
+    auto it = native.FindMember(key);
+    if (it != native.MemberEnd()) {
+      return it->value;
+    }
+  }
+
+  // notify wrapper when members capacity (and thus location) changes
+  const auto old_capacity = native.MemberCapacity();
+  native.AddMember(impl::Value{key, g_allocator}, impl::Value{}, g_allocator);
+  if (old_capacity && old_capacity != native.MemberCapacity()) {
+    value_.OnMembersChange();
+  }
+
+  return std::prev(native.MemberEnd())->value;
 }
 
 Value Serialize(std::chrono::system_clock::time_point tp,

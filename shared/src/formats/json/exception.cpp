@@ -3,9 +3,10 @@
 #include <istream>
 #include <ostream>
 
+#include <fmt/format.h>
 #include <rapidjson/document.h>
 
-#include "exttypes.hpp"
+#include <formats/json/impl/exttypes.hpp>
 
 namespace {
 
@@ -19,30 +20,27 @@ std::string MsgForState(std::ios::iostate state, const char* stream) {
     str_state = "EOF";
   }
 
-  return std::string("The ") + stream + " stream is in state '" + str_state +
-         '\'';
+  return fmt::format("The {} stream is in state '{}'", stream, str_state);
 }
 
 template <typename TType>
 std::string MsgForType(TType actual, TType expected, const std::string& path) {
-  return std::string("Field '") + path +
-         "' is of a wrong type. Expected: " + NameForType(expected) +
-         ", actual: " + NameForType(actual);
+  return fmt::format("Field '{}' is of a wrong type. Expected: {}, actual: {}",
+                     path, NameForType(expected), NameForType(actual));
 }
 
 std::string MsgForIndex(size_t index, size_t size, const std::string& path) {
-  return std::string("Index ") + std::to_string(index) + " of array '" + path +
-         "' of size " + std::to_string(size) + " is out of bounds";
+  return fmt::format("Index {} of array '{}' of size {} is out of bounds",
+                     index, path, size);
 }
 
 std::string MsgForMissing(const std::string& path) {
-  return std::string("Field '") + path + "' is missing";
+  return fmt::format("Field '{}' is missing", path);
 }
 
 }  // namespace
 
-namespace formats {
-namespace json {
+namespace formats::json {
 
 BadStreamException::BadStreamException(const std::istream& is)
     : Exception(MsgForState(is.rdstate(), "input")) {}
@@ -62,5 +60,4 @@ OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
 MemberMissingException::MemberMissingException(const std::string& path)
     : Exception(MsgForMissing(path)) {}
 
-}  // namespace json
-}  // namespace formats
+}  // namespace formats::json

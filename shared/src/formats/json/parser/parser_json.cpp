@@ -1,13 +1,18 @@
 #include <formats/json/parser/parser_json.hpp>
 
+#include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
 
-#include <formats/json/types.hpp>
+#include <formats/json/impl/types_impl.hpp>
 
 namespace formats::json::parser {
 
+namespace {
+::rapidjson::CrtAllocator g_allocator;
+}  // namespace
+
 struct JsonValueParser::Impl {
-  ::formats::json::impl::Document raw_value_;
+  impl::Document raw_value_{&g_allocator};
   size_t level_{0};
 };
 
@@ -87,9 +92,8 @@ void JsonValueParser::MaybePopSelf() {
     auto generator = [](const auto&) { return true; };
     impl_->raw_value_.Populate(generator);
 
-    auto root = std::make_shared<impl::Value>();
-    root->Swap(impl_->raw_value_);
-    this->SetResult(Value{std::move(root)});
+    this->SetResult(
+        Value{impl::VersionedValuePtr::Create(std::move(impl_->raw_value_))});
   }
 }
 

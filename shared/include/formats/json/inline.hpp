@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string_view>
 
-#include <formats/json/types.hpp>
+#include <formats/json/impl/types.hpp>
 #include <formats/json/value.hpp>
 #include <utils/fast_pimpl.hpp>
 
@@ -68,7 +68,7 @@ class InlineObjectBuilder {
 
   void Append(std::string_view key, const formats::json::Value&);
 
-  NativeValuePtr json_;
+  VersionedValuePtr json_;
 };
 
 class InlineArrayBuilder {
@@ -106,7 +106,7 @@ class InlineArrayBuilder {
 
   void Append(const formats::json::Value&);
 
-  NativeValuePtr json_;
+  VersionedValuePtr json_;
 };
 
 }  // namespace impl

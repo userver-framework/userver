@@ -1,37 +1,41 @@
 #include <formats/common/path_impl.hpp>
 
+#include <iterator>
+
+#include <fmt/compile.h>
+#include <fmt/format.h>
+
+#include <formats/common/path.hpp>
+
 namespace formats::common::impl {
-std::string MakeChildPath(const std::string& parent, const std::string& key) {
-  if (parent.empty() || parent == kPathRoot) {
-    return key;
+
+void AppendPath(std::string& path, std::string_view key) {
+  if (!path.empty()) path += kPathSeparator;
+  path += key;
+}
+
+void AppendPath(std::string& path, std::size_t index) {
+  if (index < kIndexCacheSize) {
+    path += formats::common::kIndexCache[index];
   } else {
-    std::string new_path;
-    new_path.reserve(parent.size() + sizeof(kPathSeparator) + key.size());
-    new_path += parent;
-    new_path += kPathSeparator;
-    new_path += key;
-    return new_path;
+    // TODO: replace with FMT_COMPILE
+    fmt::format_to(std::back_inserter(path), "[{}]", index);
   }
+}
+
+std::string MakeChildPath(const std::string& parent, std::string_view key) {
+  if (parent.empty() || parent == kPathRoot) return std::string{key};
+
+  std::string new_path{parent};
+  AppendPath(new_path, key);
+  return new_path;
 }
 
 std::string MakeChildPath(const std::string& parent, std::size_t index) {
   std::string new_path;
-  const auto ind = std::to_string(index);
+  if (!parent.empty() && parent != kPathRoot) new_path = parent;
 
-  constexpr static std::size_t kIndexDecorationSize = 2;
-  if (parent.empty() || parent == kPathRoot) {
-    new_path.reserve(kIndexDecorationSize + ind.size());
-  } else {
-    new_path.reserve(parent.size() + sizeof(kPathSeparator) +
-                     kIndexDecorationSize + ind.size());
-    new_path += parent;
-    new_path += kPathSeparator;
-  }
-
-  new_path += '[';
-  new_path += ind;
-  new_path += ']';
-
+  AppendPath(new_path, index);
   return new_path;
 }
 }  // namespace formats::common::impl

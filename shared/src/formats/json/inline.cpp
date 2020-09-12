@@ -6,17 +6,20 @@
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 
-#include <formats/common/validations.hpp>
 #include <formats/json/exception.hpp>
 #include <utils/assert.hpp>
 #include <utils/datetime.hpp>
 
+#include <formats/common/validations.hpp>
+#include <formats/json/impl/types_impl.hpp>
+
 namespace formats::json::impl {
 namespace {
 
-DefaultAllocator g_allocator;
+::rapidjson::CrtAllocator g_allocator;
 
-static_assert(std::is_empty_v<DefaultAllocator>, "allocator has no state");
+static_assert(std::is_empty_v<::rapidjson::CrtAllocator>,
+              "allocator has no state");
 
 impl::Value WrapStringView(std::string_view key) {
   // GenericValue ctor has an invalid type for size
@@ -33,7 +36,7 @@ std::string FormatTimePoint(std::chrono::system_clock::time_point value) {
 }  // namespace
 
 InlineObjectBuilder::InlineObjectBuilder()
-    : json_(std::make_shared<impl::Value>(rapidjson::Type::kObjectType)) {}
+    : json_(VersionedValuePtr::Create(::rapidjson::Type::kObjectType)) {}
 
 formats::json::Value InlineObjectBuilder::DoBuild() {
   return formats::json::Value(std::move(json_));
@@ -108,7 +111,7 @@ void InlineObjectBuilder::Append(std::string_view key,
 }
 
 InlineArrayBuilder::InlineArrayBuilder()
-    : json_(std::make_shared<impl::Value>(rapidjson::Type::kArrayType)) {}
+    : json_(VersionedValuePtr::Create(::rapidjson::Type::kArrayType)) {}
 
 formats::json::Value InlineArrayBuilder::Build() {
   return formats::json::Value(std::move(json_));

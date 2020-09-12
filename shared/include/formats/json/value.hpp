@@ -9,15 +9,16 @@
 #include <formats/common/items.hpp>
 #include <formats/common/meta.hpp>
 #include <formats/json/exception.hpp>
+#include <formats/json/impl/types.hpp>
 #include <formats/json/iterator.hpp>
 #include <formats/json/string_builder_fwd.hpp>
-#include <formats/json/types.hpp>
 #include <formats/parse/common.hpp>
 
 namespace formats::json {
 namespace impl {
 class InlineObjectBuilder;
 class InlineArrayBuilder;
+class MutableValueWrapper;
 }  // namespace impl
 
 class ValueBuilder;
@@ -33,9 +34,10 @@ class JsonValueParser;
 class Value final {
  public:
   struct IterTraits {
-    using value_type = formats::json::Value;
-    using reference = const formats::json::Value&;
-    using pointer = const formats::json::Value*;
+    using ValueType = formats::json::Value;
+    using Reference = const formats::json::Value&;
+    using Pointer = const formats::json::Value*;
+    using ContainerType = Value;
   };
 
   using const_iterator = Iterator<IterTraits>;
@@ -206,37 +208,38 @@ class Value final {
  private:
   class EmplaceEnabler {};
 
-  explicit Value(NativeValuePtr root) noexcept;
-  bool IsUniqueReference() const;
-
  public:
   /// @cond
-  Value(EmplaceEnabler, const NativeValuePtr& root,
-        const impl::Value& value_ptr, int depth);
+  Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
+        const impl::Value& value, int depth);
   /// @endcond
 
  private:
-  Value(const NativeValuePtr& root, const impl::Value* value_ptr, int depth);
-  Value(const NativeValuePtr& root, std::string&& detached_path);
+  explicit Value(impl::VersionedValuePtr root) noexcept;
+  Value(impl::VersionedValuePtr root, const impl::Value* value_ptr, int depth);
+  Value(impl::VersionedValuePtr root, std::string&& detached_path);
 
+  bool IsUniqueReference() const;
   void EnsureNotMissing();
   const impl::Value& GetNative() const;
   impl::Value& GetNative();
+  void SetNative(impl::Value&);  // does not copy
   int GetExtendedType() const;
 
- private:
-  NativeValuePtr root_;
+  impl::VersionedValuePtr root_;
   impl::Value* value_ptr_{nullptr};
   /// Full path of node (only for missing nodes)
   std::string detached_path_;
   /// Depth of the node to ease recursive traversal in GetPath()
   int depth_;
 
-  friend class Iterator<IterTraits>;
+  template <typename>
+  friend class Iterator;
   friend class ValueBuilder;
   friend class StringBuilder;
   friend class impl::InlineObjectBuilder;
   friend class impl::InlineArrayBuilder;
+  friend class impl::MutableValueWrapper;
   friend class parser::JsonValueParser;
 
   friend formats::json::Value FromString(std::string_view);
@@ -247,7 +250,7 @@ class Value final {
 
 template <typename T>
 T Value::As() const {
-  if constexpr (kHasParseJsonFor<T>) {
+  if constexpr (impl::kHasParseJsonFor<T>) {
     const T* dont_use_me = nullptr;
     return ParseJson(*this, dont_use_me);  // TODO: deprecate
   } else {

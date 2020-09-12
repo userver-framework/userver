@@ -151,8 +151,8 @@ TEST(BsonValue, Comparison) {
 TEST(BsonValue, Path) {
   EXPECT_EQ("/", kDoc.GetPath());
   EXPECT_EQ("arr", kDoc["arr"].GetPath());
-  EXPECT_EQ("arr.[0]", kDoc["arr"][0].GetPath());
-  EXPECT_EQ("arr.[2]", kDoc["arr"][2].GetPath());
+  EXPECT_EQ("arr[0]", kDoc["arr"][0].GetPath());
+  EXPECT_EQ("arr[2]", kDoc["arr"][2].GetPath());
   EXPECT_EQ("doc", kDoc["doc"].GetPath());
   EXPECT_EQ("doc.i", kDoc["doc"]["i"].GetPath());
   EXPECT_EQ("doc.b", kDoc["doc"]["b"].GetPath());

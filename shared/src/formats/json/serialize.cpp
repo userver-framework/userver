@@ -10,16 +10,20 @@
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
-#include <utils/assert.hpp>
 
 #include <formats/json/exception.hpp>
 #include <formats/json/value.hpp>
-#include "json_tree.hpp"
+#include <utils/assert.hpp>
 
-namespace formats {
-namespace json {
+#include <formats/json/impl/json_tree.hpp>
+#include <formats/json/impl/types_impl.hpp>
+
+namespace formats::json {
 
 namespace {
+
+::rapidjson::CrtAllocator g_allocator;
+
 std::string_view AsStringView(const impl::Value& jval) {
   return {jval.GetString(), jval.GetStringLength()};
 }
@@ -65,7 +69,7 @@ void CheckKeyUniqueness(const impl::Value* root) {
   }
 }
 
-NativeValuePtr EnsureValid(impl::Document&& json) {
+impl::VersionedValuePtr EnsureValid(impl::Document&& json) {
   if (!json.IsArray() && !json.IsObject()) {
     // keep message similar to what jsoncpp produces
     throw ParseException(
@@ -74,13 +78,9 @@ NativeValuePtr EnsureValid(impl::Document&& json) {
 
   CheckKeyUniqueness(&json);
 
-  // rapidjson documentation states that memory leaks are possible if destroying
-  // Document object using Value pointer, so we're swapping contents to make
-  // things work
-  NativeValuePtr root = std::make_shared<impl::Value>();
-  root->Swap(json);
-  return root;
+  return impl::VersionedValuePtr::Create(std::move(json));
 }
+
 }  // namespace
 
 formats::json::Value FromString(std::string_view doc) {
@@ -88,7 +88,7 @@ formats::json::Value FromString(std::string_view doc) {
     throw ParseException("JSON document is empty");
   }
 
-  impl::Document json;
+  impl::Document json{&g_allocator};
   rapidjson::ParseResult ok =
       json.Parse<rapidjson::kParseDefaultFlags |
                  rapidjson::kParseIterativeFlag |
@@ -108,7 +108,7 @@ formats::json::Value FromStream(std::istream& is) {
   }
 
   rapidjson::IStreamWrapper in(is);
-  impl::Document json;
+  impl::Document json{&g_allocator};
   rapidjson::ParseResult ok =
       json.ParseStream<rapidjson::kParseDefaultFlags |
                        rapidjson::kParseIterativeFlag |
@@ -148,5 +148,4 @@ formats::json::Value FromFile(const std::string& path) {
 
 }  // namespace blocking
 
-}  // namespace json
-}  // namespace formats
+}  // namespace formats::json

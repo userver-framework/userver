@@ -3,7 +3,8 @@
 #include <vector>
 
 #include <rapidjson/document.h>
-#include <formats/json/types.hpp>
+
+#include <formats/json/impl/types.hpp>
 #include <utils/assert.hpp>
 
 namespace formats::json::impl {

@@ -266,12 +266,12 @@ TYPED_TEST_P(MemberAccess, MemberPaths) {
   EXPECT_EQ(this->doc_.GetPath(), "/");
   EXPECT_EQ(this->doc_["key1"].GetPath(), "key1");
   EXPECT_EQ(this->doc_["key3"]["sub"].GetPath(), "key3.sub");
-  EXPECT_EQ(this->doc_["key4"][2].GetPath(), "key4.[2]");
+  EXPECT_EQ(this->doc_["key4"][2].GetPath(), "key4[2]");
 
   EXPECT_EQ(js_copy.GetPath(), "/");
   EXPECT_EQ(js_copy["key1"].GetPath(), "key1");
   EXPECT_EQ(js_copy["key3"]["sub"].GetPath(), "key3.sub");
-  EXPECT_EQ(js_copy["key4"][2].GetPath(), "key4.[2]");
+  EXPECT_EQ(js_copy["key4"][2].GetPath(), "key4[2]");
 }
 
 TYPED_TEST_P(MemberAccess, MemberPathsByIterator) {
@@ -282,8 +282,8 @@ TYPED_TEST_P(MemberAccess, MemberPathsByIterator) {
   EXPECT_EQ(it->begin()->GetPath(), "key3.sub");
   it++;
   auto arr_it = it->begin();
-  EXPECT_EQ((arr_it++)->GetPath(), "key4.[0]");
-  EXPECT_EQ((++arr_it)->GetPath(), "key4.[2]");
+  EXPECT_EQ((arr_it++)->GetPath(), "key4[0]");
+  EXPECT_EQ((++arr_it)->GetPath(), "key4[2]");
 }
 
 TYPED_TEST_P(MemberAccess, MemberEmpty) {

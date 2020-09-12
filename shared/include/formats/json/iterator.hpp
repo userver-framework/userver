@@ -5,23 +5,24 @@
 
 #include <iterator>
 #include <optional>
-
-#include <formats/json/types.hpp>
+#include <string>
 
 namespace formats::json {
 
 /// @brief Iterator for `formats::json::Value`
-template <typename iter_traits>
+template <typename Traits>
 class Iterator final {
  public:
   using iterator_category = std::forward_iterator_tag;
   using difference_type = std::ptrdiff_t;
-  using value_type = typename iter_traits::value_type;
-  using reference = typename iter_traits::reference;
-  using pointer = typename iter_traits::pointer;
+  using value_type = typename Traits::ValueType;
+  using reference = typename Traits::Reference;
+  using pointer = typename Traits::Pointer;
 
-  Iterator(const NativeValuePtr& root, const impl::Value* container, int iter,
-           int depth);
+  using ContainerType = typename Traits::ContainerType;
+
+  Iterator(ContainerType container, int pos);
+
   Iterator(const Iterator& other);
   Iterator(Iterator&& other) noexcept;
   Iterator& operator=(const Iterator& other);
@@ -42,20 +43,20 @@ class Iterator final {
   std::string GetName() const;
   /// @brief Returns index of the referenced field
   /// @throws `TypeMismatchException` if iterated value is not an array
-  uint32_t GetIndex() const;
+  size_t GetIndex() const;
 
  private:
+  Iterator(ContainerType&& container, int type, int pos) noexcept;
+
   void UpdateValue() const;
 
  private:
-  NativeValuePtr root_;
-
   /// Container being iterated
-  impl::Value* container_;
+  ContainerType container_;
+  /// Internal container type
+  int type_;
   /// Position inside container being iterated
-  int iter_;
-  /// Cached `depth_` of `container_`'s json value
-  int depth_;
+  int pos_;
   // Temporary object replaced on every value access.
   mutable std::optional<value_type> current_;
 };

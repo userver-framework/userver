@@ -5,8 +5,10 @@
 
 #include <chrono>
 #include <string_view>
+#include <vector>
 
 #include <formats/common/meta.hpp>
+#include <formats/json/impl/mutable_value_wrapper.hpp>
 #include <formats/json/value.hpp>
 
 namespace formats::json {
@@ -18,9 +20,10 @@ namespace formats::json {
 class ValueBuilder final {
  public:
   struct IterTraits {
-    using value_type = formats::json::ValueBuilder;
-    using reference = formats::json::ValueBuilder&;
-    using pointer = formats::json::ValueBuilder*;
+    using ValueType = formats::json::ValueBuilder;
+    using Reference = formats::json::ValueBuilder&;
+    using Pointer = formats::json::ValueBuilder*;
+    using ContainerType = impl::MutableValueWrapper;
   };
 
   using iterator = Iterator<IterTraits>;
@@ -60,7 +63,7 @@ class ValueBuilder final {
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
-  ValueBuilder operator[](const std::string& key);
+  ValueBuilder operator[](std::string key);
   /// @brief Access array member by index for modification.
   /// @throw `TypeMismatchException` if not array value.
   /// @throw `OutOfBoundsException` if index is greater than size.
@@ -114,21 +117,23 @@ class ValueBuilder final {
 
  public:
   /// @cond
-  ValueBuilder(EmplaceEnabler, const NativeValuePtr& root,
-               const impl::Value& val, int depth);
+  ValueBuilder(EmplaceEnabler, impl::MutableValueWrapper) noexcept;
   /// @endcond
 
  private:
-  ValueBuilder(const NativeValuePtr& root, const impl::Value& val, int depth);
+  enum class CheckMemberExists { kYes, kNo };
+
+  explicit ValueBuilder(impl::MutableValueWrapper) noexcept;
 
   void Copy(impl::Value& to, const ValueBuilder& from);
   void Move(impl::Value& to, ValueBuilder&& from);
 
+  impl::Value& AddMember(const std::string& key, CheckMemberExists);
+
   template <typename T>
   static Value DoSerialize(const T& t);
 
- private:
-  formats::json::Value value_;
+  impl::MutableValueWrapper value_;
 
   friend class Iterator<IterTraits>;
 };

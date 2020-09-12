@@ -10,8 +10,10 @@
 #include <formats/json/exception.hpp>
 
 #include <formats/common/path_impl.hpp>
-#include <formats/json/exttypes.hpp>
-#include <formats/json/json_tree.hpp>
+#include <formats/json/impl/exttypes.hpp>
+#include <formats/json/impl/json_tree.hpp>
+#include <formats/json/impl/mutable_value_wrapper.hpp>
+#include <formats/json/impl/types_impl.hpp>
 
 namespace formats::json {
 
@@ -29,7 +31,7 @@ static_assert(std::numeric_limits<double>::digits <
               "Your compiler provides unusually large double, please contact "
               "userver support chat");
 
-rapidjson::CrtAllocator g_crt_allocator;
+::rapidjson::CrtAllocator g_allocator;
 
 template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {
@@ -63,22 +65,22 @@ Value::Value() noexcept : value_ptr_(nullptr), depth_(0) {}
 
 Value::~Value() = default;
 
-Value::Value(NativeValuePtr root) noexcept
-    : root_(std::move(root)), value_ptr_(root_.get()), depth_(0) {}
+Value::Value(impl::VersionedValuePtr root) noexcept
+    : root_(std::move(root)), value_ptr_(root_.Get()), depth_(0) {}
 
-Value::Value(EmplaceEnabler, const NativeValuePtr& root,
+Value::Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
              const impl::Value& value, int depth)
     : Value(root, &value, depth) {}
 
-Value::Value(const NativeValuePtr& root, const impl::Value* value_ptr,
+Value::Value(impl::VersionedValuePtr root, const impl::Value* value_ptr,
              int depth)
-    : root_(root),
+    : root_(std::move(root)),
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       value_ptr_(const_cast<impl::Value*>(value_ptr)),
       depth_(depth) {}
 
-Value::Value(const NativeValuePtr& root, std::string&& detached_path)
-    : root_(root),
+Value::Value(impl::VersionedValuePtr root, std::string&& detached_path)
+    : root_(std::move(root)),
       value_ptr_(nullptr),
       detached_path_(detached_path),
       depth_(0) {}
@@ -87,10 +89,8 @@ Value Value::operator[](const std::string& key) const {
   if (!IsMissing()) {
     CheckObjectOrNull();
     if (IsObject()) {
-      GetNative().FindMember(key);
-      auto object = GetNative().GetObject();
-      auto it = object.FindMember(key);
-      if (it != object.end()) {
+      auto it = GetNative().FindMember(key);
+      if (it != GetNative().MemberEnd()) {
         return {root_, &it->value, depth_ + 1};
       }
     }
@@ -105,12 +105,12 @@ Value Value::operator[](std::size_t index) const {
 
 Value::const_iterator Value::begin() const {
   CheckObjectOrArrayOrNull();
-  return {root_, &GetNative(), 0, depth_};
+  return const_iterator{*this, 0};
 }
 
 Value::const_iterator Value::end() const {
   CheckObjectOrArrayOrNull();
-  return {root_, &GetNative(), static_cast<int>(GetSize()), depth_};
+  return const_iterator{*this, static_cast<int>(GetSize())};
 }
 
 bool Value::IsEmpty() const {
@@ -145,7 +145,10 @@ bool Value::operator!=(const Value& other) const {
 
 bool Value::IsMissing() const noexcept { return root_ && !value_ptr_; }
 
-bool Value::IsNull() const { return !IsMissing() && GetNative().IsNull(); }
+bool Value::IsNull() const {
+  return !IsMissing() && (!root_ || GetNative().IsNull());
+}
+
 bool Value::IsBool() const { return !IsMissing() && GetNative().IsBool(); }
 
 bool Value::IsInt() const {
@@ -323,7 +326,7 @@ bool Value::HasMember(const std::string& key) const {
 
 std::string Value::GetPath() const {
   if (value_ptr_ != nullptr) {
-    return impl::MakePath(root_.get(), value_ptr_, depth_);
+    return impl::MakePath(root_.Get(), value_ptr_, depth_);
   } else {
     return detached_path_.empty() ? formats::common::impl::kPathRoot
                                   : detached_path_;
@@ -331,9 +334,7 @@ std::string Value::GetPath() const {
 }
 
 Value Value::Clone() const {
-  auto result{std::make_shared<impl::Value>()};
-  result->CopyFrom(GetNative(), g_crt_allocator);
-  return Value{std::move(result)};
+  return Value{impl::VersionedValuePtr::Create(GetNative(), g_allocator)};
 }
 
 // Value states
@@ -347,14 +348,14 @@ Value Value::Clone() const {
 void Value::EnsureNotMissing() {
   CheckNotMissing();
   if (!root_) {
-    root_ = std::make_shared<impl::Value>();
-    value_ptr_ = root_.get();
+    root_ = impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType);
+    value_ptr_ = root_.Get();
   }
 }
 
-bool Value::IsRoot() const noexcept { return root_.get() == value_ptr_; }
+bool Value::IsRoot() const noexcept { return root_.Get() == value_ptr_; }
 
-bool Value::IsUniqueReference() const { return root_.use_count() == 1; }
+bool Value::IsUniqueReference() const { return root_.IsUnique(); }
 
 const impl::Value& Value::GetNative() const {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
@@ -365,6 +366,11 @@ const impl::Value& Value::GetNative() const {
 impl::Value& Value::GetNative() {
   EnsureNotMissing();
   return *value_ptr_;
+}
+
+void Value::SetNative(impl::Value& value) {
+  CheckNotMissing();
+  value_ptr_ = &value;
 }
 
 // convert internal rapidjson type to implementation-specific type that
@@ -380,13 +386,13 @@ void Value::CheckNotMissing() const {
 }
 
 void Value::CheckArrayOrNull() const {
-  if (!IsArray() && !IsNull()) {
+  if (!IsNull() && !IsArray()) {
     throw TypeMismatchException(GetExtendedType(), impl::arrayValue, GetPath());
   }
 }
 
 void Value::CheckObjectOrNull() const {
-  if (!IsObject() && !IsNull()) {
+  if (!IsNull() && !IsObject()) {
     throw TypeMismatchException(GetExtendedType(), impl::objectValue,
                                 GetPath());
   }
@@ -400,7 +406,7 @@ void Value::CheckObject() const {
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
-  if (!IsObject() && !IsArray() && !IsNull()) {
+  if (!IsNull() && !IsObject() && !IsArray()) {
     throw TypeMismatchException(GetExtendedType(), impl::objectValue,
                                 GetPath());
   }

@@ -1,10 +1,11 @@
 #include "json_tree.hpp"
 
 #include <rapidjson/document.h>
+
 #include <formats/common/path.hpp>
 #include <formats/common/path_impl.hpp>
 #include <formats/json/exception.hpp>
-#include <formats/json/types.hpp>
+#include <formats/json/impl/types.hpp>
 
 #include <cstddef>
 
@@ -97,14 +98,12 @@ std::string ExtractPath(const std::vector<TreeIterFrame>& stack) {
     const auto& frame = stack[depth];
     // because index in stack had already been Advance'd
     const int idx = frame.CurrentIndex() - 1;
-    if (!path.empty()) path += formats::common::impl::kPathSeparator;
     if (frame.container()->IsObject()) {
       const Value& name = frame.container()->MemberBegin()[idx].name;
-      path.append(name.GetString(), name.GetStringLength());
+      common::impl::AppendPath(
+          path, std::string_view{name.GetString(), name.GetStringLength()});
     } else if (frame.container()->IsArray()) {
-      path += '[';
-      path += std::to_string(idx);
-      path += ']';
+      common::impl::AppendPath(path, idx);
     }
   }
 

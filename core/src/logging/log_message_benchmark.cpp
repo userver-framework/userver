@@ -11,18 +11,20 @@
 #include <utils/gbench_auxilary.hpp>
 
 class LogHelperBenchmark : public benchmark::Fixture {
- public:
-  LogHelperBenchmark() { old_ = logging::SetDefaultLogger(GetNullLogger()); }
-  ~LogHelperBenchmark() {
-    if (old_) logging::SetDefaultLogger(old_);
+  void SetUp(const benchmark::State&) override {
+    old_ = logging::SetDefaultLogger(GetNullLogger());
   }
 
- private:
+  void TearDown(const benchmark::State&) override {
+    if (old_) logging::SetDefaultLogger(std::exchange(old_, nullptr));
+  }
+
   static logging::LoggerPtr GetNullLogger() {
     static auto null_logger =
         spdlog::create<spdlog::sinks::null_sink_st>("null_logger");
     return null_logger;
   }
+
   logging::LoggerPtr old_;
 };
 

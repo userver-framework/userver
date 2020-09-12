@@ -101,6 +101,82 @@ TYPED_TEST_P(MemberModify, PushBackFromExisting) {
   EXPECT_EQ(this->GetBuiltValue()["key1"].template As<int>(), 1);
 }
 
+TYPED_TEST_P(MemberModify, PushBackFromBefore) {
+  this->builder_["key4"].PushBack(this->builder_["key4"][0]);
+  EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
+  EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 4);
+  EXPECT_EQ(this->GetBuiltValue()["key4"][0].template As<int>(), 1);
+  EXPECT_EQ(this->GetBuiltValue()["key4"][3].template As<int>(), 1);
+}
+
+TYPED_TEST_P(MemberModify, PushBackFromIterator) {
+  this->builder_["key4"].PushBack(
+      typename TestFixture::ValueBuilder{*this->builder_["key4"].begin()});
+  EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
+  EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 4);
+  EXPECT_EQ(this->GetBuiltValue()["key4"][0].template As<int>(), 1);
+  EXPECT_EQ(this->GetBuiltValue()["key4"][3].template As<int>(), 1);
+}
+
+TYPED_TEST_P(MemberModify, CopyExistingMember) {
+  const auto key1 = this->builder_["key1"];
+  this->builder_["key1_copy"] = key1;
+  EXPECT_TRUE(this->GetBuiltValue().HasMember("key1"));
+  EXPECT_TRUE(this->GetBuiltValue().HasMember("key1_copy"));
+  EXPECT_EQ(this->GetBuiltValue()["key1"].template As<int>(), 1);
+  EXPECT_EQ(this->GetBuiltValue()["key1_copy"].template As<int>(), 1);
+}
+
+TYPED_TEST_P(MemberModify, CopyExistingMemberByIt) {
+  auto it = this->builder_.begin();
+  while (it != this->builder_.end() && it.GetName() != "key1") ++it;
+  ASSERT_NE(this->builder_.end(), it);
+
+  this->builder_["key1_copy"] = *it;
+  EXPECT_TRUE(this->GetBuiltValue().HasMember("key1"));
+  EXPECT_TRUE(this->GetBuiltValue().HasMember("key1_copy"));
+  EXPECT_EQ(this->GetBuiltValue()["key1"].template As<int>(), 1);
+  EXPECT_EQ(this->GetBuiltValue()["key1_copy"].template As<int>(), 1);
+}
+
+// TODO: Fails on formats::yaml TAXICOMMON-2873
+//
+// TYPED_TEST_P(MemberModify, ModifyRemovedNode) {
+//   auto builder = this->builder_["key1"];  // NB: not a copy
+//   EXPECT_NO_THROW(builder = 0);
+//   this->builder_.Remove("key1");
+//   EXPECT_FALSE(this->builder_.HasMember("key1"));
+//   EXPECT_THROW(builder = 0, typename TestFixture::MemberMissingException);
+// }
+
+TYPED_TEST_P(MemberModify, ContainerTypeChangeToScalar) {
+  auto builder = this->builder_["key4"];  // NB: not a copy
+  EXPECT_NO_THROW(builder.PushBack(0));
+  this->builder_["key4"] = 0;
+  EXPECT_THROW(builder.PushBack(0),
+               typename TestFixture::TypeMismatchException);
+}
+
+TYPED_TEST_P(MemberModify, ContainerTypeChangeArrToObj) {
+  auto builder = this->builder_["key4"];  // NB: not a copy
+  EXPECT_NO_THROW(builder.PushBack(0));
+  this->builder_["key4"] =
+      typename TestFixture::ValueBuilder{formats::common::Type::kObject};
+  EXPECT_THROW(builder.PushBack(0),
+               typename TestFixture::TypeMismatchException);
+  EXPECT_NO_THROW(builder["test"] = 0);
+}
+
+TYPED_TEST_P(MemberModify, ContainerTypeChangeObjToArr) {
+  auto builder = this->builder_["key3"];  // NB: not a copy
+  EXPECT_NO_THROW(builder["test"] = 0);
+  this->builder_["key3"] =
+      typename TestFixture::ValueBuilder{formats::common::Type::kArray};
+  EXPECT_THROW(builder["test"] = 0,
+               typename TestFixture::TypeMismatchException);
+  EXPECT_NO_THROW(builder.PushBack(0));
+}
+
 TYPED_TEST_P(MemberModify, PushBackWrongTypeThrows) {
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
@@ -229,9 +305,9 @@ TYPED_TEST_P(MemberModify, IteratorOutlivesRoot) {
   {
     Value v = this->GetBuiltValue();
     it = v["key4"].begin();
-    EXPECT_EQ(it->GetPath(), "key4.[0]");
+    EXPECT_EQ(it->GetPath(), "key4[0]");
   }
-  EXPECT_EQ((++it)->GetPath(), "key4.[1]");
+  EXPECT_EQ((++it)->GetPath(), "key4[1]");
 }
 
 TYPED_TEST_P(MemberModify, SubdocOutlivesRoot) {
@@ -344,8 +420,13 @@ REGISTER_TYPED_TEST_SUITE_P(
 
     CheckNestedArrayChange, ArrayResize, ArrayFromNull, ArrayPushBack,
 
-    PushBackFromExisting, PushBackWrongTypeThrows, ExtractFromSubBuilderThrows,
-    ObjectIteratorModify, MemberEmpty, MemberCount,
+    PushBackFromExisting, PushBackFromBefore, PushBackFromIterator,
+    CopyExistingMember, CopyExistingMemberByIt, /* ModifyRemovedNode, */
+    ContainerTypeChangeToScalar, ContainerTypeChangeArrToObj,
+    ContainerTypeChangeObjToArr,
+
+    PushBackWrongTypeThrows, ExtractFromSubBuilderThrows, ObjectIteratorModify,
+    MemberEmpty, MemberCount,
 
     NonArrayThrowIsEmpty, NonArrayThrowGetSize, ArrayIteratorRead,
     ArrayIteratorModify, CreateSpecificType, IteratorOutlivesRoot,
