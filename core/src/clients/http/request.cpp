@@ -83,10 +83,10 @@ const std::string kTestsuiteSupportedErrors =
   std::abort();
 }
 
-std::error_code TestsuiteResponseHook(const Response& response,
+std::error_code TestsuiteResponseHook(Status status_code,
+                                      const Headers& headers,
                                       tracing::Span& span) {
-  if (response.status_code() == 599) {
-    const auto& headers = response.headers();
+  if (status_code == 599) {
     const auto it = headers.find("X-Testsuite-Error");
 
     if (headers.end() != it) {
@@ -564,15 +564,18 @@ void Request::RequestImpl::on_completed(
     const std::error_code& orig_err) {
   auto err = orig_err;
   auto& span = *holder->span_;
+  auto& easy = holder->easy();
   LOG_DEBUG() << "Request::RequestImpl::on_completed(1)" << span;
+  const auto status_code = static_cast<Status>(easy.get_response_code());
 
-  if (holder->testsuite_config_) {
-    if (!err) err = TestsuiteResponseHook(*holder->response(), span);
+  if (holder->testsuite_config_ && !err) {
+    const auto& headers = holder->response()->headers();
+    err = TestsuiteResponseHook(status_code, headers, span);
   }
 
   holder->AccountResponse(err);
   if (holder->dest_req_stats_) {
-    const auto sockets = holder->easy().get_num_connects();
+    const auto sockets = easy.get_num_connects();
     holder->dest_req_stats_->AccountOpenSockets(sockets);
   }
 
@@ -586,13 +589,12 @@ void Request::RequestImpl::on_completed(
     span.AddTag(tracing::kErrorMessage, err.message());
     span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
 
-    holder->promise_.set_exception(PrepareException(
-        err, holder->easy().get_url(), holder->easy().get_local_stats()));
+    holder->promise_.set_exception(
+        PrepareException(err, easy.get_url(), easy.get_local_stats()));
   } else {
-    span.AddTag(tracing::kHttpStatusCode, holder->response()->status_code());
-    holder->response()->SetStatusCode(
-        static_cast<Status>(holder->easy().get_response_code()));
-    holder->response()->SetStats(holder->easy().get_local_stats());
+    span.AddTag(tracing::kHttpStatusCode, status_code);
+    holder->response()->SetStatusCode(status_code);
+    holder->response()->SetStats(easy.get_local_stats());
 
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
 
