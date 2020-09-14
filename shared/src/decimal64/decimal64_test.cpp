@@ -91,3 +91,25 @@ TEST(Decimal64, ConstexprSupport) {
   [[maybe_unused]] constexpr Dec4 from_floating = Dec4::FromBiased(123, 5);
   [[maybe_unused]] constexpr Dec4 from_fraction = Dec4::FromFraction(123, 456);
 }
+
+TEST(Decimal64, ZerosFullyTrimmed) {
+  EXPECT_EQ(ToString(decimal64::Decimal<0>{"1"}), "1");
+  EXPECT_EQ(ToString(decimal64::Decimal<1>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<2>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<3>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<4>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<5>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<6>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<7>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<8>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<9>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<10>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<11>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<12>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<13>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<14>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<15>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<16>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<17>{"0.1"}), "0.1");
+  EXPECT_EQ(ToString(decimal64::Decimal<18>{"0.1"}), "0.1");
+}

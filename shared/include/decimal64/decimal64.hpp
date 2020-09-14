@@ -1203,26 +1203,32 @@ int TrimTrailingZeros(int64_t& after) {
   }
 
   int n_trimmed = 0;
+  if constexpr (Prec >= 17) {
+    if (after % kPow10<16> == 0) {
+      after /= kPow10<16>;
+      n_trimmed += 16;
+    }
+  }
   if constexpr (Prec >= 9) {
-    if (after % 100000000 == 0) {
-      after /= 100000000;
+    if (after % kPow10<8> == 0) {
+      after /= kPow10<8>;
       n_trimmed += 8;
     }
   }
   if constexpr (Prec >= 5) {
-    if (after % 10000 == 0) {
-      after /= 10000;
+    if (after % kPow10<4> == 0) {
+      after /= kPow10<4>;
       n_trimmed += 4;
     }
   }
   if constexpr (Prec >= 3) {
-    if (after % 100 == 0) {
-      after /= 100;
+    if (after % kPow10<2> == 0) {
+      after /= kPow10<2>;
       n_trimmed += 2;
     }
   }
-  if (after % 10 == 0) {
-    after /= 10;
+  if (after % kPow10<1> == 0) {
+    after /= kPow10<1>;
     n_trimmed += 1;
   }
   return n_trimmed;
