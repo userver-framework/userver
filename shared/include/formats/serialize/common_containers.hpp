@@ -22,7 +22,7 @@ std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T>, Value> Serialize(
   typename Value::Builder builder(formats::common::Type::kArray);
   for (const auto& item : value) {
     // explicit cast for vector<bool> shenanigans
-    builder.PushBack(static_cast<const meta::ValueType<T>&>(item));
+    builder.PushBack(static_cast<const meta::RangeValueType<T>&>(item));
   }
   return builder.ExtractValue();
 }

@@ -38,15 +38,12 @@ struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())),
                               decltype(std::end(std::declval<T&>()))>>
     : std::true_type {};
 
-template <typename T, typename = void>
-struct ValueTypeImpl {
-  using type =
-      std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
-};
+template <typename T>
+using IteratorType = decltype(std::begin(std::declval<T&>()));
 
 template <typename T>
-struct ValueTypeImpl<T, std::void_t<typename T::value_type>> {
-  using type = typename T::value_type;
+struct RangeValueTypeImpl {
+  using type = typename std::iterator_traits<IteratorType<T>>::value_type;
 };
 
 template <typename T, typename = void>
@@ -55,7 +52,7 @@ struct IsRecursiveRange : std::false_type {};
 template <typename T>
 struct IsRecursiveRange<T, std::enable_if_t<IsRange<T>::value>>
     : std::integral_constant<
-          bool, std::is_same_v<typename ValueTypeImpl<T>::type, T>> {};
+          bool, std::is_same_v<typename RangeValueTypeImpl<T>::type, T>> {};
 
 template <typename T>
 struct IsOptional : IsInstantiationOf<std::optional, T> {};
@@ -110,7 +107,7 @@ template <typename T>
 inline constexpr bool kIsMap = IsMap<T>::value;
 
 template <typename T>
-using ValueType = typename impl::ValueTypeImpl<T>::type;
+using RangeValueType = typename impl::RangeValueTypeImpl<T>::type;
 
 template <typename T>
 inline constexpr bool kIsRecursiveRange = impl::IsRecursiveRange<T>::value;

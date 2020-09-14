@@ -51,7 +51,7 @@ void WriteToStreamArray(const T& value, StringBuilder& sw) {
   typename StringBuilder::ArrayGuard guard(sw);
   for (const auto& item : value) {
     // explicit cast for vector<bool> shenanigans
-    WriteToStream(static_cast<const meta::ValueType<T>&>(item), sw);
+    WriteToStream(static_cast<const meta::RangeValueType<T>&>(item), sw);
   }
 }
 

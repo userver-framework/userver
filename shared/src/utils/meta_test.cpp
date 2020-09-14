@@ -127,26 +127,23 @@ TEST(Meta, kIsMap) {
   static_assert(!meta::kIsMap<std::array<int, 42>>);
 }
 
-TEST(Meta, ValueType) {
-  static_assert(std::is_same_v<meta::ValueType<std::vector<int>>, int>);
-  static_assert(std::is_same_v<meta::ValueType<const std::vector<int>>, int>);
-  static_assert(std::is_same_v<meta::ValueType<MyRange>, int>);
-  static_assert(std::is_same_v<meta::ValueType<std::vector<bool>>, bool>);
-  static_assert(std::is_same_v<meta::ValueType<std::map<int, int>>,
+TEST(Meta, RangeValueType) {
+  static_assert(std::is_same_v<meta::RangeValueType<std::vector<int>>, int>);
+  static_assert(
+      std::is_same_v<meta::RangeValueType<const std::vector<int>>, int>);
+  static_assert(std::is_same_v<meta::RangeValueType<MyRange>, int>);
+  static_assert(std::is_same_v<meta::RangeValueType<std::vector<bool>>, bool>);
+  static_assert(
+      std::is_same_v<meta::RangeValueType<const std::vector<bool>>, bool>);
+  static_assert(std::is_same_v<meta::RangeValueType<std::map<int, int>>,
                                std::pair<const int, int>>);
-  static_assert(std::is_same_v<meta::ValueType<const std::vector<int>>, int>);
-  static_assert(std::is_same_v<meta::ValueType<int(&)[5]>, int>);
-
-  // TODO TAXICOMMON-2880 fix
-  static_assert(std::is_same_v<meta::ValueType<boost::filesystem::path>, char>);
-  static_assert(std::is_same_v<decltype(*std::begin(
-                                   std::declval<boost::filesystem::path>())),
-                               const boost::filesystem::path&>);
+  static_assert(std::is_same_v<meta::RangeValueType<int[5]>, int>);
+  static_assert(std::is_same_v<meta::RangeValueType<boost::filesystem::path>,
+                               boost::filesystem::path>);
 }
 
 TEST(Meta, kIsRecursiveRange) {
-  // TODO TAXICOMMON-2880 fix
-  static_assert(!meta::kIsRecursiveRange<boost::filesystem::path>);
+  static_assert(meta::kIsRecursiveRange<boost::filesystem::path>);
 
   static_assert(!meta::kIsRecursiveRange<bool>);
   static_assert(
