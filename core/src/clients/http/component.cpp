@@ -23,6 +23,8 @@ const auto kDestinationMetricsAutoMaxSizeDefault = 100;
 HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
     : LoggableComponentBase(component_config, context),
+      disable_pool_stats_(
+          component_config.ParseBool("pool-statistics-disable", false)),
       taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
   auto& fs_task_processor = context.GetTaskProcessor(
       component_config.ParseString("fs-task-processor"));
@@ -64,27 +66,19 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   else
     OnConfigUpdate(booststrap_config);
 
-  try {
-    auto stats_name =
-        "httpclient" +
-        (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
-    auto& storage =
-        context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistics_holder_ = storage.RegisterExtender(
-        stats_name,
-        [this](const utils::statistics::StatisticsRequest& /*request*/) {
-          return ExtendStatistics();
-        });
-  } catch (...) {
-    subscriber_scope_.Unsubscribe();
-    throw;
-  }
+  auto stats_name =
+      "httpclient" +
+      (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
+  auto& storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+  statistics_holder_ = storage.RegisterExtender(
+      stats_name,
+      [this](const utils::statistics::StatisticsRequest& /*request*/) {
+        return ExtendStatistics();
+      });
 }
 
-HttpClient::~HttpClient() {
-  statistics_holder_.Unregister();
-  subscriber_scope_.Unsubscribe();
-}
+HttpClient::~HttpClient() = default;
 
 clients::http::Client& HttpClient::GetHttpClient() {
   if (!http_client_) {
@@ -112,8 +106,11 @@ void HttpClient::OnConfigUpdate(
 }
 
 formats::json::Value HttpClient::ExtendStatistics() {
-  auto json =
-      clients::http::PoolStatisticsToJson(http_client_->GetPoolStatistics());
+  formats::json::ValueBuilder json;
+  if (!disable_pool_stats_) {
+    json =
+        clients::http::PoolStatisticsToJson(http_client_->GetPoolStatistics());
+  }
   json["destinations"] = clients::http::DestinationStatisticsToJson(
       http_client_->GetDestinationStatistics());
   utils::statistics::SolomonChildrenAreLabelValues(json["destinations"],

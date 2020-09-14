@@ -36,6 +36,7 @@ class HttpClient final : public LoggableComponentBase {
   formats::json::Value ExtendStatistics();
 
  private:
+  const bool disable_pool_stats_;
   std::shared_ptr<clients::http::Client> http_client_;
   components::TaxiConfig& taxi_config_component_;
   utils::AsyncEventSubscriberScope subscriber_scope_;
