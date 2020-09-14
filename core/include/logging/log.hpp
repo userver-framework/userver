@@ -41,16 +41,6 @@ struct HexBase {
   }
 };
 
-class RateLimiter {
- public:
-  RateLimiter() = default;
-  bool ShouldLog(Level level);
-
- private:
-  uint64_t count_since_reset_ = 0;
-  std::chrono::steady_clock::time_point last_reset_time_{};
-};
-
 }  // namespace impl
 
 /// Formats value in a hex mode with the fixed length representation.
@@ -304,6 +294,32 @@ void LogHelper::PutRange(const T& range) {
 /// Forces flush of default logger message queue
 void LogFlush();
 
+namespace impl {
+
+// Not thread-safe, static lifetime data
+class RateLimitData {
+ public:
+  uint64_t count_since_reset = 0;
+  uint64_t dropped_count = 0;
+  std::chrono::steady_clock::time_point last_reset_time{};
+};
+
+// Represents a single rate limit usage
+class RateLimiter {
+ public:
+  RateLimiter(RateLimitData& data, Level level);
+  bool ShouldLog() const { return should_log_; }
+  Level GetLevel() const { return level_; }
+  friend LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl);
+
+ private:
+  Level level_;
+  bool should_log_;
+  uint64_t dropped_count_;
+};
+
+}  // namespace impl
+
 }  // namespace logging
 
 /// @brief Builds a stream and evaluates a message for the logger.
@@ -321,7 +337,7 @@ void LogFlush();
       !::logging::ShouldLog(lvl),                                        \
       static_cast<int>(lvl) < static_cast<int>(::logging::Level::kInfo)) \
       ? ::logging::impl::Noop{}                                          \
-      : DO_LOG_TO(logger, lvl)
+      : DO_LOG_TO((logger), (lvl))
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger.
@@ -344,14 +360,19 @@ void LogFlush();
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the logger. Ignores log messages that occur too often.
 /// @hideinitializer
-#define LOG_LIMITED_TO(logger, lvl)               \
-  ![]() -> ::logging::impl::RateLimiter& {        \
-    thread_local ::logging::impl::RateLimiter rl; \
-    return rl;                                    \
-  }()                                             \
-                   .ShouldLog(lvl)                \
-               ? ::logging::impl::Noop{}          \
-               : DO_LOG_TO((logger), (lvl))
+// Note: we have to jump through the hoops to keep lazy evaluation of the logged
+// data AND log the dropped logs count from the correct LogHelper in the face of
+// multithreading and coroutines.
+#define LOG_LIMITED_TO(logger, lvl)                              \
+  if (const ::logging::impl::RateLimiter log_limited_to_rl{      \
+          []() -> ::logging::impl::RateLimitData& {              \
+            thread_local ::logging::impl::RateLimitData rl_data; \
+            return rl_data;                                      \
+          }(),                                                   \
+          (lvl)};                                                \
+      !log_limited_to_rl.ShouldLog()) {                          \
+  } else                                                         \
+    DO_LOG_TO((logger), log_limited_to_rl.GetLevel()) << log_limited_to_rl
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger. Ignores log messages that occur too often.

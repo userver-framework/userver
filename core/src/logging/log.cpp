@@ -3,6 +3,7 @@
 #include <atomic>
 #include <iostream>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <boost/exception/diagnostic_information.hpp>
@@ -396,18 +397,33 @@ LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp) {
 
 void LogFlush() { DefaultLogger()->flush(); }
 
-bool impl::RateLimiter::ShouldLog(Level level) {
-  if (!logging::ShouldLog(level)) return false;
+namespace impl {
 
+RateLimiter::RateLimiter(RateLimitData& data, Level level)
+    : level_(level), should_log_(logging::ShouldLog(level)), dropped_count_(0) {
   constexpr auto kResetInterval =
       std::chrono::steady_clock::duration{std::chrono::seconds{1}};
   const auto now = std::chrono::steady_clock::now();
 
-  if (now - last_reset_time_ >= kResetInterval) {
-    count_since_reset_ = 0;
-    last_reset_time_ = now;
+  if (now - data.last_reset_time >= kResetInterval) {
+    data.count_since_reset = 1;
+    dropped_count_ = std::exchange(data.dropped_count, 0);
+    data.last_reset_time = now;
+  } else {
+    if (!IsPowerOf2(++data.count_since_reset)) {
+      ++data.dropped_count;
+      should_log_ = false;
+    }
   }
-  return IsPowerOf2(++count_since_reset_);
 }
+
+LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) {
+  if (rl.dropped_count_ != 0) {
+    lh << "[" << rl.dropped_count_ << " logs dropped] ";
+  }
+  return lh;
+}
+
+}  // namespace impl
 
 }  // namespace logging

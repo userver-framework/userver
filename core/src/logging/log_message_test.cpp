@@ -166,6 +166,18 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
     LOG(::logging::Level::kNone) << "test";
   else
     FAIL() << "Logging affected the else statement";
+
+  if (true)
+    LOG_LIMITED(::logging::Level::kNone) << "test";
+  else
+    FAIL() << "Logging affected the else statement";
+
+  bool passed = false;
+  if (false)
+    LOG_LIMITED(::logging::Level::kNone) << "test";
+  else
+    passed = true;
+  EXPECT_TRUE(passed);
 }
 
 TEST_F(LoggingTest, CppModulePath) {
