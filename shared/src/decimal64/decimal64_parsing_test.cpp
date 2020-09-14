@@ -149,8 +149,12 @@ TEST(Decimal64, FromString) {
 }
 
 TEST(Decimal64, FromStringStrict) {
-  ASSERT_EQ(decimal64::impl::FromString<Dec4>("42."), Dec4{"42.0"});
-  ASSERT_EQ(decimal64::impl::FromString<Dec4>(".42"), Dec4{"0.42"});
+  ASSERT_EQ(ToString(decimal64::impl::FromString<Dec4>("1234.5678")),
+            "1234.5678");
+  ASSERT_EQ(ToString(decimal64::impl::FromString<Dec4>("1234.567")),
+            "1234.567");
+  ASSERT_EQ(ToString(decimal64::impl::FromString<Dec4>("1234")), "1234");
+  ASSERT_EQ(ToString(decimal64::impl::FromString<Dec4>("0.123")), "0.123");
 
   ASSERT_THROW(decimal64::impl::FromString<Dec4>(""), decimal64::ParseError);
   ASSERT_THROW(decimal64::impl::FromString<Dec4>("."), decimal64::ParseError);
@@ -167,6 +171,8 @@ TEST(Decimal64, FromStringStrict) {
                decimal64::ParseError);
   ASSERT_THROW(decimal64::impl::FromString<Dec4>("1.23450"),
                decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>("42."), decimal64::ParseError);
+  ASSERT_THROW(decimal64::impl::FromString<Dec4>(".42"), decimal64::ParseError);
 }
 
 TEST(Decimal64, FromStream) {

@@ -32,6 +32,7 @@
 #include <fmt/format.h>
 
 #include <utils/assert.hpp>
+#include <utils/flags.hpp>
 #include <utils/meta.hpp>
 
 namespace decimal64 {
@@ -959,26 +960,81 @@ class StreamCharSequence {
   std::basic_istream<CharT, Traits>* in_;
 };
 
-enum class ParseTolerance { kStrict, kAllowSpaces, kPermissive };
+enum class ParseOptions {
+  kNone = 0,
+
+  /// Allow space characters in the beginning or in the end
+  /// " 42  "
+  kAllowSpaces = 1 << 0,
+
+  /// Allow any trailing characters
+  /// "42ABC"
+  kAllowTrailingJunk = 1 << 1,
+
+  /// Allow leading or trailing dot
+  /// "42.", ".42"
+  kAllowBoundaryDot = 1 << 2,
+
+  /// Allow decimal digits beyond Prec, round according to RoundPolicy
+  /// "0.123456" -> "0.1234" or "0.1235"
+  kAllowRounding = 1 << 3
+};
+
+inline constexpr auto ParseOptionsPermissive = utils::Flags<ParseOptions>{
+    ParseOptions::kAllowSpaces, ParseOptions::kAllowTrailingJunk,
+    ParseOptions::kAllowBoundaryDot, ParseOptions::kAllowRounding};
 
 /// Extract values from a CharSequence ready to be packed to Decimal
 template <typename CharSequence>
 [[nodiscard]] bool ParseUnpacked(CharSequence input, int& sign, int64_t& before,
                                  int64_t& after, int& decimal_digits,
-                                 ParseTolerance tolerance) {
+                                 utils::Flags<ParseOptions> options) {
   constexpr char dec_point = '.';
 
   enum class State {
+    /// Before reading any part of the Decimal
     kSign,
+
+    /// After reading a sign
     kBeforeFirstDig,
+
+    /// Only leading zeros (at least one) have been met
     kLeadingZeros,
+
+    /// At least one digit before dot has been met
     kBeforeDec,
+
+    /// Reading fractional digits
     kAfterDec,
+
+    /// Reading and rounding extra fractional digits
     kIgnoringAfterDec,
+
+    /// A character unrelated to the Decimal has been met
     kEnd
   };
 
-  enum class Error { kOk, kWrongChar, kNoDigits, kOverflow, kWrongState };
+  enum class Error {
+    /// No errors
+    kOk,
+
+    /// An unexpected character has been met, or spaces or trailing junk if
+    /// disallowed by options
+    kWrongChar,
+
+    /// No digits before or after dot
+    kNoDigits,
+
+    /// The integral part does not fit in any Decimal
+    kOverflow,
+
+    /// When there are more decimal digits than in any Decimal and rounding is
+    /// disallowed by options
+    kRounding,
+
+    /// On inputs like "42." or ".42" if disallowed by options
+    kBoundaryDot
+  };
 
   before = after = 0;
   sign = 1;
@@ -1009,8 +1065,12 @@ template <typename CharSequence>
           before = static_cast<int>(c - '0');
           before_digits_count = 1;
         } else if (c == dec_point) {
+          if (!(options & ParseOptions::kAllowBoundaryDot) &&
+              error == Error::kOk) {
+            error = Error::kBoundaryDot;
+          }
           state = State::kAfterDec;
-        } else if (IsSpace(c) && tolerance != ParseTolerance::kStrict) {
+        } else if ((options & ParseOptions::kAllowSpaces) && IsSpace(c)) {
           // skip
         } else {
           state = State::kEnd;
@@ -1026,6 +1086,10 @@ template <typename CharSequence>
           before = static_cast<int>(c - '0');
           before_digits_count = 1;
         } else if (c == dec_point) {
+          if (!(options & ParseOptions::kAllowBoundaryDot) &&
+              error == Error::kOk) {
+            error = Error::kBoundaryDot;
+          }
           state = State::kAfterDec;
         } else {
           state = State::kEnd;
@@ -1049,8 +1113,8 @@ template <typename CharSequence>
           if (before_digits_count < kMaxDecimalDigits) {
             before = 10 * before + static_cast<int>(c - '0');
             before_digits_count++;
-          } else {
-            error = Error::kOverflow;
+          } else if (error == Error::kOk) {
+            error = Error::kOverflow;  // keep reading digits
           }
         } else if (c == dec_point) {
           state = State::kAfterDec;
@@ -1064,6 +1128,10 @@ template <typename CharSequence>
             after = 10 * after + static_cast<int>(c - '0');
             after_digit_count++;
           } else {
+            if (!(options & ParseOptions::kAllowRounding) &&
+                error == Error::kOk) {
+              error = Error::kRounding;
+            }
             state = State::kIgnoringAfterDec;
             if (c >= '5') {
               // round half up
@@ -1071,6 +1139,10 @@ template <typename CharSequence>
             }
           }
         } else {
+          if (!(options & ParseOptions::kAllowBoundaryDot) &&
+              after_digit_count == 0 && error == Error::kOk) {
+            error = Error::kBoundaryDot;
+          }
           state = State::kEnd;
         }
         break;
@@ -1081,9 +1153,8 @@ template <typename CharSequence>
           state = State::kEnd;
         }
         break;
-      default:
-        error = Error::kWrongState;
-        state = State::kEnd;
+      case State::kEnd:
+        UASSERT(false);
         break;
     }  // switch state
   }    // while has more chars & not end
@@ -1092,27 +1163,21 @@ template <typename CharSequence>
     input.Unget();
 
     if (error == Error::kOk) {
-      switch (tolerance) {
-        case ParseTolerance::kStrict:
-          error = Error::kWrongChar;
-          break;
-        case ParseTolerance::kAllowSpaces:
-          while (true) {
-            const auto c = input.Get();
-            if (c == '\0') {
-              break;
-            } else if (!IsSpace(c)) {
-              error = Error::kWrongChar;
-              input.Unget();
-              break;
-            }
+      if (options & ParseOptions::kAllowTrailingJunk) {
+        // pass
+      } else if (options & ParseOptions::kAllowSpaces) {
+        while (true) {
+          const auto c = input.Get();
+          if (c == '\0') {
+            break;
+          } else if (!IsSpace(c)) {
+            error = Error::kWrongChar;
+            input.Unget();
+            break;
           }
-          break;
-        case ParseTolerance::kPermissive:
-          break;
-        default:
-          error = Error::kWrongState;
-          break;
+        }
+      } else {
+        error = Error::kWrongChar;
       }
     }
   }
@@ -1120,6 +1185,11 @@ template <typename CharSequence>
   if (error == Error::kOk && before_digits_count == 0 &&
       after_digit_count == 0) {
     error = Error::kNoDigits;
+  }
+
+  if (error == Error::kOk && state == State::kAfterDec &&
+      !(options & ParseOptions::kAllowBoundaryDot) && after_digit_count == 0) {
+    error = Error::kBoundaryDot;
   }
 
   if (error == Error::kOk) {
@@ -1138,31 +1208,21 @@ template <typename CharSequence>
   return error == Error::kOk;
 }
 
-/// Specifies how to treat the input containing more decimal digits than Prec
-enum ParseRounding {
-  /// Round according to the specified RoundPolicy
-  kAllow,
-
-  /// Treat rounding as an error, including trailing zeros beyond Prec
-  kProhibit
-};
-
 /// Extract values from a CharSequence ready to be packed to Decimal
 template <typename CharSequence, int Prec, typename RoundPolicy>
 [[nodiscard]] bool Parse(CharSequence input, Decimal<Prec, RoundPolicy>& output,
-                         ParseTolerance parse_tolerance,
-                         ParseRounding parse_rounding) {
+                         utils::Flags<ParseOptions> options) {
   int sign, after_digits;
   int64_t before, after;
   const bool success =
-      ParseUnpacked(input, sign, before, after, after_digits, parse_tolerance);
+      ParseUnpacked(input, sign, before, after, after_digits, options);
 
   if (!success || before >= kMaxInt64 / kPow10<Prec>) {
     output = Decimal<Prec, RoundPolicy>(0);
     return false;
   }
 
-  if (parse_rounding == ParseRounding::kProhibit && after_digits > Prec) {
+  if (!(options & ParseOptions::kAllowRounding) && after_digits > Prec) {
     output = Decimal<Prec, RoundPolicy>(0);
     return false;
   }
@@ -1180,9 +1240,7 @@ T FromString(std::string_view input) {
 
   impl::StringCharSequence source(input);
   T result;
-  const bool success =
-      impl::Parse(source, result, impl::ParseTolerance::kStrict,
-                  impl::ParseRounding::kProhibit);
+  const bool success = impl::Parse(source, result, ParseOptions::kNone);
 
   if (!success) {
     throw ParseError(input, source.Position() - input.data());
@@ -1262,8 +1320,7 @@ template <int Prec, class RoundPolicy>
 Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
   // swallow the error
   static_cast<void>(impl::Parse(impl::StringCharSequence(value), *this,
-                                impl::ParseTolerance::kPermissive,
-                                impl::ParseRounding::kAllow));
+                                impl::ParseOptionsPermissive));
 }
 
 /// Converts string to Decimal
@@ -1286,9 +1343,10 @@ Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
 /// \result Returns true if conversion succeeded
 template <int Prec, typename RoundPolicy>
 bool fromString(std::string_view input, Decimal<Prec, RoundPolicy>& output) {
-  return impl::Parse(impl::StringCharSequence(input), output,
-                     impl::ParseTolerance::kAllowSpaces,
-                     impl::ParseRounding::kAllow);
+  return impl::Parse(
+      impl::StringCharSequence(input), output,
+      {impl::ParseOptions::kAllowSpaces, impl::ParseOptions::kAllowBoundaryDot,
+       impl::ParseOptions::kAllowRounding});
 }
 
 /// Converts string to Decimal
@@ -1335,8 +1393,7 @@ template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
 bool fromStream(std::basic_istream<CharT, Traits>& is,
                 Decimal<Prec, RoundPolicy>& d) {
   const bool success = impl::Parse(impl::StreamCharSequence(is), d,
-                                   impl::ParseTolerance::kPermissive,
-                                   impl::ParseRounding::kAllow);
+                                   impl::ParseOptionsPermissive);
   if (!success) {
     is.setstate(std::ios_base::failbit);
   }
