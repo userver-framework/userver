@@ -33,6 +33,11 @@ TEST(JsonStringParser, Int64) {
   state.ProcessInput(input);
 
   EXPECT_EQ(result, 12345);
+
+  EXPECT_EQ((ParseToType<int, IntParser>("3.0")), 3);
+  EXPECT_THROW_TEXT(
+      (ParseToType<int, IntParser>("3.01")), ParseError,
+      "Parse error at pos 4, path '': integer was expected, but double found");
 }
 
 TEST(JsonStringParser, Double) {
