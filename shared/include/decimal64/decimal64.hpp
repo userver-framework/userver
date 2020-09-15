@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/decimal64.hpp
+/// @file decimal64/decimal64.hpp
 /// @brief Decimal data type for fixed-point arithmetic
 
 // Original source taken from https://github.com/vpiotr/decimal_for_cpp
@@ -55,8 +55,11 @@ constexpr void CheckPrecCast() {
 inline constexpr auto kMaxInt64 = std::numeric_limits<int64_t>::max();
 inline constexpr auto kMinInt64 = std::numeric_limits<int64_t>::min();
 
-template <typename T, typename R = void>
-using EnableIfInt = std::enable_if_t<meta::kIsInteger<T>, R>;
+template <typename T>
+using EnableIfInt = std::enable_if_t<meta::kIsInteger<T>, int>;
+
+template <typename T>
+using EnableIfFloat = std::enable_if_t<std::is_floating_point_v<T>, int>;
 
 template <int MaxExp>
 constexpr std::array<int64_t, MaxExp + 1> PowSeries(int64_t base) {
@@ -368,7 +371,7 @@ class HalfEvenRoundPolicy {
       } else if (decimals < 0.5) {
         return impl::Floor(value);
       } else {
-        const bool is_even = static_cast<int64_t>(value - decimals) % 2 == 0;
+        const bool is_even = impl::Floor(value) % 2 == 0;
         if (is_even) {
           return impl::Floor(value);
         } else {
@@ -376,13 +379,13 @@ class HalfEvenRoundPolicy {
         }
       }
     } else {
-      const T decimals = std::abs(value + impl::Floor(std::abs(value)));
+      const T decimals = impl::Ceil(value) - value;
       if (decimals > 0.5) {
         return impl::Floor(value);
       } else if (decimals < 0.5) {
         return impl::Ceil(value);
       } else {
-        const bool is_even = static_cast<int64_t>(value + decimals) % 2 == 0;
+        const bool is_even = impl::Ceil(value) % 2 == 0;
         if (is_even) {
           return impl::Ceil(value);
         } else {
@@ -461,7 +464,7 @@ class CeilingRoundPolicy {
 // round towards -infinity
 class FloorRoundPolicy {
  public:
-  template <class T>
+  template <typename T>
   static constexpr int64_t Round(T value) {
     return impl::Floor(value);
   }
@@ -488,7 +491,7 @@ class RoundDownRoundPolicy : public NullRoundPolicy {};
 // round away from zero
 class RoundUpRoundPolicy {
  public:
-  template <class T>
+  template <typename T>
   static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
       return impl::Ceil(value);
@@ -518,11 +521,6 @@ struct UnpackedDecimal {
   int64_t after;
 };
 
-struct FloatingPointDecimal {
-  int64_t mantissa;
-  int exponent;
-};
-
 /// Decimal value type. Use for capital calculations.
 /// Note: maximum handled value is: +9,223,372,036,854,775,807 (divided by prec)
 ///
@@ -531,7 +529,7 @@ struct FloatingPointDecimal {
 ///   decimal<2> value(143125);
 ///   value = value / decimal_cast<2>(333);
 ///   cout << "Result is: " << value << endl;
-template <int Prec, class RoundPolicy_ = DefRoundPolicy>
+template <int Prec, typename RoundPolicy_ = DefRoundPolicy>
 class Decimal {
  public:
   static constexpr int kDecimalPoints = Prec;
@@ -541,15 +539,17 @@ class Decimal {
 
   constexpr Decimal() noexcept : value_(0) {}
 
-  template <typename T, typename = impl::EnableIfInt<T>>
-  constexpr explicit Decimal(T value) : Decimal(FromInteger(value)) {}
-  constexpr explicit Decimal(long double value)
-      : Decimal(FromFloatingPoint(value)) {}
-  constexpr explicit Decimal(double value)
-      : Decimal(FromFloatingPoint(value)) {}
-  constexpr explicit Decimal(float value) : Decimal(FromFloatingPoint(value)) {}
+  template <typename T, impl::EnableIfInt<T> = 0>
+  explicit constexpr Decimal(T value) : Decimal(FromIntegerImpl(value)) {}
 
-  explicit Decimal(std::string_view value);
+  explicit constexpr Decimal(std::string_view value);
+
+  template <typename T>
+  static constexpr Decimal FromFloatInexact(T value) {
+    static_assert(std::is_floating_point_v<T>);
+    return FromUnbiased(DefRoundPolicy::Round(static_cast<long double>(value) *
+                                              kDecimalFactor));
+  }
 
   static constexpr Decimal FromUnbiased(int64_t value) noexcept {
     Decimal result;
@@ -820,12 +820,8 @@ class Decimal {
     return result;
   }
 
-  constexpr double ToDouble() const {
+  constexpr double ToDoubleInexact() const {
     return static_cast<double>(value_) / kDecimalFactor;
-  }
-
-  constexpr long double ToLongDouble() const {
-    return static_cast<long double>(value_) / kDecimalFactor;
   }
 
   /// returns integer value = real_value * (10 ^ precision)
@@ -838,19 +834,25 @@ class Decimal {
     return {value_ / kDecimalFactor, value_ % kDecimalFactor};
   }
 
- private:
-  template <typename T>
-  static constexpr Decimal FromInteger(T value) {
-    return FromUnbiased(static_cast<int64_t>(value) * kDecimalFactor);
+  template <typename T, impl::EnableIfFloat<T> = 0>
+  [
+      [deprecated("Construct from string or use "
+                  "FromFloatInexact")]] constexpr explicit Decimal(T value)
+      : Decimal(FromFloatInexact(value)) {}
+
+  [[deprecated("Use ToDoubleInexact")]] constexpr double ToDouble() const {
+    return ToDoubleInexact();
   }
 
+  [[deprecated("Use ToDoubleInexact")]] constexpr long double ToLongDouble()
+      const {
+    return static_cast<long double>(value_) / kDecimalFactor;
+  }
+
+ private:
   template <typename T>
-  static constexpr Decimal FromFloatingPoint(T value) {
-    const auto int_part = impl::Floor(value);
-    const T frac_part = value - int_part;
-    return FromUnpacked(
-        int_part, RoundPolicy::Round(static_cast<long double>(kDecimalFactor) *
-                                     frac_part));
+  static constexpr Decimal FromIntegerImpl(T value) {
+    return FromUnbiased(static_cast<int64_t>(value) * kDecimalFactor);
   }
 
   int64_t value_;
@@ -867,39 +869,54 @@ struct IsDecimal<Decimal<Prec, RoundPolicy>> : std::true_type {};
 }  // namespace impl
 
 /// Example of use:
-///   c = decimal64::decimal_cast<6>(a * b);
-template <int Prec, int OldPrec, class Round>
+///   c = decimal64::DecimalCast<6>(a * b);
+template <typename T, int OldPrec, typename OldRound>
+constexpr T decimal_cast(Decimal<OldPrec, OldRound> arg) {
+  static_assert(impl::IsDecimal<T>::value);
+  return T::FromBiased(arg.AsUnbiased(), OldPrec);
+}
+
+template <int Prec, int OldPrec, typename Round>
 constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, Round> arg) {
   return Decimal<Prec, Round>::FromBiased(arg.AsUnbiased(), OldPrec);
 }
 
 template <int Prec, typename Round, int OldPrec, typename OldRound>
-constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, OldRound> arg) {
-  return Decimal<Prec, Round>::FromBiased(arg.AsUnbiased(), OldPrec);
+[
+    [deprecated("Use decimal_cast taking a single Decimal type "
+                "parameter")]] constexpr Decimal<Prec, Round>
+decimal_cast(Decimal<OldPrec, OldRound> arg) {
+  return decimal_cast<Decimal<Prec, Round>>(arg);
 }
 
-template <int Prec, typename T>
-constexpr impl::EnableIfInt<T, Decimal<Prec>> decimal_cast(T arg) {
+template <int Prec, typename T, impl::EnableIfInt<T> = 0>
+[[deprecated("Use the constructor")]] constexpr Decimal<Prec> decimal_cast(
+    T arg) {
   return Decimal<Prec>(arg);
 }
 
-template <int Prec, typename RoundPolicy, typename T>
-constexpr impl::EnableIfInt<T, Decimal<Prec, RoundPolicy>> decimal_cast(T arg) {
+template <int Prec, typename RoundPolicy, typename T, impl::EnableIfInt<T> = 0>
+[[deprecated("Use the constructor")]] constexpr Decimal<Prec, RoundPolicy>
+decimal_cast(T arg) {
   return Decimal<Prec, RoundPolicy>(arg);
 }
 
-template <int Prec, typename RoundPolicy = DefRoundPolicy>
-constexpr Decimal<Prec, RoundPolicy> decimal_cast(double arg) {
-  return Decimal<Prec, RoundPolicy>(arg);
+template <int Prec, typename T, impl::EnableIfFloat<T> = 0>
+[[deprecated("Use FromFloatInexact")]] constexpr Decimal<Prec> decimal_cast(
+    T arg) {
+  return Decimal<Prec>::FromFloatInexact(arg);
+}
+
+template <int Prec, typename RoundPolicy, typename T,
+          impl::EnableIfFloat<T> = 0>
+[[deprecated("Use FromFloatInexact")]] constexpr Decimal<Prec, RoundPolicy>
+decimal_cast(T arg) {
+  return Decimal<Prec, RoundPolicy>::FromFloatInexact(arg);
 }
 
 template <int Prec, typename RoundPolicy = DefRoundPolicy>
-constexpr Decimal<Prec, RoundPolicy> decimal_cast(long double arg) {
-  return Decimal<Prec, RoundPolicy>(arg);
-}
-
-template <int Prec, typename RoundPolicy = DefRoundPolicy>
-constexpr Decimal<Prec, RoundPolicy> decimal_cast(std::string_view arg) {
+[[deprecated("Use the constructor")]] constexpr Decimal<Prec, RoundPolicy>
+decimal_cast(std::string_view arg) {
   return Decimal<Prec, RoundPolicy>(arg);
 }
 
@@ -915,20 +932,20 @@ class ParseError : public std::runtime_error {
 namespace impl {
 
 template <typename CharT>
-bool IsSpace(CharT c) {
+constexpr bool IsSpace(CharT c) {
   return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v';
 }
 
 template <typename CharT>
 class StringCharSequence {
  public:
-  explicit StringCharSequence(std::basic_string_view<CharT> sv)
+  explicit constexpr StringCharSequence(std::basic_string_view<CharT> sv)
       : current_(sv.data()), end_(sv.data() + sv.size()) {}
 
   // on sequence end, returns '\0'
-  CharT Get() { return current_ == end_ ? CharT{'\0'} : *current_++; }
+  constexpr CharT Get() { return current_ == end_ ? CharT{'\0'} : *current_++; }
 
-  void Unget() { --current_; }
+  constexpr void Unget() { --current_; }
 
   const char* Position() const { return current_; }
 
@@ -984,11 +1001,17 @@ inline constexpr auto ParseOptionsPermissive = utils::Flags<ParseOptions>{
     ParseOptions::kAllowSpaces, ParseOptions::kAllowTrailingJunk,
     ParseOptions::kAllowBoundaryDot, ParseOptions::kAllowRounding};
 
+struct ParseResult {
+  bool success;
+  int64_t before;
+  int64_t after;
+  int decimal_digits;
+};
+
 /// Extract values from a CharSequence ready to be packed to Decimal
 template <typename CharSequence>
-[[nodiscard]] bool ParseUnpacked(CharSequence input, int& sign, int64_t& before,
-                                 int64_t& after, int& decimal_digits,
-                                 utils::Flags<ParseOptions> options) {
+[[nodiscard]] constexpr ParseResult ParseUnpacked(
+    CharSequence input, utils::Flags<ParseOptions> options) {
   constexpr char dec_point = '.';
 
   enum class State {
@@ -1036,12 +1059,13 @@ template <typename CharSequence>
     kBoundaryDot
   };
 
-  before = after = 0;
-  sign = 1;
+  int64_t before = 0;
+  int64_t after = 0;
+  bool is_negative = false;
 
   auto state = State::kSign;
   auto error = Error::kOk;
-  int before_digits_count = 0;
+  int before_digit_count = 0;
   int after_digit_count = 0;
 
   while (state != State::kEnd) {
@@ -1053,17 +1077,17 @@ template <typename CharSequence>
     switch (state) {
       case State::kSign:
         if (c == '-') {
-          sign = -1;
+          is_negative = true;
           state = State::kBeforeFirstDig;
         } else if (c == '+') {
           state = State::kBeforeFirstDig;
         } else if (c == '0') {
           state = State::kLeadingZeros;
-          before_digits_count = 1;
+          before_digit_count = 1;
         } else if ((c >= '1') && (c <= '9')) {
           state = State::kBeforeDec;
           before = static_cast<int>(c - '0');
-          before_digits_count = 1;
+          before_digit_count = 1;
         } else if (c == dec_point) {
           if (!(options & ParseOptions::kAllowBoundaryDot) &&
               error == Error::kOk) {
@@ -1080,11 +1104,11 @@ template <typename CharSequence>
       case State::kBeforeFirstDig:
         if (c == '0') {
           state = State::kLeadingZeros;
-          before_digits_count = 1;
+          before_digit_count = 1;
         } else if ((c >= '1') && (c <= '9')) {
           state = State::kBeforeDec;
           before = static_cast<int>(c - '0');
-          before_digits_count = 1;
+          before_digit_count = 1;
         } else if (c == dec_point) {
           if (!(options & ParseOptions::kAllowBoundaryDot) &&
               error == Error::kOk) {
@@ -1110,9 +1134,9 @@ template <typename CharSequence>
         break;
       case State::kBeforeDec:
         if ((c >= '0') && (c <= '9')) {
-          if (before_digits_count < kMaxDecimalDigits) {
+          if (before_digit_count < kMaxDecimalDigits) {
             before = 10 * before + static_cast<int>(c - '0');
-            before_digits_count++;
+            before_digit_count++;
           } else if (error == Error::kOk) {
             error = Error::kOverflow;  // keep reading digits
           }
@@ -1182,7 +1206,7 @@ template <typename CharSequence>
     }
   }
 
-  if (error == Error::kOk && before_digits_count == 0 &&
+  if (error == Error::kOk && before_digit_count == 0 &&
       after_digit_count == 0) {
     error = Error::kNoDigits;
   }
@@ -1192,50 +1216,44 @@ template <typename CharSequence>
     error = Error::kBoundaryDot;
   }
 
-  if (error == Error::kOk) {
-    if (sign < 0) {
-      before = -before;
-      after = -after;
-    }
-    decimal_digits = after_digit_count;
-  } else {
-    sign = 0;
-    before = 0;
-    after = 0;
-    decimal_digits = 0;
+  if (error != Error::kOk) {
+    return {false, 0, 0, 0};
   }
 
-  return error == Error::kOk;
+  if (is_negative) {
+    before = -before;
+    after = -after;
+  }
+  return {true, before, after, after_digit_count};
 }
 
 /// Extract values from a CharSequence ready to be packed to Decimal
 template <typename CharSequence, int Prec, typename RoundPolicy>
-[[nodiscard]] bool Parse(CharSequence input, Decimal<Prec, RoundPolicy>& output,
-                         utils::Flags<ParseOptions> options) {
-  int sign, after_digits;
-  int64_t before, after;
-  const bool success =
-      ParseUnpacked(input, sign, before, after, after_digits, options);
+[[nodiscard]] constexpr bool Parse(CharSequence input,
+                                   Decimal<Prec, RoundPolicy>& output,
+                                   utils::Flags<ParseOptions> options) {
+  const auto parsed = ParseUnpacked(input, options);
 
-  if (!success || before >= kMaxInt64 / kPow10<Prec>) {
+  if (!parsed.success || parsed.before >= kMaxInt64 / kPow10<Prec>) {
     output = Decimal<Prec, RoundPolicy>(0);
     return false;
   }
 
-  if (!(options & ParseOptions::kAllowRounding) && after_digits > Prec) {
+  if (!(options & ParseOptions::kAllowRounding) &&
+      parsed.decimal_digits > Prec) {
     output = Decimal<Prec, RoundPolicy>(0);
     return false;
   }
 
-  output =
-      Decimal<Prec, RoundPolicy>::FromUnpacked(before, after, after_digits);
+  output = Decimal<Prec, RoundPolicy>::FromUnpacked(parsed.before, parsed.after,
+                                                    parsed.decimal_digits);
   return true;
 }
 
 // TODO TAXICOMMON-2894
 // For Codegen only!
 template <typename T>
-T FromString(std::string_view input) {
+constexpr T FromString(std::string_view input) {
   static_assert(IsDecimal<T>::value);
 
   impl::StringCharSequence source(input);
@@ -1316,8 +1334,8 @@ std::string ToStringImpl(Decimal<Prec, RoundPolicy> dec,
 
 }  // namespace impl
 
-template <int Prec, class RoundPolicy>
-Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
+template <int Prec, typename RoundPolicy>
+constexpr Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
   // swallow the error
   static_cast<void>(impl::Parse(impl::StringCharSequence(value), *this,
                                 impl::ParseOptionsPermissive));
@@ -1342,7 +1360,8 @@ Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
 /// \param[output] output Decimal value, 0 on error
 /// \result Returns true if conversion succeeded
 template <int Prec, typename RoundPolicy>
-bool fromString(std::string_view input, Decimal<Prec, RoundPolicy>& output) {
+constexpr bool fromString(std::string_view input,
+                          Decimal<Prec, RoundPolicy>& output) {
   return impl::Parse(
       impl::StringCharSequence(input), output,
       {impl::ParseOptions::kAllowSpaces, impl::ParseOptions::kAllowBoundaryDot,
@@ -1368,7 +1387,7 @@ bool fromString(std::string_view input, Decimal<Prec, RoundPolicy>& output) {
 /// \result Converted Decimal
 /// \throws std::runtime_error if the string does not contain a Decimal
 template <typename T>
-T fromString(std::string_view str) {
+constexpr T fromString(std::string_view str) {
   T output;
   // swallow the error
   static_cast<void>(fromString(str, output));

@@ -26,11 +26,11 @@
 
 /shared/*/compiler/ @antoshkka
 /shared/*/crypto/ @bugaevskiy @segoon
+/shared/*/decimal64/ @antonyzhilin @bugaevskiy
 /shared/*/fs/ @antoshkka
 /shared/*/http/ @segoon @bugaevskiy
 
 /third_party/boost_stacktrace/ @antoshkka
-/third_party/decimal64/ @bugaevskiy
 /third_party/magic_get/ @ser-fedorov @antoshkka
 
 /uboost_coro/ @bugaevskiy @antoshkka

@@ -18,9 +18,9 @@ TEST(Decimal64, ConstructFromString) {
   ASSERT_EQ(Dec4{"010"}, Dec4{10});
   ASSERT_EQ(Dec4{"000005"}, Dec4{5});
 
-  ASSERT_EQ(Dec4{"000000000000000000000000000000012.0"}, Dec4{12});
-  ASSERT_EQ(Dec4{"000000000000000000000000000000000.12"}, Dec4{0.12});
-  ASSERT_EQ(Dec4{"12345678987654.3210"}.AsUnbiased(), 123456789876543210LL);
+  ASSERT_EQ(Dec4{"000000000000000000000000000000012.0"}.AsUnbiased(), 12'0000);
+  ASSERT_EQ(Dec4{"000000000000000000000000000000000.12"}.AsUnbiased(), 1200);
+  ASSERT_EQ(Dec4{"12345678987654.3210"}.AsUnbiased(), 12345678987654'3210LL);
 
   ASSERT_EQ(decimal64::Decimal<18>{"0.987654321123456789"}.AsUnbiased(),
             987654321123456789LL);
@@ -36,7 +36,7 @@ TEST(Decimal64, ConstructFromStringDeprecated) {
   ASSERT_EQ(Dec4{"1#.1234"}, Dec4{1});
   ASSERT_EQ(Dec4{"12#.1234"}, Dec4{12});
   ASSERT_EQ(Dec4{"10.#123"}, Dec4{10});
-  ASSERT_EQ(Dec4{"10.123#"}, Dec4{10.123});
+  ASSERT_EQ(Dec4{"10.123#"}.AsUnbiased(), 10'1230);
   ASSERT_EQ(Dec4{"0x10"}, Dec4{0});
   ASSERT_EQ(Dec4{"+0x10"}, Dec4{0});
   ASSERT_EQ(Dec4{"-0x10"}, Dec4{0});
@@ -73,8 +73,8 @@ TEST(Decimal64, FromString) {
   Dec4 out;
 
   ASSERT_TRUE(decimal64::fromString("1234.5678", out));
-  ASSERT_EQ(out, Dec4{1234.5678});
-  ASSERT_EQ(decimal64::fromString<Dec4>("1234.5678"), Dec4{1234.5678});
+  ASSERT_EQ(out.AsUnbiased(), 1234'5678);
+  ASSERT_EQ(decimal64::fromString<Dec4>("1234.5678").AsUnbiased(), 1234'5678);
 
   ASSERT_FALSE(decimal64::fromString(".+0", out));
   ASSERT_FALSE(decimal64::fromString(".-0", out));
@@ -108,7 +108,7 @@ TEST(Decimal64, FromString) {
 
   ASSERT_FALSE(decimal64::fromString("10 a", out));
   ASSERT_TRUE(decimal64::fromString(" .01 ", out));
-  ASSERT_EQ(out, Dec4{0.01});
+  ASSERT_EQ(out.AsUnbiased(), 100);
 
   ASSERT_EQ(decimal64::fromString<Dec4>("    1"), Dec4{1});
   ASSERT_EQ(decimal64::fromString<Dec4>("1    "), Dec4{1});
@@ -117,10 +117,11 @@ TEST(Decimal64, FromString) {
   ASSERT_EQ(decimal64::fromString<Dec4>("1."), Dec4{1});
   ASSERT_EQ(decimal64::fromString<Dec4>("+1."), Dec4{1});
   ASSERT_EQ(decimal64::fromString<Dec4>("-1."), Dec4{-1});
-  ASSERT_EQ(decimal64::fromString<Dec4>(".1"), Dec4{0.1});
+  ASSERT_EQ(decimal64::fromString<Dec4>(".1").AsUnbiased(), 1000);
   ASSERT_EQ(decimal64::fromString<Dec4>("+1."), Dec4{1});
-  ASSERT_EQ(decimal64::fromString<Dec4>("0.0000501"), Dec4{0.0001});
-  ASSERT_EQ(decimal64::fromString<Dec4>("12345.7890000"), Dec4{12345.789});
+  ASSERT_EQ(decimal64::fromString<Dec4>("0.0000501").AsUnbiased(), 1);
+  ASSERT_EQ(decimal64::fromString<Dec4>("12345.7890000").AsUnbiased(),
+            12345'7890);
   ASSERT_EQ(decimal64::fromString<Dec4>("1000000000"), Dec4{1000000000});
   ASSERT_EQ(decimal64::fromString<Dec4>("-1000000000"), Dec4{-1000000000});
 
@@ -224,7 +225,7 @@ TEST(Decimal64, FromStreamDeprecated) {
 
   std::istringstream is3{"-1.2.3"};
   ASSERT_TRUE(decimal64::fromStream(is3, out));
-  ASSERT_EQ(out, Dec4{-1.2});
+  ASSERT_EQ(out, Dec4{"-1.2"});
   std::getline(is3, remaining);
   ASSERT_EQ(remaining, ".3");
 

@@ -26,8 +26,8 @@
 /// boolean           | bool                                    | +       |
 /// real              | float                                   | +       |
 /// double precision  | double                                  | +       |
-/// numeric(p)        | decimal64::decimal<P>                   | +       |
-/// decimal(p)        | decimal64::decimal<P>                   | +       |
+/// numeric(p)        | decimal64::Decimal<P>                   | +       |
+/// decimal(p)        | decimal64::Decimal<P>                   | +       |
 /// money             | N/A                                     |         |
 /// text              | std::string                             | +       |
 /// char(n)           | std::string                             |         |

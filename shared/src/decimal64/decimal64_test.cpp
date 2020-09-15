@@ -6,6 +6,33 @@
 
 using Dec4 = decimal64::Decimal<4>;
 
+template <typename RoundPolicy>
+class Decimal64Round : public ::testing::Test {
+ public:
+  using Dec = decimal64::Decimal<4, RoundPolicy>;
+};
+using RoundPolicies = ::testing::Types<
+    decimal64::NullRoundPolicy, decimal64::DefRoundPolicy,
+    decimal64::HalfDownRoundPolicy, decimal64::HalfUpRoundPolicy,
+    decimal64::HalfEvenRoundPolicy, decimal64::CeilingRoundPolicy,
+    decimal64::FloorRoundPolicy, decimal64::RoundDownRoundPolicy,
+    decimal64::RoundUpRoundPolicy>;
+TYPED_TEST_SUITE(Decimal64Round, RoundPolicies);
+
+TYPED_TEST(Decimal64Round, FromDouble) {
+  using Dec = typename TestFixture::Dec;
+  constexpr auto kIterations = 10000;
+
+  for (int64_t i = 0; i < kIterations; ++i) {
+    const auto i1 = static_cast<float>(i) / Dec4::kDecimalFactor;
+    const auto i2 = static_cast<double>(i) / Dec4::kDecimalFactor;
+    const auto i3 = static_cast<long double>(i) / Dec4::kDecimalFactor;
+    ASSERT_EQ(Dec::FromFloatInexact(i1).AsUnbiased(), i);
+    ASSERT_EQ(Dec::FromFloatInexact(i2).AsUnbiased(), i);
+    ASSERT_EQ(Dec::FromFloatInexact(i3).AsUnbiased(), i);
+  }
+}
+
 TEST(Decimal64, ToString) {
   ASSERT_EQ(decimal64::ToString(Dec4{"1000"}), "1000");
   ASSERT_EQ(decimal64::ToString(Dec4{"0"}), "0");
@@ -51,7 +78,7 @@ TEST(Decimal64, DefaultRoundingPolicy) {
   ASSERT_EQ(out, Dec4{1});
 
   ASSERT_TRUE(decimal64::fromString("1.00006", out));
-  ASSERT_EQ(out, Dec4{1.0001});
+  ASSERT_EQ(out, Dec4{"1.0001"});
 }
 
 TEST(Decimal64, ArithmeticOperations) {
@@ -81,9 +108,13 @@ TEST(Decimal64, ConstexprSupport) {
   [[maybe_unused]] constexpr Dec4 zero{0};
   [[maybe_unused]] constexpr Dec4 ten{10};
   [[maybe_unused]] constexpr Dec4 large_int{123456789876543};
-  [[maybe_unused]] constexpr Dec4 from_float{42.123456F};
-  [[maybe_unused]] constexpr Dec4 from_double{42.123456};
-  [[maybe_unused]] constexpr Dec4 from_long_double{42.123456L};
+  [[maybe_unused]] constexpr Dec4 from_string{"42.123456"};
+  [[maybe_unused]] constexpr Dec4 from_float =
+      Dec4::FromFloatInexact(42.123456F);
+  [[maybe_unused]] constexpr Dec4 from_double =
+      Dec4::FromFloatInexact(42.123456);
+  [[maybe_unused]] constexpr Dec4 from_long_double =
+      Dec4::FromFloatInexact(42.123456L);
   [[maybe_unused]] constexpr Dec4 from_unbiased = Dec4::FromUnbiased(123);
   [[maybe_unused]] constexpr Dec4 from_unpacked = Dec4::FromUnpacked(123, 4567);
   [[maybe_unused]] constexpr Dec4 from_unpacked2 =
