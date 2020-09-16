@@ -1,5 +1,6 @@
 #include <storages/mongo/dist_lock_strategy.hpp>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <formats/bson.hpp>
@@ -21,7 +22,7 @@ const std::string kOwner = "o";
 }  // namespace fields
 
 std::string MakeOwnerId(const std::string& prefix, const std::string& locker) {
-  return fmt::format("{}:{}", prefix, locker);
+  return fmt::format(FMT_COMPILE("{}:{}"), prefix, locker);
 }
 
 }  // namespace

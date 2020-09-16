@@ -1,5 +1,8 @@
 #include "implicit_options_http_handler.hpp"
 
+#include <fmt/compile.h>
+#include <fmt/format.h>
+
 #include <http/common_headers.hpp>
 #include <server/component.hpp>
 #include <server/handlers/auth/auth_checker.hpp>
@@ -40,7 +43,7 @@ std::string ImplicitOptionsHttpHandler::ExtractAllowedMethods(
     }
   }
 
-  return fmt::format("{}", fmt::join(allowed_methods, ", "));
+  return fmt::format(FMT_COMPILE("{}"), fmt::join(allowed_methods, ", "));
 }
 
 const http::HandlerInfoIndex& ImplicitOptionsHttpHandler::GetHandlerInfoIndex()

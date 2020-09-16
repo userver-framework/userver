@@ -6,6 +6,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <engine/io/exception.hpp>
@@ -59,10 +60,12 @@ std::string Addr::RemoteAddress() const {
 std::string ToString(const Addr& addr) {
   switch (addr.Domain()) {
     case AddrDomain::kInet:
-      return fmt::format("{}:{}", addr.RemoteAddress(), GetPort(addr));
+      return fmt::format(FMT_COMPILE("{}:{}"), addr.RemoteAddress(),
+                         GetPort(addr));
 
     case AddrDomain::kInet6:
-      return fmt::format("[{}]:{}", addr.RemoteAddress(), GetPort(addr));
+      return fmt::format(FMT_COMPILE("[{}]:{}"), addr.RemoteAddress(),
+                         GetPort(addr));
 
     default:
       return addr.RemoteAddress();

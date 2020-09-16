@@ -1,12 +1,17 @@
 #pragma once
 
+#include <chrono>
 #include <list>
 #include <optional>
 #include <string>
 
 #include <boost/intrusive/list.hpp>
 
+#include <logging/level.hpp>
+#include <logging/log_extra.hpp>
+#include <tracing/span.hpp>
 #include <tracing/tracer.hpp>
+#include <utils/prof.hpp>
 
 #define DO_LOG_TO_NO_SPAN(logger, lvl)                            \
   ::logging::LogHelper(logger, lvl, __FILE__, __LINE__, __func__, \
@@ -18,8 +23,6 @@ class ValueBuilder;
 }
 
 namespace tracing {
-
-class Span;
 
 class Span::Impl
     : public boost::intrusive::list_base_hook<

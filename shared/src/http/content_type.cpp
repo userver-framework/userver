@@ -4,6 +4,7 @@
 #include <functional>
 #include <iostream>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <boost/algorithm/string/predicate.hpp>
@@ -139,7 +140,7 @@ ContentType::ContentType(const char* media_range)
     : ContentType(std::string_view(media_range)) {}
 
 std::string ContentType::MediaType() const {
-  return fmt::format("{}/{}", TypeToken(), SubtypeToken());
+  return fmt::format(FMT_COMPILE("{}/{}"), TypeToken(), SubtypeToken());
 }
 
 const std::string& ContentType::TypeToken() const { return type_; }

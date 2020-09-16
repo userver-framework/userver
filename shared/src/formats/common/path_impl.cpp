@@ -18,8 +18,7 @@ void AppendPath(std::string& path, std::size_t index) {
   if (index < kIndexCacheSize) {
     path += formats::common::kIndexCache[index];
   } else {
-    // TODO: replace with FMT_COMPILE
-    fmt::format_to(std::back_inserter(path), "[{}]", index);
+    fmt::format_to(std::back_inserter(path), FMT_COMPILE("[{}]"), index);
   }
 }
 

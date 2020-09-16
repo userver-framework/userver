@@ -1,5 +1,6 @@
 #include <storages/postgres/dist_lock_strategy.hpp>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <hostinfo/blocking/get_hostname.hpp>
@@ -14,7 +15,7 @@ namespace {
 // owner - $2
 // timeout in seconds - $3
 std::string MakeAcquireQuery(const std::string& table) {
-  static const auto kAcquireQueryFmt = R"(
+  static constexpr auto kAcquireQueryFmt = R"(
     INSERT INTO {} AS t (key, owner, expiration_time) VALUES
     ($1, $2, current_timestamp + make_interval(secs => $3))
     ON CONFLICT (key) DO UPDATE
@@ -22,23 +23,23 @@ std::string MakeAcquireQuery(const std::string& table) {
     WHERE (t.owner = $2) OR
     (t.expiration_time <= current_timestamp) RETURNING 1;
 )";
-  return fmt::format(kAcquireQueryFmt, table);
+  return fmt::format(FMT_COMPILE(kAcquireQueryFmt), table);
 }
 
 // key - $1
 // owner - $2
 std::string MakeReleaseQuery(const std::string& table) {
-  static const auto kReleaseQueryFmt = R"(
+  static constexpr auto kReleaseQueryFmt = R"(
     DELETE FROM {}
     WHERE key = $1
     AND owner = $2
     RETURNING 1;
 )";
-  return fmt::format(kReleaseQueryFmt, table);
+  return fmt::format(FMT_COMPILE(kReleaseQueryFmt), table);
 }
 
 std::string MakeOwnerId(const std::string& prefix, const std::string& locker) {
-  return fmt::format("{}:{}", prefix, locker);
+  return fmt::format(FMT_COMPILE("{}:{}"), prefix, locker);
 }
 
 }  // namespace

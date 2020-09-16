@@ -6,13 +6,14 @@
 #include <optional>
 #include <string>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 namespace utils {
 
 template <class T>
 std::string ToString(const std::optional<T>& from) {
-  return from ? fmt::format(" {}", *from) : "--";
+  return from ? fmt::format(FMT_COMPILE(" {}"), *from) : "--";
 }
 
 }  // namespace utils

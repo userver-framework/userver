@@ -1,5 +1,6 @@
 #include <storages/postgres/detail/result_wrapper.hpp>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
@@ -73,11 +74,12 @@ void AddTypeBufferCategories(Oid data_type, const UserTypes& types,
     // Recursively add buffer categories for data members
     const auto& type_desc = types.GetCompositeDescription(data_type);
     auto type_name = types.FindName(data_type);
-    CurrentContext ctx{context, fmt::format("type `{}`", type_name.ToString())};
+    CurrentContext ctx{
+        context, fmt::format(FMT_COMPILE("type `{}`"), type_name.ToString())};
     auto n_fields = type_desc.Size();
     for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
-      CurrentContext ctx{context,
-                         fmt::format("field `{}`", type_desc[f_no].name)};
+      CurrentContext ctx{context, fmt::format(FMT_COMPILE("field `{}`"),
+                                              type_desc[f_no].name)};
       AddTypeBufferCategories(type_desc[f_no].type, types, cats, context);
     }
   }

@@ -1,5 +1,6 @@
 #include <formats/common/path.hpp>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <formats/common/path_impl.hpp>
@@ -13,7 +14,7 @@ const std::array<std::string, kIndexCacheSize> kIndexCache = [] {
 }();
 
 std::string GetIndexString(size_t index) {
-  return fmt::format(FMT_STRING("[{}]"), index);
+  return fmt::format(FMT_COMPILE("[{}]"), index);
 }
 
 Path::Path() = default;

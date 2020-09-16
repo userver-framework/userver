@@ -1,14 +1,16 @@
-#include <fmt/format.h>
+#include <tracing/span_impl.hpp>
 
+#include <random>
+#include <type_traits>
+
+#include <fmt/compile.h>
+#include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/container/small_vector.hpp>
+
 #include <engine/task/local_variable.hpp>
 #include <engine/task/task_context.hpp>
-#include <random>
-#include <tracing/span.hpp>
-#include <tracing/span_impl.hpp>
 #include <tracing/tracer.hpp>
-#include <type_traits>
 #include <utils/assert.hpp>
 #include <utils/internal_tag.hpp>
 #include <utils/uuid4.hpp>
@@ -40,11 +42,9 @@ std::string StartTsToString(std::chrono::system_clock::time_point start) {
   // snprintf or gives incorrect results with -DFMT_USE_GRISU=1:
   // 3.1414999961853027 instead of 3.1415
 
-  constexpr std::size_t kBufferSize = 64;
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-  std::array<char, kBufferSize> data;
-
   // TODO: In C++17 with to_chars(float) uncomment the following lines:
+  // constexpr std::size_t kBufferSize = 64;
+  // std::array<char, kBufferSize> data;
   // auto [out_it, errc] = std::to_chars(data.begin(), data.end(),
   //                    start_ts_epoch * 0.000001, std::chars_format::fixed, 6);
   // UASSERT(errc == 0);
@@ -52,10 +52,7 @@ std::string StartTsToString(std::chrono::system_clock::time_point start) {
 
   const auto integral_part = start_ts_epoch / 1000000;
   const auto fractional_part = start_ts_epoch % 1000000;
-  const auto format_result = fmt::format_to_n(
-      data.begin(), kBufferSize, "{}.{:0>6}", integral_part, fractional_part);
-  UASSERT(format_result.size <= kBufferSize);
-  return std::string(data.data(), format_result.out - data.data());
+  return fmt::format(FMT_COMPILE("{}.{:0>6}"), integral_part, fractional_part);
 }
 
 /* Maintain coro-local span stack to identify "current span" in O(1).
@@ -70,7 +67,7 @@ std::string GenerateSpanId() {
   thread_local std::mt19937 engine(std::random_device{}());
   std::uniform_int_distribution<unsigned long long> dist;
   auto random_value = dist(engine);
-  return fmt::format("{:016x}", random_value);
+  return fmt::format(FMT_COMPILE("{:016x}"), random_value);
 }
 
 logging::LogHelper& operator<<(logging::LogHelper& lh,

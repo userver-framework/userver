@@ -3,6 +3,7 @@
 #include <atomic>
 #include <stdexcept>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <engine/exception.hpp>
@@ -27,7 +28,7 @@ class WorkerFuncFailedException : public std::runtime_error {
 
 std::string MakeLockerId(const std::string& name) {
   static std::atomic<uint32_t> idx = utils::Rand();
-  return fmt::format("{}-{:x}", name, idx++);
+  return fmt::format(FMT_COMPILE("{}-{:x}"), name, idx++);
 }
 
 }  // namespace

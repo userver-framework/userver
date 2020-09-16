@@ -3,6 +3,7 @@
 #include <array>
 #include <atomic>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <formats/json/value_builder.hpp>
@@ -62,9 +63,9 @@ formats::json::Value AggregatedValuesToJson(
 
     std::string key;
     if (i != length - 1) {
-      key = fmt::format("{}-{}{}", l, r, suffix);
+      key = fmt::format(FMT_COMPILE("{}-{}{}"), l, r, suffix);
     } else {
-      key = fmt::format("{}-x{}", l, suffix);
+      key = fmt::format(FMT_COMPILE("{}-x{}"), l, suffix);
     }
     result[key] = stats.value[i].load();
   }
@@ -80,9 +81,9 @@ formats::json::Value AggregatedValuesToJson(
     auto r = (1 << (i + 1)) - 1;
     std::string key;
     if (i < Length - 1) {
-      key = fmt::format("{}-{}", l, r);
+      key = fmt::format(FMT_COMPILE("{}-{}"), l, r);
     } else {
-      key = fmt::format("{}-x", l);
+      key = fmt::format(FMT_COMPILE("{}-x"), l);
     }
     result[key] = stats.Get(i);
   }

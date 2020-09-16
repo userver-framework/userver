@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 namespace logging {
@@ -132,7 +133,7 @@ TimeOfDay<Duration> operator-(TimeOfDay<Duration> lhs,
 template <typename Duration>
 logging::LogHelper& operator<<(logging::LogHelper& lh,
                                TimeOfDay<Duration> value) {
-  lh << fmt::format("{}", value);
+  lh << fmt::format(FMT_COMPILE("{}"), value);
 }
 
 namespace detail {
