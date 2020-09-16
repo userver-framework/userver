@@ -23,7 +23,7 @@ const int REDIS_ERR_TIMEOUT = 6;
 const int REDIS_ERR_NOT_READY = 7;
 const int REDIS_ERR_MAX = REDIS_ERR_NOT_READY + 1;
 
-using Password = utils::StrongNonLoggable<class PasswordTag, std::string>;
+using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
 struct ConnectionInfo {
   std::string host = "localhost";

@@ -10,7 +10,7 @@
 
 namespace storages::postgres {
 
-using Dsn = ::utils::StrongNonLoggable<class DsnTag, std::string>;
+using Dsn = ::utils::NonLoggable<class DsnTag, std::string>;
 using DsnList = std::vector<Dsn>;
 
 DsnList SplitByHost(const Dsn& dsn);

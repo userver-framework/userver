@@ -387,13 +387,22 @@ std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {
   return boost::hash<T>{}(v.GetUnderlying());
 }
 
+// TODO TAXICOMMON-2209 clean-up in uservices and remove support for NonLoggable
+//  without tag
+
 /// A StrongTypedef for data that MUST NOT be logged or outputted in some other
 /// way.
-template <class Tag, class T>
-using StrongNonLoggable = StrongTypedef<
-    Tag, T, StrongTypedefOps::kCompareStrong | StrongTypedefOps::kNonLoggable>;
+template <class Tag, class T = void>
+using NonLoggable =
+    std::conditional_t<std::is_same_v<T, void>,
+                       StrongTypedef<class DefaultNonLoggableTag, Tag,
+                                     StrongTypedefOps::kCompareStrong |
+                                         StrongTypedefOps::kNonLoggable>,
+                       StrongTypedef<Tag, T,
+                                     StrongTypedefOps::kCompareStrong |
+                                         StrongTypedefOps::kNonLoggable>>;
 
-}  // namespace utils
+};  // namespace utils
 
 // std::hash support
 template <class Tag, class T, utils::StrongTypedefOps Ops>

@@ -19,7 +19,7 @@ namespace server::auth {
 
 class UserAuthInfo final {
  public:
-  using Ticket = utils::StrongNonLoggable<class TicketTag, std::string>;
+  using Ticket = utils::NonLoggable<class TicketTag, std::string>;
 
   UserAuthInfo(UserId default_id, UserEnv env, UserProvider provider);
   UserAuthInfo(UserId default_id, Ticket user_ticket, UserEnv env,
