@@ -16,9 +16,9 @@ namespace engine {
 ///
 /// Example:
 ///   engine::Semaphore sem{2};
-///   std::unique_lock<engine::Semaphore> lock{sem};
+///   std::shared_lock<engine::Semaphore> lock{sem};
 ///   utils::Async("work", [&sem]() {
-///       std::lock_guard<engine::Semaphore> guard{sem};
+///       std::shared_lock<engine::Semaphore> lock{sem};
 ///       // ...
 ///   }).Detach();
 class Semaphore final {
