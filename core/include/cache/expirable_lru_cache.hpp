@@ -51,6 +51,28 @@ struct ExpirableLruCacheStatistics {
       recent{std::chrono::seconds(5), std::chrono::seconds(60)};
 };
 
+namespace impl {
+
+inline void CacheHit(ExpirableLruCacheStatistics& stats) {
+  stats.total.hits++;
+  stats.recent.GetCurrentCounter().hits++;
+  LOG_DEBUG() << "cache hit";
+}
+
+inline void CacheMiss(ExpirableLruCacheStatistics& stats) {
+  stats.total.misses++;
+  stats.recent.GetCurrentCounter().misses++;
+  LOG_DEBUG() << "cache miss";
+}
+
+inline void CacheStale(ExpirableLruCacheStatistics& stats) {
+  stats.total.stale++;
+  stats.recent.GetCurrentCounter().stale++;
+  LOG_DEBUG() << "stale cache";
+}
+
+}  // namespace impl
+
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Equal = std::equal_to<Key>>
 class ExpirableLruCache final {
@@ -85,6 +107,19 @@ class ExpirableLruCache final {
    * Used during fallback in FallbackELruCache.
    */
   std::optional<Value> GetOptionalUnexpirable(const Key& key);
+
+  /**
+   * GetOptional, but without expiry check.
+   *
+   * Used during fallback in FallbackELruCache.
+   */
+  std::optional<Value> GetOptionalUnexpirableWithUpdate(
+      const Key& key, const UpdateValueFunc& update_func);
+
+  /**
+   * GetOptional, but without value updates.
+   */
+  std::optional<Value> GetOptionalNoUpdate(const Key& key);
 
   void Put(const Key& key, const Value& value);
 
@@ -184,9 +219,7 @@ std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptional(
 
   if (old_value) {
     if (!IsExpired(old_value->update_time, now)) {
-      stats_.total.hits++;
-      stats_.recent.GetCurrentCounter().hits++;
-      LOG_DEBUG() << "cache hit";
+      impl::CacheHit(stats_);
 
       if (ShouldUpdate(old_value->update_time, now)) {
         UpdateInBackground(key, update_func);
@@ -194,15 +227,10 @@ std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptional(
 
       return std::move(old_value->value);
     } else {
-      stats_.total.stale++;
-      stats_.recent.GetCurrentCounter().stale++;
-      LOG_DEBUG() << "stale cache";
+      impl::CacheStale(stats_);
     }
   }
-
-  LOG_DEBUG() << "cache miss";
-  stats_.total.misses++;
-  stats_.recent.GetCurrentCounter().misses++;
+  impl::CacheMiss(stats_);
 
   return std::nullopt;
 }
@@ -214,16 +242,52 @@ ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnexpirable(
   auto old_value = lru_.Get(key);
 
   if (old_value) {
-    stats_.total.hits++;
-    stats_.recent.GetCurrentCounter().hits++;
-    LOG_DEBUG() << "cache hit";
+    impl::CacheHit(stats_);
+    return old_value->value;
+  }
+  impl::CacheMiss(stats_);
+
+  return std::nullopt;
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+std::optional<Value>
+ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnexpirableWithUpdate(
+    const Key& key, const UpdateValueFunc& update_func) {
+  auto now = utils::datetime::SteadyNow();
+  auto old_value = lru_.Get(key);
+
+  if (old_value) {
+    impl::CacheHit(stats_);
+
+    if (ShouldUpdate(old_value->update_time, now)) {
+      UpdateInBackground(key, update_func);
+    }
 
     return old_value->value;
   }
+  impl::CacheMiss(stats_);
 
-  LOG_DEBUG() << "cache miss";
-  stats_.total.misses++;
-  stats_.recent.GetCurrentCounter().misses++;
+  return std::nullopt;
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+std::optional<Value>
+ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalNoUpdate(
+    const Key& key) {
+  auto now = utils::datetime::SteadyNow();
+  auto old_value = lru_.Get(key);
+
+  if (old_value) {
+    if (!IsExpired(old_value->update_time, now)) {
+      impl::CacheHit(stats_);
+
+      return old_value->value;
+    } else {
+      impl::CacheStale(stats_);
+    }
+  }
+  impl::CacheMiss(stats_);
 
   return std::nullopt;
 }

@@ -105,6 +105,75 @@ TEST(ExpirableLruCache, HitOptional) {
   });
 }
 
+TEST(ExpirableLruCache, HitOptionalUnexpirable) {
+  RunInCoro([] {
+    auto counter = std::make_shared<Counter>();
+
+    auto cache = CreateSimpleCache();
+    cache.SetMaxLifetime(std::chrono::seconds(2));
+    SimpleCacheKey key = "my-key";
+
+    utils::datetime::MockNowSet(std::chrono::system_clock::now());
+    counter->Flush();
+
+    cache.Put(key, 1);
+
+    for (int i = 0; i < 10; i++) {
+      utils::datetime::MockSleep(std::chrono::seconds(2));
+      EXPECT_EQ(1, cache.GetOptionalUnexpirable(key));
+    }
+  });
+}
+
+TEST(ExpirableLruCache, HitOptionalUnexpirableWithUpdate) {
+  RunInCoro([] {
+    auto counter = std::make_shared<Counter>();
+
+    auto cache = CreateSimpleCache();
+    cache.SetMaxLifetime(std::chrono::seconds(2));
+    cache.SetBackgroundUpdate(cache::BackgroundUpdateMode::kEnabled);
+    SimpleCacheKey key = "my-key";
+
+    utils::datetime::MockNowSet(std::chrono::system_clock::now());
+    counter->Flush();
+
+    cache.Put(key, 1);
+    utils::datetime::MockSleep(std::chrono::seconds(3));
+    EXPECT_EQ(1, cache.GetOptionalUnexpirableWithUpdate(
+                     key, UpdateValue(counter, 2)));
+
+    EngineYield();
+
+    EXPECT_EQ(2, cache.GetOptionalUnexpirableWithUpdate(
+                     key, UpdateValue(counter, 2)));
+  });
+}
+
+TEST(ExpirableLruCache, HitOptionalNoUpdate) {
+  RunInCoro([] {
+    auto counter = std::make_shared<Counter>();
+
+    auto cache = CreateSimpleCache();
+    cache.SetMaxLifetime(std::chrono::seconds(2));
+    SimpleCacheKey key = "my-key";
+
+    utils::datetime::MockNowSet(std::chrono::system_clock::now());
+    counter->Flush();
+
+    cache.Put(key, 1);
+    EXPECT_EQ(1, cache.GetOptionalNoUpdate(key));
+    utils::datetime::MockSleep(std::chrono::seconds(1));
+
+    EXPECT_EQ(1, cache.GetOptionalNoUpdate(key));
+    utils::datetime::MockSleep(std::chrono::seconds(1));
+
+    EXPECT_EQ(1, cache.GetOptionalNoUpdate(key));
+    utils::datetime::MockSleep(std::chrono::seconds(1));
+
+    EXPECT_EQ(std::nullopt, cache.GetOptionalNoUpdate(key));
+  });
+}
+
 TEST(ExpirableLruCache, NoCache) {
   RunInCoro([] {
     auto counter = std::make_shared<Counter>();
