@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem/path.hpp>
 
+#include <decimal64/decimal64.hpp>
 #include <logging/logging_test.hpp>
 #include <utils/encoding/tskv_testdata_bin.hpp>
 #include <utils/traceful_exception.hpp>
@@ -115,6 +116,12 @@ TEST_F(LoggingTest, NullPointer) {
 
   const int* const p2 = nullptr;
   EXPECT_EQ(ToStringViaLogging(p2), "(null)");
+}
+
+TEST_F(LoggingTest, Decimal) {
+  using Dec4 = decimal64::Decimal<4>;
+  EXPECT_EQ(ToStringViaLogging(Dec4{"42"}), "42");
+  EXPECT_EQ(ToStringViaLogging(Dec4{"12.3"}), "12.3");
 }
 
 TEST_F(LoggingTest, PlainException) {

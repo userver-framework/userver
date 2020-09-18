@@ -29,11 +29,19 @@
 #include <string_view>
 #include <type_traits>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
+#include <formats/common/meta.hpp>
 #include <utils/assert.hpp>
 #include <utils/flags.hpp>
 #include <utils/meta.hpp>
+
+namespace logging {
+
+class LogHelper;
+
+}  // namespace logging
 
 namespace decimal64 {
 
@@ -551,6 +559,26 @@ class Decimal {
                                               kDecimalFactor));
   }
 
+  /// Converts string to Decimal
+  /// Handles the following formats:
+  /// \code
+  /// 123
+  /// -123
+  /// 123.0
+  /// -123.0
+  /// 123.
+  /// .123
+  /// 0.
+  /// -.123
+  /// \endcode
+  /// Spaces characters on the front are ignored.
+  /// Performs rounding when provided value has higher precision than in output
+  /// type.
+  /// \param[value] input string
+  /// \result Converted Decimal
+  /// \throws ParseError if the string does not contain a Decimal
+  static constexpr Decimal FromStringPermissive(std::string_view value);
+
   static constexpr Decimal FromUnbiased(int64_t value) noexcept {
     Decimal result;
     result.value_ = value;
@@ -967,8 +995,12 @@ class StreamCharSequence {
     if (!in_->good()) {
       return CharT{'\0'};
     }
-    const CharT c = in_->get();
-    return c == kEof ? CharT{'\0'} : c;
+    const CharT c = in_->peek();
+    if (c == kEof) {
+      return CharT{'\0'};
+    }
+    in_->ignore();
+    return c;
   }
 
   void Unget() { in_->unget(); }
@@ -996,10 +1028,6 @@ enum class ParseOptions {
   /// "0.123456" -> "0.1234" or "0.1235"
   kAllowRounding = 1 << 3
 };
-
-inline constexpr auto ParseOptionsPermissive = utils::Flags<ParseOptions>{
-    ParseOptions::kAllowSpaces, ParseOptions::kAllowTrailingJunk,
-    ParseOptions::kAllowBoundaryDot, ParseOptions::kAllowRounding};
 
 struct ParseResult {
   bool success;
@@ -1235,13 +1263,11 @@ template <typename CharSequence, int Prec, typename RoundPolicy>
   const auto parsed = ParseUnpacked(input, options);
 
   if (!parsed.success || parsed.before >= kMaxInt64 / kPow10<Prec>) {
-    output = Decimal<Prec, RoundPolicy>(0);
     return false;
   }
 
   if (!(options & ParseOptions::kAllowRounding) &&
       parsed.decimal_digits > Prec) {
-    output = Decimal<Prec, RoundPolicy>(0);
     return false;
   }
 
@@ -1265,8 +1291,6 @@ constexpr T FromString(std::string_view input) {
   }
   return result;
 }
-
-enum class TrailingZerosMode { kLeave, kRemove };
 
 // Returns the number of zeros trimmed
 template <int Prec>
@@ -1310,126 +1334,58 @@ int TrimTrailingZeros(int64_t& after) {
   return n_trimmed;
 }
 
-template <int Prec, typename RoundPolicy>
-std::string ToStringImpl(Decimal<Prec, RoundPolicy> dec,
-                         TrailingZerosMode mode) {
-  auto [before, after] = dec.AsUnpacked();
-  int after_digits = Prec;
-
-  if (mode == TrailingZerosMode::kRemove) {
-    after_digits -= TrimTrailingZeros<Prec>(after);
-  }
-
-  if (after_digits > 0) {
-    if (dec.Sign() == -1) {
-      return fmt::format(FMT_STRING("-{}.{:0{}}"), -before, -after,
-                         after_digits);
-    } else {
-      return fmt::format(FMT_STRING("{}.{:0{}}"), before, after, after_digits);
-    }
-  } else {
-    return fmt::format(FMT_STRING("{}"), before);
-  }
-}
-
 }  // namespace impl
 
 template <int Prec, typename RoundPolicy>
 constexpr Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
-  // swallow the error
-  static_cast<void>(impl::Parse(impl::StringCharSequence(value), *this,
-                                impl::ParseOptionsPermissive));
+  constexpr utils::Flags<impl::ParseOptions> kOptions{
+      impl::ParseOptions::kAllowSpaces, impl::ParseOptions::kAllowBoundaryDot,
+      impl::ParseOptions::kAllowRounding,
+      impl::ParseOptions::kAllowTrailingJunk};
+
+  impl::StringCharSequence source(value);
+  if (!impl::Parse(source, *this, kOptions)) {
+    throw ParseError(value, source.Position() - value.data());
+  }
 }
 
-/// Converts string to Decimal
-/// Handles the following formats:
-/// \code
-/// 123
-/// -123
-/// 123.0
-/// -123.0
-/// 123.
-/// .123
-/// 0.
-/// -.123
-/// \endcode
-/// Spaces and tabs on the front are ignored.
-/// Performs rounding when provided value has higher precision than in output
-/// type.
-/// \param[input] input string
-/// \param[output] output Decimal value, 0 on error
-/// \result Returns true if conversion succeeded
 template <int Prec, typename RoundPolicy>
-constexpr bool fromString(std::string_view input,
-                          Decimal<Prec, RoundPolicy>& output) {
-  return impl::Parse(
-      impl::StringCharSequence(input), output,
+constexpr Decimal<Prec, RoundPolicy>
+Decimal<Prec, RoundPolicy>::FromStringPermissive(std::string_view input) {
+  impl::StringCharSequence source(input);
+  Decimal result;
+  const bool success = impl::Parse(
+      source, result,
       {impl::ParseOptions::kAllowSpaces, impl::ParseOptions::kAllowBoundaryDot,
        impl::ParseOptions::kAllowRounding});
-}
 
-/// Converts string to Decimal
-/// Handles the following formats:
-/// \code
-/// 123
-/// -123
-/// 123.0
-/// -123.0
-/// 123.
-/// .123
-/// 0.
-/// -.123
-/// \endcode
-/// Spaces and tabs on the front are ignored.
-/// Performs rounding when provided value has higher precision than in output
-/// type.
-/// \param[str] input string
-/// \result Converted Decimal
-/// \throws std::runtime_error if the string does not contain a Decimal
-template <typename T>
-constexpr T fromString(std::string_view str) {
-  T output;
-  // swallow the error
-  static_cast<void>(fromString(str, output));
-  return output;
+  if (!success) {
+    throw ParseError(input, source.Position() - input.data());
+  }
+  return result;
 }
 
 /// Converts Decimal to a string. Trims any trailing zeros.
 template <int Prec, typename RoundPolicy>
 std::string ToString(Decimal<Prec, RoundPolicy> dec) {
-  return impl::ToStringImpl(dec, impl::TrailingZerosMode::kRemove);
+  return fmt::format(FMT_COMPILE("{}"), dec);
 }
 
 /// Converts Decimal to a string. Writes exactly Prec decimal digits, including
 /// trailing zeros if needed.
 template <int Prec, typename RoundPolicy>
 std::string ToStringTrailingZeros(Decimal<Prec, RoundPolicy> dec) {
-  return impl::ToStringImpl(dec, impl::TrailingZerosMode::kLeave);
-}
-
-// input
-template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
-bool fromStream(std::basic_istream<CharT, Traits>& is,
-                Decimal<Prec, RoundPolicy>& d) {
-  const bool success = impl::Parse(impl::StreamCharSequence(is), d,
-                                   impl::ParseOptionsPermissive);
-  if (!success) {
-    is.setstate(std::ios_base::failbit);
-  }
-  return success;
-}
-
-// output
-template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
-void toStream(std::basic_ostream<CharT, Traits>& os,
-              Decimal<Prec, RoundPolicy> d) {
-  os << ToString(d);
+  return fmt::format(FMT_COMPILE("{:f}"), dec);
 }
 
 template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
 std::basic_istream<CharT, Traits>& operator>>(
     std::basic_istream<CharT, Traits>& is, Decimal<Prec, RoundPolicy>& d) {
-  fromStream(is, d);
+  if (!impl::Parse(impl::StreamCharSequence(is), d,
+                   {impl::ParseOptions::kAllowSpaces,
+                    impl::ParseOptions::kAllowTrailingJunk})) {
+    is.setstate(std::ios_base::failbit);
+  }
   return is;
 }
 
@@ -1437,8 +1393,134 @@ template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
 std::basic_ostream<CharT, Traits>& operator<<(
     std::basic_ostream<CharT, Traits>& os,
     const Decimal<Prec, RoundPolicy>& d) {
-  toStream(os, d);
+  os << ToString(d);
   return os;
 }
 
+template <int Prec, typename RoundPolicy>
+logging::LogHelper& operator<<(logging::LogHelper& lh,
+                               const Decimal<Prec, RoundPolicy>& d) {
+  lh << ToString(d);
+  return lh;
+}
+
+template <int Prec, typename RoundPolicy>
+[[deprecated("Use Decimal::FromStringPermissive")]] bool fromString(
+    std::string_view input, Decimal<Prec, RoundPolicy>& output) {
+  try {
+    output = Decimal<Prec, RoundPolicy>::FromStringPermissive(input);
+    return true;
+  } catch (const ParseError& e) {
+    return false;
+  }
+}
+
+template <typename T>
+[[deprecated("Use Decimal::FromStringPermissive")]] T fromString(
+    std::string_view str) {
+  static_assert(impl::IsDecimal<T>::value);
+  return T::FromStringPermissive(str);
+}
+
+template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
+[[deprecated("Use operator>>")]] bool fromStream(
+    std::basic_istream<CharT, Traits>& is, Decimal<Prec, RoundPolicy>& d) {
+  is >> d;
+  return !is.fail();
+}
+
+template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
+[[deprecated("Use operator<<")]] void toStream(
+    std::basic_ostream<CharT, Traits>& os, Decimal<Prec, RoundPolicy> d) {
+  os << d;
+}
+
+// Serialization
+
+template <int Prec, typename RoundPolicy, typename ValueType>
+std::enable_if_t<formats::common::kIsFormatValue<ValueType>,
+                 Decimal<Prec, RoundPolicy>>
+Parse(const ValueType& source, formats::parse::To<Decimal<Prec, RoundPolicy>>) {
+  return impl::FromString<Decimal<Prec, RoundPolicy>>(
+      source.template As<std::string>());
+}
+
+template <int Prec, typename RoundPolicy, typename TargetType>
+TargetType Serialize(const Decimal<Prec, RoundPolicy>& object,
+                     formats::serialize::To<TargetType>) {
+  return typename TargetType::Builder(ToString(object)).ExtractValue();
+}
+
+template <int Prec, typename RoundPolicy, typename StringBuilder>
+void WriteToStream(const Decimal<Prec, RoundPolicy>& object,
+                   StringBuilder& sw) {
+  WriteToStream(ToString(object), sw);
+}
+
+template <int Prec, typename RoundPolicy>
+void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
+  *os << v;
+}
+
 }  // namespace decimal64
+
+/// std::hash support
+template <int Prec, typename RoundPolicy>
+struct std::hash<decimal64::Decimal<Prec, RoundPolicy>> {
+  std::size_t operator()(const decimal64::Decimal<Prec, RoundPolicy>& v) const
+      noexcept {
+    return std::hash<int64_t>{}(v.AsUnbiased());
+  }
+};
+
+/// fmt support. Spec format:
+/// - {} trims any trailing zeros;
+/// - {:f} writes exactly `Prec` decimal digits, including trailing zeros if
+///   needed.
+/// TODO TAXICOMMON-2916 Add support for formatting Decimal with custom
+///  precision
+template <int Prec, typename RoundPolicy, typename Char>
+class fmt::formatter<decimal64::Decimal<Prec, RoundPolicy>, Char> {
+ public:
+  constexpr auto parse(fmt::format_parse_context& ctx) {
+    auto it = ctx.begin();
+    const auto end = ctx.end();
+
+    if (it != end && *it == 'f') {
+      remove_trailing_zeros_ = false;
+      ++it;
+    }
+
+    if (it != end && *it != '}') {
+      throw format_error("invalid format");
+    }
+
+    return it;
+  }
+
+  template <typename FormatContext>
+  auto format(const decimal64::Decimal<Prec, RoundPolicy>& dec,
+              FormatContext& ctx) {
+    auto [before, after] = dec.AsUnpacked();
+    int after_digits = Prec;
+
+    if (remove_trailing_zeros_) {
+      after_digits -= decimal64::impl::TrimTrailingZeros<Prec>(after);
+    }
+
+    if (after_digits > 0) {
+      if (dec.Sign() == -1) {
+        return fmt::format_to(ctx.out(), FMT_STRING("-{}.{:0{}}"), -before,
+                              -after, after_digits);
+      } else {
+        return fmt::format_to(ctx.out(), FMT_STRING("{}.{:0{}}"), before, after,
+                              after_digits);
+      }
+    } else {
+      return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), before);
+    }
+  }
+
+ private:
+  bool remove_trailing_zeros_ = true;
+};

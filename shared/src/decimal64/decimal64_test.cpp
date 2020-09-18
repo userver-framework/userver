@@ -1,6 +1,7 @@
 #include <decimal64/decimal64.hpp>
 
 #include <sstream>
+#include <unordered_map>
 
 #include <gtest/gtest.h>
 
@@ -27,58 +28,20 @@ TYPED_TEST(Decimal64Round, FromDouble) {
     const auto i1 = static_cast<float>(i) / Dec4::kDecimalFactor;
     const auto i2 = static_cast<double>(i) / Dec4::kDecimalFactor;
     const auto i3 = static_cast<long double>(i) / Dec4::kDecimalFactor;
-    ASSERT_EQ(Dec::FromFloatInexact(i1).AsUnbiased(), i);
-    ASSERT_EQ(Dec::FromFloatInexact(i2).AsUnbiased(), i);
-    ASSERT_EQ(Dec::FromFloatInexact(i3).AsUnbiased(), i);
+    EXPECT_EQ(Dec::FromFloatInexact(i1).AsUnbiased(), i);
+    EXPECT_EQ(Dec::FromFloatInexact(i2).AsUnbiased(), i);
+    EXPECT_EQ(Dec::FromFloatInexact(i3).AsUnbiased(), i);
   }
-}
-
-TEST(Decimal64, ToString) {
-  ASSERT_EQ(decimal64::ToString(Dec4{"1000"}), "1000");
-  ASSERT_EQ(decimal64::ToString(Dec4{"0"}), "0");
-  ASSERT_EQ(decimal64::ToString(Dec4{"1"}), "1");
-  ASSERT_EQ(decimal64::ToString(Dec4{"1.1"}), "1.1");
-  ASSERT_EQ(decimal64::ToString(Dec4{"1.01"}), "1.01");
-  ASSERT_EQ(decimal64::ToString(Dec4{"1.001"}), "1.001");
-  ASSERT_EQ(decimal64::ToString(Dec4{"1.0001"}), "1.0001");
-  ASSERT_EQ(decimal64::ToString(Dec4{"-20"}), "-20");
-  ASSERT_EQ(decimal64::ToString(Dec4{"-0.1"}), "-0.1");
-  ASSERT_EQ(decimal64::ToString(Dec4{"-0.0001"}), "-0.0001");
-  ASSERT_EQ(decimal64::ToString(decimal64::Decimal<18>{"1"}), "1");
-  ASSERT_EQ(decimal64::ToString(decimal64::Decimal<5>{"1"}), "1");
-  ASSERT_EQ(decimal64::ToString(decimal64::Decimal<0>{"1"}), "1");
-}
-
-TEST(Decimal64, ToStringTrailingZeros) {
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1000"}), "1000.0000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"0"}), "0.0000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1"}), "1.0000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1.1"}), "1.1000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1.01"}), "1.0100");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1.001"}), "1.0010");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"1.0001"}), "1.0001");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-20"}), "-20.0000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-0.1"}), "-0.1000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(Dec4{"-0.0001"}), "-0.0001");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::Decimal<18>{"1"}),
-            "1.000000000000000000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::Decimal<5>{"1"}),
-            "1.00000");
-  ASSERT_EQ(decimal64::ToStringTrailingZeros(decimal64::Decimal<0>{"1"}), "1");
 }
 
 TEST(Decimal64, DefaultValue) { ASSERT_EQ(Dec4{}, Dec4{0}); }
 
 TEST(Decimal64, DefaultRoundingPolicy) {
-  ASSERT_EQ(Dec4{"1.23456"}, Dec4{"1.2346"});
-
-  Dec4 out;
-  std::istringstream is2{"1.0000000000000000000000000000000000077777777777 2"};
-  ASSERT_TRUE(decimal64::fromStream(is2, out));
-  ASSERT_EQ(out, Dec4{1});
-
-  ASSERT_TRUE(decimal64::fromString("1.00006", out));
-  ASSERT_EQ(out, Dec4{"1.0001"});
+  EXPECT_EQ(Dec4::FromStringPermissive("1.23456"), Dec4{"1.2346"});
+  EXPECT_EQ(Dec4::FromStringPermissive(
+                "1.0000000000000000000000000000000000077777777777"),
+            Dec4{1});
+  EXPECT_EQ(Dec4::FromStringPermissive("1.00006"), Dec4{"1.0001"});
 }
 
 TEST(Decimal64, ArithmeticOperations) {
@@ -87,11 +50,11 @@ TEST(Decimal64, ArithmeticOperations) {
   value -= Dec4{1};
   value *= Dec4{30};
   value /= Dec4{9};
-  ASSERT_EQ(value, Dec4{10});
+  EXPECT_EQ(value, Dec4{10});
 }
 
 TEST(Decimal64, OperationsWithSign) {
-  ASSERT_EQ(Dec4{0}, Dec4{"0.0001"} + Dec4{"-0.0001"});
+  EXPECT_EQ(Dec4{0}, Dec4{"0.0001"} + Dec4{"-0.0001"});
 }
 
 TEST(Decimal64, MoneyExample) {
@@ -100,7 +63,7 @@ TEST(Decimal64, MoneyExample) {
   Money jpy_10k_to_rub{"5970.77"};
   Money value_rub{"10.00"};
   Money value_jpy = value_rub * jpy_10k_to_rub / Money{"10000.00"};
-  ASSERT_EQ(decimal64::ToString(value_jpy), "5.9708");
+  EXPECT_EQ(decimal64::ToString(value_jpy), "5.9708");
 }
 
 TEST(Decimal64, ConstexprSupport) {
@@ -123,24 +86,8 @@ TEST(Decimal64, ConstexprSupport) {
   [[maybe_unused]] constexpr Dec4 from_fraction = Dec4::FromFraction(123, 456);
 }
 
-TEST(Decimal64, ZerosFullyTrimmed) {
-  EXPECT_EQ(ToString(decimal64::Decimal<0>{"1"}), "1");
-  EXPECT_EQ(ToString(decimal64::Decimal<1>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<2>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<3>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<4>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<5>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<6>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<7>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<8>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<9>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<10>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<11>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<12>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<13>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<14>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<15>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<16>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<17>{"0.1"}), "0.1");
-  EXPECT_EQ(ToString(decimal64::Decimal<18>{"0.1"}), "0.1");
+TEST(Decimal64, Hash) {
+  std::unordered_map<Dec4, int> map{{Dec4{1}, 2}, {Dec4{3}, 4}};
+  EXPECT_EQ(map[Dec4{1}], 2);
+  EXPECT_EQ(map[Dec4{3}], 4);
 }
