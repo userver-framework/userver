@@ -510,8 +510,8 @@ TEST(HttpClient, MethodsMix) {
         {"PATCH", kTestData, &Request::patch},
     };
 
-    for (const auto method1 : tests) {
-      for (const auto method2 : tests) {
+    for (const auto& method1 : tests) {
+      for (const auto& method2 : tests) {
         const bool ok1 = method1.PerformRequest(http_server.GetBaseUrl(),
                                                 callback, *http_client);
         EXPECT_TRUE(ok1) << "Failed to perform " << method1.GetMethodName();

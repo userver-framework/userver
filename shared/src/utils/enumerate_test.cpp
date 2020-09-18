@@ -48,7 +48,7 @@ TEST_F(EnumerateFixture, Vector) {
 
   int current_pos = 0;
 
-  for (const auto& [pos, elem] : utils::enumerate(data)) {
+  for (const auto [pos, elem] : utils::enumerate(data)) {
     EXPECT_EQ(pos, current_pos);
     EXPECT_EQ(elem, data[current_pos]);
 
@@ -59,7 +59,7 @@ TEST_F(EnumerateFixture, Vector) {
 TEST_F(EnumerateFixture, EmptyVector) {
   std::vector<int> data;
 
-  for (const auto& [pos, elem] : utils::enumerate(data)) {
+  for (const auto [pos, elem] : utils::enumerate(data)) {
     std::ignore = pos;
     std::ignore = elem;
     FAIL();  // We can't get here
@@ -72,7 +72,7 @@ TEST_F(EnumerateFixture, SingleElement) {
 
   int current_pos = 0;
 
-  for (const auto& [pos, elem] : utils::enumerate(data)) {
+  for (const auto [pos, elem] : utils::enumerate(data)) {
     EXPECT_EQ(pos, current_pos);
     EXPECT_EQ(elem, data[current_pos]);
 
@@ -83,7 +83,7 @@ TEST_F(EnumerateFixture, SingleElement) {
 TEST_F(EnumerateFixture, RValue) {
   std::vector<int> reference = CreateRValueData();
   int current_pos = 0;
-  for (const auto& [pos, elem] : utils::enumerate(CreateRValueData())) {
+  for (const auto [pos, elem] : utils::enumerate(CreateRValueData())) {
     EXPECT_EQ(pos, current_pos);
     EXPECT_EQ(elem, reference[current_pos]);
 
@@ -92,7 +92,7 @@ TEST_F(EnumerateFixture, RValue) {
 }
 
 TEST_F(EnumerateFixture, EmptyRValue) {
-  for (const auto& [pos, elem] : utils::enumerate(CreateRValueEmpty())) {
+  for (const auto [pos, elem] : utils::enumerate(CreateRValueEmpty())) {
     std::ignore = pos;
     std::ignore = elem;
     FAIL();  // We can't get here
@@ -107,7 +107,7 @@ TEST_F(EnumerateFixture, Modification) {
     ++elem;
   }
 
-  for (const auto& [pos, reference_elem] : utils::enumerate(target)) {
+  for (const auto [pos, reference_elem] : utils::enumerate(target)) {
     EXPECT_EQ(source[pos], reference_elem);
   }
 }
@@ -116,7 +116,7 @@ TEST_F(EnumerateFixture, TestNoCopyLValue) {
   ContainerThrowsOnCopy container;
 
   try {
-    for (const auto& [pos, elem] : utils::enumerate(container)) {
+    for (const auto [pos, elem] : utils::enumerate(container)) {
       std::ignore = pos;
       std::ignore = elem;
       FAIL() << "container should be empty";
@@ -137,7 +137,7 @@ TEST_F(EnumerateFixture, TestNoCopyRValue) {
   };
 
   try {
-    for (const auto& [pos, elem] : utils::enumerate(FuncReturnContainer())) {
+    for (const auto [pos, elem] : utils::enumerate(FuncReturnContainer())) {
       std::ignore = pos;
       std::ignore = elem;
       FAIL() << "container should be empty";
