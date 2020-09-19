@@ -144,8 +144,8 @@ bool HttpRequestImpl::HasHeader(const std::string& header_name) const {
 
 size_t HttpRequestImpl::HeaderCount() const { return headers_.size(); }
 
-HeadersMapKeys HttpRequestImpl::GetHeaderNames() const {
-  return HeadersMapKeys{headers_};
+HttpRequest::HeadersMapKeys HttpRequestImpl::GetHeaderNames() const {
+  return HttpRequest::HeadersMapKeys{headers_};
 }
 
 const std::string& HttpRequestImpl::GetCookie(
@@ -161,8 +161,8 @@ bool HttpRequestImpl::HasCookie(const std::string& cookie_name) const {
 
 size_t HttpRequestImpl::CookieCount() const { return cookies_.size(); }
 
-CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
-  return CookiesMapKeys{cookies_};
+HttpRequest::CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
+  return HttpRequest::CookiesMapKeys{cookies_};
 }
 
 void HttpRequestImpl::SetPathArgs(

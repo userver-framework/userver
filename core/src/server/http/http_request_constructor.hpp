@@ -33,6 +33,7 @@ class HttpRequestConstructor final : public request::RequestConstructor {
     size_t max_request_size = 1024 * 1024;
     size_t max_headers_size = 65536;
     bool parse_args_from_body = false;
+    bool testing_mode = false;
   };
 
   HttpRequestConstructor(Config config,

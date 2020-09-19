@@ -7,8 +7,8 @@
 #include <vector>
 
 #include <server/http/http_method.hpp>
+#include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
-#include <server/http/http_types.hpp>
 #include <server/request/request_base.hpp>
 
 namespace engine {
@@ -58,12 +58,12 @@ class HttpRequestImpl final : public request::RequestBase {
   const std::string& GetHeader(const std::string& header_name) const;
   bool HasHeader(const std::string& header_name) const;
   size_t HeaderCount() const;
-  HeadersMapKeys GetHeaderNames() const;
+  HttpRequest::HeadersMapKeys GetHeaderNames() const;
 
   const std::string& GetCookie(const std::string& cookie_name) const;
   bool HasCookie(const std::string& cookie_name) const;
   size_t CookieCount() const;
-  CookiesMapKeys GetCookieNames() const;
+  HttpRequest::CookiesMapKeys GetCookieNames() const;
 
   const std::string& RequestBody() const { return request_body_; }
   void SetResponseStatus(HttpStatus status) const {
@@ -116,8 +116,8 @@ class HttpRequestImpl final : public request::RequestBase {
   std::unordered_map<std::string, std::vector<std::string>> request_args_;
   std::vector<std::string> path_args_;
   std::unordered_map<std::string, size_t> path_args_by_name_index_;
-  HeadersMap headers_;
-  CookiesMap cookies_;
+  HttpRequest::HeadersMap headers_;
+  HttpRequest::CookiesMap cookies_;
   bool is_final_{false};
 
   std::unique_ptr<HttpResponse> response_;

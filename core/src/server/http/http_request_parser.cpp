@@ -78,6 +78,18 @@ HttpRequestParser::HttpRequestParser(
     request_constructor_config_.parse_args_from_body = *parse_args_from_body;
 }
 
+HttpRequestParser HttpRequestParser::CreateTestParser(OnNewRequestCb&& cb) {
+  static const HandlerInfoIndex kTestHandlerInfoIndex;
+  static const server::request::RequestConfig kTestRequestConfig(
+      {}, "<test_config>", {});
+  static net::ParserStats test_stats;
+  static request::ResponseDataAccounter test_accounter;
+  HttpRequestParser parser(kTestHandlerInfoIndex, kTestRequestConfig,
+                           std::move(cb), test_stats, test_accounter);
+  parser.request_constructor_config_.testing_mode = true;
+  return parser;
+}
+
 bool HttpRequestParser::Parse(const char* data, size_t size) {
   size_t parsed = http_parser_execute(&parser_, &parser_settings, data, size);
   if (parsed != size) {

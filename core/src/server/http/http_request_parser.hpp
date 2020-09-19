@@ -27,6 +27,9 @@ class HttpRequestParser final : public request::RequestParser {
 
   bool Parse(const char* data, size_t size) override;
 
+  // For tests
+  static HttpRequestParser CreateTestParser(OnNewRequestCb&&);
+
  private:
   static int OnMessageBegin(http_parser* p);
   static int OnUrl(http_parser* p, const char* data, size_t size);

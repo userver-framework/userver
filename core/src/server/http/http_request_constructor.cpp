@@ -197,7 +197,10 @@ std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
 }
 
 void HttpRequestConstructor::FinalizeImpl() {
-  if (status_ != Status::kOk) return;
+  if (status_ != Status::kOk &&
+      (!config_.testing_mode || status_ != Status::kHandlerNotFound)) {
+    return;
+  }
 
   if (!url_parsed_) {
     SetStatus(Status::kBadRequest);

@@ -24,9 +24,7 @@ class HttpResponse final : public request::ResponseBase {
 
   using HeadersMapKeys = decltype(utils::MakeKeysView(HeadersMap()));
 
-  using CookiesMap =
-      std::unordered_map<std::string, Cookie, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>;
+  using CookiesMap = std::unordered_map<std::string, Cookie>;
 
   using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
 

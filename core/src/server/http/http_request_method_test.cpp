@@ -1,17 +1,8 @@
-#include <gtest/gtest.h>
-
 #include <utest/utest.hpp>
 
 #include <server/http/http_request.hpp>
-#include <server/net/stats.hpp>
 
-#include "http_request_parser.hpp"
-
-namespace {
-
-const std::string kCrlf = "\r\n";
-
-}  // namespace
+#include <server/http/http_request_parser.hpp>
 
 using HttpMethod = server::http::HttpMethod;
 
@@ -21,7 +12,7 @@ struct MethodsData {
   HttpMethod method;
 };
 
-class HttpRequestParser : public ::testing::TestWithParam<MethodsData> {};
+class HttpRequestMethods : public ::testing::TestWithParam<MethodsData> {};
 
 std::string PrintMethodsDataTestName(
     const ::testing::TestParamInfo<MethodsData>& data) {
@@ -31,7 +22,7 @@ std::string PrintMethodsDataTestName(
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    /**/, HttpRequestParser,
+    /**/, HttpRequestMethods,
     ::testing::Values(
         MethodsData{"DELETE", HttpMethod::kDelete, HttpMethod::kDelete},
         MethodsData{"GET", HttpMethod::kGet, HttpMethod::kGet},
@@ -50,16 +41,11 @@ INSTANTIATE_TEST_SUITE_P(
         MethodsData{"XXX", HttpMethod::kUnknown, HttpMethod::kUnknown}),
     PrintMethodsDataTestName);
 
-TEST_P(HttpRequestParser, Methods) {
+TEST_P(HttpRequestMethods, Test) {
   RunInCoro([]() {
-    server::http::HandlerInfoIndex handler_info_index;
-    server::request::RequestConfig request_config({}, "<test_config>", {});
     const auto& param = GetParam();
     bool parsed = false;
-    server::net::ParserStats stats;
-    server::request::ResponseDataAccounter data_accounter;
-    server::http::HttpRequestParser parser(
-        handler_info_index, request_config,
+    auto parser = server::http::HttpRequestParser::CreateTestParser(
         [&param,
          &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
           parsed = true;
@@ -68,11 +54,9 @@ TEST_P(HttpRequestParser, Methods) {
           const server::http::HttpRequest http_request(http_request_impl);
           EXPECT_EQ(http_request_impl.GetOrigMethod(), param.orig_method);
           EXPECT_EQ(http_request.GetMethod(), param.method);
-        },
-        stats, data_accounter);
+        });
 
-    const std::string request =
-        param.method_query + std::string(" / HTTP/1.1") + kCrlf + kCrlf;
+    const std::string request = param.method_query + " / HTTP/1.1\r\n\r\n";
 
     parser.Parse(request.data(), request.size());
 

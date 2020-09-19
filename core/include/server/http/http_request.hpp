@@ -4,11 +4,13 @@
 
 #include <chrono>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <server/http/http_method.hpp>
 #include <server/http/http_response.hpp>
-#include <server/http/http_types.hpp>
+#include <utils/projecting_view.hpp>
+#include <utils/str_icase.hpp>
 
 namespace server {
 namespace http {
@@ -17,6 +19,16 @@ class HttpRequestImpl;
 
 class HttpRequest final {
  public:
+  using HeadersMap =
+      std::unordered_map<std::string, std::string, utils::StrIcaseHash,
+                         utils::StrIcaseEqual>;
+
+  using HeadersMapKeys = decltype(utils::MakeKeysView(HeadersMap()));
+
+  using CookiesMap = std::unordered_map<std::string, std::string>;
+
+  using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
+
   explicit HttpRequest(const HttpRequestImpl& impl);
   ~HttpRequest() = default;
 
