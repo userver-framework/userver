@@ -2,9 +2,10 @@
 
 #include <exception>
 #include <string>
+#include <string_view>
 #include <system_error>
 
-#include <curl-ev/local_stats.hpp>
+#include <clients/http/local_stats.hpp>
 
 namespace clients::http {
 
@@ -12,24 +13,24 @@ namespace clients::http {
 class BaseException : public std::exception {
  public:
   BaseException() = default;
-  BaseException(std::string msg, const curl::LocalStats& stats)
-      : msg_(std::move(msg)), stats_(stats) {}
+  BaseException(std::string message, const LocalStats& stats)
+      : message_(std::move(message)), stats_(stats) {}
   ~BaseException() override = default;
 
-  const char* what() const noexcept override { return msg_.c_str(); }
+  const char* what() const noexcept override { return message_.c_str(); }
 
-  const curl::LocalStats& GetStats() const { return stats_; }
+  const LocalStats& GetStats() const { return stats_; }
 
- protected:
-  std::string msg_;
-  curl::LocalStats stats_;
+ private:
+  std::string message_;
+  LocalStats stats_;
 };
 
 /// Exception with string and error_code
 class BaseCodeException : public BaseException {
  public:
-  BaseCodeException(std::error_code ec, const std::string& msg,
-                    const curl::LocalStats& stats);
+  BaseCodeException(std::error_code ec, std::string_view message,
+                    std::string_view url, const LocalStats& stats);
   ~BaseCodeException() override = default;
 
   const std::error_code& error_code() const noexcept { return ec_; }
@@ -95,15 +96,14 @@ class AuthFailedException : public BaseCodeException {
 /// Base class for HttpClientException and HttpServerException
 class HttpException : public BaseException {
  public:
-  HttpException(long code) : code_(code) {
-    msg_ = "Raise for status exception, code = " + std::to_string(code);
-  }
+  HttpException(int code, const LocalStats& stats);
+  HttpException(int code, const LocalStats& stats, std::string_view message);
   ~HttpException() override = default;
 
-  long code() const { return code_; }
+  int code() const { return code_; }
 
- protected:
-  long code_;
+ private:
+  int code_;
 };
 
 class HttpClientException : public HttpException {
@@ -120,6 +120,6 @@ class HttpServerException : public HttpException {
 
 /// map error_code to exceptions
 std::exception_ptr PrepareException(std::error_code ec, const std::string& url,
-                                    const curl::LocalStats& stats);
+                                    const LocalStats& stats);
 
 }  // namespace clients::http

@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 
-#include "initialization.hpp"
 #include "native.hpp"
 
 namespace curl {
@@ -28,7 +28,6 @@ class string_list : public std::enable_shared_from_this<string_list> {
   void clear() noexcept;
 
  private:
-  initialization::ptr initref_;
   native::curl_slist* list_{nullptr};
 };
 }  // namespace curl

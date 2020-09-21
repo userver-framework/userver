@@ -13,6 +13,7 @@
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/multi.hpp>
 #include <curl-ev/socket_info.hpp>
+#include <curl-ev/wrappers.hpp>
 
 #include <crypto/openssl.hpp>
 #include <engine/ev/thread.hpp>
@@ -57,7 +58,6 @@ class multi::Impl final {
 
   std::vector<std::unique_ptr<socket_info>> socket_infos_;
 
-  initialization::ptr initref_;
   engine::ev::AsyncWatcher timer_zero_watcher_;
 
   easy_set_type easy_handles_;
@@ -70,9 +70,7 @@ multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
                           std::bind(&multi::handle_async, &object)),
       timer_(thread_control),
       still_running_(0) {
-  crypto::impl::Openssl::Init();
-
-  initref_ = initialization::ensure_initialization();
+  impl::CurlGlobal::Init();
 }
 
 multi::multi(engine::ev::ThreadControl& thread_control,

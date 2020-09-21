@@ -7,13 +7,11 @@
 */
 
 #include <curl-ev/string_list.hpp>
+#include <curl-ev/wrappers.hpp>
 
-// NOLINTNEXTLINE(google-build-using-namespace)
-using namespace curl;
+namespace curl {
 
-string_list::string_list() : list_(nullptr) {
-  initref_ = initialization::ensure_initialization();
-}
+string_list::string_list() : list_(nullptr) { impl::CurlGlobal::Init(); }
 
 string_list::~string_list() { clear(); }
 
@@ -35,3 +33,5 @@ void string_list::clear() noexcept {
     list_ = nullptr;
   }
 }
+
+}  // namespace curl

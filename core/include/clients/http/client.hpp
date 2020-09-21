@@ -27,8 +27,10 @@ class TaskProcessor;
 }  // namespace engine
 
 namespace clients::http {
-
+namespace impl {
 class EasyWrapper;
+}  // namespace impl
+
 class DestinationStatistics;
 struct TestsuiteConfig;
 
@@ -79,7 +81,7 @@ class Client {
 
   // Functions for EasyWrapper that must be noexcept, as they are called from
   // the EasyWrapper destructor.
-  friend class EasyWrapper;
+  friend class impl::EasyWrapper;
   void IncPending() noexcept { ++pending_tasks_; }
   void DecPending() noexcept { --pending_tasks_; }
   void PushIdleEasy(std::shared_ptr<curl::easy> easy) noexcept;

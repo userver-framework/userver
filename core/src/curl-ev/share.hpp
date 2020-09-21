@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include <memory>
 #include <mutex>
 
-#include "initialization.hpp"
 #include "native.hpp"
 
 namespace curl {
@@ -44,7 +44,6 @@ class share final : public std::enable_shared_from_this<share> {
   static void unlock(native::CURL* handle, native::curl_lock_data data,
                      void* userptr);
 
-  initialization::ptr initref_;
   native::CURLSH* handle_;
   std::mutex mutex_;
 };

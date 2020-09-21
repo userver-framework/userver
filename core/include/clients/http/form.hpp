@@ -1,13 +1,38 @@
 #pragma once
 
-#include <curl-ev/form.hpp>
+#include <memory>
+#include <string>
 
-namespace clients {
-namespace http {
+namespace curl {
+class form;
+}  // namespace curl
 
-class Form final : public curl::form {
-  using curl::form::form;
+namespace clients::http {
+
+class Form final {
+ public:
+  Form();
+  ~Form();
+
+  Form(const Form&) = delete;
+  Form(Form&&) = delete;
+  Form& operator=(const Form&) = delete;
+  Form& operator=(Form&&) = delete;
+
+  void AddContent(const std::string& key, const std::string& content);
+  void AddContent(const std::string& key, const std::string& content,
+                  const std::string& content_type);
+
+  void AddBuffer(const std::string& key, const std::string& file_name,
+                 const std::shared_ptr<std::string>& buffer);
+  void AddBuffer(const std::string& key, const std::string& file_name,
+                 const std::shared_ptr<std::string>& buffer,
+                 const std::string& content_type);
+
+  const std::shared_ptr<curl::form>& GetNative() const;
+
+ private:
+  std::shared_ptr<curl::form> impl_;
 };
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

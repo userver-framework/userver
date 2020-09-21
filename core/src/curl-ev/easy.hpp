@@ -15,10 +15,9 @@
 #include <string>
 #include <vector>
 
-#include "error_code.hpp"
-#include "form.hpp"
-#include "initialization.hpp"
-#include "local_stats.hpp"
+#include <clients/http/local_stats.hpp>
+#include <curl-ev/error_code.hpp>
+#include <curl-ev/form.hpp>
 
 namespace engine {
 namespace ev {
@@ -406,7 +405,9 @@ class easy final : public std::enable_shared_from_this<easy> {
     http_version_none = native::CURL_HTTP_VERSION_NONE,
     http_version_1_0 = native::CURL_HTTP_VERSION_1_0,
     http_version_1_1 = native::CURL_HTTP_VERSION_1_1,
-    http_version_2_0_prior_knowledge =
+    http_version_2_0 = native::CURL_HTTP_VERSION_2_0,
+    http_vertion_2tls = native::CURL_HTTP_VERSION_2TLS,
+    http_version_2_prior_knowledge =
         native::CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE,
   };
   IMPLEMENT_CURL_OPTION_ENUM(set_http_version, native::CURLOPT_HTTP_VERSION,
@@ -654,7 +655,7 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   void mark_retry();
 
-  LocalStats get_local_stats();
+  clients::http::LocalStats get_local_stats();
 
   time_point::duration time_to_start() const;
 
@@ -688,7 +689,6 @@ class easy final : public std::enable_shared_from_this<easy> {
   void mark_start_performing();
   void mark_open_socket();
 
-  initialization::ptr initref_;
   native::CURL* handle_{nullptr};
   multi* multi_;
   size_t request_counter_{0};

@@ -5,8 +5,8 @@
 #include <formats/json/value_builder.hpp>
 #include <logging/log.hpp>
 
-namespace clients {
-namespace taxi_config {
+namespace clients::taxi_config {
+
 namespace {
 const std::string kConfigsValues = "/configs/values";
 }  // namespace
@@ -26,7 +26,7 @@ std::string Client::FetchConfigsValues(const std::string& body) {
                    ->timeout(timeout_ms)
                    ->retry(retries)
                    ->perform();
-  reply->RaiseForStatus(reply->status_code());
+  reply->raise_for_status();
 
   auto json = reply->body();
   return json;
@@ -92,5 +92,4 @@ formats::json::Value Client::FetchConfigs(
   return formats::json::FromString(json);
 }
 
-}  // namespace taxi_config
-}  // namespace clients
+}  // namespace clients::taxi_config

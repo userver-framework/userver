@@ -111,15 +111,15 @@ TEST(CurlFormTest, MultipartFileWithContentType) {
     const testing::SimpleServer http_server{&validating_callback1};
 
     auto http_client_ptr = utest::CreateHttpClient();
-    auto form = std::make_shared<clients::http::Form>();
-    form->add_buffer(kKey, kFileNameTxt,
-                     std::make_shared<std::string>(kTestData), kImageJpeg);
+    clients::http::Form form;
+    form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData),
+                   kImageJpeg);
 
     auto resp = http_client_ptr->CreateRequest()
                     ->post(http_server.GetBaseUrl(), form)
                     ->retry(1)
                     ->verify(true)
-                    ->http_version(curl::easy::http_version_1_1)
+                    ->http_version(clients::http::HttpVersion::k11)
                     ->timeout(std::chrono::milliseconds(100))
                     ->perform();
 
@@ -132,18 +132,18 @@ TEST(CurlFormTest, FilesWithContentType) {
     const testing::SimpleServer http_server{&validating_callback2};
 
     auto http_client_ptr = utest::CreateHttpClient();
-    auto form = std::make_shared<clients::http::Form>();
-    form->add_buffer(kKey, kFileNameTxt,
-                     std::make_shared<std::string>(kTestData), kImageJpeg);
+    clients::http::Form form;
+    form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData),
+                   kImageJpeg);
 
-    form->add_buffer(kKey2, kFileName2Bmp,
-                     std::make_shared<std::string>(kOtherTestData), kImageBmp);
+    form.AddBuffer(kKey2, kFileName2Bmp,
+                   std::make_shared<std::string>(kOtherTestData), kImageBmp);
 
     auto resp = http_client_ptr->CreateRequest()
                     ->post(http_server.GetBaseUrl(), form)
                     ->retry(1)
                     ->verify(true)
-                    ->http_version(curl::easy::http_version_1_1)
+                    ->http_version(clients::http::HttpVersion::k11)
                     ->timeout(std::chrono::milliseconds(100))
                     ->perform();
 

@@ -27,7 +27,7 @@ struct Config {
   long timeout_ms = 1000;
   bool multiplexing = false;
   size_t max_host_connections = 0;
-  curl::easy::http_version_t http_version = curl::easy::http_version_1_1;
+  http::HttpVersion http_version = http::HttpVersion::k11;
   std::string url_file;
 };
 
@@ -92,11 +92,15 @@ Config ParseConfig(int argc, char* argv[]) {
   if (vm.count("http-version")) {
     auto value = vm["http-version"].as<std::string>();
     if (value == "1.0")
-      config.http_version = curl::easy::http_version_1_0;
+      config.http_version = http::HttpVersion::k10;
     else if (value == "1.1")
-      config.http_version = curl::easy::http_version_1_1;
-    else if (value == "2.0-prior")
-      config.http_version = curl::easy::http_version_2_0_prior_knowledge;
+      config.http_version = http::HttpVersion::k11;
+    else if (value == "2")
+      config.http_version = http::HttpVersion::k2;
+    else if (value == "2tls")
+      config.http_version = http::HttpVersion::k2Tls;
+    else if (value == "2-prior")
+      config.http_version = http::HttpVersion::k2PriorKnowledge;
     else {
       std::cerr << "--http-version value is unknown" << std::endl;
       exit(1);

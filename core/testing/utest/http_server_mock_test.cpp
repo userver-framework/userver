@@ -14,7 +14,7 @@ TEST(HttpServerMock, Ctr) {
   RunInCoro([] {
     testing::HttpServerMock mock(
         [](const testing::HttpServerMock::HttpRequest& request) {
-          EXPECT_EQ(clients::http::HttpMethod::POST, request.method);
+          EXPECT_EQ(clients::http::HttpMethod::kPost, request.method);
           EXPECT_EQ("/", request.path);
           EXPECT_EQ("value1", request.headers.at("a"));
           EXPECT_EQ("value2", request.headers.at("header"));

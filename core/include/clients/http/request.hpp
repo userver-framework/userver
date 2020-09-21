@@ -5,20 +5,26 @@
 #include <clients/http/error.hpp>
 #include <clients/http/response.hpp>
 #include <clients/http/response_future.hpp>
-#include <clients/http/wrapper.hpp>
 #include <crypto/certificate.hpp>
 #include <crypto/private_key.hpp>
 
-#include "curl-ev/easy.hpp"
+namespace clients::http {
+namespace impl {
+class EasyWrapper;
+}  // namespace impl
 
-namespace curl {
-class multi;
-}  // namespace curl
+/// HTTP request method
+enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
 
-namespace clients {
-namespace http {
-
-enum HttpMethod { DELETE, GET, HEAD, POST, PUT, PATCH, OPTIONS };
+/// HTTP version to use
+enum class HttpVersion {
+  kDefault,  ///< unspecified version
+  k10,       ///< HTTP/1.0 only
+  k11,       ///< HTTP/1.1 only
+  k2,        ///< HTTP/2 with fallback to HTTP/1.1
+  k2Tls,     ///< HTTP/2 over TLS only, otherwise (no TLS or h2) HTTP/1.1
+  k2PriorKnowledge,  ///< HTTP/2 only (without Upgrade)
+};
 
 class Form;
 class RequestStats;
@@ -28,7 +34,10 @@ struct TestsuiteConfig;
 /// Class for creating and performing new http requests
 class Request final : public std::enable_shared_from_this<Request> {
  public:
-  explicit Request(std::shared_ptr<EasyWrapper>,
+  /// Request cookies container type
+  using Cookies = std::unordered_map<std::string, std::string>;
+
+  explicit Request(std::shared_ptr<impl::EasyWrapper>,
                    std::shared_ptr<RequestStats> req_stats,
                    std::shared_ptr<DestinationStatistics> dest_stats);
 
@@ -48,8 +57,7 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> post(const std::string& url,
                                 std::string data = std::string());
   /// POST request with url and multipart/form-data
-  std::shared_ptr<Request> post(const std::string& url,
-                                const std::shared_ptr<Form>& form);
+  std::shared_ptr<Request> post(const std::string& url, const Form& form);
   /// PUT request
   std::shared_ptr<Request> put();
   /// PUT request with url and data
@@ -70,9 +78,11 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// data for POST request
   std::shared_ptr<Request> data(std::string data);
   /// form for POST request
-  std::shared_ptr<Request> form(const std::shared_ptr<Form>& form);
+  std::shared_ptr<Request> form(const Form& form);
   /// Headers for request as map
   std::shared_ptr<Request> headers(const Headers& headers);
+  /// Cookies for request as map
+  std::shared_ptr<Request> cookies(const Cookies& cookies);
   /// Follow redirects or not. Default: follow
   std::shared_ptr<Request> follow_redirects(bool follow = true);
   /// Set timeout in ms for request
@@ -92,8 +102,7 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> client_key_cert(crypto::PrivateKey pkey,
                                            crypto::Certificate cert);
   /// Set HTTP version
-  using http_version_t = curl::easy::http_version_t;
-  std::shared_ptr<Request> http_version(http_version_t version);
+  std::shared_ptr<Request> http_version(HttpVersion version);
 
   /// Specify number of retries on incorrect status, if on_failes is True
   /// retry on network error too. Retries = 3 means that maximum 3 request
@@ -124,9 +133,6 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   [[nodiscard]] std::shared_ptr<Response> perform();
 
-  /// Get curl handler for specific settings
-  curl::easy& easy();
-  const curl::easy& easy() const;
   /// Get Response class
   std::shared_ptr<Response> response() const;
 
@@ -139,5 +145,4 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<RequestImpl> pimpl_;
 };
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

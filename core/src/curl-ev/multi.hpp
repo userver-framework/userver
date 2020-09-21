@@ -15,7 +15,6 @@
 
 #include <utils/token_bucket.hpp>
 #include "error_code.hpp"
-#include "initialization.hpp"
 #include "multi_statistics.hpp"
 #include "native.hpp"
 

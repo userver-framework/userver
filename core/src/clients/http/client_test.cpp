@@ -1,6 +1,11 @@
 #include <clients/http/client.hpp>
 
+#include <set>
+
 #include <fmt/format.h>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 #include <crypto/certificate.hpp>
 #include <crypto/private_key.hpp>
 #include <engine/async.hpp>
@@ -14,6 +19,8 @@
 #include <utest/utest.hpp>
 
 namespace {
+
+constexpr auto kTimeout = std::chrono::milliseconds{100};
 
 constexpr char kTestData[] = "Test Data";
 constexpr unsigned kRepetitions = 200;
@@ -96,8 +103,8 @@ class RequestMethodTestData final {
     }
 
     return request->verify(true)
-        ->http_version(curl::easy::http_version_1_1)
-        ->timeout(std::chrono::milliseconds(100))
+        ->http_version(clients::http::HttpVersion::k11)
+        ->timeout(kTimeout)
         ->perform()
         ->IsOk();
   }
@@ -269,6 +276,40 @@ struct Response301WithHeader {
   }
 };
 
+struct CheckCookie {
+  const std::set<std::string> expected_cookies;
+
+  HttpResponse operator()(const HttpRequest& request) {
+    const auto header_pos = request.find("Cookie:");
+    EXPECT_NE(header_pos, std::string::npos)
+        << "Failed to find 'Cookie' header in request: " << request;
+
+    EXPECT_EQ(request.find("Cookie:", header_pos + 1), std::string::npos)
+        << "Duplicate 'Cookie' header in request: " << request;
+
+    const auto value_start = request.find_first_not_of(' ', header_pos + 7);
+    EXPECT_NE(value_start, std::string::npos)
+        << "Malformed request: " << request;
+    const auto value_end = request.find("\r\n", value_start);
+    EXPECT_NE(value_end, std::string::npos) << "Malformed request: " << request;
+
+    auto value = request.substr(value_start, value_end - value_start);
+    std::vector<std::string> received_cookies;
+    boost::split(received_cookies, value, [](char c) { return c == ';'; });
+
+    auto unseen_cookies = expected_cookies;
+    for (auto cookie : received_cookies) {
+      boost::trim(cookie);
+      EXPECT_TRUE(unseen_cookies.erase(cookie))
+          << "Unexpected cookie '" << cookie << "' in request: " << request;
+    }
+    EXPECT_TRUE(unseen_cookies.empty()) << "Not all cookies received";
+
+    return {"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n\r\n",
+            HttpResponse::kWriteAndClose};
+  }
+};
+
 }  // namespace
 
 TEST(HttpClient, PostEcho) {
@@ -280,8 +321,8 @@ TEST(HttpClient, PostEcho) {
                          ->post(http_server.GetBaseUrl(), kTestData)
                          ->retry(1)
                          ->verify(true)
-                         ->http_version(curl::easy::http_version_1_1)
-                         ->timeout(std::chrono::milliseconds(100))
+                         ->http_version(clients::http::HttpVersion::k11)
+                         ->timeout(kTimeout)
                          ->perform();
 
     EXPECT_EQ(res->body(), kTestData);
@@ -292,8 +333,8 @@ TEST(HttpClient, PostEcho) {
     EXPECT_GT(stats.time_to_process, std::chrono::seconds(0));
     EXPECT_GT(stats.time_to_connect, std::chrono::seconds(0));
 
-    EXPECT_LT(stats.time_to_process, std::chrono::milliseconds(100));
-    EXPECT_LT(stats.time_to_connect, std::chrono::milliseconds(100));
+    EXPECT_LT(stats.time_to_process, kTimeout);
+    EXPECT_LT(stats.time_to_connect, kTimeout);
   });
 }
 
@@ -302,22 +343,21 @@ TEST(HttpClient, StatsOnTimeout) {
     const int kRetries = 5;
     const testing::SimpleServer http_server{&sleep_callback};
     auto http_client_ptr = utest::CreateHttpClient();
-    const auto timeout = std::chrono::milliseconds(100);
 
     try {
       const auto res = http_client_ptr->CreateRequest()
                            ->post(http_server.GetBaseUrl(), kTestData)
                            ->retry(kRetries)
                            ->verify(true)
-                           ->http_version(curl::easy::http_version_1_1)
-                           ->timeout(timeout)
+                           ->http_version(clients::http::HttpVersion::k11)
+                           ->timeout(kTimeout)
                            ->perform();
     } catch (const clients::http::BaseException& e) {
       EXPECT_EQ(e.GetStats().retries_count, kRetries - 1);
       EXPECT_EQ(e.GetStats().open_socket_count, kRetries);
 
-      EXPECT_GE(e.GetStats().time_to_process, timeout);
-      EXPECT_LT(e.GetStats().time_to_process, timeout * kRetries);
+      EXPECT_GE(e.GetStats().time_to_process, kTimeout);
+      EXPECT_LT(e.GetStats().time_to_process, kTimeout * kRetries);
     }
   });
 }
@@ -347,7 +387,7 @@ TEST(HttpClient, CancelPost) {
 
       const auto request = http_client_ptr->CreateRequest()
                                ->post(http_server.GetBaseUrl(), kTestData)
-                               ->timeout(std::chrono::milliseconds(100));
+                               ->timeout(kTimeout);
 
       engine::current_task::GetCurrentTaskContext()->RequestCancel(
           engine::TaskCancellationReason::kUserRequest);
@@ -370,8 +410,8 @@ TEST(HttpClient, PostShutdownWithPendingRequest) {
           ->post(http_server.GetBaseUrl(), kTestData)
           ->retry(1)
           ->verify(true)
-          ->http_version(curl::easy::http_version_1_1)
-          ->timeout(std::chrono::milliseconds(100))
+          ->http_version(clients::http::HttpVersion::k11)
+          ->timeout(kTimeout)
           ->async_perform()
           .Detach();  // Do not do like this in production code!
 
@@ -394,8 +434,8 @@ TEST(HttpClient, PostShutdownWithPendingRequestHuge) {
           ->post(http_server.GetBaseUrl(), request)
           ->retry(1)
           ->verify(true)
-          ->http_version(curl::easy::http_version_1_1)
-          ->timeout(std::chrono::milliseconds(100))
+          ->http_version(clients::http::HttpVersion::k11)
+          ->timeout(kTimeout)
           ->async_perform()
           .Detach();  // Do not do like this in production code!
   });
@@ -410,8 +450,8 @@ TEST(HttpClient, PutEcho) {
                          ->put(http_server.GetBaseUrl(), kTestData)
                          ->retry(1)
                          ->verify(true)
-                         ->http_version(curl::easy::http_version_1_1)
-                         ->timeout(std::chrono::milliseconds(100))
+                         ->http_version(clients::http::HttpVersion::k11)
+                         ->timeout(kTimeout)
                          ->perform();
 
     EXPECT_EQ(res->body(), kTestData);
@@ -427,8 +467,8 @@ TEST(HttpClient, PutValidateHeader) {
                          ->put(http_server.GetBaseUrl(), kTestData)
                          ->retry(1)
                          ->verify(true)
-                         ->http_version(curl::easy::http_version_1_1)
-                         ->timeout(std::chrono::milliseconds(100))
+                         ->http_version(clients::http::HttpVersion::k11)
+                         ->timeout(kTimeout)
                          ->perform();
 
     EXPECT_TRUE(res->IsOk());
@@ -445,8 +485,8 @@ TEST(HttpClient, PutShutdownWithPendingRequest) {
           ->put(http_server.GetBaseUrl(), kTestData)
           ->retry(1)
           ->verify(true)
-          ->http_version(curl::easy::http_version_1_1)
-          ->timeout(std::chrono::milliseconds(100))
+          ->http_version(clients::http::HttpVersion::k11)
+          ->timeout(kTimeout)
           ->async_perform()
           .Detach();  // Do not do like this in production code!
 
@@ -469,8 +509,8 @@ TEST(HttpClient, PutShutdownWithPendingRequestHuge) {
           ->put(http_server.GetBaseUrl(), request)
           ->retry(1)
           ->verify(true)
-          ->http_version(curl::easy::http_version_1_1)
-          ->timeout(std::chrono::milliseconds(100))
+          ->http_version(clients::http::HttpVersion::k11)
+          ->timeout(kTimeout)
           ->async_perform()
           .Detach();  // Do not do like this in production code!
   });
@@ -486,8 +526,8 @@ TEST(HttpClient, PutShutdownWithHugeResponse) {
           ->put(http_server.GetBaseUrl(), kTestData)
           ->retry(1)
           ->verify(true)
-          ->http_version(curl::easy::http_version_1_1)
-          ->timeout(std::chrono::milliseconds(100))
+          ->http_version(clients::http::HttpVersion::k11)
+          ->timeout(kTimeout)
           ->async_perform()
           .Detach();  // Do not do like this in production code!
   });
@@ -540,14 +580,39 @@ TEST(HttpClient, Headers) {
                                 ->retry(1)
                                 ->headers(headers)
                                 ->verify(true)
-                                ->http_version(curl::easy::http_version_1_1)
-                                ->timeout(std::chrono::milliseconds(100))
+                                ->http_version(clients::http::HttpVersion::k11)
+                                ->timeout(kTimeout)
                                 ->perform();
 
       EXPECT_TRUE(response->IsOk());
     }
 
     http_client_ptr.reset();
+  });
+}
+
+TEST(HttpClient, Cookies) {
+  TestInCoro([] {
+    const auto test = [](const clients::http::Request::Cookies& cookies,
+                         std::set<std::string> expected) {
+      const testing::SimpleServer http_server{CheckCookie{std::move(expected)}};
+      auto http_client_ptr = utest::CreateHttpClient();
+      for (unsigned i = 0; i < kRepetitions; ++i) {
+        const auto response =
+            http_client_ptr->CreateRequest()
+                ->get(http_server.GetBaseUrl())
+                ->retry(1)
+                ->cookies(cookies)
+                ->verify(true)
+                ->http_version(clients::http::HttpVersion::k11)
+                ->timeout(kTimeout)
+                ->perform();
+        EXPECT_TRUE(response->IsOk());
+      }
+    };
+    test({{"a", "b"}}, {"a=b"});
+    test({{"A", "B"}}, {"A=B"});
+    test({{"a", "B"}, {"A", "b"}}, {"a=B", "A=b"});
   });
 }
 
@@ -572,7 +637,7 @@ TEST(HttpClient, HeadersAndWhitespaces) {
 
       const auto response = http_client_ptr->CreateRequest()
                                 ->post(http_server.GetBaseUrl())
-                                ->timeout(std::chrono::milliseconds(100))
+                                ->timeout(kTimeout)
                                 ->perform();
 
       EXPECT_TRUE(response->IsOk())

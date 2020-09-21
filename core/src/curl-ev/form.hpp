@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "initialization.hpp"
 #include "native.hpp"
 
 namespace curl {
@@ -79,7 +78,6 @@ class form {
                   const char* buffer, size_t buffer_len, std::error_code& ec);
 
  private:
-  initialization::ptr initref_;
   native::curl_httppost* post_{nullptr};
   native::curl_httppost* last_{nullptr};
   std::vector<std::shared_ptr<std::string>> buffers_;

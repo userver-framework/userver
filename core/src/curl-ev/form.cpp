@@ -11,13 +11,11 @@
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/form.hpp>
 #include <curl-ev/native.hpp>
+#include <curl-ev/wrappers.hpp>
 
-// NOLINTNEXTLINE(google-build-using-namespace)
-using namespace curl;
+namespace curl {
 
-form::form() : post_(nullptr), last_(nullptr) {
-  initref_ = initialization::ensure_initialization();
-}
+form::form() : post_(nullptr), last_(nullptr) { impl::CurlGlobal::Init(); }
 
 form::~form() {
   if (post_) {
@@ -208,3 +206,5 @@ void form::add_file_content(const std::string& key,
       file_path.c_str(), native::CURLFORM_CONTENTTYPE, content_type.c_str(),
       native::CURLFORM_END));
 }
+
+}  // namespace curl

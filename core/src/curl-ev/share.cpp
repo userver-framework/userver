@@ -8,12 +8,12 @@
 
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/share.hpp>
+#include <curl-ev/wrappers.hpp>
 
-// NOLINTNEXTLINE(google-build-using-namespace)
-using namespace curl;
+namespace curl {
 
 share::share() {
-  initref_ = initialization::ensure_initialization();
+  impl::CurlGlobal::Init();
   handle_ = native::curl_share_init();
 
   if (!handle_) {
@@ -81,3 +81,5 @@ void share::unlock(native::CURL*, native::curl_lock_data, void* userptr) {
   auto* self = static_cast<share*>(userptr);
   self->mutex_.unlock();
 }
+
+}  // namespace curl

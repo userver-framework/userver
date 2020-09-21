@@ -1,13 +1,10 @@
-#include <clients/http/wrapper.hpp>
+#include <clients/http/easy_wrapper.hpp>
 
 #include <clients/http/client.hpp>
 #include <clients/http/response_future.hpp>
-#include <curl-ev/easy.hpp>
-
 #include <utils/assert.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http::impl {
 
 EasyWrapper::EasyWrapper(std::shared_ptr<curl::easy> easy, Client& client)
     : easy_(std::move(easy)), client_(client) {
@@ -18,5 +15,4 @@ EasyWrapper::~EasyWrapper() { client_.PushIdleEasy(std::move(easy_)); }
 
 curl::easy& EasyWrapper::Easy() { return *easy_; }
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http::impl

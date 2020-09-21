@@ -7,12 +7,14 @@
 #include <moodycamel/concurrentqueue.h>
 
 #include <clients/http/destination_statistics.hpp>
+#include <logging/log.hpp>
+#include <utils/async.hpp>
+
+#include <clients/http/easy_wrapper.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/openssl.hpp>
 #include <curl-ev/multi.hpp>
 #include <engine/ev/thread_pool.hpp>
-#include <logging/log.hpp>
-#include <utils/async.hpp>
 
 namespace clients::http {
 namespace {
@@ -103,7 +105,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
   auto easy = TryDequeueIdle();
   if (easy) {
     auto idx = FindMultiIndex(easy->GetMulti());
-    auto wrapper = std::make_shared<EasyWrapper>(std::move(easy), *this);
+    auto wrapper = std::make_shared<impl::EasyWrapper>(std::move(easy), *this);
     request = std::make_shared<Request>(std::move(wrapper),
                                         statistics_[idx].CreateRequestStats(),
                                         destination_statistics_);
@@ -111,8 +113,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
     thread_local unsigned int rand_state = 0;
     int i = rand_r(&rand_state) % multis_.size();
     auto& multi = multis_[i];
-    auto wrapper =
-        std::make_shared<EasyWrapper>(easy_.Get()->GetBound(*multi), *this);
+    auto wrapper = std::make_shared<impl::EasyWrapper>(
+        easy_.Get()->GetBound(*multi), *this);
     request = std::make_shared<Request>(std::move(wrapper),
                                         statistics_[i].CreateRequestStats(),
                                         destination_statistics_);

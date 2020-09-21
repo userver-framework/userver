@@ -25,8 +25,8 @@
 #include <server/net/listener_impl.hpp>
 #include <utils/strerror.hpp>
 
-// NOLINTNEXTLINE(google-build-using-namespace)
-using namespace curl;
+namespace curl {
+
 using BusyMarker = ::utils::statistics::BusyMarker;
 
 easy::easy(native::CURL* easy_handle, multi* multi_handle)
@@ -34,7 +34,6 @@ easy::easy(native::CURL* easy_handle, multi* multi_handle)
       multi_(multi_handle),
       multi_registered_(false),
       construct_ts_(std::chrono::steady_clock::now()) {
-  initref_ = initialization::ensure_initialization();
   UASSERT(handle_);
   set_private(this);
 }
@@ -467,8 +466,8 @@ void easy::handle_completion(const std::error_code& err) {
 
 void easy::mark_retry() { ++retries_count_; }
 
-LocalStats easy::get_local_stats() {
-  LocalStats stats;
+clients::http::LocalStats easy::get_local_stats() {
+  clients::http::LocalStats stats;
 
   stats.open_socket_count = sockets_opened_;
   stats.retries_count = retries_count_;
@@ -654,3 +653,5 @@ int easy::closesocket(void* clientp, native::curl_socket_t item) noexcept {
   multi_handle->Statistics().mark_close_socket();
   return 0;
 }
+
+}  // namespace curl

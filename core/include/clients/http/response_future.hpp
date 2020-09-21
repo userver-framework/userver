@@ -7,8 +7,6 @@
 #include <clients/http/response.hpp>
 #include <utils/fast_pimpl.hpp>
 
-#include "wrapper.hpp"
-
 namespace engine::impl {
 template <typename T>
 class BlockingFuture;
@@ -16,12 +14,16 @@ class BlockingFuture;
 
 namespace clients::http {
 
+namespace impl {
+class EasyWrapper;
+}  // namespace impl
+
 class ResponseFuture final {
  public:
   ResponseFuture(
       engine::impl::BlockingFuture<std::shared_ptr<Response>>&& future,
       std::chrono::milliseconds total_timeout,
-      std::shared_ptr<EasyWrapper> easy);
+      std::shared_ptr<impl::EasyWrapper> easy);
 
   ResponseFuture(ResponseFuture&& other) noexcept;
 
@@ -48,7 +50,7 @@ class ResponseFuture final {
                    kFutureSize, kFutureAlignment, true>
       future_;
   std::chrono::system_clock::time_point deadline_;
-  std::shared_ptr<EasyWrapper> easy_;
+  std::shared_ptr<impl::EasyWrapper> easy_;
 };
 
 }  // namespace clients::http

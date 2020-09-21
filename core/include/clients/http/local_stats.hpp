@@ -1,8 +1,9 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 
-namespace curl {
+namespace clients::http {
 
 /// Represents all the local timings and statistics
 struct LocalStats final {
@@ -24,4 +25,4 @@ struct LocalStats final {
   size_t retries_count = 0;
 };
 
-}  // namespace curl
+}  // namespace clients::http

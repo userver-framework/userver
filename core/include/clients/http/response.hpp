@@ -4,11 +4,9 @@
 #include <string>
 #include <unordered_map>
 
-#include <curl-ev/local_stats.hpp>
-
+#include <clients/http/error.hpp>
+#include <clients/http/local_stats.hpp>
 #include <utils/str_icase.hpp>
-
-#include "error.hpp"
 
 namespace clients::http {
 
@@ -36,7 +34,7 @@ enum Status : uint16_t {
 
 std::ostream& operator<<(std::ostream& os, Status s);
 
-/// Headers class
+/// Headers container type
 using Headers = std::unordered_map<std::string, std::string,
                                    utils::StrIcaseHash, utils::StrIcaseEqual>;
 
@@ -59,22 +57,22 @@ class Response final {
   /// check status code
   bool IsOk() const { return status_code() == Status::OK; }
 
-  static void RaiseForStatus(long code);
+  static void RaiseForStatus(long code, const LocalStats& stats);
 
   void raise_for_status() const;
 
   /// returns statistics on request execution like const of opened sockets,
   /// connect time...
-  curl::LocalStats GetStats() const;
+  LocalStats GetStats() const;
 
-  void SetStats(const curl::LocalStats& stats) { stats_ = stats; }
+  void SetStats(const LocalStats& stats) { stats_ = stats; }
   void SetStatusCode(Status status_code) { status_code_ = status_code; }
 
  private:
   Headers headers_;
   std::ostringstream response_stream_;
   Status status_code_;
-  curl::LocalStats stats_;
+  LocalStats stats_;
 };
 
 }  // namespace clients::http

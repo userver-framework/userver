@@ -22,19 +22,18 @@
 #include <clients/http/form.hpp>
 #include <clients/http/response_future.hpp>
 #include <clients/http/statistics.hpp>
-#include <clients/http/testsuite.hpp>
 #include <http/common_headers.hpp>
 #include <http/url.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
 
+#include <clients/http/easy_wrapper.hpp>
+#include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
-#include <curl-ev/easy.hpp>
 #include <engine/blocking_future.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 namespace {
 /// Maximum number of redirects
@@ -52,19 +51,19 @@ const std::string kHeaderExpect = "Expect";
 
 std::string ToString(HttpMethod method) {
   switch (method) {
-    case DELETE:
+    case HttpMethod::kDelete:
       return "DELETE";
-    case GET:
+    case HttpMethod::kGet:
       return "GET";
-    case HEAD:
+    case HttpMethod::kHead:
       return "HEAD";
-    case POST:
+    case HttpMethod::kPost:
       return "POST";
-    case PUT:
+    case HttpMethod::kPut:
       return "PUT";
-    case PATCH:
+    case HttpMethod::kPatch:
       return "PATCH";
-    case OPTIONS:
+    case HttpMethod::kOptions:
       return "OPTIONS";
   }
 }
@@ -113,6 +112,23 @@ bool IsHttpStatusLineStart(const char* ptr, size_t size) {
   return (size > 5 && memcmp(ptr, "HTTP/", 5) == 0);
 }
 
+curl::easy::http_version_t ToNative(HttpVersion version) {
+  switch (version) {
+    case HttpVersion::kDefault:
+      return curl::easy::http_version_t::http_version_none;
+    case HttpVersion::k10:
+      return curl::easy::http_version_t::http_version_1_0;
+    case HttpVersion::k11:
+      return curl::easy::http_version_t::http_version_1_1;
+    case HttpVersion::k2:
+      return curl::easy::http_version_t::http_version_2_0;
+    case HttpVersion::k2Tls:
+      return curl::easy::http_version_t::http_vertion_2tls;
+    case HttpVersion::k2PriorKnowledge:
+      return curl::easy::http_version_t::http_version_2_prior_knowledge;
+  }
+}
+
 }  // namespace
 
 // RequestImpl definition
@@ -120,7 +136,7 @@ bool IsHttpStatusLineStart(const char* ptr, size_t size) {
 class Request::RequestImpl
     : public std::enable_shared_from_this<Request::RequestImpl> {
  public:
-  RequestImpl(std::shared_ptr<EasyWrapper>,
+  RequestImpl(std::shared_ptr<impl::EasyWrapper>,
               std::shared_ptr<RequestStats> req_stats,
               std::shared_ptr<DestinationStatistics> dest_stats);
 
@@ -140,7 +156,7 @@ class Request::RequestImpl
   /// set private key and certificate from memory
   void client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert);
   /// Set HTTP version
-  void http_version(http_version_t version);
+  void http_version(curl::easy::http_version_t version);
   /// set timeout value
   void set_timeout(long timeout_ms);
   /// set number of retries
@@ -162,7 +178,7 @@ class Request::RequestImpl
 
   void DisableReplyDecoding();
 
-  std::shared_ptr<EasyWrapper> easy_wrapper() { return easy_; }
+  std::shared_ptr<impl::EasyWrapper> easy_wrapper() { return easy_; }
 
   curl::easy& easy() { return easy_->Easy(); }
   const curl::easy& easy() const { return easy_->Easy(); }
@@ -196,7 +212,7 @@ class Request::RequestImpl
 
  private:
   /// curl handler wrapper
-  std::shared_ptr<EasyWrapper> easy_;
+  std::shared_ptr<impl::EasyWrapper> easy_;
   std::shared_ptr<RequestStats> stats_;
   std::shared_ptr<RequestStats> dest_req_stats_;
 
@@ -246,7 +262,7 @@ long complete_timeout(long request_timeout, int retries) {
 
 // Request implementation
 
-Request::Request(std::shared_ptr<EasyWrapper> wrapper,
+Request::Request(std::shared_ptr<impl::EasyWrapper> wrapper,
                  std::shared_ptr<RequestStats> req_stats,
                  std::shared_ptr<DestinationStatistics> dest_stats)
     : pimpl_(std::make_shared<Request::RequestImpl>(
@@ -273,7 +289,7 @@ std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }
 
 std::shared_ptr<Request> Request::url(const std::string& _url) {
   pimpl_->SetDestinationMetricNameAuto(::http::ExtractMetaTypeFromUrl(_url));
-  easy().set_url(_url.c_str());
+  pimpl_->easy().set_url(_url.c_str());
   return shared_from_this();
 }
 
@@ -313,8 +329,8 @@ std::shared_ptr<Request> Request::client_key_cert(crypto::PrivateKey pkey,
   return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::http_version(http_version_t version) {
-  pimpl_->http_version(version);
+std::shared_ptr<Request> Request::http_version(HttpVersion version) {
+  pimpl_->http_version(ToNative(version));
   return shared_from_this();
 }
 
@@ -328,55 +344,74 @@ std::shared_ptr<Request> Request::retry(int retries, bool on_fails) {
 
 std::shared_ptr<Request> Request::data(std::string data) {
   if (!data.empty())
-    easy().add_header(kHeaderExpect, "",
-                      curl::easy::EmptyHeaderAction::kDoNotSend);
-  easy().set_post_fields(std::move(data));
+    pimpl_->easy().add_header(kHeaderExpect, "",
+                              curl::easy::EmptyHeaderAction::kDoNotSend);
+  pimpl_->easy().set_post_fields(std::move(data));
   return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::form(const std::shared_ptr<Form>& form) {
-  easy().set_http_post(form);
-  easy().add_header(kHeaderExpect, "",
-                    curl::easy::EmptyHeaderAction::kDoNotSend);
+std::shared_ptr<Request> Request::form(const Form& form) {
+  pimpl_->easy().set_http_post(form.GetNative());
+  pimpl_->easy().add_header(kHeaderExpect, "",
+                            curl::easy::EmptyHeaderAction::kDoNotSend);
   return shared_from_this();
 }
 
 std::shared_ptr<Request> Request::headers(const Headers& headers) {
-  for (const auto& header : headers)
-    easy().add_header(header.first, header.second);
+  for (const auto& [name, value] : headers)
+    pimpl_->easy().add_header(name, value);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::cookies(const Cookies& cookies) {
+  std::string cookie_str;
+  for (const auto& [name, value] : cookies) {
+    if (!cookie_str.empty()) cookie_str += "; ";
+    cookie_str += name;
+    cookie_str += '=';
+    cookie_str += value;
+  }
+  pimpl_->easy().set_cookie(cookie_str);
   return shared_from_this();
 }
 
 std::shared_ptr<Request> Request::method(HttpMethod method) {
   switch (method) {
-    case DELETE:
-    case OPTIONS:
-      easy().set_custom_request(ToString(method));
+    case HttpMethod::kDelete:
+    case HttpMethod::kOptions:
+      pimpl_->easy().set_custom_request(ToString(method));
       break;
-    case GET:
-      easy().set_http_get(true);
+    case HttpMethod::kGet:
+      pimpl_->easy().set_http_get(true);
       break;
-    case HEAD:
-      easy().set_no_body(true);
+    case HttpMethod::kHead:
+      pimpl_->easy().set_no_body(true);
       break;
     // NOTE: set_post makes libcURL to read from stdin if no data is set
-    case POST:
-    case PUT:
-    case PATCH:
-      easy().set_custom_request(ToString(method));
+    case HttpMethod::kPost:
+    case HttpMethod::kPut:
+    case HttpMethod::kPatch:
+      pimpl_->easy().set_custom_request(ToString(method));
       // ensure a body as we should send Content-Length for this method
-      if (!easy().has_post_data()) data({});
+      if (!pimpl_->easy().has_post_data()) data({});
       break;
   };
   return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::get() { return method(GET); }
-std::shared_ptr<Request> Request::head() { return method(HEAD); }
-std::shared_ptr<Request> Request::post() { return method(POST); }
-std::shared_ptr<Request> Request::put() { return method(PUT); }
-std::shared_ptr<Request> Request::patch() { return method(PATCH); }
-std::shared_ptr<Request> Request::delete_method() { return method(DELETE); }
+std::shared_ptr<Request> Request::get() { return method(HttpMethod::kGet); }
+
+std::shared_ptr<Request> Request::head() { return method(HttpMethod::kHead); }
+
+std::shared_ptr<Request> Request::post() { return method(HttpMethod::kPost); }
+
+std::shared_ptr<Request> Request::put() { return method(HttpMethod::kPut); }
+
+std::shared_ptr<Request> Request::patch() { return method(HttpMethod::kPatch); }
+
+std::shared_ptr<Request> Request::delete_method() {
+  return method(HttpMethod::kDelete);
+}
 
 std::shared_ptr<Request> Request::get(const std::string& url) {
   return get()->url(url);
@@ -387,7 +422,7 @@ std::shared_ptr<Request> Request::head(const std::string& url) {
 }
 
 std::shared_ptr<Request> Request::post(const std::string& url,
-                                       const std::shared_ptr<Form>& form) {
+                                       const Form& form) {
   return this->url(url)->form(form);
 }
 
@@ -409,9 +444,6 @@ std::shared_ptr<Request> Request::patch(const std::string& url,
 std::shared_ptr<Request> Request::delete_method(const std::string& url) {
   return delete_method()->url(url);
 }
-
-curl::easy& Request::easy() { return pimpl_->easy(); }
-const curl::easy& Request::easy() const { return pimpl_->easy(); }
 
 std::shared_ptr<Response> Request::response() const {
   return pimpl_->response();
@@ -444,7 +476,7 @@ void Request::RequestImpl::SetDestinationMetricNameAuto(
 // RequestImpl implementation
 
 Request::RequestImpl::RequestImpl(
-    std::shared_ptr<EasyWrapper> wrapper,
+    std::shared_ptr<impl::EasyWrapper> wrapper,
     std::shared_ptr<RequestStats> req_stats,
     std::shared_ptr<DestinationStatistics> dest_stats)
     : easy_(std::move(wrapper)),
@@ -490,7 +522,7 @@ void Request::RequestImpl::client_key_cert(crypto::PrivateKey pkey,
   easy().set_ssl_ctx_data(this);
 }
 
-void Request::RequestImpl::http_version(http_version_t version) {
+void Request::RequestImpl::http_version(curl::easy::http_version_t version) {
   LOG_DEBUG() << "http_version";
   easy().set_http_version(version);
   LOG_DEBUG() << "http_version after";
@@ -799,5 +831,4 @@ void Request::RequestImpl::ApplyTestsuiteConfig() {
   easy().add_header(kTestsuiteSupportedErrorsKey, kTestsuiteSupportedErrors);
 }
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

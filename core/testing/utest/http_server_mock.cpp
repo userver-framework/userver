@@ -84,22 +84,22 @@ HttpConnection& HttpConnection::GetConnection(http_parser* p) {
 clients::http::HttpMethod ConvertHttpMethod(http_method method) {
   switch (method) {
     case HTTP_DELETE:
-      return clients::http::HttpMethod::DELETE;
+      return clients::http::HttpMethod::kDelete;
     case HTTP_GET:
-      return clients::http::HttpMethod::GET;
+      return clients::http::HttpMethod::kGet;
     case HTTP_HEAD:
-      return clients::http::HttpMethod::HEAD;
+      return clients::http::HttpMethod::kHead;
     case HTTP_POST:
-      return clients::http::HttpMethod::POST;
+      return clients::http::HttpMethod::kPost;
     case HTTP_PUT:
-      return clients::http::HttpMethod::PUT;
+      return clients::http::HttpMethod::kPut;
     case HTTP_PATCH:
-      return clients::http::HttpMethod::PATCH;
+      return clients::http::HttpMethod::kPatch;
     case HTTP_OPTIONS:
-      return clients::http::HttpMethod::OPTIONS;
+      return clients::http::HttpMethod::kOptions;
     default:
       ADD_FAILURE() << "Unknown HTTP method " << method;
-      return clients::http::HttpMethod::GET;
+      return clients::http::HttpMethod::kGet;
   }
 }
 

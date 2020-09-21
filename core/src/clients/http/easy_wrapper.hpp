@@ -2,14 +2,13 @@
 
 #include <memory>
 
-namespace curl {
-class easy;
-}  // namespace curl
+#include <curl-ev/easy.hpp>
 
-namespace clients {
-namespace http {
-
+namespace clients::http {
 class Client;
+}  // namespace clients::http
+
+namespace clients::http::impl {
 
 class EasyWrapper final {
  public:
@@ -29,5 +28,4 @@ class EasyWrapper final {
   Client& client_;
 };
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http::impl

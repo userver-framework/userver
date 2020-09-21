@@ -2,13 +2,14 @@
 
 #include <engine/blocking_future.hpp>
 
-#include "curl-ev/easy.hpp"
+#include <clients/http/easy_wrapper.hpp>
 
 namespace clients::http {
 
 ResponseFuture::ResponseFuture(
     engine::impl::BlockingFuture<std::shared_ptr<Response>>&& future,
-    std::chrono::milliseconds total_timeout, std::shared_ptr<EasyWrapper> easy)
+    std::chrono::milliseconds total_timeout,
+    std::shared_ptr<impl::EasyWrapper> easy)
     : future_(std::move(future)),
       deadline_(std::chrono::system_clock::now() + total_timeout),
       easy_(std::move(easy)) {}
@@ -54,7 +55,7 @@ std::shared_ptr<Response> ResponseFuture::Get() {
     return response;
   }
 
-  throw TimeoutException("Future timeout", easy_->Easy().get_local_stats());
+  throw TimeoutException("Future timeout", {});  // no local stats available
 }
 
 }  // namespace clients::http
