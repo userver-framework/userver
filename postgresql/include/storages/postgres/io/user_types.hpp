@@ -156,4 +156,6 @@ const RegisterUserTypeParser CppToUserPgImpl<T>::init_ =
                                      ::compiler::GetTypeName<T>());
 }  // namespace io::detail
 
+void LogRegisteredTypesOnce();
+
 }  // namespace storages::postgres

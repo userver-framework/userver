@@ -119,5 +119,7 @@ struct CppToPg<T, std::enable_if_t<!traits::kIsSpecialMapping<T> &&
                          detail::CppToSystemPgImpl<T>,
                          detail::CppToUserPgImpl<T>> {};
 
+void LogRegisteredTypes();
+
 }  // namespace io
 }  // namespace storages::postgres

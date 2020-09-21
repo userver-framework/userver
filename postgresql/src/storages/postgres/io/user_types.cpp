@@ -224,4 +224,16 @@ RegisterUserTypeParser RegisterUserTypeParser::Register(
 
 }  // namespace io
 
+void LogRegisteredTypes() {
+  for (const auto& [pg_name, cpp_name] : Parsers()) {
+    LOG_DEBUG() << fmt::format("pg type mapping: pg='{}' cpp='{}'",
+                               pg_name.ToString(), cpp_name);
+  }
+  io::LogRegisteredTypes();
+}
+
+void LogRegisteredTypesOnce() {
+  [[maybe_unused]] static const auto _ = (LogRegisteredTypes(), 1);
+}
+
 }  // namespace storages::postgres

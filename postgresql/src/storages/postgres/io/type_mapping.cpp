@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <logging/log.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <utils/algo.hpp>
 
@@ -122,6 +123,13 @@ PredefinedOids GetArrayElementOid(PredefinedOids array_oid) {
     return f->second;
   }
   return PredefinedOids::kInvalid;
+}
+
+void LogRegisteredTypes() {
+  for (const auto& [pg_name, cpp_name] : Parsers()) {
+    LOG_DEBUG() << fmt::format("pg type mapping: oid='{}' cpp='{}'", pg_name,
+                               cpp_name);
+  }
 }
 
 }  // namespace storages::postgres::io

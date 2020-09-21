@@ -147,6 +147,8 @@ Postgres::Postgres(const ComponentConfig& config,
       statistics_storage_(
           context.FindComponent<components::StatisticsStorage>()),
       database_{std::make_shared<storages::postgres::Database>()} {
+  ::storages::postgres::LogRegisteredTypesOnce();
+
   namespace pg = storages::postgres;
   TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
   auto cmd_ctl = GetCommandControlConfig(cfg);
