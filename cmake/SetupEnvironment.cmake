@@ -30,7 +30,7 @@ endif()
 # warnings
 add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(MACOS found)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
   # disable pkg-config as it's borked by homebrew -- TAXICOMMON-2264
@@ -54,7 +54,7 @@ else ()
   message (STATUS "ccache: disabled")
 endif ()
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
   set(CLANG found)
 endif()
 
@@ -97,6 +97,13 @@ add_compile_options_if_supported ("-Wdisabled-optimization" "-Winvalid-pch")
 add_compile_options_if_supported ("-Wlogical-op" "-Wuseless-cast" "-Wformat=2")
 add_compile_options_if_supported ("-Wno-error=deprecated-declarations")
 add_compile_options_if_supported ("-ftemplate-depth=200")
+
+# gives false positives
+if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+  add_compile_options("-Wno-range-loop-analysis")
+endif()
 
 if (NOT CLANG) # bug in clang https://llvm.org/bugs/show_bug.cgi?id=24979
   add_compile_options (

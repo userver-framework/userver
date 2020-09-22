@@ -37,7 +37,7 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
   res.reserve(200 * st.size());
 
   size_t i = 0;
-  for (const auto& frame : st) {
+  for (const auto frame : st) {
     if (i < 10) {
       res += ' ';
     }
