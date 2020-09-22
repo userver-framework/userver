@@ -766,7 +766,10 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
 
 void Redis::RedisImpl::OnDisconnectImpl(int status) {
   if (status == REDIS_ERR) {
-    LOG_WARNING() << "Got disconnect error from hiredis: " << context_->errstr;
+    LOG_WARNING() << "Got disconnect error from hiredis (" << context_->errstr
+                  << "). For more information look in server logs ("
+                     "https://wiki.yandex-team.ru/taxi/backend/userver/redis/"
+                     "#logiservera).";
   }
   SetState(status == REDIS_OK ? State::kDisconnected : State::kDisconnectError);
   context_ = nullptr;
