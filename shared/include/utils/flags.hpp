@@ -77,6 +77,17 @@ class AtomicFlags final {
                        std::memory_order = std::memory_order_seq_cst);
   Flags<Enum> FetchClear(Flags<Enum>,
                          std::memory_order = std::memory_order_seq_cst);
+  bool CompareExchangeWeak(Flags<Enum>& expected, Flags<Enum> desired,
+                           std::memory_order order = std::memory_order_seq_cst);
+  bool CompareExchangeStrong(
+      Flags<Enum>& expected, Flags<Enum> desired,
+      std::memory_order order = std::memory_order_seq_cst);
+  bool CompareExchangeWeak(Flags<Enum>& expected, Flags<Enum> desired,
+                           std::memory_order success,
+                           std::memory_order failure);
+  bool CompareExchangeStrong(Flags<Enum>& expected, Flags<Enum> desired,
+                             std::memory_order success,
+                             std::memory_order failure);
 
   Flags<Enum> operator|(Flags<Enum>) const;
   Flags<Enum> operator&(Flags<Enum>)const;
@@ -257,6 +268,52 @@ template <typename Enum>
 Flags<Enum> AtomicFlags<Enum>::FetchClear(Flags<Enum> flags,
                                           std::memory_order memory_order) {
   return static_cast<Enum>(value_.fetch_and(~flags.value_, memory_order));
+}
+
+template <typename Enum>
+bool AtomicFlags<Enum>::CompareExchangeWeak(Flags<Enum>& expected,
+                                            Flags<Enum> desired,
+                                            std::memory_order order) {
+  auto expected_int = expected.GetValue();
+  const bool result =
+      value_.compare_exchange_weak(expected_int, desired.GetValue(), order);
+  expected = Enum{expected_int};
+  return result;
+}
+
+template <typename Enum>
+bool AtomicFlags<Enum>::CompareExchangeStrong(Flags<Enum>& expected,
+                                              Flags<Enum> desired,
+                                              std::memory_order order) {
+  auto expected_int = expected.GetValue();
+  const bool result =
+      value_.compare_exchange_strong(expected_int, desired.GetValue(), order);
+  expected = Enum{expected_int};
+  return result;
+}
+
+template <typename Enum>
+bool AtomicFlags<Enum>::CompareExchangeWeak(Flags<Enum>& expected,
+                                            Flags<Enum> desired,
+                                            std::memory_order success,
+                                            std::memory_order failure) {
+  auto expected_int = expected.GetValue();
+  const bool result = value_.compare_exchange_weak(
+      expected_int, desired.GetValue(), success, failure);
+  expected = Enum{expected_int};
+  return result;
+}
+
+template <typename Enum>
+bool AtomicFlags<Enum>::CompareExchangeStrong(Flags<Enum>& expected,
+                                              Flags<Enum> desired,
+                                              std::memory_order success,
+                                              std::memory_order failure) {
+  auto expected_int = expected.GetValue();
+  const bool result = value_.compare_exchange_strong(
+      expected_int, desired.GetValue(), success, failure);
+  expected = Enum{expected_int};
+  return result;
 }
 
 template <typename Enum>

@@ -53,7 +53,8 @@ void WaitListLight::WakeupOne(WaitListBase::Lock&) {
   auto old = waiting_.exchange(nullptr);
   if (old) {
     LOG_TRACE() << "Waking up! use_count=" << old->use_count();
-    old->Wakeup(impl::TaskContext::WakeupSource::kWaitList);
+    old->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
+                impl::TaskContext::NoEpoch{});
     intrusive_ptr_release(old);
   }
 }

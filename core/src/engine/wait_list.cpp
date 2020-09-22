@@ -63,7 +63,8 @@ void WaitList::WakeupOne([[maybe_unused]] WaitListBase::Lock& lock) {
                                                     kAdopt);
     context->wait_list_hook.unlink();
 
-    context->Wakeup(impl::TaskContext::WakeupSource::kWaitList);
+    context->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
+                    impl::TaskContext::NoEpoch{});
   }
 }
 
@@ -74,7 +75,8 @@ void WaitList::WakeupAll([[maybe_unused]] WaitListBase::Lock& lock) {
                                                     kAdopt);
     context->wait_list_hook.unlink();
 
-    context->Wakeup(impl::TaskContext::WakeupSource::kWaitList);
+    context->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
+                    impl::TaskContext::NoEpoch{});
   }
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -15,6 +16,7 @@
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/local_storage.hpp>
+#include <engine/task/sleep_state.hpp>
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
 #include <engine/task/task_counter.hpp>
@@ -57,6 +59,7 @@ class WaitStrategy {
 
 class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
  public:
+  struct NoEpoch {};
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
   using CoroId = uint64_t;
   using TaskId = uint64_t;
@@ -64,12 +67,12 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
 
   /// Wakeup sources in descending priority order
-  enum class WakeupSource {
-    kNone = 0,
-    kWaitList = (1 << 0),
-    kDeadlineTimer = (1 << 1),
-    kCancelRequest = (1 << 2),
-    kBootstrap = (1 << 3),
+  enum class WakeupSource : uint32_t {
+    kNone = static_cast<uint32_t>(SleepFlags::kNone),
+    kWaitList = static_cast<uint32_t>(SleepFlags::kWakeupByWaitList),
+    kDeadlineTimer = static_cast<uint32_t>(SleepFlags::kWakeupByDeadlineTimer),
+    kCancelRequest = static_cast<uint32_t>(SleepFlags::kWakeupByCancelRequest),
+    kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
   };
 
   TaskContext(TaskProcessor&, Task::Importance, Payload);
@@ -130,7 +133,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // causes this to return from the nearest sleep
   // i.e. wakeup is queued if task is running
   // normally non-blocking, except corner cases in TaskProcessor::Schedule()
-  void Wakeup(WakeupSource);
+  void Wakeup(WakeupSource, SleepState::Epoch epoch);
+  void Wakeup(WakeupSource, NoEpoch);
 
   // Must be called from this
   WakeupSource GetWakeupSource() const;
@@ -158,25 +162,13 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
  private:
   static constexpr uint64_t kMagic = 0x6b73615453755459ull;  // "YTuSTask"
 
-  enum class SleepStateFlags {
-    kNone = 0,
-    kWakeupByWaitList = static_cast<int>(WakeupSource::kWaitList),
-    kWakeupByDeadlineTimer = static_cast<int>(WakeupSource::kDeadlineTimer),
-    kWakeupByCancelRequest = static_cast<int>(WakeupSource::kCancelRequest),
-    kWakeupByBootstrap = static_cast<int>(WakeupSource::kBootstrap),
-
-    kSleeping = (kWakeupByBootstrap << 1),
-    kNonCancellable = (kSleeping << 1)
-  };
-  static WakeupSource GetPrimaryWakeupSource(
-      utils::Flags<SleepStateFlags> sleep_state);
+  static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
 
   bool WasStartedAsCritical() const;
   void SetState(Task::State);
 
   void Schedule();
-  static bool ShouldSchedule(utils::Flags<SleepStateFlags> flags,
-                             WakeupSource source);
+  static bool ShouldSchedule(SleepState::Flags flags, WakeupSource source);
 
   void ProfilerStartExecution();
   void ProfilerStopExecution();
@@ -207,7 +199,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   size_t trace_csw_left_;
 
   WaitStrategy* wait_manager_;
-  utils::AtomicFlags<SleepStateFlags> sleep_state_;
+  std::atomic<SleepState> sleep_state_;
   WakeupSource wakeup_source_;
 
   CountedCoroutinePtr coro_;

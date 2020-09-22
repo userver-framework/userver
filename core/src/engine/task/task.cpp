@@ -17,7 +17,8 @@ Task::Task() = default;
 
 Task::Task(impl::TaskContextHolder&& context_holder)
     : context_(context_holder.Release()) {
-  context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap);
+  context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
+                   impl::SleepState::Epoch{0});
 }
 
 Task::~Task() { Terminate(TaskCancellationReason::kAbandoned); }
