@@ -15,43 +15,57 @@ struct MyStructure {
 };
 
 struct PostgresExamplePolicy {
-  // Name of caching policy component.
-  // Mandatory
+  /// @brief Name of caching policy component
+  ///
+  /// Mandatory
   static constexpr const char* kName = "my-pg-cache";
 
-  // Object type
-  // Mandatory
+  /// @brief Object type
+  ///
+  /// Mandatory
   using ValueType = MyStructure;
 
-  // A member by which the object must be identified in cache.
-  // Mandatory
-  // Pointer-to-member in the object.
-  // It can be either a pointer to data member or a pointer to function member,
-  // that accepts no arguments and returns the key.
+  /// @brief Member by which the object must be identified in cache
+  ///
+  /// Mandatory
+  /// Pointer-to-member in the object: either a pointer to data member or a
+  /// pointer to function member that accepts no arguments and returns the key.
   static constexpr auto kKeyMember = &MyStructure::id;
 
-  // Data retrieve query.
-  // The query should not contain any clauses after the `from` clause.
-  // Either `kQuery` or `GetQuery` static member function must be defined.
-  static inline constexpr const char* kQuery =
+  /// @brief Data retrieve query
+  ///
+  /// Mandatory
+  /// The query should not contain any clauses after the `from` clause. Either
+  /// `kQuery` or `GetQuery` static member function must be defined.
+  static constexpr const char* kQuery =
       "select id, bar, updated from test.my_data";
 
-  // Name of the field containing timestamp of an object
-  // Mandatory
-  // To turn off incremental updates, set the value to `nullptr`
+  /// @brief Name of the field containing timestamp of an object
+  ///
+  /// Mandatory
+  /// To turn off incremental updates, set the value to `nullptr`.
   static constexpr const char* kUpdatedField = "updated";
 
-  // Cache container type.
-  // Optional
-  // It can be of any map type. The default is unordered_map, it is not
-  // necessary to declare the DataType alias if you are OK with unordered_map.
-  // The key type must match the type of kKeyMember.
+  /// @brief Where clause of the query
+  ///
+  /// Optional
+  /// Either `kWhere` or `GetWhere` can be defined.
+  static constexpr const char* kWhere = "id > 10";
+
+  /// @brief Cache container type
+  ///
+  /// Optional
+  /// It can be of any map type. The default is `unordered_map`, it is not
+  /// necessary to declare the DataType alias if you are OK with
+  /// `unordered_map`.
+  /// The key type must match the type of kKeyMember.
   using CacheContainer = std::unordered_map<int, MyStructure>;
 
-  // @brief Cluster host selection flags to use when retrieving data
-  // Optional
-  // Default value is pg::ClusterHostType::kSlave, at least one cluster role
-  // must be present in flags.
+  /// @brief Cluster host selection flags to use when retrieving data
+  ///
+  /// Optional
+  /// Default value is pg::ClusterHostType::kSlave, at least one cluster role
+  /// must be present in flags.
   static constexpr auto kClusterHostType = pg::ClusterHostType::kSlave;
 };
 /*! [Pg Cache Policy Example] */
@@ -116,10 +130,11 @@ struct PostgresExamplePolicy3 {
   static constexpr const char* kUpdatedField = "revision";
   static constexpr auto kKeyMember = &MyStructureWithRevision::get_id;
 
-  // Function to get last known revision/time
-  // Optional
-  // If one wants to get cache updates not based on updated time, but, for
-  // example, based on revision > known_revision, this method should be used
+  /// @brief Function to get last known revision/time
+  ///
+  /// Optional
+  /// If one wants to get cache updates not based on updated time, but, for
+  /// example, based on revision > known_revision, this method should be used.
   static int32_t GetLastKnownUpdated(const UserSpecificCache& container) {
     return container.GetLatestRevision();
   }
@@ -132,27 +147,14 @@ static_assert(pg_cache::detail::kHasCustomUpdated<PostgresExamplePolicy3>);
 struct PostgresExamplePolicy4 {
   static constexpr const char* kName = "my-pg-cache";
 
-  // Object type
-  // Mandatory
   using ValueType = MyStructure;
 
-  // A member by which the object must be identified in cache.
-  // Mandatory
-  // Pointer-to-member in the object.
-  // It can be either a pointer to data member or a pointer to function member,
-  // that accepts no arguments and returns the key.
   static constexpr auto kKeyMember = &MyStructure::id;
 
-  // Data retrieve query.
-  // The query should not contain any clauses after the `from` clause.
-  // Either `kQuery` or `GetQuery` static member function must be defined.
   static std::string GetQuery() {
     return "select id, bar, updated from test.my_data";
   }
 
-  // Name of the field containing timestamp of an object
-  // Mandatory
-  // To turn off incremental updates, set the value to `nullptr`
   static constexpr const char* kUpdatedField = "updated";
 };
 /*! [Pg Cache Policy GetQuery Example] */

@@ -4,8 +4,12 @@
 /// @brief Caching Component for PostgreSQL
 
 #include <chrono>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
+
+#include <fmt/compile.h>
+#include <fmt/format.h>
 
 #include <cache/cache_statistics.hpp>
 #include <cache/caching_component_base.hpp>
@@ -126,6 +130,14 @@ struct HasGetQuery<T, ::utils::void_t<decltype(T::GetQuery())>>
     : std::true_type {};
 template <typename T>
 constexpr bool kHasGetQuery = HasGetQuery<T>::value;
+
+// Component kWhere in policy
+template <typename T, typename = ::utils::void_t<>>
+struct HasWhere : std::false_type {};
+template <typename T>
+struct HasWhere<T, ::utils::void_t<decltype(T::kWhere)>> : std::true_type {};
+template <typename T>
+constexpr bool kHasWhere = HasWhere<T>::value;
 
 // Update field
 template <typename T, typename = ::utils::void_t<>>
@@ -249,7 +261,7 @@ struct PolicyChecker {
                 "Cluster host role must be specified for caching component, "
                 "please be more specific");
 
-  static auto GetQuery() {
+  static std::string GetQuery() {
     if constexpr (kHasGetQuery<PostgreCachePolicy>) {
       return PostgreCachePolicy::GetQuery();
     } else {
@@ -378,18 +390,26 @@ PostgreCache<PostgreCachePolicy>::~PostgreCache() {
 template <typename PostgreCachePolicy>
 std::string PostgreCache<PostgreCachePolicy>::GetAllQuery() {
   std::string query = PolicyCheckerType::GetQuery();
-  UASSERT_MSG(!query.empty(), "Query body of cache policy must not be empty");
-  return query;
+  if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
+    return fmt::format("{} where {}", query, PostgreCachePolicy::kWhere);
+  } else {
+    return query;
+  }
 }
 
 template <typename PostgreCachePolicy>
 std::string PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
-  using namespace std::string_literals;
-  const auto query = GetAllQuery();
   if constexpr (kIncrementalUpdates) {
-    return query + " where "s + PolicyType::kUpdatedField + " >= $1";
+    std::string query = PolicyCheckerType::GetQuery();
+
+    if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
+      return fmt::format("{} where ({}) and {} >= $1", query,
+                         PostgreCachePolicy::kWhere, PolicyType::kUpdatedField);
+    } else {
+      return fmt::format("{} where {} >= $1", query, PolicyType::kUpdatedField);
+    }
   } else {
-    return query;
+    return GetAllQuery();
   }
 }
 
