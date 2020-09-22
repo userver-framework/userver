@@ -32,8 +32,8 @@ std::string ToLimitedUtf8(const std::string& data, size_t limit) {
   }
 
   auto view = std::string_view{data.data(), limit};
+  utils::text::utf8::TrimViewTruncatedEnding(view);
   if (utils::text::IsUtf8(view)) {
-    utils::text::utf8::TrimViewTruncatedEnding(view);
     return fmt::format(FMT_COMPILE("{}...(truncated, total {} bytes)"), view,
                        data.size());
   } else {

@@ -21,6 +21,8 @@ const std::string kValidUtf8Data = "qwerty";
 const std::string kBrokenUtf8Data =
     std::string("qwe") + static_cast<char>(0b10111111) + std::string("rty");
 
+const std::string kMultibyteUtf8Data = "qweрти";
+
 }  // namespace
 
 TEST(TestToLimitedHex, NonTruncated) {
@@ -99,6 +101,43 @@ TEST(TestToLimitedUtf8, BrokenTruncatedNegative) {
   auto data = utils::log::ToLimitedUtf8(kBrokenUtf8Data, -1);
   auto correct_data = NonUtf8Msg(kBrokenUtf8Data.size());
   EXPECT_EQ(data, correct_data);
+}
+
+TEST(TestToLimitedUtf8, MultibyteNonTruncated) {
+  EXPECT_EQ(utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 30),
+            kMultibyteUtf8Data);
+}
+
+TEST(TestToLimitedUtf8, MultibyteTruncatedSingle) {
+  auto data = utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 3);
+  auto correct_data =
+      TruncatedMsg(kMultibyteUtf8Data.substr(0, 3), kMultibyteUtf8Data.size());
+  EXPECT_EQ(data, correct_data);
+}
+
+TEST(TestToLimitedUtf8, MultibyteTruncatedFullCodePoint) {
+  auto data = utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 7);
+  auto correct_data =
+      TruncatedMsg(kMultibyteUtf8Data.substr(0, 7), kMultibyteUtf8Data.size());
+  EXPECT_EQ(data, correct_data);
+}
+
+TEST(TestToLimitedUtf8, MultibyteTruncatedHalfCodePoint) {
+  auto data = utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 6);
+  auto correct_data =
+      TruncatedMsg(kMultibyteUtf8Data.substr(0, 5), kMultibyteUtf8Data.size());
+  EXPECT_EQ(data, correct_data);
+}
+
+TEST(TestToLimitedUtf8, MultibyteTruncatedAll) {
+  auto data = utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 0);
+  auto correct_data = TruncatedMsg("", kMultibyteUtf8Data.size());
+  EXPECT_EQ(data, correct_data);
+}
+
+TEST(TestToLimitedUtf8, MultibyteTruncatedNegative) {
+  EXPECT_EQ(utils::log::ToLimitedUtf8(kMultibyteUtf8Data, -1),
+            kMultibyteUtf8Data);
 }
 
 TEST(TestToLimitedUtf8, Empty) {
