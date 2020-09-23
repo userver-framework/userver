@@ -50,35 +50,33 @@ void RequestStats::AccountOpenSockets(size_t sockets) {
 }
 
 Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
-  if (ec.category() != curl::errc::get_easy_category())
+  using ErrorCode = curl::errc::EasyErrorCode;
+
+  if (ec.category() != curl::errc::GetEasyCategory())
     return ErrorGroup::kUnknown;
 
-  switch (ec.value()) {
-    case curl::errc::easy::could_not_resovle_host:
+  switch (static_cast<ErrorCode>(ec.value())) {
+    case ErrorCode::kCouldNotResovleHost:
       return ErrorGroup::kHostResolutionFailed;
 
-    case curl::errc::easy::operation_timedout:
+    case ErrorCode::kOperationTimedout:
       return ErrorGroup::kTimeout;
 
-    case curl::errc::easy::ssl_connect_error:
-    case curl::errc::easy::peer_failed_verification:
-    case curl::errc::easy::ssl_cipher:
-    case curl::errc::easy::ssl_certproblem:
-#if (LIBCURL_VERSION_MAJOR < 7 || \
-     (LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR < 62))
-    case curl::errc::easy::ssl_cacert:
-#endif
-    case curl::errc::easy::ssl_cacert_badfile:
-    case curl::errc::easy::ssl_issuer_error:
-    case curl::errc::easy::ssl_crl_badfile:
+    case ErrorCode::kSslConnectError:
+    case ErrorCode::kPeerFailedVerification:
+    case ErrorCode::kSslCipher:
+    case ErrorCode::kSslCertproblem:
+    case ErrorCode::kSslCacertBadfile:
+    case ErrorCode::kSslIssuerError:
+    case ErrorCode::kSslCrlBadfile:
       return ErrorGroup::kSslError;
 
-    case curl::errc::easy::too_many_redirects:
+    case ErrorCode::kTooManyRedirects:
       return ErrorGroup::kTooManyRedirects;
 
-    case curl::errc::easy::send_error:
-    case curl::errc::easy::recv_error:
-    case curl::errc::easy::could_not_connect:
+    case ErrorCode::kSendError:
+    case ErrorCode::kRecvError:
+    case ErrorCode::kCouldNotConnect:
       return ErrorGroup::kSocketError;
 
     default:

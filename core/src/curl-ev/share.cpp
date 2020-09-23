@@ -33,41 +33,50 @@ share::~share() {
 }
 
 void share::set_share_cookies(bool enabled) {
-  std::error_code ec(native::curl_share_setopt(
-      handle_, enabled ? native::CURLSHOPT_SHARE : native::CURLSHOPT_UNSHARE,
-      native::CURL_LOCK_DATA_COOKIE));
+  std::error_code ec{
+      static_cast<errc::ShareErrorCode>(native::curl_share_setopt(
+          handle_,
+          enabled ? native::CURLSHOPT_SHARE : native::CURLSHOPT_UNSHARE,
+          native::CURL_LOCK_DATA_COOKIE))};
   throw_error(ec, __func__);
 }
 
 void share::set_share_dns(bool enabled) {
-  std::error_code ec(native::curl_share_setopt(
-      handle_, enabled ? native::CURLSHOPT_SHARE : native::CURLSHOPT_UNSHARE,
-      native::CURL_LOCK_DATA_DNS));
+  std::error_code ec{
+      static_cast<errc::ShareErrorCode>(native::curl_share_setopt(
+          handle_,
+          enabled ? native::CURLSHOPT_SHARE : native::CURLSHOPT_UNSHARE,
+          native::CURL_LOCK_DATA_DNS))};
   throw_error(ec, __func__);
 }
 
 void share::set_share_ssl_session(bool enabled) {
-  std::error_code ec(native::curl_share_setopt(
-      handle_, enabled ? native::CURLSHOPT_SHARE : native::CURLSHOPT_UNSHARE,
-      native::CURL_LOCK_DATA_SSL_SESSION));
+  std::error_code ec{
+      static_cast<errc::ShareErrorCode>(native::curl_share_setopt(
+          handle_,
+          enabled ? native::CURLSHOPT_SHARE : native::CURLSHOPT_UNSHARE,
+          native::CURL_LOCK_DATA_SSL_SESSION))};
   throw_error(ec, __func__);
 }
 
 void share::set_lock_function(lock_function_t lock_function) {
-  std::error_code ec(native::curl_share_setopt(
-      handle_, native::CURLSHOPT_LOCKFUNC, lock_function));
+  std::error_code ec{
+      static_cast<errc::ShareErrorCode>(native::curl_share_setopt(
+          handle_, native::CURLSHOPT_LOCKFUNC, lock_function))};
   throw_error(ec, __func__);
 }
 
 void share::set_unlock_function(unlock_function_t unlock_function) {
-  std::error_code ec(native::curl_share_setopt(
-      handle_, native::CURLSHOPT_UNLOCKFUNC, unlock_function));
+  std::error_code ec{
+      static_cast<errc::ShareErrorCode>(native::curl_share_setopt(
+          handle_, native::CURLSHOPT_UNLOCKFUNC, unlock_function))};
   throw_error(ec, __func__);
 }
 
 void share::set_user_data(void* user_data) {
-  std::error_code ec(native::curl_share_setopt(
-      handle_, native::CURLSHOPT_USERDATA, user_data));
+  std::error_code ec{
+      static_cast<errc::ShareErrorCode>(native::curl_share_setopt(
+          handle_, native::CURLSHOPT_USERDATA, user_data))};
   throw_error(ec, __func__);
 }
 

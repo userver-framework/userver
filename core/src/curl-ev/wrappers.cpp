@@ -7,7 +7,8 @@ namespace curl::impl {
 
 CurlGlobal::CurlGlobal() {
   crypto::impl::Openssl::Init();
-  std::error_code ec{native::curl_global_init(CURL_GLOBAL_DEFAULT)};
+  std::error_code ec{static_cast<errc::EasyErrorCode>(
+      native::curl_global_init(CURL_GLOBAL_DEFAULT))};
   throw_error(ec, "cURL global initalization failed");
 }
 

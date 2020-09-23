@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <clients/http/local_stats.hpp>
@@ -27,25 +28,26 @@ class ThreadControl;
 }  // namespace ev
 }  // namespace engine
 
-#define IMPLEMENT_CURL_OPTION(FUNCTION_NAME, OPTION_NAME, OPTION_TYPE)         \
-  inline void FUNCTION_NAME(OPTION_TYPE arg) {                                 \
-    std::error_code ec;                                                        \
-    FUNCTION_NAME(arg, ec);                                                    \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
-  }                                                                            \
-  inline void FUNCTION_NAME(OPTION_TYPE arg, std::error_code& ec) {            \
-    ec = std::error_code(native::curl_easy_setopt(handle_, OPTION_NAME, arg)); \
+#define IMPLEMENT_CURL_OPTION(FUNCTION_NAME, OPTION_NAME, OPTION_TYPE) \
+  inline void FUNCTION_NAME(OPTION_TYPE arg) {                         \
+    std::error_code ec;                                                \
+    FUNCTION_NAME(arg, ec);                                            \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                      \
+  }                                                                    \
+  inline void FUNCTION_NAME(OPTION_TYPE arg, std::error_code& ec) {    \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(             \
+        native::curl_easy_setopt(handle_, OPTION_NAME, arg)));         \
   }
 
-#define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)           \
-  inline void FUNCTION_NAME(bool enabled) {                                 \
-    std::error_code ec;                                                     \
-    FUNCTION_NAME(enabled, ec);                                             \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                           \
-  }                                                                         \
-  inline void FUNCTION_NAME(bool enabled, std::error_code& ec) {            \
-    ec = std::error_code(                                                   \
-        native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L)); \
+#define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)            \
+  inline void FUNCTION_NAME(bool enabled) {                                  \
+    std::error_code ec;                                                      \
+    FUNCTION_NAME(enabled, ec);                                              \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                            \
+  }                                                                          \
+  inline void FUNCTION_NAME(bool enabled, std::error_code& ec) {             \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                   \
+        native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L))); \
   }
 
 #define IMPLEMENT_CURL_OPTION_ENUM(FUNCTION_NAME, OPTION_NAME, ENUM_TYPE, \
@@ -56,79 +58,77 @@ class ThreadControl;
     throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                         \
   }                                                                       \
   inline void FUNCTION_NAME(ENUM_TYPE arg, std::error_code& ec) {         \
-    ec = std::error_code(native::curl_easy_setopt(                        \
-        handle_, OPTION_NAME, static_cast<OPTION_TYPE>(arg)));            \
+    ec = std::error_code(                                                 \
+        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(        \
+            handle_, OPTION_NAME, static_cast<OPTION_TYPE>(arg))));       \
   }
 
-#define IMPLEMENT_CURL_OPTION_STRING(FUNCTION_NAME, OPTION_NAME)               \
-  inline void FUNCTION_NAME(const char* str) {                                 \
-    std::error_code ec;                                                        \
-    FUNCTION_NAME(str, ec);                                                    \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
-  }                                                                            \
-  inline void FUNCTION_NAME(const char* str, std::error_code& ec) {            \
-    ec = std::error_code(native::curl_easy_setopt(handle_, OPTION_NAME, str)); \
-  }                                                                            \
-  inline void FUNCTION_NAME(const std::string& str) {                          \
-    std::error_code ec;                                                        \
-    FUNCTION_NAME(str, ec);                                                    \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
-  }                                                                            \
-  inline void FUNCTION_NAME(const std::string& str, std::error_code& ec) {     \
-    ec = std::error_code(                                                      \
-        native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str()));          \
+#define IMPLEMENT_CURL_OPTION_STRING(FUNCTION_NAME, OPTION_NAME)           \
+  inline void FUNCTION_NAME(const char* str) {                             \
+    std::error_code ec;                                                    \
+    FUNCTION_NAME(str, ec);                                                \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
+  }                                                                        \
+  inline void FUNCTION_NAME(const char* str, std::error_code& ec) {        \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                 \
+        native::curl_easy_setopt(handle_, OPTION_NAME, str)));             \
+  }                                                                        \
+  inline void FUNCTION_NAME(const std::string& str) {                      \
+    std::error_code ec;                                                    \
+    FUNCTION_NAME(str, ec);                                                \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
+  }                                                                        \
+  inline void FUNCTION_NAME(const std::string& str, std::error_code& ec) { \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                 \
+        native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str())));     \
   }
 
-#define IMPLEMENT_CURL_OPTION_GET_STRING(FUNCTION_NAME, OPTION_NAME) \
-  inline std::string FUNCTION_NAME() {                               \
-    char* info = NULL;                                               \
-    std::error_code ec = std::error_code(                            \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info));     \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                    \
-    return info;                                                     \
+#define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME) \
+  inline std::string_view FUNCTION_NAME() {                               \
+    std::error_code ec;                                                   \
+    auto info = FUNCTION_NAME(ec);                                        \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                         \
+    return info;                                                          \
+  }                                                                       \
+  inline std::string_view FUNCTION_NAME(std::error_code& ec) {            \
+    char* info = nullptr;                                                 \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));         \
+    return info;                                                          \
   }
 
-#define IMPLEMENT_CURL_OPTION_GET_DOUBLE(FUNCTION_NAME, OPTION_NAME) \
-  inline double FUNCTION_NAME() {                                    \
-    double info;                                                     \
-    std::error_code ec = std::error_code(                            \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info));     \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                    \
-    return info;                                                     \
+#define IMPLEMENT_CURL_OPTION_GET_LONG(FUNCTION_NAME, OPTION_NAME)         \
+  inline long FUNCTION_NAME() {                                            \
+    long info;                                                             \
+    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>( \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));          \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
+    return info;                                                           \
   }
 
-#define IMPLEMENT_CURL_OPTION_GET_LONG(FUNCTION_NAME, OPTION_NAME) \
-  inline long FUNCTION_NAME() {                                    \
-    long info;                                                     \
-    std::error_code ec = std::error_code(                          \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info));   \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                  \
-    return info;                                                   \
+#define IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(FUNCTION_NAME, OPTION_NAME)   \
+  inline long FUNCTION_NAME() {                                            \
+    native::curl_off_t info;                                               \
+    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>( \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));          \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
+    return info;                                                           \
   }
 
-#define IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(FUNCTION_NAME, OPTION_NAME) \
-  inline long FUNCTION_NAME() {                                          \
-    native::curl_off_t info;                                             \
-    std::error_code ec = std::error_code(                                \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info));         \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                        \
-    return info;                                                         \
-  }
-
-#define IMPLEMENT_CURL_OPTION_GET_LIST(FUNCTION_NAME, OPTION_NAME) \
-  inline std::vector<std::string> FUNCTION_NAME() {                \
-    struct native::curl_slist* info;                               \
-    std::vector<std::string> results;                              \
-    std::error_code ec = std::error_code(                          \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info));   \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                  \
-    struct native::curl_slist* it = info;                          \
-    while (it) {                                                   \
-      results.emplace_back(it->data);                              \
-      it = it->next;                                               \
-    }                                                              \
-    native::curl_slist_free_all(info);                             \
-    return results;                                                \
+#define IMPLEMENT_CURL_OPTION_GET_LIST(FUNCTION_NAME, OPTION_NAME)         \
+  inline std::vector<std::string> FUNCTION_NAME() {                        \
+    struct native::curl_slist* info;                                       \
+    std::vector<std::string> results;                                      \
+    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>( \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));          \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
+    struct native::curl_slist* it = info;                                  \
+    while (it) {                                                           \
+      results.emplace_back(it->data);                                      \
+      it = it->next;                                                       \
+    }                                                                      \
+    native::curl_slist_free_all(info);                                     \
+    return results;                                                        \
   }
 
 namespace curl {
@@ -273,8 +273,7 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   // network options
 
-  void set_url(const char* url);
-  const std::string& get_url() const;
+  void set_url(const std::string& url);
   IMPLEMENT_CURL_OPTION_STRING(do_set_url, native::CURLOPT_URL);
   IMPLEMENT_CURL_OPTION(set_protocols, native::CURLOPT_PROTOCOLS, long);
   IMPLEMENT_CURL_OPTION(set_redir_protocols, native::CURLOPT_REDIR_PROTOCOLS,
@@ -337,8 +336,8 @@ class easy final : public std::enable_shared_from_this<easy> {
   inline void set_http_auth(httpauth_t auth, bool auth_only,
                             std::error_code& ec) {
     long l = (static_cast<long>(auth) | (auth_only ? CURLAUTH_ONLY : 0L));
-    ec = std::error_code(
-        native::curl_easy_setopt(handle_, native::CURLOPT_HTTPAUTH, l));
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(
+        native::curl_easy_setopt(handle_, native::CURLOPT_HTTPAUTH, l)));
   }
   IMPLEMENT_CURL_OPTION(set_tls_auth_type, native::CURLOPT_TLSAUTH_TYPE, long);
   IMPLEMENT_CURL_OPTION_STRING(set_tls_auth_user,
@@ -526,8 +525,9 @@ class easy final : public std::enable_shared_from_this<easy> {
     throw_error(ec, "set_ssl_verify_host failed");
   }
   inline void set_ssl_verify_host(bool verify_host, std::error_code& ec) {
-    ec = std::error_code(curl_easy_setopt(
-        handle_, native::CURLOPT_SSL_VERIFYHOST, verify_host ? 2L : 0L));
+    ec = std::error_code{
+        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+            handle_, native::CURLOPT_SSL_VERIFYHOST, verify_host ? 2L : 0L))};
   }
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_cert_info, native::CURLOPT_CERTINFO);
   IMPLEMENT_CURL_OPTION_STRING(set_random_file, native::CURLOPT_RANDOM_FILE);
@@ -569,53 +569,49 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   // getters
 
-  IMPLEMENT_CURL_OPTION_GET_STRING(get_effective_url,
-                                   native::CURLINFO_EFFECTIVE_URL);
+  IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_effective_url,
+                                        native::CURLINFO_EFFECTIVE_URL);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_response_code,
                                  native::CURLINFO_RESPONSE_CODE);
-  IMPLEMENT_CURL_OPTION_GET_LONG(get_http_connectcode,
-                                 native::CURLINFO_HTTP_CONNECTCODE);
-  IMPLEMENT_CURL_OPTION_GET_LONG(get_filetime, native::CURLINFO_FILETIME);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_total_time, native::CURLINFO_TOTAL_TIME);
-  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_total_time_t,
-                                       native::CURLINFO_TOTAL_TIME_T);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_namelookup_time,
-                                   native::CURLINFO_NAMELOOKUP_TIME);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_connect_time,
-                                   native::CURLINFO_CONNECT_TIME);
-  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_connect_time_t,
-                                       native::CURLINFO_CONNECT_TIME_T);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_appconnect_time,
-                                   native::CURLINFO_APPCONNECT_TIME);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_pretransfer_time,
-                                   native::CURLINFO_PRETRANSFER_TIME);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_starttransfer_time,
-                                   native::CURLINFO_STARTTRANSFER_TIME);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_redirect_time,
-                                   native::CURLINFO_REDIRECT_TIME);
-  IMPLEMENT_CURL_OPTION_GET_LONG(get_redirect_count,
-                                 native::CURLINFO_REDIRECT_COUNT);
-  IMPLEMENT_CURL_OPTION_GET_STRING(get_redirect_url,
-                                   native::CURLINFO_REDIRECT_URL);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_size_upload,
-                                   native::CURLINFO_SIZE_UPLOAD);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_size_download,
-                                   native::CURLINFO_SIZE_DOWNLOAD);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_speed_download,
-                                   native::CURLINFO_SPEED_DOWNLOAD);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_speed_upload,
-                                   native::CURLINFO_SPEED_UPLOAD);
+  // CURLINFO_TOTAL_TIME
+  // CURLINFO_NAMELOOKUP_TIME
+  // CURLINFO_CONNECT_TIME
+  // CURLINFO_PRETRANSFER_TIME
+  // CURLINFO_SIZE_UPLOAD
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_size_upload,
+                                       native::CURLINFO_SIZE_UPLOAD_T);
+  // CURLINFO_SIZE_DOWNLOAD
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_size_download,
+                                       native::CURLINFO_SIZE_DOWNLOAD_T);
+  // CURLINFO_SPEED_DOWNLOAD
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_speed_download_bps,
+                                       native::CURLINFO_SPEED_DOWNLOAD_T);
+  // CURLINFO_SPEED_UPLOAD
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_speed_upload_bps,
+                                       native::CURLINFO_SPEED_UPLOAD_T);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_header_size, native::CURLINFO_HEADER_SIZE);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_request_size,
                                  native::CURLINFO_REQUEST_SIZE);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_ssl_verifyresult,
                                  native::CURLINFO_SSL_VERIFYRESULT);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_content_length_download,
-                                   native::CURLINFO_CONTENT_LENGTH_DOWNLOAD);
-  IMPLEMENT_CURL_OPTION_GET_DOUBLE(get_content_length_upload,
-                                   native::CURLINFO_CONTENT_LENGTH_UPLOAD);
-  IMPLEMENT_CURL_OPTION_GET_STRING(get_content_type,
-                                   native::CURLINFO_CONTENT_TYPE);
+  // CURLINFO_FILETIME
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_filetime_sec,
+                                       native::CURLINFO_FILETIME_T);
+  // CURLINFO_CONTENT_LENGTH_DOWNLOAD
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(
+      get_content_length_download, native::CURLINFO_CONTENT_LENGTH_DOWNLOAD_T);
+  // CURLINFO_CONTENT_LENGTH_UPLOAD
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(
+      get_content_length_upload, native::CURLINFO_CONTENT_LENGTH_UPLOAD_T);
+  // CURLINFO_STARTTRANSFER_TIME
+  IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_content_type,
+                                        native::CURLINFO_CONTENT_TYPE);
+  // CURLINFO_REDIRECT_TIME
+  IMPLEMENT_CURL_OPTION_GET_LONG(get_redirect_count,
+                                 native::CURLINFO_REDIRECT_COUNT);
+  // CURLINFO_PRIVATE
+  IMPLEMENT_CURL_OPTION_GET_LONG(get_http_connectcode,
+                                 native::CURLINFO_HTTP_CONNECTCODE);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_httpauth_avail,
                                  native::CURLINFO_HTTPAUTH_AVAIL);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_proxyauth_avail,
@@ -623,29 +619,57 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION_GET_LONG(get_os_errno, native::CURLINFO_OS_ERRNO);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_num_connects,
                                  native::CURLINFO_NUM_CONNECTS);
-  IMPLEMENT_CURL_OPTION_GET_STRING(get_primary_ip, native::CURLINFO_PRIMARY_IP);
-  IMPLEMENT_CURL_OPTION_GET_LONG(get_primary_port,
-                                 native::CURLINFO_PRIMARY_PORT);
-  IMPLEMENT_CURL_OPTION_GET_STRING(get_local_ip, native::CURLINFO_LOCAL_IP);
-  IMPLEMENT_CURL_OPTION_GET_LONG(get_local_port, native::CURLINFO_LOCAL_PORT);
-  IMPLEMENT_CURL_OPTION_GET_LONG(get_last_socket, native::CURLINFO_LASTSOCKET);
-  IMPLEMENT_CURL_OPTION_GET_STRING(get_ftp_entry_path,
-                                   native::CURLINFO_FTP_ENTRY_PATH);
+  IMPLEMENT_CURL_OPTION_GET_LIST(get_ssl_engines, native::CURLINFO_SSL_ENGINES);
+  IMPLEMENT_CURL_OPTION_GET_LIST(get_cookielist, native::CURLINFO_COOKIELIST);
+  IMPLEMENT_CURL_OPTION_GET_LONG(get_lastsocket, native::CURLINFO_LASTSOCKET);
+  IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_ftp_entry_path,
+                                        native::CURLINFO_FTP_ENTRY_PATH);
+  IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_redirect_url,
+                                        native::CURLINFO_REDIRECT_URL);
+  IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_primary_ip,
+                                        native::CURLINFO_PRIMARY_IP);
+  // CURLINFO_APPCONNECT_TIME
+  // CURLINFO_CERTINFO
   IMPLEMENT_CURL_OPTION_GET_LONG(get_condition_unmet,
                                  native::CURLINFO_CONDITION_UNMET);
-  IMPLEMENT_CURL_OPTION_GET_STRING(get_rtsp_session_id,
-                                   native::CURLINFO_RTSP_SESSION_ID);
+  IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_rtsp_session_id,
+                                        native::CURLINFO_RTSP_SESSION_ID);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_rtsp_client_cseq,
                                  native::CURLINFO_RTSP_CLIENT_CSEQ);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_rtsp_server_cseq,
                                  native::CURLINFO_RTSP_SERVER_CSEQ);
   IMPLEMENT_CURL_OPTION_GET_LONG(get_rtsp_cseq_recv,
                                  native::CURLINFO_RTSP_CSEQ_RECV);
-  IMPLEMENT_CURL_OPTION_GET_LIST(get_ssl_engines, native::CURLINFO_SSL_ENGINES);
-  IMPLEMENT_CURL_OPTION_GET_LIST(get_cookielist, native::CURLINFO_COOKIELIST);
-  // CURLINFO_PRIVATE
-  // CURLINFO_CERTINFO
+  IMPLEMENT_CURL_OPTION_GET_LONG(get_primary_port,
+                                 native::CURLINFO_PRIMARY_PORT);
+  IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_local_ip,
+                                        native::CURLINFO_LOCAL_IP);
+  IMPLEMENT_CURL_OPTION_GET_LONG(get_local_port, native::CURLINFO_LOCAL_PORT);
   // CURLINFO_TLS_SESSION
+  // CURLINFO_ACTIVESOCKET
+  // CURLINFO_TLS_SSL_PTR
+  IMPLEMENT_CURL_OPTION_GET_LONG(get_http_version,
+                                 native::CURLINFO_HTTP_VERSION);
+  IMPLEMENT_CURL_OPTION_GET_LONG(get_proxy_ssl_verifyresult,
+                                 native::CURLINFO_PROXY_SSL_VERIFYRESULT);
+  IMPLEMENT_CURL_OPTION_GET_LONG(get_protocol, native::CURLINFO_PROTOCOL);
+  IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_scheme, native::CURLINFO_SCHEME);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_total_time_usec,
+                                       native::CURLINFO_TOTAL_TIME_T);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_namelookup_time_usec,
+                                       native::CURLINFO_NAMELOOKUP_TIME_T);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_connect_time_usec,
+                                       native::CURLINFO_CONNECT_TIME_T);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_pretransfer_time_usec,
+                                       native::CURLINFO_PRETRANSFER_TIME_T);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_starttransfer_time_usec,
+                                       native::CURLINFO_STARTTRANSFER_TIME_T);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_redirect_time_usec,
+                                       native::CURLINFO_REDIRECT_TIME_T);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_appconnect_time_usec,
+                                       native::CURLINFO_APPCONNECT_TIME_T);
+  IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(get_retry_after_sec,
+                                       native::CURLINFO_RETRY_AFTER);
 
   bool has_post_data() const;
 
@@ -717,7 +741,6 @@ class easy final : public std::enable_shared_from_this<easy> {
 #undef IMPLEMENT_CURL_OPTION_BOOLEAN
 #undef IMPLEMENT_CURL_OPTION_ENUM
 #undef IMPLEMENT_CURL_OPTION_STRING
-#undef IMPLEMENT_CURL_OPTION_GET_STRING
-#undef IMPLEMENT_CURL_OPTION_GET_DOUBLE
+#undef IMPLEMENT_CURL_OPTION_GET_STRING_VIEW
 #undef IMPLEMENT_CURL_OPTION_GET_LONG
 #undef IMPLEMENT_CURL_OPTION_GET_LIST

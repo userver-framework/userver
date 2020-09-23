@@ -39,7 +39,7 @@ const char* GetSetterName(native::CURLMoption option) {
   }
 }
 
-void WarnThrottled(const std::string& url, const utils::TokenBucket& tb) {
+void WarnThrottled(std::string_view url, const utils::TokenBucket& tb) {
   LOG_WARNING() << "Socket creation throttled (url=" << url
                 << ", rate=" << tb.GetRatePs()
                 << "/sec"
@@ -141,13 +141,13 @@ void multi::UnbindEasySocket(native::curl_socket_t s) {
   si->handle = nullptr;
 }
 
-bool multi::MayAcquireConnectionHttp(const std::string& url) {
+bool multi::MayAcquireConnectionHttp(std::string_view url) {
   bool ok = connect_ratelimit_http_->Obtain();
   if (!ok) WarnThrottled(url, *connect_ratelimit_http_);
   return ok;
 }
 
-bool multi::MayAcquireConnectionHttps(const std::string& url) {
+bool multi::MayAcquireConnectionHttps(std::string_view url) {
   bool ok = connect_ratelimit_https_->Obtain();
   if (!ok) WarnThrottled(url, *connect_ratelimit_https_);
   return ok;
@@ -166,23 +166,27 @@ void multi::SetConnectionCacheSize(long value) {
 }
 
 void multi::add_handle(native::CURL* native_easy) {
-  std::error_code ec(native::curl_multi_add_handle(handle_, native_easy));
+  std::error_code ec{static_cast<errc::MultiErrorCode>(
+      native::curl_multi_add_handle(handle_, native_easy))};
   throw_error(ec, "add_handle");
 }
 
 void multi::remove_handle(native::CURL* native_easy) {
-  std::error_code ec(native::curl_multi_remove_handle(handle_, native_easy));
+  std::error_code ec{static_cast<errc::MultiErrorCode>(
+      native::curl_multi_remove_handle(handle_, native_easy))};
   throw_error(ec, "remove_handle");
 }
 
 void multi::assign(native::curl_socket_t sockfd, void* user_data) {
-  std::error_code ec(native::curl_multi_assign(handle_, sockfd, user_data));
+  std::error_code ec{static_cast<errc::MultiErrorCode>(
+      native::curl_multi_assign(handle_, sockfd, user_data))};
   throw_error(ec, "multi_assign");
 }
 
 void multi::socket_action(native::curl_socket_t s, int event_bitmask) {
-  std::error_code ec(native::curl_multi_socket_action(handle_, s, event_bitmask,
-                                                      &pimpl_->still_running_));
+  std::error_code ec{
+      static_cast<errc::MultiErrorCode>(native::curl_multi_socket_action(
+          handle_, s, event_bitmask, &pimpl_->still_running_))};
   throw_error(ec, "socket_action");
 
   if (!still_running()) {
@@ -191,32 +195,37 @@ void multi::socket_action(native::curl_socket_t s, int event_bitmask) {
 }
 
 void multi::set_socket_function(socket_function_t socket_function) {
-  std::error_code ec(native::curl_multi_setopt(
-      handle_, native::CURLMOPT_SOCKETFUNCTION, socket_function));
+  std::error_code ec{
+      static_cast<errc::MultiErrorCode>(native::curl_multi_setopt(
+          handle_, native::CURLMOPT_SOCKETFUNCTION, socket_function))};
   throw_error(ec, "set_socket_function");
 }
 
 void multi::set_socket_data(void* socket_data) {
-  std::error_code ec(native::curl_multi_setopt(
-      handle_, native::CURLMOPT_SOCKETDATA, socket_data));
+  std::error_code ec{
+      static_cast<errc::MultiErrorCode>(native::curl_multi_setopt(
+          handle_, native::CURLMOPT_SOCKETDATA, socket_data))};
   throw_error(ec, "set_socket_data");
 }
 
 void multi::set_timer_function(timer_function_t timer_function) {
-  std::error_code ec(native::curl_multi_setopt(
-      handle_, native::CURLMOPT_TIMERFUNCTION, timer_function));
+  std::error_code ec{
+      static_cast<errc::MultiErrorCode>(native::curl_multi_setopt(
+          handle_, native::CURLMOPT_TIMERFUNCTION, timer_function))};
   throw_error(ec, "set_timer_function");
 }
 
 void multi::set_timer_data(void* timer_data) {
-  std::error_code ec(native::curl_multi_setopt(
-      handle_, native::CURLMOPT_TIMERDATA, timer_data));
+  std::error_code ec{
+      static_cast<errc::MultiErrorCode>(native::curl_multi_setopt(
+          handle_, native::CURLMOPT_TIMERDATA, timer_data))};
   throw_error(ec, "set_timer_data");
 }
 
 void multi::SetOptionAsync(native::CURLMoption option, long value) {
   GetThreadControl().RunInEvLoopAsync([this, option, value] {
-    std::error_code ec(native::curl_multi_setopt(handle_, option, value));
+    std::error_code ec{static_cast<errc::MultiErrorCode>(
+        native::curl_multi_setopt(handle_, option, value))};
     if (ec) {
       LOG_ERROR() << GetSetterName(option) << " failed: " << ec.message();
     }
@@ -264,7 +273,8 @@ void multi::process_messages() {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       if (msg->data.result != native::CURLE_OK) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        ec = std::error_code(msg->data.result);
+        ec =
+            std::error_code{static_cast<errc::EasyErrorCode>(msg->data.result)};
       }
 
       remove(easy_handle);

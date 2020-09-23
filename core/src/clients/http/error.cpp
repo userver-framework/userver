@@ -25,49 +25,48 @@ HttpException::HttpException(int code, const LocalStats& stats,
                     stats),
       code_(code) {}
 
-std::exception_ptr PrepareException(std::error_code ec, const std::string& url,
+std::exception_ptr PrepareException(std::error_code ec, std::string_view url,
                                     const LocalStats& stats) {
-  if (ec.category() != curl::errc::get_easy_category())
+  using ErrorCode = curl::errc::EasyErrorCode;
+
+  if (ec.category() != curl::errc::GetEasyCategory())
     return std::make_exception_ptr(
         BaseCodeException(ec, "Unknown exception", url, stats));
 
-  switch (ec.value()) {
-    case curl::errc::easy::could_not_resovle_host:
+  switch (static_cast<ErrorCode>(ec.value())) {
+    case ErrorCode::kCouldNotResovleHost:
       return std::make_exception_ptr(
           DNSProblemException(ec, "DNS problem", url, stats));
 
-    case curl::errc::easy::operation_timedout:
+    case ErrorCode::kOperationTimedout:
       return std::make_exception_ptr(TimeoutException(
           fmt::format("Timeout happened, url: {}", url), stats));
 
-    case curl::errc::easy::ssl_connect_error:
-    case curl::errc::easy::peer_failed_verification:
-    case curl::errc::easy::ssl_cipher:
-    case curl::errc::easy::ssl_certproblem:
-#if CURLE_SSL_CACERT != CURLE_PEER_FAILED_VERIFICATION
-    case curl::errc::easy::ssl_cacert:
-#endif
-    case curl::errc::easy::ssl_cacert_badfile:
-    case curl::errc::easy::ssl_issuer_error:
-    case curl::errc::easy::ssl_crl_badfile:
+    case ErrorCode::kSslConnectError:
+    case ErrorCode::kPeerFailedVerification:
+    case ErrorCode::kSslCipher:
+    case ErrorCode::kSslCertproblem:
+    case ErrorCode::kSslCacertBadfile:
+    case ErrorCode::kSslIssuerError:
+    case ErrorCode::kSslCrlBadfile:
       return std::make_exception_ptr(
           SSLException(ec, "SSL problem", url, stats));
 
-    case curl::errc::easy::bad_function_argument:
+    case ErrorCode::kBadFunctionArgument:
       return std::make_exception_ptr(
           BadArgumentException(ec, "Incorrect argument", url, stats));
 
-    case curl::errc::easy::too_many_redirects:
+    case ErrorCode::kTooManyRedirects:
       return std::make_exception_ptr(
           TooManyRedirectsException(ec, "Too many redirects", url, stats));
 
-    case curl::errc::easy::send_error:
-    case curl::errc::easy::recv_error:
-    case curl::errc::easy::could_not_connect:
+    case ErrorCode::kSendError:
+    case ErrorCode::kRecvError:
+    case ErrorCode::kCouldNotConnect:
       return std::make_exception_ptr(
           NetworkProblemException(ec, "Network problem", url, stats));
 
-    case curl::errc::easy::login_denied:
+    case ErrorCode::kLoginDenied:
       return std::make_exception_ptr(
           AuthFailedException(ec, "Failed to login", url, stats));
 

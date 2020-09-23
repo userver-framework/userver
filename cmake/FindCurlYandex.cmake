@@ -1,10 +1,12 @@
 if(APPLE)
-# Apple has no yandex-taxi's curl, fall back to libcurl
-set(CURL_YANDEX_ENABLED_DEFAULT OFF)
-set(CURL_CARES_ENABLED_DEFAULT OFF)
+  # Apple has no yandex-taxi's curl, fall back to libcurl
+  set(CURL_YANDEX_ENABLED_DEFAULT OFF)
+  set(CURL_CARES_ENABLED_DEFAULT OFF)
+  # preferably the brewed (newer) one
+  set(CURL_ROOT "/usr/local/opt/curl")
 else(APPLE)
-set(CURL_YANDEX_ENABLED_DEFAULT ON)
-set(CURL_CARES_ENABLED_DEFAULT ON)
+  set(CURL_YANDEX_ENABLED_DEFAULT ON)
+  set(CURL_CARES_ENABLED_DEFAULT ON)
 endif(APPLE)
 
 set(CURL_YANDEX_ENABLED ${CURL_YANDEX_ENABLED_DEFAULT} CACHE BOOL "Whether to use libyandex-taxi-curl")

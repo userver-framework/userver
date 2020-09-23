@@ -12,6 +12,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string_view>
 
 #include <utils/token_bucket.hpp>
 #include "error_code.hpp"
@@ -53,9 +54,8 @@ class multi final {
 
   MultiStatistics& Statistics() { return statistics_; }
 
-  bool MayAcquireConnectionHttp(const std::string& url);
-
-  bool MayAcquireConnectionHttps(const std::string& url);
+  bool MayAcquireConnectionHttp(std::string_view url);
+  bool MayAcquireConnectionHttps(std::string_view url);
 
   void SetMultiplexingEnabled(bool);
   void SetMaxHostConnections(long);

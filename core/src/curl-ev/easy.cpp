@@ -241,12 +241,10 @@ void easy::set_progress_callback(progress_callback_t progress_callback) {
   set_xferinfo_data(this);
 }
 
-void easy::set_url(const char* url) {
+void easy::set_url(const std::string& url) {
   url_ = url;
-  do_set_url(url);
+  do_set_url(url_.c_str());
 }
-
-const std::string& easy::get_url() const { return url_; }
 
 void easy::set_post_fields(const std::string& post_fields) {
   std::error_code ec;
@@ -257,8 +255,9 @@ void easy::set_post_fields(const std::string& post_fields) {
 void easy::set_post_fields(const std::string& post_fields,
                            std::error_code& ec) {
   post_fields_ = post_fields;
-  ec = std::error_code(native::curl_easy_setopt(
-      handle_, native::CURLOPT_POSTFIELDS, post_fields_.c_str()));
+  ec =
+      std::error_code{static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+          handle_, native::CURLOPT_POSTFIELDS, post_fields_.c_str()))};
 
   if (!ec)
     set_post_field_size_large(
@@ -273,8 +272,9 @@ void easy::set_post_fields(std::string&& post_fields) {
 
 void easy::set_post_fields(std::string&& post_fields, std::error_code& ec) {
   post_fields_ = std::move(post_fields);
-  ec = std::error_code(native::curl_easy_setopt(
-      handle_, native::CURLOPT_POSTFIELDS, post_fields_.c_str()));
+  ec =
+      std::error_code{static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+          handle_, native::CURLOPT_POSTFIELDS, post_fields_.c_str()))};
 
   if (!ec)
     set_post_field_size_large(
@@ -291,11 +291,12 @@ void easy::set_http_post(std::shared_ptr<form> form, std::error_code& ec) {
   form_ = std::move(form);
 
   if (form_) {
-    ec = std::error_code(native::curl_easy_setopt(
-        handle_, native::CURLOPT_HTTPPOST, form_->native_handle()));
+    ec = std::error_code{
+        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+            handle_, native::CURLOPT_HTTPPOST, form_->native_handle()))};
   } else {
-    ec = std::error_code(
-        native::curl_easy_setopt(handle_, native::CURLOPT_HTTPPOST, NULL));
+    ec = std::error_code{static_cast<errc::EasyErrorCode>(
+        native::curl_easy_setopt(handle_, native::CURLOPT_HTTPPOST, NULL))};
   }
 }
 
@@ -327,8 +328,9 @@ void easy::add_header(const std::string& header, std::error_code& ec) {
   }
 
   headers_->add(header);
-  ec = std::error_code(native::curl_easy_setopt(
-      handle_, native::CURLOPT_HTTPHEADER, headers_->native_handle()));
+  ec =
+      std::error_code{static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+          handle_, native::CURLOPT_HTTPHEADER, headers_->native_handle()))};
 }
 
 void easy::set_headers(std::shared_ptr<string_list> headers) {
@@ -342,11 +344,12 @@ void easy::set_headers(std::shared_ptr<string_list> headers,
   headers_ = std::move(headers);
 
   if (headers_) {
-    ec = std::error_code(native::curl_easy_setopt(
-        handle_, native::CURLOPT_HTTPHEADER, headers_->native_handle()));
+    ec = std::error_code{
+        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+            handle_, native::CURLOPT_HTTPHEADER, headers_->native_handle()))};
   } else {
-    ec = std::error_code(
-        native::curl_easy_setopt(handle_, native::CURLOPT_HTTPHEADER, NULL));
+    ec = std::error_code{static_cast<errc::EasyErrorCode>(
+        native::curl_easy_setopt(handle_, native::CURLOPT_HTTPHEADER, NULL))};
   }
 }
 
@@ -363,9 +366,9 @@ void easy::add_http200_alias(const std::string& http200_alias,
   }
 
   http200_aliases_->add(http200_alias);
-  ec = std::error_code(
+  ec = std::error_code{static_cast<errc::EasyErrorCode>(
       native::curl_easy_setopt(handle_, native::CURLOPT_HTTP200ALIASES,
-                               http200_aliases_->native_handle()));
+                               http200_aliases_->native_handle()))};
 }
 
 void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases) {
@@ -379,12 +382,13 @@ void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases,
   http200_aliases_ = std::move(http200_aliases);
 
   if (http200_aliases) {
-    ec = std::error_code(
+    ec = std::error_code{static_cast<errc::EasyErrorCode>(
         native::curl_easy_setopt(handle_, native::CURLOPT_HTTP200ALIASES,
-                                 http200_aliases_->native_handle()));
+                                 http200_aliases_->native_handle()))};
   } else {
-    ec = std::error_code(native::curl_easy_setopt(
-        handle_, native::CURLOPT_HTTP200ALIASES, nullptr));
+    ec = std::error_code{
+        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+            handle_, native::CURLOPT_HTTP200ALIASES, nullptr))};
   }
 }
 
@@ -400,8 +404,9 @@ void easy::add_resolve(const std::string& resolved_host, std::error_code& ec) {
   }
 
   resolved_hosts_->add(resolved_host);
-  ec = std::error_code(native::curl_easy_setopt(
-      handle_, native::CURLOPT_RESOLVE, resolved_hosts_->native_handle()));
+  ec =
+      std::error_code{static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+          handle_, native::CURLOPT_RESOLVE, resolved_hosts_->native_handle()))};
 }
 
 void easy::set_resolves(std::shared_ptr<string_list> resolved_hosts) {
@@ -415,11 +420,12 @@ void easy::set_resolves(std::shared_ptr<string_list> resolved_hosts,
   resolved_hosts_ = std::move(resolved_hosts);
 
   if (resolved_hosts_) {
-    ec = std::error_code(native::curl_easy_setopt(
-        handle_, native::CURLOPT_RESOLVE, resolved_hosts_->native_handle()));
+    ec = std::error_code{static_cast<errc::EasyErrorCode>(
+        native::curl_easy_setopt(handle_, native::CURLOPT_RESOLVE,
+                                 resolved_hosts_->native_handle()))};
   } else {
-    ec = std::error_code(
-        native::curl_easy_setopt(handle_, native::CURLOPT_RESOLVE, NULL));
+    ec = std::error_code{static_cast<errc::EasyErrorCode>(
+        native::curl_easy_setopt(handle_, native::CURLOPT_RESOLVE, NULL))};
   }
 }
 
@@ -433,11 +439,12 @@ void easy::set_share(std::shared_ptr<share> share, std::error_code& ec) {
   share_ = std::move(share);
 
   if (share) {
-    ec = std::error_code(native::curl_easy_setopt(
-        handle_, native::CURLOPT_SHARE, share_->native_handle()));
+    ec = std::error_code{
+        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+            handle_, native::CURLOPT_SHARE, share_->native_handle()))};
   } else {
-    ec = std::error_code(
-        native::curl_easy_setopt(handle_, native::CURLOPT_SHARE, NULL));
+    ec = std::error_code{static_cast<errc::EasyErrorCode>(
+        native::curl_easy_setopt(handle_, native::CURLOPT_SHARE, NULL))};
   }
 }
 
@@ -471,8 +478,8 @@ clients::http::LocalStats easy::get_local_stats() {
 
   stats.open_socket_count = sockets_opened_;
   stats.retries_count = retries_count_;
-  stats.time_to_connect = std::chrono::microseconds(get_connect_time_t());
-  stats.time_to_process = std::chrono::microseconds(get_total_time_t());
+  stats.time_to_connect = std::chrono::microseconds(get_connect_time_usec());
+  stats.time_to_process = std::chrono::microseconds(get_total_time_usec());
 
   return stats;
 }

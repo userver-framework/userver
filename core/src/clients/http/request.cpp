@@ -69,8 +69,8 @@ std::string ToString(HttpMethod method) {
 }
 
 const std::map<std::string, std::error_code> kTestsuiteActions = {
-    {"timeout", {curl::errc::easy::operation_timedout}},
-    {"network", {curl::errc::easy::could_not_connect}}};
+    {"timeout", {curl::errc::EasyErrorCode::kOperationTimedout}},
+    {"network", {curl::errc::EasyErrorCode::kCouldNotConnect}}};
 const std::string kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
 const std::string kTestsuiteSupportedErrors =
     boost::algorithm::join(boost::adaptors::keys(kTestsuiteActions), ",");
@@ -287,9 +287,9 @@ ResponseFuture Request::async_perform() {
 
 std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }
 
-std::shared_ptr<Request> Request::url(const std::string& _url) {
-  pimpl_->SetDestinationMetricNameAuto(::http::ExtractMetaTypeFromUrl(_url));
-  pimpl_->easy().set_url(_url.c_str());
+std::shared_ptr<Request> Request::url(const std::string& url) {
+  pimpl_->SetDestinationMetricNameAuto(::http::ExtractMetaTypeFromUrl(url));
+  pimpl_->easy().set_url(url);
   return shared_from_this();
 }
 
@@ -621,8 +621,8 @@ void Request::RequestImpl::on_completed(
     span.AddTag(tracing::kErrorMessage, err.message());
     span.AddTag(tracing::kHttpStatusCode, 599);  // TODO
 
-    holder->promise_.set_exception(
-        PrepareException(err, easy.get_url(), easy.get_local_stats()));
+    holder->promise_.set_exception(PrepareException(
+        err, easy.get_effective_url(), easy.get_local_stats()));
   } else {
     span.AddTag(tracing::kHttpStatusCode, status_code);
     holder->response()->SetStatusCode(status_code);
@@ -755,7 +755,7 @@ Request::RequestImpl::async_perform() {
   easy().add_header(::http::headers::kXYaSpanId, span_->GetSpanId());
   easy().add_header(::http::headers::kXYaTraceId, span_->GetTraceId());
   easy().add_header(::http::headers::kXYaRequestId, span_->GetLink());
-  span_->AddTag(tracing::kHttpUrl, easy().get_effective_url());
+  span_->AddTag(tracing::kHttpUrl, std::string{easy().get_effective_url()});
 
   ApplyTestsuiteConfig();
 
@@ -812,7 +812,7 @@ void Request::RequestImpl::ApplyTestsuiteConfig() {
 
   const auto& prefixes = testsuite_config_->allowed_url_prefixes;
   if (!prefixes.empty()) {
-    std::string url = easy().get_effective_url();
+    auto url = easy().get_effective_url();
     if (std::find_if(prefixes.begin(), prefixes.end(),
                      [&url](const std::string& prefix) {
                        return boost::starts_with(url, prefix);
