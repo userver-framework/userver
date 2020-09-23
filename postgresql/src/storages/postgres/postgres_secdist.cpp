@@ -35,6 +35,11 @@ DsnList DsnListFromJson(const formats::json::Value& elem) {
 
 PostgresSettings::PostgresSettings(const formats::json::Value& doc) {
   const formats::json::Value& postgresql_settings = doc["postgresql_settings"];
+  if (postgresql_settings.IsMissing()) {
+    LOG_WARNING() << "'postgresql_settings' secdist section is empty";
+    return;
+  }
+
   storages::secdist::CheckIsObject(postgresql_settings, "postgresql_settings");
 
   const formats::json::Value& databases = postgresql_settings["databases"];
