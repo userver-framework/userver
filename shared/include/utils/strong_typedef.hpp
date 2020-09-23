@@ -210,12 +210,6 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
     return data_[std::forward<Arg>(i)];
   }
 
-  // TODO TAXICOMMON-2209: clean up in uservices and remove
-  [[deprecated("Use GetUnderlying")]] const T& GetUnprotectedRawValue() const
-      noexcept {
-    return GetUnderlying();
-  }
-
  private:
   T data_{};
 };
@@ -247,12 +241,6 @@ class StrongTypedef<Tag, T, Ops, std::enable_if_t<std::is_arithmetic<T>::value>>
   explicit constexpr operator T&() noexcept { return data_; }
   constexpr const T& GetUnderlying() const noexcept { return data_; }
   constexpr T& GetUnderlying() noexcept { return data_; }
-
-  // TODO TAXICOMMON-2209: clean up in uservices and remove
-  [[deprecated("Use GetUnderlying")]] const T& GetUnprotectedRawValue() const
-      noexcept {
-    return GetUnderlying();
-  }
 
  private:
   T data_{};
@@ -387,20 +375,11 @@ std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {
   return boost::hash<T>{}(v.GetUnderlying());
 }
 
-// TODO TAXICOMMON-2209 clean-up in uservices and remove support for NonLoggable
-//  without tag
-
 /// A StrongTypedef for data that MUST NOT be logged or outputted in some other
 /// way.
-template <class Tag, class T = void>
-using NonLoggable =
-    std::conditional_t<std::is_same_v<T, void>,
-                       StrongTypedef<class DefaultNonLoggableTag, Tag,
-                                     StrongTypedefOps::kCompareStrong |
-                                         StrongTypedefOps::kNonLoggable>,
-                       StrongTypedef<Tag, T,
-                                     StrongTypedefOps::kCompareStrong |
-                                         StrongTypedefOps::kNonLoggable>>;
+template <class Tag, class T>
+using NonLoggable = StrongTypedef<
+    Tag, T, StrongTypedefOps::kCompareStrong | StrongTypedefOps::kNonLoggable>;
 
 };  // namespace utils
 

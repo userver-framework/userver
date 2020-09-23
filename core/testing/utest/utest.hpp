@@ -5,7 +5,6 @@
 #include <chrono>
 #include <functional>
 
-#include <utils/non_loggable.hpp>
 #include <utils/strong_typedef.hpp>
 
 void RunInCoro(std::function<void()>, size_t worker_threads = 1);
