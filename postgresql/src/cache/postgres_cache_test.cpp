@@ -1,5 +1,7 @@
 #include <cache/base_postgres_cache.hpp>
 
+#include <boost/functional/hash.hpp>
+
 namespace components::test {
 
 namespace pg = storages::postgres;
@@ -25,11 +27,14 @@ struct PostgresExamplePolicy {
   /// Mandatory
   using ValueType = MyStructure;
 
-  /// @brief Member by which the object must be identified in cache
+  /// @brief Key by which the object must be identified in cache
   ///
   /// Mandatory
-  /// Pointer-to-member in the object: either a pointer to data member or a
-  /// pointer to function member that accepts no arguments and returns the key.
+  /// One of:
+  /// - A pointer-to-member in the object
+  /// - A pointer-to-member-function in the object that returns the key
+  /// - A pointer-to-function that takes the object and returns the key
+  /// - A lambda that takes the object and returns the key
   static constexpr auto kKeyMember = &MyStructure::id;
 
   /// @brief Data retrieve query
@@ -161,11 +166,56 @@ struct PostgresExamplePolicy4 {
 
 static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy4>);
 
+/*! [Pg Cache Policy Compound Primary Key Example] */
+struct MyStructureCompoundKey {
+  int id;
+  std::string bar;
+
+  bool operator==(const MyStructureCompoundKey& other) const {
+    return id == other.id && bar == other.bar;
+  }
+};
+
+// Alternatively, specialize std::hash
+struct MyStructureCompoundKeyHash {
+  size_t operator()(const MyStructureCompoundKey& key) const {
+    size_t seed = 0;
+    boost::hash_combine(seed, key.id);
+    boost::hash_combine(seed, key.bar);
+    return seed;
+  }
+};
+
+struct PostgresExamplePolicy5 {
+  static constexpr const char* kName = "my-pg-cache";
+
+  using ValueType = MyStructure;
+
+  // maybe_unused is required due to a Clang bug
+  [[maybe_unused]] static constexpr auto kKeyMember =
+      [](const MyStructure& my_structure) {
+        return MyStructureCompoundKey{my_structure.id, my_structure.bar};
+      };
+
+  static std::string GetQuery() {
+    return "select id, bar, updated from test.my_data";
+  }
+
+  static constexpr const char* kUpdatedField = "updated";
+
+  using CacheContainer = std::unordered_map<MyStructureCompoundKey, MyStructure,
+                                            MyStructureCompoundKeyHash>;
+};
+/*! [Pg Cache Policy Compound Primary Key Example] */
+
+static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy5>);
+
 // Instantiation test
 using MyCache1 = PostgreCache<PostgresExamplePolicy>;
 using MyCache2 = PostgreCache<PostgresExamplePolicy2>;
 using MyCache3 = PostgreCache<PostgresExamplePolicy3>;
 using MyCache4 = PostgreCache<PostgresExamplePolicy4>;
+using MyCache5 = PostgreCache<PostgresExamplePolicy5>;
 
 static_assert(MyCache1::kIncrementalUpdates);
 static_assert(!MyCache2::kIncrementalUpdates);

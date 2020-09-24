@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <functional>
 #include <iosfwd>
 #include <iterator>
 #include <optional>
@@ -80,6 +81,22 @@ struct IsOstreamWritable<
                          << std::declval<const std::remove_reference_t<T>&>())>>
     : std::true_type {};
 
+template <typename T, typename U, typename = void>
+struct IsEqualityComparable : std::false_type {};
+
+template <typename T, typename U>
+struct IsEqualityComparable<
+    T, U, std::void_t<decltype(std::declval<T&>() == std::declval<U&>())>>
+    : std::true_type {};
+
+template <typename T, typename = void>
+struct IsStdHashable : std::false_type {};
+
+template <typename T>
+struct IsStdHashable<
+    T, std::void_t<decltype(std::hash<T>{}(std::declval<const T&>()))>>
+    : std::true_type {};
+
 }  // namespace impl
 
 template <typename T>
@@ -127,5 +144,13 @@ inline constexpr bool kIsInteger = impl::IsInteger<T>::value;
 
 template <typename T>
 inline constexpr bool kIsOstreamWritable = impl::IsOstreamWritable<T>::value;
+
+template <typename T, typename U = T>
+inline constexpr bool kIsEqualityComparable =
+    impl::IsEqualityComparable<T, U>::value;
+
+template <typename T>
+inline constexpr bool kIsStdHashable =
+    impl::IsStdHashable<T>::value&& kIsEqualityComparable<T>;
 
 }  // namespace meta

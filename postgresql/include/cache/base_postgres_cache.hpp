@@ -20,6 +20,7 @@
 #include <utils/algo.hpp>
 #include <utils/assert.hpp>
 #include <utils/cpu_relax.hpp>
+#include <utils/meta.hpp>
 #include <utils/void_t.hpp>
 
 #include <compiler/demangle.hpp>
@@ -104,6 +105,16 @@ struct RawValueTypeImpl<T, false> {
 template <typename T>
 using RawValueType = typename RawValueTypeImpl<T, kHasRawValueType<T>>::Type;
 
+template <typename PostgreCachePolicy>
+auto ExtractValue(RawValueType<PostgreCachePolicy>&& raw) {
+  if constexpr (kHasRawValueType<PostgreCachePolicy>) {
+    return Convert(std::move(raw),
+                   formats::parse::To<ValueType<PostgreCachePolicy>>());
+  } else {
+    return std::move(raw);
+  }
+}
+
 // Component name in policy
 template <typename T, typename = ::utils::void_t<>>
 struct HasName : std::false_type {};
@@ -162,31 +173,31 @@ constexpr bool kWantIncrementalUpdates = WantIncrementalUpdates<T>::value;
 template <typename T, typename = ::utils::void_t<>>
 struct HasKeyMember : std::false_type {};
 template <typename T>
-struct HasKeyMember<T, ::utils::void_t<decltype(T::kKeyMember)>>
+struct HasKeyMember<T, ::utils::void_t<decltype(std::invoke(
+                           T::kKeyMember, std::declval<ValueType<T>>()))>>
     : std::true_type {};
 template <typename T>
 constexpr bool kHasKeyMember = HasKeyMember<T>::value;
 
 template <typename T>
-constexpr auto GetKeyValue(const ValueType<T>& v) {
-  if constexpr (std::is_member_function_pointer<decltype(T::kKeyMember)>{}) {
-    return (v.*T::kKeyMember)();
-  } else {
-    return v.*T::kKeyMember;
-  }
+auto GetKeyValue(const ValueType<T>& v) {
+  return std::invoke(T::kKeyMember, v);
 }
 
 template <typename T>
-struct KeyMember {
+struct KeyMemberTypeImpl {
   using type =
       std::decay_t<decltype(GetKeyValue<T>(std::declval<ValueType<T>>()))>;
 };
 template <typename T>
-using KeyMemberType = typename KeyMember<T>::type;
+using KeyMemberType = typename KeyMemberTypeImpl<T>::type;
 
 // Data container for cache
 template <typename T, typename = ::utils::void_t<>>
 struct DataCacheContainer {
+  static_assert(meta::kIsStdHashable<KeyMemberType<T>>,
+                "With default CacheContainer, key type must be std::hash-able");
+
   using type = std::unordered_map<KeyMemberType<T>, ValueType<T>>;
 };
 
@@ -511,17 +522,9 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
   for (auto p = values.begin(); p != values.end(); ++p) {
     relax.Relax(scope);
     try {
-      if constexpr (pg_cache::detail::kHasRawValueType<PolicyType>) {
-        auto value = Convert(
-            std::move(*p),
-            formats::parse::To<pg_cache::detail::ValueType<PolicyType>>());
-        auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
-        data_cache->insert_or_assign(std::move(key), std::move(value));
-      } else {
-        auto value = *p;
-        auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
-        data_cache->insert_or_assign(std::move(key), std::move(value));
-      }
+      auto value = pg_cache::detail::ExtractValue<PostgreCachePolicy>(*p);
+      auto key = pg_cache::detail::GetKeyValue<PolicyType>(value);
+      data_cache->insert_or_assign(std::move(key), std::move(value));
     } catch (const std::exception& e) {
       stats_scope.IncreaseDocumentsParseFailures(1);
       LOG_ERROR() << "Error parsing data row in cache '" << kName << "' to '"
