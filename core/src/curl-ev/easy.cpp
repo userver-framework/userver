@@ -174,8 +174,15 @@ void easy::reset() {
   set_custom_request(nullptr);
   set_no_body(false);
   set_post(false);
-  set_ssl_ctx_data(nullptr);
-  set_ssl_ctx_function(nullptr);
+
+  // MAC_COMPAT: Secure Transport does not provide these
+  std::error_code ec;
+  set_ssl_ctx_data(nullptr, ec);
+  if (!ec) {
+    set_ssl_ctx_function(nullptr);
+  } else if (ec != errc::EasyErrorCode::kNotBuiltIn) {
+    throw_error(ec, "set_ssl_ctx_data");
+  }
 
   if (multi_) {
     multi_->GetThreadControl().RunInEvLoopSync([this] { do_ev_reset(); });
