@@ -772,6 +772,8 @@ struct Connection::Impl {
     ExecuteCommand(MakeCurrentDeadline(), kPingStatement);
     Finish();
   }
+
+  void MarkAsBroken() { conn_wrapper_.MarkAsBroken(); }
 };  // Connection::Impl
 
 std::unique_ptr<Connection> Connection::Connect(
@@ -893,5 +895,7 @@ TimeoutDuration Connection::GetIdleDuration() const {
 }
 
 void Connection::Ping() { pimpl_->Ping(); }
+
+void Connection::MarkAsBroken() { pimpl_->MarkAsBroken(); }
 
 }  // namespace storages::postgres::detail

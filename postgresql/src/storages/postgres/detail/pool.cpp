@@ -207,6 +207,7 @@ void ConnectionPool::Release(Connection* connection) {
         } catch (const std::exception& e) {
           LOG_WARNING() << "Exception while cleaning up a dirty connection: "
                         << e;
+          connection->MarkAsBroken();
         }
       } else {
         // Too many connections are cancelling ATM, we cannot afford running

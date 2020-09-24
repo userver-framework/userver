@@ -91,6 +91,8 @@ class PGConnectionWrapper {
 
   TimeoutDuration GetIdleDuration() const;
 
+  void MarkAsBroken();
+
  private:
   PGTransactionStatusType GetTransactionStatus() const;
 
@@ -128,6 +130,7 @@ class PGConnectionWrapper {
   logging::LogExtra log_extra_;
   SizeGuard size_guard_;
   std::chrono::steady_clock::time_point last_use_;
+  bool is_broken_;
 };
 
 }  // namespace storages::postgres::detail

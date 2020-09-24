@@ -15,6 +15,7 @@
 #include <tracing/tags.hpp>
 #include <utils/assert.hpp>
 #include <utils/internal_tag.hpp>
+#include <utils/strerror.hpp>
 
 #define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
 #define PGCW_LOG_DEBUG() LOG_DEBUG() << log_extra_
@@ -80,7 +81,8 @@ PGConnectionWrapper::PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
       log_extra_{{tracing::kDatabaseType, tracing::kDatabasePostgresType},
                  {"pg_conn_id", id}},
       size_guard_{std::move(size_guard)},
-      last_use_{std::chrono::steady_clock::now()} {
+      last_use_{std::chrono::steady_clock::now()},
+      is_broken_{false} {
   // TODO add SSL initialization
 }
 
@@ -124,10 +126,12 @@ engine::Task PGConnectionWrapper::Close() {
 
   // NOLINTNEXTLINE(cppcoreguidelines-slicing)
   return engine::impl::CriticalAsync(
-      bg_task_processor_, [tmp_conn, socket = std::move(tmp_sock),
-                           sg = std::move(size_guard_)]() mutable {
+      bg_task_processor_,
+      [tmp_conn, socket = std::move(tmp_sock), is_broken = is_broken_,
+       sg = std::move(size_guard_)]() mutable {
+        int fd = -1;
         if (socket) {
-          [[maybe_unused]] int fd = std::move(socket).Release();
+          fd = std::move(socket).Release();
         }
 
         // We must call `PQfinish` only after we do the `socket.Release()`.
@@ -136,6 +140,21 @@ engine::Task PGConnectionWrapper::Close() {
         // reused we may accidentally receive alien events.
 
         if (tmp_conn != nullptr) {
+          if (is_broken) {
+            int pq_fd = PQsocket(tmp_conn);
+            if (fd != -1 && pq_fd != -1 && fd != pq_fd) {
+              LOG_ERROR() << "fd from socket != fd from PQsocket (" << fd
+                          << " != " << pq_fd << ')';
+            }
+            if (pq_fd >= 0) {
+              int res = shutdown(pq_fd, SHUT_RDWR);
+              if (res < 0) {
+                auto old_errno = errno;
+                LOG_WARNING() << "error while shutdown() socket (" << old_errno
+                              << "): " << ::utils::strerror(old_errno);
+              }
+            }
+          }
           PQfinish(tmp_conn);
         }
       });
@@ -577,5 +596,7 @@ TimeoutDuration PGConnectionWrapper::GetIdleDuration() const {
   return std::chrono::duration_cast<TimeoutDuration>(
       std::chrono::steady_clock::now() - last_use_);
 }
+
+void PGConnectionWrapper::MarkAsBroken() { is_broken_ = true; }
 
 }  // namespace storages::postgres::detail

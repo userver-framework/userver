@@ -244,6 +244,8 @@ class Connection {
   /// The function will do a query roundtrip to the database
   void Ping();
 
+  void MarkAsBroken();
+
  private:
   Connection();
 
