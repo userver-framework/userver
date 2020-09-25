@@ -12,6 +12,7 @@
 #include <engine/coro/pool.hpp>
 #include <engine/deadline.hpp>
 #include <engine/ev/thread_control.hpp>
+#include <engine/ev/timer.hpp>
 #include <engine/task/cancel.hpp>
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
@@ -130,6 +131,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // "spurious wakeups" may be caused by wakeup queueing
   void Sleep(WaitStrategy*);
 
+  void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
+
   // causes this to return from the nearest sleep
   // i.e. wakeup is queued if task is running
   // normally non-blocking, except corner cases in TaskProcessor::Schedule()
@@ -188,6 +191,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   bool is_cancellable_;
   std::atomic<TaskCancellationReason> cancellation_reason_;
   mutable FastPimplWaitListLight finish_waiters_;
+
+  ev::Timer deadline_timer_;
 
   // () if not defined
   std::chrono::steady_clock::time_point task_queue_wait_timepoint_;

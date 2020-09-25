@@ -5,8 +5,7 @@
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 class Timer::TimerImpl final
     : public std::enable_shared_from_this<Timer::TimerImpl> {
@@ -17,31 +16,57 @@ class Timer::TimerImpl final
   void Start();
   void Stop();
 
+  void Restart(Func on_timer_func, double first_call_after,
+               double repeat_every);
+
  private:
   static void OnTimer(struct ev_loop*, ev_timer* w, int) noexcept;
   void DoOnTimer();
-  void Init();
 
   ThreadControl thread_control_;
   Func on_timer_func_;
-
-  double first_call_after_;
-  double repeat_every_;
   ev_timer timer_{};
 };
 
 Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
                             double first_call_after, double repeat_every)
     : thread_control_(thread_control),
-      on_timer_func_(std::move(on_timer_func)),
-      first_call_after_(first_call_after),
-      repeat_every_(repeat_every) {
-  Init();
+      on_timer_func_(std::move(on_timer_func)) {
+  if (first_call_after < 0.0) first_call_after = 0.0;
+  timer_.data = this;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+  ev_timer_init(&timer_, OnTimer, first_call_after, repeat_every);
+  LOG_TRACE() << "first_call_after_=" << first_call_after
+              << " repeat_every_=" << repeat_every;
 }
 
 void Timer::TimerImpl::Start() {
-  thread_control_.RunInEvLoopAsync([self = shared_from_this(), this]() {
-    thread_control_.TimerStartUnsafe(timer_);
+  thread_control_.RunInEvLoopAsync([self = shared_from_this()]() {
+    self->thread_control_.TimerStartUnsafe(self->timer_);
+  });
+}
+
+void Timer::TimerImpl::Stop() {
+  thread_control_.RunInEvLoopAsync([self = shared_from_this()]() {
+    self->thread_control_.TimerStopUnsafe(self->timer_);
+  });
+}
+
+void Timer::TimerImpl::Restart(Func on_timer_func, double first_call_after,
+                               double repeat_every) {
+  // TODO: We should keep lambda size in 16 bytes to avoid memory allocation:
+  // https://godbolt.org/z/Msbeba
+  thread_control_.RunInEvLoopAsync([self = shared_from_this(),
+                                    on_timer_func = std::move(on_timer_func),
+                                    first_call_after, repeat_every]() mutable {
+    auto& timer = self->timer_;
+    self->thread_control_.TimerStopUnsafe(timer);
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    ev_timer_set(&timer, first_call_after, repeat_every);
+    self->on_timer_func_ = std::move(on_timer_func);
+
+    self->thread_control_.TimerStartUnsafe(timer);
   });
 }
 
@@ -59,40 +84,37 @@ void Timer::TimerImpl::DoOnTimer() {
   }
 }
 
-void Timer::TimerImpl::Init() {
-  if (first_call_after_ < 0.0) first_call_after_ = 0.0;
-  timer_.data = this;
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-  ev_timer_init(&timer_, OnTimer, first_call_after_, repeat_every_);
-  LOG_TRACE() << "first_call_after_=" << first_call_after_
-              << " repeat_every_=" << repeat_every_;
+Timer::~Timer() { Stop(); }
+
+bool Timer::IsValid() const noexcept { return !!impl_; }
+
+void Timer::Start(ThreadControl& thread_control, Func on_timer_func,
+                  double first_call_after, double repeat_every) {
+  Stop();
+  impl_ = std::make_shared<TimerImpl>(thread_control, std::move(on_timer_func),
+                                      first_call_after, repeat_every);
+  impl_->Start();
 }
 
-void Timer::TimerImpl::Stop() {
-  thread_control_.RunInEvLoopAsync([self = shared_from_this(), this]() {
-    thread_control_.TimerStopUnsafe(timer_);
-  });
+void Timer::Restart(Func on_timer_func, double first_call_after,
+                    double repeat_every) {
+  UASSERT(impl_);
+
+  impl_->Restart(std::move(on_timer_func), first_call_after, repeat_every);
 }
 
-Timer::Timer() = default;
+void Timer::Stop() noexcept {
+  if (impl_) {
+    try {
+      impl_->Stop();
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception while stopping the timer: " << e;
+    }
 
-Timer::Timer(ThreadControl& thread_control, Func on_timer_func,
-             double first_call_after, double repeat_every, StartMode start_mode)
-    : impl_(std::make_shared<TimerImpl>(thread_control,
-                                        std::move(on_timer_func),
-                                        first_call_after, repeat_every)) {
-  if (start_mode == StartMode::kStartNow) Start();
+    // We should reset, because Timer::on_timer_func_ may hold smart pointher to
+    // a type that holds this (circular dependency).
+    impl_.reset();
+  }
 }
 
-Timer::~Timer() {
-  if (impl_) Stop();
-}
-
-bool Timer::IsValid() const { return !!impl_; }
-
-void Timer::Start() { impl_->Start(); }
-
-void Timer::Stop() { impl_->Stop(); }
-
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

@@ -320,22 +320,7 @@ void TaskContext::Sleep(WaitStrategy* wait_manager) {
   auto* old_wait_manager = std::exchange(wait_manager_, wait_manager);
 
   const auto sleep_epoch = sleep_state_.load().epoch;
-  ev::Timer deadline_timer;
-  auto deadline = wait_manager_->GetDeadline();
-  if (deadline.IsReachable()) {
-    const auto time_left = deadline.TimeLeft();
-    if (time_left.count() > 0) {
-      boost::intrusive_ptr<TaskContext> ctx(this);
-      deadline_timer =
-          ev::Timer(task_processor_.EventThreadPool().NextThread(),
-                    [ctx = std::move(ctx), sleep_epoch] {
-                      ctx->Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
-                    },
-                    time_left);
-    } else {
-      Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
-    }
-  }
+  ArmDeadlineTimer(wait_manager_->GetDeadline(), sleep_epoch);
 
   yield_reason_ = YieldReason::kTaskWaiting;
   UASSERT(task_pipe_);
@@ -346,8 +331,6 @@ void TaskContext::Sleep(WaitStrategy* wait_manager) {
   TraceStateTransition(Task::State::kRunning);
   UASSERT(context == this);
   UASSERT(state_ == Task::State::kRunning);
-
-  if (deadline_timer) deadline_timer.Stop();
 
   if (!(sleep_state_.load(std::memory_order_acquire).flags &
         SleepFlags::kWakeupByWaitList)) {
@@ -365,6 +348,31 @@ void TaskContext::Sleep(WaitStrategy* wait_manager) {
 
   wait_manager_->BeforeAwake();
   wait_manager_ = old_wait_manager;
+}
+
+void TaskContext::ArmDeadlineTimer(Deadline deadline,
+                                   SleepState::Epoch sleep_epoch) {
+  if (!deadline.IsReachable()) {
+    return;
+  }
+
+  const auto time_left = deadline.TimeLeft();
+  if (time_left.count() <= 0) {
+    Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
+    return;
+  }
+
+  boost::intrusive_ptr<TaskContext> ctx(this);
+  auto callback = [ctx = std::move(ctx), sleep_epoch] {
+    ctx->Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
+  };
+
+  if (deadline_timer_) {
+    deadline_timer_.Restart(std::move(callback), time_left);
+  } else {
+    deadline_timer_.Start(task_processor_.EventThreadPool().NextThread(),
+                          std::move(callback), time_left);
+  }
 }
 
 bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
@@ -586,6 +594,8 @@ void TaskContext::SetState(Task::State new_state) {
   }
 
   if (IsFinished()) {
+    deadline_timer_.Stop();
+
     WaitListLight::Lock lock;
     finish_waiters_->WakeupAll(lock);
   }
