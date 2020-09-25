@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <formats/json/serialize.hpp>
+
 using Dec4 = decimal64::Decimal<4>;
 
 TEST(Decimal64, ConstructFromString) {
@@ -200,4 +202,18 @@ TEST(Decimal64, FromStreamFlags) {
   EXPECT_TRUE(is.eof());
   EXPECT_TRUE(static_cast<bool>(is));
   EXPECT_FALSE(!is);
+}
+
+TEST(Decimal64, ParseValid) {
+  const auto json_object =
+      formats::json::FromString(R"json({"data" : "123"})json");
+  const auto json_data = json_object["data"];
+  EXPECT_EQ(json_data.As<Dec4>(), Dec4{123});
+}
+
+TEST(Decimal64, ParseInvalid) {
+  const auto json_object =
+      formats::json::FromString(R"json({"data" : "#"})json");
+  const auto json_data = json_object["data"];
+  EXPECT_THROW(json_data.As<Dec4>(), decimal64::ParseError);
 }

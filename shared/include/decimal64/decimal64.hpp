@@ -955,6 +955,12 @@ class ParseError : public std::runtime_error {
             fmt::format(FMT_STRING("Error while parsing Decimal from string "
                                    "\"{}\", at position {}"),
                         source, pos + 1)) {}
+
+  ParseError(std::string_view source, size_t pos, std::string_view path)
+      : std::runtime_error(
+            fmt::format(FMT_STRING("Error while parsing Decimal at \"{}\" from "
+                                   "string \"{}\", at position {}"),
+                        path, source, pos + 1)) {}
 };
 
 namespace impl {
@@ -1440,9 +1446,17 @@ template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
 template <int Prec, typename RoundPolicy, typename ValueType>
 std::enable_if_t<formats::common::kIsFormatValue<ValueType>,
                  Decimal<Prec, RoundPolicy>>
-Parse(const ValueType& source, formats::parse::To<Decimal<Prec, RoundPolicy>>) {
-  return impl::FromString<Decimal<Prec, RoundPolicy>>(
-      source.template As<std::string>());
+Parse(const ValueType& value, formats::parse::To<Decimal<Prec, RoundPolicy>>) {
+  const std::string input = value.template As<std::string>();
+  impl::StringCharSequence source(std::string_view{input});
+
+  Decimal<Prec, RoundPolicy> result;
+  const bool success = impl::Parse(source, result, impl::ParseOptions::kNone);
+
+  if (!success) {
+    throw ParseError(input, source.Position() - input.data(), value.GetPath());
+  }
+  return result;
 }
 
 template <int Prec, typename RoundPolicy, typename TargetType>

@@ -71,20 +71,6 @@ TEST(Decimal64, Fmt) {
   EXPECT_THROW(fmt::format("{:s}", Dec4{42}), fmt::format_error);
 }
 
-TEST(Decimal64, ParseValid) {
-  const auto json_object =
-      formats::json::FromString(R"json({"data" : "123"})json");
-  const auto json_data = json_object["data"];
-  EXPECT_EQ(json_data.As<Dec4>(), Dec4{123});
-}
-
-TEST(Decimal64, ParseInvalid) {
-  const auto json_object =
-      formats::json::FromString(R"json({"data" : "#"})json");
-  const auto json_data = json_object["data"];
-  EXPECT_THROW(json_data.As<Dec4>(), decimal64::ParseError);
-}
-
 TEST(Decimal64, SerializeCycle) {
   const Dec4 original{42};
   const auto json_object = formats::json::ValueBuilder(original).ExtractValue();
