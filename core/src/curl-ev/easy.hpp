@@ -19,6 +19,7 @@
 #include <clients/http/local_stats.hpp>
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/form.hpp>
+#include <curl-ev/url.hpp>
 
 namespace engine {
 namespace ev {
@@ -94,7 +95,7 @@ class ThreadControl;
     char* info = nullptr;                                                 \
     ec = std::error_code(static_cast<errc::EasyErrorCode>(                \
         native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));         \
-    return info;                                                          \
+    return info ? info : std::string_view{};                              \
   }
 
 #define IMPLEMENT_CURL_OPTION_GET_LONG(FUNCTION_NAME, OPTION_NAME)         \
@@ -273,8 +274,10 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   // network options
 
-  void set_url(const std::string& url);
-  IMPLEMENT_CURL_OPTION_STRING(do_set_url, native::CURLOPT_URL);
+  void set_url(std::string url_str);
+  void set_url(std::string url_str, std::error_code& ec);
+  const std::string& get_original_url() const;
+
   IMPLEMENT_CURL_OPTION(set_protocols, native::CURLOPT_PROTOCOLS, long);
   IMPLEMENT_CURL_OPTION(set_redir_protocols, native::CURLOPT_REDIR_PROTOCOLS,
                         long);
@@ -708,7 +711,6 @@ class easy final : public std::enable_shared_from_this<easy> {
   // do_ev_* methods run in libev thread
   void do_ev_async_perform(handler_type handler, size_t request_num);
   void do_ev_cancel(size_t request_num);
-  void do_ev_reset();
 
   void mark_start_performing();
   void mark_open_socket();
@@ -718,6 +720,8 @@ class easy final : public std::enable_shared_from_this<easy> {
   size_t request_counter_{0};
   size_t cancelled_request_max_{0};
   bool multi_registered_;
+  std::string orig_url_str_;
+  url url_;
   handler_type handler_;
   std::shared_ptr<std::istream> source_;
   std::ostream* sink_{nullptr};
@@ -728,7 +732,6 @@ class easy final : public std::enable_shared_from_this<easy> {
   std::shared_ptr<string_list> resolved_hosts_;
   std::shared_ptr<share> share_;
   progress_callback_t progress_callback_;
-  std::string url_;
   std::size_t retries_count_{0};
   std::size_t sockets_opened_{0};
 

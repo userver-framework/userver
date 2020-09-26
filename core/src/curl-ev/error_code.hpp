@@ -22,7 +22,7 @@ enum class EasyErrorCode {
   kUrlMalformat = native::CURLE_URL_MALFORMAT,
   kNotBuiltIn = native::CURLE_NOT_BUILT_IN,
   kCouldNotResolveProxy = native::CURLE_COULDNT_RESOLVE_PROXY,
-  kCouldNotResovleHost = native::CURLE_COULDNT_RESOLVE_HOST,
+  kCouldNotResolveHost = native::CURLE_COULDNT_RESOLVE_HOST,
   kCouldNotConnect = native::CURLE_COULDNT_CONNECT,
   kFtpWeirdServerReply = native::CURLE_FTP_WEIRD_SERVER_REPLY,
   kRemoteAccessDenied = native::CURLE_REMOTE_ACCESS_DENIED,
@@ -137,10 +137,32 @@ enum class FormErrorCode {
   kDisabled = native::CURL_FORMADD_DISABLED
 };
 
+enum class UrlErrorCode {
+  kSuccess = native::CURLUE_OK,
+  kBadHandle = native::CURLUE_BAD_HANDLE,
+  kBadPartpointer = native::CURLUE_BAD_PARTPOINTER,
+  kMalformedInput = native::CURLUE_MALFORMED_INPUT,
+  kBadPortNumber = native::CURLUE_BAD_PORT_NUMBER,
+  kUnsupportedScheme = native::CURLUE_UNSUPPORTED_SCHEME,
+  kUrldecode = native::CURLUE_URLDECODE,
+  kOutOfMemory = native::CURLUE_OUT_OF_MEMORY,
+  kUserNotAllowed = native::CURLUE_USER_NOT_ALLOWED,
+  kUnknownPart = native::CURLUE_UNKNOWN_PART,
+  kNoScheme = native::CURLUE_NO_SCHEME,
+  kNoUser = native::CURLUE_NO_USER,
+  kNoPassword = native::CURLUE_NO_PASSWORD,
+  kNoOptions = native::CURLUE_NO_OPTIONS,
+  kNoHost = native::CURLUE_NO_HOST,
+  kNoPort = native::CURLUE_NO_PORT,
+  kNoQuery = native::CURLUE_NO_QUERY,
+  kNoFragment = native::CURLUE_NO_FRAGMENT,
+};
+
 const std::error_category& GetEasyCategory() noexcept;
 const std::error_category& GetMultiCategory() noexcept;
 const std::error_category& GetShareCategory() noexcept;
 const std::error_category& GetFormCategory() noexcept;
+const std::error_category& GetUrlCategory() noexcept;
 
 }  // namespace curl::errc
 
@@ -157,6 +179,9 @@ struct is_error_code_enum<curl::errc::ShareErrorCode> : std::true_type {};
 
 template <>
 struct is_error_code_enum<curl::errc::FormErrorCode> : std::true_type {};
+
+template <>
+struct is_error_code_enum<curl::errc::UrlErrorCode> : std::true_type {};
 
 }  // namespace std
 
@@ -176,6 +201,10 @@ inline std::error_code make_error_code(ShareErrorCode e) {
 
 inline std::error_code make_error_code(FormErrorCode e) {
   return std::error_code(static_cast<int>(e), GetFormCategory());
+}
+
+inline std::error_code make_error_code(UrlErrorCode e) {
+  return std::error_code(static_cast<int>(e), GetUrlCategory());
 }
 
 }  // namespace curl::errc

@@ -724,3 +724,32 @@ TEST(HttpClient, RedirectHeaders) {
     EXPECT_EQ(response->headers()["XXX"], "good");
   });
 }
+
+TEST(HttpClient, BadUrl) {
+  TestInCoro([] {
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto request = http_client_ptr->CreateRequest();
+
+    const auto check = [&](const std::string& url) {
+      [[maybe_unused]] auto response = request->url(url)->perform();
+      // recreate request if reached here
+      request = http_client_ptr->CreateRequest();
+    };
+
+    EXPECT_THROW(check({}), clients::http::BadArgumentException);
+    EXPECT_THROW(check("http://"), clients::http::BadArgumentException);
+    EXPECT_THROW(check("http:\\\\localhost/"),
+                 clients::http::BadArgumentException);
+    EXPECT_THROW(check("http:///?query"), clients::http::BadArgumentException);
+    // three slashes before hostname are apparently okay
+    EXPECT_THROW(check("http:////path/"), clients::http::BadArgumentException);
+    // we allow no-scheme URLs for now
+    // EXPECT_THROW(check("localhost/"), clients::http::BadArgumentException);
+    // EXPECT_THROW(check("ftp.localhost/"),
+    // clients::http::BadArgumentException);
+    EXPECT_THROW(check("http://localhost:99999/"),
+                 clients::http::BadArgumentException);
+    EXPECT_THROW(check("http://localhost:abcd/"),
+                 clients::http::BadArgumentException);
+  });
+}

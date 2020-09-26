@@ -11,8 +11,6 @@
 
 #include <utility>
 
-#include <boost/algorithm/string/predicate.hpp>
-
 #include <curl-ev/easy.hpp>
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/form.hpp>
@@ -23,6 +21,7 @@
 #include <engine/async.hpp>
 #include <logging/log.hpp>
 #include <server/net/listener_impl.hpp>
+#include <utils/str_icase.hpp>
 #include <utils/strerror.hpp>
 
 namespace curl {
@@ -161,7 +160,7 @@ void easy::do_ev_cancel(size_t request_num) {
 void easy::reset() {
   LOG_TRACE() << "easy::reset start " << reinterpret_cast<long>(this);
 
-  url_.clear();
+  orig_url_str_.clear();
   post_fields_.clear();
   form_.reset();
   if (headers_) headers_->clear();
@@ -184,17 +183,11 @@ void easy::reset() {
     throw_error(ec, "set_ssl_ctx_data");
   }
 
-  if (multi_) {
-    multi_->GetThreadControl().RunInEvLoopSync([this] { do_ev_reset(); });
-  }
+  UASSERT(!multi_registered_);
+  native::curl_easy_reset(handle_);
+  set_private(this);
 
   LOG_TRACE() << "easy::reset finished " << reinterpret_cast<long>(this);
-}
-
-void easy::do_ev_reset() {
-  if (multi_registered_) {
-    native::curl_easy_reset(handle_);
-  }
 }
 
 void easy::mark_start_performing() {
@@ -248,10 +241,38 @@ void easy::set_progress_callback(progress_callback_t progress_callback) {
   set_xferinfo_data(this);
 }
 
-void easy::set_url(const std::string& url) {
-  url_ = url;
-  do_set_url(url_.c_str());
+void easy::set_url(std::string url_str) {
+  std::error_code ec;
+  set_url(url_str, ec);
+  throw_error(ec, "set_url");
 }
+
+void easy::set_url(std::string url_str, std::error_code& ec) {
+  orig_url_str_ = std::move(url_str);
+  url_.SetAbsoluteUrl(orig_url_str_.c_str(), ec);
+  if (ec == errc::UrlErrorCode::kMalformedInput) {
+    // try falling back to parsing with default scheme
+    url_.SetDefaultSchemeUrl(orig_url_str_.c_str(), ec);
+    if (!ec) {
+      LOG_LIMITED_WARNING() << "Got URL without scheme: '" << orig_url_str_
+                            << "', falling back to 'http://'. Please fix it by "
+                               "specifying a scheme explicitly.";
+      url_.SetScheme("http", ec);
+      UASSERT(!ec);
+    }
+  }
+  if (!ec) {
+    ec = static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+        handle_, native::CURLOPT_CURLU, url_.native_handle()));
+    UASSERT(!ec);
+  }
+  // not else, catch all errors
+  if (ec) {
+    orig_url_str_.clear();
+  }
+}
+
+const std::string& easy::get_original_url() const { return orig_url_str_; }
 
 void easy::set_post_fields(const std::string& post_fields) {
   std::error_code ec;
@@ -555,8 +576,8 @@ size_t easy::read_function(void* ptr, size_t size, size_t nmemb,
 
 int easy::seek_function(void* instream, native::curl_off_t offset,
                         int origin) noexcept {
-  // TODO we could allow the user to define an offset which this library should
-  // consider as position zero for uploading chunks of the file
+  // TODO we could allow the user to define an offset which this library
+  // should consider as position zero for uploading chunks of the file
   // alternatively do tellg() on the source stream when it is first passed to
   // use_source() and use that as origin
 
@@ -599,15 +620,28 @@ int easy::xferinfo_function(void* clientp, native::curl_off_t dltotal,
 native::curl_socket_t easy::opensocket(
     void* clientp, native::curlsocktype purpose,
     struct native::curl_sockaddr* address) noexcept {
+  static constexpr std::string_view kHttpsScheme = "https";
+
   easy* self = static_cast<easy*>(clientp);
   multi* multi_handle = self->multi_;
   native::curl_socket_t s = -1;
 
   if (multi_handle) {
-    bool is_https = boost::algorithm::istarts_with(self->url_, "https://");
+    std::error_code ec;
+    const auto scheme_ptr = self->url_.GetSchemePtr(ec);
+    if (ec || !scheme_ptr) {
+      LOG_INFO() << "Cannot retrieve scheme from the URL: " << ec;
+      UASSERT_MSG(false, "Cannot retrieve scheme from URL: " + ec.message());
+    }
+    auto url = self->get_effective_url(ec);
+    if (ec || url.empty()) {
+      LOG_DEBUG() << "Cannot get effective url: " << ec;
+      UASSERT_MSG(false, "Cannot get effective url: " + ec.message());
+    }
     bool is_under_ratelimit =
-        is_https ? multi_handle->MayAcquireConnectionHttps(self->url_)
-                 : multi_handle->MayAcquireConnectionHttp(self->url_);
+        utils::StrIcaseEqual{}(scheme_ptr.get(), kHttpsScheme)
+            ? multi_handle->MayAcquireConnectionHttps(url)
+            : multi_handle->MayAcquireConnectionHttp(url);
     if (is_under_ratelimit) {
       LOG_TRACE() << "not throttled";
     } else {

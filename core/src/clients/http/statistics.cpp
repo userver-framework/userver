@@ -56,7 +56,7 @@ Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
     return ErrorGroup::kUnknown;
 
   switch (static_cast<ErrorCode>(ec.value())) {
-    case ErrorCode::kCouldNotResovleHost:
+    case ErrorCode::kCouldNotResolveHost:
       return ErrorGroup::kHostResolutionFailed;
 
     case ErrorCode::kOperationTimedout:

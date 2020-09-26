@@ -198,7 +198,7 @@ const DestinationStatistics& Client::GetDestinationStatistics() const {
   return *destination_statistics_;
 }
 
-void Client::PushIdleEasy(std::shared_ptr<curl::easy> easy) noexcept {
+void Client::PushIdleEasy(std::shared_ptr<curl::easy>&& easy) noexcept {
   try {
     easy->reset();
     idle_queue_->enqueue(std::move(easy));

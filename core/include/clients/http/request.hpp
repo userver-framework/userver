@@ -37,9 +37,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Request cookies container type
   using Cookies = std::unordered_map<std::string, std::string>;
 
-  explicit Request(std::shared_ptr<impl::EasyWrapper>,
-                   std::shared_ptr<RequestStats> req_stats,
-                   std::shared_ptr<DestinationStatistics> dest_stats);
+  explicit Request(std::shared_ptr<impl::EasyWrapper>&&,
+                   std::shared_ptr<RequestStats>&& req_stats,
+                   const std::shared_ptr<DestinationStatistics>& dest_stats);
 
   /// Specifies method
   std::shared_ptr<Request> method(HttpMethod method);
@@ -123,14 +123,12 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Useful to proxy replies 'as is'.
   std::shared_ptr<Request> DisableReplyDecoding();
 
-  /// Perform request async, after completing callack will be called
-  /// or it can be waiting on a future.
+  /// Perform request asynchronously
   [[nodiscard]] ResponseFuture async_perform();
 
   /// Calls async_perform and wait for timeout_ms on a future. Default time
   /// for waiting will be timeout value if it was setted. If error occured it
   /// will be thrown as exception.
-
   [[nodiscard]] std::shared_ptr<Response> perform();
 
   /// Get Response class

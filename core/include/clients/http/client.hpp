@@ -84,7 +84,7 @@ class Client {
   friend class impl::EasyWrapper;
   void IncPending() noexcept { ++pending_tasks_; }
   void DecPending() noexcept { --pending_tasks_; }
-  void PushIdleEasy(std::shared_ptr<curl::easy> easy) noexcept;
+  void PushIdleEasy(std::shared_ptr<curl::easy>&& easy) noexcept;
 
   std::shared_ptr<curl::easy> TryDequeueIdle() noexcept;
 

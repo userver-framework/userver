@@ -41,4 +41,5 @@ inline void throw_error(std::error_code ec, const char* s) {
 }
 
 #define PP_STRINGIZE(x) #x
-#define PP_CONCAT(a, b) a##b
+#define PP_CONCAT2(a, b) a##b
+#define PP_CONCAT3(a, b, c) a##b##c

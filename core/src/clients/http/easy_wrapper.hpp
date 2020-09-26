@@ -12,7 +12,7 @@ namespace clients::http::impl {
 
 class EasyWrapper final {
  public:
-  EasyWrapper(std::shared_ptr<curl::easy> easy, Client& client);
+  EasyWrapper(std::shared_ptr<curl::easy>&& easy, Client& client);
 
   EasyWrapper(const EasyWrapper&) = delete;
   EasyWrapper(EasyWrapper&&) = delete;

@@ -34,7 +34,7 @@ std::exception_ptr PrepareException(std::error_code ec, std::string_view url,
         BaseCodeException(ec, "Unknown exception", url, stats));
 
   switch (static_cast<ErrorCode>(ec.value())) {
-    case ErrorCode::kCouldNotResovleHost:
+    case ErrorCode::kCouldNotResolveHost:
       return std::make_exception_ptr(
           DNSProblemException(ec, "DNS problem", url, stats));
 

@@ -74,6 +74,54 @@ class FormErrorCategory final : public std::error_category {
   }
 };
 
+class UrlErrorCategory final : public std::error_category {
+ public:
+  using std::error_category::error_category;
+
+  const char* name() const noexcept override { return "curl-url"; }
+
+  std::string message(int ev) const override {
+    switch (static_cast<UrlErrorCode>(ev)) {
+      case UrlErrorCode::kSuccess:
+        return "no error";
+      case UrlErrorCode::kBadHandle:
+        return "a null pointer was given for a URL handle";
+      case UrlErrorCode::kBadPartpointer:
+        return "a null pointer war given as a 'part' argument";
+      case UrlErrorCode::kMalformedInput:
+        return "malformed input";
+      case UrlErrorCode::kBadPortNumber:
+        return "invalid port number";
+      case UrlErrorCode::kUnsupportedScheme:
+        return "this build of curl does not support the requested scheme";
+      case UrlErrorCode::kUrldecode:
+        return "URL decoding error";
+      case UrlErrorCode::kOutOfMemory:
+        return "memory allocation failed";
+      case UrlErrorCode::kUserNotAllowed:
+        return "credentials are not allowed in the URL";
+      case UrlErrorCode::kUnknownPart:
+        return "unknown URL part requested";
+      case UrlErrorCode::kNoScheme:
+        return "URL scheme was not specified";
+      case UrlErrorCode::kNoUser:
+        return "URL does not contain user part";
+      case UrlErrorCode::kNoPassword:
+        return "URL does not contain password part";
+      case UrlErrorCode::kNoOptions:
+        return "URL does not contain options part";
+      case UrlErrorCode::kNoHost:
+        return "URL does not contain host";
+      case UrlErrorCode::kNoPort:
+        return "URL does not contain port";
+      case UrlErrorCode::kNoQuery:
+        return "URL does not contain query part";
+      case UrlErrorCode::kNoFragment:
+        return "URL does not contain fragment part";
+    }
+  }
+};
+
 const std::error_category& GetEasyCategory() noexcept {
   static const EasyErrorCategory kEasyCategory;
   return kEasyCategory;
@@ -92,6 +140,11 @@ const std::error_category& GetShareCategory() noexcept {
 const std::error_category& GetFormCategory() noexcept {
   static const FormErrorCategory kFormCategory;
   return kFormCategory;
+}
+
+const std::error_category& GetUrlCategory() noexcept {
+  static const UrlErrorCategory kUrlCategory;
+  return kUrlCategory;
 }
 
 }  // namespace curl::errc

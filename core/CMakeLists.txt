@@ -56,7 +56,7 @@ find_package(Helpergtest REQUIRED)
 find_package(Helpergbench REQUIRED)
 find_package(Helperspdlog REQUIRED)
 find_package_required_version(CurlYandex
-  "libyandex-taxi-curl4-openssl-dev (>= 7.68.0-6)"
+  "libyandex-taxi-curl4-openssl-dev (>= 7.68.0-9)"
   7.68.0)
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)

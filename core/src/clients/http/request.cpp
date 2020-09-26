@@ -7,6 +7,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <system_error>
 
 #include <openssl/ssl.h>
 #include <boost/algorithm/string.hpp>
@@ -36,6 +37,8 @@
 namespace clients::http {
 
 namespace {
+/// Default timeout
+constexpr auto kDefaultTimeout = std::chrono::milliseconds{100};
 /// Maximum number of redirects
 constexpr long kMaxRedirectCount = 10;
 /// Max number of retries during calculating timeout
@@ -136,9 +139,9 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
 class Request::RequestImpl
     : public std::enable_shared_from_this<Request::RequestImpl> {
  public:
-  RequestImpl(std::shared_ptr<impl::EasyWrapper>,
-              std::shared_ptr<RequestStats> req_stats,
-              std::shared_ptr<DestinationStatistics> dest_stats);
+  RequestImpl(std::shared_ptr<impl::EasyWrapper>&&,
+              std::shared_ptr<RequestStats>&& req_stats,
+              const std::shared_ptr<DestinationStatistics>& dest_stats);
 
   /// Perform async http request
   engine::impl::BlockingFuture<std::shared_ptr<Response>> async_perform();
@@ -262,11 +265,11 @@ long complete_timeout(long request_timeout, int retries) {
 
 // Request implementation
 
-Request::Request(std::shared_ptr<impl::EasyWrapper> wrapper,
-                 std::shared_ptr<RequestStats> req_stats,
-                 std::shared_ptr<DestinationStatistics> dest_stats)
+Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
+                 std::shared_ptr<RequestStats>&& req_stats,
+                 const std::shared_ptr<DestinationStatistics>& dest_stats)
     : pimpl_(std::make_shared<Request::RequestImpl>(
-          std::move(wrapper), std::move(req_stats), std::move(dest_stats))) {
+          std::move(wrapper), std::move(req_stats), dest_stats)) {
   LOG_DEBUG() << "Request::Request()";
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);
@@ -288,8 +291,11 @@ ResponseFuture Request::async_perform() {
 std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }
 
 std::shared_ptr<Request> Request::url(const std::string& url) {
+  std::error_code ec;
+  pimpl_->easy().set_url(url, ec);
+  if (ec) throw BadArgumentException(ec, "Bad URL", url, {});
+
   pimpl_->SetDestinationMetricNameAuto(::http::ExtractMetaTypeFromUrl(url));
-  pimpl_->easy().set_url(url);
   return shared_from_this();
 }
 
@@ -476,13 +482,15 @@ void Request::RequestImpl::SetDestinationMetricNameAuto(
 // RequestImpl implementation
 
 Request::RequestImpl::RequestImpl(
-    std::shared_ptr<impl::EasyWrapper> wrapper,
-    std::shared_ptr<RequestStats> req_stats,
-    std::shared_ptr<DestinationStatistics> dest_stats)
+    std::shared_ptr<impl::EasyWrapper>&& wrapper,
+    std::shared_ptr<RequestStats>&& req_stats,
+    const std::shared_ptr<DestinationStatistics>& dest_stats)
     : easy_(std::move(wrapper)),
       stats_(std::move(req_stats)),
-      dest_stats_(std::move(dest_stats)),
-      timeout_ms_(0),
+      dest_stats_(dest_stats),
+      timeout_ms_(
+          std::chrono::duration_cast<std::chrono::milliseconds>(kDefaultTimeout)
+              .count()),
       disable_reply_decoding_(false) {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
@@ -755,7 +763,8 @@ Request::RequestImpl::async_perform() {
   easy().add_header(::http::headers::kXYaSpanId, span_->GetSpanId());
   easy().add_header(::http::headers::kXYaTraceId, span_->GetTraceId());
   easy().add_header(::http::headers::kXYaRequestId, span_->GetLink());
-  span_->AddTag(tracing::kHttpUrl, std::string{easy().get_effective_url()});
+  // effective url is not available yet
+  span_->AddTag(tracing::kHttpUrl, easy().get_original_url());
 
   ApplyTestsuiteConfig();
 
@@ -812,7 +821,7 @@ void Request::RequestImpl::ApplyTestsuiteConfig() {
 
   const auto& prefixes = testsuite_config_->allowed_url_prefixes;
   if (!prefixes.empty()) {
-    auto url = easy().get_effective_url();
+    auto url = easy().get_original_url();
     if (std::find_if(prefixes.begin(), prefixes.end(),
                      [&url](const std::string& prefix) {
                        return boost::starts_with(url, prefix);
