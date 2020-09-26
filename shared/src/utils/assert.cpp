@@ -29,3 +29,16 @@ void LogAndThrowInvariantError(const std::string& error) {
 }
 
 }  // namespace utils
+
+// Function definitions for defined BOOST_ENABLE_ASSERT_HANDLER
+namespace boost {
+void assertion_failed(char const* expr, char const* function, char const* file,
+                      long line) {
+  utils::UASSERT_failed(expr, file, line, function, {});
+}
+
+void assertion_failed_msg(char const* expr, char const* msg,
+                          char const* function, char const* file, long line) {
+  utils::UASSERT_failed(expr, file, line, function, msg);
+}
+}  // namespace boost
