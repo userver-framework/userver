@@ -276,6 +276,16 @@ struct Response301WithHeader {
   }
 };
 
+struct Response503WithConnDrop {
+  HttpResponse operator()(const HttpRequest&) const {
+    return {
+        "HTTP/1.1 503 Service Unavailable\r\n"
+        "Content-Length: 0\r\n"
+        "\r\n ",
+        HttpResponse::kWriteAndClose};
+  }
+};
+
 struct CheckCookie {
   const std::set<std::string> expected_cookies;
 
@@ -751,5 +761,22 @@ TEST(HttpClient, BadUrl) {
                  clients::http::BadArgumentException);
     EXPECT_THROW(check("http://localhost:abcd/"),
                  clients::http::BadArgumentException);
+  });
+}
+
+TEST(HttpClient, Retry) {
+  TestInCoro([] {
+    auto http_client_ptr = utest::CreateHttpClient();
+    const testing::SimpleServer unavail_server{Response503WithConnDrop{}};
+
+    auto response = http_client_ptr->CreateRequest()
+                        ->get(unavail_server.GetBaseUrl())
+                        ->timeout(kTimeout)
+                        ->retry(3)
+                        ->perform();
+
+    EXPECT_FALSE(response->IsOk());
+    EXPECT_EQ(503, response->status_code());
+    EXPECT_EQ(2, response->GetStats().retries_count);
   });
 }
