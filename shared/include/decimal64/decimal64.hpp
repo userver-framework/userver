@@ -862,21 +862,6 @@ class Decimal {
     return {value_ / kDecimalFactor, value_ % kDecimalFactor};
   }
 
-  template <typename T, impl::EnableIfFloat<T> = 0>
-  [
-      [deprecated("Construct from string or use "
-                  "FromFloatInexact")]] constexpr explicit Decimal(T value)
-      : Decimal(FromFloatInexact(value)) {}
-
-  [[deprecated("Use ToDoubleInexact")]] constexpr double ToDouble() const {
-    return ToDoubleInexact();
-  }
-
-  [[deprecated("Use ToDoubleInexact")]] constexpr long double ToLongDouble()
-      const {
-    return static_cast<long double>(value_) / kDecimalFactor;
-  }
-
  private:
   template <typename T>
   static constexpr Decimal FromIntegerImpl(T value) {
@@ -907,45 +892,6 @@ constexpr T decimal_cast(Decimal<OldPrec, OldRound> arg) {
 template <int Prec, int OldPrec, typename Round>
 constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, Round> arg) {
   return Decimal<Prec, Round>::FromBiased(arg.AsUnbiased(), OldPrec);
-}
-
-template <int Prec, typename Round, int OldPrec, typename OldRound>
-[
-    [deprecated("Use decimal_cast taking a single Decimal type "
-                "parameter")]] constexpr Decimal<Prec, Round>
-decimal_cast(Decimal<OldPrec, OldRound> arg) {
-  return decimal_cast<Decimal<Prec, Round>>(arg);
-}
-
-template <int Prec, typename T, impl::EnableIfInt<T> = 0>
-[[deprecated("Use the constructor")]] constexpr Decimal<Prec> decimal_cast(
-    T arg) {
-  return Decimal<Prec>(arg);
-}
-
-template <int Prec, typename RoundPolicy, typename T, impl::EnableIfInt<T> = 0>
-[[deprecated("Use the constructor")]] constexpr Decimal<Prec, RoundPolicy>
-decimal_cast(T arg) {
-  return Decimal<Prec, RoundPolicy>(arg);
-}
-
-template <int Prec, typename T, impl::EnableIfFloat<T> = 0>
-[[deprecated("Use FromFloatInexact")]] constexpr Decimal<Prec> decimal_cast(
-    T arg) {
-  return Decimal<Prec>::FromFloatInexact(arg);
-}
-
-template <int Prec, typename RoundPolicy, typename T,
-          impl::EnableIfFloat<T> = 0>
-[[deprecated("Use FromFloatInexact")]] constexpr Decimal<Prec, RoundPolicy>
-decimal_cast(T arg) {
-  return Decimal<Prec, RoundPolicy>::FromFloatInexact(arg);
-}
-
-template <int Prec, typename RoundPolicy = DefRoundPolicy>
-[[deprecated("Use the constructor")]] constexpr Decimal<Prec, RoundPolicy>
-decimal_cast(std::string_view arg) {
-  return Decimal<Prec, RoundPolicy>(arg);
 }
 
 class ParseError : public std::runtime_error {
@@ -1408,37 +1354,6 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
                                const Decimal<Prec, RoundPolicy>& d) {
   lh << ToString(d);
   return lh;
-}
-
-template <int Prec, typename RoundPolicy>
-[[deprecated("Use Decimal::FromStringPermissive")]] bool fromString(
-    std::string_view input, Decimal<Prec, RoundPolicy>& output) {
-  try {
-    output = Decimal<Prec, RoundPolicy>::FromStringPermissive(input);
-    return true;
-  } catch (const ParseError& e) {
-    return false;
-  }
-}
-
-template <typename T>
-[[deprecated("Use Decimal::FromStringPermissive")]] T fromString(
-    std::string_view str) {
-  static_assert(impl::IsDecimal<T>::value);
-  return T::FromStringPermissive(str);
-}
-
-template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
-[[deprecated("Use operator>>")]] bool fromStream(
-    std::basic_istream<CharT, Traits>& is, Decimal<Prec, RoundPolicy>& d) {
-  is >> d;
-  return !is.fail();
-}
-
-template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
-[[deprecated("Use operator<<")]] void toStream(
-    std::basic_ostream<CharT, Traits>& os, Decimal<Prec, RoundPolicy> d) {
-  os << d;
 }
 
 // Serialization
