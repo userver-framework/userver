@@ -41,8 +41,7 @@ file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 )
 file(GLOB_RECURSE LIBUBENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/benchmark/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/benchmark/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/core_benchmark.cpp
 )
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
 
