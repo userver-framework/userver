@@ -8,9 +8,11 @@ namespace impl {
 struct LoggerStub {};
 
 template <typename T>
-inline LoggerStub operator<<(LoggerStub, T&&) { return {}; }
+inline LoggerStub operator<<(LoggerStub, T&&) {
+  return {};
+}
 
-} // namespace impl
+}  // namespace impl
 
 inline void LogFlush() {}
 
@@ -20,11 +22,18 @@ inline void LogFlush() {}
 #error "Attempt to stub out logging implementation"
 #endif
 
-#define LOG(lvl) ::logging::impl::LoggerStub{}
+#define LOG(lvl) \
+  ::logging::impl::LoggerStub {}
 
-#define LOG_TRACE() ::logging::impl::LoggerStub{}
-#define LOG_DEBUG() ::logging::impl::LoggerStub{}
-#define LOG_INFO() ::logging::impl::LoggerStub{}
-#define LOG_WARNING() ::logging::impl::LoggerStub{}
-#define LOG_ERROR() ::logging::impl::LoggerStub{}
-#define LOG_CRITICAL() ::logging::impl::LoggerStub{}
+#define LOG_TRACE() \
+  ::logging::impl::LoggerStub {}
+#define LOG_DEBUG() \
+  ::logging::impl::LoggerStub {}
+#define LOG_INFO() \
+  ::logging::impl::LoggerStub {}
+#define LOG_WARNING() \
+  ::logging::impl::LoggerStub {}
+#define LOG_ERROR() \
+  ::logging::impl::LoggerStub {}
+#define LOG_CRITICAL() \
+  ::logging::impl::LoggerStub {}

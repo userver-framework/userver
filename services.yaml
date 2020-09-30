@@ -5,3 +5,7 @@ linters:
     jsonfmt:
         disable-paths-wildcards:
           - .mypy_cache/*
+    clang-format:
+        disable-paths-wildcards:
+          - third_party/*
+          - uboost_coro/*

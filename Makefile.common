@@ -39,6 +39,7 @@ PYTHON3_BIN_DIR = $(wildcard /usr/lib/yandex/taxi-py3-2/bin/)
 CLANG_TIDY_BINARY ?= clang-tidy-7
 CHANGED_DIRS ?= $(CMAKE_DIR)
 TEAMCITY_LINT_JOBS_COUNT ?= 10
+FORMATTERS = black eolfmt jsonfmt yamlfmt
 
 ifeq ($(CXX),clang++-7)
 ifeq ($(shell which llvm-symbolizer),)
@@ -132,14 +133,6 @@ utest:
 	@$(MAKE) build
 	@cd $(BUILD_DIR) && ctest -V -R '_unittest$$'
 
-.PHONY: clang-format
-clang-format:
-	@tools/smart-clang-format.sh --all
-
-.PHONY: smart-clang-format
-smart-clang-format:
-	@tools/smart-clang-format.sh
-
 .PHONY: clang-tidy
 clang-tidy: cmake
 	@tools/run-clang-tidy-7 -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
@@ -160,43 +153,43 @@ smart-check-pep8:
 teamcity-check-pep8:
 	@${PYTHON3_BIN_DIR}check-pep8 --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
-.PHONY: taxi-black
-taxi-black:
-	@taxi-black --quiet .
-
-.PHONY: smart-taxi-black
-smart-taxi-black:
-	@taxi-black --smart --quiet .
-
-.PHONY: taxi-yamlfmt
-taxi-yamlfmt:
-	@taxi-yamlfmt .
-
-.PHONY: smart-taxi-yamlfmt
-smart-taxi-yamlfmt:
-	@taxi-yamlfmt --smart -- .
-
-.PHONY: taxi-jsonfmt
-taxi-jsonfmt:
-	@taxi-jsonfmt .
-
-.PHONY: smart-taxi-jsonfmt
-smart-taxi-jsonfmt:
-	@taxi-jsonfmt --smart -- .
-
-.PHONY: taxi-eolfmt
-taxi-eolfmt:
-	@taxi-eolfmt .
-
-.PHONY: smart-taxi-eolfmt
-smart-taxi-eolfmt:
-	@taxi-eolfmt --smart -- .
-
 .PHONY: format
-format: clang-format taxi-eolfmt taxi-black taxi-yamlfmt taxi-jsonfmt
+format:
+ifneq ($(shell which taxi-clang-format),)
+	@taxi-format .
+else
+	@echo "Formatting... (There is new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)"
+	@$(MAKE) -s $(foreach fmt,$(FORMATTERS),taxi-$(fmt)) clang-format
+endif
 
 .PHONY: smart-format
-smart-format: smart-clang-format smart-taxi-eolfmt smart-taxi-black smart-taxi-yamlfmt smart-taxi-jsonfmt
+smart-format:
+ifneq ($(shell which taxi-clang-format),)
+	@taxi-format --smart .
+else
+	@echo "Formatting... (There is new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)"
+	@$(MAKE) -s $(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)) smart-clang-format
+endif
+
+.PHONY: teamcity-format
+teamcity-format:
+	@taxi-format --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
+
+# legacy
+$(foreach fmt,$(FORMATTERS),taxi-$(fmt)): taxi-%:
+	@taxi-$* -q -- .
+
+$(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)): smart-taxi-%:
+	@taxi-$* --smart -q -- .
+
+.PHONY: clang-format
+clang-format:
+	@tools/smart-clang-format.sh --all
+
+.PHONY: smart-clang-format
+smart-clang-format:
+	@tools/smart-clang-format.sh
+
 
 .PHONY: docs
 docs:
