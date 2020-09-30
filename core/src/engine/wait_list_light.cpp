@@ -13,22 +13,24 @@ WaitListLight::Lock::operator bool() {
   return true;
 }
 
-WaitListLight::~WaitListLight() = default;
-
-void WaitListLight::PinToCurrentTask() {
 #ifndef NDEBUG
+WaitListLight::SingleUserGuard::SingleUserGuard(WaitListLight& wait_list)
+    : wait_list_(wait_list) {
   auto task = engine::current_task::GetCurrentTaskContext();
   UASSERT(task);
-  PinToTask(*task);
-#endif
+  UASSERT(!wait_list_.owner_);
+  wait_list_.owner_ = task;
 }
 
-void WaitListLight::PinToTask([[maybe_unused]] impl::TaskContext& ctx) {
-#ifndef NDEBUG
-  UASSERT(!owner_ || owner_ == &ctx);
-  owner_ = &ctx;
-#endif
+WaitListLight::SingleUserGuard::~SingleUserGuard() {
+  auto task = engine::current_task::GetCurrentTaskContext();
+  UASSERT(task);
+  UASSERT(wait_list_.owner_ == task);
+  wait_list_.owner_ = nullptr;
 }
+#endif
+
+WaitListLight::~WaitListLight() = default;
 
 bool WaitListLight::IsEmpty(WaitListBase::Lock&) const { return waiting_; }
 

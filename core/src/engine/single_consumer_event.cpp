@@ -54,7 +54,7 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
     return is_signaled_.exchange(false, std::memory_order_relaxed);
 
   LOG_TRACE() << "WaitForEvent()";
-  lock_waiters_->PinToCurrentTask();
+  impl::WaitListLight::SingleUserGuard guard(*lock_waiters_);
   impl::EventWaitStrategy wait_manager(*lock_waiters_, is_signaled_, current,
                                        deadline);
 

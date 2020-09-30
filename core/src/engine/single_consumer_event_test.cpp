@@ -147,3 +147,24 @@ TEST(SingleConsumerEvent, Multithread) {
       },
       threads);
 }
+
+TEST(SingleConsumerEvent, PassBetweenTasks) {
+  constexpr size_t kIterations = 4;
+
+  RunInCoro([] {
+    engine::SingleConsumerEvent task_started;
+    engine::SingleConsumerEvent event;
+
+    for (size_t i = 0; i < kIterations; ++i) {
+      auto task = engine::impl::Async([&event, &task_started] {
+        task_started.Send();
+        EXPECT_TRUE(event.WaitForEventFor(kMaxTestWaitTime));
+      });
+      ASSERT_TRUE(task_started.WaitForEventFor(kMaxTestWaitTime));
+      event.Send();
+      task.WaitFor(kMaxTestWaitTime);
+      EXPECT_TRUE(task.IsFinished());
+      EXPECT_NO_THROW(task.Get());
+    }
+  });
+}

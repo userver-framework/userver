@@ -17,6 +17,19 @@ class WaitListLight final : public WaitListBase {
     void Release() override {}
   };
 
+  class SingleUserGuard final {
+   public:
+#ifdef NDEBUG
+    SingleUserGuard(WaitListLight&) {}
+#else
+    SingleUserGuard(WaitListLight&);
+    ~SingleUserGuard();
+
+   private:
+    WaitListLight& wait_list_;
+#endif
+  };
+
   ~WaitListLight() final;
 
   WaitListLight() = default;
@@ -24,9 +37,6 @@ class WaitListLight final : public WaitListBase {
   WaitListLight(WaitListLight&&) = delete;
   WaitListLight& operator=(const WaitListLight&) = delete;
   WaitListLight& operator=(WaitListLight&&) = delete;
-
-  void PinToCurrentTask();
-  void PinToTask(impl::TaskContext& ctx);
 
   bool IsEmpty(WaitListBase::Lock&) const override;
 
