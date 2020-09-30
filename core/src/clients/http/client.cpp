@@ -10,6 +10,7 @@
 #include <logging/log.hpp>
 #include <utils/async.hpp>
 
+#include <clients/http/config.hpp>
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/openssl.hpp>
@@ -29,18 +30,6 @@ long ClampToLong(size_t value) {
 }
 
 }  // namespace
-
-std::shared_ptr<Client> Client::Create(
-    const std::string& thread_name_prefix, size_t io_threads,
-    engine::TaskProcessor& fs_task_processor) {
-  struct EmplaceEnabler : public Client {
-    EmplaceEnabler(const std::string& thread_name_prefix, size_t io_threads,
-                   engine::TaskProcessor& fs_task_processor)
-        : Client(thread_name_prefix, io_threads, fs_task_processor) {}
-  };
-  return std::make_shared<EmplaceEnabler>(thread_name_prefix, io_threads,
-                                          fs_task_processor);
-}
 
 Client::Client(const std::string& thread_name_prefix, size_t io_threads,
                engine::TaskProcessor& fs_task_processor)
@@ -139,18 +128,6 @@ void Client::SetMaxHostConnections(size_t max_host_connections) {
   }
 }
 
-void Client::SetConnectionPoolSize(size_t connection_pool_size) {
-  const auto pool_size = ClampToLong(connection_pool_size / multis_.size());
-  if (pool_size * multis_.size() != connection_pool_size) {
-    LOG_DEBUG() << "SetConnectionPoolSize() rounded pool size for each multi ("
-                << connection_pool_size << "/" << multis_.size()
-                << " rounded to " << pool_size << ")";
-  }
-  for (auto& multi : multis_) {
-    multi->SetConnectionCacheSize(pool_size);
-  }
-}
-
 void Client::ReinitEasy() {
   easy_.Set(utils::CriticalAsync(fs_task_processor_, "http_easy_reinit",
                                  &curl::easy::Create)
@@ -222,16 +199,24 @@ void Client::SetTestsuiteConfig(const TestsuiteConfig& config) {
   testsuite_config_ = std::make_shared<const TestsuiteConfig>(config);
 }
 
-void Client::SetConnectRatelimitHttp(
-    size_t max_size, utils::TokenBucket::Duration token_update_interval) {
-  http_connect_ratelimit_->SetMaxSize(max_size);
-  http_connect_ratelimit_->SetUpdateInterval(token_update_interval);
-}
+void Client::SetConfig(const Config& config) {
+  const auto pool_size =
+      ClampToLong(config.connection_pool_size / multis_.size());
+  if (pool_size * multis_.size() != config.connection_pool_size) {
+    LOG_DEBUG() << "SetConnectionPoolSize() rounded pool size for each multi ("
+                << config.connection_pool_size << "/" << multis_.size()
+                << " rounded to " << pool_size << ")";
+  }
+  for (auto& multi : multis_) {
+    multi->SetConnectionCacheSize(pool_size);
+  }
 
-void Client::SetConnectRatelimitHttps(
-    size_t max_size, utils::TokenBucket::Duration token_update_interval) {
-  https_connect_ratelimit_->SetMaxSize(max_size);
-  https_connect_ratelimit_->SetUpdateInterval(token_update_interval);
+  http_connect_ratelimit_->SetMaxSize(config.http_connect_throttle_max_size);
+  http_connect_ratelimit_->SetUpdateInterval(
+      config.http_connect_throttle_update_interval);
+  https_connect_ratelimit_->SetMaxSize(config.https_connect_throttle_max_size);
+  https_connect_ratelimit_->SetUpdateInterval(
+      config.https_connect_throttle_update_interval);
 }
 
 }  // namespace clients::http

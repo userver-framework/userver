@@ -5,7 +5,7 @@
 namespace utest {
 
 std::shared_ptr<clients::http::Client> CreateHttpClient() {
-  return clients::http::Client::Create(
+  return std::make_shared<clients::http::Client>(
       "", 1, engine::current_task::GetTaskProcessor());
 }
 

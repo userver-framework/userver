@@ -21,7 +21,6 @@
 #include <engine/async.hpp>
 #include <logging/log.hpp>
 #include <server/net/listener_impl.hpp>
-#include <utils/str_icase.hpp>
 #include <utils/strerror.hpp>
 
 namespace curl {
@@ -627,29 +626,18 @@ int easy::xferinfo_function(void* clientp, native::curl_off_t dltotal,
 native::curl_socket_t easy::opensocket(
     void* clientp, native::curlsocktype purpose,
     struct native::curl_sockaddr* address) noexcept {
-  static constexpr std::string_view kHttpsScheme = "https";
-
   easy* self = static_cast<easy*>(clientp);
   multi* multi_handle = self->multi_;
   native::curl_socket_t s = -1;
 
   if (multi_handle) {
     std::error_code ec;
-    const auto scheme_ptr = self->url_.GetSchemePtr(ec);
-    if (ec || !scheme_ptr) {
-      LOG_INFO() << "Cannot retrieve scheme from the URL: " << ec;
-      UASSERT_MSG(false, "Cannot retrieve scheme from URL: " + ec.message());
-    }
     auto url = self->get_effective_url(ec);
     if (ec || url.empty()) {
       LOG_DEBUG() << "Cannot get effective url: " << ec;
       UASSERT_MSG(false, "Cannot get effective url: " + ec.message());
     }
-    bool is_under_ratelimit =
-        utils::StrIcaseEqual{}(scheme_ptr.get(), kHttpsScheme)
-            ? multi_handle->MayAcquireConnectionHttps(url)
-            : multi_handle->MayAcquireConnectionHttp(url);
-    if (is_under_ratelimit) {
+    if (multi_handle->MayAcquireConnection(url.data())) {
       LOG_TRACE() << "not throttled";
     } else {
       multi_handle->Statistics().mark_socket_ratelimited();

@@ -189,14 +189,14 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
   auto& tp = engine::current_task::GetTaskProcessor();
-  auto http_client = http::Client::Create("", config.io_threads, tp);
+  http::Client http_client{"", config.io_threads, tp};
   LOG_INFO() << "Client created";
 
-  http_client->SetMultiplexingEnabled(config.multiplexing);
+  http_client.SetMultiplexingEnabled(config.multiplexing);
   if (config.max_host_connections > 0)
-    http_client->SetMaxHostConnections(config.max_host_connections);
+    http_client.SetMaxHostConnections(config.max_host_connections);
 
-  WorkerContext worker_context{{0},    2000, 0, std::ref(*http_client),
+  WorkerContext worker_context{{0},    2000, 0, std::ref(http_client),
                                config, urls};
 
   std::vector<engine::TaskWithResult<void>> tasks;
@@ -220,7 +220,6 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_CRITICAL() << "counter = " << worker_context.counter.load()
                  << " sum response body size = " << worker_context.response_len
                  << " average RPS = " << rps;
-  http_client.reset();
 }
 
 int main(int argc, char* argv[]) {

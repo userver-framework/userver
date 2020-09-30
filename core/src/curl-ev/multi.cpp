@@ -7,6 +7,7 @@
 */
 
 #include <cstring>
+#include <string_view>
 #include <system_error>
 
 #include <curl-ev/easy.hpp>
@@ -21,6 +22,7 @@
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <engine/task/task_processor.hpp>
 #include <utils/assert.hpp>
+#include <utils/str_icase.hpp>
 
 namespace curl {
 
@@ -37,14 +39,6 @@ const char* GetSetterName(native::CURLMoption option) {
     default:
       return "<unknown setter>";
   }
-}
-
-void WarnThrottled(std::string_view url, const utils::TokenBucket& tb) {
-  LOG_WARNING() << "Socket creation throttled (url=" << url
-                << ", rate=" << tb.GetRatePs()
-                << "/sec"
-                // << ", tokens=" << tb.GetTokensApprox()
-                << ")";
 }
 
 }  // namespace
@@ -141,15 +135,41 @@ void multi::UnbindEasySocket(native::curl_socket_t s) {
   si->handle = nullptr;
 }
 
-bool multi::MayAcquireConnectionHttp(std::string_view url) {
-  bool ok = connect_ratelimit_http_->Obtain();
-  if (!ok) WarnThrottled(url, *connect_ratelimit_http_);
-  return ok;
-}
+bool multi::MayAcquireConnection(const char* url_str) {
+  static constexpr std::string_view kHttpsScheme = "https";
 
-bool multi::MayAcquireConnectionHttps(std::string_view url) {
-  bool ok = connect_ratelimit_https_->Obtain();
-  if (!ok) WarnThrottled(url, *connect_ratelimit_https_);
+  auto* global_token_bucket = connect_ratelimit_http_.get();
+
+  if (url_str) {
+    std::error_code ec;
+    curl::url url;
+    url.SetUrl(url_str, ec);
+    if (!ec) {
+      const auto scheme_ptr = url.GetSchemePtr(ec);
+      if (ec || !scheme_ptr) {
+        LOG_INFO() << "Cannot retrieve scheme from the URL: " << ec;
+        UASSERT_MSG(false, "Cannot retrieve scheme from URL: " + ec.message());
+      }
+      if (utils::StrIcaseEqual{}(scheme_ptr.get(), kHttpsScheme)) {
+        global_token_bucket = connect_ratelimit_https_.get();
+      }
+    } else {
+      LOG_WARNING() << "Cannot parse URL in throttle check: " << ec;
+      UASSERT_MSG(false, "Cannot parse URL in throttle check: " + ec.message());
+    }
+  } else {
+    LOG_WARNING() << "Empty URL in throttle check";
+    UASSERT_MSG(false, "Empty URL in throttle check");
+  }
+  UASSERT(global_token_bucket);
+  bool ok = global_token_bucket->Obtain();
+  if (!ok) {
+    LOG_WARNING() << "Socket creation hit global rate limit (url=" << url_str
+                  << ", rate=" << global_token_bucket->GetRatePs()
+                  << "/sec"
+                  // << ", tokens=" << tb.GetTokensApprox()
+                  << ")";
+  }
   return ok;
 }
 

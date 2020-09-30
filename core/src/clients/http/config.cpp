@@ -36,8 +36,7 @@ void ParseTokenBucketSettings(const formats::json::Value& settings,
 }  // namespace
 
 Config::Config(const DocsMap& docs_map)
-    : threads("HTTP_CLIENT_THREADS", docs_map),
-      connection_pool_size("HTTP_CLIENT_CONNECTION_POOL_SIZE", docs_map),
+    : connection_pool_size("HTTP_CLIENT_CONNECTION_POOL_SIZE", docs_map),
       http_connect_throttle_max_size(kNoLimit),
       http_connect_throttle_update_interval(0),
       https_connect_throttle_max_size(kNoLimit),

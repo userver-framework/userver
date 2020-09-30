@@ -2,14 +2,12 @@
 
 #include <memory>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 class Client;
-}
-}  // namespace clients
+}  // namespace clients::http
 
 namespace utest {
 
 std::shared_ptr<clients::http::Client> CreateHttpClient();
 
-}
+}  // namespace utest

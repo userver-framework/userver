@@ -424,8 +424,6 @@ TEST(HttpClient, PostShutdownWithPendingRequest) {
           ->timeout(kTimeout)
           ->async_perform()
           .Detach();  // Do not do like this in production code!
-
-    http_client_ptr.reset();
   });
 }
 
@@ -499,8 +497,6 @@ TEST(HttpClient, PutShutdownWithPendingRequest) {
           ->timeout(kTimeout)
           ->async_perform()
           .Detach();  // Do not do like this in production code!
-
-    http_client_ptr.reset();
   });
 }
 
@@ -596,8 +592,6 @@ TEST(HttpClient, Headers) {
 
       EXPECT_TRUE(response->IsOk());
     }
-
-    http_client_ptr.reset();
   });
 }
 

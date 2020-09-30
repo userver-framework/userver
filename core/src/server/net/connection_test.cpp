@@ -76,10 +76,9 @@ enum class ConnectionHeader {
 };
 
 clients::http::ResponseFuture CreateRequest(
-    std::shared_ptr<clients::http::Client> http_client_ptr,
-    engine::io::Socket& request_socket,
+    clients::http::Client& http_client, engine::io::Socket& request_socket,
     ConnectionHeader header = ConnectionHeader::kKeepAlive) {
-  auto ret = http_client_ptr->CreateRequest()
+  auto ret = http_client.CreateRequest()
                  ->get(HttpConnectionUriFromSocket(request_socket))
                  ->retry(1)
                  ->timeout(std::chrono::milliseconds(100));
@@ -106,7 +105,7 @@ TEST(ServerNetConnection, EarlyCancel) {
         auto request_socket = net::CreateSocket(config);
 
         auto http_client_ptr = utest::CreateHttpClient();
-        auto request = CreateRequest(http_client_ptr, request_socket,
+        auto request = CreateRequest(*http_client_ptr, request_socket,
                                      ConnectionHeader::kKeepAlive);
 
         auto peer =
@@ -147,7 +146,7 @@ TEST(ServerNetConnection, EarlyTimeout) {
     auto request_socket = net::CreateSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
-    auto res = CreateRequest(http_client_ptr, request_socket,
+    auto res = CreateRequest(*http_client_ptr, request_socket,
                              ConnectionHeader::kKeepAlive);
 
     engine::io::Socket peer =
@@ -182,7 +181,7 @@ TEST(ServerNetConnection, TimeoutWithTaskCancellation) {
     auto request_socket = net::CreateSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
-    auto res = CreateRequest(http_client_ptr, request_socket,
+    auto res = CreateRequest(*http_client_ptr, request_socket,
                              ConnectionHeader::kKeepAlive);
 
     engine::io::Socket peer =
@@ -216,7 +215,7 @@ TEST(ServerNetConnection, EarlyTeardown) {
     auto request_socket = net::CreateSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
-    auto res = CreateRequest(http_client_ptr, request_socket,
+    auto res = CreateRequest(*http_client_ptr, request_socket,
                              ConnectionHeader::kClose);
 
     engine::io::Socket peer =
@@ -237,7 +236,7 @@ TEST(ServerNetConnection, RemoteClosed) {
     auto request_socket = net::CreateSocket(config);
 
     auto http_client_ptr = utest::CreateHttpClient();
-    auto request = CreateRequest(http_client_ptr, request_socket,
+    auto request = CreateRequest(*http_client_ptr, request_socket,
                                  ConnectionHeader::kClose);
 
     auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
@@ -271,9 +270,8 @@ TEST(ServerNetConnection, KeepAlive) {
 
     auto http_client_ptr = utest::CreateHttpClient();
     http_client_ptr->SetMaxHostConnections(1);
-    http_client_ptr->SetConnectionPoolSize(1);
 
-    auto request = CreateRequest(http_client_ptr, request_socket,
+    auto request = CreateRequest(*http_client_ptr, request_socket,
                                  ConnectionHeader::kKeepAlive);
 
     auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
@@ -290,7 +288,7 @@ TEST(ServerNetConnection, KeepAlive) {
     EXPECT_EQ(request.Get()->status_code(), 404);
 
     EXPECT_EQ(handler.asyncs_finished, 1);
-    request = CreateRequest(http_client_ptr, request_socket,
+    request = CreateRequest(*http_client_ptr, request_socket,
                             ConnectionHeader::kKeepAlive);
     EXPECT_EQ(request.Get()->status_code(), 404);
     EXPECT_EQ(handler.asyncs_finished, 2);
@@ -306,10 +304,9 @@ TEST(ServerNetConnection, CancelMultipleInFlight) {
 
     auto http_client_ptr = utest::CreateHttpClient();
     http_client_ptr->SetMaxHostConnections(1);
-    http_client_ptr->SetConnectionPoolSize(1);
 
     for (unsigned ii = 0; ii < kMaxAttempts; ++ii) {
-      auto res = CreateRequest(http_client_ptr, request_socket);
+      auto res = CreateRequest(*http_client_ptr, request_socket);
 
       auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
       ASSERT_TRUE(peer.IsValid());
@@ -333,7 +330,7 @@ TEST(ServerNetConnection, CancelMultipleInFlight) {
       ASSERT_TRUE(connection_ptr);  // keep-alive should work
 
       for (unsigned i = 0; i < kInFlightRequests; ++i) {
-        CreateRequest(http_client_ptr, request_socket).Detach();
+        CreateRequest(*http_client_ptr, request_socket).Detach();
       }
 
       connection_ptr->Stop();

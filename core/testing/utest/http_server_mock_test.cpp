@@ -3,6 +3,7 @@
 #include <clients/http/client.hpp>
 #include <engine/task/task.hpp>
 #include <logging/log.hpp>
+#include <utest/http_client.hpp>
 #include <utest/http_server_mock.hpp>
 
 namespace {
@@ -30,8 +31,7 @@ TEST(HttpServerMock, Ctr) {
           };
         });
 
-    auto http_client_ptr = clients::http::Client::Create(
-        "", 1, engine::current_task::GetTaskProcessor());
+    auto http_client_ptr = utest::CreateHttpClient();
     clients::http::Headers headers{
         {"a", "value1"},
         {"header", "value2"},

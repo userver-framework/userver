@@ -32,17 +32,13 @@ class EasyWrapper;
 }  // namespace impl
 
 class DestinationStatistics;
+struct Config;
 struct TestsuiteConfig;
 
-class Client {
+class Client final {
  public:
-  /* Use this method to create Client */
-  static std::shared_ptr<Client> Create(
-      const std::string& thread_name_prefix, size_t io_threads,
-      engine::TaskProcessor& fs_task_processor);
-
-  Client(const Client&) = delete;
-  Client(Client&&) = delete;
+  Client(const std::string& thread_name_prefix, size_t io_threads,
+         engine::TaskProcessor& fs_task_processor);
   ~Client();
 
   std::shared_ptr<Request> CreateRequest();
@@ -52,7 +48,6 @@ class Client {
 
   void SetMultiplexingEnabled(bool enabled);
   void SetMaxHostConnections(size_t max_host_connections);
-  void SetConnectionPoolSize(size_t connection_pool_size);
 
   PoolStatistics GetPoolStatistics() const;
 
@@ -63,16 +58,9 @@ class Client {
 
   void SetTestsuiteConfig(const TestsuiteConfig& config);
 
-  void SetConnectRatelimitHttp(
-      size_t max_size, utils::TokenBucket::Duration token_update_interval);
-
-  void SetConnectRatelimitHttps(
-      size_t max_size, utils::TokenBucket::Duration token_update_interval);
+  void SetConfig(const Config&);
 
  private:
-  explicit Client(const std::string& thread_name_prefix, size_t io_threads,
-                  engine::TaskProcessor& fs_task_processor);
-
   void ReinitEasy();
 
   InstanceStatistics GetMultiStatistics(size_t n) const;

@@ -17,6 +17,7 @@
 namespace components {
 
 namespace {
+const size_t kHttpClientThreadsDefault = 8;
 const auto kDestinationMetricsAutoMaxSizeDefault = 100;
 }  // namespace
 
@@ -25,18 +26,13 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     : LoggableComponentBase(component_config, context),
       disable_pool_stats_(
           component_config.ParseBool("pool-statistics-disable", false)),
+      http_client_(
+          component_config.ParseString("thread-name-prefix", ""),
+          component_config.ParseUint64("threads", kHttpClientThreadsDefault),
+          context.GetTaskProcessor(
+              component_config.ParseString("fs-task-processor"))),
       taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
-  auto& fs_task_processor = context.GetTaskProcessor(
-      component_config.ParseString("fs-task-processor"));
-  auto booststrap_config = taxi_config_component_.GetBootstrap();
-  const auto& http_config = booststrap_config->Get<clients::http::Config>();
-  size_t threads = http_config.threads;
-
-  auto thread_name_prefix =
-      component_config.ParseString("thread-name-prefix", "");
-  http_client_ = clients::http::Client::Create(thread_name_prefix, threads,
-                                               fs_task_processor);
-  http_client_->SetDestinationMetricsAutoMaxSize(
+  http_client_.SetDestinationMetricsAutoMaxSize(
       component_config.ParseInt("destination-metrics-auto-max-size",
                                 kDestinationMetricsAutoMaxSizeDefault));
 
@@ -51,7 +47,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     // TODO replace splitting string by config.Parse<std::vector<std::string>>
     // as soon as https://st.yandex-team.ru/TAXICOMMON-1599 gets fixed
     boost::split(prefixes, prefixes_lines, boost::is_any_of(" \t\r\n"));
-    http_client_->SetTestsuiteConfig({prefixes, timeout});
+    http_client_.SetTestsuiteConfig({prefixes, timeout});
   }
 
   subscriber_scope_ = taxi_config_component_.AddListener(
@@ -64,8 +60,10 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   if (taxi_config)
     OnConfigUpdate(taxi_config);
   else
-    OnConfigUpdate(booststrap_config);
+    OnConfigUpdate(taxi_config_component_.GetBootstrap());
 
+  const auto thread_name_prefix =
+      component_config.ParseString("thread-name-prefix", "");
   auto stats_name =
       "httpclient" +
       (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
@@ -78,41 +76,22 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       });
 }
 
-HttpClient::~HttpClient() = default;
-
-clients::http::Client& HttpClient::GetHttpClient() {
-  if (!http_client_) {
-    LOG_ERROR() << "Asking for http client after components::HttpClient "
-                   "destructor is called.";
-    logging::LogFlush();
-    abort();
-  }
-  return *http_client_;
-}
+clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
 template <typename ConfigTag>
 void HttpClient::OnConfigUpdate(
     const std::shared_ptr<const taxi_config::BaseConfig<ConfigTag>>& config) {
-  const auto& http_client_config =
-      config->template Get<clients::http::Config>();
-  http_client_->SetConnectionPoolSize(http_client_config.connection_pool_size);
-
-  http_client_->SetConnectRatelimitHttp(
-      http_client_config.http_connect_throttle_max_size,
-      http_client_config.http_connect_throttle_update_interval);
-  http_client_->SetConnectRatelimitHttps(
-      http_client_config.https_connect_throttle_max_size,
-      http_client_config.https_connect_throttle_update_interval);
+  http_client_.SetConfig(config->template Get<clients::http::Config>());
 }
 
 formats::json::Value HttpClient::ExtendStatistics() {
   formats::json::ValueBuilder json;
   if (!disable_pool_stats_) {
     json =
-        clients::http::PoolStatisticsToJson(http_client_->GetPoolStatistics());
+        clients::http::PoolStatisticsToJson(http_client_.GetPoolStatistics());
   }
   json["destinations"] = clients::http::DestinationStatisticsToJson(
-      http_client_->GetDestinationStatistics());
+      http_client_.GetDestinationStatistics());
   utils::statistics::SolomonChildrenAreLabelValues(json["destinations"],
                                                    "http_destination");
   utils::statistics::SolomonSkip(json["destinations"]);

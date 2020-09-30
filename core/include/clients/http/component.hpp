@@ -4,15 +4,11 @@
 #error Use components::Http from clients/http.hpp instead
 #endif
 
+#include <clients/http/client.hpp>
 #include <components/loggable_component_base.hpp>
-#include <taxi_config/config.hpp>
-
 #include <components/statistics_storage.hpp>
+#include <taxi_config/config.hpp>
 #include <utils/async_event_channel.hpp>
-
-namespace clients::http {
-class Client;
-}  // namespace clients::http
 
 namespace components {
 
@@ -23,8 +19,6 @@ class HttpClient final : public LoggableComponentBase {
   static constexpr auto kName = "http-client";
 
   HttpClient(const ComponentConfig&, const ComponentContext&);
-
-  ~HttpClient() override;
 
   clients::http::Client& GetHttpClient();
 
@@ -37,7 +31,7 @@ class HttpClient final : public LoggableComponentBase {
 
  private:
   const bool disable_pool_stats_;
-  std::shared_ptr<clients::http::Client> http_client_;
+  clients::http::Client http_client_;
   components::TaxiConfig& taxi_config_component_;
   utils::AsyncEventSubscriberScope subscriber_scope_;
   utils::statistics::Entry statistics_holder_;
