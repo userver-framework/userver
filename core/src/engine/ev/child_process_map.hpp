@@ -9,12 +9,13 @@ namespace engine::ev {
 
 struct ChildProcessMapValue {
   explicit ChildProcessMapValue(
-      impl::BlockingPromise<subprocess::ChildProcessStatus> status_promise)
+      engine::impl::BlockingPromise<subprocess::ChildProcessStatus>
+          status_promise)
       : start_time(std::chrono::steady_clock::now()),
         status_promise(std::move(status_promise)) {}
 
   std::chrono::steady_clock::time_point start_time;
-  impl::BlockingPromise<subprocess::ChildProcessStatus> status_promise;
+  engine::impl::BlockingPromise<subprocess::ChildProcessStatus> status_promise;
 };
 
 // All ChildProcessMap* methods should be called from ev_default_loop's thread

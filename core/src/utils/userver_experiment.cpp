@@ -31,9 +31,7 @@ void DisableUserverExperiment(UserverExperiment exp) {
 
 void ParseUserverExperiments(const formats::yaml::Value& yaml) {
   static const std::unordered_map<std::string, UserverExperiment>
-      kExperimentByName = {
-          {"TAXICOMMON-1479", UserverExperiment::kTaxicommon1479},
-      };
+      kExperimentByName = {};
 
   if (yaml.IsMissing()) return;
 

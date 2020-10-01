@@ -48,6 +48,7 @@ bool Mutex::LockFastPath(impl::TaskContext* current) {
 bool Mutex::LockSlowPath(impl::TaskContext* current, Deadline deadline) {
   impl::TaskContext* expected = nullptr;
 
+  engine::TaskCancellationBlocker block_cancels;
   impl::MutexWaitStrategy wait_manager(*lock_waiters_, current, deadline);
   while (!owner_.compare_exchange_strong(expected, current,
                                          std::memory_order_relaxed)) {

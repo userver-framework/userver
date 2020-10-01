@@ -9,9 +9,11 @@
 
 #include <ev.h>
 #include <boost/lockfree/queue.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
 
-namespace engine {
-namespace ev {
+#include <engine/ev/intrusive_refcounted_base.hpp>
+
+namespace engine::ev {
 
 class Thread final {
  public:
@@ -46,7 +48,8 @@ class Thread final {
   void IdleStop(ev_idle& w);
 
   // Callbacks passed to RunInEvLoopAsync() are serialized.
-  void RunInEvLoopAsync(std::function<void()>&& func);
+  void RunInEvLoopAsync(OnRefcountedPayload* func,
+                        boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
 
   bool IsInEvThread() const;
 
@@ -75,7 +78,12 @@ class Thread final {
 
   bool use_ev_default_loop_;
 
-  boost::lockfree::queue<std::function<void()>*> func_queue_;
+  struct QueueData {
+    OnRefcountedPayload* func;
+    IntrusiveRefcountedBase* data;
+  };
+
+  boost::lockfree::queue<QueueData> func_queue_;
 
   struct ev_loop* loop_;
   std::thread thread_;
@@ -87,5 +95,4 @@ class Thread final {
   bool is_running_;
 };
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

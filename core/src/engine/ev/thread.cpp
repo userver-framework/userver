@@ -12,8 +12,7 @@
 
 #include "child_process_map.hpp"
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 namespace {
 
 const size_t kInitFuncQueueCapacity = 64;
@@ -39,6 +38,8 @@ void ReleaseEvDefaultLoop() {
 }
 
 }  // namespace
+
+IntrusiveRefcountedBase::~IntrusiveRefcountedBase() = default;
 
 Thread::Thread(const std::string& thread_name) : Thread(thread_name, false) {}
 
@@ -123,14 +124,17 @@ void Thread::IdleStop(ev_idle& w) {
   SafeEvCall([this, &w]() { IdleStopUnsafe(w); });
 }
 
-void Thread::RunInEvLoopAsync(std::function<void()>&& func) {
+void Thread::RunInEvLoopAsync(
+    OnRefcountedPayload* func,
+    boost::intrusive_ptr<IntrusiveRefcountedBase>&& data) {
+  UASSERT(func);
+  UASSERT(data);
+
   if (IsInEvThread()) {
-    func();
+    func(*data);
     return;
   }
-
-  auto func_ptr = std::make_unique<std::function<void()>>(std::move(func));
-  if (!func_queue_.push(func_ptr.release())) {
+  if (!func_queue_.push({func, data.detach()})) {
     LOG_ERROR() << "can't push func to queue";
     throw std::runtime_error("can't push func to queue");
   }
@@ -214,12 +218,12 @@ void Thread::UpdateLoopWatcherImpl() {
                  "func_queue_.empty()="
               << func_queue_.empty();
 
-  std::function<void()>* pfunc;
-  while (func_queue_.pop(pfunc)) {
+  QueueData queue_element{};
+  while (func_queue_.pop(queue_element)) {
     LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() (loop)";
-    std::unique_ptr<std::function<void()>> func(pfunc);
+    boost::intrusive_ptr data(queue_element.data, /*add_ref = */ false);
     try {
-      (*func)();
+      queue_element.func(*data);
     } catch (const std::exception& ex) {
       LOG_WARNING() << "exception in async thread func: " << ex;
     }
@@ -304,5 +308,4 @@ void Thread::Release(struct ev_loop* loop) noexcept {
 void Thread::AcquireImpl() noexcept { lock_.lock(); }
 void Thread::ReleaseImpl() noexcept { lock_.unlock(); }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

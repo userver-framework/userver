@@ -4,11 +4,11 @@
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
+#include <utils/make_intrusive_ptr.hpp>
 
 namespace engine::ev {
 
-class Timer::TimerImpl final
-    : public std::enable_shared_from_this<Timer::TimerImpl> {
+class Timer::TimerImpl final : public IntrusiveRefcountedBase {
  public:
   TimerImpl(ThreadControl& thread_control, Func on_timer_func,
             double first_call_after, double repeat_every);
@@ -41,22 +41,29 @@ Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
 }
 
 void Timer::TimerImpl::Start() {
-  thread_control_.RunInEvLoopAsync([self = shared_from_this()]() {
-    self->thread_control_.TimerStartUnsafe(self->timer_);
-  });
+  thread_control_.RunInEvLoopAsync(
+      [](IntrusiveRefcountedBase& data) {
+        auto& self = PolymorphicDowncast<TimerImpl&>(data);
+        self.thread_control_.TimerStartUnsafe(self.timer_);
+      },
+      boost::intrusive_ptr{this});
 }
 
 void Timer::TimerImpl::Stop() {
-  thread_control_.RunInEvLoopAsync([self = shared_from_this()]() {
-    self->thread_control_.TimerStopUnsafe(self->timer_);
-  });
+  thread_control_.RunInEvLoopAsync(
+      [](IntrusiveRefcountedBase& data) {
+        auto& self = PolymorphicDowncast<TimerImpl&>(data);
+        self.thread_control_.TimerStopUnsafe(self.timer_);
+      },
+      boost::intrusive_ptr{this});
 }
 
 void Timer::TimerImpl::Restart(Func on_timer_func, double first_call_after,
                                double repeat_every) {
   // TODO: We should keep lambda size in 16 bytes to avoid memory allocation:
   // https://godbolt.org/z/Msbeba
-  thread_control_.RunInEvLoopAsync([self = shared_from_this(),
+  boost::intrusive_ptr self = this;
+  thread_control_.RunInEvLoopAsync([self = std::move(self),
                                     on_timer_func = std::move(on_timer_func),
                                     first_call_after, repeat_every]() mutable {
     auto& timer = self->timer_;
@@ -84,6 +91,8 @@ void Timer::TimerImpl::DoOnTimer() {
   }
 }
 
+Timer::Timer() noexcept = default;
+
 Timer::~Timer() { Stop(); }
 
 bool Timer::IsValid() const noexcept { return !!impl_; }
@@ -91,8 +100,8 @@ bool Timer::IsValid() const noexcept { return !!impl_; }
 void Timer::Start(ThreadControl& thread_control, Func on_timer_func,
                   double first_call_after, double repeat_every) {
   Stop();
-  impl_ = std::make_shared<TimerImpl>(thread_control, std::move(on_timer_func),
-                                      first_call_after, repeat_every);
+  impl_ = utils::make_intrusive_ptr<TimerImpl>(
+      thread_control, std::move(on_timer_func), first_call_after, repeat_every);
   impl_->Start();
 }
 

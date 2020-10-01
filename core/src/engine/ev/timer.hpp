@@ -4,6 +4,8 @@
 #include <functional>
 #include <memory>
 
+#include <boost/smart_ptr/intrusive_ptr.hpp>
+
 #include <engine/ev/thread_control.hpp>
 
 namespace engine::ev {
@@ -14,7 +16,7 @@ class Timer final {
   // calls on_timer_func() in event loop
   using Func = std::function<void()>;
 
-  Timer() noexcept = default;
+  Timer() noexcept;
   ~Timer();
 
   Timer(const Timer&) = delete;
@@ -69,7 +71,7 @@ class Timer final {
   void Restart(Func on_timer_func, double first_call_after,
                double repeat_every);
 
-  std::shared_ptr<TimerImpl> impl_;
+  boost::intrusive_ptr<TimerImpl> impl_;
 };
 
 template <typename Rep1, typename Period1, typename Rep2, typename Period2>

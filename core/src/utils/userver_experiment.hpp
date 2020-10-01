@@ -7,8 +7,6 @@
 namespace utils {
 
 enum class UserverExperiment {
-  kTaxicommon1479,
-
   kCount,
 };
 

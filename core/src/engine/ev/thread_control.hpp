@@ -2,8 +2,62 @@
 
 #include "thread.hpp"
 
-namespace engine {
-namespace ev {
+#include <future>
+
+#include <engine/single_consumer_event.hpp>
+#include <engine/task/cancel.hpp>
+#include <utils/make_intrusive_ptr.hpp>
+
+namespace engine::ev {
+
+namespace impl {
+
+template <class Func>
+class RefcountedFunction : public IntrusiveRefcountedBase {
+ public:
+  explicit RefcountedFunction(Func&& func) : function_(std::move(func)) {}
+  explicit RefcountedFunction(const Func& func) : function_(func) {}
+
+  void Invoke() { function_(); }
+
+ private:
+  static_assert(!std::is_reference_v<Func>);
+  Func function_;
+};
+
+template <class Func>
+class RefcountedFunctionWithEvent final : public RefcountedFunction<Func> {
+ public:
+  using RefcountedFunction<Func>::RefcountedFunction;
+
+  void Invoke() {
+    RefcountedFunction<Func>::Invoke();
+    event_.Send();
+  }
+
+  engine::SingleConsumerEvent& Event() { return event_; }
+
+ private:
+  engine::SingleConsumerEvent event_;
+};
+
+template <class Func>
+class RefcountedFunctionWithPromise final : public RefcountedFunction<Func> {
+ public:
+  using RefcountedFunction<Func>::RefcountedFunction;
+
+  void Invoke() {
+    RefcountedFunction<Func>::Invoke();
+    promise_.set_value();
+  }
+
+  std::promise<void>& Promise() { return promise_; }
+
+ private:
+  std::promise<void> promise_;
+};
+
+}  // namespace impl
 
 class ThreadControl {
  public:
@@ -48,14 +102,18 @@ class ThreadControl {
 
   void IdleStop(ev_idle& w) { thread_.IdleStop(w); }
 
-  void RunInEvLoopAsync(std::function<void()>&& func) {
-    thread_.RunInEvLoopAsync(std::move(func));
-  }
+  void RunInEvLoopAsync(OnRefcountedPayload* func,
+                        boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
 
-  void RunInEvLoopSync(std::function<void()>&& func);
+  template <class Function>
+  void RunInEvLoopAsync(Function&& func);
+
+  template <class Function>
+  void RunInEvLoopSync(Function&& func);
 
   // For redis
-  void RunInEvLoopBlocking(std::function<void()>&& func);
+  template <class Function>
+  void RunInEvLoopBlocking(Function&& func);
 
   bool IsInEvThread() const { return thread_.IsInEvThread(); }
 
@@ -63,5 +121,64 @@ class ThreadControl {
   Thread& thread_;
 };
 
-}  // namespace ev
-}  // namespace engine
+template <class Function>
+void ThreadControl::RunInEvLoopAsync(Function&& func) {
+  if (IsInEvThread()) {
+    func();
+    return;
+  }
+
+  using FunctionType = std::remove_reference_t<Function>;
+  using Refcounted = impl::RefcountedFunction<FunctionType>;
+  auto data =
+      utils::make_intrusive_ptr<Refcounted>(std::forward<Function>(func));
+  RunInEvLoopAsync(
+      [](IntrusiveRefcountedBase& data) {
+        PolymorphicDowncast<Refcounted&>(data).Invoke();
+      },
+      std::move(data));
+}
+
+template <class Function>
+void ThreadControl::RunInEvLoopSync(Function&& func) {
+  if (IsInEvThread()) {
+    func();
+    return;
+  }
+
+  using FunctionType = std::remove_reference_t<Function>;
+  using Refcounted = impl::RefcountedFunctionWithEvent<FunctionType>;
+  auto data =
+      utils::make_intrusive_ptr<Refcounted>(std::forward<Function>(func));
+  RunInEvLoopAsync(
+      [](IntrusiveRefcountedBase& data) {
+        PolymorphicDowncast<Refcounted&>(data).Invoke();
+      },
+      data);
+
+  engine::TaskCancellationBlocker cancellation_blocker;
+  const auto result = data->Event().WaitForEvent();
+  UASSERT(result);
+}
+
+template <class Function>
+void ThreadControl::RunInEvLoopBlocking(Function&& func) {
+  if (IsInEvThread()) {
+    func();
+    return;
+  }
+
+  using FunctionType = std::remove_reference_t<Function>;
+  using Refcounted = impl::RefcountedFunctionWithPromise<FunctionType>;
+  auto data =
+      utils::make_intrusive_ptr<Refcounted>(std::forward<Function>(func));
+  auto func_future = data->Promise().get_future();
+  RunInEvLoopAsync(
+      [](IntrusiveRefcountedBase& data) {
+        PolymorphicDowncast<Refcounted&>(data).Invoke();
+      },
+      std::move(data));
+  func_future.get();
+}
+
+}  // namespace engine::ev

@@ -77,6 +77,7 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
 
   LOG_TRACE() << "trying slow path";
 
+  engine::TaskCancellationBlocker block_cancels;
   auto* current = current_task::GetCurrentTaskContext();
   impl::SemaphoreWaitPolicy wait_manager(*lock_waiters_, current, deadline);
 
