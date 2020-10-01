@@ -51,6 +51,7 @@ services:
         network_mode: bridge
         environment:
           - BUILD_DIR=${BUILD_DIR:-/taxi/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
           - CC
           - CCACHE_DIR=/taxi/ccache
           - CCACHE_HASHDIR
