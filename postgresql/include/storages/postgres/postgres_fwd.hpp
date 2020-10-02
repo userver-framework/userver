@@ -9,6 +9,7 @@ namespace postgres {
 
 class Transaction;
 class ResultSet;
+class Row;
 
 class Cluster;
 using ClusterPtr = std::shared_ptr<Cluster>;
