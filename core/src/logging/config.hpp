@@ -13,7 +13,8 @@ namespace logging {
 struct LoggerConfig {
   static constexpr size_t kDefaultMessageQueueSize = 1 << 16;
   static constexpr size_t kDefaultThreadPoolSize = 1;
-  static const std::string kDefaultPattern;
+  static constexpr auto kDefaultPattern =
+      "tskv\ttimestamp=%Y-%m-%dT%H:%M:%S.%f\tlevel=%l\t%v";
 
   enum class QueueOveflowBehavior { kDiscard, kBlock };
 

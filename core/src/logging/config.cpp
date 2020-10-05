@@ -20,9 +20,6 @@ LoggerConfig::QueueOveflowBehavior OverflowBehaviorFromString(
 
 }  // namespace
 
-const std::string LoggerConfig::kDefaultPattern =
-    "tskv\ttimestamp=%Y-%m-%dT%H:%M:%S.%f\tlevel=%l\t%v";
-
 LoggerConfig LoggerConfig::ParseFromYaml(
     const formats::yaml::Value& yaml, const std::string& full_path,
     const yaml_config::VariableMapPtr& config_vars_ptr) {
