@@ -5,6 +5,7 @@
 
 #include <boost/container/small_vector.hpp>
 
+#include <fmt/format.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/reader.h>
 
@@ -15,6 +16,17 @@
 #include <utils/assert.hpp>
 
 namespace formats::json::parser {
+
+namespace {
+
+std::string ToLimited(std::string_view sw) {
+  if (sw.size() > 128)
+    return std::string(sw.substr(0, 128)) + "... (truncated)";
+  else
+    return std::string{sw};
+}
+
+}  // namespace
 
 struct ParserState::Impl {
   struct StackItem final {
@@ -66,6 +78,7 @@ void ParserState::ProcessInput(std::string_view sw) {
 
   auto& stack = impl_->stack;
 
+  size_t pos = 0;
   try {
     while (!reader.IterativeParseComplete()) {
       if (stack.empty()) {
@@ -74,6 +87,8 @@ void ParserState::ProcessInput(std::string_view sw) {
 
       UASSERT(stack.back().parser);
       ParserHandler handler(*stack.back().parser);
+
+      pos = is.Tell();
       reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(is, handler);
 
       if (reader.HasParseError()) {
@@ -87,10 +102,15 @@ void ParserState::ProcessInput(std::string_view sw) {
   } catch (const ParseError&) {
     throw;
   } catch (const std::exception& e) {
+    auto cur_pos = is.Tell();
+    auto msg = (cur_pos == pos)
+                   ? ""
+                   : fmt::format(", the latest token was {}",
+                                 ToLimited(sw.substr(pos, cur_pos - pos)));
     throw ParseError{
-        is.Tell(),
+        cur_pos,
         impl_->GetPath(),
-        e.what(),
+        e.what() + msg,
     };
   }
 

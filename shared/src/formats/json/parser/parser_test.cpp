@@ -35,9 +35,9 @@ TEST(JsonStringParser, Int64) {
   EXPECT_EQ(result, 12345);
 
   EXPECT_EQ((ParseToType<int, IntParser>("3.0")), 3);
-  EXPECT_THROW_TEXT(
-      (ParseToType<int, IntParser>("3.01")), ParseError,
-      "Parse error at pos 4, path '': integer was expected, but double found");
+  EXPECT_THROW_TEXT((ParseToType<int, IntParser>("3.01")), ParseError,
+                    "Parse error at pos 4, path '': integer was expected, but "
+                    "double found, the latest token was 3.01");
 }
 
 TEST(JsonStringParser, Double) {
@@ -62,7 +62,8 @@ TEST(JsonStringParser, Int64Overflow) {
 
   EXPECT_THROW_TEXT((ParseToType<int64_t, Int64Parser>(input)), ParseError,
                     "Parse error at pos 20, path '': bad "
-                    "numeric conversion: positive overflow");
+                    "numeric conversion: positive overflow, the latest token "
+                    "was 18446744073709551615");
 }
 
 class EmptyObjectParser final : public BaseParser {
@@ -92,9 +93,10 @@ TEST(JsonStringParser, EmptyObjectKey) {
 
   ParserState state;
   state.PushParser(obj_parser);
-  EXPECT_THROW_TEXT(state.ProcessInput(input), ParseError,
-                    "Parse error at pos 6, path '': '}' was "
-                    "expected, but field 'key' found");
+  EXPECT_THROW_TEXT(
+      state.ProcessInput(input), ParseError,
+      "Parse error at pos 6, path '': '}' was "
+      "expected, but field 'key' found, the latest token was \"key\"");
 }
 
 struct IntObject final {
@@ -280,9 +282,9 @@ TYPED_TEST(JsonStringParserMap, Invalid) {
   ParserState state;
   state.PushParser(parser);
 
-  EXPECT_THROW_TEXT(
-      state.ProcessInput(R"(123)"), ParseError,
-      "Parse error at pos 3, path '': object was expected, but integer found");
+  EXPECT_THROW_TEXT(state.ProcessInput(R"(123)"), ParseError,
+                    "Parse error at pos 3, path '': object was expected, but "
+                    "integer found, the latest token was 123");
 
   EXPECT_THROW_TEXT(
       state.ProcessInput(R"({{"key": 1}})"), ParseError,
