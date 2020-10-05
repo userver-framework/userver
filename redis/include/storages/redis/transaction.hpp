@@ -250,6 +250,13 @@ class Transaction {
   virtual RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start,
                                                  int64_t stop) = 0;
 
+  virtual RequestZremrangebyscore Zremrangebyscore(std::string key, double min,
+                                                   double max) = 0;
+
+  virtual RequestZremrangebyscore Zremrangebyscore(std::string key,
+                                                   std::string min,
+                                                   std::string max) = 0;
+
   virtual RequestZscore Zscore(std::string key, std::string member) = 0;
 
   // end of redis commands

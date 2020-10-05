@@ -590,6 +590,21 @@ RequestZremrangebyrank MockTransaction::Zremrangebyrank(std::string key,
   return AddSubrequest(impl_->Zremrangebyrank(std::move(key), start, stop));
 }
 
+RequestZremrangebyscore MockTransaction::Zremrangebyscore(std::string key,
+                                                          double min,
+                                                          double max) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Zremrangebyscore(std::move(key), min, max));
+}
+
+RequestZremrangebyscore MockTransaction::Zremrangebyscore(std::string key,
+                                                          std::string min,
+                                                          std::string max) {
+  UpdateShard(key);
+  return AddSubrequest(
+      impl_->Zremrangebyscore(std::move(key), std::move(min), std::move(max)));
+}
+
 RequestZscore MockTransaction::Zscore(std::string key, std::string member) {
   UpdateShard(key);
   return AddSubrequest(impl_->Zscore(std::move(key), std::move(member)));

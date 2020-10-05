@@ -272,6 +272,12 @@ class TransactionImpl final : public Transaction {
   RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start,
                                          int64_t stop) override;
 
+  RequestZremrangebyscore Zremrangebyscore(std::string key, double min,
+                                           double max) override;
+
+  RequestZremrangebyscore Zremrangebyscore(std::string key, std::string min,
+                                           std::string max) override;
+
   RequestZscore Zscore(std::string key, std::string member) override;
 
   // end of redis commands

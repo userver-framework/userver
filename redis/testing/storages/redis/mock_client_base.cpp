@@ -628,6 +628,20 @@ RequestZremrangebyrank MockClientBase::Zremrangebyrank(
   return RequestZremrangebyrank{nullptr};
 }
 
+RequestZremrangebyscore MockClientBase::Zremrangebyscore(
+    std::string /*key*/, double /*min*/, double /*max*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZremrangebyscore{nullptr};
+}
+
+RequestZremrangebyscore MockClientBase::Zremrangebyscore(
+    std::string /*key*/, std::string /*min*/, std::string /*max*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZremrangebyscore{nullptr};
+}
+
 ScanRequest<ScanTag::kZscan> MockClientBase::Zscan(
     std::string /*key*/, ScanOptionsTmpl<ScanTag::kZscan> /*options*/,
     const CommandControl& /*command_control*/) {

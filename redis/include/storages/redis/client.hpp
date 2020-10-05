@@ -365,6 +365,14 @@ class Client {
       std::string key, int64_t start, int64_t stop,
       const CommandControl& command_control) = 0;
 
+  virtual RequestZremrangebyscore Zremrangebyscore(
+      std::string key, double min, double max,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestZremrangebyscore Zremrangebyscore(
+      std::string key, std::string min, std::string max,
+      const CommandControl& command_control) = 0;
+
   virtual RequestZscan Zscan(std::string key, ZscanOptions options,
                              const CommandControl& command_control) = 0;
 

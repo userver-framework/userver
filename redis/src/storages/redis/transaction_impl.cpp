@@ -553,6 +553,22 @@ RequestZremrangebyrank TransactionImpl::Zremrangebyrank(std::string key,
                                         start, stop);
 }
 
+RequestZremrangebyscore TransactionImpl::Zremrangebyscore(std::string key,
+                                                          double min,
+                                                          double max) {
+  UpdateShard(key);
+  return AddCmd<RequestZremrangebyscore>("zremrangebyscore", std::move(key),
+                                         min, max);
+}
+
+RequestZremrangebyscore TransactionImpl::Zremrangebyscore(std::string key,
+                                                          std::string min,
+                                                          std::string max) {
+  UpdateShard(key);
+  return AddCmd<RequestZremrangebyscore>("zremrangebyscore", std::move(key),
+                                         std::move(min), std::move(max));
+}
+
 RequestZscore TransactionImpl::Zscore(std::string key, std::string member) {
   UpdateShard(key);
   return AddCmd<RequestZscore>("zscore", std::move(key), std::move(member));

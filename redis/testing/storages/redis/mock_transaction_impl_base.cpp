@@ -495,6 +495,18 @@ RequestZremrangebyrank MockTransactionImplBase::Zremrangebyrank(
   return RequestZremrangebyrank{nullptr};
 }
 
+RequestZremrangebyscore MockTransactionImplBase::Zremrangebyscore(
+    std::string /*key*/, double /*min*/, double /*max*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZremrangebyscore{nullptr};
+}
+
+RequestZremrangebyscore MockTransactionImplBase::Zremrangebyscore(
+    std::string /*key*/, std::string /*min*/, std::string /*max*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZremrangebyscore{nullptr};
+}
+
 RequestZscore MockTransactionImplBase::Zscore(std::string /*key*/,
                                               std::string /*member*/) {
   UASSERT_MSG(false, "redis method not mocked");

@@ -208,6 +208,13 @@ class MockTransactionImplBase {
   virtual RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start,
                                                  int64_t stop);
 
+  virtual RequestZremrangebyscore Zremrangebyscore(std::string key, double min,
+                                                   double max);
+
+  virtual RequestZremrangebyscore Zremrangebyscore(std::string key,
+                                                   std::string min,
+                                                   std::string max);
+
   virtual RequestZscore Zscore(std::string key, std::string member);
 
   // end of redis commands

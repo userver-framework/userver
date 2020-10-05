@@ -208,6 +208,7 @@ using RequestZrangebyscore = Request<std::vector<std::string>>;
 using RequestZrangebyscoreWithScores = Request<std::vector<MemberScore>>;
 using RequestZrem = Request<size_t>;
 using RequestZremrangebyrank = Request<size_t>;
+using RequestZremrangebyscore = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<std::optional<double>>;
 

@@ -858,6 +858,25 @@ RequestZremrangebyrank ClientImpl::Zremrangebyrank(
                   shard, true, GetCommandControl(command_control)));
 }
 
+RequestZremrangebyscore ClientImpl::Zremrangebyscore(
+    std::string key, double min, double max,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestZremrangebyscore>(
+      MakeRequest(CmdArgs{"zremrangebyscore", std::move(key), min, max}, shard,
+                  true, GetCommandControl(command_control)));
+}
+
+RequestZremrangebyscore ClientImpl::Zremrangebyscore(
+    std::string key, std::string min, std::string max,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestZremrangebyscore>(
+      MakeRequest(CmdArgs{"zremrangebyscore", std::move(key), std::move(min),
+                          std::move(max)},
+                  shard, true, GetCommandControl(command_control)));
+}
+
 ScanRequest<ScanTag::kZscan> ClientImpl::Zscan(
     std::string key, ScanOptionsTmpl<ScanTag::kZscan> options,
     const CommandControl& command_control) {
