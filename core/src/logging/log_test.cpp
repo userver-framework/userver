@@ -23,3 +23,14 @@ TEST_F(LoggingTest, SwitchToTraceWorks) {
   }
   EXPECT_EQ(2, entries);
 }
+
+TEST_F(LoggingTest, ChronoDuration) {
+  using namespace std::literals::chrono_literals;
+
+  EXPECT_EQ("7ns", ToStringViaLogging(std::chrono::nanoseconds{7}));
+  EXPECT_EQ("7us", ToStringViaLogging(std::chrono::microseconds{7}));
+  EXPECT_EQ("7ms", ToStringViaLogging(std::chrono::milliseconds{7}));
+  EXPECT_EQ("-7s", ToStringViaLogging(std::chrono::seconds{-7}));
+  EXPECT_EQ("7min", ToStringViaLogging(std::chrono::minutes{7}));
+  EXPECT_EQ("7h", ToStringViaLogging(std::chrono::hours{7}));
+}

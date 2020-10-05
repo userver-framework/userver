@@ -395,6 +395,30 @@ LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp) {
   return lh;
 }
 
+LogHelper& operator<<(LogHelper& lh, std::chrono::seconds value) {
+  return lh << value.count() << "s";
+}
+
+LogHelper& operator<<(LogHelper& lh, std::chrono::milliseconds value) {
+  return lh << value.count() << "ms";
+}
+
+LogHelper& operator<<(LogHelper& lh, std::chrono::microseconds value) {
+  return lh << value.count() << "us";
+}
+
+LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value) {
+  return lh << value.count() << "ns";
+}
+
+LogHelper& operator<<(LogHelper& lh, std::chrono::minutes value) {
+  return lh << value.count() << "min";
+}
+
+LogHelper& operator<<(LogHelper& lh, std::chrono::hours value) {
+  return lh << value.count() << "h";
+}
+
 void LogFlush() { DefaultLogger()->flush(); }
 
 namespace impl {

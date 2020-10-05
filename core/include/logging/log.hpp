@@ -234,6 +234,13 @@ LogHelper& operator<<(LogHelper& lh, Result (*)(Args...)) {
 }
 
 LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp);
+LogHelper& operator<<(LogHelper& lh, std::chrono::seconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::milliseconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::microseconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::minutes value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::hours value);
 
 template <typename T>
 void LogHelper::PutRangeElement(const T& value) {
