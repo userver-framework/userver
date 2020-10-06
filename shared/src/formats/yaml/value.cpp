@@ -1,5 +1,7 @@
 #include <formats/yaml/value.hpp>
 
+#include <string_view>
+
 #include <yaml-cpp/yaml.h>
 
 #include <compiler/demangle.hpp>
@@ -7,6 +9,7 @@
 #include <utils/assert.hpp>
 
 #include "exttypes.hpp"
+#include "string_view_support.hpp"
 
 namespace formats::yaml {
 
@@ -41,34 +44,31 @@ Value::Value(const Value&) = default;
 // NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
 Value& Value::operator=(Value&& other) {
   value_pimpl_->reset(*other.value_pimpl_);
-  is_root_ = other.is_root_;
   path_ = std::move(other.path_);
   return *this;
 }
 
 Value& Value::operator=(const Value& other) {
   value_pimpl_->reset(*other.value_pimpl_);
-  is_root_ = other.is_root_;
   path_ = other.path_;
   return *this;
 }
 
 Value::~Value() = default;
 
-Value::Value(const YAML::Node& root) noexcept
-    : is_root_(true), value_pimpl_(root) {}
+Value::Value(const YAML::Node& root) noexcept : value_pimpl_(root) {}
 
 Value::Value(EmplaceEnabler, const YAML::Node& value,
-             const formats::yaml::Path& path, const std::string& key)
-    : is_root_(false), value_pimpl_(value), path_(path.MakeChildPath(key)) {}
+             const formats::yaml::Path& path, std::string_view key)
+    : value_pimpl_(value), path_(path.MakeChildPath(key)) {}
 
 Value::Value(EmplaceEnabler, const YAML::Node& value,
              const formats::yaml::Path& path, size_t index)
-    : is_root_(false), value_pimpl_(value), path_(path.MakeChildPath(index)) {}
+    : value_pimpl_(value), path_(path.MakeChildPath(index)) {}
 
 Value Value::MakeNonRoot(const YAML::Node& value,
                          const formats::yaml::Path& path,
-                         const std::string& key) {
+                         std::string_view key) {
   return {EmplaceEnabler{}, value, path, key};
 }
 
@@ -77,7 +77,7 @@ Value Value::MakeNonRoot(const YAML::Node& value,
   return {EmplaceEnabler{}, value, path, index};
 }
 
-Value Value::operator[](const std::string& key) const {
+Value Value::operator[](std::string_view key) const {
   if (!IsMissing()) {
     CheckObjectOrNull();
     return MakeNonRoot((*value_pimpl_)[key], path_, key);
@@ -189,11 +189,7 @@ std::string Value::As<std::string>() const {
   return value_pimpl_->Scalar();
 }
 
-bool Value::HasMember(const char* key) const {
-  return !IsMissing() && (*value_pimpl_)[key];
-}
-
-bool Value::HasMember(const std::string& key) const {
+bool Value::HasMember(std::string_view key) const {
   return !IsMissing() && (*value_pimpl_)[key];
 }
 
@@ -205,7 +201,7 @@ Value Value::Clone() const {
   return v;
 }
 
-bool Value::IsRoot() const noexcept { return is_root_; }
+bool Value::IsRoot() const noexcept { return path_.IsRoot(); }
 
 bool Value::DebugIsReferencingSameMemory(const Value& other) const {
   return value_pimpl_->is(*other.value_pimpl_);

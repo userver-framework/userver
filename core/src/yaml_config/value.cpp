@@ -1,5 +1,7 @@
 #include <yaml_config/value.hpp>
 
+#include <fmt/compile.h>
+
 namespace yaml_config {
 namespace impl {
 
@@ -16,18 +18,18 @@ std::string GetSubstitutionVarName(const formats::yaml::Value& value) {
   return value.As<std::string>().substr(1);
 }
 
-std::string GetFallbackName(const std::string& str) {
-  return str + "#fallback";
+std::string GetFallbackName(std::string_view str) {
+  return fmt::format(FMT_COMPILE("{}#fallback"), str);
 }
 
 }  // namespace impl
 
-void CheckIsMap(const formats::yaml::Value& obj, const std::string& full_path) {
+void CheckIsMap(const formats::yaml::Value& obj, std::string_view full_path) {
   impl::CheckIsMap(obj, full_path);
 }
 
-int ParseInt(const formats::yaml::Value& obj, const std::string& name,
-             const std::string& full_path,
+int ParseInt(const formats::yaml::Value& obj, std::string_view name,
+             std::string_view full_path,
              const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalInt(obj, name, full_path, config_vars_ptr);
   if (!optional) {
@@ -36,8 +38,8 @@ int ParseInt(const formats::yaml::Value& obj, const std::string& name,
   return *optional;
 }
 
-bool ParseBool(const formats::yaml::Value& obj, const std::string& name,
-               const std::string& full_path,
+bool ParseBool(const formats::yaml::Value& obj, std::string_view name,
+               std::string_view full_path,
                const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalBool(obj, name, full_path, config_vars_ptr);
   if (!optional) {
@@ -46,8 +48,8 @@ bool ParseBool(const formats::yaml::Value& obj, const std::string& name,
   return *optional;
 }
 
-uint64_t ParseUint64(const formats::yaml::Value& obj, const std::string& name,
-                     const std::string& full_path,
+uint64_t ParseUint64(const formats::yaml::Value& obj, std::string_view name,
+                     std::string_view full_path,
                      const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalUint64(obj, name, full_path, config_vars_ptr);
   if (!optional) {
@@ -56,8 +58,8 @@ uint64_t ParseUint64(const formats::yaml::Value& obj, const std::string& name,
   return *optional;
 }
 
-std::string ParseString(const formats::yaml::Value& obj,
-                        const std::string& name, const std::string& full_path,
+std::string ParseString(const formats::yaml::Value& obj, std::string_view name,
+                        std::string_view full_path,
                         const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalString(obj, name, full_path, config_vars_ptr);
   if (!optional) {
@@ -67,33 +69,34 @@ std::string ParseString(const formats::yaml::Value& obj,
 }
 
 std::optional<int> ParseOptionalInt(const formats::yaml::Value& obj,
-                                    const std::string& name,
-                                    const std::string& full_path,
+                                    std::string_view name,
+                                    std::string_view full_path,
                                     const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
-                    &impl::Parse<int, std::string>, &ParseOptionalInt);
+                    &impl::Parse<int, std::string_view>, &ParseOptionalInt);
 }
 
 std::optional<bool> ParseOptionalBool(const formats::yaml::Value& obj,
-                                      const std::string& name,
-                                      const std::string& full_path,
+                                      std::string_view name,
+                                      std::string_view full_path,
                                       const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
-                    &impl::Parse<bool, std::string>, &ParseOptionalBool);
+                    &impl::Parse<bool, std::string_view>, &ParseOptionalBool);
 }
 
 std::optional<uint64_t> ParseOptionalUint64(
-    const formats::yaml::Value& obj, const std::string& name,
-    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+    const formats::yaml::Value& obj, std::string_view name,
+    std::string_view full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
-                    &impl::Parse<uint64_t, std::string>, &ParseOptionalUint64);
+                    &impl::Parse<uint64_t, std::string_view>,
+                    &ParseOptionalUint64);
 }
 
 std::optional<std::string> ParseOptionalString(
-    const formats::yaml::Value& obj, const std::string& name,
-    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+    const formats::yaml::Value& obj, std::string_view name,
+    std::string_view full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
-                    &impl::Parse<std::string, std::string>,
+                    &impl::Parse<std::string, std::string_view>,
                     &ParseOptionalString);
 }
 

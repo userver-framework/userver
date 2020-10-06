@@ -3,7 +3,6 @@
 #include <rapidjson/document.h>
 
 #include <formats/common/path.hpp>
-#include <formats/common/path_impl.hpp>
 #include <formats/json/exception.hpp>
 #include <formats/json/impl/types.hpp>
 
@@ -56,7 +55,7 @@ std::string MakePath(const Value* root, const Value* node, int node_depth) {
   std::vector<TreeIterFrame> stack;
   const Value* value = root;
 
-  if (value == node) return formats::common::impl::kPathRoot;
+  if (value == node) return formats::common::kPathRoot;
   UASSERT(value != nullptr);
   if (value == nullptr)
     throw formats::json::Exception(
@@ -100,13 +99,13 @@ std::string ExtractPath(const std::vector<TreeIterFrame>& stack) {
     const int idx = frame.CurrentIndex() - 1;
     if (frame.container()->IsObject()) {
       const Value& name = frame.container()->MemberBegin()[idx].name;
-      common::impl::AppendPath(
+      common::AppendPath(
           path, std::string_view{name.GetString(), name.GetStringLength()});
     } else if (frame.container()->IsArray()) {
-      common::impl::AppendPath(path, idx);
+      common::AppendPath(path, idx);
     }
   }
 
-  return path.empty() ? common::impl::kPathRoot : path;
+  return path.empty() ? common::kPathRoot : path;
 }
 }  // namespace formats::json::impl

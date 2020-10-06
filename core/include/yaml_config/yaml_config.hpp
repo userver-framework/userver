@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include <formats/yaml.hpp>
 #include <yaml_config/iterator.hpp>
@@ -23,40 +24,41 @@ class YamlConfig {
 
  public:
   using const_iterator = Iterator<IterTraits>;
+
   YamlConfig(formats::yaml::Value yaml, std::string full_path,
              VariableMapPtr config_vars_ptr);
 
-  static YamlConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
+  static YamlConfig ParseFromYaml(formats::yaml::Value yaml,
+                                  std::string full_path,
+                                  yaml_config::VariableMapPtr config_vars_ptr);
 
   const formats::yaml::Value& Yaml() const;
   const std::string& FullPath() const;
   const VariableMapPtr& ConfigVarsPtr() const;
 
-  int ParseInt(const std::string& name) const;
-  int ParseInt(const std::string& name, int default_value) const;
-  std::optional<int> ParseOptionalInt(const std::string& name) const;
-  bool ParseBool(const std::string& name) const;
-  bool ParseBool(const std::string& name, bool default_value) const;
-  std::optional<bool> ParseOptionalBool(const std::string& name) const;
-  uint64_t ParseUint64(const std::string& name) const;
-  uint64_t ParseUint64(const std::string& name, uint64_t default_value) const;
-  std::optional<uint64_t> ParseOptionalUint64(const std::string& name) const;
-  std::string ParseString(const std::string& name) const;
-  std::string ParseString(const std::string& name,
-                          const std::string& default_value) const;
-  std::optional<std::string> ParseOptionalString(const std::string& name) const;
+  int ParseInt(std::string_view name) const;
+  int ParseInt(std::string_view name, int default_value) const;
+  std::optional<int> ParseOptionalInt(std::string_view name) const;
+  bool ParseBool(std::string_view name) const;
+  bool ParseBool(std::string_view name, bool default_value) const;
+  std::optional<bool> ParseOptionalBool(std::string_view name) const;
+  uint64_t ParseUint64(std::string_view name) const;
+  uint64_t ParseUint64(std::string_view name, uint64_t default_value) const;
+  std::optional<uint64_t> ParseOptionalUint64(std::string_view name) const;
+  std::string ParseString(std::string_view name) const;
+  std::string ParseString(std::string_view name,
+                          std::string_view default_value) const;
+  std::optional<std::string> ParseOptionalString(std::string_view name) const;
 
-  std::chrono::milliseconds ParseDuration(const std::string& name) const;
+  std::chrono::milliseconds ParseDuration(std::string_view name) const;
   std::chrono::milliseconds ParseDuration(
-      const std::string& name, std::chrono::milliseconds default_value) const;
+      std::string_view name, std::chrono::milliseconds default_value) const;
   std::optional<std::chrono::milliseconds> ParseOptionalDuration(
-      const std::string& name) const;
+      std::string_view name) const;
 
   /// @brief Access member by key for read.
   /// @throw TypeMismatchException if value is not missing and is not object.
-  YamlConfig operator[](const std::string& key) const;
+  YamlConfig operator[](std::string_view key) const;
 
   /// @brief Access member by index for read.
   /// @throw TypeMismatchException if value is not missing and is not array.
@@ -71,19 +73,19 @@ class YamlConfig {
   bool IsNull() const;
 
   template <typename T>
-  T Parse(const std::string& name) const {
+  T Parse(std::string_view name) const {
     return yaml_config::Parse<T>(yaml_, name, full_path_, config_vars_ptr_);
   }
 
   template <typename T>
-  T Parse(const std::string& name, const T& default_value) const {
+  T Parse(std::string_view name, const T& default_value) const {
     return yaml_config::Parse<std::optional<T>>(yaml_, name, full_path_,
                                                 config_vars_ptr_)
         .value_or(default_value);
   }
 
   template <typename T>
-  std::decay_t<T> Parse(const std::string& name, T&& default_value) const {
+  std::decay_t<T> Parse(std::string_view name, T&& default_value) const {
     return yaml_config::Parse<std::optional<std::decay_t<T>>>(
                yaml_, name, full_path_, config_vars_ptr_)
         .value_or(std::forward<T>(default_value));

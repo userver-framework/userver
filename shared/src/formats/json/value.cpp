@@ -9,7 +9,7 @@
 
 #include <formats/json/exception.hpp>
 
-#include <formats/common/path_impl.hpp>
+#include <formats/common/path.hpp>
 #include <formats/json/impl/exttypes.hpp>
 #include <formats/json/impl/json_tree.hpp>
 #include <formats/json/impl/mutable_value_wrapper.hpp>
@@ -85,17 +85,18 @@ Value::Value(impl::VersionedValuePtr root, std::string&& detached_path)
       detached_path_(detached_path),
       depth_(0) {}
 
-Value Value::operator[](const std::string& key) const {
+Value Value::operator[](std::string_view key) const {
   if (!IsMissing()) {
     CheckObjectOrNull();
     if (IsObject()) {
-      auto it = GetNative().FindMember(key);
+      auto it = GetNative().FindMember(
+          impl::Value(::rapidjson::StringRef(key.data(), key.size())));
       if (it != GetNative().MemberEnd()) {
         return {root_, &it->value, depth_ + 1};
       }
     }
   }
-  return {root_, formats::common::impl::MakeChildPath(GetPath(), key)};
+  return {root_, formats::common::MakeChildPath(GetPath(), key)};
 }
 
 Value Value::operator[](std::size_t index) const {
@@ -312,24 +313,18 @@ std::string Value::ConvertTo<std::string>() const {
   throw TypeMismatchException(GetExtendedType(), impl::stringValue, GetPath());
 }
 
-bool Value::HasMember(const char* key) const {
+bool Value::HasMember(std::string_view key) const {
   if (IsMissing()) return false;
   CheckObjectOrNull();
-  return IsObject() && GetNative().HasMember(key);
-}
-
-bool Value::HasMember(const std::string& key) const {
-  if (IsMissing()) return false;
-  CheckObjectOrNull();
-  return IsObject() && GetNative().HasMember(key);
+  return IsObject() && GetNative().HasMember(impl::Value(
+                           ::rapidjson::StringRef(key.data(), key.size())));
 }
 
 std::string Value::GetPath() const {
   if (value_ptr_ != nullptr) {
     return impl::MakePath(root_.Get(), value_ptr_, depth_);
   } else {
-    return detached_path_.empty() ? formats::common::impl::kPathRoot
-                                  : detached_path_;
+    return detached_path_.empty() ? formats::common::kPathRoot : detached_path_;
   }
 }
 

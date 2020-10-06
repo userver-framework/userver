@@ -18,54 +18,54 @@ namespace impl {
 
 bool IsSubstitution(const formats::yaml::Value& value);
 std::string GetSubstitutionVarName(const formats::yaml::Value& value);
-std::string GetFallbackName(const std::string& str);
+std::string GetFallbackName(std::string_view str);
 
 }  // namespace impl
 
-void CheckIsMap(const formats::yaml::Value& obj, const std::string& full_path);
+void CheckIsMap(const formats::yaml::Value& obj, std::string_view full_path);
 
 std::optional<int> ParseOptionalInt(const formats::yaml::Value& obj,
-                                    const std::string& name,
-                                    const std::string& full_path,
+                                    std::string_view name,
+                                    std::string_view full_path,
                                     const VariableMapPtr& config_vars_ptr);
 std::optional<bool> ParseOptionalBool(const formats::yaml::Value& obj,
-                                      const std::string& name,
-                                      const std::string& full_path,
+                                      std::string_view name,
+                                      std::string_view full_path,
                                       const VariableMapPtr& config_vars_ptr);
 std::optional<uint64_t> ParseOptionalUint64(
-    const formats::yaml::Value& obj, const std::string& name,
-    const std::string& full_path, const VariableMapPtr& config_vars_ptr);
+    const formats::yaml::Value& obj, std::string_view name,
+    std::string_view full_path, const VariableMapPtr& config_vars_ptr);
 std::optional<std::string> ParseOptionalString(
-    const formats::yaml::Value& obj, const std::string& name,
-    const std::string& full_path, const VariableMapPtr& config_vars_ptr);
+    const formats::yaml::Value& obj, std::string_view name,
+    std::string_view full_path, const VariableMapPtr& config_vars_ptr);
 
-int ParseInt(const formats::yaml::Value& obj, const std::string& name,
-             const std::string& full_path,
-             const VariableMapPtr& config_vars_ptr);
-bool ParseBool(const formats::yaml::Value& obj, const std::string& name,
-               const std::string& full_path,
+int ParseInt(const formats::yaml::Value& obj, std::string_view name,
+             std::string_view full_path, const VariableMapPtr& config_vars_ptr);
+bool ParseBool(const formats::yaml::Value& obj, std::string_view name,
+               std::string_view full_path,
                const VariableMapPtr& config_vars_ptr);
-uint64_t ParseUint64(const formats::yaml::Value& obj, const std::string& name,
-                     const std::string& full_path,
+uint64_t ParseUint64(const formats::yaml::Value& obj, std::string_view name,
+                     std::string_view full_path,
                      const VariableMapPtr& config_vars_ptr);
-std::string ParseString(const formats::yaml::Value& obj,
-                        const std::string& name, const std::string& full_path,
+std::string ParseString(const formats::yaml::Value& obj, std::string_view name,
+                        std::string_view full_path,
                         const VariableMapPtr& config_vars_ptr);
 
 template <typename T, typename Field>
-std::optional<T> ParseOptional(const formats::yaml::Value& obj,
-                               const Field& field, const std::string& full_path,
+std::optional<T> ParseOptional(const formats::yaml::Value& obj, Field field,
+                               std::string_view full_path,
                                const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, field, full_path, config_vars_ptr,
-                    &impl::Parse<T, Field>, &ParseOptional<T, std::string>);
+                    &impl::Parse<T, Field>,
+                    &ParseOptional<T, std::string_view>);
 }
 
 namespace impl {
 
 template <typename T>
 struct ParseOptionalHelper {
-  T operator()(const formats::yaml::Value& obj, const std::string& name,
-               const std::string& full_path,
+  T operator()(const formats::yaml::Value& obj, std::string_view name,
+               std::string_view full_path,
                const VariableMapPtr& config_vars_ptr) const {
     auto optional = ParseOptional<T>(obj, name, full_path, config_vars_ptr);
     if (!optional) {
@@ -78,15 +78,15 @@ struct ParseOptionalHelper {
 template <typename T>
 struct ParseOptionalHelper<boost::optional<T>> {
   static boost::optional<T> ParseOptional(
-      const formats::yaml::Value& obj, const std::string& name,
-      const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+      const formats::yaml::Value& obj, std::string_view name,
+      std::string_view full_path, const VariableMapPtr& config_vars_ptr) {
     return ParseValue(obj, name, full_path, config_vars_ptr,
-                      &impl::Parse<T, std::string>, &ParseOptional);
+                      &impl::Parse<T, std::string_view>, &ParseOptional);
   }
 
   boost::optional<T> operator()(const formats::yaml::Value& obj,
-                                const std::string& name,
-                                const std::string& full_path,
+                                std::string_view name,
+                                std::string_view full_path,
                                 const VariableMapPtr& config_vars_ptr) const {
     return ParseOptional(obj, name, full_path, config_vars_ptr);
   }
@@ -95,8 +95,7 @@ struct ParseOptionalHelper<boost::optional<T>> {
 template <typename T>
 struct ParseOptionalHelper<std::optional<T>> {
   std::optional<T> operator()(const formats::yaml::Value& obj,
-                              const std::string& name,
-                              const std::string& full_path,
+                              std::string_view name, std::string_view full_path,
                               const VariableMapPtr& config_vars_ptr) const {
     return ParseOptional<T>(obj, name, full_path, config_vars_ptr);
   }
@@ -105,29 +104,29 @@ struct ParseOptionalHelper<std::optional<T>> {
 }  // namespace impl
 
 template <typename T>
-T Parse(const formats::yaml::Value& obj, const std::string& name,
-        const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+T Parse(const formats::yaml::Value& obj, std::string_view name,
+        std::string_view full_path, const VariableMapPtr& config_vars_ptr) {
   return impl::ParseOptionalHelper<T>()(obj, name, full_path, config_vars_ptr);
 }
 
 template <typename T>
 void ParseInto(T& result, const formats::yaml::Value& obj,
-               const std::string& name, const std::string& full_path,
+               std::string_view name, std::string_view full_path,
                const VariableMapPtr& config_vars_ptr) {
   result = Parse<T>(obj, name, full_path, config_vars_ptr);
 }
 
 template <typename T>
 std::optional<std::vector<T>> ParseOptionalArray(
-    const formats::yaml::Value& obj, const std::string& name,
-    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+    const formats::yaml::Value& obj, std::string_view name,
+    std::string_view full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr, &impl::ParseArray<T>,
                     &ParseOptionalArray<T>);
 }
 
 template <typename T>
 std::vector<T> ParseArray(const formats::yaml::Value& obj,
-                          const std::string& name, const std::string& full_path,
+                          std::string_view name, std::string_view full_path,
                           const VariableMapPtr& config_vars_ptr) {
   auto optional = ParseOptionalArray<T>(obj, name, full_path, config_vars_ptr);
   if (!optional) {
@@ -138,16 +137,16 @@ std::vector<T> ParseArray(const formats::yaml::Value& obj,
 
 template <typename T>
 std::optional<std::vector<T>> ParseOptionalMapAsArray(
-    const formats::yaml::Value& obj, const std::string& name,
-    const std::string& full_path, const VariableMapPtr& config_vars_ptr) {
+    const formats::yaml::Value& obj, std::string_view name,
+    std::string_view full_path, const VariableMapPtr& config_vars_ptr) {
   return ParseValue(obj, name, full_path, config_vars_ptr,
                     &impl::ParseMapAsArray<T>, &ParseOptionalMapAsArray<T>);
 }
 
 template <typename T>
 std::vector<T> ParseMapAsArray(const formats::yaml::Value& obj,
-                               const std::string& name,
-                               const std::string& full_path,
+                               std::string_view name,
+                               std::string_view full_path,
                                const VariableMapPtr& config_vars_ptr) {
   auto optional =
       ParseOptionalMapAsArray<T>(obj, name, full_path, config_vars_ptr);
@@ -158,8 +157,8 @@ std::vector<T> ParseMapAsArray(const formats::yaml::Value& obj,
 }
 
 template <typename Field, typename ElemParser, typename ConfigVarParser>
-auto ParseValue(const formats::yaml::Value& obj, const Field& field,
-                const std::string& full_path,
+auto ParseValue(const formats::yaml::Value& obj, Field field,
+                std::string_view full_path,
                 const VariableMapPtr& config_vars_ptr, ElemParser parse_elem,
                 ConfigVarParser parse_config_var)
     -> decltype(parse_config_var(obj, std::declval<std::string>(), full_path,

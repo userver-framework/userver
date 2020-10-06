@@ -1,32 +1,26 @@
 #include <yaml_config/parse.hpp>
 
+#include <fmt/compile.h>
+
 namespace yaml_config {
 namespace impl {
 
-std::string PathAppend(const std::string& full_path, const std::string& name) {
-  return full_path + (full_path.empty() ? "" : ".") + name;
-}
-
-std::string PathAppend(const std::string& full_path, size_t idx) {
-  return full_path + '[' + std::to_string(idx) + ']';
-}
-
-void CheckIsMap(const formats::yaml::Value& obj, const std::string& full_path) {
+void CheckIsMap(const formats::yaml::Value& obj, std::string_view full_path) {
   if (!obj.IsObject()) throw ParseError({}, full_path, "map");
 }
 
 void CheckIsSequence(const formats::yaml::Value& obj,
-                     const std::string& full_path) {
+                     std::string_view full_path) {
   if (!obj.IsArray()) throw ParseError({}, full_path, "sequence");
 }
 
-void CheckContainer(const formats::yaml::Value& obj, const std::string&,
-                    const std::string& full_path) {
+void CheckContainer(const formats::yaml::Value& obj, std::string_view,
+                    std::string_view full_path) {
   return CheckIsMap(obj, full_path);
 }
 
-void CheckContainer(const formats::yaml::Value& obj, const size_t&,
-                    const std::string& full_path) {
+void CheckContainer(const formats::yaml::Value& obj, size_t,
+                    std::string_view full_path) {
   return CheckIsSequence(obj, full_path);
 }
 

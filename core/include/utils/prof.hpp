@@ -83,7 +83,7 @@ class LoggingTimeStorage : public TimeStorage, protected SwLogger {
 class ScopeTime {
  public:
   explicit ScopeTime(TimeStorage& ts);
-  ScopeTime(TimeStorage& ts, const std::string& scope_name);
+  ScopeTime(TimeStorage& ts, std::string scope_name);
   ScopeTime(const ScopeTime&) = delete;
   ScopeTime(ScopeTime&&) = default;
   ~ScopeTime();
@@ -92,7 +92,7 @@ class ScopeTime {
   TimeStorage::RealMilliseconds Reset();
 
   /// Records the current scope time if the name is set, and starts a new one
-  TimeStorage::RealMilliseconds Reset(const std::string& scope_name);
+  TimeStorage::RealMilliseconds Reset(std::string scope_name);
 
   /// Stops the timer without recording its value
   void Discard();

@@ -24,11 +24,11 @@ const char* NameForType(Type expected) {
   case Type::type:     \
     return #type;
   switch (expected) {
-    RET_NAME(nullValue);
-    RET_NAME(scalarValue);
-    RET_NAME(arrayValue);
-    RET_NAME(objectValue);
-    RET_NAME(errorValue);
+    RET_NAME(nullValue)
+    RET_NAME(scalarValue)
+    RET_NAME(arrayValue)
+    RET_NAME(objectValue)
+    RET_NAME(errorValue)
   }
   return "ERROR";
 #undef RET_NAME

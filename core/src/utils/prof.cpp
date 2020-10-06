@@ -101,9 +101,8 @@ const logging::LogExtra LoggingTimeStorage::kEmptyLogExtra;
 
 ScopeTime::ScopeTime(TimeStorage& ts) : ts_(ts) {}
 
-ScopeTime::ScopeTime(TimeStorage& ts, const std::string& scope_name)
-    : ScopeTime(ts) {
-  Reset(scope_name);
+ScopeTime::ScopeTime(TimeStorage& ts, std::string scope_name) : ScopeTime(ts) {
+  Reset(std::move(scope_name));
 }
 
 ScopeTime::~ScopeTime() { Reset(); }
@@ -119,9 +118,9 @@ TimeStorage::RealMilliseconds ScopeTime::Reset() {
   return duration;
 }
 
-TimeStorage::RealMilliseconds ScopeTime::Reset(const std::string& scope_name) {
+TimeStorage::RealMilliseconds ScopeTime::Reset(std::string scope_name) {
   auto result = Reset();
-  scope_name_ = scope_name;
+  scope_name_ = std::move(scope_name);
   start_ = PerfTimePoint::clock::now();
   return result;
 }

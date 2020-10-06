@@ -11,9 +11,10 @@ YamlConfig::YamlConfig(formats::yaml::Value yaml, std::string full_path,
       config_vars_ptr_(std::move(config_vars_ptr)) {}
 
 YamlConfig YamlConfig::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
-  return YamlConfig(yaml, full_path, config_vars_ptr);
+    formats::yaml::Value yaml, std::string full_path,
+    yaml_config::VariableMapPtr config_vars_ptr) {
+  return YamlConfig(std::move(yaml), std::move(full_path),
+                    std::move(config_vars_ptr));
 }
 
 const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
@@ -22,42 +23,41 @@ const yaml_config::VariableMapPtr& YamlConfig::ConfigVarsPtr() const {
   return config_vars_ptr_;
 }
 
-int YamlConfig::ParseInt(const std::string& name) const {
+int YamlConfig::ParseInt(std::string_view name) const {
   return yaml_config::ParseInt(yaml_, name, full_path_, config_vars_ptr_);
 }
 
-int YamlConfig::ParseInt(const std::string& name, int default_value) const {
+int YamlConfig::ParseInt(std::string_view name, int default_value) const {
   return yaml_config::ParseOptionalInt(yaml_, name, full_path_,
                                        config_vars_ptr_)
       .value_or(default_value);
 }
 
-std::optional<int> YamlConfig::ParseOptionalInt(const std::string& name) const {
+std::optional<int> YamlConfig::ParseOptionalInt(std::string_view name) const {
   return yaml_config::ParseOptionalInt(yaml_, name, full_path_,
                                        config_vars_ptr_);
 }
 
-bool YamlConfig::ParseBool(const std::string& name) const {
+bool YamlConfig::ParseBool(std::string_view name) const {
   return yaml_config::ParseBool(yaml_, name, full_path_, config_vars_ptr_);
 }
 
-bool YamlConfig::ParseBool(const std::string& name, bool default_value) const {
+bool YamlConfig::ParseBool(std::string_view name, bool default_value) const {
   return yaml_config::ParseOptionalBool(yaml_, name, full_path_,
                                         config_vars_ptr_)
       .value_or(default_value);
 }
 
-std::optional<bool> YamlConfig::ParseOptionalBool(
-    const std::string& name) const {
+std::optional<bool> YamlConfig::ParseOptionalBool(std::string_view name) const {
   return yaml_config::ParseOptionalBool(yaml_, name, full_path_,
                                         config_vars_ptr_);
 }
 
-uint64_t YamlConfig::ParseUint64(const std::string& name) const {
+uint64_t YamlConfig::ParseUint64(std::string_view name) const {
   return yaml_config::ParseUint64(yaml_, name, full_path_, config_vars_ptr_);
 }
 
-uint64_t YamlConfig::ParseUint64(const std::string& name,
+uint64_t YamlConfig::ParseUint64(std::string_view name,
                                  uint64_t default_value) const {
   return yaml_config::ParseOptionalUint64(yaml_, name, full_path_,
                                           config_vars_ptr_)
@@ -65,35 +65,35 @@ uint64_t YamlConfig::ParseUint64(const std::string& name,
 }
 
 std::optional<uint64_t> YamlConfig::ParseOptionalUint64(
-    const std::string& name) const {
+    std::string_view name) const {
   return yaml_config::ParseOptionalUint64(yaml_, name, full_path_,
                                           config_vars_ptr_);
 }
 
-std::string YamlConfig::ParseString(const std::string& name) const {
+std::string YamlConfig::ParseString(std::string_view name) const {
   return yaml_config::ParseString(yaml_, name, full_path_, config_vars_ptr_);
 }
 
-std::string YamlConfig::ParseString(const std::string& name,
-                                    const std::string& default_value) const {
-  return yaml_config::ParseOptionalString(yaml_, name, full_path_,
-                                          config_vars_ptr_)
-      .value_or(default_value);
+std::string YamlConfig::ParseString(std::string_view name,
+                                    std::string_view default_value) const {
+  auto opt = yaml_config::ParseOptionalString(yaml_, name, full_path_,
+                                              config_vars_ptr_);
+  return opt ? std::move(*opt) : std::string{default_value};
 }
 
 std::optional<std::string> YamlConfig::ParseOptionalString(
-    const std::string& name) const {
+    std::string_view name) const {
   return yaml_config::ParseOptionalString(yaml_, name, full_path_,
                                           config_vars_ptr_);
 }
 
 std::chrono::milliseconds YamlConfig::ParseDuration(
-    const std::string& name) const {
+    std::string_view name) const {
   return utils::StringToDuration(ParseString(name));
 }
 
 std::chrono::milliseconds YamlConfig::ParseDuration(
-    const std::string& name, std::chrono::milliseconds default_value) const {
+    std::string_view name, std::chrono::milliseconds default_value) const {
   const auto val = ParseOptionalString(name);
   if (val) {
     return utils::StringToDuration(*val);
@@ -102,7 +102,7 @@ std::chrono::milliseconds YamlConfig::ParseDuration(
 }
 
 std::optional<std::chrono::milliseconds> YamlConfig::ParseOptionalDuration(
-    const std::string& name) const {
+    std::string_view name) const {
   const auto val = ParseOptionalString(name);
   if (val) {
     return utils::StringToDuration(*val);
@@ -111,17 +111,20 @@ std::optional<std::chrono::milliseconds> YamlConfig::ParseOptionalDuration(
   return {};
 }
 
-YamlConfig YamlConfig::operator[](const std::string& key) const {
+YamlConfig YamlConfig::operator[](std::string_view key) const {
   if (!IsMissing()) {
     yaml_.CheckObject();
   }
   auto result_opt = yaml_config::ParseOptional<YamlConfig>(
       yaml_, key, full_path_, config_vars_ptr_);
-  if (result_opt)
+  if (result_opt) {
     return std::move(*result_opt);
-  else
-    return YamlConfig(formats::yaml::Value()[impl::PathAppend(full_path_, key)],
-                      impl::PathAppend(full_path_, key), config_vars_ptr_);
+  } else {
+    std::string child_path = formats::common::MakeChildPath(full_path_, key);
+    auto missing_yaml = formats::yaml::Value()[child_path];
+    return YamlConfig{std::move(missing_yaml), std::move(child_path),
+                      config_vars_ptr_};
+  }
 }
 
 YamlConfig YamlConfig::operator[](size_t index) const {
@@ -130,12 +133,14 @@ YamlConfig YamlConfig::operator[](size_t index) const {
   }
   auto result_opt = yaml_config::ParseOptional<YamlConfig>(
       yaml_, index, full_path_, config_vars_ptr_);
-  if (result_opt)
+  if (result_opt) {
     return std::move(*result_opt);
-  else
-    return YamlConfig(
-        formats::yaml::Value()[impl::PathAppend(full_path_, index)],
-        impl::PathAppend(full_path_, index), config_vars_ptr_);
+  } else {
+    std::string child_path = formats::common::MakeChildPath(full_path_, index);
+    auto missing_yaml = formats::yaml::Value()[child_path];
+    return YamlConfig{std::move(missing_yaml), std::move(child_path),
+                      config_vars_ptr_};
+  }
 }
 
 bool YamlConfig::IsMissing() const { return yaml_.IsMissing(); }

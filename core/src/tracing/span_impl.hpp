@@ -4,6 +4,7 @@
 #include <list>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include <boost/intrusive/list.hpp>
 
@@ -28,7 +29,7 @@ class Span::Impl
     : public boost::intrusive::list_base_hook<
           boost::intrusive::link_mode<boost::intrusive::auto_unlink>> {
  public:
-  Impl(TracerPtr tracer, const std::string& name, const Span::Impl* parent,
+  Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
        ReferenceType reference_type, logging::Level log_level);
 
   Impl(Impl&&) = default;

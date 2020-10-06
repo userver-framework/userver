@@ -5,25 +5,31 @@
 
 #include <array>
 #include <string>
+#include <string_view>
 
 namespace formats::common {
 
-/// Returns string of [idx], e.g. "[0]" or "[1024]"
+inline constexpr char kPathSeparator = '.';
+inline constexpr char kPathRoot[] = "/";
+
+/// Returns string of [idx], e.g. "[0]" or "[1025]"
 std::string GetIndexString(size_t index);
 
-constexpr const size_t kIndexCacheSize = 1024;
+void AppendPath(std::string& path, std::string_view key);
+void AppendPath(std::string& path, std::size_t index);
 
-/// Cache of GetIndexString() for small numbers [0; kIndexCacheSize)
-extern const std::array<std::string, kIndexCacheSize> kIndexCache;
+std::string MakeChildPath(std::string_view parent, std::string_view key);
+std::string MakeChildPath(std::string_view parent, std::size_t index);
 
 /// Document/array element path storage
 class Path {
  public:
   Path();
 
+  bool IsRoot() const;
   std::string ToString() const;
 
-  Path MakeChildPath(const std::string& key) const;
+  Path MakeChildPath(std::string_view key) const;
   Path MakeChildPath(std::size_t index) const;
 
  private:

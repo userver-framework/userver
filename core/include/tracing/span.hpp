@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <string_view>
 
 #include <logging/log.hpp>
 #include <logging/log_extra.hpp>
@@ -12,13 +13,13 @@ namespace tracing {
 
 class Span final {
  public:
-  explicit Span(TracerPtr tracer, const std::string& name, const Span* parent,
+  explicit Span(TracerPtr tracer, std::string name, const Span* parent,
                 ReferenceType reference_type,
                 logging::Level log_level = logging::Level::kInfo);
 
   /* Use default tracer and implicit coro local storage for parent
    * identification */
-  explicit Span(const std::string& name,
+  explicit Span(std::string name,
                 ReferenceType reference_type = ReferenceType::kChild,
                 logging::Level log_level = logging::Level::kInfo);
 
@@ -41,20 +42,20 @@ class Span final {
 
   static Span* CurrentSpanUnchecked();
 
-  static Span MakeSpan(const std::string& name, const std::string& trace_id,
-                       const std::string& parent_span_id);
+  static Span MakeSpan(std::string name, std::string_view trace_id,
+                       std::string_view parent_span_id);
 
   /** Create a child which can be used independently from the parent.
    * The child share no state with its parent. If you need to run code in
    * parallel, create a child span and use the child in a separate thread.
    */
-  Span CreateChild(const std::string& name) const;
+  Span CreateChild(std::string name) const;
 
-  Span CreateFollower(const std::string& name) const;
+  Span CreateFollower(std::string name) const;
 
   ScopeTime CreateScopeTime();
 
-  ScopeTime CreateScopeTime(const std::string& name);
+  ScopeTime CreateScopeTime(std::string name);
 
   /** Add a tag that is used in this Span and all future children.
    */
@@ -102,7 +103,7 @@ class Span final {
   /// @endcond
 
  private:
-  std::string GetTag(const std::string& tag) const;
+  std::string GetTag(std::string_view tag) const;
 
  private:
   std::unique_ptr<Impl> pimpl_;

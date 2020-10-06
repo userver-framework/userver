@@ -79,12 +79,11 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 }  // namespace
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-Span::Impl::Impl(TracerPtr tracer, const std::string& name,
-                 const Span::Impl* parent, ReferenceType reference_type,
-                 logging::Level log_level)
+Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
+                 ReferenceType reference_type, logging::Level log_level)
     : log_level_(log_level),
       tracer(std::move(tracer)),
-      name_(name),
+      name_(std::move(name)),
       start_system_time_(std::chrono::system_clock::now()),
       start_steady_time_(std::chrono::steady_clock::now()),
       trace_id_(parent ? parent->GetTraceId()
@@ -154,18 +153,18 @@ void Span::Impl::AttachToCoroStack() {
   task_local_spans->push_back(*this);
 }
 
-Span::Span(TracerPtr tracer, const std::string& name, const Span* parent,
+Span::Span(TracerPtr tracer, std::string name, const Span* parent,
            ReferenceType reference_type, logging::Level log_level)
-    : pimpl_(std::make_unique<Impl>(std::move(tracer), name,
+    : pimpl_(std::make_unique<Impl>(std::move(tracer), std::move(name),
                                     parent ? parent->pimpl_.get() : nullptr,
                                     reference_type, log_level)) {
   pimpl_->span_ = this;
 }
 
-Span::Span(const std::string& name, ReferenceType reference_type,
+Span::Span(std::string name, ReferenceType reference_type,
            logging::Level log_level)
     : pimpl_(std::make_unique<Impl>(
-          tracing::Tracer::GetTracer(), name,
+          tracing::Tracer::GetTracer(), std::move(name),
           task_local_spans->empty() ? nullptr : &task_local_spans->back(),
           reference_type, log_level)) {
   if (pimpl_->parent_id_.empty()) {
@@ -199,22 +198,23 @@ Span* Span::CurrentSpanUnchecked() {
   return task_local_spans->empty() ? nullptr : task_local_spans->back().span_;
 }
 
-Span Span::MakeSpan(const std::string& name, const std::string& trace_id,
-                    const std::string& parent_span_id) {
-  Span span(name);
+Span Span::MakeSpan(std::string name, std::string_view trace_id,
+                    std::string_view parent_span_id) {
+  Span span(std::move(name));
   if (!trace_id.empty()) span.pimpl_->trace_id_ = trace_id;
   span.pimpl_->parent_id_ = parent_span_id;
   return span;
 }
 
-Span Span::CreateChild(const std::string& name) const {
-  auto span = pimpl_->tracer->CreateSpan(name, *this, ReferenceType::kChild);
+Span Span::CreateChild(std::string name) const {
+  auto span =
+      pimpl_->tracer->CreateSpan(std::move(name), *this, ReferenceType::kChild);
   return span;
 }
 
-Span Span::CreateFollower(const std::string& name) const {
-  auto span =
-      pimpl_->tracer->CreateSpan(name, *this, ReferenceType::kReference);
+Span Span::CreateFollower(std::string name) const {
+  auto span = pimpl_->tracer->CreateSpan(std::move(name), *this,
+                                         ReferenceType::kReference);
   return span;
 }
 
@@ -222,8 +222,8 @@ ScopeTime Span::CreateScopeTime() {
   return ScopeTime(pimpl_->GetTimeStorage());
 }
 
-ScopeTime Span::CreateScopeTime(const std::string& name) {
-  return ScopeTime(pimpl_->GetTimeStorage(), name);
+ScopeTime Span::CreateScopeTime(std::string name) {
+  return ScopeTime(pimpl_->GetTimeStorage(), std::move(name));
 }
 
 void Span::AddNonInheritableTag(std::string key,
@@ -254,7 +254,7 @@ void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
   pimpl_->log_extra_inheritable.Extend(log_extra);
 }
 
-std::string Span::GetTag(const std::string& tag) const {
+std::string Span::GetTag(std::string_view tag) const {
   const auto& value = pimpl_->log_extra_inheritable.GetValue(tag);
   const auto s = std::get_if<std::string>(&value);
   if (s)

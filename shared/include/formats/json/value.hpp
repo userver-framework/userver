@@ -67,7 +67,7 @@ class Value final {
 
   /// @brief Access member by key for read.
   /// @throw TypeMismatchException if not object or null value.
-  Value operator[](const std::string& key) const;
+  Value operator[](std::string_view key) const;
   /// @brief Access array member by index for read.
   /// @throw TypeMismatchException if not array value.
   /// @throw OutOfBoundsException if index is greater or equal
@@ -162,11 +162,7 @@ class Value final {
 
   /// @brief Returns true if *this holds a `key`.
   /// @throw TypeMismatchException if `*this` is not a map or null.
-  bool HasMember(const char* key) const;
-
-  /// @brief Returns true if *this holds a `key`.
-  /// @throw TypeMismatchException if `*this` is not a map or null.
-  bool HasMember(const std::string& key) const;
+  bool HasMember(std::string_view key) const;
 
   /// @brief Returns full path to this value.
   std::string GetPath() const;

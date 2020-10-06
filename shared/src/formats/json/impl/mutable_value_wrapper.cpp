@@ -6,7 +6,7 @@
 #include <formats/json/value.hpp>
 #include <utils/assert.hpp>
 
-#include <formats/common/path_impl.hpp>
+#include <formats/common/path.hpp>
 #include <formats/json/impl/exttypes.hpp>
 
 namespace formats::json::impl {
@@ -101,8 +101,7 @@ formats::json::Value* MutableValueWrapper::operator->() {
 }
 
 std::string MutableValueWrapper::GetPath() const {
-  return impl_->path ? JsonPath::ToString(impl_->path)
-                     : common::impl::kPathRoot;
+  return impl_->path ? JsonPath::ToString(impl_->path) : common::kPathRoot;
 }
 
 formats::json::Value MutableValueWrapper::ExtractValue() && {
@@ -173,7 +172,7 @@ std::string MutableValueWrapper::JsonPath::ToString(
   auto path_str = ToString(path->parent);
   std::visit(
       [&path_str](const auto& element) {
-        common::impl::AppendPath(path_str, element);
+        common::AppendPath(path_str, element);
       },
       path->element);
   return path_str;

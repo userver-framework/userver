@@ -29,16 +29,17 @@ std::shared_ptr<Tracer> Tracer::GetTracer() { return GlobalTracer().Get(); }
 
 const std::string& Tracer::GetServiceName() const { return service_name_; }
 
-Span Tracer::CreateSpanWithoutParent(const std::string& name) {
-  auto span = Span(shared_from_this(), name, nullptr, ReferenceType::kChild);
+Span Tracer::CreateSpanWithoutParent(std::string name) {
+  auto span =
+      Span(shared_from_this(), std::move(name), nullptr, ReferenceType::kChild);
 
   span.SetLink(utils::generators::GenerateUuid());
   return span;
 }
 
-Span Tracer::CreateSpan(const std::string& name, const Span& parent,
+Span Tracer::CreateSpan(std::string name, const Span& parent,
                         ReferenceType reference_type) {
-  return Span(shared_from_this(), name, &parent, reference_type);
+  return Span(shared_from_this(), std::move(name), &parent, reference_type);
 }
 
 }  // namespace tracing

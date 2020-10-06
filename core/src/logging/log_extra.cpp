@@ -75,14 +75,14 @@ LogExtra LogExtra::Stacktrace() {
 }
 
 const std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(
-    const Key& key) const {
+    std::string_view key) const {
   for (const auto& it : *extra_)
     if (it.first == key) return &it;
   return nullptr;
 }
 
 std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(
-    const Key& key) {
+    std::string_view key) {
   for (auto& it : *extra_)
     if (it.first == key) return &it;
   return nullptr;
@@ -95,7 +95,7 @@ void LogExtra::SetFrozen(const std::string& key) {
   it->second.SetFrozen();
 }
 
-const LogExtra::Value& LogExtra::GetValue(const std::string& key) const {
+const LogExtra::Value& LogExtra::GetValue(std::string_view key) const {
   static const LogExtra::Value kEmpty{};
   auto it = Find(key);
   if (!it) return kEmpty;

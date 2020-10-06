@@ -1,7 +1,6 @@
 #include <yaml_config/iterator.hpp>
 
 #include <utils/assert.hpp>
-#include <yaml_config/parse.hpp>
 #include <yaml_config/yaml_config.hpp>
 
 namespace yaml_config {
@@ -43,34 +42,11 @@ void Iterator<iter_traits>::UpdateValue() const {
   UASSERT(container_ != nullptr);
   if (current_) return;
 
-  const auto& full_path = container_->FullPath();
-  const auto& vars = container_->ConfigVarsPtr();
-
   if (it_.GetIteratorType() == formats::common::Type::kArray) {
-    const size_t index = it_.GetIndex();
-    auto result_opt = yaml_config::ParseOptional<value_type>(
-        container_->Yaml(), index, full_path, vars);
-    if (result_opt) {
-      current_ = std::move(*result_opt);
-    } else {
-      // To get proper missing value
-      current_ =
-          value_type(formats::yaml::Value()[impl::PathAppend(full_path, index)],
-                     impl::PathAppend(full_path, index), vars);
-    }
+    current_ = (*container_)[it_.GetIndex()];
   } else {
     UASSERT(it_.GetIteratorType() == formats::common::Type::kObject);
-    const auto& key = it_.GetName();
-    auto result_opt = yaml_config::ParseOptional<value_type>(
-        container_->Yaml(), key, full_path, vars);
-    if (result_opt) {
-      current_ = std::move(*result_opt);
-    } else {
-      // To get proper missing value
-      current_ =
-          value_type(formats::yaml::Value()[impl::PathAppend(full_path, key)],
-                     impl::PathAppend(full_path, key), vars);
-    }
+    current_ = (*container_)[it_.GetName()];
   }
 }
 

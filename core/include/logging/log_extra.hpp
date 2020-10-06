@@ -92,7 +92,7 @@ class LogExtra final {
   friend class tracing::Span;
 
  private:
-  const Value& GetValue(const std::string& key) const;
+  const Value& GetValue(std::string_view key) const;
 
   class ProtectedValue final {
    public:
@@ -126,9 +126,9 @@ class LogExtra final {
               ExtendType extend_type = ExtendType::kNormal);
   void Extend(MapItem extra, ExtendType extend_type = ExtendType::kNormal);
 
-  std::pair<Key, ProtectedValue>* Find(const Key&);
+  std::pair<Key, ProtectedValue>* Find(std::string_view);
 
-  const std::pair<Key, ProtectedValue>* Find(const Key&) const;
+  const std::pair<Key, ProtectedValue>* Find(std::string_view) const;
 
   utils::FastPimpl<Map, kPimplSize, 8, true> extra_;
 };

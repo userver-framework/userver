@@ -15,9 +15,9 @@ class Tracer : public std::enable_shared_from_this<Tracer> {
 
   const std::string& GetServiceName() const;
 
-  Span CreateSpanWithoutParent(const std::string& name);
+  Span CreateSpanWithoutParent(std::string name);
 
-  Span CreateSpan(const std::string& name, const Span& parent,
+  Span CreateSpan(std::string name, const Span& parent,
                   ReferenceType reference_type);
 
   // Log tag-private information like trace id, span id, etc.
@@ -30,7 +30,7 @@ class Tracer : public std::enable_shared_from_this<Tracer> {
   }
 
  protected:
-  explicit Tracer(const std::string& service_name)
+  explicit Tracer(std::string_view service_name)
       : service_name_(service_name) {}
 
   virtual ~Tracer();
