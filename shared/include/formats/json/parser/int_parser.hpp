@@ -22,7 +22,8 @@ class IntegralParser final : public TypedParser<T> {
    * e.g. "3.0" is an integer 3 */
   void Double(double value) override {
     auto i = std::round(value);
-    if (std::fabs(i - value) > value * std::numeric_limits<double>::epsilon()) {
+    if (std::fabs(i - value) > std::max(std::fabs(value), std::fabs(i)) *
+                                   std::numeric_limits<double>::epsilon()) {
       this->Throw("double");
     }
     this->SetResult(boost::numeric_cast<T>(i));
