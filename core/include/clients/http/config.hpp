@@ -15,10 +15,12 @@ struct Config {
 
   ::taxi_config::Value<size_t> connection_pool_size;
 
-  size_t http_connect_throttle_max_size;
-  std::chrono::microseconds http_connect_throttle_update_interval;
-  size_t https_connect_throttle_max_size;
-  std::chrono::microseconds https_connect_throttle_update_interval;
+  size_t http_connect_throttle_limit;
+  std::chrono::microseconds http_connect_throttle_rate;
+  size_t https_connect_throttle_limit;
+  std::chrono::microseconds https_connect_throttle_rate;
+  size_t per_host_connect_throttle_limit;
+  std::chrono::microseconds per_host_connect_throttle_rate;
 };
 
 }  // namespace clients::http

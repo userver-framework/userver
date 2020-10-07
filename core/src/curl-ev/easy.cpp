@@ -261,16 +261,9 @@ void easy::set_url(std::string url_str, std::error_code& ec) {
     }
   }
   if (!ec) {
-    // TODO: memory leak in cURL on reconnect -- TAXICOMMON-2954
-    // ec = static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
-    //     handle_, native::CURLOPT_CURLU, url_.native_handle()));
-    // UASSERT(!ec);
-    auto url_str_ptr = url_.GetUrlPtr(ec);
-    if (!ec) {
-      ec = static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
-          handle_, native::CURLOPT_URL, url_str_ptr.get()));
-      UASSERT(!ec);
-    }
+    ec = static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
+        handle_, native::CURLOPT_CURLU, url_.native_handle()));
+    UASSERT(!ec);
   }
   // not else, catch all errors
   if (ec) {

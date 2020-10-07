@@ -15,6 +15,7 @@
 #include <clients/http/testsuite.hpp>
 #include <crypto/openssl.hpp>
 #include <curl-ev/multi.hpp>
+#include <curl-ev/ratelimit.hpp>
 #include <engine/ev/thread_pool.hpp>
 
 namespace clients::http {
@@ -37,10 +38,7 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads,
       statistics_(io_threads),
       idle_queue_(),
       fs_task_processor_(fs_task_processor),
-      http_connect_ratelimit_(std::make_shared<utils::TokenBucket>(
-          -1UL, utils::TokenBucket::Duration::zero())),
-      https_connect_ratelimit_(std::make_shared<utils::TokenBucket>(
-          -1UL, utils::TokenBucket::Duration::zero())) {
+      connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()) {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
   ev_config.thread_name =
@@ -53,8 +51,7 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads,
   multis_.reserve(io_threads);
   for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
     multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr,
-                                                    http_connect_ratelimit_,
-                                                    https_connect_ratelimit_));
+                                                    connect_rate_limiter_));
   }
 
   easy_reinit_task_.Start(
@@ -211,12 +208,13 @@ void Client::SetConfig(const Config& config) {
     multi->SetConnectionCacheSize(pool_size);
   }
 
-  http_connect_ratelimit_->SetMaxSize(config.http_connect_throttle_max_size);
-  http_connect_ratelimit_->SetUpdateInterval(
-      config.http_connect_throttle_update_interval);
-  https_connect_ratelimit_->SetMaxSize(config.https_connect_throttle_max_size);
-  https_connect_ratelimit_->SetUpdateInterval(
-      config.https_connect_throttle_update_interval);
+  connect_rate_limiter_->SetGlobalHttpLimits(config.http_connect_throttle_limit,
+                                             config.http_connect_throttle_rate);
+  connect_rate_limiter_->SetGlobalHttpsLimits(
+      config.https_connect_throttle_limit, config.https_connect_throttle_rate);
+  connect_rate_limiter_->SetPerHostLimits(
+      config.per_host_connect_throttle_limit,
+      config.per_host_connect_throttle_rate);
 }
 
 }  // namespace clients::http

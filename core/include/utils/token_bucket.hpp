@@ -16,7 +16,9 @@ class TokenBucket final {
   TokenBucket(size_t max_size, Duration single_token_update_interval);
 
   TokenBucket(const TokenBucket&) = delete;
-  TokenBucket(TokenBucket&&) = delete;
+  TokenBucket(TokenBucket&&) noexcept;
+  TokenBucket& operator=(const TokenBucket&) = delete;
+  TokenBucket& operator=(TokenBucket&&) noexcept;
 
   /// @returns true if token was successfully obtained
   bool Obtain();
@@ -33,6 +35,9 @@ class TokenBucket final {
 
   /// Get current token count (might be inaccurate as the result is stale)
   size_t GetTokensApprox() const;
+
+  /// Get rate for specified update interval (tokens per second)
+  static double GetRatePs(Duration update_interval);
 
  private:
   void Update();

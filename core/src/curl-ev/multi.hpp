@@ -13,10 +13,10 @@
 #include <memory>
 #include <set>
 
-#include <utils/token_bucket.hpp>
-#include "error_code.hpp"
-#include "multi_statistics.hpp"
-#include "native.hpp"
+#include <curl-ev/error_code.hpp>
+#include <curl-ev/multi_statistics.hpp>
+#include <curl-ev/native.hpp>
+#include <curl-ev/ratelimit.hpp>
 
 namespace engine {
 namespace ev {
@@ -36,8 +36,7 @@ class multi final {
  public:
   using Callback = std::function<void()>;
   multi(engine::ev::ThreadControl& thread_control,
-        std::shared_ptr<utils::TokenBucket> connect_ratelimit_http,
-        std::shared_ptr<utils::TokenBucket> connect_ratelimit_https);
+        const std::shared_ptr<ConnectRateLimiter>& connect_rate_limiter);
   multi(const multi&) = delete;
   ~multi();
 
@@ -102,7 +101,6 @@ class multi final {
   native::CURLM* handle_;
   engine::ev::ThreadControl& thread_control_;
   MultiStatistics statistics_;
-  std::shared_ptr<utils::TokenBucket> connect_ratelimit_http_;
-  std::shared_ptr<utils::TokenBucket> connect_ratelimit_https_;
+  std::shared_ptr<ConnectRateLimiter> connect_rate_limiter_;
 };
 }  // namespace curl

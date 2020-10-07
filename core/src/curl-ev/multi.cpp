@@ -68,12 +68,10 @@ multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
 }
 
 multi::multi(engine::ev::ThreadControl& thread_control,
-             std::shared_ptr<utils::TokenBucket> connect_ratelimit_http,
-             std::shared_ptr<utils::TokenBucket> connect_ratelimit_https)
+             const std::shared_ptr<ConnectRateLimiter>& connect_rate_limiter)
     : pimpl_(std::make_unique<Impl>(thread_control, *this)),
       thread_control_(thread_control),
-      connect_ratelimit_http_(std::move(connect_ratelimit_http)),
-      connect_ratelimit_https_(std::move(connect_ratelimit_https)) {
+      connect_rate_limiter_(connect_rate_limiter) {
   LOG_TRACE() << "multi::multi";
 
   handle_ = native::curl_multi_init();
@@ -136,41 +134,7 @@ void multi::UnbindEasySocket(native::curl_socket_t s) {
 }
 
 bool multi::MayAcquireConnection(const char* url_str) {
-  static constexpr std::string_view kHttpsScheme = "https";
-
-  auto* global_token_bucket = connect_ratelimit_http_.get();
-
-  if (url_str) {
-    std::error_code ec;
-    curl::url url;
-    url.SetUrl(url_str, ec);
-    if (!ec) {
-      const auto scheme_ptr = url.GetSchemePtr(ec);
-      if (ec || !scheme_ptr) {
-        LOG_INFO() << "Cannot retrieve scheme from the URL: " << ec;
-        UASSERT_MSG(false, "Cannot retrieve scheme from URL: " + ec.message());
-      }
-      if (utils::StrIcaseEqual{}(scheme_ptr.get(), kHttpsScheme)) {
-        global_token_bucket = connect_ratelimit_https_.get();
-      }
-    } else {
-      LOG_WARNING() << "Cannot parse URL in throttle check: " << ec;
-      UASSERT_MSG(false, "Cannot parse URL in throttle check: " + ec.message());
-    }
-  } else {
-    LOG_WARNING() << "Empty URL in throttle check";
-    UASSERT_MSG(false, "Empty URL in throttle check");
-  }
-  UASSERT(global_token_bucket);
-  bool ok = global_token_bucket->Obtain();
-  if (!ok) {
-    LOG_WARNING() << "Socket creation hit global rate limit (url=" << url_str
-                  << ", rate=" << global_token_bucket->GetRatePs()
-                  << "/sec"
-                  // << ", tokens=" << tb.GetTokensApprox()
-                  << ")";
-  }
-  return ok;
+  return connect_rate_limiter_->MayAcquireConnection(url_str);
 }
 
 void multi::SetMultiplexingEnabled(bool value) {

@@ -4,18 +4,20 @@
 #error Use clients::Http from clients/http.hpp instead
 #endif
 
-#include <clients/http/request.hpp>
-#include <clients/http/statistics.hpp>
+#include <memory>
 
 #include <moodycamel/concurrentqueue_fwd.h>
+
+#include <clients/http/request.hpp>
+#include <clients/http/statistics.hpp>
 #include <utils/fast_pimpl.hpp>
 #include <utils/periodic_task.hpp>
 #include <utils/swappingsmart.hpp>
-#include <utils/token_bucket.hpp>
 
 namespace curl {
 class easy;
 class multi;
+class ConnectRateLimiter;
 }  // namespace curl
 
 namespace engine {
@@ -98,8 +100,7 @@ class Client final {
   // Testsuite support
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;
 
-  std::shared_ptr<utils::TokenBucket> http_connect_ratelimit_;
-  std::shared_ptr<utils::TokenBucket> https_connect_ratelimit_;
+  std::shared_ptr<curl::ConnectRateLimiter> connect_rate_limiter_;
 };
 
 }  // namespace clients::http

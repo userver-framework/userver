@@ -38,6 +38,7 @@ class LruNode final : public LruListHook, public LruHashSetHook {
   const Key& GetKey() const noexcept { return key_; }
 
   const Value& GetValue() const noexcept { return value_; }
+  Value& GetValue() noexcept { return value_; }
 
  private:
   Key key_;
@@ -57,8 +58,8 @@ class LruNode<Key, EmptyPlaceholder> final : public LruListHook,
 
   const Key& GetKey() const noexcept { return key_; }
 
-  const EmptyPlaceholder& GetValue() const noexcept {
-    static constexpr EmptyPlaceholder kValue{};
+  EmptyPlaceholder& GetValue() const noexcept {
+    static EmptyPlaceholder kValue{};
     return kValue;
   }
 
@@ -90,9 +91,12 @@ class LruBase final {
 
   bool Put(const T& key, U value);
 
+  template <typename... Args>
+  U* Emplace(const T&, Args&&... args);
+
   void Erase(const T& key);
 
-  const U* Get(const T& key);
+  U* Get(const T& key);
 
   void SetMaxSize(size_t new_max_size);
 
@@ -100,6 +104,9 @@ class LruBase final {
 
   template <typename Function>
   void VisitAll(Function&& func) const;
+
+  template <typename Function>
+  void VisitAll(Function&& func);
 
   size_t GetSize() const;
 
@@ -135,9 +142,10 @@ class LruBase final {
   using BucketTraits = typename Map::bucket_traits;
   using BucketType = typename Map::bucket_type;
 
+  U& Add(const T& key, U value);
   void MarkRecentlyUsed(LruNode& node) noexcept;
   std::unique_ptr<LruNode> ExtractNode(typename List::iterator it) noexcept;
-  void InsertNode(std::unique_ptr<LruNode> node) noexcept;
+  LruNode& InsertNode(std::unique_ptr<LruNode>&& node) noexcept;
 
   std::vector<BucketType> buckets_;
   Map map_;
@@ -161,19 +169,16 @@ bool LruBase<T, U, Hash, Eq>::Put(const T& key, U value) {
     return false;
   }
 
-  if (map_.size() >= buckets_.size()) {
-    auto node = ExtractNode(list_.begin());
-
-    node->SetKey(key);
-    node->SetValue(std::move(value));
-
-    InsertNode(std::move(node));
-  } else {
-    auto node = std::make_unique<LruNode>(T(key), std::move(value));
-    InsertNode(std::move(node));
-  }
-
+  Add(key, std::move(value));
   return true;
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+template <typename... Args>
+U* LruBase<T, U, Hash, Eq>::Emplace(const T& key, Args&&... args) {
+  auto* existing = Get(key);
+  if (existing) return existing;
+  return &Add(key, U{std::forward<Args>(args)...});
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -184,7 +189,7 @@ void LruBase<T, U, Hash, Eq>::Erase(const T& key) {
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-const U* LruBase<T, U, Hash, Eq>::Get(const T& key) {
+U* LruBase<T, U, Hash, Eq>::Get(const T& key) {
   auto it = map_.find(key, map_.hash_function(), map_.key_eq());
   if (it == map_.end()) return nullptr;
   MarkRecentlyUsed(*it);
@@ -225,8 +230,29 @@ void LruBase<T, U, Hash, Eq>::VisitAll(Function&& func) const {
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
+template <typename Function>
+void LruBase<T, U, Hash, Eq>::VisitAll(Function&& func) {
+  for (auto& node : map_) {
+    func(node.GetKey(), node.GetValue());
+  }
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
 size_t LruBase<T, U, Hash, Eq>::GetSize() const {
   return map_.size();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+U& LruBase<T, U, Hash, Eq>::Add(const T& key, U value) {
+  if (map_.size() < buckets_.size()) {
+    auto node = std::make_unique<LruNode>(T(key), std::move(value));
+    return InsertNode(std::move(node)).GetValue();
+  }
+
+  auto node = ExtractNode(list_.begin());
+  node->SetKey(key);
+  node->SetValue(std::move(value));
+  return InsertNode(std::move(node)).GetValue();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -246,16 +272,15 @@ std::unique_ptr<LruNode<T, U>> LruBase<T, U, Hash, Eq>::ExtractNode(
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-void LruBase<T, U, Hash, Eq>::InsertNode(
-    std::unique_ptr<impl::LruNode<T, U>> node) noexcept {
-  if (!node) return;
+LruNode<T, U>& LruBase<T, U, Hash, Eq>::InsertNode(
+    std::unique_ptr<impl::LruNode<T, U>>&& node) noexcept {
+  UASSERT(node);
 
   auto [it, ok] = map_.insert(*node);  // noexcept
   UASSERT(ok);
   list_.insert(list_.end(), *node);  // noexcept
 
-  // suppress clang-tidy warning
-  [[maybe_unused]] auto ignore = node.release();
+  return *node.release();
 }
 
 }  // namespace cache::impl

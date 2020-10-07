@@ -24,6 +24,20 @@ TokenBucket::TokenBucket(size_t max_size, Duration single_token_update_interval)
   SetMaxSize(max_size);
 }
 
+TokenBucket::TokenBucket(TokenBucket&& other) noexcept
+    : max_size_(other.max_size_.load()),
+      single_token_update_interval_(other.single_token_update_interval_.load()),
+      tokens_(other.tokens_.load()),
+      last_update_tp_(other.last_update_tp_.load()) {}
+
+TokenBucket& TokenBucket::operator=(TokenBucket&& rhs) noexcept {
+  max_size_ = rhs.max_size_.load();
+  single_token_update_interval_ = rhs.single_token_update_interval_.load();
+  tokens_ = rhs.tokens_.load();
+  last_update_tp_ = rhs.last_update_tp_.load();
+  return *this;
+}
+
 void TokenBucket::SetMaxSize(size_t max_size) {
   if (max_size == 0) {
     throw std::runtime_error("TokenBucket max_size must be positive");
@@ -41,13 +55,8 @@ void TokenBucket::SetUpdateInterval(Duration single_token_update_interval) {
 }
 
 double TokenBucket::GetRatePs() const {
-  Duration a = std::chrono::seconds(1);
-  Duration b = single_token_update_interval_.load();
-
-  if (b.count())
-    return a.count() * 1.0 / b.count();
-  else
-    return 0;
+  return GetRatePs(
+      single_token_update_interval_.load(std::memory_order_relaxed));
 }
 
 size_t TokenBucket::GetTokensApprox() const { return tokens_.load(); }
@@ -68,13 +77,22 @@ bool TokenBucket::Obtain() {
   return true;
 }
 
+double TokenBucket::GetRatePs(Duration update_interval) {
+  if (update_interval.count())
+    return 1.0 / update_interval.count() / Duration::period::num *
+           Duration::period::den;
+  else
+    return 0;
+}
+
 void TokenBucket::Update() {
   auto update_tp = last_update_tp_.load();
   const auto now = GetNow();
   if (now < update_tp) {
-    // Seems impossible, but recheck to be sure that now-update_tp>0
+    last_update_tp_ = now;  // overflow
     return;
   }
+  if (now == update_tp) return;
 
   const auto max_size = max_size_.load();
   const auto token_update_interval = single_token_update_interval_.load();
