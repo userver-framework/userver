@@ -35,10 +35,6 @@ class AuthCheckerApiKey : public AuthCheckerBase {
 
   const ApiKeysSet* GetApiKeysForRequest(
       const http::HttpRequest& request) const;
-  static const ApiKeysSet& GetApiKeysByType(const AuthCheckerSettings& settings,
-                                            const std::string& apikey_type);
-  bool IsApiKeyAllowed(const std::string& api_key,
-                       const ApiKeysSet& allowed_keys) const;
 
   std::array<const ApiKeysSet*, http::kHandlerMethodsMax + 1> keys_by_method_{};
 };

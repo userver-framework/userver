@@ -2,8 +2,7 @@
 
 #include <utils/assert.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 // redis commands:
 
@@ -515,5 +514,4 @@ RequestZscore MockTransactionImplBase::Zscore(std::string /*key*/,
 
 // end of redis commands
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

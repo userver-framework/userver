@@ -2,8 +2,7 @@
 
 #include <engine/async.hpp>
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 IoWatcher::IoWatcher(ThreadControl& thread_control)
     : fd_(-1),
@@ -134,5 +133,4 @@ void IoWatcher::CloseFd() {
   }
 }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

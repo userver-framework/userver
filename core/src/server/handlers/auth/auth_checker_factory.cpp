@@ -5,9 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 namespace {
 
 class AuthCheckerFactories final {
@@ -57,6 +55,4 @@ const AuthCheckerFactoryBase& GetAuthCheckerFactory(
   return GetAuthCheckerFactories().GetFactory(auth_type);
 }
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth

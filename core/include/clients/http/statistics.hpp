@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -36,7 +37,9 @@ class RequestStats final {
 };
 
 struct MultiStats {
-  long long socket_open{0}, socket_close{0}, socket_ratelimit{0};
+  uint64_t socket_open{0};
+  uint64_t socket_close{0};
+  uint64_t socket_ratelimit{0};
   double current_load{0};
 
   MultiStats& operator+=(const MultiStats& other) {
@@ -82,12 +85,12 @@ struct Statistics {
   void AccountStatus(int);
 
  private:
-  std::atomic_llong easy_handles{0};
-  std::atomic_llong last_time_to_start_us{0};
+  std::atomic<uint64_t> easy_handles{0};
+  std::atomic<uint64_t> last_time_to_start_us{0};
   utils::statistics::RecentPeriod<Percentile, Percentile,
                                   utils::datetime::SteadyClock>
       timings_percentile;
-  std::array<std::atomic_llong, kErrorGroupCount> error_count{
+  std::array<std::atomic<uint64_t>, kErrorGroupCount> error_count{
       {0, 0, 0, 0, 0, 0, 0}};
   std::atomic_llong retries{0};
   std::atomic_llong socket_open{0};
@@ -107,20 +110,20 @@ struct InstanceStatistics {
 
   InstanceStatistics(const Statistics& other);
 
-  long long GetNotOkErrorCount() const;
+  uint64_t GetNotOkErrorCount() const;
 
   void Add(const std::vector<InstanceStatistics>& stats);
 
   using ErrorGroup = Statistics::ErrorGroup;
 
  public:
-  long long easy_handles{0};
-  long long last_time_to_start_us{0};
+  uint64_t easy_handles{0};
+  uint64_t last_time_to_start_us{0};
   Percentile timings_percentile;
-  std::array<long long, Statistics::kErrorGroupCount> error_count{
+  std::array<uint64_t, Statistics::kErrorGroupCount> error_count{
       {0, 0, 0, 0, 0, 0, 0}};
-  std::unordered_map<int, long long> reply_status;
-  long long retries{0};
+  std::unordered_map<int, uint64_t> reply_status;
+  uint64_t retries{0};
 
   MultiStats multi;
 };

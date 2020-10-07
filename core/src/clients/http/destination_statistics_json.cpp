@@ -3,8 +3,7 @@
 #include <clients/http/destination_statistics.hpp>
 #include <formats/json/value_builder.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 formats::json::Value DestinationStatisticsToJson(
     const DestinationStatistics& stats) {
@@ -15,5 +14,4 @@ formats::json::Value DestinationStatisticsToJson(
   return json.ExtractValue();
 }
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

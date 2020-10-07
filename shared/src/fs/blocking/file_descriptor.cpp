@@ -11,8 +11,7 @@
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 
-namespace fs {
-namespace blocking {
+namespace fs::blocking {
 
 /*
  * Note: use functions from C library as fstream doesn't work with
@@ -68,7 +67,7 @@ auto FileDescriptor::GetFileStats() const {
 FileDescriptor FileDescriptor::CreateTempFile(std::string pattern) {
   UASSERT(!pattern.empty());
 
-  constexpr char kPathPattern[] = ".XXXXXX";
+  static constexpr auto kPathPattern = ".XXXXXX";
   pattern += '/';
   pattern += kPathPattern;
 
@@ -168,5 +167,4 @@ FileDescriptor FileDescriptor::FromFdChecked(int fd, std::string filename) {
   return FileDescriptor{fd, std::move(filename)};
 }
 
-}  // namespace blocking
-}  // namespace fs
+}  // namespace fs::blocking

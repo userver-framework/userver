@@ -1,6 +1,7 @@
 #include <storages/postgres/io/numeric_data.hpp>
 
 #include <algorithm>
+#include <array>
 #include <string_view>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -53,8 +54,9 @@ const int kDigitWidth = 4;
 
 void WriteDigit(std::string& res, std::uint16_t bin_dgt,
                 bool truncate_leading_zeros) {
-  char buff[]{'0', '0', '0', '0', '0', '0', '0', '0'};
-  char* p = buff;
+  std::array<char, 8> buffer{'0', '0', '0', '0', '0', '0', '0', '0'};
+
+  char* p = buffer.data();
   std::ptrdiff_t significant_digits{0};
   while (bin_dgt) {
     auto dec_dgt = bin_dgt % 10;
@@ -62,7 +64,7 @@ void WriteDigit(std::string& res, std::uint16_t bin_dgt,
     *p++ += dec_dgt;
     ++significant_digits;
   }
-  p = buff;
+  p = buffer.data();
   auto e = p + (truncate_leading_zeros
                     ? (significant_digits ? significant_digits : 1)
                     : kDigitWidth);
@@ -85,7 +87,7 @@ std::int16_t GetBinDigit(std::string_view str, int idx) {
 
 std::int16_t GetPaddedDigit(std::string_view str, int idx) {
   std::int16_t val = 0;
-  for (auto i = 0U; i < kDigitWidth; ++i) {
+  for (int i = 0; i < kDigitWidth; ++i) {
     val *= 10;
     val += GetBinDigit(str, idx + i);
   }
@@ -170,15 +172,15 @@ struct NumericData {
   // Read from buffer
   void ReadBuffer(FieldBuffer fb);
   // Get binary representation
-  std::string GetBuffer() const;
+  [[nodiscard]] std::string GetBuffer() const;
   // Parse string
   void Parse(const std::string&);
   // Output to string
-  std::string ToString() const;
+  [[nodiscard]] std::string ToString() const;
   // Create buffer representation from an int64 value representation
   void FromInt64(IntegralRepresentation);
   // Output to int64 value
-  IntegralRepresentation ToInt64() const;
+  [[nodiscard]] IntegralRepresentation ToInt64() const;
 };
 
 void NumericData::ReadBuffer(FieldBuffer fb) {

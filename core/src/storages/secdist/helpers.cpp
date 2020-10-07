@@ -6,8 +6,7 @@
 #include <formats/json/exception.hpp>
 #include <storages/secdist/exceptions.hpp>
 
-namespace storages {
-namespace secdist {
+namespace storages::secdist {
 
 [[noreturn]] void ThrowInvalidSecdistType(const std::string& name,
                                           const std::string& type) {
@@ -47,5 +46,4 @@ void CheckIsArray(const formats::json::Value& val, const std::string& name) {
   }
 }
 
-}  // namespace secdist
-}  // namespace storages
+}  // namespace storages::secdist

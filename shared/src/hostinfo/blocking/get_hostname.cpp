@@ -1,6 +1,8 @@
 #include <hostinfo/blocking/get_hostname.hpp>
 
 #include <unistd.h>
+
+#include <array>
 #include <climits>
 #include <system_error>
 
@@ -19,13 +21,14 @@ const auto kHostNameMax = MAXHOSTNAMELEN;
 }  // namespace
 
 std::string GetRealHostName() {
-  char host_name[kHostNameMax];
-  if (::gethostname(host_name, kHostNameMax) == -1) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): performance
+  std::array<char, kHostNameMax> host_name;
+  if (::gethostname(host_name.data(), host_name.size()) == -1) {
     const auto code = std::make_error_code(std::errc(errno));
     throw std::system_error(code, "Error while getting hostname");
   }
 
-  return host_name;
+  return host_name.data();
 }
 
 }  // namespace hostinfo::blocking

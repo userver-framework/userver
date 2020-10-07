@@ -166,8 +166,6 @@ class SentinelImpl {
   void ReadClusterHosts();
   void CheckConnections();
   void UpdateInstancesImpl();
-  ConnInfoMap ConvertConnectionInfoVectorToMap(
-      const std::vector<ConnectionInfoInt>& array);
   bool SetConnectionInfo(ConnInfoMap info_by_shards,
                          std::vector<std::shared_ptr<Shard>>& shards,
                          bool master);

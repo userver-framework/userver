@@ -48,7 +48,7 @@ std::ostream& operator<<(std::ostream& os, Status s) {
 
 Status Response::status_code() const { return status_code_; }
 
-void Response::RaiseForStatus(long code, const LocalStats& stats) {
+void Response::RaiseForStatus(int code, const LocalStats& stats) {
   if (400 <= code && code < 500)
     throw HttpClientException(code, stats);
   else if (500 <= code && code < 600)

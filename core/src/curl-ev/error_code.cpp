@@ -15,9 +15,11 @@ class EasyErrorCategory final : public std::error_category {
  public:
   using std::error_category::error_category;
 
-  const char* name() const noexcept override { return "curl-easy"; }
+  [[nodiscard]] const char* name() const noexcept override {
+    return "curl-easy";
+  }
 
-  std::string message(int ev) const override {
+  [[nodiscard]] std::string message(int ev) const override {
     return native::curl_easy_strerror(static_cast<native::CURLcode>(ev));
   }
 };
@@ -26,9 +28,11 @@ class MultiErrorCategory final : public std::error_category {
  public:
   using std::error_category::error_category;
 
-  const char* name() const noexcept override { return "curl-multi"; }
+  [[nodiscard]] const char* name() const noexcept override {
+    return "curl-multi";
+  }
 
-  std::string message(int ev) const override {
+  [[nodiscard]] std::string message(int ev) const override {
     return native::curl_multi_strerror(static_cast<native::CURLMcode>(ev));
   }
 };
@@ -37,9 +41,11 @@ class ShareErrorCategory final : public std::error_category {
  public:
   using std::error_category::error_category;
 
-  const char* name() const noexcept override { return "curl-share"; }
+  [[nodiscard]] const char* name() const noexcept override {
+    return "curl-share";
+  }
 
-  std::string message(int ev) const override {
+  [[nodiscard]] std::string message(int ev) const override {
     return native::curl_share_strerror(static_cast<native::CURLSHcode>(ev));
   }
 };
@@ -48,9 +54,11 @@ class FormErrorCategory final : public std::error_category {
  public:
   using std::error_category::error_category;
 
-  const char* name() const noexcept override { return "curl-form"; }
+  [[nodiscard]] const char* name() const noexcept override {
+    return "curl-form";
+  }
 
-  std::string message(int ev) const override {
+  [[nodiscard]] std::string message(int ev) const override {
     switch (static_cast<FormErrorCode>(ev)) {
       case FormErrorCode::kSuccess:
         return "no error";
@@ -78,9 +86,11 @@ class UrlErrorCategory final : public std::error_category {
  public:
   using std::error_category::error_category;
 
-  const char* name() const noexcept override { return "curl-url"; }
+  [[nodiscard]] const char* name() const noexcept override {
+    return "curl-url";
+  }
 
-  std::string message(int ev) const override {
+  [[nodiscard]] std::string message(int ev) const override {
     switch (static_cast<UrlErrorCode>(ev)) {
       case UrlErrorCode::kSuccess:
         return "no error";

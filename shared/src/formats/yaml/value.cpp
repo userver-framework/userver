@@ -49,6 +49,8 @@ Value& Value::operator=(Value&& other) {
 }
 
 Value& Value::operator=(const Value& other) {
+  if (this == &other) return *this;
+
   value_pimpl_->reset(*other.value_pimpl_);
   path_ = other.path_;
   return *this;

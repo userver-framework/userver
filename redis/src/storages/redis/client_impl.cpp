@@ -6,8 +6,7 @@
 #include "request_impl.hpp"
 #include "transaction_impl.hpp"
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace {
 
 template <ScanTag>
@@ -21,6 +20,14 @@ template <>
 const std::string kScanCommandName<ScanTag::kHscan> = "hscan";
 template <>
 const std::string kScanCommandName<ScanTag::kZscan> = "zscan";
+
+void DoCheckShard(size_t shard, std::optional<size_t> force_shard_idx) {
+  if (force_shard_idx && *force_shard_idx != shard)
+    throw ::redis::InvalidArgumentException(
+        "forced shard idx != shard from command (" +
+        std::to_string(*force_shard_idx) + " != " + std::to_string(shard) +
+        ')');
+}
 
 }  // namespace
 
@@ -932,18 +939,9 @@ size_t ClientImpl::ShardByKey(const std::string& key,
   return ShardByKey(key);
 }
 
-void ClientImpl::CheckShard(size_t shard,
-                            std::optional<size_t> force_shard_idx) const {
-  if (force_shard_idx && *force_shard_idx != shard)
-    throw ::redis::InvalidArgumentException(
-        "forced shard idx != shard from command (" +
-        std::to_string(*force_shard_idx) + " != " + std::to_string(shard) +
-        ')');
-}
-
 void ClientImpl::CheckShard(size_t shard, const CommandControl& cc) const {
-  CheckShard(shard, force_shard_idx_);
-  CheckShard(shard, cc.force_shard_idx);
+  DoCheckShard(shard, force_shard_idx_);
+  DoCheckShard(shard, cc.force_shard_idx);
 }
 
 template Request<ScanReplyTmpl<ScanTag::kSscan>>
@@ -967,5 +965,4 @@ ClientImpl::MakeScanRequestWithKey(
     ScanOptionsTmpl<ScanTag::kZscan> options,
     const CommandControl& command_control);
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

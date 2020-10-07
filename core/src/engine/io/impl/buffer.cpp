@@ -31,6 +31,8 @@ Buffer::Buffer(const Buffer& other)
 }
 
 Buffer& Buffer::operator=(const Buffer& rhs) {
+  if (this == &rhs) return *this;
+
   write_ptr_ = read_ptr_;  // clear
   Reserve(rhs.AvailableReadBytes());
   read_ptr_ = rhs.read_ptr_;

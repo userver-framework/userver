@@ -8,8 +8,7 @@
 
 #include "subscription_queue.hpp"
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 SubscriptionToken::SubscriptionToken() = default;
 
@@ -35,5 +34,4 @@ void SubscriptionToken::Unsubscribe() {
   impl_->Unsubscribe();
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

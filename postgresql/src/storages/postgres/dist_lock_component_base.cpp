@@ -4,8 +4,7 @@
 #include <storages/postgres/dist_lock_component_base.hpp>
 #include <utils/statistics/metadata.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
@@ -64,5 +63,4 @@ void DistLockComponentBase::AutostartDistLock() {
 
 void DistLockComponentBase::StopDistLock() { worker_->Stop(); }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

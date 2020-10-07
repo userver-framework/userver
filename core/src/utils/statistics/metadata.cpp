@@ -2,8 +2,7 @@
 
 #include <utils/assert.hpp>
 
-namespace utils {
-namespace statistics {
+namespace utils::statistics {
 namespace {
 
 const std::string kMetadata = "$meta";
@@ -57,5 +56,4 @@ void SolomonChildrenAreLabelValues(formats::json::ValueBuilder&& stats_node,
   SolomonChildrenAreLabelValues(stats_node, label_name);
 }
 
-}  // namespace statistics
-}  // namespace utils
+}  // namespace utils::statistics

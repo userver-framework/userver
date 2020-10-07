@@ -109,7 +109,7 @@ uint64_t Timestamp::Pack() const {
 
 Timestamp Timestamp::Unpack(uint64_t packed) {
   return {static_cast<uint32_t>(packed >> 32),
-          static_cast<uint32_t>(packed & ((1ul << 32) - 1))};
+          static_cast<uint32_t>(packed & ((1UL << 32) - 1))};
 }
 
 bool Timestamp::operator==(const Timestamp& rhs) const {
@@ -139,6 +139,7 @@ bool Timestamp::operator>=(const Timestamp& rhs) const {
 
 }  // namespace formats::bson
 
+// NOLINTNEXTLINE(cert-dcl58-cpp): FP, definitions of specializations
 namespace std {
 
 size_t hash<formats::bson::Oid>::operator()(

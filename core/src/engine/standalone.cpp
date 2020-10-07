@@ -9,8 +9,7 @@
 
 #include <tracing/span.hpp>
 
-namespace engine {
-namespace impl {
+namespace engine::impl {
 
 std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(
     const TaskProcessorPoolsConfig& pools_config) {
@@ -80,5 +79,4 @@ void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb) {
   if (ex) std::rethrow_exception(ex);
 }
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

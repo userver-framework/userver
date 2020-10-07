@@ -2,8 +2,7 @@
 
 #include "child_process_impl.hpp"
 
-namespace engine {
-namespace subprocess {
+namespace engine::subprocess {
 
 ChildProcess::ChildProcess(std::unique_ptr<ChildProcessImpl>&& impl)
     : impl_(std::move(impl)) {}
@@ -25,5 +24,4 @@ ChildProcessStatus ChildProcess::Get() { return impl_->Get(); }
 
 void ChildProcess::SendSignal(int signum) { return impl_->SendSignal(signum); }
 
-}  // namespace subprocess
-}  // namespace engine
+}  // namespace engine::subprocess

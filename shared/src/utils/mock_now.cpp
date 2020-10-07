@@ -5,8 +5,7 @@
 
 #ifdef MOCK_NOW
 
-namespace utils {
-namespace datetime {
+namespace utils::datetime {
 
 namespace {
 
@@ -47,7 +46,6 @@ void MockNowUnset() { now_set = false; }
 
 bool IsMockNow() { return now_set; }
 
-}  // namespace datetime
-}  // namespace utils
+}  // namespace utils::datetime
 
 #endif  // MOCK_NOW

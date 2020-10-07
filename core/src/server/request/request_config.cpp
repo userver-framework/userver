@@ -4,8 +4,7 @@
 
 #include <yaml_config/value.hpp>
 
-namespace server {
-namespace request {
+namespace server::request {
 namespace {
 
 const std::string kHttp = "http";
@@ -41,5 +40,4 @@ const std::string& RequestConfig::TypeToString(Type type) {
       std::to_string(static_cast<int>(type)) + ')');
 }
 
-}  // namespace request
-}  // namespace server
+}  // namespace server::request

@@ -139,6 +139,7 @@ PoolImpl::~PoolImpl() {
 
   const ClientDeleter deleter;
   mongoc_client_t* client = nullptr;
+  // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   while (queue_.pop(client)) deleter(client);
 }
@@ -213,6 +214,7 @@ void PoolImpl::Drop(mongoc_client_t* client) noexcept {
 
 mongoc_client_t* PoolImpl::TryGetIdle() {
   mongoc_client_t* client = nullptr;
+  // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (queue_.pop(client)) return client;
   return nullptr;

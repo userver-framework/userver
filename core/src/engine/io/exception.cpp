@@ -4,8 +4,7 @@
 
 #include <utils/strerror.hpp>
 
-namespace engine {
-namespace io {
+namespace engine::io {
 
 IoException::IoException() : utils::TracefulException("Generic I/O error") {}
 
@@ -23,5 +22,4 @@ IoSystemError::IoSystemError(int err_value)
 IoSystemError::IoSystemError(std::error_code code)
     : IoException(code.message() + ": "), code_(code) {}
 
-}  // namespace io
-}  // namespace engine
+}  // namespace engine::io

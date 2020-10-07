@@ -12,7 +12,8 @@ namespace {
 
 std::set<std::string> SentinelParseFlags(const std::string& flags) {
   std::set<std::string> res;
-  size_t l = 0, r;
+  size_t l = 0;
+  size_t r = 0;
 
   do {
     r = flags.find(',', l);
@@ -237,7 +238,7 @@ void GetHostsContext::ProcessResponsesOnce() {
           ConnectionInfoInt info;
           info.name = properties.at("name");
           info.host = properties.at("ip");
-          info.port = std::stol(properties.at("port"));
+          info.port = std::stoi(properties.at("port"));
           info.password = password_;
           res.push_back(info);
         } catch (const std::invalid_argument& e) {

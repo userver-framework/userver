@@ -17,11 +17,9 @@ class ImplicitOptionsHttpHandler final : public HttpHandlerBase {
  public:
   static constexpr auto kName = "handler-implicit-http-options";
 
- private:
   using AuthCheckers =
       std::unordered_map<std::string, auth::AuthCheckerBasePtr>;
 
- public:
   ImplicitOptionsHttpHandler(
       const components::ComponentConfig& config,
       const components::ComponentContext& component_context,
@@ -38,12 +36,8 @@ class ImplicitOptionsHttpHandler final : public HttpHandlerBase {
  private:
   std::string ExtractAllowedMethods(const std::string& path) const;
 
-  AuthCheckers MakeAuthCheckers(const components::ComponentConfig&,
-                                const components::ComponentContext&);
-
   const http::HandlerInfoIndex& GetHandlerInfoIndex() const;
 
- private:
   const Server& server_;
   const AuthCheckers auth_checkers_;
 

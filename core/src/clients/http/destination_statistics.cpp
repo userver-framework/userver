@@ -1,7 +1,6 @@
 #include <clients/http/destination_statistics.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 std::shared_ptr<RequestStats>
 DestinationStatistics::GetStatisticsForDestination(
@@ -73,5 +72,4 @@ DestinationStatistics::end() const {
   return rcu_map_.end();
 }
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

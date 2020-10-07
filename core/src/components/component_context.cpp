@@ -321,7 +321,7 @@ void ComponentContext::CancelComponentLifetimeStageSwitching() {
 }
 
 std::string ComponentContext::GetLoadingComponentName(
-    const ProtectedData& data) const {
+    const ProtectedData& data) {
   try {
     return data.task_to_component_map.at(
         engine::current_task::GetCurrentTaskContext());

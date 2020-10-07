@@ -5,8 +5,7 @@
 
 #include <utils/assert.hpp>
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 ThreadPool::ThreadPool(ThreadPoolConfig config)
     : ThreadPool(std::move(config), false) {}
@@ -65,5 +64,4 @@ ThreadControl& ThreadPool::GetEvDefaultLoopThread() {
   return info_->GetThread(0);
 }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

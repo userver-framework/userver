@@ -9,8 +9,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-namespace formats {
-namespace yaml {
+namespace formats::yaml {
 
 formats::yaml::Value FromString(const std::string& doc) {
   if (doc.empty()) {
@@ -56,5 +55,4 @@ formats::yaml::Value FromFile(const std::string& path) {
 }
 }  // namespace blocking
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml

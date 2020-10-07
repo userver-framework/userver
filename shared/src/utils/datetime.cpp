@@ -6,10 +6,10 @@
 #include <cctz/time_zone.h>
 #include <boost/lexical_cast.hpp>
 
+#include <utils/assert.hpp>
 #include <utils/mock_now.hpp>
 
-namespace utils {
-namespace datetime {
+namespace utils::datetime {
 
 namespace {
 
@@ -172,11 +172,16 @@ std::chrono::system_clock::time_point Epoch() {
 
 /// Return string with time in ISO8601 format "YYYY-MM-DDTHH:MM:SS+0000".
 std::string TimestampToString(const time_t timestamp) {
+  static constexpr size_t kStringLen = 24;  // "YYYY-MM-DDTHH:MM:SS+0000"
+
   std::tm ptm{};
   gmtime_r(&timestamp, &ptm);
-  char buffer[25];  // "YYYY-MM-DDTHH:MM:SS+0000".size() == 24
-  strftime(buffer, 25, "%Y-%m-%dT%H:%M:%S+0000", &ptm);
-  return std::string(buffer, 24);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): performance
+  std::array<char, kStringLen + 1> buffer;
+  auto ret =
+      strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%S+0000", &ptm);
+  UASSERT(ret == kStringLen);
+  return std::string(buffer.data(), kStringLen);
 }
 
 int64_t TimePointToTicks(const std::chrono::system_clock::time_point& tp) {
@@ -200,5 +205,4 @@ std::chrono::system_clock::time_point TicksToTimePoint(int64_t ticks) {
               kNanosecondsIs100Nanoseconds)));
 }
 
-}  // namespace datetime
-}  // namespace utils
+}  // namespace utils::datetime

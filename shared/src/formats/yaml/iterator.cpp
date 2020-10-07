@@ -28,6 +28,8 @@ Iterator<iter_traits>::Iterator(Iterator<iter_traits>&& other) noexcept
 template <typename iter_traits>
 Iterator<iter_traits>& Iterator<iter_traits>::operator=(
     const Iterator<iter_traits>& other) {
+  if (this == &other) return *this;
+
   iter_pimpl_ = other.iter_pimpl_;
   path_ = other.path_;
   index_ = other.index_;

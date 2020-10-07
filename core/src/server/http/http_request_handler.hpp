@@ -44,10 +44,6 @@ class HttpRequestHandler final : public RequestHandlerBase {
   void SetRpsRatelimit(std::optional<size_t> rps);
 
  private:
-  engine::TaskWithResult<void> StartFailsafeTask(
-      std::shared_ptr<request::RequestBase> request) const;
-
- private:
   logging::LoggerPtr logger_access_;
   logging::LoggerPtr logger_access_tskv_;
 

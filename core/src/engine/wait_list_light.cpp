@@ -5,8 +5,7 @@
 #include <utils/assert.hpp>
 #include <utils/scope_guard.hpp>
 
-namespace engine {
-namespace impl {
+namespace engine::impl {
 
 WaitListLight::Lock::operator bool() {
   UASSERT_MSG(false, "must not be called");
@@ -88,5 +87,4 @@ void WaitListLight::Remove(  //
   }
 }
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

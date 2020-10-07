@@ -13,7 +13,7 @@ OperationStatisticsItem::ErrorType ToErrorType(
     case MongoError::Kind::kNetwork:
       return OperationStatisticsItem::ErrorType::kNetwork;
     case MongoError::Kind::kClusterUnavailable:
-      return OperationStatisticsItem::ErrorType::kNetwork;
+      return OperationStatisticsItem::ErrorType::kClusterUnavailable;
     case MongoError::Kind::kIncompatibleServer:
       return OperationStatisticsItem::ErrorType::kBadServerVersion;
     case MongoError::Kind::kAuthentication:

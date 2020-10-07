@@ -6,15 +6,18 @@
 #include <fstream>
 
 namespace hostinfo::blocking {
+namespace {
 
-constexpr char hostinfo_path[] = "/etc/conductor-hostinfo/hostinfo";
+constexpr auto kHostinfoPath = "/etc/conductor-hostinfo/hostinfo";
+
+}  // namespace
 
 std::vector<std::string> ReadConductorGroups() {
   std::vector<std::string> split_result;
-  std::ifstream ifs(hostinfo_path);
+  std::ifstream ifs(kHostinfoPath);
   if (!ifs) {
     throw std::runtime_error("Failed to open file '" +
-                             std::string{hostinfo_path} +
+                             std::string{kHostinfoPath} +
                              "' for reading the cgroups.");
   }
   ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit |
@@ -42,7 +45,7 @@ std::vector<std::string> ReadConductorGroups() {
   } catch (const std::exception& e) {
     throw std::runtime_error(
         "Error during search and parse of 'groups' record in '" +
-        std::string{hostinfo_path} + "': " + e.what());
+        std::string{kHostinfoPath} + "': " + e.what());
   }
 
   return split_result;

@@ -13,6 +13,48 @@
 #include <server/http/http_request_handler.hpp>
 
 namespace server::handlers {
+namespace {
+
+ImplicitOptionsHttpHandler::AuthCheckers MakeAuthCheckers(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& component_context) {
+  constexpr auto kAuthCheckers = "auth_checkers";
+
+  if (!config.Yaml().HasMember(kAuthCheckers)) return {};
+  const auto& checkers_cfg = config.Yaml()[kAuthCheckers];
+
+  auth::HandlerAuthConfig auth_config(
+      checkers_cfg, fmt::format("{}.{}", config.FullPath(), kAuthCheckers),
+      config.ConfigVarsPtr());
+
+  const auto& http_server_settings =
+      component_context.FindComponent<components::HttpServerSettingsBase>();
+
+  ImplicitOptionsHttpHandler::AuthCheckers checkers;
+  for (const auto& type : auth_config.GetTypes()) {
+    try {
+      const auto& auth_factory = auth::GetAuthCheckerFactory(type);
+      auto sp_checker =
+          auth_factory(component_context, auth_config,
+                       http_server_settings.GetAuthCheckerSettings());
+      if (sp_checker) {
+        checkers[type] = sp_checker;
+        LOG_INFO() << "Loaded " << type
+                   << " auth checker for implicit options handler";
+      } else
+        LOG_ERROR() << "Internal error during creating " << type
+                    << " auth checker";
+    } catch (const std::exception& err) {
+      LOG_ERROR() << "Unable to create " << type << " auth checker "
+                  << "for implicit OPTIONS handler, skipping the check: "
+                  << err.what();
+    }
+  }
+
+  return checkers;
+}
+
+}  // namespace
 
 ImplicitOptionsHttpHandler::ImplicitOptionsHttpHandler(
     const components::ComponentConfig& config,
@@ -55,46 +97,6 @@ const http::HandlerInfoIndex& ImplicitOptionsHttpHandler::GetHandlerInfoIndex()
   handler_info_index_ =
       &server_.GetHttpRequestHandler(IsMonitor()).GetHandlerInfoIndex();
   return *handler_info_index_;
-}
-
-ImplicitOptionsHttpHandler::AuthCheckers
-ImplicitOptionsHttpHandler::MakeAuthCheckers(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& component_context) {
-  constexpr auto kAuthCheckers = "auth_checkers";
-
-  if (!config.Yaml().HasMember(kAuthCheckers)) return {};
-  const auto& checkers_cfg = config.Yaml()[kAuthCheckers];
-
-  auth::HandlerAuthConfig auth_config(
-      checkers_cfg, fmt::format("{}.{}", config.FullPath(), kAuthCheckers),
-      config.ConfigVarsPtr());
-
-  const auto& http_server_settings =
-      component_context.FindComponent<components::HttpServerSettingsBase>();
-
-  AuthCheckers checkers;
-  for (const auto& type : auth_config.GetTypes()) {
-    try {
-      const auto& auth_factory = auth::GetAuthCheckerFactory(type);
-      auto sp_checker =
-          auth_factory(component_context, auth_config,
-                       http_server_settings.GetAuthCheckerSettings());
-      if (sp_checker) {
-        checkers[type] = sp_checker;
-        LOG_INFO() << "Loaded " << type
-                   << " auth checker for implicit options handler";
-      } else
-        LOG_ERROR() << "Internal error during creating " << type
-                    << " auth checker";
-    } catch (const std::exception& err) {
-      LOG_ERROR() << "Unable to create " << type << " auth checker "
-                  << "for implicit OPTIONS handler, skipping the check: "
-                  << err.what();
-    }
-  }
-
-  return checkers;
 }
 
 const std::string& ImplicitOptionsHttpHandler::HandlerName() const {

@@ -6,10 +6,10 @@
 #include <logging/log.hpp>
 #include <server/http/http_status.hpp>
 #include <utils/assert.hpp>
+#include <utils/encoding/hex.hpp>
 #include <utils/exception.hpp>
 
-namespace server {
-namespace http {
+namespace server::http {
 
 namespace {
 
@@ -247,10 +247,8 @@ std::string HttpRequestConstructor::UrlDecode(const char* data,
   std::string res;
   for (const char* ptr = data; ptr < data_end; ++ptr) {
     if (*ptr == '%') {
-      if (ptr + 2 < data_end && isxdigit(ptr[1]) && isxdigit(ptr[2])) {
-        unsigned int num;
-        sscanf(ptr + 1, "%2x", &num);
-        res += static_cast<char>(num);
+      if (ptr + 2 < data_end &&
+          utils::encoding::FromHex({ptr + 1, 2}, res) == 2) {
         ptr += 2;
       } else {
         static constexpr std::size_t kMaxOutputLength = 100;
@@ -492,5 +490,4 @@ void HttpRequestConstructor::CheckStatus() const {
   }
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

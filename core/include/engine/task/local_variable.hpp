@@ -16,7 +16,7 @@ class TaskLocalVariableAny {
   TaskLocalVariableAny();
 
  protected:
-  impl::LocalStorage& GetCurrentLocalStorage();
+  static impl::LocalStorage& GetCurrentLocalStorage();
 
   const size_t coro_variable_index_;
 };

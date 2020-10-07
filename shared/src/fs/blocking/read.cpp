@@ -5,8 +5,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
-namespace fs {
-namespace blocking {
+namespace fs::blocking {
 
 std::string ReadFileContents(const std::string& path) {
   std::ifstream ifs(path);
@@ -27,5 +26,4 @@ boost::filesystem::file_type GetFileType(const std::string& path) {
   return boost::filesystem::status(path).type();
 }
 
-}  // namespace blocking
-}  // namespace fs
+}  // namespace fs::blocking

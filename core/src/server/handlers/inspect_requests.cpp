@@ -6,8 +6,7 @@
 #include <server/http/http_request_impl.hpp>
 #include <server/requests_view.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 InspectRequests::InspectRequests(
     const components::ComponentConfig& config,
@@ -110,5 +109,4 @@ formats::json::Value InspectRequests::HandleRequestJsonThrow(
   return result.ExtractValue();
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

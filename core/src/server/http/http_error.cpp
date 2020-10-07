@@ -2,8 +2,7 @@
 
 #include <unordered_map>
 
-namespace server {
-namespace http {
+namespace server::http {
 
 namespace {
 
@@ -38,5 +37,4 @@ HttpStatus GetHttpStatus(handlers::HandlerErrorCode code) noexcept {
   return HttpStatus::kInternalServerError;
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

@@ -1,7 +1,6 @@
 #include <server/handlers/ping.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 Ping::Ping(const components::ComponentConfig& config,
            const components::ComponentContext& component_context)
@@ -19,5 +18,4 @@ std::string Ping::HandleRequestThrow(
   return {};
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

@@ -7,8 +7,7 @@
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 RequestStats::RequestStats(Statistics& stats) : stats_(stats) {
   stats_.easy_handles++;
@@ -204,8 +203,8 @@ bool InstanceStatistics::IsForcedStatusCode(int status) {
   return status == 200 || status == 400 || status == 401 || status == 500;
 }
 
-long long InstanceStatistics::GetNotOkErrorCount() const {
-  long long result{0};
+uint64_t InstanceStatistics::GetNotOkErrorCount() const {
+  uint64_t result{0};
 
   for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
     auto error_group = static_cast<Statistics::ErrorGroup>(i);
@@ -238,5 +237,4 @@ void InstanceStatistics::Add(const std::vector<InstanceStatistics>& stats) {
   }
 }
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http

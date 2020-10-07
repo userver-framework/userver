@@ -9,8 +9,7 @@
 
 #include "exttypes.hpp"
 
-namespace formats {
-namespace yaml {
+namespace formats::yaml {
 namespace {
 
 std::string MsgForState(std::ios::iostate state, const char* stream) {
@@ -28,6 +27,7 @@ std::string MsgForState(std::ios::iostate state, const char* stream) {
 }
 
 const char* NameForType(Type expected) {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): XX-style macro
 #define RET_NAME(type)          \
   if (Type::type == expected) { \
     return #type;               \
@@ -98,5 +98,4 @@ OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
 MemberMissingException::MemberMissingException(const std::string& path)
     : Exception(MsgForMissing(path)) {}
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml

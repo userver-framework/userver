@@ -2,8 +2,7 @@
 
 #include "http_request_impl.hpp"
 
-namespace server {
-namespace http {
+namespace server::http {
 
 HttpRequest::HttpRequest(const HttpRequestImpl& impl) : impl_(impl) {}
 
@@ -120,5 +119,4 @@ void HttpRequest::SetResponseStatus(HttpStatus status) const {
   return impl_.SetResponseStatus(status);
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

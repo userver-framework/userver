@@ -100,7 +100,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
                                         destination_statistics_);
   } else {
     thread_local unsigned int rand_state = 0;
-    int i = rand_r(&rand_state) % multis_.size();
+    auto i = rand_r(&rand_state) % multis_.size();
     auto& multi = multis_[i];
     auto wrapper = std::make_shared<impl::EasyWrapper>(
         easy_.Get()->GetBound(*multi), *this);

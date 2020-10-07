@@ -211,7 +211,8 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key,
 }
 
 std::string Sentinel::CreateTmpKey(const std::string& key, std::string prefix) {
-  size_t key_start, key_len;
+  size_t key_start = -1;
+  size_t key_len = 0;
   GetRedisKey(key, key_start, key_len);
 
   std::string tmp_key{std::move(prefix)};

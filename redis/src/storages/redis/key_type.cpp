@@ -13,8 +13,7 @@ struct hash<storages::redis::KeyType> {
 
 }  // namespace std
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace {
 
 std::unordered_map<std::string, KeyType> InitKeyTypeMap() {
@@ -54,5 +53,4 @@ std::string ToString(KeyType key_type) {
   return it->second;
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

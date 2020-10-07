@@ -3,8 +3,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-namespace engine {
-namespace subprocess {
+namespace engine::subprocess {
 namespace {
 
 ChildProcessStatus::ExitReason ExitReasonFromStatus(int status) {
@@ -49,5 +48,4 @@ const std::string& ToString(ChildProcessStatus::ExitReason exit_reason) {
       "unknown ExitReason: " + std::to_string(static_cast<int>(exit_reason)));
 }
 
-}  // namespace subprocess
-}  // namespace engine
+}  // namespace engine::subprocess

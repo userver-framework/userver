@@ -1,7 +1,6 @@
 #include <server/request/request_base.hpp>
 
-namespace server {
-namespace request {
+namespace server::request {
 
 RequestBase::RequestBase() : start_time_(std::chrono::steady_clock::now()) {}
 
@@ -28,5 +27,4 @@ void RequestBase::SetFinishSendResponseTime() {
   AccountResponseTime();
 }
 
-}  // namespace request
-}  // namespace server
+}  // namespace server::request

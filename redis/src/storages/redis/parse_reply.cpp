@@ -2,8 +2,7 @@
 
 #include <storages/redis/reply.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace {
 
 const std::string kOk{"OK"};
@@ -276,5 +275,4 @@ ReplyData Parse(ReplyData&& reply_data, const std::string&, To<ReplyData>) {
   return std::move(reply_data);
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

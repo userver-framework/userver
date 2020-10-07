@@ -5,8 +5,7 @@
 #define SPDLOG_FINAL
 #include <spdlog/async_logger.h>
 
-namespace logging {
-namespace impl {
+namespace logging::impl {
 namespace {
 
 // exposes protected logger method to pass preformatted messages
@@ -35,5 +34,4 @@ void SinkMessage(const logging::LoggerPtr& logger_ptr,
   }
 }
 
-}  // namespace impl
-}  // namespace logging
+}  // namespace logging::impl

@@ -522,7 +522,7 @@ class ResultSet {
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
   using value_type = Row;
-  using reference = const value_type;
+  using reference = value_type;
   using pointer = const_iterator;
   //@}
 

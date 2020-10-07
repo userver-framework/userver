@@ -5,8 +5,7 @@
 #include <server/request/request_base.hpp>
 #include <utils/assert.hpp>
 
-namespace server {
-namespace http {
+namespace server::http {
 
 namespace {
 
@@ -282,5 +281,4 @@ bool HttpRequestParser::FinalizeRequestImpl() {
   return true;
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

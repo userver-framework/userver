@@ -1,7 +1,6 @@
 #include "endpoint_info.hpp"
 
-namespace server {
-namespace net {
+namespace server::net {
 
 EndpointInfo::EndpointInfo(const ListenerConfig& listener_config,
                            http::HttpRequestHandler& request_handler)
@@ -14,5 +13,4 @@ std::string EndpointInfo::GetDescription() const {
     return "unix_socket_path=" + listener_config.unix_socket_path;
 }
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net

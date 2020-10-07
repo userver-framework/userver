@@ -17,8 +17,7 @@ constexpr int kVersion = 2;
 
 }  // namespace
 
-namespace utils {
-namespace statistics {
+namespace utils::statistics {
 
 Entry::Entry(Entry&& other) noexcept
     : storage_(other.storage_), iterator_(other.iterator_) {
@@ -85,5 +84,4 @@ void Storage::UnregisterExtender(StorageIterator iterator) noexcept {
   extender_funcs_.erase(iterator);
 }
 
-}  // namespace statistics
-}  // namespace utils
+}  // namespace utils::statistics

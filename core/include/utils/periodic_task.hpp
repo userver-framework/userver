@@ -127,8 +127,6 @@ class PeriodicTask final {
  private:
   enum class SuspendState { kRunning, kSuspended };
 
-  void SleepUntil(engine::Deadline::TimePoint tp);
-
   void DoStart();
 
   void Run();
@@ -146,7 +144,7 @@ class PeriodicTask final {
   Callback callback_;
   engine::TaskWithResult<void> task_;
   rcu::Variable<Settings> settings_;
-  std::minstd_rand rand_;  // default seed is OK
+  std::minstd_rand rand_;
 
   // For kNow only
   engine::Mutex step_mutex_;

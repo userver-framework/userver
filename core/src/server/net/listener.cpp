@@ -3,8 +3,7 @@
 #include <engine/async.hpp>
 #include <logging/log.hpp>
 
-namespace server {
-namespace net {
+namespace server::net {
 
 Listener::Listener(std::shared_ptr<EndpointInfo> endpoint_info,
                    engine::TaskProcessor& task_processor,
@@ -31,5 +30,4 @@ Stats Listener::GetStats() const {
   return Stats{};
 }
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net

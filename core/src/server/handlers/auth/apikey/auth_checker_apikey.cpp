@@ -4,15 +4,41 @@
 #include <server/http/http_error.hpp>
 #include <yaml_config/value.hpp>
 
+namespace server::handlers::auth::apikey {
 namespace {
 
 const std::string kApiKeyHeader = "X-YaTaxi-API-Key";
 const std::string kApiKeyType = "apikey_type";
 const std::string kApiKeyTypeByMethod = "apikey_type_by_method";
 
-}  // namespace
+const ApiKeysSet& GetApiKeysByType(const AuthCheckerSettings& settings,
+                                   const std::string& apikey_type) {
+  const auto& apikeys_map = settings.GetApiKeysMap();
+  if (!apikeys_map) {
+    throw std::runtime_error(
+        "apikeys map not found in auth checker settings (possible missing "
+        "value in secdist)");
+  }
 
-namespace server::handlers::auth::apikey {
+  auto it = apikeys_map->find(apikey_type);
+  if (it == apikeys_map->end()) {
+    throw std::runtime_error(
+        "apikey_type '" + apikey_type +
+        "' not found in apikeys settings (possible missing value in secdist)");
+  }
+  return it->second;
+}
+
+bool IsApiKeyAllowed(const std::string& api_key,
+                     const ApiKeysSet& allowed_keys) {
+  for (const auto& allowed_key : allowed_keys) {
+    if (crypto::algorithm::AreStringsEqualConstTime(api_key, allowed_key))
+      return true;
+  }
+  return false;
+}
+
+}  // namespace
 
 AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
                                      const AuthCheckerSettings& settings) {
@@ -72,33 +98,6 @@ const ApiKeysSet* AuthCheckerApiKey::GetApiKeysForRequest(
     throw std::runtime_error("method " + request.GetMethodStr() +
                              " is not supported in AuthCheckerApiKey");
   return keys_by_method_[method_idx];
-}
-
-const ApiKeysSet& AuthCheckerApiKey::GetApiKeysByType(
-    const AuthCheckerSettings& settings, const std::string& apikey_type) {
-  const auto& apikeys_map = settings.GetApiKeysMap();
-  if (!apikeys_map) {
-    throw std::runtime_error(
-        "apikeys map not found in auth checker settings (possible missing "
-        "value in secdist)");
-  }
-
-  auto it = apikeys_map->find(apikey_type);
-  if (it == apikeys_map->end()) {
-    throw std::runtime_error(
-        "apikey_type '" + apikey_type +
-        "' not found in apikeys settings (possible missing value in secdist)");
-  }
-  return it->second;
-}
-
-bool AuthCheckerApiKey::IsApiKeyAllowed(const std::string& api_key,
-                                        const ApiKeysSet& allowed_keys) const {
-  for (const auto& allowed_key : allowed_keys) {
-    if (crypto::algorithm::AreStringsEqualConstTime(api_key, allowed_key))
-      return true;
-  }
-  return false;
 }
 
 AuthCheckerApiKey::ApiKeyTypeByMethodSettings

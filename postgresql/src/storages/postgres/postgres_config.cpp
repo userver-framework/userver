@@ -5,8 +5,7 @@
 
 #include <logging/log.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 CommandControl Parse(const formats::json::Value& elem,
                      formats::parse::To<CommandControl>) {
@@ -36,5 +35,4 @@ CommandControl Parse(const formats::json::Value& elem,
   return result;
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

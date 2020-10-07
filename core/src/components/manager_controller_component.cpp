@@ -13,45 +13,11 @@
 #include <taxi_config/value.hpp>
 
 namespace {
+
 const std::string kEngineMonitorDataName = "engine";
 
-}  // namespace
-
-namespace components {
-
-ManagerControllerComponent::ManagerControllerComponent(
-    const components::ComponentConfig&,
-    const components::ComponentContext& context)
-    : components_manager_(context.GetManager()) {
-  auto& storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
-
-  auto& config_component = context.FindComponent<TaxiConfig>();
-  config_subscription_ = config_component.UpdateAndListen(
-      this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
-
-  statistics_holder_ = storage.RegisterExtender(
-      kEngineMonitorDataName,
-      [this](const auto& request) { return ExtendStatistics(request); });
-
-  auto& logger_component = context.FindComponent<components::Logging>();
-  for (const auto& [name, task_processor] :
-       components_manager_.GetTaskProcessorsMap()) {
-    const auto& logger_name = task_processor->GetTaskTraceLoggerName();
-    if (!logger_name.empty()) {
-      auto logger = logger_component.GetLogger(logger_name);
-      task_processor->SetTaskTraceLogger(std::move(logger));
-    }
-  }
-}
-
-ManagerControllerComponent::~ManagerControllerComponent() {
-  statistics_holder_.Unregister();
-  config_subscription_.Unsubscribe();
-}
-
-formats::json::ValueBuilder ManagerControllerComponent::GetTaskProcessorStats(
-    const engine::TaskProcessor& task_processor) const {
+formats::json::ValueBuilder GetTaskProcessorStats(
+    const engine::TaskProcessor& task_processor) {
   const auto& counter = task_processor.GetTaskCounter();
 
   const auto current = counter.GetCurrentValue();
@@ -91,6 +57,41 @@ formats::json::ValueBuilder ManagerControllerComponent::GetTaskProcessorStats(
 #endif  // USERVER_PROFILER
 
   return json_task_processor;
+}
+
+}  // namespace
+
+namespace components {
+
+ManagerControllerComponent::ManagerControllerComponent(
+    const components::ComponentConfig&,
+    const components::ComponentContext& context)
+    : components_manager_(context.GetManager()) {
+  auto& storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+
+  auto& config_component = context.FindComponent<TaxiConfig>();
+  config_subscription_ = config_component.UpdateAndListen(
+      this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
+
+  statistics_holder_ = storage.RegisterExtender(
+      kEngineMonitorDataName,
+      [this](const auto& request) { return ExtendStatistics(request); });
+
+  auto& logger_component = context.FindComponent<components::Logging>();
+  for (const auto& [name, task_processor] :
+       components_manager_.GetTaskProcessorsMap()) {
+    const auto& logger_name = task_processor->GetTaskTraceLoggerName();
+    if (!logger_name.empty()) {
+      auto logger = logger_component.GetLogger(logger_name);
+      task_processor->SetTaskTraceLogger(std::move(logger));
+    }
+  }
+}
+
+ManagerControllerComponent::~ManagerControllerComponent() {
+  statistics_holder_.Unregister();
+  config_subscription_.Unsubscribe();
 }
 
 formats::json::Value ManagerControllerComponent::ExtendStatistics(

@@ -149,7 +149,12 @@ class ComponentContext final {
 
   enum class DependencyType { kNormal, kInverted };
 
-  struct ProtectedData;
+  struct ProtectedData {
+    std::unordered_map<engine::impl::TaskContext*, std::string>
+        task_to_component_map;
+    mutable std::unordered_set<std::string> searching_components;
+    bool print_adding_components_stopped{false};
+  };
 
   struct ComponentLifetimeStageSwitchingParams {
     ComponentLifetimeStageSwitchingParams(
@@ -195,7 +200,8 @@ class ComponentContext final {
   void PrepareComponentLifetimeStageSwitching();
   void CancelComponentLifetimeStageSwitching();
 
-  std::string GetLoadingComponentName(const ProtectedData&) const;
+  static std::string GetLoadingComponentName(const ProtectedData&);
+
   void StartPrintAddingComponentsTask();
   void StopPrintAddingComponentsTask();
   void PrintAddingComponents() const;
@@ -205,12 +211,6 @@ class ComponentContext final {
   ComponentMap components_;
   std::atomic_flag components_load_cancelled_ = ATOMIC_FLAG_INIT;
 
-  struct ProtectedData {
-    std::unordered_map<engine::impl::TaskContext*, std::string>
-        task_to_component_map;
-    mutable std::unordered_set<std::string> searching_components;
-    bool print_adding_components_stopped{false};
-  };
   engine::ConditionVariable print_adding_components_cv_;
   concurrent::Variable<ProtectedData> shared_data_;
   std::unique_ptr<engine::TaskWithResult<void>> print_adding_components_task_;

@@ -2,8 +2,7 @@
 
 #include <yaml_config/value.hpp>
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 ThreadPoolConfig ThreadPoolConfig::ParseFromYaml(
     const formats::yaml::Value& yaml, const std::string& full_path,
@@ -22,5 +21,4 @@ ThreadPoolConfig ThreadPoolConfig::ParseFromYaml(
   return config;
 }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

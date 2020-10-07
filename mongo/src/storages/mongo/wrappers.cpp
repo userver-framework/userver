@@ -31,6 +31,8 @@ ReadPrefsPtr::ReadPrefsPtr(ReadPrefsPtr&& other) noexcept {
 }
 
 ReadPrefsPtr& ReadPrefsPtr::operator=(const ReadPrefsPtr& rhs) {
+  if (this == &rhs) return *this;
+
   Reset();
   read_prefs_ = mongoc_read_prefs_copy(rhs.read_prefs_);
   return *this;

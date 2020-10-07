@@ -60,8 +60,7 @@ const std::vector<std::string> kEmptyVector{};
 
 }  // namespace
 
-namespace server {
-namespace http {
+namespace server::http {
 
 HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
     : response_(std::make_unique<HttpResponse>(*this, data_accounter)) {}
@@ -277,5 +276,4 @@ void HttpRequestImpl::WriteAccessTskvLog(
       EscapeForAccessTskvLog(RequestBody()));
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

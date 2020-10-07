@@ -21,6 +21,8 @@ Iterator<ValueType>::Iterator(Iterator&& other) noexcept
 
 template <typename ValueType>
 Iterator<ValueType>& Iterator<ValueType>::operator=(const Iterator& other) {
+  if (this == &other) return *this;
+
   iterable_ = other.iterable_;
   it_ = other.it_;
   current_.reset();

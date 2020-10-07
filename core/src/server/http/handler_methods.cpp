@@ -2,8 +2,7 @@
 
 #include <array>
 
-namespace server {
-namespace http {
+namespace server::http {
 namespace {
 
 std::array<bool, kHandlerMethodsMax + 1> InitHandlerMethodsArray() {
@@ -23,5 +22,4 @@ bool IsHandlerMethod(HttpMethod method) {
   return index <= kHandlerMethodsMax && is_handler_method[index];
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

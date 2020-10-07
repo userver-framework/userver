@@ -1,5 +1,7 @@
 #include <http/url.hpp>
 
+#include <array>
+
 namespace http {
 
 /* Encode/Decode is ported from FastCgi daemon with minor changes:
@@ -28,12 +30,12 @@ std::string UrlEncode(std::string_view input_string) {
         result.append(1, symbol);
         break;
       default:
-        char bytes[4] = {'%', 0, 0, 0};
+        std::array<char, 3> bytes = {'%', 0, 0};
         bytes[1] = (symbol & 0xF0) / 16;
         bytes[1] += (bytes[1] > 9) ? 'A' - 10 : '0';
         bytes[2] = symbol & 0x0F;
         bytes[2] += (bytes[2] > 9) ? 'A' - 10 : '0';
-        result.append(bytes, sizeof(bytes) - 1);
+        result.append(bytes.data(), bytes.size());
         break;
     }
   }
@@ -50,7 +52,8 @@ std::string UrlDecode(std::string_view range) {
       case '%':
         if (std::distance(i, end) > 2) {
           int digit;
-          char f = *(i + 1), s = *(i + 2);
+          char f = *(i + 1);
+          char s = *(i + 2);
           digit = (f >= 'A' ? ((f & 0xDF) - 'A') + 10 : (f - '0')) * 16;
           digit += (s >= 'A') ? ((s & 0xDF) - 'A') + 10 : (s - '0');
           result.append(1, static_cast<char>(digit));

@@ -2,8 +2,7 @@
 
 #include "task_context.hpp"
 
-namespace engine {
-namespace impl {
+namespace engine::impl {
 
 TaskContextHolder::TaskContextHolder(
     boost::intrusive_ptr<TaskContext>&& context)
@@ -25,5 +24,4 @@ boost::intrusive_ptr<TaskContext> TaskContextHolder::Release() {
   return std::move(context_);
 }
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

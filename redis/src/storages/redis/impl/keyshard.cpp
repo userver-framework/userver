@@ -4,7 +4,6 @@
 #include <cassert>
 #include <vector>
 
-#include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/crc.hpp>
 #include <boost/range/algorithm/for_each.hpp>
@@ -19,7 +18,8 @@ void GetRedisKey(const std::string& key, size_t& key_start, size_t& key_len) {
 
   const char* str = key.data();
   size_t len = key.size();
-  size_t start, end; /* start-end indexes of { and  } */
+  size_t start;  // start-end indexes
+  size_t end;    // of '{' and '}'
 
   key_start = 0;
   key_len = len;
@@ -51,7 +51,8 @@ KeyShardTaximeterCrc32::KeyShardTaximeterCrc32(size_t shard_count)
 
 size_t KeyShardCrc32::ShardByKey(const std::string& key) const {
   UASSERT(shard_count_ > 0);
-  size_t start, len;
+  size_t start;
+  size_t len;
   GetRedisKey(key, start, len);
 
   return std::for_each(key.data() + start, key.data() + start + len,
@@ -68,7 +69,8 @@ bool KeyShardTaximeterCrc32::NeedConvertEncoding(const std::string& key,
 
 size_t KeyShardTaximeterCrc32::ShardByKey(const std::string& key) const {
   UASSERT(shard_count_ > 0);
-  size_t start, len;
+  size_t start;
+  size_t len;
   GetRedisKey(key, start, len);
 
   std::vector<char> converted;
@@ -96,7 +98,7 @@ std::optional<std::string> KeyShardGpsStorageDriver::Parse(
   // need use sime single function for this, but unsure how to get dependencies
   // right
   std::vector<std::string> parts;
-  boost::algorithm::split(parts, s, boost::is_any_of("/"));
+  boost::algorithm::split(parts, s, [](char c) { return c == '/'; });
   if (parts.size() != 5) return std::nullopt;
   return parts[2];  // data/db/driver_id/data/bucket
 }

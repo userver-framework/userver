@@ -128,6 +128,8 @@ LogExtra::ProtectedValue::ProtectedValue(Value value, bool frozen)
 
 LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(
     const ProtectedValue& other) {
+  if (this == &other) return *this;
+
   if (frozen_) return *this;
   value_ = other.GetValue();
   frozen_ = other.frozen_;

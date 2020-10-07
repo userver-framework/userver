@@ -11,8 +11,7 @@
 #include <fs/blocking/file_descriptor.hpp>
 #include <utils/strerror.hpp>
 
-namespace fs {
-namespace blocking {
+namespace fs::blocking {
 
 void CreateDirectories(const std::string& path) {
   boost::system::error_code errc;
@@ -55,5 +54,4 @@ bool RemoveSingleFile(const std::string& path) {
   return boost::filesystem::remove(path);
 }
 
-}  // namespace blocking
-}  // namespace fs
+}  // namespace fs::blocking

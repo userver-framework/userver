@@ -11,8 +11,7 @@ const std::string kOnAllComponentsAreStopping =
     "on_all_components_are_stopping";
 }  // namespace
 
-namespace components {
-namespace impl {
+namespace components::impl {
 
 StageSwitchingCancelledException::StageSwitchingCancelledException(
     const std::string& message)
@@ -152,5 +151,4 @@ std::unique_ptr<ComponentBase> ComponentInfo::ExtractComponent() {
   return component;
 }
 
-}  // namespace impl
-}  // namespace components
+}  // namespace components::impl

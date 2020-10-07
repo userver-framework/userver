@@ -19,31 +19,31 @@ class Cookie::CookieData final {
   CookieData(const CookieData&) = default;
   ~CookieData() = default;
 
-  const std::string& Name() const;
-  const std::string& Value() const;
+  [[nodiscard]] const std::string& Name() const;
+  [[nodiscard]] const std::string& Value() const;
 
-  bool IsSecure() const;
+  [[nodiscard]] bool IsSecure() const;
   void SetSecure();
 
-  std::chrono::system_clock::time_point Expires() const;
+  [[nodiscard]] std::chrono::system_clock::time_point Expires() const;
   void SetExpires(std::chrono::system_clock::time_point value);
 
-  bool IsPermanent() const;
+  [[nodiscard]] bool IsPermanent() const;
   void SetPermanent();
 
-  bool IsHttpOnly() const;
+  [[nodiscard]] bool IsHttpOnly() const;
   void SetHttpOnly();
 
-  const std::string& Path() const;
+  [[nodiscard]] const std::string& Path() const;
   void SetPath(std::string&& value);
 
-  const std::string& Domain() const;
+  [[nodiscard]] const std::string& Domain() const;
   void SetDomain(std::string&& value);
 
-  std::chrono::seconds MaxAge() const;
+  [[nodiscard]] std::chrono::seconds MaxAge() const;
   void SetMaxAge(std::chrono::seconds value);
 
-  std::string ToString() const;
+  [[nodiscard]] std::string ToString() const;
 
  private:
   std::string name_;
@@ -124,6 +124,8 @@ Cookie::Cookie(const Cookie& cookie) { *this = cookie; }
 
 Cookie& Cookie::operator=(Cookie&&) noexcept = default;
 Cookie& Cookie::operator=(const Cookie& cookie) {
+  if (this == &cookie) return *this;
+
   data_ = std::make_unique<CookieData>(*cookie.data_);
   return *this;
 }

@@ -15,6 +15,8 @@ bool Cursor::HasMore() const { return impl_->IsValid(); }
 
 Cursor::Iterator Cursor::begin() { return Iterator(this); }
 
+// no, part of the iterator interface
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 Cursor::Iterator Cursor::end() { return Iterator(nullptr); }
 
 Cursor::Iterator::Iterator(Cursor* cursor) : cursor_(cursor) {

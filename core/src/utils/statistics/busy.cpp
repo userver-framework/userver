@@ -8,8 +8,7 @@
 
 #include <utils/datetime.hpp>
 
-namespace utils {
-namespace statistics {
+namespace utils::statistics {
 
 using Timer = utils::datetime::SteadyClock;
 
@@ -25,16 +24,16 @@ class BusyResult {
            Duration before_this_epoch_duration) {
     const auto max_value = this_epoch_duration + before_this_epoch_duration;
     const auto value = std::min(v.value.load(), max_value);
-    result += value;
-    total = std::max(total, max_value);
+    result_ += value;
+    total_ = std::max(total_, max_value);
   }
 
-  Duration Get() const { return std::min(result, total); }
-  Duration Total() const { return total; }
+  [[nodiscard]] Duration Get() const { return std::min(result_, total_); }
+  [[nodiscard]] Duration Total() const { return total_; }
 
  private:
-  Duration result{};
-  Duration total{};
+  Duration result_{};
+  Duration total_{};
 };
 
 namespace {
@@ -128,6 +127,7 @@ bool BusyStorage::IsAlreadyStarted() const {
 
 BusyStorage::WorkerId BusyStorage::StartWork() {
   auto worker_id = kInvalidWorkerId;
+  // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (!IsAlreadyStarted()) worker_id = PopWorkerId();
   if (worker_id != kInvalidWorkerId) {
@@ -179,5 +179,4 @@ Duration BusyStorage::GetNotCommittedLoad(WorkerId worker_id) const {
   }
 }
 
-}  // namespace statistics
-}  // namespace utils
+}  // namespace utils::statistics

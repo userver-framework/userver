@@ -69,19 +69,21 @@ struct TrackTrxEnd {
   TrackTrxEnd(Connection::Statistics& stats) : stats_(stats) {}
   ~TrackTrxEnd() { stats_.trx_end_time = SteadyClock::now(); }
 
- protected:
+  Connection::Statistics& Stats() { return stats_; }
+
+ private:
   Connection::Statistics& stats_;
 };
 
 struct CountCommit : TrackTrxEnd {
   CountCommit(Connection::Statistics& stats) : TrackTrxEnd(stats) {
-    ++stats_.commit_total;
+    ++Stats().commit_total;
   }
 };
 
 struct CountRollback : TrackTrxEnd {
   CountRollback(Connection::Statistics& stats) : TrackTrxEnd(stats) {
-    ++stats_.rollback_total;
+    ++Stats().rollback_total;
   }
 };
 

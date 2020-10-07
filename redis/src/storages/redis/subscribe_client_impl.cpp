@@ -3,8 +3,7 @@
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <storages/redis/subscription_token_impl.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 SubscribeClientImpl::SubscribeClientImpl(
     std::shared_ptr<::redis::SubscribeSentinel> subscribe_sentinel)
@@ -35,5 +34,4 @@ void SubscribeClientImpl::WaitConnectedOnce(
   return *redis_client_;
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

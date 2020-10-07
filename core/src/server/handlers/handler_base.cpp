@@ -2,8 +2,7 @@
 
 #include <yaml_config/value.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 HandlerBase::HandlerBase(const components::ComponentConfig& config,
                          const components::ComponentContext& context,
@@ -20,5 +19,4 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
 
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

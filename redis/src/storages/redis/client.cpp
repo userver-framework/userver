@@ -2,8 +2,7 @@
 
 #include <storages/redis/impl/sentinel.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 std::string CreateTmpKey(const std::string& key, std::string prefix) {
   return ::redis::Sentinel::CreateTmpKey(key, std::move(prefix));
@@ -57,5 +56,4 @@ ScanRequest<ScanTag::kZscan> Client::Zscan(
   return Zscan(std::move(key), {}, command_control);
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

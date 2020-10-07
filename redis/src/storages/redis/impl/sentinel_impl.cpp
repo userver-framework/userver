@@ -21,6 +21,13 @@ bool CheckQuorum(size_t requests_sent, size_t responses_parsed) {
   return responses_parsed >= quorum;
 }
 
+ConnInfoMap ConvertConnectionInfoVectorToMap(
+    const std::vector<ConnectionInfoInt>& array) {
+  ConnInfoMap res;
+  for (const auto& info : array) res[info.name].emplace_back(info);
+  return res;
+}
+
 }  // namespace
 
 SentinelImpl::SentinelImpl(
@@ -152,7 +159,6 @@ void SentinelImpl::Init() {
   sentinels_->SignalNotInClusterMode().connect([this]() {
     cluster_mode_failed_ = true;
     ev_async_send(loop_, &watch_state_);
-    return;
   });
 }
 
@@ -656,13 +662,6 @@ void SentinelImpl::UpdateInstances(struct ev_loop*, ev_async* w, int) noexcept {
   impl->UpdateInstancesImpl();
 }
 
-ConnInfoMap SentinelImpl::ConvertConnectionInfoVectorToMap(
-    const std::vector<ConnectionInfoInt>& array) {
-  ConnInfoMap res;
-  for (const auto& info : array) res[info.name].emplace_back(info);
-  return res;
-}
-
 bool SentinelImpl::SetConnectionInfo(
     ConnInfoMap info_by_shards, std::vector<std::shared_ptr<Shard>>& shards,
     bool master) {
@@ -827,7 +826,7 @@ size_t SentinelImpl::ParseMovedShard(const std::string& err_string) {
   size_t colon_pos = err_string.rfind(':', end);
   int port;
   try {
-    port = std::stol(err_string.substr(colon_pos + 1, end - (colon_pos + 1)));
+    port = std::stoi(err_string.substr(colon_pos + 1, end - (colon_pos + 1)));
   } catch (const std::exception& ex) {
     LOG_WARNING() << "exception in " << __func__ << "(\"" << err_string
                   << "\") " << ex.what();
@@ -838,7 +837,8 @@ size_t SentinelImpl::ParseMovedShard(const std::string& err_string) {
 }
 
 size_t SentinelImpl::HashSlot(const std::string& key) {
-  size_t start, len;
+  size_t start = -1;
+  size_t len = 0;
   GetRedisKey(key, start, len);
   return std::for_each(key.data() + start, key.data() + start + len,
                        boost::crc_optimal<16, 0x1021>())() &

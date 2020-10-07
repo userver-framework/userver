@@ -1,6 +1,8 @@
 #include <formats/parse/boost_uuid.hpp>
 
 #include <algorithm>
+#include <array>
+#include <string_view>
 
 namespace formats::parse::detail {
 
@@ -29,19 +31,16 @@ void CheckCloseBrace(char c, char open_brace) {
 bool IsDash(char c) { return c == '-'; }
 
 unsigned char GetValue(char c) {
-  static char const digits_begin[] = "0123456789abcdefABCDEF";
-  static size_t digits_len = (sizeof(digits_begin) / sizeof(char)) - 1;
-  static char const* const digits_end = digits_begin + digits_len;
+  static constexpr std::string_view kDigits = "0123456789abcdefABCDEF";
+  static constexpr std::array<unsigned char, kDigits.size()> kValues = {
+      0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
+      11, 12, 13, 14, 15, 10, 11, 12, 13, 14, 15};
 
-  static unsigned char const values[] = {0,  1,  2,  3,  4,  5,  6,  7,
-                                         8,  9,  10, 11, 12, 13, 14, 15,
-                                         10, 11, 12, 13, 14, 15};
-
-  size_t pos = std::find(digits_begin, digits_end, c) - digits_begin;
-  if (pos >= digits_len) {
+  const auto pos = kDigits.find(c);
+  if (pos == std::string_view::npos) {
     throw std::runtime_error{"Invalid uuid string"};
   }
-  return values[pos];
+  return kValues[pos];
 }
 
 boost::uuids::uuid FromChars(const char* begin, const char* end) {

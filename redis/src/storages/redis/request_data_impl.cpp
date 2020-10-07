@@ -2,8 +2,7 @@
 
 #include <logging/log.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 namespace impl {
 
@@ -26,5 +25,4 @@ ReplyPtr RequestDataImplBase::GetReply() { return request_.Get(); }
 
 ::redis::Request& RequestDataImplBase::GetRequest() { return request_; }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

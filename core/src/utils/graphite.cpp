@@ -6,8 +6,7 @@
  * https://wiki.yandex-team.ru/solomon/mega-graphite/metrics/#pravilavalidaciiimen
  */
 
-namespace utils {
-namespace graphite {
+namespace utils::graphite {
 
 namespace {
 
@@ -35,5 +34,4 @@ std::string EscapeName(const std::string& s) {
   return result;
 }
 
-}  // namespace graphite
-}  // namespace utils
+}  // namespace utils::graphite

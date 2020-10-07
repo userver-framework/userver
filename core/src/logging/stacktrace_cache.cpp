@@ -17,9 +17,7 @@ struct hash<boost::stacktrace::frame> {
 
 }  // namespace std
 
-namespace logging {
-
-namespace stacktrace_cache {
+namespace logging::stacktrace_cache {
 
 std::string to_string(boost::stacktrace::frame frame) {
   thread_local cache::LruMap<boost::stacktrace::frame, std::string>
@@ -52,5 +50,4 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
   return res;
 }
 
-}  // namespace stacktrace_cache
-}  // namespace logging
+}  // namespace logging::stacktrace_cache

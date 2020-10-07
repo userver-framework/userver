@@ -4,8 +4,7 @@
 
 #include <http_parser.h>
 
-namespace server {
-namespace http {
+namespace server::http {
 
 namespace {
 
@@ -74,5 +73,4 @@ const std::string& ToString(HttpMethod method) {
   return kUnknown;
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

@@ -86,6 +86,7 @@ bool Poller::NextEvent(Event& buf, Deadline deadline) {
 }
 
 bool Poller::NextEventNoblock(Event& buf) {
+  // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return event_consumer_.PopNoblock(buf);
 }

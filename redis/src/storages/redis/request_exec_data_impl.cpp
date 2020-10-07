@@ -1,7 +1,6 @@
 #include "request_exec_data_impl.hpp"
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 RequestExecDataImpl::RequestExecDataImpl(
     ::redis::Request&& request,
@@ -29,5 +28,4 @@ void RequestExecDataImpl::Get(const std::string& request_description) {
   }
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

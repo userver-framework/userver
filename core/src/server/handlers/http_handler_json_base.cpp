@@ -43,12 +43,12 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
 }
 
 const formats::json::Value* HttpHandlerJsonBase::GetRequestJson(
-    const request::RequestContext& context) const {
+    const request::RequestContext& context) {
   return context.GetDataOptional<const formats::json::Value>(kRequestDataName);
 }
 
 const formats::json::Value* HttpHandlerJsonBase::GetResponseJson(
-    const request::RequestContext& context) const {
+    const request::RequestContext& context) {
   return context.GetDataOptional<const formats::json::Value>(kResponseDataName);
 }
 

@@ -21,6 +21,8 @@
 #include <logging/log_helper_impl.hpp>
 #include <logging/log_workaround.hpp>
 
+// uses stringify
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define NOTHROW_CALL_BASE(ERROR_PREFIX, FUNCTION)                             \
   try {                                                                       \
     FUNCTION;                                                                 \
@@ -34,9 +36,11 @@
     }                                                                         \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define NOTHROW_CALL_CONSTRUCTOR(PATH, LINE, FUNCTION) \
   NOTHROW_CALL_BASE((PATH) << ':' << (LINE) << ": ", (FUNCTION))
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define NOTHROW_CALL_GENERIC(FUNCTION) NOTHROW_CALL_BASE("LogHelper ", FUNCTION)
 
 namespace logging {

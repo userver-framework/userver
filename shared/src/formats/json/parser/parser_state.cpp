@@ -38,7 +38,7 @@ struct ParserState::Impl {
 
   void PushParser(BaseParser& parser, ParserState& parser_state);
 
-  std::string GetPath() const;
+  [[nodiscard]] std::string GetPath() const;
 };
 
 void ParserState::Impl::PushParser(BaseParser& parser,

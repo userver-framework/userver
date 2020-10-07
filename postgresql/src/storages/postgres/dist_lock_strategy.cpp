@@ -6,8 +6,7 @@
 #include <hostinfo/blocking/get_hostname.hpp>
 #include <storages/postgres/cluster.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 namespace {
 
@@ -78,5 +77,4 @@ void DistLockStrategy::Release(const std::string& locker_id) {
                     lock_name_, MakeOwnerId(owner_prefix_, locker_id));
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

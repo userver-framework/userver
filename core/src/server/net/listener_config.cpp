@@ -5,8 +5,7 @@
 
 #include <yaml_config/value.hpp>
 
-namespace server {
-namespace net {
+namespace server::net {
 
 namespace {
 
@@ -63,5 +62,4 @@ ListenerConfig ListenerConfig::ParseFromYaml(
   return config;
 }
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net

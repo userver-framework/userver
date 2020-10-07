@@ -26,8 +26,8 @@ struct Event {
     kUnsubscribeRequested
   };
 
-  static const std::string TypeToDebugString(Type type);
-  const std::string ToDebugString() const;
+  static std::string TypeToDebugString(Type type);
+  std::string ToDebugString() const;
 
   Type type;
   ServerId server_id;
@@ -50,8 +50,8 @@ struct Action {
   Action(Type type, ServerId server_id = ServerId())
       : type(type), server_id(server_id) {}
 
-  static const std::string TypeToDebugString(Type type);
-  const std::string ToDebugString() const;
+  static std::string TypeToDebugString(Type type);
+  std::string ToDebugString() const;
 
   Type type;
   ServerId server_id;

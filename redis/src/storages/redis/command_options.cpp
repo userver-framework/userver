@@ -1,7 +1,6 @@
 #include <storages/redis/command_options.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
             std::optional<ScanOptionsBase::Match> arg) {
@@ -19,5 +18,4 @@ void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
   }
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

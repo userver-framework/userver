@@ -2,8 +2,7 @@
 
 #include <utils/assert.hpp>
 
-namespace server {
-namespace request {
+namespace server::request {
 
 ResponseBase::ResponseBase(ResponseDataAccounter& data_accounter)
     : data_accounter_(data_accounter) {}
@@ -43,5 +42,4 @@ void ResponseBase::SetSentTime(
   sent_time_ = sent_time;
 }
 
-}  // namespace request
-}  // namespace server
+}  // namespace server::request

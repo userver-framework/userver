@@ -2,8 +2,7 @@
 
 #include <yaml_config/value.hpp>
 
-namespace engine {
-namespace coro {
+namespace engine::coro {
 
 PoolConfig PoolConfig::ParseFromYaml(
     const formats::yaml::Value& yaml, const std::string& full_path,
@@ -16,5 +15,4 @@ PoolConfig PoolConfig::ParseFromYaml(
   return config;
 }
 
-}  // namespace coro
-}  // namespace engine
+}  // namespace engine::coro

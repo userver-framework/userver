@@ -7,8 +7,7 @@
 
 #include <utils/assert.hpp>
 
-namespace engine {
-namespace impl {
+namespace engine::impl {
 
 namespace {
 
@@ -91,5 +90,4 @@ void WaitList::Remove(const boost::intrusive_ptr<impl::TaskContext>& context) {
   context->wait_list_hook.unlink();
 }
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

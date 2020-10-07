@@ -2,9 +2,7 @@
 
 #include <boost/functional/hash.hpp>
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 std::size_t QueryParameters::TypeHash() const {
   auto seed = param_types.size();
@@ -12,6 +10,4 @@ std::size_t QueryParameters::TypeHash() const {
   return seed;
 }
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

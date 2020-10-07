@@ -20,6 +20,7 @@ Type GetExtendedType(const YAML::Node& val) {
 }
 
 const char* NameForType(Type expected) {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): XX-style macro
 #define RET_NAME(type) \
   case Type::type:     \
     return #type;

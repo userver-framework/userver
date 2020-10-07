@@ -4,8 +4,7 @@
 
 #include <logging/stacktrace_cache.hpp>
 
-namespace logging {
-namespace impl {
+namespace logging::impl {
 namespace {
 
 const std::string kTraceKey = "stacktrace";
@@ -25,5 +24,4 @@ LogExtra MakeLogExtraStacktrace(const boost::stacktrace::stacktrace& trace,
   return ret;
 }
 
-}  // namespace impl
-}  // namespace logging
+}  // namespace logging::impl

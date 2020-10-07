@@ -10,8 +10,7 @@
 #include <storages/postgres/io/user_types.hpp>
 #include <utils/assert.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 namespace {
 
@@ -248,5 +247,5 @@ void ResultSet::FillBufferCategories(const UserTypes& types) {
 void ResultSet::SetBufferCategoriesFrom(const ResultSet& dsc) {
   pimpl_->SetTypeBufferCategories(dsc.pimpl_->GetTypeBufferCategories());
 }
-}  // namespace postgres
-}  // namespace storages
+
+}  // namespace storages::postgres

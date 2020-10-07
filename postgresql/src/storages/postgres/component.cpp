@@ -23,6 +23,7 @@
 #include <testsuite/postgres_control.hpp>
 #include <testsuite/testsuite_support.hpp>
 
+namespace components {
 namespace {
 
 constexpr auto kStatisticsName = "postgresql";
@@ -126,7 +127,7 @@ formats::json::ValueBuilder ClusterStatisticsToJson(
 formats::json::ValueBuilder PostgresStatisticsToJson(
     const std::vector<storages::postgres::Cluster*>& shards) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
-  for (auto i = 0u; i < shards.size(); ++i) {
+  for (size_t i = 0; i < shards.size(); ++i) {
     auto cluster = shards[i];
     if (cluster) {
       const auto shard_name = "shard_" + std::to_string(i);
@@ -137,9 +138,19 @@ formats::json::ValueBuilder PostgresStatisticsToJson(
                                                    "postgresql_database_shard");
   return result;
 }
-}  // namespace
 
-namespace components {
+storages::postgres::CommandControl GetCommandControlConfig(
+    const std::shared_ptr<const taxi_config::Config>& cfg) {
+  return cfg->Get<storages::postgres::Config>().default_command_control;
+}
+
+storages::postgres::CommandControl GetCommandControlConfig(
+    const TaxiConfig& cfg) {
+  auto conf = cfg.Get();
+  return GetCommandControlConfig(conf);
+}
+
+}  // namespace
 
 Postgres::Postgres(const ComponentConfig& config,
                    const ComponentContext& context)
@@ -262,17 +273,6 @@ void Postgres::SetDefaultCommandControl(
   for (const auto& cluster : database_->clusters_) {
     cluster->SetDefaultCommandControl(cmd_ctl);
   }
-}
-
-storages::postgres::CommandControl Postgres::GetCommandControlConfig(
-    const TaxiConfigPtr& cfg) const {
-  return cfg->Get<storages::postgres::Config>().default_command_control;
-}
-
-storages::postgres::CommandControl Postgres::GetCommandControlConfig(
-    const TaxiConfig& cfg) const {
-  auto conf = cfg.Get();
-  return GetCommandControlConfig(conf);
 }
 
 void Postgres::OnConfigUpdate(const TaxiConfigPtr& cfg) {

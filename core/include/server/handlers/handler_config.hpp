@@ -16,6 +16,8 @@ namespace handlers {
 enum class UrlTrailingSlashOption {
   kBoth,         ///< ignore trailing slashes when matching paths
   kStrictMatch,  ///< require exact match for trailing slashes in paths
+
+  kDefault = kBoth,
 };
 
 struct HandlerConfig {

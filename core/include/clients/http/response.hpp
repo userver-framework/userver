@@ -57,7 +57,7 @@ class Response final {
   /// check status code
   bool IsOk() const { return status_code() == Status::OK; }
 
-  static void RaiseForStatus(long code, const LocalStats& stats);
+  static void RaiseForStatus(int code, const LocalStats& stats);
 
   void raise_for_status() const;
 

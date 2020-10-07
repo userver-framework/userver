@@ -6,8 +6,7 @@
 #include <tracing/span.hpp>
 #include <utils/async.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace {
 
 const std::string kSubscribeToChannelPrefix = "redis-channel-subscriber-";
@@ -75,5 +74,4 @@ void PsubscriptionTokenImpl::ProcessMessages() {
   }
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

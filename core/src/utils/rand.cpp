@@ -1,12 +1,10 @@
 #include <utils/rand.hpp>
 
-namespace utils {
-namespace impl {
+namespace utils::impl {
 
 Random& GetRandom() {
   thread_local Random random;
   return random;
 }
 
-}  // namespace impl
-}  // namespace utils
+}  // namespace utils::impl

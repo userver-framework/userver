@@ -21,6 +21,8 @@ std::string Trim(std::string&& str) {
 
 std::vector<std::string> Split(std::string_view str, std::string_view sep) {
   std::vector<std::string> result;
+  // FP, m_Size does not change
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   boost::algorithm::split(result, str, boost::algorithm::is_any_of(sep),
                           boost::token_compress_on);
   return result;
@@ -30,8 +32,8 @@ std::string Join(const std::vector<std::string>& strs, std::string_view sep) {
   return boost::algorithm::join(strs, sep);
 }
 
-std::string Format(double value, const std::string& locale,
-                   unsigned int ndigits, bool is_fixed) {
+std::string Format(double value, const std::string& locale, int ndigits,
+                   bool is_fixed) {
   std::stringstream res;
   res.imbue(GetLocale(locale));
   if (is_fixed) res.setf(std::ios::fixed, std::ios::floatfield);
@@ -41,14 +43,13 @@ std::string Format(double value, const std::string& locale,
   return res.str();
 }
 
-std::string Format(boost::multiprecision::cpp_dec_float_50 value,
-                   unsigned int ndigits) {
+std::string Format(boost::multiprecision::cpp_dec_float_50 value, int ndigits) {
   std::stringstream res;
   res << std::setprecision(ndigits) << value;
   return res.str();
 }
 
-std::string Format(double value, unsigned int ndigits) {
+std::string Format(double value, int ndigits) {
   std::stringstream res;
   res << std::setprecision(ndigits) << value;
   return res.str();
@@ -164,7 +165,7 @@ size_t FindTruncatedEndingCorrectSize(std::string_view str) {
   }
 
   // no symbol with a length > 4 => no proper prefix with a length > 3
-  size_t max_suffix_len = std::min(str.size(), 3ul);
+  size_t max_suffix_len = std::min(str.size(), 3UL);
   for (size_t suffix_len = 1; suffix_len <= max_suffix_len; ++suffix_len) {
     size_t pos = str.size() - suffix_len;
 

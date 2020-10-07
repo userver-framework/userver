@@ -7,8 +7,7 @@
 
 extern char** environ;
 
-namespace engine {
-namespace subprocess {
+namespace engine::subprocess {
 namespace {
 
 EnvironmentVariables::Map GetCurrentEnvironmentVariablesMap() {
@@ -66,5 +65,4 @@ const EnvironmentVariables& GetCurrentEnvironmentVariables() {
   return current_env;
 }
 
-}  // namespace subprocess
-}  // namespace engine
+}  // namespace engine::subprocess

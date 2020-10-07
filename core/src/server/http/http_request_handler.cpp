@@ -9,8 +9,26 @@
 #include <server/http/http_response.hpp>
 #include "http_request_impl.hpp"
 
-namespace server {
-namespace http {
+namespace server::http {
+namespace {
+
+engine::TaskWithResult<void> StartFailsafeTask(
+    std::shared_ptr<request::RequestBase> request) {
+  auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
+  auto* handler = http_request.GetHttpHandler();
+  static handlers::HttpHandlerStatistics dummy_statistics;
+
+  http_request.SetHttpHandlerStatistics(dummy_statistics);
+
+  return engine::impl::Async([request = std::move(request), handler]() {
+    request->SetTaskStartTime();
+    if (handler) handler->ReportMalformedRequest(*request);
+    request->SetResponseNotifyTime();
+    request->GetResponse().SetReady();
+  });
+}
+
+}  // namespace
 
 HttpRequestHandler::HttpRequestHandler(
     const components::ComponentContext& component_context,
@@ -123,22 +141,6 @@ void HttpRequestHandler::SetNewRequestHook(NewRequestHook hook) {
   new_request_hook_ = std::move(hook);
 }
 
-engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(
-    std::shared_ptr<request::RequestBase> request) const {
-  auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
-  auto* handler = http_request.GetHttpHandler();
-  static handlers::HttpHandlerStatistics dummy_statistics;
-
-  http_request.SetHttpHandlerStatistics(dummy_statistics);
-
-  return engine::impl::Async([request = std::move(request), handler]() {
-    request->SetTaskStartTime();
-    if (handler) handler->ReportMalformedRequest(*request);
-    request->SetResponseNotifyTime();
-    request->GetResponse().SetReady();
-  });
-}
-
 void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
   if (rps) {
     rate_limit_.SetMaxSize(*rps);
@@ -149,5 +151,4 @@ void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
   }
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

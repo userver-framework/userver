@@ -17,8 +17,8 @@ class JsonStringImpl {
   JsonStringImpl(RawPtr<char>&& data, size_t size)
       : data_(std::move(data)), size_(size) {}
 
-  const char* Data() const { return data_.get(); }
-  size_t Size() const { return size_; }
+  [[nodiscard]] const char* Data() const { return data_.get(); }
+  [[nodiscard]] size_t Size() const { return size_; }
 
  private:
   RawPtr<char> data_;

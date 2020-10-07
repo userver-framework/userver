@@ -66,8 +66,7 @@ void CheckHeaderValue(const std::string& value) {
 
 }  // namespace
 
-namespace server {
-namespace http {
+namespace server::http {
 
 HttpResponse::HttpResponse(const HttpRequestImpl& request,
                            request::ResponseDataAccounter& data_accounter)
@@ -171,5 +170,4 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   SetSent(sent_bytes);
 }
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

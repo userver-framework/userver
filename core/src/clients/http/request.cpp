@@ -258,9 +258,10 @@ inline long max_retry_time(short number) {
   return time_ms;
 }
 
-long complete_timeout(long request_timeout, int retries) {
-  return static_cast<long>(request_timeout * 1.1 * retries +
-                           max_retry_time(retries));
+long complete_timeout(long request_timeout, short retries) {
+  return static_cast<long>(static_cast<double>(request_timeout * retries) *
+                           1.1) +
+         max_retry_time(retries);
 }
 
 // Request implementation
@@ -656,14 +657,15 @@ void Request::RequestImpl::AccountResponse(std::error_code err) {
   if (err)
     stats_->FinishEc(err, attempts);
   else
-    stats_->FinishOk(easy().get_response_code(), attempts);
+    stats_->FinishOk(static_cast<int>(easy().get_response_code()), attempts);
 
   if (dest_req_stats_) {
     dest_req_stats_->StoreTimeToStart(time_to_start);
     if (err)
       dest_req_stats_->FinishEc(err, attempts);
     else
-      dest_req_stats_->FinishOk(easy().get_response_code(), attempts);
+      dest_req_stats_->FinishOk(static_cast<int>(easy().get_response_code()),
+                                attempts);
   }
 }
 
@@ -688,6 +690,7 @@ void Request::RequestImpl::on_retry(
 
     // calculate timeout before retry
     long timeout_ms =
+        // NOLINTNEXTLINE(cert-msc50-cpp): we don't require good randomness here
         kEBBaseTime * (rand() % ((1 << std::min(holder->retry_.current - 1,
                                                 kMaxRetryInTimeout))) +
                        1);

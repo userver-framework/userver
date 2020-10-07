@@ -84,6 +84,8 @@ ValueBuilder::ValueBuilder(double t)
           formats::common::ValidateFloat<Exception>(t))) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
+  if (this == &other) return *this;
+
   if ((value_->IsArray() || value_->IsObject()) && value_->GetSize() != 0) {
     value_.OnMembersChange();
   }

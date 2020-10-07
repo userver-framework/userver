@@ -69,7 +69,7 @@ class Thread final {
   static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
   void BreakLoopWatcherImpl();
   static void ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept;
-  void ChildWatcherImpl(ev_child* w);
+  static void ChildWatcherImpl(ev_child* w);
 
   static void Acquire(struct ev_loop* loop) noexcept;
   static void Release(struct ev_loop* loop) noexcept;

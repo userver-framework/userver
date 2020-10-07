@@ -1,5 +1,7 @@
 #include <crypto/hash.hpp>
 
+#include <array>
+
 #include <cryptopp/base64.h>
 #include <cryptopp/blake2.h>
 #include <cryptopp/filters.h>
@@ -9,6 +11,7 @@
 
 #include <crypto/exception.hpp>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): intended use
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 #include <cryptopp/md5.h>
 #undef CRYPTOPP_ENABLE_NAMESPACE_WEAK
@@ -76,16 +79,17 @@ std::string CalculateHmac(std::string_view key, std::string_view data,
 template <typename HashAlgorithm>
 std::string CalculateHash(std::string_view data,
                           crypto::hash::OutputEncoding encoding) {
-  byte digest[HashAlgorithm::DIGESTSIZE];
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): performance
+  std::array<byte, HashAlgorithm::DIGESTSIZE> digest;
   try {
     HashAlgorithm hash;
-    hash.CalculateDigest(digest, reinterpret_cast<const byte*>(data.data()),
-                         data.size());
+    hash.CalculateDigest(
+        digest.data(), reinterpret_cast<const byte*>(data.data()), data.size());
   } catch (const CryptoPP::Exception& exc) {
     throw crypto::CryptoException(exc.what());
   }
 
-  return EncodeArray(digest, sizeof(digest), encoding);
+  return EncodeArray(digest.data(), digest.size(), encoding);
 }
 
 }  // namespace

@@ -2,8 +2,7 @@
 
 #include <unordered_map>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 namespace {
 
@@ -52,5 +51,4 @@ const std::string& BeginStatement(const TransactionOptions& opts) {
   return kDefaultBeginStatement;
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

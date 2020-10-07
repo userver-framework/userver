@@ -9,8 +9,7 @@
 #include <server/handlers/server_monitor.hpp>
 #include <server/handlers/tests_control.hpp>
 
-namespace server_settings {
-namespace impl {
+namespace server_settings::impl {
 
 components::ComponentList ServerCommonComponentList() {
   return components::ComponentList()
@@ -24,5 +23,4 @@ components::ComponentList ServerCommonComponentList() {
       .Append<components::AuthCheckerSettings>();
 }
 
-}  // namespace impl
-}  // namespace server_settings
+}  // namespace server_settings::impl

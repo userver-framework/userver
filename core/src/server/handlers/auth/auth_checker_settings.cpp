@@ -13,9 +13,7 @@ const std::string kApikeys = "apikeys";
 
 }  // namespace
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 
 AuthCheckerSettings::AuthCheckerSettings(const formats::json::Value& doc) {
   if (doc.HasMember(kApikeys)) {
@@ -46,6 +44,4 @@ void AuthCheckerSettings::ParseApikeys(
   }
 }
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth

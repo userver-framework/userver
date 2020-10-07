@@ -2,8 +2,7 @@
 
 #include <formats/json/serialize.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 ServerMonitor::ServerMonitor(
     const components::ComponentConfig& config,
@@ -34,5 +33,4 @@ std::string ServerMonitor::GetResponseDataForLogging(const http::HttpRequest&,
   return "<statistics data>";
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

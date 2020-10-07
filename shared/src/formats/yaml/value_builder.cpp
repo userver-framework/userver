@@ -61,6 +61,8 @@ ValueBuilder::ValueBuilder(double t)
     : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t))) {}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
+  if (this == &other) return *this;
+
   Copy(other);
   return *this;
 }

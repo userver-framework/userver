@@ -550,7 +550,7 @@ void ValueImpl::EnsureParsed() {
     case BSON_TYPE_DECIMAL128:
     case BSON_TYPE_MAXKEY:
     case BSON_TYPE_MINKEY:
-      break;
+      // break;
 
     // those types are not supported, but can be transferred between values
     case BSON_TYPE_UNDEFINED:

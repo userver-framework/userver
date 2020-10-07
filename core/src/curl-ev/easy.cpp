@@ -660,11 +660,6 @@ native::curl_socket_t easy::opensocket(
           }
           return s;
 
-        case SOCK_DGRAM:
-          // TODO implement - I've seen other libcurl wrappers with UDP
-          // implementation, but have yet to read up on what this is used for
-          return CURL_SOCKET_BAD;
-
         default:
           // unknown or invalid socket type
           return CURL_SOCKET_BAD;

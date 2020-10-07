@@ -89,8 +89,6 @@ class TaskProcessor final {
 
   void ProcessTasks() noexcept;
 
-  void SetTaskQueueWaitTimepoint(impl::TaskContext* context);
-
   void CheckWaitTime(impl::TaskContext& context);
 
   void HandleOverload(impl::TaskContext& context);

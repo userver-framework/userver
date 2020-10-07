@@ -8,10 +8,12 @@
 
 namespace utils {
 
+// NOLINTNEXTLINE(cert-msc51-cpp): default seed is OK
 PeriodicTask::PeriodicTask()
     : settings_(std::chrono::seconds(1)),
       suspend_state_(SuspendState::kRunning) {}
 
+// NOLINTNEXTLINE(cert-msc51-cpp): default seed is OK
 PeriodicTask::PeriodicTask(std::string name, Settings settings,
                            Callback callback)
     : name_(std::move(name)),
@@ -74,29 +76,27 @@ bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
 
 bool PeriodicTask::IsRunning() const { return task_.IsValid(); }
 
-void PeriodicTask::SleepUntil(engine::Deadline::TimePoint tp) {
-  engine::InterruptibleSleepUntil(tp);
-}
-
 void PeriodicTask::Run() {
-  using clock = engine::Deadline::TimePoint::clock;
   {
     auto settings = settings_.Read();
     if (!(settings->flags & Flags::kNow))
-      SleepUntil(clock::now() + MutatePeriod(settings->period));
+      engine::InterruptibleSleepFor(MutatePeriod(settings->period));
   }
 
   while (!engine::current_task::ShouldCancel()) {
-    const auto before = clock::now();
+    const auto before = std::chrono::steady_clock::now();
     bool no_exception = Step();
     auto settings = settings_.Read();
     auto period = settings->period;
     const auto exception_period = settings->exception_period.value_or(period);
-    const bool strong = static_cast<bool>(settings->flags & Flags::kStrong);
 
     if (!no_exception) period = exception_period;
 
-    SleepUntil((strong ? before : clock::now()) + MutatePeriod(period));
+    if (settings->flags & Flags::kStrong) {
+      engine::InterruptibleSleepUntil(before + MutatePeriod(period));
+    } else {
+      engine::InterruptibleSleepFor(MutatePeriod(period));
+    }
   }
 }
 

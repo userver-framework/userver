@@ -79,7 +79,7 @@ void Unwind() {
   auto ctx = current_task::GetCurrentTaskContext();
   UASSERT(ctx->GetState() == Task::State::kRunning);
 
-  if (std::uncaught_exception()) return;
+  if (std::uncaught_exceptions()) return;
   if (IsExecutingDestructor()) {
     LOG_WARNING() << "Attempt to cancel a task while executing destructor"
                   << logging::LogExtra::Stacktrace();

@@ -17,11 +17,17 @@
 #include <utils/internal_tag.hpp>
 #include <utils/strerror.hpp>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_DEBUG() LOG_DEBUG() << log_extra_
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_INFO() LOG_INFO() << log_extra_
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_WARNING() LOG_WARNING() << log_extra_
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_ERROR() LOG_ERROR() << log_extra_
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG(level) LOG(level) << log_extra_
 
 namespace storages::postgres::detail {

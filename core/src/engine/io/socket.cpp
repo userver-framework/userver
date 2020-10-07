@@ -16,8 +16,7 @@
 #include <engine/io/fd_control.hpp>
 #include <utils/check_syscall.hpp>
 
-namespace engine {
-namespace io {
+namespace engine::io {
 namespace {
 
 // MAC_COMPAT: does not accept flags in type
@@ -259,5 +258,4 @@ void Socket::SetOption(int layer, int optname, int optval) {
       Fd());
 }
 
-}  // namespace io
-}  // namespace engine
+}  // namespace engine::io

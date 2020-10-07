@@ -1,9 +1,6 @@
 #include <yaml_config/parse.hpp>
 
-#include <fmt/compile.h>
-
-namespace yaml_config {
-namespace impl {
+namespace yaml_config::impl {
 
 void CheckIsMap(const formats::yaml::Value& obj, std::string_view full_path) {
   if (!obj.IsObject()) throw ParseError({}, full_path, "map");
@@ -24,5 +21,4 @@ void CheckContainer(const formats::yaml::Value& obj, size_t,
   return CheckIsSequence(obj, full_path);
 }
 
-}  // namespace impl
-}  // namespace yaml_config
+}  // namespace yaml_config::impl

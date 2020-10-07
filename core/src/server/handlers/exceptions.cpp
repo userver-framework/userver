@@ -2,8 +2,7 @@
 
 #include <unordered_map>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 namespace {
 
@@ -60,5 +59,4 @@ std::string GetFallbackServiceCode(HandlerErrorCode code) {
   return it->second;
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

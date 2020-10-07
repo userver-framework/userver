@@ -2,8 +2,7 @@
 
 #include <logging/log.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 template <typename Item>
 SubscriptionQueue<Item>::SubscriptionQueue(
@@ -27,6 +26,7 @@ void SubscriptionQueue<Item>::SetMaxLength(size_t length) {
 
 template <typename Item>
 bool SubscriptionQueue<Item>::PopMessage(std::unique_ptr<Item>& msg_ptr) {
+  // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return consumer_.Pop(msg_ptr);
 }
@@ -86,5 +86,4 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
 template class SubscriptionQueue<ChannelSubscriptionQueueItem>;
 template class SubscriptionQueue<PatternSubscriptionQueueItem>;
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

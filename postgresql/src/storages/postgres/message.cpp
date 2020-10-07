@@ -5,8 +5,7 @@
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/exceptions.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 namespace {
 
@@ -231,5 +230,4 @@ Message::Severity Message::SeverityFromString(const std::string& str) {
   throw RuntimeError{"Unknown severity string " + str};
 }
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

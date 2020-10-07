@@ -3,8 +3,7 @@
 #include <yaml_config/value.hpp>
 #include <yaml_config/yaml_config.hpp>
 
-namespace server {
-namespace net {
+namespace server::net {
 
 ConnectionConfig ConnectionConfig::ParseFromYaml(
     const formats::yaml::Value& yaml, const std::string& full_path,
@@ -34,5 +33,4 @@ ConnectionConfig ConnectionConfig::ParseFromYaml(
   return config;
 }
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net

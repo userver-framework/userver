@@ -11,24 +11,6 @@ namespace storages::postgres::detail {
 
 namespace {
 
-struct TryLockGuard {
-  TryLockGuard(std::atomic_flag& lock) : lock_(lock) {
-    lock_acquired_ = !lock_.test_and_set(std::memory_order_acq_rel);
-  }
-
-  ~TryLockGuard() {
-    if (lock_acquired_) {
-      lock_.clear(std::memory_order_release);
-    }
-  }
-
-  bool LockAcquired() const { return lock_acquired_; }
-
- private:
-  std::atomic_flag& lock_;
-  bool lock_acquired_;
-};
-
 ClusterHostType Fallback(ClusterHostType ht) {
   switch (ht) {
     case ClusterHostType::kMaster:

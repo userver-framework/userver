@@ -1,12 +1,14 @@
 #include <utils/encoding/hex.hpp>
 
 #include <stdexcept>
+#include <string_view>
 
 namespace utils::encoding {
 
 namespace detail {
 
-static const char kXdigits[] = "0123456789abcdef";
+static constexpr std::string_view kXdigits = "0123456789abcdef";
+static_assert(kXdigits.size() == 16);
 
 char ToHexChar(int num) {
   if (num >= 16 || num < 0) {

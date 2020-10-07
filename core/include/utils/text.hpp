@@ -22,15 +22,14 @@ std::vector<std::string> Split(std::string_view str, std::string_view sep);
 std::string Join(const std::vector<std::string>& strs, std::string_view sep);
 
 /// Return number formatted with specified locale
-std::string Format(double value, const std::string& locale,
-                   unsigned int ndigits = 0, bool is_fixed = true);
+std::string Format(double value, const std::string& locale, int ndigits = 0,
+                   bool is_fixed = true);
 
 /// Return number formatted
-std::string Format(double value, unsigned int ndigits);
+std::string Format(double value, int ndigits);
 
 /// Return cpp_dec_float_50 formatted
-std::string Format(boost::multiprecision::cpp_dec_float_50 value,
-                   unsigned int ndigits);
+std::string Format(boost::multiprecision::cpp_dec_float_50 value, int ndigits);
 
 // Capitalizes the first letter of the str
 std::string Capitalize(std::string_view str, const std::string& locale);

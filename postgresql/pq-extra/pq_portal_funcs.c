@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <string.h>
 
 #include <internal/libpq-int.h>
 
@@ -117,7 +118,7 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
         }
       } else {
         /* text parameter, do not use param_lengths */
-        nbytes = strlen(param_values[i]);
+        nbytes = strnlen(param_values[i], INT_MAX);
       }
       if (pqPutInt(nbytes, 4, conn) < 0 ||
           pqPutnchar(param_values[i], nbytes, conn) < 0)

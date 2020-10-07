@@ -282,13 +282,16 @@ void SubscriptionStorage::RebalanceGatherSubscriptions(RebalanceState& state) {
   }
 }
 
+// logically better as non-static func
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void SubscriptionStorage::RebalanceCalculateNeedCount(RebalanceState& state) {
   auto& weights = state.weights;
   auto& needs = state.need_subscription_count;
   const auto total_connections = state.total_connections;
   const auto sum_weights = state.sum_weights;
 
-  size_t rem = total_connections, rem_sum_weights = 0;
+  size_t rem = total_connections;
+  size_t rem_sum_weights = 0;
   for (auto& server_id_weight : weights) {
     const auto& server_id = server_id_weight.first;
     auto& weight = server_id_weight.second;
@@ -609,7 +612,7 @@ void SubscriptionStorage::OnMessage(ServerId server_id,
       }
     }
 
-    AccountMessage(m.info[shard_idx], server_id, message.size());
+    m.info[shard_idx].AccountMessage(server_id, message.size());
   } catch (const std::out_of_range& e) {
     LOG_ERROR() << "Got MESSAGE while not subscribed on it, channel="
                 << channel;
@@ -632,20 +635,19 @@ void SubscriptionStorage::OnPmessage(ServerId server_id,
       }
     }
 
-    AccountMessage(m.info[shard_idx], server_id, message.size());
+    m.info[shard_idx].AccountMessage(server_id, message.size());
   } catch (const std::out_of_range& e) {
     LOG_ERROR() << "Got PMESSAGE while not subscribed on it, channel="
                 << channel;
   }
 }
 
-void SubscriptionStorage::AccountMessage(ShardChannelInfo& sci,
-                                         ServerId server_id,
-                                         size_t message_size) {
-  UASSERT(sci.fsm);
-  auto current_server_id = sci.fsm->GetCurrentServerId();
+void SubscriptionStorage::ShardChannelInfo::AccountMessage(
+    ServerId server_id, size_t message_size) {
+  UASSERT(fsm);
+  auto current_server_id = fsm->GetCurrentServerId();
   if (current_server_id == server_id)
-    sci.statistics.AccountMessage(message_size);
+    statistics.AccountMessage(message_size);
   else {
     thread_local std::chrono::steady_clock::time_point last_seen;
     static constexpr auto noprint_period = std::chrono::seconds(10);
@@ -653,8 +655,7 @@ void SubscriptionStorage::AccountMessage(ShardChannelInfo& sci,
 
     if (now - last_seen > noprint_period) {
       // TODO: better handling in https://st.yandex-team.ru/TAXICOMMON-604
-      LOG_ERROR() << "Alien message got on SUBSCRIBE, fsm="
-                  << static_cast<void*>(sci.fsm.get())
+      LOG_ERROR() << "Alien message got on SUBSCRIBE, fsm=" << fsm.get()
                   << ", origin server_id = " << server_id.GetId()
                   << ", server = " << server_id.GetDescription()
                   << ", current server_id = " << current_server_id.GetId()
@@ -664,7 +665,7 @@ void SubscriptionStorage::AccountMessage(ShardChannelInfo& sci,
                      "client implementation.";
       last_seen = now;
     }
-    sci.statistics.AccountAlienMessage();
+    statistics.AccountAlienMessage();
   }
 }
 

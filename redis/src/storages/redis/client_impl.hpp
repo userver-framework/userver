@@ -384,8 +384,6 @@ class ClientImpl final : public Client,
 
   size_t ShardByKey(const std::string& key, const CommandControl& cc) const;
 
-  void CheckShard(size_t shard, std::optional<size_t> force_shard_idx) const;
-
   void CheckShard(size_t shard, const CommandControl& cc) const;
 
   std::shared_ptr<::redis::Sentinel> redis_client_;

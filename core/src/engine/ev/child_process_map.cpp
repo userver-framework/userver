@@ -2,8 +2,7 @@
 
 #include <unordered_map>
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 using ChildProcessMap = std::unordered_map<int, ChildProcessMapValue>;
 
@@ -31,5 +30,4 @@ std::pair<ChildProcessMapValue*, bool> ChildProcessMapSet(
   return std::make_pair(&res.first->second, res.second);
 }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

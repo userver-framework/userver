@@ -2,8 +2,7 @@
 
 #include <engine/async.hpp>
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 TimerWatcher::TimerWatcher(ThreadControl& thread_control)
     : ev_timer_(thread_control, this) {}
@@ -74,5 +73,4 @@ void TimerWatcher::Cancel() {
               << reinterpret_cast<long>(this);
 }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

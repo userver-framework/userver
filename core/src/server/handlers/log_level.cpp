@@ -4,8 +4,7 @@
 #include <formats/json/serialize.hpp>
 #include <logging/log.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 namespace {
 
 const std::string kLevel = "level";
@@ -76,5 +75,4 @@ std::string LogLevel::ProcessPut(const http::HttpRequest& request,
   return formats::json::ToString(response.ExtractValue());
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

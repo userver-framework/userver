@@ -50,10 +50,14 @@ bool ParserHandler::Key(const char* c, size_t size, bool) {
   parser_.Key(std::string_view{c, size});
   return true;
 }
+
 bool ParserHandler::String(const char* c, size_t size, bool) {
   parser_.String(std::string_view{c, size});
   return true;
 }
+
+// no, this is a trait member function
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 bool ParserHandler::RawNumber(const char*, size_t, bool) { return false; }
 
 }  // namespace formats::json::parser

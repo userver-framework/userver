@@ -20,11 +20,11 @@ class Client final {
   Client(engine::io::Socket socket, SimpleServer::OnRequest f)
       : socket_{std::move(socket)}, callback_{std::move(f)} {}
 
-  bool NeedsMoreReading() const {
+  [[nodiscard]] bool NeedsMoreReading() const {
     return (resp_.command == SimpleServer::Response::kTryReadMore);
   }
 
-  bool NeedsNewRequest() const {
+  [[nodiscard]] bool NeedsNewRequest() const {
     return (resp_.command == SimpleServer::Response::kWriteAndContinue);
   }
 
@@ -84,15 +84,15 @@ class SimpleServer::Impl {
  public:
   Impl(OnRequest callback, Protocol protocol);
 
-  Port GetPort() const { return port_; };
-  Protocol GetProtocol() const { return protocol_; };
+  [[nodiscard]] Port GetPort() const { return port_; };
+  [[nodiscard]] Protocol GetProtocol() const { return protocol_; };
 
  private:
   OnRequest callback_;
   Protocol protocol_;
   Port port_{};
 
-  engine::io::Addr MakeLoopbackAddress() const;
+  [[nodiscard]] engine::io::Addr MakeLoopbackAddress() const;
   void StartPortListening();
 };
 

@@ -25,9 +25,6 @@ class ManagerControllerComponent final : public impl::ComponentBase {
   static constexpr const char* kName = "manager-controller";
 
  private:
-  formats::json::ValueBuilder GetTaskProcessorStats(
-      const engine::TaskProcessor& task_processor) const;
-
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 

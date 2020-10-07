@@ -9,6 +9,24 @@
 #include "task_context.hpp"
 
 namespace engine {
+namespace {
+
+void SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
+  static constexpr size_t kTaskTimestampInterval = 4;
+  thread_local size_t task_count = 0;
+  if (task_count++ == kTaskTimestampInterval) {
+    task_count = 0;
+    context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
+  } else {
+    /* Don't call clock_gettime() too often.
+     * This leads to killing some innocent tasks on overload, up to
+     * +(kTaskTimestampInterval-1), we may sacrifice them.
+     */
+    context->SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
+  }
+}
+
+}  // namespace
 
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
@@ -175,21 +193,6 @@ void TaskProcessor::ProcessTasks() noexcept {
       [[maybe_unused]] auto node = detached_contexts_.extract(context);
       lock.unlock();
     }
-  }
-}
-
-void TaskProcessor::SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
-  static constexpr size_t kTaskTimestampInterval = 4;
-  thread_local size_t task_count = 0;
-  if (task_count++ == kTaskTimestampInterval) {
-    task_count = 0;
-    context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
-  } else {
-    /* Don't call clock_gettime() too often.
-     * This leads to killing some innocent tasks on overload, up to
-     * +(kTaskTimestampInterval-1), we may sacrifice them.
-     */
-    context->SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
   }
 }
 

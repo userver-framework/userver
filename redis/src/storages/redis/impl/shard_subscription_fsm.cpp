@@ -2,10 +2,9 @@
 
 #include <logging/log.hpp>
 
-namespace redis {
-namespace shard_subscriber {
+namespace redis::shard_subscriber {
 
-const std::string Event::TypeToDebugString(Type type) {
+std::string Event::TypeToDebugString(Type type) {
   switch (type) {
     case Type::kSubscribeRequested:
       return "kSubscribeRequested";
@@ -22,12 +21,12 @@ const std::string Event::TypeToDebugString(Type type) {
   return "(unknown)";
 }
 
-const std::string Event::ToDebugString() const {
+std::string Event::ToDebugString() const {
   return "Event(" + TypeToDebugString(type) +
          ", server_id=" + std::to_string(server_id.GetId()) + ")";
 }
 
-const std::string Action::TypeToDebugString(Type type) {
+std::string Action::TypeToDebugString(Type type) {
   switch (type) {
     case Type::kSubscribe:
       return "kSubscribe";
@@ -40,7 +39,7 @@ const std::string Action::TypeToDebugString(Type type) {
   return "(unknown)";
 }
 
-const std::string Action::ToDebugString() const {
+std::string Action::ToDebugString() const {
   return "Action(" + TypeToDebugString(type) +
          ", server_id=" + std::to_string(server_id.GetId()) + ")";
 }
@@ -512,5 +511,4 @@ void Fsm::ChangeState(State new_state) {
   state_ = new_state;
 }
 
-}  // namespace shard_subscriber
-}  // namespace redis
+}  // namespace redis::shard_subscriber

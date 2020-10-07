@@ -4,8 +4,7 @@
 
 #include <storages/redis/mock_transaction.hpp>
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 MockClientBase::MockClientBase()
     : mock_transaction_impl_creator_(
@@ -672,5 +671,4 @@ TransactionPtr MockClientBase::Multi(Transaction::CheckShards check_shards) {
       shared_from_this(), (*mock_transaction_impl_creator_)(), check_shards);
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis

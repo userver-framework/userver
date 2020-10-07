@@ -159,10 +159,9 @@ class SubscriptionStorage
       stats.subscription_timestamp = fsm->GetCurrentServerTimePoint();
       return stats;
     }
-  };
-  void AccountMessage(ShardChannelInfo& sci, ServerId server_id,
-                      size_t message_size);
 
+    void AccountMessage(ServerId server_id, size_t message_size);
+  };
   using MessageCallback = std::function<void(
       ServerId, const std::string& channel, const std::string& message)>;
   using PmessageCallback = std::function<void(

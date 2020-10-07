@@ -3,9 +3,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection>&& conn)
     : conn_(std::move(conn)) {}
@@ -54,6 +52,4 @@ void ConnectionPtr::Release() {
   }
 }
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail

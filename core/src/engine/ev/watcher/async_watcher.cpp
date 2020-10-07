@@ -2,8 +2,7 @@
 
 #include <engine/async.hpp>
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 AsyncWatcher::AsyncWatcher(ThreadControl& thread_control, Callback cb)
     : ev_async_(thread_control, this), cb_(std::move(cb)) {
@@ -37,5 +36,4 @@ void AsyncWatcher::CallCb() {
   cb_();
 }
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev

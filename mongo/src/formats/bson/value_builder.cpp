@@ -51,6 +51,8 @@ ValueBuilder::ValueBuilder(const ValueBuilder& other) { *this = other; }
 ValueBuilder::ValueBuilder(ValueBuilder&& other) { *this = std::move(other); }
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
+  if (this == &other) return *this;
+
   Assign(other.impl_);
   return *this;
 }

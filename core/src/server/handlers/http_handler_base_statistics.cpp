@@ -1,7 +1,6 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 HttpHandlerMethodStatistics& HttpHandlerStatistics::GetStatisticByMethod(
     http::HttpMethod method) {
@@ -67,5 +66,4 @@ void HttpHandlerStatisticsScope::Account(unsigned int code,
     stats_.GetStatisticByMethod(method_).DecrementInFlight();
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

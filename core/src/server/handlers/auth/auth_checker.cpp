@@ -2,9 +2,7 @@
 
 #include <server/handlers/auth/auth_checker_factory.hpp>
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 
 namespace {
 void ValidateAuthCheckersConsistency(
@@ -66,6 +64,4 @@ void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
   RaiseForStatus(check_result_first);
 }
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth

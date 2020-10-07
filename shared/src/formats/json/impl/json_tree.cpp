@@ -96,7 +96,7 @@ std::string ExtractPath(const std::vector<TreeIterFrame>& stack) {
   for (size_t depth = 1; depth < stack.size(); depth++) {
     const auto& frame = stack[depth];
     // because index in stack had already been Advance'd
-    const int idx = frame.CurrentIndex() - 1;
+    const auto idx = frame.CurrentIndex() - 1;
     if (frame.container()->IsObject()) {
       const Value& name = frame.container()->MemberBegin()[idx].name;
       common::AppendPath(

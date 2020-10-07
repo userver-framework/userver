@@ -149,9 +149,9 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   void SetMaxLength(size_t length);
 
   /// @brief Gets the limit on the queue size
-  size_t GetMaxLength() const;
+  [[nodiscard]] size_t GetMaxLength() const;
 
-  size_t Size() const;
+  [[nodiscard]] size_t Size() const;
 
  private:
   class EmplaceEnabler {};

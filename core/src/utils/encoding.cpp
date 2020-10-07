@@ -19,7 +19,7 @@ class IconvKeeper {
   IconvKeeper(const IconvKeeper&) = delete;
   IconvKeeper& operator=(const IconvKeeper&) = delete;
 
-  bool Reset() const {
+  [[nodiscard]] bool Reset() const {
     const size_t res = iconv(cd_, nullptr, nullptr, nullptr, nullptr);
     if (res == kIconvError) {
       LOG_ERROR() << "error in iconv state reset (" << errno << ")"

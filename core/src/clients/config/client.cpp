@@ -6,7 +6,6 @@
 #include <logging/log.hpp>
 
 namespace clients::taxi_config {
-
 namespace {
 const std::string kConfigsValues = "/configs/values";
 }  // namespace

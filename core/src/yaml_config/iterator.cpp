@@ -20,6 +20,8 @@ Iterator<iter_traits>::Iterator(Iterator<iter_traits>&& other) noexcept
 template <typename iter_traits>
 Iterator<iter_traits>& Iterator<iter_traits>::operator=(
     const Iterator<iter_traits>& other) {
+  if (this == &other) return *this;
+
   it_ = other.it_;
   container_ = other.container_;
   current_.reset();

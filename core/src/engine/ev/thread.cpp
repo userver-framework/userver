@@ -130,6 +130,8 @@ void Thread::RunInEvLoopAsync(
   UASSERT(func);
   UASSERT(data);
 
+  // boost.lockfree pointer magic (FP?)
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (IsInEvThread()) {
     func(*data);
     return;
@@ -234,6 +236,7 @@ void Thread::UpdateLoopWatcherImpl() {
 void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) noexcept {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
+  // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   ev_thread->BreakLoopWatcherImpl();
 }
@@ -244,11 +247,9 @@ void Thread::BreakLoopWatcherImpl() {
   ev_break(loop_, EVBREAK_ALL);
 }
 
-void Thread::ChildWatcher(struct ev_loop* loop, ev_child* w, int) noexcept {
-  auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
-  UASSERT(ev_thread != nullptr);
+void Thread::ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept {
   try {
-    ev_thread->ChildWatcherImpl(w);
+    ChildWatcherImpl(w);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Exception in ChildWatcherImpl(): " << ex;
   }

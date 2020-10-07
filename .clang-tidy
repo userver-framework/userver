@@ -1,5 +1,65 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,readability-*,performance*,modernize-*,misc*,hicpp-*,google-*,cppcoreguidelines*,clang-analyzer*,bugprone-*,boost*,-cppcoreguidelines-pro-type-reinterpret-cast,-google-readability-braces-around-statements,-readability-braces-around-statements,-hicpp-braces-around-statements,-google-runtime-int,-google-runtime-references,-readability-implicit-bool-conversion,-readability-named-parameter,-google-readability-todo,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-owning-memory,-readability-else-after-return,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-special-member-functions,-hicpp-special-member-functions,-clang-analyzer-optin.cplusplus.VirtualCall,-hicpp-no-array-decay,-readability-misleading-indentation,-hicpp-signed-bitwise,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-google-explicit-constructor,-hicpp-explicit-conversions,-modernize-pass-by-value,-hicpp-noexcept-move,-cppcoreguidelines-pro-type-vararg,-hicpp-vararg,-bugprone-lambda-function-name,-modernize-use-uncaught-exceptions,-cppcoreguidelines-pro-type-union-access,-clang-analyzer-core.uninitialized.UndefReturn,-hicpp-member-init,-clang-analyzer-core.uninitialized.Assign,-performance-unnecessary-value-param,-clang-analyzer-core.CallAndMessage,-readability-redundant-declaration,-cppcoreguidelines-narrowing-conversions,-misc-unconventional-assign-operator,-performance-move-const-arg,-misc-taxi-*'
+Checks:
+  "-*,\
+  boost-*,\
+  bugprone-*,\
+  cert-*,\
+  clang-analyzer-*,\
+  cppcoreguidelines-*,\
+  fuchsia-multiple-inheritance,\
+  google-*,\
+  hicpp-*,\
+  misc-*,\
+  modernize-*,\
+  performance-*,\
+  portability-*,\
+  readability-*,\
+  -bugprone-lambda-function-name,\
+  -cert-dcl21-cpp,\
+  -cert-err58-cpp,\
+  -cert-msc30-c,\
+  -cert-msc32-c,\
+  -clang-analyzer-core.CallAndMessage,\
+  -clang-analyzer-core.uninitialized.Assign,\
+  -clang-analyzer-core.uninitialized.UndefReturn,\
+  -clang-analyzer-optin.cplusplus.VirtualCall,\
+  -cppcoreguidelines-avoid-magic-numbers,\
+  -cppcoreguidelines-narrowing-conversions,\
+  -cppcoreguidelines-owning-memory,\
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,\
+  -cppcoreguidelines-pro-bounds-constant-array-index,\
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,\
+  -cppcoreguidelines-pro-type-reinterpret-cast,\
+  -cppcoreguidelines-pro-type-union-access,\
+  -cppcoreguidelines-pro-type-vararg,\
+  -cppcoreguidelines-special-member-functions,\
+  -google-explicit-constructor,\
+  -google-readability-braces-around-statements,\
+  -google-readability-todo,\
+  -google-runtime-int,\
+  -google-runtime-references,\
+  -hicpp-braces-around-statements,\
+  -hicpp-explicit-conversions,\
+  -hicpp-member-init,\
+  -hicpp-no-array-decay,\
+  -hicpp-noexcept-move,\
+  -hicpp-signed-bitwise,\
+  -hicpp-special-member-functions,\
+  -hicpp-vararg,\
+  -misc-taxi-*,\
+  -misc-unconventional-assign-operator,\
+  -modernize-pass-by-value,\
+  -modernize-use-trailing-return-type,\
+  -performance-move-const-arg,\
+  -performance-unnecessary-value-param,\
+  -readability-braces-around-statements,\
+  -readability-else-after-return,\
+  -readability-implicit-bool-conversion,\
+  -readability-magic-numbers,\
+  -readability-misleading-indentation,\
+  -readability-named-parameter,\
+  -readability-redundant-declaration\
+  "
 WarningsAsErrors: '*'
 HeaderFilterRegex: '(core|mongo|postgresql|redis).*'
 AnalyzeTemporaryDtors: false
@@ -140,6 +200,8 @@ CheckOptions:
     value:           '1'
   - key:             hicpp-use-nullptr.NullMacros
     value:           ''
+  - key:             misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value:           '1'
   - key:             misc-definitions-in-headers.HeaderFileExtensions
     value:           ',h,hh,hpp,hxx'
   - key:             misc-definitions-in-headers.UseHeaderFileExtension
@@ -253,4 +315,3 @@ CheckOptions:
   - key:             readability-static-accessed-through-instance.NameSpecifierNestingThreshold
     value:           '3'
 ...
-

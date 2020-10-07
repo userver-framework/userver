@@ -53,6 +53,8 @@ Iterator<Traits>::Iterator(Iterator<Traits>&& other) noexcept
 
 template <typename Traits>
 Iterator<Traits>& Iterator<Traits>::operator=(const Iterator<Traits>& other) {
+  if (this == &other) return *this;
+
   container_ = other.container_;
   type_ = other.type_;
   pos_ = other.pos_;

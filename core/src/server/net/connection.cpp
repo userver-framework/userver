@@ -203,6 +203,8 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
 
 bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
                             Queue::Producer& producer) {
+  // boost.lockfree pointer magic (FP?)
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (!is_accepting_requests_) {
     /* In case of recv() of >1 requests it is possible to get here
      * after is_accepting_requests_ is set to true. Just ignore tail

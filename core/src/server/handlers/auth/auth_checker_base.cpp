@@ -4,9 +4,7 @@
 
 #include <logging/log.hpp>
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 
 const std::string& GetDefaultReasonForStatus(AuthCheckResult::Status status) {
   using Status = AuthCheckResult::Status;
@@ -74,6 +72,4 @@ void AuthCheckerBase::SetUserAuthInfo(
   server::auth::UserAuthInfo::Set(request_context, std::move(info));
 }
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth

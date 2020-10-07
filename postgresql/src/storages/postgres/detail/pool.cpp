@@ -399,6 +399,7 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
     std::unique_lock<engine::Mutex> lock{wait_mutex_};
     // Wait for a connection
     if (conn_available_.WaitUntil(lock, deadline, [&] {
+          // boost.lockfree pointer magic (FP?)
           // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
           return queue_.pop(connection);
         })) {

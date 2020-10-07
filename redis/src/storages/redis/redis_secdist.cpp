@@ -4,8 +4,7 @@
 #include <storages/secdist/exceptions.hpp>
 #include <storages/secdist/helpers.hpp>
 
-namespace storages {
-namespace secdist {
+namespace storages::secdist {
 
 const ::secdist::RedisSettings& RedisMapSettings::GetSettings(
     const std::string& client_name) const {
@@ -66,5 +65,4 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
   }
 }
 
-}  // namespace secdist
-}  // namespace storages
+}  // namespace storages::secdist

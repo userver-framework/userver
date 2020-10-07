@@ -36,9 +36,9 @@ const auto kSubscribeStatisticsName = "redis-pubsub";
 
 formats::json::ValueBuilder InstanceStatisticsToJson(
     const redis::InstanceStatistics& stats, bool real_instance) {
-  formats::json::ValueBuilder result(formats::json::Type::kObject),
-      errors(formats::json::Type::kObject),
-      states(formats::json::Type::kObject);
+  formats::json::ValueBuilder result(formats::json::Type::kObject);
+  formats::json::ValueBuilder errors(formats::json::Type::kObject);
+  formats::json::ValueBuilder states(formats::json::Type::kObject);
 
   // request/reply sizes are almost useless (were never actually used for
   // diagnostics/postmortem analysis), but cost much in Solomon
@@ -87,8 +87,8 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
 
 formats::json::ValueBuilder ShardStatisticsToJson(
     const redis::ShardStatistics& shard_stats) {
-  formats::json::ValueBuilder result(formats::json::Type::kObject),
-      insts(formats::json::Type::kObject);
+  formats::json::ValueBuilder result(formats::json::Type::kObject);
+  formats::json::ValueBuilder insts(formats::json::Type::kObject);
   for (const auto& it2 : shard_stats.instances) {
     const auto& inst_name = it2.first;
     const auto& inst_stats = it2.second;
@@ -115,9 +115,9 @@ formats::json::ValueBuilder ShardStatisticsToJson(
 
 formats::json::ValueBuilder RedisStatisticsToJson(
     const std::shared_ptr<redis::Sentinel>& redis) {
-  formats::json::ValueBuilder result(formats::json::Type::kObject),
-      masters(formats::json::Type::kObject),
-      slaves(formats::json::Type::kObject);
+  formats::json::ValueBuilder result(formats::json::Type::kObject);
+  formats::json::ValueBuilder masters(formats::json::Type::kObject);
+  formats::json::ValueBuilder slaves(formats::json::Type::kObject);
   auto stats = redis->GetStatistics();
 
   for (const auto& it : stats.masters) {
