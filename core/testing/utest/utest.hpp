@@ -5,6 +5,7 @@
 #include <chrono>
 #include <functional>
 
+#include <decimal64/decimal64.hpp>
 #include <utils/strong_typedef.hpp>
 
 void RunInCoro(std::function<void()>, size_t worker_threads = 1);
@@ -52,6 +53,15 @@ void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
 }
 
 }  // namespace utils
+
+namespace decimal64 {
+
+template <int Prec, typename RoundPolicy>
+void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
+  *os << v;
+}
+
+}  // namespace decimal64
 
 #ifdef __APPLE__
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name

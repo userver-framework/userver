@@ -20,6 +20,10 @@ TEST(Decimal64, ToString) {
   EXPECT_EQ(decimal64::ToString(Dec4{"-20"}), "-20");
   EXPECT_EQ(decimal64::ToString(Dec4{"-0.1"}), "-0.1");
   EXPECT_EQ(decimal64::ToString(Dec4{"-0.0001"}), "-0.0001");
+  EXPECT_EQ(decimal64::ToString(Dec4{"12.34"}), "12.34");
+  EXPECT_EQ(decimal64::ToString(Dec4{"-12.34"}), "-12.34");
+  EXPECT_EQ(decimal64::ToString(Dec4{"-0.34"}), "-0.34");
+  EXPECT_EQ(decimal64::ToString(Dec4{"-12.0"}), "-12");
   EXPECT_EQ(decimal64::ToString(decimal64::Decimal<18>{"1"}), "1");
   EXPECT_EQ(decimal64::ToString(decimal64::Decimal<5>{"1"}), "1");
   EXPECT_EQ(decimal64::ToString(decimal64::Decimal<0>{"1"}), "1");
@@ -75,12 +79,6 @@ TEST(Decimal64, SerializeCycle) {
   const Dec4 original{42};
   const auto json_object = formats::json::ValueBuilder(original).ExtractValue();
   EXPECT_EQ(json_object.As<Dec4>(), original);
-}
-
-TEST(Decimal64, PrintTo) {
-  std::ostringstream os;
-  PrintTo(Dec4{"12.3"}, &os);
-  EXPECT_EQ(os.str(), "12.3");
 }
 
 TEST(Decimal64, ToStream) {

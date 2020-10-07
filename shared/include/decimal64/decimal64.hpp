@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <ios>
 #include <iosfwd>
+#include <istream>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
@@ -212,6 +213,7 @@ constexpr int64_t Ceil(T value) {
 
 }  // namespace impl
 
+/// A fast, constexpr-friendly power of 10
 constexpr int64_t Pow10(int exp) {
   if (exp < 0 || exp > impl::kMaxDecimalDigits) {
     throw std::runtime_error("Pow10: invalid power of 10");
@@ -219,14 +221,15 @@ constexpr int64_t Pow10(int exp) {
   return impl::kPowSeries10[static_cast<size_t>(exp)];
 }
 
+/// A guaranteed-compile-time power of 10
 template <int Exp>
 inline constexpr int64_t kPow10 = Pow10(Exp);
 
-// no-rounding policy (decimal places stripped)
+/// The fastest rounding. Rounds towards zero.
 class NullRoundPolicy {
  public:
   template <class T>
-  static constexpr int64_t Round(T value) {
+  [[nodiscard]] static constexpr int64_t Round(T value) {
     return static_cast<int64_t>(value);
   }
 
@@ -237,16 +240,17 @@ class NullRoundPolicy {
   }
 };
 
-// default rounding policy - arithmetic, to nearest integer
+/// @brief Default rounding. Fast, rounds to nearest.
+///
+/// On 0.5, rounds away from zero. Also, sometimes rounds up numbers
+/// in the neighborhood of 0.5, e.g. 0.49999999999999994 -> 1.
 class DefRoundPolicy {
  public:
-  // round floating point value and convert to int64_t
   template <class T>
-  static constexpr int64_t Round(T value) {
+  [[nodiscard]] static constexpr int64_t Round(T value) {
     return static_cast<int64_t>(value + (value < 0 ? -0.5 : 0.5));
   }
 
-  // calculate output = round(a / b), where output, a, b are int64_t
   [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
                                                  int64_t b) {
     const int64_t divisor_corr = impl::Abs(b / 2);
@@ -267,10 +271,11 @@ class DefRoundPolicy {
   }
 };
 
+/// Round to nearest, 0.5 towards zero
 class HalfDownRoundPolicy {
  public:
   template <class T>
-  static constexpr int64_t Round(T value) {
+  [[nodiscard]] static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
       const T decimals = value - impl::Floor(value);
       if (decimals > 0.5) {
@@ -314,10 +319,11 @@ class HalfDownRoundPolicy {
   }
 };
 
+/// Round to nearest, 0.5 away from zero
 class HalfUpRoundPolicy {
  public:
   template <class T>
-  static constexpr int64_t Round(T value) {
+  [[nodiscard]] static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
       const T decimals = value - impl::Floor(value);
       if (decimals >= 0.5) {
@@ -367,11 +373,11 @@ class HalfUpRoundPolicy {
   }
 };
 
-// bankers' rounding
+/// Round to nearest, 0.5 towards number with even last digit
 class HalfEvenRoundPolicy {
  public:
   template <class T>
-  static constexpr int64_t Round(T value) {
+  [[nodiscard]] static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
       const T decimals = value - impl::Floor(value);
       if (decimals > 0.5) {
@@ -445,11 +451,11 @@ class HalfEvenRoundPolicy {
   }
 };
 
-// round towards +infinity
+/// Round towards +infinity
 class CeilingRoundPolicy {
  public:
   template <class T>
-  static constexpr int64_t Round(T value) {
+  [[nodiscard]] static constexpr int64_t Round(T value) {
     return impl::Ceil(value);
   }
 
@@ -469,11 +475,11 @@ class CeilingRoundPolicy {
   }
 };
 
-// round towards -infinity
+/// Round towards -infinity
 class FloorRoundPolicy {
  public:
   template <typename T>
-  static constexpr int64_t Round(T value) {
+  [[nodiscard]] static constexpr int64_t Round(T value) {
     return impl::Floor(value);
   }
 
@@ -493,14 +499,14 @@ class FloorRoundPolicy {
   }
 };
 
-// round towards zero = truncate
+/// Round towards zero
 class RoundDownRoundPolicy : public NullRoundPolicy {};
 
-// round away from zero
+/// Round away from zero
 class RoundUpRoundPolicy {
  public:
   template <typename T>
-  static constexpr int64_t Round(T value) {
+  [[nodiscard]] static constexpr int64_t Round(T value) {
     if (value >= 0.0) {
       return impl::Ceil(value);
     } else {
@@ -524,34 +530,81 @@ class RoundUpRoundPolicy {
   }
 };
 
-struct UnpackedDecimal {
-  int64_t before;
-  int64_t after;
-};
-
-/// Decimal value type. Use for capital calculations.
-/// Note: maximum handled value is: +9,223,372,036,854,775,807 (divided by prec)
+/// @brief Fixed-point decimal data type for use in deterministic calculations,
+/// oftentimes involving money
 ///
-/// Sample usage:
-///   using namespace decimal64;
-///   decimal<2> value(143125);
-///   value = value / decimal_cast<2>(333);
-///   cout << "Result is: " << value << endl;
+/// @tparam Prec The number of fractional digits
+/// @tparam RoundPolicy Specifies how to round in lossy operations
+///
+/// Decimal is internally represented as `int64_t`. It means that it can be
+/// passed around by value. It also means that operations with huge
+/// numbers can overflow and trap. For example, with `Prec == 6`, the maximum
+/// representable number is about 10 trillion.
+///
+/// Decimal should be serialized and stored as a string, NOT as `double`. Use
+/// `Decimal{str}` constructor (or `Decimal::FromStringPermissive` if rounding
+/// is allowed) to read a `Decimal`, and `ToString(dec)`
+/// (or `ToStringTrailingZeros(dec)`) to write a `Decimal`.
+///
+/// Use arithmetic with caution! Multiplication and division operations involve
+/// rounding. You may want to cast to `Decimal` with another `Prec`
+/// or `RoundPolicy` beforehand. For that purpose you can use
+/// `decimal64::decimal_cast<NewDec>(dec)`.
+///
+/// Usage example:
+/// @code{.cpp}
+/// // create a single alias instead of specifying Decimal everywhere
+/// using Money = decimal64::Decimal<4, decimal64::HalfEvenRoundPolicy>;
+///
+/// std::vector<std::string> cart = ...;
+/// Money sum{0};
+/// for (const std::string& cost_string : cart) {
+///   // or use FromStringPermissive to enable rounding
+///   sum += Money{cost_string};
+/// }
+/// return ToString(sum);
+/// @endcode
 template <int Prec, typename RoundPolicy_ = DefRoundPolicy>
 class Decimal {
  public:
+  /// The number of fractional digits
   static constexpr int kDecimalPoints = Prec;
+
+  /// Specifies how to round in lossy operations
   using RoundPolicy = RoundPolicy_;
 
+  /// The denominator of the decimal fraction
   static constexpr int64_t kDecimalFactor = kPow10<Prec>;
 
+  /// Zero by default
   constexpr Decimal() noexcept : value_(0) {}
 
+  /// @brief Convert from an integer
   template <typename T, impl::EnableIfInt<T> = 0>
   explicit constexpr Decimal(T value) : Decimal(FromIntegerImpl(value)) {}
 
+  /// @brief Convert from a string
+  ///
+  /// The string must match the following regexp exactly:
+  ///
+  ///     [+-]?\d+(\.\d+)?
+  ///
+  /// No extra characters, including spaces, are allowed. Extra leading
+  /// and trailing zeros (within `Prec`) are discarded. Input containing more
+  /// fractional digits that `Prec` is not allowed (no implicit rounding).
+  ///
+  /// @throw decimal64::ParseError on invalid input
+  /// @see FromStringPermissive
+  // TODO TAXICOMMON-2894 Fix Decimal(str) constructor accepting garbage
   explicit constexpr Decimal(std::string_view value);
 
+  /// @brief Lossy conversion from a floating-point number
+  ///
+  /// To somewhat resist the accumulated error, the number is always rounded
+  /// to the nearest Decimal, regardless of `RoundPolicy`.
+  ///
+  /// @warning Prefer storing and sending `Decimal` as string, and performing
+  /// the computations between `Decimal`s.
   template <typename T>
   static constexpr Decimal FromFloatInexact(T value) {
     static_assert(std::is_floating_point_v<T>);
@@ -559,72 +612,39 @@ class Decimal {
                                               kDecimalFactor));
   }
 
-  /// Converts string to Decimal
-  /// Handles the following formats:
-  /// \code
-  /// 123
-  /// -123
-  /// 123.0
-  /// -123.0
-  /// 123.
-  /// .123
-  /// 0.
-  /// -.123
-  /// \endcode
-  /// Spaces characters on the front are ignored.
-  /// Performs rounding when provided value has higher precision than in output
-  /// type.
-  /// \param[value] input string
-  /// \result Converted Decimal
-  /// \throws ParseError if the string does not contain a Decimal
+  /// @brief Convert from a string, allowing rounding, spaces and boundary dot
+  ///
+  /// In addition to the `Decimal(str)` constructor, allows:
+  /// - rounding (as per `RoundPolicy`), e.g. "12.3456789" with `Prec == 2`
+  /// - space characters, e.g. " \t42  \n"
+  /// - leading and trailing dot, e.g. "5." and ".5"
+  ///
+  /// @throw decimal64::ParseError on invalid input
+  /// @see Decimal(std::string_view)
   static constexpr Decimal FromStringPermissive(std::string_view value);
 
+  /// @brief Reconstruct from the internal representation, as acquired
+  /// with `AsUnbiased`
+  ///
+  /// The Decimal value will be equal to `value/kDecimalFactor`.
+  ///
+  /// @see AsUnbiased
   static constexpr Decimal FromUnbiased(int64_t value) noexcept {
     Decimal result;
     result.value_ = value;
     return result;
   }
 
-  /// Combines two parts (before and after decimal point) into decimal value.
-  /// Both input values have to have the same sign for correct results.
-  /// Does not perform any rounding or input validation - after must be
-  /// less than 10^prec.
-  /// \param[in] before value before decimal point
-  /// \param[in] after value after decimal point multiplied by 10^prec
-  static constexpr Decimal FromUnpacked(int64_t before, int64_t after) {
-    if constexpr (Prec > 0) {
-      return FromUnbiased(before * kDecimalFactor + after);
-    } else {
-      return FromUnbiased(before * kDecimalFactor);
-    }
-  }
-
-  /// Combines two parts (before and after decimal point) into decimal value.
-  /// Both input values have to have the same sign for correct results.
-  /// Does not perform any rounding or input validation - after must be
-  /// less than 10^prec.
-  /// \param[in] before value before decimal point
-  /// \param[in] after value after decimal point multiplied by 10^prec
-  /// \param[in] original_precision the number of decimal digits in after
-  static constexpr Decimal FromUnpacked(int64_t before, int64_t after,
-                                        int original_precision) {
-    if (original_precision <= Prec) {
-      // direct mode
-      const int missing_digits = Prec - original_precision;
-      const int64_t factor = Pow10(missing_digits);
-      return FromUnpacked(before, after * factor);
-    } else {
-      // rounding mode
-      const int extra_digits = original_precision - Prec;
-      const int64_t factor = Pow10(extra_digits);
-      int64_t rounded_after{};
-      if (!RoundPolicy::DivRounded(rounded_after, after, factor)) {
-        return Decimal(0);
-      }
-      return FromUnpacked(before, rounded_after);
-    }
-  }
-
+  /// @brief Convert from `original_unbiased * 10^original_precision`, rounding
+  /// according to `RoundPolicy` if necessary
+  ///
+  /// Usage examples:
+  ///     Decimal<4>::FromBiased(123, 6) -> 0.0001
+  ///     Decimal<4>::FromBiased(123, 2) -> 1.23
+  ///     Decimal<4>::FromBiased(123, -1) -> 1230
+  ///
+  /// @param original_unbiased The original mantissa
+  /// @param original_precision The original precision (negated exponent)
   static constexpr Decimal FromBiased(int64_t original_unbiased,
                                       int original_precision) {
     const int exponent_for_pack = Prec - original_precision;
@@ -643,10 +663,10 @@ class Decimal {
     }
   }
 
-  static constexpr Decimal FromFraction(int64_t nom, int64_t den) {
-    return FromUnbiased(impl::MultDiv<RoundPolicy>(kDecimalFactor, nom, den));
-  }
-
+  /// @brief Assignment from another `Decimal`
+  ///
+  /// The assignment is allowed as long as `RoundPolicy` is the same. Rounding
+  /// will be performed according to `RoundPolicy` if necessary.
   template <int Prec2>
   Decimal& operator=(Decimal<Prec2, RoundPolicy> rhs) {
     impl::CheckPrecCast<Prec2, Prec>();
@@ -660,6 +680,7 @@ class Decimal {
     return *this;
   }
 
+  /// @brief Assignment from an integer
   template <typename T, typename = impl::EnableIfInt<T>>
   constexpr Decimal& operator=(T rhs) {
     return *this = Decimal{rhs};
@@ -829,17 +850,15 @@ class Decimal {
     return *this;
   }
 
-  /// Returns integer indicating sign of value
-  /// -1 if value is < 0
-  /// +1 if value is > 0
-  /// 0  if value is 0
+  /// Returns one of {-1, 0, +1}, depending on the sign of the `Decimal`
   constexpr int Sign() const {
     return (value_ > 0) ? 1 : ((value_ < 0) ? -1 : 0);
   }
 
+  /// Returns the absolute value of the `Decimal`
   constexpr Decimal Abs() const { return FromUnbiased(impl::Abs(value_)); }
 
-  /// returns value rounded to integer using active rounding policy
+  /// Returns the value rounded to integer using the active rounding policy
   constexpr int64_t ToInteger() const {
     int64_t result{};
     if (!RoundPolicy::DivRounded(result, value_, kDecimalFactor)) {
@@ -848,19 +867,25 @@ class Decimal {
     return result;
   }
 
+  /// @brief Returns the value converted to `double`
+  ///
+  /// @warning Operations with `double`, and even the returned value,
+  /// is inexact. Prefer storing and sending `Decimal` as string, and performing
+  /// the computations between `Decimal`s.
+  ///
+  /// @see FromFloatInexact
   constexpr double ToDoubleInexact() const {
     return static_cast<double>(value_) / kDecimalFactor;
   }
 
-  /// returns integer value = real_value * (10 ^ precision)
-  /// use to load/store Decimal value in external memory
+  /// @brief Retrieve the internal representation
+  ///
+  /// The internal representation of `Decimal` is `real_value * kDecimalFactor`.
+  /// Use for storing the value of Decimal efficiently when `Prec` is guaranteed
+  /// not to change.
+  ///
+  /// @see FromUnbiased
   constexpr int64_t AsUnbiased() const { return value_; }
-
-  /// Returns two parts: before and after decimal point
-  /// For negative values both numbers are negative or zero.
-  constexpr UnpackedDecimal AsUnpacked() const {
-    return {value_ / kDecimalFactor, value_ % kDecimalFactor};
-  }
 
  private:
   template <typename T>
@@ -881,19 +906,42 @@ struct IsDecimal<Decimal<Prec, RoundPolicy>> : std::true_type {};
 
 }  // namespace impl
 
-/// Example of use:
-///   c = decimal64::DecimalCast<6>(a * b);
+/// `true` if the type is an instantiation of `Decimal`
+template <typename T>
+inline constexpr bool kIsDecimal = impl::IsDecimal<T>::value;
+
+/// @brief Cast one `Decimal` to another `Decimal` type
+///
+/// When casting to a `Decimal` with a lower `Prec`, rounding is performed
+/// according to the new `RoundPolicy`.
+///
+/// Usage example:
+/// @code{.cpp}
+/// using Money = decimal64::Decimal<4>;
+/// using Discount = decimal64::Decimal<4, FloorRoundPolicy>;
+///
+/// Money cost = ...;
+/// auto discount = decimal64::decimal_cast<Discount>(cost) * Discount{"0.05"};
+/// @endcode
 template <typename T, int OldPrec, typename OldRound>
 constexpr T decimal_cast(Decimal<OldPrec, OldRound> arg) {
-  static_assert(impl::IsDecimal<T>::value);
+  static_assert(kIsDecimal<T>);
   return T::FromBiased(arg.AsUnbiased(), OldPrec);
 }
 
+/// @brief Cast to a `Decimal` type with another `Prec`
+///
+/// Typically used when rounding, sometimes together with
+/// `ToStringTrailingZeros`.
+///
+/// Usage example:
+///     decimal64::decimal_cast<2>(higher_precision)
 template <int Prec, int OldPrec, typename Round>
 constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, Round> arg) {
   return Decimal<Prec, Round>::FromBiased(arg.AsUnbiased(), OldPrec);
 }
 
+/// The base class for all errors related to parsing `Decimal` from string
 class ParseError : public std::runtime_error {
  public:
   ParseError(std::string_view source, size_t pos)
@@ -910,6 +958,64 @@ class ParseError : public std::runtime_error {
 };
 
 namespace impl {
+
+// FromUnpacked<Decimal<4>>(12, 34) -> 12.0034
+// FromUnpacked<Decimal<4>>(-12, -34) -> -12.0034
+// FromUnpacked<Decimal<4>>(0, -34) -> -0.0034
+template <int Prec, typename RoundPolicy>
+constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before,
+                                                  int64_t after) {
+  using Dec = Decimal<Prec, RoundPolicy>;
+  UASSERT(((before >= 0) && (after >= 0)) || ((before <= 0) && (after <= 0)));
+  UASSERT(after > -Dec::kDecimalFactor && after < Dec::kDecimalFactor);
+
+  if constexpr (Prec > 0) {
+    return Dec::FromUnbiased(before * Dec::kDecimalFactor + after);
+  } else {
+    return Dec::FromUnbiased(before * Dec::kDecimalFactor);
+  }
+}
+
+// FromUnpacked<Decimal<4>>(12, 34, 3) -> 12.034
+template <int Prec, typename RoundPolicy>
+constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before, int64_t after,
+                                                  int original_precision) {
+  using Dec = Decimal<Prec, RoundPolicy>;
+  UASSERT(((before >= 0) && (after >= 0)) || ((before <= 0) && (after <= 0)));
+  UASSERT(after > -Pow10(original_precision) &&
+          after < Pow10(original_precision));
+
+  if (original_precision <= Prec) {
+    // direct mode
+    const int missing_digits = Prec - original_precision;
+    const int64_t factor = Pow10(missing_digits);
+    return FromUnpacked<Prec, RoundPolicy>(before, after * factor);
+  } else {
+    // rounding mode
+    const int extra_digits = original_precision - Prec;
+    const int64_t factor = Pow10(extra_digits);
+    int64_t rounded_after{};
+    if (!RoundPolicy::DivRounded(rounded_after, after, factor)) {
+      return Dec{0};
+    }
+    return FromUnpacked<Prec, RoundPolicy>(before, rounded_after);
+  }
+}
+
+struct UnpackedDecimal {
+  int64_t before;
+  int64_t after;
+};
+
+// AsUnpacked(Decimal<4>{"3.14"}) -> {3, 1400}
+// AsUnpacked(Decimal<4>{"-3.14"}) -> {-3, -1400}
+// AsUnpacked(Decimal<4>{"-0.14"}) -> {0, -1400}
+template <int Prec, typename RoundPolicy>
+constexpr UnpackedDecimal AsUnpacked(Decimal<Prec, RoundPolicy> dec) {
+  using Dec = Decimal<Prec, RoundPolicy>;
+  return {dec.AsUnbiased() / Dec::kDecimalFactor,
+          dec.AsUnbiased() % Dec::kDecimalFactor};
+}
 
 template <typename CharT>
 constexpr bool IsSpace(CharT c) {
@@ -1223,8 +1329,8 @@ template <typename CharSequence, int Prec, typename RoundPolicy>
     return false;
   }
 
-  output = Decimal<Prec, RoundPolicy>::FromUnpacked(parsed.before, parsed.after,
-                                                    parsed.decimal_digits);
+  output = FromUnpacked<Prec, RoundPolicy>(parsed.before, parsed.after,
+                                           parsed.decimal_digits);
   return true;
 }
 
@@ -1232,7 +1338,7 @@ template <typename CharSequence, int Prec, typename RoundPolicy>
 // For Codegen only!
 template <typename T>
 constexpr T FromString(std::string_view input) {
-  static_assert(IsDecimal<T>::value);
+  static_assert(kIsDecimal<T>);
 
   impl::StringCharSequence source(input);
   T result;
@@ -1317,30 +1423,56 @@ Decimal<Prec, RoundPolicy>::FromStringPermissive(std::string_view input) {
   return result;
 }
 
-/// Converts Decimal to a string. Trims any trailing zeros.
+/// @brief Converts Decimal to a string
+///
+/// Usage example:
+///     ToString(decimal64::Decimal<4>{"1.5"}) -> 1.5
+///
+/// @see ToStringTrailingZeros
 template <int Prec, typename RoundPolicy>
 std::string ToString(Decimal<Prec, RoundPolicy> dec) {
   return fmt::format(FMT_COMPILE("{}"), dec);
 }
 
-/// Converts Decimal to a string. Writes exactly Prec decimal digits, including
-/// trailing zeros if needed.
+/// @brief Converts Decimal to a string, writing exactly `Prec` decimal digits
+///
+/// Usage example:
+///     ToStringTrailingZeros(decimal64::Decimal<4>{"1.5"}) -> 1.5000
+///
+/// @see ToString
 template <int Prec, typename RoundPolicy>
 std::string ToStringTrailingZeros(Decimal<Prec, RoundPolicy> dec) {
   return fmt::format(FMT_COMPILE("{:f}"), dec);
 }
 
+/// @brief Parses a `Decimal` from the `istream`
+///
+/// Acts like the `Decimal(str)` constructor, except that it allows junk that
+/// immediately follows the number. Sets the stream's fail bit on failure.
+///
+/// Usage example:
+///     if (os >> dec) {
+///       // success
+///     } else {
+///       // failure
+///     }
+///
+/// @see Decimal::Decimal(std::string_view)
 template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
 std::basic_istream<CharT, Traits>& operator>>(
     std::basic_istream<CharT, Traits>& is, Decimal<Prec, RoundPolicy>& d) {
+  if (is.flags() & std::ios_base::skipws) {
+    std::ws(is);
+  }
   if (!impl::Parse(impl::StreamCharSequence(is), d,
-                   {impl::ParseOptions::kAllowSpaces,
-                    impl::ParseOptions::kAllowTrailingJunk})) {
+                   {impl::ParseOptions::kAllowTrailingJunk})) {
     is.setstate(std::ios_base::failbit);
   }
   return is;
 }
 
+/// @brief Writes the `Decimal` to the `ostream`
+/// @see ToString
 template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
 std::basic_ostream<CharT, Traits>& operator<<(
     std::basic_ostream<CharT, Traits>& os,
@@ -1349,6 +1481,8 @@ std::basic_ostream<CharT, Traits>& operator<<(
   return os;
 }
 
+/// @brief Writes the `Decimal` to the logger
+/// @see ToString
 template <int Prec, typename RoundPolicy>
 logging::LogHelper& operator<<(logging::LogHelper& lh,
                                const Decimal<Prec, RoundPolicy>& d) {
@@ -1356,8 +1490,8 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
   return lh;
 }
 
-// Serialization
-
+/// @brief Parses the `Decimal` from the string
+/// @see Decimal::Decimal(std::string_view)
 template <int Prec, typename RoundPolicy, typename ValueType>
 std::enable_if_t<formats::common::kIsFormatValue<ValueType>,
                  Decimal<Prec, RoundPolicy>>
@@ -1374,21 +1508,20 @@ Parse(const ValueType& value, formats::parse::To<Decimal<Prec, RoundPolicy>>) {
   return result;
 }
 
+/// @brief Serializes the `Decimal` to string
+/// @see ToString
 template <int Prec, typename RoundPolicy, typename TargetType>
 TargetType Serialize(const Decimal<Prec, RoundPolicy>& object,
                      formats::serialize::To<TargetType>) {
   return typename TargetType::Builder(ToString(object)).ExtractValue();
 }
 
+/// @brief Writes the `Decimal` to stream
+/// @see ToString
 template <int Prec, typename RoundPolicy, typename StringBuilder>
 void WriteToStream(const Decimal<Prec, RoundPolicy>& object,
                    StringBuilder& sw) {
   WriteToStream(ToString(object), sw);
-}
-
-template <int Prec, typename RoundPolicy>
-void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
-  *os << v;
 }
 
 }  // namespace decimal64
@@ -1402,14 +1535,17 @@ struct std::hash<decimal64::Decimal<Prec, RoundPolicy>> {
   }
 };
 
-/// fmt support. Spec format:
+/// @brief fmt support
+///
+/// Spec format:
 /// - {} trims any trailing zeros;
-/// - {:f} writes exactly `Prec` decimal digits, including trailing zeros if
-///   needed.
-/// TODO TAXICOMMON-2916 Add support for formatting Decimal with custom
-///  precision
+/// - {:f} writes exactly `Prec` decimal digits, including trailing zeros
+///   if needed.
 template <int Prec, typename RoundPolicy, typename Char>
 class fmt::formatter<decimal64::Decimal<Prec, RoundPolicy>, Char> {
+  // TODO TAXICOMMON-2916 Add support for formatting Decimal with custom
+  //  precision
+
  public:
   constexpr auto parse(fmt::format_parse_context& ctx) {
     auto it = ctx.begin();
@@ -1430,7 +1566,7 @@ class fmt::formatter<decimal64::Decimal<Prec, RoundPolicy>, Char> {
   template <typename FormatContext>
   auto format(const decimal64::Decimal<Prec, RoundPolicy>& dec,
               FormatContext& ctx) {
-    auto [before, after] = dec.AsUnpacked();
+    auto [before, after] = decimal64::impl::AsUnpacked(dec);
     int after_digits = Prec;
 
     if (remove_trailing_zeros_) {

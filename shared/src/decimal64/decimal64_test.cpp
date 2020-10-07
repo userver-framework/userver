@@ -70,7 +70,7 @@ TEST(Decimal64, ConstexprSupport) {
   [[maybe_unused]] constexpr Dec4 default_zero;
   [[maybe_unused]] constexpr Dec4 zero{0};
   [[maybe_unused]] constexpr Dec4 ten{10};
-  [[maybe_unused]] constexpr Dec4 large_int{123456789876543};
+  [[maybe_unused]] constexpr Dec4 large_int{123456789876543LL};
   [[maybe_unused]] constexpr Dec4 from_string{"42.123456"};
   [[maybe_unused]] constexpr Dec4 from_float =
       Dec4::FromFloatInexact(42.123456F);
@@ -79,15 +79,21 @@ TEST(Decimal64, ConstexprSupport) {
   [[maybe_unused]] constexpr Dec4 from_long_double =
       Dec4::FromFloatInexact(42.123456L);
   [[maybe_unused]] constexpr Dec4 from_unbiased = Dec4::FromUnbiased(123);
-  [[maybe_unused]] constexpr Dec4 from_unpacked = Dec4::FromUnpacked(123, 4567);
-  [[maybe_unused]] constexpr Dec4 from_unpacked2 =
-      Dec4::FromUnpacked(123, 4567, 8);
   [[maybe_unused]] constexpr Dec4 from_floating = Dec4::FromBiased(123, 5);
-  [[maybe_unused]] constexpr Dec4 from_fraction = Dec4::FromFraction(123, 456);
 }
 
 TEST(Decimal64, Hash) {
   std::unordered_map<Dec4, int> map{{Dec4{1}, 2}, {Dec4{3}, 4}};
   EXPECT_EQ(map[Dec4{1}], 2);
   EXPECT_EQ(map[Dec4{3}], 4);
+}
+
+TEST(Decimal64, IsDecimal) {
+  EXPECT_TRUE(decimal64::kIsDecimal<Dec4>);
+  EXPECT_TRUE((decimal64::kIsDecimal<
+               decimal64::Decimal<0, decimal64::RoundDownRoundPolicy>>));
+  EXPECT_FALSE(decimal64::kIsDecimal<const Dec4>);
+  EXPECT_FALSE(decimal64::kIsDecimal<Dec4&>);
+  EXPECT_FALSE(decimal64::kIsDecimal<const Dec4&>);
+  EXPECT_FALSE(decimal64::kIsDecimal<int>);
 }

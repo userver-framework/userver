@@ -1,5 +1,6 @@
 #include <decimal64/decimal64.hpp>
 
+#include <ios>
 #include <sstream>
 
 #include <gtest/gtest.h>
@@ -167,12 +168,11 @@ constexpr Dec4 kUnchangedOnError{42};
 void TestFromStream(const std::string& input, bool expected_success,
                     Dec4 expected_result, std::string_view expected_remaining) {
   Dec4 result = kUnchangedOnError;
-  std::string remaining;
   std::istringstream is{input};
   EXPECT_EQ(static_cast<bool>(is >> result), expected_success)
       << "input: \"" << input << "\"";
   is.clear();
-  std::getline(is, remaining);
+  const std::string remaining(std::istreambuf_iterator<char>(is), {});
   EXPECT_EQ(result, expected_result) << "input: \"" << input << "\"";
   EXPECT_EQ(remaining, expected_remaining) << "input: \"" << input << "\"";
 }
@@ -181,7 +181,7 @@ void TestFromStream(const std::string& input, bool expected_success,
 
 TEST(Decimal64, FromStream) {
   TestFromStream("123", true, Dec4{123}, "");
-  TestFromStream("   \t  \r-10.0 \t  ", true, Dec4{-10}, " \t  ");
+  TestFromStream("   \n  -10.0 \t  ", true, Dec4{-10}, " \t  ");
   TestFromStream("123ab", true, Dec4{123}, "ab");
   TestFromStream("1, 2, 3", true, Dec4{1}, ", 2, 3");
   TestFromStream("-1.2.3", true, Dec4{"-1.2"}, ".3");
@@ -202,6 +202,15 @@ TEST(Decimal64, FromStreamFlags) {
   EXPECT_TRUE(is.eof());
   EXPECT_TRUE(static_cast<bool>(is));
   EXPECT_FALSE(!is);
+}
+
+TEST(Decimal64, FromStreamNoSkipWs) {
+  Dec4 result = kUnchangedOnError;
+  std::istringstream is{" 123"};
+  is >> std::noskipws >> result;
+
+  EXPECT_EQ(result, kUnchangedOnError);
+  EXPECT_TRUE(is.fail());
 }
 
 TEST(Decimal64, ParseValid) {
