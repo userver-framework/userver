@@ -89,8 +89,7 @@ Component::Component(const components::ComponentConfig& config,
 
   auto& taxi_config = context.FindComponent<components::TaxiConfig>();
   pimpl_->config_subscription =
-      taxi_config.AddListener(this, kName, &Component::OnConfigUpdate);
-  OnConfigUpdate(taxi_config.Get());
+      taxi_config.UpdateAndListen(this, kName, &Component::OnConfigUpdate);
 
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
