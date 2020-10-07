@@ -15,3 +15,5 @@ struct InstantiationDeathTest<formats::yaml::ValueBuilder>
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, InstantiationDeathTest,
                                formats::yaml::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, CommonValueBuilderTests,
+                               formats::yaml::ValueBuilder);

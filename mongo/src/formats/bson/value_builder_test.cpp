@@ -408,3 +408,5 @@ struct InstantiationDeathTest<formats::bson::ValueBuilder>
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, InstantiationDeathTest,
                                formats::bson::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, CommonValueBuilderTests,
+                               formats::bson::ValueBuilder);

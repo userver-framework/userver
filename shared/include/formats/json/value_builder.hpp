@@ -10,6 +10,7 @@
 #include <formats/common/meta.hpp>
 #include <formats/json/impl/mutable_value_wrapper.hpp>
 #include <formats/json/value.hpp>
+#include <utils/strong_typedef.hpp>
 
 namespace formats::json {
 
@@ -68,6 +69,12 @@ class ValueBuilder final {
   /// @throw `TypeMismatchException` if not array value.
   /// @throw `OutOfBoundsException` if index is greater than size.
   ValueBuilder operator[](std::size_t index);
+  /// @brief Access member by key for modification.
+  /// @throw `TypeMismatchException` if not object or null value.
+  template <
+      typename Tag, utils::StrongTypedefOps Ops,
+      typename Enable = std::enable_if_t<utils::IsStrongTypedefLoggable(Ops)>>
+  ValueBuilder operator[](utils::StrongTypedef<Tag, std::string, Ops> key);
 
   /// @brief Emplaces new member w/o a check whether the key already exists.
   /// @warn May create invalid JSON with duplicate key.
@@ -162,5 +169,11 @@ Serialize(T value, formats::serialize::To<Value>) {
 
 json::Value Serialize(std::chrono::system_clock::time_point tp,
                       formats::serialize::To<Value>);
+
+template <typename Tag, utils::StrongTypedefOps Ops, typename Enable>
+ValueBuilder ValueBuilder::operator[](
+    utils::StrongTypedef<Tag, std::string, Ops> key) {
+  return (*this)[std::move(key.GetUnderlying())];
+}
 
 }  // namespace formats::json

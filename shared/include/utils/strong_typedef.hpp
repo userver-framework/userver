@@ -315,6 +315,10 @@ constexpr T UnderlyingValue(StrongTypedef<Tag, T, Ops>&& v) noexcept {
   return std::move(v).GetUnderlying();
 }
 
+constexpr bool IsStrongTypedefLoggable(StrongTypedefOps Ops) {
+  return !(Ops & StrongTypedefOps::kNonLoggable);
+}
+
 // Serialization
 
 template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,

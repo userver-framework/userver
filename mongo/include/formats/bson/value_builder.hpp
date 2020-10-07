@@ -15,6 +15,7 @@
 #include <formats/bson/value.hpp>
 #include <formats/common/meta.hpp>
 #include <formats/common/type.hpp>
+#include <utils/strong_typedef.hpp>
 
 namespace formats::bson {
 
@@ -91,6 +92,14 @@ class ValueBuilder {
   /// @throws TypeMismatchException if value is not a document or `null`
   ValueBuilder operator[](const std::string& name);
 
+  /// @brief Access member by key for modification.
+  /// @throw `TypeMismatchException` if not object or null value.
+  template <
+      typename Tag, utils::StrongTypedefOps Ops,
+      typename Enable = std::enable_if_t<utils::IsStrongTypedefLoggable(Ops)>>
+  ValueBuilder operator[](
+      const utils::StrongTypedef<Tag, std::string, Ops>& name);
+
   /// @brief Retrieves array element by index
   /// @throws TypeMismatchException if value is not an array or `null`
   /// @throws OutOfBoundsException if index is invalid for the array
@@ -146,6 +155,12 @@ class ValueBuilder {
 
   impl::ValueImplPtr impl_;
 };
+
+template <typename Tag, utils::StrongTypedefOps Ops, typename Enable>
+ValueBuilder ValueBuilder::operator[](
+    const utils::StrongTypedef<Tag, std::string, Ops>& name) {
+  return (*this)[name.GetUnderlying()];
+}
 
 template <typename T>
 Value ValueBuilder::DoSerialize(const T& t) {

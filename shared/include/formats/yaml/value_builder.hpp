@@ -5,6 +5,7 @@
 
 #include <formats/serialize/to.hpp>
 #include <formats/yaml/value.hpp>
+#include <utils/strong_typedef.hpp>
 
 namespace formats::yaml {
 
@@ -70,6 +71,13 @@ class ValueBuilder final {
   /// @throw `TypeMismatchException` if not array value.
   /// @throw `OutOfBoundsException` if index is greater than size.
   ValueBuilder operator[](std::size_t index);
+  /// @brief Access member by key for modification.
+  /// @throw `TypeMismatchException` if not object or null value.
+  template <
+      typename Tag, utils::StrongTypedefOps Ops,
+      typename Enable = std::enable_if_t<utils::IsStrongTypedefLoggable(Ops)>>
+  ValueBuilder operator[](
+      const utils::StrongTypedef<Tag, std::string, Ops>& key);
 
   /// @brief Remove key from object. If key is missing nothing happens.
   /// @throw `TypeMismatchException` if value is not an object.
@@ -141,6 +149,12 @@ class ValueBuilder final {
 
   friend class Iterator<IterTraits>;
 };
+
+template <typename Tag, utils::StrongTypedefOps Ops, typename Enable>
+ValueBuilder ValueBuilder::operator[](
+    const utils::StrongTypedef<Tag, std::string, Ops>& key) {
+  return (*this)[key.GetUnderlying()];
+}
 
 template <typename T>
 Value ValueBuilder::DoSerialize(const T& t) {

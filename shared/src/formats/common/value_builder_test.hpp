@@ -10,6 +10,12 @@ template <class T>
 struct InstantiationDeathTest : public ::testing::Test {};
 TYPED_TEST_SUITE_P(InstantiationDeathTest);
 
+template <class T>
+struct CommonValueBuilderTests : public ::testing::Test {
+  using ValueBuilder = T;
+};
+TYPED_TEST_SUITE_P(CommonValueBuilderTests);
+
 template <typename Float, typename ValueBuilder, typename Exception>
 void TestNanInfInstantiation() {
 // In debug builds we UASSERT for Nan/Inf
@@ -34,6 +40,15 @@ void TestNanInfInstantiation() {
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
 #endif
 }
+
+template <typename, typename, typename = std::void_t<> >
+struct CanCallOperatorBrackets : public std::false_type {};
+
+template <typename T, typename U>
+struct CanCallOperatorBrackets<
+    T, U, std::void_t<decltype(std::declval<T>()[std::declval<U>()])> >
+    : std::true_type {};
+
 }  // namespace
 
 namespace formats::bson {
@@ -55,3 +70,37 @@ TYPED_TEST_P(InstantiationDeathTest, NanInf) {
 }
 
 REGISTER_TYPED_TEST_SUITE_P(InstantiationDeathTest, NanInf);
+
+TYPED_TEST_P(CommonValueBuilderTests, StringStrongTypedef) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+
+  using MyStringTypedef = utils::StrongTypedef<struct Tag, std::string>;
+
+  // using as key
+  {
+    ValueBuilder builder{formats::common::Type::kObject};
+    builder[MyStringTypedef{"test_key"}] = 7;
+
+    ASSERT_EQ(7, builder.ExtractValue()["test_key"].template As<int>());
+  }
+
+  // using in constructor
+  {
+    ValueBuilder builder{MyStringTypedef{"test_string"}};
+
+    ASSERT_EQ("test_string", builder.ExtractValue().template As<std::string>());
+  }
+
+  // non-loggable can't be used
+  {
+    using MyNonLoggableStringTypedef =
+        utils::NonLoggable<struct Tag, std::string>;
+    static_assert(
+        (CanCallOperatorBrackets<ValueBuilder, MyStringTypedef>::value));
+    static_assert(
+        !(CanCallOperatorBrackets<ValueBuilder,
+                                  MyNonLoggableStringTypedef>::value));
+  }
+}
+
+REGISTER_TYPED_TEST_SUITE_P(CommonValueBuilderTests, StringStrongTypedef);

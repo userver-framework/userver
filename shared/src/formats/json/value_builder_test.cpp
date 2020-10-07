@@ -15,3 +15,5 @@ struct InstantiationDeathTest<formats::json::ValueBuilder>
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, InstantiationDeathTest,
                                formats::json::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, CommonValueBuilderTests,
+                               formats::json::ValueBuilder);
