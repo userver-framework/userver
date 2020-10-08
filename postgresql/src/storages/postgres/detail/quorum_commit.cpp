@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -348,11 +349,20 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
     state.is_readonly = state.connection->IsReadOnly();
     state.roundtrip_time = std::chrono::duration_cast<Rtt>(
         std::chrono::steady_clock::now() - start);
+
+    std::optional<std::chrono::system_clock::time_point> current_xact_timestamp;
     state.connection
         ->Execute(state.connection->IsInRecovery() ? kGetSlaveWalInfo
                                                    : kGetMasterWalInfo)
         .Front()
-        .To(state.wal_lsn, state.current_xact_timestamp);
+        .To(state.wal_lsn, current_xact_timestamp);
+    if (current_xact_timestamp) {
+      state.current_xact_timestamp = *current_xact_timestamp;
+    } else {
+      LOG_INFO() << "Host " << DsnCutPassword(dsn) << " has no data, skipping";
+      return;  // state will be reset
+    }
+
     if (!state.connection->IsInRecovery()) {
       auto res = state.connection->Execute(kShowSyncStandbyNames);
       state.detected_sync_slaves =
