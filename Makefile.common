@@ -177,10 +177,10 @@ teamcity-format:
 
 # legacy
 $(foreach fmt,$(FORMATTERS),taxi-$(fmt)): taxi-%:
-	@taxi-$* -q -- .
+	@taxi-$* -- .
 
 $(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)): smart-taxi-%:
-	@taxi-$* --smart -q -- .
+	@taxi-$* --smart -- .
 
 .PHONY: clang-format
 clang-format:

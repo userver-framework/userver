@@ -376,8 +376,8 @@ void process_request_file() {
       lower_bound(reqtype_names.begin(), reqtype_names.end(), command_cc) -
       reqtype_names.begin();
   //	if (idx < reqtype_names.size()) {
-  //		cerr << "reqtype_names[idx] = \"" << reqtype_names[idx] << '"' <<
-  //endl;
+  //		cerr << "reqtype_names[idx] = \"" << reqtype_names[idx] << '"'
+  //<< endl;
   //	}
   if (idx >= reqtype_names.size() || reqtype_names[idx] != command_cc) {
     string decl_reqtype = "using Request" + command_cc + " = Request<" +
@@ -439,7 +439,7 @@ string gen_update_shard() {
             (param.name == "members" || param.name == "fields")) {
           // TODO: add assert or dummy request
           //					add_dummy_request(param.name,
-          //decl_command);
+          // decl_command);
         }
       }
       decl_command += "  UpdateShard(key);\n";
