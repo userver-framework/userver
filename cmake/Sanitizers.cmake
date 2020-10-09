@@ -7,7 +7,7 @@ endif()
 SET(SANITIZE_ENUM "mem, addr, thread, ub")
 set(SANITIZE "" CACHE STRING "Clang sanitizer, possible values: ${SANITIZE_ENUM}")
 if (NOT CLANG AND SANITIZE)
-  message(FATAL_ERROR "-DSANITIZE can be set only when complied using clang.  Please set CC=clang-7 CXX=clang++-7 or smth.")
+  message(FATAL_ERROR "-DSANITIZE can be set only when complied using clang.  Please set CC=clang-9 CXX=clang++-9 or smth.")
 endif()
 
 add_library(sanitize-target INTERFACE)

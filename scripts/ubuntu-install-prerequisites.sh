@@ -24,12 +24,12 @@ YANDEX_ARCHIVE_KEY_ID=7FCD11186050CD1A
 
 ESSENTIAL_PACKAGES=" \
   ccache \
-  clang-7 \
+  clang-9 \
   clang-format-7 \
   cmake \
   git \
   libstdc++-7-dev \
-  lld-7 \
+  lld-9 \
   make \
   taxi-deps-py3-2 \
 "
