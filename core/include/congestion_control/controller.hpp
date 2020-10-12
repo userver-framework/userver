@@ -18,6 +18,8 @@ struct Policy {
   size_t up_count{3};
   size_t down_count{3};
   size_t no_limit_count{1000};
+
+  double start_limit_factor{0.75};
 };
 
 Policy MakePolicy(formats::json::Value policy);
@@ -27,6 +29,8 @@ struct PolicyState {
   size_t times_wo_overload{0};
   bool is_overloaded{false};
   std::optional<size_t> current_limit;
+
+  size_t max_up_delta{1};
 };
 
 struct Stats final {

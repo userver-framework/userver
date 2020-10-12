@@ -1,0 +1,10 @@
+{
+  "down-level": 8,
+  "down-rate-percent": 1,
+  "min-limit": 2,
+  "no-limit-seconds": 120,
+  "overload-off-seconds": 8,
+  "overload-on-seconds": 8,
+  "up-level": 2,
+  "up-rate-percent": 1
+}

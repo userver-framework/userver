@@ -34,6 +34,7 @@ Policy MakePolicy(formats::json::Value policy) {
   p.up_count = policy["up-level"].As<int>();
   p.down_count = policy["down-level"].As<int>();
   p.no_limit_count = policy["no-limit-seconds"].As<int>();
+  p.start_limit_factor = policy["start-limit-factor"].As<double>(0.75);
   return p;
 }
 
@@ -50,15 +51,16 @@ bool Controller::IsOverloadedNow(const Sensor::Data& data,
 
 size_t Controller::CalcNewLimit(const Sensor::Data& data,
                                 const Policy& policy) const {
-  if (!state_.current_limit)
-    return std::max(policy.min_limit, data.current_load);
+  if (!state_.current_limit) {
+    return std::max<size_t>(
+        policy.min_limit,
+        std::lround(data.current_load * policy.start_limit_factor));
+  }
 
   // Use current_limit instead of sensor's current load as the limiter
   // might fail to immediatelly affect sensor's levels
   //
-  auto current_load = state_.is_overloaded
-                          ? std::min(data.current_load, *state_.current_limit)
-                          : *state_.current_limit;
+  auto current_load = *state_.current_limit;
   if (current_load == 0) current_load = 1;
 
   if (state_.is_overloaded) {
@@ -68,9 +70,17 @@ size_t Controller::CalcNewLimit(const Sensor::Data& data,
             std::floor(current_load * (100 - policy.down_rate_percent) / 100),
             current_load - 1));
   } else {
-    return std::max<std::size_t>(
-        std::floor(current_load * (100 + policy.up_rate_percent) / 100),
-        current_load + 1);
+    const auto max_up =
+        std::lround(current_load * (100 + policy.up_rate_percent) / 100);
+    const auto up =
+        std::min<size_t>(max_up, current_load + state_.max_up_delta);
+
+    /* New RPS is limited by:
+     * - current*K and
+     * - current+2**N
+     * where N is count of seconds in a row w/o overloads.
+     */
+    return std::max<std::size_t>(up, current_load + 1);
   }
 }
 
@@ -86,9 +96,19 @@ void Controller::Feed(const Sensor::Data& data) {
   if (is_overloaded_pressure) {
     state_.times_with_overload++;
     state_.times_wo_overload = 0;
+
+    /* If we're raising RPS, but faced with a random overload, slow down a bit.
+     */
+    state_.max_up_delta = 1;
   } else {
     state_.times_with_overload = 0;
     state_.times_wo_overload++;
+
+    // avoid overlfow
+    if (state_.max_up_delta < 10000) {
+      // If we're raising RPS and have no overflows, speed up the rise
+      state_.max_up_delta *= 2;
+    }
   }
 
   if (state_.is_overloaded) {
