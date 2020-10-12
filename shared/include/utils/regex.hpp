@@ -9,9 +9,16 @@ namespace utils {
 /// Small alias for boost::regex / std::regex without huge includes
 class regex final {
  public:
+  regex();
   explicit regex(std::string_view pattern);
 
   ~regex();
+
+  regex(const regex&);
+  regex(regex&&) noexcept;
+
+  regex& operator=(const regex&);
+  regex& operator=(regex&&) noexcept;
 
  private:
   struct Impl;
