@@ -174,6 +174,8 @@ formats::json::Value Server::GetMonitorData(
     formats::json::ValueBuilder json_request_stats(
         formats::json::Type::kObject);
     json_request_stats["active"] = server_stats.active_request_count.load();
+    json_request_stats["avg-lifetime-ms"] =
+        pimpl->main_port_info_.data_accounter_.GetAvgRequestTime().count();
     json_request_stats["processed"] =
         server_stats.requests_processed_count.load();
     json_request_stats["parsing"] =

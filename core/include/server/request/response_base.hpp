@@ -18,8 +18,11 @@ namespace request {
 
 class ResponseDataAccounter final {
  public:
-  void Get(size_t size) { current_ += size; }
-  void Put(size_t size) { current_ -= size; }
+  void StartRequest(size_t size,
+                    std::chrono::steady_clock::time_point create_time);
+
+  void StopRequest(size_t size,
+                   std::chrono::steady_clock::time_point create_time);
 
   size_t GetCurrentLevel() const { return current_; }
 
@@ -27,9 +30,13 @@ class ResponseDataAccounter final {
 
   void SetMaxLevel(size_t size) { max_ = size; }
 
+  std::chrono::milliseconds GetAvgRequestTime() const;
+
  private:
   std::atomic<size_t> current_{0};
   std::atomic<size_t> max_{std::numeric_limits<size_t>::max()};
+  std::atomic<size_t> count_{0};
+  std::atomic<size_t> time_sum_{0};
 };
 
 class ResponseBase {
@@ -64,8 +71,26 @@ class ResponseBase {
   void SetSent(size_t bytes_sent);
   void SetSentTime(std::chrono::steady_clock::time_point sent_time);
 
-  ResponseDataAccounter& data_accounter_;
+  class Guard final {
+   public:
+    Guard(ResponseDataAccounter& accounter,
+          std::chrono::steady_clock::time_point create_time, size_t size)
+        : accounter_(accounter), create_time_(create_time), size_(size) {
+      accounter_.StartRequest(size_, create_time_);
+    }
+
+    ~Guard() { accounter_.StopRequest(size_, create_time_); }
+
+   private:
+    ResponseDataAccounter& accounter_;
+    std::chrono::steady_clock::time_point create_time_;
+    size_t size_;
+  };
+
+  ResponseDataAccounter& accounter_;
+  std::optional<Guard> guard_;
   std::string data_;
+  std::chrono::steady_clock::time_point create_time_;
   std::chrono::steady_clock::time_point ready_time_;
   std::chrono::steady_clock::time_point sent_time_;
   size_t bytes_sent_ = 0;
