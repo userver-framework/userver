@@ -10,6 +10,7 @@
 #include <components/loggable_component_base.hpp>
 #include <taxi_config/config.hpp>
 #include <utils/async_event_channel.hpp>
+#include <utils/shared_readable_ptr.hpp>
 #include <utils/swappingsmart.hpp>
 
 namespace components {
@@ -27,6 +28,14 @@ class TaxiConfig : public LoggableComponentBase,
 
   /// Get config, may block if no config is available yet
   std::shared_ptr<const taxi_config::Config> Get() const;
+
+  template <typename T>
+  utils::SharedReadablePtr<T> GetAs() const {
+    auto config = Get();
+    const T& ptr = config->Get<T>();
+    // Use shared_ptr's aliasing constructor
+    return std::shared_ptr<T>{std::move(config), &ptr};
+  }
 
   void NotifyLoadingFailed(const std::string& updater_error);
 
