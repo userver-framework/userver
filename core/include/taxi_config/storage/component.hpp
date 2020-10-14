@@ -34,7 +34,7 @@ class TaxiConfig : public LoggableComponentBase,
     auto config = Get();
     const T& ptr = config->Get<T>();
     // Use shared_ptr's aliasing constructor
-    return std::shared_ptr<T>{std::move(config), &ptr};
+    return std::shared_ptr<const T>{std::move(config), &ptr};
   }
 
   void NotifyLoadingFailed(const std::string& updater_error);
