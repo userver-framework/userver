@@ -81,14 +81,12 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
 
   std::string Expected() const override { return "array"; }
 
-  BaseParser& Parser() { return item_parser_; }
-
  protected:
   void PushParser() {
     if (state_ != State::kInside) this->Throw("array");
 
     this->item_parser_.Reset();
-    this->parser_state_->PushParser(item_parser_);
+    this->parser_state_->PushParser(item_parser_.GetParser());
     index_++;
   }
 
@@ -103,6 +101,8 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
   std::string GetPathItem() const override {
     return common::GetIndexString(index_ - 1);
   }
+
+  BaseParser& Parser() { return item_parser_.GetParser(); }
 
  private:
   ItemParser& item_parser_;

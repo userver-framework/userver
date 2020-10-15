@@ -31,7 +31,7 @@ class MapParser final : public TypedParser<Map>,
     key_ = key;
     this->value_parser_.Reset();
     this->value_parser_.Subscribe(*this);
-    this->parser_state_->PushParser(this->value_parser_);
+    this->parser_state_->PushParser(this->value_parser_.GetParser());
   }
 
   void EndObject() override {
