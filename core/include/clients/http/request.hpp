@@ -9,6 +9,8 @@
 #include <crypto/private_key.hpp>
 
 namespace clients::http {
+
+class RequestState;
 namespace impl {
 class EasyWrapper;
 }  // namespace impl
@@ -134,13 +136,8 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Get Response class
   std::shared_ptr<Response> response() const;
 
-  /// Cancel request
-  void Cancel() const;
-
  private:
-  class RequestImpl;
-
-  std::shared_ptr<RequestImpl> pimpl_;
+  std::shared_ptr<RequestState> pimpl_;
 };
 
 }  // namespace clients::http

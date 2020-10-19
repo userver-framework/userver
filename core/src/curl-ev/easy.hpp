@@ -140,7 +140,7 @@ class string_list;
 
 class easy final : public std::enable_shared_from_this<easy> {
  public:
-  using handler_type = std::function<void(const std::error_code& err)>;
+  using handler_type = std::function<void(std::error_code err)>;
   using time_point = std::chrono::steady_clock::time_point;
 
   static easy* from_native(native::CURL* native_easy);

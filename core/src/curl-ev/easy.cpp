@@ -487,8 +487,7 @@ void easy::handle_completion(const std::error_code& err) {
 
   multi_registered_ = false;
 
-  auto handler = std::function<void(const std::error_code& err)>(
-      [](const std::error_code&) {});
+  auto handler = std::function<void(std::error_code)>([](std::error_code) {});
   swap(handler, handler_);
 
   /* It's OK to call handler in libev thread context as it is limited to

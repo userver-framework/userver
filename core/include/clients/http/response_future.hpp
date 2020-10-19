@@ -14,6 +14,8 @@ class BlockingFuture;
 
 namespace clients::http {
 
+class RequestState;
+
 namespace impl {
 class EasyWrapper;
 }  // namespace impl
@@ -23,7 +25,7 @@ class ResponseFuture final {
   ResponseFuture(
       engine::impl::BlockingFuture<std::shared_ptr<Response>>&& future,
       std::chrono::milliseconds total_timeout,
-      std::shared_ptr<impl::EasyWrapper> easy);
+      std::shared_ptr<RequestState> request);
 
   ResponseFuture(ResponseFuture&& other) noexcept;
 
@@ -39,7 +41,7 @@ class ResponseFuture final {
 
   void Detach();
 
-  std::future_status Wait() const;
+  std::future_status Wait();
 
   std::shared_ptr<Response> Get();
 
@@ -50,7 +52,7 @@ class ResponseFuture final {
                    kFutureSize, kFutureAlignment, true>
       future_;
   std::chrono::system_clock::time_point deadline_;
-  std::shared_ptr<impl::EasyWrapper> easy_;
+  std::shared_ptr<RequestState> request_state_;
 };
 
 }  // namespace clients::http

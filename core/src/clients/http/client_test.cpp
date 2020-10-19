@@ -204,16 +204,25 @@ static HttpResponse put_validate_callback(const HttpRequest& request) {
       HttpResponse::kWriteAndClose};
 }
 
-static HttpResponse sleep_callback(const HttpRequest& request) {
+static HttpResponse sleep_callback_base(const HttpRequest& request,
+                                        std::chrono::milliseconds sleep_for) {
   LOG_INFO() << "HTTP Server receive: " << request;
 
-  engine::InterruptibleSleepFor(kMaxTestWaitTime);
+  engine::InterruptibleSleepFor(sleep_for);
 
   return {
       "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
       "4096\r\n\r\n" +
           std::string(4096, '@'),
       HttpResponse::kWriteAndClose};
+}
+
+static HttpResponse sleep_callback(const HttpRequest& request) {
+  return sleep_callback_base(request, kMaxTestWaitTime);
+}
+
+static HttpResponse sleep_callback_1s(const HttpRequest& request) {
+  return sleep_callback_base(request, std::chrono::seconds(1));
 }
 
 static HttpResponse huge_data_callback(const HttpRequest& request) {
@@ -408,6 +417,81 @@ TEST(HttpClient, CancelPost) {
 
     task.Get();
   });
+}
+
+TEST(HttpClient, CancelRetries) {
+  using std::chrono::duration_cast;
+  using std::chrono::milliseconds;
+
+  std::atomic<unsigned> server_requests{0};
+  unsigned client_retries = 0;
+
+  TestInCoro([&server_requests, &client_retries] {
+    constexpr unsigned kRetriesCount = 100;
+    constexpr unsigned kMinRetries = 3;
+    constexpr auto kMaxNonIoReactionTime = std::chrono::seconds{1};
+    auto callback = [&server_requests](const HttpRequest& request) {
+      ++server_requests;
+      return sleep_callback_1s(request);
+    };
+
+    const testing::SimpleServer http_server{callback};
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const auto start_create_request_time = std::chrono::steady_clock::now();
+    auto future = std::make_unique<clients::http::ResponseFuture>(
+        http_client_ptr->CreateRequest()
+            ->post(http_server.GetBaseUrl(), kTestData)
+            ->retry(kRetriesCount)
+            ->verify(true)
+            ->http_version(clients::http::HttpVersion::k11)
+            ->timeout(kTimeout)
+            ->async_perform());
+
+    engine::SleepFor(kTimeout * (kMinRetries + 1));
+
+    const auto cancelation_start_time = std::chrono::steady_clock::now();
+    engine::current_task::GetCurrentTaskContext()->RequestCancel(
+        engine::TaskCancellationReason::kUserRequest);
+
+    try {
+      [[maybe_unused]] auto val = future->Wait();
+      FAIL() << "Must have been canceled";
+    } catch (const clients::http::CancelException& e) {
+      client_retries = e.GetStats().retries_count;
+      EXPECT_LE(client_retries, kMinRetries * 2);
+      EXPECT_GE(client_retries, kMinRetries);
+    }
+
+    const auto cancellation_end_time = std::chrono::steady_clock::now();
+    const auto cancellation_duration =
+        cancellation_end_time - cancelation_start_time;
+    EXPECT_LT(cancellation_duration, kTimeout * 2)
+        << "Looks like cancel did not cancelled the request, because after the "
+           "cancel the request has been working for "
+        << duration_cast<milliseconds>(cancellation_duration).count() << "ms";
+
+    future.reset();
+    const auto future_destruction_time = std::chrono::steady_clock::now();
+    const auto future_destruction_duration =
+        future_destruction_time - cancellation_end_time;
+    EXPECT_LT(future_destruction_duration, kMaxNonIoReactionTime)
+        << "Looks like cancel did not cancelled the request, because after the "
+           "cancel future has been destructing for "
+        << duration_cast<milliseconds>(future_destruction_duration).count()
+        << "ms";
+
+    const auto request_creation_duration =
+        cancelation_start_time - start_create_request_time;
+    EXPECT_LT(request_creation_duration, kMaxNonIoReactionTime);
+
+    EXPECT_GE(server_requests, kMinRetries);
+    EXPECT_LT(server_requests, kMinRetries * 2);
+  });
+
+  EXPECT_LE(server_requests.load(), client_retries + 1)
+      << "Cancel() is not fast enough and more than 1 retry was done after "
+         "cancellation";
 }
 
 TEST(HttpClient, PostShutdownWithPendingRequest) {
