@@ -412,7 +412,7 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
   }
 
   ++stats_.pool_exhaust_errors;
-  throw PoolError("No available connections found");
+  throw PoolError("No available connections found", settings_.db_name);
 }
 
 void ConnectionPool::Clear() {

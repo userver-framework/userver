@@ -218,7 +218,12 @@ class ServerConnectionError : public ServerError<ConnectionError> {
 
 /// @brief Indicates errors during pool operation
 class PoolError : public RuntimeError {
-  using RuntimeError::RuntimeError;
+ public:
+  PoolError(const std::string& msg, const std::string& db_name)
+      : PoolError(msg + ", db_name=" + db_name) {}
+
+  PoolError(const std::string& msg)
+      : RuntimeError::RuntimeError("Postgres ConnectionPool error: " + msg) {}
 };
 
 class ClusterUnavailable : public ConnectionError {

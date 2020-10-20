@@ -142,6 +142,7 @@ struct PoolSettings {
   size_t max_size = 0;
   size_t max_queue_size = 0;
   bool sync_start = false;
+  std::string db_name{};
 };
 
 struct ConnectionSettings {
