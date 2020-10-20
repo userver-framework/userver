@@ -680,6 +680,13 @@ RequestStrlen ClientImpl::Strlen(std::string key,
                   GetCommandControl(command_control)));
 }
 
+RequestTime ClientImpl::Time(size_t shard,
+                             const CommandControl& command_control) {
+  CheckShard(shard, command_control);
+  return CreateRequest<RequestTime>(MakeRequest(
+      CmdArgs{"time"}, shard, false, GetCommandControl(command_control)));
+}
+
 RequestTtl ClientImpl::Ttl(std::string key,
                            const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);

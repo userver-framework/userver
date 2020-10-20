@@ -150,6 +150,8 @@ class MockTransactionImplBase {
 
   virtual RequestStrlen Strlen(std::string key);
 
+  virtual RequestTime Time(size_t shard);
+
   virtual RequestTtl Ttl(std::string key);
 
   virtual RequestType Type(std::string key);

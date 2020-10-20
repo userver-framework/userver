@@ -455,6 +455,11 @@ RequestStrlen MockTransaction::Strlen(std::string key) {
   return AddSubrequest(impl_->Strlen(std::move(key)));
 }
 
+RequestTime MockTransaction::Time(size_t shard) {
+  UpdateShard(shard);
+  return AddSubrequest(impl_->Time(shard));
+}
+
 RequestTtl MockTransaction::Ttl(std::string key) {
   UpdateShard(key);
   return AddSubrequest(impl_->Ttl(std::move(key)));

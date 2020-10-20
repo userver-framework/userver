@@ -174,6 +174,25 @@ int64_t Parse(ReplyData&& reply_data, const std::string& request_description,
   return reply_data.GetInt();
 }
 
+std::chrono::system_clock::time_point Parse(
+    ReplyData&& reply_data, const std::string& request_description,
+    To<std::chrono::system_clock::time_point>) {
+  reply_data.ExpectArray(request_description);
+  auto&& result = reply_data.GetArray();
+  if (result.size() != 2) {
+    throw ::redis::ParseReplyException("Unexpected reply to '" +
+                                       request_description +
+                                       "'. Expected 2 elements in array, got " +
+                                       std::to_string(result.size()));
+  }
+  for (auto&& i : result) {
+    i.ExpectString(request_description);
+  }
+  return std::chrono::system_clock::time_point(
+      std::chrono::seconds(std::stoi(result[0].GetString())) +
+      std::chrono::microseconds(std::stoi(result[1].GetString())));
+}
+
 HsetReply Parse(ReplyData&& reply_data, const std::string& request_description,
                 To<HsetReply>) {
   reply_data.ExpectInt(request_description);

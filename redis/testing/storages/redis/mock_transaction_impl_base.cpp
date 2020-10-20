@@ -369,6 +369,11 @@ RequestStrlen MockTransactionImplBase::Strlen(std::string /*key*/) {
   return RequestStrlen{nullptr};
 }
 
+RequestTime MockTransactionImplBase::Time(size_t /*shard*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestTime{nullptr};
+}
+
 RequestTtl MockTransactionImplBase::Ttl(std::string /*key*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestTtl{nullptr};

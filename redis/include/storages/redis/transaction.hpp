@@ -188,6 +188,8 @@ class Transaction {
 
   virtual RequestStrlen Strlen(std::string key) = 0;
 
+  virtual RequestTime Time(size_t shard) = 0;
+
   virtual RequestTtl Ttl(std::string key) = 0;
 
   virtual RequestType Type(std::string key) = 0;

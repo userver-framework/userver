@@ -486,6 +486,12 @@ RequestStrlen MockClientBase::Strlen(
   return RequestStrlen{nullptr};
 }
 
+RequestTime MockClientBase::Time(size_t /*shard*/,
+                                 const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestTime{nullptr};
+}
+
 RequestTtl MockClientBase::Ttl(std::string /*key*/,
                                const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");

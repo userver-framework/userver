@@ -196,6 +196,7 @@ using RequestSrandmembers = Request<std::vector<std::string>>;
 using RequestSrem = Request<size_t>;
 using RequestSscan = ScanRequest<ScanTag::kSscan>;
 using RequestStrlen = Request<size_t>;
+using RequestTime = Request<std::chrono::system_clock::time_point>;
 using RequestTtl = Request<TtlReply>;
 using RequestType = Request<KeyType>;
 using RequestZadd = Request<size_t>;

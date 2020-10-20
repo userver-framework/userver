@@ -276,6 +276,9 @@ class ClientImpl final : public Client,
   RequestStrlen Strlen(std::string key,
                        const CommandControl& command_control) override;
 
+  RequestTime Time(size_t shard,
+                   const CommandControl& command_control) override;
+
   RequestTtl Ttl(std::string key,
                  const CommandControl& command_control) override;
 

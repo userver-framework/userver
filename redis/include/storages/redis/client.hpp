@@ -288,6 +288,9 @@ class Client {
   virtual RequestStrlen Strlen(std::string key,
                                const CommandControl& command_control) = 0;
 
+  virtual RequestTime Time(size_t shard,
+                           const CommandControl& command_control) = 0;
+
   virtual RequestTtl Ttl(std::string key,
                          const CommandControl& command_control) = 0;
 

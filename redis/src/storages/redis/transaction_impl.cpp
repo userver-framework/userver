@@ -407,6 +407,11 @@ RequestStrlen TransactionImpl::Strlen(std::string key) {
   return AddCmd<RequestStrlen>("strlen", std::move(key));
 }
 
+RequestTime TransactionImpl::Time(size_t shard) {
+  UpdateShard(shard);
+  return AddCmd<RequestTime>("time");
+}
+
 RequestTtl TransactionImpl::Ttl(std::string key) {
   UpdateShard(key);
   return AddCmd<RequestTtl>("ttl", std::move(key));

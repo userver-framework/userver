@@ -128,6 +128,8 @@
 
 ./add_redis_command strlen 'size_t' 'std::string key'
 
+./add_redis_command time 'std::chrono::system_clock::time_point' 'size_t shard'
+
 ./add_redis_command ttl 'TtlReply' 'std::string key'
 
 ./add_redis_command type 'KeyType' 'std::string key'

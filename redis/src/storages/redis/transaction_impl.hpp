@@ -214,6 +214,8 @@ class TransactionImpl final : public Transaction {
 
   RequestStrlen Strlen(std::string key) override;
 
+  RequestTime Time(size_t shard) override;
+
   RequestTtl Ttl(std::string key) override;
 
   RequestType Type(std::string key) override;

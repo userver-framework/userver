@@ -81,6 +81,10 @@ bool Parse(ReplyData&& reply_data, const std::string& request_description,
 int64_t Parse(ReplyData&& reply_data, const std::string& request_description,
               To<int64_t>);
 
+std::chrono::system_clock::time_point Parse(
+    ReplyData&& reply_data, const std::string& request_description,
+    To<std::chrono::system_clock::time_point>);
+
 HsetReply Parse(ReplyData&& reply_data, const std::string& request_description,
                 To<HsetReply>);
 
