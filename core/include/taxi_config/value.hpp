@@ -22,7 +22,9 @@ class DocsMap final {
 
   auto GetMap() const { return docs_; }
   void MergeFromOther(DocsMap&& other);
+
   const std::unordered_set<std::string>& GetRequestedNames() const;
+  std::unordered_set<std::string> GetNames() const;
 
   std::string AsJsonString() const;
 

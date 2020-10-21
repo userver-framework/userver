@@ -23,6 +23,10 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
       component_config.ParseString("fallback-path"));
   try {
     fallback_config_.Parse(fallback_config_contents, false);
+
+    // There are all required configs in the fallbacks file
+    auto docs_map_keys = docs_map_keys_.Lock();
+    *docs_map_keys = fallback_config_.GetNames();
   } catch (const std::exception& ex) {
     throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
                              ex.what());

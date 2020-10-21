@@ -70,6 +70,12 @@ const std::unordered_set<std::string>& DocsMap::GetRequestedNames() const {
   return requested_names_;
 }
 
+std::unordered_set<std::string> DocsMap::GetNames() const {
+  std::unordered_set<std::string> names;
+  for (const auto& [k, v] : docs_) names.insert(k);
+  return names;
+}
+
 std::string DocsMap::AsJsonString() const {
   formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
 
