@@ -595,7 +595,6 @@ class Decimal {
   ///
   /// @throw decimal64::ParseError on invalid input
   /// @see FromStringPermissive
-  // TODO TAXICOMMON-2894 Fix Decimal(str) constructor accepting garbage
   explicit constexpr Decimal(std::string_view value);
 
   /// @brief Lossy conversion from a floating-point number
@@ -1339,15 +1338,7 @@ template <typename CharSequence, int Prec, typename RoundPolicy>
 template <typename T>
 constexpr T FromString(std::string_view input) {
   static_assert(kIsDecimal<T>);
-
-  impl::StringCharSequence source(input);
-  T result;
-  const bool success = impl::Parse(source, result, ParseOptions::kNone);
-
-  if (!success) {
-    throw ParseError(input, source.Position() - input.data());
-  }
-  return result;
+  return T{input};
 }
 
 // Returns the number of zeros trimmed
@@ -1396,13 +1387,8 @@ int TrimTrailingZeros(int64_t& after) {
 
 template <int Prec, typename RoundPolicy>
 constexpr Decimal<Prec, RoundPolicy>::Decimal(std::string_view value) {
-  constexpr utils::Flags<impl::ParseOptions> kOptions{
-      impl::ParseOptions::kAllowSpaces, impl::ParseOptions::kAllowBoundaryDot,
-      impl::ParseOptions::kAllowRounding,
-      impl::ParseOptions::kAllowTrailingJunk};
-
   impl::StringCharSequence source(value);
-  if (!impl::Parse(source, *this, kOptions)) {
+  if (!impl::Parse(source, *this, impl::ParseOptions::kNone)) {
     throw ParseError(value, source.Position() - value.data());
   }
 }

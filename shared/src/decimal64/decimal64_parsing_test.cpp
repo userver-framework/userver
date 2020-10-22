@@ -11,63 +11,68 @@ using Dec4 = decimal64::Decimal<4>;
 
 TEST(Decimal64, ConstructFromString) {
   EXPECT_EQ(Dec4{"10"}, Dec4{10});
-  EXPECT_EQ(Dec4{"10."}, Dec4{10});
   EXPECT_EQ(Dec4{"+10"}, Dec4{10});
   EXPECT_EQ(Dec4{"-10"}, Dec4{-10});
-
-  EXPECT_EQ(Dec4{"-0"}, Dec4{0});
-  EXPECT_EQ(Dec4{"+.0"}, Dec4{0});
-  EXPECT_EQ(Dec4{"-.0"}, Dec4{0});
-  EXPECT_EQ(Dec4{"010"}, Dec4{10});
-  EXPECT_EQ(Dec4{"000005"}, Dec4{5});
-
-  EXPECT_EQ(Dec4{"000000000000000000000000000000012.0"}.AsUnbiased(), 12'0000);
-  EXPECT_EQ(Dec4{"000000000000000000000000000000000.12"}.AsUnbiased(), 1200);
   EXPECT_EQ(Dec4{"12345678987654.3210"}.AsUnbiased(), 12345678987654'3210LL);
-
   EXPECT_EQ(decimal64::Decimal<18>{"0.987654321123456789"}.AsUnbiased(),
             987654321123456789LL);
-  EXPECT_EQ(decimal64::Decimal<18>{"0.0000000000000000126"}.AsUnbiased(), 13);
-  EXPECT_EQ(decimal64::Decimal<18>{"0.0000000000000000125"}.AsUnbiased(), 13);
-  EXPECT_EQ(decimal64::Decimal<18>{"0.0000000000000000124"}.AsUnbiased(), 12);
 
+  // Leading zeros
+  EXPECT_EQ(Dec4{"-0"}, Dec4{0});
+  EXPECT_EQ(Dec4{"010"}, Dec4{10});
+  EXPECT_EQ(Dec4{"000005"}, Dec4{5});
+  EXPECT_EQ(Dec4{"000000000000000000000000000000012.0"}.AsUnbiased(), 12'0000);
+  EXPECT_EQ(Dec4{"000000000000000000000000000000000.12"}.AsUnbiased(), 1200);
+
+  // Garbage
   EXPECT_THROW(Dec4{".+0"}, decimal64::ParseError);
   EXPECT_THROW(Dec4{".-0"}, decimal64::ParseError);
   EXPECT_THROW(Dec4{"#"}, decimal64::ParseError);
+
+  // Boundary dot
+  EXPECT_THROW(Dec4{"10."}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"+.0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"-.0"}, decimal64::ParseError);
+
+  // Overflow
   EXPECT_THROW(Dec4{"1234567898765432.1012"}, decimal64::ParseError);
   EXPECT_THROW(Dec4{"99999999999999999999999999"}, decimal64::ParseError);
   EXPECT_THROW(Dec4{"+99999999999999999999999999"}, decimal64::ParseError);
   EXPECT_THROW(Dec4{"-99999999999999999999999999"}, decimal64::ParseError);
-}
 
-TEST(Decimal64, ConstructFromStringDeprecated) {
-  // Deprecated: extra characters adjacent to the decimal
-  // These will throw in a future revision
-  EXPECT_EQ(Dec4{"123ab"}, Dec4{123});
-  EXPECT_EQ(Dec4{"1#.1234"}, Dec4{1});
-  EXPECT_EQ(Dec4{"12#.1234"}, Dec4{12});
-  EXPECT_EQ(Dec4{"10.#123"}, Dec4{10});
-  EXPECT_EQ(Dec4{"10.123#"}.AsUnbiased(), 10'1230);
-  EXPECT_EQ(Dec4{"0x10"}, Dec4{0});
-  EXPECT_EQ(Dec4{"+0x10"}, Dec4{0});
-  EXPECT_EQ(Dec4{"-0x10"}, Dec4{0});
-  EXPECT_EQ(Dec4{"0x1a"}, Dec4{0});
-  EXPECT_EQ(Dec4{"+0x1a"}, Dec4{0});
-  EXPECT_EQ(Dec4{"-0x1a"}, Dec4{0});
+  // Precision loss
+  EXPECT_THROW(Dec4{"123.45678"}, decimal64::ParseError);
+  EXPECT_THROW(decimal64::Decimal<18>{"0.0000000000000000126"},
+               decimal64::ParseError);
+  EXPECT_THROW(decimal64::Decimal<18>{"0.0000000000000000125"},
+               decimal64::ParseError);
+  EXPECT_THROW(decimal64::Decimal<18>{"0.0000000000000000124"},
+               decimal64::ParseError);
 
-  // Deprecated: extra tokens after the decimal
-  // Use stream operations instead
-  // These will throw in a future revision
-  EXPECT_EQ(Dec4{"   \t  \r-10. \n  ab"}, Dec4{-10});
-  EXPECT_EQ(Dec4{"1 0"}, Dec4{1});
-  EXPECT_EQ(Dec4{"+1 0"}, Dec4{1});
-  EXPECT_EQ(Dec4{"-1 0"}, Dec4{-1});
-  EXPECT_EQ(Dec4{"1. 0"}, Dec4{1});
-  EXPECT_EQ(Dec4{"+1. 0"}, Dec4{1});
-  EXPECT_EQ(Dec4{"-1. 0"}, Dec4{-1});
-  EXPECT_EQ(Dec4{"1 .0"}, Dec4{1});
-  EXPECT_EQ(Dec4{"+1 .0"}, Dec4{1});
-  EXPECT_EQ(Dec4{"-1 .0"}, Dec4{-1});
+  // Extra characters adjacent to the decimal
+  EXPECT_THROW(Dec4{"123ab"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"1#.1234"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"12#.1234"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"10.#123"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"10.123#"}.AsUnbiased(), decimal64::ParseError);
+  EXPECT_THROW(Dec4{"0x10"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"+0x10"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"-0x10"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"0x1a"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"+0x1a"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"-0x1a"}, decimal64::ParseError);
+
+  // Extra tokens after the decimal
+  EXPECT_THROW(Dec4{"   \t  \r-10. \n  ab"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"1 0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"+1 0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"-1 0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"1. 0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"+1. 0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"-1. 0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"1 .0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"+1 .0"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"-1 .0"}, decimal64::ParseError);
 }
 
 TEST(Decimal64, FromStringPermissive) {

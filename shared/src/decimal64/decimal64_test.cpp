@@ -1,6 +1,5 @@
 #include <decimal64/decimal64.hpp>
 
-#include <sstream>
 #include <unordered_map>
 
 #include <gtest/gtest.h>
@@ -71,7 +70,7 @@ TEST(Decimal64, ConstexprSupport) {
   [[maybe_unused]] constexpr Dec4 zero{0};
   [[maybe_unused]] constexpr Dec4 ten{10};
   [[maybe_unused]] constexpr Dec4 large_int{123456789876543LL};
-  [[maybe_unused]] constexpr Dec4 from_string{"42.123456"};
+  [[maybe_unused]] constexpr Dec4 from_string{"42.1234"};
   [[maybe_unused]] constexpr Dec4 from_float =
       Dec4::FromFloatInexact(42.123456F);
   [[maybe_unused]] constexpr Dec4 from_double =
