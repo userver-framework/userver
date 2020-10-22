@@ -34,7 +34,7 @@ class SecdistModule final {
 class SecdistConfig final {
  public:
   SecdistConfig();
-  explicit SecdistConfig(const std::string& path);
+  explicit SecdistConfig(const std::string& path, bool missing_ok);
 
   template <typename T>
   static std::size_t Register(

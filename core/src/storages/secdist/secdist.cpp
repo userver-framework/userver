@@ -26,7 +26,7 @@ GetConfigFactories() {
 
 SecdistConfig::SecdistConfig() = default;
 
-SecdistConfig::SecdistConfig(const std::string& path) {
+SecdistConfig::SecdistConfig(const std::string& path, bool missing_ok) {
   // if we don't want to read secdist, then we don't need to initialize
   if (GetConfigFactories().empty()) return;
 
@@ -36,9 +36,14 @@ SecdistConfig::SecdistConfig(const std::string& path) {
   try {
     doc = formats::json::FromStream(json_stream);
   } catch (const std::exception& e) {
-    throw SecdistError(
-        "Cannot load secdist config. File '" + path +
-        "' doesn't exist, unrechable or in invalid format:" + e.what());
+    if (missing_ok) {
+      LOG_WARNING() << "Failed to load secdist from file: " << e
+                    << ", booting without secdist";
+    } else {
+      throw SecdistError(
+          "Cannot load secdist config. File '" + path +
+          "' doesn't exist, unrechable or in invalid format:" + e.what());
+    }
   }
 
   Init(doc);
