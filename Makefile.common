@@ -26,13 +26,13 @@ BUILD_DIR ?= build
 DOCS_DIR ?= docs
 CMAKE_DIR = $(CURDIR)
 ifeq ($(origin CC),default)
-  CC := clang-9
+  CC := clang-7
 endif
 ifeq ($(origin CXX),default)
-  CXX := clang++-9
+  CXX := clang++-7
 endif
 export CC CXX
-SCAN_BUILD = scan-build-9
+SCAN_BUILD = scan-build-7
 SCAN_BUILD_OPTS = --force-analyze-debug-code --show-description --use-cc $(CC) --use-c++ $(CXX) -stats -o $(PWD)/static-analyzer-report/
 BUILD_CHECK_DIR ?= build-check
 PYTHON3_BIN_DIR = $(wildcard /usr/lib/yandex/taxi-py3-2/bin/)
@@ -41,10 +41,10 @@ CHANGED_DIRS ?= $(CMAKE_DIR)
 TEAMCITY_LINT_JOBS_COUNT ?= 10
 FORMATTERS = black eolfmt jsonfmt yamlfmt
 
-ifeq ($(CXX),clang++-9)
+ifeq ($(CXX),clang++-7)
 ifeq ($(shell which llvm-symbolizer),)
-  export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-9/bin/llvm-symbolizer
-  export UBSAN_SYMBOLIZER_PATH=/usr/lib/llvm-9/bin/llvm-symbolizer
+  export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer
+  export UBSAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer
 endif
 endif
 
@@ -135,11 +135,11 @@ utest:
 
 .PHONY: clang-tidy
 clang-tidy: cmake
-	@tools/run-clang-tidy -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
+	@tools/run-clang-tidy-7 -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
 
 .PHONY: teamcity-clang-tidy
 teamcity-clang-tidy: cmake
-	@tools/run-clang-tidy -enable-teamcity -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
+	@tools/run-clang-tidy-7 -enable-teamcity -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
 
 .PHONY: check-pep8
 check-pep8:

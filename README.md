@@ -16,7 +16,7 @@
 Перед коммитом необходимо прогнать clang-format.
 
 Если изменения были в питоновских файлах, то желательно прогнать и `make check-pep8`.
-Для проверки линтерами требуется поставить пакет `taxi-deps-py3-2` или
+Для проверки линтерами требуется поставить пакет `taxi-deps-py3-2` или 
 воспользоваться `pip3 install -i https://pypi.yandex-team.ru/simple/ yandex-taxi-code-linters`
 для установки в виртуальное окружение. Подробнее можно узнать [здесь](https://github.yandex-team.ru/taxi/code-linters/blob/master/README.md)
 
@@ -27,7 +27,7 @@
     * Ubuntu Xenial c подключенным репозиторием xenial-updates/universe
     * Ubuntu Bionic c подключенным репозиторием bionic-updates/universe
     * MacOS 10.15 с установленными [Xcode](https://h.yandex-team.ru/?https%3A//apps.apple.com/us/app/xcode/id497799835) и [Homebrew](https://h.yandex-team.ru/?https%3A//brew.sh)
-  * clang-9
+  * clang-7
   * clang-format-7
 
 Минимальный набор зависимостей можно установить запуском скрипта `scripts/ubuntu-install-prerequisites.sh` для Ubuntu и `scripts/mac-os-install-prerequisites.sh` для MacOS.

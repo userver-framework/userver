@@ -18,7 +18,7 @@ libraries:
 
 debian:
     build_dependencies:
-      - clang-9
+      - clang-7
       - libstdc++-7-dev
       - libboost-filesystem-dev
       - libboost-program-options-dev
@@ -30,6 +30,6 @@ debian:
       - libssl-dev
       - libyaml-cpp-dev
       - libyandex-taxi-jemalloc-dev
-      - lld-9
+      - lld-7
       - zlib1g-dev
       - clang-format-7
