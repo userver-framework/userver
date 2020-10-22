@@ -1333,14 +1333,6 @@ template <typename CharSequence, int Prec, typename RoundPolicy>
   return true;
 }
 
-// TODO TAXICOMMON-2894
-// For Codegen only!
-template <typename T>
-constexpr T FromString(std::string_view input) {
-  static_assert(kIsDecimal<T>);
-  return T{input};
-}
-
 // Returns the number of zeros trimmed
 template <int Prec>
 int TrimTrailingZeros(int64_t& after) {

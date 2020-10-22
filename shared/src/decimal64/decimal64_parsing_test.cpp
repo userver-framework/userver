@@ -139,33 +139,6 @@ TEST(Decimal64, FromStringPermissive) {
                decimal64::ParseError);
 }
 
-TEST(Decimal64, FromStringStrict) {
-  EXPECT_EQ(ToString(decimal64::impl::FromString<Dec4>("1234.5678")),
-            "1234.5678");
-  EXPECT_EQ(ToString(decimal64::impl::FromString<Dec4>("1234.567")),
-            "1234.567");
-  EXPECT_EQ(ToString(decimal64::impl::FromString<Dec4>("1234")), "1234");
-  EXPECT_EQ(ToString(decimal64::impl::FromString<Dec4>("0.123")), "0.123");
-
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>(""), decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("."), decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("#"), decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>(" 1"), decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("1 "), decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("1.."), decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("1a"), decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("1000000000000000"),
-               decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("1000000000000000000000"),
-               decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("1.23456"),
-               decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("1.23450"),
-               decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>("42."), decimal64::ParseError);
-  EXPECT_THROW(decimal64::impl::FromString<Dec4>(".42"), decimal64::ParseError);
-}
-
 namespace {
 
 constexpr Dec4 kUnchangedOnError{42};
