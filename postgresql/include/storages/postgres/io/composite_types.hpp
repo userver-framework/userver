@@ -6,6 +6,10 @@
 #include <boost/pfr/precise.hpp>
 #include <utility>
 
+#include <compiler/demangle.hpp>
+#include <logging/log.hpp>
+#include <utils/variadic_logic.hpp>
+
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
@@ -14,10 +18,6 @@
 #include <storages/postgres/io/type_mapping.hpp>
 #include <storages/postgres/io/type_traits.hpp>
 #include <storages/postgres/io/user_types.hpp>
-
-#include <logging/log.hpp>
-
-#include <utils/variadic_logic.hpp>
 
 namespace storages::postgres::io {
 
@@ -68,7 +68,8 @@ struct CompositeBinaryParser : BufferParserBase<T> {
     buffer.Read(field_count, BufferCategory::kPlainBuffer);
 
     if (field_count != RowType::size) {
-      throw CompositeSizeMismatch(field_count, RowType::size);
+      throw CompositeSizeMismatch(field_count, RowType::size,
+                                  compiler::GetTypeName<T>());
     }
 
     ReadTuple(buffer, categories, RowType::GetTuple(this->value),
@@ -114,7 +115,8 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
     const auto& type_desc =
         types.GetCompositeDescription(PgMapping::GetOid(types));
     if (type_desc.Size() != size) {
-      throw CompositeSizeMismatch{type_desc.Size(), size};
+      throw CompositeSizeMismatch{type_desc.Size(), size,
+                                  compiler::GetTypeName<T>()};
     }
     // Number of fields
     io::WriteBuffer(types, buffer, static_cast<Integer>(size));

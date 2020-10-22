@@ -751,10 +751,12 @@ class UserTypeError : public LogicError {
 /// the C++ counterpart.
 class CompositeSizeMismatch : public UserTypeError {
  public:
-  CompositeSizeMismatch(std::size_t pg_size, std::size_t cpp_size)
+  CompositeSizeMismatch(std::size_t pg_size, std::size_t cpp_size,
+                        const std::string& cpp_type)
       : UserTypeError("Invalid composite type size. PostgreSQL type has " +
-                      std::to_string(pg_size) + " members, C++ type has " +
-                      std::to_string(cpp_size) + " members") {}
+                      std::to_string(pg_size) + " members, C++ type `" +
+                      cpp_type + "` has " + std::to_string(cpp_size) +
+                      " members") {}
 };
 
 //@}
