@@ -19,6 +19,29 @@ TEST(Semaphore, OnePass) {
   });
 }
 
+TEST(Semaphore, PassAcrossCoroutines) {
+  RunInCoro([] {
+    engine::Semaphore s{1};
+    std::shared_lock<engine::Semaphore> guard{s};
+
+    auto task = engine::impl::Async([guard = std::move(guard)]() {});
+    task.WaitFor(kMaxTestWaitTime);
+    EXPECT_TRUE(task.IsFinished());
+  });
+}
+
+TEST(Semaphore, PassAcrossCoroutinesLocal) {
+  RunInCoro([] {
+    engine::Semaphore s{1};
+    std::shared_lock<engine::Semaphore> guard{s};
+    auto task2 = engine::impl::Async([guard = std::move(guard)]() mutable {
+      std::shared_lock<engine::Semaphore> local_guard = std::move(guard);
+    });
+    task2.WaitFor(kMaxTestWaitTime);
+    EXPECT_TRUE(task2.IsFinished());
+  });
+}
+
 TEST(Semaphore, TwoPass) {
   RunInCoro([] {
     engine::Semaphore s{2};

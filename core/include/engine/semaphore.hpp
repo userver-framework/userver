@@ -36,8 +36,23 @@ class Semaphore final {
   Semaphore& operator=(Semaphore&&) = delete;
   Semaphore& operator=(const Semaphore&) = delete;
 
+  /// Decrements internal semaphore lock counter. Blocks if current counter is
+  /// zero until the subsequent call to unlock_shared() by another coroutine.
+  /// @note the user must eventually call unlock_shared() to increment the lock
+  /// counter.
+  /// @note the method waits for the semaphore even if the current task is
+  /// cancelled.
   void lock_shared();
+
+  /// Increments internal semaphore lock counter. If there is a user waiting in
+  /// lock_shared() on the same semaphore, it will be waken up.
+  /// @note the order of coroutines to unblock is unspecified. Any code assuming
+  /// any specific order (e.g. FIFO) is incorrent and must be fixed.
+  /// @note it is allowed to call lock_shared() in one coroutine and
+  /// subsequently call unlock_shared() in another coroutine. In particular, it
+  /// is allowed to pass std::shared_lock<engine::Semaphore> across coroutines.
   void unlock_shared();
+
   bool try_lock_shared();
 
   template <typename Rep, typename Period>

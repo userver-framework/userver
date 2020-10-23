@@ -24,8 +24,21 @@ class Mutex final {
   Mutex& operator=(const Mutex&) = delete;
   Mutex& operator=(Mutex&&) = delete;
 
+  /// Locks the mutex. Blocks current coroutine if the mutex is locked by
+  /// another coroutine.
+  /// @note the behaviour is undefined if a coroutine tries to lock a mutex
+  /// which is already locked by the current coroutine.
+  /// @note the method waits for the mutex even if the current task is
+  /// cancelled.
   void lock();
+
+  /// Unlocks the mutex. The mutex must be locked by the current coroutine.
+  /// @note the behaviour is undefined if a coroutine tries to unlock a mutex
+  /// which is not locked or is locked by another coroutine
+  /// @note the order of coroutines to unblock is unspecified. Any code assuming
+  /// any specific order (e.g. FIFO) is incorrent and must be fixed.
   void unlock();
+
   bool try_lock();
 
   template <typename Rep, typename Period>
