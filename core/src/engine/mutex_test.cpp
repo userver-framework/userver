@@ -8,14 +8,12 @@
 #include <utest/utest.hpp>
 
 template <class T>
-struct Mutex : public ::testing::Test {
-  using MutexType = T;
-};
+struct Mutex : public ::testing::Test {};
 TYPED_TEST_SUITE_P(Mutex);
 
 TYPED_TEST_P(Mutex, LockUnlock) {
   RunInCoro([] {
-    engine::Mutex mutex;
+    TypeParam mutex;
     mutex.lock();
     mutex.unlock();
   });
@@ -23,7 +21,7 @@ TYPED_TEST_P(Mutex, LockUnlock) {
 
 TYPED_TEST_P(Mutex, LockUnlockDouble) {
   RunInCoro([] {
-    engine::Mutex mutex;
+    TypeParam mutex;
     mutex.lock();
     mutex.unlock();
 
@@ -34,10 +32,10 @@ TYPED_TEST_P(Mutex, LockUnlockDouble) {
 
 TYPED_TEST_P(Mutex, WaitAndCancel) {
   RunInCoro([] {
-    engine::Mutex mutex;
-    std::unique_lock<engine::Mutex> lock(mutex);
-    auto task = engine::impl::Async(
-        [&mutex]() { std::lock_guard<engine::Mutex> lock(mutex); });
+    TypeParam mutex;
+    std::unique_lock lock(mutex);
+    auto task =
+        engine::impl::Async([&mutex]() { std::lock_guard lock(mutex); });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(task.IsFinished());
@@ -55,34 +53,34 @@ TYPED_TEST_P(Mutex, WaitAndCancel) {
 
 TYPED_TEST_P(Mutex, TryLock) {
   RunInCoro([] {
-    engine::Mutex mutex;
+    TypeParam mutex;
 
-    EXPECT_TRUE(!!std::unique_lock<engine::Mutex>(mutex, std::try_to_lock));
-    EXPECT_TRUE(!!std::unique_lock<engine::Mutex>(
-        mutex, std::chrono::milliseconds(10)));
-    EXPECT_TRUE(!!std::unique_lock<engine::Mutex>(
-        mutex, std::chrono::system_clock::now()));
+    EXPECT_TRUE(!!std::unique_lock<TypeParam>(mutex, std::try_to_lock));
+    EXPECT_TRUE(
+        !!std::unique_lock<TypeParam>(mutex, std::chrono::milliseconds(10)));
+    EXPECT_TRUE(
+        !!std::unique_lock<TypeParam>(mutex, std::chrono::system_clock::now()));
 
-    std::unique_lock<engine::Mutex> lock(mutex);
+    std::unique_lock lock(mutex);
     EXPECT_FALSE(engine::impl::Async([&mutex] {
-                   return !!std::unique_lock<engine::Mutex>(mutex,
-                                                            std::try_to_lock);
+                   return !!std::unique_lock<TypeParam>(mutex,
+                                                        std::try_to_lock);
                  })
                      .Get());
 
     EXPECT_FALSE(engine::impl::Async([&mutex] {
-                   return !!std::unique_lock<engine::Mutex>(
+                   return !!std::unique_lock<TypeParam>(
                        mutex, std::chrono::milliseconds(10));
                  })
                      .Get());
     EXPECT_FALSE(engine::impl::Async([&mutex] {
-                   return !!std::unique_lock<engine::Mutex>(
+                   return !!std::unique_lock<TypeParam>(
                        mutex, std::chrono::system_clock::now());
                  })
                      .Get());
 
     auto long_waiter = engine::impl::Async([&mutex] {
-      return !!std::unique_lock<engine::Mutex>(mutex, std::chrono::seconds(10));
+      return !!std::unique_lock<TypeParam>(mutex, std::chrono::seconds(10));
     });
     engine::Yield();
     EXPECT_FALSE(long_waiter.IsFinished());
@@ -91,10 +89,36 @@ TYPED_TEST_P(Mutex, TryLock) {
   });
 }
 
+TYPED_TEST_P(Mutex, LockPassing) {
+  static constexpr size_t kThreads = 4;
+  static constexpr auto kTestDuration = std::chrono::milliseconds{500};
+
+  RunInCoro(
+      [] {
+        const auto test_deadline =
+            engine::Deadline::FromDuration(kTestDuration);
+        TypeParam mutex;
+
+        const auto work = [&mutex] {
+          std::unique_lock lock(mutex, std::defer_lock);
+          ASSERT_TRUE(lock.try_lock_for(kMaxTestWaitTime));
+        };
+
+        while (!test_deadline.IsReached()) {
+          std::vector<engine::TaskWithResult<void>> tasks;
+          for (size_t i = 0; i < kThreads; ++i) {
+            tasks.push_back(engine::impl::Async(work));
+          }
+          for (auto& task : tasks) task.Get();
+        }
+      },
+      /*threads =*/kThreads);
+}
+
 REGISTER_TYPED_TEST_SUITE_P(Mutex,
 
                             LockUnlock, LockUnlockDouble, WaitAndCancel,
-                            TryLock);
+                            TryLock, LockPassing);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(EngineMutex, Mutex, ::engine::Mutex);
 INSTANTIATE_TYPED_TEST_SUITE_P(EngineSharedMutex, Mutex, ::engine::SharedMutex);

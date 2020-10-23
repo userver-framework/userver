@@ -117,7 +117,7 @@ void Semaphore::unlock_shared() { unlock_shared_count(1); }
 
 void Semaphore::unlock_shared_count(const Counter count) {
   LOG_TRACE() << "unlock_shared()";
-  remaining_simultaneous_locks_.fetch_add(count, std::memory_order_release);
+  remaining_simultaneous_locks_.fetch_add(count, std::memory_order_acq_rel);
 
   if (lock_waiters_->GetCountOfSleepies()) {
     impl::WaitList::Lock lock{*lock_waiters_};

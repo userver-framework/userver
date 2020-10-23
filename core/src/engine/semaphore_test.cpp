@@ -199,3 +199,29 @@ TEST(Semaphore, TryLock) {
     EXPECT_TRUE(long_waiter.Get());
   });
 }
+
+TEST(Semaphore, LockPassing) {
+  static constexpr size_t kThreads = 4;
+  static constexpr auto kTestDuration = std::chrono::milliseconds{500};
+
+  RunInCoro(
+      [] {
+        const auto test_deadline =
+            engine::Deadline::FromDuration(kTestDuration);
+        engine::Semaphore sem{1};
+
+        const auto work = [&sem] {
+          std::shared_lock lock(sem, std::defer_lock);
+          ASSERT_TRUE(lock.try_lock_for(kMaxTestWaitTime));
+        };
+
+        while (!test_deadline.IsReached()) {
+          std::vector<engine::TaskWithResult<void>> tasks;
+          for (size_t i = 0; i < kThreads; ++i) {
+            tasks.push_back(engine::impl::Async(work));
+          }
+          for (auto& task : tasks) task.Get();
+        }
+      },
+      /*threads =*/kThreads);
+}

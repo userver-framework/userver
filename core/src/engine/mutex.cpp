@@ -72,7 +72,7 @@ void Mutex::lock() { try_lock_until(Deadline{}); }
 
 void Mutex::unlock() {
   [[maybe_unused]] const auto old_owner =
-      owner_.exchange(nullptr, std::memory_order_release);
+      owner_.exchange(nullptr, std::memory_order_acq_rel);
   UASSERT(old_owner == current_task::GetCurrentTaskContext());
 
   if (lock_waiters_->GetCountOfSleepies()) {
