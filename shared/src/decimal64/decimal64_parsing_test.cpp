@@ -36,6 +36,7 @@ TEST(Decimal64, ConstructFromString) {
 
   // Overflow
   EXPECT_THROW(Dec4{"1234567898765432.1012"}, decimal64::ParseError);
+  EXPECT_THROW(Dec4{"-1234567898765432.1012"}, decimal64::ParseError);
   EXPECT_THROW(Dec4{"99999999999999999999999999"}, decimal64::ParseError);
   EXPECT_THROW(Dec4{"+99999999999999999999999999"}, decimal64::ParseError);
   EXPECT_THROW(Dec4{"-99999999999999999999999999"}, decimal64::ParseError);
