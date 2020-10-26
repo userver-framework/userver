@@ -67,6 +67,10 @@ const char* MsgForStatus(ConnStatusType status) {
       return "PQstatus: Consuming remaining response messages on connection";
     case CONNECTION_GSS_STARTUP:
       return "PQstatus: Negotiating GSSAPI";
+#if PG_VERSION_NUM >= 130000
+    case CONNECTION_CHECK_TARGET:
+      return "PQstatus: Checking for a proper target connection";
+#endif
   }
 }
 
