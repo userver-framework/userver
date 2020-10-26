@@ -4,6 +4,7 @@
 *.orig
 *.local
 /build/
+/cmake-build-*/
 /docs/
 CMakeLists.txt.user
 compile_commands.json

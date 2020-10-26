@@ -92,8 +92,11 @@ if ! brew list --versions libyandex-taxi-v8 | grep -q .; then
   echo >&2 "If you need it, try installing it manually again with 'brew install libyandex-taxi-v8'."
 fi
 
+# python.org interpreter cannot build psycopg2 without it
+export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/opt/openssl/lib/
+
 PYTHON_DEPS=" \
   pycryptodome \
   yandex-pgmigrate \
 "
-pip3.7 install $PYTHON_DEPS
+pip3.7 install -i https://pypi.yandex-team.ru/simple/ $PYTHON_DEPS
