@@ -4,8 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <formats/yaml/value_fwd.hpp>
-#include <yaml_config/variable_map_fwd.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 namespace error_injection {
 
@@ -25,10 +24,9 @@ struct Settings final {
   bool enabled{false};
   double probability{0};
   std::vector<Verdict> possible_verdicts;
-
-  static Settings ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const std::shared_ptr<yaml_config::VariableMap>& config_vars_ptr);
 };
+
+Settings Parse(const yaml_config::YamlConfig& value,
+               formats::parse::To<Settings>);
 
 }  // namespace error_injection

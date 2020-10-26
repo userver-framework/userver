@@ -2,93 +2,70 @@
 
 #include <fmt/format.h>
 #include <formats/parse/common_containers.hpp>
-#include <yaml_config/value.hpp>
 
 namespace server::handlers {
+
 namespace {
+constexpr size_t kLogRequestDataSizeDefaultLimit = 512;
+}
 
-const std::string kUrlTrailingSlashBoth = "both";
-const std::string kUrlTrailingSlashStrictMatch = "strict-match";
-
-}  // namespace
-
-const size_t kLogRequestDataSizeDefaultLimit = 512;
-
-UrlTrailingSlashOption Parse(const formats::yaml::Value& yaml,
+UrlTrailingSlashOption Parse(const yaml_config::YamlConfig& yaml,
                              formats::parse::To<UrlTrailingSlashOption>) {
   const auto& value = yaml.As<std::string>();
-  if (value == kUrlTrailingSlashBoth) return UrlTrailingSlashOption::kBoth;
-  if (value == kUrlTrailingSlashStrictMatch)
-    return UrlTrailingSlashOption::kStrictMatch;
+  if (value == "both") return UrlTrailingSlashOption::kBoth;
+  if (value == "strict-match") return UrlTrailingSlashOption::kStrictMatch;
   throw std::runtime_error("can't parse UrlTrailingSlashOption from '" + value +
                            '\'');
 }
 
-FallbackHandler Parse(const formats::yaml::Value& yaml,
+FallbackHandler Parse(const yaml_config::YamlConfig& yaml,
                       formats::parse::To<FallbackHandler>) {
   const auto& value = yaml.As<std::string>();
   return FallbackHandlerFromString(value);
 }
 
-HandlerConfig HandlerConfig::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
+HandlerConfig Parse(const yaml_config::YamlConfig& value,
+                    formats::parse::To<HandlerConfig>) {
   HandlerConfig config;
 
-  config.path = [&yaml, &full_path,
-                 &config_vars_ptr]() -> decltype(config.path) {
-    std::optional<std::string> opt_path;
-    std::optional<FallbackHandler> opt_fallback;
-    yaml_config::ParseInto(opt_path, yaml, "path", full_path, config_vars_ptr);
-    yaml_config::ParseInto(opt_fallback, yaml, "as_fallback", full_path,
-                           config_vars_ptr);
+  {
+    auto opt_path = value["path"].As<std::optional<std::string>>();
+    const auto opt_fallback =
+        value["as_fallback"].As<std::optional<FallbackHandler>>();
+
     if (!opt_path == !opt_fallback)
       throw std::runtime_error(
           fmt::format("Expected 'path' or 'as_fallback' at {}, but {} provided",
-                      full_path, (!opt_path) ? "no one" : "both"));
+                      value.GetPath(), (!opt_path) ? "none" : "both"));
 
     if (opt_path)
-      return *opt_path;
+      config.path = std::move(*opt_path);
     else
-      return *opt_fallback;
-  }();
+      config.path = *opt_fallback;
+  }
 
-  yaml_config::ParseInto(config.task_processor, yaml, "task_processor",
-                         full_path, config_vars_ptr);
-  yaml_config::ParseInto(config.method, yaml, "method", full_path,
-                         config_vars_ptr);
-  yaml_config::ParseInto(config.max_url_size, yaml, "max_url_size", full_path,
-                         config_vars_ptr);
-  yaml_config::ParseInto(config.max_request_size, yaml, "max_request_size",
-                         full_path, config_vars_ptr);
-  yaml_config::ParseInto(config.max_headers_size, yaml, "max_headers_size",
-                         full_path, config_vars_ptr);
-  yaml_config::ParseInto(config.parse_args_from_body, yaml,
-                         "parse_args_from_body", full_path, config_vars_ptr);
-  yaml_config::ParseInto(config.auth, yaml, "auth", full_path, config_vars_ptr);
-  yaml_config::ParseInto(config.url_trailing_slash, yaml, "url_trailing_slash",
-                         full_path, config_vars_ptr);
-  yaml_config::ParseInto(config.max_requests_in_flight, yaml,
-                         "max_requests_in_flight", full_path, config_vars_ptr);
-
-  std::optional<size_t> request_body_size_log_limit;
-  yaml_config::ParseInto(request_body_size_log_limit, yaml,
-                         "request_body_size_log_limit", full_path,
-                         config_vars_ptr);
-  config.request_body_size_log_limit = request_body_size_log_limit
-                                           ? *request_body_size_log_limit
-                                           : kLogRequestDataSizeDefaultLimit;
-
-  std::optional<size_t> response_data_size_log_limit;
-  yaml_config::ParseInto(response_data_size_log_limit, yaml,
-                         "response_data_size_log_limit", full_path,
-                         config_vars_ptr);
-  config.response_data_size_log_limit = response_data_size_log_limit
-                                            ? *response_data_size_log_limit
-                                            : kLogRequestDataSizeDefaultLimit;
-
-  yaml_config::ParseInto(config.max_requests_per_second, yaml,
-                         "max_requests_per_second", full_path, config_vars_ptr);
+  config.task_processor = value["task_processor"].As<std::string>();
+  config.method = value["method"].As<std::optional<std::string>>();
+  config.max_url_size = value["max_url_size"].As<std::optional<size_t>>();
+  config.max_request_size =
+      value["max_request_size"].As<std::optional<size_t>>();
+  config.max_headers_size =
+      value["max_headers_size"].As<std::optional<size_t>>();
+  config.parse_args_from_body =
+      value["parse_args_from_body"].As<std::optional<bool>>();
+  config.auth = value["auth"].As<std::optional<auth::HandlerAuthConfig>>();
+  config.url_trailing_slash =
+      value["url_trailing_slash"].As<std::optional<UrlTrailingSlashOption>>();
+  config.max_requests_in_flight =
+      value["max_requests_in_flight"].As<std::optional<size_t>>();
+  config.request_body_size_log_limit =
+      value["request_body_size_log_limit"].As<size_t>(
+          kLogRequestDataSizeDefaultLimit);
+  config.response_data_size_log_limit =
+      value["response_data_size_log_limit"].As<size_t>(
+          kLogRequestDataSizeDefaultLimit);
+  config.max_requests_per_second =
+      value["max_requests_per_second"].As<std::optional<size_t>>();
 
   if (config.max_requests_per_second &&
       config.max_requests_per_second.value() <= 0) {

@@ -4,8 +4,6 @@
 
 #include <formats/yaml/value.hpp>
 
-#include <yaml_config/variable_map.hpp>
-
 namespace yaml_config {
 
 template <typename iter_traits>

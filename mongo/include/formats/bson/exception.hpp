@@ -25,19 +25,19 @@ class ParseException : public BsonException {
 class TypeMismatchException : public BsonException {
  public:
   TypeMismatchException(bson_type_t actual, bson_type_t expected,
-                        const std::string& path);
+                        std::string_view path);
 };
 
 /// BSON array indexing error
 class OutOfBoundsException : public BsonException {
  public:
-  OutOfBoundsException(size_t index, size_t size, const std::string& path);
+  OutOfBoundsException(size_t index, size_t size, std::string_view path);
 };
 
 /// BSON nonexisting member access error
 class MemberMissingException : public BsonException {
  public:
-  explicit MemberMissingException(const std::string& path);
+  explicit MemberMissingException(std::string_view path);
 };
 
 /// Conversion error

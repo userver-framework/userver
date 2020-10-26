@@ -12,18 +12,20 @@
 namespace formats::yaml {
 namespace {
 
-std::string MsgForState(std::ios::iostate state, const char* stream) {
-  const char* str_state = "GOOD?";
+std::string MsgForState(std::ios::iostate state, std::string_view stream_kind) {
+  std::string_view str_state;
   if (state & std::ios::badbit) {
     str_state = "BAD";
   } else if (state & std::ios::failbit) {
     str_state = "FAIL";
   } else if (state & std::ios::eofbit) {
     str_state = "EOF";
+  } else {
+    str_state = "GOOD?";
   }
 
-  return std::string("The ") + stream + " stream is in state '" + str_state +
-         '\'';
+  return fmt::format(FMT_STRING("The {} stream is in state '{}'"), stream_kind,
+                     str_state);
 }
 
 const char* NameForType(Type expected) {
@@ -40,33 +42,36 @@ const char* NameForType(Type expected) {
 }
 
 template <typename TType>
-std::string MsgForType(TType actual, TType expected, const std::string& path) {
+std::string MsgForType(TType actual, TType expected, std::string_view path) {
   UASSERT(actual != expected);
-
-  std::string ret =
-      std::string("Field '") + path +
-      "' has wrong type. Expected YAML Value type: " + NameForType(expected) +
-      ", actual: " + NameForType(actual);
-
-  return ret;
+  return fmt::format(FMT_STRING("Field '{}' has wrong type. Expected YAML "
+                                "Value type: '{}', actual: "),
+                     path, NameForType(expected), NameForType(actual));
 }
 
-std::string MsgForType(const std::string& expected_type,
-                       const std::string& path, const YAML::Node& value) {
-  std::string ret = std::string("Field '") + path +
-                    "' is not representable as " + expected_type + ". ";
-  ret += "Can not convert from value '" + value.Scalar() + "'";
-
-  return ret;
+std::string MsgForType(std::string_view expected_type, std::string_view path,
+                       const YAML::Node& value) {
+  return fmt::format(FMT_STRING("Field '{}' is not representable as {}. Can "
+                                "not convert from value '{}'"),
+                     path, expected_type, value.Scalar());
 }
 
-std::string MsgForIndex(size_t index, size_t size, const std::string& path) {
-  return std::string("Index ") + std::to_string(index) + " of array '" + path +
-         "' of size " + std::to_string(size) + " is out of bounds";
+std::string MsgForIndex(size_t index, size_t size, std::string_view path) {
+  return fmt::format(
+      FMT_STRING("Index {} of array '{}' of size {} is out of bounds"), index,
+      path, size);
 }
 
-std::string MsgForMissing(const std::string& path) {
-  return std::string("Field '") + path + "' is missing";
+std::string MsgForMissing(std::string_view path) {
+  return fmt::format(FMT_STRING("Field '{}' is missing"), path);
+}
+
+std::string MsgForPathPrefix(std::string_view old_path,
+                             std::string_view prefix) {
+  return fmt::format(
+      FMT_STRING(
+          "Attempting to append path prefix '{}' to a non-empty path '{}'"),
+      prefix, old_path);
 }
 
 }  // namespace
@@ -78,24 +83,28 @@ BadStreamException::BadStreamException(const std::ostream& os)
     : Exception(MsgForState(os.rdstate(), "output")) {}
 
 TypeMismatchException::TypeMismatchException(Type actual, Type expected,
-                                             const std::string& path)
+                                             std::string_view path)
     : Exception(MsgForType(actual, expected, path)) {}
 
 TypeMismatchException::TypeMismatchException(int actual, int expected,
-                                             const std::string& path)
+                                             std::string_view path)
     : Exception(MsgForType(static_cast<impl::Type>(actual),
                            static_cast<impl::Type>(expected), path)) {}
 
 TypeMismatchException::TypeMismatchException(const YAML::Node& value,
-                                             const std::string& expected_type,
-                                             const std::string& path)
+                                             std::string_view expected_type,
+                                             std::string_view path)
     : Exception(MsgForType(expected_type, path, value)) {}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
-                                           const std::string& path)
+                                           std::string_view path)
     : Exception(MsgForIndex(index, size, path)) {}
 
-MemberMissingException::MemberMissingException(const std::string& path)
+MemberMissingException::MemberMissingException(std::string_view path)
     : Exception(MsgForMissing(path)) {}
+
+PathPrefixException::PathPrefixException(std::string_view old_path,
+                                         std::string_view prefix)
+    : Exception(MsgForPathPrefix(old_path, prefix)) {}
 
 }  // namespace formats::yaml

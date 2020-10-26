@@ -2,13 +2,12 @@
 
 #include <stdexcept>
 
-#include <yaml_config/value.hpp>
-
 namespace logging {
-namespace {
 
-LoggerConfig::QueueOveflowBehavior OverflowBehaviorFromString(
-    const std::string& overflow_behavior_name) {
+LoggerConfig::QueueOveflowBehavior Parse(
+    const yaml_config::YamlConfig& value,
+    formats::parse::To<LoggerConfig::QueueOveflowBehavior>) {
+  const auto overflow_behavior_name = value.As<std::string>();
   if (overflow_behavior_name == "discard")
     return LoggerConfig::QueueOveflowBehavior::kDiscard;
   if (overflow_behavior_name == "block")
@@ -18,46 +17,35 @@ LoggerConfig::QueueOveflowBehavior OverflowBehaviorFromString(
                            "' (must be one of 'block', 'discard')");
 }
 
-}  // namespace
-
-LoggerConfig LoggerConfig::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
+LoggerConfig Parse(const yaml_config::YamlConfig& value,
+                   formats::parse::To<LoggerConfig>) {
   LoggerConfig config;
-  config.file_path =
-      yaml_config::ParseString(yaml, "file_path", full_path, config_vars_ptr);
+  config.file_path = value["file_path"].As<std::string>();
 
-  auto optional_level_str = yaml_config::ParseOptionalString(
-      yaml, "level", full_path, config_vars_ptr);
-  if (optional_level_str) config.level = LevelFromString(*optional_level_str);
+  config.level =
+      OptionalLevelFromString(value["level"].As<std::optional<std::string>>())
+          .value_or(Level::kInfo);
 
-  auto optional_pattern = yaml_config::ParseOptionalString(
-      yaml, "pattern", full_path, config_vars_ptr);
-  if (optional_pattern) config.pattern = std::move(*optional_pattern);
+  config.pattern =
+      value["pattern"].As<std::string>(LoggerConfig::kDefaultPattern);
 
-  auto optional_flush_level_str = yaml_config::ParseOptionalString(
-      yaml, "flush_level", full_path, config_vars_ptr);
-  if (optional_flush_level_str)
-    config.flush_level = LevelFromString(*optional_flush_level_str);
+  config.flush_level =
+      OptionalLevelFromString(
+          value["flush_level"].As<std::optional<std::string>>())
+          .value_or(Level::kWarning);
 
-  auto optional_message_queue_size = yaml_config::ParseOptionalUint64(
-      yaml, "message_queue_size", full_path, config_vars_ptr);
-  if (optional_message_queue_size)
-    config.message_queue_size = *optional_message_queue_size;
+  config.message_queue_size = value["message_queue_size"].As<size_t>(
+      LoggerConfig::kDefaultMessageQueueSize);
   if (config.message_queue_size & (config.message_queue_size - 1)) {
     throw std::runtime_error("log message queue size must be a power of 2");
   }
 
-  auto optional_overflow_behavior = yaml_config::ParseOptionalString(
-      yaml, "overflow_behavior", full_path, config_vars_ptr);
-  if (optional_overflow_behavior)
-    config.queue_overflow_behavior =
-        OverflowBehaviorFromString(*optional_overflow_behavior);
+  config.queue_overflow_behavior =
+      value["overflow_behavior"].As<LoggerConfig::QueueOveflowBehavior>(
+          LoggerConfig::QueueOveflowBehavior::kDiscard);
 
-  auto optional_thread_pool_size = yaml_config::ParseOptionalUint64(
-      yaml, "thread_pool_size", full_path, config_vars_ptr);
-  if (optional_thread_pool_size)
-    config.thread_pool_size = *optional_thread_pool_size;
+  config.thread_pool_size = value["thread_pool_size"].As<size_t>(
+      LoggerConfig::kDefaultThreadPoolSize);
 
   return config;
 }

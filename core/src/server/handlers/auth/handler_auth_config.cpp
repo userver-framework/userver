@@ -1,44 +1,48 @@
 #include <server/handlers/auth/handler_auth_config.hpp>
 
-#include <stdexcept>
+#include <string_view>
 
-#include <yaml_config/value.hpp>
+#include <fmt/format.h>
 
 namespace server::handlers::auth {
 
-HandlerAuthConfig::HandlerAuthConfig(
-    formats::yaml::Value yaml, std::string full_path,
-    yaml_config::VariableMapPtr config_vars_ptr)
-    : yaml_config::YamlConfig(std::move(yaml), std::move(full_path),
-                              std::move(config_vars_ptr)),
-      types_(ParseTypes()) {
-  if (types_.empty())
-    throw std::runtime_error("types list is empty in handler auth config");
-}
+namespace {
 
-HandlerAuthConfig HandlerAuthConfig::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
-  return {yaml, full_path, config_vars_ptr};
-}
+std::vector<std::string> ParseTypes(const yaml_config::YamlConfig& value) {
+  constexpr std::string_view kTypes = "types";
+  constexpr std::string_view kType = "type";
 
-std::vector<std::string> HandlerAuthConfig::ParseTypes() {
-  static const std::string kTypes = "types";
-  static const std::string kType = "type";
-
-  auto types_opt = Parse<std::optional<std::vector<std::string>>>(kTypes);
-  auto type_opt = Parse<std::optional<std::string>>(kType);
+  auto types_opt = value[kTypes].As<std::optional<std::vector<std::string>>>();
+  auto type_opt = value[kType].As<std::optional<std::string>>();
 
   if (types_opt && type_opt) {
-    throw std::runtime_error("invalid handler auth config: both fields '" +
-                             kTypes + "' and '" + kType +
-                             "' are set, exactly one is expected");
+    throw yaml_config::ParseException(
+        fmt::format(FMT_STRING("invalid handler auth config: both fields '{}' "
+                               "and '{}' are set, exactly one is expected"),
+                    kTypes, kType));
   }
 
   if (types_opt) return std::move(*types_opt);
   if (type_opt) return {std::move(*type_opt)};
-  throw std::runtime_error("invalid handler auth config: none of fields '" +
-                           kTypes + "' and '" + kType + "' was found");
+  throw yaml_config::ParseException(
+      fmt::format(FMT_STRING("invalid handler auth config: none of fields '{}' "
+                             "and '{}' was found"),
+                  kTypes, kType));
+}
+
+}  // namespace
+
+HandlerAuthConfig::HandlerAuthConfig(yaml_config::YamlConfig value)
+    : yaml_config::YamlConfig(std::move(value)), types_(ParseTypes(*this)) {
+  if (types_.empty()) {
+    throw yaml_config::ParseException(
+        "types list is empty in handler auth config");
+  }
+}
+
+HandlerAuthConfig Parse(const yaml_config::YamlConfig& value,
+                        formats::parse::To<HandlerAuthConfig>) {
+  return HandlerAuthConfig{value};
 }
 
 }  // namespace server::handlers::auth

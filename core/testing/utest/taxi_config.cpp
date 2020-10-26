@@ -4,6 +4,7 @@
 
 #include <cache/cache_config.hpp>
 #include <fs/blocking/read.hpp>
+#include <logging/log.hpp>
 
 namespace utest {
 namespace impl {

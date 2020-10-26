@@ -136,8 +136,8 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
                              .GetCollections()),
       mongo_collection_(std::addressof(
           mongo_collections_.get()->*MongoCacheTraits::kMongoCollectionsField)),
-      correction_(config.ParseDuration("update-correction",
-                                       std::chrono::milliseconds::zero())) {
+      correction_(
+          config["update-correction"].As<std::chrono::milliseconds>(0)) {
   [[maybe_unused]] mongo_cache::impl::CheckTraits<MongoCacheTraits>
       check_traits;
 

@@ -24,18 +24,18 @@ TaxiConfigClient::TaxiConfigClient(const ComponentConfig& config,
                                    const ComponentContext& context)
     : LoggableComponentBase(config, context) {
   clients::taxi_config::ClientConfig client_config;
-  client_config.service_name = config.ParseString("service-name");
+  client_config.service_name = config["service-name"].As<std::string>();
   client_config.get_configs_overrides_for_service =
-      config.ParseBool("get-configs-overrides-for-service", true);
-  client_config.use_uconfigs = config.ParseBool("use-uconfigs", false);
+      config["get-configs-overrides-for-service"].As<bool>(true);
+  client_config.use_uconfigs = config["use-uconfigs"].As<bool>(false);
   client_config.timeout =
-      utils::StringToDuration(config.ParseString("http-timeout"));
-  client_config.retries = config.ParseInt("http-retries");
+      utils::StringToDuration(config["http-timeout"].As<std::string>());
+  client_config.retries = config["http-retries"].As<int>();
   if (client_config.use_uconfigs) {
     client_config.stage_name = ReadStageName();
-    client_config.config_url = config.ParseString("uconfigs-url");
+    client_config.config_url = config["uconfigs-url"].As<std::string>();
   } else {
-    client_config.config_url = config.ParseString("config-url");
+    client_config.config_url = config["config-url"].As<std::string>();
   }
 
   if (client_config.use_uconfigs &&

@@ -229,7 +229,7 @@ HttpHandlerBase::HttpHandlerBase(
           component_context, GetConfig(),
           http_server_settings_.GetAuthCheckerSettings())),
       log_level_(logging::OptionalLevelFromString(
-          config.ParseOptionalString("log-level"))) {
+          config["log-level"].As<std::optional<std::string>>())) {
   if (allowed_methods_.empty()) {
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }

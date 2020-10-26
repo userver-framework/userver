@@ -53,33 +53,34 @@ const char* NameForType(bson_type_t type) {
 }
 
 std::string MsgForType(bson_type_t actual, bson_type_t expected,
-                       const std::string& path) {
-  return std::string("Field '") + path +
-         "' is of a wrong type. Expected: " + NameForType(expected) +
-         ", actual: " + NameForType(actual);
+                       std::string_view path) {
+  return fmt::format(
+      FMT_STRING("Field '{}' is of a wrong type. Expected: {}, actual: {}"),
+      path, NameForType(expected), NameForType(actual));
 }
 
-std::string MsgForIndex(size_t index, size_t size, const std::string& path) {
-  return std::string("Index ") + std::to_string(index) + " of array '" + path +
-         "' of size " + std::to_string(size) + " is out of bounds";
+std::string MsgForIndex(size_t index, size_t size, std::string_view path) {
+  return fmt::format(
+      FMT_STRING("Index {} of array '{}' of size {} is out of bounds"), index,
+      path, size);
 }
 
-std::string MsgForMissing(const std::string& path) {
-  return std::string("Field '") + path + "' is missing";
+std::string MsgForMissing(std::string_view path) {
+  return fmt::format(FMT_STRING("Field '{}' is missing"), path);
 }
 
 }  // namespace
 
 TypeMismatchException::TypeMismatchException(bson_type_t actual,
                                              bson_type_t expected,
-                                             const std::string& path)
+                                             std::string_view path)
     : BsonException(MsgForType(actual, expected, path)) {}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
-                                           const std::string& path)
+                                           std::string_view path)
     : BsonException(MsgForIndex(index, size, path)) {}
 
-MemberMissingException::MemberMissingException(const std::string& path)
+MemberMissingException::MemberMissingException(std::string_view path)
     : BsonException(MsgForMissing(path)) {}
 
 }  // namespace formats::bson

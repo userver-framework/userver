@@ -4,9 +4,8 @@
 #include <unordered_map>
 
 #include <formats/yaml.hpp>
-
 #include <logging/level.hpp>
-#include <yaml_config/variable_map.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 namespace logging {
 
@@ -28,10 +27,9 @@ struct LoggerConfig {
   QueueOveflowBehavior queue_overflow_behavior = QueueOveflowBehavior::kDiscard;
 
   size_t thread_pool_size = kDefaultThreadPoolSize;
-
-  static LoggerConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
+
+LoggerConfig Parse(const yaml_config::YamlConfig& value,
+                   formats::parse::To<LoggerConfig>);
 
 }  // namespace logging

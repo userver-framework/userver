@@ -12,12 +12,14 @@ DistLockComponentBase::DistLockComponentBase(
     const components::ComponentContext& component_context,
     storages::mongo::Collection collection)
     : components::LoggableComponentBase(component_config, component_context) {
-  auto lock_name = component_config.ParseString("lockname");
+  auto lock_name = component_config["lockname"].As<std::string>();
 
-  auto ttl = component_config.ParseDuration("lock-ttl");
-  auto mongo_timeout = component_config.ParseDuration("mongo-timeout");
+  auto ttl = component_config["lock-ttl"].As<std::chrono::milliseconds>();
+  auto mongo_timeout =
+      component_config["mongo-timeout"].As<std::chrono::milliseconds>();
   auto optional_restart_delay =
-      component_config.ParseOptionalDuration("restart-delay");
+      component_config["restart-delay"]
+          .As<std::optional<std::chrono::milliseconds>>();
   const auto prolong_ratio = 10;
 
   if (mongo_timeout >= ttl / 2)

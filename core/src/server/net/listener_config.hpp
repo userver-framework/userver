@@ -3,9 +3,7 @@
 #include <cstdint>
 #include <optional>
 
-#include <formats/yaml.hpp>
-
-#include <yaml_config/variable_map.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 #include "connection_config.hpp"
 
@@ -20,11 +18,10 @@ struct ListenerConfig {
   size_t max_connections = 32768;
   std::optional<size_t> shards;
   std::string task_processor;
-
-  static ListenerConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
+
+ListenerConfig Parse(const yaml_config::YamlConfig& value,
+                     formats::parse::To<ListenerConfig>);
 
 }  // namespace net
 }  // namespace server

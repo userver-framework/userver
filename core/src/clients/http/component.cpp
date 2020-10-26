@@ -17,32 +17,32 @@
 namespace components {
 
 namespace {
-const size_t kHttpClientThreadsDefault = 8;
-const auto kDestinationMetricsAutoMaxSizeDefault = 100;
+constexpr size_t kHttpClientThreadsDefault = 8;
+constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
 }  // namespace
 
 HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
     : LoggableComponentBase(component_config, context),
       disable_pool_stats_(
-          component_config.ParseBool("pool-statistics-disable", false)),
+          component_config["pool-statistics-disable"].As<bool>(false)),
       http_client_(
-          component_config.ParseString("thread-name-prefix", ""),
-          component_config.ParseUint64("threads", kHttpClientThreadsDefault),
+          component_config["thread-name-prefix"].As<std::string>(""),
+          component_config["threads"].As<size_t>(kHttpClientThreadsDefault),
           context.GetTaskProcessor(
-              component_config.ParseString("fs-task-processor"))),
+              component_config["fs-task-processor"].As<std::string>())),
       taxi_config_component_(context.FindComponent<components::TaxiConfig>()) {
   http_client_.SetDestinationMetricsAutoMaxSize(
-      component_config.ParseInt("destination-metrics-auto-max-size",
-                                kDestinationMetricsAutoMaxSizeDefault));
+      component_config["destination-metrics-auto-max-size"].As<size_t>(
+          kDestinationMetricsAutoMaxSizeDefault));
 
   auto testsuite_enabled =
-      component_config.ParseBool("testsuite-enabled", false);
+      component_config["testsuite-enabled"].As<bool>(false);
   if (testsuite_enabled) {
-    const auto& timeout =
-        component_config.ParseOptionalDuration("testsuite-timeout");
+    const auto& timeout = component_config["testsuite-timeout"]
+                              .As<std::optional<std::chrono::milliseconds>>();
     auto prefixes_lines =
-        component_config.ParseString("testsuite-allowed-url-prefixes", "");
+        component_config["testsuite-allowed-url-prefixes"].As<std::string>("");
     std::vector<std::string> prefixes;
     // TODO replace splitting string by config.Parse<std::vector<std::string>>
     // as soon as https://st.yandex-team.ru/TAXICOMMON-1599 gets fixed
@@ -63,7 +63,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     OnConfigUpdate(taxi_config_component_.GetBootstrap());
 
   const auto thread_name_prefix =
-      component_config.ParseString("thread-name-prefix", "");
+      component_config["thread-name-prefix"].As<std::string>("");
   auto stats_name =
       "httpclient" +
       (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));

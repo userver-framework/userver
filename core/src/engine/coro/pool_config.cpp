@@ -1,17 +1,12 @@
 #include "pool_config.hpp"
 
-#include <yaml_config/value.hpp>
-
 namespace engine::coro {
 
-PoolConfig PoolConfig::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
+PoolConfig Parse(const yaml_config::YamlConfig& value,
+                 formats::parse::To<PoolConfig>) {
   PoolConfig config;
-  config.initial_size = yaml_config::ParseUint64(yaml, "initial_size",
-                                                 full_path, config_vars_ptr);
-  config.max_size =
-      yaml_config::ParseUint64(yaml, "max_size", full_path, config_vars_ptr);
+  config.initial_size = value["initial_size"].As<size_t>();
+  config.max_size = value["max_size"].As<size_t>();
   return config;
 }
 

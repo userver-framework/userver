@@ -90,9 +90,7 @@ clients::http::ResponseFuture CreateRequest(
 
 net::ListenerConfig CreateConfig() {
   net::ListenerConfig config;
-  config.connection_config.request =
-      std::make_unique<server::request::RequestConfig>(
-          formats::yaml::Value{}, std::string{}, yaml_config::VariableMapPtr{});
+  config.connection_config.request = server::request::RequestConfig{{}};
   return config;
 }
 

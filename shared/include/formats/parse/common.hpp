@@ -8,60 +8,70 @@
 #include <cstdint>
 #include <limits>
 
-#include <compiler/demangle.hpp>
+#include <fmt/format.h>
+
 #include <formats/common/meta.hpp>
 #include <formats/parse/to.hpp>
 #include <utils/datetime.hpp>
 #include <utils/datetime/from_string_saturating.hpp>
+#include <utils/meta.hpp>
 #include <utils/string_to_duration.hpp>
 
 /// Generic parsers and converters
 namespace formats::parse {
 namespace impl {
 
-template <class Value>
-float NarrowToFloat(double x, const Value& value) {
-  auto min = std::numeric_limits<float>::lowest();
-  auto max = std::numeric_limits<float>::max();
-  if (x < min || x > max)
-    throw typename Value::ParseException(
-        std::string("Value of '") + value.GetPath() + "' is out of bounds (" +
-        std::to_string(min) + " <= " + std::to_string(x) +
-        " <= " + std::to_string(max) + ")");
+template <typename T, typename Value>
+void CheckInBounds(const Value& value, T x, T min, T max) {
+  if (x < min || x > max) {
+    throw typename Value::ParseException(fmt::format(
+        FMT_STRING("Value of '{}' is out of bounds ({} <= {} <= {})"),
+        value.GetPath(), min, x, max));
+  }
+}
 
+template <typename Value>
+float NarrowToFloat(double x, const Value& value) {
+  CheckInBounds<double>(value, x, std::numeric_limits<float>::lowest(),
+                        std::numeric_limits<float>::max());
   return static_cast<float>(x);
 }
 
-template <typename Dst, class Value, typename Src>
+template <typename Dst, typename Value, typename Src>
 Dst NarrowToInt(Src x, const Value& value) {
   static_assert(
       std::numeric_limits<Src>::min() <= std::numeric_limits<Dst>::min() &&
           std::numeric_limits<Src>::max() >= std::numeric_limits<Dst>::max(),
       "expanding cast requested");
 
-  auto min = static_cast<Src>(std::numeric_limits<Dst>::min());
-  auto max = static_cast<Src>(std::numeric_limits<Dst>::max());
-  if (x < min || x > max)
-    throw typename Value::ParseException(
-        std::string("Value of '") + value.GetPath() + "' is out of bounds (" +
-        std::to_string(min) + " <= " + std::to_string(x) +
-        " <= " + std::to_string(max) + ")");
+  CheckInBounds<Src>(value, x, std::numeric_limits<Dst>::min(),
+                     std::numeric_limits<Dst>::max());
+  return static_cast<Dst>(x);
+}
 
-  return x;
+template <typename Value>
+std::chrono::seconds ToSeconds(const std::string& data, const Value& value) {
+  const auto ms = utils::StringToDuration(data);
+  const auto converted = std::chrono::duration_cast<std::chrono::seconds>(ms);
+  if (converted != ms) {
+    throw typename Value::ParseException(
+        fmt::format(FMT_STRING("Value of '{}' = {}ms cannot be represented as "
+                               "'std::chrono::seconds' without precision loss"),
+                    value.GetPath(), ms.count()));
+  }
+  return converted;
 }
 
 }  // namespace impl
 
-template <class Value>
+template <typename Value>
 float Parse(const Value& value, To<float>) {
   return impl::NarrowToFloat(value.template As<double>(), value);
 }
 
-template <class Value, typename T>
-std::enable_if_t<common::kIsFormatValue<Value> && std::is_integral<T>::value &&
-                     (sizeof(T) > 1),
-                 T>
-Parse(const Value& value, To<T>) {
+template <typename Value, typename T>
+std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsInteger<T>, T> Parse(
+    const Value& value, To<T>) {
   using IntT = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
   return impl::NarrowToInt<T>(value.template As<IntT>(), value);
 }
@@ -73,29 +83,11 @@ Parse(const Value& n, To<std::chrono::duration<double, Period>>) {
   return std::chrono::duration<double, Period>(n.template As<double>());
 }
 
-template <class Value>
+template <typename Value>
 std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(
     const Value& n, To<std::chrono::seconds>) {
-  std::chrono::seconds to;
-  bool succeeded;
-  if (n.IsInt64()) {
-    const auto dur = n.template As<std::int64_t>();
-    to = std::chrono::seconds{dur};
-    succeeded = (to.count() == dur);
-  } else {
-    const auto dur = utils::StringToDuration(n.template As<std::string>());
-    to = std::chrono::duration_cast<std::chrono::seconds>(dur);
-    succeeded = (to == dur);
-  }
-
-  if (!succeeded) {
-    throw typename Value::ParseException(
-        "'" + n.template As<std::string>() + "' can not be represented as " +
-        compiler::GetTypeName<std::chrono::seconds>() +
-        " without precision loss");
-  }
-
-  return to;
+  return n.IsInt64() ? std::chrono::seconds{n.template As<int64_t>()}
+                     : impl::ToSeconds(n.template As<std::string>(), n);
 }
 
 template <class Value>
@@ -110,36 +102,16 @@ float Convert(const Value& value, To<float>) {
   return impl::NarrowToFloat(value.template ConvertTo<double>(), value);
 }
 
-template <class Value, typename T>
-std::enable_if_t<std::is_integral<T>::value && (sizeof(T) > 1), T> Convert(
-    const Value& value, To<T>) {
+template <typename Value, typename T>
+std::enable_if_t<meta::kIsInteger<T>, T> Convert(const Value& value, To<T>) {
   using IntT = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
   return impl::NarrowToInt<T>(value.template ConvertTo<IntT>(), value);
 }
 
-template <class Value>
-auto Convert(const Value& n, To<std::chrono::seconds>) {
-  std::chrono::seconds to;
-  bool succeeded;
-  if (n.IsInt64()) {
-    const auto dur = n.template ConvertTo<std::int64_t>();
-    to = std::chrono::seconds{dur};
-    succeeded = (to.count() == dur);
-  } else {
-    const auto dur =
-        utils::StringToDuration(n.template ConvertTo<std::string>());
-    to = std::chrono::duration_cast<std::chrono::seconds>(dur);
-    succeeded = (to == dur);
-  }
-
-  if (!succeeded) {
-    throw typename Value::ParseException(
-        "'" + n.template As<std::string>() + "' can not be represented as " +
-        compiler::GetTypeName<std::chrono::seconds>() +
-        " without precision loss");
-  }
-
-  return to;
+template <typename Value>
+std::chrono::seconds Convert(const Value& n, To<std::chrono::seconds>) {
+  return n.IsInt64() ? std::chrono::seconds{n.template ConvertTo<int64_t>()}
+                     : impl::ToSeconds(n.template ConvertTo<std::string>(), n);
 }
 
 }  // namespace formats::parse

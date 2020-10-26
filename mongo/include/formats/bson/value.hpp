@@ -133,8 +133,7 @@ class Value {
     static_assert(
         formats::common::kHasParseTo<Value, T>,
         "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace "
-        "of `T` or `formats::parse`."
-        ""
+        "of `T` or `formats::parse`. "
         "Probably you have not provided a `Parse` function overload.");
 
     return Parse(*this, formats::parse::To<T>{});
@@ -158,8 +157,7 @@ class Value {
     static_assert(
         formats::common::kHasConvertTo<Value, T>,
         "There is no `Convert(const Value&, formats::parse::To<T>)` in "
-        "namespace of `T` or `formats::parse`."
-        ""
+        "namespace of `T` or `formats::parse`. "
         "Probably you have not provided a `Convert` function overload.");
 
     return Convert(*this, formats::parse::To<T>{});
@@ -271,10 +269,6 @@ std::string Value::ConvertTo<std::string>() const;
 /// @code
 ///   for (const auto& [name, value]: Items(map)) ...
 /// @endcode
-inline auto Items(const Value& value) {
-  return common::ItemsWrapper<Value>(value);
-}
-
-void Items(Value&& value) = delete;
+using formats::common::Items;
 
 }  // namespace formats::bson

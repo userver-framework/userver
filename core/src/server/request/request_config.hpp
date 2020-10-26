@@ -11,20 +11,18 @@ class RequestConfig final : public yaml_config::YamlConfig {
  public:
   enum class Type { kHttp };
 
-  RequestConfig(formats::yaml::Value yaml, std::string full_path,
-                yaml_config::VariableMapPtr config_vars_ptr);
+  explicit RequestConfig(yaml_config::YamlConfig value);
 
   const Type& GetType() const;
-
-  static RequestConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
 
   static const std::string& TypeToString(Type type);
 
  private:
   Type type_ = Type::kHttp;
 };
+
+RequestConfig Parse(const yaml_config::YamlConfig& value,
+                    formats::parse::To<RequestConfig>);
 
 }  // namespace request
 }  // namespace server

@@ -2,7 +2,6 @@
 
 #include <crypto/algorithm.hpp>
 #include <server/http/http_error.hpp>
-#include <yaml_config/value.hpp>
 
 namespace server::handlers::auth::apikey {
 namespace {
@@ -43,15 +42,16 @@ bool IsApiKeyAllowed(const std::string& api_key,
 AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
                                      const AuthCheckerSettings& settings) {
   keys_by_method_.fill(nullptr);
-  auto apikey_type = auth_config.Parse<std::optional<std::string>>(kApiKeyType);
+  const auto apikey_type =
+      auth_config[kApiKeyType].As<std::optional<std::string>>();
   if (apikey_type) {
     const auto& keys_set = GetApiKeysByType(settings, *apikey_type);
     for (auto method : http::kHandlerMethods)
       keys_by_method_[static_cast<int>(method)] = &keys_set;
   }
-  auto apikey_type_by_method =
-      auth_config.Parse<std::optional<ApiKeyTypeByMethodSettings>>(
-          kApiKeyTypeByMethod);
+  const auto apikey_type_by_method =
+      auth_config[kApiKeyTypeByMethod]
+          .As<std::optional<ApiKeyTypeByMethodSettings>>();
   if (apikey_type_by_method) {
     for (auto method : http::kHandlerMethods) {
       auto method_idx = static_cast<int>(method);
@@ -100,15 +100,13 @@ const ApiKeysSet* AuthCheckerApiKey::GetApiKeysForRequest(
   return keys_by_method_[method_idx];
 }
 
-AuthCheckerApiKey::ApiKeyTypeByMethodSettings
-AuthCheckerApiKey::ApiKeyTypeByMethodSettings::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
-  ApiKeyTypeByMethodSettings settings;
+AuthCheckerApiKey::ApiKeyTypeByMethodSettings Parse(
+    const yaml_config::YamlConfig& value,
+    formats::parse::To<AuthCheckerApiKey::ApiKeyTypeByMethodSettings>) {
+  AuthCheckerApiKey::ApiKeyTypeByMethodSettings settings;
   for (auto method : http::kHandlerMethods) {
     settings.apikey_type[static_cast<int>(method)] =
-        yaml_config::Parse<std::optional<std::string>>(
-            yaml, http::ToString(method), full_path, config_vars_ptr);
+        value[http::ToString(method)].As<std::optional<std::string>>();
   }
   return settings;
 }

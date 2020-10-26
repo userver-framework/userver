@@ -2,8 +2,6 @@
 
 #include <stdexcept>
 
-#include <yaml_config/value.hpp>
-
 namespace server::request {
 namespace {
 
@@ -16,19 +14,11 @@ RequestConfig::Type StringToType(const std::string& str) {
 
 }  // namespace
 
-RequestConfig::RequestConfig(formats::yaml::Value yaml, std::string full_path,
-                             yaml_config::VariableMapPtr config_vars_ptr)
-    : yaml_config::YamlConfig(std::move(yaml), std::move(full_path),
-                              std::move(config_vars_ptr)),
-      type_(StringToType(Parse<std::string>("type", kHttp))) {}
+RequestConfig::RequestConfig(yaml_config::YamlConfig value)
+    : yaml_config::YamlConfig(std::move(value)),
+      type_(StringToType(value["type"].As<std::string>(kHttp))) {}
 
 const RequestConfig::Type& RequestConfig::GetType() const { return type_; }
-
-RequestConfig RequestConfig::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
-  return {yaml, full_path, config_vars_ptr};
-}
 
 const std::string& RequestConfig::TypeToString(Type type) {
   switch (type) {
@@ -38,6 +28,11 @@ const std::string& RequestConfig::TypeToString(Type type) {
   throw std::runtime_error(
       "can't convert to string unknown RequestConfig::Type (" +
       std::to_string(static_cast<int>(type)) + ')');
+}
+
+RequestConfig Parse(const yaml_config::YamlConfig& value,
+                    formats::parse::To<RequestConfig>) {
+  return RequestConfig(value);
 }
 
 }  // namespace server::request

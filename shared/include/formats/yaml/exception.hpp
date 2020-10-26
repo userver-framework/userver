@@ -35,21 +35,26 @@ class BadStreamException : public Exception {
 
 class TypeMismatchException : public Exception {
  public:
-  TypeMismatchException(Type actual, Type expected, const std::string& path);
-  TypeMismatchException(int actual, int expected, const std::string& path);
-  TypeMismatchException(const YAML::Node& value,
-                        const std::string& expected_type,
-                        const std::string& path);
+  TypeMismatchException(Type actual, Type expected, std::string_view path);
+  TypeMismatchException(int actual, int expected, std::string_view path);
+  TypeMismatchException(const YAML::Node& value, std::string_view expected_type,
+                        std::string_view path);
 };
 
 class OutOfBoundsException : public Exception {
  public:
-  OutOfBoundsException(size_t index, size_t size, const std::string& path);
+  OutOfBoundsException(size_t index, size_t size, std::string_view path);
 };
 
 class MemberMissingException : public Exception {
  public:
-  explicit MemberMissingException(const std::string& path);
+  explicit MemberMissingException(std::string_view path);
+};
+
+class PathPrefixException : public Exception {
+ public:
+  explicit PathPrefixException(std::string_view old_path,
+                               std::string_view prefix);
 };
 
 }  // namespace yaml

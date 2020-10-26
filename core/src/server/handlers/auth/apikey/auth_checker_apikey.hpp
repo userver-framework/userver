@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include <yaml_config/yaml_config.hpp>
+
 #include <server/handlers/auth/auth_checker_base.hpp>
 #include <server/handlers/auth/auth_checker_factory.hpp>
 #include <server/handlers/auth/auth_checker_settings.hpp>
@@ -27,11 +29,11 @@ class AuthCheckerApiKey : public AuthCheckerBase {
   struct ApiKeyTypeByMethodSettings {
     std::array<std::optional<std::string>, http::kHandlerMethodsMax + 1>
         apikey_type;
-
-    static ApiKeyTypeByMethodSettings ParseFromYaml(
-        const formats::yaml::Value& yaml, const std::string& full_path,
-        const yaml_config::VariableMapPtr& config_vars_ptr);
   };
+
+  friend ApiKeyTypeByMethodSettings Parse(
+      const yaml_config::YamlConfig& value,
+      formats::parse::To<ApiKeyTypeByMethodSettings>);
 
   const ApiKeysSet* GetApiKeysForRequest(
       const http::HttpRequest& request) const;

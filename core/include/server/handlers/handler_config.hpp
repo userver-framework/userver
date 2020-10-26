@@ -2,12 +2,10 @@
 
 #include <optional>
 #include <string>
+#include <variant>
 
-#include <formats/yaml.hpp>
 #include <server/handlers/auth/handler_auth_config.hpp>
 #include <server/handlers/fallback_handlers.hpp>
-
-#include <yaml_config/variable_map.hpp>
 
 namespace server {
 namespace handlers {
@@ -34,11 +32,10 @@ struct HandlerConfig {
   std::optional<UrlTrailingSlashOption> url_trailing_slash;
   std::optional<size_t> max_requests_in_flight;
   std::optional<size_t> max_requests_per_second;
-
-  static HandlerConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
+
+HandlerConfig Parse(const yaml_config::YamlConfig& value,
+                    formats::parse::To<HandlerConfig>);
 
 }  // namespace handlers
 }  // namespace server

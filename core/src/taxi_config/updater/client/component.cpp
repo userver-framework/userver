@@ -14,13 +14,13 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
     const ComponentContext& component_context)
     : CachingComponentBase(component_config, component_context, kName),
       taxi_config_(component_context.FindComponent<TaxiConfig>()),
-      load_only_my_values_(component_config.ParseBool("load-only-my-values")),
-      store_enabled_(component_config.ParseBool("store-enabled")),
+      load_only_my_values_(component_config["load-only-my-values"].As<bool>()),
+      store_enabled_(component_config["store-enabled"].As<bool>()),
       config_client_(
           component_context.FindComponent<components::TaxiConfigClient>()
               .GetClient()) {
   auto fallback_config_contents = fs::blocking::ReadFileContents(
-      component_config.ParseString("fallback-path"));
+      component_config["fallback-path"].As<std::string>());
   try {
     fallback_config_.Parse(fallback_config_contents, false);
 

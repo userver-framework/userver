@@ -17,7 +17,7 @@
 #include <utils/statistics/aggregated_values.hpp>
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
-#include <yaml_config/value.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 #include <testsuite/testsuite_support.hpp>
 
@@ -226,59 +226,45 @@ struct RedisGroup {
   std::string db;
   std::string config_name;
   std::string sharding_strategy;
-
-  static RedisGroup ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr) {
-    RedisGroup config;
-    config.db =
-        yaml_config::ParseString(yaml, "db", full_path, config_vars_ptr);
-    config.config_name = yaml_config::ParseString(yaml, "config_name",
-                                                  full_path, config_vars_ptr);
-    config.sharding_strategy =
-        yaml_config::ParseOptionalString(yaml, "sharding_strategy", full_path,
-                                         config_vars_ptr)
-            .value_or("");
-    return config;
-  }
 };
+
+RedisGroup Parse(const yaml_config::YamlConfig& value,
+                 formats::parse::To<RedisGroup>) {
+  RedisGroup config;
+  config.db = value["db"].As<std::string>();
+  config.config_name = value["config_name"].As<std::string>();
+  config.sharding_strategy = value["sharding_strategy"].As<std::string>("");
+  return config;
+}
 
 struct SubscribeRedisGroup {
   std::string db;
   std::string config_name;
   std::string sharding_strategy;
-
-  static SubscribeRedisGroup ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr) {
-    SubscribeRedisGroup config;
-    config.db =
-        yaml_config::ParseString(yaml, "db", full_path, config_vars_ptr);
-    config.config_name = yaml_config::ParseString(yaml, "config_name",
-                                                  full_path, config_vars_ptr);
-    config.sharding_strategy =
-        yaml_config::ParseOptionalString(yaml, "sharding_strategy", full_path,
-                                         config_vars_ptr)
-            .value_or("");
-    return config;
-  }
 };
+
+SubscribeRedisGroup Parse(const yaml_config::YamlConfig& value,
+                          formats::parse::To<SubscribeRedisGroup>) {
+  SubscribeRedisGroup config;
+  config.db = value["db"].As<std::string>();
+  config.config_name = value["config_name"].As<std::string>();
+  config.sharding_strategy = value["sharding_strategy"].As<std::string>("");
+  return config;
+}
 
 struct RedisPools {
   int sentinel_thread_pool_size;
   int redis_thread_pool_size;
-
-  static RedisPools ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr) {
-    RedisPools pools{};
-    pools.sentinel_thread_pool_size = yaml_config::ParseInt(
-        yaml, "sentinel_thread_pool_size", full_path, config_vars_ptr);
-    pools.redis_thread_pool_size = yaml_config::ParseInt(
-        yaml, "redis_thread_pool_size", full_path, config_vars_ptr);
-    return pools;
-  }
 };
+
+RedisPools Parse(const yaml_config::YamlConfig& value,
+                 formats::parse::To<RedisPools>) {
+  RedisPools pools{};
+  pools.sentinel_thread_pool_size =
+      value["sentinel_thread_pool_size"].As<int>();
+  pools.redis_thread_pool_size = value["redis_thread_pool_size"].As<int>();
+  return pools;
+}
 
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
@@ -335,16 +321,13 @@ void Redis::Connect(const ComponentConfig& config,
                     const testsuite::RedisControl& testsuite_redis_control) {
   auto& secdist_component = component_context.FindComponent<Secdist>();
 
-  const RedisPools& redis_pools = RedisPools::ParseFromYaml(
-      config.Yaml()["thread_pools"], config.FullPath() + ".thread_pools",
-      config.ConfigVarsPtr());
+  const auto redis_pools = config["thread_pools"].As<RedisPools>();
 
   thread_pools_ = std::make_shared<redis::ThreadPools>(
       redis_pools.sentinel_thread_pool_size,
       redis_pools.redis_thread_pool_size);
 
-  auto redis_groups = yaml_config::Parse<std::vector<RedisGroup>>(
-      config.Yaml(), "groups", config.FullPath(), config.ConfigVarsPtr());
+  const auto redis_groups = config["groups"].As<std::vector<RedisGroup>>();
   for (const RedisGroup& redis_group : redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 
@@ -369,9 +352,8 @@ void Redis::Connect(const ComponentConfig& config,
   }
 
   auto subscribe_redis_groups =
-      yaml_config::Parse<std::vector<SubscribeRedisGroup>>(
-          config.Yaml(), "subscribe_groups", config.FullPath(),
-          config.ConfigVarsPtr());
+      config["subscribe_groups"].As<std::vector<SubscribeRedisGroup>>();
+
   for (const auto& redis_group : subscribe_redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 

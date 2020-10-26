@@ -1,11 +1,11 @@
 #include <yaml_config/yaml_config.hpp>
 
 #include <gtest/gtest.h>
+
 #include <formats/yaml/serialize.hpp>
+#include <formats/yaml/value_builder.hpp>
 
 TEST(YamlConfig, Basic) {
-  yaml_config::VariableMapPtr empty_vmap{};
-
   auto node = formats::yaml::FromString(R"(
     string: hello
     duration1: 10s
@@ -14,17 +14,19 @@ TEST(YamlConfig, Basic) {
     int: 42
   )");
 
-  yaml_config::YamlConfig conf(std::move(node), ".", empty_vmap);
-  EXPECT_EQ(conf.ParseString("string"), "hello");
-  EXPECT_EQ(conf.ParseDuration("duration1"), std::chrono::seconds(10));
-  EXPECT_EQ(conf.ParseDuration("duration2"), std::chrono::milliseconds(10));
-  EXPECT_EQ(conf.ParseDuration("duration3"), std::chrono::seconds(1));
-  EXPECT_EQ(conf.ParseInt("int"), 42);
+  yaml_config::YamlConfig conf(std::move(node), {});
+  EXPECT_EQ(conf["string"].As<std::string>(), "hello");
+  EXPECT_EQ(conf["duration1"].As<std::chrono::milliseconds>(),
+            std::chrono::seconds(10));
+  EXPECT_EQ(conf["duration2"].As<std::chrono::milliseconds>(),
+            std::chrono::milliseconds(10));
+  EXPECT_EQ(conf["duration3"].As<std::chrono::milliseconds>(),
+            std::chrono::seconds(1));
+  EXPECT_EQ(conf["int"].As<int>(), 42);
 }
 
 TEST(YamlConfig, VariableMap) {
-  auto vmap =
-      std::make_shared<yaml_config::VariableMap>(formats::yaml::FromString(R"(
+  auto vmap = formats::yaml::FromString(R"(
     string: hello
     duration1: 10s
     duration2: 10ms
@@ -32,7 +34,7 @@ TEST(YamlConfig, VariableMap) {
     int: 42
     elem0: str123
     not_missing: xxx
-  )"));
+  )");
 
   auto node = formats::yaml::FromString(R"(
     string: $string
@@ -55,22 +57,25 @@ TEST(YamlConfig, VariableMap) {
         - bbb
   )");
 
-  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
-  EXPECT_EQ(conf.ParseString("string"), "hello");
-  EXPECT_EQ(conf.ParseDuration("duration1"), std::chrono::seconds(10));
-  EXPECT_EQ(conf.ParseDuration("duration2"), std::chrono::milliseconds(10));
-  EXPECT_EQ(conf.ParseDuration("duration3"), std::chrono::seconds(1));
-  EXPECT_EQ(conf.ParseInt("int"), 42);
+  yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+  EXPECT_EQ(conf["string"].As<std::string>(), "hello");
+  EXPECT_EQ(conf["duration1"].As<std::chrono::milliseconds>(),
+            std::chrono::seconds(10));
+  EXPECT_EQ(conf["duration2"].As<std::chrono::milliseconds>(),
+            std::chrono::milliseconds(10));
+  EXPECT_EQ(conf["duration3"].As<std::chrono::milliseconds>(),
+            std::chrono::seconds(1));
+  EXPECT_EQ(conf["int"].As<int>(), 42);
   std::vector<std::string> expected_vec{"str123", "str222"};
-  EXPECT_EQ(conf.Parse<std::vector<std::string>>("array"), expected_vec);
-  EXPECT_THROW(conf.Parse<std::vector<std::string>>("bad_array"),
-               std::runtime_error);
+  EXPECT_EQ(conf["array"].As<std::vector<std::string>>(), expected_vec);
+  EXPECT_THROW(conf["bad_array"].As<std::vector<std::string>>(),
+               yaml_config::Exception);
 
   std::vector<std::optional<std::string>> expected_vec_miss{
       std::nullopt, std::optional<std::string>("str333"),
       std::optional<std::string>("xxx"), std::nullopt};
   EXPECT_EQ(
-      conf.Parse<std::vector<std::optional<std::string>>>("array_with_missing"),
+      conf["array_with_missing"].As<std::vector<std::optional<std::string>>>(),
       expected_vec_miss);
 }
 
@@ -102,7 +107,7 @@ struct IteratorAccessor {
     auto eit = value.end();
     if (it.GetIteratorType() != formats::common::Type::kArray) {
       ADD_FAILURE() << "Can't use indices with iterators over objects";
-      return yaml_config::YamlConfig({}, {}, {});
+      return yaml_config::YamlConfig({}, {});
     }
     std::advance(it, static_cast<decltype(it)::difference_type>(index));
     return *it;
@@ -123,7 +128,7 @@ struct IteratorAccessor {
       return *it;
     } else {
       ADD_FAILURE() << "Iterator went out of range";
-      return yaml_config::YamlConfig({}, {}, {});
+      return yaml_config::YamlConfig({}, {});
     }
   }
 
@@ -140,8 +145,7 @@ TYPED_TEST_SUITE(YamlConfigAccessor, YamlConfigAccessorTypes);
 
 TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
   using Accessor = TypeParam;
-  auto vmap =
-      std::make_shared<yaml_config::VariableMap>(formats::yaml::FromString(R"(
+  auto vmap = formats::yaml::FromString(R"(
     string: hello
     duration1: 10s
     duration2: 10ms
@@ -150,7 +154,7 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
     test2:
       zzz: asd
     test4: qwe
-  )"));
+  )");
 
   auto node = formats::yaml::FromString(R"(
     root:
@@ -164,76 +168,70 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
       - $test4
       - str5
   )");
-  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
+  yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
   yaml_config::YamlConfig root_array_data = conf["root"];
   Accessor root_array(root_array_data);
   EXPECT_TRUE(root_array_data.Yaml().IsArray());
 
-  EXPECT_EQ(root_array[0].ParseInt("member1"), 42);
-  EXPECT_EQ(root_array[0].ParseDuration("duration"), std::chrono::seconds{10});
+  EXPECT_EQ(root_array[0]["member1"].template As<int>(), 42);
+  EXPECT_EQ(root_array[0]["duration"].template As<std::chrono::milliseconds>(),
+            std::chrono::seconds{10});
 
-  EXPECT_EQ(root_array[1].ParseString("member2"), "hello");
-  EXPECT_EQ(root_array[1].ParseDuration("duration"),
+  EXPECT_EQ(root_array[1]["member2"].template As<std::string>(), "hello");
+  EXPECT_EQ(root_array[1]["duration"].template As<std::chrono::milliseconds>(),
             std::chrono::milliseconds{10});
   EXPECT_TRUE(root_array[1]["miss_val"].IsMissing());
   EXPECT_TRUE(root_array[1]["miss_val2"].IsMissing());
-  EXPECT_THROW(root_array[1]["miss_val"].Yaml().template As<std::string>(),
-               formats::yaml::MemberMissingException);
+  EXPECT_THROW(root_array[1]["miss_val"].template As<std::string>(),
+               yaml_config::Exception);
 
   EXPECT_TRUE(root_array[1]["miss_val"]["sub_val"].IsMissing());
   EXPECT_TRUE(root_array[1]["miss_val2"]["sub_val"].IsMissing());
-  EXPECT_EQ(
-      root_array[1]["miss_val"].template Parse<std::optional<std::string>>(
-          "sub_val"),
-      std::optional<std::string>{});
-  EXPECT_EQ(
-      root_array[1]["miss_val2"].template Parse<std::optional<std::string>>(
-          "sub_val"),
-      std::optional<std::string>{});
-  EXPECT_EQ(
-      root_array[1]["miss_val"].template Parse<std::optional<std::string>>(
-          "sub_val", "def"),
-      "def");
-  EXPECT_EQ(
-      root_array[1]["miss_val2"].template Parse<std::optional<std::string>>(
-          "sub_val", "def"),
-      "def");
+  EXPECT_EQ(root_array[1]["miss_val"]["sub_val"]
+                .template As<std::optional<std::string>>(),
+            std::optional<std::string>{});
+  EXPECT_EQ(root_array[1]["miss_val2"]["sub_val"]
+                .template As<std::optional<std::string>>(),
+            std::optional<std::string>{});
+  EXPECT_EQ(root_array[1]["miss_val"]["sub_val"]
+                .template As<std::optional<std::string>>("def"),
+            "def");
+  EXPECT_EQ(root_array[1]["miss_val2"]["sub_val"]
+                .template As<std::optional<std::string>>("def"),
+            "def");
   EXPECT_TRUE(root_array[1]["miss_val"][11].IsMissing());
   EXPECT_TRUE(root_array[1]["miss_val2"][11].IsMissing());
-  EXPECT_EQ(
-      root_array[1]["miss_val"][11].template Parse<std::optional<std::string>>(
-          "sub_val", "def"),
-      "def");
-  EXPECT_EQ(
-      root_array[1]["miss_val2"][11].template Parse<std::optional<std::string>>(
-          "sub_val", "def"),
-      "def");
+  EXPECT_EQ(root_array[1]["miss_val"][11]["sub_val"]
+                .template As<std::optional<std::string>>("def"),
+            "def");
+  EXPECT_EQ(root_array[1]["miss_val2"][11]["sub_val"]
+                .template As<std::optional<std::string>>("def"),
+            "def");
   EXPECT_THROW(
-      root_array[1]["miss_val"][11].template Parse<std::string>("sub_val"),
-      std::runtime_error);
+      root_array[1]["miss_val"][11]["sub_val"].template As<std::string>(),
+      yaml_config::Exception);
   EXPECT_THROW(
-      root_array[1]["miss_val2"][11].template Parse<std::string>("sub_val"),
-      std::runtime_error);
+      root_array[1]["miss_val2"][11]["sub_val"].template As<std::string>(),
+      yaml_config::Exception);
 
-  EXPECT_EQ(root_array[2].ParseString("zzz"), "asd");
+  EXPECT_EQ(root_array[2]["zzz"].template As<std::string>(), "asd");
 
-  EXPECT_TRUE(root_array[3].Yaml().IsMissing());
-  EXPECT_THROW(root_array[3].Yaml().template As<std::string>(),
-               formats::yaml::MemberMissingException);
-  EXPECT_EQ(root_array[3].Yaml().template As<std::string>("dflt"), "dflt");
+  EXPECT_TRUE(root_array[3].IsMissing());
+  EXPECT_THROW(root_array[3].template As<std::string>(),
+               yaml_config::Exception);
+  EXPECT_EQ(root_array[3].template As<std::string>("dflt"), "dflt");
 
-  EXPECT_EQ(root_array[4].Yaml().template As<std::string>(), "qwe");
-  EXPECT_EQ(root_array[5].Yaml().template As<std::string>(), "str5");
+  EXPECT_EQ(root_array[4].template As<std::string>(), "qwe");
+  EXPECT_EQ(root_array[5].template As<std::string>(), "str5");
 
-  EXPECT_THROW(root_array[99].ParseString("zzz"),
-               formats::yaml::OutOfBoundsException);
+  EXPECT_THROW(root_array[99]["zzz"].template As<std::string>(),
+               yaml_config::Exception);
 }
 
 TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
   using Accessor = TypeParam;
-  auto vmap =
-      std::make_shared<yaml_config::VariableMap>(formats::yaml::FromString(R"(
+  auto vmap = formats::yaml::FromString(R"(
     string: hello
     duration1: 10s
     duration2: 10ms
@@ -242,7 +240,7 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
     test2:
       zzz: asd
     test4: qwe
-  )"));
+  )");
 
   auto node = formats::yaml::FromString(R"(
     root:
@@ -258,74 +256,71 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
       e4: $test4
       e5: str5
   )");
-  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
+  yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
   yaml_config::YamlConfig root_object_data = conf["root"];
   Accessor root_object(root_object_data);
   EXPECT_TRUE(root_object_data.Yaml().IsObject());
 
-  EXPECT_EQ(root_object["e0"].ParseInt("member1"), 42);
-  EXPECT_EQ(root_object["e0"].ParseDuration("duration"),
-            std::chrono::seconds{10});
+  EXPECT_EQ(root_object["e0"]["member1"].template As<int>(), 42);
+  EXPECT_EQ(
+      root_object["e0"]["duration"].template As<std::chrono::milliseconds>(),
+      std::chrono::seconds{10});
 
-  EXPECT_EQ(root_object["e1"].ParseString("member2"), "hello");
-  EXPECT_EQ(root_object["e1"].ParseDuration("duration"),
-            std::chrono::milliseconds{10});
+  EXPECT_EQ(root_object["e1"]["member2"].template As<std::string>(), "hello");
+  EXPECT_EQ(
+      root_object["e1"]["duration"].template As<std::chrono::milliseconds>(),
+      std::chrono::milliseconds{10});
   EXPECT_TRUE(root_object["e1"]["miss_val"].IsMissing());
   EXPECT_TRUE(root_object["e1"]["miss_val2"].IsMissing());
-  EXPECT_THROW(root_object["e1"]["miss_val"].Yaml().template As<std::string>(),
-               formats::yaml::MemberMissingException);
+  EXPECT_THROW(root_object["e1"]["miss_val"].template As<std::string>(),
+               yaml_config::Exception);
 
   EXPECT_TRUE(root_object["e1"]["miss_val"]["sub_val"].IsMissing());
   EXPECT_TRUE(root_object["e1"]["miss_val2"]["sub_val"].IsMissing());
-  EXPECT_EQ(
-      root_object["e1"]["miss_val"].template Parse<std::optional<std::string>>(
-          "sub_val"),
-      std::optional<std::string>{});
-  EXPECT_EQ(
-      root_object["e1"]["miss_val2"].template Parse<std::optional<std::string>>(
-          "sub_val"),
-      std::optional<std::string>{});
-  EXPECT_EQ(
-      root_object["e1"]["miss_val"].template Parse<std::optional<std::string>>(
-          "sub_val", "def"),
-      "def");
-  EXPECT_EQ(
-      root_object["e1"]["miss_val2"].template Parse<std::optional<std::string>>(
-          "sub_val", "def"),
-      "def");
+  EXPECT_EQ(root_object["e1"]["miss_val"]["sub_val"]
+                .template As<std::optional<std::string>>(),
+            std::optional<std::string>{});
+  EXPECT_EQ(root_object["e1"]["miss_val2"]["sub_val"]
+                .template As<std::optional<std::string>>(),
+            std::optional<std::string>{});
+  EXPECT_EQ(root_object["e1"]["miss_val"]["sub_val"]
+                .template As<std::optional<std::string>>("def"),
+            "def");
+  EXPECT_EQ(root_object["e1"]["miss_val2"]["sub_val"]
+                .template As<std::optional<std::string>>("def"),
+            "def");
   EXPECT_TRUE(root_object["e1"]["miss_val"][11].IsMissing());
   EXPECT_TRUE(root_object["e1"]["miss_val2"][11].IsMissing());
-  EXPECT_EQ(root_object["e1"]["miss_val"][11]
-                .template Parse<std::optional<std::string>>("sub_val", "def"),
+  EXPECT_EQ(root_object["e1"]["miss_val"][11]["sub_val"]
+                .template As<std::optional<std::string>>("def"),
             "def");
-  EXPECT_EQ(root_object["e1"]["miss_val2"][11]
-                .template Parse<std::optional<std::string>>("sub_val", "def"),
+  EXPECT_EQ(root_object["e1"]["miss_val2"][11]["sub_val"]
+                .template As<std::optional<std::string>>("def"),
             "def");
   EXPECT_THROW(
-      root_object["e1"]["miss_val"][11].template Parse<std::string>("sub_val"),
-      std::runtime_error);
+      root_object["e1"]["miss_val"][11]["sub_val"].template As<std::string>(),
+      yaml_config::Exception);
   EXPECT_THROW(
-      root_object["e1"]["miss_val2"][11].template Parse<std::string>("sub_val"),
-      std::runtime_error);
+      root_object["e1"]["miss_val2"][11]["sub_val"].template As<std::string>(),
+      yaml_config::Exception);
 
-  EXPECT_EQ(root_object["e2"].ParseString("zzz"), "asd");
+  EXPECT_EQ(root_object["e2"]["zzz"].template As<std::string>(), "asd");
 
-  EXPECT_TRUE(root_object["e3"].Yaml().IsMissing());
-  EXPECT_THROW(root_object["e3"].Yaml().template As<std::string>(),
-               formats::yaml::MemberMissingException);
-  EXPECT_EQ(root_object["e3"].Yaml().template As<std::string>("dflt"), "dflt");
+  EXPECT_TRUE(root_object["e3"].IsMissing());
+  EXPECT_THROW(root_object["e3"].template As<std::string>(),
+               yaml_config::Exception);
+  EXPECT_EQ(root_object["e3"].template As<std::string>("dflt"), "dflt");
 
-  EXPECT_EQ(root_object["e4"].Yaml().template As<std::string>(), "qwe");
-  EXPECT_EQ(root_object["e5"].Yaml().template As<std::string>(), "str5");
+  EXPECT_EQ(root_object["e4"].template As<std::string>(), "qwe");
+  EXPECT_EQ(root_object["e5"].template As<std::string>(), "str5");
 }
 
 TEST(YamlConfig, PathsParseInto) {
-  auto vmap =
-      std::make_shared<yaml_config::VariableMap>(formats::yaml::FromString(R"(
+  auto vmap = formats::yaml::FromString(R"(
     path_vm: /hello/1
     path_array_vm: ["/hello/1", "/path/2"]
-  )"));
+  )");
 
   formats::yaml::Value node = formats::yaml::FromString(R"(
     path: /hello/1
@@ -334,34 +329,33 @@ TEST(YamlConfig, PathsParseInto) {
     path_array_vm: $path_array_vm
   )");
 
-  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
+  yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
-  auto path = conf.ParseString("path");
+  auto path = conf["path"].As<std::string>();
   EXPECT_EQ(path, "/hello/1");
 
-  auto path_vm = conf.ParseString("path_vm");
+  auto path_vm = conf["path_vm"].As<std::string>();
   EXPECT_EQ(path_vm, "/hello/1");
 
-  auto path_array = conf.Parse<std::vector<std::string>>("path_array");
+  auto path_array = conf["path_array"].As<std::vector<std::string>>();
   ASSERT_EQ(path_array.size(), 2);
   EXPECT_EQ(path_array[0], "/hello/1");
   EXPECT_EQ(path_array[1], "/path/2");
 
-  auto path_array_vm = conf.Parse<std::vector<std::string>>("path_array_vm");
+  auto path_array_vm = conf["path_array_vm"].As<std::vector<std::string>>();
   ASSERT_EQ(path_array_vm.size(), 2);
   EXPECT_EQ(path_array_vm[0], "/hello/1");
   EXPECT_EQ(path_array_vm[1], "/path/2");
 }
 
 TEST(YamlConfig, Subconfig) {
-  auto vmap =
-      std::make_shared<yaml_config::VariableMap>(formats::yaml::FromString(R"(
+  auto vmap = formats::yaml::FromString(R"(
     string: hello
     duration1: 10s
     duration2: 10ms
     duration3: 1
     int: 42
-  )"));
+  )");
 
   auto node = formats::yaml::FromString(R"(
     member: $string
@@ -370,12 +364,14 @@ TEST(YamlConfig, Subconfig) {
       duration2: $duration2
   )");
 
-  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
-  EXPECT_EQ(conf.ParseString("member"), "hello");
+  yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+  EXPECT_EQ(conf["member"].As<std::string>(), "hello");
   // Get subconfig
   auto subconf = conf["subconfig"];
-  EXPECT_EQ(subconf.ParseDuration("duration1"), std::chrono::seconds(10));
-  EXPECT_EQ(subconf.ParseDuration("duration2"), std::chrono::milliseconds(10));
+  EXPECT_EQ(subconf["duration1"].As<std::chrono::milliseconds>(),
+            std::chrono::seconds(10));
+  EXPECT_EQ(subconf["duration2"].As<std::chrono::milliseconds>(),
+            std::chrono::milliseconds(10));
 
   // Check missing
   auto missing_subconf = conf["missing"];
@@ -383,16 +379,15 @@ TEST(YamlConfig, Subconfig) {
 }
 
 TEST(YamlConfig, SubconfigNotObject) {
-  auto vmap = std::make_shared<yaml_config::VariableMap>(
-      formats::yaml::ValueBuilder(formats::common::Type::kObject)
-          .ExtractValue());
+  auto vmap = formats::yaml::ValueBuilder(formats::common::Type::kObject)
+                  .ExtractValue();
 
   auto node = formats::yaml::FromString(R"(
     member: hello
   )");
 
-  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
-  EXPECT_EQ(conf.ParseString("member"), "hello");
+  yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
+  EXPECT_EQ(conf["member"].As<std::string>(), "hello");
   EXPECT_TRUE(conf.Yaml().IsObject());
   // Get subconfig that is not an object
   auto subconf = conf["member"];
@@ -401,14 +396,13 @@ TEST(YamlConfig, SubconfigNotObject) {
 }
 
 TEST(YamlConfig, IteratorArray) {
-  auto vmap =
-      std::make_shared<yaml_config::VariableMap>(formats::yaml::FromString(R"(
+  auto vmap = formats::yaml::FromString(R"(
     string: hello
     duration1: 10s
     duration2: 10ms
     duration3: 1
     int: 42
-  )"));
+  )");
 
   auto node = formats::yaml::FromString(R"(
     root:
@@ -417,7 +411,7 @@ TEST(YamlConfig, IteratorArray) {
       -  member2:  $string
          duration: $duration2
   )");
-  yaml_config::YamlConfig conf(std::move(node), ".", std::move(vmap));
+  yaml_config::YamlConfig conf(std::move(node), std::move(vmap));
 
   auto root_array = conf["root"];
   EXPECT_TRUE(root_array.Yaml().IsArray());
@@ -443,17 +437,19 @@ TEST(YamlConfig, IteratorArray) {
 
   // There are some few simple tests for substitutions. Main tests are done
   // in SquareBracketOperator
-  EXPECT_EQ(42, it->ParseInt("member1"));
-  EXPECT_EQ(42, mit->ParseInt("member1"));
-  EXPECT_EQ(42, cit->ParseInt("member1"));
-  EXPECT_EQ(std::chrono::seconds{10}, it->ParseDuration("duration"));
+  EXPECT_EQ(42, (*it)["member1"].As<int>());
+  EXPECT_EQ(42, (*mit)["member1"].As<int>());
+  EXPECT_EQ(42, (*cit)["member1"].As<int>());
+  EXPECT_EQ(std::chrono::seconds{10},
+            (*it)["duration"].As<std::chrono::milliseconds>());
 
   it++;
   ASSERT_NE(it, eit);
   EXPECT_NE(it, cit);
   EXPECT_NE(it, mit);
-  EXPECT_EQ("hello", it->ParseString("member2"));
-  EXPECT_EQ(std::chrono::milliseconds{10}, it->ParseDuration("duration"));
+  EXPECT_EQ("hello", (*it)["member2"].As<std::string>());
+  EXPECT_EQ(std::chrono::milliseconds{10},
+            (*it)["duration"].As<std::chrono::milliseconds>());
 
   it++;
   EXPECT_EQ(it, eit);

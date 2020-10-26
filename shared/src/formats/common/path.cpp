@@ -19,16 +19,8 @@ const std::array<std::string, kIndexCacheSize> kIndexCache = [] {
 
 }  // namespace
 
-Path Path::MakeChildPath(std::string_view key) const {
-  return Path(::formats::common::MakeChildPath(path_, key));
-}
-
-Path Path::MakeChildPath(std::size_t index) const {
-  return Path(::formats::common::MakeChildPath(path_, index));
-}
-
 void AppendPath(std::string& path, std::string_view key) {
-  if (!path.empty()) path += kPathSeparator;
+  if (!path.empty() && path.back() != '/') path += kPathSeparator;
   path += key;
 }
 
@@ -67,5 +59,24 @@ Path::Path(std::string path) : path_(std::move(path)) {}
 bool Path::IsRoot() const { return path_.empty(); }
 
 std::string Path::ToString() const { return IsRoot() ? kPathRoot : path_; }
+
+std::string_view Path::ToStringView() const {
+  return IsRoot() ? kPathRoot : std::string_view{path_};
+}
+
+Path Path::MakeChildPath(std::string_view key) const {
+  return Path(::formats::common::MakeChildPath(path_, key));
+}
+
+Path Path::MakeChildPath(std::size_t index) const {
+  return Path(::formats::common::MakeChildPath(path_, index));
+}
+
+Path Path::WithPrefix(std::string path_prefix) {
+  Path result;
+  result.path_ = std::move(path_prefix);
+  result.path_ += kPathPrefixSeparator;
+  return result;
+}
 
 }  // namespace formats::common

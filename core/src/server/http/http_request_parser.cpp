@@ -58,29 +58,26 @@ HttpRequestParser::HttpRequestParser(
   http_parser_init(&parser_, HTTP_REQUEST);
   parser_.data = this;
 
-  auto max_url_size = request_config.ParseOptionalUint64("max_url_size");
-  if (max_url_size) request_constructor_config_.max_url_size = *max_url_size;
+  request_constructor_config_.max_url_size =
+      request_config["max_url_size"].As<size_t>(
+          request_constructor_config_.max_url_size);
 
-  auto max_request_size =
-      request_config.ParseOptionalUint64("max_request_size");
-  if (max_request_size)
-    request_constructor_config_.max_request_size = *max_request_size;
+  request_constructor_config_.max_request_size =
+      request_config["max_request_size"].As<size_t>(
+          request_constructor_config_.max_request_size);
 
-  auto max_headers_size =
-      request_config.ParseOptionalUint64("max_headers_size");
-  if (max_headers_size)
-    request_constructor_config_.max_headers_size = *max_headers_size;
+  request_constructor_config_.max_headers_size =
+      request_config["max_headers_size"].As<size_t>(
+          request_constructor_config_.max_headers_size);
 
-  auto parse_args_from_body =
-      request_config.ParseOptionalBool("parse_args_from_body");
-  if (parse_args_from_body)
-    request_constructor_config_.parse_args_from_body = *parse_args_from_body;
+  request_constructor_config_.parse_args_from_body =
+      request_config["parse_args_from_body"].As<bool>(
+          request_constructor_config_.parse_args_from_body);
 }
 
 HttpRequestParser HttpRequestParser::CreateTestParser(OnNewRequestCb&& cb) {
   static const HandlerInfoIndex kTestHandlerInfoIndex;
-  static const server::request::RequestConfig kTestRequestConfig(
-      {}, "<test_config>", {});
+  static const server::request::RequestConfig kTestRequestConfig({{}, {}});
   static net::ParserStats test_stats;
   static request::ResponseDataAccounter test_accounter;
   HttpRequestParser parser(kTestHandlerInfoIndex, kTestRequestConfig,

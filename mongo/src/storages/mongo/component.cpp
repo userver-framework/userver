@@ -37,14 +37,14 @@ std::string GetSecdistConnectionString(const Secdist& secdist,
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
     : LoggableComponentBase(config, context) {
-  auto dbalias = config.ParseString("dbalias", {});
+  auto dbalias = config["dbalias"].As<std::string>("");
 
   std::string connection_string;
   if (!dbalias.empty()) {
     connection_string =
         GetSecdistConnectionString(context.FindComponent<Secdist>(), dbalias);
   } else {
-    connection_string = config.ParseString("dbconnection");
+    connection_string = config["dbconnection"].As<std::string>();
   }
 
   storages::mongo::PoolConfig pool_config(config);

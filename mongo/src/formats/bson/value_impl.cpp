@@ -77,7 +77,8 @@ void ForEachValue(const uint8_t* data, size_t length, const Path& path,
                   Func&& func) {
   bson_iter_t it;
   if (!bson_iter_init_from_data(&it, data, length)) {
-    throw ParseException("malformed BSON at " + path.ToString());
+    throw ParseException(
+        fmt::format(FMT_STRING("malformed BSON at {}"), path.ToStringView()));
   }
   while (bson_iter_next(&it)) {
     func(&it);
@@ -387,7 +388,7 @@ ValueImplPtr ValueImpl::operator[](const std::string& name) {
 
 ValueImplPtr ValueImpl::operator[](uint32_t index) {
   if (IsNull()) {
-    throw OutOfBoundsException(index, 0, path_.ToString());
+    throw OutOfBoundsException(index, 0, path_.ToStringView());
   }
 
   CheckIsArray();
@@ -566,31 +567,31 @@ void ValueImpl::EnsureParsed() {
           std::make_unique<ParsedValue>(std::in_place_type<ParsedArray>);
       auto& parsed_array = std::get<ParsedArray>(*data);
 
-      ForEachValue(
-          bson_value_.value.v_doc.data, bson_value_.value.v_doc.data_len, path_,
-          [this, &parsed_array,
-           indexer = ArrayIndexer()](bson_iter_t* it) mutable {
-            std::string_view expected_key = indexer.GetKey();
-            std::string_view actual_key(bson_iter_key(it),
-                                        bson_iter_key_len(it));
-            if (expected_key != actual_key) {
-              throw ParseException(
-                  "malformed BSON array at " + path_.ToString() +
-                  ": index mismatch, expected=" + std::string(expected_key) +
-                  ", got=" + std::string(actual_key));
-            }
+      ForEachValue(bson_value_.value.v_doc.data,
+                   bson_value_.value.v_doc.data_len, path_,
+                   [this, &parsed_array,
+                    indexer = ArrayIndexer()](bson_iter_t* it) mutable {
+                     std::string_view expected_key = indexer.GetKey();
+                     std::string_view actual_key(bson_iter_key(it),
+                                                 bson_iter_key_len(it));
+                     if (expected_key != actual_key) {
+                       throw ParseException(fmt::format(
+                           FMT_STRING("malformed BSON array at {}: index "
+                                      "mismatch, expected={}, got={}"),
+                           path_.ToStringView(), expected_key, actual_key));
+                     }
 
-            const bson_value_t* iter_value = bson_iter_value(it);
-            if (!iter_value) {
-              throw ParseException("malformed BSON element at " +
-                                   path_.ToString() + '[' +
-                                   std::string(expected_key) + ']');
-            }
-            parsed_array.push_back(std::make_shared<ValueImpl>(
-                EmplaceEnabler{}, storage_, path_, *iter_value,
-                duplicate_fields_policy_, indexer.Index()));
-            indexer.Advance();
-          });
+                     const bson_value_t* iter_value = bson_iter_value(it);
+                     if (!iter_value) {
+                       throw ParseException(fmt::format(
+                           FMT_STRING("malformed BSON element at {}[{}]"),
+                           path_.ToStringView(), expected_key));
+                     }
+                     parsed_array.push_back(std::make_shared<ValueImpl>(
+                         EmplaceEnabler{}, storage_, path_, *iter_value,
+                         duplicate_fields_policy_, indexer.Index()));
+                     indexer.Advance();
+                   });
       AtomicSetParsedValue(parsed_value_, std::move(data));
       break;
     }
@@ -604,8 +605,9 @@ void ValueImpl::EnsureParsed() {
             std::string_view key(bson_iter_key(it), bson_iter_key_len(it));
             const bson_value_t* iter_value = bson_iter_value(it);
             if (!iter_value) {
-              throw ParseException("malformed BSON element at " +
-                                   path_.ToString() + '.' + std::string(key));
+              throw ParseException(
+                  fmt::format(FMT_STRING("malformed BSON element at {}.{}"),
+                              path_.ToStringView(), key));
             }
             auto [parsed_it, is_new] = parsed_doc.emplace(
                 std::string(key),
@@ -615,8 +617,9 @@ void ValueImpl::EnsureParsed() {
             if (!is_new) {
               switch (duplicate_fields_policy_) {
                 case Value::DuplicateFieldsPolicy::kForbid:
-                  throw ParseException("duplicate key '" + std::string(key) +
-                                       "' at " + path_.ToString());
+                  throw ParseException(
+                      fmt::format(FMT_STRING("duplicate key '{}' at {}"), key,
+                                  path_.ToStringView()));
                 case Value::DuplicateFieldsPolicy::kUseFirst:
                   // leave current value as is
                   break;
@@ -695,7 +698,7 @@ bool ValueImpl::operator!=(ValueImpl& rhs) { return !(*this == rhs); }
 
 void ValueImpl::CheckNotMissing() const {
   if (Type() == BSON_TYPE_EOD) {
-    throw MemberMissingException(path_.ToString());
+    throw MemberMissingException(path_.ToStringView());
   }
 }
 
@@ -703,7 +706,7 @@ void ValueImpl::CheckIsDocumentOrArray() const {
   CheckNotMissing();
   if (!IsDocument() && !IsArray()) {
     throw TypeMismatchException(bson_value_.value_type, BSON_TYPE_DOCUMENT,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
@@ -711,7 +714,7 @@ void ValueImpl::CheckIsDocument() const {
   CheckNotMissing();
   if (!IsDocument()) {
     throw TypeMismatchException(bson_value_.value_type, BSON_TYPE_DOCUMENT,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
@@ -719,7 +722,7 @@ void ValueImpl::CheckIsArray() const {
   CheckNotMissing();
   if (!IsArray()) {
     throw TypeMismatchException(bson_value_.value_type, BSON_TYPE_ARRAY,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
@@ -727,7 +730,7 @@ void ValueImpl::CheckInBounds(uint32_t idx) const {
   CheckIsArray();
   const auto size = GetSize();
   if (idx >= size) {
-    throw OutOfBoundsException(idx, size, path_.ToString());
+    throw OutOfBoundsException(idx, size, path_.ToStringView());
   }
 }
 

@@ -292,9 +292,9 @@ constexpr std::chrono::milliseconds kStatementTimeoutOff{0};
 constexpr TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
 constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
 
-const std::string kCopyStage = "copy_data";
-const std::string kFetchStage = "fetch";
-const std::string kParseStage = "parse";
+constexpr std::string_view kCopyStage = "copy_data";
+constexpr std::string_view kFetchStage = "fetch";
+constexpr std::string_view kParseStage = "parse";
 }  // namespace pg_cache::detail
 
 template <typename PostgreCachePolicy>
@@ -351,15 +351,14 @@ template <typename PostgreCachePolicy>
 PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
                                                const ComponentContext& context)
     : BaseType{config, context, kName},
-      correction_{config.ParseDuration("update-correction",
-                                       std::chrono::milliseconds{0})},
+      correction_{config["update-correction"].As<std::chrono::milliseconds>(0)},
       full_update_timeout_{
-          config.ParseDuration("full-update-op-timeout",
-                               pg_cache::detail::kDefaultFullUpdateTimeout)},
-      incremental_update_timeout_{config.ParseDuration(
-          "incremental-update-op-timeout",
-          pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
-      chunk_size_{config.ParseUint64("chunk-size", 0)} {
+          config["full-update-op-timeout"].As<std::chrono::milliseconds>(
+              pg_cache::detail::kDefaultFullUpdateTimeout)},
+      incremental_update_timeout_{
+          config["incremental-update-op-timeout"].As<std::chrono::milliseconds>(
+              pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
+      chunk_size_{config["chunk-size"].As<size_t>(0)} {
   if (BaseType::AllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
@@ -375,7 +374,7 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
         config.Name() + "' cache");
   }
 
-  const auto pg_alias = config.ParseString("pgcomponent", {});
+  const auto pg_alias = config["pgcomponent"].As<std::string>("");
   if (pg_alias.empty()) {
     throw storages::postgres::InvalidConfig{
         "No `pgcomponent` entry in configuration"};
@@ -453,10 +452,10 @@ void PostgreCache<PostgreCachePolicy>::Update(
 
   // COPY current cached data
   auto scope = tracing::Span::CurrentSpan().CreateScopeTime(
-      pg_cache::detail::kCopyStage);
+      std::string{pg_cache::detail::kCopyStage});
   auto data_cache = GetDataSnapshot(type);
 
-  scope.Reset(pg_cache::detail::kFetchStage);
+  scope.Reset(std::string{pg_cache::detail::kFetchStage});
 
   size_t changes = 0;
   // Iterate clusters
@@ -468,11 +467,11 @@ void PostgreCache<PostgreCachePolicy>::Update(
       auto portal =
           trx.MakePortal(query, GetLastUpdated(last_update, *data_cache));
       while (portal) {
-        scope.Reset(pg_cache::detail::kFetchStage);
+        scope.Reset(std::string{pg_cache::detail::kFetchStage});
         auto res = portal.Fetch(chunk_size_);
         stats_scope.IncreaseDocumentsReadCount(res.Size());
 
-        scope.Reset(pg_cache::detail::kParseStage);
+        scope.Reset(std::string{pg_cache::detail::kParseStage});
         CacheResults(res, data_cache, stats_scope, scope);
         changes += res.Size();
       }
@@ -484,7 +483,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
           query, GetLastUpdated(last_update, *data_cache));
       stats_scope.IncreaseDocumentsReadCount(res.Size());
 
-      scope.Reset(pg_cache::detail::kParseStage);
+      scope.Reset(std::string{pg_cache::detail::kParseStage});
       CacheResults(res, data_cache, stats_scope, scope);
       changes += res.Size();
     }
@@ -493,7 +492,8 @@ void PostgreCache<PostgreCachePolicy>::Update(
   scope.Reset();
 
   if (changes > 0) {
-    auto elapsed = scope.ElapsedTotal(pg_cache::detail::kParseStage);
+    auto elapsed =
+        scope.ElapsedTotal(std::string{pg_cache::detail::kParseStage});
     if (elapsed > pg_cache::detail::kCpuRelaxThreshold) {
       cpu_relax_iterations_ = static_cast<std::size_t>(
           static_cast<double>(changes) /

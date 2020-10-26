@@ -172,14 +172,17 @@ pg_worker_threads: 4
 redis_threads: 8
 )";
 
+components::ManagerConfig MakeManagerConfig() {
+  return yaml_config::YamlConfig{
+      formats::yaml::FromString(kConfig)["components_manager"],
+      formats::yaml::FromString(kVariables)}
+      .As<components::ManagerConfig>();
+}
+
 }  // namespace
 
 TEST(ManagerConfig, Basic) {
-  auto vmap = std::make_shared<yaml_config::VariableMap>(
-      formats::yaml::FromString(kVariables));
-
-  components::ManagerConfig mc = components::ManagerConfig::ParseFromYaml(
-      formats::yaml::FromString(kConfig), "components_manager", vmap);
+  const auto mc = MakeManagerConfig();
 
   EXPECT_EQ(mc.default_task_processor, "main-task-processor");
   EXPECT_EQ(mc.coro_pool.max_size, 10000) << "config vars do not work";
@@ -192,22 +195,16 @@ TEST(ManagerConfig, Basic) {
 }
 
 TEST(ManagerConfig, HandlerConfig) {
-  auto vmap = std::make_shared<yaml_config::VariableMap>(
-      formats::yaml::FromString(kVariables));
-
-  components::ManagerConfig mc = components::ManagerConfig::ParseFromYaml(
-      formats::yaml::FromString(kConfig), "components_manager", vmap);
+  const auto mc = MakeManagerConfig();
 
   const auto it =
       std::find_if(mc.components.cbegin(), mc.components.cend(),
                    [](const auto& v) { return v.Name() == "tests-control"; });
   ASSERT_NE(it, mc.components.cend()) << "failed to find 'tests-control'";
 
-  EXPECT_EQ(it->FullPath(), "components_manager.components.tests-control");
+  EXPECT_EQ(it->GetPath(), "components_manager.components.tests-control");
 
-  server::handlers::HandlerConfig conf =
-      server::handlers::HandlerConfig::ParseFromYaml(it->Yaml(), it->FullPath(),
-                                                     it->ConfigVarsPtr());
+  const auto conf = it->As<server::handlers::HandlerConfig>();
 
   EXPECT_EQ(std::get<std::string>(conf.path), "/tests/control");
   EXPECT_EQ(conf.task_processor, "main-task-processor");

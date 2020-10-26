@@ -148,7 +148,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       "cache." + name_, std::bind(&CachingComponentBase<T>::ExtendStatistics,
                                   this, std::placeholders::_1));
 
-  if (config.ParseBool("config-settings", true) &&
+  if (config["config-settings"].As<bool>(true) &&
       cache::CacheConfigSet::IsConfigEnabled()) {
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
     config_subscription_ = taxi_config.UpdateAndListen(

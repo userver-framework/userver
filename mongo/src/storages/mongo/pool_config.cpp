@@ -40,22 +40,24 @@ void CheckDuration(const std::chrono::milliseconds& timeout, const char* name,
 
 PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
     : conn_timeout(
-          component_config.ParseDuration("conn_timeout", kDefaultConnTimeout)),
-      so_timeout(
-          component_config.ParseDuration("so_timeout", kDefaultSoTimeout)),
-      queue_timeout(component_config.ParseDuration("queue_timeout",
-                                                   kDefaultQueueTimeout)),
+          component_config["conn_timeout"].As<std::chrono::milliseconds>(
+              kDefaultConnTimeout)),
+      so_timeout(component_config["so_timeout"].As<std::chrono::milliseconds>(
+          kDefaultSoTimeout)),
+      queue_timeout(
+          component_config["queue_timeout"].As<std::chrono::milliseconds>(
+              kDefaultQueueTimeout)),
       initial_size(kDefaultInitialSize),
-      max_size(component_config.Parse<size_t>("max_size", kDefaultMaxSize)),
+      max_size(component_config["max_size"].As<size_t>(kDefaultMaxSize)),
       idle_limit(kDefaultIdleLimit),
-      connecting_limit(component_config.Parse<size_t>("connecting_limit",
-                                                      kDefaultConnectingLimit)),
-      local_threshold(
-          component_config.ParseOptionalDuration("local_threshold")),
-      maintenance_period(component_config.ParseDuration(
-          "maintenance_period", kDefaultMaintenancePeriod)),
-      app_name(
-          component_config.Parse<std::string>("appname", kDefaultAppName)) {
+      connecting_limit(component_config["connecting_limit"].As<size_t>(
+          kDefaultConnectingLimit)),
+      local_threshold(component_config["local_threshold"]
+                          .As<std::optional<std::chrono::milliseconds>>()),
+      maintenance_period(
+          component_config["maintenance_period"].As<std::chrono::milliseconds>(
+              kDefaultMaintenancePeriod)),
+      app_name(component_config["appname"].As<std::string>(kDefaultAppName)) {
   const auto& pool_id = component_config.Name();
   CheckDuration(conn_timeout, "connection timeout", pool_id);
   CheckDuration(so_timeout, "socket timeout", pool_id);
@@ -71,7 +73,7 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
   }
 
   auto user_idle_limit =
-      component_config.Parse<std::optional<size_t>>("idle_limit");
+      component_config["idle_limit"].As<std::optional<size_t>>();
   idle_limit = user_idle_limit ? *user_idle_limit
                                : std::min(kDefaultIdleLimit, max_size);
   if (idle_limit > max_size) {
@@ -80,7 +82,7 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
   }
 
   auto user_initial_size =
-      component_config.Parse<std::optional<size_t>>("initial_size");
+      component_config["initial_size"].As<std::optional<size_t>>();
   initial_size = user_initial_size ? *user_initial_size
                                    : std::min(kDefaultInitialSize, idle_limit);
   if (initial_size > idle_limit) {

@@ -91,8 +91,8 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
   LogScope log_scope{init_log_path};
 
   LOG_INFO() << "Parsing configs";
-  auto config = std::make_unique<ManagerConfig>(
-      ManagerConfig::ParseFromFile(config_path));
+  auto config =
+      std::make_unique<ManagerConfig>(ManagerConfig::FromFile(config_path));
   LOG_INFO() << "Parsed configs";
 
   LOG_DEBUG() << "Masking signals";
@@ -132,15 +132,15 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
       std::unique_ptr<ManagerConfig> new_config;
       try {
         new_config = std::make_unique<ManagerConfig>(
-            ManagerConfig::ParseFromFile(config_path));
+            ManagerConfig::FromFile(config_path));
       } catch (const std::exception& ex) {
         LOG_ERROR()
             << "Reload failed, cannot update components manager config: " << ex;
         continue;
       }
-      if (new_config->yaml == manager_ptr->GetConfig().yaml &&
-          new_config->config_vars_ptr->Yaml() ==
-              manager_ptr->GetConfig().config_vars_ptr->Yaml()) {
+      if (new_config->source.Yaml() == manager_ptr->GetConfig().source.Yaml() &&
+          new_config->source.SubstitutionMap() ==
+              manager_ptr->GetConfig().source.SubstitutionMap()) {
         LOG_INFO() << "Config unchanged, ignoring request";
         continue;
       }

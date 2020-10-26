@@ -6,6 +6,6 @@ ProcessStarter::ProcessStarter(const ComponentConfig& config,
                                const ComponentContext& context)
     : LoggableComponentBase(config, context),
       process_starter_(context.GetTaskProcessor(
-          config.Parse<std::string>("task_processor"))) {}
+          config["task_processor"].As<std::string>())) {}
 
 }  // namespace components

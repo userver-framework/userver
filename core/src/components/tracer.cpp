@@ -8,7 +8,7 @@ namespace components {
 
 Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
   auto& logging_component = context.FindComponent<Logging>();
-  auto service_name = config.ParseString("service-name");
+  auto service_name = config["service-name"].As<std::string>();
   try {
     auto opentracing_logger = logging_component.GetLogger("opentracing");
     tracing::SetOpentracingLogger(opentracing_logger);
@@ -18,7 +18,7 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
   }
   tracing::TracerPtr tracer;
 
-  auto tracer_type = config.ParseString("tracer");
+  auto tracer_type = config["tracer"].As<std::string>();
   if (tracer_type == "native") {
     tracer = tracing::MakeNoopTracer(service_name);
   } else {

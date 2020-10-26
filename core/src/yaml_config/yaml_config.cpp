@@ -1,157 +1,180 @@
 #include <yaml_config/yaml_config.hpp>
 
+#include <fmt/format.h>
+
+#include <formats/yaml/serialize.hpp>
+#include <logging/log.hpp>
 #include <utils/string_to_duration.hpp>
 
 namespace yaml_config {
 
-YamlConfig::YamlConfig(formats::yaml::Value yaml, std::string full_path,
-                       VariableMapPtr config_vars_ptr)
-    : yaml_(std::move(yaml)),
-      full_path_(std::move(full_path)),
-      config_vars_ptr_(std::move(config_vars_ptr)) {}
-
-YamlConfig YamlConfig::ParseFromYaml(
-    formats::yaml::Value yaml, std::string full_path,
-    yaml_config::VariableMapPtr config_vars_ptr) {
-  return YamlConfig(std::move(yaml), std::move(full_path),
-                    std::move(config_vars_ptr));
-}
+YamlConfig::YamlConfig(formats::yaml::Value yaml,
+                       formats::yaml::Value substitution_map)
+    : yaml_(std::move(yaml)), substitution_map_(std::move(substitution_map)) {}
 
 const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
-const std::string& YamlConfig::FullPath() const { return full_path_; }
-const yaml_config::VariableMapPtr& YamlConfig::ConfigVarsPtr() const {
-  return config_vars_ptr_;
+const formats::yaml::Value& YamlConfig::SubstitutionMap() const {
+  return substitution_map_;
 }
 
 int YamlConfig::ParseInt(std::string_view name) const {
-  return yaml_config::ParseInt(yaml_, name, full_path_, config_vars_ptr_);
+  return (*this)[name].As<int>();
 }
 
 int YamlConfig::ParseInt(std::string_view name, int default_value) const {
-  return yaml_config::ParseOptionalInt(yaml_, name, full_path_,
-                                       config_vars_ptr_)
-      .value_or(default_value);
+  return (*this)[name].As<int>(default_value);
 }
 
 std::optional<int> YamlConfig::ParseOptionalInt(std::string_view name) const {
-  return yaml_config::ParseOptionalInt(yaml_, name, full_path_,
-                                       config_vars_ptr_);
+  return (*this)[name].As<std::optional<int>>();
 }
 
 bool YamlConfig::ParseBool(std::string_view name) const {
-  return yaml_config::ParseBool(yaml_, name, full_path_, config_vars_ptr_);
+  return (*this)[name].As<bool>();
 }
 
 bool YamlConfig::ParseBool(std::string_view name, bool default_value) const {
-  return yaml_config::ParseOptionalBool(yaml_, name, full_path_,
-                                        config_vars_ptr_)
-      .value_or(default_value);
+  return (*this)[name].As<bool>(default_value);
 }
 
 std::optional<bool> YamlConfig::ParseOptionalBool(std::string_view name) const {
-  return yaml_config::ParseOptionalBool(yaml_, name, full_path_,
-                                        config_vars_ptr_);
+  return (*this)[name].As<std::optional<bool>>();
 }
 
 uint64_t YamlConfig::ParseUint64(std::string_view name) const {
-  return yaml_config::ParseUint64(yaml_, name, full_path_, config_vars_ptr_);
+  return (*this)[name].As<uint64_t>();
 }
 
 uint64_t YamlConfig::ParseUint64(std::string_view name,
                                  uint64_t default_value) const {
-  return yaml_config::ParseOptionalUint64(yaml_, name, full_path_,
-                                          config_vars_ptr_)
-      .value_or(default_value);
+  return (*this)[name].As<uint64_t>(default_value);
 }
 
 std::optional<uint64_t> YamlConfig::ParseOptionalUint64(
     std::string_view name) const {
-  return yaml_config::ParseOptionalUint64(yaml_, name, full_path_,
-                                          config_vars_ptr_);
+  return (*this)[name].As<std::optional<uint64_t>>();
 }
 
 std::string YamlConfig::ParseString(std::string_view name) const {
-  return yaml_config::ParseString(yaml_, name, full_path_, config_vars_ptr_);
+  return (*this)[name].As<std::string>();
 }
 
 std::string YamlConfig::ParseString(std::string_view name,
                                     std::string_view default_value) const {
-  auto opt = yaml_config::ParseOptionalString(yaml_, name, full_path_,
-                                              config_vars_ptr_);
-  return opt ? std::move(*opt) : std::string{default_value};
+  return (*this)[name].As<std::string>(default_value);
 }
 
 std::optional<std::string> YamlConfig::ParseOptionalString(
     std::string_view name) const {
-  return yaml_config::ParseOptionalString(yaml_, name, full_path_,
-                                          config_vars_ptr_);
+  return (*this)[name].As<std::optional<std::string>>();
 }
 
 std::chrono::milliseconds YamlConfig::ParseDuration(
     std::string_view name) const {
-  return utils::StringToDuration(ParseString(name));
+  return (*this)[name].As<std::chrono::milliseconds>();
 }
 
 std::chrono::milliseconds YamlConfig::ParseDuration(
     std::string_view name, std::chrono::milliseconds default_value) const {
-  const auto val = ParseOptionalString(name);
-  if (val) {
-    return utils::StringToDuration(*val);
-  }
-  return default_value;
+  return (*this)[name].As<std::chrono::milliseconds>(default_value);
 }
 
 std::optional<std::chrono::milliseconds> YamlConfig::ParseOptionalDuration(
     std::string_view name) const {
-  const auto val = ParseOptionalString(name);
-  if (val) {
-    return utils::StringToDuration(*val);
-  }
-
-  return {};
+  return (*this)[name].As<std::optional<std::chrono::milliseconds>>();
 }
 
+namespace {
+
+bool IsSubstitution(const formats::yaml::Value& value) {
+  if (!value.IsString()) return false;
+  const auto& str = value.As<std::string>();
+  return !str.empty() && str.front() == '$';
+}
+
+std::string GetSubstitutionVarName(const formats::yaml::Value& value) {
+  return value.As<std::string>().substr(1);
+}
+
+std::string GetFallbackName(std::string_view str) {
+  return std::string{str} + "#fallback";
+}
+
+template <typename Field>
+YamlConfig MakeMissingConfig(const YamlConfig& config, Field field) {
+  const auto path = formats::common::MakeChildPath(config.GetPath(), field);
+  return YamlConfig{formats::yaml::Value()[path], {}};
+}
+
+}  // namespace
+
 YamlConfig YamlConfig::operator[](std::string_view key) const {
-  if (!IsMissing()) {
-    yaml_.CheckObject();
+  auto value = yaml_[key];
+
+  if (IsSubstitution(value)) {
+    const auto var_name = GetSubstitutionVarName(value);
+
+    auto var_data = substitution_map_[var_name];
+    if (!var_data.IsMissing()) {
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{std::move(var_data), {}};
+    }
+
+    const auto fallback_name = GetFallbackName(key);
+
+    if (yaml_.HasMember(fallback_name)) {
+      LOG_INFO() << "using default value for config variable '" << var_name
+                 << '\'';
+      return YamlConfig{yaml_[fallback_name], substitution_map_};
+    }
+
+    // Avoid parsing $substitution as a string
+    return MakeMissingConfig(*this, key);
   }
-  auto result_opt = yaml_config::ParseOptional<YamlConfig>(
-      yaml_, key, full_path_, config_vars_ptr_);
-  if (result_opt) {
-    return std::move(*result_opt);
-  } else {
-    std::string child_path = formats::common::MakeChildPath(full_path_, key);
-    auto missing_yaml = formats::yaml::Value()[child_path];
-    return YamlConfig{std::move(missing_yaml), std::move(child_path),
-                      config_vars_ptr_};
-  }
+
+  return YamlConfig{std::move(value), substitution_map_};
 }
 
 YamlConfig YamlConfig::operator[](size_t index) const {
-  if (!IsMissing()) {
-    yaml_.CheckArray();
+  auto value = yaml_[index];
+
+  if (IsSubstitution(value)) {
+    const auto var_name = GetSubstitutionVarName(value);
+
+    auto var_data = substitution_map_[var_name];
+    if (!var_data.IsMissing()) {
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{std::move(var_data), {}};
+    }
+
+    // Avoid parsing $substitution as a string
+    return MakeMissingConfig(*this, index);
   }
-  auto result_opt = yaml_config::ParseOptional<YamlConfig>(
-      yaml_, index, full_path_, config_vars_ptr_);
-  if (result_opt) {
-    return std::move(*result_opt);
-  } else {
-    std::string child_path = formats::common::MakeChildPath(full_path_, index);
-    auto missing_yaml = formats::yaml::Value()[child_path];
-    return YamlConfig{std::move(missing_yaml), std::move(child_path),
-                      config_vars_ptr_};
-  }
+
+  return YamlConfig(std::move(value), substitution_map_);
 }
+
+std::size_t YamlConfig::GetSize() const { return yaml_.GetSize(); }
 
 bool YamlConfig::IsMissing() const { return yaml_.IsMissing(); }
 
 bool YamlConfig::IsNull() const { return yaml_.IsNull(); }
 
-YamlConfig::const_iterator YamlConfig::begin() const {
-  return const_iterator{*this, yaml_.begin()};
+bool YamlConfig::IsInt64() const { return yaml_.IsInt64(); }
+
+bool YamlConfig::IsUInt64() const { return yaml_.IsUInt64(); }
+
+void YamlConfig::CheckArrayOrNull() const { yaml_.CheckArrayOrNull(); }
+
+void YamlConfig::CheckObjectOrNull() const { yaml_.CheckObjectOrNull(); }
+
+bool YamlConfig::HasMember(std::string_view key) const {
+  return yaml_.HasMember(key);
 }
 
-YamlConfig::const_iterator YamlConfig::cbegin() const {
+std::string YamlConfig::GetPath() const { return yaml_.GetPath(); }
+
+YamlConfig::const_iterator YamlConfig::begin() const {
   return const_iterator{*this, yaml_.begin()};
 }
 
@@ -159,8 +182,61 @@ YamlConfig::const_iterator YamlConfig::end() const {
   return const_iterator{*this, yaml_.end()};
 }
 
-YamlConfig::const_iterator YamlConfig::cend() const {
-  return const_iterator{*this, yaml_.end()};
+template <>
+bool YamlConfig::As<bool>() const {
+  return yaml_.As<bool>();
+}
+
+template <>
+int64_t YamlConfig::As<int64_t>() const {
+  return yaml_.As<int64_t>();
+}
+
+template <>
+uint64_t YamlConfig::As<uint64_t>() const {
+  return yaml_.As<uint64_t>();
+}
+
+template <>
+double YamlConfig::As<double>() const {
+  return yaml_.As<double>();
+}
+
+template <>
+std::string YamlConfig::As<std::string>() const {
+  return yaml_.As<std::string>();
+}
+
+YamlConfig FromString(const std::string& string) {
+  return {formats::yaml::FromString(string), {}};
+}
+
+std::chrono::seconds Parse(const YamlConfig& value,
+                           formats::parse::To<std::chrono::seconds>) {
+  const auto as_milliseconds =
+      Parse(value, formats::parse::To<std::chrono::milliseconds>{});
+  const auto as_seconds =
+      std::chrono::duration_cast<std::chrono::seconds>(as_milliseconds);
+
+  if (as_seconds != as_milliseconds) {
+    throw ParseException(
+        fmt::format(FMT_STRING("While parsing '{}': '{}' cannot be represented "
+                               "as milliseconds without precision loss"),
+                    value.GetPath(), value.As<std::string>()));
+  }
+
+  return as_seconds;
+}
+
+std::chrono::milliseconds Parse(const YamlConfig& value,
+                                formats::parse::To<std::chrono::milliseconds>) {
+  const auto as_string = value.As<std::string>();
+  try {
+    return utils::StringToDuration(as_string);
+  } catch (const std::exception& ex) {
+    throw ParseException(fmt::format(FMT_STRING("While parsing '{}': {}"),
+                                     value.GetPath(), ex.what()));
+  }
 }
 
 }  // namespace yaml_config

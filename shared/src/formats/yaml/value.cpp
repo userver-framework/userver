@@ -6,7 +6,6 @@
 
 #include <compiler/demangle.hpp>
 #include <formats/yaml/exception.hpp>
-#include <utils/assert.hpp>
 
 #include "exttypes.hpp"
 #include "string_view_support.hpp"
@@ -59,6 +58,14 @@ Value& Value::operator=(const Value& other) {
 Value::~Value() = default;
 
 Value::Value(const YAML::Node& root) noexcept : value_pimpl_(root) {}
+
+Value::Value(Value&& other, std::string path_prefix)
+    : value_pimpl_(std::move(other.value_pimpl_)),
+      path_(Path::WithPrefix(std::move(path_prefix))) {
+  if (!other.path_.IsRoot()) {
+    throw PathPrefixException(other.path_.ToStringView(), path_prefix);
+  }
+}
 
 Value::Value(EmplaceEnabler, const YAML::Node& value,
              const formats::yaml::Path& path, std::string_view key)
@@ -145,7 +152,7 @@ T Value::ValueAs() const {
   auto res = value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
   if (!ok) {
     throw TypeMismatchException(*value_pimpl_, compiler::GetTypeName<T>(),
-                                path_.ToString());
+                                path_.ToStringView());
   }
   return res;
 }
@@ -227,56 +234,56 @@ int Value::GetExtendedType() const {
 
 void Value::CheckNotMissing() const {
   if (IsMissing()) {
-    throw MemberMissingException(path_.ToString());
+    throw MemberMissingException(path_.ToStringView());
   }
 }
 
 void Value::CheckArray() const {
   if (!IsArray()) {
     throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
 void Value::CheckArrayOrNull() const {
   if (!IsArray() && !IsNull()) {
     throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
 void Value::CheckObjectOrNull() const {
   if (!IsObject() && !IsNull()) {
     throw TypeMismatchException(GetExtendedType(), impl::objectValue,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
 void Value::CheckObject() const {
   if (!IsObject()) {
     throw TypeMismatchException(GetExtendedType(), impl::objectValue,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
 void Value::CheckString() const {
   if (!IsString()) {
     throw TypeMismatchException(GetExtendedType(), impl::scalarValue,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
   if (!IsObject() && !IsArray() && !IsNull()) {
     throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
-                                path_.ToString());
+                                path_.ToStringView());
   }
 }
 
 void Value::CheckInBounds(std::size_t index) const {
   CheckArrayOrNull();
   if (!(*value_pimpl_)[index]) {
-    throw OutOfBoundsException(index, GetSize(), path_.ToString());
+    throw OutOfBoundsException(index, GetSize(), path_.ToStringView());
   }
 }
 

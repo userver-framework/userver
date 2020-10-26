@@ -3,9 +3,7 @@
 #include <optional>
 #include <string>
 
-#include <formats/yaml.hpp>
-
-#include <yaml_config/variable_map.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 #include <server/net/listener_config.hpp>
 
@@ -17,12 +15,9 @@ struct ServerConfig {
   std::optional<std::string> logger_access;
   std::optional<std::string> logger_access_tskv;
   std::optional<size_t> max_response_size_in_flight;
-
-  yaml_config::VariableMapPtr config_vars_ptr;
-
-  static ServerConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
+
+ServerConfig Parse(const yaml_config::YamlConfig& value,
+                   formats::parse::To<ServerConfig>);
 
 }  // namespace server

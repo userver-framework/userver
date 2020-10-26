@@ -14,8 +14,6 @@
 
 namespace {
 
-const std::string kEngineMonitorDataName = "engine";
-
 formats::json::ValueBuilder GetTaskProcessorStats(
     const engine::TaskProcessor& task_processor) {
   const auto& counter = task_processor.GetTaskCounter();
@@ -75,7 +73,7 @@ ManagerControllerComponent::ManagerControllerComponent(
       this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
 
   statistics_holder_ = storage.RegisterExtender(
-      kEngineMonitorDataName,
+      "engine",
       [this](const auto& request) { return ExtendStatistics(request); });
 
   auto& logger_component = context.FindComponent<components::Logging>();

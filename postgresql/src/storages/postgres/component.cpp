@@ -164,11 +164,11 @@ Postgres::Postgres(const ComponentConfig& config,
   TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
   auto cmd_ctl = GetCommandControlConfig(cfg);
 
-  const auto dbalias = config.ParseString("dbalias", {});
+  const auto dbalias = config["dbalias"].As<std::string>("");
 
   std::vector<pg::DsnList> cluster_desc;
   if (dbalias.empty()) {
-    const pg::Dsn dsn{config.ParseString("dbconnection")};
+    const pg::Dsn dsn{config["dbconnection"].As<std::string>()};
     const auto options = pg::OptionsFromDsn(dsn);
     db_name_ = options.dbname;
     cluster_desc.push_back(pg::SplitByHost(dsn));
@@ -188,31 +188,32 @@ Postgres::Postgres(const ComponentConfig& config,
 
   storages::postgres::TopologySettings topology_settings;
   topology_settings.max_replication_lag =
-      config.ParseDuration("max_replication_lag", kDefaultMaxReplicationLag);
+      config["max_replication_lag"].As<std::chrono::milliseconds>(
+          kDefaultMaxReplicationLag);
 
   storages::postgres::PoolSettings pool_settings;
   pool_settings.min_size =
-      config.ParseUint64("min_pool_size", kDefaultMinPoolSize);
+      config["min_pool_size"].As<size_t>(kDefaultMinPoolSize);
   pool_settings.max_size =
-      config.ParseUint64("max_pool_size", kDefaultMaxPoolSize);
+      config["max_pool_size"].As<size_t>(kDefaultMaxPoolSize);
   pool_settings.max_queue_size =
-      config.ParseUint64("max_queue_size", kDefaultMaxQueueSize);
-  pool_settings.sync_start = config.ParseBool("sync-start", true);
+      config["max_queue_size"].As<size_t>(kDefaultMaxQueueSize);
+  pool_settings.sync_start = config["sync-start"].As<bool>(true);
   pool_settings.db_name = db_name_;
 
   storages::postgres::ConnectionSettings conn_settings;
   conn_settings.prepared_statements =
-      config.ParseBool("persistent-prepared-statements", true)
+      config["persistent-prepared-statements"].As<bool>(true)
           ? pg::ConnectionSettings::kCachePreparedStatements
           : pg::ConnectionSettings::kNoPreparedStatements;
 
   const auto task_processor_name =
-      config.ParseString("blocking_task_processor");
+      config["blocking_task_processor"].As<std::string>();
   auto* bg_task_processor = &context.GetTaskProcessor(task_processor_name);
 
   error_injection::Settings ei_settings;
   auto ei_settings_opt =
-      config.Parse<std::optional<error_injection::Settings>>("error-injection");
+      config["error-injection"].As<std::optional<error_injection::Settings>>();
   if (ei_settings_opt) ei_settings = *ei_settings_opt;
 
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(

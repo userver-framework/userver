@@ -5,18 +5,10 @@
 
 namespace components {
 
-namespace {
-
-engine::TaskProcessorConfig GetConfig(const ComponentConfig& config) {
-  return engine::TaskProcessorConfig::ParseFromYaml(
-      config.Yaml(), config.FullPath(), config.ConfigVarsPtr());
-}
-
-}  // namespace
-
 SingleThreadedTaskProcessors::SingleThreadedTaskProcessors(
     const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context), pool_(GetConfig(config)) {}
+    : LoggableComponentBase(config, context),
+      pool_(config.As<engine::TaskProcessorConfig>()) {}
 
 SingleThreadedTaskProcessors::~SingleThreadedTaskProcessors() = default;
 

@@ -18,9 +18,7 @@
 
 namespace {
 
-const std::string kEngineMonitorDataName = "engine";
-
-const auto kMaxCpu = 32;
+constexpr int kMaxCpu = 32;
 
 template <typename Func>
 auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
@@ -214,7 +212,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
     component_config_map.emplace(name, component_config);
 
     // Delete component from context to make FindComponentOptional() work
-    if (!component_config.ParseOptionalBool("load-enabled").value_or(true)) {
+    if (!component_config["load-enabled"].As<bool>(true)) {
       component_context_->RemoveComponent(name);
     }
   }
@@ -298,8 +296,7 @@ void Manager::AddComponentImpl(
     throw std::runtime_error("Cannot start component " + name +
                              ": missing config");
   }
-  auto enabled =
-      config_it->second.ParseOptionalBool("load-enabled").value_or(true);
+  auto enabled = config_it->second["load-enabled"].As<bool>(true);
   if (!enabled) {
     LOG_INFO() << "Component " << name
                << " load disabled in config.yaml, skipping";

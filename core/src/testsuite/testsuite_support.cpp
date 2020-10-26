@@ -6,17 +6,6 @@ namespace components {
 
 namespace {
 
-const std::string kPeriodicUpdateEnabled = "testsuite-periodic-update-enabled";
-
-const std::string kPostgresExecuteTimeout = "testsuite-pg-execute-timeout";
-const std::string kPostgresStatementTimeout = "testsuite-pg-statement-timeout";
-const std::string kPostgresReadonlyMasterExpected =
-    "testsuite-pg-readonly-master-expected";
-
-const std::string kRedisConnectTimeout = "testsuite-redis-timeout-connect";
-const std::string kRedisTimeoutSingle = "testsuite-redis-timeout-single";
-const std::string kRedisTimeoutAll = "testsuite-redis-timeout-all";
-
 testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
     const std::optional<bool>& config_value) {
   using PeriodicUpdatesMode = testsuite::CacheControl::PeriodicUpdatesMode;
@@ -28,11 +17,9 @@ testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
 testsuite::PostgresControl ParsePostgresControl(
     const components::ComponentConfig& config) {
   return testsuite::PostgresControl(
-      config.ParseDuration(kPostgresExecuteTimeout,
-                           std::chrono::milliseconds::zero()),
-      config.ParseDuration(kPostgresStatementTimeout,
-                           std::chrono::milliseconds::zero()),
-      config.ParseBool(kPostgresReadonlyMasterExpected, false)
+      config["testsuite-pg-execute-timeout"].As<std::chrono::milliseconds>(0),
+      config["testsuite-pg-statement-timeout"].As<std::chrono::milliseconds>(0),
+      config["testsuite-pg-readonly-master-expected"].As<bool>(false)
           ? testsuite::PostgresControl::ReadonlyMaster::kExpected
           : testsuite::PostgresControl::ReadonlyMaster::kNotExpected);
 }
@@ -40,11 +27,10 @@ testsuite::PostgresControl ParsePostgresControl(
 testsuite::RedisControl ParseRedisControl(
     const components::ComponentConfig& config) {
   return testsuite::RedisControl{
-      config.ParseDuration(kRedisConnectTimeout,
-                           std::chrono::milliseconds::zero()),
-      config.ParseDuration(kRedisTimeoutSingle,
-                           std::chrono::milliseconds::zero()),
-      config.ParseDuration(kRedisTimeoutAll, std::chrono::milliseconds::zero()),
+      config["testsuite-redis-timeout-connect"].As<std::chrono::milliseconds>(
+          0),
+      config["testsuite-redis-timeout-single"].As<std::chrono::milliseconds>(0),
+      config["testsuite-redis-timeout-all"].As<std::chrono::milliseconds>(0),
   };
 }
 
@@ -52,8 +38,9 @@ testsuite::RedisControl ParseRedisControl(
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
                                    const components::ComponentContext&)
-    : cache_control_(ParsePeriodicUpdatesMode(
-          config.ParseOptionalBool(kPeriodicUpdateEnabled))),
+    : cache_control_(
+          ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
+                                       .As<std::optional<bool>>())),
       postgres_control_(ParsePostgresControl(config)),
       redis_control_(ParseRedisControl(config)) {}
 

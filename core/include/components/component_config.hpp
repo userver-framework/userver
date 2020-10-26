@@ -4,28 +4,23 @@
 #include <string>
 #include <unordered_map>
 
-#include <formats/yaml.hpp>
-
-#include <yaml_config/variable_map.hpp>
 #include <yaml_config/yaml_config.hpp>
 
 namespace components {
 
 class ComponentConfig final : public yaml_config::YamlConfig {
  public:
-  ComponentConfig(formats::yaml::Value yaml, std::string full_path,
-                  yaml_config::VariableMapPtr config_vars_ptr);
+  ComponentConfig(yaml_config::YamlConfig value);
 
   const std::string& Name() const;
-  void SetName(const std::string& name);
-
-  static ComponentConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
+  void SetName(std::string name);
 
  private:
   std::string name_;
 };
+
+ComponentConfig Parse(const yaml_config::YamlConfig& value,
+                      formats::parse::To<ComponentConfig>);
 
 using ComponentConfigMap =
     std::unordered_map<std::string, const ComponentConfig&>;

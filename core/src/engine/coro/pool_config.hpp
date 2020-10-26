@@ -3,8 +3,7 @@
 #include <string>
 
 #include <formats/yaml.hpp>
-
-#include <yaml_config/variable_map.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 namespace engine {
 namespace coro {
@@ -12,11 +11,10 @@ namespace coro {
 struct PoolConfig {
   size_t initial_size = 1000;
   size_t max_size = 10000;
-
-  static PoolConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
 };
+
+PoolConfig Parse(const yaml_config::YamlConfig& value,
+                 formats::parse::To<PoolConfig>);
 
 }  // namespace coro
 }  // namespace engine

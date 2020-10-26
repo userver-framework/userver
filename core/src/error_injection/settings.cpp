@@ -3,12 +3,12 @@
 #include <unordered_map>
 
 #include <formats/yaml/value.hpp>
-#include <yaml_config/value.hpp>
-#include <yaml_config/variable_map.hpp>
+#include <logging/log.hpp>
 
 namespace error_injection {
 
-Verdict Parse(const formats::yaml::Value& yaml, formats::parse::To<Verdict>) {
+Verdict Parse(const yaml_config::YamlConfig& yaml,
+              formats::parse::To<Verdict>) {
   // No skip
   static const std::unordered_map<std::string, Verdict> verdicts_by_name = {
       {"timeout", Verdict::Timeout},
@@ -25,18 +25,12 @@ Verdict Parse(const formats::yaml::Value& yaml, formats::parse::To<Verdict>) {
                            value + '\'');
 }
 
-Settings Settings::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
+Settings Parse(const yaml_config::YamlConfig& value,
+               formats::parse::To<Settings>) {
   Settings settings;
-  yaml_config::ParseInto(settings.enabled, yaml, "enabled", full_path,
-                         config_vars_ptr);
-
-  yaml_config::ParseInto(settings.probability, yaml, "probability", full_path,
-                         config_vars_ptr);
-
-  yaml_config::ParseInto(settings.possible_verdicts, yaml, "verdicts",
-                         full_path, config_vars_ptr);
+  settings.enabled = value["enabled"].As<bool>();
+  settings.probability = value["probability"].As<double>();
+  settings.possible_verdicts = value["verdicts"].As<std::vector<Verdict>>();
 
   LOG_DEBUG() << "enabled = " << settings.enabled
               << " probability = " << settings.probability;

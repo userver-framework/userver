@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <iterator>
 #include <string>
+#include <type_traits>
 
 namespace formats::common {
 
@@ -11,17 +12,17 @@ class ItemsWrapper final {
  public:
   class Iterator {
    public:
+    using RawIterator = decltype(std::declval<Value>().begin());
+
     struct ItValue {
       std::string key;
-      const Value& value;
+      typename RawIterator::reference value;
     };
+
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = ItValue;
-    using reference = const Value&;
-    using pointer = const Value*;
-
-    using RawIterator = decltype(Value{}.begin());
+    using reference = ItValue;
 
     explicit Iterator(RawIterator it) : it_(it) {}
     Iterator(const Iterator& other) = default;
@@ -50,7 +51,7 @@ class ItemsWrapper final {
     RawIterator it_;
   };
 
-  ItemsWrapper(const Value& value) : value_(value) {}
+  ItemsWrapper(Value&& value) : value_(static_cast<Value&&>(value)) {}
 
   auto begin() const { return cbegin(); }
   auto end() const { return cend(); }
@@ -58,12 +59,14 @@ class ItemsWrapper final {
   auto cend() const { return Iterator(value_.end()); }
 
  private:
-  const Value& value_;
+  Value value_;
 };
 
 template <typename Value>
-inline auto Items(const Value& value) {
-  return common::ItemsWrapper<typename std::decay<Value>::type>(value);
+inline auto Items(Value&& value) {
+  // when passed an lvalue, store by reference
+  // when passed an rvalue, store by value
+  return ItemsWrapper<Value>(static_cast<Value&&>(value));
 }
 
 }  // namespace formats::common

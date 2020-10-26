@@ -8,8 +8,8 @@ namespace components {
 
 Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
     : LoggableComponentBase(config, context) {
-  auto config_path = config.ParseString("config");
-  bool missing_ok = config.ParseBool("missing-ok", false);
+  const auto config_path = config["config"].As<std::string>();
+  bool missing_ok = config["missing-ok"].As<bool>(false);
   secdist_config_ = storages::secdist::SecdistConfig(config_path, missing_ok);
 }
 

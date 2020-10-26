@@ -17,15 +17,18 @@ TestsControl::TestsControl(
     : HttpHandlerJsonBase(config, component_context),
       testsuite_support_(
           component_context.FindComponent<components::TestsuiteSupport>()) {
-  auto testpoint_url = config.ParseOptionalString("testpoint-url");
-  auto skip_unregistered_testpoints =
-      config.ParseBool("skip-unregistered-testpoints", false);
+  const auto testpoint_url =
+      config["testpoint-url"].As<std::optional<std::string>>();
+  const auto skip_unregistered_testpoints =
+      config["skip-unregistered-testpoints"].As<bool>(false);
+
   if (testpoint_url) {
     auto& http_client =
         component_context.FindComponent<components::HttpClient>()
             .GetHttpClient();
-    auto testpoint_timeout =
-        config.ParseDuration("testpoint-timeout", std::chrono::seconds(1));
+    const auto testpoint_timeout =
+        config["testpoint-timeout"].As<std::chrono::milliseconds>(
+            std::chrono::seconds(1));
     auto& tp = testsuite::impl::TestPoint::GetInstance();
     tp.Setup(http_client, *testpoint_url, testpoint_timeout,
              skip_unregistered_testpoints);

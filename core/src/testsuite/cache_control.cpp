@@ -7,8 +7,7 @@
 
 namespace {
 
-const std::string kInvalidatorSpanTag = "cache_invalidate";
-const std::string kForcePeriodicUpdate = "testsuite-force-periodic-update";
+constexpr std::string_view kInvalidatorSpanTag = "cache_invalidate";
 
 }  // namespace
 
@@ -33,8 +32,8 @@ void CacheControl::UnregisterCacheInvalidator(cache::CacheUpdateTrait& owner) {
 bool CacheControl::IsPeriodicUpdateEnabled(
     const components::ComponentConfig& cache_config,
     const std::string& cache_name) const {
-  const auto& is_periodic_update_forced =
-      cache_config.ParseOptionalBool(kForcePeriodicUpdate);
+  const auto is_periodic_update_forced =
+      cache_config["testsuite-force-periodic-update"].As<std::optional<bool>>();
 
   bool enabled = true;
   std::string reason;
@@ -59,7 +58,7 @@ void CacheControl::InvalidateAllCaches(cache::UpdateType update_type) {
   std::lock_guard lock(mutex_);
 
   for (const auto& invalidator : invalidators_) {
-    tracing::Span span(kInvalidatorSpanTag);
+    tracing::Span span(std::string{kInvalidatorSpanTag});
     UASSERT(invalidator.owner);
     invalidator.callback(*invalidator.owner, update_type);
   }
@@ -73,7 +72,7 @@ void CacheControl::InvalidateCaches(cache::UpdateType update_type,
   for (const auto& invalidator : invalidators_) {
     if (std::find(names.begin(), names.end(), invalidator.owner->GetName()) !=
         names.end()) {
-      tracing::Span span(kInvalidatorSpanTag);
+      tracing::Span span(std::string{kInvalidatorSpanTag});
       UASSERT(invalidator.owner);
       invalidator.callback(*invalidator.owner, update_type);
     }

@@ -246,23 +246,14 @@ class Value final {
 
 template <typename T>
 T Value::As() const {
-  if constexpr (impl::kHasParseJsonFor<T>) {
-    const T* dont_use_me = nullptr;
-    return ParseJson(*this, dont_use_me);  // TODO: deprecate
-  } else {
-    static_assert(
-        formats::common::kHasParseTo<Value, T>,
-        "There is no `ParseJson(const formats::json::Value&, const T*)` "
-        "in namespace of `T` and no "
-        "`Parse(const Value&, formats::parse::To<T>)` in namespace of "
-        "`T` or `formats::parse`."
-        ""
-        "Probably you forgot to include the "
-        "<formats/parse/common_containers.hpp> or you "
-        "have not provided a `ParseJson` or `Parse` function overload.");
+  static_assert(formats::common::kHasParseTo<Value, T>,
+                "There is no `Parse(const Value&, formats::parse::To<T>)` "
+                "in namespace of `T` or `formats::parse`. "
+                "Probably you forgot to include the "
+                "<formats/parse/common_containers.hpp> or you "
+                "have not provided a `Parse` function overload.");
 
-    return Parse(*this, formats::parse::To<T>{});
-  }
+  return Parse(*this, formats::parse::To<T>{});
 }
 
 template <>
@@ -309,8 +300,7 @@ T Value::ConvertTo() const {
   static_assert(
       formats::common::kHasConvertTo<Value, T>,
       "There is no `Convert(const Value&, formats::parse::To<T>)` in "
-      "namespace of `T` or `formats::parse`."
-      ""
+      "namespace of `T` or `formats::parse`. "
       "Probably you have not provided a `Convert` function overload.");
 
   return Convert(*this, formats::parse::To<T>{});
@@ -332,10 +322,14 @@ inline Value Parse(const Value& value, parse::To<Value>) { return value; }
 /// @code
 ///   for (const auto& [name, value]: Items(map)) ...
 /// @endcode
-inline auto Items(const Value& value) {
-  return common::ItemsWrapper<Value>(value);
-}
+using formats::common::Items;
 
-void Items(Value&& value) = delete;
+// TODO: clean up in uservices and remove
+template <typename T>
+[[deprecated("Implement Parse for your type instead")]] std::enable_if_t<
+    impl::kHasParseJsonFor<T>, T>
+Parse(std::reference_wrapper<const Value> value, parse::To<T>) {
+  return ParseJson(value.get(), static_cast<const T*>(nullptr));
+}
 
 }  // namespace formats::json

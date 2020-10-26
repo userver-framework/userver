@@ -3,37 +3,20 @@
 #include <stdexcept>
 #include <string>
 
-#include <yaml_config/value.hpp>
-
 namespace server::net {
 
-namespace {
-
-int CheckPort(int port, const std::string& name) {
-  if (port < 0 || port >= 65536) {
-    throw std::runtime_error("Invalid " + name);
-  }
-  return port;
-}
-
-}  // namespace
-
-ListenerConfig ListenerConfig::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
+ListenerConfig Parse(const yaml_config::YamlConfig& value,
+                     formats::parse::To<ListenerConfig>) {
   ListenerConfig config;
-  config.connection_config = ConnectionConfig::ParseFromYaml(
-      yaml["connection"], full_path + ".connection", config_vars_ptr);
 
-  auto optional_port =
-      yaml_config::ParseOptionalInt(yaml, "port", full_path, config_vars_ptr);
-  auto optional_unix = yaml_config::ParseOptionalString(
-      yaml, "unix-socket", full_path, config_vars_ptr);
-
-  if (optional_port)
-    config.port = CheckPort(*optional_port, full_path + ".port");
-  if (optional_unix && !optional_unix->empty())
-    config.unix_socket_path = *optional_unix;
+  config.connection_config = value["connection"].As<ConnectionConfig>();
+  config.port = value["port"].As<uint16_t>(0);
+  config.unix_socket_path = value["unix-socket"].As<std::string>("");
+  config.max_connections =
+      value["max_connections"].As<size_t>(config.max_connections);
+  config.shards = value["shards"].As<std::optional<size_t>>(config.shards);
+  config.task_processor = value["task_processor"].As<std::string>();
+  config.backlog = value["backlog"].As<int>(config.backlog);
 
   if (config.port != 0 && !config.unix_socket_path.empty())
     throw std::runtime_error(
@@ -43,22 +26,10 @@ ListenerConfig ListenerConfig::ParseFromYaml(
     throw std::runtime_error(
         "Either non-zero 'port' or non-empty 'unix-socket' fields must be set");
 
-  auto optional_backlog = yaml_config::ParseOptionalInt(
-      yaml, "backlog", full_path, config_vars_ptr);
-  if (optional_backlog) config.backlog = *optional_backlog;
   if (config.backlog <= 0) {
-    throw std::runtime_error("Invalid backlog value in " + full_path);
+    throw std::runtime_error("Invalid backlog value in " + value.GetPath());
   }
 
-  auto optional_max_connections = yaml_config::ParseOptionalUint64(
-      yaml, "max_connections", full_path, config_vars_ptr);
-  if (optional_max_connections)
-    config.max_connections = *optional_max_connections;
-
-  config.shards = yaml_config::ParseOptionalUint64(yaml, "shards", full_path,
-                                                   config_vars_ptr);
-  config.task_processor = yaml_config::ParseString(yaml, "task_processor",
-                                                   full_path, config_vars_ptr);
   return config;
 }
 

@@ -56,9 +56,16 @@ class Value final {
 
   ~Value();
 
+  /// @brief Copies `other`, appending `path_prefix` to the stored `path`
+  /// @warning `other` must have an empty (root) path
+  /// @throw `std::logic_error` if `other` has path other than the root path
+  /// @see GetPath
+  Value(Value&& other, std::string path_prefix);
+
   /// @brief Access member by key for read.
   /// @throw TypeMismatchException if not object or null value.
   Value operator[](std::string_view key) const;
+
   /// @brief Access array member by index for read.
   /// @throw TypeMismatchException if not array value.
   /// @throw `OutOfBoundsException` if index is greater or equal
@@ -97,27 +104,27 @@ class Value final {
   /// @throw Nothing.
   bool IsNull() const;
 
-  /// @brief Returns true if *this is convertable to bool.
+  /// @brief Returns true if *this is convertible to bool.
   /// @throw Nothing.
   bool IsBool() const;
 
-  /// @brief Returns true if *this is convertable to int.
+  /// @brief Returns true if *this is convertible to int.
   /// @throw Nothing.
   bool IsInt() const;
 
-  /// @brief Returns true if *this is convertable to int64_t.
+  /// @brief Returns true if *this is convertible to int64_t.
   /// @throw Nothing.
   bool IsInt64() const;
 
-  /// @brief Returns true if *this is convertable to uint64_t.
+  /// @brief Returns true if *this is convertible to uint64_t.
   /// @throw Nothing.
   bool IsUInt64() const;
 
-  /// @brief Returns true if *this is convertable to double.
+  /// @brief Returns true if *this is convertible to double.
   /// @throw Nothing.
   bool IsDouble() const;
 
-  /// @brief Returns true if *this is convertable to std::string.
+  /// @brief Returns true if *this is convertible to std::string.
   /// @throw Nothing.
   bool IsString() const;
 
@@ -168,7 +175,7 @@ class Value final {
   /// @throw TypeMismatchException if `*this` is not a map.
   void CheckObject() const;
 
-  /// @throw TypeMismatchException if `*this` is not convertable to std::string.
+  /// @throw TypeMismatchException if `*this` is not convertible to std::string.
   void CheckString() const;
 
   /// @throw TypeMismatchException if `*this` is not a map, array or Null.
@@ -235,8 +242,7 @@ template <typename T>
 T Value::As() const {
   static_assert(formats::common::kHasParseTo<Value, T>,
                 "There is no `Parse(const Value&, formats::parse::To<T>)` in "
-                "namespace of `T` or `formats::parse`."
-                ""
+                "namespace of `T` or `formats::parse`. "
                 "Probably you forgot to include the "
                 "<formats/parse/common_containers.hpp> or you "
                 "have not provided a `Parse` function overload.");
@@ -273,10 +279,6 @@ T Value::As(First&& default_arg, Rest&&... more_default_args) const {
 /// @code
 ///   for (const auto& [name, value]: Items(map)) ...
 /// @endcode
-inline auto Items(const Value& value) {
-  return common::ItemsWrapper<Value>(value);
-}
-
-void Items(Value&& value) = delete;
+using formats::common::Items;
 
 }  // namespace formats::yaml

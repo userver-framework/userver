@@ -20,12 +20,9 @@ ImplicitOptionsHttpHandler::AuthCheckers MakeAuthCheckers(
     const components::ComponentContext& component_context) {
   constexpr auto kAuthCheckers = "auth_checkers";
 
-  if (!config.Yaml().HasMember(kAuthCheckers)) return {};
-  const auto& checkers_cfg = config.Yaml()[kAuthCheckers];
+  if (!config.HasMember(kAuthCheckers)) return {};
 
-  auth::HandlerAuthConfig auth_config(
-      checkers_cfg, fmt::format("{}.{}", config.FullPath(), kAuthCheckers),
-      config.ConfigVarsPtr());
+  auth::HandlerAuthConfig auth_config(config[kAuthCheckers]);
 
   const auto& http_server_settings =
       component_context.FindComponent<components::HttpServerSettingsBase>();

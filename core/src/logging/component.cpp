@@ -19,35 +19,28 @@
 #include <logging/logger.hpp>
 #include <logging/reopening_file_sink.hpp>
 #include <utils/thread_name.hpp>
-#include <yaml_config/value.hpp>
 
 #include "config.hpp"
 
 namespace components {
 namespace {
 
-const std::chrono::seconds kDefaultFlushInterval{2};
+constexpr std::chrono::seconds kDefaultFlushInterval{2};
 
 }  // namespace
 
 Logging::Logging(const ComponentConfig& config,
                  const ComponentContext& context) {
-  const auto& yaml = config.Yaml();
-  auto loggers = yaml["loggers"];
-  auto loggers_full_path = config.FullPath() + ".loggers";
-  yaml_config::CheckIsMap(loggers, loggers_full_path);
-  auto fs_task_processor_name =
-      yaml_config::ParseString(yaml, "fs-task-processor-name",
-                               config.FullPath(), config.ConfigVarsPtr());
+  const auto fs_task_processor_name =
+      config["fs-task-processor-name"].As<std::string>();
   fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
 
-  for (const auto& [logger_name, logger_yaml] : Items(loggers)) {
-    auto logger_full_path =
-        fmt::format("{}.{}", loggers_full_path, logger_name);
-    bool is_default_logger = logger_name == "default";
+  const auto loggers = config["loggers"];
 
-    auto logger_config = logging::LoggerConfig::ParseFromYaml(
-        logger_yaml, logger_full_path, config.ConfigVarsPtr());
+  for (const auto& [logger_name, logger_yaml] : Items(loggers)) {
+    const bool is_default_logger = logger_name == "default";
+
+    const auto logger_config = logger_yaml.As<logging::LoggerConfig>();
     auto logger = CreateLogger(logger_name, logger_config, is_default_logger);
 
     logger->set_level(

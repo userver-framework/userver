@@ -4,7 +4,7 @@
 
 #include <formats/yaml/serialize.hpp>
 #include <utils/userver_experiment.hpp>
-#include <yaml_config/value.hpp>
+#include <yaml_config/map_to_array.hpp>
 
 namespace components {
 
@@ -32,51 +32,45 @@ ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
                              "': " + e.what());
   }
 
-  auto config_vars_path = yaml_config::ParseOptionalString(
-      config_yaml, kConfigVarsField, kConfigVarsField, {});
-  yaml_config::VariableMapPtr config_vars_ptr;
+  auto config_vars_path =
+      config_yaml[kConfigVarsField].As<std::optional<std::string>>();
+  formats::yaml::Value config_vars;
   if (config_vars_path) {
-    config_vars_ptr = std::make_shared<yaml_config::VariableMap>(
-        yaml_config::VariableMap::ParseFromFile(*config_vars_path));
+    config_vars = formats::yaml::blocking::FromFile(*config_vars_path);
   }
 
   utils::ParseUserverExperiments(config_yaml[kUserverExperimentsField]);
 
-  return ManagerConfig::ParseFromYaml(
-      std::move(config_yaml), kManagerConfigField, std::move(config_vars_ptr));
+  return yaml_config::YamlConfig(config_yaml[kManagerConfigField],
+                                 std::move(config_vars))
+      .As<ManagerConfig>();
 }
 
 }  // namespace
 
-ManagerConfig ManagerConfig::ParseFromYaml(
-    formats::yaml::Value yaml, const std::string& name,
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    yaml_config::VariableMapPtr config_vars_ptr) {
+ManagerConfig Parse(const yaml_config::YamlConfig& value,
+                    formats::parse::To<ManagerConfig>) {
   ManagerConfig config;
-  config.yaml = std::move(yaml);
-  config.config_vars_ptr = config_vars_ptr;
+  config.source = value;
 
-  const auto& value = config.yaml[name];
-
-  config.coro_pool = engine::coro::PoolConfig::ParseFromYaml(
-      value["coro_pool"], name + ".coro_pool", config_vars_ptr);
-  config.event_thread_pool = engine::ev::ThreadPoolConfig::ParseFromYaml(
-      value["event_thread_pool"], name + ".event_thread_pool", config_vars_ptr);
-  config.components = yaml_config::ParseMapAsArray<components::ComponentConfig>(
-      value, "components", name, config_vars_ptr);
+  config.coro_pool = value["coro_pool"].As<engine::coro::PoolConfig>();
+  config.event_thread_pool =
+      value["event_thread_pool"].As<engine::ev::ThreadPoolConfig>();
+  config.components = yaml_config::ParseMapToArray<components::ComponentConfig>(
+      value["components"]);
   config.task_processors =
-      yaml_config::ParseMapAsArray<engine::TaskProcessorConfig>(
-          value, "task_processors", name, config_vars_ptr);
-  config.default_task_processor = yaml_config::ParseString(
-      value, "default_task_processor", name, config_vars_ptr);
+      yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(
+          value["task_processors"]);
+  config.default_task_processor =
+      value["default_task_processor"].As<std::string>();
   return config;
 }
 
-ManagerConfig ManagerConfig::ParseFromString(const std::string& str) {
+ManagerConfig ManagerConfig::FromString(const std::string& str) {
   return ParseFromAny(str, "<std::string>");
 }
 
-ManagerConfig ManagerConfig::ParseFromFile(const std::string& path) {
+ManagerConfig ManagerConfig::FromFile(const std::string& path) {
   std::ifstream input_stream(path);
   if (!input_stream) {
     throw std::runtime_error("Cannot open config file '" + path + '\'');

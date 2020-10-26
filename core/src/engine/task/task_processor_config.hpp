@@ -5,8 +5,7 @@
 #include <string>
 
 #include <formats/yaml/value.hpp>
-
-#include <yaml_config/variable_map.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 namespace engine {
 
@@ -22,10 +21,10 @@ struct TaskProcessorConfig {
   size_t task_trace_max_csw{0};
   std::string task_trace_logger_name;
 
-  static TaskProcessorConfig ParseFromYaml(
-      const formats::yaml::Value& yaml, const std::string& full_path,
-      const yaml_config::VariableMapPtr& config_vars_ptr);
   void SetName(const std::string& name);
 };
+
+TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
+                          formats::parse::To<TaskProcessorConfig>);
 
 }  // namespace engine

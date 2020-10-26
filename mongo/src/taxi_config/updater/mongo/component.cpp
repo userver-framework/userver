@@ -20,7 +20,7 @@ TaxiConfigMongoUpdater::TaxiConfigMongoUpdater(const ComponentConfig& config,
   mongo_taxi_ = mongo_component.GetPool();
 
   auto fallback_config_contents =
-      fs::blocking::ReadFileContents(config.ParseString("fallback-path"));
+      fs::blocking::ReadFileContents(config["fallback-path"].As<std::string>());
   try {
     fallback_config_.Parse(fallback_config_contents, false);
   } catch (const std::exception& ex) {

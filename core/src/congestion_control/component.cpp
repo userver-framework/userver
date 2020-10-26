@@ -76,7 +76,7 @@ Component::Component(const components::ComponentConfig& config,
     : components::LoggableComponentBase(config, context),
       pimpl_(context.FindComponent<components::Server>().GetServer(),
              engine::current_task::GetTaskProcessor(),
-             config.ParseBool("fake-mode", false))
+             config["fake-mode"].As<bool>(false))
 
 {
   if (pimpl_->fake_mode) {

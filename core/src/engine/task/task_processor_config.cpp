@@ -1,45 +1,37 @@
 #include <engine/task/task_processor_config.hpp>
 
-#include <yaml_config/value.hpp>
-
 namespace engine {
 
-TaskProcessorConfig TaskProcessorConfig::ParseFromYaml(
-    const formats::yaml::Value& yaml, const std::string& full_path,
-    const yaml_config::VariableMapPtr& config_vars_ptr) {
-  TaskProcessorConfig config;
-  config.worker_threads = yaml_config::ParseUint64(yaml, "worker_threads",
-                                                   full_path, config_vars_ptr);
-  config.thread_name =
-      yaml_config::ParseString(yaml, "thread_name", full_path, config_vars_ptr);
-#ifdef USERVER_PROFILER
-  const auto profiler_threshold_us =
-      yaml_config::ParseOptionalUint64(yaml, "profiler_threshold_us", full_path,
-                                       config_vars_ptr)
-          .value_or(500);
-#else   // USERVER_PROFILER
-  const auto profiler_threshold_us = 0;
-#endif  // USERVER_PROFILER
-  config.profiler_threshold = std::chrono::microseconds(profiler_threshold_us);
+namespace {
 
-  auto task_trace_yaml = yaml["task-trace"];
-  if (!task_trace_yaml.IsMissing()) {
-    auto tt_full_path = full_path + ".task-trace";
-    config.task_trace_every =
-        yaml_config::ParseOptionalUint64(task_trace_yaml, "every", tt_full_path,
-                                         config_vars_ptr)
-            .value_or(1000);
-    config.task_trace_max_csw = yaml_config::ParseOptionalUint64(
-                                    task_trace_yaml, "max-context-switch-count",
-                                    tt_full_path, config_vars_ptr)
-                                    .value_or(1000);
-    config.task_trace_logger_name = yaml_config::ParseString(
-        task_trace_yaml, "logger", tt_full_path, config_vars_ptr);
+#ifdef USERVER_PROFILER
+constexpr bool kParseProfilerThreshold = true;
+#else
+constexpr bool kParseProfilerThreshold = false;
+#endif
+
+}  // namespace
+
+TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
+                          formats::parse::To<TaskProcessorConfig>) {
+  TaskProcessorConfig config;
+  config.should_guess_cpu_limit =
+      value["guess-cpu-limit"].As<bool>(config.should_guess_cpu_limit);
+  config.worker_threads = value["worker_threads"].As<size_t>();
+  config.thread_name = value["thread_name"].As<std::string>();
+
+  if constexpr (kParseProfilerThreshold) {
+    config.profiler_threshold = std::chrono::microseconds{
+        value["profiler_threshold_us"].As<uint64_t>(500)};
   }
 
-  if (yaml.HasMember("guess-cpu-limit")) {
-    config.should_guess_cpu_limit = yaml_config::ParseBool(
-        yaml, "guess-cpu-limit", full_path, config_vars_ptr);
+  const auto task_trace = value["task-trace"];
+  if (!task_trace.IsMissing()) {
+    config.task_trace_every =
+        task_trace["every"].As<size_t>(config.task_trace_every);
+    config.task_trace_max_csw =
+        task_trace["max-context-switch-count"].As<size_t>(1000);
+    config.task_trace_logger_name = task_trace["logger"].As<std::string>();
   }
 
   return config;

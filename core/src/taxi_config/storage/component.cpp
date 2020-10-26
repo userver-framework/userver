@@ -12,10 +12,9 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
           const std::shared_ptr<const taxi_config::Config>&>(kName),
       config_load_cancelled_(false),
       fs_task_processor_(context.GetTaskProcessor(
-          config.ParseString("fs-task-processor-name"))),
-      fs_cache_path_(config.ParseString("fs-cache-path")) {
-  ReadBootstrap(config.ParseString("bootstrap-path"));
-
+          config["fs-task-processor-name"].As<std::string>())),
+      fs_cache_path_(config["fs-cache-path"].As<std::string>()) {
+  ReadBootstrap(config["bootstrap-path"].As<std::string>());
   ReadFsCache();
 }
 

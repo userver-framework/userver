@@ -47,9 +47,8 @@ std::chrono::milliseconds StringToDuration(const std::string& data) {
   } else if (remained == "h") {
     return checked_convert(std::chrono::hours{new_to}, data);
   } else if (remained == "d") {
-    // `new_to * 24` may overflow, but it will be catched later while converting
-    // hours to milliseconds.
-    return checked_convert(std::chrono::hours{new_to * 24}, data);
+    using Days = std::chrono::duration<int64_t, std::ratio<60 * 60 * 24>>;
+    return checked_convert(Days{new_to}, data);
   }
 
   throw std::logic_error("StringToDuration: unknown format specifier '" +
