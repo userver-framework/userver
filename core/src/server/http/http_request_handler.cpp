@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include <engine/async.hpp>
+#include <http/common_headers.hpp>
 #include <logging/logger.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/http_request.hpp>
@@ -34,9 +35,10 @@ HttpRequestHandler::HttpRequestHandler(
     const components::ComponentContext& component_context,
     const std::optional<std::string>& logger_access_component,
     const std::optional<std::string>& logger_access_tskv_component,
-    bool is_monitor)
+    bool is_monitor, std::string server_name)
     : add_handler_disabled_(false),
       is_monitor_(is_monitor),
+      server_name_(std::move(server_name)),
       rate_limit_(1, std::chrono::seconds(0)) {
   auto& logging_component =
       component_context.FindComponent<components::Logging>();
@@ -59,6 +61,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     std::shared_ptr<request::RequestBase> request) const {
   const auto& http_request =
       dynamic_cast<const http::HttpRequestImpl&>(*request);
+  http_request.GetHttpResponse().SetHeader(::http::headers::kServer,
+                                           server_name_);
   LOG_TRACE() << "ready=" << http_request.GetResponse().IsReady();
   if (http_request.GetResponse().IsReady()) {
     // Request is broken somehow, user handler must not be called

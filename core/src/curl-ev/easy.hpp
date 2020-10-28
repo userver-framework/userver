@@ -382,11 +382,13 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION_STRING(set_user_agent, native::CURLOPT_USERAGENT);
   enum class EmptyHeaderAction { kSend, kDoNotSend };
   void add_header(
-      const std::string& name, const std::string& value,
+      std::string_view name, std::string_view value,
       EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend);
   void add_header(
-      const std::string& name, const std::string& value, std::error_code& ec,
+      std::string_view name, std::string_view value, std::error_code& ec,
       EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend);
+  void add_header(const char* header);
+  void add_header(const char* header, std::error_code& ec);
   void add_header(const std::string& header);
   void add_header(const std::string& header, std::error_code& ec);
   void set_headers(std::shared_ptr<string_list> headers);

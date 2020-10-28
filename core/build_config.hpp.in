@@ -1,4 +1,6 @@
 #cmakedefine USERVER_VERSION "@USERVER_VERSION@"
+#cmakedefine USERVER_HASH "@USERVER_HASH@"
+#cmakedefine USERVER_BUILD_TIME "@USERVER_BUILD_TIME@"
 
 #cmakedefine HAVE_ACCEPT4
 #cmakedefine HAVE_PIPE2

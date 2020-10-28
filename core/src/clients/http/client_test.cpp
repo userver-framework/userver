@@ -11,8 +11,10 @@
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
+#include <http/common_headers.hpp>
 #include <logging/log.hpp>
 #include <utils/async.hpp>
+#include <utils/userver_info.hpp>
 
 #include <utest/http_client.hpp>
 #include <utest/simple_server.hpp>
@@ -27,6 +29,8 @@ constexpr unsigned kRepetitions = 200;
 
 constexpr char kTestHeader[] = "X-Test-Header";
 constexpr char kTestHeaderMixedCase[] = "x-TEST-headeR";
+
+constexpr char kTestUserAgent[] = "correct/2.0 (user agent) taxi_userver/000f";
 
 constexpr char kResponse200WithHeaderPattern[] =
     "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
@@ -241,19 +245,58 @@ static HttpResponse huge_data_callback(const HttpRequest& request) {
       HttpResponse::kWriteAndClose};
 }
 
+std::string TryGetHeader(const HttpRequest& request, std::string_view header) {
+  const auto first_pos = request.find(header);
+  if (first_pos == std::string::npos) return {};
+  const auto second_pos = request.find(header, first_pos + header.length());
+  EXPECT_EQ(second_pos, std::string::npos)
+      << "Header `" << header
+      << "` exists more than once in request: " << request;
+
+  auto values_begin_pos = request.find(":", first_pos + header.length()) + 1;
+  auto values_end_pos = request.find("\r", values_begin_pos);
+
+  std::string header_value(request.data() + values_begin_pos,
+                           values_end_pos - values_begin_pos);
+  boost::trim(header_value);
+  return header_value;
+}
+
+std::string AssertHeader(const HttpRequest& request, std::string_view header) {
+  const auto first_pos = request.find(header);
+  EXPECT_NE(first_pos, std::string::npos)
+      << "Failed to find header `" << header << "` in request: " << request;
+
+  return TryGetHeader(request, header);
+}
+
 static HttpResponse header_validate_callback(const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
+  AssertHeader(request, kTestHeader);
+  return {
+      "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
+      "0\r\n\r\n",
+      HttpResponse::kWriteAndClose};
+}
 
-  const auto first_pos = request.find(kTestHeader);
-  EXPECT_NE(first_pos, std::string::npos)
-      << "Failed to find header `" << kTestHeader
-      << "` in request: " << request;
+static HttpResponse user_agent_validate_callback(const HttpRequest& request) {
+  LOG_INFO() << "HTTP Server receive: " << request;
+  auto header_value = AssertHeader(request, http::headers::kUserAgent);
 
-  const auto second_pos =
-      request.find(kTestHeader, first_pos + sizeof(kTestHeader) - 1);
-  EXPECT_EQ(second_pos, std::string::npos)
-      << "Header `" << kTestHeader
-      << "` exists more than once in request: " << request;
+  EXPECT_EQ(header_value, kTestUserAgent) << "In request: " << request;
+
+  return {
+      "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
+      "0\r\n\r\n",
+      HttpResponse::kWriteAndClose};
+}
+
+static HttpResponse no_user_agent_validate_callback(
+    const HttpRequest& request) {
+  LOG_INFO() << "HTTP Server receive: " << request;
+  auto header_value = TryGetHeader(request, http::headers::kUserAgent);
+  EXPECT_EQ(header_value, utils::GetUserverIdentifier())
+      << "In request: " << request;
 
   return {
       "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
@@ -676,6 +719,48 @@ TEST(HttpClient, Headers) {
 
       EXPECT_TRUE(response->IsOk());
     }
+  });
+}
+
+TEST(HttpClient, HeadersUserAgent) {
+  TestInCoro([] {
+    const testing::SimpleServer http_server{&user_agent_validate_callback};
+    const testing::SimpleServer http_server_no_ua{
+        &no_user_agent_validate_callback};
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    auto response = http_client_ptr->CreateRequest()
+                        ->post(http_server.GetBaseUrl(), kTestData)
+                        ->retry(1)
+                        ->headers({{http::headers::kUserAgent, kTestUserAgent}})
+                        ->verify(true)
+                        ->http_version(clients::http::HttpVersion::k11)
+                        ->timeout(kTimeout)
+                        ->perform();
+
+    EXPECT_TRUE(response->IsOk());
+
+    response =
+        http_client_ptr->CreateRequest()
+            ->post(http_server.GetBaseUrl(), kTestData)
+            ->retry(1)
+            ->verify(true)
+            ->http_version(clients::http::HttpVersion::k11)
+            ->timeout(kTimeout)
+            ->headers({{http::headers::kUserAgent, "Header to override"}})
+            ->headers({{http::headers::kUserAgent, kTestUserAgent}})
+            ->perform();
+
+    EXPECT_TRUE(response->IsOk());
+
+    response = http_client_ptr->CreateRequest()
+                   ->post(http_server_no_ua.GetBaseUrl(), kTestData)
+                   ->retry(1)
+                   ->verify(true)
+                   ->http_version(clients::http::HttpVersion::k11)
+                   ->timeout(kTimeout)
+                   ->perform();
+    EXPECT_TRUE(response->IsOk());
   });
 }
 

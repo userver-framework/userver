@@ -34,9 +34,7 @@ constexpr int kMaxRetryInTimeout = 5;
 /// Base time for exponential backoff algorithm
 constexpr long kEBBaseTime = 25;
 
-const std::string kTracingClientName = "external";
-
-const std::string kHeaderExpect = "Expect";
+constexpr std::string_view kHeaderExpect = "Expect";
 
 std::string ToString(HttpMethod method) {
   switch (method) {
@@ -86,6 +84,29 @@ long complete_timeout(long request_timeout, short retries) {
   return static_cast<long>(static_cast<double>(request_timeout * retries) *
                            1.1) +
          max_retry_time(retries);
+}
+
+bool IsUserAgentHeader(std::string_view header_name) {
+  return utils::StrIcaseEqual{}(header_name, ::http::headers::kUserAgent);
+}
+
+void SetUserAgent(curl::easy& easy, const std::string& value) {
+  easy.set_user_agent(value);
+}
+
+void SetUserAgent(curl::easy& easy, std::string_view value) {
+  easy.set_user_agent(std::string{value});
+}
+
+template <class Range>
+void SetHeaders(curl::easy& easy, const Range& headers_range) {
+  for (const auto& [name, value] : headers_range) {
+    if (!IsUserAgentHeader(name)) {
+      easy.add_header(name, value);
+    } else {
+      clients::http::SetUserAgent(easy, value);
+    }
+  }
 }
 
 }  // namespace
@@ -191,8 +212,19 @@ std::shared_ptr<Request> Request::form(const Form& form) {
 }
 
 std::shared_ptr<Request> Request::headers(const Headers& headers) {
-  for (const auto& [name, value] : headers)
-    pimpl_->easy().add_header(name, value);
+  SetHeaders(pimpl_->easy(), headers);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::headers(
+    std::initializer_list<std::pair<std::string_view, std::string_view>>
+        headers) {
+  SetHeaders(pimpl_->easy(), headers);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::user_agent(const std::string& value) {
+  pimpl_->easy().set_user_agent(value.c_str());
   return shared_from_this();
 }
 

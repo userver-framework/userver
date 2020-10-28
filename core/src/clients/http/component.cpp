@@ -36,6 +36,18 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       component_config["destination-metrics-auto-max-size"].As<size_t>(
           kDestinationMetricsAutoMaxSizeDefault));
 
+  auto user_agent =
+      component_config["user-agent"].As<std::optional<std::string>>();
+  if (user_agent) {
+    if (!user_agent->empty()) {
+      http_client_.ResetUserAgent(std::move(*user_agent));
+    } else {
+      http_client_.ResetUserAgent({});  // no user agent
+    }
+  } else {
+    // Leaving the default one
+  }
+
   auto testsuite_enabled =
       component_config["testsuite-enabled"].As<bool>(false);
   if (testsuite_enabled) {

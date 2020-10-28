@@ -1,39 +1,37 @@
 #include <server/http/http_response.hpp>
 
+#include <array>
 #include <iomanip>
 #include <sstream>
 
 #include <cctz/time_zone.h>
 
-#include <build_config.hpp>
 #include <engine/io/socket.hpp>
 #include <http/common_headers.hpp>
 #include <http/content_type.hpp>
+#include <utils/userver_info.hpp>
 
 #include "http_request_impl.hpp"
 
 namespace {
 
-const std::string kCrlf = "\r\n";
-const std::string kResponseHttpVersionPrefix = "HTTP/";
-const std::string kServerName =
-    std::string(::http::headers::kServer) + ": taxi_userver/" USERVER_VERSION;
+constexpr std::string_view kCrlf = "\r\n";
+constexpr std::string_view kResponseHttpVersionPrefix = "HTTP/";
 
 const http::ContentType kDefaultContentType = "text/html; charset=utf-8";
 
-const std::string kClose = "close";
-const std::string kKeepAlive = "keep-alive";
+constexpr std::string_view kClose = "close";
+constexpr std::string_view kKeepAlive = "keep-alive";
 
-void CheckHeaderName(const std::string& name) {
-  static auto init = []() {
-    std::vector<uint8_t> res(256, 0);
+void CheckHeaderName(std::string_view name) {
+  static constexpr auto init = []() {
+    std::array<uint8_t, 256> res{};  // zero initialize
     for (int i = 0; i < 32; i++) res[i] = 1;
     for (int i = 127; i < 256; i++) res[i] = 1;
-    for (char c : std::string("()<>@,;:\\\"/[]?={} \t"))
-      res[static_cast<int>(c)] = 1;
+    for (char c : "()<>@,;:\\\"/[]?={} \t") res[static_cast<int>(c)] = 1;
     return res;
   };
-  static auto bad_chars = init();
+  static constexpr auto bad_chars = init();
 
   for (char c : name) {
     auto code = static_cast<uint8_t>(c);
@@ -45,18 +43,10 @@ void CheckHeaderName(const std::string& name) {
   }
 }
 
-void CheckHeaderValue(const std::string& value) {
-  static auto init = []() {
-    std::vector<uint8_t> res(256, 0);
-    for (int i = 0; i < 32; i++) res[i] = 1;
-    res[127] = 1;
-    return res;
-  };
-  static auto bad_chars = init();
-
+void CheckHeaderValue(std::string_view value) {
   for (char c : value) {
     auto code = static_cast<uint8_t>(c);
-    if (bad_chars[code]) {
+    if (code < 32 || code == 127) {
       throw std::runtime_error(
           std::string("invalid character in header value: '") + c + "' (#" +
           std::to_string(code) + ")");
@@ -130,13 +120,15 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   os << kResponseHttpVersionPrefix << request_.GetHttpMajor() << '.'
      << request_.GetHttpMinor() << ' ' << static_cast<int>(status_) << ' '
      << HttpStatusString(status_) << kCrlf;
-  os << kServerName << kCrlf;
-  static const auto format_string = "%a, %d %b %Y %H:%M:%S %Z";
-  static const auto tz = cctz::utc_time_zone();
-  const auto& time_str =
-      cctz::format(format_string, std::chrono::system_clock::now(), tz);
 
-  os << "Date: " << time_str << kCrlf;
+  headers_.erase(::http::headers::kContentLength);
+  if (headers_.find(::http::headers::kDate) == headers_.end()) {
+    static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
+    static const auto tz = cctz::utc_time_zone();
+    const auto& time_str =
+        cctz::format(kFormatString, std::chrono::system_clock::now(), tz);
+    os << ::http::headers::kDate << ": " << time_str << kCrlf;
+  }
   if (headers_.find(::http::headers::kContentType) == headers_.end())
     os << ::http::headers::kContentType << ": " << kDefaultContentType << kCrlf;
   for (const auto& header : headers_)
@@ -144,7 +136,7 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   if (headers_.find(::http::headers::kConnection) == headers_.end())
     os << ::http::headers::kConnection << ": "
        << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
-  os << "Content-Length: " << data_.size() << kCrlf;
+  os << ::http::headers::kContentLength << ": " << data_.size() << kCrlf;
   for (const auto& cookie : cookies_)
     os << ::http::headers::kSetCookie << ": " << cookie.second.ToString()
        << kCrlf;

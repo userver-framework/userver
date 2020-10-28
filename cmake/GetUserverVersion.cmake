@@ -16,4 +16,4 @@ else()
   message(STATUS "Git not found")
 endif()
 
-set(USERVER_VERSION "${USERVER_BUILD_TIME}.${USERVER_HASH}")
+set(USERVER_VERSION "1.0.0")

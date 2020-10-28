@@ -15,10 +15,13 @@
 
 namespace curl {
 
-class string_list : public std::enable_shared_from_this<string_list> {
+class string_list {
  public:
   string_list();
   string_list(const string_list&) = delete;
+  string_list(string_list&&) = delete;
+  string_list& operator=(const string_list&) = delete;
+  string_list& operator=(string_list&&) = delete;
   ~string_list();
 
   inline native::curl_slist* native_handle() { return list_; }
@@ -30,4 +33,5 @@ class string_list : public std::enable_shared_from_this<string_list> {
  private:
   native::curl_slist* list_{nullptr};
 };
+
 }  // namespace curl

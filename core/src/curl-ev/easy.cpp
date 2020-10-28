@@ -327,29 +327,34 @@ void easy::set_http_post(std::shared_ptr<form> form, std::error_code& ec) {
   }
 }
 
-void easy::add_header(const std::string& name, const std::string& value,
+void easy::add_header(std::string_view name, std::string_view value,
                       EmptyHeaderAction empty_header_action) {
   std::error_code ec;
   add_header(name, value, ec, empty_header_action);
   throw_error(ec, "add_header");
 }
 
-void easy::add_header(const std::string& name, const std::string& value,
+void easy::add_header(std::string_view name, std::string_view value,
                       std::error_code& ec,
                       EmptyHeaderAction empty_header_action) {
-  if (empty_header_action == EmptyHeaderAction::kSend && value.empty())
-    add_header(name + ';', ec);
-  else
-    add_header(name + ": " + value, ec);
+  fmt::memory_buffer buf;
+  if (empty_header_action == EmptyHeaderAction::kSend && value.empty()) {
+    fmt::format_to(buf, "{};", name);
+  } else {
+    fmt::format_to(buf, "{}: {}", name, value);
+  }
+
+  buf.push_back('\0');
+  add_header(buf.data(), ec);
 }
 
-void easy::add_header(const std::string& header) {
+void easy::add_header(const char* header) {
   std::error_code ec;
   add_header(header, ec);
   throw_error(ec, "add_header");
 }
 
-void easy::add_header(const std::string& header, std::error_code& ec) {
+void easy::add_header(const char* header, std::error_code& ec) {
   if (!headers_) {
     headers_ = std::make_shared<string_list>();
   }
@@ -358,6 +363,12 @@ void easy::add_header(const std::string& header, std::error_code& ec) {
   ec =
       std::error_code{static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
           handle_, native::CURLOPT_HTTPHEADER, headers_->native_handle()))};
+}
+
+void easy::add_header(const std::string& header) { add_header(header.c_str()); }
+
+void easy::add_header(const std::string& header, std::error_code& ec) {
+  add_header(header.c_str(), ec);
 }
 
 void easy::set_headers(std::shared_ptr<string_list> headers) {

@@ -127,7 +127,7 @@ void ServerImpl::InitPortInfo(
 
   info.request_handler_ = std::make_unique<http::HttpRequestHandler>(
       component_context, config.logger_access, config.logger_access_tskv,
-      is_monitor);
+      is_monitor, config.server_name);
 
   auto queue = requests_view_->GetQueue();
   requests_view_->StartBackgroudWorker();

@@ -15,6 +15,7 @@ struct ServerConfig {
   std::optional<std::string> logger_access;
   std::optional<std::string> logger_access_tskv;
   std::optional<size_t> max_response_size_in_flight;
+  std::string server_name;
 };
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,

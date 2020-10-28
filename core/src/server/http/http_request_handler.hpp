@@ -20,7 +20,7 @@ class HttpRequestHandler final : public RequestHandlerBase {
       const components::ComponentContext& component_context,
       const std::optional<std::string>& logger_access_component,
       const std::optional<std::string>& logger_access_tskv_component,
-      bool is_monitor);
+      bool is_monitor, std::string server_name);
 
   using NewRequestHook =
       std::function<void(std::shared_ptr<request::RequestBase>)>;
@@ -55,6 +55,7 @@ class HttpRequestHandler final : public RequestHandlerBase {
 
   std::atomic<bool> add_handler_disabled_;
   bool is_monitor_;
+  const std::string server_name_;
   NewRequestHook new_request_hook_;
   mutable utils::TokenBucket rate_limit_;
 };

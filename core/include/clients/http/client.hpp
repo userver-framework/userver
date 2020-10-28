@@ -62,6 +62,10 @@ class Client final {
 
   void SetConfig(const Config&);
 
+  /// Sets User-Agent headers for all the requests or removes that header.
+  /// By default User-Agent is set to the userver identity string.
+  void ResetUserAgent(std::optional<std::string> user_agent = std::nullopt);
+
  private:
   void ReinitEasy();
 
@@ -94,6 +98,7 @@ class Client final {
   utils::FastPimpl<IdleQueue, kIdleQueueSize, kIdleQueueAlignment> idle_queue_;
 
   engine::TaskProcessor& fs_task_processor_;
+  std::optional<std::string> user_agent_;
   utils::SwappingSmart<const curl::easy> easy_;
   utils::PeriodicTask easy_reinit_task_;
 

@@ -83,6 +83,12 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> form(const Form& form);
   /// Headers for request as map
   std::shared_ptr<Request> headers(const Headers& headers);
+  /// Headers for request as list
+  std::shared_ptr<Request> headers(
+      std::initializer_list<std::pair<std::string_view, std::string_view>>
+          headers);
+  /// Sets the User-Agent header
+  std::shared_ptr<Request> user_agent(const std::string& value);
   /// Cookies for request as map
   std::shared_ptr<Request> cookies(const Cookies& cookies);
   /// Follow redirects or not. Default: follow

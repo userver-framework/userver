@@ -17,6 +17,7 @@
 #include <curl-ev/multi.hpp>
 #include <curl-ev/ratelimit.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <utils/userver_info.hpp>
 
 namespace clients::http {
 namespace {
@@ -38,6 +39,7 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads,
       statistics_(io_threads),
       idle_queue_(),
       fs_task_processor_(fs_task_processor),
+      user_agent_(utils::GetUserverIdentifier()),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()) {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
@@ -108,6 +110,10 @@ std::shared_ptr<Request> Client::CreateRequest() {
 
   if (testsuite_config_) {
     request->SetTestsuiteConfig(testsuite_config_);
+  }
+
+  if (user_agent_) {
+    request->user_agent(*user_agent_);
   }
 
   return request;
@@ -215,6 +221,10 @@ void Client::SetConfig(const Config& config) {
   connect_rate_limiter_->SetPerHostLimits(
       config.per_host_connect_throttle_limit,
       config.per_host_connect_throttle_rate);
+}
+
+void Client::ResetUserAgent(std::optional<std::string> user_agent) {
+  user_agent_ = std::move(user_agent);
 }
 
 }  // namespace clients::http
