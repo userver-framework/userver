@@ -599,7 +599,16 @@ class NotInTransaction : public TransactionError {
 /** @name Result set usage errors */
 
 class ResultSetError : public LogicError {
-  using LogicError::LogicError;
+ public:
+  ResultSetError(std::string msg)
+      : LogicError::LogicError(msg), msg_(std::move(msg)) {}
+
+  void AddMsgSuffix(const std::string& str) { msg_ += str; }
+
+  const char* what() const noexcept override { return msg_.c_str(); }
+
+ private:
+  std::string msg_;
 };
 
 /// @brief Result set has less rows than the requested row index.

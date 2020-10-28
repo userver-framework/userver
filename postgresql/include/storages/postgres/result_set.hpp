@@ -307,14 +307,6 @@ class Field {
     return buffer.length;
   }
 
-  template <typename T>
-  void Read(const io::FieldBuffer& buffer, T&& val) const {
-    using ValueType = typename std::decay<T>::type;
-    static_assert(io::traits::kHasParser<ValueType>,
-                  "Type doesn't have any parsers defined");
-    io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
-  }
-
   //@{
   /** @name Iteration support */
   bool IsValid() const;
@@ -322,6 +314,22 @@ class Field {
   std::ptrdiff_t Distance(const Field& rhs) const;
   Field& Advance(std::ptrdiff_t);
   //@}
+
+ private:
+  template <typename T>
+  void Read(const io::FieldBuffer& buffer, T&& val) const {
+    using ValueType = typename std::decay<T>::type;
+    static_assert(io::traits::kHasParser<ValueType>,
+                  "Type doesn't have any parsers defined");
+    try {
+      io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
+    } catch (ResultSetError& ex) {
+      ex.AddMsgSuffix(fmt::format(
+          " (field #{} name `{}` C++ type `{}`. Postgres ResultSet error)",
+          field_index_, Name(), compiler::GetTypeName<T>()));
+      throw;
+    }
+  }
 
   detail::ResultWrapperPtr res_;
   size_type row_index_;
