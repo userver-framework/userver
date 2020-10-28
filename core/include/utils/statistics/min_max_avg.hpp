@@ -7,6 +7,7 @@
 
 #include <formats/json/inline.hpp>
 #include <formats/serialize/to.hpp>
+#include <utils/assert.hpp>
 
 /// @file utils/statistics/min_max_avg.hpp
 /// @brief @copybrief utils::statistics::MinMaxAvg
@@ -45,6 +46,7 @@ class MinMaxAvg final {
   Current GetCurrent() const {
     Current current;
     const auto count = count_.load(std::memory_order_acquire);
+    UASSERT(count >= 0);
     current.minimum = minimum_.load(std::memory_order_relaxed);
     current.maximum = maximum_.load(std::memory_order_relaxed);
     current.average = count ? sum_.load(std::memory_order_relaxed) / count : 0;
@@ -109,7 +111,7 @@ class MinMaxAvg final {
   std::atomic<T> minimum_;
   std::atomic<T> maximum_;
   std::atomic<T> sum_;
-  std::atomic<size_t> count_;
+  std::atomic<ssize_t> count_;
 };
 
 template <typename T>

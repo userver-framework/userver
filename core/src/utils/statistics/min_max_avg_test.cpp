@@ -51,6 +51,13 @@ TEST(MinMaxAvg, Reset) {
   CheckCurrent(mma, 0, 0, 0);
 }
 
+TEST(MinMaxAvg, NegativeInt64Average) {
+  utils::statistics::MinMaxAvg<int64_t> mma;
+  mma.Account(-30);
+  mma.Account(-10);
+  EXPECT_EQ(-20, mma.GetCurrent().average);
+}
+
 TEST(MinMaxAvg, ToJson) {
   auto value =
       formats::json::ValueBuilder(GetFilledMma<1, 2, 3>()).ExtractValue();
