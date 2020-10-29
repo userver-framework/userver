@@ -62,6 +62,9 @@ class BackgroundTasksStorage final {
     utils::Async(name, [task = std::move(task)]() { task->Wait(); }).Detach();
   }
 
+  /// Approximate number of currently active tasks or -1 if storage is finalized
+  long ActiveTasksApprox() { return wts_.AliveTokensApprox(); }
+
  private:
   class TaskRemoveGuard final {
    public:

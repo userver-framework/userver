@@ -41,3 +41,40 @@ TEST(BackgroundTasksStorage, CancelAndWaitInDtr) {
     EXPECT_EQ(shared.use_count(), 1);
   });
 }
+
+TEST(BackgroundTasksStorage, NoDeadlockWithUnstartedTasks) {
+  RunInCoro([] {
+    utils::BackgroundTasksStorage bts;
+    bts.AsyncDetach("test", [] {
+      engine::SingleConsumerEvent event;
+
+      EXPECT_FALSE(event.WaitForEvent());
+    });
+  });
+}
+
+TEST(BackgroundTasksStorage, ActiveTasksCounter) {
+  RunInCoro([] {
+    const long kNoopTasks = 2;
+    const long kLongTasks = 3;
+    utils::BackgroundTasksStorage bts;
+
+    for (int i = 0; i < kNoopTasks; ++i) {
+      bts.AsyncDetach("noop-task", [] { /* noop */ });
+    }
+    for (int i = 0; i < kLongTasks; ++i) {
+      bts.AsyncDetach("long-task", [] {
+        engine::SingleConsumerEvent event;
+
+        EXPECT_FALSE(event.WaitForEventFor(std::chrono::seconds(2)));
+      });
+    }
+
+    EXPECT_EQ(bts.ActiveTasksApprox(), kNoopTasks + kLongTasks);
+
+    engine::SingleConsumerEvent event;
+    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds(50)));
+
+    EXPECT_EQ(bts.ActiveTasksApprox(), kLongTasks);
+  });
+}

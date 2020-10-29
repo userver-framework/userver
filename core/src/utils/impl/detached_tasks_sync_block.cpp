@@ -2,9 +2,6 @@
 
 namespace utils::impl {
 
-namespace {
-using LockGuard = std::lock_guard<engine::Mutex>;
-}
 DetachedTasksSyncBlock::TasksStorage::iterator DetachedTasksSyncBlock::Add(
     std::shared_ptr<engine::Task> task) {
   auto tasks = shared_tasks_.Lock();
@@ -21,6 +18,8 @@ void DetachedTasksSyncBlock::RequestCancellation() {
   auto tasks = shared_tasks_.Lock();
   for (auto& task : *tasks)
     if (task->IsValid()) task->RequestCancel();
+
+  for (auto& task_ptr : *tasks) task_ptr.reset();
 }
 
 }  // namespace utils::impl
