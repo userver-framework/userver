@@ -16,6 +16,7 @@
 
 #include <storages/postgres/cluster.hpp>
 #include <storages/postgres/component.hpp>
+#include <storages/postgres/io/chrono.hpp>
 
 #include <utils/algo.hpp>
 #include <utils/assert.hpp>
@@ -152,12 +153,12 @@ constexpr bool kHasWhere = HasWhere<T>::value;
 
 // Update field
 template <typename T, typename = ::utils::void_t<>>
-struct HasUpdateField : std::false_type {};
+struct HasUpdatedField : std::false_type {};
 template <typename T>
-struct HasUpdateField<T, ::utils::void_t<decltype(T::kUpdatedField)>>
+struct HasUpdatedField<T, ::utils::void_t<decltype(T::kUpdatedField)>>
     : std::true_type {};
 template <typename T>
-constexpr bool kHasUpdateField = HasUpdateField<T>::value;
+constexpr bool kHasUpdatedField = HasUpdatedField<T>::value;
 
 template <typename T, typename = ::utils::void_t<>>
 struct WantIncrementalUpdates : std::false_type {};
@@ -221,6 +222,39 @@ struct HasCustomUpdated<T, utils::void_t<decltype(T::GetLastKnownUpdated(
 template <typename T>
 constexpr bool kHasCustomUpdated = HasCustomUpdated<T>::value;
 
+// Update field type
+template <typename T, typename = ::utils::void_t<>>
+struct HasUpdatedFieldType : std::false_type {
+  static_assert(!kWantIncrementalUpdates<T>,
+                "UpdatedFieldType must be explicitly specified when using "
+                "incremental updates");
+};
+template <typename T>
+struct HasUpdatedFieldType<T, ::utils::void_t<typename T::UpdatedFieldType>>
+    : std::true_type {
+  static_assert(
+      std::is_same_v<typename T::UpdatedFieldType,
+                     storages::postgres::TimePointTz> ||
+          std::is_same_v<typename T::UpdatedFieldType,
+                         storages::postgres::TimePoint> ||
+          kHasCustomUpdated<T>,
+      "Invalid UpdatedFieldType, must be either TimePointTz or TimePoint");
+};
+template <typename T>
+constexpr bool kHasUpdatedFieldType = HasUpdatedFieldType<T>::value;
+
+template <typename T, bool HasUpdatedFieldType>
+struct UpdatedFieldTypeImpl {
+  using Type = typename T::UpdatedFieldType;
+};
+template <typename T>
+struct UpdatedFieldTypeImpl<T, false> {
+  using Type = storages::postgres::TimePointTz;
+};
+template <typename T>
+using UpdatedFieldType =
+    typename UpdatedFieldTypeImpl<T, kHasUpdatedFieldType<T>>::Type;
+
 // Cluster host type policy
 template <typename T, typename = ::utils::void_t<>>
 struct PostgresClusterHostTypeFlags {
@@ -262,7 +296,7 @@ struct PolicyChecker {
                 "The PosgreSQL cache policy must define `kQuery` or "
                 "`GetQuery`, not both");
   static_assert(
-      kHasUpdateField<PostgreCachePolicy>,
+      kHasUpdatedField<PostgreCachePolicy>,
       "The PosgreSQL cache policy must contain a static member "
       "`kUpdatedField`. If you don't want to use incremental updates, "
       "please set its value to `nullptr`");
@@ -307,6 +341,8 @@ class PostgreCache final
   using RawValueType = pg_cache::detail::RawValueType<PolicyType>;
   using DataType = pg_cache::detail::DataCacheContainerType<PolicyType>;
   using PolicyCheckerType = pg_cache::detail::PolicyChecker<PostgreCachePolicy>;
+  using UpdatedFieldType =
+      pg_cache::detail::UpdatedFieldType<PostgreCachePolicy>;
   using BaseType = typename PolicyCheckerType::BaseType;
 
   // Calculated constants
@@ -322,8 +358,9 @@ class PostgreCache final
  private:
   using CachedData = std::unique_ptr<DataType>;
 
-  auto GetLastUpdated(std::chrono::system_clock::time_point last_update,
-                      const DataType& cache) const;
+  UpdatedFieldType GetLastUpdated(
+      std::chrono::system_clock::time_point last_update,
+      const DataType& cache) const;
 
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
@@ -424,13 +461,14 @@ std::string PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
 }
 
 template <typename PostgreCachePolicy>
-auto PostgreCache<PostgreCachePolicy>::GetLastUpdated(
+typename PostgreCache<PostgreCachePolicy>::UpdatedFieldType
+PostgreCache<PostgreCachePolicy>::GetLastUpdated(
     std::chrono::system_clock::time_point last_update,
     const DataType& cache) const {
   if constexpr (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy>) {
     return PostgreCachePolicy::GetLastKnownUpdated(cache);
   } else {
-    return last_update - correction_;
+    return UpdatedFieldType{last_update - correction_};
   }
 }
 

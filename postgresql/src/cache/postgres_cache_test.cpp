@@ -51,6 +51,12 @@ struct PostgresExamplePolicy {
   /// To turn off incremental updates, set the value to `nullptr`.
   static constexpr const char* kUpdatedField = "updated";
 
+  /// @brief Type of the field containing timestamp of an object
+  ///
+  /// Specifies whether updated field should be treated as a timestamp
+  /// with or without timezone in database queries.
+  using UpdatedFieldType = pg::TimePointTz;
+
   /// @brief Where clause of the query
   ///
   /// Optional
@@ -133,6 +139,7 @@ struct PostgresExamplePolicy3 {
       "select id, bar, revision from test.my_data";
   using CacheContainer = UserSpecificCache;
   static constexpr const char* kUpdatedField = "revision";
+  using UpdatedFieldType = int32_t;
   static constexpr auto kKeyMember = &MyStructureWithRevision::get_id;
 
   /// @brief Function to get last known revision/time
@@ -161,6 +168,7 @@ struct PostgresExamplePolicy4 {
   }
 
   static constexpr const char* kUpdatedField = "updated";
+  using UpdatedFieldType = pg::TimePoint;  // no time zone (should be avoided)
 };
 /*! [Pg Cache Policy GetQuery Example] */
 
@@ -202,6 +210,7 @@ struct PostgresExamplePolicy5 {
   }
 
   static constexpr const char* kUpdatedField = "updated";
+  using UpdatedFieldType = pg::TimePointTz;
 
   using CacheContainer = std::unordered_map<MyStructureCompoundKey, MyStructure,
                                             MyStructureCompoundKeyHash>;
@@ -217,10 +226,17 @@ using MyCache3 = PostgreCache<PostgresExamplePolicy3>;
 using MyCache4 = PostgreCache<PostgresExamplePolicy4>;
 using MyCache5 = PostgreCache<PostgresExamplePolicy5>;
 
+// NB: field access required for actual instantiation
 static_assert(MyCache1::kIncrementalUpdates);
 static_assert(!MyCache2::kIncrementalUpdates);
+static_assert(MyCache3::kIncrementalUpdates);
+static_assert(MyCache4::kIncrementalUpdates);
+static_assert(MyCache5::kIncrementalUpdates);
 
 static_assert(MyCache1::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache2::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
+static_assert(MyCache3::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
+static_assert(MyCache4::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
+static_assert(MyCache5::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 
 }  // namespace components::test
