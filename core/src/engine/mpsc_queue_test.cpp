@@ -303,3 +303,79 @@ TEST(MpscQueue, BlockMulti) {
     EXPECT_FALSE(ok);
   });
 }
+
+TEST(MpscQueue, MaxLengthOverride) {
+  RunInCoro([] {
+    auto queue = engine::MpscQueue<int>::Create();
+    queue->SetMaxLength(0);
+    auto producer = queue->GetProducer();
+    auto consumer = queue->GetConsumer();
+
+    ASSERT_FALSE(producer.PushNoblock(1));
+    ASSERT_TRUE(producer.PushWithLimitOverride(2, /*max_len=*/1));
+
+    int value{0};
+    ASSERT_TRUE(consumer.PopNoblock(value));
+    EXPECT_EQ(value, 2);
+  });
+}
+
+TEST(MpscQueue, MaxLengthOverrideBlocking) {
+  static constexpr std::chrono::milliseconds kTimeout{10};
+
+  RunInCoro([] {
+    auto queue = engine::MpscQueue<int>::Create();
+    queue->SetMaxLength(0);
+    auto producer = queue->GetProducer();
+    auto consumer = queue->GetConsumer();
+
+    auto task1 = engine::impl::Async([&]() {
+      return producer.Push(1, engine::Deadline::FromDuration(kTimeout));
+    });
+    auto task2 = engine::impl::Async([&]() { return producer.Push(2); });
+
+    ASSERT_FALSE(producer.PushNoblock(3));
+    ASSERT_TRUE(producer.PushWithLimitOverride(4, /*max_len=*/1));
+
+    int value{0};
+    ASSERT_TRUE(consumer.PopNoblock(value));
+    EXPECT_EQ(value, 4);
+
+    EXPECT_FALSE(task1.Get());
+    queue->SetMaxLength(1);  // let task2 to Push
+    EXPECT_TRUE(task2.Get());
+
+    ASSERT_TRUE(consumer.PopNoblock(value));
+    EXPECT_EQ(value, 2);
+
+    EXPECT_EQ(queue->Size(), 0);
+
+    ASSERT_TRUE(producer.PushNoblock(5));
+
+    auto task3 = engine::impl::Async(
+        [&]() { return producer.PushWithLimitOverride(6, /*max_len=*/1); });
+
+    queue->SetMaxLength(2);
+
+    task3.WaitFor(kTimeout);
+    ASSERT_FALSE(task3.IsFinished());  // must not push until empty
+
+    ASSERT_TRUE(producer.PushNoblock(7));
+
+    ASSERT_TRUE(consumer.PopNoblock(value));
+    EXPECT_EQ(value, 5);
+
+    task3.WaitFor(kTimeout);
+    ASSERT_FALSE(task3.IsFinished());  // must not push until empty
+
+    ASSERT_TRUE(consumer.PopNoblock(value));
+    EXPECT_EQ(value, 7);
+
+    ASSERT_TRUE(task3.Get());  // now empty - must push
+
+    ASSERT_TRUE(consumer.PopNoblock(value));
+    EXPECT_EQ(value, 6);
+
+    EXPECT_EQ(queue->Size(), 0);
+  });
+}

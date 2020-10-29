@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <memory>
+#include <optional>
 
 #include <boost/lockfree/queue.hpp>
 
@@ -84,7 +85,17 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
     /// @returns whether the consumer was alive and push succeeded
     /// before the deadline.
     bool Push(T&& value, Deadline deadline = {}) {
-      return queue_->Push(std::move(value), deadline);
+      return queue_->Push(std::move(value), deadline, std::nullopt);
+    }
+
+    /// Push element into queue with max length override.
+    /// May block if queue is full, but the consumer is alive.
+    /// @param max_len used instead of one set by SetMaxLength
+    /// @returns whether the consumer was alive and push succeeded
+    /// before the deadline.
+    bool PushWithLimitOverride(T&& value, size_t max_len,
+                               Deadline deadline = {}) {
+      return queue_->Push(std::move(value), deadline, max_len);
     }
 
     /// Try to push element into queue without blocking.
@@ -160,7 +171,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   explicit MpscQueue(EmplaceEnabler) {}
 
  private:
-  bool Push(T&&, Deadline);
+  bool Push(T&&, Deadline, std::optional<size_t>);
   bool PushNoblock(T&&);
   bool DoPush(T&&);
 
@@ -175,7 +186,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   /// Can be called only if Consumer is dead to release all queued items
   bool PopNoblockNoConsumer(T&);
 
-  void WaitForQueueNonfullUntil(Deadline deadline);
+  void WaitForQueueNonfullUntil(Deadline deadline, std::optional<size_t>);
 
  private:
   // Resolves to boost::lockfree::queue<T> except for std::unique_ptr<T>
@@ -260,18 +271,21 @@ bool MpscQueue<T>::PopNoblockNoConsumer(T& value) {
 }
 
 template <typename T>
-void MpscQueue<T>::WaitForQueueNonfullUntil(Deadline deadline) {
-  if (size_ >= max_length_ && consumer_is_alive_) {
+void MpscQueue<T>::WaitForQueueNonfullUntil(Deadline deadline,
+                                            std::optional<size_t> max_len) {
+  if (size_ >= max_len.value_or(max_length_) && consumer_is_alive_) {
     std::unique_lock lock(nonfull_mutex_);
-    [[maybe_unused]] auto status = nonfull_cv_.WaitUntil(
-        lock, deadline,
-        [this] { return (size_ < max_length_ || !consumer_is_alive_); });
+    [[maybe_unused]] auto status =
+        nonfull_cv_.WaitUntil(lock, deadline, [this, &max_len] {
+          return (size_ < max_len.value_or(max_length_) || !consumer_is_alive_);
+        });
   }
 }
 
 template <typename T>
-bool MpscQueue<T>::Push(T&& value, Deadline deadline) {
-  WaitForQueueNonfullUntil(deadline);
+bool MpscQueue<T>::Push(T&& value, Deadline deadline,
+                        std::optional<size_t> max_len) {
+  WaitForQueueNonfullUntil(deadline, max_len);
   if (deadline.IsReached() || current_task::ShouldCancel()) return false;
   return DoPush(std::move(value));
 }
