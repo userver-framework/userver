@@ -455,3 +455,32 @@ TEST(YamlConfig, IteratorArray) {
   EXPECT_EQ(it, eit);
   EXPECT_NE(cit, it);
 }
+
+struct DontDefaultMe {
+  DontDefaultMe() { Fail(); }
+  explicit DontDefaultMe(int value) : value(value) {}
+
+  static void Fail() { FAIL() << "Extra default constructor invoked by As"; }
+
+  int value = 0;
+};
+
+DontDefaultMe Parse(const yaml_config::YamlConfig& value,
+                    formats::parse::To<DontDefaultMe>) {
+  return DontDefaultMe{value.As<int>()};
+}
+
+TEST(YamlConfig, AsDefaulted) {
+  auto config = yaml_config::FromString(R"(
+foo: 42
+bar:
+    - 9000
+)");
+
+  EXPECT_EQ(config["foo"].As<int>({}), 42);
+  EXPECT_EQ(config["bar"].As<std::vector<int>>({}), std::vector<int>{9000});
+  EXPECT_EQ(config["foo"].As<DontDefaultMe>({}).value, 42);
+
+  EXPECT_EQ(config["missing"].As<int>({}), 0);
+  EXPECT_EQ(config["missing"].As<std::vector<int>>({}), std::vector<int>{});
+}

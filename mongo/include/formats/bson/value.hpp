@@ -31,6 +31,8 @@ class ValueBuilder;
 /// construction of new BSON values use formats::bson::ValueBuilder.
 class Value {
  public:
+  struct DefaultConstructed {};
+
   using const_iterator = Iterator<const Value>;
   using Exception = formats::bson::BsonException;
   using ParseException = formats::bson::ConversionException;
@@ -148,6 +150,14 @@ class Value {
                std::forward<Rest>(more_default_args)...);
     }
     return As<T>();
+  }
+
+  /// @brief Returns value of *this converted to T or T() if this->IsMissing().
+  /// @throw Anything derived from std::exception.
+  /// @note Use as `value.As<T>({})`
+  template <typename T>
+  T As(DefaultConstructed) const {
+    return IsMissing() ? T() : As<T>();
   }
 
   /// @brief Extracts the specified type with relaxed type checks.

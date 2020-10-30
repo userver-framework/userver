@@ -39,6 +39,7 @@ class Value final {
     using Pointer = const formats::json::Value*;
     using ContainerType = Value;
   };
+  struct DefaultConstructed {};
 
   using const_iterator = Iterator<IterTraits>;
   using Exception = formats::json::Exception;
@@ -149,6 +150,12 @@ class Value final {
   /// @throw Anything derived from std::exception.
   template <typename T, typename First, typename... Rest>
   T As(First&& default_arg, Rest&&... more_default_args) const;
+
+  /// @brief Returns value of *this converted to T or T() if this->IsMissing().
+  /// @throw Anything derived from std::exception.
+  /// @note Use as `value.As<T>({})`
+  template <typename T>
+  T As(DefaultConstructed) const;
 
   /// @brief Extracts the specified type with relaxed type checks.
   /// For example, `true` may be converted to 1.0.
@@ -293,6 +300,11 @@ T Value::As(First&& default_arg, Rest&&... more_default_args) const {
              std::forward<Rest>(more_default_args)...);
   }
   return As<T>();
+}
+
+template <typename T>
+T Value::As(Value::DefaultConstructed) const {
+  return IsMissing() ? T() : As<T>();
 }
 
 template <typename T>
