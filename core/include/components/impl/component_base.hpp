@@ -1,6 +1,14 @@
 #pragma once
 
-namespace components::impl {
+namespace components {
+
+enum class ComponentHealth {
+  kOk,        // component is alive and fine
+  kFallback,  // component in fallback state, but the service keeps working
+  kFatal,     // component is sick, service can not work without it
+};
+
+namespace impl {
 
 /// Don't use it for application components, use LoggableComponentBase instead
 class ComponentBase {
@@ -24,6 +32,12 @@ class ComponentBase {
   /// All components on which the current component depends are still alive.
   virtual ~ComponentBase() = default;
 
+  /// It's a good place to inform the world of the state of your component.
+  /// Beware: the function is called concurrently from multiple threads.
+  virtual ComponentHealth GetComponentHealth() const {
+    return ComponentHealth::kOk;
+  }
+
   /// Called once if the creation of any other component failed.
   /// If the current component expects some other component to take any action
   /// with the current component, this call is a signal that such action may
@@ -40,4 +54,6 @@ class ComponentBase {
   virtual void OnAllComponentsAreStopping() {}
 };
 
-}  // namespace components::impl
+}  // namespace impl
+
+}  // namespace components

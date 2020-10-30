@@ -122,6 +122,8 @@ class ComponentContext final {
 
   void CancelComponentsLoad();
 
+  bool IsAnyComponentInFatalState() const;
+
  private:
   class TaskToComponentMapScope final {
    public:

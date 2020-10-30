@@ -146,6 +146,24 @@ void ComponentContext::CancelComponentsLoad() {
   }
 }
 
+bool ComponentContext::IsAnyComponentInFatalState() const {
+  for (const auto& [name, comp] : components_) {
+    switch (comp->GetComponent()->GetComponentHealth()) {
+      case ComponentHealth::kFatal:
+        LOG_ERROR() << "Component '" << name << "' is in kFatal state";
+        return true;
+      case ComponentHealth::kFallback:
+        LOG_WARNING() << "Component '" << name << "' is in kFallback state";
+        break;
+      case ComponentHealth::kOk:
+        LOG_DEBUG() << "Component '" << name << "' is in kOk state";
+        break;
+    }
+  }
+
+  return false;
+}
+
 void ComponentContext::ProcessSingleComponentLifetimeStageSwitching(
     const std::string& name, impl::ComponentInfo& component_info,
     ComponentLifetimeStageSwitchingParams& params) {

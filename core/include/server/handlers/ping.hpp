@@ -16,6 +16,9 @@ class Ping final : public HttpHandlerBase {
   std::string HandleRequestThrow(
       const http::HttpRequest& request,
       request::RequestContext& context) const override;
+
+ private:
+  const components::ComponentContext& components_;
 };
 
 }  // namespace handlers
