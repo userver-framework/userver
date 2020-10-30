@@ -63,7 +63,7 @@ Value::Value(Value&& other, std::string path_prefix)
     : value_pimpl_(std::move(other.value_pimpl_)),
       path_(Path::WithPrefix(std::move(path_prefix))) {
   if (!other.path_.IsRoot()) {
-    throw PathPrefixException(other.path_.ToStringView(), path_prefix);
+    throw PathPrefixException(other.path_.ToStringView(), path_.ToStringView());
   }
 }
 

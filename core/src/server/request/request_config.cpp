@@ -16,7 +16,9 @@ RequestConfig::Type StringToType(const std::string& str) {
 
 RequestConfig::RequestConfig(yaml_config::YamlConfig value)
     : yaml_config::YamlConfig(std::move(value)),
-      type_(StringToType(value["type"].As<std::string>(kHttp))) {}
+      type_(StringToType(
+          yaml_config::YamlConfig::operator[]("type").As<std::string>(kHttp))) {
+}
 
 const RequestConfig::Type& RequestConfig::GetType() const { return type_; }
 

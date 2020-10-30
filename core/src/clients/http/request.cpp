@@ -188,7 +188,7 @@ std::shared_ptr<Request> Request::http_version(HttpVersion version) {
   return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::retry(int retries, bool on_fails) {
+std::shared_ptr<Request> Request::retry(short retries, bool on_fails) {
   UASSERT_MSG(retries >= 0, "retires < 0 (" + std::to_string(retries) +
                                 "), uninitialized variable?");
   if (retries <= 0) retries = 1;

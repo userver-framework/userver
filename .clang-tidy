@@ -23,6 +23,7 @@ Checks:
   -clang-analyzer-core.uninitialized.Assign,\
   -clang-analyzer-core.uninitialized.UndefReturn,\
   -clang-analyzer-optin.cplusplus.VirtualCall,\
+  -cppcoreguidelines-avoid-c-arrays,\
   -cppcoreguidelines-avoid-magic-numbers,\
   -cppcoreguidelines-narrowing-conversions,\
   -cppcoreguidelines-owning-memory,\
@@ -38,6 +39,7 @@ Checks:
   -google-readability-todo,\
   -google-runtime-int,\
   -google-runtime-references,\
+  -hicpp-avoid-c-arrays,\
   -hicpp-braces-around-statements,\
   -hicpp-explicit-conversions,\
   -hicpp-member-init,\
@@ -48,6 +50,7 @@ Checks:
   -hicpp-vararg,\
   -misc-taxi-*,\
   -misc-unconventional-assign-operator,\
+  -modernize-avoid-c-arrays,\
   -modernize-pass-by-value,\
   -modernize-use-trailing-return-type,\
   -performance-move-const-arg,\

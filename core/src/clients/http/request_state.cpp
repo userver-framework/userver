@@ -175,7 +175,7 @@ void RequestState::set_timeout(long timeout_ms) {
   easy().set_connect_timeout_ms(timeout_ms);
 }
 
-void RequestState::retry(int retries, bool on_fails) {
+void RequestState::retry(short retries, bool on_fails) {
   retry_.retries = retries;
   retry_.current = 1;
   retry_.on_fails = on_fails;

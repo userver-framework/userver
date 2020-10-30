@@ -60,6 +60,8 @@ Thread::Thread(const std::string& thread_name, bool use_ev_default_loop)
 
 Thread::~Thread() {
   StopEventLoop();
+  // boost.lockfree pointer magic (FP?)
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (use_ev_default_loop_) ReleaseEvDefaultLoop();
   UASSERT(loop_ == nullptr);
 }

@@ -51,7 +51,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// set timeout value
   void set_timeout(long timeout_ms);
   /// set number of retries
-  void retry(int retries, bool on_fails);
+  void retry(short retries, bool on_fails);
 
   /// get timeout value
   long timeout() const { return timeout_ms_; }

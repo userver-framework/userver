@@ -115,7 +115,7 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Specify number of retries on incorrect status, if on_failes is True
   /// retry on network error too. Retries = 3 means that maximum 3 request
   /// will be performed
-  std::shared_ptr<Request> retry(int retries = 3, bool on_fails = true);
+  std::shared_ptr<Request> retry(short retries = 3, bool on_fails = true);
 
   /// Set destination name in metric "httpclient.destinations.<name>".
   /// If not set, defaults to HTTP path.  Should be called for all requests
