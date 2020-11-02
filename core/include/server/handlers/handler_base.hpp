@@ -23,12 +23,12 @@ class HandlerBase : public components::LoggableComponentBase {
 
   /// Parses request, executes processing routines, and fills response
   /// accordingly. Does not throw.
-  virtual void HandleRequest(const request::RequestBase& request,
+  virtual void HandleRequest(request::RequestBase& request,
                              request::RequestContext& context) const = 0;
 
   /// Produces response to a request unrecognized by the protocol based on
   /// provided generic response. Does not throw.
-  virtual void ReportMalformedRequest(const request::RequestBase&) const {}
+  virtual void ReportMalformedRequest(request::RequestBase&) const {}
 
   /// Returns whether this is a monitoring handler.
   bool IsMonitor() const { return is_monitor_; }

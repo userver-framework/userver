@@ -48,7 +48,14 @@ list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options filesystem locale thread regex)
+find_package(Boost REQUIRED COMPONENTS
+    program_options
+    filesystem
+    locale
+    thread
+    regex
+    iostreams
+)
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 find_package(Helpergtest REQUIRED)
@@ -94,6 +101,7 @@ target_link_libraries(${PROJECT_NAME}
     yandex-taxi-userver-uboost-coro
     Boost::filesystem
     Boost::program_options
+    Boost::iostreams
     Boost::regex
     CryptoPP
     Http_Parser

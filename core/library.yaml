@@ -9,6 +9,7 @@ libraries:
   - Boost::program_options
   - Boost::thread
   - Boost::regex
+  - Boost::iostreams
   - CryptoPP
   - CurlYandex
   - Fmt
@@ -26,6 +27,7 @@ debian:
       - clang-9
       - libstdc++-7-dev
       - libboost-filesystem-dev
+      - libboost-iostreams-dev
       - libboost-locale-dev
       - libboost-program-options-dev
       - libboost-thread-dev

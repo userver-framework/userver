@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include <components/statistics_storage.hpp>
+#include <compression/gzip.hpp>
 #include <engine/task/cancel.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
@@ -280,14 +281,13 @@ HttpHandlerBase::HttpHandlerBase(
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
-void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
+void HttpHandlerBase::HandleRequest(request::RequestBase& request,
                                     request::RequestContext& context) const {
-  try {
-    const auto& http_request_impl =
-        dynamic_cast<const http::HttpRequestImpl&>(request);
-    const http::HttpRequest http_request(http_request_impl);
-    auto& response = http_request.GetHttpResponse();
+  auto& http_request_impl = dynamic_cast<http::HttpRequestImpl&>(request);
+  http::HttpRequest http_request(http_request_impl);
+  auto& response = http_request.GetHttpResponse();
 
+  try {
     HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
                                            http_request.GetMethod(), response);
 
@@ -316,6 +316,7 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     static const std::string kCheckAuthStep = "check_auth";
     static const std::string kCheckRatelimitStep = "check_ratelimit";
     static const std::string kHandleRequestStep = "handle_request";
+    static const std::string kDecompressRequestBody = "decompress_request_body";
 
     RequestProcessor request_processor(*this, http_request_impl, http_request,
                                        context, log_request,
@@ -328,6 +329,12 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
     request_processor.ProcessRequestStep(
         kCheckAuthStep,
         [this, &http_request, &context] { CheckAuth(http_request, context); });
+
+    if (GetConfig().decompress_request) {
+      request_processor.ProcessRequestStep(
+          kDecompressRequestBody,
+          [this, &http_request] { DecompressRequestBody(http_request); });
+    }
 
     request_processor.ProcessRequestStep(
         kParseRequestDataStep, [this, &http_request, &context] {
@@ -373,6 +380,8 @@ void HttpHandlerBase::HandleRequest(const request::RequestBase& request,
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex;
   }
+
+  SetResponseAcceptEncoding(response);
 }
 
 void HttpHandlerBase::ThrowUnsupportedHttpMethod(
@@ -383,10 +392,9 @@ void HttpHandlerBase::ThrowUnsupportedHttpMethod(
 }
 
 void HttpHandlerBase::ReportMalformedRequest(
-    const request::RequestBase& request) const {
+    request::RequestBase& request) const {
   try {
-    const auto& http_request_impl =
-        dynamic_cast<const http::HttpRequestImpl&>(request);
+    auto& http_request_impl = dynamic_cast<http::HttpRequestImpl&>(request);
     const http::HttpRequest http_request(http_request_impl);
     auto& response = http_request.GetHttpResponse();
 
@@ -468,6 +476,30 @@ void HttpHandlerBase::CheckRatelimit(
   }
 }
 
+void HttpHandlerBase::DecompressRequestBody(
+    http::HttpRequest& http_request) const {
+  const auto& content_encoding = http_request.GetHeader("Content-Encoding");
+  if (content_encoding.empty()) return;
+
+  try {
+    if (content_encoding == "gzip") {
+      auto body = compression::gzip::Decompress(http_request.RequestBody(),
+                                                GetConfig().max_request_size);
+      http_request.SetRequestBody(std::move(body));
+      return;
+    }
+  } catch (const compression::TooBigError& e) {
+    throw ClientError(HandlerErrorCode::kPayloadTooLarge);
+  } catch (const std::exception& e) {
+    throw RequestParseError(InternalMessage{
+        std::string{"Failed to decompress request body: "} + e.what()});
+  }
+
+  auto& response = http_request.GetHttpResponse();
+  SetResponseAcceptEncoding(response);
+  throw ClientError(HandlerErrorCode::kUnsupportedMediaType);
+}
+
 std::string HttpHandlerBase::GetRequestBodyForLogging(
     const http::HttpRequest&, request::RequestContext&,
     const std::string& request_body) const {
@@ -538,6 +570,26 @@ formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
     result["by-method"] = std::move(by_method);
   }
   return result;
+}
+
+void HttpHandlerBase::SetResponseAcceptEncoding(
+    http::HttpResponse& response) const {
+  if (!GetConfig().decompress_request) return;
+
+  // RFC7694, 3.
+  // This specification expands that definition to allow "Accept-Encoding"
+  // as a response header field as well.  When present in a response, it
+  // indicates what content codings the resource was willing to accept in
+  // the associated request.
+
+  if (response.GetStatus() == http::HttpStatus::kUnsupportedMediaType) {
+    // User has already set the Accept-Encoding
+    return;
+  }
+
+  if (!response.HasHeader(::http::headers::kAcceptEncoding)) {
+    response.SetHeader(::http::headers::kAcceptEncoding, "gzip, identity");
+  }
 }
 
 }  // namespace server::handlers

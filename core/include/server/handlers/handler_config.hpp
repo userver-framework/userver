@@ -23,7 +23,7 @@ struct HandlerConfig {
   std::string task_processor;
   std::optional<std::string> method;
   std::optional<size_t> max_url_size;
-  std::optional<size_t> max_request_size;
+  size_t max_request_size;
   std::optional<size_t> max_headers_size;
   size_t request_body_size_log_limit{0};
   size_t response_data_size_log_limit{0};
@@ -32,6 +32,7 @@ struct HandlerConfig {
   std::optional<UrlTrailingSlashOption> url_trailing_slash;
   std::optional<size_t> max_requests_in_flight;
   std::optional<size_t> max_requests_per_second;
+  bool decompress_request;
 };
 
 HandlerConfig Parse(const yaml_config::YamlConfig& value,

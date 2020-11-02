@@ -46,6 +46,8 @@ enum class HandlerErrorCode {
 
   kGatewayTimeout,  //!< kGatewayTimeout A timeout occured while passing the
                     //!< request to another service
+  kUnsupportedMediaType,  //!< kUnsupportedMediaType Conten-Encoding or
+                          //!< Content-Type is not supported
   // TODO More server-side error conditions
 };
 

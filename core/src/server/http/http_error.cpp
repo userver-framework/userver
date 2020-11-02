@@ -23,6 +23,8 @@ const std::unordered_map<handlers::HandlerErrorCode, HttpStatus,
         {HandlerErrorCode::kServerSideError, HttpStatus::kInternalServerError},
         {HandlerErrorCode::kBadGateway, HttpStatus::kBadGateway},
         {HandlerErrorCode::kGatewayTimeout, HttpStatus::kGatewayTimeout},
+        {HandlerErrorCode::kUnsupportedMediaType,
+         HttpStatus::kUnsupportedMediaType},
     };
 
 }  // namespace

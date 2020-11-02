@@ -29,7 +29,7 @@ class HttpRequest final {
 
   using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
 
-  explicit HttpRequest(const HttpRequestImpl& impl);
+  explicit HttpRequest(HttpRequestImpl& impl);
   ~HttpRequest() = default;
 
   request::ResponseBase& GetResponse() const;
@@ -74,10 +74,11 @@ class HttpRequest final {
   CookiesMapKeys GetCookieNames() const;
 
   const std::string& RequestBody() const;
+  void SetRequestBody(std::string body);
   void SetResponseStatus(HttpStatus status) const;
 
  private:
-  const HttpRequestImpl& impl_;
+  HttpRequestImpl& impl_;
 };
 
 }  // namespace http

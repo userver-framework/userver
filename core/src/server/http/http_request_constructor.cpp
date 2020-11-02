@@ -108,8 +108,7 @@ void HttpRequestConstructor::ParseUrl() {
     const auto& handler_config = handler_info->handler.GetConfig();
     if (handler_config.max_url_size)
       config_.max_url_size = *handler_config.max_url_size;
-    if (handler_config.max_request_size)
-      config_.max_request_size = *handler_config.max_request_size;
+    config_.max_request_size = handler_config.max_request_size;
     if (handler_config.max_headers_size)
       config_.max_headers_size = *handler_config.max_headers_size;
     if (handler_config.parse_args_from_body)

@@ -66,6 +66,7 @@ class HttpRequestImpl final : public request::RequestBase {
   HttpRequest::CookiesMapKeys GetCookieNames() const;
 
   const std::string& RequestBody() const { return request_body_; }
+  void SetRequestBody(std::string body) { request_body_ = std::move(body); }
   void SetResponseStatus(HttpStatus status) const {
     response_->SetStatus(status);
   }

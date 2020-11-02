@@ -47,8 +47,7 @@ HandlerConfig Parse(const yaml_config::YamlConfig& value,
   config.task_processor = value["task_processor"].As<std::string>();
   config.method = value["method"].As<std::optional<std::string>>();
   config.max_url_size = value["max_url_size"].As<std::optional<size_t>>();
-  config.max_request_size =
-      value["max_request_size"].As<std::optional<size_t>>();
+  config.max_request_size = value["max_request_size"].As<size_t>(1024 * 1024);
   config.max_headers_size =
       value["max_headers_size"].As<std::optional<size_t>>();
   config.parse_args_from_body =
@@ -66,6 +65,7 @@ HandlerConfig Parse(const yaml_config::YamlConfig& value,
           kLogRequestDataSizeDefaultLimit);
   config.max_requests_per_second =
       value["max_requests_per_second"].As<std::optional<size_t>>();
+  config.decompress_request = value["decompress_request"].As<bool>(false);
 
   if (config.max_requests_per_second &&
       config.max_requests_per_second.value() <= 0) {

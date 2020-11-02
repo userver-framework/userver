@@ -48,6 +48,7 @@ class HttpResponse final : public request::ResponseBase {
 
   HeadersMapKeys GetHeaderNames() const;
   const std::string& GetHeader(const std::string& header_name) const;
+  bool HasHeader(const std::string& header_name) const;
 
   CookiesMapKeys GetCookieNames() const;
   const Cookie& GetCookie(const std::string& cookie_name) const;

@@ -36,9 +36,9 @@ class HttpHandlerBase : public HandlerBase {
 
   ~HttpHandlerBase() override;
 
-  void HandleRequest(const request::RequestBase& request,
+  void HandleRequest(request::RequestBase& request,
                      request::RequestContext& context) const override;
-  void ReportMalformedRequest(const request::RequestBase& request) const final;
+  void ReportMalformedRequest(request::RequestBase& request) const final;
 
   virtual const std::string& HandlerName() const = 0;
 
@@ -104,6 +104,8 @@ class HttpHandlerBase : public HandlerBase {
 
   void CheckRatelimit(const http::HttpRequest& http_request) const;
 
+  void DecompressRequestBody(http::HttpRequest& http_request) const;
+
   static formats::json::ValueBuilder StatisticsToJson(
       const HttpHandlerMethodStatistics& stats);
 
@@ -111,6 +113,8 @@ class HttpHandlerBase : public HandlerBase {
       const utils::statistics::StatisticsRequest&);
 
   formats::json::ValueBuilder FormatStatistics(const HttpHandlerStatistics&);
+
+  void SetResponseAcceptEncoding(http::HttpResponse& response) const;
 
   const components::HttpServerSettingsBase& http_server_settings_;
   const std::vector<http::HttpMethod> allowed_methods_;

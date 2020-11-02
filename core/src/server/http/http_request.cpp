@@ -4,7 +4,7 @@
 
 namespace server::http {
 
-HttpRequest::HttpRequest(const HttpRequestImpl& impl) : impl_(impl) {}
+HttpRequest::HttpRequest(HttpRequestImpl& impl) : impl_(impl) {}
 
 request::ResponseBase& HttpRequest::GetResponse() const {
   return impl_.GetResponse();
@@ -113,6 +113,10 @@ HttpRequest::CookiesMapKeys HttpRequest::GetCookieNames() const {
 
 const std::string& HttpRequest::RequestBody() const {
   return impl_.RequestBody();
+}
+
+void HttpRequest::SetRequestBody(std::string body) {
+  impl_.SetRequestBody(std::move(body));
 }
 
 void HttpRequest::SetResponseStatus(HttpStatus status) const {

@@ -40,8 +40,8 @@ TEST_P(HttpRequestCookies, Test) {
         [&param,
          &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
           parsed = true;
-          const auto& http_request_impl =
-              dynamic_cast<const server::http::HttpRequestImpl&>(*request);
+          auto& http_request_impl =
+              dynamic_cast<server::http::HttpRequestImpl&>(*request);
           const server::http::HttpRequest http_request(http_request_impl);
           EXPECT_EQ(http_request.CookieCount(), param.expected.size());
           for (const auto& [name, value] : param.expected) {
