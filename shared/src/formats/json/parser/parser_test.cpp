@@ -186,6 +186,22 @@ TEST(JsonStringParser, ArrayIntObjectNoField) {
       "Parse error at pos 2, path '[0]': Missing required field 'field'");
 }
 
+TEST(JsonStringParser, ArrayIntErrorMsg) {
+  IntParser obj_parser;
+  ArrayParser<int, IntParser> array_parser(obj_parser);
+
+  std::vector<int> result;
+  SubscriberSink<decltype(result)> sink(result);
+  array_parser.Reset();
+  array_parser.Subscribe(sink);
+  ParserState state;
+  state.PushParser(array_parser);
+
+  EXPECT_THROW_TEXT(state.ProcessInput("1"), ParseError,
+                    "Parse error at pos 1, path '': array was expected, but "
+                    "integer found, the latest token was 1");
+}
+
 TEST(JsonStringParser, ArrayInt) {
   std::string input("[1,2,3]");
   std::vector<int64_t> result{};

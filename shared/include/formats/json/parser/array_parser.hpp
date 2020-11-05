@@ -37,7 +37,7 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
     if (state_ == State::kStart) {
       state_ = State::kInside;
     } else {
-      PushParser();
+      PushParser("array");
       Parser().StartArray();
     }
   }
@@ -47,43 +47,48 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
       return;
     }
     // impossible?
-    this->Throw("end array");
+    this->Throw("end of array");
   }
 
   void Int64(int64_t i) override {
-    PushParser();
+    PushParser("integer");
     Parser().Int64(i);
   }
   void Uint64(uint64_t i) override {
-    PushParser();
+    PushParser("integer");
     Parser().Uint64(i);
   }
   void Null() override {
-    PushParser();
+    PushParser("null");
     Parser().Null();
   }
   void Bool(bool b) override {
-    PushParser();
+    PushParser("bool");
     Parser().Bool(b);
   }
   void Double(double d) override {
-    PushParser();
+    PushParser("double");
     Parser().Double(d);
   }
   void String(std::string_view sw) override {
-    PushParser();
+    PushParser("string");
     Parser().String(sw);
   }
   void StartObject() override {
-    PushParser();
+    PushParser("object");
     Parser().StartObject();
   }
 
   std::string Expected() const override { return "array"; }
 
  protected:
-  void PushParser() {
-    if (state_ != State::kInside) this->Throw("array");
+  void PushParser(std::string_view what) {
+    if (state_ != State::kInside) {
+      // Error path must not include [x] - we're not inside an array yet
+      this->parser_state_->PopMe(*this);
+
+      this->Throw(std::string(what));
+    }
 
     this->item_parser_.Reset();
     this->parser_state_->PushParser(item_parser_.GetParser());
