@@ -12,4 +12,6 @@ namespace hostinfo {
 //   * CPU_LIMIT environment variable (example: `CPU_LIMIT=1.95c`).
 std::optional<double> CpuLimit();
 
+bool IsInRtc();
+
 }  // namespace hostinfo

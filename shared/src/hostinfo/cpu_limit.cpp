@@ -42,4 +42,6 @@ std::optional<double> CpuLimit() {
   return limit;
 }
 
+bool IsInRtc() { return !!CpuLimitRtc(); }
+
 }  // namespace hostinfo

@@ -1,6 +1,7 @@
 #include <congestion_control/component.hpp>
 
 #include <congestion_control/watchdog.hpp>
+#include <hostinfo/cpu_limit.hpp>
 #include <server/component.hpp>
 #include <server/congestion_control/limiter.hpp>
 #include <server/congestion_control/sensor.hpp>
@@ -79,6 +80,23 @@ Component::Component(const components::ComponentConfig& config,
              config["fake-mode"].As<bool>(false))
 
 {
+  auto min_threads = config["min-cpu"].As<size_t>(1);
+  auto only_rtc = config["only-rtc"].As<bool>(true);
+
+  if (!pimpl_->fake_mode && only_rtc && !hostinfo::IsInRtc()) {
+    LOG_WARNING() << "Started outside of RTC, forcing fake-mode";
+    pimpl_->fake_mode = true;
+  }
+
+  auto cpu_limit = hostinfo::CpuLimit().value_or(0);
+  if (!pimpl_->fake_mode && cpu_limit < min_threads) {
+    LOG_WARNING() << fmt::format(
+        "current cpu limit ({}) less that minimum limit ({}) "
+        "for Congestion Control, forcing fake-mode",
+        cpu_limit, min_threads);
+    pimpl_->fake_mode = true;
+  }
+
   if (pimpl_->fake_mode) {
     LOG_WARNING() << "congestion_control is started in fake-mode, no RPS limit "
                      "is enforced";
