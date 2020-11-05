@@ -225,3 +225,62 @@ TEST(Semaphore, LockPassing) {
       },
       /*threads =*/kThreads);
 }
+
+TEST(SemaphoreLock, LockMoveCopy) {
+  static constexpr size_t kThreads = 4;
+
+  // check with real semaphore
+  RunInCoro(
+      [] {
+        engine::Semaphore sem{1};
+        engine::SemaphoreLock lock(sem);
+        ASSERT_TRUE(lock.OwnsLock());
+
+        engine::SemaphoreLock move_here{std::move(lock)};
+        EXPECT_FALSE(lock.OwnsLock());
+        EXPECT_TRUE(move_here.OwnsLock());
+      },
+      /*threads =*/kThreads);
+
+  // check empty semaphore lock
+  RunInCoro(
+      [] {
+        engine::SemaphoreLock empty_lock;
+        ASSERT_FALSE(empty_lock.OwnsLock());
+
+        engine::SemaphoreLock move_here{std::move(empty_lock)};
+        EXPECT_FALSE(empty_lock.OwnsLock());
+        EXPECT_FALSE(move_here.OwnsLock());
+      },
+      /*threads =*/kThreads);
+}
+
+TEST(SemaphoreLock, LockMoveAssign) {
+  static constexpr size_t kThreads = 4;
+
+  RunInCoro(
+      [] {
+        engine::Semaphore sem{1};
+        engine::SemaphoreLock lock(sem);
+        ASSERT_TRUE(lock.OwnsLock());
+
+        engine::SemaphoreLock move_here;
+        move_here = std::move(lock);
+        EXPECT_FALSE(lock.OwnsLock());
+        EXPECT_TRUE(move_here.OwnsLock());
+      },
+      /*threads =*/kThreads);
+
+  // check empty semaphore lock
+  RunInCoro(
+      [] {
+        engine::SemaphoreLock empty_lock;
+        ASSERT_FALSE(empty_lock.OwnsLock());
+
+        engine::SemaphoreLock move_here;
+        move_here = std::move(empty_lock);
+        EXPECT_FALSE(empty_lock.OwnsLock());
+        EXPECT_FALSE(move_here.OwnsLock());
+      },
+      /*threads =*/kThreads);
+}

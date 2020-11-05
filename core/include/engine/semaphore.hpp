@@ -102,9 +102,9 @@ class SemaphoreLock final {
   ~SemaphoreLock();
 
   SemaphoreLock(const SemaphoreLock&) = delete;
-  SemaphoreLock(SemaphoreLock&&) noexcept = default;
+  SemaphoreLock(SemaphoreLock&&) noexcept;
   SemaphoreLock& operator=(const SemaphoreLock&) = delete;
-  SemaphoreLock& operator=(SemaphoreLock&&) noexcept = default;
+  SemaphoreLock& operator=(SemaphoreLock&&) noexcept;
 
   bool OwnsLock() const noexcept;
   explicit operator bool() const noexcept { return OwnsLock(); }
@@ -173,6 +173,21 @@ SemaphoreLock::SemaphoreLock(
 inline SemaphoreLock::SemaphoreLock(Semaphore& sem, Deadline deadline)
     : sem_(&sem) {
   TryLockUntil(deadline);
+}
+
+inline SemaphoreLock& SemaphoreLock::operator=(SemaphoreLock&& other) noexcept {
+  if (OwnsLock()) Unlock();
+  sem_ = other.sem_;
+  owns_lock_ = other.owns_lock_;
+  other.owns_lock_ = false;
+
+  return *this;
+}
+
+inline SemaphoreLock::SemaphoreLock(SemaphoreLock&& other) noexcept {
+  sem_ = other.sem_;
+  owns_lock_ = other.owns_lock_;
+  other.owns_lock_ = false;
 }
 
 inline SemaphoreLock::~SemaphoreLock() {
