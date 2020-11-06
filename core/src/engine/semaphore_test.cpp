@@ -227,7 +227,7 @@ TEST(Semaphore, LockPassing) {
 }
 
 TEST(SemaphoreLock, LockMoveCopy) {
-  static constexpr size_t kThreads = 4;
+  static constexpr size_t kThreads = 2;
 
   // check with real semaphore
   RunInCoro(
@@ -256,7 +256,7 @@ TEST(SemaphoreLock, LockMoveCopy) {
 }
 
 TEST(SemaphoreLock, LockMoveAssign) {
-  static constexpr size_t kThreads = 4;
+  static constexpr size_t kThreads = 2;
 
   RunInCoro(
       [] {

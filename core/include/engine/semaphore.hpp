@@ -184,11 +184,8 @@ inline SemaphoreLock& SemaphoreLock::operator=(SemaphoreLock&& other) noexcept {
   return *this;
 }
 
-inline SemaphoreLock::SemaphoreLock(SemaphoreLock&& other) noexcept {
-  sem_ = other.sem_;
-  owns_lock_ = other.owns_lock_;
-  other.owns_lock_ = false;
-}
+inline SemaphoreLock::SemaphoreLock(SemaphoreLock&& other) noexcept
+    : sem_(other.sem_), owns_lock_(std::exchange(other.owns_lock_, false)) {}
 
 inline SemaphoreLock::~SemaphoreLock() {
   if (OwnsLock()) Unlock();
