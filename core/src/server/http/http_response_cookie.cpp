@@ -1,7 +1,9 @@
 #include <server/http/http_response_cookie.hpp>
 
+#include <array>
 #include <sstream>
 
+#include <fmt/format.h>
 #include <utils/datetime.hpp>
 
 namespace {
@@ -14,7 +16,6 @@ namespace server::http {
 
 class Cookie::CookieData final {
  public:
-  CookieData() = default;
   CookieData(std::string&& name, std::string&& value);
   CookieData(const CookieData&) = default;
   ~CookieData() = default;
@@ -46,6 +47,9 @@ class Cookie::CookieData final {
   [[nodiscard]] std::string ToString() const;
 
  private:
+  void ValidateName() const;
+  void ValidateValue() const;
+
   std::string name_;
   std::string value_;
   std::string path_;
@@ -58,7 +62,10 @@ class Cookie::CookieData final {
 };
 
 Cookie::CookieData::CookieData(std::string&& name, std::string&& value)
-    : name_(std::move(name)), value_(std::move(value)) {}
+    : name_(std::move(name)), value_(std::move(value)) {
+  ValidateName();
+  ValidateValue();
+}
 
 const std::string& Cookie::CookieData::Name() const { return name_; }
 const std::string& Cookie::CookieData::Value() const { return value_; }
@@ -112,6 +119,57 @@ std::string Cookie::CookieData::ToString() const {
   if (secure_) ss << "; Secure";
   if (http_only_) ss << "; HttpOnly";
   return ss.str();
+}
+
+void Cookie::CookieData::ValidateName() const {
+  static auto init = []() {
+    std::array<uint8_t, 256> res{};
+    res.fill(0);
+    for (int i = 0; i < 32; i++) res[i] = 1;
+    for (int i = 127; i < 256; i++) res[i] = 1;
+    for (char c : std::string_view("()<>@,;:\\\"/[]?={} \t"))
+      res[static_cast<int>(c)] = 1;
+    return res;
+  };
+  static const auto kBadNameChars = init();
+
+  if (name_.empty()) throw std::runtime_error("Empty cookie name");
+
+  for (char c : name_) {
+    auto code = static_cast<uint8_t>(c);
+    if (kBadNameChars[code]) {
+      throw std::runtime_error(
+          fmt::format("Invalid character in cookie name: '{}' (#{})", c, code));
+    }
+  }
+}
+
+void Cookie::CookieData::ValidateValue() const {
+  // `cookie-value` from https://tools.ietf.org/html/rfc6265#section-4.1.1
+  static auto init = []() {
+    std::array<uint8_t, 256> res{};
+    res.fill(0);
+    for (int i = 0; i <= 32; i++) res[i] = 1;
+    for (int i = 127; i < 256; i++) res[i] = 1;
+    res[0x22] = 1;  // `"`
+    res[0x2C] = 1;  // `,`
+    res[0x3B] = 1;  // `;`
+    res[0x5C] = 1;  // `\`
+    return res;
+  };
+  static const auto kBadValueChars = init();
+
+  std::string_view value(value_);
+  if (value.size() > 1 && value.front() == '"' && value.back() == '"')
+    value = value.substr(1, value.size() - 2);
+
+  for (char c : value) {
+    auto code = static_cast<uint8_t>(c);
+    if (kBadValueChars[code]) {
+      throw std::runtime_error(fmt::format(
+          "Invalid character in cookie value: '{}' (#{})", c, code));
+    }
+  }
 }
 
 // Cookie class

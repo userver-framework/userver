@@ -41,3 +41,58 @@ TEST(HttpCookie, Simple) {
                 std::chrono::system_clock::period::den,
             1560358305L);
 }
+
+TEST(HttpCookie, Validation) {
+  std::vector<std::pair<std::string, std::string>> goods = {
+      {"name", "value"},                               //
+      {"a+b", "value"},                                //
+      {"name", ""},                                    //
+      {"name", "\"\""},                                //
+      {"name", "\"value\""},                           //
+      {"name", "!#$%&'()*+-./09:<=>?@AZ[]^_`az{|}~"},  //
+      {"na%20%me%", "%20%"},                           //
+  };
+
+  std::vector<std::pair<std::string, std::string>> bads = {
+      {"", "value"},      //
+      {"a=b", "value"},   //
+      {"a b", "value"},   //
+      {"a\tb", "value"},  //
+      {"a/b", "value"},   //
+      {"a;b", "value"},   //
+      {"a@b", "value"},   //
+
+      {"name", "\""},           //
+      {"name", "a\"b"},         //
+      {"name", "\"a"},          //
+      {"name", "a\""},          //
+      {"name", " "},            //
+      {"name", "\" \""},        //
+      {"name", "\"val ue\""},   //
+      {"name", "\"val\"ue\""},  //
+      {"name", ","},            //
+      {"name", ";"},            //
+      {"name", "\\"},           //
+
+      {"name", "\x80"},       //
+      {"na\x80me", "value"},  //
+      {"name", "val\xFFue"},  //
+      {"na\xFFme", "value"},  //
+      {"name", "val\xABue"},  //
+      {"na\xABme", "value"},  //
+      {"name", "валуе"},      //
+      {"наме", "value"},      //
+  };
+
+  auto create_cookie = [](const std::pair<std::string, std::string>& kv) {
+    return server::http::Cookie{kv.first, kv.second};
+  };
+
+  for (const auto& good : goods) {
+    EXPECT_NO_THROW(create_cookie(good));
+  }
+
+  for (const auto& bad : bads) {
+    EXPECT_THROW(create_cookie(bad), std::runtime_error);
+  }
+}

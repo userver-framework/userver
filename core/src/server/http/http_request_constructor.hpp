@@ -54,13 +54,7 @@ class HttpRequestConstructor final : public request::RequestConstructor {
 
   std::shared_ptr<request::RequestBase> Finalize() override;
 
-  enum class DecodeMode {
-    Query,
-    Cookie,
-  };
-
-  static std::string UrlDecode(const char* data, const char* data_end,
-                               DecodeMode decode_mode);
+  static std::string UrlDecode(const char* data, const char* data_end);
 
  private:
   void FinalizeImpl();

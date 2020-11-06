@@ -17,8 +17,7 @@ void http_request_constructor_url_decode(benchmark::State& state) {
   using server::http::HttpRequestConstructor;
 
   for (auto _ : state)
-    benchmark::DoNotOptimize(HttpRequestConstructor::UrlDecode(
-        begin, end, HttpRequestConstructor::DecodeMode::Query));
+    benchmark::DoNotOptimize(HttpRequestConstructor::UrlDecode(begin, end));
 }
 }  // namespace
 BENCHMARK(http_request_constructor_url_decode)

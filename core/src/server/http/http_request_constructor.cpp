@@ -235,8 +235,7 @@ void HttpRequestConstructor::FinalizeImpl() {
 }
 
 std::string HttpRequestConstructor::UrlDecode(const char* data,
-                                              const char* data_end,
-                                              DecodeMode decode_mode) {
+                                              const char* data_end) {
   // Fast path: no %, just id
   if (!memchr(data, '%', data_end - data) &&
       !memchr(data, '+', data_end - data)) {
@@ -264,7 +263,7 @@ std::string HttpRequestConstructor::UrlDecode(const char* data,
                                  "\' in input '" + std::move(data_short) +
                                  '\'');
       }
-    } else if (*ptr == '+' && decode_mode == DecodeMode::Query) {
+    } else if (*ptr == '+') {
       res += ' ';
     } else {
       res += *ptr;
@@ -294,10 +293,8 @@ void HttpRequestConstructor::ParseArgs(const char* data, size_t size) {
         const char* value_end = ptr;
         if (key_begin < key_end && value_begin < value_end) {
           std::vector<std::string>& arg_values =
-              request_->request_args_[UrlDecode(key_begin, key_end,
-                                                DecodeMode::Query)];
-          arg_values.emplace_back(
-              UrlDecode(value_begin, value_end, DecodeMode::Query));
+              request_->request_args_[UrlDecode(key_begin, key_end)];
+          arg_values.emplace_back(UrlDecode(value_begin, value_end));
         }
       }
       parse_key = true;
@@ -354,9 +351,9 @@ void HttpRequestConstructor::ParseCookies() {
       }
       Strip(key_begin, key_end);
       if (key_begin < key_end)
-        request_->cookies_.emplace(
-            UrlDecode(key_begin, key_end, DecodeMode::Cookie),
-            UrlDecode(value_begin, value_end, DecodeMode::Cookie));
+        request_->cookies_.emplace(std::piecewise_construct,
+                                   std::tie(key_begin, key_end),
+                                   std::tie(value_begin, value_end));
       parse_key = true;
       key_begin = ptr + 1;
       continue;
