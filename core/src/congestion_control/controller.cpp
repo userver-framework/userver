@@ -116,6 +116,9 @@ void Controller::Feed(const Sensor::Data& data) {
       state_.current_limit = CalcNewLimit(data, *policy);
 
       stats_.overload_pressure++;
+      stats_.last_overload_pressure =
+          std::chrono::duration_cast<std::chrono::seconds>(
+              std::chrono::steady_clock::now().time_since_epoch());
       stats_.current_state = 4;
     } else {
       if (state_.times_wo_overload > policy->overload_off) {

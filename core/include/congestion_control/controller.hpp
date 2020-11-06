@@ -41,6 +41,10 @@ struct Stats final {
   std::atomic<size_t> overload_pressure{0};
 
   std::atomic<size_t> current_state{0};
+  std::atomic<std::chrono::seconds> last_overload_pressure{
+      std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::steady_clock::now().time_since_epoch()) -
+      std::chrono::hours(1)};
 };
 
 class Controller final {

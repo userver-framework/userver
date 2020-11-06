@@ -37,15 +37,20 @@ formats::json::Value FormatStats(const Controller& c) {
   }
 
   const auto& stats = c.GetStats();
-  formats::json::ValueBuilder builder_stats;
-  builder_stats["no-limit"] = stats.no_limit.load();
-  builder_stats["not-overloaded-no-pressure"] =
+  formats::json::ValueBuilder builder_states;
+  builder_states["no-limit"] = stats.no_limit.load();
+  builder_states["not-overloaded-no-pressure"] =
       stats.not_overload_no_pressure.load();
-  builder_stats["not-overloaded-under-pressure"] =
+  builder_states["not-overloaded-under-pressure"] =
       stats.not_overload_pressure.load();
-  builder_stats["overloaded-no-pressure"] = stats.overload_no_pressure.load();
-  builder_stats["overloaded-under-pressure"] = stats.overload_pressure.load();
-  builder["states"] = builder_stats.ExtractValue();
+  builder_states["overloaded-no-pressure"] = stats.overload_no_pressure.load();
+  builder_states["overloaded-under-pressure"] = stats.overload_pressure.load();
+
+  auto diff = std::chrono::steady_clock::now().time_since_epoch() -
+              stats.last_overload_pressure.load();
+  builder["time-from-last-overloaded-under-pressure-secs"] =
+      std::chrono::duration_cast<std::chrono::seconds>(diff).count();
+  builder["states"] = builder_states.ExtractValue();
   builder["current-state"] = stats.current_state.load();
 
   return builder.ExtractValue();
