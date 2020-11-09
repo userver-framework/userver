@@ -155,7 +155,7 @@ Row::reference Row::operator[](size_type index) const {
 }
 
 Row::reference Row::operator[](const std::string& name) const {
-  auto idx = res_->IndexOfName(name);
+  auto idx = IndexOfName(name);
   if (idx == ResultSet::npos) throw FieldNameDoesntExist{name};
   return (*this)[idx];
 }
@@ -246,6 +246,10 @@ void ResultSet::FillBufferCategories(const UserTypes& types) {
 
 void ResultSet::SetBufferCategoriesFrom(const ResultSet& dsc) {
   pimpl_->SetTypeBufferCategories(dsc.pimpl_->GetTypeBufferCategories());
+}
+
+Row::size_type Row::IndexOfName(const std::string& name) const {
+  return res_->IndexOfName(name);
 }
 
 }  // namespace storages::postgres
