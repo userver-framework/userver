@@ -46,7 +46,7 @@ debian:
       - lld-9
       - zlib1g-dev
       - clang-format-7
-      - clang-tidy-7
+      - clang-tidy-9
 
 configs:
     names:
