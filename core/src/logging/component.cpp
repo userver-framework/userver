@@ -82,9 +82,14 @@ namespace {
 void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
   for (const auto& s : sinks) {
     auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
-    if (reop) {
-      // TODO Handle exceptions here
+    if (!reop) {
+      continue;
+    }
+
+    try {
       reop->Reopen(/* truncate = */ false);
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception on log reopen: " << e;
     }
   }
 };
@@ -123,7 +128,7 @@ void Logging::OnLogRotate() {
       task.BlockingWait();
       task.Get();
     } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception on log reopen: " << e;
+      LOG_ERROR() << "Exception escaped ReopenAll: " << e;
     }
   }
 }
