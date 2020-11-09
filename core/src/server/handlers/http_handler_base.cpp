@@ -478,14 +478,18 @@ void HttpHandlerBase::CheckRatelimit(
 
 void HttpHandlerBase::DecompressRequestBody(
     http::HttpRequest& http_request) const {
+  if (!http_request.IsBodyCompressed()) return;
+
   const auto& content_encoding = http_request.GetHeader("Content-Encoding");
-  if (content_encoding.empty()) return;
 
   try {
     if (content_encoding == "gzip") {
       auto body = compression::gzip::Decompress(http_request.RequestBody(),
                                                 GetConfig().max_request_size);
       http_request.SetRequestBody(std::move(body));
+      if (GetConfig().parse_args_from_body.value_or(false)) {
+        http_request.ParseArgsFromBody();
+      }
       return;
     }
   } catch (const compression::TooBigError& e) {

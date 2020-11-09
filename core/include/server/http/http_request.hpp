@@ -75,7 +75,10 @@ class HttpRequest final {
 
   const std::string& RequestBody() const;
   void SetRequestBody(std::string body);
+  void ParseArgsFromBody();
   void SetResponseStatus(HttpStatus status) const;
+
+  bool IsBodyCompressed() const;
 
  private:
   HttpRequestImpl& impl_;

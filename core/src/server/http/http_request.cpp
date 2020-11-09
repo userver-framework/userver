@@ -117,10 +117,14 @@ const std::string& HttpRequest::RequestBody() const {
 
 void HttpRequest::SetRequestBody(std::string body) {
   impl_.SetRequestBody(std::move(body));
-}
+}  // namespace server::http
+
+void HttpRequest::ParseArgsFromBody() { impl_.ParseArgsFromBody(); }
 
 void HttpRequest::SetResponseStatus(HttpStatus status) const {
   return impl_.SetResponseStatus(status);
 }
+
+bool HttpRequest::IsBodyCompressed() const { return impl_.IsBodyCompressed(); }
 
 }  // namespace server::http

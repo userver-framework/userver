@@ -6,6 +6,7 @@
 #include <logging/spdlog.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <utils/encoding/tskv.hpp>
+#include "http_request_parse_args.hpp"
 
 namespace {
 
@@ -162,6 +163,19 @@ size_t HttpRequestImpl::CookieCount() const { return cookies_.size(); }
 
 HttpRequest::CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
   return HttpRequest::CookiesMapKeys{cookies_};
+}
+
+void HttpRequestImpl::SetRequestBody(std::string body) {
+  request_body_ = std::move(body);
+}
+
+void HttpRequestImpl::ParseArgsFromBody() {
+  parser::ParseArgs(request_body_, request_args_);
+}
+
+bool HttpRequestImpl::IsBodyCompressed() const {
+  auto encoding = GetHeader(::http::headers::kContentEncoding);
+  return !encoding.empty() && encoding != "identity";
 }
 
 void HttpRequestImpl::SetPathArgs(

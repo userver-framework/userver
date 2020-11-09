@@ -113,6 +113,7 @@ void HttpRequestConstructor::ParseUrl() {
       config_.max_headers_size = *handler_config.max_headers_size;
     if (handler_config.parse_args_from_body)
       config_.parse_args_from_body = *handler_config.parse_args_from_body;
+    if (handler_config.decompress_request) config_.decompress_request = true;
 
     request_->SetTaskProcessor(handler_info->task_processor);
     request_->SetHttpHandler(handler_info->handler);
@@ -208,8 +209,11 @@ void HttpRequestConstructor::FinalizeImpl() {
 
   try {
     ParseArgs(parsed_url_);
-    if (config_.parse_args_from_body)
-      ParseArgs(request_->request_body_.data(), request_->request_body_.size());
+    if (config_.parse_args_from_body) {
+      if (!config_.decompress_request || !request_->IsBodyCompressed())
+        ParseArgs(request_->request_body_.data(),
+                  request_->request_body_.size());
+    }
   } catch (const std::exception& ex) {
     LOG_WARNING() << "can't parse args: " << ex;
     SetStatus(Status::kParseArgsError);
@@ -234,44 +238,6 @@ void HttpRequestConstructor::FinalizeImpl() {
   LOG_TRACE() << DumpCookies();
 }
 
-std::string HttpRequestConstructor::UrlDecode(const char* data,
-                                              const char* data_end) {
-  // Fast path: no %, just id
-  if (!memchr(data, '%', data_end - data) &&
-      !memchr(data, '+', data_end - data)) {
-    return std::string(data, data_end);
-  }
-
-  std::string res;
-  for (const char* ptr = data; ptr < data_end; ++ptr) {
-    if (*ptr == '%') {
-      if (ptr + 2 < data_end &&
-          utils::encoding::FromHex({ptr + 1, 2}, res) == 2) {
-        ptr += 2;
-      } else {
-        static constexpr std::size_t kMaxOutputLength = 100;
-        std::string data_short(data, data_end - data);
-        if (data_short.size() > kMaxOutputLength) {
-          data_short = data_short.substr(0, kMaxOutputLength);
-          data_short += "<...>";
-        }
-        const auto percent_encoded_len =
-            std::min(static_cast<std::size_t>(data_end - ptr), std::size_t{3});
-
-        throw std::runtime_error("invalid percent-encoding sequence '" +
-                                 std::string(ptr, percent_encoded_len) +
-                                 "\' in input '" + std::move(data_short) +
-                                 '\'');
-      }
-    } else if (*ptr == '+') {
-      res += ' ';
-    } else {
-      res += *ptr;
-    }
-  }
-  return res;
-}
-
 void HttpRequestConstructor::ParseArgs(const http_parser_url& url) {
   if (url.field_set & (1 << http_parser_url_fields::UF_QUERY)) {
     const auto& str_info = url.field_data[http_parser_url_fields::UF_QUERY];
@@ -282,31 +248,8 @@ void HttpRequestConstructor::ParseArgs(const http_parser_url& url) {
 }
 
 void HttpRequestConstructor::ParseArgs(const char* data, size_t size) {
-  const char* end = data + size;
-  const char* key_begin = data;
-  const char* key_end = data;
-  bool parse_key = true;
-  for (const char* ptr = data; ptr <= end; ++ptr) {
-    if (ptr == end || *ptr == '&') {
-      if (!parse_key) {
-        const char* value_begin = key_end + 1;
-        const char* value_end = ptr;
-        if (key_begin < key_end && value_begin < value_end) {
-          std::vector<std::string>& arg_values =
-              request_->request_args_[UrlDecode(key_begin, key_end)];
-          arg_values.emplace_back(UrlDecode(value_begin, value_end));
-        }
-      }
-      parse_key = true;
-      key_begin = ptr + 1;
-      continue;
-    }
-    if (*ptr == '=' && parse_key) {
-      parse_key = false;
-      key_end = ptr;
-      continue;
-    }
-  }
+  return ::server::http::parser::ParseArgs(std::string_view(data, size),
+                                           request_->request_args_);
 }
 
 void HttpRequestConstructor::AddHeader() {

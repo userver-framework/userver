@@ -66,10 +66,13 @@ class HttpRequestImpl final : public request::RequestBase {
   HttpRequest::CookiesMapKeys GetCookieNames() const;
 
   const std::string& RequestBody() const { return request_body_; }
-  void SetRequestBody(std::string body) { request_body_ = std::move(body); }
+  void SetRequestBody(std::string body);
+  void ParseArgsFromBody();
   void SetResponseStatus(HttpStatus status) const {
     response_->SetStatus(status);
   }
+
+  bool IsBodyCompressed() const;
 
   bool IsFinal() const override { return is_final_; }
 

@@ -9,6 +9,7 @@
 
 #include "handler_info_index.hpp"
 #include "http_request_impl.hpp"
+#include "http_request_parse_args.hpp"
 
 namespace server {
 namespace http {
@@ -34,6 +35,7 @@ class HttpRequestConstructor final : public request::RequestConstructor {
     size_t max_headers_size = 65536;
     bool parse_args_from_body = false;
     bool testing_mode = false;
+    bool decompress_request = false;
   };
 
   HttpRequestConstructor(Config config,
@@ -53,8 +55,6 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   void SetIsFinal(bool is_final);
 
   std::shared_ptr<request::RequestBase> Finalize() override;
-
-  static std::string UrlDecode(const char* data, const char* data_end);
 
  private:
   void FinalizeImpl();
