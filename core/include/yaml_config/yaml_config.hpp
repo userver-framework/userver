@@ -33,10 +33,11 @@ class YamlConfig {
  public:
   YamlConfig() = default;
 
-  YamlConfig(formats::yaml::Value yaml, formats::yaml::Value substitution_map);
+  /// YamlConfig = config + config_vars
+  YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_vars);
 
   const formats::yaml::Value& Yaml() const;
-  const formats::yaml::Value& SubstitutionMap() const;
+  const formats::yaml::Value& ConfigVars() const;
 
   /// @brief Access member by key for read.
   /// @throw TypeMismatchException if value is not missing and is not object.
@@ -106,79 +107,10 @@ class YamlConfig {
   /// or Null.
   const_iterator end() const;
 
-  [[deprecated("Use config[name].As<int>() instead")]] int ParseInt(
-      std::string_view name) const;
-  [[deprecated("Use config[name].As<int>(default) instead")]] int ParseInt(
-      std::string_view name, int default_value) const;
-  [[deprecated(
-      "Use config[name].As<std::optional<int>>() instead")]] std::optional<int>
-  ParseOptionalInt(std::string_view name) const;
-
-  [[deprecated("Use config[name].As<bool>() instead")]] bool ParseBool(
-      std::string_view name) const;
-  [[deprecated("Use config[name].As<bool>(default) instead")]] bool ParseBool(
-      std::string_view name, bool default_value) const;
-  [[deprecated("Use config[name].As<std::optional<bool>>() instead")]] std::
-      optional<bool>
-      ParseOptionalBool(std::string_view name) const;
-
-  [[deprecated("Use config[name].As<uint64_t>() instead")]] uint64_t
-  ParseUint64(std::string_view name) const;
-  [[deprecated("Use config[name].As<uint64_t>(default) instead")]] uint64_t
-  ParseUint64(std::string_view name, uint64_t default_value) const;
-  [[deprecated("Use config[name].As<std::optional<uint64_t>>() instead")]] std::
-      optional<uint64_t>
-      ParseOptionalUint64(std::string_view name) const;
-
-  [[deprecated("Use config[name].As<std::string>() instead")]] std::string
-  ParseString(std::string_view name) const;
-  [[deprecated(
-      "Use config[name].As<std::string>(default) instead")]] std::string
-  ParseString(std::string_view name, std::string_view default_value) const;
-  [[deprecated(
-      "Use config[name].As<std::optional<std::string>>() instead")]] std::
-      optional<std::string>
-      ParseOptionalString(std::string_view name) const;
-
-  [[deprecated(
-      "Use config[name].As<std::chrono::milliseconds>() instead")]] std::
-      chrono::milliseconds
-      ParseDuration(std::string_view name) const;
-  [[deprecated(
-      "Use config[name].As<std::chrono::milliseconds>(default) instead")]] std::
-      chrono::milliseconds
-      ParseDuration(std::string_view name,
-                    std::chrono::milliseconds default_value) const;
-  [[deprecated(
-      "Use config[name].As<std::optional<std::chrono::milliseconds>>() "
-      "instead")]] std::optional<std::chrono::milliseconds>
-  ParseOptionalDuration(std::string_view name) const;
-
-  template <typename T>
-  [[deprecated("Use config[name].As<T>() instead")]] T Parse(
-      std::string_view name) const {
-    return (*this)[name].As<T>();
-  }
-
-  template <typename T>
-  [[deprecated("Use config[name].As<T>() instead")]] T Parse(
-      std::string_view name, T default_arg) const {
-    return (*this)[name].As<T>(std::move(default_arg));
-  }
-
  private:
   formats::yaml::Value yaml_;
-  formats::yaml::Value substitution_map_;
+  formats::yaml::Value config_vars_;
 };
-
-namespace impl {
-
-template <typename T>
-T FormatsParse(const YamlConfig& value, formats::parse::To<T> to) {
-  return Parse(value, to);
-}
-
-}  // namespace impl
 
 template <typename T>
 T YamlConfig::As() const {
@@ -189,7 +121,7 @@ T YamlConfig::As() const {
                 "<formats/parse/common_containers.hpp> or you "
                 "have not provided a `Parse` function overload.");
 
-  return impl::FormatsParse(*this, formats::parse::To<T>{});
+  return Parse(*this, formats::parse::To<T>{});
 }
 
 template <>
@@ -228,12 +160,14 @@ T YamlConfig::As(YamlConfig::DefaultConstructed) const {
 /// @endcode
 using formats::common::Items;
 
-/// Shorthand for parsing YamlConfig from a YAML string, mainly for tests
-YamlConfig FromString(const std::string& string);
-
+/// @brief Parses duration from string, understands suffixes: ms, s, m, h, d
+/// @throws On invalid type, invalid string format, and if the duration is not a
+/// whole amount of seconds
 std::chrono::seconds Parse(const YamlConfig& value,
                            formats::parse::To<std::chrono::seconds>);
 
+/// @brief Parses duration from string, understands suffixes: ms, s, m, h, d
+/// @throws On invalid type and invalid string format
 std::chrono::milliseconds Parse(const YamlConfig& value,
                                 formats::parse::To<std::chrono::milliseconds>);
 

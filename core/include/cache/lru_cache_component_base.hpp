@@ -127,7 +127,7 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
         return ExtendStatistics(request);
       });
 
-  if (config.ParseBool("config-settings", true) &&
+  if (config["config-settings"].As<bool>(true) &&
       CacheConfigSet::IsLruConfigEnabled()) {
     LOG_INFO() << "Dynamic LRU cache config is enabled, subscribing on "
                   "taxi-config updates, cache="

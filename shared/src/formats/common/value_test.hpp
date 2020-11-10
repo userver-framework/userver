@@ -249,6 +249,32 @@ TYPED_TEST_P(Parsing, TimeOfDayNormalized) {
   EXPECT_EQ(Minutes{"00:00"}, value);
 }
 
+struct DontDefaultMe {
+  DontDefaultMe() { Fail(); }
+  explicit DontDefaultMe(int value) : value(value) {}
+  int value = 0;
+
+  static void Fail() { FAIL() << "Extra default constructor invoked by As"; }
+};
+
+template <typename Value>
+DontDefaultMe Parse(const Value& value, formats::parse::To<DontDefaultMe>) {
+  return DontDefaultMe{value.template As<int>()};
+}
+
+TYPED_TEST_P(Parsing, AsDefaulted) {
+  auto json = this->FromString(R"~({"foo": 42, "bar": [9000]})~");
+
+  EXPECT_EQ(json["foo"].template As<int>({}), 42);
+  EXPECT_EQ(json["bar"].template As<std::vector<int>>({}),
+            std::vector<int>{9000});
+  EXPECT_EQ(json["foo"].template As<DontDefaultMe>({}).value, 42);
+
+  EXPECT_EQ(json["missing"].template As<int>({}), 0);
+  EXPECT_EQ(json["missing"].template As<std::vector<int>>({}),
+            std::vector<int>{});
+}
+
 REGISTER_TYPED_TEST_SUITE_P(
     Parsing,
 
@@ -264,4 +290,6 @@ REGISTER_TYPED_TEST_SUITE_P(
 
     VariantOk1, VariantOk2, VariantAmbiguous, VariantUnambiguous,
 
-    TimeOfDayCorrect, TimeOfDayIncorrect, TimeOfDayNormalized);
+    TimeOfDayCorrect, TimeOfDayIncorrect, TimeOfDayNormalized,
+
+    AsDefaulted);

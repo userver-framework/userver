@@ -139,8 +139,8 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
         continue;
       }
       if (new_config->source.Yaml() == manager_ptr->GetConfig().source.Yaml() &&
-          new_config->source.SubstitutionMap() ==
-              manager_ptr->GetConfig().source.SubstitutionMap()) {
+          new_config->source.ConfigVars() ==
+              manager_ptr->GetConfig().source.ConfigVars()) {
         LOG_INFO() << "Config unchanged, ignoring request";
         continue;
       }
