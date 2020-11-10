@@ -49,6 +49,13 @@ class HttpRequestImpl final : public request::RequestBase {
   size_t ArgCount() const;
   std::vector<std::string> ArgNames() const;
 
+  const FormDataArg& GetFormDataArg(const std::string& arg_name) const;
+  const std::vector<FormDataArg>& GetFormDataArgVector(
+      const std::string& arg_name) const;
+  bool HasFormDataArg(const std::string& arg_name) const;
+  size_t FormDataArgCount() const;
+  std::vector<std::string> FormDataArgNames() const;
+
   const std::string& GetPathArg(const std::string& arg_name) const;
   const std::string& GetPathArg(size_t index) const;
   bool HasPathArg(const std::string& arg_name) const;
@@ -118,6 +125,7 @@ class HttpRequestImpl final : public request::RequestBase {
   std::string request_body_;
   std::string path_suffix_;
   std::unordered_map<std::string, std::vector<std::string>> request_args_;
+  std::unordered_map<std::string, std::vector<FormDataArg>> form_data_args_;
   std::vector<std::string> path_args_;
   std::unordered_map<std::string, size_t> path_args_by_name_index_;
   HttpRequest::HeadersMap headers_;

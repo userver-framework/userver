@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <algorithm>
+#include <cassert>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <string>

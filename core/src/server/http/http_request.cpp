@@ -63,6 +63,28 @@ std::vector<std::string> HttpRequest::ArgNames() const {
   return impl_.ArgNames();
 }
 
+const FormDataArg& HttpRequest::GetFormDataArg(
+    const std::string& arg_name) const {
+  return impl_.GetFormDataArg(arg_name);
+}
+
+const std::vector<FormDataArg>& HttpRequest::GetFormDataArgVector(
+    const std::string& arg_name) const {
+  return impl_.GetFormDataArgVector(arg_name);
+}
+
+bool HttpRequest::HasFormDataArg(const std::string& arg_name) const {
+  return impl_.HasFormDataArg(arg_name);
+}
+
+size_t HttpRequest::FormDataArgCount() const {
+  return impl_.FormDataArgCount();
+}
+
+std::vector<std::string> HttpRequest::FormDataArgNames() const {
+  return impl_.FormDataArgNames();
+}
+
 const std::string& HttpRequest::GetPathArg(const std::string& arg_name) const {
   return impl_.GetPathArg(arg_name);
 }

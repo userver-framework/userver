@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <server/http/form_data_arg.hpp>
 #include <server/http/http_method.hpp>
 #include <server/http/http_response.hpp>
 #include <utils/projecting_view.hpp>
@@ -53,6 +54,13 @@ class HttpRequest final {
   bool HasArg(const std::string& arg_name) const;
   size_t ArgCount() const;
   std::vector<std::string> ArgNames() const;
+
+  const FormDataArg& GetFormDataArg(const std::string& arg_name) const;
+  const std::vector<FormDataArg>& GetFormDataArgVector(
+      const std::string& arg_name) const;
+  bool HasFormDataArg(const std::string& arg_name) const;
+  size_t FormDataArgCount() const;
+  std::vector<std::string> FormDataArgNames() const;
 
   /// get named argument from URL path with wildcards
   const std::string& GetPathArg(const std::string& arg_name) const;

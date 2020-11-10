@@ -27,6 +27,7 @@ class HttpRequestConstructor final : public request::RequestConstructor {
     kRequestTooLarge,
     kParseArgsError,
     kParseCookiesError,
+    kParseMultipartFormDataError,
   };
 
   struct Config {

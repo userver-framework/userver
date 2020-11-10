@@ -3,11 +3,14 @@
 #include <algorithm>
 #include <sstream>
 
+#include <http/common_headers.hpp>
 #include <logging/log.hpp>
 #include <server/http/http_status.hpp>
 #include <utils/assert.hpp>
 #include <utils/encoding/hex.hpp>
 #include <utils/exception.hpp>
+
+#include "multipart_form_data_parser.hpp"
 
 namespace server::http {
 
@@ -236,6 +239,14 @@ void HttpRequestConstructor::FinalizeImpl() {
   }
 
   LOG_TRACE() << DumpCookies();
+
+  const auto& content_type = request_->GetHeader(::http::headers::kContentType);
+  if (IsMultipartFormDataContentType(content_type)) {
+    if (!ParseMultipartFormData(content_type, request_->RequestBody(),
+                                request_->form_data_args_)) {
+      SetStatus(Status::kParseMultipartFormDataError);
+    }
+  }
 }
 
 void HttpRequestConstructor::ParseArgs(const http_parser_url& url) {
@@ -424,6 +435,12 @@ void HttpRequestConstructor::CheckStatus() const {
     case Status::kParseCookiesError:
       request_->SetResponseStatus(HttpStatus::kBadRequest);
       request_->GetHttpResponse().SetData("invalid cookies");
+      request_->GetHttpResponse().SetReady();
+      break;
+    case Status::kParseMultipartFormDataError:
+      request_->SetResponseStatus(HttpStatus::kBadRequest);
+      request_->GetHttpResponse().SetData(
+          "invalid body of multipart/form-data request");
       request_->GetHttpResponse().SetReady();
       break;
   }

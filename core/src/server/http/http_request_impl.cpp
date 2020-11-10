@@ -107,6 +107,40 @@ std::vector<std::string> HttpRequestImpl::ArgNames() const {
   return res;
 }
 
+const FormDataArg& HttpRequestImpl::GetFormDataArg(
+    const std::string& arg_name) const {
+  static const FormDataArg kEmptyFormDataArg{};
+
+  auto it = form_data_args_.find(arg_name);
+  if (it == form_data_args_.end()) return kEmptyFormDataArg;
+  return it->second.at(0);
+}
+
+const std::vector<FormDataArg>& HttpRequestImpl::GetFormDataArgVector(
+    const std::string& arg_name) const {
+  static const std::vector<FormDataArg> kEmptyFormDataArgVector{};
+
+  auto it = form_data_args_.find(arg_name);
+  if (it == form_data_args_.end()) return kEmptyFormDataArgVector;
+  return it->second;
+}
+
+bool HttpRequestImpl::HasFormDataArg(const std::string& arg_name) const {
+  auto it = form_data_args_.find(arg_name);
+  return (it != form_data_args_.end());
+}
+
+size_t HttpRequestImpl::FormDataArgCount() const {
+  return form_data_args_.size();
+}
+
+std::vector<std::string> HttpRequestImpl::FormDataArgNames() const {
+  std::vector<std::string> res;
+  res.reserve(form_data_args_.size());
+  for (const auto& [name, _] : form_data_args_) res.push_back(name);
+  return res;
+}
+
 const std::string& HttpRequestImpl::GetPathArg(
     const std::string& arg_name) const {
   auto it = path_args_by_name_index_.find(arg_name);
