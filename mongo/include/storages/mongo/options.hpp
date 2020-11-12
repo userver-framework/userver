@@ -188,7 +188,7 @@ class Projection {
   /// @endcond
 
  private:
-  std::optional<formats::bson::impl::BsonBuilder> projection_builder_;
+  formats::bson::impl::BsonBuilder projection_builder_;
 };
 
 /// Sorts the results
@@ -214,7 +214,7 @@ class Sort {
   /// @endcond
 
  private:
-  std::optional<formats::bson::impl::BsonBuilder> sort_builder_;
+  formats::bson::impl::BsonBuilder sort_builder_;
 };
 
 /// @brief Specifies an index to use for the query

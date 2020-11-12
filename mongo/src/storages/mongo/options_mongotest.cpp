@@ -214,6 +214,216 @@ TEST(Options, Projection) {
       EXPECT_TRUE((*doc)["doc"]["a"].IsNull());
       EXPECT_TRUE((*doc)["doc"]["b"].IsInt32());
     }
+
+    const auto kDummyUpdate = MakeDoc("$set", MakeDoc("a", 1));
+    {
+      auto result = coll.FindAndModify({}, kDummyUpdate, options::Projection{});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(5, doc.GetSize());
+    }
+    {
+      auto result =
+          coll.FindAndModify({}, kDummyUpdate, options::Projection{"_id"});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(1, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+    }
+    {
+      auto result =
+          coll.FindAndModify({}, kDummyUpdate, options::Projection{"a"});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(2, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+      EXPECT_TRUE(doc["a"].IsInt32());
+    }
+    {
+      auto result = coll.FindAndModify(
+          {}, kDummyUpdate,
+          options::Projection{"a"}.Exclude("_id").Include("b").Include("arr"));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(3, doc.GetSize());
+      EXPECT_TRUE(doc["a"].IsInt32());
+      EXPECT_TRUE(doc["b"].IsString());
+      EXPECT_TRUE(doc["arr"].IsArray());
+    }
+    {
+      auto result = coll.FindAndModify(
+          {}, kDummyUpdate,
+          options::Projection{}.Exclude("_id").Exclude("doc.a"));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(4, doc.GetSize());
+      EXPECT_TRUE(doc["a"].IsInt32());
+      EXPECT_TRUE(doc["b"].IsString());
+      EXPECT_TRUE(doc["arr"].IsArray());
+      ASSERT_TRUE(doc["doc"].IsDocument());
+      EXPECT_EQ(1, doc["doc"].GetSize());
+      EXPECT_FALSE(doc["doc"].HasMember("a"));
+      EXPECT_TRUE(doc["doc"]["b"].IsInt32());
+    }
+    {
+      auto result =
+          coll.FindAndModify(MakeDoc("arr", MakeDoc("$gt", 0)), kDummyUpdate,
+                             options::Projection{"arr.$"});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(2, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+      ASSERT_TRUE(doc["arr"].IsArray());
+      ASSERT_EQ(1, doc["arr"].GetSize());
+      EXPECT_EQ(1, doc["arr"][0].As<int>());
+    }
+    {
+      auto result = coll.FindAndModify({}, kDummyUpdate,
+                                       options::Projection{}.Slice("arr", -1));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(5, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+      EXPECT_TRUE(doc["a"].IsInt32());
+      EXPECT_TRUE(doc["b"].IsString());
+      EXPECT_TRUE(doc["doc"].IsDocument());
+      ASSERT_TRUE(doc["arr"].IsArray());
+      ASSERT_EQ(1, doc["arr"].GetSize());
+      EXPECT_EQ(3, doc["arr"][0].As<int>());
+    }
+    EXPECT_THROW(coll.FindAndModify({}, kDummyUpdate,
+                                    options::Projection{}.Slice("arr", -1, 2)),
+                 InvalidQueryArgumentException);
+    {
+      auto result = coll.FindAndModify(
+          {}, kDummyUpdate, options::Projection{"a"}.Slice("arr", 2, -3));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(3, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+      EXPECT_TRUE(doc["a"].IsInt32());
+      ASSERT_TRUE(doc["arr"].IsArray());
+      ASSERT_EQ(2, doc["arr"].GetSize());
+      EXPECT_EQ(1, doc["arr"][0].As<int>());
+      EXPECT_EQ(2, doc["arr"][1].As<int>());
+    }
+    {
+      auto result = coll.FindAndModify(
+          {}, kDummyUpdate, options::Projection{"a"}.ElemMatch("arr", {}));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(2, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+      EXPECT_TRUE(doc["a"].IsInt32());
+    }
+    {
+      auto result = coll.FindAndModify(
+          {}, kDummyUpdate,
+          options::Projection{"a"}.ElemMatch("arr", MakeDoc("$bitsAllSet", 2)));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(3, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+      EXPECT_TRUE(doc["a"].IsInt32());
+      ASSERT_TRUE(doc["arr"].IsArray());
+      ASSERT_EQ(1, doc["arr"].GetSize());
+      EXPECT_EQ(2, doc["arr"][0].As<int>());
+    }
+    {
+      auto result = coll.FindAndModify({}, kDummyUpdate,
+                                       options::Projection{"doc", "doc.b"});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(2, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+      ASSERT_TRUE(doc["doc"].IsDocument());
+      EXPECT_EQ(1, doc["doc"].GetSize());
+      EXPECT_TRUE(doc["doc"]["b"].IsInt32());
+    }
+    {
+      auto result = coll.FindAndModify({}, kDummyUpdate,
+                                       options::Projection{"doc.b", "doc"});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(2, doc.GetSize());
+      EXPECT_TRUE(doc.HasMember("_id"));
+      ASSERT_TRUE(doc["doc"].IsDocument());
+      EXPECT_EQ(2, doc["doc"].GetSize());
+      EXPECT_TRUE(doc["doc"]["a"].IsNull());
+      EXPECT_TRUE(doc["doc"]["b"].IsInt32());
+    }
   });
 }
 
@@ -225,6 +435,7 @@ TEST(Options, Sort) {
     coll.InsertOne(MakeDoc("a", 1, "b", 0));
     coll.InsertOne(MakeDoc("a", 0, "b", 1));
 
+    EXPECT_NO_THROW(coll.FindOne({}, options::Sort{}));
     {
       auto doc =
           coll.FindOne({}, options::Sort({{"a", options::Sort::kAscending}}));
@@ -261,6 +472,83 @@ TEST(Options, Sort) {
       ASSERT_TRUE(doc);
       EXPECT_EQ(1, (*doc)["a"].As<int>());
       EXPECT_EQ(0, (*doc)["b"].As<int>());
+    }
+
+    {
+      auto result = coll.FindAndRemove({}, options::Sort{});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.DeletedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      coll.InsertOne(*result.FoundDocument());
+    }
+    {
+      auto result = coll.FindAndRemove(
+          {}, options::Sort({{"a", options::Sort::kAscending}}));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.DeletedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(0, doc["a"].As<int>());
+      EXPECT_EQ(1, doc["b"].As<int>());
+      coll.InsertOne(std::move(doc));
+    }
+    {
+      auto result = coll.FindAndRemove(
+          {}, options::Sort{}.By("a", options::Sort::kDescending));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.DeletedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(1, doc["a"].As<int>());
+      EXPECT_EQ(0, doc["b"].As<int>());
+      coll.InsertOne(std::move(doc));
+    }
+    {
+      auto result = coll.FindAndRemove(
+          {}, options::Sort{{"b", options::Sort::kAscending}});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.DeletedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(1, doc["a"].As<int>());
+      EXPECT_EQ(0, doc["b"].As<int>());
+      coll.InsertOne(std::move(doc));
+    }
+    {
+      auto result = coll.FindAndRemove(
+          {}, options::Sort{{"a", options::Sort::kAscending},
+                            {"b", options::Sort::kAscending}});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.DeletedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(0, doc["a"].As<int>());
+      EXPECT_EQ(1, doc["b"].As<int>());
+      coll.InsertOne(std::move(doc));
+    }
+    {
+      auto result = coll.FindAndRemove(
+          {}, options::Sort{{"b", options::Sort::kAscending},
+                            {"a", options::Sort::kAscending}});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.DeletedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(1, doc["a"].As<int>());
+      EXPECT_EQ(0, doc["b"].As<int>());
+      coll.InsertOne(std::move(doc));
     }
   });
 }
@@ -309,6 +597,8 @@ TEST(Options, MaxServerTime) {
 
     EXPECT_NO_THROW(
         coll.FindOne({}, options::MaxServerTime{std::chrono::seconds{1}}));
+    EXPECT_NO_THROW(coll.FindAndRemove(
+        {}, options::MaxServerTime{std::chrono::seconds{1}}));
   });
 }
 
@@ -331,6 +621,24 @@ TEST(Options, WriteConcern) {
     EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{10}),
                  ServerException);
     EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{"test"}),
+                 ServerException);
+
+    EXPECT_NO_THROW(
+        coll.FindAndModify({}, {}, options::WriteConcern::kMajority));
+    EXPECT_NO_THROW(
+        coll.FindAndModify({}, {}, options::WriteConcern::kUnacknowledged));
+    EXPECT_NO_THROW(coll.FindAndModify({}, {}, options::WriteConcern{1}));
+    EXPECT_NO_THROW(coll.FindAndModify(
+        {}, {},
+        options::WriteConcern{options::WriteConcern::kMajority}
+            .SetJournal(false)
+            .SetTimeout(std::chrono::milliseconds(100))));
+    EXPECT_THROW(coll.FindAndModify(
+                     {}, {}, options::WriteConcern{static_cast<size_t>(-1)}),
+                 InvalidQueryArgumentException);
+    EXPECT_THROW(coll.FindAndModify({}, {}, options::WriteConcern{10}),
+                 ServerException);
+    EXPECT_THROW(coll.FindAndModify({}, {}, options::WriteConcern{"test"}),
                  ServerException);
   });
 }
@@ -393,5 +701,63 @@ TEST(Options, Upsert) {
       EXPECT_EQ(2, upserted_ids[0].As<int>());
     }
     EXPECT_EQ(2, coll.CountApprox());
+
+    {
+      auto result = coll.FindAndModify(MakeDoc("_id", 3), MakeDoc());
+      EXPECT_EQ(0, result.MatchedCount());
+      EXPECT_EQ(0, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+    }
+    {
+      auto result =
+          coll.FindAndModify(MakeDoc("_id", 3), MakeDoc(), options::Upsert{});
+      EXPECT_EQ(0, result.MatchedCount());
+      EXPECT_EQ(0, result.ModifiedCount());
+      EXPECT_EQ(1, result.UpsertedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      auto upserted_ids = result.UpsertedIds();
+      ASSERT_TRUE(upserted_ids[0].IsInt32());
+      EXPECT_EQ(3, upserted_ids[0].As<int>());
+    }
+    EXPECT_EQ(3, coll.CountApprox());
+  });
+}
+
+TEST(Options, ReturnNew) {
+  RunInCoro([] {
+    auto pool = MakeTestPool();
+    auto coll = pool.GetCollection("return_new");
+
+    coll.InsertOne(MakeDoc("_id", 1, "x", 1));
+    {
+      auto result = coll.FindAndModify(MakeDoc("_id", 1), MakeDoc("x", 2));
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.UpsertedIds().empty());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(1, doc["_id"].As<int>());
+      EXPECT_EQ(1, doc["x"].As<int>());
+    }
+    {
+      auto result = coll.FindAndModify(MakeDoc("_id", 1), MakeDoc("x", 3),
+                                       options::ReturnNew{});
+      EXPECT_EQ(1, result.MatchedCount());
+      EXPECT_EQ(1, result.ModifiedCount());
+      EXPECT_EQ(0, result.UpsertedCount());
+      EXPECT_TRUE(result.ServerErrors().empty());
+      EXPECT_TRUE(result.WriteConcernErrors().empty());
+      ASSERT_TRUE(result.FoundDocument());
+      auto doc = *result.FoundDocument();
+      EXPECT_EQ(1, doc["_id"].As<int>());
+      EXPECT_EQ(3, doc["x"].As<int>());
+    }
   });
 }

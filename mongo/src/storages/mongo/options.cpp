@@ -5,8 +5,6 @@
 #include <storages/mongo/exception.hpp>
 #include <utils/text.hpp>
 
-#include <storages/mongo/operations_common.hpp>
-
 namespace storages::mongo::options {
 
 ReadPreference::ReadPreference(Mode mode) : mode_(mode) {}
@@ -73,12 +71,12 @@ Projection::Projection(
 }
 
 Projection& Projection::Include(std::string_view field) {
-  impl::EnsureBuilder(projection_builder_).Append(field, true);
+  projection_builder_.Append(field, true);
   return *this;
 }
 
 Projection& Projection::Exclude(std::string_view field) {
-  impl::EnsureBuilder(projection_builder_).Append(field, false);
+  projection_builder_.Append(field, false);
   return *this;
 }
 
@@ -97,20 +95,19 @@ Projection& Projection::Slice(std::string_view field, int32_t limit,
         formats::bson::MakeDoc(kSliceOp, formats::bson::MakeArray(skip, limit));
   }
 
-  impl::EnsureBuilder(projection_builder_).Append(field, slice);
+  projection_builder_.Append(field, slice);
   return *this;
 }
 
 Projection& Projection::ElemMatch(std::string_view field,
                                   const formats::bson::Document& pred) {
   static const std::string kElemMatchOp = "$elemMatch";
-  impl::EnsureBuilder(projection_builder_)
-      .Append(field, formats::bson::MakeDoc(kElemMatchOp, pred));
+  projection_builder_.Append(field, formats::bson::MakeDoc(kElemMatchOp, pred));
   return *this;
 }
 
 const bson_t* Projection::GetProjectionBson() const {
-  return impl::GetNative(projection_builder_);
+  return projection_builder_.Get();
 }
 
 Sort::Sort(
@@ -119,15 +116,12 @@ Sort::Sort(
 }
 
 Sort& Sort::By(std::string_view field, Direction direction) {
-  impl::EnsureBuilder(sort_builder_)
-      .Append(field,
-              direction == options::Sort::Direction::kAscending ? 1 : -1);
+  sort_builder_.Append(
+      field, direction == options::Sort::Direction::kAscending ? 1 : -1);
   return *this;
 }
 
-const bson_t* Sort::GetSortBson() const {
-  return impl::GetNative(sort_builder_);
-}
+const bson_t* Sort::GetSortBson() const { return sort_builder_.Get(); }
 
 Hint::Hint(std::string index_name)
     : value_(
