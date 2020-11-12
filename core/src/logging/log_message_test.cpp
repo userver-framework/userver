@@ -174,17 +174,35 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
   else
     FAIL() << "Logging affected the else statement";
 
-  if (true)
-    LOG_LIMITED(::logging::Level::kNone) << "test";
-  else
-    FAIL() << "Logging affected the else statement";
+  {
+    bool passed = false;
+    if (true)
+      LOG_LIMITED_CRITICAL() << (passed = true);
+    else
+      FAIL() << "Logging affected the else statement";
+    EXPECT_TRUE(passed);
+  }
 
-  bool passed = false;
-  if (false)
-    LOG_LIMITED(::logging::Level::kNone) << "test";
-  else
-    passed = true;
-  EXPECT_TRUE(passed);
+  {
+    bool passed = false;
+    if (false)
+      LOG_LIMITED_CRITICAL() << "test";
+    else
+      passed = true;
+    EXPECT_TRUE(passed);
+  }
+
+  {
+    bool passed = false;
+    if (true) LOG_LIMITED_CRITICAL() << (passed = true);
+    EXPECT_TRUE(passed);
+  }
+
+  {
+    bool passed = true;
+    if (false) LOG_LIMITED_CRITICAL() << (passed = false);
+    EXPECT_TRUE(passed);
+  }
 }
 
 TEST_F(LoggingTest, CppModulePath) {

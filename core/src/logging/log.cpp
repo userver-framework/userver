@@ -429,19 +429,24 @@ namespace impl {
 
 RateLimiter::RateLimiter(RateLimitData& data, Level level)
     : level_(level), should_log_(logging::ShouldLog(level)), dropped_count_(0) {
+  if (!should_log_) return;
+
   constexpr auto kResetInterval =
       std::chrono::steady_clock::duration{std::chrono::seconds{1}};
   const auto now = std::chrono::steady_clock::now();
 
   if (now - data.last_reset_time >= kResetInterval) {
-    data.count_since_reset = 1;
-    dropped_count_ = std::exchange(data.dropped_count, 0);
+    data.count_since_reset = 0;
     data.last_reset_time = now;
+  }
+
+  if (IsPowerOf2(++data.count_since_reset)) {
+    // log the current message together with the dropped count
+    dropped_count_ = std::exchange(data.dropped_count, 0);
   } else {
-    if (!IsPowerOf2(++data.count_since_reset)) {
-      ++data.dropped_count;
-      should_log_ = false;
-    }
+    // drop the current message
+    ++data.dropped_count;
+    should_log_ = false;
   }
 }
 

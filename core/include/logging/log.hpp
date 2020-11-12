@@ -316,11 +316,12 @@ class RateLimiter {
  public:
   RateLimiter(RateLimitData& data, Level level);
   bool ShouldLog() const { return should_log_; }
+  void SetShouldNotLog() { should_log_ = false; }
   Level GetLevel() const { return level_; }
   friend LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl);
 
  private:
-  Level level_;
+  const Level level_;
   bool should_log_;
   uint64_t dropped_count_;
 };
@@ -370,16 +371,15 @@ class RateLimiter {
 // Note: we have to jump through the hoops to keep lazy evaluation of the logged
 // data AND log the dropped logs count from the correct LogHelper in the face of
 // multithreading and coroutines.
-#define LOG_LIMITED_TO(logger, lvl)                              \
-  if (const ::logging::impl::RateLimiter log_limited_to_rl{      \
-          []() -> ::logging::impl::RateLimitData& {              \
-            thread_local ::logging::impl::RateLimitData rl_data; \
-            return rl_data;                                      \
-          }(),                                                   \
-          (lvl)};                                                \
-      !log_limited_to_rl.ShouldLog()) {                          \
-  } else                                                         \
-    DO_LOG_TO((logger), log_limited_to_rl.GetLevel()) << log_limited_to_rl
+#define LOG_LIMITED_TO(logger, lvl)                                        \
+  for (::logging::impl::RateLimiter log_limited_to_rl{                     \
+           []() -> ::logging::impl::RateLimitData& {                       \
+             thread_local ::logging::impl::RateLimitData rl_data;          \
+             return rl_data;                                               \
+           }(),                                                            \
+           (lvl)};                                                         \
+       log_limited_to_rl.ShouldLog(); log_limited_to_rl.SetShouldNotLog()) \
+  DO_LOG_TO((logger), log_limited_to_rl.GetLevel()) << log_limited_to_rl
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger. Ignores log messages that occur too often.
