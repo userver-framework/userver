@@ -5,13 +5,19 @@
 #include <random>
 
 namespace utils {
+
+class RandomBase {
+ public:
+  virtual uint32_t operator()() = 0;
+};
+
 namespace impl {
 
-class Random {
+class Random final : public RandomBase {
  public:
   Random() : gen_(std::random_device()()) {}
 
-  uint32_t operator()() { return gen_(); }
+  uint32_t operator()() override { return gen_(); }
 
   std::mt19937& GetGenerator() { return gen_; }
 
