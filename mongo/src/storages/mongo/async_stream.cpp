@@ -35,7 +35,7 @@ namespace {
 constexpr size_t kBufferSize = 16 * 1024;
 
 constexpr int kCompatibleMajorVersion = 1;
-constexpr int kMaxCompatibleMinorVersion = 16;
+constexpr int kMaxCompatibleMinorVersion = 17;
 
 static_assert((MONGOC_MAJOR_VERSION) == kCompatibleMajorVersion &&
                   (MONGOC_MINOR_VERSION) <= kMaxCompatibleMinorVersion,
