@@ -40,11 +40,11 @@ class TestPoint final {
 
  private:
   std::atomic<bool> is_initialized_{false};
-  clients::http::Client* http_client_;
+  clients::http::Client* http_client_{nullptr};
   std::string url_;
-  std::chrono::milliseconds timeout_;
+  std::chrono::milliseconds timeout_{};
   rcu::Variable<std::unordered_set<std::string>> registered_paths_;
-  bool skip_unregistered_testpoints_;
+  bool skip_unregistered_testpoints_{false};
 };
 
 }  // namespace testsuite::impl
@@ -52,11 +52,13 @@ class TestPoint final {
 /// @brief Send testpoint notification if testpoint support is enabled
 /// (e.g. in testsuite), otherwise does nothing.
 /// @see https://wiki.yandex-team.ru/taxi/backend/testsuite/#testpoint
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, {})
 
 /// @brief Send testpoint notification and receive data. Works only if
 /// testpoint support is enabled (e.g. in testsuite), otherwise does nothing.
 /// @see https://nda.ya.ru/3VssMp
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_CALLBACK(name, json, callback)            \
   do {                                                      \
     auto& tp = ::testsuite::impl::TestPoint::GetInstance(); \

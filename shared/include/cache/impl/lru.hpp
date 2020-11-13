@@ -26,6 +26,7 @@ using LruListHook = boost::intrusive::list_base_hook<LinkMode>;
 using LruHashSetHook = boost::intrusive::unordered_set_base_hook<LinkMode>;
 
 template <class Key, class Value>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LruNode final : public LruListHook, public LruHashSetHook {
  public:
   explicit LruNode(Key&& key, Value&& value)
@@ -46,6 +47,7 @@ class LruNode final : public LruListHook, public LruHashSetHook {
 };
 
 template <class Key>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LruNode<Key, EmptyPlaceholder> final : public LruListHook,
                                              public LruHashSetHook {
  public:
@@ -84,9 +86,9 @@ class LruBase final {
   explicit LruBase(size_t max_size, const Hash& hash, const Equal& equal);
   ~LruBase() { Clear(); }
 
-  LruBase(LruBase&& lru) = default;
+  LruBase(LruBase&& lru) noexcept = default;
   LruBase(const LruBase& lru) = delete;
-  LruBase& operator=(LruBase&& lru) = default;
+  LruBase& operator=(LruBase&& lru) noexcept = default;
   LruBase& operator=(const LruBase& lru) = delete;
 
   bool Put(const T& key, U value);

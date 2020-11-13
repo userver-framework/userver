@@ -64,7 +64,7 @@ class SentinelImpl {
     size_t shard = kUnknownShard;
     std::chrono::steady_clock::time_point start;
 
-    SentinelCommand() {}
+    SentinelCommand() = default;
     SentinelCommand(CommandPtr command, bool master, size_t shard,
                     std::chrono::steady_clock::time_point start)
         : command(command), master(master), shard(shard), start(start) {}

@@ -22,7 +22,7 @@ class RequestDataBase {
 
   virtual void Wait() = 0;
 
-  virtual ReplyType Get(const std::string& request_description = {}) = 0;
+  virtual ReplyType Get(const std::string& request_description) = 0;
 
   virtual ReplyPtr GetRaw() = 0;
 };
@@ -45,6 +45,7 @@ class RequestScanDataBase {
   virtual bool Eof() = 0;
 
  protected:
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::string request_description_;
 };
 

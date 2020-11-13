@@ -17,6 +17,7 @@ namespace components {
 
 class TaxiConfigImpl;
 
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TaxiConfig : public LoggableComponentBase,
                    public utils::AsyncEventChannel<
                        const std::shared_ptr<const taxi_config::Config>&> {

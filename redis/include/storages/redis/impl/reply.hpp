@@ -15,7 +15,7 @@ namespace redis {
 
 class ReplyData final {
  public:
-  typedef std::vector<ReplyData> Array;
+  using Array = std::vector<ReplyData>;
 
   enum class Type {
     kNoReply,

@@ -35,7 +35,7 @@ class BaseCodeException : public BaseException {
 
   const std::error_code& error_code() const noexcept { return ec_; }
 
- protected:
+ private:
   std::error_code ec_;
 };
 

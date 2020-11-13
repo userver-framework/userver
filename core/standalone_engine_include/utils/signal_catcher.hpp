@@ -1,6 +1,6 @@
 #pragma once
 
-// NOLINTNEXTLINE(modernize-deprecated-headers,hicpp-deprecated-headers)
+// NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <signal.h>
 
 #include <initializer_list>

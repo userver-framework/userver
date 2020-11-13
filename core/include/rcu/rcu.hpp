@@ -130,7 +130,7 @@ class USERVER_NODISCARD ReadablePtr final {
     UASSERT_MSG(this != &other, "Self assignment to RCU variable");
     if (this == &other) {
       // it is an error to assign to self. Do nothing in this case
-      return;
+      return *this;
     }
 
     // Get rid of our current hp_record_
@@ -175,7 +175,7 @@ class USERVER_NODISCARD ReadablePtr final {
 
  private:
   const T* GetOnRvalue() {
-    static_assert(false && sizeof(T),
+    static_assert(!sizeof(T),
                   "Don't use temporary ReadablePtr, store it to a variable");
     std::abort();
   }
@@ -268,7 +268,7 @@ class USERVER_NODISCARD WritablePtr final {
 
  private:
   T* GetOnRvalue() {
-    static_assert(false && sizeof(T),
+    static_assert(!sizeof(T),
                   "Don't use temporary WritablePtr, store it to a variable");
     std::abort();
   }

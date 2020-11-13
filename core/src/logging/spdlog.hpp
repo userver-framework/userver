@@ -8,6 +8,7 @@
 // spdlog level names
 // Intentionally not wrapped in ifndef -- to show places where the order is
 // incorrect
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SPDLOG_LEVEL_NAMES \
   { "TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "OFF" }
 

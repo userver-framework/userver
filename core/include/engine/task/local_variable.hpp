@@ -15,9 +15,10 @@ class TaskLocalVariableAny {
  protected:
   TaskLocalVariableAny();
 
- protected:
   static impl::LocalStorage& GetCurrentLocalStorage();
+  size_t CoroVariableIndex() const { return coro_variable_index_; }
 
+ private:
   const size_t coro_variable_index_;
 };
 
@@ -43,7 +44,7 @@ class TaskLocalVariable final : public TaskLocalVariableAny {
 template <typename T>
 T& TaskLocalVariable<T>::operator*() {
   auto& local_storage = GetCurrentLocalStorage();
-  return *local_storage.template Get<T>(coro_variable_index_);
+  return *local_storage.template Get<T>(CoroVariableIndex());
 }
 
 template <typename T>

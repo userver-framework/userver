@@ -18,13 +18,13 @@ class CountedCoroutinePtr final {
  public:
   using CoroPool = coro::Pool<TaskContext>;
 
-  CountedCoroutinePtr();
+  CountedCoroutinePtr() = default;
   CountedCoroutinePtr(CoroPool::CoroutinePtr, TaskProcessor&);
-  ~CountedCoroutinePtr();
 
-  // TODO: noexcept when std::optional
-  CountedCoroutinePtr(CountedCoroutinePtr&&);
-  CountedCoroutinePtr& operator=(CountedCoroutinePtr&&);
+  CountedCoroutinePtr(const CountedCoroutinePtr&) = delete;
+  CountedCoroutinePtr(CountedCoroutinePtr&&) noexcept = default;
+  CountedCoroutinePtr& operator=(const CountedCoroutinePtr&) = delete;
+  CountedCoroutinePtr& operator=(CountedCoroutinePtr&&) noexcept = default;
 
   explicit operator bool() const { return !!coro_; }
 

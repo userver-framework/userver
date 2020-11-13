@@ -18,6 +18,7 @@ inline void TestInCoro(std::function<void()> callback,
 inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
 
 // gtest-specific serializers
+// NOLINTNEXTLINE(cert-dcl58-cpp)
 namespace std::chrono {
 
 inline void PrintTo(std::chrono::seconds s, std::ostream* os) {
@@ -64,13 +65,17 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 }  // namespace decimal64
 
 #ifdef __APPLE__
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name
 #else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) name
 #endif
 
 #ifdef _LIBCPP_VERSION
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_LIBCPP_TEST_NAME(name) DISABLED_##name
 #else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_LIBCPP_TEST_NAME(name) name
 #endif

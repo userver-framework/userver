@@ -57,7 +57,7 @@ class SharedReadablePtr final {
 
  private:
   [[noreturn]] static void ReportMisuse() {
-    static_assert(sizeof(T) && false, "keep the pointer before using, please");
+    static_assert(!sizeof(T), "keep the pointer before using, please");
   }
 
   Base base_;

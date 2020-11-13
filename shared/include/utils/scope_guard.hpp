@@ -23,7 +23,9 @@ namespace utils {
 class ScopeGuard final {
  public:
   using Callback = std::function<void()>;
-  explicit ScopeGuard(Callback callback) : callback_(std::move(callback)) {}
+  explicit ScopeGuard(Callback callback)
+      : callback_(std::move(callback)),
+        exceptions_on_enter_(std::uncaught_exceptions()) {}
 
   ScopeGuard(const ScopeGuard&) = delete;
   ScopeGuard(ScopeGuard&&) = delete;
@@ -34,10 +36,7 @@ class ScopeGuard final {
   ~ScopeGuard() noexcept(false) {
     if (!callback_) return;
 
-    // FIXME: use std::uncaught_exceptions() here and in ctor
-    // when move to C++17 lib to support usecase inside dtor that is called
-    // during stack unwinding
-    if (std::uncaught_exception()) {
+    if (std::uncaught_exceptions() != exceptions_on_enter_) {
       /* keep all exceptions inside destructor to avoid std::terminate */
       try {
         callback_();
@@ -56,6 +55,7 @@ class ScopeGuard final {
 
  private:
   Callback callback_;
+  const int exceptions_on_enter_;
 };
 
 }  // namespace utils

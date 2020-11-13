@@ -4,22 +4,11 @@
 
 namespace engine::impl {
 
-CountedCoroutinePtr::CountedCoroutinePtr() = default;
-
 CountedCoroutinePtr::CountedCoroutinePtr(CoroPool::CoroutinePtr coro,
                                          TaskProcessor& task_processor)
     : coro_(std::move(coro)),
       token_(task_processor.GetTaskCounter()),
       coro_pool_(&task_processor.GetTaskProcessorPools()->GetCoroPool()) {}
-
-CountedCoroutinePtr::~CountedCoroutinePtr() = default;
-
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-CountedCoroutinePtr::CountedCoroutinePtr(CountedCoroutinePtr&&) = default;
-
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
-CountedCoroutinePtr& CountedCoroutinePtr::operator=(CountedCoroutinePtr&&) =
-    default;
 
 void CountedCoroutinePtr::ReturnToPool() && {
   UASSERT(coro_pool_);

@@ -17,7 +17,8 @@ class ScanReplyTmpl final {
 
   class Cursor final {
    public:
-    Cursor() : Cursor(0) {}
+    Cursor() = default;
+
     uint64_t GetValue() const { return value_; }
 
     friend class ScanReplyTmpl;
@@ -25,7 +26,7 @@ class ScanReplyTmpl final {
    private:
     explicit Cursor(uint64_t value) : value_(value) {}
 
-    uint64_t value_;
+    uint64_t value_{0};
   };
 
   const Cursor& GetCursor() const { return cursor_; }

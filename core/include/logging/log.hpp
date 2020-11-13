@@ -101,9 +101,10 @@ class LogHelper final {
     constexpr bool encode = utils::encoding::TypeNeedsEncodeTskv<T>::value;
     EncodingGuard guard{*this, encode ? Encode::kValue : Encode::kNone};
 
-    if constexpr (std::is_same_v<T, char>) {
-      Put(value);
-    } else if constexpr (std::is_constructible_v<std::string_view, T>) {
+    // if constexpr FP, maybe fixed in llvm 10
+    if constexpr (std::is_same_v<T, char> ||
+                  // NOLINTNEXTLINE(bugprone-branch-clone)
+                  std::is_constructible_v<std::string_view, T>) {
       Put(value);
     } else if constexpr (std::is_floating_point_v<T>) {
       PutFloatingPoint(value);
@@ -332,6 +333,7 @@ class RateLimiter {
 
 /// @brief Builds a stream and evaluates a message for the logger.
 /// @hideinitializer
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DO_LOG_TO(logger, lvl) \
   ::logging::LogHelper(logger, lvl, __FILE__, __LINE__, __func__).AsLvalue()
 
@@ -340,6 +342,7 @@ class RateLimiter {
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the logger.
 /// @hideinitializer
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_TO(logger, lvl)                                              \
   __builtin_expect(                                                      \
       !::logging::ShouldLog(lvl),                                        \
@@ -349,20 +352,33 @@ class RateLimiter {
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG(lvl) LOG_TO(::logging::DefaultLogger(), lvl)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_TRACE() LOG(::logging::Level::kTrace)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_DEBUG() LOG(::logging::Level::kDebug)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_INFO() LOG(::logging::Level::kInfo)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_WARNING() LOG(::logging::Level::kWarning)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_ERROR() LOG(::logging::Level::kError)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_CRITICAL() LOG(::logging::Level::kCritical)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_TRACE_TO(logger) LOG_TO(logger, ::logging::Level::kTrace)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_DEBUG_TO(logger) LOG_TO(logger, ::logging::Level::kDebug)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_INFO_TO(logger) LOG_TO(logger, ::logging::Level::kInfo)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_WARNING_TO(logger) LOG_TO(logger, ::logging::Level::kWarning)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_ERROR_TO(logger) LOG_TO(logger, ::logging::Level::kError)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_CRITICAL_TO(logger) LOG_TO(logger, ::logging::Level::kCritical)
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
@@ -371,6 +387,7 @@ class RateLimiter {
 // Note: we have to jump through the hoops to keep lazy evaluation of the logged
 // data AND log the dropped logs count from the correct LogHelper in the face of
 // multithreading and coroutines.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_TO(logger, lvl)                                        \
   for (::logging::impl::RateLimiter log_limited_to_rl{                     \
            []() -> ::logging::impl::RateLimitData& {                       \
@@ -383,24 +400,37 @@ class RateLimiter {
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger. Ignores log messages that occur too often.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED(lvl) LOG_LIMITED_TO(::logging::DefaultLogger(), lvl)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_TRACE() LOG_LIMITED(::logging::Level::kTrace)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_DEBUG() LOG_LIMITED(::logging::Level::kDebug)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_INFO() LOG_LIMITED(::logging::Level::kInfo)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_WARNING() LOG_LIMITED(::logging::Level::kWarning)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_ERROR() LOG_LIMITED(::logging::Level::kError)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_CRITICAL() LOG_LIMITED(::logging::Level::kCritical)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_TRACE_TO(logger) \
   LOG_LIMITED_TO(logger, ::logging::Level::kTrace)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_DEBUG_TO(logger) \
   LOG_LIMITED_TO(logger, ::logging::Level::kDebug)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_INFO_TO(logger) \
   LOG_LIMITED_TO(logger, ::logging::Level::kInfo)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_WARNING_TO(logger) \
   LOG_LIMITED_TO(logger, ::logging::Level::kWarning)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_ERROR_TO(logger) \
   LOG_LIMITED_TO(logger, ::logging::Level::kError)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_CRITICAL_TO(logger) \
   LOG_LIMITED_TO(logger, ::logging::Level::kCritical)

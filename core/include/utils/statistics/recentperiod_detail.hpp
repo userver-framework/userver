@@ -17,7 +17,7 @@ struct ResultWantsAddFunction<
         std::declval<Duration>()))>> : std::true_type {};
 
 template <typename Result, typename Counter, typename Duration>
-constexpr bool kResultWantsAddFunction =
+inline constexpr bool kResultWantsAddFunction =
     ResultWantsAddFunction<Result, Counter, Duration>::value;
 
 // Detect if a counter can be added to the result
@@ -31,7 +31,7 @@ struct ResultCanUseAddAssign<
     : std::true_type {};
 
 template <typename Result, typename Counter>
-constexpr bool kResultCanUseAddAssign =
+inline constexpr bool kResultCanUseAddAssign =
     ResultCanUseAddAssign<Result, Counter>::value;
 
 // Detect if a Counter provides a Reset function
@@ -43,6 +43,6 @@ struct CanReset<Counter, void_t<decltype(std::declval<Counter&>().Reset())>>
     : std::true_type {};
 
 template <typename Counter>
-constexpr bool kCanReset = CanReset<Counter>::value;
+inline constexpr bool kCanReset = CanReset<Counter>::value;
 
 }  // namespace utils::statistics::detail

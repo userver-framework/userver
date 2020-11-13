@@ -18,7 +18,7 @@ namespace engine {
 namespace coro {
 
 // FIXME: determine proper stack size (TAXICOMMON-138)
-static constexpr size_t kStackSize = 256 * 1024ull;
+static constexpr size_t kStackSize = 256 * 1024ULL;
 
 template <typename Task>
 class Pool final {

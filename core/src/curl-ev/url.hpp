@@ -4,6 +4,7 @@
 #include <curl-ev/native.hpp>
 #include <curl-ev/wrappers.hpp>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURLU_PART_GET(FUNCTION_NAME, OPTION_NAME)      \
   inline impl::CurlPtr FUNCTION_NAME() {                          \
     std::error_code ec;                                           \
@@ -18,6 +19,7 @@
     return impl::CurlPtr{part};                                   \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURLU_PART_SET(FUNCTION_NAME, OPTION_NAME)         \
   inline void FUNCTION_NAME(const char* part) {                      \
     std::error_code ec;                                              \
@@ -29,6 +31,7 @@
         native::curl_url_set(url_.get(), OPTION_NAME, part, 0))};    \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURLU_PART(PART_NAME, OPTION_NAME)                     \
   IMPLEMENT_CURLU_PART_GET(PP_CONCAT3(Get, PART_NAME, Ptr), OPTION_NAME) \
   IMPLEMENT_CURLU_PART_SET(PP_CONCAT2(Set, PART_NAME), OPTION_NAME)

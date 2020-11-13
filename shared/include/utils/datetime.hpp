@@ -10,7 +10,7 @@ namespace utils::datetime {
 
 static const std::string kRfc3339Format = "%Y-%m-%dT%H:%M:%E*S%Ez";
 static const std::string kTaximeterFormat = "%Y-%m-%dT%H:%M:%E6SZ";
-static const time_t kStartOfTheEpoch = 0;
+static const std::time_t kStartOfTheEpoch = 0;
 static const std::string kDefaultDriverTimezone = "Europe/Moscow";
 static const std::string kDefaultTimezone = "UTC";
 static const std::string kDefaultFormat = "%Y-%m-%dT%H:%M:%E*S%z";
@@ -43,7 +43,7 @@ class SteadyClock : public std::chrono::steady_clock {
 bool IsTimeBetween(int hour, int min, int hour_from, int min_from, int hour_to,
                    int min_to, bool include_time_to = false);
 
-std::string Timestring(time_t timestamp,
+std::string Timestring(std::time_t timestamp,
                        const std::string& timezone = kDefaultTimezone,
                        const std::string& format = kDefaultFormat);
 std::string Timestring(std::chrono::system_clock::time_point tp,
@@ -58,8 +58,8 @@ std::chrono::system_clock::time_point Stringtime(
 std::chrono::system_clock::time_point GuessStringtime(
     const std::string& timestamp, const std::string& timezone);
 
-time_t Timestamp(std::chrono::system_clock::time_point tp);
-time_t Timestamp();
+std::time_t Timestamp(std::chrono::system_clock::time_point tp);
+std::time_t Timestamp();
 
 /**
  * Parse day time
@@ -71,14 +71,14 @@ std::uint32_t ParseDayTime(const std::string& str);
 cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp,
                             const std::string& timezone);
 
-time_t Unlocalize(const cctz::civil_second& local_tp,
-                  const std::string& timezone);
+std::time_t Unlocalize(const cctz::civil_second& local_tp,
+                       const std::string& timezone);
 
 /**
  * @param timestamp unix timestamp
  * @return string with time in ISO8601 format "YYYY-MM-DDTHH:MM:SS+0000"
  */
-std::string TimestampToString(const time_t timestamp);
+std::string TimestampToString(std::time_t timestamp);
 
 /**
  * Convert time_point to DotNet ticks

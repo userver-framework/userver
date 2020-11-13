@@ -107,8 +107,9 @@ class ValueImpl {
   Storage storage_;
   Path path_;
   bson_value_t bson_value_;
-  std::atomic<ParsedValue*> parsed_value_;
-  Value::DuplicateFieldsPolicy duplicate_fields_policy_;
+  std::atomic<ParsedValue*> parsed_value_{nullptr};
+  Value::DuplicateFieldsPolicy duplicate_fields_policy_{
+      Value::DuplicateFieldsPolicy::kForbid};
 };
 
 }  // namespace formats::bson::impl

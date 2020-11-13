@@ -140,16 +140,17 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   if (headers_.find(::http::headers::kConnection) == headers_.end())
     os << ::http::headers::kConnection << ": "
        << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
-  os << ::http::headers::kContentLength << ": " << data_.size() << kCrlf;
+  os << ::http::headers::kContentLength << ": " << GetData().size() << kCrlf;
   for (const auto& cookie : cookies_)
     os << ::http::headers::kSetCookie << ": " << cookie.second.ToString()
        << kCrlf;
   os << kCrlf;
 
   static const auto kMinSeparateDataSize = 50000;  //  50Kb
-  bool separate_data_send = data_.size() > kMinSeparateDataSize;
+  const auto& data = GetData();
+  bool separate_data_send = data.size() > kMinSeparateDataSize;
   if (!separate_data_send && !is_head_request) {
-    os << data_;
+    os << data;
   }
 
   const auto response_data = os.str();
@@ -159,7 +160,7 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   if (separate_data_send && sent_bytes == response_data.size() &&
       !is_head_request) {
     // If response is too big, copying is more expensive than +1 syscall
-    sent_bytes += socket.SendAll(data_.data(), data_.size(), {});
+    sent_bytes += socket.SendAll(data.data(), data.size(), {});
   }
 
   SetSentTime(std::chrono::steady_clock::now());

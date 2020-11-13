@@ -48,7 +48,7 @@ class Value final {
 
  public:
   /// @brief Constructs a Value that holds a null.
-  Value() noexcept;
+  Value() noexcept = default;
 
   Value(const Value&) = default;
   Value(Value&&) noexcept = default;
@@ -58,13 +58,11 @@ class Value final {
 
   template <class T>
   Value& operator=(T&&) && {
-    static_assert(false && sizeof(T),
+    static_assert(!sizeof(T),
                   "You're assigning to a temporary formats::json::Value! Use "
                   "formats::json::ValueBuilder for data modifications.");
     return *this;
   }
-
-  ~Value();
 
   /// @brief Access member by key for read.
   /// @throw TypeMismatchException if not object or null value.
@@ -234,7 +232,7 @@ class Value final {
   /// Full path of node (only for missing nodes)
   std::string detached_path_;
   /// Depth of the node to ease recursive traversal in GetPath()
-  int depth_;
+  int depth_{0};
 
   template <typename>
   friend class Iterator;

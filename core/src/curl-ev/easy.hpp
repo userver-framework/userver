@@ -29,6 +29,7 @@ class ThreadControl;
 }  // namespace ev
 }  // namespace engine
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION(FUNCTION_NAME, OPTION_NAME, OPTION_TYPE) \
   inline void FUNCTION_NAME(OPTION_TYPE arg) {                         \
     std::error_code ec;                                                \
@@ -40,6 +41,7 @@ class ThreadControl;
         native::curl_easy_setopt(handle_, OPTION_NAME, arg)));         \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)            \
   inline void FUNCTION_NAME(bool enabled) {                                  \
     std::error_code ec;                                                      \
@@ -51,6 +53,7 @@ class ThreadControl;
         native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L))); \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_ENUM(FUNCTION_NAME, OPTION_NAME, ENUM_TYPE, \
                                    OPTION_TYPE)                           \
   inline void FUNCTION_NAME(ENUM_TYPE arg) {                              \
@@ -64,6 +67,7 @@ class ThreadControl;
             handle_, OPTION_NAME, static_cast<OPTION_TYPE>(arg))));       \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_STRING(FUNCTION_NAME, OPTION_NAME)           \
   inline void FUNCTION_NAME(const char* str) {                             \
     std::error_code ec;                                                    \
@@ -84,6 +88,7 @@ class ThreadControl;
         native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str())));     \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME) \
   inline std::string_view FUNCTION_NAME() {                               \
     std::error_code ec;                                                   \
@@ -98,6 +103,7 @@ class ThreadControl;
     return info ? info : std::string_view{};                              \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_GET_LONG(FUNCTION_NAME, OPTION_NAME)         \
   inline long FUNCTION_NAME() {                                            \
     long info;                                                             \
@@ -107,6 +113,7 @@ class ThreadControl;
     return info;                                                           \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(FUNCTION_NAME, OPTION_NAME)   \
   inline long FUNCTION_NAME() {                                            \
     native::curl_off_t info;                                               \
@@ -116,6 +123,7 @@ class ThreadControl;
     return info;                                                           \
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_GET_LIST(FUNCTION_NAME, OPTION_NAME)         \
   inline std::vector<std::string> FUNCTION_NAME() {                        \
     struct native::curl_slist* info;                                       \
@@ -338,7 +346,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   }
   inline void set_http_auth(httpauth_t auth, bool auth_only,
                             std::error_code& ec) {
-    long l = (static_cast<long>(auth) | (auth_only ? CURLAUTH_ONLY : 0L));
+    auto l = static_cast<long>(auth | (auth_only ? CURLAUTH_ONLY : 0UL));
     ec = std::error_code(static_cast<errc::EasyErrorCode>(
         native::curl_easy_setopt(handle_, native::CURLOPT_HTTPAUTH, l)));
   }

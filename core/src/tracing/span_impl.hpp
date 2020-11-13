@@ -14,6 +14,7 @@
 #include <tracing/tracer.hpp>
 #include <utils/prof.hpp>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DO_LOG_TO_NO_SPAN(logger, lvl)                            \
   ::logging::LogHelper(logger, lvl, __FILE__, __LINE__, __func__, \
                        ::logging::LogHelper::Mode::kNoSpan)       \

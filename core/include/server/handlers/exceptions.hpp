@@ -81,7 +81,8 @@ namespace impl {
 template <typename T, typename = utils::void_t<>>
 struct IsExternalBodyFormatted : std::false_type {};
 template <typename T>
-constexpr bool kIsExternalBodyFormatted = IsExternalBodyFormatted<T>::value;
+inline constexpr bool kIsExternalBodyFormatted =
+    IsExternalBodyFormatted<T>::value;
 
 template <typename T>
 struct IsExternalBodyFormatted<
@@ -91,7 +92,7 @@ struct IsExternalBodyFormatted<
 template <typename T, typename = utils::void_t<>>
 struct HasServiceCode : std::false_type {};
 template <typename T>
-constexpr bool kHasServiceCode = HasServiceCode<T>::value;
+inline constexpr bool kHasServiceCode = HasServiceCode<T>::value;
 
 template <typename T>
 struct HasServiceCode<
@@ -101,7 +102,7 @@ struct HasServiceCode<
 template <typename T, typename = utils::void_t<>>
 struct HasInternalMessage : std::false_type {};
 template <typename T>
-constexpr bool kHasInternalMessage = HasInternalMessage<T>::value;
+inline constexpr bool kHasInternalMessage = HasInternalMessage<T>::value;
 
 template <typename T>
 struct HasInternalMessage<
@@ -111,7 +112,7 @@ struct HasInternalMessage<
 template <typename T, typename = utils::void_t<>>
 struct HasExternalBody : std::false_type {};
 template <typename T>
-constexpr bool kHasExternalBody = HasExternalBody<T>::value;
+inline constexpr bool kHasExternalBody = HasExternalBody<T>::value;
 
 template <typename T>
 struct HasExternalBody<

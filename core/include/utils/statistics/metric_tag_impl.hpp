@@ -21,7 +21,7 @@ formats::json::ValueBuilder DumpMetric(const std::atomic<Metric>& m) {
                 std::is_floating_point<Metric>::value) {
     return m.load();
   } else {
-    static_assert(false && sizeof(Metric), "std::atomic misuse");
+    static_assert(!sizeof(Metric), "std::atomic misuse");
   }
 }
 
@@ -37,7 +37,7 @@ template <typename Metric>
 typename std::enable_if<std::is_integral<Metric>::value,
                         formats::json::ValueBuilder>::type
 DumpMetric(const Metric&) {
-  static_assert(sizeof(Metric) && false,
+  static_assert(!sizeof(Metric),
                 "Type is not atomic, use std::atomic<T> instead");
 }
 

@@ -22,6 +22,7 @@ namespace redis {
 
 class TransactionImpl;
 
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class ClientImpl final : public Client,
                          public std::enable_shared_from_this<ClientImpl> {
  public:

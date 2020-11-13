@@ -28,9 +28,9 @@ using Password = utils::NonLoggable<class PasswordTag, std::string>;
 struct ConnectionInfo {
   std::string host = "localhost";
   int port = 26379;
-  Password password{std::string()};
+  Password password;
 
-  ConnectionInfo() {}
+  ConnectionInfo() = default;
   ConnectionInfo(std::string host, int port, Password password)
       : host(std::move(host)), port(port), password(std::move(password)) {}
 };
@@ -47,11 +47,13 @@ class CmdArgs {
   using CmdArgsArray = std::vector<std::string>;
   using CmdArgsChain = std::vector<CmdArgsArray>;
 
-  CmdArgs() {}
+  CmdArgs() = default;
+
   template <typename... Args>
   CmdArgs(Args&&... _args) {
     Then(std::forward<Args>(_args)...);
   }
+
   CmdArgs(const CmdArgs& o) = delete;
   CmdArgs(CmdArgs&& o) = default;
 
@@ -116,7 +118,7 @@ CmdArgs& CmdArgs::Then(Args&&... _args) {
 class ServerId {
  public:
   /* Default: any server */
-  ServerId() : id_(-1) {}
+  ServerId() = default;
 
   bool IsAny() const { return id_ == -1; }
 
@@ -143,7 +145,7 @@ class ServerId {
   static std::atomic<int64_t> next_id_;
   static ServerId invalid_;
 
-  int64_t id_;
+  int64_t id_{-1};
 };
 
 struct ServerIdHasher {
@@ -170,23 +172,33 @@ struct CommandControl {
     kNearestServerPing,
   };
 
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::milliseconds timeout_single = std::chrono::milliseconds(0);
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::milliseconds timeout_all = std::chrono::milliseconds(0);
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   size_t max_retries = 0;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   Strategy strategy = Strategy::kDefault;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   size_t best_dc_count = 0; /* How many nearest DCs to use, 0 for no limit */
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::milliseconds max_ping_latency = std::chrono::milliseconds(0);
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool force_request_to_master = false;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool account_in_statistics = true;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::optional<size_t> force_shard_idx;
 
   /* If set, the user wants a specific Redis instance to handle the command.
    * Sentinel may not redirect the command to other instances.
    * strategy is ignored.
    */
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   ServerId force_server_id;
 
-  CommandControl() {}
+  CommandControl() = default;
   CommandControl(std::chrono::milliseconds timeout_single,
                  std::chrono::milliseconds timeout_all, size_t max_retries,
                  Strategy strategy = Strategy::kDefault, int best_dc_count = 0,

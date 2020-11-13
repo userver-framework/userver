@@ -18,7 +18,7 @@ namespace crypto {
 class Signer : public NamedAlgo {
  public:
   explicit Signer(const std::string& name);
-  virtual ~Signer();
+  ~Signer() override;
 
   /// Signs a raw message, returning the signature
   virtual std::string Sign(
@@ -40,7 +40,7 @@ class HmacShaSigner final : public Signer {
  public:
   /// Constructor from a shared secret
   explicit HmacShaSigner(std::string secret);
-  virtual ~HmacShaSigner();
+  ~HmacShaSigner() override;
 
   /// Signs a raw message, returning the signature
   std::string Sign(std::initializer_list<std::string_view> data) const override;

@@ -109,7 +109,9 @@ class Sentinel {
   SentinelStatistics GetStatistics() const;
 
   boost::signals2::signal<void(size_t shard, bool master)>
+      // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
       signal_instances_changed;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void()> signal_not_in_cluster_mode;
 
   Request MakeRequest(CmdArgs&& args, const std::string& key,
@@ -552,17 +554,18 @@ class Sentinel {
 
   std::vector<std::shared_ptr<const Shard>> GetMasterShards() const;
 
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::unique_ptr<SentinelImpl> impl_;
 
  public:
-  static void OnSubscribeReply(const MessageCallback message_callback,
-                               const SubscribeCallback subscribe_callback,
-                               const UnsubscribeCallback unsubscribe_callback,
+  static void OnSubscribeReply(MessageCallback message_callback,
+                               SubscribeCallback subscribe_callback,
+                               UnsubscribeCallback unsubscribe_callback,
                                ReplyPtr reply);
 
-  static void OnPsubscribeReply(const PmessageCallback pmessage_callback,
-                                const SubscribeCallback subscribe_callback,
-                                const UnsubscribeCallback unsubscribe_callback,
+  static void OnPsubscribeReply(PmessageCallback pmessage_callback,
+                                SubscribeCallback subscribe_callback,
+                                UnsubscribeCallback unsubscribe_callback,
                                 ReplyPtr reply);
 
  private:

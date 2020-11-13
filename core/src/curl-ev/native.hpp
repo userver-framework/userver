@@ -17,13 +17,17 @@
  * is included as part of <curl/curl.h>, it will be unavailable
  * to the rest of the world.
  */
+// NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <limits.h>
+// NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <stdarg.h>
+// NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <stdio.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
+// NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <time.h>
 
 #include <cinttypes>
@@ -40,6 +44,9 @@ inline void throw_error(std::error_code ec, const char* s) {
   if (ec) throw std::system_error(ec, s);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PP_STRINGIZE(x) #x
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PP_CONCAT2(a, b) a##b
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PP_CONCAT3(a, b, c) a##b##c

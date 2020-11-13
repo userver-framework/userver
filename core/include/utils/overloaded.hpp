@@ -4,7 +4,7 @@ namespace utils {
 
 /// Utility to define std::variant visitors in a simple way
 template <class... Ts>
-struct Overloaded : Ts... {
+struct Overloaded : Ts... {  // NOLINT(fuchsia-multiple-inheritance)
   using Ts::operator()...;
 };
 template <class... Ts>

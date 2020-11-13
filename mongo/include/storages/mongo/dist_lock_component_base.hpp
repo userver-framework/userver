@@ -16,7 +16,7 @@ class DistLockComponentBase : public components::LoggableComponentBase {
                         const components::ComponentContext&,
                         storages::mongo::Collection);
 
-  ~DistLockComponentBase();
+  ~DistLockComponentBase() override;
 
   dist_lock::DistLockedWorker& GetWorker();
 

@@ -21,20 +21,20 @@ class AsyncEventChannelBase {
 
   class FunctionId final {
    public:
+    constexpr FunctionId() = default;
+
     template <typename Class>
     explicit FunctionId(Class* obj) : ptr_(obj), type_index_(typeid(Class)) {}
 
-    FunctionId() : ptr_(nullptr), type_index_(typeid(void)) {}
-
-    explicit operator bool() const { return ptr_ != 0; }
+    explicit operator bool() const { return ptr_ != nullptr; }
 
     bool operator==(const FunctionId& other) const {
       return ptr_ == other.ptr_ && type_index_ == other.type_index_;
     }
 
    private:
-    void* ptr_;
-    std::type_index type_index_;
+    void* ptr_{nullptr};
+    std::type_index type_index_{typeid(void)};
   };
 
  protected:

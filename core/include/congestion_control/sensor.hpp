@@ -9,8 +9,8 @@ namespace congestion_control {
 class Sensor {
  public:
   struct Data {
-    size_t current_load;
-    size_t overload_events_count;
+    size_t current_load{0};
+    size_t overload_events_count{0};
     std::chrono::steady_clock::time_point tp;
   };
 

@@ -10,7 +10,7 @@ namespace formats::json::parser {
 class JsonValueParser final : public TypedParser<Value> {
  public:
   JsonValueParser();
-  ~JsonValueParser();
+  ~JsonValueParser() override;
 
   void Null() override;
   void Bool(bool) override;

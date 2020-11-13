@@ -163,7 +163,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   LocalStorage& GetLocalStorage();
 
  private:
-  static constexpr uint64_t kMagic = 0x6b73615453755459ull;  // "YTuSTask"
+  static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 
   static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
 
@@ -228,6 +228,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   using WaitListHook = typename boost::intrusive::make_list_member_hook<
       boost::intrusive::link_mode<boost::intrusive::auto_unlink>>::type;
 
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   WaitListHook wait_list_hook;
 };
 

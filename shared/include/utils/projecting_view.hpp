@@ -42,9 +42,9 @@ class ProjectingIterator : Projection {
   ProjectingIterator(BaseIterator it, Projection proj)
       : Projection(std::move(proj)), it_(std::move(it)) {}
   ProjectingIterator(const ProjectingIterator&) = default;
-  ProjectingIterator(ProjectingIterator&&) = default;
+  ProjectingIterator(ProjectingIterator&&) noexcept = default;
   ProjectingIterator& operator=(const ProjectingIterator&) = default;
-  ProjectingIterator& operator=(ProjectingIterator&&) = default;
+  ProjectingIterator& operator=(ProjectingIterator&&) noexcept = default;
 
   bool operator==(ProjectingIterator other) const { return it_ == other.it_; }
   bool operator!=(ProjectingIterator other) const { return it_ != other.it_; }
@@ -98,25 +98,25 @@ class ProjectingView : Projection {
   /// @returns utils::ProjectingIterator to the cbegin of referenced container
   auto cbegin() const {
     return ProjectingIterator<BaseConstIterator, Projection>{
-        container_.cbegin(), *this};
+        container_.cbegin(), static_cast<const Projection&>(*this)};
   }
 
   /// @returns utils::ProjectingIterator to the cend of referenced container
   auto cend() const {
-    return ProjectingIterator<BaseConstIterator, Projection>{container_.cend(),
-                                                             *this};
+    return ProjectingIterator<BaseConstIterator, Projection>{
+        container_.cend(), static_cast<const Projection&>(*this)};
   }
 
   /// @returns utils::ProjectingIterator to the begin of referenced container
   auto begin() {
-    return ProjectingIterator<BaseIterator, Projection>{container_.begin(),
-                                                        *this};
+    return ProjectingIterator<BaseIterator, Projection>{
+        container_.begin(), static_cast<const Projection&>(*this)};
   }
 
   /// @returns utils::ProjectingIterator to the end of referenced container
   auto end() {
-    return ProjectingIterator<BaseIterator, Projection>{container_.end(),
-                                                        *this};
+    return ProjectingIterator<BaseIterator, Projection>{
+        container_.end(), static_cast<const Projection&>(*this)};
   }
 
   /// @returns utils::ProjectingIterator to the cbegin of referenced container

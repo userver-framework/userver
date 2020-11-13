@@ -5,6 +5,8 @@ namespace clients::http {
 
 std::ostream& operator<<(std::ostream& os, Status s) {
   switch (s) {
+    case Invalid:
+      return os << "Invalid status";
     case OK:
       return os << "200 OK";
     case Created:

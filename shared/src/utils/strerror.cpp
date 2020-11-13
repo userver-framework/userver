@@ -1,6 +1,6 @@
 #include <utils/strerror.hpp>
 
-// NOLINTNEXTLINE(hicpp-deprecated-headers,modernize-deprecated-headers)
+// NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <signal.h>
 
 #include <system_error>

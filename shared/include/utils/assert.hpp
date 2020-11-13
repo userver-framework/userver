@@ -11,6 +11,7 @@
 
 #if !defined(NDEBUG) && !defined(DOXYGEN)
 
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define UASSERT(expr)                                                   \
   do {                                                                  \
     if (!(expr)) {                                                      \
@@ -18,6 +19,7 @@
     }                                                                   \
   } while (0)
 
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define UASSERT_MSG(expr, msg)                                           \
   do {                                                                   \
     if (!(expr)) {                                                       \
@@ -38,6 +40,7 @@ namespace utils {
 /// nothing in release builds
 ///
 /// @hideinitializer
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define UASSERT(expr)      \
   do {                     \
     if (false && (expr)) { \
@@ -46,6 +49,7 @@ namespace utils {
 
 /// Assertion macro for that aborts execution in DEBUG builds with a message
 /// `msg` and does nothing in release builds
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define UASSERT_MSG(expr, msg) \
   do {                         \
     if (false && (expr)) {     \
@@ -66,6 +70,7 @@ class InvariantError : public TracefulException {
 /// @brief Asserts in debug builds, throws utils::InvariantError in release
 ///
 /// @hideinitializer
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define YTX_INVARIANT(condition, message)                                     \
   do {                                                                        \
     if (!(condition)) {                                                       \

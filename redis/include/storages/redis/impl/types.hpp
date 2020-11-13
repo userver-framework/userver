@@ -13,7 +13,6 @@ class Reply;
 class ReplyData;
 class Sentinel;
 class SubscribeSentinel;
-class Transaction;
 class Request;
 struct Command;
 

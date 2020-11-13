@@ -64,7 +64,7 @@ class RequestDataImpl final : public RequestDataImplBase,
 
   void Wait() override { impl::Wait(GetRequest()); }
 
-  ReplyType Get(const std::string& request_description = {}) override {
+  ReplyType Get(const std::string& request_description) override {
     auto reply = GetReply();
     return ParseReply<Result, ReplyType>(std::move(reply), request_description);
   }
@@ -79,7 +79,7 @@ class DummyRequestDataImpl final : public RequestDataBase<Result, ReplyType> {
 
   void Wait() override {}
 
-  ReplyType Get(const std::string& request_description = {}) override {
+  ReplyType Get(const std::string& request_description) override {
     return ParseReply<Result, ReplyType>(std::move(reply_),
                                          request_description);
   }
@@ -126,7 +126,7 @@ class RequestScanData final : public RequestScanDataBase<scan_tag> {
 
   std::shared_ptr<ClientImpl> client_;
   std::string key_;
-  size_t shard_;
+  size_t shard_{-1UL};
   ScanOptionsTmpl<scan_tag> options_;
   CommandControl command_control_;
 

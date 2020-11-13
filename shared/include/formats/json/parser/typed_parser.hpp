@@ -151,6 +151,7 @@ class TypedParser : public BaseParser {
     if (subscriber_) subscriber_->OnSend(std::move(value));
   }
 
+ private:
   Subscriber<T>* subscriber_{nullptr};
 };
 

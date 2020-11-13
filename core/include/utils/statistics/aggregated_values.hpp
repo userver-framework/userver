@@ -19,7 +19,11 @@ template <size_t Length>
 struct AggregatedValues {
   std::array<std::atomic_llong, Length> value{{}};
 
+  // FP: already mitigated (I think)
+  // NOLINTNEXTLINE(cert-oop54-cpp)
   AggregatedValues& operator=(const AggregatedValues& other) {
+    if (this == &other) return *this;
+
     for (size_t i = 0; i < value.size(); ++i) value[i] = other.value[i].load();
     return *this;
   }
@@ -29,7 +33,7 @@ struct AggregatedValues {
     return *this;
   }
 
-  void Add(size_t key, size_t value);
+  void Add(size_t key, size_t delta);
 
   long long Get(size_t bucket) const;
 };

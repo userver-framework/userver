@@ -29,7 +29,7 @@ struct Event {
   static std::string TypeToDebugString(Type type);
   std::string ToDebugString() const;
 
-  Type type;
+  Type type{Type::kSubscribeRequested};
   ServerId server_id;
 };
 

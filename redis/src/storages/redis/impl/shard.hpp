@@ -13,6 +13,7 @@ namespace redis {
 
 class ConnectionInfoInt : public ConnectionInfo {
  public:
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::string name;
 
   bool operator==(const ConnectionInfoInt& o) const {
@@ -46,8 +47,8 @@ class Shard {
   struct Options {
     std::string shard_name;
     std::string shard_group_name;
-    bool cluster_mode;
-    bool read_only;
+    bool cluster_mode{false};
+    bool read_only{false};
     std::function<void(bool ready)> ready_change_callback;
     std::vector<ConnectionInfo> connection_infos;
   };

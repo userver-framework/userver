@@ -23,7 +23,7 @@ class SubscribeSentinel : protected Sentinel {
                     CommandControl command_control = command_control_init,
                     const testsuite::RedisControl& testsuite_redis_control = {},
                     bool track_masters = true, bool track_slaves = true);
-  virtual ~SubscribeSentinel();
+  ~SubscribeSentinel() override;
 
   static std::shared_ptr<SubscribeSentinel> Create(
       const std::shared_ptr<ThreadPools>& thread_pools,

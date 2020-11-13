@@ -23,7 +23,7 @@ class MockRequestData final : public RequestDataBase<Result, ReplyType> {
 
   void Wait() override {}
 
-  ReplyType Get(const std::string& /*request_description*/ = {}) override {
+  ReplyType Get(const std::string& /*request_description*/) override {
     return std::move(reply_);
   }
 
@@ -44,7 +44,7 @@ class MockRequestData<Result, void> final
 
   void Wait() override {}
 
-  void Get(const std::string& /*request_description*/ = {}) override {}
+  void Get(const std::string& /*request_description*/) override {}
 
   ReplyPtr GetRaw() override {
     UASSERT_MSG(false, "not supported in mocked request");
@@ -59,7 +59,7 @@ class MockRequestDataTimeout final : public RequestDataBase<Result, ReplyType> {
 
   void Wait() override {}
 
-  ReplyType Get(const std::string& request_description = {}) override {
+  ReplyType Get(const std::string& request_description) override {
     throw ::redis::RequestFailedException(
         request_description + " request failed with status 6 (timeout)");
   }
@@ -107,7 +107,8 @@ template <typename Result, typename ReplyType = DefaultReplyType<Result>>
 Request<Result, ReplyType> CreateMockRequest(
     Result&& result, Request<Result, ReplyType>* /* for ADL */) {
   return Request<Result, ReplyType>(
-      std::make_unique<MockRequestData<Result, ReplyType>>(std::move(result)));
+      std::make_unique<MockRequestData<Result, ReplyType>>(
+          std::forward<Result>(result)));
 }
 
 template <typename Result, typename ReplyType = DefaultReplyType<Result>>

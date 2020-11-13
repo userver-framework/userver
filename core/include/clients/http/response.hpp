@@ -12,6 +12,7 @@ namespace clients::http {
 
 /// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 enum Status : uint16_t {
+  Invalid = 0,
   OK = 200,
   Created = 201,
   NoContent = 204,
@@ -71,7 +72,7 @@ class Response final {
  private:
   Headers headers_;
   std::ostringstream response_stream_;
-  Status status_code_;
+  Status status_code_{Status::Invalid};
   LocalStats stats_;
 };
 

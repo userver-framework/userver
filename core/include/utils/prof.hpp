@@ -8,18 +8,23 @@
 
 #include <logging/log_extra.hpp>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCOPE_TIME_PREPARE(name, log_extra)          \
   TimeStorage prof_ts(name);                         \
   const SwLogger prof_sw_logger(prof_ts, log_extra); \
   ScopeTime prof_st_root(prof_ts)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCOPE_TIME(name) \
   const ScopeTime BOOST_JOIN(prof_st_, __LINE__)(prof_ts, name)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCOPE_TIME_FUNC(name, call) (ScopeTime(prof_ts, name), call)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCOPE_TIME_BLOCK(name, call) \
   do {                               \
     SCOPE_TIME(name);                \
     call                             \
   } while (false)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCOPE_TIME_RESET(name) prof_st_root.Reset(name)
 
 using PerfTimePoint = std::chrono::high_resolution_clock::time_point;
@@ -69,6 +74,7 @@ class SwLogger {
   const logging::LogExtra& log_extra_;
 };
 
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LoggingTimeStorage : public TimeStorage, protected SwLogger {
  public:
   explicit LoggingTimeStorage(

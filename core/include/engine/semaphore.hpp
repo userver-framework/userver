@@ -66,11 +66,11 @@ class Semaphore final {
   /// Returns an approximate number of available locks, use only for statistics.
   size_t RemainingApprox() const;
 
-  void unlock_shared_count(const Counter count);
+  void unlock_shared_count(Counter count);
 
-  bool try_lock_shared_count(const Counter count);
+  bool try_lock_shared_count(Counter count);
 
-  bool try_lock_shared_until_count(Deadline deadline, const Counter count);
+  bool try_lock_shared_until_count(Deadline deadline, Counter count);
 
  private:
   bool LockFastPath(Counter count);

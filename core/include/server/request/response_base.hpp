@@ -87,6 +87,7 @@ class ResponseBase {
     size_t size_;
   };
 
+ private:
   ResponseDataAccounter& accounter_;
   std::optional<Guard> guard_;
   std::string data_;

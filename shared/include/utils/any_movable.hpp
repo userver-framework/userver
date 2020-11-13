@@ -58,7 +58,7 @@ class AnyMovable {
     HolderBase& operator=(const HolderBase&) = delete;
     HolderBase& operator=(HolderBase&&) = delete;
 
-    virtual ~HolderBase() {}
+    virtual ~HolderBase() = default;
 
     virtual const std::type_info& Type() const noexcept = 0;
   };
@@ -105,6 +105,7 @@ ValueType* AnyMovableCast(AnyMovable* operand) noexcept {
 /// does not match ValueType
 template <typename ValueType>
 const ValueType* AnyMovableCast(const AnyMovable* operand) noexcept {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return AnyMovableCast<ValueType>(const_cast<AnyMovable*>(operand));
 }
 
@@ -114,7 +115,7 @@ template <typename ValueType>
 ValueType AnyMovableCast(AnyMovable& operand) {
   using NonRef = std::remove_reference_t<ValueType>;
 
-  NonRef* result = AnyMovableCast<NonRef>(std::addressof(operand));
+  auto* result = AnyMovableCast<NonRef>(std::addressof(operand));
   if (!result) throw BadAnyMovableCast();
 
   if constexpr (std::is_rvalue_reference<ValueType>::value) {
@@ -129,6 +130,7 @@ ValueType AnyMovableCast(AnyMovable& operand) {
 template <typename ValueType>
 ValueType AnyMovableCast(const AnyMovable& operand) {
   using NonRef = std::remove_reference_t<ValueType>;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return AnyMovableCast<const NonRef&>(const_cast<AnyMovable&>(operand));
 }
 

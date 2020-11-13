@@ -39,7 +39,11 @@ class Percentile final {
     *this = other;
   }
 
+  // FP: already mitigated (I think)
+  // NOLINTNEXTLINE(cert-oop54-cpp)
   Percentile& operator=(const Percentile& rhs) noexcept {
+    if (this == &rhs) return *this;
+
     size_t sum = 0;
     for (size_t i = 0; i < values_.size(); i++) {
       const auto value = rhs.values_[i].load(std::memory_order_relaxed);
@@ -64,7 +68,7 @@ class Percentile final {
     if (value < values_.size()) {
       values_[value].fetch_add(1, std::memory_order_relaxed);
     } else {
-      if (extra_values_.size()) {
+      if (!extra_values_.empty()) {
         size_t extra_bucket =
             (value - values_.size() + ExtraBucketSize / 2) / ExtraBucketSize;
         extra_bucket = std::min<size_t>(extra_bucket, extra_values_.size() - 1);

@@ -17,11 +17,6 @@ PostgresControl::PostgresControl(std::chrono::milliseconds execute_timeout,
   }
 }
 
-PostgresControl::PostgresControl()
-    : execute_timeout_(),
-      statement_timeout_(),
-      is_readonly_master_expected_(false) {}
-
 [[nodiscard]] engine::Deadline PostgresControl::MakeExecuteDeadline(
     std::chrono::milliseconds duration) const {
   if (execute_timeout_ != std::chrono::milliseconds::zero()) {

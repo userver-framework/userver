@@ -58,7 +58,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     std::vector<std::string> prefixes;
     // TODO replace splitting string by config.Parse<std::vector<std::string>>
     // as soon as https://st.yandex-team.ru/TAXICOMMON-1599 gets fixed
-    boost::split(prefixes, prefixes_lines, boost::is_any_of(" \t\r\n"));
+    boost::split(prefixes, prefixes_lines, [](char c) {
+      return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+    });
     http_client_.SetTestsuiteConfig({prefixes, timeout});
   }
 

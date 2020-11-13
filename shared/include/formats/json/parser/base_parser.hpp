@@ -41,6 +41,7 @@ class BaseParser {
 
   virtual std::string Expected() const = 0;
 
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   ParserState* parser_state_{nullptr};
 };
 

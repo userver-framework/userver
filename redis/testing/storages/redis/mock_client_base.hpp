@@ -36,12 +36,13 @@ namespace redis {
 /// For *scan commands use `CreateMockRequestScan` helper:
 /// `return storages::redis::CreateMockRequestScan<
 ///    storages::redis::ScanTag::kScan>({"keya", "keyb", "keyc"});`
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class MockClientBase : public Client,
                        public std::enable_shared_from_this<MockClientBase> {
  public:
   MockClientBase();
 
-  virtual ~MockClientBase();
+  ~MockClientBase() override;
 
   void WaitConnectedOnce(::redis::RedisWaitConnected wait_connected) override;
 
@@ -366,9 +367,9 @@ class MockClientBase : public Client,
 
   // end of redis commands
 
-  TransactionPtr Multi() override final;
+  TransactionPtr Multi() final;
 
-  TransactionPtr Multi(Transaction::CheckShards check_shards) override final;
+  TransactionPtr Multi(Transaction::CheckShards check_shards) final;
 
   class MockTransactionImplCreatorBase {
    public:

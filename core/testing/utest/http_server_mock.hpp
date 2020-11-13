@@ -10,7 +10,7 @@ namespace testing {
 class HttpServerMock {
  public:
   struct HttpRequest {
-    clients::http::HttpMethod method;
+    clients::http::HttpMethod method{clients::http::HttpMethod::kGet};
     std::string path;
 
     std::unordered_map<std::string, std::string> query;

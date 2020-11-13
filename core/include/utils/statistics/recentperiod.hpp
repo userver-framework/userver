@@ -95,9 +95,9 @@ class RecentPeriod {
     return result;
   }
 
-  const Duration GetEpochDuration() const { return epoch_duration_; }
+  Duration GetEpochDuration() const { return epoch_duration_; }
 
-  const Duration GetMaxDuration() const { return max_duration_; }
+  Duration GetMaxDuration() const { return max_duration_; }
 
   void UpdateEpochIfOld() { std::ignore = get_current_index(); }
 

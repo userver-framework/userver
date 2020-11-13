@@ -20,6 +20,7 @@ class TraceAttachedException;
 }  // namespace impl
 
 /// Exception that remembers the backtrace at the point of its construction
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TracefulException;
 
 /// Base class implementing backtrace storage and message builder, published
@@ -68,6 +69,7 @@ class TracefulExceptionBase {
   utils::FastPimpl<Impl, 160, 8> impl_;
 };
 
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TracefulException : public std::exception, public TracefulExceptionBase {
  public:
   TracefulException() = default;
@@ -80,6 +82,7 @@ class TracefulException : public std::exception, public TracefulExceptionBase {
 namespace impl {
 
 template <typename PlainException>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class ExceptionWithAttachedTrace final : public PlainException,
                                          public TracefulExceptionBase {
  public:

@@ -75,6 +75,7 @@ class EmptyCacheError : public std::runtime_error {
 // clang-format on
 
 template <typename T>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class CachingComponentBase
     : public LoggableComponentBase,
       public utils::AsyncEventChannel<const std::shared_ptr<const T>&>,
@@ -118,7 +119,7 @@ class CachingComponentBase
  private:
   void OnAllComponentsLoaded() override;
 
-  void Cleanup() override final;
+  void Cleanup() final;
 
   utils::statistics::Entry statistics_holder_;
   rcu::Variable<std::shared_ptr<const T>> cache_;

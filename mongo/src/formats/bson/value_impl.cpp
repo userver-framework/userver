@@ -167,25 +167,16 @@ bool operator==(const bson_value_t& lhs, const bson_value_t& rhs) {
 
 class ValueImpl::EmplaceEnabler {};
 
-ValueImpl::ValueImpl()
-    : bson_value_(kDefaultBsonValue),
-      parsed_value_(nullptr),
-      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {}
+ValueImpl::ValueImpl() : bson_value_(kDefaultBsonValue) {}
 
 ValueImpl::~ValueImpl() { delete parsed_value_.load(); }
 
-ValueImpl::ValueImpl(std::nullptr_t)
-    : bson_value_(kDefaultBsonValue),
-      parsed_value_(nullptr),
-      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
+ValueImpl::ValueImpl(std::nullptr_t) : bson_value_(kDefaultBsonValue) {
   bson_value_.value_type = BSON_TYPE_NULL;
 }
 
 ValueImpl::ValueImpl(BsonHolder bson, DocumentKind kind)
-    : storage_(std::move(bson)),
-      bson_value_(kDefaultBsonValue),
-      parsed_value_(nullptr),
-      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
+    : storage_(std::move(bson)), bson_value_(kDefaultBsonValue) {
   switch (kind) {
     case DocumentKind::kDocument:
       bson_value_.value_type = BSON_TYPE_DOCUMENT;
@@ -223,10 +214,7 @@ ValueImpl::ValueImpl(double value) : ValueImpl() {
 
 ValueImpl::ValueImpl(const char* value) : ValueImpl(std::string(value)) {}
 
-ValueImpl::ValueImpl(std::string value)
-    : bson_value_(kDefaultBsonValue),
-      parsed_value_(nullptr),
-      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
+ValueImpl::ValueImpl(std::string value) : bson_value_(kDefaultBsonValue) {
   if (!utils::text::IsUtf8(value)) {
     throw BsonException("BSON strings must be valid UTF-8");
   }
@@ -251,10 +239,7 @@ ValueImpl::ValueImpl(const Oid& value) : ValueImpl() {
 }
 
 ValueImpl::ValueImpl(Binary value)
-    : storage_(std::move(value).ToString()),
-      bson_value_(kDefaultBsonValue),
-      parsed_value_(nullptr),
-      duplicate_fields_policy_(Value::DuplicateFieldsPolicy::kForbid) {
+    : storage_(std::move(value).ToString()), bson_value_(kDefaultBsonValue) {
   bson_value_.value_type = BSON_TYPE_BINARY;
   bson_value_.value.v_binary.subtype = BSON_SUBTYPE_BINARY;
   UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
@@ -286,7 +271,6 @@ ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
     : storage_(std::move(storage)),
       path_(path.MakeChildPath(index)),
       bson_value_(bson_value),
-      parsed_value_(nullptr),
       duplicate_fields_policy_(duplicate_fields_policy) {
   UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
@@ -298,7 +282,6 @@ ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
     : storage_(std::move(storage)),
       path_(path.MakeChildPath(key)),
       bson_value_(bson_value),
-      parsed_value_(nullptr),
       duplicate_fields_policy_(duplicate_fields_policy) {
   UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
@@ -306,7 +289,6 @@ ValueImpl::ValueImpl(EmplaceEnabler, Storage storage, const Path& path,
 ValueImpl::ValueImpl(const ValueImpl& other)
     : storage_(other.storage_),
       bson_value_(other.bson_value_),
-      parsed_value_(nullptr),
       duplicate_fields_policy_(other.duplicate_fields_policy_) {
   const auto* parsed_ptr = other.parsed_value_.load();
   if (parsed_ptr) {

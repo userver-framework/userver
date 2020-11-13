@@ -50,7 +50,7 @@ class CvWaitStrategy final : public WaitStrategy {
 template <typename MutexType>
 class ConditionVariableAny {
  public:
-  ConditionVariableAny();
+  ConditionVariableAny() = default;
 
   ConditionVariableAny(const ConditionVariableAny&) = delete;
   ConditionVariableAny(ConditionVariableAny&&) = delete;
@@ -73,9 +73,6 @@ class ConditionVariableAny {
  private:
   WaitList waiters_;
 };
-
-template <typename MutexType>
-ConditionVariableAny<MutexType>::ConditionVariableAny() : waiters_() {}
 
 template <typename MutexType>
 CvStatus ConditionVariableAny<MutexType>::Wait(

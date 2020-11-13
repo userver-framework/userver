@@ -139,9 +139,9 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
 
   StrongTypedef() = default;
   StrongTypedef(const StrongTypedef&) = default;
-  StrongTypedef(StrongTypedef&&) = default;
+  StrongTypedef(StrongTypedef&&) noexcept = default;
   StrongTypedef& operator=(const StrongTypedef&) = default;
-  StrongTypedef& operator=(StrongTypedef&&) = default;
+  StrongTypedef& operator=(StrongTypedef&&) noexcept = default;
 
   constexpr StrongTypedef(impl::strong_typedef::InitializerList<T> lst)
       : data_(lst) {}
@@ -231,9 +231,9 @@ class StrongTypedef<Tag, T, Ops, std::enable_if_t<std::is_arithmetic<T>::value>>
 
   StrongTypedef() = default;
   StrongTypedef(const StrongTypedef&) = default;
-  StrongTypedef(StrongTypedef&&) = default;
+  StrongTypedef(StrongTypedef&&) noexcept = default;
   StrongTypedef& operator=(const StrongTypedef&) = default;
-  StrongTypedef& operator=(StrongTypedef&&) = default;
+  StrongTypedef& operator=(StrongTypedef&&) noexcept = default;
 
   explicit constexpr StrongTypedef(T arg) noexcept : data_(arg) {}
 
@@ -250,6 +250,7 @@ class StrongTypedef<Tag, T, Ops, std::enable_if_t<std::is_arithmetic<T>::value>>
 
 // Relational operators
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTILS_STRONG_TYPEDEF_REL_OP(OPERATOR)                                  \
   template <class Tag1, class T1, StrongTypedefOps Ops1, class Tag2, class T2, \
             StrongTypedefOps Ops2>                                             \

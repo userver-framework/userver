@@ -18,7 +18,7 @@ namespace crypto {
 class Verifier : public NamedAlgo {
  public:
   explicit Verifier(const std::string& name);
-  virtual ~Verifier();
+  ~Verifier() override;
 
   /// Verifies a signature against the message
   virtual void Verify(std::initializer_list<std::string_view> data,
@@ -41,7 +41,7 @@ class HmacShaVerifier final : public Verifier {
  public:
   /// Constructor from a shared secret
   explicit HmacShaVerifier(std::string secret);
-  virtual ~HmacShaVerifier();
+  ~HmacShaVerifier() override;
 
   /// Verifies a signature against the message
   void Verify(std::initializer_list<std::string_view> data,

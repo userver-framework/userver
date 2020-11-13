@@ -41,7 +41,7 @@ enum class HsetReply { kCreated, kUpdated };
 
 struct MemberScore final {
   std::string member;
-  double score;
+  double score{0.0};
 
   MemberScore() = default;
   MemberScore(std::string member, double score)

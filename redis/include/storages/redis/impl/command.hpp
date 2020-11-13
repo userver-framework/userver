@@ -21,7 +21,9 @@ struct Command : public std::enable_shared_from_this<Command> {
   Command& operator=(const Command&) = delete;
   Command& operator=(Command&&) = delete;
 
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   CmdArgs args;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   ReplyPtrPromise promise;  // FIXME: hack!!
 
   ReplyCallback Callback() const;
@@ -42,12 +44,19 @@ struct Command : public std::enable_shared_from_this<Command> {
   static logging::LogExtra PrepareLogExtra();
 
  public:
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   logging::LogExtra log_extra;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   CommandControl control;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   size_t instance_idx = 0;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   int counter = 0;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool asking = false;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool executed = false;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool redirected = false;
 };
 

@@ -32,7 +32,7 @@ class LockedPtr final {
 
  private:
   const Data* GetOnRvalue() {
-    static_assert(false && sizeof(Data),
+    static_assert(!sizeof(Data),
                   "Don't use temporary LockedPtr, store it to a variable");
     std::abort();
   }

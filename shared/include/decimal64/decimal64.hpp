@@ -578,7 +578,7 @@ class Decimal {
   static constexpr int64_t kDecimalFactor = kPow10<Prec>;
 
   /// Zero by default
-  constexpr Decimal() noexcept : value_(0) {}
+  constexpr Decimal() noexcept = default;
 
   /// @brief Convert from an integer
   template <typename T, impl::EnableIfInt<T> = 0>
@@ -621,7 +621,7 @@ class Decimal {
   ///
   /// @throw decimal64::ParseError on invalid input
   /// @see Decimal(std::string_view)
-  static constexpr Decimal FromStringPermissive(std::string_view value);
+  static constexpr Decimal FromStringPermissive(std::string_view input);
 
   /// @brief Reconstruct from the internal representation, as acquired
   /// with `AsUnbiased`
@@ -684,7 +684,8 @@ class Decimal {
   /// @brief Assignment from an integer
   template <typename T, typename = impl::EnableIfInt<T>>
   constexpr Decimal& operator=(T rhs) {
-    return *this = Decimal{rhs};
+    *this = Decimal{rhs};
+    return *this;
   }
 
   constexpr bool operator==(Decimal rhs) const { return value_ == rhs.value_; }
@@ -894,7 +895,7 @@ class Decimal {
     return FromUnbiased(static_cast<int64_t>(value) * kDecimalFactor);
   }
 
-  int64_t value_;
+  int64_t value_{0};
 };
 
 namespace impl {
@@ -1103,12 +1104,12 @@ enum class ParseErrorCode : uint8_t {
 };
 
 struct ParseUnpackedResult {
-  int64_t before;
-  int64_t after;
-  uint8_t decimal_digits;
-  bool is_negative;
+  int64_t before{0};
+  int64_t after{0};
+  uint8_t decimal_digits{0};
+  bool is_negative{false};
   std::optional<ParseErrorCode> error;
-  uint32_t error_position;
+  uint32_t error_position{-1U};
 };
 
 enum class ParseState {
@@ -1303,7 +1304,7 @@ template <int Prec, typename RoundPolicy>
 struct ParseResult {
   Decimal<Prec, RoundPolicy> decimal;
   std::optional<ParseErrorCode> error;
-  uint32_t error_position;
+  uint32_t error_position{-1U};
 };
 
 /// Parse Decimal from a CharSequence

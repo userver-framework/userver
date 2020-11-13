@@ -36,6 +36,8 @@ class MutableBson {
   MutableBson(MutableBson&&) noexcept = default;
 
   MutableBson& operator=(const MutableBson& rhs) {
+    if (this == &rhs) return *this;
+
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     return *this = CopyNative(rhs.bson_.get());
   }

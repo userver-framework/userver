@@ -44,11 +44,17 @@ class RequestBase {
   virtual void AccountResponseTime() = 0;
 
  protected:
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::steady_clock::time_point start_time_;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::steady_clock::time_point task_create_time_;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::steady_clock::time_point task_start_time_;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::steady_clock::time_point response_notify_time_;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::steady_clock::time_point start_send_response_time_;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::chrono::steady_clock::time_point finish_send_response_time_;
 };
 

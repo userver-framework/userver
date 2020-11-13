@@ -49,7 +49,7 @@ class Value final {
 
   template <class T>
   Value& operator=(T&&) && {
-    static_assert(false && sizeof(T),
+    static_assert(!sizeof(T),
                   "You're assigning to a temporary formats::yaml::Value! Use "
                   "formats::yaml::ValueBuilder for data modifications.");
     return *this;

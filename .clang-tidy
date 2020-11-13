@@ -26,6 +26,7 @@ Checks:
   -cppcoreguidelines-avoid-c-arrays,\
   -cppcoreguidelines-avoid-magic-numbers,\
   -cppcoreguidelines-narrowing-conversions,\
+  -cppcoreguidelines-non-private-member-variables-in-classes,\
   -cppcoreguidelines-owning-memory,\
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,\
   -cppcoreguidelines-pro-bounds-constant-array-index,\
@@ -41,9 +42,11 @@ Checks:
   -google-runtime-references,\
   -hicpp-avoid-c-arrays,\
   -hicpp-braces-around-statements,\
+  -hicpp-deprecated-headers,\
   -hicpp-explicit-conversions,\
   -hicpp-member-init,\
   -hicpp-no-array-decay,\
+  -hicpp-no-malloc,\
   -hicpp-noexcept-move,\
   -hicpp-signed-bitwise,\
   -hicpp-special-member-functions,\
@@ -52,6 +55,7 @@ Checks:
   -misc-unconventional-assign-operator,\
   -modernize-avoid-c-arrays,\
   -modernize-pass-by-value,\
+  -modernize-use-nodiscard,\
   -modernize-use-trailing-return-type,\
   -performance-move-const-arg,\
   -performance-unnecessary-value-param,\
@@ -64,7 +68,7 @@ Checks:
   -readability-redundant-declaration\
   "
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(core|mongo|postgresql|redis).*'
+HeaderFilterRegex: '/(build|core|grpc|mongo|postgresql|redis|shared|tools)/'
 AnalyzeTemporaryDtors: false
 FormatStyle:     google
 User:            nikslim

@@ -6,6 +6,7 @@ namespace server {
 namespace http {
 
 /* Status Codes */
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define HTTP_STATUS_MAP_STRING(XX)                                           \
   XX(100, kContinue, "Continue")                                             \
   XX(101, kSwitchingProtocols, "Switching Protocols")                        \
@@ -70,6 +71,7 @@ namespace http {
   /* end of HTTP_STATUS_MAP_STRING */
 
 enum class HttpStatus {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define XX(num, name, string) name = (num),
 
   HTTP_STATUS_MAP_STRING(XX)
@@ -79,6 +81,7 @@ enum class HttpStatus {
 
 inline std::string HttpStatusString(HttpStatus status) {
   switch (status) {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define XX(num, name, string) \
   case HttpStatus::name:      \
     return string;

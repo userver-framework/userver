@@ -25,6 +25,7 @@ class FastPimpl final {
   FastPimpl(const FastPimpl& v) noexcept(noexcept(T(std::declval<const T&>())))
       : FastPimpl(*v) {}
 
+  // NOLINTNEXTLINE (cert-oop54-cpp)
   FastPimpl& operator=(const FastPimpl& rhs) noexcept(
       noexcept(std::declval<T&>() = std::declval<const T&>())) {
     *AsHeld() = *rhs;

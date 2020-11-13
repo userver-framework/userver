@@ -12,21 +12,15 @@ class RequestFuture {
 
  public:
   RequestFuture() = default;
-  RequestFuture(RequestFuture&& r)
-      : ro_future_(std::move(r.ro_future_)), until_(std::move(r.until_)) {}
-  RequestFuture(ReplyPtrFuture&& fut, std::chrono::steady_clock::time_point&& t)
-      : ro_future_(std::move(fut)), until_(std::move(t)) {}
-
+  RequestFuture(ReplyPtrFuture&& fut,
+                std::chrono::steady_clock::time_point t) noexcept
+      : ro_future_(std::move(fut)), until_(t) {}
   ~RequestFuture() = default;
 
-  RequestFuture& operator=(RequestFuture&& r) {
-    ro_future_ = std::move(r.ro_future_);
-    until_ = std::move(r.until_);
-    return *this;
-  }
-
   RequestFuture(const RequestFuture&) = delete;
+  RequestFuture(RequestFuture&& r) noexcept = default;
   RequestFuture& operator=(const RequestFuture&) = delete;
+  RequestFuture& operator=(RequestFuture&& r) noexcept = default;
 
   ReplyPtr Get();
 
@@ -37,15 +31,10 @@ class RequestFuture {
 
 class Request {
  public:
-  Request(Request&& r) : request_future_(std::move(r.request_future_)) {}
-
-  Request& operator=(Request&& r) {
-    request_future_ = std::move(r.request_future_);
-    return *this;
-  }
-
   Request(const Request&) = delete;
+  Request(Request&& r) noexcept = default;
   Request& operator=(const Request&) = delete;
+  Request& operator=(Request&& r) noexcept = default;
 
   ReplyPtr Get();
   RequestFuture&& PopFuture();

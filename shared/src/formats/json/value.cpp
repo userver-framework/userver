@@ -61,12 +61,8 @@ bool IsNonOverflowingIntegral(const double val) {
 }
 }  // namespace
 
-Value::Value() noexcept : value_ptr_(nullptr), depth_(0) {}
-
-Value::~Value() = default;
-
 Value::Value(impl::VersionedValuePtr root) noexcept
-    : root_(std::move(root)), value_ptr_(root_.Get()), depth_(0) {}
+    : root_(std::move(root)), value_ptr_(root_.Get()) {}
 
 Value::Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
              const impl::Value& value, int depth)
@@ -82,8 +78,7 @@ Value::Value(impl::VersionedValuePtr root, const impl::Value* value_ptr,
 Value::Value(impl::VersionedValuePtr root, std::string&& detached_path)
     : root_(std::move(root)),
       value_ptr_(nullptr),
-      detached_path_(detached_path),
-      depth_(0) {}
+      detached_path_(detached_path) {}
 
 Value Value::operator[](std::string_view key) const {
   if (!IsMissing()) {

@@ -59,6 +59,8 @@ BusyStorage::Impl::Impl(Duration epoch_duration, Duration history_period,
 
 BusyStorage::BusyStorage(Duration epoch_duration, Duration history_period,
                          size_t max_workers)
+    // FP(?): Possible leak in boost.lockfree
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     : pimpl(new Impl(epoch_duration, history_period, max_workers)) {}
 
 BusyStorage::~BusyStorage() = default;

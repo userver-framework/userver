@@ -35,7 +35,7 @@ class Statistics {
 
   std::atomic<RedisState> state{RedisState::kInit};
   std::atomic_llong reconnects{0};
-  std::atomic<std::chrono::milliseconds> session_start_time;
+  std::atomic<std::chrono::milliseconds> session_start_time{};
   utils::statistics::RecentPeriod<Percentile, Percentile,
                                   utils::datetime::SteadyClock>
       request_size_percentile, reply_size_percentile, timings_percentile;

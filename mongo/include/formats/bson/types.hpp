@@ -50,6 +50,7 @@ class Oid {
   /// @name Raw value access
   /// @{
   const uint8_t* Data() const;
+  // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
   constexpr size_t Size() const { return 12; }
   /// @}
 

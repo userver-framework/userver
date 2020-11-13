@@ -14,7 +14,7 @@ class MockTransaction final : public Transaction {
                   std::unique_ptr<MockTransactionImplBase> impl,
                   CheckShards check_shards = CheckShards::kSame);
 
-  ~MockTransaction();
+  ~MockTransaction() override;
 
   RequestExec Exec(const CommandControl& command_control) override;
 

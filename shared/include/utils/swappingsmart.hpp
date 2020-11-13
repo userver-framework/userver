@@ -15,11 +15,9 @@ namespace utils {
 template <typename T>
 class SwappingSmart {
  public:
-  SwappingSmart() : current_(0), write_lock_ ATOMIC_FLAG_INIT {}
+  SwappingSmart() = default;
 
-  explicit SwappingSmart(const std::shared_ptr<T>& ptr) : SwappingSmart() {
-    Set(ptr);
-  }
+  explicit SwappingSmart(const std::shared_ptr<T>& ptr) { Set(ptr); }
 
   std::shared_ptr<T> Get() const {
     const short index = current_.load(std::memory_order_relaxed);
@@ -49,9 +47,9 @@ class SwappingSmart {
   }
 
  private:
-  std::atomic<short> current_;
-  std::atomic_flag write_lock_;
-  std::array<std::shared_ptr<T>, 2> ptrs_;
+  std::atomic<short> current_{0};
+  std::atomic_flag write_lock_ ATOMIC_FLAG_INIT;
+  std::array<std::shared_ptr<T>, 2> ptrs_{};
 };
 
 }  // namespace utils

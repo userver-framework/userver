@@ -15,7 +15,7 @@ class LockIsAcquiredByAnotherHostException : public std::exception {};
 /// Interface for distributed lock strategies
 class DistLockStrategyBase {
  public:
-  virtual ~DistLockStrategyBase() {}
+  virtual ~DistLockStrategyBase() = default;
 
   /// Acquires the distributed lock.
   ///

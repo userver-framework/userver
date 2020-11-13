@@ -66,7 +66,7 @@ class Mongo : public LoggableComponentBase {
   Mongo(const ComponentConfig&, const ComponentContext&);
 
   /// Component destructor
-  ~Mongo();
+  ~Mongo() override;
 
   /// Client pool accessor
   storages::mongo::PoolPtr GetPool() const;
@@ -123,7 +123,7 @@ class MultiMongo : public LoggableComponentBase {
   MultiMongo(const ComponentConfig&, const ComponentContext&);
 
   /// Component destructor
-  ~MultiMongo();
+  ~MultiMongo() override;
 
   /// @brief Client pool accessor
   /// @param dbalias name previously passed to `AddPool`

@@ -34,7 +34,7 @@ class SubscriptionToken {
 
  private:
   std::weak_ptr<SubscriptionStorage> storage_;
-  SubscriptionId subscription_id_;
+  SubscriptionId subscription_id_{0};
 };
 
 class SubscriptionStorage
@@ -81,7 +81,7 @@ class SubscriptionStorage
         : channel(std::move(channel)), pattern(pattern) {}
 
     std::string channel;
-    bool pattern;
+    bool pattern{false};
   };
 
   using FsmPtr = std::shared_ptr<shard_subscriber::Fsm>;

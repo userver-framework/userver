@@ -104,9 +104,13 @@ class RcuMap final {
   // TODO: add multiple keys in one txn?
 
   /// @brief Returns a readonly value pointer by its key or an empty pointer
+  // Protects from assignment to map[key]
+  // NOLINTNEXTLINE(readability-const-return-type)
   const ConstValuePtr Get(const Key&) const;
 
   /// @brief Returns a modifiable value pointer by key or an empty pointer
+  // Protects from assignment to map[key]
+  // NOLINTNEXTLINE(readability-const-return-type)
   const ValuePtr Get(const Key&);
 
   /// @brief Removes a key from the map
@@ -191,6 +195,8 @@ size_t RcuMap<K, V>::SizeApprox() const {
 }
 
 template <typename K, typename V>
+// Protects from assignment to map[key]
+// NOLINTNEXTLINE(readability-const-return-type)
 const typename RcuMap<K, V>::ConstValuePtr RcuMap<K, V>::operator[](
     const K& key) const {
   if (auto value = Get(key)) {
@@ -200,8 +206,11 @@ const typename RcuMap<K, V>::ConstValuePtr RcuMap<K, V>::operator[](
 }
 
 template <typename K, typename V>
+// Protects from assignment to map[key]
+// NOLINTNEXTLINE(readability-const-return-type)
 const typename RcuMap<K, V>::ConstValuePtr RcuMap<K, V>::Get(
     const K& key) const {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<RcuMap<K, V>*>(this)->Get(key);
 }
 
@@ -216,6 +225,8 @@ typename RcuMap<K, V>::Iterator RcuMap<K, V>::end() {
 }
 
 template <typename K, typename V>
+// Protects from assignment to map[key]
+// NOLINTNEXTLINE(readability-const-return-type)
 const typename RcuMap<K, V>::ValuePtr RcuMap<K, V>::operator[](const K& key) {
   auto value = Get(key);
   if (!value) {
@@ -277,6 +288,8 @@ typename RcuMap<K, V>::InsertReturnType RcuMap<K, V>::TryEmplace(
 }
 
 template <typename K, typename V>
+// Protects from assignment to map[key]
+// NOLINTNEXTLINE(readability-const-return-type)
 const typename RcuMap<K, V>::ValuePtr RcuMap<K, V>::Get(const K& key) {
   auto snapshot = rcu_.Read();
   auto it = snapshot->find(key);

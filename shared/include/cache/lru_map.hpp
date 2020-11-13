@@ -18,9 +18,9 @@ class LruMap final {
                   const Equal& equal = Equal())
       : impl_(max_size, hash, equal) {}
 
-  LruMap(LruMap&& lru) = default;
+  LruMap(LruMap&& lru) noexcept = default;
   LruMap(const LruMap& lru) = delete;
-  LruMap& operator=(LruMap&& lru) = default;
+  LruMap& operator=(LruMap&& lru) noexcept = default;
   LruMap& operator=(const LruMap& lru) = delete;
 
   /// Adds or rewrites key/value, updates its usage
