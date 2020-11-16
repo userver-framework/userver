@@ -25,10 +25,15 @@ class regex final {
   utils::FastPimpl<Impl, 16, 8> impl_;
 
   friend bool regex_match(std::string_view str, const regex& pattern);
+  friend bool regex_search(std::string_view str, const regex& pattern);
 };
 
 /// Determines whether the regular expression matches the entire target
 /// character sequence
 bool regex_match(std::string_view str, const regex& pattern);
+
+/// Determines whether the regular expression matches anywhere in the target
+/// character sequence
+bool regex_search(std::string_view str, const regex& pattern);
 
 }  // namespace utils
