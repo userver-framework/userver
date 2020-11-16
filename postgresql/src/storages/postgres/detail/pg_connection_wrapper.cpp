@@ -101,9 +101,16 @@ PGConnectionWrapper::~PGConnectionWrapper() { Close().Detach(); }
 template <typename ExceptionType>
 void PGConnectionWrapper::CheckError(const std::string& cmd,
                                      int pg_dispatch_result) {
+  static const std::string kCheckConnectionQuota =
+      ". It may be useful to check the user's connection quota "
+      "(https://nda.ya.ru/t/BqsBhgnS3bU6rV)";
+
   if (pg_dispatch_result == 0) {
     auto msg = PQerrorMessage(conn_);
-    PGCW_LOG_WARNING() << "libpq " << cmd << " error: " << msg;
+    PGCW_LOG_WARNING() << "libpq " << cmd << " error: " << msg
+                       << (std::is_base_of_v<ConnectionError, ExceptionType>
+                               ? kCheckConnectionQuota
+                               : "");
     throw ExceptionType(cmd + " execution error: " + msg);
   }
 }
