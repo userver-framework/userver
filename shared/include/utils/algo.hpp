@@ -84,7 +84,7 @@ struct HasKeyType<Container, std::void_t<typename Container::key_type>>
     : std::true_type {};
 
 template <typename Container>
-constexpr bool kHasKeyType = HasKeyType<Container>::value;
+inline constexpr bool kHasKeyType = HasKeyType<Container>::value;
 }  // namespace impl
 
 /// @returns number of deleted elements

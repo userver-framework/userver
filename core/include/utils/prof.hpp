@@ -2,9 +2,8 @@
 
 #include <atomic>
 #include <chrono>
-#include <mutex>
+#include <string>
 #include <unordered_map>
-#include <vector>
 
 #include <logging/log_extra.hpp>
 
@@ -34,13 +33,13 @@ class TimeStorage {
   using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
  public:
-  explicit TimeStorage(const std::string& name);
-  TimeStorage(TimeStorage&&) noexcept;
-  TimeStorage(const TimeStorage&) = delete;
-  ~TimeStorage();
+  explicit TimeStorage(std::string name);
 
-  TimeStorage CreateChild();
+  TimeStorage(const TimeStorage&) = delete;
+  TimeStorage(TimeStorage&&) noexcept = default;
+
   void PushLap(const std::string& key, double value);
+  void PushLap(const std::string& key, RealMilliseconds value);
 
   /// Elapsed time since TimeStorage object creation
   RealMilliseconds Elapsed() const;
@@ -49,19 +48,10 @@ class TimeStorage {
   logging::LogExtra GetLogs();
 
  private:
-  explicit TimeStorage(TimeStorage* parent);
-  void MergeBack(TimeStorage&& child);
-
-  using storage_t = std::unordered_map<std::string, double>;
-  storage_t data_;
-  std::vector<storage_t> children_;
-
-  std::atomic_int n_children_;
-  std::mutex m_;
-
-  TimeStorage* parent_;
   const PerfTimePoint start_;
   const std::string name_;
+
+  std::unordered_map<std::string, RealMilliseconds> data_;
 };
 
 class SwLogger {

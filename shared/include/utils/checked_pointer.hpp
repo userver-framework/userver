@@ -23,15 +23,15 @@ class CheckedPtr {
     return ptr_;
   }
 
-  T* const Get() const& {
+  T* Get() const& {
     CheckPointer();
     return ptr_;
   }
 
-  T* const Get() && { RvalueDisabled(); }
+  T* Get() && { RvalueDisabled(); }
 
-  T* const operator->() const& { return Get(); }
-  T* const operator->() && { RvalueDisabled(); }
+  T* operator->() const& { return Get(); }
+  T* operator->() && { RvalueDisabled(); }
 
   T& operator*() const& { return *Get(); }
   T& operator*() && { RvalueDisabled(); }
@@ -39,7 +39,7 @@ class CheckedPtr {
  private:
   [[noreturn]] void RvalueDisabled() {
     static_assert(
-        false && sizeof(T),
+        !sizeof(T),
         "Don't use temporary CheckedPtr, check it first, then dereference");
     std::abort();
   }
@@ -58,12 +58,12 @@ class CheckedPtr {
 
 template <typename T>
 class CheckedPtr<T*> {
-  static_assert(false && sizeof(T), "Don't use CheckedPointer for pointers");
+  static_assert(!sizeof(T), "Don't use CheckedPointer for pointers");
 };
 
 template <typename T>
 class CheckedPtr<T&> {
-  static_assert(false && sizeof(T), "Don't use CheckedPointer for references");
+  static_assert(!sizeof(T), "Don't use CheckedPointer for references");
 };
 
 template <typename T>
