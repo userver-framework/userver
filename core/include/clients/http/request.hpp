@@ -117,6 +117,11 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// will be performed
   std::shared_ptr<Request> retry(short retries = 3, bool on_fails = true);
 
+  /// Set unix domain socket as connection endpoint and provide path to it
+  /// When enabled, request will connect to the Unix domain socket instead
+  /// of establishing a TCP connection to a host.
+  std::shared_ptr<Request> unix_socket_path(const std::string& path);
+
   /// Set destination name in metric "httpclient.destinations.<name>".
   /// If not set, defaults to HTTP path.  Should be called for all requests
   /// with parameters in HTTP path.

@@ -196,6 +196,11 @@ std::shared_ptr<Request> Request::retry(short retries, bool on_fails) {
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::unix_socket_path(const std::string& path) {
+  pimpl_->unix_socket_path(path);
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::data(std::string data) {
   if (!data.empty())
     pimpl_->easy().add_header(kHeaderExpect, "",

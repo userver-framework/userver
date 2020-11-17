@@ -52,6 +52,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void set_timeout(long timeout_ms);
   /// set number of retries
   void retry(short retries, bool on_fails);
+  /// set unix socket as transport instead of TCP
+  void unix_socket_path(const std::string& path);
 
   /// get timeout value
   long timeout() const { return timeout_ms_; }

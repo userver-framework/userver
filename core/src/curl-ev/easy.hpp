@@ -314,6 +314,8 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION(set_tcp_keep_idle, native::CURLOPT_TCP_KEEPIDLE, long);
   IMPLEMENT_CURL_OPTION(set_tcp_keep_intvl, native::CURLOPT_TCP_KEEPINTVL,
                         long);
+  IMPLEMENT_CURL_OPTION_STRING(set_unix_socket_path,
+                               native::CURLOPT_UNIX_SOCKET_PATH);
 
   // authentication options
 

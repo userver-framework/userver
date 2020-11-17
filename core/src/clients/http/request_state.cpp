@@ -181,6 +181,10 @@ void RequestState::retry(short retries, bool on_fails) {
   retry_.on_fails = on_fails;
 }
 
+void RequestState::unix_socket_path(const std::string& path) {
+  easy().set_unix_socket_path(path);
+}
+
 void RequestState::Cancel() {
   // We can not call `retry_.timer.reset();` here because of data race
   is_cancelled_ = true;
