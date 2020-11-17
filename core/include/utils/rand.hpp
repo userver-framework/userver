@@ -29,7 +29,9 @@ Random& GetRandom();
 
 }  // namespace impl
 
-inline uint32_t Rand() { return impl::GetRandom()(); }
+inline RandomBase& DefaultRandom() { return impl::GetRandom(); }
+
+inline uint32_t Rand() { return DefaultRandom()(); }
 
 template <class RandomIt>
 void Shuffle(RandomIt first, RandomIt last) {
