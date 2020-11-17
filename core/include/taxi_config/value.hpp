@@ -64,6 +64,8 @@ template <typename ValueType>
 class ValueDict final {
  public:
   using DictType = std::unordered_map<std::string, ValueType>;
+  using const_iterator = typename DictType::const_iterator;
+  using iterator = const_iterator;
 
   ValueDict() = default;
   ValueDict(const std::string& name, const DocsMap& mongo_docs);
