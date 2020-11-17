@@ -231,7 +231,7 @@ class Value final {
   template <class T>
   T ValueAs() const;
 
-  static constexpr std::size_t kNativeNodeSize = 56;
+  static constexpr std::size_t kNativeNodeSize = 64;
   static constexpr std::size_t kNativeAlignment = alignof(void*);
 
   utils::FastPimpl<YAML::Node, kNativeNodeSize, kNativeAlignment> value_pimpl_;
