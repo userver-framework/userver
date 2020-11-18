@@ -18,16 +18,11 @@
 
 #include <components/component_config.hpp>
 #include <components/loggable_component_base.hpp>
-#include "cache_config.hpp"
-#include "cache_update_trait.hpp"
+
+#include <cache/cache_config.hpp>
+#include <cache/cache_update_trait.hpp>
 
 namespace components {
-
-class EmptyCacheError : public std::runtime_error {
- public:
-  EmptyCacheError(const std::string& cache_name)
-      : std::runtime_error("Cache " + cache_name + " is empty") {}
-};
 
 // clang-format off
 
@@ -84,7 +79,7 @@ class CachingComponentBase
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
                        const std::string& name);
 
-  const std::string& Name() const;
+  using cache::CacheUpdateTrait::Name;
 
   /// @return cache contents. May be nullptr if and only if MayReturnNull()
   /// returns true.
@@ -107,16 +102,16 @@ class CachingComponentBase
 
   void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
 
-  bool IsPeriodicUpdateEnabled() const override {
-    return periodic_update_enabled_;
-  }
-
   /// Whether Get() is expected to return nullptr.
   /// If MayReturnNull() returns false, Get() throws an exception instead of
   /// returning nullptr.
   virtual bool MayReturnNull() const;
 
  private:
+  CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
+                       const std::string& name,
+                       cache::CacheConfigStatic&& cache_config);
+
   void OnAllComponentsLoaded() override;
 
   void Cleanup() final;
@@ -124,30 +119,30 @@ class CachingComponentBase
   utils::statistics::Entry statistics_holder_;
   rcu::Variable<std::shared_ptr<const T>> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
-  bool periodic_update_enabled_;
-  const std::string name_;
 };
 
 template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context,
                                               const std::string& name)
+    : CachingComponentBase(config, context, name,
+                           cache::CacheConfigStatic(config)) {}
+
+template <typename T>
+CachingComponentBase<T>::CachingComponentBase(
+    const ComponentConfig& config, const ComponentContext& context,
+    const std::string& name, cache::CacheConfigStatic&& cache_config)
     : LoggableComponentBase(config, context),
       utils::AsyncEventChannel<const std::shared_ptr<const T>&>(name),
       cache::CacheUpdateTrait(
-          cache::CacheConfig(config),
+          std::move(cache_config),
           context.FindComponent<components::TestsuiteSupport>()
               .GetCacheControl(),
-          name),
-      periodic_update_enabled_(context.FindComponent<TestsuiteSupport>()
-                                   .GetCacheControl()
-                                   .IsPeriodicUpdateEnabled(config, name)),
-      name_(name) {
+          name, context.GetTaskProcessor(cache_config.fs_task_processor)) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   statistics_holder_ = storage.RegisterExtender(
-      "cache." + name_, std::bind(&CachingComponentBase<T>::ExtendStatistics,
-                                  this, std::placeholders::_1));
+      "cache." + Name(), [this](auto& req) { return ExtendStatistics(req); });
 
   if (config["config-settings"].As<bool>(true) &&
       cache::CacheConfigSet::IsConfigEnabled()) {
@@ -158,24 +153,17 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
 }
 
 template <typename T>
-const std::string& CachingComponentBase<T>::Name() const {
-  return name_;
-}
-
-template <typename T>
 std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
   auto ptr = GetUnsafe();
   if (!ptr && !MayReturnNull()) {
-    UASSERT_MSG(ptr, "Cache returned nullptr, go and fix your cache");
-    throw EmptyCacheError(Name());
+    throw cache::EmptyCacheError(Name());
   }
   return ptr;
 }
 
 template <typename T>
 std::shared_ptr<const T> CachingComponentBase<T>::GetUnsafe() const {
-  auto ptr = cache_.Read();
-  return *ptr;
+  return cache_.ReadCopy();
 }
 
 template <typename T>
@@ -190,9 +178,10 @@ void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
         .Detach();
   };
 
-  std::shared_ptr<const T> new_value(value_ptr.release(), deleter);
-  cache_.Assign(std::move(new_value));
-  this->SendEvent(Get());
+  const std::shared_ptr<const T> new_value(value_ptr.release(), deleter);
+  cache_.Assign(new_value);
+  this->SendEvent(new_value);
+  OnCacheModified();
 }
 
 template <typename T>
@@ -235,7 +224,7 @@ formats::json::Value CachingComponentBase<T>::ExtendStatistics(
 template <typename T>
 void CachingComponentBase<T>::OnConfigUpdate(
     const std::shared_ptr<const taxi_config::Config>& cfg) {
-  SetConfig(cfg->Get<cache::CacheConfigSet>().GetConfig(name_));
+  SetConfig(cfg->Get<cache::CacheConfigSet>().GetConfig(Name()));
 }
 
 template <typename T>

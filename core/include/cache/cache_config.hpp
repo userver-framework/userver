@@ -19,17 +19,29 @@ enum class AllowedUpdateTypes {
 struct CacheConfig {
   explicit CacheConfig(const components::ComponentConfig& config);
 
-  CacheConfig(std::chrono::milliseconds update_interval,
-              std::chrono::milliseconds update_jitter,
-              std::chrono::milliseconds full_update_interval,
-              std::chrono::milliseconds cleanup_interval);
+  explicit CacheConfig(const formats::json::Value& value);
 
   AllowedUpdateTypes allowed_update_types;
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
   std::chrono::milliseconds cleanup_interval;
+};
+
+struct CacheConfigStatic : public CacheConfig {
+  explicit CacheConfigStatic(const components::ComponentConfig& config);
+
+  CacheConfigStatic MergeWith(const CacheConfig& other) const;
+
   bool allow_first_update_failure;
+  std::optional<bool> force_periodic_update;
+
+  std::string dump_directory;
+  std::chrono::milliseconds min_dump_interval;
+  std::string fs_task_processor;
+  uint64_t dump_format_version;
+  uint64_t max_dump_count;
+  std::optional<std::chrono::milliseconds> max_dump_age;
 };
 
 enum class BackgroundUpdateMode {
@@ -38,8 +50,9 @@ enum class BackgroundUpdateMode {
 };
 
 struct LruCacheConfig {
-  LruCacheConfig(size_t size, std::chrono::milliseconds lifetime,
-                 BackgroundUpdateMode background_update);
+  explicit LruCacheConfig(const components::ComponentConfig& config);
+
+  explicit LruCacheConfig(const formats::json::Value& value);
 
   size_t size;
   std::chrono::milliseconds lifetime;
@@ -77,10 +90,6 @@ class CacheConfigSet final {
   static void SetLruConfigName(const std::string& name);
 
  private:
-  static CacheConfig ParseConfig(const formats::json::Value& json);
-
-  static LruCacheConfig ParseLruConfig(const formats::json::Value& json);
-
   static std::string& LruConfigName();
 
   static std::string& ConfigName();

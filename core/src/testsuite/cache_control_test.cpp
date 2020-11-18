@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include <cache/cache_config.hpp>
+#include <cache/cache_test_helpers.hpp>
 #include <cache/cache_update_trait.hpp>
 #include <testsuite/cache_control.hpp>
 
@@ -12,8 +13,10 @@ static std::string kCacheName = "test_cache";
 
 class FakeCache : public cache::CacheUpdateTrait {
  public:
-  FakeCache(cache::CacheConfig&& config, testsuite::CacheControl& cache_control)
-      : cache::CacheUpdateTrait(std::move(config), cache_control, kCacheName) {
+  FakeCache(cache::CacheConfigStatic&& config,
+            testsuite::CacheControl& cache_control)
+      : cache::CacheUpdateTrait(std::move(config), cache_control, kCacheName,
+                                engine::current_task::GetTaskProcessor()) {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 
@@ -39,32 +42,38 @@ class FakeCache : public cache::CacheUpdateTrait {
 
 }  // namespace
 
+const std::string kConfigContents = R"(
+update-interval: 1s
+update-jitter: 1s
+full-update-interval: 1s
+additional-cleanup-interval: 1s
+)";
+
 TEST(CacheControl, Smoke) {
   RunInCoro([] {
     testsuite::CacheControl cache_control(
         testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
-    FakeCache test_cache(
-        cache::CacheConfig(std::chrono::seconds{1}, std::chrono::seconds{1},
-                           std::chrono::seconds{1}, std::chrono::seconds{1}),
-        cache_control);
+    FakeCache test_cache(cache::ConfigFromYaml(kConfigContents, "", ""),
+                         cache_control);
 
-    EXPECT_EQ(0, test_cache.UpdatesCount());
+    // Periodic updates are disabled, so a synchronous update will be performed
+    EXPECT_EQ(1, test_cache.UpdatesCount());
 
     cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
-    EXPECT_EQ(1, test_cache.UpdatesCount());
+    EXPECT_EQ(2, test_cache.UpdatesCount());
     EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
     cache_control.InvalidateCaches(cache::UpdateType::kIncremental,
                                    {"not_" + kCacheName});
-    EXPECT_EQ(1, test_cache.UpdatesCount());
+    EXPECT_EQ(2, test_cache.UpdatesCount());
     EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
     cache_control.InvalidateCaches(cache::UpdateType::kIncremental, {});
-    EXPECT_EQ(1, test_cache.UpdatesCount());
+    EXPECT_EQ(2, test_cache.UpdatesCount());
     EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
     cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental);
-    EXPECT_EQ(2, test_cache.UpdatesCount());
+    EXPECT_EQ(3, test_cache.UpdatesCount());
     EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
   });
 }

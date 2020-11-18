@@ -30,10 +30,9 @@ void CacheControl::UnregisterCacheInvalidator(cache::CacheUpdateTrait& owner) {
 }
 
 bool CacheControl::IsPeriodicUpdateEnabled(
-    const components::ComponentConfig& cache_config,
+    const cache::CacheConfigStatic& cache_config,
     const std::string& cache_name) const {
-  const auto is_periodic_update_forced =
-      cache_config["testsuite-force-periodic-update"].As<std::optional<bool>>();
+  const auto is_periodic_update_forced = cache_config.force_periodic_update;
 
   bool enabled = true;
   std::string reason;
@@ -70,7 +69,7 @@ void CacheControl::InvalidateCaches(cache::UpdateType update_type,
 
   std::lock_guard lock(mutex_);
   for (const auto& invalidator : invalidators_) {
-    if (std::find(names.begin(), names.end(), invalidator.owner->GetName()) !=
+    if (std::find(names.begin(), names.end(), invalidator.owner->Name()) !=
         names.end()) {
       tracing::Span span(std::string{kInvalidatorSpanTag});
       UASSERT(invalidator.owner);

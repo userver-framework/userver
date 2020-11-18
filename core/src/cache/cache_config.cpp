@@ -9,29 +9,60 @@ namespace cache {
 
 namespace {
 
+constexpr std::string_view kUpdateIntervalMs = "update-interval-ms";
+constexpr std::string_view kUpdateJitterMs = "update-jitter-ms";
+constexpr std::string_view kFullUpdateIntervalMs = "full-update-interval-ms";
+constexpr std::string_view kCleanupIntervalMs =
+    "additional-cleanup-interval-ms";
+
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
 constexpr std::string_view kFullUpdateInterval = "full-update-interval";
 constexpr std::string_view kFirstUpdateFailOk = "first-update-fail-ok";
 constexpr std::string_view kCleanupInterval = "additional-cleanup-interval";
+constexpr std::string_view kUpdateTypes = "update-types";
+constexpr std::string_view kForcePeriodicUpdates =
+    "testsuite-force-periodic-update";
 
 constexpr std::string_view kWays = "ways";
 constexpr std::string_view kSize = "size";
 constexpr std::string_view kLifetime = "lifetime";
 constexpr std::string_view kBackgroundUpdate = "background-update";
 
-std::chrono::milliseconds GetDefaultJitterMs(
-    const std::chrono::milliseconds& interval) {
+constexpr std::string_view kLifetimeMs = "lifetime-ms";
+
+constexpr std::string_view kDump = "dump";
+constexpr std::string_view kDumpDirectory = "userver-cache-dump-path";
+constexpr std::string_view kMinDumpInterval = "min-interval";
+constexpr std::string_view kFsTaskProcessor = "fs-task-processor";
+constexpr std::string_view kDumpFormatVersion = "format-version";
+constexpr std::string_view kMaxDumpCount = "max-count";
+constexpr std::string_view kMaxDumpAge = "max-age";
+
+constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
+constexpr auto kDefaultFsTaskProcessor = std::string_view{"fs-task-processor"};
+constexpr auto kDefaultDumpFormatVersion = uint64_t{0};
+constexpr auto kDefaultMaxDumpCount = uint64_t{2};
+
+std::chrono::milliseconds GetDefaultJitter(std::chrono::milliseconds interval) {
   return interval / 10;
 }
 
-std::chrono::milliseconds JsonToMs(const formats::json::Value& json) {
-  return std::chrono::milliseconds{json.As<uint64_t>()};
+std::chrono::milliseconds ParseMs(
+    const formats::json::Value& value,
+    std::optional<std::chrono::milliseconds> default_value = {}) {
+  const auto result = std::chrono::milliseconds{
+      default_value ? value.As<int64_t>(default_value->count())
+                    : value.As<int64_t>()};
+  if (result < std::chrono::milliseconds::zero()) {
+    throw formats::json::ParseException("Negative duration");
+  }
+  return result;
 }
 
-AllowedUpdateTypes ParseUpdateMode(const components::ComponentConfig& config) {
+AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
   const auto update_types_str =
-      config["update-types"].As<std::optional<std::string>>();
+      config[kUpdateTypes].As<std::optional<std::string>>();
   if (!update_types_str) {
     if (config.HasMember(kFullUpdateInterval) &&
         config.HasMember(kUpdateInterval)) {
@@ -47,8 +78,13 @@ AllowedUpdateTypes ParseUpdateMode(const components::ComponentConfig& config) {
     return AllowedUpdateTypes::kOnlyIncremental;
   }
 
-  throw std::logic_error("Invalid update types '" + *update_types_str +
-                         "' for cache '" + config.Name() + '\'');
+  throw std::logic_error(fmt::format("Invalid update types '{}' at '{}'",
+                                     *update_types_str, config.GetPath()));
+}
+
+std::string ParseDumpDirectory(const components::ComponentConfig& config) {
+  const auto dump_root = config.ConfigVars()[kDumpDirectory].As<std::string>();
+  return fmt::format("{}/{}", dump_root, config.Name());
 }
 
 }  // namespace
@@ -57,17 +93,57 @@ CacheConfig::CacheConfig(const components::ComponentConfig& config)
     : allowed_update_types(ParseUpdateMode(config)),
       update_interval(config[kUpdateInterval].As<std::chrono::milliseconds>(0)),
       update_jitter(config[kUpdateJitter].As<std::chrono::milliseconds>(
-          GetDefaultJitterMs(update_interval))),
+          GetDefaultJitter(update_interval))),
       full_update_interval(
           config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)),
       cleanup_interval(config[kCleanupInterval].As<std::chrono::milliseconds>(
-          std::chrono::seconds(10))),
-      allow_first_update_failure(config[kFirstUpdateFailOk].As<bool>(false)) {
+          kDefaultCleanupInterval)) {}
+
+CacheConfig::CacheConfig(const formats::json::Value& value)
+    : allowed_update_types(AllowedUpdateTypes::kOnlyFull),
+      update_interval(ParseMs(value[kUpdateIntervalMs])),
+      update_jitter(ParseMs(value[kUpdateJitterMs])),
+      full_update_interval(ParseMs(value[kFullUpdateIntervalMs])),
+      cleanup_interval(
+          ParseMs(value[kCleanupIntervalMs], kDefaultCleanupInterval)) {
+  if (!full_update_interval.count()) {
+    if (!update_interval.count()) {
+      throw utils::impl::AttachTraceToException(
+          std::logic_error("Update interval is not set for cache"));
+    }
+    full_update_interval = update_interval;
+  } else {
+    if (!update_interval.count()) {
+      update_interval = full_update_interval;
+    }
+    allowed_update_types = AllowedUpdateTypes::kFullAndIncremental;
+  }
+  if (update_jitter > update_interval) {
+    update_jitter = GetDefaultJitter(update_interval);
+  }
+}
+
+CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
+    : CacheConfig(config),
+      allow_first_update_failure(config[kFirstUpdateFailOk].As<bool>(false)),
+      force_periodic_update(
+          config[kForcePeriodicUpdates].As<std::optional<bool>>()),
+      dump_directory(ParseDumpDirectory(config)),
+      min_dump_interval(
+          config[kDump][kMinDumpInterval].As<std::chrono::milliseconds>(0)),
+      fs_task_processor(config[kDump][kFsTaskProcessor].As<std::string>(
+          kDefaultFsTaskProcessor)),
+      dump_format_version(config[kDump][kDumpFormatVersion].As<uint64_t>(
+          kDefaultDumpFormatVersion)),
+      max_dump_count(
+          config[kDump][kMaxDumpCount].As<uint64_t>(kDefaultMaxDumpCount)),
+      max_dump_age(config[kDump][kMaxDumpAge]
+                       .As<std::optional<std::chrono::milliseconds>>()) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
         throw std::logic_error(
-            fmt::format(FMT_STRING("Both {} and {} must be set for cache '{}'"),
+            fmt::format("Both {} and {} must be set for cache '{}'",
                         kUpdateInterval, kFullUpdateInterval, config.Name()));
       }
       if (update_interval >= full_update_interval) {
@@ -83,57 +159,57 @@ CacheConfig::CacheConfig(const components::ComponentConfig& config)
     case AllowedUpdateTypes::kOnlyIncremental:
       if (full_update_interval.count()) {
         throw std::logic_error(fmt::format(
-            FMT_STRING(
-                "{} config field must only be used with full-and-incremental "
-                "updated cache '{}'. Please rename it to {}."),
+            "{} config field must only be used with full-and-incremental "
+            "updated cache '{}'. Please rename it to {}.",
             kFullUpdateInterval, config.Name(), kUpdateInterval));
       }
       if (!update_interval.count()) {
-        throw std::logic_error(
-            fmt::format(FMT_STRING("{} is not set for cache '{}'"),
-                        kUpdateInterval, config.Name()));
+        throw std::logic_error(fmt::format("{} is not set for cache '{}'",
+                                           kUpdateInterval, config.Name()));
       }
       full_update_interval = update_interval;
       break;
   }
+
+  if (max_dump_age && *max_dump_age <= std::chrono::milliseconds::zero()) {
+    throw std::logic_error(fmt::format("{} must be positive for cache '{}'",
+                                       kMaxDumpAge, config.Name()));
+  }
+  if (max_dump_count == 0) {
+    throw std::logic_error(fmt::format("{} must not be 0 for cache '{}'",
+                                       kMaxDumpCount, config.Name()));
+  }
 }
 
-CacheConfig::CacheConfig(std::chrono::milliseconds update_interval,
-                         std::chrono::milliseconds update_jitter,
-                         std::chrono::milliseconds full_update_interval,
-                         std::chrono::milliseconds cleanup_interval)
-    : allowed_update_types(AllowedUpdateTypes::kOnlyFull),
-      update_interval(update_interval),
-      update_jitter(update_jitter),
-      full_update_interval(full_update_interval),
-      cleanup_interval(cleanup_interval),
-      allow_first_update_failure(false) {
-  if (!full_update_interval.count()) {
-    if (!update_interval.count()) {
-      throw utils::impl::AttachTraceToException(
-          std::logic_error("Update interval is not set for cache"));
-    }
-    full_update_interval = update_interval;
-  } else {
-    allowed_update_types = AllowedUpdateTypes::kFullAndIncremental;
-  }
+CacheConfigStatic CacheConfigStatic::MergeWith(const CacheConfig& other) const {
+  CacheConfigStatic copy = *this;
+  static_cast<CacheConfig&>(copy) = other;
+  return copy;
+}
+
+LruCacheConfig::LruCacheConfig(const components::ComponentConfig& config)
+    : size(config[kSize].As<size_t>()),
+      lifetime(config[kLifetime].As<std::chrono::milliseconds>(0)),
+      background_update(config[kBackgroundUpdate].As<bool>(false)
+                            ? BackgroundUpdateMode::kEnabled
+                            : BackgroundUpdateMode::kDisabled) {
+  if (size == 0) throw std::runtime_error("cache-size is non-positive");
+}
+
+LruCacheConfig::LruCacheConfig(const formats::json::Value& value)
+    : size(value[kSize].As<size_t>()),
+      lifetime(ParseMs(value[kLifetimeMs])),
+      background_update(value[kBackgroundUpdate].As<bool>(false)
+                            ? BackgroundUpdateMode::kEnabled
+                            : BackgroundUpdateMode::kDisabled) {
+  if (size == 0) throw std::runtime_error("cache-size is non-positive");
 }
 
 LruCacheConfigStatic::LruCacheConfigStatic(
     const components::ComponentConfig& component_config)
-    : config(component_config[kSize].As<size_t>(),
-             component_config[kLifetime].As<std::chrono::milliseconds>(0),
-             component_config[kBackgroundUpdate].As<bool>(false)
-                 ? BackgroundUpdateMode::kEnabled
-                 : BackgroundUpdateMode::kDisabled),
-      ways(component_config[kWays].As<size_t>()) {
+    : config(component_config), ways(component_config[kWays].As<size_t>()) {
   if (ways <= 0) throw std::runtime_error("cache-ways is non-positive");
-  if (config.size <= 0) throw std::runtime_error("cache-size is non-positive");
 }
-
-LruCacheConfig::LruCacheConfig(size_t size, std::chrono::milliseconds lifetime,
-                               BackgroundUpdateMode background_update)
-    : size(size), lifetime(lifetime), background_update(background_update) {}
 
 size_t LruCacheConfigStatic::GetWaySize() const {
   auto way_size = config.size / ways;
@@ -142,9 +218,9 @@ size_t LruCacheConfigStatic::GetWaySize() const {
 
 LruCacheConfigStatic LruCacheConfigStatic::MergeWith(
     const LruCacheConfig& other) const {
-  LruCacheConfigStatic config(*this);
-  config.config = other;
-  return config;
+  LruCacheConfigStatic copy = *this;
+  copy.config = other;
+  return copy;
 }
 
 CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
@@ -154,7 +230,7 @@ CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
   if (!config_name.empty()) {
     auto caches_json = docs_map.Get(config_name);
     for (const auto& [name, value] : Items(caches_json)) {
-      configs_.emplace(name, ParseConfig(value));
+      configs_.emplace(name, CacheConfig{value});
     }
   }
 
@@ -162,12 +238,11 @@ CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
   if (!lru_config_name.empty()) {
     auto lru_caches_json = docs_map.Get(lru_config_name);
     for (const auto& [name, value] : Items(lru_caches_json)) {
-      lru_configs_.emplace(name, ParseLruConfig(value));
+      lru_configs_.emplace(name, LruCacheConfig{value});
     }
   }
 }
 
-/// Get config for cache
 std::optional<CacheConfig> CacheConfigSet::GetConfig(
     const std::string& cache_name) const {
   auto it = configs_.find(cache_name);
@@ -180,24 +255,6 @@ std::optional<LruCacheConfig> CacheConfigSet::GetLruConfig(
   auto it = lru_configs_.find(cache_name);
   if (it == lru_configs_.end()) return std::nullopt;
   return it->second;
-}
-
-CacheConfig CacheConfigSet::ParseConfig(const formats::json::Value& json) {
-  CacheConfig config(
-      JsonToMs(json["update-interval-ms"]), JsonToMs(json["update-jitter-ms"]),
-      JsonToMs(json["full-update-interval-ms"]),
-      std::chrono::milliseconds{
-          json["additional-cleanup-interval-ms"].As<uint64_t>(10000)});
-
-  return config;
-}
-
-LruCacheConfig CacheConfigSet::ParseLruConfig(
-    const formats::json::Value& json) {
-  return LruCacheConfig(json[kSize].As<size_t>(), JsonToMs(json["lifetime-ms"]),
-                        json[kBackgroundUpdate].As<bool>(false)
-                            ? BackgroundUpdateMode::kEnabled
-                            : BackgroundUpdateMode::kDisabled);
 }
 
 bool CacheConfigSet::IsConfigEnabled() { return !ConfigName().empty(); }
