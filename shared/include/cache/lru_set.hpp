@@ -16,9 +16,9 @@ class LruSet final {
                   const Equal& equal = Equal())
       : impl_(max_size, hash, equal) {}
 
-  LruSet(LruSet&& lru) = default;
+  LruSet(LruSet&& lru) noexcept = default;
   LruSet(const LruSet& lru) = delete;
-  LruSet& operator=(LruSet&& lru) = default;
+  LruSet& operator=(LruSet&& lru) noexcept = default;
   LruSet& operator=(const LruSet& lru) = delete;
 
   /// Adds key to the LRU or updates its usage

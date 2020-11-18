@@ -76,7 +76,7 @@ class BackgroundTasksStorage final {
       if (!invalidated) sync_block_.Remove(iter_);
     }
 
-    TaskRemoveGuard(TaskRemoveGuard&& other)
+    TaskRemoveGuard(TaskRemoveGuard&& other) noexcept
         : iter_(other.iter_),
           sync_block_(other.sync_block_),
           invalidated(std::exchange(other.invalidated, true)) {}

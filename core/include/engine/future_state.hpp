@@ -96,6 +96,8 @@ FutureStatus FutureState<T>::WaitUntil(Deadline deadline) {
 template <typename T>
 void FutureState<T>::EnsureNotRetrieved() {
   if (is_retrieved_.test_and_set(std::memory_order_relaxed)) {
+    // TODO: TAXICOMMON-3186
+    // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
     throw std::future_error(std::future_errc::future_already_retrieved);
   }
 }
@@ -103,6 +105,8 @@ void FutureState<T>::EnsureNotRetrieved() {
 template <typename T>
 void FutureState<T>::SetValue(const T& value) {
   if (is_ready_.exchange(true, std::memory_order_relaxed)) {
+    // TODO: TAXICOMMON-3186
+    // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
     throw std::future_error(std::future_errc::promise_already_satisfied);
   }
   result_store_.SetValue(value);
@@ -113,6 +117,8 @@ void FutureState<T>::SetValue(const T& value) {
 template <typename T>
 void FutureState<T>::SetValue(T&& value) {
   if (is_ready_.exchange(true, std::memory_order_relaxed)) {
+    // TODO: TAXICOMMON-3186
+    // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
     throw std::future_error(std::future_errc::promise_already_satisfied);
   }
   result_store_.SetValue(std::move(value));
@@ -123,6 +129,8 @@ void FutureState<T>::SetValue(T&& value) {
 template <typename T>
 void FutureState<T>::SetException(std::exception_ptr&& ex) {
   if (is_ready_.exchange(true, std::memory_order_relaxed)) {
+    // TODO: TAXICOMMON-3186
+    // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
     throw std::future_error(std::future_errc::promise_already_satisfied);
   }
   result_store_.SetException(std::move(ex));
@@ -157,12 +165,16 @@ inline FutureStatus FutureState<void>::WaitUntil(Deadline deadline) {
 
 inline void FutureState<void>::EnsureNotRetrieved() {
   if (is_retrieved_.test_and_set()) {
+    // TODO: TAXICOMMON-3186
+    // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
     throw std::future_error(std::future_errc::future_already_retrieved);
   }
 }
 
 inline void FutureState<void>::SetValue() {
   if (is_ready_.exchange(true, std::memory_order_relaxed)) {
+    // TODO: TAXICOMMON-3186
+    // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
     throw std::future_error(std::future_errc::promise_already_satisfied);
   }
   result_store_.SetValue();
@@ -172,6 +184,8 @@ inline void FutureState<void>::SetValue() {
 
 inline void FutureState<void>::SetException(std::exception_ptr&& ex) {
   if (is_ready_.exchange(true, std::memory_order_relaxed)) {
+    // TODO: TAXICOMMON-3186
+    // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
     throw std::future_error(std::future_errc::promise_already_satisfied);
   }
   result_store_.SetException(std::move(ex));
