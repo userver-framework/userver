@@ -54,6 +54,8 @@ T FromString(const std::string& str) {
   errno = 0;
 
   const auto result = [&] {
+    // if constexpr FP, maybe fixed in llvm 10
+    // NOLINTNEXTLINE(bugprone-branch-clone)
     if constexpr (std::is_same_v<T, float>) {
       return std::strtof(str.data(), &end);
     } else if constexpr (std::is_same_v<T, double>) {
