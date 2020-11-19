@@ -141,8 +141,6 @@ struct BufferParser<char> {
 };
 //@}
 
-// TODO string_view
-
 //@{
 /** @name C++ to PostgreSQL mapping for string types */
 template <>
@@ -151,6 +149,9 @@ template <std::size_t N>
 struct CppToSystemPg<char[N]> : PredefinedOid<PredefinedOids::kText> {};
 template <>
 struct CppToSystemPg<std::string> : PredefinedOid<PredefinedOids::kText> {};
+template <>
+struct CppToSystemPg<std::string_view> : PredefinedOid<PredefinedOids::kText> {
+};
 template <>
 struct CppToSystemPg<char> : PredefinedOid<PredefinedOids::kChar> {};
 //@}

@@ -46,12 +46,14 @@ TEST(PostgreIO, OutputString) {
   pg::detail::QueryParameters params;
   const char* c_str = "foo";
   std::string str{"foo"};
+  std::string_view sw{str};
 
   params.Write(types, "foo");
   params.Write(types, c_str);
   params.Write(types, str);
+  params.Write(types, sw);
 
-  EXPECT_EQ(3, params.Size());
+  EXPECT_EQ(4, params.Size());
 
   EXPECT_EQ(1, params.ParamFormatsBuffer()[0]) << "Binary format";
   EXPECT_EQ(3, params.ParamLengthsBuffer()[0]) << "No zero terminator";
@@ -61,6 +63,9 @@ TEST(PostgreIO, OutputString) {
 
   EXPECT_EQ(1, params.ParamFormatsBuffer()[2]) << "Binary format";
   EXPECT_EQ(3, params.ParamLengthsBuffer()[2]) << "No zero terminator";
+
+  EXPECT_EQ(1, params.ParamFormatsBuffer()[3]) << "Binary format";
+  EXPECT_EQ(3, params.ParamLengthsBuffer()[3]) << "No zero terminator";
 }
 
 TEST(PostgreIO, OutputFloat) {
