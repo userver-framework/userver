@@ -272,6 +272,31 @@ TEST(MultipartFormDataParser, ParseEmptyData) {
       << "} instead of {" << arg.ToDebugString() << '}';
 }
 
+TEST(MultipartFormDataParser, ParseNonUsAsciiCharsInHeaders) {
+  namespace sh = server::http;
+  const auto kContentType = "multipart/form-data; Boundary=zzz";
+  const auto kBody =
+      "--zzz\r\n"
+      "Content-Disposition: form-data; name=arg; filename=\"имя файла.txt\"\r\n"
+      "Content-Type: text/plain\r\n"
+      "\r\n"
+      "содержимое файла\r\n"
+      "--zzz--\r\n";
+
+  sh::FormDataArgs form_data_args;
+  ASSERT_TRUE(ParseMultipartFormData(kContentType, kBody, form_data_args));
+  EXPECT_EQ(form_data_args.size(), 1);
+
+  sh::FormDataArg arg;
+  arg.value = "содержимое файла";
+  arg.content_type = "text/plain";
+  arg.content_disposition = "form-data; name=arg; filename=\"имя файла.txt\"";
+  arg.filename = "имя файла.txt";
+  EXPECT_EQ(form_data_args["arg"], std::vector{arg})
+      << "parsed {" << form_data_args["arg"][0].ToDebugString()
+      << "} instead of {" << arg.ToDebugString() << '}';
+}
+
 TEST(MultipartFormDataParser, ParseFileWithoutEolnEnding) {
   namespace sh = server::http;
   const auto kContentType = "multipart/form-data; Boundary=zzz";

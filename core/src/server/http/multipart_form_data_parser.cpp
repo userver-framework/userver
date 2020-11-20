@@ -87,7 +87,7 @@ std::string_view ReadToken(std::string_view& str) {
   }();
 
   size_t pos = 0;
-  while (pos < str.size() && kAllowed[str[pos]]) ++pos;
+  while (pos < str.size() && kAllowed[static_cast<uint8_t>(str[pos])]) ++pos;
   std::string_view res = str.substr(0, pos);
   str.remove_prefix(pos);
   return res;
@@ -108,7 +108,7 @@ std::string_view ReadHeaderValue(std::string_view& str) {
   }();
 
   size_t pos = 0;
-  while (pos < str.size() && kAllowed[str[pos]]) ++pos;
+  while (pos < str.size() && kAllowed[static_cast<uint8_t>(str[pos])]) ++pos;
 
   auto header_value = TrimOws(str.substr(0, pos));
   str.remove_prefix(pos);

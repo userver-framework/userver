@@ -47,7 +47,6 @@ void WaitListLight::Append(WaitListBase::Lock&,
 }
 
 void WaitListLight::WakeupOne(WaitListBase::Lock&) {
-  LOG_TRACE() << "WakeupOne";
   in_wakeup_ = true;
   utils::ScopeGuard guard([this] { in_wakeup_ = false; });
 
