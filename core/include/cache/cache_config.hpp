@@ -21,7 +21,6 @@ struct CacheConfig {
 
   explicit CacheConfig(const formats::json::Value& value);
 
-  AllowedUpdateTypes allowed_update_types;
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
@@ -33,6 +32,7 @@ struct CacheConfigStatic : public CacheConfig {
 
   CacheConfigStatic MergeWith(const CacheConfig& other) const;
 
+  AllowedUpdateTypes allowed_update_types;
   bool allow_first_update_failure;
   std::optional<bool> force_periodic_update;
 

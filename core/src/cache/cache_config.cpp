@@ -90,8 +90,7 @@ std::string ParseDumpDirectory(const components::ComponentConfig& config) {
 }  // namespace
 
 CacheConfig::CacheConfig(const components::ComponentConfig& config)
-    : allowed_update_types(ParseUpdateMode(config)),
-      update_interval(config[kUpdateInterval].As<std::chrono::milliseconds>(0)),
+    : update_interval(config[kUpdateInterval].As<std::chrono::milliseconds>(0)),
       update_jitter(config[kUpdateJitter].As<std::chrono::milliseconds>(
           GetDefaultJitter(update_interval))),
       full_update_interval(
@@ -100,24 +99,20 @@ CacheConfig::CacheConfig(const components::ComponentConfig& config)
           kDefaultCleanupInterval)) {}
 
 CacheConfig::CacheConfig(const formats::json::Value& value)
-    : allowed_update_types(AllowedUpdateTypes::kOnlyFull),
-      update_interval(ParseMs(value[kUpdateIntervalMs])),
+    : update_interval(ParseMs(value[kUpdateIntervalMs])),
       update_jitter(ParseMs(value[kUpdateJitterMs])),
       full_update_interval(ParseMs(value[kFullUpdateIntervalMs])),
       cleanup_interval(
           ParseMs(value[kCleanupIntervalMs], kDefaultCleanupInterval)) {
-  if (!full_update_interval.count()) {
-    if (!update_interval.count()) {
-      throw utils::impl::AttachTraceToException(
-          std::logic_error("Update interval is not set for cache"));
-    }
+  if (!update_interval.count() && !full_update_interval.count()) {
+    throw utils::impl::AttachTraceToException(
+        std::logic_error("Update interval is not set for cache"));
+  } else if (!full_update_interval.count()) {
     full_update_interval = update_interval;
-  } else {
-    if (!update_interval.count()) {
-      update_interval = full_update_interval;
-    }
-    allowed_update_types = AllowedUpdateTypes::kFullAndIncremental;
+  } else if (!update_interval.count()) {
+    update_interval = full_update_interval;
   }
+
   if (update_jitter > update_interval) {
     update_jitter = GetDefaultJitter(update_interval);
   }
@@ -125,6 +120,7 @@ CacheConfig::CacheConfig(const formats::json::Value& value)
 
 CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
     : CacheConfig(config),
+      allowed_update_types(ParseUpdateMode(config)),
       allow_first_update_failure(config[kFirstUpdateFailOk].As<bool>(false)),
       force_periodic_update(
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
