@@ -61,7 +61,7 @@ class multi::Impl final {
 
 multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
     : timer_zero_watcher_(thread_control,
-                          std::bind(&multi::handle_async, &object)),
+                          [&object]() { object.handle_async(); }),
       timer_(thread_control),
       still_running_(0) {
   impl::CurlGlobal::Init();
@@ -276,7 +276,7 @@ void multi::start_read_op(socket_info* si) {
   si->pending_read_op = true;
 
   si->watcher.ReadAsync(
-      std::bind(&multi::handle_socket_read, this, std::placeholders::_1, si));
+      [this, si](std::error_code err) { handle_socket_read(err, si); });
 }
 
 void multi::handle_socket_read(std::error_code err, socket_info* si) {
@@ -301,7 +301,7 @@ void multi::start_write_op(socket_info* si) {
   si->pending_write_op = true;
 
   si->watcher.WriteAsync(
-      std::bind(&multi::handle_socket_write, this, std::placeholders::_1, si));
+      [this, si](std::error_code err) { handle_socket_write(err, si); });
 }
 
 void multi::handle_socket_write(std::error_code err, socket_info* si) {
@@ -395,7 +395,7 @@ int multi::timer(native::CURLM*, [[maybe_unused]] long timeout_ms,
   if (timeout_ms > 0) {
     pimpl->timer_.SingleshotAsync(
         std::chrono::milliseconds(timeout_ms),
-        std::bind(&multi::handle_timeout, self, std::placeholders::_1));
+        [self](std::error_code err) { self->handle_timeout(err); });
   } else if (timeout_ms == 0) {
     pimpl->timer_zero_watcher_.Send();
   }

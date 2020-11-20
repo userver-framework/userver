@@ -4,6 +4,7 @@
 #include <csignal>
 #include <stdexcept>
 
+#include <compiler/demangle.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
@@ -224,7 +225,8 @@ void Thread::UpdateLoopWatcherImpl() {
 
   QueueData queue_element{};
   while (func_queue_.pop(queue_element)) {
-    LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() (loop)";
+    LOG_TRACE() << "Thread::UpdateLoopWatcherImpl(), "
+                << compiler::GetTypeName(typeid(*queue_element.data));
     boost::intrusive_ptr data(queue_element.data, /*add_ref = */ false);
     try {
       queue_element.func(*data);
