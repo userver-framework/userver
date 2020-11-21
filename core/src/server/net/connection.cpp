@@ -66,11 +66,12 @@ void Connection::Start() {
   // in cancelled TaskWithResult are resolved
   engine::Task socket_listener =
       // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-      engine::impl::Async(task_processor_,
-                          [this](Queue::Producer producer) {
-                            ListenForRequests(std::move(producer));
-                          },
-                          request_tasks_->GetProducer());
+      engine::impl::Async(
+          task_processor_,
+          [this](Queue::Producer producer) {
+            ListenForRequests(std::move(producer));
+          },
+          request_tasks_->GetProducer());
 
   // `response_sender_task_` always starts because it is a Critical task
 

@@ -35,7 +35,7 @@ echo "Installing required packages with brew"
 REQUIRED_PACKAGES=" \
   boost \
   ccache \
-  clang-format-7 \
+  clang-format-9 \
   cmake \
   coreutils \
   cryptopp \

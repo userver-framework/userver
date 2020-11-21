@@ -28,7 +28,7 @@
     * Ubuntu Bionic c подключенным репозиторием bionic-updates/universe
     * MacOS 10.15 с установленными [Xcode](https://h.yandex-team.ru/?https%3A//apps.apple.com/us/app/xcode/id497799835) и [Homebrew](https://h.yandex-team.ru/?https%3A//brew.sh)
   * clang-9
-  * clang-format-7
+  * clang-format-9
 
 Минимальный набор зависимостей можно установить запуском скрипта `scripts/ubuntu-install-prerequisites.sh` для Ubuntu и `scripts/mac-os-install-prerequisites.sh` для MacOS.
 

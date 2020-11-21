@@ -143,20 +143,18 @@ void SimpleServer::Impl::StartPortListening() {
       break;
   }
 
-  engine::impl::Async(
-      [cb = callback_, acceptor = std::move(acceptor)]() mutable {
-        while (!engine::current_task::IsCancelRequested()) {
-          auto socket = acceptor.Accept({});
+  engine::impl::Async([cb = callback_,
+                       acceptor = std::move(acceptor)]() mutable {
+    while (!engine::current_task::IsCancelRequested()) {
+      auto socket = acceptor.Accept({});
 
-          LOG_INFO() << "SimpleServer accepted socket";
+      LOG_INFO() << "SimpleServer accepted socket";
 
-          engine::impl::Async([cb = cb, s = std::move(socket)]() mutable {
-            Client::Run(std::move(s), cb);
-          })
-              .Detach();
-        }
-      })
-      .Detach();
+      engine::impl::Async([cb = cb, s = std::move(socket)]() mutable {
+        Client::Run(std::move(s), cb);
+      }).Detach();
+    }
+  }).Detach();
 }
 
 SimpleServer::SimpleServer(OnRequest callback, Protocol protocol)

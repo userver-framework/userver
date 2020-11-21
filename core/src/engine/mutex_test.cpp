@@ -65,19 +65,16 @@ TYPED_TEST_P(Mutex, TryLock) {
     EXPECT_FALSE(engine::impl::Async([&mutex] {
                    return !!std::unique_lock<TypeParam>(mutex,
                                                         std::try_to_lock);
-                 })
-                     .Get());
+                 }).Get());
 
     EXPECT_FALSE(engine::impl::Async([&mutex] {
                    return !!std::unique_lock<TypeParam>(
                        mutex, std::chrono::milliseconds(10));
-                 })
-                     .Get());
+                 }).Get());
     EXPECT_FALSE(engine::impl::Async([&mutex] {
                    return !!std::unique_lock<TypeParam>(
                        mutex, std::chrono::system_clock::now());
-                 })
-                     .Get());
+                 }).Get());
 
     auto long_waiter = engine::impl::Async([&mutex] {
       return !!std::unique_lock<TypeParam>(mutex, std::chrono::seconds(10));

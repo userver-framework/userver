@@ -174,8 +174,7 @@ void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
     engine::impl::CriticalAsync([ptr = std::move(ptr)]() mutable {
       // Kill garbage asynchronously as T::~T() might be very slow
       ptr.reset();
-    })
-        .Detach();
+    }).Detach();
   };
 
   const std::shared_ptr<const T> new_value(value_ptr.release(), deleter);

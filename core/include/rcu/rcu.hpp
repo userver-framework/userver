@@ -470,13 +470,12 @@ class Variable final {
 
   void DeleteAsync(std::unique_ptr<T> ptr) {
     // Kill garbage asynchronously as T::~T() might be very slow
-    engine::impl::CriticalAsync(
-        [ptr = std::move(ptr),
-         token = wait_token_storage_.GetToken()]() mutable {
-          // Make sure *ptr is deleted before token is destroyed
-          ptr.reset();
-        })
-        .Detach();
+    engine::impl::CriticalAsync([ptr = std::move(ptr),
+                                 token =
+                                     wait_token_storage_.GetToken()]() mutable {
+      // Make sure *ptr is deleted before token is destroyed
+      ptr.reset();
+    }).Detach();
   }
 
  private:

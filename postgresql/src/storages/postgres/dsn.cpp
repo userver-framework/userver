@@ -256,9 +256,9 @@ std::string DsnMaskPassword(const Dsn& dsn) {
 
 std::string EscapeHostName(const std::string& hostname, char escape_char) {
   auto escaped = hostname;
-  std::replace_if(escaped.begin(), escaped.end(),
-                  [](char c) { return !std::isalpha(c) && !std::isdigit(c); },
-                  escape_char);
+  std::replace_if(
+      escaped.begin(), escaped.end(),
+      [](char c) { return !std::isalpha(c) && !std::isdigit(c); }, escape_char);
   return escaped;
 }
 

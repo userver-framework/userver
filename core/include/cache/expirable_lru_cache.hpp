@@ -345,8 +345,7 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(
     auto now = utils::datetime::SteadyNow();
     auto value = update_func(key);
     lru_.Put(key, {value, now});
-  })
-      .Detach();
+  }).Detach();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>

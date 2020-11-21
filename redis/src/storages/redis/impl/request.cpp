@@ -35,17 +35,17 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args,
                                    size_t replies_to_skip) {
   request_future_.until_ =
       std::chrono::steady_clock::now() + command_control.timeout_all;
-  auto command =
-      PrepareCommand(std::move(args),
-                     [replies_to_skip](const CommandPtr&, ReplyPtr reply,
-                                       ReplyPtrPromise& prom) mutable {
-                       if (replies_to_skip) {
-                         --replies_to_skip;
-                         return;
-                       }
-                       prom.set_value(std::move(reply));
-                     },
-                     command_control);
+  auto command = PrepareCommand(
+      std::move(args),
+      [replies_to_skip](const CommandPtr&, ReplyPtr reply,
+                        ReplyPtrPromise& prom) mutable {
+        if (replies_to_skip) {
+          --replies_to_skip;
+          return;
+        }
+        prom.set_value(std::move(reply));
+      },
+      command_control);
   request_future_.ro_future_ = command->promise.get_future();
   return command;
 }

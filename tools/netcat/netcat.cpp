@@ -83,47 +83,44 @@ int main(int argc, char** argv) {
   std::condition_variable cv;
   std::atomic_bool done{false};
   std::exception_ptr ex;
-  engine::impl::Async(
-      *task_processor_holder,
-      [&] {
-        try {
-          engine::io::AddrStorage addr_storage;
-          auto* sa = addr_storage.As<struct sockaddr_in6>();
-          sa->sin6_family = AF_INET6;
-          sa->sin6_port = htons(config.port);
-          sa->sin6_addr = in6addr_loopback;
-          engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
+  engine::impl::Async(*task_processor_holder, [&] {
+    try {
+      engine::io::AddrStorage addr_storage;
+      auto* sa = addr_storage.As<struct sockaddr_in6>();
+      sa->sin6_family = AF_INET6;
+      sa->sin6_port = htons(config.port);
+      sa->sin6_addr = in6addr_loopback;
+      engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
-          engine::io::Socket worksock;
-          std::vector<char> buf(config.buffer_size);
-          if (config.listen) {
-            LOG_INFO() << "Listening on " << addr;
-            auto listsock = engine::io::Listen(addr);
-            worksock = listsock.Accept({});
-            LOG_INFO() << "Connection from " << worksock.Getpeername();
-            listsock.Close();
-            while (auto len = worksock.RecvSome(buf.data(), buf.size(), {})) {
-              std::cout.write(buf.data(), len);
-            }
-          } else {
-            LOG_INFO() << "Connecting to " << addr;
-            worksock = engine::io::Connect(addr, {});
-            while (std::cin.read(buf.data(), buf.size())) {
-              const size_t to_send = std::cin.gcount();
-              if (to_send != worksock.SendAll(buf.data(), to_send, {})) {
-                break;
-              }
-            }
-          }
-          worksock.Close();
-        } catch (const std::exception&) {
-          ex = std::current_exception();
+      engine::io::Socket worksock;
+      std::vector<char> buf(config.buffer_size);
+      if (config.listen) {
+        LOG_INFO() << "Listening on " << addr;
+        auto listsock = engine::io::Listen(addr);
+        worksock = listsock.Accept({});
+        LOG_INFO() << "Connection from " << worksock.Getpeername();
+        listsock.Close();
+        while (auto len = worksock.RecvSome(buf.data(), buf.size(), {})) {
+          std::cout.write(buf.data(), len);
         }
-        std::lock_guard<std::mutex> lock(mutex);
-        done = true;
-        cv.notify_all();
-      })
-      .Detach();
+      } else {
+        LOG_INFO() << "Connecting to " << addr;
+        worksock = engine::io::Connect(addr, {});
+        while (std::cin.read(buf.data(), buf.size())) {
+          const size_t to_send = std::cin.gcount();
+          if (to_send != worksock.SendAll(buf.data(), to_send, {})) {
+            break;
+          }
+        }
+      }
+      worksock.Close();
+    } catch (const std::exception&) {
+      ex = std::current_exception();
+    }
+    std::lock_guard<std::mutex> lock(mutex);
+    done = true;
+    cv.notify_all();
+  }).Detach();
 
   {
     std::unique_lock<std::mutex> lock(mutex);

@@ -154,18 +154,15 @@ TEST(Semaphore, TryLock) {
     EXPECT_TRUE(engine::impl::Async([&sem] {
                   return !!std::shared_lock<engine::Semaphore>(
                       sem, std::try_to_lock);
-                })
-                    .Get());
+                }).Get());
     EXPECT_TRUE(engine::impl::Async([&sem] {
                   return !!std::shared_lock<engine::Semaphore>(
                       sem, std::chrono::milliseconds(10));
-                })
-                    .Get());
+                }).Get());
     EXPECT_TRUE(engine::impl::Async([&sem] {
                   return !!std::shared_lock<engine::Semaphore>(
                       sem, std::chrono::system_clock::now());
-                })
-                    .Get());
+                }).Get());
 
     auto long_holder = engine::impl::Async([&sem] {
       std::shared_lock<engine::Semaphore> lock(sem);
@@ -176,19 +173,16 @@ TEST(Semaphore, TryLock) {
     EXPECT_FALSE(engine::impl::Async([&sem] {
                    return !!std::shared_lock<engine::Semaphore>(
                        sem, std::try_to_lock);
-                 })
-                     .Get());
+                 }).Get());
 
     EXPECT_FALSE(engine::impl::Async([&sem] {
                    return !!std::shared_lock<engine::Semaphore>(
                        sem, std::chrono::milliseconds(10));
-                 })
-                     .Get());
+                 }).Get());
     EXPECT_FALSE(engine::impl::Async([&sem] {
                    return !!std::shared_lock<engine::Semaphore>(
                        sem, std::chrono::system_clock::now());
-                 })
-                     .Get());
+                 }).Get());
 
     auto long_waiter = engine::impl::Async([&sem] {
       return !!std::shared_lock<engine::Semaphore>(sem, kMaxTestWaitTime);

@@ -25,7 +25,7 @@ YANDEX_ARCHIVE_KEY_ID=7FCD11186050CD1A
 ESSENTIAL_PACKAGES=" \
   ccache \
   clang-9 \
-  clang-format-7 \
+  clang-format-9 \
   cmake \
   git \
   libstdc++-7-dev \

@@ -112,9 +112,9 @@ bool Dumper::BumpDumpTime(TimePoint old_update_time,
 
 void Dumper::Cleanup() {
   const auto config = config_.Read();
-  utils::Async(fs_task_processor_, "cache-dumper",
-               [this, &config] { CleanupBlocking(*config); })
-      .Get();
+  utils::Async(fs_task_processor_, "cache-dumper", [this, &config] {
+    CleanupBlocking(*config);
+  }).Get();
   config_.Cleanup();
 }
 

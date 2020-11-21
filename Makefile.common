@@ -184,11 +184,21 @@ $(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)): smart-taxi-%:
 
 .PHONY: clang-format
 clang-format:
+ifneq ($(shell which taxi-clang-format),)
+	@taxi-clang-format .
+else
+	@echo "Formatting... (There is new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)"
 	@tools/smart-clang-format.sh --all
+endif
 
 .PHONY: smart-clang-format
 smart-clang-format:
+ifneq ($(shell which taxi-clang-format),)
+	@taxi-clang-format --smart .
+else
+	@echo "Formatting... (There is new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)"
 	@tools/smart-clang-format.sh
+endif
 
 
 .PHONY: docs

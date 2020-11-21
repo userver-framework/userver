@@ -594,14 +594,15 @@ void Redis::RedisImpl::SendPing() {
   cc.account_in_statistics = false;
 
   is_ping_in_flight_ = true;
-  ProcessCommand(PrepareCommand(CmdArgs{"PING"},
-                                [this](const CommandPtr&, ReplyPtr reply) {
-                                  is_ping_in_flight_ = false;
-                                  if (!*reply || !reply->data.IsStatus()) {
-                                    Disconnect();
-                                  }
-                                },
-                                cc));
+  ProcessCommand(PrepareCommand(
+      CmdArgs{"PING"},
+      [this](const CommandPtr&, ReplyPtr reply) {
+        is_ping_in_flight_ = false;
+        if (!*reply || !reply->data.IsStatus()) {
+          Disconnect();
+        }
+      },
+      cc));
 }
 
 void Redis::RedisImpl::OnConnectTimeout(struct ev_loop*, ev_timer* w,

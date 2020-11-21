@@ -228,8 +228,7 @@ void ConnectionPool::Release(Connection* connection) {
       LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
       ++shared_this->stats_.connection.error_total;
       shared_this->DeleteConnection(connection);
-    })
-        .Detach();
+    }).Detach();
   }
 }
 

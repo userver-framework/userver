@@ -23,8 +23,9 @@ std::vector<pg::DsnList> GetDsnListsFromEnv() {
   }
 
   std::vector<std::string> conn_list;
-  boost::split(conn_list, conn_list_env, [](char c) { return c == ';'; },
-               boost::token_compress_on);
+  boost::split(
+      conn_list, conn_list_env, [](char c) { return c == ';'; },
+      boost::token_compress_on);
 
   std::vector<pg::DsnList> dsn_lists;
   dsn_lists.reserve(conn_list.size());

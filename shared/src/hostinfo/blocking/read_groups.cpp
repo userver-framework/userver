@@ -37,9 +37,9 @@ std::vector<std::string> ReadConductorGroups() {
         line = line.substr(sizeof("groups"));
       }
 
-      boost::algorithm::split(split_result, line,
-                              [](char c) { return c == ','; },
-                              boost::algorithm::token_compress_on);
+      boost::algorithm::split(
+          split_result, line, [](char c) { return c == ','; },
+          boost::algorithm::token_compress_on);
       break;
     }
   } catch (const std::exception& e) {

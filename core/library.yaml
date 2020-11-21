@@ -46,6 +46,7 @@ debian:
       - lld-9
       - zlib1g-dev
       - clang-format-7
+      - clang-format-9
       - clang-tidy-9
 
 configs:

@@ -51,13 +51,13 @@ class BackgroundTasksStorage final {
     auto handle = sync_block_.Add(task);
     TaskRemoveGuard remove_guard(handle, sync_block_);
 
-    *task =
-        utils::Async(name,
-                     [f = std::move(f), token = wts_.GetToken(),
-                      remove_guard = std::move(remove_guard)](auto&&... args) {
-                       f(std::forward<decltype(args)>(args)...);
-                     },
-                     std::forward<Args>(args)...);
+    *task = utils::Async(
+        name,
+        [f = std::move(f), token = wts_.GetToken(),
+         remove_guard = std::move(remove_guard)](auto&&... args) {
+          f(std::forward<decltype(args)>(args)...);
+        },
+        std::forward<Args>(args)...);
 
     utils::Async(name, [task = std::move(task)]() { task->Wait(); }).Detach();
   }

@@ -261,8 +261,8 @@ TEST(LockedTask, Smoke) {
       [] {
         auto strategy = MakeMockStrategy();
         DistLockWorkload work;
-        dist_lock::DistLockedTask locked_task(kWorkerName, [&] { work.Work(); },
-                                              strategy, MakeSettings());
+        dist_lock::DistLockedTask locked_task(
+            kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
         EXPECT_EQ(0u, work.GetFinishedWorkCount());
         strategy->Allow(true);
@@ -318,8 +318,8 @@ TEST(LockedTask, Fail) {
 
         auto strategy = MakeMockStrategy();
         DistLockWorkload work(true);
-        dist_lock::DistLockedTask locked_task(kWorkerName, [&] { work.Work(); },
-                                              strategy, settings);
+        dist_lock::DistLockedTask locked_task(
+            kWorkerName, [&] { work.Work(); }, strategy, settings);
 
         EXPECT_EQ(0u, work.GetStartedWorkCount());
         EXPECT_EQ(0u, work.GetFinishedWorkCount());
@@ -395,15 +395,15 @@ TEST(LockedTask, MultipleWorkers) {
     EXPECT_EQ(0, work.GetFinishedWorkCount());
     strategy->Allow(true);
 
-    dist_lock::DistLockedTask first(kWorkerName, [&] { work.Work(); }, strategy,
-                                    MakeSettings());
+    dist_lock::DistLockedTask first(
+        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
     EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
     EXPECT_EQ(1, work.GetStartedWorkCount());
 
-    dist_lock::DistLockedTask second(kWorkerName, [&] { work.Work(); },
-                                     strategy, MakeSettings(),
-                                     dist_lock::DistLockWaitingMode::kNoWait);
+    dist_lock::DistLockedTask second(
+        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings(),
+        dist_lock::DistLockWaitingMode::kNoWait);
 
     second.WaitFor(kAttemptTimeout);
     EXPECT_TRUE(second.GetState() == engine::Task::State::kCompleted);

@@ -47,13 +47,13 @@ struct Manager::Impl {
     UASSERT(engine::current_task::GetCurrentTaskContextUnchecked() != nullptr);
     // Spawn a blocking task creating a gRPC channel
     // This is third party code, no use of span inside it
-    auto task = engine::impl::Async(task_processor_,
-                                    [](const std::string& endpoint) {
-                                      return ::grpc::CreateChannel(
-                                          endpoint,
-                                          ::grpc::InsecureChannelCredentials());
-                                    },
-                                    endpoint);
+    auto task = engine::impl::Async(
+        task_processor_,
+        [](const std::string& endpoint) {
+          return ::grpc::CreateChannel(endpoint,
+                                       ::grpc::InsecureChannelCredentials());
+        },
+        endpoint);
     return task.Get();
   }
 
