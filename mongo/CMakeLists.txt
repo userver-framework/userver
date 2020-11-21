@@ -1,7 +1,7 @@
 project(yandex-taxi-userver-mongo)
 
-find_package(Helperlibbson-static-1.0)
-find_package(Helperlibmongoc-static-1.0)
+find_package(Helperbson-1.0)
+find_package(Helpermongoc-1.0)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
@@ -28,9 +28,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     yandex-taxi-userver-core
-    libbson-static-1.0
+    mongo::bson_static
   PRIVATE
-    libmongoc-static-1.0
+    mongo::mongoc_static
 )
 target_include_directories(
   ${PROJECT_NAME}

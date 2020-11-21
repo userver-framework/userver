@@ -4,8 +4,8 @@ maintainers:
 description: MongoDB serialization helpers
 
 libraries:
-  - libbson-static-1.0
-  - libmongoc-static-1.0
+  - bson-1.0
+  - mongoc-1.0
   - yandex-taxi-userver-core
 
 debian:
