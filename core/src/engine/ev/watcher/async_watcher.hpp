@@ -26,7 +26,6 @@ class AsyncWatcher final {
  private:
   Watcher<ev_async> ev_async_;
   const Callback cb_;
-  std::mutex mutex_;
 };
 
 }  // namespace ev

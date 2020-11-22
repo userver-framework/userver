@@ -59,10 +59,10 @@ class RefcountedFunctionWithPromise final : public RefcountedFunction<Func> {
 
 }  // namespace impl
 
-class ThreadControl {
+class ThreadControl final {
  public:
   explicit ThreadControl(Thread& thread) : thread_(thread) {}
-  virtual ~ThreadControl() = default;
+  ~ThreadControl() = default;
 
   inline struct ev_loop* GetEvLoop() const { return thread_.GetEvLoop(); }
 
@@ -102,9 +102,14 @@ class ThreadControl {
 
   void IdleStop(ev_idle& w) { thread_.IdleStop(w); }
 
+  /// Fast non allocating function to execute a `func(*data)` in EvLoop
   void RunInEvLoopAsync(OnRefcountedPayload* func,
                         boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
 
+  /// Allocating function to execute `func()` in EvLoop.
+  ///
+  /// Dynamically allocates storage and forwards func into it, passes storage
+  /// and helper lambda into the two argument RunInEvLoopAsync overload.
   template <class Function>
   void RunInEvLoopAsync(Function&& func);
 
