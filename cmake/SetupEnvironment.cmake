@@ -15,7 +15,7 @@ set (CMAKE_CXX_EXTENSIONS OFF)
 set (CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 add_compile_options ("-pipe" "-fno-omit-frame-pointer")
-add_compile_options ("-fexceptions" "-g")
+add_compile_options ("-fexceptions" "-g" "-gz")
 add_compile_options ("-frtti" "-ftemplate-depth-128")
 add_compile_options ("-fPIC")
 add_definitions ("-DPIC")
