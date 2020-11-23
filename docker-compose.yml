@@ -20,7 +20,7 @@ services:
         command: /taxi/tools/userver-clang-tidy.sh
 
     taxi-userver-bionic:
-        image: registry.yandex.net/taxi/taxi-bionic-base
+        image: registry.yandex.net/taxi/taxi-integration-bionic-base
         container_name: taxi-userver-bionic
         entrypoint: /taxi/userver/tools/dockertest/run_as_user.sh
         network_mode: bridge

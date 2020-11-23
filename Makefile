@@ -14,7 +14,7 @@ bionic-%:
 	docker-compose run --rm taxi-userver-bionic make $*
 
 docker-bionic-pull:
-	docker pull registry.yandex.net/taxi/taxi-bionic-base
+	docker pull registry.yandex.net/taxi/taxi-integration-bionic-base
 
 build-release:
 	$(MAKE) build BUILD_TYPE=Release
