@@ -65,9 +65,10 @@ void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket) {
 
   auto new_connection_count = ++endpoint_info_->connection_count;
   if (new_connection_count > endpoint_info_->listener_config.max_connections) {
-    LOG_WARNING() << "Reached connection limit, dropping connection #"
-                  << new_connection_count << '/'
-                  << endpoint_info_->listener_config.max_connections;
+    LOG_LIMITED_WARNING() << endpoint_info_->GetDescription()
+                          << " reached max_connections="
+                          << endpoint_info_->listener_config.max_connections
+                          << ", dropping connection #" << new_connection_count;
     peer_socket.Close();
     --endpoint_info_->connection_count;
     return;

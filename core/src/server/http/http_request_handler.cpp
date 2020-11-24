@@ -8,6 +8,8 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
+#include <tracing/set_throttle_reason.hpp>
+
 #include "http_request_impl.hpp"
 
 namespace server::http {
@@ -74,8 +76,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
     http_request.GetHttpResponse().SetReady();
     request->SetTaskCreateTime();
-    LOG_ERROR() << "Request throttled (too many pending responses, "
-                   "limit via 'server.max_response_size_in_flight')";
+    tracing::SetThrottleReason("reached server.max_response_size_in_flight");
     return StartFailsafeTask(std::move(request));
   }
 
@@ -93,9 +94,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   if (!rate_limit_.Obtain()) {
     http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
     http_request.GetHttpResponse().SetReady();
-    LOG_ERROR()
-        << "Request throttled (congestion control, "
-           "limit via USERVER_RPS_CCONTROL and USERVER_RPS_CCONTROL_ENABLED)";
+    tracing::SetThrottleReason(fmt::format("reached USERVER_RPS_CCONTROL={}",
+                                           rate_limit_.GetRatePs()));
     return StartFailsafeTask(std::move(request));
   }
 

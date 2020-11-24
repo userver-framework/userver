@@ -133,7 +133,7 @@ void multi::UnbindEasySocket(native::curl_socket_t s) {
   si->handle = nullptr;
 }
 
-bool multi::MayAcquireConnection(const char* url_str) {
+RateLimitStatus multi::MayAcquireConnection(const char* url_str) {
   return connect_rate_limiter_->MayAcquireConnection(url_str);
 }
 

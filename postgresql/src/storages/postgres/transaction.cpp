@@ -24,9 +24,10 @@ Transaction::~Transaction() {
     try {
       conn_->Rollback();
     } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception when rolling back an abandoned transaction in "
-                     "destructor: "
-                  << e;
+      LOG_LIMITED_ERROR()
+          << "Exception when rolling back an abandoned transaction in "
+             "destructor: "
+          << e;
     }
   }
 }
@@ -37,8 +38,8 @@ ResultSet Transaction::DoExecute(const std::string& statement,
                                  const detail::QueryParameters& params,
                                  OptionalCommandControl statement_cmd_ctl) {
   if (!conn_) {
-    LOG_ERROR() << "Execute called after transaction finished"
-                << logging::LogExtra::Stacktrace();
+    LOG_LIMITED_ERROR() << "Execute called after transaction finished"
+                        << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
   return conn_->Execute(statement, params, std::move(statement_cmd_ctl));
@@ -49,8 +50,8 @@ Portal Transaction::MakePortal(const PortalName& portal_name,
                                const detail::QueryParameters& params,
                                OptionalCommandControl statement_cmd_ctl) {
   if (!conn_) {
-    LOG_ERROR() << "Make portal called after transaction finished"
-                << logging::LogExtra::Stacktrace();
+    LOG_LIMITED_ERROR() << "Make portal called after transaction finished"
+                        << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
   return Portal{conn_.get(), portal_name, statement, params,
@@ -60,8 +61,8 @@ Portal Transaction::MakePortal(const PortalName& portal_name,
 void Transaction::SetParameter(const std::string& param_name,
                                const std::string& value) {
   if (!conn_) {
-    LOG_ERROR() << "Set parameter called after transaction finished"
-                << logging::LogExtra::Stacktrace();
+    LOG_LIMITED_ERROR() << "Set parameter called after transaction finished"
+                        << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
   conn_->SetParameter(param_name, value,
@@ -75,8 +76,8 @@ void Transaction::Commit() {
     // connection holder to allow for rolling back later
     conn_ = detail::ConnectionPtr{nullptr};
   } else {
-    LOG_ERROR() << "Commit after transaction finished"
-                << logging::LogExtra::Stacktrace();
+    LOG_LIMITED_ERROR() << "Commit after transaction finished"
+                        << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
 }
@@ -86,15 +87,15 @@ void Transaction::Rollback() {
   if (conn) {
     conn->Rollback();
   } else {
-    LOG_WARNING() << "Rollback after transaction finished"
-                  << logging::LogExtra::Stacktrace();
+    LOG_LIMITED_WARNING() << "Rollback after transaction finished"
+                          << logging::LogExtra::Stacktrace();
   }
 }
 
 const UserTypes& Transaction::GetConnectionUserTypes() const {
   if (!conn_) {
-    LOG_ERROR() << "Get user types called after transaction finished"
-                << logging::LogExtra::Stacktrace();
+    LOG_LIMITED_ERROR() << "Get user types called after transaction finished"
+                        << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
   return conn_->GetUserTypes();

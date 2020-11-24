@@ -52,7 +52,7 @@ class multi final {
 
   MultiStatistics& Statistics() { return statistics_; }
 
-  bool MayAcquireConnection(const char* url_str);
+  RateLimitStatus MayAcquireConnection(const char* url_str);
 
   void SetMultiplexingEnabled(bool);
   void SetMaxHostConnections(long);

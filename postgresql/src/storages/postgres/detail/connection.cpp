@@ -318,7 +318,7 @@ struct Connection::Impl {
       db_types.AddCompositeFields(std::move(attribs));
       db_types_ = std::move(db_types);
     } catch (const Error& e) {
-      LOG_ERROR() << "Error loading user datatypes: " << e;
+      LOG_LIMITED_ERROR() << "Error loading user datatypes: " << e;
       // TODO Decide about rethrowing
       throw;
     }
@@ -359,8 +359,8 @@ struct Connection::Impl {
     try {
       res.FillBufferCategories(db_types_);
     } catch (const UnknownBufferCategory& e) {
-      LOG_WARNING() << "Got a resultset with unknown datatype oid "
-                    << e.type_oid << ". Will reload user datatypes";
+      LOG_LIMITED_WARNING() << "Got a resultset with unknown datatype oid "
+                            << e.type_oid << ". Will reload user datatypes";
       LoadUserTypes(MakeCurrentDeadline());
       // Don't catch the error again, let it fly to the user
       res.FillBufferCategories(db_types_);
@@ -455,7 +455,7 @@ struct Connection::Impl {
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
-      LOG_WARNING()
+      LOG_LIMITED_WARNING()
           << "Deadline was reached before starting to execute statement";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
@@ -507,7 +507,7 @@ struct Connection::Impl {
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
-      LOG_WARNING()
+      LOG_LIMITED_WARNING()
           << "Deadline was reached before starting to execute statement";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
@@ -543,7 +543,7 @@ struct Connection::Impl {
                          OptionalCommandControl statement_cmd_ctl) {
     if (settings_.prepared_statements ==
         ConnectionSettings::kNoPreparedStatements) {
-      LOG_ERROR()
+      LOG_LIMITED_WARNING()
           << "Portals without prepared statements are currently unsupported";
       throw LogicError{
           "Prepared statements shouldn't be turned off while using portals"};
@@ -561,7 +561,7 @@ struct Connection::Impl {
     span.AddTag(tracing::kDatabaseStatement, statement);
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
-      LOG_WARNING()
+      LOG_LIMITED_WARNING()
           << "Deadline was reached before starting to execute statement";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
     }
@@ -599,7 +599,7 @@ struct Connection::Impl {
     if (deadline.IsReached()) {
       ++stats_.execute_timeout;
       // TODO Portal name function, logging 'unnamed portal' for an empty name
-      LOG_WARNING()
+      LOG_LIMITED_WARNING()
           << "Deadline was reached before starting to execute portal `"
           << portal_name << "`";
       throw ConnectionTimeoutError{"Deadline reached before executing"};
@@ -626,30 +626,34 @@ struct Connection::Impl {
       count_execute.AccountResult(res);
       return res;
     } catch (const InvalidSqlStatementName& e) {
-      LOG_ERROR() << "Looks like your pg_bouncer is not in 'session' mode. "
-                     "Please switch pg_bouncers's pooling mode to 'session'. "
-                     "Please see documentation here https://nda.ya.ru/3UXMpu";
+      LOG_LIMITED_ERROR()
+          << "Looks like your pg_bouncer is not in 'session' mode. "
+             "Please switch pg_bouncers's pooling mode to 'session'. "
+             "Please see documentation here https://nda.ya.ru/3UXMpu";
       span.AddTag(tracing::kErrorFlag, true);
       throw;
     } catch (const ConnectionTimeoutError& e) {
       ++stats_.execute_timeout;
-      LOG_WARNING() << "Statement `" << statement
-                    << "` network timeout error: " << e << ". "
-                    << "Network timout was " << network_timeout.count() << "ms";
+      LOG_LIMITED_WARNING()
+          << "Statement `" << statement << "` network timeout error: " << e
+          << ". "
+          << "Network timout was " << network_timeout.count() << "ms";
       span.AddTag(tracing::kErrorFlag, true);
       throw;
     } catch (const QueryCancelled& e) {
       ++stats_.execute_timeout;
-      LOG_WARNING() << "Statement `" << statement << "` was cancelled: " << e
-                    << ". Statement timeout was "
-                    << current_statement_timeout_.count() << "ms";
+      LOG_LIMITED_WARNING()
+          << "Statement `" << statement << "` was cancelled: " << e
+          << ". Statement timeout was " << current_statement_timeout_.count()
+          << "ms";
       span.AddTag(tracing::kErrorFlag, true);
       throw;
     } catch (const FeatureNotSupported& e) {
       // yes, this is the only way to discern this error
       if (e.GetServerMessage().GetPrimary() == kBadCachedPlanErrorMessage) {
-        LOG_WARNING() << "Scheduling prepared statements invalidation due to "
-                         "cached plan change";
+        LOG_LIMITED_WARNING()
+            << "Scheduling prepared statements invalidation due to "
+               "cached plan change";
         is_discard_prepared_pending_ = true;
       }
       span.AddTag(tracing::kErrorFlag, true);

@@ -372,8 +372,8 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
     }
     role_check_guard.Release();
   } catch (const ConnectionError& e) {
-    LOG_WARNING() << "Broken connection with " << DsnCutPassword(dsn) << ": "
-                  << e;
+    LOG_LIMITED_WARNING() << "Broken connection with " << DsnCutPassword(dsn)
+                          << ": " << e;
   }
 }
 

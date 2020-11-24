@@ -42,7 +42,7 @@ DestinationStatistics::GetStatisticsForDestinationAuto(
   do {
     if (current_auto_destinations >= max_auto_destinations_) {
       if (max_auto_destinations_ != 0) {
-        LOG_WARNING()
+        LOG_LIMITED_WARNING()
             << "Too many httpclient metrics destinations used ("
             << max_auto_destinations_
             << "), either increase "

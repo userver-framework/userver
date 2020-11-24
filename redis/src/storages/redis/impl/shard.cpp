@@ -54,8 +54,8 @@ std::vector<unsigned char> Shard::GetAvailableServers(
     }
 
     logging::LogExtra log_extra({{"server_id", id.GetId()}});
-    LOG_WARNING() << "server_id not found in Redis shard (dead server?)"
-                  << log_extra;
+    LOG_LIMITED_WARNING() << "server_id not found in Redis shard (dead server?)"
+                          << log_extra;
     return result;
   }
 
@@ -171,17 +171,17 @@ bool Shard::AsyncCommand(CommandPtr command, size_t* pinstance_idx) {
 
     if (instance) {
       if (idx >= available_servers.size() || !available_servers[idx]) {
-        LOG_WARNING() << "Failed to use Redis server according to the "
-                         "strategy, falling back to any server"
-                      << command->log_extra;
+        LOG_LIMITED_WARNING() << "Failed to use Redis server according to the "
+                                 "strategy, falling back to any server"
+                              << command->log_extra;
       }
       if (instance->AsyncCommand(command)) return true;
     }
   }
 
-  LOG_WARNING() << "No Redis server is ready for shard_group="
-                << shard_group_name_ << " shard=" << shard_name_
-                << " slave=" << read_only_ << command->log_extra;
+  LOG_LIMITED_WARNING() << "No Redis server is ready for shard_group="
+                        << shard_group_name_ << " shard=" << shard_name_
+                        << " slave=" << read_only_ << command->log_extra;
   return false;
 }
 

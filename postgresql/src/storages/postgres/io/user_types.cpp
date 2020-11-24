@@ -47,8 +47,8 @@ Oid UserTypes::FindOid(DBTypeName name) const {
   if (auto f = by_name_.find(name); f != by_name_.end()) {
     return f->second->oid;
   }
-  LOG_WARNING() << "PostgreSQL type " << name.schema << "." << name.name
-                << " not found";
+  LOG_LIMITED_WARNING() << "PostgreSQL type " << name.schema << "." << name.name
+                        << " not found";
   return kInvalidOid;
 }
 
@@ -56,8 +56,8 @@ Oid UserTypes::FindArrayOid(DBTypeName name) const {
   if (auto f = by_name_.find(name); f != by_name_.end()) {
     return f->second->array_type;
   }
-  LOG_WARNING() << "PostgreSQL type " << name.schema << "." << name.name
-                << " not found";
+  LOG_LIMITED_WARNING() << "PostgreSQL type " << name.schema << "." << name.name
+                        << " not found";
   return kInvalidOid;
 }
 
@@ -79,7 +79,7 @@ DBTypeName UserTypes::FindName(Oid oid) const {
   if (auto f = by_oid_.find(oid); f != by_oid_.end()) {
     return f->second->GetName();
   }
-  LOG_WARNING() << "PostgreSQL type with oid " << oid << " not found";
+  LOG_LIMITED_WARNING() << "PostgreSQL type with oid " << oid << " not found";
   return {};
 }
 
@@ -97,7 +97,7 @@ DBTypeName UserTypes::FindBaseName(Oid oid) const {
     }
     return f->second->GetName();
   }
-  LOG_WARNING() << "PostgreSQL type with oid " << oid << " not found";
+  LOG_LIMITED_WARNING() << "PostgreSQL type with oid " << oid << " not found";
   return {};
 }
 
@@ -114,7 +114,8 @@ Oid UserTypes::FindBaseOid(Oid oid) const {
     }
     return desc.oid;
   }
-  LOG_WARNING() << "PostgreSQL user type with oid " << oid << " not found";
+  LOG_LIMITED_WARNING() << "PostgreSQL user type with oid " << oid
+                        << " not found";
   return oid;
 }
 

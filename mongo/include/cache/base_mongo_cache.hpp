@@ -201,14 +201,14 @@ void MongoCache<MongoCacheTraits>::Update(
           new_cache->count(key) == 0) {
         (*new_cache)[key] = std::move(object);
       } else {
-        LOG_ERROR() << "Found duplicate key for 2 items in cache "
-                    << MongoCacheTraits::kName << ", key=" << key;
+        LOG_LIMITED_ERROR() << "Found duplicate key for 2 items in cache "
+                            << MongoCacheTraits::kName << ", key=" << key;
       }
     } catch (const std::exception& e) {
-      LOG_ERROR() << "Failed to deserialize cache item of cache "
-                  << MongoCacheTraits::kName
-                  << ", _id=" << doc["_id"].template ConvertTo<std::string>()
-                  << ", what(): " << e;
+      LOG_LIMITED_ERROR() << "Failed to deserialize cache item of cache "
+                          << MongoCacheTraits::kName << ", _id="
+                          << doc["_id"].template ConvertTo<std::string>()
+                          << ", what(): " << e;
       stats_scope.IncreaseDocumentsParseFailures(1);
 
       if (!MongoCacheTraits::kAreInvalidDocumentsSkipped) throw;

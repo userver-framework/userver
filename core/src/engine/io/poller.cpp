@@ -141,8 +141,8 @@ void Poller::IoEventCb(struct ev_loop*, ev_io* watcher, int revents) noexcept {
   } else if (watcher->events & EV_WRITE) {
     poller->StopWrite(watcher->fd);
   } else {
-    LOG_ERROR() << "Watcher is neither read nor write watcher, events="
-                << watcher->events;
+    LOG_LIMITED_ERROR() << "Watcher is neither read nor write watcher, events="
+                        << watcher->events;
     UASSERT_MSG(false, "Watcher is neither read nor write watcher");
   }
 }

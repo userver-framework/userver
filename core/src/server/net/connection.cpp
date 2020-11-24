@@ -255,7 +255,7 @@ void Connection::HandleQueueItem(QueueItem& item) {
   try {
     request_task.Get();
   } catch (const engine::TaskCancelledException&) {
-    LOG_ERROR() << "Handler task was cancelled";
+    LOG_LIMITED_ERROR() << "Handler task was cancelled";
     auto& response = request.GetResponse();
     if (!response.IsReady()) {
       response.SetReady();

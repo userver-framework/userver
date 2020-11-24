@@ -10,6 +10,14 @@
 
 namespace curl {
 
+enum class RateLimitStatus {
+  kOk,
+  kPerHostSocketLimit,
+  kGlobalSocketLimit,
+};
+
+std::string ToString(RateLimitStatus value);
+
 class ConnectRateLimiter {
  public:
   ConnectRateLimiter();
@@ -19,7 +27,7 @@ class ConnectRateLimiter {
 
   void SetPerHostLimits(size_t limit, utils::TokenBucket::Duration rate);
 
-  [[nodiscard]] bool MayAcquireConnection(const char* url_str);
+  [[nodiscard]] RateLimitStatus MayAcquireConnection(const char* url_str);
 
  private:
   utils::TokenBucket global_http_;

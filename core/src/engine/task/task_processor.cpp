@@ -77,11 +77,10 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
   if (max_task_queue_wait_length_ && !context->IsCritical()) {
     size_t queue_size = GetTaskQueueSize();
     if (queue_size >= max_task_queue_wait_length_) {
-      LOG_WARNING() << "failed to enqueue task: task_queue_ size=" << queue_size
-                    << " >= "
-                    << "task_queue_size_threshold="
-                    << max_task_queue_wait_length_
-                    << " task_processor=" << Name();
+      LOG_LIMITED_WARNING()
+          << "failed to enqueue task: task_queue_ size=" << queue_size << " >= "
+          << "task_queue_size_threshold=" << max_task_queue_wait_length_
+          << " task_processor=" << Name();
       HandleOverload(*context);
     }
   }
@@ -233,8 +232,9 @@ void TaskProcessor::HandleOverload(impl::TaskContext& context) {
 
   if (overload_action_ == TaskProcessorSettings::OverloadAction::kCancel) {
     if (!context.IsCritical()) {
-      LOG_WARNING() << "Task with task_id=" << context.GetTaskId()
-                    << " was waiting in queue for too long, cancelling.";
+      LOG_LIMITED_WARNING()
+          << "Task with task_id=" << context.GetTaskId()
+          << " was waiting in queue for too long, cancelling.";
 
       context.RequestCancel(TaskCancellationReason::kOverload);
       GetTaskCounter().AccountTaskCancelOverload();

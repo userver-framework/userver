@@ -25,6 +25,7 @@
 #include <clients/http/statistics.hpp>
 #include <http/common_headers.hpp>
 #include <http/url.hpp>
+#include <tracing/set_throttle_reason.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
 
@@ -257,6 +258,9 @@ void RequestState::on_completed(
   span.AddTag(tracing::kAttempts, holder->retry_.current);
   span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);
   span.AddTag(tracing::kTimeoutMs, holder->timeout_ms_);
+  if (easy.get_rate_limit_result() != curl::RateLimitStatus::kOk) {
+    tracing::SetThrottleReason(span, ToString(easy.get_rate_limit_result()));
+  }
 
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {

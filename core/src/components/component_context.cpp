@@ -153,7 +153,8 @@ bool ComponentContext::IsAnyComponentInFatalState() const {
         LOG_ERROR() << "Component '" << name << "' is in kFatal state";
         return true;
       case ComponentHealth::kFallback:
-        LOG_WARNING() << "Component '" << name << "' is in kFallback state";
+        LOG_LIMITED_WARNING()
+            << "Component '" << name << "' is in kFallback state";
         break;
       case ComponentHealth::kOk:
         LOG_DEBUG() << "Component '" << name << "' is in kOk state";

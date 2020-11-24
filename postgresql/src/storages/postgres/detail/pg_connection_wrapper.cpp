@@ -26,7 +26,11 @@
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_WARNING() LOG_WARNING() << log_extra_
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
+#define PGCW_LOG_LIMITED_WARNING() LOG_LIMITED_WARNING() << log_extra_
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_ERROR() LOG_ERROR() << log_extra_
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
+#define PGCW_LOG_LIMITED_ERROR() LOG_LIMITED_ERROR() << log_extra_
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG(level) LOG(level) << log_extra_
 
@@ -160,8 +164,8 @@ engine::Task PGConnectionWrapper::Close() {
           if (is_broken) {
             int pq_fd = PQsocket(tmp_conn);
             if (fd != -1 && pq_fd != -1 && fd != pq_fd) {
-              LOG_ERROR() << "fd from socket != fd from PQsocket (" << fd
-                          << " != " << pq_fd << ')';
+              LOG_LIMITED_ERROR() << "fd from socket != fd from PQsocket ("
+                                  << fd << " != " << pq_fd << ')';
             }
             if (pq_fd >= 0) {
               int res = shutdown(pq_fd, SHUT_RDWR);
@@ -198,7 +202,7 @@ engine::Task PGConnectionWrapper::Cancel() {
       bg_task_processor_, [this, cancel = std::move(cancel)] {
         std::array<char, kErrBufferSize> buffer{};
         if (!PQcancel(cancel.get(), buffer.data(), buffer.size())) {
-          PGCW_LOG_WARNING() << "Failed to cancel current request";
+          PGCW_LOG_LIMITED_WARNING() << "Failed to cancel current request";
           // TODO Throw exception or not?
         }
       });
@@ -222,7 +226,7 @@ void PGConnectionWrapper::AsyncConnect(const Dsn& dsn, Deadline deadline,
 
 void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
   if (conn_) {
-    PGCW_LOG_ERROR()
+    PGCW_LOG_LIMITED_ERROR()
         << "Attempt to connect a connection that is already connected"
         << logging::LogExtra::Stacktrace();
     throw ConnectionFailed{dsn, "Already connected"};
@@ -232,8 +236,8 @@ void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
   if (!conn_) {
     // The only reason the pointer cannot be null is that libpq failed
     // to allocate memory for the structure
-    PGCW_LOG_ERROR() << "libpq failed to allocate a PGconn structure"
-                     << logging::LogExtra::Stacktrace();
+    PGCW_LOG_LIMITED_ERROR() << "libpq failed to allocate a PGconn structure"
+                             << logging::LogExtra::Stacktrace();
     throw ConnectionFailed{dsn, "Failed to allocate PGconn structure"};
   }
 
@@ -269,9 +273,10 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
             throw ConnectionInterrupted(
                 "Task cancelled while polling connection for reading");
           }
-          PGCW_LOG_WARNING() << "Timeout while polling PostgreSQL connection "
-                                "socket for reading, timeout was "
-                             << timeout.count() << "ms";
+          PGCW_LOG_LIMITED_WARNING()
+              << "Timeout while polling PostgreSQL connection "
+                 "socket for reading, timeout was "
+              << timeout.count() << "ms";
           throw ConnectionTimeoutError(
               "Timed out while polling connection for reading");
         }
@@ -282,9 +287,10 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
             throw ConnectionInterrupted(
                 "Task cancelled while polling connection for writing");
           }
-          PGCW_LOG_WARNING() << "Timeout while polling PostgreSQL connection "
-                                "socket for writing, timeout was "
-                             << timeout.count() << "ms";
+          PGCW_LOG_LIMITED_WARNING()
+              << "Timeout while polling PostgreSQL connection "
+                 "socket for writing, timeout was "
+              << timeout.count() << "ms";
           throw ConnectionTimeoutError(
               "Timed out while polling connection for writing");
         }
@@ -293,7 +299,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
         // This is an obsolete state, just ignore it
         break;
       case PGRES_POLLING_FAILED:
-        PGCW_LOG_WARNING() << " libpq polling failed";
+        PGCW_LOG_LIMITED_WARNING() << " libpq polling failed";
         CheckError<ConnectionError>("PQconnectPoll", 0);
         break;
       default:
@@ -311,7 +317,8 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
 
   // fe-exec.c: Needs to be called only on a connected database connection.
   if (PQsetnonblocking(conn_, 1)) {
-    PGCW_LOG_ERROR() << "libpq failed to set non-blocking connection mode";
+    PGCW_LOG_LIMITED_ERROR()
+        << "libpq failed to set non-blocking connection mode";
     throw ConnectionFailed{dsn, "Failed to set non-blocking connection mode"};
   }
 }
@@ -319,7 +326,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
 void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
   const auto fd = PQsocket(conn_);
   if (fd < 0) {
-    PGCW_LOG_ERROR() << "Invalid PostgreSQL socket " << fd;
+    PGCW_LOG_LIMITED_ERROR() << "Invalid PostgreSQL socket " << fd;
     throw ConnectionFailed{dsn, "Invalid socket handle"};
   }
   if (fd == socket_.Fd()) return;
@@ -348,7 +355,7 @@ void PGConnectionWrapper::Flush(Deadline deadline) {
       if (engine::current_task::ShouldCancel()) {
         throw ConnectionInterrupted("Task cancelled while flushing connection");
       }
-      PGCW_LOG_WARNING()
+      PGCW_LOG_LIMITED_WARNING()
           << "Timeout while flushing PostgreSQL connection socket";
       throw ConnectionTimeoutError("Timed out while flushing connection");
     }
@@ -372,7 +379,7 @@ void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
     if (engine::current_task::ShouldCancel()) {
       throw ConnectionInterrupted("Task cancelled while consuming input");
     }
-    PGCW_LOG_WARNING()
+    PGCW_LOG_LIMITED_WARNING()
         << "Timeout while consuming input from PostgreSQL connection socket";
     throw ConnectionTimeoutError("Timed out while consuming input");
   }
@@ -423,13 +430,13 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
       PGCW_LOG_TRACE() << "Successful completion of a command returning data";
       break;
     case PGRES_SINGLE_TUPLE:
-      PGCW_LOG_ERROR()
+      PGCW_LOG_LIMITED_ERROR()
           << "libpq was switched to SINGLE_ROW mode, this is not supported.";
       CloseWithError(NotImplemented{"Single row mode is not supported"});
     case PGRES_COPY_IN:
     case PGRES_COPY_OUT:
     case PGRES_COPY_BOTH:
-      PGCW_LOG_ERROR()
+      PGCW_LOG_LIMITED_ERROR()
           << "PostgreSQL COPY command invoked which is not implemented"
           << logging::LogExtra::Stacktrace();
       CloseWithError(NotImplemented{"Copy is not implemented"});
@@ -451,14 +458,14 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
                           << msg.GetLogExtra();
           break;
         case Message::Severity::kWarning:
-          PGCW_LOG_WARNING()
+          PGCW_LOG_LIMITED_WARNING()
               << "Postgres " << msg.GetSeverityString()
               << " message: " << msg.GetMessage() << msg.GetLogExtra();
           break;
         case Message::Severity::kError:
         case Message::Severity::kFatal:
         case Message::Severity::kPanic:
-          PGCW_LOG_WARNING()
+          PGCW_LOG_LIMITED_WARNING()
               << "Postgres " << msg.GetSeverityString()
               << " message (marked as non-fatal): " << msg.GetMessage()
               << msg.GetLogExtra();
@@ -469,11 +476,11 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
     case PGRES_FATAL_ERROR: {
       Message msg{wrapper};
       if (!IsWhitelistedState(msg.GetSqlState())) {
-        PGCW_LOG_ERROR() << "Fatal error occured: " << msg.GetMessage()
-                         << msg.GetLogExtra();
+        PGCW_LOG_LIMITED_ERROR()
+            << "Fatal error occured: " << msg.GetMessage() << msg.GetLogExtra();
       } else {
-        PGCW_LOG_WARNING() << "Fatal error occured: " << msg.GetMessage()
-                           << msg.GetLogExtra();
+        PGCW_LOG_LIMITED_WARNING()
+            << "Fatal error occured: " << msg.GetMessage() << msg.GetLogExtra();
       }
       LOG_DEBUG() << "Ready to throw";
       msg.ThrowException();

@@ -15,6 +15,7 @@
 #include <server/http/http_error.hpp>
 #include <server/http/http_method.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <tracing/set_throttle_reason.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
 #include <tracing/tracing.hpp>
@@ -453,8 +454,10 @@ void HttpHandlerBase::CheckRatelimit(
   if (rate_limit_) {
     const bool success = rate_limit_->Obtain();
     if (!success) {
-      LOG_ERROR() << "Max rate limit reached for handler '" << HandlerName()
-                  << "', limit=" << GetConfig().max_requests_per_second;
+      UASSERT(GetConfig().max_requests_per_second);
+      tracing::SetThrottleReason(
+          fmt::format("reached max_requests_per_second={}",
+                      GetConfig().max_requests_per_second.value_or(0)));
       statistics.IncrementRateLimitReached();
       total_statistics.IncrementRateLimitReached();
 
@@ -466,9 +469,8 @@ void HttpHandlerBase::CheckRatelimit(
   auto requests_in_flight = statistics.GetInFlight();
   if (max_requests_in_flight &&
       (requests_in_flight > *max_requests_in_flight)) {
-    LOG_ERROR() << "Max requests in flight limit reached for handler '"
-                << HandlerName() << "', current=" << requests_in_flight
-                << " limit=" << *max_requests_in_flight;
+    tracing::SetThrottleReason(fmt::format("reached max_requests_in_flight={}",
+                                           *max_requests_in_flight));
     statistics.IncrementTooManyRequestsInFlight();
     total_statistics.IncrementTooManyRequestsInFlight();
 
@@ -529,7 +531,7 @@ std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
   try {
     return GetRequestBodyForLogging(request, context, request_body);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "failed to get request body for logging: " << ex;
+    LOG_LIMITED_ERROR() << "failed to get request body for logging: " << ex;
     return "<error in GetRequestBodyForLogging>";
   }
 }
@@ -540,7 +542,7 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
   try {
     return GetResponseDataForLogging(request, context, response_data);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "failed to get response data for logging: " << ex;
+    LOG_LIMITED_ERROR() << "failed to get response data for logging: " << ex;
     return "<error in GetResponseDataForLogging>";
   }
 }

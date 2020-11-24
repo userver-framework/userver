@@ -179,7 +179,7 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
       }
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Cannot connect to " << host->host << ": " << ex;
+    LOG_LIMITED_ERROR() << "Cannot connect to " << host->host << ": " << ex;
   }
   bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                  "Cannot connect to %s", host->host_and_port);

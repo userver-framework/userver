@@ -698,9 +698,10 @@ void Row::To(T&& val, RowTag) const {
   if (tuple_size > Size()) {
     throw InvalidTupleSizeRequested(Size(), tuple_size);
   } else if (tuple_size < Size()) {
-    LOG_WARNING() << "Row size is greater that the number of data members in "
-                     "C++ user datatype "
-                  << ::compiler::GetTypeName<T>();
+    LOG_LIMITED_WARNING()
+        << "Row size is greater that the number of data members in "
+           "C++ user datatype "
+        << ::compiler::GetTypeName<T>();
   }
 
   detail::TupleDataExtractor<TupleType>::ExtractTuple(

@@ -193,7 +193,7 @@ void ConnectionPool::Release(Connection* connection) {
     // user
     engine::impl::CriticalAsync([shared_this = shared_from_this(), connection,
                                  dec_cnt = std::move(dg)] {
-      LOG_WARNING()
+      LOG_LIMITED_WARNING()
           << "Released connection in busy state. Trying to clean up...";
       if (shared_this->cancel_limit_.Obtain()) {
         try {
@@ -319,7 +319,7 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
     } catch (const Error& ex) {
       ++shared_this->stats_.connection.error_total;
       ++shared_this->stats_.connection.drop_total;
-      LOG_WARNING() << "Connection creation failed with error: " << ex;
+      LOG_LIMITED_WARNING() << "Connection creation failed with error: " << ex;
       throw;
     }
     LOG_TRACE() << "PostgreSQL connection created";
@@ -363,7 +363,8 @@ void ConnectionPool::Push(Connection* connection) {
   }
 
   // TODO Reflect this as a statistics error
-  LOG_WARNING() << "Couldn't push connection back to the pool. Deleting...";
+  LOG_LIMITED_WARNING()
+      << "Couldn't push connection back to the pool. Deleting...";
   DeleteConnection(connection);
 }
 
@@ -428,7 +429,7 @@ void ConnectionPool::DeleteConnection(Connection* connection) {
 
 void ConnectionPool::DeleteBrokenConnection(Connection* connection) {
   ++stats_.connection.error_total;
-  LOG_WARNING() << "Released connection in closed state. Deleting...";
+  LOG_LIMITED_WARNING() << "Released connection in closed state. Deleting...";
   DeleteConnection(connection);
 }
 
@@ -479,8 +480,8 @@ void ConnectionPool::MaintainConnections() {
         capture->Ping();
       }
     } catch (const RuntimeError& e) {
-      LOG_WARNING() << "Exception while pinging connection to `"
-                    << DsnCutPassword(dsn_) << "`: " << e;
+      LOG_LIMITED_WARNING() << "Exception while pinging connection to `"
+                            << DsnCutPassword(dsn_) << "`: " << e;
     }
     --count;
   }

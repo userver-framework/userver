@@ -487,7 +487,7 @@ void Redis::RedisImpl::OnTimerPing(struct ev_loop*, ev_timer* w, int) noexcept {
   try {
     impl->OnTimerPingImpl();
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "OnTimerPingImpl() failed: " << ex.what();
+    LOG_ERROR() << "OnTimerPingImpl() failed: " << ex;
   }
 }
 
@@ -498,7 +498,7 @@ void Redis::RedisImpl::OnCommandTimeout(struct ev_loop*, ev_timer* w,
   try {
     impl->OnCommandTimeoutImpl(w);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "OnCommandTimeoutImpl() failed: " << ex.what();
+    LOG_ERROR() << "OnCommandTimeoutImpl() failed: " << ex;
   }
 }
 
@@ -612,7 +612,7 @@ void Redis::RedisImpl::OnConnectTimeout(struct ev_loop*, ev_timer* w,
   try {
     impl->OnConnectTimeoutImpl();
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "OnConnectTimeoutImpl() failed: " << ex.what();
+    LOG_ERROR() << "OnConnectTimeoutImpl() failed: " << ex;
   }
 }
 
@@ -698,7 +698,7 @@ void Redis::RedisImpl::CommandLoop(struct ev_loop*, ev_async* w, int) noexcept {
   try {
     impl->CommandLoopImpl();
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "CommandLoopImpl() failed: " << ex.what();
+    LOG_ERROR() << "CommandLoopImpl() failed: " << ex;
   }
 }
 
@@ -723,7 +723,7 @@ void Redis::RedisImpl::OnConnect(const redisAsyncContext* c,
   try {
     impl->OnConnectImpl(status);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "OnConnectImpl() failed: " << ex.what();
+    LOG_ERROR() << "OnConnectImpl() failed: " << ex;
   }
 }
 
@@ -734,7 +734,7 @@ void Redis::RedisImpl::OnDisconnect(const redisAsyncContext* c,
   try {
     impl->OnDisconnectImpl(status);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "OnDisconnectImpl() failed: " << ex.what();
+    LOG_ERROR() << "OnDisconnectImpl() failed: " << ex;
   }
 }
 
@@ -767,10 +767,11 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
 
 void Redis::RedisImpl::OnDisconnectImpl(int status) {
   if (status == REDIS_ERR) {
-    LOG_WARNING() << "Got disconnect error from hiredis (" << context_->errstr
-                  << "). For more information look in server logs ("
-                     "https://wiki.yandex-team.ru/taxi/backend/userver/redis/"
-                     "#logiservera).";
+    LOG_LIMITED_WARNING()
+        << "Got disconnect error from hiredis (" << context_->errstr
+        << "). For more information look in server logs ("
+           "https://wiki.yandex-team.ru/taxi/backend/userver/redis/"
+           "#logiservera).";
   }
   SetState(status == REDIS_OK ? State::kDisconnected : State::kDisconnectError);
   context_ = nullptr;
@@ -803,12 +804,13 @@ void Redis::RedisImpl::Authenticate() {
                 Disconnect();
                 return;
               }
-              LOG_ERROR() << log_extra_ << "AUTH failed: response type="
-                          << reply->data.GetTypeString()
-                          << " msg=" << reply->data.ToDebugString();
+              LOG_LIMITED_ERROR() << log_extra_ << "AUTH failed: response type="
+                                  << reply->data.GetTypeString()
+                                  << " msg=" << reply->data.ToDebugString();
             } else {
-              LOG_ERROR() << "AUTH failed with status=" << reply->StatusString()
-                          << log_extra_;
+              LOG_LIMITED_ERROR()
+                  << "AUTH failed with status=" << reply->StatusString()
+                  << log_extra_;
             }
             Disconnect();
           }
@@ -819,22 +821,23 @@ void Redis::RedisImpl::Authenticate() {
 void Redis::RedisImpl::SendReadOnly() {
   LOG_DEBUG() << "Send READONLY command to slave "
               << GetServerId().GetDescription() << " in cluster mode";
-  ProcessCommand(PrepareCommand(CmdArgs{"READONLY"}, [this](const CommandPtr&,
-                                                            ReplyPtr reply) {
-    if (*reply && reply->data.IsStatus()) {
-      SetState(State::kConnected);
-    } else {
-      if (*reply) {
-        LOG_ERROR() << log_extra_ << "Sending READONLY failed: response type="
-                    << reply->data.GetTypeString()
-                    << " msg=" << reply->data.ToDebugString();
-      } else {
-        LOG_ERROR() << "Sending READONLY failed with status="
-                    << reply->StatusString() << log_extra_;
-      }
-      Disconnect();
-    }
-  }));
+  ProcessCommand(PrepareCommand(
+      CmdArgs{"READONLY"}, [this](const CommandPtr&, ReplyPtr reply) {
+        if (*reply && reply->data.IsStatus()) {
+          SetState(State::kConnected);
+        } else {
+          if (*reply) {
+            LOG_LIMITED_ERROR()
+                << log_extra_ << "Sending READONLY failed: response type="
+                << reply->data.GetTypeString()
+                << " msg=" << reply->data.ToDebugString();
+          } else {
+            LOG_LIMITED_ERROR() << "Sending READONLY failed with status="
+                                << reply->StatusString() << log_extra_;
+          }
+          Disconnect();
+        }
+      }));
 }
 
 void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r,
@@ -844,7 +847,7 @@ void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r,
   try {
     impl->OnRedisReplyImpl(static_cast<redisReply*>(r), privdata);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "OnRedisReplyImpl() failed: " << ex.what();
+    LOG_ERROR() << "OnRedisReplyImpl() failed: " << ex;
   }
 }
 
@@ -908,7 +911,7 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
     const size_t argc = args.size();
     UASSERT(argc >= 1);
     if (argc < 1) {
-      LOG_ERROR() << "Skip empty command to redis";
+      LOG_LIMITED_ERROR() << "Skip empty command to redis";
       continue;
     }
 
