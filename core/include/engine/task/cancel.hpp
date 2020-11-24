@@ -31,11 +31,14 @@ bool ShouldCancel();
 /// Returns task cancellation reason for the current task
 TaskCancellationReason CancellationReason();
 
-/// @brief Cancels the current task if the cancellation request is pending
+/// @brief \b Throws an exception if a cancellation request for this task is
+/// pending.
+///
 /// @throws unspecified (non-std) exception if cancellation is pending and not
 /// blocked
+///
 /// @warning cathching this exception whithout a rethrow in the same scope leads
-/// to undefined behavior
+/// to undefined behavior.
 void CancellationPoint();
 
 }  // namespace current_task

@@ -12,43 +12,6 @@
 
 #include <utest/utest.hpp>
 
-// We do not want unwind to start in destructors
-TEST(Cancel, NoUnwindFromDtor) {
-  class SynchronizingRaii final {
-   public:
-    SynchronizingRaii(engine::SingleConsumerEvent& request_event,
-                      engine::SingleConsumerEvent& sync_event)
-        : request_event_(request_event), sync_event_(sync_event) {}
-
-    __attribute__((noinline)) ~SynchronizingRaii() {
-      request_event_.Send();
-      {
-        engine::TaskCancellationBlocker block_cancel;
-        EXPECT_TRUE(sync_event_.WaitForEvent());
-      }
-      EXPECT_NO_THROW(engine::current_task::CancellationPoint());
-      EXPECT_TRUE(engine::current_task::IsCancelRequested());
-    }
-
-   private:
-    engine::SingleConsumerEvent& request_event_;
-    engine::SingleConsumerEvent& sync_event_;
-  };
-
-  RunInCoro([] {
-    engine::SingleConsumerEvent in_dtor_event;
-    engine::SingleConsumerEvent cancel_sent_event;
-    auto task = engine::impl::Async(
-        [&] { SynchronizingRaii raii(in_dtor_event, cancel_sent_event); });
-    ASSERT_TRUE(in_dtor_event.WaitForEvent());
-    task.RequestCancel();
-    task.WaitFor(std::chrono::milliseconds(100));
-    EXPECT_FALSE(task.IsFinished());
-    cancel_sent_event.Send();
-    task.Wait();
-  });
-}
-
 // Functors defined in dtors should unwind though
 TEST(Cancel, UnwindWorksInDtorSubtask) {
   class DetachingRaii final {
