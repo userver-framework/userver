@@ -5,8 +5,7 @@
 #include <logging/log_extra.hpp>
 #include <utils/flags.hpp>
 
-namespace logging {
-namespace impl {
+namespace logging::impl {
 
 enum class LogExtraStacktraceFlags {
   kNone = 0,
@@ -14,8 +13,10 @@ enum class LogExtraStacktraceFlags {
   kFrozen = (kNoCache << 1),
 };
 
-LogExtra MakeLogExtraStacktrace(const boost::stacktrace::stacktrace&,
-                                utils::Flags<LogExtraStacktraceFlags> = {});
+void ExtendLogExtraWithStacktrace(LogExtra& log_extra,
+                                  const boost::stacktrace::stacktrace&,
+                                  utils::Flags<LogExtraStacktraceFlags> = {});
 
-}  // namespace impl
-}  // namespace logging
+bool ShouldLogStacktrace() noexcept;
+
+}  // namespace logging::impl

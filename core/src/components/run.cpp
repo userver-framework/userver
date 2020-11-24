@@ -56,9 +56,9 @@ void HandleJemallocSettings() {
 }
 
 void PreheatStacktraceCollector() {
-  // this loads debug info from disk, hopefully preventing this to occur later,
-  // e.g. in exception constructor
-  to_string(boost::stacktrace::stacktrace{});
+  // If DEBUG logging is enabled the following line loads debug info from disk,
+  // hopefully preventing this to occur later, e.g. in exception constructor.
+  LOG_DEBUG() << utils::TracefulException{"Preheating stacktrace"};
 }
 
 bool IsDaemon() { return getppid() == 1; }

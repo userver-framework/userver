@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include <logging/level.hpp>
 #include <logging/stacktrace_cache.hpp>
 
 namespace logging::impl {
@@ -11,17 +12,24 @@ const std::string kTraceKey = "stacktrace";
 
 }  // namespace
 
-LogExtra MakeLogExtraStacktrace(const boost::stacktrace::stacktrace& trace,
-                                utils::Flags<LogExtraStacktraceFlags> flags) {
-  LogExtra ret;
-  ret.Extend(kTraceKey,
-             (flags & LogExtraStacktraceFlags::kNoCache)
-                 ? to_string(trace)
-                 : stacktrace_cache::to_string(trace),
-             (flags & LogExtraStacktraceFlags::kFrozen)
-                 ? LogExtra::ExtendType::kFrozen
-                 : LogExtra::ExtendType::kNormal);
-  return ret;
+void ExtendLogExtraWithStacktrace(LogExtra& log_extra,
+                                  const boost::stacktrace::stacktrace& trace,
+                                  utils::Flags<LogExtraStacktraceFlags> flags) {
+  if (!ShouldLogStacktrace()) {
+    return;
+  }
+
+  log_extra.Extend(kTraceKey,
+                   (flags & LogExtraStacktraceFlags::kNoCache)
+                       ? to_string(trace)
+                       : stacktrace_cache::to_string(trace),
+                   (flags & LogExtraStacktraceFlags::kFrozen)
+                       ? LogExtra::ExtendType::kFrozen
+                       : LogExtra::ExtendType::kNormal);
+}
+
+bool ShouldLogStacktrace() noexcept {
+  return ShouldLog(logging::Level::kDebug);
 }
 
 }  // namespace logging::impl

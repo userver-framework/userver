@@ -338,7 +338,7 @@ void LogHelper::Put(std::string_view value) {
 void LogHelper::Put(char value) { pimpl_->xsputn(&value, 1); }
 
 void LogHelper::PutException(const std::exception& ex) {
-  if (!ShouldLog(Level::kDebug)) {
+  if (!impl::ShouldLogStacktrace()) {
     Put(ex.what());
     return;
   }
@@ -347,8 +347,8 @@ void LogHelper::PutException(const std::exception& ex) {
   if (traceful) {
     const auto& message_buffer = traceful->MessageBuffer();
     Put(std::string_view(message_buffer.data(), message_buffer.size()));
-    pimpl_->GetLogExtra().Extend(impl::MakeLogExtraStacktrace(
-        traceful->Trace(), impl::LogExtraStacktraceFlags::kFrozen));
+    impl::ExtendLogExtraWithStacktrace(pimpl_->GetLogExtra(), traceful->Trace(),
+                                       impl::LogExtraStacktraceFlags::kFrozen);
   } else {
     Put(ex.what());
   }

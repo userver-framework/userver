@@ -66,12 +66,16 @@ void LogExtra::Extend(LogExtra&& extra) {
 }
 
 LogExtra LogExtra::StacktraceNocache() {
-  return impl::MakeLogExtraStacktrace(boost::stacktrace::stacktrace{},
-                                      impl::LogExtraStacktraceFlags::kNoCache);
+  LogExtra ret;
+  impl::ExtendLogExtraWithStacktrace(ret, boost::stacktrace::stacktrace{},
+                                     impl::LogExtraStacktraceFlags::kNoCache);
+  return ret;
 }
 
 LogExtra LogExtra::Stacktrace() {
-  return impl::MakeLogExtraStacktrace(boost::stacktrace::stacktrace{});
+  LogExtra ret;
+  impl::ExtendLogExtraWithStacktrace(ret, boost::stacktrace::stacktrace{});
+  return ret;
 }
 
 const std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(
