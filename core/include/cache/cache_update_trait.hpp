@@ -41,9 +41,12 @@ class EmptyCacheError : public std::runtime_error {
 /// Base class for periodically updated caches
 class CacheUpdateTrait {
  public:
-  /// Forces a cache update of specified type
+  /// @brief Forces a cache update of specified type
   /// @throws If `Update` throws
   void Update(UpdateType update_type);
+
+  /// Forces a synchronous cache dump
+  void DumpSyncDebug();
 
   const std::string& Name() const { return name_; }
 

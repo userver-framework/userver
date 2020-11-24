@@ -21,13 +21,14 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
   }
 
   DoUpdate(update_type, *update);
+}
 
-  if (!periodic_update_enabled_) {
-    DumpAsyncIfNeeded(DumpType::kForced, *update, *config);
-  } else {
-    LOG_INFO() << "Deferring cache dump for cache " << name_
-               << " to the next periodic update";
-  }
+void CacheUpdateTrait::DumpSyncDebug() {
+  auto update = update_.Lock();
+  const auto config = GetConfig();
+
+  DumpAsyncIfNeeded(DumpType::kForced, *update, *config);
+  if (update->dump_task.IsValid()) update->dump_task.Wait();
 }
 
 CacheUpdateTrait::CacheUpdateTrait(CacheConfigStatic&& config,

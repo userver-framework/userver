@@ -86,8 +86,11 @@ CacheInvalidatorHolder::CacheInvalidatorHolder(CacheControl& cache_control,
                                                cache::CacheUpdateTrait& cache)
     : cache_control_(cache_control), cache_(cache) {
   cache_control_.RegisterCacheInvalidator(
-      cache_, [](cache::CacheUpdateTrait& cache,
-                 cache::UpdateType update_type) { cache.Update(update_type); });
+      cache_,
+      [](cache::CacheUpdateTrait& cache, cache::UpdateType update_type) {
+        cache.Update(update_type);
+        cache.DumpSyncDebug();
+      });
 }
 
 CacheInvalidatorHolder::~CacheInvalidatorHolder() {
