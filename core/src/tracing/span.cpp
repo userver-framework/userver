@@ -95,6 +95,9 @@ Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
     log_extra_inheritable = parent->log_extra_inheritable;
     local_log_level_ = parent->local_log_level_;
   }
+  if (tracing::Tracer::IsNoLogSpan(name_)) {
+    log_level_ = logging::Level::kNone;
+  }
   AttachToCoroStack();
 }
 

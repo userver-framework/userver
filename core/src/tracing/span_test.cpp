@@ -2,9 +2,11 @@
 
 #include <formats/json/serialize.hpp>
 #include <logging/logging_test.hpp>
+#include <tracing/no_log_spans.hpp>
 #include <tracing/noop.hpp>
 #include <tracing/opentracing.hpp>
 #include <tracing/span.hpp>
+#include <tracing/tracer.hpp>
 #include <utest/utest.hpp>
 
 class Span : public LoggingTest {};
@@ -266,6 +268,162 @@ TEST_F(Span, ConstructFromTracer) {
     EXPECT_NE(std::string::npos, sstream.str().find("tracerlog"));
 
     EXPECT_EQ(tracing::Span::CurrentSpanUnchecked(), &span);
+  });
+}
+
+TEST_F(Span, NoLogNames) {
+  RunInCoro([this] {
+    constexpr const char* kLogFirstSpan = "first_span_to_log";
+    constexpr const char* kLogSecondSpan = "second_span_to_log";
+    constexpr const char* kLogThirdSpan =
+        "second_span_to_ignore_is_the_prefix_of_this_span";
+
+    constexpr const char* kIgnoreFirstSpan = "first_span_to_ignore";
+    constexpr const char* kIgnoreSecondSpan = "second_span_to_ignore";
+
+    tracing::NoLogSpans no_logs;
+    no_logs.names = {
+        kIgnoreFirstSpan,
+        kIgnoreSecondSpan,
+    };
+    tracing::Tracer::SetNoLogSpans(std::move(no_logs));
+
+    {
+      tracing::Span span0(kLogFirstSpan);
+      tracing::Span span1(kIgnoreFirstSpan);
+      tracing::Span span2(kLogSecondSpan);
+      tracing::Span span3(kIgnoreSecondSpan);
+      tracing::Span span4(kLogThirdSpan);
+    }
+
+    logging::LogFlush();
+
+    EXPECT_NE(std::string::npos, sstream.str().find(kLogFirstSpan));
+    EXPECT_EQ(std::string::npos, sstream.str().find(kIgnoreFirstSpan));
+    EXPECT_NE(std::string::npos, sstream.str().find(kLogSecondSpan));
+    EXPECT_EQ(std::string::npos,
+              sstream.str().find(kIgnoreSecondSpan + std::string("\t")));
+    EXPECT_NE(std::string::npos,
+              sstream.str().find(kLogThirdSpan + std::string("\t")));
+
+    tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
+  });
+}
+
+TEST_F(Span, NoLogPrefixes) {
+  RunInCoro([this] {
+    constexpr const char* kLogSpan0 = "first_span_to_log";
+    constexpr const char* kLogSpan1 = "span_to_log_ignore_nolog_prefix";
+    constexpr const char* kLogSpan2 = "span";
+    constexpr const char* kLogSpan3 = "ign";
+
+    const std::string kIgnorePrefix0 = "ignore_";
+    const std::string kIgnorePrefix1 = "ignore1_";
+    const std::string kIgnorePrefix2 = "ignore2_";
+
+    const std::string kIgnoreSpan = "ignor5span";
+
+    tracing::NoLogSpans no_logs;
+    no_logs.prefixes = {
+        kIgnorePrefix0,
+        kIgnorePrefix1,
+        kIgnorePrefix2,
+
+        "ignor",
+        "ignor0",
+        "ignor1",
+        "ignor2",
+        "ignor3",
+        "ignor4",
+        // intentionally missing
+        "ignor6",
+        "ignor7",
+        "ignor8",
+        "ignor9",
+    };
+    tracing::Tracer::SetNoLogSpans(std::move(no_logs));
+
+    tracing::Span{kIgnorePrefix0 + "foo"};
+    tracing::Span{kLogSpan0};
+    tracing::Span{kLogSpan1};
+    tracing::Span{kIgnorePrefix2 + "XXX"};
+    tracing::Span{kLogSpan2};
+    tracing::Span{kIgnorePrefix1 + "74dfljzs"};
+    tracing::Span{kIgnorePrefix0 + "bar"};
+    tracing::Span{kLogSpan3};
+    tracing::Span{kIgnorePrefix0};
+    tracing::Span{kIgnorePrefix1};
+    tracing::Span{kIgnorePrefix2};
+    tracing::Span{kIgnoreSpan};
+
+    logging::LogFlush();
+
+    const auto output = sstream.str();
+    EXPECT_NE(std::string::npos, output.find(kLogSpan0)) << output;
+    EXPECT_NE(std::string::npos, output.find(kLogSpan1)) << output;
+    EXPECT_NE(std::string::npos, output.find(kLogSpan2)) << output;
+    EXPECT_NE(std::string::npos, output.find(kLogSpan3)) << output;
+
+    EXPECT_EQ(std::string::npos, output.find("=" + kIgnorePrefix0)) << output;
+    EXPECT_EQ(std::string::npos, output.find(kIgnorePrefix1)) << output;
+    EXPECT_EQ(std::string::npos, output.find(kIgnorePrefix2)) << output;
+    EXPECT_EQ(std::string::npos, output.find(kIgnoreSpan)) << output;
+
+    tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
+  });
+}
+
+TEST_F(Span, NoLogMixed) {
+  RunInCoro([this] {
+    auto json = formats::json::FromString(R"({
+        "names": ["i_am_a_span_to_ignore"],
+        "prefixes": ["skip", "ignore", "skip", "do_not_keep", "skip", "skip"]
+    })");
+    auto no_logs = Parse(json, formats::parse::To<tracing::NoLogSpans>{});
+    tracing::Tracer::SetNoLogSpans(std::move(no_logs));
+
+    constexpr const char* kLogSpan0 = "first_span_to_log";
+    constexpr const char* kLogSpan1 = "i_am_a_span_to_ignore(not!)";
+    constexpr const char* kLogSpan2 = "span";
+    constexpr const char* kLogSpan3 = "ign";
+    constexpr const char* kLogSpan4 = "i_am_span";
+
+    constexpr const char* kIgnoreSpan = "i_am_a_span_to_ignore";
+
+    const std::string kIgnorePrefix0 = "ignore";
+    const std::string kIgnorePrefix1 = "skip";
+    const std::string kIgnorePrefix2 = "do_not_keep";
+
+    tracing::Span{kIgnorePrefix0 + "oops"};
+    tracing::Span{kLogSpan0};
+    tracing::Span{kLogSpan1};
+    tracing::Span{kIgnorePrefix2 + "I"};
+    tracing::Span{kLogSpan2};
+    tracing::Span{kIgnorePrefix1 + "did it"};
+    tracing::Span{kIgnorePrefix0 + "again"};
+    tracing::Span{kLogSpan3};
+    tracing::Span{kLogSpan4};
+    tracing::Span{kIgnorePrefix0};
+    tracing::Span{kIgnorePrefix1};
+    tracing::Span{kIgnorePrefix2};
+    tracing::Span{kIgnoreSpan};
+
+    logging::LogFlush();
+
+    const auto output = sstream.str();
+    EXPECT_NE(std::string::npos, output.find(kLogSpan0)) << output;
+    EXPECT_NE(std::string::npos, output.find(kLogSpan1)) << output;
+    EXPECT_NE(std::string::npos, output.find(kLogSpan2)) << output;
+    EXPECT_NE(std::string::npos, output.find(kLogSpan3)) << output;
+    EXPECT_NE(std::string::npos, output.find(kLogSpan4)) << output;
+
+    EXPECT_EQ(std::string::npos, output.find("=" + kIgnorePrefix0)) << output;
+    EXPECT_EQ(std::string::npos, output.find(kIgnorePrefix1)) << output;
+    EXPECT_EQ(std::string::npos, output.find(kIgnorePrefix2)) << output;
+    EXPECT_EQ(std::string::npos, output.find(kIgnoreSpan + std::string("\t")))
+        << output;
+
+    tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
   });
 }
 

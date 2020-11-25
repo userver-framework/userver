@@ -1,15 +1,18 @@
-#include <gtest/gtest.h>
+#include <formats/parse/boost_flat_containers.hpp>
+#include <formats/parse/boost_optional.hpp>
+#include <formats/parse/time_of_day.hpp>
+#include <formats/parse/to.hpp>
+#include <formats/parse/variant.hpp>
 
+#include <boost/container/flat_map.hpp>
+#include <boost/container/flat_set.hpp>
 #include <boost/optional.hpp>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include <formats/parse/boost_optional.hpp>
-#include <formats/parse/time_of_day.hpp>
-#include <formats/parse/to.hpp>
-#include <formats/parse/variant.hpp>
+#include <gtest/gtest.h>
 
 namespace {
 namespace testing_namespace {
@@ -83,6 +86,24 @@ TYPED_TEST_P(Parsing, VectorVectorIntNull) {
   std::vector<std::vector<int>> v =
       value.template As<std::vector<std::vector<int>>>();
   EXPECT_EQ(std::vector<std::vector<int>>{}, v);
+}
+
+TYPED_TEST_P(Parsing, BoostContainerFlatSet) {
+  auto value = this->FromString("[3,3,5,2,1,5,6,4]");
+  auto v = value.template As<boost::container::flat_set<int>>();
+  EXPECT_EQ(6, v.size());
+  for (std::size_t i = 0; i < v.size(); ++i) {
+    EXPECT_EQ(*v.nth(i), i + 1) << i;
+  }
+}
+
+TYPED_TEST_P(Parsing, BoostContainerFlatMap) {
+  auto value = this->FromString(R"({"b":1, "a":0})");
+  auto v = value.template As<boost::container::flat_map<std::string, int>>();
+  EXPECT_EQ(2, v.size());
+  for (std::size_t i = 0; i < v.size(); ++i) {
+    EXPECT_EQ(v.nth(i)->second, i) << i;
+  }
 }
 
 TYPED_TEST_P(Parsing, BoostOptionalIntNone) {
@@ -280,6 +301,8 @@ REGISTER_TYPED_TEST_SUITE_P(
 
     ContainersCtr, VectorInt, VectorIntNull, VectorIntErrorObj, VectorVectorInt,
     VectorVectorIntNull,
+
+    BoostContainerFlatSet, BoostContainerFlatMap,
 
     BoostOptionalIntNone, BoostOptionalInt, BoostOptionalVectorInt,
     OptionalIntNone, OptionalInt, OptionalVectorInt,

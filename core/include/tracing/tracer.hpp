@@ -1,14 +1,20 @@
 #pragma once
 
 #include <memory>
+#include <unordered_set>
 
 #include <tracing/span.hpp>
 #include <tracing/tracer_fwd.hpp>
 
 namespace tracing {
 
+struct NoLogSpans;
+
 class Tracer : public std::enable_shared_from_this<Tracer> {
  public:
+  static void SetNoLogSpans(NoLogSpans&& spans);
+  static bool IsNoLogSpan(const std::string& name);
+
   static void SetTracer(TracerPtr tracer);
 
   static TracerPtr GetTracer();

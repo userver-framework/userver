@@ -2,30 +2,74 @@
 
 #include <atomic>
 
+#include <rcu/rcu.hpp>
+#include <tracing/no_log_spans.hpp>
 #include <tracing/noop.hpp>
-#include <utils/swappingsmart.hpp>
 #include <utils/uuid4.hpp>
+
+#include <iostream>
 
 namespace tracing {
 
 namespace {
 
+auto& GlobalNoLogSpans() {
+  static rcu::Variable<NoLogSpans> spans{};
+  return spans;
+}
+
 auto& GlobalTracer() {
   static const std::string kEmptyServiceName;
-  static utils::SwappingSmart<Tracer> tracer(
+  static rcu::Variable<TracerPtr> tracer(
       tracing::MakeNoopTracer(kEmptyServiceName));
   return tracer;
+}
+
+template <class T>
+bool ValueMatchPrefix(const T& value, const T& prefix) {
+  return prefix.size() <= value.size() &&
+         value.compare(0, prefix.size(), prefix) == 0;
+}
+
+template <class T>
+bool ValueMatchesOneOfPrefixes(const T& value,
+                               const boost::container::flat_set<T>& prefixes) {
+  for (const auto& prefix : prefixes) {
+    if (ValueMatchPrefix(value, prefix)) {
+      return true;
+    }
+
+    if (value < prefix) {
+      break;
+    }
+  }
+
+  return false;
 }
 
 }  // namespace
 
 Tracer::~Tracer() = default;
 
-void Tracer::SetTracer(std::shared_ptr<Tracer> tracer) {
-  GlobalTracer().Set(tracer);
+void Tracer::SetNoLogSpans(NoLogSpans&& spans) {
+  auto& gloabl_spans = GlobalNoLogSpans();
+  gloabl_spans.Assign(std::move(spans));
 }
 
-std::shared_ptr<Tracer> Tracer::GetTracer() { return GlobalTracer().Get(); }
+bool Tracer::IsNoLogSpan(const std::string& name) {
+  const auto spans = GlobalNoLogSpans().Read();
+
+  return ValueMatchesOneOfPrefixes(name, spans->prefixes) ||
+         spans->names.find(name) != spans->names.end();
+}
+
+void Tracer::SetTracer(std::shared_ptr<Tracer> tracer) {
+  GlobalTracer().Assign(tracer);
+}
+
+std::shared_ptr<Tracer> Tracer::GetTracer() {
+  return GlobalTracer().ReadCopy();
+}
 
 const std::string& Tracer::GetServiceName() const { return service_name_; }
 

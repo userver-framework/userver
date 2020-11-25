@@ -1,6 +1,7 @@
 #include <components/common_component_list.hpp>
 
 #include <clients/http/component.hpp>
+#include <components/logging_configurator.hpp>
 #include <components/manager_controller_component.hpp>
 #include <components/statistics_storage.hpp>
 #include <components/tracer.hpp>
@@ -16,6 +17,7 @@ namespace components {
 ComponentList CommonComponentList() {
   return components::ComponentList()
       .Append<components::Logging>()
+      .Append<components::LoggingConfigurator>()
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()
       .Append<components::TestsuiteSupport>()
