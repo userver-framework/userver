@@ -18,7 +18,7 @@ void ParseArgs(
       if (!parse_key) {
         const char* value_begin = key_end + 1;
         const char* value_end = ptr;
-        if (key_begin < key_end && value_begin < value_end) {
+        if (key_begin < key_end && value_begin <= value_end) {
           std::vector<std::string>& arg_values = result[UrlDecode(
               std::string_view(key_begin, key_end - key_begin))];
           arg_values.emplace_back(UrlDecode(
