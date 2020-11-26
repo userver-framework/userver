@@ -101,12 +101,10 @@ static_assert(
     (std::is_same<pg_cache::detail::KeyMemberType<PostgresExamplePolicy2>,
                   int>{}));
 
-static_assert(
-    pg_cache::detail::kPostgresClusterHostTypeFlags<PostgresExamplePolicy> ==
-    pg::ClusterHostType::kSlave);
-static_assert(
-    pg_cache::detail::kPostgresClusterHostTypeFlags<PostgresExamplePolicy2> ==
-    pg::ClusterHostType::kSlave);
+static_assert(pg_cache::detail::ClusterHostType<PostgresExamplePolicy>() ==
+              pg::ClusterHostType::kSlave);
+static_assert(pg_cache::detail::ClusterHostType<PostgresExamplePolicy2>() ==
+              pg::ClusterHostType::kSlave);
 
 // Example of custom updated in cache
 /*! [Pg Cache Policy Custom Updated Example] */

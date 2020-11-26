@@ -1,7 +1,6 @@
 #include <utils/meta.hpp>
 
 #include <array>
-#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -14,19 +13,6 @@
 #include <boost/optional.hpp>
 
 #include <utils/strong_typedef.hpp>
-
-TEST(Meta, kIsBool) {
-  static_assert(meta::kIsBool<bool>);
-
-  static_assert(!meta::kIsBool<const bool>);
-  static_assert(!meta::kIsBool<bool&>);
-  static_assert(!meta::kIsBool<const bool&>);
-  static_assert(!meta::kIsBool<int>);
-  static_assert(!meta::kIsBool<int*>);
-  static_assert(!meta::kIsBool<std::reference_wrapper<bool>>);
-  static_assert(!meta::kIsBool<std::vector<int>>);
-  static_assert(!meta::kIsBool<void>);
-}
 
 template <typename T>
 struct Base {};
@@ -233,4 +219,23 @@ TEST(Meta, kIsOstreamWritable) {
   static_assert(!meta::kIsOstreamWritable<NonWritable&>);
   static_assert(!meta::kIsOstreamWritable<const NonWritable&>);
   static_assert(!meta::kIsOstreamWritable<std::vector<int>>);
+}
+
+struct Dummy {
+  using dummy_alias = int;
+};
+
+template <typename T>
+using DummyAlias = typename T::dummy_alias;
+
+TEST(Meta, Detection) {
+  static_assert(meta::kIsDetected<DummyAlias, Dummy>);
+  static_assert(std::is_same_v<meta::DetectedType<DummyAlias, Dummy>, int>);
+  static_assert(std::is_same_v<meta::DetectedOr<bool, DummyAlias, Dummy>, int>);
+
+  static_assert(!meta::kIsDetected<DummyAlias, std::string>);
+  static_assert(std::is_same_v<meta::DetectedType<DummyAlias, std::string>,
+                               meta::NotDetected>);
+  static_assert(
+      std::is_same_v<meta::DetectedOr<bool, DummyAlias, std::string>, bool>);
 }

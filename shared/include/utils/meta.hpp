@@ -8,7 +8,59 @@
 #include <type_traits>
 #include <vector>
 
+#include <utils/void_t.hpp>
+
 namespace meta {
+
+/// @{
+/// @brief Detection idiom
+///
+/// To use, define a templated type alias (a "trait"), which for some type
+/// either is correct and produces ("detects") some result type,
+/// or is SFINAE-d out. Example:
+/// @code
+/// template <typename T>
+/// using HasValueType = typename T::ValueType;
+/// @endcode
+struct NotDetected {};
+
+namespace impl {
+
+template <typename Default, typename AlwaysVoid,
+          template <typename...> typename Trait, typename... Args>
+struct Detector {
+  using type = Default;
+};
+
+template <typename Default, template <typename...> typename Trait,
+          typename... Args>
+struct Detector<Default, utils::void_t<Trait<Args...>>, Trait, Args...> {
+  using type = Trait<Args...>;
+};
+
+}  // namespace impl
+
+/// Checks whether a trait is correct for the given template args
+template <template <typename...> typename Trait, typename... Args>
+inline constexpr bool kIsDetected = !std::is_same_v<
+    typename impl::Detector<NotDetected, void, Trait, Args...>::type,
+    NotDetected>;
+
+/// Produces the result type of a trait, or NotDetected if it's incorrect
+/// for the given template args
+template <template <typename...> typename Trait, typename... Args>
+using DetectedType =
+    typename impl::Detector<NotDetected, void, Trait, Args...>::type;
+
+/// Produces the result type of a trait, or Default if it's incorrect
+/// for the given template args
+template <typename Default, template <typename...> typename Trait,
+          typename... Args>
+using DetectedOr = typename impl::Detector<Default, void, Trait, Args...>::type;
+/// @}
+
+template <typename T, typename U>
+using ExpectSame = std::enable_if_t<std::is_same_v<T, U>>;
 
 namespace impl {
 
@@ -18,92 +70,40 @@ struct IsInstantiationOf : std::false_type {};
 template <template <typename...> typename Template, typename... Args>
 struct IsInstantiationOf<Template, Template<Args...>> : std::true_type {};
 
-template <typename T, typename = void>
-struct HasKeyType : std::false_type {};
+template <typename T>
+using KeyType = typename T::key_type;
 
 template <typename T>
-struct HasKeyType<T, std::void_t<typename T::key_type>> : std::true_type {};
-
-template <typename T, typename = void>
-struct HasMappedType : std::false_type {};
+using MappedType = typename T::mapped_type;
 
 template <typename T>
-struct HasMappedType<T, std::void_t<typename T::mapped_type>> : std::true_type {
-};
-
-template <typename T, typename = void>
-struct IsRange : std::false_type {};
+using IsRange = ExpectSame<decltype(std::begin(std::declval<T&>())),
+                           decltype(std::end(std::declval<T&>()))>;
 
 template <typename T>
-struct IsRange<T, std::void_t<decltype(std::begin(std::declval<T&>())),
-                              decltype(std::end(std::declval<T&>()))>>
-    : std::true_type {};
+using IteratorType = std::enable_if_t<kIsDetected<IsRange, T>,
+                                      decltype(std::begin(std::declval<T&>()))>;
 
 template <typename T>
-using IteratorType = decltype(std::begin(std::declval<T&>()));
+using RangeValueType =
+    typename std::iterator_traits<DetectedType<IteratorType, T>>::value_type;
 
 template <typename T>
-struct RangeValueTypeImpl {
-  using type = typename std::iterator_traits<IteratorType<T>>::value_type;
-};
-
-template <typename T, typename = void>
-struct IsRecursiveRange : std::false_type {};
-
-template <typename T>
-struct IsRecursiveRange<T, std::enable_if_t<IsRange<T>::value>>
-    : std::integral_constant<
-          bool, std::is_same_v<typename RangeValueTypeImpl<T>::type, T>> {};
-
-template <typename T>
-struct IsOptional : IsInstantiationOf<std::optional, T> {};
-
-template <typename T>
-struct IsCharacter
-    : std::integral_constant<bool, std::is_same_v<T, char> ||
-                                       std::is_same_v<T, wchar_t> ||
-                                       std::is_same_v<T, char16_t> ||
-                                       std::is_same_v<T, char32_t>> {};
-
-template <typename T>
-struct IsInteger : std::integral_constant<bool, std::is_integral_v<T> &&
-                                                    !IsCharacter<T>::value &&
-                                                    !std::is_same_v<T, bool>> {
-};
-
-template <typename T, typename = void>
-struct IsOstreamWritable : std::false_type {};
-
-template <typename T>
-struct IsOstreamWritable<
-    T,
-    std::void_t<decltype(std::declval<std::ostream&>()
-                         << std::declval<const std::remove_reference_t<T>&>())>>
-    : std::true_type {};
-
-template <typename T, typename U, typename = void>
-struct IsEqualityComparable : std::false_type {};
+using IsOstreamWritable =
+    ExpectSame<decltype(std::declval<std::ostream&>()
+                        << std::declval<const std::remove_reference_t<T>&>()),
+               std::ostream&>;
 
 template <typename T, typename U>
-struct IsEqualityComparable<
-    T, U, std::void_t<decltype(std::declval<T&>() == std::declval<U&>())>>
-    : std::true_type {};
-
-template <typename T, typename = void>
-struct IsStdHashable : std::false_type {};
+using IsEqualityComparable =
+    ExpectSame<decltype(std::declval<const T&>() == std::declval<const U&>()),
+               bool>;
 
 template <typename T>
-struct IsStdHashable<
-    T, std::void_t<decltype(std::hash<T>{}(std::declval<const T&>()))>>
-    : std::true_type {};
+using IsStdHashable =
+    ExpectSame<decltype(std::hash<T>{}(std::declval<const T&>())), size_t>;
 
 }  // namespace impl
-
-template <typename T>
-using IsBool = std::is_same<T, bool>;
-
-template <typename T>
-inline constexpr bool kIsBool = IsBool<T>::value;
 
 template <template <typename...> typename Template, typename... Args>
 inline constexpr bool kIsInstantiationOf =
@@ -113,44 +113,51 @@ template <typename T>
 inline constexpr bool kIsVector = kIsInstantiationOf<std::vector, T>;
 
 template <typename T>
-inline constexpr bool kIsRange = impl::IsRange<T>::value;
+inline constexpr bool kIsRange = kIsDetected<impl::IteratorType, T>;
 
 template <typename T>
-struct IsMap
-    : std::integral_constant<bool, kIsRange<T> && impl::HasKeyType<T>::value &&
-                                       impl::HasMappedType<T>::value> {};
+inline constexpr bool kIsMap = kIsDetected<impl::IsRange, T>&&
+    kIsDetected<impl::KeyType, T>&& kIsDetected<impl::MappedType, T>;
 
 template <typename T>
-inline constexpr bool kIsMap = IsMap<T>::value;
+using MapKeyType = DetectedType<impl::KeyType, T>;
 
 template <typename T>
-using RangeValueType = typename impl::RangeValueTypeImpl<T>::type;
+using MapValueType = DetectedType<impl::MappedType, T>;
 
 template <typename T>
-inline constexpr bool kIsRecursiveRange = impl::IsRecursiveRange<T>::value;
+using RangeValueType = DetectedType<impl::RangeValueType, T>;
 
 template <typename T>
-inline constexpr bool kIsOptional = impl::IsOptional<T>::value;
+inline constexpr bool kIsRecursiveRange =
+    std::is_same_v<DetectedType<RangeValueType, T>, T>;
+
+template <typename T>
+inline constexpr bool kIsOptional = kIsInstantiationOf<std::optional, T>;
 
 /// Returns `true` if the type is a fundamental character type.
 /// `signed char` and `unsigned char` are not character types.
 template <typename T>
-inline constexpr bool kIsCharacter = impl::IsCharacter<T>::value;
+inline constexpr bool kIsCharacter =
+    std::is_same_v<T, char> || std::is_same_v<T, wchar_t> ||
+    std::is_same_v<T, char16_t> || std::is_same_v<T, char32_t>;
 
 /// Returns `true` if the type is a true integer type (not `*char*` or `bool`)
 /// `signed char` and `unsigned char` are integer types
 template <typename T>
-inline constexpr bool kIsInteger = impl::IsInteger<T>::value;
+inline constexpr bool kIsInteger =
+    std::is_integral_v<T> && !kIsCharacter<T> && !std::is_same_v<T, bool>;
 
 template <typename T>
-inline constexpr bool kIsOstreamWritable = impl::IsOstreamWritable<T>::value;
+inline constexpr bool kIsOstreamWritable =
+    kIsDetected<impl::IsOstreamWritable, T>;
 
 template <typename T, typename U = T>
 inline constexpr bool kIsEqualityComparable =
-    impl::IsEqualityComparable<T, U>::value;
+    kIsDetected<impl::IsEqualityComparable, T, U>;
 
 template <typename T>
 inline constexpr bool kIsStdHashable =
-    impl::IsStdHashable<T>::value&& kIsEqualityComparable<T>;
+    kIsDetected<impl::IsStdHashable, T>&& kIsEqualityComparable<T>;
 
 }  // namespace meta

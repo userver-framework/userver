@@ -7,93 +7,70 @@
 
 namespace mongo_cache::impl {
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasCollectionsField : std::false_type {};
 template <typename T>
-struct HasCollectionsField<T,
-                           ::utils::void_t<decltype(T::kMongoCollectionsField)>>
-    : std::true_type {};
+using CollectionsField = decltype(T::kMongoCollectionsField);
 template <typename T>
-constexpr bool kHasCollectionsField = HasCollectionsField<T>::value;
+inline constexpr bool kHasCollectionsField =
+    meta::kIsDetected<CollectionsField, T>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasUpdateFieldName : std::false_type {};
 template <typename T>
-struct HasUpdateFieldName<T,
-                          ::utils::void_t<decltype(T::kMongoUpdateFieldName)>>
-    : std::true_type {};
+using UpdateFieldName = decltype(T::kMongoUpdateFieldName);
 template <typename T>
-constexpr bool kHasUpdateFieldName = HasUpdateFieldName<T>::value;
+inline constexpr bool kHasUpdateFieldName =
+    meta::kIsDetected<UpdateFieldName, T>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasKeyField : std::false_type {};
 template <typename T>
-struct HasKeyField<T, ::utils::void_t<decltype(T::kKeyField)>>
-    : std::true_type {};
+using KeyField = decltype(T::kKeyField);
 template <typename T>
-constexpr bool kHasKeyField = HasKeyField<T>::value;
+inline constexpr bool kHasKeyField = meta::kIsDetected<KeyField, T>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasValidDataType : std::false_type {};
 template <typename T>
-struct HasValidDataType<T, ::utils::void_t<typename T::DataType>>
-    : meta::IsMap<typename T::DataType> {};
+using DataType = typename T::DataType;
 template <typename T>
-constexpr bool kHasValidDataType = HasValidDataType<T>::value;
+inline constexpr bool kHasValidDataType =
+    meta::kIsMap<meta::DetectedType<DataType, T>>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasSecondaryPreferred : std::false_type {};
 template <typename T>
-struct HasSecondaryPreferred<
-    T, ::utils::void_t<decltype(T::kIsSecondaryPreferred)>>
-    : meta::IsBool<std::decay_t<decltype(T::kIsSecondaryPreferred)>> {};
+using HasSecondaryPreferred =
+    meta::ExpectSame<std::decay_t<decltype(T::kIsSecondaryPreferred)>, bool>;
 template <typename T>
-constexpr bool kHasSecondaryPreferred = HasSecondaryPreferred<T>::value;
+inline constexpr bool kHasSecondaryPreferred =
+    meta::kIsDetected<HasSecondaryPreferred, T>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasDeserializeObject : std::false_type {};
 template <typename T>
-struct HasDeserializeObject<T, ::utils::void_t<decltype(T::DeserializeObject)>>
-    : std::true_type {};
+using HasDeserializeObject = decltype(T::DeserializeObject);
 template <typename T>
-constexpr bool kHasDeserializeObject = HasDeserializeObject<T>::value;
+inline constexpr bool kHasDeserializeObject =
+    meta::kIsDetected<HasDeserializeObject, T>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasDefaultDeserializeObject : std::false_type {};
 template <typename T>
-struct HasDefaultDeserializeObject<
-    T, ::utils::void_t<decltype(T::kUseDefaultDeserializeObject)>>
-    : meta::IsBool<std::decay_t<decltype(T::kUseDefaultDeserializeObject)>> {};
+using HasDefaultDeserializeObject =
+    meta::ExpectSame<std::decay_t<decltype(T::kUseDefaultDeserializeObject)>,
+                     bool>;
 template <typename T>
-constexpr bool kHasDefaultDeserializeObject =
-    HasDefaultDeserializeObject<T>::value;
+inline constexpr bool kHasDefaultDeserializeObject =
+    meta::kIsDetected<HasDefaultDeserializeObject, T>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasFindOperation : std::false_type {};
 template <typename T>
-struct HasFindOperation<T, ::utils::void_t<decltype(T::GetFindOperation)>>
-    : std::true_type {};
+using HasFindOperation = decltype(T::GetFindOperation);
 template <typename T>
-constexpr bool kHasFindOperation = HasFindOperation<T>::value;
+inline constexpr bool kHasFindOperation =
+    meta::kIsDetected<HasFindOperation, T>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasDefaultFindOperation : std::false_type {};
 template <typename T>
-struct HasDefaultFindOperation<
-    T, ::utils::void_t<decltype(T::kUseDefaultFindOperation)>>
-    : meta::IsBool<std::decay_t<decltype(T::kUseDefaultFindOperation)>> {};
+using HasDefaultFindOperation =
+    meta::ExpectSame<std::decay_t<decltype(T::kUseDefaultFindOperation)>, bool>;
 template <typename T>
-constexpr bool kHasDefaultFindOperation = HasDefaultFindOperation<T>::value;
+inline constexpr bool kHasDefaultFindOperation =
+    meta::kIsDetected<HasDefaultFindOperation, T>;
 
-template <typename T, typename = ::utils::void_t<>>
-struct HasInvalidDocumentsSkipped : std::false_type {};
 template <typename T>
-struct HasInvalidDocumentsSkipped<
-    T, ::utils::void_t<decltype(T::kAreInvalidDocumentsSkipped)>>
-    : meta::IsBool<std::decay_t<decltype(T::kAreInvalidDocumentsSkipped)>> {};
+using HasInvalidDocumentsSkipped =
+    meta::ExpectSame<std::decay_t<decltype(T::kAreInvalidDocumentsSkipped)>,
+                     bool>;
 template <typename T>
-constexpr bool kHasInvalidDocumentsSkipped =
-    HasInvalidDocumentsSkipped<T>::value;
+inline constexpr bool kHasInvalidDocumentsSkipped =
+    meta::kIsDetected<HasInvalidDocumentsSkipped, T>;
 
 template <typename>
 struct ClassByMemberPointer {};
