@@ -250,17 +250,6 @@ void easy::set_url(std::string url_str) {
 void easy::set_url(std::string url_str, std::error_code& ec) {
   orig_url_str_ = std::move(url_str);
   url_.SetAbsoluteUrl(orig_url_str_.c_str(), ec);
-  if (ec == errc::UrlErrorCode::kMalformedInput) {
-    // try falling back to parsing with default scheme
-    url_.SetDefaultSchemeUrl(orig_url_str_.c_str(), ec);
-    if (!ec) {
-      LOG_LIMITED_WARNING() << "Got URL without scheme: '" << orig_url_str_
-                            << "', falling back to 'http://'. Please fix it by "
-                               "specifying a scheme explicitly.";
-      url_.SetScheme("http", ec);
-      UASSERT(!ec);
-    }
-  }
   if (!ec) {
     ec = static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
         handle_, native::CURLOPT_CURLU, url_.native_handle()));
