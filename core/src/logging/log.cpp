@@ -11,6 +11,7 @@
 #include <engine/run_in_coro.hpp>
 #include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>
+#include <logging/rate_limit.hpp>
 #include <logging/spdlog.hpp>
 #include <rcu/rcu.hpp>
 #include <tracing/span.hpp>
@@ -431,11 +432,14 @@ RateLimiter::RateLimiter(RateLimitData& data, Level level)
     : level_(level), should_log_(logging::ShouldLog(level)), dropped_count_(0) {
   if (!should_log_) return;
 
-  constexpr auto kResetInterval =
-      std::chrono::steady_clock::duration{std::chrono::seconds{1}};
+  if (!impl::IsLogLimitedEnabled()) {
+    return;
+  }
+
+  const auto reset_interval = impl::GetLogLimitedInterval();
   const auto now = std::chrono::steady_clock::now();
 
-  if (now - data.last_reset_time >= kResetInterval) {
+  if (now - data.last_reset_time >= reset_interval) {
     data.count_since_reset = 0;
     data.last_reset_time = now;
   }

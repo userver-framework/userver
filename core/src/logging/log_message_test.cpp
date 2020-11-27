@@ -12,6 +12,7 @@
 
 #include <decimal64/decimal64.hpp>
 #include <logging/logging_test.hpp>
+#include <logging/rate_limit.hpp>
 #include <utils/encoding/tskv_testdata_bin.hpp>
 #include <utils/traceful_exception.hpp>
 
@@ -409,4 +410,10 @@ TEST_F(LoggingTest, LogLimited) {
   EXPECT_EQ(CountLimitedLoggedTimes<7>(), 3);
   EXPECT_EQ(CountLimitedLoggedTimes<8>(), 4);
   EXPECT_EQ(CountLimitedLoggedTimes<1024>(), 11);
+}
+
+TEST_F(LoggingTest, LogLimitedDisabled) {
+  logging::impl::SetLogLimitedEnable(false);
+  EXPECT_EQ(CountLimitedLoggedTimes<1024>(), 1024);
+  logging::impl::SetLogLimitedEnable(true);
 }

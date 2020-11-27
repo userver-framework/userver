@@ -3,6 +3,8 @@
 #include <tracing/no_log_spans.hpp>
 #include <tracing/tracer.hpp>
 
+#include <logging/rate_limit.hpp>
+
 namespace components {
 
 struct LoggingConfiguratorConfig {
@@ -15,8 +17,13 @@ struct LoggingConfiguratorConfig {
   tracing::NoLogSpans no_log_spans;
 };
 
-LoggingConfigurator::LoggingConfigurator(const ComponentConfig&,
+LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
                                          const ComponentContext& context) {
+  logging::impl::SetLogLimitedEnable(
+      config["limited-logging-enable"].As<bool>());
+  logging::impl::SetLogLimitedInterval(
+      config["limited-logging-interval"].As<std::chrono::milliseconds>());
+
   auto& config_component = context.FindComponent<::components::TaxiConfig>();
   config_subscription_ = config_component.UpdateAndListen(
       this, "update_logging_config", &LoggingConfigurator::OnConfigUpdate);
