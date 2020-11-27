@@ -1,5 +1,9 @@
-#include <utest/simple_server.hpp>
 #include <utest/utest.hpp>
+
+// Test that pfr is includable
+#include <boost/pfr/precise.hpp>
+
+#include <utest/simple_server.hpp>
 
 #include <engine/io/socket.hpp>
 
