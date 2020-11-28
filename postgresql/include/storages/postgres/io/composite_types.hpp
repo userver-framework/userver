@@ -3,7 +3,7 @@
 /// @file storages/postgres/io/composite_types.hpp
 /// @brief Composite types I/O support
 
-#include <boost/pfr/core.hpp>
+#include <boost/pfr/precise.hpp>
 #include <utility>
 
 #include <compiler/demangle.hpp>

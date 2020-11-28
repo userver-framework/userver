@@ -7,32 +7,21 @@
 #define BOOST_PFR_DETAIL_CONFIG_HPP
 #pragma once
 
-#include <type_traits> // to get non standard platform macro definitions (__GLIBCXX__ for example)
-
 // Reminder:
-//  * MSVC++ 14.2 _MSC_VER == 1927 <- Loophole is known to work (Visual Studio ????)
-//  * MSVC++ 14.1 _MSC_VER == 1916 <- Loophole is known to NOT work (Visual Studio 2017)
+//  * MSVC++ 1?.? _MSC_VER >  1900 (Visual Studio 2017)
 //  * MSVC++ 14.0 _MSC_VER == 1900 (Visual Studio 2015)
 //  * MSVC++ 12.0 _MSC_VER == 1800 (Visual Studio 2013)
 
 #if defined(_MSC_VER)
-#   if !defined(_MSVC_LANG) || _MSC_VER <= 1900
-#       error Boost.PFR library requires more modern MSVC compiler.
+#   if _MSC_VER <= 1900
+#       error Boost.PFR library requires MSVC with c++17 support (Visual Studio 2017 or later).
 #   endif
 #elif __cplusplus < 201402L
 #   error Boost.PFR library requires at least C++14.
 #endif
 
 #ifndef BOOST_PFR_USE_LOOPHOLE
-#   if defined(_MSC_VER)
-#       if _MSC_VER >= 1927
-#           define BOOST_PFR_USE_LOOPHOLE 1
-#       else
-#           define BOOST_PFR_USE_LOOPHOLE 0
-#       endif
-#   elif defined(__clang_major__) && __clang_major__ >= 8
-#       define BOOST_PFR_USE_LOOPHOLE 0
-#   else
+#   if !defined(__clang_major__) || __clang_major__ < 8
 #       define BOOST_PFR_USE_LOOPHOLE 1
 #   endif
 #endif
@@ -40,15 +29,9 @@
 #ifndef BOOST_PFR_USE_CPP17
 #   ifdef __cpp_structured_bindings
 #       define BOOST_PFR_USE_CPP17 1
-#   elif defined(_MSVC_LANG)
-#       if _MSVC_LANG >= 201703L
-#           define BOOST_PFR_USE_CPP17 1
-#       else
-#           define BOOST_PFR_USE_CPP17 0
-#           if !BOOST_PFR_USE_LOOPHOLE
-#               error Boost.PFR requires /std:c++latest or /std:c++17 flags on your compiler.
-#           endif
-#       endif
+#   elif defined(_MSC_VER)
+#       warning PFR library supports MSVC compiler only with /std:c++latest or /std:c++17 flag. Assuming that you`ve used it. Define `BOOST_PFR_USE_CPP17` to 1 to suppress this warning.
+#       define BOOST_PFR_USE_CPP17 1
 #   else
 #       define BOOST_PFR_USE_CPP17 0
 #   endif

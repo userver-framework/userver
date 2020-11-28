@@ -121,24 +121,12 @@ namespace boost { namespace pfr { namespace detail {
         seed ^= value + 0x9e3779b9 + (seed<<6) + (seed>>2);
     }
 
-    template <typename T>
-    auto compute_hash(const T& value, long /*priority*/)
-        -> decltype(std::hash<T>()(value))
-    {
-        return std::hash<T>()(value);
-    }
-
-    template <typename T>
-    std::size_t compute_hash(const T& /*value*/, int /*priority*/) {
-        static_assert(sizeof(T) && false, "====================> Boost.PFR: std::hash not specialized for type T");
-        return 0;
-    }
-
     template <std::size_t I, std::size_t N>
     struct hash_impl {
         template <class T>
         constexpr static std::size_t compute(const T& val) noexcept {
-            std::size_t h = detail::compute_hash( ::boost::pfr::detail::sequence_tuple::get<I>(val), 1L );
+            typedef std::decay_t<typename detail::sequence_tuple::tuple_element<I, T>::type> elem_t;
+            std::size_t h = std::hash<elem_t>()( ::boost::pfr::detail::sequence_tuple::get<I>(val) );
             detail::hash_combine(h, hash_impl<I + 1, N>::compute(val) );
             return h;
         }
@@ -155,35 +143,6 @@ namespace boost { namespace pfr { namespace detail {
 ///////////////////// Define min_element and to avoid inclusion of <algorithm>
     constexpr std::size_t min_size(std::size_t x, std::size_t y) noexcept {
         return x < y ? x : y;
-    }
-
-    template <template <std::size_t, std::size_t> class Visitor, class T, class U>
-    bool binary_visit(const T& x, const U& y) {
-        constexpr std::size_t fields_count_lhs = detail::fields_count<std::remove_reference_t<T>>();
-        constexpr std::size_t fields_count_rhs = detail::fields_count<std::remove_reference_t<U>>();
-        constexpr std::size_t fields_count_min = detail::min_size(fields_count_lhs, fields_count_rhs);
-        typedef Visitor<0, fields_count_min> visitor_t;
-
-#if BOOST_PFR_USE_CPP17 || BOOST_PFR_USE_LOOPHOLE
-        return visitor_t::cmp(detail::tie_as_tuple(x), detail::tie_as_tuple(y));
-#else
-        bool result = true;
-        ::boost::pfr::detail::for_each_field_dispatcher(
-            x,
-            [&result, &y](const auto& lhs) {
-                ::boost::pfr::detail::for_each_field_dispatcher(
-                    y,
-                    [&result, &lhs](const auto& rhs) {
-                        result = visitor_t::cmp(lhs, rhs);
-                    },
-                    detail::make_index_sequence<fields_count_rhs>{}
-                );
-            },
-            detail::make_index_sequence<fields_count_lhs>{}
-        );
-
-        return result;
-#endif
     }
 
 }}} // namespace boost::pfr::detail

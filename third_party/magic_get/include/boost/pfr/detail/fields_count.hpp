@@ -29,7 +29,7 @@ namespace boost { namespace pfr { namespace detail {
 ///////////////////// Structure that can be converted to reference to anything
 struct ubiq_lref_constructor {
     std::size_t ignore;
-    template <class Type> constexpr operator Type&() const && noexcept {  // Allows initialization of reference fields (T& and const T&)
+    template <class Type> constexpr operator Type&() const noexcept {  // Allows initialization of reference fields (T& and const T&)
         return detail::unsafe_declval<Type&>();
     };
 };
@@ -37,7 +37,7 @@ struct ubiq_lref_constructor {
 ///////////////////// Structure that can be converted to rvalue reference to anything
 struct ubiq_rref_constructor {
     std::size_t ignore;
-    template <class Type> /*constexpr*/ operator Type&&() const && noexcept {  // Allows initialization of rvalue reference fields and move-only types
+    template <class Type> /*constexpr*/ operator Type&&() const noexcept {  // Allows initialization of rvalue reference fields and move-only types
         return detail::unsafe_declval<Type&&>();
     };
 };
@@ -196,7 +196,7 @@ constexpr std::size_t detect_fields_count_dispatch(size_t_<N>, int, int) noexcep
     return detail::detect_fields_count_greedy<T, 0, N>(detail::multi_element_range{});
 }
 
-///////////////////// Returns fields count
+///////////////////// Returns non-flattened fields count
 template <class T>
 constexpr std::size_t fields_count() noexcept {
     using type = std::remove_cv_t<T>;
@@ -221,7 +221,7 @@ constexpr std::size_t fields_count() noexcept {
 
 #ifdef __cpp_lib_is_aggregate
     static_assert(
-        std::is_aggregate<type>::value             // Does not return `true` for built-in types.
+        std::is_aggregate<type>::value             // Does not return `true` for build in types.
         || std::is_scalar<type>::value,
         "====================> Boost.PFR: Type must be aggregate initializable."
     );
