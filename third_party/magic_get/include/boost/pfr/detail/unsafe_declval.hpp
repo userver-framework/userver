@@ -18,7 +18,7 @@ void report_if_you_see_link_error_with_this_function() noexcept;
 
 // For returning non default constructible types. Do NOT use at runtime!
 //
-// GCC's std::declval may not be used in potentionally evaluated contexts,
+// GCCs std::declval may not be used in potentionally evaluated contexts,
 // so we reinvent it.
 template <class T>
 constexpr T unsafe_declval() noexcept {

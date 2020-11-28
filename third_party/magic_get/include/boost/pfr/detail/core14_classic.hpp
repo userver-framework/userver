@@ -508,7 +508,7 @@ constexpr auto internal_tuple_with_same_alignment() noexcept {
 
     static_assert(
         std::is_trivial<type>::value && std::is_standard_layout<type>::value,
-        "====================> Boost.PFR: Type can not be used is flat_ functions, because it's not POD"
+        "====================> Boost.PFR: Type can not be reflected without Loophole or C++17, because it's not POD"
     );
     static_assert(!std::is_reference<type>::value, "====================> Boost.PFR: Not applyable");
     constexpr auto res = detail::as_flat_tuple_impl<type>(
@@ -528,7 +528,7 @@ struct ubiq_is_flat_refelectable {
 
     template <class Type>
     constexpr operator Type() const noexcept {
-        is_flat_refelectable = std::is_fundamental<Type>::value;
+        is_flat_refelectable = std::is_fundamental<std::remove_pointer_t<Type>>::value;
         return {};
     }
 };
@@ -562,8 +562,6 @@ auto tie_as_flat_tuple(T& lvalue) noexcept {
     return boost::pfr::detail::make_flat_tuple_of_references(lvalue, getter, size_t_<0>{}, size_t_<tuple_type::size_v>{});
 }
 
-#if !BOOST_PFR_USE_CPP17
-
 template <class T>
 auto tie_as_tuple(T& val) noexcept {
     static_assert(
@@ -572,12 +570,10 @@ auto tie_as_tuple(T& val) noexcept {
     );
     static_assert(
         boost::pfr::detail::is_flat_refelectable<T>( detail::make_index_sequence<boost::pfr::detail::fields_count<T>()>{} ),
-        "====================> Boost.PFR: Not possible in C++14 to represent that type without loosing information. Use boost::pfr::flat_ version, or change type definition, or enable C++17"
+        "====================> Boost.PFR: Not possible in C++14 to represent that type without loosing information. Change type definition or enable C++17"
     );
     return boost::pfr::detail::tie_as_flat_tuple(val);
 }
-
-#endif // #if !BOOST_PFR_USE_CPP17
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -596,8 +592,6 @@ struct ubiq_constructor_constexpr_copy {
 };
 
 /////////////////////
-
-#if !BOOST_PFR_USE_CPP17
 
 template <class T, std::size_t... I>
 struct is_constexpr_aggregate_initializable { // TODO: try to fix it
@@ -696,8 +690,6 @@ void for_each_field_dispatcher(T& t, F&& f, std::index_sequence<I...>) {
         std::integral_constant<bool, is_flat_refelectable_val>{}
     );
 }
-
-#endif // #if !BOOST_PFR_USE_CPP17
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

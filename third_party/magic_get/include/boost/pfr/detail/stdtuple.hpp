@@ -30,6 +30,17 @@ constexpr auto make_stdtiedtuple_from_tietuple(const T& t, std::index_sequence<I
     );
 }
 
+template <class T, std::size_t... I>
+constexpr auto make_conststdtiedtuple_from_tietuple(const T& t, std::index_sequence<I...>) noexcept {
+    return std::tuple<
+        std::add_lvalue_reference_t<std::add_const_t<
+            std::remove_reference_t<decltype(boost::pfr::detail::sequence_tuple::get<I>(t))>
+        >>...
+    >(
+        boost::pfr::detail::sequence_tuple::get<I>(t)...
+    );
+}
+
 }}} // namespace boost::pfr::detail
 
 #endif // BOOST_PFR_DETAIL_STDTUPLE_HPP

@@ -13,7 +13,7 @@
 #include <utility>      // metaprogramming stuff
 #include <cstddef>      // std::size_t
 
-///////////////////// Tuple that holds it's values in the supplied order
+///////////////////// Tuple that holds its values in the supplied order
 namespace boost { namespace pfr { namespace detail { namespace sequence_tuple {
 
 template <std::size_t N, class T>

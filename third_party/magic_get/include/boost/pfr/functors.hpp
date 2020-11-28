@@ -3,67 +3,45 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef BOOST_PFR_PRECISE_FUNCTORS_HPP
-#define BOOST_PFR_PRECISE_FUNCTORS_HPP
+#ifndef BOOST_PFR_FUNCTORS_HPP
+#define BOOST_PFR_FUNCTORS_HPP
 #pragma once
 
 #include <boost/pfr/detail/config.hpp>
 
+#include <boost/pfr/ops.hpp>
+
 #include <boost/pfr/detail/functional.hpp>
-#include <boost/pfr/detail/make_integer_sequence.hpp>
-#if BOOST_PFR_USE_CPP17
-#   include <boost/pfr/detail/core17.hpp>
-#else
-#   include <boost/pfr/detail/core14.hpp>
-#endif
 
 /// \file boost/pfr/functors.hpp
 /// Contains functors that are close to the Standard Library ones.
-/// Each functor iterates over fields of the type.
+/// Each functor calls corresponding Boost.PFR function from boost/pfr/ops.hpp
 ///
-/// \b Requires: C++17 or \constexprinit{C++14 constexpr aggregate intializable type}.
+/// \b Example:
+/// \code
+///     #include <boost/pfr/functors.hpp>
+///     struct my_struct {      // No operators defined for that structure
+///         int i; short s; char data[7]; bool bl; int a,b,c,d,e,f;
+///     };
+///     // ...
+///
+///     std::unordered_set<
+///         my_struct,
+///         boost::pfr::hash<>,
+///         boost::pfr::equal_to<>
+///     > my_set;
+/// \endcode
+///
+/// \b Synopsis:
 namespace boost { namespace pfr {
-
-namespace detail {
-
-    template <template <std::size_t, std::size_t> class Visitor, class T, class U>
-    bool binary_visit(const T& x, const U& y) {
-        constexpr std::size_t fields_count_lhs = detail::fields_count<std::remove_reference_t<T>>();
-        constexpr std::size_t fields_count_rhs = detail::fields_count<std::remove_reference_t<U>>();
-        constexpr std::size_t fields_count_min = detail::min_size(fields_count_lhs, fields_count_rhs);
-        typedef Visitor<0, fields_count_min> visitor_t;
-
-#if BOOST_PFR_USE_CPP17
-        return visitor_t::cmp(detail::tie_as_tuple(x), detail::tie_as_tuple(y));
-#else
-        bool result = true;
-        ::boost::pfr::detail::for_each_field_dispatcher(
-            x,
-            [&result, &y](const auto& lhs) {
-                ::boost::pfr::detail::for_each_field_dispatcher(
-                    y,
-                    [&result, &lhs](const auto& rhs) {
-                        result = visitor_t::cmp(lhs, rhs);
-                    },
-                    detail::make_index_sequence<fields_count_rhs>{}
-                );
-            },
-            detail::make_index_sequence<fields_count_lhs>{}
-        );
-
-        return result;
-#endif
-    }
-
-} // namespace detail
 
 ///////////////////// Comparisons
 
-/// \brief std::equal_to like comparator
+/// \brief std::equal_to like comparator that returns \forcedlink{eq}(x, y)
 template <class T = void> struct equal_to {
     /// \return \b true if each field of \b x equals the field with same index of \b y.
     bool operator()(const T& x, const T& y) const {
-        return detail::binary_visit<detail::equal_impl>(x, y);
+        return boost::pfr::eq(x, y);
     }
 
 #ifdef BOOST_PFR_DOXYGEN_INVOKED
@@ -80,17 +58,18 @@ template <class T = void> struct equal_to {
 template <> struct equal_to<void> {
     template <class T, class U>
     bool operator()(const T& x, const U& y) const {
-        return detail::binary_visit<detail::equal_impl>(x, y);
+        return boost::pfr::eq(x, y);
     }
 
+    typedef std::true_type is_transparent;
 };
 /// @endcond
 
-/// \brief std::not_equal like comparator
+/// \brief std::not_equal like comparator that returns \forcedlink{ne}(x, y)
 template <class T = void> struct not_equal {
     /// \return \b true if at least one field \b x not equals the field with same index of \b y.
     bool operator()(const T& x, const T& y) const {
-        return detail::binary_visit<detail::not_equal_impl>(x, y);
+        return boost::pfr::ne(x, y);
     }
 
 #ifdef BOOST_PFR_DOXYGEN_INVOKED
@@ -107,18 +86,18 @@ template <class T = void> struct not_equal {
 template <> struct not_equal<void> {
     template <class T, class U>
     bool operator()(const T& x, const U& y) const {
-        return detail::binary_visit<detail::not_equal_impl>(x, y);
+        return boost::pfr::ne(x, y);
     }
 
     typedef std::true_type is_transparent;
 };
 /// @endcond
 
-/// \brief std::greater like comparator
+/// \brief std::greater like comparator that returns \forcedlink{gt}(x, y)
 template <class T = void> struct greater {
     /// \return \b true if field of \b x greater than the field with same index of \b y and all previous fields of \b x equal to the same fields of \b y.
     bool operator()(const T& x, const T& y) const {
-        return detail::binary_visit<detail::greater_impl>(x, y);
+        return boost::pfr::gt(x, y);
     }
 
 #ifdef BOOST_PFR_DOXYGEN_INVOKED
@@ -135,18 +114,18 @@ template <class T = void> struct greater {
 template <> struct greater<void> {
     template <class T, class U>
     bool operator()(const T& x, const U& y) const {
-        return detail::binary_visit<detail::greater_impl>(x, y);
+        return boost::pfr::gt(x, y);
     }
 
     typedef std::true_type is_transparent;
 };
 /// @endcond
 
-/// \brief std::less like comparator
+/// \brief std::less like comparator that returns \forcedlink{lt}(x, y)
 template <class T = void> struct less {
     /// \return \b true if field of \b x less than the field with same index of \b y and all previous fields of \b x equal to the same fields of \b y.
     bool operator()(const T& x, const T& y) const {
-        return detail::binary_visit<detail::less_impl>(x, y);
+        return boost::pfr::lt(x, y);
     }
 
 #ifdef BOOST_PFR_DOXYGEN_INVOKED
@@ -163,19 +142,19 @@ template <class T = void> struct less {
 template <> struct less<void> {
     template <class T, class U>
     bool operator()(const T& x, const U& y) const {
-        return detail::binary_visit<detail::less_impl>(x, y);
+        return boost::pfr::lt(x, y);
     }
 
     typedef std::true_type is_transparent;
 };
 /// @endcond
 
-/// \brief std::greater_equal like comparator
+/// \brief std::greater_equal like comparator that returns \forcedlink{ge}(x, y)
 template <class T = void> struct greater_equal {
     /// \return \b true if field of \b x greater than the field with same index of \b y and all previous fields of \b x equal to the same fields of \b y;
     /// or if each field of \b x equals the field with same index of \b y.
     bool operator()(const T& x, const T& y) const {
-        return detail::binary_visit<detail::greater_equal_impl>(x, y);
+        return boost::pfr::ge(x, y);
     }
 
 #ifdef BOOST_PFR_DOXYGEN_INVOKED
@@ -192,19 +171,19 @@ template <class T = void> struct greater_equal {
 template <> struct greater_equal<void> {
     template <class T, class U>
     bool operator()(const T& x, const U& y) const {
-        return detail::binary_visit<detail::greater_equal_impl>(x, y);
+        return boost::pfr::ge(x, y);
     }
 
     typedef std::true_type is_transparent;
 };
 /// @endcond
 
-/// \brief std::less_equal like comparator
+/// \brief std::less_equal like comparator that returns \forcedlink{le}(x, y)
 template <class T = void> struct less_equal {
     /// \return \b true if field of \b x less than the field with same index of \b y and all previous fields of \b x equal to the same fields of \b y;
     /// or if each field of \b x equals the field with same index of \b y.
     bool operator()(const T& x, const T& y) const {
-        return detail::binary_visit<detail::less_equal_impl>(x, y);
+        return boost::pfr::le(x, y);
     }
 
 #ifdef BOOST_PFR_DOXYGEN_INVOKED
@@ -221,7 +200,7 @@ template <class T = void> struct less_equal {
 template <> struct less_equal<void> {
     template <class T, class U>
     bool operator()(const T& x, const U& y) const {
-        return detail::binary_visit<detail::less_equal_impl>(x, y);
+        return boost::pfr::le(x, y);
     }
 
     typedef std::true_type is_transparent;
@@ -229,31 +208,14 @@ template <> struct less_equal<void> {
 /// @endcond
 
 
-/// \brief std::hash like functor
+/// \brief std::hash like functor that returns \forcedlink{hash_value}(x)
 template <class T> struct hash {
     /// \return hash value of \b x.
     std::size_t operator()(const T& x) const {
-        constexpr std::size_t fields_count_val = boost::pfr::detail::fields_count<std::remove_reference_t<T>>();
-#if BOOST_PFR_USE_CPP17
-        return detail::hash_impl<0, fields_count_val>::compute(detail::tie_as_tuple(x));
-#else
-        std::size_t result = 0;
-        ::boost::pfr::detail::for_each_field_dispatcher(
-            x,
-            [&result](const auto& lhs) {
-                // We can not reuse `fields_count_val` in lambda because compilers had issues with
-                // passing constexpr variables into lambdas. Computing is again is the most portable solution.
-                constexpr std::size_t fields_count_val_lambda = boost::pfr::detail::fields_count<std::remove_reference_t<T>>();
-                result = detail::hash_impl<0, fields_count_val_lambda>::compute(lhs);
-            },
-            detail::make_index_sequence<fields_count_val>{}
-        );
-
-        return result;
-#endif
+        return boost::pfr::hash_value(x);
     }
 };
 
 }} // namespace boost::pfr
 
-#endif // BOOST_PFR_PRECISE_FUNCTORS_HPP
+#endif // BOOST_PFR_FUNCTORS_HPP

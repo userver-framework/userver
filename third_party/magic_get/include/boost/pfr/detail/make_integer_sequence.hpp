@@ -46,7 +46,7 @@ struct join_sequences<std::integer_sequence<T, A...>, std::integer_sequence<T, B
 
 template <typename T, T Min, T Max>
 struct build_sequence_impl {
-    static_assert(Min < Max, "Start of range must be less than it's end");
+    static_assert(Min < Max, "Start of range must be less than its end");
     static constexpr T size = Max - Min;
     using type = typename join_sequences<
             typename build_sequence_impl<T, Min, Min + size / 2>::type,

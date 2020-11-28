@@ -8,14 +8,13 @@
 #define BOOST_PFR_DETAIL_TIE_FROM_STRUCTURE_TUPLE_HPP
 #pragma once
 
+#include <boost/pfr/detail/config.hpp>
+
+#include <boost/pfr/detail/core.hpp>
+
 #include <boost/pfr/detail/stdtuple.hpp>
-#include <boost/pfr/precise/tuple_size.hpp>
+#include <boost/pfr/tuple_size.hpp>
 #include <boost/pfr/detail/make_integer_sequence.hpp>
-#if BOOST_PFR_USE_CPP17
-#   include <boost/pfr/detail/core17.hpp>
-#else
-#   include <boost/pfr/detail/core14.hpp>
-#endif
 
 #include <tuple>
 

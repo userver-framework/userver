@@ -14,12 +14,10 @@
 #include <utility>
 #include <boost/pfr/detail/sequence_tuple.hpp>
 #include <boost/pfr/detail/rvalue_t.hpp>
+#include <boost/pfr/detail/size_t_.hpp>
 
 
 namespace boost { namespace pfr { namespace detail {
-
-template <std::size_t Index>
-using size_t_ = std::integral_constant<std::size_t, Index >;
 
 // Our own implementation of std::aligned_storage. On godbolt with MSVC, I have compilation errors
 // using the standard version, it seems the compiler cannot generate default ctor.
@@ -69,7 +67,7 @@ template <typename U, typename S>
 class offset_based_getter {
   using this_t = offset_based_getter<U, S>;
 
-  static_assert(sizeof(U) == sizeof(S), "====================> Boost.PFR: Member sequence does not indicate correct size for struct type!");
+  static_assert(sizeof(U) == sizeof(S), "====================> Boost.PFR: Member sequence does not indicate correct size for struct type! Maybe the user-provided type is not a SimpleAggregate?");
   static_assert(alignof(U) == alignof(S), "====================> Boost.PFR: Member sequence does not indicate correct alignment for struct type!");
 
   static_assert(!std::is_const<U>::value, "====================> Boost.PFR: const should be stripped from user-defined type when using offset_based_getter or overload resolution will be ambiguous later, this indicates an error within pfr");
