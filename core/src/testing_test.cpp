@@ -1,7 +1,7 @@
 #include <utest/utest.hpp>
 
 // Test that pfr is includable
-#include <boost/pfr/precise.hpp>
+#include <boost/pfr/precise/core.hpp>
 
 #include <utest/simple_server.hpp>
 

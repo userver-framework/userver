@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/pfr/precise.hpp>
+#include <boost/pfr/precise/core.hpp>
 
 #include <storages/postgres/result_set.hpp>
 

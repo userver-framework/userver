@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/pfr/precise.hpp>
+#include <boost/pfr/precise/core.hpp>
 
 #include <storages/postgres/detail/is_in_namespace.hpp>
 #include <storages/postgres/io/type_traits.hpp>
