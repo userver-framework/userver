@@ -89,6 +89,8 @@ class Request final : public std::enable_shared_from_this<Request> {
           headers);
   /// Sets the User-Agent header
   std::shared_ptr<Request> user_agent(const std::string& value);
+  /// Sets proxy to use. Example: [::1]:1080
+  std::shared_ptr<Request> proxy(const std::string& value);
   /// Cookies for request as map
   std::shared_ptr<Request> cookies(const Cookies& cookies);
   /// Follow redirects or not. Default: follow

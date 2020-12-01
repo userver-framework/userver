@@ -233,6 +233,11 @@ std::shared_ptr<Request> Request::user_agent(const std::string& value) {
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::proxy(const std::string& value) {
+  pimpl_->easy().set_proxy(value);
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::cookies(const Cookies& cookies) {
   std::string cookie_str;
   for (const auto& [name, value] : cookies) {

@@ -10,6 +10,7 @@
 
 #include <clients/http/request.hpp>
 #include <clients/http/statistics.hpp>
+#include <rcu/rcu.hpp>
 #include <utils/fast_pimpl.hpp>
 #include <utils/periodic_task.hpp>
 #include <utils/swappingsmart.hpp>
@@ -99,6 +100,8 @@ class Client final {
 
   engine::TaskProcessor& fs_task_processor_;
   std::optional<std::string> user_agent_;
+  rcu::Variable<std::string> proxy_;
+
   utils::SwappingSmart<const curl::easy> easy_;
   utils::PeriodicTask easy_reinit_task_;
 

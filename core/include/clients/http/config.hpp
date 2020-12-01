@@ -21,6 +21,8 @@ struct Config {
   std::chrono::microseconds https_connect_throttle_rate;
   size_t per_host_connect_throttle_limit;
   std::chrono::microseconds per_host_connect_throttle_rate;
+
+  std::string proxy;
 };
 
 }  // namespace clients::http

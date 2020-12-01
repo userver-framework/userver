@@ -40,6 +40,7 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads,
       idle_queue_(),
       fs_task_processor_(fs_task_processor),
       user_agent_(utils::GetUserverIdentifier()),
+      proxy_(),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()) {
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
@@ -101,6 +102,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
     thread_local unsigned int rand_state = 0;
     auto i = rand_r(&rand_state) % multis_.size();
     auto& multi = multis_[i];
+
     auto wrapper = std::make_shared<impl::EasyWrapper>(
         easy_.Get()->GetBound(*multi), *this);
     request = std::make_shared<Request>(std::move(wrapper),
@@ -114,6 +116,13 @@ std::shared_ptr<Request> Client::CreateRequest() {
 
   if (user_agent_) {
     request->user_agent(*user_agent_);
+  }
+
+  {
+    // Even if proxy is an empty string we should set it, because empty proxy
+    // for CURL disables the use of *_proxy env variables.
+    auto proxy_value = proxy_.Read();
+    request->proxy(*proxy_value);
   }
 
   return request;
@@ -221,6 +230,8 @@ void Client::SetConfig(const Config& config) {
   connect_rate_limiter_->SetPerHostLimits(
       config.per_host_connect_throttle_limit,
       config.per_host_connect_throttle_rate);
+
+  proxy_.Assign(config.proxy);
 }
 
 void Client::ResetUserAgent(std::optional<std::string> user_agent) {

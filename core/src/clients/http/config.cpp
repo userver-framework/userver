@@ -34,7 +34,8 @@ Config::Config(const DocsMap& docs_map)
       https_connect_throttle_limit(kNoLimit),
       https_connect_throttle_rate(0),
       per_host_connect_throttle_limit(kNoLimit),
-      per_host_connect_throttle_rate(0) {
+      per_host_connect_throttle_rate(0),
+      proxy(docs_map.Get("USERVER_HTTP_PROXY").As<std::string>()) {
   const auto throttle_settings = docs_map.Get("HTTP_CLIENT_CONNECT_THROTTLE");
   ParseTokenBucketSettings(throttle_settings, http_connect_throttle_limit,
                            http_connect_throttle_rate, "http-limit",
