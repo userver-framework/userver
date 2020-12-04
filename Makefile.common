@@ -158,8 +158,7 @@ format:
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-format .
 else
-	@echo "Formatting... (There is new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)"
-	@$(MAKE) -s $(foreach fmt,$(FORMATTERS),taxi-$(fmt)) clang-format
+	$(error There is a new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)
 endif
 
 .PHONY: smart-format
@@ -167,15 +166,13 @@ smart-format:
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-format --smart .
 else
-	@echo "Formatting... (There is new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)"
-	@$(MAKE) -s $(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)) smart-clang-format
+	$(error There is a new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)
 endif
 
 .PHONY: teamcity-format
 teamcity-format:
 	@taxi-format --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
-# legacy
 $(foreach fmt,$(FORMATTERS),taxi-$(fmt)): taxi-%:
 	@taxi-$* -- .
 
@@ -187,8 +184,7 @@ clang-format:
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-clang-format .
 else
-	@echo "Formatting... (There is new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)"
-	@tools/smart-clang-format.sh --all
+	$(error There is a new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)
 endif
 
 .PHONY: smart-clang-format
@@ -196,8 +192,7 @@ smart-clang-format:
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-clang-format --smart .
 else
-	@echo "Formatting... (There is new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)"
-	@tools/smart-clang-format.sh
+	$(error There is a new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)
 endif
 
 
