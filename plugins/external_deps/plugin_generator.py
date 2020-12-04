@@ -68,6 +68,7 @@ class RepositoryGenerator:
                 },
             ],
             'checks': [{'expression': str, 'error': str}],
+            'ya-make': voluptuous.Schema({}, extra=voluptuous.ALLOW_EXTRA),
         },
     )
     config_schema = voluptuous.Schema(
