@@ -10,6 +10,7 @@
 #include <cache/update_type.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
+#include <components/statistics_storage.hpp>
 #include <engine/mutex.hpp>
 #include <testsuite/cache_control.hpp>
 #include <testsuite/component_control.hpp>
@@ -67,6 +68,8 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   void InvalidateCaches(cache::UpdateType update_type,
                         const std::vector<std::string>& names);
 
+  void ResetMetrics();
+
  private:
   engine::Mutex invalidation_mutex_;
 
@@ -75,6 +78,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::PeriodicTaskControl periodic_task_control_;
   testsuite::PostgresControl postgres_control_;
   testsuite::RedisControl redis_control_;
+  utils::statistics::MetricsStoragePtr metrics_storage_;
 };
 
 }  // namespace components

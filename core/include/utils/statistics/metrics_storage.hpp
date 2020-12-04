@@ -37,6 +37,8 @@ class MetricsStorage final {
 
   formats::json::ValueBuilder DumpMetrics();
 
+  void ResetMetrics();
+
  private:
   impl::MetricTagMap metrics_;
 };

@@ -86,6 +86,10 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
 
   auto testsuite_support = testsuite_support_.Lock();
 
+  if (request_body["reset_metrics"].As<bool>(false)) {
+    testsuite_support->get().ResetMetrics();
+  }
+
   if (now) {
     utils::datetime::MockNowSet(*now);
   } else

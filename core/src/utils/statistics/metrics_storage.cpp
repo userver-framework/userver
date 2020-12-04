@@ -60,4 +60,14 @@ formats::json::ValueBuilder MetricsStorage::DumpMetrics() {
   return builder;
 }
 
+void MetricsStorage::ResetMetrics() {
+  impl::registration_finished_ = true;
+
+  LOG_DEBUG() << "reseting custom metric";
+
+  for (auto& [_, metric_info] : metrics_) {
+    metric_info.reset_func(metric_info.data_);
+  }
+}
+
 }  // namespace utils::statistics

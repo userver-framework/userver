@@ -25,12 +25,30 @@ formats::json::ValueBuilder DumpMetric(const std::atomic<Metric>& m) {
   }
 }
 
+template <typename Metric>
+void ResetMetric(std::atomic<Metric>& m) {
+  if constexpr (std::is_integral<Metric>::value ||
+                std::is_floating_point<Metric>::value) {
+    m = 0;
+  } else {
+    static_assert(!sizeof(Metric), "std::atomic misuse");
+  }
+}
+
 template <class Value, class = ::utils::void_t<>>
 struct HasDumpMetric : std::false_type {};
 
 template <class Value>
 struct HasDumpMetric<
     Value, ::utils::void_t<decltype(DumpMetric(std::declval<Value&>()))>>
+    : std::true_type {};
+
+template <class Value, class = ::utils::void_t<>>
+struct HasResetMetric : std::false_type {};
+
+template <class Value>
+struct HasResetMetric<
+    Value, ::utils::void_t<decltype(ResetMetric(std::declval<Value&>()))>>
     : std::true_type {};
 
 template <typename Metric>
@@ -49,6 +67,7 @@ struct MetricInfo final {
 
   std::string path;
   std::function<formats::json::ValueBuilder(std::any&)> dump_func;
+  std::function<void(std::any&)> reset_func;
 };
 
 void RegisterMetricInfo(std::type_index ti, MetricInfo&& metric_info);
@@ -63,11 +82,19 @@ formats::json::ValueBuilder DumpAnyMetric(std::any& data) {
 }
 
 template <typename Metric>
+void ResetAnyMetric(std::any& data) {
+  if constexpr (HasResetMetric<Metric>::value) {
+    ResetMetric(*std::any_cast<std::shared_ptr<Metric>&>(data));
+  }
+}
+
+template <typename Metric>
 void RegisterTag(const MetricTag<Metric>& tag) {
   RegisterMetricInfo(typeid(Metric), MetricInfo{
                                          std::make_shared<Metric>(),
                                          tag.GetPath(),
                                          DumpAnyMetric<Metric>,
+                                         ResetAnyMetric<Metric>,
                                      });
 }
 
