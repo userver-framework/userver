@@ -10,8 +10,7 @@
 #include <optional>
 #include <ostream>
 #include <string_view>
-
-#include <boost/system/error_code.hpp>
+#include <system_error>
 
 #include <logging/level.hpp>
 #include <logging/log_extra.hpp>
@@ -211,11 +210,6 @@ LogHelper& operator<<(LogHelper& lh, const T* value) {
 template <typename T>
 LogHelper& operator<<(LogHelper& lh, T* value) {
   return lh << static_cast<const T*>(value);
-}
-
-inline LogHelper& operator<<(LogHelper& lh, boost::system::error_code ec) {
-  lh << ec.category().name() << ':' << ec.value();
-  return lh;
 }
 
 template <typename T>
