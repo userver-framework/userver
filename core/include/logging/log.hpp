@@ -302,6 +302,9 @@ void LogHelper::PutRange(const T& range) {
 /// Forces flush of default logger message queue
 void LogFlush();
 
+/// Forces flush of `logger` message queue
+void LogFlush(LoggerPtr logger);
+
 namespace impl {
 
 // Not thread-safe, static lifetime data

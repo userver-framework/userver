@@ -426,6 +426,8 @@ LogHelper& operator<<(LogHelper& lh, std::chrono::hours value) {
 
 void LogFlush() { DefaultLogger()->flush(); }
 
+void LogFlush(LoggerPtr logger) { logger->flush(); }
+
 namespace impl {
 
 RateLimiter::RateLimiter(RateLimitData& data, Level level)
