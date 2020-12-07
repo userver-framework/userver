@@ -1,41 +1,50 @@
 #pragma once
 
-#include <boost/numeric/conversion/cast.hpp>
+#include <cstdint>
 
 #include <formats/json/parser/typed_parser.hpp>
 
 namespace formats::json::parser {
 
 template <typename T = int>
-class IntegralParser final : public TypedParser<T> {
+class IntegralParser;
+
+template <>
+class IntegralParser<std::int32_t> final : public TypedParser<std::int32_t> {
  public:
-  using TypedParser<T>::TypedParser;
+  using TypedParser<std::int32_t>::TypedParser;
 
- protected:
-  void Int64(int64_t i) override { this->SetResult(boost::numeric_cast<T>(i)); }
+ private:
+  void Int64(std::int64_t i) override;
 
-  void Uint64(uint64_t i) override {
-    this->SetResult(boost::numeric_cast<T>(i));
-  }
+  void Uint64(std::uint64_t i) override;
 
-  /* In JSON double with zero fractional part is a legal integer,
-   * e.g. "3.0" is an integer 3 */
-  void Double(double value) override {
-    auto i = std::round(value);
-    if (std::fabs(i - value) > std::max(std::fabs(value), std::fabs(i)) *
-                                   std::numeric_limits<double>::epsilon()) {
-      this->Throw("double");
-    }
-    this->SetResult(boost::numeric_cast<T>(i));
-  }
+  void Double(double value) override;
 
   std::string GetPathItem() const override { return {}; }
 
   std::string Expected() const override { return "integer"; }
 };
 
-using IntParser = IntegralParser<int32_t>;
-using Int32Parser = IntegralParser<int32_t>;
-using Int64Parser = IntegralParser<int64_t>;
+template <>
+class IntegralParser<std::int64_t> final : public TypedParser<std::int64_t> {
+ public:
+  using TypedParser<std::int64_t>::TypedParser;
+
+ private:
+  void Int64(std::int64_t i) override;
+
+  void Uint64(std::uint64_t i) override;
+
+  void Double(double value) override;
+
+  std::string GetPathItem() const override { return {}; }
+
+  std::string Expected() const override { return "integer"; }
+};
+
+using IntParser = IntegralParser<std::int32_t>;
+using Int32Parser = IntegralParser<std::int32_t>;
+using Int64Parser = IntegralParser<std::int64_t>;
 
 }  // namespace formats::json::parser
