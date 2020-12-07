@@ -2,6 +2,9 @@
 
 #include <string_view>
 
+#include <boost/iostreams/device/back_inserter.hpp>
+#include <boost/iostreams/stream.hpp>
+
 namespace storages::postgres::io {
 
 template <>
@@ -31,6 +34,13 @@ void JsonParser::operator()(const FieldBuffer& buffer) {
 
   std::string_view json_string(start, length);
   value = formats::json::FromString(json_string);
+}
+
+void JsonValueToBuffer(const formats::json::Value& value,
+                       std::vector<char>& buffer) {
+  auto sink = boost::iostreams::back_inserter(buffer);
+  boost::iostreams::stream os{sink};
+  formats::json::Serialize(value, os);
 }
 
 }  // namespace detail

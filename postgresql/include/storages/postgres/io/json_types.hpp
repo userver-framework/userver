@@ -5,9 +5,6 @@
 
 #include <type_traits>
 
-#include <boost/iostreams/device/back_inserter.hpp>
-#include <boost/iostreams/stream.hpp>
-
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
@@ -28,7 +25,7 @@ using PlainJson =
 namespace io {
 namespace detail {
 
-constexpr char kJsonbVersion = 1;
+inline constexpr char kJsonbVersion = 1;
 
 struct JsonParser : BufferParserBase<formats::json::Value> {
   using BaseType = BufferParserBase<formats::json::Value>;
@@ -37,6 +34,9 @@ struct JsonParser : BufferParserBase<formats::json::Value> {
   void operator()(const FieldBuffer& buffer);
 };
 
+void JsonValueToBuffer(const formats::json::Value& value,
+                       std::vector<char>& buffer);
+
 template <typename JsonValue>
 struct JsonFormatter : BufferFormatterBase<JsonValue> {
   using BaseType = BufferFormatterBase<JsonValue>;
@@ -44,16 +44,12 @@ struct JsonFormatter : BufferFormatterBase<JsonValue> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    using sink_type = boost::iostreams::back_insert_device<Buffer>;
-    using stream_type = boost::iostreams::stream<sink_type>;
-
     if constexpr (!std::is_same_v<PlainJson, JsonValue>) {
       buffer.push_back(kJsonbVersion);
     }
-    sink_type sink{buffer};
-    stream_type os{sink};
-    formats::json::Serialize(
-        static_cast<const formats::json::Value&>(this->value), os);
+
+    JsonValueToBuffer(static_cast<const formats::json::Value&>(this->value),
+                      buffer);
   }
 };
 
