@@ -63,8 +63,8 @@
 /// @snippet storages/postgres/tests/user_types_pgtest.cpp Range type mapping
 ///
 
-#include <iostream>
 #include <optional>
+#include <ostream>
 
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
