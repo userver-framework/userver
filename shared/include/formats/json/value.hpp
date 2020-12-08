@@ -293,7 +293,7 @@ std::string Value::ConvertTo<std::string>() const;
 
 template <typename T, typename First, typename... Rest>
 T Value::As(First&& default_arg, Rest&&... more_default_args) const {
-  if (IsMissing()) {
+  if (IsMissing() || IsNull()) {
     return T(std::forward<First>(default_arg),
              std::forward<Rest>(more_default_args)...);
   }
@@ -302,7 +302,7 @@ T Value::As(First&& default_arg, Rest&&... more_default_args) const {
 
 template <typename T>
 T Value::As(Value::DefaultConstructed) const {
-  return IsMissing() ? T() : As<T>();
+  return (IsMissing() || IsNull()) ? T() : As<T>();
 }
 
 template <typename T>

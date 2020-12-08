@@ -117,3 +117,16 @@ TEST(FormatsJson, NulString) {
                .As<std::string>();
   ASSERT_EQ(i_contain_nuls, s);
 }
+
+TEST(FormatsJson, NullAsDefaulted) {
+  using formats::json::FromString;
+  auto json = FromString(R"~({"nulled": null})~");
+
+  EXPECT_EQ(json["nulled"].As<int>({}), 0);
+  EXPECT_EQ(json["nulled"].As<std::vector<int>>({}), std::vector<int>{});
+
+  EXPECT_EQ(json["nulled"].As<int>(42), 42);
+
+  std::vector<int> value{4, 2};
+  EXPECT_EQ(json["nulled"].As<std::vector<int>>(value), value);
+}

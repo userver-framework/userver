@@ -210,3 +210,15 @@ TEST(BsonValue, Items) {
   for ([[maybe_unused]] const auto& [key, value] : Items(kDoc)) {
   }
 }
+
+TEST(BsonValue, NullAsDefaulted) {
+  auto doc = fb::MakeDoc("nulled", nullptr);
+
+  EXPECT_EQ(doc["nulled"].As<int>({}), 0);
+  EXPECT_EQ(doc["nulled"].As<std::vector<int>>({}), std::vector<int>{});
+
+  EXPECT_EQ(doc["nulled"].As<int>(42), 42);
+
+  std::vector<int> value{4, 2};
+  EXPECT_EQ(doc["nulled"].template As<std::vector<int>>(value), value);
+}

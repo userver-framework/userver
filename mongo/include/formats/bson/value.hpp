@@ -157,7 +157,7 @@ class Value {
   /// @note Use as `value.As<T>({})`
   template <typename T>
   T As(DefaultConstructed) const {
-    return IsMissing() ? T() : As<T>();
+    return (IsMissing() || IsNull()) ? T() : As<T>();
   }
 
   /// @brief Extracts the specified type with relaxed type checks.
