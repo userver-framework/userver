@@ -158,11 +158,18 @@ enum class UrlErrorCode {
   kNoFragment = native::CURLUE_NO_FRAGMENT,
 };
 
+enum class RateLimitErrorCode {
+  kSuccess,
+  kGlobalSocketLimit,
+  kPerHostSocketLimit,
+};
+
 const std::error_category& GetEasyCategory() noexcept;
 const std::error_category& GetMultiCategory() noexcept;
 const std::error_category& GetShareCategory() noexcept;
 const std::error_category& GetFormCategory() noexcept;
 const std::error_category& GetUrlCategory() noexcept;
+const std::error_category& GetRateLimitCategory() noexcept;
 
 }  // namespace curl::errc
 
@@ -182,6 +189,9 @@ struct is_error_code_enum<curl::errc::FormErrorCode> : std::true_type {};
 
 template <>
 struct is_error_code_enum<curl::errc::UrlErrorCode> : std::true_type {};
+
+template <>
+struct is_error_code_enum<curl::errc::RateLimitErrorCode> : std::true_type {};
 
 }  // namespace std
 
@@ -205,6 +215,10 @@ inline std::error_code make_error_code(FormErrorCode e) {
 
 inline std::error_code make_error_code(UrlErrorCode e) {
   return std::error_code(static_cast<int>(e), GetUrlCategory());
+}
+
+inline std::error_code make_error_code(RateLimitErrorCode e) {
+  return std::error_code(static_cast<int>(e), GetRateLimitCategory());
 }
 
 }  // namespace curl::errc

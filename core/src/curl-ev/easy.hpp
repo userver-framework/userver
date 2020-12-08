@@ -697,7 +697,7 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   clients::http::LocalStats get_local_stats();
 
-  RateLimitStatus get_rate_limit_result() { return rate_limit_result_; }
+  std::error_code rate_limit_error() const;
 
   time_point::duration time_to_start() const;
 
@@ -749,7 +749,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   progress_callback_t progress_callback_;
   std::size_t retries_count_{0};
   std::size_t sockets_opened_{0};
-  RateLimitStatus rate_limit_result_{RateLimitStatus::kOk};
+  std::error_code rate_limit_error_;
 
   time_point start_performing_ts_{};
   const time_point construct_ts_;

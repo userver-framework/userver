@@ -6,17 +6,10 @@
 
 #include <cache/lru_map.hpp>
 #include <concurrent/variable.hpp>
+#include <curl-ev/error_code.hpp>
 #include <utils/token_bucket.hpp>
 
 namespace curl {
-
-enum class RateLimitStatus {
-  kOk,
-  kPerHostSocketLimit,
-  kGlobalSocketLimit,
-};
-
-std::string ToString(RateLimitStatus value);
 
 class ConnectRateLimiter {
  public:
@@ -27,7 +20,7 @@ class ConnectRateLimiter {
 
   void SetPerHostLimits(size_t limit, utils::TokenBucket::Duration rate);
 
-  [[nodiscard]] RateLimitStatus MayAcquireConnection(const char* url_str);
+  void Check(const char* url_str, std::error_code& ec);
 
  private:
   utils::TokenBucket global_http_;

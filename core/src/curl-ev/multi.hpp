@@ -52,7 +52,7 @@ class multi final {
 
   MultiStatistics& Statistics() { return statistics_; }
 
-  RateLimitStatus MayAcquireConnection(const char* url_str);
+  void CheckRateLimit(const char* url_str, std::error_code& ec);
 
   void SetMultiplexingEnabled(bool);
   void SetMaxHostConnections(long);

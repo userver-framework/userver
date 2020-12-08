@@ -168,7 +168,7 @@ void easy::reset() {
   share_.reset();
   retries_count_ = 0;
   sockets_opened_ = 0;
-  rate_limit_result_ = RateLimitStatus::kOk;
+  rate_limit_error_.clear();
 
   set_custom_request(nullptr);
   set_no_body(false);
@@ -511,6 +511,8 @@ clients::http::LocalStats easy::get_local_stats() {
   return stats;
 }
 
+std::error_code easy::rate_limit_error() const { return rate_limit_error_; }
+
 easy::time_point::duration easy::time_to_start() const {
   if (start_performing_ts_ != time_point{}) {
     return start_performing_ts_ - construct_ts_;
@@ -631,12 +633,12 @@ native::curl_socket_t easy::opensocket(
       UASSERT_MSG(false, "Cannot get effective url: " + ec.message());
     }
 
-    self->rate_limit_result_ = multi_handle->MayAcquireConnection(url.data());
-    if (self->rate_limit_result_ == RateLimitStatus::kOk) {
-      LOG_TRACE() << "not throttled";
-    } else {
+    multi_handle->CheckRateLimit(url.data(), self->rate_limit_error_);
+    if (self->rate_limit_error_) {
       multi_handle->Statistics().mark_socket_ratelimited();
       return CURL_SOCKET_BAD;
+    } else {
+      LOG_TRACE() << "not throttled";
     }
   } else {
     LOG_TRACE() << "skip throttle check";

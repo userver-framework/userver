@@ -10,6 +10,7 @@
 #include <curl-ev/error_code.hpp>
 
 namespace curl::errc {
+namespace {
 
 class EasyErrorCategory final : public std::error_category {
  public:
@@ -19,8 +20,8 @@ class EasyErrorCategory final : public std::error_category {
     return "curl-easy";
   }
 
-  [[nodiscard]] std::string message(int ev) const override {
-    return native::curl_easy_strerror(static_cast<native::CURLcode>(ev));
+  [[nodiscard]] std::string message(int cond) const override {
+    return native::curl_easy_strerror(static_cast<native::CURLcode>(cond));
   }
 };
 
@@ -32,8 +33,8 @@ class MultiErrorCategory final : public std::error_category {
     return "curl-multi";
   }
 
-  [[nodiscard]] std::string message(int ev) const override {
-    return native::curl_multi_strerror(static_cast<native::CURLMcode>(ev));
+  [[nodiscard]] std::string message(int cond) const override {
+    return native::curl_multi_strerror(static_cast<native::CURLMcode>(cond));
   }
 };
 
@@ -45,8 +46,8 @@ class ShareErrorCategory final : public std::error_category {
     return "curl-share";
   }
 
-  [[nodiscard]] std::string message(int ev) const override {
-    return native::curl_share_strerror(static_cast<native::CURLSHcode>(ev));
+  [[nodiscard]] std::string message(int cond) const override {
+    return native::curl_share_strerror(static_cast<native::CURLSHcode>(cond));
   }
 };
 
@@ -58,8 +59,8 @@ class FormErrorCategory final : public std::error_category {
     return "curl-form";
   }
 
-  [[nodiscard]] std::string message(int ev) const override {
-    switch (static_cast<FormErrorCode>(ev)) {
+  [[nodiscard]] std::string message(int cond) const override {
+    switch (static_cast<FormErrorCode>(cond)) {
       case FormErrorCode::kSuccess:
         return "no error";
       case FormErrorCode::kMemory:
@@ -90,8 +91,8 @@ class UrlErrorCategory final : public std::error_category {
     return "curl-url";
   }
 
-  [[nodiscard]] std::string message(int ev) const override {
-    switch (static_cast<UrlErrorCode>(ev)) {
+  [[nodiscard]] std::string message(int cond) const override {
+    switch (static_cast<UrlErrorCode>(cond)) {
       case UrlErrorCode::kSuccess:
         return "no error";
       case UrlErrorCode::kBadHandle:
@@ -132,6 +133,28 @@ class UrlErrorCategory final : public std::error_category {
   }
 };
 
+class RateLimitErrorCategory final : public std::error_category {
+ public:
+  using std::error_category::error_category;
+
+  [[nodiscard]] const char* name() const noexcept override {
+    return "userver-curl-ratelimit";
+  }
+
+  [[nodiscard]] std::string message(int cond) const override {
+    switch (static_cast<RateLimitErrorCode>(cond)) {
+      case RateLimitErrorCode::kSuccess:
+        return "no error";
+      case RateLimitErrorCode::kGlobalSocketLimit:
+        return "hit global opensocket rate limit";
+      case RateLimitErrorCode::kPerHostSocketLimit:
+        return "hit per-host opensocket rate limit";
+    }
+  }
+};
+
+}  // namespace
+
 const std::error_category& GetEasyCategory() noexcept {
   static const EasyErrorCategory kEasyCategory;
   return kEasyCategory;
@@ -155,6 +178,11 @@ const std::error_category& GetFormCategory() noexcept {
 const std::error_category& GetUrlCategory() noexcept {
   static const UrlErrorCategory kUrlCategory;
   return kUrlCategory;
+}
+
+const std::error_category& GetRateLimitCategory() noexcept {
+  static const RateLimitErrorCategory kRateLimitCategory;
+  return kRateLimitCategory;
 }
 
 }  // namespace curl::errc

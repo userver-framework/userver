@@ -12,9 +12,19 @@
 // N.B.: These tests must pass without RunInCoro
 
 namespace {
-constexpr auto kOk = curl::RateLimitStatus::kOk;
-constexpr auto kGlobalSocketLimit = curl::RateLimitStatus::kGlobalSocketLimit;
-constexpr auto kPerHostSocketLimit = curl::RateLimitStatus::kPerHostSocketLimit;
+
+constexpr auto kGlobalSocketLimit =
+    curl::errc::RateLimitErrorCode::kGlobalSocketLimit;
+constexpr auto kPerHostSocketLimit =
+    curl::errc::RateLimitErrorCode::kPerHostSocketLimit;
+
+std::error_code GetCheckError(curl::ConnectRateLimiter& limiter,
+                              const char* url) {
+  std::error_code ec;
+  limiter.Check(url, ec);
+  return ec;
+}
+
 }  // namespace
 
 TEST(CurlConnectRateLimiter, NoLimit) {
@@ -23,7 +33,7 @@ TEST(CurlConnectRateLimiter, NoLimit) {
 
   curl::ConnectRateLimiter limiter;
   for (size_t i = 0; i < kRepetitions; ++i) {
-    ASSERT_EQ(kOk, limiter.MayAcquireConnection("http://test"));
+    ASSERT_FALSE(GetCheckError(limiter, "http://test"));
   }
 }
 
@@ -37,18 +47,18 @@ TEST(CurlConnectRateLimiter, GlobalLimits) {
   limiter.SetGlobalHttpsLimits(3, kAcquireInterval / 2);
 
   // extra connections from the limit
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://init"));
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://secure_init"));
+  EXPECT_FALSE(GetCheckError(limiter, "http://init"));
+  EXPECT_FALSE(GetCheckError(limiter, "https://secure_init"));
   for (size_t i = 0; i < kRepetitions; ++i) {
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://init"));
-    EXPECT_EQ(kGlobalSocketLimit, limiter.MayAcquireConnection("http://test"));
-    EXPECT_EQ(kGlobalSocketLimit, limiter.MayAcquireConnection("http://init"));
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://secure_init"));
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://secure_init"));
+    EXPECT_FALSE(GetCheckError(limiter, "http://init"));
+    EXPECT_EQ(kGlobalSocketLimit, GetCheckError(limiter, "http://test"));
+    EXPECT_EQ(kGlobalSocketLimit, GetCheckError(limiter, "http://init"));
+    EXPECT_FALSE(GetCheckError(limiter, "https://secure_init"));
+    EXPECT_FALSE(GetCheckError(limiter, "https://secure_init"));
     EXPECT_EQ(kGlobalSocketLimit,
-              limiter.MayAcquireConnection("https://secure_init"));
+              GetCheckError(limiter, "https://secure_init"));
     EXPECT_EQ(kGlobalSocketLimit,
-              limiter.MayAcquireConnection("https://secure_test"));
+              GetCheckError(limiter, "https://secure_test"));
     utils::datetime::MockSleep(kAcquireInterval);
   }
 }
@@ -62,25 +72,19 @@ TEST(CurlConnectRateLimiter, PerHostLimits) {
   limiter.SetPerHostLimits(2, kAcquireInterval);
 
   // extra connections from the limit
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://first"));
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://second"));
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://third"));
+  EXPECT_FALSE(GetCheckError(limiter, "http://first"));
+  EXPECT_FALSE(GetCheckError(limiter, "http://second"));
+  EXPECT_FALSE(GetCheckError(limiter, "https://third"));
   for (size_t i = 0; i < kRepetitions; ++i) {
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://first"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("http://first"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://first"));
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://second"));
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://third"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("http://second"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://second"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("http://third"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://third"));
+    EXPECT_FALSE(GetCheckError(limiter, "http://first"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "http://first"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "https://first"));
+    EXPECT_FALSE(GetCheckError(limiter, "https://second"));
+    EXPECT_FALSE(GetCheckError(limiter, "http://third"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "http://second"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "https://second"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "http://third"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "https://third"));
     utils::datetime::MockSleep(kAcquireInterval);
   }
 }
@@ -96,37 +100,31 @@ TEST(CurlConnectRateLimiter, AllLimits) {
   limiter.SetGlobalHttpsLimits(3, kAcquireInterval / 3);
 
   for (size_t i = 0; i < kRepetitions; ++i) {
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://first"));
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://second"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("http://first"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("http://second"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://first"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://second"));
+    EXPECT_FALSE(GetCheckError(limiter, "http://first"));
+    EXPECT_FALSE(GetCheckError(limiter, "http://second"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "http://first"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "http://second"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "https://first"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "https://second"));
 
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://secure_first"));
+    EXPECT_FALSE(GetCheckError(limiter, "https://secure_first"));
     EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://secure_first"));
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://secure_second"));
-    EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://secure_third"));
+              GetCheckError(limiter, "https://secure_first"));
+    EXPECT_FALSE(GetCheckError(limiter, "https://secure_second"));
+    EXPECT_FALSE(GetCheckError(limiter, "https://secure_third"));
     EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://secure_second"));
+              GetCheckError(limiter, "https://secure_second"));
     EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://secure_third"));
+              GetCheckError(limiter, "https://secure_third"));
     EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("http://secure_first"));
+              GetCheckError(limiter, "http://secure_first"));
     EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("http://secure_second"));
+              GetCheckError(limiter, "http://secure_second"));
     EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("http://secure_third"));
+              GetCheckError(limiter, "http://secure_third"));
 
-    EXPECT_EQ(kGlobalSocketLimit,
-              limiter.MayAcquireConnection("http://fourth"));
-    EXPECT_EQ(kPerHostSocketLimit,
-              limiter.MayAcquireConnection("https://fourth"));
+    EXPECT_EQ(kGlobalSocketLimit, GetCheckError(limiter, "http://fourth"));
+    EXPECT_EQ(kPerHostSocketLimit, GetCheckError(limiter, "https://fourth"));
     utils::datetime::MockSleep(kAcquireInterval);
   }
 }
@@ -140,25 +138,25 @@ TEST(CurlConnectRateLimiter, InvalidUrlFallback) {
   curl::ConnectRateLimiter limiter;
   limiter.SetGlobalHttpLimits(1, kAcquireInterval);
 
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection(nullptr));
-  EXPECT_NE(kOk, limiter.MayAcquireConnection(nullptr));
+  EXPECT_FALSE(GetCheckError(limiter, nullptr));
+  EXPECT_TRUE(GetCheckError(limiter, nullptr));
   utils::datetime::MockSleep(kAcquireInterval);
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection(nullptr));
+  EXPECT_FALSE(GetCheckError(limiter, nullptr));
 
-  EXPECT_NE(kOk, limiter.MayAcquireConnection(""));
+  EXPECT_TRUE(GetCheckError(limiter, ""));
   utils::datetime::MockSleep(kAcquireInterval);
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection(""));
+  EXPECT_FALSE(GetCheckError(limiter, ""));
 
-  EXPECT_NE(kOk, limiter.MayAcquireConnection("no-schema"));
+  EXPECT_TRUE(GetCheckError(limiter, "no-schema"));
   utils::datetime::MockSleep(kAcquireInterval);
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection("no-schema"));
+  EXPECT_FALSE(GetCheckError(limiter, "no-schema"));
 
-  EXPECT_NE(kOk, limiter.MayAcquireConnection("http://"));
+  EXPECT_TRUE(GetCheckError(limiter, "http://"));
   utils::datetime::MockSleep(kAcquireInterval);
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection("http://"));
+  EXPECT_FALSE(GetCheckError(limiter, "http://"));
 
-  EXPECT_NE(kOk, limiter.MayAcquireConnection("http://test"));
-  EXPECT_EQ(kOk, limiter.MayAcquireConnection("https://test"));
+  EXPECT_TRUE(GetCheckError(limiter, "http://test"));
+  EXPECT_FALSE(GetCheckError(limiter, "https://test"));
 }
 #endif
 
@@ -184,11 +182,9 @@ TEST(CurlConnectRateLimiter, Multithread) {
 
           size_t acquired_ours = 0;
           size_t acquired_theirs = 0;
-          while (limiter.MayAcquireConnection(urls[worker_idx].c_str()) ==
-                 kOk) {
+          while (!GetCheckError(limiter, urls[worker_idx].c_str())) {
             ++acquired_ours;
-            if (limiter.MayAcquireConnection(urls[worker_idx + 1].c_str()) ==
-                kOk) {
+            if (!GetCheckError(limiter, urls[worker_idx + 1].c_str())) {
               ++acquired_theirs;
             }
           }

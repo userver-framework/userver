@@ -25,7 +25,6 @@
 #include <clients/http/statistics.hpp>
 #include <http/common_headers.hpp>
 #include <http/url.hpp>
-#include <tracing/set_throttle_reason.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
 
@@ -49,7 +48,7 @@ constexpr long kEBBaseTime = 25;
 /// Least http code that we treat as bad for exponential backoff algorithm
 constexpr long kLeastBadHttpCodeForEB = 500;
 
-constexpr Status kTestsuiteCode{599};
+constexpr Status kFakeHttpErrorCode{599};
 
 const std::string kTracingClientName = "external";
 
@@ -70,7 +69,7 @@ const std::string kTestsuiteSupportedErrors =
 std::error_code TestsuiteResponseHook(Status status_code,
                                       const Headers& headers,
                                       tracing::Span& span) {
-  if (status_code == kTestsuiteCode) {
+  if (status_code == kFakeHttpErrorCode) {
     const auto it = headers.find("X-Testsuite-Error");
 
     if (headers.end() != it) {
@@ -258,15 +257,17 @@ void RequestState::on_completed(
   span.AddTag(tracing::kAttempts, holder->retry_.current);
   span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);
   span.AddTag(tracing::kTimeoutMs, holder->timeout_ms_);
-  if (easy.get_rate_limit_result() != curl::RateLimitStatus::kOk) {
-    tracing::SetThrottleReason(span, ToString(easy.get_rate_limit_result()));
-  }
 
   LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
+    if (easy.rate_limit_error()) {
+      // The most probable cause, takes precedence
+      err = easy.rate_limit_error();
+    }
+
     span.AddTag(tracing::kErrorFlag, true);
     span.AddTag(tracing::kErrorMessage, err.message());
-    span.AddTag(tracing::kHttpStatusCode, kTestsuiteCode);  // TODO
+    span.AddTag(tracing::kHttpStatusCode, kFakeHttpErrorCode);
 
     holder->promise_.set_exception(PrepareException(
         err, easy.get_effective_url(), easy.get_local_stats()));

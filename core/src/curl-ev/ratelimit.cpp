@@ -50,17 +50,6 @@ ThrottleFactors ExtractThrottleFactors(const char* url_str) {
 
 }  // namespace
 
-std::string ToString(RateLimitStatus value) {
-  switch (value) {
-    case RateLimitStatus::kOk:
-      return "no limit";
-    case RateLimitStatus::kGlobalSocketLimit:
-      return "global socket limit";
-    case RateLimitStatus::kPerHostSocketLimit:
-      return "per host socket limit";
-  }
-}
-
 ConnectRateLimiter::ConnectRateLimiter()
     : global_http_(-1UL, utils::TokenBucket::Duration::zero()),
       global_https_(-1UL, utils::TokenBucket::Duration::zero()),
@@ -91,7 +80,7 @@ void ConnectRateLimiter::SetPerHostLimits(size_t limit,
   per_host_rate_.store(rate, std::memory_order_relaxed);
 }
 
-RateLimitStatus ConnectRateLimiter::MayAcquireConnection(const char* url_str) {
+void ConnectRateLimiter::Check(const char* url_str, std::error_code& ec) {
   static constexpr std::string_view kHttpsScheme = "https";
 
   bool may_acquire = true;
@@ -113,7 +102,8 @@ RateLimitStatus ConnectRateLimiter::MayAcquireConnection(const char* url_str) {
   }
 
   if (!may_acquire) {
-    return RateLimitStatus::kPerHostSocketLimit;
+    ec = errc::RateLimitErrorCode::kPerHostSocketLimit;
+    return;
   }
 
   auto& global_token_bucket =
@@ -124,10 +114,11 @@ RateLimitStatus ConnectRateLimiter::MayAcquireConnection(const char* url_str) {
 
   may_acquire = global_token_bucket.Obtain();
   if (!may_acquire) {
-    return RateLimitStatus::kGlobalSocketLimit;
+    ec = errc::RateLimitErrorCode::kGlobalSocketLimit;
+    return;
   }
 
-  return RateLimitStatus::kOk;
+  ec = errc::RateLimitErrorCode::kSuccess;
 }
 
 }  // namespace curl

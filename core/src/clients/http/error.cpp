@@ -3,35 +3,17 @@
 #include <fmt/format.h>
 
 #include <curl-ev/error_code.hpp>
+#include <utils/assert.hpp>
 
 namespace clients::http {
+namespace {
 
-BaseCodeException::BaseCodeException(std::error_code ec,
-                                     std::string_view message,
-                                     std::string_view url,
-                                     const LocalStats& stats)
-    : BaseException(fmt::format("{}, curl error: {}, url: {}", message,
-                                ec.message(), url),
-                    stats),
-      ec_(ec) {}
-
-HttpException::HttpException(int code, const LocalStats& stats)
-    : HttpException(code, stats, {}) {}
-
-HttpException::HttpException(int code, const LocalStats& stats,
-                             std::string_view message)
-    : BaseException(fmt::format("Raise for status exception, code = {}{}{}",
-                                code, message.empty() ? "" : ": ", message),
-                    stats),
-      code_(code) {}
-
-std::exception_ptr PrepareException(std::error_code ec, std::string_view url,
-                                    const LocalStats& stats) {
+std::exception_ptr PrepareEasyException(std::error_code ec,
+                                        std::string_view url,
+                                        const LocalStats& stats) {
   using ErrorCode = curl::errc::EasyErrorCode;
 
-  if (ec.category() != curl::errc::GetEasyCategory())
-    return std::make_exception_ptr(
-        BaseCodeException(ec, "Unknown exception", url, stats));
+  UASSERT(ec.category() == curl::errc::GetEasyCategory());
 
   switch (static_cast<ErrorCode>(ec.value())) {
     case ErrorCode::kCouldNotResolveHost:
@@ -74,6 +56,48 @@ std::exception_ptr PrepareException(std::error_code ec, std::string_view url,
       return std::make_exception_ptr(
           TechnicalError(ec, "Technical error", url, stats));
   }
+}
+
+std::exception_ptr PrepareRateLimitException(std::error_code ec,
+                                             std::string_view url,
+                                             const LocalStats& stats) {
+  UASSERT(ec.category() == curl::errc::GetRateLimitCategory());
+
+  return std::make_exception_ptr(
+      NetworkProblemException(ec, "Rate limited", url, stats));
+}
+
+}  // namespace
+
+BaseCodeException::BaseCodeException(std::error_code ec,
+                                     std::string_view message,
+                                     std::string_view url,
+                                     const LocalStats& stats)
+    : BaseException(fmt::format("{}, curl error: {}, url: {}", message,
+                                ec.message(), url),
+                    stats),
+      ec_(ec) {}
+
+HttpException::HttpException(int code, const LocalStats& stats)
+    : HttpException(code, stats, {}) {}
+
+HttpException::HttpException(int code, const LocalStats& stats,
+                             std::string_view message)
+    : BaseException(fmt::format("Raise for status exception, code = {}{}{}",
+                                code, message.empty() ? "" : ": ", message),
+                    stats),
+      code_(code) {}
+
+std::exception_ptr PrepareException(std::error_code ec, std::string_view url,
+                                    const LocalStats& stats) {
+  if (ec.category() == curl::errc::GetEasyCategory()) {
+    return PrepareEasyException(ec, url, stats);
+  } else if (ec.category() == curl::errc::GetRateLimitCategory()) {
+    return PrepareRateLimitException(ec, url, stats);
+  }
+
+  return std::make_exception_ptr(
+      BaseCodeException(ec, "Unknown exception", url, stats));
 }
 
 }  // namespace clients::http
