@@ -54,7 +54,7 @@ class BackgroundTasksStorage final {
     *task = utils::Async(
         name,
         [f = std::move(f), token = wts_.GetToken(),
-         remove_guard = std::move(remove_guard)](auto&&... args) {
+         remove_guard = std::move(remove_guard)](auto&&... args) mutable {
           f(std::forward<decltype(args)>(args)...);
         },
         std::forward<Args>(args)...);

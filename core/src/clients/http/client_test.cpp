@@ -943,3 +943,23 @@ TEST(HttpClient, Retry) {
     EXPECT_EQ(2, response->GetStats().retries_count);
   });
 }
+
+TEST(HttpClient, TinyTimeout) {
+  TestInCoro([] {
+    auto http_client_ptr = utest::CreateHttpClient();
+    const testing::SimpleServer http_server{sleep_callback_1s};
+
+    for (unsigned i = 0; i < kRepetitions; ++i) {
+      auto response_future = http_client_ptr->CreateRequest()
+                                 ->post(http_server.GetBaseUrl(), kTestData)
+                                 ->retry(1)
+                                 ->verify(true)
+                                 ->http_version(clients::http::HttpVersion::k11)
+                                 ->timeout(std::chrono::milliseconds(1))
+                                 ->async_perform();
+
+      response_future.Wait();
+      EXPECT_THROW(response_future.Get(), std::exception);
+    }
+  });
+}

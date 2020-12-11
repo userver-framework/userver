@@ -2,11 +2,12 @@
 
 #include <engine/async.hpp>
 #include <engine/io/socket.hpp>
+#include <engine/mutex.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 namespace testing {
 
@@ -30,7 +31,7 @@ class Client final {
 
   void StartNewRequest() { incomming_data_.clear(); }
 
-  void ReadSome();
+  std::size_t ReadSome();
 
   void WriteResponse();
 
@@ -45,13 +46,23 @@ class Client final {
 };
 
 void Client::Run(engine::io::Socket socket, SimpleServer::OnRequest f) {
+  LOG_TRACE() << "New client";
   Client c{std::move(socket), std::move(f)};
   do {
+    const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
     c.StartNewRequest();
+
     do {
-      c.ReadSome();
+      if (!c.ReadSome()) {
+        return;
+      }
 
       if (engine::current_task::IsCancelRequested()) {
+        return;
+      }
+
+      if (deadline.IsReached()) {
+        ADD_FAILURE() << "Shutting down slow request";
         return;
       }
     } while (c.NeedsMoreReading());
@@ -61,16 +72,23 @@ void Client::Run(engine::io::Socket socket, SimpleServer::OnRequest f) {
   } while (c.NeedsNewRequest() && !engine::current_task::IsCancelRequested());
 }
 
-void Client::ReadSome() {
+std::size_t Client::ReadSome() {
   previously_received_ = incomming_data_.size();
   incomming_data_.resize(previously_received_ + kReadBufferChunkSize);
 
-  std::size_t received =
+  auto received =
       socket_.RecvSome(&incomming_data_[0] + previously_received_,
                        incomming_data_.size() - previously_received_, {});
 
+  if (!received) {
+    LOG_TRACE() << "Remote peer shut down the connection";
+    return 0;
+  }
+
   incomming_data_.resize(previously_received_ + received);
   resp_ = callback_(incomming_data_);
+
+  return received;
 }
 
 void Client::WriteResponse() {
@@ -91,6 +109,11 @@ class SimpleServer::Impl {
   OnRequest callback_;
   Protocol protocol_;
   Port port_{};
+
+  template <class F>
+  void PushTask(F f) {
+    engine::impl::Async(std::move(f)).Detach();
+  }
 
   [[nodiscard]] engine::io::Addr MakeLoopbackAddress() const;
   void StartPortListening();
@@ -143,18 +166,17 @@ void SimpleServer::Impl::StartPortListening() {
       break;
   }
 
-  engine::impl::Async([cb = callback_,
-                       acceptor = std::move(acceptor)]() mutable {
+  PushTask([this, cb = callback_, acceptor = std::move(acceptor)]() mutable {
     while (!engine::current_task::IsCancelRequested()) {
       auto socket = acceptor.Accept({});
 
-      LOG_INFO() << "SimpleServer accepted socket";
+      LOG_TRACE() << "SimpleServer accepted socket";
 
-      engine::impl::Async([cb = cb, s = std::move(socket)]() mutable {
+      PushTask([cb = cb, s = std::move(socket)]() mutable {
         Client::Run(std::move(s), cb);
-      }).Detach();
+      });
     }
-  }).Detach();
+  });
 }
 
 SimpleServer::SimpleServer(OnRequest callback, Protocol protocol)

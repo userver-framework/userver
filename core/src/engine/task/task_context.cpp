@@ -2,6 +2,7 @@
 
 #include <exception>
 
+#include <fmt/format.h>
 #include <boost/stacktrace.hpp>
 
 #include <engine/coro/pool.hpp>
@@ -62,7 +63,7 @@ namespace impl {
 namespace {
 
 std::string GetTaskIdString(const TaskContext* task) {
-  return std::to_string(task ? task->GetTaskId() : 0);
+  return fmt::format("{:X}", task ? task->GetTaskId() : 0);
 }
 
 class CurrentTaskScope final {
