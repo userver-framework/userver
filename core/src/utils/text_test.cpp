@@ -155,9 +155,9 @@ TEST(GetCodePointsCountTest, All) {
   ASSERT_EQ(0u, GetCodePointsCount(""));
   EXPECT_THROW(GetCodePointsCount(bad + "anton"), std::runtime_error);
   ASSERT_EQ(5u, GetCodePointsCount("anton"));
-  ASSERT_EQ(5u, GetCodePointsCount(u8"Антон"));
-  ASSERT_EQ(11u, GetCodePointsCount(u8"Антон anton"));
-  EXPECT_THROW(GetCodePointsCount(u8"Ант" + bad + u8"он"), std::runtime_error);
+  ASSERT_EQ(5u, GetCodePointsCount("Антон"));
+  ASSERT_EQ(11u, GetCodePointsCount("Антон anton"));
+  EXPECT_THROW(GetCodePointsCount("Ант" + bad + "он"), std::runtime_error);
 }
 
 TEST(CheckIsCString, IsCString) {
