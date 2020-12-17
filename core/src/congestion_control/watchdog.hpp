@@ -7,6 +7,7 @@
 #include <congestion_control/controller.hpp>
 #include <congestion_control/limiter.hpp>
 #include <congestion_control/sensor.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 
 namespace congestion_control {
 
@@ -28,6 +29,7 @@ class Watchdog final {
 
   concurrent::Variable<std::vector<ControllerInfo>, std::mutex> cis_;
   std::atomic<bool> should_stop_;
+  engine::TaskProcessor& tp_;
   std::thread thread_;
 };
 

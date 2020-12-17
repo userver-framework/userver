@@ -5,12 +5,15 @@
 
 #include <atomic>
 #include <chrono>
+#include <future>
 #include <string>
+#include <type_traits>
 #include <unordered_set>
 
 #include <formats/json/value.hpp>
 #include <rcu/rcu.hpp>
 #include <utils/assert.hpp>
+#include <utils/async.hpp>
 
 namespace clients::http {
 class Client;
@@ -66,4 +69,23 @@ class TestPoint final {
     if (!tp.IsRegisteredPath(name)) break;                  \
                                                             \
     tp.Notify(name, json, callback);                        \
+  } while (0)
+
+/// Same as `TESTPOINT_CALLBACK` but must be called outside of
+/// coroutine (e.g. from std::thread routine).
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TESTPOINT_CALLBACK_NONCORO(name, json, task_p, callback)   \
+  do {                                                             \
+    auto& tp = ::testsuite::impl::TestPoint::GetInstance();        \
+    if (!tp.IsEnabled()) break;                                    \
+    if (!tp.IsRegisteredPath(name)) break;                         \
+                                                                   \
+    auto j = (json);                                               \
+    auto c = (callback);                                           \
+    auto n = (name);                                               \
+    auto cb = [&n, &j, &c, &tp] { tp.Notify(n, j, c); };           \
+    std::packaged_task<void()> task(cb);                           \
+    auto future = task.get_future();                               \
+    engine::impl::CriticalAsync(task_p, std::move(task)).Detach(); \
+    future.get();                                                  \
   } while (0)

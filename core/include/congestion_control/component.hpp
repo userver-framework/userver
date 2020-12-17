@@ -27,7 +27,7 @@ class Component final : public components::LoggableComponentBase {
       const utils::statistics::StatisticsRequest& /*request*/);
 
   struct Impl;
-  utils::FastPimpl<Impl, 504, 8> pimpl_;
+  utils::FastPimpl<Impl, 512, 8> pimpl_;
 };
 
 }  // namespace congestion_control

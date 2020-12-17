@@ -1,9 +1,15 @@
 #include <congestion_control/watchdog.hpp>
 
+#include <engine/task/task.hpp>
+#include <formats/parse/common_containers.hpp>
+#include <testsuite/testpoint.hpp>
+
 namespace congestion_control {
 
 Watchdog::Watchdog()
-    : should_stop_(false), thread_([this] {
+    : should_stop_(false),
+      tp_(engine::current_task::GetTaskProcessor()),
+      thread_([this] {
         while (!should_stop_.load()) {
           Check();
           std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -30,6 +36,14 @@ void Watchdog::Check() {
     auto data = ci.sensor.FetchCurrent();
     ci.controller.Feed(data);
     auto limit = ci.controller.GetLimit();
+
+    TESTPOINT_CALLBACK_NONCORO(
+        "congestion-control", (formats::json::Value{}), tp_,
+        [&limit](const formats::json::Value& doc) {
+          limit.load_limit = doc["force-rps-limit"].As<std::optional<size_t>>();
+          LOG_ERROR() << "Forcing RPS limit from testpoint: "
+                      << limit.load_limit;
+        });
     ci.limiter.SetLimit(limit);
   }
 }
