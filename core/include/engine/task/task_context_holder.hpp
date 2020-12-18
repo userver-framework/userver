@@ -8,12 +8,9 @@
 #include <boost/intrusive_ptr.hpp>
 
 #include <engine/task/task.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 
-namespace engine {
-
-class TaskProcessor;
-
-namespace impl {
+namespace engine::impl {
 
 class TaskContext;
 
@@ -37,5 +34,4 @@ class TaskContextHolder final {
   boost::intrusive_ptr<TaskContext> context_;
 };
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

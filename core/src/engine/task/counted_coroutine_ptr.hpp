@@ -4,13 +4,10 @@
 
 #include <engine/coro/pool.hpp>
 #include <engine/task/task_counter.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <utils/assert.hpp>
 
-namespace engine {
-
-class TaskProcessor;
-
-namespace impl {
+namespace engine::impl {
 
 class TaskContext;
 
@@ -42,5 +39,4 @@ class CountedCoroutinePtr final {
   CoroPool* coro_pool_{nullptr};
 };
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

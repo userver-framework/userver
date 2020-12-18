@@ -11,13 +11,8 @@
 
 #include <dist_lock/dist_lock_settings.hpp>
 #include <dist_lock/dist_lock_strategy.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <engine/task/task_with_result.hpp>
-
-namespace engine {
-
-class TaskProcessor;
-
-}  // namespace engine
 
 namespace dist_lock {
 namespace impl {

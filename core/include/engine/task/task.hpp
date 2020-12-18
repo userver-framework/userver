@@ -11,6 +11,7 @@
 #include <engine/deadline.hpp>
 #include <engine/exception.hpp>
 #include <engine/task/cancel.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <utils/clang_format_workarounds.hpp>
 
 namespace engine {
@@ -21,8 +22,6 @@ namespace impl {
 class TaskContext;
 class TaskContextHolder;
 }  // namespace impl
-
-class TaskProcessor;
 
 /// Asynchronous task
 class USERVER_NODISCARD Task {

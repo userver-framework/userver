@@ -3,14 +3,11 @@
 /// @file engine/async.hpp
 /// @brief TaskWithResult creation helpers
 
+#include <engine/task/task_processor_fwd.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <utils/wrapped_call.hpp>
 
-namespace engine {
-
-class TaskProcessor;
-
-namespace impl {
+namespace engine::impl {
 
 template <typename Function, typename... Args>
 auto MakeTaskWithResult(TaskProcessor& task_processor,
@@ -62,5 +59,4 @@ auto MakeTaskWithResult(TaskProcessor& task_processor,
                                     std::move(wrapped_call_ptr));
 }
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

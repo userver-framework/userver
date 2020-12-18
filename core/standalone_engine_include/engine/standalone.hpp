@@ -16,10 +16,9 @@
 #include <optional>
 #include <string>
 
+#include <engine/task/task_processor_fwd.hpp>
+
 namespace engine {
-
-class TaskProcessor;
-
 namespace impl {
 
 struct TaskProcessorPoolsConfig {

@@ -5,6 +5,7 @@
 
 #include <memory>
 
+#include <engine/task/task_processor_fwd.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <error_injection/settings_fwd.hpp>
 
@@ -43,10 +44,6 @@
 /// After the initial check we know about master presence and RTT for each host.
 /// Master host is queried about synchronous replication status. We use this
 /// info to identify synchronous slaves and to detect "quorum commit" presence.
-
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
 
 namespace components {
 class Postgres;

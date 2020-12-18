@@ -5,14 +5,12 @@
 #include <unordered_set>
 #include <vector>
 
+#include <engine/task/task_processor_fwd.hpp>
+
 #include <server/handlers/http_handler_base.hpp>
 #include <server/http/handler_info_index.hpp>
 #include <server/http/handler_method_index.hpp>
 #include <server/http/http_method.hpp>
-
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
 
 namespace server::http::impl {
 

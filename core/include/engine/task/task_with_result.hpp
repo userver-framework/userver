@@ -9,13 +9,12 @@
 #include <engine/exception.hpp>
 #include <engine/task/task.hpp>
 #include <engine/task/task_context_holder.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <utils/assert.hpp>
 #include <utils/clang_format_workarounds.hpp>
 #include <utils/wrapped_call.hpp>
 
 namespace engine {
-
-class TaskProcessor;
 
 /// Asynchronous task with result
 template <typename T>

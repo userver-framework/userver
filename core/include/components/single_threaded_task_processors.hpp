@@ -2,13 +2,13 @@
 
 #include <components/loggable_component_base.hpp>
 #include <engine/task/single_threaded_task_processors_pool.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 
 #include <memory>
 #include <vector>
 
 namespace engine {
 struct TaskProcessorConfig;
-class TaskProcessor;
 }  // namespace engine
 
 namespace components {

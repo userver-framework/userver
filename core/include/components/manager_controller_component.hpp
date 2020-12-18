@@ -3,13 +3,10 @@
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/impl/component_base.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <utils/statistics/storage.hpp>
 
 #include <taxi_config/storage/component.hpp>
-
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
 
 namespace components {
 

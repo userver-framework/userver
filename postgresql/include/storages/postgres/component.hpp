@@ -11,14 +11,11 @@
 #include <components/loggable_component_base.hpp>
 #include <components/statistics_storage.hpp>
 #include <engine/mutex.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <utils/statistics/storage.hpp>
 
 #include <storages/postgres/database.hpp>
-
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
 
 namespace components {
 

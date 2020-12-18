@@ -10,6 +10,7 @@
 
 #include <clients/http/request.hpp>
 #include <clients/http/statistics.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <rcu/rcu.hpp>
 #include <utils/fast_pimpl.hpp>
 #include <utils/periodic_task.hpp>
@@ -21,13 +22,9 @@ class multi;
 class ConnectRateLimiter;
 }  // namespace curl
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 class ThreadPool;
-}  // namespace ev
-
-class TaskProcessor;
-}  // namespace engine
+}  // namespace engine::ev
 
 namespace clients::http {
 namespace impl {

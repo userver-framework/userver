@@ -14,17 +14,13 @@
 #include <concurrent/variable.hpp>
 #include <engine/condition_variable.hpp>
 #include <engine/mutex.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <utils/assert.hpp>
 
-namespace engine {
-class TaskProcessor;
-
-namespace impl {
+namespace engine::impl {
 class TaskContext;
-}  // namespace impl
-
-}  // namespace engine
+}  // namespace engine::impl
 
 namespace components {
 

@@ -7,10 +7,9 @@
 
 #include <engine/subprocess/child_process.hpp>
 #include <engine/subprocess/environment_variables.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 
 namespace engine {
-
-class TaskProcessor;
 
 namespace ev {
 class ThreadControl;

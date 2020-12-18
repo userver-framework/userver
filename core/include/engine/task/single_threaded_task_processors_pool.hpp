@@ -3,10 +3,11 @@
 #include <memory>
 #include <vector>
 
+#include <engine/task/task_processor_fwd.hpp>
+
 namespace engine {
 
 struct TaskProcessorConfig;
-class TaskProcessor;
 
 class SingleThreadedTaskProcessorsPool final {
  public:

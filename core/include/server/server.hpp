@@ -4,12 +4,9 @@
 
 #include <components/component_context.hpp>
 #include <components/manager.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <server/handlers/fallback_handlers.hpp>
 #include <server/handlers/http_handler_base.hpp>
-
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
 
 namespace server {
 

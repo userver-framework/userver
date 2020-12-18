@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <engine/task/task_processor_fwd.hpp>
 #include <formats/json/value.hpp>
 #include <logging/component.hpp>
 #include <utils/statistics/storage.hpp>
@@ -16,14 +17,9 @@
 #include "component_context.hpp"
 #include "impl/component_base.hpp"
 
-namespace engine {
-namespace impl {
+namespace engine::impl {
 class TaskProcessorPools;
-}  // namespace impl
-
-class TaskProcessor;
-
-}  // namespace engine
+}  // namespace engine::impl
 
 namespace components {
 

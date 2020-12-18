@@ -6,14 +6,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include <engine/task/task_processor_fwd.hpp>
+
 #include <server/http/http_method.hpp>
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
 #include <server/request/request_base.hpp>
-
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
 
 namespace server {
 namespace handlers {

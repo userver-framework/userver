@@ -5,11 +5,8 @@
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/loggable_component_base.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <server/server.hpp>
-
-namespace engine {
-class TaskProcessor;
-}  // namespace engine
 
 namespace components {
 
