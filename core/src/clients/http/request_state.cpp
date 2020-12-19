@@ -15,7 +15,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/range/adaptor/map.hpp>
-#include <boost/stacktrace/stacktrace.hpp>
+#include <boost/stacktrace.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <clients/http/destination_statistics.hpp>
@@ -61,8 +61,7 @@ const std::string kTestsuiteSupportedErrors =
 
 [[noreturn]] void AbortWithStacktrace() {
   auto trace = boost::stacktrace::stacktrace();
-  std::string trace_msg = boost::stacktrace::to_string(trace);
-  std::cerr << "Stacktrace: " << trace_msg << "\n";
+  std::cerr << "Stacktrace: " << trace << "\n";
   std::abort();
 }
 

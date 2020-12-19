@@ -53,7 +53,7 @@ TEST(UtilsAlgo, Erase) {
   std::unordered_map<std::string, int> um = {{"1", 2}, {"2", 1}};
   std::unordered_multiset<int> ums = {1, 1, 1, 2, 3, 4};
   std::vector<int> v = {1, 1, 1, 2, 3, 4};
-  const auto one_count = count(cbegin(v), cend(v), 1);
+  const auto one_count = std::count(cbegin(v), cend(v), 1);
 
   ASSERT_EQ(utils::Erase(m, "1"), 1);
   EXPECT_EQ(m, (std::map<std::string, int>{{"2", 1}}));
@@ -76,7 +76,7 @@ TEST(UtilsAlgo, EraseIf) {
 
   auto value_greater_than_one = [](const auto& p) { return p.second > 1; };
   auto is_odd = [](int v) { return v % 2 == 1; };
-  const auto odd_count = count_if(cbegin(v), cend(v), is_odd);
+  const auto odd_count = std::count_if(cbegin(v), cend(v), is_odd);
 
   EXPECT_EQ(utils::EraseIf(m, value_greater_than_one), 1);
   EXPECT_EQ(m, (std::map<std::string, int>{{"2", 1}}));

@@ -82,7 +82,7 @@ std::string ImplicitOptionsHttpHandler::ExtractAllowedMethods(
     }
   }
 
-  return fmt::format(FMT_COMPILE("{}"), fmt::join(allowed_methods, ", "));
+  return fmt::to_string(fmt::join(allowed_methods, ", "));
 }
 
 const http::HandlerInfoIndex& ImplicitOptionsHttpHandler::GetHandlerInfoIndex()

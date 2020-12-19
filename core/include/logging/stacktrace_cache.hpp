@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <boost/stacktrace.hpp>
+#include <boost/stacktrace/stacktrace_fwd.hpp>
 
 namespace logging {
 

@@ -70,8 +70,9 @@ TEST(Decimal64, ZerosFullyTrimmed) {
 }
 
 TEST(Decimal64, Fmt) {
-  EXPECT_EQ(fmt::format(FMT_COMPILE("{}"), Dec4{"12.34"}), "12.34");
-  EXPECT_EQ(fmt::format(FMT_COMPILE("{:f}"), Dec4{"12.34"}), "12.3400");
+  EXPECT_EQ(fmt::to_string(Dec4{"12.34"}), "12.34");
+  EXPECT_EQ(fmt::format("{}", Dec4{"12.34"}), "12.34");
+  EXPECT_EQ(fmt::format("{:f}", Dec4{"12.34"}), "12.3400");
   EXPECT_THROW(fmt::format("{:s}", Dec4{42}), fmt::format_error);
 }
 

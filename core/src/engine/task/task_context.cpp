@@ -9,6 +9,7 @@
 #include <engine/ev/timer.hpp>
 #include <engine/exception.hpp>
 #include <engine/task/cancel.hpp>
+#include <logging/stacktrace_cache.hpp>
 #include <utils/assert.hpp>
 #include <utils/underlying_value.hpp>
 
@@ -41,7 +42,7 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
   throw std::logic_error(
       "current_task::GetCurrentTaskContext() called outside coroutine. "
       "stacktrace:\n" +
-      to_string(boost::stacktrace::stacktrace{}));
+      logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{}));
 }
 
 }  // namespace
@@ -529,9 +530,10 @@ TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
 
   UASSERT_MSG(false, fmt::format("Cannot find valid wakeup source for {}",
                                  sleep_flags.GetValue()));
-  throw std::logic_error("Cannot find valid wakeup source, stacktrace:\n" +
-                         to_string(boost::stacktrace::stacktrace{}) +
-                         "\nvalue = " + std::to_string(sleep_flags.GetValue()));
+  throw std::logic_error(
+      "Cannot find valid wakeup source, stacktrace:\n" +
+      logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{}) +
+      "\nvalue = " + std::to_string(sleep_flags.GetValue()));
 }
 
 bool TaskContext::WasStartedAsCritical() const { return is_critical_; }

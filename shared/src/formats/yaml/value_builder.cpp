@@ -46,7 +46,8 @@ ValueBuilder::ValueBuilder(uint64_t t) : value_(YAML::Node(t)) {}
 
 ValueBuilder::ValueBuilder(int64_t t) : value_(YAML::Node(t)) {}
 
-#ifdef _LIBCPP_VERSION
+// MAC_COMPAT: different typedefs for 64_t on mac
+#ifdef __APPLE__
 ValueBuilder::ValueBuilder(long t) : value_(YAML::Node(t)) {}
 ValueBuilder::ValueBuilder(unsigned long t) : value_(YAML::Node(t)) {}
 #else

@@ -1420,7 +1420,7 @@ Decimal<Prec, RoundPolicy>::FromStringPermissive(std::string_view input) {
 /// @see ToStringTrailingZeros
 template <int Prec, typename RoundPolicy>
 std::string ToString(Decimal<Prec, RoundPolicy> dec) {
-  return fmt::format(FMT_COMPILE("{}"), dec);
+  return fmt::to_string(dec);
 }
 
 /// @brief Converts Decimal to a string, writing exactly `Prec` decimal digits

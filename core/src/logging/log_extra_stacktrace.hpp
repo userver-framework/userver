@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/stacktrace.hpp>
+#include <boost/stacktrace/stacktrace_fwd.hpp>
 
 #include <logging/log_extra.hpp>
 #include <utils/flags.hpp>

@@ -32,7 +32,7 @@ namespace __cxxabiv1 {
 struct __cxa_eh_globals;
 }  // namespace __cxxabiv1
 
-extern "C" __cxxabiv1::__cxa_eh_globals* __cxa_get_globals() throw();
+extern "C" __cxxabiv1::__cxa_eh_globals* __cxa_get_globals();
 
 namespace engine::impl {
 

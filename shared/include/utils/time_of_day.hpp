@@ -133,7 +133,7 @@ TimeOfDay<Duration> operator-(TimeOfDay<Duration> lhs,
 template <typename Duration>
 logging::LogHelper& operator<<(logging::LogHelper& lh,
                                TimeOfDay<Duration> value) {
-  lh << fmt::format(FMT_COMPILE("{}"), value);
+  lh << fmt::to_string(value);
 }
 
 namespace detail {

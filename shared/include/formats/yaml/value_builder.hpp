@@ -50,7 +50,8 @@ class ValueBuilder final {
   ValueBuilder(unsigned int t);
   ValueBuilder(uint64_t t);
   ValueBuilder(int64_t t);
-#ifdef _LIBCPP_VERSION  // In libc++ long long and int64_t are the same
+// MAC_COMPAT: different typedefs for 64_t on mac
+#ifdef __APPLE__
   ValueBuilder(long t);
   ValueBuilder(unsigned long t);
 #else

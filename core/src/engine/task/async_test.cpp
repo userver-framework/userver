@@ -9,12 +9,12 @@
 
 namespace {
 
-struct Guard {
-  Guard(std::atomic<int>& count) : count_(count) { count_++; }
-  Guard(Guard&& other) : count_(other.count_) { count_++; }
-  Guard(const Guard& other) : count_(other.count_) { count_++; }
+struct CountGuard {
+  CountGuard(std::atomic<int>& count) : count_(count) { count_++; }
+  CountGuard(CountGuard&& other) : count_(other.count_) { count_++; }
+  CountGuard(const CountGuard& other) : count_(other.count_) { count_++; }
 
-  ~Guard() { count_--; }
+  ~CountGuard() { count_--; }
 
  private:
   std::atomic<int>& count_;
@@ -80,7 +80,7 @@ TEST(Task, ArgumentsLifetime) {
         std::atomic<int> count = 0;
 
         EXPECT_EQ(0, count.load());
-        auto task = engine::impl::Async([](Guard) {}, Guard(count));
+        auto task = engine::impl::Async([](CountGuard) {}, CountGuard(count));
         EXPECT_EQ(1, count.load());
 
         engine::Yield();
@@ -99,7 +99,8 @@ TEST(Task, ArgumentsLifetimeThrow) {
 
         EXPECT_EQ(0, count.load());
         auto task = engine::impl::Async(
-            [](Guard) { throw std::runtime_error("123"); }, Guard(count));
+            [](CountGuard) { throw std::runtime_error("123"); },
+            CountGuard(count));
         EXPECT_EQ(1, count.load());
 
         engine::Yield();
@@ -117,7 +118,7 @@ TEST(Task, FunctionLifetime) {
         std::atomic<int> count = 0;
 
         EXPECT_EQ(0, count.load());
-        auto task = engine::impl::Async([guard = Guard(count)] {});
+        auto task = engine::impl::Async([guard = CountGuard(count)] {});
         EXPECT_EQ(1, count.load());
 
         engine::Yield();
@@ -136,7 +137,7 @@ TEST(Task, FunctionLifetimeThrow) {
 
         EXPECT_EQ(0, count.load());
         auto task = engine::impl::Async(
-            [guard = Guard(count)] { throw std::runtime_error("123"); });
+            [guard = CountGuard(count)] { throw std::runtime_error("123"); });
         EXPECT_EQ(1, count.load());
 
         engine::Yield();

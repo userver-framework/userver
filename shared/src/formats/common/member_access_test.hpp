@@ -8,7 +8,6 @@ TYPED_TEST_SUITE_P(MemberAccess);
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBrakets) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
-  using Value = typename TestFixture::Value;
 
   EXPECT_FALSE(this->doc_["key1"].IsMissing());
   EXPECT_EQ(this->doc_["key1"], ValueBuilder(1).ExtractValue());
@@ -16,15 +15,12 @@ TYPED_TEST_P(MemberAccess, ChildBySquareBrakets) {
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBraketsTwice) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
-  using Value = typename TestFixture::Value;
 
   EXPECT_FALSE(this->doc_["key3"]["sub"].IsMissing());
   EXPECT_EQ(this->doc_["key3"]["sub"], ValueBuilder(-1).ExtractValue());
 }
 
 TYPED_TEST_P(MemberAccess, ChildBySquareBraketsMissing) {
-  using ValueBuilder = typename TestFixture::ValueBuilder;
-  using Value = typename TestFixture::Value;
   using MemberMissingException = typename TestFixture::MemberMissingException;
 
   EXPECT_NO_THROW(this->doc_["key_missing"]);
@@ -187,8 +183,6 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
 }
 
 TYPED_TEST_P(MemberAccess, Algorithms) {
-  using TypeMismatchException = typename TestFixture::TypeMismatchException;
-
   auto it =
       std::find_if(this->doc_.begin(), this->doc_.end(), [](const auto& v) {
         return v.IsString() && v.template As<std::string>() == "val";
@@ -342,7 +336,6 @@ TYPED_TEST_P(MemberAccess, CloneValues) {
 
 TYPED_TEST_P(MemberAccess, CreateEmptyAndAccess) {
   using Value = typename TestFixture::Value;
-  using ValueBuilder = typename TestFixture::ValueBuilder;
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
   Value v;
@@ -356,7 +349,6 @@ TYPED_TEST_P(MemberAccess, CreateEmptyAndAccess) {
 TYPED_TEST_P(MemberAccess, Subfield) {
   using Value = typename TestFixture::Value;
   using ValueBuilder = typename TestFixture::ValueBuilder;
-  using TypeMismatchException = typename TestFixture::TypeMismatchException;
   using Type = typename TestFixture::Type;
 
   ValueBuilder body_builder(Type::kObject);
@@ -430,8 +422,6 @@ TYPED_TEST_P(MemberAccess, AsWithDefault) {
 }
 
 TYPED_TEST_P(MemberAccess, RootAndPathOfCloned) {
-  using Value = typename TestFixture::Value;
-
   EXPECT_TRUE(this->doc_.Clone().IsRoot());
   EXPECT_TRUE(this->doc_.IsRoot());
 

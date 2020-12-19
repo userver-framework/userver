@@ -263,8 +263,6 @@ TYPED_TEST_P(Conversion, Containers) {
 
 TYPED_TEST_P(Conversion, ContainersSerialize) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
-  using Value = typename TestFixture::Value;
-  using Exception = typename TestFixture::Exception;
 
   ValueBuilder invb;
   std::vector ref_vector{1, 2, 3};

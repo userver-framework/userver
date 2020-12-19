@@ -22,10 +22,12 @@ abi::__cxa_eh_globals* GetGlobals() throw();
 
 }  // namespace engine::impl
 
-#elif defined(__APPLE__) && defined(_LIBCPP_VERSION)
+#elif defined(_LIBCPP_VERSION) && \
+    (defined(__APPLE__) || defined(Y_CXA_EH_GLOBALS_COMPLETE))
 
-// MAC_COMPAT
+// MAC_COMPAT, YA_COMPAT
 // "only INSERTED libraries can interpose", you say
+// duplicate symbols, you say
 // let's juggle some razor blades then
 #define USERVER_EHGLOBALS_SWAP
 

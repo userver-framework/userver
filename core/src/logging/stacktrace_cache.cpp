@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include <boost/functional/hash.hpp>
+#include <boost/stacktrace.hpp>
 
 #include <cache/lru_map.hpp>
 

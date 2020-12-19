@@ -1,5 +1,9 @@
 #include <utest/utest.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <boost/stacktrace.hpp>
+
 #include <logging/stacktrace_cache.hpp>
 
 TEST(stacktrace_cache, frame) {
@@ -11,6 +15,5 @@ TEST(stacktrace_cache, frame) {
 
 TEST(stacktrace_cache, full) {
   auto st = boost::stacktrace::stacktrace();
-  EXPECT_EQ(boost::stacktrace::to_string(st),
-            logging::stacktrace_cache::to_string(st));
+  EXPECT_EQ(fmt::to_string(st), logging::stacktrace_cache::to_string(st));
 }
