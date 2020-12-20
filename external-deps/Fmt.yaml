@@ -1,5 +1,5 @@
 name: Fmt
-version: 7
+version: '7.1'
 helper-prefix: false
 
 includes:
