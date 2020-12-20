@@ -120,7 +120,7 @@ endif()
 set(USERVER_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
-  ${USERVER_THIRD_PARTY_DIRS}/magic_get/include
+  ${USERVER_THIRD_PARTY_DIRS}/pfr/include
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/glibc_include_fixes

@@ -31,7 +31,7 @@
 /shared/*/http/ @segoon @bugaevskiy
 
 /third_party/boost_stacktrace/ @antoshkka
-/third_party/magic_get/ @ser-fedorov @antoshkka
+/third_party/pfr/ @ser-fedorov @antoshkka
 
 /uboost_coro/ @bugaevskiy @antoshkka
 
