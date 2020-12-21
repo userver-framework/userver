@@ -54,6 +54,11 @@ void TokenBucket::SetUpdateInterval(Duration single_token_update_interval) {
   single_token_update_interval_ = single_token_update_interval;
 }
 
+void TokenBucket::Drain() {
+  tokens_ = 0;
+  last_update_tp_ = GetNow();
+}
+
 double TokenBucket::GetRatePs() const {
   return GetRatePs(
       single_token_update_interval_.load(std::memory_order_relaxed));

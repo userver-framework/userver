@@ -10,6 +10,8 @@
 #include <type_traits>
 #include <unordered_set>
 
+#include <fmt/format.h>
+
 #include <formats/json/value.hpp>
 #include <rcu/rcu.hpp>
 #include <utils/assert.hpp>
@@ -74,18 +76,31 @@ class TestPoint final {
 /// Same as `TESTPOINT_CALLBACK` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT_CALLBACK_NONCORO(name, json, task_p, callback)   \
-  do {                                                             \
-    auto& tp = ::testsuite::impl::TestPoint::GetInstance();        \
-    if (!tp.IsEnabled()) break;                                    \
-    if (!tp.IsRegisteredPath(name)) break;                         \
-                                                                   \
-    auto j = (json);                                               \
-    auto c = (callback);                                           \
-    auto n = (name);                                               \
-    auto cb = [&n, &j, &c, &tp] { tp.Notify(n, j, c); };           \
-    std::packaged_task<void()> task(cb);                           \
-    auto future = task.get_future();                               \
-    engine::impl::CriticalAsync(task_p, std::move(task)).Detach(); \
-    future.get();                                                  \
+#define TESTPOINT_CALLBACK_NONCORO(name, json, task_p, callback)               \
+  do {                                                                         \
+    auto& tp = ::testsuite::impl::TestPoint::GetInstance();                    \
+    if (!tp.IsEnabled()) break;                                                \
+    if (!tp.IsRegisteredPath(name)) break;                                     \
+                                                                               \
+    auto j = (json);                                                           \
+    auto c = (callback);                                                       \
+    auto n = (name);                                                           \
+    auto cb = [&n, &j, &c, &tp] { tp.Notify(n, j, c); };                       \
+    std::packaged_task<void()> task(cb);                                       \
+    auto future = task.get_future();                                           \
+    engine::impl::CriticalAsync(task_p, std::move(task)).Detach();             \
+    try {                                                                      \
+      future.get();                                                            \
+    } catch (const std::exception& e) {                                        \
+      UASSERT_MSG(false, fmt::format("Unhandled exception from testpoint: {}", \
+                                     e.what()));                               \
+      throw;                                                                   \
+    }                                                                          \
   } while (0)
+
+/// Same as `TESTPOINT` but must be called outside of
+/// coroutine (e.g. from std::thread routine).
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TESTPOINT_NONCORO(name, j, task_p)    \
+  TESTPOINT_CALLBACK_NONCORO(name, j, task_p, \
+                             ([](const formats::json::Value&) {}))

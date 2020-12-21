@@ -39,6 +39,9 @@ class TokenBucket final {
   /// Get rate for specified update interval (tokens per second)
   static double GetRatePs(Duration update_interval);
 
+  /// Remove all existing tokens
+  void Drain();
+
  private:
   void Update();
 

@@ -158,9 +158,7 @@ void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
       rate_limit_.SetMaxSize(1);
       rate_limit_.SetUpdateInterval(utils::TokenBucket::Duration::max());
 
-      // Burn existing tokens
-      rate_limit_.Obtain();
-      rate_limit_.Obtain();
+      rate_limit_.Drain();
     }
   } else {
     rate_limit_.SetUpdateInterval(utils::TokenBucket::Duration(0));

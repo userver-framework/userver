@@ -38,13 +38,15 @@ void Watchdog::Check() {
     auto limit = ci.controller.GetLimit();
 
     TESTPOINT_CALLBACK_NONCORO(
-        "congestion-control", (formats::json::Value{}), tp_,
+        "congestion-control", formats::json::Value{}, tp_,
         [&limit](const formats::json::Value& doc) {
           limit.load_limit = doc["force-rps-limit"].As<std::optional<size_t>>();
           LOG_ERROR() << "Forcing RPS limit from testpoint: "
                       << limit.load_limit;
         });
     ci.limiter.SetLimit(limit);
+
+    TESTPOINT_NONCORO("congestion-control-apply", formats::json::Value{}, tp_);
   }
 }
 
