@@ -32,6 +32,28 @@ TEST(RemoveQuotes, One) {
   EXPECT_STREQ("abc", RemoveQuotes("\"abc\"").c_str());
 }
 
+TEST(Text, StartsWith) {
+  EXPECT_TRUE(utils::text::StartsWith("12345", "123"));
+  EXPECT_TRUE(utils::text::StartsWith("12345", ""));
+  EXPECT_TRUE(utils::text::StartsWith("12345", "12345"));
+  EXPECT_FALSE(utils::text::StartsWith("123", "12345"));
+  EXPECT_FALSE(utils::text::StartsWith("345", "12345"));
+  EXPECT_FALSE(utils::text::StartsWith("123_5", "12345"));
+  EXPECT_FALSE(utils::text::StartsWith("", "12345"));
+  EXPECT_TRUE(utils::text::StartsWith("", ""));
+}
+
+TEST(Text, EndsWith) {
+  EXPECT_TRUE(utils::text::EndsWith("12345", "345"));
+  EXPECT_TRUE(utils::text::EndsWith("12345", ""));
+  EXPECT_TRUE(utils::text::EndsWith("12345", "12345"));
+  EXPECT_FALSE(utils::text::EndsWith("123", "12345"));
+  EXPECT_FALSE(utils::text::EndsWith("345", "12345"));
+  EXPECT_FALSE(utils::text::EndsWith("123_5", "12345"));
+  EXPECT_FALSE(utils::text::EndsWith("", "12345"));
+  EXPECT_TRUE(utils::text::EndsWith("", ""));
+}
+
 TEST(TestIsAscii, IsAscii) {
   EXPECT_TRUE(utils::text::IsAscii("valid ascii"));
 

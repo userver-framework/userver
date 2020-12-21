@@ -31,6 +31,10 @@ std::string Format(double value, int ndigits);
 /// Return cpp_dec_float_50 formatted
 std::string Format(boost::multiprecision::cpp_dec_float_50 value, int ndigits);
 
+bool StartsWith(std::string_view hay, std::string_view needle);
+
+bool EndsWith(std::string_view hay, std::string_view needle);
+
 // Capitalizes the first letter of the str
 std::string Capitalize(std::string_view str, const std::string& locale);
 

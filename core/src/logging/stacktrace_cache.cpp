@@ -6,6 +6,7 @@
 #include <boost/stacktrace.hpp>
 
 #include <cache/lru_map.hpp>
+#include <utils/text.hpp>
 
 namespace std {
 
@@ -19,6 +20,16 @@ struct hash<boost::stacktrace::frame> {
 }  // namespace std
 
 namespace logging::stacktrace_cache {
+
+namespace {
+
+// debug clang
+const std::string_view kStartOfCoroutine1 =
+    "void utils::impl::WrappedCallImpl<";
+// release clang
+const std::string_view kStartOfCoroutine2 = "utils::impl::WrappedCallImpl<";
+
+}  // namespace
 
 std::string to_string(boost::stacktrace::frame frame) {
   thread_local cache::LruMap<boost::stacktrace::frame, std::string>
@@ -43,7 +54,18 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
     res += std::to_string(i);
     res += '#';
     res += ' ';
-    res += stacktrace_cache::to_string(frame);
+    auto frame_name = stacktrace_cache::to_string(frame);
+
+    if (utils::text::StartsWith(frame_name, kStartOfCoroutine1) ||
+        utils::text::StartsWith(frame_name, kStartOfCoroutine2)) {
+      /* The rest is a long common stacktrace for a task w/ std::function,
+       * WrappedCall, fiber, etc. Almost useless for service debugging.
+       */
+      res += "[start of coroutine]\n";
+      break;
+    }
+
+    res += frame_name;
     res += '\n';
     i++;
   }

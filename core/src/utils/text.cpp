@@ -55,6 +55,15 @@ std::string Format(double value, int ndigits) {
   return res.str();
 }
 
+bool StartsWith(std::string_view hay, std::string_view needle) {
+  return hay.substr(0, needle.size()) == needle;
+}
+
+bool EndsWith(std::string_view hay, std::string_view needle) {
+  return hay.size() >= needle.size() &&
+         hay.substr(hay.size() - needle.size()) == needle;
+}
+
 std::string Capitalize(std::string_view str, const std::string& locale) {
   return boost::locale::to_title(str.data(), str.data() + str.size(),
                                  GetLocale(locale));
