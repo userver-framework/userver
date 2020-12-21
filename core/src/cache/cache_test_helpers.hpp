@@ -2,7 +2,8 @@
 
 #include <boost/filesystem.hpp>
 
-#include <cache/dumper.hpp>
+#include <cache/cache_config.hpp>
+#include <cache/dump/dump_manager.hpp>
 #include <fs/blocking/write.hpp>
 #include <utils/scope_guard.hpp>
 

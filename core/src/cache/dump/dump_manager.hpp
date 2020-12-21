@@ -7,44 +7,48 @@
 
 #include <boost/regex.hpp>
 
-#include <components/loggable_component_base.hpp>
-#include <engine/async.hpp>
 #include <rcu/rcu.hpp>
 
 #include <cache/cache_config.hpp>
+#include <cache/dump/operations.hpp>
 
-namespace cache {
+namespace cache::dump {
 
-inline const std::string kDumpFilenameDateFormat = "%Y-%m-%dT%H:%M:%E6S";
+inline const std::string kFilenameDateFormat = "%Y-%m-%dT%H:%M:%E6S";
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock,
                                           std::chrono::microseconds>;
 
-struct DumpContents {
-  std::string contents;
-  TimePoint update_time;
-};
-
 /// @brief Manages cache dumps on disk
 /// @note The class is thread-safe
-class Dumper final {
+class DumpManager final {
  public:
-  Dumper(CacheConfigStatic&& config, engine::TaskProcessor& fs_task_processor,
-         std::string_view cache_name);
+  DumpManager(CacheConfigStatic&& config, std::string_view cache_name);
 
-  /// @brief Creates a new cache dump file
-  /// @return `true` on success
-  bool WriteNewDump(DumpContents dump);
+  /// @brief Creates a new empty cache dump file
+  /// @note The operation is blocking, and should run in FS TaskProcessor
+  /// @returns The file handle, or `nullopt` on a filesystem error
+  std::optional<Writer> StartWriter(TimePoint update_time);
 
-  /// Reads the latest dump file, if available and fresh enough
-  std::optional<DumpContents> ReadLatestDump();
+  struct StartReaderResult {
+    Reader contents;
+    TimePoint update_time;
+  };
+
+  /// @brief Opens the latest cache dump file
+  /// @note The operation is blocking, and should run in FS TaskProcessor
+  /// @returns The file handle if available and fresh enough,
+  /// or `nullopt` otherwise
+  std::optional<StartReaderResult> StartReader();
 
   /// @brief Modifies the update time for a cache dump
+  /// @note The operation is blocking, and should run in FS TaskProcessor
   /// @return `true` on success, `false` if the dump is not available
   bool BumpDumpTime(TimePoint old_update_time, TimePoint new_update_time);
 
-  /// Removes old dumps and tmp files
-  /// @warning Must not be called concurrently with `WriteNewDump`
+  /// @brief Removes old dumps and tmp files
+  /// @note The operation is blocking, and should run in FS TaskProcessor
+  /// @warning Must not be called concurrently with `StartWriter`
   void Cleanup();
 
   /// Changes the config used for new operations
@@ -61,13 +65,10 @@ class Dumper final {
 
   std::optional<ParsedDumpName> ParseDumpName(std::string filename) const;
 
-  std::optional<std::string> GetLatestDumpNameBlocking(
-      const CacheConfigStatic& config) const;
-
   std::optional<std::string> GetLatestDumpName(
       const CacheConfigStatic& config) const;
 
-  void CleanupBlocking(const CacheConfigStatic& config);
+  void DoCleanup(const CacheConfigStatic& config);
 
   static std::string FilenameToPath(std::string_view filename,
                                     const CacheConfigStatic& config);
@@ -83,10 +84,9 @@ class Dumper final {
 
  private:
   rcu::Variable<CacheConfigStatic> config_;
-  engine::TaskProcessor& fs_task_processor_;
   const std::string_view cache_name_;
   const boost::regex filename_regex_;
   const boost::regex tmp_filename_regex_;
 };
 
-}  // namespace cache
+}  // namespace cache::dump

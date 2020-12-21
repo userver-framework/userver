@@ -3,6 +3,8 @@
 #include <formats/yaml/serialize.hpp>
 #include <formats/yaml/value_builder.hpp>
 
+#include <cache/dump/common.hpp>
+
 namespace cache {
 
 CacheConfigStatic ConfigFromYaml(const std::string& yaml_string,
@@ -32,9 +34,11 @@ void CreateDumps(const std::vector<boost::filesystem::path>& filenames,
                  std::string_view cache_name) {
   const auto full_directory = directory / std::string{cache_name};
   fs::blocking::CreateDirectories(full_directory.string());
+
   for (const auto& filename : filenames) {
-    fs::blocking::RewriteFileContents((full_directory / filename).string(),
-                                      filename.string());
+    dump::Writer writer((full_directory / filename).string());
+    writer.Write(filename.string());
+    writer.Finish();
   }
 }
 

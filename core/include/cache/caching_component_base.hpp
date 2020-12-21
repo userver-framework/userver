@@ -21,6 +21,8 @@
 
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
+#include <cache/dump/meta.hpp>
+#include <cache/dump/operations.hpp>
 
 namespace components {
 
@@ -116,6 +118,9 @@ class CachingComponentBase
 
   void Cleanup() final;
 
+  void GetAndWrite(cache::dump::Writer& writer) const final;
+  void ReadAndSet(cache::dump::Reader& reader) final;
+
   utils::statistics::Entry statistics_holder_;
   rcu::Variable<std::shared_ptr<const T>> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
@@ -149,6 +154,16 @@ CachingComponentBase<T>::CachingComponentBase(
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
     config_subscription_ = taxi_config.UpdateAndListen(
         this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
+  }
+
+  const auto cache_config_ptr = GetConfig();
+  if (cache_config_ptr->dumps_enabled && !cache::dump::kIsDumpable<T>) {
+    throw std::logic_error(
+        "Cache dumps have been enabled, but `T` is not dumpable. Please make "
+        "sure that you have `#include <cache/dump/common_containers.hpp>` if "
+        "necessary, and that `Write(cache::dump::Writer&, const T&)` and "
+        "`Read(cache::dump::Reader&, cache::dump::To<T>)` are implemented for "
+        "all the related types.");
   }
 }
 
@@ -229,6 +244,26 @@ void CachingComponentBase<T>::OnConfigUpdate(
 template <typename T>
 bool CachingComponentBase<T>::MayReturnNull() const {
   return false;
+}
+
+template <typename T>
+void CachingComponentBase<T>::GetAndWrite(cache::dump::Writer& writer) const {
+  if constexpr (cache::dump::kIsDumpable<T>) {
+    const auto contents = GetUnsafe();
+    if (!contents) throw cache::EmptyCacheError(Name());
+    writer.Write(*contents);
+  } else {
+    cache::ThrowDumpUnimplemented(Name());
+  }
+}
+
+template <typename T>
+void CachingComponentBase<T>::ReadAndSet(cache::dump::Reader& reader) {
+  if constexpr (cache::dump::kIsDumpable<T>) {
+    Set(reader.Read<T>());
+  } else {
+    cache::ThrowDumpUnimplemented(Name());
+  }
 }
 
 template <typename T>
