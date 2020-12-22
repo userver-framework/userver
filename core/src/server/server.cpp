@@ -5,6 +5,7 @@
 
 #include <engine/task/task_processor.hpp>
 #include <logging/log.hpp>
+#include <server/handlers/ping.hpp>
 #include <server/http/http_request_handler.hpp>
 #include <server/http/http_request_impl.hpp>
 #include <server/net/endpoint_info.hpp>
@@ -14,6 +15,12 @@
 #include <server/server_config.hpp>
 
 namespace server {
+
+namespace {
+
+constexpr std::string_view kPing = "/ping";
+
+}
 
 class ServerImpl final {
  public:
@@ -46,6 +53,7 @@ class ServerImpl final {
                     bool is_monitor);
 
   PortInfo main_port_info_, monitor_port_info_;
+  std::atomic<size_t> handlers_count_{0};
 
   mutable std::shared_timed_mutex stat_mutex_;
   bool is_stopping_;
@@ -194,6 +202,17 @@ void Server::AddHandler(const handlers::HttpHandlerBase& handler,
   (handler.IsMonitor() ? pimpl->monitor_port_info_.request_handler_
                        : pimpl->main_port_info_.request_handler_)
       ->AddHandler(handler, task_processor);
+
+  if (!handler.IsMonitor()) {
+    auto* v = std::get_if<std::string>(&handler.GetConfig().path);
+    if (v && *v != kPing) {
+      pimpl->handlers_count_++;
+    }
+  }
+}
+
+size_t Server::GetRegisteredHandlersCount() const {
+  return pimpl->handlers_count_.load();
 }
 
 const http::HttpRequestHandler& Server::GetHttpRequestHandler(

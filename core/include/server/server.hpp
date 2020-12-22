@@ -39,6 +39,8 @@ class Server final {
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
 
+  size_t GetRegisteredHandlersCount() const;
+
   const http::HttpRequestHandler& GetHttpRequestHandler(
       bool is_monitor = false) const;
 

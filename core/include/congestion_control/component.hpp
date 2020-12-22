@@ -21,13 +21,15 @@ class Component final : public components::LoggableComponentBase {
  private:
   void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
 
+  void OnAllComponentsLoaded() override;
+
   void OnAllComponentsAreStopping() override;
 
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 
   struct Impl;
-  utils::FastPimpl<Impl, 512, 8> pimpl_;
+  utils::FastPimpl<Impl, 528, 8> pimpl_;
 };
 
 }  // namespace congestion_control

@@ -59,6 +59,8 @@ formats::json::Value FormatStats(const Controller& c) {
 }  // namespace
 
 struct Component::Impl {
+  components::TaxiConfig& taxi_config_;
+  server::Server& server;
   server::congestion_control::Sensor server_sensor;
   server::congestion_control::Limiter server_limiter;
   Controller server_controller;
@@ -68,10 +70,13 @@ struct Component::Impl {
   // must go after all sensors/limiters
   Watchdog wd;
   utils::AsyncEventSubscriberScope config_subscription;
-  bool fake_mode;
+  std::atomic<bool> fake_mode{false};
 
-  Impl(server::Server& server, engine::TaskProcessor& tp, bool fake_mode)
-      : server_sensor(server, tp),
+  Impl(components::TaxiConfig& taxi_config, server::Server& server,
+       engine::TaskProcessor& tp, bool fake_mode)
+      : taxi_config_(taxi_config),
+        server(server),
+        server_sensor(server, tp),
         server_limiter(server),
         server_controller(kServerControllerName, {}),
         fake_mode(fake_mode) {}
@@ -80,7 +85,8 @@ struct Component::Impl {
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
-      pimpl_(context.FindComponent<components::Server>().GetServer(),
+      pimpl_(context.FindComponent<components::TaxiConfig>(),
+             context.FindComponent<components::Server>().GetServer(),
              engine::current_task::GetTaskProcessor(),
              config["fake-mode"].As<bool>(false))
 
@@ -110,9 +116,8 @@ Component::Component(const components::ComponentConfig& config,
   pimpl_->wd.Register({pimpl_->server_sensor, pimpl_->server_limiter,
                        pimpl_->server_controller});
 
-  auto& taxi_config = context.FindComponent<components::TaxiConfig>();
-  pimpl_->config_subscription =
-      taxi_config.UpdateAndListen(this, kName, &Component::OnConfigUpdate);
+  pimpl_->config_subscription = pimpl_->taxi_config_.UpdateAndListen(
+      this, kName, &Component::OnConfigUpdate);
 
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
@@ -128,8 +133,20 @@ void Component::OnConfigUpdate(
   const auto& rps_cc = cfg->Get<RpsCcConfig>();
   pimpl_->server_controller.SetPolicy(rps_cc.policy);
 
-  bool enabled = rps_cc.is_enabled && !pimpl_->fake_mode;
+  bool enabled = rps_cc.is_enabled && !pimpl_->fake_mode.load();
   pimpl_->server_controller.SetEnabled(enabled);
+}
+
+void Component::OnAllComponentsLoaded() {
+  LOG_DEBUG() << "Found " << pimpl_->server.GetRegisteredHandlersCount()
+              << " registered HTTP handlers";
+  if (pimpl_->server.GetRegisteredHandlersCount() == 0) {
+    pimpl_->fake_mode = true;
+    LOG_WARNING() << "No HTTP handlers registered, forcing fake-mode";
+
+    // apply fake_mode
+    OnConfigUpdate(pimpl_->taxi_config_.Get());
+  }
 }
 
 void Component::OnAllComponentsAreStopping() { pimpl_->wd.Stop(); }
