@@ -16,12 +16,6 @@
 
 namespace server {
 
-namespace {
-
-constexpr std::string_view kPing = "/ping";
-
-}
-
 class ServerImpl final {
  public:
   ServerImpl(ServerConfig config,
@@ -204,8 +198,7 @@ void Server::AddHandler(const handlers::HttpHandlerBase& handler,
       ->AddHandler(handler, task_processor);
 
   if (!handler.IsMonitor()) {
-    auto* v = std::get_if<std::string>(&handler.GetConfig().path);
-    if (v && *v != kPing) {
+    if (handler.GetConfig().throttling_enabled) {
       pimpl->handlers_count_++;
     }
   }

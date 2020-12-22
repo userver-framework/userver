@@ -66,6 +66,7 @@ HandlerConfig Parse(const yaml_config::YamlConfig& value,
   config.max_requests_per_second =
       value["max_requests_per_second"].As<std::optional<size_t>>();
   config.decompress_request = value["decompress_request"].As<bool>(false);
+  config.throttling_enabled = value["throttling_enabled"].As<bool>(true);
 
   if (config.max_requests_per_second &&
       config.max_requests_per_second.value() <= 0) {

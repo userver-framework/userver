@@ -33,6 +33,7 @@ struct HandlerConfig {
   std::optional<size_t> max_requests_in_flight;
   std::optional<size_t> max_requests_per_second;
   bool decompress_request{false};
+  bool throttling_enabled{true};
 };
 
 HandlerConfig Parse(const yaml_config::YamlConfig& value,

@@ -70,15 +70,6 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     return StartFailsafeTask(std::move(request));
   }
 
-  if (http_request.GetResponse().IsLimitReached()) {
-    http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
-    http_request.GetHttpResponse().SetReady();
-    request->SetTaskCreateTime();
-    LOG_LIMITED_ERROR() << "Request throttled (too many pending responses, "
-                           "limit via 'server.max_response_size_in_flight')";
-    return StartFailsafeTask(std::move(request));
-  }
-
   if (new_request_hook_) new_request_hook_(request);
 
   request->SetTaskCreateTime();
@@ -90,7 +81,18 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     // by HttpRequestConstructor::CheckStatus
     return StartFailsafeTask(std::move(request));
   }
-  if (!rate_limit_.Obtain()) {
+  auto throttling_enabled = handler->GetConfig().throttling_enabled;
+
+  if (throttling_enabled && http_request.GetResponse().IsLimitReached()) {
+    http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
+    http_request.GetHttpResponse().SetReady();
+    request->SetTaskCreateTime();
+    LOG_LIMITED_ERROR() << "Request throttled (too many pending responses, "
+                           "limit via 'server.max_response_size_in_flight')";
+    return StartFailsafeTask(std::move(request));
+  }
+
+  if (throttling_enabled && !rate_limit_.Obtain()) {
     http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
     http_request.GetHttpResponse().SetReady();
     LOG_LIMITED_ERROR()
@@ -111,7 +113,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     request->GetResponse().SetReady();
   };
 
-  if (!is_monitor_) {
+  if (!is_monitor_ && throttling_enabled) {
     return engine::impl::Async(*task_processor, std::move(payload));
   } else {
     return engine::impl::CriticalAsync(*task_processor, std::move(payload));
