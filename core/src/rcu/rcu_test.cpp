@@ -234,6 +234,8 @@ TEST(Rcu, ReadablePtrMoveAssign) {
 
 TEST(Rcu, NoCopy) {
   struct X {
+    X(int x_, bool y_) : x(x_), y(y_) {}
+
     X(X&&) = default;
     X(const X&) = delete;
     X& operator=(const X&) = delete;

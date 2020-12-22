@@ -185,12 +185,12 @@ constexpr Flags<Enum> operator&(Enum lhs, Flags<Enum> rhs) {
 
 template <typename Enum>
 constexpr bool operator==(Enum lhs, Flags<Enum> rhs) {
-  return rhs == lhs;
+  return rhs == Flags<Enum>{lhs};
 }
 
 template <typename Enum>
 constexpr bool operator!=(Enum lhs, Flags<Enum> rhs) {
-  return rhs != lhs;
+  return rhs != Flags<Enum>{lhs};
 }
 
 template <typename Enum>
@@ -353,12 +353,12 @@ Flags<Enum> operator&(Enum lhs, const AtomicFlags<Enum>& rhs) {
 
 template <typename Enum>
 bool operator==(Enum lhs, const AtomicFlags<Enum>& rhs) {
-  return rhs == lhs;
+  return rhs == Flags<Enum>{lhs};
 }
 
 template <typename Enum>
 bool operator!=(Enum lhs, const AtomicFlags<Enum>& rhs) {
-  return rhs != lhs;
+  return rhs != Flags<Enum>{lhs};
 }
 
 }  // namespace utils
