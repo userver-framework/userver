@@ -8,8 +8,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
-namespace fs {
-namespace blocking {
+namespace fs::blocking {
 
 /// @brief Create directory and all necessary parent elements. Condition when
 /// path already exists and is a directory treated as "success" and no exception
@@ -48,5 +47,4 @@ void Chmod(const std::string& path, boost::filesystem::perms perms);
 /// @throws std::runtime_error
 bool RemoveSingleFile(const std::string& path);
 
-}  // namespace blocking
-}  // namespace fs
+}  // namespace fs::blocking

@@ -1,15 +1,9 @@
 #include <fs/blocking/write.hpp>
 
-#include <fcntl.h>
-
-#include <memory>
 #include <stdexcept>
 #include <system_error>
 
-#include <boost/core/ignore_unused.hpp>
-
 #include <fs/blocking/file_descriptor.hpp>
-#include <utils/strerror.hpp>
 
 namespace fs::blocking {
 

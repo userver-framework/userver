@@ -2,9 +2,11 @@
 
 #include <set>
 
-#include <cache/cache_test_helpers.hpp>
 #include <cache/dump/common.cpp>
+#include <cache/test_helpers.hpp>
+#include <fs/blocking/temp_directory.hpp>
 #include <utest/utest.hpp>
+#include <utils/mock_now.hpp>
 
 namespace {
 
@@ -14,7 +16,7 @@ cache::dump::TimePoint BaseTime() {
                                   cache::dump::kFilenameDateFormat));
 }
 
-std::vector<boost::filesystem::path> InitialFileNames() {
+std::vector<std::string> InitialFileNames() {
   return {
       "2015-03-22T09:00:00.000000-v5",  "2015-03-22T09:00:00.000000-v0",
       "2015-03-22T09:00:00.000000-v42", "2015-03-22T09:00:01.000000-v5",
@@ -22,7 +24,7 @@ std::vector<boost::filesystem::path> InitialFileNames() {
   };
 }
 
-std::vector<boost::filesystem::path> JunkFileNames() {
+std::vector<std::string> JunkFileNames() {
   return {
       "2015-03-22T09:00:00.000000-v0.tmp",
       "2015-03-22T09:00:00.000000-v5.tmp",
@@ -30,7 +32,7 @@ std::vector<boost::filesystem::path> JunkFileNames() {
   };
 }
 
-std::vector<boost::filesystem::path> UnrelatedFileNames() {
+std::vector<std::string> UnrelatedFileNames() {
   return {"blah-2015-03-22T09:00:00.000000-v5",
           "blah-2015-03-22T09:00:00.000000-v5.tmp",
           "foo",
@@ -57,15 +59,14 @@ dump:
     format-version: 5
     max-count: 10
 )";
-  const auto directory = cache::RandomDumpDirectory();
-  utils::ScopeGuard guard([&directory] { cache::ClearDumps(directory); });
+  const fs::blocking::TempDirectory dir;
 
-  cache::CreateDumps(InitialFileNames(), directory, kCacheName);
-  cache::CreateDumps(JunkFileNames(), directory, kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), directory, kCacheName);
+  cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(UnrelatedFileNames(), dir.GetPath(), kCacheName);
 
   // Expected to remove .tmp junk and a dump with version 0
-  std::set<boost::filesystem::path> expected_files;
+  std::set<std::string> expected_files;
   InsertAll(expected_files, InitialFileNames());
   InsertAll(expected_files, UnrelatedFileNames());
   ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v0"));
@@ -74,14 +75,13 @@ dump:
 
   RunInCoro([&] {
     cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, directory.string(),
-                              std::string{kCacheName}),
-        kCacheName);
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
 
     dumper.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(directory, kCacheName), expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
+            expected_files);
 }
 
 TEST(DumpManager, CleanupByAgeTest) {
@@ -93,15 +93,14 @@ dump:
     max-count: 10
     max-age: 1500ms
 )";
-  const auto directory = cache::RandomDumpDirectory();
-  utils::ScopeGuard guard([&directory] { cache::ClearDumps(directory); });
+  const fs::blocking::TempDirectory dir;
 
-  cache::CreateDumps(InitialFileNames(), directory, kCacheName);
-  cache::CreateDumps(JunkFileNames(), directory, kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), directory, kCacheName);
+  cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(UnrelatedFileNames(), dir.GetPath(), kCacheName);
 
   // Expected to remove .tmp junk, a dump with version 0, and old dumps
-  std::set<boost::filesystem::path> expected_files;
+  std::set<std::string> expected_files;
   InsertAll(expected_files, InitialFileNames());
   InsertAll(expected_files, UnrelatedFileNames());
   ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v0"));
@@ -114,14 +113,13 @@ dump:
 
   RunInCoro([&] {
     cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, directory.string(),
-                              std::string{kCacheName}),
-        kCacheName);
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
 
     dumper.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(directory, kCacheName), expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
+            expected_files);
 }
 
 TEST(DumpManager, CleanupByCountTest) {
@@ -132,15 +130,14 @@ dump:
     format-version: 5
     max-count: 1
 )";
-  const auto directory = cache::RandomDumpDirectory();
-  utils::ScopeGuard guard([&directory] { cache::ClearDumps(directory); });
+  const fs::blocking::TempDirectory dir;
 
-  cache::CreateDumps(InitialFileNames(), directory, kCacheName);
-  cache::CreateDumps(JunkFileNames(), directory, kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), directory, kCacheName);
+  cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(UnrelatedFileNames(), dir.GetPath(), kCacheName);
 
   // Expected to remove .tmp junk, a dump with version 0, and some current dumps
-  std::set<boost::filesystem::path> expected_files;
+  std::set<std::string> expected_files;
   InsertAll(expected_files, InitialFileNames());
   InsertAll(expected_files, UnrelatedFileNames());
   ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v0"));
@@ -150,14 +147,13 @@ dump:
 
   RunInCoro([&] {
     cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, directory.string(),
-                              std::string{kCacheName}),
-        kCacheName);
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
 
     dumper.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(directory, kCacheName), expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
+            expected_files);
 }
 
 TEST(DumpManager, ReadLatestDumpTest) {
@@ -167,24 +163,21 @@ dump:
     enable: true
     format-version: 5
 )";
-  const auto directory = cache::RandomDumpDirectory();
-  utils::ScopeGuard guard([&directory] { cache::ClearDumps(directory); });
+  const fs::blocking::TempDirectory dir;
 
-  cache::CreateDumps(InitialFileNames(), directory, kCacheName);
-  cache::CreateDumps(JunkFileNames(), directory, kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), directory, kCacheName);
+  cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(UnrelatedFileNames(), dir.GetPath(), kCacheName);
 
   // Expected not to write or remove anything
-  std::set<boost::filesystem::path> expected_files;
+  std::set<std::string> expected_files;
   InsertAll(expected_files, InitialFileNames());
   InsertAll(expected_files, JunkFileNames());
   InsertAll(expected_files, UnrelatedFileNames());
 
   RunInCoro([&] {
     cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, directory.string(),
-                              std::string{kCacheName}),
-        kCacheName);
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
 
     auto dump = dumper.StartReader();
     EXPECT_TRUE(dump);
@@ -198,7 +191,8 @@ dump:
     }
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(directory, kCacheName), expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
+            expected_files);
 }
 
 TEST(DumpManager, DumpAndBumpTest) {
@@ -208,20 +202,17 @@ dump:
     enable: true
     format-version: 5
 )";
-  const auto directory = cache::RandomDumpDirectory();
-  utils::ScopeGuard guard([&directory] { cache::ClearDumps(directory); });
+  const fs::blocking::TempDirectory dir;
 
   // Expected to get a new dump with update_time = BaseTime() + 3s
-  std::set<boost::filesystem::path> expected_files;
+  std::set<std::string> expected_files;
   expected_files.insert("2015-03-22T09:00:03.000000-v5");
 
   RunInCoro([&] {
     using namespace std::chrono_literals;
 
     cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, directory.string(),
-                              std::string{kCacheName}),
-        kCacheName);
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
 
     auto old_update_time = BaseTime();
     auto writer = dumper.StartWriter(old_update_time);
@@ -242,5 +233,6 @@ dump:
     EXPECT_EQ(dump->update_time, new_update_time);
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(directory, kCacheName), expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
+            expected_files);
 }

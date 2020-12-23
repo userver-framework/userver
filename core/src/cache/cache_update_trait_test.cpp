@@ -3,8 +3,8 @@
 #include <chrono>
 
 #include <cache/cache_config.hpp>
-#include <cache/cache_test_helpers.hpp>
 #include <cache/cache_update_trait.hpp>
+#include <cache/test_helpers.hpp>
 #include <testsuite/cache_control.hpp>
 #include <utils/from_string.hpp>
 
