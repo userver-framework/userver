@@ -1571,11 +1571,11 @@ class fmt::formatter<decimal64::Decimal<Prec, RoundPolicy>, Char> {
 
     if (after_digits > 0) {
       if (dec.Sign() == -1) {
-        return fmt::format_to(ctx.out(), FMT_STRING("-{}.{:0{}}"), -before,
+        return fmt::format_to(ctx.out(), FMT_COMPILE("-{}.{:0{}}"), -before,
                               -after, after_digits);
       } else {
-        return fmt::format_to(ctx.out(), FMT_STRING("{}.{:0{}}"), before, after,
-                              after_digits);
+        return fmt::format_to(ctx.out(), FMT_COMPILE("{}.{:0{}}"), before,
+                              after, after_digits);
       }
     } else {
       return fmt::format_to(ctx.out(), FMT_COMPILE("{}"), before);
