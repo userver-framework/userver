@@ -1,9 +1,28 @@
 #!/bin/sh
 
-# to fix problem with inifinite messages
-# "The authenticity of host 'arcadia.yandex.ru (...)' can't be established."
-# run:
-# ssh-keyscan -t ecdsa arcadia.yandex.ru >> ~/.ssh/known_hosts
+ensure_ssh_agent() {
+  ssh-add -l >/dev/null && return
+
+  if [ $? -eq 1 ]; then
+    echo "No keys are loaded into ssh-agent, running ssh-add for you:"
+    ssh-add && return
+  fi
+
+  echo "SSH agent is not configured properly, some packages may fail to install"
+  echo
+  sleep 2
+}
+
+echo "Checking SSH agent availability"
+ensure_ssh_agent
+
+echo "Checking arcadia connectivity"
+ssh -q arcadia.yandex.ru >/dev/null
+if [ $? -eq 255 ]; then
+  echo "Connection check failed, some packages may fail to install"
+  echo
+  sleep 2
+fi
 
 echo "Adding brew taxi-external tap"
 brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap
