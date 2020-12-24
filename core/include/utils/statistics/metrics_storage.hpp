@@ -35,7 +35,7 @@ class MetricsStorage final {
         metrics_.at({typeid(Metric), tag.GetPath()}).data_);
   }
 
-  formats::json::ValueBuilder DumpMetrics();
+  formats::json::ValueBuilder DumpMetrics(std::string_view prefix);
 
   void ResetMetrics();
 

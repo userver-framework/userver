@@ -8,6 +8,7 @@
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
+#include <utils/text.hpp>
 
 namespace utils::statistics {
 
@@ -44,12 +45,19 @@ void RegisterMetricInfo(std::type_index ti, MetricInfo&& metric_info) {
 
 MetricsStorage::MetricsStorage() : metrics_(impl::GetRegisteredMetrics()) {}
 
-formats::json::ValueBuilder MetricsStorage::DumpMetrics() {
+formats::json::ValueBuilder MetricsStorage::DumpMetrics(
+    std::string_view prefix) {
   impl::registration_finished_ = true;
 
   formats::json::ValueBuilder builder(formats::json::Type::kObject);
   for (auto& [_, metric_info] : metrics_) {
-    LOG_DEBUG() << "dumping custom metric " << metric_info.path;
+    if (!utils::text::StartsWith(metric_info.path, prefix) &&
+        !utils::text::StartsWith(prefix, metric_info.path)) {
+      LOG_DEBUG() << "skipping custom metric " << metric_info.path;
+      continue;
+    } else {
+      LOG_DEBUG() << "dumping custom metric " << metric_info.path;
+    }
     auto metric = metric_info.dump_func(metric_info.data_).ExtractValue();
     if (metric.IsObject()) {
       SetSubField(builder, metric_info.path, std::move(metric));

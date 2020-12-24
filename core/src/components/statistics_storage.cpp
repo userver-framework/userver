@@ -17,8 +17,8 @@ void StatisticsStorage::OnAllComponentsLoaded() {
 }
 
 formats::json::ValueBuilder StatisticsStorage::ExtendStatistics(
-    const utils::statistics::StatisticsRequest&) {
-  return metrics_storage_->DumpMetrics();
+    const utils::statistics::StatisticsRequest& request) {
+  return metrics_storage_->DumpMetrics(request.prefix);
 }
 
 }  // namespace components
