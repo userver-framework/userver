@@ -98,7 +98,6 @@ class TaskCounter final {
 
   void AccountSpuriousWakeup() { spurious_wakeups_++; }
 
-#ifdef USERVER_PROFILER
   void AccountTaskExecution(std::chrono::microseconds us) {
     task_processor_profiler_timings_.Add(us.count(), 1);
   }
@@ -106,7 +105,6 @@ class TaskCounter final {
   const auto& GetTaskExecutionTimings() const {
     return task_processor_profiler_timings_;
   }
-#endif  // USERVER_PROFILER
 
  private:
   std::atomic<size_t> tasks_alive_{0};
@@ -120,9 +118,7 @@ class TaskCounter final {
   std::atomic<size_t> tasks_overload_{0};
   std::atomic<size_t> tasks_overload_sensor_{0};
 
-#ifdef USERVER_PROFILER
   utils::statistics::AggregatedValues<25> task_processor_profiler_timings_;
-#endif
 };
 
 }  // namespace impl

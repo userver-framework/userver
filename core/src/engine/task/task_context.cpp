@@ -612,17 +612,28 @@ void TaskContext::Schedule() {
   // NOTE: may be executed at this point
 }
 
-#ifdef USERVER_PROFILER
 void TaskContext::ProfilerStartExecution() {
-  execute_started_ = std::chrono::steady_clock::now();
+  auto threshold_us = task_processor_.GetProfilerThreshold();
+  if (threshold_us.count() > 0) {
+    execute_started_ = std::chrono::steady_clock::now();
+  } else {
+    execute_started_ = {};
+  }
 }
 
 void TaskContext::ProfilerStopExecution() {
+  auto threshold_us = task_processor_.GetProfilerThreshold();
+  if (threshold_us.count() <= 0) return;
+
+  if (execute_started_ == std::chrono::steady_clock::time_point{}) {
+    // the task was started w/o profiling, skip it
+    return;
+  }
+
   auto now = std::chrono::steady_clock::now();
   auto duration = now - execute_started_;
   auto duration_us =
       std::chrono::duration_cast<std::chrono::microseconds>(duration);
-  auto threshold_us = task_processor_.GetProfilerThreshold();
 
   task_processor_.GetTaskCounter().AccountTaskExecution(duration_us);
 
@@ -633,11 +644,6 @@ void TaskContext::ProfilerStopExecution() {
                 << "us)" << logging::LogExtra::Stacktrace();
   }
 }
-#else  // USERVER_PROFILER
-void TaskContext::ProfilerStartExecution() {}
-
-void TaskContext::ProfilerStopExecution() {}
-#endif
 
 void TaskContext::TraceStateTransition(Task::State state) {
   if (trace_csw_left_ == 0) return;

@@ -164,13 +164,6 @@ target_include_directories(${LIBSTANDALONE_ENGINE} INTERFACE
   ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
 )
 
-option(USERVER_PROFILER "Enable task execution profiler" OFF)
-message("engine profiler: ${USERVER_PROFILER}")
-if (USERVER_PROFILER)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSERVER_PROFILER=1)
-  target_compile_definitions(${LIBSTANDALONE_ENGINE} INTERFACE -DUSERVER_PROFILER=1)
-endif()
-
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" LOG_PATH_BASE)
 set_source_files_properties(src/logging/log.cpp PROPERTIES
   COMPILE_DEFINITIONS LOG_PATH_BASE="${LOG_PATH_BASE}"

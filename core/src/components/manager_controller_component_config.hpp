@@ -9,7 +9,7 @@ namespace components {
 struct ManagerControllerTaxiConfig {
   explicit ManagerControllerTaxiConfig(const taxi_config::DocsMap& docs_map);
 
-  formats::json::Value doc;
+  formats::json::Value tp_doc;
   engine::TaskProcessorSettings default_settings;
   std::unordered_map<std::string, engine::TaskProcessorSettings> settings;
 };

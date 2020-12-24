@@ -31,6 +31,7 @@ void SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
     : config_(std::move(config)),
+      task_profiler_threshold_{std::chrono::microseconds(0)},
       pools_(std::move(pools)),
       is_shutting_down_(false),
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
@@ -120,8 +121,37 @@ impl::CountedCoroutinePtr TaskProcessor::GetCoroutine() {
   return {pools_->GetCoroPool().GetCoroutine(), *this};
 }
 
+void TaskProcessor::SetSettings(const TaskProcessorSettings& settings) {
+  sensor_task_queue_wait_time_ = settings.sensor_wait_queue_time_limit;
+  max_task_queue_wait_time_ = settings.wait_queue_time_limit;
+  max_task_queue_wait_length_ = settings.wait_queue_length_limit;
+  overload_action_ = settings.overload_action;
+
+  auto threshold = settings.profiler_execution_slice_threshold;
+  if (threshold.count() > 0) {
+    auto old_threshold = task_profiler_threshold_.exchange(threshold);
+    if (old_threshold.count() == 0) {
+      LOG_WARNING() << fmt::format(
+          "Task profiling is now enabled for task processor '{}' "
+          "(threshold={}us), you may "
+          "change settings or disable it in "
+          "USERVER_TASK_PROCESSOR_PROFILER_DEBUG config",
+          config_.thread_name, threshold.count());
+    }
+  } else {
+    auto old_threshold =
+        task_profiler_threshold_.exchange(std::chrono::microseconds(0));
+    if (old_threshold.count() > 0) {
+      LOG_WARNING() << fmt::format(
+          "Task profiling is now disabled for task processor '{}', you may "
+          "enable it in USERVER_TASK_PROCESSOR_PROFILER_DEBUG config",
+          config_.thread_name);
+    }
+  }
+}
+
 std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const {
-  return config_.profiler_threshold;
+  return task_profiler_threshold_.load();
 }
 
 size_t TaskProcessor::GetTaskTraceMaxCswForNewTask() const {

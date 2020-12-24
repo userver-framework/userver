@@ -2,16 +2,6 @@
 
 namespace engine {
 
-namespace {
-
-#ifdef USERVER_PROFILER
-constexpr bool kParseProfilerThreshold = true;
-#else
-constexpr bool kParseProfilerThreshold = false;
-#endif
-
-}  // namespace
-
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
                           formats::parse::To<TaskProcessorConfig>) {
   TaskProcessorConfig config;
@@ -19,11 +9,6 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
       value["guess-cpu-limit"].As<bool>(config.should_guess_cpu_limit);
   config.worker_threads = value["worker_threads"].As<size_t>();
   config.thread_name = value["thread_name"].As<std::string>();
-
-  if constexpr (kParseProfilerThreshold) {
-    config.profiler_threshold = std::chrono::microseconds{
-        value["profiler_threshold_us"].As<uint64_t>(500)};
-  }
 
   const auto task_trace = value["task-trace"];
   if (!task_trace.IsMissing()) {

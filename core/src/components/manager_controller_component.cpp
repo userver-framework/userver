@@ -49,11 +49,6 @@ formats::json::ValueBuilder GetTaskProcessorStats(
 
   json_task_processor["worker-threads"] = task_processor.GetWorkerCount();
 
-#ifdef USERVER_PROFILER
-  json_task_processor["profiler"] = utils::statistics::AggregatedValuesToJson(
-      counter.GetTaskExecutionTimings(), "-us");
-#endif  // USERVER_PROFILER
-
   return json_task_processor;
 }
 
@@ -137,7 +132,12 @@ void ManagerControllerComponent::OnConfigUpdate(const TaxiConfigPtr& cfg) {
 
   for (const auto& [name, task_processor] :
        components_manager_.GetTaskProcessorsMap()) {
-    task_processor->SetSettings(config.default_settings);
+    auto it = config.settings.find(name);
+    if (it != config.settings.end()) {
+      task_processor->SetSettings(it->second);
+    } else {
+      task_processor->SetSettings(config.default_settings);
+    }
   }
 }
 

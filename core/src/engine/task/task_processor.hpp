@@ -39,6 +39,8 @@ struct TaskProcessorSettings {
 
   enum class OverloadAction { kCancel, kIgnore };
   OverloadAction overload_action{OverloadAction::kIgnore};
+
+  std::chrono::microseconds profiler_execution_slice_threshold{0};
 };
 
 class TaskProcessor final {
@@ -67,12 +69,7 @@ class TaskProcessor final {
 
   size_t GetWorkerCount() const { return workers_.size(); }
 
-  void SetSettings(const TaskProcessorSettings& settings) {
-    sensor_task_queue_wait_time_ = settings.sensor_wait_queue_time_limit;
-    max_task_queue_wait_time_ = settings.wait_queue_time_limit;
-    max_task_queue_wait_length_ = settings.wait_queue_length_limit;
-    overload_action_ = settings.overload_action;
-  }
+  void SetSettings(const TaskProcessorSettings& settings);
 
   std::chrono::microseconds GetProfilerThreshold() const;
 
@@ -94,6 +91,7 @@ class TaskProcessor final {
   void HandleOverload(impl::TaskContext& context);
 
   const TaskProcessorConfig config_;
+  std::atomic<std::chrono::microseconds> task_profiler_threshold_;
   std::shared_ptr<impl::TaskProcessorPools> pools_;
 
   std::atomic<bool> is_shutting_down_;

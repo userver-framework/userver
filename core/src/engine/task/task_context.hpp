@@ -192,11 +192,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   ev::Timer deadline_timer_;
 
-  // () if not defined
+  // {} if not defined
   std::chrono::steady_clock::time_point task_queue_wait_timepoint_;
-#ifdef USERVER_PROFILER
   std::chrono::steady_clock::time_point execute_started_;
-#endif  // USERVER_PROFILER
   std::chrono::steady_clock::time_point last_state_change_timepoint_;
 
   size_t trace_csw_left_;
