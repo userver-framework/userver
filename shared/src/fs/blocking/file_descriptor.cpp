@@ -7,32 +7,63 @@
 #include <unistd.h>
 #include <array>
 #include <system_error>
+#include <utility>
+
+#include <boost/filesystem/operations.hpp>
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
+#include <utils/check_syscall.hpp>
 
 namespace fs::blocking {
 
-/*
- * Note: use functions from C library as fstream doesn't work with
- * POSIX file descriptors => it's impossible to call sync() on
- * opened fd :(
- */
-
 namespace {
 
-int NativeModeFromOpenMode(FileDescriptor::OpenFlags flags) {
-  return flags.GetValue();
+int ToNative(OpenMode flags) {
+  int result = 0;
+
+  if ((flags & OpenFlag::kRead) && (flags & OpenFlag::kWrite)) {
+    result |= O_RDWR;
+  } else if (flags & OpenFlag::kRead) {
+    result |= O_RDONLY;
+  } else if (flags & OpenFlag::kWrite) {
+    result |= O_WRONLY;
+  } else {
+    throw std::logic_error(
+        "Specify at least one of kRead, kWrite in OpenFlags");
+  }
+
+  if (flags & OpenFlag::kCreateIfNotExists) {
+    if (!(flags & OpenFlag::kWrite)) {
+      throw std::logic_error(
+          "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
+    }
+    result |= O_CREAT;
+  }
+
+  if (flags & OpenFlag::kExclusiveCreate) {
+    if (!(flags & OpenFlag::kWrite)) {
+      throw std::logic_error(
+          "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
+    }
+    result |= O_CREAT | O_EXCL;
+  }
+
+  return result;
 }
+
+constexpr int kNoFd = -1;
 
 }  // namespace
 
-FileDescriptor::FileDescriptor(int fd, std::string path)
+FileDescriptor::FileDescriptor() : fd_(kNoFd) {}
+
+FileDescriptor::FileDescriptor(int fd, std::string&& path)
     : fd_{fd}, path_{std::move(path)} {}
 
 FileDescriptor::FileDescriptor(FileDescriptor&& other) noexcept
     : fd_{other.fd_}, path_{std::move(other.path_)} {
-  other.fd_ = -1;
+  other.fd_ = kNoFd;
 }
 
 FileDescriptor& FileDescriptor::operator=(FileDescriptor&& other) noexcept {
@@ -43,7 +74,7 @@ FileDescriptor& FileDescriptor::operator=(FileDescriptor&& other) noexcept {
 }
 
 FileDescriptor::~FileDescriptor() {
-  if (fd_ != -1) {
+  if (fd_ != kNoFd) {
     try {
       Close();
     } catch (const std::exception& e) {
@@ -55,77 +86,68 @@ FileDescriptor::~FileDescriptor() {
 auto FileDescriptor::GetFileStats() const {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   struct ::stat result;
-  if (0 != ::fstat(fd_, &result)) {
-    const auto code = std::make_error_code(std::errc(errno));
-    throw std::system_error(
-        code, "Error while getting file stats for file '" + GetPath() + "'");
-  }
-
+  utils::CheckSyscall(::fstat(fd_, &result), "getting file stats for file '",
+                      GetPath(), "'");
   return result;
+}
+
+FileDescriptor FileDescriptor::CreateTempFile() {
+  return CreateTempFile(boost::filesystem::temp_directory_path().string() +
+                        "/userver");
 }
 
 FileDescriptor FileDescriptor::CreateTempFile(std::string pattern) {
   UASSERT(!pattern.empty());
 
-  static constexpr auto kPathPattern = ".XXXXXX";
-  pattern += '/';
-  pattern += kPathPattern;
+  constexpr std::string_view kPathSuffix = "/XXXXXX";
+  pattern += kPathSuffix;
 
-  const auto fd = ::mkstemp(&pattern[0]);
-  if (fd == -1) {
-    const auto code = std::make_error_code(std::errc(errno));
-    throw std::system_error(
-        code,
-        "Error while creating a unqiue file by pattern '" + pattern + "'");
-  }
+  const int fd = utils::CheckSyscall(
+      ::mkstemp(&pattern[0]),
+      "creating a unique file by pattern '" + pattern + "'");
 
   return FileDescriptor{fd, std::move(pattern)};
 }
 
-FileDescriptor FileDescriptor::OpenFile(std::string filename, OpenFlags flags,
-                                        int mode) {
+FileDescriptor FileDescriptor::OpenFile(std::string filename, OpenMode flags,
+                                        int perms) {
   UASSERT(!filename.empty());
-  const auto fd = ::open(filename.c_str(), NativeModeFromOpenMode(flags), mode);
-  return FromFdChecked(fd, std::move(filename));
+  const auto fd =
+      utils::CheckSyscall(::open(filename.c_str(), ToNative(flags), perms),
+                          "opening file '" + filename + "'");
+  return FileDescriptor{fd, std::move(filename)};
 }
 
 FileDescriptor FileDescriptor::OpenDirectory(std::string directory,
-                                             OpenFlags flags) {
+                                             OpenMode flags) {
   UASSERT(!directory.empty());
-  const auto directory_fd =
-      ::open(directory.c_str(), NativeModeFromOpenMode(flags) | O_DIRECTORY);
-  return FromFdChecked(directory_fd, std::move(directory));
+  const auto fd = utils::CheckSyscall(
+      ::open(directory.c_str(), ToNative(flags) | O_DIRECTORY),
+      "opening directory '" + directory + "'");
+  return FileDescriptor{fd, std::move(directory)};
 }
 
 void FileDescriptor::FSync() {
-  if (::fsync(fd_) == -1) {
-    const auto code = std::make_error_code(std::errc(errno));
-    throw std::system_error(
-        code, "Failed to fsync a descriptor for '" + GetPath() + "'");
-  }
+  utils::CheckSyscall(::fsync(fd_), "fsync-ing a descriptor for '", GetPath(),
+                      "'");
 }
 
 void FileDescriptor::Close() {
-  const auto close_result = ::close(fd_);
-  fd_ = -1;
-  if (close_result == -1) {
-    const auto code = std::make_error_code(std::errc(errno));
-    throw std::system_error(
-        code, "Failed to close a descriptor for '" + GetPath() + "'");
-  }
+  utils::CheckSyscall(::close(std::exchange(fd_, -1)),
+                      "closing a descriptor for '", GetPath(), "'");
 }
 
 void FileDescriptor::Write(std::string_view contents) {
   const char* buffer = contents.data();
   size_t len = contents.size();
   while (len > 0) {
-    ssize_t s = write(fd_, buffer, len);
+    ssize_t s = ::write(fd_, buffer, len);
     if (s < 0) {
       if (errno == EAGAIN || errno == EINTR) continue;
 
       const auto code = std::make_error_code(std::errc(errno));
       throw std::system_error(
-          code, "Failed to write to a descriptor for '" + GetPath() + "'");
+          code, "writing to a descriptor for '" + GetPath() + "'");
     }
 
     buffer += s;
@@ -138,13 +160,13 @@ std::string FileDescriptor::ReadContents() {
   for (;;) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     std::array<char, 4096> buffer;
-    ssize_t s = read(fd_, buffer.data(), buffer.size());
+    const ssize_t s = ::read(fd_, buffer.data(), buffer.size());
     if (s < 0) {
       if (errno == EAGAIN || errno == EINTR) continue;
 
       const auto code = std::make_error_code(std::errc(errno));
       throw std::system_error(
-          code, "Failed to read from a descriptor for '" + GetPath() + "'");
+          code, "reading from a descriptor for '" + GetPath() + "'");
     } else if (s == 0) {
       break;
     }
@@ -155,16 +177,8 @@ std::string FileDescriptor::ReadContents() {
   return result;
 }
 
+int FileDescriptor::Release() && { return std::exchange(fd_, kNoFd); }
+
 std::size_t FileDescriptor::GetSize() const { return GetFileStats().st_size; }
-
-FileDescriptor FileDescriptor::FromFdChecked(int fd, std::string filename) {
-  if (fd == -1) {
-    const auto code = std::make_error_code(std::errc(errno));
-    throw std::system_error(code,
-                            "Error while opening a file '" + filename + "'");
-  }
-
-  return FileDescriptor{fd, std::move(filename)};
-}
 
 }  // namespace fs::blocking

@@ -10,8 +10,7 @@
 using perms = boost::filesystem::perms;
 
 TEST(AsyncFs, RewriteFileContentsAtomically) {
-  auto fd = fs::blocking::FileDescriptor::CreateTempFile(
-      boost::filesystem::temp_directory_path().string());
+  auto fd = fs::blocking::FileDescriptor::CreateTempFile();
 
   auto path = fd.GetPath();
   static const auto str = "old text";

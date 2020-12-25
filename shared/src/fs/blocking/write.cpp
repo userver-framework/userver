@@ -20,9 +20,7 @@ void CreateDirectories(const std::string& path) {
 
 void RewriteFileContents(const std::string& path, std::string_view contents) {
   auto fd = FileDescriptor::OpenFile(
-      path, utils::Flags<FileDescriptor::OpenMode>() |
-                FileDescriptor::OpenMode::kWrite |
-                FileDescriptor::OpenMode::kCreateIfNotExists);
+      path, {OpenFlag::kWrite, OpenFlag::kCreateIfNotExists});
 
   fd.Write(contents);
   fd.FSync();
@@ -30,8 +28,7 @@ void RewriteFileContents(const std::string& path, std::string_view contents) {
 }
 
 void SyncDirectoryContents(const std::string& path) {
-  auto fd =
-      FileDescriptor::OpenDirectory(path, FileDescriptor::OpenMode::kRead);
+  auto fd = FileDescriptor::OpenDirectory(path, {OpenFlag::kRead});
   fd.FSync();
   fd.Close();
 }
