@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
 #include <utils/strong_typedef.hpp>
@@ -77,6 +77,7 @@ TEST(Meta, kIsRange) {
   static_assert(meta::kIsRange<const std::vector<int>&>);
   static_assert(meta::kIsRange<MyRange>);
   static_assert(meta::kIsRange<boost::filesystem::path>);
+  static_assert(meta::kIsRange<boost::filesystem::directory_iterator>);
 
   static_assert(!meta::kIsRange<const MyRange>);
   static_assert(!meta::kIsRange<void>);

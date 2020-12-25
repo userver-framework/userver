@@ -64,6 +64,9 @@ using ExpectSame = std::enable_if_t<std::is_same_v<T, U>>;
 
 namespace impl {
 
+using std::begin;
+using std::end;
+
 template <template <typename...> typename Template, typename T>
 struct IsInstantiationOf : std::false_type {};
 
@@ -77,12 +80,12 @@ template <typename T>
 using MappedType = typename T::mapped_type;
 
 template <typename T>
-using IsRange = ExpectSame<decltype(std::begin(std::declval<T&>())),
-                           decltype(std::end(std::declval<T&>()))>;
+using IsRange = ExpectSame<std::decay_t<decltype(begin(std::declval<T&>()))>,
+                           std::decay_t<decltype(end(std::declval<T&>()))>>;
 
 template <typename T>
 using IteratorType = std::enable_if_t<kIsDetected<IsRange, T>,
-                                      decltype(std::begin(std::declval<T&>()))>;
+                                      decltype(begin(std::declval<T&>()))>;
 
 template <typename T>
 using RangeValueType =
@@ -113,7 +116,7 @@ template <typename T>
 inline constexpr bool kIsVector = kIsInstantiationOf<std::vector, T>;
 
 template <typename T>
-inline constexpr bool kIsRange = kIsDetected<impl::IteratorType, T>;
+inline constexpr bool kIsRange = kIsDetected<impl::IsRange, T>;
 
 template <typename T>
 inline constexpr bool kIsMap = kIsDetected<impl::IsRange, T>&&

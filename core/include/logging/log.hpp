@@ -256,14 +256,17 @@ void LogHelper::PutMapElement(const std::pair<const T, U>& value) {
 template <typename T>
 void LogHelper::PutRange(const T& range) {
   static_assert(meta::kIsRange<T>);
+  using std::begin;
+  using std::end;
+
   constexpr std::string_view kSeparator = ", ";
   Put('[');
 
   bool is_first = true;
-  auto curr = std::begin(range);
-  const auto end = std::end(range);
+  auto curr = begin(range);
+  const auto end_iter = end(range);
 
-  while (curr != end) {
+  while (curr != end_iter) {
     if (IsLimitReached()) {
       break;
     }
@@ -281,7 +284,7 @@ void LogHelper::PutRange(const T& range) {
     ++curr;
   }
 
-  const auto extra_elements = std::distance(curr, end);
+  const auto extra_elements = std::distance(curr, end_iter);
 
   if (extra_elements != 0) {
     if (!is_first) {
