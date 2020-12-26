@@ -4,9 +4,15 @@
 
 #include <utils/meta.hpp>
 
-#include <cache/dump/operations.hpp>
-
 namespace cache::dump {
+
+/// @cond
+class Writer;
+class Reader;
+
+template <typename T>
+struct To;
+/// @endcond
 
 namespace impl {
 

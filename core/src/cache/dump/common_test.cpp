@@ -11,14 +11,7 @@
 
 #include <cache/dump/test_helpers.hpp>
 
-namespace {
-
-template <typename T>
-void TestWriteReadEquals(const T& value) {
-  EXPECT_EQ(cache::dump::WriteRead(value), value);
-}
-
-}  // namespace
+using cache::dump::TestWriteReadCycle;
 
 template <typename T>
 class CacheDumpCommonNumeric : public testing::Test {
@@ -35,54 +28,56 @@ TYPED_TEST_SUITE(CacheDumpCommonNumeric, NumericTestTypes);
 TYPED_TEST(CacheDumpCommonNumeric, Numeric) {
   using Num = typename TestFixture::Num;
 
-  TestWriteReadEquals(Num{0});
-  TestWriteReadEquals(Num{42});
-  TestWriteReadEquals(std::numeric_limits<Num>::min());
-  TestWriteReadEquals(std::numeric_limits<Num>::max());
+  TestWriteReadCycle(Num{0});
+  TestWriteReadCycle(Num{42});
+  TestWriteReadCycle(std::numeric_limits<Num>::min());
+  TestWriteReadCycle(std::numeric_limits<Num>::max());
 
   if constexpr (std::is_floating_point_v<Num>) {
-    TestWriteReadEquals(-std::numeric_limits<Num>::min());
-    TestWriteReadEquals(-std::numeric_limits<Num>::max());
-    TestWriteReadEquals(std::numeric_limits<Num>::denorm_min());
-    TestWriteReadEquals(-std::numeric_limits<Num>::denorm_min());
-    TestWriteReadEquals(std::numeric_limits<Num>::infinity());
-    TestWriteReadEquals(-std::numeric_limits<Num>::infinity());
-    EXPECT_TRUE(std::isnan(
-        cache::dump::WriteRead(std::numeric_limits<Num>::quiet_NaN())));
+    TestWriteReadCycle(-std::numeric_limits<Num>::min());
+    TestWriteReadCycle(-std::numeric_limits<Num>::max());
+    TestWriteReadCycle(std::numeric_limits<Num>::denorm_min());
+    TestWriteReadCycle(-std::numeric_limits<Num>::denorm_min());
+    TestWriteReadCycle(std::numeric_limits<Num>::infinity());
+    TestWriteReadCycle(-std::numeric_limits<Num>::infinity());
+    EXPECT_TRUE(std::isnan(cache::dump::FromBinary<Num>(
+        cache::dump::ToBinary<Num>(std::numeric_limits<Num>::quiet_NaN()))));
   } else {
     std::default_random_engine engine(42);
     std::uniform_int_distribution<Num> distribution(
         std::numeric_limits<Num>::min(), std::numeric_limits<Num>::max());
-    for (int i = 0; i < 20; ++i) {
-      TestWriteReadEquals(distribution(engine));
+    for (int i = 0; i < 1000; ++i) {
+      TestWriteReadCycle(distribution(engine));
     }
   }
 }
 
 TEST(CacheDumpCommon, IntegerSizes) {
-  EXPECT_EQ(cache::dump::ToBinary(0).size(), 1);
-  EXPECT_EQ(cache::dump::ToBinary(42).size(), 1);
-  EXPECT_EQ(cache::dump::ToBinary(127).size(), 1);
-  EXPECT_EQ(cache::dump::ToBinary(128).size(), 2);
-  EXPECT_EQ(cache::dump::ToBinary(0x3fff).size(), 2);
-  EXPECT_EQ(cache::dump::ToBinary(0x4fff).size(), 4);
-  EXPECT_EQ(cache::dump::ToBinary(0x3eff'ffff).size(), 4);
-  EXPECT_EQ(cache::dump::ToBinary(0x4f00'0000).size(), 9);
-  EXPECT_EQ(cache::dump::ToBinary(0xffff'ffff'ffff'ffff).size(), 9);
+  using cache::dump::ToBinary;
 
-  EXPECT_EQ(cache::dump::ToBinary(-1).size(), 9);
+  EXPECT_EQ(ToBinary(0).size(), 1);
+  EXPECT_EQ(ToBinary(42).size(), 1);
+  EXPECT_EQ(ToBinary(127).size(), 1);
+  EXPECT_EQ(ToBinary(128).size(), 2);
+  EXPECT_EQ(ToBinary(0x3fff).size(), 2);
+  EXPECT_EQ(ToBinary(0x4fff).size(), 4);
+  EXPECT_EQ(ToBinary(0x3eff'ffff).size(), 4);
+  EXPECT_EQ(ToBinary(0x4f00'0000).size(), 9);
+  EXPECT_EQ(ToBinary(0xffff'ffff'ffff'ffff).size(), 9);
+
+  EXPECT_EQ(ToBinary(-1).size(), 9);
 }
 
 TEST(CacheDumpCommon, String) {
-  TestWriteReadEquals(std::string{""});
-  TestWriteReadEquals(std::string{"a"});
-  TestWriteReadEquals(std::string{"abc"});
-  TestWriteReadEquals(std::string{"A big brown hog jumps over the lazy dog"});
+  TestWriteReadCycle(std::string{""});
+  TestWriteReadCycle(std::string{"a"});
+  TestWriteReadCycle(std::string{"abc"});
+  TestWriteReadCycle(std::string{"A big brown hog jumps over the lazy dog"});
 }
 
 TEST(CacheDumpCommon, Bool) {
-  TestWriteReadEquals(false);
-  TestWriteReadEquals(true);
+  TestWriteReadCycle(false);
+  TestWriteReadCycle(true);
 }
 
 struct TwoStrings {
@@ -113,7 +108,7 @@ TwoStrings Read(cache::dump::Reader& reader, cache::dump::To<TwoStrings>) {
 }
 
 TEST(CacheDumpCommon, StringViewRaw) {
-  TestWriteReadEquals(TwoStrings{"", "abc"});
+  TestWriteReadCycle(TwoStrings{"", "abc"});
 }
 
 namespace formats::json {
@@ -132,5 +127,5 @@ formats::json::Value Read(cache::dump::Reader& reader,
 }  // namespace formats::json
 
 TEST(CacheDumpCommon, StringView) {
-  TestWriteReadEquals(formats::json::MakeObject("foo", 42, "bar", "baz"));
+  TestWriteReadCycle(formats::json::MakeObject("foo", 42, "bar", "baz"));
 }

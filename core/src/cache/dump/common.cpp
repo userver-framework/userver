@@ -88,7 +88,9 @@ void Write(Writer& writer, const char* value) {
   writer.Write(std::string_view{value});
 }
 
-void Write(Writer& writer, bool value) { writer.Write(value ? 1 : 0); }
+void Write(Writer& writer, bool value) {
+  writer.Write(value ? std::uint8_t{1} : std::uint8_t{0});
+}
 
 bool Read(Reader& reader, To<bool>) {
   const auto byte = reader.Read<std::uint8_t>();

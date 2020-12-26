@@ -27,7 +27,7 @@ DumpManager::DumpManager(CacheConfigStatic&& config,
       filename_regex_(GenerateFilenameRegex(FileFormatType::kNormal)),
       tmp_filename_regex_(GenerateFilenameRegex(FileFormatType::kTmp)) {}
 
-std::optional<Writer> DumpManager::StartWriter(TimePoint update_time) {
+std::optional<FileWriter> DumpManager::StartWriter(TimePoint update_time) {
   const auto config = config_.Read();
   const std::string dump_path = GenerateDumpPath(update_time, *config);
 
@@ -39,7 +39,7 @@ std::optional<Writer> DumpManager::StartWriter(TimePoint update_time) {
 
   try {
     boost::filesystem::create_directories(config->dump_directory);
-    return Writer(dump_path);
+    return FileWriter(dump_path);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Error while creating cache dump for cache " << cache_name_
                 << " at \"" << dump_path << "\". Cause: " << ex;
@@ -61,7 +61,7 @@ std::optional<DumpManager::StartReaderResult> DumpManager::StartReader() {
     LOG_DEBUG() << "A usable cache dump found for cache " << cache_name_
                 << ": \"" << dump_path << "\"";
 
-    return StartReaderResult{Reader(dump_path),
+    return StartReaderResult{FileReader(dump_path),
                              ParseDumpName(std::move(*filename))->update_time};
   } catch (const std::exception& ex) {
     LOG_ERROR()

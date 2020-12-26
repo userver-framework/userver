@@ -10,7 +10,7 @@
 #include <rcu/rcu.hpp>
 
 #include <cache/cache_config.hpp>
-#include <cache/dump/operations.hpp>
+#include <cache/dump/operations_file.hpp>
 
 namespace cache::dump {
 
@@ -28,10 +28,10 @@ class DumpManager final {
   /// @brief Creates a new empty cache dump file
   /// @note The operation is blocking, and should run in FS TaskProcessor
   /// @returns The file handle, or `nullopt` on a filesystem error
-  std::optional<Writer> StartWriter(TimePoint update_time);
+  std::optional<FileWriter> StartWriter(TimePoint update_time);
 
   struct StartReaderResult {
-    Reader contents;
+    FileReader contents;
     TimePoint update_time;
   };
 

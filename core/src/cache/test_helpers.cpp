@@ -6,6 +6,7 @@
 #include <formats/yaml/value_builder.hpp>
 
 #include <cache/dump/common.hpp>
+#include <cache/dump/operations_file.hpp>
 
 namespace cache {
 
@@ -27,7 +28,7 @@ void CreateDumps(const std::vector<std::string>& filenames,
   boost::filesystem::create_directories(full_directory);
 
   for (const auto& filename : filenames) {
-    dump::Writer writer((full_directory / filename).string());
+    dump::FileWriter writer((full_directory / filename).string());
     writer.Write(filename);
     writer.Finish();
   }
