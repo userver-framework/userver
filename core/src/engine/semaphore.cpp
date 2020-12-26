@@ -25,9 +25,10 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
     lock_.Release();
   }
 
-  void BeforeAwake() override { lock_.Acquire(); }
-
-  WaitListBase* GetWaitList() override { return &waiters_; }
+  void BeforeAwake() override {
+    lock_.Acquire();
+    waiters_.Remove(lock_, current_);
+  }
 
  private:
   impl::WaitList& waiters_;
@@ -97,8 +98,8 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
     expected = count;
 
     LOG_TRACE() << "iteration() sleep";
-    current->Sleep(&wait_manager);
-    if (current->GetWakeupSource() ==
+
+    if (current->Sleep(wait_manager) ==
         impl::TaskContext::WakeupSource::kDeadlineTimer) {
       LOG_TRACE() << "deadline reached";
       return false;

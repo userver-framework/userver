@@ -33,7 +33,8 @@ class Pipe final {
 };
 
 bool HasTimedOut() {
-  return engine::current_task::GetCurrentTaskContext()->GetWakeupSource() ==
+  return engine::current_task::GetCurrentTaskContext()
+             ->DebugGetWakeupSource() ==
          engine::impl::TaskContext::WakeupSource::kDeadlineTimer;
 }
 

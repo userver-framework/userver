@@ -115,6 +115,21 @@ constexpr SleepState MakeNextEpochSleepState(SleepState::Epoch current) {
   return {Epoch{utils::UnderlyingValue(current) + 1}, SleepFlags::kNone};
 }
 
+class NoopWaitStrategy final : public WaitStrategy {
+ public:
+  static NoopWaitStrategy& Instance() noexcept {
+    static /*constinit*/ NoopWaitStrategy instance;
+    return instance;
+  }
+
+  void AfterAsleep() override {}
+
+  void BeforeAwake() override {}
+
+ private:
+  constexpr NoopWaitStrategy() noexcept : WaitStrategy(Deadline{}) {}
+};
+
 }  // namespace
 
 TaskContext::LocalStorageGuard::LocalStorageGuard(TaskContext& context)
@@ -139,7 +154,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
-      wait_manager_(nullptr),
+      wait_manager_(&NoopWaitStrategy::Instance()),
       sleep_state_(SleepState{SleepState::Epoch{0}, SleepFlags::kSleeping}),
       wakeup_source_(WakeupSource::kNone),
       task_pipe_(nullptr),
@@ -186,9 +201,7 @@ class LockedWaitStrategy final : public WaitStrategy {
     if (target_.IsFinished()) waiters_.WakeupOne(lock_);
   }
 
-  void BeforeAwake() override {}
-
-  WaitListBase* GetWaitList() override { return &waiters_; }
+  void BeforeAwake() override { waiters_.Remove(lock_, &current_); }
 
  private:
   WaitListLight& waiters_;
@@ -212,7 +225,7 @@ void TaskContext::WaitUntil(Deadline deadline) const {
 
   impl::LockedWaitStrategy wait_manager(deadline, *finish_waiters_, *current,
                                         *this);
-  current->Sleep(&wait_manager);
+  current->Sleep(wait_manager);
 
   if (!IsFinished() && current->ShouldCancel()) {
     throw WaitInterruptedException(current->cancellation_reason_);
@@ -241,7 +254,8 @@ void TaskContext::DoStep() {
     try {
       SetState(Task::State::kRunning);
       (*coro_)(this);
-      if (wait_manager_) wait_manager_->AfterAsleep();
+      UASSERT(wait_manager_);
+      wait_manager_->AfterAsleep();
     } catch (...) {
       uncaught = std::current_exception();
     }
@@ -311,15 +325,36 @@ bool TaskContext::SetCancellable(bool value) {
   return std::exchange(is_cancellable_, value);
 }
 
-void TaskContext::Sleep(WaitStrategy* wait_manager) {
+// Should be defined before usage
+auto TaskContext::UseWaitStrategy(WaitStrategy& wait_strategy) noexcept {
+  class WaitManagerGuard {
+   public:
+    WaitManagerGuard(TaskContext& self, WaitStrategy& new_strategy) noexcept
+        : self_(self), old_strategy_(self_.wait_manager_) {
+      self_.wait_manager_ = &new_strategy;
+    }
+
+    WaitManagerGuard(const WaitManagerGuard&) = delete;
+    WaitManagerGuard(WaitManagerGuard&&) = delete;
+
+    ~WaitManagerGuard() { self_.wait_manager_ = old_strategy_; }
+
+   private:
+    TaskContext& self_;
+    WaitStrategy* const old_strategy_;
+  };
+
+  return WaitManagerGuard{*this, wait_strategy};
+}
+
+TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   UASSERT(current_task::GetCurrentTaskContext() == this);
   UASSERT(state_ == Task::State::kRunning);
 
-  UASSERT(wait_manager != nullptr);
   /* ConditionVariable might call Sleep() inside of Sleep() due to
-   * a lock in AfterAsleep, so store an old value on the stack.
+   * a lock in BeforeAwake, so store an old value on the stack.
    */
-  auto* old_wait_manager = std::exchange(wait_manager_, wait_manager);
+  const auto old_startegy_guard = UseWaitStrategy(wait_strategy);
 
   const auto sleep_epoch = sleep_state_.load().epoch;
   ArmDeadlineTimer(wait_manager_->GetDeadline(), sleep_epoch);
@@ -334,22 +369,18 @@ void TaskContext::Sleep(WaitStrategy* wait_manager) {
   UASSERT(context == this);
   UASSERT(state_ == Task::State::kRunning);
 
-  if (!(sleep_state_.load(std::memory_order_acquire).flags &
-        SleepFlags::kWakeupByWaitList)) {
-    auto wait_list = wait_manager_->GetWaitList();
-    if (wait_list) {
-      wait_list->Remove(this);
-    }
-  }
-
   // Clear sleep_state_ now as we may sleep in BeforeAwake() below.
   const auto old_sleep_state = sleep_state_.exchange(
-      MakeNextEpochSleepState(sleep_epoch), std::memory_order_relaxed);
+      MakeNextEpochSleepState(sleep_epoch), std::memory_order_acq_rel);
 
-  wakeup_source_ = GetPrimaryWakeupSource(old_sleep_state.flags);
+  // We compute the value here, because BeforeAwake() may lock some mutex. In
+  // that case we'll be doing computations under a lock, we increase the
+  // critical section and affect performance.
+  const auto wakeup_source = GetPrimaryWakeupSource(old_sleep_state.flags);
 
-  wait_manager_->BeforeAwake();
-  wait_manager_ = old_wait_manager;
+  wait_strategy.BeforeAwake();
+  wakeup_source_ = wakeup_source;
+  return wakeup_source_;
 }
 
 void TaskContext::ArmDeadlineTimer(Deadline deadline,
@@ -464,7 +495,7 @@ void TaskContext::Wakeup(WakeupSource source, TaskContext::NoEpoch) {
   }
 }
 
-TaskContext::WakeupSource TaskContext::GetWakeupSource() const {
+TaskContext::WakeupSource TaskContext::DebugGetWakeupSource() const {
   UASSERT(current_task::GetCurrentTaskContext() == this);
   return wakeup_source_;
 }

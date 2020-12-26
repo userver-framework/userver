@@ -61,12 +61,12 @@ void WaitListLight::WakeupOne(WaitListBase::Lock&) {
 
 void WaitListLight::WakeupAll(WaitListBase::Lock& lock) { WakeupOne(lock); }
 
-void WaitListLight::Remove(  //
-    [[maybe_unused]] const boost::intrusive_ptr<impl::TaskContext>& ctx) {
+void WaitListLight::Remove(WaitListBase::Lock&,
+                           boost::intrusive_ptr<impl::TaskContext> ctx) {
   LOG_TRACE() << "remove (cancel)";
   auto old = waiting_.exchange(nullptr);
 
-  UASSERT(!old || old == ctx.get());
+  UASSERT(!old || old == ctx);
 
   if (old) {
     intrusive_ptr_release(old);

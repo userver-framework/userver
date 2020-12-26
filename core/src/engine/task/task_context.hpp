@@ -47,10 +47,8 @@ class WaitStrategy {
 
   Deadline GetDeadline() const { return deadline_; }
 
-  virtual WaitListBase* GetWaitList() = 0;
-
  protected:
-  WaitStrategy(Deadline deadline) : deadline_(deadline) {}
+  constexpr WaitStrategy(Deadline deadline) noexcept : deadline_(deadline) {}
 
  private:
   const Deadline deadline_;
@@ -127,7 +125,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
-  void Sleep(WaitStrategy*);
+  WakeupSource Sleep(WaitStrategy& wait_strategy);
 
   void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
 
@@ -138,7 +136,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   void Wakeup(WakeupSource, NoEpoch);
 
   // Must be called from this
-  WakeupSource GetWakeupSource() const;
+  WakeupSource DebugGetWakeupSource() const;
 
   static void CoroFunc(TaskPipe& task_pipe);
 
@@ -176,7 +174,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   void TraceStateTransition(Task::State state);
 
- private:
+  [[nodiscard]] auto UseWaitStrategy(WaitStrategy& wait_strategy) noexcept;
+
   [[maybe_unused]] const uint64_t magic_;
   TaskProcessor& task_processor_;
   TaskCounter::Token task_counter_token_;

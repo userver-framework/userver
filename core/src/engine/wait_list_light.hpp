@@ -49,7 +49,8 @@ class WaitListLight final : public WaitListBase {
   void WakeupOne(WaitListBase::Lock&) override;
   void WakeupAll(WaitListBase::Lock&) override;
 
-  void Remove(const boost::intrusive_ptr<impl::TaskContext>&) override;
+  void Remove(WaitListBase::Lock&,
+              boost::intrusive_ptr<impl::TaskContext>) override;
 
  private:
   std::atomic<impl::TaskContext*> waiting_{nullptr};

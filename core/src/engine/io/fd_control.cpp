@@ -68,13 +68,12 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
   void BeforeAwake() override {
     // we need to stop watcher manually to avoid racy wakeups later
     engine::impl::WaitList::Lock lock(waiters_);
+    waiters_.Remove(lock, current_);
     if (waiters_.IsEmpty(lock)) {
       // locked queueing to avoid race w/ StartAsync in wait strategy
       watcher_.StopAsync();
     }
   }
-
-  engine::impl::WaitListBase* GetWaitList() override { return &waiters_; }
 
  private:
   engine::impl::WaitList& waiters_;
@@ -97,18 +96,21 @@ Direction::Direction(Kind kind)
 Direction::~Direction() = default;
 
 bool Direction::Wait(Deadline deadline) {
+  return DoWait(deadline) == engine::impl::TaskContext::WakeupSource::kWaitList;
+}
+
+engine::impl::TaskContext::WakeupSource Direction::DoWait(Deadline deadline) {
   UASSERT(IsValid());
 
   auto current = current_task::GetCurrentTaskContext();
 
-  if (current->ShouldCancel()) return false;
+  if (current->ShouldCancel()) {
+    return engine::impl::TaskContext::WakeupSource::kCancelRequest;
+  }
 
   impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
                                            current);
-  current->Sleep(&wait_manager);
-
-  return (current->GetWakeupSource() ==
-          engine::impl::TaskContext::WakeupSource::kWaitList);
+  return current->Sleep(wait_manager);
 }
 
 void Direction::Reset(int fd) {

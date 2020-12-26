@@ -22,9 +22,7 @@ class EventWaitStrategy final : public WaitStrategy {
     if (is_signaled_) waiters_.WakeupOne(lock_);
   }
 
-  void BeforeAwake() override {}
-
-  WaitListBase* GetWaitList() override { return &waiters_; }
+  void BeforeAwake() override { waiters_.Remove(lock_, current_); }
 
  private:
   impl::WaitListLight& waiters_;
@@ -63,8 +61,8 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
                is_signaled_.exchange(false, std::memory_order_relaxed)) &&
          !current->ShouldCancel()) {
     LOG_TRACE() << "iteration()";
-    current->Sleep(&wait_manager);
-    if (current->GetWakeupSource() ==
+
+    if (current->Sleep(wait_manager) ==
         impl::TaskContext::WakeupSource::kDeadlineTimer) {
       return false;
     }

@@ -62,6 +62,8 @@ class Direction final {
   friend class FdControl;
   explicit Direction(Kind kind);
 
+  engine::impl::TaskContext::WakeupSource DoWait(Deadline);
+
   void Reset(int fd);
   void StopWatcher();
   void WakeupWaiters();
@@ -136,8 +138,7 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
       if (current_task::ShouldCancel()) {
         throw(IoCancelled() << ... << context);
       }
-      [[maybe_unused]] auto is_ready = Wait(deadline);
-      if (current_task::GetCurrentTaskContext()->GetWakeupSource() ==
+      if (DoWait(deadline) ==
           engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
         throw IoTimeout(/*bytes_transferred =*/pos - begin);
       }

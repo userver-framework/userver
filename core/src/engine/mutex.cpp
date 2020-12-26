@@ -22,9 +22,10 @@ class MutexWaitStrategy final : public WaitStrategy {
     lock_.Release();
   }
 
-  void BeforeAwake() override { lock_.Acquire(); }
-
-  WaitListBase* GetWaitList() override { return &waiters_; }
+  void BeforeAwake() override {
+    lock_.Acquire();
+    waiters_.Remove(lock_, current_);
+  }
 
  private:
   WaitList& waiters_;
@@ -57,8 +58,7 @@ bool Mutex::LockSlowPath(impl::TaskContext* current, Deadline deadline) {
       throw std::runtime_error("Mutex is locked twice from the same task");
     }
 
-    current->Sleep(&wait_manager);
-    if (current->GetWakeupSource() ==
+    if (current->Sleep(wait_manager) ==
         impl::TaskContext::WakeupSource::kDeadlineTimer) {
       return false;
     }

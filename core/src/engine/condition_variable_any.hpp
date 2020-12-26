@@ -34,10 +34,12 @@ class CvWaitStrategy final : public WaitStrategy {
 
   void BeforeAwake() override {
     UASSERT(&current_ == current_task::GetCurrentTaskContext());
+    {
+      WaitList::Lock guard_waiters{waiters_};
+      waiters_.Remove(guard_waiters, &current_);
+    }
     mutex_lock_.lock();
   }
-
-  WaitListBase* GetWaitList() override { return &waiters_; }
 
  private:
   WaitList& waiters_;
@@ -100,9 +102,10 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
   }
 
   CvWaitStrategy<MutexType> wait_manager(deadline, waiters_, *current, lock);
-  current->Sleep(&wait_manager);
 
-  switch (current->GetWakeupSource()) {
+  const auto wakeup_source = current->Sleep(wait_manager);
+
+  switch (wakeup_source) {
     case TaskContext::WakeupSource::kCancelRequest:
       return CvStatus::kCancelled;
     case TaskContext::WakeupSource::kDeadlineTimer:

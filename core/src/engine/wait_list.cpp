@@ -79,8 +79,9 @@ void WaitList::WakeupAll([[maybe_unused]] WaitListBase::Lock& lock) {
   }
 }
 
-void WaitList::Remove(const boost::intrusive_ptr<impl::TaskContext>& context) {
-  Lock lock(*this);
+void WaitList::Remove(WaitListBase::Lock& lock,
+                      boost::intrusive_ptr<impl::TaskContext> context) {
+  UASSERT(lock);
   if (!context->wait_list_hook.is_linked()) return;
   boost::intrusive_ptr<impl::TaskContext> ctx(context.get(), kAdopt);
 

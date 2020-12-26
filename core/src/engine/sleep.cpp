@@ -15,8 +15,6 @@ class CommonSleepWaitStrategy final : public WaitStrategy {
   void AfterAsleep() override {}
 
   void BeforeAwake() override {}
-
-  WaitListBase* GetWaitList() override { return {}; }
 };
 }  // namespace
 }  // namespace impl
@@ -25,7 +23,7 @@ void InterruptibleSleepUntil(Deadline deadline) {
   auto current = current_task::GetCurrentTaskContext();
 
   impl::CommonSleepWaitStrategy wait_manager(deadline);
-  current->Sleep(&wait_manager);
+  current->Sleep(wait_manager);
 }
 
 void SleepUntil(Deadline deadline) {

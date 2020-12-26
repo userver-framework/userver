@@ -46,15 +46,16 @@ void wait_list_insertion(benchmark::State& state) {
             if (++i == kTasksCount) {
               state.PauseTiming();
               while (i--) {
-                wl.Remove(contexts[i]);
+                wl.Remove(guard, contexts[i]);
               }
               state.ResumeTiming();
             }
           }
         }
 
+        WaitList::Lock guard{wl};
         while (i--) {
-          wl.Remove(contexts[i]);
+          wl.Remove(guard, contexts[i]);
         }
       },
       1);
@@ -68,22 +69,20 @@ void wait_list_removal(benchmark::State& state) {
         WaitList wl;
 
         auto contexts = MakeContexts();
-        {
-          WaitList::Lock guard{wl};
-          for (auto c : contexts) {
-            wl.Append(guard, c);
-          }
+
+        WaitList::Lock guard{wl};
+        for (auto c : contexts) {
+          wl.Append(guard, c);
         }
 
         unsigned i = 0;
         for (auto _ : state) {
-          wl.Remove(contexts[i]);
+          wl.Remove(guard, contexts[i]);
 
           if (++i == kTasksCount) {
             state.PauseTiming();
             i = 0;
             {
-              WaitList::Lock guard{wl};
               for (auto c : contexts) {
                 wl.Append(guard, c);
               }
@@ -93,7 +92,7 @@ void wait_list_removal(benchmark::State& state) {
         }
 
         while (i != kTasksCount) {
-          wl.Remove(contexts[i]);
+          wl.Remove(guard, contexts[i]);
           ++i;
         }
       },
@@ -119,7 +118,8 @@ void wait_list_add_remove_contention(benchmark::State& state) {
                 WaitList::Lock guard{wl};
                 wl.Append(guard, ctx);
               }
-              wl.Remove(ctx);
+              WaitList::Lock guard{wl};
+              wl.Remove(guard, ctx);
             }
           }));
 
@@ -131,7 +131,8 @@ void wait_list_add_remove_contention(benchmark::State& state) {
             WaitList::Lock guard{wl};
             wl.Append(guard, ctx);
           }
-          wl.Remove(ctx);
+          WaitList::Lock guard{wl};
+          wl.Remove(guard, ctx);
         }
 
         run = false;
@@ -160,7 +161,8 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
                 wl.Append(guard, ctx);
               }
               for (auto& ctx : contexts) {
-                wl.Remove(ctx);
+                WaitList::Lock guard{wl};
+                wl.Remove(guard, ctx);
               }
             }
           }));
@@ -172,7 +174,8 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
             wl.Append(guard, ctx);
           }
           for (auto& ctx : contexts) {
-            wl.Remove(ctx);
+            WaitList::Lock guard{wl};
+            wl.Remove(guard, ctx);
           }
         }
 

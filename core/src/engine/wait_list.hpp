@@ -61,7 +61,8 @@ class WaitList final : public WaitListBase {
   void WakeupOne(WaitListBase::Lock&) override;
   void WakeupAll(WaitListBase::Lock&) override;
 
-  void Remove(const boost::intrusive_ptr<impl::TaskContext>&) override;
+  void Remove(WaitListBase::Lock&,
+              boost::intrusive_ptr<impl::TaskContext>) override;
 
   // Returns the maximum amount of coroutines that may be sleeping.
   //

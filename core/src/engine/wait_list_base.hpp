@@ -27,7 +27,8 @@ class WaitListBase {
   virtual void WakeupOne(Lock&) = 0;
   virtual void WakeupAll(Lock&) = 0;
 
-  virtual void Remove(const boost::intrusive_ptr<impl::TaskContext>&) = 0;
+  virtual void Remove(WaitListBase::Lock&,
+                      boost::intrusive_ptr<impl::TaskContext>) = 0;
 };
 
 }  // namespace impl
