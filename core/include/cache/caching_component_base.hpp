@@ -7,14 +7,12 @@
 #include <memory>
 #include <mutex>
 
-#include <cache/cache_statistics.hpp>
 #include <components/statistics_storage.hpp>
 #include <rcu/rcu.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <testsuite/cache_control.hpp>
 #include <testsuite/testsuite_support.hpp>
 #include <utils/async_event_channel.hpp>
-#include <utils/statistics/metadata.hpp>
 
 #include <components/component_config.hpp>
 #include <components/loggable_component_base.hpp>
@@ -99,9 +97,6 @@ class CachingComponentBase
 
   void Clear();
 
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
-
   void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
 
   /// Whether Get() is expected to return nullptr.
@@ -144,20 +139,21 @@ CachingComponentBase<T>::CachingComponentBase(
           context.FindComponent<components::TestsuiteSupport>()
               .GetCacheControl(),
           name, context.GetTaskProcessor(cache_config.fs_task_processor)) {
+  const rcu::ReadablePtr<cache::CacheConfigStatic> initial_config = GetConfig();
+
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   statistics_holder_ = storage.RegisterExtender(
-      "cache." + Name(), [this](auto& req) { return ExtendStatistics(req); });
+      "cache." + Name(), [this](auto&) { return ExtendStatistics(); });
 
-  if (config["config-settings"].As<bool>(true) &&
+  if (initial_config->config_updates_enabled &&
       cache::CacheConfigSet::IsConfigEnabled()) {
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
     config_subscription_ = taxi_config.UpdateAndListen(
         this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
   }
 
-  const auto cache_config_ptr = GetConfig();
-  if (cache_config_ptr->dumps_enabled && !cache::dump::kIsDumpable<T>) {
+  if (initial_config->dumps_enabled && !cache::dump::kIsDumpable<T>) {
     throw std::logic_error(
         "Cache dumps have been enabled, but `T` is not dumpable. Please make "
         "sure that you have `#include <cache/dump/common_containers.hpp>` if "
@@ -212,27 +208,6 @@ void CachingComponentBase<T>::Emplace(Args&&... args) {
 template <typename T>
 void CachingComponentBase<T>::Clear() {
   cache_.Assign(std::make_unique<const T>());
-}
-
-template <typename T>
-formats::json::Value CachingComponentBase<T>::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& /*request*/) {
-  /* Make copy to be able to make a more consistent combined statistics */
-  const auto full = GetStatistics().full_update;
-  const auto incremental = GetStatistics().incremental_update;
-  const auto any = cache::CombineStatistics(full, incremental);
-
-  formats::json::ValueBuilder builder;
-  utils::statistics::SolomonLabelValue(builder, "cache_name");
-  builder[cache::kStatisticsNameFull] = cache::StatisticsToJson(full);
-  builder[cache::kStatisticsNameIncremental] =
-      cache::StatisticsToJson(incremental);
-  builder[cache::kStatisticsNameAny] = cache::StatisticsToJson(any);
-
-  builder[cache::kStatisticsNameCurrentDocumentsCount] =
-      GetStatistics().documents_current_count.load();
-
-  return builder.ExtractValue();
 }
 
 template <typename T>

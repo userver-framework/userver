@@ -8,6 +8,7 @@
 
 namespace cache {
 
+// TODO TAXICOMMON-2262 replace with `inline constexpr std::string_view`
 static const char* kStatisticsNameFull = "full";
 static const char* kStatisticsNameIncremental = "incremental";
 static const char* kStatisticsNameAny = "any";
@@ -28,12 +29,10 @@ struct UpdateStatistics {
   std::atomic<size_t> documents_read_count{0};
   std::atomic<size_t> documents_parse_failures{0};
 
-  // atomic<time_point> is invalid due to a missing noexcept in ctr,
-  // so using atomic<duration instead> :-(
-  std::atomic<std::chrono::system_clock::duration> last_update_start_time{{}};
-  std::atomic<std::chrono::system_clock::duration>
-      last_successful_update_start_time{};
-  std::atomic<std::chrono::milliseconds> last_update_duration{};
+  std::atomic<std::chrono::system_clock::time_point> last_update_start_time{{}};
+  std::atomic<std::chrono::system_clock::time_point>
+      last_successful_update_start_time{{}};
+  std::atomic<std::chrono::milliseconds> last_update_duration{{}};
 
   UpdateStatistics() = default;
 
@@ -47,12 +46,6 @@ struct UpdateStatistics {
         last_successful_update_start_time(
             other.last_successful_update_start_time.load()),
         last_update_duration(other.last_update_duration.load()) {}
-
-  std::chrono::milliseconds GetAge() {
-    auto diff = std::chrono::system_clock::now().time_since_epoch() -
-                last_update_start_time.load();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(diff);
-  }
 };
 
 UpdateStatistics CombineStatistics(const UpdateStatistics& a,
@@ -61,15 +54,11 @@ UpdateStatistics CombineStatistics(const UpdateStatistics& a,
 formats::json::Value StatisticsToJson(const UpdateStatistics& stats);
 
 struct Statistics {
-  UpdateStatistics full_update, incremental_update;
+  UpdateStatistics full_update;
+  UpdateStatistics incremental_update;
   std::atomic<size_t> documents_current_count{0};
 
   Statistics() = default;
-
-  Statistics(const Statistics& other)
-      : full_update(other.full_update),
-        incremental_update(other.incremental_update),
-        documents_current_count(other.documents_current_count.load()) {}
 };
 
 class UpdateStatisticsScope final {
@@ -90,7 +79,7 @@ class UpdateStatisticsScope final {
   Statistics& stats_;
   UpdateStatistics& update_stats_;
   bool finished_;
-  const std::chrono::system_clock::duration update_start_time_;
+  const std::chrono::system_clock::time_point update_start_time_;
 };
 
 }  // namespace cache

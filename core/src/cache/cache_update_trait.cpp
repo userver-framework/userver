@@ -6,6 +6,7 @@
 #include <utils/assert.hpp>
 #include <utils/async.hpp>
 #include <utils/atomic.hpp>
+#include <utils/statistics/metadata.hpp>
 
 #include <cache/dump/dump_manager.hpp>
 
@@ -163,6 +164,24 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
                   << ". Reason: " << ex;
     }
   }
+}
+
+formats::json::Value CacheUpdateTrait::ExtendStatistics() {
+  auto& full = GetStatistics().full_update;
+  auto& incremental = GetStatistics().incremental_update;
+  const auto any = cache::CombineStatistics(full, incremental);
+
+  formats::json::ValueBuilder builder;
+  utils::statistics::SolomonLabelValue(builder, "cache_name");
+  builder[cache::kStatisticsNameFull] = cache::StatisticsToJson(full);
+  builder[cache::kStatisticsNameIncremental] =
+      cache::StatisticsToJson(incremental);
+  builder[cache::kStatisticsNameAny] = cache::StatisticsToJson(any);
+
+  builder[cache::kStatisticsNameCurrentDocumentsCount] =
+      GetStatistics().documents_current_count.load();
+
+  return builder.ExtractValue();
 }
 
 void CacheUpdateTrait::SetConfig(const std::optional<CacheConfig>& config) {

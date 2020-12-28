@@ -81,6 +81,8 @@ class CacheUpdateTrait {
 
   Statistics& GetStatistics() { return statistics_; }
 
+  formats::json::Value ExtendStatistics();
+
   /// @brief Updates cache config
   /// @note If no config is set, uses static default (from config.yaml).
   void SetConfig(const std::optional<CacheConfig>& config);

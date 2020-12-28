@@ -1,4 +1,5 @@
 #include <cache/cache_statistics.hpp>
+
 #include <formats/json/value_builder.hpp>
 
 namespace cache {
@@ -30,8 +31,7 @@ namespace {
 
 template <typename Duration>
 size_t TimeStampToMillisecondsFromNow(Duration duration) {
-  auto now = std::chrono::system_clock::now().time_since_epoch();
-  auto diff = now - duration;
+  auto diff = std::chrono::system_clock::now() - duration;
   return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 }
 
@@ -72,7 +72,7 @@ UpdateStatisticsScope::UpdateStatisticsScope(Statistics& stats,
                         ? stats.incremental_update
                         : stats.full_update),
       finished_(false),
-      update_start_time_(std::chrono::system_clock::now().time_since_epoch()) {
+      update_start_time_(std::chrono::system_clock::now()) {
   update_stats_.last_update_start_time = update_start_time_;
   ++update_stats_.update_attempt_count;
 }
@@ -82,8 +82,7 @@ UpdateStatisticsScope::~UpdateStatisticsScope() {
 }
 
 void UpdateStatisticsScope::Finish(size_t documents_count) {
-  const auto update_stop_time =
-      std::chrono::system_clock::now().time_since_epoch();
+  const auto update_stop_time = std::chrono::system_clock::now();
   update_stats_.last_successful_update_start_time = update_start_time_;
   update_stats_.last_update_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(update_stop_time -
@@ -94,7 +93,7 @@ void UpdateStatisticsScope::Finish(size_t documents_count) {
 }
 
 void UpdateStatisticsScope::FinishNoChanges() {
-  update_stats_.update_no_changes_count++;
+  ++update_stats_.update_no_changes_count;
   Finish(stats_.documents_current_count.load());
 }
 

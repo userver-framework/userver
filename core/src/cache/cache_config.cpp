@@ -18,19 +18,20 @@ constexpr std::string_view kCleanupIntervalMs =
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
 constexpr std::string_view kFullUpdateInterval = "full-update-interval";
-constexpr std::string_view kFirstUpdateFailOk = "first-update-fail-ok";
 constexpr std::string_view kCleanupInterval = "additional-cleanup-interval";
+
+constexpr std::string_view kFirstUpdateFailOk = "first-update-fail-ok";
 constexpr std::string_view kUpdateTypes = "update-types";
 constexpr std::string_view kForcePeriodicUpdates =
     "testsuite-force-periodic-update";
 constexpr std::string_view kTestsuiteDisableUpdates =
     "testsuite-disable-updates";
+constexpr std::string_view kConfigSettings = "config-settings";
 
 constexpr std::string_view kWays = "ways";
 constexpr std::string_view kSize = "size";
 constexpr std::string_view kLifetime = "lifetime";
 constexpr std::string_view kBackgroundUpdate = "background-update";
-
 constexpr std::string_view kLifetimeMs = "lifetime-ms";
 
 constexpr std::string_view kDump = "dump";
@@ -129,6 +130,7 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
       testsuite_disable_updates(
           config[kTestsuiteDisableUpdates].As<bool>(false)),
+      config_updates_enabled(config[kConfigSettings].As<bool>(true)),
       dumps_enabled(config[kDump][kDumpsEnabled].As<bool>(false)),
       dump_directory(ParseDumpDirectory(config)),
       min_dump_interval(
