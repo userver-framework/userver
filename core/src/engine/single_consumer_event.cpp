@@ -18,17 +18,16 @@ class EventWaitStrategy final : public WaitStrategy {
         current_(current) {}
 
   void AfterAsleep() override {
-    waiters_.Append(lock_, current_);
-    if (is_signaled_) waiters_.WakeupOne(lock_);
+    waiters_.Append(current_);
+    if (is_signaled_) waiters_.WakeupOne();
   }
 
-  void BeforeAwake() override { waiters_.Remove(lock_, current_); }
+  void BeforeAwake() override { waiters_.Remove(current_); }
 
  private:
   impl::WaitListLight& waiters_;
   const std::atomic<bool>& is_signaled_;
   TaskContext* const current_;
-  WaitListLight::Lock lock_;
 };
 }  // namespace
 }  // namespace impl
@@ -75,8 +74,7 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
 void SingleConsumerEvent::Send() {
   is_signaled_.store(true, std::memory_order_release);
 
-  impl::WaitListLight::Lock lock;
-  lock_waiters_->WakeupOne(lock);
+  lock_waiters_->WakeupOne();
 }
 
 }  // namespace engine

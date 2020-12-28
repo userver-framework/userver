@@ -1,22 +1,16 @@
 #pragma once
 
-#include "wait_list.hpp"
+#include <atomic>
 
-namespace engine {
-namespace impl {
+#include <boost/smart_ptr/intrusive_ptr.hpp>
 
-class WaitListLight final : public WaitListBase {
+namespace engine::impl {
+
+class TaskContext;
+
+/// Wait list for a single entry. All functions are thread safe
+class WaitListLight final {
  public:
-  class Lock final : public WaitListBase::Lock {
-   public:
-    Lock() = default;
-
-    explicit operator bool() override;
-
-    void Acquire() override {}
-    void Release() override {}
-  };
-
   class SingleUserGuard final {
    public:
 #ifdef NDEBUG
@@ -30,7 +24,7 @@ class WaitListLight final : public WaitListBase {
 #endif
   };
 
-  ~WaitListLight() final;
+  ~WaitListLight();
 
   WaitListLight() = default;
   WaitListLight(const WaitListLight&) = delete;
@@ -38,19 +32,16 @@ class WaitListLight final : public WaitListBase {
   WaitListLight& operator=(const WaitListLight&) = delete;
   WaitListLight& operator=(WaitListLight&&) = delete;
 
-  bool IsEmpty(WaitListBase::Lock&) const override;
+  bool IsEmpty() const;
 
   /* NOTE: there is a TOCTOU race between Wakeup*() and condition
    * check+Append(), you have to recheck whether the condition is true just
    * after Append() returns in exec_after_asleep.
    */
-  void Append(WaitListBase::Lock&,
-              boost::intrusive_ptr<impl::TaskContext>) override;
-  void WakeupOne(WaitListBase::Lock&) override;
-  void WakeupAll(WaitListBase::Lock&) override;
+  void Append(boost::intrusive_ptr<impl::TaskContext>);
+  void WakeupOne();
 
-  void Remove(WaitListBase::Lock&,
-              boost::intrusive_ptr<impl::TaskContext>) override;
+  void Remove(boost::intrusive_ptr<impl::TaskContext>);
 
  private:
   std::atomic<impl::TaskContext*> waiting_{nullptr};
@@ -60,5 +51,4 @@ class WaitListLight final : public WaitListBase {
   std::atomic<bool> in_wakeup_{false};
 };
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

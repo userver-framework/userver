@@ -7,11 +7,6 @@
 
 namespace engine::impl {
 
-WaitListLight::Lock::operator bool() {
-  UASSERT_MSG(false, "must not be called");
-  return true;
-}
-
 #ifndef NDEBUG
 WaitListLight::SingleUserGuard::SingleUserGuard(WaitListLight& wait_list)
     : wait_list_(wait_list) {
@@ -31,10 +26,9 @@ WaitListLight::SingleUserGuard::~SingleUserGuard() {
 
 WaitListLight::~WaitListLight() = default;
 
-bool WaitListLight::IsEmpty(WaitListBase::Lock&) const { return waiting_; }
+bool WaitListLight::IsEmpty() const { return waiting_; }
 
-void WaitListLight::Append(WaitListBase::Lock&,
-                           boost::intrusive_ptr<impl::TaskContext> ctx) {
+void WaitListLight::Append(boost::intrusive_ptr<impl::TaskContext> ctx) {
   LOG_TRACE() << "Appending, use_count=" << ctx->use_count();
   UASSERT(!waiting_);
 #ifndef NDEBUG
@@ -46,7 +40,7 @@ void WaitListLight::Append(WaitListBase::Lock&,
   waiting_ = ptr;
 }
 
-void WaitListLight::WakeupOne(WaitListBase::Lock&) {
+void WaitListLight::WakeupOne() {
   in_wakeup_ = true;
   utils::ScopeGuard guard([this] { in_wakeup_ = false; });
 
@@ -59,10 +53,7 @@ void WaitListLight::WakeupOne(WaitListBase::Lock&) {
   }
 }
 
-void WaitListLight::WakeupAll(WaitListBase::Lock& lock) { WakeupOne(lock); }
-
-void WaitListLight::Remove(WaitListBase::Lock&,
-                           boost::intrusive_ptr<impl::TaskContext> ctx) {
+void WaitListLight::Remove(boost::intrusive_ptr<impl::TaskContext> ctx) {
   LOG_TRACE() << "remove (cancel)";
   auto old = waiting_.exchange(nullptr);
 

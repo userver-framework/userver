@@ -19,11 +19,11 @@ class MutexWaitStrategy final : public WaitStrategy {
 
   void AfterAsleep() override {
     waiters_.Append(lock_, current_);
-    lock_.Release();
+    lock_.unlock();
   }
 
   void BeforeAwake() override {
-    lock_.Acquire();
+    lock_.lock();
     waiters_.Remove(lock_, current_);
   }
 

@@ -6,23 +6,21 @@
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 #include <utils/fast_pimpl.hpp>
 
-#include <engine/wait_list_base.hpp>
-
-namespace engine {
-namespace impl {
+namespace engine::impl {
 
 class TaskContext;
 
-class WaitList final : public WaitListBase {
+/// Wait list for multiple entries with explicit control over critical section.
+class WaitList final {
  public:
-  class Lock final : public WaitListBase::Lock {
+  class Lock final {
    public:
-    explicit Lock(WaitList& list) : impl_(list.mutex_) {}
+    explicit Lock(WaitList& list) noexcept : impl_(list.mutex_) {}
 
-    explicit operator bool() override { return !!impl_; }
+    explicit operator bool() noexcept { return !!impl_; }
 
-    void Acquire() override { impl_.lock(); }
-    void Release() override { impl_.unlock(); }
+    void lock() { impl_.lock(); }
+    void unlock() { impl_.unlock(); }
 
    private:
     std::unique_lock<std::mutex> impl_;
@@ -52,17 +50,15 @@ class WaitList final : public WaitListBase {
   WaitList& operator=(const WaitList&) = delete;
   WaitList& operator=(WaitList&&) = delete;
 
-  ~WaitList() final;
+  ~WaitList();
 
-  bool IsEmpty(WaitListBase::Lock&) const override;
+  bool IsEmpty(Lock&) const;
 
-  void Append(WaitListBase::Lock&,
-              boost::intrusive_ptr<impl::TaskContext>) override;
-  void WakeupOne(WaitListBase::Lock&) override;
-  void WakeupAll(WaitListBase::Lock&) override;
+  void Append(Lock&, boost::intrusive_ptr<impl::TaskContext>);
+  void WakeupOne(Lock&);
+  void WakeupAll(Lock&);
 
-  void Remove(WaitListBase::Lock&,
-              boost::intrusive_ptr<impl::TaskContext>) override;
+  void Remove(Lock&, boost::intrusive_ptr<impl::TaskContext>);
 
   // Returns the maximum amount of coroutines that may be sleeping.
   //
@@ -79,5 +75,4 @@ class WaitList final : public WaitListBase {
   utils::FastPimpl<List, kListSize, kListAlignment> waiting_contexts_;
 };
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

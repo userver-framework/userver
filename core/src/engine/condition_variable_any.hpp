@@ -21,14 +21,14 @@ class CvWaitStrategy final : public WaitStrategy {
       : WaitStrategy(deadline),
         waiters_(waiters),
         waiter_token_(waiters_),
-        lock_(waiters_),
+        waiters_lock_(waiters_),
         current_(current),
         mutex_lock_(mutex_lock) {}
 
   void AfterAsleep() override {
     UASSERT(&current_ == current_task::GetCurrentTaskContext());
-    waiters_.Append(lock_, &current_);
-    lock_.Release();
+    waiters_.Append(waiters_lock_, &current_);
+    waiters_lock_.unlock();
     mutex_lock_.unlock();
   }
 
@@ -44,7 +44,7 @@ class CvWaitStrategy final : public WaitStrategy {
  private:
   WaitList& waiters_;
   const WaitList::WaitersScopeCounter waiter_token_;
-  WaitList::Lock lock_;
+  WaitList::Lock waiters_lock_;
   TaskContext& current_;
   std::unique_lock<MutexType>& mutex_lock_;
 };

@@ -197,15 +197,14 @@ class LockedWaitStrategy final : public WaitStrategy {
         target_(target) {}
 
   void AfterAsleep() override {
-    waiters_.Append(lock_, &current_);
-    if (target_.IsFinished()) waiters_.WakeupOne(lock_);
+    waiters_.Append(&current_);
+    if (target_.IsFinished()) waiters_.WakeupOne();
   }
 
-  void BeforeAwake() override { waiters_.Remove(lock_, &current_); }
+  void BeforeAwake() override { waiters_.Remove(&current_); }
 
  private:
   WaitListLight& waiters_;
-  WaitListLight::Lock lock_;
   TaskContext& current_;
   const TaskContext& target_;
 };
@@ -630,8 +629,7 @@ void TaskContext::SetState(Task::State new_state) {
   if (IsFinished()) {
     deadline_timer_.Stop();
 
-    WaitListLight::Lock lock;
-    finish_waiters_->WakeupAll(lock);
+    finish_waiters_->WakeupOne();
   }
 }
 

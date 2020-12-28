@@ -43,19 +43,19 @@ WaitList::~WaitList() {
   UASSERT_MSG(waiting_contexts_->empty(), "Someone is waiting on the WaitList");
 }
 
-bool WaitList::IsEmpty([[maybe_unused]] WaitListBase::Lock& lock) const {
+bool WaitList::IsEmpty(Lock& lock) const {
   UASSERT(lock);
   return waiting_contexts_->empty();
 }
 
-void WaitList::Append([[maybe_unused]] WaitListBase::Lock& lock,
+void WaitList::Append(Lock& lock,
                       boost::intrusive_ptr<impl::TaskContext> context) {
   UASSERT(lock);
   UASSERT_MSG(!context->wait_list_hook.is_linked(), "context already in list");
   waiting_contexts_->push_back(*context.detach());  // referencing, not copying!
 }
 
-void WaitList::WakeupOne([[maybe_unused]] WaitListBase::Lock& lock) {
+void WaitList::WakeupOne(Lock& lock) {
   UASSERT(lock);
   if (!waiting_contexts_->empty()) {
     boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(),
@@ -67,7 +67,7 @@ void WaitList::WakeupOne([[maybe_unused]] WaitListBase::Lock& lock) {
   }
 }
 
-void WaitList::WakeupAll([[maybe_unused]] WaitListBase::Lock& lock) {
+void WaitList::WakeupAll(Lock& lock) {
   UASSERT(lock);
   while (!waiting_contexts_->empty()) {
     boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(),
@@ -79,7 +79,7 @@ void WaitList::WakeupAll([[maybe_unused]] WaitListBase::Lock& lock) {
   }
 }
 
-void WaitList::Remove(WaitListBase::Lock& lock,
+void WaitList::Remove(Lock& lock,
                       boost::intrusive_ptr<impl::TaskContext> context) {
   UASSERT(lock);
   if (!context->wait_list_hook.is_linked()) return;

@@ -11,17 +11,17 @@ class TaskContext;
 class WaitList;
 using FastPimplWaitList =
 #ifdef _LIBCPP_VERSION
-    ::utils::FastPimpl<WaitList, 96, 8>;
+    ::utils::FastPimpl<WaitList, 88, 8>;
 #else
-    ::utils::FastPimpl<WaitList, 72, 8>;
+    ::utils::FastPimpl<WaitList, 64, 8>;
 #endif
 
 class WaitListLight;
 using FastPimplWaitListLight =
 #ifndef NDEBUG
-    ::utils::FastPimpl<WaitListLight, 32, 8>;
-#else
     ::utils::FastPimpl<WaitListLight, 24, 8>;
+#else
+    ::utils::FastPimpl<WaitListLight, 16, 8>;
 #endif
 
 }  // namespace engine::impl

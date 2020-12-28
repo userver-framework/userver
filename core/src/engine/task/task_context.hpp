@@ -22,7 +22,6 @@
 #include <engine/task/task_context_holder.hpp>
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_fwd.hpp>
-#include <engine/wait_list_base.hpp>
 #include <engine/wait_list_fwd.hpp>
 #include <utils/flags.hpp>
 
