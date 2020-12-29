@@ -10,6 +10,7 @@
 
 namespace fs {
 
+/// @{
 /// @brief Create directory and all necessary parent elements. Condition when
 /// path already exists and is a directory treated as "success" and no exception
 /// is thrown.
@@ -17,8 +18,11 @@ namespace fs {
 /// @param path directory to create
 /// @throws std::runtime_error if there was an error while
 /// creating directories
-void CreateDirectories(engine::TaskProcessor& async_tp,
-                       const std::string& path);
+void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path,
+                       boost::filesystem::perms perms);
+
+void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path);
+/// @}
 
 /// @brief Rewrite file contents asynchronously
 /// It doesn't provide strict atomic guarantees. If you need them, use

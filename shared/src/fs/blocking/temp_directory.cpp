@@ -6,6 +6,7 @@
 #include <fmt/format.h>
 #include <boost/filesystem/operations.hpp>
 
+#include <fs/blocking/write.hpp>
 #include <logging/log.hpp>
 #include <utils/check_syscall.hpp>
 
@@ -27,10 +28,10 @@ namespace fs::blocking {
 
 TempDirectory::TempDirectory()
     : path_(boost::filesystem::temp_directory_path().string() + "/userver") {
-  // for the parent directory, permissions=777
-  boost::filesystem::create_directories(path_);
+  // for the parent directory, permissions=0755
+  fs::blocking::CreateDirectories(path_);
 
-  // for the target directory, permissions=700
+  // for the target directory, permissions=0700
   path_ += "/XXXXXX";
   utils::CheckSyscallNotEquals(::mkdtemp(path_.data()), nullptr, "::mkdtemp");
 }

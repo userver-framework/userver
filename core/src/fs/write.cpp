@@ -5,9 +5,17 @@
 
 namespace fs {
 
-void CreateDirectories(engine::TaskProcessor& async_tp,
-                       const std::string& path) {
-  engine::impl::Async(async_tp, &fs::blocking::CreateDirectories, path).Get();
+void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path,
+                       boost::filesystem::perms perms) {
+  engine::impl::Async(async_tp, [path, perms] {
+    fs::blocking::CreateDirectories(path, perms);
+  }).Get();
+}
+
+void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path) {
+  engine::impl::Async(async_tp, [path] {
+    fs::blocking::CreateDirectories(path);
+  }).Get();
 }
 
 void RewriteFileContents(engine::TaskProcessor& async_tp,

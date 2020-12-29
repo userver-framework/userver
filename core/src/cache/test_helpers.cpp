@@ -4,6 +4,7 @@
 
 #include <formats/yaml/serialize.hpp>
 #include <formats/yaml/value_builder.hpp>
+#include <fs/blocking/write.hpp>
 
 #include <cache/dump/common.hpp>
 #include <cache/dump/operations_file.hpp>
@@ -25,7 +26,8 @@ void CreateDumps(const std::vector<std::string>& filenames,
                  const std::string& directory, std::string_view cache_name) {
   const auto full_directory =
       boost::filesystem::path{directory} / std::string{cache_name};
-  boost::filesystem::create_directories(full_directory);
+
+  fs::blocking::CreateDirectories(full_directory.string());
 
   for (const auto& filename : filenames) {
     dump::FileWriter writer((full_directory / filename).string());

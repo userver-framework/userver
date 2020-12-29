@@ -8,6 +8,7 @@
 #include <boost/regex.hpp>
 
 #include <engine/async.hpp>
+#include <fs/blocking/write.hpp>
 #include <utils/assert.hpp>
 #include <utils/datetime.hpp>
 #include <utils/from_string.hpp>
@@ -38,7 +39,7 @@ std::optional<FileWriter> DumpManager::StartWriter(TimePoint update_time) {
   }
 
   try {
-    boost::filesystem::create_directories(config->dump_directory);
+    fs::blocking::CreateDirectories(config->dump_directory);
     return FileWriter(dump_path);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Error while creating cache dump for cache " << cache_name_

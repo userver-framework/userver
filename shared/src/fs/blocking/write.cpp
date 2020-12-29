@@ -1,21 +1,56 @@
 #include <fs/blocking/write.hpp>
 
-#include <stdexcept>
+#include <sys/stat.h>
+#include <cerrno>
 #include <system_error>
 
+#include <fmt/format.h>
+#include <boost/filesystem/operations.hpp>
+
 #include <fs/blocking/file_descriptor.hpp>
+#include <utils/assert.hpp>
 
 namespace fs::blocking {
 
-void CreateDirectories(const std::string& path) {
-  boost::system::error_code errc;
-  boost::filesystem::create_directories(path, errc);
-  if (!!errc)
-    throw std::system_error(
-        // static_cast is valid because both boost::error_code and std::errc map
-        // to the same `errno` constants
-        std::make_error_code(static_cast<std::errc>(errc.value())),
-        "Failed to create directories under '" + path + "'");
+namespace {
+
+void CreateDirectory(const char* path, boost::filesystem::perms perms) {
+  if (::mkdir(path, static_cast<::mode_t>(perms)) == -1) {
+    const auto code = errno;
+    if (code != EEXIST) {
+      throw std::system_error(
+          code, std::generic_category(),
+          fmt::format("Error while creating directory \"{}\"", path));
+    }
+  }
+}
+
+}  // namespace
+
+void CreateDirectories(std::string_view path, boost::filesystem::perms perms) {
+  UASSERT(!path.empty());
+
+  std::string mutable_path;
+  mutable_path.reserve(path.size() + 2);
+  mutable_path.append(path);
+  mutable_path.push_back('/');
+  mutable_path.push_back('\0');
+
+  for (char* p = mutable_path.data() + 1; *p != '\0'; ++p) {
+    if (*p == '/') {
+      *p = '\0';  // temporarily truncate
+      CreateDirectory(mutable_path.data(), perms);
+      *p = '/';
+    }
+  }
+}
+
+void CreateDirectories(std::string_view path) {
+  using boost::filesystem::perms;
+  const auto kPerms0755 = perms::owner_all | perms::group_read |
+                          perms::group_exe | perms::others_read |
+                          perms::others_exe;
+  CreateDirectories(path, kPerms0755);
 }
 
 void RewriteFileContents(const std::string& path, std::string_view contents) {

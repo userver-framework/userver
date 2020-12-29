@@ -10,13 +10,17 @@
 
 namespace fs::blocking {
 
+/// @{
 /// @brief Create directory and all necessary parent elements. Condition when
 /// path already exists and is a directory treated as "success" and no exception
 /// is thrown.
 /// @param path directory to create
-/// @throws std::runtime_error if an error occured while creating directories
-/// while creating directories
-void CreateDirectories(const std::string& path);
+/// @param perms new directory permissions, default=0755
+/// @throws std::runtime_error if an error occurred while creating directories
+void CreateDirectories(std::string_view path, boost::filesystem::perms perms);
+
+void CreateDirectories(std::string_view path);
+/// @}
 
 /// @brief Rewrite file contents synchronously
 /// @param path file to rewrite
