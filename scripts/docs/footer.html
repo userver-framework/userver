@@ -1,0 +1,89 @@
+<!-- HTML footer for doxygen 1.8.13-->
+<!-- start footer part -->
+<!--BEGIN GENERATE_TREEVIEW-->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    $navpath
+    <li class="footer">$generatedby
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="$relpath^doxygen.png" alt="doxygen"/></a> $doxygenversion </li>
+  </ul>
+</div>
+<!--END GENERATE_TREEVIEW-->
+<!--BEGIN !GENERATE_TREEVIEW-->
+<hr class="footer"/><address class="footer"><small>
+$generatedby &#160;<a href="http://www.doxygen.org/index.html">
+<img class="footer" src="$relpath^doxygen.png" alt="doxygen"/>
+</a> $doxygenversion
+</small></address>
+<!--END !GENERATE_TREEVIEW-->
+
+<script type="text/javascript">
+var TRANSLITTERATION_MAPPING = {"Ё":"YO","Й":"I","Ц":"TS","У":"U","К":"K","Е":"E","Н":"N","Г":"G","Ш":"SH","Щ":"SCH","З":"Z","Х":"H","Ъ":"'","ё":"yo","й":"i","ц":"ts","у":"u","к":"k","е":"e","н":"n","г":"g","ш":"sh","щ":"sch","з":"z","х":"h","ъ":"'","Ф":"F","Ы":"I","В":"V","А":"a","П":"P","Р":"R","О":"O","Л":"L","Д":"D","Ж":"ZH","Э":"E","ф":"f","ы":"i","в":"v","а":"a","п":"p","р":"r","о":"o","л":"l","д":"d","ж":"zh","э":"e","Я":"Ya","Ч":"CH","С":"S","М":"M","И":"I","Т":"T","Ь":"'","Б":"B","Ю":"YU","я":"ya","ч":"ch","с":"s","м":"m","и":"i","т":"t","ь":"'","б":"b","ю":"yu"};
+
+function make_id(raw_id) {
+  raw_id = raw_id.replace(/ /g, '')
+  raw_id = raw_id.split('').map(function (char) { 
+    return TRANSLITTERATION_MAPPING[char] || char; 
+  }).join('');
+  
+  return raw_id.toLowerCase()
+}
+
+function draw_toc() {
+    headers = $(':header');
+    if (headers.length === 0) {
+        return;
+    }
+
+    $( '<div id="mySidenav" class="sidenav"><h2>Оглавление документа</h2></div>').insertAfter('.header');
+    sidenav = $('#mySidenav');
+    headers.each(function() {
+        index = parseInt(this.nodeName.substring(1)) - 1;
+        id = $(this).attr('id');
+        if (!id) {
+          id = make_id($(this).text())
+          $(this).attr('id', id);
+        }
+        sidenav.append('<a href="#' + id + '" style="padding-left: ' + index * 10 + 'pt">' + $(this).text() +  '</a>');
+    });
+}
+
+function highlight_code() {
+    hljs.configure({
+      tabReplace: '    ' // 4 spaces
+    });
+    hljs.registerAliases('py', {languageName: 'python'});
+    hljs.registerAliases('sh', {languageName: 'shell'});
+    hljs.registerAliases('yml', {languageName: 'yaml'});
+    hljs.registerAliases('plain', {languageName: 'plaintext'});
+    hljs.registerAliases('tskv', {languageName: 'plaintext'});
+    $(".fragment").each(function() {
+        node = $(this);
+        data = '';
+        language = '';
+        node.children('div.line').each(function(i) {
+            line = $(this).text();
+            if (i === 0 && hljs.getLanguage(line)) {
+                language = line;
+            } else {
+                data += line + '\n';
+            }
+        });
+
+        if (language !== '') {
+            data = hljs.highlight(language, data).value;
+        } else {
+            data = hljs.highlightAuto(data).value;
+        }
+        node.replaceWith('<div class="fragment"><pre>' + data + '</pre></div>');
+    });
+}
+
+$(function() {
+    draw_toc();
+    highlight_code();
+});
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 .mypy_cache
 *.orig
 *.local
+*.yawiki
 /build/
 /cmake-build-*/
 /docs/
