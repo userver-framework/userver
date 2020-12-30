@@ -2,6 +2,7 @@
 
 #include <engine/async.hpp>
 #include <tracing/span.hpp>
+#include <utils/task_inherited_data.hpp>
 
 namespace utils {
 
@@ -10,7 +11,10 @@ namespace utils {
  */
 struct SpanWrapCall {
   template <typename Function, typename... Args>
-  auto operator()(tracing::Span&& span, Function&& f, Args&&... args) const {
+  auto operator()(tracing::Span&& span,
+                  impl::TaskInheritedDataStorage&& storage, Function&& f,
+                  Args&&... args) const {
+    impl::GetTaskInheritedDataStorage() = std::move(storage);
     span.AttachToCoroStack();
     return std::forward<Function>(f)(std::forward<Args>(args)...);
   }
@@ -22,10 +26,11 @@ template <typename Function, typename... Args>
                                  Args&&... args) {
   tracing::Span span(name);
   span.DetachFromCoroStack();
+  auto storage = impl::GetTaskInheritedDataStorage();
 
-  return engine::impl::CriticalAsync(task_processor, SpanWrapCall(),
-                                     std::move(span), std::forward<Function>(f),
-                                     std::forward<Args>(args)...);
+  return engine::impl::CriticalAsync(
+      task_processor, SpanWrapCall(), std::move(span), std::move(storage),
+      std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 template <typename Function, typename... Args>
@@ -34,9 +39,10 @@ template <typename Function, typename... Args>
                          Args&&... args) {
   tracing::Span span(name);
   span.DetachFromCoroStack();
+  auto storage = impl::GetTaskInheritedDataStorage();
 
   return engine::impl::Async(task_processor, SpanWrapCall(), std::move(span),
-                             std::forward<Function>(f),
+                             std::move(storage), std::forward<Function>(f),
                              std::forward<Args>(args)...);
 }
 

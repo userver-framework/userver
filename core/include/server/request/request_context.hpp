@@ -5,7 +5,6 @@
 #include <string>
 
 #include <utils/any_movable.hpp>
-
 #include <utils/fast_pimpl.hpp>
 
 namespace server::request {

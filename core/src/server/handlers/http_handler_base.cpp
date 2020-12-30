@@ -24,12 +24,16 @@
 #include <utils/overloaded.hpp>
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/percentile_format_json.hpp>
+#include <utils/task_inherited_data.hpp>
 #include <utils/text.hpp>
 
 #include "auth/auth_checker.hpp"
 
 namespace server::handlers {
 namespace {
+
+const std::string kHttpRequestMethod = "http-request-method";
+const std::string kHttpHandlerPath = "http-handler-path";
 
 // "request" is redundant: https://st.yandex-team.ru/TAXICOMMON-1793
 // set to 1 if you need server metrics
@@ -294,6 +298,14 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
     bool log_request = http_server_settings_.NeedLogRequest();
     bool log_request_headers = http_server_settings_.NeedLogRequestHeaders();
+
+    // TODO: Set by flag from settings, get key name from settings.
+    ::utils::SetTaskInheritedData(kHttpRequestMethod,
+                                  ToString(http_request.GetMethod()));
+    const auto& config = GetConfig();
+    if (auto pval = std::get_if<std::string>(&config.path)) {
+      ::utils::SetTaskInheritedData(kHttpHandlerPath, *pval);
+    }
 
     const auto& parent_link =
         http_request.GetHeader(::http::headers::kXYaRequestId);

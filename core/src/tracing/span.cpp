@@ -82,7 +82,7 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
                  ReferenceType reference_type, logging::Level log_level)
     : log_level_(log_level),
-      tracer(std::move(tracer)),
+      tracer_(std::move(tracer)),
       name_(std::move(name)),
       start_system_time_(std::chrono::system_clock::now()),
       start_steady_time_(std::chrono::steady_clock::now()),
@@ -92,7 +92,7 @@ Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
       parent_id_(parent ? parent->GetSpanId() : std::string{}),
       reference_type_(reference_type) {
   if (parent) {
-    log_extra_inheritable = parent->log_extra_inheritable;
+    log_extra_inheritable_ = parent->log_extra_inheritable_;
     local_log_level_ = parent->local_log_level_;
   }
   if (tracing::Tracer::IsNoLogSpan(name_)) {
@@ -140,13 +140,13 @@ Span::Impl::~Impl() {
 }
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) const& {
-  log_helper << log_extra_inheritable;
-  tracer->LogSpanContextTo(*this, log_helper);
+  log_helper << log_extra_inheritable_;
+  tracer_->LogSpanContextTo(*this, log_helper);
 }
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) && {
-  log_helper << std::move(log_extra_inheritable);
-  tracer->LogSpanContextTo(std::move(*this), log_helper);
+  log_helper << std::move(log_extra_inheritable_);
+  tracer_->LogSpanContextTo(std::move(*this), log_helper);
 }
 
 void Span::Impl::DetachFromCoroStack() { unlink(); }
@@ -210,14 +210,14 @@ Span Span::MakeSpan(std::string name, std::string_view trace_id,
 }
 
 Span Span::CreateChild(std::string name) const {
-  auto span =
-      pimpl_->tracer->CreateSpan(std::move(name), *this, ReferenceType::kChild);
+  auto span = pimpl_->tracer_->CreateSpan(std::move(name), *this,
+                                          ReferenceType::kChild);
   return span;
 }
 
 Span Span::CreateFollower(std::string name) const {
-  auto span = pimpl_->tracer->CreateSpan(std::move(name), *this,
-                                         ReferenceType::kReference);
+  auto span = pimpl_->tracer_->CreateSpan(std::move(name), *this,
+                                          ReferenceType::kReference);
   return span;
 }
 
@@ -250,15 +250,15 @@ std::optional<logging::Level> Span::GetLocalLogLevel() const {
 }
 
 void Span::AddTag(std::string key, logging::LogExtra::Value value) {
-  pimpl_->log_extra_inheritable.Extend(std::move(key), std::move(value));
+  pimpl_->log_extra_inheritable_.Extend(std::move(key), std::move(value));
 }
 
 void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
-  pimpl_->log_extra_inheritable.Extend(log_extra);
+  pimpl_->log_extra_inheritable_.Extend(log_extra);
 }
 
 std::string Span::GetTag(std::string_view tag) const {
-  const auto& value = pimpl_->log_extra_inheritable.GetValue(tag);
+  const auto& value = pimpl_->log_extra_inheritable_.GetValue(tag);
   const auto s = std::get_if<std::string>(&value);
   if (s)
     return *s;
@@ -267,8 +267,8 @@ std::string Span::GetTag(std::string_view tag) const {
 }
 
 void Span::AddTagFrozen(std::string key, logging::LogExtra::Value value) {
-  pimpl_->log_extra_inheritable.Extend(std::move(key), std::move(value),
-                                       logging::LogExtra::ExtendType::kFrozen);
+  pimpl_->log_extra_inheritable_.Extend(std::move(key), std::move(value),
+                                        logging::LogExtra::ExtendType::kFrozen);
 }
 
 void Span::SetLink(std::string link) {

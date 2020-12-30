@@ -67,8 +67,8 @@ class Span::Impl
   logging::Level log_level_;
   std::optional<logging::Level> local_log_level_;
 
-  std::shared_ptr<Tracer> tracer;
-  logging::LogExtra log_extra_inheritable;
+  std::shared_ptr<Tracer> tracer_;
+  logging::LogExtra log_extra_inheritable_;
 
   Span* span_;
   const std::string name_;

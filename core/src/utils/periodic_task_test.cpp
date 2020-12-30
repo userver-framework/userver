@@ -10,7 +10,6 @@
 #include <engine/sleep.hpp>
 #include <logging/log.hpp>
 #include <logging/logging_test.hpp>
-#include <utest/utest.hpp>
 #include <utils/periodic_task.hpp>
 
 namespace {

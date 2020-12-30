@@ -70,8 +70,8 @@ void Span::Impl::LogOpenTracing() const {
                         start_system_time_.time_since_epoch())
                         .count();
 
-  if (tracer) {
-    jaeger_span.Extend(jaeger::kServiceName, tracer->GetServiceName());
+  if (tracer_) {
+    jaeger_span.Extend(jaeger::kServiceName, tracer_->GetServiceName());
   }
   jaeger_span.Extend(jaeger::kTraceId, trace_id_);
   jaeger_span.Extend(jaeger::kParentId, parent_id_);
@@ -82,7 +82,7 @@ void Span::Impl::LogOpenTracing() const {
   jaeger_span.Extend(jaeger::kOperationName, name_);
 
   formats::json::ValueBuilder tags{formats::common::Type::kArray};
-  AddOpentracingTags(tags, log_extra_inheritable);
+  AddOpentracingTags(tags, log_extra_inheritable_);
   if (log_extra_local_) {
     AddOpentracingTags(tags, *log_extra_local_);
   }
