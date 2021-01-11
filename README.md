@@ -8,8 +8,6 @@
 ## Использование
 [Документация API](https://github.yandex-team.ru/pages/taxi/userver/)
 
-**TBA**
-
 ## Разработка
 Код должен соответствовать [Google C++ Style Guide](https://h.yandex-team.ru/?https%3A//google.github.io/styleguide/cppguide) с [изменениями](https://wiki.yandex-team.ru/users/sermp/backend-cpp-codestyle/).
 Код на Python должен соответствовать [Taxi Python Codestyle](https://wiki.yandex-team.ru/taxi/backend/codestyle/).

@@ -11,7 +11,9 @@
 </div>
 <!--END GENERATE_TREEVIEW-->
 <!--BEGIN !GENERATE_TREEVIEW-->
-<hr class="footer"/><address class="footer"><small>
+<hr class="footer"/>
+<a id='page_edit' style="float:left; padding-left: 7pt;" href="#">⚒ Редактировать страницу</a>
+<address class="footer"><small>
 $generatedby &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="$relpath^doxygen.png" alt="doxygen"/>
 </a> $doxygenversion
@@ -19,15 +21,31 @@ $generatedby &#160;<a href="http://www.doxygen.org/index.html">
 <!--END !GENERATE_TREEVIEW-->
 
 <script type="text/javascript">
-var TRANSLITTERATION_MAPPING = {"Ё":"YO","Й":"I","Ц":"TS","У":"U","К":"K","Е":"E","Н":"N","Г":"G","Ш":"SH","Щ":"SCH","З":"Z","Х":"H","Ъ":"'","ё":"yo","й":"i","ц":"ts","у":"u","к":"k","е":"e","н":"n","г":"g","ш":"sh","щ":"sch","з":"z","х":"h","ъ":"'","Ф":"F","Ы":"I","В":"V","А":"a","П":"P","Р":"R","О":"O","Л":"L","Д":"D","Ж":"ZH","Э":"E","ф":"f","ы":"i","в":"v","а":"a","п":"p","р":"r","о":"o","л":"l","д":"d","ж":"zh","э":"e","Я":"Ya","Ч":"CH","С":"S","М":"M","И":"I","Т":"T","Ь":"'","Б":"B","Ю":"YU","я":"ya","ч":"ch","с":"s","м":"m","и":"i","т":"t","ь":"'","б":"b","ю":"yu"};
+var LOWER_CASE_TRANSLITTERATION_MAPPING = {
+    "а":"a", "б":"b", "в":"v", "г":"g", "д":"d", "е":"e", "ё":"yo", "ж":"zh",
+    "з":"z", "и":"i", "й":"i", "к":"k", "л":"l", "м":"m", "н":"n", "о":"o",
+    "п":"p", "р":"r", "с":"s", "т":"t", "у":"u", "ф":"f", "х":"h", "ц":"ts",
+    "ч":"ch", "ш":"sh", "щ":"sch", "ъ":"\'", "ы":"i", "ь":"\'", "э":"e",
+    "ю":"yu", "я":"ya"
+};
 
 function make_id(raw_id) {
-  raw_id = raw_id.replace(/ /g, '')
-  raw_id = raw_id.split('').map(function (char) { 
-    return TRANSLITTERATION_MAPPING[char] || char; 
-  }).join('');
-  
-  return raw_id.toLowerCase()
+    return raw_id.toLowerCase().split('').map(function (char) {
+        return LOWER_CASE_TRANSLITTERATION_MAPPING[char] || char;
+    }).join('').replace(/\W/g, '');
+}
+
+function setup_page_edit() {
+    href = window.location.href;
+    indx = href.indexOf('md_ru_');
+    if (indx === -1) {
+        $('#page_edit').hide();
+        return;
+    }
+    href = href.substring(indx).replace('.html', '');
+    href = href.replace('md_ru_', 'https://wiki.yandex-team.ru/taxi/backend/');
+    href = href.replaceAll('_', '/');
+    $('#page_edit').attr("href", href + '/.edit');
 }
 
 function draw_toc() {
@@ -36,7 +54,7 @@ function draw_toc() {
         return;
     }
 
-    $( '<div id="mySidenav" class="sidenav"><h2>Оглавление документа</h2></div>').insertAfter('.header');
+    $('<div id="mySidenav" class="sidenav"><h2>Оглавление документа</h2></div>').insertAfter('.header');
     sidenav = $('#mySidenav');
     headers.each(function() {
         index = parseInt(this.nodeName.substring(1)) - 1;
@@ -50,11 +68,17 @@ function draw_toc() {
 }
 
 function highlight_code() {
+    if (window.location.href.indexOf("hpp_source") !== -1) {
+        // Header listing is already nicely highlighted by Doxygen
+        return;
+    }
+
     hljs.configure({
-      tabReplace: '    ' // 4 spaces
+        tabReplace: '    ' // 4 spaces
     });
     hljs.registerAliases('py', {languageName: 'python'});
     hljs.registerAliases('sh', {languageName: 'shell'});
+    hljs.registerAliases('bash', {languageName: 'shell'});
     hljs.registerAliases('yml', {languageName: 'yaml'});
     hljs.registerAliases('plain', {languageName: 'plaintext'});
     hljs.registerAliases('tskv', {languageName: 'plaintext'});
@@ -62,8 +86,14 @@ function highlight_code() {
         node = $(this);
         data = '';
         language = '';
+
         node.children('div.line').each(function(i) {
             line = $(this).text();
+
+            // Doxygen 1.8.11 workaround to remove line numbers.
+            // No line numbers added in Doxygen 1.8.13
+            line = line.replace(/^ *\d+\xA0/, '');
+
             if (i === 0 && hljs.getLanguage(line)) {
                 language = line;
             } else {
@@ -83,6 +113,7 @@ function highlight_code() {
 $(function() {
     draw_toc();
     highlight_code();
+    setup_page_edit();
 });
 </script>
 </body>

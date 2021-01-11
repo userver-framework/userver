@@ -1,7 +1,7 @@
 /* Keep the menue background black */
 .sm-dox {
     background-image:none;
-	background-color: black;
+    background-color: black;
     color: white;
 }
 
@@ -45,7 +45,7 @@
 /* Set svg logo size */
 #projectlogo {
     width: 80px;
-    padding-top: 7pt;
+    padding: 5pt;
 }
 
 /* Set logo background to black */
@@ -73,4 +73,7 @@ div.fragment {
 /* Scale image to the page width */
 .image img {
     width:100%;
+    background-color: #FEFCF9; /* matches .fragment */
+    border: 1px solid #FDCC9A; /* matches .fragment */
+    padding: 5pt;
 }

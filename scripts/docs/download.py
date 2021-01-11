@@ -17,10 +17,16 @@ WIKI_USERVER = 'wiki.yandex-team.ru/taxi/backend/userver'
 
 DOT_FILES_PATH = 'dots'
 WIKI_FILES_PATH = 'files'
+DOXYGEN_CONF = os.path.join('..', '..', 'doxygen.conf')
+SCRIPTS_DOCS_PATH = os.path.join('scripts', 'docs')
+
+IMAGE_EXTENSIONS = {'png', 'svg', 'jpg', 'jpeg', 'bmp', 'gif'}
 
 DOT_REGEX = r'%%\(graphviz\)\n(.*?)\n%%'
 INCLUDE_REGEX = r'{{[ ]*include[ ]+page=["\'](.*)["\'][ notitle]*}}'
-FILE_REGEX = r'file:/taxi/backend/([^ \n ]*)'
+FILE_REFERENCE_REGEX = (
+    r'(?:file:/taxi/backend|https?://jing.yandex-team.ru)/([^ \n})]*)'
+)
 
 # Reminder:
 #     [\s\S] - matches any symbol, including newlines
@@ -46,6 +52,12 @@ REGEXES = (
     (r'[ ]*\n[ ]*%%\((\w+)\)[ ]*\n([\s\S]*?)\n[ ]*%%', r'\n```\n\1\n\2\n```'),
     (r'[ ]*\n[ ]*%%[ ]*\n([\s\S]*?)\n[ ]*%%', r'\n```\n\1\n```'),
     #########################################################################
+    # Numbered lists with parenthesis to lists with period: 42) => 42.
+    (r'\n([ ]*\d+)\)', r'\n\1.'),
+    #########################################################################
+    # Headers with YaWiki anchors, dropping anchors: ==(link) X  =>  == X
+    (r'(\n[=]+)\([^(][^)]*\)([^=\n]+)', r'\1\2'),
+    #########################################################################
     # Headers
     (r'\n=======([^=\n]+)=======', r'\n\n####### \1'),
     (r'\n======([^=\n]+)======', r'\n\n###### \1'),
@@ -62,6 +74,9 @@ REGEXES = (
     (r'\n==', '\n\n## '),
     (r'\n=', '\n\n# '),
     #########################################################################
+    # YaWiki links to links with absolute URL
+    (r'\(\(/(\S*) (.+?)\)\)', r'((https://wiki.yandex-team.ru/\1 \2))'),
+    #########################################################################
     # Local links and dropping anchors :(
     (r'\(\(!/(\S*?)/?#\S+ (.+?[\)]*)\)\)', r'[\2](PY_HELPERS_FILENAME/\1.md)'),
     #########################################################################
@@ -71,13 +86,13 @@ REGEXES = (
     # Making links local and dropping anchors :(
     (
         r'\(\(https?://' + WIKI_USERVER + r'(\S*?)/?#\S+ (.+?[\)]*)\)\)',
-        r'[\2](scripts/docs/ru/userver\1.md)',
+        r'[\2](' + SCRIPTS_DOCS_PATH + r'/ru/userver\1.md)',
     ),
     #########################################################################
     # Making links local
     (
         r'\(\(https?://' + WIKI_USERVER + r'(\S*?)/? (.+?[\)]*)\)\)',
-        r'[\2](scripts/docs/ru/userver\1.md)',
+        r'[\2](' + SCRIPTS_DOCS_PATH + r'/ru/userver\1.md)',
     ),
     #########################################################################
     # Making external wiki-links non-local
@@ -98,9 +113,9 @@ REGEXES = (
     #########################################################################
     # We can not make dropdowns in Doxygen
     (r'<{(.*)\n', r'**\1**\n'),
-    (r'}>[ ]*\n', '\n'),
+    (r'}>[ ]*\n', r'\n'),
     #########################################################################
-    # Converting red text into bold
+    # Converting colored text into bold
     (r'!!\([^)]+\)([^!\n]*)!!', r'**⚠️🐙❗ \1**'),
     (r'!!([^!\n]*)!!', r'**⚠️🐙❗ \1**'),
     #########################################################################
@@ -111,11 +126,10 @@ REGEXES = (
 )
 
 
-async def request_wiki_data(
-        token: str, relative_url: str, binary: bool = False,
+async def request_yandex_service_data(
+        token: str, url: str, *, binary: bool = False,
 ) -> Any:
     headers = {'Authorization': f'OAuth {token}'}
-    url = f'{WIKI_API_URL}{relative_url}'
 
     async with aiohttp.ClientSession(
             headers=headers, requote_redirect_url=not binary,
@@ -126,12 +140,12 @@ async def request_wiki_data(
             return await resp.json()
 
 
-async def download_page_data(
+async def download_yawiki_page_data(
         token: str, page_url: str, add_header: bool = True,
 ) -> str:
     print(f'Downloading {page_url}')
-    url = f'taxi/backend/{page_url}/.raw?format=json'
-    response_data = await request_wiki_data(token, url)
+    url = f'{WIKI_API_URL}taxi/backend/{page_url}/.raw?format=json'
+    response_data = await request_yandex_service_data(token, url)
 
     data = response_data['data']
     body = data['body'].replace('\r', '')
@@ -141,17 +155,20 @@ async def download_page_data(
     return body
 
 
-async def download_page_file(
-        token: str, file_url: str, save_path: str,
-) -> None:
+async def download_yawiki_page_file(token: str, file_url: str) -> bytes:
     print(f'Downloading {file_url}')
     dirname = os.path.dirname(file_url)
     basename = os.path.basename(file_url)
-    url = f'taxi/backend/{dirname}/.files/{basename}'
-    response_data = await request_wiki_data(token, url, binary=True)
+    assert basename, f'URL "{file_url}" should end with file name'
+    url = f'{WIKI_API_URL}taxi/backend/{dirname}/.files/{basename}'
+    return await request_yandex_service_data(token, url, binary=True)
 
-    with open(save_path, 'wb') as file:
-        file.write(response_data)
+
+async def download_jing_file(token: str, file_url: str) -> bytes:
+    print(f'Downloading {file_url}')
+    return await request_yandex_service_data(
+        token, f'https://jing.yandex-team.ru/{file_url}', binary=True,
+    )
 
 
 def unnest_pages(subpages: List[Dict[str, Any]]) -> List[str]:
@@ -165,8 +182,8 @@ def unnest_pages(subpages: List[Dict[str, Any]]) -> List[str]:
 
 
 async def download_page_tree(token: str) -> List[str]:
-    url = f'taxi/backend/userver/.tree?format=json&depth=100'
-    response_data = await request_wiki_data(token, url)
+    url = f'{WIKI_API_URL}taxi/backend/userver/.tree?format=json&depth=100'
+    response_data = await request_yandex_service_data(token, url)
 
     pages = unnest_pages(response_data['data']['subpages'])
     pages.append('userver')
@@ -177,14 +194,27 @@ async def emplace_yawiki_files(data: str, token: str) -> str:
     if not os.path.exists(WIKI_FILES_PATH):
         os.makedirs(WIKI_FILES_PATH)
 
-    for file_match in re.finditer(FILE_REGEX, data):
-        file_url = file_match.group(1).lower()
-        save_path = WIKI_FILES_PATH + '/' + file_url.replace('/', '_')
+    for file_match in re.finditer(FILE_REFERENCE_REGEX, data):
+        file_url = file_match.group(1)
+        save_path = WIKI_FILES_PATH + '/' + file_url.replace('/', '_').lower()
         if not os.path.exists(save_path):
-            await download_page_file(token, file_url, save_path)
+            if file_match.group(0).startswith('file:'):
+                file_url = file_url.lower()
+                response = await download_yawiki_page_file(token, file_url)
+            else:
+                response = await download_jing_file(token, file_url)
+
+            with open(save_path, 'wb') as file:
+                file.write(response)
 
         basename = os.path.basename(save_path)
-        data = data.replace(file_match.group(0), f'![]({basename})')
+        file_extension = basename.rsplit('.', 1)[-1].lower()
+        if file_extension in IMAGE_EXTENSIONS:
+            data = data.replace(file_match.group(0), f'![]({basename})')
+        else:
+            original_filename = os.path.basename(file_url)
+            md_link = f'[{original_filename}]({basename})'
+            data = data.replace(file_match.group(0), md_link)
     return data
 
 
@@ -203,10 +233,11 @@ async def emplace_yawiki_includes(data: str, token: str, page_url: str) -> str:
                     'https://wiki.yandex-team.ru/taxi/backend/', '', 1,
                 )
             else:
-                print('TODO: ' + url)
+                print(f'Changing inclusion of "{url}" to a link')
+                data.replace(include.group(0), f'(({url} {url}))')
                 continue
 
-            include_data = await download_page_data(
+            include_data = await download_yawiki_page_data(
                 token, url, add_header=False,
             )
             include_data.replace('\r', '')
@@ -269,7 +300,7 @@ def convert_to_markdown(data: str, filename: pathlib.Path) -> str:
     data = '\n'.join(output)
 
     local_file = str(filename.with_suffix('')).lower().replace('_', '')
-    local_file = 'scripts/docs/' + local_file
+    local_file = os.path.join(SCRIPTS_DOCS_PATH, local_file)
     data = data.replace('PY_HELPERS_FILENAME', local_file)
     for link in re.finditer(r']([^)\n]*)\.md\)', data):
         normalized_url = link.group(1).lower().replace('_', '')
@@ -280,6 +311,27 @@ def convert_to_markdown(data: str, filename: pathlib.Path) -> str:
 def convert_and_write_md(data: str, filename: pathlib.Path) -> None:
     with open(filename.with_suffix('.md'), 'w', encoding='utf-8') as file:
         file.write(convert_to_markdown(data, filename))
+
+
+def get_fs_path_items(path: str) -> List[str]:
+    if not os.path.exists(path):
+        return []
+    return [os.path.join(path, f) for f in os.listdir(path)]
+
+
+def update_doxy_file(doxy_path: str) -> None:
+    files = [
+        os.path.join('highlight.js', 'highlight.pack.js'),
+        os.path.join('highlight.js', 'styles', 'gruvbox-light.css'),
+    ] + get_fs_path_items(WIKI_FILES_PATH)
+    files = [''] + sorted(os.path.join(SCRIPTS_DOCS_PATH, x) for x in files)
+    files_txt = '\nHTML_EXTRA_FILES =' + ' \\\n    '.join(files) + '\n\n'
+
+    with open(doxy_path, 'r', encoding='utf-8') as file:
+        content = file.read()
+    content = re.sub(r'\nHTML_EXTRA_FILES[ ]*=[^=#]*\n', files_txt, content)
+    with open(doxy_path, 'w', encoding='utf-8') as file:
+        file.write(content)
 
 
 async def generate_docs(
@@ -295,7 +347,7 @@ async def generate_docs(
     pages = sorted(set(pages))
 
     for page_url in pages:
-        data = await download_page_data(token, page_url)
+        data = await download_yawiki_page_data(token, page_url)
         data = await emplace_yawiki_includes(data, token, page_url)
         data = await emplace_yawiki_files(data, token)
 
@@ -307,6 +359,21 @@ async def generate_docs(
             file.write(data)
 
         convert_and_write_md(data, filename)
+
+    update_doxy_file(DOXYGEN_CONF)
+
+
+def setup_workdir() -> None:
+    abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    assert dname.endswith(
+        SCRIPTS_DOCS_PATH,
+    ), f'This script should be run from uservers {SCRIPTS_DOCS_PATH}'
+
+    os.chdir(dname)
+    assert os.path.exists(
+        DOXYGEN_CONF,
+    ), f'doxygen.conf not found at {os.path.join(dname, DOXYGEN_CONF)}'
 
 
 def main():
@@ -331,7 +398,7 @@ def main():
         '--ignore-prefixes',
         nargs='+',
         default=['userver/libraries/'],
-        help='Prfixes to ignore',
+        help='Prefixes to ignore',
     )
     parser.add_argument(
         '--download-lists',
@@ -341,10 +408,13 @@ def main():
     )
     args = parser.parse_args()
 
+    setup_workdir()
+
     if args.convert_only:
         for filename in pathlib.Path('ru').rglob('*.yawiki'):
             with open(filename, 'r', encoding='utf-8') as source:
                 convert_and_write_md(source.read(), filename)
+        update_doxy_file(DOXYGEN_CONF)
         return
 
     loop = asyncio.get_event_loop()
