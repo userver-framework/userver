@@ -42,16 +42,16 @@ class ComponentInfo final {
 
   template <typename Func>
   void ForEachItDependsOn(const Func& func) const {
-    std::lock_guard<engine::Mutex> lock(mutex_);
-    for (const auto& component : it_depends_on_) {
+    auto it_depends_on = MakeCopy(it_depends_on_);
+    for (const auto& component : it_depends_on) {
       func(component);
     }
   }
 
   template <typename Func>
   void ForEachDependsOnIt(const Func& func) const {
-    std::lock_guard<engine::Mutex> lock(mutex_);
-    for (const auto& component : depends_on_it_) {
+    auto depends_on_it = MakeCopy(depends_on_it_);
+    for (const auto& component : depends_on_it) {
       func(component);
     }
   }
@@ -69,6 +69,12 @@ class ComponentInfo final {
  private:
   bool HasComponent() const;
   std::unique_ptr<ComponentBase> ExtractComponent();
+
+  template <typename Value>
+  Value MakeCopy(const Value& value) const {
+    std::lock_guard<engine::Mutex> lock(mutex_);
+    return value;
+  }
 
   const std::string name_;
 
