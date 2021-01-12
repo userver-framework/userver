@@ -9,13 +9,15 @@
 
 namespace cache::dump {
 
-FileWriter::FileWriter(std::string path)
-    : final_path_(std::move(path)), path_(final_path_ + ".tmp") {
+FileWriter::FileWriter(std::string path, boost::filesystem::perms perms)
+    : final_path_(std::move(path)), path_(final_path_ + ".tmp"), perms_(perms) {
   constexpr fs::blocking::OpenMode mode{
       fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kExclusiveCreate};
+  const int tmp_perms =
+      static_cast<int>(perms_ | boost::filesystem::perms::owner_write);
 
   try {
-    file_ = fs::blocking::CFile{path_, mode, 0600};
+    file_ = fs::blocking::CFile{path_, mode, tmp_perms};
   } catch (const std::exception& ex) {
     throw Error(fmt::format("Failed to open the dump file for write \"{}\": {}",
                             path_, ex.what()));
@@ -35,7 +37,7 @@ void FileWriter::Finish() {
   try {
     file_.Flush();
     std::move(file_).Close();
-    fs::blocking::Chmod(path_, boost::filesystem::perms::owner_read);
+    fs::blocking::Chmod(path_, perms_);  // drop perms::owner_write
     fs::blocking::Rename(path_, final_path_);
     fs::blocking::SyncDirectoryContents(
         boost::filesystem::path(final_path_).parent_path().string());

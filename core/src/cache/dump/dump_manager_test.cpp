@@ -56,6 +56,7 @@ TEST(DumpManager, CleanupTmpTest) {
 update-interval: 1s
 dump:
     enable: true
+    world-readable: false
     format-version: 5
     max-count: 10
 )";
@@ -89,6 +90,7 @@ TEST(DumpManager, CleanupByAgeTest) {
 update-interval: 1s
 dump:
     enable: true
+    world-readable: false
     format-version: 5
     max-count: 10
     max-age: 1500ms
@@ -127,6 +129,7 @@ TEST(DumpManager, CleanupByCountTest) {
 update-interval: 1s
 dump:
     enable: true
+    world-readable: false
     format-version: 5
     max-count: 1
 )";
@@ -161,6 +164,7 @@ TEST(DumpManager, ReadLatestDumpTest) {
 update-interval: 1s
 dump:
     enable: true
+    world-readable: false
     format-version: 5
 )";
   const fs::blocking::TempDirectory dir;
@@ -200,6 +204,7 @@ TEST(DumpManager, DumpAndBumpTest) {
 update-interval: 1s
 dump:
     enable: true
+    world-readable: false
     format-version: 5
 )";
   const fs::blocking::TempDirectory dir;

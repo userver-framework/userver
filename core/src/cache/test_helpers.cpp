@@ -30,7 +30,8 @@ void CreateDumps(const std::vector<std::string>& filenames,
   fs::blocking::CreateDirectories(full_directory.string());
 
   for (const auto& filename : filenames) {
-    dump::FileWriter writer((full_directory / filename).string());
+    dump::FileWriter writer((full_directory / filename).string(),
+                            boost::filesystem::perms::owner_read);
     writer.Write(filename);
     writer.Finish();
   }

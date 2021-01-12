@@ -20,7 +20,7 @@ TEST(CacheDumpOperationsFile, WriteReadRaw) {
   constexpr std::size_t kMaxLength = 10;
   std::size_t total_length = 0;
 
-  cache::dump::FileWriter writer(path);
+  cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
   for (std::size_t i = 0; i <= kMaxLength; ++i) {
     writer.WriteRaw(std::string(i, 'a'));
     total_length += i;
@@ -41,7 +41,7 @@ TEST(CacheDumpOperationsFile, EmptyDump) {
   fs::blocking::TempDirectory dir;
   const auto path = DumpFilePath(dir);
 
-  cache::dump::FileWriter writer(path);
+  cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
   writer.Finish();
 
   EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
@@ -54,7 +54,7 @@ TEST(CacheDumpOperationsFile, EmptyStringDump) {
   fs::blocking::TempDirectory dir;
   const auto path = DumpFilePath(dir);
 
-  cache::dump::FileWriter writer(path);
+  cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
   writer.WriteRaw({});
   writer.Finish();
 

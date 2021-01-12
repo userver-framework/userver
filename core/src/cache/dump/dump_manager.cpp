@@ -29,7 +29,13 @@ DumpManager::DumpManager(CacheConfigStatic&& config,
       tmp_filename_regex_(GenerateFilenameRegex(FileFormatType::kTmp)) {}
 
 std::optional<FileWriter> DumpManager::StartWriter(TimePoint update_time) {
+  using boost::filesystem::perms;
+
   const auto config = config_.Read();
+  const auto dump_perms =
+      config->world_readable
+          ? perms::owner_read | perms::group_read | perms::others_read
+          : perms::owner_read;
   const std::string dump_path = GenerateDumpPath(update_time, *config);
 
   if (boost::filesystem::exists(dump_path)) {
@@ -40,7 +46,7 @@ std::optional<FileWriter> DumpManager::StartWriter(TimePoint update_time) {
 
   try {
     fs::blocking::CreateDirectories(config->dump_directory);
-    return FileWriter(dump_path);
+    return FileWriter(dump_path, dump_perms);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Error while creating cache dump for cache " << cache_name_
                 << " at \"" << dump_path << "\". Cause: " << ex;

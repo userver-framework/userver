@@ -42,6 +42,7 @@ constexpr std::string_view kFsTaskProcessor = "fs-task-processor";
 constexpr std::string_view kDumpFormatVersion = "format-version";
 constexpr std::string_view kMaxDumpCount = "max-count";
 constexpr std::string_view kMaxDumpAge = "max-age";
+constexpr std::string_view kWorldReadable = "world-readable";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 constexpr auto kDefaultFsTaskProcessor = std::string_view{"fs-task-processor"};
@@ -142,7 +143,8 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
       max_dump_count(
           config[kDump][kMaxDumpCount].As<uint64_t>(kDefaultMaxDumpCount)),
       max_dump_age(config[kDump][kMaxDumpAge]
-                       .As<std::optional<std::chrono::milliseconds>>()) {
+                       .As<std::optional<std::chrono::milliseconds>>()),
+      world_readable(config[kDump][kWorldReadable].As<bool>(false)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
@@ -182,6 +184,11 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
   if (max_dump_count == 0) {
     throw std::logic_error(fmt::format("{} must not be 0 for cache '{}'",
                                        kMaxDumpCount, config.Name()));
+  }
+  if (dumps_enabled && !config[kDump].HasMember(kWorldReadable)) {
+    throw std::logic_error(fmt::format(
+        "If dumps are enabled, then '{}' must be set for cache '{}'",
+        kWorldReadable, config.Name()));
   }
 }
 

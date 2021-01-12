@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/filesystem/operations.hpp>
+
 #include <fs/blocking/c_file.hpp>
 #include <utils/fast_pimpl.hpp>
 
@@ -12,7 +14,7 @@ class FileWriter final : public Writer {
  public:
   /// @brief Creates a new dump file and opens it
   /// @throws `Error` on a filesystem error
-  explicit FileWriter(std::string path);
+  explicit FileWriter(std::string path, boost::filesystem::perms perms);
 
   /// @brief Must be called once all data has been written
   /// @throws `Error` on a filesystem error
@@ -25,6 +27,7 @@ class FileWriter final : public Writer {
   fs::blocking::CFile file_;
   std::string final_path_;
   std::string path_;
+  boost::filesystem::perms perms_;
 };
 
 /// A handle to a cache dump file. File operations block the thread.
