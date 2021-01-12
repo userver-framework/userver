@@ -14,6 +14,7 @@ static const char* kStatisticsNameIncremental = "incremental";
 static const char* kStatisticsNameAny = "any";
 static const char* kStatisticsNameCurrentDocumentsCount =
     "current-documents-count";
+static const char* kStatisticsNameDump = "dump";
 
 static const char* kStatisticsNameHits = "hits";
 static const char* kStatisticsNameMisses = "misses";
@@ -29,8 +30,8 @@ struct UpdateStatistics {
   std::atomic<size_t> documents_read_count{0};
   std::atomic<size_t> documents_parse_failures{0};
 
-  std::atomic<std::chrono::system_clock::time_point> last_update_start_time{{}};
-  std::atomic<std::chrono::system_clock::time_point>
+  std::atomic<std::chrono::steady_clock::time_point> last_update_start_time{{}};
+  std::atomic<std::chrono::steady_clock::time_point>
       last_successful_update_start_time{{}};
   std::atomic<std::chrono::milliseconds> last_update_duration{{}};
 
@@ -53,10 +54,22 @@ UpdateStatistics CombineStatistics(const UpdateStatistics& a,
 
 formats::json::Value StatisticsToJson(const UpdateStatistics& stats);
 
+struct DumpStatistics {
+  std::atomic<bool> is_loaded_{false};
+  std::atomic<std::chrono::milliseconds> load_duration_{{}};
+
+  std::atomic<std::chrono::steady_clock::time_point>
+      last_nontrivial_write_start_time{{}};
+  std::atomic<std::chrono::milliseconds> last_nontrivial_write_duration{{}};
+};
+
+formats::json::Value StatisticsToJson(const DumpStatistics& stats);
+
 struct Statistics {
   UpdateStatistics full_update;
   UpdateStatistics incremental_update;
   std::atomic<size_t> documents_current_count{0};
+  DumpStatistics dump;
 
   Statistics() = default;
 };
@@ -79,7 +92,7 @@ class UpdateStatisticsScope final {
   Statistics& stats_;
   UpdateStatistics& update_stats_;
   bool finished_;
-  const std::chrono::system_clock::time_point update_start_time_;
+  const std::chrono::steady_clock::time_point update_start_time_;
 };
 
 }  // namespace cache

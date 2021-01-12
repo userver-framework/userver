@@ -29,9 +29,10 @@ UpdateStatistics CombineStatistics(const UpdateStatistics& a,
 
 namespace {
 
-template <typename Duration>
-size_t TimeStampToMillisecondsFromNow(Duration duration) {
-  auto diff = std::chrono::system_clock::now() - duration;
+template <typename Clock, typename Duration>
+std::int64_t TimeStampToMillisecondsFromNow(
+    std::chrono::time_point<Clock, Duration> time) {
+  const auto diff = Clock::now() - time;
   return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 }
 
@@ -65,6 +66,28 @@ formats::json::Value StatisticsToJson(const UpdateStatistics& stats) {
   return result.ExtractValue();
 }
 
+formats::json::Value StatisticsToJson(const DumpStatistics& stats) {
+  formats::json::ValueBuilder result(formats::json::Type::kObject);
+
+  const bool is_loaded = stats.is_loaded_.load();
+  result["is-loaded-from-dump"] = is_loaded ? 1 : 0;
+  if (is_loaded) {
+    result["load-duration-ms"] = stats.load_duration_.load().count();
+  }
+
+  const bool dump_written = stats.last_nontrivial_write_start_time.load() !=
+                            std::chrono::steady_clock::time_point{};
+  if (dump_written) {
+    formats::json::ValueBuilder write(formats::json::Type::kObject);
+    write["time-from-start-ms"] = TimeStampToMillisecondsFromNow(
+        stats.last_nontrivial_write_start_time.load());
+    write["duration-ms"] = stats.last_nontrivial_write_duration.load().count();
+    result["last-nontrivial-write"] = write.ExtractValue();
+  }
+
+  return result.ExtractValue();
+}
+
 UpdateStatisticsScope::UpdateStatisticsScope(Statistics& stats,
                                              cache::UpdateType type)
     : stats_(stats),
@@ -72,7 +95,7 @@ UpdateStatisticsScope::UpdateStatisticsScope(Statistics& stats,
                         ? stats.incremental_update
                         : stats.full_update),
       finished_(false),
-      update_start_time_(std::chrono::system_clock::now()) {
+      update_start_time_(std::chrono::steady_clock::now()) {
   update_stats_.last_update_start_time = update_start_time_;
   ++update_stats_.update_attempt_count;
 }
@@ -82,7 +105,7 @@ UpdateStatisticsScope::~UpdateStatisticsScope() {
 }
 
 void UpdateStatisticsScope::Finish(size_t documents_count) {
-  const auto update_stop_time = std::chrono::system_clock::now();
+  const auto update_stop_time = std::chrono::steady_clock::now();
   update_stats_.last_successful_update_start_time = update_start_time_;
   update_stats_.last_update_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(update_stop_time -

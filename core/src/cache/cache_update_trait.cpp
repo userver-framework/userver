@@ -180,6 +180,8 @@ formats::json::Value CacheUpdateTrait::ExtendStatistics() {
 
   builder[cache::kStatisticsNameCurrentDocumentsCount] =
       GetStatistics().documents_current_count.load();
+  builder[cache::kStatisticsNameDump] =
+      cache::StatisticsToJson(GetStatistics().dump);
 
   return builder.ExtractValue();
 }
@@ -309,15 +311,14 @@ bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
 }
 
 bool CacheUpdateTrait::DoDump(dump::TimePoint update_time) {
+  const auto dump_start = std::chrono::steady_clock::now();
+
   auto writer = dumper_->StartWriter(update_time);
   if (!writer) return false;
 
   try {
-    // Will call WriteChunk, which will call writer.WriteChunk
     GetAndWrite(*writer);
-
     writer->Finish();
-    return true;
   } catch (const EmptyCacheError& ex) {
     // ShouldDump checks that a successful update has been performed,
     // but the cache could have been cleared forcefully
@@ -329,6 +330,14 @@ bool CacheUpdateTrait::DoDump(dump::TimePoint update_time) {
                 << ". Reason: " << ex;
     return false;
   }
+
+  dumper_->Cleanup();
+
+  statistics_.dump.last_nontrivial_write_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - dump_start);
+  statistics_.dump.last_nontrivial_write_start_time = dump_start;
+  return true;
 }
 
 void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
@@ -365,10 +374,6 @@ void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
         if (success) {
           last_dumped_update_ = new_update_time;
         }
-
-        // While update.dump_task hasn't finished, dumper_.WriteNewDump
-        // won't be called in parallel with dumper_.Cleanup
-        dumper_->Cleanup();
       });
 }
 
@@ -390,6 +395,7 @@ void CacheUpdateTrait::DumpAsyncIfNeeded(DumpType type, UpdateData& update,
 bool CacheUpdateTrait::LoadFromDump(UpdateData& update,
                                     const CacheConfigStatic& config) {
   tracing::Span span("load-from-dump/" + name_);
+  const auto load_start = std::chrono::steady_clock::now();
 
   if (!config.dumps_enabled) {
     LOG_DEBUG() << "Could not load a cache dump, because cache dumps are "
@@ -421,6 +427,11 @@ bool CacheUpdateTrait::LoadFromDump(UpdateData& update,
   update.last_update = *update_time;
   update.last_modifying_update = *update_time;
   utils::AtomicMax(last_dumped_update_, *update_time);
+
+  statistics_.dump.is_loaded_ = true;
+  statistics_.dump.load_duration_ =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - load_start);
   return true;
 }
 
