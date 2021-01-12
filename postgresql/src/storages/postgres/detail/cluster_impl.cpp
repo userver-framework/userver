@@ -57,11 +57,13 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
                          const TopologySettings& topology_settings,
                          const PoolSettings& pool_settings,
                          const ConnectionSettings& conn_settings,
-                         const CommandControl& default_cmd_ctl,
+                         const DefaultCommandControls& default_cmd_ctls,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
-    : topology_(bg_task_processor, std::move(dsns), topology_settings,
-                conn_settings, default_cmd_ctl, testsuite_pg_ctl, ei_settings),
+    : default_cmd_ctls_(default_cmd_ctls),
+      topology_(bg_task_processor, std::move(dsns), topology_settings,
+                conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
+                ei_settings),
       bg_task_processor_(bg_task_processor),
       rr_host_idx_(0) {
   const auto& dsn_list = topology_.GetDsnList();
@@ -73,8 +75,8 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
   host_pools_.reserve(dsn_list.size());
   for (const auto& dsn : dsn_list) {
     host_pools_.push_back(ConnectionPool::Create(
-        dsn, bg_task_processor_, pool_settings, conn_settings, default_cmd_ctl,
-        testsuite_pg_ctl, ei_settings));
+        dsn, bg_task_processor_, pool_settings, conn_settings,
+        default_cmd_ctls_, testsuite_pg_ctl, ei_settings));
   }
   LOG_DEBUG() << "Pools initialized";
 }
@@ -229,14 +231,16 @@ NonTransaction ClusterImpl::Start(ClusterHostTypeFlags flags,
 
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl,
                                            DefaultCommandControlSource source) {
-  for (const auto& pool_ptr : host_pools_) {
-    pool_ptr->SetDefaultCommandControl(cmd_ctl, source);
-  }
+  default_cmd_ctls_.UpdateDefaultCmdCtl(cmd_ctl, source);
 }
 
 CommandControl ClusterImpl::GetDefaultCommandControl() const {
-  UASSERT(!host_pools_.empty());
-  return host_pools_.front()->GetDefaultCommandControl();
+  return default_cmd_ctls_.GetDefaultCmdCtl();
+}
+
+void ClusterImpl::SetHandlersCommandControl(
+    const CommandControlByHandlerMap& handlers_command_control) {
+  default_cmd_ctls_.UpdateHandlersCommandControl(handlers_command_control);
 }
 
 }  // namespace storages::postgres::detail

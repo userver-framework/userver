@@ -1,6 +1,8 @@
 #include <storages/postgres/util_benchmark.hpp>
 
 #include <engine/standalone.hpp>
+
+#include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/dsn.hpp>
 
@@ -32,7 +34,8 @@ void PgConnection::SetUp(benchmark::State&) {
     RunInCoro([this, dsn] {
       conn_ = detail::Connection::Connect(
           dsn, GetTaskProcessor(), kConnectionId,
-          {ConnectionSettings::kCachePreparedStatements}, kBenchCmdCtl, {}, {});
+          {ConnectionSettings::kCachePreparedStatements},
+          DefaultCommandControls(kBenchCmdCtl, {}), {}, {});
     });
   }
 }

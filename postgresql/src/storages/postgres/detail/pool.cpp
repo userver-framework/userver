@@ -52,7 +52,7 @@ class ConnectionPool::EmplaceEnabler {};
 ConnectionPool::ConnectionPool(
     EmplaceEnabler, Dsn dsn, engine::TaskProcessor& bg_task_processor,
     const PoolSettings& settings, const ConnectionSettings& conn_settings,
-    const CommandControl& default_cmd_ctl,
+    const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings)
     : dsn_{std::move(dsn)},
@@ -62,8 +62,7 @@ ConnectionPool::ConnectionPool(
       queue_{settings_.max_size},
       size_{std::make_shared<std::atomic<size_t>>(0)},
       wait_count_{0},
-      default_cmd_ctl_{default_cmd_ctl},
-      has_user_default_cc_{false},
+      default_cmd_ctls_(default_cmd_ctls),
       testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_(std::move(ei_settings)),
       cancel_limit_{std::max(1UL, settings_.max_size / kCancelRatio),
@@ -77,12 +76,13 @@ ConnectionPool::~ConnectionPool() {
 std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     Dsn dsn, engine::TaskProcessor& bg_task_processor,
     const PoolSettings& pool_settings, const ConnectionSettings& conn_settings,
-    const CommandControl& default_cmd_ctl,
+    const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings) {
   auto impl = std::make_shared<ConnectionPool>(
       EmplaceEnabler{}, std::move(dsn), bg_task_processor, pool_settings,
-      conn_settings, default_cmd_ctl, testsuite_pg_ctl, std::move(ei_settings));
+      conn_settings, default_cmd_ctls, testsuite_pg_ctl,
+      std::move(ei_settings));
   // Init() uses shared_from_this for connections and cannot be called from ctor
   impl->Init();
   return impl;
@@ -129,7 +129,7 @@ ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
   auto shared_this = shared_from_this();
   ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
   ++stats_.connection.used;
-  connection->SetDefaultCommandControl(GetDefaultCommandControl());
+  connection->UpdateDefaultCommandControl();
   return connection;
 }
 
@@ -262,30 +262,11 @@ TimeoutDuration ConnectionPool::GetExecuteTimeout(
     OptionalCommandControl cmd_ctl) {
   if (cmd_ctl) return cmd_ctl->execute;
 
-  const auto read_ptr = default_cmd_ctl_.Read();
-  return read_ptr->execute;
-}
-
-void ConnectionPool::SetDefaultCommandControl(
-    CommandControl cmd_ctl, DefaultCommandControlSource source) {
-  auto writer = default_cmd_ctl_.StartWrite();
-  // source must be checked under lock to avoid races
-  switch (source) {
-    case DefaultCommandControlSource::kGlobalConfig:
-      if (has_user_default_cc_) return;
-      break;
-    case DefaultCommandControlSource::kUser:
-      has_user_default_cc_ = true;
-      break;
-  }
-  if (*writer != cmd_ctl) {
-    *writer = cmd_ctl;
-    writer.Commit();
-  }
+  return GetDefaultCommandControl().execute;
 }
 
 CommandControl ConnectionPool::GetDefaultCommandControl() const {
-  return default_cmd_ctl_.ReadCopy();
+  return default_cmd_ctls_.GetDefaultCmdCtl();
 }
 
 engine::TaskWithResult<bool> ConnectionPool::Connect(
@@ -298,11 +279,11 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
     std::unique_ptr<Connection> connection;
     Stopwatch st{shared_this->stats_.connection_percentile};
     try {
-      auto cmd_ctl = shared_this->default_cmd_ctl_.Read();
       connection = Connection::Connect(
           shared_this->dsn_, shared_this->bg_task_processor_, conn_id,
-          shared_this->conn_settings_, *cmd_ctl, shared_this->testsuite_pg_ctl_,
-          shared_this->ei_settings_, std::move(sg));
+          shared_this->conn_settings_, shared_this->default_cmd_ctls_,
+          shared_this->testsuite_pg_ctl_, shared_this->ei_settings_,
+          std::move(sg));
     } catch (const ConnectionTimeoutError&) {
       // No problem if it's connection error
       ++shared_this->stats_.connection.error_timeout;

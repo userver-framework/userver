@@ -29,7 +29,7 @@ TEST_P(PostgreTopology, Smoke) {
     error_injection::Settings ei_settings;
     pg::detail::QuorumCommitTopology qcc(
         GetTaskProcessor(), dsns, pg::TopologySettings{kMaxTestWaitTime},
-        pg::ConnectionSettings{}, kTestCmdCtl, {}, ei_settings);
+        pg::ConnectionSettings{}, GetTestCmdCtls(), {}, ei_settings);
     auto hosts = qcc.GetDsnIndicesByType();
 
     EXPECT_EQ(1, hosts->count(pg::ClusterHostType::kMaster));
@@ -53,7 +53,7 @@ TEST_P(PostgreTopology, ReplicationLag) {
     pg::detail::QuorumCommitTopology qcc(
         GetTaskProcessor(), dsns,
         pg::TopologySettings{std::chrono::seconds{-1}},
-        pg::ConnectionSettings{}, kTestCmdCtl, {}, ei_settings);
+        pg::ConnectionSettings{}, GetTestCmdCtls(), {}, ei_settings);
     auto hosts = qcc.GetDsnIndicesByType();
 
     EXPECT_EQ(1, hosts->count(pg::ClusterHostType::kMaster));

@@ -125,6 +125,10 @@ class ValueDict final {
 
   const std::string& GetName() const { return name_; }
 
+  bool operator==(const ValueDict& r) const { return dict_ == r.dict_; }
+
+  bool operator!=(const ValueDict& r) const { return !(*this == r); }
+
  private:
   std::string name_;
   DictType dict_;

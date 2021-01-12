@@ -16,6 +16,7 @@
 #include <utils/size_guard.hpp>
 #include <utils/token_bucket.hpp>
 
+#include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
@@ -35,7 +36,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
                  engine::TaskProcessor& bg_task_processor,
                  const PoolSettings& settings,
                  const ConnectionSettings& conn_settings,
-                 const CommandControl& default_cmd_ctl,
+                 const DefaultCommandControls& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  error_injection::Settings ei_settings);
 
@@ -45,7 +46,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
       Dsn dsn, engine::TaskProcessor& bg_task_processor,
       const PoolSettings& pool_settings,
       const ConnectionSettings& conn_settings,
-      const CommandControl& default_cmd_ctl,
+      const DefaultCommandControls& default_cmd_ctls,
       const testsuite::PostgresControl& testsuite_pg_ctl,
       error_injection::Settings ei_settings);
 
@@ -58,7 +59,6 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   [[nodiscard]] NonTransaction Start(OptionalCommandControl cmd_ctl = {});
 
-  void SetDefaultCommandControl(CommandControl, DefaultCommandControlSource);
   CommandControl GetDefaultCommandControl() const;
 
  private:
@@ -105,8 +105,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   boost::lockfree::queue<Connection*> queue_;
   SharedCounter size_;
   std::atomic<size_t> wait_count_;
-  rcu::Variable<CommandControl> default_cmd_ctl_;
-  bool has_user_default_cc_;
+  DefaultCommandControls default_cmd_ctls_;
   testsuite::PostgresControl testsuite_pg_ctl_;
   const error_injection::Settings ei_settings_;
   RecentCounter recent_conn_errors_;

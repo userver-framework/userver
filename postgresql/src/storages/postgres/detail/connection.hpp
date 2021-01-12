@@ -1,22 +1,21 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <string>
 
+#include <engine/task/task_processor.hpp>
+#include <error_injection/settings.hpp>
+#include <testsuite/postgres_control.hpp>
+#include <utils/size_guard.hpp>
+#include <utils/strong_typedef.hpp>
+
+#include <storages/postgres/detail/query_parameters.hpp>
+#include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/result_set.hpp>
 #include <storages/postgres/transaction.hpp>
-#include <testsuite/postgres_control.hpp>
-
-#include <engine/task/task_processor.hpp>
-#include <error_injection/settings.hpp>
-#include <logging/log_extra.hpp>
-#include <storages/postgres/detail/query_parameters.hpp>
-#include <storages/postgres/detail/time_types.hpp>
-
-#include <utils/size_guard.hpp>
-#include <utils/strong_typedef.hpp>
 
 namespace storages::postgres {
 
@@ -29,6 +28,7 @@ enum class ConnectionState {
 };
 
 namespace detail {
+
 /// @brief PostreSQL connection class
 /// Handles connecting to Postgres, sending commands, processing command results
 /// and closing Postgres connection.
@@ -103,8 +103,8 @@ class Connection {
   /// @param dsn DSN, @see https://www.postgresql.org/docs/12/static/libpq-connect.html#LIBPQ-CONNSTRING
   /// @param bg_task_processor task processor for blocking operations
   /// @param id host-wide unique id for connection identification in logs
-  /// @param conn_settings the connection settings
-  /// @param default_cmd_ctl default parameters for operations
+  /// @param settings the connection settings
+  /// @param default_cmd_ctls default parameters for operations
   /// @param testsuite_pg_ctl operation parameters customizer for testsuite
   /// @param ei_settings error injection settings
   /// @param size_guard structure to track the size of owning connection pool
@@ -112,14 +112,15 @@ class Connection {
   // clang-format on
   static std::unique_ptr<Connection> Connect(
       const Dsn& dsn, engine::TaskProcessor& bg_task_processor, uint32_t id,
-      ConnectionSettings settings, CommandControl default_cmd_ctl,
+      ConnectionSettings settings,
+      const DefaultCommandControls& default_cmd_ctls,
       const testsuite::PostgresControl& testsuite_pg_ctl,
       const error_injection::Settings& ei_settings,
       SizeGuard&& size_guard = SizeGuard{});
 
   CommandControl GetDefaultCommandControl() const;
 
-  void SetDefaultCommandControl(CommandControl cmd_ctl);
+  void UpdateDefaultCommandControl();
 
   /// Close the connection
   /// TODO When called from another thread/coroutine will wait for current
@@ -245,6 +246,9 @@ class Connection {
   void Ping();
 
   void MarkAsBroken();
+
+  /// Used in tests.
+  const OptionalCommandControl& GetTransactionCommandControl() const;
 
  private:
   Connection();

@@ -8,13 +8,13 @@
 #include <engine/task/task_processor_fwd.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <error_injection/settings_fwd.hpp>
+#include <testsuite/postgres_control.hpp>
 
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
-#include <testsuite/postgres_control.hpp>
 
 /// @page pg_topology µPg: Cluster topology discovery
 ///
@@ -69,7 +69,7 @@ class Cluster {
   /// @param topology_settings settings for host discovery
   /// @param pool_settings settings for connection pools
   /// @param conn_settings settings for individual connections
-  /// @param default_cmd_ctl default command execution options
+  /// @param default_cmd_ctls default command execution options
   /// @param testsuite_pg_ctl command execution options customizer for testsuite
   /// @param ei_settings error injection settings
   /// @note When `max_connection_pool_size` is reached, and no idle connections
@@ -79,7 +79,7 @@ class Cluster {
           const TopologySettings& topology_settings,
           const PoolSettings& pool_settings,
           const ConnectionSettings& conn_settings,
-          const CommandControl& default_cmd_ctl,
+          DefaultCommandControls&& default_cmd_ctls,
           const testsuite::PostgresControl& testsuite_pg_ctl,
           const error_injection::Settings& ei_settings);
   ~Cluster();
@@ -133,6 +133,9 @@ class Cluster {
 
   /// Returns current default command control
   CommandControl GetDefaultCommandControl() const;
+
+  void SetHandlersCommandControl(
+      const CommandControlByHandlerMap& handlers_command_control);
 
   /// @cond
   /// Updates default command control from global config (if not set by user)

@@ -9,12 +9,13 @@ Cluster::Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
                  const TopologySettings& topology_settings,
                  const PoolSettings& pool_settings,
                  const ConnectionSettings& conn_settings,
-                 const CommandControl& default_cmd_ctl,
+                 DefaultCommandControls&& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings) {
   pimpl_ = std::make_unique<detail::ClusterImpl>(
       std::move(dsns), bg_task_processor, topology_settings, pool_settings,
-      conn_settings, default_cmd_ctl, testsuite_pg_ctl, ei_settings);
+      conn_settings, std::move(default_cmd_ctls), testsuite_pg_ctl,
+      ei_settings);
 }
 
 Cluster::~Cluster() = default;
@@ -46,6 +47,11 @@ void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
 
 CommandControl Cluster::GetDefaultCommandControl() const {
   return pimpl_->GetDefaultCommandControl();
+}
+
+void Cluster::SetHandlersCommandControl(
+    const CommandControlByHandlerMap& handlers_command_control) {
+  pimpl_->SetHandlersCommandControl(handlers_command_control);
 }
 
 void Cluster::ApplyGlobalCommandControlUpdate(CommandControl cmd_ctl) {

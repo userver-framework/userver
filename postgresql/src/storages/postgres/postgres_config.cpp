@@ -1,9 +1,9 @@
 #include <storages/postgres/postgres_config.hpp>
 
+#include <logging/log.hpp>
+
 #include <storages/postgres/component.hpp>
 #include <storages/postgres/exceptions.hpp>
-
-#include <logging/log.hpp>
 
 namespace storages::postgres {
 
@@ -34,5 +34,9 @@ CommandControl Parse(const formats::json::Value& elem,
   }
   return result;
 }
+
+Config::Config(const taxi_config::DocsMap& docs_map)
+    : default_command_control{"POSTGRES_DEFAULT_COMMAND_CONTROL", docs_map},
+      handlers_command_control{"POSTGRES_HANDLERS_COMMAND_CONTROL", docs_map} {}
 
 }  // namespace storages::postgres

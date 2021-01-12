@@ -7,7 +7,9 @@
 #include <engine/task/task.hpp>
 #include <storages/postgres/options.hpp>
 
-void RunInCoro(std::function<void()> user_cb, size_t worker_threads = 1);
+void RunInCoro(std::function<void()>, size_t worker_threads = 1,
+               std::optional<size_t> initial_coro_pool_size = {},
+               std::optional<size_t> max_coro_pool_size = {});
 
 namespace storages {
 namespace postgres {

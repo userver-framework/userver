@@ -101,4 +101,10 @@ const UserTypes& Transaction::GetConnectionUserTypes() const {
   return conn_->GetUserTypes();
 }
 
+OptionalCommandControl Transaction::GetConnTransactionCommandControlDebug()
+    const {
+  if (!conn_) return std::nullopt;
+  return conn_->GetTransactionCommandControl();
+}
+
 }  // namespace storages::postgres

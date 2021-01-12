@@ -19,3 +19,4 @@ debian:
 configs:
     names:
       - POSTGRES_DEFAULT_COMMAND_CONTROL
+      - POSTGRES_HANDLERS_COMMAND_CONTROL

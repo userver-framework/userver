@@ -25,5 +25,7 @@ using ResultWrapperPtr = std::shared_ptr<const ResultWrapper>;
 
 using TimeoutDuration = std::chrono::milliseconds;
 
+struct DefaultCommandControls;
+
 }  // namespace postgres
 }  // namespace storages

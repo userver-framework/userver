@@ -229,6 +229,9 @@ class Transaction {
   /// more.
   void Rollback();
 
+  /// Used in tests
+  OptionalCommandControl GetConnTransactionCommandControlDebug() const;
+
  private:
   ResultSet DoExecute(const std::string& statement,
                       const detail::QueryParameters& params,

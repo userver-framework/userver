@@ -10,13 +10,12 @@
 
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/detail/non_transaction.hpp>
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/statistics.hpp>
-#include <storages/postgres/transaction.hpp>
-
 #include <storages/postgres/detail/pg_impl_types.hpp>
 #include <storages/postgres/detail/pool.hpp>
 #include <storages/postgres/detail/quorum_commit.hpp>
+#include <storages/postgres/options.hpp>
+#include <storages/postgres/statistics.hpp>
+#include <storages/postgres/transaction.hpp>
 
 namespace storages::postgres::detail {
 
@@ -26,7 +25,7 @@ class ClusterImpl {
               const TopologySettings& topology_settings,
               const PoolSettings& pool_settings,
               const ConnectionSettings& conn_settings,
-              const CommandControl& default_cmd_ctl,
+              const DefaultCommandControls& default_cmd_ctls,
               const testsuite::PostgresControl& testsuite_pg_ctl,
               const error_injection::Settings& ei_settings);
   ~ClusterImpl();
@@ -41,12 +40,16 @@ class ClusterImpl {
   void SetDefaultCommandControl(CommandControl, DefaultCommandControlSource);
   CommandControl GetDefaultCommandControl() const;
 
+  void SetHandlersCommandControl(
+      const CommandControlByHandlerMap& handlers_command_control);
+
  private:
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
 
   ConnectionPoolPtr FindPool(ClusterHostTypeFlags);
 
  private:
+  DefaultCommandControls default_cmd_ctls_;
   QuorumCommitTopology topology_;
   engine::TaskProcessor& bg_task_processor_;
   std::vector<ConnectionPoolPtr> host_pools_;

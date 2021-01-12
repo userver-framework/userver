@@ -51,4 +51,15 @@ const std::string& BeginStatement(const TransactionOptions& opts) {
   return kDefaultBeginStatement;
 }
 
+OptionalCommandControl GetHandlerOptionalCommandControl(
+    const CommandControlByHandlerMap& map, const std::string& path,
+    const std::string& method) {
+  auto itp = map.find(path);
+  if (itp == map.end()) return std::nullopt;
+  const auto& by_method_map = itp->second;
+  auto itm = by_method_map.find(method);
+  if (itm == by_method_map.end()) return std::nullopt;
+  return itm->second;
+}
+
 }  // namespace storages::postgres

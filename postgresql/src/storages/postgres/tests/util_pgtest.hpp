@@ -6,17 +6,18 @@
 #include <cstdlib>
 #include <vector>
 
-#include <logging/log.hpp>
-#include <logging/logger.hpp>
-
 #include <spdlog/sinks/stdout_sinks.h>
 
 #include <engine/async.hpp>
 #include <engine/task/task.hpp>
+#include <logging/log.hpp>
+#include <logging/logger.hpp>
+#include <utils/scope_guard.hpp>
+
+#include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/connection_ptr.hpp>
 #include <storages/postgres/dsn.hpp>
-#include <utils/scope_guard.hpp>
 
 constexpr static const char* kPostgresDsn = "POSTGRES_TEST_DSN";
 constexpr static const char* kPostgresLog = "POSTGRES_TEST_LOG";
@@ -26,9 +27,27 @@ constexpr storages::postgres::CommandControl kTestCmdCtl{
     // TODO: lower execute timeout after TAXICOMMON-1313
     std::chrono::seconds{1}, std::chrono::milliseconds{500}};
 
-constexpr storages::postgres::ConnectionSettings kCachePreparedStatements{
+storages::postgres::DefaultCommandControls GetTestCmdCtls();
+
+class DefaultCommandControlScope {
+ public:
+  explicit DefaultCommandControlScope(
+      storages::postgres::CommandControl default_cmd_ctl)
+      : old_cmd_ctl_(GetTestCmdCtls().GetDefaultCmdCtl()) {
+    GetTestCmdCtls().UpdateDefaultCmdCtl(default_cmd_ctl);
+  }
+
+  ~DefaultCommandControlScope() {
+    GetTestCmdCtls().UpdateDefaultCmdCtl(old_cmd_ctl_);
+  }
+
+ private:
+  storages::postgres::CommandControl old_cmd_ctl_;
+};
+
+inline const storages::postgres::ConnectionSettings kCachePreparedStatements{
     storages::postgres::ConnectionSettings::kCachePreparedStatements};
-constexpr storages::postgres::ConnectionSettings kNoPreparedStatements{
+inline const storages::postgres::ConnectionSettings kNoPreparedStatements{
     storages::postgres::ConnectionSettings::kNoPreparedStatements};
 
 inline engine::Deadline MakeDeadline() {
@@ -43,10 +62,10 @@ inline storages::postgres::detail::ConnectionPtr MakeConnection(
   std::unique_ptr<pg::detail::Connection> conn;
 
   pg::detail::Connection::Connect(dsn, task_processor, kConnectionId, settings,
-                                  kTestCmdCtl, {}, {});
-  EXPECT_NO_THROW(
-      conn = pg::detail::Connection::Connect(dsn, task_processor, kConnectionId,
-                                             settings, kTestCmdCtl, {}, {}))
+                                  GetTestCmdCtls(), {}, {});
+  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                      dsn, task_processor, kConnectionId, settings,
+                      GetTestCmdCtls(), {}, {}))
       << "Connect to correct DSN";
   if (!conn) {
     ADD_FAILURE() << "Expected non-empty connection pointer";

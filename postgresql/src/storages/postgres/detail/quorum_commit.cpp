@@ -8,10 +8,6 @@
 #include <string_view>
 #include <vector>
 
-#include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/internal_pg_types.hpp>
-#include <storages/postgres/io/pg_type_parsers.hpp>
-
 #include <crypto/openssl.hpp>
 #include <engine/deadline.hpp>
 #include <engine/task/task_with_result.hpp>
@@ -22,6 +18,10 @@
 #include <utils/scope_guard.hpp>
 #include <utils/str_icase.hpp>
 #include <utils/strong_typedef.hpp>
+
+#include <storages/postgres/default_command_controls.hpp>
+#include <storages/postgres/internal_pg_types.hpp>
+#include <storages/postgres/io/pg_type_parsers.hpp>
 
 namespace storages::postgres::detail {
 
@@ -114,7 +114,7 @@ class QuorumCommitTopology::Impl {
   Impl(engine::TaskProcessor& bg_task_processor, DsnList dsns,
        const TopologySettings& topology_settings,
        const ConnectionSettings& conn_settings,
-       const CommandControl& default_cmd_ctl,
+       const DefaultCommandControls& default_cmd_ctls,
        const testsuite::PostgresControl& testsuite_pg_ctl,
        error_injection::Settings ei_settings);
   ~Impl();
@@ -139,7 +139,7 @@ class QuorumCommitTopology::Impl {
   DsnList dsns_;
   const TopologySettings topology_settings_;
   ConnectionSettings conn_settings_;
-  CommandControl default_cmd_ctl_;
+  DefaultCommandControls default_cmd_ctls_;
   testsuite::PostgresControl testsuite_pg_ctl_;
   const error_injection::Settings ei_settings_;
 
@@ -162,14 +162,14 @@ QuorumCommitTopology::Impl::Impl(
     engine::TaskProcessor& bg_task_processor, DsnList dsns,
     const TopologySettings& topology_settings,
     const ConnectionSettings& conn_settings,
-    const CommandControl& default_cmd_ctl,
+    const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings)
     : bg_task_processor_{bg_task_processor},
       dsns_{std::move(dsns)},
       topology_settings_{topology_settings},
       conn_settings_{conn_settings},
-      default_cmd_ctl_{default_cmd_ctl},
+      default_cmd_ctls_(default_cmd_ctls),
       testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_{std::move(ei_settings)},
       host_states_{dsns_.begin(), dsns_.end()},
@@ -333,7 +333,7 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
     try {
       state.connection = Connection::Connect(
           dsn, bg_task_processor_, kConnectionId, conn_settings_,
-          default_cmd_ctl_, testsuite_pg_ctl_, ei_settings_);
+          default_cmd_ctls_, testsuite_pg_ctl_, ei_settings_);
     } catch (const ConnectionError& e) {
       LOG_WARNING() << "Failed to connect to " << DsnCutPassword(dsn) << ": "
                     << e;
@@ -381,11 +381,11 @@ QuorumCommitTopology::QuorumCommitTopology(
     engine::TaskProcessor& bg_task_processor, DsnList dsns,
     const TopologySettings& topology_settings,
     const ConnectionSettings& conn_settings,
-    const CommandControl& default_cmd_ctl,
+    const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings)
     : pimpl_(bg_task_processor, std::move(dsns), topology_settings,
-             conn_settings, default_cmd_ctl, testsuite_pg_ctl,
+             conn_settings, default_cmd_ctls, testsuite_pg_ctl,
              std::move(ei_settings)){};
 
 QuorumCommitTopology::~QuorumCommitTopology() = default;

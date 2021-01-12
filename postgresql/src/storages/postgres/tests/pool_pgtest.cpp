@@ -1,10 +1,11 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
-#include <gtest/gtest.h>
-
 #include <utest/utest.hpp>
 
 #include <engine/async.hpp>
+#include <engine/mutex.hpp>
+#include <engine/sleep.hpp>
+
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
 #include <storages/postgres/dsn.hpp>
@@ -49,7 +50,7 @@ TEST_P(PostgrePool, ConnectionPool) {
   RunInCoro([this] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-        kTestCmdCtl, {}, {});
+        GetTestCmdCtls(), {}, {});
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -62,7 +63,7 @@ TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
   RunInCoro([this] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {0, 1, 10}, kCachePreparedStatements,
-        kTestCmdCtl, {}, {});
+        GetTestCmdCtls(), {}, {});
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -75,7 +76,7 @@ TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   RunInCoro([this] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
-        kTestCmdCtl, {}, {});
+        GetTestCmdCtls(), {}, {});
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -93,7 +94,7 @@ TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
   RunInCoro([this] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
-        kTestCmdCtl, {}, {});
+        GetTestCmdCtls(), {}, {});
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -118,7 +119,7 @@ TEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
   RunInCoro([] {
     EXPECT_THROW(pg::detail::ConnectionPool::Create(
                      GetParam(), GetTaskProcessor(), {2, 1, 10},
-                     kCachePreparedStatements, kTestCmdCtl, {}, {}),
+                     kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
                  pg::InvalidConfig)
         << "Pool reached max size";
   });
@@ -128,7 +129,7 @@ TEST_P(PostgrePool, PoolTransaction) {
   RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-        kTestCmdCtl, {}, {});
+        GetTestCmdCtls(), {}, {});
     PoolTransaction(pool);
   });
 }
@@ -137,8 +138,8 @@ TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
   RunInCoro([this] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
-        kCachePreparedStatements, kTestCmdCtl, testsuite::PostgresControl{},
-        error_injection::Settings{});
+        kCachePreparedStatements, GetTestCmdCtls(),
+        testsuite::PostgresControl{}, error_injection::Settings{});
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -152,8 +153,8 @@ TEST_P(PostgrePool, ConnectionPtrWorks) {
   RunInCoro([this] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{2, 2, 10},
-        kCachePreparedStatements, kTestCmdCtl, testsuite::PostgresControl{},
-        error_injection::Settings{});
+        kCachePreparedStatements, GetTestCmdCtls(),
+        testsuite::PostgresControl{}, error_injection::Settings{});
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -180,8 +181,8 @@ TEST_P(PostgrePool, AsyncMinPool) {
   RunInCoro([] {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
-        kCachePreparedStatements, kTestCmdCtl, testsuite::PostgresControl{},
-        error_injection::Settings{});
+        kCachePreparedStatements, GetTestCmdCtls(),
+        testsuite::PostgresControl{}, error_injection::Settings{});
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(0, stats.connection.open_total);
     EXPECT_EQ(1, stats.connection.active);
@@ -193,8 +194,8 @@ TEST_P(PostgrePool, SyncMinPool) {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(),
         pg::PoolSettings{1, 1, 10, /* sync_start */ true},
-        kCachePreparedStatements, kTestCmdCtl, testsuite::PostgresControl{},
-        error_injection::Settings{});
+        kCachePreparedStatements, GetTestCmdCtls(),
+        testsuite::PostgresControl{}, error_injection::Settings{});
 
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(1, stats.connection.open_total);
@@ -207,8 +208,10 @@ TEST_P(PostgrePool, ConnectionCleanup) {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
         kCachePreparedStatements,
-        pg::CommandControl{std::chrono::milliseconds{100},
-                           std::chrono::seconds{1}},
+        storages::postgres::DefaultCommandControls(
+            pg::CommandControl{std::chrono::milliseconds{100},
+                               std::chrono::seconds{1}},
+            {}),
         testsuite::PostgresControl{}, error_injection::Settings{});
 
     {
@@ -245,8 +248,10 @@ TEST_P(PostgrePool, QueryCancel) {
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
         kCachePreparedStatements,
-        pg::CommandControl{std::chrono::milliseconds{100},
-                           std::chrono::milliseconds{10}},
+        storages::postgres::DefaultCommandControls(
+            pg::CommandControl{std::chrono::milliseconds{100},
+                               std::chrono::milliseconds{10}},
+            {}),
         testsuite::PostgresControl{}, error_injection::Settings{});
     {
       pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
@@ -273,38 +278,41 @@ TEST_P(PostgrePool, DefaultCmdCtl) {
     const pg::CommandControl custom_cmd_ctl{std::chrono::seconds{2},
                                             std::chrono::seconds{1}};
 
+    storages::postgres::DefaultCommandControls default_cmd_ctls(
+        GetTestCmdCtls());
+
     auto pool = pg::detail::ConnectionPool::Create(
         GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
-        kTestCmdCtl, {}, {});
+        default_cmd_ctls, {}, {});
 
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    pool->SetDefaultCommandControl(kTestCmdCtl, Source::kGlobalConfig);
+    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    pool->SetDefaultCommandControl(custom_cmd_ctl, Source::kGlobalConfig);
+    default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
     EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
 
-    pool->SetDefaultCommandControl(kTestCmdCtl, Source::kGlobalConfig);
+    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    pool->SetDefaultCommandControl(custom_cmd_ctl, Source::kGlobalConfig);
+    default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
     EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
 
     // after this, global config should be ignored
-    pool->SetDefaultCommandControl(kTestCmdCtl, Source::kUser);
+    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kUser);
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    pool->SetDefaultCommandControl(custom_cmd_ctl, Source::kGlobalConfig);
+    default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    pool->SetDefaultCommandControl(custom_cmd_ctl, Source::kUser);
+    default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kUser);
     EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
 
-    pool->SetDefaultCommandControl(kTestCmdCtl, Source::kGlobalConfig);
+    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
     EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
 
-    pool->SetDefaultCommandControl(kTestCmdCtl, Source::kUser);
+    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kUser);
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
   });
 }

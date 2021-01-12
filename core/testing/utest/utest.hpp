@@ -8,7 +8,9 @@
 #include <decimal64/decimal64.hpp>
 #include <utils/strong_typedef.hpp>
 
-void RunInCoro(std::function<void()>, size_t worker_threads = 1);
+void RunInCoro(std::function<void()>, size_t worker_threads = 1,
+               std::optional<size_t> initial_coro_pool_size = {},
+               std::optional<size_t> max_coro_pool_size = {});
 
 inline void TestInCoro(std::function<void()> callback,
                        size_t worker_threads = 1) {

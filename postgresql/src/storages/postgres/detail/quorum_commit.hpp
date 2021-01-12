@@ -3,16 +3,17 @@
 #include <unordered_map>
 #include <vector>
 
+#include <engine/task/task_processor.hpp>
 #include <error_injection/settings.hpp>
 #include <rcu/rcu.hpp>
-#include <storages/postgres/cluster_types.hpp>
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/statistics.hpp>
 #include <testsuite/postgres_control.hpp>
 #include <utils/fast_pimpl.hpp>
 
-#include <engine/task/task_processor.hpp>
+#include <storages/postgres/cluster_types.hpp>
+#include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/dsn.hpp>
+#include <storages/postgres/options.hpp>
+#include <storages/postgres/statistics.hpp>
 
 namespace storages::postgres::detail {
 
@@ -26,7 +27,7 @@ class QuorumCommitTopology {
   QuorumCommitTopology(engine::TaskProcessor& bg_task_processor, DsnList dsns,
                        const TopologySettings& topology_settings,
                        const ConnectionSettings& conn_settings,
-                       const CommandControl& default_cmd_ctl,
+                       const DefaultCommandControls& default_cmd_ctls,
                        const testsuite::PostgresControl& testsuite_pg_ctl,
                        error_injection::Settings ei_settings);
 
@@ -46,10 +47,10 @@ class QuorumCommitTopology {
   class Impl;
   // MAC_COMPAT
 #ifdef _LIBCPP_VERSION
-  static constexpr std::size_t kImplSize = 976;
+  static constexpr std::size_t kImplSize = 1040;
   static constexpr std::size_t kImplAlign = 16;
 #else
-  static constexpr std::size_t kImplSize = 872;
+  static constexpr std::size_t kImplSize = 952;
   static constexpr std::size_t kImplAlign = 8;
 #endif
   ::utils::FastPimpl<Impl, kImplSize, kImplAlign, true> pimpl_;

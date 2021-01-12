@@ -1,12 +1,12 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
 #include <engine/single_consumer_event.hpp>
+
+#include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/null.hpp>
-
-#include <storages/postgres/detail/connection.hpp>
 
 namespace pg = storages::postgres;
 
@@ -261,14 +261,14 @@ POSTGRE_TEST_P(StatementTimout) {
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Network timeout
-  conn->SetDefaultCommandControl(pg::CommandControl{
+  DefaultCommandControlScope scope(pg::CommandControl{
       std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
   EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
   EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
   EXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Query cancelled
-  conn->SetDefaultCommandControl(pg::CommandControl{
+  DefaultCommandControlScope scope2(pg::CommandControl{
       std::chrono::seconds{2}, std::chrono::milliseconds{10}});
   EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCancelled);
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
@@ -280,7 +280,7 @@ POSTGRE_TEST_P(QueryTaskCancel) {
   ASSERT_TRUE(conn.get());
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 
-  conn->SetDefaultCommandControl(
+  DefaultCommandControlScope scope(
       pg::CommandControl{kMaxTestWaitTime, kMaxTestWaitTime});
 
   engine::SingleConsumerEvent task_started;
@@ -317,7 +317,7 @@ TEST_P(PostgreConnection, Connect) {
   RunInCoro([this] {
     EXPECT_THROW(pg::detail::Connection::Connect(
                      pg::Dsn{"psql://"}, GetTaskProcessor(), kConnectionId,
-                     kCachePreparedStatements, kTestCmdCtl, {}, {}),
+                     kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
                  pg::InvalidDSN)
         << "Connected with invalid DSN";
 
@@ -333,6 +333,6 @@ TEST_P(PostgreConnection, NoPreparedStatements) {
   RunInCoro([] {
     EXPECT_NO_THROW(pg::detail::Connection::Connect(
         GetParam()[0], GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
-        kTestCmdCtl, {}, {}));
+        GetTestCmdCtls(), {}, {}));
   });
 }

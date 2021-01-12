@@ -15,6 +15,8 @@
 
 #include <storages/postgres/cluster.hpp>
 #include <storages/postgres/cluster_types.hpp>
+#include <storages/postgres/default_command_controls.hpp>
+#include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/postgres_config.hpp>
@@ -150,6 +152,17 @@ storages::postgres::CommandControl GetCommandControlConfig(
   return GetCommandControlConfig(conf);
 }
 
+storages::postgres::CommandControlByHandlerMap GetHandlersCommandControlConfig(
+    const std::shared_ptr<const taxi_config::Config>& cfg) {
+  return cfg->Get<storages::postgres::Config>().handlers_command_control;
+}
+
+storages::postgres::CommandControlByHandlerMap GetHandlersCommandControlConfig(
+    const TaxiConfig& cfg) {
+  auto conf = cfg.Get();
+  return GetHandlersCommandControlConfig(conf);
+}
+
 }  // namespace
 
 Postgres::Postgres(const ComponentConfig& config,
@@ -163,6 +176,7 @@ Postgres::Postgres(const ComponentConfig& config,
   namespace pg = storages::postgres;
   TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
   auto cmd_ctl = GetCommandControlConfig(cfg);
+  auto handlers_cmd_ctl = GetHandlersCommandControlConfig(cfg);
 
   const auto dbalias = config["dbalias"].As<std::string>("");
 
@@ -206,6 +220,12 @@ Postgres::Postgres(const ComponentConfig& config,
       config["persistent-prepared-statements"].As<bool>(true)
           ? pg::ConnectionSettings::kCachePreparedStatements
           : pg::ConnectionSettings::kNoPreparedStatements;
+  conn_settings.handlers_cmd_ctl_task_data_path_key =
+      config["handlers_cmd_ctl_task_data_path_key"]
+          .As<std::optional<std::string>>();
+  conn_settings.handlers_cmd_ctl_task_data_method_key =
+      config["handlers_cmd_ctl_task_data_method_key"]
+          .As<std::optional<std::string>>();
 
   const auto task_processor_name =
       config["blocking_task_processor"].As<std::string>();
@@ -230,7 +250,9 @@ Postgres::Postgres(const ComponentConfig& config,
   for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(
         std::move(dsns), *bg_task_processor, topology_settings, pool_settings,
-        conn_settings, cmd_ctl, testsuite_pg_ctl, ei_settings);
+        conn_settings,
+        storages::postgres::DefaultCommandControls{cmd_ctl, handlers_cmd_ctl},
+        testsuite_pg_ctl, ei_settings);
     database_->clusters_.push_back(cluster);
   }
 
@@ -270,17 +292,12 @@ formats::json::Value Postgres::ExtendStatistics(
   return result.ExtractValue();
 }
 
-void Postgres::SetDefaultCommandControl(
-    storages::postgres::CommandControl cmd_ctl) {
-  for (const auto& cluster : database_->clusters_) {
-    cluster->SetDefaultCommandControl(cmd_ctl);
-  }
-}
-
 void Postgres::OnConfigUpdate(const TaxiConfigPtr& cfg) {
   const auto cmd_ctl = GetCommandControlConfig(cfg);
+  const auto handlers_cmd_ctl = GetHandlersCommandControlConfig(cfg);
   for (const auto& cluster : database_->clusters_) {
     cluster->ApplyGlobalCommandControlUpdate(cmd_ctl);
+    cluster->SetHandlersCommandControl(handlers_cmd_ctl);
   }
 }
 

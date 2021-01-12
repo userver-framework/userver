@@ -6,21 +6,23 @@
 
 #include <libpq-fe.h>
 
+#include <engine/async.hpp>
 #include <engine/io/socket.hpp>
+#include <error_injection/hook.hpp>
 #include <logging/log.hpp>
+#include <tracing/span.hpp>
+#include <tracing/tags.hpp>
 #include <utils/assert.hpp>
+#include <utils/task_inherited_data.hpp>
 #include <utils/uuid4.hpp>
 
-#include <engine/async.hpp>
-#include <error_injection/hook.hpp>
+#include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <storages/postgres/io/user_types.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tags.hpp>
 
 namespace storages::postgres::detail {
 
@@ -154,7 +156,8 @@ struct Connection::Impl {
   bool is_discard_prepared_pending_ = false;
   ConnectionSettings settings_;
 
-  CommandControl default_cmd_ctl_;
+  CommandControl default_cmd_ctl_{};
+  DefaultCommandControls default_cmd_ctls_;
   testsuite::PostgresControl testsuite_pg_ctl_;
   OptionalCommandControl transaction_cmd_ctl_;
   TimeoutDuration current_statement_timeout_{};
@@ -163,12 +166,13 @@ struct Connection::Impl {
   std::string uuid_;
 
   Impl(engine::TaskProcessor& bg_task_processor, uint32_t id,
-       ConnectionSettings settings, CommandControl default_cmd_ctl,
+       ConnectionSettings settings,
+       const DefaultCommandControls& default_cmd_ctls,
        const testsuite::PostgresControl& testsuite_pg_ctl,
        const error_injection::Settings& ei_settings, SizeGuard&& size_guard)
       : conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
         settings_{settings},
-        default_cmd_ctl_{default_cmd_ctl},
+        default_cmd_ctls_(default_cmd_ctls),
         testsuite_pg_ctl_{testsuite_pg_ctl},
         ei_settings_(ei_settings),
         uuid_{::utils::generators::GenerateUuid()} {}
@@ -196,7 +200,8 @@ struct Connection::Impl {
     ExecuteCommandNoPrepare("discard all", deadline);
     SetParameter("client_encoding", "UTF8", ParameterScope::kSession, deadline);
     RefreshReplicaState(deadline);
-    SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
+    SetConnectionStatementTimeout(GetDefaultCommandControl().statement,
+                                  deadline);
     LoadUserTypes(deadline);
   }
 
@@ -232,7 +237,12 @@ struct Connection::Impl {
     }
   }
 
-  void SetDefaultCommandControl(CommandControl cmd_ctl) {
+  CommandControl GetDefaultCommandControl() const {
+    return default_cmd_ctls_.GetDefaultCmdCtl();
+  }
+
+  void UpdateDefaultCommandControl() {
+    auto cmd_ctl = GetDefaultCommandControl();
     if (cmd_ctl != default_cmd_ctl_) {
       SetConnectionStatementTimeout(
           cmd_ctl.statement,
@@ -251,17 +261,21 @@ struct Connection::Impl {
                         testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
   }
 
+  const OptionalCommandControl& GetTransactionCommandControl() const {
+    return transaction_cmd_ctl_;
+  }
+
   void ResetTransactionCommandControl() {
     transaction_cmd_ctl_.reset();
-    current_statement_timeout_ =
-        testsuite_pg_ctl_.MakeStatementTimeout(default_cmd_ctl_.statement);
+    current_statement_timeout_ = testsuite_pg_ctl_.MakeStatementTimeout(
+        GetDefaultCommandControl().statement);
   }
 
   TimeoutDuration CurrentExecuteTimeout() const {
     if (!!transaction_cmd_ctl_) {
       return transaction_cmd_ctl_->execute;
     }
-    return default_cmd_ctl_.execute;
+    return GetDefaultCommandControl().execute;
   }
 
   engine::Deadline MakeCurrentDeadline() const {
@@ -297,9 +311,10 @@ struct Connection::Impl {
           transaction_cmd_ctl_->statement,
           testsuite_pg_ctl_.MakeExecuteDeadline(transaction_cmd_ctl_->execute));
     } else {
+      auto cmd_ctl = GetDefaultCommandControl();
       SetConnectionStatementTimeout(
-          default_cmd_ctl_.statement,
-          testsuite_pg_ctl_.MakeExecuteDeadline(default_cmd_ctl_.execute));
+          cmd_ctl.statement,
+          testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
     }
   }
 
@@ -678,6 +693,8 @@ struct Connection::Impl {
     ExecuteCommandNoPrepare(BeginStatement(options));
     if (trx_cmd_ctl) {
       SetTransactionCommandControl(*trx_cmd_ctl);
+    } else if (auto td_cmd_ctl = GetTaskDataCommandControl()) {
+      SetTransactionCommandControl(*td_cmd_ctl);
     }
   }
 
@@ -706,6 +723,7 @@ struct Connection::Impl {
     stats_.work_start_time = SteadyClock::now();
     stats_.last_execute_finish = stats_.work_start_time;
   }
+
   void Finish() { stats_.trx_end_time = SteadyClock::now(); }
 
   void CancelAndCleanup(TimeoutDuration timeout) {
@@ -751,7 +769,8 @@ struct Connection::Impl {
       // We are no more bound with SLA, user has his exception.
       // We need to try and save the connection without canceling current query
       // not to kill the pgbouncer
-      SetConnectionStatementTimeout(default_cmd_ctl_.statement, deadline);
+      SetConnectionStatementTimeout(GetDefaultCommandControl().statement,
+                                    deadline);
       return true;
     }
     return false;
@@ -780,17 +799,37 @@ struct Connection::Impl {
   }
 
   void MarkAsBroken() { conn_wrapper_.MarkAsBroken(); }
+
+  OptionalCommandControl GetTaskDataHandlersCommandControl() const {
+    if (!settings_.handlers_cmd_ctl_task_data_path_key) return std::nullopt;
+    if (auto* handler_path = ::utils::GetTaskInheritedDataOptional<std::string>(
+            *settings_.handlers_cmd_ctl_task_data_path_key)) {
+      if (auto* request_method =
+              ::utils::GetTaskInheritedDataOptional<std::string>(
+                  *settings_.handlers_cmd_ctl_task_data_method_key)) {
+        return default_cmd_ctls_.GetHandlerCmdCtl(*handler_path,
+                                                  *request_method);
+      }
+    }
+    return std::nullopt;
+  }
+
+  std::optional<CommandControl> GetTaskDataCommandControl() const {
+    if (auto handlers_cmd_ctl = GetTaskDataHandlersCommandControl())
+      return handlers_cmd_ctl;
+    return std::nullopt;
+  }
 };  // Connection::Impl
 
 std::unique_ptr<Connection> Connection::Connect(
     const Dsn& dsn, engine::TaskProcessor& bg_task_processor, uint32_t id,
-    ConnectionSettings settings, CommandControl default_cmd_ctl,
+    ConnectionSettings settings, const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
   std::unique_ptr<Connection> conn(new Connection());
 
   conn->pimpl_ = std::make_unique<Impl>(bg_task_processor, id, settings,
-                                        default_cmd_ctl, testsuite_pg_ctl,
+                                        default_cmd_ctls, testsuite_pg_ctl,
                                         ei_settings, std::move(size_guard));
   conn->pimpl_->AsyncConnect(dsn);
 
@@ -802,11 +841,11 @@ Connection::Connection() = default;
 Connection::~Connection() = default;
 
 CommandControl Connection::GetDefaultCommandControl() const {
-  return pimpl_->default_cmd_ctl_;
+  return pimpl_->GetDefaultCommandControl();
 }
 
-void Connection::SetDefaultCommandControl(CommandControl cmd_ctl) {
-  pimpl_->SetDefaultCommandControl(cmd_ctl);
+void Connection::UpdateDefaultCommandControl() {
+  pimpl_->UpdateDefaultCommandControl();
 }
 
 bool Connection::IsInRecovery() const { return pimpl_->is_in_recovery_; }
@@ -903,5 +942,9 @@ TimeoutDuration Connection::GetIdleDuration() const {
 void Connection::Ping() { pimpl_->Ping(); }
 
 void Connection::MarkAsBroken() { pimpl_->MarkAsBroken(); }
+
+const OptionalCommandControl& Connection::GetTransactionCommandControl() const {
+  return pimpl_->GetTransactionCommandControl();
+}
 
 }  // namespace storages::postgres::detail

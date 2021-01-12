@@ -7,6 +7,7 @@
 #include <iosfwd>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include <storages/postgres/postgres_fwd.hpp>
 
@@ -133,6 +134,15 @@ struct CommandControl {
 
 using OptionalCommandControl = std::optional<CommandControl>;
 
+using CommandControlByMethodMap =
+    std::unordered_map<std::string, CommandControl>;
+using CommandControlByHandlerMap =
+    std::unordered_map<std::string, CommandControlByMethodMap>;
+
+OptionalCommandControl GetHandlerOptionalCommandControl(
+    const CommandControlByHandlerMap& map, const std::string& path,
+    const std::string& method);
+
 struct TopologySettings {
   std::chrono::milliseconds max_replication_lag{0};
 };
@@ -151,6 +161,8 @@ struct ConnectionSettings {
     kCachePreparedStatements,
   };
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
+  std::optional<std::string> handlers_cmd_ctl_task_data_path_key{};
+  std::optional<std::string> handlers_cmd_ctl_task_data_method_key{};
 };
 
 }  // namespace storages::postgres

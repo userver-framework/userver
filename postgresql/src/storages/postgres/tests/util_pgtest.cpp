@@ -5,10 +5,17 @@
 #include <boost/algorithm/string.hpp>
 
 #include <engine/standalone.hpp>
+
+#include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/exceptions.hpp>
 
 namespace pg = storages::postgres;
+
+pg::DefaultCommandControls GetTestCmdCtls() {
+  static auto kDefaultCmdCtls = pg::DefaultCommandControls(kTestCmdCtl, {});
+  return kDefaultCmdCtls;
+}
 
 std::vector<pg::Dsn> GetDsnFromEnv() {
   const auto* dsn_list_env = std::getenv(kPostgresDsn);

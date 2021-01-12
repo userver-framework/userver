@@ -1,3 +1,8 @@
-#include <functional>
+#pragma once
 
-void RunInCoro(std::function<void()> user_cb, size_t worker_threads);
+#include <functional>
+#include <optional>
+
+void RunInCoro(std::function<void()>, size_t worker_threads,
+               std::optional<size_t> initial_coro_pool_size = {},
+               std::optional<size_t> max_coro_pool_size = {});
