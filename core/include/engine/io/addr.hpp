@@ -88,10 +88,10 @@ class AddrStorage final {
 
  private:
   union Storage {
-    struct sockaddr any;
-    struct sockaddr_in inet;
-    struct sockaddr_in6 inet6;
-    struct sockaddr_un unix;
+    struct sockaddr sa_any;
+    struct sockaddr_in sa_inet;
+    struct sockaddr_in6 sa_inet6;
+    struct sockaddr_un sa_unix;
   } data_;
 };
 

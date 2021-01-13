@@ -54,7 +54,7 @@ ReplyPtr RequestFuture::Get() {
   return (ro_future_.wait_until(until_) == std::future_status::ready)
              ? ro_future_.get()
              : std::make_shared<Reply>(std::string(), nullptr,
-                                       redis::REDIS_ERR_TIMEOUT);
+                                       REDIS_ERR_TIMEOUT);
 }
 
 ReplyPtr Request::Get() { return request_future_.Get(); }

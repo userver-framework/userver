@@ -95,6 +95,7 @@ EXTRA_PACKAGES=" \
   libyandex-taxi-graph \
   matrixnetmock \
   mongodb-community@4.2 \
+  mongodb-community-shell \
   persqueue-wrapper \
   pugixml \
   redis \

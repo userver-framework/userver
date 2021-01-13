@@ -59,6 +59,14 @@ endif()
 
 if(UBOOST_CORO_USE_UCONTEXT)
   target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_UCONTEXT")
+  if(MACOS)
+    # *context functions are deprecated on macos
+    target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-error=deprecated-declarations")
+    # for full ucontext definition
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "_XOPEN_SOURCE=600")
+    # to retain non-POSIX extensions
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "_DARWIN_C_SOURCE")
+  endif()
 endif()
 
 find_package(Boost REQUIRED)

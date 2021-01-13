@@ -19,7 +19,10 @@ class Client;
 
 namespace redis {
 
+#ifndef REDIS_ERR_TIMEOUT
 const int REDIS_ERR_TIMEOUT = 6;
+#endif
+
 const int REDIS_ERR_NOT_READY = 7;
 const int REDIS_ERR_MAX = REDIS_ERR_NOT_READY + 1;
 
