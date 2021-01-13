@@ -5,7 +5,10 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <iterator>
 #include <optional>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -19,6 +22,17 @@ constexpr std::size_t StrLen(const char* str) noexcept {
   for (; *str != 0; ++str, ++sz)
     ;
   return sz;
+}
+
+template <typename... Strings>
+std::string StrCat(Strings&&... strings) {
+  std::size_t result_size = 0;
+  ((result_size += std::string_view{strings}.size()), ...);
+
+  std::string result;
+  result.reserve(result_size);
+  (result.append(strings), ...);
+  return result;
 }
 
 /// Returns nullptr if no key in associative container. Otherwise returns

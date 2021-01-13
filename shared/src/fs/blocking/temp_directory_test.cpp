@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <gtest/gtest.h>
 #include <boost/filesystem/operations.hpp>
 
@@ -54,4 +56,14 @@ TEST(TempDirectory, DoubleRemove) {
   fs::blocking::TempDirectory dir;
   EXPECT_NO_THROW(std::move(dir).Remove());
   EXPECT_THROW(std::move(dir).Remove(), std::runtime_error);
+}
+
+TEST(TempDirectory, CustomPath) {
+  fs::blocking::TempDirectory parent;
+  const auto root = parent.GetPath();
+
+  fs::blocking::TempDirectory child(root + "/foo", "bar");
+  EXPECT_TRUE(boost::starts_with(child.GetPath(), root + "/foo/bar"));
+  EXPECT_EQ(boost::filesystem::status(root + "/foo").permissions(),
+            boost::filesystem::perms::owner_all);
 }

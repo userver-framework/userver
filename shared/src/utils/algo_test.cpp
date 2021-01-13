@@ -2,11 +2,18 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include <gtest/gtest.h>
+
+TEST(UtilsAlgo, StrCat) {
+  EXPECT_EQ(utils::StrCat("a", std::string_view{"bbb"}, std::string{"cc"},
+                          static_cast<const char*>("dddd")),
+            "abbbccdddd");
+}
 
 TEST(UtilsAlgo, FindOrNullptrMaps) {
   std::map<std::string, int> m = {{"1", 2}};

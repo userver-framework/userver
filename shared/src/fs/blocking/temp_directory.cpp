@@ -8,6 +8,7 @@
 
 #include <fs/blocking/write.hpp>
 #include <logging/log.hpp>
+#include <utils/algo.hpp>
 #include <utils/check_syscall.hpp>
 
 namespace {
@@ -27,12 +28,14 @@ void RemoveDirectory(const std::string& path) {
 namespace fs::blocking {
 
 TempDirectory::TempDirectory()
-    : path_(boost::filesystem::temp_directory_path().string() + "/userver") {
-  // for the parent directory, permissions=0755
-  fs::blocking::CreateDirectories(path_);
+    : TempDirectory(
+          boost::filesystem::temp_directory_path().string() + "/userver", {}) {}
 
-  // for the target directory, permissions=0700
-  path_ += "/XXXXXX";
+TempDirectory::TempDirectory(std::string_view parent_path,
+                             std::string_view name_prefix)
+    : path_(utils::StrCat(parent_path, "/", name_prefix, "XXXXXX")) {
+  fs::blocking::CreateDirectories(parent_path,
+                                  boost::filesystem::perms::owner_all);
   utils::CheckSyscallNotEquals(::mkdtemp(path_.data()), nullptr, "::mkdtemp");
 }
 
