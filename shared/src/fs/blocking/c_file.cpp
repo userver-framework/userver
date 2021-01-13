@@ -1,5 +1,6 @@
 #include <fs/blocking/c_file.hpp>
 
+#include <sys/stat.h>
 #include <unistd.h>
 #include <cstdio>
 #include <memory>
@@ -40,6 +41,10 @@ const char* ToMode(OpenMode flags) noexcept {
 
 struct CFile::Impl {
   std::unique_ptr<std::FILE, FileDeleter> handle;
+
+  int GetFileDescriptor() const {
+    return utils::CheckSyscall(::fileno(handle.get()), "calling ::fileno");
+  }
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
@@ -91,12 +96,28 @@ void CFile::Write(std::string_view data) {
 
 void CFile::Flush() {
   UASSERT(IsOpen());
-
   utils::CheckSyscall(std::fflush(impl_->handle.get()), "calling fflush");
+  utils::CheckSyscall(::fsync(impl_->GetFileDescriptor()), "calling ::fsync");
+}
 
-  const int fd =
-      utils::CheckSyscall(::fileno(impl_->handle.get()), "calling ::fileno");
-  utils::CheckSyscall(::fsync(fd), "calling ::fsync");
+std::uint64_t CFile::GetPosition() const {
+  UASSERT(IsOpen());
+  const auto position =
+      utils::CheckSyscall(std::ftell(impl_->handle.get()), "calling ftell");
+  static_assert(sizeof(position) >= 8, "large file support is required");
+  return position;
+}
+
+std::uint64_t CFile::GetSize() const {
+  UASSERT(IsOpen());
+
+  using stats_t = struct ::stat;
+  stats_t stats{};
+  static_assert(sizeof(stats.st_size) >= 8, "large file support is required");
+
+  utils::CheckSyscall(::fstat(impl_->GetFileDescriptor(), &stats),
+                      "calling ::fstat");
+  return stats.st_size;
 }
 
 }  // namespace fs::blocking

@@ -70,3 +70,38 @@ TEST(CFile, Writing) {
 
   EXPECT_EQ(fs::blocking::ReadFileContents(path), "barbaz");
 }
+
+TEST(CFile, Position) {
+  fs::blocking::TempDirectory dir;
+  const std::string path = dir.GetPath() + "/foo";
+
+  {
+    fs::blocking::CFile writer(path,
+                               {fs::blocking::OpenFlag::kWrite,
+                                fs::blocking::OpenFlag::kCreateIfNotExists});
+    EXPECT_EQ(writer.GetPosition(), 0);
+    EXPECT_EQ(writer.GetSize(), 0);
+
+    writer.Write("CFile");
+    EXPECT_EQ(writer.GetPosition(), 5);
+
+    writer.Flush();
+    EXPECT_EQ(writer.GetSize(), 5);
+  }
+
+  {
+    std::string buffer(5, '\0');
+
+    fs::blocking::CFile reader(path, fs::blocking::OpenFlag::kRead);
+    EXPECT_EQ(reader.GetPosition(), 0);
+    EXPECT_EQ(reader.GetSize(), 5);
+
+    EXPECT_EQ(reader.Read(buffer.data(), 3), 3);
+    EXPECT_EQ(reader.GetPosition(), 3);
+    EXPECT_EQ(reader.GetSize(), 5);
+
+    EXPECT_EQ(reader.Read(buffer.data(), 10), 2);
+    EXPECT_EQ(reader.GetPosition(), 5);
+    EXPECT_EQ(reader.GetSize(), 5);
+  }
+}

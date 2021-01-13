@@ -72,9 +72,11 @@ std::string_view FileReader::ReadRaw(std::size_t size) {
   }
 
   if (bytes_read != size) {
-    throw Error(fmt::format(
-        "Sudden end-of-file while trying to read from the dump file \"{}\"",
-        path_));
+    const auto file_size = file_.GetSize();
+    throw Error(
+        fmt::format("Unexpected end-of-file while trying to read from the dump "
+                    "file \"{}\": file-size={}, position={}, requested-size={}",
+                    path_, file_size, file_size - bytes_read, size));
   }
 
   return std::string_view(curr_chunk_.data(), size);
@@ -92,8 +94,12 @@ void FileReader::Finish() {
   }
 
   if (bytes_read != 0) {
-    throw Error(fmt::format(
-        "There is unread data at the end of the dump file \"{}\"", path_));
+    const auto file_size = file_.GetSize();
+    const auto position = file_.GetPosition() - bytes_read;
+    throw Error(
+        fmt::format("Unexpected extra data at the end of the dump file \"{}\": "
+                    "file-size={}, position={}, unread-size={}",
+                    path_, file_size, position, file_size - position));
   }
 
   try {

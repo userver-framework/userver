@@ -1,5 +1,7 @@
 #include <cache/dump/operations_file.hpp>
 
+#include <boost/regex.hpp>
+
 #include <fs/blocking/read.hpp>
 #include <fs/blocking/temp_directory.hpp>
 #include <fs/blocking/write.hpp>
@@ -72,7 +74,18 @@ TEST(CacheDumpOperationsFile, Overread) {
   fs::blocking::RewriteFileContents(path, std::string(10, 'a'));
 
   cache::dump::FileReader reader(path);
-  EXPECT_THROW(reader.ReadRaw(11), cache::dump::Error);
+  try {
+    reader.ReadRaw(11);
+  } catch (const cache::dump::Error& ex) {
+    EXPECT_TRUE(boost::regex_match(
+        ex.what(),
+        boost::regex{
+            "Unexpected end-of-file while trying to read from the dump file "
+            "\".+\": file-size=10, position=0, requested-size=11"}))
+        << ex.what();
+    return;
+  }
+  FAIL();
 }
 
 TEST(CacheDumpOperationsFile, Underread) {
@@ -83,5 +96,15 @@ TEST(CacheDumpOperationsFile, Underread) {
 
   cache::dump::FileReader reader(path);
   EXPECT_EQ(reader.ReadRaw(9), std::string(9, 'a'));
-  EXPECT_THROW(reader.Finish(), cache::dump::Error);
+  try {
+    reader.Finish();
+  } catch (const cache::dump::Error& ex) {
+    EXPECT_TRUE(boost::regex_match(
+        ex.what(),
+        boost::regex{"Unexpected extra data at the end of the dump file "
+                     "\".+\": file-size=10, position=9, unread-size=1"}))
+        << ex.what();
+    return;
+  }
+  FAIL();
 }

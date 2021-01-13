@@ -18,10 +18,10 @@ MockReader::MockReader(std::string data)
 std::string_view MockReader::ReadRaw(std::size_t size) {
   std::string_view result(unread_data_.substr(0, size));
   if (result.size() < size) {
-    throw Error(
-        fmt::format("Sudden end-of-file while trying to read from the dump: "
-                    "file-size={}, position={}, requested-size={}",
-                    data_.size(), data_.size() - unread_data_.size(), size));
+    throw Error(fmt::format(
+        "Unexpected end-of-file while trying to read from the dump: "
+        "file-size={}, position={}, requested-size={}",
+        data_.size(), data_.size() - unread_data_.size(), size));
   }
   unread_data_ = unread_data_.substr(size);
   return result;
@@ -30,7 +30,7 @@ std::string_view MockReader::ReadRaw(std::size_t size) {
 void MockReader::Finish() {
   if (!unread_data_.empty()) {
     throw Error(fmt::format(
-        "There is unread data at the end of the dump: file-size={}, "
+        "Unexpected extra data at the end of the dump: file-size={}, "
         "position={}, unread-size={}",
         data_.size(), data_.size() - unread_data_.size(), unread_data_.size()));
   }

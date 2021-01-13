@@ -47,6 +47,14 @@ class CFile final {
   /// @throws std::runtime_error
   void Flush();
 
+  /// @brief Fetches the current position in the file
+  /// @throws std::runtime_error
+  std::uint64_t GetPosition() const;
+
+  /// @brief Fetches the file size
+  /// @throws std::runtime_error
+  std::uint64_t GetSize() const;
+
  private:
   struct Impl;
   utils::FastPimpl<Impl, sizeof(char*), sizeof(char*)> impl_;
