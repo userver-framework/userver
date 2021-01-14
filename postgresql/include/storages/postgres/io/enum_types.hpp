@@ -14,8 +14,6 @@
 
 #include <storages/postgres/detail/string_hash.hpp>
 
-#include <utils/algo.hpp>
-
 namespace storages::postgres::io {
 
 /// @page pg_enum µPg: Mapping a C++ enum to PostgreSQL enum type.
@@ -57,8 +55,8 @@ struct Enumerator {
   Enum enumerator;
   std::string_view literal;
 
-  constexpr Enumerator(Enum en, const char* lit)
-      : enumerator{en}, literal{lit, ::utils::StrLen(lit)} {}
+  constexpr Enumerator(Enum en, std::string_view lit)
+      : enumerator{en}, literal{lit} {}
 };
 
 }  // namespace detail

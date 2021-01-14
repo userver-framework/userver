@@ -16,23 +16,18 @@
 
 namespace utils {
 
-/// Constexpr usable strlen
-constexpr std::size_t StrLen(const char* str) noexcept {
-  std::size_t sz{0};
-  for (; *str != 0; ++str, ++sz)
-    ;
-  return sz;
-}
-
+/// Concatenates multiple `std::string_view`-convertible items
 template <typename... Strings>
-std::string StrCat(Strings&&... strings) {
-  std::size_t result_size = 0;
-  ((result_size += std::string_view{strings}.size()), ...);
+std::string StrCat(const Strings&... strings) {
+  return [](auto... string_views) {
+    std::size_t result_size = 0;
+    ((result_size += string_views.size()), ...);
 
-  std::string result;
-  result.reserve(result_size);
-  (result.append(strings), ...);
-  return result;
+    std::string result;
+    result.reserve(result_size);
+    (result.append(string_views), ...);
+    return result;
+  }(std::string_view{strings}...);
 }
 
 /// Returns nullptr if no key in associative container. Otherwise returns

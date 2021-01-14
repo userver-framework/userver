@@ -9,8 +9,6 @@
 
 #include <storages/postgres/detail/db_data_type_name.hpp>
 
-#include <utils/algo.hpp>
-
 namespace storages::postgres {
 
 /// PostgreSQL Oid type.
@@ -44,8 +42,8 @@ struct DBTypeName {
   /// @endcode
   /* implicit */ constexpr DBTypeName(const char* name)
       : DBTypeName(utils::ParseDBName(name)) {}
-  constexpr DBTypeName(const char* s, const char* n)
-      : schema(s, ::utils::StrLen(s)), name(n, ::utils::StrLen(n)) {}
+  constexpr DBTypeName(std::string_view s, std::string_view n)
+      : schema(s), name(n) {}
 
   bool operator==(const DBTypeName& rhs) const {
     return name == rhs.name && schema == rhs.schema;

@@ -1,46 +1,39 @@
 #pragma once
 
-#include <boost/current_function.hpp>
+#include <string_view>
 #include <type_traits>
 
-#include <utils/algo.hpp>
+#include <boost/current_function.hpp>
 
 namespace storages::postgres::detail {
 
 // This signature is produced with clang. When we will support other
 // compilers, #ifdefs will be required
-constexpr const char* kExpectedSignature =
-    "bool storages::postgres::detail::IsInNamespaceImpl(const char *) [T = ";
+constexpr std::string_view kExpectedSignature =
+    "bool storages::postgres::detail::IsInNamespaceImpl(std::string_view) [T "
+    "= ";
 
-constexpr std::size_t kTypeNameStart = ::utils::StrLen(kExpectedSignature);
-
-constexpr bool StartsWith(const char* str, const char* expected) {
-  for (; *str != '\0' && *expected != '\0' && *str == *expected;
-       ++str, ++expected) {
-  }
-  return *expected == '\0';
+constexpr bool StartsWith(std::string_view haystack, std::string_view needle) {
+  return haystack.substr(0, needle.size()) == needle;
 }
 
 template <typename T>
-constexpr bool IsInNamespaceImpl(const char* nsp) {
-  constexpr const char* fname = BOOST_CURRENT_FUNCTION;
+constexpr bool IsInNamespaceImpl(std::string_view nsp) {
+  constexpr std::string_view fname = BOOST_CURRENT_FUNCTION;
   static_assert(StartsWith(fname, kExpectedSignature),
                 "Your compiler produces an unexpected function pretty name");
-  auto c = fname + kTypeNameStart;
-  return StartsWith(fname + kTypeNameStart, nsp) &&
-         StartsWith(fname + kTypeNameStart + ::utils::StrLen(nsp), "::");
+  return StartsWith(fname.substr(kExpectedSignature.size()), nsp) &&
+         StartsWith(fname.substr(kExpectedSignature.size() + nsp.size()), "::");
 }
 
 template <typename T>
-constexpr bool IsInNamespace(const char* nsp) {
+constexpr bool IsInNamespace(std::string_view nsp) {
   return IsInNamespaceImpl<std::remove_const_t<std::decay_t<T>>>(nsp);
 }
 
 template <typename T>
-struct IsInStdNamespace
-    : std::integral_constant<bool, IsInNamespace<T>("std")> {};
+inline constexpr bool kIsInStdNamespace = IsInNamespace<T>("std");
 template <typename T>
-struct IsInBoostNamespace
-    : std::integral_constant<bool, IsInNamespace<T>("boost")> {};
+inline constexpr bool kIsInBoostNamespace = IsInNamespace<T>("boost");
 
 }  // namespace storages::postgres::detail

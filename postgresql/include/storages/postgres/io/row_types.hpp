@@ -41,8 +41,8 @@ constexpr bool DetectIsSuitableRowType() {
   return std::is_class_v<type> && !std::is_empty_v<type> &&
          std::is_standard_layout_v<type> && std::is_aggregate_v<type> &&
          !std::is_polymorphic_v<type> && !std::is_union_v<type> &&
-         !postgres::detail::IsInStdNamespace<type>::value &&
-         !postgres::detail::IsInBoostNamespace<type>::value;
+         !postgres::detail::kIsInStdNamespace<type> &&
+         !postgres::detail::kIsInBoostNamespace<type>;
 }
 
 }  // namespace detail

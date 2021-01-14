@@ -18,7 +18,6 @@
 #include <storages/postgres/component.hpp>
 #include <storages/postgres/io/chrono.hpp>
 
-#include <utils/algo.hpp>
 #include <utils/assert.hpp>
 #include <utils/cpu_relax.hpp>
 #include <utils/meta.hpp>
@@ -100,8 +99,7 @@ auto ExtractValue(RawValueType<PostgreCachePolicy>&& raw) {
 
 // Component name in policy
 template <typename T>
-using HasNameImpl =
-    std::enable_if_t<(T::kName != nullptr) && (::utils::StrLen(T::kName) > 0)>;
+using HasNameImpl = std::enable_if_t<!std::string_view{T::kName}.empty()>;
 template <typename T>
 inline constexpr bool kHasName = meta::kIsDetected<HasNameImpl, T>;
 
@@ -131,8 +129,7 @@ inline constexpr bool kHasUpdatedField = meta::kIsDetected<HasUpdatedField, T>;
 
 template <typename T>
 using WantIncrementalUpdates =
-    std::enable_if_t<(T::kUpdatedField != nullptr) &&
-                     (::utils::StrLen(T::kUpdatedField) > 0)>;
+    std::enable_if_t<!std::string_view{T::kUpdatedField}.empty()>;
 template <typename T>
 inline constexpr bool kWantIncrementalUpdates =
     meta::kIsDetected<WantIncrementalUpdates, T>;
