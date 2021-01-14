@@ -82,6 +82,7 @@ formats::json::Value StatisticsToJson(const DumpStatistics& stats) {
     write["time-from-start-ms"] = TimeStampToMillisecondsFromNow(
         stats.last_nontrivial_write_start_time.load());
     write["duration-ms"] = stats.last_nontrivial_write_duration.load().count();
+    write["size-kb"] = stats.last_written_size.load() / 1024;
     result["last-nontrivial-write"] = write.ExtractValue();
   }
 

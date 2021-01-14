@@ -316,8 +316,10 @@ bool CacheUpdateTrait::DoDump(dump::TimePoint update_time) {
   auto writer = dumper_->StartWriter(update_time);
   if (!writer) return false;
 
+  std::uint64_t dump_size;
   try {
     GetAndWrite(*writer);
+    dump_size = writer->GetPosition();
     writer->Finish();
   } catch (const EmptyCacheError& ex) {
     // ShouldDump checks that a successful update has been performed,
@@ -333,6 +335,7 @@ bool CacheUpdateTrait::DoDump(dump::TimePoint update_time) {
 
   dumper_->Cleanup();
 
+  statistics_.dump.last_written_size = dump_size;
   statistics_.dump.last_nontrivial_write_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - dump_start);

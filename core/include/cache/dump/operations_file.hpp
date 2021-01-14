@@ -20,6 +20,11 @@ class FileWriter final : public Writer {
   /// @throws `Error` on a filesystem error
   void Finish();
 
+  /// @brief Get the size of data that has been written so far
+  /// @warning Can only be called before `Finish`
+  /// @throws `Error` on a filesystem error
+  std::uint64_t GetPosition() const;
+
   void WriteRaw(std::string_view data) override;
   using Writer::Write;
 

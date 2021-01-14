@@ -26,6 +26,7 @@ TEST(CacheDumpOperationsFile, WriteReadRaw) {
   for (std::size_t i = 0; i <= kMaxLength; ++i) {
     writer.WriteRaw(std::string(i, 'a'));
     total_length += i;
+    EXPECT_EQ(writer.GetPosition(), total_length);
   }
   writer.Finish();
 

@@ -47,6 +47,16 @@ void FileWriter::Finish() {
   }
 }
 
+std::uint64_t FileWriter::GetPosition() const {
+  try {
+    return file_.GetPosition();
+  } catch (const std::exception& ex) {
+    throw Error(
+        fmt::format("Failed to fetch the written size of cache dump \"{}\": {}",
+                    path_, ex.what()));
+  }
+}
+
 FileReader::FileReader(std::string path) : path_(std::move(path)) {
   try {
     file_ = fs::blocking::CFile(path_, fs::blocking::OpenFlag::kRead);
