@@ -1,12 +1,12 @@
-# μserver
+# μserver <img src="https://github.yandex-team.ru/taxi/userver/blob/develop/scripts/docs/logo.svg" align='right' width="30%">
 Фреймворк для создания микросервисов.
 Включает в себя:
   * Поддержку асинхронного кода на основе корутин
   * HTTP-сервер
   * Драйверы для СУБД: Redis, MongoDB, PostgreSQL
 
-## Использование
-[Документация API](https://github.yandex-team.ru/pages/taxi/userver/)
+## Документация
+Введение, API, tutorial, FAQ и best practices: https://github.yandex-team.ru/pages/taxi/userver/
 
 ## Разработка
 Код должен соответствовать [Google C++ Style Guide](https://h.yandex-team.ru/?https%3A//google.github.io/styleguide/cppguide) с [изменениями](https://wiki.yandex-team.ru/users/sermp/backend-cpp-codestyle/).
