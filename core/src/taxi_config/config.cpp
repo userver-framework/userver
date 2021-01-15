@@ -1,52 +1,44 @@
 #include <taxi_config/config.hpp>
 
-#include <functional>
-
 #include <compiler/demangle.hpp>
 #include <utils/assert.hpp>
 
 namespace taxi_config {
 
-template <typename BaseConfigTag>
-std::unordered_map<std::type_index, std::function<std::any(const DocsMap&)>>&
-ExtraBaseConfigFactories() {
-  static std::unordered_map<std::type_index,
-                            std::function<std::any(const DocsMap&)>>
-      factories;
+template <typename ConfigTag>
+auto BaseConfig<ConfigTag>::ConfigFactories()
+    -> std::unordered_map<std::type_index, Factory>& {
+  static std::unordered_map<std::type_index, Factory> factories;
   return factories;
 }
 
 template <typename ConfigTag>
 BaseConfig<ConfigTag>::BaseConfig(const DocsMap& docs_map) {
-  for (const auto& extra_config : ExtraBaseConfigFactories<ConfigTag>()) {
-    extra_configs_[extra_config.first] = extra_config.second(docs_map);
+  for (const auto& extra_config : ConfigFactories()) {
+    user_configs_[extra_config.first] = extra_config.second(docs_map);
   }
 }
 
 template <typename ConfigTag>
-void BaseConfig<ConfigTag>::DoRegister(
-    const std::type_info& type,
-    std::function<std::any(const DocsMap&)>&& factory) {
-  ExtraBaseConfigFactories<ConfigTag>()[type] = std::move(factory);
+void BaseConfig<ConfigTag>::Register(std::type_index type, Factory factory) {
+  ConfigFactories()[type] = factory;
 }
 
 template <typename ConfigTag>
-bool BaseConfig<ConfigTag>::IsRegistered(const std::type_info& type) {
-  return ExtraBaseConfigFactories<ConfigTag>().count(type) == 1;
+bool BaseConfig<ConfigTag>::IsRegistered(std::type_index type) {
+  return ConfigFactories().count(type) == 1;
 }
 
 template <typename ConfigTag>
-void BaseConfig<ConfigTag>::Unregister(const std::type_info& type) {
+void BaseConfig<ConfigTag>::Unregister(std::type_index type) {
   UASSERT(IsRegistered(type));
-
-  [[maybe_unused]] size_t count =
-      ExtraBaseConfigFactories<ConfigTag>().erase(type);
+  ConfigFactories().erase(type);
 }
 
 template <typename ConfigTag>
-const std::any& BaseConfig<ConfigTag>::Get(const std::type_index& type) const {
+const std::any& BaseConfig<ConfigTag>::Get(std::type_index type) const {
   try {
-    return extra_configs_.at(type);
+    return user_configs_.at(type);
   } catch (const std::out_of_range& ex) {
     throw std::out_of_range("Type " + compiler::GetTypeName(type) +
                             " is not registered as config");

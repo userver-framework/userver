@@ -32,11 +32,9 @@ namespace {
 class CacheConfigSetEnvironment : public ::testing::Environment {
  public:
   void SetUp() override {
-    if (taxi_config::ConfigModule<taxi_config::FullConfigTag,
-                                  cache::CacheConfigSet>::IsRegistered()) {
+    if (taxi_config::Config::IsRegistered<cache::CacheConfigSet>()) {
       LOG_INFO() << "Unregistering cache::CacheConfigSet for tests";
-      taxi_config::ConfigModule<taxi_config::FullConfigTag,
-                                cache::CacheConfigSet>::Unregister();
+      taxi_config::Config::Unregister<cache::CacheConfigSet>();
     }
   }
 };

@@ -1,93 +1,97 @@
 #pragma once
 
 #include <any>
-#include <functional>
 #include <typeindex>
+#include <typeinfo>
 
-#include "value.hpp"
+#include <taxi_config/value.hpp>
 
 namespace taxi_config {
 
-template <typename ConfigTag>
-class BaseConfig;
-
-template <typename ConfigTag, typename T>
-class ConfigModule final {
- public:
-  static const T& Get(const BaseConfig<ConfigTag>& config);
-  static std::any Factory(const DocsMap& docs_map) { return T(docs_map); }
-  static void Unregister();
-
-  static bool IsRegistered();
-
- private:
-  static std::type_index type_;
-};
-
+/// @brief The storage for a snapshot of configs
+///
+/// When a config update comes in via new `DocsMap`, configs of all
+/// the registered types are constructed and stored in `BaseConfig`. After that
+/// the `DocsMap` is dropped.
+///
+/// Config types are automatically registered if they are accessed with `Get`
+/// somewhere in the program.
 template <typename ConfigTag>
 class BaseConfig final {
  public:
   explicit BaseConfig(const DocsMap& docs_map);
 
+  // Disable copy operations
   BaseConfig(BaseConfig&&) noexcept = default;
 
-  ~BaseConfig() = default;
+  template <typename T>
+  const T& Get() const;
 
   template <typename T>
-  static std::type_index Register(
-      std::function<std::any(const DocsMap&)>&& factory) {
-    DoRegister(typeid(T), std::move(factory));
-    return typeid(T);
-  }
+  static void Register();
 
   template <typename T>
-  const T& Get() const {
-    return ConfigModule<ConfigTag, T>::Get(*this);
-  }
+  static void Unregister();
 
-  static void DoRegister(const std::type_info& type,
-                         std::function<std::any(const DocsMap&)>&& factory);
-
-  static void Unregister(const std::type_info& type);
-
-  static bool IsRegistered(const std::type_info& type);
+  template <typename T>
+  static bool IsRegistered();
 
  private:
-  const std::any& Get(const std::type_index& type) const;
+  using Factory = std::any (*)(const DocsMap&);
 
-  std::unordered_map<std::type_index, std::any> extra_configs_;
+  static std::unordered_map<std::type_index, Factory>& ConfigFactories();
 
-  template <typename U, typename T>
-  friend class ConfigModule;
+  const std::any& Get(std::type_index type) const;
+
+  static void Register(std::type_index type, Factory factory);
+
+  static void Unregister(std::type_index type);
+
+  static bool IsRegistered(std::type_index type);
+
+  std::unordered_map<std::type_index, std::any> user_configs_;
 };
 
-struct FullConfigTag;
-struct BootstrapConfigTag;
+using Config = BaseConfig<struct FullConfigTag>;
+using BootstrapConfig = BaseConfig<struct BootstrapConfigTag>;
 
+/// @cond
 extern template class BaseConfig<FullConfigTag>;
 extern template class BaseConfig<BootstrapConfigTag>;
 
-using Config = BaseConfig<FullConfigTag>;
-using BootstrapConfig = BaseConfig<BootstrapConfigTag>;
+namespace impl {
 
+// Used in `Get` to automatically call Register on all used config types
+// at startup
 template <typename ConfigTag, typename T>
-const T& ConfigModule<ConfigTag, T>::Get(const BaseConfig<ConfigTag>& config) {
-  return std::any_cast<const T&>(config.Get(type_));
+inline const std::type_index kConfigType =
+    (BaseConfig<ConfigTag>::template Register<T>(), typeid(T));
+
+}  // namespace impl
+
+template <typename ConfigTag>
+template <typename T>
+const T& BaseConfig<ConfigTag>::Get() const {
+  return std::any_cast<const T&>(Get(impl::kConfigType<ConfigTag, T>));
 }
 
-template <typename ConfigTag, typename T>
-void ConfigModule<ConfigTag, T>::Unregister() {
-  BaseConfig<ConfigTag>::Unregister(typeid(T));
+template <typename ConfigTag>
+template <typename T>
+void BaseConfig<ConfigTag>::Register() {
+  Register(typeid(T), [](const DocsMap& map) { return std::any{T(map)}; });
 }
 
-template <typename ConfigTag, typename T>
-bool ConfigModule<ConfigTag, T>::IsRegistered() {
-  return BaseConfig<ConfigTag>::IsRegistered(typeid(T));
+template <typename ConfigTag>
+template <typename T>
+void BaseConfig<ConfigTag>::Unregister() {
+  Unregister(typeid(T));
 }
 
-template <typename ConfigTag, typename T>
-std::type_index ConfigModule<ConfigTag, T>::type_ =
-    BaseConfig<ConfigTag>::template Register<T>(
-        &ConfigModule<ConfigTag, T>::Factory);
+template <typename ConfigTag>
+template <typename T>
+bool BaseConfig<ConfigTag>::IsRegistered() {
+  return IsRegistered(typeid(T));
+}
+/// @endcond
 
 }  // namespace taxi_config
