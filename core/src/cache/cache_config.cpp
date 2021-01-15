@@ -43,6 +43,7 @@ constexpr std::string_view kDumpFormatVersion = "format-version";
 constexpr std::string_view kMaxDumpCount = "max-count";
 constexpr std::string_view kMaxDumpAge = "max-age";
 constexpr std::string_view kWorldReadable = "world-readable";
+constexpr std::string_view kWaitForFirstUpdate = "wait-for-first-update";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 constexpr auto kDefaultFsTaskProcessor = std::string_view{"fs-task-processor"};
@@ -144,7 +145,9 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
           config[kDump][kMaxDumpCount].As<uint64_t>(kDefaultMaxDumpCount)),
       max_dump_age(config[kDump][kMaxDumpAge]
                        .As<std::optional<std::chrono::milliseconds>>()),
-      world_readable(config[kDump][kWorldReadable].As<bool>(false)) {
+      world_readable(config[kDump][kWorldReadable].As<bool>(false)),
+      wait_for_first_update(
+          config[kDump][kWaitForFirstUpdate].As<bool>(false)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {

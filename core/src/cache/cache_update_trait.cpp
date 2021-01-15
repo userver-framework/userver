@@ -96,7 +96,7 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
   try {
     const bool dump_loaded = LoadFromDump(*update, *config);
 
-    if (!dump_loaded &&
+    if ((!dump_loaded || config->wait_for_first_update) &&
         (!(flags & Flag::kNoFirstUpdate) || !periodic_update_enabled_)) {
       // ignore kNoFirstUpdate if !IsPeriodicUpdateEnabled()
       // because some components require caches to be updated at least once
@@ -107,11 +107,17 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
         DoUpdate(UpdateType::kFull, *update, *config);
         DumpAsyncIfNeeded(DumpType::kForced, *update, *config);
       } catch (const std::exception& e) {
-        bool fail = !static_config_.allow_first_update_failure;
-        LOG_ERROR() << "Failed to update cache " << name_
-                    << " for the first time"
-                    << (fail ? "" : ", leaving it empty");
-        if (fail) throw;
+        if (dump_loaded) {
+          LOG_ERROR() << "Failed to update cache " << name_
+                      << " after loading a cache dump";
+        } else if (static_config_.allow_first_update_failure) {
+          LOG_ERROR() << "Failed to update cache " << name_
+                      << " for the first time, leaving it empty";
+        } else {
+          LOG_ERROR() << "Failed to update cache " << name_
+                      << " for the first time";
+          throw;
+        }
       }
     }
 
