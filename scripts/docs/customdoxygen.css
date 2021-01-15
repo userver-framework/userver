@@ -61,19 +61,19 @@
 
 /* More space and scrolling for code snippets */
 div.fragment {
-    padding: 10pt;
+    padding: 5pt;
     overflow-x: auto;
 }
 
 /* Do not put images in the middle */
-.image{
+.image {
     text-align: left;
 }
 
-/* Scale image to the page width */
+/* Scale down image to the page width */
 .image img {
-    width:100%;
+    max-width:100%;
     background-color: #FEFCF9; /* matches .fragment */
     border: 1px solid #FDCC9A; /* matches .fragment */
-    padding: 5pt;
+    padding: 5pt; /* matches .fragment */
 }
