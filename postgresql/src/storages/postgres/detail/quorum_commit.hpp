@@ -50,7 +50,7 @@ class QuorumCommitTopology {
   static constexpr std::size_t kImplSize = 1040;
   static constexpr std::size_t kImplAlign = 16;
 #else
-  static constexpr std::size_t kImplSize = 952;
+  static constexpr std::size_t kImplSize = 944;
   static constexpr std::size_t kImplAlign = 8;
 #endif
   ::utils::FastPimpl<Impl, kImplSize, kImplAlign, true> pimpl_;

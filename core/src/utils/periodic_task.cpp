@@ -8,6 +8,15 @@
 
 namespace utils {
 
+namespace {
+
+std::minstd_rand& GetFastRandomBitsGenerator() {
+  thread_local std::minstd_rand rand{std::random_device{}()};
+  return rand;
+}
+
+}  // namespace
+
 // NOLINTNEXTLINE(cert-msc51-cpp): default seed is OK
 PeriodicTask::PeriodicTask()
     : settings_(std::chrono::seconds(1)),
@@ -143,7 +152,8 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
 
   const auto distribution = settings_ptr->distribution;
   const auto ms = std::uniform_int_distribution<int64_t>(
-      (period - distribution).count(), (period + distribution).count())(rand_);
+      (period - distribution).count(),
+      (period + distribution).count())(GetFastRandomBitsGenerator());
   return std::chrono::milliseconds(ms);
 }
 

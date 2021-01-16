@@ -144,7 +144,6 @@ class PeriodicTask final {
   Callback callback_;
   engine::TaskWithResult<void> task_;
   rcu::Variable<Settings> settings_;
-  std::minstd_rand rand_;
 
   // For kNow only
   engine::Mutex step_mutex_;
