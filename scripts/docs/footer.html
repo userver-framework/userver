@@ -54,8 +54,8 @@ function draw_toc() {
         return;
     }
 
-    $('<div id="mySidenav" class="sidenav"><h2>Оглавление документа</h2></div>').insertAfter('.header');
-    sidenav = $('#mySidenav');
+    sidenav_content = '<div id="mySidenav" class="sidenav">';
+    sidenav_content += '<h2>Оглавление документа</h2>';
     headers.each(function() {
         index = parseInt(this.nodeName.substring(1)) - 1;
         id = $(this).attr('id');
@@ -63,8 +63,11 @@ function draw_toc() {
           id = make_id($(this).text())
           $(this).attr('id', id);
         }
-        sidenav.append('<a href="#' + id + '" style="padding-left: ' + index * 10 + 'pt">' + $(this).text() +  '</a>');
+        sidenav_content += '<a href="#' + id + '" style="padding-left: ' + index * 10 + 'pt">' + $(this).text() +  '</a>';
     });
+    sidenav_content += '</div>';
+
+    $(sidenav_content).insertAfter('.header');
 }
 
 function highlight_code() {

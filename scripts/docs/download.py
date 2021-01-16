@@ -321,6 +321,7 @@ def get_fs_path_items(path: str) -> List[str]:
 
 def update_doxy_file(doxy_path: str) -> None:
     files = [
+        'favicon.svg',
         os.path.join('highlight.js', 'highlight.pack.js'),
         os.path.join('highlight.js', 'styles', 'gruvbox-light.css'),
     ] + get_fs_path_items(WIKI_FILES_PATH)
