@@ -58,10 +58,11 @@ CFile& CFile::operator=(CFile&&) noexcept = default;
 CFile::~CFile() = default;
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-CFile::CFile(const std::string& path, OpenMode flags, int perms) {
-  auto fd = FileDescriptor::OpenFile(path, flags, perms);
+CFile::CFile(const std::string& path, OpenMode flags,
+             boost::filesystem::perms perms) {
+  auto fd = FileDescriptor::Open(path, flags, perms);
   impl_->handle.reset(utils::CheckSyscallNotEquals(
-      ::fdopen(fd.GetNativeFd(), ToMode(flags)), nullptr, "calling ::fdopen"));
+      ::fdopen(fd.GetNative(), ToMode(flags)), nullptr, "calling ::fdopen"));
   std::move(fd).Release();
 }
 

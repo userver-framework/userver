@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace fs::blocking {
 
@@ -12,7 +13,7 @@ class TempDirectory final {
  public:
   /// @brief Create the directory at the default path for temporary files
   /// @throws std::runtime_error
-  TempDirectory();
+  static TempDirectory Create();
 
   /// @brief Create the directory at the specified path
   /// @param parent_path The directory where the temporary directory
@@ -20,7 +21,16 @@ class TempDirectory final {
   /// @param name_prefix Directory name prefix, a random string will be added
   /// after the prefix
   /// @throws std::runtime_error
-  TempDirectory(std::string_view parent_path, std::string_view name_prefix);
+  static TempDirectory Create(std::string_view parent_path,
+                              std::string_view name_prefix);
+
+  TempDirectory() = delete;
+  TempDirectory(TempDirectory&& other) noexcept;
+  TempDirectory& operator=(TempDirectory&& other) noexcept;
+  ~TempDirectory();
+
+  /// Take ownership of an existing directory
+  static TempDirectory Adopt(std::string path);
 
   /// The directory path
   const std::string& GetPath() const;
@@ -29,9 +39,8 @@ class TempDirectory final {
   /// @throws std::runtime_error
   void Remove() &&;
 
-  ~TempDirectory();
-  TempDirectory(TempDirectory&& other) noexcept;
-  TempDirectory& operator=(TempDirectory&& other) noexcept;
+ private:
+  explicit TempDirectory(std::string&& path);
 
  private:
   std::string path_;

@@ -4,6 +4,7 @@
 
 #include <fs/blocking/read.hpp>
 #include <fs/blocking/temp_directory.hpp>
+#include <fs/blocking/temp_file.hpp>
 #include <fs/blocking/write.hpp>
 
 TEST(CFile, NullFile) {
@@ -12,50 +13,48 @@ TEST(CFile, NullFile) {
 }
 
 TEST(CFile, Move) {
-  fs::blocking::TempDirectory dir;
-  const std::string path = dir.GetPath() + "/foo";
-  fs::blocking::RewriteFileContents(path, "bar");
+  const auto file1 = fs::blocking::TempFile::Create();
+  fs::blocking::RewriteFileContents(file1.GetPath(), "bar");
 
-  fs::blocking::CFile file1(path, fs::blocking::OpenFlag::kRead);
-  EXPECT_TRUE(file1.IsOpen());
+  fs::blocking::CFile reader1(file1.GetPath(), fs::blocking::OpenFlag::kRead);
+  EXPECT_TRUE(reader1.IsOpen());
 
-  fs::blocking::CFile file2 = std::move(file1);
-  EXPECT_FALSE(file1.IsOpen());
-  EXPECT_TRUE(file2.IsOpen());
+  fs::blocking::CFile reader2 = std::move(reader1);
+  EXPECT_FALSE(reader1.IsOpen());
+  EXPECT_TRUE(reader2.IsOpen());
 
-  fs::blocking::CFile file3;
-  EXPECT_FALSE(file3.IsOpen());
-  file3 = std::move(file2);
-  EXPECT_FALSE(file2.IsOpen());
-  EXPECT_TRUE(file3.IsOpen());
+  fs::blocking::CFile reader3;
+  EXPECT_FALSE(reader3.IsOpen());
+  reader3 = std::move(reader2);
+  EXPECT_FALSE(reader2.IsOpen());
+  EXPECT_TRUE(reader3.IsOpen());
 
-  const std::string path2 = dir.GetPath() + "/baz";
-  fs::blocking::RewriteFileContents(path, "qux");
-  fs::blocking::CFile file4(path, fs::blocking::OpenFlag::kRead);
-  EXPECT_TRUE(file4.IsOpen());
-  file4 = std::move(file3);
-  EXPECT_FALSE(file3.IsOpen());
-  EXPECT_TRUE(file4.IsOpen());
+  const auto file2 = fs::blocking::TempFile::Create();
+  fs::blocking::RewriteFileContents(file2.GetPath(), "qux");
+  fs::blocking::CFile reader4(file2.GetPath(), fs::blocking::OpenFlag::kRead);
+  EXPECT_TRUE(reader4.IsOpen());
+  reader4 = std::move(reader3);
+  EXPECT_FALSE(reader3.IsOpen());
+  EXPECT_TRUE(reader4.IsOpen());
 }
 
 TEST(CFile, Reading) {
-  fs::blocking::TempDirectory dir;
-  const std::string path = dir.GetPath() + "/foo";
-  fs::blocking::RewriteFileContents(path, "bar");
+  const auto file = fs::blocking::TempFile::Create();
+  fs::blocking::RewriteFileContents(file.GetPath(), "bar");
 
-  fs::blocking::CFile file(path, fs::blocking::OpenFlag::kRead);
-  EXPECT_TRUE(file.IsOpen());
+  fs::blocking::CFile reader(file.GetPath(), fs::blocking::OpenFlag::kRead);
+  EXPECT_TRUE(reader.IsOpen());
 
   std::string buffer(10, '\0');
-  EXPECT_EQ(file.Read(buffer.data(), 1), 1);
-  EXPECT_EQ(file.Read(buffer.data(), 10), 2);
+  EXPECT_EQ(reader.Read(buffer.data(), 1), 1);
+  EXPECT_EQ(reader.Read(buffer.data(), 10), 2);
 
-  std::move(file).Close();
-  EXPECT_FALSE(file.IsOpen());
+  std::move(reader).Close();
+  EXPECT_FALSE(reader.IsOpen());
 }
 
 TEST(CFile, Writing) {
-  fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
   const std::string path = dir.GetPath() + "/foo";
 
   // file does not exist yet
@@ -72,7 +71,7 @@ TEST(CFile, Writing) {
 }
 
 TEST(CFile, Position) {
-  fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
   const std::string path = dir.GetPath() + "/foo";
 
   {

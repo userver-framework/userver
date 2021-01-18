@@ -3,6 +3,8 @@
 #include <string>
 #include <string_view>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <fs/blocking/open_mode.hpp>
 #include <utils/fast_pimpl.hpp>
 
@@ -22,7 +24,9 @@ class CFile final {
 
   /// @brief Opens the file
   /// @throws std::runtime_error
-  CFile(const std::string& path, OpenMode flags, int perms = 0600);
+  CFile(const std::string& path, OpenMode flags,
+        boost::filesystem::perms perms = boost::filesystem::perms::owner_read |
+                                         boost::filesystem::perms::owner_write);
 
   /// Checks if the file is open
   bool IsOpen() const;

@@ -54,18 +54,18 @@ void CreateDirectories(std::string_view path) {
 }
 
 void RewriteFileContents(const std::string& path, std::string_view contents) {
-  auto fd = FileDescriptor::OpenFile(
+  auto fd = FileDescriptor::Open(
       path, {OpenFlag::kWrite, OpenFlag::kCreateIfNotExists});
 
   fd.Write(contents);
   fd.FSync();
-  fd.Close();
+  std::move(fd).Close();
 }
 
 void SyncDirectoryContents(const std::string& path) {
-  auto fd = FileDescriptor::OpenDirectory(path, {OpenFlag::kRead});
+  auto fd = FileDescriptor::OpenDirectory(path);
   fd.FSync();
-  fd.Close();
+  std::move(fd).Close();
 }
 
 void Rename(const std::string& source, const std::string& destination) {

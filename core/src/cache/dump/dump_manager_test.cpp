@@ -60,7 +60,7 @@ dump:
     format-version: 5
     max-count: 10
 )";
-  const fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
 
   cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
   cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
@@ -95,7 +95,7 @@ dump:
     max-count: 10
     max-age: 1500ms
 )";
-  const fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
 
   cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
   cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
@@ -133,7 +133,7 @@ dump:
     format-version: 5
     max-count: 1
 )";
-  const fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
 
   cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
   cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
@@ -167,7 +167,7 @@ dump:
     world-readable: false
     format-version: 5
 )";
-  const fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
 
   cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
   cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
@@ -207,7 +207,7 @@ dump:
     world-readable: false
     format-version: 5
 )";
-  const fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
 
   // Expected to get a new dump with update_time = BaseTime() + 3s
   std::set<std::string> expected_files;

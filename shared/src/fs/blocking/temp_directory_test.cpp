@@ -2,17 +2,23 @@
 
 #include <utility>
 
-#include <boost/algorithm/string/predicate.hpp>
-
 #include <gtest/gtest.h>
 #include <boost/filesystem/operations.hpp>
 
 #include <fs/blocking/write.hpp>
 
+namespace {
+
+bool StartsWith(std::string_view hay, std::string_view needle) {
+  return hay.substr(0, needle.size()) == needle;
+}
+
+}  // namespace
+
 TEST(TempDirectory, CreateDestroy) {
   std::string path;
   {
-    fs::blocking::TempDirectory dir;
+    const auto dir = fs::blocking::TempDirectory::Create();
     path = dir.GetPath();
     EXPECT_TRUE(boost::filesystem::exists(path));
   }
@@ -22,7 +28,7 @@ TEST(TempDirectory, CreateDestroy) {
 TEST(TempDirectory, DestroysInStackUnwinding) {
   std::string path;
   try {
-    fs::blocking::TempDirectory dir;
+    const auto dir = fs::blocking::TempDirectory::Create();
     path = dir.GetPath();
     throw std::runtime_error("test");
   } catch (const std::runtime_error& ex) {
@@ -34,7 +40,7 @@ TEST(TempDirectory, DestroysInStackUnwinding) {
 }
 
 TEST(TempDirectory, Permissions) {
-  fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
 
   const auto status = boost::filesystem::status(dir.GetPath());
   EXPECT_EQ(status.type(), boost::filesystem::directory_file);
@@ -44,7 +50,7 @@ TEST(TempDirectory, Permissions) {
 TEST(TempDirectory, EarlyRemove) {
   std::string path;
 
-  fs::blocking::TempDirectory dir;
+  auto dir = fs::blocking::TempDirectory::Create();
   path = dir.GetPath();
   fs::blocking::RewriteFileContents(path + "/file", "blah");
 
@@ -53,17 +59,17 @@ TEST(TempDirectory, EarlyRemove) {
 }
 
 TEST(TempDirectory, DoubleRemove) {
-  fs::blocking::TempDirectory dir;
+  auto dir = fs::blocking::TempDirectory::Create();
   EXPECT_NO_THROW(std::move(dir).Remove());
   EXPECT_THROW(std::move(dir).Remove(), std::runtime_error);
 }
 
 TEST(TempDirectory, CustomPath) {
-  fs::blocking::TempDirectory parent;
+  const auto parent = fs::blocking::TempDirectory::Create();
   const auto root = parent.GetPath();
 
-  fs::blocking::TempDirectory child(root + "/foo", "bar");
-  EXPECT_TRUE(boost::starts_with(child.GetPath(), root + "/foo/bar"));
+  const auto child = fs::blocking::TempDirectory::Create(root + "/foo", "bar");
+  EXPECT_TRUE(StartsWith(child.GetPath(), root + "/foo/bar"));
   EXPECT_EQ(boost::filesystem::status(root + "/foo").permissions(),
             boost::filesystem::perms::owner_all);
 }

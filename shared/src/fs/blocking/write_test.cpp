@@ -6,7 +6,7 @@
 #include <fs/blocking/temp_directory.hpp>
 
 TEST(Fs, CreateDirectories) {
-  fs::blocking::TempDirectory root;
+  const auto root = fs::blocking::TempDirectory::Create();
   const auto perms = boost::filesystem::perms::owner_all;
   fs::blocking::CreateDirectories(root.GetPath() + "//foo/bar///baz/", perms);
 

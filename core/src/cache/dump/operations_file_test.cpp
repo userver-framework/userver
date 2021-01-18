@@ -4,19 +4,20 @@
 
 #include <fs/blocking/read.hpp>
 #include <fs/blocking/temp_directory.hpp>
+#include <fs/blocking/temp_file.hpp>
 #include <fs/blocking/write.hpp>
 #include <utest/utest.hpp>
 
 namespace {
 
-std::string DumpFilePath(fs::blocking::TempDirectory& dir) {
+std::string DumpFilePath(const fs::blocking::TempDirectory& dir) {
   return dir.GetPath() + "/cache-dump";
 }
 
 }  // namespace
 
 TEST(CacheDumpOperationsFile, WriteReadRaw) {
-  fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
   const auto path = DumpFilePath(dir);
 
   constexpr std::size_t kMaxLength = 10;
@@ -41,7 +42,7 @@ TEST(CacheDumpOperationsFile, WriteReadRaw) {
 }
 
 TEST(CacheDumpOperationsFile, EmptyDump) {
-  fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
   const auto path = DumpFilePath(dir);
 
   cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
@@ -54,7 +55,7 @@ TEST(CacheDumpOperationsFile, EmptyDump) {
 }
 
 TEST(CacheDumpOperationsFile, EmptyStringDump) {
-  fs::blocking::TempDirectory dir;
+  const auto dir = fs::blocking::TempDirectory::Create();
   const auto path = DumpFilePath(dir);
 
   cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
@@ -69,12 +70,10 @@ TEST(CacheDumpOperationsFile, EmptyStringDump) {
 }
 
 TEST(CacheDumpOperationsFile, Overread) {
-  fs::blocking::TempDirectory dir;
-  const auto path = DumpFilePath(dir);
+  const auto file = fs::blocking::TempFile::Create();
+  fs::blocking::RewriteFileContents(file.GetPath(), std::string(10, 'a'));
 
-  fs::blocking::RewriteFileContents(path, std::string(10, 'a'));
-
-  cache::dump::FileReader reader(path);
+  cache::dump::FileReader reader(file.GetPath());
   try {
     reader.ReadRaw(11);
   } catch (const cache::dump::Error& ex) {
@@ -90,12 +89,10 @@ TEST(CacheDumpOperationsFile, Overread) {
 }
 
 TEST(CacheDumpOperationsFile, Underread) {
-  fs::blocking::TempDirectory dir;
-  const auto path = DumpFilePath(dir);
+  const auto file = fs::blocking::TempFile::Create();
+  fs::blocking::RewriteFileContents(file.GetPath(), std::string(10, 'a'));
 
-  fs::blocking::RewriteFileContents(path, std::string(10, 'a'));
-
-  cache::dump::FileReader reader(path);
+  cache::dump::FileReader reader(file.GetPath());
   EXPECT_EQ(reader.ReadRaw(9), std::string(9, 'a'));
   try {
     reader.Finish();

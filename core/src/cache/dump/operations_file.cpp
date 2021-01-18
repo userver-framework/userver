@@ -13,8 +13,7 @@ FileWriter::FileWriter(std::string path, boost::filesystem::perms perms)
     : final_path_(std::move(path)), path_(final_path_ + ".tmp"), perms_(perms) {
   constexpr fs::blocking::OpenMode mode{
       fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kExclusiveCreate};
-  const int tmp_perms =
-      static_cast<int>(perms_ | boost::filesystem::perms::owner_write);
+  const auto tmp_perms = perms_ | boost::filesystem::perms::owner_write;
 
   try {
     file_ = fs::blocking::CFile{path_, mode, tmp_perms};

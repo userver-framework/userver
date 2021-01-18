@@ -1,6 +1,5 @@
 #include <fs/blocking/temp_directory.hpp>
 
-#include <string_view>
 #include <utility>
 
 #include <fmt/format.h>
@@ -10,6 +9,8 @@
 #include <logging/log.hpp>
 #include <utils/algo.hpp>
 #include <utils/check_syscall.hpp>
+
+namespace fs::blocking {
 
 namespace {
 
@@ -25,32 +26,32 @@ void RemoveDirectory(const std::string& path) {
 
 }  // namespace
 
-namespace fs::blocking {
-
-TempDirectory::TempDirectory()
-    : TempDirectory(
-          boost::filesystem::temp_directory_path().string() + "/userver", {}) {}
-
-TempDirectory::TempDirectory(std::string_view parent_path,
-                             std::string_view name_prefix)
-    : path_(utils::StrCat(parent_path, "/", name_prefix, "XXXXXX")) {
-  fs::blocking::CreateDirectories(parent_path,
-                                  boost::filesystem::perms::owner_all);
-  utils::CheckSyscallNotEquals(::mkdtemp(path_.data()), nullptr, "::mkdtemp");
+TempDirectory TempDirectory::Create() {
+  return Create(boost::filesystem::temp_directory_path().string() + "/userver",
+                {});
 }
 
-const std::string& TempDirectory::GetPath() const { return path_; }
+TempDirectory TempDirectory::Create(std::string_view parent_path,
+                                    std::string_view name_prefix) {
+  CreateDirectories(parent_path, boost::filesystem::perms::owner_all);
+  auto path = utils::StrCat(parent_path, "/", name_prefix, "XXXXXX");
+  utils::CheckSyscallNotEquals(::mkdtemp(path.data()), nullptr, "::mkdtemp");
+  return TempDirectory{std::move(path)};
+}
 
-void TempDirectory::Remove() && {
-  const std::string path = std::move(path_);
-  path_.clear();
+TempDirectory::TempDirectory(std::string&& path) : path_(std::move(path)) {
+  UASSERT(boost::filesystem::is_directory(path_));
+}
 
-  if (path.empty()) {
-    throw std::runtime_error(
-        "Remove called for an already removed TempDirectory");
+TempDirectory::TempDirectory(TempDirectory&& other) noexcept
+    : path_(std::exchange(other.path_, {})) {}
+
+TempDirectory& TempDirectory::operator=(TempDirectory&& other) noexcept {
+  if (&other != this) {
+    TempDirectory temp = std::move(*this);
+    path_ = std::exchange(other.path_, {});
   }
-
-  RemoveDirectory(path);
+  return *this;
 }
 
 TempDirectory::~TempDirectory() {
@@ -63,18 +64,18 @@ TempDirectory::~TempDirectory() {
   }
 }
 
-TempDirectory::TempDirectory(TempDirectory&& other) noexcept
-    : path_(std::move(other.path_)) {
-  other.path_.clear();
+TempDirectory TempDirectory::Adopt(std::string path) {
+  return TempDirectory{std::move(path)};
 }
 
-TempDirectory& TempDirectory::operator=(TempDirectory&& other) noexcept {
-  if (&other != this) {
-    TempDirectory temp = std::move(*this);
-    path_ = std::move(other.path_);
-    other.path_.clear();
+const std::string& TempDirectory::GetPath() const { return path_; }
+
+void TempDirectory::Remove() && {
+  if (path_.empty()) {
+    throw std::runtime_error(
+        "Remove called for an already removed TempDirectory");
   }
-  return *this;
+  RemoveDirectory(std::exchange(path_, {}));
 }
 
 }  // namespace fs::blocking
