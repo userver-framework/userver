@@ -317,10 +317,6 @@ void Find::SetOption(options::Limit limit) {
   AppendLimit(impl::EnsureBuilder(impl_->options), limit);
 }
 
-/// TODO: remove after TAXICOMMON-3160
-#if defined(__clang__)
-__attribute__((no_sanitize("alignment")))
-#endif
 void Find::SetOption(options::Projection projection) {
   const bson_t* projection_bson = projection.GetProjectionBson();
   if (bson_empty0(projection_bson)) return;
@@ -329,10 +325,6 @@ void Find::SetOption(options::Projection projection) {
   impl::EnsureBuilder(impl_->options).Append(kOptionName, projection_bson);
 }
 
-/// TODO: remove after TAXICOMMON-3160
-#if defined(__clang__)
-__attribute__((no_sanitize("alignment")))
-#endif
 void Find::SetOption(const options::Sort& sort) {
   const bson_t* sort_bson = sort.GetSortBson();
   if (bson_empty0(sort_bson)) return;
