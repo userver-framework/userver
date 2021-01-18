@@ -38,6 +38,15 @@ TEST(PeriodicTask, StartStop) {
   });
 }
 
+TEST(PeriodicTask, StartNoStop) {
+  RunInCoro([] {
+    utils::PeriodicTask task("task", std::chrono::milliseconds(100), []() {});
+
+    EXPECT_TRUE(task.IsRunning());
+    // ~PeriodicTask() should call Stop()
+  });
+}
+
 namespace {
 struct SimpleTaskData {
   engine::Mutex mutex;
