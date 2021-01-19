@@ -188,10 +188,15 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
     throw std::logic_error(fmt::format("{} must not be 0 for cache '{}'",
                                        kMaxDumpCount, config.Name()));
   }
-  if (dumps_enabled && !config[kDump].HasMember(kWorldReadable)) {
-    throw std::logic_error(fmt::format(
-        "If dumps are enabled, then '{}' must be set for cache '{}'",
-        kWorldReadable, config.Name()));
+
+  if (dumps_enabled) {
+    for (const auto required_key : {kWorldReadable, kDumpFormatVersion}) {
+      if (!config[kDump].HasMember(required_key)) {
+        throw std::logic_error(fmt::format(
+            "If dumps are enabled, then '{}' must be set for cache '{}'",
+            required_key, config.Name()));
+      }
+    }
   }
 }
 
