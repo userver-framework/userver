@@ -94,8 +94,6 @@ EXTRA_PACKAGES=" \
   libpng \
   libyandex-taxi-graph \
   matrixnetmock \
-  mongodb-community@4.2 \
-  mongodb-community-shell \
   persqueue-wrapper \
   pugixml \
   redis \
@@ -105,6 +103,9 @@ EXTRA_PACKAGES=" \
 "
 brew install $EXTRA_PACKAGES
 brew install geobase6 --with-geodata
+
+brew install mongodb-community@4.2
+brew link --force mongodb-community@4.2
 
 brew install libyandex-taxi-v8 # fails intermittently, install separately
 if ! brew list --versions libyandex-taxi-v8 | grep -q .; then
