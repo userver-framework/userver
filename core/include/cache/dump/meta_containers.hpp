@@ -1,8 +1,13 @@
 #pragma once
 
 #include <iterator>
+#include <map>
+#include <set>
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 #include <cache/dump/meta.hpp>
 
@@ -50,6 +55,9 @@ template <typename T>
 using InsertResult = decltype(cache::dump::Insert(
     std::declval<T&>(), std::declval<meta::RangeValueType<T>&&>()));
 
+template <typename T>
+using ReserveResult = decltype(std::declval<T&>().reserve(1));
+
 }  // namespace impl
 
 /// Check if a range is a container
@@ -57,5 +65,9 @@ template <typename T>
 inline constexpr bool kIsContainer =
     meta::kIsRange<T>&& std::is_default_constructible_v<T>&&
         impl::kIsSizeable<T>&& meta::kIsDetected<impl::InsertResult, T>;
+
+/// Check if a container has `reserve`
+template <typename T>
+inline constexpr bool kIsReservable = meta::kIsDetected<impl::ReserveResult, T>;
 
 }  // namespace cache::dump

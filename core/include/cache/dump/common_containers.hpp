@@ -43,6 +43,9 @@ std::enable_if_t<kIsContainer<T> && kIsReadable<meta::RangeValueType<T>>, T>
 Read(Reader& reader, To<T>) {
   const auto size = reader.Read<std::size_t>();
   T result{};
+  if constexpr (kIsReservable<T>) {
+    result.reserve(size);
+  }
   for (std::size_t i = 0; i < size; ++i) {
     cache::dump::Insert(result, reader.Read<meta::RangeValueType<T>>());
   }
