@@ -334,12 +334,4 @@ inline Value Parse(const Value& value, parse::To<Value>) { return value; }
 /// @endcode
 using formats::common::Items;
 
-// TODO: clean up in uservices and remove
-template <typename T>
-[[deprecated("Implement Parse for your type instead")]] std::enable_if_t<
-    impl::kHasParseJsonFor<T>, T>
-Parse(std::reference_wrapper<const Value> value, parse::To<T>) {
-  return ParseJson(value.get(), static_cast<const T*>(nullptr));
-}
-
 }  // namespace formats::json
