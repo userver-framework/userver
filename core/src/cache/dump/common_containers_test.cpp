@@ -56,3 +56,17 @@ TEST(CacheDumpCommonContainers, Optional) {
   TestWriteReadCycle(std::make_optional(std::optional<bool>{}));
   TestWriteReadCycle(std::optional<std::optional<bool>>{});
 }
+
+TEST(CacheDumpCommonContainers, CacheDumpStrongTypedef) {
+  using Loggable = utils::StrongTypedef<struct NameTag, std::string>;
+  static_assert(cache::dump::kIsDumpable<Loggable>);
+  TestWriteReadCycle(Loggable{"Ivan"});
+
+  using NonLoggable = utils::NonLoggable<struct PasswordTag, std::string>;
+  static_assert(cache::dump::kIsDumpable<NonLoggable>);
+  TestWriteReadCycle(NonLoggable{"Ivan"});
+
+  struct Dummy {};
+  using NonDumpableContents = utils::StrongTypedef<struct DummyTag, Dummy>;
+  static_assert(!cache::dump::kIsDumpable<NonDumpableContents>);
+}

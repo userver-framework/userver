@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <utils/meta.hpp>
+#include <utils/strong_typedef.hpp>
 
 #include <cache/dump/common.hpp>
 #include <cache/dump/meta.hpp>
@@ -92,5 +93,20 @@ template <typename T>
 std::enable_if_t<kIsReadable<T>, T> Read(Reader& reader, To<const T>) {
   return Read(reader, To<T>{});
 }
+
+/// @{
+/// utils::StrongTypedef support
+template <typename Tag, typename T, utils::StrongTypedefOps Ops>
+std::enable_if_t<kIsWritable<T>> Write(
+    Writer& writer, const utils::StrongTypedef<Tag, T, Ops>& object) {
+  writer.Write(object.GetUnderlying());
+}
+
+template <typename Tag, typename T, utils::StrongTypedefOps Ops>
+std::enable_if_t<kIsReadable<T>, utils::StrongTypedef<Tag, T, Ops>> Read(
+    Reader& reader, To<utils::StrongTypedef<Tag, T, Ops>>) {
+  return utils::StrongTypedef<Tag, T, Ops>{reader.Read<T>()};
+}
+/// @}
 
 }  // namespace cache::dump

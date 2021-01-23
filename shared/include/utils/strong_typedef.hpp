@@ -68,7 +68,7 @@ constexpr auto operator|(StrongTypedefOps op1, StrongTypedefOps op2) noexcept {
 /// * operator[]
 ///
 /// Operators:
-///   You can customize the operators that are avaialable by passing the third
+///   You can customize the operators that are available by passing the third
 ///   argument of type StrongTypedefOps. See its docs for more info.
 template <class Tag, class T,
           StrongTypedefOps Ops = StrongTypedefOps::kCompareStrong,
@@ -109,6 +109,10 @@ struct IsStrongTypedef
 template <typename T, typename Void>
 using EnableIfRange =
     std::enable_if_t<std::is_void_v<Void> && meta::kIsRange<T>>;
+
+template <typename T, typename Void>
+using EnableIfSizeable =
+    std::enable_if_t<std::is_void_v<Void> && meta::kIsSizable<T>>;
 
 template <typename T>
 constexpr void CheckIfAllowsLogging() {
@@ -163,40 +167,45 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
   template <typename Void = void,
             typename = impl::strong_typedef::EnableIfRange<T, Void>>
   auto begin() {
-    return data_.begin();
+    return std::begin(data_);
   }
 
   template <typename Void = void,
             typename = impl::strong_typedef::EnableIfRange<T, Void>>
   auto end() {
-    return data_.end();
+    return std::end(data_);
   }
 
   template <typename Void = void,
             typename = impl::strong_typedef::EnableIfRange<const T, Void>>
   auto begin() const {
-    return data_.begin();
+    return std::begin(data_);
   }
 
   template <typename Void = void,
             typename = impl::strong_typedef::EnableIfRange<const T, Void>>
   auto end() const {
-    return data_.end();
+    return std::end(data_);
   }
 
   template <typename Void = void,
             typename = impl::strong_typedef::EnableIfRange<const T, Void>>
   auto cbegin() const {
-    return data_.begin();
+    return std::cbegin(data_);
   }
 
   template <typename Void = void,
             typename = impl::strong_typedef::EnableIfRange<const T, Void>>
   auto cend() const {
-    return data_.end();
+    return std::cend(data_);
   }
 
-  auto size() const { return data_.size(); }
+  template <typename Void = void,
+            typename = impl::strong_typedef::EnableIfSizeable<const T, Void>>
+  auto size() const {
+    return std::size(data_);
+  }
+
   auto empty() const { return data_.empty(); }
 
   auto clear() { return data_.clear(); }

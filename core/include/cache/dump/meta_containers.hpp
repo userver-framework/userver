@@ -45,13 +45,6 @@ void Insert(std::unordered_set<T, Hash, Eq, Alloc>& cont, T&& elem) {
 namespace impl {
 
 template <typename T>
-using RangeSizeResult = decltype(std::size(std::declval<const T&>()));
-
-template <typename T>
-inline constexpr bool kIsSizeable =
-    std::is_same_v<meta::DetectedType<RangeSizeResult, T>, std::size_t>;
-
-template <typename T>
 using InsertResult = decltype(cache::dump::Insert(
     std::declval<T&>(), std::declval<meta::RangeValueType<T>&&>()));
 
@@ -64,7 +57,7 @@ using ReserveResult = decltype(std::declval<T&>().reserve(1));
 template <typename T>
 inline constexpr bool kIsContainer =
     meta::kIsRange<T>&& std::is_default_constructible_v<T>&&
-        impl::kIsSizeable<T>&& meta::kIsDetected<impl::InsertResult, T>;
+        meta::kIsSizable<T>&& meta::kIsDetected<impl::InsertResult, T>;
 
 /// Check if a container has `reserve`
 template <typename T>

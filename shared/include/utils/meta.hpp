@@ -106,6 +106,9 @@ template <typename T>
 using IsStdHashable =
     ExpectSame<decltype(std::hash<T>{}(std::declval<const T&>())), size_t>;
 
+template <typename T>
+using IsSizable = decltype(std::size(std::declval<T>()));
+
 }  // namespace impl
 
 template <template <typename...> typename Template, typename... Args>
@@ -162,5 +165,8 @@ inline constexpr bool kIsEqualityComparable =
 template <typename T>
 inline constexpr bool kIsStdHashable =
     kIsDetected<impl::IsStdHashable, T>&& kIsEqualityComparable<T>;
+
+template <typename T>
+inline constexpr bool kIsSizable = kIsDetected<impl::IsSizable, T>;
 
 }  // namespace meta

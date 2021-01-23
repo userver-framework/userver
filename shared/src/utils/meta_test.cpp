@@ -240,3 +240,11 @@ TEST(Meta, Detection) {
   static_assert(
       std::is_same_v<meta::DetectedOr<bool, DummyAlias, std::string>, bool>);
 }
+
+TEST(Meta, Sizable) {
+  static_assert(meta::kIsSizable<std::string>);
+  static_assert(meta::kIsSizable<std::string_view>);
+  static_assert(meta::kIsSizable<std::vector<bool>>);
+  static_assert(!meta::kIsSizable<int>);
+  static_assert(!meta::kIsSizable<void>);
+}
