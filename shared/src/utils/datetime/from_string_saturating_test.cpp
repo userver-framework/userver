@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <utils/datetime.hpp>
+
 namespace {
 
 std::chrono::system_clock::time_point GetDateTimePlatformSpecificBigValue() {
@@ -38,4 +40,22 @@ TEST(FromStringSaturation, Formats) {
 
   EXPECT_EQ(utils::datetime::FromStringSaturating("9999-01-01", "%Y-%m-%d"),
             std::chrono::system_clock::time_point::max());
+
+  EXPECT_EQ(utils::datetime::FromStringSaturating("01-01-9999", "%d-%m-%Y"),
+            std::chrono::system_clock::time_point::max());
+}
+
+TEST(FromStringSaturation, Invalid) {
+  EXPECT_THROW(utils::datetime::FromStringSaturating(
+                   "12345", utils::datetime::kDefaultFormat),
+               utils::datetime::DateParseError);
+  EXPECT_THROW(utils::datetime::FromStringSaturating(
+                   "99999-ABCDEF", utils::datetime::kDefaultFormat),
+               utils::datetime::DateParseError);
+  EXPECT_THROW(utils::datetime::FromStringSaturating(
+                   "2020-12-45T00:00:00Z", utils::datetime::kDefaultFormat),
+               utils::datetime::DateParseError);
+  EXPECT_THROW(utils::datetime::FromStringSaturating(
+                   "2021-01-22T17:14:00Zzzz", utils::datetime::kDefaultFormat),
+               utils::datetime::DateParseError);
 }
