@@ -37,6 +37,7 @@ echo "Uninstalling old/conflicting formulae"
 brew uninstall --ignore-dependencies grpc
 brew uninstall --ignore-dependencies protobuf
 brew uninstall homebrew/core/cryptopp
+brew uninstall mongodb-community-shell
 
 echo "Installing Python 3.7 with brew"
 brew install python@3.7
