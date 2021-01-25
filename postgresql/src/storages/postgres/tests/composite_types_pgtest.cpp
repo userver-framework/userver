@@ -35,6 +35,13 @@ create type __pgtest.with_domain as (
     v __pgtest.positive
 ))~";
 
+const std::string kDropSomeFields = R"~(
+alter type __pgtest.foobar
+  drop attribute i,
+  drop attribute d,
+  drop attribute v
+)~";
+
 }  // namespace
 
 /*! [User type declaration] */
@@ -97,6 +104,13 @@ struct BunchOfFoo {
   }
 };
 
+}  // namespace pgtest
+/*! [User type declaration] */
+
+namespace pgtest {
+
+// These declarations are separate from the others as they shouldn't get into
+// the code snippet for documentation.
 struct NoUseInWrite {
   int i;
   std::string s;
@@ -139,8 +153,16 @@ struct WithDomain {
   int v;
 };
 
+struct FooBarWithSomeFieldsDropped {
+  std::string s;
+  std::vector<int> a;
+
+  bool operator==(const FooBarWithSomeFieldsDropped& rhs) const {
+    return s == rhs.s && a == rhs.a;
+  }
+};
+
 }  // namespace pgtest
-/*! [User type declaration] */
 
 /*! [User type mapping] */
 namespace storages::postgres::io {
@@ -173,8 +195,8 @@ struct CppToUserPg<pgtest::BunchOfFoo> {
 
 namespace storages::postgres::io {
 
-// These mappings are separate from the others as it shouldn't get to the code
-// snippet for generating documentation.
+// These mappings are separate from the others as they shouldn't get into the
+// code snippet for documentation.
 template <>
 struct CppToUserPg<pgtest::NoUseInWrite> {
   static constexpr DBTypeName postgres_name = kCompositeName;
@@ -188,6 +210,11 @@ struct CppToUserPg<pgtest::FooBarWithOptionalFields> {
 template <>
 struct CppToUserPg<pgtest::WithDomain> {
   static constexpr DBTypeName postgres_name = "__pgtest.with_domain";
+};
+
+template <>
+struct CppToUserPg<pgtest::FooBarWithSomeFieldsDropped> {
+  static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
 }  // namespace storages::postgres::io
@@ -540,6 +567,37 @@ POSTGRE_TEST_P(VariableRecordTypes) {
 
   EXPECT_EQ(42, std::get<0>(res[0].As<std::tuple<int>>()));
   EXPECT_EQ("str", std::get<0>(res[1].As<std::tuple<std::string>>()));
+}
+
+// This is not exactly allowed as well, we just don't want to crash on legacy
+POSTGRE_TEST_P(CompositeDroppedFields) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+
+  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+      << "Successfully create a composite type";
+  EXPECT_NO_THROW(conn->Execute(kDropSomeFields))
+      << "Drop some composite type fields";
+
+  pg::ResultSet res{nullptr};
+  // The datatypes are expected to be automatically reloaded
+  EXPECT_NO_THROW(
+      res = conn->Execute(
+          "select ROW('foobar', ARRAY[-1, 0, 1])::__pgtest.foobar"));
+  const std::vector<int> expected_int_vector{-1, 0, 1};
+
+  ASSERT_FALSE(res.IsEmpty());
+
+  pgtest::FooBarWithSomeFieldsDropped fb;
+  EXPECT_NO_THROW(res[0].To(fb));
+  EXPECT_EQ("foobar", fb.s);
+  EXPECT_EQ(expected_int_vector, fb.a);
+
+  EXPECT_NO_THROW(res = conn->Execute("select $1", fb));
+  EXPECT_EQ(res.AsSingleRow<pgtest::FooBarWithSomeFieldsDropped>(), fb);
 }
 
 }  // namespace

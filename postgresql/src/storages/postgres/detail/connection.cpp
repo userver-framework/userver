@@ -115,7 +115,7 @@ from pg_catalog.pg_class c
 left join pg_catalog.pg_namespace n on n.oid = c.relnamespace
 left join pg_catalog.pg_attribute a on a.attrelid = c.oid
 where n.nspname not in ('pg_catalog', 'pg_toast', 'information_schema')
-  and a.attnum > 0
+  and a.attnum > 0 and not a.attisdropped
 order by c.reltype, a.attnum)~";
 
 const std::string kPingStatement = "select 1 as ping";
