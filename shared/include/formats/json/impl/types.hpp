@@ -4,7 +4,6 @@
 #include <type_traits>
 
 #include <formats/common/type.hpp>
-#include <utils/void_t.hpp>
 
 // copypasted from rapidjson/fwd.h
 namespace rapidjson {
@@ -29,14 +28,6 @@ using UTF8 = ::rapidjson::UTF8<char>;
 using Value = ::rapidjson::GenericValue<UTF8, ::rapidjson::CrtAllocator>;
 using Document = ::rapidjson::GenericDocument<UTF8, ::rapidjson::CrtAllocator,
                                               ::rapidjson::CrtAllocator>;
-
-template <typename T, typename = ::utils::void_t<>>
-struct HasParseJsonFor : std::false_type {};
-
-template <typename T>
-struct HasParseJsonFor<T, ::utils::void_t<decltype(ParseJson(
-                              std::declval<const ::formats::json::Value&>(),
-                              std::declval<const T*>()))>> : std::true_type {};
 
 class VersionedValuePtr final {
  public:
@@ -75,9 +66,6 @@ class VersionedValuePtr final {
 
   std::shared_ptr<Data> data_;
 };
-
-template <typename T>
-constexpr inline bool kHasParseJsonFor = impl::HasParseJsonFor<T>::value;
 
 }  // namespace impl
 }  // namespace formats::json
