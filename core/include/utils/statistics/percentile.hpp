@@ -23,6 +23,28 @@ namespace utils::statistics {
  * @tparam ExtraBucketSize ExtraBuckets store values with this precision
  * @see GetPercentile
  * @see Account
+ *
+ * Example:
+ * Precisely count for first 500 milliseconds of execution using uint32_t
+ * counters and leave 100 buckets for all the other values with precision
+ * of 42 milliseconds:
+ *
+ * @code
+ * using Percentile =
+ *   utils::statistics::Percentile<500, std::uint32_t, 100, 42>;
+ *
+ * void Account(Percentile& perc, std::chrono::milliseconds ms) {
+ *   perc.Account(ms.count());
+ * }
+ *
+ * formats::json::Value ExtendStatistics(
+ *   formats::json::ValueBuilder& stats_builder, Percentile& perc) {
+ *
+ *   stats_builder["timings"]["1min"] = PercentileToJson(perc).ExtractValue();
+ *
+ *   return stats_builder.ExtractValue();
+ * }
+ * @endcode
  */
 template <size_t M, typename Counter = uint32_t, size_t ExtraBuckets = 0,
           size_t ExtraBucketSize = 500>
