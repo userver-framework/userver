@@ -39,7 +39,7 @@ HttpRequestHandler::HttpRequestHandler(
     : add_handler_disabled_(false),
       is_monitor_(is_monitor),
       server_name_(std::move(server_name)),
-      rate_limit_(1, std::chrono::seconds(0)) {
+      rate_limit_(utils::TokenBucket::MakeUnbounded()) {
   auto& logging_component =
       component_context.FindComponent<components::Logging>();
 
@@ -154,16 +154,14 @@ void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
     const auto rps_val = *rps;
     if (rps_val > 0) {
       rate_limit_.SetMaxSize(rps_val);
-      rate_limit_.SetUpdateInterval(
-          utils::TokenBucket::Duration{std::chrono::seconds(1)} / rps_val);
+      rate_limit_.SetRefillPolicy(
+          {1, utils::TokenBucket::Duration{std::chrono::seconds(1)} / rps_val});
     } else {
-      rate_limit_.SetMaxSize(1);
-      rate_limit_.SetUpdateInterval(utils::TokenBucket::Duration::max());
-
-      rate_limit_.Drain();
+      rate_limit_.SetMaxSize(0);
     }
   } else {
-    rate_limit_.SetUpdateInterval(utils::TokenBucket::Duration(0));
+    rate_limit_.SetMaxSize(1);  // in case it was zero
+    rate_limit_.SetInstantRefillPolicy();
   }
 }
 

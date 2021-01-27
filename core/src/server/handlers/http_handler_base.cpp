@@ -235,7 +235,8 @@ HttpHandlerBase::HttpHandlerBase(
           component_context, GetConfig(),
           http_server_settings_.GetAuthCheckerSettings())),
       log_level_(logging::OptionalLevelFromString(
-          config["log-level"].As<std::optional<std::string>>())) {
+          config["log-level"].As<std::optional<std::string>>())),
+      rate_limit_(utils::TokenBucket::MakeUnbounded()) {
   if (allowed_methods_.empty()) {
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
@@ -249,11 +250,9 @@ HttpHandlerBase::HttpHandlerBase(
     UASSERT_MSG(
         max_rps > 0,
         "max_requests_per_second option was not verified in config parsing");
-    const auto token_update_interval =
-        utils::TokenBucket::Duration{std::chrono::seconds(1)} / max_rps;
-    if (token_update_interval > utils::TokenBucket::Duration::zero()) {
-      rate_limit_.emplace(max_rps, token_update_interval);
-    }
+    rate_limit_.SetMaxSize(max_rps);
+    rate_limit_.SetRefillPolicy(
+        {1, utils::TokenBucket::Duration{std::chrono::seconds(1)} / max_rps});
   }
 
   auto& server_component =
@@ -463,18 +462,16 @@ void HttpHandlerBase::CheckRatelimit(
       handler_statistics_->GetStatisticByMethod(http_request.GetMethod());
   auto& total_statistics = handler_statistics_->GetTotalStatistics();
 
-  if (rate_limit_) {
-    const bool success = rate_limit_->Obtain();
-    if (!success) {
-      UASSERT(GetConfig().max_requests_per_second);
-      tracing::SetThrottleReason(
-          fmt::format("reached max_requests_per_second={}",
-                      GetConfig().max_requests_per_second.value_or(0)));
-      statistics.IncrementRateLimitReached();
-      total_statistics.IncrementRateLimitReached();
+  const bool success = rate_limit_.Obtain();
+  if (!success) {
+    UASSERT(GetConfig().max_requests_per_second);
+    tracing::SetThrottleReason(
+        fmt::format("reached max_requests_per_second={}",
+                    GetConfig().max_requests_per_second.value_or(0)));
+    statistics.IncrementRateLimitReached();
+    total_statistics.IncrementRateLimitReached();
 
-      throw ExceptionWithCode<HandlerErrorCode::kTooManyRequests>();
-    }
+    throw ExceptionWithCode<HandlerErrorCode::kTooManyRequests>();
   }
 
   auto max_requests_in_flight = GetConfig().max_requests_in_flight;

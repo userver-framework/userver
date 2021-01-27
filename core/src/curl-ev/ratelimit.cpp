@@ -51,8 +51,8 @@ ThrottleFactors ExtractThrottleFactors(const char* url_str) {
 }  // namespace
 
 ConnectRateLimiter::ConnectRateLimiter()
-    : global_http_(-1UL, utils::TokenBucket::Duration::zero()),
-      global_https_(-1UL, utils::TokenBucket::Duration::zero()),
+    : global_http_(utils::TokenBucket::MakeUnbounded()),
+      global_https_(utils::TokenBucket::MakeUnbounded()),
       per_host_limit_(-1UL),
       per_host_rate_(utils::TokenBucket::Duration::zero()),
       by_host_(kByHostThrottleLruSize) {
@@ -65,13 +65,13 @@ ConnectRateLimiter::ConnectRateLimiter()
 void ConnectRateLimiter::SetGlobalHttpLimits(
     size_t limit, utils::TokenBucket::Duration rate) {
   global_http_.SetMaxSize(limit);
-  global_http_.SetUpdateInterval(rate);
+  global_http_.SetRefillPolicy({1, rate});
 }
 
 void ConnectRateLimiter::SetGlobalHttpsLimits(
     size_t limit, utils::TokenBucket::Duration rate) {
   global_https_.SetMaxSize(limit);
-  global_https_.SetUpdateInterval(rate);
+  global_https_.SetRefillPolicy({1, rate});
 }
 
 void ConnectRateLimiter::SetPerHostLimits(size_t limit,
@@ -94,10 +94,11 @@ void ConnectRateLimiter::Check(const char* url_str, std::error_code& ec) {
 
     auto locked = by_host_.UniqueLock();
     auto* local_throttle = locked->Emplace(
-        factors.host_ptr.get(), current_per_host_limit, current_per_host_rate);
+        factors.host_ptr.get(), current_per_host_limit,
+        utils::TokenBucket::RefillPolicy{1, current_per_host_rate});
 
     local_throttle->SetMaxSize(current_per_host_limit);
-    local_throttle->SetUpdateInterval(current_per_host_rate);
+    local_throttle->SetRefillPolicy({1, current_per_host_rate});
     may_acquire = local_throttle->Obtain();
   }
 

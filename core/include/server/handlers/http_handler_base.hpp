@@ -126,7 +126,7 @@ class HttpHandlerBase : public HandlerBase {
   std::vector<auth::AuthCheckerBasePtr> auth_checkers_;
 
   std::optional<logging::Level> log_level_;
-  mutable std::optional<utils::TokenBucket> rate_limit_;
+  mutable utils::TokenBucket rate_limit_;
 };
 
 }  // namespace server::handlers

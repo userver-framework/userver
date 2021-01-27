@@ -66,7 +66,7 @@ ConnectionPool::ConnectionPool(
       testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_(std::move(ei_settings)),
       cancel_limit_{std::max(1UL, settings_.max_size / kCancelRatio),
-                    kCancelPeriod} {}
+                    {1, kCancelPeriod}} {}
 
 ConnectionPool::~ConnectionPool() {
   StopMaintainTask();
