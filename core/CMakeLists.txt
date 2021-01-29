@@ -182,7 +182,7 @@ target_link_libraries(utest
     Boost::program_options
 )
 target_include_directories(utest PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/testing
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
 )
 target_include_directories(utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
