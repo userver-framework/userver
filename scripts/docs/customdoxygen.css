@@ -26,26 +26,50 @@
 
 /* Too wide page makes people uncomfortable */
 .contents {
-    max-width: 900pt;
+    max-width: 1200px;
+}
+
+/* Bigger margins to visualy separate titles */
+div.contents > div.textblock > h1 {
+    margin: 38px 0px 10px;
+    font-size: 25px; /* default in insanely huge */
+}
+
+div.contents > div.textblock > h2,
+div.contents > div.textblock > h3,
+div.contents > div.textblock > h4,
+div.contents > div.textblock > h5,
+div.contents > div.textblock > h6 {
+    margin: 38px 0px 10px;
+}
+
+/* Separate two consecutive titles by smaller margins */
+div.contents > div.textblock > h1 + h2,
+div.contents > div.textblock > h2 + h3,
+div.contents > div.textblock > h3 + h4,
+div.contents > div.textblock > h4 + h5,
+div.contents > div.textblock > h5 + h6
+{
+    margin: 15px 0px 10px;
 }
 
 /* Side navigation */
 .sidenav {
     float: right;
     border: 1px solid #FDCC9A;
-    padding: 10pt 10pt 10pt 15pt;
-    margin: 10pt 10pt 10pt 15pt;
+    padding: 13px 13px 13px 20px;
+    margin: 13px 13px 13px 20px;
 }
 
 .sidenav a {
-  padding-left: 32pt;
+  padding-left: 43px;
   display: block;
 }
 
 /* Set svg logo size */
 #projectlogo {
     width: 80px;
-    padding: 5pt;
+    padding: 7px;
 }
 
 /* Set logo background to black */
@@ -61,7 +85,7 @@
 
 /* More space and scrolling for code snippets */
 div.fragment {
-    padding: 5pt;
+    padding: 7px;
     overflow-x: auto;
 }
 
@@ -75,5 +99,5 @@ div.fragment {
     max-width:100%;
     background-color: #FEFCF9; /* matches .fragment */
     border: 1px solid #FDCC9A; /* matches .fragment */
-    padding: 5pt; /* matches .fragment */
+    padding: 7px; /* matches .fragment */
 }
