@@ -24,9 +24,22 @@
     background: black;
 }
 
-/* Too wide page makes people uncomfortable */
-.contents {
+/* Too wide page makes people uncomfortable, keep content in center */
+div.contents {
     max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.title {
+    text-align: center;
+}
+
+/* Do not stick to screen borders */
+div.contents > * {
+    padding-right: 13px;
+    padding-left: 13px;
+    max-width: calc(100% - 13px - 13px);
 }
 
 /* Bigger margins to visualy separate titles */
@@ -59,6 +72,7 @@ div.contents > div.textblock > h5 + h6
     border: 1px solid #FDCC9A;
     padding: 13px 13px 13px 20px;
     margin: 13px 13px 13px 20px;
+    max-width: 300px;
 }
 
 .sidenav a {
@@ -96,7 +110,7 @@ div.fragment {
 
 /* Scale down image to the page width */
 .image img {
-    max-width:100%;
+    max-width: calc(100% - 7px - 7px - 1px - 1px);
     background-color: #FEFCF9; /* matches .fragment */
     border: 1px solid #FDCC9A; /* matches .fragment */
     padding: 7px; /* matches .fragment */

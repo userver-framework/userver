@@ -63,7 +63,7 @@ function draw_toc() {
           id = make_id($(this).text())
           $(this).attr('id', id);
         }
-        sidenav_content += '<a href="#' + id + '" style="padding-left: ' + index * 10 + 'pt">' + $(this).text() +  '</a>';
+        sidenav_content += '<a href="#' + id + '" style="padding-left: ' + index * 10 + 'pt">• ' + $(this).text() +  '</a>';
     });
     sidenav_content += '</div>';
 
