@@ -15,7 +15,7 @@ taxi_config::Config DoReadDefaultTaxiConfig(const std::string& filename) {
   ::taxi_config::DocsMap docs_map;
   docs_map.Parse(contents, false);
 
-  return taxi_config::Config(docs_map);
+  return MakeTaxiConfig(docs_map);
 }
 
 std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
@@ -26,6 +26,15 @@ std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
 }
 
 }  // namespace impl
+
+taxi_config::Config MakeTaxiConfig(const taxi_config::DocsMap& docs_map) {
+  return taxi_config::Config(docs_map);
+}
+
+std::shared_ptr<const taxi_config::Config> MakeTaxiConfigPtr(
+    const taxi_config::DocsMap& docs_map) {
+  return std::make_shared<const taxi_config::Config>(MakeTaxiConfig(docs_map));
+}
 
 namespace {
 

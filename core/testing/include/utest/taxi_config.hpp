@@ -11,6 +11,11 @@ std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
 
 }  // namespace impl
 
+taxi_config::Config MakeTaxiConfig(const taxi_config::DocsMap& docs_map);
+
+std::shared_ptr<const taxi_config::Config> MakeTaxiConfigPtr(
+    const taxi_config::DocsMap& docs_map);
+
 /// Get taxi_config::Config with default values
 #ifdef DEFAULT_TAXI_CONFIG_FILENAME
 inline std::shared_ptr<const taxi_config::Config> GetDefaultTaxiConfigPtr() {
