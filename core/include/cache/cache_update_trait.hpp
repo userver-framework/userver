@@ -137,11 +137,11 @@ class CacheUpdateTrait {
                          const CacheConfigStatic& config);
 
   /// @returns `true` on success
-  bool LoadFromDump(UpdateData& update, const CacheConfigStatic& config);
+  bool LoadFromDump(const CacheConfigStatic& config);
 
   dump::TimePoint GetLastDumpedUpdate();
 
-  static utils::PeriodicTask::Settings GetPeriodicTaskSettings(
+  utils::PeriodicTask::Settings GetPeriodicTaskSettings(
       const CacheConfigStatic& config);
 
  private:
@@ -155,13 +155,15 @@ class CacheUpdateTrait {
   std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
   utils::PeriodicTask cleanup_task_;
+  bool force_next_update_full_;
+  utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
   std::atomic<bool> cache_modified_;
   std::atomic<dump::TimePoint> last_dumped_update_;
   utils::FastPimpl<dump::DumpManager, 240, 8> dumper_;
+  std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;
 
   struct UpdateData {
     engine::TaskWithResult<void> dump_task;
-    std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder;
     dump::TimePoint last_update;
     dump::TimePoint last_modifying_update;
     std::chrono::steady_clock::time_point last_full_update;

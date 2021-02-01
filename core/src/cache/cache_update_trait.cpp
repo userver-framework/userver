@@ -56,6 +56,9 @@ CacheUpdateTrait::CacheUpdateTrait(CacheConfigStatic&& config,
       periodic_update_enabled_(
           cache_control.IsPeriodicUpdateEnabled(static_config_, name)),
       is_running_(false),
+      force_next_update_full_(false),
+      periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
+                           utils::PeriodicTask::Flags::kCritical},
       cache_modified_(false),
       last_dumped_update_(dump::TimePoint{}),
       dumper_(CacheConfigStatic{static_config_}, name_) {}
@@ -82,19 +85,18 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
     return;
   }
 
-  auto update = update_.Lock();
   const auto config = GetConfig();
 
   // CacheInvalidatorHolder is created here to achieve that cache invalidators
   // are registered in the order of cache component dependency.
   // We exploit the fact that StartPeriodicUpdates is called at the end
   // of all concrete cache component constructors.
-  update->cache_invalidator_holder =
+  cache_invalidator_holder_ =
       std::make_unique<testsuite::CacheInvalidatorHolder>(cache_control_,
                                                           *this);
 
   try {
-    const bool dump_loaded = LoadFromDump(*update, *config);
+    const bool dump_loaded = LoadFromDump(*config);
 
     if ((!dump_loaded || config->wait_for_first_update) &&
         (!(flags & Flag::kNoFirstUpdate) || !periodic_update_enabled_)) {
@@ -104,8 +106,7 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
       // Force first update, do it synchronously
       tracing::Span span("first-update/" + name_);
       try {
-        DoUpdate(UpdateType::kFull, *update, *config);
-        DumpAsyncIfNeeded(DumpType::kForced, *update, *config);
+        DoPeriodicUpdate();
       } catch (const std::exception& e) {
         if (dump_loaded) {
           LOG_ERROR() << "Failed to update cache " << name_
@@ -119,6 +120,17 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
           throw;
         }
       }
+    }
+
+    // Without this clause, after loading a cache dump, no full updates will
+    // ever be performed with kOnlyIncremental. This can be problematic in case
+    // the data in the cache has been corrupted in some way. Even restarting
+    // the service won't help. Solution: perform a single asynchronous full
+    // update.
+    if (dump_loaded &&
+        config->allowed_update_types == AllowedUpdateTypes::kOnlyIncremental) {
+      force_next_update_full_ = true;
+      periodic_task_flags_ |= utils::PeriodicTask::Flags::kNow;
     }
 
     if (periodic_update_enabled_) {
@@ -204,9 +216,15 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
   auto update = update_.Lock();
   const auto config = GetConfig();
 
+  // The update is full regardless of `update_type`:
+  // - if the cache is empty, or
+  // - if the update is forced to be full (see `StartPeriodicUpdates`)
+  const bool force_full_update =
+      std::exchange(force_next_update_full_, false) ||
+      update->last_update == std::chrono::system_clock::time_point{};
+
   auto update_type = UpdateType::kFull;
-  // first update is always full
-  if (update->last_update != std::chrono::system_clock::time_point{}) {
+  if (!force_full_update) {
     switch (config->allowed_update_types) {
       case AllowedUpdateTypes::kOnlyFull:
         update_type = UpdateType::kFull;
@@ -401,8 +419,9 @@ void CacheUpdateTrait::DumpAsyncIfNeeded(DumpType type, UpdateData& update,
   }
 }
 
-bool CacheUpdateTrait::LoadFromDump(UpdateData& update,
-                                    const CacheConfigStatic& config) {
+bool CacheUpdateTrait::LoadFromDump(const CacheConfigStatic& config) {
+  auto update = update_.Lock();
+
   tracing::Span span("load-from-dump/" + name_);
   const auto load_start = std::chrono::steady_clock::now();
 
@@ -433,8 +452,8 @@ bool CacheUpdateTrait::LoadFromDump(UpdateData& update,
   if (!update_time) return false;
 
   LOG_INFO() << "Loaded a cache dump for cache " << name_;
-  update.last_update = *update_time;
-  update.last_modifying_update = *update_time;
+  update->last_update = *update_time;
+  update->last_modifying_update = *update_time;
   utils::AtomicMax(last_dumped_update_, *update_time);
 
   statistics_.dump.is_loaded_ = true;
@@ -450,10 +469,8 @@ dump::TimePoint CacheUpdateTrait::GetLastDumpedUpdate() {
 
 utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings(
     const CacheConfigStatic& config) {
-  return utils::PeriodicTask::Settings(config.update_interval,
-                                       config.update_jitter,
-                                       {utils::PeriodicTask::Flags::kChaotic,
-                                        utils::PeriodicTask::Flags::kCritical});
+  return utils::PeriodicTask::Settings{
+      config.update_interval, config.update_jitter, periodic_task_flags_};
 }
 
 }  // namespace cache
