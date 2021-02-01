@@ -10,8 +10,11 @@
 #include <logging/log.hpp>
 #include <storages/mongo/exception.hpp>
 #include <storages/secdist/component.hpp>
+#include <taxi_config/storage/component.hpp>
 
 #include <storages/mongo/mongo_secdist.hpp>
+#include <storages/mongo/taxi_config.hpp>
+#include <storages/mongo/tcp_connect_precheck.hpp>
 #include <storages/secdist/exceptions.hpp>
 
 namespace components {
@@ -33,10 +36,19 @@ std::string GetSecdistConnectionString(const Secdist& secdist,
   }
 }
 
+void OnConfigUpdateImpl(
+    const std::shared_ptr<const taxi_config::Config>& config) {
+  auto mongo_config = config->Get<storages::mongo::impl::TaxiConfig>();
+  storages::mongo::impl::SetTcpConnectPrecheckEnabled(
+      mongo_config.connect_precheck_enabled);
+}
+
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context) {
+    : LoggableComponentBase(config, context),
+      config_subscription_(context.FindComponent<TaxiConfig>().UpdateAndListen(
+          this, config.Name(), &Mongo::OnConfigUpdate)) {
   auto dbalias = config["dbalias"].As<std::string>("");
 
   std::string connection_string;
@@ -69,13 +81,22 @@ Mongo::~Mongo() { statistics_holder_.Unregister(); }
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
+// it must be a member function for UpdateAndListen
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+void Mongo::OnConfigUpdate(
+    const std::shared_ptr<const taxi_config::Config>& config) {
+  OnConfigUpdateImpl(config);
+}
+
 MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
       name_(config.Name()),
       secdist_(context.FindComponent<Secdist>()),
       pool_config_(config),
-      pool_map_ptr_(std::make_shared<PoolMap>()) {
+      pool_map_ptr_(std::make_shared<PoolMap>()),
+      config_subscription_(context.FindComponent<TaxiConfig>().UpdateAndListen(
+          this, name_, &MultiMongo::OnConfigUpdate)) {
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
@@ -122,6 +143,13 @@ storages::mongo::PoolPtr MultiMongo::FindPool(
   auto it = pool_map->find(dbalias);
   if (it == pool_map->end()) return {};
   return it->second;
+}
+
+// it must be a member function for UpdateAndListen
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+void MultiMongo::OnConfigUpdate(
+    const std::shared_ptr<const taxi_config::Config>& config) {
+  OnConfigUpdateImpl(config);
 }
 
 MultiMongo::PoolSet::PoolSet(MultiMongo& target)

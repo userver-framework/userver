@@ -13,6 +13,8 @@
 #include <storages/mongo/pool.hpp>
 #include <storages/mongo/pool_config.hpp>
 #include <storages/secdist/component.hpp>
+#include <taxi_config/config_fwd.hpp>
+#include <utils/async_event_channel.hpp>
 #include <utils/statistics/storage.hpp>
 #include <utils/swappingsmart.hpp>
 
@@ -72,8 +74,11 @@ class Mongo : public LoggableComponentBase {
   storages::mongo::PoolPtr GetPool() const;
 
  private:
+  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>&);
+
   storages::mongo::PoolPtr pool_;
   utils::statistics::Entry statistics_holder_;
+  utils::AsyncEventSubscriberScope config_subscription_;
 };
 
 // clang-format off
@@ -181,12 +186,14 @@ class MultiMongo : public LoggableComponentBase {
 
  private:
   storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
+  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>&);
 
   const std::string name_;
   const Secdist& secdist_;
   const storages::mongo::PoolConfig pool_config_;
   utils::SwappingSmart<PoolMap> pool_map_ptr_;
   utils::statistics::Entry statistics_holder_;
+  utils::AsyncEventSubscriberScope config_subscription_;
 };
 
 }  // namespace components

@@ -27,6 +27,7 @@
 #include <utils/assert.hpp>
 
 #include <engine/io/poller.hpp>
+#include <storages/mongo/tcp_connect_precheck.hpp>
 #include <storages/mongo/wrappers.hpp>
 
 namespace storages::mongo::impl {
@@ -103,20 +104,20 @@ engine::Deadline DeadlineFromTimeoutMs(int32_t timeout_ms) {
   return engine::Deadline::FromDuration(std::chrono::milliseconds(timeout_ms));
 }
 
-engine::io::Socket ConnectUnix(const mongoc_host_list_t* host,
+engine::io::Socket ConnectUnix(const mongoc_host_list_t& host,
                                int32_t timeout_ms, bson_error_t* error) {
   engine::io::AddrStorage addr;
   auto* sa = addr.As<sockaddr_un>();
   sa->sun_family = AF_UNIX;
 
-  const auto host_len = std::strlen(host->host);
+  const auto host_len = std::strlen(host.host);
   if (host_len >= sizeof(sa->sun_path)) {
     bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                    "Cannot connect to UNIX socket '%s': path too long",
-                   host->host);
+                   host.host);
     return {};
   }
-  std::memcpy(sa->sun_path, host->host, host_len);
+  std::memcpy(sa->sun_path, host.host, host_len);
 
   try {
     return engine::io::Connect(engine::io::Addr(addr, SOCK_STREAM, 0),
@@ -127,11 +128,10 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t* host,
                    "%s", ex.what());
     return {};
   } catch (const std::exception& ex) {
-    LOG_INFO() << "Cannot connect to UNIX socket '" << host->host
-               << "': " << ex;
+    LOG_INFO() << "Cannot connect to UNIX socket '" << host.host << "': " << ex;
   }
   bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
-                 "Cannot connect to UNIX socket '%s'", host->host);
+                 "Cannot connect to UNIX socket '%s'", host.host);
   return {};
 }
 
@@ -140,22 +140,29 @@ struct AddrinfoDeleter {
 };
 using AddrinfoPtr = std::unique_ptr<struct addrinfo, AddrinfoDeleter>;
 
-engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
+engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
                                     int32_t timeout_ms, bson_error_t* error) {
-  const auto port_string = std::to_string(host->port);
+  if (!IsTcpConnectAllowed(host.host_and_port)) {
+    bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
+                   "Too many connection errors in recent period for %s",
+                   host.host_and_port);
+    return {};
+  }
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   struct addrinfo hints;
   std::memset(&hints, 0, sizeof(hints));
-  hints.ai_family = host->family;
+  hints.ai_family = host.family;
   hints.ai_socktype = SOCK_STREAM;
 
   struct addrinfo* ai_result_raw;
-  LOG_DEBUG() << "Trying to resolve " << host->host_and_port;
-  if (getaddrinfo(host->host, port_string.c_str(), &hints, &ai_result_raw)) {
+  LOG_DEBUG() << "Trying to resolve " << host.host_and_port;
+  const auto port_string = std::to_string(host.port);
+  if (getaddrinfo(host.host, port_string.c_str(), &hints, &ai_result_raw)) {
+    ReportTcpConnectError(host.host_and_port);
     bson_set_error(error, MONGOC_ERROR_STREAM,
                    MONGOC_ERROR_STREAM_NAME_RESOLUTION, "Cannot resolve %s",
-                   host->host_and_port);
+                   host.host_and_port);
     return {};
   }
   AddrinfoPtr ai_result(ai_result_raw);
@@ -167,35 +174,38 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t* host,
         auto socket = engine::io::Connect(current_addr,
                                           DeadlineFromTimeoutMs(timeout_ms));
         socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
+        ReportTcpConnectSuccess(host.host_and_port);
         return socket;
       } catch (const engine::io::IoCancelled& ex) {
-        // do not log
+        // do not log or account
         bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                        "%s", ex.what());
         return {};
       } catch (const engine::io::IoException& ex) {
-        LOG_DEBUG() << "Cannot connect to " << host->host << " at "
+        LOG_DEBUG() << "Cannot connect to " << host.host << " at "
                     << current_addr << ": " << ex;
       }
     }
   } catch (const std::exception& ex) {
-    LOG_LIMITED_ERROR() << "Cannot connect to " << host->host << ": " << ex;
+    LOG_LIMITED_ERROR() << "Cannot connect to " << host.host << ": " << ex;
   }
+  ReportTcpConnectError(host.host_and_port);
   bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
-                 "Cannot connect to %s", host->host_and_port);
+                 "Cannot connect to %s", host.host_and_port);
   return {};
 }
 
 engine::io::Socket Connect(const mongoc_host_list_t* host, int32_t timeout_ms,
                            bson_error_t* error) {
+  UASSERT(host);
   switch (host->family) {
     case AF_UNSPEC:  // mongoc thinks this is okay
     case AF_INET:
     case AF_INET6:
-      return ConnectTcpByName(host, timeout_ms, error);
+      return ConnectTcpByName(*host, timeout_ms, error);
 
     case AF_UNIX:
-      return ConnectUnix(host, timeout_ms, error);
+      return ConnectUnix(*host, timeout_ms, error);
 
     default:
       bson_set_error(error, MONGOC_ERROR_STREAM,
