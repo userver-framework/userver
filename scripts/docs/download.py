@@ -23,7 +23,7 @@ SCRIPTS_DOCS_PATH = os.path.join('scripts', 'docs')
 IMAGE_EXTENSIONS = {'png', 'svg', 'jpg', 'jpeg', 'bmp', 'gif'}
 
 DOT_REGEX = r'%%\(graphviz\)\n(.*?)\n%%'
-INCLUDE_REGEX = r'{{[ ]*include[ ]+page=["\'](.*)["\'][ notitle]*}}'
+INCLUDE_REGEX = r'{{[ ]*include[ ]+page=["\'](.*)["\'][ notitle notoc]*}}'
 FILE_REFERENCE_REGEX = (
     r'(?:file:/taxi/backend|https?://jing.yandex-team.ru)/([^ \n})]*)'
 )
@@ -74,6 +74,13 @@ REGEXES = (
     #########################################################################
     # YaWiki links to links with absolute URL
     (r'\(\(/(\S*) (.+?)\)\)', r'((https://wiki.yandex-team.ru/\1 \2))'),
+    #########################################################################
+    # Anchors to current page, like ((#anchor_name Заголовок на странице))
+    # Using JS to avoid URL change by Doxygen
+    (
+        r'\(\(#(\S*?) (.+?[\)]*)\)\)',
+        '<a href="#" onclick=\'location.href="#\\1";return false;\'>\\2</a>',
+    ),
     #########################################################################
     # Local links and dropping anchors :(
     (r'\(\(!/(\S*?)/?#\S+ (.+?[\)]*)\)\)', r'[\2](PY_HELPERS_FILENAME/\1.md)'),
